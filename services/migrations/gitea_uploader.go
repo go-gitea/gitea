@@ -205,7 +205,7 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 		mss = append(mss, &ms)
 	}
 
-	err := models.InsertMilestones(mss...)
+	err := issues_model.InsertMilestones(mss...)
 	if err != nil {
 		return err
 	}
@@ -350,7 +350,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 		rels = append(rels, &rel)
 	}
 
-	return models.InsertReleases(rels...)
+	return repo_model.InsertReleases(rels...)
 }
 
 // SyncTags syncs releases with tags in the database
@@ -430,7 +430,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 	}
 
 	if len(iss) > 0 {
-		if err := models.InsertIssues(iss...); err != nil {
+		if err := issues_model.InsertIssues(iss...); err != nil {
 			return err
 		}
 
@@ -510,7 +510,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 	if len(cms) == 0 {
 		return nil
 	}
-	return models.InsertIssueComments(cms)
+	return issues_model.InsertIssueComments(cms)
 }
 
 // CreatePullRequests creates pull requests
@@ -529,7 +529,7 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 
 		gprs = append(gprs, gpr)
 	}
-	if err := models.InsertPullRequests(ctx, gprs...); err != nil {
+	if err := issues_model.InsertPullRequests(ctx, gprs...); err != nil {
 		return err
 	}
 	for _, pr := range gprs {
