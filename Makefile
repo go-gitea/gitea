@@ -465,8 +465,6 @@ test-check:
 	if [ -n "$$diff" ]; then \
 		echo "make test-backend has changed files in the source tree:"; \
 		echo "$${diff}"; \
-		diff_full=$$(git diff) ; \
-		echo "$${diff_full}"; \
 		echo "You should change the tests to create these files in a temporary directory."; \
 		echo "Do not simply add these files to .gitignore"; \
 		exit 1; \
