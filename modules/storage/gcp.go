@@ -22,9 +22,9 @@ import (
 	"google.golang.org/api/option"
 )
 
-var _ ObjectStorage = &GoogleStorage{}
+var _ ObjectStorage = &GCPStorage{}
 
-type googleObject struct {
+type gcpObject struct {
 	Client  *storage.Client
 	Object  *storage.ObjectHandle
 	Context *context.Context
@@ -35,7 +35,7 @@ type googleObject struct {
 	Offset int64
 }
 
-func (g *googleObject) downloadStream(p []byte) (int, error) {
+func (g *gcpObject) downloadStream(p []byte) (int, error) {
 	if g.Offset > g.Size {
 		return 0, io.EOF
 	}
@@ -63,16 +63,16 @@ func (g *googleObject) downloadStream(p []byte) (int, error) {
 	return n, err
 }
 
-func (g *googleObject) Close() error {
+func (g *gcpObject) Close() error {
 	return nil
 }
 
-func (g *googleObject) Read(p []byte) (int, error) {
+func (g *gcpObject) Read(p []byte) (int, error) {
 	c, err := g.downloadStream(p)
 	return c, err
 }
 
-func (g *googleObject) Seek(offset int64, whence int) (int64, error) {
+func (g *gcpObject) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	default:
 		return 0, fmt.Errorf("Seek: invalid whence")
@@ -90,16 +90,16 @@ func (g *googleObject) Seek(offset int64, whence int) (int64, error) {
 	return offset, nil
 }
 
-func (g *googleObject) Stat() (os.FileInfo, error) {
-	return googleFileInfo{
+func (g *gcpObject) Stat() (os.FileInfo, error) {
+	return gcpFileInfo{
 		g.Name,
 		g.Size,
 		*g.ModTime,
 	}, nil
 }
 
-// GoogleStorage returns a gcp bucket storage
-type GoogleStorage struct {
+// GCPStorage returns a gcp bucket storage
+type GCPStorage struct {
 	cfg      *setting.GoogleStorageConfig
 	ctx      context.Context
 	client   *storage.Client
@@ -153,7 +153,7 @@ func NewGoogleStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage,
 		}
 	}
 
-	return &GoogleStorage{
+	return &GCPStorage{
 		cfg:      &config,
 		ctx:      ctx,
 		client:   googleClient,
@@ -183,7 +183,7 @@ func createBucket(ctx context.Context, client *storage.Client, projectID, bucket
 	return bkt.Create(ctx, projectID, bucketAttrs)
 }
 
-func (g *GoogleStorage) buildGooglePath(p string) string {
+func (g *GCPStorage) buildGooglePath(p string) string {
 	p = util.PathJoinRelX(g.basePath, p)
 	if p == "." {
 		p = "" // gcp doesn't use dot as relative path
@@ -191,20 +191,20 @@ func (g *GoogleStorage) buildGooglePath(p string) string {
 	return p
 }
 
-func (g *GoogleStorage) getObjectNameFromPath(path string) string {
+func (g *GCPStorage) getObjectNameFromPath(path string) string {
 	s := strings.Split(path, "/")
 	return s[len(s)-1]
 }
 
 // Open opens a file
-func (g *GoogleStorage) Open(path string) (Object, error) {
+func (g *GCPStorage) Open(path string) (Object, error) {
 	bkt := g.client.Bucket(g.bucket)
 	obj := bkt.Object(g.buildGooglePath(path))
 	attrs, err := obj.Attrs(g.ctx)
 	if err != nil {
 		return nil, err
 	}
-	return &googleObject{
+	return &gcpObject{
 		Context: &g.ctx,
 		Object:  obj,
 		Name:    g.getObjectNameFromPath(path),
@@ -214,7 +214,7 @@ func (g *GoogleStorage) Open(path string) (Object, error) {
 }
 
 // Save saves a file to gcpstorage
-func (g *GoogleStorage) Save(path string, r io.Reader, size int64) (int64, error) {
+func (g *GCPStorage) Save(path string, r io.Reader, size int64) (int64, error) {
 	g.client.Bucket(g.bucket).Object(path).NewWriter(g.ctx)
 
 	// Open the file that you want to upload
@@ -243,45 +243,45 @@ func (g *GoogleStorage) Save(path string, r io.Reader, size int64) (int64, error
 	return size, nil
 }
 
-type googleFileInfo struct {
+type gcpFileInfo struct {
 	name    string
 	size    int64
 	modTime time.Time
 }
 
-func (g googleFileInfo) Name() string {
+func (g gcpFileInfo) Name() string {
 	return path.Base(g.name)
 }
 
-func (g googleFileInfo) Size() int64 {
+func (g gcpFileInfo) Size() int64 {
 	return g.size
 }
 
-func (g googleFileInfo) ModTime() time.Time {
+func (g gcpFileInfo) ModTime() time.Time {
 	return g.modTime
 }
 
-func (g googleFileInfo) IsDir() bool {
+func (g gcpFileInfo) IsDir() bool {
 	return strings.HasSuffix(g.name, "/")
 }
 
-func (g googleFileInfo) Mode() os.FileMode {
+func (g gcpFileInfo) Mode() os.FileMode {
 	return os.ModePerm
 }
 
-func (g googleFileInfo) Sys() any {
+func (g gcpFileInfo) Sys() any {
 	return nil
 }
 
 // Stat returns the stat information of the object
-func (g *GoogleStorage) Stat(path string) (os.FileInfo, error) {
+func (g *GCPStorage) Stat(path string) (os.FileInfo, error) {
 	bkt := g.client.Bucket(g.bucket)
 	obj := bkt.Object(path)
 	attrs, err := obj.Attrs(g.ctx)
 	if err != nil {
 		return nil, err
 	}
-	return &googleFileInfo{
+	return &gcpFileInfo{
 		name:    g.getObjectNameFromPath(path),
 		size:    attrs.Size,
 		modTime: attrs.Updated,
@@ -289,20 +289,20 @@ func (g *GoogleStorage) Stat(path string) (os.FileInfo, error) {
 }
 
 // Delete delete a file
-func (g *GoogleStorage) Delete(path string) error {
+func (g *GCPStorage) Delete(path string) error {
 	bkt := g.client.Bucket(g.bucket)
 	obj := bkt.Object(path)
 	return obj.Delete(g.ctx)
 }
 
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
-func (g *GoogleStorage) URL(path, name string) (*url.URL, error) {
+func (g *GCPStorage) URL(path, name string) (*url.URL, error) {
 	// TODO: presigned URL for gcp. May need to fetch some info found in the APP credentials file
 	return nil, ErrURLNotSupported
 }
 
 // IterateObjects iterates across the objects in the gcpstorage
-func (g *GoogleStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
+func (g *GCPStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
 	// Ensure the directory name ends with a '/'
 	if dirName != "" && !strings.HasSuffix(dirName, "/") {
 		dirName += "/"
@@ -325,7 +325,7 @@ func (g *GoogleStorage) IterateObjects(dirName string, fn func(path string, obj 
 			return err
 		}
 
-		object := googleObject{
+		object := gcpObject{
 			Name:    objAttrs.Name,
 			Size:    objAttrs.Size,
 			ModTime: &objAttrs.Updated,
