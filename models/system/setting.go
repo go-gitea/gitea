@@ -94,11 +94,17 @@ func GetSetting(ctx context.Context, key string) (*Setting, error) {
 const contextCacheKey = "system_setting"
 
 // GetSettingWithCache returns the setting value via the key
-func GetSettingWithCache(ctx context.Context, key string) (string, error) {
+func GetSettingWithCache(ctx context.Context, key, defaultVal string) (string, error) {
 	return cache.GetWithContextCache(ctx, contextCacheKey, key, func() (string, error) {
 		return cache.GetString(genSettingCacheKey(key), func() (string, error) {
 			res, err := GetSetting(ctx, key)
 			if err != nil {
+				if IsErrSettingIsNotExist(err) {
+					return defaultVal, SetSetting(ctx, &Setting{
+						SettingKey:   key,
+						SettingValue: defaultVal,
+					})
+				}
 				return "", err
 			}
 			return res.SettingValue, nil
@@ -117,8 +123,8 @@ func GetSettingBool(ctx context.Context, key string) bool {
 	return v
 }
 
-func GetSettingWithCacheBool(ctx context.Context, key string) bool {
-	s, _ := GetSettingWithCache(ctx, key)
+func GetSettingWithCacheBool(ctx context.Context, key string, defaultVal bool) bool {
+	s, _ := GetSettingWithCache(ctx, key, strconv.FormatBool(defaultVal))
 	v, _ := strconv.ParseBool(s)
 	return v
 }

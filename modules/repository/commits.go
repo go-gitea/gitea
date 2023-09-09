@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/avatars"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -134,35 +135,21 @@ func (pc *PushCommits) ToAPIPayloadCommits(ctx context.Context, repoPath, repoLi
 // AvatarLink tries to match user in database with e-mail
 // in order to show custom avatar, and falls back to general avatar link.
 func (pc *PushCommits) AvatarLink(ctx context.Context, email string) string {
-	if pc.avatars == nil {
-		pc.avatars = make(map[string]string)
-	}
-	avatar, ok := pc.avatars[email]
-	if ok {
-		return avatar
-	}
-
 	size := avatars.DefaultAvatarPixelSize * setting.Avatar.RenderedSizeFactor
 
-	u, ok := pc.emailUsers[email]
-	if !ok {
-		var err error
-		u, err = user_model.GetUserByEmail(ctx, email)
+	v, _ := cache.GetWithContextCache(ctx, "push_commits", email, func() (string, error) {
+		u, err := user_model.GetUserByEmail(ctx, email)
 		if err != nil {
-			pc.avatars[email] = avatars.GenerateEmailAvatarFastLink(ctx, email, size)
 			if !user_model.IsErrUserNotExist(err) {
 				log.Error("GetUserByEmail: %v", err)
-				return ""
+				return "", err
 			}
-		} else {
-			pc.emailUsers[email] = u
+			return avatars.GenerateEmailAvatarFastLink(ctx, email, size), nil
 		}
-	}
-	if u != nil {
-		pc.avatars[email] = u.AvatarLinkWithSize(ctx, size)
-	}
+		return u.AvatarLinkWithSize(ctx, size), nil
+	})
 
-	return pc.avatars[email]
+	return v
 }
 
 // CommitToPushCommit transforms a git.Commit to PushCommit type.
