@@ -219,6 +219,7 @@ help:
 	@echo " - lint-md                          lint markdown files"
 	@echo " - lint-swagger                     lint swagger files"
 	@echo " - lint-templates                   lint template files"
+	@echo " - lint-yaml                        lint yaml files"
 	@echo " - checks                           run various consistency checks"
 	@echo " - checks-frontend                  check frontend files"
 	@echo " - checks-backend                   check backend files"
@@ -427,6 +428,10 @@ lint-actions:
 .PHONY: lint-templates
 lint-templates: .venv
 	@poetry run djlint $(shell find templates -type f -iname '*.tmpl')
+
+.PHONY: lint-yaml
+lint-yaml: .venv
+	@poetry run yamllint .
 
 .PHONY: watch
 watch:

@@ -39,6 +39,19 @@ jobs:
       - run: make deps-py
       - run: make lint-templates
 
+  lint-yaml:
+    if: needs.files-changed.outputs.yaml == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - run: pip install poetry
+      - run: make deps-py
+      - run: make lint-yaml
+
   lint-swagger:
     if: needs.files-changed.outputs.swagger == 'true'
     needs: files-changed

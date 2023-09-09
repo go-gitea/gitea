@@ -22,3 +22,4 @@ kind/lint:
   - ".markdownlint.yaml"
   - ".spectral.yaml"
   - ".stylelintrc.yaml"
+  - ".yamllint.yaml"

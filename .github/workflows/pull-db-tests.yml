@@ -88,7 +88,7 @@ jobs:
       mysql:
         image: mysql:5.7
         env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: test
         ports:
           - "3306:3306"
@@ -160,7 +160,7 @@ jobs:
       mysql:
         image: mysql:5.7
         env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: test
         ports:
           - "3306:3306"
@@ -205,7 +205,7 @@ jobs:
       mysql8:
         image: mysql:8
         env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: testgitea
         ports:
           - "3306:3306"
