@@ -219,11 +219,11 @@ const sfc = {
         this.loading = true;
 
         // refresh artifacts if upload-artifact step done
-        let artifacts, job;
+        let job, artifacts;
         try {
-          [artifacts, job] = await Promise.all([
-            this.fetchArtifacts(),
+          [job, artifacts] = await Promise.all([
             this.fetchJob(),
+            this.fetchArtifacts(),
           ]);
         } catch (err) {
           // avoid network error while unloading page with fetch in progress
