@@ -13,9 +13,9 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
-	"gopkg.in/yaml.v3"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
 )
 
 func TestBackupRestore(t *testing.T) {
@@ -55,6 +55,18 @@ func sortTable(tablename string, data []map[string]any) {
 	})
 }
 
+func convertBool(b any) bool {
+	switch rr := b.(type) {
+	case bool:
+		return rr
+	case int:
+		return rr != 0
+	default:
+		r, _ := strconv.ParseBool(b.(string))
+		return r
+	}
+}
+
 func fileEqual(t *testing.T, a, b string) {
 	filename := filepath.Base(a)
 	tablename := filename[:len(filename)-len(filepath.Ext(filename))]
@@ -81,16 +93,7 @@ func fileEqual(t *testing.T, a, b string) {
 			for k, v := range data1[i] {
 				switch vv := v.(type) {
 				case bool:
-					var r bool
-					switch rr := data2[i][k].(type) {
-					case bool:
-						r = rr
-					case int:
-						r = rr != 0
-					default:
-						r, _ = strconv.ParseBool(data2[i][k].(string))
-					}
-					assert.EqualValues(t, vv, r, fmt.Sprintf("compare %s with %s", a, b))
+					assert.EqualValues(t, vv, convertBool(data2[i][k]), fmt.Sprintf("compare %s with %s", a, b))
 				case nil:
 					switch data2[i][k].(type) {
 					case nil:
