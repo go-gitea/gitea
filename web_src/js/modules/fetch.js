@@ -4,10 +4,10 @@ function request(url, {headers, json, ...other} = {}) {
   return window.fetch(url, {
     headers: {
       'x-csrf-token': csrfToken,
-      ...(json && {'content-type': 'application/json'}),
+      ...(json !== undefined && {'content-type': 'application/json'}),
       ...headers,
     },
-    ...(json && {body: JSON.stringify(json)}),
+    ...(json !== undefined && {body: JSON.stringify(json)}),
     ...other,
   });
 }
