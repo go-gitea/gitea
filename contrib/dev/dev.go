@@ -17,6 +17,7 @@ import (
 	_ "code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -88,6 +89,7 @@ func devEntry(ctx *cli.Context) error {
 	if err != nil {
 		log.Fatal("common.InitDBEngine: %v", err)
 	}
+	fixUsersTestData()
 	err = unittest.DumpAllFixtures(filepath.Join(pwd, "models", "fixtures"))
 	cancel()
 
@@ -280,11 +282,11 @@ func initDev(pathToGiteaRoot string) {
 	}); err != nil {
 		log.Fatal("CreateTestEngine: %+v", err)
 	}
-	db.SetLogSQL(db.DefaultContext, true)
 
 	if err := unittest.LoadFixtures(); err != nil {
 		log.Fatal("LoadFixtures: %v", err)
 	}
+	initDevUsersPasswds()
 
 	if err := setting.PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
@@ -292,6 +294,65 @@ func initDev(pathToGiteaRoot string) {
 
 	if err := repo_service.SyncRepositoryHooks(db.DefaultContext); err != nil {
 		log.Fatal("repo_service.SyncRepositoryHooks: %v", err)
+	}
+}
+
+func initDevUsersPasswds() {
+	devUserPasswd := os.Getenv("GITEA_DEV_PASSWD")
+	if len(devUserPasswd) == 0 {
+		passwd, err := util.CryptoRandomString(20)
+		if err != nil {
+			log.Fatal("util.CryptoRandomString: %v", err)
+		}
+
+		devUserPasswd = passwd
+		log.Info("all test users passwd: %v", devUserPasswd)
+	}
+
+	err := db.Iterate(db.DefaultContext, nil, func(ctx context.Context, u *user_model.User) error {
+		if u.IsOrganization() {
+			return nil
+		}
+
+		err := u.SetPassword(devUserPasswd)
+		if err != nil {
+			return err
+		}
+
+		return user_model.UpdateUserCols(ctx, u, "passwd", "passwd_hash_algo", "salt")
+	})
+
+	if err != nil {
+		log.Fatal("initDevUsersPasswds: %v", err)
+	}
+}
+
+func fixUsersTestData() {
+	err := db.Iterate(db.DefaultContext, nil, func(ctx context.Context, u *user_model.User) error {
+		u.Passwd = "ZogKvWdyEx:password"
+		u.Salt = "ZogKvWdyEx"
+		u.PasswdHashAlgo = "dummy"
+		u.Language = ""
+		u.UpdatedUnix = 0
+		u.CreatedUnix = 0
+		u.LastLoginUnix = 0
+
+		if u.ID == 32 {
+			u.Passwd = "ZogKvWdyEx:notpassword"
+		}
+
+		cols := []string{"passwd", "passwd_hash_algo", "salt", "language", "last_login_unix", "created_unix", "updated_unix"}
+
+		if err := user_model.ValidateUser(u, cols...); err != nil {
+			return err
+		}
+
+		_, err := db.GetEngine(ctx).ID(u.ID).Cols(cols...).NoAutoTime().Update(u)
+		return err
+	})
+
+	if err != nil {
+		log.Fatal("fixUsersTestData: %v", err)
 	}
 }
 
