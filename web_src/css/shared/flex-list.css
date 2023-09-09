@@ -61,7 +61,6 @@
   font-weight: var(--font-weight-semibold);
   word-break: break-word;
   min-width: 0;
-  min-height: 20px;
 }
 
 .flex-item .flex-item-title a {
