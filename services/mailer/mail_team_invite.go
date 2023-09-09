@@ -46,8 +46,8 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 	inviteRedirect := url.QueryEscape(fmt.Sprintf("/org/invite/%s", invite.Token))
 	inviteURL := fmt.Sprintf("%suser/sign_up?redirect_to=%s", setting.AppURL, inviteRedirect)
 
-	if err == nil && user != nil {
-		// user account exists
+	if (err == nil && user != nil) || setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration {
+		// user account exists or registration disabled
 		inviteURL = fmt.Sprintf("%suser/login?redirect_to=%s", setting.AppURL, inviteRedirect)
 	}
 
