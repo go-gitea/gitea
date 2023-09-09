@@ -109,13 +109,6 @@ func backupTableFixtures(e *xorm.Engine, bean interface{}, dirPath string) error
 		}
 
 		for _, obj := range objs {
-			for k, v := range obj {
-				// convert bytes to string
-				if vv, ok := v.([]byte); ok {
-					obj[k] = string(vv)
-				}
-			}
-
 			node := yaml.Node{
 				Kind: yaml.MappingNode,
 			}
