@@ -203,7 +203,7 @@ const sfc = {
         return {step: idx, cursor: it.cursor, expanded: it.expanded};
       });
       const resp = await POST(`${this.actionsURL}/runs/${this.runIndex}/jobs/${this.jobIndex}`, {
-        json: {logCursors},
+        data: {logCursors},
       });
       return await resp.json();
     },

@@ -1,13 +1,25 @@
 const {csrfToken} = window.config;
 
-function request(url, {headers, json, ...other} = {}) {
-  return window.fetch(url, {
+function request(url, {headers, data, ...other} = {}) {
+  let body, contentType;
+  if (data instanceof FormData) {
+    contentType = 'multipart/form-data';
+    body = data;
+  } else if (data instanceof URLSearchParams) {
+    contentType = 'application/x-www-form-urlencoded';
+    body = data;
+  } else if (data !== undefined) {
+    contentType = 'application/json';
+    body = JSON.stringify(data);
+  }
+
+  return fetch(url, {
     headers: {
       'x-csrf-token': csrfToken,
-      ...(json !== undefined && {'content-type': 'application/json'}),
+      ...(contentType && {'content-type': contentType}),
       ...headers,
     },
-    ...(json !== undefined && {body: JSON.stringify(json)}),
+    ...(body && {body}),
     ...other,
   });
 }
