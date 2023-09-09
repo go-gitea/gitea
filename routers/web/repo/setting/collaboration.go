@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -128,7 +127,7 @@ func ChangeCollaborationAccessMode(ctx *context.Context) {
 
 // DeleteCollaboration delete a collaboration for a repository
 func DeleteCollaboration(ctx *context.Context) {
-	if err := models.DeleteCollaboration(ctx.Repo.Repository, ctx.FormInt64("id")); err != nil {
+	if err := repo_service.DeleteCollaboration(ctx.Repo.Repository, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteCollaboration: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.remove_collaborator_success"))

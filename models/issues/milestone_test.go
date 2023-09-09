@@ -351,3 +351,21 @@ func TestUpdateMilestoneCounters(t *testing.T) {
 	assert.NoError(t, issues_model.UpdateMilestoneCounters(db.DefaultContext, issue.MilestoneID))
 	unittest.CheckConsistencyFor(t, &issues_model.Milestone{})
 }
+
+func TestMigrate_InsertMilestones(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	reponame := "repo1"
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame})
+	name := "milestonetest1"
+	ms := &issues_model.Milestone{
+		RepoID: repo.ID,
+		Name:   name,
+	}
+	err := issues_model.InsertMilestones(ms)
+	assert.NoError(t, err)
+	unittest.AssertExistsAndLoadBean(t, ms)
+	repoModified := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+	assert.EqualValues(t, repo.NumMilestones+1, repoModified.NumMilestones)
+
+	unittest.CheckConsistencyFor(t, &issues_model.Milestone{})
+}
