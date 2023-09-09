@@ -2,7 +2,7 @@ import {isObject} from '../utils.js';
 
 const {csrfToken} = window.config;
 
-// fetch wrapper, use below method name function and the `data` option to pass in data
+// fetch wrapper, use below method name functions and the `data` option to pass in data
 // which will automatically set an appropriate content-type header. For json content,
 // only object and array types are currently supported.
 function request(url, {headers, data, body, ...other} = {}) {
