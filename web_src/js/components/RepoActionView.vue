@@ -5,7 +5,7 @@ import {createApp} from 'vue';
 import {toggleElem} from '../utils/dom.js';
 import {getCurrentLocale} from '../utils.js';
 import {renderAnsi} from '../render/ansi.js';
-import {POST, isNetworkError} from '../modules/fetch.js';
+import {POST} from '../modules/fetch.js';
 
 const sfc = {
   name: 'RepoActionView',
@@ -195,6 +195,11 @@ const sfc = {
       }
     },
 
+    async fetchArtifacts() {
+      const resp = await POST(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
+      return await resp.json();
+    },
+
     async fetchJob() {
       const logCursors = this.currentJobStepsStates.map((it, idx) => {
         // cursor is used to indicate the last position of the logs
@@ -214,15 +219,22 @@ const sfc = {
         this.loading = true;
 
         // refresh artifacts if upload-artifact step done
-        const resp = await POST(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
-        const artifacts = await resp.json();
+        let artifacts, job;
+        try {
+          [artifacts, job] = await Promise.all([
+            this.fetchArtifacts(),
+            this.fetchJob(),
+          ]);
+        } catch (err) {
+          // avoid network error while unloading page with fetch in progress
+          if (!(err instanceof TypeError)) throw err;
+        }
+
         this.artifacts = artifacts['artifacts'] || [];
 
-        const response = await this.fetchJob();
-
         // save the state to Vue data, then the UI will be updated
-        this.run = response.state.run;
-        this.currentJob = response.state.currentJob;
+        this.run = job.state.run;
+        this.currentJob = job.state.currentJob;
 
         // sync the currentJobStepsStates to store the job step states
         for (let i = 0; i < this.currentJob.steps.length; i++) {
@@ -232,7 +244,7 @@ const sfc = {
           }
         }
         // append logs to the UI
-        for (const logs of response.logs.stepsLog) {
+        for (const logs of job.logs.stepsLog) {
           // save the cursor, it will be passed to backend next time
           this.currentJobStepsStates[logs.step].cursor = logs.cursor;
           this.appendLogs(logs.step, logs.lines, logs.started);
@@ -241,11 +253,6 @@ const sfc = {
         if (this.run.done && this.intervalID) {
           clearInterval(this.intervalID);
           this.intervalID = null;
-        }
-      } catch (err) {
-        // avoid error while unloading page with fetch in progress
-        if (!isNetworkError(err.message)) {
-          throw err;
         }
       } finally {
         this.loading = false;
