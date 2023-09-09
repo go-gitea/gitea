@@ -573,3 +573,45 @@ func TestIssueLoadAttributes(t *testing.T) {
 		}
 	}
 }
+
+func assertCreateIssues(t *testing.T, isPull bool) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	reponame := "repo1"
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
+	milestone := unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1})
+	assert.EqualValues(t, milestone.ID, 1)
+	reaction := &issues_model.Reaction{
+		Type:   "heart",
+		UserID: owner.ID,
+	}
+
+	title := "issuetitle1"
+	is := &issues_model.Issue{
+		RepoID:      repo.ID,
+		MilestoneID: milestone.ID,
+		Repo:        repo,
+		Title:       title,
+		Content:     "issuecontent1",
+		IsPull:      isPull,
+		PosterID:    owner.ID,
+		Poster:      owner,
+		IsClosed:    true,
+		Labels:      []*issues_model.Label{label},
+		Reactions:   []*issues_model.Reaction{reaction},
+	}
+	err := issues_model.InsertIssues(is)
+	assert.NoError(t, err)
+
+	i := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: title})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Reaction{Type: "heart", UserID: owner.ID, IssueID: i.ID})
+}
+
+func TestMigrate_CreateIssuesIsPullFalse(t *testing.T) {
+	assertCreateIssues(t, false)
+}
+
+func TestMigrate_CreateIssuesIsPullTrue(t *testing.T) {
+	assertCreateIssues(t, true)
+}
