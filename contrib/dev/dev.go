@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/cmd"
-	_ "code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -25,6 +24,8 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/common"
 	repo_service "code.gitea.io/gitea/services/repository"
+
+	_ "code.gitea.io/gitea/models"
 
 	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
@@ -321,7 +322,6 @@ func initDevUsersPasswds() {
 
 		return user_model.UpdateUserCols(ctx, u, "passwd", "passwd_hash_algo", "salt")
 	})
-
 	if err != nil {
 		log.Fatal("initDevUsersPasswds: %v", err)
 	}
@@ -350,7 +350,6 @@ func fixUsersTestData() {
 		_, err := db.GetEngine(ctx).ID(u.ID).Cols(cols...).NoAutoTime().Update(u)
 		return err
 	})
-
 	if err != nil {
 		log.Fatal("fixUsersTestData: %v", err)
 	}
