@@ -95,7 +95,7 @@ Some lint rules and IDEs also have warnings if the returned Promise is not handl
 ### Fetching data
 
 To fetch data, use the wrapper functions `GET`, `POST` etc. from `modules/fetch`. They
-accept a `data` attribute for the content and will automatically set CSFR token for and
+accept a `data` option for the content and will automatically set CSFR token for and
 return a [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response).
 
 ### HTML Attributes and `dataset`
