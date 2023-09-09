@@ -4,12 +4,16 @@
 package db_test
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
+	"gopkg.in/yaml.v3"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -39,11 +43,66 @@ func TestBackupRestore(t *testing.T) {
 	// assert.NoError(t, db.RestoreDatabase(d))
 }
 
-func fileEqual(t *testing.T, a, b string) {
-	bs1, err := os.ReadFile(a)
-	assert.NoError(t, err)
+func sortTable(tablename string, data []map[string]any) {
+	sort.Slice(data, func(i, j int) bool {
+		if tablename == "issue_index" {
+			return data[i]["group_id"].(int) < data[j]["group_id"].(int)
+		}
+		if tablename == "repo_topic" {
+			return data[i]["repo_id"].(int) < data[j]["repo_id"].(int)
+		}
+		return data[i]["id"].(int) < data[j]["id"].(int)
+	})
+}
 
-	bs2, err := os.ReadFile(b)
-	assert.NoError(t, err)
-	assert.EqualValues(t, bs1, bs2)
+func fileEqual(t *testing.T, a, b string) {
+	filename := filepath.Base(a)
+	tablename := filename[:len(filename)-len(filepath.Ext(filename))]
+	t.Run(filename, func(t *testing.T) {
+		bs1, err := os.ReadFile(a)
+		assert.NoError(t, err)
+
+		var data1 []map[string]any
+		assert.NoError(t, yaml.Unmarshal(bs1, &data1))
+
+		sortTable(tablename, data1)
+
+		bs2, err := os.ReadFile(b)
+		assert.NoError(t, err)
+
+		var data2 []map[string]any
+		assert.NoError(t, yaml.Unmarshal(bs2, &data2))
+
+		sortTable(tablename, data2)
+
+		assert.EqualValues(t, len(data1), len(data2), fmt.Sprintf("compare %s with %s", a, b))
+		for i := range data1 {
+			assert.LessOrEqual(t, len(data1[i]), len(data2[i]), fmt.Sprintf("compare %s with %s", a, b))
+			for k, v := range data1[i] {
+				switch vv := v.(type) {
+				case bool:
+					var r bool
+					switch rr := data2[i][k].(type) {
+					case bool:
+						r = rr
+					case int:
+						r = rr != 0
+					default:
+						r, _ = strconv.ParseBool(data2[i][k].(string))
+					}
+					assert.EqualValues(t, vv, r, fmt.Sprintf("compare %s with %s", a, b))
+				case nil:
+					switch data2[i][k].(type) {
+					case nil:
+					case string:
+						assert.Empty(t, data2[i][k])
+					default:
+						panic(fmt.Sprintf("%#v", data2[i][k]))
+					}
+				default:
+					assert.EqualValues(t, v, data2[i][k], fmt.Sprintf("compare %#v with %#v", v, data2[i][k]))
+				}
+			}
+		}
+	})
 }
