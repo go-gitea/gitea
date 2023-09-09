@@ -27,17 +27,19 @@ The following examples use `dnf`.
 To register the RPM registry add the url to the list of known apt sources:
 
 ```shell
-dnf config-manager --add-repo https://gitea.example.com/api/packages/{owner}/rpm.repo
+dnf config-manager --add-repo https://gitea.example.com/api/packages/{owner}/rpm/{distribution}/{component}.repo
 ```
 
-| Placeholder | Description |
-| ----------- | ----------- |
-| `owner`     | The owner of the package. |
+| Placeholder | Description                                        |
+| ----------- |----------------------------------------------------|
+| `owner`     | The owner of the package.                          |
+| `distribution` | System Name, e.g. `centos`, `suse` , `rockylinux`. |
+| `component` | System version, e.g. `el7`, `el9` , `fc38`.        |
 
 If the registry is private, provide credentials in the url. You can use a password or a [personal access token](development/api-usage.md#authentication):
 
 ```shell
-dnf config-manager --add-repo https://{username}:{your_password_or_token}@gitea.example.com/api/packages/{owner}/rpm.repo
+dnf config-manager --add-repo https://{username}:{your_password_or_token}@gitea.example.com/api/packages/{owner}/rpm/{distribution}/{component}.repo
 ```
 
 You have to add the credentials to the urls in the `rpm.repo` file in `/etc/yum.repos.d` too.
@@ -47,19 +49,21 @@ You have to add the credentials to the urls in the `rpm.repo` file in `/etc/yum.
 To publish a RPM package (`*.rpm`), perform a HTTP PUT operation with the package content in the request body.
 
 ```
-PUT https://gitea.example.com/api/packages/{owner}/rpm/upload
+PUT https://gitea.example.com/api/packages/{owner}/rpm/{distribution}/{component}/upload
 ```
 
 | Parameter | Description |
 | --------- | ----------- |
 | `owner`   | The owner of the package. |
+| `distribution` | System Name, e.g. `centos`, `suse` , `rockylinux`. |
+| `component` | System version, e.g. `el7`, `el9` , `fc38`.        |
 
 Example request using HTTP Basic authentication:
 
 ```shell
 curl --user your_username:your_password_or_token \
      --upload-file path/to/file.rpm \
-     https://gitea.example.com/api/packages/testuser/rpm/upload
+     https://gitea.example.com/api/packages/testuser/rpm/centos/el7/upload
 ```
 
 If you are using 2FA or OAuth use a [personal access token](development/api-usage.md#authentication) instead of the password.
@@ -78,21 +82,23 @@ The server responds with the following HTTP Status codes.
 To delete an RPM package perform a HTTP DELETE operation. This will delete the package version too if there is no file left.
 
 ```
-DELETE https://gitea.example.com/api/packages/{owner}/rpm/{package_name}/{package_version}/{architecture}
+DELETE https://gitea.example.com/api/packages/{owner}/rpm/{distribution}/package/{package_name}/{package_version}/{architecture}
 ```
 
-| Parameter         | Description |
-| ----------------- | ----------- |
-| `owner`           | The owner of the package. |
-| `package_name`    | The package name. |
-| `package_version` | The package version. |
-| `architecture`    | The package architecture. |
+| Parameter         | Description                |
+|-------------------|----------------------------|
+| `owner`           | The owner of the package.  |
+| `distribution`    | The package distribution.  |
+| `component`       | The package group version. |
+| `package_name`    | The package name.          |
+| `package_version` | The package version.       |
+| `architecture`    | The package architecture.  |
 
 Example request using HTTP Basic authentication:
 
 ```shell
 curl --user your_username:your_token_or_password -X DELETE \
-     https://gitea.example.com/api/packages/testuser/rpm/test-package/1.0.0/x86_64
+     https://gitea.example.com/api/packages/testuser/rpm/centos/el7/package/test-package/1.0.0/x86_64
 ```
 
 The server responds with the following HTTP Status codes.

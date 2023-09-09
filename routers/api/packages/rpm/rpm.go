@@ -33,11 +33,13 @@ func apiError(ctx *context.Context, status int, obj any) {
 
 // https://dnf.readthedocs.io/en/latest/conf_ref.html
 func GetRepositoryConfig(ctx *context.Context) {
+	distribution := ctx.Params("distribution")
+	component := ctx.Params("component")
 	url := fmt.Sprintf("%sapi/packages/%s/rpm", setting.AppURL, ctx.Package.Owner.Name)
 
-	ctx.PlainText(http.StatusOK, `[gitea-`+ctx.Package.Owner.LowerName+`]
-name=`+ctx.Package.Owner.Name+` - `+setting.AppName+`
-baseurl=`+url+`
+	ctx.PlainText(http.StatusOK, `[gitea-`+ctx.Package.Owner.LowerName+`-`+distribution+`-`+component+`]
+name=`+ctx.Package.Owner.Name+` - `+setting.AppName+` - `+distribution+` - `+component+`
+baseurl=`+url+`/`+distribution+`/`+component+`
 enabled=1
 gpgcheck=1
 gpgkey=`+url+`/repository.key`)
@@ -69,7 +71,8 @@ func GetRepositoryFile(ctx *context.Context) {
 		ctx,
 		pv,
 		&packages_service.PackageFileInfo{
-			Filename: ctx.Params("filename"),
+			Filename:     ctx.Params("filename"),
+			CompositeKey: fmt.Sprintf("%s|%s", ctx.Params("distribution"), ctx.Params("component")),
 		},
 	)
 	if err != nil {
@@ -121,7 +124,9 @@ func UploadPackageFile(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-
+	distribution := ctx.Params("distribution")
+	component := ctx.Params("component")
+	compositeKey := fmt.Sprintf("%s|%s", distribution, component)
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
@@ -135,13 +140,17 @@ func UploadPackageFile(ctx *context.Context) {
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: fmt.Sprintf("%s-%s.%s.rpm", pck.Name, pck.Version, pck.FileMetadata.Architecture),
+				Filename:     fmt.Sprintf("%s-%s.%s.rpm", pck.Name, pck.Version, pck.FileMetadata.Architecture),
+				CompositeKey: compositeKey,
 			},
 			Creator: ctx.Doer,
 			Data:    buf,
 			IsLead:  true,
 			Properties: map[string]string{
-				rpm_module.PropertyMetadata: string(fileMetadataRaw),
+				rpm_module.PropertyMetadata:     string(fileMetadataRaw),
+				rpm_module.PropertyDistribution: distribution,
+				rpm_module.PropertyComponent:    component,
+				rpm_module.PropertyArchitecture: pck.FileMetadata.Architecture,
 			},
 		},
 	)
@@ -157,7 +166,7 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	if err := rpm_service.BuildRepositoryFiles(ctx, ctx.Package.Owner.ID); err != nil {
+	if err := rpm_service.BuildRepositoryFiles(ctx, ctx.Package.Owner.ID, compositeKey); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -168,7 +177,6 @@ func UploadPackageFile(ctx *context.Context) {
 func DownloadPackageFile(ctx *context.Context) {
 	name := ctx.Params("name")
 	version := ctx.Params("version")
-
 	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
@@ -178,7 +186,8 @@ func DownloadPackageFile(ctx *context.Context) {
 			Version:     version,
 		},
 		&packages_service.PackageFileInfo{
-			Filename: fmt.Sprintf("%s-%s.%s.rpm", name, version, ctx.Params("architecture")),
+			Filename:     fmt.Sprintf("%s-%s.%s.rpm", name, version, ctx.Params("architecture")),
+			CompositeKey: fmt.Sprintf("%s|%s", ctx.Params("distribution"), ctx.Params("component")),
 		},
 	)
 	if err != nil {
@@ -197,7 +206,7 @@ func DeletePackageFile(webctx *context.Context) {
 	name := webctx.Params("name")
 	version := webctx.Params("version")
 	architecture := webctx.Params("architecture")
-
+	compositeKey := fmt.Sprintf("%s|%s", webctx.Params("distribution"), webctx.Params("component"))
 	var pd *packages_model.PackageDescriptor
 
 	err := db.WithTx(webctx, func(ctx stdctx.Context) error {
@@ -210,7 +219,7 @@ func DeletePackageFile(webctx *context.Context) {
 			ctx,
 			pv.ID,
 			fmt.Sprintf("%s-%s.%s.rpm", name, version, architecture),
-			packages_model.EmptyFileKey,
+			compositeKey,
 		)
 		if err != nil {
 			return err
@@ -250,7 +259,7 @@ func DeletePackageFile(webctx *context.Context) {
 		notify_service.PackageDelete(webctx, webctx.Doer, pd)
 	}
 
-	if err := rpm_service.BuildRepositoryFiles(webctx, webctx.Package.Owner.ID); err != nil {
+	if err := rpm_service.BuildRepositoryFiles(webctx, webctx.Package.Owner.ID, compositeKey); err != nil {
 		apiError(webctx, http.StatusInternalServerError, err)
 		return
 	}

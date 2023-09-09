@@ -513,14 +513,16 @@ func CommonRoutes() *web.Route {
 			r.Get("/simple/{id}", pypi.PackageMetadata)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/rpm", func() {
-			r.Get(".repo", rpm.GetRepositoryConfig)
 			r.Get("/repository.key", rpm.GetRepositoryKey)
-			r.Put("/upload", reqPackageAccess(perm.AccessModeWrite), rpm.UploadPackageFile)
-			r.Group("/package/{name}/{version}/{architecture}", func() {
-				r.Get("", rpm.DownloadPackageFile)
-				r.Delete("", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
+			r.Group("/{distribution}/{component}", func() {
+				r.Get(".repo", rpm.GetRepositoryConfig)
+				r.Put("/upload", reqPackageAccess(perm.AccessModeWrite), rpm.UploadPackageFile)
+				r.Group("/package/{name}/{version}/{architecture}", func() {
+					r.Get("", rpm.DownloadPackageFile)
+					r.Delete("", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
+				})
+				r.Get("/repodata/{filename}", rpm.GetRepositoryFile)
 			})
-			r.Get("/repodata/{filename}", rpm.GetRepositoryFile)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/rubygems", func() {
 			r.Get("/specs.4.8.gz", rubygems.EnumeratePackages)
