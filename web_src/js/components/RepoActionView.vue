@@ -5,8 +5,7 @@ import {createApp} from 'vue';
 import {toggleElem} from '../utils/dom.js';
 import {getCurrentLocale} from '../utils.js';
 import {renderAnsi} from '../render/ansi.js';
-
-const {csrfToken} = window.config;
+import {POST, isNetworkError} from '../modules/fetch.js';
 
 const sfc = {
   name: 'RepoActionView',
@@ -145,11 +144,11 @@ const sfc = {
     },
     // cancel a run
     cancelRun() {
-      this.fetchPost(`${this.run.link}/cancel`);
+      POST(`${this.run.link}/cancel`);
     },
     // approve a run
     approveRun() {
-      this.fetchPost(`${this.run.link}/approve`);
+      POST(`${this.run.link}/approve`);
     },
 
     createLogLine(line, startTime, stepIndex) {
@@ -203,10 +202,9 @@ const sfc = {
         // for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
         return {step: idx, cursor: it.cursor, expanded: it.expanded};
       });
-      const resp = await this.fetchPost(
-        `${this.actionsURL}/runs/${this.runIndex}/jobs/${this.jobIndex}`,
-        JSON.stringify({logCursors}),
-      );
+      const resp = await POST(`${this.actionsURL}/runs/${this.runIndex}/jobs/${this.jobIndex}`, {
+        json: {logCursors},
+      });
       return await resp.json();
     },
 
@@ -216,7 +214,7 @@ const sfc = {
         this.loading = true;
 
         // refresh artifacts if upload-artifact step done
-        const resp = await this.fetchPost(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
+        const resp = await POST(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
         const artifacts = await resp.json();
         this.artifacts = artifacts['artifacts'] || [];
 
@@ -244,21 +242,14 @@ const sfc = {
           clearInterval(this.intervalID);
           this.intervalID = null;
         }
+      } catch (err) {
+        // avoid error while unloading page with fetch in progress
+        if (!isNetworkError(err.message)) {
+          throw err;
+        }
       } finally {
         this.loading = false;
       }
-    },
-
-
-    fetchPost(url, body) {
-      return fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Csrf-Token': csrfToken,
-        },
-        body,
-      });
     },
 
     isDone(status) {
