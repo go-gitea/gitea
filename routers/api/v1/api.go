@@ -1394,6 +1394,8 @@ func Routes() *web.Route {
 					m.Post("/orgs", bind(api.CreateOrgOption{}), admin.CreateOrg)
 					m.Post("/repos", bind(api.CreateRepoOption{}), admin.CreateRepo)
 					m.Post("/rename", bind(api.RenameUserOption{}), admin.RenameUser)
+					m.Post("/badges", bind(api.UserBadgeOption{}), admin.AddUserBadges)
+					m.Delete("/badges", bind(api.UserBadgeOption{}), admin.DeleteUserBadges)
 				}, context_service.UserAssignmentAPI())
 			})
 			m.Group("/emails", func() {
