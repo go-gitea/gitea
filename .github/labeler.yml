@@ -20,6 +20,9 @@ kind/build:
 kind/package:
   - "modules/packages/**"
 
+kind/cli:
+  - "cmd/**"
+
 kind/lint:
   - ".eslintrc.yaml"
   - ".golangci.yml"
