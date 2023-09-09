@@ -1219,28 +1219,30 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 
 	// Check reviewers
 	var reviewerIDs []int64
-	if len(form.ReviewerIDs) > 0 {
-		reviewerIDs, err = base.StringsToInt64s(strings.Split(form.ReviewerIDs, ","))
-		if err != nil {
-			return nil, nil, nil, 0, 0
-		}
-
-		// Check if the passed reviewers (user/team) actually exist
-		for _, rID := range reviewerIDs {
-			// negative reviewIDs represent team requests
-			if rID < 0 {
-				_, err := organization.GetTeamByID(ctx, -rID)
-				if err != nil {
-					ctx.ServerError("GetTeamByID", err)
-					return nil, nil, nil, 0, 0
-				}
-				continue
+	if isPull {
+		if len(form.ReviewerIDs) > 0 {
+			reviewerIDs, err = base.StringsToInt64s(strings.Split(form.ReviewerIDs, ","))
+			if err != nil {
+				return nil, nil, nil, 0, 0
 			}
 
-			_, err := user_model.GetUserByID(ctx, rID)
-			if err != nil {
-				ctx.ServerError("GetUserByID", err)
-				return nil, nil, nil, 0, 0
+			// Check if the passed reviewers (user/team) actually exist
+			for _, rID := range reviewerIDs {
+				// negative reviewIDs represent team requests
+				if rID < 0 {
+					_, err := organization.GetTeamByID(ctx, -rID)
+					if err != nil {
+						ctx.ServerError("GetTeamByID", err)
+						return nil, nil, nil, 0, 0
+					}
+					continue
+				}
+
+				_, err := user_model.GetUserByID(ctx, rID)
+				if err != nil {
+					ctx.ServerError("GetUserByID", err)
+					return nil, nil, nil, 0, 0
+				}
 			}
 		}
 	}
