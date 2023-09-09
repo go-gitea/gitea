@@ -22320,6 +22320,24 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "UserBadgeOption": {
+      "description": "UserBadgeOption options for link between users and badges",
+      "type": "object",
+      "properties": {
+        "badge_slugs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "BadgeSlugs",
+          "example": [
+            "badge1",
+            "badge2"
+          ]
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "UserHeatmapData": {
       "description": "UserHeatmapData represents the data needed to create a heatmap",
       "type": "object",
@@ -23514,7 +23532,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/CreateOrUpdateSecretOption"
+        "$ref": "#/definitions/UserBadgeOption"
       }
     },
     "redirect": {

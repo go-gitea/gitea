@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package structs
@@ -126,7 +127,7 @@ type UserBadge struct {
 }
 
 // UserBadgeOption options for link between users and badges
-// swagger:model
 type UserBadgeOption struct {
+	// example: ["badge1","badge2"]
 	BadgeSlugs []string `json:"badge_slugs" binding:"Required"`
 }
