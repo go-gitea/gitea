@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package nosql
 
@@ -55,7 +54,7 @@ func (m *Manager) GetLevelDB(connection string) (db *leveldb.DB, err error) {
 	// Because we want associate any goroutines created by this call to the main nosqldb context we need to
 	// wrap this in a goroutine labelled with the nosqldb context
 	done := make(chan struct{})
-	var recovered interface{}
+	var recovered any
 	go func() {
 		defer func() {
 			recovered = recover()

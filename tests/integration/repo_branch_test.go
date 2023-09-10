@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -121,9 +120,9 @@ func testCreateBranches(t *testing.T, giteaURL *url.URL) {
 			req := NewRequest(t, "GET", redirectURL)
 			resp := session.MakeRequest(t, req, http.StatusOK)
 			htmlDoc := NewHTMLParser(t, resp.Body)
-			assert.Equal(t,
-				test.FlashMessage,
+			assert.Contains(t,
 				strings.TrimSpace(htmlDoc.doc.Find(".ui.message").Text()),
+				test.FlashMessage,
 			)
 		}
 	}

@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -18,12 +17,12 @@ func TaskStatus(ctx *context.Context) {
 	task, opts, err := admin_model.GetMigratingTaskByID(ctx.ParamsInt64("task"), ctx.Doer.ID)
 	if err != nil {
 		if admin_model.IsErrTaskDoesNotExist(err) {
-			ctx.JSON(http.StatusNotFound, map[string]interface{}{
+			ctx.JSON(http.StatusNotFound, map[string]any{
 				"error": "task `" + strconv.FormatInt(ctx.ParamsInt64("task"), 10) + "` does not exist",
 			})
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]any{
 			"err": err,
 		})
 		return
@@ -37,13 +36,13 @@ func TaskStatus(ctx *context.Context) {
 		if err := json.Unmarshal([]byte(message), &translatableMessage); err != nil {
 			translatableMessage = admin_model.TranslatableMessage{
 				Format: "migrate.migrating_failed.error",
-				Args:   []interface{}{task.Message},
+				Args:   []any{task.Message},
 			}
 		}
 		message = ctx.Tr(translatableMessage.Format, translatableMessage.Args...)
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"status":    task.Status,
 		"message":   message,
 		"repo-id":   task.RepoID,

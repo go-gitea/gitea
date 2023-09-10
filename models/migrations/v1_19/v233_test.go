@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_19 //nolint
 
@@ -8,10 +7,10 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -19,9 +18,9 @@ import (
 func Test_AddHeaderAuthorizationEncryptedColWebhook(t *testing.T) {
 	// Create Webhook table
 	type Webhook struct {
-		ID   int64            `xorm:"pk autoincr"`
-		Type webhook.HookType `xorm:"VARCHAR(16) 'type'"`
-		Meta string           `xorm:"TEXT"` // store hook-specific attributes
+		ID   int64                   `xorm:"pk autoincr"`
+		Type webhook_module.HookType `xorm:"VARCHAR(16) 'type'"`
+		Meta string                  `xorm:"TEXT"` // store hook-specific attributes
 
 		// HeaderAuthorizationEncrypted should be accessed using HeaderAuthorization() and SetHeaderAuthorization()
 		HeaderAuthorizationEncrypted string `xorm:"TEXT"`
@@ -80,7 +79,7 @@ func Test_AddHeaderAuthorizationEncryptedColWebhook(t *testing.T) {
 		return
 	}
 	for _, h := range hookTasks {
-		var m map[string]interface{}
+		var m map[string]any
 		err := json.Unmarshal([]byte(h.PayloadContent), &m)
 		assert.NoError(t, err)
 		assert.Nil(t, m["access_token"])

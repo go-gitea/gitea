@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package models
 
@@ -317,90 +316,6 @@ func (err ErrFilePathProtected) Error() string {
 
 func (err ErrFilePathProtected) Unwrap() error {
 	return util.ErrPermissionDenied
-}
-
-// __________                             .__
-// \______   \____________    ____   ____ |  |__
-//  |    |  _/\_  __ \__  \  /    \_/ ___\|  |  \
-//  |    |   \ |  | \// __ \|   |  \  \___|   Y  \
-//  |______  / |__|  (____  /___|  /\___  >___|  /
-//         \/             \/     \/     \/     \/
-
-// ErrBranchDoesNotExist represents an error that branch with such name does not exist.
-type ErrBranchDoesNotExist struct {
-	BranchName string
-}
-
-// IsErrBranchDoesNotExist checks if an error is an ErrBranchDoesNotExist.
-func IsErrBranchDoesNotExist(err error) bool {
-	_, ok := err.(ErrBranchDoesNotExist)
-	return ok
-}
-
-func (err ErrBranchDoesNotExist) Error() string {
-	return fmt.Sprintf("branch does not exist [name: %s]", err.BranchName)
-}
-
-func (err ErrBranchDoesNotExist) Unwrap() error {
-	return util.ErrNotExist
-}
-
-// ErrBranchAlreadyExists represents an error that branch with such name already exists.
-type ErrBranchAlreadyExists struct {
-	BranchName string
-}
-
-// IsErrBranchAlreadyExists checks if an error is an ErrBranchAlreadyExists.
-func IsErrBranchAlreadyExists(err error) bool {
-	_, ok := err.(ErrBranchAlreadyExists)
-	return ok
-}
-
-func (err ErrBranchAlreadyExists) Error() string {
-	return fmt.Sprintf("branch already exists [name: %s]", err.BranchName)
-}
-
-func (err ErrBranchAlreadyExists) Unwrap() error {
-	return util.ErrAlreadyExist
-}
-
-// ErrBranchNameConflict represents an error that branch name conflicts with other branch.
-type ErrBranchNameConflict struct {
-	BranchName string
-}
-
-// IsErrBranchNameConflict checks if an error is an ErrBranchNameConflict.
-func IsErrBranchNameConflict(err error) bool {
-	_, ok := err.(ErrBranchNameConflict)
-	return ok
-}
-
-func (err ErrBranchNameConflict) Error() string {
-	return fmt.Sprintf("branch conflicts with existing branch [name: %s]", err.BranchName)
-}
-
-func (err ErrBranchNameConflict) Unwrap() error {
-	return util.ErrAlreadyExist
-}
-
-// ErrBranchesEqual represents an error that branch name conflicts with other branch.
-type ErrBranchesEqual struct {
-	BaseBranchName string
-	HeadBranchName string
-}
-
-// IsErrBranchesEqual checks if an error is an ErrBranchesEqual.
-func IsErrBranchesEqual(err error) bool {
-	_, ok := err.(ErrBranchesEqual)
-	return ok
-}
-
-func (err ErrBranchesEqual) Error() string {
-	return fmt.Sprintf("branches are equal [head: %sm base: %s]", err.HeadBranchName, err.BaseBranchName)
-}
-
-func (err ErrBranchesEqual) Unwrap() error {
-	return util.ErrInvalidArgument
 }
 
 // ErrDisallowedToMerge represents an error that a branch is protected and the current user is not allowed to modify it.

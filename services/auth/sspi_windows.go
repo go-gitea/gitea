@@ -1,30 +1,27 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/avatars"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth/source/sspi"
-	"code.gitea.io/gitea/services/mailer"
 
 	gouuid "github.com/google/uuid"
 	"github.com/quasoft/websspi"
-	"github.com/unrolled/render"
 )
 
 const (
@@ -35,58 +32,46 @@ var (
 	// sspiAuth is a global instance of the websspi authentication package,
 	// which is used to avoid acquiring the server credential handle on
 	// every request
-	sspiAuth *websspi.Authenticator
+	sspiAuth     *websspi.Authenticator
+	sspiAuthOnce sync.Once
 
 	// Ensure the struct implements the interface.
-	_ Method        = &SSPI{}
-	_ Named         = &SSPI{}
-	_ Initializable = &SSPI{}
-	_ Freeable      = &SSPI{}
+	_ Method = &SSPI{}
 )
 
 // SSPI implements the SingleSignOn interface and authenticates requests
 // via the built-in SSPI module in Windows for SPNEGO authentication.
 // On successful authentication returns a valid user object.
 // Returns nil if authentication fails.
-type SSPI struct {
-	rnd *render.Render
-}
-
-// Init creates a new global websspi.Authenticator object
-func (s *SSPI) Init(ctx context.Context) error {
-	config := websspi.NewConfig()
-	var err error
-	sspiAuth, err = websspi.New(config)
-	if err != nil {
-		return err
-	}
-	_, s.rnd = templates.HTMLRenderer(ctx)
-	return nil
-}
+type SSPI struct{}
 
 // Name represents the name of auth method
 func (s *SSPI) Name() string {
 	return "sspi"
 }
 
-// Free releases resources used by the global websspi.Authenticator object
-func (s *SSPI) Free() error {
-	return sspiAuth.Free()
-}
-
 // Verify uses SSPI (Windows implementation of SPNEGO) to authenticate the request.
 // If authentication is successful, returns the corresponding user object.
 // If negotiation should continue or authentication fails, immediately returns a 401 HTTP
 // response code, as required by the SPNEGO protocol.
-func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
+func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
+	var errInit error
+	sspiAuthOnce.Do(func() {
+		config := websspi.NewConfig()
+		sspiAuth, errInit = websspi.New(config)
+	})
+	if errInit != nil {
+		return nil, errInit
+	}
+
 	if !s.shouldAuthenticate(req) {
-		return nil
+		return nil, nil
 	}
 
 	cfg, err := s.getConfig()
 	if err != nil {
 		log.Error("could not get SSPI config: %v", err)
-		return nil
+		return nil, err
 	}
 
 	log.Trace("SSPI Authorization: Attempting to authenticate")
@@ -103,13 +88,10 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 		}
 		store.GetData()["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 		store.GetData()["EnableSSPI"] = true
-
-		err := s.rnd.HTML(w, http.StatusUnauthorized, string(tplSignIn), templates.BaseVars().Merge(store.GetData()))
-		if err != nil {
-			log.Error("%v", err)
-		}
-
-		return nil
+		// in this case, the Verify function is called in Gitea's web context
+		// FIXME: it doesn't look good to render the page here, why not redirect?
+		gitea_context.GetWebContext(req).HTML(http.StatusUnauthorized, tplSignIn)
+		return nil, err
 	}
 	if outToken != "" {
 		sspiAuth.AppendAuthenticateHeader(w, outToken)
@@ -117,7 +99,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 
 	username := sanitizeUsername(userInfo.Username, cfg)
 	if len(username) == 0 {
-		return nil
+		return nil, nil
 	}
 	log.Info("Authenticated as %s\n", username)
 
@@ -125,16 +107,16 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByName: %v", err)
-			return nil
+			return nil, err
 		}
 		if !cfg.AutoCreateUsers {
 			log.Error("User '%s' not found", username)
-			return nil
+			return nil, nil
 		}
 		user, err = s.newUser(username, cfg)
 		if err != nil {
 			log.Error("CreateUser: %v", err)
-			return nil
+			return nil, err
 		}
 	}
 
@@ -144,7 +126,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 	}
 
 	log.Trace("SSPI Authorization: Logged in user %-v", user)
-	return user
+	return user, nil
 }
 
 // getConfig retrieves the SSPI configuration from login sources
@@ -198,8 +180,6 @@ func (s *SSPI) newUser(username string, cfg *sspi.Source) (*user_model.User, err
 	if err := user_model.CreateUser(user, overwriteDefault); err != nil {
 		return nil, err
 	}
-
-	mailer.SendRegisterNotifyMail(user)
 
 	return user, nil
 }

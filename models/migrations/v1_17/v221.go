@@ -1,8 +1,7 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
-package v1_17 // nolint
+package v1_17 //nolint
 
 import (
 	"encoding/base32"
@@ -31,7 +30,7 @@ func StoreWebauthnCredentialIDAsBytes(x *xorm.Engine) error {
 		CreatedUnix       timeutil.TimeStamp `xorm:"INDEX created"`
 		UpdatedUnix       timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
-	if err := x.Sync2(&webauthnCredential{}); err != nil {
+	if err := x.Sync(&webauthnCredential{}); err != nil {
 		return err
 	}
 

@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build gogit
 
@@ -157,7 +156,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		sizes[firstExcludedLanguage] = firstExcludedLanguageSize
 	}
 
-	return sizes, nil
+	return mergeLanguageStats(sizes), nil
 }
 
 func readFile(f *object.File, limit int64) ([]byte, error) {

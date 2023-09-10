@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package mirror
 
@@ -11,21 +10,20 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	mirror_module "code.gitea.io/gitea/modules/mirror"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 )
 
 // doMirrorSync causes this request to mirror itself
-func doMirrorSync(ctx context.Context, req *mirror_module.SyncRequest) {
+func doMirrorSync(ctx context.Context, req *SyncRequest) {
 	if req.ReferenceID == 0 {
 		log.Warn("Skipping mirror sync request, no mirror ID was specified")
 		return
 	}
 	switch req.Type {
-	case mirror_module.PushMirrorType:
+	case PushMirrorType:
 		_ = SyncPushMirror(ctx, req.ReferenceID)
-	case mirror_module.PullMirrorType:
+	case PullMirrorType:
 		_ = SyncPullMirror(ctx, req.ReferenceID)
 	default:
 		log.Error("Unknown Request type in queue: %v for MirrorID[%d]", req.Type, req.ReferenceID)
@@ -42,9 +40,9 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 	}
 	log.Trace("Doing: Update")
 
-	handler := func(idx int, bean interface{}) error {
+	handler := func(idx int, bean any) error {
 		var repo *repo_model.Repository
-		var mirrorType mirror_module.SyncType
+		var mirrorType SyncType
 		var referenceID int64
 
 		if m, ok := bean.(*repo_model.Mirror); ok {
@@ -53,7 +51,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 				return nil
 			}
 			repo = m.Repo
-			mirrorType = mirror_module.PullMirrorType
+			mirrorType = PullMirrorType
 			referenceID = m.RepoID
 		} else if m, ok := bean.(*repo_model.PushMirror); ok {
 			if m.GetRepository() == nil {
@@ -61,7 +59,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 				return nil
 			}
 			repo = m.Repo
-			mirrorType = mirror_module.PushMirrorType
+			mirrorType = PushMirrorType
 			referenceID = m.ID
 		} else {
 			log.Error("Unknown bean: %v", bean)
@@ -76,9 +74,9 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 		}
 
 		// Push to the Queue
-		if err := mirror_module.PushToQueue(mirrorType, referenceID); err != nil {
+		if err := PushToQueue(mirrorType, referenceID); err != nil {
 			if err == queue.ErrAlreadyInQueue {
-				if mirrorType == mirror_module.PushMirrorType {
+				if mirrorType == PushMirrorType {
 					log.Trace("PushMirrors for %-v already queued for sync", repo)
 				} else {
 					log.Trace("PullMirrors for %-v already queued for sync", repo)
@@ -92,7 +90,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 
 	pullMirrorsRequested := 0
 	if pullLimit != 0 {
-		if err := repo_model.MirrorsIterate(pullLimit, func(idx int, bean interface{}) error {
+		if err := repo_model.MirrorsIterate(pullLimit, func(idx int, bean any) error {
 			if err := handler(idx, bean); err != nil {
 				return err
 			}
@@ -106,7 +104,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 
 	pushMirrorsRequested := 0
 	if pushLimit != 0 {
-		if err := repo_model.PushMirrorsIterate(ctx, pushLimit, func(idx int, bean interface{}) error {
+		if err := repo_model.PushMirrorsIterate(ctx, pushLimit, func(idx int, bean any) error {
 			if err := handler(idx, bean); err != nil {
 				return err
 			}
@@ -121,9 +119,8 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 	return nil
 }
 
-func queueHandle(data ...queue.Data) []queue.Data {
-	for _, datum := range data {
-		req := datum.(*mirror_module.SyncRequest)
+func queueHandler(items ...*SyncRequest) []*SyncRequest {
+	for _, req := range items {
 		doMirrorSync(graceful.GetManager().ShutdownContext(), req)
 	}
 	return nil
@@ -131,5 +128,5 @@ func queueHandle(data ...queue.Data) []queue.Data {
 
 // InitSyncMirrors initializes a go routine to sync the mirrors
 func InitSyncMirrors() {
-	mirror_module.StartSyncMirrors(queueHandle)
+	StartSyncMirrors(queueHandler)
 }

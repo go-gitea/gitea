@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_9 //nolint
 
@@ -24,5 +23,5 @@ func AddUploaderIDForAttachment(x *xorm.Engine) error {
 		CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 	}
 
-	return x.Sync2(new(Attachment))
+	return x.Sync(new(Attachment))
 }

@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package nuget
 
@@ -290,7 +289,7 @@ type FeedResponse struct {
 	ID      string             `xml:"id"`
 	Title   TypedValue[string] `xml:"title"`
 	Updated time.Time          `xml:"updated"`
-	Link    FeedEntryLink      `xml:"link"`
+	Links   []FeedEntryLink    `xml:"link"`
 	Entries []*FeedEntry       `xml:"entry"`
 	Count   int64              `xml:"m:count"`
 }
@@ -301,6 +300,16 @@ func createFeedResponse(l *linkBuilder, totalEntries int64, pds []*packages_mode
 		entries = append(entries, createEntry(l, pd, false))
 	}
 
+	links := []FeedEntryLink{
+		{Rel: "self", Href: l.Base},
+	}
+	if l.Next != nil {
+		links = append(links, FeedEntryLink{
+			Rel:  "next",
+			Href: l.GetNextURL(),
+		})
+	}
+
 	return &FeedResponse{
 		Xmlns:   "http://www.w3.org/2005/Atom",
 		Base:    l.Base,
@@ -308,7 +317,7 @@ func createFeedResponse(l *linkBuilder, totalEntries int64, pds []*packages_mode
 		XmlnsM:  "http://schemas.microsoft.com/ado/2007/08/dataservices/metadata",
 		ID:      "http://schemas.datacontract.org/2004/07/",
 		Updated: time.Now(),
-		Link:    FeedEntryLink{Rel: "self", Href: l.Base},
+		Links:   links,
 		Count:   totalEntries,
 		Entries: entries,
 	}
@@ -345,7 +354,7 @@ func createEntry(l *linkBuilder, pd *packages_model.PackageDescriptor, withNames
 		Content: content,
 		Properties: &FeedEntryProperties{
 			Version:                  pd.Version.Version,
-			NormalizedVersion:        normalizeVersion(pd.SemVer),
+			NormalizedVersion:        pd.Version.Version,
 			Authors:                  metadata.Authors,
 			Dependencies:             buildDependencyString(metadata),
 			Description:              metadata.Description,

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package e2e
 
@@ -23,7 +22,7 @@ func onGiteaRunTB(t testing.TB, callback func(testing.TB, *url.URL), prepare ...
 		defer tests.PrepareTestEnv(t, 1)()
 	}
 	s := http.Server{
-		Handler: c,
+		Handler: testE2eWebRoutes,
 	}
 
 	u, err := url.Parse(setting.AppURL)

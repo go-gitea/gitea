@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_12 //nolint
 
@@ -19,8 +18,8 @@ func AddReviewCommitAndStale(x *xorm.Engine) error {
 	}
 
 	// Old reviews will have commit ID set to "" and not stale
-	if err := x.Sync2(new(Review)); err != nil {
+	if err := x.Sync(new(Review)); err != nil {
 		return err
 	}
-	return x.Sync2(new(ProtectedBranch))
+	return x.Sync(new(ProtectedBranch))
 }

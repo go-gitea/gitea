@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package private
 
@@ -82,7 +81,7 @@ func SendEmail(ctx *context.PrivateContext) {
 
 func sendEmail(ctx *context.PrivateContext, subject, message string, to []string) {
 	for _, email := range to {
-		msg := mailer.NewMessage([]string{email}, subject, message)
+		msg := mailer.NewMessage(email, subject, message)
 		mailer.SendAsync(msg)
 	}
 

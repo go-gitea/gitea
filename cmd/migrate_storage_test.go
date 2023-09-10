@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -14,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	packages_module "code.gitea.io/gitea/modules/packages"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	packages_service "code.gitea.io/gitea/services/packages"
 
@@ -26,7 +26,7 @@ func TestMigratePackages(t *testing.T) {
 	creator := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	content := "package main\n\nfunc main() {\nfmt.Println(\"hi\")\n}\n"
-	buf, err := packages_module.CreateHashedBufferFromReader(strings.NewReader(content), 1024)
+	buf, err := packages_module.CreateHashedBufferFromReaderWithSize(strings.NewReader(content), 1024)
 	assert.NoError(t, err)
 	defer buf.Close()
 
@@ -58,7 +58,7 @@ func TestMigratePackages(t *testing.T) {
 
 	dstStorage, err := storage.NewLocalStorage(
 		ctx,
-		storage.LocalStorageConfig{
+		&setting.Storage{
 			Path: p,
 		})
 	assert.NoError(t, err)
@@ -68,7 +68,7 @@ func TestMigratePackages(t *testing.T) {
 
 	entries, err := os.ReadDir(p)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 2, len(entries))
+	assert.Len(t, entries, 2)
 	assert.EqualValues(t, "01", entries[0].Name())
 	assert.EqualValues(t, "tmp", entries[1].Name())
 }

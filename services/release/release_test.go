@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package release
 
@@ -16,6 +15,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/services/attachment"
+
+	_ "code.gitea.io/gitea/models/actions"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -107,11 +108,13 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil, ""))
 
+	testPlayload := "testtest"
+
 	attach, err := attachment.NewAttachment(&repo_model.Attachment{
 		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
-	}, strings.NewReader("testtest"))
+	}, strings.NewReader(testPlayload), int64(len([]byte(testPlayload))))
 	assert.NoError(t, err)
 
 	release := repo_model.Release{
@@ -240,11 +243,12 @@ func TestRelease_Update(t *testing.T) {
 	assert.Equal(t, tagName, release.TagName)
 
 	// Add new attachments
+	samplePayload := "testtest"
 	attach, err := attachment.NewAttachment(&repo_model.Attachment{
 		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
-	}, strings.NewReader("testtest"))
+	}, strings.NewReader(samplePayload), int64(len([]byte(samplePayload))))
 	assert.NoError(t, err)
 
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, []string{attach.UUID}, nil, nil))

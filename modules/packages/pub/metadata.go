@@ -1,17 +1,16 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pub
 
 import (
 	"archive/tar"
 	"compress/gzip"
-	"errors"
 	"io"
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
 	"github.com/hashicorp/go-version"
@@ -19,10 +18,10 @@ import (
 )
 
 var (
-	ErrMissingPubspecFile  = errors.New("Pubspec file is missing")
-	ErrPubspecFileTooLarge = errors.New("Pubspec file is too large")
-	ErrInvalidName         = errors.New("Package name is invalid")
-	ErrInvalidVersion      = errors.New("Package version is invalid")
+	ErrMissingPubspecFile  = util.NewInvalidArgumentErrorf("Pubspec file is missing")
+	ErrPubspecFileTooLarge = util.NewInvalidArgumentErrorf("Pubspec file is too large")
+	ErrInvalidName         = util.NewInvalidArgumentErrorf("package name is invalid")
+	ErrInvalidVersion      = util.NewInvalidArgumentErrorf("package version is invalid")
 )
 
 var namePattern = regexp.MustCompile(`\A[a-zA-Z_][a-zA-Z0-9_]*\z`)
@@ -39,12 +38,12 @@ type Package struct {
 
 // Metadata represents the metadata of a Pub package
 type Metadata struct {
-	Description      string      `json:"description,omitempty"`
-	ProjectURL       string      `json:"project_url,omitempty"`
-	RepositoryURL    string      `json:"repository_url,omitempty"`
-	DocumentationURL string      `json:"documentation_url,omitempty"`
-	Readme           string      `json:"readme,omitempty"`
-	Pubspec          interface{} `json:"pubspec"`
+	Description      string `json:"description,omitempty"`
+	ProjectURL       string `json:"project_url,omitempty"`
+	RepositoryURL    string `json:"repository_url,omitempty"`
+	DocumentationURL string `json:"documentation_url,omitempty"`
+	Readme           string `json:"readme,omitempty"`
+	Pubspec          any    `json:"pubspec"`
 }
 
 type pubspecPackage struct {
@@ -135,7 +134,7 @@ func ParsePubspecMetadata(r io.Reader) (*Package, error) {
 		p.Repository = ""
 	}
 
-	var pubspec interface{}
+	var pubspec any
 	if err := yaml.Unmarshal(buf, &pubspec); err != nil {
 		return nil, err
 	}

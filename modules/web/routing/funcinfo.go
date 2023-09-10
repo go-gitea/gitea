@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package routing
 
@@ -36,7 +35,7 @@ func (info *FuncInfo) String() string {
 }
 
 // GetFuncInfo returns the FuncInfo for a provided function and friendlyname
-func GetFuncInfo(fn interface{}, friendlyName ...string) *FuncInfo {
+func GetFuncInfo(fn any, friendlyName ...string) *FuncInfo {
 	// ptr represents the memory position of the function passed in as v.
 	// This will be used as program counter in FuncForPC below
 	ptr := reflect.ValueOf(fn).Pointer()

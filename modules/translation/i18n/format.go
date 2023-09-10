@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package i18n
 
@@ -10,12 +9,12 @@ import (
 )
 
 // Format formats provided arguments for a given translated message
-func Format(format string, args ...interface{}) (msg string, err error) {
+func Format(format string, args ...any) (msg string, err error) {
 	if len(args) == 0 {
 		return format, nil
 	}
 
-	fmtArgs := make([]interface{}, 0, len(args))
+	fmtArgs := make([]any, 0, len(args))
 	for _, arg := range args {
 		val := reflect.ValueOf(arg)
 		if val.Kind() == reflect.Slice {

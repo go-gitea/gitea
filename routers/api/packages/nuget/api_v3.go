@@ -1,19 +1,17 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package nuget
 
 import (
-	"bytes"
-	"fmt"
 	"sort"
 	"time"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
 
-	"github.com/hashicorp/go-version"
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 )
 
 // https://docs.microsoft.com/en-us/nuget/api/service-index#resources
@@ -96,8 +94,8 @@ func createRegistrationIndexResponse(l *linkBuilder, pds []*packages_model.Packa
 			{
 				RegistrationPageURL: l.GetRegistrationIndexURL(pds[0].Package.Name),
 				Count:               len(pds),
-				Lower:               normalizeVersion(pds[0].SemVer),
-				Upper:               normalizeVersion(pds[len(pds)-1].SemVer),
+				Lower:               pds[0].Version.Version,
+				Upper:               pds[len(pds)-1].Version.Version,
 				Items:               items,
 			},
 		},
@@ -171,10 +169,10 @@ type PackageVersionsResponse struct {
 	Versions []string `json:"versions"`
 }
 
-func createPackageVersionsResponse(pds []*packages_model.PackageDescriptor) *PackageVersionsResponse {
-	versions := make([]string, 0, len(pds))
-	for _, pd := range pds {
-		versions = append(versions, normalizeVersion(pd.SemVer))
+func createPackageVersionsResponse(pvs []*packages_model.PackageVersion) *PackageVersionsResponse {
+	versions := make([]string, 0, len(pvs))
+	for _, pv := range pvs {
+		versions = append(versions, pv.Version)
 	}
 
 	return &PackageVersionsResponse{
@@ -212,9 +210,15 @@ func createSearchResultResponse(l *linkBuilder, totalHits int64, pds []*packages
 		grouped[pd.Package.Name] = append(grouped[pd.Package.Name], pd)
 	}
 
+	keys := make([]string, 0, len(grouped))
+	for key := range grouped {
+		keys = append(keys, key)
+	}
+	collate.New(language.English, collate.IgnoreCase).SortStrings(keys)
+
 	data := make([]*SearchResult, 0, len(pds))
-	for _, group := range grouped {
-		data = append(data, createSearchResult(l, group))
+	for _, key := range keys {
+		data = append(data, createSearchResult(l, grouped[key]))
 	}
 
 	return &SearchResultResponse{
@@ -248,16 +252,4 @@ func createSearchResult(l *linkBuilder, pds []*packages_model.PackageDescriptor)
 		ProjectURL:           metadata.ProjectURL,
 		RegistrationIndexURL: l.GetRegistrationIndexURL(latest.Package.Name),
 	}
-}
-
-// normalizeVersion removes the metadata
-func normalizeVersion(v *version.Version) string {
-	var buf bytes.Buffer
-	segments := v.Segments64()
-	fmt.Fprintf(&buf, "%d.%d.%d", segments[0], segments[1], segments[2])
-	pre := v.Prerelease()
-	if pre != "" {
-		fmt.Fprintf(&buf, "-%s", pre)
-	}
-	return buf.String()
 }

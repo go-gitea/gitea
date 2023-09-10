@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markup
 
@@ -52,7 +51,7 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 // Render renders orgmode rawbytes to HTML
 func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	htmlWriter := org.NewHTMLWriter()
-	htmlWriter.HighlightCodeBlock = func(source, lang string, inline bool) string {
+	htmlWriter.HighlightCodeBlock = func(source, lang string, inline bool, params map[string]string) string {
 		defer func() {
 			if err := recover(); err != nil {
 				log.Error("Panic in HighlightCodeBlock: %v\n%s", err, log.Stack(2))

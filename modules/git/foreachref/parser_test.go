@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package foreachref_test
 
@@ -218,7 +217,7 @@ func TestParser(t *testing.T) {
 	}
 }
 
-func pretty(v interface{}) string {
+func pretty(v any) string {
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		// shouldn't happen

@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo_test
 
@@ -70,6 +69,7 @@ func TestAddTopic(t *testing.T) {
 func TestTopicValidator(t *testing.T) {
 	assert.True(t, repo_model.ValidateTopic("12345"))
 	assert.True(t, repo_model.ValidateTopic("2-test"))
+	assert.True(t, repo_model.ValidateTopic("foo.bar"))
 	assert.True(t, repo_model.ValidateTopic("test-3"))
 	assert.True(t, repo_model.ValidateTopic("first"))
 	assert.True(t, repo_model.ValidateTopic("second-test-topic"))
@@ -78,4 +78,5 @@ func TestTopicValidator(t *testing.T) {
 	assert.False(t, repo_model.ValidateTopic("$fourth-test,topic"))
 	assert.False(t, repo_model.ValidateTopic("-fifth-test-topic"))
 	assert.False(t, repo_model.ValidateTopic("sixth-go-project-topic-with-excess-length"))
+	assert.False(t, repo_model.ValidateTopic(".foo"))
 }

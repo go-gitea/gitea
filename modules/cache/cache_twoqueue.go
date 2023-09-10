@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cache
 
@@ -12,13 +11,13 @@ import (
 	"code.gitea.io/gitea/modules/json"
 
 	mc "gitea.com/go-chi/cache"
-	lru "github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru/v2"
 )
 
 // TwoQueueCache represents a LRU 2Q cache adapter implementation
 type TwoQueueCache struct {
 	lock     sync.Mutex
-	cache    *lru.TwoQueueCache
+	cache    *lru.TwoQueueCache[string, any]
 	interval int
 }
 
@@ -31,7 +30,7 @@ type TwoQueueCacheConfig struct {
 
 // MemoryItem represents a memory cache item.
 type MemoryItem struct {
-	Val     interface{}
+	Val     any
 	Created int64
 	Timeout int64
 }
@@ -44,7 +43,7 @@ func (item *MemoryItem) hasExpired() bool {
 var _ mc.Cache = &TwoQueueCache{}
 
 // Put puts value into cache with key and expire time.
-func (c *TwoQueueCache) Put(key string, val interface{}, timeout int64) error {
+func (c *TwoQueueCache) Put(key string, val any, timeout int64) error {
 	item := &MemoryItem{
 		Val:     val,
 		Created: time.Now().Unix(),
@@ -57,7 +56,7 @@ func (c *TwoQueueCache) Put(key string, val interface{}, timeout int64) error {
 }
 
 // Get gets cached value by given key.
-func (c *TwoQueueCache) Get(key string) interface{} {
+func (c *TwoQueueCache) Get(key string) any {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	cached, ok := c.cache.Get(key)
@@ -147,7 +146,7 @@ func (c *TwoQueueCache) Flush() error {
 	return nil
 }
 
-func (c *TwoQueueCache) checkAndInvalidate(key interface{}) {
+func (c *TwoQueueCache) checkAndInvalidate(key string) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	cached, ok := c.cache.Peek(key)
@@ -156,7 +155,7 @@ func (c *TwoQueueCache) checkAndInvalidate(key interface{}) {
 	}
 	item, ok := cached.(*MemoryItem)
 	if !ok || item.hasExpired() {
-		c.cache.Remove(item)
+		c.cache.Remove(key)
 	}
 }
 
@@ -188,9 +187,9 @@ func (c *TwoQueueCache) StartAndGC(opts mc.Options) error {
 			GhostRatio:  lru.Default2QGhostEntries,
 		}
 		_ = json.Unmarshal([]byte(opts.AdapterConfig), cfg)
-		c.cache, err = lru.New2QParams(cfg.Size, cfg.RecentRatio, cfg.GhostRatio)
+		c.cache, err = lru.New2QParams[string, any](cfg.Size, cfg.RecentRatio, cfg.GhostRatio)
 	} else {
-		c.cache, err = lru.New2Q(size)
+		c.cache, err = lru.New2Q[string, any](size)
 	}
 	c.interval = opts.Interval
 	if c.interval > 0 {

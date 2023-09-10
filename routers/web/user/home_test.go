@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -10,8 +9,8 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -21,13 +20,13 @@ func TestArchivedIssues(t *testing.T) {
 	setting.UI.IssuePagingNum = 1
 	assert.NoError(t, unittest.LoadFixtures())
 
-	ctx := test.MockContext(t, "issues")
-	test.LoadUser(t, ctx, 30)
+	ctx, _ := contexttest.MockContext(t, "issues")
+	contexttest.LoadUser(t, ctx, 30)
 	ctx.Req.Form.Set("state", "open")
 
 	// Assume: User 30 has access to two Repos with Issues, one of the Repos being archived.
 	repos, _, _ := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{Actor: ctx.Doer})
-	assert.Len(t, repos, 2)
+	assert.Len(t, repos, 3)
 	IsArchived := make(map[int64]bool)
 	NumIssues := make(map[int64]int)
 	for _, repo := range repos {
@@ -54,8 +53,8 @@ func TestIssues(t *testing.T) {
 	setting.UI.IssuePagingNum = 1
 	assert.NoError(t, unittest.LoadFixtures())
 
-	ctx := test.MockContext(t, "issues")
-	test.LoadUser(t, ctx, 2)
+	ctx, _ := contexttest.MockContext(t, "issues")
+	contexttest.LoadUser(t, ctx, 2)
 	ctx.Req.Form.Set("state", "closed")
 	Issues(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
@@ -70,21 +69,21 @@ func TestPulls(t *testing.T) {
 	setting.UI.IssuePagingNum = 20
 	assert.NoError(t, unittest.LoadFixtures())
 
-	ctx := test.MockContext(t, "pulls")
-	test.LoadUser(t, ctx, 2)
+	ctx, _ := contexttest.MockContext(t, "pulls")
+	contexttest.LoadUser(t, ctx, 2)
 	ctx.Req.Form.Set("state", "open")
 	Pulls(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 
-	assert.Len(t, ctx.Data["Issues"], 4)
+	assert.Len(t, ctx.Data["Issues"], 5)
 }
 
 func TestMilestones(t *testing.T) {
 	setting.UI.IssuePagingNum = 1
 	assert.NoError(t, unittest.LoadFixtures())
 
-	ctx := test.MockContext(t, "milestones")
-	test.LoadUser(t, ctx, 2)
+	ctx, _ := contexttest.MockContext(t, "milestones")
+	contexttest.LoadUser(t, ctx, 2)
 	ctx.SetParams("sort", "issues")
 	ctx.Req.Form.Set("state", "closed")
 	ctx.Req.Form.Set("sort", "furthestduedate")
@@ -102,8 +101,8 @@ func TestMilestonesForSpecificRepo(t *testing.T) {
 	setting.UI.IssuePagingNum = 1
 	assert.NoError(t, unittest.LoadFixtures())
 
-	ctx := test.MockContext(t, "milestones")
-	test.LoadUser(t, ctx, 2)
+	ctx, _ := contexttest.MockContext(t, "milestones")
+	contexttest.LoadUser(t, ctx, 2)
 	ctx.SetParams("sort", "issues")
 	ctx.SetParams("repo", "1")
 	ctx.Req.Form.Set("state", "closed")

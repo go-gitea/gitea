@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package doctor
 
@@ -156,7 +155,7 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 
 	// TODO: function to recalc all counters
 
-	if setting.Database.UsePostgreSQL {
+	if setting.Database.Type.IsPostgreSQL() {
 		consistencyChecks = append(consistencyChecks, consistencyCheck{
 			Name:         "Sequence values",
 			Counter:      db.CountBadSequences,

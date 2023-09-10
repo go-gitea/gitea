@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package webhook
 
@@ -8,7 +7,6 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha1"
-	"crypto/sha256"
 	"crypto/tls"
 	"encoding/hex"
 	"fmt"
@@ -27,8 +25,11 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/gobwas/glob"
+	"github.com/minio/sha256-simd"
 )
 
 // Deliver deliver hook task
@@ -90,7 +91,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 		}
 	case http.MethodPut:
 		switch w.Type {
-		case webhook_model.MATRIX:
+		case webhook_module.MATRIX:
 			txnID, err := getMatrixTxnID([]byte(t.PayloadContent))
 			if err != nil {
 				return err
@@ -175,7 +176,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 
 	// All code from this point will update the hook task
 	defer func() {
-		t.Delivered = time.Now().UnixNano()
+		t.Delivered = timeutil.TimeStampNanoNow()
 		if t.IsSucceed {
 			log.Trace("Hook delivered: %s", t.UUID)
 		} else if !w.IsActive {
@@ -190,9 +191,9 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 
 		// Update webhook last delivery status.
 		if t.IsSucceed {
-			w.LastStatus = webhook_model.HookStatusSucceed
+			w.LastStatus = webhook_module.HookStatusSucceed
 		} else {
-			w.LastStatus = webhook_model.HookStatusFail
+			w.LastStatus = webhook_module.HookStatusFail
 		}
 		if err = webhook_model.UpdateWebhookLastStatus(w); err != nil {
 			log.Error("UpdateWebhookLastStatus: %v", err)
@@ -282,11 +283,11 @@ func Init() error {
 		},
 	}
 
-	hookQueue = queue.CreateUniqueQueue("webhook_sender", handle, int64(0))
+	hookQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "webhook_sender", handler)
 	if hookQueue == nil {
-		return fmt.Errorf("Unable to create webhook_sender Queue")
+		return fmt.Errorf("unable to create webhook_sender queue")
 	}
-	go graceful.GetManager().RunWithShutdownFns(hookQueue.Run)
+	go graceful.GetManager().RunWithCancel(hookQueue)
 
 	go graceful.GetManager().RunWithShutdownContext(populateWebhookSendingQueue)
 

@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_12 //nolint
 
@@ -12,5 +11,5 @@ func AddEmailHashTable(x *xorm.Engine) error {
 		Hash  string `xorm:"pk varchar(32)"`
 		Email string `xorm:"UNIQUE NOT NULL"`
 	}
-	return x.Sync2(new(EmailHash))
+	return x.Sync(new(EmailHash))
 }

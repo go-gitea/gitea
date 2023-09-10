@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package forms
 
@@ -91,7 +90,7 @@ func IsUserHiddenCommentTypeGroupChecked(group string, hiddenCommentTypes *big.I
 	commentTypes, ok := hiddenCommentTypeGroups[group]
 	if !ok {
 		log.Critical("the group map for hidden comment types is out of sync, unknown group: %v", group)
-		return
+		return false
 	}
 	if hiddenCommentTypes == nil {
 		return false

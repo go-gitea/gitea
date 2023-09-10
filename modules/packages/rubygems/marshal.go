@@ -1,15 +1,15 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package rubygems
 
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"io"
 	"reflect"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -32,27 +32,27 @@ const (
 
 var (
 	// ErrUnsupportedType indicates an unsupported type
-	ErrUnsupportedType = errors.New("Type is unsupported")
+	ErrUnsupportedType = util.NewInvalidArgumentErrorf("type is unsupported")
 	// ErrInvalidIntRange indicates an invalid number range
-	ErrInvalidIntRange = errors.New("Number is not in valid range")
+	ErrInvalidIntRange = util.NewInvalidArgumentErrorf("number is not in valid range")
 )
 
 // RubyUserMarshal is a Ruby object that has a marshal_load function.
 type RubyUserMarshal struct {
 	Name  string
-	Value interface{}
+	Value any
 }
 
 // RubyUserDef is a Ruby object that has a _load function.
 type RubyUserDef struct {
 	Name  string
-	Value interface{}
+	Value any
 }
 
 // RubyObject is a default Ruby object.
 type RubyObject struct {
 	Name   string
-	Member map[string]interface{}
+	Member map[string]any
 }
 
 // MarshalEncoder mimics Rubys Marshal class.
@@ -71,7 +71,7 @@ func NewMarshalEncoder(w io.Writer) *MarshalEncoder {
 }
 
 // Encode encodes the given type
-func (e *MarshalEncoder) Encode(v interface{}) error {
+func (e *MarshalEncoder) Encode(v any) error {
 	if _, err := e.w.Write([]byte{majorVersion, minorVersion}); err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func (e *MarshalEncoder) Encode(v interface{}) error {
 	return e.w.Flush()
 }
 
-func (e *MarshalEncoder) marshal(v interface{}) error {
+func (e *MarshalEncoder) marshal(v any) error {
 	if v == nil {
 		return e.marshalNil()
 	}

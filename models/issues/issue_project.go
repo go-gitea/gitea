@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -14,27 +13,19 @@ import (
 )
 
 // LoadProject load the project the issue was assigned to
-func (issue *Issue) LoadProject() (err error) {
-	return issue.loadProject(db.DefaultContext)
-}
-
-func (issue *Issue) loadProject(ctx context.Context) (err error) {
+func (issue *Issue) LoadProject(ctx context.Context) (err error) {
 	if issue.Project == nil {
 		var p project_model.Project
-		if _, err = db.GetEngine(ctx).Table("project").
+		has, err := db.GetEngine(ctx).Table("project").
 			Join("INNER", "project_issue", "project.id=project_issue.project_id").
-			Where("project_issue.issue_id = ?", issue.ID).
-			Get(&p); err != nil {
+			Where("project_issue.issue_id = ?", issue.ID).Get(&p)
+		if err != nil {
 			return err
+		} else if has {
+			issue.Project = &p
 		}
-		issue.Project = &p
 	}
 	return err
-}
-
-// ProjectID return project id if issue was assigned to one
-func (issue *Issue) ProjectID() int64 {
-	return issue.projectID(db.DefaultContext)
 }
 
 func (issue *Issue) projectID(ctx context.Context) int64 {
@@ -62,7 +53,7 @@ func (issue *Issue) projectBoardID(ctx context.Context) int64 {
 
 // LoadIssuesFromBoard load issues assigned to this board
 func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList, error) {
-	issueList := make([]*Issue, 0, 10)
+	issueList := make(IssueList, 0, 10)
 
 	if b.ID != 0 {
 		issues, err := Issues(ctx, &IssuesOptions{
@@ -88,7 +79,7 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList
 		issueList = append(issueList, issues...)
 	}
 
-	if err := IssueList(issueList).LoadComments(ctx); err != nil {
+	if err := issueList.LoadComments(ctx); err != nil {
 		return nil, err
 	}
 
@@ -126,13 +117,17 @@ func ChangeProjectAssign(issue *Issue, doer *user_model.User, newProjectID int64
 func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID int64) error {
 	oldProjectID := issue.projectID(ctx)
 
+	if err := issue.LoadRepo(ctx); err != nil {
+		return err
+	}
+
 	// Only check if we add a new project and not remove it.
 	if newProjectID > 0 {
 		newProject, err := project_model.GetProjectByID(ctx, newProjectID)
 		if err != nil {
 			return err
 		}
-		if newProject.RepoID != issue.RepoID {
+		if newProject.RepoID != issue.RepoID && newProject.OwnerID != issue.Repo.OwnerID {
 			return fmt.Errorf("issue's repository is not the same as project's repository")
 		}
 	}
@@ -141,12 +136,8 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 		return err
 	}
 
-	if err := issue.LoadRepo(ctx); err != nil {
-		return err
-	}
-
 	if oldProjectID > 0 || newProjectID > 0 {
-		if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+		if _, err := CreateComment(ctx, &CreateCommentOptions{
 			Type:         CommentTypeProject,
 			Doer:         doer,
 			Repo:         issue.Repo,

@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_14 //nolint
 
@@ -43,7 +42,7 @@ func RemoveInvalidLabels(x *xorm.Engine) error {
 		LabelID int64 `xorm:"UNIQUE(s)"`
 	}
 
-	if err := x.Sync2(new(Comment), new(Issue), new(Repository), new(Label), new(IssueLabel)); err != nil {
+	if err := x.Sync(new(Comment), new(Issue), new(Repository), new(Label), new(IssueLabel)); err != nil {
 		return err
 	}
 

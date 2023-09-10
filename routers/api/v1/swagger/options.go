@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package swagger
 
@@ -42,6 +41,8 @@ type swaggerParameterBodies struct {
 	CreateIssueCommentOption api.CreateIssueCommentOption
 	// in:body
 	EditIssueCommentOption api.EditIssueCommentOption
+	// in:body
+	IssueMeta api.IssueMeta
 
 	// in:body
 	IssueLabelsOption api.IssueLabelsOption
@@ -50,10 +51,15 @@ type swaggerParameterBodies struct {
 	CreateKeyOption api.CreateKeyOption
 
 	// in:body
+	RenameUserOption api.RenameUserOption
+
+	// in:body
 	CreateLabelOption api.CreateLabelOption
 	// in:body
 	EditLabelOption api.EditLabelOption
 
+	// in:body
+	MarkupOption api.MarkupOption
 	// in:body
 	MarkdownOption api.MarkdownOption
 
@@ -109,6 +115,9 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	EditAttachmentOptions api.EditAttachmentOptions
+
+	// in:body
+	ChangeFilesOptions api.ChangeFilesOptions
 
 	// in:body
 	CreateFileOptions api.CreateFileOptions
@@ -172,4 +181,13 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreatePushMirrorOption api.CreatePushMirrorOption
+
+	// in:body
+	UpdateUserAvatarOptions api.UpdateUserAvatarOption
+
+	// in:body
+	UpdateRepoAvatarOptions api.UpdateRepoAvatarOption
+
+	// in:body
+	CreateOrUpdateSecretOption api.CreateOrUpdateSecretOption
 }

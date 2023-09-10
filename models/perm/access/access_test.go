@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package access_test
 
@@ -98,7 +97,7 @@ func TestRepository_RecalculateAccesses(t *testing.T) {
 	// test with organization repo
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-	assert.NoError(t, repo1.GetOwner(db.DefaultContext))
+	assert.NoError(t, repo1.LoadOwner(db.DefaultContext))
 
 	_, err := db.GetEngine(db.DefaultContext).Delete(&repo_model.Collaboration{UserID: 2, RepoID: 3})
 	assert.NoError(t, err)
@@ -115,7 +114,7 @@ func TestRepository_RecalculateAccesses2(t *testing.T) {
 	// test with non-organization repo
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	assert.NoError(t, repo1.GetOwner(db.DefaultContext))
+	assert.NoError(t, repo1.LoadOwner(db.DefaultContext))
 
 	_, err := db.GetEngine(db.DefaultContext).Delete(&repo_model.Collaboration{UserID: 4, RepoID: 4})
 	assert.NoError(t, err)

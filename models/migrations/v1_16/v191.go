@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_16 //nolint
 
@@ -17,7 +16,7 @@ func AlterIssueAndCommentTextFieldsToLongText(x *xorm.Engine) error {
 		return err
 	}
 
-	if setting.Database.UseMySQL {
+	if setting.Database.Type.IsMySQL() {
 		if _, err := sess.Exec("ALTER TABLE `issue` CHANGE `content` `content` LONGTEXT"); err != nil {
 			return err
 		}

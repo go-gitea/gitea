@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -12,10 +11,10 @@ import (
 
 	"code.gitea.io/gitea/models"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
@@ -31,7 +30,7 @@ const (
 
 // Account renders change user's password, user's email and user suicide page
 func Account(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings.account")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.Doer.Email
 	ctx.Data["EnableNotifyMail"] = setting.Service.EnableNotifyMail
@@ -61,7 +60,7 @@ func AccountPost(ctx *context.Context) {
 	} else if form.Password != form.Retype {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
 	} else if !password.IsComplexEnough(form.Password) {
-		ctx.Flash.Error(password.BuildComplexityError(ctx))
+		ctx.Flash.Error(password.BuildComplexityError(ctx.Locale))
 	} else if pwned, err := password.IsPwned(ctx, form.Password); pwned || err != nil {
 		errMsg := ctx.Tr("auth.password_pwned")
 		if err != nil {
@@ -228,9 +227,7 @@ func DeleteEmail(ctx *context.Context) {
 	log.Trace("Email address deleted: %s", ctx.Doer.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.email_deletion_success"))
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/account",
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/account")
 }
 
 // DeleteAccount render user suicide page and response for delete user himself

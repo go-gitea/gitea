@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package webhook
 
@@ -14,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	api "code.gitea.io/gitea/modules/structs"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
 type (
@@ -28,6 +28,7 @@ type (
 	TelegramMeta struct {
 		BotToken string `json:"bot_token"`
 		ChatID   string `json:"chat_id"`
+		ThreadID string `json:"thread_id"`
 	}
 )
 
@@ -57,7 +58,7 @@ func (t *TelegramPayload) JSONPayload() ([]byte, error) {
 // Create implements PayloadConvertor Create method
 func (t *TelegramPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 	// created tag/branch
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf(`[<a href="%s">%s</a>] %s <a href="%s">%s</a> created`, p.Repo.HTMLURL, p.Repo.FullName, p.RefType,
 		p.Repo.HTMLURL+"/src/"+refName, refName)
 
@@ -67,7 +68,7 @@ func (t *TelegramPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 // Delete implements PayloadConvertor Delete method
 func (t *TelegramPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	// created tag/branch
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf(`[<a href="%s">%s</a>] %s <a href="%s">%s</a> deleted`, p.Repo.HTMLURL, p.Repo.FullName, p.RefType,
 		p.Repo.HTMLURL+"/src/"+refName, refName)
 
@@ -84,7 +85,7 @@ func (t *TelegramPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
 // Push implements PayloadConvertor Push method
 func (t *TelegramPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	var (
-		branchName = git.RefEndName(p.Ref)
+		branchName = git.RefName(p.Ref).ShortName()
 		commitDesc string
 	)
 
@@ -141,7 +142,7 @@ func (t *TelegramPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader,
 }
 
 // Review implements PayloadConvertor Review method
-func (t *TelegramPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
+func (t *TelegramPayload) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (api.Payloader, error) {
 	var text, attachmentText string
 	switch p.Action {
 	case api.HookIssueReviewed:
@@ -186,7 +187,7 @@ func (t *TelegramPayload) Release(p *api.ReleasePayload) (api.Payloader, error) 
 }
 
 // GetTelegramPayload converts a telegram webhook into a TelegramPayload
-func GetTelegramPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetTelegramPayload(p api.Payloader, event webhook_module.HookEventType, _ string) (api.Payloader, error) {
 	return convertPayloader(new(TelegramPayload), p, event)
 }
 

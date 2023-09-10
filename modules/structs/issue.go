@@ -1,6 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package structs
 
@@ -42,18 +41,19 @@ type RepositoryMeta struct {
 // Issue represents an issue in a repository
 // swagger:model
 type Issue struct {
-	ID               int64      `json:"id"`
-	URL              string     `json:"url"`
-	HTMLURL          string     `json:"html_url"`
-	Index            int64      `json:"number"`
-	Poster           *User      `json:"user"`
-	OriginalAuthor   string     `json:"original_author"`
-	OriginalAuthorID int64      `json:"original_author_id"`
-	Title            string     `json:"title"`
-	Body             string     `json:"body"`
-	Ref              string     `json:"ref"`
-	Labels           []*Label   `json:"labels"`
-	Milestone        *Milestone `json:"milestone"`
+	ID               int64         `json:"id"`
+	URL              string        `json:"url"`
+	HTMLURL          string        `json:"html_url"`
+	Index            int64         `json:"number"`
+	Poster           *User         `json:"user"`
+	OriginalAuthor   string        `json:"original_author"`
+	OriginalAuthorID int64         `json:"original_author_id"`
+	Title            string        `json:"title"`
+	Body             string        `json:"body"`
+	Ref              string        `json:"ref"`
+	Attachments      []*Attachment `json:"assets"`
+	Labels           []*Label      `json:"labels"`
+	Milestone        *Milestone    `json:"milestone"`
 	// deprecated
 	Assignee  *User   `json:"assignee"`
 	Assignees []*User `json:"assignees"`
@@ -75,6 +75,8 @@ type Issue struct {
 
 	PullRequest *PullRequestMeta `json:"pull_request"`
 	Repo        *RepositoryMeta  `json:"repository"`
+
+	PinOrder int `json:"pin_order"`
 }
 
 // CreateIssueOption options to create one issue
@@ -138,10 +140,10 @@ const (
 // IssueFormField represents a form field
 // swagger:model
 type IssueFormField struct {
-	Type        IssueFormFieldType     `json:"type" yaml:"type"`
-	ID          string                 `json:"id" yaml:"id"`
-	Attributes  map[string]interface{} `json:"attributes" yaml:"attributes"`
-	Validations map[string]interface{} `json:"validations" yaml:"validations"`
+	Type        IssueFormFieldType `json:"type" yaml:"type"`
+	ID          string             `json:"id" yaml:"id"`
+	Attributes  map[string]any     `json:"attributes" yaml:"attributes"`
+	Validations map[string]any     `json:"validations" yaml:"validations"`
 }
 
 // IssueTemplate represents an issue template for a repository
@@ -190,6 +192,22 @@ func (l *IssueTemplateLabels) UnmarshalYAML(value *yaml.Node) error {
 	return fmt.Errorf("line %d: cannot unmarshal %s into IssueTemplateLabels", value.Line, value.ShortTag())
 }
 
+type IssueConfigContactLink struct {
+	Name  string `json:"name" yaml:"name"`
+	URL   string `json:"url" yaml:"url"`
+	About string `json:"about" yaml:"about"`
+}
+
+type IssueConfig struct {
+	BlankIssuesEnabled bool                     `json:"blank_issues_enabled" yaml:"blank_issues_enabled"`
+	ContactLinks       []IssueConfigContactLink `json:"contact_links" yaml:"contact_links"`
+}
+
+type IssueConfigValidation struct {
+	Valid   bool   `json:"valid"`
+	Message string `json:"message"`
+}
+
 // IssueTemplateType defines issue template type
 type IssueTemplateType string
 
@@ -210,4 +228,12 @@ func (it IssueTemplate) Type() IssueTemplateType {
 		return IssueTemplateTypeYaml
 	}
 	return ""
+}
+
+// IssueMeta basic issue information
+// swagger:model
+type IssueMeta struct {
+	Index int64  `json:"index"`
+	Owner string `json:"owner"`
+	Name  string `json:"repo"`
 }

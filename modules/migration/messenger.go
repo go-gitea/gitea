@@ -1,11 +1,10 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migration
 
 // Messenger is a formatting function similar to i18n.Tr
-type Messenger func(key string, args ...interface{})
+type Messenger func(key string, args ...any)
 
 // NilMessenger represents an empty formatting function
-func NilMessenger(string, ...interface{}) {}
+func NilMessenger(string, ...any) {}

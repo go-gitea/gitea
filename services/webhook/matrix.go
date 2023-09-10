@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package webhook
 
@@ -21,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
 const matrixPayloadSizeLimit = 1024 * 64
@@ -73,7 +73,7 @@ func MatrixLinkFormatter(url, text string) string {
 
 // MatrixLinkToRef Matrix-formatter link to a repo ref
 func MatrixLinkToRef(repoURL, ref string) string {
-	refName := git.RefEndName(ref)
+	refName := git.RefName(ref).ShortName()
 	switch {
 	case strings.HasPrefix(ref, git.BranchPrefix):
 		return MatrixLinkFormatter(repoURL+"/src/branch/"+util.PathEscapeSegments(refName), refName)
@@ -95,7 +95,7 @@ func (m *MatrixPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 
 // Delete composes Matrix payload for delete a branch or tag.
 func (m *MatrixPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	repoLink := MatrixLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	text := fmt.Sprintf("[%s:%s] %s deleted by %s", repoLink, refName, p.RefType, p.Sender.UserName)
 
@@ -174,7 +174,7 @@ func (m *MatrixPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, e
 }
 
 // Review implements PayloadConvertor Review method
-func (m *MatrixPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
+func (m *MatrixPayload) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (api.Payloader, error) {
 	senderLink := MatrixLinkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
 	title := fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title)
 	titleLink := MatrixLinkFormatter(p.PullRequest.URL, title)
@@ -211,7 +211,7 @@ func (m *MatrixPayload) Repository(p *api.RepositoryPayload) (api.Payloader, err
 }
 
 // GetMatrixPayload converts a Matrix webhook into a MatrixPayload
-func GetMatrixPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetMatrixPayload(p api.Payloader, event webhook_module.HookEventType, meta string) (api.Payloader, error) {
 	s := new(MatrixPayload)
 
 	matrix := &MatrixMeta{}

@@ -1,17 +1,13 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package db
 
 import (
-	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/modules/util"
 )
-
-var ErrAlreadyInTransaction = errors.New("database connection has already been in a transaction")
 
 // ErrCancelled represents an error due to context cancellation
 type ErrCancelled struct {
@@ -29,7 +25,7 @@ func (err ErrCancelled) Error() string {
 }
 
 // ErrCancelledf returns an ErrCancelled for the provided format and args
-func ErrCancelledf(format string, args ...interface{}) error {
+func ErrCancelledf(format string, args ...any) error {
 	return ErrCancelled{
 		fmt.Sprintf(format, args...),
 	}

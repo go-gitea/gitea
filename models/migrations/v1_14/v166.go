@@ -1,13 +1,12 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_14 //nolint
 
 import (
-	"crypto/sha256"
-	"fmt"
+	"encoding/hex"
 
+	"github.com/minio/sha256-simd"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/pbkdf2"
@@ -54,7 +53,7 @@ func RecalculateUserEmptyPWD(x *xorm.Engine) (err error) {
 			tempPasswd = pbkdf2.Key([]byte(passwd), []byte(salt), 10000, 50, sha256.New)
 		}
 
-		return fmt.Sprintf("%x", tempPasswd)
+		return hex.EncodeToString(tempPasswd)
 	}
 
 	// ValidatePassword checks if given password matches the one belongs to the user.
@@ -79,14 +78,14 @@ func RecalculateUserEmptyPWD(x *xorm.Engine) (err error) {
 	for start := 0; ; start += batchSize {
 		users := make([]*User, 0, batchSize)
 		if err = sess.Limit(batchSize, start).Where(builder.Neq{"passwd": ""}, 0).Find(&users); err != nil {
-			return
+			return err
 		}
 		if len(users) == 0 {
 			break
 		}
 
 		if err = sess.Begin(); err != nil {
-			return
+			return err
 		}
 
 		for _, user := range users {
@@ -101,7 +100,7 @@ func RecalculateUserEmptyPWD(x *xorm.Engine) (err error) {
 		}
 
 		if err = sess.Commit(); err != nil {
-			return
+			return err
 		}
 	}
 

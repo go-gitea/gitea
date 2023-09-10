@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -15,9 +14,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/feed"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -26,7 +25,7 @@ var notifySync sync.Once
 
 func registerNotifier() {
 	notifySync.Do(func() {
-		notification.RegisterNotifier(action.NewNotifier())
+		notify_service.RegisterNotifier(feed.NewNotifier())
 	})
 }
 
@@ -38,7 +37,7 @@ func TestTransferOwnership(t *testing.T) {
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	repo.Owner = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	assert.NoError(t, TransferOwnership(doer, doer, repo, nil))
+	assert.NoError(t, TransferOwnership(db.DefaultContext, doer, doer, repo, nil))
 
 	transferredRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	assert.EqualValues(t, 2, transferredRepo.OwnerID)
@@ -71,7 +70,7 @@ func TestStartRepositoryTransferSetPermission(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, hasAccess)
 
-	assert.NoError(t, StartRepositoryTransfer(doer, recipient, repo, nil))
+	assert.NoError(t, StartRepositoryTransfer(db.DefaultContext, doer, recipient, repo, nil))
 
 	hasAccess, err = access_model.HasAccess(db.DefaultContext, recipient.ID, repo)
 	assert.NoError(t, err)

@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_13 //nolint
 
@@ -33,7 +32,7 @@ func AddProjectsInfo(x *xorm.Engine) error {
 		UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
-	if err := x.Sync2(new(Project)); err != nil {
+	if err := x.Sync(new(Project)); err != nil {
 		return err
 	}
 
@@ -42,7 +41,7 @@ func AddProjectsInfo(x *xorm.Engine) error {
 		ProjectID    int64
 	}
 
-	if err := x.Sync2(new(Comment)); err != nil {
+	if err := x.Sync(new(Comment)); err != nil {
 		return err
 	}
 
@@ -52,7 +51,7 @@ func AddProjectsInfo(x *xorm.Engine) error {
 		NumClosedProjects int `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	if err := x.Sync2(new(Repository)); err != nil {
+	if err := x.Sync(new(Repository)); err != nil {
 		return err
 	}
 
@@ -64,7 +63,7 @@ func AddProjectsInfo(x *xorm.Engine) error {
 		ProjectBoardID int64 `xorm:"INDEX"`
 	}
 
-	if err := x.Sync2(new(ProjectIssue)); err != nil {
+	if err := x.Sync(new(ProjectIssue)); err != nil {
 		return err
 	}
 
@@ -80,5 +79,5 @@ func AddProjectsInfo(x *xorm.Engine) error {
 		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
-	return x.Sync2(new(ProjectBoard))
+	return x.Sync(new(ProjectBoard))
 }

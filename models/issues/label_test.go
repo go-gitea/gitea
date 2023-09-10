@@ -1,11 +1,9 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues_test
 
 import (
-	"html/template"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -13,11 +11,10 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
-
-// TODO TestGetLabelTemplateFile
 
 func TestLabel_CalOpenIssues(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
@@ -26,13 +23,13 @@ func TestLabel_CalOpenIssues(t *testing.T) {
 	assert.EqualValues(t, 2, label.NumOpenIssues)
 }
 
-func TestLabel_ForegroundColor(t *testing.T) {
+func TestLabel_ExclusiveScope(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
-	assert.Equal(t, template.CSS("#000"), label.ForegroundColor())
+	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 7})
+	assert.Equal(t, "scope", label.ExclusiveScope())
 
-	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 2})
-	assert.Equal(t, template.CSS("#fff"), label.ForegroundColor())
+	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 9})
+	assert.Equal(t, "scope/subscope", label.ExclusiveScope())
 }
 
 func TestNewLabels(t *testing.T) {
@@ -263,10 +260,12 @@ func TestUpdateLabel(t *testing.T) {
 	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
 	// make sure update wont overwrite it
 	update := &issues_model.Label{
-		ID:          label.ID,
-		Color:       "#ffff00",
-		Name:        "newLabelName",
-		Description: label.Description,
+		ID:           label.ID,
+		Color:        "#ffff00",
+		Name:         "newLabelName",
+		Description:  label.Description,
+		Exclusive:    false,
+		ArchivedUnix: timeutil.TimeStamp(0),
 	}
 	label.Color = update.Color
 	label.Name = update.Name
@@ -276,6 +275,7 @@ func TestUpdateLabel(t *testing.T) {
 	assert.EqualValues(t, label.Color, newLabel.Color)
 	assert.EqualValues(t, label.Name, newLabel.Name)
 	assert.EqualValues(t, label.Description, newLabel.Description)
+	assert.EqualValues(t, newLabel.ArchivedUnix, 0)
 	unittest.CheckConsistencyFor(t, &issues_model.Label{}, &repo_model.Repository{})
 }
 
@@ -322,6 +322,34 @@ func TestNewIssueLabel(t *testing.T) {
 	// re-add existing IssueLabel
 	assert.NoError(t, issues_model.NewIssueLabel(issue, label, doer))
 	unittest.CheckConsistencyFor(t, &issues_model.Issue{}, &issues_model.Label{})
+}
+
+func TestNewIssueExclusiveLabel(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 18})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	otherLabel := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 6})
+	exclusiveLabelA := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 7})
+	exclusiveLabelB := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 8})
+
+	// coexisting regular and exclusive label
+	assert.NoError(t, issues_model.NewIssueLabel(issue, otherLabel, doer))
+	assert.NoError(t, issues_model.NewIssueLabel(issue, exclusiveLabelA, doer))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issue.ID, LabelID: otherLabel.ID})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issue.ID, LabelID: exclusiveLabelA.ID})
+
+	// exclusive label replaces existing one
+	assert.NoError(t, issues_model.NewIssueLabel(issue, exclusiveLabelB, doer))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issue.ID, LabelID: otherLabel.ID})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issue.ID, LabelID: exclusiveLabelB.ID})
+	unittest.AssertNotExistsBean(t, &issues_model.IssueLabel{IssueID: issue.ID, LabelID: exclusiveLabelA.ID})
+
+	// exclusive label replaces existing one again
+	assert.NoError(t, issues_model.NewIssueLabel(issue, exclusiveLabelA, doer))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issue.ID, LabelID: otherLabel.ID})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issue.ID, LabelID: exclusiveLabelA.ID})
+	unittest.AssertNotExistsBean(t, &issues_model.IssueLabel{IssueID: issue.ID, LabelID: exclusiveLabelB.ID})
 }
 
 func TestNewIssueLabels(t *testing.T) {

@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -10,6 +9,7 @@ import (
 	"testing"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -34,7 +34,7 @@ func testPrivateActivityDoSomethingForActionEntries(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
 
 	session := loginUser(t, privateActivityTestUser)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all&token=%s", owner.Name, repoBefore.Name, token)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
 		Body:  "test",
@@ -58,7 +58,7 @@ func testPrivateActivityHelperEnablePrivateActivity(t *testing.T) {
 }
 
 func testPrivateActivityHelperHasVisibleActivitiesInHTMLDoc(htmlDoc *HTMLDoc) bool {
-	return htmlDoc.doc.Find(".feeds").Find(".news").Length() > 0
+	return htmlDoc.doc.Find("#activity-feed").Find(".flex-item").Length() > 0
 }
 
 func testPrivateActivityHelperHasVisibleActivitiesFromSession(t *testing.T, session *TestSession) bool {
@@ -125,7 +125,7 @@ func testPrivateActivityHelperHasHeatmapContentFromPublic(t *testing.T) bool {
 }
 
 func testPrivateActivityHelperHasHeatmapContentFromSession(t *testing.T, session *TestSession) bool {
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
 
 	req := NewRequestf(t, "GET", "/api/v1/users/%s/heatmap?token=%s", privateActivityTestUser, token)
 	resp := session.MakeRequest(t, req, http.StatusOK)

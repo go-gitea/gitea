@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_16 //nolint
 
@@ -63,8 +62,8 @@ func Test_UnwrapLDAPSourceCfg(t *testing.T) {
 		}
 
 		for _, source := range sources {
-			converted := map[string]interface{}{}
-			expected := map[string]interface{}{}
+			converted := map[string]any{}
+			expected := map[string]any{}
 
 			if err := json.Unmarshal([]byte(source.Cfg), &converted); err != nil {
 				assert.NoError(t, err)

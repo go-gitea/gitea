@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package process
 
@@ -83,7 +82,7 @@ func TestManager_Remove(t *testing.T) {
 
 	assert.NotEqual(t, GetContext(p1Ctx).GetPID(), GetContext(p2Ctx).GetPID(), "expected to get different pids got %s == %s", GetContext(p2Ctx).GetPID(), GetContext(p1Ctx).GetPID())
 
-	pm.Remove(GetPID(p2Ctx))
+	finished()
 
 	_, exists := pm.processMap[GetPID(p2Ctx)]
 	assert.False(t, exists, "PID %d is in the list but shouldn't", GetPID(p2Ctx))

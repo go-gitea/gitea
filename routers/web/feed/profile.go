@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package feed
 
@@ -9,6 +8,8 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 
 	"github.com/gorilla/feeds"
 )
@@ -27,7 +28,7 @@ func ShowUserFeedAtom(ctx *context.Context) {
 func showUserFeed(ctx *context.Context, formatType string) {
 	includePrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 
-	actions, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
+	actions, _, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctx.ContextUser,
 		Actor:           ctx.Doer,
 		IncludePrivate:  includePrivate,
@@ -40,10 +41,22 @@ func showUserFeed(ctx *context.Context, formatType string) {
 		return
 	}
 
+	ctxUserDescription, err := markdown.RenderString(&markup.RenderContext{
+		Ctx:       ctx,
+		URLPrefix: ctx.ContextUser.HTMLURL(),
+		Metas: map[string]string{
+			"user": ctx.ContextUser.GetDisplayName(),
+		},
+	}, ctx.ContextUser.Description)
+	if err != nil {
+		ctx.ServerError("RenderString", err)
+		return
+	}
+
 	feed := &feeds.Feed{
 		Title:       ctx.Tr("home.feed_of", ctx.ContextUser.DisplayName()),
 		Link:        &feeds.Link{Href: ctx.ContextUser.HTMLURL()},
-		Description: ctx.ContextUser.Description,
+		Description: ctxUserDescription,
 		Created:     time.Now(),
 	}
 

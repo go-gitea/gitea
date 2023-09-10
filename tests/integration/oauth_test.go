@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -105,6 +104,29 @@ func TestAccessTokenExchange(t *testing.T) {
 		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
 		"redirect_uri":  "a",
 		"code":          "authcode",
+		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt",
+	})
+	resp := MakeRequest(t, req, http.StatusOK)
+	type response struct {
+		AccessToken  string `json:"access_token"`
+		TokenType    string `json:"token_type"`
+		ExpiresIn    int64  `json:"expires_in"`
+		RefreshToken string `json:"refresh_token"`
+	}
+	parsed := new(response)
+
+	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
+	assert.True(t, len(parsed.AccessToken) > 10)
+	assert.True(t, len(parsed.RefreshToken) > 10)
+}
+
+func TestAccessTokenExchangeWithPublicClient(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"client_id":     "ce5a1322-42a7-11ed-b878-0242ac120002",
+		"redirect_uri":  "http://127.0.0.1",
+		"code":          "authcodepublic",
 		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt",
 	})
 	resp := MakeRequest(t, req, http.StatusOK)

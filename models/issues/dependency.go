@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -135,7 +134,7 @@ func CreateIssueDependency(user *user_model.User, issue, dep *Issue) error {
 	}
 	defer committer.Close()
 
-	// Check if it aleready exists
+	// Check if it already exists
 	exists, err := issueDepExists(ctx, issue.ID, dep.ID)
 	if err != nil {
 		return err

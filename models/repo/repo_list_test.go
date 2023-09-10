@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo_test
 
@@ -16,108 +15,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSearchRepository(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	// test search public repository on explore page
-	repos, count, err := repo_model.SearchRepositoryByName(db.DefaultContext, &repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: 10,
-		},
-		Keyword:     "repo_12",
-		Collaborate: util.OptionalBoolFalse,
-	})
-
-	assert.NoError(t, err)
-	if assert.Len(t, repos, 1) {
-		assert.Equal(t, "test_repo_12", repos[0].Name)
-	}
-	assert.Equal(t, int64(1), count)
-
-	repos, count, err = repo_model.SearchRepositoryByName(db.DefaultContext, &repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: 10,
-		},
-		Keyword:     "test_repo",
-		Collaborate: util.OptionalBoolFalse,
-	})
-
-	assert.NoError(t, err)
-	assert.Equal(t, int64(2), count)
-	assert.Len(t, repos, 2)
-
-	// test search private repository on explore page
-	repos, count, err = repo_model.SearchRepositoryByName(db.DefaultContext, &repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: 10,
-		},
-		Keyword:     "repo_13",
-		Private:     true,
-		Collaborate: util.OptionalBoolFalse,
-	})
-
-	assert.NoError(t, err)
-	if assert.Len(t, repos, 1) {
-		assert.Equal(t, "test_repo_13", repos[0].Name)
-	}
-	assert.Equal(t, int64(1), count)
-
-	repos, count, err = repo_model.SearchRepositoryByName(db.DefaultContext, &repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: 10,
-		},
-		Keyword:     "test_repo",
-		Private:     true,
-		Collaborate: util.OptionalBoolFalse,
-	})
-
-	assert.NoError(t, err)
-	assert.Equal(t, int64(3), count)
-	assert.Len(t, repos, 3)
-
-	// Test non existing owner
-	repos, count, err = repo_model.SearchRepositoryByName(db.DefaultContext, &repo_model.SearchRepoOptions{OwnerID: unittest.NonexistentID})
-
-	assert.NoError(t, err)
-	assert.Empty(t, repos)
-	assert.Equal(t, int64(0), count)
-
-	// Test search within description
-	repos, count, err = repo_model.SearchRepository(db.DefaultContext, &repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: 10,
-		},
-		Keyword:            "description_14",
-		Collaborate:        util.OptionalBoolFalse,
-		IncludeDescription: true,
-	})
-
-	assert.NoError(t, err)
-	if assert.Len(t, repos, 1) {
-		assert.Equal(t, "test_repo_14", repos[0].Name)
-	}
-	assert.Equal(t, int64(1), count)
-
-	// Test NOT search within description
-	repos, count, err = repo_model.SearchRepository(db.DefaultContext, &repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: 10,
-		},
-		Keyword:            "description_14",
-		Collaborate:        util.OptionalBoolFalse,
-		IncludeDescription: false,
-	})
-
-	assert.NoError(t, err)
-	assert.Empty(t, repos)
-	assert.Equal(t, int64(0), count)
-
+func getTestCases() []struct {
+	name  string
+	opts  *repo_model.SearchRepoOptions
+	count int
+} {
 	testCases := []struct {
 		name  string
 		opts  *repo_model.SearchRepoOptions
@@ -236,12 +138,12 @@ func TestSearchRepository(t *testing.T) {
 		{
 			name:  "AllPublic/PublicRepositoriesOfUserIncludingCollaborative",
 			opts:  &repo_model.SearchRepoOptions{ListOptions: db.ListOptions{Page: 1, PageSize: 10}, OwnerID: 15, AllPublic: true, Template: util.OptionalBoolFalse},
-			count: 28,
+			count: 31,
 		},
 		{
 			name:  "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborative",
 			opts:  &repo_model.SearchRepoOptions{ListOptions: db.ListOptions{Page: 1, PageSize: 10}, OwnerID: 15, Private: true, AllPublic: true, AllLimited: true, Template: util.OptionalBoolFalse},
-			count: 33,
+			count: 36,
 		},
 		{
 			name:  "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborativeByName",
@@ -256,7 +158,7 @@ func TestSearchRepository(t *testing.T) {
 		{
 			name:  "AllPublic/PublicRepositoriesOfOrganization",
 			opts:  &repo_model.SearchRepoOptions{ListOptions: db.ListOptions{Page: 1, PageSize: 10}, OwnerID: 17, AllPublic: true, Collaborate: util.OptionalBoolFalse, Template: util.OptionalBoolFalse},
-			count: 28,
+			count: 31,
 		},
 		{
 			name:  "AllTemplates",
@@ -274,6 +176,113 @@ func TestSearchRepository(t *testing.T) {
 			count: 4,
 		},
 	}
+
+	return testCases
+}
+
+func TestSearchRepository(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// test search public repository on explore page
+	repos, count, err := repo_model.SearchRepositoryByName(db.DefaultContext, &repo_model.SearchRepoOptions{
+		ListOptions: db.ListOptions{
+			Page:     1,
+			PageSize: 10,
+		},
+		Keyword:     "repo_12",
+		Collaborate: util.OptionalBoolFalse,
+	})
+
+	assert.NoError(t, err)
+	if assert.Len(t, repos, 1) {
+		assert.Equal(t, "test_repo_12", repos[0].Name)
+	}
+	assert.Equal(t, int64(1), count)
+
+	repos, count, err = repo_model.SearchRepositoryByName(db.DefaultContext, &repo_model.SearchRepoOptions{
+		ListOptions: db.ListOptions{
+			Page:     1,
+			PageSize: 10,
+		},
+		Keyword:     "test_repo",
+		Collaborate: util.OptionalBoolFalse,
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, int64(2), count)
+	assert.Len(t, repos, 2)
+
+	// test search private repository on explore page
+	repos, count, err = repo_model.SearchRepositoryByName(db.DefaultContext, &repo_model.SearchRepoOptions{
+		ListOptions: db.ListOptions{
+			Page:     1,
+			PageSize: 10,
+		},
+		Keyword:     "repo_13",
+		Private:     true,
+		Collaborate: util.OptionalBoolFalse,
+	})
+
+	assert.NoError(t, err)
+	if assert.Len(t, repos, 1) {
+		assert.Equal(t, "test_repo_13", repos[0].Name)
+	}
+	assert.Equal(t, int64(1), count)
+
+	repos, count, err = repo_model.SearchRepositoryByName(db.DefaultContext, &repo_model.SearchRepoOptions{
+		ListOptions: db.ListOptions{
+			Page:     1,
+			PageSize: 10,
+		},
+		Keyword:     "test_repo",
+		Private:     true,
+		Collaborate: util.OptionalBoolFalse,
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, int64(3), count)
+	assert.Len(t, repos, 3)
+
+	// Test non existing owner
+	repos, count, err = repo_model.SearchRepositoryByName(db.DefaultContext, &repo_model.SearchRepoOptions{OwnerID: unittest.NonexistentID})
+
+	assert.NoError(t, err)
+	assert.Empty(t, repos)
+	assert.Equal(t, int64(0), count)
+
+	// Test search within description
+	repos, count, err = repo_model.SearchRepository(db.DefaultContext, &repo_model.SearchRepoOptions{
+		ListOptions: db.ListOptions{
+			Page:     1,
+			PageSize: 10,
+		},
+		Keyword:            "description_14",
+		Collaborate:        util.OptionalBoolFalse,
+		IncludeDescription: true,
+	})
+
+	assert.NoError(t, err)
+	if assert.Len(t, repos, 1) {
+		assert.Equal(t, "test_repo_14", repos[0].Name)
+	}
+	assert.Equal(t, int64(1), count)
+
+	// Test NOT search within description
+	repos, count, err = repo_model.SearchRepository(db.DefaultContext, &repo_model.SearchRepoOptions{
+		ListOptions: db.ListOptions{
+			Page:     1,
+			PageSize: 10,
+		},
+		Keyword:            "description_14",
+		Collaborate:        util.OptionalBoolFalse,
+		IncludeDescription: false,
+	})
+
+	assert.NoError(t, err)
+	assert.Empty(t, repos)
+	assert.Equal(t, int64(0), count)
+
+	testCases := getTestCases()
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
@@ -346,6 +355,21 @@ func TestSearchRepository(t *testing.T) {
 					}
 				}
 			}
+		})
+	}
+}
+
+func TestCountRepository(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	testCases := getTestCases()
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			count, err := repo_model.CountRepository(db.DefaultContext, testCase.opts)
+
+			assert.NoError(t, err)
+			assert.Equal(t, int64(testCase.count), count)
 		})
 	}
 }

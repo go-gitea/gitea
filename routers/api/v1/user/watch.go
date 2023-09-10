@@ -1,6 +1,5 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -13,9 +12,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // getWatchedRepos returns the repos that the user with the specified userID is watching
@@ -27,11 +26,11 @@ func getWatchedRepos(ctx std_context.Context, user *user_model.User, private boo
 
 	repos := make([]*api.Repository, len(watchedRepos))
 	for i, watched := range watchedRepos {
-		access, err := access_model.AccessLevel(ctx, user, watched)
+		permission, err := access_model.GetUserRepoPermission(ctx, watched, user)
 		if err != nil {
 			return nil, 0, err
 		}
-		repos[i] = convert.ToRepo(watched, access)
+		repos[i] = convert.ToRepo(ctx, watched, permission)
 	}
 	return repos, total, nil
 }

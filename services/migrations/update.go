@@ -1,17 +1,16 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
 import (
 	"context"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/externalaccount"
 )
 
 // UpdateMigrationPosterID updates all migrated repositories' issues and comments posterID
@@ -63,7 +62,7 @@ func updateMigrationPosterIDByGitService(ctx context.Context, tp structs.GitServ
 			default:
 			}
 			externalUserID := user.ExternalID
-			if err := models.UpdateMigrationsByType(tp, externalUserID, user.UserID); err != nil {
+			if err := externalaccount.UpdateMigrationsByType(tp, externalUserID, user.UserID); err != nil {
 				log.Error("UpdateMigrationsByType type %s external user id %v to local user id %v failed: %v", tp.Name(), user.ExternalID, user.UserID, err)
 			}
 		}

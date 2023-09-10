@@ -1,7 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Copyright 2018 Jonas Franz. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migration
 
@@ -35,6 +34,15 @@ func (issue *Issue) GetExternalName() string { return issue.PosterName }
 // GetExternalID ExternalUserMigrated interface
 func (issue *Issue) GetExternalID() int64 { return issue.PosterID }
 
-func (issue *Issue) GetLocalIndex() int64          { return issue.Number }
-func (issue *Issue) GetForeignIndex() int64        { return issue.ForeignIndex }
+func (issue *Issue) GetLocalIndex() int64 { return issue.Number }
+
+func (issue *Issue) GetForeignIndex() int64 {
+	// see the comment of Reviewable.GetForeignIndex
+	// if there is no ForeignIndex, then use LocalIndex
+	if issue.ForeignIndex == 0 {
+		return issue.Number
+	}
+	return issue.ForeignIndex
+}
+
 func (issue *Issue) GetContext() DownloaderContext { return issue.Context }

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues_test
 
@@ -84,7 +83,7 @@ func TestXRef_NeuterCrossReferences(t *testing.T) {
 
 	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	i.Title = "title2, no mentions"
-	assert.NoError(t, issues_model.ChangeIssueTitle(i, d, title))
+	assert.NoError(t, issues_model.ChangeIssueTitle(db.DefaultContext, i, d, title))
 
 	ref = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0})
 	assert.Equal(t, issues_model.CommentTypeIssueRef, ref.Type)

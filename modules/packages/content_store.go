@@ -1,14 +1,15 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package packages
 
 import (
 	"io"
+	"net/url"
 	"path"
 	"strings"
 
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -30,6 +31,14 @@ func NewContentStore() *ContentStore {
 // Get gets a package blob
 func (s *ContentStore) Get(key BlobHash256Key) (storage.Object, error) {
 	return s.store.Open(KeyToRelativePath(key))
+}
+
+func (s *ContentStore) ShouldServeDirect() bool {
+	return setting.Packages.Storage.MinioConfig.ServeDirect
+}
+
+func (s *ContentStore) GetServeDirectURL(key BlobHash256Key, filename string) (*url.URL, error) {
+	return s.store.URL(KeyToRelativePath(key), filename)
 }
 
 // FIXME: Workaround to be removed in v1.20

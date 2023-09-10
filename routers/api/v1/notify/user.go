@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package notify
 
@@ -10,8 +9,8 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // ListNotifications list users's notification threads
@@ -133,7 +132,7 @@ func ReadNotifications(ctx *context.APIContext) {
 	if len(qLastRead) > 0 {
 		tmpLastRead, err := time.Parse(time.RFC3339, qLastRead)
 		if err != nil {
-			ctx.InternalServerError(err)
+			ctx.Error(http.StatusBadRequest, "Parse", err)
 			return
 		}
 		if !tmpLastRead.IsZero() {

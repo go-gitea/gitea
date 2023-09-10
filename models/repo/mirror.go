@@ -1,22 +1,21 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrMirrorNotExist mirror does not exist error
-var ErrMirrorNotExist = errors.New("Mirror does not exist")
+var ErrMirrorNotExist = util.NewNotExistErrorf("Mirror does not exist")
 
 // Mirror represents mirror information of a repository.
 type Mirror struct {
@@ -53,7 +52,7 @@ func (m *Mirror) GetRepository() *Repository {
 		return m.Repo
 	}
 	var err error
-	m.Repo, err = GetRepositoryByIDCtx(db.DefaultContext, m.RepoID)
+	m.Repo, err = GetRepositoryByID(db.DefaultContext, m.RepoID)
 	if err != nil {
 		log.Error("getRepositoryByID[%d]: %v", m.ID, err)
 	}
@@ -106,7 +105,7 @@ func DeleteMirrorByRepoID(repoID int64) error {
 }
 
 // MirrorsIterate iterates all mirror repositories.
-func MirrorsIterate(limit int, f func(idx int, bean interface{}) error) error {
+func MirrorsIterate(limit int, f func(idx int, bean any) error) error {
 	sess := db.GetEngine(db.DefaultContext).
 		Where("next_update_unix<=?", time.Now().Unix()).
 		And("next_update_unix!=0").

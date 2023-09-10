@@ -1,17 +1,16 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package composer
 
 import (
 	"archive/zip"
-	"errors"
 	"io"
 	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
 	"github.com/hashicorp/go-version"
@@ -22,11 +21,11 @@ const TypeProperty = "composer.type"
 
 var (
 	// ErrMissingComposerFile indicates a missing composer.json file
-	ErrMissingComposerFile = errors.New("composer.json file is missing")
+	ErrMissingComposerFile = util.NewInvalidArgumentErrorf("composer.json file is missing")
 	// ErrInvalidName indicates an invalid package name
-	ErrInvalidName = errors.New("package name is invalid")
+	ErrInvalidName = util.NewInvalidArgumentErrorf("package name is invalid")
 	// ErrInvalidVersion indicates an invalid package version
-	ErrInvalidVersion = errors.New("package version is invalid")
+	ErrInvalidVersion = util.NewInvalidArgumentErrorf("package version is invalid")
 )
 
 // Package represents a Composer package
@@ -39,18 +38,18 @@ type Package struct {
 
 // Metadata represents the metadata of a Composer package
 type Metadata struct {
-	Description string                 `json:"description,omitempty"`
-	Keywords    []string               `json:"keywords,omitempty"`
-	Homepage    string                 `json:"homepage,omitempty"`
-	License     Licenses               `json:"license,omitempty"`
-	Authors     []Author               `json:"authors,omitempty"`
-	Autoload    map[string]interface{} `json:"autoload,omitempty"`
-	AutoloadDev map[string]interface{} `json:"autoload-dev,omitempty"`
-	Extra       map[string]interface{} `json:"extra,omitempty"`
-	Require     map[string]string      `json:"require,omitempty"`
-	RequireDev  map[string]string      `json:"require-dev,omitempty"`
-	Suggest     map[string]string      `json:"suggest,omitempty"`
-	Provide     map[string]string      `json:"provide,omitempty"`
+	Description string            `json:"description,omitempty"`
+	Keywords    []string          `json:"keywords,omitempty"`
+	Homepage    string            `json:"homepage,omitempty"`
+	License     Licenses          `json:"license,omitempty"`
+	Authors     []Author          `json:"authors,omitempty"`
+	Autoload    map[string]any    `json:"autoload,omitempty"`
+	AutoloadDev map[string]any    `json:"autoload-dev,omitempty"`
+	Extra       map[string]any    `json:"extra,omitempty"`
+	Require     map[string]string `json:"require,omitempty"`
+	RequireDev  map[string]string `json:"require-dev,omitempty"`
+	Suggest     map[string]string `json:"suggest,omitempty"`
+	Provide     map[string]string `json:"provide,omitempty"`
 }
 
 // Licenses represents the licenses of a Composer package

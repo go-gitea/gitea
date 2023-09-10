@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package mailer
 
@@ -69,7 +68,7 @@ func mailNewRelease(ctx context.Context, lang string, tos []string, rel *repo_mo
 	}
 
 	subject := locale.Tr("mail.release.new.subject", rel.TagName, rel.Repo.FullName())
-	mailMeta := map[string]interface{}{
+	mailMeta := map[string]any{
 		"Release":  rel,
 		"Subject":  subject,
 		"Language": locale.Language(),
@@ -90,7 +89,7 @@ func mailNewRelease(ctx context.Context, lang string, tos []string, rel *repo_mo
 	publisherName := rel.Publisher.DisplayName()
 	relURL := "<" + rel.HTMLURL() + ">"
 	for _, to := range tos {
-		msg := NewMessageFrom([]string{to}, publisherName, setting.MailService.FromEmail, subject, mailBody.String())
+		msg := NewMessageFrom(to, publisherName, setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = subject
 		msg.SetHeader("Message-ID", relURL)
 		msgs = append(msgs, msg)

@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -12,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 )
 
 const (
@@ -24,11 +24,12 @@ func CodeSearch(ctx *context.Context) {
 		ctx.Redirect(ctx.ContextUser.HomeLink())
 		return
 	}
+	shared_user.PrepareContextForProfileBigAvatar(ctx)
+	shared_user.RenderUserHeader(ctx)
 
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["Title"] = ctx.Tr("code.title")
-	ctx.Data["ContextUser"] = ctx.ContextUser
+	ctx.Data["Title"] = ctx.Tr("explore.code")
 
 	language := ctx.FormTrim("l")
 	keyword := ctx.FormTrim("q")
@@ -71,13 +72,13 @@ func CodeSearch(ctx *context.Context) {
 	if len(repoIDs) > 0 {
 		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
 		if err != nil {
-			if code_indexer.IsAvailable() {
+			if code_indexer.IsAvailable(ctx) {
 				ctx.ServerError("SearchResults", err)
 				return
 			}
 			ctx.Data["CodeIndexerUnavailable"] = true
 		} else {
-			ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable()
+			ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable(ctx)
 		}
 
 		loadRepoIDs := make([]int64, 0, len(searchResults))

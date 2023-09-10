@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package lfs
 
@@ -163,7 +162,7 @@ func TestHTTPClientDownload(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.Equal(t, "download", batchRequest.Operation)
-		assert.Equal(t, 1, len(batchRequest.Objects))
+		assert.Len(t, batchRequest.Objects, 1)
 		assert.Equal(t, p.Oid, batchRequest.Objects[0].Oid)
 		assert.Equal(t, p.Size, batchRequest.Objects[0].Size)
 
@@ -270,7 +269,7 @@ func TestHTTPClientUpload(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.Equal(t, "upload", batchRequest.Operation)
-		assert.Equal(t, 1, len(batchRequest.Objects))
+		assert.Len(t, batchRequest.Objects, 1)
 		assert.Equal(t, p.Oid, batchRequest.Objects[0].Oid)
 		assert.Equal(t, p.Size, batchRequest.Objects[0].Size)
 

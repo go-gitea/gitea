@@ -1,8 +1,7 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
-package v1_6 // nolint
+package v1_6 //nolint
 
 import (
 	"fmt"
@@ -24,8 +23,8 @@ func AddReview(x *xorm.Engine) error {
 		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
-	if err := x.Sync2(new(Review)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := x.Sync(new(Review)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 	return nil
 }

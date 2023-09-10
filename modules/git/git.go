@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -115,7 +114,7 @@ func VersionInfo() string {
 		return "(git not found)"
 	}
 	format := "%s"
-	args := []interface{}{gitVersion.Original()}
+	args := []any{gitVersion.Original()}
 	// Since git wire protocol has been released from git v2.18
 	if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
 		format += ", Wire Protocol %s Enabled"
@@ -172,7 +171,7 @@ func InitFull(ctx context.Context) (err error) {
 	}
 
 	if err = InitSimple(ctx); err != nil {
-		return
+		return err
 	}
 
 	// when git works with gnupg (commit signing), there should be a stable home for gnupg commands
@@ -189,7 +188,6 @@ func InitFull(ctx context.Context) (err error) {
 	if CheckGitVersionAtLeast("2.9") == nil {
 		globalCommandArgs = append(globalCommandArgs, "-c", "credential.helper=")
 	}
-
 	SupportProcReceive = CheckGitVersionAtLeast("2.29") == nil
 
 	if setting.LFS.StartServer {
@@ -206,6 +204,14 @@ func InitFull(ctx context.Context) (err error) {
 func syncGitConfig() (err error) {
 	if err = os.MkdirAll(HomeDir(), os.ModePerm); err != nil {
 		return fmt.Errorf("unable to prepare git home directory %s, err: %w", HomeDir(), err)
+	}
+
+	// first, write user's git config options to git config file
+	// user config options could be overwritten by builtin values later, because if a value is builtin, it must have some special purposes
+	for k, v := range setting.GitConfig.Options {
+		if err = configSet(strings.ToLower(k), v); err != nil {
+			return err
+		}
 	}
 
 	// Git requires setting user.name and user.email in order to commit changes - old comment: "if they're not set just add some defaults"
@@ -313,7 +319,7 @@ func CheckGitVersionAtLeast(atLeast string) error {
 }
 
 func configSet(key, value string) error {
-	stdout, _, err := NewCommand(DefaultContext, "config", "--get").AddDynamicArguments(key).RunStdString(nil)
+	stdout, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key).RunStdString(nil)
 	if err != nil && !err.IsExitCode(1) {
 		return fmt.Errorf("failed to get git config %s, err: %w", key, err)
 	}
@@ -332,7 +338,7 @@ func configSet(key, value string) error {
 }
 
 func configSetNonExist(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--get").AddDynamicArguments(key).RunStdString(nil)
+	_, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key).RunStdString(nil)
 	if err == nil {
 		// already exist
 		return nil
@@ -350,7 +356,7 @@ func configSetNonExist(key, value string) error {
 }
 
 func configAddNonExist(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--get").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(nil)
+	_, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(nil)
 	if err == nil {
 		// already exist
 		return nil
@@ -367,7 +373,7 @@ func configAddNonExist(key, value string) error {
 }
 
 func configUnsetAll(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--get").AddDynamicArguments(key).RunStdString(nil)
+	_, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key).RunStdString(nil)
 	if err == nil {
 		// exist, need to remove
 		_, _, err = NewCommand(DefaultContext, "config", "--global", "--unset-all").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(nil)
@@ -384,6 +390,6 @@ func configUnsetAll(key, value string) error {
 }
 
 // Fsck verifies the connectivity and validity of the objects in the database
-func Fsck(ctx context.Context, repoPath string, timeout time.Duration, args ...CmdArg) error {
+func Fsck(ctx context.Context, repoPath string, timeout time.Duration, args TrustedCmdArgs) error {
 	return NewCommand(ctx, "fsck").AddArguments(args...).Run(&RunOpts{Timeout: timeout, Dir: repoPath})
 }

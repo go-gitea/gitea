@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package activities
 
@@ -82,7 +81,7 @@ func (actions ActionList) loadRepoOwner(ctx context.Context, userMap map[int64]*
 		}
 		repoOwner, ok := userMap[action.Repo.OwnerID]
 		if !ok {
-			repoOwner, err = user_model.GetUserByIDCtx(ctx, action.Repo.OwnerID)
+			repoOwner, err = user_model.GetUserByID(ctx, action.Repo.OwnerID)
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					continue

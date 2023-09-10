@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_14 //nolint
 
@@ -19,7 +18,7 @@ func ConvertTopicNameFrom25To50(x *xorm.Engine) error {
 		UpdatedUnix int64 `xorm:"INDEX updated"`
 	}
 
-	if err := x.Sync2(new(Topic)); err != nil {
+	if err := x.Sync(new(Topic)); err != nil {
 		return err
 	}
 

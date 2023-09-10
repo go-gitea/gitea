@@ -1,19 +1,19 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
@@ -60,7 +60,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 	email := ctx.FormString("email")
 	ctx.Data["Email"] = email
 
-	u, err := user_model.GetUserByEmail(email)
+	u, err := user_model.GetUserByEmail(ctx, email)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale)
@@ -109,14 +109,14 @@ func commonResetPassword(ctx *context.Context) (*user_model.User, *auth.TwoFacto
 	}
 
 	if len(code) == 0 {
-		ctx.Flash.Error(ctx.Tr("auth.invalid_code"))
+		ctx.Flash.Error(ctx.Tr("auth.invalid_code_forgot_password", fmt.Sprintf("%s/user/forgot_password", setting.AppSubURL)), true)
 		return nil, nil
 	}
 
 	// Fail early, don't frustrate the user
 	u := user_model.VerifyUserActiveCode(code)
 	if u == nil {
-		ctx.Flash.Error(ctx.Tr("auth.invalid_code"))
+		ctx.Flash.Error(ctx.Tr("auth.invalid_code_forgot_password", fmt.Sprintf("%s/user/forgot_password", setting.AppSubURL)), true)
 		return nil, nil
 	}
 
@@ -135,7 +135,7 @@ func commonResetPassword(ctx *context.Context) (*user_model.User, *auth.TwoFacto
 	ctx.Data["user_email"] = u.Email
 
 	if nil != ctx.Doer && u.ID != ctx.Doer.ID {
-		ctx.Flash.Error(ctx.Tr("auth.reset_password_wrong_user", ctx.Doer.Email, u.Email))
+		ctx.Flash.Error(ctx.Tr("auth.reset_password_wrong_user", ctx.Doer.Email, u.Email), true)
 		return nil, nil
 	}
 
@@ -177,7 +177,7 @@ func ResetPasswdPost(ctx *context.Context) {
 	} else if !password.IsComplexEnough(passwd) {
 		ctx.Data["IsResetForm"] = true
 		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplResetPassword, nil)
+		ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplResetPassword, nil)
 		return
 	} else if pwned, err := password.IsPwned(ctx, passwd); pwned || err != nil {
 		errMsg := ctx.Tr("auth.password_pwned")
@@ -306,7 +306,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	if !password.IsComplexEnough(form.Password) {
 		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplMustChangePassword, &form)
+		ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplMustChangePassword, &form)
 		return
 	}
 	pwned, err := password.IsPwned(ctx, form.Password)
@@ -337,7 +337,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	log.Trace("User updated password: %s", u.Name)
 
-	if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
+	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
 		middleware.DeleteRedirectToCookie(ctx.Resp)
 		ctx.RedirectToFirst(redirectTo)
 		return

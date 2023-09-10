@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -9,6 +8,8 @@ const (
 	SettingsKeyHiddenCommentTypes = "issue.hidden_comment_types"
 	// SettingsKeyDiffWhitespaceBehavior is the setting key for whitespace behavior of diff
 	SettingsKeyDiffWhitespaceBehavior = "diff.whitespace_behaviour"
+	// SettingsKeyShowOutdatedComments is the setting key wether or not to show outdated comments in PRs
+	SettingsKeyShowOutdatedComments = "comment_code.show_outdated"
 	// UserActivityPubPrivPem is user's private key
 	UserActivityPubPrivPem = "activitypub.priv_pem"
 	// UserActivityPubPubPem is user's public key

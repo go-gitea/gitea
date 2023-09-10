@@ -1,12 +1,13 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
@@ -126,6 +127,7 @@ type PullRequestsConfig struct {
 	AllowRebaseUpdate             bool
 	DefaultDeleteBranchAfterMerge bool
 	DefaultMergeStyle             MergeStyle
+	DefaultAllowMaintainerEdit    bool
 }
 
 // FromDB fills up a PullRequestsConfig from serialized format.
@@ -162,6 +164,42 @@ func (cfg *PullRequestsConfig) GetDefaultMergeStyle() MergeStyle {
 	return MergeStyleMerge
 }
 
+type ActionsConfig struct {
+	DisabledWorkflows []string
+}
+
+func (cfg *ActionsConfig) EnableWorkflow(file string) {
+	cfg.DisabledWorkflows = util.SliceRemoveAll(cfg.DisabledWorkflows, file)
+}
+
+func (cfg *ActionsConfig) ToString() string {
+	return strings.Join(cfg.DisabledWorkflows, ",")
+}
+
+func (cfg *ActionsConfig) IsWorkflowDisabled(file string) bool {
+	return slices.Contains(cfg.DisabledWorkflows, file)
+}
+
+func (cfg *ActionsConfig) DisableWorkflow(file string) {
+	for _, workflow := range cfg.DisabledWorkflows {
+		if file == workflow {
+			return
+		}
+	}
+
+	cfg.DisabledWorkflows = append(cfg.DisabledWorkflows, file)
+}
+
+// FromDB fills up a ActionsConfig from serialized format.
+func (cfg *ActionsConfig) FromDB(bs []byte) error {
+	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
+}
+
+// ToDB exports a ActionsConfig to a serialized format.
+func (cfg *ActionsConfig) ToDB() ([]byte, error) {
+	return json.Marshal(cfg)
+}
+
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
@@ -175,6 +213,8 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 			r.Config = new(PullRequestsConfig)
 		case unit.TypeIssues:
 			r.Config = new(IssuesConfig)
+		case unit.TypeActions:
+			r.Config = new(ActionsConfig)
 		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects, unit.TypePackages:
 			fallthrough
 		default:
@@ -216,6 +256,11 @@ func (r *RepoUnit) IssuesConfig() *IssuesConfig {
 // ExternalTrackerConfig returns config for unit.TypeExternalTracker
 func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 	return r.Config.(*ExternalTrackerConfig)
+}
+
+// ActionsConfig returns config for unit.ActionsConfig
+func (r *RepoUnit) ActionsConfig() *ActionsConfig {
+	return r.Config.(*ActionsConfig)
 }
 
 func getUnitsByRepoID(ctx context.Context, repoID int64) (units []*RepoUnit, err error) {

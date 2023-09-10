@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -8,13 +7,19 @@ import (
 	"net/http"
 	"testing"
 
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRenameBranch(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: 1, Name: "master"})
+
 	// get branch setting page
 	session := loginUser(t, "user2")
 	req := NewRequest(t, "GET", "/user2/repo1/settings/branches")
@@ -36,7 +41,7 @@ func TestRenameBranch(t *testing.T) {
 	// check old branch link
 	req = NewRequestWithValues(t, "GET", "/user2/repo1/src/branch/master/README.md", postData)
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
-	location := resp.HeaderMap.Get("Location")
+	location := resp.Header().Get("Location")
 	assert.Equal(t, "/user2/repo1/src/branch/main/README.md", location)
 
 	// check db

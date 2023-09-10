@@ -1,12 +1,12 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
 import (
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -14,7 +14,6 @@ import (
 // Ensure the struct implements the interface.
 var (
 	_ Method = &Session{}
-	_ Named  = &Session{}
 )
 
 // Session checks if there is a user uid stored in the session and returns the user
@@ -29,12 +28,12 @@ func (s *Session) Name() string {
 // Verify checks if there is a user uid stored in the session and returns the user
 // object for that uid.
 // Returns nil if there is no user uid stored in the session.
-func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
+func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
 	user := SessionUser(sess)
 	if user != nil {
-		return user
+		return user, nil
 	}
-	return nil
+	return nil, nil
 }
 
 // SessionUser returns the user object corresponding to the "uid" session variable.
@@ -56,7 +55,7 @@ func SessionUser(sess SessionStore) *user_model.User {
 	}
 
 	// Get user object
-	user, err := user_model.GetUserByID(id)
+	user, err := user_model.GetUserByID(db.DefaultContext, id)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserById: %v", err)

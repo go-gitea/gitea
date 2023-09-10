@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -56,6 +55,10 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 		}
 	} else if treepath != "" {
 		files = append(files, treepath)
+	}
+	// Use the :(literal) pathspec magic to handle edge cases with files named like ":file.txt" or "*.jpg"
+	for i, file := range files {
+		files[i] = ":(literal)" + file
 	}
 	cmd.AddDashesAndList(files...)
 
@@ -371,27 +374,25 @@ heaploop:
 			break heaploop
 		}
 		parentRemaining.Remove(current.CommitID)
-		if current.Paths != nil {
-			for i, found := range current.Paths {
-				if !found {
-					continue
+		for i, found := range current.Paths {
+			if !found {
+				continue
+			}
+			changed[i] = false
+			if results[i] == "" {
+				results[i] = current.CommitID
+				if err := repo.LastCommitCache.Put(headRef, path.Join(treepath, paths[i]), current.CommitID); err != nil {
+					return nil, err
 				}
-				changed[i] = false
-				if results[i] == "" {
-					results[i] = current.CommitID
-					if err := repo.LastCommitCache.Put(headRef, path.Join(treepath, paths[i]), current.CommitID); err != nil {
+				delete(path2idx, paths[i])
+				remaining--
+				if results[0] == "" {
+					results[0] = current.CommitID
+					if err := repo.LastCommitCache.Put(headRef, treepath, current.CommitID); err != nil {
 						return nil, err
 					}
-					delete(path2idx, paths[i])
+					delete(path2idx, "")
 					remaining--
-					if results[0] == "" {
-						results[0] = current.CommitID
-						if err := repo.LastCommitCache.Put(headRef, treepath, current.CommitID); err != nil {
-							return nil, err
-						}
-						delete(path2idx, "")
-						remaining--
-					}
 				}
 			}
 		}

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -22,18 +21,15 @@ var CORSConfig = struct {
 	Headers          []string
 	XFrameOptions    string
 }{
-	Enabled:       false,
-	MaxAge:        10 * time.Minute,
+	AllowDomain:   []string{"*"},
+	Methods:       []string{"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 	Headers:       []string{"Content-Type", "User-Agent"},
+	MaxAge:        10 * time.Minute,
 	XFrameOptions: "SAMEORIGIN",
 }
 
-func newCORSService() {
-	sec := Cfg.Section("cors")
-	if err := sec.MapTo(&CORSConfig); err != nil {
-		log.Fatal("Failed to map cors settings: %v", err)
-	}
-
+func loadCorsFrom(rootCfg ConfigProvider) {
+	mustMapSetting(rootCfg, "cors", &CORSConfig)
 	if CORSConfig.Enabled {
 		log.Info("CORS Service Enabled")
 	}

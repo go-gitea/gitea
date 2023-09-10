@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build gogit
 
@@ -178,7 +177,7 @@ func GetLastCommitForPaths(ctx context.Context, cache *LastCommitCache, c cgobje
 	refSha := c.ID().String()
 
 	// We do a tree traversal with nodes sorted by commit time
-	heap := binaryheap.NewWith(func(a, b interface{}) int {
+	heap := binaryheap.NewWith(func(a, b any) int {
 		if a.(*commitAndPaths).commit.CommitTime().Before(b.(*commitAndPaths).commit.CommitTime()) {
 			return 1
 		}

@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -35,7 +34,7 @@ func TestDeleteBranch(t *testing.T) {
 func TestUndoDeleteBranch(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		deleteBranch(t)
-		htmlDoc, name := branchAction(t, ".undo-button")
+		htmlDoc, name := branchAction(t, ".restore-branch-button")
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.positive.message").Text(),
 			translation.NewLocale("en-US").Tr("repo.branch.restore_success", name),

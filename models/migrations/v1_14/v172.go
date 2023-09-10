@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_14 //nolint
 
@@ -16,5 +15,5 @@ func AddSessionTable(x *xorm.Engine) error {
 		Data   []byte `xorm:"BLOB"`
 		Expiry timeutil.TimeStamp
 	}
-	return x.Sync2(new(Session))
+	return x.Sync(new(Session))
 }

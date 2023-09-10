@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package regexplru
 
@@ -9,14 +8,14 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
-	lru "github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru/v2"
 )
 
-var lruCache *lru.Cache
+var lruCache *lru.Cache[string, any]
 
 func init() {
 	var err error
-	lruCache, err = lru.New(1000)
+	lruCache, err = lru.New[string, any](1000)
 	if err != nil {
 		log.Fatal("failed to new LRU cache, err: %v", err)
 	}

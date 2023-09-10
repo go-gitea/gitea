@@ -1,7 +1,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -14,9 +13,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // getStarredRepos returns the repos that the user with the specified userID has
@@ -29,11 +28,11 @@ func getStarredRepos(ctx std_context.Context, user *user_model.User, private boo
 
 	repos := make([]*api.Repository, len(starredRepos))
 	for i, starred := range starredRepos {
-		access, err := access_model.AccessLevel(ctx, user, starred)
+		permission, err := access_model.GetUserRepoPermission(ctx, starred, user)
 		if err != nil {
 			return nil, err
 		}
-		repos[i] = convert.ToRepo(starred, access)
+		repos[i] = convert.ToRepo(ctx, starred, permission)
 	}
 	return repos, nil
 }

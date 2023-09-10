@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package routing
 
@@ -38,7 +37,7 @@ func MarkLongPolling(resp http.ResponseWriter, req *http.Request) {
 }
 
 // UpdatePanicError updates a context's error info, a panic may be recovered by other middlewares, but we still need to know that.
-func UpdatePanicError(ctx context.Context, err interface{}) {
+func UpdatePanicError(ctx context.Context, err any) {
 	record, ok := ctx.Value(contextKey).(*requestRecord)
 	if !ok {
 		return

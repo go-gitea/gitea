@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -58,14 +57,14 @@ func (pt *ProtectedTag) matchString(name string) bool {
 }
 
 // InsertProtectedTag inserts a protected tag to database
-func InsertProtectedTag(pt *ProtectedTag) error {
-	_, err := db.GetEngine(db.DefaultContext).Insert(pt)
+func InsertProtectedTag(ctx context.Context, pt *ProtectedTag) error {
+	_, err := db.GetEngine(ctx).Insert(pt)
 	return err
 }
 
 // UpdateProtectedTag updates the protected tag
-func UpdateProtectedTag(pt *ProtectedTag) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(pt.ID).AllCols().Update(pt)
+func UpdateProtectedTag(ctx context.Context, pt *ProtectedTag) error {
+	_, err := db.GetEngine(ctx).ID(pt.ID).AllCols().Update(pt)
 	return err
 }
 
@@ -99,9 +98,9 @@ func GetProtectedTags(ctx context.Context, repoID int64) ([]*ProtectedTag, error
 }
 
 // GetProtectedTagByID gets the protected tag with the specific id
-func GetProtectedTagByID(id int64) (*ProtectedTag, error) {
+func GetProtectedTagByID(ctx context.Context, id int64) (*ProtectedTag, error) {
 	tag := new(ProtectedTag)
-	has, err := db.GetEngine(db.DefaultContext).ID(id).Get(tag)
+	has, err := db.GetEngine(ctx).ID(id).Get(tag)
 	if err != nil {
 		return nil, err
 	}

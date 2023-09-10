@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package organization
 
@@ -12,7 +11,7 @@ import (
 )
 
 // GetOrgRepositories get repos belonging to the given organization
-func GetOrgRepositories(ctx context.Context, orgID int64) ([]*repo_model.Repository, error) {
+func GetOrgRepositories(ctx context.Context, orgID int64) (repo_model.RepositoryList, error) {
 	var orgRepos []*repo_model.Repository
 	return orgRepos, db.GetEngine(ctx).Where("owner_id = ?", orgID).Find(&orgRepos)
 }

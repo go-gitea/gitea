@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -10,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
@@ -28,10 +28,10 @@ func TestAPIGetTrackedTimes(t *testing.T) {
 	assert.NoError(t, issue2.LoadRepo(db.DefaultContext))
 
 	session := loginUser(t, user2.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
 
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/times?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, token)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 	var apiTimes api.TrackedTimeList
 	DecodeJSON(t, resp, &apiTimes)
 	expect, err := issues_model.GetTrackedTimes(db.DefaultContext, &issues_model.FindTrackedTimesOptions{IssueID: issue2.ID})
@@ -44,7 +44,7 @@ func TestAPIGetTrackedTimes(t *testing.T) {
 		assert.EqualValues(t, issue2.ID, apiTimes[i].IssueID)
 		assert.Equal(t, time.Created.Unix(), apiTimes[i].Created.Unix())
 		assert.Equal(t, time.Time, apiTimes[i].Time)
-		user, err := user_model.GetUserByID(time.UserID)
+		user, err := user_model.GetUserByID(db.DefaultContext, time.UserID)
 		assert.NoError(t, err)
 		assert.Equal(t, user.Name, apiTimes[i].UserName)
 	}
@@ -54,7 +54,7 @@ func TestAPIGetTrackedTimes(t *testing.T) {
 	before := "2000-01-01T00%3A00%3A12%2B00%3A00" // 946684812
 
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/times?since=%s&before=%s&token=%s", user2.Name, issue2.Repo.Name, issue2.Index, since, before, token)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 	var filterAPITimes api.TrackedTimeList
 	DecodeJSON(t, resp, &filterAPITimes)
 	assert.Len(t, filterAPITimes, 2)
@@ -71,17 +71,17 @@ func TestAPIDeleteTrackedTime(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	session := loginUser(t, user2.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	// Deletion not allowed
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times/%d?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, time6.ID, token)
-	session.MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusForbidden)
 
 	time3 := unittest.AssertExistsAndLoadBean(t, &issues_model.TrackedTime{ID: 3})
 	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times/%d?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, time3.ID, token)
-	session.MakeRequest(t, req, http.StatusNoContent)
+	MakeRequest(t, req, http.StatusNoContent)
 	// Delete non existing time
-	session.MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusNotFound)
 
 	// Reset time of user 2 on issue 2
 	trackedSeconds, err := issues_model.GetTrackedSeconds(db.DefaultContext, issues_model.FindTrackedTimesOptions{IssueID: 2, UserID: 2})
@@ -89,8 +89,8 @@ func TestAPIDeleteTrackedTime(t *testing.T) {
 	assert.Equal(t, int64(3661), trackedSeconds)
 
 	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, token)
-	session.MakeRequest(t, req, http.StatusNoContent)
-	session.MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusNoContent)
+	MakeRequest(t, req, http.StatusNotFound)
 
 	trackedSeconds, err = issues_model.GetTrackedSeconds(db.DefaultContext, issues_model.FindTrackedTimesOptions{IssueID: 2, UserID: 2})
 	assert.NoError(t, err)
@@ -106,7 +106,7 @@ func TestAPIAddTrackedTimes(t *testing.T) {
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	session := loginUser(t, admin.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/times?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, token)
 
@@ -115,7 +115,7 @@ func TestAPIAddTrackedTimes(t *testing.T) {
 		User:    user2.Name,
 		Created: time.Unix(947688818, 0),
 	})
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 	var apiNewTime api.TrackedTime
 	DecodeJSON(t, resp, &apiNewTime)
 

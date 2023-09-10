@@ -1,14 +1,12 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"code.gitea.io/gitea/models/migrations/v1_10"
 	"code.gitea.io/gitea/models/migrations/v1_11"
@@ -20,6 +18,8 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_17"
 	"code.gitea.io/gitea/models/migrations/v1_18"
 	"code.gitea.io/gitea/models/migrations/v1_19"
+	"code.gitea.io/gitea/models/migrations/v1_20"
+	"code.gitea.io/gitea/models/migrations/v1_21"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -433,6 +433,9 @@ var migrations = []Migration{
 	NewMigration("Update counts of all open milestones", v1_18.UpdateOpenMilestoneCounts),
 	// v230 -> v231
 	NewMigration("Add ConfidentialClient column (default true) to OAuth2Application table", v1_18.AddConfidentialClientColumnToOAuth2ApplicationTable),
+
+	// Gitea 1.18.0 ends at v231
+
 	// v231 -> v232
 	NewMigration("Add index for hook_task", v1_19.AddIndexForHookTask),
 	// v232 -> v233
@@ -443,6 +446,92 @@ var migrations = []Migration{
 	NewMigration("Add package cleanup rule table", v1_19.CreatePackageCleanupRuleTable),
 	// v235 -> v236
 	NewMigration("Add index for access_token", v1_19.AddIndexForAccessToken),
+	// v236 -> v237
+	NewMigration("Create secrets table", v1_19.CreateSecretsTable),
+	// v237 -> v238
+	NewMigration("Drop ForeignReference table", v1_19.DropForeignReferenceTable),
+	// v238 -> v239
+	NewMigration("Add updated unix to LFSMetaObject", v1_19.AddUpdatedUnixToLFSMetaObject),
+	// v239 -> v240
+	NewMigration("Add scope for access_token", v1_19.AddScopeForAccessTokens),
+	// v240 -> v241
+	NewMigration("Add actions tables", v1_19.AddActionsTables),
+	// v241 -> v242
+	NewMigration("Add card_type column to project table", v1_19.AddCardTypeToProjectTable),
+	// v242 -> v243
+	NewMigration("Alter gpg_key_import content TEXT field to MEDIUMTEXT", v1_19.AlterPublicGPGKeyImportContentFieldToMediumText),
+	// v243 -> v244
+	NewMigration("Add exclusive label", v1_19.AddExclusiveLabel),
+
+	// Gitea 1.19.0 ends at v244
+
+	// v244 -> v245
+	NewMigration("Add NeedApproval to actions tables", v1_20.AddNeedApprovalToActionRun),
+	// v245 -> v246
+	NewMigration("Rename Webhook org_id to owner_id", v1_20.RenameWebhookOrgToOwner),
+	// v246 -> v247
+	NewMigration("Add missed column owner_id for project table", v1_20.AddNewColumnForProject),
+	// v247 -> v248
+	NewMigration("Fix incorrect project type", v1_20.FixIncorrectProjectType),
+	// v248 -> v249
+	NewMigration("Add version column to action_runner table", v1_20.AddVersionToActionRunner),
+	// v249 -> v250
+	NewMigration("Improve Action table indices v3", v1_20.ImproveActionTableIndices),
+	// v250 -> v251
+	NewMigration("Change Container Metadata", v1_20.ChangeContainerMetadataMultiArch),
+	// v251 -> v252
+	NewMigration("Fix incorrect owner team unit access mode", v1_20.FixIncorrectOwnerTeamUnitAccessMode),
+	// v252 -> v253
+	NewMigration("Fix incorrect admin team unit access mode", v1_20.FixIncorrectAdminTeamUnitAccessMode),
+	// v253 -> v254
+	NewMigration("Fix ExternalTracker and ExternalWiki accessMode in owner and admin team", v1_20.FixExternalTrackerAndExternalWikiAccessModeInOwnerAndAdminTeam),
+	// v254 -> v255
+	NewMigration("Add ActionTaskOutput table", v1_20.AddActionTaskOutputTable),
+	// v255 -> v256
+	NewMigration("Add ArchivedUnix Column", v1_20.AddArchivedUnixToRepository),
+	// v256 -> v257
+	NewMigration("Add is_internal column to package", v1_20.AddIsInternalColumnToPackage),
+	// v257 -> v258
+	NewMigration("Add Actions Artifact table", v1_20.CreateActionArtifactTable),
+	// v258 -> v259
+	NewMigration("Add PinOrder Column", v1_20.AddPinOrderToIssue),
+	// v259 -> v260
+	NewMigration("Convert scoped access tokens", v1_20.ConvertScopedAccessTokens),
+
+	// Gitea 1.20.0 ends at 260
+
+	// v260 -> v261
+	NewMigration("Drop custom_labels column of action_runner table", v1_21.DropCustomLabelsColumnOfActionRunner),
+	// v261 -> v262
+	NewMigration("Add variable table", v1_21.CreateVariableTable),
+	// v262 -> v263
+	NewMigration("Add TriggerEvent to action_run table", v1_21.AddTriggerEventToActionRun),
+	// v263 -> v264
+	NewMigration("Add git_size and lfs_size columns to repository table", v1_21.AddGitSizeAndLFSSizeToRepositoryTable),
+	// v264 -> v265
+	NewMigration("Add branch table", v1_21.AddBranchTable),
+	// v265 -> v266
+	NewMigration("Alter Actions Artifact table", v1_21.AlterActionArtifactTable),
+	// v266 -> v267
+	NewMigration("Reduce commit status", v1_21.ReduceCommitStatus),
+	// v267 -> v268
+	NewMigration("Add action_tasks_version table", v1_21.CreateActionTasksVersionTable),
+	// v268 -> v269
+	NewMigration("Update Action Ref", v1_21.UpdateActionsRefIndex),
+	// v269 -> v270
+	NewMigration("Drop deleted branch table", v1_21.DropDeletedBranchTable),
+	// v270 -> v271
+	NewMigration("Fix PackageProperty typo", v1_21.FixPackagePropertyTypo),
+	// v271 -> v272
+	NewMigration("Allow archiving labels", v1_21.AddArchivedUnixColumInLabelTable),
+	// v272 -> v273
+	NewMigration("Add Version to ActionRun table", v1_21.AddVersionToActionRunTable),
+	// v273 -> v274
+	NewMigration("Add Action Schedule Table", v1_21.AddActionScheduleTable),
+	// v274 -> v275
+	NewMigration("Add Actions artifacts expiration date", v1_21.AddExpiredUnixColumnInActionArtifactTable),
+	// v275 -> v276
+	NewMigration("Add ScheduleID for ActionRun", v1_21.AddScheduleIDForActionRun),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -528,8 +617,7 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 		if !setting.IsProd {
 			msg += fmt.Sprintf("\nIf you are in development and really know what you're doing, you can force changing the migration version by executing: UPDATE version SET version=%d WHERE id=1;", minDBVersion+len(migrations))
 		}
-		_, _ = fmt.Fprintln(os.Stderr, msg)
-		log.Fatal(msg)
+		log.Fatal("Migration Error: %s", msg)
 		return nil
 	}
 

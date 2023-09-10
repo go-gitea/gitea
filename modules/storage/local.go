@@ -1,32 +1,22 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package storage
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
-	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
 var _ ObjectStorage = &LocalStorage{}
-
-// LocalStorageType is the type descriptor for local storage
-const LocalStorageType Type = "local"
-
-// LocalStorageConfig represents the configuration for a local storage
-type LocalStorageConfig struct {
-	Path          string `ini:"PATH"`
-	TemporaryPath string `ini:"TEMPORARY_PATH"`
-}
 
 // LocalStorage represents a local files storage
 type LocalStorage struct {
@@ -36,20 +26,20 @@ type LocalStorage struct {
 }
 
 // NewLocalStorage returns a local files
-func NewLocalStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error) {
-	configInterface, err := toConfig(LocalStorageConfig{}, cfg)
-	if err != nil {
-		return nil, err
+func NewLocalStorage(ctx context.Context, config *setting.Storage) (ObjectStorage, error) {
+	if !filepath.IsAbs(config.Path) {
+		return nil, fmt.Errorf("LocalStorageConfig.Path should have been prepared by setting/storage.go and should be an absolute path, but not: %q", config.Path)
 	}
-	config := configInterface.(LocalStorageConfig)
-
 	log.Info("Creating new Local Storage at %s", config.Path)
 	if err := os.MkdirAll(config.Path, os.ModePerm); err != nil {
 		return nil, err
 	}
 
 	if config.TemporaryPath == "" {
-		config.TemporaryPath = config.Path + "/tmp"
+		config.TemporaryPath = filepath.Join(config.Path, "tmp")
+	}
+	if !filepath.IsAbs(config.TemporaryPath) {
+		return nil, fmt.Errorf("LocalStorageConfig.TemporaryPath should be an absolute path, but not: %q", config.TemporaryPath)
 	}
 
 	return &LocalStorage{
@@ -60,7 +50,7 @@ func NewLocalStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 }
 
 func (l *LocalStorage) buildLocalPath(p string) string {
-	return filepath.Join(l.dir, path.Clean("/" + strings.ReplaceAll(p, "\\", "/"))[1:])
+	return util.FilePathJoinAbs(l.dir, p)
 }
 
 // Open a file
@@ -103,7 +93,8 @@ func (l *LocalStorage) Save(path string, r io.Reader, size int64) (int64, error)
 		return 0, err
 	}
 	// Golang's tmp file (os.CreateTemp) always have 0o600 mode, so we need to change the file to follow the umask (as what Create/MkDir does)
-	if err := util.ApplyUmask(p, os.ModePerm); err != nil {
+	// but we don't want to make these files executable - so ensure that we mask out the executable bits
+	if err := util.ApplyUmask(p, os.ModePerm&0o666); err != nil {
 		return 0, err
 	}
 
@@ -128,8 +119,9 @@ func (l *LocalStorage) URL(path, name string) (*url.URL, error) {
 }
 
 // IterateObjects iterates across the objects in the local storage
-func (l *LocalStorage) IterateObjects(fn func(path string, obj Object) error) error {
-	return filepath.Walk(l.dir, func(path string, info os.FileInfo, err error) error {
+func (l *LocalStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
+	dir := l.buildLocalPath(dirName)
+	return filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -141,7 +133,7 @@ func (l *LocalStorage) IterateObjects(fn func(path string, obj Object) error) er
 		if path == l.dir {
 			return nil
 		}
-		if info.IsDir() {
+		if d.IsDir() {
 			return nil
 		}
 		relPath, err := filepath.Rel(l.dir, path)
@@ -158,5 +150,5 @@ func (l *LocalStorage) IterateObjects(fn func(path string, obj Object) error) er
 }
 
 func init() {
-	RegisterStorageType(LocalStorageType, NewLocalStorage)
+	RegisterStorageType(setting.LocalStorageType, NewLocalStorage)
 }

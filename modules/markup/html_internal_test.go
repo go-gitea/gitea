@@ -1,6 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
+
 package markup
 
 import (
@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -70,8 +71,13 @@ var localMetas = map[string]string{
 func TestRender_IssueIndexPattern(t *testing.T) {
 	// numeric: render inputs without valid mentions
 	test := func(s string) {
-		testRenderIssueIndexPattern(t, s, s, &RenderContext{})
-		testRenderIssueIndexPattern(t, s, s, &RenderContext{Metas: numericMetas})
+		testRenderIssueIndexPattern(t, s, s, &RenderContext{
+			Ctx: git.DefaultContext,
+		})
+		testRenderIssueIndexPattern(t, s, s, &RenderContext{
+			Ctx:   git.DefaultContext,
+			Metas: numericMetas,
+		})
 	}
 
 	// should not render anything when there are no mentions
@@ -114,12 +120,15 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 			isExternal = true
 		}
 
-		links := make([]interface{}, len(indices))
+		links := make([]any, len(indices))
 		for i, index := range indices {
 			links[i] = numericIssueLink(util.URLJoin(TestRepoURL, path), "ref-issue", index, marker)
 		}
 		expectedNil := fmt.Sprintf(expectedFmt, links...)
-		testRenderIssueIndexPattern(t, s, expectedNil, &RenderContext{Metas: localMetas})
+		testRenderIssueIndexPattern(t, s, expectedNil, &RenderContext{
+			Ctx:   git.DefaultContext,
+			Metas: localMetas,
+		})
 
 		class := "ref-issue"
 		if isExternal {
@@ -130,7 +139,10 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 			links[i] = numericIssueLink(prefix, class, index, marker)
 		}
 		expectedNum := fmt.Sprintf(expectedFmt, links...)
-		testRenderIssueIndexPattern(t, s, expectedNum, &RenderContext{Metas: numericMetas})
+		testRenderIssueIndexPattern(t, s, expectedNum, &RenderContext{
+			Ctx:   git.DefaultContext,
+			Metas: numericMetas,
+		})
 	}
 
 	// should render freestanding mentions
@@ -164,7 +176,10 @@ func TestRender_IssueIndexPattern3(t *testing.T) {
 
 	// alphanumeric: render inputs without valid mentions
 	test := func(s string) {
-		testRenderIssueIndexPattern(t, s, s, &RenderContext{Metas: alphanumericMetas})
+		testRenderIssueIndexPattern(t, s, s, &RenderContext{
+			Ctx:   git.DefaultContext,
+			Metas: alphanumericMetas,
+		})
 	}
 	test("")
 	test("this is a test")
@@ -189,12 +204,15 @@ func TestRender_IssueIndexPattern4(t *testing.T) {
 
 	// alphanumeric: render inputs with valid mentions
 	test := func(s, expectedFmt string, names ...string) {
-		links := make([]interface{}, len(names))
+		links := make([]any, len(names))
 		for i, name := range names {
 			links[i] = externalIssueLink("https://someurl.com/someUser/someRepo/", "ref-issue ref-external-issue", name)
 		}
 		expected := fmt.Sprintf(expectedFmt, links...)
-		testRenderIssueIndexPattern(t, s, expected, &RenderContext{Metas: alphanumericMetas})
+		testRenderIssueIndexPattern(t, s, expected, &RenderContext{
+			Ctx:   git.DefaultContext,
+			Metas: alphanumericMetas,
+		})
 	}
 	test("OTT-1234 test", "%s test", "OTT-1234")
 	test("test T-12 issue", "test %s issue", "T-12")
@@ -208,13 +226,16 @@ func TestRender_IssueIndexPattern5(t *testing.T) {
 	test := func(s, expectedFmt, pattern string, ids, names []string) {
 		metas := regexpMetas
 		metas["regexp"] = pattern
-		links := make([]interface{}, len(ids))
+		links := make([]any, len(ids))
 		for i, id := range ids {
 			links[i] = link(util.URLJoin("https://someurl.com/someUser/someRepo/", id), "ref-issue ref-external-issue", names[i])
 		}
 
 		expected := fmt.Sprintf(expectedFmt, links...)
-		testRenderIssueIndexPattern(t, s, expected, &RenderContext{Metas: metas})
+		testRenderIssueIndexPattern(t, s, expected, &RenderContext{
+			Ctx:   git.DefaultContext,
+			Metas: metas,
+		})
 	}
 
 	test("abc ISSUE-123 def", "abc %s def",
@@ -235,7 +256,34 @@ func TestRender_IssueIndexPattern5(t *testing.T) {
 		[]string{"ISSUE-123"},
 	)
 
-	testRenderIssueIndexPattern(t, "will not match", "will not match", &RenderContext{Metas: regexpMetas})
+	testRenderIssueIndexPattern(t, "will not match", "will not match", &RenderContext{
+		Ctx:   git.DefaultContext,
+		Metas: regexpMetas,
+	})
+}
+
+func TestRender_IssueIndexPattern_Document(t *testing.T) {
+	setting.AppURL = TestAppURL
+	metas := map[string]string{
+		"format": "https://someurl.com/{user}/{repo}/{index}",
+		"user":   "someUser",
+		"repo":   "someRepo",
+		"style":  IssueNameStyleNumeric,
+		"mode":   "document",
+	}
+
+	testRenderIssueIndexPattern(t, "#1", "#1", &RenderContext{
+		Ctx:   git.DefaultContext,
+		Metas: metas,
+	})
+	testRenderIssueIndexPattern(t, "#1312", "#1312", &RenderContext{
+		Ctx:   git.DefaultContext,
+		Metas: metas,
+	})
+	testRenderIssueIndexPattern(t, "!1", "!1", &RenderContext{
+		Ctx:   git.DefaultContext,
+		Metas: metas,
+	})
 }
 
 func testRenderIssueIndexPattern(t *testing.T, input, expected string, ctx *RenderContext) {
@@ -255,6 +303,7 @@ func TestRender_AutoLink(t *testing.T) {
 	test := func(input, expected string) {
 		var buffer strings.Builder
 		err := PostProcess(&RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: TestRepoURL,
 			Metas:     localMetas,
 		}, strings.NewReader(input), &buffer)
@@ -263,6 +312,7 @@ func TestRender_AutoLink(t *testing.T) {
 
 		buffer.Reset()
 		err = PostProcess(&RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: TestRepoURL,
 			Metas:     localMetas,
 			IsWiki:    true,
@@ -292,6 +342,7 @@ func TestRender_FullIssueURLs(t *testing.T) {
 	test := func(input, expected string) {
 		var result strings.Builder
 		err := postProcess(&RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: TestRepoURL,
 			Metas:     localMetas,
 		}, []processor{fullIssuePatternProcessor}, strings.NewReader(input), &result)
@@ -303,13 +354,17 @@ func TestRender_FullIssueURLs(t *testing.T) {
 	test("Look here http://localhost:3000/person/repo/issues/4",
 		`Look here <a href="http://localhost:3000/person/repo/issues/4" class="ref-issue">person/repo#4</a>`)
 	test("http://localhost:3000/person/repo/issues/4#issuecomment-1234",
-		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234" class="ref-issue">person/repo#4</a>`)
+		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234" class="ref-issue">person/repo#4 (comment)</a>`)
 	test("http://localhost:3000/gogits/gogs/issues/4",
 		`<a href="http://localhost:3000/gogits/gogs/issues/4" class="ref-issue">#4</a>`)
 	test("http://localhost:3000/gogits/gogs/issues/4 test",
 		`<a href="http://localhost:3000/gogits/gogs/issues/4" class="ref-issue">#4</a> test`)
 	test("http://localhost:3000/gogits/gogs/issues/4?a=1&b=2#comment-123 test",
-		`<a href="http://localhost:3000/gogits/gogs/issues/4?a=1&amp;b=2#comment-123" class="ref-issue">#4</a> test`)
+		`<a href="http://localhost:3000/gogits/gogs/issues/4?a=1&amp;b=2#comment-123" class="ref-issue">#4 (comment)</a> test`)
+	test("http://localhost:3000/testOrg/testOrgRepo/pulls/2/files#issuecomment-24",
+		"http://localhost:3000/testOrg/testOrgRepo/pulls/2/files#issuecomment-24")
+	test("http://localhost:3000/testOrg/testOrgRepo/pulls/2/files",
+		"http://localhost:3000/testOrg/testOrgRepo/pulls/2/files")
 }
 
 func TestRegExp_sha1CurrentPattern(t *testing.T) {

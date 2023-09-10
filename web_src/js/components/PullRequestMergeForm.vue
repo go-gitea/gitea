@@ -1,3 +1,80 @@
+<script>
+import {SvgIcon} from '../svg.js';
+
+const {csrfToken, pageData} = window.config;
+
+export default {
+  components: {SvgIcon},
+  data: () => ({
+    csrfToken,
+    mergeForm: pageData.pullRequestMergeForm,
+
+    mergeTitleFieldValue: '',
+    mergeMessageFieldValue: '',
+    deleteBranchAfterMerge: false,
+    autoMergeWhenSucceed: false,
+
+    mergeStyle: '',
+    mergeStyleDetail: { // dummy only, these values will come from one of the mergeForm.mergeStyles
+      hideMergeMessageTexts: false,
+      textDoMerge: '',
+      mergeTitleFieldText: '',
+      mergeMessageFieldText: '',
+      hideAutoMerge: false,
+    },
+    mergeStyleAllowedCount: 0,
+
+    showMergeStyleMenu: false,
+    showActionForm: false,
+  }),
+  computed: {
+    mergeButtonStyleClass() {
+      if (this.mergeForm.allOverridableChecksOk) return 'green';
+      return this.autoMergeWhenSucceed ? 'blue' : 'red';
+    },
+    forceMerge() {
+      return this.mergeForm.canMergeNow && !this.mergeForm.allOverridableChecksOk;
+    },
+  },
+  watch: {
+    mergeStyle(val) {
+      this.mergeStyleDetail = this.mergeForm.mergeStyles.find((e) => e.name === val);
+    }
+  },
+  created() {
+    this.mergeStyleAllowedCount = this.mergeForm.mergeStyles.reduce((v, msd) => v + (msd.allowed ? 1 : 0), 0);
+
+    let mergeStyle = this.mergeForm.mergeStyles.find((e) => e.allowed && e.name === this.mergeForm.defaultMergeStyle)?.name;
+    if (!mergeStyle) mergeStyle = this.mergeForm.mergeStyles.find((e) => e.allowed)?.name;
+    this.switchMergeStyle(mergeStyle, !this.mergeForm.canMergeNow);
+  },
+  mounted() {
+    document.addEventListener('mouseup', this.hideMergeStyleMenu);
+  },
+  unmounted() {
+    document.removeEventListener('mouseup', this.hideMergeStyleMenu);
+  },
+  methods: {
+    hideMergeStyleMenu() {
+      this.showMergeStyleMenu = false;
+    },
+    toggleActionForm(show) {
+      this.showActionForm = show;
+      if (!show) return;
+      this.deleteBranchAfterMerge = this.mergeForm.defaultDeleteBranchAfterMerge;
+      this.mergeTitleFieldValue = this.mergeStyleDetail.mergeTitleFieldText;
+      this.mergeMessageFieldValue = this.mergeStyleDetail.mergeMessageFieldText;
+    },
+    switchMergeStyle(name, autoMerge = false) {
+      this.mergeStyle = name;
+      this.autoMergeWhenSucceed = autoMerge;
+    },
+    clearMergeMessage() {
+      this.mergeMessageFieldValue = this.mergeForm.defaultMergeMessage;
+    },
+  },
+};
+</script>
 <template>
   <!--
   if this component is shown, either the user is an admin (can do a merge without checks), or they are a writer who has the permission to do a merge
@@ -10,14 +87,15 @@
       -d '{"context": "test/context", "description": "description", "state": "${state}", "target_url": "http://localhost"}'
   -->
   <div>
-    <!-- eslint-disable -->
-    <div v-if="mergeForm.hasPendingPullRequestMerge" v-html="mergeForm.hasPendingPullRequestMergeTip" class="ui info message"></div>
+    <!-- eslint-disable-next-line vue/no-v-html -->
+    <div v-if="mergeForm.hasPendingPullRequestMerge" v-html="mergeForm.hasPendingPullRequestMergeTip" class="ui info message"/>
 
     <div class="ui form" v-if="showActionForm">
       <form :action="mergeForm.baseLink+'/merge'" method="post">
         <input type="hidden" name="_csrf" :value="csrfToken">
         <input type="hidden" name="head_commit_id" v-model="mergeForm.pullHeadCommitID">
         <input type="hidden" name="merge_when_checks_succeed" v-model="autoMergeWhenSucceed">
+        <input type="hidden" name="force_merge" v-model="forceMerge">
 
         <template v-if="!mergeStyleDetail.hideMergeMessageTexts">
           <div class="field">
@@ -26,15 +104,16 @@
           <div class="field">
             <textarea name="merge_message_field" rows="5" :placeholder="mergeForm.mergeMessageFieldPlaceHolder" v-model="mergeMessageFieldValue"/>
             <template v-if="mergeMessageFieldValue !== mergeForm.defaultMergeMessage">
-              <button @click.prevent="clearMergeMessage" class="ui tertiary button">
+              <button @click.prevent="clearMergeMessage" class="btn gt-mt-2 gt-p-2 interact-fg" :data-tooltip-content="mergeForm.textClearMergeMessageHint">
                 {{ mergeForm.textClearMergeMessage }}
               </button>
-              <div class="ui label"><!-- TODO: Convert to tooltip once we can use tooltips in Vue templates -->
-                {{ mergeForm.textClearMergeMessageHint }}
-              </div>
             </template>
           </div>
         </template>
+
+        <div class="field" v-if="mergeStyle === 'manually-merged'">
+          <input type="text" name="merge_commit_id" :placeholder="mergeForm.textMergeCommitId">
+        </div>
 
         <button class="ui button" :class="mergeButtonStyleClass" type="submit" name="do" :value="mergeStyle">
           {{ mergeStyleDetail.textDoMerge }}
@@ -47,16 +126,16 @@
           {{ mergeForm.textCancel }}
         </button>
 
-        <div class="ui checkbox ml-2" v-if="mergeForm.isPullBranchDeletable && !autoMergeWhenSucceed">
+        <div class="ui checkbox gt-ml-2" v-if="mergeForm.isPullBranchDeletable && !autoMergeWhenSucceed">
           <input name="delete_branch_after_merge" type="checkbox" v-model="deleteBranchAfterMerge" id="delete-branch-after-merge">
           <label for="delete-branch-after-merge">{{ mergeForm.textDeleteBranch }}</label>
         </div>
       </form>
     </div>
 
-    <div v-if="!showActionForm" class="df">
+    <div v-if="!showActionForm" class="gt-df">
       <!-- the merge button -->
-      <div class="ui buttons merge-button" :class="[mergeForm.emptyCommit ? 'grey' : mergeForm.allOverridableChecksOk ? 'green' : 'red']" @click="toggleActionForm(true)" >
+      <div class="ui buttons merge-button" :class="[mergeForm.emptyCommit ? 'grey' : mergeForm.allOverridableChecksOk ? 'green' : 'red']" @click="toggleActionForm(true)">
         <button class="ui button">
           <svg-icon name="octicon-git-merge"/>
           <span class="button-text">
@@ -66,7 +145,7 @@
             </template>
           </span>
         </button>
-        <div class="ui dropdown icon button no-text" @click.stop="showMergeStyleMenu = !showMergeStyleMenu" v-if="mergeStyleAllowedCount>1">
+        <div class="ui dropdown icon button" @click.stop="showMergeStyleMenu = !showMergeStyleMenu" v-if="mergeStyleAllowedCount>1">
           <svg-icon name="octicon-triangle-down" :size="14"/>
           <div class="menu" :class="{'show':showMergeStyleMenu}">
             <template v-for="msd in mergeForm.mergeStyles">
@@ -95,7 +174,7 @@
       </div>
 
       <!-- the cancel auto merge button -->
-      <form v-if="mergeForm.hasPendingPullRequestMerge" :action="mergeForm.baseLink+'/cancel_auto_merge'" method="post" class="ml-4">
+      <form v-if="mergeForm.hasPendingPullRequestMerge" :action="mergeForm.baseLink+'/cancel_auto_merge'" method="post" class="gt-ml-4">
         <input type="hidden" name="_csrf" :value="csrfToken">
         <button class="ui button">
           {{ mergeForm.textAutoMergeCancelSchedule }}
@@ -104,91 +183,6 @@
     </div>
   </div>
 </template>
-
-<script>
-import {SvgIcon} from '../svg.js';
-
-const {csrfToken, pageData} = window.config;
-
-export default {
-  name: 'PullRequestMergeForm',
-  components: {
-    SvgIcon,
-  },
-
-  data: () => ({
-    csrfToken,
-    mergeForm: pageData.pullRequestMergeForm,
-
-    mergeTitleFieldValue: '',
-    mergeMessageFieldValue: '',
-    deleteBranchAfterMerge: false,
-    autoMergeWhenSucceed: false,
-
-    mergeStyle: '',
-    mergeStyleDetail: { // dummy only, these values will come from one of the mergeForm.mergeStyles
-      hideMergeMessageTexts: false,
-      textDoMerge: '',
-      mergeTitleFieldText: '',
-      mergeMessageFieldText: '',
-    },
-    mergeStyleAllowedCount: 0,
-
-    showMergeStyleMenu: false,
-    showActionForm: false,
-  }),
-
-  computed: {
-    mergeButtonStyleClass() {
-      if (this.mergeForm.allOverridableChecksOk) return 'green';
-      return this.autoMergeWhenSucceed ? 'blue' : 'red';
-    }
-  },
-
-  watch: {
-    mergeStyle(val) {
-      this.mergeStyleDetail = this.mergeForm.mergeStyles.find((e) => e.name === val);
-    }
-  },
-
-  created() {
-    this.mergeStyleAllowedCount = this.mergeForm.mergeStyles.reduce((v, msd) => v + (msd.allowed ? 1 : 0), 0);
-
-    let mergeStyle = this.mergeForm.mergeStyles.find((e) => e.allowed && e.name === this.mergeForm.defaultMergeStyle)?.name;
-    if (!mergeStyle) mergeStyle = this.mergeForm.mergeStyles.find((e) => e.allowed)?.name;
-    this.switchMergeStyle(mergeStyle, !this.mergeForm.canMergeNow);
-  },
-
-  mounted() {
-    document.addEventListener('mouseup', this.hideMergeStyleMenu);
-  },
-
-  unmounted() {
-    document.removeEventListener('mouseup', this.hideMergeStyleMenu);
-  },
-
-  methods: {
-    hideMergeStyleMenu() {
-      this.showMergeStyleMenu = false;
-    },
-    toggleActionForm(show) {
-      this.showActionForm = show;
-      if (!show) return;
-      this.deleteBranchAfterMerge = this.mergeForm.defaultDeleteBranchAfterMerge;
-      this.mergeTitleFieldValue = this.mergeStyleDetail.mergeTitleFieldText;
-      this.mergeMessageFieldValue = this.mergeStyleDetail.mergeMessageFieldText;
-    },
-    switchMergeStyle(name, autoMerge = false) {
-      this.mergeStyle = name;
-      this.autoMergeWhenSucceed = autoMerge;
-    },
-    clearMergeMessage() {
-      this.mergeMessageFieldValue = this.mergeForm.defaultMergeMessage;
-    },
-  },
-};
-</script>
-
 <style scoped>
 /* to keep UI the same, at the moment we are still using some Fomantic UI styles, but we do not use their scripts, so we need to fine tune some styles */
 .ui.dropdown .menu.show {

@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package private
 
@@ -50,7 +49,7 @@ func Processes(ctx *context.PrivateContext) {
 	}
 
 	if json {
-		ctx.JSON(http.StatusOK, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]any{
 			"TotalNumberOfGoroutines": goroutineCount,
 			"TotalNumberOfProcesses":  processCount,
 			"Processes":               processes,

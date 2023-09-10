@@ -1,8 +1,7 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
-package v1_6 // nolint
+package v1_6 //nolint
 
 import (
 	"fmt"
@@ -82,11 +81,11 @@ func AddIssueDependencies(x *xorm.Engine) (err error) {
 	// RepoUnit describes all units of a repository
 	type RepoUnit struct {
 		ID          int64
-		RepoID      int64                  `xorm:"INDEX(s)"`
-		Type        int                    `xorm:"INDEX(s)"`
-		Config      map[string]interface{} `xorm:"JSON"`
-		CreatedUnix int64                  `xorm:"INDEX CREATED"`
-		Created     time.Time              `xorm:"-"`
+		RepoID      int64          `xorm:"INDEX(s)"`
+		Type        int            `xorm:"INDEX(s)"`
+		Config      map[string]any `xorm:"JSON"`
+		CreatedUnix int64          `xorm:"INDEX CREATED"`
+		Created     time.Time      `xorm:"-"`
 	}
 
 	// Updating existing issue units
@@ -97,7 +96,7 @@ func AddIssueDependencies(x *xorm.Engine) (err error) {
 	}
 	for _, unit := range units {
 		if unit.Config == nil {
-			unit.Config = make(map[string]interface{})
+			unit.Config = make(map[string]any)
 		}
 		if _, ok := unit.Config["EnableDependencies"]; !ok {
 			unit.Config["EnableDependencies"] = setting.Service.DefaultEnableDependencies

@@ -1,6 +1,5 @@
 // Copyright 2017 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues_test
 
@@ -41,13 +40,13 @@ func TestUpdateIssueUserByRead(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 
-	assert.NoError(t, issues_model.UpdateIssueUserByRead(4, issue.ID))
+	assert.NoError(t, issues_model.UpdateIssueUserByRead(db.DefaultContext, 4, issue.ID))
 	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueUser{IssueID: issue.ID, UID: 4}, "is_read=1")
 
-	assert.NoError(t, issues_model.UpdateIssueUserByRead(4, issue.ID))
+	assert.NoError(t, issues_model.UpdateIssueUserByRead(db.DefaultContext, 4, issue.ID))
 	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueUser{IssueID: issue.ID, UID: 4}, "is_read=1")
 
-	assert.NoError(t, issues_model.UpdateIssueUserByRead(unittest.NonexistentID, unittest.NonexistentID))
+	assert.NoError(t, issues_model.UpdateIssueUserByRead(db.DefaultContext, unittest.NonexistentID, unittest.NonexistentID))
 }
 
 func TestUpdateIssueUsersByMentions(t *testing.T) {

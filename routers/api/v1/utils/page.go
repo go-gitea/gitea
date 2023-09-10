@@ -1,13 +1,12 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package utils
 
 import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // GetListOptions returns list options using the page and limit parameters

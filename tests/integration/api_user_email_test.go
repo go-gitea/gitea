@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -8,6 +7,7 @@ import (
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -19,10 +19,10 @@ func TestAPIListEmails(t *testing.T) {
 
 	normalUsername := "user2"
 	session := loginUser(t, normalUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
 
 	req := NewRequest(t, "GET", "/api/v1/user/emails?token="+token)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var emails []*api.Email
 	DecodeJSON(t, resp, &emails)
@@ -46,20 +46,20 @@ func TestAPIAddEmail(t *testing.T) {
 
 	normalUsername := "user2"
 	session := loginUser(t, normalUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser)
 
 	opts := api.CreateEmailOption{
 		Emails: []string{"user101@example.com"},
 	}
 
 	req := NewRequestWithJSON(t, "POST", "/api/v1/user/emails?token="+token, &opts)
-	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	opts = api.CreateEmailOption{
 		Emails: []string{"user2-3@example.com"},
 	}
 	req = NewRequestWithJSON(t, "POST", "/api/v1/user/emails?token="+token, &opts)
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+	resp := MakeRequest(t, req, http.StatusCreated)
 
 	var emails []*api.Email
 	DecodeJSON(t, resp, &emails)
@@ -75,7 +75,7 @@ func TestAPIAddEmail(t *testing.T) {
 		Emails: []string{"notAEmail"},
 	}
 	req = NewRequestWithJSON(t, "POST", "/api/v1/user/emails?token="+token, &opts)
-	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
 }
 
 func TestAPIDeleteEmail(t *testing.T) {
@@ -83,22 +83,22 @@ func TestAPIDeleteEmail(t *testing.T) {
 
 	normalUsername := "user2"
 	session := loginUser(t, normalUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser)
 
 	opts := api.DeleteEmailOption{
 		Emails: []string{"user2-3@example.com"},
 	}
 	req := NewRequestWithJSON(t, "DELETE", "/api/v1/user/emails?token="+token, &opts)
-	session.MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusNotFound)
 
 	opts = api.DeleteEmailOption{
 		Emails: []string{"user2-2@example.com"},
 	}
 	req = NewRequestWithJSON(t, "DELETE", "/api/v1/user/emails?token="+token, &opts)
-	session.MakeRequest(t, req, http.StatusNoContent)
+	MakeRequest(t, req, http.StatusNoContent)
 
 	req = NewRequest(t, "GET", "/api/v1/user/emails?token="+token)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var emails []*api.Email
 	DecodeJSON(t, resp, &emails)

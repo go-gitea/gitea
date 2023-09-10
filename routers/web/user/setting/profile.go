@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -18,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -28,9 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/agit"
 	"code.gitea.io/gitea/services/forms"
-	container_service "code.gitea.io/gitea/services/packages/container"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -43,60 +41,42 @@ const (
 
 // Profile render user's profile page
 func Profile(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings.profile")
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
+	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
 
 	ctx.HTML(http.StatusOK, tplSettingsProfile)
 }
 
 // HandleUsernameChange handle username changes from user settings and admin interface
 func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName string) error {
-	// Non-local users are not allowed to change their username.
-	if !user.IsLocal() {
-		ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
-		return fmt.Errorf(ctx.Tr("form.username_change_not_local_user"))
-	}
-
-	// Check if user name has been changed
-	if user.LowerName != strings.ToLower(newName) {
-		if err := user_model.ChangeUserName(user, newName); err != nil {
-			switch {
-			case user_model.IsErrUserAlreadyExist(err):
-				ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
-			case user_model.IsErrEmailAlreadyUsed(err):
-				ctx.Flash.Error(ctx.Tr("form.email_been_used"))
-			case db.IsErrNameReserved(err):
-				ctx.Flash.Error(ctx.Tr("user.form.name_reserved", newName))
-			case db.IsErrNamePatternNotAllowed(err):
-				ctx.Flash.Error(ctx.Tr("user.form.name_pattern_not_allowed", newName))
-			case db.IsErrNameCharsNotAllowed(err):
-				ctx.Flash.Error(ctx.Tr("user.form.name_chars_not_allowed", newName))
-			default:
-				ctx.ServerError("ChangeUserName", err)
-			}
-			return err
+	oldName := user.Name
+	// rename user
+	if err := user_service.RenameUser(ctx, user, newName); err != nil {
+		switch {
+		// Noop as username is not changed
+		case user_model.IsErrUsernameNotChanged(err):
+			ctx.Flash.Error(ctx.Tr("form.username_has_not_been_changed"))
+		// Non-local users are not allowed to change their username.
+		case user_model.IsErrUserIsNotLocal(err):
+			ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
+		case user_model.IsErrUserAlreadyExist(err):
+			ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
+		case user_model.IsErrEmailAlreadyUsed(err):
+			ctx.Flash.Error(ctx.Tr("form.email_been_used"))
+		case db.IsErrNameReserved(err):
+			ctx.Flash.Error(ctx.Tr("user.form.name_reserved", newName))
+		case db.IsErrNamePatternNotAllowed(err):
+			ctx.Flash.Error(ctx.Tr("user.form.name_pattern_not_allowed", newName))
+		case db.IsErrNameCharsNotAllowed(err):
+			ctx.Flash.Error(ctx.Tr("user.form.name_chars_not_allowed", newName))
+		default:
+			ctx.ServerError("ChangeUserName", err)
 		}
-	} else {
-		if err := repo_model.UpdateRepositoryOwnerNames(user.ID, newName); err != nil {
-			ctx.ServerError("UpdateRepository", err)
-			return err
-		}
-	}
-
-	// update all agit flow pull request header
-	err := agit.UserNameChanged(user, newName)
-	if err != nil {
-		ctx.ServerError("agit.UserNameChanged", err)
 		return err
 	}
-
-	if err := container_service.UpdateRepositoryNames(ctx, user, newName); err != nil {
-		ctx.ServerError("UpdateRepositoryNames", err)
-		return err
-	}
-
-	log.Trace("User name changed: %s -> %s", user.Name, newName)
+	log.Trace("User name changed: %s -> %s", oldName, newName)
 	return nil
 }
 
@@ -105,6 +85,8 @@ func ProfilePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UpdateProfileForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsProfile"] = true
+	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
+	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplSettingsProfile)
@@ -138,11 +120,8 @@ func ProfilePost(ctx *context.Context) {
 		return
 	}
 
-	// Update the language to the one we just set
-	middleware.SetLocaleCookie(ctx.Resp, ctx.Doer.Language, 0)
-
 	log.Trace("User settings updated: %s", ctx.Doer.Name)
-	ctx.Flash.Success(translation.NewLocale(ctx.Doer.Language).Tr("settings.update_profile_success"))
+	ctx.Flash.Success(ctx.Tr("settings.update_profile_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings")
 }
 
@@ -167,7 +146,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 		defer fr.Close()
 
 		if form.Avatar.Size > setting.Avatar.MaxFileSize {
-			return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
+			return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big", form.Avatar.Size/1024, setting.Avatar.MaxFileSize/1024))
 		}
 
 		data, err := io.ReadAll(fr)
@@ -215,12 +194,12 @@ func DeleteAvatar(ctx *context.Context) {
 		ctx.Flash.Error(err.Error())
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/settings")
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings")
 }
 
 // Organization render all the organization of the user
 func Organization(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings.organization")
 	ctx.Data["PageIsSettingsOrganization"] = true
 
 	opts := organization.FindOrgOptions{
@@ -255,7 +234,7 @@ func Organization(ctx *context.Context) {
 
 // Repos display a list of all repositories of the user
 func Repos(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings.repos")
 	ctx.Data["PageIsSettingsRepos"] = true
 	ctx.Data["allowAdopt"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowAdoptionOfUnadoptedRepositories
 	ctx.Data["allowDelete"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowDeleteOfUnadoptedRepositories
@@ -281,17 +260,17 @@ func Repos(ctx *context.Context) {
 		repos := map[string]*repo_model.Repository{}
 		// We're going to iterate by pagesize.
 		root := user_model.UserPath(ctxUser.Name)
-		if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
 				if os.IsNotExist(err) {
 					return nil
 				}
 				return err
 			}
-			if !info.IsDir() || path == root {
+			if !d.IsDir() || path == root {
 				return nil
 			}
-			name := info.Name()
+			name := d.Name()
 			if !strings.HasSuffix(name, ".git") {
 				return filepath.SkipDir
 			}
@@ -305,7 +284,7 @@ func Repos(ctx *context.Context) {
 			count++
 			return filepath.SkipDir
 		}); err != nil {
-			ctx.ServerError("filepath.Walk", err)
+			ctx.ServerError("filepath.WalkDir", err)
 			return
 		}
 
@@ -324,7 +303,7 @@ func Repos(ctx *context.Context) {
 		}
 		for _, repo := range userRepos {
 			if repo.IsFork {
-				if err := repo.GetBaseRepo(); err != nil {
+				if err := repo.GetBaseRepo(ctx); err != nil {
 					ctx.ServerError("GetBaseRepo", err)
 					return
 				}
@@ -343,7 +322,7 @@ func Repos(ctx *context.Context) {
 
 		for i := range repos {
 			if repos[i].IsFork {
-				if err := repos[i].GetBaseRepo(); err != nil {
+				if err := repos[i].GetBaseRepo(ctx); err != nil {
 					ctx.ServerError("GetBaseRepo", err)
 					return
 				}
@@ -352,7 +331,7 @@ func Repos(ctx *context.Context) {
 
 		ctx.Data["Repos"] = repos
 	}
-	ctx.Data["Owner"] = ctxUser
+	ctx.Data["ContextUser"] = ctxUser
 	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
@@ -361,7 +340,7 @@ func Repos(ctx *context.Context) {
 
 // Appearance render user's appearance settings
 func Appearance(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings.appearance")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	var hiddenCommentTypes *big.Int
@@ -414,7 +393,7 @@ func UpdateUserLang(ctx *context.Context) {
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	if len(form.Language) != 0 {
-		if !util.IsStringInSlice(form.Language, setting.Langs) {
+		if !util.SliceContainsString(setting.Langs, form.Language) {
 			ctx.Flash.Error(ctx.Tr("settings.update_language_not_found", form.Language))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 			return

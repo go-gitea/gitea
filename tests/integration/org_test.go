@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -10,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -159,7 +159,7 @@ func TestOrgRestrictedUser(t *testing.T) {
 
 	// Therefore create a read-only team
 	adminSession := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, adminSession)
+	token := getTokenForLoggedInUser(t, adminSession, auth_model.AccessTokenScopeWriteOrganization)
 
 	teamToCreate := &api.CreateTeamOption{
 		Name:                    "codereader",

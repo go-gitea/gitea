@@ -1,21 +1,21 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
 import (
 	"bytes"
-	"fmt"
 	"html"
 	"net/http"
 	"strings"
 
+	"code.gitea.io/gitea/models/avatars"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -24,13 +24,13 @@ import (
 // GetContentHistoryOverview get overview
 func GetContentHistoryOverview(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
-	if issue == nil {
+	if ctx.Written() {
 		return
 	}
 
 	editedHistoryCountMap, _ := issues_model.QueryIssueContentHistoryEditedCountMap(ctx, issue.ID)
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"i18n": map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
+		"i18n": map[string]any{
 			"textEdited":                   ctx.Tr("repo.issues.content_history.edited"),
 			"textDeleteFromHistory":        ctx.Tr("repo.issues.content_history.delete_from_history"),
 			"textDeleteFromHistoryConfirm": ctx.Tr("repo.issues.content_history.delete_from_history_confirm"),
@@ -43,17 +43,17 @@ func GetContentHistoryOverview(ctx *context.Context) {
 // GetContentHistoryList  get list
 func GetContentHistoryList(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
-	commentID := ctx.FormInt64("comment_id")
-	if issue == nil {
+	if ctx.Written() {
 		return
 	}
 
+	commentID := ctx.FormInt64("comment_id")
 	items, _ := issues_model.FetchIssueContentHistoryList(ctx, issue.ID, commentID)
 
 	// render history list to HTML for frontend dropdown items: (name, value)
 	// name is HTML of "avatar + userName + userAction + timeSince"
 	// value is historyId
-	var results []map[string]interface{}
+	var results []map[string]any
 	for _, item := range items {
 		var actionText string
 		if item.IsDeleted {
@@ -64,21 +64,25 @@ func GetContentHistoryList(ctx *context.Context) {
 		} else {
 			actionText = ctx.Locale.Tr("repo.issues.content_history.edited")
 		}
-		timeSinceText := timeutil.TimeSinceUnix(item.EditedUnix, ctx.Locale)
 
 		username := item.UserName
 		if setting.UI.DefaultShowFullName && strings.TrimSpace(item.UserFullName) != "" {
 			username = strings.TrimSpace(item.UserFullName)
 		}
 
-		results = append(results, map[string]interface{}{
-			"name": fmt.Sprintf("<img class='ui avatar image' src='%s'><strong>%s</strong> %s %s",
-				html.EscapeString(item.UserAvatarLink), html.EscapeString(username), actionText, timeSinceText),
+		src := html.EscapeString(item.UserAvatarLink)
+		class := avatars.DefaultAvatarClass + " gt-mr-3"
+		name := html.EscapeString(username)
+		avatarHTML := string(templates.AvatarHTML(src, 28, class, username))
+		timeSinceText := string(timeutil.TimeSinceUnix(item.EditedUnix, ctx.Locale))
+
+		results = append(results, map[string]any{
+			"name":  avatarHTML + "<strong>" + name + "</strong> " + actionText + " " + timeSinceText,
 			"value": item.HistoryID,
 		})
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"results": results,
 	})
 }
@@ -109,14 +113,14 @@ func canSoftDeleteContentHistory(ctx *context.Context, issue *issues_model.Issue
 // GetContentHistoryDetail get detail
 func GetContentHistoryDetail(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
-	if issue == nil {
+	if ctx.Written() {
 		return
 	}
 
 	historyID := ctx.FormInt64("history_id")
 	history, prevHistory, err := issues_model.GetIssueContentHistoryAndPrev(ctx, historyID)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, map[string]interface{}{
+		ctx.JSON(http.StatusNotFound, map[string]any{
 			"message": "Can not find the content history",
 		})
 		return
@@ -164,7 +168,7 @@ func GetContentHistoryDetail(ctx *context.Context) {
 	}
 	diffHTMLBuf.WriteString("</pre>")
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"canSoftDelete": canSoftDeleteContentHistory(ctx, issue, comment, history),
 		"historyId":     historyID,
 		"prevHistoryId": prevHistoryID,
@@ -175,7 +179,7 @@ func GetContentHistoryDetail(ctx *context.Context) {
 // SoftDeleteContentHistory soft delete
 func SoftDeleteContentHistory(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
-	if issue == nil {
+	if ctx.Written() {
 		return
 	}
 
@@ -198,7 +202,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 
 	canSoftDelete := canSoftDeleteContentHistory(ctx, issue, comment, history)
 	if !canSoftDelete {
-		ctx.JSON(http.StatusForbidden, map[string]interface{}{
+		ctx.JSON(http.StatusForbidden, map[string]any{
 			"message": "Can not delete the content history",
 		})
 		return
@@ -206,7 +210,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 
 	err = issues_model.SoftDeleteIssueContentHistory(ctx, historyID)
 	log.Debug("soft delete issue content history. issue=%d, comment=%d, history=%d", issue.ID, commentID, historyID)
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok": err == nil,
 	})
 }

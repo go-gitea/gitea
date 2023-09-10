@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package organization_test
 
@@ -43,7 +42,7 @@ func TestTeam_GetRepositories(t *testing.T) {
 
 	test := func(teamID int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.NoError(t, team.GetRepositoriesCtx(db.DefaultContext))
+		assert.NoError(t, team.LoadRepositories(db.DefaultContext))
 		assert.Len(t, team.Repos, team.NumRepos)
 		for _, repo := range team.Repos {
 			unittest.AssertExistsAndLoadBean(t, &organization.TeamRepo{TeamID: teamID, RepoID: repo.ID})
@@ -58,7 +57,7 @@ func TestTeam_GetMembers(t *testing.T) {
 
 	test := func(teamID int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.NoError(t, team.GetMembersCtx(db.DefaultContext))
+		assert.NoError(t, team.LoadMembers(db.DefaultContext))
 		assert.Len(t, team.Members, team.NumMembers)
 		for _, member := range team.Members {
 			unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{UID: member.ID, TeamID: teamID})

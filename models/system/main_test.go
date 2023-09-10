@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package system_test
 
@@ -10,7 +9,9 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 
-	_ "code.gitea.io/gitea/models"        // register models
+	_ "code.gitea.io/gitea/models" // register models
+	_ "code.gitea.io/gitea/models/actions"
+	_ "code.gitea.io/gitea/models/activities"
 	_ "code.gitea.io/gitea/models/system" // register models of system
 )
 

@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_16 //nolint
 
@@ -17,7 +16,7 @@ func CreateUserSettingsTable(x *xorm.Engine) error {
 		SettingKey   string `xorm:"varchar(255) index unique(key_userid)"` // ensure key is always lowercase
 		SettingValue string `xorm:"text"`
 	}
-	if err := x.Sync2(new(UserSetting)); err != nil {
+	if err := x.Sync(new(UserSetting)); err != nil {
 		return fmt.Errorf("sync2: %w", err)
 	}
 	return nil

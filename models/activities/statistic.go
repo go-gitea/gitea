@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package activities
 
@@ -22,7 +21,7 @@ import (
 type Statistic struct {
 	Counter struct {
 		User, Org, PublicKey,
-		Repo, Watch, Star, Action, Access,
+		Repo, Watch, Star, Access,
 		Issue, IssueClosed, IssueOpen,
 		Comment, Oauth, Follow,
 		Mirror, Release, AuthSource, Webhook,
@@ -56,7 +55,6 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.Repo, _ = repo_model.CountRepositories(db.DefaultContext, repo_model.CountRepositoryOptions{})
 	stats.Counter.Watch, _ = e.Count(new(repo_model.Watch))
 	stats.Counter.Star, _ = e.Count(new(repo_model.Star))
-	stats.Counter.Action, _ = db.EstimateCount(db.DefaultContext, new(Action))
 	stats.Counter.Access, _ = e.Count(new(access_model.Access))
 
 	type IssueCount struct {
@@ -84,7 +82,7 @@ func GetStatistic() (stats Statistic) {
 			Find(&stats.Counter.IssueByRepository)
 	}
 
-	issueCounts := []IssueCount{}
+	var issueCounts []IssueCount
 
 	_ = e.Select("COUNT(*) AS count, is_closed").Table("issue").GroupBy("is_closed").Find(&issueCounts)
 	for _, c := range issueCounts {

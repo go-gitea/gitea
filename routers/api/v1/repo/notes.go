@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -9,9 +8,9 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // GetNote Get a note corresponding to a single commit from a repository
@@ -59,8 +58,18 @@ func getNote(ctx *context.APIContext, identifier string) {
 		return
 	}
 
+	commitSHA, err := ctx.Repo.GitRepo.ConvertToSHA1(identifier)
+	if err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "ConvertToSHA1", err)
+		}
+		return
+	}
+
 	var note git.Note
-	if err := git.GetNote(ctx, ctx.Repo.GitRepo, identifier, &note); err != nil {
+	if err := git.GetNote(ctx, ctx.Repo.GitRepo, commitSHA.String(), &note); err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(identifier)
 			return
@@ -69,7 +78,7 @@ func getNote(ctx *context.APIContext, identifier string) {
 		return
 	}
 
-	cmt, err := convert.ToCommit(ctx.Repo.Repository, ctx.Repo.GitRepo, note.Commit, nil, true)
+	cmt, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, note.Commit, nil, convert.ToCommitOptions{Stat: true})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ToCommit", err)
 		return

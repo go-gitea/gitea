@@ -1,6 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package forms
 
@@ -28,7 +27,7 @@ type AdminCreateUserForm struct {
 
 // Validate validates form fields
 func (f *AdminCreateUserForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -56,7 +55,7 @@ type AdminEditUserForm struct {
 
 // Validate validates form fields
 func (f *AdminEditUserForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -68,6 +67,6 @@ type AdminDashboardForm struct {
 
 // Validate validates form fields
 func (f *AdminDashboardForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

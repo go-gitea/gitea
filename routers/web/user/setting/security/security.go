@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package security
 
@@ -23,7 +22,7 @@ const (
 
 // Security render change user's password page and 2FA
 func Security(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings.security")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
 	if ctx.FormString("openid.return_to") != "" {
@@ -49,9 +48,7 @@ func DeleteAccountLink(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/security",
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
 }
 
 func loadSecurityData(ctx *context.Context) {

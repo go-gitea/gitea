@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package webhook
 
@@ -8,10 +7,10 @@ import (
 	"fmt"
 	"strings"
 
-	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
 type (
@@ -49,7 +48,7 @@ var _ PayloadConvertor = &FeishuPayload{}
 // Create implements PayloadConvertor Create method
 func (f *FeishuPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 	// created tag/branch
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	text := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
 
 	return newFeishuTextPayload(text), nil
@@ -58,7 +57,7 @@ func (f *FeishuPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 // Delete implements PayloadConvertor Delete method
 func (f *FeishuPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	// created tag/branch
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	text := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
 
 	return newFeishuTextPayload(text), nil
@@ -74,7 +73,7 @@ func (f *FeishuPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
 // Push implements PayloadConvertor Push method
 func (f *FeishuPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	var (
-		branchName = git.RefEndName(p.Ref)
+		branchName = git.RefName(p.Ref).ShortName()
 		commitDesc string
 	)
 
@@ -98,27 +97,44 @@ func (f *FeishuPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 
 // Issue implements PayloadConvertor Issue method
 func (f *FeishuPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
-	text, issueTitle, attachmentText, _ := getIssuesPayloadInfo(p, noneLinkFormatter, true)
-
-	return newFeishuTextPayload(issueTitle + "\r\n" + text + "\r\n\r\n" + attachmentText), nil
+	title, link, by, operator, result, assignees := getIssuesInfo(p)
+	var res api.Payloader
+	if assignees != "" {
+		if p.Action == api.HookIssueAssigned || p.Action == api.HookIssueUnassigned || p.Action == api.HookIssueMilestoned {
+			res = newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, result, assignees, p.Issue.Body))
+		} else {
+			res = newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, assignees, p.Issue.Body))
+		}
+	} else {
+		res = newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, p.Issue.Body))
+	}
+	return res, nil
 }
 
 // IssueComment implements PayloadConvertor IssueComment method
 func (f *FeishuPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader, error) {
-	text, issueTitle, _ := getIssueCommentPayloadInfo(p, noneLinkFormatter, true)
-
-	return newFeishuTextPayload(issueTitle + "\r\n" + text + "\r\n\r\n" + p.Comment.Body), nil
+	title, link, by, operator := getIssuesCommentInfo(p)
+	return newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, p.Comment.Body)), nil
 }
 
 // PullRequest implements PayloadConvertor PullRequest method
 func (f *FeishuPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, error) {
-	text, issueTitle, attachmentText, _ := getPullRequestPayloadInfo(p, noneLinkFormatter, true)
-
-	return newFeishuTextPayload(issueTitle + "\r\n" + text + "\r\n\r\n" + attachmentText), nil
+	title, link, by, operator, result, assignees := getPullRequestInfo(p)
+	var res api.Payloader
+	if assignees != "" {
+		if p.Action == api.HookIssueAssigned || p.Action == api.HookIssueUnassigned || p.Action == api.HookIssueMilestoned {
+			res = newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, result, assignees, p.PullRequest.Body))
+		} else {
+			res = newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, assignees, p.PullRequest.Body))
+		}
+	} else {
+		res = newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, p.PullRequest.Body))
+	}
+	return res, nil
 }
 
 // Review implements PayloadConvertor Review method
-func (f *FeishuPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
+func (f *FeishuPayload) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (api.Payloader, error) {
 	action, err := parseHookPullRequestEventType(event)
 	if err != nil {
 		return nil, err
@@ -160,6 +176,6 @@ func (f *FeishuPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 }
 
 // GetFeishuPayload converts a ding talk webhook into a FeishuPayload
-func GetFeishuPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetFeishuPayload(p api.Payloader, event webhook_module.HookEventType, _ string) (api.Payloader, error) {
 	return convertPayloader(new(FeishuPayload), p, event)
 }

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package files
 
@@ -11,6 +10,7 @@ import (
 	"path"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -41,7 +41,7 @@ func cleanUpAfterFailure(infos *[]uploadInfo, t *TemporaryUploadRepository, orig
 			continue
 		}
 		if !info.lfsMetaObject.Existing {
-			if _, err := git_model.RemoveLFSMetaObjectByOid(t.repo.ID, info.lfsMetaObject.Oid); err != nil {
+			if _, err := git_model.RemoveLFSMetaObjectByOid(db.DefaultContext, t.repo.ID, info.lfsMetaObject.Oid); err != nil {
 				original = fmt.Errorf("%w, %v", original, err) // We wrap the original error - as this is the underlying error that required the fallback
 			}
 		}
@@ -65,12 +65,12 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	for i, upload := range uploads {
 		// Check file is not lfs locked, will return nil if lock setting not enabled
 		filepath := path.Join(opts.TreePath, upload.Name)
-		lfsLock, err := git_model.GetTreePathLock(repo.ID, filepath)
+		lfsLock, err := git_model.GetTreePathLock(ctx, repo.ID, filepath)
 		if err != nil {
 			return err
 		}
 		if lfsLock != nil && lfsLock.OwnerID != doer.ID {
-			u, err := user_model.GetUserByID(lfsLock.OwnerID)
+			u, err := user_model.GetUserByID(ctx, lfsLock.OwnerID)
 			if err != nil {
 				return err
 			}
@@ -86,17 +86,28 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		return err
 	}
 	defer t.Close()
-	if err := t.Clone(opts.OldBranch); err != nil {
-		return err
+
+	hasOldBranch := true
+	if err = t.Clone(opts.OldBranch); err != nil {
+		if !git.IsErrBranchNotExist(err) || !repo.IsEmpty {
+			return err
+		}
+		if err = t.Init(); err != nil {
+			return err
+		}
+		hasOldBranch = false
+		opts.LastCommitID = ""
 	}
-	if err := t.SetDefaultIndex(); err != nil {
-		return err
+	if hasOldBranch {
+		if err = t.SetDefaultIndex(); err != nil {
+			return err
+		}
 	}
 
 	var filename2attribute2info map[string]map[string]string
 	if setting.LFS.StartServer {
 		filename2attribute2info, err = t.gitRepo.CheckAttribute(git.CheckAttributeOpts{
-			Attributes: []git.CmdArg{"filter"},
+			Attributes: []string{"filter"},
 			Filenames:  names,
 			CachedOnly: true,
 		})
@@ -133,7 +144,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		if infos[i].lfsMetaObject == nil {
 			continue
 		}
-		infos[i].lfsMetaObject, err = git_model.NewLFSMetaObject(infos[i].lfsMetaObject)
+		infos[i].lfsMetaObject, err = git_model.NewLFSMetaObject(ctx, infos[i].lfsMetaObject)
 		if err != nil {
 			// OK Now we need to cleanup
 			return cleanUpAfterFailure(&infos, t, err)

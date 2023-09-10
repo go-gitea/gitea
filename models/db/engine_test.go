@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package db_test
 
@@ -12,6 +11,8 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
+
+	_ "code.gitea.io/gitea/cmd" // for TestPrimaryKeys
 
 	"github.com/stretchr/testify/assert"
 )
@@ -25,7 +26,7 @@ func TestDumpDatabase(t *testing.T) {
 		ID      int64 `xorm:"pk autoincr"`
 		Version int64
 	}
-	assert.NoError(t, db.GetEngine(db.DefaultContext).Sync2(new(Version)))
+	assert.NoError(t, db.GetEngine(db.DefaultContext).Sync(new(Version)))
 
 	for _, dbType := range setting.SupportedDatabaseTypes {
 		assert.NoError(t, db.DumpDatabase(filepath.Join(dir, dbType+".sql"), dbType))
@@ -51,4 +52,35 @@ func TestDeleteOrphanedObjects(t *testing.T) {
 	countAfter, err := db.GetEngine(db.DefaultContext).Count(&issues_model.PullRequest{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, countBefore, countAfter)
+}
+
+func TestPrimaryKeys(t *testing.T) {
+	// Some dbs require that all tables have primary keys, see
+	//   https://github.com/go-gitea/gitea/issues/21086
+	//   https://github.com/go-gitea/gitea/issues/16802
+	// To avoid creating tables without primary key again, this test will check them.
+	// Import "code.gitea.io/gitea/cmd" to make sure each db.RegisterModel in init functions has been called.
+
+	beans, err := db.NamesToBean()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	whitelist := map[string]string{
+		"the_table_name_to_skip_checking": "Write a note here to explain why",
+	}
+
+	for _, bean := range beans {
+		table, err := db.TableInfo(bean)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if why, ok := whitelist[table.Name]; ok {
+			t.Logf("ignore %q because %q", table.Name, why)
+			continue
+		}
+		if len(table.PrimaryKeys) == 0 {
+			t.Errorf("table %q has no primary key", table.Name)
+		}
+	}
 }

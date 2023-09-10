@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -64,8 +63,8 @@ func IsUserAssignedToIssue(ctx context.Context, issue *Issue, user *user_model.U
 }
 
 // ToggleIssueAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
-func ToggleIssueAssignee(issue *Issue, doer *user_model.User, assigneeID int64) (removed bool, comment *Comment, err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ToggleIssueAssignee(ctx context.Context, issue *Issue, doer *user_model.User, assigneeID int64) (removed bool, comment *Comment, err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return false, nil, err
 	}
@@ -103,7 +102,7 @@ func toggleIssueAssignee(ctx context.Context, issue *Issue, doer *user_model.Use
 		AssigneeID:      assigneeID,
 	}
 	// Comment
-	comment, err = CreateCommentCtx(ctx, opts)
+	comment, err = CreateComment(ctx, opts)
 	if err != nil {
 		return false, nil, fmt.Errorf("createComment: %w", err)
 	}
@@ -119,7 +118,7 @@ func toggleIssueAssignee(ctx context.Context, issue *Issue, doer *user_model.Use
 // toggles user assignee state in database
 func toggleUserAssignee(ctx context.Context, issue *Issue, assigneeID int64) (removed bool, err error) {
 	// Check if the user exists
-	assignee, err := user_model.GetUserByIDCtx(ctx, assigneeID)
+	assignee, err := user_model.GetUserByID(ctx, assigneeID)
 	if err != nil {
 		return false, err
 	}
@@ -156,7 +155,7 @@ func MakeIDsFromAPIAssigneesToAdd(ctx context.Context, oneAssignee string, multi
 	var requestAssignees []string
 
 	// Keeping the old assigning method for compatibility reasons
-	if oneAssignee != "" && !util.IsStringInSlice(oneAssignee, multipleAssignees) {
+	if oneAssignee != "" && !util.SliceContainsString(multipleAssignees, oneAssignee) {
 		requestAssignees = append(requestAssignees, oneAssignee)
 	}
 

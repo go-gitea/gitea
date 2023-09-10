@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 // This code is heavily inspired by the archived gofacebook/gracenet/net.go handler
 
 //go:build windows
@@ -51,7 +50,6 @@ type Manager struct {
 	shutdownRequested      chan struct{}
 
 	toRunAtShutdown  []func()
-	toRunAtHammer    []func()
 	toRunAtTerminate []func()
 }
 
@@ -97,7 +95,7 @@ func (g *Manager) start() {
 	run := svc.Run
 
 	//lint:ignore SA1019 We use IsAnInteractiveSession because IsWindowsService has a different permissions profile
-	isAnInteractiveSession, err := svc.IsAnInteractiveSession()
+	isAnInteractiveSession, err := svc.IsAnInteractiveSession() //nolint:staticcheck
 	if err != nil {
 		log.Error("Unable to ascertain if running as an Windows Service: %v", err)
 		return

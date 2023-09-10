@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package base
 
@@ -113,52 +112,6 @@ func TestFileSize(t *testing.T) {
 	assert.Equal(t, "512 PiB", FileSize(size))
 	size *= 4
 	assert.Equal(t, "2.0 EiB", FileSize(size))
-}
-
-func TestPrettyNumber(t *testing.T) {
-	assert.Equal(t, "23,342,432", PrettyNumber(23342432))
-	assert.Equal(t, "23,342,432", PrettyNumber(int32(23342432)))
-	assert.Equal(t, "0", PrettyNumber(0))
-	assert.Equal(t, "-100,000", PrettyNumber(-100000))
-}
-
-func TestSubtract(t *testing.T) {
-	toFloat64 := func(n interface{}) float64 {
-		switch v := n.(type) {
-		case int:
-			return float64(v)
-		case int8:
-			return float64(v)
-		case int16:
-			return float64(v)
-		case int32:
-			return float64(v)
-		case int64:
-			return float64(v)
-		case float32:
-			return float64(v)
-		case float64:
-			return v
-		default:
-			return 0.0
-		}
-	}
-	values := []interface{}{
-		int(-3),
-		int8(14),
-		int16(81),
-		int32(-156),
-		int64(1528),
-		float32(3.5),
-		float64(-15.348),
-	}
-	for _, left := range values {
-		for _, right := range values {
-			expected := toFloat64(left) - toFloat64(right)
-			sub := Subtract(left, right)
-			assert.InDelta(t, expected, sub, 1e-3)
-		}
-	}
 }
 
 func TestEllipsisString(t *testing.T) {

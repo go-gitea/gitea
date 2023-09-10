@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_16 //nolint
 
@@ -17,7 +16,7 @@ func AddRepoIDForAttachment(x *xorm.Engine) error {
 		ReleaseID  int64  `xorm:"INDEX"` // maybe zero when creating
 		UploaderID int64  `xorm:"INDEX DEFAULT 0"`
 	}
-	if err := x.Sync2(new(Attachment)); err != nil {
+	if err := x.Sync(new(Attachment)); err != nil {
 		return err
 	}
 

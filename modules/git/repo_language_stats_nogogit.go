@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build !gogit
 
@@ -181,7 +180,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		// FIXME: Why can't we split this and the IsGenerated tests to avoid reading the blob unless absolutely necessary?
 		// - eg. do the all the detection tests using filename first before reading content.
 		language := analyze.GetCodeLanguage(f.Name(), content)
-		if language == enry.OtherLanguage || language == "" {
+		if language == "" {
 			continue
 		}
 
@@ -193,8 +192,8 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 
 		included, checked := includedLanguage[language]
 		if !checked {
-			langtype := enry.GetLanguageType(language)
-			included = langtype == enry.Programming || langtype == enry.Markup
+			langType := enry.GetLanguageType(language)
+			included = langType == enry.Programming || langType == enry.Markup
 			includedLanguage[language] = included
 		}
 		if included {
@@ -211,7 +210,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		sizes[firstExcludedLanguage] = firstExcludedLanguageSize
 	}
 
-	return sizes, nil
+	return mergeLanguageStats(sizes), nil
 }
 
 func discardFull(rd *bufio.Reader, discard int64) error {

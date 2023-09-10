@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package organization
 
@@ -38,7 +37,7 @@ type SearchTeamRepoOptions struct {
 }
 
 // GetRepositories returns paginated repositories in team of organization.
-func GetTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) ([]*repo_model.Repository, error) {
+func GetTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) (repo_model.RepositoryList, error) {
 	sess := db.GetEngine(ctx)
 	if opts.TeamID > 0 {
 		sess = sess.In("id",

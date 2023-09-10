@@ -1,13 +1,11 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/mail"
 	"regexp"
@@ -18,12 +16,13 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/validation"
 
 	"xorm.io/builder"
 )
 
 // ErrEmailNotActivated e-mail address has not been activated error
-var ErrEmailNotActivated = errors.New("e-mail address has not been activated")
+var ErrEmailNotActivated = util.NewInvalidArgumentErrorf("e-mail address has not been activated")
 
 // ErrEmailCharIsNotSupported e-mail address contains unsupported character
 type ErrEmailCharIsNotSupported struct {
@@ -163,7 +162,17 @@ func ValidateEmail(email string) error {
 		return ErrEmailInvalid{email}
 	}
 
-	// TODO: add an email allow/block list
+	// if there is no allow list, then check email against block list
+	if len(setting.Service.EmailDomainAllowList) == 0 &&
+		validation.IsEmailDomainListed(setting.Service.EmailDomainBlockList, email) {
+		return ErrEmailInvalid{email}
+	}
+
+	// if there is an allow list, then check email against allow list
+	if len(setting.Service.EmailDomainAllowList) > 0 &&
+		!validation.IsEmailDomainListed(setting.Service.EmailDomainAllowList, email) {
+		return ErrEmailInvalid{email}
+	}
 
 	return nil
 }
@@ -333,7 +342,7 @@ func ActivateEmail(email *EmailAddress) error {
 }
 
 func updateActivation(ctx context.Context, email *EmailAddress, activate bool) error {
-	user, err := GetUserByIDCtx(ctx, email.UID)
+	user, err := GetUserByID(ctx, email.UID)
 	if err != nil {
 		return err
 	}

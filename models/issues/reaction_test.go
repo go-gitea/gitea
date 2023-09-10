@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues_test
 
@@ -110,7 +109,7 @@ func TestIssueReactionCount(t *testing.T) {
 	reactions := reactionsList.GroupByType()
 	assert.Len(t, reactions["heart"], 4)
 	assert.Equal(t, 2, reactions["heart"].GetMoreUserCount())
-	assert.Equal(t, user1.DisplayName()+", "+user2.DisplayName(), reactions["heart"].GetFirstUsers())
+	assert.Equal(t, user1.Name+", "+user2.Name, reactions["heart"].GetFirstUsers())
 	assert.True(t, reactions["heart"].HasUser(1))
 	assert.False(t, reactions["heart"].HasUser(5))
 	assert.False(t, reactions["heart"].HasUser(0))

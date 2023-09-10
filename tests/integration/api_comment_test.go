@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -10,13 +9,14 @@ import (
 	"net/url"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -31,10 +31,9 @@ func TestAPIListRepoComments(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	session := loginUser(t, repoOwner.Name)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments", repoOwner.Name, repo.Name))
 	req := NewRequest(t, "GET", link.String())
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var apiComments []*api.Comment
 	DecodeJSON(t, resp, &apiComments)
@@ -53,7 +52,7 @@ func TestAPIListRepoComments(t *testing.T) {
 	query.Add("before", before)
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiComments)
 	assert.Len(t, apiComments, 1)
 	assert.EqualValues(t, 2, apiComments[0].ID)
@@ -62,7 +61,7 @@ func TestAPIListRepoComments(t *testing.T) {
 	query.Add("since", since)
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiComments)
 	assert.Len(t, apiComments, 1)
 	assert.EqualValues(t, 3, apiComments[0].ID)
@@ -77,16 +76,16 @@ func TestAPIListIssueComments(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	session := loginUser(t, repoOwner.Name)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/comments",
-		repoOwner.Name, repo.Name, issue.Index)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeReadIssue)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/comments?token=%s",
+		repoOwner.Name, repo.Name, issue.Index, token)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var comments []*api.Comment
 	DecodeJSON(t, resp, &comments)
 	expectedCount := unittest.GetCount(t, &issues_model.Comment{IssueID: issue.ID},
 		unittest.Cond("type = ?", issues_model.CommentTypeComment))
-	assert.EqualValues(t, expectedCount, len(comments))
+	assert.Len(t, comments, expectedCount)
 }
 
 func TestAPICreateComment(t *testing.T) {
@@ -97,14 +96,13 @@ func TestAPICreateComment(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeWriteIssue)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/comments?token=%s",
 		repoOwner.Name, repo.Name, issue.Index, token)
 	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		"body": commentBody,
 	})
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+	resp := MakeRequest(t, req, http.StatusCreated)
 
 	var updatedComment api.Comment
 	DecodeJSON(t, resp, &updatedComment)
@@ -120,18 +118,17 @@ func TestAPIGetComment(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: comment.Issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeReadIssue)
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d", repoOwner.Name, repo.Name, comment.ID)
-	session.MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusOK)
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d?token=%s", repoOwner.Name, repo.Name, comment.ID, token)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var apiComment api.Comment
 	DecodeJSON(t, resp, &apiComment)
 
 	assert.NoError(t, comment.LoadPoster(db.DefaultContext))
-	expect := convert.ToComment(comment)
+	expect := convert.ToAPIComment(db.DefaultContext, repo, comment)
 
 	assert.Equal(t, expect.ID, apiComment.ID)
 	assert.Equal(t, expect.Poster.FullName, apiComment.Poster.FullName)
@@ -149,14 +146,13 @@ func TestAPIEditComment(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeWriteIssue)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d?token=%s",
 		repoOwner.Name, repo.Name, comment.ID, token)
 	req := NewRequestWithValues(t, "PATCH", urlStr, map[string]string{
 		"body": newCommentBody,
 	})
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var updatedComment api.Comment
 	DecodeJSON(t, resp, &updatedComment)
@@ -174,11 +170,10 @@ func TestAPIDeleteComment(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeWriteIssue)
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/comments/%d?token=%s",
 		repoOwner.Name, repo.Name, comment.ID, token)
-	session.MakeRequest(t, req, http.StatusNoContent)
+	MakeRequest(t, req, http.StatusNoContent)
 
 	unittest.AssertNotExistsBean(t, &issues_model.Comment{ID: comment.ID})
 }
@@ -192,15 +187,14 @@ func TestAPIListIssueTimeline(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	// make request
-	session := loginUser(t, repoOwner.Name)
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/timeline",
 		repoOwner.Name, repo.Name, issue.Index)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	// check if lens of list returned by API and
 	// lists extracted directly from DB are the same
 	var comments []*api.TimelineComment
 	DecodeJSON(t, resp, &comments)
 	expectedCount := unittest.GetCount(t, &issues_model.Comment{IssueID: issue.ID})
-	assert.EqualValues(t, expectedCount, len(comments))
+	assert.Len(t, comments, expectedCount)
 }

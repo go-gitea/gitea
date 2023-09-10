@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -13,21 +12,22 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/gobwas/glob"
 )
 
 // AdoptRepository adopts pre-existing repository files for the user/organization.
-func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOptions) (*repo_model.Repository, error) {
+func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateRepoOptions) (*repo_model.Repository, error) {
 	if !doer.IsAdmin && !u.CanCreateRepo() {
 		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: u.MaxRepoCreation,
@@ -54,7 +54,7 @@ func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOption
 		IsEmpty:                         !opts.AutoInit,
 	}
 
-	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		repoPath := repo_model.RepoPath(u.Name, repo.Name)
 		isExist, err := util.IsExist(repoPath)
 		if err != nil {
@@ -68,12 +68,20 @@ func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOption
 			}
 		}
 
-		if err := repo_module.CreateRepositoryByExample(ctx, doer, u, repo, true); err != nil {
+		if err := repo_module.CreateRepositoryByExample(ctx, doer, u, repo, true, false); err != nil {
 			return err
 		}
-		if err := adoptRepository(ctx, repoPath, doer, repo, opts); err != nil {
+
+		// Re-fetch the repository from database before updating it (else it would
+		// override changes that were done earlier with sql)
+		if repo, err = repo_model.GetRepositoryByID(ctx, repo.ID); err != nil {
+			return fmt.Errorf("getRepositoryByID: %w", err)
+		}
+
+		if err := adoptRepository(ctx, repoPath, doer, repo, opts.DefaultBranch); err != nil {
 			return fmt.Errorf("createDelegateHooks: %w", err)
 		}
+
 		if err := repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
 			return fmt.Errorf("checkDaemonExportOK: %w", err)
 		}
@@ -96,12 +104,12 @@ func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOption
 		return nil, err
 	}
 
-	notification.NotifyCreateRepository(db.DefaultContext, doer, u, repo)
+	notify_service.AdoptRepository(ctx, doer, u, repo)
 
 	return repo, nil
 }
 
-func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, opts repo_module.CreateRepoOptions) (err error) {
+func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, defaultBranch string) (err error) {
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
@@ -115,12 +123,6 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 		return fmt.Errorf("createDelegateHooks: %w", err)
 	}
 
-	// Re-fetch the repository from database before updating it (else it would
-	// override changes that were done earlier with sql)
-	if repo, err = repo_model.GetRepositoryByIDCtx(ctx, repo.ID); err != nil {
-		return fmt.Errorf("getRepositoryByID: %w", err)
-	}
-
 	repo.IsEmpty = false
 
 	// Don't bother looking this repo in the context it won't be there
@@ -130,8 +132,8 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 	}
 	defer gitRepo.Close()
 
-	if len(opts.DefaultBranch) > 0 {
-		repo.DefaultBranch = opts.DefaultBranch
+	if len(defaultBranch) > 0 {
+		repo.DefaultBranch = defaultBranch
 
 		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
 			return fmt.Errorf("setDefaultBranch: %w", err)
@@ -145,7 +147,15 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 			}
 		}
 	}
-	branches, _, _ := gitRepo.GetBranchNames(0, 0)
+
+	branches, _ := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+		RepoID: repo.ID,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		IsDeletedBranch: util.OptionalBoolFalse,
+	})
+
 	found := false
 	hasDefault := false
 	hasMaster := false
@@ -185,11 +195,15 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 		return fmt.Errorf("updateRepository: %w", err)
 	}
 
+	if err = repo_module.SyncReleasesWithTags(repo, gitRepo); err != nil {
+		return fmt.Errorf("SyncReleasesWithTags: %w", err)
+	}
+
 	return nil
 }
 
 // DeleteUnadoptedRepository deletes unadopted repository files from the filesystem
-func DeleteUnadoptedRepository(doer, u *user_model.User, repoName string) error {
+func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, repoName string) error {
 	if err := repo_model.IsUsableRepoName(repoName); err != nil {
 		return err
 	}
@@ -207,7 +221,7 @@ func DeleteUnadoptedRepository(doer, u *user_model.User, repoName string) error 
 		}
 	}
 
-	if exist, err := repo_model.IsRepositoryExist(db.DefaultContext, u, repoName); err != nil {
+	if exist, err := repo_model.IsRepositoryModelExist(ctx, u, repoName); err != nil {
 		return err
 	} else if exist {
 		return repo_model.ErrRepoAlreadyExist{
@@ -233,11 +247,11 @@ func (unadopted *unadoptedRepositories) add(repository string) {
 	unadopted.index++
 }
 
-func checkUnadoptedRepositories(userName string, repoNamesToCheck []string, unadopted *unadoptedRepositories) error {
+func checkUnadoptedRepositories(ctx context.Context, userName string, repoNamesToCheck []string, unadopted *unadoptedRepositories) error {
 	if len(repoNamesToCheck) == 0 {
 		return nil
 	}
-	ctxUser, err := user_model.GetUserByName(db.DefaultContext, userName)
+	ctxUser, err := user_model.GetUserByName(ctx, userName)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			log.Debug("Missing user: %s", userName)
@@ -272,7 +286,7 @@ func checkUnadoptedRepositories(userName string, repoNamesToCheck []string, unad
 }
 
 // ListUnadoptedRepositories lists all the unadopted repositories that match the provided query
-func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, int, error) {
+func ListUnadoptedRepositories(ctx context.Context, query string, opts *db.ListOptions) ([]string, int, error) {
 	globUser, _ := glob.Compile("*")
 	globRepo, _ := glob.Compile("*")
 
@@ -304,30 +318,30 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 
 	// We're going to iterate by pagesize.
 	root := filepath.Clean(setting.RepoRootPath)
-	if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	if err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() || path == root {
+		if !d.IsDir() || path == root {
 			return nil
 		}
 
+		name := d.Name()
+
 		if !strings.ContainsRune(path[len(root)+1:], filepath.Separator) {
 			// Got a new user
-			if err = checkUnadoptedRepositories(userName, repoNamesToCheck, unadopted); err != nil {
+			if err = checkUnadoptedRepositories(ctx, userName, repoNamesToCheck, unadopted); err != nil {
 				return err
 			}
 			repoNamesToCheck = repoNamesToCheck[:0]
 
-			if !globUser.Match(info.Name()) {
+			if !globUser.Match(name) {
 				return filepath.SkipDir
 			}
 
-			userName = info.Name()
+			userName = name
 			return nil
 		}
-
-		name := info.Name()
 
 		if !strings.HasSuffix(name, ".git") {
 			return filepath.SkipDir
@@ -338,8 +352,8 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 		}
 
 		repoNamesToCheck = append(repoNamesToCheck, name)
-		if len(repoNamesToCheck) > setting.Database.IterateBufferSize {
-			if err = checkUnadoptedRepositories(userName, repoNamesToCheck, unadopted); err != nil {
+		if len(repoNamesToCheck) >= setting.Database.IterateBufferSize {
+			if err = checkUnadoptedRepositories(ctx, userName, repoNamesToCheck, unadopted); err != nil {
 				return err
 			}
 			repoNamesToCheck = repoNamesToCheck[:0]
@@ -350,7 +364,7 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 		return nil, 0, err
 	}
 
-	if err := checkUnadoptedRepositories(userName, repoNamesToCheck, unadopted); err != nil {
+	if err := checkUnadoptedRepositories(ctx, userName, repoNamesToCheck, unadopted); err != nil {
 		return nil, 0, err
 	}
 

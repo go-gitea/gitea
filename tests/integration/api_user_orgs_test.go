@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.package models
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -9,6 +8,8 @@ import (
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -35,7 +36,8 @@ func TestUserOrgs(t *testing.T) {
 			Name:        user17.Name,
 			UserName:    user17.Name,
 			FullName:    user17.FullName,
-			AvatarURL:   user17.AvatarLink(),
+			Email:       user17.Email,
+			AvatarURL:   user17.AvatarLink(db.DefaultContext),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -46,7 +48,8 @@ func TestUserOrgs(t *testing.T) {
 			Name:        user3.Name,
 			UserName:    user3.Name,
 			FullName:    user3.FullName,
-			AvatarURL:   user3.AvatarLink(),
+			Email:       user3.Email,
+			AvatarURL:   user3.AvatarLink(db.DefaultContext),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -62,37 +65,38 @@ func TestUserOrgs(t *testing.T) {
 	orgs = getUserOrgs(t, unrelatedUsername, privateMemberUsername)
 	assert.Len(t, orgs, 0)
 
-	// not authenticated call also should hide org membership
-	orgs = getUserOrgs(t, "", privateMemberUsername)
-	assert.Len(t, orgs, 0)
+	// not authenticated call should not be allowed
+	testUserOrgsUnauthenticated(t, privateMemberUsername)
 }
 
 func getUserOrgs(t *testing.T, userDoer, userCheck string) (orgs []*api.Organization) {
 	token := ""
-	session := emptyTestSession(t)
 	if len(userDoer) != 0 {
-		session = loginUser(t, userDoer)
-		token = getTokenForLoggedInUser(t, session)
+		token = getUserToken(t, userDoer, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser)
 	}
 	urlStr := fmt.Sprintf("/api/v1/users/%s/orgs?token=%s", userCheck, token)
 	req := NewRequest(t, "GET", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &orgs)
 	return orgs
+}
+
+func testUserOrgsUnauthenticated(t *testing.T, userCheck string) {
+	session := emptyTestSession(t)
+	req := NewRequestf(t, "GET", "/api/v1/users/%s/orgs", userCheck)
+	session.MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func TestMyOrgs(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	session := emptyTestSession(t)
 	req := NewRequest(t, "GET", "/api/v1/user/orgs")
-	session.MakeRequest(t, req, http.StatusUnauthorized)
+	MakeRequest(t, req, http.StatusUnauthorized)
 
 	normalUsername := "user2"
-	session = loginUser(t, normalUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getUserToken(t, normalUsername, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser)
 	req = NewRequest(t, "GET", "/api/v1/user/orgs?token="+token)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 	var orgs []*api.Organization
 	DecodeJSON(t, resp, &orgs)
 	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user3"})
@@ -104,7 +108,8 @@ func TestMyOrgs(t *testing.T) {
 			Name:        user17.Name,
 			UserName:    user17.Name,
 			FullName:    user17.FullName,
-			AvatarURL:   user17.AvatarLink(),
+			Email:       user17.Email,
+			AvatarURL:   user17.AvatarLink(db.DefaultContext),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -115,7 +120,8 @@ func TestMyOrgs(t *testing.T) {
 			Name:        user3.Name,
 			UserName:    user3.Name,
 			FullName:    user3.FullName,
-			AvatarURL:   user3.AvatarLink(),
+			Email:       user3.Email,
+			AvatarURL:   user3.AvatarLink(db.DefaultContext),
 			Description: "",
 			Website:     "",
 			Location:    "",

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -20,5 +19,5 @@ func TestCORSNotSet(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	assert.Equal(t, resp.Code, http.StatusOK)
 	corsHeader := resp.Header().Get("Access-Control-Allow-Origin")
-	assert.Equal(t, corsHeader, "", "Access-Control-Allow-Origin: generated header should match") // header not set
+	assert.Empty(t, corsHeader, "Access-Control-Allow-Origin: generated header should match") // header not set
 }

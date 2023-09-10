@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -11,6 +10,8 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/cache"
+	setting_module "code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -42,6 +43,10 @@ func (err ErrUserSettingIsNotExist) Error() string {
 	return fmt.Sprintf("Setting[%s] is not exist", err.Key)
 }
 
+func (err ErrUserSettingIsNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // IsErrUserSettingIsNotExist return true if err is ErrSettingIsNotExist
 func IsErrUserSettingIsNotExist(err error) bool {
 	_, ok := err.(ErrUserSettingIsNotExist)
@@ -54,13 +59,13 @@ func genSettingCacheKey(userID int64, key string) string {
 }
 
 // GetSetting returns the setting value via the key
-func GetSetting(uid int64, key string) (*Setting, error) {
-	return cache.Get(genSettingCacheKey(uid, key), func() (*Setting, error) {
+func GetSetting(uid int64, key string) (string, error) {
+	return cache.GetString(genSettingCacheKey(uid, key), func() (string, error) {
 		res, err := GetSettingNoCache(uid, key)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
-		return res, nil
+		return res.SettingValue, nil
 	})
 }
 
@@ -155,11 +160,16 @@ func SetUserSetting(userID int64, key, value string) error {
 		return err
 	}
 
-	_, err := cache.Set(genSettingCacheKey(userID, key), func() (string, error) {
-		return value, upsertUserSettingValue(userID, key, value)
-	})
+	if err := upsertUserSettingValue(userID, key, value); err != nil {
+		return err
+	}
 
-	return err
+	cc := cache.GetCache()
+	if cc != nil {
+		return cc.Put(genSettingCacheKey(userID, key), value, setting_module.CacheService.TTLSeconds())
+	}
+
+	return nil
 }
 
 func upsertUserSettingValue(userID int64, key, value string) error {

@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -9,18 +8,21 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -28,6 +30,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	repo_service "code.gitea.io/gitea/services/repository"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
@@ -60,6 +63,22 @@ func MustBeAbleToUpload(ctx *context.Context) {
 	}
 }
 
+func CommitInfoCache(ctx *context.Context) {
+	var err error
+	ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+	if err != nil {
+		ctx.ServerError("GetBranchCommit", err)
+		return
+	}
+	ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
+	if err != nil {
+		ctx.ServerError("GetCommitsCount", err)
+		return
+	}
+	ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
+	ctx.Repo.GitRepo.LastCommitCache = git.NewLastCommitCache(ctx.Repo.CommitsCount, ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, cache.GetCache())
+}
+
 func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 	orgs, err := organization.GetOrgsCanCreateRepoByUserID(ctx.Doer.ID)
 	if err != nil {
@@ -84,7 +103,7 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 		return ctx.Doer
 	}
 
-	org, err := user_model.GetUserByID(uid)
+	org, err := user_model.GetUserByID(ctx, uid)
 	if user_model.IsErrUserNotExist(err) {
 		return ctx.Doer
 	}
@@ -133,7 +152,7 @@ func Create(ctx *context.Context) {
 
 	// Give default value for template to render.
 	ctx.Data["Gitignores"] = repo_module.Gitignores
-	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
+	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
 	ctx.Data["Licenses"] = repo_module.Licenses
 	ctx.Data["Readmes"] = repo_module.Readmes
 	ctx.Data["readme"] = "Default"
@@ -150,7 +169,7 @@ func Create(ctx *context.Context) {
 	ctx.Data["repo_template_name"] = ctx.Tr("repo.template_select")
 	templateID := ctx.FormInt64("template_id")
 	if templateID > 0 {
-		templateRepo, err := repo_model.GetRepositoryByID(templateID)
+		templateRepo, err := repo_model.GetRepositoryByID(ctx, templateID)
 		if err == nil && access_model.CheckRepoUnitUser(ctx, templateRepo, ctxUser, unit.TypeCode) {
 			ctx.Data["repo_template"] = templateID
 			ctx.Data["repo_template_name"] = templateRepo.Name
@@ -163,7 +182,7 @@ func Create(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplCreate)
 }
 
-func handleCreateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl base.TplName, form interface{}) {
+func handleCreateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl base.TplName, form any) {
 	switch {
 	case repo_model.IsErrReachLimitOfRepo(err):
 		maxCreationLimit := owner.MaxCreationLimit()
@@ -201,7 +220,7 @@ func CreatePost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
 	ctx.Data["Gitignores"] = repo_module.Gitignores
-	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
+	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
 	ctx.Data["Licenses"] = repo_module.Licenses
 	ctx.Data["Readmes"] = repo_module.Readmes
 
@@ -223,15 +242,16 @@ func CreatePost(ctx *context.Context) {
 	var err error
 	if form.RepoTemplate > 0 {
 		opts := repo_module.GenerateRepoOptions{
-			Name:        form.RepoName,
-			Description: form.Description,
-			Private:     form.Private,
-			GitContent:  form.GitContent,
-			Topics:      form.Topics,
-			GitHooks:    form.GitHooks,
-			Webhooks:    form.Webhooks,
-			Avatar:      form.Avatar,
-			IssueLabels: form.Labels,
+			Name:            form.RepoName,
+			Description:     form.Description,
+			Private:         form.Private,
+			GitContent:      form.GitContent,
+			Topics:          form.Topics,
+			GitHooks:        form.GitHooks,
+			Webhooks:        form.Webhooks,
+			Avatar:          form.Avatar,
+			IssueLabels:     form.Labels,
+			ProtectedBranch: form.ProtectedBranch,
 		}
 
 		if !opts.IsValid() {
@@ -249,14 +269,14 @@ func CreatePost(ctx *context.Context) {
 			return
 		}
 
-		repo, err = repo_service.GenerateRepository(ctx.Doer, ctxUser, templateRepo, opts)
+		repo, err = repo_service.GenerateRepository(ctx, ctx.Doer, ctxUser, templateRepo, opts)
 		if err == nil {
 			log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
 			ctx.Redirect(repo.Link())
 			return
 		}
 	} else {
-		repo, err = repo_service.CreateRepository(ctx.Doer, ctxUser, repo_module.CreateRepoOptions{
+		repo, err = repo_service.CreateRepository(ctx, ctx.Doer, ctxUser, repo_service.CreateRepoOptions{
 			Name:          form.RepoName,
 			Description:   form.Description,
 			Gitignores:    form.Gitignores,
@@ -303,7 +323,7 @@ func Action(ctx *context.Context) {
 
 		ctx.Repo.Repository.Description = ctx.FormString("desc")
 		ctx.Repo.Repository.Website = ctx.FormString("site")
-		err = repo_service.UpdateRepository(ctx.Repo.Repository, false)
+		err = repo_service.UpdateRepository(ctx, ctx.Repo.Repository, false)
 	}
 
 	if err != nil {
@@ -315,12 +335,12 @@ func Action(ctx *context.Context) {
 }
 
 func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
-	repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
+	repoTransfer, err := models.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
 	if err != nil {
 		return err
 	}
 
-	if err := repoTransfer.LoadAttributes(); err != nil {
+	if err := repoTransfer.LoadAttributes(ctx); err != nil {
 		return err
 	}
 
@@ -334,7 +354,7 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 			ctx.Repo.GitRepo = nil
 		}
 
-		if err := repo_service.TransferOwnership(repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams); err != nil {
+		if err := repo_service.TransferOwnership(ctx, repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams); err != nil {
 			return err
 		}
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.success"))
@@ -345,7 +365,7 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
 	}
 
-	ctx.Redirect(ctx.Repo.Repository.HTMLURL())
+	ctx.Redirect(ctx.Repo.Repository.Link())
 	return nil
 }
 
@@ -359,10 +379,6 @@ func RedirectDownload(ctx *context.Context) {
 	curRepo := ctx.Repo.Repository
 	releases, err := repo_model.GetReleasesByRepoIDAndNames(ctx, curRepo.ID, tagNames)
 	if err != nil {
-		if repo_model.IsErrAttachmentNotExist(err) {
-			ctx.Error(http.StatusNotFound)
-			return
-		}
 		ctx.ServerError("RedirectDownload", err)
 		return
 	}
@@ -374,7 +390,24 @@ func RedirectDownload(ctx *context.Context) {
 			return
 		}
 		if att != nil {
-			ctx.Redirect(att.DownloadURL())
+			ServeAttachment(ctx, att.UUID)
+			return
+		}
+	} else if len(releases) == 0 && vTag == "latest" {
+		// GitHub supports the alias "latest" for the latest release
+		// We only fetch the latest release if the tag is "latest" and no release with the tag "latest" exists
+		release, err := repo_model.GetLatestReleaseByRepoID(ctx.Repo.Repository.ID)
+		if err != nil {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+		att, err := repo_model.GetAttachmentByReleaseIDFileName(ctx, release.ID, fileName)
+		if err != nil {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+		if att != nil {
+			ServeAttachment(ctx, att.UUID)
 			return
 		}
 	}
@@ -409,7 +442,7 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
 
 	rPath := archiver.RelativePath()
-	if setting.RepoArchive.ServeDirect {
+	if setting.RepoArchive.Storage.MinioConfig.ServeDirect {
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.RepoArchives.URL(rPath, downloadName)
 		if u != nil && err == nil {
@@ -464,7 +497,7 @@ func InitiateDownload(ctx *context.Context) {
 		completed = true
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"complete": completed,
 	})
 }
@@ -529,7 +562,7 @@ func SearchRepo(ctx *context.Context) {
 		if len(sortOrder) == 0 {
 			sortOrder = "asc"
 		}
-		if searchModeMap, ok := context.SearchOrderByMap[sortOrder]; ok {
+		if searchModeMap, ok := repo_model.SearchOrderByMap[sortOrder]; ok {
 			if orderBy, ok := searchModeMap[sortMode]; ok {
 				opts.OrderBy = orderBy
 			} else {
@@ -559,23 +592,111 @@ func SearchRepo(ctx *context.Context) {
 		return
 	}
 
-	results := make([]*api.Repository, len(repos))
+	// collect the latest commit of each repo
+	// at most there are dozens of repos (limited by MaxResponseItems), so it's not a big problem at the moment
+	repoBranchNames := make(map[int64]string, len(repos))
+	for _, repo := range repos {
+		repoBranchNames[repo.ID] = repo.DefaultBranch
+	}
+
+	repoIDsToLatestCommitSHAs, err := git_model.FindBranchesByRepoAndBranchName(ctx, repoBranchNames)
+	if err != nil {
+		log.Error("FindBranchesByRepoAndBranchName: %v", err)
+		return
+	}
+
+	// call the database O(1) times to get the commit statuses for all repos
+	repoToItsLatestCommitStatuses, err := git_model.GetLatestCommitStatusForPairs(ctx, repoIDsToLatestCommitSHAs, db.ListOptions{})
+	if err != nil {
+		log.Error("GetLatestCommitStatusForPairs: %v", err)
+		return
+	}
+
+	results := make([]*repo_service.WebSearchRepository, len(repos))
 	for i, repo := range repos {
-		results[i] = &api.Repository{
-			ID:       repo.ID,
-			FullName: repo.FullName(),
-			Fork:     repo.IsFork,
-			Private:  repo.IsPrivate,
-			Template: repo.IsTemplate,
-			Mirror:   repo.IsMirror,
-			Stars:    repo.NumStars,
-			HTMLURL:  repo.HTMLURL(),
-			Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
+		latestCommitStatus := git_model.CalcCommitStatus(repoToItsLatestCommitStatuses[repo.ID])
+
+		results[i] = &repo_service.WebSearchRepository{
+			Repository: &api.Repository{
+				ID:       repo.ID,
+				FullName: repo.FullName(),
+				Fork:     repo.IsFork,
+				Private:  repo.IsPrivate,
+				Template: repo.IsTemplate,
+				Mirror:   repo.IsMirror,
+				Stars:    repo.NumStars,
+				HTMLURL:  repo.HTMLURL(),
+				Link:     repo.Link(),
+				Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
+			},
+			LatestCommitStatus:       latestCommitStatus,
+			LocaleLatestCommitStatus: latestCommitStatus.LocaleString(ctx.Locale),
 		}
 	}
 
-	ctx.JSON(http.StatusOK, api.SearchResults{
+	ctx.JSON(http.StatusOK, repo_service.WebSearchResults{
 		OK:   true,
 		Data: results,
 	})
+}
+
+type branchTagSearchResponse struct {
+	Results []string `json:"results"`
+}
+
+// GetBranchesList get branches for current repo'
+func GetBranchesList(ctx *context.Context) {
+	branchOpts := git_model.FindBranchOptions{
+		RepoID:          ctx.Repo.Repository.ID,
+		IsDeletedBranch: util.OptionalBoolFalse,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+	}
+	branches, err := git_model.FindBranchNames(ctx, branchOpts)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	resp := &branchTagSearchResponse{}
+	// always put default branch on the top if it exists
+	if slices.Contains(branches, ctx.Repo.Repository.DefaultBranch) {
+		branches = util.SliceRemoveAll(branches, ctx.Repo.Repository.DefaultBranch)
+		branches = append([]string{ctx.Repo.Repository.DefaultBranch}, branches...)
+	}
+	resp.Results = branches
+	ctx.JSON(http.StatusOK, resp)
+}
+
+// GetTagList get tag list for current repo
+func GetTagList(ctx *context.Context) {
+	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	resp := &branchTagSearchResponse{}
+	resp.Results = tags
+	ctx.JSON(http.StatusOK, resp)
+}
+
+func PrepareBranchList(ctx *context.Context) {
+	branchOpts := git_model.FindBranchOptions{
+		RepoID:          ctx.Repo.Repository.ID,
+		IsDeletedBranch: util.OptionalBoolFalse,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+	}
+	brs, err := git_model.FindBranchNames(ctx, branchOpts)
+	if err != nil {
+		ctx.ServerError("GetBranches", err)
+		return
+	}
+	// always put default branch on the top if it exists
+	if slices.Contains(brs, ctx.Repo.Repository.DefaultBranch) {
+		brs = util.SliceRemoveAll(brs, ctx.Repo.Repository.DefaultBranch)
+		brs = append([]string{ctx.Repo.Repository.DefaultBranch}, brs...)
+	}
+	ctx.Data["Branches"] = brs
 }

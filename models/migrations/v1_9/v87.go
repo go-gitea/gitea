@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_9 //nolint
 
@@ -14,5 +13,5 @@ func AddAvatarFieldToRepository(x *xorm.Engine) error {
 		Avatar string `xorm:"VARCHAR(64)"`
 	}
 
-	return x.Sync2(new(Repository))
+	return x.Sync(new(Repository))
 }

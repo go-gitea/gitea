@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_14 //nolint
 
@@ -42,7 +41,7 @@ func ConvertTaskTypeToString(x *xorm.Engine) error {
 	type HookTask struct {
 		Typ string `xorm:"VARCHAR(16) index"`
 	}
-	if err := x.Sync2(new(HookTask)); err != nil {
+	if err := x.Sync(new(HookTask)); err != nil {
 		return err
 	}
 

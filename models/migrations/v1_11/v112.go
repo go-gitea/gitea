@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_11 //nolint
 
@@ -31,8 +30,8 @@ func RemoveAttachmentMissedRepo(x *xorm.Engine) error {
 
 		for i := 0; i < len(attachments); i++ {
 			uuid := attachments[i].UUID
-			if err = util.RemoveAll(filepath.Join(setting.Attachment.Path, uuid[0:1], uuid[1:2], uuid)); err != nil {
-				fmt.Printf("Error: %v", err)
+			if err = util.RemoveAll(filepath.Join(setting.Attachment.Storage.Path, uuid[0:1], uuid[1:2], uuid)); err != nil {
+				fmt.Printf("Error: %v", err) //nolint:forbidigo
 			}
 		}
 

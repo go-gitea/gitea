@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -12,6 +11,8 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -59,10 +60,10 @@ func TestAPILFSMediaType(t *testing.T) {
 }
 
 func createLFSTestRepository(t *testing.T, name string) *repo_model.Repository {
-	ctx := NewAPITestContext(t, "user2", "lfs-"+name+"-repo")
+	ctx := NewAPITestContext(t, "user2", "lfs-"+name+"-repo", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	t.Run("CreateRepo", doAPICreateRepository(ctx, false))
 
-	repo, err := repo_model.GetRepositoryByOwnerAndName("user2", "lfs-"+name+"-repo")
+	repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, "user2", "lfs-"+name+"-repo")
 	assert.NoError(t, err)
 
 	return repo
@@ -77,7 +78,7 @@ func TestAPILFSBatch(t *testing.T) {
 
 	content := []byte("dummy1")
 	oid := storeObjectInRepo(t, repo.ID, &content)
-	defer git_model.RemoveLFSMetaObjectByOid(repo.ID, oid)
+	defer git_model.RemoveLFSMetaObjectByOid(db.DefaultContext, repo.ID, oid)
 
 	session := loginUser(t, "user2")
 
@@ -261,7 +262,7 @@ func TestAPILFSBatch(t *testing.T) {
 			content := []byte("dummy0")
 			storeObjectInRepo(t, repo2.ID, &content)
 
-			meta, err := git_model.GetLFSMetaObjectByOid(repo.ID, p.Oid)
+			meta, err := git_model.GetLFSMetaObjectByOid(db.DefaultContext, repo.ID, p.Oid)
 			assert.Nil(t, meta)
 			assert.Equal(t, git_model.ErrLFSObjectNotExist, err)
 
@@ -276,7 +277,7 @@ func TestAPILFSBatch(t *testing.T) {
 			assert.Nil(t, br.Objects[0].Error)
 			assert.Empty(t, br.Objects[0].Actions)
 
-			meta, err = git_model.GetLFSMetaObjectByOid(repo.ID, p.Oid)
+			meta, err = git_model.GetLFSMetaObjectByOid(db.DefaultContext, repo.ID, p.Oid)
 			assert.NoError(t, err)
 			assert.NotNil(t, meta)
 
@@ -337,7 +338,7 @@ func TestAPILFSUpload(t *testing.T) {
 
 	content := []byte("dummy3")
 	oid := storeObjectInRepo(t, repo.ID, &content)
-	defer git_model.RemoveLFSMetaObjectByOid(repo.ID, oid)
+	defer git_model.RemoveLFSMetaObjectByOid(db.DefaultContext, repo.ID, oid)
 
 	session := loginUser(t, "user2")
 
@@ -366,7 +367,7 @@ func TestAPILFSUpload(t *testing.T) {
 		err = contentStore.Put(p, bytes.NewReader([]byte("dummy5")))
 		assert.NoError(t, err)
 
-		meta, err := git_model.GetLFSMetaObjectByOid(repo.ID, p.Oid)
+		meta, err := git_model.GetLFSMetaObjectByOid(db.DefaultContext, repo.ID, p.Oid)
 		assert.Nil(t, meta)
 		assert.Equal(t, git_model.ErrLFSObjectNotExist, err)
 
@@ -379,7 +380,7 @@ func TestAPILFSUpload(t *testing.T) {
 			req := newRequest(t, p, "dummy5")
 
 			session.MakeRequest(t, req, http.StatusOK)
-			meta, err = git_model.GetLFSMetaObjectByOid(repo.ID, p.Oid)
+			meta, err = git_model.GetLFSMetaObjectByOid(db.DefaultContext, repo.ID, p.Oid)
 			assert.NoError(t, err)
 			assert.NotNil(t, meta)
 		})
@@ -427,7 +428,7 @@ func TestAPILFSUpload(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, exist)
 
-		meta, err := git_model.GetLFSMetaObjectByOid(repo.ID, p.Oid)
+		meta, err := git_model.GetLFSMetaObjectByOid(db.DefaultContext, repo.ID, p.Oid)
 		assert.NoError(t, err)
 		assert.NotNil(t, meta)
 	})
@@ -442,7 +443,7 @@ func TestAPILFSVerify(t *testing.T) {
 
 	content := []byte("dummy3")
 	oid := storeObjectInRepo(t, repo.ID, &content)
-	defer git_model.RemoveLFSMetaObjectByOid(repo.ID, oid)
+	defer git_model.RemoveLFSMetaObjectByOid(db.DefaultContext, repo.ID, oid)
 
 	session := loginUser(t, "user2")
 

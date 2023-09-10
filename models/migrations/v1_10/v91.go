@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_10 //nolint
 
@@ -12,7 +11,7 @@ func AddIndexOnRepositoryAndComment(x *xorm.Engine) error {
 		OwnerID int64 `xorm:"index"`
 	}
 
-	if err := x.Sync2(new(Repository)); err != nil {
+	if err := x.Sync(new(Repository)); err != nil {
 		return err
 	}
 
@@ -22,5 +21,5 @@ func AddIndexOnRepositoryAndComment(x *xorm.Engine) error {
 		ReviewID int64 `xorm:"index"`
 	}
 
-	return x.Sync2(new(Comment))
+	return x.Sync(new(Comment))
 }

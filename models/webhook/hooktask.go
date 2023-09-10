@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package webhook
 
@@ -13,6 +12,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	gouuid "github.com/google/uuid"
 )
@@ -23,69 +24,6 @@ import (
 // \    Y    (  <_> |  <_> )    <  |    |   / __ \_\___ \|    <
 //  \___|_  / \____/ \____/|__|_ \ |____|  (____  /____  >__|_ \
 //        \/                    \/              \/     \/     \/
-
-// HookEventType is the type of an hook event
-type HookEventType string
-
-// Types of hook events
-const (
-	HookEventCreate                    HookEventType = "create"
-	HookEventDelete                    HookEventType = "delete"
-	HookEventFork                      HookEventType = "fork"
-	HookEventPush                      HookEventType = "push"
-	HookEventIssues                    HookEventType = "issues"
-	HookEventIssueAssign               HookEventType = "issue_assign"
-	HookEventIssueLabel                HookEventType = "issue_label"
-	HookEventIssueMilestone            HookEventType = "issue_milestone"
-	HookEventIssueComment              HookEventType = "issue_comment"
-	HookEventPullRequest               HookEventType = "pull_request"
-	HookEventPullRequestAssign         HookEventType = "pull_request_assign"
-	HookEventPullRequestLabel          HookEventType = "pull_request_label"
-	HookEventPullRequestMilestone      HookEventType = "pull_request_milestone"
-	HookEventPullRequestComment        HookEventType = "pull_request_comment"
-	HookEventPullRequestReviewApproved HookEventType = "pull_request_review_approved"
-	HookEventPullRequestReviewRejected HookEventType = "pull_request_review_rejected"
-	HookEventPullRequestReviewComment  HookEventType = "pull_request_review_comment"
-	HookEventPullRequestSync           HookEventType = "pull_request_sync"
-	HookEventWiki                      HookEventType = "wiki"
-	HookEventRepository                HookEventType = "repository"
-	HookEventRelease                   HookEventType = "release"
-	HookEventPackage                   HookEventType = "package"
-)
-
-// Event returns the HookEventType as an event string
-func (h HookEventType) Event() string {
-	switch h {
-	case HookEventCreate:
-		return "create"
-	case HookEventDelete:
-		return "delete"
-	case HookEventFork:
-		return "fork"
-	case HookEventPush:
-		return "push"
-	case HookEventIssues, HookEventIssueAssign, HookEventIssueLabel, HookEventIssueMilestone:
-		return "issues"
-	case HookEventPullRequest, HookEventPullRequestAssign, HookEventPullRequestLabel, HookEventPullRequestMilestone,
-		HookEventPullRequestSync:
-		return "pull_request"
-	case HookEventIssueComment, HookEventPullRequestComment:
-		return "issue_comment"
-	case HookEventPullRequestReviewApproved:
-		return "pull_request_approved"
-	case HookEventPullRequestReviewRejected:
-		return "pull_request_rejected"
-	case HookEventPullRequestReviewComment:
-		return "pull_request_comment"
-	case HookEventWiki:
-		return "wiki"
-	case HookEventRepository:
-		return "repository"
-	case HookEventRelease:
-		return "release"
-	}
-	return ""
-}
 
 // HookRequest represents hook task request information.
 type HookRequest struct {
@@ -103,15 +41,14 @@ type HookResponse struct {
 
 // HookTask represents a hook task.
 type HookTask struct {
-	ID              int64  `xorm:"pk autoincr"`
-	HookID          int64  `xorm:"index"`
-	UUID            string `xorm:"unique"`
-	api.Payloader   `xorm:"-"`
-	PayloadContent  string `xorm:"LONGTEXT"`
-	EventType       HookEventType
-	IsDelivered     bool
-	Delivered       int64
-	DeliveredString string `xorm:"-"`
+	ID             int64  `xorm:"pk autoincr"`
+	HookID         int64  `xorm:"index"`
+	UUID           string `xorm:"unique"`
+	api.Payloader  `xorm:"-"`
+	PayloadContent string `xorm:"LONGTEXT"`
+	EventType      webhook_module.HookEventType
+	IsDelivered    bool
+	Delivered      timeutil.TimeStampNano
 
 	// History info.
 	IsSucceed       bool
@@ -138,8 +75,6 @@ func (t *HookTask) BeforeUpdate() {
 
 // AfterLoad updates the webhook object upon setting a column
 func (t *HookTask) AfterLoad() {
-	t.DeliveredString = time.Unix(0, t.Delivered).Format("2006-01-02 15:04:05 MST")
-
 	if len(t.RequestContent) == 0 {
 		return
 	}
@@ -157,7 +92,7 @@ func (t *HookTask) AfterLoad() {
 	}
 }
 
-func (t *HookTask) simpleMarshalJSON(v interface{}) string {
+func (t *HookTask) simpleMarshalJSON(v any) string {
 	p, err := json.Marshal(v)
 	if err != nil {
 		log.Error("Marshal [%d]: %v", t.ID, err)
@@ -178,12 +113,17 @@ func HookTasks(hookID int64, page int) ([]*HookTask, error) {
 // CreateHookTask creates a new hook task,
 // it handles conversion from Payload to PayloadContent.
 func CreateHookTask(ctx context.Context, t *HookTask) (*HookTask, error) {
-	data, err := t.Payloader.JSONPayload()
-	if err != nil {
-		return nil, err
-	}
 	t.UUID = gouuid.New().String()
-	t.PayloadContent = string(data)
+	if t.Payloader != nil {
+		data, err := t.Payloader.JSONPayload()
+		if err != nil {
+			return nil, err
+		}
+		t.PayloadContent = string(data)
+	}
+	if t.Delivered == 0 {
+		t.Delivered = timeutil.TimeStampNanoNow()
+	}
 	return t, db.Insert(ctx, t)
 }
 
@@ -224,13 +164,11 @@ func ReplayHookTask(ctx context.Context, hookID int64, uuid string) (*HookTask, 
 		}
 	}
 
-	newTask := &HookTask{
-		UUID:           gouuid.New().String(),
+	return CreateHookTask(ctx, &HookTask{
 		HookID:         task.HookID,
 		PayloadContent: task.PayloadContent,
 		EventType:      task.EventType,
-	}
-	return newTask, db.Insert(ctx, newTask)
+	})
 }
 
 // FindUndeliveredHookTaskIDs will find the next 100 undelivered hook tasks with ID greater than the provided lowerID

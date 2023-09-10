@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -11,9 +10,9 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // AddIssueSubscription Subscribe user to issue
@@ -105,7 +104,7 @@ func DelIssueSubscription(ctx *context.APIContext) {
 }
 
 func setIssueSubscription(ctx *context.APIContext, watch bool) {
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -186,7 +185,7 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -252,7 +251,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -281,7 +280,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 	}
 	apiUsers := make([]*api.User, 0, len(users))
 	for _, v := range users {
-		apiUsers = append(apiUsers, convert.ToUser(v, ctx.Doer))
+		apiUsers = append(apiUsers, convert.ToUser(ctx, v, ctx.Doer))
 	}
 
 	count, err := issues_model.CountIssueWatchers(ctx, issue.ID)

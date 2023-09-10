@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markdown
 
@@ -77,7 +76,8 @@ func IsSummary(node ast.Node) bool {
 // TaskCheckBoxListItem is a block that represents a list item of a markdown block with a checkbox
 type TaskCheckBoxListItem struct {
 	*ast.ListItem
-	IsChecked bool
+	IsChecked      bool
+	SourcePosition int
 }
 
 // KindTaskCheckBoxListItem is the NodeKind for TaskCheckBoxListItem
@@ -87,6 +87,7 @@ var KindTaskCheckBoxListItem = ast.NewNodeKind("TaskCheckBoxListItem")
 func (n *TaskCheckBoxListItem) Dump(source []byte, level int) {
 	m := map[string]string{}
 	m["IsChecked"] = strconv.FormatBool(n.IsChecked)
+	m["SourcePosition"] = strconv.FormatInt(int64(n.SourcePosition), 10)
 	ast.DumpHelper(n, source, level, m, nil)
 }
 

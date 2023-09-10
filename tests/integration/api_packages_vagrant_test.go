@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -13,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
@@ -28,7 +28,7 @@ func TestPackageVagrant(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	token := "Bearer " + getUserToken(t, user.Name)
+	token := "Bearer " + getUserToken(t, user.Name, auth_model.AccessTokenScopeWritePackage)
 
 	packageName := "test_package"
 	packageVersion := "1.0.1"
@@ -88,7 +88,7 @@ func TestPackageVagrant(t *testing.T) {
 
 		req = NewRequest(t, "HEAD", boxURL)
 		resp := MakeRequest(t, req, http.StatusOK)
-		assert.True(t, strings.HasPrefix(resp.HeaderMap.Get("Content-Type"), "application/json"))
+		assert.True(t, strings.HasPrefix(resp.Header().Get("Content-Type"), "application/json"))
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeVagrant)
 		assert.NoError(t, err)

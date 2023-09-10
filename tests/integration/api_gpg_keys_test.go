@@ -1,6 +1,5 @@
 // Copyright 2017 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -10,6 +9,7 @@ import (
 	"strconv"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -21,7 +21,8 @@ type makeRequestFunc func(testing.TB, *http.Request, int) *httptest.ResponseReco
 func TestGPGKeys(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	tokenWithGPGKeyScope := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 	tt := []struct {
 		name        string
@@ -35,6 +36,10 @@ func TestGPGKeys(t *testing.T) {
 		},
 		{
 			name: "LoggedAsUser2", makeRequest: session.MakeRequest, token: token,
+			results: []int{http.StatusForbidden, http.StatusForbidden, http.StatusForbidden, http.StatusForbidden, http.StatusForbidden, http.StatusForbidden, http.StatusForbidden, http.StatusForbidden, http.StatusForbidden},
+		},
+		{
+			name: "LoggedAsUser2WithScope", makeRequest: session.MakeRequest, token: tokenWithGPGKeyScope,
 			results: []int{http.StatusOK, http.StatusOK, http.StatusNotFound, http.StatusNoContent, http.StatusUnprocessableEntity, http.StatusNotFound, http.StatusCreated, http.StatusNotFound, http.StatusCreated},
 		},
 	}
@@ -74,8 +79,8 @@ func TestGPGKeys(t *testing.T) {
 	t.Run("CheckState", func(t *testing.T) {
 		var keys []*api.GPGKey
 
-		req := NewRequest(t, "GET", "/api/v1/user/gpg_keys?token="+token) // GET all keys
-		resp := session.MakeRequest(t, req, http.StatusOK)
+		req := NewRequest(t, "GET", "/api/v1/user/gpg_keys?token="+tokenWithGPGKeyScope) // GET all keys
+		resp := MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &keys)
 		assert.Len(t, keys, 1)
 
@@ -90,16 +95,16 @@ func TestGPGKeys(t *testing.T) {
 		assert.Empty(t, subKey.Emails)
 
 		var key api.GPGKey
-		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(primaryKey1.ID, 10)+"?token="+token) // Primary key 1
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(primaryKey1.ID, 10)+"?token="+tokenWithGPGKeyScope) // Primary key 1
+		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &key)
 		assert.EqualValues(t, "38EA3BCED732982C", key.KeyID)
 		assert.Len(t, key.Emails, 1)
 		assert.EqualValues(t, "user2@example.com", key.Emails[0].Email)
 		assert.True(t, key.Emails[0].Verified)
 
-		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(subKey.ID, 10)+"?token="+token) // Subkey of 38EA3BCED732982C
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(subKey.ID, 10)+"?token="+tokenWithGPGKeyScope) // Subkey of 38EA3BCED732982C
+		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &key)
 		assert.EqualValues(t, "70D7C694D17D03AD", key.KeyID)
 		assert.Empty(t, key.Emails)
@@ -110,7 +115,7 @@ func TestGPGKeys(t *testing.T) {
 		t.Run("NotSigned", func(t *testing.T) {
 			var branch api.Branch
 			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/not-signed?token="+token)
-			resp := session.MakeRequest(t, req, http.StatusOK)
+			resp := MakeRequest(t, req, http.StatusOK)
 			DecodeJSON(t, resp, &branch)
 			assert.False(t, branch.Commit.Verification.Verified)
 		})
@@ -118,7 +123,7 @@ func TestGPGKeys(t *testing.T) {
 		t.Run("SignedWithNotValidatedEmail", func(t *testing.T) {
 			var branch api.Branch
 			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/good-sign-not-yet-validated?token="+token)
-			resp := session.MakeRequest(t, req, http.StatusOK)
+			resp := MakeRequest(t, req, http.StatusOK)
 			DecodeJSON(t, resp, &branch)
 			assert.False(t, branch.Commit.Verification.Verified)
 		})
@@ -126,7 +131,7 @@ func TestGPGKeys(t *testing.T) {
 		t.Run("SignedWithValidEmail", func(t *testing.T) {
 			var branch api.Branch
 			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/good-sign?token="+token)
-			resp := session.MakeRequest(t, req, http.StatusOK)
+			resp := MakeRequest(t, req, http.StatusOK)
 			DecodeJSON(t, resp, &branch)
 			assert.True(t, branch.Commit.Verification.Verified)
 		})

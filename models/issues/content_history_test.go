@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues_test
 
@@ -47,7 +46,7 @@ func TestContentHistory(t *testing.T) {
 		Name     string
 		FullName string
 	}
-	_ = db.GetEngine(dbCtx).Sync2(&User{})
+	_ = db.GetEngine(dbCtx).Sync(&User{})
 
 	list1, _ := issues_model.FetchIssueContentHistoryList(dbCtx, 10, 0)
 	assert.Len(t, list1, 3)

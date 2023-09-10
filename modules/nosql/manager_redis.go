@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package nosql
 
@@ -14,7 +13,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 )
 
 var replacer = strings.NewReplacer("_", "", "-", "")
@@ -48,7 +47,7 @@ func (m *Manager) GetRedisClient(connection string) (client redis.UniversalClien
 	// Because we want associate any goroutines created by this call to the main nosqldb context we need to
 	// wrap this in a goroutine labelled with the nosqldb context
 	done := make(chan struct{})
-	var recovered interface{}
+	var recovered any
 	go func() {
 		defer func() {
 			recovered = recover()
@@ -194,10 +193,6 @@ func getRedisOptions(uri *url.URL) *redis.UniversalOptions {
 			opts.MinIdleConns, _ = strconv.Atoi(v[0])
 		case "pooltimeout":
 			opts.PoolTimeout = valToTimeDuration(v)
-		case "idletimeout":
-			opts.IdleTimeout = valToTimeDuration(v)
-		case "idlecheckfrequency":
-			opts.IdleCheckFrequency = valToTimeDuration(v)
 		case "maxredirects":
 			opts.MaxRedirects, _ = strconv.Atoi(v[0])
 		case "readonly":

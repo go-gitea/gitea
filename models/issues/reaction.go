@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -76,7 +75,7 @@ func (r *Reaction) LoadUser() (*user_model.User, error) {
 	if r.User != nil {
 		return r.User, nil
 	}
-	user, err := user_model.GetUserByIDCtx(db.DefaultContext, r.UserID)
+	user, err := user_model.GetUserByID(db.DefaultContext, r.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -378,7 +377,7 @@ func (list ReactionList) GetFirstUsers() string {
 		if buffer.Len() > 0 {
 			buffer.WriteString(", ")
 		}
-		buffer.WriteString(reaction.User.DisplayName())
+		buffer.WriteString(reaction.User.Name)
 		if rem--; rem == 0 {
 			break
 		}

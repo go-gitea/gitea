@@ -1,12 +1,14 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package storage
 
 import (
 	"context"
+	"crypto/tls"
+	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -14,6 +16,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -38,22 +42,9 @@ func (m *minioObject) Stat() (os.FileInfo, error) {
 	return &minioFileInfo{oi}, nil
 }
 
-// MinioStorageType is the type descriptor for minio storage
-const MinioStorageType Type = "minio"
-
-// MinioStorageConfig represents the configuration for a minio storage
-type MinioStorageConfig struct {
-	Endpoint        string `ini:"MINIO_ENDPOINT"`
-	AccessKeyID     string `ini:"MINIO_ACCESS_KEY_ID"`
-	SecretAccessKey string `ini:"MINIO_SECRET_ACCESS_KEY"`
-	Bucket          string `ini:"MINIO_BUCKET"`
-	Location        string `ini:"MINIO_LOCATION"`
-	BasePath        string `ini:"MINIO_BASE_PATH"`
-	UseSSL          bool   `ini:"MINIO_USE_SSL"`
-}
-
 // MinioStorage returns a minio bucket storage
 type MinioStorage struct {
+	cfg      *setting.MinioStorageConfig
 	ctx      context.Context
 	client   *minio.Client
 	bucket   string
@@ -81,34 +72,40 @@ func convertMinioErr(err error) error {
 }
 
 // NewMinioStorage returns a minio storage
-func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error) {
-	configInterface, err := toConfig(MinioStorageConfig{}, cfg)
-	if err != nil {
-		return nil, convertMinioErr(err)
+func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, error) {
+	config := cfg.MinioConfig
+	if config.ChecksumAlgorithm != "" && config.ChecksumAlgorithm != "default" && config.ChecksumAlgorithm != "md5" {
+		return nil, fmt.Errorf("invalid minio checksum algorithm: %s", config.ChecksumAlgorithm)
 	}
-	config := configInterface.(MinioStorageConfig)
 
 	log.Info("Creating Minio storage at %s:%s with base path %s", config.Endpoint, config.Bucket, config.BasePath)
 
 	minioClient, err := minio.New(config.Endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, ""),
-		Secure: config.UseSSL,
+		Creds:     credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, ""),
+		Secure:    config.UseSSL,
+		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.InsecureSkipVerify}},
+		Region:    config.Location,
 	})
 	if err != nil {
 		return nil, convertMinioErr(err)
 	}
 
-	if err := minioClient.MakeBucket(ctx, config.Bucket, minio.MakeBucketOptions{
-		Region: config.Location,
-	}); err != nil {
-		// Check to see if we already own this bucket (which happens if you run this twice)
-		exists, errBucketExists := minioClient.BucketExists(ctx, config.Bucket)
-		if !exists || errBucketExists != nil {
+	// Check to see if we already own this bucket
+	exists, err := minioClient.BucketExists(ctx, config.Bucket)
+	if err != nil {
+		return nil, convertMinioErr(err)
+	}
+
+	if !exists {
+		if err := minioClient.MakeBucket(ctx, config.Bucket, minio.MakeBucketOptions{
+			Region: config.Location,
+		}); err != nil {
 			return nil, convertMinioErr(err)
 		}
 	}
 
 	return &MinioStorage{
+		cfg:      &config,
 		ctx:      ctx,
 		client:   minioClient,
 		bucket:   config.Bucket,
@@ -117,10 +114,14 @@ func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 }
 
 func (m *MinioStorage) buildMinioPath(p string) string {
-	return strings.TrimPrefix(path.Join(m.basePath, path.Clean("/" + strings.ReplaceAll(p, "\\", "/"))[1:]), "/")
+	p = util.PathJoinRelX(m.basePath, p)
+	if p == "." {
+		p = "" // minio doesn't use dot as relative path
+	}
+	return p
 }
 
-// Open open a file
+// Open opens a file
 func (m *MinioStorage) Open(path string) (Object, error) {
 	opts := minio.GetObjectOptions{}
 	object, err := m.client.GetObject(m.ctx, m.bucket, m.buildMinioPath(path), opts)
@@ -130,7 +131,7 @@ func (m *MinioStorage) Open(path string) (Object, error) {
 	return &minioObject{object}, nil
 }
 
-// Save save a file to minio
+// Save saves a file to minio
 func (m *MinioStorage) Save(path string, r io.Reader, size int64) (int64, error) {
 	uploadInfo, err := m.client.PutObject(
 		m.ctx,
@@ -138,7 +139,14 @@ func (m *MinioStorage) Save(path string, r io.Reader, size int64) (int64, error)
 		m.buildMinioPath(path),
 		r,
 		size,
-		minio.PutObjectOptions{ContentType: "application/octet-stream"},
+		minio.PutObjectOptions{
+			ContentType: "application/octet-stream",
+			// some storages like:
+			// * https://developers.cloudflare.com/r2/api/s3/api/
+			// * https://www.backblaze.com/b2/docs/s3_compatible_api.html
+			// do not support "x-amz-checksum-algorithm" header, so use legacy MD5 checksum
+			SendContentMd5: m.cfg.ChecksumAlgorithm == "md5",
+		},
 	)
 	if err != nil {
 		return 0, convertMinioErr(err)
@@ -170,7 +178,7 @@ func (m minioFileInfo) Mode() os.FileMode {
 	return os.ModePerm
 }
 
-func (m minioFileInfo) Sys() interface{} {
+func (m minioFileInfo) Sys() any {
 	return nil
 }
 
@@ -205,12 +213,19 @@ func (m *MinioStorage) URL(path, name string) (*url.URL, error) {
 }
 
 // IterateObjects iterates across the objects in the miniostorage
-func (m *MinioStorage) IterateObjects(fn func(path string, obj Object) error) error {
+func (m *MinioStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
 	opts := minio.GetObjectOptions{}
 	lobjectCtx, cancel := context.WithCancel(m.ctx)
 	defer cancel()
+
+	basePath := m.basePath
+	if dirName != "" {
+		// ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
+		basePath = m.buildMinioPath(dirName) + "/"
+	}
+
 	for mObjInfo := range m.client.ListObjects(lobjectCtx, m.bucket, minio.ListObjectsOptions{
-		Prefix:    m.basePath,
+		Prefix:    basePath,
 		Recursive: true,
 	}) {
 		object, err := m.client.GetObject(lobjectCtx, m.bucket, mObjInfo.Key, opts)
@@ -228,5 +243,5 @@ func (m *MinioStorage) IterateObjects(fn func(path string, obj Object) error) er
 }
 
 func init() {
-	RegisterStorageType(MinioStorageType, NewMinioStorage)
+	RegisterStorageType(setting.MinioStorageType, NewMinioStorage)
 }

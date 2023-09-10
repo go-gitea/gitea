@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_15 //nolint
 
@@ -16,7 +15,7 @@ func DropWebhookColumns(x *xorm.Engine) error {
 		Signature string `xorm:"TEXT"`
 		IsSSL     bool   `xorm:"is_ssl"`
 	}
-	if err := x.Sync2(new(Webhook)); err != nil {
+	if err := x.Sync(new(Webhook)); err != nil {
 		return err
 	}
 
@@ -28,7 +27,7 @@ func DropWebhookColumns(x *xorm.Engine) error {
 		ContentType int
 		IsSSL       bool
 	}
-	if err := x.Sync2(new(HookTask)); err != nil {
+	if err := x.Sync(new(HookTask)); err != nil {
 		return err
 	}
 

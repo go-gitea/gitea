@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package context
 
@@ -15,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/mcaptcha"
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/turnstile"
 
 	"gitea.com/go-chi/captcha"
 )
@@ -48,17 +48,19 @@ func SetCaptchaData(ctx *Context) {
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
 	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
+	ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
 }
 
 const (
-	gRecaptchaResponseField = "g-recaptcha-response"
-	hCaptchaResponseField   = "h-captcha-response"
-	mCaptchaResponseField   = "m-captcha-response"
+	gRecaptchaResponseField  = "g-recaptcha-response"
+	hCaptchaResponseField    = "h-captcha-response"
+	mCaptchaResponseField    = "m-captcha-response"
+	cfTurnstileResponseField = "cf-turnstile-response"
 )
 
 // VerifyCaptcha verifies Captcha data
 // No-op if captchas are not enabled
-func VerifyCaptcha(ctx *Context, tpl base.TplName, form interface{}) {
+func VerifyCaptcha(ctx *Context, tpl base.TplName, form any) {
 	if !setting.Service.EnableCaptcha {
 		return
 	}
@@ -74,6 +76,8 @@ func VerifyCaptcha(ctx *Context, tpl base.TplName, form interface{}) {
 		valid, err = hcaptcha.Verify(ctx, ctx.Req.Form.Get(hCaptchaResponseField))
 	case setting.MCaptcha:
 		valid, err = mcaptcha.Verify(ctx, ctx.Req.Form.Get(mCaptchaResponseField))
+	case setting.CfTurnstile:
+		valid, err = turnstile.Verify(ctx, ctx.Req.Form.Get(cfTurnstileResponseField))
 	default:
 		ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 		return

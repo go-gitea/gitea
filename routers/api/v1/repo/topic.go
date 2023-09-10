@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -10,11 +9,11 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // ListTopics returns list of current topics for repo
@@ -64,7 +63,7 @@ func ListTopics(ctx *context.APIContext) {
 	}
 
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"topics": topicNames,
 	})
 }
@@ -102,7 +101,7 @@ func UpdateTopics(ctx *context.APIContext) {
 	validTopics, invalidTopics := repo_model.SanitizeAndValidateTopics(topicNames)
 
 	if len(validTopics) > 25 {
-		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]any{
 			"invalidTopics": nil,
 			"message":       "Exceeding maximum number of topics per repo",
 		})
@@ -110,7 +109,7 @@ func UpdateTopics(ctx *context.APIContext) {
 	}
 
 	if len(invalidTopics) > 0 {
-		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]any{
 			"invalidTopics": invalidTopics,
 			"message":       "Topic names are invalid",
 		})
@@ -159,7 +158,7 @@ func AddTopic(ctx *context.APIContext) {
 	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
 
 	if !repo_model.ValidateTopic(topicName) {
-		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]any{
 			"invalidTopics": topicName,
 			"message":       "Topic name is invalid",
 		})
@@ -176,7 +175,7 @@ func AddTopic(ctx *context.APIContext) {
 		return
 	}
 	if count >= 25 {
-		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]any{
 			"message": "Exceeding maximum allowed topics per repo.",
 		})
 		return
@@ -224,7 +223,7 @@ func DeleteTopic(ctx *context.APIContext) {
 	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
 
 	if !repo_model.ValidateTopic(topicName) {
-		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]any{
 			"invalidTopics": topicName,
 			"message":       "Topic name is invalid",
 		})
@@ -290,7 +289,7 @@ func TopicSearch(ctx *context.APIContext) {
 	}
 
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"topics": topicResponses,
 	})
 }

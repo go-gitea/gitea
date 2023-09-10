@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
@@ -10,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
@@ -22,7 +22,6 @@ import (
 // Ensure the struct implements the interface.
 var (
 	_ Method = &OAuth2{}
-	_ Named  = &OAuth2{}
 )
 
 // CheckOAuthAccessToken returns uid of user from oauth token
@@ -59,40 +58,55 @@ func (o *OAuth2) Name() string {
 	return "oauth2"
 }
 
-// userIDFromToken returns the user id corresponding to the OAuth token.
-func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
+// parseToken returns the token from request, and a boolean value
+// representing whether the token exists or not
+func parseToken(req *http.Request) (string, bool) {
 	_ = req.ParseForm()
-
-	// Check access token.
-	tokenSHA := req.Form.Get("token")
-	if len(tokenSHA) == 0 {
-		tokenSHA = req.Form.Get("access_token")
+	// Check token.
+	if token := req.Form.Get("token"); token != "" {
+		return token, true
 	}
-	if len(tokenSHA) == 0 {
-		// Well, check with header again.
-		auHead := req.Header.Get("Authorization")
-		if len(auHead) > 0 {
-			auths := strings.Fields(auHead)
-			if len(auths) == 2 && (auths[0] == "token" || strings.ToLower(auths[0]) == "bearer") {
-				tokenSHA = auths[1]
-			}
+	// Check access token.
+	if token := req.Form.Get("access_token"); token != "" {
+		return token, true
+	}
+	// check header token
+	if auHead := req.Header.Get("Authorization"); auHead != "" {
+		auths := strings.Fields(auHead)
+		if len(auths) == 2 && (auths[0] == "token" || strings.ToLower(auths[0]) == "bearer") {
+			return auths[1], true
 		}
 	}
-	if len(tokenSHA) == 0 {
-		return 0
-	}
+	return "", false
+}
 
+// userIDFromToken returns the user id corresponding to the OAuth token.
+// It will set 'IsApiToken' to true if the token is an API token and
+// set 'ApiTokenScope' to the scope of the access token
+func (o *OAuth2) userIDFromToken(tokenSHA string, store DataStore) int64 {
 	// Let's see if token is valid.
 	if strings.Contains(tokenSHA, ".") {
 		uid := CheckOAuthAccessToken(tokenSHA)
 		if uid != 0 {
 			store.GetData()["IsApiToken"] = true
+			store.GetData()["ApiTokenScope"] = auth_model.AccessTokenScopeAll // fallback to all
 		}
 		return uid
 	}
 	t, err := auth_model.GetAccessTokenBySHA(tokenSHA)
 	if err != nil {
-		if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
+		if auth_model.IsErrAccessTokenNotExist(err) {
+			// check task token
+			task, err := actions_model.GetRunningTaskByToken(db.DefaultContext, tokenSHA)
+			if err == nil && task != nil {
+				log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
+
+				store.GetData()["IsActionsToken"] = true
+				store.GetData()["ActionsTaskID"] = task.ID
+
+				return user_model.ActionsUserID
+			}
+		} else if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
 			log.Error("GetAccessTokenBySHA: %v", err)
 		}
 		return 0
@@ -102,6 +116,7 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 		log.Error("UpdateAccessToken: %v", err)
 	}
 	store.GetData()["IsApiToken"] = true
+	store.GetData()["ApiTokenScope"] = t.Scope
 	return t.UID
 }
 
@@ -109,31 +124,33 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 // or the "Authorization" header and returns the corresponding user object for that ID.
 // If verification is successful returns an existing user object.
 // Returns nil if verification fails.
-func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
-	if !db.HasEngine {
-		return nil
-	}
-
+func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
 	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isAuthenticatedTokenRequest(req) {
-		return nil
+		return nil, nil
 	}
 
-	id := o.userIDFromToken(req, store)
-	if id <= 0 {
-		return nil
+	token, ok := parseToken(req)
+	if !ok {
+		return nil, nil
+	}
+
+	id := o.userIDFromToken(token, store)
+
+	if id <= 0 && id != -2 { // -2 means actions, so we need to allow it.
+		return nil, user_model.ErrUserNotExist{}
 	}
 	log.Trace("OAuth2 Authorization: Found token for user[%d]", id)
 
-	user, err := user_model.GetUserByID(id)
+	user, err := user_model.GetPossibleUserByID(req.Context(), id)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByName: %v", err)
 		}
-		return nil
+		return nil, err
 	}
 
 	log.Trace("OAuth2 Authorization: Logged in user %-v", user)
-	return user
+	return user, nil
 }
 
 func isAuthenticatedTokenRequest(req *http.Request) bool {

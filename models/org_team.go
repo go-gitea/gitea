@@ -1,13 +1,11 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // Copyright 2016 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package models
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -42,7 +40,7 @@ func AddRepository(ctx context.Context, t *organization.Team, repo *repo_model.R
 
 	// Make all team members watch this repo if enabled in global settings
 	if setting.Service.AutoWatchNewRepos {
-		if err = t.GetMembersCtx(ctx); err != nil {
+		if err = t.LoadMembers(ctx); err != nil {
 			return fmt.Errorf("getMembers: %w", err)
 		}
 		for _, u := range t.Members {
@@ -153,90 +151,11 @@ func removeAllRepositories(ctx context.Context, t *organization.Team) (err error
 	return nil
 }
 
-// HasRepository returns true if given repository belong to team.
-func HasRepository(t *organization.Team, repoID int64) bool {
-	return organization.HasTeamRepo(db.DefaultContext, t.OrgID, t.ID, repoID)
-}
-
-// removeRepository removes a repository from a team and recalculates access
-// Note: Repository shall not be removed from team if it includes all repositories (unless the repository is deleted)
-func removeRepository(ctx context.Context, t *organization.Team, repo *repo_model.Repository, recalculate bool) (err error) {
-	e := db.GetEngine(ctx)
-	if err = organization.RemoveTeamRepo(ctx, t.ID, repo.ID); err != nil {
-		return err
-	}
-
-	t.NumRepos--
-	if _, err = e.ID(t.ID).Cols("num_repos").Update(t); err != nil {
-		return err
-	}
-
-	// Don't need to recalculate when delete a repository from organization.
-	if recalculate {
-		if err = access_model.RecalculateTeamAccesses(ctx, repo, t.ID); err != nil {
-			return err
-		}
-	}
-
-	teamUsers, err := organization.GetTeamUsersByTeamID(ctx, t.ID)
-	if err != nil {
-		return fmt.Errorf("getTeamUsersByTeamID: %w", err)
-	}
-	for _, teamUser := range teamUsers {
-		has, err := access_model.HasAccess(ctx, teamUser.UID, repo)
-		if err != nil {
-			return err
-		} else if has {
-			continue
-		}
-
-		if err = repo_model.WatchRepo(ctx, teamUser.UID, repo.ID, false); err != nil {
-			return err
-		}
-
-		// Remove all IssueWatches a user has subscribed to in the repositories
-		if err := issues_model.RemoveIssueWatchersByRepoID(ctx, teamUser.UID, repo.ID); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// RemoveRepository removes repository from team of organization.
-// If the team shall include all repositories the request is ignored.
-func RemoveRepository(t *organization.Team, repoID int64) error {
-	if !HasRepository(t, repoID) {
-		return nil
-	}
-
-	if t.IncludesAllRepositories {
-		return nil
-	}
-
-	repo, err := repo_model.GetRepositoryByID(repoID)
-	if err != nil {
-		return err
-	}
-
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = removeRepository(ctx, t, repo, true); err != nil {
-		return err
-	}
-
-	return committer.Commit()
-}
-
 // NewTeam creates a record of new team.
 // It's caller's responsibility to assign organization ID.
 func NewTeam(t *organization.Team) (err error) {
 	if len(t.Name) == 0 {
-		return errors.New("empty team name")
+		return util.NewInvalidArgumentErrorf("empty team name")
 	}
 
 	if err = organization.IsUsableTeamName(t.Name); err != nil {
@@ -301,7 +220,7 @@ func NewTeam(t *organization.Team) (err error) {
 // UpdateTeam updates information of team.
 func UpdateTeam(t *organization.Team, authChanged, includeAllChanged bool) (err error) {
 	if len(t.Name) == 0 {
-		return errors.New("empty team name")
+		return util.NewInvalidArgumentErrorf("empty team name")
 	}
 
 	if len(t.Description) > 255 {
@@ -350,8 +269,8 @@ func UpdateTeam(t *organization.Team, authChanged, includeAllChanged bool) (err 
 
 	// Update access for team members if needed.
 	if authChanged {
-		if err = t.GetRepositoriesCtx(ctx); err != nil {
-			return fmt.Errorf("getRepositories: %w", err)
+		if err = t.LoadRepositories(ctx); err != nil {
+			return fmt.Errorf("LoadRepositories: %w", err)
 		}
 
 		for _, repo := range t.Repos {
@@ -380,47 +299,27 @@ func DeleteTeam(t *organization.Team) error {
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
-	if err := t.GetRepositoriesCtx(ctx); err != nil {
+	if err := t.LoadRepositories(ctx); err != nil {
 		return err
 	}
 
-	if err := t.GetMembersCtx(ctx); err != nil {
+	if err := t.LoadMembers(ctx); err != nil {
 		return err
 	}
 
 	// update branch protections
 	{
 		protections := make([]*git_model.ProtectedBranch, 0, 10)
-		err := sess.In("repo_id",
+		err := db.GetEngine(ctx).In("repo_id",
 			builder.Select("id").From("repository").Where(builder.Eq{"owner_id": t.OrgID})).
 			Find(&protections)
 		if err != nil {
 			return fmt.Errorf("findProtectedBranches: %w", err)
 		}
 		for _, p := range protections {
-			var matched1, matched2, matched3 bool
-			if len(p.WhitelistTeamIDs) != 0 {
-				p.WhitelistTeamIDs, matched1 = util.RemoveIDFromList(
-					p.WhitelistTeamIDs, t.ID)
-			}
-			if len(p.ApprovalsWhitelistTeamIDs) != 0 {
-				p.ApprovalsWhitelistTeamIDs, matched2 = util.RemoveIDFromList(
-					p.ApprovalsWhitelistTeamIDs, t.ID)
-			}
-			if len(p.MergeWhitelistTeamIDs) != 0 {
-				p.MergeWhitelistTeamIDs, matched3 = util.RemoveIDFromList(
-					p.MergeWhitelistTeamIDs, t.ID)
-			}
-			if matched1 || matched2 || matched3 {
-				if _, err = sess.ID(p.ID).Cols(
-					"whitelist_team_i_ds",
-					"merge_whitelist_team_i_ds",
-					"approvals_whitelist_team_i_ds",
-				).Update(p); err != nil {
-					return fmt.Errorf("updateProtectedBranches: %w", err)
-				}
+			if err := git_model.RemoveTeamIDFromProtectedBranch(ctx, p, t.ID); err != nil {
+				return err
 			}
 		}
 	}
@@ -436,12 +335,19 @@ func DeleteTeam(t *organization.Team) error {
 		&organization.TeamUser{OrgID: t.OrgID, TeamID: t.ID},
 		&organization.TeamUnit{TeamID: t.ID},
 		&organization.TeamInvite{TeamID: t.ID},
+		&issues_model.Review{Type: issues_model.ReviewTypeRequest, ReviewerTeamID: t.ID}, // batch delete the binding relationship between team and PR (request review from team)
 	); err != nil {
 		return err
 	}
 
+	for _, tm := range t.Members {
+		if err := removeInvalidOrgUser(ctx, tm.ID, t.OrgID); err != nil {
+			return err
+		}
+	}
+
 	// Update organization number of teams.
-	if _, err := sess.Exec("UPDATE `user` SET num_teams=num_teams-1 WHERE id=?", t.OrgID); err != nil {
+	if _, err := db.Exec(ctx, "UPDATE `user` SET num_teams=num_teams-1 WHERE id=?", t.OrgID); err != nil {
 		return err
 	}
 
@@ -517,10 +423,16 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 		}
 	}
 
-	// watch could be failed, so run it in a goroutine
+	if err := committer.Commit(); err != nil {
+		return err
+	}
+	committer.Close()
+
+	// this behaviour may spend much time so run it in a goroutine
+	// FIXME: Update watch repos batchly
 	if setting.Service.AutoWatchNewRepos {
 		// Get team and its repositories.
-		if err := team.GetRepositoriesCtx(db.DefaultContext); err != nil {
+		if err := team.LoadRepositories(db.DefaultContext); err != nil {
 			log.Error("getRepositories failed: %v", err)
 		}
 		go func(repos []*repo_model.Repository) {
@@ -532,7 +444,7 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 		}(team.Repos)
 	}
 
-	return committer.Commit()
+	return nil
 }
 
 func removeTeamMember(ctx context.Context, team *organization.Team, userID int64) error {
@@ -549,7 +461,7 @@ func removeTeamMember(ctx context.Context, team *organization.Team, userID int64
 
 	team.NumMembers--
 
-	if err := team.GetRepositoriesCtx(ctx); err != nil {
+	if err := team.LoadRepositories(ctx); err != nil {
 		return err
 	}
 
@@ -573,26 +485,29 @@ func removeTeamMember(ctx context.Context, team *organization.Team, userID int64
 		}
 
 		// Remove watches from now unaccessible
-		if err := reconsiderWatches(ctx, repo, userID); err != nil {
+		if err := ReconsiderWatches(ctx, repo, userID); err != nil {
 			return err
 		}
 
 		// Remove issue assignments from now unaccessible
-		if err := reconsiderRepoIssuesAssignee(ctx, repo, userID); err != nil {
+		if err := ReconsiderRepoIssuesAssignee(ctx, repo, userID); err != nil {
 			return err
 		}
 	}
 
+	return removeInvalidOrgUser(ctx, userID, team.OrgID)
+}
+
+func removeInvalidOrgUser(ctx context.Context, userID, orgID int64) error {
 	// Check if the user is a member of any team in the organization.
-	if count, err := e.Count(&organization.TeamUser{
+	if count, err := db.GetEngine(ctx).Count(&organization.TeamUser{
 		UID:   userID,
-		OrgID: team.OrgID,
+		OrgID: orgID,
 	}); err != nil {
 		return err
 	} else if count == 0 {
-		return removeOrgUser(ctx, team.OrgID, userID)
+		return removeOrgUser(ctx, orgID, userID)
 	}
-
 	return nil
 }
 
@@ -607,4 +522,34 @@ func RemoveTeamMember(team *organization.Team, userID int64) error {
 		return err
 	}
 	return committer.Commit()
+}
+
+func ReconsiderRepoIssuesAssignee(ctx context.Context, repo *repo_model.Repository, uid int64) error {
+	user, err := user_model.GetUserByID(ctx, uid)
+	if err != nil {
+		return err
+	}
+
+	if canAssigned, err := access_model.CanBeAssigned(ctx, user, repo, true); err != nil || canAssigned {
+		return err
+	}
+
+	if _, err := db.GetEngine(ctx).Where(builder.Eq{"assignee_id": uid}).
+		In("issue_id", builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repo.ID})).
+		Delete(&issues_model.IssueAssignees{}); err != nil {
+		return fmt.Errorf("Could not delete assignee[%d] %w", uid, err)
+	}
+	return nil
+}
+
+func ReconsiderWatches(ctx context.Context, repo *repo_model.Repository, uid int64) error {
+	if has, err := access_model.HasAccess(ctx, uid, repo); err != nil || has {
+		return err
+	}
+	if err := repo_model.WatchRepo(ctx, uid, repo.ID, false); err != nil {
+		return err
+	}
+
+	// Remove all IssueWatches a user has subscribed to in the repository
+	return issues_model.RemoveIssueWatchersByRepoID(ctx, uid, repo.ID)
 }

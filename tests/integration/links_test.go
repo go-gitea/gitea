@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -39,6 +38,7 @@ func TestLinksNoLogin(t *testing.T) {
 		"/user2/repo1/projects/1",
 		"/assets/img/404.png",
 		"/assets/img/500.png",
+		"/.well-known/security.txt",
 	}
 
 	for _, link := range links {

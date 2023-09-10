@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -18,7 +17,7 @@ type Badge struct {
 }
 
 // UserBadge represents a user badge
-type UserBadge struct {
+type UserBadge struct { //nolint:revive
 	ID      int64 `xorm:"pk autoincr"`
 	BadgeID int64
 	UserID  int64 `xorm:"INDEX"`

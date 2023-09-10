@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package organization_test
 
@@ -38,7 +37,7 @@ func TestUserIsPublicMember(t *testing.T) {
 }
 
 func testUserIsPublicMember(t *testing.T, uid, orgID int64, expected bool) {
-	user, err := user_model.GetUserByID(uid)
+	user, err := user_model.GetUserByID(db.DefaultContext, uid)
 	assert.NoError(t, err)
 	is, err := organization.IsPublicMembership(orgID, user.ID)
 	assert.NoError(t, err)
@@ -66,7 +65,7 @@ func TestIsUserOrgOwner(t *testing.T) {
 }
 
 func testIsUserOrgOwner(t *testing.T, uid, orgID int64, expected bool) {
-	user, err := user_model.GetUserByID(uid)
+	user, err := user_model.GetUserByID(db.DefaultContext, uid)
 	assert.NoError(t, err)
 	is, err := organization.IsOrganizationOwner(db.DefaultContext, orgID, user.ID)
 	assert.NoError(t, err)
@@ -86,7 +85,7 @@ func TestUserListIsPublicMember(t *testing.T) {
 		{22, map[int64]bool{}},
 	}
 	for _, v := range tt {
-		t.Run(fmt.Sprintf("IsPublicMemberOfOrdIg%d", v.orgid), func(t *testing.T) {
+		t.Run(fmt.Sprintf("IsPublicMemberOfOrgId%d", v.orgid), func(t *testing.T) {
 			testUserListIsPublicMember(t, v.orgid, v.expected)
 		})
 	}
@@ -113,7 +112,7 @@ func TestUserListIsUserOrgOwner(t *testing.T) {
 		{22, map[int64]bool{}},          // No member
 	}
 	for _, v := range tt {
-		t.Run(fmt.Sprintf("IsUserOrgOwnerOfOrdIg%d", v.orgid), func(t *testing.T) {
+		t.Run(fmt.Sprintf("IsUserOrgOwnerOfOrgId%d", v.orgid), func(t *testing.T) {
 			testUserListIsUserOrgOwner(t, v.orgid, v.expected)
 		})
 	}

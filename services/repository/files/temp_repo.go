@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package files
 
@@ -115,12 +114,12 @@ func (t *TemporaryUploadRepository) LsFiles(filenames ...string) ([]string, erro
 		return nil, err
 	}
 
-	filelist := make([]string, len(filenames))
+	fileList := make([]string, 0, len(filenames))
 	for _, line := range bytes.Split(stdOut.Bytes(), []byte{'\000'}) {
-		filelist = append(filelist, string(line))
+		fileList = append(fileList, string(line))
 	}
 
-	return filelist, nil
+	return fileList, nil
 }
 
 // RemoveFilesFromIndex removes the given files from the index
@@ -234,11 +233,9 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 	_, _ = messageBytes.WriteString(message)
 	_, _ = messageBytes.WriteString("\n")
 
-	var args []git.CmdArg
+	cmdCommitTree := git.NewCommand(t.ctx, "commit-tree").AddDynamicArguments(treeHash)
 	if parent != "" {
-		args = []git.CmdArg{"commit-tree", git.CmdArgCheck(treeHash), "-p", git.CmdArgCheck(parent)}
-	} else {
-		args = []git.CmdArg{"commit-tree", git.CmdArgCheck(treeHash)}
+		cmdCommitTree.AddOptionValues("-p", parent)
 	}
 
 	var sign bool
@@ -250,7 +247,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 		sign, keyID, signer, _ = asymkey_service.SignInitialCommit(t.ctx, t.repo.RepoPath(), author)
 	}
 	if sign {
-		args = append(args, git.CmdArg("-S"+keyID))
+		cmdCommitTree.AddOptionFormat("-S%s", keyID)
 		if t.repo.GetTrustModel() == repo_model.CommitterTrustModel || t.repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
 				// Add trailers
@@ -265,7 +262,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 			committerSig = signer
 		}
 	} else {
-		args = append(args, "--no-gpg-sign")
+		cmdCommitTree.AddArguments("--no-gpg-sign")
 	}
 
 	if signoff {
@@ -282,7 +279,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	if err := git.NewCommand(t.ctx, args...).
+	if err := cmdCommitTree.
 		Run(&git.RunOpts{
 			Env:    env,
 			Dir:    t.basePath,
@@ -365,7 +362,7 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 			t.repo.FullName(), err, stderr)
 	}
 
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(t.ctx, t.basePath, "--cached", "HEAD")
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(t.ctx, t.basePath, git.TrustedCmdArgs{"--cached"}, "HEAD")
 	if err != nil {
 		return nil, err
 	}

@@ -1,14 +1,14 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package admin
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
-	"os"
+	"strconv"
 	"strings"
 
 	system_model "code.gitea.io/gitea/models/system"
@@ -99,10 +99,9 @@ func shadowPassword(provider, cfgItem string) string {
 // Config show admin config page
 func Config(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.config")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminConfig"] = true
 
-	systemSettings, err := system_model.GetAllSettings()
+	systemSettings, err := system_model.GetAllSettings(ctx)
 	if err != nil {
 		ctx.ServerError("system_model.GetAllSettings", err)
 		return
@@ -114,17 +113,17 @@ func Config(ctx *context.Context) {
 
 	ctx.Data["CustomConf"] = setting.CustomConf
 	ctx.Data["AppUrl"] = setting.AppURL
+	ctx.Data["AppBuiltWith"] = setting.AppBuiltWith
 	ctx.Data["Domain"] = setting.Domain
 	ctx.Data["OfflineMode"] = setting.OfflineMode
-	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["RunUser"] = setting.RunUser
 	ctx.Data["RunMode"] = util.ToTitleCase(setting.RunMode)
 	ctx.Data["GitVersion"] = git.VersionInfo()
 
+	ctx.Data["AppDataPath"] = setting.AppDataPath
 	ctx.Data["RepoRootPath"] = setting.RepoRootPath
 	ctx.Data["CustomRootPath"] = setting.CustomPath
-	ctx.Data["StaticRootPath"] = setting.StaticRootPath
-	ctx.Data["LogRootPath"] = setting.LogRootPath
+	ctx.Data["LogRootPath"] = setting.Log.RootPath
 	ctx.Data["ScriptType"] = setting.ScriptType
 	ctx.Data["ReverseProxyAuthUser"] = setting.ReverseProxyAuthUser
 	ctx.Data["ReverseProxyAuthEmail"] = setting.ReverseProxyAuthEmail
@@ -167,26 +166,12 @@ func Config(ctx *context.Context) {
 	ctx.Data["SessionConfig"] = sessionCfg
 
 	ctx.Data["Git"] = setting.Git
-
-	type envVar struct {
-		Name, Value string
-	}
-
-	envVars := map[string]*envVar{}
-	if len(os.Getenv("GITEA_WORK_DIR")) > 0 {
-		envVars["GITEA_WORK_DIR"] = &envVar{"GITEA_WORK_DIR", os.Getenv("GITEA_WORK_DIR")}
-	}
-	if len(os.Getenv("GITEA_CUSTOM")) > 0 {
-		envVars["GITEA_CUSTOM"] = &envVar{"GITEA_CUSTOM", os.Getenv("GITEA_CUSTOM")}
-	}
-
-	ctx.Data["EnvVars"] = envVars
-	ctx.Data["Loggers"] = setting.GetLogDescriptions()
-	ctx.Data["EnableAccessLog"] = setting.EnableAccessLog
-	ctx.Data["AccessLogTemplate"] = setting.AccessLogTemplate
-	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
-	ctx.Data["EnableXORMLog"] = setting.EnableXORMLog
+	ctx.Data["AccessLogTemplate"] = setting.Log.AccessLogTemplate
 	ctx.Data["LogSQL"] = setting.Database.LogSQL
+
+	ctx.Data["Loggers"] = log.GetManager().DumpLoggers()
+
+	prepareDeprecatedWarningsAlert(ctx)
 
 	ctx.HTML(http.StatusOK, tplConfig)
 }
@@ -194,15 +179,23 @@ func Config(ctx *context.Context) {
 func ChangeConfig(ctx *context.Context) {
 	key := strings.TrimSpace(ctx.FormString("key"))
 	if key == "" {
-		ctx.JSON(http.StatusOK, map[string]string{
-			"redirect": ctx.Req.URL.String(),
-		})
+		ctx.JSONRedirect(ctx.Req.URL.String())
 		return
 	}
 	value := ctx.FormString("value")
 	version := ctx.FormInt("version")
 
-	if err := system_model.SetSetting(&system_model.Setting{
+	if check, ok := changeConfigChecks[key]; ok {
+		if err := check(ctx, value); err != nil {
+			log.Warn("refused to set setting: %v", err)
+			ctx.JSON(http.StatusOK, map[string]string{
+				"err": ctx.Tr("admin.config.set_setting_failed", key),
+			})
+			return
+		}
+	}
+
+	if err := system_model.SetSetting(ctx, &system_model.Setting{
 		SettingKey:   key,
 		SettingValue: value,
 		Version:      version,
@@ -214,7 +207,22 @@ func ChangeConfig(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"version": version + 1,
 	})
+}
+
+var changeConfigChecks = map[string]func(ctx *context.Context, newValue string) error{
+	system_model.KeyPictureDisableGravatar: func(_ *context.Context, newValue string) error {
+		if v, _ := strconv.ParseBool(newValue); setting.OfflineMode && !v {
+			return fmt.Errorf("%q should be true when OFFLINE_MODE is true", system_model.KeyPictureDisableGravatar)
+		}
+		return nil
+	},
+	system_model.KeyPictureEnableFederatedAvatar: func(_ *context.Context, newValue string) error {
+		if v, _ := strconv.ParseBool(newValue); setting.OfflineMode && v {
+			return fmt.Errorf("%q cannot be false when OFFLINE_MODE is true", system_model.KeyPictureEnableFederatedAvatar)
+		}
+		return nil
+	},
 }

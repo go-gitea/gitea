@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_14 //nolint
 
@@ -17,7 +16,7 @@ func ConvertHookTaskTypeToVarcharAndTrim(x *xorm.Engine) error {
 		return nil
 	}
 
-	type HookTask struct {
+	type HookTask struct { //nolint:unused
 		Typ string `xorm:"VARCHAR(16) index"`
 	}
 
@@ -43,7 +42,7 @@ func ConvertHookTaskTypeToVarcharAndTrim(x *xorm.Engine) error {
 		return err
 	}
 
-	type Webhook struct {
+	type Webhook struct { //nolint:unused
 		Type string `xorm:"VARCHAR(16) index"`
 	}
 

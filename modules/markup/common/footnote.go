@@ -1,7 +1,6 @@
 // Copyright 2019 Yusuke Inuzuka
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 // Most of what follows is a subtly changed version of github.com/yuin/goldmark/extension/footnote.go
 
@@ -30,17 +29,12 @@ func CleanValue(value []byte) []byte {
 	value = bytes.TrimSpace(value)
 	rs := bytes.Runes(value)
 	result := make([]rune, 0, len(rs))
-	needsDash := false
 	for _, r := range rs {
-		switch {
-		case unicode.IsLetter(r) || unicode.IsNumber(r) || r == '_':
-			if needsDash && len(result) > 0 {
-				result = append(result, '-')
-			}
-			needsDash = false
+		if unicode.IsLetter(r) || unicode.IsNumber(r) || r == '_' || r == '-' {
 			result = append(result, unicode.ToLower(r))
-		default:
-			needsDash = true
+		}
+		if unicode.IsSpace(r) {
+			result = append(result, '-')
 		}
 	}
 	return []byte(string(result))

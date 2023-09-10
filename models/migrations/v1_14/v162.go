@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_14 //nolint
 
@@ -40,7 +39,7 @@ func ConvertWebhookTaskTypeToString(x *xorm.Engine) error {
 	type Webhook struct {
 		Type string `xorm:"char(16) index"`
 	}
-	if err := x.Sync2(new(Webhook)); err != nil {
+	if err := x.Sync(new(Webhook)); err != nil {
 		return err
 	}
 

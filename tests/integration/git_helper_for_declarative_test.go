@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -58,12 +57,10 @@ func createSSHUrl(gitPath string, u *url.URL) *url.URL {
 	return &u2
 }
 
-func onGiteaRunTB(t testing.TB, callback func(testing.TB, *url.URL), prepare ...bool) {
-	if len(prepare) == 0 || prepare[0] {
-		defer tests.PrepareTestEnv(t, 1)()
-	}
+func onGiteaRun[T testing.TB](t T, callback func(T, *url.URL)) {
+	defer tests.PrepareTestEnv(t, 1)()
 	s := http.Server{
-		Handler: c,
+		Handler: testWebRoutes,
 	}
 
 	u, err := url.Parse(setting.AppURL)
@@ -88,12 +85,6 @@ func onGiteaRunTB(t testing.TB, callback func(testing.TB, *url.URL), prepare ...
 	// Started by config go ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
 
 	callback(t, u)
-}
-
-func onGiteaRun(t *testing.T, callback func(*testing.T, *url.URL), prepare ...bool) {
-	onGiteaRunTB(t, func(t testing.TB, u *url.URL) {
-		callback(t.(*testing.T), u)
-	}, prepare...)
 }
 
 func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
@@ -155,16 +146,16 @@ func doGitAddRemote(dstPath, remoteName string, u *url.URL) func(*testing.T) {
 	}
 }
 
-func doGitPushTestRepository(dstPath string, args ...git.CmdArg) func(*testing.T) {
+func doGitPushTestRepository(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, _, err := git.NewCommand(git.DefaultContext, append([]git.CmdArg{"push", "-u"}, args...)...).RunStdString(&git.RunOpts{Dir: dstPath})
+		_, _, err := git.NewCommand(git.DefaultContext, "push", "-u").AddArguments(git.ToTrustedCmdArgs(args)...).RunStdString(&git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 	}
 }
 
-func doGitPushTestRepositoryFail(dstPath string, args ...git.CmdArg) func(*testing.T) {
+func doGitPushTestRepositoryFail(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, _, err := git.NewCommand(git.DefaultContext, append([]git.CmdArg{"push"}, args...)...).RunStdString(&git.RunOpts{Dir: dstPath})
+		_, _, err := git.NewCommand(git.DefaultContext, "push").AddArguments(git.ToTrustedCmdArgs(args)...).RunStdString(&git.RunOpts{Dir: dstPath})
 		assert.Error(t, err)
 	}
 }
@@ -176,23 +167,23 @@ func doGitCreateBranch(dstPath, branch string) func(*testing.T) {
 	}
 }
 
-func doGitCheckoutBranch(dstPath string, args ...git.CmdArg) func(*testing.T) {
+func doGitCheckoutBranch(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, _, err := git.NewCommandNoGlobals(append(append(git.AllowLFSFiltersArgs(), "checkout"), args...)...).RunStdString(&git.RunOpts{Dir: dstPath})
+		_, _, err := git.NewCommandContextNoGlobals(git.DefaultContext, git.AllowLFSFiltersArgs()...).AddArguments("checkout").AddArguments(git.ToTrustedCmdArgs(args)...).RunStdString(&git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 	}
 }
 
-func doGitMerge(dstPath string, args ...git.CmdArg) func(*testing.T) {
+func doGitMerge(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, _, err := git.NewCommand(git.DefaultContext, append([]git.CmdArg{"merge"}, args...)...).RunStdString(&git.RunOpts{Dir: dstPath})
+		_, _, err := git.NewCommand(git.DefaultContext, "merge").AddArguments(git.ToTrustedCmdArgs(args)...).RunStdString(&git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 	}
 }
 
-func doGitPull(dstPath string, args ...git.CmdArg) func(*testing.T) {
+func doGitPull(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, _, err := git.NewCommandNoGlobals(append(append(git.AllowLFSFiltersArgs(), "pull"), args...)...).RunStdString(&git.RunOpts{Dir: dstPath})
+		_, _, err := git.NewCommandContextNoGlobals(git.DefaultContext, git.AllowLFSFiltersArgs()...).AddArguments("pull").AddArguments(git.ToTrustedCmdArgs(args)...).RunStdString(&git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 	}
 }

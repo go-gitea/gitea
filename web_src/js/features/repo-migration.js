@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 
 const $service = $('#service_type');
 const $user = $('#auth_username');
@@ -10,15 +11,15 @@ const $lfsSettings = $('#lfs_settings');
 const $lfsEndpoint = $('#lfs_endpoint');
 const $items = $('#migrate_items').find('input[type=checkbox]');
 
-export default function initRepoMigration() {
+export function initRepoMigration() {
   checkAuth();
   setLFSSettingsVisibility();
 
-  $user.on('keyup', () => {checkItems(false)});
-  $pass.on('keyup', () => {checkItems(false)});
-  $token.on('keyup', () => {checkItems(true)});
+  $user.on('input', () => {checkItems(false)});
+  $pass.on('input', () => {checkItems(false)});
+  $token.on('input', () => {checkItems(true)});
   $mirror.on('change', () => {checkItems(true)});
-  $('#lfs_settings_show').on('click', () => { $lfsEndpoint.show(); return false });
+  $('#lfs_settings_show').on('click', () => { showElem($lfsEndpoint); return false });
   $lfs.on('change', setLFSSettingsVisibility);
 
   const $cloneAddr = $('#clone_addr');
@@ -57,6 +58,6 @@ function checkItems(tokenAuth) {
 
 function setLFSSettingsVisibility() {
   const visible = $lfs.is(':checked');
-  $lfsSettings.toggle(visible);
-  $lfsEndpoint.hide();
+  toggleElem($lfsSettings, visible);
+  hideElem($lfsEndpoint);
 }

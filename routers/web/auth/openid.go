@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
@@ -48,7 +47,7 @@ func SignInOpenID(ctx *context.Context) {
 	if len(redirectTo) > 0 {
 		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
 	} else {
-		redirectTo = ctx.GetCookie("redirect_to")
+		redirectTo = ctx.GetSiteCookie("redirect_to")
 	}
 
 	if isSucceed {
@@ -198,7 +197,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 	log.Trace("User has email=%s and nickname=%s", email, nickname)
 
 	if email != "" {
-		u, err = user_model.GetUserByEmail(email)
+		u, err = user_model.GetUserByEmail(ctx, email)
 		if err != nil {
 			if !user_model.IsErrUserNotExist(err) {
 				ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
@@ -231,7 +230,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 	if u != nil {
 		nickname = u.LowerName
 	}
-	if err := updateSession(ctx, nil, map[string]interface{}{
+	if err := updateSession(ctx, nil, map[string]any{
 		"openid_verified_uri":        id,
 		"openid_determined_email":    email,
 		"openid_determined_username": nickname,
@@ -283,11 +282,7 @@ func ConnectOpenIDPost(ctx *context.Context) {
 
 	u, _, err := auth.UserSignIn(form.UserName, form.Password)
 	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplConnectOID, &form)
-		} else {
-			ctx.ServerError("ConnectOpenIDPost", err)
-		}
+		handleSignInError(ctx, form.UserName, &form, tplConnectOID, "ConnectOpenIDPost", err)
 		return
 	}
 

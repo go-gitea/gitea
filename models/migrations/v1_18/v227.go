@@ -1,8 +1,7 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
-package v1_18 // nolint
+package v1_18 //nolint
 
 import (
 	"fmt"
@@ -44,7 +43,7 @@ func insertSettingsIfNotExist(x *xorm.Engine, sysSettings []*SystemSetting) erro
 }
 
 func CreateSystemSettingsTable(x *xorm.Engine) error {
-	if err := x.Sync2(new(SystemSetting)); err != nil {
+	if err := x.Sync(new(SystemSetting)); err != nil {
 		return fmt.Errorf("sync2: %w", err)
 	}
 

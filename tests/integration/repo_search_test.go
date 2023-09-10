@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -8,6 +7,7 @@ import (
 	"net/http"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
@@ -29,7 +29,7 @@ func resultFilenames(t testing.TB, doc *HTMLDoc) []string {
 func TestSearchRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	repo, err := repo_model.GetRepositoryByOwnerAndName("user2", "repo1")
+	repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, "user2", "repo1")
 	assert.NoError(t, err)
 
 	executeIndexer(t, repo, code_indexer.UpdateRepoIndexer)
@@ -39,7 +39,7 @@ func TestSearchRepo(t *testing.T) {
 	setting.Indexer.IncludePatterns = setting.IndexerGlobFromString("**.txt")
 	setting.Indexer.ExcludePatterns = setting.IndexerGlobFromString("**/y/**")
 
-	repo, err = repo_model.GetRepositoryByOwnerAndName("user2", "glob")
+	repo, err = repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, "user2", "glob")
 	assert.NoError(t, err)
 
 	executeIndexer(t, repo, code_indexer.UpdateRepoIndexer)

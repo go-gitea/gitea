@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -9,6 +8,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -92,12 +92,12 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 			ctx.Error(http.StatusForbidden, "Access", err)
 			return
 		}
-		if models.IsErrBranchAlreadyExists(err) || models.IsErrFilenameInvalid(err) || models.IsErrSHADoesNotMatch(err) ||
+		if git_model.IsErrBranchAlreadyExists(err) || models.IsErrFilenameInvalid(err) || models.IsErrSHADoesNotMatch(err) ||
 			models.IsErrFilePathInvalid(err) || models.IsErrRepoFileAlreadyExists(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "Invalid", err)
 			return
 		}
-		if models.IsErrBranchDoesNotExist(err) || git.IsErrBranchNotExist(err) {
+		if git_model.IsErrBranchNotExist(err) || git.IsErrBranchNotExist(err) {
 			ctx.Error(http.StatusNotFound, "BranchDoesNotExist", err)
 			return
 		}

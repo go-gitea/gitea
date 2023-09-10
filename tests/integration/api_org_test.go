@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -11,6 +10,11 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
+	org_model "code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -22,7 +26,7 @@ import (
 
 func TestAPIOrgCreate(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		token := getUserToken(t, "user1")
+		token := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteOrganization)
 
 		org := api.CreateOrgOption{
 			UserName:    "user1_org",
@@ -50,6 +54,22 @@ func TestAPIOrgCreate(t *testing.T) {
 			LowerName: strings.ToLower(org.UserName),
 			FullName:  org.FullName,
 		})
+
+		// Check owner team permission
+		ownerTeam, _ := org_model.GetOwnerTeam(db.DefaultContext, apiOrg.ID)
+
+		for _, ut := range unit_model.AllRepoUnitTypes {
+			up := perm.AccessModeOwner
+			if ut == unit_model.TypeExternalTracker || ut == unit_model.TypeExternalWiki {
+				up = perm.AccessModeRead
+			}
+			unittest.AssertExistsAndLoadBean(t, &org_model.TeamUnit{
+				OrgID:      apiOrg.ID,
+				TeamID:     ownerTeam.ID,
+				Type:       ut,
+				AccessMode: up,
+			})
+		}
 
 		req = NewRequestf(t, "GET", "/api/v1/orgs/%s?token=%s", org.UserName, token)
 		resp = MakeRequest(t, req, http.StatusOK)
@@ -80,7 +100,7 @@ func TestAPIOrgEdit(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		session := loginUser(t, "user1")
 
-		token := getTokenForLoggedInUser(t, session)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
 		org := api.EditOrgOption{
 			FullName:    "User3 organization new full name",
 			Description: "A new description",
@@ -89,7 +109,7 @@ func TestAPIOrgEdit(t *testing.T) {
 			Visibility:  "private",
 		}
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/user3?token="+token, &org)
-		resp := session.MakeRequest(t, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
 
 		var apiOrg api.Organization
 		DecodeJSON(t, resp, &apiOrg)
@@ -107,7 +127,7 @@ func TestAPIOrgEditBadVisibility(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		session := loginUser(t, "user1")
 
-		token := getTokenForLoggedInUser(t, session)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
 		org := api.EditOrgOption{
 			FullName:    "User3 organization new full name",
 			Description: "A new description",
@@ -116,7 +136,7 @@ func TestAPIOrgEditBadVisibility(t *testing.T) {
 			Visibility:  "badvisibility",
 		}
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/user3?token="+token, &org)
-		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
 	})
 }
 
@@ -142,12 +162,23 @@ func TestAPIOrgDeny(t *testing.T) {
 func TestAPIGetAll(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequestf(t, "GET", "/api/v1/orgs")
+	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrganization)
+
+	// accessing with a token will return all orgs
+	req := NewRequestf(t, "GET", "/api/v1/orgs?token=%s", token)
 	resp := MakeRequest(t, req, http.StatusOK)
-
 	var apiOrgList []*api.Organization
-	DecodeJSON(t, resp, &apiOrgList)
 
+	DecodeJSON(t, resp, &apiOrgList)
+	assert.Len(t, apiOrgList, 11)
+	assert.Equal(t, "Limited Org 36", apiOrgList[1].FullName)
+	assert.Equal(t, "limited", apiOrgList[1].Visibility)
+
+	// accessing without a token will return only public orgs
+	req = NewRequestf(t, "GET", "/api/v1/orgs")
+	resp = MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &apiOrgList)
 	assert.Len(t, apiOrgList, 7)
 	assert.Equal(t, "org25", apiOrgList[0].FullName)
 	assert.Equal(t, "public", apiOrgList[0].Visibility)
@@ -155,7 +186,7 @@ func TestAPIGetAll(t *testing.T) {
 
 func TestAPIOrgSearchEmptyTeam(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		token := getUserToken(t, "user1")
+		token := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteOrganization)
 		orgName := "org_with_empty_team"
 
 		// create org

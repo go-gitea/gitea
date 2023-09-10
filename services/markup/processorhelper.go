@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markup
 
@@ -14,6 +13,7 @@ import (
 
 func ProcessorHelper() *markup.ProcessorHelper {
 	return &markup.ProcessorHelper{
+		ElementDir: "auto", // set dir="auto" for necessary (eg: <p>, <h?>, etc) tags
 		IsUsernameMentionable: func(ctx context.Context, username string) bool {
 			mentionedUser, err := user.GetUserByName(ctx, username)
 			if err != nil {

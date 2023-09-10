@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package template
 
@@ -152,7 +151,7 @@ func validateOptions(field *api.IssueFormField, idx int) error {
 	}
 	position := newErrorPosition(idx, field.Type)
 
-	options, ok := field.Attributes["options"].([]interface{})
+	options, ok := field.Attributes["options"].([]any)
 	if !ok || len(options) == 0 {
 		return position.Errorf("'options' is required and should be a array")
 	}
@@ -165,7 +164,7 @@ func validateOptions(field *api.IssueFormField, idx int) error {
 				return position.Errorf("should be a string")
 			}
 		case api.IssueFormFieldTypeCheckboxes:
-			opt, ok := option.(map[string]interface{})
+			opt, ok := option.(map[string]any)
 			if !ok {
 				return position.Errorf("should be a dictionary")
 			}
@@ -183,7 +182,7 @@ func validateOptions(field *api.IssueFormField, idx int) error {
 	return nil
 }
 
-func validateStringItem(position errorPosition, m map[string]interface{}, required bool, names ...string) error {
+func validateStringItem(position errorPosition, m map[string]any, required bool, names ...string) error {
 	for _, name := range names {
 		v, ok := m[name]
 		if !ok {
@@ -203,7 +202,7 @@ func validateStringItem(position errorPosition, m map[string]interface{}, requir
 	return nil
 }
 
-func validateBoolItem(position errorPosition, m map[string]interface{}, names ...string) error {
+func validateBoolItem(position errorPosition, m map[string]any, names ...string) error {
 	for _, name := range names {
 		v, ok := m[name]
 		if !ok {
@@ -218,7 +217,7 @@ func validateBoolItem(position errorPosition, m map[string]interface{}, names ..
 
 type errorPosition string
 
-func (p errorPosition) Errorf(format string, a ...interface{}) error {
+func (p errorPosition) Errorf(format string, a ...any) error {
 	return fmt.Errorf(string(p)+": "+format, a...)
 }
 
@@ -260,7 +259,9 @@ func (f *valuedField) WriteTo(builder *strings.Builder) {
 	}
 
 	// write label
-	_, _ = fmt.Fprintf(builder, "### %s\n\n", f.Label())
+	if !f.HideLabel() {
+		_, _ = fmt.Fprintf(builder, "### %s\n\n", f.Label())
+	}
 
 	blankPlaceholder := "_No response_\n"
 
@@ -312,6 +313,13 @@ func (f *valuedField) Label() string {
 	return ""
 }
 
+func (f *valuedField) HideLabel() bool {
+	if label, ok := f.Attributes["hide_label"].(bool); ok {
+		return label
+	}
+	return false
+}
+
 func (f *valuedField) Render() string {
 	if render, ok := f.Attributes["render"].(string); ok {
 		return render
@@ -324,7 +332,7 @@ func (f *valuedField) Value() string {
 }
 
 func (f *valuedField) Options() []*valuedOption {
-	if options, ok := f.Attributes["options"].([]interface{}); ok {
+	if options, ok := f.Attributes["options"].([]any); ok {
 		ret := make([]*valuedOption, 0, len(options))
 		for i, option := range options {
 			ret = append(ret, &valuedOption{
@@ -340,7 +348,7 @@ func (f *valuedField) Options() []*valuedOption {
 
 type valuedOption struct {
 	index int
-	data  interface{}
+	data  any
 	field *valuedField
 }
 
@@ -351,7 +359,7 @@ func (o *valuedOption) Label() string {
 			return label
 		}
 	case api.IssueFormFieldTypeCheckboxes:
-		if vs, ok := o.data.(map[string]interface{}); ok {
+		if vs, ok := o.data.(map[string]any); ok {
 			if v, ok := vs["label"].(string); ok {
 				return v
 			}

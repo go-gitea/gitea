@@ -1,6 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package structs
 
@@ -93,4 +92,19 @@ type UserSettingsOptions struct {
 	// Privacy
 	HideEmail    *bool `json:"hide_email"`
 	HideActivity *bool `json:"hide_activity"`
+}
+
+// RenameUserOption options when renaming a user
+type RenameUserOption struct {
+	// New username for this user. This name cannot be in use yet by any other user.
+	//
+	// required: true
+	// unique: true
+	NewName string `json:"new_username" binding:"Required"`
+}
+
+// UpdateUserAvatarUserOption options when updating the user avatar
+type UpdateUserAvatarOption struct {
+	// image must be base64 encoded
+	Image string `json:"image" binding:"Required"`
 }

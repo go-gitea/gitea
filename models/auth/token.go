@@ -1,23 +1,21 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
 import (
 	"crypto/subtle"
+	"encoding/hex"
 	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	gouuid "github.com/google/uuid"
-	lru "github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru/v2"
 )
 
 // ErrAccessTokenNotExist represents a "AccessTokenNotExist" kind of error.
@@ -56,7 +54,7 @@ func (err ErrAccessTokenEmpty) Unwrap() error {
 	return util.ErrInvalidArgument
 }
 
-var successfulAccessTokenCache *lru.Cache
+var successfulAccessTokenCache *lru.Cache[string, any]
 
 // AccessToken represents a personal access token.
 type AccessToken struct {
@@ -67,6 +65,7 @@ type AccessToken struct {
 	TokenHash      string `xorm:"UNIQUE"` // sha256 of token
 	TokenSalt      string
 	TokenLastEight string `xorm:"INDEX token_last_eight"`
+	Scope          AccessTokenScope
 
 	CreatedUnix       timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix       timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -84,7 +83,7 @@ func init() {
 	db.RegisterModel(new(AccessToken), func() error {
 		if setting.SuccessfulTokensCacheSize > 0 {
 			var err error
-			successfulAccessTokenCache, err = lru.New(setting.SuccessfulTokensCacheSize)
+			successfulAccessTokenCache, err = lru.New[string, any](setting.SuccessfulTokensCacheSize)
 			if err != nil {
 				return fmt.Errorf("unable to allocate AccessToken cache: %w", err)
 			}
@@ -101,12 +100,25 @@ func NewAccessToken(t *AccessToken) error {
 	if err != nil {
 		return err
 	}
+	token, err := util.CryptoRandomBytes(20)
+	if err != nil {
+		return err
+	}
 	t.TokenSalt = salt
-	t.Token = base.EncodeSha1(gouuid.New().String())
+	t.Token = hex.EncodeToString(token)
 	t.TokenHash = HashToken(t.Token, t.TokenSalt)
 	t.TokenLastEight = t.Token[len(t.Token)-8:]
 	_, err = db.GetEngine(db.DefaultContext).Insert(t)
 	return err
+}
+
+// DisplayPublicOnly whether to display this as a public-only token.
+func (t *AccessToken) DisplayPublicOnly() bool {
+	publicOnly, err := t.Scope.PublicOnly()
+	if err != nil {
+		return false
+	}
+	return publicOnly
 }
 
 func getAccessTokenIDFromCache(token string) int64 {
@@ -142,16 +154,16 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 	lastEight := token[len(token)-8:]
 
 	if id := getAccessTokenIDFromCache(token); id > 0 {
-		token := &AccessToken{
+		accessToken := &AccessToken{
 			TokenLastEight: lastEight,
 		}
 		// Re-get the token from the db in case it has been deleted in the intervening period
-		has, err := db.GetEngine(db.DefaultContext).ID(id).Get(token)
+		has, err := db.GetEngine(db.DefaultContext).ID(id).Get(accessToken)
 		if err != nil {
 			return nil, err
 		}
 		if has {
-			return token, nil
+			return accessToken, nil
 		}
 		successfulAccessTokenCache.Remove(token)
 	}

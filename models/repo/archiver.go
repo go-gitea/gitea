@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -147,6 +146,13 @@ func FindRepoArchives(opts FindRepoArchiversOption) ([]*RepoArchiver, error) {
 // SetArchiveRepoState sets if a repo is archived
 func SetArchiveRepoState(repo *Repository, isArchived bool) (err error) {
 	repo.IsArchived = isArchived
-	_, err = db.GetEngine(db.DefaultContext).Where("id = ?", repo.ID).Cols("is_archived").NoAutoTime().Update(repo)
+
+	if isArchived {
+		repo.ArchivedUnix = timeutil.TimeStampNow()
+	} else {
+		repo.ArchivedUnix = timeutil.TimeStamp(0)
+	}
+
+	_, err = db.GetEngine(db.DefaultContext).ID(repo.ID).Cols("is_archived", "archived_unix").NoAutoTime().Update(repo)
 	return err
 }

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -13,8 +12,8 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/xorm"
 )
@@ -52,18 +51,16 @@ func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) (*xor
 }
 
 // GetUnmergedPullRequestsByHeadInfo returns all pull requests that are open and has not been merged
-// by given head information (repo and branch).
-func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequest, error) {
+func GetUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch string) ([]*PullRequest, error) {
 	prs := make([]*PullRequest, 0, 2)
-	return prs, db.GetEngine(db.DefaultContext).
-		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ? AND flow = ?",
-			repoID, branch, false, false, PullRequestFlowGithub).
+	sess := db.GetEngine(ctx).
 		Join("INNER", "issue", "issue.id = pull_request.issue_id").
-		Find(&prs)
+		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ? AND flow = ?", repoID, branch, false, false, PullRequestFlowGithub)
+	return prs, sess.Find(&prs)
 }
 
 // CanMaintainerWriteToBranch check whether user is a maintainer and could write to the branch
-func CanMaintainerWriteToBranch(p access_model.Permission, branch string, user *user_model.User) bool {
+func CanMaintainerWriteToBranch(ctx context.Context, p access_model.Permission, branch string, user *user_model.User) bool {
 	if p.CanWrite(unit.TypeCode) {
 		return true
 	}
@@ -72,18 +69,18 @@ func CanMaintainerWriteToBranch(p access_model.Permission, branch string, user *
 		return false
 	}
 
-	prs, err := GetUnmergedPullRequestsByHeadInfo(p.Units[0].RepoID, branch)
+	prs, err := GetUnmergedPullRequestsByHeadInfo(ctx, p.Units[0].RepoID, branch)
 	if err != nil {
 		return false
 	}
 
 	for _, pr := range prs {
 		if pr.AllowMaintainerEdit {
-			err = pr.LoadBaseRepo(db.DefaultContext)
+			err = pr.LoadBaseRepo(ctx)
 			if err != nil {
 				continue
 			}
-			prPerm, err := access_model.GetUserRepoPermission(db.DefaultContext, pr.BaseRepo, user)
+			prPerm, err := access_model.GetUserRepoPermission(ctx, pr.BaseRepo, user)
 			if err != nil {
 				continue
 			}
@@ -107,11 +104,12 @@ func HasUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch
 
 // GetUnmergedPullRequestsByBaseInfo returns all pull requests that are open and has not been merged
 // by given base information (repo and branch).
-func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequest, error) {
+func GetUnmergedPullRequestsByBaseInfo(ctx context.Context, repoID int64, branch string) ([]*PullRequest, error) {
 	prs := make([]*PullRequest, 0, 2)
-	return prs, db.GetEngine(db.DefaultContext).
+	return prs, db.GetEngine(ctx).
 		Where("base_repo_id=? AND base_branch=? AND has_merged=? AND issue.is_closed=?",
 			repoID, branch, false, false).
+		OrderBy("issue.updated_unix DESC").
 		Join("INNER", "issue", "issue.id=pull_request.issue_id").
 		Find(&prs)
 }
@@ -143,7 +141,7 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 	}
 
 	findSession, err := listPullRequestStatement(baseRepoID, opts)
-	sortIssuesSession(findSession, opts.SortType, 0)
+	applySorts(findSession, opts.SortType, 0)
 	if err != nil {
 		log.Error("listPullRequestStatement: %v", err)
 		return nil, maxResults, err
@@ -156,13 +154,13 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 // PullRequestList defines a list of pull requests
 type PullRequestList []*PullRequest
 
-func (prs PullRequestList) loadAttributes(ctx context.Context) error {
+func (prs PullRequestList) LoadAttributes(ctx context.Context) error {
 	if len(prs) == 0 {
 		return nil
 	}
 
 	// Load issues.
-	issueIDs := prs.getIssueIDs()
+	issueIDs := prs.GetIssueIDs()
 	issues := make([]*Issue, 0, len(issueIDs))
 	if err := db.GetEngine(ctx).
 		Where("id > 0").
@@ -175,13 +173,26 @@ func (prs PullRequestList) loadAttributes(ctx context.Context) error {
 	for i := range issues {
 		set[issues[i].ID] = issues[i]
 	}
-	for i := range prs {
-		prs[i].Issue = set[prs[i].IssueID]
+	for _, pr := range prs {
+		pr.Issue = set[pr.IssueID]
+		/*
+			Old code:
+			pr.Issue.PullRequest = pr // panic here means issueIDs and prs are not in sync
+
+			It's worth panic because it's almost impossible to happen under normal use.
+			But in integration testing, an asynchronous task could read a database that has been reset.
+			So returning an error would make more sense, let the caller has a choice to ignore it.
+		*/
+		if pr.Issue == nil {
+			return fmt.Errorf("issues and prs may be not in sync: cannot find issue %v for pr %v: %w", pr.IssueID, pr.ID, util.ErrNotExist)
+		}
+		pr.Issue.PullRequest = pr
 	}
 	return nil
 }
 
-func (prs PullRequestList) getIssueIDs() []int64 {
+// GetIssueIDs returns all issue ids
+func (prs PullRequestList) GetIssueIDs() []int64 {
 	issueIDs := make([]int64, 0, len(prs))
 	for i := range prs {
 		issueIDs = append(issueIDs, prs[i].IssueID)
@@ -189,28 +200,15 @@ func (prs PullRequestList) getIssueIDs() []int64 {
 	return issueIDs
 }
 
-// LoadAttributes load all the prs attributes
-func (prs PullRequestList) LoadAttributes() error {
-	return prs.loadAttributes(db.DefaultContext)
-}
-
-// InvalidateCodeComments will lookup the prs for code comments which got invalidated by change
-func (prs PullRequestList) InvalidateCodeComments(ctx context.Context, doer *user_model.User, repo *git.Repository, branch string) error {
-	if len(prs) == 0 {
-		return nil
-	}
-	issueIDs := prs.getIssueIDs()
-	var codeComments []*Comment
-	if err := db.GetEngine(ctx).
-		Where("type = ? and invalidated = ?", CommentTypeCode, false).
-		In("issue_id", issueIDs).
-		Find(&codeComments); err != nil {
-		return fmt.Errorf("find code comments: %w", err)
-	}
-	for _, comment := range codeComments {
-		if err := comment.CheckInvalidation(repo, doer, branch); err != nil {
-			return err
-		}
-	}
-	return nil
+// HasMergedPullRequestInRepo returns whether the user(poster) has merged pull-request in the repo
+func HasMergedPullRequestInRepo(ctx context.Context, repoID, posterID int64) (bool, error) {
+	return db.GetEngine(ctx).
+		Join("INNER", "pull_request", "pull_request.issue_id = issue.id").
+		Where("repo_id=?", repoID).
+		And("poster_id=?", posterID).
+		And("is_pull=?", true).
+		And("pull_request.has_merged=?", true).
+		Select("issue.id").
+		Limit(1).
+		Get(new(Issue))
 }

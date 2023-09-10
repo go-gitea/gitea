@@ -1,10 +1,10 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pub
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -20,11 +20,12 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	pub_module "code.gitea.io/gitea/modules/packages/pub"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
-func jsonResponse(ctx *context.Context, status int, obj interface{}) {
+func jsonResponse(ctx *context.Context, status int, obj any) {
 	resp := ctx.Resp
 	resp.Header().Set("Content-Type", "application/vnd.pub.v2+json")
 	resp.WriteHeader(status)
@@ -33,7 +34,7 @@ func jsonResponse(ctx *context.Context, status int, obj interface{}) {
 	}
 }
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	type Error struct {
 		Code    string `json:"code"`
 		Message string `json:"message"`
@@ -59,10 +60,10 @@ type packageVersions struct {
 }
 
 type versionMetadata struct {
-	Version    string      `json:"version"`
-	ArchiveURL string      `json:"archive_url"`
-	Published  time.Time   `json:"published"`
-	Pubspec    interface{} `json:"pubspec,omitempty"`
+	Version    string    `json:"version"`
+	ArchiveURL string    `json:"archive_url"`
+	Published  time.Time `json:"published"`
+	Pubspec    any       `json:"pubspec,omitempty"`
 }
 
 func packageDescriptorToMetadata(baseURL string, pd *packages_model.PackageDescriptor) *versionMetadata {
@@ -165,7 +166,7 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer file.Close()
 
-	buf, err := packages_module.CreateHashedBufferFromReader(file, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(file)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -174,7 +175,11 @@ func UploadPackageFile(ctx *context.Context) {
 
 	pck, err := pub_module.ParsePackage(buf)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
@@ -268,15 +273,11 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	pf := pd.Files[0].File
 
-	s, _, err := packages_service.GetPackageFileStream(ctx, pf)
+	s, u, _, err := packages_service.GetPackageFileStream(ctx, pf)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	defer s.Close()
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }

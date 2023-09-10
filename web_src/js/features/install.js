@@ -1,10 +1,19 @@
 import $ from 'jquery';
+import {hideElem, showElem} from '../utils/dom.js';
 
 export function initInstall() {
-  if ($('.page-content.install').length === 0) {
+  const $page = $('.page-content.install');
+  if ($page.length === 0) {
     return;
   }
+  if ($page.is('.post-install')) {
+    initPostInstall();
+  } else {
+    initPreInstall();
+  }
+}
 
+function initPreInstall() {
   const defaultDbUser = 'gitea';
   const defaultDbName = 'gitea';
 
@@ -21,12 +30,12 @@ export function initInstall() {
   // Database type change detection.
   $('#db_type').on('change', function () {
     const dbType = $(this).val();
-    $('div[data-db-setting-for]').hide();
-    $(`div[data-db-setting-for=${dbType}]`).show();
+    hideElem($('div[data-db-setting-for]'));
+    showElem($(`div[data-db-setting-for=${dbType}]`));
 
     if (dbType !== 'sqlite3') {
       // for most remote database servers
-      $(`div[data-db-setting-for=common-host]`).show();
+      showElem($(`div[data-db-setting-for=common-host]`));
       const lastDbHost = $dbHost.val();
       const isDbHostDefault = !lastDbHost || Object.values(defaultDbHosts).includes(lastDbHost);
       if (isDbHostDefault) {
@@ -38,6 +47,18 @@ export function initInstall() {
       }
     } // else: for SQLite3, the default path is always prepared by backend code (setting)
   }).trigger('change');
+
+  const $appUrl = $('#app_url');
+  const configAppUrl = $appUrl.val();
+  if (configAppUrl.includes('://localhost')) {
+    $appUrl.val(window.location.href);
+  }
+
+  const $domain = $('#domain');
+  const configDomain = $domain.val().trim();
+  if (configDomain === 'localhost') {
+    $domain.val(window.location.hostname);
+  }
 
   // TODO: better handling of exclusive relations.
   $('#offline-mode input').on('change', function () {
@@ -81,4 +102,21 @@ export function initInstall() {
       $('#disable-registration').checkbox('uncheck');
     }
   });
+}
+
+function initPostInstall() {
+  const el = document.getElementById('goto-user-login');
+  if (!el) return;
+
+  const targetUrl = el.getAttribute('href');
+  let tid = setInterval(async () => {
+    try {
+      const resp = await fetch(targetUrl);
+      if (tid && resp.status === 200) {
+        clearInterval(tid);
+        tid = null;
+        window.location.href = targetUrl;
+      }
+    } catch {}
+  }, 1000);
 }

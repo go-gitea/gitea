@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -15,11 +14,11 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	comment_service "code.gitea.io/gitea/services/comments"
+	"code.gitea.io/gitea/services/convert"
+	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 // ListIssueComments list all the comments of an issue
@@ -60,12 +59,12 @@ func ListIssueComments(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
 
-	before, since, err := context.GetQueryBeforeSince(ctx.Context)
+	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetRawIssueByIndex", err)
 		return
@@ -91,15 +90,20 @@ func ListIssueComments(ctx *context.APIContext) {
 		return
 	}
 
-	if err := issues_model.CommentList(comments).LoadPosters(ctx); err != nil {
+	if err := comments.LoadPosters(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
+		return
+	}
+
+	if err := comments.LoadAttachments(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttachments", err)
 		return
 	}
 
 	apiComments := make([]*api.Comment, len(comments))
 	for i, comment := range comments {
 		comment.Issue = issue
-		apiComments[i] = convert.ToComment(comments[i])
+		apiComments[i] = convert.ToAPIComment(ctx, ctx.Repo.Repository, comments[i])
 	}
 
 	ctx.SetTotalCountHeader(totalCount)
@@ -152,12 +156,12 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TimelineList"
 
-	before, since, err := context.GetQueryBeforeSince(ctx.Context)
+	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetRawIssueByIndex", err)
 		return
@@ -169,7 +173,7 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 		IssueID:     issue.ID,
 		Since:       since,
 		Before:      before,
-		Type:        issues_model.CommentTypeUnknown,
+		Type:        issues_model.CommentTypeUndefined,
 	}
 
 	comments, err := issues_model.FindComments(ctx, opts)
@@ -178,7 +182,7 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 		return
 	}
 
-	if err := issues_model.CommentList(comments).LoadPosters(ctx); err != nil {
+	if err := comments.LoadPosters(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
 		return
 	}
@@ -187,7 +191,7 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 	for _, comment := range comments {
 		if comment.Type != issues_model.CommentTypeCode && isXRefCommentAccessible(ctx, ctx.Doer, comment, issue.RepoID) {
 			comment.Issue = issue
-			apiComments = append(apiComments, convert.ToTimelineComment(ctx, comment, ctx.Doer))
+			apiComments = append(apiComments, convert.ToTimelineComment(ctx, issue.Repo, comment, ctx.Doer))
 		}
 	}
 
@@ -200,7 +204,7 @@ func isXRefCommentAccessible(ctx stdCtx.Context, user *user_model.User, c *issue
 	if issues_model.CommentTypeIsRef(c.Type) && c.RefRepoID != issueRepoID && c.RefRepoID != 0 {
 		var err error
 		// Set RefRepo for description in template
-		c.RefRepo, err = repo_model.GetRepositoryByIDCtx(ctx, c.RefRepoID)
+		c.RefRepo, err = repo_model.GetRepositoryByID(ctx, c.RefRepoID)
 		if err != nil {
 			return false
 		}
@@ -255,7 +259,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
 
-	before, since, err := context.GetQueryBeforeSince(ctx.Context)
+	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
@@ -281,26 +285,30 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		return
 	}
 
-	if err = issues_model.CommentList(comments).LoadPosters(ctx); err != nil {
+	if err = comments.LoadPosters(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
 		return
 	}
 
 	apiComments := make([]*api.Comment, len(comments))
-	if err := issues_model.CommentList(comments).LoadIssues(ctx); err != nil {
+	if err := comments.LoadIssues(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadIssues", err)
 		return
 	}
-	if err := issues_model.CommentList(comments).LoadPosters(ctx); err != nil {
+	if err := comments.LoadPosters(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
 		return
 	}
-	if _, err := issues_model.CommentList(comments).Issues().LoadRepositories(ctx); err != nil {
+	if err := comments.LoadAttachments(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttachments", err)
+		return
+	}
+	if _, err := comments.Issues().LoadRepositories(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadRepositories", err)
 		return
 	}
 	for i := range comments {
-		apiComments[i] = convert.ToComment(comments[i])
+		apiComments[i] = convert.ToAPIComment(ctx, ctx.Repo.Repository, comments[i])
 	}
 
 	ctx.SetTotalCountHeader(totalCount)
@@ -343,7 +351,7 @@ func CreateIssueComment(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	form := web.GetForm(ctx).(*api.CreateIssueCommentOption)
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		return
@@ -354,13 +362,13 @@ func CreateIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	comment, err := comment_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Body, nil)
+	comment, err := issue_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Body, nil)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateIssueComment", err)
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToComment(comment))
+	ctx.JSON(http.StatusCreated, convert.ToAPIComment(ctx, ctx.Repo.Repository, comment))
 }
 
 // GetIssueComment Get a comment by ID
@@ -428,7 +436,7 @@ func GetIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToComment(comment))
+	ctx.JSON(http.StatusOK, convert.ToAPIComment(ctx, ctx.Repo.Repository, comment))
 }
 
 // EditIssueComment modify a comment of an issue
@@ -541,19 +549,19 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		return
 	}
 
-	if comment.Type != issues_model.CommentTypeComment && comment.Type != issues_model.CommentTypeReview && comment.Type != issues_model.CommentTypeCode {
+	if !comment.Type.HasContentSupport() {
 		ctx.Status(http.StatusNoContent)
 		return
 	}
 
 	oldContent := comment.Content
 	comment.Content = form.Body
-	if err := comment_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
+	if err := issue_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateComment", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToComment(comment))
+	ctx.JSON(http.StatusOK, convert.ToAPIComment(ctx, ctx.Repo.Repository, comment))
 }
 
 // DeleteIssueComment delete a comment from an issue
@@ -647,7 +655,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if err = comment_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
+	if err = issue_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteCommentByID", err)
 		return
 	}

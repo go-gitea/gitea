@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package webhook
 
@@ -17,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"xorm.io/builder"
 )
@@ -47,7 +47,7 @@ type ErrHookTaskNotExist struct {
 	UUID   string
 }
 
-// IsErrWebhookNotExist checks if an error is a ErrWebhookNotExist.
+// IsErrHookTaskNotExist checks if an error is a ErrHookTaskNotExist.
 func IsErrHookTaskNotExist(err error) bool {
 	_, ok := err.(ErrHookTaskNotExist)
 	return ok
@@ -118,84 +118,22 @@ func IsValidHookContentType(name string) bool {
 	return ok
 }
 
-// HookEvents is a set of web hook events
-type HookEvents struct {
-	Create               bool `json:"create"`
-	Delete               bool `json:"delete"`
-	Fork                 bool `json:"fork"`
-	Issues               bool `json:"issues"`
-	IssueAssign          bool `json:"issue_assign"`
-	IssueLabel           bool `json:"issue_label"`
-	IssueMilestone       bool `json:"issue_milestone"`
-	IssueComment         bool `json:"issue_comment"`
-	Push                 bool `json:"push"`
-	PullRequest          bool `json:"pull_request"`
-	PullRequestAssign    bool `json:"pull_request_assign"`
-	PullRequestLabel     bool `json:"pull_request_label"`
-	PullRequestMilestone bool `json:"pull_request_milestone"`
-	PullRequestComment   bool `json:"pull_request_comment"`
-	PullRequestReview    bool `json:"pull_request_review"`
-	PullRequestSync      bool `json:"pull_request_sync"`
-	Wiki                 bool `json:"wiki"`
-	Repository           bool `json:"repository"`
-	Release              bool `json:"release"`
-	Package              bool `json:"package"`
-}
-
-// HookEvent represents events that will delivery hook.
-type HookEvent struct {
-	PushOnly       bool   `json:"push_only"`
-	SendEverything bool   `json:"send_everything"`
-	ChooseEvents   bool   `json:"choose_events"`
-	BranchFilter   string `json:"branch_filter"`
-
-	HookEvents `json:"events"`
-}
-
-// HookType is the type of a webhook
-type HookType = string
-
-// Types of webhooks
-const (
-	GITEA      HookType = "gitea"
-	GOGS       HookType = "gogs"
-	SLACK      HookType = "slack"
-	DISCORD    HookType = "discord"
-	DINGTALK   HookType = "dingtalk"
-	TELEGRAM   HookType = "telegram"
-	MSTEAMS    HookType = "msteams"
-	FEISHU     HookType = "feishu"
-	MATRIX     HookType = "matrix"
-	WECHATWORK HookType = "wechatwork"
-	PACKAGIST  HookType = "packagist"
-)
-
-// HookStatus is the status of a web hook
-type HookStatus int
-
-// Possible statuses of a web hook
-const (
-	HookStatusNone = iota
-	HookStatusSucceed
-	HookStatusFail
-)
-
 // Webhook represents a web hook object.
 type Webhook struct {
-	ID              int64 `xorm:"pk autoincr"`
-	RepoID          int64 `xorm:"INDEX"` // An ID of 0 indicates either a default or system webhook
-	OrgID           int64 `xorm:"INDEX"`
-	IsSystemWebhook bool
-	URL             string `xorm:"url TEXT"`
-	HTTPMethod      string `xorm:"http_method"`
-	ContentType     HookContentType
-	Secret          string `xorm:"TEXT"`
-	Events          string `xorm:"TEXT"`
-	*HookEvent      `xorm:"-"`
-	IsActive        bool       `xorm:"INDEX"`
-	Type            HookType   `xorm:"VARCHAR(16) 'type'"`
-	Meta            string     `xorm:"TEXT"` // store hook-specific attributes
-	LastStatus      HookStatus // Last delivery status
+	ID                        int64 `xorm:"pk autoincr"`
+	RepoID                    int64 `xorm:"INDEX"` // An ID of 0 indicates either a default or system webhook
+	OwnerID                   int64 `xorm:"INDEX"`
+	IsSystemWebhook           bool
+	URL                       string `xorm:"url TEXT"`
+	HTTPMethod                string `xorm:"http_method"`
+	ContentType               HookContentType
+	Secret                    string `xorm:"TEXT"`
+	Events                    string `xorm:"TEXT"`
+	*webhook_module.HookEvent `xorm:"-"`
+	IsActive                  bool                      `xorm:"INDEX"`
+	Type                      webhook_module.HookType   `xorm:"VARCHAR(16) 'type'"`
+	Meta                      string                    `xorm:"TEXT"` // store hook-specific attributes
+	LastStatus                webhook_module.HookStatus // Last delivery status
 
 	// HeaderAuthorizationEncrypted should be accessed using HeaderAuthorization() and SetHeaderAuthorization()
 	HeaderAuthorizationEncrypted string `xorm:"TEXT"`
@@ -210,7 +148,7 @@ func init() {
 
 // AfterLoad updates the webhook object upon setting a column
 func (w *Webhook) AfterLoad() {
-	w.HookEvent = &HookEvent{}
+	w.HookEvent = &webhook_module.HookEvent{}
 	if err := json.Unmarshal([]byte(w.Events), w.HookEvent); err != nil {
 		log.Error("Unmarshal[%d]: %v", w.ID, err)
 	}
@@ -360,37 +298,44 @@ func (w *Webhook) HasPackageEvent() bool {
 		(w.ChooseEvents && w.HookEvents.Package)
 }
 
+// HasPullRequestReviewRequestEvent returns true if hook enabled pull request review request event.
+func (w *Webhook) HasPullRequestReviewRequestEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.PullRequestReviewRequest)
+}
+
 // EventCheckers returns event checkers
 func (w *Webhook) EventCheckers() []struct {
 	Has  func() bool
-	Type HookEventType
+	Type webhook_module.HookEventType
 } {
 	return []struct {
 		Has  func() bool
-		Type HookEventType
+		Type webhook_module.HookEventType
 	}{
-		{w.HasCreateEvent, HookEventCreate},
-		{w.HasDeleteEvent, HookEventDelete},
-		{w.HasForkEvent, HookEventFork},
-		{w.HasPushEvent, HookEventPush},
-		{w.HasIssuesEvent, HookEventIssues},
-		{w.HasIssuesAssignEvent, HookEventIssueAssign},
-		{w.HasIssuesLabelEvent, HookEventIssueLabel},
-		{w.HasIssuesMilestoneEvent, HookEventIssueMilestone},
-		{w.HasIssueCommentEvent, HookEventIssueComment},
-		{w.HasPullRequestEvent, HookEventPullRequest},
-		{w.HasPullRequestAssignEvent, HookEventPullRequestAssign},
-		{w.HasPullRequestLabelEvent, HookEventPullRequestLabel},
-		{w.HasPullRequestMilestoneEvent, HookEventPullRequestMilestone},
-		{w.HasPullRequestCommentEvent, HookEventPullRequestComment},
-		{w.HasPullRequestApprovedEvent, HookEventPullRequestReviewApproved},
-		{w.HasPullRequestRejectedEvent, HookEventPullRequestReviewRejected},
-		{w.HasPullRequestCommentEvent, HookEventPullRequestReviewComment},
-		{w.HasPullRequestSyncEvent, HookEventPullRequestSync},
-		{w.HasWikiEvent, HookEventWiki},
-		{w.HasRepositoryEvent, HookEventRepository},
-		{w.HasReleaseEvent, HookEventRelease},
-		{w.HasPackageEvent, HookEventPackage},
+		{w.HasCreateEvent, webhook_module.HookEventCreate},
+		{w.HasDeleteEvent, webhook_module.HookEventDelete},
+		{w.HasForkEvent, webhook_module.HookEventFork},
+		{w.HasPushEvent, webhook_module.HookEventPush},
+		{w.HasIssuesEvent, webhook_module.HookEventIssues},
+		{w.HasIssuesAssignEvent, webhook_module.HookEventIssueAssign},
+		{w.HasIssuesLabelEvent, webhook_module.HookEventIssueLabel},
+		{w.HasIssuesMilestoneEvent, webhook_module.HookEventIssueMilestone},
+		{w.HasIssueCommentEvent, webhook_module.HookEventIssueComment},
+		{w.HasPullRequestEvent, webhook_module.HookEventPullRequest},
+		{w.HasPullRequestAssignEvent, webhook_module.HookEventPullRequestAssign},
+		{w.HasPullRequestLabelEvent, webhook_module.HookEventPullRequestLabel},
+		{w.HasPullRequestMilestoneEvent, webhook_module.HookEventPullRequestMilestone},
+		{w.HasPullRequestCommentEvent, webhook_module.HookEventPullRequestComment},
+		{w.HasPullRequestApprovedEvent, webhook_module.HookEventPullRequestReviewApproved},
+		{w.HasPullRequestRejectedEvent, webhook_module.HookEventPullRequestReviewRejected},
+		{w.HasPullRequestCommentEvent, webhook_module.HookEventPullRequestReviewComment},
+		{w.HasPullRequestSyncEvent, webhook_module.HookEventPullRequestSync},
+		{w.HasWikiEvent, webhook_module.HookEventWiki},
+		{w.HasRepositoryEvent, webhook_module.HookEventRepository},
+		{w.HasReleaseEvent, webhook_module.HookEventRelease},
+		{w.HasPackageEvent, webhook_module.HookEventPackage},
+		{w.HasPullRequestReviewRequestEvent, webhook_module.HookEventPullRequestReviewRequest},
 	}
 }
 
@@ -454,7 +399,7 @@ func getWebhook(bean *Webhook) (*Webhook, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrWebhookNotExist{bean.ID}
+		return nil, ErrWebhookNotExist{ID: bean.ID}
 	}
 	return bean, nil
 }
@@ -474,11 +419,11 @@ func GetWebhookByRepoID(repoID, id int64) (*Webhook, error) {
 	})
 }
 
-// GetWebhookByOrgID returns webhook of organization by given ID.
-func GetWebhookByOrgID(orgID, id int64) (*Webhook, error) {
+// GetWebhookByOwnerID returns webhook of a user or organization by given ID.
+func GetWebhookByOwnerID(ownerID, id int64) (*Webhook, error) {
 	return getWebhook(&Webhook{
-		ID:    id,
-		OrgID: orgID,
+		ID:      id,
+		OwnerID: ownerID,
 	})
 }
 
@@ -486,7 +431,7 @@ func GetWebhookByOrgID(orgID, id int64) (*Webhook, error) {
 type ListWebhookOptions struct {
 	db.ListOptions
 	RepoID   int64
-	OrgID    int64
+	OwnerID  int64
 	IsActive util.OptionalBool
 }
 
@@ -495,8 +440,8 @@ func (opts *ListWebhookOptions) toCond() builder.Cond {
 	if opts.RepoID != 0 {
 		cond = cond.And(builder.Eq{"webhook.repo_id": opts.RepoID})
 	}
-	if opts.OrgID != 0 {
-		cond = cond.And(builder.Eq{"webhook.org_id": opts.OrgID})
+	if opts.OwnerID != 0 {
+		cond = cond.And(builder.Eq{"webhook.owner_id": opts.OwnerID})
 	}
 	if !opts.IsActive.IsNone() {
 		cond = cond.And(builder.Eq{"webhook.is_active": opts.IsActive.IsTrue()})
@@ -523,41 +468,6 @@ func ListWebhooksByOpts(ctx context.Context, opts *ListWebhookOptions) ([]*Webho
 // CountWebhooksByOpts count webhooks based on options and ignore pagination
 func CountWebhooksByOpts(opts *ListWebhookOptions) (int64, error) {
 	return db.GetEngine(db.DefaultContext).Where(opts.toCond()).Count(&Webhook{})
-}
-
-// GetDefaultWebhooks returns all admin-default webhooks.
-func GetDefaultWebhooks(ctx context.Context) ([]*Webhook, error) {
-	webhooks := make([]*Webhook, 0, 5)
-	return webhooks, db.GetEngine(ctx).
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, false).
-		Find(&webhooks)
-}
-
-// GetSystemOrDefaultWebhook returns admin system or default webhook by given ID.
-func GetSystemOrDefaultWebhook(id int64) (*Webhook, error) {
-	webhook := &Webhook{ID: id}
-	has, err := db.GetEngine(db.DefaultContext).
-		Where("repo_id=? AND org_id=?", 0, 0).
-		Get(webhook)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrWebhookNotExist{id}
-	}
-	return webhook, nil
-}
-
-// GetSystemWebhooks returns all admin system webhooks.
-func GetSystemWebhooks(ctx context.Context, isActive util.OptionalBool) ([]*Webhook, error) {
-	webhooks := make([]*Webhook, 0, 5)
-	if isActive.IsNone() {
-		return webhooks, db.GetEngine(ctx).
-			Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
-			Find(&webhooks)
-	}
-	return webhooks, db.GetEngine(ctx).
-		Where("repo_id=? AND org_id=? AND is_system_webhook=? AND is_active = ?", 0, 0, true, isActive.IsTrue()).
-		Find(&webhooks)
 }
 
 // UpdateWebhook updates information of webhook.
@@ -600,51 +510,10 @@ func DeleteWebhookByRepoID(repoID, id int64) error {
 	})
 }
 
-// DeleteWebhookByOrgID deletes webhook of organization by given ID.
-func DeleteWebhookByOrgID(orgID, id int64) error {
+// DeleteWebhookByOwnerID deletes webhook of a user or organization by given ID.
+func DeleteWebhookByOwnerID(ownerID, id int64) error {
 	return deleteWebhook(&Webhook{
-		ID:    id,
-		OrgID: orgID,
+		ID:      id,
+		OwnerID: ownerID,
 	})
-}
-
-// DeleteDefaultSystemWebhook deletes an admin-configured default or system webhook (where Org and Repo ID both 0)
-func DeleteDefaultSystemWebhook(id int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	count, err := db.GetEngine(ctx).
-		Where("repo_id=? AND org_id=?", 0, 0).
-		Delete(&Webhook{ID: id})
-	if err != nil {
-		return err
-	} else if count == 0 {
-		return ErrWebhookNotExist{ID: id}
-	}
-
-	if _, err := db.DeleteByBean(ctx, &HookTask{HookID: id}); err != nil {
-		return err
-	}
-
-	return committer.Commit()
-}
-
-// CopyDefaultWebhooksToRepo creates copies of the default webhooks in a new repo
-func CopyDefaultWebhooksToRepo(ctx context.Context, repoID int64) error {
-	ws, err := GetDefaultWebhooks(ctx)
-	if err != nil {
-		return fmt.Errorf("GetDefaultWebhooks: %w", err)
-	}
-
-	for _, w := range ws {
-		w.ID = 0
-		w.RepoID = repoID
-		if err := CreateWebhook(ctx, w); err != nil {
-			return fmt.Errorf("CreateWebhook: %w", err)
-		}
-	}
-	return nil
 }

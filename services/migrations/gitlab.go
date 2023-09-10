@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -15,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/structs"
@@ -138,13 +138,11 @@ func (g *GitlabDownloader) String() string {
 	return fmt.Sprintf("migration from gitlab server %s [%d]/%s", g.baseURL, g.repoID, g.repoName)
 }
 
-// ColorFormat provides a basic color format for a GitlabDownloader
-func (g *GitlabDownloader) ColorFormat(s fmt.State) {
+func (g *GitlabDownloader) LogString() string {
 	if g == nil {
-		log.ColorFprintf(s, "<nil: GitlabDownloader>")
-		return
+		return "<GitlabDownloader nil>"
 	}
-	log.ColorFprintf(s, "migration from gitlab server %s [%d]/%s", g.baseURL, g.repoID, g.repoName)
+	return fmt.Sprintf("<GitlabDownloader %s [%d]/%s>", g.baseURL, g.repoID, g.repoName)
 }
 
 // SetContext set context
@@ -353,8 +351,10 @@ func (g *GitlabDownloader) GetReleases() ([]*base.Release, error) {
 	releases := make([]*base.Release, 0, perPage)
 	for i := 1; ; i++ {
 		ls, _, err := g.client.Releases.ListReleases(g.repoID, &gitlab.ListReleasesOptions{
-			Page:    i,
-			PerPage: perPage,
+			ListOptions: gitlab.ListOptions{
+				Page:    i,
+				PerPage: perPage,
+			},
 		}, nil, gitlab.WithContext(g.ctx))
 		if err != nil {
 			return nil, err
@@ -414,7 +414,7 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 			milestone = issue.Milestone.Title
 		}
 
-		var reactions []*base.Reaction
+		var reactions []*gitlab.AwardEmoji
 		awardPage := 1
 		for {
 			awards, _, err := g.client.AwardEmoji.ListIssueAwardEmoji(g.repoID, issue.IID, &gitlab.ListAwardEmojiOptions{Page: awardPage, PerPage: perPage}, gitlab.WithContext(g.ctx))
@@ -422,9 +422,7 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 				return nil, false, fmt.Errorf("error while listing issue awards: %w", err)
 			}
 
-			for i := range awards {
-				reactions = append(reactions, g.awardToReaction(awards[i]))
-			}
+			reactions = append(reactions, awards...)
 
 			if len(awards) < perPage {
 				break
@@ -443,7 +441,7 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 			State:        issue.State,
 			Created:      *issue.CreatedAt,
 			Labels:       labels,
-			Reactions:    reactions,
+			Reactions:    g.awardsToReactions(reactions),
 			Closed:       issue.ClosedAt,
 			IsLocked:     issue.DiscussionLocked,
 			Updated:      *issue.UpdatedAt,
@@ -578,7 +576,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			milestone = pr.Milestone.Title
 		}
 
-		var reactions []*base.Reaction
+		var reactions []*gitlab.AwardEmoji
 		awardPage := 1
 		for {
 			awards, _, err := g.client.AwardEmoji.ListMergeRequestAwardEmoji(g.repoID, pr.IID, &gitlab.ListAwardEmojiOptions{Page: awardPage, PerPage: perPage}, gitlab.WithContext(g.ctx))
@@ -586,9 +584,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 				return nil, false, fmt.Errorf("error while listing merge requests awards: %w", err)
 			}
 
-			for i := range awards {
-				reactions = append(reactions, g.awardToReaction(awards[i]))
-			}
+			reactions = append(reactions, awards...)
 
 			if len(awards) < perPage {
 				break
@@ -615,7 +611,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			MergeCommitSHA: pr.MergeCommitSHA,
 			MergedTime:     mergeTime,
 			IsLocked:       locked,
-			Reactions:      reactions,
+			Reactions:      g.awardsToReactions(reactions),
 			Head: base.PullRequestBranch{
 				Ref:       pr.SourceBranch,
 				SHA:       pr.SHA,
@@ -676,10 +672,18 @@ func (g *GitlabDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Revie
 	return reviews, nil
 }
 
-func (g *GitlabDownloader) awardToReaction(award *gitlab.AwardEmoji) *base.Reaction {
-	return &base.Reaction{
-		UserID:   int64(award.User.ID),
-		UserName: award.User.Username,
-		Content:  award.Name,
+func (g *GitlabDownloader) awardsToReactions(awards []*gitlab.AwardEmoji) []*base.Reaction {
+	result := make([]*base.Reaction, 0, len(awards))
+	uniqCheck := make(container.Set[string])
+	for _, award := range awards {
+		uid := fmt.Sprintf("%s%d", award.Name, award.User.ID)
+		if uniqCheck.Add(uid) {
+			result = append(result, &base.Reaction{
+				UserID:   int64(award.User.ID),
+				UserName: award.User.Username,
+				Content:  award.Name,
+			})
+		}
 	}
+	return result
 }

@@ -1,10 +1,10 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package healthcheck
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"time"
@@ -73,7 +73,7 @@ func Check(w http.ResponseWriter, r *http.Request) {
 
 	statuses := make([]status, 0)
 	if setting.InstallLock {
-		statuses = append(statuses, checkDatabase(rsp.Checks))
+		statuses = append(statuses, checkDatabase(r.Context(), rsp.Checks))
 		statuses = append(statuses, checkCache(rsp.Checks))
 	}
 	for _, s := range statuses {
@@ -90,9 +90,9 @@ func Check(w http.ResponseWriter, r *http.Request) {
 }
 
 // database checks gitea database status
-func checkDatabase(checks checks) status {
+func checkDatabase(ctx context.Context, checks checks) status {
 	st := componentStatus{}
-	if err := db.GetEngine(db.DefaultContext).Ping(); err != nil {
+	if err := db.GetEngine(ctx).Ping(); err != nil {
 		st.Status = fail
 		st.Time = getCheckTime()
 		log.Error("database ping failed with error: %v", err)
@@ -101,7 +101,7 @@ func checkDatabase(checks checks) status {
 		st.Time = getCheckTime()
 	}
 
-	if setting.Database.UseSQLite3 && st.Status == pass {
+	if setting.Database.Type.IsSQLite3() && st.Status == pass {
 		if !setting.EnableSQLite3 {
 			st.Status = fail
 			st.Time = getCheckTime()

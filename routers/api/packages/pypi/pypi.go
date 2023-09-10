@@ -1,14 +1,14 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pypi
 
 import (
-	"fmt"
+	"encoding/hex"
 	"io"
 	"net/http"
 	"regexp"
+	"sort"
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -22,8 +22,10 @@ import (
 )
 
 // https://peps.python.org/pep-0426/#name
-var normalizer = strings.NewReplacer(".", "-", "_", "-")
-var nameMatcher = regexp.MustCompile(`\A(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\.\-_]*[a-zA-Z0-9])\z`)
+var (
+	normalizer  = strings.NewReplacer(".", "-", "_", "-")
+	nameMatcher = regexp.MustCompile(`\A(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\.\-_]*[a-zA-Z0-9])\z`)
+)
 
 // https://peps.python.org/pep-0440/#appendix-b-parsing-version-strings-with-regular-expressions
 var versionMatcher = regexp.MustCompile(`\Av?` +
@@ -35,7 +37,7 @@ var versionMatcher = regexp.MustCompile(`\Av?` +
 	`(?:\+[a-z0-9]+(?:[-_\.][a-z0-9]+)*)?` + // local version
 	`\z`)
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
@@ -61,6 +63,11 @@ func PackageMetadata(ctx *context.Context) {
 		return
 	}
 
+	// sort package descriptors by version to mimic PyPI format
+	sort.Slice(pds, func(i, j int) bool {
+		return strings.Compare(pds[i].Version.Version, pds[j].Version.Version) < 0
+	})
+
 	ctx.Data["RegistryURL"] = setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/pypi"
 	ctx.Data["PackageDescriptor"] = pds[0]
 	ctx.Data["PackageDescriptors"] = pds
@@ -73,7 +80,7 @@ func DownloadPackageFile(ctx *context.Context) {
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")
 
-	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -93,12 +100,8 @@ func DownloadPackageFile(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	defer s.Close()
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }
 
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
@@ -110,7 +113,7 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer file.Close()
 
-	buf, err := packages_module.CreateHashedBufferFromReader(file, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(file)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -119,7 +122,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 	_, _, hashSHA256, _ := buf.Sums()
 
-	if !strings.EqualFold(ctx.Req.FormValue("sha256_digest"), fmt.Sprintf("%x", hashSHA256)) {
+	if !strings.EqualFold(ctx.Req.FormValue("sha256_digest"), hex.EncodeToString(hashSHA256)) {
 		apiError(ctx, http.StatusBadRequest, "hash mismatch")
 		return
 	}

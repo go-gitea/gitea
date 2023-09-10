@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -15,13 +14,12 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
-	mirror_module "code.gitea.io/gitea/modules/mirror"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
@@ -71,7 +69,7 @@ func MirrorSync(ctx *context.APIContext) {
 		return
 	}
 
-	mirror_module.AddPullMirrorToQueue(repo.ID)
+	mirror_service.AddPullMirrorToQueue(repo.ID)
 
 	ctx.Status(http.StatusOK)
 }
@@ -259,7 +257,7 @@ func AddPushMirror(ctx *context.APIContext) {
 	//   schema:
 	//     "$ref": "#/definitions/CreatePushMirrorOption"
 	// responses:
-	//   "201":
+	//   "200":
 	//     "$ref": "#/responses/PushMirror"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
@@ -346,10 +344,11 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 	}
 
 	pushMirror := &repo_model.PushMirror{
-		RepoID:     repo.ID,
-		Repo:       repo,
-		RemoteName: fmt.Sprintf("remote_mirror_%s", remoteSuffix),
-		Interval:   interval,
+		RepoID:       repo.ID,
+		Repo:         repo,
+		RemoteName:   fmt.Sprintf("remote_mirror_%s", remoteSuffix),
+		Interval:     interval,
+		SyncOnCommit: mirrorOption.SyncOnCommit,
 	}
 
 	if err = repo_model.InsertPushMirror(ctx, pushMirror); err != nil {

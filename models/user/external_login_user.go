@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -58,11 +57,11 @@ func (err ErrExternalLoginUserNotExist) Unwrap() error {
 
 // ExternalLoginUser makes the connecting between some existing user and additional external login sources
 type ExternalLoginUser struct {
-	ExternalID        string                 `xorm:"pk NOT NULL"`
-	UserID            int64                  `xorm:"INDEX NOT NULL"`
-	LoginSourceID     int64                  `xorm:"pk NOT NULL"`
-	RawData           map[string]interface{} `xorm:"TEXT JSON"`
-	Provider          string                 `xorm:"index VARCHAR(25)"`
+	ExternalID        string         `xorm:"pk NOT NULL"`
+	UserID            int64          `xorm:"INDEX NOT NULL"`
+	LoginSourceID     int64          `xorm:"pk NOT NULL"`
+	RawData           map[string]any `xorm:"TEXT JSON"`
+	Provider          string         `xorm:"index VARCHAR(25)"`
 	Email             string
 	Name              string
 	FirstName         string

@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -16,11 +15,12 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
+	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -39,7 +39,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	srcRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	mirrorRepo, err := repository.CreateRepository(user, user, repository.CreateRepoOptions{
+	mirrorRepo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, user, repo_service.CreateRepoOptions{
 		Name: "test-push-mirror",
 	})
 	assert.NoError(t, err)
@@ -92,7 +92,7 @@ func doCreatePushMirror(ctx APITestContext, address, username, password string) 
 		})
 		ctx.Session.MakeRequest(t, req, http.StatusSeeOther)
 
-		flashCookie := ctx.Session.GetCookie("macaron_flash")
+		flashCookie := ctx.Session.GetCookie(gitea_context.CookieNameFlash)
 		assert.NotNil(t, flashCookie)
 		assert.Contains(t, flashCookie.Value, "success")
 	}
@@ -113,7 +113,7 @@ func doRemovePushMirror(ctx APITestContext, address, username, password string, 
 		})
 		ctx.Session.MakeRequest(t, req, http.StatusSeeOther)
 
-		flashCookie := ctx.Session.GetCookie("macaron_flash")
+		flashCookie := ctx.Session.GetCookie(gitea_context.CookieNameFlash)
 		assert.NotNil(t, flashCookie)
 		assert.Contains(t, flashCookie.Value, "success")
 	}

@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -9,6 +8,7 @@ import (
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -22,10 +22,10 @@ func TestAPIFollow(t *testing.T) {
 	user2 := "user1"
 
 	session1 := loginUser(t, user1)
-	token1 := getTokenForLoggedInUser(t, session1)
+	token1 := getTokenForLoggedInUser(t, session1, auth_model.AccessTokenScopeReadUser)
 
 	session2 := loginUser(t, user2)
-	token2 := getTokenForLoggedInUser(t, session2)
+	token2 := getTokenForLoggedInUser(t, session2, auth_model.AccessTokenScopeWriteUser)
 
 	t.Run("Follow", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()

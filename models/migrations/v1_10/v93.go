@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_10 //nolint
 
@@ -12,5 +11,5 @@ func AddEmailNotificationEnabledToUser(x *xorm.Engine) error {
 		EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`
 	}
 
-	return x.Sync2(new(User))
+	return x.Sync(new(User))
 }

@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package rubygems
 
@@ -13,7 +12,7 @@ import (
 
 func TestMinimalEncoder(t *testing.T) {
 	cases := []struct {
-		Value    interface{}
+		Value    any
 		Expected []byte
 		Error    error
 	}{
@@ -74,7 +73,7 @@ func TestMinimalEncoder(t *testing.T) {
 		{
 			Value: &RubyObject{
 				Name: "Test",
-				Member: map[string]interface{}{
+				Member: map[string]any{
 					"test": 4,
 				},
 			},

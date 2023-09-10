@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -17,6 +16,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -43,8 +44,8 @@ const (
 )
 
 // setCompareContext sets context data.
-func setCompareContext(ctx *context.Context, base, head *git.Commit, headOwner, headName string) {
-	ctx.Data["BaseCommit"] = base
+func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner, headName string) {
+	ctx.Data["BeforeCommit"] = before
 	ctx.Data["HeadCommit"] = head
 
 	ctx.Data["GetBlobByPathForCommit"] = func(commit *git.Commit, path string) *git.Blob {
@@ -59,7 +60,7 @@ func setCompareContext(ctx *context.Context, base, head *git.Commit, headOwner, 
 		return blob
 	}
 
-	setPathsCompareContext(ctx, base, head, headOwner, headName)
+	setPathsCompareContext(ctx, before, head, headOwner, headName)
 	setImageCompareContext(ctx)
 	setCsvCompareContext(ctx)
 }
@@ -270,7 +271,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 				ci.HeadRepo = baseRepo
 			}
 		} else {
-			ci.HeadRepo, err = repo_model.GetRepositoryByOwnerAndName(headInfosSplit[0], headInfosSplit[1])
+			ci.HeadRepo, err = repo_model.GetRepositoryByOwnerAndName(ctx, headInfosSplit[0], headInfosSplit[1])
 			if err != nil {
 				if repo_model.IsErrRepoNotExist(err) {
 					ctx.NotFound("GetRepositoryByOwnerAndName", nil)
@@ -279,7 +280,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 				}
 				return nil
 			}
-			if err := ci.HeadRepo.GetOwner(ctx); err != nil {
+			if err := ci.HeadRepo.LoadOwner(ctx); err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					ctx.NotFound("GetUserByName", nil)
 				} else {
@@ -340,7 +341,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// forked from
 	var rootRepo *repo_model.Repository
 	if baseRepo.IsFork {
-		err = baseRepo.GetBaseRepo()
+		err = baseRepo.GetBaseRepo(ctx)
 		if err != nil {
 			if !repo_model.IsErrRepoNotExist(err) {
 				ctx.ServerError("Unable to find root repo", err)
@@ -551,7 +552,11 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ctx.ServerError("GetCompareInfo", err)
 		return nil
 	}
-	ctx.Data["BeforeCommitID"] = ci.CompareInfo.MergeBase
+	if ci.DirectComparison {
+		ctx.Data["BeforeCommitID"] = ci.CompareInfo.BaseCommitID
+	} else {
+		ctx.Data["BeforeCommitID"] = ci.CompareInfo.MergeBase
+	}
 
 	return ci
 }
@@ -560,7 +565,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 func PrepareCompareDiff(
 	ctx *context.Context,
 	ci *CompareInfo,
-	whitespaceBehavior git.CmdArg,
+	whitespaceBehavior git.TrustedCmdArgs,
 ) bool {
 	var (
 		repo  = ctx.Repo.Repository
@@ -578,7 +583,7 @@ func PrepareCompareDiff(
 	if (headCommitID == ci.CompareInfo.MergeBase && !ci.DirectComparison) ||
 		headCommitID == ci.CompareInfo.BaseCommitID {
 		ctx.Data["IsNothingToCompare"] = true
-		if unit, err := repo.GetUnit(unit.TypePullRequests); err == nil {
+		if unit, err := repo.GetUnit(ctx, unit.TypePullRequests); err == nil {
 			config := unit.PullRequestsConfig()
 
 			if !config.AutodetectManualMerge {
@@ -629,15 +634,14 @@ func PrepareCompareDiff(
 	}
 
 	baseGitRepo := ctx.Repo.GitRepo
-	baseCommitID := ci.CompareInfo.BaseCommitID
 
-	baseCommit, err := baseGitRepo.GetCommit(baseCommitID)
+	beforeCommit, err := baseGitRepo.GetCommit(beforeCommitID)
 	if err != nil {
 		ctx.ServerError("GetCommit", err)
 		return false
 	}
 
-	commits := git_model.ConvertFromGitCommit(ci.CompareInfo.Commits, ci.HeadRepo)
+	commits := git_model.ConvertFromGitCommit(ctx, ci.CompareInfo.Commits, ci.HeadRepo)
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = len(commits)
 
@@ -668,7 +672,7 @@ func PrepareCompareDiff(
 	ctx.Data["Username"] = ci.HeadUser.Name
 	ctx.Data["Reponame"] = ci.HeadRepo.Name
 
-	setCompareContext(ctx, baseCommit, headCommit, ci.HeadUser.Name, repo.Name)
+	setCompareContext(ctx, beforeCommit, headCommit, ci.HeadUser.Name, repo.Name)
 
 	return false
 }
@@ -680,7 +684,13 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 	}
 	defer gitRepo.Close()
 
-	branches, _, err = gitRepo.GetBranchNames(0, 0)
+	branches, err = git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+		RepoID: repo.ID,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		IsDeletedBranch: util.OptionalBoolFalse,
+	})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -718,10 +728,9 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
-	baseGitRepo := ctx.Repo.GitRepo
-	baseTags, err := baseGitRepo.GetTags(0, 0)
+	baseTags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("GetTags", err)
+		ctx.ServerError("GetTagNamesByRepoID", err)
 		return
 	}
 	ctx.Data["Tags"] = baseTags
@@ -732,16 +741,28 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
-	headBranches, _, err := ci.HeadGitRepo.GetBranchNames(0, 0)
+	headBranches, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+		RepoID: ci.HeadRepo.ID,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		IsDeletedBranch: util.OptionalBoolFalse,
+	})
 	if err != nil {
 		ctx.ServerError("GetBranches", err)
 		return
 	}
 	ctx.Data["HeadBranches"] = headBranches
 
-	headTags, err := ci.HeadGitRepo.GetTags(0, 0)
+	// For compare repo branches
+	PrepareBranchList(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	headTags, err := repo_model.GetTagNamesByRepoID(ctx, ci.HeadRepo.ID)
 	if err != nil {
-		ctx.ServerError("GetTags", err)
+		ctx.ServerError("GetTagNamesByRepoID", err)
 		return
 	}
 	ctx.Data["HeadTags"] = headTags
@@ -783,22 +804,34 @@ func CompareDiff(ctx *context.Context) {
 
 	ctx.Data["IsRepoToolbarCommits"] = true
 	ctx.Data["IsDiffCompare"] = true
-	ctx.Data["RequireTribute"] = true
 	templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
 
 	if len(templateErrs) > 0 {
 		ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
 	}
 
-	// If a template content is set, prepend the "content". In this case that's only
-	// applicable if you have one commit to compare and that commit has a message.
-	// In that case the commit message will be prepend to the template body.
-	if templateContent, ok := ctx.Data[pullRequestTemplateKey].(string); ok && templateContent != "" {
-		if content, ok := ctx.Data["content"].(string); ok && content != "" {
+	if content, ok := ctx.Data["content"].(string); ok && content != "" {
+		// If a template content is set, prepend the "content". In this case that's only
+		// applicable if you have one commit to compare and that commit has a message.
+		// In that case the commit message will be prepend to the template body.
+		if templateContent, ok := ctx.Data[pullRequestTemplateKey].(string); ok && templateContent != "" {
 			// Re-use the same key as that's priortized over the "content" key.
 			// Add two new lines between the content to ensure there's always at least
 			// one empty line between them.
 			ctx.Data[pullRequestTemplateKey] = content + "\n\n" + templateContent
+		}
+
+		// When using form fields, also add content to field with id "body".
+		if fields, ok := ctx.Data["Fields"].([]*api.IssueFormField); ok {
+			for _, field := range fields {
+				if field.ID == "body" {
+					if fieldValue, ok := field.Attributes["value"].(string); ok && fieldValue != "" {
+						field.Attributes["value"] = content + "\n\n" + fieldValue
+					} else {
+						field.Attributes["value"] = content
+					}
+				}
+			}
 		}
 	}
 
@@ -806,6 +839,13 @@ func CompareDiff(ctx *context.Context) {
 	upload.AddUploadContext(ctx, "comment")
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypePullRequests)
+
+	if unit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypePullRequests); err == nil {
+		config := unit.PullRequestsConfig()
+		ctx.Data["AllowMaintainerEdit"] = config.DefaultAllowMaintainerEdit
+	} else {
+		ctx.Data["AllowMaintainerEdit"] = false
+	}
 
 	ctx.HTML(http.StatusOK, tplCompare)
 }

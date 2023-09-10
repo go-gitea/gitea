@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package notify
 
@@ -26,7 +25,7 @@ func NewAvailable(ctx *context.APIContext) {
 }
 
 func getFindNotificationOptions(ctx *context.APIContext) *activities_model.FindNotificationOptions {
-	before, since, err := context.GetQueryBeforeSince(ctx.Context)
+	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return nil

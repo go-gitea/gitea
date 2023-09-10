@@ -1,18 +1,47 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package util
 
-// RemoveIDFromList removes the given ID from the slice, if found.
-// It does not preserve order, and assumes the ID is unique.
-func RemoveIDFromList(list []int64, id int64) ([]int64, bool) {
-	n := len(list) - 1
-	for i, item := range list {
-		if item == id {
-			list[i] = list[n]
-			return list[:n], true
+import (
+	"slices"
+	"strings"
+)
+
+// SliceContainsString sequential searches if string exists in slice.
+func SliceContainsString(slice []string, target string, insensitive ...bool) bool {
+	if len(insensitive) != 0 && insensitive[0] {
+		target = strings.ToLower(target)
+		return slices.ContainsFunc(slice, func(t string) bool { return strings.ToLower(t) == target })
+	}
+
+	return slices.Contains(slice, target)
+}
+
+// SliceSortedEqual returns true if the two slices will be equal when they get sorted.
+// It doesn't require that the slices have been sorted, and it doesn't sort them either.
+func SliceSortedEqual[T comparable](s1, s2 []T) bool {
+	if len(s1) != len(s2) {
+		return false
+	}
+
+	counts := make(map[T]int, len(s1))
+	for _, v := range s1 {
+		counts[v]++
+	}
+	for _, v := range s2 {
+		counts[v]--
+	}
+
+	for _, v := range counts {
+		if v != 0 {
+			return false
 		}
 	}
-	return list, false
+	return true
+}
+
+// SliceRemoveAll removes all the target elements from the slice.
+func SliceRemoveAll[T comparable](slice []T, target T) []T {
+	return slices.DeleteFunc(slice, func(t T) bool { return t == target })
 }

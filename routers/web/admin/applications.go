@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package admin
 
@@ -32,7 +31,6 @@ func newOAuth2CommonHandlers() *user_setting.OAuth2CommonHandlers {
 // Applications render org applications page (for org, at the moment, there are only OAuth2 applications)
 func Applications(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.applications")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminApplications"] = true
 
 	apps, err := auth.GetOAuth2ApplicationsByUserID(ctx, 0)
@@ -41,14 +39,13 @@ func Applications(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Applications"] = apps
-
+	ctx.Data["BuiltinApplications"] = auth.BuiltinApplications()
 	ctx.HTML(http.StatusOK, tplSettingsApplications)
 }
 
 // ApplicationsPost response for adding an oauth2 application
 func ApplicationsPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.applications")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminApplications"] = true
 
 	oa := newOAuth2CommonHandlers()
@@ -57,7 +54,6 @@ func ApplicationsPost(ctx *context.Context) {
 
 // EditApplication displays the given application
 func EditApplication(ctx *context.Context) {
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminApplications"] = true
 
 	oa := newOAuth2CommonHandlers()
@@ -67,7 +63,6 @@ func EditApplication(ctx *context.Context) {
 // EditApplicationPost response for editing oauth2 application
 func EditApplicationPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.applications")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminApplications"] = true
 
 	oa := newOAuth2CommonHandlers()
@@ -77,7 +72,6 @@ func EditApplicationPost(ctx *context.Context) {
 // ApplicationsRegenerateSecret handles the post request for regenerating the secret
 func ApplicationsRegenerateSecret(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminApplications"] = true
 
 	oa := newOAuth2CommonHandlers()

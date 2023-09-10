@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_11 //nolint
 
@@ -17,10 +16,10 @@ type Watch struct {
 	Mode RepoWatchMode `xorm:"SMALLINT NOT NULL DEFAULT 1"`
 }
 
-func AddModeColumnToWatch(x *xorm.Engine) (err error) {
-	if err = x.Sync2(new(Watch)); err != nil {
-		return
+func AddModeColumnToWatch(x *xorm.Engine) error {
+	if err := x.Sync(new(Watch)); err != nil {
+		return err
 	}
-	_, err = x.Exec("UPDATE `watch` SET `mode` = 1")
+	_, err := x.Exec("UPDATE `watch` SET `mode` = 1")
 	return err
 }

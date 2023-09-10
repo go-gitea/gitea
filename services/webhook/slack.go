@@ -1,6 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package webhook
 
@@ -16,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
 // SlackMeta contains the slack metadata
@@ -93,7 +93,7 @@ func SlackLinkFormatter(url, text string) string {
 // SlackLinkToRef slack-formatter link to a repo ref
 func SlackLinkToRef(repoURL, ref string) string {
 	url := git.RefURL(repoURL, ref)
-	refName := git.RefEndName(ref)
+	refName := git.RefName(ref).ShortName()
 	return SlackLinkFormatter(url, refName)
 }
 
@@ -110,7 +110,7 @@ func (s *SlackPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 
 // Delete composes Slack payload for delete a branch or tag.
 func (s *SlackPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	repoLink := SlackLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	text := fmt.Sprintf("[%s:%s] %s deleted by %s", repoLink, refName, p.RefType, p.Sender.UserName)
 
@@ -232,7 +232,7 @@ func (s *SlackPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, er
 }
 
 // Review implements PayloadConvertor Review method
-func (s *SlackPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
+func (s *SlackPayload) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (api.Payloader, error) {
 	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
 	title := fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title)
 	titleLink := fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index)
@@ -279,7 +279,7 @@ func (s *SlackPayload) createPayload(text string, attachments []SlackAttachment)
 }
 
 // GetSlackPayload converts a slack webhook into a SlackPayload
-func GetSlackPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetSlackPayload(p api.Payloader, event webhook_module.HookEventType, meta string) (api.Payloader, error) {
 	s := new(SlackPayload)
 
 	slack := &SlackMeta{}

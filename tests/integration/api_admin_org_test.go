@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -10,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -21,7 +21,7 @@ import (
 func TestAPIAdminOrgCreate(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		session := loginUser(t, "user1")
-		token := getTokenForLoggedInUser(t, session)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteAdmin)
 
 		org := api.CreateOrgOption{
 			UserName:    "user2_org",
@@ -32,7 +32,7 @@ func TestAPIAdminOrgCreate(t *testing.T) {
 			Visibility:  "private",
 		}
 		req := NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/orgs?token="+token, &org)
-		resp := session.MakeRequest(t, req, http.StatusCreated)
+		resp := MakeRequest(t, req, http.StatusCreated)
 
 		var apiOrg api.Organization
 		DecodeJSON(t, resp, &apiOrg)
@@ -55,7 +55,7 @@ func TestAPIAdminOrgCreate(t *testing.T) {
 func TestAPIAdminOrgCreateBadVisibility(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		session := loginUser(t, "user1")
-		token := getTokenForLoggedInUser(t, session)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteAdmin)
 
 		org := api.CreateOrgOption{
 			UserName:    "user2_org",
@@ -66,7 +66,7 @@ func TestAPIAdminOrgCreateBadVisibility(t *testing.T) {
 			Visibility:  "notvalid",
 		}
 		req := NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/orgs?token="+token, &org)
-		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
 	})
 }
 
@@ -84,5 +84,5 @@ func TestAPIAdminOrgCreateNotAdmin(t *testing.T) {
 		Visibility:  "public",
 	}
 	req := NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/orgs?token="+token, &org)
-	session.MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusForbidden)
 }

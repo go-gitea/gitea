@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package middleware
 
@@ -26,7 +25,7 @@ func init() {
 }
 
 // AssignForm assign form values back to the template data.
-func AssignForm(form interface{}, data map[string]interface{}) {
+func AssignForm(form any, data map[string]any) {
 	typ := reflect.TypeOf(form)
 	val := reflect.ValueOf(form)
 
@@ -80,7 +79,7 @@ func GetInclude(field reflect.StructField) string {
 }
 
 // Validate validate TODO:
-func Validate(errs binding.Errors, data map[string]interface{}, f Form, l translation.Locale) binding.Errors {
+func Validate(errs binding.Errors, data map[string]any, f Form, l translation.Locale) binding.Errors {
 	if errs.Len() == 0 {
 		return errs
 	}
@@ -137,6 +136,8 @@ func Validate(errs binding.Errors, data map[string]interface{}, f Form, l transl
 				data["ErrorMsg"] = trName + l.Tr("form.regex_pattern_error", errs[0].Message)
 			case validation.ErrUsername:
 				data["ErrorMsg"] = trName + l.Tr("form.username_error")
+			case validation.ErrInvalidGroupTeamMap:
+				data["ErrorMsg"] = trName + l.Tr("form.invalid_group_team_map_error", errs[0].Message)
 			default:
 				msg := errs[0].Classification
 				if msg != "" && errs[0].Message != "" {

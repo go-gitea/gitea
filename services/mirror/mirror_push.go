@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package mirror
 
@@ -38,10 +37,10 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 		if _, _, err := cmd.RunStdString(&git.RunOpts{Dir: path}); err != nil {
 			return err
 		}
-		if _, _, err := git.NewCommand(ctx, "config", "--add", git.CmdArg("remote."+m.RemoteName+".push"), "+refs/heads/*:refs/heads/*").RunStdString(&git.RunOpts{Dir: path}); err != nil {
+		if _, _, err := git.NewCommand(ctx, "config", "--add").AddDynamicArguments("remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*").RunStdString(&git.RunOpts{Dir: path}); err != nil {
 			return err
 		}
-		if _, _, err := git.NewCommand(ctx, "config", "--add", git.CmdArg("remote."+m.RemoteName+".push"), "+refs/tags/*:refs/tags/*").RunStdString(&git.RunOpts{Dir: path}); err != nil {
+		if _, _, err := git.NewCommand(ctx, "config", "--add").AddDynamicArguments("remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*").RunStdString(&git.RunOpts{Dir: path}); err != nil {
 			return err
 		}
 		return nil
@@ -253,4 +252,16 @@ func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, lfsClient l
 	}
 
 	return nil
+}
+
+func syncPushMirrorWithSyncOnCommit(ctx context.Context, repoID int64) {
+	pushMirrors, err := repo_model.GetPushMirrorsSyncedOnCommit(ctx, repoID)
+	if err != nil {
+		log.Error("repo_model.GetPushMirrorsSyncedOnCommit failed: %v", err)
+		return
+	}
+
+	for _, mirror := range pushMirrors {
+		AddPushMirrorToQueue(mirror.ID)
+	}
 }

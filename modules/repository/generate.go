@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -12,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -49,7 +49,7 @@ var defaultTransformers = []transformer{
 	{Name: "TITLE", Transform: util.ToTitleCase},
 }
 
-func generateExpansion(src string, templateRepo, generateRepo *repo_model.Repository) string {
+func generateExpansion(src string, templateRepo, generateRepo *repo_model.Repository, sanitizeFileName bool) string {
 	expansions := []expansion{
 		{Name: "REPO_NAME", Value: generateRepo.Name, Transformers: defaultTransformers},
 		{Name: "TEMPLATE_NAME", Value: templateRepo.Name, Transformers: defaultTransformers},
@@ -75,6 +75,9 @@ func generateExpansion(src string, templateRepo, generateRepo *repo_model.Reposi
 
 	return os.Expand(src, func(key string) string {
 		if expansion, ok := expansionMap[key]; ok {
+			if sanitizeFileName {
+				return fileNameSanitize(expansion)
+			}
 			return expansion
 		}
 		return key
@@ -174,12 +177,12 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		// Avoid walking tree if there are no globs
 		if len(gt.Globs()) > 0 {
 			tmpDirSlash := strings.TrimSuffix(filepath.ToSlash(tmpDir), "/") + "/"
-			if err := filepath.Walk(tmpDirSlash, func(path string, info os.FileInfo, walkErr error) error {
+			if err := filepath.WalkDir(tmpDirSlash, func(path string, d os.DirEntry, walkErr error) error {
 				if walkErr != nil {
 					return walkErr
 				}
 
-				if info.IsDir() {
+				if d.IsDir() {
 					return nil
 				}
 
@@ -192,10 +195,24 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 						}
 
 						if err := os.WriteFile(path,
-							[]byte(generateExpansion(string(content), templateRepo, generateRepo)),
+							[]byte(generateExpansion(string(content), templateRepo, generateRepo, false)),
 							0o644); err != nil {
 							return err
 						}
+
+						substPath := filepath.FromSlash(filepath.Join(tmpDirSlash,
+							generateExpansion(base, templateRepo, generateRepo, true)))
+
+						// Create parent subdirectories if needed or continue silently if it exists
+						if err := os.MkdirAll(filepath.Dir(substPath), 0o755); err != nil {
+							return err
+						}
+
+						// Substitute filename variables
+						if err := os.Rename(path, substPath); err != nil {
+							return err
+						}
+
 						break
 					}
 				}
@@ -224,7 +241,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		defaultBranch = templateRepo.DefaultBranch
 	}
 
-	return initRepoCommit(ctx, tmpDir, repo, repo.Owner, defaultBranch)
+	return InitRepoCommit(ctx, tmpDir, repo, repo.Owner, defaultBranch)
 }
 
 func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository) (err error) {
@@ -244,7 +261,7 @@ func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *r
 	}
 
 	// re-fetch repo
-	if repo, err = repo_model.GetRepositoryByIDCtx(ctx, repo.ID); err != nil {
+	if repo, err = repo_model.GetRepositoryByID(ctx, repo.ID); err != nil {
 		return fmt.Errorf("getRepositoryByID: %w", err)
 	}
 
@@ -286,21 +303,23 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_mo
 
 // GenerateRepoOptions contains the template units to generate
 type GenerateRepoOptions struct {
-	Name          string
-	DefaultBranch string
-	Description   string
-	Private       bool
-	GitContent    bool
-	Topics        bool
-	GitHooks      bool
-	Webhooks      bool
-	Avatar        bool
-	IssueLabels   bool
+	Name            string
+	DefaultBranch   string
+	Description     string
+	Private         bool
+	GitContent      bool
+	Topics          bool
+	GitHooks        bool
+	Webhooks        bool
+	Avatar          bool
+	IssueLabels     bool
+	ProtectedBranch bool
 }
 
 // IsValid checks whether at least one option is chosen for generation
 func (gro GenerateRepoOptions) IsValid() bool {
-	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks || gro.Avatar || gro.IssueLabels // or other items as they are added
+	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks || gro.Avatar ||
+		gro.IssueLabels || gro.ProtectedBranch // or other items as they are added
 }
 
 // GenerateRepository generates a repository from a template
@@ -320,7 +339,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		TrustModel:    templateRepo.TrustModel,
 	}
 
-	if err = CreateRepositoryByExample(ctx, doer, owner, generateRepo, false); err != nil {
+	if err = CreateRepositoryByExample(ctx, doer, owner, generateRepo, false, false); err != nil {
 		return nil, err
 	}
 
@@ -337,7 +356,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		}
 	}
 
-	if err = checkInitRepository(ctx, owner.Name, generateRepo.Name); err != nil {
+	if err = CheckInitRepository(ctx, owner.Name, generateRepo.Name); err != nil {
 		return generateRepo, err
 	}
 
@@ -353,4 +372,14 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	}
 
 	return generateRepo, nil
+}
+
+var fileNameSanitizeRegexp = regexp.MustCompile(`(?i)\.\.|[<>:\"/\\|?*\x{0000}-\x{001F}]|^(con|prn|aux|nul|com\d|lpt\d)$`)
+
+// Sanitize user input to valid OS filenames
+//
+//		Based on https://github.com/sindresorhus/filename-reserved-regex
+//	 Adds ".." to prevent directory traversal
+func fileNameSanitize(s string) string {
+	return strings.TrimSpace(fileNameSanitizeRegexp.ReplaceAllString(s, "_"))
 }

@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
@@ -318,7 +317,14 @@ func UpdateSource(source *Source) error {
 		}
 	}
 
-	_, err := db.GetEngine(db.DefaultContext).ID(source.ID).AllCols().Update(source)
+	has, err := db.GetEngine(db.DefaultContext).Where("name=? AND id!=?", source.Name, source.ID).Exist(new(Source))
+	if err != nil {
+		return err
+	} else if has {
+		return ErrSourceAlreadyExist{source.Name}
+	}
+
+	_, err = db.GetEngine(db.DefaultContext).ID(source.ID).AllCols().Update(source)
 	if err != nil {
 		return err
 	}

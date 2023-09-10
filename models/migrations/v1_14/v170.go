@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_14 //nolint
 
@@ -15,8 +14,8 @@ func AddDismissedReviewColumn(x *xorm.Engine) error {
 		Dismissed bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	if err := x.Sync2(new(Review)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := x.Sync(new(Review)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 	return nil
 }

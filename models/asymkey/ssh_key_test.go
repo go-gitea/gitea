@@ -1,7 +1,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package asymkey
 
@@ -54,6 +53,14 @@ func Test_SSHParsePublicKey(t *testing.T) {
 					if !strings.Contains(err.Error(), "line 1 too long:") {
 						assert.Fail(t, "%v", err)
 					}
+				}
+				assert.Equal(t, tc.keyType, keyTypeK)
+				assert.EqualValues(t, tc.length, lengthK)
+			})
+			t.Run("SSHParseKeyNative", func(t *testing.T) {
+				keyTypeK, lengthK, err := SSHNativeParsePublicKey(tc.content)
+				if err != nil {
+					assert.Fail(t, "%v", err)
 				}
 				assert.Equal(t, tc.keyType, keyTypeK)
 				assert.EqualValues(t, tc.length, lengthK)

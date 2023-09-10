@@ -1,16 +1,15 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package helm
 
 import (
 	"archive/tar"
 	"compress/gzip"
-	"errors"
 	"io"
 	"strings"
 
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
 	"github.com/hashicorp/go-version"
@@ -19,13 +18,13 @@ import (
 
 var (
 	// ErrMissingChartFile indicates a missing Chart.yaml file
-	ErrMissingChartFile = errors.New("Chart.yaml file is missing")
+	ErrMissingChartFile = util.NewInvalidArgumentErrorf("Chart.yaml file is missing")
 	// ErrInvalidName indicates an invalid package name
-	ErrInvalidName = errors.New("package name is invalid")
+	ErrInvalidName = util.NewInvalidArgumentErrorf("package name is invalid")
 	// ErrInvalidVersion indicates an invalid package version
-	ErrInvalidVersion = errors.New("package version is invalid")
+	ErrInvalidVersion = util.NewInvalidArgumentErrorf("package version is invalid")
 	// ErrInvalidChart indicates an invalid chart
-	ErrInvalidChart = errors.New("chart is invalid")
+	ErrInvalidChart = util.NewInvalidArgumentErrorf("chart is invalid")
 )
 
 // Metadata for a Chart file. This models the structure of a Chart.yaml file.
@@ -56,14 +55,14 @@ type Maintainer struct {
 }
 
 type Dependency struct {
-	Name         string        `json:"name" yaml:"name"`
-	Version      string        `json:"version,omitempty" yaml:"version,omitempty"`
-	Repository   string        `json:"repository" yaml:"repository"`
-	Condition    string        `json:"condition,omitempty" yaml:"condition,omitempty"`
-	Tags         []string      `json:"tags,omitempty" yaml:"tags,omitempty"`
-	Enabled      bool          `json:"enabled,omitempty" yaml:"enabled,omitempty"`
-	ImportValues []interface{} `json:"import_values,omitempty" yaml:"import-values,omitempty"`
-	Alias        string        `json:"alias,omitempty" yaml:"alias,omitempty"`
+	Name         string   `json:"name" yaml:"name"`
+	Version      string   `json:"version,omitempty" yaml:"version,omitempty"`
+	Repository   string   `json:"repository" yaml:"repository"`
+	Condition    string   `json:"condition,omitempty" yaml:"condition,omitempty"`
+	Tags         []string `json:"tags,omitempty" yaml:"tags,omitempty"`
+	Enabled      bool     `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	ImportValues []any    `json:"import_values,omitempty" yaml:"import-values,omitempty"`
+	Alias        string   `json:"alias,omitempty" yaml:"alias,omitempty"`
 }
 
 // ParseChartArchive parses the metadata of a Helm archive

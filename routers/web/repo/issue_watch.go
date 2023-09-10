@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -30,7 +29,7 @@ func IssueWatch(ctx *context.Context) {
 				log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
 					"User in Repo has Permissions: %-+v",
 					ctx.Doer,
-					log.NewColoredIDValue(issue.PosterID),
+					issue.PosterID,
 					issueType,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)
@@ -53,5 +52,5 @@ func IssueWatch(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(issue.HTMLURL())
+	ctx.Redirect(issue.Link())
 }

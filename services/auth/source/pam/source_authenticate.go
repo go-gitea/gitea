@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pam
 
@@ -13,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/mailer"
 
 	"github.com/google/uuid"
 )
@@ -67,8 +65,6 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	if err := user_model.CreateUser(user, overwriteDefault); err != nil {
 		return user, err
 	}
-
-	mailer.SendRegisterNotifyMail(user)
 
 	return user, nil
 }
