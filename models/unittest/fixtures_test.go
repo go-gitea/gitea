@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )
