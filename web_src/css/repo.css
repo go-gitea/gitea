@@ -1,9 +1,6 @@
 .repository .data-table .line-num,
 .repository .diff-file-box .file-body.file-code .lines-num,
-.repository .diff-file-box .code-diff tbody tr .lines-type-marker,
-.repository .repository-summary .segment.language-stats {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
+.repository .diff-file-box .code-diff tbody tr .lines-type-marker {
   user-select: none;
 }
 
@@ -1943,47 +1940,6 @@
   border-bottom: 1px solid var(--color-warning-border);
 }
 
-.repository .ui.segment.sub-menu {
-  padding: 7px;
-  line-height: 0;
-}
-
-.repository .ui.segment.sub-menu .list {
-  width: 100%;
-  display: flex;
-  align-items: stretch;
-}
-
-.repository .ui.segment.sub-menu .list .item {
-  width: 100%;
-  color: var(--color-text);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.repository .ui.segment.sub-menu .list .item:first-of-type {
-  border-radius: var(--border-radius) 0 0 var(--border-radius);
-  padding-left: 0.25rem;
-}
-
-.repository .ui.segment.sub-menu .list .item:last-of-type {
-  border-radius: 0 var(--border-radius) var(--border-radius) 0;
-  padding-right: 0.25rem;
-}
-
-.repository .ui.segment.sub-menu .list .item a {
-  color: var(--color-text);
-}
-
-.repository .ui.segment.sub-menu .list .item a:hover {
-  color: var(--color-primary-light-2);
-}
-
-.repository .ui.segment.sub-menu .list .item.active {
-  background: var(--color-secondary);
-}
-
 .repository .segment.reactions.dropdown .menu,
 .repository .select-reaction.dropdown .menu {
   right: 0 !important;
@@ -2081,49 +2037,39 @@
 }
 
 .repository .repository-summary {
-  box-shadow: none !important;
+  box-shadow: none;
 }
 
-.repository .repository-summary .segment.language-stats-details,
-.repository .repository-summary .segment.repository-summary {
-  border-top: none;
-  background: none;
+.repository .repository-summary .segment.sub-menu {
+  border: none;
+  display: flex;
+  align-items: center;
+  padding: 0 0.5em; /* make the UI look better for narrow (mobile) view */
+  overflow: hidden;
 }
 
-.repository .repository-summary .segment.language-stats-details .item {
-  white-space: nowrap;
+.repository .repository-summary .sub-menu .item {
+  flex: 1;
+  height: 30px;
+  line-height: var(--line-height-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25em;
+  padding: 0 0.25em;
+}
+
+.repository .repository-summary .sub-menu .item.active {
+  background: var(--color-secondary);
 }
 
 .repository .repository-summary .segment.language-stats {
-  padding: 0;
-  height: 11px;
   display: flex;
-  white-space: nowrap;
-  width: 100%;
-  border-radius: 0;
-}
-
-@media (max-width: 767.98px) {
-  .repository .repository-summary .segment.language-stats {
-    display: none;
-  }
-}
-
-.repository .repository-summary .segment.language-stats .bar {
-  white-space: nowrap;
-  border: 0;
   padding: 0;
-  margin: 0;
-  height: 100%;
-}
-
-.repository .repository-menu {
-  padding: 0 !important;
-}
-
-.repository .repository-menu .item {
-  padding-top: 9px !important;
-  padding-bottom: 9px !important;
+  height: 10px;
+  white-space: nowrap;
+  border-radius: 0 0 3px 3px !important;
+  overflow: hidden;
 }
 
 #cite-repo-modal #citation-panel {
@@ -2922,18 +2868,6 @@ tbody.commit-list {
 .diff-stats-bar .diff-stats-add-bar {
   background-color: var(--color-green);
   height: 100%;
-}
-
-/* prevent page shaking on language bar click */
-.repository-summary-language-stats {
-  height: 48px;
-  overflow: hidden;
-}
-
-@media (max-width: 767.98px) {
-  .repository-summary-language-stats {
-    height: auto;
-  }
 }
 
 .ui.form .right .ui.button {
