@@ -1079,7 +1079,6 @@ func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
 	if c.Author == nil {
 		return nil
 	}
-
 	u, err := GetUserByEmail(ctx, c.Author.Email)
 	if err != nil {
 		return nil
