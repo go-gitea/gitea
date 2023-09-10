@@ -82,7 +82,7 @@
 						<tr>
 							<td>{{.ID}}</td>
 							<td>
-								<a href="{{$.Link}}/{{.ID}}">{{.Name}}</a>
+								<a href="{{$.Link}}/{{.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.users.details"}}">{{.Name}}</a>
 								{{if .IsAdmin}}
 									<span class="ui basic label">{{$.locale.Tr "admin.users.admin"}}</span>
 								{{end}}
