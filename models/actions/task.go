@@ -7,7 +7,7 @@ import (
 	"context"
 	"crypto/subtle"
 	"fmt"
-	"io"
+	"strings"
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -58,46 +58,27 @@ type ActionTask struct {
 	Updated timeutil.TimeStamp `xorm:"updated index"`
 }
 
-func (task *ActionTask) FixtureDumper(fd io.Writer) error {
-	fmt.Fprintf(fd, "-\n")
-	fmt.Fprintf(fd, "  id: %d\n", task.ID)
-	fmt.Fprintf(fd, "  job_id: %d\n", task.JobID)
-	fmt.Fprintf(fd, "  attempt: %d\n", task.Attempt)
-	fmt.Fprintf(fd, "  runner_id: %d\n", task.RunnerID)
-	fmt.Fprintf(fd, "  status: %d\n", task.Status)
-	fmt.Fprintf(fd, "  started: %d\n", task.Started)
-	fmt.Fprintf(fd, "  stopped: %d\n", task.Stopped)
-	fmt.Fprintf(fd, "  repo_id: %d\n", task.RepoID)
-	fmt.Fprintf(fd, "  owner_id: %d\n", task.OwnerID)
-	fmt.Fprintf(fd, "  commit_sha: %s\n", task.CommitSHA)
-	fmt.Fprintf(fd, "  is_fork_pull_request: %v\n", task.IsForkPullRequest)
-	fmt.Fprintf(fd, "  token_hash: %s\n", task.TokenHash)
-	fmt.Fprintf(fd, "  token_salt: %s\n", task.TokenSalt)
-	fmt.Fprintf(fd, "  token_last_eight: %s\n", task.TokenLastEight)
-	fmt.Fprintf(fd, "  log_filename: %s\n", task.LogFilename)
-	fmt.Fprintf(fd, "  log_in_storage: %v\n", task.LogInStorage)
-	fmt.Fprintf(fd, "  log_length: %d\n", task.LogLength)
-	fmt.Fprintf(fd, "  log_size: %d\n", task.LogSize)
+func (task *ActionTask) FixtureFieldDumper(fieldName string) ([]byte, error) {
+	if fieldName != "LogIndexes" {
+		return nil, db.ErrFixtureFieldDumperContinue
+	}
 
 	data, err := task.LogIndexes.ToDB()
 	if err != nil {
-		return err
-	}
-	if len(data) > 0 {
-		fmt.Fprintf(fd, "  log_indexes: 0x")
-
-		for _, v := range data {
-			fmt.Fprintf(fd, "%02x", v)
-		}
-		fmt.Fprintf(fd, "\n")
+		return nil, err
 	}
 
-	fmt.Fprintf(fd, "  log_expired: %v\n", task.LogExpired)
-	fmt.Fprintf(fd, "  created: %d\n", task.Created)
-	fmt.Fprintf(fd, "  updated: %d\n", task.Updated)
-	fmt.Fprintf(fd, "\n")
+	if len(data) == 0 {
+		return nil, db.ErrFixtureFieldDumperSkip
+	}
 
-	return nil
+	builder := strings.Builder{}
+	fmt.Fprintf(&builder, "0x")
+	for _, v := range data {
+		fmt.Fprintf(&builder, "%02x", v)
+	}
+
+	return []byte(builder.String()), nil
 }
 
 var successfulTokenTaskCache *lru.Cache[string, any]

@@ -103,10 +103,6 @@ func DumpAllFixtures(dir string) error {
 		}
 
 		return db.GetEngine(db.DefaultContext).Iterate(bean, func(idx int, data interface{}) error {
-			if dumper, ok := data.(db.FixtureDumper); ok {
-				return dumper.FixtureDumper(fd)
-			}
-
 			return DefaultFixtureDumper(data, fd)
 		})
 	})
@@ -181,11 +177,12 @@ func isFieldPrivate(field reflect.StructField) bool {
 	return field.PkgPath != ""
 }
 
-func defaultFixtureDumperVerbs(tableName string, actualValue reflect.Value, typeOfactualValue reflect.Type, fd io.Writer, mapper names.Mapper) error {
+func defaultFixtureDumperVerbs(tableName string, actualValue reflect.Value, typeOfactualValue reflect.Type, fd io.Writer, mapper names.Mapper, fieldDumper db.FixtureFieldDumper) error {
 	for i := 0; i < actualValue.NumField(); i++ {
 		field := actualValue.Field(i)
 
-		fieldName := mapper.Obj2Table(actualValue.Type().Field(i).Name)
+		fieldNameReal := actualValue.Type().Field(i).Name
+		fieldName := mapper.Obj2Table(fieldNameReal)
 		fieldType := typeOfactualValue.Field(i)
 		if isFieldPrivate(fieldType) {
 			continue
@@ -197,6 +194,36 @@ func defaultFixtureDumperVerbs(tableName string, actualValue reflect.Value, type
 
 		if xormTags.HasTag("-") {
 			continue
+		}
+
+		if fieldDumper != nil {
+			value, err := fieldDumper.FixtureFieldDumper(fieldNameReal)
+			if err == nil {
+				_, err = fd.Write([]byte(fmt.Sprintf("  %s: ", xormTags.GetFieldName(fieldName))))
+				if err != nil {
+					return err
+				}
+
+				_, err = fd.Write(value)
+				if err != nil {
+					return err
+				}
+
+				_, err = fd.Write([]byte("\n"))
+				if err != nil {
+					return err
+				}
+
+				continue
+			}
+
+			if err == db.ErrFixtureFieldDumperSkip {
+				continue
+			}
+
+			if err != db.ErrFixtureFieldDumperContinue {
+				return err
+			}
 		}
 
 		fieldValue := field.Interface()
@@ -231,7 +258,7 @@ func defaultFixtureDumperVerbs(tableName string, actualValue reflect.Value, type
 			}
 
 			typeOfactualValue2 := actualValue2.Type()
-			err = defaultFixtureDumperVerbs(tableName, actualValue2, typeOfactualValue2, fd, mapper)
+			err = defaultFixtureDumperVerbs(tableName, actualValue2, typeOfactualValue2, fd, mapper, fieldDumper)
 			if err != nil {
 				return err
 			}
@@ -343,6 +370,8 @@ func DefaultFixtureDumper(data any, fd io.Writer) error {
 		return errors.New("expected a pointer")
 	}
 
+	fieldDumper, _ := data.(db.FixtureFieldDumper)
+
 	actualValue := reflectedValue.Elem()
 	typeOfactualValue := actualValue.Type()
 	mapper := names.GonicMapper{}
@@ -352,7 +381,7 @@ func DefaultFixtureDumper(data any, fd io.Writer) error {
 		return err
 	}
 
-	err = defaultFixtureDumperVerbs(typeOfactualValue.Name(), actualValue, typeOfactualValue, fd, mapper)
+	err = defaultFixtureDumperVerbs(typeOfactualValue.Name(), actualValue, typeOfactualValue, fd, mapper, fieldDumper)
 	if err != nil {
 		return err
 	}

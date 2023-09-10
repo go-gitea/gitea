@@ -6,7 +6,6 @@ package git
 import (
 	"context"
 	"fmt"
-	"io"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
@@ -118,16 +117,12 @@ type LFSMetaObject struct {
 	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
-func (l *LFSMetaObject) FixtureDumper(fd io.Writer) error {
-	fmt.Fprintf(fd, "-\n")
-	fmt.Fprintf(fd, "  id: %d\n", l.ID)
-	fmt.Fprintf(fd, "  oid: %s\n", l.Pointer.Oid)
-	fmt.Fprintf(fd, "  size: %d\n", l.Pointer.Size)
-	fmt.Fprintf(fd, "  repository_id: %d\n", l.RepositoryID)
-	fmt.Fprintf(fd, "  created_unix: %d\n", l.CreatedUnix)
-	fmt.Fprintf(fd, "\n")
+func (task *LFSMetaObject) FixtureFieldDumper(fieldName string) ([]byte, error) {
+	if fieldName == "UpdatedUnix" {
+		return nil, db.ErrFixtureFieldDumperSkip
+	}
 
-	return nil
+	return nil, db.ErrFixtureFieldDumperContinue
 }
 
 func init() {

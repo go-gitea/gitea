@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )
@@ -25,6 +26,24 @@ func (c *testSubConversion) FromDB([]byte) error {
 
 func (c *testSubConversion) ToDB() ([]byte, error) {
 	return []byte("testSubConversion"), nil
+}
+
+type TestModule2 struct {
+	A int64
+	B int64
+	C int64
+}
+
+func (m *TestModule2) FixtureFieldDumper(fieldName string) ([]byte, error) {
+	if fieldName == "A" {
+		return nil, db.ErrFixtureFieldDumperContinue
+	}
+
+	if fieldName == "B" {
+		return nil, db.ErrFixtureFieldDumperSkip
+	}
+
+	return []byte("hello world"), nil
 }
 
 func TestDefaultFixtureDumper(t *testing.T) {
@@ -107,4 +126,19 @@ func TestDefaultFixtureDumper(t *testing.T) {
 	err = yaml.Unmarshal(buffer.Bytes(), &result)
 	assert.EqualValues(t, "hello \" ' gitea", result[0]["description"])
 	assert.NoError(t, err)
+
+	m2 := &TestModule2{
+		A: 12,
+		B: 34,
+		C: 17,
+	}
+
+	buffer = bytes.NewBuffer(nil)
+	err = DefaultFixtureDumper(m2, buffer)
+	assert.NoError(t, err)
+	assert.EqualValues(t, `-
+  a: 12
+  c: hello world
+
+`, buffer.String())
 }
