@@ -280,11 +280,10 @@ func Init(ctx context.Context) error {
 	enableFederatedAvatarSetting, err := GetSetting(ctx, KeyPictureEnableFederatedAvatar)
 	if IsErrSettingIsNotExist(err) {
 		enableFederatedAvatar = setting_module.GetDefaultEnableFederatedAvatar(disableGravatar)
-		enableFederatedAvatarSetting = &Setting{SettingValue: strconv.FormatBool(enableFederatedAvatar)}
 	} else if err != nil {
 		return err
 	} else {
-		enableFederatedAvatar = disableGravatarSetting.GetValueBool()
+		enableFederatedAvatar = enableFederatedAvatarSetting.GetValueBool()
 	}
 
 	if setting_module.OfflineMode {
@@ -310,7 +309,7 @@ func Init(ctx context.Context) error {
 		}
 	}
 
-	if GravatarSourceURL != nil && enableFederatedAvatarSetting.GetValueBool() {
+	if GravatarSourceURL != nil && enableFederatedAvatar {
 		LibravatarService = libravatar.New()
 		if GravatarSourceURL.Scheme == "https" {
 			LibravatarService.SetUseHTTPS(true)

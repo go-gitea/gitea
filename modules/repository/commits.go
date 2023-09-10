@@ -35,42 +35,36 @@ type PushCommits struct {
 	HeadCommit *PushCommit
 	CompareURL string
 	Len        int
-
-	avatars    map[string]string
-	emailUsers map[string]*user_model.User
 }
 
 // NewPushCommits creates a new PushCommits object.
 func NewPushCommits() *PushCommits {
-	return &PushCommits{
-		avatars:    make(map[string]string),
-		emailUsers: make(map[string]*user_model.User),
-	}
+	return &PushCommits{}
 }
 
 // toAPIPayloadCommit converts a single PushCommit to an api.PayloadCommit object.
-func (pc *PushCommits) toAPIPayloadCommit(ctx context.Context, repoPath, repoLink string, commit *PushCommit) (*api.PayloadCommit, error) {
+func (pc *PushCommits) toAPIPayloadCommit(ctx context.Context, emailUsers map[string]*user_model.User, repoPath, repoLink string, commit *PushCommit) (*api.PayloadCommit, error) {
 	var err error
 	authorUsername := ""
-	author, ok := pc.emailUsers[commit.AuthorEmail]
+	author, ok := emailUsers[commit.AuthorEmail]
 	if !ok {
 		author, err = user_model.GetUserByEmail(ctx, commit.AuthorEmail)
 		if err == nil {
 			authorUsername = author.Name
-			pc.emailUsers[commit.AuthorEmail] = author
+			emailUsers[commit.AuthorEmail] = author
 		}
 	} else {
 		authorUsername = author.Name
 	}
 
 	committerUsername := ""
-	committer, ok := pc.emailUsers[commit.CommitterEmail]
+	committer, ok := emailUsers[commit.CommitterEmail]
 	if !ok {
 		committer, err = user_model.GetUserByEmail(ctx, commit.CommitterEmail)
 		if err == nil {
 			// TODO: check errors other than email not found.
 			committerUsername = committer.Name
-			pc.emailUsers[commit.CommitterEmail] = committer
+			emailUsers[commit.CommitterEmail] = committer
 		}
 	} else {
 		committerUsername = committer.Name
@@ -108,11 +102,10 @@ func (pc *PushCommits) ToAPIPayloadCommits(ctx context.Context, repoPath, repoLi
 	commits := make([]*api.PayloadCommit, len(pc.Commits))
 	var headCommit *api.PayloadCommit
 
-	if pc.emailUsers == nil {
-		pc.emailUsers = make(map[string]*user_model.User)
-	}
+	emailUsers := make(map[string]*user_model.User)
+
 	for i, commit := range pc.Commits {
-		apiCommit, err := pc.toAPIPayloadCommit(ctx, repoPath, repoLink, commit)
+		apiCommit, err := pc.toAPIPayloadCommit(ctx, emailUsers, repoPath, repoLink, commit)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -124,7 +117,7 @@ func (pc *PushCommits) ToAPIPayloadCommits(ctx context.Context, repoPath, repoLi
 	}
 	if pc.HeadCommit != nil && headCommit == nil {
 		var err error
-		headCommit, err = pc.toAPIPayloadCommit(ctx, repoPath, repoLink, pc.HeadCommit)
+		headCommit, err = pc.toAPIPayloadCommit(ctx, emailUsers, repoPath, repoLink, pc.HeadCommit)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -176,7 +169,5 @@ func GitToPushCommits(gitCommits []*git.Commit) *PushCommits {
 		HeadCommit: nil,
 		CompareURL: "",
 		Len:        len(commits),
-		avatars:    make(map[string]string),
-		emailUsers: make(map[string]*user_model.User),
 	}
 }
