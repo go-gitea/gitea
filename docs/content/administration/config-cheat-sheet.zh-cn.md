@@ -98,7 +98,7 @@ menu:
 - `SSL_MODE`: MySQL 或 PostgreSQL数据库是否启用SSL模式。
 - `CHARSET`: **utf8mb4**: 仅当数据库为 MySQL 时有效, 可以为 "utf8" 或 "utf8mb4"。注意：如果使用 "utf8mb4"，你的 MySQL InnoDB 版本必须在 5.6 以上。
 - `PATH`: SQLite3 数据文件存放路径。
-- `LOG_SQL`: **true**: 显示生成的SQL，默认为真。
+- `LOG_SQL`: **false**: 显示生成的SQL，默认为真。
 - `MAX_IDLE_CONNS` **0**: 最大空闲数据库连接
 - `CONN_MAX_LIFETIME` **3s**: 数据库连接最大存活时间
 
