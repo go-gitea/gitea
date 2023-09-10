@@ -6,8 +6,9 @@ package externalaccount
 import (
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
+	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
 
@@ -62,7 +63,7 @@ func LinkAccountToUser(user *user_model.User, gothUser goth.User) error {
 	}
 
 	if tp.Name() != "" {
-		return models.UpdateMigrationsByType(tp, externalID, user.ID)
+		return UpdateMigrationsByType(tp, externalID, user.ID)
 	}
 
 	return nil
@@ -76,4 +77,24 @@ func UpdateExternalUser(user *user_model.User, gothUser goth.User) error {
 	}
 
 	return user_model.UpdateExternalUserByExternalID(externalLoginUser)
+}
+
+// UpdateMigrationsByType updates all migrated repositories' posterid from gitServiceType to replace originalAuthorID to posterID
+func UpdateMigrationsByType(tp structs.GitServiceType, externalUserID string, userID int64) error {
+	if err := issues_model.UpdateIssuesMigrationsByType(tp, externalUserID, userID); err != nil {
+		return err
+	}
+
+	if err := issues_model.UpdateCommentsMigrationsByType(tp, externalUserID, userID); err != nil {
+		return err
+	}
+
+	if err := repo_model.UpdateReleasesMigrationsByType(tp, externalUserID, userID); err != nil {
+		return err
+	}
+
+	if err := issues_model.UpdateReactionsMigrationsByType(tp, externalUserID, userID); err != nil {
+		return err
+	}
+	return issues_model.UpdateReviewsMigrationsByType(tp, externalUserID, userID)
 }

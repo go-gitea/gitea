@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	ntlmssp "github.com/Azure/go-ntlmssp"
 	"github.com/jaytaylor/html2text"
@@ -390,6 +391,10 @@ func NewContext(ctx context.Context) {
 	// while mail queue is already processing tasks, and produces a race condition.
 	if setting.MailService == nil || mailQueue != nil {
 		return
+	}
+
+	if setting.Service.EnableNotifyMail {
+		notify_service.RegisterNotifier(NewNotifier())
 	}
 
 	switch setting.MailService.Protocol {

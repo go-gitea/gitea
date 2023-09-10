@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/structs"
@@ -673,16 +674,15 @@ func (g *GitlabDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Revie
 
 func (g *GitlabDownloader) awardsToReactions(awards []*gitlab.AwardEmoji) []*base.Reaction {
 	result := make([]*base.Reaction, 0, len(awards))
-	uniqCheck := make(map[string]struct{})
+	uniqCheck := make(container.Set[string])
 	for _, award := range awards {
 		uid := fmt.Sprintf("%s%d", award.Name, award.User.ID)
-		if _, ok := uniqCheck[uid]; !ok {
+		if uniqCheck.Add(uid) {
 			result = append(result, &base.Reaction{
 				UserID:   int64(award.User.ID),
 				UserName: award.User.Username,
 				Content:  award.Name,
 			})
-			uniqCheck[uid] = struct{}{}
 		}
 	}
 	return result
