@@ -15,21 +15,19 @@ import (
 func RebuildRpmPackage(x *xorm.Engine) error {
 	sess := x.NewSession()
 	defer sess.Close()
-	defaultDistribution := rpm.RepositoryDefaultDistribution
-	defaultComponent := rpm.RepositoryDefaultComponent
-	compositeKey, _ := fmt.Printf("%s|%s", defaultDistribution, defaultComponent)
+	compositeKey, _ := fmt.Printf("%s|%s", rpm.RepositoryDefaultDistribution, rpm.RepositoryDefaultComponent)
 	// select all old rpm package
 	var oldRpmIds []int64
 	ss := sess.Cols("id").
 		Table("package_file").
-		Where("composite_key not like", "%|%").
+		Where("composite_key not like ?", "%|%").
 		And("lower_name like ?", "%.rpm")
 	err := ss.Find(&oldRpmIds)
 	if err != nil {
 		return err
 	}
 	// add metadata
-	// NOTE: package_property[name='rpm.metdata'] is very large,
+	// NOTE: package_property[name='rpm.metadata'] is very large,
 	// and to avoid querying all of them resulting in large memory,
 	// a single RPM package is now used for updating.
 	for _, id := range oldRpmIds {
@@ -37,7 +35,7 @@ func RebuildRpmPackage(x *xorm.Engine) error {
 		metadata := make([]string, 0, 3)
 		_, err := sess.Cols("ref_type", "ref_id", "value").
 			Table("package_property").
-			Where("name = 'rpm.metdata'").
+			Where("name = 'rpm.metadata'").
 			And("ref_id = ?", id).
 			Get(&metadata)
 		if err != nil {
@@ -51,8 +49,8 @@ func RebuildRpmPackage(x *xorm.Engine) error {
 		}
 		_, err = sess.Exec(
 			"INSERT INTO package_property(ref_type, ref_id, name, value) values (?,?,?,?),(?,?,?,?),(?,?,?,?)",
-			metadata[0], metadata[1], "rpm.distribution", defaultDistribution,
-			metadata[0], metadata[1], "rpm.component", defaultComponent,
+			metadata[0], metadata[1], "rpm.distribution", rpm.RepositoryDefaultDistribution,
+			metadata[0], metadata[1], "rpm.component", rpm.RepositoryDefaultComponent,
 			metadata[0], metadata[1], "rpm.architecture", rpmMetadata.Architecture,
 		)
 		if err != nil {
@@ -71,11 +69,10 @@ func RebuildRpmPackage(x *xorm.Engine) error {
 	// set old rpm index file to default distribution
 	_, err = sess.Table("package_file").
 		Where(
-			"composite_key = '' AND " +
-				"lower_name IN" +
-				"(" +
-				"'primary.xml.gz','other.xml.gz','filelists.xml.gz','other.xml.gz','repomd.xml','repomd.xml.asc'" +
-				")").
+			`composite_key = '' AND
+			lower_name IN
+			('primary.xml.gz','other.xml.gz','filelists.xml.gz','other.xml.gz','repomd.xml','repomd.xml.asc')`,
+		).
 		Update(map[string]any{
 			"composite_key": compositeKey,
 		})
