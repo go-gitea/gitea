@@ -436,7 +436,7 @@ menu:
 - `SQLITE_JOURNAL_MODE`：**""**：更改 SQlite3 的日志模式。可以用于在高负载导致写入拥塞时启用 [WAL 模式](https://www.sqlite.org/wal.html)。有关可能的值，请参阅 [SQlite3 文档](https://www.sqlite.org/pragma.html#pragma_journal_mode)。默认为数据库文件的默认值，通常为 DELETE。
 - `ITERATE_BUFFER_SIZE`：**50**：用于迭代的内部缓冲区大小。
 - `PATH`：**data/gitea.db**：仅适用于 SQLite3 的数据库文件路径。
-- `LOG_SQL`：**true**：记录已执行的 SQL。
+- `LOG_SQL`：**false**：记录已执行的 SQL。
 - `DB_RETRIES`：**10**：允许多少次 ORM 初始化 / DB 连接尝试。
 - `DB_RETRY_BACKOFF`：**3s**：如果发生故障，等待另一个 ORM 初始化 / DB 连接尝试的 time.Duration。
 - `MAX_OPEN_CONNS`：**0**：数据库最大打开连接数 - 默认为 0，表示没有限制。
