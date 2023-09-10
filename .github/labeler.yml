@@ -17,7 +17,7 @@ kind/build:
   - "docker/**"
   - "webpack.config.js"
 
-kind/package:
+theme/package-registry:
   - "modules/packages/**"
 
 kind/cli:
