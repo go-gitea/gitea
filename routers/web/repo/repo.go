@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -275,7 +276,7 @@ func CreatePost(ctx *context.Context) {
 			return
 		}
 	} else {
-		repo, err = repo_service.CreateRepository(ctx, ctx.Doer, ctxUser, repo_module.CreateRepoOptions{
+		repo, err = repo_service.CreateRepository(ctx, ctx.Doer, ctxUser, repo_service.CreateRepoOptions{
 			Name:          form.RepoName,
 			Description:   form.Description,
 			Gitignores:    form.Gitignores,
@@ -378,15 +379,28 @@ func RedirectDownload(ctx *context.Context) {
 	curRepo := ctx.Repo.Repository
 	releases, err := repo_model.GetReleasesByRepoIDAndNames(ctx, curRepo.ID, tagNames)
 	if err != nil {
-		if repo_model.IsErrAttachmentNotExist(err) {
-			ctx.Error(http.StatusNotFound)
-			return
-		}
 		ctx.ServerError("RedirectDownload", err)
 		return
 	}
 	if len(releases) == 1 {
 		release := releases[0]
+		att, err := repo_model.GetAttachmentByReleaseIDFileName(ctx, release.ID, fileName)
+		if err != nil {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+		if att != nil {
+			ServeAttachment(ctx, att.UUID)
+			return
+		}
+	} else if len(releases) == 0 && vTag == "latest" {
+		// GitHub supports the alias "latest" for the latest release
+		// We only fetch the latest release if the tag is "latest" and no release with the tag "latest" exists
+		release, err := repo_model.GetLatestReleaseByRepoID(ctx.Repo.Repository.ID)
+		if err != nil {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
 		att, err := repo_model.GetAttachmentByReleaseIDFileName(ctx, release.ID, fileName)
 		if err != nil {
 			ctx.Error(http.StatusNotFound)
@@ -646,7 +660,7 @@ func GetBranchesList(ctx *context.Context) {
 	}
 	resp := &branchTagSearchResponse{}
 	// always put default branch on the top if it exists
-	if util.SliceContains(branches, ctx.Repo.Repository.DefaultBranch) {
+	if slices.Contains(branches, ctx.Repo.Repository.DefaultBranch) {
 		branches = util.SliceRemoveAll(branches, ctx.Repo.Repository.DefaultBranch)
 		branches = append([]string{ctx.Repo.Repository.DefaultBranch}, branches...)
 	}
@@ -680,7 +694,7 @@ func PrepareBranchList(ctx *context.Context) {
 		return
 	}
 	// always put default branch on the top if it exists
-	if util.SliceContains(brs, ctx.Repo.Repository.DefaultBranch) {
+	if slices.Contains(brs, ctx.Repo.Repository.DefaultBranch) {
 		brs = util.SliceRemoveAll(brs, ctx.Repo.Repository.DefaultBranch)
 		brs = append([]string{ctx.Repo.Repository.DefaultBranch}, brs...)
 	}

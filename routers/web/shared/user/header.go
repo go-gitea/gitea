@@ -22,7 +22,6 @@ import (
 func prepareContextForCommonProfile(ctx *context.Context) {
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["EnableFeed"] = setting.Other.EnableFeed
 	ctx.Data["FeedURL"] = ctx.ContextUser.HomeLink()
 }

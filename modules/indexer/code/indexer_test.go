@@ -16,6 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 
 	_ "code.gitea.io/gitea/models"
+	_ "code.gitea.io/gitea/models/actions"
+	_ "code.gitea.io/gitea/models/activities"
 
 	"github.com/stretchr/testify/assert"
 )

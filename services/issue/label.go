@@ -8,7 +8,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/notification"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // ClearLabels clears all of an issue's labels
@@ -17,7 +17,7 @@ func ClearLabels(issue *issues_model.Issue, doer *user_model.User) error {
 		return err
 	}
 
-	notification.NotifyIssueClearLabels(db.DefaultContext, doer, issue)
+	notify_service.IssueClearLabels(db.DefaultContext, doer, issue)
 
 	return nil
 }
@@ -28,7 +28,7 @@ func AddLabel(issue *issues_model.Issue, doer *user_model.User, label *issues_mo
 		return err
 	}
 
-	notification.NotifyIssueChangeLabels(db.DefaultContext, doer, issue, []*issues_model.Label{label}, nil)
+	notify_service.IssueChangeLabels(db.DefaultContext, doer, issue, []*issues_model.Label{label}, nil)
 	return nil
 }
 
@@ -38,7 +38,7 @@ func AddLabels(issue *issues_model.Issue, doer *user_model.User, labels []*issue
 		return err
 	}
 
-	notification.NotifyIssueChangeLabels(db.DefaultContext, doer, issue, labels, nil)
+	notify_service.IssueChangeLabels(db.DefaultContext, doer, issue, labels, nil)
 	return nil
 }
 
@@ -73,7 +73,7 @@ func RemoveLabel(issue *issues_model.Issue, doer *user_model.User, label *issues
 		return err
 	}
 
-	notification.NotifyIssueChangeLabels(db.DefaultContext, doer, issue, nil, []*issues_model.Label{label})
+	notify_service.IssueChangeLabels(db.DefaultContext, doer, issue, nil, []*issues_model.Label{label})
 	return nil
 }
 
@@ -88,6 +88,6 @@ func ReplaceLabels(issue *issues_model.Issue, doer *user_model.User, labels []*i
 		return err
 	}
 
-	notification.NotifyIssueChangeLabels(db.DefaultContext, doer, issue, labels, old)
+	notify_service.IssueChangeLabels(db.DefaultContext, doer, issue, labels, old)
 	return nil
 }
