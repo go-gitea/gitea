@@ -6,14 +6,13 @@ package auth
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/avatars"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
-	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -22,10 +21,6 @@ import (
 
 	gouuid "github.com/google/uuid"
 	"github.com/quasoft/websspi"
-)
-
-const (
-	tplSignIn base.TplName = "user/auth/signin"
 )
 
 var (
@@ -77,20 +72,9 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 	log.Trace("SSPI Authorization: Attempting to authenticate")
 	userInfo, outToken, err := sspiAuth.Authenticate(req, w)
 	if err != nil {
-		log.Warn("Authentication failed with error: %v\n", err)
 		sspiAuth.AppendAuthenticateHeader(w, outToken)
-
-		// Include the user login page in the 401 response to allow the user
-		// to login with another authentication method if SSPI authentication
-		// fails
-		store.GetData()["Flash"] = map[string]string{
-			"ErrorMsg": err.Error(),
-		}
-		store.GetData()["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
-		store.GetData()["EnableSSPI"] = true
-		// in this case, the Verify function is called in Gitea's web context
-		// FIXME: it doesn't look good to render the page here, why not redirect?
-		gitea_context.GetWebContext(req).HTML(http.StatusUnauthorized, tplSignIn)
+		// The SSPI workflow requires a 401 StatusUnauthorized response code
+		// which gets set by the auth routes.
 		return nil, err
 	}
 	if outToken != "" {
@@ -145,18 +129,13 @@ func (s *SSPI) getConfig() (*sspi.Source, error) {
 }
 
 func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
-	shouldAuth = false
-	path := strings.TrimSuffix(req.URL.Path, "/")
-	if path == "/user/login" {
+	if middleware.IsLoginPath(req) {
 		if req.FormValue("user_name") != "" && req.FormValue("password") != "" {
-			shouldAuth = false
-		} else if req.FormValue("auth_with_sspi") == "1" {
-			shouldAuth = true
+			return false
 		}
-	} else if middleware.IsAPIPath(req) || isAttachmentDownload(req) {
-		shouldAuth = true
+		return strconv.ParseBool(req.FormValue("auth_with_sspi"))
 	}
-	return shouldAuth
+	return middleware.IsAPIPath(req) || isAttachmentDownload(req)
 }
 
 // newUser creates a new user object for the purpose of automatic registration
@@ -171,11 +150,10 @@ func (s *SSPI) newUser(username string, cfg *sspi.Source) (*user_model.User, err
 		UseCustomAvatar: true,
 		Avatar:          avatars.DefaultAvatarLink(),
 	}
-	emailNotificationPreference := user_model.EmailNotificationsDisabled
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
 		IsActive:                     util.OptionalBoolOf(cfg.AutoActivateUsers),
 		KeepEmailPrivate:             util.OptionalBoolTrue,
-		EmailNotificationsPreference: &emailNotificationPreference,
+		EmailNotificationsPreference: util.ToPointer(user_model.EmailNotificationsDisabled),
 	}
 	if err := user_model.CreateUser(user, overwriteDefault); err != nil {
 		return nil, err

@@ -163,7 +163,7 @@ func SignIn(ctx *context.Context) {
 		context.SetCaptchaData(ctx)
 	}
 
-	ctx.HTML(http.StatusOK, tplSignIn)
+	ctx.HTML(http.StatusUnauthorized, tplSignIn)
 }
 
 // SignInPost response for sign in request
@@ -184,7 +184,7 @@ func SignInPost(ctx *context.Context) {
 	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled()
 
 	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplSignIn)
+		ctx.HTML(http.StatusUnauthorized, tplSignIn)
 		return
 	}
 

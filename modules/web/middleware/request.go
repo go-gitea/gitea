@@ -12,3 +12,7 @@ import (
 func IsAPIPath(req *http.Request) bool {
 	return strings.HasPrefix(req.URL.Path, "/api/")
 }
+
+func IsLoginPath(req *http.Request) bool {
+	return strings.HasPrefix(req.URL.Path, "/user/login")
+}

@@ -21,7 +21,13 @@ func Auth(authMethod Method) func(*context.Context) {
 		ar, err := authShared(ctx.Base, ctx.Session, authMethod)
 		if err != nil {
 			log.Error("Failed to verify user: %v", err)
-			ctx.Error(http.StatusUnauthorized, "Verify")
+
+			// If the error occurs on the login page, fallthrough and render the login form again with a generic error message.
+			if middleware.IsLoginPath(ctx.Req) {
+				ctx.Flash.Error(ctx.Locale.Tr("auth.authorization.error"), true)
+			} else {
+				ctx.Error(http.StatusUnauthorized, "Verify")
+			}
 			return
 		}
 		ctx.Doer = ar.Doer
