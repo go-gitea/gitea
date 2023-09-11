@@ -333,8 +333,11 @@ func reqExploreSignIn() func(ctx *context.APIContext) {
 	}
 }
 
-func reqBasicAuth() func(ctx *context.APIContext) {
+func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
+		if ctx.IsSigned && setting.Service.EnableReverseProxyAuthAPI && ctx.Data["AuthedMethod"].(string) == auth.ReverseProxyMethodName {
+			return
+		}
 		if !ctx.IsBasicAuth {
 			ctx.Error(http.StatusUnauthorized, "reqBasicAuth", "auth required")
 			return
@@ -386,7 +389,7 @@ func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 // reqRepoBranchWriter user should have a permission to write to a branch, or be a site admin
 func reqRepoBranchWriter(ctx *context.APIContext) {
 	options, ok := web.GetForm(ctx).(api.FileOptionInterface)
-	if !ok || (!ctx.Repo.CanWriteToBranch(ctx.Doer, options.Branch()) && !ctx.IsUserSiteAdmin()) {
+	if !ok || (!ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, options.Branch()) && !ctx.IsUserSiteAdmin()) {
 		ctx.Error(http.StatusForbidden, "reqRepoBranchWriter", "user should have a permission to write to this branch")
 		return
 	}
@@ -698,6 +701,9 @@ func buildAuthGroup() *auth.Group {
 		&auth.HTTPSign{},
 		&auth.Basic{}, // FIXME: this should be removed once we don't allow basic auth in API
 	)
+	if setting.Service.EnableReverseProxyAuthAPI {
+		group.Add(&auth.ReverseProxy{})
+	}
 	specialAdd(group)
 
 	return group
@@ -751,7 +757,7 @@ func Routes() *web.Route {
 			}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryActivityPub))
 		}
 
-		// Misc (requires 'misc' scope)
+		// Misc (public accessible)
 		m.Group("", func() {
 			m.Get("/version", misc.Version)
 			m.Get("/signing-key.gpg", misc.SigningKey)
@@ -771,16 +777,16 @@ func Routes() *web.Route {
 				m.Get("/attachment", settings.GetGeneralAttachmentSettings)
 				m.Get("/repository", settings.GetGeneralRepoSettings)
 			})
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryMisc))
+		})
 
 		// Notifications (requires 'notifications' scope)
 		m.Group("/notifications", func() {
 			m.Combo("").
-				Get(notify.ListNotifications).
+				Get(reqToken(), notify.ListNotifications).
 				Put(reqToken(), notify.ReadNotifications)
-			m.Get("/new", notify.NewAvailable)
+			m.Get("/new", reqToken(), notify.NewAvailable)
 			m.Combo("/threads/{id}").
-				Get(notify.GetThread).
+				Get(reqToken(), notify.GetThread).
 				Patch(reqToken(), notify.ReadThread)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification))
 
@@ -800,7 +806,7 @@ func Routes() *web.Route {
 					m.Combo("").Get(user.ListAccessTokens).
 						Post(bind(api.CreateAccessTokenOption{}), reqToken(), user.CreateAccessToken)
 					m.Combo("/{id}").Delete(reqToken(), user.DeleteAccessToken)
-				}, reqBasicAuth())
+				}, reqBasicOrRevProxyAuth())
 
 				m.Get("/activities/feeds", user.ListUserActivityFeeds)
 			}, context_service.UserAssignmentAPI())
@@ -835,6 +841,13 @@ func Routes() *web.Route {
 				Get(user.ListEmails).
 				Post(bind(api.CreateEmailOption{}), user.AddEmail).
 				Delete(bind(api.DeleteEmailOption{}), user.DeleteEmail)
+
+			// create or update a user's actions secrets
+			m.Group("/actions/secrets", func() {
+				m.Combo("/{secretname}").
+					Put(bind(api.CreateOrUpdateSecretOption{}), user.CreateOrUpdateSecret).
+					Delete(repo.DeleteSecret)
+			})
 
 			m.Get("/followers", user.ListMyFollowers)
 			m.Group("/following", func() {
@@ -933,6 +946,11 @@ func Routes() *web.Route {
 					m.Post("/accept", repo.AcceptTransfer)
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
+				m.Group("/actions/secrets", func() {
+					m.Combo("/{secretname}").
+						Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateSecret).
+						Delete(reqToken(), reqOwner(), repo.DeleteSecret)
+				})
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(repo.ListGitHooks)
 					m.Group("/{id}", func() {
@@ -1034,7 +1052,7 @@ func Routes() *web.Route {
 						m.Group("/assets", func() {
 							m.Combo("").Get(repo.ListReleaseAttachments).
 								Post(reqToken(), reqRepoWriter(unit.TypeReleases), repo.CreateReleaseAttachment)
-							m.Combo("/{asset}").Get(repo.GetReleaseAttachment).
+							m.Combo("/{attachment_id}").Get(repo.GetReleaseAttachment).
 								Patch(reqToken(), reqRepoWriter(unit.TypeReleases), bind(api.EditAttachmentOptions{}), repo.EditReleaseAttachment).
 								Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseAttachment)
 						})
@@ -1179,7 +1197,7 @@ func Routes() *web.Route {
 								m.Combo("").
 									Get(repo.ListIssueCommentAttachments).
 									Post(reqToken(), mustNotBeArchived, repo.CreateIssueCommentAttachment)
-								m.Combo("/{asset}").
+								m.Combo("/{attachment_id}").
 									Get(repo.GetIssueCommentAttachment).
 									Patch(reqToken(), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueCommentAttachment).
 									Delete(reqToken(), mustNotBeArchived, repo.DeleteIssueCommentAttachment)
@@ -1231,7 +1249,7 @@ func Routes() *web.Route {
 							m.Combo("").
 								Get(repo.ListIssueAttachments).
 								Post(reqToken(), mustNotBeArchived, repo.CreateIssueAttachment)
-							m.Combo("/{asset}").
+							m.Combo("/{attachment_id}").
 								Get(repo.GetIssueAttachment).
 								Patch(reqToken(), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueAttachment).
 								Delete(reqToken(), mustNotBeArchived, repo.DeleteIssueAttachment)
@@ -1297,6 +1315,12 @@ func Routes() *web.Route {
 				m.Get("", reqToken(), org.ListMembers)
 				m.Combo("/{username}").Get(reqToken(), org.IsMember).
 					Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
+			})
+			m.Group("/actions/secrets", func() {
+				m.Get("", reqToken(), reqOrgOwnership(), org.ListActionsSecrets)
+				m.Combo("/{secretname}").
+					Put(reqToken(), reqOrgOwnership(), bind(api.CreateOrUpdateSecretOption{}), org.CreateOrUpdateSecret).
+					Delete(reqToken(), reqOrgOwnership(), org.DeleteSecret)
 			})
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)

@@ -7,11 +7,12 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // GenerateIssueLabels generates issue labels from a template repository
@@ -37,6 +38,28 @@ func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *repo_m
 		})
 	}
 	return db.Insert(ctx, newLabels)
+}
+
+func GenerateProtectedBranch(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
+	templateBranches, err := git_model.FindRepoProtectedBranchRules(ctx, templateRepo.ID)
+	if err != nil {
+		return err
+	}
+	// Prevent insert being called with an empty slice which would result in
+	// err "no element on slice when insert".
+	if len(templateBranches) == 0 {
+		return nil
+	}
+
+	newBranches := make([]*git_model.ProtectedBranch, 0, len(templateBranches))
+	for _, templateBranch := range templateBranches {
+		templateBranch.ID = 0
+		templateBranch.RepoID = generateRepo.ID
+		templateBranch.UpdatedUnix = 0
+		templateBranch.CreatedUnix = 0
+		newBranches = append(newBranches, templateBranch)
+	}
+	return db.Insert(ctx, newBranches)
 }
 
 // GenerateRepository generates a repository from a template
@@ -96,12 +119,18 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 			}
 		}
 
+		if opts.ProtectedBranch {
+			if err = GenerateProtectedBranch(ctx, templateRepo, generateRepo); err != nil {
+				return err
+			}
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
 	}
 
-	notification.NotifyCreateRepository(ctx, doer, owner, generateRepo)
+	notify_service.CreateRepository(ctx, doer, owner, generateRepo)
 
 	return generateRepo, nil
 }

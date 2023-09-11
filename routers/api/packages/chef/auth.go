@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"path"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -36,6 +37,8 @@ var (
 	algorithmPattern     = regexp.MustCompile(`algorithm=(\w+)`)
 	versionPattern       = regexp.MustCompile(`version=(\d+\.\d+)`)
 	authorizationPattern = regexp.MustCompile(`\AX-Ops-Authorization-(\d+)`)
+
+	_ auth.Method = &Auth{}
 )
 
 // Documentation:
@@ -263,7 +266,7 @@ func verifyDataOld(signature, data []byte, pub *rsa.PublicKey) error {
 		}
 	}
 
-	if !util.SliceEqual(out[skip:], data) {
+	if !slices.Equal(out[skip:], data) {
 		return fmt.Errorf("could not verify signature")
 	}
 

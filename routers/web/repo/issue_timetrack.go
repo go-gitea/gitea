@@ -42,7 +42,7 @@ func AddTimeManually(c *context.Context) {
 		return
 	}
 
-	if _, err := issues_model.AddTime(c.Doer, issue, total, time.Now()); err != nil {
+	if _, err := issues_model.AddTime(c, c.Doer, issue, total, time.Now()); err != nil {
 		c.ServerError("AddTime", err)
 		return
 	}

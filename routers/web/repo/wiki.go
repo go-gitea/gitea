@@ -23,13 +23,13 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/forms"
+	notify_service "code.gitea.io/gitea/services/notify"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
 
@@ -185,7 +185,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	ctx.Data["Pages"] = pages
 
 	// get requested page name
-	pageName := wiki_service.WebPathFromRequest(ctx.Params("*"))
+	pageName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("*"))
 	if len(pageName) == 0 {
 		pageName = "Home"
 	}
@@ -332,7 +332,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	}
 
 	// get requested pagename
-	pageName := wiki_service.WebPathFromRequest(ctx.Params("*"))
+	pageName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("*"))
 	if len(pageName) == 0 {
 		pageName = "Home"
 	}
@@ -415,7 +415,7 @@ func renderEditPage(ctx *context.Context) {
 	}()
 
 	// get requested pagename
-	pageName := wiki_service.WebPathFromRequest(ctx.Params("*"))
+	pageName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("*"))
 	if len(pageName) == 0 {
 		pageName = "Home"
 	}
@@ -647,7 +647,7 @@ func WikiRaw(ctx *context.Context) {
 		return
 	}
 
-	providedWebPath := wiki_service.WebPathFromRequest(ctx.Params("*"))
+	providedWebPath := wiki_service.WebPathFromRequest(ctx.PathParamRaw("*"))
 	providedGitPath := wiki_service.WebPathToGitPath(providedWebPath)
 	var entry *git.TreeEntry
 	if commit != nil {
@@ -727,7 +727,7 @@ func NewWikiPost(ctx *context.Context) {
 		return
 	}
 
-	notification.NotifyNewWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(wikiName), form.Message)
+	notify_service.NewWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(wikiName), form.Message)
 
 	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + wiki_service.WebPathToURLPath(wikiName))
 }
@@ -759,7 +759,7 @@ func EditWikiPost(ctx *context.Context) {
 		return
 	}
 
-	oldWikiName := wiki_service.WebPathFromRequest(ctx.Params("*"))
+	oldWikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("*"))
 	newWikiName := wiki_service.UserTitleToWebPath("", form.Title)
 
 	if len(form.Message) == 0 {
@@ -771,14 +771,14 @@ func EditWikiPost(ctx *context.Context) {
 		return
 	}
 
-	notification.NotifyEditWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(newWikiName), form.Message)
+	notify_service.EditWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(newWikiName), form.Message)
 
 	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + wiki_service.WebPathToURLPath(newWikiName))
 }
 
 // DeleteWikiPagePost delete wiki page
 func DeleteWikiPagePost(ctx *context.Context) {
-	wikiName := wiki_service.WebPathFromRequest(ctx.Params("*"))
+	wikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("*"))
 	if len(wikiName) == 0 {
 		wikiName = "Home"
 	}
@@ -788,9 +788,7 @@ func DeleteWikiPagePost(ctx *context.Context) {
 		return
 	}
 
-	notification.NotifyDeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(wikiName))
+	notify_service.DeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(wikiName))
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": ctx.Repo.RepoLink + "/wiki/",
-	})
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/wiki/")
 }

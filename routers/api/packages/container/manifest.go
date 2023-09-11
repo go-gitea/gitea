@@ -17,10 +17,10 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/util"
+	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
 
 	digest "github.com/opencontainers/go-digest"
@@ -50,7 +50,7 @@ type manifestCreationInfo struct {
 	Properties map[string]string
 }
 
-func processManifest(mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
+func processManifest(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
 	var index oci.Index
 	if err := json.NewDecoder(buf).Decode(&index); err != nil {
 		return "", err
@@ -72,14 +72,14 @@ func processManifest(mci *manifestCreationInfo, buf *packages_module.HashedBuffe
 	}
 
 	if isImageManifestMediaType(mci.MediaType) {
-		return processImageManifest(mci, buf)
+		return processImageManifest(ctx, mci, buf)
 	} else if isImageIndexMediaType(mci.MediaType) {
-		return processImageManifestIndex(mci, buf)
+		return processImageManifestIndex(ctx, mci, buf)
 	}
 	return "", errManifestInvalid
 }
 
-func processImageManifest(mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
+func processImageManifest(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
 	manifestDigest := ""
 
 	err := func() error {
@@ -92,7 +92,7 @@ func processImageManifest(mci *manifestCreationInfo, buf *packages_module.Hashed
 			return err
 		}
 
-		ctx, committer, err := db.TxContext(db.DefaultContext)
+		ctx, committer, err := db.TxContext(ctx)
 		if err != nil {
 			return err
 		}
@@ -181,7 +181,7 @@ func processImageManifest(mci *manifestCreationInfo, buf *packages_module.Hashed
 			return err
 		}
 
-		if err := notifyPackageCreate(mci.Creator, pv); err != nil {
+		if err := notifyPackageCreate(ctx, mci.Creator, pv); err != nil {
 			return err
 		}
 
@@ -196,7 +196,7 @@ func processImageManifest(mci *manifestCreationInfo, buf *packages_module.Hashed
 	return manifestDigest, nil
 }
 
-func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
+func processImageManifestIndex(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
 	manifestDigest := ""
 
 	err := func() error {
@@ -209,7 +209,7 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 			return err
 		}
 
-		ctx, committer, err := db.TxContext(db.DefaultContext)
+		ctx, committer, err := db.TxContext(ctx)
 		if err != nil {
 			return err
 		}
@@ -285,7 +285,7 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 			return err
 		}
 
-		if err := notifyPackageCreate(mci.Creator, pv); err != nil {
+		if err := notifyPackageCreate(ctx, mci.Creator, pv); err != nil {
 			return err
 		}
 
@@ -300,13 +300,13 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 	return manifestDigest, nil
 }
 
-func notifyPackageCreate(doer *user_model.User, pv *packages_model.PackageVersion) error {
-	pd, err := packages_model.GetPackageDescriptor(db.DefaultContext, pv)
+func notifyPackageCreate(ctx context.Context, doer *user_model.User, pv *packages_model.PackageVersion) error {
+	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 	if err != nil {
 		return err
 	}
 
-	notification.NotifyPackageCreate(db.DefaultContext, doer, pd)
+	notify_service.PackageCreate(ctx, doer, pd)
 
 	return nil
 }

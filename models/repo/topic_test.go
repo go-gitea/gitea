@@ -69,6 +69,7 @@ func TestAddTopic(t *testing.T) {
 func TestTopicValidator(t *testing.T) {
 	assert.True(t, repo_model.ValidateTopic("12345"))
 	assert.True(t, repo_model.ValidateTopic("2-test"))
+	assert.True(t, repo_model.ValidateTopic("foo.bar"))
 	assert.True(t, repo_model.ValidateTopic("test-3"))
 	assert.True(t, repo_model.ValidateTopic("first"))
 	assert.True(t, repo_model.ValidateTopic("second-test-topic"))
@@ -77,4 +78,5 @@ func TestTopicValidator(t *testing.T) {
 	assert.False(t, repo_model.ValidateTopic("$fourth-test,topic"))
 	assert.False(t, repo_model.ValidateTopic("-fifth-test-topic"))
 	assert.False(t, repo_model.ValidateTopic("sixth-go-project-topic-with-excess-length"))
+	assert.False(t, repo_model.ValidateTopic(".foo"))
 }

@@ -209,6 +209,7 @@ func EditLabel(ctx *context.APIContext) {
 	if form.Description != nil {
 		l.Description = *form.Description
 	}
+	l.SetArchived(form.IsArchived != nil && *form.IsArchived)
 	if err := issues_model.UpdateLabel(l); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateLabel", err)
 		return

@@ -17,10 +17,10 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
+	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -39,7 +39,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	srcRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	mirrorRepo, err := repository.CreateRepository(user, user, repository.CreateRepoOptions{
+	mirrorRepo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, user, repo_service.CreateRepoOptions{
 		Name: "test-push-mirror",
 	})
 	assert.NoError(t, err)

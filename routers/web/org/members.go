@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 )
 
 const (
@@ -52,6 +53,12 @@ func Members(ctx *context.Context) {
 		return
 	}
 
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	pager := context.NewPagination(int(total), setting.UI.MembersPagingNum, page, 5)
 	opts.ListOptions.Page = page
 	opts.ListOptions.PageSize = setting.UI.MembersPagingNum
@@ -62,7 +69,6 @@ func Members(ctx *context.Context) {
 	}
 	ctx.Data["Page"] = pager
 	ctx.Data["Members"] = members
-	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["MembersIsPublicMember"] = membersIsPublic
 	ctx.Data["MembersIsUserOrgOwner"] = organization.IsUserOrgOwner(members, org.ID)
 	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus()
@@ -101,9 +107,7 @@ func MembersAction(ctx *context.Context) {
 		err = models.RemoveOrgUser(org.ID, uid)
 		if organization.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
-			ctx.JSON(http.StatusOK, map[string]any{
-				"redirect": ctx.Org.OrgLink + "/members",
-			})
+			ctx.JSONRedirect(ctx.Org.OrgLink + "/members")
 			return
 		}
 	case "leave":
@@ -115,9 +119,7 @@ func MembersAction(ctx *context.Context) {
 			})
 		} else if organization.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
-			ctx.JSON(http.StatusOK, map[string]any{
-				"redirect": ctx.Org.OrgLink + "/members",
-			})
+			ctx.JSONRedirect(ctx.Org.OrgLink + "/members")
 		} else {
 			log.Error("RemoveOrgUser(%d,%d): %v", org.ID, ctx.Doer.ID, err)
 		}
@@ -138,7 +140,5 @@ func MembersAction(ctx *context.Context) {
 		redirect = setting.AppSubURL + "/"
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": redirect,
-	})
+	ctx.JSONRedirect(redirect)
 }

@@ -18,20 +18,20 @@
 		<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 	</div>
 </form>
-<div class="ui {{if .PackageDescriptors}}issue list{{end}}">
+<div>
 	{{range .PackageDescriptors}}
-		<li class="item">
-			<div class="issue-item-main">
-				<div class="issue-item-title">
-					<a class="title" href="{{.FullWebLink}}">{{.Version.LowerVersion}}</a>
-				</div>
-				<div class="issue-item-body">
+	<div class="flex-list">
+		<div class="flex-item">
+			<div class="flex-item-main">
+				<a class="flex-item-title" href="{{.FullWebLink}}">{{.Version.LowerVersion}}</a>
+				<div class="flex-item-body">
 					{{$.locale.Tr "packages.published_by" (TimeSinceUnix .Version.CreatedUnix $.locale) .Creator.HomeLink (.Creator.GetDisplayName | Escape) | Safe}}
 				</div>
 			</div>
-		</li>
+		</div>
+	</div>
 	{{else}}
-		<p>{{.locale.Tr "packages.filter.no_result"}}</p>
+		<p class="gt-py-4">{{.locale.Tr "packages.filter.no_result"}}</p>
 	{{end}}
 	{{template "base/paginate" .}}
 </div>

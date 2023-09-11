@@ -5,7 +5,6 @@ package auth
 
 import (
 	"net/http"
-	"reflect"
 	"strings"
 
 	user_model "code.gitea.io/gitea/models/user"
@@ -37,33 +36,37 @@ func (b *Group) Add(method Method) {
 func (b *Group) Name() string {
 	names := make([]string, 0, len(b.methods))
 	for _, m := range b.methods {
-		if n, ok := m.(Named); ok {
-			names = append(names, n.Name())
-		} else {
-			names = append(names, reflect.TypeOf(m).Elem().Name())
-		}
+		names = append(names, m.Name())
 	}
 	return strings.Join(names, ",")
 }
 
-// Verify extracts and validates
 func (b *Group) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
 	// Try to sign in with each of the enabled plugins
-	for _, ssoMethod := range b.methods {
-		user, err := ssoMethod.Verify(req, w, store, sess)
+	var retErr error
+	for _, m := range b.methods {
+		user, err := m.Verify(req, w, store, sess)
 		if err != nil {
-			return nil, err
+			if retErr == nil {
+				retErr = err
+			}
+			// Try other methods if this one failed.
+			// Some methods may share the same protocol to detect if they are matched.
+			// For example, OAuth2 and conan.Auth both read token from "Authorization: Bearer <token>" header,
+			// If OAuth2 returns error, we should give conan.Auth a chance to try.
+			continue
 		}
 
+		// If any method returns a user, we can stop trying.
+		// Return the user and ignore any error returned by previous methods.
 		if user != nil {
 			if store.GetData()["AuthedMethod"] == nil {
-				if named, ok := ssoMethod.(Named); ok {
-					store.GetData()["AuthedMethod"] = named.Name()
-				}
+				store.GetData()["AuthedMethod"] = m.Name()
 			}
 			return user, nil
 		}
 	}
 
-	return nil, nil
+	// If no method returns a user, return the error returned by the first method.
+	return nil, retErr
 }

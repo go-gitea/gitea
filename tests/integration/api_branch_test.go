@@ -31,7 +31,7 @@ func testAPIGetBranch(t *testing.T, branchName string, exists bool) {
 	assert.True(t, branch.UserCanMerge)
 }
 
-func testAPIGetBranchProtection(t *testing.T, branchName string, expectedHTTPStatus int) {
+func testAPIGetBranchProtection(t *testing.T, branchName string, expectedHTTPStatus int) *api.BranchProtection {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
 	req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/branch_protections/%s?token=%s", branchName, token)
 	resp := MakeRequest(t, req, expectedHTTPStatus)
@@ -40,7 +40,9 @@ func testAPIGetBranchProtection(t *testing.T, branchName string, expectedHTTPSta
 		var branchProtection api.BranchProtection
 		DecodeJSON(t, resp, &branchProtection)
 		assert.EqualValues(t, branchName, branchProtection.RuleName)
+		return &branchProtection
 	}
+	return nil
 }
 
 func testAPICreateBranchProtection(t *testing.T, branchName string, expectedHTTPStatus int) {
@@ -185,6 +187,24 @@ func TestAPIBranchProtection(t *testing.T) {
 	testAPIEditBranchProtection(t, "master", &api.BranchProtection{
 		EnablePush: true,
 	}, http.StatusOK)
+
+	// enable status checks, require the "test1" check to pass
+	testAPIEditBranchProtection(t, "master", &api.BranchProtection{
+		EnableStatusCheck:   true,
+		StatusCheckContexts: []string{"test1"},
+	}, http.StatusOK)
+	bp := testAPIGetBranchProtection(t, "master", http.StatusOK)
+	assert.Equal(t, true, bp.EnableStatusCheck)
+	assert.Equal(t, []string{"test1"}, bp.StatusCheckContexts)
+
+	// disable status checks, clear the list of required checks
+	testAPIEditBranchProtection(t, "master", &api.BranchProtection{
+		EnableStatusCheck:   false,
+		StatusCheckContexts: []string{},
+	}, http.StatusOK)
+	bp = testAPIGetBranchProtection(t, "master", http.StatusOK)
+	assert.Equal(t, false, bp.EnableStatusCheck)
+	assert.Equal(t, []string{}, bp.StatusCheckContexts)
 
 	testAPIDeleteBranchProtection(t, "master", http.StatusNoContent)
 

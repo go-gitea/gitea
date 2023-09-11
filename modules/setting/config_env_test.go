@@ -48,6 +48,12 @@ func TestDecodeEnvironmentKey(t *testing.T) {
 	assert.Equal(t, "", key)
 	assert.False(t, file)
 
+	ok, section, key, file = decodeEnvironmentKey(prefix, suffix, "GITEA____KEY")
+	assert.True(t, ok)
+	assert.Equal(t, "", section)
+	assert.Equal(t, "KEY", key)
+	assert.False(t, file)
+
 	ok, section, key, file = decodeEnvironmentKey(prefix, suffix, "GITEA__SEC__KEY")
 	assert.True(t, ok)
 	assert.Equal(t, "sec", section)
@@ -93,4 +99,19 @@ key = old
 	changed = EnvironmentToConfig(cfg, []string{"GITEA__sec__key__FILE=" + tmpFile})
 	assert.True(t, changed)
 	assert.Equal(t, "value-from-file", cfg.Section("sec").Key("key").String())
+
+	cfg, _ = NewConfigProviderFromData("")
+	_ = os.WriteFile(tmpFile, []byte("value-from-file\n"), 0o644)
+	EnvironmentToConfig(cfg, []string{"GITEA__sec__key__FILE=" + tmpFile})
+	assert.Equal(t, "value-from-file", cfg.Section("sec").Key("key").String())
+
+	cfg, _ = NewConfigProviderFromData("")
+	_ = os.WriteFile(tmpFile, []byte("value-from-file\r\n"), 0o644)
+	EnvironmentToConfig(cfg, []string{"GITEA__sec__key__FILE=" + tmpFile})
+	assert.Equal(t, "value-from-file", cfg.Section("sec").Key("key").String())
+
+	cfg, _ = NewConfigProviderFromData("")
+	_ = os.WriteFile(tmpFile, []byte("value-from-file\n\n"), 0o644)
+	EnvironmentToConfig(cfg, []string{"GITEA__sec__key__FILE=" + tmpFile})
+	assert.Equal(t, "value-from-file\n", cfg.Section("sec").Key("key").String())
 }

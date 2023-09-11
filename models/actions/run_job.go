@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -107,32 +108,48 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		return 0, err
 	}
 
-	if affected == 0 || (!util.SliceContains(cols, "status") && job.Status == 0) {
+	if affected == 0 || (!slices.Contains(cols, "status") && job.Status == 0) {
 		return affected, nil
+	}
+
+	if affected != 0 && slices.Contains(cols, "status") && job.Status.IsWaiting() {
+		// if the status of job changes to waiting again, increase tasks version.
+		if err := IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
+			return 0, err
+		}
 	}
 
 	if job.RunID == 0 {
 		var err error
 		if job, err = GetRunJobByID(ctx, job.ID); err != nil {
-			return affected, err
+			return 0, err
 		}
 	}
 
-	jobs, err := GetRunJobsByRunID(ctx, job.RunID)
-	if err != nil {
-		return affected, err
+	{
+		// Other goroutines may aggregate the status of the run and update it too.
+		// So we need load the run and its jobs before updating the run.
+		run, err := GetRunByID(ctx, job.RunID)
+		if err != nil {
+			return 0, err
+		}
+		jobs, err := GetRunJobsByRunID(ctx, job.RunID)
+		if err != nil {
+			return 0, err
+		}
+		run.Status = aggregateJobStatus(jobs)
+		if run.Started.IsZero() && run.Status.IsRunning() {
+			run.Started = timeutil.TimeStampNow()
+		}
+		if run.Stopped.IsZero() && run.Status.IsDone() {
+			run.Stopped = timeutil.TimeStampNow()
+		}
+		if err := UpdateRun(ctx, run, "status", "started", "stopped"); err != nil {
+			return 0, fmt.Errorf("update run %d: %w", run.ID, err)
+		}
 	}
 
-	runStatus := aggregateJobStatus(jobs)
-
-	run := &ActionRun{
-		ID:     job.RunID,
-		Status: runStatus,
-	}
-	if runStatus.IsDone() {
-		run.Stopped = timeutil.TimeStampNow()
-	}
-	return affected, UpdateRun(ctx, run)
+	return affected, nil
 }
 
 func aggregateJobStatus(jobs []*ActionRunJob) Status {
@@ -143,7 +160,7 @@ func aggregateJobStatus(jobs []*ActionRunJob) Status {
 		if !job.Status.IsDone() {
 			allDone = false
 		}
-		if job.Status != StatusWaiting {
+		if job.Status != StatusWaiting && !job.Status.IsDone() {
 			allWaiting = false
 		}
 		if job.Status == StatusFailure || job.Status == StatusCancelled {

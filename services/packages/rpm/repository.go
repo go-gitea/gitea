@@ -232,7 +232,7 @@ func buildRepomd(pv *packages_model.PackageVersion, ownerID int64, data []*repoD
 	}
 
 	var buf bytes.Buffer
-	buf.Write([]byte(xml.Header))
+	buf.WriteString(xml.Header)
 	if err := xml.NewEncoder(&buf).Encode(&Repomd{
 		Xmlns:    "http://linux.duke.edu/metadata/repo",
 		XmlnsRpm: "http://linux.duke.edu/metadata/rpm",
@@ -378,7 +378,7 @@ func buildPrimary(pv *packages_model.PackageVersion, pfs []*packages_model.Packa
 			Architecture: pd.FileMetadata.Architecture,
 			Version: Version{
 				Epoch:   pd.FileMetadata.Epoch,
-				Version: pd.Version.Version,
+				Version: pd.FileMetadata.Version,
 				Release: pd.FileMetadata.Release,
 			},
 			Checksum: Checksum{
@@ -466,7 +466,7 @@ func buildFilelists(pv *packages_model.PackageVersion, pfs []*packages_model.Pac
 			Architecture: pd.FileMetadata.Architecture,
 			Version: Version{
 				Epoch:   pd.FileMetadata.Epoch,
-				Version: pd.Version.Version,
+				Version: pd.FileMetadata.Version,
 				Release: pd.FileMetadata.Release,
 			},
 			Files: pd.FileMetadata.Files,
@@ -513,7 +513,7 @@ func buildOther(pv *packages_model.PackageVersion, pfs []*packages_model.Package
 			Architecture: pd.FileMetadata.Architecture,
 			Version: Version{
 				Epoch:   pd.FileMetadata.Epoch,
-				Version: pd.Version.Version,
+				Version: pd.FileMetadata.Version,
 				Release: pd.FileMetadata.Release,
 			},
 			Changelogs: pd.FileMetadata.Changelogs,

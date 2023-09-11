@@ -460,7 +460,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		rootRepo.ID != ci.HeadRepo.ID &&
 		rootRepo.ID != baseRepo.ID {
 		canRead := access_model.CheckRepoUnitUser(ctx, rootRepo, ctx.Doer, unit.TypeCode)
-		if canRead && rootRepo.AllowsPulls() {
+		if canRead {
 			ctx.Data["RootRepo"] = rootRepo
 			if !fileOnly {
 				branches, tags, err := getBranchesAndTagsForRepo(ctx, rootRepo)
@@ -753,6 +753,12 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 	ctx.Data["HeadBranches"] = headBranches
+
+	// For compare repo branches
+	PrepareBranchList(ctx)
+	if ctx.Written() {
+		return
+	}
 
 	headTags, err := repo_model.GetTagNamesByRepoID(ctx, ci.HeadRepo.ID)
 	if err != nil {

@@ -14,6 +14,7 @@ import (
 	"sort"
 	"time"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/util"
@@ -130,7 +131,7 @@ func readDir(layer *Layer, name string) ([]fs.FileInfo, error) {
 // * false: only directories will be returned.
 // The returned files are sorted by name.
 func (l *LayeredFS) ListFiles(name string, fileMode ...bool) ([]string, error) {
-	fileMap := map[string]bool{}
+	fileSet := make(container.Set[string])
 	for _, layer := range l.layers {
 		infos, err := readDir(layer, name)
 		if err != nil {
@@ -138,14 +139,11 @@ func (l *LayeredFS) ListFiles(name string, fileMode ...bool) ([]string, error) {
 		}
 		for _, info := range infos {
 			if shouldInclude(info, fileMode...) {
-				fileMap[info.Name()] = true
+				fileSet.Add(info.Name())
 			}
 		}
 	}
-	files := make([]string, 0, len(fileMap))
-	for file := range fileMap {
-		files = append(files, file)
-	}
+	files := fileSet.Values()
 	sort.Strings(files)
 	return files, nil
 }
@@ -161,7 +159,7 @@ func (l *LayeredFS) ListAllFiles(name string, fileMode ...bool) ([]string, error
 }
 
 func listAllFiles(layers []*Layer, name string, fileMode ...bool) ([]string, error) {
-	fileMap := map[string]bool{}
+	fileSet := make(container.Set[string])
 	var list func(dir string) error
 	list = func(dir string) error {
 		for _, layer := range layers {
@@ -172,7 +170,7 @@ func listAllFiles(layers []*Layer, name string, fileMode ...bool) ([]string, err
 			for _, info := range infos {
 				path := util.PathJoinRelX(dir, info.Name())
 				if shouldInclude(info, fileMode...) {
-					fileMap[path] = true
+					fileSet.Add(path)
 				}
 				if info.IsDir() {
 					if err = list(path); err != nil {
@@ -186,10 +184,7 @@ func listAllFiles(layers []*Layer, name string, fileMode ...bool) ([]string, err
 	if err := list(name); err != nil {
 		return nil, err
 	}
-	var files []string
-	for file := range fileMap {
-		files = append(files, file)
-	}
+	files := fileSet.Values()
 	sort.Strings(files)
 	return files, nil
 }
@@ -217,7 +212,7 @@ func (l *LayeredFS) WatchLocalChanges(ctx context.Context, callback func()) {
 		}
 		layerDirs = append(layerDirs, ".")
 		for _, dir := range layerDirs {
-			if err = watcher.Add(util.FilePathJoinAbs(layer.localPath, dir)); err != nil {
+			if err = watcher.Add(util.FilePathJoinAbs(layer.localPath, dir)); err != nil && !os.IsNotExist(err) {
 				log.Error("Unable to watch directory %s: %v", dir, err)
 			}
 		}
