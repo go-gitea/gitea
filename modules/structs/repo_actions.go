@@ -20,7 +20,7 @@ type ActionTask struct {
 	WorkflowID   string `json:"workflow_id"`
 	URL          string `json:"url"`
 	// swagger:strfmt date-time
-	CreatedAt time.Time `json:"created_at,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
 	// swagger:strfmt date-time
 	UpdatedAt time.Time `json:"updated_at"`
 	// swagger:strfmt date-time
