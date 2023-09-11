@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	admin_model "code.gitea.io/gitea/models/admin"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
@@ -14,12 +15,12 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/queue"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // taskQueue is a global queue of tasks
@@ -100,7 +101,7 @@ func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*adm
 		return nil, err
 	}
 
-	repo, err := repo_module.CreateRepository(doer, u, repo_module.CreateRepoOptions{
+	repo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, doer, u, repo_service.CreateRepoOptions{
 		Name:           opts.RepoName,
 		Description:    opts.Description,
 		OriginalURL:    opts.OriginalURL,
