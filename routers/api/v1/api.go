@@ -764,6 +764,7 @@ func Routes() *web.Route {
 			m.Get("/licenses/{name}", misc.GetLicenseTemplateInfo)
 			m.Get("/label/templates", misc.ListLabelTemplates)
 			m.Get("/label/templates/{name}", misc.GetLabelTemplate)
+			m.Get("/code_search", misc.CodeSearch)
 
 			m.Group("/settings", func() {
 				m.Get("/ui", settings.GetGeneralUISettings)
@@ -803,6 +804,7 @@ func Routes() *web.Route {
 				}, reqBasicAuth())
 
 				m.Get("/activities/feeds", user.ListUserActivityFeeds)
+				m.Get("/code_search", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), user.CodeSearch)
 			}, context_service.UserAssignmentAPI())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser))
 
@@ -1347,6 +1349,7 @@ func Routes() *web.Route {
 				m.Delete("", org.DeleteAvatar)
 			}, reqToken(), reqOrgOwnership())
 			m.Get("/activities/feeds", org.ListOrgActivityFeeds)
+			m.Get("/code_search", org.CodeSearch)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true))
 		m.Group("/teams/{teamid}", func() {
 			m.Combo("").Get(reqToken(), org.GetTeam).

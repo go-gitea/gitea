@@ -886,6 +886,71 @@
         }
       }
     },
+    "/code_search": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Performs a code search on all Repos",
+        "operationId": "globalCodeSearch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "the keyword the search for",
+            "name": "keyword",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "filter results by language",
+            "name": "language",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "only exact match (defaults to false)",
+            "name": "match",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserHeatmapData"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "description": "The keyword is empty",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "501": {
+            "description": "The repo indexer is disabled for this instance",
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "/gitignore/templates": {
       "get": {
         "produces": [
@@ -1781,6 +1846,78 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/code_search": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Performs a code search on a Organization",
+        "operationId": "orgCodeSearch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the org",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "the keyword the search for",
+            "name": "keyword",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "filter results by language",
+            "name": "language",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "only exact match (defaults to false)",
+            "name": "match",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserHeatmapData"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "description": "The keyword is empty",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "501": {
+            "description": "The repo indexer is disabled for this instance",
+            "schema": {
+              "type": "string"
+            }
           }
         }
       }
@@ -3973,7 +4110,8 @@
             "type": "string",
             "description": "the keyword the search for",
             "name": "keyword",
-            "in": "query"
+            "in": "query",
+            "required": true
           },
           {
             "type": "string",
@@ -3983,7 +4121,7 @@
           },
           {
             "type": "boolean",
-            "description": "only exact match (defaults to true)",
+            "description": "only exact match (defaults to false)",
             "name": "match",
             "in": "query"
           },
@@ -4004,8 +4142,17 @@
           "200": {
             "$ref": "#/responses/RepoCodeSearch"
           },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
           "422": {
             "description": "The keyword is empty",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "501": {
+            "description": "The repo indexer is disabled for this instance",
             "schema": {
               "type": "string"
             }
@@ -15533,6 +15680,78 @@
         }
       }
     },
+    "/users/{username}/code_search": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Performs a code search on a User",
+        "operationId": "userCodeSearch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user to get",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "the keyword the search for",
+            "name": "keyword",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "filter results by language",
+            "name": "language",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "only exact match (defaults to false)",
+            "name": "match",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserHeatmapData"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "description": "The keyword is empty",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "501": {
+            "description": "The repo indexer is disabled for this instance",
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "/users/{username}/followers": {
       "get": {
         "produces": [
@@ -19564,6 +19783,13 @@
         "commit_id": {
           "type": "string",
           "x-go-name": "CommitID"
+        },
+        "content_lines": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "ContentLines"
         },
         "filename": {
           "type": "string",

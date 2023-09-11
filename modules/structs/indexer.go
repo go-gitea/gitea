@@ -17,6 +17,7 @@ type IndexerResult struct {
 	Color          string    `json:"color"`
 	LineNumbers    []int     `json:"line_numbers"`
 	FormattedLines string    `json:"formated_lines"`
+	ContentLines   []string  `json:"content_lines"`
 }
 
 // IndexerSearchResultLanguages result of top languages count in search results

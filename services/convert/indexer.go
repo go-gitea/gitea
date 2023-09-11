@@ -19,6 +19,7 @@ func ToIndexerSearchResult(result *code_indexer.Result) *api.IndexerResult {
 		Color:          result.Color,
 		LineNumbers:    result.LineNumbers,
 		FormattedLines: result.FormattedLines,
+		ContentLines:   result.ContentLines,
 	}
 }
 
