@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMinioStorageIterator(t *testing.T) {
@@ -24,4 +26,38 @@ func TestMinioStorageIterator(t *testing.T) {
 			Location:        "us-east-1",
 		},
 	})
+}
+
+func TestMinioStoragePath(t *testing.T) {
+	m := &MinioStorage{basePath: ""}
+	assert.Equal(t, "", m.buildMinioPath("/"))
+	assert.Equal(t, "", m.buildMinioPath("."))
+	assert.Equal(t, "a", m.buildMinioPath("/a"))
+	assert.Equal(t, "a/b", m.buildMinioPath("/a/b/"))
+	assert.Equal(t, "", m.buildMinioDirPrefix(""))
+	assert.Equal(t, "a/", m.buildMinioDirPrefix("/a/"))
+
+	m = &MinioStorage{basePath: "/"}
+	assert.Equal(t, "", m.buildMinioPath("/"))
+	assert.Equal(t, "", m.buildMinioPath("."))
+	assert.Equal(t, "a", m.buildMinioPath("/a"))
+	assert.Equal(t, "a/b", m.buildMinioPath("/a/b/"))
+	assert.Equal(t, "", m.buildMinioDirPrefix(""))
+	assert.Equal(t, "a/", m.buildMinioDirPrefix("/a/"))
+
+	m = &MinioStorage{basePath: "/base"}
+	assert.Equal(t, "base", m.buildMinioPath("/"))
+	assert.Equal(t, "base", m.buildMinioPath("."))
+	assert.Equal(t, "base/a", m.buildMinioPath("/a"))
+	assert.Equal(t, "base/a/b", m.buildMinioPath("/a/b/"))
+	assert.Equal(t, "base/", m.buildMinioDirPrefix(""))
+	assert.Equal(t, "base/a/", m.buildMinioDirPrefix("/a/"))
+
+	m = &MinioStorage{basePath: "/base/"}
+	assert.Equal(t, "base", m.buildMinioPath("/"))
+	assert.Equal(t, "base", m.buildMinioPath("."))
+	assert.Equal(t, "base/a", m.buildMinioPath("/a"))
+	assert.Equal(t, "base/a/b", m.buildMinioPath("/a/b/"))
+	assert.Equal(t, "base/", m.buildMinioDirPrefix(""))
+	assert.Equal(t, "base/a/", m.buildMinioDirPrefix("/a/"))
 }
