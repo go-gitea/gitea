@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/models/avatars"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth/source/sspi"
@@ -133,7 +132,8 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 		if req.FormValue("user_name") != "" && req.FormValue("password") != "" {
 			return false
 		}
-		return strconv.ParseBool(req.FormValue("auth_with_sspi"))
+		b, _ := strconv.ParseBool(req.FormValue("auth_with_sspi"))
+		return b
 	}
 	return middleware.IsAPIPath(req) || isAttachmentDownload(req)
 }
