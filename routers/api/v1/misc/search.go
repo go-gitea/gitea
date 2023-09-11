@@ -43,8 +43,6 @@ func CodeSearch(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserHeatmapData"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     description: "The keyword is empty"
 	//     schema:
