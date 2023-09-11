@@ -103,6 +103,9 @@ prime/
 *.snap-build
 *_source.tar.bz2
 .DS_Store
+gitea_amd64*.txt
+gitea_arm64*.txt
+gitea_armhf*.txt
 
 # Make evidence files
 /.make_evidence
