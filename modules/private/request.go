@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"unicode"
 
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
@@ -25,7 +24,9 @@ type ResponseExtra struct {
 	Error      error
 }
 
-type responseCallback func(resp *http.Response, extra *ResponseExtra)
+type responseCallback struct {
+	Callback func(resp *http.Response, extra *ResponseExtra)
+}
 
 func (re *ResponseExtra) HasError() bool {
 	return re.Error != nil
@@ -43,7 +44,7 @@ func (re responseError) Error() string {
 	return fmt.Sprintf("internal API error response, status=%d, err=%s", re.statusCode, re.errorString)
 }
 
-// requestJSONUserMsg sends a request to the gitea server and then parses the response.
+// requestJSONResp sends a request to the gitea server and then parses the response.
 // If the status code is not 2xx, or any error occurs, the ResponseExtra.Error field is guaranteed to be non-nil,
 // and the ResponseExtra.UserMsg field will be set to a message for the end user.
 //
@@ -89,10 +90,10 @@ func requestJSONResp[T any](req *httplib.Request, res *T) (ret *T, extra Respons
 		}
 		respText.Text = string(bs)
 		return res, extra
-	} else if callback, ok := v.(*responseCallback); ok {
+	} else if cb, ok := v.(*responseCallback); ok {
 		// pass the response to callback, and let the callback update the ResponseExtra
 		extra.StatusCode = resp.StatusCode
-		(*callback)(resp, &extra)
+		cb.Callback(resp, &extra)
 		return nil, extra
 	} else if err := json.NewDecoder(resp.Body).Decode(res); err != nil {
 		// decode the response into the given struct
@@ -114,22 +115,13 @@ func requestJSONResp[T any](req *httplib.Request, res *T) (ret *T, extra Respons
 	return res, extra
 }
 
-// requestJSONUserMsg sends a request to the gitea server and then parses the response as private.Response
-// If the request succeeds, the successMsg will be used as part of ResponseExtra.UserMsg.
-func requestJSONUserMsg(req *httplib.Request, successMsg string) ResponseExtra {
-	resp, extra := requestJSONResp(req, &Response{})
+// requestJSONClientMsg sends a request to the gitea server, server only responds text message status=200 with "success" body
+// If the request succeeds (200), the argument clientSuccessMsg will be used as ResponseExtra.UserMsg.
+func requestJSONClientMsg(req *httplib.Request, clientSuccessMsg string) ResponseExtra {
+	_, extra := requestJSONResp(req, &responseText{})
 	if extra.HasError() {
 		return extra
 	}
-	if resp.UserMsg == "" {
-		extra.UserMsg = successMsg // if UserMsg is empty, then use successMsg as userMsg
-	} else if successMsg != "" {
-		// else, now UserMsg is not empty, if successMsg is not empty, then append successMsg to UserMsg
-		if unicode.IsPunct(rune(extra.UserMsg[len(extra.UserMsg)-1])) {
-			extra.UserMsg = extra.UserMsg + " " + successMsg
-		} else {
-			extra.UserMsg = extra.UserMsg + ". " + successMsg
-		}
-	}
+	extra.UserMsg = clientSuccessMsg
 	return extra
 }

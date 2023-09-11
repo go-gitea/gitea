@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -43,21 +44,23 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.profile")
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
+	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
 
 	ctx.HTML(http.StatusOK, tplSettingsProfile)
 }
 
 // HandleUsernameChange handle username changes from user settings and admin interface
 func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName string) error {
-	// Non-local users are not allowed to change their username.
-	if !user.IsLocal() {
-		ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
-		return fmt.Errorf(ctx.Tr("form.username_change_not_local_user"))
-	}
-
+	oldName := user.Name
 	// rename user
 	if err := user_service.RenameUser(ctx, user, newName); err != nil {
 		switch {
+		// Noop as username is not changed
+		case user_model.IsErrUsernameNotChanged(err):
+			ctx.Flash.Error(ctx.Tr("form.username_has_not_been_changed"))
+		// Non-local users are not allowed to change their username.
+		case user_model.IsErrUserIsNotLocal(err):
+			ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
 		case user_model.IsErrEmailAlreadyUsed(err):
@@ -73,7 +76,7 @@ func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName s
 		}
 		return err
 	}
-
+	log.Trace("User name changed: %s -> %s", oldName, newName)
 	return nil
 }
 
@@ -82,6 +85,8 @@ func ProfilePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UpdateProfileForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsProfile"] = true
+	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
+	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplSettingsProfile)
@@ -141,7 +146,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 		defer fr.Close()
 
 		if form.Avatar.Size > setting.Avatar.MaxFileSize {
-			return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
+			return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big", form.Avatar.Size/1024, setting.Avatar.MaxFileSize/1024))
 		}
 
 		data, err := io.ReadAll(fr)
@@ -189,7 +194,7 @@ func DeleteAvatar(ctx *context.Context) {
 		ctx.Flash.Error(err.Error())
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/settings")
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings")
 }
 
 // Organization render all the organization of the user

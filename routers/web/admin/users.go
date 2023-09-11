@@ -13,6 +13,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	org_model "code.gitea.io/gitea/models/organization"
+	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
@@ -31,13 +34,13 @@ import (
 const (
 	tplUsers    base.TplName = "admin/user/list"
 	tplUserNew  base.TplName = "admin/user/new"
+	tplUserView base.TplName = "admin/user/view"
 	tplUserEdit base.TplName = "admin/user/edit"
 )
 
 // Users show all the users
 func Users(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 
 	extraParamStrings := map[string]string{}
@@ -54,9 +57,10 @@ func Users(ctx *context.Context) {
 
 	sortType := ctx.FormString("sort")
 	if sortType == "" {
-		sortType = explore.UserSearchDefaultSortType
+		sortType = explore.UserSearchDefaultAdminSort
+		ctx.SetFormString("sort", sortType)
 	}
-	ctx.PageData["adminUserListSearchForm"] = map[string]interface{}{
+	ctx.PageData["adminUserListSearchForm"] = map[string]any{
 		"StatusFilterMap": statusFilterMap,
 		"SortType":        sortType,
 	}
@@ -80,7 +84,6 @@ func Users(ctx *context.Context) {
 // NewUser render adding a new user page
 func NewUser(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
@@ -102,7 +105,6 @@ func NewUser(ctx *context.Context) {
 func NewUserPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AdminCreateUserForm)
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
@@ -150,7 +152,7 @@ func NewUserPost(ctx *context.Context) {
 		}
 		if !password.IsComplexEnough(form.Password) {
 			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(password.BuildComplexityError(ctx), tplUserNew, &form)
+			ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplUserNew, &form)
 			return
 		}
 		pwned, err := password.IsPwned(ctx, form.Password)
@@ -250,14 +252,69 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 	return u
 }
 
-// EditUser show editing user page
-func EditUser(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
-	ctx.Data["PageIsAdmin"] = true
+func ViewUser(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.users.details")
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
+
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		OwnerID:     u.ID,
+		OrderBy:     db.SearchOrderByAlphabetically,
+		Private:     true,
+		Collaborate: util.OptionalBoolFalse,
+	})
+	if err != nil {
+		ctx.ServerError("SearchRepository", err)
+		return
+	}
+
+	ctx.Data["Repos"] = repos
+	ctx.Data["ReposTotal"] = int(count)
+
+	emails, err := user_model.GetEmailAddresses(u.ID)
+	if err != nil {
+		ctx.ServerError("GetEmailAddresses", err)
+		return
+	}
+	ctx.Data["Emails"] = emails
+	ctx.Data["EmailsTotal"] = len(emails)
+
+	orgs, err := org_model.FindOrgs(org_model.FindOrgOptions{
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		UserID:         u.ID,
+		IncludePrivate: true,
+	})
+	if err != nil {
+		ctx.ServerError("FindOrgs", err)
+		return
+	}
+
+	ctx.Data["Users"] = orgs // needed to be able to use explore/user_list template
+	ctx.Data["OrgsTotal"] = len(orgs)
+
+	ctx.HTML(http.StatusOK, tplUserView)
+}
+
+// EditUser show editing user page
+func EditUser(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
+	ctx.Data["PageIsAdminUsers"] = true
+	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
+	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
+	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
+	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
 
 	prepareUserInfo(ctx)
 	if ctx.Written() {
@@ -271,10 +328,10 @@ func EditUser(ctx *context.Context) {
 func EditUserPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AdminEditUserForm)
 	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
+	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
 
 	u := prepareUserInfo(ctx)
 	if ctx.Written() {
@@ -305,7 +362,7 @@ func EditUserPost(ctx *context.Context) {
 			return
 		}
 		if !password.IsComplexEnough(form.Password) {
-			ctx.RenderWithErr(password.BuildComplexityError(ctx), tplUserEdit, &form)
+			ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplUserEdit, &form)
 			return
 		}
 		pwned, err := password.IsPwned(ctx, form.Password)
@@ -481,5 +538,5 @@ func DeleteAvatar(ctx *context.Context) {
 		ctx.Flash.Error(err.Error())
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
+	ctx.JSONRedirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
 }

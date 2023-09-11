@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/mailer"
 
 	gouuid "github.com/google/uuid"
 )
@@ -21,7 +20,6 @@ import (
 // Ensure the struct implements the interface.
 var (
 	_ Method = &ReverseProxy{}
-	_ Named  = &ReverseProxy{}
 )
 
 // ReverseProxyMethodName is the constant name of the ReverseProxy authentication method
@@ -171,8 +169,6 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 		log.Error("CreateUser: %v", err)
 		return nil
 	}
-
-	mailer.SendRegisterNotifyMail(user)
 
 	return user
 }

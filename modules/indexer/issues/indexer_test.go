@@ -11,9 +11,12 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/indexer/issues/bleve"
 	"code.gitea.io/gitea/modules/setting"
 
 	_ "code.gitea.io/gitea/models"
+	_ "code.gitea.io/gitea/models/actions"
+	_ "code.gitea.io/gitea/models/activities"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -26,7 +29,7 @@ func TestMain(m *testing.M) {
 
 func TestBleveSearchIssues(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	setting.CfgProvider = setting.NewEmptyConfigProvider()
+	setting.CfgProvider, _ = setting.NewConfigProviderFromData("")
 
 	tmpIndexerDir := t.TempDir()
 
@@ -42,29 +45,48 @@ func TestBleveSearchIssues(t *testing.T) {
 	setting.LoadQueueSettings()
 	InitIssueIndexer(true)
 	defer func() {
-		indexer := holder.get()
-		if bleveIndexer, ok := indexer.(*BleveIndexer); ok {
+		if bleveIndexer, ok := (*globalIndexer.Load()).(*bleve.Indexer); ok {
 			bleveIndexer.Close()
 		}
 	}()
 
 	time.Sleep(5 * time.Second)
 
-	ids, err := SearchIssuesByKeyword(context.TODO(), []int64{1}, "issue2")
-	assert.NoError(t, err)
-	assert.EqualValues(t, []int64{2}, ids)
+	t.Run("issue2", func(t *testing.T) {
+		ids, _, err := SearchIssues(context.TODO(), &SearchOptions{
+			Keyword: "issue2",
+			RepoIDs: []int64{1},
+		})
+		assert.NoError(t, err)
+		assert.EqualValues(t, []int64{2}, ids)
+	})
 
-	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "first")
-	assert.NoError(t, err)
-	assert.EqualValues(t, []int64{1}, ids)
+	t.Run("first", func(t *testing.T) {
+		ids, _, err := SearchIssues(context.TODO(), &SearchOptions{
+			Keyword: "first",
+			RepoIDs: []int64{1},
+		})
+		assert.NoError(t, err)
+		assert.EqualValues(t, []int64{1}, ids)
+	})
 
-	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "for")
-	assert.NoError(t, err)
-	assert.ElementsMatch(t, []int64{1, 2, 3, 5, 11}, ids)
+	t.Run("for", func(t *testing.T) {
+		ids, _, err := SearchIssues(context.TODO(), &SearchOptions{
+			Keyword: "for",
+			RepoIDs: []int64{1},
+		})
+		assert.NoError(t, err)
+		assert.ElementsMatch(t, []int64{1, 2, 3, 5, 11}, ids)
+	})
 
-	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "good")
-	assert.NoError(t, err)
-	assert.EqualValues(t, []int64{1}, ids)
+	t.Run("good", func(t *testing.T) {
+		ids, _, err := SearchIssues(context.TODO(), &SearchOptions{
+			Keyword: "good",
+			RepoIDs: []int64{1},
+		})
+		assert.NoError(t, err)
+		assert.EqualValues(t, []int64{1}, ids)
+	})
 }
 
 func TestDBSearchIssues(t *testing.T) {
@@ -73,19 +95,39 @@ func TestDBSearchIssues(t *testing.T) {
 	setting.Indexer.IssueType = "db"
 	InitIssueIndexer(true)
 
-	ids, err := SearchIssuesByKeyword(context.TODO(), []int64{1}, "issue2")
-	assert.NoError(t, err)
-	assert.EqualValues(t, []int64{2}, ids)
+	t.Run("issue2", func(t *testing.T) {
+		ids, _, err := SearchIssues(context.TODO(), &SearchOptions{
+			Keyword: "issue2",
+			RepoIDs: []int64{1},
+		})
+		assert.NoError(t, err)
+		assert.EqualValues(t, []int64{2}, ids)
+	})
 
-	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "first")
-	assert.NoError(t, err)
-	assert.EqualValues(t, []int64{1}, ids)
+	t.Run("first", func(t *testing.T) {
+		ids, _, err := SearchIssues(context.TODO(), &SearchOptions{
+			Keyword: "first",
+			RepoIDs: []int64{1},
+		})
+		assert.NoError(t, err)
+		assert.EqualValues(t, []int64{1}, ids)
+	})
 
-	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "for")
-	assert.NoError(t, err)
-	assert.ElementsMatch(t, []int64{1, 2, 3, 5, 11}, ids)
+	t.Run("for", func(t *testing.T) {
+		ids, _, err := SearchIssues(context.TODO(), &SearchOptions{
+			Keyword: "for",
+			RepoIDs: []int64{1},
+		})
+		assert.NoError(t, err)
+		assert.ElementsMatch(t, []int64{1, 2, 3, 5, 11}, ids)
+	})
 
-	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "good")
-	assert.NoError(t, err)
-	assert.EqualValues(t, []int64{1}, ids)
+	t.Run("good", func(t *testing.T) {
+		ids, _, err := SearchIssues(context.TODO(), &SearchOptions{
+			Keyword: "good",
+			RepoIDs: []int64{1},
+		})
+		assert.NoError(t, err)
+		assert.EqualValues(t, []int64{1}, ids)
+	})
 }

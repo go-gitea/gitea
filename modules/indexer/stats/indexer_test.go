@@ -16,6 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	_ "code.gitea.io/gitea/models"
+	_ "code.gitea.io/gitea/models/actions"
+	_ "code.gitea.io/gitea/models/activities"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -28,7 +30,7 @@ func TestMain(m *testing.M) {
 
 func TestRepoStatsIndex(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	setting.CfgProvider = setting.NewEmptyConfigProvider()
+	setting.CfgProvider, _ = setting.NewConfigProviderFromData("")
 
 	setting.LoadQueueSettings()
 
@@ -41,7 +43,7 @@ func TestRepoStatsIndex(t *testing.T) {
 	err = UpdateRepoIndexer(repo)
 	assert.NoError(t, err)
 
-	queue.GetManager().FlushAll(context.Background(), 5*time.Second)
+	assert.NoError(t, queue.GetManager().FlushAll(context.Background(), 5*time.Second))
 
 	status, err := repo_model.GetIndexerStatus(db.DefaultContext, repo, repo_model.RepoIndexerTypeStats)
 	assert.NoError(t, err)

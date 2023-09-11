@@ -4,10 +4,10 @@
 package auth
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/avatars"
@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth/source/sspi"
-	"code.gitea.io/gitea/services/mailer"
 
 	gouuid "github.com/google/uuid"
 	"github.com/quasoft/websspi"
@@ -33,13 +32,11 @@ var (
 	// sspiAuth is a global instance of the websspi authentication package,
 	// which is used to avoid acquiring the server credential handle on
 	// every request
-	sspiAuth *websspi.Authenticator
+	sspiAuth     *websspi.Authenticator
+	sspiAuthOnce sync.Once
 
 	// Ensure the struct implements the interface.
-	_ Method        = &SSPI{}
-	_ Named         = &SSPI{}
-	_ Initializable = &SSPI{}
-	_ Freeable      = &SSPI{}
+	_ Method = &SSPI{}
 )
 
 // SSPI implements the SingleSignOn interface and authenticates requests
@@ -48,25 +45,9 @@ var (
 // Returns nil if authentication fails.
 type SSPI struct{}
 
-// Init creates a new global websspi.Authenticator object
-func (s *SSPI) Init(ctx context.Context) error {
-	config := websspi.NewConfig()
-	var err error
-	sspiAuth, err = websspi.New(config)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 // Name represents the name of auth method
 func (s *SSPI) Name() string {
 	return "sspi"
-}
-
-// Free releases resources used by the global websspi.Authenticator object
-func (s *SSPI) Free() error {
-	return sspiAuth.Free()
 }
 
 // Verify uses SSPI (Windows implementation of SPNEGO) to authenticate the request.
@@ -74,6 +55,15 @@ func (s *SSPI) Free() error {
 // If negotiation should continue or authentication fails, immediately returns a 401 HTTP
 // response code, as required by the SPNEGO protocol.
 func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
+	var errInit error
+	sspiAuthOnce.Do(func() {
+		config := websspi.NewConfig()
+		sspiAuth, errInit = websspi.New(config)
+	})
+	if errInit != nil {
+		return nil, errInit
+	}
+
 	if !s.shouldAuthenticate(req) {
 		return nil, nil
 	}
@@ -98,9 +88,9 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 		}
 		store.GetData()["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 		store.GetData()["EnableSSPI"] = true
-		// in this case, the store is Gitea's web Context
+		// in this case, the Verify function is called in Gitea's web context
 		// FIXME: it doesn't look good to render the page here, why not redirect?
-		store.(*gitea_context.Context).HTML(http.StatusUnauthorized, tplSignIn)
+		gitea_context.GetWebContext(req).HTML(http.StatusUnauthorized, tplSignIn)
 		return nil, err
 	}
 	if outToken != "" {
@@ -190,8 +180,6 @@ func (s *SSPI) newUser(username string, cfg *sspi.Source) (*user_model.User, err
 	if err := user_model.CreateUser(user, overwriteDefault); err != nil {
 		return nil, err
 	}
-
-	mailer.SendRegisterNotifyMail(user)
 
 	return user, nil
 }

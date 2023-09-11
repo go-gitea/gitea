@@ -159,7 +159,7 @@ func TestOrgRestrictedUser(t *testing.T) {
 
 	// Therefore create a read-only team
 	adminSession := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, adminSession, auth_model.AccessTokenScopeAdminOrg)
+	token := getTokenForLoggedInUser(t, adminSession, auth_model.AccessTokenScopeWriteOrganization)
 
 	teamToCreate := &api.CreateTeamOption{
 		Name:                    "codereader",

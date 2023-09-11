@@ -28,7 +28,7 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 		user10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 10})
 		user11 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 11})
 
-		testCtx := NewAPITestContext(t, repo2Owner.Name, repo2.Name, auth_model.AccessTokenScopeRepo)
+		testCtx := NewAPITestContext(t, repo2Owner.Name, repo2.Name, auth_model.AccessTokenScopeWriteRepository)
 
 		t.Run("RepoOwnerShouldBeOwner", func(t *testing.T) {
 			req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/collaborators/%s/permission?token=%s", repo2Owner.Name, repo2.Name, repo2Owner.Name, testCtx.Token)
@@ -85,7 +85,7 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 			t.Run("AddUserAsCollaboratorWithReadAccess", doAPIAddCollaborator(testCtx, user5.Name, perm.AccessModeRead))
 
 			_session := loginUser(t, user5.Name)
-			_testCtx := NewAPITestContext(t, user5.Name, repo2.Name, auth_model.AccessTokenScopeRepo)
+			_testCtx := NewAPITestContext(t, user5.Name, repo2.Name, auth_model.AccessTokenScopeReadRepository)
 
 			req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/collaborators/%s/permission?token=%s", repo2Owner.Name, repo2.Name, user5.Name, _testCtx.Token)
 			resp := _session.MakeRequest(t, req, http.StatusOK)
@@ -100,7 +100,7 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 			t.Run("AddUserAsCollaboratorWithReadAccess", doAPIAddCollaborator(testCtx, user5.Name, perm.AccessModeRead))
 
 			_session := loginUser(t, user5.Name)
-			_testCtx := NewAPITestContext(t, user5.Name, repo2.Name, auth_model.AccessTokenScopeRepo)
+			_testCtx := NewAPITestContext(t, user5.Name, repo2.Name, auth_model.AccessTokenScopeReadRepository)
 
 			req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/collaborators/%s/permission?token=%s", repo2Owner.Name, repo2.Name, user5.Name, _testCtx.Token)
 			resp := _session.MakeRequest(t, req, http.StatusOK)
@@ -116,7 +116,7 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 			t.Run("AddUserAsCollaboratorWithReadAccess", doAPIAddCollaborator(testCtx, user11.Name, perm.AccessModeRead))
 
 			_session := loginUser(t, user10.Name)
-			_testCtx := NewAPITestContext(t, user10.Name, repo2.Name, auth_model.AccessTokenScopeRepo)
+			_testCtx := NewAPITestContext(t, user10.Name, repo2.Name, auth_model.AccessTokenScopeReadRepository)
 
 			req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/collaborators/%s/permission?token=%s", repo2Owner.Name, repo2.Name, user11.Name, _testCtx.Token)
 			resp := _session.MakeRequest(t, req, http.StatusOK)

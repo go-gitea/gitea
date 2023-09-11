@@ -4,6 +4,7 @@
 package cargo
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -15,6 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	cargo_module "code.gitea.io/gitea/modules/packages/cargo"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	"code.gitea.io/gitea/services/convert"
@@ -32,7 +35,7 @@ type StatusMessage struct {
 	Message string `json:"detail"`
 }
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.JSON(status, StatusResponse{
 			OK: false,
@@ -43,6 +46,35 @@ func apiError(ctx *context.Context, status int, obj interface{}) {
 			},
 		})
 	})
+}
+
+// https://rust-lang.github.io/rfcs/2789-sparse-index.html
+func RepositoryConfig(ctx *context.Context) {
+	ctx.JSON(http.StatusOK, cargo_service.BuildConfig(ctx.Package.Owner, setting.Service.RequireSignInView || ctx.Package.Owner.Visibility != structs.VisibleTypePublic))
+}
+
+func EnumeratePackageVersions(ctx *context.Context) {
+	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeCargo, ctx.Params("package"))
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			apiError(ctx, http.StatusNotFound, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	b, err := cargo_service.BuildPackageIndex(ctx, p)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if b == nil {
+		apiError(ctx, http.StatusNotFound, nil)
+		return
+	}
+
+	ctx.PlainTextBytes(http.StatusOK, b.Bytes())
 }
 
 type SearchResult struct {
@@ -135,7 +167,7 @@ func ListOwners(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package
 func DownloadPackageFile(ctx *context.Context) {
-	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -155,12 +187,8 @@ func DownloadPackageFile(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	defer s.Close()
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }
 
 // https://doc.rust-lang.org/cargo/reference/registries.html#publish
@@ -173,7 +201,7 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
-	buf, err := packages_module.CreateHashedBufferFromReader(cp.Content, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(cp.Content)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

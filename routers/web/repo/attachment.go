@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/upload"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/attachment"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -126,7 +127,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		return
 	}
 
-	if setting.Attachment.ServeDirect {
+	if setting.Attachment.Storage.MinioConfig.ServeDirect {
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.Attachments.URL(attach.RelativePath(), attach.Name)
 
@@ -148,10 +149,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 	}
 	defer fr.Close()
 
-	if err = common.ServeData(ctx, attach.Name, attach.Size, fr); err != nil {
-		ctx.ServerError("ServeData", err)
-		return
-	}
+	common.ServeContentByReadSeeker(ctx.Base, attach.Name, util.ToPointer(attach.CreatedUnix.AsTime()), fr)
 }
 
 // GetAttachment serve attachments

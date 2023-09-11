@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
@@ -30,7 +31,7 @@ func TestPackagePub(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	token := "Bearer " + getUserToken(t, user.Name)
+	token := "Bearer " + getUserToken(t, user.Name, auth_model.AccessTokenScopeWritePackage)
 
 	packageName := "test_package"
 	packageVersion := "1.0.1"
@@ -130,10 +131,10 @@ description: ` + packageDescription
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		type VersionMetadata struct {
-			Version    string      `json:"version"`
-			ArchiveURL string      `json:"archive_url"`
-			Published  time.Time   `json:"published"`
-			Pubspec    interface{} `json:"pubspec,omitempty"`
+			Version    string    `json:"version"`
+			ArchiveURL string    `json:"archive_url"`
+			Published  time.Time `json:"published"`
+			Pubspec    any       `json:"pubspec,omitempty"`
 		}
 
 		var result VersionMetadata
@@ -155,10 +156,10 @@ description: ` + packageDescription
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		type VersionMetadata struct {
-			Version    string      `json:"version"`
-			ArchiveURL string      `json:"archive_url"`
-			Published  time.Time   `json:"published"`
-			Pubspec    interface{} `json:"pubspec,omitempty"`
+			Version    string    `json:"version"`
+			ArchiveURL string    `json:"archive_url"`
+			Published  time.Time `json:"published"`
+			Pubspec    any       `json:"pubspec,omitempty"`
 		}
 
 		type PackageVersions struct {

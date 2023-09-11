@@ -28,11 +28,11 @@ func getStarredRepos(ctx std_context.Context, user *user_model.User, private boo
 
 	repos := make([]*api.Repository, len(starredRepos))
 	for i, starred := range starredRepos {
-		access, err := access_model.AccessLevel(ctx, user, starred)
+		permission, err := access_model.GetUserRepoPermission(ctx, starred, user)
 		if err != nil {
 			return nil, err
 		}
-		repos[i] = convert.ToRepo(ctx, starred, access)
+		repos[i] = convert.ToRepo(ctx, starred, permission)
 	}
 	return repos, nil
 }

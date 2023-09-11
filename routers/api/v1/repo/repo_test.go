@@ -9,9 +9,8 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/contexttest"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
 
 	"github.com/stretchr/testify/assert"
@@ -20,9 +19,9 @@ import (
 func TestRepoEdit(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockContext(t, "user2/repo1")
-	test.LoadRepo(t, ctx, 1)
-	test.LoadUser(t, ctx, 2)
+	ctx, _ := contexttest.MockAPIContext(t, "user2/repo1")
+	contexttest.LoadRepo(t, ctx, 1)
+	contexttest.LoadUser(t, ctx, 2)
 	ctx.Repo.Owner = ctx.Doer
 	description := "new description"
 	website := "http://wwww.newwebsite.com"
@@ -54,9 +53,8 @@ func TestRepoEdit(t *testing.T) {
 		Archived:                  &archived,
 	}
 
-	apiCtx := &context.APIContext{Context: ctx, Org: nil}
-	web.SetForm(apiCtx, &opts)
-	Edit(apiCtx)
+	web.SetForm(ctx, &opts)
+	Edit(ctx)
 
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
@@ -67,18 +65,17 @@ func TestRepoEdit(t *testing.T) {
 func TestRepoEditNameChange(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockContext(t, "user2/repo1")
-	test.LoadRepo(t, ctx, 1)
-	test.LoadUser(t, ctx, 2)
+	ctx, _ := contexttest.MockAPIContext(t, "user2/repo1")
+	contexttest.LoadRepo(t, ctx, 1)
+	contexttest.LoadUser(t, ctx, 2)
 	ctx.Repo.Owner = ctx.Doer
 	name := "newname"
 	opts := api.EditRepoOption{
 		Name: &name,
 	}
 
-	apiCtx := &context.APIContext{Context: ctx, Org: nil}
-	web.SetForm(apiCtx, &opts)
-	Edit(apiCtx)
+	web.SetForm(ctx, &opts)
+	Edit(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{

@@ -30,13 +30,13 @@ func DateTime(format string, datetime any) template.HTML {
 	var datetimeEscaped, textEscaped string
 	switch v := datetime.(type) {
 	case nil:
-		return "N/A"
+		return "-"
 	case string:
 		datetimeEscaped = html.EscapeString(v)
 		textEscaped = datetimeEscaped
 	case time.Time:
 		if v.IsZero() || v.Unix() == 0 {
-			return "N/A"
+			return "-"
 		}
 		datetimeEscaped = html.EscapeString(v.Format(time.RFC3339))
 		if format == "full" {

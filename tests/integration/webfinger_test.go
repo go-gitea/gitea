@@ -30,18 +30,18 @@ func TestWebfinger(t *testing.T) {
 	appURL, _ := url.Parse(setting.AppURL)
 
 	type webfingerLink struct {
-		Rel        string                 `json:"rel,omitempty"`
-		Type       string                 `json:"type,omitempty"`
-		Href       string                 `json:"href,omitempty"`
-		Titles     map[string]string      `json:"titles,omitempty"`
-		Properties map[string]interface{} `json:"properties,omitempty"`
+		Rel        string            `json:"rel,omitempty"`
+		Type       string            `json:"type,omitempty"`
+		Href       string            `json:"href,omitempty"`
+		Titles     map[string]string `json:"titles,omitempty"`
+		Properties map[string]any    `json:"properties,omitempty"`
 	}
 
 	type webfingerJRD struct {
-		Subject    string                 `json:"subject,omitempty"`
-		Aliases    []string               `json:"aliases,omitempty"`
-		Properties map[string]interface{} `json:"properties,omitempty"`
-		Links      []*webfingerLink       `json:"links,omitempty"`
+		Subject    string           `json:"subject,omitempty"`
+		Aliases    []string         `json:"aliases,omitempty"`
+		Properties map[string]any   `json:"properties,omitempty"`
+		Links      []*webfingerLink `json:"links,omitempty"`
 	}
 
 	session := loginUser(t, "user1")

@@ -21,7 +21,6 @@ import (
 // Ensure the struct implements the interface.
 var (
 	_ Method = &Basic{}
-	_ Named  = &Basic{}
 )
 
 // BasicMethodName is the constant name of the basic authentication method
@@ -102,6 +101,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		}
 
 		store.GetData()["IsApiToken"] = true
+		store.GetData()["ApiTokenScope"] = token.Scope
 		return u, nil
 	} else if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
 		log.Error("GetAccessTokenBySha: %v", err)

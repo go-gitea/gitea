@@ -17,12 +17,14 @@ import (
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
@@ -107,6 +109,8 @@ const (
 	CommentTypePRScheduledToAutoMerge   // 34 pr was scheduled to auto merge when checks succeed
 	CommentTypePRUnScheduledToAutoMerge // 35 pr was un scheduled to auto merge when checks succeed
 
+	CommentTypePin   // 36 pin Issue
+	CommentTypeUnpin // 37 unpin Issue
 )
 
 var commentStrings = []string{
@@ -146,6 +150,8 @@ var commentStrings = []string{
 	"change_issue_ref",
 	"pull_scheduled_merge",
 	"pull_cancel_scheduled_merge",
+	"pin",
+	"unpin",
 }
 
 func (t CommentType) String() string {
@@ -163,7 +169,7 @@ func AsCommentType(typeName string) CommentType {
 
 func (t CommentType) HasContentSupport() bool {
 	switch t {
-	case CommentTypeComment, CommentTypeCode, CommentTypeReview:
+	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview:
 		return true
 	}
 	return false
@@ -177,40 +183,32 @@ func (t CommentType) HasAttachmentSupport() bool {
 	return false
 }
 
-// RoleDescriptor defines comment tag type
-type RoleDescriptor int
+// RoleInRepo presents the user's participation in the repo
+type RoleInRepo string
+
+// RoleDescriptor defines comment "role" tags
+type RoleDescriptor struct {
+	IsPoster   bool
+	RoleInRepo RoleInRepo
+}
 
 // Enumerate all the role tags.
 const (
-	RoleDescriptorNone RoleDescriptor = iota
-	RoleDescriptorPoster
-	RoleDescriptorWriter
-	RoleDescriptorOwner
+	RoleRepoOwner                RoleInRepo = "owner"
+	RoleRepoMember               RoleInRepo = "member"
+	RoleRepoCollaborator         RoleInRepo = "collaborator"
+	RoleRepoFirstTimeContributor RoleInRepo = "first_time_contributor"
+	RoleRepoContributor          RoleInRepo = "contributor"
 )
 
-// WithRole enable a specific tag on the RoleDescriptor.
-func (rd RoleDescriptor) WithRole(role RoleDescriptor) RoleDescriptor {
-	return rd | (1 << role)
+// LocaleString returns the locale string name of the role
+func (r RoleInRepo) LocaleString(lang translation.Locale) string {
+	return lang.Tr("repo.issues.role." + string(r))
 }
 
-func stringToRoleDescriptor(role string) RoleDescriptor {
-	switch role {
-	case "Poster":
-		return RoleDescriptorPoster
-	case "Writer":
-		return RoleDescriptorWriter
-	case "Owner":
-		return RoleDescriptorOwner
-	default:
-		return RoleDescriptorNone
-	}
-}
-
-// HasRole returns if a certain role is enabled on the RoleDescriptor.
-func (rd RoleDescriptor) HasRole(role string) bool {
-	roleDescriptor := stringToRoleDescriptor(role)
-	bitValue := rd & (1 << roleDescriptor)
-	return (bitValue > 0)
+// LocaleHelper returns the locale tooltip of the role
+func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
+	return lang.Tr("repo.issues.role." + string(r) + "_helper")
 }
 
 // Comment represents a comment in commit and issue page.
@@ -745,7 +743,7 @@ func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
 
 	err = json.Unmarshal([]byte(c.Content), &data)
 	if err != nil {
-		return
+		return err
 	}
 
 	c.IsForcePush = data.IsForcePush
@@ -773,6 +771,12 @@ func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
 
 // CreateComment creates comment with context
 func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment, err error) {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer committer.Close()
+
 	e := db.GetEngine(ctx)
 	var LabelID int64
 	if opts.Label != nil {
@@ -828,7 +832,9 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 	if err = comment.AddCrossReferences(ctx, opts.Doer, false); err != nil {
 		return nil, err
 	}
-
+	if err = committer.Commit(); err != nil {
+		return nil, err
+	}
 	return comment, nil
 }
 
@@ -921,7 +927,7 @@ func createIssueDependencyComment(ctx context.Context, doer *user_model.User, is
 		cType = CommentTypeRemoveDependency
 	}
 	if err = issue.LoadRepo(ctx); err != nil {
-		return
+		return err
 	}
 
 	// Make two comments, one in each issue
@@ -933,7 +939,7 @@ func createIssueDependencyComment(ctx context.Context, doer *user_model.User, is
 		DependentIssueID: dependentIssue.ID,
 	}
 	if _, err = CreateComment(ctx, opts); err != nil {
-		return
+		return err
 	}
 
 	opts = &CreateCommentOptions{
@@ -1048,7 +1054,7 @@ func (opts *FindCommentsOptions) ToConds() builder.Cond {
 }
 
 // FindComments returns all comments according options
-func FindComments(ctx context.Context, opts *FindCommentsOptions) ([]*Comment, error) {
+func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, error) {
 	comments := make([]*Comment, 0, 10)
 	sess := db.GetEngine(ctx).Where(opts.ToConds())
 	if opts.RepoID > 0 {
@@ -1127,7 +1133,7 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 	}
 	if _, err := e.Table("action").
 		Where("comment_id = ?", comment.ID).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"is_deleted": true,
 		}); err != nil {
 		return err
@@ -1152,7 +1158,7 @@ func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID 
 				}),
 		)).
 		And("comment.original_author_id = ?", originalAuthorID).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"poster_id":          posterID,
 			"original_author":    "",
 			"original_author_id": 0,
@@ -1166,11 +1172,11 @@ func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullReques
 		return nil, fmt.Errorf("comment type %d cannot be used to create an auto merge comment", typ)
 	}
 	if err = pr.LoadIssue(ctx); err != nil {
-		return
+		return nil, err
 	}
 
 	if err = pr.LoadBaseRepo(ctx); err != nil {
-		return
+		return nil, err
 	}
 
 	comment, err = CreateComment(ctx, &CreateCommentOptions{
@@ -1241,4 +1247,45 @@ func FixCommentTypeLabelWithOutsideLabels(ctx context.Context) (int64, error) {
 // HasOriginalAuthor returns if a comment was migrated and has an original author.
 func (c *Comment) HasOriginalAuthor() bool {
 	return c.OriginalAuthor != "" && c.OriginalAuthorID != 0
+}
+
+// InsertIssueComments inserts many comments of issues.
+func InsertIssueComments(comments []*Comment) error {
+	if len(comments) == 0 {
+		return nil
+	}
+
+	issueIDs := make(container.Set[int64])
+	for _, comment := range comments {
+		issueIDs.Add(comment.IssueID)
+	}
+
+	ctx, committer, err := db.TxContext(db.DefaultContext)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	for _, comment := range comments {
+		if _, err := db.GetEngine(ctx).NoAutoTime().Insert(comment); err != nil {
+			return err
+		}
+
+		for _, reaction := range comment.Reactions {
+			reaction.IssueID = comment.IssueID
+			reaction.CommentID = comment.ID
+		}
+		if len(comment.Reactions) > 0 {
+			if err := db.Insert(ctx, comment.Reactions); err != nil {
+				return err
+			}
+		}
+	}
+
+	for issueID := range issueIDs {
+		if _, err := db.Exec(ctx, "UPDATE issue set num_comments = (SELECT count(*) FROM comment WHERE issue_id = ? AND `type`=?) WHERE id = ?",
+			issueID, CommentTypeComment, issueID); err != nil {
+			return err
+		}
+	}
+	return committer.Commit()
 }

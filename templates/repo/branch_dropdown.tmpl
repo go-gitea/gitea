@@ -1,3 +1,8 @@
+{{/* Attributes:
+* root
+* ContainerClasses
+* (TODO: search "branch_dropdown" in the template direcotry)
+*/}}
 {{$defaultBranch := $.root.BranchName}}
 {{if and .root.IsViewTag (not .noTag)}}
 	{{$defaultBranch = .root.TagName}}
@@ -25,6 +30,7 @@
 		'textCreateBranchFrom': {{.root.locale.Tr "repo.branch.create_from"}},
 		'textBranches': {{.root.locale.Tr "repo.branches"}},
 		'textTags': {{.root.locale.Tr "repo.tags"}},
+		'textDefaultBranchLabel': {{.root.locale.Tr "repo.default_branch_label"}},
 
 		'mode': '{{if or .root.IsViewTag .isTag}}tags{{else}}branches{{end}}',
 		'showBranchesInDropdown': {{$showBranchesInDropdown}},
@@ -39,8 +45,6 @@
 		'tagName': {{.root.TagName}},
 		'branchName': {{.root.BranchName}},
 		'noTag': {{.noTag}},
-		'branches': {{.root.Branches}},
-		'tags': {{.root.Tags}},
 		'defaultBranch': {{$defaultBranch}},
 		'enableFeed': {{.root.EnableFeed}},
 		'rssURLPrefix': '{{$.root.RepoLink}}/rss/branch/',
@@ -62,10 +66,10 @@
 	window.config.pageData.branchDropdownDataList.push(data);
 </script>
 
-<div class="fitted item js-branch-tag-selector">
+<div class="js-branch-tag-selector {{if .ContainerClasses}}{{.ContainerClasses}}{{end}}">
 	{{/* show dummy elements before Vue componment is mounted, this code must match the code in BranchTagSelector.vue */}}
-	<div class="ui floating filter dropdown custom">
-		<button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df">
+	<div class="ui dropdown custom">
+		<button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df gt-m-0">
 			<span class="text gt-df gt-ac gt-mr-2">
 				{{if .release}}
 					{{.root.locale.Tr "repo.release.compare"}}

@@ -32,6 +32,16 @@ func List(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, "devtest/list")
 }
 
+func FetchActionTest(ctx *context.Context) {
+	_ = ctx.Req.ParseForm()
+	ctx.Flash.Info("fetch-action: " + ctx.Req.Method + " " + ctx.Req.RequestURI + "<br>" +
+		"Form: " + ctx.Req.Form.Encode() + "<br>" +
+		"PostForm: " + ctx.Req.PostForm.Encode(),
+	)
+	time.Sleep(2 * time.Second)
+	ctx.JSONRedirect("")
+}
+
 func Tmpl(ctx *context.Context) {
 	now := time.Now()
 	ctx.Data["TimeNow"] = now
@@ -41,6 +51,16 @@ func Tmpl(ctx *context.Context) {
 	ctx.Data["TimeFuture2m"] = now.Add(2 * time.Minute)
 	ctx.Data["TimePast1y"] = now.Add(-1 * 366 * 86400 * time.Second)
 	ctx.Data["TimeFuture1y"] = now.Add(1 * 366 * 86400 * time.Second)
+
+	if ctx.Req.Method == "POST" {
+		_ = ctx.Req.ParseForm()
+		ctx.Flash.Info("form: "+ctx.Req.Method+" "+ctx.Req.RequestURI+"<br>"+
+			"Form: "+ctx.Req.Form.Encode()+"<br>"+
+			"PostForm: "+ctx.Req.PostForm.Encode(),
+			true,
+		)
+		time.Sleep(2 * time.Second)
+	}
 
 	ctx.HTML(http.StatusOK, base.TplName("devtest"+path.Clean("/"+ctx.Params("sub"))))
 }

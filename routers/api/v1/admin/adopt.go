@@ -9,7 +9,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -95,7 +94,7 @@ func AdoptRepository(ctx *context.APIContext) {
 	}
 
 	// check not a repo
-	has, err := repo_model.IsRepositoryExist(ctx, ctxUser, repoName)
+	has, err := repo_model.IsRepositoryModelExist(ctx, ctxUser, repoName)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -109,7 +108,7 @@ func AdoptRepository(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	if _, err := repo_service.AdoptRepository(ctx, ctx.Doer, ctxUser, repo_module.CreateRepoOptions{
+	if _, err := repo_service.AdoptRepository(ctx, ctx.Doer, ctxUser, repo_service.CreateRepoOptions{
 		Name:      repoName,
 		IsPrivate: true,
 	}); err != nil {
@@ -157,7 +156,7 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 	}
 
 	// check not a repo
-	has, err := repo_model.IsRepositoryExist(ctx, ctxUser, repoName)
+	has, err := repo_model.IsRepositoryModelExist(ctx, ctxUser, repoName)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

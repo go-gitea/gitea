@@ -17,3 +17,9 @@
   margin-top: 14px;
   margin-bottom: 0;
 }
+
+.repository .head .ui.header .org-visibility .label,
+.organization .head .ui.header .org-visibility .label {
+  margin-left: 5px;
+  margin-top: 5px;
+}

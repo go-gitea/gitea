@@ -15,17 +15,17 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	texttemplate "text/template"
 
 	"code.gitea.io/gitea/modules/assetfs"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates/scopedtmpl"
 	"code.gitea.io/gitea/modules/util"
 )
-
-var rendererKey interface{} = "templatesHtmlRenderer"
 
 type TemplateExecutor scopedtmpl.TemplateExecutor
 
@@ -33,36 +33,42 @@ type HTMLRender struct {
 	templates atomic.Pointer[scopedtmpl.ScopedTemplate]
 }
 
+var (
+	htmlRender     *HTMLRender
+	htmlRenderOnce sync.Once
+)
+
 var ErrTemplateNotInitialized = errors.New("template system is not initialized, check your log for errors")
 
-func (h *HTMLRender) HTML(w io.Writer, status int, name string, data interface{}) error {
+func (h *HTMLRender) HTML(w io.Writer, status int, name string, data any, ctx context.Context) error { //nolint:revive
 	if respWriter, ok := w.(http.ResponseWriter); ok {
 		if respWriter.Header().Get("Content-Type") == "" {
 			respWriter.Header().Set("Content-Type", "text/html; charset=utf-8")
 		}
 		respWriter.WriteHeader(status)
 	}
-	t, err := h.TemplateLookup(name)
+	t, err := h.TemplateLookup(name, ctx)
 	if err != nil {
 		return texttemplate.ExecError{Name: name, Err: err}
 	}
 	return t.Execute(w, data)
 }
 
-func (h *HTMLRender) TemplateLookup(name string) (TemplateExecutor, error) {
+func (h *HTMLRender) TemplateLookup(name string, ctx context.Context) (TemplateExecutor, error) { //nolint:revive
 	tmpls := h.templates.Load()
 	if tmpls == nil {
 		return nil, ErrTemplateNotInitialized
 	}
-
-	return tmpls.Executor(name, NewFuncMap()[0])
+	m := NewFuncMap()
+	m["ctx"] = func() any { return ctx }
+	return tmpls.Executor(name, m)
 }
 
 func (h *HTMLRender) CompileTemplates() error {
 	assets := AssetFS()
 	extSuffix := ".tmpl"
 	tmpls := scopedtmpl.NewScopedTemplate()
-	tmpls.Funcs(NewFuncMap()[0])
+	tmpls.Funcs(NewFuncMap())
 	files, err := ListWebTemplateAssetNames(assets)
 	if err != nil {
 		return nil
@@ -86,42 +92,56 @@ func (h *HTMLRender) CompileTemplates() error {
 	return nil
 }
 
-// HTMLRenderer returns the current html renderer for the context or creates and stores one within the context for future use
-func HTMLRenderer(ctx context.Context) (context.Context, *HTMLRender) {
-	if renderer, ok := ctx.Value(rendererKey).(*HTMLRender); ok {
-		return ctx, renderer
-	}
+// HTMLRenderer init once and returns the globally shared html renderer
+func HTMLRenderer() *HTMLRender {
+	htmlRenderOnce.Do(initHTMLRenderer)
+	return htmlRender
+}
 
+func ReloadHTMLTemplates() error {
+	log.Trace("Reloading HTML templates")
+	if err := htmlRender.CompileTemplates(); err != nil {
+		log.Error("Template error: %v\n%s", err, log.Stack(2))
+		return err
+	}
+	return nil
+}
+
+func initHTMLRenderer() {
 	rendererType := "static"
 	if !setting.IsProd {
 		rendererType = "auto-reloading"
 	}
-	log.Log(1, log.DEBUG, "Creating "+rendererType+" HTML Renderer")
+	log.Debug("Creating %s HTML Renderer", rendererType)
 
-	renderer := &HTMLRender{}
-	if err := renderer.CompileTemplates(); err != nil {
+	htmlRender = &HTMLRender{}
+	if err := htmlRender.CompileTemplates(); err != nil {
 		p := &templateErrorPrettier{assets: AssetFS()}
-		wrapFatal(p.handleFuncNotDefinedError(err))
-		wrapFatal(p.handleUnexpectedOperandError(err))
-		wrapFatal(p.handleExpectedEndError(err))
-		wrapFatal(p.handleGenericTemplateError(err))
-		log.Fatal("HTMLRenderer CompileTemplates error: %v", err)
+		wrapTmplErrMsg(p.handleFuncNotDefinedError(err))
+		wrapTmplErrMsg(p.handleUnexpectedOperandError(err))
+		wrapTmplErrMsg(p.handleExpectedEndError(err))
+		wrapTmplErrMsg(p.handleGenericTemplateError(err))
+		wrapTmplErrMsg(fmt.Sprintf("CompileTemplates error: %v", err))
 	}
+
 	if !setting.IsProd {
-		go AssetFS().WatchLocalChanges(ctx, func() {
-			if err := renderer.CompileTemplates(); err != nil {
-				log.Error("Template error: %v\n%s", err, log.Stack(2))
-			}
+		go AssetFS().WatchLocalChanges(graceful.GetManager().ShutdownContext(), func() {
+			_ = ReloadHTMLTemplates()
 		})
 	}
-	return context.WithValue(ctx, rendererKey, renderer), renderer
 }
 
-func wrapFatal(msg string) {
+func wrapTmplErrMsg(msg string) {
 	if msg == "" {
 		return
 	}
-	log.FatalWithSkip(1, "Unable to compile templates, %s", msg)
+	if setting.IsProd {
+		// in prod mode, Gitea must have correct templates to run
+		log.Fatal("Gitea can't run with template errors: %s", msg)
+	} else {
+		// in dev mode, do not need to really exit, because the template errors could be fixed by developer soon and the templates get reloaded
+		log.Error("There are template errors but Gitea continues to run in dev mode: %s", msg)
+	}
 }
 
 type templateErrorPrettier struct {

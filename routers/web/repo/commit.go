@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/gitdiff"
+	git_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -70,7 +71,7 @@ func Commits(ctx *context.Context) {
 	}
 
 	// Both `git log branchName` and `git log commitId` work.
-	commits, err := ctx.Repo.Commit.CommitsByRange(page, pageSize)
+	commits, err := ctx.Repo.Commit.CommitsByRange(page, pageSize, "")
 	if err != nil {
 		ctx.ServerError("CommitsByRange", err)
 		return
@@ -80,7 +81,6 @@ func Commits(ctx *context.Context) {
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
-	ctx.Data["RefName"] = ctx.Repo.RefName
 
 	pager := context.NewPagination(int(commitsCount), pageSize, page, 5)
 	pager.SetDefaultParams(ctx)
@@ -156,7 +156,7 @@ func Graph(ctx *context.Context) {
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
-	ctx.Data["RefName"] = ctx.Repo.RefName
+
 	paginator := context.NewPagination(int(graphCommitsCount), setting.UI.GraphMaxCommitNum, page, 5)
 	paginator.AddParam(ctx, "mode", "Mode")
 	paginator.AddParam(ctx, "hide-pr-refs", "HidePRRefs")
@@ -202,7 +202,6 @@ func SearchCommits(ctx *context.Context) {
 	}
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-	ctx.Data["RefName"] = ctx.Repo.RefName
 	ctx.HTML(http.StatusOK, tplCommits)
 }
 
@@ -230,7 +229,12 @@ func FileHistory(ctx *context.Context) {
 		page = 1
 	}
 
-	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(ctx.Repo.RefName, fileName, page)
+	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
+		git.CommitsByFileAndRangeOptions{
+			Revision: ctx.Repo.RefName,
+			File:     fileName,
+			Page:     page,
+		})
 	if err != nil {
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return
@@ -241,13 +245,21 @@ func FileHistory(ctx *context.Context) {
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["FileName"] = fileName
 	ctx.Data["CommitCount"] = commitsCount
-	ctx.Data["RefName"] = ctx.Repo.RefName
 
 	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplCommits)
+}
+
+func LoadBranchesAndTags(ctx *context.Context) {
+	response, err := git_service.LoadBranchesAndTags(ctx, ctx.Repo, ctx.Params("sha"))
+	if err == nil {
+		ctx.JSON(http.StatusOK, response)
+		return
+	}
+	ctx.NotFoundOrServerError(fmt.Sprintf("could not load branches and tags the commit %s belongs to", ctx.Params("sha")), git.IsErrNotExist, err)
 }
 
 // Diff show different from current commit to previous commit
@@ -334,7 +346,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Commit"] = commit
 	ctx.Data["Diff"] = diff
 
-	statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptions{})
+	statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptions{ListAll: true})
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
@@ -369,11 +381,6 @@ func Diff(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["TagName"], err = commit.GetTagName()
-	if err != nil {
-		ctx.ServerError("commit.GetTagName", err)
-		return
-	}
 	ctx.HTML(http.StatusOK, tplCommitPage)
 }
 

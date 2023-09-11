@@ -30,14 +30,16 @@ const (
 
 type ProcessorHelper struct {
 	IsUsernameMentionable func(ctx context.Context, username string) bool
+
+	ElementDir string // the direction of the elements, eg: "ltr", "rtl", "auto", default to no direction attribute
 }
 
-var processorHelper ProcessorHelper
+var DefaultProcessorHelper ProcessorHelper
 
 // Init initialize regexps for markdown parsing
 func Init(ph *ProcessorHelper) {
 	if ph != nil {
-		processorHelper = *ph
+		DefaultProcessorHelper = *ph
 	}
 
 	NewSanitizer()

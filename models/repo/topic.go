@@ -22,7 +22,7 @@ func init() {
 	db.RegisterModel(new(RepoTopic))
 }
 
-var topicPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
+var topicPattern = regexp.MustCompile(`^[a-z0-9][-.a-z0-9]*$`)
 
 // Topic represents a topic of repositories
 type Topic struct {
@@ -253,16 +253,7 @@ func AddTopic(repoID int64, topicName string) (*Topic, error) {
 		return nil, err
 	}
 
-	topicNames := make([]string, 0, 25)
-	if err := sess.Select("name").Table("topic").
-		Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id").
-		Where("repo_topic.repo_id = ?", repoID).Desc("topic.repo_count").Find(&topicNames); err != nil {
-		return nil, err
-	}
-
-	if _, err := sess.ID(repoID).Cols("topics").Update(&Repository{
-		Topics: topicNames,
-	}); err != nil {
+	if err = syncTopicsInRepository(sess, repoID); err != nil {
 		return nil, err
 	}
 
@@ -281,6 +272,11 @@ func DeleteTopic(repoID int64, topicName string) (*Topic, error) {
 	}
 
 	err = removeTopicFromRepo(db.DefaultContext, repoID, topic)
+	if err != nil {
+		return nil, err
+	}
+
+	err = syncTopicsInRepository(db.GetEngine(db.DefaultContext), repoID)
 
 	return topic, err
 }
@@ -347,16 +343,7 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 		}
 	}
 
-	topicNames = make([]string, 0, 25)
-	if err := sess.Table("topic").Cols("name").
-		Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id").
-		Where("repo_topic.repo_id = ?", repoID).Desc("topic.repo_count").Find(&topicNames); err != nil {
-		return err
-	}
-
-	if _, err := sess.ID(repoID).Cols("topics").Update(&Repository{
-		Topics: topicNames,
-	}); err != nil {
+	if err := syncTopicsInRepository(sess, repoID); err != nil {
 		return err
 	}
 
@@ -369,6 +356,24 @@ func GenerateTopics(ctx context.Context, templateRepo, generateRepo *Repository)
 		if _, err := addTopicByNameToRepo(ctx, generateRepo.ID, topic); err != nil {
 			return err
 		}
+	}
+
+	return syncTopicsInRepository(db.GetEngine(ctx), generateRepo.ID)
+}
+
+// syncTopicsInRepository makes sure topics in the topics table are copied into the topics field of the repository
+func syncTopicsInRepository(sess db.Engine, repoID int64) error {
+	topicNames := make([]string, 0, 25)
+	if err := sess.Table("topic").Cols("name").
+		Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id").
+		Where("repo_topic.repo_id = ?", repoID).Desc("topic.repo_count").Find(&topicNames); err != nil {
+		return err
+	}
+
+	if _, err := sess.ID(repoID).Cols("topics").Update(&Repository{
+		Topics: topicNames,
+	}); err != nil {
+		return err
 	}
 	return nil
 }

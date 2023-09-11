@@ -1,11 +1,9 @@
-import {joinPaths} from './utils.js';
-
 // DO NOT IMPORT window.config HERE!
 // to make sure the error handler always works, we should never import `window.config`, because some user's custom template breaks it.
 
 // This sets up the URL prefix used in webpack's chunk loading.
 // This file must be imported before any lazy-loading is being attempted.
-__webpack_public_path__ = joinPaths(window?.config?.assetUrlPrefix ?? '/', '/');
+__webpack_public_path__ = `${window.config?.assetUrlPrefix ?? '/assets'}/`;
 
 export function showGlobalErrorMessage(msg) {
   const pageContent = document.querySelector('.page-content');
@@ -20,8 +18,8 @@ export function showGlobalErrorMessage(msg) {
  * @param {ErrorEvent} e
  */
 function processWindowErrorEvent(e) {
-  if (window.config.initCount > 1) {
-    // the page content has been loaded many times, the HTML/JS are totally broken, don't need to show error message
+  if (e.type === 'unhandledrejection') {
+    showGlobalErrorMessage(`JavaScript promise rejection: ${e.reason}. Open browser console to see more details.`);
     return;
   }
   if (!e.error && e.lineno === 0 && e.colno === 0 && e.filename === '' && window.navigator.userAgent.includes('FxiOS/')) {
@@ -34,15 +32,12 @@ function processWindowErrorEvent(e) {
 }
 
 function initGlobalErrorHandler() {
+  if (window._globalHandlerErrors?._inited) {
+    showGlobalErrorMessage(`The global error handler has been initialized, do not initialize it again`);
+    return;
+  }
   if (!window.config) {
     showGlobalErrorMessage(`Gitea JavaScript code couldn't run correctly, please check your custom templates`);
-  }
-  if (window.config.initCount > 1) {
-    // when a sub-templates triggers an 500 error, its parent template has been partially rendered,
-    // then the 500 page will be rendered after that partially rendered page, which will cause the initCount > 1
-    // in this case, the page is totally broken, so do not do any further error handling
-    console.error('initGlobalErrorHandler: Gitea global config system has already been initialized, there must be something else wrong');
-    return;
   }
   // we added an event handler for window error at the very beginning of <script> of page head
   // the handler calls `_globalHandlerErrors.push` (array method) to record all errors occur before this init
@@ -51,7 +46,7 @@ function initGlobalErrorHandler() {
     processWindowErrorEvent(e);
   }
   // then, change _globalHandlerErrors to an object with push method, to process further error events directly
-  window._globalHandlerErrors = {'push': (e) => processWindowErrorEvent(e)};
+  window._globalHandlerErrors = {_inited: true, push: (e) => processWindowErrorEvent(e)};
 }
 
 initGlobalErrorHandler();

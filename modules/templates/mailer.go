@@ -6,6 +6,7 @@ package templates
 import (
 	"context"
 	"html/template"
+	"regexp"
 	"strings"
 	texttmpl "text/template"
 
@@ -13,6 +14,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
+
+var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}\s*$`)
 
 // mailSubjectTextFuncMap returns functions for injecting to text templates, it's only used for mail subject
 func mailSubjectTextFuncMap() texttmpl.FuncMap {
@@ -55,12 +58,13 @@ func Mailer(ctx context.Context) (*texttmpl.Template, *template.Template) {
 	bodyTemplates := template.New("")
 
 	subjectTemplates.Funcs(mailSubjectTextFuncMap())
-	for _, funcs := range NewFuncMap() {
-		bodyTemplates.Funcs(funcs)
-	}
+	bodyTemplates.Funcs(NewFuncMap())
 
 	assetFS := AssetFS()
-	refreshTemplates := func() {
+	refreshTemplates := func(firstRun bool) {
+		if !firstRun {
+			log.Trace("Reloading mail templates")
+		}
 		assetPaths, err := ListMailTemplateAssetNames(assetFS)
 		if err != nil {
 			log.Error("Failed to list mail templates: %v", err)
@@ -74,17 +78,21 @@ func Mailer(ctx context.Context) (*texttmpl.Template, *template.Template) {
 				continue
 			}
 			tmplName := strings.TrimPrefix(strings.TrimSuffix(assetPath, ".tmpl"), "mail/")
-			log.Trace("Adding mail template %s: %s by %s", tmplName, assetPath, layerName)
+			if firstRun {
+				log.Trace("Adding mail template %s: %s by %s", tmplName, assetPath, layerName)
+			}
 			buildSubjectBodyTemplate(subjectTemplates, bodyTemplates, tmplName, content)
 		}
 	}
 
-	refreshTemplates()
+	refreshTemplates(true)
 
 	if !setting.IsProd {
 		// Now subjectTemplates and bodyTemplates are both synchronized
 		// thus it is safe to call refresh from a different goroutine
-		go assetFS.WatchLocalChanges(ctx, refreshTemplates)
+		go assetFS.WatchLocalChanges(ctx, func() {
+			refreshTemplates(false)
+		})
 	}
 
 	return subjectTemplates, bodyTemplates

@@ -9,19 +9,15 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/setting"
 
 	_ "code.gitea.io/gitea/models"
+	_ "code.gitea.io/gitea/models/actions"
+	_ "code.gitea.io/gitea/models/activities"
 	_ "code.gitea.io/gitea/models/repo"
 	_ "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func init() {
-	setting.SetCustomPathAndConf("", "", "")
-	setting.InitProviderAndLoadCommonSettingsForTest()
-}
 
 func TestFixturesAreConsistent(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())

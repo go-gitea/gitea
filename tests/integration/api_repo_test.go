@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -18,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -39,6 +39,17 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 		assert.EqualValues(t, user.ID, repo.Owner.ID)
 		assert.False(t, repo.Private)
 	}
+}
+
+func TestAPIUserReposWithWrongToken(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	wrongToken := fmt.Sprintf("Bearer %s", "wrong_token")
+	req := NewRequestf(t, "GET", "/api/v1/users/%s/repos", user.Name)
+	req = addTokenAuthHeader(req, wrongToken)
+	resp := MakeRequest(t, req, http.StatusUnauthorized)
+
+	assert.Contains(t, resp.Body.String(), "user does not exist")
 }
 
 func TestAPISearchRepo(t *testing.T) {
@@ -82,9 +93,9 @@ func TestAPISearchRepo(t *testing.T) {
 	}{
 		{
 			name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50&private=false", expectedResults: expectedResults{
-				nil:   {count: 32},
-				user:  {count: 32},
-				user2: {count: 32},
+				nil:   {count: 33},
+				user:  {count: 33},
+				user2: {count: 33},
 			},
 		},
 		{
@@ -189,7 +200,7 @@ func TestAPISearchRepo(t *testing.T) {
 				if userToLogin != nil && userToLogin.ID > 0 {
 					testName = fmt.Sprintf("LoggedUser%d", userToLogin.ID)
 					session := loginUser(t, userToLogin.Name)
-					token = getTokenForLoggedInUser(t, session)
+					token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 					userID = userToLogin.ID
 				} else {
 					testName = "AnonymousUser"
@@ -295,7 +306,7 @@ func TestAPIOrgRepos(t *testing.T) {
 	for userToLogin, expected := range expectedResults {
 		testName := fmt.Sprintf("LoggedUser%d", userToLogin.ID)
 		session := loginUser(t, userToLogin.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrg)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization)
 
 		t.Run(testName, func(t *testing.T) {
 			req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos?token="+token, sourceOrg.Name)
@@ -317,7 +328,7 @@ func TestAPIGetRepoByIDUnauthorized(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 	req := NewRequestf(t, "GET", "/api/v1/repositories/2?token="+token)
 	MakeRequest(t, req, http.StatusNotFound)
 }
@@ -341,7 +352,7 @@ func TestAPIRepoMigrate(t *testing.T) {
 	for _, testCase := range testCases {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: testCase.ctxUserID})
 		session := loginUser(t, user.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate?token="+token, &api.MigrateRepoOptions{
 			CloneAddr:   testCase.cloneURL,
 			RepoOwnerID: testCase.userID,
@@ -371,7 +382,7 @@ func TestAPIRepoMigrateConflict(t *testing.T) {
 
 func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 	username := "user2"
-	baseAPITestContext := NewAPITestContext(t, username, "repo1", auth_model.AccessTokenScopeRepo)
+	baseAPITestContext := NewAPITestContext(t, username, "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 	u.Path = baseAPITestContext.GitPath()
 
@@ -406,7 +417,7 @@ func TestAPIMirrorSyncNonMirrorRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	var repo api.Repository
 	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1")
@@ -438,7 +449,7 @@ func TestAPIOrgRepoCreate(t *testing.T) {
 	for _, testCase := range testCases {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: testCase.ctxUserID})
 		session := loginUser(t, user.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAdminOrg)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository)
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/org/%s/repos?token="+token, testCase.orgName), &api.CreateRepoOption{
 			Name: testCase.repoName,
 		})
@@ -452,7 +463,7 @@ func TestAPIRepoCreateConflict(t *testing.T) {
 
 func testAPIRepoCreateConflict(t *testing.T, u *url.URL) {
 	username := "user2"
-	baseAPITestContext := NewAPITestContext(t, username, "repo1", auth_model.AccessTokenScopeRepo)
+	baseAPITestContext := NewAPITestContext(t, username, "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 	u.Path = baseAPITestContext.GitPath()
 
@@ -502,7 +513,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 	// create repo to move
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	repoName := "moveME"
 	apiRepo := new(api.Repository)
 	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/user/repos?token=%s", token), &api.CreateRepoOption{
@@ -520,7 +531,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 		user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: testCase.ctxUserID})
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
 		session = loginUser(t, user.Name)
-		token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+		token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer?token=%s", repo.OwnerName, repo.Name, token), &api.TransferRepoOption{
 			NewOwner: testCase.newOwner,
 			TeamIDs:  testCase.teams,
@@ -530,14 +541,14 @@ func TestAPIRepoTransfer(t *testing.T) {
 
 	// cleanup
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-	_ = models.DeleteRepository(user, repo.OwnerID, repo.ID)
+	_ = repo_service.DeleteRepositoryDirectly(db.DefaultContext, user, repo.OwnerID, repo.ID)
 }
 
 func transfer(t *testing.T) *repo_model.Repository {
 	// create repo to move
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	repoName := "moveME"
 	apiRepo := new(api.Repository)
 	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/user/repos?token=%s", token), &api.CreateRepoOption{
@@ -567,7 +578,7 @@ func TestAPIAcceptTransfer(t *testing.T) {
 
 	// try to accept with not authorized user
 	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", repo.OwnerName, repo.Name, token))
 	MakeRequest(t, req, http.StatusForbidden)
 
@@ -577,7 +588,7 @@ func TestAPIAcceptTransfer(t *testing.T) {
 
 	// accept transfer
 	session = loginUser(t, "user4")
-	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/accept?token=%s", repo.OwnerName, repo.Name, token))
 	resp := MakeRequest(t, req, http.StatusAccepted)
@@ -593,7 +604,7 @@ func TestAPIRejectTransfer(t *testing.T) {
 
 	// try to reject with not authorized user
 	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", repo.OwnerName, repo.Name, token))
 	MakeRequest(t, req, http.StatusForbidden)
 
@@ -603,7 +614,7 @@ func TestAPIRejectTransfer(t *testing.T) {
 
 	// reject transfer
 	session = loginUser(t, "user4")
-	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", repo.OwnerName, repo.Name, token))
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -617,7 +628,7 @@ func TestAPIGenerateRepo(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	templateRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 44})
 
@@ -653,7 +664,7 @@ func TestAPIRepoGetReviewers(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/reviewers?token=%s", user.Name, repo.Name, token)
@@ -667,7 +678,7 @@ func TestAPIRepoGetAssignees(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees?token=%s", user.Name, repo.Name, token)

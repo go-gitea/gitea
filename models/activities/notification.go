@@ -310,7 +310,7 @@ func createIssueNotification(ctx context.Context, userID int64, issue *issues_mo
 }
 
 func updateIssueNotification(ctx context.Context, userID, issueID, commentID, updatedByID int64) error {
-	notification, err := getIssueNotification(ctx, userID, issueID)
+	notification, err := GetIssueNotification(ctx, userID, issueID)
 	if err != nil {
 		return err
 	}
@@ -331,7 +331,8 @@ func updateIssueNotification(ctx context.Context, userID, issueID, commentID, up
 	return err
 }
 
-func getIssueNotification(ctx context.Context, userID, issueID int64) (*Notification, error) {
+// GetIssueNotification return the notification about an issue
+func GetIssueNotification(ctx context.Context, userID, issueID int64) (*Notification, error) {
 	notification := new(Notification)
 	_, err := db.GetEngine(ctx).
 		Where("user_id = ?", userID).
@@ -343,7 +344,7 @@ func getIssueNotification(ctx context.Context, userID, issueID int64) (*Notifica
 // NotificationsForUser returns notifications for a given user and status
 func NotificationsForUser(ctx context.Context, user *user_model.User, statuses []NotificationStatus, page, perPage int) (notifications NotificationList, err error) {
 	if len(statuses) == 0 {
-		return
+		return nil, nil
 	}
 
 	sess := db.GetEngine(ctx).
@@ -372,16 +373,16 @@ func CountUnread(ctx context.Context, userID int64) int64 {
 // LoadAttributes load Repo Issue User and Comment if not loaded
 func (n *Notification) LoadAttributes(ctx context.Context) (err error) {
 	if err = n.loadRepo(ctx); err != nil {
-		return
+		return err
 	}
 	if err = n.loadIssue(ctx); err != nil {
-		return
+		return err
 	}
 	if err = n.loadUser(ctx); err != nil {
-		return
+		return err
 	}
 	if err = n.loadComment(ctx); err != nil {
-		return
+		return err
 	}
 	return err
 }
@@ -742,7 +743,7 @@ func GetUIDsAndNotificationCounts(since, until timeutil.TimeStamp) ([]UserIDCoun
 
 // SetIssueReadBy sets issue to be read by given user.
 func SetIssueReadBy(ctx context.Context, issueID, userID int64) error {
-	if err := issues_model.UpdateIssueUserByRead(userID, issueID); err != nil {
+	if err := issues_model.UpdateIssueUserByRead(ctx, userID, issueID); err != nil {
 		return err
 	}
 
@@ -750,7 +751,7 @@ func SetIssueReadBy(ctx context.Context, issueID, userID int64) error {
 }
 
 func setIssueNotificationStatusReadIfUnread(ctx context.Context, userID, issueID int64) error {
-	notification, err := getIssueNotification(ctx, userID, issueID)
+	notification, err := GetIssueNotification(ctx, userID, issueID)
 	// ignore if not exists
 	if err != nil {
 		return nil
@@ -762,7 +763,7 @@ func setIssueNotificationStatusReadIfUnread(ctx context.Context, userID, issueID
 
 	notification.Status = NotificationStatusRead
 
-	_, err = db.GetEngine(ctx).ID(notification.ID).Update(notification)
+	_, err = db.GetEngine(ctx).ID(notification.ID).Cols("status").Update(notification)
 	return err
 }
 

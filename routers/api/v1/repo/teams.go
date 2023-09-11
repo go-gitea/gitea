@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/services/convert"
 	org_service "code.gitea.io/gitea/services/org"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // ListTeams list a repository's teams
@@ -97,7 +97,7 @@ func IsTeam(ctx *context.APIContext) {
 		return
 	}
 
-	if models.HasRepository(team, ctx.Repo.Repository.ID) {
+	if repo_service.HasRepository(team, ctx.Repo.Repository.ID) {
 		apiTeam, err := convert.ToTeam(ctx, team)
 		if err != nil {
 			ctx.InternalServerError(err)
@@ -192,7 +192,7 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 		return
 	}
 
-	repoHasTeam := models.HasRepository(team, ctx.Repo.Repository.ID)
+	repoHasTeam := repo_service.HasRepository(team, ctx.Repo.Repository.ID)
 	var err error
 	if add {
 		if repoHasTeam {
@@ -205,7 +205,7 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 			ctx.Error(http.StatusUnprocessableEntity, "notAdded", fmt.Errorf("team '%s' was not added to repo", team.Name))
 			return
 		}
-		err = models.RemoveRepository(team, ctx.Repo.Repository.ID)
+		err = repo_service.RemoveRepositoryFromTeam(ctx, team, ctx.Repo.Repository.ID)
 	}
 	if err != nil {
 		ctx.InternalServerError(err)

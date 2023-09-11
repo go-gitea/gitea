@@ -26,7 +26,7 @@ BASE = true
 SECOND = white rabbit
 EXTEND = true
 `
-	cfg, err := newConfigProviderFromData(iniStr)
+	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
 	extended := &Extended{

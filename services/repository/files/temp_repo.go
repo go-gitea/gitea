@@ -114,12 +114,12 @@ func (t *TemporaryUploadRepository) LsFiles(filenames ...string) ([]string, erro
 		return nil, err
 	}
 
-	filelist := make([]string, len(filenames))
+	fileList := make([]string, 0, len(filenames))
 	for _, line := range bytes.Split(stdOut.Bytes(), []byte{'\000'}) {
-		filelist = append(filelist, string(line))
+		fileList = append(fileList, string(line))
 	}
 
-	return filelist, nil
+	return fileList, nil
 }
 
 // RemoveFilesFromIndex removes the given files from the index

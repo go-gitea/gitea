@@ -25,9 +25,11 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	org_service "code.gitea.io/gitea/services/org"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -56,7 +58,12 @@ func Teams(ctx *context.Context) {
 		}
 	}
 	ctx.Data["Teams"] = ctx.Org.Teams
-	ctx.Data["ContextUser"] = ctx.ContextUser
+
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
 
 	ctx.HTML(http.StatusOK, tplTeams)
 }
@@ -79,17 +86,14 @@ func TeamsAction(ctx *context.Context) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			} else {
 				log.Error("Action(%s): %v", ctx.Params(":action"), err)
-				ctx.JSON(http.StatusOK, map[string]interface{}{
+				ctx.JSON(http.StatusOK, map[string]any{
 					"ok":  false,
 					"err": err.Error(),
 				})
 				return
 			}
 		}
-		ctx.JSON(http.StatusOK,
-			map[string]interface{}{
-				"redirect": ctx.Org.OrgLink + "/teams/",
-			})
+		checkIsOrgMemberAndRedirect(ctx, ctx.Org.OrgLink+"/teams/")
 		return
 	case "remove":
 		if !ctx.Org.IsOwner {
@@ -109,17 +113,14 @@ func TeamsAction(ctx *context.Context) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			} else {
 				log.Error("Action(%s): %v", ctx.Params(":action"), err)
-				ctx.JSON(http.StatusOK, map[string]interface{}{
+				ctx.JSON(http.StatusOK, map[string]any{
 					"ok":  false,
 					"err": err.Error(),
 				})
 				return
 			}
 		}
-		ctx.JSON(http.StatusOK,
-			map[string]interface{}{
-				"redirect": ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName),
-			})
+		checkIsOrgMemberAndRedirect(ctx, ctx.Org.OrgLink+"/teams/"+url.PathEscape(ctx.Org.Team.LowerName))
 		return
 	case "add":
 		if !ctx.Org.IsOwner {
@@ -191,7 +192,7 @@ func TeamsAction(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 		} else {
 			log.Error("Action(%s): %v", ctx.Params(":action"), err)
-			ctx.JSON(http.StatusOK, map[string]interface{}{
+			ctx.JSON(http.StatusOK, map[string]any{
 				"ok":  false,
 				"err": err.Error(),
 			})
@@ -207,6 +208,20 @@ func TeamsAction(ctx *context.Context) {
 	default:
 		ctx.Redirect(ctx.Org.OrgLink + "/teams")
 	}
+}
+
+func checkIsOrgMemberAndRedirect(ctx *context.Context, defaultRedirect string) {
+	if isOrgMember, err := org_model.IsOrganizationMember(ctx, ctx.Org.Organization.ID, ctx.Doer.ID); err != nil {
+		ctx.ServerError("IsOrganizationMember", err)
+		return
+	} else if !isOrgMember {
+		if ctx.Org.Organization.Visibility.IsPrivate() {
+			defaultRedirect = setting.AppSubURL + "/"
+		} else {
+			defaultRedirect = ctx.Org.Organization.HomeLink()
+		}
+	}
+	ctx.JSONRedirect(defaultRedirect)
 }
 
 // TeamsRepoAction operate team's repository
@@ -234,7 +249,7 @@ func TeamsRepoAction(ctx *context.Context) {
 		}
 		err = org_service.TeamAddRepository(ctx.Org.Team, repo)
 	case "remove":
-		err = models.RemoveRepository(ctx.Org.Team, ctx.FormInt64("repoid"))
+		err = repo_service.RemoveRepositoryFromTeam(ctx, ctx.Org.Team, ctx.FormInt64("repoid"))
 	case "addall":
 		err = models.AddAllRepositories(ctx.Org.Team)
 	case "removeall":
@@ -248,9 +263,7 @@ func TeamsRepoAction(ctx *context.Context) {
 	}
 
 	if action == "addall" || action == "removeall" {
-		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"redirect": ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName) + "/repositories",
-		})
+		ctx.JSONRedirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName) + "/repositories")
 		return
 	}
 	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName) + "/repositories")
@@ -358,6 +371,12 @@ func TeamMembers(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Team.Name
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamMembers"] = true
+
+	if err := shared_user.LoadHeaderCount(ctx); err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	if err := ctx.Org.Team.LoadMembers(ctx); err != nil {
 		ctx.ServerError("GetMembers", err)
 		return
@@ -380,6 +399,12 @@ func TeamRepositories(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Team.Name
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamRepos"] = true
+
+	if err := shared_user.LoadHeaderCount(ctx); err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	if err := ctx.Org.Team.LoadRepositories(ctx); err != nil {
 		ctx.ServerError("GetRepositories", err)
 		return
@@ -406,7 +431,7 @@ func SearchTeam(ctx *context.Context) {
 	teams, maxResults, err := org_model.SearchTeam(opts)
 	if err != nil {
 		log.Error("SearchTeam failed: %v", err)
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]any{
 			"ok":    false,
 			"error": "SearchTeam internal failure",
 		})
@@ -416,7 +441,7 @@ func SearchTeam(ctx *context.Context) {
 	apiTeams, err := convert.ToTeams(ctx, teams, false)
 	if err != nil {
 		log.Error("convert ToTeams failed: %v", err)
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]any{
 			"ok":    false,
 			"error": "SearchTeam failed to get units",
 		})
@@ -424,7 +449,7 @@ func SearchTeam(ctx *context.Context) {
 	}
 
 	ctx.SetTotalCountHeader(maxResults)
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok":   true,
 		"data": apiTeams,
 	})
@@ -522,9 +547,7 @@ func DeleteTeam(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("org.teams.delete_team_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Org.OrgLink + "/teams",
-	})
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/teams")
 }
 
 // TeamInvite renders the team invite page

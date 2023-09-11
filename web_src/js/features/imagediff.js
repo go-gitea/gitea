@@ -65,8 +65,9 @@ export function initImageDiff() {
     };
   }
 
-  $('.image-diff').each(function() {
+  $('.image-diff:not([data-image-diff-loaded])').each(function() {
     const $container = $(this);
+    $container.attr('data-image-diff-loaded', 'true');
 
     // the container may be hidden by "viewed" checkbox, so use the parent's width for reference
     const diffContainerWidth = Math.max($container.closest('.diff-file-box').width() - 300, 100);
@@ -129,8 +130,7 @@ export function initImageDiff() {
         initOverlay(createContext($imageAfter[2], $imageBefore[2]));
       }
 
-      $container.find('> .gt-hidden').removeClass('gt-hidden');
-      hideElem($container.find('.ui.loader'));
+      $container.find('> .image-diff-tabs').removeClass('is-loading');
     }
 
     function initSideBySide(sizes) {
@@ -204,7 +204,7 @@ export function initImageDiff() {
       });
       $container.find('.diff-swipe').css({
         width: sizes.max.width * factor + 2,
-        height: sizes.max.height * factor + 4
+        height: sizes.max.height * factor + 30 /* extra height for inner "position: absolute" elements */,
       });
       $container.find('.swipe-bar').on('mousedown', function(e) {
         e.preventDefault();
@@ -260,7 +260,7 @@ export function initImageDiff() {
       // the "css(width, height)" is somewhat hacky and not easy to understand, it could be improved in the future
       sizes.image2.parent().parent().css({
         width: sizes.max.width * factor + 2,
-        height: sizes.max.height * factor + 2 + 20 /* extra height for inner "position: absolute" elements */,
+        height: sizes.max.height * factor + 2,
       });
 
       const $range = $container.find("input[type='range']");

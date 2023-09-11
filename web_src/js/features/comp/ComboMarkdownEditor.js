@@ -5,9 +5,10 @@ import {attachTribute} from '../tribute.js';
 import {hideElem, showElem, autosize} from '../../utils/dom.js';
 import {initEasyMDEImagePaste, initTextareaImagePaste} from './ImagePaste.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
-import {emojiString} from '../emoji.js';
 import {renderPreviewPanelContent} from '../repo-editor.js';
-import {matchEmoji, matchMention} from '../../utils/match.js';
+import {easyMDEToolbarActions} from './EasyMDEToolbarActions.js';
+import {initTextExpander} from './TextExpander.js';
+import {showErrorToast} from '../../modules/toast.js';
 
 let elementIdCounter = 0;
 
@@ -26,7 +27,7 @@ export function validateTextareaNonEmpty($textarea) {
       $form[0]?.reportValidity();
     } else {
       // The alert won't hurt users too much, because we are dropping the EasyMDE and the check only occurs in a few places.
-      alert('Require non-empty content');
+      showErrorToast('Require non-empty content');
     }
     return false;
   }
@@ -42,14 +43,12 @@ class ComboMarkdownEditor {
 
   async init() {
     this.prepareEasyMDEToolbarActions();
+    this.setupContainer();
     this.setupTab();
     this.setupDropzone();
     this.setupTextarea();
-    this.setupExpander();
 
-    if (this.userPreferredEditor === 'easymde') {
-      await this.switchToEasyMDE();
-    }
+    await this.switchToUserPreference();
   }
 
   applyEditorHeights(el, heights) {
@@ -59,19 +58,29 @@ class ComboMarkdownEditor {
     if (heights.maxHeight) el.style.maxHeight = heights.maxHeight;
   }
 
+  setupContainer() {
+    initTextExpander(this.container.querySelector('text-expander'));
+    this.container.addEventListener('ce-editor-content-changed', (e) => this.options?.onContentChanged?.(this, e));
+  }
+
   setupTextarea() {
     this.textarea = this.container.querySelector('.markdown-text-editor');
     this.textarea._giteaComboMarkdownEditor = this;
     this.textarea.id = `_combo_markdown_editor_${String(elementIdCounter++)}`;
     this.textarea.addEventListener('input', (e) => this.options?.onContentChanged?.(this, e));
     this.applyEditorHeights(this.textarea, this.options.editorHeights);
-    this.textareaAutosize = autosize(this.textarea, {viewportMarginBottom: 130});
+
+    if (this.textarea.getAttribute('data-disable-autosize') !== 'true') {
+      this.textareaAutosize = autosize(this.textarea, {viewportMarginBottom: 130});
+    }
 
     this.textareaMarkdownToolbar = this.container.querySelector('markdown-toolbar');
     this.textareaMarkdownToolbar.setAttribute('for', this.textarea.id);
     for (const el of this.textareaMarkdownToolbar.querySelectorAll('.markdown-toolbar-button')) {
       // upstream bug: The role code is never executed in base MarkdownButtonElement https://github.com/github/markdown-toolbar-element/issues/70
       el.setAttribute('role', 'button');
+      // the editor usually is in a form, so the buttons should have "type=button", avoiding conflicting with the form's submit.
+      if (el.nodeName === 'BUTTON' && !el.getAttribute('type')) el.setAttribute('type', 'button');
     }
 
     const monospaceButton = this.container.querySelector('.markdown-switch-monospace');
@@ -102,64 +111,6 @@ class ComboMarkdownEditor {
     }
   }
 
-  setupExpander() {
-    const expander = this.container.querySelector('text-expander');
-    expander?.addEventListener('text-expander-change', ({detail: {key, provide, text}}) => {
-      if (key === ':') {
-        const matches = matchEmoji(text);
-        if (!matches.length) return provide({matched: false});
-
-        const ul = document.createElement('ul');
-        ul.classList.add('suggestions');
-        for (const name of matches) {
-          const emoji = emojiString(name);
-          const li = document.createElement('li');
-          li.setAttribute('role', 'option');
-          li.setAttribute('data-value', emoji);
-          li.textContent = `${emoji} ${name}`;
-          ul.append(li);
-        }
-
-        provide({matched: true, fragment: ul});
-      } else if (key === '@') {
-        const matches = matchMention(text);
-        if (!matches.length) return provide({matched: false});
-
-        const ul = document.createElement('ul');
-        ul.classList.add('suggestions');
-        for (const {value, name, fullname, avatar} of matches) {
-          const li = document.createElement('li');
-          li.setAttribute('role', 'option');
-          li.setAttribute('data-value', `${key}${value}`);
-
-          const img = document.createElement('img');
-          img.src = avatar;
-          li.append(img);
-
-          const nameSpan = document.createElement('span');
-          nameSpan.textContent = name;
-          li.append(nameSpan);
-
-          if (fullname && fullname.toLowerCase() !== name) {
-            const fullnameSpan = document.createElement('span');
-            fullnameSpan.classList.add('fullname');
-            fullnameSpan.textContent = fullname;
-            li.append(fullnameSpan);
-          }
-
-          ul.append(li);
-        }
-
-        provide({matched: true, fragment: ul});
-      }
-    });
-    expander?.addEventListener('text-expander-value', ({detail}) => {
-      if (detail?.item) {
-        detail.value = detail.item.getAttribute('data-value');
-      }
-    });
-  }
-
   setupDropzone() {
     const dropzoneParentContainer = this.container.getAttribute('data-dropzone-parent-container');
     if (dropzoneParentContainer) {
@@ -184,6 +135,12 @@ class ComboMarkdownEditor {
     $panelPreviewer.attr('data-tab', `markdown-previewer-${elementIdCounter}`);
     elementIdCounter++;
 
+    $tabEditor[0].addEventListener('click', () => {
+      requestAnimationFrame(() => {
+        this.focus();
+      });
+    });
+
     $tabs.tab();
 
     this.previewUrl = $tabPreviewer.attr('data-preview-url');
@@ -205,71 +162,34 @@ class ComboMarkdownEditor {
 
   prepareEasyMDEToolbarActions() {
     this.easyMDEToolbarDefault = [
-      'bold', 'italic', 'strikethrough', '|', 'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
-      'code', 'quote', '|', 'gitea-checkbox-empty', 'gitea-checkbox-checked', '|',
-      'unordered-list', 'ordered-list', '|', 'link', 'image', 'table', 'horizontal-rule', '|', 'clean-block', '|',
-      'gitea-switch-to-textarea',
+      'bold', 'italic', 'strikethrough', '|', 'heading-1', 'heading-2', 'heading-3',
+      'heading-bigger', 'heading-smaller', '|', 'code', 'quote', '|', 'gitea-checkbox-empty',
+      'gitea-checkbox-checked', '|', 'unordered-list', 'ordered-list', '|', 'link', 'image',
+      'table', 'horizontal-rule', '|', 'gitea-switch-to-textarea',
     ];
-
-    this.easyMDEToolbarActions = {
-      'gitea-checkbox-empty': {
-        action(e) {
-          const cm = e.codemirror;
-          cm.replaceSelection(`\n- [ ] ${cm.getSelection()}`);
-          cm.focus();
-        },
-        className: 'fa fa-square-o',
-        title: 'Add Checkbox (empty)',
-      },
-      'gitea-checkbox-checked': {
-        action(e) {
-          const cm = e.codemirror;
-          cm.replaceSelection(`\n- [x] ${cm.getSelection()}`);
-          cm.focus();
-        },
-        className: 'fa fa-check-square-o',
-        title: 'Add Checkbox (checked)',
-      },
-      'gitea-switch-to-textarea': {
-        action: () => {
-          this.userPreferredEditor = 'textarea';
-          this.switchToTextarea();
-        },
-        className: 'fa fa-file',
-        title: 'Revert to simple textarea',
-      },
-      'gitea-code-inline': {
-        action(e) {
-          const cm = e.codemirror;
-          const selection = cm.getSelection();
-          cm.replaceSelection(`\`${selection}\``);
-          if (!selection) {
-            const cursorPos = cm.getCursor();
-            cm.setCursor(cursorPos.line, cursorPos.ch - 1);
-          }
-          cm.focus();
-        },
-        className: 'fa fa-angle-right',
-        title: 'Add Inline Code',
-      }
-    };
   }
 
-  parseEasyMDEToolbar(actions) {
+  parseEasyMDEToolbar(EasyMDE, actions) {
+    this.easyMDEToolbarActions = this.easyMDEToolbarActions || easyMDEToolbarActions(EasyMDE, this);
     const processed = [];
     for (const action of actions) {
-      if (action.startsWith('gitea-')) {
-        const giteaAction = this.easyMDEToolbarActions[action];
-        if (!giteaAction) throw new Error(`Unknown EasyMDE toolbar action ${action}`);
-        processed.push(giteaAction);
-      } else {
-        processed.push(action);
-      }
+      const actionButton = this.easyMDEToolbarActions[action];
+      if (!actionButton) throw new Error(`Unknown EasyMDE toolbar action ${action}`);
+      processed.push(actionButton);
     }
     return processed;
   }
 
+  async switchToUserPreference() {
+    if (this.userPreferredEditor === 'easymde') {
+      await this.switchToEasyMDE();
+    } else {
+      this.switchToTextarea();
+    }
+  }
+
   switchToTextarea() {
+    if (!this.easyMDE) return;
     showElem(this.textareaMarkdownToolbar);
     if (this.easyMDE) {
       this.easyMDE.toTextArea();
@@ -278,6 +198,7 @@ class ComboMarkdownEditor {
   }
 
   async switchToEasyMDE() {
+    if (this.easyMDE) return;
     // EasyMDE's CSS should be loaded via webpack config, otherwise our own styles can not overwrite the default styles.
     const {default: EasyMDE} = await import(/* webpackChunkName: "easymde" */'easymde');
     const easyMDEOpt = {
@@ -292,7 +213,7 @@ class ComboMarkdownEditor {
       nativeSpellcheck: true,
       ...this.options.easyMDEOptions,
     };
-    easyMDEOpt.toolbar = this.parseEasyMDEToolbar(easyMDEOpt.toolbar ?? this.easyMDEToolbarDefault);
+    easyMDEOpt.toolbar = this.parseEasyMDEToolbar(EasyMDE, easyMDEOpt.toolbar ?? this.easyMDEToolbarDefault);
 
     this.easyMDE = new EasyMDE(easyMDEOpt);
     this.easyMDE.codemirror.on('change', (...args) => {this.options?.onContentChanged?.(this, ...args)});
@@ -337,7 +258,7 @@ class ComboMarkdownEditor {
     } else {
       this.textarea.value = v;
     }
-    this.textareaAutosize.resizeToFit();
+    this.textareaAutosize?.resizeToFit();
   }
 
   focus() {

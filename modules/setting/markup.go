@@ -33,7 +33,7 @@ var Markdown = struct {
 }{
 	EnableHardLineBreakInComments:  true,
 	EnableHardLineBreakInDocuments: false,
-	FileExtensions:                 strings.Split(".md,.markdown,.mdown,.mkd", ","),
+	FileExtensions:                 strings.Split(".md,.markdown,.mdown,.mkd,.livemd", ","),
 	EnableMath:                     true,
 }
 

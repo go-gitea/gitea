@@ -15,10 +15,10 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // ErrForkAlreadyExist represents a "ForkAlreadyExist" kind of error.
@@ -157,7 +157,15 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		if err = repo_module.CreateDelegateHooks(repoPath); err != nil {
 			return fmt.Errorf("createDelegateHooks: %w", err)
 		}
-		return nil
+
+		gitRepo, err := git.OpenRepository(txCtx, repo.RepoPath())
+		if err != nil {
+			return fmt.Errorf("OpenRepository: %w", err)
+		}
+		defer gitRepo.Close()
+
+		_, err = repo_module.SyncRepoBranchesWithRepo(txCtx, repo, gitRepo, doer.ID)
+		return err
 	})
 	needsRollbackInPanic = false
 	if err != nil {
@@ -183,7 +191,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		}
 	}
 
-	notification.NotifyForkRepository(ctx, doer, opts.BaseRepo, repo)
+	notify_service.ForkRepository(ctx, doer, opts.BaseRepo, repo)
 
 	return repo, nil
 }
