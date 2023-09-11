@@ -575,9 +575,9 @@ func registerRoutes(m *web.Route) {
 			m.Combo("/new").Get(admin.NewUser).Post(web.Bind(forms.AdminCreateUserForm{}), admin.NewUserPost)
 			m.Get("/{userid}", admin.ViewUser)
 			m.Combo("/{userid}/edit").Get(admin.EditUser).Post(web.Bind(forms.AdminEditUserForm{}), admin.EditUserPost)
-			m.Post("/{userid}/delete", admin.DeleteUser)
-			m.Post("/{userid}/avatar", web.Bind(forms.AvatarForm{}), admin.AvatarPost)
-			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
+			m.Post("/{userid}/edit/delete", admin.DeleteUser)
+			m.Post("/{userid}/edit/avatar", web.Bind(forms.AvatarForm{}), admin.AvatarPost)
+			m.Post("/{userid}/edit/avatar/delete", admin.DeleteAvatar)
 		})
 
 		m.Group("/emails", func() {
