@@ -34,9 +34,11 @@
 }
 
 .flex-item .flex-item-icon {
-  display: flex;
-  align-items: center;
-  height: 20px; /* match the default flex-item-title height */
+  align-self: baseline; /* mainly used by the issue list, to align the leading icon with the title */
+}
+
+.flex-item .flex-item-icon + .flex-item-main {
+  align-self: baseline;
 }
 
 .flex-item .flex-item-trailing {
@@ -59,7 +61,6 @@
   font-weight: var(--font-weight-semibold);
   word-break: break-word;
   min-width: 0;
-  min-height: 20px;
 }
 
 .flex-item .flex-item-title a {
