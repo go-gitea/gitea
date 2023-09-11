@@ -1,5 +1,6 @@
 <script>
 import {SvgIcon} from '../svg.js';
+import {GET} from '../modules/fetch.js';
 
 export default {
   components: {SvgIcon},
@@ -123,7 +124,7 @@ export default {
     },
     /** Load the commits to show in this dropdown */
     async fetchCommits() {
-      const resp = await fetch(`${this.issueLink}/commits/list`);
+      const resp = await GET(`${this.issueLink}/commits/list`);
       const results = await resp.json();
       this.commits.push(...results.commits.map((x) => {
         x.hovered = false;

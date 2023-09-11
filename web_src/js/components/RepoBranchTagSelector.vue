@@ -4,6 +4,7 @@ import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
 import {pathEscapeSegments} from '../utils/url.js';
 import {showErrorToast} from '../modules/toast.js';
+import {GET} from '../modules/fetch.js';
 
 const sfc = {
   components: {SvgIcon},
@@ -191,8 +192,7 @@ const sfc = {
       this.isLoading = true;
       try {
         // the "data.defaultBranch" is ambiguous, it could be "branch name" or "tag name"
-        const reqUrl = `${this.repoLink}/${this.mode}/list`;
-        const resp = await fetch(reqUrl);
+        const resp = await GET(`${this.repoLink}/${this.mode}/list`);
         const {results} = await resp.json();
         for (const result of results) {
           let selected = false;

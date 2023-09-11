@@ -11,6 +11,7 @@ import {htmlEscape} from 'escape-goat';
 import {showTemporaryTooltip} from '../modules/tippy.js';
 import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
+import {request} from '../modules/fetch.js';
 
 const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
 
@@ -81,7 +82,7 @@ function fetchActionDoRedirect(redirect) {
 
 async function fetchActionDoRequest(actionElem, url, opt) {
   try {
-    const resp = await fetch(url, opt);
+    const resp = await request(url, opt);
     if (resp.status === 200) {
       let {redirect} = await resp.json();
       redirect = redirect || actionElem.getAttribute('data-redirect');

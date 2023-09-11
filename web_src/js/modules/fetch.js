@@ -5,7 +5,7 @@ const {csrfToken} = window.config;
 // fetch wrapper, use below method name functions and the `data` option to pass in data
 // which will automatically set an appropriate content-type header. For json content,
 // only object and array types are currently supported.
-function request(url, {headers, data, body, ...other} = {}) {
+export function request(url, {headers, data, body, ...other} = {}) {
   let contentType;
   if (!body) {
     if (data instanceof FormData) {
@@ -14,6 +14,7 @@ function request(url, {headers, data, body, ...other} = {}) {
     } else if (data instanceof URLSearchParams) {
       contentType = 'application/x-www-form-urlencoded';
       body = data;
+      body.append('_csrf', csrfToken);
     } else if (isObject(data) || Array.isArray(data)) {
       contentType = 'application/json';
       body = JSON.stringify(data);

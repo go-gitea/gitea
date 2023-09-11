@@ -5,6 +5,7 @@ import {htmlEscape} from 'escape-goat';
 import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
 import {createSortable} from '../modules/sortable.js';
+import {DELETE, POST} from '../modules/fetch.js';
 
 function initRepoIssueListCheckboxes() {
   const $issueSelectAll = $('.issue-checkbox-all');
@@ -146,10 +147,8 @@ function initPinRemoveButton() {
       const id = Number(el.getAttribute('data-issue-id'));
 
       // Send the unpin request
-      const response = await fetch(el.getAttribute('data-unpin-url'), {
-        method: 'delete',
+      const response = await DELETE(el.getAttribute('data-unpin-url'), {
         headers: {
-          'X-Csrf-Token': window.config.csrfToken,
           'Content-Type': 'application/json',
         },
       });
@@ -166,14 +165,7 @@ function initPinRemoveButton() {
 async function pinMoveEnd(e) {
   const url = e.item.getAttribute('data-move-url');
   const id = Number(e.item.getAttribute('data-issue-id'));
-  await fetch(url, {
-    method: 'post',
-    body: JSON.stringify({id, position: e.newIndex + 1}),
-    headers: {
-      'X-Csrf-Token': window.config.csrfToken,
-      'Content-Type': 'application/json',
-    },
-  });
+  await POST(url, {data: {id, position: e.newIndex + 1}});
 }
 
 async function initIssuePinSort() {

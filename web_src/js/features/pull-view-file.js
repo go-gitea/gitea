@@ -1,7 +1,8 @@
 import {diffTreeStore} from '../modules/stores.js';
 import {setFileFolding} from './file-fold.js';
+import {POST} from '../modules/fetch.js';
 
-const {csrfToken, pageData} = window.config;
+const {pageData} = window.config;
 const prReview = pageData.prReview || {};
 const viewedStyleClass = 'viewed-file-checked-form';
 const viewedCheckboxSelector = '.viewed-file-form'; // Selector under which all "Viewed" checkbox forms can be found
@@ -68,11 +69,7 @@ export function initViewedCheckboxListenerFor() {
       const data = {files};
       const headCommitSHA = form.getAttribute('data-headcommit');
       if (headCommitSHA) data.headCommitSHA = headCommitSHA;
-      fetch(form.getAttribute('data-link'), {
-        method: 'POST',
-        headers: {'X-Csrf-Token': csrfToken},
-        body: JSON.stringify(data),
-      });
+      POST(form.getAttribute('data-link'), {data});
 
       // Fold the file accordingly
       const parentBox = form.closest('.diff-file-header');

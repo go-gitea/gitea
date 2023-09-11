@@ -2,6 +2,7 @@
 import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
+import {GET} from '../modules/fetch.js';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
@@ -233,11 +234,11 @@ const sfc = {
       try {
         if (!this.reposTotalCount) {
           const totalCountSearchURL = `${this.subUrl}/repo/search?count_only=1&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
-          response = await fetch(totalCountSearchURL);
+          response = await GET(totalCountSearchURL);
           this.reposTotalCount = response.headers.get('X-Total-Count');
         }
 
-        response = await fetch(searchedURL);
+        response = await GET(searchedURL);
         json = await response.json();
       } catch {
         if (searchedURL === this.searchURL) {
