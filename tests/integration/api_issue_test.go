@@ -259,15 +259,15 @@ func TestAPISearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.EqualValues(t, "19", resp.Header().Get("X-Total-Count"))
-	assert.Len(t, apiIssues, 19)
+	assert.EqualValues(t, "20", resp.Header().Get("X-Total-Count"))
+	assert.Len(t, apiIssues, 20)
 
 	query.Add("limit", "10")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.EqualValues(t, "19", resp.Header().Get("X-Total-Count"))
+	assert.EqualValues(t, "20", resp.Header().Get("X-Total-Count"))
 	assert.Len(t, apiIssues, 10)
 
 	query = url.Values{"assigned": {"true"}, "state": {"all"}, "token": {token}}
