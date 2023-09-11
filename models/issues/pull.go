@@ -1105,3 +1105,23 @@ func TokenizeCodeOwnersLine(line string) []string {
 
 	return tokens
 }
+
+// InsertPullRequests inserted pull requests
+func InsertPullRequests(ctx context.Context, prs ...*PullRequest) error {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
+	for _, pr := range prs {
+		if err := insertIssue(ctx, pr.Issue); err != nil {
+			return err
+		}
+		pr.IssueID = pr.Issue.ID
+		if _, err := sess.NoAutoTime().Insert(pr); err != nil {
+			return err
+		}
+	}
+	return committer.Commit()
+}
