@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
-	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
@@ -315,9 +314,7 @@ func EditUser(ctx *context.Context) {
 	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
-	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar,
-		setting.GetDefaultDisableGravatar(),
-	)
+	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value()
 
 	prepareUserInfo(ctx)
 	if ctx.Written() {
@@ -334,8 +331,7 @@ func EditUserPost(ctx *context.Context) {
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
-	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar,
-		setting.GetDefaultDisableGravatar())
+	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value()
 
 	u := prepareUserInfo(ctx)
 	if ctx.Written() {

@@ -5,10 +5,8 @@
 package admin
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
 	system_model "code.gitea.io/gitea/models/system"
@@ -18,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/mailer"
 
@@ -101,16 +100,6 @@ func Config(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.config")
 	ctx.Data["PageIsAdminConfig"] = true
 
-	systemSettings, err := system_model.GetAllSettings(ctx)
-	if err != nil {
-		ctx.ServerError("system_model.GetAllSettings", err)
-		return
-	}
-
-	// All editable settings from UI
-	ctx.Data["SystemSettings"] = systemSettings
-	ctx.PageData["adminConfigPage"] = true
-
 	ctx.Data["CustomConf"] = setting.CustomConf
 	ctx.Data["AppUrl"] = setting.AppURL
 	ctx.Data["AppBuiltWith"] = setting.AppBuiltWith
@@ -170,7 +159,8 @@ func Config(ctx *context.Context) {
 	ctx.Data["LogSQL"] = setting.Database.LogSQL
 
 	ctx.Data["Loggers"] = log.GetManager().DumpLoggers()
-
+	config.GetDynGetter().InvalidateCache()
+	ctx.Data["SystemConfig"] = setting.Config()
 	prepareDeprecatedWarningsAlert(ctx)
 
 	ctx.HTML(http.StatusOK, tplConfig)
@@ -183,23 +173,8 @@ func ChangeConfig(ctx *context.Context) {
 		return
 	}
 	value := ctx.FormString("value")
-	version := ctx.FormInt("version")
 
-	if check, ok := changeConfigChecks[key]; ok {
-		if err := check(ctx, value); err != nil {
-			log.Warn("refused to set setting: %v", err)
-			ctx.JSON(http.StatusOK, map[string]string{
-				"err": ctx.Tr("admin.config.set_setting_failed", key),
-			})
-			return
-		}
-	}
-
-	if err := system_model.SetSetting(ctx, &system_model.Setting{
-		SettingKey:   key,
-		SettingValue: value,
-		Version:      version,
-	}); err != nil {
+	if err := system_model.SetSettings(ctx, map[string]string{key: value}); err != nil {
 		log.Error("set setting failed: %v", err)
 		ctx.JSON(http.StatusOK, map[string]string{
 			"err": ctx.Tr("admin.config.set_setting_failed", key),
@@ -207,22 +182,6 @@ func ChangeConfig(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"version": version + 1,
-	})
-}
-
-var changeConfigChecks = map[string]func(ctx *context.Context, newValue string) error{
-	system_model.KeyPictureDisableGravatar: func(_ *context.Context, newValue string) error {
-		if v, _ := strconv.ParseBool(newValue); setting.OfflineMode && !v {
-			return fmt.Errorf("%q should be true when OFFLINE_MODE is true", system_model.KeyPictureDisableGravatar)
-		}
-		return nil
-	},
-	system_model.KeyPictureEnableFederatedAvatar: func(_ *context.Context, newValue string) error {
-		if v, _ := strconv.ParseBool(newValue); setting.OfflineMode && v {
-			return fmt.Errorf("%q cannot be false when OFFLINE_MODE is true", system_model.KeyPictureEnableFederatedAvatar)
-		}
-		return nil
-	},
+	config.GetDynGetter().InvalidateCache()
+	ctx.JSONOK()
 }
