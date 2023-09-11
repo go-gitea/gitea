@@ -269,7 +269,7 @@ var (
 )
 
 func Init(ctx context.Context) error {
-	disableGravatar, err := GetSettingBool(ctx, KeyPictureDisableGravatar, false)
+	disableGravatar, err := GetSettingBool(ctx, KeyPictureDisableGravatar, setting_module.GetDefaultDisableGravatar())
 	if err != nil {
 		return err
 	}
@@ -292,6 +292,7 @@ func Init(ctx context.Context) error {
 				return fmt.Errorf("failed to set setting %q: %w", KeyPictureEnableFederatedAvatar, err)
 			}
 		}
+		enableFederatedAvatar = false
 	}
 
 	if enableFederatedAvatar || !disableGravatar {
