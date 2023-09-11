@@ -100,10 +100,7 @@ func GetSettingWithCache(ctx context.Context, key, defaultVal string) (string, e
 			res, err := GetSetting(ctx, key)
 			if err != nil {
 				if IsErrSettingIsNotExist(err) {
-					return defaultVal, SetSetting(ctx, &Setting{
-						SettingKey:   key,
-						SettingValue: defaultVal,
-					})
+					return defaultVal, nil
 				}
 				return "", err
 			}
