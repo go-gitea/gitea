@@ -22,7 +22,7 @@ type ActionTask struct {
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// swagger:strfmt date-time
-	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at"`
 	// swagger:strfmt date-time
 	RunStartedAt time.Time `json:"run_started_at,omitempty"`
 }
