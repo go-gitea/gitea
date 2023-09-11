@@ -24,7 +24,7 @@ type ActionTask struct {
 	// swagger:strfmt date-time
 	UpdatedAt time.Time `json:"updated_at"`
 	// swagger:strfmt date-time
-	RunStartedAt time.Time `json:"run_started_at,omitempty"`
+	RunStartedAt time.Time `json:"run_started_at"`
 }
 
 // ActionTaskResponse returns a ActionTask
