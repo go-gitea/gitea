@@ -315,7 +315,7 @@ func EditUser(ctx *context.Context) {
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
-
+	ctx.Data["Link"] = "/admin/users/" + ctx.Params(":userid")
 	prepareUserInfo(ctx)
 	if ctx.Written() {
 		return
