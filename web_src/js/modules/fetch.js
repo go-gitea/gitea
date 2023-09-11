@@ -14,7 +14,7 @@ export function request(url, {headers, data, body, ...other} = {}) {
     } else if (data instanceof URLSearchParams) {
       contentType = 'application/x-www-form-urlencoded';
       body = data;
-      body.append('_csrf', csrfToken);
+      body.set('_csrf', csrfToken);
     } else if (isObject(data) || Array.isArray(data)) {
       contentType = 'application/json';
       body = JSON.stringify(data);
