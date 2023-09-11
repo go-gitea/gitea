@@ -114,13 +114,17 @@ func GetSettingWithCache(ctx context.Context, key, defaultVal string) (string, e
 
 // GetSettingBool return bool value of setting,
 // none existing keys and errors are ignored and result in false
-func GetSettingBool(ctx context.Context, key string) bool {
-	s, _ := GetSetting(ctx, key)
-	if s == nil {
-		return false
+func GetSettingBool(ctx context.Context, key string, defaultVal bool) (bool, error) {
+	s, err := GetSetting(ctx, key)
+	switch {
+	case err == nil:
+		v, _ := strconv.ParseBool(s.SettingValue)
+		return v, nil
+	case IsErrSettingIsNotExist(err):
+		return defaultVal, nil
+	default:
+		return false, err
 	}
-	v, _ := strconv.ParseBool(s.SettingValue)
-	return v
 }
 
 func GetSettingWithCacheBool(ctx context.Context, key string, defaultVal bool) bool {
@@ -265,38 +269,27 @@ var (
 )
 
 func Init(ctx context.Context) error {
-	var disableGravatar bool
-	disableGravatarSetting, err := GetSetting(ctx, KeyPictureDisableGravatar)
-	if IsErrSettingIsNotExist(err) {
-		disableGravatar = setting_module.GetDefaultDisableGravatar()
-		disableGravatarSetting = &Setting{SettingValue: strconv.FormatBool(disableGravatar)}
-	} else if err != nil {
+	disableGravatar, err := GetSettingBool(ctx, KeyPictureDisableGravatar, false)
+	if err != nil {
 		return err
-	} else {
-		disableGravatar = disableGravatarSetting.GetValueBool()
 	}
 
-	var enableFederatedAvatar bool
-	enableFederatedAvatarSetting, err := GetSetting(ctx, KeyPictureEnableFederatedAvatar)
-	if IsErrSettingIsNotExist(err) {
-		enableFederatedAvatar = setting_module.GetDefaultEnableFederatedAvatar(disableGravatar)
-	} else if err != nil {
+	enableFederatedAvatar, err := GetSettingBool(ctx, KeyPictureEnableFederatedAvatar, setting_module.GetDefaultEnableFederatedAvatar(disableGravatar))
+	if err != nil {
 		return err
-	} else {
-		enableFederatedAvatar = enableFederatedAvatarSetting.GetValueBool()
 	}
 
 	if setting_module.OfflineMode {
-		disableGravatar = true
-		enableFederatedAvatar = false
-		if !GetSettingBool(ctx, KeyPictureDisableGravatar) {
+		if !disableGravatar {
 			if err := SetSettingNoVersion(ctx, KeyPictureDisableGravatar, "true"); err != nil {
-				return fmt.Errorf("Failed to set setting %q: %w", KeyPictureDisableGravatar, err)
+				return fmt.Errorf("failed to set setting %q: %w", KeyPictureDisableGravatar, err)
 			}
 		}
-		if GetSettingBool(ctx, KeyPictureEnableFederatedAvatar) {
+		disableGravatar = true
+
+		if enableFederatedAvatar {
 			if err := SetSettingNoVersion(ctx, KeyPictureEnableFederatedAvatar, "false"); err != nil {
-				return fmt.Errorf("Failed to set setting %q: %w", KeyPictureEnableFederatedAvatar, err)
+				return fmt.Errorf("failed to set setting %q: %w", KeyPictureEnableFederatedAvatar, err)
 			}
 		}
 	}
@@ -305,7 +298,7 @@ func Init(ctx context.Context) error {
 		var err error
 		GravatarSourceURL, err = url.Parse(setting_module.GravatarSource)
 		if err != nil {
-			return fmt.Errorf("Failed to parse Gravatar URL(%s): %w", setting_module.GravatarSource, err)
+			return fmt.Errorf("failed to parse Gravatar URL(%s): %w", setting_module.GravatarSource, err)
 		}
 	}
 
