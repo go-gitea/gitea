@@ -15,7 +15,7 @@ import (
 func RebuildRpmPackage(x *xorm.Engine) error {
 	sess := x.NewSession()
 	defer sess.Close()
-	compositeKey, _ := fmt.Printf("%s|%s", rpm.RepositoryDefaultDistribution, rpm.RepositoryDefaultComponent)
+	compositeKey := fmt.Sprintf("%s|%s", rpm.RepositoryDefaultDistribution, rpm.RepositoryDefaultComponent)
 	// select all old rpm package
 	var oldRpmIds []int64
 	ss := sess.Cols("id").
