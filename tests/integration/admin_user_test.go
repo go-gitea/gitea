@@ -73,7 +73,7 @@ func TestAdminDeleteUser(t *testing.T) {
 	session := loginUser(t, "user1")
 
 	csrf := GetCSRF(t, session, "/admin/users/8/edit")
-	req := NewRequestWithValues(t, "POST", "/admin/users/8/delete", map[string]string{
+	req := NewRequestWithValues(t, "POST", "/admin/users/8/edit/delete", map[string]string{
 		"_csrf": csrf,
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
