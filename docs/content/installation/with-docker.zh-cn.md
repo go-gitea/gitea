@@ -230,33 +230,11 @@ MySQL 或 PostgreSQL 容器将需要分别创建。
 
 通过 `docker-compose` 启动 Docker 安装后，应该可以使用喜欢的浏览器访问 Gitea，以完成安装。访问 http://server-ip:3000 并遵循安装向导。如果数据库是通过上述 `docker-compose` 设置启动的，请注意，必须将 `db` 用作数据库主机名。
 
-## 环境变量
+## 使用环境变量配置Gitea内的用户
 
-您可以通过环境变量配置 Gitea 的一些设置：
-
-（默认值以**粗体**显示）
-
-- `APP_NAME`：**“Gitea: Git with a cup of tea”**：应用程序名称，在页面标题中使用。
-- `RUN_MODE`：**prod**：应用程序运行模式，会影响性能和调试。"dev"，"prod"或"test"。
-- `DOMAIN`：**localhost**：此服务器的域名，用于 Gitea UI 中显示的 http 克隆 URL。
-- `SSH_DOMAIN`：**localhost**：该服务器的域名，用于 Gitea UI 中显示的 ssh 克隆 URL。如果启用了安装页面，则 SSH 域服务器将采用以下形式的 DOMAIN 值（保存时将覆盖此设置）。
-- `SSH_PORT`：**22**：克隆 URL 中显示的 SSH 端口。
-- `SSH_LISTEN_PORT`：**%(SSH_PORT)s**：内置 SSH 服务器的端口。
-- `DISABLE_SSH`：**false**：如果不可用，请禁用 SSH 功能。如果要禁用 SSH 功能，则在安装 Gitea 时应将 SSH 端口设置为 `0`。
-- `HTTP_PORT`：**3000**：HTTP 监听端口。
-- `ROOT_URL`：**""**：覆盖自动生成的公共 URL。如果内部 URL 和外部 URL 不匹配（例如在 Docker 中），这很有用。
-- `LFS_START_SERVER`：**false**：启用 git-lfs 支持。
-- `DB_TYPE`：**sqlite3**：正在使用的数据库类型[mysql，postgres，mssql，sqlite3]。
-- `DB_HOST`：**localhost:3306**：数据库主机地址和端口。
-- `DB_NAME`：**gitea**：数据库名称。
-- `DB_USER`：**root**：数据库用户名。
-- `DB_PASSWD`：**"_empty_"** ：数据库用户密码。如果您在密码中使用特殊字符，请使用“您的密码”进行引用。
-- `INSTALL_LOCK`：**false**：禁止访问安装页面。
-- `SECRET_KEY`：**""** ：全局密钥。这应该更改。如果它具有一个值并且 `INSTALL_LOCK` 为空，则 `INSTALL_LOCK` 将自动设置为 `true`。
-- `DISABLE_REGISTRATION`：**false**：禁用注册，之后只有管理员才能为用户创建帐户。
-- `REQUIRE_SIGNIN_VIEW`：**false**：启用此选项可强制用户登录以查看任何页面。
-- `USER_UID`：**1000**：在容器内运行 Gitea 的用户的 UID（Unix 用户 ID）。如果使用主机卷，则将其与 `/data` 卷的所有者的 UID 匹配（对于命名卷，则不需要这样做）。
-- `USER_GID`：**1000**：在容器内运行 Gitea 的用户的 GID（Unix 组 ID）。如果使用主机卷，则将其与 `/data` 卷的所有者的 GID 匹配（对于命名卷，则不需要这样做）。
+- `USER`: **git**：在容器中运行Gitea的用户的用户名。
+- `USER_UID`: **1000**：在容器中运行Gitea的用户的UID（Unix用户ID）。如果使用主机卷（host volumes），请将其匹配到`/data`卷的所有者的UID（对于命名卷，这不是必需的）。
+- `USER_GID`: **1000**：在容器中运行Gitea的用户的GID（Unix组ID）。如果使用主机卷（host volumes），请将其匹配到`/data`卷的所有者的GID（对于命名卷，这不是必需的）。
 
 ## 自定义
 
@@ -315,66 +293,267 @@ services:
 
 由于 SSH 在容器内运行，因此，如果需要 SSH 支持，则需要将 SSH 从主机传递到容器。一种选择是在非标准端口上运行容器 SSH（或将主机端口移至非标准端口）。另一个可能更直接的选择是将 SSH 连接从主机转发到容器。下面将说明此设置。
 
-本指南假定您已经在名为 `git` 的主机上创建了一个用户，该用户与容器值 `USER_UID`/`USER_GID` 共享相同的 `UID`/`GID`。这些值可以在 `docker-compose.yml` 中设置为环境变量：
+### 理解Gitea的SSH访问逻辑(不使用穿透)
 
-```bash
-environment:
-  - USER_UID=1000
-  - USER_GID=1000
-```
+要理解需要发生什么，首先需要了解不使用穿透的情况下会发生什么。因此，我们将尝试描述这一过程：
 
-接下来将主机的 `/home/git/.ssh` 装入容器。否则，SSH 身份验证将无法在容器内运行。
+1. 客户端通过网页将他们的SSH公钥添加到Gitea。
+2. Gitea将为此密钥在其运行的用户`git`的`.ssh/authorized_keys`文件中添加一个条目。
+3. 此条目除了包含公钥，还包含一个`command=`选项。正是这个命令使得`Gitea`能够将此密钥与客户端用户匹配并进行身份验证。
+4. 然后，客户端使用`git`用户进行SSH请求，例如`git clone git@domain:user/repo.git`。
+5. 客户端将尝试与服务器进行身份验证，逐个将一个或多个公钥传递给服务器。
+6. 对于客户端提供的每一个密钥，SSH 服务器都会首先检查其配置中的 `AuthorizedKeysCommand`（授权密钥命令），看看公钥是否匹配，然后再检查 `git`用户的 `authorized_keys`（授权密钥）文件。
+7. 将选择与之匹配的第一个条目，假设这是一个`Gitea`条目，则`command=`将被执行。
+8. SSH服务器为`git`用户创建一个用户会话，并使用`git`用户的shell运行`command=`
+9. 这将运行`gitea serv`命令，它接管了余下的SSH会话并管理Gitea对git命令的身份验证和授权。
 
-```bash
-volumes:
-  - /home/git/.ssh/:/data/git/.ssh
-```
+现在，为了使SSH穿透正常工作，我们需要使宿主机SSH与Gitea用户的公钥进行匹配，然后在Docker容器内上运行`gitea serv`。有多种方法可以实现这一点。但是，所有这些方法都需要将有关Docker的一些信息传递给宿主机。
 
-现在，需要在主机上创建 SSH 密钥对。该密钥对将用于向主机验证主机上的 `git` 用户。
+### SSHing Shim(`authorized_keys`)
 
-```bash
-sudo -u git ssh-keygen -t rsa -b 4096 -C "Gitea Host Key"
-```
+在这个方案中，宿主机只需使用 gitea 创建的`authorized_keys`，但在第 9 步，宿主机上运行的 `gitea`命令是一个shim，它实际上是运行ssh进入docker容器，然后运行真正的容器内部的`gitea`本身。
 
-在下一步中，需要在主机上创建一个名为 `/usr/local/bin/gitea` 的文件（具有可执行权限）。该文件将发出从主机到容器的 SSH 转发。将以下内容添加到 `/usr/local/bin/gitea`：
+- 要使转发生效，需要在 `docker-compose.yml` 中将容器的 SSH 端口（22）映射到主机端口 2222。由于该端口不需要对外公开，因此可以映射到主机的 `localhost` 端口：
 
-```bash
-ssh -p 2222 -o StrictHostKeyChecking=no git@127.0.0.1 "SSH_ORIGINAL_COMMAND=\"$SSH_ORIGINAL_COMMAND\" $0 $@"
-```
+  ```yaml
+  ports:
+    # [...]
+    - "127.0.0.1:2222:22"
+  ```
 
-为了使转发正常工作，需要将容器（22）的 SSH 端口映射到 `docker-compose.yml` 中的主机端口 2222。由于此端口不需要暴露给外界，因此可以将其映射到主机的 `localhost`：
+- 然后在宿主机上创建 `git` 用户，容器的 `USER_UID`/ `USER_GID` 值需要与宿主机中`git`用户的 `UID`/`GID` 与保持一致。这些值可以在 `docker-compose.yml` 中通过环境变量进行设置：
 
-```bash
-ports:
-  # [...]
-  - "127.0.0.1:2222:22"
-```
+  ```yaml
+  environment:
+    - USER_UID=1000
+    - USER_GID=1000
+  ```
 
-另外，主机上的 `/home/git/.ssh/authorized_keys` 需要修改。它需要以与 Gitea 容器内的 `authorized_keys` 相同的方式进行操作。因此，将您在上面创建的密钥（“Gitea 主机密钥”）的公共密钥添加到 `~/git/.ssh/authorized_keys`。这可以通过 `echo "$(cat /home/git/.ssh/id_rsa.pub)" >> /home/git/.ssh/authorized_keys` 完成。重要提示：来自 `git` 用户的公钥需要“按原样”添加，而通过 Gitea 网络界面添加的所有其他公钥将以 `command="/app [...]` 作为前缀。
+- 将宿主机的 `/home/git/.ssh` 挂载到容器中。这将确保宿主机的 `git` 用户和容器的 `git` 用户共享 `authorized_keys` 文件，否则 SSH 身份验证就无法在容器内运行。
 
-该文件应该看起来像：
+  ```yaml
+  volumes:
+    - /home/git/.ssh/:/data/git/.ssh
+  ```
 
-```bash
-# SSH pubkey from git user
-ssh-rsa <Gitea Host Key>
+- 现在需要在宿主机上创建 SSH 密钥对。这个密钥对将用于验证宿主机上的 `git` 用户到容器的身份。以管理用户身份在宿主机上运行：（我们所说的管理用户是指可以 sudo 到 root 的用户）
 
-# other keys from users
-command="/usr/local/bin/gitea --config=/data/gitea/conf/app.ini serv key-1",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty <user pubkey>
-```
+  ```bash
+  sudo -u git ssh-keygen -t rsa -b 4096 -C "Gitea Host Key"
+  ```
 
-这是详细的说明，当发出 SSH 请求时会发生什么：
+- 请注意，根据`ssh`的本地版本，您可能需要考虑在此处使用 `-t ecdsa`。
 
-1. 使用 `git` 用户向主机发出 SSH 请求，例如 `git clone git@domain:user/repo.git`。
-2. 在 `/home/git/.ssh/authorized_keys` 中，该命令执行 `/usr/local/bin/gitea` 脚本。
-3. `/usr/local/bin/gitea` 将 SSH 请求转发到端口 2222，该端口已映射到容器的 SSH 端口（22）。
-4. 由于 `/home/git/.ssh/authorized_keys` 中存在 `git` 用户的公钥，因此身份验证主机 → 容器成功，并且 SSH 请求转发到在 docker 容器中运行的 Gitea。
+- 现在需要修改宿主机上的 `/home/git/.ssh/authorized_keys`。它需要以与 Gitea 容器中的 `authorized_keys` 相同的方式运行。因此，将上文创建的密钥（`Gitea Host Key`）的公钥添加到 `~/git/.ssh/authorized_keys` 中。以管理用户身份在主机上运行：
 
-如果在 Gitea Web 界面中添加了新的 SSH 密钥，它将以与现有密钥相同的方式附加到 `.ssh/authorized_keys` 中。
+  ```bash
+  sudo -u git cat /home/git/.ssh/id_rsa.pub | sudo -u git tee -a /home/git/.ssh/authorized_keys
+  sudo -u git chmod 600 /home/git/.ssh/authorized_keys
+  ```
+
+  **注意**： `git`用户的密钥需要 **按原样**添加，而通过 Gitea Web 界面添加的所有其他密钥将以 `command="/usr [...]` 为前缀。
+
+  然后，"/home/git/.ssh/authorized_keys "应该看起来像这样
+
+  ```bash
+  # SSH pubkey from git user
+  ssh-rsa <Gitea Host Key>
+
+  # other keys from users
+  command="/usr/local/bin/gitea --config=/data/gitea/conf/app.ini serv key-1",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty <user pubkey>
+  ```
+
+- 下一步是创建宿主机的 `gitea` 命令，将命令从主机转发到容器。该文件的名称取决于 Gitea 的版本：
+  - 对于 Gitea v1.16.0+。以管理用户身份在主机上运行：
+
+    ```bash
+    cat <<"EOF" | sudo tee /usr/local/bin/gitea
+    #!/bin/sh
+    ssh -p 2222 -o StrictHostKeyChecking=no git@127.0.0.1 "SSH_ORIGINAL_COMMAND=\"$SSH_ORIGINAL_COMMAND\" $0 $@"
+    EOF
+    sudo chmod +x /usr/local/bin/gitea
+    ```
+
+下面详细解释了 SSH 请求时发生的情况：
+
+1. 客户端通过网页将其 SSH 公钥添加到 Gitea。
+2. 容器中的 Gitea 会在其运行用户 `git` 的 `.ssh/authorized_keys` 文件中添加该密钥的条目。
+    - 不过，由于主机上的 `/home/git/.ssh/` 被挂载为 `/data/git/.ssh`，这意味着该密钥也已添加到宿主机 `git` 用户的 `authorized_keys` 文件中。
+3. 该条目包含公钥，但也有一个 `command=` 选项。
+    - 该命令所在的位置不仅需要与容器中 Gitea 二进制文件的位置相一致，也需要与主机上 shim 的位置相匹配。
+4. 然后，客户端使用 `git`用户向宿主机的SSH服务器发出 SSH 请求，如 `git clone git@domain:user/repo.git`。
+5. 客户端将尝试与服务器进行身份验证，依次向宿主机传递一个或多个公钥。
+6. 对于客户端提供的每个密钥，主机 SSH 服务器都会首先检查其配置中的 `AuthorizedKeysCommand`，看是否与公钥匹配，然后再尝试匹配主机上 `git` 用户的 `authorized_keys`（授权密钥）文件。
+    - 由于宿主机上的 `/home/git/.ssh/` 被挂载到容器内部的 `/data/git/.ssh`，这意味着他们添加到 Gitea web 的公钥密钥会被找到
+7. 将选择第一个匹配的条目，假定这是一个 Gitea 条目，这将执行 `command=` 命令。
+8. 主机 SSH 服务器会为`git`用户创建一个用户会话，并使用主机`git`用户的 shell 运行`command=`中指定的命令。
+9. 这意味着主机会运行宿主机的 `/usr/local/bin/gitea` shim，该 shim 会打开从主机到容器的 SSH，并将其余命令参数直接传递给容器上的 `/usr/local/bin/gitea`。
+10. 这意味着运行容器 `gitea serv`，接管 SSH 会话的其余控制权，并管理 gitea 认证和 git 命令的授权。
 
 **注意**
 
-SSH 容器直通仅在以下情况下有效
+使用 "authorized_keys "的 SSH 容器直通仅在以下情况下有效
 
-- 在容器中使用 `opensshd`
-- 如果未将 `AuthorizedKeysCommand` 与 `SSH_CREATE_AUTHORIZED_KEYS_FILE = false` 结合使用以禁用授权文件密钥生成
-- `LOCAL_ROOT_URL` 不变
+- 容器中启用了`opensshd`服务
+- 如果 `AuthorizedKeysCommand`未与`SSH_CREATE_AUTHORIZED_KEYS_FILE=false`结合使用，则会禁止授权文件密钥生成
+- `LOCAL_ROOT_URL` 不会更改（取决于更改情况）
+
+如果尝试在主机上运行 `gitea`命令，实际上会尝试 ssh 到容器，然后在容器内部运行 `gitea` 命令。
+
+切勿将 `Gitea Host Key` 作为 SSH 密钥添加到 Gitea 界面上的用户。
+
+### SSHing Shell (with authorized_keys)
+
+在这个方案中，主机只需使用 gitea 创建的`authorized_keys`，但在上面的第 8 步，我们将主机运行的 shell 改为直接 ssh 到 docker，然后在那里运行 shell。这意味着运行的 `gitea` 才是真正的 docker `gitea`。
+
+- 在这种情况下，我们的设置与 SSHing Shim 相同，只是不创建`/usr/local/bin/gitea`，而是为 git 用户创建一个新 shell。
+以管理用户身份在主机上运行:
+
+  ```bash
+  cat <<"EOF" | sudo tee /home/git/ssh-shell
+  #!/bin/sh
+  shift
+  ssh -p 2222 -o StrictHostKeyChecking=no git@127.0.0.1 "SSH_ORIGINAL_COMMAND=\"$SSH_ORIGINAL_COMMAND\" $@"
+  EOF
+  sudo chmod +x /home/git/ssh-shell
+  sudo usermod -s /home/git/ssh-shell git
+  ```
+
+  请注意，如果你以后尝试以 git 用户身份登录，你就会直接 ssh 到 docker。
+
+下面详细解释了 SSH 请求时发生的情况：
+
+1. 客户端通过网页将其 SSH 公钥添加到 Gitea。
+2. 容器中的 Gitea 会在其运行用户 `git` 的 `.ssh/authorized_keys` 文件中添加该密钥的条目。
+    - 不过，由于主机上的 `/home/git/.ssh/` 被挂载为 `/data/git/.ssh`，这意味着该密钥也已添加到宿主机 `git` 用户的 `authorized_keys` 文件中。
+3. 该条目包含公钥，但也有一个 `command=` 选项。
+    - 该命令所在的位置不仅需要与容器中 Gitea 二进制文件的位置相一致，也需要与主机上 shim 的位置相匹配。
+4. 然后，客户端使用 `git`用户向宿主机的SSH服务器发出 SSH 请求，如 `git clone git@domain:user/repo.git`。
+5. 客户端将尝试与服务器进行身份验证，依次向宿主机传递一个或多个公钥。
+6. 对于客户端提供的每个密钥，主机 SSH 服务器都会首先检查其配置中的 `AuthorizedKeysCommand`，看是否与公钥匹配，然后再尝试匹配主机上 `git` 用户的 `authorized_keys`（授权密钥）文件。
+    - 由于宿主机上的 `/home/git/.ssh/` 被挂载到容器内部的 `/data/git/.ssh`，这意味着他们添加到 Gitea web 的公钥密钥会被找到
+7. 将选择第一个匹配的条目，假定这是一个 Gitea 条目，这将执行 `command=` 命令。
+8. 主机 SSH 服务器会为`git`用户创建一个用户会话，并使用主机`git`用户的 shell 运行`command=`中指定的命令。
+9. 主机 `git` 用户的 shell 现在是我们的 `ssh-shell`，它会打开主机到容器的 SSH 连接（为容器 `git` 打开容器上的 shell）。
+10. 这意味着运行容器 `gitea serv`，接管 SSH 会话的其余控制权，并管理 gitea 认证和 git 命令的授权。
+
+**注意**
+
+使用 "authorized_keys "的 SSH 容器直通仅在以下情况下有效
+
+- 容器中启用了`opensshd`服务
+- 如果 `AuthorizedKeysCommand`未与`SSH_CREATE_AUTHORIZED_KEYS_FILE=false`结合使用，则会禁止授权文件密钥生成
+- `LOCAL_ROOT_URL` 不会更改（取决于更改情况）
+
+如果以后在主机上尝试以 `git` 用户登录，就会直接 ssh 到 docker。
+
+切勿将 `Gitea Host Key` 作为 SSH 密钥添加到 Gitea 界面上的用户。
+
+### Docker Shell with AuthorizedKeysCommand
+
+`AuthorizedKeysCommand`路由提供了另一种选择，它不需要对组成文件或 `authorized_keys` 进行太多更改，但需要更改宿主机的SSH配置文件 `/etc/sshd_config`。
+
+在这个方案中，宿主机的SSH服务使用的是`AuthorizedKeysCommand`，而不是依赖于共享 gitea容器的`authorized_keys`文件。在上面的第 8 步中，我们继续使用一个特殊的 shell 来执行进入 docker，然后在那里运行 shell。这意味着随后运行的 `gitea` 才是真正的 docker `gitea`。
+
+- 在宿主机上创建有权限执行 `docker exec`命令的 `git` 用户。
+- 在这里我们假设运行Gitea实例的容器是的名称为`gitea`
+- 修改 `git` 用户的 shell，使用 `docker exec` 将命令转发给容器内的 `sh` 可执行文件。 以管理用户身份在主机上运行：
+
+  ```bash
+  cat <<"EOF" | sudo tee /home/git/docker-shell
+  #!/bin/sh
+  /usr/bin/docker exec -i --env SSH_ORIGINAL_COMMAND="$SSH_ORIGINAL_COMMAND" gitea sh "$@"
+  EOF
+  sudo chmod +x /home/git/docker-shell
+  sudo usermod -s /home/git/docker-shell git
+  ```
+
+现在，在宿主机上以 `git` 用户登录的所有尝试都会被转发到 docker容器中，包括 `SSH_ORIGINAL_COMMAND`。现在，我们需要在宿主机上设置 SSH 身份验证。
+
+我们将利用 [SSH AuthorizedKeysCommand]（administration/command-line.md#keys）来匹配 Gitea 接受的密钥。
+
+在宿主机上的 `/etc/ssh/sshd_config` 中添加以下代码：
+
+```bash
+Match User git
+  AuthorizedKeysCommandUser git
+  AuthorizedKeysCommand /usr/bin/docker exec -i gitea /usr/local/bin/gitea keys -c /data/gitea/conf/app.ini -e git -u %u -t %t -k %k
+```
+
+(从 1.16.0 版起，无需设置 `-c /data/gitea/conf/app.ini` 选项)。
+
+最后重启 SSH 服务器。以管理用户身份在主机上运行
+
+```bash
+sudo systemctl restart sshd
+```
+
+下面详细解释了 SSH 请求时发生的情况：
+
+1. 客户端通过网页将其 SSH 公钥添加到 Gitea。
+2. 容器中的 Gitea 会在其数据库中添加该密钥的条目。
+3. 然后，客户端使用`git`用户向主机 SSH 服务器发出 SSH 请求，例如 `git clone git@domain:user/repo.git`。
+4. 客户端会尝试与服务器进行身份验证，依次向主机传递一个或多个公钥。
+5. 对于客户端提供的每一个密钥，主机 SSH 服务器都会检查其配置中的`AuthorizedKeysCommand`(授权密钥命令)。
+6. 宿主机运行`AuthorizedKeysCommand`中指定的命令，执行 docker，然后运行 `gitea keys`命令。
+7. docker 上的 Gitea 会在它的数据库中查找公钥是否匹配，并返回一个类似于 `authorized_keys` 命令的条目。
+8. 这个条目包含公钥，但也有一个 `command=` 选项，与容器上的 Gitea 二进制文件的位置相匹配。
+9. 主机 SSH 服务器会为 `git` 用户创建一个用户会话，并使用主机 `git` 用户的 shell 运行 `command=` 命令。
+10. 主机 `git` 用户的 shell 现在是我们的 `docker-shell`，它使用 `docker exec` 为容器上的 `git` 用户打开 shell。
+11. 容器 shell 现在会运行 `command=` 选项，这意味着容器 `gitea serv` 会被运行，接管 SSH 会话的其余部分，并管理 gitea 认证和 git 命令的授权。
+
+**注意**
+
+只有在以下情况下，使用 `AuthorizedKeysCommand` 的 Docker shell 直通才会起作用
+
+- 主机上的 `git` 用户被允许运行 `docker exec` 命令。
+
+如果你以后尝试以主机上的 `git` 用户登录，你就会直接执行 `docker exec` 到 docker。
+
+与上述类似，也可以创建一个执行 Docker 的 shim。
+
+### SSH Shell with AuthorizedKeysCommand
+
+如上所述，为主机上的 `git` 用户创建一个密钥，并将其添加到 docker 的 `/data/git/.ssh/authorized_keys` 中，最后如上所述创建并设置 `ssh-shell`。
+
+在主机上的 `/etc/ssh/sshd_config` 中添加以下代码块：
+
+```bash
+Match git
+  AuthorizedKeysCommandUser git
+  AuthorizedKeysCommand /usr/bin/ssh -p 2222 -o StrictHostKeyChecking=no git@127.0.0.1 /usr/local/bin/gitea keys -c /data/gitea/conf/app.ini -e git -u %u -t %t -k %k
+```
+
+(从 1.16.0 版起，无需设置 `-c /data/gitea/conf/app.ini` 选项)。
+
+最后重启 SSH 服务器。以管理用户身份在主机上运行
+
+```bash
+sudo systemctl restart sshd
+```
+
+以下是 SSH 请求发生时的详细说明：
+
+1. 客户端使用网页向 Gitea 添加 SSH 公钥。
+2. 容器中的 Gitea 将在其数据库中添加该密钥的条目。
+3. 然后，客户端使用 `git`用户向主机 SSH 服务器发出 SSH 请求，例如 `git clone git@domain:user/repo.git`。
+4. 客户端会尝试与服务器进行身份验证，依次向主机传递一个或多个公钥。
+5. 对于客户端提供的每一个密钥，主机 SSH 服务器都会检查其配置中的`AuthorizedKeysCommand`。
+6. 主机运行上述 `AuthorizedKeysCommand`，SSH 登录 docker，然后运行`gitea keys`命令。
+7. docker 上的 Gitea 会在它的数据库中查找公钥是否匹配，并返回一个类似于 `authorized_keys` 命令的条目。
+8. 该条目包含公钥，但也有一个 `command=` 选项，与容器上的 Gitea 二进制文件的位置相匹配。
+9. 主机 SSH 服务器会为 `git` 用户创建一个用户会话，并使用主机 `git` 用户的 shell 运行 `command=` 命令。
+10. 主机 `git` 用户的 shell 现在就是我们的 `git-shell`，它使用 SSH 为容器上的 `git` 用户打开 shell。
+11. 容器 shell 现在会运行 `command=` 选项，这意味着容器 `gitea serv` 会被运行，接管 SSH 会话的其余部分，并管理 gitea 认证和 git 命令的授权。
+
+**注意**
+
+使用 `AuthorizedKeysCommand` 的 SSH 容器直通仅在以下情况下有效
+
+- 容器上运行了 `opensshd
+
+如果以后尝试在主机上以 `git` 用户登录，就会直接 `ssh` 到 docker。
+
+切勿在 Gitea 界面上将 `Gitea 主机密钥 ` 添加为用户的 SSH 密钥。
+
+SSH shims 的创建方法与上述类似。
