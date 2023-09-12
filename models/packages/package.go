@@ -175,6 +175,21 @@ func (pt Type) SVGName() string {
 	panic(fmt.Sprintf("unknown package type: %s", string(pt)))
 }
 
+// String converts the package type to a string
+func (pt Type) String() string {
+	return string(pt)
+}
+
+// GetPackageTypeByString returns the type for the given string
+func GetPackageTypeByString(typeName string) *Type {
+	for _, currentType := range TypeList {
+		if currentType.String() == typeName {
+			return &currentType
+		}
+	}
+	return nil
+}
+
 // Package represents a package
 type Package struct {
 	ID               int64  `xorm:"pk autoincr"`

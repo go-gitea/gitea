@@ -830,8 +830,7 @@ func registerRoutes(m *web.Route) {
 					})
 				})
 				m.Group("/upload", func() {
-					m.Get("", user.UploadPackageChoose)
-					m.Get("/{upload_type}", user.UploadPackagePage)
+					m.Get("/{upload_type}", user.UploadPackage)
 					m.Post("/generic/upload", web.Bind(forms.PackageUploadGenericForm{}), packages.UploadGenericPackagePost)
 					m.Post("/debian/upload", web.Bind(forms.PackageUploadDebianForm{}), packages.UploadDebianPackagePost)
 					m.Post("/rpm/upload", web.Bind(forms.PackageUploadRpmForm{}), packages.UploadRpmPackagePost)

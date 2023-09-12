@@ -17,6 +17,12 @@ import (
 	rpm_service "code.gitea.io/gitea/services/packages/rpm"
 )
 
+var UploadTypeList = []packages_model.Type{
+	packages_model.TypeDebian,
+	packages_model.TypeGeneric,
+	packages_model.TypeRpm,
+}
+
 func servePackageUploadError(ctx *context.Context, err error, packageType, repo string) {
 	ctx.Flash.Error(err.Error())
 

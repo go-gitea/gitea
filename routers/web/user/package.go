@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	packages_helper "code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/routers/web/shared/packages"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/forms"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -103,7 +104,8 @@ func ListPackages(ctx *context.Context) {
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["Total"] = total
 	ctx.Data["RepositoryAccessMap"] = repositoryAccessMap
-	ctx.Data["PackageUploadUrl"] = fmt.Sprintf("%s/-/packages/upload", ctx.ContextUser.HTMLURL())
+	ctx.Data["PackageUploadUrl"] = fmt.Sprintf("%s/-/packages/upload/", ctx.ContextUser.HTMLURL())
+	ctx.Data["AllowedUploadTypes"] = packages.UploadTypeList
 
 	err = shared_user.LoadHeaderCount(ctx)
 	if err != nil {
@@ -489,37 +491,20 @@ func DownloadPackageFile(ctx *context.Context) {
 	packages_helper.ServePackageFile(ctx, s, u, pf)
 }
 
-func UploadPackageChoose(ctx *context.Context) {
+func UploadPackage(ctx *context.Context) {
 	shared_user.PrepareContextForProfileBigAvatar(ctx)
 
-	ctx.Data["IsPackagesPage"] = true
-	ctx.Data["PackageUploadPage"] = "choose"
-	ctx.Data["PackageUploadRepo"] = ctx.FormString("repo")
+	packageType := packages_model.GetPackageTypeByString(ctx.Params("upload_type"))
 
-	err := shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
-
-	ctx.HTML(http.StatusOK, tplPackageUpload)
-}
-
-func UploadPackagePage(ctx *context.Context) {
-	shared_user.PrepareContextForProfileBigAvatar(ctx)
-
-	packageType := ctx.Params("upload_type")
-
-	allowdTypes := []string{"generic", "debian", "rpm"}
-
-	if !slices.Contains(allowdTypes, packageType) {
+	if packageType == nil || !slices.Contains(packages.UploadTypeList, *packageType) {
 		ctx.NotFound("", nil)
 		return
 	}
 
 	ctx.Data["IsPackagesPage"] = true
-	ctx.Data["PackageUploadPage"] = packageType
+	ctx.Data["PackageUploadType"] = packageType
 	ctx.Data["PackageUploadRepo"] = ctx.FormString("repo")
+	ctx.Data["Title"] = ctx.Tr("packages.upload.title", packageType.Name())
 
 	err := shared_user.LoadHeaderCount(ctx)
 	if err != nil {
