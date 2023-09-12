@@ -21,17 +21,12 @@ import (
 
 // ListAccessTokens list all the access tokens
 func ListAccessTokens(ctx *context.APIContext) {
-	// swagger:operation GET /users/{username}/tokens user userGetTokens
+	// swagger:operation GET /user/tokens user userGetTokens
 	// ---
 	// summary: List the authenticated user's access tokens
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: username
-	//   in: path
-	//   description: username of user
-	//   type: string
-	//   required: true
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -43,6 +38,8 @@ func ListAccessTokens(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AccessTokenList"
+	//   "401":
+	//     "$ref": "#/responses/unauthorized"
 
 	opts := auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID, ListOptions: utils.GetListOptions(ctx)}
 
@@ -71,9 +68,39 @@ func ListAccessTokens(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &apiTokens)
 }
 
+// ListAccessTokensOld is a compatibility layer for ListAccessTokens
+func ListAccessTokensOld(ctx *context.APIContext) {
+	// swagger:operation GET /users/{username}/tokens user userGetTokensOld
+	// ---
+	// summary: List the authenticated user's access tokens
+	// deprecated: true
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   type: string
+	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/AccessTokenList"
+	//   "401":
+	//     "$ref": "#/responses/unauthorized"
+	ListAccessTokens(ctx)
+}
+
 // CreateAccessToken create access tokens
 func CreateAccessToken(ctx *context.APIContext) {
-	// swagger:operation POST /users/{username}/tokens user userCreateToken
+	// swagger:operation POST /user/tokens user userCreateToken
 	// ---
 	// summary: Create an access token
 	// consumes:
@@ -81,11 +108,6 @@ func CreateAccessToken(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: username
-	//   in: path
-	//   description: username of user
-	//   required: true
-	//   type: string
 	// - name: body
 	//   in: body
 	//   schema:
@@ -95,6 +117,8 @@ func CreateAccessToken(ctx *context.APIContext) {
 	//     "$ref": "#/responses/AccessToken"
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "401":
+	//     "$ref": "#/responses/unauthorized"
 
 	form := web.GetForm(ctx).(*api.CreateAccessTokenOption)
 
@@ -132,19 +156,44 @@ func CreateAccessToken(ctx *context.APIContext) {
 	})
 }
 
-// DeleteAccessToken delete access tokens
-func DeleteAccessToken(ctx *context.APIContext) {
-	// swagger:operation DELETE /users/{username}/tokens/{token} user userDeleteAccessToken
+// CreateAccessTokenOld is a compatibility layer for CreateAccessToken
+func CreateAccessTokenOld(ctx *context.APIContext) {
+	// swagger:operation POST /users/{username}/tokens user userCreateTokenOld
 	// ---
-	// summary: delete an access token
+	// summary: Create an access token
+	// deprecated: true
+	// consumes:
+	// - application/json
 	// produces:
 	// - application/json
 	// parameters:
 	// - name: username
 	//   in: path
 	//   description: username of user
-	//   type: string
 	//   required: true
+	//   type: string
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateAccessTokenOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/AccessToken"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "401":
+	//     "$ref": "#/responses/unauthorized"
+	CreateAccessToken(ctx)
+}
+
+// DeleteAccessToken delete access tokens
+func DeleteAccessToken(ctx *context.APIContext) {
+	// swagger:operation DELETE /user/tokens/{token} user userDeleteAccessToken
+	// ---
+	// summary: delete an access token
+	// produces:
+	// - application/json
+	// parameters:
 	// - name: token
 	//   in: path
 	//   description: token to be deleted, identified by ID and if not available by name
@@ -153,6 +202,8 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "401":
+	//     "$ref": "#/responses/unauthorized"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "422":
@@ -197,6 +248,37 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	}
 
 	ctx.Status(http.StatusNoContent)
+}
+
+// DeleteAccessTokenOld is a compatibility layer for DeleteAccessToken
+func DeleteAccessTokenOld(ctx *context.APIContext) {
+	// swagger:operation DELETE /users/{username}/tokens/{token} user userDeleteAccessTokenOld
+	// ---
+	// summary: delete an access token
+	// deprecated: true
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   type: string
+	//   required: true
+	// - name: token
+	//   in: path
+	//   description: token to be deleted, identified by ID and if not available by name
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "401":
+	//     "$ref": "#/responses/unauthorized"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/error"
+	DeleteAccessToken(ctx)
 }
 
 // CreateOauth2Application is the handler to create a new OAuth2 Application for the authenticated user

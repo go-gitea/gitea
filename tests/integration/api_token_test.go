@@ -35,7 +35,7 @@ func TestAPIDeleteMissingToken(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-	req := NewRequestf(t, "DELETE", "/api/v1/users/user1/tokens/%d", unittest.NonexistentID)
+	req := NewRequestf(t, "DELETE", "/api/v1/user/tokens/%d", unittest.NonexistentID)
 	req = AddBasicAuthHeader(req, user.Name)
 	MakeRequest(t, req, http.StatusNotFound)
 }
@@ -503,7 +503,7 @@ func createAPIAccessTokenWithoutCleanUp(t *testing.T, tokenName string, user *us
 		}
 	}
 	log.Debug("Requesting creation of token with scopes: %v", scopes)
-	req := NewRequestWithJSON(t, "POST", "/api/v1/users/user1/tokens", payload)
+	req := NewRequestWithJSON(t, "POST", "/api/v1/user/tokens", payload)
 
 	req = AddBasicAuthHeader(req, user.Name)
 	resp := MakeRequest(t, req, http.StatusCreated)
@@ -523,7 +523,7 @@ func createAPIAccessTokenWithoutCleanUp(t *testing.T, tokenName string, user *us
 // createAPIAccessTokenWithoutCleanUp Delete an API access token and assert that
 // deletion succeeded.
 func deleteAPIAccessToken(t *testing.T, accessToken api.AccessToken, user *user_model.User) {
-	req := NewRequestf(t, "DELETE", "/api/v1/users/user1/tokens/%d", accessToken.ID)
+	req := NewRequestf(t, "DELETE", "/api/v1/user/tokens/%d", accessToken.ID)
 	req = AddBasicAuthHeader(req, user.Name)
 	MakeRequest(t, req, http.StatusNoContent)
 

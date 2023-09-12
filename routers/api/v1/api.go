@@ -904,9 +904,9 @@ func Routes() *web.Route {
 
 				m.Get("/repos", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), reqExploreSignIn(), user.ListUserRepos)
 				m.Group("/tokens", func() {
-					m.Combo("").Get(user.ListAccessTokens).
-						Post(bind(api.CreateAccessTokenOption{}), reqToken(), user.CreateAccessToken)
-					m.Combo("/{id}").Delete(reqToken(), user.DeleteAccessToken)
+					m.Combo("").Get(user.ListAccessTokensOld).
+						Post(bind(api.CreateAccessTokenOption{}), reqToken(), user.CreateAccessTokenOld)
+					m.Combo("/{id}").Delete(reqToken(), user.DeleteAccessTokenOld)
 				}, reqBasicOrRevProxyAuth())
 
 				m.Get("/activities/feeds", user.ListUserActivityFeeds)
@@ -967,6 +967,12 @@ func Routes() *web.Route {
 				m.Combo("/{id}").Get(user.GetPublicKey).
 					Delete(user.DeletePublicKey)
 			})
+
+			m.Group("/tokens", func() {
+				m.Combo("").Get(reqToken(), user.ListAccessTokens).
+					Post(bind(api.CreateAccessTokenOption{}), reqToken(), user.CreateAccessToken)
+				m.Combo("/{id}").Delete(reqToken(), user.DeleteAccessToken)
+			}, reqBasicOrRevProxyAuth())
 
 			// (admin:application scope)
 			m.Group("/applications", func() {

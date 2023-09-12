@@ -41,13 +41,13 @@ Gitea parses queries and headers to find the token in
 ## Generating and listing API tokens
 
 A new token can be generated with a `POST` request to
-`/users/:name/tokens`.
+`/user/tokens`.
 
-Note that `/users/:name/tokens` is a special endpoint and requires you
+Note that `/user/tokens` is a special endpoint and requires you
 to authenticate using `BasicAuth` and a password, as follows:
 
 ```sh
-$ curl -H "Content-Type: application/json" -d '{"name":"test"}' -u username:password https://gitea.your.host/api/v1/users/<username>/tokens
+$ curl -H "Content-Type: application/json" -d '{"name":"test"}' -u username:password https://gitea.your.host/api/v1/user/tokens
 {"id":1,"name":"test","sha1":"9fcb1158165773dd010fca5f0cf7174316c3e37d","token_last_eight":"16c3e37d"}
 ```
 
@@ -56,7 +56,7 @@ plain-text.  It will not be displayed when listing tokens with a `GET`
 request; e.g.
 
 ```sh
-$ curl --url https://yourusername:password@gitea.your.host/api/v1/users/<username>/tokens
+$ curl --url https://yourusername:password@gitea.your.host/api/v1/user/tokens
 [{"name":"test","sha1":"","token_last_eight:"........":},{"name":"dev","sha1":"","token_last_eight":"........"}]
 ```
 
@@ -68,7 +68,7 @@ is where you'd place the code from your authenticator.
 Here is how the request would look like in curl:
 
 ```sh
-$ curl -H "X-Gitea-OTP: 123456" --url https://yourusername:yourpassword@gitea.your.host/api/v1/users/yourusername/tokens
+$ curl -H "X-Gitea-OTP: 123456" --url https://yourusername:yourpassword@gitea.your.host/api/v1/user/tokens
 ```
 
 You can also create an API key token via your Gitea installation's web

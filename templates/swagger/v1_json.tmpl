@@ -15323,6 +15323,108 @@
         }
       }
     },
+    "/user/tokens": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "List the authenticated user's access tokens",
+        "operationId": "userGetTokens",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/AccessTokenList"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Create an access token",
+        "operationId": "userCreateToken",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateAccessTokenOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/AccessToken"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          }
+        }
+      }
+    },
+    "/user/tokens/{token}": {
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "delete an access token",
+        "operationId": "userDeleteAccessToken",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "token to be deleted, identified by ID and if not available by name",
+            "name": "token",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/users/search": {
       "get": {
         "produces": [
@@ -15884,7 +15986,8 @@
           "user"
         ],
         "summary": "List the authenticated user's access tokens",
-        "operationId": "userGetTokens",
+        "operationId": "userGetTokensOld",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -15909,6 +16012,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/AccessTokenList"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
           }
         }
       },
@@ -15923,7 +16029,8 @@
           "user"
         ],
         "summary": "Create an access token",
-        "operationId": "userCreateToken",
+        "operationId": "userCreateTokenOld",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -15946,6 +16053,9 @@
           },
           "400": {
             "$ref": "#/responses/error"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
           }
         }
       }
@@ -15959,7 +16069,8 @@
           "user"
         ],
         "summary": "delete an access token",
-        "operationId": "userDeleteAccessToken",
+        "operationId": "userDeleteAccessTokenOld",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -15979,6 +16090,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -23448,6 +23562,17 @@
       "description": "APIString is a string response",
       "schema": {
         "type": "string"
+      }
+    },
+    "unauthorized": {
+      "description": "APIUnauthorizedError is a unauthorized error response",
+      "headers": {
+        "message": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
       }
     },
     "validationError": {
