@@ -45,9 +45,18 @@
 		<table class="ui very basic striped table unstackable">
 			<thead>
 				<tr>
-					<th data-sortt-asc="online" data-sortt-desc="offline">{{.locale.Tr "actions.runners.status"}}</th>
-					<th data-sortt-asc="alphabetically">{{.locale.Tr "actions.runners.id"}}</th>
-					<th>{{.locale.Tr "actions.runners.name"}}</th>
+					<th data-sortt-asc="online" data-sortt-desc="offline">
+						{{.locale.Tr "actions.runners.status"}}
+						{{SortArrow "online" "offline" .SortType false}}
+					</th>
+					<th data-sortt-asc="newest" data-sortt-desc="oldest">
+						{{.locale.Tr "actions.runners.id"}}
+						{{SortArrow "oldest" "newest" .SortType false}}
+					</th>
+					<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
+						{{.locale.Tr "actions.runners.name"}}
+						{{SortArrow "alphabetically" "reversealphabetically" .SortType false}}
+					</th>
 					<th>{{.locale.Tr "actions.runners.version"}}</th>
 					<th>{{.locale.Tr "actions.runners.owner_type"}}</th>
 					<th>{{.locale.Tr "actions.runners.labels"}}</th>
