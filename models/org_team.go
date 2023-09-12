@@ -151,85 +151,6 @@ func removeAllRepositories(ctx context.Context, t *organization.Team) (err error
 	return nil
 }
 
-// HasRepository returns true if given repository belong to team.
-func HasRepository(t *organization.Team, repoID int64) bool {
-	return organization.HasTeamRepo(db.DefaultContext, t.OrgID, t.ID, repoID)
-}
-
-// removeRepository removes a repository from a team and recalculates access
-// Note: Repository shall not be removed from team if it includes all repositories (unless the repository is deleted)
-func removeRepository(ctx context.Context, t *organization.Team, repo *repo_model.Repository, recalculate bool) (err error) {
-	e := db.GetEngine(ctx)
-	if err = organization.RemoveTeamRepo(ctx, t.ID, repo.ID); err != nil {
-		return err
-	}
-
-	t.NumRepos--
-	if _, err = e.ID(t.ID).Cols("num_repos").Update(t); err != nil {
-		return err
-	}
-
-	// Don't need to recalculate when delete a repository from organization.
-	if recalculate {
-		if err = access_model.RecalculateTeamAccesses(ctx, repo, t.ID); err != nil {
-			return err
-		}
-	}
-
-	teamUsers, err := organization.GetTeamUsersByTeamID(ctx, t.ID)
-	if err != nil {
-		return fmt.Errorf("getTeamUsersByTeamID: %w", err)
-	}
-	for _, teamUser := range teamUsers {
-		has, err := access_model.HasAccess(ctx, teamUser.UID, repo)
-		if err != nil {
-			return err
-		} else if has {
-			continue
-		}
-
-		if err = repo_model.WatchRepo(ctx, teamUser.UID, repo.ID, false); err != nil {
-			return err
-		}
-
-		// Remove all IssueWatches a user has subscribed to in the repositories
-		if err := issues_model.RemoveIssueWatchersByRepoID(ctx, teamUser.UID, repo.ID); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// RemoveRepository removes repository from team of organization.
-// If the team shall include all repositories the request is ignored.
-func RemoveRepository(t *organization.Team, repoID int64) error {
-	if !HasRepository(t, repoID) {
-		return nil
-	}
-
-	if t.IncludesAllRepositories {
-		return nil
-	}
-
-	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, repoID)
-	if err != nil {
-		return err
-	}
-
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = removeRepository(ctx, t, repo, true); err != nil {
-		return err
-	}
-
-	return committer.Commit()
-}
-
 // NewTeam creates a record of new team.
 // It's caller's responsibility to assign organization ID.
 func NewTeam(t *organization.Team) (err error) {
@@ -564,12 +485,12 @@ func removeTeamMember(ctx context.Context, team *organization.Team, userID int64
 		}
 
 		// Remove watches from now unaccessible
-		if err := reconsiderWatches(ctx, repo, userID); err != nil {
+		if err := ReconsiderWatches(ctx, repo, userID); err != nil {
 			return err
 		}
 
 		// Remove issue assignments from now unaccessible
-		if err := reconsiderRepoIssuesAssignee(ctx, repo, userID); err != nil {
+		if err := ReconsiderRepoIssuesAssignee(ctx, repo, userID); err != nil {
 			return err
 		}
 	}
@@ -601,4 +522,34 @@ func RemoveTeamMember(team *organization.Team, userID int64) error {
 		return err
 	}
 	return committer.Commit()
+}
+
+func ReconsiderRepoIssuesAssignee(ctx context.Context, repo *repo_model.Repository, uid int64) error {
+	user, err := user_model.GetUserByID(ctx, uid)
+	if err != nil {
+		return err
+	}
+
+	if canAssigned, err := access_model.CanBeAssigned(ctx, user, repo, true); err != nil || canAssigned {
+		return err
+	}
+
+	if _, err := db.GetEngine(ctx).Where(builder.Eq{"assignee_id": uid}).
+		In("issue_id", builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repo.ID})).
+		Delete(&issues_model.IssueAssignees{}); err != nil {
+		return fmt.Errorf("Could not delete assignee[%d] %w", uid, err)
+	}
+	return nil
+}
+
+func ReconsiderWatches(ctx context.Context, repo *repo_model.Repository, uid int64) error {
+	if has, err := access_model.HasAccess(ctx, uid, repo); err != nil || has {
+		return err
+	}
+	if err := repo_model.WatchRepo(ctx, uid, repo.ID, false); err != nil {
+		return err
+	}
+
+	// Remove all IssueWatches a user has subscribed to in the repository
+	return issues_model.RemoveIssueWatchersByRepoID(ctx, uid, repo.ID)
 }
