@@ -19,7 +19,6 @@ import (
 	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
 	rpm_service "code.gitea.io/gitea/services/packages/rpm"
-	packages_upload_service "code.gitea.io/gitea/services/packages/upload"
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -91,7 +90,7 @@ func UploadPackageFile(ctx *context.Context) {
 		defer upload.Close()
 	}
 
-	statusCode, _, err := packages_upload_service.UploadRpmPackage(ctx, upload)
+	statusCode, _, err := rpm_service.UploadRpmPackage(ctx, upload)
 	if err != nil {
 		apiError(ctx, statusCode, err)
 		return

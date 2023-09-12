@@ -12,7 +12,9 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
-	packages_upload_service "code.gitea.io/gitea/services/packages/upload"
+	debian_service "code.gitea.io/gitea/services/packages/debian"
+	generic_service "code.gitea.io/gitea/services/packages/generic"
+	rpm_service "code.gitea.io/gitea/services/packages/rpm"
 )
 
 func servePackageUploadError(ctx *context.Context, err error, packageType, repo string) {
@@ -61,15 +63,15 @@ func UploadGenericPackagePost(ctx *context.Context) {
 		filename = form.PackageFilename
 	}
 
-	statusCode, pv, err := packages_upload_service.UploadGenericPackage(ctx, upload, form.PackageName, form.PackageVersion, filename)
+	statusCode, pv, err := generic_service.UploadGenericPackage(ctx, upload, form.PackageName, form.PackageVersion, filename)
 	if err != nil {
 		if statusCode == http.StatusInternalServerError {
 			ctx.ServerError("UploadGenericPackage", err)
 			return
-		} else {
-			servePackageUploadError(ctx, err, "generic", form.PackageRepo)
-			return
 		}
+
+		servePackageUploadError(ctx, err, "generic", form.PackageRepo)
+		return
 	}
 
 	if form.PackageRepo != "" {
@@ -95,15 +97,15 @@ func UploadDebianPackagePost(ctx *context.Context) {
 		return
 	}
 
-	statusCode, pv, err := packages_upload_service.UploadDebianPackage(ctx, upload, form.PackageDistribution, form.PackageComponent)
+	statusCode, pv, err := debian_service.UploadDebianPackage(ctx, upload, form.PackageDistribution, form.PackageComponent)
 	if err != nil {
 		if statusCode == http.StatusInternalServerError {
 			ctx.ServerError("UploadGenericPackage", err)
 			return
-		} else {
-			servePackageUploadError(ctx, err, "generic", form.PackageRepo)
-			return
 		}
+
+		servePackageUploadError(ctx, err, "debian", form.PackageRepo)
+		return
 	}
 
 	if form.PackageRepo != "" {
@@ -129,15 +131,15 @@ func UploadRpmPackagePost(ctx *context.Context) {
 		return
 	}
 
-	statusCode, pv, err := packages_upload_service.UploadRpmPackage(ctx, upload)
+	statusCode, pv, err := rpm_service.UploadRpmPackage(ctx, upload)
 	if err != nil {
 		if statusCode == http.StatusInternalServerError {
 			ctx.ServerError("UploadRpmPackage", err)
 			return
-		} else {
-			servePackageUploadError(ctx, err, "rpm", form.PackageRepo)
-			return
 		}
+
+		servePackageUploadError(ctx, err, "rpm", form.PackageRepo)
+		return
 	}
 
 	if form.PackageRepo != "" {

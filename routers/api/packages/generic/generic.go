@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
-	packages_upload_service "code.gitea.io/gitea/services/packages/upload"
+	generic_service "code.gitea.io/gitea/services/packages/generic"
 )
 
 var (
@@ -79,7 +79,7 @@ func UploadPackage(ctx *context.Context) {
 		defer upload.Close()
 	}
 
-	statusCode, _, err := packages_upload_service.UploadGenericPackage(ctx, upload, packageName, packageVersion, filename)
+	statusCode, _, err := generic_service.UploadGenericPackage(ctx, upload, packageName, packageVersion, filename)
 	if err != nil {
 		apiError(ctx, statusCode, err)
 		return
