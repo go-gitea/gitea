@@ -6,7 +6,7 @@ on:
 
 jobs:
   nightly-binary:
-    runs-on: ubuntu-latest
+    runs-on: actuated-4cpu-8gb
     steps:
       - uses: actions/checkout@v3
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
@@ -52,7 +52,7 @@ jobs:
           SOURCE_DIR: dist/release
           DEST_DIR: gitea/${{ steps.clean_name.outputs.branch }}
   nightly-docker:
-    runs-on: ubuntu-latest
+    runs-on: actuated-4cpu-8gb
     steps:
       - uses: actions/checkout@v3
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
