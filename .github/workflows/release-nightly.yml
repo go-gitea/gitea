@@ -113,7 +113,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: fetch go modules
-          run: make vendor
+        run: make vendor
       - name: build rootless docker image
         uses: docker/build-push-action@v4
         with:
