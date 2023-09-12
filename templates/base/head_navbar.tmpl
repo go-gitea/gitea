@@ -28,27 +28,27 @@
 			{{/* No links */}}
 		{{else if .IsSigned}}
 			{{if not .UnitIssuesGlobalDisabled}}
-				<a class="item{{if .PageIsIssues}} active{{end}}" href="{{AppSubUrl}}/issues">{{.locale.Tr "issues"}}</a>
+				<a class="item{{if .PageIsIssues}} active{{end}}" href="{{AppSubUrl}}/issues"><span class="gt-w-100">{{.locale.Tr "issues"}}</span></a>
 			{{end}}
 			{{if not .UnitPullsGlobalDisabled}}
-				<a class="item{{if .PageIsPulls}} active{{end}}" href="{{AppSubUrl}}/pulls">{{.locale.Tr "pull_requests"}}</a>
+				<a class="item{{if .PageIsPulls}} active{{end}}" href="{{AppSubUrl}}/pulls"><span class="gt-w-100">{{.locale.Tr "pull_requests"}}</span></a>
 			{{end}}
 			{{if not (and .UnitIssuesGlobalDisabled .UnitPullsGlobalDisabled)}}
 				{{if .ShowMilestonesDashboardPage}}
-					<a class="item{{if .PageIsMilestonesDashboard}} active{{end}}" href="{{AppSubUrl}}/milestones">{{.locale.Tr "milestones"}}</a>
+					<a class="item{{if .PageIsMilestonesDashboard}} active{{end}}" href="{{AppSubUrl}}/milestones"><span class="gt-w-100">{{.locale.Tr "milestones"}}</span></a>
 				{{end}}
 			{{end}}
-			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.locale.Tr "explore"}}</a>
+			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos"><span class="gt-w-100">{{.locale.Tr "explore"}}</span></a>
 		{{else if .IsLandingPageOrganizations}}
 			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/organizations">{{.locale.Tr "explore"}}</a>
 		{{else}}
-			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.locale.Tr "explore"}}</a>
+			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos"><span class="gt-w-100">{{.locale.Tr "explore"}}</span></a>
 		{{end}}
 
 		{{template "custom/extra_links" .}}
 
 		{{if not .IsSigned}}
-			<a class="item" target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com">{{.locale.Tr "help"}}</a>
+			<a class="item" target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com"><span class="gt-w-100">{{.locale.Tr "help"}}</span></a>
 		{{end}}
 	</div>
 
@@ -119,7 +119,7 @@
 			</a>
 
 			<div class="ui dropdown jump item gt-mx-0 gt-pr-3" data-tooltip-content="{{.locale.Tr "create_new"}}">
-				<span class="text">
+				<span class="text gt-w-100">
 					{{svg "octicon-plus"}}
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
 					<span class="mobile-only">{{.locale.Tr "create_new"}}</span>
@@ -142,7 +142,7 @@
 			</div><!-- end dropdown menu create new -->
 
 			<div class="ui dropdown jump item gt-mx-0 gt-pr-3" data-tooltip-content="{{.locale.Tr "user_profile_and_more"}}">
-				<span class="text gt-df gt-ac">
+				<span class="text gt-w-100 gt-df gt-ac">
 					{{ctx.AvatarUtils.Avatar .SignedUser 24 "gt-mr-2"}}
 					<span class="mobile-only gt-ml-3">{{.SignedUser.Name}}</span>
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
