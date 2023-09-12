@@ -150,11 +150,13 @@ func BuildRepositoryFiles(ctx context.Context, ownerID int64, compositeKey strin
 			return err
 		}
 		for _, pf := range pfs {
-			if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
-				return err
-			}
-			if err := packages_model.DeleteFileByID(ctx, pf.ID); err != nil {
-				return err
+			if compositeKey == pf.CompositeKey {
+				if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
+					return err
+				}
+				if err := packages_model.DeleteFileByID(ctx, pf.ID); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -225,7 +227,7 @@ func BuildRepositoryFiles(ctx context.Context, ownerID int64, compositeKey strin
 }
 
 // https://docs.pulpproject.org/en/2.19/plugins/pulp_rpm/tech-reference/rpm.html#repomd-xml
-func buildRepomd(pv *packages_model.PackageVersion, ownerID int64, data []*repoData, distribution string) error {
+func buildRepomd(pv *packages_model.PackageVersion, ownerID int64, data []*repoData, compositeKey string) error {
 	type Repomd struct {
 		XMLName  xml.Name    `xml:"repomd"`
 		Xmlns    string      `xml:"xmlns,attr"`
@@ -277,7 +279,7 @@ func buildRepomd(pv *packages_model.PackageVersion, ownerID int64, data []*repoD
 			&packages_service.PackageFileCreationInfo{
 				PackageFileInfo: packages_service.PackageFileInfo{
 					Filename:     file.Name,
-					CompositeKey: distribution,
+					CompositeKey: compositeKey,
 				},
 				Creator:           user_model.NewGhostUser(),
 				Data:              file.Data,
@@ -403,7 +405,7 @@ func buildPrimary(pv *packages_model.PackageVersion, pfs []*packages_model.Packa
 				Archive:   pd.FileMetadata.ArchiveSize,
 			},
 			Location: Location{
-				Href: fmt.Sprintf("package/%s/%s/%s", url.PathEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.FileMetadata.Architecture)),
+				Href: fmt.Sprintf("package/%s/%s/%s/%s", url.PathEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.FileMetadata.Architecture), url.PathEscape(fmt.Sprintf("%s-%s.%s.rpm", pd.Package.Name, pd.Version.Version, pd.FileMetadata.Architecture))),
 			},
 			Format: Format{
 				License:   pd.VersionMetadata.License,
@@ -548,7 +550,7 @@ func (wc *writtenCounter) Written() int64 {
 	return wc.written
 }
 
-func addDataAsFileToRepo(pv *packages_model.PackageVersion, filetype string, obj any, distribution string) (*repoData, error) {
+func addDataAsFileToRepo(pv *packages_model.PackageVersion, filetype string, obj any, compositeKey string) (*repoData, error) {
 	content, _ := packages_module.NewHashedBuffer()
 	gzw := gzip.NewWriter(content)
 	wc := &writtenCounter{}
@@ -572,7 +574,7 @@ func addDataAsFileToRepo(pv *packages_model.PackageVersion, filetype string, obj
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename:     filename,
-				CompositeKey: distribution,
+				CompositeKey: compositeKey,
 			},
 			Creator:           user_model.NewGhostUser(),
 			Data:              content,

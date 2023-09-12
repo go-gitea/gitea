@@ -519,6 +519,10 @@ func CommonRoutes() *web.Route {
 				r.Put("/upload", reqPackageAccess(perm.AccessModeWrite), rpm.UploadPackageFile)
 				r.Group("/package/{name}/{version}/{architecture}", func() {
 					r.Get("", rpm.DownloadPackageFile)
+					// yum/dnf client does not recognize the filename of the header.
+					// which will result in a failure to hit the cache locally.
+					// So add a new spurious route
+					r.Get("/{file_name}", rpm.DownloadPackageFile)
 					r.Delete("", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
 				})
 				r.Get("/repodata/{filename}", rpm.GetRepositoryFile)
