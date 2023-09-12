@@ -317,7 +317,7 @@ func EditUser(ctx *context.Context) {
 	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar,
 		setting.GetDefaultDisableGravatar(),
 	)
-  ctx.Data["BaseUrl"] = "/admin/users/" + ctx.Params(":userid")
+	ctx.Data["BaseUrl"] = "/admin/users/" + ctx.Params(":userid")
 
 	prepareUserInfo(ctx)
 	if ctx.Written() {
