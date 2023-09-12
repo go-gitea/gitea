@@ -314,8 +314,11 @@ func EditUser(ctx *context.Context) {
 	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
-	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
-	ctx.Data["BaseUrl"] = "/admin/users/" + ctx.Params(":userid")
+	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar,
+		setting.GetDefaultDisableGravatar(),
+	)
+  ctx.Data["BaseUrl"] = "/admin/users/" + ctx.Params(":userid")
+
 	prepareUserInfo(ctx)
 	if ctx.Written() {
 		return
@@ -331,7 +334,8 @@ func EditUserPost(ctx *context.Context) {
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
-	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
+	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar,
+		setting.GetDefaultDisableGravatar())
 
 	u := prepareUserInfo(ctx)
 	if ctx.Written() {
