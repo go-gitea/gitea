@@ -976,20 +976,23 @@
 				{{end}}
 			</div>
 			<div class="content">
-				<p>
+				<div class="ui warning message">
 					{{if .Repository.IsArchived}}
 						{{.locale.Tr "repo.settings.unarchive.text"}}
 					{{else}}
 						{{.locale.Tr "repo.settings.archive.text"}}
 					{{end}}
-				</p>
-			</div>
-			<form action="{{.Link}}" method="post">
-				{{.CsrfTokenHtml}}
-				<input type="hidden" name="action" value="{{if .Repository.IsArchived}}unarchive{{else}}archive{{end}}">
-				<input type="hidden" name="repo_id" value="{{.Repository.ID}}">
-				{{template "base/modal_actions_confirm" .}}
+				</div>
+				<form action="{{.Link}}" method="post">
+					{{.CsrfTokenHtml}}
+					<input type="hidden" name="action" value="{{if .Repository.IsArchived}}unarchive{{else}}archive{{end}}">
+					<input type="hidden" name="repo_id" value="{{.Repository.ID}}">
+					<div class="text right actions">
+						<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
+						<button class="ui red button">{{.locale.Tr "repo.settings.archive.button"}}</button>
+					</div>
 			</form>
+			</div>
 		</div>
 	{{end}}
 {{end}}
