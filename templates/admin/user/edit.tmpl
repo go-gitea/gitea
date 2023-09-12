@@ -4,7 +4,7 @@
 			{{.locale.Tr "admin.users.edit_account"}}
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form" action="{{.Link}}" method="post">
+			<form class="ui form" action="{{.BaseUrl}}/edit" method="post">
 				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_UserName}}error{{end}}">
