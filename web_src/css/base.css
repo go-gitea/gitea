@@ -2054,6 +2054,7 @@ table th[data-sortt-desc]:hover {
 table th[data-sortt-asc] .svg,
 table th[data-sortt-desc] .svg {
   margin-left: 0.25rem;
+  margin-top: 0.25rem;
 }
 
 .ui.dropdown .menu .item {
