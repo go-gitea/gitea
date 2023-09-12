@@ -56,7 +56,7 @@ jobs:
           SOURCE_DIR: dist/release
           DEST_DIR: gitea/${{ steps.clean_name.outputs.branch }}
   nightly-docker-rootful:
-    runs-on: actuated-4cpu-8gb
+    runs-on: actuated-4cpu-16gb
     steps:
       - uses: actions/checkout@v3
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
