@@ -30,17 +30,11 @@ func getRepoChanges(ctx context.Context, repo *repo_model.Repository, revision s
 		return nil, err
 	}
 
-	needGenesis := false
-	if len(status.CommitSha) == 0 {
-		needGenesis = true
-	}
-
+	needGenesis := len(status.CommitSha) == 0
 	if !needGenesis {
 		hasAncestorCmd := git.NewCommand(ctx, "merge-base").AddDynamicArguments(repo.CodeIndexerStatus.CommitSha, revision)
 		stdout, _, _ := hasAncestorCmd.RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
-		if stdout == "" {
-			needGenesis = true
-		}
+		needGenesis = len(stdout) == 0
 	}
 
 	if needGenesis {
