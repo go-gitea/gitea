@@ -245,12 +245,8 @@ func CodeSearch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     description: "The keyword is empty"
-	//     schema:
-	//       type: string
 	//   "501":
 	//     description: "The repo indexer is disabled for this instance"
-	//     schema:
-	//       type: string
 	repos, err := repo_model.FindUserCodeAccessibleOwnerRepoIDs(ctx, ctx.ContextUser.ID, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindUserCodeAccessibleOwnerRepoIDs", err)

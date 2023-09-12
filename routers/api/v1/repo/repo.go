@@ -1311,11 +1311,7 @@ func CodeSearch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     description: "The keyword is empty"
-	//     schema:
-	//       type: string
 	//   "501":
 	//     description: "The repo indexer is disabled for this instance"
-	//     schema:
-	//       type: string
 	utils.PerformCodeSearch(ctx, []int64{ctx.Repo.Repository.ID})
 }

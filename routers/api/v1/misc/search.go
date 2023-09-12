@@ -45,12 +45,8 @@ func CodeSearch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/UserHeatmapData"
 	//   "422":
 	//     description: "The keyword is empty"
-	//     schema:
-	//       type: string
 	//   "501":
 	//     description: "The repo indexer is disabled for this instance"
-	//     schema:
-	//       type: string
 	repos, err := repo_model.FindUserCodeAccessibleRepoIDs(ctx, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindUserCodeAccessibleRepoIDs", err)
