@@ -705,7 +705,10 @@ func buildAuthGroup() *auth.Group {
 	if setting.Service.EnableReverseProxyAuthAPI {
 		group.Add(&auth.ReverseProxy{})
 	}
-	specialAdd(group)
+
+	if setting.IsWindows && auth_model.IsSSPIEnabled() {
+		group.Add(&auth.SSPI{}) // it MUST be the last, see the comment of SSPI
+	}
 
 	return group
 }
