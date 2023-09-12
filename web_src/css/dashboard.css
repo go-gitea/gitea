@@ -92,6 +92,6 @@
 
 @media (max-width: 767.98px) {
   .dashboard .dashboard-navbar .ui.dropdown > .menu {
-    position: static;
+    position: absolute;
   }
 }
