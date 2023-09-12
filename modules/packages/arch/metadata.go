@@ -218,23 +218,12 @@ func rmEmptyStrings(s []string) []string {
 func CreatePacmanDb(entries map[string][]byte) ([]byte, error) {
 	var out bytes.Buffer
 
-	// Write entries to new buffer and return it.
-	err := writeToArchive(entries, &out)
-	if err != nil {
-		return nil, err
-	}
-
-	return out.Bytes(), nil
-}
-
-// Write pacman package entries to tarball.
-func writeToArchive(files map[string][]byte, buf io.Writer) error {
-	gw := gzip.NewWriter(buf)
+	gw := gzip.NewWriter(&out)
 	defer gw.Close()
 	tw := tar.NewWriter(gw)
 	defer tw.Close()
 
-	for name, content := range files {
+	for name, content := range entries {
 		hdr := &tar.Header{
 			Name: name,
 			Size: int64(len(content)),
@@ -243,13 +232,17 @@ func writeToArchive(files map[string][]byte, buf io.Writer) error {
 
 		err := tw.WriteHeader(hdr)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		_, err = io.Copy(tw, bytes.NewReader(content))
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+
+	tw.Close()
+	gw.Close()
+
+	return out.Bytes(), nil
 }
