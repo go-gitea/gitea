@@ -71,6 +71,11 @@ func convertMinioErr(err error) error {
 	return err
 }
 
+var getBucketVersioning = func(ctx context.Context, minioClient *minio.Client, bucket string) error {
+	_, err := minioClient.GetBucketVersioning(ctx, bucket)
+	return err
+}
+
 // NewMinioStorage returns a minio storage
 func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, error) {
 	config := cfg.MinioConfig
@@ -84,17 +89,39 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 		Creds:     credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, ""),
 		Secure:    config.UseSSL,
 		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.InsecureSkipVerify}},
+		Region:    config.Location,
 	})
 	if err != nil {
 		return nil, convertMinioErr(err)
 	}
 
-	if err := minioClient.MakeBucket(ctx, config.Bucket, minio.MakeBucketOptions{
-		Region: config.Location,
-	}); err != nil {
-		// Check to see if we already own this bucket (which happens if you run this twice)
-		exists, errBucketExists := minioClient.BucketExists(ctx, config.Bucket)
-		if !exists || errBucketExists != nil {
+	// The GetBucketVersioning is only used for checking whether the Object Storage parameters are generally good. It doesn't need to succeed.
+	// The assumption is that if the API returns the HTTP code 400, then the parameters could be incorrect.
+	// Otherwise even if the request itself fails (403, 404, etc), the code should still continue because the parameters seem "good" enough.
+	// Keep in mind that GetBucketVersioning requires "owner" to really succeed, so it can't be used to check the existence.
+	// Not using "BucketExists (HeadBucket)" because it doesn't include detailed failure reasons.
+	err = getBucketVersioning(ctx, minioClient, config.Bucket)
+	if err != nil {
+		errResp, ok := err.(minio.ErrorResponse)
+		if !ok {
+			return nil, err
+		}
+		if errResp.StatusCode == http.StatusBadRequest {
+			log.Error("S3 storage connection failure at %s:%s with base path %s and region: %s", config.Endpoint, config.Bucket, config.Location, errResp.Message)
+			return nil, err
+		}
+	}
+
+	// Check to see if we already own this bucket
+	exists, err := minioClient.BucketExists(ctx, config.Bucket)
+	if err != nil {
+		return nil, convertMinioErr(err)
+	}
+
+	if !exists {
+		if err := minioClient.MakeBucket(ctx, config.Bucket, minio.MakeBucketOptions{
+			Region: config.Location,
+		}); err != nil {
 			return nil, convertMinioErr(err)
 		}
 	}

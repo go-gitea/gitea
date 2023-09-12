@@ -69,13 +69,18 @@ class ComboMarkdownEditor {
     this.textarea.id = `_combo_markdown_editor_${String(elementIdCounter++)}`;
     this.textarea.addEventListener('input', (e) => this.options?.onContentChanged?.(this, e));
     this.applyEditorHeights(this.textarea, this.options.editorHeights);
-    this.textareaAutosize = autosize(this.textarea, {viewportMarginBottom: 130});
+
+    if (this.textarea.getAttribute('data-disable-autosize') !== 'true') {
+      this.textareaAutosize = autosize(this.textarea, {viewportMarginBottom: 130});
+    }
 
     this.textareaMarkdownToolbar = this.container.querySelector('markdown-toolbar');
     this.textareaMarkdownToolbar.setAttribute('for', this.textarea.id);
     for (const el of this.textareaMarkdownToolbar.querySelectorAll('.markdown-toolbar-button')) {
       // upstream bug: The role code is never executed in base MarkdownButtonElement https://github.com/github/markdown-toolbar-element/issues/70
       el.setAttribute('role', 'button');
+      // the editor usually is in a form, so the buttons should have "type=button", avoiding conflicting with the form's submit.
+      if (el.nodeName === 'BUTTON' && !el.getAttribute('type')) el.setAttribute('type', 'button');
     }
 
     const monospaceButton = this.container.querySelector('.markdown-switch-monospace');
@@ -129,6 +134,12 @@ class ComboMarkdownEditor {
     $panelEditor.attr('data-tab', `markdown-writer-${elementIdCounter}`);
     $panelPreviewer.attr('data-tab', `markdown-previewer-${elementIdCounter}`);
     elementIdCounter++;
+
+    $tabEditor[0].addEventListener('click', () => {
+      requestAnimationFrame(() => {
+        this.focus();
+      });
+    });
 
     $tabs.tab();
 
@@ -247,7 +258,7 @@ class ComboMarkdownEditor {
     } else {
       this.textarea.value = v;
     }
-    this.textareaAutosize.resizeToFit();
+    this.textareaAutosize?.resizeToFit();
   }
 
   focus() {

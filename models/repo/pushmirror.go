@@ -85,6 +85,12 @@ func UpdatePushMirror(ctx context.Context, m *PushMirror) error {
 	return err
 }
 
+// UpdatePushMirrorInterval updates the push-mirror
+func UpdatePushMirrorInterval(ctx context.Context, m *PushMirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("interval").Update(m)
+	return err
+}
+
 func DeletePushMirrors(ctx context.Context, opts PushMirrorOptions) error {
 	if opts.RepoID > 0 {
 		_, err := db.GetEngine(ctx).Where(opts.toConds()).Delete(&PushMirror{})
@@ -122,7 +128,7 @@ func GetPushMirrorsByRepoID(ctx context.Context, repoID int64, listOptions db.Li
 func GetPushMirrorsSyncedOnCommit(ctx context.Context, repoID int64) ([]*PushMirror, error) {
 	mirrors := make([]*PushMirror, 0, 10)
 	return mirrors, db.GetEngine(ctx).
-		Where("repo_id=? AND sync_on_commit=?", repoID, true).
+		Where("repo_id = ? AND sync_on_commit = ?", repoID, true).
 		Find(&mirrors)
 }
 

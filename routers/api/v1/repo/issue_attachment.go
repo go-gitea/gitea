@@ -307,7 +307,7 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 }
 
 func getIssueFromContext(ctx *context.APIContext) *issues_model.Issue {
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64("index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64("index"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetIssueByIndex", issues_model.IsErrIssueNotExist, err)
 		return nil
@@ -344,7 +344,7 @@ func getIssueAttachmentSafeRead(ctx *context.APIContext, issue *issues_model.Iss
 }
 
 func canUserWriteIssueAttachment(ctx *context.APIContext, issue *issues_model.Issue) bool {
-	canEditIssue := ctx.IsSigned && (ctx.Doer.ID == issue.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin()) && ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
+	canEditIssue := ctx.IsSigned && (ctx.Doer.ID == issue.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin() || ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull))
 	if !canEditIssue {
 		ctx.Error(http.StatusForbidden, "", "user should have permission to write issue")
 		return false

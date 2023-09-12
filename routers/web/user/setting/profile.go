@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -43,6 +44,9 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.profile")
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
+	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar,
+		setting.GetDefaultDisableGravatar(),
+	)
 
 	ctx.HTML(http.StatusOK, tplSettingsProfile)
 }
@@ -83,6 +87,10 @@ func ProfilePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UpdateProfileForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsProfile"] = true
+	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
+	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar,
+		setting.GetDefaultDisableGravatar(),
+	)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplSettingsProfile)
@@ -142,7 +150,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 		defer fr.Close()
 
 		if form.Avatar.Size > setting.Avatar.MaxFileSize {
-			return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
+			return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big", form.Avatar.Size/1024, setting.Avatar.MaxFileSize/1024))
 		}
 
 		data, err := io.ReadAll(fr)
@@ -190,7 +198,7 @@ func DeleteAvatar(ctx *context.Context) {
 		ctx.Flash.Error(err.Error())
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/settings")
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings")
 }
 
 // Organization render all the organization of the user

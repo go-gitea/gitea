@@ -37,7 +37,6 @@ var (
 
 	// Ensure the struct implements the interface.
 	_ Method = &SSPI{}
-	_ Named  = &SSPI{}
 )
 
 // SSPI implements the SingleSignOn interface and authenticates requests
@@ -89,9 +88,9 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 		}
 		store.GetData()["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 		store.GetData()["EnableSSPI"] = true
-		// in this case, the store is Gitea's web Context
+		// in this case, the Verify function is called in Gitea's web context
 		// FIXME: it doesn't look good to render the page here, why not redirect?
-		store.(*gitea_context.Context).HTML(http.StatusUnauthorized, tplSignIn)
+		gitea_context.GetWebContext(req).HTML(http.StatusUnauthorized, tplSignIn)
 		return nil, err
 	}
 	if outToken != "" {

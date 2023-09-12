@@ -58,13 +58,12 @@ SSH_TRUSTED_USER_CA_KEYS = ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCb4DC1dMFnJ6pXW
 
 [mailer]
 ENABLED = true
-MAILER_TYPE = dummy
+PROTOCOL = dummy
 FROM = mysql-{{TEST_TYPE}}-test@gitea.io
 
 [service]
 REGISTER_EMAIL_CONFIRM            = false
 REGISTER_MANUAL_CONFIRM           = false
-ENABLE_NOTIFY_MAIL                = false
 DISABLE_REGISTRATION              = false
 ENABLE_CAPTCHA                    = false
 REQUIRE_SIGNIN_VIEW               = false
@@ -84,9 +83,8 @@ PROVIDER_CONFIG = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/data/sessions
 [log]
 MODE                 = {{TEST_LOGGER}}
 ROOT_PATH            = {{REPO_TEST_DIR}}mysql-log
-ROUTER               = ,
-XORM                 = file
 ENABLE_SSH_LOG       = true
+logger.xorm.MODE     = file
 
 [log.test]
 LEVEL                = Info

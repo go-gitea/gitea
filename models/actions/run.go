@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -34,7 +35,8 @@ type ActionRun struct {
 	Index             int64                  `xorm:"index unique(repo_index)"` // a unique number for each run of a repository
 	TriggerUserID     int64                  `xorm:"index"`
 	TriggerUser       *user_model.User       `xorm:"-"`
-	Ref               string
+	ScheduleID        int64
+	Ref               string `xorm:"index"` // the commit/tag/… that caused the run
 	CommitSHA         string
 	IsForkPullRequest bool                         // If this is triggered by a PR from a forked repository or an untrusted user, we need to check if it is approved and limit permissions when running the workflow.
 	NeedApproval      bool                         // may need approval if it's a fork pull request
@@ -43,6 +45,7 @@ type ActionRun struct {
 	EventPayload      string                       `xorm:"LONGTEXT"`
 	TriggerEvent      string                       // the trigger event defined in the `on` configuration of the triggered workflow
 	Status            Status                       `xorm:"index"`
+	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
 	Started           timeutil.TimeStamp
 	Stopped           timeutil.TimeStamp
 	Created           timeutil.TimeStamp `xorm:"created"`
@@ -164,6 +167,73 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 	return err
 }
 
+// CancelRunningJobs cancels all running and waiting jobs associated with a specific workflow.
+func CancelRunningJobs(ctx context.Context, repoID int64, ref, workflowID string) error {
+	// Find all runs in the specified repository, reference, and workflow with statuses 'Running' or 'Waiting'.
+	runs, total, err := FindRuns(ctx, FindRunOptions{
+		RepoID:     repoID,
+		Ref:        ref,
+		WorkflowID: workflowID,
+		Status:     []Status{StatusRunning, StatusWaiting},
+	})
+	if err != nil {
+		return err
+	}
+
+	// If there are no runs found, there's no need to proceed with cancellation, so return nil.
+	if total == 0 {
+		return nil
+	}
+
+	// Iterate over each found run and cancel its associated jobs.
+	for _, run := range runs {
+		// Find all jobs associated with the current run.
+		jobs, _, err := FindRunJobs(ctx, FindRunJobOptions{
+			RunID: run.ID,
+		})
+		if err != nil {
+			return err
+		}
+
+		// Iterate over each job and attempt to cancel it.
+		for _, job := range jobs {
+			// Skip jobs that are already in a terminal state (completed, cancelled, etc.).
+			status := job.Status
+			if status.IsDone() {
+				continue
+			}
+
+			// If the job has no associated task (probably an error), set its status to 'Cancelled' and stop it.
+			if job.TaskID == 0 {
+				job.Status = StatusCancelled
+				job.Stopped = timeutil.TimeStampNow()
+
+				// Update the job's status and stopped time in the database.
+				n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
+				if err != nil {
+					return err
+				}
+
+				// If the update affected 0 rows, it means the job has changed in the meantime, so we need to try again.
+				if n == 0 {
+					return fmt.Errorf("job has changed, try again")
+				}
+
+				// Continue with the next job.
+				continue
+			}
+
+			// If the job has an associated task, try to stop the task, effectively cancelling the job.
+			if err := StopTask(ctx, job.TaskID, StatusCancelled); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Return nil to indicate successful cancellation of all running and waiting jobs.
+	return nil
+}
+
 // InsertRun inserts a run
 func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWorkflow) error {
 	ctx, commiter, err := db.TxContext(ctx)
@@ -195,6 +265,7 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 	}
 
 	runJobs := make([]*ActionRunJob, 0, len(jobs))
+	var hasWaiting bool
 	for _, v := range jobs {
 		id, job := v.Job()
 		needs := job.Needs()
@@ -205,6 +276,8 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		status := StatusWaiting
 		if len(needs) > 0 || run.NeedApproval {
 			status = StatusBlocked
+		} else {
+			hasWaiting = true
 		}
 		job.Name, _ = util.SplitStringAtByteN(job.Name, 255)
 		runJobs = append(runJobs, &ActionRunJob{
@@ -223,6 +296,13 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 	}
 	if err := db.Insert(ctx, runJobs); err != nil {
 		return err
+	}
+
+	// if there is a job in the waiting status, increase tasks version.
+	if hasWaiting {
+		if err := IncreaseTaskVersion(ctx, run.OwnerID, run.RepoID); err != nil {
+			return err
+		}
 	}
 
 	return commiter.Commit()
@@ -255,14 +335,24 @@ func GetRunByIndex(ctx context.Context, repoID, index int64) (*ActionRun, error)
 	return run, nil
 }
 
+// UpdateRun updates a run.
+// It requires the inputted run has Version set.
+// It will return error if the version is not matched (it means the run has been changed after loaded).
 func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 	sess := db.GetEngine(ctx).ID(run.ID)
 	if len(cols) > 0 {
 		sess.Cols(cols...)
 	}
-	_, err := sess.Update(run)
+	affected, err := sess.Update(run)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return fmt.Errorf("run has changed")
+		// It's impossible that the run is not found, since Gitea never deletes runs.
+	}
 
-	if run.Status != 0 || util.SliceContains(cols, "status") {
+	if run.Status != 0 || slices.Contains(cols, "status") {
 		if run.RepoID == 0 {
 			run, err = GetRunByID(ctx, run.ID)
 			if err != nil {
@@ -281,7 +371,7 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 		}
 	}
 
-	return err
+	return nil
 }
 
 type ActionRunIndex db.ResourceIndex

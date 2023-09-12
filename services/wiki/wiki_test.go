@@ -14,6 +14,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 
+	_ "code.gitea.io/gitea/models/actions"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -59,6 +61,7 @@ func TestWebPathToDisplayName(t *testing.T) {
 		{"name with / slash", "name-with %2F slash"},
 		{"name with % percent", "name-with %25 percent"},
 		{"2000-01-02 meeting", "2000-01-02+meeting.-.md"},
+		{"a b", "a%20b.md"},
 	} {
 		_, displayName := WebPathToUserTitle(test.WebPath)
 		assert.EqualValues(t, test.Expected, displayName)
@@ -73,7 +76,8 @@ func TestWebPathToGitPath(t *testing.T) {
 	for _, test := range []test{
 		{"wiki-name.md", "wiki%20name"},
 		{"wiki-name.md", "wiki+name"},
-		{"wiki%20name.md", "wiki%20name.md"},
+		{"wiki name.md", "wiki%20name.md"},
+		{"wiki%20name.md", "wiki%2520name.md"},
 		{"2000-01-02-meeting.md", "2000-01-02+meeting"},
 		{"2000-01-02 meeting.-.md", "2000-01-02%20meeting.-"},
 	} {
@@ -306,4 +310,16 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	assert.False(t, existence)
 	assert.NoError(t, err)
 	assert.EqualValues(t, "Home.md", newWikiPath)
+}
+
+func TestWebPathConversion(t *testing.T) {
+	assert.Equal(t, "path/wiki", WebPathToURLPath(WebPath("path/wiki")))
+	assert.Equal(t, "wiki", WebPathToURLPath(WebPath("wiki")))
+	assert.Equal(t, "", WebPathToURLPath(WebPath("")))
+}
+
+func TestWebPathFromRequest(t *testing.T) {
+	assert.Equal(t, WebPath("a%2Fb"), WebPathFromRequest("a/b"))
+	assert.Equal(t, WebPath("a"), WebPathFromRequest("a"))
+	assert.Equal(t, WebPath("b"), WebPathFromRequest("a/../b"))
 }

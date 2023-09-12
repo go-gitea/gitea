@@ -34,7 +34,7 @@
       - [Backport PRs](#backport-prs)
   - [Documentation](#documentation)
   - [API v1](#api-v1)
-    - [GitHub API compatability](#github-api-compatability)
+    - [GitHub API compatibility](#github-api-compatibility)
     - [Adding/Maintaining API routes](#addingmaintaining-api-routes)
     - [When to use what HTTP method](#when-to-use-what-http-method)
     - [Requirements for API routes](#requirements-for-api-routes)
@@ -60,7 +60,7 @@
 ## Introduction
 
 This document explains how to contribute changes to the Gitea project. \
-It assumes you have followed the [installation instructions](https://docs.gitea.io/en-us/). \
+It assumes you have followed the [installation instructions](https://docs.gitea.com/category/installation). \
 Sensitive security-related issues should be reported to [security@gitea.io](mailto:security@gitea.io).
 
 For configuring IDEs for Gitea development, see the [contributed IDE configurations](contrib/ide/).
@@ -339,7 +339,7 @@ If you add a new feature or change an existing aspect of Gitea, the documentatio
 
 The API is documented by [swagger](http://try.gitea.io/api/swagger) and is based on [the GitHub API](https://docs.github.com/en/rest).
 
-### GitHub API compatability
+### GitHub API compatibility
 
 Gitea's API should use the same endpoints and fields as the GitHub API as far as possible, unless there are good reasons to deviate. \
 If Gitea provides functionality that GitHub does not, a new endpoint can be created. \
@@ -473,14 +473,14 @@ https://help.github.com/articles/signing-commits-with-gpg/
 ## Technical Oversight Committee (TOC)
 
 At the start of 2023, the `Owners` team was dissolved. Instead, the governance charter proposed a technical oversight committee (TOC) which expands the ownership team of the Gitea project from three elected positions to six positions. Three positions would be elected as it has been over the past years, and the other three would consist of appointed members from the Gitea company.
-https://blog.gitea.io/2023/02/gitea-quarterly-report-23q1/
+https://blog.gitea.com/quarterly-23q1/
 
 When the new community members have been elected, the old members will give up ownership to the newly elected members. For security reasons, TOC members or any account with write access (like a bot) must use 2FA.
 https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
 
 ### Current TOC members
 
-- 2023-01-01 ~ 2023-12-31 - https://blog.gitea.io/2023/02/gitea-quarterly-report-23q1/
+- 2023-01-01 ~ 2023-12-31 - https://blog.gitea.com/quarterly-23q1/
   - Company
     - [Jason Song](https://gitea.com/wolfogre) <i@wolfogre.com>
     - [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>

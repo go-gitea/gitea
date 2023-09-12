@@ -316,15 +316,13 @@ func (pr *PullRequest) LoadRequestedReviewers(ctx context.Context) error {
 		return err
 	}
 
-	if len(reviews) > 0 {
-		err = LoadReviewers(ctx, reviews)
-		if err != nil {
-			return err
-		}
-		for _, review := range reviews {
-			pr.RequestedReviewers = append(pr.RequestedReviewers, review.Reviewer)
-		}
+	if err = reviews.LoadReviewers(ctx); err != nil {
+		return err
 	}
+	for _, review := range reviews {
+		pr.RequestedReviewers = append(pr.RequestedReviewers, review.Reviewer)
+	}
+
 	return nil
 }
 
@@ -535,13 +533,12 @@ func (pr *PullRequest) SetMerged(ctx context.Context) (bool, error) {
 }
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(outerCtx context.Context, repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
-	ctx, committer, err := db.TxContext(outerCtx)
+func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
-	ctx.WithContext(outerCtx)
 
 	idx, err := db.GetNextResourceIndex(ctx, "issue_index", repo.ID)
 	if err != nil {
@@ -950,14 +947,14 @@ func PullRequestCodeOwnersReview(ctx context.Context, pull *Issue, pr *PullReque
 
 	for _, u := range uniqUsers {
 		if u.ID != pull.Poster.ID {
-			if _, err := AddReviewRequest(pull, u, pull.Poster); err != nil {
+			if _, err := AddReviewRequest(ctx, pull, u, pull.Poster); err != nil {
 				log.Warn("Failed add assignee user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
 				return err
 			}
 		}
 	}
 	for _, t := range uniqTeams {
-		if _, err := AddTeamReviewRequest(pull, t, pull.Poster); err != nil {
+		if _, err := AddTeamReviewRequest(ctx, pull, t, pull.Poster); err != nil {
 			log.Warn("Failed add assignee team: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
 			return err
 		}
@@ -1107,4 +1104,24 @@ func TokenizeCodeOwnersLine(line string) []string {
 	}
 
 	return tokens
+}
+
+// InsertPullRequests inserted pull requests
+func InsertPullRequests(ctx context.Context, prs ...*PullRequest) error {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
+	for _, pr := range prs {
+		if err := insertIssue(ctx, pr.Issue); err != nil {
+			return err
+		}
+		pr.IssueID = pr.Issue.ID
+		if _, err := sess.NoAutoTime().Insert(pr); err != nil {
+			return err
+		}
+	}
+	return committer.Commit()
 }

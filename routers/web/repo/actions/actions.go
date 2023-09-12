@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -106,6 +107,12 @@ func List(ctx *context.Context) {
 			for _, j := range wf.Jobs {
 				runsOnList := j.RunsOn()
 				for _, ro := range runsOnList {
+					if strings.Contains(ro, "${{") {
+						// Skip if it contains expressions.
+						// The expressions could be very complex and could not be evaluated here,
+						// so just skip it, it's OK since it's just a tooltip message.
+						continue
+					}
 					if !allRunnerLabels.Contains(ro) {
 						workflow.ErrMsg = ctx.Locale.Tr("actions.runs.no_matching_runner_helper", ro)
 						break
@@ -130,6 +137,15 @@ func List(ctx *context.Context) {
 	actorID := ctx.FormInt64("actor")
 	status := ctx.FormInt("status")
 	ctx.Data["CurWorkflow"] = workflow
+
+	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
+	ctx.Data["ActionsConfig"] = actionsConfig
+
+	if len(workflow) > 0 && ctx.Repo.IsAdmin() {
+		ctx.Data["AllowDisableOrEnableWorkflow"] = true
+		ctx.Data["CurWorkflowDisabled"] = actionsConfig.IsWorkflowDisabled(workflow)
+	}
+
 	// if status or actor query param is not given to frontend href, (href="/<repoLink>/actions")
 	// they will be 0 by default, which indicates get all status or actors
 	ctx.Data["CurActor"] = actorID
@@ -143,10 +159,14 @@ func List(ctx *context.Context) {
 			Page:     page,
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
-		RepoID:           ctx.Repo.Repository.ID,
-		WorkflowFileName: workflow,
-		TriggerUserID:    actorID,
-		Status:           actions_model.Status(status),
+		RepoID:        ctx.Repo.Repository.ID,
+		WorkflowID:    workflow,
+		TriggerUserID: actorID,
+	}
+
+	// if status is not StatusUnknown, it means user has selected a status filter
+	if actions_model.Status(status) != actions_model.StatusUnknown {
+		opts.Status = []actions_model.Status{actions_model.Status(status)}
 	}
 
 	runs, total, err := actions_model.FindRuns(ctx, opts)
@@ -171,7 +191,7 @@ func List(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	ctx.Data["Actors"] = repo.MakeSelfOnTop(ctx, actors)
+	ctx.Data["Actors"] = repo.MakeSelfOnTop(ctx.Doer, actors)
 
 	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx)
 

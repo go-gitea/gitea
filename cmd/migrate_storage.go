@@ -20,70 +20,73 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // CmdMigrateStorage represents the available migrate storage sub-command.
-var CmdMigrateStorage = cli.Command{
+var CmdMigrateStorage = &cli.Command{
 	Name:        "migrate-storage",
 	Usage:       "Migrate the storage",
 	Description: "Copies stored files from storage configured in app.ini to parameter-configured storage",
 	Action:      runMigrateStorage,
 	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "type, t",
-			Value: "",
-			Usage: "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages', 'actions-log'",
+		&cli.StringFlag{
+			Name:    "type",
+			Aliases: []string{"t"},
+			Value:   "",
+			Usage:   "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages', 'actions-log'",
 		},
-		cli.StringFlag{
-			Name:  "storage, s",
-			Value: "",
-			Usage: "New storage type: local (default) or minio",
+		&cli.StringFlag{
+			Name:    "storage",
+			Aliases: []string{"s"},
+			Value:   "",
+			Usage:   "New storage type: local (default) or minio",
 		},
-		cli.StringFlag{
-			Name:  "path, p",
-			Value: "",
-			Usage: "New storage placement if store is local (leave blank for default)",
+		&cli.StringFlag{
+			Name:    "path",
+			Aliases: []string{"p"},
+			Value:   "",
+			Usage:   "New storage placement if store is local (leave blank for default)",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "minio-endpoint",
 			Value: "",
 			Usage: "Minio storage endpoint",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "minio-access-key-id",
 			Value: "",
 			Usage: "Minio storage accessKeyID",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "minio-secret-access-key",
 			Value: "",
 			Usage: "Minio storage secretAccessKey",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "minio-bucket",
 			Value: "",
 			Usage: "Minio storage bucket",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "minio-location",
 			Value: "",
 			Usage: "Minio storage location to create bucket",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "minio-base-path",
 			Value: "",
 			Usage: "Minio storage base path on the bucket",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "minio-use-ssl",
 			Usage: "Enable SSL for minio",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "minio-insecure-skip-verify",
 			Usage: "Skip SSL verification",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "minio-checksum-algorithm",
 			Value: "",
 			Usage: "Minio checksum algorithm (default/md5)",
@@ -182,7 +185,7 @@ func runMigrateStorage(ctx *cli.Context) error {
 	case string(setting.LocalStorageType):
 		p := ctx.String("path")
 		if p == "" {
-			log.Fatal("Path must be given when storage is loal")
+			log.Fatal("Path must be given when storage is local")
 			return nil
 		}
 		dstStorage, err = storage.NewLocalStorage(

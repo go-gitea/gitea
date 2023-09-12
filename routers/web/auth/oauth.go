@@ -37,7 +37,7 @@ import (
 	user_service "code.gitea.io/gitea/services/user"
 
 	"gitea.com/go-chi/binding"
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	go_oauth2 "golang.org/x/oauth2"
@@ -342,17 +342,15 @@ func IntrospectOAuth(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.IntrospectTokenForm)
 	token, err := oauth2.ParseToken(form.Token, oauth2.DefaultSigningKey)
 	if err == nil {
-		if token.Valid() == nil {
-			grant, err := auth.GetOAuth2GrantByID(ctx, token.GrantID)
-			if err == nil && grant != nil {
-				app, err := auth.GetOAuth2ApplicationByID(ctx, grant.ApplicationID)
-				if err == nil && app != nil {
-					response.Active = true
-					response.Scope = grant.Scope
-					response.Issuer = setting.AppURL
-					response.Audience = []string{app.ClientID}
-					response.Subject = fmt.Sprint(grant.UserID)
-				}
+		grant, err := auth.GetOAuth2GrantByID(ctx, token.GrantID)
+		if err == nil && grant != nil {
+			app, err := auth.GetOAuth2ApplicationByID(ctx, grant.ApplicationID)
+			if err == nil && app != nil {
+				response.Active = true
+				response.Scope = grant.Scope
+				response.Issuer = setting.AppURL
+				response.Audience = []string{app.ClientID}
+				response.Subject = fmt.Sprint(grant.UserID)
 			}
 		}
 	}
@@ -580,7 +578,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 
 // OIDCWellKnown generates JSON so OIDC clients know Gitea's capabilities
 func OIDCWellKnown(ctx *context.Context) {
-	t, err := ctx.Render.TemplateLookup("user/auth/oidc_wellknown")
+	t, err := ctx.Render.TemplateLookup("user/auth/oidc_wellknown", nil)
 	if err != nil {
 		ctx.ServerError("unable to find template", err)
 		return

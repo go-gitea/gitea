@@ -17,9 +17,7 @@
 						</div>
 					{{end}}
 					{{template "user/heatmap" .}}
-					<div class="feeds">
-						{{template "user/dashboard/feeds" .}}
-					</div>
+					{{template "user/dashboard/feeds" .}}
 				{{else if eq .TabName "stars"}}
 					<div class="stars">
 						{{template "explore/repo_search" .}}

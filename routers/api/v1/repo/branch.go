@@ -644,7 +644,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	}
 
 	if isBranchExist {
-		if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, ruleName); err != nil {
+		if err = pull_service.CheckPRsForBaseBranch(ctx, ctx.Repo.Repository, ruleName); err != nil {
 			ctx.Error(http.StatusInternalServerError, "CheckPRsForBaseBranch", err)
 			return
 		}
@@ -669,7 +669,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 			}
 
 			for _, branchName := range matchedBranches {
-				if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, branchName); err != nil {
+				if err = pull_service.CheckPRsForBaseBranch(ctx, ctx.Repo.Repository, branchName); err != nil {
 					ctx.Error(http.StatusInternalServerError, "CheckPRsForBaseBranch", err)
 					return
 				}
@@ -768,7 +768,8 @@ func EditBranchProtection(ctx *context.APIContext) {
 	if form.EnableStatusCheck != nil {
 		protectBranch.EnableStatusCheck = *form.EnableStatusCheck
 	}
-	if protectBranch.EnableStatusCheck {
+
+	if form.StatusCheckContexts != nil {
 		protectBranch.StatusCheckContexts = form.StatusCheckContexts
 	}
 
@@ -914,7 +915,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	}
 
 	if isBranchExist {
-		if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, bpName); err != nil {
+		if err = pull_service.CheckPRsForBaseBranch(ctx, ctx.Repo.Repository, bpName); err != nil {
 			ctx.Error(http.StatusInternalServerError, "CheckPrsForBaseBranch", err)
 			return
 		}
@@ -940,7 +941,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 			}
 
 			for _, branchName := range matchedBranches {
-				if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, branchName); err != nil {
+				if err = pull_service.CheckPRsForBaseBranch(ctx, ctx.Repo.Repository, branchName); err != nil {
 					ctx.Error(http.StatusInternalServerError, "CheckPrsForBaseBranch", err)
 					return
 				}

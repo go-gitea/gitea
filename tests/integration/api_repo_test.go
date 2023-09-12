@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -18,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -39,6 +39,17 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 		assert.EqualValues(t, user.ID, repo.Owner.ID)
 		assert.False(t, repo.Private)
 	}
+}
+
+func TestAPIUserReposWithWrongToken(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	wrongToken := fmt.Sprintf("Bearer %s", "wrong_token")
+	req := NewRequestf(t, "GET", "/api/v1/users/%s/repos", user.Name)
+	req = addTokenAuthHeader(req, wrongToken)
+	resp := MakeRequest(t, req, http.StatusUnauthorized)
+
+	assert.Contains(t, resp.Body.String(), "user does not exist")
 }
 
 func TestAPISearchRepo(t *testing.T) {
@@ -82,9 +93,9 @@ func TestAPISearchRepo(t *testing.T) {
 	}{
 		{
 			name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50&private=false", expectedResults: expectedResults{
-				nil:   {count: 32},
-				user:  {count: 32},
-				user2: {count: 32},
+				nil:   {count: 33},
+				user:  {count: 33},
+				user2: {count: 33},
 			},
 		},
 		{
@@ -530,7 +541,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 
 	// cleanup
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-	_ = models.DeleteRepository(user, repo.OwnerID, repo.ID)
+	_ = repo_service.DeleteRepositoryDirectly(db.DefaultContext, user, repo.OwnerID, repo.ID)
 }
 
 func transfer(t *testing.T) *repo_model.Repository {

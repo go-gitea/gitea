@@ -185,7 +185,7 @@ func DeleteByBean(ctx context.Context, bean any) (int64, error) {
 
 // DeleteByID deletes the given bean with the given ID
 func DeleteByID(ctx context.Context, id int64, bean any) (int64, error) {
-	return GetEngine(ctx).ID(id).NoAutoTime().Delete(bean)
+	return GetEngine(ctx).ID(id).NoAutoCondition().NoAutoTime().Delete(bean)
 }
 
 // FindIDs finds the IDs for the given table name satisfying the given condition
