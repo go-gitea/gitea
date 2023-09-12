@@ -144,7 +144,7 @@
 
 .markup ul,
 .markup ol {
-  padding-left: 0;
+  padding-left: 2em;
 }
 
 .markup ul.no-list,
@@ -160,6 +160,7 @@
   min-height: 1.5rem; /* // to render a checkbox list without content `- [ ]`, we need this min-height to make sure the <li> can be visible */
   display: flex;
   align-items: center;
+  margin-left: -2em;
 }
 
 .markup .task-list-item input[type="checkbox"] {
