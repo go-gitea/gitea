@@ -388,9 +388,9 @@ export function initGlobalButtons() {
     e.preventDefault();
   });
 
-  $('.show-panel.button').on('click', function (e) {
-    // a '.show-panel.button' can show a panel, by `data-panel="selector"`
-    // if the button is a "toggle" button, it toggles the panel
+  $('.show-panel').on('click', function (e) {
+    // a '.show-panel' element can show a panel, by `data-panel="selector"`
+    // if it has "toggle" class, it toggles the panel
     e.preventDefault();
     const sel = $(this).attr('data-panel');
     if (this.classList.contains('toggle')) {
@@ -400,8 +400,8 @@ export function initGlobalButtons() {
     }
   });
 
-  $('.hide-panel.button').on('click', function (e) {
-    // a `.hide-panel.button` can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
+  $('.hide-panel').on('click', function (e) {
+    // a `.hide-panel` element can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
     e.preventDefault();
     let sel = $(this).attr('data-panel');
     if (sel) {
