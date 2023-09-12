@@ -39,7 +39,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	srcRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	mirrorRepo, err := repo_service.CreateRepositoryDirectly(user, user, repo_service.CreateRepoOptions{
+	mirrorRepo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, user, repo_service.CreateRepoOptions{
 		Name: "test-push-mirror",
 	})
 	assert.NoError(t, err)

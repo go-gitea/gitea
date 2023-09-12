@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -659,7 +660,7 @@ func GetBranchesList(ctx *context.Context) {
 	}
 	resp := &branchTagSearchResponse{}
 	// always put default branch on the top if it exists
-	if util.SliceContains(branches, ctx.Repo.Repository.DefaultBranch) {
+	if slices.Contains(branches, ctx.Repo.Repository.DefaultBranch) {
 		branches = util.SliceRemoveAll(branches, ctx.Repo.Repository.DefaultBranch)
 		branches = append([]string{ctx.Repo.Repository.DefaultBranch}, branches...)
 	}
@@ -693,7 +694,7 @@ func PrepareBranchList(ctx *context.Context) {
 		return
 	}
 	// always put default branch on the top if it exists
-	if util.SliceContains(brs, ctx.Repo.Repository.DefaultBranch) {
+	if slices.Contains(brs, ctx.Repo.Repository.DefaultBranch) {
 		brs = util.SliceRemoveAll(brs, ctx.Repo.Repository.DefaultBranch)
 		brs = append([]string{ctx.Repo.Repository.DefaultBranch}, brs...)
 	}
