@@ -485,12 +485,12 @@ func removeTeamMember(ctx context.Context, team *organization.Team, userID int64
 		}
 
 		// Remove watches from now unaccessible
-		if err := reconsiderWatches(ctx, repo, userID); err != nil {
+		if err := ReconsiderWatches(ctx, repo, userID); err != nil {
 			return err
 		}
 
 		// Remove issue assignments from now unaccessible
-		if err := reconsiderRepoIssuesAssignee(ctx, repo, userID); err != nil {
+		if err := ReconsiderRepoIssuesAssignee(ctx, repo, userID); err != nil {
 			return err
 		}
 	}
@@ -522,4 +522,34 @@ func RemoveTeamMember(team *organization.Team, userID int64) error {
 		return err
 	}
 	return committer.Commit()
+}
+
+func ReconsiderRepoIssuesAssignee(ctx context.Context, repo *repo_model.Repository, uid int64) error {
+	user, err := user_model.GetUserByID(ctx, uid)
+	if err != nil {
+		return err
+	}
+
+	if canAssigned, err := access_model.CanBeAssigned(ctx, user, repo, true); err != nil || canAssigned {
+		return err
+	}
+
+	if _, err := db.GetEngine(ctx).Where(builder.Eq{"assignee_id": uid}).
+		In("issue_id", builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repo.ID})).
+		Delete(&issues_model.IssueAssignees{}); err != nil {
+		return fmt.Errorf("Could not delete assignee[%d] %w", uid, err)
+	}
+	return nil
+}
+
+func ReconsiderWatches(ctx context.Context, repo *repo_model.Repository, uid int64) error {
+	if has, err := access_model.HasAccess(ctx, uid, repo); err != nil || has {
+		return err
+	}
+	if err := repo_model.WatchRepo(ctx, uid, repo.ID, false); err != nil {
+		return err
+	}
+
+	// Remove all IssueWatches a user has subscribed to in the repository
+	return issues_model.RemoveIssueWatchersByRepoID(ctx, uid, repo.ID)
 }

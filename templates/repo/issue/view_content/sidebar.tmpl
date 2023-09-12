@@ -655,11 +655,11 @@
 				</form>
 			</div>
 		</div>
-		<button class="gt-mt-2 fluid ui show-modal button" data-modal="#delete">
+		<button class="gt-mt-2 fluid ui show-modal button" data-modal="#sidebar-delete-issue">
 			{{svg "octicon-trash"}}
 			{{.locale.Tr "repo.issues.delete"}}
 		</button>
-		<div class="ui g-modal-confirm modal" id="delete">
+		<div class="ui g-modal-confirm modal" id="sidebar-delete-issue">
 			<div class="header">
 				{{if .Issue.IsPull}}
 					{{.locale.Tr "repo.pulls.delete.title"}}
