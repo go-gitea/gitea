@@ -742,7 +742,7 @@ Gitea 创建以下非唯一队列：
 
 - `PROVIDER`: **memory**：会话存储引擎 \[memory, file, redis, redis-cluster, db, mysql, couchbase, memcache, postgres\]。设置为 `db` 将会重用 `[database]` 的配置信息。
 - `PROVIDER_CONFIG`: **data/sessions**：对于文件，为根路径；对于 db，为空（将使用数据库配置）；对于其他引擎，为连接字符串。相对路径将根据 _`AppWorkPath`_ 绝对化。
-- `COOKIE_SECURE`: **false**：启用此选项以强制在所有会话访问中使用 HTTPS。
+- `COOKIE_SECURE`: **_empty_**：`true` 或 `false`。启用此选项以强制在所有会话访问中使用 HTTPS。如果没有设置，当 ROOT_URL 是 https 链接的时候默认设置为 true。
 - `COOKIE_NAME`: **i\_like\_gitea**：用于会话 ID 的 cookie 名称。
 - `GC_INTERVAL_TIME`: **86400**：GC 间隔时间，以秒为单位。
 - `SESSION_LIFE_TIME`: **86400**：会话生命周期，以秒为单位，默认为 86400（1 天）。

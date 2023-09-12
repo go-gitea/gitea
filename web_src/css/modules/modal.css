@@ -36,6 +36,7 @@ However, Gitea uses the following layouts:
 * <div .modal><div .content><div .actions/></div></div>
 * <div .modal><form><div .content/><div .actions/></form></div>
 * <div .modal><div .content><form><div .actions/></form></div></div>
+* <div .modal><div .content></div><form><div .actions/></form></div>
 * ...
 These inconsistent layouts should be refactored to simple ones.
 */
@@ -47,7 +48,8 @@ These inconsistent layouts should be refactored to simple ones.
 }
 
 .ui.modal > .actions,
-.ui.modal .content + .actions {
+.ui.modal .content + .actions,
+.ui.modal .content + form > .actions {
   background: var(--color-secondary-bg);
   border-color: var(--color-secondary);
   padding: 1rem;
