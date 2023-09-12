@@ -27,6 +27,16 @@ func CodeSearch(ctx *context.Context) {
 	shared_user.PrepareContextForProfileBigAvatar(ctx)
 	shared_user.RenderUserHeader(ctx)
 
+	var (
+		repoIDs []int64
+		err     error
+	)
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["Title"] = ctx.Tr("explore.code")
@@ -46,11 +56,6 @@ func CodeSearch(ctx *context.Context) {
 		ctx.HTML(http.StatusOK, tplUserCode)
 		return
 	}
-
-	var (
-		repoIDs []int64
-		err     error
-	)
 
 	page := ctx.FormInt("page")
 	if page <= 0 {
@@ -105,7 +110,6 @@ func CodeSearch(ctx *context.Context) {
 	}
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
-
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "l", "Language")
