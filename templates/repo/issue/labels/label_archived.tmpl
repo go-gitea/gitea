@@ -1,5 +1,5 @@
 {{if .IsArchived}}
-	<span class="archived-label" data-tooltip-content="{{$.locale.Tr "repo.issues.label_archive_tooltip"}}">
-		{{$.locale.Tr "archived"}}
+	<span class="archived-label" data-tooltip-content="{{ctx.locale.Tr "repo.issues.label_archive_tooltip"}}">
+		{{ctx.Locale.Tr "archived"}}
 	</span>
 {{end}}
