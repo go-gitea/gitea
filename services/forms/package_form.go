@@ -30,12 +30,11 @@ func (f *PackageCleanupRuleForm) Validate(req *http.Request, errs binding.Errors
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-type PackageUploadGenericForm struct {
-	PackageRepo     string
-	PackageName     string
-	PackageVersion  string
-	PackageFilename string
-	PackageFile     *multipart.FileHeader
+type PackageUploadAlpineForm struct {
+	PackageRepo       string
+	PackageBranch     string
+	PackageRepository string
+	PackageFile       *multipart.FileHeader
 }
 
 type PackageUploadDebianForm struct {
@@ -43,6 +42,14 @@ type PackageUploadDebianForm struct {
 	PackageDistribution string
 	PackageComponent    string
 	PackageFile         *multipart.FileHeader
+}
+
+type PackageUploadGenericForm struct {
+	PackageRepo     string
+	PackageName     string
+	PackageVersion  string
+	PackageFilename string
+	PackageFile     *multipart.FileHeader
 }
 
 type PackageUploadRpmForm struct {

@@ -831,8 +831,9 @@ func registerRoutes(m *web.Route) {
 				})
 				m.Group("/upload", func() {
 					m.Get("/{upload_type}", user.UploadPackage)
-					m.Post("/generic/upload", web.Bind(forms.PackageUploadGenericForm{}), packages.UploadGenericPackagePost)
+					m.Post("/alpine/upload", web.Bind(forms.PackageUploadAlpineForm{}), packages.UploadAlpinePackagePost)
 					m.Post("/debian/upload", web.Bind(forms.PackageUploadDebianForm{}), packages.UploadDebianPackagePost)
+					m.Post("/generic/upload", web.Bind(forms.PackageUploadGenericForm{}), packages.UploadGenericPackagePost)
 					m.Post("/rpm/upload", web.Bind(forms.PackageUploadRpmForm{}), packages.UploadRpmPackagePost)
 				}, reqPackageAccess(perm.AccessModeWrite))
 			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))

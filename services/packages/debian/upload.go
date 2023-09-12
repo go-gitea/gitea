@@ -17,6 +17,7 @@ import (
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
+// UploadDebianPackage adds a Debian Package to the registry
 func UploadDebianPackage(ctx *context.Context, upload io.Reader, distribution, component string) (int, *packages_model.PackageVersion, error) {
 	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
@@ -79,5 +80,5 @@ func UploadDebianPackage(ctx *context.Context, upload io.Reader, distribution, c
 		return http.StatusInternalServerError, nil, err
 	}
 
-	return http.StatusOK, pv, nil
+	return http.StatusCreated, pv, nil
 }

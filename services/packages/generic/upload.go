@@ -13,6 +13,7 @@ import (
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
+// UploadGenericPackage adds a Generic Package to the registry
 func UploadGenericPackage(ctx *context.Context, upload io.Reader, name, version, filename string) (int, *packages_model.PackageVersion, error) {
 	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
@@ -51,5 +52,5 @@ func UploadGenericPackage(ctx *context.Context, upload io.Reader, name, version,
 		}
 	}
 
-	return http.StatusOK, pv, nil
+	return http.StatusCreated, pv, nil
 }

@@ -1,7 +1,7 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package rpm
+package alpine
 
 import (
 	"errors"
@@ -13,22 +13,22 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	packages_module "code.gitea.io/gitea/modules/packages"
-	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
+	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
 	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
-// UploadRpmPackage adds a RPM Package to the registry
-func UploadRpmPackage(ctx *context.Context, upload io.Reader) (int, *packages_model.PackageVersion, error) {
+// UploadAlpinePackage adds a Alpine Package to the registry
+func UploadAlpinePackage(ctx *context.Context, upload io.Reader, branch, repository string) (int, *packages_model.PackageVersion, error) {
 	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
 		return http.StatusInternalServerError, nil, err
 	}
 	defer buf.Close()
 
-	pck, err := rpm_module.ParsePackage(buf)
+	pck, err := alpine_module.ParsePackage(buf)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
+		if errors.Is(err, util.ErrInvalidArgument) || err == io.EOF {
 			return http.StatusBadRequest, nil, err
 		}
 
@@ -48,7 +48,7 @@ func UploadRpmPackage(ctx *context.Context, upload io.Reader) (int, *packages_mo
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeRpm,
+				PackageType: packages_model.TypeAlpine,
 				Name:        pck.Name,
 				Version:     pck.Version,
 			},
@@ -57,20 +57,24 @@ func UploadRpmPackage(ctx *context.Context, upload io.Reader) (int, *packages_mo
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: fmt.Sprintf("%s-%s.%s.rpm", pck.Name, pck.Version, pck.FileMetadata.Architecture),
+				Filename:     fmt.Sprintf("%s-%s.apk", pck.Name, pck.Version),
+				CompositeKey: fmt.Sprintf("%s|%s|%s", branch, repository, pck.FileMetadata.Architecture),
 			},
 			Creator: ctx.Doer,
 			Data:    buf,
 			IsLead:  true,
 			Properties: map[string]string{
-				rpm_module.PropertyMetadata: string(fileMetadataRaw),
+				alpine_module.PropertyBranch:       branch,
+				alpine_module.PropertyRepository:   repository,
+				alpine_module.PropertyArchitecture: pck.FileMetadata.Architecture,
+				alpine_module.PropertyMetadata:     string(fileMetadataRaw),
 			},
 		},
 	)
 	if err != nil {
 		switch err {
 		case packages_model.ErrDuplicatePackageVersion, packages_model.ErrDuplicatePackageFile:
-			return http.StatusConflict, nil, err
+			return http.StatusBadRequest, nil, err
 		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
 			return http.StatusForbidden, nil, err
 		default:
@@ -78,7 +82,7 @@ func UploadRpmPackage(ctx *context.Context, upload io.Reader) (int, *packages_mo
 		}
 	}
 
-	if err := BuildRepositoryFiles(ctx, ctx.Package.Owner.ID); err != nil {
+	if err := BuildSpecificRepositoryFiles(ctx, ctx.Package.Owner.ID, branch, repository, pck.FileMetadata.Architecture); err != nil {
 		return http.StatusInternalServerError, nil, err
 	}
 

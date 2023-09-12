@@ -12,12 +12,14 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
+	alpine_service "code.gitea.io/gitea/services/packages/alpine"
 	debian_service "code.gitea.io/gitea/services/packages/debian"
 	generic_service "code.gitea.io/gitea/services/packages/generic"
 	rpm_service "code.gitea.io/gitea/services/packages/rpm"
 )
 
 var UploadTypeList = []packages_model.Type{
+	packages_model.TypeAlpine,
 	packages_model.TypeDebian,
 	packages_model.TypeGeneric,
 	packages_model.TypeRpm,
@@ -54,6 +56,66 @@ func addRepoToUploadedPackage(ctx *context.Context, packageType, repoName string
 	return true
 }
 
+func uploadPackageFinish(ctx *context.Context, packageType, packageRepo string, pv *packages_model.PackageVersion) {
+	if packageRepo != "" {
+		if !addRepoToUploadedPackage(ctx, "generic", packageRepo, pv.PackageID) {
+			return
+		}
+	}
+
+	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
+	if err != nil {
+		ctx.ServerError("GetPackageDescriptor", err)
+		return
+	}
+
+	ctx.Redirect(pd.FullWebLink())
+}
+
+func UploadAlpinePackagePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.PackageUploadAlpineForm)
+	upload, err := form.PackageFile.Open()
+	if err != nil {
+		ctx.ServerError("GetPackageFile", err)
+		return
+	}
+
+	statusCode, pv, err := alpine_service.UploadAlpinePackage(ctx, upload, form.PackageRepo, form.PackageBranch)
+	if err != nil {
+		if statusCode == http.StatusInternalServerError {
+			ctx.ServerError("UploadAlpinePackage", err)
+			return
+		}
+
+		servePackageUploadError(ctx, err, "alpine", form.PackageRepo)
+		return
+	}
+
+	uploadPackageFinish(ctx, "alpine", form.PackageRepo, pv)
+}
+
+func UploadDebianPackagePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.PackageUploadDebianForm)
+	upload, err := form.PackageFile.Open()
+	if err != nil {
+		ctx.ServerError("GetPackageFile", err)
+		return
+	}
+
+	statusCode, pv, err := debian_service.UploadDebianPackage(ctx, upload, form.PackageDistribution, form.PackageComponent)
+	if err != nil {
+		if statusCode == http.StatusInternalServerError {
+			ctx.ServerError("UploadDebianPackage", err)
+			return
+		}
+
+		servePackageUploadError(ctx, err, "debian", form.PackageRepo)
+		return
+	}
+
+	uploadPackageFinish(ctx, "debian", form.PackageRepo, pv)
+}
+
 func UploadGenericPackagePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.PackageUploadGenericForm)
 	upload, err := form.PackageFile.Open()
@@ -80,53 +142,7 @@ func UploadGenericPackagePost(ctx *context.Context) {
 		return
 	}
 
-	if form.PackageRepo != "" {
-		if !addRepoToUploadedPackage(ctx, "generic", form.PackageRepo, pv.PackageID) {
-			return
-		}
-	}
-
-	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
-	if err != nil {
-		ctx.ServerError("GetPackageDescriptor", err)
-		return
-	}
-
-	ctx.Redirect(pd.FullWebLink())
-}
-
-func UploadDebianPackagePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.PackageUploadDebianForm)
-	upload, err := form.PackageFile.Open()
-	if err != nil {
-		ctx.ServerError("GetPackageFile", err)
-		return
-	}
-
-	statusCode, pv, err := debian_service.UploadDebianPackage(ctx, upload, form.PackageDistribution, form.PackageComponent)
-	if err != nil {
-		if statusCode == http.StatusInternalServerError {
-			ctx.ServerError("UploadGenericPackage", err)
-			return
-		}
-
-		servePackageUploadError(ctx, err, "debian", form.PackageRepo)
-		return
-	}
-
-	if form.PackageRepo != "" {
-		if !addRepoToUploadedPackage(ctx, "debian", form.PackageRepo, pv.PackageID) {
-			return
-		}
-	}
-
-	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
-	if err != nil {
-		ctx.ServerError("GetPackageDescriptor", err)
-		return
-	}
-
-	ctx.Redirect(pd.FullWebLink())
+	uploadPackageFinish(ctx, "debian", form.PackageRepo, pv)
 }
 
 func UploadRpmPackagePost(ctx *context.Context) {
@@ -148,17 +164,5 @@ func UploadRpmPackagePost(ctx *context.Context) {
 		return
 	}
 
-	if form.PackageRepo != "" {
-		if !addRepoToUploadedPackage(ctx, "rpm", form.PackageRepo, pv.PackageID) {
-			return
-		}
-	}
-
-	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
-	if err != nil {
-		ctx.ServerError("GetPackageDescriptor", err)
-		return
-	}
-
-	ctx.Redirect(pd.FullWebLink())
+	uploadPackageFinish(ctx, "rpm", form.PackageRepo, pv)
 }
