@@ -58,7 +58,7 @@ func addRepoToUploadedPackage(ctx *context.Context, packageType, repoName string
 
 func uploadPackageFinish(ctx *context.Context, packageType, packageRepo string, pv *packages_model.PackageVersion) {
 	if packageRepo != "" {
-		if !addRepoToUploadedPackage(ctx, "generic", packageRepo, pv.PackageID) {
+		if !addRepoToUploadedPackage(ctx, packageType, packageRepo, pv.PackageID) {
 			return
 		}
 	}
