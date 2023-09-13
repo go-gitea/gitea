@@ -35,6 +35,8 @@ func ListTeams(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	if !ctx.Repo.Owner.IsOrganization() {
 		ctx.Error(http.StatusMethodNotAllowed, "noOrg", "repo is not owned by an organization")
@@ -140,6 +142,8 @@ func AddTeam(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "405":
 	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	changeRepoTeam(ctx, true)
 }
@@ -174,6 +178,8 @@ func DeleteTeam(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "405":
 	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	changeRepoTeam(ctx, false)
 }
