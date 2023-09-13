@@ -95,6 +95,11 @@
     width: 100%;
     margin: 0;
   }
+
+  #navbar .item-left {
+    justify-content: flex-start;
+  }
+
   #navbar.navbar-menu-open .navbar-left #navbar-logo {
     justify-content: flex-start;
     width: auto;
