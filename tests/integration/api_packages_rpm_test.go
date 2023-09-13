@@ -195,8 +195,8 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 
 				switch d.Type {
 				case "primary":
-					assert.EqualValues(t, 718, d.Size)
-					assert.EqualValues(t, 1729, d.OpenSize)
+					assert.EqualValues(t, 722, d.Size)
+					assert.EqualValues(t, 1759, d.OpenSize)
 					assert.Equal(t, "repodata/primary.xml.gz", d.Location.Href)
 				case "filelists":
 					assert.EqualValues(t, 257, d.Size)
@@ -305,7 +305,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 			assert.EqualValues(t, len(content), p.Size.Package)
 			assert.EqualValues(t, 13, p.Size.Installed)
 			assert.EqualValues(t, 272, p.Size.Archive)
-			assert.Equal(t, fmt.Sprintf("package/%s/%s/%s", packageName, packageVersion, packageArchitecture), p.Location.Href)
+			assert.Equal(t, fmt.Sprintf("package/%s/%s/%s/%s", packageName, packageVersion, packageArchitecture, fmt.Sprintf("%s-%s.%s.rpm", packageName, packageVersion, packageArchitecture)), p.Location.Href)
 			f := p.Format
 			assert.Equal(t, "MIT", f.License)
 			assert.Len(t, f.Provides.Entries, 2)
