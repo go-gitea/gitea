@@ -50,8 +50,6 @@ func UseSlugInsteadOfIDForBadges(x *xorm.Engine) error {
 	if err := base.DropTableColumns(sess, "user_badge", "badge_id"); err != nil {
 		return err
 	}
-	if err := base.RecreateTables(new(BadgeUnique))(sess.Engine()); err != nil {
-		return err
-	}
-	return sess.Commit()
+	sess.Commit()
+	return base.RecreateTables(new(BadgeUnique))(x)
 }
