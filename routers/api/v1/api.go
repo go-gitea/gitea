@@ -90,6 +90,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/auth"
 	context_service "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -709,6 +710,106 @@ func buildAuthGroup() *auth.Group {
 	return group
 }
 
+func apiAuth(authMethod auth.Method) func(*context.APIContext) {
+	return func(ctx *context.APIContext) {
+		ar, err := common.AuthShared(ctx.Base, nil, authMethod)
+		if err != nil {
+			ctx.Error(http.StatusUnauthorized, "APIAuth", err)
+			return
+		}
+		ctx.Doer = ar.Doer
+		ctx.IsSigned = ar.Doer != nil
+		ctx.IsBasicAuth = ar.IsBasicAuth
+	}
+}
+
+// verifyAuthWithOptions checks authentication according to options
+func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		// Check prohibit login users.
+		if ctx.IsSigned {
+			if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
+				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
+				ctx.JSON(http.StatusForbidden, map[string]string{
+					"message": "This account is not activated.",
+				})
+				return
+			}
+			if !ctx.Doer.IsActive || ctx.Doer.ProhibitLogin {
+				log.Info("Failed authentication attempt for %s from %s", ctx.Doer.Name, ctx.RemoteAddr())
+				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+				ctx.JSON(http.StatusForbidden, map[string]string{
+					"message": "This account is prohibited from signing in, please contact your site administrator.",
+				})
+				return
+			}
+
+			if ctx.Doer.MustChangePassword {
+				ctx.JSON(http.StatusForbidden, map[string]string{
+					"message": "You must change your password. Change it at: " + setting.AppURL + "/user/change_password",
+				})
+				return
+			}
+		}
+
+		// Redirect to dashboard if user tries to visit any non-login page.
+		if options.SignOutRequired && ctx.IsSigned && ctx.Req.URL.RequestURI() != "/" {
+			ctx.Redirect(setting.AppSubURL + "/")
+			return
+		}
+
+		if options.SignInRequired {
+			if !ctx.IsSigned {
+				// Restrict API calls with error message.
+				ctx.JSON(http.StatusForbidden, map[string]string{
+					"message": "Only signed in user is allowed to call APIs.",
+				})
+				return
+			} else if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
+				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
+				ctx.JSON(http.StatusForbidden, map[string]string{
+					"message": "This account is not activated.",
+				})
+				return
+			}
+			if ctx.IsSigned && ctx.IsBasicAuth {
+				if skip, ok := ctx.Data["SkipLocalTwoFA"]; ok && skip.(bool) {
+					return // Skip 2FA
+				}
+				twofa, err := auth_model.GetTwoFactorByUID(ctx.Doer.ID)
+				if err != nil {
+					if auth_model.IsErrTwoFactorNotEnrolled(err) {
+						return // No 2FA enrollment for this user
+					}
+					ctx.InternalServerError(err)
+					return
+				}
+				otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
+				ok, err := twofa.ValidateTOTP(otpHeader)
+				if err != nil {
+					ctx.InternalServerError(err)
+					return
+				}
+				if !ok {
+					ctx.JSON(http.StatusForbidden, map[string]string{
+						"message": "Only signed in user is allowed to call APIs.",
+					})
+					return
+				}
+			}
+		}
+
+		if options.AdminRequired {
+			if !ctx.Doer.IsAdmin {
+				ctx.JSON(http.StatusForbidden, map[string]string{
+					"message": "You have no permission to request for this.",
+				})
+				return
+			}
+		}
+	}
+}
+
 // Routes registers all v1 APIs routes to web application.
 func Routes() *web.Route {
 	m := web.NewRoute()
@@ -728,9 +829,9 @@ func Routes() *web.Route {
 	m.Use(context.APIContexter())
 
 	// Get user from session if logged in.
-	m.Use(auth.APIAuth(buildAuthGroup()))
+	m.Use(apiAuth(buildAuthGroup()))
 
-	m.Use(auth.VerifyAuthWithOptionsAPI(&auth.VerifyOptions{
+	m.Use(verifyAuthWithOptions(&common.VerifyOptions{
 		SignInRequired: setting.Service.RequireSignInView,
 	}))
 

@@ -5,8 +5,7 @@ import {createApp} from 'vue';
 import {toggleElem} from '../utils/dom.js';
 import {getCurrentLocale} from '../utils.js';
 import {renderAnsi} from '../render/ansi.js';
-
-const {csrfToken} = window.config;
+import {POST} from '../modules/fetch.js';
 
 const sfc = {
   name: 'RepoActionView',
@@ -145,11 +144,11 @@ const sfc = {
     },
     // cancel a run
     cancelRun() {
-      this.fetchPost(`${this.run.link}/cancel`);
+      POST(`${this.run.link}/cancel`);
     },
     // approve a run
     approveRun() {
-      this.fetchPost(`${this.run.link}/approve`);
+      POST(`${this.run.link}/approve`);
     },
 
     createLogLine(line, startTime, stepIndex) {
@@ -196,6 +195,11 @@ const sfc = {
       }
     },
 
+    async fetchArtifacts() {
+      const resp = await POST(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
+      return await resp.json();
+    },
+
     async fetchJob() {
       const logCursors = this.currentJobStepsStates.map((it, idx) => {
         // cursor is used to indicate the last position of the logs
@@ -203,10 +207,9 @@ const sfc = {
         // for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
         return {step: idx, cursor: it.cursor, expanded: it.expanded};
       });
-      const resp = await this.fetchPost(
-        `${this.actionsURL}/runs/${this.runIndex}/jobs/${this.jobIndex}`,
-        JSON.stringify({logCursors}),
-      );
+      const resp = await POST(`${this.actionsURL}/runs/${this.runIndex}/jobs/${this.jobIndex}`, {
+        data: {logCursors},
+      });
       return await resp.json();
     },
 
@@ -215,16 +218,21 @@ const sfc = {
       try {
         this.loading = true;
 
-        // refresh artifacts if upload-artifact step done
-        const resp = await this.fetchPost(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
-        const artifacts = await resp.json();
+        let job, artifacts;
+        try {
+          [job, artifacts] = await Promise.all([
+            this.fetchJob(),
+            this.fetchArtifacts(), // refresh artifacts if upload-artifact step done
+          ]);
+        } catch (err) {
+          if (!(err instanceof TypeError)) throw err; // avoid network error while unloading page
+        }
+
         this.artifacts = artifacts['artifacts'] || [];
 
-        const response = await this.fetchJob();
-
         // save the state to Vue data, then the UI will be updated
-        this.run = response.state.run;
-        this.currentJob = response.state.currentJob;
+        this.run = job.state.run;
+        this.currentJob = job.state.currentJob;
 
         // sync the currentJobStepsStates to store the job step states
         for (let i = 0; i < this.currentJob.steps.length; i++) {
@@ -234,7 +242,7 @@ const sfc = {
           }
         }
         // append logs to the UI
-        for (const logs of response.logs.stepsLog) {
+        for (const logs of job.logs.stepsLog) {
           // save the cursor, it will be passed to backend next time
           this.currentJobStepsStates[logs.step].cursor = logs.cursor;
           this.appendLogs(logs.step, logs.lines, logs.started);
@@ -247,18 +255,6 @@ const sfc = {
       } finally {
         this.loading = false;
       }
-    },
-
-
-    fetchPost(url, body) {
-      return fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Csrf-Token': csrfToken,
-        },
-        body,
-      });
     },
 
     isDone(status) {
