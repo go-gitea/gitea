@@ -43,15 +43,8 @@
 }
 
 .archived-label {
-  display: inline-flex;
-  width: fit-content;
-  height: fit-content;
-  color: var(--color-text-light);
-  background: var(--color-button);
-  font-size: 12px;
-  padding: 0.25rem;
+  font-size: 10px;
+  padding: 0.1rem;
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
-  cursor: default;
-  justify-content: center;
 }
