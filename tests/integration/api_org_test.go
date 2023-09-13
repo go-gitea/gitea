@@ -102,7 +102,7 @@ func TestAPIOrgEdit(t *testing.T) {
 
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
 		org := api.EditOrgOption{
-			FullName:    "org3 organization new full name",
+			FullName:    "Org3 organization new full name",
 			Description: "A new description",
 			Website:     "https://try.gitea.io/new",
 			Location:    "Beijing",
@@ -129,7 +129,7 @@ func TestAPIOrgEditBadVisibility(t *testing.T) {
 
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
 		org := api.EditOrgOption{
-			FullName:    "org3 organization new full name",
+			FullName:    "Org3 organization new full name",
 			Description: "A new description",
 			Website:     "https://try.gitea.io/new",
 			Location:    "Beijing",
