@@ -4,7 +4,7 @@ kind/docs:
 
 kind/ui:
   - "web_src/**/*"
-  - all: ["templates/**", "!templates/swagger/v1_json.tmpl"]
+  - any: ["templates/**", "!templates/swagger/v1_json.tmpl"]
 
 kind/api:
   - "templates/swagger/v1_json.tmpl"
