@@ -104,7 +104,7 @@ func NewFuncMap() template.FuncMap {
 			return setting.AssetVersion
 		},
 		"DisableGravatar": func(ctx context.Context) bool {
-			return system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
+			return system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar, setting.GetDefaultDisableGravatar())
 		},
 		"DefaultShowFullName": func() bool {
 			return setting.UI.DefaultShowFullName
