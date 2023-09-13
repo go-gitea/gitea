@@ -38,6 +38,8 @@ func GetBlob(ctx *context.APIContext) {
 	//     "$ref": "#/responses/GitBlobResponse"
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	sha := ctx.Params("sha")
 	if len(sha) == 0 {

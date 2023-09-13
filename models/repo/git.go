@@ -3,7 +3,9 @@
 
 package repo
 
-import "code.gitea.io/gitea/models/db"
+import (
+	"code.gitea.io/gitea/models/db"
+)
 
 // MergeStyle represents the approach to merge commits into base branch.
 type MergeStyle string
