@@ -5,12 +5,12 @@ on:
     branches: [ main, release/v* ]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   nightly-binary:
-    runs-on: actuated-4cpu-8gb
+    runs-on: actuated-4cpu-16gb
     steps:
       - uses: actions/checkout@v3
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
@@ -93,7 +93,7 @@ jobs:
           push: true
           tags: gitea/gitea:${{ steps.clean_name.outputs.branch }}
   nightly-docker-rootless:
-    runs-on: actuated-4cpu-8gb
+    runs-on: actuated-4cpu-16gb
     steps:
       - uses: actions/checkout@v3
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
