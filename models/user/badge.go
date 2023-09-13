@@ -11,7 +11,7 @@ import (
 
 // Badge represents a user badge
 type Badge struct {
-	Slug        string `xorm:"UNIQUE"`
+	Slug        string `xorm:"pk UNIQUE"`
 	Description string
 	ImageURL    string
 }

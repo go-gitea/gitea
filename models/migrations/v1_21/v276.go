@@ -10,7 +10,9 @@ import (
 )
 
 type BadgeUnique struct {
-	Slug string `xorm:"UNIQUE"`
+	Slug        string `xorm:"pk UNIQUE"`
+	Description string
+	ImageURL    string
 }
 
 func (BadgeUnique) TableName() string {
@@ -38,8 +40,9 @@ func UseSlugInsteadOfIDForBadges(x *xorm.Engine) error {
 	if err != nil {
 		return err
 	}
-	// add slug to each user badge
+	// update user_badge keys to use slug instead of id
 	_, err = sess.Exec("UPDATE `user_badge` SET `badge_slug` = (SELECT `slug` FROM `badge` WHERE `badge`.`id` = `user_badge`.`badge_id`)")
+
 	if err != nil {
 		return err
 	}
@@ -47,11 +50,7 @@ func UseSlugInsteadOfIDForBadges(x *xorm.Engine) error {
 	if err := base.DropTableColumns(sess, "user_badge", "badge_id"); err != nil {
 		return err
 	}
-	if err := base.DropTableColumns(sess, "badge", "id"); err != nil {
-		return err
-	}
-	err = sess.Sync(new(BadgeUnique))
-	if err != nil {
+	if err := base.RecreateTables(new(BadgeUnique))(sess.Engine()); err != nil {
 		return err
 	}
 	return sess.Commit()
