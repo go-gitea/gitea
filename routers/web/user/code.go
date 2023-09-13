@@ -27,12 +27,7 @@ func CodeSearch(ctx *context.Context) {
 	shared_user.PrepareContextForProfileBigAvatar(ctx)
 	shared_user.RenderUserHeader(ctx)
 
-	var (
-		repoIDs []int64
-		err     error
-	)
-	err = shared_user.LoadHeaderCount(ctx)
-	if err != nil {
+	if err := shared_user.LoadHeaderCount(ctx); err != nil {
 		ctx.ServerError("LoadHeaderCount", err)
 		return
 	}
@@ -56,6 +51,11 @@ func CodeSearch(ctx *context.Context) {
 		ctx.HTML(http.StatusOK, tplUserCode)
 		return
 	}
+
+	var (
+		repoIDs []int64
+		err     error
+	)
 
 	page := ctx.FormInt("page")
 	if page <= 0 {
