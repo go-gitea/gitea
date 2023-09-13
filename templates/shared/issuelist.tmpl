@@ -2,16 +2,14 @@
 	{{$approvalCounts := .ApprovalCounts}}
 	{{range .Issues}}
 		<div class="flex-item">
-			<div class="flex-item-leading">
+
+			<div class="flex-item-icon">
 				{{if $.CanWriteIssuesOrPulls}}
-				<div class="flex-item-icon">
-					<input type="checkbox" autocomplete="off" class="issue-checkbox gt-mr-4" data-issue-id={{.ID}} aria-label="{{$.locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
-				</div>
+				<input type="checkbox" autocomplete="off" class="issue-checkbox gt-mr-4" data-issue-id={{.ID}} aria-label="{{$.locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
 				{{end}}
-				<div class="flex-item-icon">
-					{{template "shared/issueicon" .}}
-				</div>
+				{{template "shared/issueicon" .}}
 			</div>
+
 			<div class="flex-item-main">
 				<div class="flex-item-header">
 					<div class="flex-item-title">
