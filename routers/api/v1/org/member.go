@@ -70,6 +70,8 @@ func ListMembers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	publicOnly := true
 	if ctx.Doer != nil {
@@ -107,6 +109,8 @@ func ListPublicMembers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listMembers(ctx, true)
 }
@@ -225,6 +229,8 @@ func PublicizeMember(ctx *context.APIContext) {
 	//     description: membership publicized
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	userToPublicize := user.GetUserByParams(ctx)
 	if ctx.Written() {
@@ -265,6 +271,8 @@ func ConcealMember(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	userToConceal := user.GetUserByParams(ctx)
 	if ctx.Written() {
@@ -303,6 +311,8 @@ func DeleteMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: member removed
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	member := user.GetUserByParams(ctx)
 	if ctx.Written() {

@@ -52,6 +52,8 @@ func ListForks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	forks, err := repo_model.GetForks(ctx.Repo.Repository, utils.GetListOptions(ctx))
 	if err != nil {
@@ -99,6 +101,8 @@ func CreateFork(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Repository"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     description: The repository with the same name already exists.
 	//   "422":
