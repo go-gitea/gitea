@@ -37,6 +37,9 @@
 								{{if .Visibility.IsPrivate}}
 									<span class="text gold">{{svg "octicon-lock"}}</span>
 								{{end}}
+								{{if eq .Type 3}}
+									<span class="ui basic label">{{$.locale.Tr "admin.users.reserved"}}</span>
+								{{end}}
 							</td>
 							<td>{{.NumTeams}}</td>
 							<td>{{.NumMembers}}</td>
