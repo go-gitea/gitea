@@ -362,19 +362,14 @@ func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) 
 		From("team_user").
 		Where(builder.Eq{"team_user.uid": reviewRequestedID})
 
-	maxReview := builder.Select("MAX(r.id)").
-		From("review as r").
-		Where(builder.In("review.type", []ReviewType{ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest}))
-
 	subQuery := builder.Select("review.issue_id").
 		From("review").
 		Where(builder.And(
-			builder.Eq{"review.type": ReviewTypeRequest},
+			builder.In("review.type", []ReviewType{ReviewTypeRequest, ReviewTypeReject, ReviewTypeApprove}),
 			builder.Or(
 				builder.Eq{"review.reviewer_id": reviewRequestedID},
 				builder.In("review.reviewer_team_id", existInTeamQuery),
 			),
-			builder.In("review.id", maxReview),
 		))
 	return sess.Where("issue.poster_id <> ?", reviewRequestedID).
 		And(builder.In("issue.id", subQuery))

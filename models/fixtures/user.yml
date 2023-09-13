@@ -189,7 +189,7 @@
   id: 6
   lower_name: org6
   name: org6
-  full_name: User Six
+  full_name: Org Six
   email: org6@example.com
   keep_email_private: false
   email_notifications_preference: enabled
@@ -226,7 +226,7 @@
   id: 7
   lower_name: org7
   name: org7
-  full_name: User Seven
+  full_name: Org Seven
   email: org7@example.com
   keep_email_private: false
   email_notifications_preference: disabled
@@ -670,7 +670,7 @@
   id: 19
   lower_name: org19
   name: org19
-  full_name: User 19
+  full_name: Org 19
   email: org19@example.com
   keep_email_private: false
   email_notifications_preference: enabled
