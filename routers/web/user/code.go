@@ -110,6 +110,7 @@ func CodeSearch(ctx *context.Context) {
 	}
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
+
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "l", "Language")
