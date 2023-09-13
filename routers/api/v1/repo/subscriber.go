@@ -42,6 +42,8 @@ func ListSubscribers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	subscribers, err := repo_model.GetRepoWatchers(ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
 	if err != nil {

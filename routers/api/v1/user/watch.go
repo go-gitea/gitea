@@ -59,6 +59,8 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	private := ctx.ContextUser.ID == ctx.Doer.ID
 	repos, total, err := getWatchedRepos(ctx, ctx.ContextUser, private, utils.GetListOptions(ctx))
@@ -155,6 +157,8 @@ func Watch(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WatchInfo"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	err := repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	if err != nil {
@@ -190,6 +194,8 @@ func Unwatch(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	err := repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	if err != nil {

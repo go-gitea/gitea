@@ -46,6 +46,8 @@ func ListLabels(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormString("sort"), utils.GetListOptions(ctx))
 	if err != nil {
@@ -90,6 +92,8 @@ func GetLabel(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Label"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	var (
 		l   *issues_model.Label
@@ -140,6 +144,8 @@ func CreateLabel(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Label"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
@@ -200,6 +206,8 @@ func EditLabel(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Label"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
@@ -265,6 +273,8 @@ func DeleteLabel(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	if err := issues_model.DeleteLabel(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteLabel", err)

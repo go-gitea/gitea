@@ -110,6 +110,15 @@ func (r *indexerNotifier) SyncPushCommits(ctx context.Context, pusher *user_mode
 	}
 }
 
+func (r *indexerNotifier) ChangeDefaultBranch(ctx context.Context, repo *repo_model.Repository) {
+	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
+		code_indexer.UpdateRepoIndexer(repo)
+	}
+	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
+		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)
+	}
+}
+
 func (r *indexerNotifier) IssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string) {
 	issue_indexer.UpdateIssueIndexer(issue.ID)
 }
