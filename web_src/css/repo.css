@@ -2154,21 +2154,15 @@
   margin-top: 5px;
 }
 
-#search-repo-box .results .result img,
-#search-user-box .results .result img {
+#search-user-box .results .result .image {
   float: left;
   margin-right: 8px;
   width: 2em;
   height: 2em;
 }
 
-#search-repo-box .results .result .content,
 #search-user-box .results .result .content {
-  margin: 6px 0;
-}
-
-#search-team-box .results .result .content {
-  margin: 6px 0;
+  margin: 6px 0; /* this trick is used to align with the sibling avatar image */
 }
 
 .ui.menu .item > img:not(.ui) {
