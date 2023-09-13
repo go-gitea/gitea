@@ -30,6 +30,16 @@ key = 123
 		secSub := cfg.Section("foo.bar.xxx")
 		assert.Equal(t, "123", secSub.Key("key").String())
 	})
+	t.Run("TrailingSlash", func(t *testing.T) {
+		cfg, _ := NewConfigProviderFromData(`
+[foo]
+key = E:\
+xxx = yyy
+`)
+		sec := cfg.Section("foo")
+		assert.Equal(t, "E:\\", sec.Key("key").String())
+		assert.Equal(t, "yyy", sec.Key("xxx").String())
+	})
 }
 
 func TestConfigProviderHelper(t *testing.T) {
