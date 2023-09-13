@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -88,14 +89,14 @@ func TestLoadRequestedReviewers(t *testing.T) {
 	user1, err := user_model.GetUserByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 
-	comment, err := issues_model.AddReviewRequest(issue, user1, &user_model.User{})
+	comment, err := issues_model.AddReviewRequest(db.DefaultContext, issue, user1, &user_model.User{})
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)
 
 	assert.NoError(t, pull.LoadRequestedReviewers(db.DefaultContext))
 	assert.Len(t, pull.RequestedReviewers, 1)
 
-	comment, err = issues_model.RemoveReviewRequest(issue, user1, &user_model.User{})
+	comment, err = issues_model.RemoveReviewRequest(db.DefaultContext, issue, user1, &user_model.User{})
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)
 
@@ -336,4 +337,32 @@ func TestGetApprovers(t *testing.T) {
 	approvers := pr.GetApprovers()
 	expected := "Reviewed-by: User Five <user5@example.com>\nReviewed-by: User Six <user6@example.com>\n"
 	assert.EqualValues(t, expected, approvers)
+}
+
+func TestMigrate_InsertPullRequests(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	reponame := "repo1"
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	i := &issues_model.Issue{
+		RepoID:   repo.ID,
+		Repo:     repo,
+		Title:    "title1",
+		Content:  "issuecontent1",
+		IsPull:   true,
+		PosterID: owner.ID,
+		Poster:   owner,
+	}
+
+	p := &issues_model.PullRequest{
+		Issue: i,
+	}
+
+	err := issues_model.InsertPullRequests(db.DefaultContext, p)
+	assert.NoError(t, err)
+
+	_ = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{IssueID: i.ID})
+
+	unittest.CheckConsistencyFor(t, &issues_model.Issue{}, &issues_model.PullRequest{})
 }

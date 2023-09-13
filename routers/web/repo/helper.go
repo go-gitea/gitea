@@ -7,16 +7,15 @@ import (
 	"sort"
 
 	"code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 )
 
-func MakeSelfOnTop(ctx *context.Context, users []*user.User) []*user.User {
-	if ctx.Doer != nil {
+func MakeSelfOnTop(doer *user.User, users []*user.User) []*user.User {
+	if doer != nil {
 		sort.Slice(users, func(i, j int) bool {
 			if users[i].ID == users[j].ID {
 				return false
 			}
-			return users[i].ID == ctx.Doer.ID // if users[i] is self, put it before others, so less=true
+			return users[i].ID == doer.ID // if users[i] is self, put it before others, so less=true
 		})
 	}
 	return users

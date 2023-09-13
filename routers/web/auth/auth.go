@@ -392,11 +392,25 @@ func SignUp(ctx *context.Context) {
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
+	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers()
+	if err != nil {
+		ctx.ServerError("UserSignUp", err)
+		return
+	}
+
+	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
+	ctx.Data["OAuth2Providers"] = oauth2Providers
 	context.SetCaptchaData(ctx)
+
 	ctx.Data["PageIsSignUp"] = true
 
 	// Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration
+
+	redirectTo := ctx.FormString("redirect_to")
+	if len(redirectTo) > 0 {
+		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
+	}
 
 	ctx.HTML(http.StatusOK, tplSignUp)
 }
@@ -408,7 +422,16 @@ func SignUpPost(ctx *context.Context) {
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
+	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers()
+	if err != nil {
+		ctx.ServerError("UserSignUp", err)
+		return
+	}
+
+	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
+	ctx.Data["OAuth2Providers"] = oauth2Providers
 	context.SetCaptchaData(ctx)
+
 	ctx.Data["PageIsSignUp"] = true
 
 	// Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
@@ -729,6 +752,12 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("auth.account_activated"))
+	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 {
+		middleware.DeleteRedirectToCookie(ctx.Resp)
+		ctx.RedirectToFirst(redirectTo)
+		return
+	}
+
 	ctx.Redirect(setting.AppSubURL + "/")
 }
 

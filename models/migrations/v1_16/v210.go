@@ -4,7 +4,6 @@
 package v1_16 //nolint
 
 import (
-	"crypto/elliptic"
 	"encoding/base32"
 	"fmt"
 	"strings"
@@ -34,7 +33,7 @@ func RemigrateU2FCredentials(x *xorm.Engine) error {
 		CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
 		UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
-	if err := x.Sync2(&webauthnCredential{}); err != nil {
+	if err := x.Sync(&webauthnCredential{}); err != nil {
 		return err
 	}
 
@@ -123,13 +122,17 @@ func RemigrateU2FCredentials(x *xorm.Engine) error {
 				if err != nil {
 					continue
 				}
+				pubKey, err := parsed.PubKey.ECDH()
+				if err != nil {
+					continue
+				}
 				remigrated := &webauthnCredential{
 					ID:              reg.ID,
 					Name:            reg.Name,
 					LowerName:       strings.ToLower(reg.Name),
 					UserID:          reg.UserID,
 					CredentialID:    base32.HexEncoding.EncodeToString(parsed.KeyHandle),
-					PublicKey:       elliptic.Marshal(elliptic.P256(), parsed.PubKey.X, parsed.PubKey.Y),
+					PublicKey:       pubKey.Bytes(),
 					AttestationType: "fido-u2f",
 					AAGUID:          []byte{},
 					SignCount:       reg.Counter,

@@ -45,6 +45,8 @@ func ListTopics(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TopicNames"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	opts := &repo_model.FindTopicOptions{
 		ListOptions: utils.GetListOptions(ctx),
@@ -93,6 +95,8 @@ func UpdateTopics(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/invalidTopicsError"
 
@@ -152,6 +156,8 @@ func AddTopic(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/invalidTopicsError"
 
@@ -217,6 +223,8 @@ func DeleteTopic(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/invalidTopicsError"
 
@@ -271,6 +279,8 @@ func TopicSearch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/TopicListResponse"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	opts := &repo_model.FindTopicOptions{
 		Keyword:     ctx.FormString("q"),

@@ -26,7 +26,7 @@
   border-width: 4px;
   border-style: solid;
   border-color: var(--color-secondary) var(--color-secondary) var(--color-secondary-dark-8) var(--color-secondary-dark-8);
-  border-radius: 100%;
+  border-radius: var(--border-radius-circle);
 }
 
 .is-loading.small-loading-icon::after {
@@ -55,13 +55,6 @@ form.single-button-form.is-loading .button {
 .markup .is-loading {
   color: transparent;
   background: transparent;
-}
-
-/* TODO: not needed, use "is-loading small-loading-icon" instead */
-.btn-octicon.is-loading::after {
-  border-width: 2px;
-  height: 1.25rem;
-  width: 1.25rem;
 }
 
 /* TODO: not needed, use "is-loading small-loading-icon" instead */
@@ -104,4 +97,11 @@ code.language-math.is-loading::after {
 
 .pulse {
   animation: pulse 2s linear;
+}
+
+.ui.modal,
+.ui.dimmer.transition {
+  animation-name: fadein;
+  animation-duration: 100ms;
+  animation-timing-function: ease-in-out;
 }

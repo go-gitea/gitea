@@ -21,7 +21,6 @@ import (
 // Ensure the struct implements the interface.
 var (
 	_ Method = &Basic{}
-	_ Named  = &Basic{}
 )
 
 // BasicMethodName is the constant name of the basic authentication method

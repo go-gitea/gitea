@@ -18,6 +18,14 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+type AvatarUtils struct {
+	ctx context.Context
+}
+
+func NewAvatarUtils(ctx context.Context) *AvatarUtils {
+	return &AvatarUtils{ctx: ctx}
+}
+
 // AvatarHTML creates the HTML for an avatar
 func AvatarHTML(src string, size int, class, name string) template.HTML {
 	sizeStr := fmt.Sprintf(`%d`, size)
@@ -30,55 +38,44 @@ func AvatarHTML(src string, size int, class, name string) template.HTML {
 }
 
 // Avatar renders user avatars. args: user, size (int), class (string)
-func Avatar(ctx context.Context, item any, others ...any) template.HTML {
+func (au *AvatarUtils) Avatar(item any, others ...any) template.HTML {
 	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
 
 	switch t := item.(type) {
 	case *user_model.User:
-		src := t.AvatarLinkWithSize(ctx, size*setting.Avatar.RenderedSizeFactor)
+		src := t.AvatarLinkWithSize(au.ctx, size*setting.Avatar.RenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, t.DisplayName())
 		}
 	case *repo_model.Collaborator:
-		src := t.AvatarLinkWithSize(ctx, size*setting.Avatar.RenderedSizeFactor)
+		src := t.AvatarLinkWithSize(au.ctx, size*setting.Avatar.RenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, t.DisplayName())
 		}
 	case *organization.Organization:
-		src := t.AsUser().AvatarLinkWithSize(ctx, size*setting.Avatar.RenderedSizeFactor)
+		src := t.AsUser().AvatarLinkWithSize(au.ctx, size*setting.Avatar.RenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, t.AsUser().DisplayName())
 		}
 	}
 
-	return template.HTML("")
+	return ""
 }
 
 // AvatarByAction renders user avatars from action. args: action, size (int), class (string)
-func AvatarByAction(ctx context.Context, action *activities_model.Action, others ...any) template.HTML {
-	action.LoadActUser(ctx)
-	return Avatar(ctx, action.ActUser, others...)
-}
-
-// RepoAvatar renders repo avatars. args: repo, size(int), class (string)
-func RepoAvatar(repo *repo_model.Repository, others ...any) template.HTML {
-	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
-
-	src := repo.RelAvatarLink()
-	if src != "" {
-		return AvatarHTML(src, size, class, repo.FullName())
-	}
-	return template.HTML("")
+func (au *AvatarUtils) AvatarByAction(action *activities_model.Action, others ...any) template.HTML {
+	action.LoadActUser(au.ctx)
+	return au.Avatar(action.ActUser, others...)
 }
 
 // AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
-func AvatarByEmail(ctx context.Context, email, name string, others ...any) template.HTML {
+func (au *AvatarUtils) AvatarByEmail(email, name string, others ...any) template.HTML {
 	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
-	src := avatars.GenerateEmailAvatarFastLink(ctx, email, size*setting.Avatar.RenderedSizeFactor)
+	src := avatars.GenerateEmailAvatarFastLink(au.ctx, email, size*setting.Avatar.RenderedSizeFactor)
 
 	if src != "" {
 		return AvatarHTML(src, size, class, name)
 	}
 
-	return template.HTML("")
+	return ""
 }

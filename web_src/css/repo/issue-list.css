@@ -33,13 +33,29 @@
   }
 }
 
+#issue-list .flex-item-title .labels-list {
+  display: flex;
+  gap: 0.25em;
+}
+
+#issue-list .flex-item-title .labels-list a {
+  display: flex;
+  text-decoration: none;
+}
+
+#issue-list .flex-item-title .labels-list .label {
+  padding: 0 6px;
+  margin: 0;
+  min-height: 20px;
+}
+
 #issue-list .flex-item-body .branches {
   display: inline-flex;
 }
 
 #issue-list .flex-item-body .branches .branch {
   background-color: var(--color-secondary-alpha-40);
-  border-radius: 3px;
+  border-radius: var(--border-radius);
   padding: 0 4px;
 }
 
@@ -55,7 +71,6 @@
   width: 80px;
   height: 6px;
   display: inline-block;
-  border-radius: 3px;
 }
 
 #issue-list .flex-item-body .checklist progress::-webkit-progress-value {

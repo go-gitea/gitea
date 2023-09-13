@@ -53,7 +53,7 @@ func (issue *Issue) projectBoardID(ctx context.Context) int64 {
 
 // LoadIssuesFromBoard load issues assigned to this board
 func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList, error) {
-	issueList := make([]*Issue, 0, 10)
+	issueList := make(IssueList, 0, 10)
 
 	if b.ID != 0 {
 		issues, err := Issues(ctx, &IssuesOptions{
@@ -79,7 +79,7 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList
 		issueList = append(issueList, issues...)
 	}
 
-	if err := IssueList(issueList).LoadComments(ctx); err != nil {
+	if err := issueList.LoadComments(ctx); err != nil {
 		return nil, err
 	}
 

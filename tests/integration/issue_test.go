@@ -368,7 +368,7 @@ func TestSearchIssues(t *testing.T) {
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, expectedIssueCount)
 
-	since := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801
+	since := "2000-01-01T00:50:01+00:00" // 946687801
 	before := time.Unix(999307200, 0).Format(time.RFC3339)
 	query := url.Values{}
 	query.Add("since", since)

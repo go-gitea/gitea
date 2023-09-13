@@ -71,6 +71,11 @@ func convertMinioErr(err error) error {
 	return err
 }
 
+var getBucketVersioning = func(ctx context.Context, minioClient *minio.Client, bucket string) error {
+	_, err := minioClient.GetBucketVersioning(ctx, bucket)
+	return err
+}
+
 // NewMinioStorage returns a minio storage
 func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, error) {
 	config := cfg.MinioConfig
@@ -84,17 +89,39 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 		Creds:     credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, ""),
 		Secure:    config.UseSSL,
 		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.InsecureSkipVerify}},
+		Region:    config.Location,
 	})
 	if err != nil {
 		return nil, convertMinioErr(err)
 	}
 
-	if err := minioClient.MakeBucket(ctx, config.Bucket, minio.MakeBucketOptions{
-		Region: config.Location,
-	}); err != nil {
-		// Check to see if we already own this bucket (which happens if you run this twice)
-		exists, errBucketExists := minioClient.BucketExists(ctx, config.Bucket)
-		if !exists || errBucketExists != nil {
+	// The GetBucketVersioning is only used for checking whether the Object Storage parameters are generally good. It doesn't need to succeed.
+	// The assumption is that if the API returns the HTTP code 400, then the parameters could be incorrect.
+	// Otherwise even if the request itself fails (403, 404, etc), the code should still continue because the parameters seem "good" enough.
+	// Keep in mind that GetBucketVersioning requires "owner" to really succeed, so it can't be used to check the existence.
+	// Not using "BucketExists (HeadBucket)" because it doesn't include detailed failure reasons.
+	err = getBucketVersioning(ctx, minioClient, config.Bucket)
+	if err != nil {
+		errResp, ok := err.(minio.ErrorResponse)
+		if !ok {
+			return nil, err
+		}
+		if errResp.StatusCode == http.StatusBadRequest {
+			log.Error("S3 storage connection failure at %s:%s with base path %s and region: %s", config.Endpoint, config.Bucket, config.Location, errResp.Message)
+			return nil, err
+		}
+	}
+
+	// Check to see if we already own this bucket
+	exists, err := minioClient.BucketExists(ctx, config.Bucket)
+	if err != nil {
+		return nil, convertMinioErr(err)
+	}
+
+	if !exists {
+		if err := minioClient.MakeBucket(ctx, config.Bucket, minio.MakeBucketOptions{
+			Region: config.Location,
+		}); err != nil {
 			return nil, convertMinioErr(err)
 		}
 	}
@@ -109,9 +136,18 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 }
 
 func (m *MinioStorage) buildMinioPath(p string) string {
-	p = util.PathJoinRelX(m.basePath, p)
+	p = strings.TrimPrefix(util.PathJoinRelX(m.basePath, p), "/") // object store doesn't use slash for root path
 	if p == "." {
-		p = "" // minio doesn't use dot as relative path
+		p = "" // object store doesn't use dot as relative path
+	}
+	return p
+}
+
+func (m *MinioStorage) buildMinioDirPrefix(p string) string {
+	// ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
+	p = m.buildMinioPath(p) + "/"
+	if p == "/" {
+		p = "" // object store doesn't use slash for root path
 	}
 	return p
 }
@@ -210,20 +246,11 @@ func (m *MinioStorage) URL(path, name string) (*url.URL, error) {
 // IterateObjects iterates across the objects in the miniostorage
 func (m *MinioStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
 	opts := minio.GetObjectOptions{}
-	lobjectCtx, cancel := context.WithCancel(m.ctx)
-	defer cancel()
-
-	basePath := m.basePath
-	if dirName != "" {
-		// ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
-		basePath = m.buildMinioPath(dirName) + "/"
-	}
-
-	for mObjInfo := range m.client.ListObjects(lobjectCtx, m.bucket, minio.ListObjectsOptions{
-		Prefix:    basePath,
+	for mObjInfo := range m.client.ListObjects(m.ctx, m.bucket, minio.ListObjectsOptions{
+		Prefix:    m.buildMinioDirPrefix(dirName),
 		Recursive: true,
 	}) {
-		object, err := m.client.GetObject(lobjectCtx, m.bucket, mObjInfo.Key, opts)
+		object, err := m.client.GetObject(m.ctx, m.bucket, mObjInfo.Key, opts)
 		if err != nil {
 			return convertMinioErr(err)
 		}

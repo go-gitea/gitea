@@ -16,7 +16,7 @@ func Queues(ctx *context.Context) {
 	if !setting.IsProd {
 		initTestQueueOnce()
 	}
-	ctx.Data["Title"] = ctx.Tr("admin.monitor.queue")
+	ctx.Data["Title"] = ctx.Tr("admin.monitor.queues")
 	ctx.Data["PageIsAdminMonitorQueue"] = true
 	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
 	ctx.HTML(http.StatusOK, tplQueue)

@@ -1,7 +1,7 @@
 <h4 class="ui top attached header">
 	{{.locale.Tr "settings.manage_ssh_keys"}}
 	<div class="ui right">
-		<button id="add-ssh-button" class="ui primary tiny show-panel button" data-panel="#add-ssh-key-panel">
+		<button id="add-ssh-button" class="ui primary tiny show-panel toggle button" data-panel="#add-ssh-key-panel">
 			{{.locale.Tr "settings.add_key"}}
 		</button>
 	</div>
@@ -29,7 +29,10 @@
 	</div>
 	<div id="keys-ssh" class="flex-list">
 		<div class="flex-item">
-			{{.locale.Tr "settings.ssh_desc"}}
+			<p>
+				{{.locale.Tr "settings.ssh_desc"}}<br>
+				{{.locale.Tr "settings.ssh_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/connecting-to-github-with-ssh" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/troubleshooting-ssh" | Str2html}}
+			</p>
 		</div>
 		{{if .DisableSSH}}
 			<div class="flex-item">
@@ -95,17 +98,14 @@
 			{{end}}
 		{{end}}
 	</div>
-</div>
-<br>
-<p>{{.locale.Tr "settings.ssh_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/connecting-to-github-with-ssh" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/troubleshooting-ssh" | Str2html}}</p>
-
-<div class="ui g-modal-confirm delete modal" id="delete-ssh">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{.locale.Tr "settings.ssh_key_deletion"}}
+	<div class="ui g-modal-confirm delete modal" id="delete-ssh">
+		<div class="header">
+			{{svg "octicon-trash"}}
+			{{.locale.Tr "settings.ssh_key_deletion"}}
+		</div>
+		<div class="content">
+			<p>{{.locale.Tr "settings.ssh_key_deletion_desc"}}</p>
+		</div>
+		{{template "base/modal_actions_confirm" .}}
 	</div>
-	<div class="content">
-		<p>{{.locale.Tr "settings.ssh_key_deletion_desc"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
 </div>
