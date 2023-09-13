@@ -55,6 +55,8 @@ func ListMilestones(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/MilestoneList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	milestones, total, err := issues_model.GetMilestones(issues_model.GetMilestonesOption{
 		ListOptions: utils.GetListOptions(ctx),
@@ -102,6 +104,8 @@ func GetMilestone(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Milestone"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	milestone := getMilestoneByIDOrName(ctx)
 	if ctx.Written() {
@@ -138,6 +142,8 @@ func CreateMilestone(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Milestone"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.CreateMilestoneOption)
 
 	if form.Deadline == nil {
@@ -196,6 +202,8 @@ func EditMilestone(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Milestone"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.EditMilestoneOption)
 	milestone := getMilestoneByIDOrName(ctx)
 	if ctx.Written() {
@@ -248,6 +256,8 @@ func DeleteMilestone(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	m := getMilestoneByIDOrName(ctx)
 	if ctx.Written() {
