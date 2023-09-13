@@ -28,7 +28,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		assert.Len(t, team.Repos, len(repoIds), "%s: repo count", team.Name)
 		for i, rid := range repoIds {
 			if rid > 0 {
-				assert.True(t, models.HasRepository(team, rid), "%s: HasRepository(%d) %d", rid, i)
+				assert.True(t, HasRepository(team, rid), "%s: HasRepository(%d) %d", rid, i)
 			}
 		}
 	}
@@ -54,7 +54,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	// Create repos.
 	repoIds := make([]int64, 0)
 	for i := 0; i < 3; i++ {
-		r, err := CreateRepositoryDirectly(user, org.AsUser(), CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)})
+		r, err := CreateRepositoryDirectly(db.DefaultContext, user, org.AsUser(), CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)})
 		assert.NoError(t, err, "CreateRepository %d", i)
 		if r != nil {
 			repoIds = append(repoIds, r.ID)
@@ -116,7 +116,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	}
 
 	// Create repo and check teams repositories.
-	r, err := CreateRepositoryDirectly(user, org.AsUser(), CreateRepoOptions{Name: "repo-last"})
+	r, err := CreateRepositoryDirectly(db.DefaultContext, user, org.AsUser(), CreateRepoOptions{Name: "repo-last"})
 	assert.NoError(t, err, "CreateRepository last")
 	if r != nil {
 		repoIds = append(repoIds, r.ID)
@@ -129,7 +129,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	}
 
 	// Remove repo and check teams repositories.
-	assert.NoError(t, models.DeleteRepository(user, org.ID, repoIds[0]), "DeleteRepository")
+	assert.NoError(t, DeleteRepositoryDirectly(db.DefaultContext, user, org.ID, repoIds[0]), "DeleteRepository")
 	teamRepos[0] = repoIds[1:]
 	teamRepos[1] = repoIds[1:]
 	teamRepos[3] = repoIds[1:3]
@@ -141,7 +141,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	// Wipe created items.
 	for i, rid := range repoIds {
 		if i > 0 { // first repo already deleted.
-			assert.NoError(t, models.DeleteRepository(user, org.ID, rid), "DeleteRepository %d", i)
+			assert.NoError(t, DeleteRepositoryDirectly(db.DefaultContext, user, org.ID, rid), "DeleteRepository %d", i)
 		}
 	}
 	assert.NoError(t, organization.DeleteOrganization(db.DefaultContext, org), "DeleteOrganization")

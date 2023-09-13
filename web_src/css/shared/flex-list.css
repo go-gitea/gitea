@@ -9,14 +9,6 @@
   padding: 1em 0;
 }
 
-.flex-item-baseline {
-  align-items: baseline;
-}
-
-.flex-item-center {
-  align-items: center;
-}
-
 .flex-item .flex-item-leading {
   display: flex;
   align-items: flex-start;
@@ -41,8 +33,12 @@
   color: var(--color-primary) !important;
 }
 
-.flex-item .flex-item-icon svg {
-  margin-top: 1px;
+.flex-item .flex-item-icon {
+  align-self: baseline; /* mainly used by the issue list, to align the leading icon with the title */
+}
+
+.flex-item .flex-item-icon + .flex-item-main {
+  align-self: baseline;
 }
 
 .flex-item .flex-item-trailing {
