@@ -335,7 +335,7 @@ func TestGetApprovers(t *testing.T) {
 	// to assert that there are no duplicated approvers.
 	setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly = false
 	approvers := pr.GetApprovers()
-	expected := "Reviewed-by: User Five <user5@example.com>\nReviewed-by: User Six <org6@example.com>\n"
+	expected := "Reviewed-by: User Five <user5@example.com>\nReviewed-by: Org Six <org6@example.com>\n"
 	assert.EqualValues(t, expected, approvers)
 }
 

@@ -180,7 +180,7 @@ func TestAPIGetAll(t *testing.T) {
 
 	DecodeJSON(t, resp, &apiOrgList)
 	assert.Len(t, apiOrgList, 7)
-	assert.Equal(t, "org25", apiOrgList[0].FullName)
+	assert.Equal(t, "org 17", apiOrgList[0].FullName)
 	assert.Equal(t, "public", apiOrgList[0].Visibility)
 }
 
