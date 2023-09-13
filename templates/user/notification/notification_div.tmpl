@@ -40,6 +40,8 @@
 							<div class="notifications-icon gt-ml-3 gt-mr-2 gt-self-start gt-mt-2">
 								{{if .Issue}}
 									{{template "shared/issueicon" .Issue}}
+								{{else if .Release}}
+									{{svg "octicon-tag" 16 "text grey"}}
 								{{else}}
 									{{svg "octicon-repo" 16 "text grey"}}
 								{{end}}
@@ -55,6 +57,8 @@
 									<span class="issue-title">
 										{{if .Issue}}
 											{{.Issue.Title | RenderEmoji $.Context | RenderCodeBlock}}
+										{{else if .Release}}
+											{{.Release.Title}}
 										{{else}}
 											{{.Repository.FullName}}
 										{{end}}
@@ -64,6 +68,8 @@
 							<div class="notifications-updated gt-ac gt-mr-3">
 								{{if .Issue}}
 									{{TimeSinceUnix .Issue.UpdatedUnix $locale}}
+								{{else if .Release}}
+									{{TimeSinceUnix .Release.CreatedUnix $locale}}
 								{{else}}
 									{{TimeSinceUnix .UpdatedUnix $locale}}
 								{{end}}

@@ -82,6 +82,13 @@ func ToNotificationThread(n *activities_model.Notification) *api.NotificationThr
 			URL:     n.Repository.Link(),
 			HTMLURL: n.Repository.HTMLURL(),
 		}
+	case activities_model.NotificationSourceRelease:
+		result.Subject = &api.NotificationSubject{Type: api.NotifySubjectRelease}
+		if n.Release != nil {
+			result.Subject.Title = n.Release.Title
+			result.Subject.URL = n.Release.APIURL()
+			result.Subject.HTMLURL = n.Release.HTMLURL()
+		}
 	}
 
 	return result

@@ -46,4 +46,6 @@ const (
 	NotifySubjectCommit NotifySubjectType = "Commit"
 	// NotifySubjectRepository an repository is subject of an notification
 	NotifySubjectRepository NotifySubjectType = "Repository"
+	// NotifySubjectRelease an release is subject of an notification
+	NotifySubjectRelease NotifySubjectType = "Release"
 )

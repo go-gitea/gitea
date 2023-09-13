@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -289,6 +290,14 @@ func SingleRelease(ctx *context.Context) {
 	if err != nil {
 		ctx.ServerError("RenderString", err)
 		return
+	}
+
+	if ctx.IsSigned && !release.IsTag {
+		err = activities_model.SetReleaseReadBy(ctx, release.ID, ctx.Doer.ID)
+		if err != nil {
+			ctx.ServerError("SetReleaseReadBy", err)
+			return
+		}
 	}
 
 	ctx.Data["Releases"] = []*repo_model.Release{release}
