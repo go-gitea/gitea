@@ -392,7 +392,16 @@ func SignUp(ctx *context.Context) {
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
+	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers()
+	if err != nil {
+		ctx.ServerError("UserSignUp", err)
+		return
+	}
+
+	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
+	ctx.Data["OAuth2Providers"] = oauth2Providers
 	context.SetCaptchaData(ctx)
+
 	ctx.Data["PageIsSignUp"] = true
 
 	// Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
@@ -413,7 +422,16 @@ func SignUpPost(ctx *context.Context) {
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
+	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers()
+	if err != nil {
+		ctx.ServerError("UserSignUp", err)
+		return
+	}
+
+	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
+	ctx.Data["OAuth2Providers"] = oauth2Providers
 	context.SetCaptchaData(ctx)
+
 	ctx.Data["PageIsSignUp"] = true
 
 	// Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
