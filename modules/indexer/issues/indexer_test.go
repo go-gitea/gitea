@@ -151,69 +151,55 @@ func TestDBSearchUserIssue(t *testing.T) {
 			SearchOptions{
 				RepoIDs: []int64{1},
 			},
-			[]int64{6},
+			[]int64{11, 5, 3, 2, 1},
 		},
 		{
 			SearchOptions{
 				RepoIDs:    []int64{1},
 				AssigneeID: int64Pointer(1),
 			},
-			[]int64{6},
+			[]int64{1},
 		},
 		{
 			SearchOptions{
 				RepoIDs:  []int64{1},
 				PosterID: int64Pointer(1),
 			},
-			[]int64{6},
+			[]int64{11, 3, 2, 1},
 		},
 		{
 			SearchOptions{
 				RepoIDs:  []int64{1},
 				IsClosed: util.OptionalBoolFalse,
 			},
-			[]int64{6},
+			[]int64{11, 3, 2, 1},
 		},
 		{
 			SearchOptions{
 				RepoIDs:  []int64{1},
 				IsClosed: util.OptionalBoolTrue,
 			},
-			[]int64{1},
+			[]int64{5},
 		},
 		{
 			SearchOptions{
 				RepoIDs: []int64{1},
 			},
-			[]int64{6},
+			[]int64{11, 5, 3, 2, 1},
 		},
 		{
 			SearchOptions{
 				RepoIDs:    []int64{1},
 				AssigneeID: int64Pointer(1),
 			},
-			[]int64{6},
+			[]int64{1},
 		},
 		{
 			SearchOptions{
 				RepoIDs:  []int64{1},
 				PosterID: int64Pointer(1),
 			},
-			[]int64{6},
-		},
-		{
-			SearchOptions{
-				RepoIDs:  []int64{1},
-				IsClosed: util.OptionalBoolFalse,
-			},
-			[]int64{6},
-		},
-		{
-			SearchOptions{
-				RepoIDs:  []int64{1},
-				IsClosed: util.OptionalBoolTrue,
-			},
-			[]int64{1},
+			[]int64{11, 3, 2, 1},
 		},
 	} {
 		t.Run(fmt.Sprintf("%#v", test.opts), func(t *testing.T) {
