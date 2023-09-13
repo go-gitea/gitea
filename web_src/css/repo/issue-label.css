@@ -43,6 +43,7 @@
 }
 
 .archived-label {
+  height: fit-content;
   font-size: 10px;
   padding: 0.1rem;
   border: 1px solid var(--color-secondary);
