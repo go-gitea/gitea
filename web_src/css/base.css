@@ -481,6 +481,14 @@ a.label,
   text-align: start; /* Override fomantic's `text-align: left` to make RTL work via HTML `dir="auto"` */
 }
 
+/* fix Fomantic's line-height causing vertical scrollbars to appear */
+ul.ui.list li,
+ol.ui.list li,
+.ui.list > .item,
+.ui.list .list > .item {
+  line-height: var(--line-height-default);
+}
+
 .ui.input.focus > input,
 .ui.input > input:focus {
   border-color: var(--color-primary);
