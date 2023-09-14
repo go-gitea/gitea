@@ -15966,6 +15966,35 @@
         }
       }
     },
+    "/users/{username}/badges": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List a user's badges",
+        "operationId": "adminListUserBadges",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/BadgeList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/users/{username}/followers": {
       "get": {
         "produces": [
@@ -16775,6 +16804,45 @@
         "uuid": {
           "type": "string",
           "x-go-name": "UUID"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "Badge": {
+      "description": "Badge represents a user badge",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "image_url": {
+          "type": "string",
+          "x-go-name": "ImageURL"
+        },
+        "slug": {
+          "type": "string",
+          "x-go-name": "Slug"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "BadgeList": {
+      "description": "BadgeList",
+      "type": "object",
+      "properties": {
+        "body": {
+          "description": "in:body",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Badge"
+          },
+          "x-go-name": "Body"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -23077,6 +23145,15 @@
         }
       }
     },
+    "BadgeList": {
+      "description": "BadgeList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Badge"
+        }
+      }
+    },
     "Branch": {
       "description": "Branch",
       "schema": {
@@ -23982,7 +24059,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/UserBadgeOption"
+        "$ref": "#/definitions/BadgeList"
       }
     },
     "redirect": {

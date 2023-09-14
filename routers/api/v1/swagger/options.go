@@ -193,4 +193,7 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	UserBadgeOption api.UserBadgeOption
+
+	// in:body
+	UserBadgeList api.BadgeList
 }

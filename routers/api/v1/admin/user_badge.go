@@ -12,6 +12,36 @@ import (
 	"code.gitea.io/gitea/modules/web"
 )
 
+// ListUserBadges lists all badges belonging to a user
+func ListUserBadges(ctx *context.APIContext) {
+	// swagger:operation GET /users/{username}/badges admin adminListUserBadges
+	// ---
+	// summary: List a user's badges
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/BadgeList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	badges, maxResults, err := user_model.GetUserBadges(ctx, ctx.ContextUser)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetUserBadges", err)
+		return
+	}
+
+	ctx.SetTotalCountHeader(maxResults)
+	ctx.JSON(http.StatusOK, &badges)
+
+}
+
 // AddUserBadges add badges to a user
 func AddUserBadges(ctx *context.APIContext) {
 	// swagger:operation POST /admin/users/{username}/badges admin adminAddUserBadges
