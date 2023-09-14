@@ -5,6 +5,7 @@ package issues
 
 import (
 	"context"
+	"fmt"
 	"path"
 	"path/filepath"
 	"testing"
@@ -13,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/indexer/issues/bleve"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	_ "code.gitea.io/gitea/models"
 	_ "code.gitea.io/gitea/models/actions"
@@ -89,7 +91,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	})
 }
 
-func TestDBSearchIssues(t *testing.T) {
+func TestDBSearchIssuesWithKeyword(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	setting.Indexer.IssueType = "db"
@@ -130,4 +132,83 @@ func TestDBSearchIssues(t *testing.T) {
 		assert.NoError(t, err)
 		assert.EqualValues(t, []int64{1}, ids)
 	})
+}
+
+// TODO: add more tests
+func TestDBSearchIssueWithoutKeyword(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	setting.Indexer.IssueType = "db"
+	InitIssueIndexer(true)
+
+	int64Pointer := func(x int64) *int64 {
+		return &x
+	}
+	for _, test := range []struct {
+		opts        SearchOptions
+		expectedIDs []int64
+	}{
+		{
+			SearchOptions{
+				RepoIDs: []int64{1},
+			},
+			[]int64{11, 5, 3, 2, 1},
+		},
+		{
+			SearchOptions{
+				RepoIDs:    []int64{1},
+				AssigneeID: int64Pointer(1),
+			},
+			[]int64{1},
+		},
+		{
+			SearchOptions{
+				RepoIDs:  []int64{1},
+				PosterID: int64Pointer(1),
+			},
+			[]int64{11, 3, 2, 1},
+		},
+		{
+			SearchOptions{
+				RepoIDs:  []int64{1},
+				IsClosed: util.OptionalBoolFalse,
+			},
+			[]int64{11, 3, 2, 1},
+		},
+		{
+			SearchOptions{
+				RepoIDs:  []int64{1},
+				IsClosed: util.OptionalBoolTrue,
+			},
+			[]int64{5},
+		},
+		{
+			SearchOptions{
+				RepoIDs: []int64{1},
+			},
+			[]int64{11, 5, 3, 2, 1},
+		},
+		{
+			SearchOptions{
+				RepoIDs:    []int64{1},
+				AssigneeID: int64Pointer(1),
+			},
+			[]int64{1},
+		},
+		{
+			SearchOptions{
+				RepoIDs:  []int64{1},
+				PosterID: int64Pointer(1),
+			},
+			[]int64{11, 3, 2, 1},
+		},
+	} {
+		t.Run(fmt.Sprintf("%#v", test.opts), func(t *testing.T) {
+			issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+			if !assert.NoError(t, err) {
+				return
+			}
+			assert.Equal(t, test.expectedIDs, issueIDs)
+		})
+	}
 }
