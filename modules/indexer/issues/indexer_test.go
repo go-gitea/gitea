@@ -91,7 +91,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	})
 }
 
-func TestDBSearchIssues(t *testing.T) {
+func TestDBSearchIssuesWithKeyword(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	setting.Indexer.IssueType = "db"
@@ -134,7 +134,8 @@ func TestDBSearchIssues(t *testing.T) {
 	})
 }
 
-func TestDBSearchUserIssue(t *testing.T) {
+// TODO: add more tests
+func TestDBSearchIssueWithoutKeyword(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	setting.Indexer.IssueType = "db"
