@@ -79,7 +79,7 @@ func AddUserBadges(ctx context.Context, u *User, badges []*Badge) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		for _, badge := range badges {
 			// hydrate badge and check if it exists
-			has, err := db.GetEngine(ctx).Where("slug=?", slug).Get(badge)
+			has, err := db.GetEngine(ctx).Where("slug=?", badge.Slug).Get(badge)
 			if !has || err != nil {
 				return err
 			}
