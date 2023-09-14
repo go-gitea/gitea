@@ -196,9 +196,9 @@ func fixGitReops() {
 	neededReops := []string{
 		"privated_org/private_repo_on_private_org.git",
 		"privated_org/public_repo_on_private_org.git",
-		"user3/repo5.git",
-		"user3/repo3.git",
-		"user3/action_test.git",
+		"org3/repo5.git",
+		"org3/repo3.git",
+		"org3/action_test.git",
 		"user13/repo11.git",
 		"user27/template1.git",
 		"user27/repo49.git",

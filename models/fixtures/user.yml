@@ -86,7 +86,7 @@
   id: 3
   lower_name: org3
   name: org3
-  full_name: ' <<<< >> >> > >> > >>> >> '
+  full_name:  <<<< >> >> > >> > >>> >> 
   email: org3@example.com
   keep_email_private: false
   email_notifications_preference: onmention
