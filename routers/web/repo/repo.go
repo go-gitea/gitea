@@ -308,9 +308,9 @@ func Action(ctx *context.Context) {
 	case "unwatch":
 		err = repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	case "star":
-		err = repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, true)
+		err = repo_model.StarRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	case "unstar":
-		err = repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, false)
+		err = repo_model.StarRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	case "accept_transfer":
 		err = acceptOrRejectRepoTransfer(ctx, true)
 	case "reject_transfer":
