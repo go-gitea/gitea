@@ -14,7 +14,7 @@ import (
 // /   _____/  /  _  \    /     \ |    |
 // \_____  \  /  /_\  \  /  \ /  \|    |
 // /        \/    |    \/    Y    \    |___
-///_______  /\____|__  /\____|__  /_______ \
+// /_______  /\____|__  /\____|__  /_______ \
 //        \/         \/         \/        \/
 
 // Source holds configuration for the SAML login source.
@@ -37,6 +37,13 @@ type Source struct {
 	SignRequests bool
 
 	CallbackURL string
+
+	// EmailAssertionKey description: Assertion key for user.Email
+	EmailAssertionKey string
+	// NameAssertionKey description: Assertion key for user.NickName
+	NameAssertionKey string
+	// UsernameAssertionKey description: Assertion key for user.Name
+	UsernameAssertionKey string
 
 	// reference to the authSource
 	authSource *auth.Source

@@ -1,4 +1,4 @@
-<div class="saml field {{if not (eq .type 99)}}gt-hidden{{end}}">
+<div class="saml field {{if not (eq .type 8)}}gt-hidden{{end}}">
 
 	<div class="inline required field">
 		<label>{{.locale.Tr "admin.auths.saml_nameidformat"}}</label>
@@ -41,9 +41,24 @@
 
 	<div class="inline field">
 		<div class="ui checkbox">
-			<label><strong>{{.locale.Tr "admin.auths.sign_requests"}}</strong></label>
+			<label><strong>{{.locale.Tr "admin.auths.saml_sign_requests"}}</strong></label>
 			<input name="sign_requests" type="checkbox" {{if .SignRequests}}checked{{end}}>
 		</div>
+	</div>
+
+	<div class="field">
+		<label for="email_assertion_key">{{.locale.Tr "admin.auths.saml_identity_provider_email_assertion_key"}}</label>
+		<input id="email_assertion_key" name="email_assertion_key" value="{{if not .EmailAssertionKey}}http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress{{else}}{{.EmailAssertionKey}}{{end}}">
+	</div>
+
+	<div class="field">
+		<label for="name_assertion_key">{{.locale.Tr "admin.auths.saml_identity_provider_name_assertion_key"}}</label>
+		<input id="name_assertion_key" name="name_assertion_key" value="{{if not .NameAssertionKey}}http://schemas.xmlsoap.org/claims/CommonName{{else}}{{.NameAssertionKey}}{{end}}">
+	</div>
+
+	<div class="field">
+		<label for="username_assertion_key">{{.locale.Tr "admin.auths.saml_identity_provider_username_assertion_key"}}</label>
+		<input id="username_assertion_key" name="username_assertion_key" value="{{if not .UsernameAssertionKey}}http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name{{else}}{{.UsernameAssertionKey}}{{end}}">
 	</div>
 
 </div>

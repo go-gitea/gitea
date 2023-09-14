@@ -137,6 +137,10 @@ export function initAdminCommon() {
           showElem($('.sspi'));
           $('.sspi div.required input').attr('required', 'required');
           break;
+        case '8': // SAML
+          showElem($('.saml'));
+          $('.saml div.required input').attr('required', 'required');
+          break;
       }
       if (authType === '2' || authType === '5') {
         onSecurityProtocolChange();
