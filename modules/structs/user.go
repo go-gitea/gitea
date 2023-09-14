@@ -113,6 +113,7 @@ type UpdateUserAvatarOption struct {
 // Badge represents a user badge
 // swagger:model
 type Badge struct {
+	ID          int64  `json:"id"`
 	Slug        string `json:"slug"`
 	Description string `json:"description"`
 	ImageURL    string `json:"image_url"`
@@ -121,9 +122,9 @@ type Badge struct {
 // UserBadge represents a user badge
 // swagger:model
 type UserBadge struct {
-	ID        int64 `json:"id"`
-	BadgeSlug int64 `json:"badge_slug"`
-	UserID    int64 `json:"user_id"`
+	ID      int64 `json:"id"`
+	BadgeID int64 `json:"badge_id"`
+	UserID  int64 `json:"user_id"`
 }
 
 // UserBadgeOption options for link between users and badges
