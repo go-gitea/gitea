@@ -830,10 +830,11 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 	return labels
 }
 
-func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles []string) map[string]error {
+// Tries to load and set an issue template. The first return value indicates if a template was loaded.
+func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles []string) (bool, map[string]error) {
 	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
-		return nil
+		return false, nil
 	}
 
 	templateCandidates := make([]string, 0, 1+len(possibleFiles))
@@ -896,20 +897,15 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 		ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
 		ctx.Data["Reference"] = template.Ref
 		ctx.Data["RefEndName"] = git.RefName(template.Ref).ShortName()
-		return templateErrs
+		return true, templateErrs
 	}
-	return templateErrs
+	return false, templateErrs
 }
 
 // NewIssue render creating issue page
 func NewIssue(ctx *context.Context) {
 	issueConfig, _ := issue_service.GetTemplateConfigFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	hasTemplates := issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
-	if !issueConfig.BlankIssuesEnabled && hasTemplates {
-		// The "issues/new" and "issues/new/choose" share the same query parameters "project" and "milestone", if blank issues are disabled, just redirect to the "issues/choose" page with these parameters.
-		ctx.Redirect(fmt.Sprintf("%s/issues/new/choose?%s", ctx.Repo.Repository.Link(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
-		return
-	}
 
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
@@ -963,7 +959,8 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["Tags"] = tags
 
 	_, templateErrs := issue_service.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
-	if errs := setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates); len(errs) > 0 {
+	templateLoaded, errs := setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
+	if len(errs) > 0 {
 		for k, v := range errs {
 			templateErrs[k] = v
 		}
@@ -977,6 +974,12 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypeIssues)
+
+	if !issueConfig.BlankIssuesEnabled && hasTemplates && !templateLoaded {
+		// The "issues/new" and "issues/new/choose" share the same query parameters "project" and "milestone", if blank issues are disabled, just redirect to the "issues/choose" page with these parameters.
+		ctx.Redirect(fmt.Sprintf("%s/issues/new/choose?%s", ctx.Repo.Repository.Link(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
+		return
+	}
 
 	ctx.HTML(http.StatusOK, tplIssueNew)
 }
