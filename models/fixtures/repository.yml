@@ -83,7 +83,7 @@
 -
   id: 3
   owner_id: 3
-  owner_name: user3
+  owner_name: org3
   lower_name: repo3
   name: repo3
   description: ''
@@ -165,7 +165,7 @@
 -
   id: 5
   owner_id: 3
-  owner_name: user3
+  owner_name: org3
   lower_name: repo5
   name: repo5
   description: ''
@@ -889,7 +889,7 @@
 -
   id: 23
   owner_id: 17
-  owner_name: user17
+  owner_name: org17
   lower_name: big_test_public_4
   name: big_test_public_4
   description: ''
@@ -929,7 +929,7 @@
 -
   id: 24
   owner_id: 17
-  owner_name: user17
+  owner_name: org17
   lower_name: big_test_private_4
   name: big_test_private_4
   description: ''
@@ -1049,7 +1049,7 @@
 -
   id: 27
   owner_id: 19
-  owner_name: user19
+  owner_name: org19
   lower_name: big_test_public_mirror_6
   name: big_test_public_mirror_6
   description: ''
@@ -1089,7 +1089,7 @@
 -
   id: 28
   owner_id: 19
-  owner_name: user19
+  owner_name: org19
   lower_name: big_test_private_mirror_6
   name: big_test_private_mirror_6
   description: ''
@@ -1250,7 +1250,7 @@
 -
   id: 32
   owner_id: 3
-  owner_name: user3
+  owner_name: org3
   lower_name: repo21
   name: repo21
   description: ''

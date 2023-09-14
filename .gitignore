@@ -95,6 +95,7 @@ cpu.out
 /.go-licenses
 
 # Snapcraft
+/gitea_a*.txt
 snap/.snapcraft/
 parts/
 stage/
