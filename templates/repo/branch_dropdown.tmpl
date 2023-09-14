@@ -3,12 +3,12 @@
 * ContainerClasses
 * (TODO: search "branch_dropdown" in the template direcotry)
 */}}
-{{$defaultSelectedBranch := $.root.BranchName}}
+{{$defaultSelectedRefName := $.root.BranchName}}
 {{if and .root.IsViewTag (not .noTag)}}
-	{{$defaultSelectedBranch = .root.TagName}}
+	{{$defaultSelectedRefName = .root.TagName}}
 {{end}}
-{{if eq $defaultSelectedBranch ""}}
-	{{$defaultSelectedBranch = $.root.Repository.defaultSelectedBranch}}
+{{if eq $defaultSelectedRefName ""}}
+	{{$defaultSelectedRefName = $.root.Repository.DefaultBranch}}
 {{end}}
 
 {{$type := ""}}
@@ -45,7 +45,7 @@
 		'tagName': {{.root.TagName}},
 		'branchName': {{.root.BranchName}},
 		'noTag': {{.noTag}},
-		'defaultSelectedBranch': {{$defaultSelectedBranch}},
+		'defaultSelectedRefName': {{$defaultSelectedRefName}},
 		'repoDefaultBranch': {{.root.Repository.DefaultBranch}},
 		'enableFeed': {{.root.EnableFeed}},
 		'rssURLPrefix': '{{$.root.RepoLink}}/rss/branch/',

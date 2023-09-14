@@ -190,16 +190,15 @@ const sfc = {
       }
       this.isLoading = true;
       try {
-        // the "data.defaultSelectedBranch" is ambiguous, it could be "branch name" or "tag name"
         const reqUrl = `${this.repoLink}/${this.mode}/list`;
         const resp = await fetch(reqUrl);
         const {results} = await resp.json();
         for (const result of results) {
           let selected = false;
           if (this.mode === 'branches') {
-            selected = result === this.defaultSelectedBranch;
+            selected = result === this.defaultSelectedRefName;
           } else {
-            selected = result === (this.release ? this.release.tagName : this.defaultSelectedBranch);
+            selected = result === (this.release ? this.release.tagName : this.defaultSelectedRefName);
           }
           this.items.push({name: result, url: pathEscapeSegments(result), branch: this.mode === 'branches', tag: this.mode === 'tags', selected});
         }
