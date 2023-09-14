@@ -77,6 +77,7 @@ func Users(ctx *context.Context) {
 		IsRestricted:       util.OptionalBoolParse(statusFilterMap["is_restricted"]),
 		IsTwoFactorEnabled: util.OptionalBoolParse(statusFilterMap["is_2fa_enabled"]),
 		IsProhibitLogin:    util.OptionalBoolParse(statusFilterMap["is_prohibit_login"]),
+		IncludeReserved:    true, // administrator needs to list all acounts include reserved, bot, remote ones
 		ExtraParamStrings:  extraParamStrings,
 	}, tplUsers)
 }
