@@ -34,12 +34,26 @@ type SearchUserOptions struct {
 	IsRestricted       util.OptionalBool
 	IsTwoFactorEnabled util.OptionalBool
 	IsProhibitLogin    util.OptionalBool
+	IncludeReserved    bool
 
 	ExtraParamStrings map[string]string
 }
 
 func (opts *SearchUserOptions) toSearchQueryBase() *xorm.Session {
-	var cond builder.Cond = builder.Eq{"type": opts.Type}
+	var cond builder.Cond
+	cond = builder.Eq{"type": opts.Type}
+	if opts.IncludeReserved {
+		if opts.Type == UserTypeIndividual {
+			cond = cond.Or(builder.Eq{"type": UserTypeUserReserved}).Or(
+				builder.Eq{"type": UserTypeBot},
+			).Or(
+				builder.Eq{"type": UserTypeRemoteUser},
+			)
+		} else if opts.Type == UserTypeOrganization {
+			cond = cond.Or(builder.Eq{"type": UserTypeOrganizationReserved})
+		}
+	}
+
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
 		keywordCond := builder.Or(
