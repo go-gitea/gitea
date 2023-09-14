@@ -170,7 +170,7 @@ func NewUserPost(ctx *context.Context) {
 		u.MustChangePassword = form.MustChangePassword
 	}
 
-	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, u, overwriteDefault); err != nil {
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
@@ -282,7 +282,7 @@ func ViewUser(ctx *context.Context) {
 	ctx.Data["Repos"] = repos
 	ctx.Data["ReposTotal"] = int(count)
 
-	emails, err := user_model.GetEmailAddresses(u.ID)
+	emails, err := user_model.GetEmailAddresses(ctx, u.ID)
 	if err != nil {
 		ctx.ServerError("GetEmailAddresses", err)
 		return
