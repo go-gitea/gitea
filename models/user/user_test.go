@@ -39,7 +39,7 @@ func TestGetUserEmailsByNames(t *testing.T) {
 	assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user9"}))
 	assert.ElementsMatch(t, []string{"user8@example.com", "user5@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user5"}))
 
-	assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user7"}))
+	assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "org7"}))
 }
 
 func TestCanCreateOrganization(t *testing.T) {
@@ -372,9 +372,9 @@ func TestUpdateUser(t *testing.T) {
 func TestUpdateUserEmailAlreadyUsed(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 
-	user2.Email = user3.Email
+	user2.Email = org3.Email
 	err := user_model.UpdateUser(db.DefaultContext, user2, true)
 	assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
 }

@@ -430,11 +430,11 @@ func TestIssue_ResolveMentions(t *testing.T) {
 	// Public repo, doer
 	testSuccess("user2", "repo1", "user1", []string{"user1"}, []int64{})
 	// Private repo, team member
-	testSuccess("user17", "big_test_private_4", "user20", []string{"user2"}, []int64{2})
+	testSuccess("org17", "big_test_private_4", "user20", []string{"user2"}, []int64{2})
 	// Private repo, not a team member
-	testSuccess("user17", "big_test_private_4", "user20", []string{"user5"}, []int64{})
+	testSuccess("org17", "big_test_private_4", "user20", []string{"user5"}, []int64{})
 	// Private repo, whole team
-	testSuccess("user17", "big_test_private_4", "user15", []string{"user17/owners"}, []int64{18})
+	testSuccess("org17", "big_test_private_4", "user15", []string{"org17/owners"}, []int64{18})
 }
 
 func TestResourceIndex(t *testing.T) {

@@ -317,9 +317,9 @@ func TestParseCodeOwnersLine(t *testing.T) {
 		{Line: "# comment", Tokens: []string{}},
 		{Line: "!.* @user1 @org1/team1", Tokens: []string{"!.*", "@user1", "@org1/team1"}},
 		{Line: `.*\\.js @user2 #comment`, Tokens: []string{`.*\.js`, "@user2"}},
-		{Line: `docs/(aws|google|azure)/[^/]*\\.(md|txt) @user3 @org2/team2`, Tokens: []string{`docs/(aws|google|azure)/[^/]*\.(md|txt)`, "@user3", "@org2/team2"}},
-		{Line: `\#path @user3`, Tokens: []string{`#path`, "@user3"}},
-		{Line: `path\ with\ spaces/ @user3`, Tokens: []string{`path with spaces/`, "@user3"}},
+		{Line: `docs/(aws|google|azure)/[^/]*\\.(md|txt) @org3 @org2/team2`, Tokens: []string{`docs/(aws|google|azure)/[^/]*\.(md|txt)`, "@org3", "@org2/team2"}},
+		{Line: `\#path @org3`, Tokens: []string{`#path`, "@org3"}},
+		{Line: `path\ with\ spaces/ @org3`, Tokens: []string{`path with spaces/`, "@org3"}},
 	}
 
 	for _, g := range given {
@@ -335,7 +335,7 @@ func TestGetApprovers(t *testing.T) {
 	// to assert that there are no duplicated approvers.
 	setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly = false
 	approvers := pr.GetApprovers()
-	expected := "Reviewed-by: User Five <user5@example.com>\nReviewed-by: User Six <user6@example.com>\n"
+	expected := "Reviewed-by: User Five <user5@example.com>\nReviewed-by: Org Six <org6@example.com>\n"
 	assert.EqualValues(t, expected, approvers)
 }
 
