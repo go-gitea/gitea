@@ -423,11 +423,6 @@ func AddTeamMember(ctx context.Context, team *organization.Team, userID int64) e
 		}
 	}
 
-	if err := committer.Commit(); err != nil {
-		return err
-	}
-	committer.Close()
-
 	// this behaviour may spend much time so run it in a goroutine
 	// FIXME: Update watch repos batchly
 	if setting.Service.AutoWatchNewRepos {
@@ -435,6 +430,7 @@ func AddTeamMember(ctx context.Context, team *organization.Team, userID int64) e
 		if err := team.LoadRepositories(ctx); err != nil {
 			log.Error("getRepositories failed: %v", err)
 		}
+		// FIXME: in the goroutine, it can't access the "ctx", it could only use db.DefaultContext at the moment
 		go func(repos []*repo_model.Repository) {
 			for _, repo := range repos {
 				if err = repo_model.WatchRepo(db.DefaultContext, userID, repo.ID, true); err != nil {
@@ -444,7 +440,7 @@ func AddTeamMember(ctx context.Context, team *organization.Team, userID int64) e
 		}(team.Repos)
 	}
 
-	return nil
+	return committer.Commit()
 }
 
 func removeTeamMember(ctx context.Context, team *organization.Team, userID int64) error {
