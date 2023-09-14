@@ -247,6 +247,7 @@ func fixGitReops() {
 
 			// proc-receive is not needed in test  code now
 			_ = util.Remove(path.Join(dir, "hooks", "proc-receive"))
+			_ = util.RemoveAll(path.Join(dir, "hooks", "proc-receive.d"))
 
 			for _, fix := range allFixs {
 				err := os.MkdirAll(path.Join(dir, fix.Path), os.ModePerm)
