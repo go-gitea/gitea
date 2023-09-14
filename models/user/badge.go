@@ -11,16 +11,17 @@ import (
 
 // Badge represents a user badge
 type Badge struct {
-	Slug        string `xorm:"pk UNIQUE"`
+	ID          int64  `xorm:"pk autoincr"`
+	Slug        string `xorm:"UNIQUE"`
 	Description string
 	ImageURL    string
 }
 
 // UserBadge represents a user badge
 type UserBadge struct { //nolint:revive
-	ID        int64 `xorm:"pk autoincr"`
-	BadgeSlug string
-	UserID    int64 `xorm:"INDEX"`
+	ID      int64 `xorm:"pk autoincr"`
+	BadgeID int64
+	UserID  int64 `xorm:"INDEX"`
 }
 
 func init() {
@@ -64,7 +65,7 @@ func UpdateBadge(ctx context.Context, badge *Badge) error {
 
 // DeleteBadge deletes a badge.
 func DeleteBadge(ctx context.Context, badge *Badge) error {
-	_, err := db.GetEngine(ctx).Delete(badge)
+	_, err := db.GetEngine(ctx).Where("slug=?", badge.Slug).Delete(badge)
 	return err
 }
 
@@ -77,9 +78,14 @@ func AddUserBadge(ctx context.Context, u *User, badge *Badge) error {
 func AddUserBadges(ctx context.Context, u *User, badges []*Badge) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		for _, badge := range badges {
+			// hydrate badge and check if it exists
+			has, err := db.GetEngine(ctx).Where("slug=?", slug).Get(badge)
+			if !has || err != nil {
+				return err
+			}
 			if err := db.Insert(ctx, &UserBadge{
-				BadgeSlug: badge.Slug,
-				UserID:    u.ID,
+				BadgeID: badge.ID,
+				UserID:  u.ID,
 			}); err != nil {
 				return err
 			}
@@ -97,7 +103,10 @@ func RemoveUserBadge(ctx context.Context, u *User, badge *Badge) error {
 func RemoveUserBadges(ctx context.Context, u *User, badges []*Badge) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		for _, badge := range badges {
-			if _, err := db.GetEngine(ctx).Where("user_id=? AND badge_slug=?", u.ID, badge.Slug).Delete(&UserBadge{}); err != nil {
+			if _, err := db.GetEngine(ctx).
+				Join("INNER", "badge", "badge.id = `user_badge`.badge_id").
+				Where("`user_badge`.user_id=? AND `badge`.slug=?", u.ID, badge.Slug).
+				Delete(&UserBadge{}); err != nil {
 				return err
 			}
 		}
