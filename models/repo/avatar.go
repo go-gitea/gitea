@@ -30,6 +30,12 @@ func ExistsWithAvatarAtStoragePath(ctx context.Context, storagePath string) (boo
 	return db.GetEngine(ctx).Where("`avatar`=?", storagePath).Exist(new(Repository))
 }
 
+
+// RelAvatarLink returns a relative link to the repository's avatar.
+func (repo *Repository) RelAvatarLink() string {
+	return repo.relAvatarLink(db.DefaultContext)
+}
+
 // generateRandomAvatar generates a random avatar for repository.
 func generateRandomAvatar(ctx context.Context, repo *Repository) error {
 	idToString := fmt.Sprintf("%d", repo.ID)
