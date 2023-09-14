@@ -4,6 +4,7 @@
 package user
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -38,7 +39,7 @@ type SearchUserOptions struct {
 	ExtraParamStrings map[string]string
 }
 
-func (opts *SearchUserOptions) toSearchQueryBase() *xorm.Session {
+func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) *xorm.Session {
 	var cond builder.Cond = builder.Eq{"type": opts.Type}
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
@@ -87,7 +88,7 @@ func (opts *SearchUserOptions) toSearchQueryBase() *xorm.Session {
 		cond = cond.And(builder.Eq{"prohibit_login": opts.IsProhibitLogin.IsTrue()})
 	}
 
-	e := db.GetEngine(db.DefaultContext)
+	e := db.GetEngine(ctx)
 	if opts.IsTwoFactorEnabled.IsNone() {
 		return e.Where(cond)
 	}
@@ -108,8 +109,8 @@ func (opts *SearchUserOptions) toSearchQueryBase() *xorm.Session {
 
 // SearchUsers takes options i.e. keyword and part of user name to search,
 // it returns results in given range and number of total results.
-func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
-	sessCount := opts.toSearchQueryBase()
+func SearchUsers(ctx context.Context, opts *SearchUserOptions) (users []*User, _ int64, _ error) {
+	sessCount := opts.toSearchQueryBase(ctx)
 	defer sessCount.Close()
 	count, err := sessCount.Count(new(User))
 	if err != nil {
@@ -120,7 +121,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 		opts.OrderBy = db.SearchOrderByAlphabetically
 	}
 
-	sessQuery := opts.toSearchQueryBase().OrderBy(opts.OrderBy.String())
+	sessQuery := opts.toSearchQueryBase(ctx).OrderBy(opts.OrderBy.String())
 	defer sessQuery.Close()
 	if opts.Page != 0 {
 		sessQuery = db.SetSessionPagination(sessQuery, opts)
