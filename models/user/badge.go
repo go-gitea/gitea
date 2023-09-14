@@ -33,7 +33,7 @@ func init() {
 func GetUserBadges(ctx context.Context, u *User) ([]*Badge, int64, error) {
 	sess := db.GetEngine(ctx).
 		Select("`badge`.*").
-		Join("INNER", "user_badge", "`user_badge`.badge_slug=badge.slug").
+		Join("INNER", "user_badge", "`user_badge`.badge_id=badge.id").
 		Where("user_badge.user_id=?", u.ID)
 
 	badges := make([]*Badge, 0, 8)
