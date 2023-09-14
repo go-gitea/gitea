@@ -640,20 +640,20 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 		return err
 	}
 
-	dbCtx, committer, err := db.TxContext(ctx)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	isExist, err := IsUserExist(dbCtx, 0, u.Name)
+	isExist, err := IsUserExist(ctx, 0, u.Name)
 	if err != nil {
 		return err
 	} else if isExist {
 		return ErrUserAlreadyExist{u.Name}
 	}
 
-	isExist, err = IsEmailUsed(dbCtx, u.Email)
+	isExist, err = IsEmailUsed(ctx, u.Email)
 	if err != nil {
 		return err
 	} else if isExist {
@@ -675,24 +675,24 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 
 	// save changes to database
 
-	if err = DeleteUserRedirect(dbCtx, u.Name); err != nil {
+	if err = DeleteUserRedirect(ctx, u.Name); err != nil {
 		return err
 	}
 
 	if u.CreatedUnix == 0 {
 		// Caller expects auto-time for creation & update timestamps.
-		err = db.Insert(dbCtx, u)
+		err = db.Insert(ctx, u)
 	} else {
 		// Caller sets the timestamps themselves. They are responsible for ensuring
 		// both `CreatedUnix` and `UpdatedUnix` are set appropriately.
-		_, err = db.GetEngine(dbCtx).NoAutoTime().Insert(u)
+		_, err = db.GetEngine(ctx).NoAutoTime().Insert(u)
 	}
 	if err != nil {
 		return err
 	}
 
 	// insert email address
-	if err := db.Insert(dbCtx, &EmailAddress{
+	if err := db.Insert(ctx, &EmailAddress{
 		UID:         u.ID,
 		Email:       u.Email,
 		LowerEmail:  strings.ToLower(u.Email),
@@ -873,18 +873,18 @@ func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
 
 // UpdateUserSetting updates user's settings.
 func UpdateUserSetting(ctx context.Context, u *User) (err error) {
-	dbCtx, committer, err := db.TxContext(ctx)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
 	if !u.IsOrganization() {
-		if err = checkDupEmail(dbCtx, u); err != nil {
+		if err = checkDupEmail(ctx, u); err != nil {
 			return err
 		}
 	}
-	if err = UpdateUser(dbCtx, u, false); err != nil {
+	if err = UpdateUser(ctx, u, false); err != nil {
 		return err
 	}
 	return committer.Commit()

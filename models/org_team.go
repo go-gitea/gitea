@@ -74,13 +74,13 @@ func addAllRepositories(ctx context.Context, t *organization.Team) error {
 
 // AddAllRepositories adds all repositories to the team
 func AddAllRepositories(ctx context.Context, t *organization.Team) (err error) {
-	dbCtx, committer, err := db.TxContext(ctx)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	if err = addAllRepositories(dbCtx, t); err != nil {
+	if err = addAllRepositories(ctx, t); err != nil {
 		return err
 	}
 
@@ -93,13 +93,13 @@ func RemoveAllRepositories(ctx context.Context, t *organization.Team) (err error
 		return nil
 	}
 
-	dbCtx, committer, err := db.TxContext(ctx)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	if err = removeAllRepositories(dbCtx, t); err != nil {
+	if err = removeAllRepositories(ctx, t); err != nil {
 		return err
 	}
 
@@ -182,13 +182,13 @@ func NewTeam(ctx context.Context, t *organization.Team) (err error) {
 		return organization.ErrTeamAlreadyExist{OrgID: t.OrgID, Name: t.LowerName}
 	}
 
-	dbCtx, committer, err := db.TxContext(ctx)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	if err = db.Insert(dbCtx, t); err != nil {
+	if err = db.Insert(ctx, t); err != nil {
 		return err
 	}
 
@@ -197,21 +197,21 @@ func NewTeam(ctx context.Context, t *organization.Team) (err error) {
 		for _, unit := range t.Units {
 			unit.TeamID = t.ID
 		}
-		if err = db.Insert(dbCtx, &t.Units); err != nil {
+		if err = db.Insert(ctx, &t.Units); err != nil {
 			return err
 		}
 	}
 
 	// Add all repositories to the team if it has access to all of them.
 	if t.IncludesAllRepositories {
-		err = addAllRepositories(dbCtx, t)
+		err = addAllRepositories(ctx, t)
 		if err != nil {
 			return fmt.Errorf("addAllRepositories: %w", err)
 		}
 	}
 
 	// Update organization number of teams.
-	if _, err = db.Exec(dbCtx, "UPDATE `user` SET num_teams=num_teams+1 WHERE id = ?", t.OrgID); err != nil {
+	if _, err = db.Exec(ctx, "UPDATE `user` SET num_teams=num_teams+1 WHERE id = ?", t.OrgID); err != nil {
 		return err
 	}
 	return committer.Commit()
@@ -227,12 +227,12 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 		t.Description = t.Description[:255]
 	}
 
-	dbCtx, committer, err := db.TxContext(ctx)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(dbCtx)
+	sess := db.GetEngine(ctx)
 
 	t.LowerName = strings.ToLower(t.Name)
 	has, err := sess.
@@ -269,12 +269,12 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 
 	// Update access for team members if needed.
 	if authChanged {
-		if err = t.LoadRepositories(dbCtx); err != nil {
+		if err = t.LoadRepositories(ctx); err != nil {
 			return fmt.Errorf("LoadRepositories: %w", err)
 		}
 
 		for _, repo := range t.Repos {
-			if err = access_model.RecalculateTeamAccesses(dbCtx, repo, 0); err != nil {
+			if err = access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
 				return fmt.Errorf("recalculateTeamAccesses: %w", err)
 			}
 		}
@@ -282,7 +282,7 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 
 	// Add all repositories to the team if it has access to all of them.
 	if includeAllChanged && t.IncludesAllRepositories {
-		err = addAllRepositories(dbCtx, t)
+		err = addAllRepositories(ctx, t)
 		if err != nil {
 			return fmt.Errorf("addAllRepositories: %w", err)
 		}
@@ -294,43 +294,43 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 // DeleteTeam deletes given team.
 // It's caller's responsibility to assign organization ID.
 func DeleteTeam(ctx context.Context, t *organization.Team) error {
-	dbCtx, committer, err := db.TxContext(ctx)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	if err := t.LoadRepositories(dbCtx); err != nil {
+	if err := t.LoadRepositories(ctx); err != nil {
 		return err
 	}
 
-	if err := t.LoadMembers(dbCtx); err != nil {
+	if err := t.LoadMembers(ctx); err != nil {
 		return err
 	}
 
 	// update branch protections
 	{
 		protections := make([]*git_model.ProtectedBranch, 0, 10)
-		err := db.GetEngine(dbCtx).In("repo_id",
+		err := db.GetEngine(ctx).In("repo_id",
 			builder.Select("id").From("repository").Where(builder.Eq{"owner_id": t.OrgID})).
 			Find(&protections)
 		if err != nil {
 			return fmt.Errorf("findProtectedBranches: %w", err)
 		}
 		for _, p := range protections {
-			if err := git_model.RemoveTeamIDFromProtectedBranch(dbCtx, p, t.ID); err != nil {
+			if err := git_model.RemoveTeamIDFromProtectedBranch(ctx, p, t.ID); err != nil {
 				return err
 			}
 		}
 	}
 
 	if !t.IncludesAllRepositories {
-		if err := removeAllRepositories(dbCtx, t); err != nil {
+		if err := removeAllRepositories(ctx, t); err != nil {
 			return err
 		}
 	}
 
-	if err := db.DeleteBeans(dbCtx,
+	if err := db.DeleteBeans(ctx,
 		&organization.Team{ID: t.ID},
 		&organization.TeamUser{OrgID: t.OrgID, TeamID: t.ID},
 		&organization.TeamUnit{TeamID: t.ID},
@@ -341,13 +341,13 @@ func DeleteTeam(ctx context.Context, t *organization.Team) error {
 	}
 
 	for _, tm := range t.Members {
-		if err := removeInvalidOrgUser(dbCtx, tm.ID, t.OrgID); err != nil {
+		if err := removeInvalidOrgUser(ctx, tm.ID, t.OrgID); err != nil {
 			return err
 		}
 	}
 
 	// Update organization number of teams.
-	if _, err := db.Exec(dbCtx, "UPDATE `user` SET num_teams=num_teams-1 WHERE id=?", t.OrgID); err != nil {
+	if _, err := db.Exec(ctx, "UPDATE `user` SET num_teams=num_teams-1 WHERE id=?", t.OrgID); err != nil {
 		return err
 	}
 
@@ -366,21 +366,21 @@ func AddTeamMember(ctx context.Context, team *organization.Team, userID int64) e
 		return err
 	}
 
-	dbCtx, committer, err := db.TxContext(ctx)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
 	// check in transaction
-	isAlreadyMember, err = organization.IsTeamMember(dbCtx, team.OrgID, team.ID, userID)
+	isAlreadyMember, err = organization.IsTeamMember(ctx, team.OrgID, team.ID, userID)
 	if err != nil || isAlreadyMember {
 		return err
 	}
 
-	sess := db.GetEngine(dbCtx)
+	sess := db.GetEngine(ctx)
 
-	if err := db.Insert(dbCtx, &organization.TeamUser{
+	if err := db.Insert(ctx, &organization.TeamUser{
 		UID:    userID,
 		OrgID:  team.OrgID,
 		TeamID: team.ID,
@@ -416,7 +416,7 @@ func AddTeamMember(ctx context.Context, team *organization.Team, userID int64) e
 	for i, repoID := range repoIDs {
 		accesses = append(accesses, &access_model.Access{RepoID: repoID, UserID: userID, Mode: team.AccessMode})
 		if (i%100 == 0 || i == len(repoIDs)-1) && len(accesses) > 0 {
-			if err = db.Insert(dbCtx, accesses); err != nil {
+			if err = db.Insert(ctx, accesses); err != nil {
 				return fmt.Errorf("insert new user accesses: %w", err)
 			}
 			accesses = accesses[:0]
@@ -437,7 +437,7 @@ func AddTeamMember(ctx context.Context, team *organization.Team, userID int64) e
 		}
 		go func(repos []*repo_model.Repository) {
 			for _, repo := range repos {
-				if err = repo_model.WatchRepo(ctx, userID, repo.ID, true); err != nil {
+				if err = repo_model.WatchRepo(db.DefaultContext, userID, repo.ID, true); err != nil {
 					log.Error("watch repo failed: %v", err)
 				}
 			}
@@ -513,12 +513,12 @@ func removeInvalidOrgUser(ctx context.Context, userID, orgID int64) error {
 
 // RemoveTeamMember removes member from given team of given organization.
 func RemoveTeamMember(ctx context.Context, team *organization.Team, userID int64) error {
-	dbCtx, committer, err := db.TxContext(ctx)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
-	if err := removeTeamMember(dbCtx, team, userID); err != nil {
+	if err := removeTeamMember(ctx, team, userID); err != nil {
 		return err
 	}
 	return committer.Commit()

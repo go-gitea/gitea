@@ -330,12 +330,12 @@ func DeleteInactiveEmailAddresses(ctx context.Context) error {
 
 // ActivateEmail activates the email address to given user.
 func ActivateEmail(ctx context.Context, email *EmailAddress) error {
-	dbCtx, committer, err := db.TxContext(ctx)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
-	if err := updateActivation(dbCtx, email, true); err != nil {
+	if err := updateActivation(ctx, email, true); err != nil {
 		return err
 	}
 	return committer.Commit()
@@ -381,12 +381,12 @@ func MakeEmailPrimary(ctx context.Context, email *EmailAddress) error {
 		}
 	}
 
-	dbCtx, committer, err := db.TxContext(ctx)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(dbCtx)
+	sess := db.GetEngine(ctx)
 
 	// 1. Update user table
 	user.Email = email.Email
