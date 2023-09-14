@@ -281,7 +281,7 @@ func ViewUser(ctx *context.Context) {
 	ctx.Data["Repos"] = repos
 	ctx.Data["ReposTotal"] = int(count)
 
-	emails, err := user_model.GetEmailAddresses(ctx.Doer.ID)
+	emails, err := user_model.GetEmailAddresses(u.ID)
 	if err != nil {
 		ctx.ServerError("GetEmailAddresses", err)
 		return
@@ -314,7 +314,9 @@ func EditUser(ctx *context.Context) {
 	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
-	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
+	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar,
+		setting.GetDefaultDisableGravatar(),
+	)
 
 	prepareUserInfo(ctx)
 	if ctx.Written() {
@@ -331,7 +333,8 @@ func EditUserPost(ctx *context.Context) {
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
-	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
+	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar,
+		setting.GetDefaultDisableGravatar())
 
 	u := prepareUserInfo(ctx)
 	if ctx.Written() {

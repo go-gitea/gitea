@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/notification"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 func changeMilestoneAssign(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64) error {
@@ -78,7 +78,7 @@ func ChangeMilestoneAssign(issue *issues_model.Issue, doer *user_model.User, old
 		return fmt.Errorf("Commit: %w", err)
 	}
 
-	notification.NotifyIssueChangeMilestone(db.DefaultContext, doer, issue, oldMilestoneID)
+	notify_service.IssueChangeMilestone(db.DefaultContext, doer, issue, oldMilestoneID)
 
 	return nil
 }

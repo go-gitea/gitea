@@ -209,7 +209,7 @@ func TestListEmails(t *testing.T) {
 	}
 
 	assert.True(t, contains(func(s *user_model.SearchEmailResult) bool { return s.UID == 18 }))
-	// 'user3' is an organization
+	// 'org3' is an organization
 	assert.False(t, contains(func(s *user_model.SearchEmailResult) bool { return s.UID == 3 }))
 
 	// Must find no records

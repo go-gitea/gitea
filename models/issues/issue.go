@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"slices"
 
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
@@ -605,7 +606,7 @@ func IsUserParticipantsOfIssue(user *user_model.User, issue *Issue) bool {
 		log.Error(err.Error())
 		return false
 	}
-	return util.SliceContains(userIDs, user.ID)
+	return slices.Contains(userIDs, user.ID)
 }
 
 // DependencyInfo represents high level information about an issue which is a dependency of another issue.
@@ -630,7 +631,7 @@ func (issue *Issue) GetParticipantIDsByIssue(ctx context.Context) ([]int64, erro
 		Find(&userIDs); err != nil {
 		return nil, fmt.Errorf("get poster IDs: %w", err)
 	}
-	if !util.SliceContains(userIDs, issue.PosterID) {
+	if !slices.Contains(userIDs, issue.PosterID) {
 		return append(userIDs, issue.PosterID), nil
 	}
 	return userIDs, nil
@@ -890,4 +891,51 @@ func IsNewPinAllowed(ctx context.Context, repoID int64, isPull bool) (bool, erro
 // IsErrIssueMaxPinReached returns if the error is, that the User can't pin more Issues
 func IsErrIssueMaxPinReached(err error) bool {
 	return err == ErrIssueMaxPinReached
+}
+
+// InsertIssues insert issues to database
+func InsertIssues(issues ...*Issue) error {
+	ctx, committer, err := db.TxContext(db.DefaultContext)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	for _, issue := range issues {
+		if err := insertIssue(ctx, issue); err != nil {
+			return err
+		}
+	}
+	return committer.Commit()
+}
+
+func insertIssue(ctx context.Context, issue *Issue) error {
+	sess := db.GetEngine(ctx)
+	if _, err := sess.NoAutoTime().Insert(issue); err != nil {
+		return err
+	}
+	issueLabels := make([]IssueLabel, 0, len(issue.Labels))
+	for _, label := range issue.Labels {
+		issueLabels = append(issueLabels, IssueLabel{
+			IssueID: issue.ID,
+			LabelID: label.ID,
+		})
+	}
+	if len(issueLabels) > 0 {
+		if _, err := sess.Insert(issueLabels); err != nil {
+			return err
+		}
+	}
+
+	for _, reaction := range issue.Reactions {
+		reaction.IssueID = issue.ID
+	}
+
+	if len(issue.Reactions) > 0 {
+		if _, err := sess.Insert(issue.Reactions); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
