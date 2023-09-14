@@ -35,7 +35,7 @@ func UseSlugInsteadOfIDForBadges(x *xorm.Engine) error {
 		return err
 	}
 
-	err := sess.Sync(new(BadgeUnique))
+	err = sess.Sync(new(BadgeUnique))
 	if err != nil {
 		return err
 	}
