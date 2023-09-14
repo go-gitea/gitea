@@ -168,6 +168,10 @@
   margin-right: .6em;
 }
 
+.markup .task-list-item input[type="checkbox"] + p {
+  margin: 0;
+}
+
 .markup .task-list-item p {
   line-height: 1.5rem;
 }
