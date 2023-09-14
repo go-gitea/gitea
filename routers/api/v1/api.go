@@ -937,7 +937,7 @@ func Routes() *web.Route {
 				m.Combo("").Get(user.ListAccessTokens).
 					Post(bind(api.CreateAccessTokenOption{}), reqToken(), user.CreateAccessToken)
 				m.Combo("/{id}").Delete(reqToken(), user.DeleteAccessToken)
-			}, reqBasicAuth())
+			}, reqBasicOrRevProxyAuth())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser))
 
 		// Users (requires user scope)
@@ -1494,7 +1494,7 @@ func Routes() *web.Route {
 					})
 				}, context_service.UserAssignmentAPI())
 			})
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryAdmin), reqBasicAuth(), reqSiteAdmin())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryAdmin), reqBasicOrRevProxyAuth(), reqSiteAdmin())
 
 		m.Group("/admin", func() {
 			m.Group("/cron", func() {
