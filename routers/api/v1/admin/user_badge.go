@@ -39,7 +39,6 @@ func ListUserBadges(ctx *context.APIContext) {
 
 	ctx.SetTotalCountHeader(maxResults)
 	ctx.JSON(http.StatusOK, &badges)
-
 }
 
 // AddUserBadges add badges to a user
