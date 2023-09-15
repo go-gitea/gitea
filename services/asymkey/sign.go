@@ -151,7 +151,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
-			twofaModel, err := auth.GetTwoFactorByUID(u.ID)
+			twofaModel, err := auth.GetTwoFactorByUID(ctx, u.ID)
 			if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
 				return false, "", nil, err
 			}
@@ -187,7 +187,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
-			twofaModel, err := auth.GetTwoFactorByUID(u.ID)
+			twofaModel, err := auth.GetTwoFactorByUID(ctx, u.ID)
 			if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
 				return false, "", nil, err
 			}
@@ -240,7 +240,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
-			twofaModel, err := auth.GetTwoFactorByUID(u.ID)
+			twofaModel, err := auth.GetTwoFactorByUID(ctx, u.ID)
 			if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
 				return false, "", nil, err
 			}
@@ -302,7 +302,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
-			twofaModel, err := auth.GetTwoFactorByUID(u.ID)
+			twofaModel, err := auth.GetTwoFactorByUID(ctx, u.ID)
 			if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
 				return false, "", nil, err
 			}

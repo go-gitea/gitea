@@ -348,7 +348,7 @@ func Appearance(ctx *context.Context) {
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	var hiddenCommentTypes *big.Int
-	val, err := user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes)
+	val, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes)
 	if err != nil {
 		ctx.ServerError("GetUserSetting", err)
 		return
@@ -420,7 +420,7 @@ func UpdateUserLang(ctx *context.Context) {
 
 // UpdateUserHiddenComments update a user's shown comment types
 func UpdateUserHiddenComments(ctx *context.Context) {
-	err := user_model.SetUserSetting(ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes, forms.UserHiddenCommentTypesFromRequest(ctx).String())
+	err := user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes, forms.UserHiddenCommentTypesFromRequest(ctx).String())
 	if err != nil {
 		ctx.ServerError("SetUserSetting", err)
 		return

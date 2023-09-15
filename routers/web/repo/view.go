@@ -1065,7 +1065,7 @@ func Watchers(ctx *context.Context) {
 	ctx.Data["PageIsWatchers"] = true
 
 	RenderUserCards(ctx, ctx.Repo.Repository.NumWatches, func(opts db.ListOptions) ([]*user_model.User, error) {
-		return repo_model.GetRepoWatchers(ctx.Repo.Repository.ID, opts)
+		return repo_model.GetRepoWatchers(ctx, ctx.Repo.Repository.ID, opts)
 	}, tplWatchers)
 }
 
@@ -1075,7 +1075,7 @@ func Stars(ctx *context.Context) {
 	ctx.Data["CardsTitle"] = ctx.Tr("repo.stargazers")
 	ctx.Data["PageIsStargazers"] = true
 	RenderUserCards(ctx, ctx.Repo.Repository.NumStars, func(opts db.ListOptions) ([]*user_model.User, error) {
-		return repo_model.GetStargazers(ctx.Repo.Repository, opts)
+		return repo_model.GetStargazers(ctx, ctx.Repo.Repository, opts)
 	}, tplWatchers)
 }
 

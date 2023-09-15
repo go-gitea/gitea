@@ -247,7 +247,7 @@ func TeamsRepoAction(ctx *context.Context) {
 			ctx.ServerError("GetRepositoryByName", err)
 			return
 		}
-		err = org_service.TeamAddRepository(ctx.Org.Team, repo)
+		err = org_service.TeamAddRepository(ctx, ctx.Org.Team, repo)
 	case "remove":
 		err = repo_service.RemoveRepositoryFromTeam(ctx, ctx.Org.Team, ctx.FormInt64("repoid"))
 	case "addall":

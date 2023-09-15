@@ -28,7 +28,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		assert.Len(t, team.Repos, len(repoIds), "%s: repo count", team.Name)
 		for i, rid := range repoIds {
 			if rid > 0 {
-				assert.True(t, HasRepository(team, rid), "%s: HasRepository(%d) %d", rid, i)
+				assert.True(t, HasRepository(db.DefaultContext, team, rid), "%s: HasRepository(%d) %d", rid, i)
 			}
 		}
 	}

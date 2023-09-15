@@ -693,7 +693,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 		ctx.Error(http.StatusForbidden, "", "Must have admin-level access to the repository")
 		return
 	}
-	if err := org_service.TeamAddRepository(ctx.Org.Team, repo); err != nil {
+	if err := org_service.TeamAddRepository(ctx, ctx.Org.Team, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "TeamAddRepository", err)
 		return
 	}
