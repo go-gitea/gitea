@@ -80,8 +80,10 @@ func AddUserBadges(ctx context.Context, u *User, badges []*Badge) error {
 		for _, badge := range badges {
 			// hydrate badge and check if it exists
 			has, err := db.GetEngine(ctx).Where("slug=?", badge.Slug).Get(badge)
-			if !has || err != nil {
+			if err != nil {
 				return err
+			} else if !has {
+			   return fmt.Errorf("badge with slug %s doesn't exist", badge.Slug)
 			}
 			if err := db.Insert(ctx, &UserBadge{
 				BadgeID: badge.ID,
