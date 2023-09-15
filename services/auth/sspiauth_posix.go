@@ -24,6 +24,7 @@ func (s sspiAuthMock) Authenticate(r *http.Request, w http.ResponseWriter) (user
 	return nil, "", errors.New("not implemented")
 }
 
-func sspiAuthInit() {
+func sspiAuthInit() error {
 	sspiAuth = &sspiAuthMock{} // TODO: we can mock the SSPI auth in tests
+	return nil
 }

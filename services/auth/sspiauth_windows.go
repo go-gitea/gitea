@@ -11,10 +11,9 @@ import (
 
 type UserInfo = websspi.UserInfo
 
-func sspiAuthInit() {
+func sspiAuthInit() error {
 	var err error
 	config := websspi.NewConfig()
-	if sspiAuth, err = websspi.New(config); err != nil {
-		panic(err) // this init is called by a sync.Once, maybe "panic" is the simplest way to handle errors
-	}
+	sspiAuth, err = websspi.New(config)
+	return err
 }

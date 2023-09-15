@@ -34,8 +34,9 @@ type SSPIAuth interface {
 }
 
 var (
-	sspiAuth     SSPIAuth // a global instance of the websspi authenticator to avoid acquiring the server credential handle on every request
-	sspiAuthOnce sync.Once
+	sspiAuth        SSPIAuth // a global instance of the websspi authenticator to avoid acquiring the server credential handle on every request
+	sspiAuthOnce    sync.Once
+	sspiAuthErrInit error
 
 	// Ensure the struct implements the interface.
 	_ Method = &SSPI{}
@@ -58,8 +59,10 @@ func (s *SSPI) Name() string {
 // If negotiation should continue or authentication fails, immediately returns a 401 HTTP
 // response code, as required by the SPNEGO protocol.
 func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
-	sspiAuthOnce.Do(sspiAuthInit)
-
+	sspiAuthOnce.Do(func() { sspiAuthErrInit = sspiAuthInit() })
+	if sspiAuthErrInit != nil {
+		return nil, sspiAuthErrInit
+	}
 	if !s.shouldAuthenticate(req) {
 		return nil, nil
 	}
