@@ -78,15 +78,15 @@ func TestFindAllIssueReferences(t *testing.T) {
 			[]testResult{},
 		},
 		{
-			"This user3/repo4#200 yes.",
+			"This org3/repo4#200 yes.",
 			[]testResult{
-				{200, "user3", "repo4", "200", false, XRefActionNone, &RefSpan{Start: 5, End: 20}, nil, ""},
+				{200, "org3", "repo4", "200", false, XRefActionNone, &RefSpan{Start: 5, End: 19}, nil, ""},
 			},
 		},
 		{
-			"This user3/repo4!200 yes.",
+			"This org3/repo4!200 yes.",
 			[]testResult{
-				{200, "user3", "repo4", "200", true, XRefActionNone, &RefSpan{Start: 5, End: 20}, nil, ""},
+				{200, "org3", "repo4", "200", true, XRefActionNone, &RefSpan{Start: 5, End: 19}, nil, ""},
 			},
 		},
 		{
@@ -106,13 +106,13 @@ func TestFindAllIssueReferences(t *testing.T) {
 			},
 		},
 		{
-			"This [four](http://gitea.com:3000/user3/repo4/issues/203) yes.",
+			"This [four](http://gitea.com:3000/org3/repo4/issues/203) yes.",
 			[]testResult{
-				{203, "user3", "repo4", "203", false, XRefActionNone, nil, nil, ""},
+				{203, "org3", "repo4", "203", false, XRefActionNone, nil, nil, ""},
 			},
 		},
 		{
-			"This [five](http://github.com/user3/repo4/issues/204) no.",
+			"This [five](http://github.com/org3/repo4/issues/204) no.",
 			[]testResult{},
 		},
 		{
@@ -151,9 +151,9 @@ func TestFindAllIssueReferences(t *testing.T) {
 			},
 		},
 		{
-			"Do you fix user6/repo6#300 ? yes",
+			"Do you fix org6/repo6#300 ? yes",
 			[]testResult{
-				{300, "user6", "repo6", "300", false, XRefActionCloses, &RefSpan{Start: 11, End: 26}, &RefSpan{Start: 7, End: 10}, ""},
+				{300, "org6", "repo6", "300", false, XRefActionCloses, &RefSpan{Start: 11, End: 25}, &RefSpan{Start: 7, End: 10}, ""},
 			},
 		},
 		{
@@ -190,9 +190,9 @@ func TestFindAllIssueReferences(t *testing.T) {
 			},
 		},
 		{
-			"This user3/repo4#200, yes.",
+			"This org3/repo4#200, yes.",
 			[]testResult{
-				{200, "user3", "repo4", "200", false, XRefActionNone, &RefSpan{Start: 5, End: 20}, nil, ""},
+				{200, "org3", "repo4", "200", false, XRefActionNone, &RefSpan{Start: 5, End: 19}, nil, ""},
 			},
 		},
 		{
@@ -498,15 +498,15 @@ func TestCustomizeCloseKeywords(t *testing.T) {
 			},
 		},
 		{
-			"Cerró user6/repo6#300 yes",
+			"Cerró org6/repo6#300 yes",
 			[]testResult{
-				{300, "user6", "repo6", "300", false, XRefActionCloses, &RefSpan{Start: 7, End: 22}, &RefSpan{Start: 0, End: 6}, ""},
+				{300, "org6", "repo6", "300", false, XRefActionCloses, &RefSpan{Start: 7, End: 21}, &RefSpan{Start: 0, End: 6}, ""},
 			},
 		},
 		{
-			"Reabre user3/repo4#200 yes",
+			"Reabre org3/repo4#200 yes",
 			[]testResult{
-				{200, "user3", "repo4", "200", false, XRefActionReopens, &RefSpan{Start: 7, End: 22}, &RefSpan{Start: 0, End: 6}, ""},
+				{200, "org3", "repo4", "200", false, XRefActionReopens, &RefSpan{Start: 7, End: 21}, &RefSpan{Start: 0, End: 6}, ""},
 			},
 		},
 	}

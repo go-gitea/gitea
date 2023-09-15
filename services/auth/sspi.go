@@ -4,6 +4,7 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -108,7 +109,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 			log.Error("User '%s' not found", username)
 			return nil, nil
 		}
-		user, err = s.newUser(username, cfg)
+		user, err = s.newUser(req.Context(), username, cfg)
 		if err != nil {
 			log.Error("CreateUser: %v", err)
 			return nil, err
@@ -156,7 +157,7 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 
 // newUser creates a new user object for the purpose of automatic registration
 // and populates its name and email with the information present in request headers.
-func (s *SSPI) newUser(username string, cfg *sspi.Source) (*user_model.User, error) {
+func (s *SSPI) newUser(ctx context.Context, username string, cfg *sspi.Source) (*user_model.User, error) {
 	email := gouuid.New().String() + "@localhost.localdomain"
 	user := &user_model.User{
 		Name:            username,
@@ -172,7 +173,7 @@ func (s *SSPI) newUser(username string, cfg *sspi.Source) (*user_model.User, err
 		KeepEmailPrivate:             util.OptionalBoolTrue,
 		EmailNotificationsPreference: &emailNotificationPreference,
 	}
-	if err := user_model.CreateUser(user, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, user, overwriteDefault); err != nil {
 		return nil, err
 	}
 

@@ -1091,7 +1091,7 @@ func Forks(ctx *context.Context) {
 	pager := context.NewPagination(ctx.Repo.Repository.NumForks, setting.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
-	forks, err := repo_model.GetForks(ctx.Repo.Repository, db.ListOptions{
+	forks, err := repo_model.GetForks(ctx, ctx.Repo.Repository, db.ListOptions{
 		Page:     pager.Paginater.Current(),
 		PageSize: setting.ItemsPerPage,
 	})

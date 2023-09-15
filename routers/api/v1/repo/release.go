@@ -150,6 +150,8 @@ func ListReleases(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ReleaseList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	listOptions := utils.GetListOptions(ctx)
 	if listOptions.PageSize == 0 && ctx.FormInt("per_page") != 0 {
 		listOptions.PageSize = ctx.FormInt("per_page")

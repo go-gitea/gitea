@@ -56,7 +56,7 @@ func SetDiffViewStyle(ctx *context.Context) {
 	}
 
 	ctx.Data["IsSplitStyle"] = style == "split"
-	if err := user_model.UpdateUserDiffViewStyle(ctx.Doer, style); err != nil {
+	if err := user_model.UpdateUserDiffViewStyle(ctx, ctx.Doer, style); err != nil {
 		ctx.ServerError("ErrUpdateDiffViewStyle", err)
 	}
 }

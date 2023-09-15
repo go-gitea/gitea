@@ -859,7 +859,7 @@ func SignInOAuth(ctx *context.Context) {
 	}
 
 	// try to do a direct callback flow, so we don't authenticate the user again but use the valid accesstoken to get the user
-	user, gothUser, err := oAuth2UserLoginCallback(authSource, ctx.Req, ctx.Resp)
+	user, gothUser, err := oAuth2UserLoginCallback(ctx, authSource, ctx.Req, ctx.Resp)
 	if err == nil && user != nil {
 		// we got the user without going through the whole OAuth2 authentication flow again
 		handleOAuth2SignIn(ctx, authSource, user, gothUser)
@@ -909,7 +909,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 		return
 	}
 
-	u, gothUser, err := oAuth2UserLoginCallback(authSource, ctx.Req, ctx.Resp)
+	u, gothUser, err := oAuth2UserLoginCallback(ctx, authSource, ctx.Req, ctx.Resp)
 	if err != nil {
 		if user_model.IsErrUserProhibitLogin(err) {
 			uplerr := err.(user_model.ErrUserProhibitLogin)
@@ -1208,7 +1208,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 
 // OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful
 // login the user
-func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, response http.ResponseWriter) (*user_model.User, goth.User, error) {
+func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, request *http.Request, response http.ResponseWriter) (*user_model.User, goth.User, error) {
 	oauth2Source := authSource.Cfg.(*oauth2.Source)
 
 	// Make sure that the response is not an error response.
@@ -1260,7 +1260,7 @@ func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, res
 		LoginSource: authSource.ID,
 	}
 
-	hasUser, err := user_model.GetUser(user)
+	hasUser, err := user_model.GetUser(ctx, user)
 	if err != nil {
 		return nil, goth.User{}, err
 	}
