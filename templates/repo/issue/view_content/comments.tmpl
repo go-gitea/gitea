@@ -50,21 +50,7 @@
 							{{end}}
 						</div>
 						<div class="comment-header-right actions gt-df gt-ac">
-							{{if (.ShowRole.HasRole "Poster")}}
-								<div class="ui basic label">
-									{{$.locale.Tr "repo.issues.poster"}}
-								</div>
-							{{end}}
-							{{if (.ShowRole.HasRole "Writer")}}
-								<div class="ui basic label">
-									{{$.locale.Tr "repo.issues.collaborator"}}
-								</div>
-							{{end}}
-							{{if (.ShowRole.HasRole "Owner")}}
-								<div class="ui basic label">
-									{{$.locale.Tr "repo.issues.owner"}}
-								</div>
-							{{end}}
+							{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 							{{if not $.Repository.IsArchived}}
 								{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
 								{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" true "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
@@ -125,9 +111,9 @@
 					{{template "shared/user/authorlink" .Poster}}
 					{{$link := printf "%s/commit/%s" $.Repository.Link ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
 					{{if eq $.Issue.PullRequest.Status 3}}
-						{{$.locale.Tr "repo.issues.comment_manually_pull_merged_at" (printf "<a class='ui sha' href='%[1]s'><b>%[2]s</b></a>" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID)) (printf "<b>%[1]s</b>" ($.BaseTarget|Escape)) $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.comment_manually_pull_merged_at" (printf `<a class="ui sha" href="%[1]s"><b>%[2]s</b></a>` ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID)) (printf "<b>%[1]s</b>" ($.BaseTarget|Escape)) $createdStr | Safe}}
 					{{else}}
-						{{$.locale.Tr "repo.issues.comment_pull_merged_at" (printf "<a class='ui sha' href='%[1]s'><b>%[2]s</b></a>" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID)) (printf "<b>%[1]s</b>" ($.BaseTarget|Escape)) $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.comment_pull_merged_at" (printf `<a class="ui sha" href="%[1]s"><b>%[2]s</b></a>` ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID)) (printf "<b>%[1]s</b>" ($.BaseTarget|Escape)) $createdStr | Safe}}
 					{{end}}
 				</span>
 			</div>
@@ -442,25 +428,11 @@
 								</span>
 							</div>
 							<div class="comment-header-right actions gt-df gt-ac">
-									{{if (.ShowRole.HasRole "Poster")}}
-										<div class="ui basic label">
-												{{$.locale.Tr "repo.issues.poster"}}
-										</div>
-									{{end}}
-									{{if (.ShowRole.HasRole "Writer")}}
-										<div class="ui basic label">
-												{{$.locale.Tr "repo.issues.collaborator"}}
-										</div>
-									{{end}}
-									{{if (.ShowRole.HasRole "Owner")}}
-										<div class="ui basic label">
-												{{$.locale.Tr "repo.issues.owner"}}
-										</div>
-									{{end}}
-									{{if not $.Repository.IsArchived}}
-											{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
-											{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" false "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
-									{{end}}
+								{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
+								{{if not $.Repository.IsArchived}}
+									{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+									{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" false "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
+								{{end}}
 							</div>
 						</div>
 						<div class="ui attached segment comment-body">
@@ -505,7 +477,7 @@
 										</div>
 										<div>
 											{{if or $invalid $resolved}}
-												<button id="show-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if not $resolved}}gt-hidden {{end}}ui compact right labeled button show-outdated gt-df gt-ac">
+												<button id="show-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if not $resolved}}gt-hidden {{end}}ui compact labeled button show-outdated gt-df gt-ac">
 													{{svg "octicon-unfold" 16 "gt-mr-3"}}
 													{{if $resolved}}
 														{{$.locale.Tr "repo.issues.review.show_resolved"}}
@@ -513,7 +485,7 @@
 														{{$.locale.Tr "repo.issues.review.show_outdated"}}
 													{{end}}
 												</button>
-												<button id="hide-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if $resolved}}gt-hidden {{end}}ui compact right labeled button hide-outdated gt-df gt-ac">
+												<button id="hide-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if $resolved}}gt-hidden {{end}}ui compact labeled button hide-outdated gt-df gt-ac">
 													{{svg "octicon-fold" 16 "gt-mr-3"}}
 													{{if $resolved}}
 														{{$.locale.Tr "repo.issues.review.hide_resolved"}}
@@ -567,21 +539,7 @@
 																</span>
 															</div>
 															<div class="comment-header-right actions gt-df gt-ac">
-																{{if (.ShowRole.HasRole "Poster")}}
-																	<div class="ui basic label">
-																		{{$.locale.Tr "repo.issues.poster"}}
-																	</div>
-																{{end}}
-																{{if (.ShowRole.HasRole "Writer")}}
-																	<div class="ui basic label">
-																		{{$.locale.Tr "repo.issues.collaborator"}}
-																	</div>
-																{{end}}
-																{{if (.ShowRole.HasRole "Owner")}}
-																	<div class="ui basic label">
-																		{{$.locale.Tr "repo.issues.owner"}}
-																	</div>
-																{{end}}
+																{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 																{{if not $.Repository.IsArchived}}
 																	{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
 																	{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" true "issue" true "diff" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
@@ -740,7 +698,7 @@
 					{{end}}
 				</span>
 				{{if and .IsForcePush $.Issue.PullRequest.BaseRepo.Name}}
-				<span class="ui float right comparebox">
+				<span class="gt-float-right comparebox">
 					<a href="{{$.Issue.PullRequest.BaseRepo.Link}}/compare/{{PathEscape .OldCommit}}..{{PathEscape .NewCommit}}" rel="nofollow" class="ui compare label">{{$.locale.Tr "repo.issues.force_push_compare"}}</a>
 				</span>
 				{{end}}

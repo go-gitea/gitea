@@ -44,7 +44,9 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.profile")
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
-	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
+	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar,
+		setting.GetDefaultDisableGravatar(),
+	)
 
 	ctx.HTML(http.StatusOK, tplSettingsProfile)
 }
@@ -86,7 +88,9 @@ func ProfilePost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
-	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
+	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar,
+		setting.GetDefaultDisableGravatar(),
+	)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplSettingsProfile)
@@ -110,7 +114,7 @@ func ProfilePost(ctx *context.Context) {
 	ctx.Doer.Description = form.Description
 	ctx.Doer.KeepActivityPrivate = form.KeepActivityPrivate
 	ctx.Doer.Visibility = form.Visibility
-	if err := user_model.UpdateUserSetting(ctx.Doer); err != nil {
+	if err := user_model.UpdateUserSetting(ctx, ctx.Doer); err != nil {
 		if _, ok := err.(user_model.ErrEmailAlreadyUsed); ok {
 			ctx.Flash.Error(ctx.Tr("form.email_been_used"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings")
@@ -146,7 +150,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 		defer fr.Close()
 
 		if form.Avatar.Size > setting.Avatar.MaxFileSize {
-			return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
+			return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big", form.Avatar.Size/1024, setting.Avatar.MaxFileSize/1024))
 		}
 
 		data, err := io.ReadAll(fr)
@@ -194,7 +198,7 @@ func DeleteAvatar(ctx *context.Context) {
 		ctx.Flash.Error(err.Error())
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/settings")
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings")
 }
 
 // Organization render all the organization of the user
@@ -344,7 +348,7 @@ func Appearance(ctx *context.Context) {
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	var hiddenCommentTypes *big.Int
-	val, err := user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes)
+	val, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes)
 	if err != nil {
 		ctx.ServerError("GetUserSetting", err)
 		return
@@ -375,7 +379,7 @@ func UpdateUIThemePost(ctx *context.Context) {
 		return
 	}
 
-	if err := user_model.UpdateUserTheme(ctx.Doer, form.Theme); err != nil {
+	if err := user_model.UpdateUserTheme(ctx, ctx.Doer, form.Theme); err != nil {
 		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 		return
@@ -401,7 +405,7 @@ func UpdateUserLang(ctx *context.Context) {
 		ctx.Doer.Language = form.Language
 	}
 
-	if err := user_model.UpdateUserSetting(ctx.Doer); err != nil {
+	if err := user_model.UpdateUserSetting(ctx, ctx.Doer); err != nil {
 		ctx.ServerError("UpdateUserSetting", err)
 		return
 	}
@@ -416,7 +420,7 @@ func UpdateUserLang(ctx *context.Context) {
 
 // UpdateUserHiddenComments update a user's shown comment types
 func UpdateUserHiddenComments(ctx *context.Context) {
-	err := user_model.SetUserSetting(ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes, forms.UserHiddenCommentTypesFromRequest(ctx).String())
+	err := user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes, forms.UserHiddenCommentTypesFromRequest(ctx).String())
 	if err != nil {
 		ctx.ServerError("SetUserSetting", err)
 		return

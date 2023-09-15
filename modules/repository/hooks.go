@@ -108,12 +108,7 @@ done
 }
 
 // CreateDelegateHooks creates all the hooks scripts for the repo
-func CreateDelegateHooks(repoPath string) error {
-	return createDelegateHooks(repoPath)
-}
-
-// createDelegateHooks creates all the hooks scripts for the repo
-func createDelegateHooks(repoPath string) (err error) {
+func CreateDelegateHooks(repoPath string) (err error) {
 	hookNames, hookTpls, giteaHookTpls := getHookTemplates()
 	hookDir := filepath.Join(repoPath, "hooks")
 

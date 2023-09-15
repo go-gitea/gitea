@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"slices"
 	"strings"
 	"time"
 
@@ -370,7 +371,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		if workFlowErr != nil {
 			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}
-	} else if util.SliceContains([]string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}, ctx.Repo.TreePath) {
+	} else if slices.Contains([]string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}, ctx.Repo.TreePath) {
 		if data, err := blob.GetBlobContent(setting.UI.MaxDisplayFileSize); err == nil {
 			_, warnings := issue_model.GetCodeOwnersFromContent(ctx, data)
 			if len(warnings) > 0 {
@@ -1064,7 +1065,7 @@ func Watchers(ctx *context.Context) {
 	ctx.Data["PageIsWatchers"] = true
 
 	RenderUserCards(ctx, ctx.Repo.Repository.NumWatches, func(opts db.ListOptions) ([]*user_model.User, error) {
-		return repo_model.GetRepoWatchers(ctx.Repo.Repository.ID, opts)
+		return repo_model.GetRepoWatchers(ctx, ctx.Repo.Repository.ID, opts)
 	}, tplWatchers)
 }
 
@@ -1074,7 +1075,7 @@ func Stars(ctx *context.Context) {
 	ctx.Data["CardsTitle"] = ctx.Tr("repo.stargazers")
 	ctx.Data["PageIsStargazers"] = true
 	RenderUserCards(ctx, ctx.Repo.Repository.NumStars, func(opts db.ListOptions) ([]*user_model.User, error) {
-		return repo_model.GetStargazers(ctx.Repo.Repository, opts)
+		return repo_model.GetStargazers(ctx, ctx.Repo.Repository, opts)
 	}, tplWatchers)
 }
 
@@ -1090,7 +1091,7 @@ func Forks(ctx *context.Context) {
 	pager := context.NewPagination(ctx.Repo.Repository.NumForks, setting.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
-	forks, err := repo_model.GetForks(ctx.Repo.Repository, db.ListOptions{
+	forks, err := repo_model.GetForks(ctx, ctx.Repo.Repository, db.ListOptions{
 		Page:     pager.Paginater.Current(),
 		PageSize: setting.ItemsPerPage,
 	})
