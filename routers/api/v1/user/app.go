@@ -46,10 +46,6 @@ func ListAccessTokens(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	if !ctx.Doer.IsAdmin && ctx.Doer != ctx.ContextUser {
-		ctx.Error(http.StatusForbidden, "", "Only admin or user self can list access tokens")
-		return
-	}
 	opts := auth_model.ListAccessTokensOptions{UserID: ctx.ContextUser.ID, ListOptions: utils.GetListOptions(ctx)}
 
 	count, err := auth_model.CountAccessTokens(opts)
@@ -104,10 +100,6 @@ func CreateAccessToken(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	if !ctx.Doer.IsAdmin && ctx.Doer != ctx.ContextUser {
-		ctx.Error(http.StatusForbidden, "", "Only admin or user self can create access tokens")
-		return
-	}
 	form := web.GetForm(ctx).(*api.CreateAccessTokenOption)
 
 	t := &auth_model.AccessToken{
@@ -172,10 +164,6 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/error"
 
-	if !ctx.Doer.IsAdmin && ctx.Doer != ctx.ContextUser {
-		ctx.Error(http.StatusForbidden, "", "Only admin or user self can delete access tokens")
-		return
-	}
 	token := ctx.Params(":id")
 	tokenID, _ := strconv.ParseInt(token, 0, 64)
 
