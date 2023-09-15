@@ -31,7 +31,7 @@ func listMembers(ctx *context.APIContext, publicOnly bool) {
 		return
 	}
 
-	members, _, err := organization.FindOrgMembers(opts)
+	members, _, err := organization.FindOrgMembers(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

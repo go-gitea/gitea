@@ -189,7 +189,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 
 	issue.Attachments = append(issue.Attachments, attachment)
 
-	if err := issue_service.ChangeContent(issue, ctx.Doer, issue.Content); err != nil {
+	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, issue.Content); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ChangeContent", err)
 		return
 	}
@@ -298,7 +298,7 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	if err := repo_model.DeleteAttachment(attachment, true); err != nil {
+	if err := repo_model.DeleteAttachment(ctx, attachment, true); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteAttachment", err)
 		return
 	}

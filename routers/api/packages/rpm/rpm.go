@@ -45,7 +45,7 @@ gpgkey=`+url+`/repository.key`)
 
 // Gets or creates the PGP public key used to sign repository metadata files
 func GetRepositoryKey(ctx *context.Context) {
-	_, pub, err := rpm_service.GetOrCreateKeyPair(ctx.Package.Owner.ID)
+	_, pub, err := rpm_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

@@ -4,6 +4,8 @@
 package activities
 
 import (
+	"context"
+
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -47,12 +49,12 @@ type IssueByRepositoryCount struct {
 }
 
 // GetStatistic returns the database statistics
-func GetStatistic() (stats Statistic) {
-	e := db.GetEngine(db.DefaultContext)
-	stats.Counter.User = user_model.CountUsers(nil)
+func GetStatistic(ctx context.Context) (stats Statistic) {
+	e := db.GetEngine(ctx)
+	stats.Counter.User = user_model.CountUsers(ctx, nil)
 	stats.Counter.Org, _ = organization.CountOrgs(organization.FindOrgOptions{IncludePrivate: true})
 	stats.Counter.PublicKey, _ = e.Count(new(asymkey_model.PublicKey))
-	stats.Counter.Repo, _ = repo_model.CountRepositories(db.DefaultContext, repo_model.CountRepositoryOptions{})
+	stats.Counter.Repo, _ = repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{})
 	stats.Counter.Watch, _ = e.Count(new(repo_model.Watch))
 	stats.Counter.Star, _ = e.Count(new(repo_model.Star))
 	stats.Counter.Access, _ = e.Count(new(access_model.Access))
