@@ -30,7 +30,7 @@ const (
 
 type SSPIAuth interface {
 	AppendAuthenticateHeader(w http.ResponseWriter, data string)
-	Authenticate(r *http.Request, w http.ResponseWriter) (userInfo *UserInfo, outToken string, err error)
+	Authenticate(r *http.Request, w http.ResponseWriter) (userInfo *SSPIUserInfo, outToken string, err error)
 }
 
 var (

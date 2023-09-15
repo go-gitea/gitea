@@ -10,7 +10,7 @@ import (
 	"net/http"
 )
 
-type UserInfo struct {
+type SSPIUserInfo struct {
 	Username string   // Name of user, usually in the form DOMAIN\User
 	Groups   []string // The global groups the user is a member of
 }
@@ -20,7 +20,7 @@ type sspiAuthMock struct{}
 func (s sspiAuthMock) AppendAuthenticateHeader(w http.ResponseWriter, data string) {
 }
 
-func (s sspiAuthMock) Authenticate(r *http.Request, w http.ResponseWriter) (userInfo *UserInfo, outToken string, err error) {
+func (s sspiAuthMock) Authenticate(r *http.Request, w http.ResponseWriter) (userInfo *SSPIUserInfo, outToken string, err error) {
 	return nil, "", errors.New("not implemented")
 }
 

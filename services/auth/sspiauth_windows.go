@@ -9,7 +9,7 @@ import (
 	"github.com/quasoft/websspi"
 )
 
-type UserInfo = websspi.UserInfo
+type SSPIUserInfo = websspi.UserInfo
 
 func sspiAuthInit() error {
 	var err error
