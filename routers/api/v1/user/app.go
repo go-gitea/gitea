@@ -105,7 +105,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 
 	if !ctx.Doer.IsAdmin && ctx.Doer != ctx.ContextUser {
-		ctx.Error(http.StatusForbidden, "", "Only admin or user self can list access tokens")
+		ctx.Error(http.StatusForbidden, "", "Only admin or user self can create access tokens")
 		return
 	}
 	form := web.GetForm(ctx).(*api.CreateAccessTokenOption)
@@ -173,7 +173,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	if !ctx.Doer.IsAdmin && ctx.Doer != ctx.ContextUser {
-		ctx.Error(http.StatusForbidden, "", "Only admin or user self can list access tokens")
+		ctx.Error(http.StatusForbidden, "", "Only admin or user self can delete access tokens")
 		return
 	}
 	token := ctx.Params(":id")
