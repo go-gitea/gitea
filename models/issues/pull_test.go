@@ -60,7 +60,7 @@ func TestPullRequest_LoadHeadRepo(t *testing.T) {
 
 func TestPullRequestsNewest(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	prs, count, err := issues_model.PullRequests(1, &issues_model.PullRequestsOptions{
+	prs, count, err := issues_model.PullRequests(db.DefaultContext, 1, &issues_model.PullRequestsOptions{
 		ListOptions: db.ListOptions{
 			Page: 1,
 		},
@@ -107,7 +107,7 @@ func TestLoadRequestedReviewers(t *testing.T) {
 
 func TestPullRequestsOldest(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	prs, count, err := issues_model.PullRequests(1, &issues_model.PullRequestsOptions{
+	prs, count, err := issues_model.PullRequests(db.DefaultContext, 1, &issues_model.PullRequestsOptions{
 		ListOptions: db.ListOptions{
 			Page: 1,
 		},
