@@ -68,10 +68,6 @@ func (cred WebAuthnCredential) TableName() string {
 
 // UpdateSignCount will update the database value of SignCount
 func (cred *WebAuthnCredential) UpdateSignCount(ctx context.Context) error {
-	return cred.updateSignCount(ctx)
-}
-
-func (cred *WebAuthnCredential) updateSignCount(ctx context.Context) error {
 	_, err := db.GetEngine(ctx).ID(cred.ID).Cols("sign_count").Update(cred)
 	return err
 }
@@ -114,29 +110,17 @@ func (list WebAuthnCredentialList) ToCredentials() []webauthn.Credential {
 
 // GetWebAuthnCredentialsByUID returns all WebAuthn credentials of the given user
 func GetWebAuthnCredentialsByUID(ctx context.Context, uid int64) (WebAuthnCredentialList, error) {
-	return getWebAuthnCredentialsByUID(ctx, uid)
-}
-
-func getWebAuthnCredentialsByUID(ctx context.Context, uid int64) (WebAuthnCredentialList, error) {
 	creds := make(WebAuthnCredentialList, 0)
 	return creds, db.GetEngine(ctx).Where("user_id = ?", uid).Find(&creds)
 }
 
 // ExistsWebAuthnCredentialsForUID returns if the given user has credentials
 func ExistsWebAuthnCredentialsForUID(ctx context.Context, uid int64) (bool, error) {
-	return existsWebAuthnCredentialsByUID(ctx, uid)
-}
-
-func existsWebAuthnCredentialsByUID(ctx context.Context, uid int64) (bool, error) {
 	return db.GetEngine(ctx).Where("user_id = ?", uid).Exist(&WebAuthnCredential{})
 }
 
 // GetWebAuthnCredentialByName returns WebAuthn credential by id
 func GetWebAuthnCredentialByName(ctx context.Context, uid int64, name string) (*WebAuthnCredential, error) {
-	return getWebAuthnCredentialByName(ctx, uid, name)
-}
-
-func getWebAuthnCredentialByName(ctx context.Context, uid int64, name string) (*WebAuthnCredential, error) {
 	cred := new(WebAuthnCredential)
 	if found, err := db.GetEngine(ctx).Where("user_id = ? AND lower_name = ?", uid, strings.ToLower(name)).Get(cred); err != nil {
 		return nil, err
@@ -148,10 +132,6 @@ func getWebAuthnCredentialByName(ctx context.Context, uid int64, name string) (*
 
 // GetWebAuthnCredentialByID returns WebAuthn credential by id
 func GetWebAuthnCredentialByID(ctx context.Context, id int64) (*WebAuthnCredential, error) {
-	return getWebAuthnCredentialByID(ctx, id)
-}
-
-func getWebAuthnCredentialByID(ctx context.Context, id int64) (*WebAuthnCredential, error) {
 	cred := new(WebAuthnCredential)
 	if found, err := db.GetEngine(ctx).ID(id).Get(cred); err != nil {
 		return nil, err
@@ -168,10 +148,6 @@ func HasWebAuthnRegistrationsByUID(ctx context.Context, uid int64) (bool, error)
 
 // GetWebAuthnCredentialByCredID returns WebAuthn credential by credential ID
 func GetWebAuthnCredentialByCredID(ctx context.Context, userID int64, credID []byte) (*WebAuthnCredential, error) {
-	return getWebAuthnCredentialByCredID(ctx, userID, credID)
-}
-
-func getWebAuthnCredentialByCredID(ctx context.Context, userID int64, credID []byte) (*WebAuthnCredential, error) {
 	cred := new(WebAuthnCredential)
 	if found, err := db.GetEngine(ctx).Where("user_id = ? AND credential_id = ?", userID, credID).Get(cred); err != nil {
 		return nil, err
@@ -183,10 +159,6 @@ func getWebAuthnCredentialByCredID(ctx context.Context, userID int64, credID []b
 
 // CreateCredential will create a new WebAuthnCredential from the given Credential
 func CreateCredential(ctx context.Context, userID int64, name string, cred *webauthn.Credential) (*WebAuthnCredential, error) {
-	return createCredential(ctx, userID, name, cred)
-}
-
-func createCredential(ctx context.Context, userID int64, name string, cred *webauthn.Credential) (*WebAuthnCredential, error) {
 	c := &WebAuthnCredential{
 		UserID:          userID,
 		Name:            name,
@@ -206,10 +178,6 @@ func createCredential(ctx context.Context, userID int64, name string, cred *weba
 
 // DeleteCredential will delete WebAuthnCredential
 func DeleteCredential(ctx context.Context, id, userID int64) (bool, error) {
-	return deleteCredential(ctx, id, userID)
-}
-
-func deleteCredential(ctx context.Context, id, userID int64) (bool, error) {
 	had, err := db.GetEngine(ctx).ID(id).Where("user_id = ?", userID).Delete(&WebAuthnCredential{})
 	return had > 0, err
 }

@@ -49,10 +49,6 @@ type TranslatableMessage struct {
 
 // LoadRepo loads repository of the task
 func (task *Task) LoadRepo(ctx context.Context) error {
-	return task.loadRepo(ctx)
-}
-
-func (task *Task) loadRepo(ctx context.Context) error {
 	if task.Repo != nil {
 		return nil
 	}

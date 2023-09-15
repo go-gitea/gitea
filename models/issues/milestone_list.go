@@ -142,7 +142,8 @@ func GetMilestonesByRepoIDs(ctx context.Context, repoIDs []int64, page int, isCl
 	)
 }
 
-func (milestones MilestoneList) loadTotalTrackedTimes(ctx context.Context) error {
+// LoadTotalTrackedTimes loads for every milestone in the list the TotalTrackedTime by a batch request
+func (milestones MilestoneList) LoadTotalTrackedTimes(ctx context.Context) error {
 	type totalTimesByMilestone struct {
 		MilestoneID int64
 		Time        int64
@@ -180,11 +181,6 @@ func (milestones MilestoneList) loadTotalTrackedTimes(ctx context.Context) error
 		milestone.TotalTrackedTime = trackedTimes[milestone.ID]
 	}
 	return nil
-}
-
-// LoadTotalTrackedTimes loads for every milestone in the list the TotalTrackedTime by a batch request
-func (milestones MilestoneList) LoadTotalTrackedTimes(ctx context.Context) error {
-	return milestones.loadTotalTrackedTimes(ctx)
 }
 
 // CountMilestones returns number of milestones in given repository with other options

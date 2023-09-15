@@ -332,7 +332,8 @@ func updateRepoMilestoneNum(ctx context.Context, repoID int64) error {
 	return err
 }
 
-func (m *Milestone) loadTotalTrackedTime(ctx context.Context) error {
+// LoadTotalTrackedTime loads the tracked time for the milestone
+func (m *Milestone) LoadTotalTrackedTime(ctx context.Context) error {
 	type totalTimesByMilestone struct {
 		MilestoneID int64
 		Time        int64
@@ -353,11 +354,6 @@ func (m *Milestone) loadTotalTrackedTime(ctx context.Context) error {
 	}
 	m.TotalTrackedTime = totalTime.Time
 	return nil
-}
-
-// LoadTotalTrackedTime loads the tracked time for the milestone
-func (m *Milestone) LoadTotalTrackedTime(ctx context.Context) error {
-	return m.loadTotalTrackedTime(ctx)
 }
 
 // InsertMilestones creates milestones of repository.
