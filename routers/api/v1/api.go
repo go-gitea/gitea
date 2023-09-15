@@ -776,7 +776,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIC
 				if skip, ok := ctx.Data["SkipLocalTwoFA"]; ok && skip.(bool) {
 					return // Skip 2FA
 				}
-				twofa, err := auth_model.GetTwoFactorByUID(ctx.Doer.ID)
+				twofa, err := auth_model.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 				if err != nil {
 					if auth_model.IsErrTwoFactorNotEnrolled(err) {
 						return // No 2FA enrollment for this user

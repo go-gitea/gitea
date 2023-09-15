@@ -5,6 +5,7 @@
 package auth
 
 import (
+	"context"
 	"crypto/subtle"
 	"encoding/hex"
 	"fmt"
@@ -95,7 +96,7 @@ func init() {
 }
 
 // NewAccessToken creates new access token.
-func NewAccessToken(t *AccessToken) error {
+func NewAccessToken(ctx context.Context, t *AccessToken) error {
 	salt, err := util.CryptoRandomString(10)
 	if err != nil {
 		return err
@@ -108,7 +109,7 @@ func NewAccessToken(t *AccessToken) error {
 	t.Token = hex.EncodeToString(token)
 	t.TokenHash = HashToken(t.Token, t.TokenSalt)
 	t.TokenLastEight = t.Token[len(t.Token)-8:]
-	_, err = db.GetEngine(db.DefaultContext).Insert(t)
+	_, err = db.GetEngine(ctx).Insert(t)
 	return err
 }
 
@@ -137,7 +138,7 @@ func getAccessTokenIDFromCache(token string) int64 {
 }
 
 // GetAccessTokenBySHA returns access token by given token value
-func GetAccessTokenBySHA(token string) (*AccessToken, error) {
+func GetAccessTokenBySHA(ctx context.Context, token string) (*AccessToken, error) {
 	if token == "" {
 		return nil, ErrAccessTokenEmpty{}
 	}
@@ -158,7 +159,7 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 			TokenLastEight: lastEight,
 		}
 		// Re-get the token from the db in case it has been deleted in the intervening period
-		has, err := db.GetEngine(db.DefaultContext).ID(id).Get(accessToken)
+		has, err := db.GetEngine(ctx).ID(id).Get(accessToken)
 		if err != nil {
 			return nil, err
 		}
@@ -169,7 +170,7 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 	}
 
 	var tokens []AccessToken
-	err := db.GetEngine(db.DefaultContext).Table(&AccessToken{}).Where("token_last_eight = ?", lastEight).Find(&tokens)
+	err := db.GetEngine(ctx).Table(&AccessToken{}).Where("token_last_eight = ?", lastEight).Find(&tokens)
 	if err != nil {
 		return nil, err
 	} else if len(tokens) == 0 {
@@ -189,8 +190,8 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 }
 
 // AccessTokenByNameExists checks if a token name has been used already by a user.
-func AccessTokenByNameExists(token *AccessToken) (bool, error) {
-	return db.GetEngine(db.DefaultContext).Table("access_token").Where("name = ?", token.Name).And("uid = ?", token.UID).Exist()
+func AccessTokenByNameExists(ctx context.Context, token *AccessToken) (bool, error) {
+	return db.GetEngine(ctx).Table("access_token").Where("name = ?", token.Name).And("uid = ?", token.UID).Exist()
 }
 
 // ListAccessTokensOptions contain filter options
@@ -201,8 +202,8 @@ type ListAccessTokensOptions struct {
 }
 
 // ListAccessTokens returns a list of access tokens belongs to given user.
-func ListAccessTokens(opts ListAccessTokensOptions) ([]*AccessToken, error) {
-	sess := db.GetEngine(db.DefaultContext).Where("uid=?", opts.UserID)
+func ListAccessTokens(ctx context.Context, opts ListAccessTokensOptions) ([]*AccessToken, error) {
+	sess := db.GetEngine(ctx).Where("uid=?", opts.UserID)
 
 	if len(opts.Name) != 0 {
 		sess = sess.Where("name=?", opts.Name)
@@ -222,14 +223,14 @@ func ListAccessTokens(opts ListAccessTokensOptions) ([]*AccessToken, error) {
 }
 
 // UpdateAccessToken updates information of access token.
-func UpdateAccessToken(t *AccessToken) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(t.ID).AllCols().Update(t)
+func UpdateAccessToken(ctx context.Context, t *AccessToken) error {
+	_, err := db.GetEngine(ctx).ID(t.ID).AllCols().Update(t)
 	return err
 }
 
 // CountAccessTokens count access tokens belongs to given user by options
-func CountAccessTokens(opts ListAccessTokensOptions) (int64, error) {
-	sess := db.GetEngine(db.DefaultContext).Where("uid=?", opts.UserID)
+func CountAccessTokens(ctx context.Context, opts ListAccessTokensOptions) (int64, error) {
+	sess := db.GetEngine(ctx).Where("uid=?", opts.UserID)
 	if len(opts.Name) != 0 {
 		sess = sess.Where("name=?", opts.Name)
 	}
@@ -237,8 +238,8 @@ func CountAccessTokens(opts ListAccessTokensOptions) (int64, error) {
 }
 
 // DeleteAccessTokenByID deletes access token by given ID.
-func DeleteAccessTokenByID(id, userID int64) error {
-	cnt, err := db.GetEngine(db.DefaultContext).ID(id).Delete(&AccessToken{
+func DeleteAccessTokenByID(ctx context.Context, id, userID int64) error {
+	cnt, err := db.GetEngine(ctx).ID(id).Delete(&AccessToken{
 		UID: userID,
 	})
 	if err != nil {

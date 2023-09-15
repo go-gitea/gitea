@@ -77,7 +77,7 @@ func DeleteAttachment(ctx *context.Context) {
 		ctx.Error(http.StatusForbidden)
 		return
 	}
-	err = repo_model.DeleteAttachment(attach, true)
+	err = repo_model.DeleteAttachment(ctx, attach, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("DeleteAttachment: %v", err))
 		return
@@ -122,7 +122,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		}
 	}
 
-	if err := attach.IncreaseDownloadCount(); err != nil {
+	if err := attach.IncreaseDownloadCount(ctx); err != nil {
 		ctx.ServerError("IncreaseDownloadCount", err)
 		return
 	}

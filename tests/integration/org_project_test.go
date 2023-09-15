@@ -26,27 +26,27 @@ func TestOrgProjectAccess(t *testing.T) {
 	MakeRequest(t, req, http.StatusOK)
 
 	// org project, 200
-	req = NewRequest(t, "GET", "/user3/-/projects")
+	req = NewRequest(t, "GET", "/org3/-/projects")
 	MakeRequest(t, req, http.StatusOK)
 
 	// change the org's visibility to private
 	session := loginUser(t, "user2")
-	req = NewRequestWithValues(t, "POST", "/org/user3/settings", map[string]string{
-		"_csrf":      GetCSRF(t, session, "/user3/-/projects"),
-		"name":       "user3",
+	req = NewRequestWithValues(t, "POST", "/org/org3/settings", map[string]string{
+		"_csrf":      GetCSRF(t, session, "/org3/-/projects"),
+		"name":       "org3",
 		"visibility": "2",
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// user4 can still access the org's project because its team(team1) has the permission
 	session = loginUser(t, "user4")
-	req = NewRequest(t, "GET", "/user3/-/projects")
+	req = NewRequest(t, "GET", "/org3/-/projects")
 	session.MakeRequest(t, req, http.StatusOK)
 
 	// disable team1's project unit
 	session = loginUser(t, "user2")
-	req = NewRequestWithValues(t, "POST", "/org/user3/teams/team1/edit", map[string]string{
-		"_csrf":       GetCSRF(t, session, "/user3/-/projects"),
+	req = NewRequestWithValues(t, "POST", "/org/org3/teams/team1/edit", map[string]string{
+		"_csrf":       GetCSRF(t, session, "/org3/-/projects"),
 		"team_name":   "team1",
 		"repo_access": "specific",
 		"permission":  "read",
@@ -56,6 +56,6 @@ func TestOrgProjectAccess(t *testing.T) {
 
 	// user4 can no longer access the org's project
 	session = loginUser(t, "user4")
-	req = NewRequest(t, "GET", "/user3/-/projects")
+	req = NewRequest(t, "GET", "/org3/-/projects")
 	session.MakeRequest(t, req, http.StatusNotFound)
 }

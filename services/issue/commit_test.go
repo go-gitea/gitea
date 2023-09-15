@@ -262,7 +262,7 @@ func TestUpdateIssuesCommit_AnotherRepoNoPermission(t *testing.T) {
 			CommitterName:  "User Ten",
 			AuthorEmail:    "user10@example.com",
 			AuthorName:     "User Ten",
-			Message:        "close user3/repo3#1",
+			Message:        "close org3/repo3#1",
 		},
 		{
 			Sha1:           "abcdef4",
@@ -270,7 +270,7 @@ func TestUpdateIssuesCommit_AnotherRepoNoPermission(t *testing.T) {
 			CommitterName:  "User Ten",
 			AuthorEmail:    "user10@example.com",
 			AuthorName:     "User Ten",
-			Message:        "close " + setting.AppURL + "user3/repo3/issues/1",
+			Message:        "close " + setting.AppURL + "org3/repo3/issues/1",
 		},
 	}
 

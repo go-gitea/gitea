@@ -32,7 +32,7 @@ func TestNotViewTimetrackingControls(t *testing.T) {
 func TestViewTimetrackingControlsDisabled(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	testViewTimetrackingControls(t, session, "user3", "repo3", "1", false)
+	testViewTimetrackingControls(t, session, "org3", "repo3", "1", false)
 }
 
 func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo, issue string, canTrackTime bool) {

@@ -173,7 +173,7 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if err = org_service.TeamAddRepository(team, ctx.Repo.Repository); err != nil {
+	if err = org_service.TeamAddRepository(ctx, team, ctx.Repo.Repository); err != nil {
 		ctx.ServerError("TeamAddRepository", err)
 		return
 	}
