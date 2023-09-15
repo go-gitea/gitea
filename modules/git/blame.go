@@ -29,7 +29,7 @@ type BlameReader struct {
 	bufferedReader *bufio.Reader
 	done           chan error
 	lastSha        *string
-	ignoreRevsFile *os.File
+	ignoreRevsFile *string
 }
 
 func (r *BlameReader) UsesIgnoreRevs() bool {
@@ -107,14 +107,14 @@ func (r *BlameReader) Close() error {
 	_ = r.reader.Close()
 	_ = r.output.Close()
 	if r.ignoreRevsFile != nil {
-		_ = util.Remove(r.ignoreRevsFile.Name())
+		_ = util.Remove(*r.ignoreRevsFile)
 	}
 	return err
 }
 
 // CreateBlameReader creates reader for given repository, commit and file
 func CreateBlameReader(ctx context.Context, repoPath string, commit *Commit, file string, bypassBlameIgnore bool) (*BlameReader, error) {
-	var ignoreRevsFile *os.File
+	var ignoreRevsFile *string
 	if CheckGitVersionAtLeast("2.23") == nil && !bypassBlameIgnore {
 		ignoreRevsFile = tryCreateBlameIgnoreRevsFile(commit)
 	}
@@ -123,7 +123,7 @@ func CreateBlameReader(ctx context.Context, repoPath string, commit *Commit, fil
 	if ignoreRevsFile != nil {
 		// Possible improvement: use --ignore-revs-file /dev/stdin on unix
 		// There is no equivalent on Windows. May be implemented if Gitea uses an external git backend.
-		cmd.AddOptionValues("--ignore-revs-file", ignoreRevsFile.Name())
+		cmd.AddOptionValues("--ignore-revs-file", *ignoreRevsFile)
 	}
 	cmd.AddDynamicArguments(commit.ID.String()).
 		AddDashesAndList(file).
@@ -131,7 +131,7 @@ func CreateBlameReader(ctx context.Context, repoPath string, commit *Commit, fil
 	reader, stdout, err := os.Pipe()
 	if err != nil {
 		if ignoreRevsFile != nil {
-			_ = util.Remove(ignoreRevsFile.Name())
+			_ = util.Remove(*ignoreRevsFile)
 		}
 		return nil, err
 	}
@@ -165,7 +165,7 @@ func CreateBlameReader(ctx context.Context, repoPath string, commit *Commit, fil
 	}, nil
 }
 
-func tryCreateBlameIgnoreRevsFile(commit *Commit) *os.File {
+func tryCreateBlameIgnoreRevsFile(commit *Commit) *string {
 	entry, err := commit.GetTreeEntryByPath(".git-blame-ignore-revs")
 	if err != nil {
 		return nil
@@ -181,15 +181,13 @@ func tryCreateBlameIgnoreRevsFile(commit *Commit) *os.File {
 	if err != nil {
 		return nil
 	}
-	defer f.Close()
 
 	_, err = io.Copy(f, r)
+	_ = f.Close()
 	if err != nil {
-		defer func() {
-			_ = util.Remove(f.Name())
-		}()
+		_ = util.Remove(f.Name())
 		return nil
 	}
 
-	return f
+	return util.ToPointer(f.Name())
 }
