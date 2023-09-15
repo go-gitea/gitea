@@ -5,6 +5,8 @@
 package repository
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -12,13 +14,13 @@ import (
 )
 
 // DeleteCollaboration removes collaboration relation between the user and repository.
-func DeleteCollaboration(repo *repo_model.Repository, uid int64) (err error) {
+func DeleteCollaboration(ctx context.Context, repo *repo_model.Repository, uid int64) (err error) {
 	collaboration := &repo_model.Collaboration{
 		RepoID: repo.ID,
 		UserID: uid,
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

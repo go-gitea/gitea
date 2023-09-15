@@ -100,9 +100,9 @@ func GetMilestoneIDsByNames(ctx context.Context, names []string) ([]int64, error
 }
 
 // SearchMilestones search milestones
-func SearchMilestones(repoCond builder.Cond, page int, isClosed bool, sortType, keyword string) (MilestoneList, error) {
+func SearchMilestones(ctx context.Context, repoCond builder.Cond, page int, isClosed bool, sortType, keyword string) (MilestoneList, error) {
 	miles := make([]*Milestone, 0, setting.UI.IssuePagingNum)
-	sess := db.GetEngine(db.DefaultContext).Where("is_closed = ?", isClosed)
+	sess := db.GetEngine(ctx).Where("is_closed = ?", isClosed)
 	if len(keyword) > 0 {
 		sess = sess.And(builder.Like{"UPPER(name)", strings.ToUpper(keyword)})
 	}
@@ -131,8 +131,9 @@ func SearchMilestones(repoCond builder.Cond, page int, isClosed bool, sortType, 
 }
 
 // GetMilestonesByRepoIDs returns a list of milestones of given repositories and status.
-func GetMilestonesByRepoIDs(repoIDs []int64, page int, isClosed bool, sortType string) (MilestoneList, error) {
+func GetMilestonesByRepoIDs(ctx context.Context, repoIDs []int64, page int, isClosed bool, sortType string) (MilestoneList, error) {
 	return SearchMilestones(
+		ctx,
 		builder.In("repo_id", repoIDs),
 		page,
 		isClosed,
@@ -182,8 +183,8 @@ func (milestones MilestoneList) loadTotalTrackedTimes(ctx context.Context) error
 }
 
 // LoadTotalTrackedTimes loads for every milestone in the list the TotalTrackedTime by a batch request
-func (milestones MilestoneList) LoadTotalTrackedTimes() error {
-	return milestones.loadTotalTrackedTimes(db.DefaultContext)
+func (milestones MilestoneList) LoadTotalTrackedTimes(ctx context.Context) error {
+	return milestones.loadTotalTrackedTimes(ctx)
 }
 
 // CountMilestones returns number of milestones in given repository with other options
@@ -194,8 +195,8 @@ func CountMilestones(ctx context.Context, opts GetMilestonesOption) (int64, erro
 }
 
 // CountMilestonesByRepoCond map from repo conditions to number of milestones matching the options`
-func CountMilestonesByRepoCond(repoCond builder.Cond, isClosed bool) (map[int64]int64, error) {
-	sess := db.GetEngine(db.DefaultContext).Where("is_closed = ?", isClosed)
+func CountMilestonesByRepoCond(ctx context.Context, repoCond builder.Cond, isClosed bool) (map[int64]int64, error) {
+	sess := db.GetEngine(ctx).Where("is_closed = ?", isClosed)
 	if repoCond.IsValid() {
 		sess.In("repo_id", builder.Select("id").From("repository").Where(repoCond))
 	}
@@ -219,8 +220,8 @@ func CountMilestonesByRepoCond(repoCond builder.Cond, isClosed bool) (map[int64]
 }
 
 // CountMilestonesByRepoCondAndKw map from repo conditions and the keyword of milestones' name to number of milestones matching the options`
-func CountMilestonesByRepoCondAndKw(repoCond builder.Cond, keyword string, isClosed bool) (map[int64]int64, error) {
-	sess := db.GetEngine(db.DefaultContext).Where("is_closed = ?", isClosed)
+func CountMilestonesByRepoCondAndKw(ctx context.Context, repoCond builder.Cond, keyword string, isClosed bool) (map[int64]int64, error) {
+	sess := db.GetEngine(ctx).Where("is_closed = ?", isClosed)
 	if len(keyword) > 0 {
 		sess = sess.And(builder.Like{"UPPER(name)", strings.ToUpper(keyword)})
 	}
@@ -257,11 +258,11 @@ func (m MilestonesStats) Total() int64 {
 }
 
 // GetMilestonesStatsByRepoCond returns milestone statistic information for dashboard by given conditions.
-func GetMilestonesStatsByRepoCond(repoCond builder.Cond) (*MilestonesStats, error) {
+func GetMilestonesStatsByRepoCond(ctx context.Context, repoCond builder.Cond) (*MilestonesStats, error) {
 	var err error
 	stats := &MilestonesStats{}
 
-	sess := db.GetEngine(db.DefaultContext).Where("is_closed = ?", false)
+	sess := db.GetEngine(ctx).Where("is_closed = ?", false)
 	if repoCond.IsValid() {
 		sess.And(builder.In("repo_id", builder.Select("id").From("repository").Where(repoCond)))
 	}
@@ -270,7 +271,7 @@ func GetMilestonesStatsByRepoCond(repoCond builder.Cond) (*MilestonesStats, erro
 		return nil, err
 	}
 
-	sess = db.GetEngine(db.DefaultContext).Where("is_closed = ?", true)
+	sess = db.GetEngine(ctx).Where("is_closed = ?", true)
 	if repoCond.IsValid() {
 		sess.And(builder.In("repo_id", builder.Select("id").From("repository").Where(repoCond)))
 	}
@@ -283,11 +284,11 @@ func GetMilestonesStatsByRepoCond(repoCond builder.Cond) (*MilestonesStats, erro
 }
 
 // GetMilestonesStatsByRepoCondAndKw returns milestone statistic information for dashboard by given repo conditions and name keyword.
-func GetMilestonesStatsByRepoCondAndKw(repoCond builder.Cond, keyword string) (*MilestonesStats, error) {
+func GetMilestonesStatsByRepoCondAndKw(ctx context.Context, repoCond builder.Cond, keyword string) (*MilestonesStats, error) {
 	var err error
 	stats := &MilestonesStats{}
 
-	sess := db.GetEngine(db.DefaultContext).Where("is_closed = ?", false)
+	sess := db.GetEngine(ctx).Where("is_closed = ?", false)
 	if len(keyword) > 0 {
 		sess = sess.And(builder.Like{"UPPER(name)", strings.ToUpper(keyword)})
 	}
@@ -299,7 +300,7 @@ func GetMilestonesStatsByRepoCondAndKw(repoCond builder.Cond, keyword string) (*
 		return nil, err
 	}
 
-	sess = db.GetEngine(db.DefaultContext).Where("is_closed = ?", true)
+	sess = db.GetEngine(ctx).Where("is_closed = ?", true)
 	if len(keyword) > 0 {
 		sess = sess.And(builder.Like{"UPPER(name)", strings.ToUpper(keyword)})
 	}

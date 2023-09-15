@@ -67,8 +67,8 @@ func (cred WebAuthnCredential) TableName() string {
 }
 
 // UpdateSignCount will update the database value of SignCount
-func (cred *WebAuthnCredential) UpdateSignCount() error {
-	return cred.updateSignCount(db.DefaultContext)
+func (cred *WebAuthnCredential) UpdateSignCount(ctx context.Context) error {
+	return cred.updateSignCount(ctx)
 }
 
 func (cred *WebAuthnCredential) updateSignCount(ctx context.Context) error {
@@ -113,8 +113,8 @@ func (list WebAuthnCredentialList) ToCredentials() []webauthn.Credential {
 }
 
 // GetWebAuthnCredentialsByUID returns all WebAuthn credentials of the given user
-func GetWebAuthnCredentialsByUID(uid int64) (WebAuthnCredentialList, error) {
-	return getWebAuthnCredentialsByUID(db.DefaultContext, uid)
+func GetWebAuthnCredentialsByUID(ctx context.Context, uid int64) (WebAuthnCredentialList, error) {
+	return getWebAuthnCredentialsByUID(ctx, uid)
 }
 
 func getWebAuthnCredentialsByUID(ctx context.Context, uid int64) (WebAuthnCredentialList, error) {
@@ -123,8 +123,8 @@ func getWebAuthnCredentialsByUID(ctx context.Context, uid int64) (WebAuthnCreden
 }
 
 // ExistsWebAuthnCredentialsForUID returns if the given user has credentials
-func ExistsWebAuthnCredentialsForUID(uid int64) (bool, error) {
-	return existsWebAuthnCredentialsByUID(db.DefaultContext, uid)
+func ExistsWebAuthnCredentialsForUID(ctx context.Context, uid int64) (bool, error) {
+	return existsWebAuthnCredentialsByUID(ctx, uid)
 }
 
 func existsWebAuthnCredentialsByUID(ctx context.Context, uid int64) (bool, error) {
@@ -132,8 +132,8 @@ func existsWebAuthnCredentialsByUID(ctx context.Context, uid int64) (bool, error
 }
 
 // GetWebAuthnCredentialByName returns WebAuthn credential by id
-func GetWebAuthnCredentialByName(uid int64, name string) (*WebAuthnCredential, error) {
-	return getWebAuthnCredentialByName(db.DefaultContext, uid, name)
+func GetWebAuthnCredentialByName(ctx context.Context, uid int64, name string) (*WebAuthnCredential, error) {
+	return getWebAuthnCredentialByName(ctx, uid, name)
 }
 
 func getWebAuthnCredentialByName(ctx context.Context, uid int64, name string) (*WebAuthnCredential, error) {
@@ -147,8 +147,8 @@ func getWebAuthnCredentialByName(ctx context.Context, uid int64, name string) (*
 }
 
 // GetWebAuthnCredentialByID returns WebAuthn credential by id
-func GetWebAuthnCredentialByID(id int64) (*WebAuthnCredential, error) {
-	return getWebAuthnCredentialByID(db.DefaultContext, id)
+func GetWebAuthnCredentialByID(ctx context.Context, id int64) (*WebAuthnCredential, error) {
+	return getWebAuthnCredentialByID(ctx, id)
 }
 
 func getWebAuthnCredentialByID(ctx context.Context, id int64) (*WebAuthnCredential, error) {
@@ -162,13 +162,13 @@ func getWebAuthnCredentialByID(ctx context.Context, id int64) (*WebAuthnCredenti
 }
 
 // HasWebAuthnRegistrationsByUID returns whether a given user has WebAuthn registrations
-func HasWebAuthnRegistrationsByUID(uid int64) (bool, error) {
-	return db.GetEngine(db.DefaultContext).Where("user_id = ?", uid).Exist(&WebAuthnCredential{})
+func HasWebAuthnRegistrationsByUID(ctx context.Context, uid int64) (bool, error) {
+	return db.GetEngine(ctx).Where("user_id = ?", uid).Exist(&WebAuthnCredential{})
 }
 
 // GetWebAuthnCredentialByCredID returns WebAuthn credential by credential ID
-func GetWebAuthnCredentialByCredID(userID int64, credID []byte) (*WebAuthnCredential, error) {
-	return getWebAuthnCredentialByCredID(db.DefaultContext, userID, credID)
+func GetWebAuthnCredentialByCredID(ctx context.Context, userID int64, credID []byte) (*WebAuthnCredential, error) {
+	return getWebAuthnCredentialByCredID(ctx, userID, credID)
 }
 
 func getWebAuthnCredentialByCredID(ctx context.Context, userID int64, credID []byte) (*WebAuthnCredential, error) {
@@ -182,8 +182,8 @@ func getWebAuthnCredentialByCredID(ctx context.Context, userID int64, credID []b
 }
 
 // CreateCredential will create a new WebAuthnCredential from the given Credential
-func CreateCredential(userID int64, name string, cred *webauthn.Credential) (*WebAuthnCredential, error) {
-	return createCredential(db.DefaultContext, userID, name, cred)
+func CreateCredential(ctx context.Context, userID int64, name string, cred *webauthn.Credential) (*WebAuthnCredential, error) {
+	return createCredential(ctx, userID, name, cred)
 }
 
 func createCredential(ctx context.Context, userID int64, name string, cred *webauthn.Credential) (*WebAuthnCredential, error) {
@@ -205,8 +205,8 @@ func createCredential(ctx context.Context, userID int64, name string, cred *weba
 }
 
 // DeleteCredential will delete WebAuthnCredential
-func DeleteCredential(id, userID int64) (bool, error) {
-	return deleteCredential(db.DefaultContext, id, userID)
+func DeleteCredential(ctx context.Context, id, userID int64) (bool, error) {
+	return deleteCredential(ctx, id, userID)
 }
 
 func deleteCredential(ctx context.Context, id, userID int64) (bool, error) {
@@ -215,8 +215,8 @@ func deleteCredential(ctx context.Context, id, userID int64) (bool, error) {
 }
 
 // WebAuthnCredentials implementns the webauthn.User interface
-func WebAuthnCredentials(userID int64) ([]webauthn.Credential, error) {
-	dbCreds, err := GetWebAuthnCredentialsByUID(userID)
+func WebAuthnCredentials(ctx context.Context, userID int64) ([]webauthn.Credential, error) {
+	dbCreds, err := GetWebAuthnCredentialsByUID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
