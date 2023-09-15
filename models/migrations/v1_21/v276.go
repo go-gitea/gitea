@@ -20,13 +20,14 @@ func UseSlugInsteadOfIDForBadges(x *xorm.Engine) error {
 		Slug string
 	}
 
+	err := x.Sync(new(Badge))
+	if err != nil {
+		return err
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
-		return err
-	}
-	err := sess.Sync(new(Badge))
-	if err != nil {
 		return err
 	}
 

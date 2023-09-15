@@ -5,6 +5,7 @@ package user
 
 import (
 	"context"
+	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 )
@@ -83,7 +84,7 @@ func AddUserBadges(ctx context.Context, u *User, badges []*Badge) error {
 			if err != nil {
 				return err
 			} else if !has {
-			   return fmt.Errorf("badge with slug %s doesn't exist", badge.Slug)
+				return fmt.Errorf("badge with slug %s doesn't exist", badge.Slug)
 			}
 			if err := db.Insert(ctx, &UserBadge{
 				BadgeID: badge.ID,
