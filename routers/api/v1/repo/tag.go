@@ -47,6 +47,8 @@ func ListTags(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TagList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listOpts := utils.GetListOptions(ctx)
 
@@ -93,6 +95,8 @@ func GetAnnotatedTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/AnnotatedTag"
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	sha := ctx.Params("sha")
 	if len(sha) == 0 {

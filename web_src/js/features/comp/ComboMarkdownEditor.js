@@ -135,6 +135,12 @@ class ComboMarkdownEditor {
     $panelPreviewer.attr('data-tab', `markdown-previewer-${elementIdCounter}`);
     elementIdCounter++;
 
+    $tabEditor[0].addEventListener('click', () => {
+      requestAnimationFrame(() => {
+        this.focus();
+      });
+    });
+
     $tabs.tab();
 
     this.previewUrl = $tabPreviewer.attr('data-preview-url');

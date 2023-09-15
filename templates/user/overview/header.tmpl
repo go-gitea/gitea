@@ -1,6 +1,6 @@
 <div class="ui secondary stackable pointing menu">
 	{{if .HasProfileReadme}}
-	<a class='{{if eq .TabName "overview"}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=overview">
+	<a class="{{if eq .TabName "overview"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=overview">
 		{{svg "octicon-info"}} {{.locale.Tr "user.overview"}}
 	</a>
 	{{end}}
@@ -50,18 +50,18 @@
 			</div>
 		{{end}}
 	{{else}}
-		<a class='{{if eq .TabName "activity"}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=activity">
+		<a class="{{if eq .TabName "activity"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=activity">
 			{{svg "octicon-rss"}} {{.locale.Tr "user.activity"}}
 		</a>
 		{{if not .DisableStars}}
-			<a class='{{if eq .TabName "stars"}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=stars">
+			<a class="{{if eq .TabName "stars"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=stars">
 				{{svg "octicon-star"}} {{.locale.Tr "user.starred"}}
 				{{if .ContextUser.NumStars}}
 					<div class="ui small label">{{.ContextUser.NumStars}}</div>
 				{{end}}
 			</a>
 		{{else}}
-			<a class='{{if eq .TabName "watching"}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=watching">
+			<a class="{{if eq .TabName "watching"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=watching">
 				{{svg "octicon-eye"}} {{.locale.Tr "user.watched"}}
 			</a>
 		{{end}}

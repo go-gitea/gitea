@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/services/convert"
 	org_service "code.gitea.io/gitea/services/org"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // ListTeams list a repository's teams
@@ -35,6 +35,8 @@ func ListTeams(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	if !ctx.Repo.Owner.IsOrganization() {
 		ctx.Error(http.StatusMethodNotAllowed, "noOrg", "repo is not owned by an organization")
@@ -97,7 +99,7 @@ func IsTeam(ctx *context.APIContext) {
 		return
 	}
 
-	if models.HasRepository(team, ctx.Repo.Repository.ID) {
+	if repo_service.HasRepository(ctx, team, ctx.Repo.Repository.ID) {
 		apiTeam, err := convert.ToTeam(ctx, team)
 		if err != nil {
 			ctx.InternalServerError(err)
@@ -140,6 +142,8 @@ func AddTeam(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "405":
 	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	changeRepoTeam(ctx, true)
 }
@@ -174,6 +178,8 @@ func DeleteTeam(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "405":
 	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	changeRepoTeam(ctx, false)
 }
@@ -192,20 +198,20 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 		return
 	}
 
-	repoHasTeam := models.HasRepository(team, ctx.Repo.Repository.ID)
+	repoHasTeam := repo_service.HasRepository(ctx, team, ctx.Repo.Repository.ID)
 	var err error
 	if add {
 		if repoHasTeam {
 			ctx.Error(http.StatusUnprocessableEntity, "alreadyAdded", fmt.Errorf("team '%s' is already added to repo", team.Name))
 			return
 		}
-		err = org_service.TeamAddRepository(team, ctx.Repo.Repository)
+		err = org_service.TeamAddRepository(ctx, team, ctx.Repo.Repository)
 	} else {
 		if !repoHasTeam {
 			ctx.Error(http.StatusUnprocessableEntity, "notAdded", fmt.Errorf("team '%s' was not added to repo", team.Name))
 			return
 		}
-		err = models.RemoveRepository(team, ctx.Repo.Repository.ID)
+		err = repo_service.RemoveRepositoryFromTeam(ctx, team, ctx.Repo.Repository.ID)
 	}
 	if err != nil {
 		ctx.InternalServerError(err)

@@ -92,7 +92,7 @@ func TestCreateUser(t *testing.T) {
 		MustChangePassword: false,
 	}
 
-	assert.NoError(t, user_model.CreateUser(user))
+	assert.NoError(t, user_model.CreateUser(db.DefaultContext, user))
 
 	assert.NoError(t, DeleteUser(db.DefaultContext, user, false))
 }
@@ -177,7 +177,7 @@ func TestCreateUser_Issue5882(t *testing.T) {
 	for _, v := range tt {
 		setting.Admin.DisableRegularOrgCreation = v.disableOrgCreation
 
-		assert.NoError(t, user_model.CreateUser(v.user))
+		assert.NoError(t, user_model.CreateUser(db.DefaultContext, v.user))
 
 		u, err := user_model.GetUserByEmail(db.DefaultContext, v.user.Email)
 		assert.NoError(t, err)

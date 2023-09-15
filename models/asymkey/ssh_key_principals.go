@@ -4,6 +4,7 @@
 package asymkey
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -63,7 +64,7 @@ func AddPrincipalKey(ownerID int64, content string, authSourceID int64) (*Public
 }
 
 // CheckPrincipalKeyString strips spaces and returns an error if the given principal contains newlines
-func CheckPrincipalKeyString(user *user_model.User, content string) (_ string, err error) {
+func CheckPrincipalKeyString(ctx context.Context, user *user_model.User, content string) (_ string, err error) {
 	if setting.SSH.Disabled {
 		return "", db.ErrSSHDisabled{}
 	}
@@ -80,7 +81,7 @@ func CheckPrincipalKeyString(user *user_model.User, content string) (_ string, e
 		case "anything":
 			return content, nil
 		case "email":
-			emails, err := user_model.GetEmailAddresses(user.ID)
+			emails, err := user_model.GetEmailAddresses(ctx, user.ID)
 			if err != nil {
 				return "", err
 			}

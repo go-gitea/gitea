@@ -12,7 +12,7 @@
 			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
 				{{if .Reviewers}}
 					<div class="ui icon search input">
-						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+						<i class="icon">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_reviewers"}}">
 					</div>
 				{{end}}
@@ -20,7 +20,7 @@
 					{{range .Reviewers}}
 						{{if .User}}
 							<a class="{{if not .CanChange}}ui{{end}} item {{if .Checked}}checked{{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}" {{if not .CanChange}} data-tooltip-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
-								<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
+								<span class="octicon-check {{if not .Checked}}gt-invisible{{end}}">{{svg "octicon-check"}}</span>
 								<span class="text">
 									{{ctx.AvatarUtils.Avatar .User 28 "gt-mr-3"}}{{template "repo/search_name" .User}}
 								</span>
@@ -33,7 +33,7 @@
 					{{range .TeamReviewers}}
 						{{if .Team}}
 							<a class="{{if not .CanChange}}ui{{end}} item {{if .Checked}}checked{{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}" {{if not .CanChange}} data-tooltip-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
-								<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check" 16}}</span>
+								<span class="octicon-check {{if not .Checked}}gt-invisible{{end}}">{{svg "octicon-check" 16}}</span>
 								<span class="text">
 									{{svg "octicon-people" 16 "gt-ml-4 gt-mr-2"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}
 								</span>
@@ -162,7 +162,7 @@
 			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/projects">
 				{{if or .OpenProjects .ClosedProjects}}
 				<div class="ui icon search input">
-					<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+					<i class="icon">{{svg "octicon-search" 16}}</i>
 					<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_projects"}}">
 				</div>
 				{{end}}
@@ -215,7 +215,7 @@
 		</a>
 		<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
 			<div class="ui icon search input">
-				<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+				<i class="icon">{{svg "octicon-search" 16}}</i>
 				<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignees"}}">
 			</div>
 			<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_assignees"}}</div>
@@ -229,7 +229,7 @@
 							{{$checked = true}}
 						{{end}}
 					{{end}}
-					<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
+					<span class="octicon-check {{if not $checked}}gt-invisible{{end}}">{{svg "octicon-check"}}</span>
 					<span class="text">
 						{{ctx.AvatarUtils.Avatar . 20 "gt-mr-3"}}{{template "repo/search_name" .}}
 					</span>
@@ -621,7 +621,7 @@
 						</div>
 
 						<div class="field">
-							<div class="ui fluid dropdown selection" tabindex="0">
+							<div class="ui fluid dropdown selection">
 
 								<select name="reason">
 									<option value=""> </option>
@@ -655,11 +655,11 @@
 				</form>
 			</div>
 		</div>
-		<button class="gt-mt-2 fluid ui show-modal button" data-modal="#delete">
+		<button class="gt-mt-2 fluid ui show-modal button" data-modal="#sidebar-delete-issue">
 			{{svg "octicon-trash"}}
 			{{.locale.Tr "repo.issues.delete"}}
 		</button>
-		<div class="ui g-modal-confirm modal" id="delete">
+		<div class="ui g-modal-confirm modal" id="sidebar-delete-issue">
 			<div class="header">
 				{{if .Issue.IsPull}}
 					{{.locale.Tr "repo.pulls.delete.title"}}

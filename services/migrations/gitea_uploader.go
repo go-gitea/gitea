@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/uri"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/pull"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/google/uuid"
 )
@@ -100,7 +101,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 
 	var r *repo_model.Repository
 	if opts.MigrateToRepoID <= 0 {
-		r, err = repo_module.CreateRepository(g.doer, owner, repo_module.CreateRepoOptions{
+		r, err = repo_service.CreateRepositoryDirectly(g.ctx, g.doer, owner, repo_service.CreateRepoOptions{
 			Name:           g.repoName,
 			Description:    repo.Description,
 			OriginalURL:    repo.OriginalURL,
@@ -221,7 +222,7 @@ func (g *GiteaLocalUploader) prepareMilestones(milestones ...*base.Milestone) []
 // CreateMilestones creates milestones
 func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) error {
 	mss := g.prepareMilestones(milestones...)
-	err := models.InsertMilestones(mss...)
+	err := issues_model.InsertMilestones(mss...)
 	if err != nil {
 		return err
 	}
@@ -378,7 +379,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 		return err
 	}
 
-	return models.InsertReleases(rels...)
+	return repo_model.InsertReleases(rels...)
 }
 
 // SyncTags syncs releases with tags in the databases
@@ -469,7 +470,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		return nil
 	}
 
-	if err := models.InsertIssues(iss...); err != nil {
+	if err := issues_model.InsertIssues(iss...); err != nil {
 		return err
 	}
 
@@ -559,7 +560,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 	if len(cms) == 0 {
 		return nil
 	}
-	return models.InsertIssueComments(cms)
+	return issues_model.InsertIssueComments(cms)
 }
 
 func (g *GiteaLocalUploader) preparePullRequests(prs ...*base.PullRequest) ([]*issues_model.PullRequest, error) {
@@ -586,7 +587,7 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 	if err != nil {
 		return err
 	}
-	if err := models.InsertPullRequests(ctx, gprs...); err != nil {
+	if err := issues_model.InsertPullRequests(ctx, gprs...); err != nil {
 		return err
 	}
 	for _, pr := range gprs {
