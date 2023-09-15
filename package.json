@@ -58,7 +58,7 @@
     "@stoplight/spectral-cli": "6.11.0",
     "@vitejs/plugin-vue": "4.3.4",
     "eslint": "8.49.0",
-    "eslint-plugin-array-func": "3.1.8",
+    "eslint-plugin-array-func": "4.0.0",
     "eslint-plugin-custom-elements": "0.0.8",
     "eslint-plugin-import": "2.28.1",
     "eslint-plugin-jquery": "1.5.1",
@@ -78,7 +78,7 @@
     "stylelint-declaration-strict-value": "1.9.2",
     "stylelint-stylistic": "0.4.3",
     "svgo": "3.0.2",
-    "updates": "14.4.0",
+    "updates": "15.0.0",
     "vite-string-plugin": "1.1.2",
     "vitest": "0.34.4"
   },
