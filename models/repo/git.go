@@ -4,6 +4,8 @@
 package repo
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 )
 
@@ -26,7 +28,7 @@ const (
 )
 
 // UpdateDefaultBranch updates the default branch
-func UpdateDefaultBranch(repo *Repository) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(repo.ID).Cols("default_branch").Update(repo)
+func UpdateDefaultBranch(ctx context.Context, repo *Repository) error {
+	_, err := db.GetEngine(ctx).ID(repo.ID).Cols("default_branch").Update(repo)
 	return err
 }

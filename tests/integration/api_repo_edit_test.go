@@ -138,7 +138,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		bFalse, bTrue := false, true
 
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})         // owner of the repo1 & repo16
-		user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})         // owner of the repo3, is an org
+		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})          // owner of the repo3, is an org
 		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})         // owner of neither repos
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})   // public repo
 		repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})   // public repo
@@ -330,21 +330,21 @@ func TestAPIRepoEdit(t *testing.T) {
 		})
 		_ = MakeRequest(t, req, http.StatusOK)
 
-		// Test using org repo "user3/repo3" where user2 is a collaborator
+		// Test using org repo "org3/repo3" where user2 is a collaborator
 		origRepoEditOption = getRepoEditOptionFromRepo(repo3)
 		repoEditOption = getNewRepoEditOption(origRepoEditOption)
-		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user3.Name, repo3.Name, token2)
+		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", org3.Name, repo3.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
 		MakeRequest(t, req, http.StatusOK)
 		// reset repo in db
-		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user3.Name, *repoEditOption.Name, token2)
+		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", org3.Name, *repoEditOption.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &origRepoEditOption)
 		_ = MakeRequest(t, req, http.StatusOK)
 
-		// Test using org repo "user3/repo3" with no user token
+		// Test using org repo "org3/repo3" with no user token
 		origRepoEditOption = getRepoEditOptionFromRepo(repo3)
 		repoEditOption = getNewRepoEditOption(origRepoEditOption)
-		url = fmt.Sprintf("/api/v1/repos/%s/%s", user3.Name, repo3.Name)
+		url = fmt.Sprintf("/api/v1/repos/%s/%s", org3.Name, repo3.Name)
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
 		MakeRequest(t, req, http.StatusNotFound)
 
