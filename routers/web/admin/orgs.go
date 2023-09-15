@@ -28,8 +28,9 @@ func Organizations(ctx *context.Context) {
 	}
 
 	explore.RenderUserSearch(ctx, &user_model.SearchUserOptions{
-		Actor: ctx.Doer,
-		Type:  user_model.UserTypeOrganization,
+		Actor:           ctx.Doer,
+		Type:            user_model.UserTypeOrganization,
+		IncludeReserved: true, // administrator needs to list all acounts include reserved
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.OrgPagingNum,
 		},

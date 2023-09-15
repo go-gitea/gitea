@@ -71,6 +71,8 @@ func ListMyOrgs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listUserOrgs(ctx, ctx.Doer)
 }
@@ -99,6 +101,8 @@ func ListUserOrgs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listUserOrgs(ctx, ctx.ContextUser)
 }
@@ -200,7 +204,7 @@ func GetAll(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	publicOrgs, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
+	publicOrgs, maxResults, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		ListOptions: listOptions,
 		Type:        user_model.UserTypeOrganization,
@@ -298,6 +302,8 @@ func Get(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Organization"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
@@ -337,6 +343,8 @@ func Edit(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Organization"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.EditOrgOption)
 	org := ctx.Org.Organization
 	org.FullName = form.FullName
@@ -384,6 +392,8 @@ func Delete(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	if err := org.DeleteOrganization(ctx.Doer, ctx.Org.Organization); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteOrganization", err)

@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -22,6 +21,7 @@ import (
 	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/mailer"
 	org_service "code.gitea.io/gitea/services/org"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // Collaboration render a repository's collaboration page
@@ -147,7 +147,7 @@ func DeleteCollaboration(ctx *context.Context) {
 		return
 	}
 
-	if err := models.DeleteCollaboration(ctx.Repo.Repository, u.ID); err != nil {
+	if err := repo_service.DeleteCollaboration(ctx.Repo.Repository, u.ID); err != nil {
 		ctx.Flash.Error("DeleteCollaboration: " + err.Error())
 	} else {
 		audit.Record(audit.RepositoryCollaboratorRemove, ctx.Doer, ctx.Repo.Repository, u, "Removed user %s as collaborator.", u.Name)
@@ -193,7 +193,7 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if err = org_service.TeamAddRepository(ctx.Doer, team, ctx.Repo.Repository); err != nil {
+	if err = org_service.TeamAddRepository(ctx, ctx.Doer, team, ctx.Repo.Repository); err != nil {
 		ctx.ServerError("TeamAddRepository", err)
 		return
 	}
@@ -216,7 +216,7 @@ func DeleteTeam(ctx *context.Context) {
 		return
 	}
 
-	if err = models.RemoveRepository(team, ctx.Repo.Repository.ID); err != nil {
+	if err = repo_service.RemoveRepositoryFromTeam(ctx, ctx.Doer, team, ctx.Repo.Repository); err != nil {
 		ctx.ServerError("team.RemoveRepositorys", err)
 		return
 	}

@@ -273,7 +273,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		userIDs = append(userIDs, iw.UserID)
 	}
 
-	users, err := user_model.GetUsersByIDs(userIDs)
+	users, err := user_model.GetUsersByIDs(ctx, userIDs)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUsersByIDs", err)
 		return

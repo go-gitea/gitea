@@ -63,6 +63,8 @@ func ListGPGKeys(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GPGKeyList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listGPGKeys(ctx, ctx.ContextUser.ID, utils.GetListOptions(ctx))
 }

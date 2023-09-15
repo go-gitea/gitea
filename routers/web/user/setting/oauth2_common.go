@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/forms"
 )
@@ -46,6 +47,15 @@ func (oa *OAuth2CommonHandlers) auditActionSwitch(user, org, system audit.Action
 func (oa *OAuth2CommonHandlers) renderEditPage(ctx *context.Context) {
 	app := ctx.Data["App"].(*auth.OAuth2Application)
 	ctx.Data["FormActionPath"] = fmt.Sprintf("%s/%d", oa.BasePathEditPrefix, app.ID)
+
+	if ctx.ContextUser.IsOrganization() {
+		err := shared_user.LoadHeaderCount(ctx)
+		if err != nil {
+			ctx.ServerError("LoadHeaderCount", err)
+			return
+		}
+	}
+
 	ctx.HTML(http.StatusOK, oa.TplAppEdit)
 }
 

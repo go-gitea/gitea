@@ -4,12 +4,12 @@
 package ldap
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/util"
@@ -20,7 +20,7 @@ import (
 
 // Authenticate queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
-func (source *Source) Authenticate(user *user_model.User, userName, password string) (*user_model.User, error) {
+func (source *Source) Authenticate(ctx context.Context, user *user_model.User, userName, password string) (*user_model.User, error) {
 	loginName := userName
 	if user != nil {
 		loginName = user.LoginName
@@ -36,11 +36,11 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	// Update User admin flag if exist
 	isAdminChanged := false
 	isRestrictedChanged := false
-	if isExist, err := user_model.IsUserExist(db.DefaultContext, 0, sr.Username); err != nil {
+	if isExist, err := user_model.IsUserExist(ctx, 0, sr.Username); err != nil {
 		return nil, err
 	} else if isExist {
 		if user == nil {
-			user, err = user_model.GetUserByName(db.DefaultContext, sr.Username)
+			user, err = user_model.GetUserByName(ctx, sr.Username)
 			if err != nil {
 				return nil, err
 			}
@@ -62,7 +62,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 				isRestrictedChanged = true
 			}
 			if len(cols) > 0 {
-				err = user_model.UpdateUserCols(db.DefaultContext, user, cols...)
+				err = user_model.UpdateUserCols(ctx, user, cols...)
 				if err != nil {
 					return nil, err
 				}
@@ -117,7 +117,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 			IsActive:     util.OptionalBoolTrue,
 		}
 
-		err := user_model.CreateUser(user, overwriteDefault)
+		err := user_model.CreateUser(ctx, user, overwriteDefault)
 		if err != nil {
 			return user, err
 		}
@@ -147,7 +147,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 		if err != nil {
 			return user, err
 		}
-		if err := source_service.SyncGroupsToTeams(db.DefaultContext, user, sr.Groups, groupTeamMapping, source.GroupTeamMapRemoval); err != nil {
+		if err := source_service.SyncGroupsToTeams(ctx, user, sr.Groups, groupTeamMapping, source.GroupTeamMapRemoval); err != nil {
 			return user, err
 		}
 	}

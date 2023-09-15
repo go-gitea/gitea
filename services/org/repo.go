@@ -16,14 +16,14 @@ import (
 )
 
 // TeamAddRepository adds new repository to team of organization.
-func TeamAddRepository(doer *user_model.User, t *organization.Team, repo *repo_model.Repository) error {
+func TeamAddRepository(ctx context.Context, doer *user_model.User, t *organization.Team, repo *repo_model.Repository) error {
 	if repo.OwnerID != t.OrgID {
 		return errors.New("repository does not belong to organization")
-	} else if models.HasRepository(t, repo.ID) {
+	} else if organization.HasTeamRepo(ctx, t.OrgID, t.ID, repo.ID) {
 		return nil
 	}
 
-	err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	err := db.WithTx(ctx, func(ctx context.Context) error {
 		return models.AddRepository(ctx, t, repo)
 	})
 	if err != nil {

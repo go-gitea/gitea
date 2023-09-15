@@ -34,7 +34,7 @@ func TestAPIUpdateOrgAvatar(t *testing.T) {
 		Image: base64.StdEncoding.EncodeToString(avatar),
 	}
 
-	req := NewRequestWithJSON(t, "POST", "/api/v1/orgs/user3/avatar?token="+token, &opts)
+	req := NewRequestWithJSON(t, "POST", "/api/v1/orgs/org3/avatar?token="+token, &opts)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Test what happens if you don't have a valid Base64 string
@@ -42,7 +42,7 @@ func TestAPIUpdateOrgAvatar(t *testing.T) {
 		Image: "Invalid",
 	}
 
-	req = NewRequestWithJSON(t, "POST", "/api/v1/orgs/user3/avatar?token="+token, &opts)
+	req = NewRequestWithJSON(t, "POST", "/api/v1/orgs/org3/avatar?token="+token, &opts)
 	MakeRequest(t, req, http.StatusBadRequest)
 
 	// Test what happens if you use a file that is not an image
@@ -56,7 +56,7 @@ func TestAPIUpdateOrgAvatar(t *testing.T) {
 		Image: base64.StdEncoding.EncodeToString(text),
 	}
 
-	req = NewRequestWithJSON(t, "POST", "/api/v1/orgs/user3/avatar?token="+token, &opts)
+	req = NewRequestWithJSON(t, "POST", "/api/v1/orgs/org3/avatar?token="+token, &opts)
 	MakeRequest(t, req, http.StatusInternalServerError)
 }
 
@@ -67,6 +67,6 @@ func TestAPIDeleteOrgAvatar(t *testing.T) {
 
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
 
-	req := NewRequest(t, "DELETE", "/api/v1/orgs/user3/avatar?token="+token)
+	req := NewRequest(t, "DELETE", "/api/v1/orgs/org3/avatar?token="+token)
 	MakeRequest(t, req, http.StatusNoContent)
 }

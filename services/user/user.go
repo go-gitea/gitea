@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/packages"
 	container_service "code.gitea.io/gitea/services/packages/container"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // RenameUser renames a user
@@ -178,7 +179,7 @@ func DeleteUser(ctx context.Context, doer, u *user_model.User, purge bool) error
 				break
 			}
 			for _, repo := range repos {
-				if err := models.DeleteRepository(u, u.ID, repo.ID); err != nil {
+				if err := repo_service.DeleteRepositoryDirectly(ctx, u, u.ID, repo.ID); err != nil {
 					return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %w", repo.Name, u.Name, u.ID, err)
 				}
 			}

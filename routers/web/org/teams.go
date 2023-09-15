@@ -25,10 +25,12 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	org_service "code.gitea.io/gitea/services/org"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -57,7 +59,12 @@ func Teams(ctx *context.Context) {
 		}
 	}
 	ctx.Data["Teams"] = ctx.Org.Teams
-	ctx.Data["ContextUser"] = ctx.ContextUser
+
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
 
 	ctx.HTML(http.StatusOK, tplTeams)
 }
@@ -72,12 +79,12 @@ func TeamsAction(ctx *context.Context) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		err = models.AddTeamMember(ctx.Org.Team, ctx.Doer.ID)
+		err = models.AddTeamMember(ctx, ctx.Org.Team, ctx.Doer.ID)
 		if err == nil {
 			audit.Record(audit.OrganizationTeamMemberAdd, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, "User %s was added to team %s/%s.", ctx.Doer.Name, ctx.Org.Organization.Name, ctx.Org.Team.Name)
 		}
 	case "leave":
-		err = models.RemoveTeamMember(ctx.Org.Team, ctx.Doer.ID)
+		err = models.RemoveTeamMember(ctx, ctx.Org.Team, ctx.Doer.ID)
 		if err != nil {
 			if org_model.IsErrLastOrgOwner(err) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
@@ -106,7 +113,7 @@ func TeamsAction(ctx *context.Context) {
 			return
 		}
 
-		err = models.RemoveTeamMember(ctx.Org.Team, u.ID)
+		err = models.RemoveTeamMember(ctx, ctx.Org.Team, u.ID)
 		if err != nil {
 			if org_model.IsErrLastOrgOwner(err) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
@@ -163,7 +170,7 @@ func TeamsAction(ctx *context.Context) {
 		if ctx.Org.Team.IsMember(u.ID) {
 			ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
 		} else {
-			err = models.AddTeamMember(ctx.Org.Team, u.ID)
+			err = models.AddTeamMember(ctx, ctx.Org.Team, u.ID)
 			if err == nil {
 				audit.Record(audit.OrganizationTeamMemberAdd, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, "User %s was added to team %s/%s.", u.Name, ctx.Org.Organization.Name, ctx.Org.Team.Name)
 			}
@@ -248,25 +255,22 @@ func TeamsRepoAction(ctx *context.Context) {
 			ctx.ServerError("GetRepositoryByName", err)
 			return
 		}
-		if err := org_service.TeamAddRepository(ctx.Doer, ctx.Org.Team, repo); err != nil {
+		if err := org_service.TeamAddRepository(ctx, ctx.Doer, ctx.Org.Team, repo); err != nil {
 			ctx.ServerError("TeamAddRepository "+ctx.Org.Team.Name, err)
 			return
 		}
 	case "remove":
-		repo, err := repo_model.GetRepositoryByID(db.DefaultContext, ctx.FormInt64("repoid"))
+		repo, err := repo_model.GetRepositoryByID(ctx, ctx.FormInt64("repoid"))
 		if err != nil {
 			ctx.ServerError("GetRepositoryByID", err)
 			return
 		}
-
-		if err := models.RemoveRepository(ctx.Org.Team, repo.ID); err != nil {
-			ctx.ServerError("RemoveRepository "+ctx.Org.Team.Name, err)
+		if err := repo_service.RemoveRepositoryFromTeam(ctx, ctx.Doer, ctx.Org.Team, repo); err != nil {
+			ctx.ServerError("RemoveRepositoryFromTeam "+ctx.Org.Team.Name, err)
 			return
 		}
-
-		audit.Record(audit.RepositoryCollaboratorTeamRemove, ctx.Doer, repo, ctx.Org.Team, "Removed team %s as collaborator from %s.", ctx.Org.Team.Name, repo.FullName())
 	case "addall":
-		added, err := models.AddAllRepositories(ctx.Org.Team)
+		added, err := models.AddAllRepositories(ctx, ctx.Org.Team)
 		if err != nil {
 			ctx.ServerError("AddAllRepositories "+ctx.Org.Team.Name, err)
 			return
@@ -281,7 +285,7 @@ func TeamsRepoAction(ctx *context.Context) {
 			return
 		}
 
-		if err := models.RemoveAllRepositories(ctx.Org.Team); err != nil {
+		if err := models.RemoveAllRepositories(ctx, ctx.Org.Team); err != nil {
 			ctx.ServerError("RemoveAllRepositories "+ctx.Org.Team.Name, err)
 			return
 		}
@@ -381,7 +385,7 @@ func NewTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if err := models.NewTeam(t); err != nil {
+	if err := models.NewTeam(ctx, t); err != nil {
 		ctx.Data["Err_TeamName"] = true
 		switch {
 		case org_model.IsErrTeamAlreadyExist(err):
@@ -403,6 +407,12 @@ func TeamMembers(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Team.Name
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamMembers"] = true
+
+	if err := shared_user.LoadHeaderCount(ctx); err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	if err := ctx.Org.Team.LoadMembers(ctx); err != nil {
 		ctx.ServerError("GetMembers", err)
 		return
@@ -425,6 +435,12 @@ func TeamRepositories(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Team.Name
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamRepos"] = true
+
+	if err := shared_user.LoadHeaderCount(ctx); err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	if err := ctx.Org.Team.LoadRepositories(ctx); err != nil {
 		ctx.ServerError("GetRepositories", err)
 		return
@@ -547,7 +563,7 @@ func EditTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if err := models.UpdateTeam(t, isAuthChanged, isIncludeAllChanged); err != nil {
+	if err := models.UpdateTeam(ctx, t, isAuthChanged, isIncludeAllChanged); err != nil {
 		ctx.Data["Err_TeamName"] = true
 		switch {
 		case org_model.IsErrTeamAlreadyExist(err):
@@ -568,7 +584,7 @@ func EditTeamPost(ctx *context.Context) {
 
 // DeleteTeam response for the delete team request
 func DeleteTeam(ctx *context.Context) {
-	if err := models.DeleteTeam(ctx.Org.Team); err != nil {
+	if err := models.DeleteTeam(ctx, ctx.Org.Team); err != nil {
 		ctx.Flash.Error("DeleteTeam: " + err.Error())
 	} else {
 		audit.Record(audit.OrganizationTeamRemove, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, "Team %s was removed from organization %s.", ctx.Org.Team.Name, ctx.Org.Organization.Name)
@@ -612,7 +628,7 @@ func TeamInvitePost(ctx *context.Context) {
 		return
 	}
 
-	if err := models.AddTeamMember(team, ctx.Doer.ID); err != nil {
+	if err := models.AddTeamMember(ctx, team, ctx.Doer.ID); err != nil {
 		ctx.ServerError("AddTeamMember", err)
 		return
 	}

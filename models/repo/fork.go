@@ -21,9 +21,9 @@ func GetRepositoriesByForkID(ctx context.Context, forkID int64) ([]*Repository, 
 }
 
 // GetForkedRepo checks if given user has already forked a repository with given ID.
-func GetForkedRepo(ownerID, repoID int64) *Repository {
+func GetForkedRepo(ctx context.Context, ownerID, repoID int64) *Repository {
 	repo := new(Repository)
-	has, _ := db.GetEngine(db.DefaultContext).
+	has, _ := db.GetEngine(ctx).
 		Where("owner_id=? AND fork_id=?", ownerID, repoID).
 		Get(repo)
 	if has {
@@ -33,8 +33,8 @@ func GetForkedRepo(ownerID, repoID int64) *Repository {
 }
 
 // HasForkedRepo checks if given user has already forked a repository with given ID.
-func HasForkedRepo(ownerID, repoID int64) bool {
-	has, _ := db.GetEngine(db.DefaultContext).
+func HasForkedRepo(ctx context.Context, ownerID, repoID int64) bool {
+	has, _ := db.GetEngine(ctx).
 		Table("repository").
 		Where("owner_id=? AND fork_id=?", ownerID, repoID).
 		Exist()
@@ -55,10 +55,10 @@ func GetUserFork(ctx context.Context, repoID, userID int64) (*Repository, error)
 }
 
 // GetForks returns all the forks of the repository
-func GetForks(repo *Repository, listOptions db.ListOptions) ([]*Repository, error) {
+func GetForks(ctx context.Context, repo *Repository, listOptions db.ListOptions) ([]*Repository, error) {
 	if listOptions.Page == 0 {
 		forks := make([]*Repository, 0, repo.NumForks)
-		return forks, db.GetEngine(db.DefaultContext).Find(&forks, &Repository{ForkID: repo.ID})
+		return forks, db.GetEngine(ctx).Find(&forks, &Repository{ForkID: repo.ID})
 	}
 
 	sess := db.GetPaginatedSession(&listOptions)

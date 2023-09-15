@@ -20,6 +20,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/forms"
@@ -47,6 +48,13 @@ func Settings(ctx *context.Context) {
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
 	ctx.Data["ContextUser"] = ctx.ContextUser
+
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 
@@ -200,6 +208,12 @@ func SettingsDelete(ctx *context.Context) {
 		return
 	}
 
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	ctx.HTML(http.StatusOK, tplSettingsDelete)
 }
 
@@ -215,6 +229,12 @@ func Webhooks(ctx *context.Context) {
 	ws, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{OwnerID: ctx.Org.Organization.ID})
 	if err != nil {
 		ctx.ServerError("ListWebhooksByOpts", err)
+		return
+	}
+
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
 		return
 	}
 
@@ -247,5 +267,12 @@ func Labels(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsLabels"] = true
 	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
+
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	ctx.HTML(http.StatusOK, tplSettingsLabels)
 }

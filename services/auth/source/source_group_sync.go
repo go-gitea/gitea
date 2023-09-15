@@ -101,14 +101,14 @@ func syncGroupsToTeamsCached(ctx context.Context, user *user_model.User, orgTeam
 			}
 
 			if action == syncAdd && !isMember {
-				if err := models.AddTeamMember(team, user.ID); err != nil {
+				if err := models.AddTeamMember(ctx, team, user.ID); err != nil {
 					log.Error("group sync: Could not add user to team: %v", err)
 					return err
 				}
 
 				audit.Record(audit.OrganizationTeamMemberAdd, audit.NewAuthenticationSourceUser(), org, team, "User %s was added to team %s/%s.", user.Name, org.Name, team.Name)
 			} else if action == syncRemove && isMember {
-				if err := models.RemoveTeamMember(team, user.ID); err != nil {
+				if err := models.RemoveTeamMember(ctx, team, user.ID); err != nil {
 					log.Error("group sync: Could not remove user from team: %v", err)
 					return err
 				}

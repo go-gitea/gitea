@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/convert"
 	org_service "code.gitea.io/gitea/services/org"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // ListTeams list all the teams of an organization
@@ -50,6 +51,8 @@ func ListTeams(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	teams, count, err := organization.SearchTeam(&organization.SearchTeamOptions{
 		ListOptions: utils.GetListOptions(ctx),
@@ -126,6 +129,8 @@ func GetTeam(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Team"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	apiTeam, err := convert.ToTeam(ctx, ctx.Org.Team, true)
 	if err != nil {
@@ -204,6 +209,8 @@ func CreateTeam(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Team"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateTeamOption)
@@ -233,7 +240,7 @@ func CreateTeam(ctx *context.APIContext) {
 		attachAdminTeamUnits(team)
 	}
 
-	if err := models.NewTeam(team); err != nil {
+	if err := models.NewTeam(ctx, team); err != nil {
 		if organization.IsErrTeamAlreadyExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
@@ -274,6 +281,8 @@ func EditTeam(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Team"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	form := web.GetForm(ctx).(*api.EditTeamOption)
 	team := ctx.Org.Team
@@ -332,7 +341,7 @@ func EditTeam(ctx *context.APIContext) {
 		attachAdminTeamUnits(team)
 	}
 
-	if err := models.UpdateTeam(team, isAuthChanged, isIncludeAllChanged); err != nil {
+	if err := models.UpdateTeam(ctx, team, isAuthChanged, isIncludeAllChanged); err != nil {
 		ctx.Error(http.StatusInternalServerError, "EditTeam", err)
 		return
 	}
@@ -365,6 +374,8 @@ func DeleteTeam(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: team deleted
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	org, err := organization.GetOrgByID(ctx, ctx.Org.Team.OrgID)
 	if err != nil {
@@ -372,7 +383,7 @@ func DeleteTeam(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.DeleteTeam(ctx.Org.Team); err != nil {
+	if err := models.DeleteTeam(ctx, ctx.Org.Team); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteTeam", err)
 		return
 	}
@@ -407,6 +418,8 @@ func GetTeamMembers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	isMember, err := organization.IsOrganizationMember(ctx, ctx.Org.Team.OrgID, ctx.Doer.ID)
 	if err != nil {
@@ -505,7 +518,7 @@ func AddTeamMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if err := models.AddTeamMember(ctx.Org.Team, u.ID); err != nil {
+	if err := models.AddTeamMember(ctx, ctx.Org.Team, u.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AddMember", err)
 		return
 	}
@@ -551,7 +564,7 @@ func RemoveTeamMember(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.RemoveTeamMember(ctx.Org.Team, u.ID); err != nil {
+	if err := models.RemoveTeamMember(ctx, ctx.Org.Team, u.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "RemoveTeamMember", err)
 		return
 	}
@@ -592,6 +605,8 @@ func GetTeamRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	team := ctx.Org.Team
 	teamRepos, err := organization.GetTeamRepositories(ctx, &organization.SearchTeamRepoOptions{
@@ -707,6 +722,8 @@ func AddTeamRepository(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	repo := getRepositoryByParams(ctx)
 	if ctx.Written() {
@@ -719,7 +736,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 		ctx.Error(http.StatusForbidden, "", "Must have admin-level access to the repository")
 		return
 	}
-	if err := org_service.TeamAddRepository(ctx.Doer, ctx.Org.Team, repo); err != nil {
+	if err := org_service.TeamAddRepository(ctx, ctx.Doer, ctx.Org.Team, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "TeamAddRepository", err)
 		return
 	}
@@ -757,6 +774,8 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	repo := getRepositoryByParams(ctx)
 	if ctx.Written() {
@@ -769,12 +788,10 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 		ctx.Error(http.StatusForbidden, "", "Must have admin-level access to the repository")
 		return
 	}
-	if err := models.RemoveRepository(ctx.Org.Team, repo.ID); err != nil {
+	if err := repo_service.RemoveRepositoryFromTeam(ctx, ctx.Doer, ctx.Org.Team, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "RemoveRepository", err)
 		return
 	}
-
-	audit.Record(audit.RepositoryCollaboratorTeamRemove, ctx.Doer, repo, ctx.Org.Team, "Removed team %s as collaborator from %s.", ctx.Org.Team.Name, repo.FullName())
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -820,6 +837,8 @@ func SearchTeam(ctx *context.APIContext) {
 	//           type: array
 	//           items:
 	//             "$ref": "#/definitions/Team"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listOptions := utils.GetListOptions(ctx)
 
