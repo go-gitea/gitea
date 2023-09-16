@@ -48,12 +48,12 @@ func ListAccessTokens(ctx *context.APIContext) {
 
 	opts := auth_model.ListAccessTokensOptions{UserID: ctx.ContextUser.ID, ListOptions: utils.GetListOptions(ctx)}
 
-	count, err := auth_model.CountAccessTokens(opts)
+	count, err := auth_model.CountAccessTokens(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
-	tokens, err := auth_model.ListAccessTokens(opts)
+	tokens, err := auth_model.ListAccessTokens(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -107,7 +107,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 		Name: form.Name,
 	}
 
-	exist, err := auth_model.AccessTokenByNameExists(t)
+	exist, err := auth_model.AccessTokenByNameExists(ctx, t)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -124,7 +124,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 	}
 	t.Scope = scope
 
-	if err := auth_model.NewAccessToken(t); err != nil {
+	if err := auth_model.NewAccessToken(ctx, t); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewAccessToken", err)
 		return
 	}
@@ -168,7 +168,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	tokenID, _ := strconv.ParseInt(token, 0, 64)
 
 	if tokenID == 0 {
-		tokens, err := auth_model.ListAccessTokens(auth_model.ListAccessTokensOptions{
+		tokens, err := auth_model.ListAccessTokens(ctx, auth_model.ListAccessTokensOptions{
 			Name:   token,
 			UserID: ctx.ContextUser.ID,
 		})
@@ -193,7 +193,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		return
 	}
 
-	if err := auth_model.DeleteAccessTokenByID(tokenID, ctx.Doer.ID); err != nil {
+	if err := auth_model.DeleteAccessTokenByID(ctx, tokenID, ctx.Doer.ID); err != nil {
 		if auth_model.IsErrAccessTokenNotExist(err) {
 			ctx.NotFound()
 		} else {

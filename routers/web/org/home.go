@@ -123,7 +123,7 @@ func Home(ctx *context.Context) {
 		PublicOnly:  ctx.Org.PublicMemberOnly,
 		ListOptions: db.ListOptions{Page: 1, PageSize: 25},
 	}
-	members, _, err := organization.FindOrgMembers(opts)
+	members, _, err := organization.FindOrgMembers(ctx, opts)
 	if err != nil {
 		ctx.ServerError("FindOrgMembers", err)
 		return

@@ -55,7 +55,7 @@ func ListForks(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	forks, err := repo_model.GetForks(ctx.Repo.Repository, utils.GetListOptions(ctx))
+	forks, err := repo_model.GetForks(ctx, ctx.Repo.Repository, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetForks", err)
 		return
