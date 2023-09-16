@@ -64,6 +64,8 @@ jobs:
               - "**/*.md"
               - "docs/**"
               - ".markdownlint.yaml"
+              - "package.json"
+              - "package-lock.json"
 
             actions:
               - ".github/workflows/*"
@@ -90,3 +92,5 @@ jobs:
               - "**/*.yml"
               - "**/*.yaml"
               - ".yamllint.yaml"
+              - "pyproject.toml"
+              - "poetry.lock"
