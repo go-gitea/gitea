@@ -69,6 +69,7 @@ jobs:
 
             actions:
               - ".github/workflows/*"
+              - "Makefile"
 
             templates:
               - "templates/**/*.tmpl"
