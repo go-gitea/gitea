@@ -7,18 +7,19 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -42,10 +43,10 @@ func TestAddReadOnlyDeployKey(t *testing.T) {
 	}
 	unittest.PrepareTestEnv(t)
 
-	ctx, _ := test.MockContext(t, "user2/repo1/settings/keys")
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/settings/keys")
 
-	test.LoadUser(t, ctx, 2)
-	test.LoadRepo(t, ctx, 2)
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 2)
 
 	addKeyForm := forms.AddKeyForm{
 		Title:   "read-only",
@@ -71,10 +72,10 @@ func TestAddReadWriteOnlyDeployKey(t *testing.T) {
 
 	unittest.PrepareTestEnv(t)
 
-	ctx, _ := test.MockContext(t, "user2/repo1/settings/keys")
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/settings/keys")
 
-	test.LoadUser(t, ctx, 2)
-	test.LoadRepo(t, ctx, 2)
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 2)
 
 	addKeyForm := forms.AddKeyForm{
 		Title:      "read-write",
@@ -94,10 +95,10 @@ func TestAddReadWriteOnlyDeployKey(t *testing.T) {
 
 func TestCollaborationPost(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "user2/repo1/issues/labels")
-	test.LoadUser(t, ctx, 2)
-	test.LoadUser(t, ctx, 4)
-	test.LoadRepo(t, ctx, 1)
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadUser(t, ctx, 4)
+	contexttest.LoadRepo(t, ctx, 1)
 
 	ctx.Req.Form.Set("collaborator", "user4")
 
@@ -129,10 +130,10 @@ func TestCollaborationPost(t *testing.T) {
 
 func TestCollaborationPost_InactiveUser(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "user2/repo1/issues/labels")
-	test.LoadUser(t, ctx, 2)
-	test.LoadUser(t, ctx, 9)
-	test.LoadRepo(t, ctx, 1)
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadUser(t, ctx, 9)
+	contexttest.LoadRepo(t, ctx, 1)
 
 	ctx.Req.Form.Set("collaborator", "user9")
 
@@ -152,10 +153,10 @@ func TestCollaborationPost_InactiveUser(t *testing.T) {
 
 func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "user2/repo1/issues/labels")
-	test.LoadUser(t, ctx, 2)
-	test.LoadUser(t, ctx, 4)
-	test.LoadRepo(t, ctx, 1)
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadUser(t, ctx, 4)
+	contexttest.LoadRepo(t, ctx, 1)
 
 	ctx.Req.Form.Set("collaborator", "user4")
 
@@ -193,9 +194,9 @@ func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
 
 func TestCollaborationPost_NonExistentUser(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "user2/repo1/issues/labels")
-	test.LoadUser(t, ctx, 2)
-	test.LoadRepo(t, ctx, 1)
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
 
 	ctx.Req.Form.Set("collaborator", "user34")
 
@@ -215,7 +216,7 @@ func TestCollaborationPost_NonExistentUser(t *testing.T) {
 
 func TestAddTeamPost(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "org26/repo43")
+	ctx, _ := contexttest.MockContext(t, "org26/repo43")
 
 	ctx.Req.Form.Set("team", "team11")
 
@@ -248,14 +249,14 @@ func TestAddTeamPost(t *testing.T) {
 
 	AddTeamPost(ctx)
 
-	assert.True(t, models.HasRepository(team, re.ID))
+	assert.True(t, repo_service.HasRepository(db.DefaultContext, team, re.ID))
 	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 	assert.Empty(t, ctx.Flash.ErrorMsg)
 }
 
 func TestAddTeamPost_NotAllowed(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "org26/repo43")
+	ctx, _ := contexttest.MockContext(t, "org26/repo43")
 
 	ctx.Req.Form.Set("team", "team11")
 
@@ -288,14 +289,14 @@ func TestAddTeamPost_NotAllowed(t *testing.T) {
 
 	AddTeamPost(ctx)
 
-	assert.False(t, models.HasRepository(team, re.ID))
+	assert.False(t, repo_service.HasRepository(db.DefaultContext, team, re.ID))
 	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }
 
 func TestAddTeamPost_AddTeamTwice(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "org26/repo43")
+	ctx, _ := contexttest.MockContext(t, "org26/repo43")
 
 	ctx.Req.Form.Set("team", "team11")
 
@@ -329,14 +330,14 @@ func TestAddTeamPost_AddTeamTwice(t *testing.T) {
 	AddTeamPost(ctx)
 
 	AddTeamPost(ctx)
-	assert.True(t, models.HasRepository(team, re.ID))
+	assert.True(t, repo_service.HasRepository(db.DefaultContext, team, re.ID))
 	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }
 
 func TestAddTeamPost_NonExistentTeam(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "org26/repo43")
+	ctx, _ := contexttest.MockContext(t, "org26/repo43")
 
 	ctx.Req.Form.Set("team", "team-non-existent")
 
@@ -369,7 +370,7 @@ func TestAddTeamPost_NonExistentTeam(t *testing.T) {
 
 func TestDeleteTeam(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "org3/team1/repo3")
+	ctx, _ := contexttest.MockContext(t, "org3/team1/repo3")
 
 	ctx.Req.Form.Set("id", "2")
 
@@ -402,5 +403,5 @@ func TestDeleteTeam(t *testing.T) {
 
 	DeleteTeam(ctx)
 
-	assert.False(t, models.HasRepository(team, re.ID))
+	assert.False(t, repo_service.HasRepository(db.DefaultContext, team, re.ID))
 }

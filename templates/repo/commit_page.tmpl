@@ -4,17 +4,17 @@
 	<div class="ui container fluid padded">
 		{{$class := ""}}
 		{{if .Commit.Signature}}
-			{{$class = (printf "%s%s" $class " isSigned")}}
+			{{$class = (print $class " isSigned")}}
 			{{if .Verification.Verified}}
 				{{if eq .Verification.TrustStatus "trusted"}}
-					{{$class = (printf "%s%s" $class " isVerified")}}
+					{{$class = (print $class " isVerified")}}
 				{{else if eq .Verification.TrustStatus "untrusted"}}
-					{{$class = (printf "%s%s" $class " isVerifiedUntrusted")}}
+					{{$class = (print $class " isVerifiedUntrusted")}}
 				{{else}}
-					{{$class = (printf "%s%s" $class " isVerifiedUnmatched")}}
+					{{$class = (print $class " isVerifiedUnmatched")}}
 				{{end}}
 			{{else if .Verification.Warning}}
-				{{$class = (printf "%s%s" $class " isWarning")}}
+				{{$class = (print $class " isWarning")}}
 			{{end}}
 		{{end}}
 		<div class="ui top attached header clearing segment gt-relative commit-header {{$class}}">
@@ -135,7 +135,7 @@
 				{{end}}
 			</div>
 			{{if IsMultilineCommitMessage .Commit.Message}}
-				<pre class="commit-body gt-mt-0">{{RenderCommitBody $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+				<pre class="commit-body">{{RenderCommitBody $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 			{{end}}
 			{{template "repo/commit_load_branches_and_tags" .}}
 		</div>

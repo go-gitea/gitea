@@ -60,7 +60,7 @@ func TestCreateOrStopIssueStopwatch(t *testing.T) {
 
 	user2, err := user_model.GetUserByID(db.DefaultContext, 2)
 	assert.NoError(t, err)
-	user3, err := user_model.GetUserByID(db.DefaultContext, 3)
+	org3, err := user_model.GetUserByID(db.DefaultContext, 3)
 	assert.NoError(t, err)
 
 	issue1, err := issues_model.GetIssueByID(db.DefaultContext, 1)
@@ -68,7 +68,7 @@ func TestCreateOrStopIssueStopwatch(t *testing.T) {
 	issue2, err := issues_model.GetIssueByID(db.DefaultContext, 2)
 	assert.NoError(t, err)
 
-	assert.NoError(t, issues_model.CreateOrStopIssueStopwatch(user3, issue1))
+	assert.NoError(t, issues_model.CreateOrStopIssueStopwatch(org3, issue1))
 	sw := unittest.AssertExistsAndLoadBean(t, &issues_model.Stopwatch{UserID: 3, IssueID: 1})
 	assert.LessOrEqual(t, sw.CreatedUnix, timeutil.TimeStampNow())
 
