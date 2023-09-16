@@ -37,8 +37,7 @@
 					{{end}}
 				</div>
 				{{if $.PullMirror}}
-					{{$address := MirrorRemoteAddress $.Context . $.PullMirror.GetRemoteName false}}
-					<div class="fork-flag">{{$.locale.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{$address.Address}}">{{$address.Address}}</a></div>
+					<div class="fork-flag">{{$.locale.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a></div>
 				{{end}}
 				{{if .IsFork}}<div class="fork-flag">{{$.locale.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{.BaseRepo.FullName}}</a></div>{{end}}
 				{{if .IsGenerated}}<div class="fork-flag">{{$.locale.Tr "repo.generated_from"}} <a href="{{.TemplateRepo.Link}}">{{.TemplateRepo.FullName}}</a></div>{{end}}

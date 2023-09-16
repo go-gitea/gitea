@@ -34,7 +34,7 @@ jobs:
       swagger: ${{ steps.changes.outputs.swagger }}
       yaml: ${{ steps.changes.outputs.yaml }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v2
         id: changes
         with:
@@ -64,9 +64,12 @@ jobs:
               - "**/*.md"
               - "docs/**"
               - ".markdownlint.yaml"
+              - "package.json"
+              - "package-lock.json"
 
             actions:
               - ".github/workflows/*"
+              - "Makefile"
 
             templates:
               - "templates/**/*.tmpl"
@@ -90,3 +93,5 @@ jobs:
               - "**/*.yml"
               - "**/*.yaml"
               - ".yamllint.yaml"
+              - "pyproject.toml"
+              - "poetry.lock"

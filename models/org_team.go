@@ -366,61 +366,61 @@ func AddTeamMember(ctx context.Context, team *organization.Team, userID int64) e
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
+	err = db.WithTx(ctx, func(ctx context.Context) error {
+		// check in transaction
+		isAlreadyMember, err = organization.IsTeamMember(ctx, team.OrgID, team.ID, userID)
+		if err != nil || isAlreadyMember {
+			return err
+		}
+
+		sess := db.GetEngine(ctx)
+
+		if err := db.Insert(ctx, &organization.TeamUser{
+			UID:    userID,
+			OrgID:  team.OrgID,
+			TeamID: team.ID,
+		}); err != nil {
+			return err
+		} else if _, err := sess.Incr("num_members").ID(team.ID).Update(new(organization.Team)); err != nil {
+			return err
+		}
+
+		team.NumMembers++
+
+		// Give access to team repositories.
+		// update exist access if mode become bigger
+		subQuery := builder.Select("repo_id").From("team_repo").
+			Where(builder.Eq{"team_id": team.ID})
+
+		if _, err := sess.Where("user_id=?", userID).
+			In("repo_id", subQuery).
+			And("mode < ?", team.AccessMode).
+			SetExpr("mode", team.AccessMode).
+			Update(new(access_model.Access)); err != nil {
+			return fmt.Errorf("update user accesses: %w", err)
+		}
+
+		// for not exist access
+		var repoIDs []int64
+		accessSubQuery := builder.Select("repo_id").From("access").Where(builder.Eq{"user_id": userID})
+		if err := sess.SQL(subQuery.And(builder.NotIn("repo_id", accessSubQuery))).Find(&repoIDs); err != nil {
+			return fmt.Errorf("select id accesses: %w", err)
+		}
+
+		accesses := make([]*access_model.Access, 0, 100)
+		for i, repoID := range repoIDs {
+			accesses = append(accesses, &access_model.Access{RepoID: repoID, UserID: userID, Mode: team.AccessMode})
+			if (i%100 == 0 || i == len(repoIDs)-1) && len(accesses) > 0 {
+				if err = db.Insert(ctx, accesses); err != nil {
+					return fmt.Errorf("insert new user accesses: %w", err)
+				}
+				accesses = accesses[:0]
+			}
+		}
+		return nil
+	})
 	if err != nil {
 		return err
-	}
-	defer committer.Close()
-
-	// check in transaction
-	isAlreadyMember, err = organization.IsTeamMember(ctx, team.OrgID, team.ID, userID)
-	if err != nil || isAlreadyMember {
-		return err
-	}
-
-	sess := db.GetEngine(ctx)
-
-	if err := db.Insert(ctx, &organization.TeamUser{
-		UID:    userID,
-		OrgID:  team.OrgID,
-		TeamID: team.ID,
-	}); err != nil {
-		return err
-	} else if _, err := sess.Incr("num_members").ID(team.ID).Update(new(organization.Team)); err != nil {
-		return err
-	}
-
-	team.NumMembers++
-
-	// Give access to team repositories.
-	// update exist access if mode become bigger
-	subQuery := builder.Select("repo_id").From("team_repo").
-		Where(builder.Eq{"team_id": team.ID})
-
-	if _, err := sess.Where("user_id=?", userID).
-		In("repo_id", subQuery).
-		And("mode < ?", team.AccessMode).
-		SetExpr("mode", team.AccessMode).
-		Update(new(access_model.Access)); err != nil {
-		return fmt.Errorf("update user accesses: %w", err)
-	}
-
-	// for not exist access
-	var repoIDs []int64
-	accessSubQuery := builder.Select("repo_id").From("access").Where(builder.Eq{"user_id": userID})
-	if err := sess.SQL(subQuery.And(builder.NotIn("repo_id", accessSubQuery))).Find(&repoIDs); err != nil {
-		return fmt.Errorf("select id accesses: %w", err)
-	}
-
-	accesses := make([]*access_model.Access, 0, 100)
-	for i, repoID := range repoIDs {
-		accesses = append(accesses, &access_model.Access{RepoID: repoID, UserID: userID, Mode: team.AccessMode})
-		if (i%100 == 0 || i == len(repoIDs)-1) && len(accesses) > 0 {
-			if err = db.Insert(ctx, accesses); err != nil {
-				return fmt.Errorf("insert new user accesses: %w", err)
-			}
-			accesses = accesses[:0]
-		}
 	}
 
 	// this behaviour may spend much time so run it in a goroutine
@@ -428,7 +428,7 @@ func AddTeamMember(ctx context.Context, team *organization.Team, userID int64) e
 	if setting.Service.AutoWatchNewRepos {
 		// Get team and its repositories.
 		if err := team.LoadRepositories(ctx); err != nil {
-			log.Error("getRepositories failed: %v", err)
+			log.Error("team.LoadRepositories failed: %v", err)
 		}
 		// FIXME: in the goroutine, it can't access the "ctx", it could only use db.DefaultContext at the moment
 		go func(repos []*repo_model.Repository) {
@@ -440,7 +440,7 @@ func AddTeamMember(ctx context.Context, team *organization.Team, userID int64) e
 		}(team.Repos)
 	}
 
-	return committer.Commit()
+	return nil
 }
 
 func removeTeamMember(ctx context.Context, team *organization.Team, userID int64) error {
