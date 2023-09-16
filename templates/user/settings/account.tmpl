@@ -24,7 +24,7 @@
 				</div>
 
 				<div class="field">
-					<button class="ui green button">{{$.locale.Tr "settings.change_password"}}</button>
+					<button class="ui primary button">{{$.locale.Tr "settings.change_password"}}</button>
 					<a href="{{AppSubUrl}}/user/forgot_password?email={{.Email}}">{{.locale.Tr "auth.forgot_password"}}</a>
 				</div>
 			</form>
@@ -58,7 +58,7 @@
 									<div data-value="disabled" class="{{if eq .EmailNotificationsPreference "disabled"}}active selected {{end}}item">{{$.locale.Tr "settings.email_notifications.disable"}}</div>
 								</div>
 							</div>
-							<button class="ui green button">{{$.locale.Tr "settings.email_notifications.submit"}}</button>
+							<button class="ui primary button">{{$.locale.Tr "settings.email_notifications.submit"}}</button>
 						</div>
 					</form>
 				</div>
@@ -118,7 +118,7 @@
 					<label for="email">{{.locale.Tr "settings.add_new_email"}}</label>
 					<input id="email" name="email" type="email" required {{if not .CanAddEmails}}disabled{{end}}>
 				</div>
-				<button class="ui green button" {{if not .CanAddEmails}}disabled{{end}}>
+				<button class="ui primary button" {{if not .CanAddEmails}}disabled{{end}}>
 					{{.locale.Tr "settings.add_email"}}
 				</button>
 			</form>

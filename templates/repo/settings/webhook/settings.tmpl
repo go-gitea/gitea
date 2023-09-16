@@ -278,9 +278,9 @@
 </div>
 <div class="field">
 	{{if $isNew}}
-		<button class="ui green button">{{.locale.Tr "repo.settings.add_webhook"}}</button>
+		<button class="ui primary button">{{.locale.Tr "repo.settings.add_webhook"}}</button>
 	{{else}}
-		<button class="ui green button">{{.locale.Tr "repo.settings.update_webhook"}}</button>
+		<button class="ui primary button">{{.locale.Tr "repo.settings.update_webhook"}}</button>
 		<a class="ui red delete-button button" data-url="{{.BaseLink}}/delete" data-id="{{.Webhook.ID}}">{{.locale.Tr "repo.settings.delete_webhook"}}</a>
 	{{end}}
 </div>

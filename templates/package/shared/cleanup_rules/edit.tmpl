@@ -62,11 +62,11 @@
 		</div>
 		<div class="field">
 			{{if .IsEditRule}}
-			<button class="ui green button" name="action" value="save">{{.locale.Tr "save"}}</button>
+			<button class="ui primary button" name="action" value="save">{{.locale.Tr "save"}}</button>
 			<button class="ui red button" name="action" value="remove">{{.locale.Tr "remove"}}</button>
 			<a class="ui button" href="{{.Link}}/preview">{{.locale.Tr "packages.owner.settings.cleanuprules.preview"}}</a>
 			{{else}}
-			<button class="ui green button" name="action" value="save">{{.locale.Tr "add"}}</button>
+			<button class="ui primary button" name="action" value="save">{{.locale.Tr "add"}}</button>
 			{{end}}
 		</div>
 	</form>

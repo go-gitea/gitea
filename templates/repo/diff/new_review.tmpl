@@ -1,5 +1,5 @@
 <div id="review-box">
-	<button class="ui tiny green button gt-pr-2 gt-df js-btn-review {{if not $.IsShowingAllCommits}}disabled{{end}}" {{if not $.IsShowingAllCommits}}data-tooltip-content="{{$.locale.Tr "repo.pulls.review_only_possible_for_full_diff"}}"{{end}}>
+	<button class="ui tiny primary button gt-pr-2 gt-df js-btn-review {{if not $.IsShowingAllCommits}}disabled{{end}}" {{if not $.IsShowingAllCommits}}data-tooltip-content="{{$.locale.Tr "repo.pulls.review_only_possible_for_full_diff"}}"{{end}}>
 		{{.locale.Tr "repo.diff.review"}}
 		<span class="ui small label review-comments-counter" data-pending-comment-number="{{.PendingCodeCommentNumber}}">{{.PendingCodeCommentNumber}}</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
