@@ -195,7 +195,7 @@ func typeToDescription(val any) TypeDescriptor {
 	case *git_model.ProtectedBranch:
 		return TypeDescriptor{"protected_branch", t.ID, t.RuleName, val}
 	case *repository_model.PushMirror:
-		return TypeDescriptor{"push_mirror", t.ID, "", val}
+		return TypeDescriptor{"push_mirror", t.ID, t.RemoteAddress, val}
 	case *models.RepoTransfer:
 		return TypeDescriptor{"repo_transfer", t.ID, "", val}
 	default:
