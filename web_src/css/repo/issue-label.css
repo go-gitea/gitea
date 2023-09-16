@@ -42,10 +42,6 @@
   opacity: 0.7;
 }
 
-.archived-label {
+.label-operation .label {
   height: fit-content;
-  font-size: 10px;
-  padding: 0.1rem;
-  border: 1px solid var(--color-secondary);
-  border-radius: var(--border-radius);
 }
