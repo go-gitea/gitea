@@ -234,7 +234,7 @@ func DeleteCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	if err := repo_service.DeleteCollaboration(ctx.Repo.Repository, collaborator.ID); err != nil {
+	if err := repo_service.DeleteCollaboration(ctx, ctx.Repo.Repository, collaborator.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteCollaboration", err)
 		return
 	}
