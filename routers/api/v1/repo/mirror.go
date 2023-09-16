@@ -48,6 +48,8 @@ func MirrorSync(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo.Repository
 
@@ -99,6 +101,8 @@ func PushMirrorSync(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	if !setting.Mirror.Enabled {
 		ctx.Error(http.StatusBadRequest, "PushMirrorSync", "Mirror feature is disabled")
@@ -154,6 +158,8 @@ func ListPushMirrors(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	if !setting.Mirror.Enabled {
 		ctx.Error(http.StatusBadRequest, "GetPushMirrorsByRepoID", "Mirror feature is disabled")
@@ -211,6 +217,8 @@ func GetPushMirrorByName(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	if !setting.Mirror.Enabled {
 		ctx.Error(http.StatusBadRequest, "GetPushMirrorByRemoteName", "Mirror feature is disabled")
@@ -263,6 +271,8 @@ func AddPushMirror(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	if !setting.Mirror.Enabled {
 		ctx.Error(http.StatusBadRequest, "AddPushMirror", "Mirror feature is disabled")

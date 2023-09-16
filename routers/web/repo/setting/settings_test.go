@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -248,7 +249,7 @@ func TestAddTeamPost(t *testing.T) {
 
 	AddTeamPost(ctx)
 
-	assert.True(t, models.HasRepository(team, re.ID))
+	assert.True(t, repo_service.HasRepository(db.DefaultContext, team, re.ID))
 	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 	assert.Empty(t, ctx.Flash.ErrorMsg)
 }
@@ -288,7 +289,7 @@ func TestAddTeamPost_NotAllowed(t *testing.T) {
 
 	AddTeamPost(ctx)
 
-	assert.False(t, models.HasRepository(team, re.ID))
+	assert.False(t, repo_service.HasRepository(db.DefaultContext, team, re.ID))
 	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }
@@ -329,7 +330,7 @@ func TestAddTeamPost_AddTeamTwice(t *testing.T) {
 	AddTeamPost(ctx)
 
 	AddTeamPost(ctx)
-	assert.True(t, models.HasRepository(team, re.ID))
+	assert.True(t, repo_service.HasRepository(db.DefaultContext, team, re.ID))
 	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }
@@ -402,5 +403,5 @@ func TestDeleteTeam(t *testing.T) {
 
 	DeleteTeam(ctx)
 
-	assert.False(t, models.HasRepository(team, re.ID))
+	assert.False(t, repo_service.HasRepository(db.DefaultContext, team, re.ID))
 }

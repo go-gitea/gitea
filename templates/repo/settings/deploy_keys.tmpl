@@ -4,14 +4,14 @@
 			{{.locale.Tr "repo.settings.deploy_keys"}}
 			<div class="ui right">
 			{{if not .DisableSSH}}
-				<button class="ui primary tiny show-panel button" data-panel="#add-deploy-key-panel">{{.locale.Tr "repo.settings.add_deploy_key"}}</button>
+				<button class="ui primary tiny show-panel toggle button" data-panel="#add-deploy-key-panel">{{.locale.Tr "repo.settings.add_deploy_key"}}</button>
 			{{else}}
 				<button class="ui primary tiny button disabled">{{.locale.Tr "settings.ssh_disabled"}}</button>
 			{{end}}
 			</div>
 		</h4>
 		<div class="ui attached segment">
-			<div class="{{if not .HasError}}gt-hidden{{end}}" id="add-deploy-key-panel">
+			<div class="{{if not .HasError}}gt-hidden{{end}} gt-mb-4" id="add-deploy-key-panel">
 				<form class="ui form" action="{{.Link}}" method="post">
 					{{.CsrfTokenHtml}}
 					<div class="field">

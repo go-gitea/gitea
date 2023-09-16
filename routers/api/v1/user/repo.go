@@ -78,6 +78,8 @@ func ListUserRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	private := ctx.IsSigned
 	listUserRepos(ctx, ctx.ContextUser, private)
@@ -160,6 +162,8 @@ func ListOrgRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listUserRepos(ctx, ctx.Org.Organization.AsUser(), ctx.IsSigned)
 }

@@ -72,4 +72,6 @@ type Notifier interface {
 
 	PackageCreate(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor)
 	PackageDelete(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor)
+
+	ChangeDefaultBranch(ctx context.Context, repo *repo_model.Repository)
 }

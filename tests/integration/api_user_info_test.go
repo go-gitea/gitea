@@ -23,7 +23,7 @@ func TestAPIUserInfo(t *testing.T) {
 	user := "user1"
 	user2 := "user31"
 
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user3"})
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
 
 	session := loginUser(t, user)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
@@ -42,16 +42,16 @@ func TestAPIUserInfo(t *testing.T) {
 		MakeRequest(t, req, http.StatusNotFound)
 
 		// test if the placaholder Mail is returned if a User is not logged in
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s", user3.Name))
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s", org3.Name))
 		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &u)
-		assert.Equal(t, user3.GetPlaceholderEmail(), u.Email)
+		assert.Equal(t, org3.GetPlaceholderEmail(), u.Email)
 
 		// Test if the correct Mail is returned if a User is logged in
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s?token=%s", user3.Name, token))
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s?token=%s", org3.Name, token))
 		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &u)
-		assert.Equal(t, user3.GetEmail(), u.Email)
+		assert.Equal(t, org3.GetEmail(), u.Email)
 	})
 
 	t.Run("GetAuthenticatedUser", func(t *testing.T) {

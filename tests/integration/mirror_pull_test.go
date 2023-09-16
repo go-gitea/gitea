@@ -39,7 +39,7 @@ func TestMirrorPull(t *testing.T) {
 		Releases:    false,
 	}
 
-	mirrorRepo, err := repo_service.CreateRepositoryDirectly(user, user, repo_service.CreateRepoOptions{
+	mirrorRepo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, user, repo_service.CreateRepoOptions{
 		Name:        opts.RepoName,
 		Description: opts.Description,
 		IsPrivate:   opts.Private,

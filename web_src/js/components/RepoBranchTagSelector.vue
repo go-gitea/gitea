@@ -190,16 +190,15 @@ const sfc = {
       }
       this.isLoading = true;
       try {
-        // the "data.defaultBranch" is ambiguous, it could be "branch name" or "tag name"
         const reqUrl = `${this.repoLink}/${this.mode}/list`;
         const resp = await fetch(reqUrl);
         const {results} = await resp.json();
         for (const result of results) {
           let selected = false;
           if (this.mode === 'branches') {
-            selected = result === this.defaultBranch;
+            selected = result === this.defaultSelectedRefName;
           } else {
-            selected = result === (this.release ? this.release.tagName : this.defaultBranch);
+            selected = result === (this.release ? this.release.tagName : this.defaultSelectedRefName);
           }
           this.items.push({name: result, url: pathEscapeSegments(result), branch: this.mode === 'branches', tag: this.mode === 'tags', selected});
         }
@@ -276,7 +275,7 @@ export default sfc; // activate IDE's Vue plugin
         <div class="loading-indicator is-loading" v-if="isLoading"/>
         <div v-for="(item, index) in filteredItems" :key="item.name" class="item" :class="{selected: item.selected, active: active === index}" @click="selectItem(item)" :ref="'listItem' + index">
           {{ item.name }}
-          <div class="ui label" v-if="item.name===defaultBranch && mode === 'branches'">
+          <div class="ui label" v-if="item.name===repoDefaultBranch && mode === 'branches'">
             {{ textDefaultBranchLabel }}
           </div>
           <a v-show="enableFeed && mode === 'branches'" role="button" class="rss-icon gt-float-right" :href="rssURLPrefix + item.url" target="_blank" @click.stop>
