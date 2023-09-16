@@ -185,7 +185,7 @@ func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, r
 	}
 
 	// If WebAuthn is enrolled -> Redirect to WebAuthn instead
-	regs, err := auth.GetWebAuthnCredentialsByUID(u.ID)
+	regs, err := auth.GetWebAuthnCredentialsByUID(ctx, u.ID)
 	if err == nil && len(regs) > 0 {
 		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
 		return
