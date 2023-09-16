@@ -56,7 +56,7 @@ func userProfile(ctx *context.Context) {
 
 	// prepare heatmap data
 	if setting.Service.EnableUserHeatmap {
-		data, err := activities_model.GetUserHeatmapDataByUser(ctx.ContextUser, ctx.Doer)
+		data, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserHeatmapDataByUser", err)
 			return

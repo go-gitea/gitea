@@ -6,6 +6,7 @@ package repo
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -21,6 +22,6 @@ func TestMigrate_InsertReleases(t *testing.T) {
 		Attachments: []*Attachment{a},
 	}
 
-	err := InsertReleases(r)
+	err := InsertReleases(db.DefaultContext, r)
 	assert.NoError(t, err)
 }

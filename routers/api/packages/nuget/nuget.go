@@ -431,6 +431,7 @@ func UploadPackage(ctx *context.Context) {
 	}
 
 	_, _, err := packages_service.CreatePackageAndAddFile(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
@@ -503,6 +504,7 @@ func UploadSymbolPackage(ctx *context.Context) {
 	}
 
 	_, err = packages_service.AddFileToExistingPackage(
+		ctx,
 		pi,
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
@@ -529,6 +531,7 @@ func UploadSymbolPackage(ctx *context.Context) {
 
 	for _, pdb := range pdbs {
 		_, err := packages_service.AddFileToExistingPackage(
+			ctx,
 			pi,
 			&packages_service.PackageFileCreationInfo{
 				PackageFileInfo: packages_service.PackageFileInfo{
@@ -647,6 +650,7 @@ func DeletePackage(ctx *context.Context) {
 	packageVersion := ctx.Params("version")
 
 	err := packages_service.RemovePackageVersionByNameAndVersion(
+		ctx,
 		ctx.Doer,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,

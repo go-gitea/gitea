@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/webauthn"
 	gitea_context "code.gitea.io/gitea/modules/context"
@@ -83,7 +82,7 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	if len(user.Language) == 0 {
 		lc := middleware.Locale(resp, req)
 		user.Language = lc.Language()
-		if err := user_model.UpdateUserCols(db.DefaultContext, user, "language"); err != nil {
+		if err := user_model.UpdateUserCols(req.Context(), user, "language"); err != nil {
 			log.Error(fmt.Sprintf("Error updating user language [user: %d, locale: %s]", user.ID, user.Language))
 			return
 		}

@@ -90,7 +90,7 @@ func GetLatestRelease(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Release"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	release, err := repo_model.GetLatestReleaseByRepoID(ctx.Repo.Repository.ID)
+	release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
 		ctx.Error(http.StatusInternalServerError, "GetLatestRelease", err)
 		return
@@ -179,7 +179,7 @@ func ListReleases(ctx *context.APIContext) {
 		rels[i] = convert.ToAPIRelease(ctx, ctx.Repo.Repository, release)
 	}
 
-	filteredCount, err := repo_model.CountReleasesByRepoID(ctx.Repo.Repository.ID, opts)
+	filteredCount, err := repo_model.CountReleasesByRepoID(ctx, ctx.Repo.Repository.ID, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -222,7 +222,7 @@ func CreateRelease(ctx *context.APIContext) {
 	//   "409":
 	//     "$ref": "#/responses/error"
 	form := web.GetForm(ctx).(*api.CreateReleaseOption)
-	rel, err := repo_model.GetRelease(ctx.Repo.Repository.ID, form.TagName)
+	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, form.TagName)
 	if err != nil {
 		if !repo_model.IsErrReleaseNotExist(err) {
 			ctx.Error(http.StatusInternalServerError, "GetRelease", err)
@@ -269,7 +269,7 @@ func CreateRelease(ctx *context.APIContext) {
 		rel.Publisher = ctx.Doer
 		rel.Target = form.Target
 
-		if err = release_service.UpdateRelease(ctx.Doer, ctx.Repo.GitRepo, rel, nil, nil, nil); err != nil {
+		if err = release_service.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo, rel, nil, nil, nil); err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateRelease", err)
 			return
 		}
@@ -344,7 +344,7 @@ func EditRelease(ctx *context.APIContext) {
 	if form.IsPrerelease != nil {
 		rel.IsPrerelease = *form.IsPrerelease
 	}
-	if err := release_service.UpdateRelease(ctx.Doer, ctx.Repo.GitRepo, rel, nil, nil, nil); err != nil {
+	if err := release_service.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo, rel, nil, nil, nil); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateRelease", err)
 		return
 	}

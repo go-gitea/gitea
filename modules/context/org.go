@@ -46,7 +46,7 @@ func GetOrganizationByParams(ctx *Context) {
 	ctx.Org.Organization, err = organization.GetOrgByName(ctx, orgName)
 	if err != nil {
 		if organization.IsErrOrgNotExist(err) {
-			redirectUserID, err := user_model.LookupUserRedirect(orgName)
+			redirectUserID, err := user_model.LookupUserRedirect(ctx, orgName)
 			if err == nil {
 				RedirectToUser(ctx.Base, orgName, redirectUserID)
 			} else if user_model.IsErrUserRedirectNotExist(err) {

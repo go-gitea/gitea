@@ -33,8 +33,8 @@ import (
 
 // GetOrCreateRepositoryVersion gets or creates the internal repository package
 // The RPM registry needs multiple metadata files which are stored in this package.
-func GetOrCreateRepositoryVersion(ownerID int64) (*packages_model.PackageVersion, error) {
-	return packages_service.GetOrCreateInternalPackageVersion(ownerID, packages_model.TypeRpm, rpm_module.RepositoryPackage, rpm_module.RepositoryVersion)
+func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages_model.PackageVersion, error) {
+	return packages_service.GetOrCreateInternalPackageVersion(ctx, ownerID, packages_model.TypeRpm, rpm_module.RepositoryPackage, rpm_module.RepositoryVersion)
 }
 
 // GetOrCreateKeyPair gets or creates the PGP keys used to sign repository metadata files
@@ -128,7 +128,7 @@ type packageCache = map[*packages_model.PackageFile]*packageData
 
 // BuildSpecificRepositoryFiles builds metadata files for the repository
 func BuildRepositoryFiles(ctx context.Context, ownerID int64) error {
-	pv, err := GetOrCreateRepositoryVersion(ownerID)
+	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
 	if err != nil {
 		return err
 	}
@@ -198,15 +198,15 @@ func BuildRepositoryFiles(ctx context.Context, ownerID int64) error {
 		cache[pf] = pd
 	}
 
-	primary, err := buildPrimary(pv, pfs, cache)
+	primary, err := buildPrimary(ctx, pv, pfs, cache)
 	if err != nil {
 		return err
 	}
-	filelists, err := buildFilelists(pv, pfs, cache)
+	filelists, err := buildFilelists(ctx, pv, pfs, cache)
 	if err != nil {
 		return err
 	}
-	other, err := buildOther(pv, pfs, cache)
+	other, err := buildOther(ctx, pv, pfs, cache)
 	if err != nil {
 		return err
 	}
@@ -272,6 +272,7 @@ func buildRepomd(ctx context.Context, pv *packages_model.PackageVersion, ownerID
 		{"repomd.xml.asc", repomdAscContent},
 	} {
 		_, err = packages_service.AddFileToPackageVersionInternal(
+			ctx,
 			pv,
 			&packages_service.PackageFileCreationInfo{
 				PackageFileInfo: packages_service.PackageFileInfo{
@@ -292,7 +293,7 @@ func buildRepomd(ctx context.Context, pv *packages_model.PackageVersion, ownerID
 }
 
 // https://docs.pulpproject.org/en/2.19/plugins/pulp_rpm/tech-reference/rpm.html#primary-xml
-func buildPrimary(pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache) (*repoData, error) {
+func buildPrimary(ctx context.Context, pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache) (*repoData, error) {
 	type Version struct {
 		Epoch   string `xml:"epoch,attr"`
 		Version string `xml:"ver,attr"`
@@ -426,7 +427,7 @@ func buildPrimary(pv *packages_model.PackageVersion, pfs []*packages_model.Packa
 		})
 	}
 
-	return addDataAsFileToRepo(pv, "primary", &Metadata{
+	return addDataAsFileToRepo(ctx, pv, "primary", &Metadata{
 		Xmlns:        "http://linux.duke.edu/metadata/common",
 		XmlnsRpm:     "http://linux.duke.edu/metadata/rpm",
 		PackageCount: len(pfs),
@@ -435,7 +436,7 @@ func buildPrimary(pv *packages_model.PackageVersion, pfs []*packages_model.Packa
 }
 
 // https://docs.pulpproject.org/en/2.19/plugins/pulp_rpm/tech-reference/rpm.html#filelists-xml
-func buildFilelists(pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache) (*repoData, error) { //nolint:dupl
+func buildFilelists(ctx context.Context, pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache) (*repoData, error) { //nolint:dupl
 	type Version struct {
 		Epoch   string `xml:"epoch,attr"`
 		Version string `xml:"ver,attr"`
@@ -474,7 +475,7 @@ func buildFilelists(pv *packages_model.PackageVersion, pfs []*packages_model.Pac
 		})
 	}
 
-	return addDataAsFileToRepo(pv, "filelists", &Filelists{
+	return addDataAsFileToRepo(ctx, pv, "filelists", &Filelists{
 		Xmlns:        "http://linux.duke.edu/metadata/other",
 		PackageCount: len(pfs),
 		Packages:     packages,
@@ -482,7 +483,7 @@ func buildFilelists(pv *packages_model.PackageVersion, pfs []*packages_model.Pac
 }
 
 // https://docs.pulpproject.org/en/2.19/plugins/pulp_rpm/tech-reference/rpm.html#other-xml
-func buildOther(pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache) (*repoData, error) { //nolint:dupl
+func buildOther(ctx context.Context, pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache) (*repoData, error) { //nolint:dupl
 	type Version struct {
 		Epoch   string `xml:"epoch,attr"`
 		Version string `xml:"ver,attr"`
@@ -521,7 +522,7 @@ func buildOther(pv *packages_model.PackageVersion, pfs []*packages_model.Package
 		})
 	}
 
-	return addDataAsFileToRepo(pv, "other", &Otherdata{
+	return addDataAsFileToRepo(ctx, pv, "other", &Otherdata{
 		Xmlns:        "http://linux.duke.edu/metadata/other",
 		PackageCount: len(pfs),
 		Packages:     packages,
@@ -545,7 +546,7 @@ func (wc *writtenCounter) Written() int64 {
 	return wc.written
 }
 
-func addDataAsFileToRepo(pv *packages_model.PackageVersion, filetype string, obj any) (*repoData, error) {
+func addDataAsFileToRepo(ctx context.Context, pv *packages_model.PackageVersion, filetype string, obj any) (*repoData, error) {
 	content, _ := packages_module.NewHashedBuffer()
 	gzw := gzip.NewWriter(content)
 	wc := &writtenCounter{}
@@ -565,6 +566,7 @@ func addDataAsFileToRepo(pv *packages_model.PackageVersion, filetype string, obj
 	filename := filetype + ".xml.gz"
 
 	_, err := packages_service.AddFileToPackageVersionInternal(
+		ctx,
 		pv,
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{

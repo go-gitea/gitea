@@ -456,7 +456,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 					return nil
 				}
 
-				if redirectUserID, err := user_model.LookupUserRedirect(userName); err == nil {
+				if redirectUserID, err := user_model.LookupUserRedirect(ctx, userName); err == nil {
 					RedirectToUser(ctx.Base, userName, redirectUserID)
 				} else if user_model.IsErrUserRedirectNotExist(err) {
 					ctx.NotFound("GetUserByName", nil)

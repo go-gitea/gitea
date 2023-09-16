@@ -80,9 +80,9 @@ func CountIssues(ctx context.Context, opts *IssuesOptions) (int64, error) {
 }
 
 // GetIssueStats returns issue statistic information by given conditions.
-func GetIssueStats(opts *IssuesOptions) (*IssueStats, error) {
+func GetIssueStats(ctx context.Context, opts *IssuesOptions) (*IssueStats, error) {
 	if len(opts.IssueIDs) <= MaxQueryParameters {
-		return getIssueStatsChunk(opts, opts.IssueIDs)
+		return getIssueStatsChunk(ctx, opts, opts.IssueIDs)
 	}
 
 	// If too long a list of IDs is provided, we get the statistics in
@@ -95,7 +95,7 @@ func GetIssueStats(opts *IssuesOptions) (*IssueStats, error) {
 		if chunk > len(opts.IssueIDs) {
 			chunk = len(opts.IssueIDs)
 		}
-		stats, err := getIssueStatsChunk(opts, opts.IssueIDs[i:chunk])
+		stats, err := getIssueStatsChunk(ctx, opts, opts.IssueIDs[i:chunk])
 		if err != nil {
 			return nil, err
 		}
@@ -112,10 +112,10 @@ func GetIssueStats(opts *IssuesOptions) (*IssueStats, error) {
 	return accum, nil
 }
 
-func getIssueStatsChunk(opts *IssuesOptions, issueIDs []int64) (*IssueStats, error) {
+func getIssueStatsChunk(ctx context.Context, opts *IssuesOptions, issueIDs []int64) (*IssueStats, error) {
 	stats := &IssueStats{}
 
-	sess := db.GetEngine(db.DefaultContext).
+	sess := db.GetEngine(ctx).
 		Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 
 	var err error

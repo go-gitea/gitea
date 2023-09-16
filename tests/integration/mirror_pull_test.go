@@ -86,7 +86,7 @@ func TestMirrorPull(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, initCount+1, count)
 
-	release, err := repo_model.GetRelease(repo.ID, "v0.2")
+	release, err := repo_model.GetRelease(db.DefaultContext, repo.ID, "v0.2")
 	assert.NoError(t, err)
 	assert.NoError(t, release_service.DeleteReleaseByID(ctx, release.ID, user, true))
 

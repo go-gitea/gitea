@@ -164,7 +164,7 @@ func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, r
 			return
 		}
 
-		err = externalaccount.LinkAccountToUser(u, gothUser)
+		err = externalaccount.LinkAccountToUser(ctx, u, gothUser)
 		if err != nil {
 			ctx.ServerError("UserLinkAccount", err)
 			return

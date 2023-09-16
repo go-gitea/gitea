@@ -92,7 +92,7 @@ func ListPullReviews(ctx *context.APIContext) {
 		return
 	}
 
-	count, err := issues_model.CountReviews(opts)
+	count, err := issues_model.CountReviews(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
