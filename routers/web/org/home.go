@@ -131,7 +131,7 @@ func Home(ctx *context.Context) {
 
 	var isFollowing bool
 	if ctx.Doer != nil {
-		isFollowing = user_model.IsFollowing(ctx.Doer.ID, ctx.ContextUser.ID)
+		isFollowing = user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	}
 
 	ctx.Data["Repos"] = repos
