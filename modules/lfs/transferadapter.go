@@ -47,9 +47,11 @@ func (a *BasicTransferAdapter) Download(ctx context.Context, l *Link) (io.ReadCl
 // Upload sends the content to the LFS server.
 func (a *BasicTransferAdapter) Upload(ctx context.Context, l *Link, p Pointer, r io.Reader) error {
 	req, err := createRequest(ctx, http.MethodPut, l.Href, l.Header, r)
-	req.Header.Set("Content-Type", "application/octet-stream")
 	if err != nil {
 		return err
+	}
+	if req.Header.Get("Content-Type") == "" {
+		req.Header.Set("Content-Type", "application/octet-stream")
 	}
 	if req.Header.Get("Transfer-Encoding") == "chunked" {
 		req.TransferEncoding = []string{"chunked"}
@@ -73,10 +75,10 @@ func (a *BasicTransferAdapter) Verify(ctx context.Context, l *Link, p Pointer) e
 	}
 
 	req, err := createRequest(ctx, http.MethodPost, l.Href, l.Header, bytes.NewReader(b))
-	req.Header.Set("Content-Type", MediaType)
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Content-Type", MediaType)
 	res, err := performRequest(ctx, a.client, req)
 	if err != nil {
 		return err
