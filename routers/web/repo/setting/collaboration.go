@@ -147,7 +147,7 @@ func DeleteCollaboration(ctx *context.Context) {
 		return
 	}
 
-	if err := repo_service.DeleteCollaboration(ctx.Repo.Repository, u.ID); err != nil {
+	if err := repo_service.DeleteCollaboration(ctx, ctx.Repo.Repository, u.ID); err != nil {
 		ctx.Flash.Error("DeleteCollaboration: " + err.Error())
 	} else {
 		audit.Record(audit.RepositoryCollaboratorRemove, ctx.Doer, ctx.Repo.Repository, u, "Removed user %s as collaborator.", u.Name)

@@ -30,7 +30,7 @@ func WebAuthnRegister(ctx *context.Context) {
 		form.Name = strconv.FormatInt(time.Now().UnixNano(), 16)
 	}
 
-	cred, err := auth.GetWebAuthnCredentialByName(ctx.Doer.ID, form.Name)
+	cred, err := auth.GetWebAuthnCredentialByName(ctx, ctx.Doer.ID, form.Name)
 	if err != nil && !auth.IsErrWebAuthnCredentialNotExist(err) {
 		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
 		return
@@ -89,7 +89,7 @@ func WebauthnRegisterPost(ctx *context.Context) {
 		return
 	}
 
-	dbCred, err := auth.GetWebAuthnCredentialByName(ctx.Doer.ID, name)
+	dbCred, err := auth.GetWebAuthnCredentialByName(ctx, ctx.Doer.ID, name)
 	if err != nil && !auth.IsErrWebAuthnCredentialNotExist(err) {
 		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
 		return
@@ -100,7 +100,7 @@ func WebauthnRegisterPost(ctx *context.Context) {
 	}
 
 	// Create the credential
-	dbCred, err = auth.CreateCredential(ctx.Doer.ID, name, cred)
+	dbCred, err = auth.CreateCredential(ctx, ctx.Doer.ID, name, cred)
 	if err != nil {
 		ctx.ServerError("CreateCredential", err)
 		return
@@ -116,13 +116,13 @@ func WebauthnRegisterPost(ctx *context.Context) {
 func WebauthnDelete(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.WebauthnDeleteForm)
 
-	cred, err := auth.GetWebAuthnCredentialByID(form.ID)
+	cred, err := auth.GetWebAuthnCredentialByID(ctx, form.ID)
 	if err != nil {
 		ctx.ServerError("GetWebAuthnCredentialByID", err)
 		return
 	}
 
-	if ok, err := auth.DeleteCredential(form.ID, ctx.Doer.ID); err != nil {
+	if ok, err := auth.DeleteCredential(ctx, form.ID, ctx.Doer.ID); err != nil {
 		ctx.ServerError("DeleteCredential", err)
 		return
 	} else if ok {

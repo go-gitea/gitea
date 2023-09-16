@@ -84,7 +84,7 @@ loop:
 			then = now
 
 			if setting.Service.EnableTimetracking {
-				usersStopwatches, err := issues_model.GetUIDsAndStopwatch()
+				usersStopwatches, err := issues_model.GetUIDsAndStopwatch(ctx)
 				if err != nil {
 					log.Error("Unable to get GetUIDsAndStopwatch: %v", err)
 					return

@@ -345,7 +345,7 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 		return err
 	}
 
-	if !repoTransfer.CanUserAcceptTransfer(ctx.Doer) {
+	if !repoTransfer.CanUserAcceptTransfer(ctx, ctx.Doer) {
 		return errors.New("user does not have enough permissions")
 	}
 
@@ -360,7 +360,7 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 		}
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.success"))
 	} else {
-		if err := models.CancelRepositoryTransfer(ctx.Repo.Repository); err != nil {
+		if err := models.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
 			return err
 		}
 
