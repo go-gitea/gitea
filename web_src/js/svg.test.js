@@ -1,4 +1,3 @@
-import {expect, test} from 'vitest';
 import {svg, SvgIcon, svgParseOuterInner} from './svg.js';
 import {createApp, h} from 'vue';
 

@@ -1,4 +1,3 @@
-import {test, expect} from 'vitest';
 import {matchEmoji, matchMention} from './match.js';
 
 test('matchEmoji', () => {

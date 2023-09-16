@@ -1,4 +1,3 @@
-import {test, expect} from 'vitest';
 import {showInfoToast, showErrorToast, showWarningToast} from './toast.js';
 
 test('showInfoToast', async () => {

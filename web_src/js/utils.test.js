@@ -1,4 +1,3 @@
-import {expect, test} from 'vitest';
 import {
   basename, extname, isObject, stripTags, parseIssueHref,
   parseUrl, translateMonth, translateDay, blobToDataURI,

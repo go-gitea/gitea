@@ -1,4 +1,3 @@
-import {test, expect} from 'vitest';
 import {GET, POST, PATCH, PUT, DELETE} from './fetch.js';
 
 // tests here are only to satisfy the linter for unused functions

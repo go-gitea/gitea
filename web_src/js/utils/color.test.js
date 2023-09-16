@@ -1,4 +1,3 @@
-import {test, expect} from 'vitest';
 import {useLightTextOnBackground} from './color.js';
 
 test('useLightTextOnBackground', () => {

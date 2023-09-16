@@ -1,4 +1,3 @@
-import {test, expect} from 'vitest';
 import {parseIssueListQuickGotoLink} from './common-issue-list.js';
 
 test('parseIssueListQuickGotoLink', () => {
