@@ -24,7 +24,6 @@ Following the [deployment from binary](installation/from-binary.md) guide may wo
 but is not supported. To install Gitea via `brew`:
 
 ```
-brew tap gitea/tap https://gitea.com/gitea/homebrew-gitea
 brew install gitea
 ```
 

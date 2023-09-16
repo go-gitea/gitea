@@ -28,7 +28,7 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
-	t, err := auth.GetTwoFactorByUID(ctx.Doer.ID)
+	t, err := auth.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 	if err != nil {
 		if auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.Flash.Error(ctx.Tr("settings.twofa_not_enrolled"))
@@ -44,7 +44,7 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 		return
 	}
 
-	if err = auth.UpdateTwoFactor(t); err != nil {
+	if err = auth.UpdateTwoFactor(ctx, t); err != nil {
 		ctx.ServerError("SettingsTwoFactor: Failed to UpdateTwoFactor", err)
 		return
 	}
@@ -58,7 +58,7 @@ func DisableTwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
-	t, err := auth.GetTwoFactorByUID(ctx.Doer.ID)
+	t, err := auth.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 	if err != nil {
 		if auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.Flash.Error(ctx.Tr("settings.twofa_not_enrolled"))
@@ -68,7 +68,7 @@ func DisableTwoFactor(ctx *context.Context) {
 		return
 	}
 
-	if err = auth.DeleteTwoFactorByID(t.ID, ctx.Doer.ID); err != nil {
+	if err = auth.DeleteTwoFactorByID(ctx, t.ID, ctx.Doer.ID); err != nil {
 		if auth.IsErrTwoFactorNotEnrolled(err) {
 			// There is a potential DB race here - we must have been disabled by another request in the intervening period
 			ctx.Flash.Success(ctx.Tr("settings.twofa_disabled"))
@@ -145,7 +145,7 @@ func EnrollTwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
-	t, err := auth.GetTwoFactorByUID(ctx.Doer.ID)
+	t, err := auth.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 	if t != nil {
 		// already enrolled - we should redirect back!
 		log.Warn("Trying to re-enroll %-v in twofa when already enrolled", ctx.Doer)
@@ -171,7 +171,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
-	t, err := auth.GetTwoFactorByUID(ctx.Doer.ID)
+	t, err := auth.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 	if t != nil {
 		// already enrolled
 		ctx.Flash.Error(ctx.Tr("settings.twofa_is_enrolled"))
@@ -237,7 +237,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		log.Error("Unable to save changes to the session: %v", err)
 	}
 
-	if err = auth.NewTwoFactor(t); err != nil {
+	if err = auth.NewTwoFactor(ctx, t); err != nil {
 		// FIXME: We need to handle a unique constraint fail here it's entirely possible that another request has beaten us.
 		// If there is a unique constraint fail we should just tolerate the error
 		ctx.ServerError("SettingsTwoFactor: Failed to save two factor", err)

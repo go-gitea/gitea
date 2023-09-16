@@ -59,8 +59,8 @@ func IsWatchMode(mode WatchMode) bool {
 }
 
 // IsWatching checks if user has watched given repository.
-func IsWatching(userID, repoID int64) bool {
-	watch, err := GetWatch(db.DefaultContext, userID, repoID)
+func IsWatching(ctx context.Context, userID, repoID int64) bool {
+	watch, err := GetWatch(ctx, userID, repoID)
 	return err == nil && IsWatchMode(watch.Mode)
 }
 
@@ -155,8 +155,8 @@ func GetRepoWatchersIDs(ctx context.Context, repoID int64) ([]int64, error) {
 }
 
 // GetRepoWatchers returns range of users watching given repository.
-func GetRepoWatchers(repoID int64, opts db.ListOptions) ([]*user_model.User, error) {
-	sess := db.GetEngine(db.DefaultContext).Where("watch.repo_id=?", repoID).
+func GetRepoWatchers(ctx context.Context, repoID int64, opts db.ListOptions) ([]*user_model.User, error) {
+	sess := db.GetEngine(ctx).Where("watch.repo_id=?", repoID).
 		Join("LEFT", "watch", "`user`.id=`watch`.user_id").
 		And("`watch`.mode<>?", WatchModeDont)
 	if opts.Page > 0 {
