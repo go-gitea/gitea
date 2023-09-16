@@ -19,6 +19,7 @@ plugins:
   - eslint-plugin-regexp
   - eslint-plugin-sonarjs
   - eslint-plugin-unicorn
+  - eslint-plugin-vitest-globals
   - eslint-plugin-wc
 
 env:
