@@ -48,7 +48,7 @@ overrides:
       import/no-unused-modules: [0]
   - files: ["**/*.test.*"]
     env:
-      jest: true
+      vitest-globals/env: true
 
 rules:
   "@eslint-community/eslint-comments/disable-enable-pair": [2]
