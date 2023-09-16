@@ -4,7 +4,7 @@ Template Attributes:
 
 Two buttons (negative, positive):
 * ModalButtonTypes: "yes" (default) or "confirm"
-* ModalButtonColors: "green" (default) / "blue" / "yellow"
+* ModalButtonColors: "primary" (default) / "blue" / "yellow"
 * ModalButtonCancelText
 * ModalButtonOkText
 
@@ -26,7 +26,7 @@ The ".ok.button" and ".cancel.button" selectors are also used by Fomantic Modal 
 		{{if .ModalButtonCancelText}}{{$textNegitive = .ModalButtonCancelText}}{{end}}
 		{{if .ModalButtonOkText}}{{$textPositive = .ModalButtonOkText}}{{end}}
 
-		{{$stylePositive := "green"}}
+		{{$stylePositive := "primary"}}
 		{{if eq .ModalButtonColors "blue"}}
 			{{$stylePositive = "blue"}}
 		{{else if eq .ModalButtonColors "yellow"}}
