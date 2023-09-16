@@ -62,7 +62,7 @@ parts:
 
       version="$(git describe --always | sed -e 's/-/+git/;y/-/./')"
       [ -n "$(echo $version | grep "+git")" ] && grade=devel || grade=stable
-      craftctl set version "$version"
+      craftctl set version="$version"
       craftctl set grade="$grade"
 
     override-build: |

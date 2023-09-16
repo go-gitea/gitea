@@ -303,7 +303,7 @@ func DeleteIssueCommentAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	if err := repo_model.DeleteAttachment(attach, true); err != nil {
+	if err := repo_model.DeleteAttachment(ctx, attach, true); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteAttachment", err)
 		return
 	}
