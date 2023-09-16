@@ -37,7 +37,7 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 	oldOwner := repo.Owner
 
 	repoWorkingPool.CheckIn(fmt.Sprint(repo.ID))
-	if err := models.TransferOwnership(doer, newOwner.Name, repo); err != nil {
+	if err := models.TransferOwnership(ctx, doer, newOwner.Name, repo); err != nil {
 		repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 		return err
 	}
@@ -70,7 +70,7 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 	// local copy's origin accordingly.
 
 	repoWorkingPool.CheckIn(fmt.Sprint(repo.ID))
-	if err := repo_model.ChangeRepositoryName(doer, repo, newRepoName); err != nil {
+	if err := repo_model.ChangeRepositoryName(ctx, doer, repo, newRepoName); err != nil {
 		repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 		return err
 	}
