@@ -46,7 +46,7 @@ func SetDefaultBranchPost(ctx *context.Context) {
 					return
 				}
 			}
-			if err := repo_model.UpdateDefaultBranch(repo); err != nil {
+			if err := repo_model.UpdateDefaultBranch(ctx, repo); err != nil {
 				ctx.ServerError("SetDefaultBranch", err)
 				return
 			}

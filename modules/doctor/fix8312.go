@@ -29,7 +29,7 @@ func fixOwnerTeamCreateOrgRepo(ctx context.Context, logger log.Logger, autofix b
 				return nil
 			}
 
-			return models.UpdateTeam(team, false, false)
+			return models.UpdateTeam(ctx, team, false, false)
 		},
 	)
 	if err != nil {

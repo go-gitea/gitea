@@ -182,7 +182,7 @@ func CronTasks(ctx *context.Context) {
 func MonitorStats(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.monitor.stats")
 	ctx.Data["PageIsAdminMonitorStats"] = true
-	bs, err := json.Marshal(activities_model.GetStatistic().Counter)
+	bs, err := json.Marshal(activities_model.GetStatistic(ctx).Counter)
 	if err != nil {
 		ctx.ServerError("MonitorStats", err)
 		return
