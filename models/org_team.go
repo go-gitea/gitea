@@ -428,7 +428,7 @@ func AddTeamMember(ctx context.Context, team *organization.Team, userID int64) e
 	if setting.Service.AutoWatchNewRepos {
 		// Get team and its repositories.
 		if err := team.LoadRepositories(ctx); err != nil {
-			log.Error("getRepositories failed: %v", err)
+			log.Error("team.LoadRepositories failed: %v", err)
 		}
 		// FIXME: in the goroutine, it can't access the "ctx", it could only use db.DefaultContext at the moment
 		go func(repos []*repo_model.Repository) {
