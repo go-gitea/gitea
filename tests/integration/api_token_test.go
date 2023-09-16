@@ -40,7 +40,7 @@ func TestAPIDeleteMissingToken(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-// TestAPIGetTokensPermission ensures that only admin can create token for other users
+// TestAPIGetTokensPermission ensures that only the admin can get tokens from other users
 func TestAPIGetTokensPermission(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
