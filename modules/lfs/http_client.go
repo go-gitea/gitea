@@ -20,15 +20,12 @@ import (
 
 const httpBatchSize = 20
 
-var ErrUnexpectedEOF = errors.New("unexpected EOF in response")
-
 // HTTPClient is used to communicate with the LFS server
 // https://github.com/git-lfs/git-lfs/blob/main/docs/api/batch.md
 type HTTPClient struct {
-	client        *http.Client
-	endpoint      string
-	transfers     map[string]TransferAdapter
-	transferNames []string
+	client    *http.Client
+	endpoint  string
+	transfers map[string]TransferAdapter
 }
 
 // BatchSize returns the preferred size of batchs to process
@@ -54,10 +51,19 @@ func newHTTPClient(endpoint *url.URL, httpTransport *http.Transport) *HTTPClient
 		transfers: map[string]TransferAdapter{
 			basic.Name(): basic,
 		},
-		transferNames: []string{basic.Name()},
 	}
 
 	return client
+}
+
+func (c *HTTPClient) transferNames() []string {
+	keys := make([]string, len(c.transfers))
+	i := 0
+	for k := range c.transfers {
+		keys[i] = k
+		i++
+	}
+	return keys
 }
 
 func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Pointer) (*BatchResponse, error) {
@@ -65,7 +71,7 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 
 	url := fmt.Sprintf("%s/objects/batch", c.endpoint)
 
-	request := &BatchRequest{operation, c.transferNames, nil, objects}
+	request := &BatchRequest{operation, c.transferNames(), nil, objects}
 	payload := new(bytes.Buffer)
 	err := json.NewEncoder(payload).Encode(request)
 	if err != nil {
@@ -73,7 +79,8 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 		return nil, err
 	}
 
-	req, err := createRequest(ctx, http.MethodPost, url, MediaType, nil, payload)
+	req, err := createRequest(ctx, http.MethodPost, url, nil, payload)
+	req.Header.Set("Content-Type", MediaType)
 	if err != nil {
 		return nil, err
 	}
@@ -194,8 +201,8 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 	return nil
 }
 
-// createRequest creates a new request, and sets the Content-Type and Accept headers.
-func createRequest(ctx context.Context, method, url, contentType string, headers map[string]string, body io.Reader) (*http.Request, error) {
+// createRequest creates a new request, and sets the headers.
+func createRequest(ctx context.Context, method, url string, headers map[string]string, body io.Reader) (*http.Request, error) {
 	log.Trace("createRequest: %s", url)
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
@@ -205,9 +212,6 @@ func createRequest(ctx context.Context, method, url, contentType string, headers
 
 	for key, value := range headers {
 		req.Header.Set(key, value)
-	}
-	if req.Header.Get("Content-Type") == "" {
-		req.Header.Set("Content-Type", contentType)
 	}
 	req.Header.Set("Accept", MediaType)
 
@@ -243,7 +247,7 @@ func handleErrorResponse(resp *http.Response) error {
 	err := json.NewDecoder(resp.Body).Decode(&er)
 	if err != nil {
 		if err == io.EOF {
-			return ErrUnexpectedEOF
+			return io.ErrUnexpectedEOF
 		}
 		log.Error("Error decoding json: %v", err)
 		return err

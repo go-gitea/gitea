@@ -33,7 +33,7 @@ func (a *BasicTransferAdapter) Name() string {
 
 // Download reads the download location and downloads the data.
 func (a *BasicTransferAdapter) Download(ctx context.Context, l *Link) (io.ReadCloser, error) {
-	req, err := createRequest(ctx, http.MethodGet, l.Href, "", l.Header, nil)
+	req, err := createRequest(ctx, http.MethodGet, l.Href, l.Header, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -46,8 +46,8 @@ func (a *BasicTransferAdapter) Download(ctx context.Context, l *Link) (io.ReadCl
 
 // Upload sends the content to the LFS server.
 func (a *BasicTransferAdapter) Upload(ctx context.Context, l *Link, p Pointer, r io.Reader) error {
-	contentType := "application/octet-stream"
-	req, err := createRequest(ctx, http.MethodPut, l.Href, contentType, l.Header, r)
+	req, err := createRequest(ctx, http.MethodPut, l.Href, l.Header, r)
+	req.Header.Set("Content-Type", "application/octet-stream")
 	if err != nil {
 		return err
 	}
@@ -72,8 +72,8 @@ func (a *BasicTransferAdapter) Verify(ctx context.Context, l *Link, p Pointer) e
 		return err
 	}
 
-	contentType := MediaType
-	req, err := createRequest(ctx, http.MethodPost, l.Href, contentType, l.Header, bytes.NewReader(b))
+	req, err := createRequest(ctx, http.MethodPost, l.Href, l.Header, bytes.NewReader(b))
+	req.Header.Set("Content-Type", MediaType)
 	if err != nil {
 		return err
 	}

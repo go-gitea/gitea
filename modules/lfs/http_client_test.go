@@ -177,7 +177,7 @@ func TestHTTPClientDownload(t *testing.T) {
 		// case 0
 		{
 			endpoint:      "https://status-not-ok.io",
-			expectederror: ErrUnexpectedEOF.Error(),
+			expectederror: io.ErrUnexpectedEOF.Error(),
 		},
 		// case 1
 		{
@@ -238,7 +238,6 @@ func TestHTTPClientDownload(t *testing.T) {
 			transfers: map[string]TransferAdapter{
 				"dummy": dummy,
 			},
-			transferNames: []string{"dummy"},
 		}
 
 		err := client.Download(context.Background(), []Pointer{p}, func(p Pointer, content io.ReadCloser, objectError error) error {
@@ -286,7 +285,7 @@ func TestHTTPClientUpload(t *testing.T) {
 		// case 0
 		{
 			endpoint:      "https://status-not-ok.io",
-			expectederror: ErrUnexpectedEOF.Error(),
+			expectederror: io.ErrUnexpectedEOF.Error(),
 		},
 		// case 1
 		{
@@ -347,7 +346,6 @@ func TestHTTPClientUpload(t *testing.T) {
 			transfers: map[string]TransferAdapter{
 				"dummy": dummy,
 			},
-			transferNames: []string{"dummy"},
 		}
 
 		err := client.Upload(context.Background(), []Pointer{p}, func(p Pointer, objectError error) (io.ReadCloser, error) {
