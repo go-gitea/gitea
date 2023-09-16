@@ -18,14 +18,14 @@ import (
 func TestAddTime(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user3, err := user_model.GetUserByID(db.DefaultContext, 3)
+	org3, err := user_model.GetUserByID(db.DefaultContext, 3)
 	assert.NoError(t, err)
 
 	issue1, err := issues_model.GetIssueByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 
 	// 3661 = 1h 1min 1s
-	trackedTime, err := issues_model.AddTime(db.DefaultContext, user3, issue1, 3661, time.Now())
+	trackedTime, err := issues_model.AddTime(db.DefaultContext, org3, issue1, 3661, time.Now())
 	assert.NoError(t, err)
 	assert.Equal(t, int64(3), trackedTime.UserID)
 	assert.Equal(t, int64(1), trackedTime.IssueID)
