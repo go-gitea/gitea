@@ -95,7 +95,7 @@ Some lint rules and IDEs also have warnings if the returned Promise is not handl
 ### Fetching data
 
 To fetch data, use the wrapper functions `GET`, `POST` etc. from `modules/fetch.js`. They
-accept a `data` option for the content, will automatically set CSFR token and return a
+accept a `data` option for the content, will automatically set CSRF token and return a
 Promise for a [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response).
 
 ### HTML Attributes and `dataset`
