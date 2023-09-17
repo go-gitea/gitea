@@ -123,7 +123,7 @@
 					{{else if $isWorkingPullMirror}}
 					<tbody>
 						<tr>
-							<td>{{(MirrorRemoteAddress $.Context .Repository .PullMirror.GetRemoteName false).Address}}</td>
+							<td>{{.PullMirror.RemoteAddress}}</td>
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
 							<td>{{DateTime "full" .PullMirror.UpdatedUnix}}</td>
 							<td class="right aligned">
@@ -200,8 +200,7 @@
 					<tbody>
 						{{range .PushMirrors}}
 						<tr>
-							{{$address := MirrorRemoteAddress $.Context $.Repository .GetRemoteName true}}
-							<td class="gt-word-break">{{$address.Address}}</td>
+							<td class="gt-word-break">{{.RemoteAddress}}</td>
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
 							<td>{{if .LastUpdateUnix}}{{DateTime "full" .LastUpdateUnix}}{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>
 							<td class="right aligned">
@@ -211,7 +210,7 @@
 									data-tooltip-content="{{$.locale.Tr "repo.settings.mirror_settings.push_mirror.edit_sync_time"}}"
 									data-modal-push-mirror-edit-id="{{.ID}}"
 									data-modal-push-mirror-edit-interval="{{.Interval}}"
-									data-modal-push-mirror-edit-address="{{$address.Address}}"
+									data-modal-push-mirror-edit-address="{{.RemoteAddress}}"
 								>
 									{{svg "octicon-pencil" 14}}
 								</button>
