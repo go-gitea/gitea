@@ -5,7 +5,7 @@ const {csrfToken} = window.config;
 // fetch wrapper, use below method name functions and the `data` option to pass in data
 // which will automatically set an appropriate content-type header. For json content,
 // only object and array types are currently supported.
-export function request(url, {headers, data, body, ...other} = {}) {
+export function request(url, {headers = {}, data, body, ...other} = {}) {
   let contentType;
   if (!body) {
     if (data instanceof FormData) {
@@ -20,12 +20,18 @@ export function request(url, {headers, data, body, ...other} = {}) {
     }
   }
 
+  const headersMerged = new Headers({
+    'x-csrf-token': csrfToken,
+    ...(contentType && {'content-type': contentType}),
+  });
+
+  // not using spread syntax to avoid undesirable value merging
+  for (const [name, value] of Object.entries(headers)) {
+    headersMerged.set(name, value);
+  }
+
   return fetch(url, {
-    headers: {
-      'x-csrf-token': csrfToken,
-      ...(contentType && {'content-type': contentType}),
-      ...headers,
-    },
+    headers: headersMerged,
     ...(body && {body}),
     ...other,
   });
