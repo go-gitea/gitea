@@ -71,7 +71,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	}
 
 	// check oauth2 token
-	uid := CheckOAuthAccessToken(authToken)
+	uid := CheckOAuthAccessToken(req.Context(), authToken)
 	if uid != 0 {
 		log.Trace("Basic Authorization: Valid OAuthAccessToken for user[%d]", uid)
 
@@ -86,7 +86,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	}
 
 	// check personal access token
-	token, err := auth_model.GetAccessTokenBySHA(authToken)
+	token, err := auth_model.GetAccessTokenBySHA(req.Context(), authToken)
 	if err == nil {
 		log.Trace("Basic Authorization: Valid AccessToken for user[%d]", uid)
 		u, err := user_model.GetUserByID(req.Context(), token.UID)
@@ -96,7 +96,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		}
 
 		token.UpdatedUnix = timeutil.TimeStampNow()
-		if err = auth_model.UpdateAccessToken(token); err != nil {
+		if err = auth_model.UpdateAccessToken(req.Context(), token); err != nil {
 			log.Error("UpdateAccessToken:  %v", err)
 		}
 

@@ -31,7 +31,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 }
 
 func GetRepositoryKey(ctx *context.Context) {
-	_, pub, err := alpine_service.GetOrCreateKeyPair(ctx.Package.Owner.ID)
+	_, pub, err := alpine_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

@@ -70,6 +70,7 @@ type FindBranchOptions struct {
 	ExcludeBranchNames []string
 	IsDeletedBranch    util.OptionalBool
 	OrderBy            string
+	Keyword            string
 }
 
 func (opts *FindBranchOptions) Cond() builder.Cond {
@@ -83,6 +84,9 @@ func (opts *FindBranchOptions) Cond() builder.Cond {
 	}
 	if !opts.IsDeletedBranch.IsNone() {
 		cond = cond.And(builder.Eq{"is_deleted": opts.IsDeletedBranch.IsTrue()})
+	}
+	if opts.Keyword != "" {
+		cond = cond.And(builder.Like{"name", opts.Keyword})
 	}
 	return cond
 }

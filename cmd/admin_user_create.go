@@ -156,7 +156,7 @@ func runCreateUser(c *cli.Context) error {
 			UID:  u.ID,
 		}
 
-		if err := auth_model.NewAccessToken(t); err != nil {
+		if err := auth_model.NewAccessToken(ctx, t); err != nil {
 			return err
 		}
 

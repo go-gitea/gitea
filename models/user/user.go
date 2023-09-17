@@ -1246,7 +1246,7 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 		}
 
 		// If they follow - they see each over
-		follower := IsFollowing(u.ID, viewer.ID)
+		follower := IsFollowing(ctx, u.ID, viewer.ID)
 		if follower {
 			return true
 		}
