@@ -19,7 +19,7 @@ var (
 		Enabled               bool
 		DefaultActionsURL     defaultActionsURL `ini:"DEFAULT_ACTIONS_URL"`
 	}{
-		Enabled:           false,
+		Enabled:           true,
 		DefaultActionsURL: defaultActionsURLGitHub,
 	}
 )

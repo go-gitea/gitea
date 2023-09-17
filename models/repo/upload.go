@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -61,7 +62,7 @@ func (upload *Upload) LocalPath() string {
 }
 
 // NewUpload creates a new upload object.
-func NewUpload(name string, buf []byte, file multipart.File) (_ *Upload, err error) {
+func NewUpload(ctx context.Context, name string, buf []byte, file multipart.File) (_ *Upload, err error) {
 	upload := &Upload{
 		UUID: gouuid.New().String(),
 		Name: name,
@@ -84,7 +85,7 @@ func NewUpload(name string, buf []byte, file multipart.File) (_ *Upload, err err
 		return nil, fmt.Errorf("Copy: %w", err)
 	}
 
-	if _, err := db.GetEngine(db.DefaultContext).Insert(upload); err != nil {
+	if _, err := db.GetEngine(ctx).Insert(upload); err != nil {
 		return nil, err
 	}
 
@@ -92,9 +93,9 @@ func NewUpload(name string, buf []byte, file multipart.File) (_ *Upload, err err
 }
 
 // GetUploadByUUID returns the Upload by UUID
-func GetUploadByUUID(uuid string) (*Upload, error) {
+func GetUploadByUUID(ctx context.Context, uuid string) (*Upload, error) {
 	upload := &Upload{}
-	has, err := db.GetEngine(db.DefaultContext).Where("uuid=?", uuid).Get(upload)
+	has, err := db.GetEngine(ctx).Where("uuid=?", uuid).Get(upload)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -104,23 +105,23 @@ func GetUploadByUUID(uuid string) (*Upload, error) {
 }
 
 // GetUploadsByUUIDs returns multiple uploads by UUIDS
-func GetUploadsByUUIDs(uuids []string) ([]*Upload, error) {
+func GetUploadsByUUIDs(ctx context.Context, uuids []string) ([]*Upload, error) {
 	if len(uuids) == 0 {
 		return []*Upload{}, nil
 	}
 
 	// Silently drop invalid uuids.
 	uploads := make([]*Upload, 0, len(uuids))
-	return uploads, db.GetEngine(db.DefaultContext).In("uuid", uuids).Find(&uploads)
+	return uploads, db.GetEngine(ctx).In("uuid", uuids).Find(&uploads)
 }
 
 // DeleteUploads deletes multiple uploads
-func DeleteUploads(uploads ...*Upload) (err error) {
+func DeleteUploads(ctx context.Context, uploads ...*Upload) (err error) {
 	if len(uploads) == 0 {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -159,8 +160,8 @@ func DeleteUploads(uploads ...*Upload) (err error) {
 }
 
 // DeleteUploadByUUID deletes a upload by UUID
-func DeleteUploadByUUID(uuid string) error {
-	upload, err := GetUploadByUUID(uuid)
+func DeleteUploadByUUID(ctx context.Context, uuid string) error {
+	upload, err := GetUploadByUUID(ctx, uuid)
 	if err != nil {
 		if IsErrUploadNotExist(err) {
 			return nil
@@ -168,7 +169,7 @@ func DeleteUploadByUUID(uuid string) error {
 		return fmt.Errorf("GetUploadByUUID: %w", err)
 	}
 
-	if err := DeleteUploads(upload); err != nil {
+	if err := DeleteUploads(ctx, upload); err != nil {
 		return fmt.Errorf("DeleteUpload: %w", err)
 	}
 

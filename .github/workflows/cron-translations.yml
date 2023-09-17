@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'go-gitea/gitea'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: download from crowdin
         uses: docker://jonasfranz/crowdin
         env:
@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'go-gitea/gitea'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: push translations to crowdin
         uses: docker://jonasfranz/crowdin
         env:

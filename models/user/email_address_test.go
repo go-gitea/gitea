@@ -17,14 +17,14 @@ import (
 func TestGetEmailAddresses(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	emails, _ := user_model.GetEmailAddresses(int64(1))
+	emails, _ := user_model.GetEmailAddresses(db.DefaultContext, int64(1))
 	if assert.Len(t, emails, 3) {
 		assert.True(t, emails[0].IsPrimary)
 		assert.True(t, emails[2].IsActivated)
 		assert.False(t, emails[2].IsPrimary)
 	}
 
-	emails, _ = user_model.GetEmailAddresses(int64(2))
+	emails, _ = user_model.GetEmailAddresses(db.DefaultContext, int64(2))
 	if assert.Len(t, emails, 2) {
 		assert.True(t, emails[0].IsPrimary)
 		assert.True(t, emails[0].IsActivated)
@@ -76,10 +76,10 @@ func TestAddEmailAddresses(t *testing.T) {
 		LowerEmail:  "user5678@example.com",
 		IsActivated: true,
 	}
-	assert.NoError(t, user_model.AddEmailAddresses(emails))
+	assert.NoError(t, user_model.AddEmailAddresses(db.DefaultContext, emails))
 
 	// ErrEmailAlreadyUsed
-	err := user_model.AddEmailAddresses(emails)
+	err := user_model.AddEmailAddresses(db.DefaultContext, emails)
 	assert.Error(t, err)
 	assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
 }
@@ -87,21 +87,21 @@ func TestAddEmailAddresses(t *testing.T) {
 func TestDeleteEmailAddress(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	assert.NoError(t, user_model.DeleteEmailAddress(&user_model.EmailAddress{
+	assert.NoError(t, user_model.DeleteEmailAddress(db.DefaultContext, &user_model.EmailAddress{
 		UID:        int64(1),
 		ID:         int64(33),
 		Email:      "user1-2@example.com",
 		LowerEmail: "user1-2@example.com",
 	}))
 
-	assert.NoError(t, user_model.DeleteEmailAddress(&user_model.EmailAddress{
+	assert.NoError(t, user_model.DeleteEmailAddress(db.DefaultContext, &user_model.EmailAddress{
 		UID:        int64(1),
 		Email:      "user1-3@example.com",
 		LowerEmail: "user1-3@example.com",
 	}))
 
 	// Email address does not exist
-	err := user_model.DeleteEmailAddress(&user_model.EmailAddress{
+	err := user_model.DeleteEmailAddress(db.DefaultContext, &user_model.EmailAddress{
 		UID:        int64(1),
 		Email:      "user1234567890@example.com",
 		LowerEmail: "user1234567890@example.com",
@@ -125,10 +125,10 @@ func TestDeleteEmailAddresses(t *testing.T) {
 		Email:      "user2-2@example.com",
 		LowerEmail: "user2-2@example.com",
 	}
-	assert.NoError(t, user_model.DeleteEmailAddresses(emails))
+	assert.NoError(t, user_model.DeleteEmailAddresses(db.DefaultContext, emails))
 
 	// ErrEmailAlreadyUsed
-	err := user_model.DeleteEmailAddresses(emails)
+	err := user_model.DeleteEmailAddresses(db.DefaultContext, emails)
 	assert.Error(t, err)
 }
 
@@ -138,28 +138,28 @@ func TestMakeEmailPrimary(t *testing.T) {
 	email := &user_model.EmailAddress{
 		Email: "user567890@example.com",
 	}
-	err := user_model.MakeEmailPrimary(email)
+	err := user_model.MakeEmailPrimary(db.DefaultContext, email)
 	assert.Error(t, err)
 	assert.EqualError(t, err, user_model.ErrEmailAddressNotExist{Email: email.Email}.Error())
 
 	email = &user_model.EmailAddress{
 		Email: "user11@example.com",
 	}
-	err = user_model.MakeEmailPrimary(email)
+	err = user_model.MakeEmailPrimary(db.DefaultContext, email)
 	assert.Error(t, err)
 	assert.EqualError(t, err, user_model.ErrEmailNotActivated.Error())
 
 	email = &user_model.EmailAddress{
 		Email: "user9999999@example.com",
 	}
-	err = user_model.MakeEmailPrimary(email)
+	err = user_model.MakeEmailPrimary(db.DefaultContext, email)
 	assert.Error(t, err)
 	assert.True(t, user_model.IsErrUserNotExist(err))
 
 	email = &user_model.EmailAddress{
 		Email: "user101@example.com",
 	}
-	err = user_model.MakeEmailPrimary(email)
+	err = user_model.MakeEmailPrimary(db.DefaultContext, email)
 	assert.NoError(t, err)
 
 	user, _ := user_model.GetUserByID(db.DefaultContext, int64(10))
@@ -174,9 +174,9 @@ func TestActivate(t *testing.T) {
 		UID:   int64(1),
 		Email: "user11@example.com",
 	}
-	assert.NoError(t, user_model.ActivateEmail(email))
+	assert.NoError(t, user_model.ActivateEmail(db.DefaultContext, email))
 
-	emails, _ := user_model.GetEmailAddresses(int64(1))
+	emails, _ := user_model.GetEmailAddresses(db.DefaultContext, int64(1))
 	assert.Len(t, emails, 3)
 	assert.True(t, emails[0].IsActivated)
 	assert.True(t, emails[0].IsPrimary)
@@ -194,7 +194,7 @@ func TestListEmails(t *testing.T) {
 			PageSize: 10000,
 		},
 	}
-	emails, count, err := user_model.SearchEmails(opts)
+	emails, count, err := user_model.SearchEmails(db.DefaultContext, opts)
 	assert.NoError(t, err)
 	assert.NotEqual(t, int64(0), count)
 	assert.True(t, count > 5)
@@ -209,18 +209,18 @@ func TestListEmails(t *testing.T) {
 	}
 
 	assert.True(t, contains(func(s *user_model.SearchEmailResult) bool { return s.UID == 18 }))
-	// 'user3' is an organization
+	// 'org3' is an organization
 	assert.False(t, contains(func(s *user_model.SearchEmailResult) bool { return s.UID == 3 }))
 
 	// Must find no records
 	opts = &user_model.SearchEmailOptions{Keyword: "NOTFOUND"}
-	emails, count, err = user_model.SearchEmails(opts)
+	emails, count, err = user_model.SearchEmails(db.DefaultContext, opts)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), count)
 
 	// Must find users 'user2', 'user28', etc.
 	opts = &user_model.SearchEmailOptions{Keyword: "user2"}
-	emails, count, err = user_model.SearchEmails(opts)
+	emails, count, err = user_model.SearchEmails(db.DefaultContext, opts)
 	assert.NoError(t, err)
 	assert.NotEqual(t, int64(0), count)
 	assert.True(t, contains(func(s *user_model.SearchEmailResult) bool { return s.UID == 2 }))
@@ -228,14 +228,14 @@ func TestListEmails(t *testing.T) {
 
 	// Must find only primary addresses (i.e. from the `user` table)
 	opts = &user_model.SearchEmailOptions{IsPrimary: util.OptionalBoolTrue}
-	emails, _, err = user_model.SearchEmails(opts)
+	emails, _, err = user_model.SearchEmails(db.DefaultContext, opts)
 	assert.NoError(t, err)
 	assert.True(t, contains(func(s *user_model.SearchEmailResult) bool { return s.IsPrimary }))
 	assert.False(t, contains(func(s *user_model.SearchEmailResult) bool { return !s.IsPrimary }))
 
 	// Must find only inactive addresses (i.e. not validated)
 	opts = &user_model.SearchEmailOptions{IsActivated: util.OptionalBoolFalse}
-	emails, _, err = user_model.SearchEmails(opts)
+	emails, _, err = user_model.SearchEmails(db.DefaultContext, opts)
 	assert.NoError(t, err)
 	assert.True(t, contains(func(s *user_model.SearchEmailResult) bool { return !s.IsActivated }))
 	assert.False(t, contains(func(s *user_model.SearchEmailResult) bool { return s.IsActivated }))
@@ -247,7 +247,7 @@ func TestListEmails(t *testing.T) {
 			Page:     1,
 		},
 	}
-	emails, count, err = user_model.SearchEmails(opts)
+	emails, count, err = user_model.SearchEmails(db.DefaultContext, opts)
 	assert.NoError(t, err)
 	assert.Len(t, emails, 5)
 	assert.Greater(t, count, int64(len(emails)))
