@@ -532,6 +532,8 @@ var migrations = []Migration{
 	NewMigration("Add Actions artifacts expiration date", v1_21.AddExpiredUnixColumnInActionArtifactTable),
 	// v275 -> v276
 	NewMigration("Add ScheduleID for ActionRun", v1_21.AddScheduleIDForActionRun),
+	// v276 -> v277
+	NewMigration("Add RemoteAddress to mirrors", v1_21.AddRemoteAddressToMirrors),
 }
 
 // GetCurrentDBVersion returns the current db version
