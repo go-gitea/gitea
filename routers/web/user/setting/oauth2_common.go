@@ -28,8 +28,7 @@ func (oa *OAuth2CommonHandlers) renderEditPage(ctx *context.Context) {
 	ctx.Data["FormActionPath"] = fmt.Sprintf("%s/%d", oa.BasePathEditPrefix, app.ID)
 
 	if ctx.ContextUser != nil && ctx.ContextUser.IsOrganization() {
-		err := shared_user.LoadHeaderCount(ctx)
-		if err != nil {
+		if err := shared_user.LoadHeaderCount(ctx); err != nil {
 			ctx.ServerError("LoadHeaderCount", err)
 			return
 		}
@@ -68,6 +67,7 @@ func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 		ctx.ServerError("GenerateClientSecret", err)
 		return
 	}
+
 	oa.renderEditPage(ctx)
 }
 

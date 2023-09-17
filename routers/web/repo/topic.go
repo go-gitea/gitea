@@ -45,7 +45,7 @@ func TopicsPost(ctx *context.Context) {
 		return
 	}
 
-	err := repo_model.SaveTopics(ctx.Repo.Repository.ID, validTopics...)
+	err := repo_model.SaveTopics(ctx, ctx.Repo.Repository.ID, validTopics...)
 	if err != nil {
 		log.Error("SaveTopics failed: %v", err)
 		ctx.JSON(http.StatusInternalServerError, map[string]any{

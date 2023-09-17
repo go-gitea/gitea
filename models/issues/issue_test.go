@@ -385,7 +385,7 @@ func TestMilestoneList_LoadTotalTrackedTimes(t *testing.T) {
 		unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1}),
 	}
 
-	assert.NoError(t, miles.LoadTotalTrackedTimes())
+	assert.NoError(t, miles.LoadTotalTrackedTimes(db.DefaultContext))
 
 	assert.Equal(t, int64(3682), miles[0].TotalTrackedTime)
 }
@@ -394,7 +394,7 @@ func TestLoadTotalTrackedTime(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	milestone := unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1})
 
-	assert.NoError(t, milestone.LoadTotalTrackedTime())
+	assert.NoError(t, milestone.LoadTotalTrackedTime(db.DefaultContext))
 
 	assert.Equal(t, int64(3682), milestone.TotalTrackedTime)
 }
