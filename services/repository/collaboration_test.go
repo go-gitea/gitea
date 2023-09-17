@@ -18,10 +18,10 @@ func TestRepository_DeleteCollaboration(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	assert.NoError(t, repo.LoadOwner(db.DefaultContext))
-	assert.NoError(t, DeleteCollaboration(repo, 4))
+	assert.NoError(t, DeleteCollaboration(db.DefaultContext, repo, 4))
 	unittest.AssertNotExistsBean(t, &repo_model.Collaboration{RepoID: repo.ID, UserID: 4})
 
-	assert.NoError(t, DeleteCollaboration(repo, 4))
+	assert.NoError(t, DeleteCollaboration(db.DefaultContext, repo, 4))
 	unittest.AssertNotExistsBean(t, &repo_model.Collaboration{RepoID: repo.ID, UserID: 4})
 
 	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repo.ID})

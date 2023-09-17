@@ -140,7 +140,7 @@ func InitWebInstalled(ctx context.Context) {
 
 	mustInitCtx(ctx, models.Init)
 	mustInitCtx(ctx, authmodel.Init)
-	mustInit(repo_service.Init)
+	mustInitCtx(ctx, repo_service.Init)
 
 	// Booting long running goroutines.
 	mustInit(indexer_service.Init)
