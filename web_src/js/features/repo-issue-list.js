@@ -147,11 +147,7 @@ function initPinRemoveButton() {
       const id = Number(el.getAttribute('data-issue-id'));
 
       // Send the unpin request
-      const response = await DELETE(el.getAttribute('data-unpin-url'), {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await DELETE(el.getAttribute('data-unpin-url'));
       if (response.ok) {
         // Delete the tooltip
         el._tippy.destroy();
