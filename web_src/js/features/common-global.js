@@ -128,7 +128,7 @@ async function formFetchAction(e) {
   }
 
   let reqUrl = formActionUrl;
-  const reqOpt = {method: formMethod.toUpperCase(), headers: {'X-Csrf-Token': csrfToken}};
+  const reqOpt = {method: formMethod.toUpperCase()};
   if (formMethod.toLowerCase() === 'get') {
     const params = new URLSearchParams();
     for (const [key, value] of formData) {
@@ -265,7 +265,7 @@ async function linkAction(e) {
   const url = el.getAttribute('data-url');
   const doRequest = async () => {
     el.disabled = true;
-    await fetchActionDoRequest(el, url, {method: 'POST', headers: {'X-Csrf-Token': csrfToken}});
+    await fetchActionDoRequest(el, url, {method: 'POST'});
     el.disabled = false;
   };
 
