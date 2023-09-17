@@ -59,10 +59,6 @@ export function initRepoMigrationStatusChecker() {
 }
 
 async function doMigrationRetry(e) {
-  await POST($(e.target).attr('data-migrating-task-retry-url'), {
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+  await POST($(e.target).attr('data-migrating-task-retry-url'));
   window.location.reload();
 }
