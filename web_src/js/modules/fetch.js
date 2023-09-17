@@ -9,7 +9,6 @@ export function request(url, {headers = {}, data, body, ...other} = {}) {
   let contentType;
   if (!body) {
     if (data instanceof FormData) {
-      contentType = 'multipart/form-data';
       body = data;
     } else if (data instanceof URLSearchParams) {
       contentType = 'application/x-www-form-urlencoded';
