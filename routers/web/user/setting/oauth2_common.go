@@ -27,7 +27,7 @@ func (oa *OAuth2CommonHandlers) renderEditPage(ctx *context.Context) {
 	app := ctx.Data["App"].(*auth.OAuth2Application)
 	ctx.Data["FormActionPath"] = fmt.Sprintf("%s/%d", oa.BasePathEditPrefix, app.ID)
 
-	if ctx.ContextUser.IsOrganization() {
+	if ctx.ContextUser != nil && ctx.ContextUser.IsOrganization() {
 		err := shared_user.LoadHeaderCount(ctx)
 		if err != nil {
 			ctx.ServerError("LoadHeaderCount", err)
