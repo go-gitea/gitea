@@ -50,19 +50,45 @@ func migratePullMirrors(x *xorm.Engine) error {
 		return err
 	}
 
-	if err := sess.Iterate(new(Mirror), func(_ int, bean any) error {
-		m := bean.(*Mirror)
-		remoteAddress, err := getRemoteAddress(sess, m.RepoID, "origin")
-		if err != nil {
+	limit := setting.Database.IterateBufferSize
+	if limit <= 0 {
+		limit = 50
+	}
+
+	start := 0
+
+	for {
+		var mirrors []Mirror
+		if err := sess.Limit(limit, start).Find(&mirrors); err != nil {
 			return err
 		}
 
-		m.RemoteAddress = remoteAddress
+		if len(mirrors) == 0 {
+			break
+		}
+		start += len(mirrors)
 
-		_, err = sess.ID(m.ID).Cols("remote_address").Update(m)
-		return err
-	}); err != nil {
-		return err
+		for _, m := range mirrors {
+			remoteAddress, err := getRemoteAddress(sess, m.RepoID, "origin")
+			if err != nil {
+				return err
+			}
+
+			m.RemoteAddress = remoteAddress
+
+			if _, err = sess.ID(m.ID).Cols("remote_address").Update(m); err != nil {
+				return err
+			}
+		}
+
+		if start%1000 == 0 { // avoid a too big transaction
+			if err := sess.Commit(); err != nil {
+				return err
+			}
+			if err := sess.Begin(); err != nil {
+				return err
+			}
+		}
 	}
 
 	return sess.Commit()
@@ -83,19 +109,45 @@ func migratePushMirrors(x *xorm.Engine) error {
 		return err
 	}
 
-	if err := sess.Iterate(new(PushMirror), func(_ int, bean any) error {
-		m := bean.(*PushMirror)
-		remoteAddress, err := getRemoteAddress(sess, m.RepoID, m.RemoteName)
-		if err != nil {
+	limit := setting.Database.IterateBufferSize
+	if limit <= 0 {
+		limit = 50
+	}
+
+	start := 0
+
+	for {
+		var mirrors []PushMirror
+		if err := sess.Limit(limit, start).Find(&mirrors); err != nil {
 			return err
 		}
 
-		m.RemoteAddress = remoteAddress
+		if len(mirrors) == 0 {
+			break
+		}
+		start += len(mirrors)
 
-		_, err = sess.ID(m.ID).Cols("remote_address").Update(m)
-		return err
-	}); err != nil {
-		return err
+		for _, m := range mirrors {
+			remoteAddress, err := getRemoteAddress(sess, m.RepoID, m.RemoteName)
+			if err != nil {
+				return err
+			}
+
+			m.RemoteAddress = remoteAddress
+
+			if _, err = sess.ID(m.ID).Cols("remote_address").Update(m); err != nil {
+				return err
+			}
+		}
+
+		if start%1000 == 0 { // avoid a too big transaction
+			if err := sess.Commit(); err != nil {
+				return err
+			}
+			if err := sess.Begin(); err != nil {
+				return err
+			}
+		}
 	}
 
 	return sess.Commit()
