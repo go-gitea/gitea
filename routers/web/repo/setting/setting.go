@@ -243,6 +243,13 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
+		remoteAddress, err := util.SanitizeURL(form.MirrorAddress)
+		if err != nil {
+			ctx.ServerError("SanitizeURL", err)
+			return
+		}
+		pullMirror.RemoteAddress = remoteAddress
+
 		form.LFS = form.LFS && setting.LFS.StartServer
 
 		if len(form.LFSEndpoint) > 0 {
@@ -397,12 +404,19 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
+		remoteAddress, err := util.SanitizeURL(form.PushMirrorAddress)
+		if err != nil {
+			ctx.ServerError("SanitizeURL", err)
+			return
+		}
+
 		m := &repo_model.PushMirror{
-			RepoID:       repo.ID,
-			Repo:         repo,
-			RemoteName:   fmt.Sprintf("remote_mirror_%s", remoteSuffix),
-			SyncOnCommit: form.PushMirrorSyncOnCommit,
-			Interval:     interval,
+			RepoID:        repo.ID,
+			Repo:          repo,
+			RemoteName:    fmt.Sprintf("remote_mirror_%s", remoteSuffix),
+			SyncOnCommit:  form.PushMirrorSyncOnCommit,
+			Interval:      interval,
+			RemoteAddress: remoteAddress,
 		}
 		if err := repo_model.InsertPushMirror(ctx, m); err != nil {
 			ctx.ServerError("InsertPushMirror", err)

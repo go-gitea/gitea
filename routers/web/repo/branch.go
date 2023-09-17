@@ -51,7 +51,9 @@ func Branches(ctx *context.Context) {
 	}
 	pageSize := setting.Git.BranchesRangeSize
 
-	defaultBranch, branches, branchesCount, err := repo_service.LoadBranches(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, util.OptionalBoolNone, page, pageSize)
+	kw := ctx.FormString("q")
+
+	defaultBranch, branches, branchesCount, err := repo_service.LoadBranches(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, util.OptionalBoolNone, kw, page, pageSize)
 	if err != nil {
 		ctx.ServerError("LoadBranches", err)
 		return
@@ -73,6 +75,7 @@ func Branches(ctx *context.Context) {
 		commitStatus[commitID] = git_model.CalcCommitStatus(cs)
 	}
 
+	ctx.Data["Keyword"] = kw
 	ctx.Data["Branches"] = branches
 	ctx.Data["CommitStatus"] = commitStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
