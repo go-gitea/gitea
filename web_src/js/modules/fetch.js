@@ -11,7 +11,6 @@ export function request(url, {headers = {}, data, body, ...other} = {}) {
     if (data instanceof FormData) {
       body = data;
     } else if (data instanceof URLSearchParams) {
-      contentType = 'application/x-www-form-urlencoded';
       body = data;
     } else if (isObject(data) || Array.isArray(data)) {
       contentType = 'application/json';
