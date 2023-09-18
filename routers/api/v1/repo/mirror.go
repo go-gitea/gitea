@@ -353,12 +353,19 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 		return
 	}
 
+	remoteAddress, err := util.SanitizeURL(mirrorOption.RemoteAddress)
+	if err != nil {
+		ctx.ServerError("SanitizeURL", err)
+		return
+	}
+
 	pushMirror := &repo_model.PushMirror{
-		RepoID:       repo.ID,
-		Repo:         repo,
-		RemoteName:   fmt.Sprintf("remote_mirror_%s", remoteSuffix),
-		Interval:     interval,
-		SyncOnCommit: mirrorOption.SyncOnCommit,
+		RepoID:        repo.ID,
+		Repo:          repo,
+		RemoteName:    fmt.Sprintf("remote_mirror_%s", remoteSuffix),
+		Interval:      interval,
+		SyncOnCommit:  mirrorOption.SyncOnCommit,
+		RemoteAddress: remoteAddress,
 	}
 
 	if err = repo_model.InsertPushMirror(ctx, pushMirror); err != nil {
