@@ -75,7 +75,7 @@
 												<input type="hidden" name="ref" value="{{if $.BranchName}}{{$.BranchName}}{{else}}{{$.Repository.DefaultBranch}}{{end}}">
 												<input type="hidden" name="refType" value="branch">
 												<input type="hidden" id="cherry-pick-type" name="cherry-pick-type"><br>
-												<button type="submit" id="cherry-pick-submit" class="ui green button"></button>
+												<button type="submit" id="cherry-pick-submit" class="ui primary button"></button>
 											</form>
 										</div>
 									</div>
@@ -98,7 +98,7 @@
 
 												<div class="text right actions">
 													<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
-													<button class="ui green button">{{.locale.Tr "repo.branch.confirm_create_branch"}}</button>
+													<button class="ui primary button">{{.locale.Tr "repo.branch.confirm_create_branch"}}</button>
 												</div>
 											</form>
 										</div>
@@ -123,7 +123,7 @@
 
 												<div class="text right actions">
 													<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
-													<button class="ui green button">{{.locale.Tr "repo.tag.confirm_create_tag"}}</button>
+													<button class="ui primary button">{{.locale.Tr "repo.tag.confirm_create_tag"}}</button>
 												</div>
 											</form>
 										</div>
