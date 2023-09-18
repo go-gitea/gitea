@@ -180,3 +180,6 @@ For events supported only by GitHub, see GitHub's [documentation](https://docs.g
 | pull_request_review_comment | `created`, `edited`                                                                                                      |
 | release                     | `published`, `edited`                                                                                                    |
 | registry_package            | `published`                                                                                                              |
+
+> For `pull_request` events, in Github, the `ref` is `refs/pull/:prNumber/merge`. However, Gitea has no such reference.
+> Therefore, the `ref` in Gitea Actions is `refs/pull/:prNumber/head` which points to the head of pull request rather than the merge commit.
