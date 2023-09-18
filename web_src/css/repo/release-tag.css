@@ -45,7 +45,7 @@
   border-bottom: 1px solid var(--color-secondary);
 }
 
-.repository.releases #release-list > li .detail .download .list li:last-child{
+.repository.releases #release-list > li .detail .download .list li:last-child {
   border-bottom: none;
 }
 
