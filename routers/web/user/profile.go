@@ -77,8 +77,9 @@ func userProfile(ctx *context.Context) {
 
 func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGitRepo *git.Repository, profileReadme *git.Blob) {
 	// if there is a profile readme, default to "overview" page, otherwise, default to "repositories" page
+	// if there is not a profile readme, the overview tab should be treated as the repositories tab
 	tab := ctx.FormString("tab")
-	if tab == "" {
+	if tab == "" || tab == "overview" {
 		if profileReadme != nil {
 			tab = "overview"
 		} else {
