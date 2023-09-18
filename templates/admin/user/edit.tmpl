@@ -4,7 +4,7 @@
 			{{.locale.Tr "admin.users.edit_account"}}
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form" action="{{.Link}}" method="post">
+			<form class="ui form" action="./edit" method="post">
 				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_UserName}}error{{end}}">
@@ -157,7 +157,7 @@
 			{{.locale.Tr "settings.avatar"}}
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
+			<form class="ui form" action="./avatar" method="post" enctype="multipart/form-data">
 				{{.CsrfTokenHtml}}
 				{{if not .DisableGravatar}}
 				<div class="inline field">
@@ -186,7 +186,7 @@
 
 				<div class="field">
 					<button class="ui primary button">{{$.locale.Tr "settings.update_avatar"}}</button>
-					<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete">{{$.locale.Tr "settings.delete_current_avatar"}}</button>
+					<button class="ui red button link-action" data-url="./avatar/delete">{{$.locale.Tr "settings.delete_current_avatar"}}</button>
 				</div>
 			</form>
 		</div>
@@ -197,7 +197,7 @@
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "settings.delete_account_title"}}
 	</div>
-	<form class="ui form" method="post" action="{{.Link}}/delete">
+	<form class="ui form" method="post" action="./delete">
 		<div class="content">
 			<p>{{.locale.Tr "settings.delete_account_desc"}}</p>
 			{{$.CsrfTokenHtml}}
