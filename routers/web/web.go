@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
@@ -92,7 +93,10 @@ func buildAuthGroup() *auth_service.Group {
 	if setting.Service.EnableReverseProxyAuth {
 		group.Add(&auth_service.ReverseProxy{})
 	}
-	specialAdd(group)
+
+	if setting.IsWindows && auth_model.IsSSPIEnabled() {
+		group.Add(&auth_service.SSPI{}) // it MUST be the last, see the comment of SSPI
+	}
 
 	return group
 }
