@@ -599,7 +599,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		return false
 	}
 
-	if err = repo_model.UpdateRepositoryUpdatedTime(m.RepoID, commitDate); err != nil {
+	if err = repo_model.UpdateRepositoryUpdatedTime(ctx, m.RepoID, commitDate); err != nil {
 		log.Error("SyncPullMirror [repo: %-v]: unable to update repository 'updated_unix': %v", m.Repo, err)
 		return false
 	}

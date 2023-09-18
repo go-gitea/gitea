@@ -50,7 +50,7 @@ func ListLabels(ctx *context.APIContext) {
 		return
 	}
 
-	count, err := issues_model.CountLabelsByOrgID(ctx.Org.Organization.ID)
+	count, err := issues_model.CountLabelsByOrgID(ctx, ctx.Org.Organization.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

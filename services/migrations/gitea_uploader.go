@@ -174,7 +174,7 @@ func filterTopicsForDB(topics []string) []string {
 // CreateTopics creates topics
 func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
 	topics = filterTopicsForDB(topics)
-	return repo_model.SaveTopics(g.repo.ID, topics...)
+	return repo_model.SaveTopics(g.ctx, g.repo.ID, topics...)
 }
 
 func (g *GiteaLocalUploader) prepareMilestones(milestones ...*base.Milestone) []*issues_model.Milestone {
@@ -222,7 +222,7 @@ func (g *GiteaLocalUploader) prepareMilestones(milestones ...*base.Milestone) []
 // CreateMilestones creates milestones
 func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) error {
 	mss := g.prepareMilestones(milestones...)
-	err := issues_model.InsertMilestones(mss...)
+	err := issues_model.InsertMilestones(g.ctx, mss...)
 	if err != nil {
 		return err
 	}
@@ -236,7 +236,7 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 // CreateLabels creates labels
 func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 	lbs := g.convertLabels(labels...)
-	if err := issues_model.NewLabels(lbs...); err != nil {
+	if err := issues_model.NewLabels(g.ctx, lbs...); err != nil {
 		return err
 	}
 	for _, lb := range lbs {
@@ -582,17 +582,16 @@ func (g *GiteaLocalUploader) preparePullRequests(prs ...*base.PullRequest) ([]*i
 
 // CreatePullRequests creates pull requests
 func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error {
-	ctx := db.DefaultContext
 	gprs, err := g.preparePullRequests(prs...)
 	if err != nil {
 		return err
 	}
-	if err := issues_model.InsertPullRequests(ctx, gprs...); err != nil {
+	if err := issues_model.InsertPullRequests(g.ctx, gprs...); err != nil {
 		return err
 	}
 	for _, pr := range gprs {
 		g.issues[pr.Issue.Index] = pr.Issue
-		pull.AddToTaskQueue(ctx, pr)
+		pull.AddToTaskQueue(g.ctx, pr)
 	}
 	return nil
 }
@@ -992,13 +991,12 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 // UpdateTopics updates topics
 func (g *GiteaLocalUploader) UpdateTopics(topics ...string) error {
 	topics = filterTopicsForDB(topics)
-	return repo_model.SaveTopics(g.repo.ID, topics...)
+	return repo_model.SaveTopics(g.ctx, g.repo.ID, topics...)
 }
 
 func (g *GiteaLocalUploader) UpdateMilestones(milestones ...*base.Milestone) error {
 	mss := g.prepareMilestones(milestones...)
-	ctx := db.DefaultContext
-	err := models.UpdateMilestones(ctx, mss...)
+	err := models.UpdateMilestones(g.ctx, mss...)
 	if err != nil {
 		return err
 	}
@@ -1011,8 +1009,7 @@ func (g *GiteaLocalUploader) UpdateMilestones(milestones ...*base.Milestone) err
 
 func (g *GiteaLocalUploader) UpdateLabels(labels ...*base.Label) error {
 	lbs := g.convertLabels(labels...)
-	ctx := db.DefaultContext
-	if err := issues_model.UpdateLabelsByRepoID(ctx, g.repo.ID, lbs...); err != nil {
+	if err := issues_model.UpdateLabelsByRepoID(g.ctx, g.repo.ID, lbs...); err != nil {
 		return err
 	}
 	for _, lb := range lbs {
@@ -1040,8 +1037,7 @@ func (g *GiteaLocalUploader) PatchIssues(issues ...*base.Issue) error {
 		return nil
 	}
 
-	ctx := db.DefaultContext
-	if err := models.UpsertIssues(ctx, iss...); err != nil {
+	if err := models.UpsertIssues(g.ctx, iss...); err != nil {
 		return err
 	}
 
@@ -1060,22 +1056,20 @@ func (g *GiteaLocalUploader) PatchComments(comments ...*base.Comment) error {
 	if len(cms) == 0 {
 		return nil
 	}
-	ctx := db.DefaultContext
-	return models.UpsertIssueComments(ctx, cms)
+	return models.UpsertIssueComments(g.ctx, cms)
 }
 
 func (g *GiteaLocalUploader) PatchPullRequests(prs ...*base.PullRequest) error {
 	gprs, err := g.preparePullRequests(prs...)
-	ctx := db.DefaultContext
 	if err != nil {
 		return err
 	}
-	if err := models.UpsertPullRequests(ctx, gprs...); err != nil {
+	if err := models.UpsertPullRequests(g.ctx, gprs...); err != nil {
 		return err
 	}
 	for _, pr := range gprs {
 		g.issues[pr.Issue.Index] = pr.Issue
-		pull.AddToTaskQueue(ctx, pr)
+		pull.AddToTaskQueue(g.ctx, pr)
 	}
 	return nil
 }
@@ -1086,8 +1080,7 @@ func (g *GiteaLocalUploader) PatchReviews(reviews ...*base.Review) error {
 		return err
 	}
 
-	ctx := db.DefaultContext
-	return issues_model.UpsertReviews(ctx, cms)
+	return issues_model.UpsertReviews(g.ctx, cms)
 }
 
 // Rollback when migrating failed, this will rollback all the changes.

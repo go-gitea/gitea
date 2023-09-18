@@ -39,7 +39,7 @@ type Mirror struct {
 	LFS         bool   `xorm:"lfs_enabled NOT NULL DEFAULT false"`
 	LFSEndpoint string `xorm:"lfs_endpoint TEXT"`
 
-	Address string `xorm:"-"`
+	RemoteAddress string `xorm:"VARCHAR(2048)"`
 }
 
 func init() {

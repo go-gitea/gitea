@@ -59,7 +59,7 @@ func loadSecurityData(ctx *context.Context) {
 	}
 	ctx.Data["TOTPEnrolled"] = enrolled
 
-	credentials, err := auth_model.GetWebAuthnCredentialsByUID(ctx.Doer.ID)
+	credentials, err := auth_model.GetWebAuthnCredentialsByUID(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
 		return

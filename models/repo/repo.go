@@ -191,12 +191,8 @@ func (repo *Repository) SanitizedOriginalURL() string {
 	if repo.OriginalURL == "" {
 		return ""
 	}
-	u, err := url.Parse(repo.OriginalURL)
-	if err != nil {
-		return ""
-	}
-	u.User = nil
-	return u.String()
+	u, _ := util.SanitizeURL(repo.OriginalURL)
+	return u
 }
 
 // text representations to be returned in SizeDetail.Name

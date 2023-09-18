@@ -346,7 +346,7 @@ func DeleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration) e
 	log.Trace("Doing: ArchiveCleanup")
 
 	for {
-		archivers, err := repo_model.FindRepoArchives(repo_model.FindRepoArchiversOption{
+		archivers, err := repo_model.FindRepoArchives(ctx, repo_model.FindRepoArchiversOption{
 			ListOptions: db.ListOptions{
 				PageSize: 100,
 				Page:     1,
@@ -374,7 +374,7 @@ func DeleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration) e
 
 // DeleteRepositoryArchives deletes all repositories' archives.
 func DeleteRepositoryArchives(ctx context.Context) error {
-	if err := repo_model.DeleteAllRepoArchives(); err != nil {
+	if err := repo_model.DeleteAllRepoArchives(ctx); err != nil {
 		return err
 	}
 	return storage.Clean(storage.RepoArchives)

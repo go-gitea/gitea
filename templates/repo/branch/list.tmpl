@@ -70,9 +70,20 @@
 		{{end}}
 
 		{{if .Branches}}
-			<h4 class="ui top attached header">
-				{{.locale.Tr "repo.branches"}}
+			<h4 class="ui top attached header gt-df gt-ac gt-sb">
+				<div class="gt-df gt-ac">
+					{{.locale.Tr "repo.branches"}}
+				</div>
+				<div class="gt-whitespace-nowrap">
+					<form class="ignore-dirty" method="get">
+						<div class="ui tiny search input">
+							<input name="q" placeholder="{{.locale.Tr "repo.branch.search"}}" value="{{.Keyword}}" autofocus>
+						</div>
+						<button class="ui primary tiny button gt-mr-0" data-tooltip-content={{.locale.Tr "repo.commits.search.tooltip"}}>{{.locale.Tr "repo.commits.find"}}</button>
+					</form>
+				</div>
 			</h4>
+
 			<div class="ui attached table segment">
 				<table class="ui very basic striped fixed table single line">
 					<tbody>

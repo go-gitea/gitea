@@ -173,7 +173,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 	switch action := ctx.FormString("action"); action {
 	case "clear":
 		for _, issue := range issues {
-			if err := issue_service.ClearLabels(issue, ctx.Doer); err != nil {
+			if err := issue_service.ClearLabels(ctx, issue, ctx.Doer); err != nil {
 				ctx.ServerError("ClearLabels", err)
 				return
 			}
@@ -208,14 +208,14 @@ func UpdateIssueLabel(ctx *context.Context) {
 
 		if action == "attach" {
 			for _, issue := range issues {
-				if err = issue_service.AddLabel(issue, ctx.Doer, label); err != nil {
+				if err = issue_service.AddLabel(ctx, issue, ctx.Doer, label); err != nil {
 					ctx.ServerError("AddLabel", err)
 					return
 				}
 			}
 		} else {
 			for _, issue := range issues {
-				if err = issue_service.RemoveLabel(issue, ctx.Doer, label); err != nil {
+				if err = issue_service.RemoveLabel(ctx, issue, ctx.Doer, label); err != nil {
 					ctx.ServerError("RemoveLabel", err)
 					return
 				}

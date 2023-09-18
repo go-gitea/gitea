@@ -243,7 +243,7 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 		ctx.ServerError("auth.HasTwoFactorByUID", err)
 		return nil
 	}
-	hasWebAuthn, err := auth.HasWebAuthnRegistrationsByUID(u.ID)
+	hasWebAuthn, err := auth.HasWebAuthnRegistrationsByUID(ctx, u.ID)
 	if err != nil {
 		ctx.ServerError("auth.HasWebAuthnRegistrationsByUID", err)
 		return nil
@@ -421,13 +421,13 @@ func EditUserPost(ctx *context.Context) {
 			}
 		}
 
-		wn, err := auth.GetWebAuthnCredentialsByUID(u.ID)
+		wn, err := auth.GetWebAuthnCredentialsByUID(ctx, u.ID)
 		if err != nil {
 			ctx.ServerError("auth.GetTwoFactorByUID", err)
 			return
 		}
 		for _, cred := range wn {
-			if _, err := auth.DeleteCredential(cred.ID, u.ID); err != nil {
+			if _, err := auth.DeleteCredential(ctx, cred.ID, u.ID); err != nil {
 				ctx.ServerError("auth.DeleteCredential", err)
 				return
 			}

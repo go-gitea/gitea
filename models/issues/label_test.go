@@ -48,7 +48,7 @@ func TestNewLabels(t *testing.T) {
 	for _, label := range labels {
 		unittest.AssertNotExistsBean(t, label)
 	}
-	assert.NoError(t, issues_model.NewLabels(labels...))
+	assert.NoError(t, issues_model.NewLabels(db.DefaultContext, labels...))
 	for _, label := range labels {
 		unittest.AssertExistsAndLoadBean(t, label, unittest.Cond("id = ?", label.ID))
 	}
@@ -81,7 +81,7 @@ func TestGetLabelInRepoByName(t *testing.T) {
 
 func TestGetLabelInRepoByNames(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	labelIDs, err := issues_model.GetLabelIDsInRepoByNames(1, []string{"label1", "label2"})
+	labelIDs, err := issues_model.GetLabelIDsInRepoByNames(db.DefaultContext, 1, []string{"label1", "label2"})
 	assert.NoError(t, err)
 
 	assert.Len(t, labelIDs, 2)
@@ -93,7 +93,7 @@ func TestGetLabelInRepoByNames(t *testing.T) {
 func TestGetLabelInRepoByNamesDiscardsNonExistentLabels(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	// label3 doesn't exists.. See labels.yml
-	labelIDs, err := issues_model.GetLabelIDsInRepoByNames(1, []string{"label1", "label2", "label3"})
+	labelIDs, err := issues_model.GetLabelIDsInRepoByNames(db.DefaultContext, 1, []string{"label1", "label2", "label3"})
 	assert.NoError(t, err)
 
 	assert.Len(t, labelIDs, 2)
@@ -166,7 +166,7 @@ func TestGetLabelInOrgByName(t *testing.T) {
 
 func TestGetLabelInOrgByNames(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	labelIDs, err := issues_model.GetLabelIDsInOrgByNames(3, []string{"orglabel3", "orglabel4"})
+	labelIDs, err := issues_model.GetLabelIDsInOrgByNames(db.DefaultContext, 3, []string{"orglabel3", "orglabel4"})
 	assert.NoError(t, err)
 
 	assert.Len(t, labelIDs, 2)
@@ -178,7 +178,7 @@ func TestGetLabelInOrgByNames(t *testing.T) {
 func TestGetLabelInOrgByNamesDiscardsNonExistentLabels(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	// orglabel99 doesn't exists.. See labels.yml
-	labelIDs, err := issues_model.GetLabelIDsInOrgByNames(3, []string{"orglabel3", "orglabel4", "orglabel99"})
+	labelIDs, err := issues_model.GetLabelIDsInOrgByNames(db.DefaultContext, 3, []string{"orglabel3", "orglabel4", "orglabel99"})
 	assert.NoError(t, err)
 
 	assert.Len(t, labelIDs, 2)

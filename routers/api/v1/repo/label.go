@@ -55,7 +55,7 @@ func ListLabels(ctx *context.APIContext) {
 		return
 	}
 
-	count, err := issues_model.CountLabelsByRepoID(ctx.Repo.Repository.ID)
+	count, err := issues_model.CountLabelsByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
