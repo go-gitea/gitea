@@ -29,7 +29,7 @@ func NewContext(original context.Context) {
 	defer pprof.SetGoroutineLabels(original)
 	_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().ShutdownContext(), "Service: Cron", process.SystemProcessType, true)
 	initBasicTasks()
-	initExtendedTasks(original)
+	initExtendedTasks()
 	initActionsTasks()
 
 	lock.Lock()

@@ -9,6 +9,7 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -75,13 +76,13 @@ func registerRewriteAllPublicKeys() {
 	})
 }
 
-func registerRewriteAllPrincipalKeys(ctx context.Context) {
+func registerRewriteAllPrincipalKeys() {
 	RegisterTaskFatal("resync_all_sshprincipals", &BaseConfig{
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@every 72h",
 	}, func(_ context.Context, _ *user_model.User, _ Config) error {
-		return asymkey_model.RewriteAllPrincipalKeys(ctx)
+		return asymkey_model.RewriteAllPrincipalKeys(db.DefaultContext)
 	})
 }
 
@@ -157,7 +158,7 @@ func registerUpdateGiteaChecker() {
 	})
 }
 
-func registerDeleteOldSystemNotices(ctx context.Context) {
+func registerDeleteOldSystemNotices() {
 	RegisterTaskFatal("delete_old_system_notices", &OlderThanConfig{
 		BaseConfig: BaseConfig{
 			Enabled:    false,
@@ -167,7 +168,7 @@ func registerDeleteOldSystemNotices(ctx context.Context) {
 		OlderThan: 365 * 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
-		return system.DeleteOldSystemNotices(ctx, olderThanConfig.OlderThan)
+		return system.DeleteOldSystemNotices(db.DefaultContext, olderThanConfig.OlderThan)
 	})
 }
 
@@ -223,19 +224,19 @@ func registerRebuildIssueIndexer() {
 	})
 }
 
-func initExtendedTasks(ctx context.Context) {
+func initExtendedTasks() {
 	registerDeleteInactiveUsers()
 	registerDeleteRepositoryArchives()
 	registerGarbageCollectRepositories()
 	registerRewriteAllPublicKeys()
-	registerRewriteAllPrincipalKeys(ctx)
+	registerRewriteAllPrincipalKeys()
 	registerRepositoryUpdateHook()
 	registerReinitMissingRepositories()
 	registerDeleteMissingRepositories()
 	registerRemoveRandomAvatars()
 	registerDeleteOldActions()
 	registerUpdateGiteaChecker()
-	registerDeleteOldSystemNotices(ctx)
+	registerDeleteOldSystemNotices()
 	registerGCLFS()
 	registerRebuildIssueIndexer()
 }
