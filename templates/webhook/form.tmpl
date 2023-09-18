@@ -1,8 +1,17 @@
 <h4 class="ui top attached header">
 	{{.CustomHeaderTitle}}
-	<div class="ui right">
-		{{template "shared/webhook/icon" .ctxData}}
-	</div>
+	{{if .IsNew}}
+		<div class="ui right jump dropdown">
+			<div class="ui primary tiny">
+				{{template "shared/webhook/icon" .ctxData}}
+			</div>
+			{{template "webhook/selector" .ctxData}}
+		</div>
+	{{else}}
+		<div class="ui right">
+			{{template "shared/webhook/icon" .ctxData}}
+		</div>
+	{{end}}
 </h4>
 <div class="ui attached segment">
 	{{template "repo/settings/webhook/gitea" .ctxData}}
@@ -18,3 +27,4 @@
 	{{template "repo/settings/webhook/packagist" .ctxData}}
 </div>
 {{template "repo/settings/webhook/history" .ctxData}}
+

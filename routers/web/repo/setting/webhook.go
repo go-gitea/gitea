@@ -149,7 +149,7 @@ func WebhooksNew(ctx *context.Context) {
 			"Username": "Gitea",
 		}
 	}
-	ctx.Data["BaseLink"] = orCtx.LinkNew
+	ctx.Data["BaseLinkNew"] = orCtx.LinkNew
 
 	ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 }
@@ -211,7 +211,7 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 		ctx.ServerError("getOwnerRepoCtx", err)
 		return
 	}
-	ctx.Data["BaseLink"] = orCtx.LinkNew
+	ctx.Data["BaseLinkNew"] = orCtx.LinkNew
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
