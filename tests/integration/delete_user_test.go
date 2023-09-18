@@ -14,7 +14,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/tests"
+	"github.com/stretchr/testify/assert"
 )
 
 func assertUserDeleted(t *testing.T, userID int64) {
@@ -57,4 +59,19 @@ func TestUserDeleteAccountStillOwnRepos(t *testing.T) {
 
 	// user should not have been deleted, because the user still owns repos
 	unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+}
+
+func TestUserDeleteAccountWithWrongPassword(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user8")
+	csrf := GetCSRF(t, session, "/user/settings/account")
+	urlStr := fmt.Sprintf("/user/settings/account/delete?password=%s", "wrongpassword")
+	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
+		"_csrf": csrf,
+	})
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	flashErrMsg := htmlDoc.doc.Find("#ui negative message flash-message flash-error").Text()
+	ctx, _ := contexttest.MockContext(t, "/usr/settings/accout")
+	assert.Equal(t, ctx.Tr("form.enterred_invalid_password"), flashErrMsg)
 }

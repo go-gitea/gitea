@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/auth"
+	"code.gitea.io/gitea/services/auth/source/db"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 	"code.gitea.io/gitea/services/user"
@@ -236,9 +237,8 @@ func DeleteAccount(ctx *context.Context) {
 	ctx.Data["PageIsSettingsAccount"] = true
 
 	if _, _, err := auth.UserSignIn(ctx, ctx.Doer.Name, ctx.FormString("password")); err != nil {
-		if user_model.IsErrUserNotExist(err) {
+		if _, ok := err.(db.ErrUserPasswordInvalid); ok {
 			loadAccountData(ctx)
-
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), tplSettingsAccount, nil)
 		} else {
 			ctx.ServerError("UserSignIn", err)
