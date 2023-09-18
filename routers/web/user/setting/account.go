@@ -239,7 +239,8 @@ func DeleteAccount(ctx *context.Context) {
 	if _, _, err := auth.UserSignIn(ctx, ctx.Doer.Name, ctx.FormString("password")); err != nil {
 		if _, ok := err.(db.ErrUserPasswordInvalid); ok {
 			loadAccountData(ctx)
-			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), tplSettingsAccount, nil)
+			ctx.Flash.Error(ctx.Tr("form.enterred_invalid_password"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		} else {
 			ctx.ServerError("UserSignIn", err)
 		}
