@@ -72,7 +72,7 @@ func migratePullMirrors(x *xorm.Engine) error {
 		start += len(mirrors)
 
 		for _, m := range mirrors {
-			remoteAddress, err := getRemoteAddress(sess, m.RepoID, m.RepoOwner, m.RepoName, "origin")
+			remoteAddress, err := getRemoteAddress(m.RepoOwner, m.RepoName, "origin")
 			if err != nil {
 				return err
 			}
@@ -135,7 +135,7 @@ func migratePushMirrors(x *xorm.Engine) error {
 		start += len(mirrors)
 
 		for _, m := range mirrors {
-			remoteAddress, err := getRemoteAddress(sess, m.RepoID, m.RepoOwner, m.RepoName, m.RemoteName)
+			remoteAddress, err := getRemoteAddress(m.RepoOwner, m.RepoName, m.RemoteName)
 			if err != nil {
 				return err
 			}
