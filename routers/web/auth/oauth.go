@@ -237,7 +237,7 @@ func newAccessTokenResponse(ctx go_context.Context, grant *auth.OAuth2Grant, ser
 			idToken.EmailVerified = user.IsActive
 		}
 		if grant.ScopeContains("groups") {
-			groups, err := getOAuthGroupsForUser(user)
+			groups, err := getOAuthGroupsForUser(ctx, user)
 			if err != nil {
 				log.Error("Error getting groups: %v", err)
 				return nil, &AccessTokenError{
@@ -291,7 +291,7 @@ func InfoOAuth(ctx *context.Context) {
 		Picture:  ctx.Doer.AvatarLink(ctx),
 	}
 
-	groups, err := getOAuthGroupsForUser(ctx.Doer)
+	groups, err := getOAuthGroupsForUser(ctx, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("Oauth groups for user", err)
 		return
@@ -303,8 +303,8 @@ func InfoOAuth(ctx *context.Context) {
 
 // returns a list of "org" and "org:team" strings,
 // that the given user is a part of.
-func getOAuthGroupsForUser(user *user_model.User) ([]string, error) {
-	orgs, err := org_model.GetUserOrgsList(user)
+func getOAuthGroupsForUser(ctx go_context.Context, user *user_model.User) ([]string, error) {
+	orgs, err := org_model.GetUserOrgsList(ctx, user)
 	if err != nil {
 		return nil, fmt.Errorf("GetUserOrgList: %w", err)
 	}
@@ -1197,7 +1197,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 	}
 
 	// If WebAuthn is enrolled -> Redirect to WebAuthn instead
-	regs, err := auth.GetWebAuthnCredentialsByUID(u.ID)
+	regs, err := auth.GetWebAuthnCredentialsByUID(ctx, u.ID)
 	if err == nil && len(regs) > 0 {
 		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
 		return

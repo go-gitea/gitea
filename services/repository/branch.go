@@ -66,7 +66,7 @@ type Branch struct {
 }
 
 // LoadBranches loads branches from the repository limited by page & pageSize.
-func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, isDeletedBranch util.OptionalBool, page, pageSize int) (*Branch, []*Branch, int64, error) {
+func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, isDeletedBranch util.OptionalBool, keyword string, page, pageSize int) (*Branch, []*Branch, int64, error) {
 	defaultDBBranch, err := git_model.GetBranch(ctx, repo.ID, repo.DefaultBranch)
 	if err != nil {
 		return nil, nil, 0, err
@@ -79,6 +79,7 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 			Page:     page,
 			PageSize: pageSize,
 		},
+		Keyword: keyword,
 	}
 
 	totalNumOfBranches, err := git_model.CountBranches(ctx, branchOpts)
