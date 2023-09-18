@@ -5,6 +5,7 @@ package v1_21 //nolint
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -165,7 +166,7 @@ func getRemoteAddress(ownerName, repoName, remoteName string) (string, error) {
 
 	remoteURL, err := git.GetRemoteAddress(context.Background(), repoPath, remoteName)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("get remote %s's address of %s/%s failed: %v", remoteName, ownerName, repoName, err)
 	}
 
 	u, err := giturl.Parse(remoteURL)
