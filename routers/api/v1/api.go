@@ -367,6 +367,16 @@ func reqOwner() func(ctx *context.APIContext) {
 	}
 }
 
+// reqSelfOrAdmin doer should be the same as the contextUser or site admin
+func reqSelfOrAdmin() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if !ctx.IsUserSiteAdmin() && ctx.ContextUser != ctx.Doer {
+			ctx.Error(http.StatusForbidden, "reqSelfOrAdmin", "doer should be the site admin or be same as the contextUser")
+			return
+		}
+	}
+}
+
 // reqAdmin user should be an owner or a collaborator with admin write of a repository, or site admin
 func reqAdmin() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
@@ -705,7 +715,10 @@ func buildAuthGroup() *auth.Group {
 	if setting.Service.EnableReverseProxyAuthAPI {
 		group.Add(&auth.ReverseProxy{})
 	}
-	specialAdd(group)
+
+	if setting.IsWindows && auth_model.IsSSPIEnabled() {
+		group.Add(&auth.SSPI{}) // it MUST be the last, see the comment of SSPI
+	}
 
 	return group
 }
@@ -907,7 +920,7 @@ func Routes() *web.Route {
 					m.Combo("").Get(user.ListAccessTokens).
 						Post(bind(api.CreateAccessTokenOption{}), reqToken(), user.CreateAccessToken)
 					m.Combo("/{id}").Delete(reqToken(), user.DeleteAccessToken)
-				}, reqBasicOrRevProxyAuth())
+				}, reqSelfOrAdmin(), reqBasicOrRevProxyAuth())
 
 				m.Get("/activities/feeds", user.ListUserActivityFeeds)
 			}, context_service.UserAssignmentAPI())
