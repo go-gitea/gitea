@@ -243,7 +243,7 @@ func SignInPost(ctx *context.Context) {
 	}
 
 	// Check if the user has webauthn registration
-	hasWebAuthnTwofa, err := auth.HasWebAuthnRegistrationsByUID(u.ID)
+	hasWebAuthnTwofa, err := auth.HasWebAuthnRegistrationsByUID(ctx, u.ID)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return

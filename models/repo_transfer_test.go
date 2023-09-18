@@ -25,7 +25,7 @@ func TestRepositoryTransfer(t *testing.T) {
 	assert.NotNil(t, transfer)
 
 	// Cancel transfer
-	assert.NoError(t, CancelRepositoryTransfer(repo))
+	assert.NoError(t, CancelRepositoryTransfer(db.DefaultContext, repo))
 
 	transfer, err = GetPendingRepositoryTransfer(db.DefaultContext, repo)
 	assert.Error(t, err)
@@ -53,5 +53,5 @@ func TestRepositoryTransfer(t *testing.T) {
 	assert.Error(t, err)
 
 	// Cancel transfer
-	assert.NoError(t, CancelRepositoryTransfer(repo))
+	assert.NoError(t, CancelRepositoryTransfer(db.DefaultContext, repo))
 }
