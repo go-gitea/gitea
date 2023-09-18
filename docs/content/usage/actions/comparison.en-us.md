@@ -91,12 +91,6 @@ As a workaround, you can use [go-hashfiles](https://gitea.com/actions/go-hashfil
 
 ## Missing features
 
-### Variables
-
-See [Variables](https://docs.github.com/en/actions/learn-github-actions/variables).
-
-It's under development.
-
 ### Problem Matchers
 
 Problem Matchers are a way to scan the output of actions for a specified regex pattern and surface that information prominently in the UI.
@@ -117,18 +111,6 @@ It's ignored by Gitea Actions now.
 Pre and Post steps don't have their own section in the job log user interface.
 
 ## Different behavior
-
-### Downloading actions
-
-Gitea Actions doesn't download actions from GitHub by default.
-"By default" means that you don't specify the host in the `uses` field, like `uses: actions/checkout@v3`.
-As a contrast, `uses: https://github.com/actions/checkout@v3` has specified host.
-
-The missing host will be filled with `https://gitea.com` if you don't configure it.
-That means `uses: actions/checkout@v3` will download the action from [gitea.com/actions/checkout](https://gitea.com/actions/checkout), instead of [github.com/actions/checkout](https://github.com/actions/checkout).
-
-As mentioned, it's configurable.
-If you want your runners to download actions from GitHub or your own Gitea instance by default, you can configure it by setting `[actions].DEFAULT_ACTIONS_URL`. See [Configuration Cheat Sheet](administration/config-cheat-sheet.md#actions-actions).
 
 ### Context availability
 
