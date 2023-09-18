@@ -33,10 +33,10 @@
 				{{$showSelfTooltip := (and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID))}}
 				{{if $showSelfTooltip}}
 					<span class="gt-dib" data-tooltip-content="{{$.locale.Tr "repo.diff.review.self_approve"}}">
-						<button type="submit" name="type" value="approve" disabled class="ui submit green tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
+						<button type="submit" name="type" value="approve" disabled class="ui submit primary tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
 					</span>
 				{{else}}
-					<button type="submit" name="type" value="approve" class="ui submit green tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
+					<button type="submit" name="type" value="approve" class="ui submit primary tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
 				{{end}}
 				<button type="submit" name="type" value="comment" class="ui submit tiny basic button btn-submit">{{$.locale.Tr "repo.diff.review.comment"}}</button>
 				{{if $showSelfTooltip}}
