@@ -2,10 +2,13 @@ import {isObject} from '../utils.js';
 
 const {csrfToken} = window.config;
 
+// safe HTTP methods that don't need a csrf token
+const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE', 'QUERY']);
+
 // fetch wrapper, use below method name functions and the `data` option to pass in data
 // which will automatically set an appropriate headers. For json content, only object
 // and array types are currently supported.
-export function request(url, {headers = {}, data, body, ...other} = {}) {
+export function request(url, {method = 'GET', headers = {}, data, body, ...other} = {}) {
   let contentType;
   if (!body) {
     if (data instanceof FormData) {
@@ -19,16 +22,16 @@ export function request(url, {headers = {}, data, body, ...other} = {}) {
   }
 
   const headersMerged = new Headers({
-    'x-csrf-token': csrfToken,
+    ...(!safeMethods.has(method.toUpperCase()) && {'x-csrf-token': csrfToken}),
     ...(contentType && {'content-type': contentType}),
   });
 
-  // not using spread syntax to avoid undesirable value merging
   for (const [name, value] of Object.entries(headers)) {
     headersMerged.set(name, value);
   }
 
   return fetch(url, {
+    method,
     headers: headersMerged,
     ...(body && {body}),
     ...other,
