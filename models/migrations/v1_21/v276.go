@@ -160,7 +160,7 @@ func migratePushMirrors(x *xorm.Engine) error {
 	return sess.Commit()
 }
 
-func getRemoteAddress(sess *xorm.Session, repoID int64, ownerName, repoName, remoteName string) (string, error) {
+func getRemoteAddress(ownerName, repoName, remoteName string) (string, error) {
 	repoPath := filepath.Join(setting.RepoRootPath, strings.ToLower(ownerName), strings.ToLower(repoName)+".git")
 
 	remoteURL, err := git.GetRemoteAddress(context.Background(), repoPath, remoteName)
