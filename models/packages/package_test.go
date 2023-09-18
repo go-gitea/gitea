@@ -13,6 +13,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 
 	_ "code.gitea.io/gitea/models"
+	_ "code.gitea.io/gitea/models/actions"
+	_ "code.gitea.io/gitea/models/activities"
 
 	"github.com/stretchr/testify/assert"
 )

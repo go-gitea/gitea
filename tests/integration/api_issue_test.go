@@ -234,7 +234,7 @@ func TestAPISearchIssues(t *testing.T) {
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, expectedIssueCount)
 
-	since := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801
+	since := "2000-01-01T00:50:01+00:00" // 946687801
 	before := time.Unix(999307200, 0).Format(time.RFC3339)
 	query.Add("since", since)
 	query.Add("before", before)
@@ -298,14 +298,14 @@ func TestAPISearchIssues(t *testing.T) {
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 8)
 
-	query = url.Values{"owner": {"user3"}, "token": {token}} // organization
+	query = url.Values{"owner": {"org3"}, "token": {token}} // organization
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 5)
 
-	query = url.Values{"owner": {"user3"}, "team": {"team1"}, "token": {token}} // organization + team
+	query = url.Values{"owner": {"org3"}, "team": {"team1"}, "token": {token}} // organization + team
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = MakeRequest(t, req, http.StatusOK)

@@ -79,7 +79,7 @@
 			{{if .sidebarPresent}}
 			<div class="markup wiki-content-sidebar">
 				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
-					<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Sidebar?action=_edit" aria-label="{{.locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
+					<a class="gt-float-right muted" href="{{.RepoLink}}/wiki/_Sidebar?action=_edit" aria-label="{{.locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 				{{end}}
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .sidebarEscapeStatus "root" $}}
 				{{.sidebarContent | Safe}}
@@ -91,7 +91,7 @@
 			{{if .footerPresent}}
 			<div class="markup wiki-content-footer">
 				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
-					<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Footer?action=_edit" aria-label="{{.locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
+					<a class="gt-float-right muted" href="{{.RepoLink}}/wiki/_Footer?action=_edit" aria-label="{{.locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 				{{end}}
 				{{template "repo/unicode_escape_prompt" dict "footerEscapeStatus" .sidebarEscapeStatus "root" $}}
 				{{.footerContent | Safe}}

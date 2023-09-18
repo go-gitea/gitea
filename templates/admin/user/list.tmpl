@@ -68,36 +68,41 @@
 						</th>
 						<th>{{.locale.Tr "email"}}</th>
 						<th>{{.locale.Tr "admin.users.activated"}}</th>
-						<th>{{.locale.Tr "admin.users.admin"}}</th>
 						<th>{{.locale.Tr "admin.users.restricted"}}</th>
 						<th>{{.locale.Tr "admin.users.2fa"}}</th>
-						<th>{{.locale.Tr "admin.users.repos"}}</th>
 						<th>{{.locale.Tr "admin.users.created"}}</th>
 						<th data-sortt-asc="lastlogin" data-sortt-desc="reverselastlogin">
 							{{.locale.Tr "admin.users.last_login"}}
 							{{SortArrow "lastlogin" "reverselastlogin" $.SortType false}}
 						</th>
-						<th>{{.locale.Tr "admin.users.edit"}}</th>
 					</tr>
 				</thead>
 				<tbody>
 					{{range .Users}}
 						<tr>
 							<td>{{.ID}}</td>
-							<td><a href="{{.HomeLink}}">{{.Name}}</a></td>
+							<td>
+								<a href="{{$.Link}}/{{.ID}}">{{.Name}}</a>
+								{{if .IsAdmin}}
+									<span class="ui mini label">{{$.locale.Tr "admin.users.admin"}}</span>
+								{{else if eq 2 .Type}}{{/* Reserved user */}}
+									<span class="ui mini label">{{$.locale.Tr "admin.users.reserved"}}</span>
+								{{else if eq 4 .Type}}{{/* Bot "user" */}}
+									<span class="ui mini label">{{$.locale.Tr "admin.users.bot"}}</span>
+								{{else if eq 5 .Type}}{{/* Remote user */}}
+									<span class="ui mini label">{{$.locale.Tr "admin.users.remote"}}</span>
+								{{end}}
+							</td>
 							<td class="gt-ellipsis gt-max-width-12rem">{{.Email}}</td>
 							<td>{{if .IsActive}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
-							<td>{{if .IsAdmin}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{if .IsRestricted}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{if index $.UsersTwoFaStatus .ID}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
-							<td>{{.NumRepos}}</td>
 							<td>{{DateTime "short" .CreatedUnix}}</td>
 							{{if .LastLoginUnix}}
 								<td>{{DateTime "short" .LastLoginUnix}}</td>
 							{{else}}
 								<td><span>{{$.locale.Tr "admin.users.never_login"}}</span></td>
 							{{end}}
-							<td><a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a></td>
 						</tr>
 					{{end}}
 				</tbody>

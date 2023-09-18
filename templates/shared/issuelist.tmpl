@@ -1,15 +1,15 @@
-<div id="issue-list" class="flex-list gt-pt-4">
+<div id="issue-list" class="flex-list">
 	{{$approvalCounts := .ApprovalCounts}}
 	{{range .Issues}}
-		<div class="flex-item flex-item-baseline">
-			<div class="flex-item-leading gt-ac">
+		<div class="flex-item">
+
+			<div class="flex-item-icon">
 				{{if $.CanWriteIssuesOrPulls}}
-					<input type="checkbox" autocomplete="off" class="issue-checkbox gt-mr-4" data-issue-id={{.ID}} aria-label="{{$.locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
+				<input type="checkbox" autocomplete="off" class="issue-checkbox gt-mr-4" data-issue-id={{.ID}} aria-label="{{$.locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
 				{{end}}
-				<div class="flex-item-icon">
-					{{template "shared/issueicon" .}}
-				</div>
+				{{template "shared/issueicon" .}}
 			</div>
+
 			<div class="flex-item-main">
 				<div class="flex-item-header">
 					<div class="flex-item-title">
@@ -44,7 +44,7 @@
 						{{end}}
 						{{if .NumComments}}
 						<div class="text grey">
-							<a class="gt-no-underline muted flex-text-inline" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+							<a class="gt-no-underline muted flex-text-block" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 								{{svg "octicon-comment" 16}}{{.NumComments}}
 							</a>
 						</div>

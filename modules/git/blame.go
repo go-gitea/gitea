@@ -5,11 +5,15 @@ package git
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"os"
 	"regexp"
+
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // BlamePart represents block of blame - continuous lines with one sha
@@ -20,12 +24,16 @@ type BlamePart struct {
 
 // BlameReader returns part of file blame one by one
 type BlameReader struct {
-	cmd            *Command
 	output         io.WriteCloser
 	reader         io.ReadCloser
 	bufferedReader *bufio.Reader
 	done           chan error
 	lastSha        *string
+	ignoreRevsFile *string
+}
+
+func (r *BlameReader) UsesIgnoreRevs() bool {
+	return r.ignoreRevsFile != nil
 }
 
 var shaLineRegex = regexp.MustCompile("^([a-z0-9]{40})")
@@ -98,41 +106,88 @@ func (r *BlameReader) Close() error {
 	r.bufferedReader = nil
 	_ = r.reader.Close()
 	_ = r.output.Close()
+	if r.ignoreRevsFile != nil {
+		_ = util.Remove(*r.ignoreRevsFile)
+	}
 	return err
 }
 
 // CreateBlameReader creates reader for given repository, commit and file
-func CreateBlameReader(ctx context.Context, repoPath, commitID, file string) (*BlameReader, error) {
-	cmd := NewCommandContextNoGlobals(ctx, "blame", "--porcelain").
-		AddDynamicArguments(commitID).
+func CreateBlameReader(ctx context.Context, repoPath string, commit *Commit, file string, bypassBlameIgnore bool) (*BlameReader, error) {
+	var ignoreRevsFile *string
+	if CheckGitVersionAtLeast("2.23") == nil && !bypassBlameIgnore {
+		ignoreRevsFile = tryCreateBlameIgnoreRevsFile(commit)
+	}
+
+	cmd := NewCommandContextNoGlobals(ctx, "blame", "--porcelain")
+	if ignoreRevsFile != nil {
+		// Possible improvement: use --ignore-revs-file /dev/stdin on unix
+		// There is no equivalent on Windows. May be implemented if Gitea uses an external git backend.
+		cmd.AddOptionValues("--ignore-revs-file", *ignoreRevsFile)
+	}
+	cmd.AddDynamicArguments(commit.ID.String()).
 		AddDashesAndList(file).
 		SetDescription(fmt.Sprintf("GetBlame [repo_path: %s]", repoPath))
 	reader, stdout, err := os.Pipe()
 	if err != nil {
+		if ignoreRevsFile != nil {
+			_ = util.Remove(*ignoreRevsFile)
+		}
 		return nil, err
 	}
 
 	done := make(chan error, 1)
 
-	go func(cmd *Command, dir string, stdout io.WriteCloser, done chan error) {
-		if err := cmd.Run(&RunOpts{
+	go func() {
+		stderr := bytes.Buffer{}
+		// TODO: it doesn't work for directories (the directories shouldn't be "blamed"), and the "err" should be returned by "Read" but not by "Close"
+		err := cmd.Run(&RunOpts{
 			UseContextTimeout: true,
-			Dir:               dir,
+			Dir:               repoPath,
 			Stdout:            stdout,
-			Stderr:            os.Stderr,
-		}); err == nil {
-			stdout.Close()
-		}
+			Stderr:            &stderr,
+		})
 		done <- err
-	}(cmd, repoPath, stdout, done)
+		_ = stdout.Close()
+		if err != nil {
+			log.Error("Error running git blame (dir: %v): %v, stderr: %v", repoPath, err, stderr.String())
+		}
+	}()
 
 	bufferedReader := bufio.NewReader(reader)
 
 	return &BlameReader{
-		cmd:            cmd,
 		output:         stdout,
 		reader:         reader,
 		bufferedReader: bufferedReader,
 		done:           done,
+		ignoreRevsFile: ignoreRevsFile,
 	}, nil
+}
+
+func tryCreateBlameIgnoreRevsFile(commit *Commit) *string {
+	entry, err := commit.GetTreeEntryByPath(".git-blame-ignore-revs")
+	if err != nil {
+		return nil
+	}
+
+	r, err := entry.Blob().DataAsync()
+	if err != nil {
+		return nil
+	}
+	defer r.Close()
+
+	f, err := os.CreateTemp("", "gitea_git-blame-ignore-revs")
+	if err != nil {
+		return nil
+	}
+
+	_, err = io.Copy(f, r)
+	_ = f.Close()
+	if err != nil {
+		_ = util.Remove(f.Name())
+		return nil
+	}
+
+	return util.ToPointer(f.Name())
 }

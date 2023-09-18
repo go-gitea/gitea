@@ -447,7 +447,7 @@ func GetBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToBranchProtection(bp))
+	ctx.JSON(http.StatusOK, convert.ToBranchProtection(ctx, bp))
 }
 
 // ListBranchProtections list branch protections for a repo
@@ -480,7 +480,7 @@ func ListBranchProtections(ctx *context.APIContext) {
 	}
 	apiBps := make([]*api.BranchProtection, len(bps))
 	for i := range bps {
-		apiBps[i] = convert.ToBranchProtection(bps[i])
+		apiBps[i] = convert.ToBranchProtection(ctx, bps[i])
 	}
 
 	ctx.JSON(http.StatusOK, apiBps)
@@ -688,7 +688,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToBranchProtection(bp))
+	ctx.JSON(http.StatusCreated, convert.ToBranchProtection(ctx, bp))
 }
 
 // EditBranchProtection edits a branch protection for a repo
@@ -768,7 +768,8 @@ func EditBranchProtection(ctx *context.APIContext) {
 	if form.EnableStatusCheck != nil {
 		protectBranch.EnableStatusCheck = *form.EnableStatusCheck
 	}
-	if protectBranch.EnableStatusCheck {
+
+	if form.StatusCheckContexts != nil {
 		protectBranch.StatusCheckContexts = form.StatusCheckContexts
 	}
 
@@ -959,7 +960,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToBranchProtection(bp))
+	ctx.JSON(http.StatusOK, convert.ToBranchProtection(ctx, bp))
 }
 
 // DeleteBranchProtection deletes a branch protection for a repo

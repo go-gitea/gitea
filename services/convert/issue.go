@@ -208,6 +208,7 @@ func ToLabel(label *issues_model.Label, repo *repo_model.Repository, org *user_m
 		Exclusive:   label.Exclusive,
 		Color:       strings.TrimLeft(label.Color, "#"),
 		Description: label.Description,
+		IsArchived:  label.IsArchived(),
 	}
 
 	// calculate URL

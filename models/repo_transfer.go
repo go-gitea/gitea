@@ -79,8 +79,8 @@ func (r *RepoTransfer) LoadAttributes(ctx context.Context) error {
 // CanUserAcceptTransfer checks if the user has the rights to accept/decline a repo transfer.
 // For user, it checks if it's himself
 // For organizations, it checks if the user is able to create repos
-func (r *RepoTransfer) CanUserAcceptTransfer(u *user_model.User) bool {
-	if err := r.LoadAttributes(db.DefaultContext); err != nil {
+func (r *RepoTransfer) CanUserAcceptTransfer(ctx context.Context, u *user_model.User) bool {
+	if err := r.LoadAttributes(ctx); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return false
 	}
@@ -89,7 +89,7 @@ func (r *RepoTransfer) CanUserAcceptTransfer(u *user_model.User) bool {
 		return r.RecipientID == u.ID
 	}
 
-	allowed, err := organization.CanCreateOrgRepo(db.DefaultContext, r.RecipientID, u.ID)
+	allowed, err := organization.CanCreateOrgRepo(ctx, r.RecipientID, u.ID)
 	if err != nil {
 		log.Error("CanCreateOrgRepo: %v", err)
 		return false
@@ -122,8 +122,8 @@ func deleteRepositoryTransfer(ctx context.Context, repoID int64) error {
 
 // CancelRepositoryTransfer marks the repository as ready and remove pending transfer entry,
 // thus cancel the transfer process.
-func CancelRepositoryTransfer(repo *repo_model.Repository) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func CancelRepositoryTransfer(ctx context.Context, repo *repo_model.Repository) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func CreatePendingRepositoryTransfer(ctx context.Context, doer, newOwner *user_m
 }
 
 // TransferOwnership transfers all corresponding repository items from old user to new one.
-func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_model.Repository) (err error) {
+func TransferOwnership(ctx context.Context, doer *user_model.User, newOwnerName string, repo *repo_model.Repository) (err error) {
 	repoRenamed := false
 	wikiRenamed := false
 	oldOwnerName := doer.Name
@@ -234,7 +234,7 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 		}
 	}()
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

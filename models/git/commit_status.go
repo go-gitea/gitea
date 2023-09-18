@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/translation"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -189,6 +190,11 @@ func (status *CommitStatus) loadAttributes(ctx context.Context) (err error) {
 func (status *CommitStatus) APIURL(ctx context.Context) string {
 	_ = status.loadAttributes(ctx)
 	return status.Repo.APIURL() + "/statuses/" + url.PathEscape(status.SHA)
+}
+
+// LocaleString returns the locale string name of the Status
+func (status *CommitStatus) LocaleString(lang translation.Locale) string {
+	return lang.Tr("repo.commitstatus." + status.State.String())
 }
 
 // CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc

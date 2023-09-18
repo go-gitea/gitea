@@ -1,25 +1,36 @@
 {{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
-	<div class="gt-text-right">
-		<a class="ui small green button" href="{{$.Link}}/new">{{.locale.Tr "repo.projects.new"}}</a>
+	<div class="gt-df gt-sb gt-mb-4">
+		<div class="small-menu-items ui compact tiny menu list-header-toggle">
+			<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{$.Link}}?state=open&q={{$.Keyword}}">
+				{{svg "octicon-project-symlink" 16 "gt-mr-3"}}
+				{{.locale.PrettyNumber .OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
+			</a>
+			<a class="item{{if .IsShowClosed}} active{{end}}" href="{{$.Link}}?state=closed&q={{$.Keyword}}">
+				{{svg "octicon-check" 16 "gt-mr-3"}}
+				{{.locale.PrettyNumber .ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
+			</a>
+		</div>
+		<div class="gt-text-right">
+			<a class="ui small green button" href="{{$.Link}}/new">{{.locale.Tr "repo.projects.new"}}</a>
+		</div>
 	</div>
-	<div class="divider"></div>
 {{end}}
 
 {{template "base/alert" .}}
-<div class="small-menu-items ui compact tiny menu">
-	<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{$.Link}}?state=open">
-		{{svg "octicon-project-symlink" 16 "gt-mr-3"}}
-		{{.locale.PrettyNumber .OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
-	</a>
-	<a class="item{{if .IsShowClosed}} active{{end}}" href="{{$.Link}}?state=closed">
-		{{svg "octicon-check" 16 "gt-mr-3"}}
-		{{.locale.PrettyNumber .ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
-	</a>
-</div>
 
-<div class="ui right floated secondary filter menu">
+<div class="list-header">
+	<!-- Search -->
+	<form class="list-header-search ui form ignore-dirty">
+		<div class="ui small search fluid action input">
+			<input type="hidden" name="state" value="{{$.State}}">
+			{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword}}
+			<button class="ui small icon button" type="submit" aria-label="{{.locale.Tr "explore.search"}}">
+				{{svg "octicon-search"}}
+			</button>
+		</div>
+	</form>
 	<!-- Sort -->
-	<div class="ui dropdown type jump item">
+	<div class="list-header-sort ui small dropdown type jump item">
 		<span class="text">
 			{{.locale.Tr "repo.issues.filter_sort"}}
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -31,6 +42,7 @@
 		</div>
 	</div>
 </div>
+
 <div class="milestone-list">
 	{{range .Projects}}
 		<li class="milestone-card">

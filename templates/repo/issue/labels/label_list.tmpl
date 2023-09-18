@@ -42,14 +42,17 @@
 					<a class="open-issues" href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{$.locale.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
 				{{end}}
 			</div>
-			<div class="label-operation">
-				{{if and (not $.PageIsOrgSettingsLabels) (not $.Repository.IsArchived) (or $.CanWriteIssues $.CanWritePulls)}}
-					<a class="edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" {{if .Exclusive}}data-exclusive{{end}} data-num-issues="{{.NumIssues}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil"}} {{$.locale.Tr "repo.issues.label_edit"}}</a>
-					<a class="delete-button" href="#" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{$.locale.Tr "repo.issues.label_delete"}}</a>
-				{{else if $.PageIsOrgSettingsLabels}}
-					<a class="edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" {{if .Exclusive}}data-exclusive{{end}} data-num-issues="{{.NumIssues}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil"}} {{$.locale.Tr "repo.issues.label_edit"}}</a>
-					<a class="delete-button" href="#" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{$.locale.Tr "repo.issues.label_delete"}}</a>
-				{{end}}
+			<div class="label-operation gt-df">
+				{{template "repo/issue/labels/label_archived" .}}
+				<div class="gt-df gt-ml-auto">
+					{{if and (not $.PageIsOrgSettingsLabels) (not $.Repository.IsArchived) (or $.CanWriteIssues $.CanWritePulls)}}
+						<a class="edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" {{if .Exclusive}}data-exclusive{{end}} {{if gt .ArchivedUnix 0}}data-is-archived{{end}} data-num-issues="{{.NumIssues}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil"}} {{$.locale.Tr "repo.issues.label_edit"}}</a>
+						<a class="delete-button" href="#" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{$.locale.Tr "repo.issues.label_delete"}}</a>
+					{{else if $.PageIsOrgSettingsLabels}}
+						<a class="edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" {{if .Exclusive}}data-exclusive{{end}} {{if gt .ArchivedUnix 0}}data-is-archived{{end}} data-num-issues="{{.NumIssues}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil"}} {{$.locale.Tr "repo.issues.label_edit"}}</a>
+						<a class="delete-button" href="#" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{$.locale.Tr "repo.issues.label_delete"}}</a>
+					{{end}}
+				</div>
 			</div>
 		</li>
 		{{end}}
@@ -73,9 +76,11 @@
 					{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
 				</div>
 				<div class="label-issues">
-					<a class="open-issues" href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{$.locale.Tr "repo.issues.label_open_issues" .NumOpenRepoIssues}}</a>
+					<a class="open-issues" {{if .IsArchived}}data-is-archived{{end}} href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{$.locale.Tr "repo.issues.label_open_issues" .NumOpenRepoIssues}}</a>
 				</div>
-				<div class="label-operation"></div>
+				<div class="label-operation">
+					{{template "repo/issue/labels/label_archived" .}}
+				</div>
 			</li>
 			{{end}}
 		{{end}}

@@ -6,7 +6,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
@@ -87,7 +86,7 @@ func runCreateUser(c *cli.Context) error {
 		username = c.String("username")
 	} else {
 		username = c.String("name")
-		fmt.Fprintf(os.Stderr, "--name flag is deprecated. Use --username instead.\n")
+		_, _ = fmt.Fprintf(c.App.ErrWriter, "--name flag is deprecated. Use --username instead.\n")
 	}
 
 	ctx, cancel := installSignals()
@@ -116,7 +115,7 @@ func runCreateUser(c *cli.Context) error {
 
 	// If this is the first user being created.
 	// Take it as the admin and don't force a password update.
-	if n := user_model.CountUsers(nil); n == 0 {
+	if n := user_model.CountUsers(ctx, nil); n == 0 {
 		changePassword = false
 	}
 
@@ -147,7 +146,7 @@ func runCreateUser(c *cli.Context) error {
 		IsRestricted: restricted,
 	}
 
-	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, u, overwriteDefault); err != nil {
 		return fmt.Errorf("CreateUser: %w", err)
 	}
 
@@ -157,7 +156,7 @@ func runCreateUser(c *cli.Context) error {
 			UID:  u.ID,
 		}
 
-		if err := auth_model.NewAccessToken(t); err != nil {
+		if err := auth_model.NewAccessToken(ctx, t); err != nil {
 			return err
 		}
 

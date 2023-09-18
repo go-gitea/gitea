@@ -19,15 +19,15 @@
 						<span class="inline required field"><label for="visibility">{{.locale.Tr "org.settings.visibility"}}</label></span>
 						<div class="inline-grouped-list">
 							<div class="ui radio checkbox">
-								<input class="enable-system-radio" tabindex="0" name="visibility" type="radio" value="0" {{if .DefaultOrgVisibilityMode.IsPublic}}checked{{end}}>
+								<input class="enable-system-radio" name="visibility" type="radio" value="0" {{if .DefaultOrgVisibilityMode.IsPublic}}checked{{end}}>
 								<label>{{.locale.Tr "org.settings.visibility.public"}}</label>
 							</div>
 							<div class="ui radio checkbox">
-								<input class="enable-system-radio" tabindex="0" name="visibility" type="radio" value="1" {{if .DefaultOrgVisibilityMode.IsLimited}}checked{{end}}>
+								<input class="enable-system-radio" name="visibility" type="radio" value="1" {{if .DefaultOrgVisibilityMode.IsLimited}}checked{{end}}>
 								<label>{{.locale.Tr "org.settings.visibility.limited"}}</label>
 							</div>
 							<div class="ui radio checkbox">
-								<input class="enable-system-radio" tabindex="0" name="visibility" type="radio" value="2" {{if .DefaultOrgVisibilityMode.IsPrivate}}checked{{end}}>
+								<input class="enable-system-radio" name="visibility" type="radio" value="2" {{if .DefaultOrgVisibilityMode.IsPrivate}}checked{{end}}>
 								<label>{{.locale.Tr "org.settings.visibility.private"}}</label>
 							</div>
 						</div>

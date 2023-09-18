@@ -191,12 +191,8 @@ func (repo *Repository) SanitizedOriginalURL() string {
 	if repo.OriginalURL == "" {
 		return ""
 	}
-	u, err := url.Parse(repo.OriginalURL)
-	if err != nil {
-		return ""
-	}
-	u.User = nil
-	return u.String()
+	u, _ := util.SanitizeURL(repo.OriginalURL)
+	return u
 }
 
 // text representations to be returned in SizeDetail.Name
@@ -391,7 +387,13 @@ func (repo *Repository) MustGetUnit(ctx context.Context, tp unit.Type) *RepoUnit
 			Type:   tp,
 			Config: new(IssuesConfig),
 		}
+	} else if tp == unit.TypeActions {
+		return &RepoUnit{
+			Type:   tp,
+			Config: new(ActionsConfig),
+		}
 	}
+
 	return &RepoUnit{
 		Type:   tp,
 		Config: new(UnitConfig),

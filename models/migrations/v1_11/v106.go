@@ -17,7 +17,7 @@ type Watch struct {
 }
 
 func AddModeColumnToWatch(x *xorm.Engine) error {
-	if err := x.Sync2(new(Watch)); err != nil {
+	if err := x.Sync(new(Watch)); err != nil {
 		return err
 	}
 	_, err := x.Exec("UPDATE `watch` SET `mode` = 1")

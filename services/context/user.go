@@ -27,6 +27,7 @@ func UserAssignmentWeb() func(ctx *context.Context) {
 			}
 		}
 		ctx.ContextUser = userAssignment(ctx.Base, ctx.Doer, errorFn)
+		ctx.Data["ContextUser"] = ctx.ContextUser
 	}
 }
 

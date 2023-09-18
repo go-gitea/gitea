@@ -4,7 +4,9 @@ If you are customizing Gitea, please do not change this file.
 If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 */}}
 <script>
+	{{/* before our JS code gets loaded, use arrays to store errors, then the arrays will be switched to our error handler later */}}
 	window.addEventListener('error', function(e) {window._globalHandlerErrors=window._globalHandlerErrors||[]; window._globalHandlerErrors.push(e);});
+	window.addEventListener('unhandledrejection', function(e) {window._globalHandlerErrors=window._globalHandlerErrors||[]; window._globalHandlerErrors.push(e);});
 	window.config = {
 		appUrl: '{{AppUrl}}',
 		appSubUrl: '{{AppSubUrl}}',

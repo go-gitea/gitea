@@ -17,10 +17,10 @@ import (
 
 func TestNodeinfo(t *testing.T) {
 	setting.Federation.Enabled = true
-	c = routers.NormalRoutes()
+	testWebRoutes = routers.NormalRoutes()
 	defer func() {
 		setting.Federation.Enabled = false
-		c = routers.NormalRoutes()
+		testWebRoutes = routers.NormalRoutes()
 	}()
 
 	onGiteaRun(t, func(*testing.T, *url.URL) {

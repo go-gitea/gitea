@@ -198,6 +198,7 @@ type SearchOptions struct {
 	IsClosed util.OptionalBool
 	OrderBy  db.SearchOrderBy
 	Type     Type
+	Title    string
 }
 
 func (opts *SearchOptions) toConds() builder.Cond {
@@ -217,6 +218,10 @@ func (opts *SearchOptions) toConds() builder.Cond {
 	}
 	if opts.OwnerID > 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+	}
+
+	if len(opts.Title) != 0 {
+		cond = cond.And(db.BuildCaseInsensitiveLike("title", opts.Title))
 	}
 	return cond
 }

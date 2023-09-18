@@ -12,8 +12,9 @@
 		<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 	</div>
 </form>
-<div class="{{if .PackageDescriptors}}flex-list{{end}} gt-pt-4">
+<div>
 	{{range .PackageDescriptors}}
+	<div class="flex-list">
 		<div class="flex-item">
 			<div class="flex-item-main">
 				<div class="flex-item-title">
@@ -34,6 +35,7 @@
 				</div>
 			</div>
 		</div>
+	</div>
 	{{else}}
 		{{if not .HasPackages}}
 			<div class="empty center">
@@ -43,10 +45,10 @@
 					{{$packagesUrl := URLJoin .Owner.HomeLink "-" "packages"}}
 					<p>{{.locale.Tr "packages.empty.repo" $packagesUrl | Safe}}</p>
 				{{end}}
-				<p>{{.locale.Tr "packages.empty.documentation" "https://docs.gitea.io/en-us/usage/packages/overview/" | Safe}}</p>
+				<p>{{.locale.Tr "packages.empty.documentation" "https://docs.gitea.com/usage/packages/overview/" | Safe}}</p>
 			</div>
 		{{else}}
-			<p>{{.locale.Tr "packages.filter.no_result"}}</p>
+			<p class="gt-py-4">{{.locale.Tr "packages.filter.no_result"}}</p>
 		{{end}}
 	{{end}}
 	{{template "base/paginate" .}}

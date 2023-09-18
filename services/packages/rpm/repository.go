@@ -38,13 +38,13 @@ func GetOrCreateRepositoryVersion(ownerID int64) (*packages_model.PackageVersion
 }
 
 // GetOrCreateKeyPair gets or creates the PGP keys used to sign repository metadata files
-func GetOrCreateKeyPair(ownerID int64) (string, string, error) {
-	priv, err := user_model.GetSetting(ownerID, rpm_module.SettingKeyPrivate)
+func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, error) {
+	priv, err := user_model.GetSetting(ctx, ownerID, rpm_module.SettingKeyPrivate)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return "", "", err
 	}
 
-	pub, err := user_model.GetSetting(ownerID, rpm_module.SettingKeyPublic)
+	pub, err := user_model.GetSetting(ctx, ownerID, rpm_module.SettingKeyPublic)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return "", "", err
 	}
@@ -55,11 +55,11 @@ func GetOrCreateKeyPair(ownerID int64) (string, string, error) {
 			return "", "", err
 		}
 
-		if err := user_model.SetUserSetting(ownerID, rpm_module.SettingKeyPrivate, priv); err != nil {
+		if err := user_model.SetUserSetting(ctx, ownerID, rpm_module.SettingKeyPrivate, priv); err != nil {
 			return "", "", err
 		}
 
-		if err := user_model.SetUserSetting(ownerID, rpm_module.SettingKeyPublic, pub); err != nil {
+		if err := user_model.SetUserSetting(ctx, ownerID, rpm_module.SettingKeyPublic, pub); err != nil {
 			return "", "", err
 		}
 	}
@@ -212,6 +212,7 @@ func BuildRepositoryFiles(ctx context.Context, ownerID int64) error {
 	}
 
 	return buildRepomd(
+		ctx,
 		pv,
 		ownerID,
 		[]*repoData{
@@ -223,7 +224,7 @@ func BuildRepositoryFiles(ctx context.Context, ownerID int64) error {
 }
 
 // https://docs.pulpproject.org/en/2.19/plugins/pulp_rpm/tech-reference/rpm.html#repomd-xml
-func buildRepomd(pv *packages_model.PackageVersion, ownerID int64, data []*repoData) error {
+func buildRepomd(ctx context.Context, pv *packages_model.PackageVersion, ownerID int64, data []*repoData) error {
 	type Repomd struct {
 		XMLName  xml.Name    `xml:"repomd"`
 		Xmlns    string      `xml:"xmlns,attr"`
@@ -232,7 +233,7 @@ func buildRepomd(pv *packages_model.PackageVersion, ownerID int64, data []*repoD
 	}
 
 	var buf bytes.Buffer
-	buf.Write([]byte(xml.Header))
+	buf.WriteString(xml.Header)
 	if err := xml.NewEncoder(&buf).Encode(&Repomd{
 		Xmlns:    "http://linux.duke.edu/metadata/repo",
 		XmlnsRpm: "http://linux.duke.edu/metadata/rpm",
@@ -241,7 +242,7 @@ func buildRepomd(pv *packages_model.PackageVersion, ownerID int64, data []*repoD
 		return err
 	}
 
-	priv, _, err := GetOrCreateKeyPair(ownerID)
+	priv, _, err := GetOrCreateKeyPair(ctx, ownerID)
 	if err != nil {
 		return err
 	}

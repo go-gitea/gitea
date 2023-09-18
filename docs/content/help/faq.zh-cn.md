@@ -424,7 +424,7 @@ SystemD 上的标准输出默认会写入日志记录中。您可以尝试使用
 这可能会导致警告，例如：
 
 ```
-2020/08/02 11:32:29 ...rm/session_schema.go:360:Sync2() [W] Table user Column keep_activity_private db default is , struct default is 0
+2020/08/02 11:32:29 ...rm/session_schema.go:360:Sync() [W] Table user Column keep_activity_private db default is , struct default is 0
 ```
 
 可以安全地忽略这些警告，但您可以通过让 Gitea 重新创建这些表来停止这些警告，使用以下命令：

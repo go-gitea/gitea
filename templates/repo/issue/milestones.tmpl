@@ -5,9 +5,7 @@
 		<div class="navbar gt-mb-4">
 			{{template "repo/issue/navbar" .}}
 			{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
-				<div class="ui right">
-					<a class="ui small green button" href="{{$.Link}}/new">{{.locale.Tr "repo.milestones.new"}}</a>
-				</div>
+				<a class="ui small green button" href="{{$.Link}}/new">{{.locale.Tr "repo.milestones.new"}}</a>
 			{{end}}
 		</div>
 		{{template "base/alert" .}}
@@ -42,8 +40,8 @@
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</span>
 				<div class="menu">
-					<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=closestduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.closest_due_date"}}</a>
-					<a class="{{if eq .SortType "furthestduedate"}}active {{end}}item" href="{{$.Link}}?sort=furthestduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.furthest_due_date"}}</a>
+					<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=closestduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.earliest_due_data"}}</a>
+					<a class="{{if eq .SortType "furthestduedate"}}active {{end}}item" href="{{$.Link}}?sort=furthestduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.latest_due_date"}}</a>
 					<a class="{{if eq .SortType "leastcomplete"}}active {{end}}item" href="{{$.Link}}?sort=leastcomplete&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.least_complete"}}</a>
 					<a class="{{if eq .SortType "mostcomplete"}}active {{end}}item" href="{{$.Link}}?sort=mostcomplete&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.most_complete"}}</a>
 					<a class="{{if eq .SortType "mostissues"}}active {{end}}item" href="{{$.Link}}?sort=mostissues&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.most_issues"}}</a>
@@ -95,7 +93,7 @@
 									{{$.locale.Tr "repo.milestones.closed" $closedDate | Safe}}
 								{{else}}
 									{{if .DeadlineString}}
-										<span{{if .IsOverdue}} class="text red"{{end}}>
+										<span class="flex-text-inline {{if .IsOverdue}}text red{{end}}">
 											{{svg "octicon-calendar" 14}}
 											{{DateTime "short" .DeadlineString}}
 										</span>

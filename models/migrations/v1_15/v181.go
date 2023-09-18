@@ -26,7 +26,7 @@ func AddPrimaryEmail2EmailAddress(x *xorm.Engine) error {
 	}
 
 	// Add lower_email and is_primary columns
-	if err := x.Table("email_address").Sync2(new(EmailAddress1)); err != nil {
+	if err := x.Table("email_address").Sync(new(EmailAddress1)); err != nil {
 		return err
 	}
 
@@ -44,7 +44,7 @@ func AddPrimaryEmail2EmailAddress(x *xorm.Engine) error {
 	}
 
 	// change lower_email as unique
-	if err := x.Sync2(new(EmailAddress)); err != nil {
+	if err := x.Sync(new(EmailAddress)); err != nil {
 		return err
 	}
 
