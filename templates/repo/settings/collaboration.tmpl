@@ -89,7 +89,7 @@
 			{{if $allowedToChangeTeams}}
 				<form class="ui form" id="repo-collab-team-form" action="{{.Link}}/team" method="post">
 					{{.CsrfTokenHtml}}
-					<div id="search-team-box" class="ui search input gt-vm">
+					<div id="search-team-box" class="ui search input gt-vm" data-org-name="{{.OrgName}}">
 						<input class="prompt" name="team" placeholder="{{$.locale.Tr "repo.settings.search_team"}}" autocomplete="off" autofocus required>
 					</div>
 					<button class="ui green button">{{$.locale.Tr "repo.settings.add_team"}}</button>

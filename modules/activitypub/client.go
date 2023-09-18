@@ -5,6 +5,7 @@ package activitypub
 
 import (
 	"bytes"
+	"context"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -61,14 +62,14 @@ type Client struct {
 }
 
 // NewClient function
-func NewClient(user *user_model.User, pubID string) (c *Client, err error) {
+func NewClient(ctx context.Context, user *user_model.User, pubID string) (c *Client, err error) {
 	if err = containsRequiredHTTPHeaders(http.MethodGet, setting.Federation.GetHeaders); err != nil {
 		return nil, err
 	} else if err = containsRequiredHTTPHeaders(http.MethodPost, setting.Federation.PostHeaders); err != nil {
 		return nil, err
 	}
 
-	priv, err := GetPrivateKey(user)
+	priv, err := GetPrivateKey(ctx, user)
 	if err != nil {
 		return nil, err
 	}

@@ -55,7 +55,7 @@ func WebAuthnLoginAssertion(ctx *context.Context) {
 		return
 	}
 
-	exists, err := auth.ExistsWebAuthnCredentialsForUID(user.ID)
+	exists, err := auth.ExistsWebAuthnCredentialsForUID(ctx, user.ID)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -127,14 +127,14 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	}
 
 	// Success! Get the credential and update the sign count with the new value we received.
-	dbCred, err := auth.GetWebAuthnCredentialByCredID(user.ID, cred.ID)
+	dbCred, err := auth.GetWebAuthnCredentialByCredID(ctx, user.ID, cred.ID)
 	if err != nil {
 		ctx.ServerError("GetWebAuthnCredentialByCredID", err)
 		return
 	}
 
 	dbCred.SignCount = cred.Authenticator.SignCount
-	if err := dbCred.UpdateSignCount(); err != nil {
+	if err := dbCred.UpdateSignCount(ctx); err != nil {
 		ctx.ServerError("UpdateSignCount", err)
 		return
 	}

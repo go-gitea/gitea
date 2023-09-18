@@ -127,7 +127,7 @@ func ChangeCollaborationAccessMode(ctx *context.Context) {
 
 // DeleteCollaboration delete a collaboration for a repository
 func DeleteCollaboration(ctx *context.Context) {
-	if err := repo_service.DeleteCollaboration(ctx.Repo.Repository, ctx.FormInt64("id")); err != nil {
+	if err := repo_service.DeleteCollaboration(ctx, ctx.Repo.Repository, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteCollaboration: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.remove_collaborator_success"))
@@ -173,7 +173,7 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if err = org_service.TeamAddRepository(team, ctx.Repo.Repository); err != nil {
+	if err = org_service.TeamAddRepository(ctx, team, ctx.Repo.Repository); err != nil {
 		ctx.ServerError("TeamAddRepository", err)
 		return
 	}
