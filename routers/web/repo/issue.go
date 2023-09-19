@@ -1627,6 +1627,21 @@ func ViewIssue(ctx *context.Context) {
 			if comment.MilestoneID > 0 && comment.Milestone == nil {
 				comment.Milestone = ghostMilestone
 			}
+
+			if comment.Milestone != nil && comment.Milestone.ID != -1 {
+				err = comment.Milestone.LoadRepo(ctx)
+				if err != nil {
+					ctx.ServerError("LoadMilestoneRepo", err)
+					return
+				}
+			}
+			if comment.OldMilestone != nil && comment.OldMilestone.ID != -1 {
+				err = comment.OldMilestone.LoadRepo(ctx)
+				if err != nil {
+					ctx.ServerError("LoadMilestoneRepo", err)
+					return
+				}
+			}
 		} else if comment.Type == issues_model.CommentTypeProject {
 
 			if err = comment.LoadProject(); err != nil {

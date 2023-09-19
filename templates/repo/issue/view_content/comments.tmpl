@@ -181,7 +181,15 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{$.locale.Tr "repo.issues.change_milestone_at" (.OldMilestone.Name|Escape) (.Milestone.Name|Escape) $createdStr | Safe}}{{else}}{{$.locale.Tr "repo.issues.remove_milestone_at" (.OldMilestone.Name|Escape) $createdStr | Safe}}{{end}}{{else if gt .MilestoneID 0}}{{$.locale.Tr "repo.issues.add_milestone_at" (.Milestone.Name|Escape) $createdStr | Safe}}{{end}}
+					{{if gt .OldMilestoneID 0}}
+						{{if gt .MilestoneID 0}}
+							{{$.locale.Tr "repo.issues.change_milestone_at" (printf `<a href="%s">%s</a>` .OldMilestone.Link (.OldMilestone.Name|Escape)) (printf `<a href="%s">%s</a>` .Milestone.Link (.Milestone.Name|Escape)) $createdStr | Safe}}
+						{{else}}
+							{{$.locale.Tr "repo.issues.remove_milestone_at" (printf `<a href="%s">%s</a>` .OldMilestone.Link (.OldMilestone.Name|Escape)) $createdStr | Safe}}
+						{{end}}
+					{{else if gt .MilestoneID 0}}
+						{{$.locale.Tr "repo.issues.add_milestone_at" (printf `<a href="%s">%s</a>` .Milestone.Link (.Milestone.Name|Escape)) $createdStr | Safe}}
+					{{end}}
 				</span>
 			</div>
 		{{else if eq .Type 9}}
@@ -195,7 +203,7 @@
 							{{if eq .Poster.ID .Assignee.ID}}
 								{{$.locale.Tr "repo.issues.remove_self_assignment" $createdStr | Safe}}
 							{{else}}
-								{{$.locale.Tr "repo.issues.remove_assignee_at" (.Poster.GetDisplayName|Escape) $createdStr | Safe}}
+								{{$.locale.Tr "repo.issues.remove_assignee_at" (printf `<a href="%s">%s</a>` .Poster.HomeLink (.Poster.GetDisplayName|Escape)) $createdStr | Safe}}
 							{{end}}
 						</span>
 					{{else}}
@@ -205,7 +213,7 @@
 							{{if eq .Poster.ID .AssigneeID}}
 								{{$.locale.Tr "repo.issues.self_assign_at" $createdStr | Safe}}
 							{{else}}
-								{{$.locale.Tr "repo.issues.add_assignee_at" (.Poster.GetDisplayName|Escape) $createdStr | Safe}}
+								{{$.locale.Tr "repo.issues.add_assignee_at" (printf `<a href="%s">%s</a>` .Poster.HomeLink (.Poster.GetDisplayName|Escape)) $createdStr | Safe}}
 							{{end}}
 						</span>
 					{{end}}
@@ -716,12 +724,12 @@
 					{{$oldProjectDisplayHtml := "Unknown Project"}}
 					{{if .OldProject}}
 						{{$trKey := printf "projects.type-%d.display_name" .OldProject.Type}}
-						{{$oldProjectDisplayHtml = printf `<span data-tooltip-content="%s">%s</span>` ($.locale.Tr $trKey | Escape) (.OldProject.Title | Escape)}}
+						{{$oldProjectDisplayHtml = printf `<a href="%s" data-tooltip-content="%s">%s</a>` .OldProject.Link ($.locale.Tr $trKey | Escape) (.OldProject.Title | Escape)}}
 					{{end}}
 					{{$newProjectDisplayHtml := "Unknown Project"}}
 					{{if .Project}}
 						{{$trKey := printf "projects.type-%d.display_name" .Project.Type}}
-						{{$newProjectDisplayHtml = printf `<span data-tooltip-content="%s">%s</span>` ($.locale.Tr $trKey | Escape) (.Project.Title | Escape)}}
+						{{$newProjectDisplayHtml = printf `<a href="%s" data-tooltip-content="%s">%s</a>` .Project.Link ($.locale.Tr $trKey | Escape) (.Project.Title | Escape)}}
 					{{end}}
 					{{if and (gt .OldProjectID 0) (gt .ProjectID 0)}}
 						{{$.locale.Tr "repo.issues.change_project_at" $oldProjectDisplayHtml $newProjectDisplayHtml $createdStr | Safe}}

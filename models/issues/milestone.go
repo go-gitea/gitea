@@ -122,6 +122,22 @@ func NewMilestone(ctx context.Context, m *Milestone) (err error) {
 	return committer.Commit()
 }
 
+// LoadRepo loads milestones repository
+func (m *Milestone) LoadRepo(ctx context.Context) (err error) {
+	if m.Repo == nil && m.RepoID != 0 {
+		m.Repo, err = repo_model.GetRepositoryByID(ctx, m.RepoID)
+		if err != nil {
+			return fmt.Errorf("getRepositoryByID [%d]: %w", m.RepoID, err)
+		}
+	}
+	return nil
+}
+
+// Link returns the milestone Link
+func (m *Milestone) Link() string {
+	return fmt.Sprintf("%s/milestone/%d", m.Repo.HTMLURL(), m.ID)
+}
+
 // HasMilestoneByRepoID returns if the milestone exists in the repository.
 func HasMilestoneByRepoID(ctx context.Context, repoID, id int64) (bool, error) {
 	return db.GetEngine(ctx).ID(id).Where("repo_id=?", repoID).Exist(new(Milestone))
