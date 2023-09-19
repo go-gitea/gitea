@@ -128,14 +128,3 @@ export function decodeURLEncodedBase64(base64url) {
     .replace(/_/g, '/')
     .replace(/-/g, '+'));
 }
-
-// Detect dominant line ending in a string
-// based on https://github.com/sindresorhus/detect-newline
-export function detectEol(str) {
-  const newlines = (str || '').match(/\r?\n/g) || [];
-  if (newlines.length === 0) return undefined;
-  const crlf = newlines.filter((newline) => newline === '\r\n').length;
-  const lf = newlines.length - crlf;
-  if (crlf === lf) return undefined;
-  return crlf > lf ? 'CRLF' : 'LF';
-}

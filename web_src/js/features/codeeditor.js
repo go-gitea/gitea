@@ -1,5 +1,5 @@
 import tinycolor from 'tinycolor2';
-import {basename, extname, isObject, isDarkTheme, detectEol} from '../utils.js';
+import {basename, extname, isObject, isDarkTheme} from '../utils.js';
 import {onInputDebounce} from '../utils/dom.js';
 
 const languagesByFilename = {};
@@ -119,8 +119,11 @@ export async function createMonaco(textarea, filename, editorOpts) {
 
   const model = editor.getModel();
 
-  // set eol mode to value from editorconfig or content-detected value
-  model.setEOL(monaco.editor.EndOfLineSequence[eol || detectEol(value) || 'LF']);
+  // monaco performs auto-detection of dominant EOL in the file, biased towards LF for
+  // empty files, if there is an editorconfig value, override this detected value
+  if (eol) {
+    model.setEOL(monaco.editor.EndOfLineSequence[eol]);
+  }
 
   model.onDidChangeContent(() => {
     textarea.value = editor.getValue();
@@ -197,6 +200,6 @@ function getEditorConfigOptions(ec) {
   opts.insertSpaces = ec.indent_style === 'space';
   opts.useTabStops = ec.indent_style === 'tab';
   const eol = ec.end_of_line?.toUpperCase();
-  if (['LF', 'CRLF'].includes(eol)) opts.eol = eol;
+  opts.eol = ['LF', 'CRLF'].includes(eol) ? eol : undefined;
   return opts;
 }
