@@ -13,6 +13,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -54,6 +56,45 @@ func Home(ctx *context.Context) {
 			return
 		}
 		ctx.Data["RenderedDescription"] = desc
+	}
+
+	profileGitRepo, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx)
+	defer profileClose()
+	ctx.Data["HasProfileReadme"] = profileReadmeBlob != nil
+
+	PrepareOrgProfileTabData(ctx, profileGitRepo, profileReadmeBlob)
+
+	ctx.HTML(http.StatusOK, tplOrgHome)
+}
+
+func PrepareOrgProfileTabData(ctx *context.Context, profileGitRepo *git.Repository, profileReadme *git.Blob) {
+	org := ctx.Org.Organization
+
+	tab := ctx.FormString("tab")
+	if tab == "" || tab == "overview" {
+		if profileReadme != nil {
+			tab = "overview"
+		} else {
+			tab = "repositories"
+		}
+	}
+	ctx.Data["TabName"] = tab
+
+	switch tab {
+	case "overview":
+		if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+			log.Error("failed to GetBlobContent: %v", err)
+		} else {
+			if profileContent, err := markdown.RenderString(&markup.RenderContext{
+				Ctx:     ctx,
+				GitRepo: profileGitRepo,
+				Metas:   map[string]string{"mode": "document"},
+			}, bytes); err != nil {
+				log.Error("failed to RenderString: %v", err)
+			} else {
+				ctx.Data["ProfileReadme"] = profileContent
+			}
+		}
 	}
 
 	var orderBy db.SearchOrderBy
@@ -151,9 +192,8 @@ func Home(ctx *context.Context) {
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "language", "Language")
+	pager.AddParam(ctx, "tab", "TabName")
 	ctx.Data["Page"] = pager
 
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
-
-	ctx.HTML(http.StatusOK, tplOrgHome)
 }
