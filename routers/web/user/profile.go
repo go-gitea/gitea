@@ -223,10 +223,10 @@ func Profile(ctx *context.Context) {
 	switch tab {
 	case "followers":
 		ctx.Data["Cards"] = followers
-		total = int(count)
+		total = int(numFollowers)
 	case "following":
 		ctx.Data["Cards"] = following
-		total = int(count)
+		total = int(numFollowing)
 	case "activity":
 		date := ctx.FormString("date")
 		items, count, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
