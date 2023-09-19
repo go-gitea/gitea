@@ -119,8 +119,8 @@ export async function createMonaco(textarea, filename, editorOpts) {
 
   const model = editor.getModel();
 
-  // monaco performs auto-detection of dominant EOL in the file, biased towards LF for
-  // empty files, if there is an editorconfig value, override this detected value
+  // Monaco performs auto-detection of dominant EOL in the file, biased towards LF for
+  // empty files. If there is an editorconfig value, override this detected value.
   if (eol) {
     model.setEOL(monaco.editor.EndOfLineSequence[eol]);
   }
