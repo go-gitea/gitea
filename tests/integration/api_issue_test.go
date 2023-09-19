@@ -298,14 +298,14 @@ func TestAPISearchIssues(t *testing.T) {
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 8)
 
-	query = url.Values{"owner": {"user3"}, "token": {token}} // organization
+	query = url.Values{"owner": {"org3"}, "token": {token}} // organization
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 5)
 
-	query = url.Values{"owner": {"user3"}, "team": {"team1"}, "token": {token}} // organization + team
+	query = url.Values{"owner": {"org3"}, "team": {"team1"}, "token": {token}} // organization + team
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = MakeRequest(t, req, http.StatusOK)

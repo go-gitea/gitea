@@ -150,6 +150,8 @@ func ListPublicKeys(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PublicKeyList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listPublicKeys(ctx, ctx.ContextUser)
 }

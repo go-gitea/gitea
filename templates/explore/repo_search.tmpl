@@ -36,7 +36,7 @@
 </div>
 {{if and .PageIsExploreRepositories .OnlyShowRelevant}}
 	<div class="ui message explore-relevancy-note">
-		<span data-tooltip-content="{{.locale.Tr "explore.relevant_repositories_tooltip"}}">{{.locale.Tr "explore.relevant_repositories" ((printf "%s%s" $.Link "?only_show_relevant=0")|Escape) | Safe}}</span>
+		<span data-tooltip-content="{{.locale.Tr "explore.relevant_repositories_tooltip"}}">{{.locale.Tr "explore.relevant_repositories" ((print $.Link "?only_show_relevant=0")|Escape) | Safe}}</span>
 	</div>
 {{end}}
 <div class="divider"></div>

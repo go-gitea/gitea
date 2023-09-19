@@ -80,6 +80,8 @@ func ListDeployKeys(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/DeployKeyList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	opts := &asymkey_model.ListDeployKeysOptions{
 		ListOptions: utils.GetListOptions(ctx),
@@ -144,6 +146,8 @@ func GetDeployKey(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/DeployKey"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	key, err := asymkey_model.GetDeployKeyByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -222,6 +226,8 @@ func CreateDeployKey(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/DeployKey"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
@@ -270,6 +276,8 @@ func DeleteDeploykey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	if err := asymkey_service.DeleteDeployKey(ctx.Doer, ctx.ParamsInt64(":id")); err != nil {
 		if asymkey_model.IsErrKeyAccessDenied(err) {
