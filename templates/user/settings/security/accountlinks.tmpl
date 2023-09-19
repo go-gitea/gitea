@@ -10,7 +10,7 @@
 					{{range $key := .OrderedOAuth2Names}}
 						{{$provider := index $.OAuth2Providers $key}}
 						<a class="item" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
-							{{$provider.IconHTML}}
+							{{$provider.IconHTML 20}}
 							{{$provider.DisplayName}}
 						</a>
 					{{end}}
