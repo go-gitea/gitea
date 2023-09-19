@@ -112,6 +112,18 @@ Pre and Post steps don't have their own section in the job log user interface.
 
 ## Different behavior
 
+### Downloading actions
+
+When `[actions].DEFAULT_ACTIONS_URL` keep default value `github`, Gitea will download relative paths actions from https://github.com, that means
+if you use `uses: actions/checkout@v3`, it will download the checkout repository from https://github.com/actions/checkout.git .
+If you want to download an actions from another git service sites, you can just use an absolute URL `uses: https://gitea.com/actions/checkout@v3`.
+
+If your Gitea instance is in an intranet without internet connection or a restricted area. You can use absolute URL in workflows.
+You can also set `[actions].DEFAULT_ACTIONS_URL = self`, then all relative actions will not be downloaded from github like before,
+but will be download from your Gitea instance. That means if your workflow have the syntax `uses: actions/checkout@v3`, it will be downloaded from `[server].ROOT_URL`/actions/checkout.git .
+
+More detail configurations about `[actions].DEFAULT_ACTIONS_URL` could be found at [Configuration Cheat Sheet](administration/config-cheat-sheet.md#actions-actions)。
+
 ### Context availability
 
 Context availability is not checked, so you can use the env context on more places.
