@@ -182,4 +182,4 @@ For events supported only by GitHub, see GitHub's [documentation](https://docs.g
 | registry_package            | `published`                                                                                                              |
 
 > For `pull_request` events, in [GitHub Actions](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request), the `ref` is `refs/pull/:prNumber/merge`, which is a reference to the merge commit preview. However, Gitea has no such reference.
-> Therefore, the `ref` in Gitea Actions is `refs/pull/:prNumber/head`, which points to the head of  pull request rather than the preview of the merge commit.
+> Therefore, the `ref` in Gitea Actions is `refs/pull/:prNumber/head`, which points to the head of pull request rather than the preview of the merge commit.
