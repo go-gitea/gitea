@@ -250,6 +250,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			return
 		}
 	}
+	ctx.Data["ContextUser"] = ctx.ContextUser
 
 	ctx.Data["CanReadProjects"] = ctx.Org.CanReadUnit(ctx, unit.TypeProjects)
 	ctx.Data["CanReadPackages"] = ctx.Org.CanReadUnit(ctx, unit.TypePackages)

@@ -7,7 +7,7 @@
 		<div class="ui attached segment">
 			<div class="flex-list">
 				{{range .Collaborators}}
-					<div class="flex-item flex-item-center">
+					<div class="flex-item gt-ac">
 						<div class="flex-item-leading">
 							<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
 						</div>
@@ -44,7 +44,7 @@
 				<div id="search-user-box" class="ui search input gt-vm">
 					<input class="prompt" name="collaborator" placeholder="{{.locale.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" autofocus required>
 				</div>
-				<button class="ui green button">{{.locale.Tr "repo.settings.add_collaborator"}}</button>
+				<button class="ui primary button">{{.locale.Tr "repo.settings.add_collaborator"}}</button>
 			</form>
 		</div>
 
@@ -89,10 +89,10 @@
 			{{if $allowedToChangeTeams}}
 				<form class="ui form" id="repo-collab-team-form" action="{{.Link}}/team" method="post">
 					{{.CsrfTokenHtml}}
-					<div id="search-team-box" class="ui search input gt-vm">
+					<div id="search-team-box" class="ui search input gt-vm" data-org-name="{{.OrgName}}">
 						<input class="prompt" name="team" placeholder="{{$.locale.Tr "repo.settings.search_team"}}" autocomplete="off" autofocus required>
 					</div>
-					<button class="ui green button">{{$.locale.Tr "repo.settings.add_team"}}</button>
+					<button class="ui primary button">{{$.locale.Tr "repo.settings.add_team"}}</button>
 				</form>
 			{{else}}
 				<div class="item">

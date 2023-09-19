@@ -4,7 +4,7 @@
 			{{.locale.Tr "settings.oauth2_application_create_description"}}
 		</div>
 		{{range .Applications}}
-			<div class="flex-item flex-item-center">
+			<div class="flex-item gt-ac">
 				<div class="flex-item-leading">
 					{{svg "octicon-apps" 32}}
 				</div>
@@ -65,7 +65,7 @@
 			<label>{{.locale.Tr "settings.oauth2_confidential_client"}}</label>
 			<input type="checkbox" name="confidential_client" checked>
 		</div>
-		<button class="ui green button">
+		<button class="ui primary button">
 			{{.locale.Tr "settings.create_oauth2_application_button"}}
 		</button>
 	</form>

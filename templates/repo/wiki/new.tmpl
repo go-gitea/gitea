@@ -6,7 +6,7 @@
 		<div class="ui header flex-text-block gt-sb">
 			{{.locale.Tr "repo.wiki.new_page"}}
 			{{if .PageIsWikiEdit}}
-				<a class="ui green tiny button" href="{{.RepoLink}}/wiki?action=_new">{{.locale.Tr "repo.wiki.new_page_button"}}</a>
+				<a class="ui tiny primary button" href="{{.RepoLink}}/wiki?action=_new">{{.locale.Tr "repo.wiki.new_page_button"}}</a>
 			{{end}}
 		</div>
 		<form class="ui form" action="{{.Link}}?action={{if .PageIsWikiEdit}}_edit{{else}}_new{{end}}" method="post">
@@ -37,7 +37,7 @@
 			</div>
 			<div class="divider"></div>
 			<div class="text right">
-				<button class="ui green button">
+				<button class="ui primary button">
 					{{.locale.Tr "repo.wiki.save_page"}}
 				</button>
 			</div>

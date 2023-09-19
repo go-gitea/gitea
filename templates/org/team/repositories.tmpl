@@ -17,10 +17,10 @@
 									<input class="prompt" name="repo_name" placeholder="{{.locale.Tr "org.teams.search_repo_placeholder"}}" autocomplete="off" required>
 								</div>
 							</div>
-							<button class="ui green button gt-ml-3">{{.locale.Tr "add"}}</button>
+							<button class="ui primary button gt-ml-3">{{.locale.Tr "add"}}</button>
 						</form>
 						<div class="gt-dib">
-							<button class="ui green button link-action" data-modal-confirm="{{.locale.Tr "org.teams.add_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{.locale.Tr "add_all"}}</button>
+							<button class="ui primary button link-action" data-modal-confirm="{{.locale.Tr "org.teams.add_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{.locale.Tr "add_all"}}</button>
 							<button class="ui red button link-action" data-modal-confirm="{{.locale.Tr "org.teams.remove_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/removeall">{{.locale.Tr "remove_all"}}</button>
 						</div>
 					</div>
@@ -28,7 +28,7 @@
 				<div class="ui attached segment">
 					<div class="flex-list">
 						{{range .Team.Repos}}
-							<div class="flex-item flex-item-center">
+							<div class="flex-item gt-ac">
 								<div class="flex-item-leading">
 									{{template "repo/icon" .}}
 								</div>

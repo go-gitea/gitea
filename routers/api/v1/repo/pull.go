@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -36,6 +35,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/gitdiff"
 	issue_service "code.gitea.io/gitea/services/issue"
+	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -92,10 +92,12 @@ func ListPullRequests(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullRequestList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listOptions := utils.GetListOptions(ctx)
 
-	prs, maxResults, err := issues_model.PullRequests(ctx.Repo.Repository.ID, &issues_model.PullRequestsOptions{
+	prs, maxResults, err := issues_model.PullRequests(ctx, ctx.Repo.Repository.ID, &issues_model.PullRequestsOptions{
 		ListOptions: listOptions,
 		State:       ctx.FormTrim("state"),
 		SortType:    ctx.FormTrim("sort"),
@@ -274,6 +276,8 @@ func CreatePullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/PullRequest"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     "$ref": "#/responses/error"
 	//   "422":
@@ -463,6 +467,8 @@ func EditPullRequest(ctx *context.APIContext) {
 	//     "$ref": "#/responses/PullRequest"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     "$ref": "#/responses/error"
 	//   "412":
@@ -594,11 +600,11 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	if titleChanged {
-		notification.NotifyIssueChangeTitle(ctx, ctx.Doer, issue, oldTitle)
+		notify_service.IssueChangeTitle(ctx, ctx.Doer, issue, oldTitle)
 	}
 
 	if statusChangeComment != nil {
-		notification.NotifyIssueChangeStatus(ctx, ctx.Doer, "", issue, statusChangeComment, issue.IsClosed)
+		notify_service.IssueChangeStatus(ctx, ctx.Doer, "", issue, statusChangeComment, issue.IsClosed)
 	}
 
 	// change pull target branch
@@ -622,7 +628,7 @@ func EditPullRequest(ctx *context.APIContext) {
 			}
 			return
 		}
-		notification.NotifyPullRequestChangeTargetBranch(ctx, ctx.Doer, pr, form.Base)
+		notify_service.PullRequestChangeTargetBranch(ctx, ctx.Doer, pr, form.Base)
 	}
 
 	// update allow edits
@@ -729,6 +735,8 @@ func MergePullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "405":
 	//     "$ref": "#/responses/empty"
 	//   "409":
@@ -977,7 +985,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	}
 
 	// Check if current user has fork of repository or in the same repository.
-	headRepo := repo_model.GetForkedRepo(headUser.ID, baseRepo.ID)
+	headRepo := repo_model.GetForkedRepo(ctx, headUser.ID, baseRepo.ID)
 	if headRepo == nil && !isSameRepo {
 		log.Trace("parseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
 		ctx.NotFound("GetForkedRepo")

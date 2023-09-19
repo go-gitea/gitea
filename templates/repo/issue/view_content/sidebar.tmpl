@@ -327,8 +327,8 @@
 								</form>
 							</div>
 							<div class="actions">
-								<button class="ui green approve button">{{.locale.Tr "repo.issues.add_time_short"}}</button>
-								<button class="ui red cancel button">{{.locale.Tr "repo.issues.add_time_cancel"}}</button>
+								<button class="ui primary approve button">{{.locale.Tr "repo.issues.add_time_short"}}</button>
+								<button class="ui cancel button">{{.locale.Tr "repo.issues.add_time_cancel"}}</button>
 							</div>
 						</div>
 						<button class="ui fluid button issue-add-time gt-mt-3" data-tooltip-content='{{.locale.Tr "repo.issues.add_time"}}'>
@@ -655,11 +655,11 @@
 				</form>
 			</div>
 		</div>
-		<button class="gt-mt-2 fluid ui show-modal button" data-modal="#delete">
+		<button class="gt-mt-2 fluid ui show-modal button" data-modal="#sidebar-delete-issue">
 			{{svg "octicon-trash"}}
 			{{.locale.Tr "repo.issues.delete"}}
 		</button>
-		<div class="ui g-modal-confirm modal" id="delete">
+		<div class="ui g-modal-confirm modal" id="sidebar-delete-issue">
 			<div class="header">
 				{{if .Issue.IsPull}}
 					{{.locale.Tr "repo.pulls.delete.title"}}

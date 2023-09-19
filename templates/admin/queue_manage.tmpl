@@ -11,6 +11,7 @@
 						<th>{{.locale.Tr "admin.monitor.queue.type"}}</th>
 						<th>{{.locale.Tr "admin.monitor.queue.exemplar"}}</th>
 						<th>{{.locale.Tr "admin.monitor.queue.numberworkers"}}</th>
+						<th>{{.locale.Tr "admin.monitor.queue.activeworkers"}}</th>
 						<th>{{.locale.Tr "admin.monitor.queue.maxnumberworkers"}}</th>
 						<th>{{.locale.Tr "admin.monitor.queue.numberinqueue"}}</th>
 					</tr>
@@ -20,10 +21,11 @@
 						<td>{{.Queue.GetName}}</td>
 						<td>{{.Queue.GetType}}</td>
 						<td>{{.Queue.GetItemTypeName}}</td>
-						<td>{{$sum := .Queue.GetWorkerNumber}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
-						<td>{{if lt $sum 0}}-{{else}}{{.Queue.GetWorkerMaxNumber}}{{end}}</td>
+						<td>{{.Queue.GetWorkerNumber}}</td>
+						<td>{{.Queue.GetWorkerActiveNumber}}</td>
+						<td>{{.Queue.GetWorkerMaxNumber}}</td>
 						<td>
-							{{$sum = .Queue.GetQueueItemNumber}}
+							{{$sum := .Queue.GetQueueItemNumber}}
 							{{if lt $sum 0}}
 								-
 							{{else}}

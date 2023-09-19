@@ -20,7 +20,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -29,6 +28,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/convert"
 	issue_service "code.gitea.io/gitea/services/issue"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // SearchIssues searches for issues across the repositories that the user has access to
@@ -388,6 +388,8 @@ func ListIssues(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
@@ -411,7 +413,7 @@ func ListIssues(ctx *context.APIContext) {
 
 	var labelIDs []int64
 	if splitted := strings.Split(ctx.FormString("labels"), ","); len(splitted) > 0 {
-		labelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx.Repo.Repository.ID, splitted)
+		labelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, splitted)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetLabelIDsInRepoByNames", err)
 			return
@@ -423,7 +425,7 @@ func ListIssues(ctx *context.APIContext) {
 		for i := range part {
 			// uses names and fall back to ids
 			// non existent milestones are discarded
-			mile, err := issues_model.GetMilestoneByRepoIDANDName(ctx.Repo.Repository.ID, part[i])
+			mile, err := issues_model.GetMilestoneByRepoIDANDName(ctx, ctx.Repo.Repository.ID, part[i])
 			if err == nil {
 				mileIDs = append(mileIDs, mile.ID)
 				continue
@@ -623,6 +625,8 @@ func CreateIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Issue"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "412":
 	//     "$ref": "#/responses/error"
 	//   "422":
@@ -859,11 +863,11 @@ func EditIssue(ctx *context.APIContext) {
 	}
 
 	if titleChanged {
-		notification.NotifyIssueChangeTitle(ctx, ctx.Doer, issue, oldTitle)
+		notify_service.IssueChangeTitle(ctx, ctx.Doer, issue, oldTitle)
 	}
 
 	if statusChangeComment != nil {
-		notification.NotifyIssueChangeStatus(ctx, ctx.Doer, "", issue, statusChangeComment, issue.IsClosed)
+		notify_service.IssueChangeStatus(ctx, ctx.Doer, "", issue, statusChangeComment, issue.IsClosed)
 	}
 
 	// Refetch from database to assign some automatic values

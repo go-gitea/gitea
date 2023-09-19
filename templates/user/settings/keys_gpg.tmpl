@@ -1,11 +1,11 @@
 <h4 class="ui top attached header">
 	{{.locale.Tr "settings.manage_gpg_keys"}}
 	<div class="ui right">
-		<button class="ui primary tiny show-panel button" data-panel="#add-gpg-key-panel">{{.locale.Tr "settings.add_key"}}</button>
+		<button class="ui primary tiny show-panel toggle button" data-panel="#add-gpg-key-panel">{{.locale.Tr "settings.add_key"}}</button>
 	</div>
 </h4>
 <div class="ui attached segment">
-	<div class="{{if not .HasGPGError}}gt-hidden{{end}}" id="add-gpg-key-panel">
+	<div class="{{if not .HasGPGError}}gt-hidden{{end}} gt-mb-4" id="add-gpg-key-panel">
 		<form class="ui form{{if .HasGPGError}} error{{end}}" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<input type="hidden" name="title" value="none">
@@ -31,7 +31,7 @@
 				</div>
 			{{end}}
 			<input name="type" type="hidden" value="gpg">
-			<button class="ui green button">
+			<button class="ui primary button">
 				{{.locale.Tr "settings.add_key"}}
 			</button>
 			<button class="ui hide-panel button" data-panel="#add-gpg-key-panel">
@@ -41,7 +41,10 @@
 	</div>
 	<div class="flex-list">
 		<div class="flex-item">
-			{{.locale.Tr "settings.gpg_desc"}}
+			<p>
+				{{.locale.Tr "settings.gpg_desc"}}<br>
+				{{.locale.Tr "settings.gpg_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/about-commit-signature-verification#gpg-commit-signature-verification" | Str2html}}
+			</p>
 		</div>
 		{{range .GPGKeys}}
 			<div class="flex-item">
@@ -96,7 +99,7 @@
 							<textarea id="gpg-key-signature" name="signature" placeholder="{{$.locale.Tr "settings.key_signature_gpg_placeholder"}}" required>{{$.signature}}</textarea>
 						</div>
 						<input name="type" type="hidden" value="verify_gpg">
-						<button class="ui green button">
+						<button class="ui primary button">
 							{{$.locale.Tr "settings.gpg_key_verify"}}
 						</button>
 						<a class="ui red button" href="{{$.Link}}">
@@ -107,17 +110,14 @@
 			{{end}}
 		{{end}}
 	</div>
-</div>
-<br>
-<p>{{.locale.Tr "settings.gpg_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/about-commit-signature-verification#gpg-commit-signature-verification" | Str2html}}</p>
-
-<div class="ui g-modal-confirm delete modal" id="delete-gpg">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{.locale.Tr "settings.gpg_key_deletion"}}
+	<div class="ui g-modal-confirm delete modal" id="delete-gpg">
+		<div class="header">
+			{{svg "octicon-trash"}}
+			{{.locale.Tr "settings.gpg_key_deletion"}}
+		</div>
+		<div class="content">
+			<p>{{.locale.Tr "settings.gpg_key_deletion_desc"}}</p>
+		</div>
+		{{template "base/modal_actions_confirm" .}}
 	</div>
-	<div class="content">
-		<p>{{.locale.Tr "settings.gpg_key_deletion_desc"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
 </div>

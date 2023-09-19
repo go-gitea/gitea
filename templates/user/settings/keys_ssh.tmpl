@@ -1,13 +1,13 @@
 <h4 class="ui top attached header">
 	{{.locale.Tr "settings.manage_ssh_keys"}}
 	<div class="ui right">
-		<button id="add-ssh-button" class="ui primary tiny show-panel button" data-panel="#add-ssh-key-panel">
+		<button id="add-ssh-button" class="ui primary tiny show-panel toggle button" data-panel="#add-ssh-key-panel">
 			{{.locale.Tr "settings.add_key"}}
 		</button>
 	</div>
 </h4>
 <div class="ui attached segment">
-	<div class="{{if not .HasSSHError}}gt-hidden{{end}}" id="add-ssh-key-panel">
+	<div class="{{if not .HasSSHError}}gt-hidden{{end}} gt-mb-4" id="add-ssh-key-panel">
 		<form class="ui form" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
@@ -19,7 +19,7 @@
 				<textarea id="ssh-key-content" name="content" class="js-quick-submit" placeholder="{{.locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
 			</div>
 			<input name="type" type="hidden" value="ssh">
-			<button class="ui green button">
+			<button class="ui primary button">
 				{{.locale.Tr "settings.add_key"}}
 			</button>
 			<button id="cancel-ssh-button" class="ui hide-panel button" data-panel="#add-ssh-key-panel">
@@ -29,7 +29,10 @@
 	</div>
 	<div id="keys-ssh" class="flex-list">
 		<div class="flex-item">
-			{{.locale.Tr "settings.ssh_desc"}}
+			<p>
+				{{.locale.Tr "settings.ssh_desc"}}<br>
+				{{.locale.Tr "settings.ssh_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/connecting-to-github-with-ssh" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/troubleshooting-ssh" | Str2html}}
+			</p>
 		</div>
 		{{if .DisableSSH}}
 			<div class="flex-item">
@@ -84,7 +87,7 @@
 							<textarea id="ssh-key-signature" name="signature" class="js-quick-submit" placeholder="{{$.locale.Tr "settings.key_signature_ssh_placeholder"}}" required>{{$.signature}}</textarea>
 						</div>
 						<input name="type" type="hidden" value="verify_ssh">
-						<button class="ui green button">
+						<button class="ui primary button">
 							{{$.locale.Tr "settings.ssh_key_verify"}}
 						</button>
 						<a class="ui red button" href="{{$.Link}}">
@@ -95,17 +98,14 @@
 			{{end}}
 		{{end}}
 	</div>
-</div>
-<br>
-<p>{{.locale.Tr "settings.ssh_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/connecting-to-github-with-ssh" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/troubleshooting-ssh" | Str2html}}</p>
-
-<div class="ui g-modal-confirm delete modal" id="delete-ssh">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{.locale.Tr "settings.ssh_key_deletion"}}
+	<div class="ui g-modal-confirm delete modal" id="delete-ssh">
+		<div class="header">
+			{{svg "octicon-trash"}}
+			{{.locale.Tr "settings.ssh_key_deletion"}}
+		</div>
+		<div class="content">
+			<p>{{.locale.Tr "settings.ssh_key_deletion_desc"}}</p>
+		</div>
+		{{template "base/modal_actions_confirm" .}}
 	</div>
-	<div class="content">
-		<p>{{.locale.Tr "settings.ssh_key_deletion_desc"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
 </div>
