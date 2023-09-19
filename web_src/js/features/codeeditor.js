@@ -121,7 +121,7 @@ export async function createMonaco(textarea, filename, editorOpts) {
 
   // Monaco performs auto-detection of dominant EOL in the file, biased towards LF for
   // empty files. If there is an editorconfig value, override this detected value.
-  if (eol) {
+  if (eol in monaco.editor.EndOfLineSequence) {
     model.setEOL(monaco.editor.EndOfLineSequence[eol]);
   }
 
@@ -199,7 +199,6 @@ function getEditorConfigOptions(ec) {
   opts.trimAutoWhitespace = ec.trim_trailing_whitespace === true;
   opts.insertSpaces = ec.indent_style === 'space';
   opts.useTabStops = ec.indent_style === 'tab';
-  const eol = ec.end_of_line?.toUpperCase();
-  opts.eol = ['LF', 'CRLF'].includes(eol) ? eol : undefined;
+  opts.eol = ec.end_of_line?.toUpperCase();
   return opts;
 }
