@@ -133,9 +133,9 @@
 
 						<div class="field">
 							{{if .PageIsOrgTeamsNew}}
-								<button class="ui green button">{{.locale.Tr "org.create_team"}}</button>
+								<button class="ui primary button">{{.locale.Tr "org.create_team"}}</button>
 							{{else}}
-								<button class="ui green button">{{.locale.Tr "org.teams.update_settings"}}</button>
+								<button class="ui primary button">{{.locale.Tr "org.teams.update_settings"}}</button>
 								{{if not (eq .Team.LowerName "owners")}}
 									<button class="ui red button delete-button" data-url="{{.OrgLink}}/teams/{{.Team.Name | PathEscape}}/delete">{{.locale.Tr "org.teams.delete_team"}}</button>
 								{{end}}

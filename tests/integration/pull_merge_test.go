@@ -54,7 +54,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	// Click the little green button to create a pull
+	// Click the little button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find(".timeline-item .delete-button").Attr("data-url")
 	assert.True(t, exists, "The template has changed, can not find delete button url")

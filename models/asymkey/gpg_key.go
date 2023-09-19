@@ -144,7 +144,7 @@ func parseSubGPGKey(ownerID int64, primaryID string, pubkey *packet.PublicKey, e
 }
 
 // parseGPGKey parse a PrimaryKey entity (primary key + subs keys + self-signature)
-func parseGPGKey(ownerID int64, e *openpgp.Entity, verified bool) (*GPGKey, error) {
+func parseGPGKey(ctx context.Context, ownerID int64, e *openpgp.Entity, verified bool) (*GPGKey, error) {
 	pubkey := e.PrimaryKey
 	expiry := getExpiryTime(e)
 
@@ -159,7 +159,7 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity, verified bool) (*GPGKey, erro
 	}
 
 	// Check emails
-	userEmails, err := user_model.GetEmailAddresses(ownerID)
+	userEmails, err := user_model.GetEmailAddresses(ctx, ownerID)
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +251,7 @@ func DeleteGPGKey(doer *user_model.User, id int64) (err error) {
 	return committer.Commit()
 }
 
-func checkKeyEmails(email string, keys ...*GPGKey) (bool, string) {
+func checkKeyEmails(ctx context.Context, email string, keys ...*GPGKey) (bool, string) {
 	uid := int64(0)
 	var userEmails []*user_model.EmailAddress
 	var user *user_model.User
@@ -263,10 +263,10 @@ func checkKeyEmails(email string, keys ...*GPGKey) (bool, string) {
 		}
 		if key.Verified && key.OwnerID != 0 {
 			if uid != key.OwnerID {
-				userEmails, _ = user_model.GetEmailAddresses(key.OwnerID)
+				userEmails, _ = user_model.GetEmailAddresses(ctx, key.OwnerID)
 				uid = key.OwnerID
 				user = &user_model.User{ID: uid}
-				_, _ = user_model.GetUser(user)
+				_, _ = user_model.GetUser(ctx, user)
 			}
 			for _, e := range userEmails {
 				if e.IsActivated && (email == "" || strings.EqualFold(e.Email, email)) {

@@ -19,7 +19,7 @@
 				<textarea id="ssh-key-content" name="content" class="js-quick-submit" placeholder="{{.locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
 			</div>
 			<input name="type" type="hidden" value="ssh">
-			<button class="ui green button">
+			<button class="ui primary button">
 				{{.locale.Tr "settings.add_key"}}
 			</button>
 			<button id="cancel-ssh-button" class="ui hide-panel button" data-panel="#add-ssh-key-panel">
@@ -87,7 +87,7 @@
 							<textarea id="ssh-key-signature" name="signature" class="js-quick-submit" placeholder="{{$.locale.Tr "settings.key_signature_ssh_placeholder"}}" required>{{$.signature}}</textarea>
 						</div>
 						<input name="type" type="hidden" value="verify_ssh">
-						<button class="ui green button">
+						<button class="ui primary button">
 							{{$.locale.Tr "settings.ssh_key_verify"}}
 						</button>
 						<a class="ui red button" href="{{$.Link}}">

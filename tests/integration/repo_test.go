@@ -35,7 +35,7 @@ func TestViewRepo(t *testing.T) {
 	assert.True(t, repoTopics.HasClass("repo-topic"))
 	assert.True(t, repoSummary.HasClass("repository-menu"))
 
-	req = NewRequest(t, "GET", "/user3/repo3")
+	req = NewRequest(t, "GET", "/org3/repo3")
 	MakeRequest(t, req, http.StatusNotFound)
 
 	session = loginUser(t, "user1")
@@ -45,7 +45,7 @@ func TestViewRepo(t *testing.T) {
 func testViewRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "GET", "/user3/repo3")
+	req := NewRequest(t, "GET", "/org3/repo3")
 	session := loginUser(t, "user2")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -116,7 +116,7 @@ func TestViewRepo2(t *testing.T) {
 func TestViewRepo3(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "GET", "/user3/repo3")
+	req := NewRequest(t, "GET", "/org3/repo3")
 	session := loginUser(t, "user4")
 	session.MakeRequest(t, req, http.StatusOK)
 }

@@ -17,7 +17,7 @@
 				<button id="edit-title" class="ui small basic button edit-button not-in-edit{{if .Issue.IsPull}} gt-mr-0{{end}}">{{.locale.Tr "repo.issues.edit"}}</button>
 			{{end}}
 			{{if not .Issue.IsPull}}
-				<a role="button" class="ui small green button new-issue-button gt-mr-0" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{.locale.Tr "repo.issues.new"}}</a>
+				<a role="button" class="ui small primary button new-issue-button gt-mr-0" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{.locale.Tr "repo.issues.new"}}</a>
 			{{end}}
 		</div>
 		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}

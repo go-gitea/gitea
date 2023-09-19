@@ -19,7 +19,7 @@ func TestTeam_HasRepository(t *testing.T) {
 
 	test := func(teamID, repoID int64, expected bool) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.Equal(t, expected, HasRepository(team, repoID))
+		assert.Equal(t, expected, HasRepository(db.DefaultContext, team, repoID))
 	}
 	test(1, 1, false)
 	test(1, 3, true)
