@@ -24,6 +24,8 @@ const (
 	ArtifactStatusUploadConfirmed                           // 2， ArtifactStatusUploadConfirmed is the status of an artifact upload that is confirmed
 	ArtifactStatusUploadError                               // 3， ArtifactStatusUploadError is the status of an artifact upload that is errored
 	ArtifactStatusExpired                                   // 4, ArtifactStatusExpired is the status of an artifact that is expired
+	ArtifactStatusNeedDelete                                // 5, ArtifactStatusNeedDelete is the status of an artifact that is need-delete
+	ArtifactStatusDeleted                                   // 6, ArtifactStatusDeleted is the status of an artifact that is deleted
 )
 
 func init() {
@@ -165,5 +167,11 @@ func ListNeedExpiredArtifacts(ctx context.Context) ([]*ActionArtifact, error) {
 // SetArtifactExpired sets an artifact to expired
 func SetArtifactExpired(ctx context.Context, artifactID int64) error {
 	_, err := db.GetEngine(ctx).Where("id=? AND status = ?", artifactID, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: int64(ArtifactStatusExpired)})
+	return err
+}
+
+// SetArtifactNeedDelete sets an artifact to need-delete, cron job will delete it
+func SetArtifactNeedDelete(ctx context.Context, runID int64, name string) error {
+	_, err := db.GetEngine(ctx).Where("run_id=? AND artifact_name=? AND status = ?", runID, name, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: int64(ArtifactStatusNeedDelete)})
 	return err
 }

@@ -524,6 +524,31 @@ func ArtifactsView(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, artifactsResponse)
 }
 
+func ArtifactsDeleteView(ctx *context_module.Context) {
+	if !ctx.Repo.CanWrite(unit.TypeActions) {
+		ctx.Error(http.StatusForbidden, "no permission")
+		return
+	}
+
+	runIndex := ctx.ParamsInt64("run")
+	artifactName := ctx.Params("artifact_name")
+
+	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, err.Error())
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	if err = actions_model.SetArtifactNeedDelete(ctx, run.ID, artifactName); err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	ctx.JSON(http.StatusOK, struct{}{})
+}
+
 func ArtifactsDownloadView(ctx *context_module.Context) {
 	runIndex := ctx.ParamsInt64("run")
 	artifactName := ctx.Params("artifact_name")
