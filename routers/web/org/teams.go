@@ -65,6 +65,7 @@ func Teams(ctx *context.Context) {
 		return
 	}
 
+	shared_user.RenderUserHeader(ctx)
 	ctx.HTML(http.StatusOK, tplTeams)
 }
 
@@ -276,6 +277,7 @@ func NewTeam(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeamsNew"] = true
 	ctx.Data["Team"] = &org_model.Team{}
 	ctx.Data["Units"] = unit_model.Units
+	shared_user.RenderUserHeader(ctx)
 	ctx.HTML(http.StatusOK, tplTeamNew)
 }
 
@@ -341,6 +343,7 @@ func NewTeamPost(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeamsNew"] = true
 	ctx.Data["Units"] = unit_model.Units
 	ctx.Data["Team"] = t
+	shared_user.RenderUserHeader(ctx)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplTeamNew)
@@ -391,6 +394,7 @@ func TeamMembers(ctx *context.Context) {
 	ctx.Data["Invites"] = invites
 	ctx.Data["IsEmailInviteEnabled"] = setting.MailService != nil
 
+	shared_user.RenderUserHeader(ctx)
 	ctx.HTML(http.StatusOK, tplTeamMembers)
 }
 
@@ -410,6 +414,7 @@ func TeamRepositories(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Units"] = unit_model.Units
+	shared_user.RenderUserHeader(ctx)
 	ctx.HTML(http.StatusOK, tplTeamRepositories)
 }
 
