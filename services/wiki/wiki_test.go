@@ -251,8 +251,8 @@ func TestPrepareWikiFileName(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
-	defer gitRepo.Close()
 	assert.NoError(t, err)
+	defer gitRepo.Close()
 
 	tests := []struct {
 		name      string
@@ -303,8 +303,8 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, tmpDir)
-	defer gitRepo.Close()
 	assert.NoError(t, err)
+	defer gitRepo.Close()
 
 	existence, newWikiPath, err := prepareGitPath(gitRepo, "Home")
 	assert.False(t, existence)
