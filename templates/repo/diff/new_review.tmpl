@@ -1,5 +1,5 @@
 <div id="review-box">
-	<button class="ui tiny green button gt-pr-2 gt-df js-btn-review {{if not $.IsShowingAllCommits}}disabled{{end}}" {{if not $.IsShowingAllCommits}}data-tooltip-content="{{$.locale.Tr "repo.pulls.review_only_possible_for_full_diff"}}"{{end}}>
+	<button class="ui tiny primary button gt-pr-2 gt-df js-btn-review {{if not $.IsShowingAllCommits}}disabled{{end}}" {{if not $.IsShowingAllCommits}}data-tooltip-content="{{$.locale.Tr "repo.pulls.review_only_possible_for_full_diff"}}"{{end}}>
 		{{.locale.Tr "repo.diff.review"}}
 		<span class="ui small label review-comments-counter" data-pending-comment-number="{{.PendingCodeCommentNumber}}">{{.PendingCodeCommentNumber}}</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -33,10 +33,10 @@
 				{{$showSelfTooltip := (and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID))}}
 				{{if $showSelfTooltip}}
 					<span class="gt-dib" data-tooltip-content="{{$.locale.Tr "repo.diff.review.self_approve"}}">
-						<button type="submit" name="type" value="approve" disabled class="ui submit green tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
+						<button type="submit" name="type" value="approve" disabled class="ui submit primary tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
 					</span>
 				{{else}}
-					<button type="submit" name="type" value="approve" class="ui submit green tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
+					<button type="submit" name="type" value="approve" class="ui submit primary tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
 				{{end}}
 				<button type="submit" name="type" value="comment" class="ui submit tiny basic button btn-submit">{{$.locale.Tr "repo.diff.review.comment"}}</button>
 				{{if $showSelfTooltip}}

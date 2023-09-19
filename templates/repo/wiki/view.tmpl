@@ -51,8 +51,8 @@
 					{{if and .CanWriteWiki (not .Repository.IsMirror)}}
 						<div class="ui right">
 							<a class="ui small button" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_edit">{{.locale.Tr "repo.wiki.edit_page_button"}}</a>
-							<a class="ui green small button" href="{{.RepoLink}}/wiki?action=_new">{{.locale.Tr "repo.wiki.new_page_button"}}</a>
-							<a class="ui red small button delete-button" href="" data-url="{{.RepoLink}}/wiki/{{.PageURL}}?action=_delete" data-id="{{.PageURL}}">{{.locale.Tr "repo.wiki.delete_page_button"}}</a>
+							<a class="ui small primary button" href="{{.RepoLink}}/wiki?action=_new">{{.locale.Tr "repo.wiki.new_page_button"}}</a>
+							<a class="ui small red button delete-button" href="" data-url="{{.RepoLink}}/wiki/{{.PageURL}}?action=_delete" data-id="{{.PageURL}}">{{.locale.Tr "repo.wiki.delete_page_button"}}</a>
 						</div>
 					{{end}}
 				</div>

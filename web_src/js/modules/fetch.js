@@ -2,17 +2,18 @@ import {isObject} from '../utils.js';
 
 const {csrfToken} = window.config;
 
+// safe HTTP methods that don't need a csrf token
+const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
+
 // fetch wrapper, use below method name functions and the `data` option to pass in data
-// which will automatically set an appropriate content-type header. For json content,
-// only object and array types are currently supported.
-function request(url, {headers, data, body, ...other} = {}) {
+// which will automatically set an appropriate headers. For json content, only object
+// and array types are currently supported.
+export function request(url, {method = 'GET', headers = {}, data, body, ...other} = {}) {
   let contentType;
   if (!body) {
     if (data instanceof FormData) {
-      contentType = 'multipart/form-data';
       body = data;
     } else if (data instanceof URLSearchParams) {
-      contentType = 'application/x-www-form-urlencoded';
       body = data;
     } else if (isObject(data) || Array.isArray(data)) {
       contentType = 'application/json';
@@ -20,12 +21,18 @@ function request(url, {headers, data, body, ...other} = {}) {
     }
   }
 
+  const headersMerged = new Headers({
+    ...(!safeMethods.has(method.toUpperCase()) && {'x-csrf-token': csrfToken}),
+    ...(contentType && {'content-type': contentType}),
+  });
+
+  for (const [name, value] of Object.entries(headers)) {
+    headersMerged.set(name, value);
+  }
+
   return fetch(url, {
-    headers: {
-      'x-csrf-token': csrfToken,
-      ...(contentType && {'content-type': contentType}),
-      ...headers,
-    },
+    method,
+    headers: headersMerged,
     ...(body && {body}),
     ...other,
   });
