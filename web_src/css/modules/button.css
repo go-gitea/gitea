@@ -78,6 +78,13 @@ It needs some tricks to tweak the left/right borders with active state */
   border-left: none;
 }
 
+.ui.basic.buttons .button,
+.ui.basic.button,
+.ui.basic.buttons .button:hover,
+.ui.basic.button:hover {
+  box-shadow: none;
+}
+
 .ui.labeled.button.disabled > .button,
 .ui.basic.buttons .button,
 .ui.basic.button,

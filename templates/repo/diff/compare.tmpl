@@ -180,7 +180,7 @@
 		{{if and $.IsSigned $.AllowEmptyPr (not .Repository.IsArchived)}}
 			<div class="ui segment">{{.locale.Tr "repo.pulls.nothing_to_compare_and_allow_empty_pr"}}</div>
 			<div class="ui info message show-form-container {{if .Flash}}gt-hidden{{end}}">
-				<button class="ui button green show-form">{{.locale.Tr "repo.pulls.new"}}</button>
+				<button class="ui button primary show-form">{{.locale.Tr "repo.pulls.new"}}</button>
 			</div>
 			<div class="pullrequest-form {{if not .Flash}}gt-hidden{{end}}">
 				{{template "repo/issue/new_form" .}}
@@ -204,14 +204,14 @@
 				{{else if .Issue.IsClosed}}
 				<a href="{{Escape $.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button red show-form">{{svg "octicon-issue-closed" 16}} {{.locale.Tr "repo.pulls.view"}}</a>
 				{{else}}
-				<a href="{{Escape $.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button green show-form">{{svg "octicon-git-pull-request" 16}} {{.locale.Tr "repo.pulls.view"}}</a>
+				<a href="{{Escape $.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button primary show-form">{{svg "octicon-git-pull-request" 16}} {{.locale.Tr "repo.pulls.view"}}</a>
 				{{end}}
 				</div>
 			</div>
 		{{else}}
 			{{if and $.IsSigned (not .Repository.IsArchived)}}
 				<div class="ui info message show-form-container {{if .Flash}}gt-hidden{{end}}">
-					<button class="ui button green show-form">{{.locale.Tr "repo.pulls.new"}}</button>
+					<button class="ui button primary show-form">{{.locale.Tr "repo.pulls.new"}}</button>
 				</div>
 			{{else if .Repository.IsArchived}}
 				<div class="ui warning message gt-text-center">
