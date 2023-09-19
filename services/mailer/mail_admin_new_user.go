@@ -33,17 +33,15 @@ func MailNewUser(ctx context.Context, u *user_model.User) {
 		return
 	}
 
-	recipients, err := user_model.GetAllUsers(ctx)
+	recipients, err := user_model.GetAllAdmins(ctx)
 	if err != nil {
-		log.Error("user_model.GetAllUsers: %v", err)
+		log.Error("user_model.GetAllAdmins: %v", err)
 		return
 	}
 
 	langMap := make(map[string][]string)
 	for _, r := range recipients {
-		if r.IsAdmin {
-			langMap[r.Language] = append(langMap[r.Language], r.Email)
-		}
+		langMap[r.Language] = append(langMap[r.Language], r.Email)
 	}
 
 	for lang, tos := range langMap {

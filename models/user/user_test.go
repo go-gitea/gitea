@@ -544,3 +544,13 @@ func Test_ValidateUser(t *testing.T) {
 		assert.EqualValues(t, expected, err == nil, fmt.Sprintf("case: %+v", kase))
 	}
 }
+
+func TestGetAllAdmins(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	admins, err := user_model.GetAllAdmins(db.DefaultContext)
+	assert.NoError(t, err)
+
+	assert.Len(t, admins, 1)
+	assert.Equal(t, int64(1), admins[0].ID)
+}
