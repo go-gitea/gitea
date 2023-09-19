@@ -1,5 +1,5 @@
 import tinycolor from 'tinycolor2';
-import {basename, extname, isObject, isDarkTheme} from '../utils.js';
+import {basename, extname, isObject, isDarkTheme, detectEol} from '../utils.js';
 import {onInputDebounce} from '../utils/dom.js';
 
 const languagesByFilename = {};
@@ -62,7 +62,7 @@ export async function createMonaco(textarea, filename, editorOpts) {
   const monaco = await import(/* webpackChunkName: "monaco" */'monaco-editor');
 
   initLanguages(monaco);
-  let {language, ...other} = editorOpts;
+  let {language, eol, ...other} = editorOpts;
   if (!language) language = getLanguage(filename);
 
   const container = document.createElement('div');
@@ -105,14 +105,23 @@ export async function createMonaco(textarea, filename, editorOpts) {
   monaco.languages.register({id: 'vs.editor.nullLanguage'});
   monaco.languages.setLanguageConfiguration('vs.editor.nullLanguage', {});
 
+  // TODO: there must be a better way to preserve CRLF in the template rendering
+  const value = window.monacoContent || '';
+  delete window.monacoContent;
+  textarea.value = value;
+
   const editor = monaco.editor.create(container, {
-    value: textarea.value,
+    value,
     theme: 'gitea',
     language,
     ...other,
   });
 
   const model = editor.getModel();
+
+  // set eol mode to value from editorconfig or content-detected value
+  model.setEOL(monaco.editor.EndOfLineSequence[eol || detectEol(value) || 'LF']);
+
   model.onDidChangeContent(() => {
     textarea.value = editor.getValue();
     textarea.dispatchEvent(new Event('change')); // seems to be needed for jquery-are-you-sure
@@ -187,5 +196,7 @@ function getEditorConfigOptions(ec) {
   opts.trimAutoWhitespace = ec.trim_trailing_whitespace === true;
   opts.insertSpaces = ec.indent_style === 'space';
   opts.useTabStops = ec.indent_style === 'tab';
+  const eol = ec.end_of_line?.toUpperCase();
+  if (['LF', 'CRLF'].includes(eol)) opts.eol = eol;
   return opts;
 }
