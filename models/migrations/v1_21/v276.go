@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/setting"
@@ -63,6 +64,8 @@ func migratePullMirrors(x *xorm.Engine) error {
 		var mirrors []Mirror
 		if err := sess.Select("mirror.id, mirror.repo_id, mirror.remote_address, repository.owner_name as repo_owner, repository.name as repo_name").
 			Join("INNER", "repository", "repository.id = mirror.repo_id").
+			Where("repository.status = ?", repo_model.RepositoryReady).
+			And("repository.is_empty = ?", false).
 			Limit(limit, start).Find(&mirrors); err != nil {
 			return err
 		}
@@ -126,6 +129,8 @@ func migratePushMirrors(x *xorm.Engine) error {
 		var mirrors []PushMirror
 		if err := sess.Select("push_mirror.id, push_mirror.repo_id, push_mirror.remote_name, push_mirror.remote_address, repository.owner_name as repo_owner, repository.name as repo_name").
 			Join("INNER", "repository", "repository.id = push_mirror.repo_id").
+			Where("repository.status = ?", repo_model.RepositoryReady).
+			And("repository.is_empty = ?", false).
 			Limit(limit, start).Find(&mirrors); err != nil {
 			return err
 		}
