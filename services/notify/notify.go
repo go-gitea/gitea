@@ -347,7 +347,7 @@ func RepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, r
 	}
 }
 
-// NewUserSignUp notifies deletion of a package to notifiers
+// NewUserSignUp notifies about a newly signed up user to notifiers
 func NewUserSignUp(ctx context.Context, newUser *user_model.User) {
 	for _, notifier := range notifiers {
 		notifier.NewUserSignUp(ctx, newUser)
