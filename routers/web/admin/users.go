@@ -307,15 +307,18 @@ func ViewUser(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplUserView)
 }
 
-// EditUser show editing user page
-func EditUser(ctx *context.Context) {
+func editUserCommon(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
-	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value()
+	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value(ctx)
+}
 
+// EditUser show editing user page
+func EditUser(ctx *context.Context) {
+	editUserCommon(ctx)
 	prepareUserInfo(ctx)
 	if ctx.Written() {
 		return
@@ -326,18 +329,13 @@ func EditUser(ctx *context.Context) {
 
 // EditUserPost response for editing user
 func EditUserPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AdminEditUserForm)
-	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
-	ctx.Data["PageIsAdminUsers"] = true
-	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
-	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
-	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value()
-
+	editUserCommon(ctx)
 	u := prepareUserInfo(ctx)
 	if ctx.Written() {
 		return
 	}
 
+	form := web.GetForm(ctx).(*forms.AdminEditUserForm)
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplUserEdit)
 		return

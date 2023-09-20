@@ -194,7 +194,7 @@ func generateEmailAvatarLink(ctx context.Context, email string, size int, final 
 		return DefaultAvatarLink()
 	}
 
-	enableFederatedAvatar := setting.Config().Picture.EnableFederatedAvatar.Value()
+	enableFederatedAvatar := setting.Config().Picture.EnableFederatedAvatar.Value(ctx)
 	if enableFederatedAvatar {
 		emailHash := saveEmailHash(email)
 		if final {
@@ -213,7 +213,7 @@ func generateEmailAvatarLink(ctx context.Context, email string, size int, final 
 		return urlStr
 	}
 
-	disableGravatar := setting.Config().Picture.DisableGravatar.Value()
+	disableGravatar := setting.Config().Picture.DisableGravatar.Value(ctx)
 	if !disableGravatar {
 		// copy GravatarSourceURL, because we will modify its Path.
 		avatarURLCopy := *avatarSetting.gravatarSourceURL

@@ -76,27 +76,28 @@ func SetSettings(ctx context.Context, settings map[string]string) error {
 	_ = GetRevision(ctx) // prepare the "revision" key ahead
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		e := db.GetEngine(ctx)
+		_, err := db.Exec(ctx, "UPDATE system_setting SET version=version+1 WHERE setting_key=?", keyRevision)
+		if err != nil {
+			return err
+		}
 		for k, v := range settings {
 			res, err := e.Exec("UPDATE system_setting SET setting_value=? WHERE setting_key=?", v, k)
 			if err != nil {
 				return err
 			}
 			rows, _ := res.RowsAffected()
-			if rows == 0 {
-				// if no existing row, insert a new row
+			if rows == 0 { // if no existing row, insert a new row
 				if _, err = e.Insert(&Setting{SettingKey: k, SettingValue: v}); err != nil {
 					return err
 				}
 			}
 		}
-		_, err := db.Exec(ctx, "UPDATE system_setting SET version=version+1 WHERE setting_key=?", keyRevision)
-		return err
+		return nil
 	})
 }
 
 type dbConfigCachedGetter struct {
-	ctx context.Context
-	mu  sync.RWMutex
+	mu sync.RWMutex
 
 	cacheTime time.Time
 	revision  int
@@ -105,23 +106,23 @@ type dbConfigCachedGetter struct {
 
 var _ config.DynKeyGetter = (*dbConfigCachedGetter)(nil)
 
-func (d *dbConfigCachedGetter) GetValue(key string) (v string, has bool) {
+func (d *dbConfigCachedGetter) GetValue(ctx context.Context, key string) (v string, has bool) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	v, has = d.settings[key]
 	return v, has
 }
 
-func (d *dbConfigCachedGetter) GetRevision() int {
+func (d *dbConfigCachedGetter) GetRevision(ctx context.Context) int {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	if time.Since(d.cacheTime) < time.Second {
 		return d.revision
 	}
-	if GetRevision(d.ctx) != d.revision {
+	if GetRevision(ctx) != d.revision {
 		d.mu.RUnlock()
 		d.mu.Lock()
-		rev, set, err := GetAllSettings(d.ctx)
+		rev, set, err := GetAllSettings(ctx)
 		if err != nil {
 			log.Error("Unable to get all settings: %v", err)
 		} else {
@@ -141,6 +142,6 @@ func (d *dbConfigCachedGetter) InvalidateCache() {
 	d.mu.Unlock()
 }
 
-func NewDatabaseDynKeyGetter(ctx context.Context) config.DynKeyGetter {
-	return &dbConfigCachedGetter{ctx: ctx}
+func NewDatabaseDynKeyGetter() config.DynKeyGetter {
+	return &dbConfigCachedGetter{}
 }

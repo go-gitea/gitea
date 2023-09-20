@@ -135,7 +135,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 
 	setting.IncomingEmail.ReplyToAddress = "incoming+%{token}@localhost"
 
-	config.SetDynGetter(system.NewDatabaseDynKeyGetter(context.Background()))
+	config.SetDynGetter(system.NewDatabaseDynKeyGetter())
 
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)

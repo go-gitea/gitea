@@ -3,7 +3,10 @@
 
 package config
 
-import "sync"
+import (
+	"context"
+	"sync"
+)
 
 var getterMu sync.RWMutex
 
@@ -26,8 +29,8 @@ func GetCfgSecKeyGetter() CfgSecKeyGetter {
 }
 
 type DynKeyGetter interface {
-	GetValue(key string) (v string, has bool)
-	GetRevision() int
+	GetValue(ctx context.Context, key string) (v string, has bool)
+	GetRevision(ctx context.Context) int
 	InvalidateCache()
 }
 

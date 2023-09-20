@@ -293,14 +293,14 @@
 				<dt>{{.locale.Tr "admin.config.disable_gravatar"}}</dt>
 				<dd>
 					<div class="ui toggle checkbox">
-						<input type="checkbox" name="picture.disable_gravatar" {{if .SystemConfig.Picture.DisableGravatar.Value}}checked{{end}} title="{{.locale.Tr "admin.config.disable_gravatar"}}">
+						<input type="checkbox" name="picture.disable_gravatar" {{if .SystemConfig.Picture.DisableGravatar.Value ctx}}checked{{end}} title="{{.locale.Tr "admin.config.disable_gravatar"}}">
 					</div>
 				</dd>
 				<div class="divider"></div>
 				<dt>{{.locale.Tr "admin.config.enable_federated_avatar"}}</dt>
 				<dd>
 					<div class="ui toggle checkbox">
-						<input type="checkbox" name="picture.enable_federated_avatar" {{if .SystemConfig.Picture.EnableFederatedAvatar.Value}}checked{{end}} title="{{.locale.Tr "admin.config.enable_federated_avatar"}}">
+						<input type="checkbox" name="picture.enable_federated_avatar" {{if .SystemConfig.Picture.EnableFederatedAvatar.Value ctx}}checked{{end}} title="{{.locale.Tr "admin.config.enable_federated_avatar"}}">
 					</div>
 				</dd>
 			</dl>
