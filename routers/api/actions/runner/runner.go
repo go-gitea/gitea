@@ -50,10 +50,6 @@ func (s *Service) Register(
 		return nil, errors.New("runner token not found")
 	}
 
-	if runnerToken.IsActive {
-		return nil, errors.New("runner token has already been activated")
-	}
-
 	labels := req.Msg.Labels
 	// TODO: agent_labels should be removed from pb after Gitea 1.20 released.
 	// Old version runner's agent_labels slice is not empty and labels slice is empty.
