@@ -185,7 +185,7 @@ func CreateTag(ctx *context.APIContext) {
 	//   "409":
 	//     "$ref": "#/responses/conflict"
 	//   "423":
-	//     "$ref": "#/responses/repoArchived"
+	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm(ctx).(*api.CreateTagOption)
 
 	// If target is not provided use default branch
@@ -254,7 +254,7 @@ func DeleteTag(ctx *context.APIContext) {
 	//   "409":
 	//     "$ref": "#/responses/conflict"
 	//   "423":
-	//     "$ref": "#/responses/repoArchived"
+	//     "$ref": "#/responses/repoArchivedError"
 	tagName := ctx.Params("*")
 
 	tag, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tagName)

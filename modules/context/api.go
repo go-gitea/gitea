@@ -101,8 +101,8 @@ type APIRedirect struct{}
 // swagger:response string
 type APIString string
 
-// APIRepoArchivedError is error that is raised when a repo is archived
-// swagger:response repoArchived
+// APIRepoArchivedError is an error that is raised when an archived repo should be modified
+// swagger:response repoArchivedError
 type APIRepoArchivedError struct {
 	APIError
 }

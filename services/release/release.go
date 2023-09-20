@@ -30,7 +30,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 		return false, err
 	}
 
-	err = rel.Repo.GetIsArchivedError()
+	err = rel.Repo.MustNotBeArchived()
 	if err != nil {
 		return false, err
 	}

@@ -118,7 +118,7 @@ func DeleteBranch(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "423":
-	//     "$ref": "#/responses/repoArchived"
+	//     "$ref": "#/responses/repoArchivedError"
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.Error(http.StatusNotFound, "", "Git Repository is empty.")
 		return
@@ -209,7 +209,7 @@ func CreateBranch(ctx *context.APIContext) {
 	//   "409":
 	//     description: The branch with the same name already exists.
 	//   "423":
-	//     "$ref": "#/responses/repoArchived"
+	//     "$ref": "#/responses/repoArchivedError"
 
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.Error(http.StatusNotFound, "", "Git Repository is empty.")
@@ -509,7 +509,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	//   "423":
-	//     "$ref": "#/responses/repoArchived"
+	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm(ctx).(*api.CreateBranchProtectionOption)
 	repo := ctx.Repo.Repository
@@ -719,7 +719,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	//   "423":
-	//     "$ref": "#/responses/repoArchived"
+	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm(ctx).(*api.EditBranchProtectionOption)
 	repo := ctx.Repo.Repository
 	bpName := ctx.Params(":name")

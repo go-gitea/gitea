@@ -283,7 +283,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	//   "423":
-	//     "$ref": "#/responses/repoArchived"
+	//     "$ref": "#/responses/repoArchivedError"
 
 	form := *web.GetForm(ctx).(*api.CreatePullRequestOption)
 	if form.Head == form.Base {
@@ -744,7 +744,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	//   "409":
 	//     "$ref": "#/responses/error"
 	//   "423":
-	//     "$ref": "#/responses/repoArchived"
+	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm(ctx).(*forms.MergePullRequestForm)
 
@@ -1201,7 +1201,7 @@ func CancelScheduledAutoMerge(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "423":
-	//     "$ref": "#/responses/repoArchived"
+	//     "$ref": "#/responses/repoArchivedError"
 
 	pullIndex := ctx.ParamsInt64(":index")
 	pull, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, pullIndex)

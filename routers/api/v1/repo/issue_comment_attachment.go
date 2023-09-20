@@ -157,7 +157,7 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/error"
 	//   "423":
-	//     "$ref": "#/responses/repoArchived"
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// Check if comment exists and load comment
 	comment := getIssueCommentSafe(ctx)
@@ -248,7 +248,7 @@ func EditIssueCommentAttachment(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/error"
 	//   "423":
-	//     "$ref": "#/responses/repoArchived"
+	//     "$ref": "#/responses/repoArchivedError"
 	attach := getIssueCommentAttachmentSafeWrite(ctx)
 	if attach == nil {
 		return
@@ -301,7 +301,7 @@ func DeleteIssueCommentAttachment(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/error"
 	//   "423":
-	//     "$ref": "#/responses/repoArchived"
+	//     "$ref": "#/responses/repoArchivedError"
 	attach := getIssueCommentAttachmentSafeWrite(ctx)
 	if attach == nil {
 		return

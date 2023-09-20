@@ -188,7 +188,7 @@ func CreateIssueDependency(ctx *context.APIContext) {
 	//   "404":
 	//     description: the issue does not exist
 	//   "423":
-	//     "$ref": "#/responses/repoArchived"
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// We want to make <:index> depend on <Form>, i.e. <:index> is the target
 	target := getParamsIssue(ctx)
@@ -249,7 +249,7 @@ func RemoveIssueDependency(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "423":
-	//     "$ref": "#/responses/repoArchived"
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// We want to make <:index> depend on <Form>, i.e. <:index> is the target
 	target := getParamsIssue(ctx)

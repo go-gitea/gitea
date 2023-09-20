@@ -632,7 +632,7 @@ func CreateIssue(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	//   "423":
-	//     "$ref": "#/responses/repoArchived"
+	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm(ctx).(*api.CreateIssueOption)
 	var deadlineUnix timeutil.TimeStamp
 	if form.Deadline != nil && ctx.Repo.CanWrite(unit.TypeIssues) {

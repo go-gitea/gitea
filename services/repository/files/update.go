@@ -65,7 +65,7 @@ type RepoFileOptions struct {
 
 // ChangeRepoFiles adds, updates or removes multiple files in the given repository
 func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, opts *ChangeRepoFilesOptions) (*structs.FilesResponse, error) {
-	err := repo.GetIsArchivedError()
+	err := repo.MustNotBeArchived()
 	if err != nil {
 		return nil, err
 	}

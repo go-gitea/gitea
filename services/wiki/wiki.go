@@ -79,7 +79,7 @@ func prepareGitPath(gitRepo *git.Repository, wikiPath WebPath) (bool, string, er
 
 // updateWikiPage adds a new page or edits an existing page in repository wiki.
 func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldWikiName, newWikiName WebPath, content, message string, isNew bool) (err error) {
-	err = repo.GetIsArchivedError()
+	err = repo.MustNotBeArchived()
 	if err != nil {
 		return err
 	}
@@ -243,7 +243,7 @@ func EditWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.R
 
 // DeleteWikiPage deletes a wiki page identified by its path.
 func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, wikiName WebPath) (err error) {
-	err = repo.GetIsArchivedError()
+	err = repo.MustNotBeArchived()
 	if err != nil {
 		return err
 	}

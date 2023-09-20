@@ -315,7 +315,7 @@ type WhitelistOptions struct {
 // This function also performs check if whitelist user and team's IDs have been changed
 // to avoid unnecessary whitelist delete and regenerate.
 func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, protectBranch *ProtectedBranch, opts WhitelistOptions) (err error) {
-	err = repo.GetIsArchivedError()
+	err = repo.MustNotBeArchived()
 	if err != nil {
 		return err
 	}
@@ -451,7 +451,7 @@ func updateTeamWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 
 // DeleteProtectedBranch removes ProtectedBranch relation between the user and repository.
 func DeleteProtectedBranch(ctx context.Context, repo *repo_model.Repository, id int64) (err error) {
-	err = repo.GetIsArchivedError()
+	err = repo.MustNotBeArchived()
 	if err != nil {
 		return err
 	}

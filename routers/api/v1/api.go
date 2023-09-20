@@ -675,7 +675,7 @@ func mustEnableWiki(ctx *context.APIContext) {
 
 func mustNotBeArchived(ctx *context.APIContext) {
 	if ctx.Repo.Repository.IsArchived {
-		ctx.Error(http.StatusLocked, "RepoArchived", fmt.Errorf("repo %s/%s is archived", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name))
+		ctx.Error(http.StatusLocked, "RepoArchived", fmt.Errorf("%s is archived", ctx.Repo.Repository.LogString()))
 		return
 	}
 }

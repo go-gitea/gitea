@@ -48,13 +48,11 @@ func (err ErrUserDoesNotHaveAccessToRepo) Unwrap() error {
 }
 
 type ErrRepoIsArchived struct {
-	ID    int64
-	Name  string
-	Owner string
+	Repo *Repository
 }
 
 func (err ErrRepoIsArchived) Error() string {
-	return fmt.Sprintf("repo %s/%s is archived", err.Owner, err.Name)
+	return fmt.Sprintf("%s is archived", err.Repo.LogString())
 }
 
 var (
@@ -664,10 +662,10 @@ func (repo *Repository) GetTrustModel() TrustModelType {
 	return trustModel
 }
 
-// GetIsArchivedError returns ErrRepoIsArchived is the repo is archived
-func (repo *Repository) GetIsArchivedError() error {
+// MustNotBeArchived returns ErrRepoIsArchived if the repo is archived
+func (repo *Repository) MustNotBeArchived() error {
 	if repo.IsArchived {
-		return ErrRepoIsArchived{ID: repo.ID, Name: repo.Name, Owner: repo.OwnerName}
+		return ErrRepoIsArchived{Repo: repo}
 	}
 	return nil
 }
