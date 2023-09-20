@@ -18,8 +18,10 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/automerge"
+	"code.gitea.io/gitea/services/notify"
 )
 
 func getCacheKey(repoID int64, brancheName string) string {
@@ -113,6 +115,8 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 			log.Error("deleteCommitStatusCache[%d:%s] failed: %v", repo.ID, repo.DefaultBranch, err)
 		}
 	}
+
+	notify.CreateCommitStatus(ctx, repo, repo_module.CommitToPushCommit(commit), creator, status)
 
 	if status.State.IsSuccess() {
 		if err := automerge.StartPRCheckAndAutoMergeBySHA(ctx, sha, repo); err != nil {
