@@ -153,6 +153,8 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/error"
+	//   "423":
+	//     "$ref": "#/responses/repoArchived"
 
 	issue := getIssueFromContext(ctx)
 	if issue == nil {
@@ -238,6 +240,8 @@ func EditIssueAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Attachment"
 	//   "404":
 	//     "$ref": "#/responses/error"
+	//   "423":
+	//     "$ref": "#/responses/repoArchived"
 
 	attachment := getIssueAttachmentSafeWrite(ctx)
 	if attachment == nil {
@@ -292,6 +296,8 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/error"
+	//   "423":
+	//     "$ref": "#/responses/repoArchived"
 
 	attachment := getIssueAttachmentSafeWrite(ctx)
 	if attachment == nil {

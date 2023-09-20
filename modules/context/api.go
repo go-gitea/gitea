@@ -101,6 +101,12 @@ type APIRedirect struct{}
 // swagger:response string
 type APIString string
 
+// APIRepoArchivedError is error that is raised when a repo is archived
+// swagger:response repoArchived
+type APIRepoArchivedError struct {
+	APIError
+}
+
 // ServerError responds with error message, status is 500
 func (ctx *APIContext) ServerError(title string, err error) {
 	ctx.Error(http.StatusInternalServerError, title, err)

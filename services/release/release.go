@@ -25,6 +25,16 @@ import (
 )
 
 func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Release, msg string) (bool, error) {
+	err := rel.LoadAttributes(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	err = rel.Repo.GetIsArchivedError()
+	if err != nil {
+		return false, err
+	}
+
 	var created bool
 	// Only actual create when publish.
 	if !rel.IsDraft {

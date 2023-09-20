@@ -52,6 +52,8 @@ func NewWikiPage(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchived"
 
 	form := web.GetForm(ctx).(*api.CreateWikiPageOptions)
 
@@ -128,6 +130,8 @@ func EditWikiPage(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchived"
 
 	form := web.GetForm(ctx).(*api.CreateWikiPageOptions)
 
@@ -234,6 +238,8 @@ func DeleteWikiPage(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchived"
 
 	wikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw(":pageName"))
 

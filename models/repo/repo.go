@@ -47,6 +47,16 @@ func (err ErrUserDoesNotHaveAccessToRepo) Unwrap() error {
 	return util.ErrPermissionDenied
 }
 
+type ErrRepoIsArchived struct {
+	ID    int64
+	Name  string
+	Owner string
+}
+
+func (err ErrRepoIsArchived) Error() string {
+	return fmt.Sprint("repo %s/%s is archived", err.Owner, err.Name)
+}
+
 var (
 	reservedRepoNames    = []string{".", "..", "-"}
 	reservedRepoPatterns = []string{"*.git", "*.wiki", "*.rss", "*.atom"}
@@ -652,6 +662,14 @@ func (repo *Repository) GetTrustModel() TrustModelType {
 		}
 	}
 	return trustModel
+}
+
+// GetIsArchivedError returns ErrRepoIsArchived is the repo is archived
+func (repo *Repository) GetIsArchivedError() error {
+	if repo.IsArchived {
+		return ErrRepoIsArchived{ID: repo.ID, Name: repo.Name, Owner: repo.OwnerName}
+	}
+	return nil
 }
 
 // __________                           .__  __

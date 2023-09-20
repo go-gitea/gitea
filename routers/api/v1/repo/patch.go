@@ -47,6 +47,8 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/FileResponse"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchived"
 	apiOpts := web.GetForm(ctx).(*api.ApplyDiffPatchFileOptions)
 
 	opts := &files.ApplyDiffPatchOptions{
