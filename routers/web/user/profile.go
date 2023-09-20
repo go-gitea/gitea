@@ -158,10 +158,10 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGi
 	switch tab {
 	case "followers":
 		ctx.Data["Cards"] = followers
-		total = int(count)
+		total = int(numFollowers)
 	case "following":
 		ctx.Data["Cards"] = following
-		total = int(count)
+		total = int(numFollowing)
 	case "activity":
 		date := ctx.FormString("date")
 		pagingNum = setting.UI.FeedPagingNum
