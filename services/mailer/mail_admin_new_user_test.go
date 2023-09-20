@@ -58,8 +58,8 @@ func TestAdminNotificationMail_test(t *testing.T) {
 	setting.Domain = "localhost"
 	setting.AppSubURL = "http://localhost"
 
-	// test with NOTIFY_NEW_SIGNUPS enabled
-	setting.Admin.NotifyNewSignUps = true
+	// test with SEND_NOTIFICATION_EMAIL_ON_NEW_USER enabled
+	setting.Admin.SendNotificationEmailOnNewUser = true
 
 	ctx := context.Background()
 	NewContext(ctx)
@@ -79,10 +79,10 @@ func TestAdminNotificationMail_test(t *testing.T) {
 	}
 	MailNewUser(ctx, users[1])
 
-	// test with NOTIFY_NEW_SIGNUPS disabled; emails shouldn't be sent
-	setting.Admin.NotifyNewSignUps = false
+	// test with SEND_NOTIFICATION_EMAIL_ON_NEW_USER disabled; emails shouldn't be sent
+	setting.Admin.SendNotificationEmailOnNewUser = false
 	sa = func(msgs []*Message) {
-		assert.Equal(t, 1, 0, "this shouldn't execute. MailNewUser must exit early since NOTIFY_NEW_SIGNUPS is disabled")
+		assert.Equal(t, 1, 0, "this shouldn't execute. MailNewUser must exit early since SEND_NOTIFICATION_EMAIL_ON_NEW_USER is disabled")
 	}
 
 	MailNewUser(ctx, users[1])
