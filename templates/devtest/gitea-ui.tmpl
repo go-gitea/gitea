@@ -1,6 +1,7 @@
 {{template "base/head" .}}
 <link rel="stylesheet" href="{{AssetUrlPrefix}}/css/devtest.css?v={{AssetVersion}}">
-<div class="page-content devtest ui container">
+<div class="page-content devtest ui container" data-foo="{{print "a\r\nb"}}">
+	<script>console.log(JSON.stringify(document.querySelector('.page-content').getAttribute('data-foo')))</script>
 	<div>
 		<h1>Button</h1>
 		<div>
