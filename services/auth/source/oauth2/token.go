@@ -64,9 +64,7 @@ func ParseToken(jwtToken string, signingKey JWTSigningKey) (*Token, error) {
 // SignToken signs the token with the JWT secret
 func (token *Token) SignToken(signingKey JWTSigningKey) (string, error) {
 	token.IssuedAt = jwt.NewNumericDate(time.Now())
-	jwtToken := jwt.NewWithClaims(signingKey.SigningMethod(), token)
-	signingKey.PreProcessToken(jwtToken)
-	return jwtToken.SignedString(signingKey.SignKey())
+	return SignToken(token, signingKey)
 }
 
 // OIDCToken represents an OpenID Connect id_token
@@ -94,6 +92,10 @@ type OIDCToken struct {
 // SignToken signs an id_token with the (symmetric) client secret key
 func (token *OIDCToken) SignToken(signingKey JWTSigningKey) (string, error) {
 	token.IssuedAt = jwt.NewNumericDate(time.Now())
+	return SignToken(token, signingKey)
+}
+
+func SignToken(token jwt.Claims, signingKey JWTSigningKey) (string, error) {
 	jwtToken := jwt.NewWithClaims(signingKey.SigningMethod(), token)
 	signingKey.PreProcessToken(jwtToken)
 	return jwtToken.SignedString(signingKey.SignKey())

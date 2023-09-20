@@ -103,6 +103,7 @@ func (o *OAuth2) userIDFromToken(ctx context.Context, tokenSHA string, store Dat
 
 				store.GetData()["IsActionsToken"] = true
 				store.GetData()["ActionsTaskID"] = task.ID
+				store.GetData()["ActionsTask"] = task
 
 				return user_model.ActionsUserID
 			}

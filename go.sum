@@ -51,11 +51,11 @@ codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570 h1:TXbikPqa7YRtf
 codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570/go.mod h1:IIAjsijsd8q1isWX8MACefDEgTQslQ4stk2AeeTt3kM=
 dario.cat/mergo v1.0.0 h1:AGCNq9Evsj31mOgNPcLyXc+4PNABt905YmuqPYYpBWk=
 dario.cat/mergo v1.0.0/go.mod h1:uNxQE+84aUszobStD9th8a29P2fMDhsBdgRYvZOxGmk=
+dario.cat/mergo v1.0.0 h1:AGCNq9Evsj31mOgNPcLyXc+4PNABt905YmuqPYYpBWk=
+dario.cat/mergo v1.0.0/go.mod h1:uNxQE+84aUszobStD9th8a29P2fMDhsBdgRYvZOxGmk=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 h1:cliQ4HHsCo6xi2oWZYKWW4bly/Ory9FuTpFPRxj/mAg=
 git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078/go.mod h1:g/V2Hjas6Z1UHUp4yIx6bATpNzJ7DYtD0FG3+xARWxs=
-gitea.com/gitea/act v0.243.4 h1:MuBHBLCJfpa6mzwwvs4xqQynrSP2RRzpHpWfTV16PmI=
-gitea.com/gitea/act v0.243.4/go.mod h1:mabw6AZAiDgxGlK83orWLrNERSPvgBJzEUS3S7u2bHI=
 gitea.com/go-chi/binding v0.0.0-20230415142243-04b515c6d669 h1:RUBX+MK/TsDxpHmymaOaydfigEbbzqUnG1OTZU/HAeo=
 gitea.com/go-chi/binding v0.0.0-20230415142243-04b515c6d669/go.mod h1:77TZu701zMXWJFvB8gvTbQ92zQ3DQq/H7l5wAEjQRKc=
 gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e/go.mod h1:k2V/gPDEtXGjjMGuBJiapffAXTv76H4snSmlJRLUhH0=
@@ -69,6 +69,8 @@ gitea.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96 h1:+wWBi6Qfr
 gitea.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96/go.mod h1:VyMQP6ue6MKHM8UsOXfNfuMKD0oSAWZdXVcpHIN2yaY=
 gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4 h1:IFT+hup2xejHqdhS7keYWioqfmxdnfblFDTGoOwcZ+o=
 gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4/go.mod h1:HBqmLbz56JWpfEGG0prskAV97ATNRoj5LDmPicD22hU=
+gitea.com/sorenisanerd/act v0.246.2-0.20230806181409-a9e947b70bf6 h1:ANNwt5ZqFG7FhDjdwCfsfoi7zlEV7uAfbrYTV5R8CNg=
+gitea.com/sorenisanerd/act v0.246.2-0.20230806181409-a9e947b70bf6/go.mod h1:tfannUyz3cgmq1P1o69KW1AMB1aSlNOMzlswHkRjzcQ=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:lSA0F4e9A2NcQSqGqTOXqu2aRi/XEQxDCBwM8yJtE6s=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a/go.mod h1:EXuID2Zs0pAQhH8yz+DNjUbjppKQzKFAn28TMYPB6IU=
 gitee.com/travelliu/dm v1.8.11192/go.mod h1:DHTzyhCrM843x9VdKVbZ+GKXGRbKM2sJ4LxihRxShkE=

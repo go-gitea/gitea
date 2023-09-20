@@ -45,6 +45,7 @@ type ActionRun struct {
 	EventPayload      string                       `xorm:"LONGTEXT"`
 	TriggerEvent      string                       // the trigger event defined in the `on` configuration of the triggered workflow
 	Status            Status                       `xorm:"index"`
+	Permissions       Permissions                  `xorm:"-"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
 	Started           timeutil.TimeStamp
 	Stopped           timeutil.TimeStamp
@@ -69,6 +70,38 @@ func (run *ActionRun) Link() string {
 		return ""
 	}
 	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.Link(), run.Index)
+}
+
+func (run *ActionRun) RefShaBaseRefAndHeadRef() (string, string, string, string) {
+	var ref, sha, baseRef, headRef string
+
+	ref = run.Ref
+	sha = run.CommitSHA
+
+	if pullPayload, err := run.GetPullRequestEventPayload(); err == nil && pullPayload.PullRequest != nil && pullPayload.PullRequest.Base != nil && pullPayload.PullRequest.Head != nil {
+		baseRef = pullPayload.PullRequest.Base.Ref
+		headRef = pullPayload.PullRequest.Head.Ref
+
+		// if the TriggerEvent is pull_request_target, ref and sha need to be set according to the base of pull request
+		// In GitHub's documentation, ref should be the branch or tag that triggered workflow. But when the TriggerEvent is pull_request_target,
+		// the ref will be the base branch.
+		if run.TriggerEvent == "pull_request_target" {
+			ref = git.BranchPrefix + pullPayload.PullRequest.Base.Name
+			sha = pullPayload.PullRequest.Base.Sha
+		}
+	}
+	return ref, sha, baseRef, headRef
+}
+
+func (run *ActionRun) EventName() string {
+	// TriggerEvent is added in https://github.com/go-gitea/gitea/pull/25229
+	// This fallback is for the old ActionRun that doesn't have the TriggerEvent field
+	// and should be removed in 1.22
+	eventName := run.TriggerEvent
+	if eventName == "" {
+		eventName = run.Event.Event()
+	}
+	return eventName
 }
 
 // RefLink return the url of run's ref
@@ -280,7 +313,7 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 			hasWaiting = true
 		}
 		job.Name, _ = util.SplitStringAtByteN(job.Name, 255)
-		runJobs = append(runJobs, &ActionRunJob{
+		runJob := &ActionRunJob{
 			RunID:             run.ID,
 			RepoID:            run.RepoID,
 			OwnerID:           run.OwnerID,
@@ -292,7 +325,18 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 			Needs:             needs,
 			RunsOn:            job.RunsOn(),
 			Status:            status,
-		})
+		}
+
+		// Parse the job's permissions
+		if err := job.RawPermissions.Decode(&runJob.Permissions); err != nil {
+			return err
+		}
+
+		// Merge the job's permissions with the workflow permissions.
+		// Job permissions take precedence.
+		runJob.Permissions.Merge(run.Permissions)
+
+		runJobs = append(runJobs, runJob)
 	}
 	if err := db.Insert(ctx, runJobs); err != nil {
 		return err

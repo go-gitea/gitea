@@ -28,11 +28,12 @@ type ActionRunJob struct {
 	Name              string `xorm:"VARCHAR(255)"`
 	Attempt           int64
 	WorkflowPayload   []byte
-	JobID             string   `xorm:"VARCHAR(255)"` // job id in workflow, not job's id
-	Needs             []string `xorm:"JSON TEXT"`
-	RunsOn            []string `xorm:"JSON TEXT"`
-	TaskID            int64    // the latest task of the job
-	Status            Status   `xorm:"index"`
+	JobID             string      `xorm:"VARCHAR(255)"` // job id in workflow, not job's id
+	Needs             []string    `xorm:"JSON TEXT"`
+	RunsOn            []string    `xorm:"JSON TEXT"`
+	Permissions       Permissions `xorm:"JSON TEXT"`
+	TaskID            int64       // the latest task of the job
+	Status            Status      `xorm:"index"`
 	Started           timeutil.TimeStamp
 	Stopped           timeutil.TimeStamp
 	Created           timeutil.TimeStamp `xorm:"created"`
@@ -69,6 +70,10 @@ func (job *ActionRunJob) LoadAttributes(ctx context.Context) error {
 	}
 
 	return job.Run.LoadAttributes(ctx)
+}
+
+func (job *ActionRunJob) MayCreateIDToken() bool {
+	return job.Permissions.IDToken == PermissionWrite
 }
 
 func GetRunJobByID(ctx context.Context, id int64) (*ActionRunJob, error) {

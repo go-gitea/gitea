@@ -268,6 +268,13 @@ func handleWorkflows(
 			}
 		}
 
+		wp, err := actions_model.WorkflowPermissions(dwf.Content)
+		if err != nil {
+			log.Error("WorkflowPermissions: %v", err)
+			continue
+		}
+		run.Permissions = wp
+
 		if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
 			log.Error("InsertRun: %v", err)
 			continue
