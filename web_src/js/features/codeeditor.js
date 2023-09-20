@@ -105,17 +105,16 @@ export async function createMonaco(textarea, filename, editorOpts) {
   monaco.languages.register({id: 'vs.editor.nullLanguage'});
   monaco.languages.setLanguageConfiguration('vs.editor.nullLanguage', {});
 
-  // TODO: there must be a better way to preserve CRLF in the template rendering
-  const value = window.monacoContent || '';
-  delete window.monacoContent;
-  textarea.value = value;
-
   const editor = monaco.editor.create(container, {
-    value,
+    value: textarea.value,
     theme: 'gitea',
     language,
     ...other,
   });
+
+  console.log(JSON.stringify(textarea.value));
+  console.log(JSON.stringify(textarea.getAttribute('data')));
+  console.log(JSON.stringify(textarea.getAttribute('data-foo')));
 
   const model = editor.getModel();
 
