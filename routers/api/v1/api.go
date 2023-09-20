@@ -1430,11 +1430,17 @@ func Routes() *web.Route {
 				m.Combo("/{username}").Get(reqToken(), org.IsMember).
 					Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
 			})
-			m.Group("/actions/secrets", func() {
-				m.Get("", reqToken(), reqOrgOwnership(), org.ListActionsSecrets)
-				m.Combo("/{secretname}").
-					Put(reqToken(), reqOrgOwnership(), bind(api.CreateOrUpdateSecretOption{}), org.CreateOrUpdateSecret).
-					Delete(reqToken(), reqOrgOwnership(), org.DeleteSecret)
+			m.Group("/actions", func() {
+				m.Group("/secrets", func() {
+					m.Get("", reqToken(), reqOrgOwnership(), org.ListActionsSecrets)
+					m.Combo("/{secretname}").
+						Put(reqToken(), reqOrgOwnership(), bind(api.CreateOrUpdateSecretOption{}), org.CreateOrUpdateSecret).
+						Delete(reqToken(), reqOrgOwnership(), org.DeleteSecret)
+				})
+
+				m.Group("/runners", func() {
+					m.Get("/registration-token", reqToken(), reqOrgOwnership(), org.GetRegistrationToken)
+				})
 			})
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)
@@ -1525,6 +1531,9 @@ func Routes() *web.Route {
 				m.Combo("/{id}").Get(admin.GetHook).
 					Patch(bind(api.EditHookOption{}), admin.EditHook).
 					Delete(admin.DeleteHook)
+			})
+			m.Group("/runners", func() {
+				m.Get("/registration-token", admin.GetRegistrationToken)
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryAdmin), reqToken(), reqSiteAdmin())
 
