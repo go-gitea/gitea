@@ -51,7 +51,7 @@ func KeysPost(ctx *context.Context) {
 	}
 	switch form.Type {
 	case "principal":
-		content, err := asymkey_model.CheckPrincipalKeyString(ctx.Doer, form.Content)
+		content, err := asymkey_model.CheckPrincipalKeyString(ctx, ctx.Doer, form.Content)
 		if err != nil {
 			if db.IsErrSSHDisabled(err) {
 				ctx.Flash.Info(ctx.Tr("settings.ssh_disabled"))

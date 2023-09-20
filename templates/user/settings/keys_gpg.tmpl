@@ -31,7 +31,7 @@
 				</div>
 			{{end}}
 			<input name="type" type="hidden" value="gpg">
-			<button class="ui green button">
+			<button class="ui primary button">
 				{{.locale.Tr "settings.add_key"}}
 			</button>
 			<button class="ui hide-panel button" data-panel="#add-gpg-key-panel">
@@ -99,7 +99,7 @@
 							<textarea id="gpg-key-signature" name="signature" placeholder="{{$.locale.Tr "settings.key_signature_gpg_placeholder"}}" required>{{$.signature}}</textarea>
 						</div>
 						<input name="type" type="hidden" value="verify_gpg">
-						<button class="ui green button">
+						<button class="ui primary button">
 							{{$.locale.Tr "settings.gpg_key_verify"}}
 						</button>
 						<a class="ui red button" href="{{$.Link}}">

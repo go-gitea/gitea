@@ -36,7 +36,6 @@ choco install gitea
 目前我們只支援透過 `brew` 來安裝套件。假如您尚未使用 [Homebrew](http://brew.sh/)，您就必須參考[執行檔安裝](installation/from-binary.md)方式。透過 `brew` 安裝 Gitea，您只需要執行底下指令:
 
 ```
-brew tap go-gitea/gitea
 brew install gitea
 ```
 

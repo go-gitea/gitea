@@ -62,7 +62,7 @@ func Members(ctx *context.Context) {
 	pager := context.NewPagination(int(total), setting.UI.MembersPagingNum, page, 5)
 	opts.ListOptions.Page = page
 	opts.ListOptions.PageSize = setting.UI.MembersPagingNum
-	members, membersIsPublic, err := organization.FindOrgMembers(opts)
+	members, membersIsPublic, err := organization.FindOrgMembers(ctx, opts)
 	if err != nil {
 		ctx.ServerError("GetMembers", err)
 		return
@@ -71,7 +71,7 @@ func Members(ctx *context.Context) {
 	ctx.Data["Members"] = members
 	ctx.Data["MembersIsPublicMember"] = membersIsPublic
 	ctx.Data["MembersIsUserOrgOwner"] = organization.IsUserOrgOwner(members, org.ID)
-	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus()
+	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus(ctx)
 
 	ctx.HTML(http.StatusOK, tplMembers)
 }

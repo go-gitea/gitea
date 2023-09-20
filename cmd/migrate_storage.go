@@ -185,7 +185,7 @@ func runMigrateStorage(ctx *cli.Context) error {
 	case string(setting.LocalStorageType):
 		p := ctx.String("path")
 		if p == "" {
-			log.Fatal("Path must be given when storage is loal")
+			log.Fatal("Path must be given when storage is local")
 			return nil
 		}
 		dstStorage, err = storage.NewLocalStorage(

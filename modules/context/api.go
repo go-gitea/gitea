@@ -212,7 +212,7 @@ func (ctx *APIContext) CheckForOTP() {
 	}
 
 	otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
-	twofa, err := auth.GetTwoFactorByUID(ctx.Doer.ID)
+	twofa, err := auth.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 	if err != nil {
 		if auth.IsErrTwoFactorNotEnrolled(err) {
 			return // No 2FA enrollment for this user
