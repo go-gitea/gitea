@@ -22,13 +22,13 @@ func getTestUsers() []*user_model.User {
 	admin.Name = "admin"
 	admin.IsAdmin = true
 	admin.Language = "en_US"
-	admin.Email = "admin@forgejo.org"
+	admin.Email = "admin@example.com"
 
 	newUser := new(user_model.User)
 	newUser.Name = "new_user"
 	newUser.Language = "en_US"
 	newUser.IsAdmin = false
-	newUser.Email = "new_user@forgejo.org"
+	newUser.Email = "new_user@example.com"
 	newUser.LastLoginUnix = 1693648327
 	newUser.CreatedUnix = 1693648027
 
@@ -50,7 +50,7 @@ func cleanUpUsers(ctx context.Context, users []*user_model.User) {
 
 func TestAdminNotificationMail_test(t *testing.T) {
 	mailService := setting.Mailer{
-		From:     "test@forgejo.org",
+		From:     "test@example.com",
 		Protocol: "dummy",
 	}
 
