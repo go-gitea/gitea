@@ -11,6 +11,7 @@ import (
 
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
@@ -168,17 +169,16 @@ func Config(ctx *context.Context) {
 
 func ChangeConfig(ctx *context.Context) {
 	key := strings.TrimSpace(ctx.FormString("key"))
-	if key == "" {
-		ctx.JSONRedirect(ctx.Req.URL.String())
+	value := ctx.FormString("value")
+	cfg := setting.Config()
+	allowedKeys := container.SetOf(cfg.Picture.DisableGravatar.DynKey(), cfg.Picture.EnableFederatedAvatar.DynKey())
+	if !allowedKeys.Contains(key) {
+		ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
 		return
 	}
-	value := ctx.FormString("value")
-
 	if err := system_model.SetSettings(ctx, map[string]string{key: value}); err != nil {
 		log.Error("set setting failed: %v", err)
-		ctx.JSON(http.StatusOK, map[string]string{
-			"err": ctx.Tr("admin.config.set_setting_failed", key),
-		})
+		ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
 		return
 	}
 
