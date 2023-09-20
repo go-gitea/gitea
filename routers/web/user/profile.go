@@ -79,12 +79,8 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGi
 	// if there is a profile readme, default to "overview" page, otherwise, default to "repositories" page
 	// if there is not a profile readme, the overview tab should be treated as the repositories tab
 	tab := ctx.FormString("tab")
-	if tab == "" || tab == "overview" {
-		if profileReadme != nil {
-			tab = "overview"
-		} else {
-			tab = "repositories"
-		}
+	if tab == "" {
+		tab = "overview"
 	}
 	ctx.Data["TabName"] = tab
 	ctx.Data["HasProfileReadme"] = profileReadme != nil
@@ -231,18 +227,61 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGi
 
 		total = int(count)
 	case "overview":
-		if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
-			log.Error("failed to GetBlobContent: %v", err)
-		} else {
-			if profileContent, err := markdown.RenderString(&markup.RenderContext{
-				Ctx:     ctx,
-				GitRepo: profileGitRepo,
-				Metas:   map[string]string{"mode": "document"},
-			}, bytes); err != nil {
-				log.Error("failed to RenderString: %v", err)
+		date := ""
+		items, _, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
+			ListOptions: db.ListOptions{
+				PageSize: pagingNum,
+				Page:     page,
+			},
+			Actor:           ctx.Doer,
+			RequestedUser:   ctx.ContextUser,
+			IncludePrivate:  showPrivate,
+			OnlyPerformedBy: true,
+			IncludeDeleted:  false,
+			Date:            date,
+		})
+		if err != nil {
+			ctx.ServerError("GetFeeds", err)
+			return
+		}
+		ctx.Data["Feeds"] = items
+		ctx.Data["Date"] = date
+		repos, _, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+			ListOptions: db.ListOptions{
+				PageSize: 8,
+				Page:     0,
+			},
+			Actor:              ctx.Doer,
+			Keyword:            keyword,
+			OwnerID:            ctx.ContextUser.ID,
+			OrderBy:            db.SearchOrderByStars,
+			Private:            ctx.IsSigned,
+			Collaborate:        util.OptionalBoolFalse,
+			TopicOnly:          topicOnly,
+			Language:           language,
+			IncludeDescription: setting.UI.SearchRepoDescription,
+		})
+		if err != nil {
+			ctx.ServerError("SearchRepository", err)
+			return
+		}
+		if profileReadme != nil {
+			ctx.Data["HasProfileReadme"] = true
+			if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+				log.Error("failed to GetBlobContent: %v", err)
 			} else {
-				ctx.Data["ProfileReadme"] = profileContent
+				if profileContent, err := markdown.RenderString(&markup.RenderContext{
+					Ctx:     ctx,
+					GitRepo: profileGitRepo,
+					Metas:   map[string]string{"mode": "document"},
+				}, bytes); err != nil {
+					log.Error("failed to RenderString: %v", err)
+				} else {
+					ctx.Data["ProfileReadme"] = profileContent
+				}
 			}
+		} else {
+			ctx.Data["HasProfileReadme"] = false
 		}
 	default: // default to "repositories"
 		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{

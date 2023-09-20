@@ -71,28 +71,26 @@ func PrepareOrgProfileTabData(ctx *context.Context, profileGitRepo *git.Reposito
 	org := ctx.Org.Organization
 
 	tab := ctx.FormString("tab")
-	if tab == "" || tab == "overview" {
-		if profileReadme != nil {
-			tab = "overview"
-		} else {
-			tab = "repositories"
-		}
+	if tab == "" {
+		tab = "overview"
 	}
 	ctx.Data["TabName"] = tab
 
 	switch tab {
 	case "overview":
-		if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
-			log.Error("failed to GetBlobContent: %v", err)
-		} else {
-			if profileContent, err := markdown.RenderString(&markup.RenderContext{
-				Ctx:     ctx,
-				GitRepo: profileGitRepo,
-				Metas:   map[string]string{"mode": "document"},
-			}, bytes); err != nil {
-				log.Error("failed to RenderString: %v", err)
+		if profileReadme != nil {
+			if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+				log.Error("failed to GetBlobContent: %v", err)
 			} else {
-				ctx.Data["ProfileReadme"] = profileContent
+				if profileContent, err := markdown.RenderString(&markup.RenderContext{
+					Ctx:     ctx,
+					GitRepo: profileGitRepo,
+					Metas:   map[string]string{"mode": "document"},
+				}, bytes); err != nil {
+					log.Error("failed to RenderString: %v", err)
+				} else {
+					ctx.Data["ProfileReadme"] = profileContent
+				}
 			}
 		}
 	}

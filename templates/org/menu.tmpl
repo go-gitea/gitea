@@ -1,10 +1,8 @@
 <div class="ui container">
 	<div class="ui secondary stackable pointing menu">
-		{{if .HasProfileReadme}}
 		<a class="{{if or (eq .TabName "overview") (and (eq .TabName "") (not .IsPackagesPage) (not .PageIsViewProjects))}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=overview">
-				{{svg "octicon-info"}} {{.locale.Tr "user.overview"}}
-			</a>
-		{{end}}
+			{{svg "octicon-info"}} {{.locale.Tr "user.overview"}}
+		</a>
 		<a class="{{if or (eq .TabName "repositories") (and (eq .TabName "") (not .PageIsViewRepositories))}}active {{end}}item" href="{{$.Org.HomeLink}}?tab=repositories">
 			{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
 			{{if .RepoCount}}
