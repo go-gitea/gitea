@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	tplNewUserMail base.TplName = "admin_new_user"
+	tplNewUserMail base.TplName = "notify/admin_new_user"
 )
 
 var sa = SendAsyncs
