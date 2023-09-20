@@ -54,7 +54,7 @@ type ErrRepoIsArchived struct {
 }
 
 func (err ErrRepoIsArchived) Error() string {
-	return fmt.Sprint("repo %s/%s is archived", err.Owner, err.Name)
+	return fmt.Sprintf("repo %s/%s is archived", err.Owner, err.Name)
 }
 
 var (
