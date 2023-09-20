@@ -83,7 +83,7 @@ func TestIssueReactionCount(t *testing.T) {
 
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	ghost := user_model.NewGhostUser()
 
@@ -92,8 +92,8 @@ func TestIssueReactionCount(t *testing.T) {
 
 	addReaction(t, user1.ID, issueID, 0, "heart")
 	addReaction(t, user2.ID, issueID, 0, "heart")
-	addReaction(t, user3.ID, issueID, 0, "heart")
-	addReaction(t, user3.ID, issueID, 0, "+1")
+	addReaction(t, org3.ID, issueID, 0, "heart")
+	addReaction(t, org3.ID, issueID, 0, "+1")
 	addReaction(t, user4.ID, issueID, 0, "+1")
 	addReaction(t, user4.ID, issueID, 0, "heart")
 	addReaction(t, ghost.ID, issueID, 0, "-1")
@@ -136,7 +136,7 @@ func TestIssueCommentDeleteReaction(t *testing.T) {
 
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 
 	var issue1ID int64 = 1
@@ -144,7 +144,7 @@ func TestIssueCommentDeleteReaction(t *testing.T) {
 
 	addReaction(t, user1.ID, issue1ID, comment1ID, "heart")
 	addReaction(t, user2.ID, issue1ID, comment1ID, "heart")
-	addReaction(t, user3.ID, issue1ID, comment1ID, "heart")
+	addReaction(t, org3.ID, issue1ID, comment1ID, "heart")
 	addReaction(t, user4.ID, issue1ID, comment1ID, "+1")
 
 	reactionsList, _, err := issues_model.FindReactions(db.DefaultContext, issues_model.FindReactionsOptions{

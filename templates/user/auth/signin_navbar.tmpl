@@ -4,6 +4,9 @@
 		<a class="{{if .PageIsLogin}}active {{end}}item" rel="nofollow" href="{{AppSubUrl}}/user/login">
 			{{.locale.Tr "auth.login_userpass"}}
 		</a>
+		<a class="{{if .PageIsSignUp}}active{{end}} item" rel="nofollow" href="{{AppSubUrl}}/user/sign_up">
+			{{.locale.Tr "auth.create_new_account"}}
+		</a>
 		{{if .EnableOpenIDSignIn}}
 		<a class="{{if .PageIsLoginOpenID}}active {{end}}item" rel="nofollow" href="{{AppSubUrl}}/user/login/openid">
 			{{svg "fontawesome-openid"}}

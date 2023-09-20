@@ -360,3 +360,10 @@ func PackageDelete(ctx context.Context, doer *user_model.User, pd *packages_mode
 		notifier.PackageDelete(ctx, doer, pd)
 	}
 }
+
+// ChangeDefaultBranch notifies change default branch to notifiers
+func ChangeDefaultBranch(ctx context.Context, repo *repo_model.Repository) {
+	for _, notifier := range notifiers {
+		notifier.ChangeDefaultBranch(ctx, repo)
+	}
+}

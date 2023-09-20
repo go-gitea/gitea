@@ -77,8 +77,9 @@ func userProfile(ctx *context.Context) {
 
 func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGitRepo *git.Repository, profileReadme *git.Blob) {
 	// if there is a profile readme, default to "overview" page, otherwise, default to "repositories" page
+	// if there is not a profile readme, the overview tab should be treated as the repositories tab
 	tab := ctx.FormString("tab")
-	if tab == "" {
+	if tab == "" || tab == "overview" {
 		if profileReadme != nil {
 			tab = "overview"
 		} else {
@@ -157,10 +158,10 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGi
 	switch tab {
 	case "followers":
 		ctx.Data["Cards"] = followers
-		total = int(count)
+		total = int(numFollowers)
 	case "following":
 		ctx.Data["Cards"] = following
-		total = int(count)
+		total = int(numFollowing)
 	case "activity":
 		date := ctx.FormString("date")
 		pagingNum = setting.UI.FeedPagingNum
@@ -292,9 +293,9 @@ func Action(ctx *context.Context) {
 	var err error
 	switch ctx.FormString("action") {
 	case "follow":
-		err = user_model.FollowUser(ctx.Doer.ID, ctx.ContextUser.ID)
+		err = user_model.FollowUser(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	case "unfollow":
-		err = user_model.UnfollowUser(ctx.Doer.ID, ctx.ContextUser.ID)
+		err = user_model.UnfollowUser(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	}
 
 	if err != nil {
