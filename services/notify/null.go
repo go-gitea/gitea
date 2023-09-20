@@ -197,7 +197,6 @@ func (*NullNotifier) SyncDeleteRef(ctx context.Context, doer *user_model.User, r
 func (*NullNotifier) RepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) {
 }
 
-// NotifyNewUserSignUp notifies deletion of a package to notifiers
 func (*NullNotifier) NewUserSignUp(ctx context.Context, newUser *user_model.User) {
 }
 
