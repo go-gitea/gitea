@@ -47,7 +47,11 @@ func (s *Service) Register(
 
 	runnerToken, err := actions_model.GetRunnerToken(ctx, req.Msg.Token)
 	if err != nil {
-		return nil, errors.New("runner token not found")
+		return nil, errors.New("runner registration token not found")
+	}
+
+	if !runnerToken.IsActive {
+		return nil, errors.New("runner registration token has been invalidated, please use the latest one")
 	}
 
 	labels := req.Msg.Labels
