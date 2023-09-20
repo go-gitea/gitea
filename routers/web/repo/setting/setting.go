@@ -185,7 +185,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "mirror":
-		if !setting.Mirror.Enabled || !repo.IsMirror {
+		if !setting.Mirror.Enabled || !repo.IsMirror || repo.IsArchived {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -278,7 +278,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "mirror-sync":
-		if !setting.Mirror.Enabled || !repo.IsMirror {
+		if !setting.Mirror.Enabled || !repo.IsMirror || repo.IsArchived {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -306,7 +306,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-update":
-		if !setting.Mirror.Enabled {
+		if !setting.Mirror.Enabled || repo.IsArchived {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -343,7 +343,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-remove":
-		if !setting.Mirror.Enabled {
+		if !setting.Mirror.Enabled || repo.IsArchived {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -372,7 +372,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-add":
-		if setting.Mirror.DisableNewPush {
+		if setting.Mirror.DisableNewPush || repo.IsArchived {
 			ctx.NotFound("", nil)
 			return
 		}
