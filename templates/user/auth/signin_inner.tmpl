@@ -35,7 +35,7 @@
 
 	<div class="inline field">
 		<label></label>
-		<button class="ui green button">
+		<button class="ui primary button">
 			{{if .LinkAccountMode}}
 				{{.locale.Tr "auth.oauth_signin_submit"}}
 			{{else}}
@@ -62,7 +62,7 @@
 				{{range $key := .OrderedOAuth2Names}}
 					{{$provider := index $.OAuth2Providers $key}}
 					<a class="{{$provider.Name}} ui button gt-df gt-ac gt-jc gt-py-3 oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
-						{{$provider.IconHTML}}
+						{{$provider.IconHTML 28}}
 						{{$.locale.Tr "sign_in_with_provider" $provider.DisplayName}}
 					</a>
 				{{end}}
