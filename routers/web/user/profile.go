@@ -248,11 +248,11 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGi
 		ctx.Data["Date"] = date
 		repos, _, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
-				PageSize: 8,
+				PageSize: 6,
 				Page:     0,
 			},
 			Actor:              ctx.Doer,
-			Keyword:            keyword,
+			Keyword:            "",
 			OwnerID:            ctx.ContextUser.ID,
 			OrderBy:            db.SearchOrderByStars,
 			Private:            ctx.IsSigned,
