@@ -75,6 +75,7 @@
 							{{.locale.Tr "admin.users.last_login"}}
 							{{SortArrow "lastlogin" "reverselastlogin" $.SortType false}}
 						</th>
+						<th>{{.locale.Tr "admin.users.details"}}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -82,7 +83,7 @@
 						<tr>
 							<td>{{.ID}}</td>
 							<td>
-								<a href="{{$.Link}}/{{.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.users.details"}}">{{.Name}}</a>
+								<a href="{{.HomeLink}}"><span class="flex-text-inline">{{svg "octicon-home"}}{{.Name}}</span></a>
 								{{if .IsAdmin}}
 									<span class="ui mini label">{{$.locale.Tr "admin.users.admin"}}</span>
 								{{else if eq 2 .Type}}{{/* Reserved user */}}
@@ -103,6 +104,7 @@
 							{{else}}
 								<td><span>{{$.locale.Tr "admin.users.never_login"}}</span></td>
 							{{end}}
+							<td><a href="{{$.Link}}/{{.ID}}">{{svg "octicon-person"}}</a>
 						</tr>
 					{{end}}
 				</tbody>
