@@ -38,10 +38,8 @@
 						data-url="{{.Repository.Link}}/markup"
 						data-context="{{.RepoLink}}"
 						data-previewable-extensions="{{.PreviewableExtensions}}"
-						data-value="{{.FileContent}}"
-						data="{{.FileContent}}"
-						data-foo="{{.FileContent}}"
-						data-line-wrap-extensions="{{.LineWrapExtensions}}">{{.FileContent}}</textarea>
+						data-initial-value="{{JsonUtils.EncodeToString .FileContent}}"
+						data-line-wrap-extensions="{{.LineWrapExtensions}}"></textarea>
 					<div class="editor-loading is-loading"></div>
 				</div>
 				<div class="ui bottom attached tab segment markup" data-tab="preview">

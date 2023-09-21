@@ -105,16 +105,18 @@ export async function createMonaco(textarea, filename, editorOpts) {
   monaco.languages.register({id: 'vs.editor.nullLanguage'});
   monaco.languages.setLanguageConfiguration('vs.editor.nullLanguage', {});
 
+  // The initial is encoded in JSON by the backend to prevent browsers from
+  // discarding \r during HTML parsing.
+  const value = JSON.parse(textarea.getAttribute('data-initial-value') || '""');
+  textarea.value = value;
+  textarea.removeAttribute('data-initial-value');
+
   const editor = monaco.editor.create(container, {
-    value: textarea.value,
+    value,
     theme: 'gitea',
     language,
     ...other,
   });
-
-  console.log(JSON.stringify(textarea.value));
-  console.log(JSON.stringify(textarea.getAttribute('data')));
-  console.log(JSON.stringify(textarea.getAttribute('data-foo')));
 
   const model = editor.getModel();
 
