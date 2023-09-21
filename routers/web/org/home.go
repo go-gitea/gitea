@@ -95,68 +95,77 @@ func PrepareOrgProfileTabData(ctx *context.Context, profileGitRepo *git.Reposito
 				ctx.Data["ProfileReadme"] = profileContent
 			}
 		}
-	}
+	default: // default to "repositories"
+		var orderBy db.SearchOrderBy
+		ctx.Data["SortType"] = ctx.FormString("sort")
+		switch ctx.FormString("sort") {
+		case "newest":
+			orderBy = db.SearchOrderByNewest
+		case "oldest":
+			orderBy = db.SearchOrderByOldest
+		case "recentupdate":
+			orderBy = db.SearchOrderByRecentUpdated
+		case "leastupdate":
+			orderBy = db.SearchOrderByLeastUpdated
+		case "reversealphabetically":
+			orderBy = db.SearchOrderByAlphabeticallyReverse
+		case "alphabetically":
+			orderBy = db.SearchOrderByAlphabetically
+		case "moststars":
+			orderBy = db.SearchOrderByStarsReverse
+		case "feweststars":
+			orderBy = db.SearchOrderByStars
+		case "mostforks":
+			orderBy = db.SearchOrderByForksReverse
+		case "fewestforks":
+			orderBy = db.SearchOrderByForks
+		default:
+			ctx.Data["SortType"] = "recentupdate"
+			orderBy = db.SearchOrderByRecentUpdated
+		}
 
-	var orderBy db.SearchOrderBy
-	ctx.Data["SortType"] = ctx.FormString("sort")
-	switch ctx.FormString("sort") {
-	case "newest":
-		orderBy = db.SearchOrderByNewest
-	case "oldest":
-		orderBy = db.SearchOrderByOldest
-	case "recentupdate":
-		orderBy = db.SearchOrderByRecentUpdated
-	case "leastupdate":
-		orderBy = db.SearchOrderByLeastUpdated
-	case "reversealphabetically":
-		orderBy = db.SearchOrderByAlphabeticallyReverse
-	case "alphabetically":
-		orderBy = db.SearchOrderByAlphabetically
-	case "moststars":
-		orderBy = db.SearchOrderByStarsReverse
-	case "feweststars":
-		orderBy = db.SearchOrderByStars
-	case "mostforks":
-		orderBy = db.SearchOrderByForksReverse
-	case "fewestforks":
-		orderBy = db.SearchOrderByForks
-	default:
-		ctx.Data["SortType"] = "recentupdate"
-		orderBy = db.SearchOrderByRecentUpdated
-	}
+		keyword := ctx.FormTrim("q")
+		ctx.Data["Keyword"] = keyword
 
-	keyword := ctx.FormTrim("q")
-	ctx.Data["Keyword"] = keyword
+		language := ctx.FormTrim("language")
+		ctx.Data["Language"] = language
 
-	language := ctx.FormTrim("language")
-	ctx.Data["Language"] = language
+		page := ctx.FormInt("page")
+		if page <= 0 {
+			page = 1
+		}
 
-	page := ctx.FormInt("page")
-	if page <= 0 {
-		page = 1
-	}
+		var (
+			repos []*repo_model.Repository
+			count int64
+			err   error
+		)
+		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+			ListOptions: db.ListOptions{
+				PageSize: setting.UI.User.RepoPagingNum,
+				Page:     page,
+			},
+			Keyword:            keyword,
+			OwnerID:            org.ID,
+			OrderBy:            orderBy,
+			Private:            ctx.IsSigned,
+			Actor:              ctx.Doer,
+			Language:           language,
+			IncludeDescription: setting.UI.SearchRepoDescription,
+		})
+		if err != nil {
+			ctx.ServerError("SearchRepository", err)
+			return
+		}
 
-	var (
-		repos []*repo_model.Repository
-		count int64
-		err   error
-	)
-	repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			PageSize: setting.UI.User.RepoPagingNum,
-			Page:     page,
-		},
-		Keyword:            keyword,
-		OwnerID:            org.ID,
-		OrderBy:            orderBy,
-		Private:            ctx.IsSigned,
-		Actor:              ctx.Doer,
-		Language:           language,
-		IncludeDescription: setting.UI.SearchRepoDescription,
-	})
-	if err != nil {
-		ctx.ServerError("SearchRepository", err)
-		return
+		ctx.Data["Repos"] = repos
+		ctx.Data["Total"] = count
+
+		pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
+		pager.SetDefaultParams(ctx)
+		pager.AddParam(ctx, "language", "Language")
+		pager.AddParam(ctx, "tab", "TabName")
+		ctx.Data["Page"] = pager
 	}
 
 	opts := &organization.FindOrgMembersOpts{
@@ -174,9 +183,6 @@ func PrepareOrgProfileTabData(ctx *context.Context, profileGitRepo *git.Reposito
 	if ctx.Doer != nil {
 		isFollowing = user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	}
-
-	ctx.Data["Repos"] = repos
-	ctx.Data["Total"] = count
 	ctx.Data["Members"] = members
 	ctx.Data["Teams"] = ctx.Org.Teams
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
@@ -188,12 +194,6 @@ func PrepareOrgProfileTabData(ctx *context.Context, profileGitRepo *git.Reposito
 		ctx.ServerError("LoadHeaderCount", err)
 		return
 	}
-
-	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
-	pager.SetDefaultParams(ctx)
-	pager.AddParam(ctx, "language", "Language")
-	pager.AddParam(ctx, "tab", "TabName")
-	ctx.Data["Page"] = pager
 
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 }
