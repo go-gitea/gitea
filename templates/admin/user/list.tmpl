@@ -84,7 +84,13 @@
 							<td>
 								<a href="{{$.Link}}/{{.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.users.details"}}">{{.Name}}</a>
 								{{if .IsAdmin}}
-									<span class="ui basic label">{{$.locale.Tr "admin.users.admin"}}</span>
+									<span class="ui mini label">{{$.locale.Tr "admin.users.admin"}}</span>
+								{{else if eq 2 .Type}}{{/* Reserved user */}}
+									<span class="ui mini label">{{$.locale.Tr "admin.users.reserved"}}</span>
+								{{else if eq 4 .Type}}{{/* Bot "user" */}}
+									<span class="ui mini label">{{$.locale.Tr "admin.users.bot"}}</span>
+								{{else if eq 5 .Type}}{{/* Remote user */}}
+									<span class="ui mini label">{{$.locale.Tr "admin.users.remote"}}</span>
 								{{end}}
 							</td>
 							<td class="gt-ellipsis gt-max-width-12rem">{{.Email}}</td>

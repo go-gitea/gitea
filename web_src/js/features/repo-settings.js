@@ -47,7 +47,7 @@ export function initRepoSettingSearchTeamBox() {
   $searchTeamBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${appSubUrl}/org/${$searchTeamBox.data('org')}/teams/-/search?q={query}`,
+      url: `${appSubUrl}/org/${$searchTeamBox.attr('data-org-name')}/teams/-/search?q={query}`,
       headers: {'X-Csrf-Token': csrfToken},
       onResponse(response) {
         const items = [];

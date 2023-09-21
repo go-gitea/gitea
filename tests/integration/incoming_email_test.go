@@ -154,7 +154,7 @@ func TestIncomingEmail(t *testing.T) {
 		t.Run("Unsubscribe", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			watching, err := issues_model.CheckIssueWatch(user, issue)
+			watching, err := issues_model.CheckIssueWatch(db.DefaultContext, user, issue)
 			assert.NoError(t, err)
 			assert.True(t, watching)
 
@@ -169,7 +169,7 @@ func TestIncomingEmail(t *testing.T) {
 
 			assert.NoError(t, handler.Handle(db.DefaultContext, content, user, payload))
 
-			watching, err = issues_model.CheckIssueWatch(user, issue)
+			watching, err = issues_model.CheckIssueWatch(db.DefaultContext, user, issue)
 			assert.NoError(t, err)
 			assert.False(t, watching)
 		})

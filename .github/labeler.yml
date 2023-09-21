@@ -1,13 +1,14 @@
 kind/docs:
   - "**/*.md"
-  - "docs/**/*"
+  - "docs/**"
 
 kind/ui:
   - "web_src/**/*"
-  - all: ["templates/**/*", "!templates/swagger/v1_json.tmpl"]
+  - all: ["templates/**", "!templates/swagger/v1_json.tmpl"]
 
 kind/api:
   - "templates/swagger/v1_json.tmpl"
+  - "routers/api/**"
 
 kind/build:
   - "Makefile"
@@ -15,6 +16,15 @@ kind/build:
   - "Dockerfile.rootless"
   - "docker/**"
   - "webpack.config.js"
+
+theme/package-registry:
+  - "modules/packages/**"
+  - "services/packages/**"
+  - "routers/api/packages/**"
+  - "routers/web/shared/packages/**"
+
+kind/cli:
+  - "cmd/**"
 
 kind/lint:
   - ".eslintrc.yaml"

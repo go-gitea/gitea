@@ -28,17 +28,17 @@
 							<button class="ui button copy-commit-sha gt-df gt-ac" data-clipboard-text="{{.ID}}">{{svg "octicon-copy" 14}}</button>
 							{{$class := "ui sha label"}}
 							{{if .Signature}}
-								{{$class = (printf "%s%s" $class " isSigned")}}
+								{{$class = (print $class " isSigned")}}
 								{{if .Verification.Verified}}
 									{{if eq .Verification.TrustStatus "trusted"}}
-										{{$class = (printf "%s%s" $class " isVerified")}}
+										{{$class = (print $class " isVerified")}}
 									{{else if eq .Verification.TrustStatus "untrusted"}}
-										{{$class = (printf "%s%s" $class " isVerifiedUntrusted")}}
+										{{$class = (print $class " isVerifiedUntrusted")}}
 									{{else}}
-										{{$class = (printf "%s%s" $class " isVerifiedUnmatched")}}
+										{{$class = (print $class " isVerifiedUnmatched")}}
 									{{end}}
 								{{else if .Verification.Warning}}
-									{{$class = (printf "%s%s" $class " isWarning")}}
+									{{$class = (print $class " isWarning")}}
 								{{end}}
 							{{end}}
 							{{$commitShaLink := ""}}

@@ -11,6 +11,7 @@ import {htmlEscape} from 'escape-goat';
 import {showTemporaryTooltip} from '../modules/tippy.js';
 import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
+import {request} from '../modules/fetch.js';
 
 const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
 
@@ -81,7 +82,7 @@ function fetchActionDoRedirect(redirect) {
 
 async function fetchActionDoRequest(actionElem, url, opt) {
   try {
-    const resp = await fetch(url, opt);
+    const resp = await request(url, opt);
     if (resp.status === 200) {
       let {redirect} = await resp.json();
       redirect = redirect || actionElem.getAttribute('data-redirect');
@@ -127,7 +128,7 @@ async function formFetchAction(e) {
   }
 
   let reqUrl = formActionUrl;
-  const reqOpt = {method: formMethod.toUpperCase(), headers: {'X-Csrf-Token': csrfToken}};
+  const reqOpt = {method: formMethod.toUpperCase()};
   if (formMethod.toLowerCase() === 'get') {
     const params = new URLSearchParams();
     for (const [key, value] of formData) {
@@ -264,7 +265,7 @@ async function linkAction(e) {
   const url = el.getAttribute('data-url');
   const doRequest = async () => {
     el.disabled = true;
-    await fetchActionDoRequest(el, url, {method: 'POST', headers: {'X-Csrf-Token': csrfToken}});
+    await fetchActionDoRequest(el, url, {method: 'POST'});
     el.disabled = false;
   };
 
@@ -275,7 +276,7 @@ async function linkAction(e) {
   }
 
   const isRisky = el.classList.contains('red') || el.classList.contains('yellow') || el.classList.contains('orange') || el.classList.contains('negative');
-  if (await confirmModal({content: modalConfirmContent, buttonColor: isRisky ? 'orange' : 'green'})) {
+  if (await confirmModal({content: modalConfirmContent, buttonColor: isRisky ? 'orange' : 'primary'})) {
     await doRequest();
   }
 }
@@ -388,9 +389,9 @@ export function initGlobalButtons() {
     e.preventDefault();
   });
 
-  $('.show-panel.button').on('click', function (e) {
-    // a '.show-panel.button' can show a panel, by `data-panel="selector"`
-    // if the button is a "toggle" button, it toggles the panel
+  $('.show-panel').on('click', function (e) {
+    // a '.show-panel' element can show a panel, by `data-panel="selector"`
+    // if it has "toggle" class, it toggles the panel
     e.preventDefault();
     const sel = $(this).attr('data-panel');
     if (this.classList.contains('toggle')) {
@@ -400,8 +401,8 @@ export function initGlobalButtons() {
     }
   });
 
-  $('.hide-panel.button').on('click', function (e) {
-    // a `.hide-panel.button` can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
+  $('.hide-panel').on('click', function (e) {
+    // a `.hide-panel` element can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
     e.preventDefault();
     let sel = $(this).attr('data-panel');
     if (sel) {
