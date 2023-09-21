@@ -6,8 +6,8 @@
 			<div class="ui dropdown type jump item">
 				<span class="text">
 					{{.locale.Tr "repo.issues.filter_sort"}}
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				<div class="menu">
 					<a class="{{if or (eq .SortType "alphabetically") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=alphabetically&state={{$.State}}">{{.locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
 					<a class="{{if eq .SortType "reversealphabetically"}}active {{end}}item" href="{{$.Link}}?sort=reversealphabetically&state={{$.State}}">{{.locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
