@@ -180,6 +180,21 @@ func searchIssueByID(t *testing.T) {
 			},
 			[]int64{11, 6, 5, 3, 2, 1},
 		},
+		{
+			// issue 20 request user 15 and team 5 which user 15 belongs to
+			// the review request number of issue 20 should be 1
+			SearchOptions{
+				ReviewRequestedID: int64Pointer(15),
+			},
+			[]int64{12, 20},
+		},
+		{
+			// user 20 approved the issue 20, so return nothing
+			SearchOptions{
+				ReviewRequestedID: int64Pointer(20),
+			},
+			[]int64{},
+		},
 	}
 
 	for _, test := range tests {
@@ -206,7 +221,7 @@ func searchIssueIsPull(t *testing.T) {
 			SearchOptions{
 				IsPull: util.OptionalBoolTrue,
 			},
-			[]int64{12, 11, 19, 9, 8, 3, 2},
+			[]int64{12, 11, 20, 19, 9, 8, 3, 2},
 		},
 	}
 	for _, test := range tests {
@@ -227,7 +242,7 @@ func searchIssueIsClosed(t *testing.T) {
 			SearchOptions{
 				IsClosed: util.OptionalBoolFalse,
 			},
-			[]int64{17, 16, 15, 14, 13, 12, 11, 6, 19, 18, 10, 7, 9, 8, 3, 2, 1},
+			[]int64{17, 16, 15, 14, 13, 12, 11, 20, 6, 19, 18, 10, 7, 9, 8, 3, 2, 1},
 		},
 		{
 			SearchOptions{
@@ -293,7 +308,7 @@ func searchIssueByLabelID(t *testing.T) {
 			SearchOptions{
 				ExcludedLabelIDs: []int64{1},
 			},
-			[]int64{17, 16, 15, 14, 13, 12, 11, 6, 5, 19, 18, 10, 7, 4, 9, 8, 3},
+			[]int64{17, 16, 15, 14, 13, 12, 11, 20, 6, 5, 19, 18, 10, 7, 4, 9, 8, 3},
 		},
 	}
 	for _, test := range tests {
@@ -317,7 +332,7 @@ func searchIssueByTime(t *testing.T) {
 			SearchOptions{
 				UpdatedAfterUnix: int64Pointer(0),
 			},
-			[]int64{17, 16, 15, 14, 13, 12, 11, 6, 5, 19, 18, 10, 7, 4, 9, 8, 3, 2, 1},
+			[]int64{17, 16, 15, 14, 13, 12, 11, 20, 6, 5, 19, 18, 10, 7, 4, 9, 8, 3, 2, 1},
 		},
 	}
 	for _, test := range tests {
@@ -338,7 +353,7 @@ func searchIssueWithOrder(t *testing.T) {
 			SearchOptions{
 				SortBy: internal.SortByCreatedAsc,
 			},
-			[]int64{1, 2, 3, 8, 9, 4, 7, 10, 18, 19, 5, 6, 11, 12, 13, 14, 15, 16, 17},
+			[]int64{1, 2, 3, 8, 9, 4, 7, 10, 18, 19, 5, 6, 20, 11, 12, 13, 14, 15, 16, 17},
 		},
 	}
 	for _, test := range tests {
@@ -393,7 +408,7 @@ func searchIssueWithPaginator(t *testing.T) {
 				},
 			},
 			[]int64{17, 16, 15, 14, 13},
-			19,
+			20,
 		},
 	}
 	for _, test := range tests {

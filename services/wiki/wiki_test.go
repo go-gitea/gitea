@@ -168,7 +168,9 @@ func TestRepository_AddWikiPage(t *testing.T) {
 			assert.NoError(t, AddWikiPage(git.DefaultContext, doer, repo, webPath, wikiContent, commitMsg))
 			// Now need to show that the page has been added:
 			gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
-			assert.NoError(t, err)
+			if !assert.NoError(t, err) {
+				return
+			}
 			defer gitRepo.Close()
 			masterTree, err := gitRepo.GetTree(DefaultBranch)
 			assert.NoError(t, err)
@@ -238,7 +240,9 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 
 	// Now need to show that the page has been added:
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
-	assert.NoError(t, err)
+	if !assert.NoError(t, err) {
+		return
+	}
 	defer gitRepo.Close()
 	masterTree, err := gitRepo.GetTree(DefaultBranch)
 	assert.NoError(t, err)
@@ -251,8 +255,10 @@ func TestPrepareWikiFileName(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
+	if !assert.NoError(t, err) {
+		return
+	}
 	defer gitRepo.Close()
-	assert.NoError(t, err)
 
 	tests := []struct {
 		name      string
@@ -303,8 +309,10 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, tmpDir)
+	if !assert.NoError(t, err) {
+		return
+	}
 	defer gitRepo.Close()
-	assert.NoError(t, err)
 
 	existence, newWikiPath, err := prepareGitPath(gitRepo, "Home")
 	assert.False(t, existence)
