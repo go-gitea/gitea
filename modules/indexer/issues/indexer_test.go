@@ -181,8 +181,8 @@ func searchIssueByID(t *testing.T) {
 			[]int64{11, 6, 5, 3, 2, 1},
 		},
 		{
-			//issue 20 request user 15 and team 5 which user 15 belongs to
-			//the review request number of issue 20 should be 1
+			// issue 20 request user 15 and team 5 which user 15 belongs to
+			// the review request number of issue 20 should be 1
 			SearchOptions{
 				ReviewRequestedID: int64Pointer(15),
 			},
