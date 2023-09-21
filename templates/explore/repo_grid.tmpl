@@ -51,8 +51,8 @@
 				{{end}}
 				{{if .Topics}}
 					<div class="label-list">
-					{{range .Topics}}
-						{{if ne . ""}}<a class="ui label" href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1">{{.}}</a>{{end}}
+					{{range $i, $e := .Topics}}
+						{{if and (lt $i 5) (ne $e "")}}<a class="ui label" href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1">{{.}}</a>{{end}}
 					{{end}}
 					</div>
 				{{end}}
