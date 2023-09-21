@@ -228,7 +228,7 @@ func pullReleaseTestPayload() *api.ReleasePayload {
 			Target:  "master",
 			Title:   "First stable release",
 			Note:    "Note of first stable release",
-			URL:     "http://localhost:3000/api/v1/repos/test/repo/releases/2",
+			HTMLURL: "http://localhost:3000/test/repo/releases/tag/v1.0",
 		},
 	}
 }
