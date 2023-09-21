@@ -217,7 +217,7 @@
   --color-input-toggle-background: #dedede;
   --color-input-border: var(--color-secondary);
   --color-input-border-hover: var(--color-secondary-dark-1);
-  --color-header-wrapper: #ffffff;
+  --color-header-wrapper: transparent;
   --color-light: #00000006;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #0000001d;
