@@ -12,6 +12,12 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+// RegistrationToken is response related to registeration token
+// swagger:response RegistrationToken
+type RegistrationToken struct {
+	Token string `json:"token"`
+}
+
 func GetRegistrationToken(ctx *context.APIContext, ownerID, repoID int64) {
 	token, err := actions_model.GetUnactivatedRunnerToken(ctx, ownerID, repoID)
 	if errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
@@ -22,7 +28,5 @@ func GetRegistrationToken(ctx *context.APIContext, ownerID, repoID int64) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]string{
-		"token": token.Token,
-	})
+	ctx.JSON(http.StatusOK, RegistrationToken{Token: token.Token})
 }
