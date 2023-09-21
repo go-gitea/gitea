@@ -16,7 +16,7 @@ func ToPushMirror(pm *repo_model.PushMirror) (*api.PushMirror, error) {
 		RemoteName:     pm.RemoteName,
 		RemoteAddress:  pm.RemoteAddress,
 		CreatedUnix:    pm.CreatedUnix.AsTime(),
-		LastUpdateUnix: pm.LastUpdateUnix.AsTime(),
+		LastUpdateUnix: pm.LastUpdateUnix.AsTimePtr(),
 		LastError:      pm.LastError,
 		Interval:       pm.Interval.String(),
 		SyncOnCommit:   pm.SyncOnCommit,

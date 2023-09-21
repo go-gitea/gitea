@@ -23,8 +23,8 @@ type PushMirror struct {
 	// swagger:strfmt date-time
 	CreatedUnix time.Time `json:"created"`
 	// swagger:strfmt date-time
-	LastUpdateUnix time.Time `json:"last_update"`
-	LastError      string    `json:"last_error"`
-	Interval       string    `json:"interval"`
-	SyncOnCommit   bool      `json:"sync_on_commit"`
+	LastUpdateUnix *time.Time `json:"last_update"`
+	LastError      string     `json:"last_error"`
+	Interval       string     `json:"interval"`
+	SyncOnCommit   bool       `json:"sync_on_commit"`
 }
