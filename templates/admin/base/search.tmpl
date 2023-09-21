@@ -9,8 +9,8 @@
 	<div class="ui dropdown type jump item gt-mr-0">
 		<span class="text">
 			{{.locale.Tr "repo.issues.filter_sort"}}
-			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		</span>
+		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		<div class="menu">
 			<a class="{{if or (eq .SortType "oldest") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=oldest&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.oldest"}}</a>
 			<a class="{{if eq .SortType "newest"}}active {{end}}item" href="{{$.Link}}?sort=newest&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.latest"}}</a>
