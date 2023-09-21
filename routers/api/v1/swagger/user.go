@@ -48,3 +48,24 @@ type swaggerResponseUserSettings struct {
 	// in:body
 	Body []api.UserSettings `json:"body"`
 }
+
+// StarList
+// swagger:response StarList
+type swaggerResponseStarList struct {
+	// in:body
+	Body api.StarList `json:"body"`
+}
+
+// StarListSlice
+// swagger:response StarListSlice
+type swaggerResponseStarListSlice struct {
+	// in:body
+	Body []api.StarList `json:"body"`
+}
+
+// StarListRepoInfo
+// swagger:response StarListRepoInfo
+type swaggerResponseStarListRepoInfo struct {
+	// in:body
+	Body []api.StarListRepoInfo `json:"body"`
+}

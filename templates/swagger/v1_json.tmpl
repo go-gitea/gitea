@@ -13887,6 +13887,42 @@
         }
       }
     },
+    "/starlist/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get a star list by id",
+        "operationId": "userGetStarListByID",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the star list to get",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/StarList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "501": {
+            "$ref": "#/responses/featureDisabled"
+          }
+        }
+      }
+    },
     "/teams/{id}": {
       "get": {
         "produces": [
@@ -15482,6 +15518,384 @@
         }
       }
     },
+    "/user/starlist/{name}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get the star list of the authenticated user with the given name",
+        "operationId": "userGetOwnStarListByName",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the star list",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/StarList"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "501": {
+            "$ref": "#/responses/featureDisabled"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Deletes a star list",
+        "operationId": "userDeleteStarList",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the star list",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "501": {
+            "$ref": "#/responses/featureDisabled"
+          }
+        }
+      },
+      "patch": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Edits a star list",
+        "operationId": "userEditStarList",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the star list",
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateEditStarListOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/StarList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "501": {
+            "$ref": "#/responses/featureDisabled"
+          }
+        }
+      }
+    },
+    "/user/starlist/{name}/repos": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get the repos of the star list of the authenticated user with the given name",
+        "operationId": "userGetOwnStarListRepos",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the star list",
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepositoryList"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "501": {
+            "$ref": "#/responses/featureDisabled"
+          }
+        }
+      }
+    },
+    "/user/starlist/{name}/{owner}/{repo}": {
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Adds a Repo to a Star List",
+        "operationId": "userAddRepoToStarList",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the star list",
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "owner of the repo to star",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo to star",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/empty"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "501": {
+            "$ref": "#/responses/featureDisabled"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Removes a Repo from a Star List",
+        "operationId": "userRemoveRepoFromStarList",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the star list",
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "owner of the repo to star",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo to star",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "501": {
+            "$ref": "#/responses/featureDisabled"
+          }
+        }
+      }
+    },
+    "/user/starlists": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "List the authenticated user's star lists",
+        "operationId": "userGetOwnStarLists",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/StarListSlice"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "501": {
+            "$ref": "#/responses/featureDisabled"
+          }
+        }
+      },
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Creates a star list",
+        "operationId": "userCreateStarList",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateEditStarListOptions"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/StarList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "501": {
+            "$ref": "#/responses/featureDisabled"
+          }
+        }
+      }
+    },
+    "/user/starlists/repoinfo/{owner}/{repo}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Gets all star lists of the user together with the information, if the given repo is in the list",
+        "operationId": "userGetStarListRepoInfo",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo to star",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo to star",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/StarListRepoInfo"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "501": {
+            "$ref": "#/responses/featureDisabled"
+          }
+        }
+      }
+    },
     "/user/starred": {
       "get": {
         "produces": [
@@ -16239,6 +16653,137 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/users/{username}/starlist/{name}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get the star list of the given user with the given name",
+        "operationId": "userGetUserStarListByName",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the star list",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/StarList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "501": {
+            "$ref": "#/responses/featureDisabled"
+          }
+        }
+      }
+    },
+    "/users/{username}/starlist/{name}/repos": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get the repos of the star list of the given user with the given name",
+        "operationId": "userGetUserStarListRepos",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the star list",
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepositoryList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "501": {
+            "$ref": "#/responses/featureDisabled"
+          }
+        }
+      }
+    },
+    "/users/{username}/starlists": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "List the given user's star lists",
+        "operationId": "userGetUserStarLists",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/StarListSlice"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "501": {
+            "$ref": "#/responses/featureDisabled"
           }
         }
       }
@@ -17550,6 +18095,25 @@
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "OldRefName"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CreateEditStarListOptions": {
+      "description": "CreateEditStarListOptions when creating or editing a star list",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "is_private": {
+          "type": "boolean",
+          "x-go-name": "IsPrivate"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -19617,6 +20181,10 @@
         "mirrors_disabled": {
           "type": "boolean",
           "x-go-name": "MirrorsDisabled"
+        },
+        "star_lists_disabled": {
+          "type": "boolean",
+          "x-go-name": "StarListsDisabled"
         },
         "stars_disabled": {
           "type": "boolean",
@@ -22115,6 +22683,52 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "StarList": {
+      "description": "StarList represents a star list",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "is_private": {
+          "type": "boolean",
+          "x-go-name": "IsPrivate"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "repository_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepositoryCount"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "StarListRepoInfo": {
+      "description": "StarListRepoInfo represents a star list and if the repo contains this star list",
+      "type": "object",
+      "properties": {
+        "contains": {
+          "type": "boolean",
+          "x-go-name": "Contains"
+        },
+        "star_list": {
+          "$ref": "#/definitions/StarList"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "StateType": {
       "description": "StateType issue state type",
       "type": "string",
@@ -23696,6 +24310,30 @@
         "$ref": "#/definitions/ServerVersion"
       }
     },
+    "StarList": {
+      "description": "StarList",
+      "schema": {
+        "$ref": "#/definitions/StarList"
+      }
+    },
+    "StarListRepoInfo": {
+      "description": "StarListRepoInfo",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/StarListRepoInfo"
+        }
+      }
+    },
+    "StarListSlice": {
+      "description": "StarListSlice",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/StarList"
+        }
+      }
+    },
     "StopWatch": {
       "description": "StopWatch",
       "schema": {
@@ -23866,6 +24504,17 @@
         }
       }
     },
+    "featureDisabled": {
+      "description": "APIFeatureDisabledError is a error that is retruned when the given feature is disabled",
+      "headers": {
+        "message": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      }
+    },
     "forbidden": {
       "description": "APIForbiddenError is a forbidden error response",
       "headers": {
@@ -23897,7 +24546,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/CreateOrUpdateSecretOption"
+        "$ref": "#/definitions/CreateEditStarListOptions"
       }
     },
     "redirect": {
@@ -23907,6 +24556,17 @@
       "description": "APIString is a string response",
       "schema": {
         "type": "string"
+      }
+    },
+    "unauthorized": {
+      "description": "APIUnauthorizedError is a unauthorized error response",
+      "headers": {
+        "message": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
       }
     },
     "validationError": {

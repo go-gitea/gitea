@@ -119,6 +119,7 @@ type SearchRepoOptions struct {
 	OrderBy         db.SearchOrderBy
 	Private         bool // Include private repositories in results
 	StarredByID     int64
+	StarListID      int64
 	WatchedByID     int64
 	AllPublic       bool // Include also all public repositories of users and public organisations
 	AllLimited      bool // Include also all public repositories of limited organisations
@@ -370,6 +371,11 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 	// Restrict to starred repositories
 	if opts.StarredByID > 0 {
 		cond = cond.And(builder.In("id", builder.Select("repo_id").From("star").Where(builder.Eq{"uid": opts.StarredByID})))
+	}
+
+	// Restrict to repos in a star list
+	if opts.StarListID > 0 {
+		cond = cond.And(builder.In("id", builder.Select("repo_id").From("star_list_repos").Where(builder.Eq{"star_list_id": opts.StarListID})))
 	}
 
 	// Restrict to watched repositories

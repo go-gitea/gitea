@@ -729,3 +729,21 @@ It needs some tricks to tweak the left/right borders with active state */
   color: var(--color-green-dark-2);
   border-color: var(--color-green-dark-2);
 }
+
+.no-border-radius {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+.no-border-radius-left {
+  border-top-right-radius:  var(--border-radius) !important;
+  border-bottom-right-radius:  var(--border-radius) !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+.no-margin-left {
+  margin-left: -1px !important;
+}

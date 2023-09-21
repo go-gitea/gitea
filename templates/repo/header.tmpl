@@ -80,9 +80,12 @@
 								<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}}>
 									{{if $.IsStaringRepo}}{{svg "octicon-star-fill"}}{{$.locale.Tr "repo.unstar"}}{{else}}{{svg "octicon-star"}}{{$.locale.Tr "repo.star"}}{{end}}
 								</button>
-								<a class="ui basic label" href="{{.Link}}/stars">
+								<a class="ui basic label {{if $.StarLists}}no-border-radius{{end}}" href="{{.Link}}/stars">
 									{{CountFmt .NumStars}}
 								</a>
+								{{if $.StarLists}}
+									<button type="button" class="ui compact small basic button show-modal no-border-radius-left no-margin-left" data-modal="#repo-star-list-modal">{{svg "octicon-pencil"}}</button>
+								{{end}}
 							</div>
 						</form>
 					{{end}}
@@ -247,3 +250,7 @@
 	</div>
 	<div class="ui tabs divider"></div>
 </div>
+
+{{if not $.DisableStars}}
+	{{template "repo/starlistmodal" .}}
+{{end}}

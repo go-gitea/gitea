@@ -1,0 +1,30 @@
+<div class="ui small modal" id="repo-star-list-modal">
+	<div class="header">
+		{{.locale.Tr "starlist.list_header"}}
+	</div>
+	<div class="content">
+		<form class="ui form" action="{{$.RepoLink}}/starlistedit" method="POST">
+			{{.CsrfTokenHtml}}
+
+			{{range .StarLists}}
+				<div class="field">
+					<div class="ui checkbox">
+						<label for="star_list_id">{{.Name}}</label>
+						<input name="star_list_id" value="{{.ID}}" type="checkbox" {{if .ContainsRepoID $.Repository.ID}}checked{{end}}>
+					</div>
+				</div>
+			{{end}}
+
+			<div class="text right actions">
+				<button class="ui small basic cancel button">
+					{{svg "octicon-x"}}
+					{{.locale.Tr "cancel"}}
+				</button>
+				<button class="ui primary small approve button">
+					{{svg "fontawesome-save"}}
+					{{.locale.Tr "save"}}
+				</button>
+			</div>
+		</form>
+	</div>
+</div>

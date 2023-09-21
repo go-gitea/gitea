@@ -821,7 +821,6 @@ func UsernameSubRoute(ctx *context.Context) {
 	username := ctx.Params("username")
 	reloadParam := func(suffix string) (success bool) {
 		ctx.SetParams("username", strings.TrimSuffix(username, suffix))
-		context_service.UserAssignmentWeb()(ctx)
 		return !ctx.Written()
 	}
 	switch {

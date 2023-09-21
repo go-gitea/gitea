@@ -1,0 +1,62 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content user profile">
+	<div class="ui container">
+		<div class="ui stackable grid">
+			<div class="ui four wide column">
+				{{template "shared/user/profile_big_avatar" .}}
+			</div>
+			<div class="ui twelve wide column">
+				<div class="gt-mb-4">
+					{{template "user/overview/header" .}}
+				</div>
+
+				{{template "base/alert" .}}
+
+				<div class="list-header">
+					<div class="star-list-header-info">
+						<h1>{{.CurrentStarList.Name}}</h1>
+						<p>{{.CurrentStarList.Description}}</p>
+					</div>
+					{{if .ContextUser.IsSameUser .SignedUser}}
+						<div>
+							<button class="ui button green show-modal" data-modal="#edit-star-list-modal">{{.locale.Tr "edit"}}</button>
+							<button class="ui button red show-modal" data-modal="#delete-star-list-modal">{{.locale.Tr "remove"}}</button>
+						</div>
+					{{end}}
+				</div>
+
+				{{template "explore/repo_search" .}}
+				{{template "explore/repo_list" .}}
+				{{template "base/paginate" .}}
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}
+
+{{if .ContextUser.IsSameUser .SignedUser}}
+	{{template "user/starlist/edit" .}}
+
+	<div class="ui small modal" id="delete-star-list-modal">
+		<div class="header">
+			{{.locale.Tr "starlist.delete_header"}}
+		</div>
+		<div class="content">
+			<div class="ui warning message">
+				{{.locale.Tr "repo.settings.delete_notices_1" | Safe}}
+			</div>
+			<form class="ui form" action="{{.EditStarListURL}}" method="post">
+				{{.CsrfTokenHtml}}
+
+				<input name="current_url" type="hidden" value="{{.StarListEditRedirect}}">
+				<input name="id" type="hidden" value="{{.CurrentStarList.ID}}">
+				<input name="action" type="hidden" value="delete">
+
+				<div class="text right actions">
+					<button class="ui cancel button">{{.locale.Tr "cancel"}}</button>
+					<button class="ui red button">{{.locale.Tr "remove"}}</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{{end}}

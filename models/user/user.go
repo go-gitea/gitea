@@ -477,6 +477,15 @@ func (u *User) EmailNotifications() string {
 	return u.EmailNotificationsPreference
 }
 
+// IsSameUser checks if both user are the same
+func (u *User) IsSameUser(user *User) bool {
+	if user == nil {
+		return false
+	}
+
+	return u.ID == user.ID
+}
+
 // SetEmailNotifications sets the user's email notification preference
 func SetEmailNotifications(ctx context.Context, u *User, set string) error {
 	u.EmailNotificationsPreference = set

@@ -1,0 +1,37 @@
+<div class="star-list-box">
+	<h4 class="ui top attached header">
+		{{.locale.Tr "starlist.list_header"}}
+		{{if .ContextUser.IsSameUser .SignedUser}}
+			<div class="ui right">
+				<button class="ui tiny button green show-modal" data-modal="#edit-star-list-modal">{{.locale.Tr "add"}}</button>
+			</div>
+		{{end}}
+	</h4>
+	<div class="ui attached segment">
+		{{if .StarLists}}
+			<div class="flex-list">
+				{{range .StarLists}}
+					<div class="flex-item">
+						<a class="flex-item-header star-list-item" href="{{.Link}}">
+							<div class="flex-item-title">
+								{{.Name}}
+								{{if .IsPrivate}}
+									<span class="ui basic label">{{$.locale.Tr "repo.desc.private"}}</span>
+								{{end}}
+							</div>
+							<div class="flex-item-trailing">
+								{{if eq .RepositoryCount 1}}
+									<span class="text grey flex-text-inline">{{$.locale.Tr "repository_count_1"}}</span>
+								{{else}}
+									<span class="text grey flex-text-inline">{{$.locale.Tr "repository_count_n" .RepositoryCount}}</span>
+								{{end}}
+							</div>
+						</a>
+					</div>
+				{{end}}
+			</div>
+		{{else}}
+			{{.locale.Tr "starlist.no_star_lists_text"}}
+		{{end}}
+	</div>
+</div>

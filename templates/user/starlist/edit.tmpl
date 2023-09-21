@@ -1,0 +1,51 @@
+<div class="ui small modal" id="edit-star-list-modal">
+	<div class="header">
+		{{if .CurrentStarList}}
+			{{.locale.Tr "starlist.edit_header"}}
+		{{else}}
+			{{.locale.Tr "starlist.add_header"}}
+		{{end}}
+	</div>
+	<div class="content">
+		<form class="ui form" action="{{.EditStarListURL}}" method="post">
+			{{.CsrfTokenHtml}}
+
+			<input name="current_url" type="hidden" value="{{.StarListEditRedirect}}">
+
+			{{if .CurrentStarList}}
+				<input name="action" type="hidden" value="edit">
+				<input name="id" type="hidden" value="{{.CurrentStarList.ID}}">
+			{{else}}
+				<input name="action" type="hidden" value="add">
+			{{end}}
+
+			<div class="field">
+				<label for="name">{{.locale.Tr "starlist.name_label"}}</label>
+				<input id="name" name="name" placeholder="{{.locale.Tr "starlist.name_placeholder"}}" {{if .CurrentStarList}}value="{{.CurrentStarList.Name}}"{{end}} maxlength="50" required>
+			</div>
+
+			<div class="field">
+				<label for="description">{{.locale.Tr "starlist.description_label"}}</label>
+				<textarea id="description" name="description" rows="2" placeholder="{{.locale.Tr "starlist.description_placeholder"}}" maxlength="255">{{if .CurrentStarList}}{{.CurrentStarList.Description}}{{end}}</textarea>
+			</div>
+
+			<div class="field">
+				<div class="ui checkbox">
+					<label for="private">{{.locale.Tr "starlist.private"}}</label>
+					<input name="private" type="checkbox" {{if .CurrentStarList}}{{if .CurrentStarList.IsPrivate}}checked{{end}}{{end}}>
+				</div>
+			</div>
+
+			<div class="text right actions">
+				<button class="ui small basic cancel button">
+					{{svg "octicon-x"}}
+					{{.locale.Tr "cancel"}}
+				</button>
+				<button class="ui primary small approve button">
+					{{svg "fontawesome-save"}}
+					{{if .CurrentStarList}}{{.locale.Tr "save"}}{{else}}{{.locale.Tr "add"}}{{end}}
+				</button>
+			</div>
+		</form>
+	</div>
+</div>

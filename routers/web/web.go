@@ -761,7 +761,11 @@ func registerRoutes(m *web.Route) {
 	// ***** END: Admin *****
 
 	m.Group("", func() {
-		m.Get("/{username}", user.UsernameSubRoute)
+		m.Group("/{username}", func() {
+			m.Get("", user.UsernameSubRoute)
+			m.Get("/-/starlist/{name}", user.ShowStarList)
+			m.Post("/-/starlist_edit", web.Bind(forms.EditStarListForm{}), user.EditStarListPost)
+		}, context_service.UserAssignmentWeb())
 		m.Get("/attachments/{uuid}", repo.GetAttachment)
 	}, ignSignIn)
 
@@ -1098,6 +1102,7 @@ func registerRoutes(m *web.Route) {
 
 	// Grouping for those endpoints that do require authentication
 	m.Group("/{username}/{reponame}", func() {
+		m.Post("/starlistedit", web.Bind(forms.StarListRepoEditForm{}), repo.StarListPost)
 		m.Group("/issues", func() {
 			m.Group("/new", func() {
 				m.Combo("").Get(context.RepoRef(), repo.NewIssue).

@@ -687,6 +687,40 @@ func mustEnableAttachments(ctx *context.APIContext) {
 	}
 }
 
+func mustEnableStarLists(ctx *context.APIContext) {
+	if setting.Repository.DisableStarLists {
+		ctx.Error(http.StatusNotImplemented, "StarListsDisabled", fmt.Errorf("star lists are disabled on this instance"))
+		return
+	}
+}
+
+func starListAssignment(ctx *context.APIContext) {
+	var owner *user_model.User
+	if ctx.ContextUser == nil {
+		owner = ctx.Doer
+	} else {
+		owner = ctx.ContextUser
+	}
+
+	starList, err := repo_model.GetStarListByName(ctx, owner.ID, ctx.Params("starlist"))
+	if err != nil {
+		if repo_model.IsErrStarListNotFound(err) {
+			ctx.NotFound("GetStarListByName", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetStarListByName", err)
+		}
+		return
+	}
+
+	err = starList.MustHaveAccess(ctx.Doer)
+	if err != nil {
+		ctx.NotFound("GetStarListByName", err)
+		return
+	}
+
+	ctx.Starlist = starList
+}
+
 // bind binding an obj to a func(ctx *context.APIContext)
 func bind[T any](_ T) any {
 	return func(ctx *context.APIContext) {
@@ -923,6 +957,11 @@ func Routes() *web.Route {
 				}, reqSelfOrAdmin(), reqBasicOrRevProxyAuth())
 
 				m.Get("/activities/feeds", user.ListUserActivityFeeds)
+				m.Get("/starlists", mustEnableStarLists, user.ListUserStarLists)
+				m.Group("/starlist/{starlist}", func() {
+					m.Get("", user.GetUserStarListByName)
+					m.Get("/repos", user.GetUserStarListRepos)
+				}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), mustEnableStarLists, starListAssignment)
 			}, context_service.UserAssignmentAPI())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser))
 
@@ -1031,7 +1070,26 @@ func Routes() *web.Route {
 				m.Post("", bind(api.UpdateUserAvatarOption{}), user.UpdateAvatar)
 				m.Delete("", user.DeleteAvatar)
 			}, reqToken())
+
+			m.Group("/starlists", func() {
+				m.Get("", user.ListOwnStarLists)
+				m.Post("", bind(api.CreateEditStarListOptions{}), user.CreateStarList)
+				m.Get("/repoinfo/{username}/{reponame}", repoAssignment(), user.GetStarListRepoInfo)
+			}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), mustEnableStarLists)
+
+			m.Group("/starlist/{starlist}", func() {
+				m.Get("", user.GetOwnStarListByName)
+				m.Patch("", bind(api.CreateEditStarListOptions{}), user.EditStarList)
+				m.Delete("", user.DeleteStarList)
+				m.Get("/repos", user.GetOwnStarListRepos)
+				m.Group("/{username}/{reponame}", func() {
+					m.Put("", user.AddRepoToStarList)
+					m.Delete("", user.RemoveRepoFromStarList)
+				}, repoAssignment())
+			}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), mustEnableStarLists, starListAssignment)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
+
+		m.Get("/starlist/{id}", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), mustEnableStarLists, user.GetStarListByID)
 
 		// Repositories (requires repo scope, org scope)
 		m.Post("/org/{org}/repos",

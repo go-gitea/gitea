@@ -600,6 +600,20 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	if ctx.IsSigned {
 		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, repo.ID)
 		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, repo.ID)
+
+		if !setting.Repository.DisableStarLists {
+			starLists, err := repo_model.GetStarListsByUserID(ctx, ctx.Doer.ID, true)
+			if err != nil {
+				ctx.ServerError("GetStarListsByUserID", err)
+				return nil
+			}
+			err = starLists.LoadRepoIDs(ctx)
+			if err != nil {
+				ctx.ServerError("LoadRepoIDs", err)
+				return nil
+			}
+			ctx.Data["StarLists"] = starLists
+		}
 	}
 
 	if repo.IsFork {

@@ -38,9 +38,10 @@ type APIContext struct {
 
 	ContextUser *user_model.User // the user which is being visited, in most cases it differs from Doer
 
-	Repo    *Repository
-	Org     *APIOrganization
-	Package *Package
+	Repo     *Repository
+	Org      *APIOrganization
+	Package  *Package
+	Starlist *repo_model.StarList
 }
 
 func init() {
@@ -100,6 +101,18 @@ type APIRedirect struct{}
 // APIString is a string response
 // swagger:response string
 type APIString string
+
+// APIUnauthorizedError is a unauthorized error response
+// swagger:response unauthorized
+type APIUnauthorizedError struct {
+	APIError
+}
+
+// APIFeatureDisabledError is a error that is retruned when the given feature is disabled
+// swagger:response featureDisabled
+type APIFeatureDisabledError struct {
+	APIError
+}
 
 // ServerError responds with error message, status is 500
 func (ctx *APIContext) ServerError(title string, err error) {

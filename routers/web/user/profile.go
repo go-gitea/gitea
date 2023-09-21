@@ -208,6 +208,30 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGi
 		}
 
 		total = int(count)
+
+		if !setting.Repository.DisableStarLists {
+			starLists, err := repo_model.GetStarListsByUserID(ctx, ctx.ContextUser.ID, ctx.ContextUser.IsSameUser(ctx.Doer))
+			if err != nil {
+				ctx.ServerError("GetUserStarListsByUserID", err)
+				return
+			}
+
+			for _, list := range starLists {
+				list.User = ctx.ContextUser
+			}
+
+			err = starLists.LoadRepositoryCount(ctx, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("StarListsLoadRepositoryCount", err)
+				return
+			}
+
+			ctx.Data["StarLists"] = starLists
+			ctx.Data["StarListEditRedirect"] = fmt.Sprintf("%s?tab=stars", ctx.ContextUser.HomeLink())
+			ctx.Data["EditStarListURL"] = fmt.Sprintf("%s/-/starlist_edit", ctx.ContextUser.HomeLink())
+		}
+
+		ctx.Data["StarListsEnabled"] = !setting.Repository.DisableStarLists
 	case "watching":
 		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
