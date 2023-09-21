@@ -105,8 +105,9 @@ export async function createMonaco(textarea, filename, editorOpts) {
   monaco.languages.register({id: 'vs.editor.nullLanguage'});
   monaco.languages.setLanguageConfiguration('vs.editor.nullLanguage', {});
 
-  // We encode the initial value in JSON on the backend to prevent browsers from discarding
-  // \r during HTML parsing as per https://infra.spec.whatwg.org/#normalize-newlines.
+  // We encode the initial value in JSON on the backend to prevent browsers from
+  // discarding the \r during HTML parsing:
+  // https://html.spec.whatwg.org/multipage/parsing.html#preprocessing-the-input-stream
   const value = JSON.parse(textarea.getAttribute('data-initial-value') || '""');
   textarea.value = value;
   textarea.removeAttribute('data-initial-value');
