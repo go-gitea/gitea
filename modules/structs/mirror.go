@@ -17,10 +17,12 @@ type CreatePushMirrorOption struct {
 // PushMirror represents information of a push mirror
 // swagger:model
 type PushMirror struct {
-	RepoName       string    `json:"repo_name"`
-	RemoteName     string    `json:"remote_name"`
-	RemoteAddress  string    `json:"remote_address"`
-	CreatedUnix    time.Time `json:"created"`
+	RepoName      string `json:"repo_name"`
+	RemoteName    string `json:"remote_name"`
+	RemoteAddress string `json:"remote_address"`
+	// swagger:strfmt date-time
+	CreatedUnix time.Time `json:"created"`
+	// swagger:strfmt date-time
 	LastUpdateUnix time.Time `json:"last_update"`
 	LastError      string    `json:"last_error"`
 	Interval       string    `json:"interval"`
