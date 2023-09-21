@@ -164,6 +164,13 @@ func ListNeedExpiredArtifacts(ctx context.Context) ([]*ActionArtifact, error) {
 		Where("expired_unix < ? AND status = ?", timeutil.TimeStamp(time.Now().Unix()), ArtifactStatusUploadConfirmed).Find(&arts)
 }
 
+// ListNeedDeleteArtifacts returns all need delete artifacts but not deleted
+func ListNeedDeleteArtifacts(ctx context.Context) ([]*ActionArtifact, error) {
+	arts := make([]*ActionArtifact, 0, 10)
+	return arts, db.GetEngine(ctx).
+		Where("status = ?", ArtifactStatusNeedDelete).Find(&arts)
+}
+
 // SetArtifactExpired sets an artifact to expired
 func SetArtifactExpired(ctx context.Context, artifactID int64) error {
 	_, err := db.GetEngine(ctx).Where("id=? AND status = ?", artifactID, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: int64(ArtifactStatusExpired)})
@@ -173,5 +180,11 @@ func SetArtifactExpired(ctx context.Context, artifactID int64) error {
 // SetArtifactNeedDelete sets an artifact to need-delete, cron job will delete it
 func SetArtifactNeedDelete(ctx context.Context, runID int64, name string) error {
 	_, err := db.GetEngine(ctx).Where("run_id=? AND artifact_name=? AND status = ?", runID, name, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: int64(ArtifactStatusNeedDelete)})
+	return err
+}
+
+// SetArtifactDeleted sets an artifact to deleted
+func SetArtifactDeleted(ctx context.Context, artifactID int64) error {
+	_, err := db.GetEngine(ctx).Where("id=?", artifactID).Cols("status").Update(&ActionArtifact{Status: int64(ArtifactStatusDeleted)})
 	return err
 }

@@ -20,8 +20,18 @@ func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 	return CleanupArtifacts(taskCtx)
 }
 
-// CleanupArtifacts removes expired artifacts and set records expired status
+// CleanupArtifacts removes expired add need-deleted artifacts and set records expired status
 func CleanupArtifacts(taskCtx context.Context) error {
+	if err := cleanExpiredArtifacts(taskCtx); err != nil {
+		return err
+	}
+	if err := cleanNeedDeleteArtifacts(taskCtx); err != nil {
+		return err
+	}
+	return nil
+}
+
+func cleanExpiredArtifacts(taskCtx context.Context) error {
 	artifacts, err := actions.ListNeedExpiredArtifacts(taskCtx)
 	if err != nil {
 		return err
@@ -37,6 +47,26 @@ func CleanupArtifacts(taskCtx context.Context) error {
 			continue
 		}
 		log.Info("Artifact %d set expired", artifact.ID)
+	}
+	return nil
+}
+
+func cleanNeedDeleteArtifacts(taskCtx context.Context) error {
+	artifacts, err := actions.ListNeedDeleteArtifacts(taskCtx)
+	if err != nil {
+		return err
+	}
+	log.Info("Found %d need-deleted artifacts", len(artifacts))
+	for _, artifact := range artifacts {
+		if err := storage.ActionsArtifacts.Delete(artifact.StoragePath); err != nil {
+			log.Error("Cannot delete artifact %d: %v", artifact.ID, err)
+			continue
+		}
+		if err := actions.SetArtifactDeleted(taskCtx, artifact.ID); err != nil {
+			log.Error("Cannot set artifact %d deleted: %v", artifact.ID, err)
+			continue
+		}
+		log.Info("Artifact %d set deleted", artifact.ID)
 	}
 	return nil
 }
