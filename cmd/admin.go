@@ -438,7 +438,7 @@ func runRegenerateKeys(_ *cli.Context) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}
-	return asymkey_model.RewriteAllPublicKeys()
+	return asymkey_model.RewriteAllPublicKeys(ctx)
 }
 
 func parseOAuth2Config(c *cli.Context) *oauth2.Source {

@@ -241,13 +241,13 @@ func DeleteKey(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 			return
 		}
-		if err := asymkey_service.DeletePublicKey(ctx.Doer, keyID); err != nil {
+		if err := asymkey_service.DeletePublicKey(ctx, ctx.Doer, keyID); err != nil {
 			ctx.Flash.Error("DeletePublicKey: " + err.Error())
 		} else {
 			ctx.Flash.Success(ctx.Tr("settings.ssh_key_deletion_success"))
 		}
 	case "principal":
-		if err := asymkey_service.DeletePublicKey(ctx.Doer, ctx.FormInt64("id")); err != nil {
+		if err := asymkey_service.DeletePublicKey(ctx, ctx.Doer, ctx.FormInt64("id")); err != nil {
 			ctx.Flash.Error("DeletePublicKey: " + err.Error())
 		} else {
 			ctx.Flash.Success(ctx.Tr("settings.ssh_principal_deletion_success"))
