@@ -254,7 +254,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGi
 			Actor:              ctx.Doer,
 			Keyword:            "",
 			OwnerID:            ctx.ContextUser.ID,
-			OrderBy:            db.SearchOrderByStars,
+			OrderBy:            db.SearchOrderByStarsReverse,
 			Private:            ctx.IsSigned,
 			Collaborate:        util.OptionalBoolFalse,
 			TopicOnly:          topicOnly,

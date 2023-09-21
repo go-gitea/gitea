@@ -108,7 +108,7 @@ func PrepareOrgProfileTabData(ctx *context.Context, profileGitRepo *git.Reposito
 			},
 			Keyword:            "",
 			OwnerID:            org.ID,
-			OrderBy:            db.SearchOrderByStars,
+			OrderBy:            db.SearchOrderByStarsReverse,
 			Private:            ctx.IsSigned,
 			Actor:              ctx.Doer,
 			Language:           language,
