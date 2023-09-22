@@ -121,7 +121,7 @@ func sudo() func(ctx *context.APIContext) {
 					return
 				}
 
-				audit.Record(audit.UserImpersonation, ctx.Doer, ctx.Doer, ctx.Doer, "User %s impersonating user %s.", ctx.Doer.Name, user.Name)
+				audit.Record(audit.UserImpersonation, ctx.Doer, ctx.Doer, user, "User %s impersonating user %s.", ctx.Doer.Name, user.Name)
 
 				log.Trace("Sudo from (%s) to: %s", ctx.Doer.Name, user.Name)
 				ctx.Doer = user
