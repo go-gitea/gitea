@@ -431,7 +431,7 @@ func SynchronizePublicKeys(usr *user_model.User, s *auth.Source, sshPublicKeys [
 		}
 	}
 
-	addedKeys := AddPublicKeysBySource(usr, s, newKeys) // ToDo Audit
+	addedKeys := AddPublicKeysBySource(usr, s, newKeys)
 
 	// Mark keys from DB that no longer exist in the source for deletion
 	var giteaKeysToDelete []string
