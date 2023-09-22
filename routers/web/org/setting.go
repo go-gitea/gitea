@@ -244,11 +244,9 @@ func Webhooks(ctx *context.Context) {
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
-	defer ctx.JSONRedirect(ctx.Org.OrgLink + "/settings/hooks")
-
 	hook, err := webhook.GetWebhookByOwnerID(ctx.Org.Organization.ID, ctx.FormInt64("id"))
 	if err != nil {
-		ctx.Flash.Error("GetWebhookByOwnerID: " + err.Error())
+		ctx.ServerError("GetWebhookByOwnerID", err)
 		return
 	}
 
@@ -259,6 +257,8 @@ func DeleteWebhook(ctx *context.Context) {
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
+
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings/hooks")
 }
 
 // Labels render organization labels page

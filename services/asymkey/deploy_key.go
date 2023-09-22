@@ -4,6 +4,7 @@
 package asymkey
 
 import (
+	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models"
@@ -11,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/audit"
 )
 
@@ -23,7 +25,7 @@ func DeleteDeployKey(doer *user_model.User, id int64) error {
 	defer committer.Close()
 
 	key, err := asymkey_model.GetDeployKeyByID(ctx, id)
-	if err != nil && !asymkey_model.IsErrDeployKeyNotExist(err) {
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return fmt.Errorf("GetDeployKeyByID: %w", err)
 	}
 

@@ -38,25 +38,25 @@ func Security(ctx *context.Context) {
 
 // DeleteAccountLink delete a single account link
 func DeleteAccountLink(ctx *context.Context) {
-	defer ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
-
 	elu := &user_model.ExternalLoginUser{UserID: ctx.Doer.ID, LoginSourceID: ctx.FormInt64("id")}
 	if has, err := user_model.GetExternalLogin(elu); err != nil || !has {
 		if !has {
 			err = user_model.ErrExternalLoginUserNotExist{UserID: elu.UserID, LoginSourceID: elu.LoginSourceID}
 		}
-		ctx.Flash.Error("RemoveAccountLink: " + err.Error())
+		ctx.ServerError("RemoveAccountLink", err)
 		return
 	}
 
 	if _, err := user_model.RemoveAccountLink(ctx.Doer, elu.LoginSourceID); err != nil {
 		ctx.Flash.Error("RemoveAccountLink: " + err.Error())
 		return
+	} else {
+		audit.Record(audit.UserExternalLoginRemove, ctx.Doer, ctx.Doer, elu, "Removed external login %s for user %s.", elu.ExternalID, ctx.Doer.Name)
+
+		ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
 	}
 
-	audit.Record(audit.UserExternalLoginRemove, ctx.Doer, ctx.Doer, elu, "Removed external login %s for user %s.", elu.ExternalID, ctx.Doer.Name)
-
-	ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
 }
 
 func loadSecurityData(ctx *context.Context) {

@@ -62,11 +62,9 @@ func DefaultOrSystemWebhooks(ctx *context.Context) {
 
 // DeleteDefaultOrSystemWebhook handler to delete an admin-defined system or default webhook
 func DeleteDefaultOrSystemWebhook(ctx *context.Context) {
-	defer ctx.JSONRedirect(setting.AppSubURL + "/admin/hooks")
-
 	hook, err := webhook.GetSystemOrDefaultWebhook(ctx, ctx.FormInt64("id"))
 	if err != nil {
-		ctx.Flash.Error("GetWebhookByOwnerID: " + err.Error())
+		ctx.ServerError("GetSystemOrDefaultWebhook", err)
 		return
 	}
 
@@ -77,4 +75,6 @@ func DeleteDefaultOrSystemWebhook(ctx *context.Context) {
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
+
+	ctx.JSONRedirect(setting.AppSubURL + "/admin/hooks")
 }

@@ -139,11 +139,9 @@ func ChangeCollaborationAccessMode(ctx *context.Context) {
 
 // DeleteCollaboration delete a collaboration for a repository
 func DeleteCollaboration(ctx *context.Context) {
-	defer ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/collaboration")
-
 	u, err := user_model.GetUserByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
-		ctx.Flash.Error("GetUserByID: " + err.Error())
+		ctx.ServerError("GetUserByID", err)
 		return
 	}
 
@@ -154,6 +152,8 @@ func DeleteCollaboration(ctx *context.Context) {
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.remove_collaborator_success"))
 	}
+
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/collaboration")
 }
 
 // AddTeamPost response for adding a team to a repository

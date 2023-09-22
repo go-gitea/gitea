@@ -37,19 +37,19 @@ func Webhooks(ctx *context.Context) {
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
-	defer ctx.JSONRedirect(setting.AppSubURL + "/user/settings/hooks")
-
 	hook, err := webhook.GetWebhookByOwnerID(ctx.Doer.ID, ctx.FormInt64("id"))
 	if err != nil {
-		ctx.Flash.Error("GetWebhookByOwnerID: " + err.Error())
+		ctx.ServerError("GetWebhookByOwnerID", err)
 		return
 	}
 
-	if err := webhook.DeleteWebhookByOwnerID(ctx.Doer.ID, ctx.FormInt64("id")); err != nil {
+	if err := webhook.DeleteWebhookByOwnerID(ctx.Doer.ID, hook.ID); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
 		audit.Record(audit.UserWebhookRemove, ctx.Doer, ctx.Doer, hook, "Removed webhook %s.", hook.URL)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
+
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/hooks")
 }

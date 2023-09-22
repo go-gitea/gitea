@@ -347,7 +347,7 @@ func DeleteWiki(ctx context.Context, doer *user_model.User, repo *repo_model.Rep
 
 	system_model.RemoveAllWithNotice(ctx, "Delete repository wiki", repo.WikiPath())
 
-	audit.Record(audit.RepositoryWikiDelete, doer, repo, repo, "Deleted wiki data of repository %s.", repo.FullName())
+	audit.Record(audit.RepositoryWikiDelete, doer, repo, repo, "Deleted wiki of repository %s.", repo.FullName())
 
 	return nil
 }

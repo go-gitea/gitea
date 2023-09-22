@@ -237,6 +237,19 @@ func CountAccessTokens(ctx context.Context, opts ListAccessTokensOptions) (int64
 	return sess.Count(&AccessToken{})
 }
 
+func GetAccessTokenByID(ctx context.Context, id, userID int64) (*AccessToken, error) {
+	t := &AccessToken{
+		UID: userID,
+	}
+	has, err := db.GetEngine(ctx).ID(id).Get(t)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrAccessTokenNotExist{}
+	}
+	return t, nil
+}
+
 // DeleteAccessTokenByID deletes access token by given ID.
 func DeleteAccessTokenByID(ctx context.Context, id, userID int64) error {
 	cnt, err := db.GetEngine(ctx).ID(id).Delete(&AccessToken{

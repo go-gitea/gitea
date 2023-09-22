@@ -762,11 +762,9 @@ func ReplayWebhook(ctx *context.Context) {
 
 // DeleteWebhook delete a webhook
 func DeleteWebhook(ctx *context.Context) {
-	defer ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/hooks")
-
 	hook, err := webhook.GetWebhookByRepoID(ctx.Repo.Repository.ID, ctx.FormInt64("id"))
 	if err != nil {
-		ctx.Flash.Error("GetWebhookByRepoID: " + err.Error())
+		ctx.ServerError("GetWebhookByRepoID", err)
 		return
 	}
 
@@ -777,4 +775,6 @@ func DeleteWebhook(ctx *context.Context) {
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
+
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/hooks")
 }

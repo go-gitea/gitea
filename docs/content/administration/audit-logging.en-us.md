@@ -130,7 +130,7 @@ Audit events are grouped by `user`, `organization`, `repository` and `system`.
 | `repository:transfer:start` | Started repository transfer |
 | `repository:transfer:accept` | Accepted repository transfer |
 | `repository:transfer:reject` | Rejected repository transfer |
-| `repository:wiki:delete` | Deleted wiki data of repository |
+| `repository:wiki:delete` | Deleted wiki of repository |
 | `repository:collaborator:add` | Added user as collaborator for repository |
 | `repository:collaborator:access` | Changed access mode of collaborator |
 | `repository:collaborator:remove` | Removed user as collaborator of repository |
