@@ -226,45 +226,20 @@ func TestLDAPUserSync(t *testing.T) {
 	addAuthSourceLDAP(t, "", "")
 	auth.SyncExternalUsers(context.Background(), true)
 
-	session := loginUser(t, "user1")
 	// Check if users exists
-	for _, u := range gitLDAPUsers {
-		req := NewRequest(t, "GET", "/admin/users?q="+u.UserName)
-		resp := session.MakeRequest(t, req, http.StatusOK)
-
-		htmlDoc := NewHTMLParser(t, resp.Body)
-
-		tr := htmlDoc.doc.Find("table.table tbody tr")
-		if !assert.True(t, tr.Length() == 1) {
-			continue
-		}
-		tds := tr.Find("td")
-		if !assert.True(t, tds.Length() > 0) {
-			continue
-		}
-		assert.Equal(t, u.UserName, strings.TrimSpace(tds.Find("td:nth-child(2) a").Text()))
-		assert.Equal(t, u.Email, strings.TrimSpace(tds.Find("td:nth-child(3) span").Text()))
-		if u.IsAdmin {
-			assert.True(t, tds.Find("td:nth-child(5) svg").HasClass("octicon-check"))
-		} else {
-			assert.True(t, tds.Find("td:nth-child(5) svg").HasClass("octicon-x"))
-		}
-		if u.IsRestricted {
-			assert.True(t, tds.Find("td:nth-child(6) svg").HasClass("octicon-check"))
-		} else {
-			assert.True(t, tds.Find("td:nth-child(6) svg").HasClass("octicon-x"))
-		}
+	for _, gitLDAPUser := range gitLDAPUsers {
+		dbUser, err := user_model.GetUserByName(db.DefaultContext, gitLDAPUser.UserName)
+		assert.NoError(t, err)
+		assert.Equal(t, gitLDAPUser.UserName, dbUser.Name)
+		assert.Equal(t, gitLDAPUser.Email, dbUser.Email)
+		assert.Equal(t, gitLDAPUser.IsAdmin, dbUser.IsAdmin)
+		assert.Equal(t, gitLDAPUser.IsRestricted, dbUser.IsRestricted)
 	}
 
 	// Check if no users exist
-	for _, u := range otherLDAPUsers {
-		req := NewRequest(t, "GET", "/admin/users?q="+u.UserName)
-		resp := session.MakeRequest(t, req, http.StatusOK)
-
-		htmlDoc := NewHTMLParser(t, resp.Body)
-
-		tr := htmlDoc.doc.Find("table.table tbody tr")
-		assert.True(t, tr.Length() == 0)
+	for _, otherLDAPUser := range otherLDAPUsers {
+		_, err := user_model.GetUserByName(db.DefaultContext, otherLDAPUser.UserName)
+		assert.True(t, user_model.IsErrUserNotExist(err))
 	}
 }
 
@@ -412,7 +387,7 @@ func TestLDAPUserSSHKeySync(t *testing.T) {
 
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
-		divs := htmlDoc.doc.Find(".key.list .print.meta")
+		divs := htmlDoc.doc.Find("#keys-ssh .flex-item .flex-item-body:not(:last-child)")
 
 		syncedKeys := make([]string, divs.Length())
 		for i := 0; i < divs.Length(); i++ {
@@ -453,7 +428,7 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 			isMember, err := organization.IsTeamMember(db.DefaultContext, usersOrgs[0].ID, team.ID, user.ID)
 			assert.NoError(t, err)
 			assert.True(t, isMember, "Membership should be added to the right team")
-			err = models.RemoveTeamMember(team, user.ID)
+			err = models.RemoveTeamMember(db.DefaultContext, team, user.ID)
 			assert.NoError(t, err)
 			err = models.RemoveOrgUser(usersOrgs[0].ID, user.ID)
 			assert.NoError(t, err)
@@ -485,7 +460,7 @@ func TestLDAPGroupTeamSyncRemoveMember(t *testing.T) {
 	})
 	err = organization.AddOrgUser(org.ID, user.ID)
 	assert.NoError(t, err)
-	err = models.AddTeamMember(team, user.ID)
+	err = models.AddTeamMember(db.DefaultContext, team, user.ID)
 	assert.NoError(t, err)
 	isMember, err := organization.IsOrganizationMember(db.DefaultContext, org.ID, user.ID)
 	assert.NoError(t, err)

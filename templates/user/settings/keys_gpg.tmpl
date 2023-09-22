@@ -1,7 +1,7 @@
 <h4 class="ui top attached header">
 	{{.locale.Tr "settings.manage_gpg_keys"}}
 	<div class="ui right">
-		<button class="ui primary tiny show-panel button" data-panel="#add-gpg-key-panel">{{.locale.Tr "settings.add_key"}}</button>
+		<button class="ui primary tiny show-panel toggle button" data-panel="#add-gpg-key-panel">{{.locale.Tr "settings.add_key"}}</button>
 	</div>
 </h4>
 <div class="ui attached segment">
@@ -31,7 +31,7 @@
 				</div>
 			{{end}}
 			<input name="type" type="hidden" value="gpg">
-			<button class="ui green button">
+			<button class="ui primary button">
 				{{.locale.Tr "settings.add_key"}}
 			</button>
 			<button class="ui hide-panel button" data-panel="#add-gpg-key-panel">
@@ -39,39 +39,42 @@
 			</button>
 		</form>
 	</div>
-	<div class="ui key list gt-mt-0">
-		<div class="item">
-			{{.locale.Tr "settings.gpg_desc"}}
+	<div class="flex-list">
+		<div class="flex-item">
+			<p>
+				{{.locale.Tr "settings.gpg_desc"}}<br>
+				{{.locale.Tr "settings.gpg_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/about-commit-signature-verification#gpg-commit-signature-verification" | Str2html}}
+			</p>
 		</div>
 		{{range .GPGKeys}}
-			<div class="item">
-				<div class="right floated content">
+			<div class="flex-item">
+				<div class="flex-item-leading">
+					<span class="text {{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}green{{end}}">{{svg "octicon-key" 32}}</span>
+				</div>
+				<div class="flex-item-main">
+					{{if .Verified}}
+						<span class="flex-text-block" data-tooltip-content="{{$.locale.Tr "settings.gpg_key_verified_long"}}">{{svg "octicon-verified"}} <strong>{{$.locale.Tr "settings.gpg_key_verified"}}</strong></span>
+					{{end}}
+					{{if gt (len .Emails) 0}}
+						<span class="flex-text-block" data-tooltip-content="{{$.locale.Tr "settings.gpg_key_matched_identities_long"}}">{{svg "octicon-mail"}} {{$.locale.Tr "settings.gpg_key_matched_identities"}} {{range .Emails}}<strong>{{.Email}} </strong>{{end}}</span>
+					{{end}}
+					<div class="flex-item-body">
+						<b>{{$.locale.Tr "settings.key_id"}}:</b> {{.PaddedKeyID}}
+						<b>{{$.locale.Tr "settings.subkeys"}}:</b> {{range .SubsKey}} {{.PaddedKeyID}} {{end}}
+					</div>
+					<div class="flex-item-body">
+						<i>{{$.locale.Tr "settings.added_on" (DateTime "short" .AddedUnix) | Safe}}</i>
+						-
+						<i>{{if not .ExpiredUnix.IsZero}}{{$.locale.Tr "settings.valid_until_date" (DateTime "short" .ExpiredUnix) | Safe}}{{else}}{{$.locale.Tr "settings.valid_forever"}}{{end}}</i>
+					</div>
+				</div>
+				<div class="flex-item-trailing">
 					<button class="ui red tiny button delete-button" data-modal-id="delete-gpg" data-url="{{$.Link}}/delete?type=gpg" data-id="{{.ID}}">
 						{{$.locale.Tr "settings.delete_key"}}
 					</button>
 					{{if and (not .Verified) (ne $.VerifyingID .KeyID)}}
 						<a class="ui primary tiny button" href="{{$.Link}}?verify_gpg={{.KeyID}}">{{$.locale.Tr "settings.gpg_key_verify"}}</a>
 					{{end}}
-				</div>
-				<div class="left floated content">
-					<span class="text {{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}green{{end}}">{{svg "octicon-key" 32}}</span>
-				</div>
-				<div class="content">
-					{{if .Verified}}
-						<span data-tooltip-content="{{$.locale.Tr "settings.gpg_key_verified_long"}}">{{svg "octicon-verified"}} <strong>{{$.locale.Tr "settings.gpg_key_verified"}}</strong></span>
-					{{end}}
-					{{if gt (len .Emails) 0}}
-						<span data-tooltip-content="{{$.locale.Tr "settings.gpg_key_matched_identities_long"}}">{{svg "octicon-mail"}} {{$.locale.Tr "settings.gpg_key_matched_identities"}} {{range .Emails}}<strong>{{.Email}} </strong>{{end}}</span>
-					{{end}}
-					<div class="print meta">
-						<b>{{$.locale.Tr "settings.key_id"}}:</b> {{.PaddedKeyID}}
-						<b>{{$.locale.Tr "settings.subkeys"}}:</b> {{range .SubsKey}} {{.PaddedKeyID}} {{end}}
-					</div>
-					<div class="activity meta">
-						<i>{{$.locale.Tr "settings.added_on" (DateTime "short" .AddedUnix) | Safe}}</i>
-						-
-						<i>{{if not .ExpiredUnix.IsZero}}{{$.locale.Tr "settings.valid_until_date" (DateTime "short" .ExpiredUnix) | Safe}}{{else}}{{$.locale.Tr "settings.valid_forever"}}{{end}}</i>
-					</div>
 				</div>
 			</div>
 			{{if and (not .Verified) (eq $.VerifyingID .KeyID)}}
@@ -96,7 +99,7 @@
 							<textarea id="gpg-key-signature" name="signature" placeholder="{{$.locale.Tr "settings.key_signature_gpg_placeholder"}}" required>{{$.signature}}</textarea>
 						</div>
 						<input name="type" type="hidden" value="verify_gpg">
-						<button class="ui green button">
+						<button class="ui primary button">
 							{{$.locale.Tr "settings.gpg_key_verify"}}
 						</button>
 						<a class="ui red button" href="{{$.Link}}">
@@ -107,17 +110,14 @@
 			{{end}}
 		{{end}}
 	</div>
-</div>
-<br>
-<p>{{.locale.Tr "settings.gpg_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/about-commit-signature-verification#gpg-commit-signature-verification" | Str2html}}</p>
-
-<div class="ui g-modal-confirm delete modal" id="delete-gpg">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{.locale.Tr "settings.gpg_key_deletion"}}
+	<div class="ui g-modal-confirm delete modal" id="delete-gpg">
+		<div class="header">
+			{{svg "octicon-trash"}}
+			{{.locale.Tr "settings.gpg_key_deletion"}}
+		</div>
+		<div class="content">
+			<p>{{.locale.Tr "settings.gpg_key_deletion_desc"}}</p>
+		</div>
+		{{template "base/modal_actions_confirm" .}}
 	</div>
-	<div class="content">
-		<p>{{.locale.Tr "settings.gpg_key_deletion_desc"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
 </div>

@@ -11,7 +11,7 @@
 					{{end}}
 				</div>
 			</div>
-			<div class="gt-hidden">
+			<div class="image-diff-tabs is-loading">
 				<div class="ui bottom attached tab image-diff-container active" data-tab="diff-side-by-side-{{.file.Index}}">
 					<div class="diff-side-by-side">
 						{{if .blobBase}}
@@ -63,10 +63,8 @@
 				</div>
 				<div class="ui bottom attached tab image-diff-container" data-tab="diff-overlay-{{.file.Index}}">
 					<div class="diff-overlay">
+						<input type="range" min="0" max="100" value="50">
 						<div class="overlay-frame">
-							<div class="ui centered">
-								<input type="range" min="0" max="100" value="50">
-							</div>
 							<span class="before-container"><img class="image-before"></span>
 							<span class="after-container"><img class="image-after"></span>
 						</div>
@@ -74,7 +72,6 @@
 				</div>
 				{{end}}
 			</div>
-			<div class="ui active centered inline loader gt-mb-4"></div>
 		</div>
 	</td>
 </tr>

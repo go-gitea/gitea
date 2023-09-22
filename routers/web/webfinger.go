@@ -106,6 +106,10 @@ func WebfingerQuery(ctx *context.Context) {
 			Type: "application/activity+json",
 			Href: appURL.String() + "api/v1/activitypub/user-id/" + fmt.Sprint(u.ID),
 		},
+		{
+			Rel:  "http://openid.net/specs/connect/1.0/issuer",
+			Href: appURL.String(),
+		},
 	}
 
 	ctx.Resp.Header().Add("Access-Control-Allow-Origin", "*")

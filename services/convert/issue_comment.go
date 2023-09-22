@@ -114,7 +114,7 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 	}
 
 	if c.Time != nil {
-		err = c.Time.LoadAttributes()
+		err = c.Time.LoadAttributes(ctx)
 		if err != nil {
 			log.Error("Time.LoadAttributes: %v", err)
 			return nil

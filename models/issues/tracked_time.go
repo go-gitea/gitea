@@ -43,11 +43,7 @@ func (t *TrackedTime) AfterLoad() {
 }
 
 // LoadAttributes load Issue, User
-func (t *TrackedTime) LoadAttributes() (err error) {
-	return t.loadAttributes(db.DefaultContext)
-}
-
-func (t *TrackedTime) loadAttributes(ctx context.Context) (err error) {
+func (t *TrackedTime) LoadAttributes(ctx context.Context) (err error) {
 	// Load the issue
 	if t.Issue == nil {
 		t.Issue, err = GetIssueByID(ctx, t.IssueID)
@@ -76,9 +72,9 @@ func (t *TrackedTime) loadAttributes(ctx context.Context) (err error) {
 }
 
 // LoadAttributes load Issue, User
-func (tl TrackedTimeList) LoadAttributes() error {
+func (tl TrackedTimeList) LoadAttributes(ctx context.Context) error {
 	for _, t := range tl {
-		if err := t.LoadAttributes(); err != nil {
+		if err := t.LoadAttributes(ctx); err != nil {
 			return err
 		}
 	}
@@ -143,8 +139,8 @@ func GetTrackedTimes(ctx context.Context, options *FindTrackedTimesOptions) (tra
 }
 
 // CountTrackedTimes returns count of tracked times that fit to the given options.
-func CountTrackedTimes(opts *FindTrackedTimesOptions) (int64, error) {
-	sess := db.GetEngine(db.DefaultContext).Where(opts.toCond())
+func CountTrackedTimes(ctx context.Context, opts *FindTrackedTimesOptions) (int64, error) {
+	sess := db.GetEngine(ctx).Where(opts.toCond())
 	if opts.RepositoryID > 0 || opts.MilestoneID > 0 {
 		sess = sess.Join("INNER", "issue", "issue.id = tracked_time.issue_id")
 	}
@@ -157,8 +153,8 @@ func GetTrackedSeconds(ctx context.Context, opts FindTrackedTimesOptions) (track
 }
 
 // AddTime will add the given time (in seconds) to the issue
-func AddTime(user *user_model.User, issue *Issue, amount int64, created time.Time) (*TrackedTime, error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func AddTime(ctx context.Context, user *user_model.User, issue *Issue, amount int64, created time.Time) (*TrackedTime, error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -276,7 +272,7 @@ func DeleteTime(t *TrackedTime) error {
 	}
 	defer committer.Close()
 
-	if err := t.loadAttributes(ctx); err != nil {
+	if err := t.LoadAttributes(ctx); err != nil {
 		return err
 	}
 

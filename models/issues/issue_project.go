@@ -16,13 +16,14 @@ import (
 func (issue *Issue) LoadProject(ctx context.Context) (err error) {
 	if issue.Project == nil {
 		var p project_model.Project
-		if _, err = db.GetEngine(ctx).Table("project").
+		has, err := db.GetEngine(ctx).Table("project").
 			Join("INNER", "project_issue", "project.id=project_issue.project_id").
-			Where("project_issue.issue_id = ?", issue.ID).
-			Get(&p); err != nil {
+			Where("project_issue.issue_id = ?", issue.ID).Get(&p)
+		if err != nil {
 			return err
+		} else if has {
+			issue.Project = &p
 		}
-		issue.Project = &p
 	}
 	return err
 }
@@ -52,7 +53,7 @@ func (issue *Issue) projectBoardID(ctx context.Context) int64 {
 
 // LoadIssuesFromBoard load issues assigned to this board
 func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList, error) {
-	issueList := make([]*Issue, 0, 10)
+	issueList := make(IssueList, 0, 10)
 
 	if b.ID != 0 {
 		issues, err := Issues(ctx, &IssuesOptions{
@@ -78,7 +79,7 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList
 		issueList = append(issueList, issues...)
 	}
 
-	if err := IssueList(issueList).LoadComments(ctx); err != nil {
+	if err := issueList.LoadComments(ctx); err != nil {
 		return nil, err
 	}
 

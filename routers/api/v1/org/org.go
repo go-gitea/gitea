@@ -70,6 +70,8 @@ func ListMyOrgs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listUserOrgs(ctx, ctx.Doer)
 }
@@ -98,6 +100,8 @@ func ListUserOrgs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listUserOrgs(ctx, ctx.ContextUser)
 }
@@ -199,7 +203,7 @@ func GetAll(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	publicOrgs, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
+	publicOrgs, maxResults, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		ListOptions: listOptions,
 		Type:        user_model.UserTypeOrganization,
@@ -255,6 +259,7 @@ func Create(ctx *context.APIContext) {
 	org := &organization.Organization{
 		Name:                      form.UserName,
 		FullName:                  form.FullName,
+		Email:                     form.Email,
 		Description:               form.Description,
 		Website:                   form.Website,
 		Location:                  form.Location,
@@ -294,12 +299,22 @@ func Get(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Organization"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, ctx.Org.Organization))
+
+	org := convert.ToOrganization(ctx, ctx.Org.Organization)
+
+	// Don't show Mail, when User is not logged in
+	if ctx.Doer == nil {
+		org.Email = ""
+	}
+
+	ctx.JSON(http.StatusOK, org)
 }
 
 // Edit change an organization's information
@@ -325,9 +340,12 @@ func Edit(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Organization"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.EditOrgOption)
 	org := ctx.Org.Organization
 	org.FullName = form.FullName
+	org.Email = form.Email
 	org.Description = form.Description
 	org.Website = form.Website
 	org.Location = form.Location
@@ -364,6 +382,8 @@ func Delete(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	if err := org.DeleteOrganization(ctx.Org.Organization); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteOrganization", err)

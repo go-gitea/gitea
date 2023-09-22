@@ -13,5 +13,5 @@ func AddAvatarFieldToRepository(x *xorm.Engine) error {
 		Avatar string `xorm:"VARCHAR(64)"`
 	}
 
-	return x.Sync2(new(Repository))
+	return x.Sync(new(Repository))
 }

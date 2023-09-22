@@ -6,9 +6,9 @@ description: |
   an independent binary distribution across ALL platforms that Go supports,
   including Linux, Mac OS X, Windows and ARM.
 
-icon: public/img/logo.png
+icon: public/assets/img/logo.png
 confinement: strict
-base: core18
+base: core22
 adopt-info: gitea
 
 architectures:
@@ -44,12 +44,13 @@ parts:
     source: .
     stage-packages: [ git, sqlite3, openssh-client ]
     build-packages: [ git, libpam0g-dev, libsqlite3-dev, build-essential]
-    build-snaps: [ go, node/20/stable ]
+    build-snaps: [ go/1.21/stable, node/18/stable ]
     build-environment:
       - LDFLAGS: ""
     override-pull: |
-      snapcraftctl pull
-      
+      craftctl default
+
+      git config --global --add safe.directory /root/parts/gitea/src
       last_committed_tag="$(git for-each-ref --sort=taggerdate --format '%(tag)' refs/tags | tail -n 1)"
       last_released_tag="$(snap info gitea | awk '$1 == "latest/candidate:" { print $2 }')"
       # If the latest tag from the upstream project has not been released to
@@ -57,12 +58,12 @@ parts:
       if [ "${last_committed_tag}" != "${last_released_tag}" ]; then
         git fetch
         git checkout "${last_committed_tag}"
-      fi          
+      fi
 
       version="$(git describe --always | sed -e 's/-/+git/;y/-/./')"
       [ -n "$(echo $version | grep "+git")" ] && grade=devel || grade=stable
-      snapcraftctl set-version "$version"
-      snapcraftctl set-grade "$grade"
+      craftctl set version="$version"
+      craftctl set grade="$grade"
 
     override-build: |
       set -x

@@ -27,7 +27,7 @@
 									<button class="btn interact-fg gt-p-3" data-clipboard-text="{{.DefaultBranchBranch.DBBranch.Name}}">{{svg "octicon-copy" 14}}</button>
 									{{template "repo/commit_statuses" dict "Status" (index $.CommitStatus .DefaultBranchBranch.DBBranch.CommitID) "Statuses" (index $.CommitStatuses .DefaultBranchBranch.DBBranch.CommitID)}}
 								</div>
-								<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.DBBranch.CommitID}}">{{ShortSha .DefaultBranchBranch.DBBranch.CommitID}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DefaultBranchBranch.DBBranch.CommitMessage .RepoLink .Repository.ComposeMetas}}</span> · {{.locale.Tr "org.repo_updated"}} {{TimeSince .DefaultBranchBranch.DBBranch.CommitTime.AsTime .locale}}{{if .DefaultBranchBranch.DBBranch.Pusher}} &nbsp;{{template "shared/user/avatarlink" dict "Context" $.Context "user" .DefaultBranchBranch.DBBranch.Pusher}}{{template "shared/user/namelink" .DefaultBranchBranch.DBBranch.Pusher}}{{end}}</p>
+								<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.DBBranch.CommitID}}">{{ShortSha .DefaultBranchBranch.DBBranch.CommitID}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DefaultBranchBranch.DBBranch.CommitMessage .RepoLink .Repository.ComposeMetas}}</span> · {{.locale.Tr "org.repo_updated"}} {{TimeSince .DefaultBranchBranch.DBBranch.CommitTime.AsTime .locale}}{{if .DefaultBranchBranch.DBBranch.Pusher}} &nbsp;{{template "shared/user/avatarlink" dict "user" .DefaultBranchBranch.DBBranch.Pusher}}{{template "shared/user/namelink" .DefaultBranchBranch.DBBranch.Pusher}}{{end}}</p>
 							</td>
 							<td class="right aligned middle aligned overflow-visible">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
@@ -56,7 +56,7 @@
 									<button class="btn interact-bg gt-p-3 show-modal show-rename-branch-modal"
 										data-is-default-branch="true"
 										data-modal="#rename-branch-modal"
-										data-old-branch-name="{{$.DefaultBranchBranch}}"
+										data-old-branch-name="{{$.DefaultBranchBranch.DBBranch.Name}}"
 										data-tooltip-content="{{$.locale.Tr "repo.branch.rename" ($.DefaultBranchBranch.DBBranch.Name)}}"
 									>
 										{{svg "octicon-pencil"}}
@@ -70,9 +70,20 @@
 		{{end}}
 
 		{{if .Branches}}
-			<h4 class="ui top attached header">
-				{{.locale.Tr "repo.branches"}}
+			<h4 class="ui top attached header gt-df gt-ac gt-sb">
+				<div class="gt-df gt-ac">
+					{{.locale.Tr "repo.branches"}}
+				</div>
+				<div class="gt-whitespace-nowrap">
+					<form class="ignore-dirty" method="get">
+						<div class="ui tiny search input">
+							<input name="q" placeholder="{{.locale.Tr "repo.branch.search"}}" value="{{.Keyword}}" autofocus>
+						</div>
+						<button class="ui primary tiny button gt-mr-0" data-tooltip-content={{.locale.Tr "repo.commits.search.tooltip"}}>{{.locale.Tr "repo.commits.find"}}</button>
+					</form>
+				</div>
 			</h4>
+
 			<div class="ui attached table segment">
 				<table class="ui very basic striped fixed table single line">
 					<tbody>
@@ -94,7 +105,7 @@
 										<button class="btn interact-fg gt-p-3" data-clipboard-text="{{.DBBranch.Name}}">{{svg "octicon-copy" 14}}</button>
 										{{template "repo/commit_statuses" dict "Status" (index $.CommitStatus .DBBranch.CommitID) "Statuses" (index $.CommitStatuses .DBBranch.CommitID)}}
 									</div>
-										<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{$.RepoLink}}/commit/{{PathEscape .DBBranch.CommitID}}">{{ShortSha .DBBranch.CommitID}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DBBranch.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.locale.Tr "org.repo_updated"}} {{TimeSince .DBBranch.CommitTime.AsTime $.locale}}{{if .DBBranch.Pusher}} &nbsp;{{template "shared/user/avatarlink" dict "Context" $.Context "user" .DBBranch.Pusher}} &nbsp;{{template "shared/user/namelink" .DBBranch.Pusher}}{{end}}</p>
+										<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{$.RepoLink}}/commit/{{PathEscape .DBBranch.CommitID}}">{{ShortSha .DBBranch.CommitID}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DBBranch.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.locale.Tr "org.repo_updated"}} {{TimeSince .DBBranch.CommitTime.AsTime $.locale}}{{if .DBBranch.Pusher}} &nbsp;{{template "shared/user/avatarlink" dict "user" .DBBranch.Pusher}} &nbsp;{{template "shared/user/namelink" .DBBranch.Pusher}}{{end}}</p>
 								{{end}}
 								</td>
 								<td class="two wide ui">
@@ -125,18 +136,18 @@
 										{{end}}
 									{{else if and .LatestPullRequest.HasMerged .MergeMovedOn}}
 										{{if and (not .DBBranch.IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
-										<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.DefaultBranchBranch}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | PathEscapeSegments}}">
+										<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.DefaultBranchBranch.DBBranch.Name}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{PathEscape $.Owner.Name}}:{{end}}{{PathEscapeSegments .DBBranch.Name}}">
 											<button id="new-pull-request" class="ui compact basic button gt-mr-0">{{if $.CanPull}}{{$.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{$.locale.Tr "action.compare_branch"}}{{end}}</button>
 										</a>
 										{{end}}
 									{{else}}
 										<a href="{{.LatestPullRequest.Issue.Link}}" class="gt-vm ref-issue">{{if not .LatestPullRequest.IsSameRepo}}{{.LatestPullRequest.BaseRepo.FullName}}{{end}}#{{.LatestPullRequest.Issue.Index}}</a>
 										{{if .LatestPullRequest.HasMerged}}
-											<a href="{{.LatestPullRequest.Issue.Link}}" class="ui text-label purple large label gt-vm">{{svg "octicon-git-merge" 16 "gt-mr-2"}}{{$.locale.Tr "repo.pulls.merged"}}</a>
+											<a href="{{.LatestPullRequest.Issue.Link}}" class="ui purple large label">{{svg "octicon-git-merge" 16 "gt-mr-2"}}{{$.locale.Tr "repo.pulls.merged"}}</a>
 										{{else if .LatestPullRequest.Issue.IsClosed}}
-											<a href="{{.LatestPullRequest.Issue.Link}}" class="ui text-label red large label gt-vm">{{svg "octicon-git-pull-request" 16 "gt-mr-2"}}{{$.locale.Tr "repo.issues.closed_title"}}</a>
+											<a href="{{.LatestPullRequest.Issue.Link}}" class="ui red large label">{{svg "octicon-git-pull-request" 16 "gt-mr-2"}}{{$.locale.Tr "repo.issues.closed_title"}}</a>
 										{{else}}
-											<a href="{{.LatestPullRequest.Issue.Link}}" class="ui text-label green large label gt-vm">{{svg "octicon-git-pull-request" 16 "gt-mr-2"}}{{$.locale.Tr "repo.issues.open_title"}}</a>
+											<a href="{{.LatestPullRequest.Issue.Link}}" class="ui green large label">{{svg "octicon-git-pull-request" 16 "gt-mr-2"}}{{$.locale.Tr "repo.issues.open_title"}}</a>
 										{{end}}
 									{{end}}
 								</td>

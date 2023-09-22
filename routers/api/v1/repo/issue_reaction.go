@@ -46,6 +46,8 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	//     "$ref": "#/responses/ReactionList"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	comment, err := issues_model.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -126,6 +128,8 @@ func PostIssueCommentReaction(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Reaction"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	form := web.GetForm(ctx).(*api.EditReactionOption)
 
@@ -167,6 +171,8 @@ func DeleteIssueCommentReaction(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	form := web.GetForm(ctx).(*api.EditReactionOption)
 
@@ -268,8 +274,10 @@ func GetIssueReactions(ctx *context.APIContext) {
 	//     "$ref": "#/responses/ReactionList"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -345,6 +353,8 @@ func PostIssueReaction(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Reaction"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.EditReactionOption)
 	changeIssueReaction(ctx, *form, true)
 }
@@ -384,12 +394,14 @@ func DeleteIssueReaction(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.EditReactionOption)
 	changeIssueReaction(ctx, *form, false)
 }
 
 func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, isCreateType bool) {
-	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()

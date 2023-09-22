@@ -12,15 +12,16 @@
 		<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 	</div>
 </form>
-<div class="ui {{if .PackageDescriptors}}issue list{{end}}">
+<div>
 	{{range .PackageDescriptors}}
-		<li class="item">
-			<div class="issue-item-main">
-				<div class="issue-item-title">
-					<a class="title" href="{{.FullWebLink}}">{{.Package.Name}}</a>
+	<div class="flex-list">
+		<div class="flex-item">
+			<div class="flex-item-main">
+				<div class="flex-item-title">
+					<a href="{{.FullWebLink}}">{{.Package.Name}}</a>
 					<span class="ui label">{{svg .Package.Type.SVGName 16}} {{.Package.Type.Name}}</span>
 				</div>
-				<div class="issue-item-body">
+				<div class="flex-item-body">
 					{{$timeStr := TimeSinceUnix .Version.CreatedUnix $.locale}}
 					{{$hasRepositoryAccess := false}}
 					{{if .Repository}}
@@ -33,20 +34,21 @@
 					{{end}}
 				</div>
 			</div>
-		</li>
+		</div>
+	</div>
 	{{else}}
 		{{if not .HasPackages}}
-			<div class="gt-pt-5 empty center">
+			<div class="empty center">
 				{{svg "octicon-package" 48}}
 				<h2>{{.locale.Tr "packages.empty"}}</h2>
 				{{if and .Repository .CanWritePackages}}
 					{{$packagesUrl := URLJoin .Owner.HomeLink "-" "packages"}}
 					<p>{{.locale.Tr "packages.empty.repo" $packagesUrl | Safe}}</p>
 				{{end}}
-				<p>{{.locale.Tr "packages.empty.documentation" "https://docs.gitea.io/en-us/usage/packages/overview/" | Safe}}</p>
+				<p>{{.locale.Tr "packages.empty.documentation" "https://docs.gitea.com/usage/packages/overview/" | Safe}}</p>
 			</div>
 		{{else}}
-			<p>{{.locale.Tr "packages.filter.no_result"}}</p>
+			<p class="gt-py-4">{{.locale.Tr "packages.filter.no_result"}}</p>
 		{{end}}
 	{{end}}
 	{{template "base/paginate" .}}

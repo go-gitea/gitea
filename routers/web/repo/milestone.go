@@ -38,18 +38,8 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["PageIsMilestones"] = true
 
 	isShowClosed := ctx.FormString("state") == "closed"
-	stats, err := issues_model.GetMilestonesStatsByRepoCond(builder.And(builder.Eq{"id": ctx.Repo.Repository.ID}))
-	if err != nil {
-		ctx.ServerError("MilestoneStats", err)
-		return
-	}
-	ctx.Data["OpenCount"] = stats.OpenCount
-	ctx.Data["ClosedCount"] = stats.ClosedCount
-
 	sortType := ctx.FormString("sort")
-
 	keyword := ctx.FormTrim("q")
-
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
@@ -74,8 +64,17 @@ func Milestones(ctx *context.Context) {
 		ctx.ServerError("GetMilestones", err)
 		return
 	}
+
+	stats, err := issues_model.GetMilestonesStatsByRepoCondAndKw(ctx, builder.And(builder.Eq{"id": ctx.Repo.Repository.ID}), keyword)
+	if err != nil {
+		ctx.ServerError("GetMilestoneStats", err)
+		return
+	}
+	ctx.Data["OpenCount"] = stats.OpenCount
+	ctx.Data["ClosedCount"] = stats.ClosedCount
+
 	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
-		if err := miles.LoadTotalTrackedTimes(); err != nil {
+		if err := miles.LoadTotalTrackedTimes(ctx); err != nil {
 			ctx.ServerError("LoadTotalTrackedTimes", err)
 			return
 		}
@@ -143,7 +142,7 @@ func NewMilestonePost(ctx *context.Context) {
 	}
 
 	deadline = time.Date(deadline.Year(), deadline.Month(), deadline.Day(), 23, 59, 59, 0, deadline.Location())
-	if err = issues_model.NewMilestone(&issues_model.Milestone{
+	if err = issues_model.NewMilestone(ctx, &issues_model.Milestone{
 		RepoID:       ctx.Repo.Repository.ID,
 		Name:         form.Title,
 		Content:      form.Content,
@@ -215,7 +214,7 @@ func EditMilestonePost(ctx *context.Context) {
 	m.Name = form.Title
 	m.Content = form.Content
 	m.DeadlineUnix = timeutil.TimeStamp(deadline.Unix())
-	if err = issues_model.UpdateMilestone(m, m.IsClosed); err != nil {
+	if err = issues_model.UpdateMilestone(ctx, m, m.IsClosed); err != nil {
 		ctx.ServerError("UpdateMilestone", err)
 		return
 	}
@@ -237,7 +236,7 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 	}
 	id := ctx.ParamsInt64(":id")
 
-	if err := issues_model.ChangeMilestoneStatusByRepoIDAndID(ctx.Repo.Repository.ID, id, toClose); err != nil {
+	if err := issues_model.ChangeMilestoneStatusByRepoIDAndID(ctx, ctx.Repo.Repository.ID, id, toClose); err != nil {
 		if issues_model.IsErrMilestoneNotExist(err) {
 			ctx.NotFound("", err)
 		} else {
@@ -250,20 +249,19 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 
 // DeleteMilestone delete a milestone
 func DeleteMilestone(ctx *context.Context) {
-	if err := issues_model.DeleteMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
+	if err := issues_model.DeleteMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteMilestoneByRepoID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.milestones.deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": ctx.Repo.RepoLink + "/milestones",
-	})
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones")
 }
 
 // MilestoneIssuesAndPulls lists all the issues and pull requests of the milestone
 func MilestoneIssuesAndPulls(ctx *context.Context) {
 	milestoneID := ctx.ParamsInt64(":id")
+	projectID := ctx.FormInt64("project")
 	milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
 	if err != nil {
 		if issues_model.IsErrMilestoneNotExist(err) {
@@ -289,7 +287,7 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ctx.Data["Title"] = milestone.Name
 	ctx.Data["Milestone"] = milestone
 
-	issues(ctx, milestoneID, 0, util.OptionalBoolNone)
+	issues(ctx, milestoneID, projectID, util.OptionalBoolNone)
 
 	ret, _ := issue.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	ctx.Data["NewIssueChooseTemplate"] = len(ret) > 0

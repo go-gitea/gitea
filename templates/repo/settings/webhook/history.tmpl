@@ -11,18 +11,18 @@
 		<div class="ui list">
 			{{range .History}}
 				<div class="item">
-					<div class="meta">
-						{{if .IsSucceed}}
-							<span class="text green">{{svg "octicon-check"}}</span>
-						{{else}}
-							<span class="text red">{{svg "octicon-alert"}}</span>
-						{{end}}
-						<a class="ui primary sha label toggle button show-panel" data-panel="#info-{{.ID}}">{{.UUID}}</a>
-						<div class="ui right">
-							<span class="text grey time">
-								{{TimeSince .Delivered.AsTime $.locale}}
-							</span>
+					<div class="flex-text-block gt-sb">
+						<div class="flex-text-inline">
+							{{if .IsSucceed}}
+								<span class="text green">{{svg "octicon-check"}}</span>
+							{{else}}
+								<span class="text red">{{svg "octicon-alert"}}</span>
+							{{end}}
+							<a class="ui primary sha label toggle button show-panel" data-panel="#info-{{.ID}}">{{.UUID}}</a>
 						</div>
+						<span class="text grey">
+							{{TimeSince .Delivered.AsTime $.locale}}
+						</span>
 					</div>
 					<div class="info gt-hidden" id="info-{{.ID}}">
 						<div class="ui top attached tabular menu">

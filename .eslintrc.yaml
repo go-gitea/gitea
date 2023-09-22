@@ -46,6 +46,9 @@ overrides:
   - files: ["*.config.*"]
     rules:
       import/no-unused-modules: [0]
+  - files: ["web_src/js/modules/fetch.js", "web_src/js/standalone/**/*"]
+    rules:
+      no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement, SequenceExpression]
 
 rules:
   "@eslint-community/eslint-comments/disable-enable-pair": [2]
@@ -156,7 +159,7 @@ rules:
   import/no-restricted-paths: [0]
   import/no-self-import: [2]
   import/no-unassigned-import: [0]
-  import/no-unresolved: [2, {commonjs: true, ignore: [\?.+$, ^vitest/]}]
+  import/no-unresolved: [2, {commonjs: true, ignore: ["\\?.+$", ^vitest/]}]
   import/no-unused-modules: [2, {unusedExports: true}]
   import/no-useless-path-segments: [2, {commonjs: true}]
   import/no-webpack-loader-syntax: [2]
@@ -420,9 +423,8 @@ rules:
   no-restricted-exports: [0]
   no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, location, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, self, status, statusbar, stop, toolbar, top, __dirname, __filename]
   no-restricted-imports: [0]
-  no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement]
+  no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement, SequenceExpression, {selector: "CallExpression[callee.name='fetch']", message: "use modules/fetch.js instead"}]
   no-return-assign: [0]
-  no-return-await: [0]
   no-script-url: [2]
   no-self-assign: [2, {props: true}]
   no-self-compare: [2]
@@ -666,7 +668,6 @@ rules:
   unicorn/no-unnecessary-await: [2]
   unicorn/no-unreadable-array-destructuring: [0]
   unicorn/no-unreadable-iife: [2]
-  unicorn/no-unsafe-regex: [0]
   unicorn/no-unused-properties: [2]
   unicorn/no-useless-fallback-in-spread: [2]
   unicorn/no-useless-length-check: [2]

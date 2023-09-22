@@ -22,7 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	lru "github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"xorm.io/builder"
 )
 
@@ -130,7 +130,7 @@ func checkEnablePushOptions(ctx context.Context, logger log.Logger, autofix bool
 func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) error {
 	numRepos := 0
 	numNeedUpdate := 0
-	cache, err := lru.New(512)
+	cache, err := lru.New[int64, any](512)
 	if err != nil {
 		logger.Critical("Unable to create cache: %v", err)
 		return err

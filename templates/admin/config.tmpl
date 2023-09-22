@@ -34,10 +34,10 @@
 
 				<div class="divider"></div>
 
+				<dt>{{.locale.Tr "admin.config.app_data_path"}}</dt>
+				<dd>{{.AppDataPath}}</dd>
 				<dt>{{.locale.Tr "admin.config.repo_root_path"}}</dt>
 				<dd>{{.RepoRootPath}}</dd>
-				<dt>{{.locale.Tr "admin.config.static_file_root_path"}}</dt>
-				<dd>{{.StaticRootPath}}</dd>
 				<dt>{{.locale.Tr "admin.config.custom_file_root_path"}}</dt>
 				<dd>{{.CustomRootPath}}</dd>
 				<dt>{{.locale.Tr "admin.config.log_file_root_path"}}</dt>
@@ -238,7 +238,7 @@
 							<div class="ui tiny input">
 								<input type="email" name="email" placeholder="{{.locale.Tr "admin.config.test_email_placeholder"}}" size="29" required>
 							</div>
-							<button class="ui tiny green button">{{.locale.Tr "admin.config.send_test_mail_submit"}}</button>
+							<button class="ui tiny primary button">{{.locale.Tr "admin.config.send_test_mail_submit"}}</button>
 						</form>
 					</dd>
 				{{end}}

@@ -54,6 +54,7 @@ func Projects(ctx *context.Context) {
 	sortType := ctx.FormTrim("sort")
 
 	isShowClosed := strings.ToLower(ctx.FormTrim("state")) == "closed"
+	keyword := ctx.FormTrim("q")
 	repo := ctx.Repo.Repository
 	page := ctx.FormInt("page")
 	if page <= 1 {
@@ -76,6 +77,7 @@ func Projects(ctx *context.Context) {
 		IsClosed: util.OptionalBoolOf(isShowClosed),
 		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
 		Type:     project_model.TypeRepository,
+		Title:    keyword,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
@@ -203,9 +205,7 @@ func DeleteProject(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.projects.deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": ctx.Repo.RepoLink + "/projects",
-	})
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/projects")
 }
 
 // RenderEditProject allows a project to be edited
@@ -366,7 +366,7 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap
-	ctx.Data["Boards"] = boards
+	ctx.Data["Columns"] = boards // TODO: rename boards to columns in backend
 
 	ctx.HTML(http.StatusOK, tplProjectsView)
 }
@@ -386,8 +386,7 @@ func UpdateIssueProject(ctx *context.Context) {
 	projectID := ctx.FormInt64("id")
 	for _, issue := range issues {
 		if issue.Project != nil {
-			oldProjectID := issue.Project.ID
-			if oldProjectID == projectID {
+			if issue.Project.ID == projectID {
 				continue
 			}
 		}
@@ -398,9 +397,7 @@ func UpdateIssueProject(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // DeleteProjectBoard allows for the deletion of a project board
@@ -453,9 +450,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // AddBoardToProjectPost allows a new board to be added to a project.
@@ -488,9 +483,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 func checkProjectBoardChangePermissions(ctx *context.Context) (*project_model.Project, *project_model.Board) {
@@ -562,9 +555,7 @@ func EditProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // SetDefaultProjectBoard set default board for uncategorized issues/pulls
@@ -579,9 +570,7 @@ func SetDefaultProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // UnSetDefaultProjectBoard unset default board for uncategorized issues/pulls
@@ -596,9 +585,7 @@ func UnSetDefaultProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // MoveIssues moves or keeps issues in a column and sorts them inside that column
@@ -700,7 +687,5 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }

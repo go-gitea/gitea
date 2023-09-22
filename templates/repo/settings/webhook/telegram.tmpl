@@ -10,6 +10,10 @@
 			<label for="chat_id">{{.locale.Tr "repo.settings.chat_id"}}</label>
 			<input id="chat_id" name="chat_id" type="text" value="{{.TelegramHook.ChatID}}" required>
 		</div>
+		<div class="field {{if .Err_ThreadID}}error{{end}}">
+			<label for="thread_id">{{.locale.Tr "repo.settings.thread_id"}}</label>
+			<input id="thread_id" name="thread_id" type="text" value="{{.TelegramHook.ThreadID}}">
+		</div>
 		{{template "repo/settings/webhook/settings" .}}
 	</form>
 {{end}}

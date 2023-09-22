@@ -77,9 +77,10 @@ func parseScope(ctx *context.PrivateContext, scope string) (ownerID, repoID int6
 	if err != nil {
 		return ownerID, repoID, err
 	}
+	ownerID = u.ID
 
 	if !found {
-		return u.ID, repoID, nil
+		return ownerID, repoID, nil
 	}
 
 	r, err := repo_model.GetRepositoryByName(u.ID, repoName)

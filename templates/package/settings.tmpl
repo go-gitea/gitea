@@ -31,35 +31,37 @@
 					</div>
 				</div>
 				<div class="field">
-					<button class="ui green button">{{.locale.Tr "packages.settings.link.button"}}</button>
+					<button class="ui primary button">{{.locale.Tr "packages.settings.link.button"}}</button>
 				</div>
 			</form>
 		</div>
 		<h4 class="ui top attached error header">
 			{{.locale.Tr "repo.settings.danger_zone"}}
 		</h4>
-		<div class="ui attached error table danger segment">
-			<div class="item">
-				<div class="ui right">
-					<button class="ui basic red show-modal button" data-modal="#delete-package-modal">{{.locale.Tr "packages.settings.delete"}}</button>
-				</div>
-				<div>
-					<h5>{{.locale.Tr "packages.settings.delete"}}</h5>
-					<p>{{.locale.Tr "packages.settings.delete.description"}}</p>
-				</div>
-				<div class="ui tiny modal" id="delete-package-modal">
-					<div class="header">
-						{{.locale.Tr "packages.settings.delete"}}
+		<div class="ui attached error danger segment">
+			<div class="flex-list">
+				<div class="flex-item">
+					<div class="flex-item-main">
+						<div class="flex-item-title">{{.locale.Tr "packages.settings.delete"}}</div>
+						<div class="flex-item-body">{{.locale.Tr "packages.settings.delete.description"}}</div>
 					</div>
-					<div class="content">
-						<div class="ui warning message gt-word-break">
-							{{.locale.Tr "packages.settings.delete.notice" .PackageDescriptor.Package.Name .PackageDescriptor.Version.Version}}
+					<div class="flex-item-trailing">
+						<button class="ui basic red show-modal button" data-modal="#delete-package-modal">{{.locale.Tr "packages.settings.delete"}}</button>
+					</div>
+					<div class="ui tiny modal" id="delete-package-modal">
+						<div class="header">
+							{{.locale.Tr "packages.settings.delete"}}
 						</div>
-						<form class="ui form" action="{{.Link}}" method="post">
-							{{.CsrfTokenHtml}}
-							<input type="hidden" name="action" value="delete">
-							{{template "base/modal_actions_confirm" .}}
-						</form>
+						<div class="content">
+							<div class="ui warning message gt-word-break">
+								{{.locale.Tr "packages.settings.delete.notice" .PackageDescriptor.Package.Name .PackageDescriptor.Version.Version}}
+							</div>
+							<form class="ui form" action="{{.Link}}" method="post">
+								{{.CsrfTokenHtml}}
+								<input type="hidden" name="action" value="delete">
+								{{template "base/modal_actions_confirm" .}}
+							</form>
+						</div>
 					</div>
 				</div>
 			</div>

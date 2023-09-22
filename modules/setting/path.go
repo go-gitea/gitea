@@ -17,7 +17,7 @@ var (
 	// AppPath represents the path to the gitea binary
 	AppPath string
 
-	// AppWorkPath is the "working directory" of Gitea. It maps to the environment variable GITEA_WORK_DIR.
+	// AppWorkPath is the "working directory" of Gitea. It maps to the: WORK_PATH in app.ini, "--work-path" flag, environment variable GITEA_WORK_DIR.
 	// If that is not set it is the default set here by the linker or failing that the directory of AppPath.
 	// It is used as the base path for several other paths.
 	AppWorkPath string

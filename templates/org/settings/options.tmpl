@@ -18,6 +18,10 @@
 							<label for="full_name">{{.locale.Tr "org.org_full_name_holder"}}</label>
 							<input id="full_name" name="full_name" value="{{.Org.FullName}}" maxlength="100">
 						</div>
+						<div class="field {{if .Err_Email}}error{{end}}">
+							<label for="email">{{.locale.Tr "org.settings.email"}}</label>
+							<input id="email" name="email" type="email" value="{{.Org.Email}}" maxlength="255">
+						</div>
 						<div class="field {{if .Err_Description}}error{{end}}">
 							<label for="description">{{$.locale.Tr "org.org_desc"}}</label>
 							<textarea id="description" name="description" rows="2" maxlength="255">{{.Org.Description}}</textarea>
@@ -36,19 +40,19 @@
 							<label for="visibility">{{.locale.Tr "org.settings.visibility"}}</label>
 							<div class="field">
 								<div class="ui radio checkbox">
-									<input class="enable-system-radio" tabindex="0" name="visibility" type="radio" value="0" {{if eq .CurrentVisibility 0}}checked{{end}}>
+									<input class="enable-system-radio" name="visibility" type="radio" value="0" {{if eq .CurrentVisibility 0}}checked{{end}}>
 									<label>{{.locale.Tr "org.settings.visibility.public"}}</label>
 								</div>
 							</div>
 							<div class="field">
 								<div class="ui radio checkbox">
-									<input class="enable-system-radio" tabindex="0" name="visibility" type="radio" value="1" {{if eq .CurrentVisibility 1}}checked{{end}}>
+									<input class="enable-system-radio" name="visibility" type="radio" value="1" {{if eq .CurrentVisibility 1}}checked{{end}}>
 									<label>{{.locale.Tr "org.settings.visibility.limited"}}</label>
 								</div>
 							</div>
 							<div class="field">
 								<div class="ui radio checkbox">
-									<input class="enable-system-radio" tabindex="0" name="visibility" type="radio" value="2" {{if eq .CurrentVisibility 2}}checked{{end}}>
+									<input class="enable-system-radio" name="visibility" type="radio" value="2" {{if eq .CurrentVisibility 2}}checked{{end}}>
 									<label>{{.locale.Tr "org.settings.visibility.private"}}</label>
 								</div>
 							</div>
@@ -75,7 +79,7 @@
 						{{end}}
 
 						<div class="field">
-							<button class="ui green button">{{$.locale.Tr "org.settings.update_settings"}}</button>
+							<button class="ui primary button">{{$.locale.Tr "org.settings.update_settings"}}</button>
 						</div>
 					</form>
 
@@ -89,8 +93,8 @@
 						</div>
 
 						<div class="field">
-							<button class="ui green button">{{$.locale.Tr "settings.update_avatar"}}</button>
-							<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete" data-redirect="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</button>
+							<button class="ui primary button">{{$.locale.Tr "settings.update_avatar"}}</button>
+							<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete">{{$.locale.Tr "settings.delete_current_avatar"}}</button>
 						</div>
 					</form>
 				</div>

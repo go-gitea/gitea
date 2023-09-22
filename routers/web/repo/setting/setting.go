@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	mirror_module "code.gitea.io/gitea/modules/mirror"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -244,6 +243,13 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
+		remoteAddress, err := util.SanitizeURL(form.MirrorAddress)
+		if err != nil {
+			ctx.ServerError("SanitizeURL", err)
+			return
+		}
+		pullMirror.RemoteAddress = remoteAddress
+
 		form.LFS = form.LFS && setting.LFS.StartServer
 
 		if len(form.LFSEndpoint) > 0 {
@@ -277,7 +283,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		mirror_module.AddPullMirrorToQueue(repo.ID)
+		mirror_service.AddPullMirrorToQueue(repo.ID)
 
 		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
 		ctx.Redirect(repo.Link() + "/settings")
@@ -294,9 +300,46 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		mirror_module.AddPushMirrorToQueue(m.ID)
+		mirror_service.AddPushMirrorToQueue(m.ID)
 
 		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
+		ctx.Redirect(repo.Link() + "/settings")
+
+	case "push-mirror-update":
+		if !setting.Mirror.Enabled {
+			ctx.NotFound("", nil)
+			return
+		}
+
+		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
+		// as an error on the UI for this action
+		ctx.Data["Err_RepoName"] = nil
+
+		interval, err := time.ParseDuration(form.PushMirrorInterval)
+		if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &forms.RepoSettingForm{})
+			return
+		}
+
+		id, err := strconv.ParseInt(form.PushMirrorID, 10, 64)
+		if err != nil {
+			ctx.ServerError("UpdatePushMirrorIntervalPushMirrorID", err)
+			return
+		}
+		m := &repo_model.PushMirror{
+			ID:       id,
+			Interval: interval,
+		}
+		if err := repo_model.UpdatePushMirrorInterval(ctx, m); err != nil {
+			ctx.ServerError("UpdatePushMirrorInterval", err)
+			return
+		}
+		// Background why we are adding it to Queue
+		// If we observed its implementation in the context of `push-mirror-sync` where it
+		// is evident that pushing to the queue is necessary for updates.
+		// So, there are updates within the given interval, it is necessary to update the queue accordingly.
+		mirror_service.AddPushMirrorToQueue(m.ID)
+		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-remove":
@@ -361,12 +404,19 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
+		remoteAddress, err := util.SanitizeURL(form.PushMirrorAddress)
+		if err != nil {
+			ctx.ServerError("SanitizeURL", err)
+			return
+		}
+
 		m := &repo_model.PushMirror{
-			RepoID:       repo.ID,
-			Repo:         repo,
-			RemoteName:   fmt.Sprintf("remote_mirror_%s", remoteSuffix),
-			SyncOnCommit: form.PushMirrorSyncOnCommit,
-			Interval:     interval,
+			RepoID:        repo.ID,
+			Repo:          repo,
+			RemoteName:    fmt.Sprintf("remote_mirror_%s", remoteSuffix),
+			SyncOnCommit:  form.PushMirrorSyncOnCommit,
+			Interval:      interval,
+			RemoteAddress: remoteAddress,
 		}
 		if err := repo_model.InsertPushMirror(ctx, m); err != nil {
 			ctx.ServerError("InsertPushMirror", err)
@@ -763,7 +813,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := models.CancelRepositoryTransfer(ctx.Repo.Repository); err != nil {
+		if err := models.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
 			ctx.ServerError("CancelRepositoryTransfer", err)
 			return
 		}
@@ -827,7 +877,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repo_model.SetArchiveRepoState(repo, true); err != nil {
+		if err := repo_model.SetArchiveRepoState(ctx, repo, true); err != nil {
 			log.Error("Tried to archive a repo: %s", err)
 			ctx.Flash.Error(ctx.Tr("repo.settings.archive.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
@@ -845,7 +895,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repo_model.SetArchiveRepoState(repo, false); err != nil {
+		if err := repo_model.SetArchiveRepoState(ctx, repo, false); err != nil {
 			log.Error("Tried to unarchive a repo: %s", err)
 			ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")

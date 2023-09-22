@@ -22,7 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // ErrInvalidAlgorithmType represents an invalid algorithm error.
@@ -336,16 +336,7 @@ func InitSigningKey() error {
 // loadSymmetricKey checks if the configured secret is valid.
 // If it is not valid, it will return an error.
 func loadSymmetricKey() (any, error) {
-	key := make([]byte, 32)
-	n, err := base64.RawURLEncoding.Decode(key, []byte(setting.OAuth2.JWTSecretBase64))
-	if err != nil {
-		return nil, err
-	}
-	if n != 32 {
-		return nil, fmt.Errorf("JWT secret must be 32 bytes long")
-	}
-
-	return key, nil
+	return util.Base64FixedDecode(base64.RawURLEncoding, []byte(setting.OAuth2.JWTSecretBase64), 32)
 }
 
 // loadOrCreateAsymmetricKey checks if the configured private key exists.

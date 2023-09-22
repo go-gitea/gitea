@@ -1,7 +1,7 @@
 <h4 class="ui top attached header">
 	{{.locale.Tr "settings.manage_ssh_keys"}}
 	<div class="ui right">
-		<button id="add-ssh-button" class="ui primary tiny show-panel button" data-panel="#add-ssh-key-panel">
+		<button id="add-ssh-button" class="ui primary tiny show-panel toggle button" data-panel="#add-ssh-key-panel">
 			{{.locale.Tr "settings.add_key"}}
 		</button>
 	</div>
@@ -19,7 +19,7 @@
 				<textarea id="ssh-key-content" name="content" class="js-quick-submit" placeholder="{{.locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
 			</div>
 			<input name="type" type="hidden" value="ssh">
-			<button class="ui green button">
+			<button class="ui primary button">
 				{{.locale.Tr "settings.add_key"}}
 			</button>
 			<button id="cancel-ssh-button" class="ui hide-panel button" data-panel="#add-ssh-key-panel">
@@ -27,40 +27,42 @@
 			</button>
 		</form>
 	</div>
-	<div class="ui key list gt-mt-0">
-		<div class="item">
-			{{.locale.Tr "settings.ssh_desc"}}
+	<div id="keys-ssh" class="flex-list">
+		<div class="flex-item">
+			<p>
+				{{.locale.Tr "settings.ssh_desc"}}<br>
+				{{.locale.Tr "settings.ssh_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/connecting-to-github-with-ssh" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/troubleshooting-ssh" | Str2html}}
+			</p>
 		</div>
 		{{if .DisableSSH}}
-			<div class="item">
+			<div class="flex-item">
 				{{.locale.Tr "settings.ssh_signonly"}}
 			</div>
 		{{end}}
 		{{range $index, $key := .Keys}}
-			<div class="item">
-				<div class="right floated content">
+			<div class="flex-item">
+				<div class="flex-item-leading">
+					<span class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{$.locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
+				</div>
+				<div class="flex-item-main">
+						{{if .Verified}}
+							<div class="flex-item-title flex-text-block" data-tooltip-content="{{$.locale.Tr "settings.ssh_key_verified_long"}}">{{svg "octicon-verified"}}{{$.locale.Tr "settings.ssh_key_verified"}}</div>
+						{{end}}
+						<div class="flex-item-title">{{.Name}}</div>
+						<div class="flex-item-body">
+								{{.Fingerprint}}
+						</div>
+						<div class="flex-item-body">
+								<i>{{$.locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}} —	{{svg "octicon-info"}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
+						</div>
+				</div>
+				<div class="flex-item-trailing">
 					<button class="ui red tiny button delete-button{{if index $.ExternalKeys $index}} disabled{{end}}" data-modal-id="delete-ssh" data-url="{{$.Link}}/delete?type=ssh" data-id="{{.ID}}"{{if index $.ExternalKeys $index}} title="{{$.locale.Tr "settings.ssh_externally_managed"}}"{{end}}>
 						{{$.locale.Tr "settings.delete_key"}}
 					</button>
 					{{if and (not .Verified) (ne $.VerifyingFingerprint .Fingerprint)}}
 						<a class="ui primary tiny button" href="{{$.Link}}?verify_ssh={{.Fingerprint}}">{{$.locale.Tr "settings.ssh_key_verify"}}</a>
 					{{end}}
-
-				</div>
-				<div class="left floated content">
-					<span class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{$.locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
-				</div>
-				<div class="content">
-						{{if .Verified}}
-							<span data-tooltip-content="{{$.locale.Tr "settings.ssh_key_verified_long"}}">{{svg "octicon-verified"}} <strong>{{$.locale.Tr "settings.ssh_key_verified"}}</strong></span>
-						{{end}}
-						<strong>{{.Name}}</strong>
-						<div class="print meta">
-								{{.Fingerprint}}
-						</div>
-						<div class="activity meta">
-								<i>{{$.locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}} —	{{svg "octicon-info"}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
-						</div>
 				</div>
 			</div>
 			{{if and (not .Verified) (eq $.VerifyingFingerprint .Fingerprint)}}
@@ -85,7 +87,7 @@
 							<textarea id="ssh-key-signature" name="signature" class="js-quick-submit" placeholder="{{$.locale.Tr "settings.key_signature_ssh_placeholder"}}" required>{{$.signature}}</textarea>
 						</div>
 						<input name="type" type="hidden" value="verify_ssh">
-						<button class="ui green button">
+						<button class="ui primary button">
 							{{$.locale.Tr "settings.ssh_key_verify"}}
 						</button>
 						<a class="ui red button" href="{{$.Link}}">
@@ -96,17 +98,14 @@
 			{{end}}
 		{{end}}
 	</div>
-</div>
-<br>
-<p>{{.locale.Tr "settings.ssh_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/connecting-to-github-with-ssh" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/troubleshooting-ssh" | Str2html}}</p>
-
-<div class="ui g-modal-confirm delete modal" id="delete-ssh">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{.locale.Tr "settings.ssh_key_deletion"}}
+	<div class="ui g-modal-confirm delete modal" id="delete-ssh">
+		<div class="header">
+			{{svg "octicon-trash"}}
+			{{.locale.Tr "settings.ssh_key_deletion"}}
+		</div>
+		<div class="content">
+			<p>{{.locale.Tr "settings.ssh_key_deletion_desc"}}</p>
+		</div>
+		{{template "base/modal_actions_confirm" .}}
 	</div>
-	<div class="content">
-		<p>{{.locale.Tr "settings.ssh_key_deletion_desc"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
 </div>

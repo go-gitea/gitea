@@ -1,4 +1,3 @@
-@import "../chroma/base.css";
 @import "../chroma/dark.css";
 @import "../codemirror/dark.css";
 
@@ -212,7 +211,7 @@
   --color-button: #1e252e;
   --color-code-bg: #222733;
   --color-code-sidebar-bg: #232834;
-  --color-shadow: #00000060;
+  --color-shadow: #00000058;
   --color-secondary-bg: #2a2e3a;
   --color-text-focus: #fff;
   --color-expand-button: #3c404d;
@@ -234,6 +233,7 @@
   --color-accent: var(--color-primary-light-1);
   --color-small-accent: var(--color-primary-light-5);
   --color-active-line: #534d1b;
+  --color-overlay-backdrop: #080808c0;
   accent-color: var(--color-accent);
   color-scheme: dark;
 }

@@ -16,7 +16,7 @@
 				</span>
 				{{else}}
 				<a class="timeline-avatar" {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>
-					{{avatar $.Context .Issue.Poster 40}}
+					{{ctx.AvatarUtils.Avatar .Issue.Poster 40}}
 				</a>
 				{{end}}
 				<div class="content comment-container">
@@ -35,7 +35,7 @@
 								</span>
 							{{else}}
 								<a class="inline-timeline-avatar" href="{{.Issue.Poster.HomeLink}}">
-									{{avatar $.Context .Issue.Poster 24}}
+									{{ctx.AvatarUtils.Avatar .Issue.Poster 24}}
 								</a>
 								<span class="text grey muted-links">
 									{{template "shared/user/authorlink" .Issue.Poster}}
@@ -44,18 +44,7 @@
 							{{end}}
 						</div>
 						<div class="comment-header-right actions gt-df gt-ac">
-							{{if gt .Issue.ShowRole 0}}
-								{{if (.Issue.ShowRole.HasRole "Writer")}}
-									<div class="ui basic label role-label">
-										{{$.locale.Tr "repo.issues.collaborator"}}
-									</div>
-								{{end}}
-								{{if (.Issue.ShowRole.HasRole "Owner")}}
-									<div class="ui basic label role-label">
-										{{$.locale.Tr "repo.issues.owner"}}
-									</div>
-								{{end}}
-							{{end}}
+							{{template "repo/issue/view_content/show_role" dict "ShowRole" .Issue.ShowRole "IgnorePoster" true}}
 							{{if not $.Repository.IsArchived}}
 								{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
 								{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" .Issue "delete" false "issue" true "diff" false "IsCommentPoster" $.IsIssuePoster}}
@@ -93,7 +82,7 @@
 				{{if and (or .IsRepoAdmin .HasIssuesOrPullsWritePermission (not .Issue.IsLocked)) (not .Repository.IsArchived)}}
 				<div class="timeline-item comment form">
 					<a class="timeline-avatar" href="{{.SignedUser.HomeLink}}">
-						{{avatar $.Context .SignedUser 40}}
+						{{ctx.AvatarUtils.Avatar .SignedUser 40}}
 					</a>
 					<div class="content">
 						<form class="ui segment form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
@@ -103,7 +92,7 @@
 								<div class="text right">
 									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 										{{if .Issue.IsClosed}}
-											<button id="status-button" class="ui green basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" name="status" value="reopen">
+											<button id="status-button" class="ui primary basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" name="status" value="reopen">
 												{{.locale.Tr "repo.issues.reopen_issue"}}
 											</button>
 										{{else}}
@@ -116,7 +105,7 @@
 											</button>
 										{{end}}
 									{{end}}
-									<button class="ui green button" tabindex="5">
+									<button class="ui primary button" tabindex="5">
 										{{.locale.Tr "repo.issues.create_comment"}}
 									</button>
 								</div>

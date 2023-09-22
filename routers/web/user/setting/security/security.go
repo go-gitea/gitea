@@ -48,27 +48,25 @@ func DeleteAccountLink(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": setting.AppSubURL + "/user/settings/security",
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
 }
 
 func loadSecurityData(ctx *context.Context) {
-	enrolled, err := auth_model.HasTwoFactorByUID(ctx.Doer.ID)
+	enrolled, err := auth_model.HasTwoFactorByUID(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("SettingsTwoFactor", err)
 		return
 	}
 	ctx.Data["TOTPEnrolled"] = enrolled
 
-	credentials, err := auth_model.GetWebAuthnCredentialsByUID(ctx.Doer.ID)
+	credentials, err := auth_model.GetWebAuthnCredentialsByUID(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
 		return
 	}
 	ctx.Data["WebAuthnCredentials"] = credentials
 
-	tokens, err := auth_model.ListAccessTokens(auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID})
+	tokens, err := auth_model.ListAccessTokens(ctx, auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID})
 	if err != nil {
 		ctx.ServerError("ListAccessTokens", err)
 		return
@@ -115,7 +113,7 @@ func loadSecurityData(ctx *context.Context) {
 	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
 	ctx.Data["OAuth2Providers"] = oauth2Providers
 
-	openid, err := user_model.GetUserOpenIDs(ctx.Doer.ID)
+	openid, err := user_model.GetUserOpenIDs(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetUserOpenIDs", err)
 		return

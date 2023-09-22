@@ -4,9 +4,11 @@
 package task
 
 import (
+	"context"
 	"fmt"
 
 	admin_model "code.gitea.io/gitea/models/admin"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
@@ -14,22 +16,22 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/queue"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // taskQueue is a global queue of tasks
 var taskQueue *queue.WorkerPoolQueue[*admin_model.Task]
 
 // Run a task
-func Run(t *admin_model.Task) error {
+func Run(ctx context.Context, t *admin_model.Task) error {
 	switch t.Type {
 	case structs.TaskTypeMigrateRepo:
-		return runMigrateTask(t)
+		return runMigrateTask(ctx, t)
 	default:
 		return fmt.Errorf("Unknown task type: %d", t.Type)
 	}
@@ -47,7 +49,7 @@ func Init() error {
 
 func handler(items ...*admin_model.Task) []*admin_model.Task {
 	for _, task := range items {
-		if err := Run(task); err != nil {
+		if err := Run(db.DefaultContext, task); err != nil {
 			log.Error("Run task failed: %v", err)
 		}
 	}
@@ -55,8 +57,8 @@ func handler(items ...*admin_model.Task) []*admin_model.Task {
 }
 
 // MigrateRepository add migration repository to task
-func MigrateRepository(doer, u *user_model.User, opts base.MigrateOptions) error {
-	task, err := CreateMigrateTask(doer, u, opts)
+func MigrateRepository(ctx context.Context, doer, u *user_model.User, opts base.MigrateOptions) error {
+	task, err := CreateMigrateTask(ctx, doer, u, opts)
 	if err != nil {
 		return err
 	}
@@ -65,7 +67,7 @@ func MigrateRepository(doer, u *user_model.User, opts base.MigrateOptions) error
 }
 
 // CreateMigrateTask creates a migrate task
-func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*admin_model.Task, error) {
+func CreateMigrateTask(ctx context.Context, doer, u *user_model.User, opts base.MigrateOptions) (*admin_model.Task, error) {
 	// encrypt credentials for persistence
 	var err error
 	opts.CloneAddrEncrypted, err = secret.EncryptSecret(setting.SecretKey, opts.CloneAddr)
@@ -96,11 +98,11 @@ func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*adm
 		PayloadContent: string(bs),
 	}
 
-	if err := admin_model.CreateTask(task); err != nil {
+	if err := admin_model.CreateTask(ctx, task); err != nil {
 		return nil, err
 	}
 
-	repo, err := repo_module.CreateRepository(doer, u, repo_module.CreateRepoOptions{
+	repo, err := repo_service.CreateRepositoryDirectly(ctx, doer, u, repo_service.CreateRepoOptions{
 		Name:           opts.RepoName,
 		Description:    opts.Description,
 		OriginalURL:    opts.OriginalURL,
@@ -112,7 +114,7 @@ func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*adm
 	if err != nil {
 		task.EndTime = timeutil.TimeStampNow()
 		task.Status = structs.TaskStatusFailed
-		err2 := task.UpdateCols("end_time", "status")
+		err2 := task.UpdateCols(ctx, "end_time", "status")
 		if err2 != nil {
 			log.Error("UpdateCols Failed: %v", err2.Error())
 		}
@@ -120,9 +122,33 @@ func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*adm
 	}
 
 	task.RepoID = repo.ID
-	if err = task.UpdateCols("repo_id"); err != nil {
+	if err = task.UpdateCols(ctx, "repo_id"); err != nil {
 		return nil, err
 	}
 
 	return task, nil
+}
+
+// RetryMigrateTask retry a migrate task
+func RetryMigrateTask(ctx context.Context, repoID int64) error {
+	migratingTask, err := admin_model.GetMigratingTask(ctx, repoID)
+	if err != nil {
+		log.Error("GetMigratingTask: %v", err)
+		return err
+	}
+	if migratingTask.Status == structs.TaskStatusQueued || migratingTask.Status == structs.TaskStatusRunning {
+		return nil
+	}
+
+	// TODO Need to removing the storage/database garbage brought by the failed task
+
+	// Reset task status and messages
+	migratingTask.Status = structs.TaskStatusQueued
+	migratingTask.Message = ""
+	if err = migratingTask.UpdateCols(ctx, "status", "message"); err != nil {
+		log.Error("task.UpdateCols failed: %v", err)
+		return err
+	}
+
+	return taskQueue.Push(migratingTask)
 }

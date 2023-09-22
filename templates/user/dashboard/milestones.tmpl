@@ -7,7 +7,7 @@
 				<div class="ui secondary vertical filter menu gt-bg-transparent">
 					<div class="item">
 						{{.locale.Tr "home.issues.in_your_repos"}}
-						<strong class="ui right">{{.Total}}</strong>
+						<strong>{{.Total}}</strong>
 					</div>
 					<div class="divider"></div>
 					{{range .Repos}}
@@ -59,8 +59,8 @@
 					<div class="list-header-sort ui dropdown type jump item">
 						<span class="text">
 							{{.locale.Tr "repo.issues.filter_sort"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active {{end}}item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=closestduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.closest_due_date"}}</a>
 							<a class="{{if eq .SortType "furthestduedate"}}active {{end}}item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=furthestduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.furthest_due_date"}}</a>

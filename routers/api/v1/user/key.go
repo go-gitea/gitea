@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -31,7 +30,7 @@ func appendPrivateInformation(ctx std_ctx.Context, apiKey *api.PublicKey, key *a
 		if defaultUser.ID == key.OwnerID {
 			apiKey.Owner = convert.ToUser(ctx, defaultUser, defaultUser)
 		} else {
-			user, err := user_model.GetUserByID(db.DefaultContext, key.OwnerID)
+			user, err := user_model.GetUserByID(ctx, key.OwnerID)
 			if err != nil {
 				return apiKey, err
 			}
@@ -151,6 +150,8 @@ func ListPublicKeys(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PublicKeyList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listPublicKeys(ctx, ctx.ContextUser)
 }

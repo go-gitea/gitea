@@ -14,11 +14,11 @@ import (
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/notification"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	debian_module "code.gitea.io/gitea/modules/packages/debian"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
 	debian_service "code.gitea.io/gitea/services/packages/debian"
 )
@@ -30,7 +30,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 }
 
 func GetRepositoryKey(ctx *context.Context) {
-	_, pub, err := debian_service.GetOrCreateKeyPair(ctx.Package.Owner.ID)
+	_, pub, err := debian_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -187,7 +187,7 @@ func UploadPackageFile(ctx *context.Context) {
 	)
 	if err != nil {
 		switch err {
-		case packages_model.ErrDuplicatePackageVersion:
+		case packages_model.ErrDuplicatePackageVersion, packages_model.ErrDuplicatePackageFile:
 			apiError(ctx, http.StatusBadRequest, err)
 		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
 			apiError(ctx, http.StatusForbidden, err)
@@ -296,7 +296,7 @@ func DeletePackageFile(ctx *context.Context) {
 	}
 
 	if pd != nil {
-		notification.NotifyPackageDelete(ctx, ctx.Doer, pd)
+		notify_service.PackageDelete(ctx, ctx.Doer, pd)
 	}
 
 	if err := debian_service.BuildSpecificRepositoryFiles(ctx, ctx.Package.Owner.ID, distribution, component, architecture); err != nil {

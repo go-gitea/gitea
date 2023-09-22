@@ -6,9 +6,9 @@
 		{{template "repo/code/recently_pushed_new_branches" .}}
 		{{if and (not .HideRepoInfo) (not .IsBlame)}}
 		<div class="ui repo-description">
-			<div id="repo-desc">
+			<div id="repo-desc" class="gt-font-16">
 				{{$description := .Repository.DescriptionHTML $.Context}}
-				{{if $description}}<span class="description">{{$description}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{.locale.Tr "repo.no_desc"}}</span>{{end}}
+				{{if $description}}<span class="description">{{$description | RenderCodeBlock}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{.locale.Tr "repo.no_desc"}}</span>{{end}}
 				<a class="link" href="{{.Repository.Website}}">{{.Repository.Website}}</a>
 			</div>
 			{{if .RepoSearchEnabled}}
@@ -18,7 +18,7 @@
 							<div class="ui small action input{{if .CodeIndexerUnavailable}} disabled left icon{{end}}"{{if .CodeIndexerUnavailable}} data-tooltip-content="{{.locale.Tr "repo.search.code_search_unavailable"}}"{{end}}>
 								<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable}} disabled{{end}} placeholder="{{.locale.Tr "repo.search.search_repo"}}">
 								{{if .CodeIndexerUnavailable}}
-									<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-alert"}}</i>
+									<i class="icon">{{svg "octicon-alert"}}</i>
 								{{end}}
 								<button class="ui small icon button"{{if .CodeIndexerUnavailable}} disabled{{end}} type="submit">
 									{{svg "octicon-search"}}
@@ -70,7 +70,7 @@
 					{{if ne .Repository.ID .BaseRepo.ID}}
 						{{$cmpBranch = printf "%s/%s:" (.Repository.OwnerName|PathEscape) (.Repository.Name|PathEscape)}}
 					{{end}}
-					{{$cmpBranch = printf "%s%s" $cmpBranch (.BranchName|PathEscapeSegments)}}
+					{{$cmpBranch = print $cmpBranch (.BranchName|PathEscapeSegments)}}
 					{{$compareLink := printf "%s/compare/%s...%s" .BaseRepo.Link (.BaseRepo.DefaultBranch|PathEscapeSegments) $cmpBranch}}
 					<a id="new-pull-request" role="button" class="ui compact basic button" href="{{$compareLink}}"
 						data-tooltip-content="{{if .PullRequestCtx.Allowed}}{{.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{.locale.Tr "action.compare_branch"}}{{end}}">
@@ -113,7 +113,7 @@
 					<span class="breadcrumb repo-path gt-ml-2">
 						<a class="section" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}" title="{{.Repository.Name}}">{{StringUtils.EllipsisString .Repository.Name 30}}</a>
 						{{- range $i, $v := .TreeNames -}}
-							<span class="divider">/</span>
+							<span class="breadcrumb-divider">/</span>
 							{{- if eq $i $l -}}
 								<span class="active section" title="{{$v}}">{{StringUtils.EllipsisString $v 30}}</span>
 							{{- else -}}

@@ -3,7 +3,7 @@
 		<div class="item">
 			<div class="ui floating dropdown jump">
 				<span class="text truncated-item-container">
-					{{avatar $.Context .ContextUser}}
+					{{ctx.AvatarUtils.Avatar .ContextUser}}
 					<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
 					<span class="org-visibility">
 						{{if .ContextUser.Visibility.IsLimited}}<div class="ui basic tiny horizontal label">{{.locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
@@ -11,13 +11,13 @@
 					</span>
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</span>
-				<div class="context user overflow menu" tabindex="-1">
+				<div class="context user overflow menu">
 					<div class="ui header">
 						{{.locale.Tr "home.switch_dashboard_context"}}
 					</div>
 					<div class="scrolling menu items">
 						<a class="{{if eq .ContextUser.ID .SignedUser.ID}}active selected{{end}} item truncated-item-container" href="{{AppSubUrl}}/{{if .PageIsIssues}}issues{{else if .PageIsPulls}}pulls{{else if .PageIsMilestonesDashboard}}milestones{{end}}">
-							{{avatar $.Context .SignedUser}}
+							{{ctx.AvatarUtils.Avatar .SignedUser}}
 							<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
 							<span class="org-visibility">
 								{{if .SignedUser.Visibility.IsLimited}}<div class="ui basic tiny horizontal label">{{$.locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
@@ -26,7 +26,7 @@
 						</a>
 						{{range .Orgs}}
 							<a class="{{if eq $.ContextUser.ID .ID}}active selected{{end}} item truncated-item-container" title="{{.Name}}" href="{{.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}">
-								{{avatar $.Context .}}
+								{{ctx.AvatarUtils.Avatar .}}
 								<span class="truncated-item-name">{{.ShortName 40}}</span>
 								<span class="org-visibility">
 									{{if .Visibility.IsLimited}}<div class="ui basic tiny horizontal label">{{$.locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
@@ -53,9 +53,9 @@
 						{{else}}
 							{{.locale.Tr "org.teams"}}
 						{{end}}
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					</span>
-					<div class="context user overflow menu" tabindex="-1">
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					<div class="context user overflow menu">
 						<div class="ui header">
 							{{.locale.Tr "home.filter_by_team_repositories"}}
 						</div>
@@ -97,7 +97,7 @@
 			</a>
 			{{end}}
 			<div class="item">
-				<a class="ui primary basic button" href="{{.ContextUser.HomeLink}}" title='{{.locale.Tr "home.view_home" .ContextUser.Name}}'>
+				<a class="ui primary basic button" href="{{.ContextUser.HomeLink}}" title="{{.locale.Tr "home.view_home" .ContextUser.Name}}">
 					{{.locale.Tr "home.view_home" (.ContextUser.ShortName 40)}}
 				</a>
 			</div>

@@ -6,7 +6,7 @@
 			{{template "repo/issue/navbar" .}}
 			{{if and (or .CanWriteIssues .CanWritePulls) .PageIsEditMilestone}}
 				<div class="ui right floated secondary menu">
-					<a class="ui green button" href="{{$.RepoLink}}/milestones/new">{{.locale.Tr "repo.milestones.new"}}</a>
+					<a class="ui primary button" href="{{$.RepoLink}}/milestones/new">{{.locale.Tr "repo.milestones.new"}}</a>
 				</div>
 			{{end}}
 		</div>
@@ -21,9 +21,8 @@
 			{{end}}
 		</h2>
 		{{template "base/alert" .}}
-		<form class="ui form grid" action="{{.Link}}" method="post">
+		<form class="ui form" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
-			<div class="twelve wide column">
 				<div class="field {{if .Err_Title}}error{{end}}">
 					<label>{{.locale.Tr "repo.milestones.title"}}</label>
 					<input name="title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{.title}}" autofocus required maxlength="50">
@@ -39,23 +38,20 @@
 					<label>{{.locale.Tr "repo.milestones.desc"}}</label>
 					<textarea name="content">{{.content}}</textarea>
 				</div>
-			</div>
-			<div class="ui container">
 				<div class="divider"></div>
-				<div class="ui right">
+				<div class="gt-text-right">
 					{{if .PageIsEditMilestone}}
 						<a class="ui primary basic button" href="{{.RepoLink}}/milestones">
 							{{.locale.Tr "repo.milestones.cancel"}}
 						</a>
-						<button class="ui green button">
+						<button class="ui primary button">
 							{{.locale.Tr "repo.milestones.modify"}}
 						</button>
 					{{else}}
-						<button class="ui green button">
+						<button class="ui primary button">
 							{{.locale.Tr "repo.milestones.create"}}
 						</button>
 					{{end}}
-				</div>
 			</div>
 		</form>
 	</div>

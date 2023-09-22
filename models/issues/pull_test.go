@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -59,7 +60,7 @@ func TestPullRequest_LoadHeadRepo(t *testing.T) {
 
 func TestPullRequestsNewest(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	prs, count, err := issues_model.PullRequests(1, &issues_model.PullRequestsOptions{
+	prs, count, err := issues_model.PullRequests(db.DefaultContext, 1, &issues_model.PullRequestsOptions{
 		ListOptions: db.ListOptions{
 			Page: 1,
 		},
@@ -88,14 +89,14 @@ func TestLoadRequestedReviewers(t *testing.T) {
 	user1, err := user_model.GetUserByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 
-	comment, err := issues_model.AddReviewRequest(issue, user1, &user_model.User{})
+	comment, err := issues_model.AddReviewRequest(db.DefaultContext, issue, user1, &user_model.User{})
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)
 
 	assert.NoError(t, pull.LoadRequestedReviewers(db.DefaultContext))
 	assert.Len(t, pull.RequestedReviewers, 1)
 
-	comment, err = issues_model.RemoveReviewRequest(issue, user1, &user_model.User{})
+	comment, err = issues_model.RemoveReviewRequest(db.DefaultContext, issue, user1, &user_model.User{})
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)
 
@@ -106,7 +107,7 @@ func TestLoadRequestedReviewers(t *testing.T) {
 
 func TestPullRequestsOldest(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	prs, count, err := issues_model.PullRequests(1, &issues_model.PullRequestsOptions{
+	prs, count, err := issues_model.PullRequests(db.DefaultContext, 1, &issues_model.PullRequestsOptions{
 		ListOptions: db.ListOptions{
 			Page: 1,
 		},
@@ -148,7 +149,7 @@ func TestHasUnmergedPullRequestsByHeadInfo(t *testing.T) {
 
 func TestGetUnmergedPullRequestsByHeadInfo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(1, "branch2")
+	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(db.DefaultContext, 1, "branch2")
 	assert.NoError(t, err)
 	assert.Len(t, prs, 1)
 	for _, pr := range prs {
@@ -159,7 +160,7 @@ func TestGetUnmergedPullRequestsByHeadInfo(t *testing.T) {
 
 func TestGetUnmergedPullRequestsByBaseInfo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(1, "master")
+	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(db.DefaultContext, 1, "master")
 	assert.NoError(t, err)
 	assert.Len(t, prs, 1)
 	pr := prs[0]
@@ -242,13 +243,13 @@ func TestPullRequestList_LoadAttributes(t *testing.T) {
 		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}),
 		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}),
 	}
-	assert.NoError(t, issues_model.PullRequestList(prs).LoadAttributes())
+	assert.NoError(t, issues_model.PullRequestList(prs).LoadAttributes(db.DefaultContext))
 	for _, pr := range prs {
 		assert.NotNil(t, pr.Issue)
 		assert.Equal(t, pr.IssueID, pr.Issue.ID)
 	}
 
-	assert.NoError(t, issues_model.PullRequestList([]*issues_model.PullRequest{}).LoadAttributes())
+	assert.NoError(t, issues_model.PullRequestList([]*issues_model.PullRequest{}).LoadAttributes(db.DefaultContext))
 }
 
 // TODO TestAddTestPullRequestTask
@@ -316,9 +317,9 @@ func TestParseCodeOwnersLine(t *testing.T) {
 		{Line: "# comment", Tokens: []string{}},
 		{Line: "!.* @user1 @org1/team1", Tokens: []string{"!.*", "@user1", "@org1/team1"}},
 		{Line: `.*\\.js @user2 #comment`, Tokens: []string{`.*\.js`, "@user2"}},
-		{Line: `docs/(aws|google|azure)/[^/]*\\.(md|txt) @user3 @org2/team2`, Tokens: []string{`docs/(aws|google|azure)/[^/]*\.(md|txt)`, "@user3", "@org2/team2"}},
-		{Line: `\#path @user3`, Tokens: []string{`#path`, "@user3"}},
-		{Line: `path\ with\ spaces/ @user3`, Tokens: []string{`path with spaces/`, "@user3"}},
+		{Line: `docs/(aws|google|azure)/[^/]*\\.(md|txt) @org3 @org2/team2`, Tokens: []string{`docs/(aws|google|azure)/[^/]*\.(md|txt)`, "@org3", "@org2/team2"}},
+		{Line: `\#path @org3`, Tokens: []string{`#path`, "@org3"}},
+		{Line: `path\ with\ spaces/ @org3`, Tokens: []string{`path with spaces/`, "@org3"}},
 	}
 
 	for _, g := range given {
@@ -334,6 +335,34 @@ func TestGetApprovers(t *testing.T) {
 	// to assert that there are no duplicated approvers.
 	setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly = false
 	approvers := pr.GetApprovers()
-	expected := "Reviewed-by: User Five <user5@example.com>\nReviewed-by: User Six <user6@example.com>\n"
+	expected := "Reviewed-by: User Five <user5@example.com>\nReviewed-by: Org Six <org6@example.com>\n"
 	assert.EqualValues(t, expected, approvers)
+}
+
+func TestMigrate_InsertPullRequests(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	reponame := "repo1"
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	i := &issues_model.Issue{
+		RepoID:   repo.ID,
+		Repo:     repo,
+		Title:    "title1",
+		Content:  "issuecontent1",
+		IsPull:   true,
+		PosterID: owner.ID,
+		Poster:   owner,
+	}
+
+	p := &issues_model.PullRequest{
+		Issue: i,
+	}
+
+	err := issues_model.InsertPullRequests(db.DefaultContext, p)
+	assert.NoError(t, err)
+
+	_ = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{IssueID: i.ID})
+
+	unittest.CheckConsistencyFor(t, &issues_model.Issue{}, &issues_model.PullRequest{})
 }

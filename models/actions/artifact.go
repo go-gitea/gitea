@@ -9,19 +9,21 @@ package actions
 import (
 	"context"
 	"errors"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
 
+// ArtifactStatus is the status of an artifact, uploading, expired or need-delete
+type ArtifactStatus int64
+
 const (
-	// ArtifactStatusUploadPending is the status of an artifact upload that is pending
-	ArtifactStatusUploadPending = 1
-	// ArtifactStatusUploadConfirmed is the status of an artifact upload that is confirmed
-	ArtifactStatusUploadConfirmed = 2
-	// ArtifactStatusUploadError is the status of an artifact upload that is errored
-	ArtifactStatusUploadError = 3
+	ArtifactStatusUploadPending   ArtifactStatus = iota + 1 // 1， ArtifactStatusUploadPending is the status of an artifact upload that is pending
+	ArtifactStatusUploadConfirmed                           // 2， ArtifactStatusUploadConfirmed is the status of an artifact upload that is confirmed
+	ArtifactStatusUploadError                               // 3， ArtifactStatusUploadError is the status of an artifact upload that is errored
+	ArtifactStatusExpired                                   // 4, ArtifactStatusExpired is the status of an artifact that is expired
 )
 
 func init() {
@@ -31,7 +33,7 @@ func init() {
 // ActionArtifact is a file that is stored in the artifact storage.
 type ActionArtifact struct {
 	ID                 int64 `xorm:"pk autoincr"`
-	RunID              int64 `xorm:"index UNIQUE(runid_name)"` // The run id of the artifact
+	RunID              int64 `xorm:"index unique(runid_name_path)"` // The run id of the artifact
 	RunnerID           int64
 	RepoID             int64 `xorm:"index"`
 	OwnerID            int64
@@ -40,27 +42,30 @@ type ActionArtifact struct {
 	FileSize           int64              // The size of the artifact in bytes
 	FileCompressedSize int64              // The size of the artifact in bytes after gzip compression
 	ContentEncoding    string             // The content encoding of the artifact
-	ArtifactPath       string             // The path to the artifact when runner uploads it
-	ArtifactName       string             `xorm:"UNIQUE(runid_name)"` // The name of the artifact when runner uploads it
-	Status             int64              `xorm:"index"`              // The status of the artifact, uploading, expired or need-delete
+	ArtifactPath       string             `xorm:"index unique(runid_name_path)"` // The path to the artifact when runner uploads it
+	ArtifactName       string             `xorm:"index unique(runid_name_path)"` // The name of the artifact when runner uploads it
+	Status             int64              `xorm:"index"`                         // The status of the artifact, uploading, expired or need-delete
 	CreatedUnix        timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix        timeutil.TimeStamp `xorm:"updated index"`
+	ExpiredUnix        timeutil.TimeStamp `xorm:"index"` // The time when the artifact will be expired
 }
 
-// CreateArtifact create a new artifact with task info or get same named artifact in the same run
-func CreateArtifact(ctx context.Context, t *ActionTask, artifactName string) (*ActionArtifact, error) {
+func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPath string, expiredDays int64) (*ActionArtifact, error) {
 	if err := t.LoadJob(ctx); err != nil {
 		return nil, err
 	}
-	artifact, err := getArtifactByArtifactName(ctx, t.Job.RunID, artifactName)
+	artifact, err := getArtifactByNameAndPath(ctx, t.Job.RunID, artifactName, artifactPath)
 	if errors.Is(err, util.ErrNotExist) {
 		artifact := &ActionArtifact{
-			RunID:     t.Job.RunID,
-			RunnerID:  t.RunnerID,
-			RepoID:    t.RepoID,
-			OwnerID:   t.OwnerID,
-			CommitSHA: t.CommitSHA,
-			Status:    ArtifactStatusUploadPending,
+			ArtifactName: artifactName,
+			ArtifactPath: artifactPath,
+			RunID:        t.Job.RunID,
+			RunnerID:     t.RunnerID,
+			RepoID:       t.RepoID,
+			OwnerID:      t.OwnerID,
+			CommitSHA:    t.CommitSHA,
+			Status:       int64(ArtifactStatusUploadPending),
+			ExpiredUnix:  timeutil.TimeStamp(time.Now().Unix() + 3600*24*expiredDays),
 		}
 		if _, err := db.GetEngine(ctx).Insert(artifact); err != nil {
 			return nil, err
@@ -72,9 +77,9 @@ func CreateArtifact(ctx context.Context, t *ActionTask, artifactName string) (*A
 	return artifact, nil
 }
 
-func getArtifactByArtifactName(ctx context.Context, runID int64, name string) (*ActionArtifact, error) {
+func getArtifactByNameAndPath(ctx context.Context, runID int64, name, fpath string) (*ActionArtifact, error) {
 	var art ActionArtifact
-	has, err := db.GetEngine(ctx).Where("run_id = ? AND artifact_name = ?", runID, name).Get(&art)
+	has, err := db.GetEngine(ctx).Where("run_id = ? AND artifact_name = ? AND artifact_path = ?", runID, name, fpath).Get(&art)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -109,14 +114,56 @@ func ListArtifactsByRunID(ctx context.Context, runID int64) ([]*ActionArtifact, 
 	return arts, db.GetEngine(ctx).Where("run_id=?", runID).Find(&arts)
 }
 
+// ListArtifactsByRunIDAndArtifactName returns an artifacts of a run by artifact name
+func ListArtifactsByRunIDAndArtifactName(ctx context.Context, runID int64, artifactName string) ([]*ActionArtifact, error) {
+	arts := make([]*ActionArtifact, 0, 10)
+	return arts, db.GetEngine(ctx).Where("run_id=? AND artifact_name=?", runID, artifactName).Find(&arts)
+}
+
 // ListUploadedArtifactsByRunID returns all uploaded artifacts of a run
 func ListUploadedArtifactsByRunID(ctx context.Context, runID int64) ([]*ActionArtifact, error) {
 	arts := make([]*ActionArtifact, 0, 10)
 	return arts, db.GetEngine(ctx).Where("run_id=? AND status=?", runID, ArtifactStatusUploadConfirmed).Find(&arts)
 }
 
+// ActionArtifactMeta is the meta data of an artifact
+type ActionArtifactMeta struct {
+	ArtifactName string
+	FileSize     int64
+	Status       int64
+}
+
+// ListUploadedArtifactsMeta returns all uploaded artifacts meta of a run
+func ListUploadedArtifactsMeta(ctx context.Context, runID int64) ([]*ActionArtifactMeta, error) {
+	arts := make([]*ActionArtifactMeta, 0, 10)
+	return arts, db.GetEngine(ctx).Table("action_artifact").
+		Where("run_id=? AND (status=? OR status=?)", runID, ArtifactStatusUploadConfirmed, ArtifactStatusExpired).
+		GroupBy("artifact_name").
+		Select("artifact_name, sum(file_size) as file_size, max(status) as status").
+		Find(&arts)
+}
+
 // ListArtifactsByRepoID returns all artifacts of a repo
 func ListArtifactsByRepoID(ctx context.Context, repoID int64) ([]*ActionArtifact, error) {
 	arts := make([]*ActionArtifact, 0, 10)
 	return arts, db.GetEngine(ctx).Where("repo_id=?", repoID).Find(&arts)
+}
+
+// ListArtifactsByRunIDAndName returns artifacts by name of a run
+func ListArtifactsByRunIDAndName(ctx context.Context, runID int64, name string) ([]*ActionArtifact, error) {
+	arts := make([]*ActionArtifact, 0, 10)
+	return arts, db.GetEngine(ctx).Where("run_id=? AND artifact_name=?", runID, name).Find(&arts)
+}
+
+// ListNeedExpiredArtifacts returns all need expired artifacts but not deleted
+func ListNeedExpiredArtifacts(ctx context.Context) ([]*ActionArtifact, error) {
+	arts := make([]*ActionArtifact, 0, 10)
+	return arts, db.GetEngine(ctx).
+		Where("expired_unix < ? AND status = ?", timeutil.TimeStamp(time.Now().Unix()), ArtifactStatusUploadConfirmed).Find(&arts)
+}
+
+// SetArtifactExpired sets an artifact to expired
+func SetArtifactExpired(ctx context.Context, artifactID int64) error {
+	_, err := db.GetEngine(ctx).Where("id=? AND status = ?", artifactID, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: int64(ArtifactStatusExpired)})
+	return err
 }

@@ -128,7 +128,7 @@ func CreateUser(ctx *context.APIContext) {
 		u.UpdatedUnix = u.CreatedUnix
 	}
 
-	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, u, overwriteDefault); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) ||
 			user_model.IsErrEmailAlreadyUsed(err) ||
 			db.IsErrNameReserved(err) ||
@@ -312,6 +312,8 @@ func DeleteUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
@@ -448,7 +450,7 @@ func SearchUsers(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	users, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
+	users, maxResults, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		Type:        user_model.UserTypeIndividual,
 		LoginName:   ctx.FormTrim("login_name"),

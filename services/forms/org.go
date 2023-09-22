@@ -38,6 +38,7 @@ func (f *CreateOrgForm) Validate(req *http.Request, errs binding.Errors) binding
 type UpdateOrgSettingForm struct {
 	Name                      string `binding:"Required;Username;MaxSize(40)" locale:"org.org_name_holder"`
 	FullName                  string `binding:"MaxSize(100)"`
+	Email                     string `binding:"MaxSize(255)"`
 	Description               string `binding:"MaxSize(255)"`
 	Website                   string `binding:"ValidUrl;MaxSize(255)"`
 	Location                  string `binding:"MaxSize(50)"`

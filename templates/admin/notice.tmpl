@@ -17,7 +17,7 @@
 			<tbody>
 				{{range .Notices}}
 					<tr>
-						<td><div class="ui checkbox gt-db" data-id="{{.ID}}"><input type="checkbox"></div></td>
+						<td><div class="ui checkbox gt-df" data-id="{{.ID}}"><input type="checkbox"></div></td>
 						<td>{{.ID}}</td>
 						<td>{{$.locale.Tr .TrStr}}</td>
 						<td class="view-detail auto-ellipsis" style="width: 80%;"><span class="notice-description">{{.Description}}</span></td>
@@ -31,7 +31,7 @@
 						<tr>
 							<th></th>
 							<th colspan="5">
-								<form class="ui right" method="post" action="{{AppSubUrl}}/admin/notices/empty">
+								<form class="gt-float-right" method="post" action="{{AppSubUrl}}/admin/notices/empty">
 									{{.CsrfTokenHtml}}
 									<button type="submit" class="ui red small button">{{.locale.Tr "admin.notices.delete_all"}}</button>
 								</form>

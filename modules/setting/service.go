@@ -46,6 +46,7 @@ var Service = struct {
 	EnableNotifyMail                        bool
 	EnableBasicAuth                         bool
 	EnableReverseProxyAuth                  bool
+	EnableReverseProxyAuthAPI               bool
 	EnableReverseProxyAutoRegister          bool
 	EnableReverseProxyEmail                 bool
 	EnableReverseProxyFullName              bool
@@ -73,6 +74,7 @@ var Service = struct {
 	AllowCrossRepositoryDependencies        bool
 	DefaultAllowOnlyContributorsToTrackTime bool
 	NoReplyAddress                          string
+	UserLocationMapURL                      string
 	EnableUserHeatmap                       bool
 	AutoWatchNewRepos                       bool
 	AutoWatchOnChanges                      bool
@@ -156,6 +158,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.RequireSignInView = sec.Key("REQUIRE_SIGNIN_VIEW").MustBool()
 	Service.EnableBasicAuth = sec.Key("ENABLE_BASIC_AUTHENTICATION").MustBool(true)
 	Service.EnableReverseProxyAuth = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION").MustBool()
+	Service.EnableReverseProxyAuthAPI = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION_API").MustBool()
 	Service.EnableReverseProxyAutoRegister = sec.Key("ENABLE_REVERSE_PROXY_AUTO_REGISTRATION").MustBool()
 	Service.EnableReverseProxyEmail = sec.Key("ENABLE_REVERSE_PROXY_EMAIL").MustBool()
 	Service.EnableReverseProxyFullName = sec.Key("ENABLE_REVERSE_PROXY_FULL_NAME").MustBool()
@@ -185,25 +188,44 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.AllowCrossRepositoryDependencies = sec.Key("ALLOW_CROSS_REPOSITORY_DEPENDENCIES").MustBool(true)
 	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply." + Domain)
+	Service.UserLocationMapURL = sec.Key("USER_LOCATION_MAP_URL").String()
 	Service.EnableUserHeatmap = sec.Key("ENABLE_USER_HEATMAP").MustBool(true)
 	Service.AutoWatchNewRepos = sec.Key("AUTO_WATCH_NEW_REPOS").MustBool(true)
 	Service.AutoWatchOnChanges = sec.Key("AUTO_WATCH_ON_CHANGES").MustBool(false)
-	Service.DefaultUserVisibility = sec.Key("DEFAULT_USER_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
-	Service.DefaultUserVisibilityMode = structs.VisibilityModes[Service.DefaultUserVisibility]
-	Service.AllowedUserVisibilityModes = sec.Key("ALLOWED_USER_VISIBILITY_MODES").Strings(",")
-	if len(Service.AllowedUserVisibilityModes) != 0 {
+	modes := sec.Key("ALLOWED_USER_VISIBILITY_MODES").Strings(",")
+	if len(modes) != 0 {
+		Service.AllowedUserVisibilityModes = []string{}
 		Service.AllowedUserVisibilityModesSlice = []bool{false, false, false}
-		for _, sMode := range Service.AllowedUserVisibilityModes {
-			Service.AllowedUserVisibilityModesSlice[structs.VisibilityModes[sMode]] = true
+		for _, sMode := range modes {
+			if tp, ok := structs.VisibilityModes[sMode]; ok { // remove unsupported modes
+				Service.AllowedUserVisibilityModes = append(Service.AllowedUserVisibilityModes, sMode)
+				Service.AllowedUserVisibilityModesSlice[tp] = true
+			} else {
+				log.Warn("ALLOWED_USER_VISIBILITY_MODES %s is unsupported", sMode)
+			}
 		}
 	}
+
+	if len(Service.AllowedUserVisibilityModes) == 0 {
+		Service.AllowedUserVisibilityModes = []string{"public", "limited", "private"}
+		Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
+	}
+
+	Service.DefaultUserVisibility = sec.Key("DEFAULT_USER_VISIBILITY").String()
+	if Service.DefaultUserVisibility == "" {
+		Service.DefaultUserVisibility = Service.AllowedUserVisibilityModes[0]
+	} else if !Service.AllowedUserVisibilityModesSlice[structs.VisibilityModes[Service.DefaultUserVisibility]] {
+		log.Warn("DEFAULT_USER_VISIBILITY %s is wrong or not in ALLOWED_USER_VISIBILITY_MODES, using first allowed", Service.DefaultUserVisibility)
+		Service.DefaultUserVisibility = Service.AllowedUserVisibilityModes[0]
+	}
+	Service.DefaultUserVisibilityMode = structs.VisibilityModes[Service.DefaultUserVisibility]
 	Service.DefaultOrgVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
 	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[Service.DefaultOrgVisibility]
 	Service.DefaultOrgMemberVisible = sec.Key("DEFAULT_ORG_MEMBER_VISIBLE").MustBool()
 	Service.UserDeleteWithCommentsMaxTime = sec.Key("USER_DELETE_WITH_COMMENTS_MAX_TIME").MustDuration(0)
 	sec.Key("VALID_SITE_URL_SCHEMES").MustString("http,https")
 	Service.ValidSiteURLSchemes = sec.Key("VALID_SITE_URL_SCHEMES").Strings(",")
-	schemes := make([]string, len(Service.ValidSiteURLSchemes))
+	schemes := make([]string, 0, len(Service.ValidSiteURLSchemes))
 	for _, scheme := range Service.ValidSiteURLSchemes {
 		scheme = strings.ToLower(strings.TrimSpace(scheme))
 		if scheme != "" {

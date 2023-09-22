@@ -17,20 +17,21 @@
 			"TextareaName" "content"
 			"TextareaPlaceholder" ($.locale.Tr "repo.diff.comment.placeholder")
 			"DropzoneParentContainer" "form"
+			"DisableAutosize" "true"
 		)}}
 
 		<div class="field footer gt-mx-3">
 			<span class="markup-info">{{svg "octicon-markup"}} {{$.root.locale.Tr "repo.diff.comment.markdown_info"}}</span>
-			<div class="ui right">
+			<div class="gt-text-right">
 				{{if $.reply}}
-					<button class="ui submit green tiny button btn-reply" type="submit">{{$.root.locale.Tr "repo.diff.comment.reply"}}</button>
+					<button class="ui submit primary tiny button btn-reply" type="submit">{{$.root.locale.Tr "repo.diff.comment.reply"}}</button>
 					<input type="hidden" name="reply" value="{{$.reply}}">
 					<input type="hidden" name="single_review" value="true">
 				{{else}}
 					{{if $.root.CurrentReview}}
-						<button name="pending_review" type="submit" class="ui submit green tiny button btn-add-comment">{{$.root.locale.Tr "repo.diff.comment.add_review_comment"}}</button>
+						<button name="pending_review" type="submit" class="ui submit primary tiny button btn-add-comment">{{$.root.locale.Tr "repo.diff.comment.add_review_comment"}}</button>
 					{{else}}
-						<button name="pending_review" type="submit" class="ui submit green tiny button btn-start-review">{{$.root.locale.Tr "repo.diff.comment.start_review"}}</button>
+						<button name="pending_review" type="submit" class="ui submit primary tiny button btn-start-review">{{$.root.locale.Tr "repo.diff.comment.start_review"}}</button>
 						<button name="single_review" value="true" type="submit" class="ui submit tiny basic button btn-add-single">{{$.root.locale.Tr "repo.diff.comment.add_single_comment"}}</button>
 					{{end}}
 				{{end}}

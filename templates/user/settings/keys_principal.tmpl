@@ -10,23 +10,25 @@
 		</div>
 	</h4>
 	<div class="ui attached segment">
-		<div class="ui key list">
-			<div class="item">
+		<div class="flex-list">
+			<div class="flex-item">
 				{{.locale.Tr "settings.principal_desc"}}
 			</div>
 			{{range .Principals}}
-				<div class="item">
-					<div class="right floated content">
+				<div class="flex-item">
+					<div class="flex-item-leading">
+						<span class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{$.locale.Tr "settings.principal_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
+					</div>
+					<div class="flex-item-main">
+						<div class="flex-item-title">{{.Name}}</div>
+						<div class="flex-item-body">
+							<i>{{$.locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}} —  {{svg "octicon-info" 16}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
+						</div>
+					</div>
+					<div class="flex-item-trailing">
 						<button class="ui red tiny button delete-button" data-modal-id="delete-principal" data-url="{{$.Link}}/delete?type=principal" data-id="{{.ID}}">
 							{{$.locale.Tr "settings.delete_key"}}
 						</button>
-					</div>
-					<i class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{$.locale.Tr "settings.principal_state_desc"}}"{{end}}>{{svg "octicon-key" 36}}</i>
-					<div class="content">
-						<strong>{{.Name}}</strong>
-						<div class="activity meta">
-							<i>{{$.locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}} —  {{svg "octicon-info" 16}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
-						</div>
 					</div>
 				</div>
 			{{end}}
@@ -47,7 +49,7 @@
 				</div>
 				<input name="title" type="hidden" value="principal">
 				<input name="type" type="hidden" value="principal">
-				<button class="ui green button">
+				<button class="ui primary button">
 					{{.locale.Tr "settings.add_new_principal"}}
 				</button>
 			</form>

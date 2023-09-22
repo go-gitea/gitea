@@ -30,4 +30,9 @@
 			{{.locale.Tr "repo.executable_file"}}
 		</div>
 	{{end}}
+	{{if .ImageSize}}
+		<div class="file-info-entry">
+			{{.ImageSize}}
+		</div>
+	{{end}}
 </div>

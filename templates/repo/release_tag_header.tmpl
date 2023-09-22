@@ -15,7 +15,7 @@
 			{{end}}
 		</div>
 		{{if and (not .PageIsTagList) .CanCreateRelease}}
-			<a class="ui right small green button" href="{{$.RepoLink}}/releases/new">
+			<a class="ui small primary button" href="{{$.RepoLink}}/releases/new">
 				{{.locale.Tr "repo.release.new_release"}}
 			</a>
 		{{end}}

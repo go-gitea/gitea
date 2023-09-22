@@ -74,6 +74,8 @@ func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 				Stdin:  batchStdinReader,
 				Stdout: batchStdoutWriter,
 				Stderr: &stderr,
+
+				UseContextTimeout: true,
 			})
 		if err != nil {
 			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
@@ -124,6 +126,8 @@ func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 				Stdin:  batchStdinReader,
 				Stdout: batchStdoutWriter,
 				Stderr: &stderr,
+
+				UseContextTimeout: true,
 			})
 		if err != nil {
 			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))

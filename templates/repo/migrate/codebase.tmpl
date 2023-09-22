@@ -62,18 +62,18 @@
 						<div class="ui selection owner dropdown">
 							<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
 							<span class="text truncated-item-container" title="{{.ContextUser.Name}}">
-								{{avatar $.Context .ContextUser 28 "mini"}}
+								{{ctx.AvatarUtils.Avatar .ContextUser 28 "mini"}}
 								<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
 							</span>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu" title="{{.SignedUser.Name}}">
 								<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}">
-									{{avatar $.Context .SignedUser 28 "mini"}}
+									{{ctx.AvatarUtils.Avatar .SignedUser 28 "mini"}}
 									<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
 								</div>
 								{{range .Orgs}}
 									<div class="item truncated-item-container" data-value="{{.ID}}" title="{{.Name}}">
-										{{avatar $.Context . 28 "mini"}}
+										{{ctx.AvatarUtils.Avatar . 28 "mini"}}
 										<span class="truncated-item-name">{{.ShortName 40}}</span>
 									</div>
 								{{end}}
@@ -104,7 +104,7 @@
 
 					<div class="inline field">
 						<label></label>
-						<button class="ui green button">
+						<button class="ui primary button">
 							{{.locale.Tr "repo.migrate_repo"}}
 						</button>
 					</div>

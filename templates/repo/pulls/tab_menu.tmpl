@@ -1,23 +1,26 @@
-<div class="ui top attached pull tabular stackable menu">
-	<a class="item {{if .PageIsPullConversation}}active{{end}}" href="{{.Issue.Link}}">
-		{{svg "octicon-comment-discussion"}}
-		{{$.locale.Tr "repo.pulls.tab_conversation"}}
-		<span class="ui small label">{{.Issue.NumComments}}</span>
-	</a>
-	<a class="item {{if .PageIsPullCommits}}active{{end}}" {{if .NumCommits}}href="{{.Issue.Link}}/commits"{{end}}>
-		{{svg "octicon-git-commit"}}
-		{{$.locale.Tr "repo.pulls.tab_commits"}}
-		<span class="ui small label">{{if .NumCommits}}{{.NumCommits}}{{else}}-{{end}}</span>
-	</a>
-	<a class="item {{if .PageIsPullFiles}}active{{end}}" href="{{.Issue.Link}}/files">
-		{{svg "octicon-diff"}}
-		{{$.locale.Tr "repo.pulls.tab_files"}}
-		<span class="ui small label">{{if .NumFiles}}{{.NumFiles}}{{else}}-{{end}}</span>
-	</a>
-	<span class="item gt-ml-auto gt-pr-0 gt-font-bold gt-df gt-ac gt-gap-3">
-		<span><span class="text green">{{if .Diff.TotalAddition}}+{{.Diff.TotalAddition}}{{end}}</span> <span class="text red">{{if .Diff.TotalDeletion}}-{{.Diff.TotalDeletion}}{{end}}</span></span>
-		<span class="diff-stats-bar">
-			<div class="diff-stats-add-bar" style="width: {{Eval 100 "*" .Diff.TotalAddition "/" "(" .Diff.TotalAddition "+" .Diff.TotalDeletion "+" 0.0 ")"}}%"></div>
+<div class="ui pull tabs container">
+	<div class="ui top attached pull tabular menu">
+		<a class="item {{if .PageIsPullConversation}}active{{end}}" href="{{.Issue.Link}}">
+			{{svg "octicon-comment-discussion"}}
+			{{$.locale.Tr "repo.pulls.tab_conversation"}}
+			<span class="ui small label">{{.Issue.NumComments}}</span>
+		</a>
+		<a class="item {{if .PageIsPullCommits}}active{{end}}" {{if .NumCommits}}href="{{.Issue.Link}}/commits"{{end}}>
+			{{svg "octicon-git-commit"}}
+			{{$.locale.Tr "repo.pulls.tab_commits"}}
+			<span class="ui small label">{{if .NumCommits}}{{.NumCommits}}{{else}}-{{end}}</span>
+		</a>
+		<a class="item {{if .PageIsPullFiles}}active{{end}}" href="{{.Issue.Link}}/files">
+			{{svg "octicon-diff"}}
+			{{$.locale.Tr "repo.pulls.tab_files"}}
+			<span class="ui small label">{{if .NumFiles}}{{.NumFiles}}{{else}}-{{end}}</span>
+		</a>
+		<span class="item gt-ml-auto gt-pr-0 gt-font-bold gt-df gt-ac gt-gap-3">
+			<span><span class="text green">{{if .Diff.TotalAddition}}+{{.Diff.TotalAddition}}{{end}}</span> <span class="text red">{{if .Diff.TotalDeletion}}-{{.Diff.TotalDeletion}}{{end}}</span></span>
+			<span class="diff-stats-bar">
+				<div class="diff-stats-add-bar" style="width: {{Eval 100 "*" .Diff.TotalAddition "/" "(" .Diff.TotalAddition "+" .Diff.TotalDeletion "+" 0.0 ")"}}%"></div>
+			</span>
 		</span>
-	</span>
+	</div>
+	<div class="ui tabs divider"></div>
 </div>

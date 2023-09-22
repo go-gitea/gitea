@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/updatechecker"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -213,6 +214,16 @@ func registerGCLFS() {
 	})
 }
 
+func registerRebuildIssueIndexer() {
+	RegisterTaskFatal("rebuild_issue_indexer", &BaseConfig{
+		Enabled:    false,
+		RunAtStart: false,
+		Schedule:   "@annually",
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+		return issue_indexer.PopulateIssueIndexer(ctx, false)
+	})
+}
+
 func initExtendedTasks() {
 	registerDeleteInactiveUsers()
 	registerDeleteRepositoryArchives()
@@ -227,4 +238,5 @@ func initExtendedTasks() {
 	registerUpdateGiteaChecker()
 	registerDeleteOldSystemNotices()
 	registerGCLFS()
+	registerRebuildIssueIndexer()
 }

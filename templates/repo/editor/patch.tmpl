@@ -11,7 +11,7 @@
 				<div class="ui breadcrumb field {{if .Err_TreePath}}error{{end}}">
 					{{.locale.Tr "repo.editor.patching"}}
 					<a class="section" href="{{$.RepoLink}}">{{.Repository.FullName}}</a>
-					<div class="divider">:</div>
+					<div class="breadcrumb-divider">:</div>
 					<a class="section" href="{{$.BranchLink}}">{{.BranchName}}</a>
 					<span>{{.locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}">{{.locale.Tr "repo.editor.cancel_lower"}}</a></span>
 					<input type="hidden" id="tree_path" name="tree_path" value="" required>
@@ -43,11 +43,11 @@
 			<p>{{.locale.Tr "repo.editor.commit_empty_file_text"}}</p>
 		</div>
 		<div class="actions">
-			<button class="ui red cancel button">
+			<button class="ui cancel button">
 				{{svg "octicon-x"}}
 				{{.locale.Tr "repo.editor.cancel"}}
 			</button>
-			<button class="ui green ok button">
+			<button class="ui primary ok button">
 				{{svg "fontawesome-save"}}
 				{{.locale.Tr "repo.editor.commit_changes"}}
 			</button>

@@ -20,6 +20,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/forms"
 	org_service "code.gitea.io/gitea/services/org"
@@ -46,6 +47,13 @@ func Settings(ctx *context.Context) {
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
 	ctx.Data["ContextUser"] = ctx.ContextUser
+
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 
@@ -89,7 +97,6 @@ func SettingsPost(ctx *context.Context) {
 		// reset ctx.org.OrgLink with new name
 		ctx.Org.OrgLink = setting.AppSubURL + "/org/" + url.PathEscape(form.Name)
 		log.Trace("Organization name changed: %s -> %s", org.Name, form.Name)
-		nameChanged = false
 	}
 
 	// In case it's just a case change.
@@ -101,6 +108,7 @@ func SettingsPost(ctx *context.Context) {
 	}
 
 	org.FullName = form.FullName
+	org.Email = form.Email
 	org.Description = form.Description
 	org.Website = form.Website
 	org.Location = form.Location
@@ -130,11 +138,6 @@ func SettingsPost(ctx *context.Context) {
 				return
 			}
 		}
-	} else if nameChanged {
-		if err := repo_model.UpdateRepositoryOwnerNames(org.ID, org.Name); err != nil {
-			ctx.ServerError("UpdateRepository", err)
-			return
-		}
 	}
 
 	log.Trace("Organization setting updated: %s", org.Name)
@@ -161,7 +164,7 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 		ctx.Flash.Error(err.Error())
 	}
 
-	ctx.Redirect(ctx.Org.OrgLink + "/settings")
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings")
 }
 
 // SettingsDelete response for deleting an organization
@@ -194,6 +197,12 @@ func SettingsDelete(ctx *context.Context) {
 		return
 	}
 
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	ctx.HTML(http.StatusOK, tplSettingsDelete)
 }
 
@@ -212,6 +221,12 @@ func Webhooks(ctx *context.Context) {
 		return
 	}
 
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	ctx.Data["Webhooks"] = ws
 	ctx.HTML(http.StatusOK, tplSettingsHooks)
 }
@@ -224,9 +239,7 @@ func DeleteWebhook(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": ctx.Org.OrgLink + "/settings/hooks",
-	})
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings/hooks")
 }
 
 // Labels render organization labels page
@@ -235,5 +248,12 @@ func Labels(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsLabels"] = true
 	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
+
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	ctx.HTML(http.StatusOK, tplSettingsLabels)
 }

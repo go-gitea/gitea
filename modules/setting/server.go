@@ -349,9 +349,4 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	default:
 		LandingPageURL = LandingPage(landingPage)
 	}
-
-	HasRobotsTxt, err = util.IsFile(path.Join(CustomPath, "robots.txt"))
-	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", path.Join(CustomPath, "robots.txt"), err)
-	}
 }

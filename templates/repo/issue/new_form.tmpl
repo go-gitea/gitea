@@ -8,10 +8,10 @@
 	<div class="issue-content-left">
 		<div class="ui comments">
 			<div class="comment">
-				{{avatar $.Context .SignedUser 40}}
+				{{ctx.AvatarUtils.Avatar .SignedUser 40}}
 				<div class="ui segment content gt-my-0">
 					<div class="field">
-						<input name="title" id="issue_title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" tabindex="3" autofocus required maxlength="255" autocomplete="off">
+						<input name="title" id="issue_title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" autofocus required maxlength="255" autocomplete="off">
 						{{if .PageIsComparePull}}
 							<div class="title_wip_desc" data-wip-prefixes="{{JsonUtils.EncodeToString .PullRequestWorkInProgressPrefixes}}">{{.locale.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}</div>
 						{{end}}
@@ -35,7 +35,7 @@
 						{{template "repo/issue/comment_tab" .}}
 					{{end}}
 					<div class="text right">
-						<button class="ui green button" tabindex="6">
+						<button class="ui primary button">
 							{{if .PageIsComparePull}}
 								{{.locale.Tr "repo.pulls.create"}}
 							{{else}}
@@ -95,7 +95,7 @@
 			<div class="menu">
 				{{if or .OpenProjects .ClosedProjects}}
 				<div class="ui icon search input">
-					<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+					<i class="icon">{{svg "octicon-search" 16}}</i>
 					<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_projects"}}">
 				</div>
 				{{end}}
@@ -152,15 +152,15 @@
 				</span>
 				<div class="filter menu" data-id="#assignee_ids">
 					<div class="ui icon search input">
-						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+						<i class="icon">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignees"}}">
 					</div>
 					<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_assignees"}}</div>
 					{{range .Assignees}}
 						<a class="item muted" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
-							<span class="octicon-check invisible">{{svg "octicon-check"}}</span>
+							<span class="octicon-check gt-invisible">{{svg "octicon-check"}}</span>
 							<span class="text">
-								{{avatar $.Context . 28 "gt-mr-3"}}{{template "repo/search_name" .}}
+								{{ctx.AvatarUtils.Avatar . 28 "gt-mr-3"}}{{template "repo/search_name" .}}
 							</span>
 						</a>
 					{{end}}
@@ -170,11 +170,13 @@
 				<span class="no-select item {{if .HasSelectedLabel}}gt-hidden{{end}}">
 					{{.locale.Tr "repo.issues.new.no_assignees"}}
 				</span>
+				<div class="selected">
 				{{range .Assignees}}
 					<a class="item gt-p-2 muted gt-hidden" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
-						{{avatar $.Context . 28 "gt-mr-3 gt-vm"}}{{.GetDisplayName}}
+						{{ctx.AvatarUtils.Avatar . 28 "gt-mr-3 gt-vm"}}{{.GetDisplayName}}
 					</a>
 				{{end}}
+				</div>
 			</div>
 		{{if and .PageIsComparePull (not (eq .HeadRepo.FullName .BaseCompareRepo.FullName)) .CanWriteToHeadRepo}}
 			<div class="divider"></div>

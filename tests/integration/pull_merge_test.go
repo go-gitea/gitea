@@ -25,7 +25,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
@@ -55,7 +54,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	// Click the little green button to create a pull
+	// Click the little button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find(".timeline-item .delete-button").Attr("data-url")
 	assert.True(t, exists, "The template has changed, can not find delete button url")
@@ -356,7 +355,7 @@ func TestConflictChecking(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 		// Create new clean repo to test conflict checking.
-		baseRepo, err := repo_service.CreateRepository(db.DefaultContext, user, user, repo_module.CreateRepoOptions{
+		baseRepo, err := repo_service.CreateRepository(db.DefaultContext, user, user, repo_service.CreateRepoOptions{
 			Name:          "conflict-checking",
 			Description:   "Tempo repo",
 			AutoInit:      true,
@@ -370,9 +369,9 @@ func TestConflictChecking(t *testing.T) {
 		_, err = files_service.ChangeRepoFiles(git.DefaultContext, baseRepo, user, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
-					Operation: "create",
-					TreePath:  "important_file",
-					Content:   "Just a non-important file",
+					Operation:     "create",
+					TreePath:      "important_file",
+					ContentReader: strings.NewReader("Just a non-important file"),
 				},
 			},
 			Message:   "Add a important file",
@@ -385,9 +384,9 @@ func TestConflictChecking(t *testing.T) {
 		_, err = files_service.ChangeRepoFiles(git.DefaultContext, baseRepo, user, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
-					Operation: "create",
-					TreePath:  "important_file",
-					Content:   "Not the same content :P",
+					Operation:     "create",
+					TreePath:      "important_file",
+					ContentReader: strings.NewReader("Not the same content :P"),
 				},
 			},
 			Message:   "Add a important file",

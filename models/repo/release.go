@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -130,6 +131,11 @@ func (r *Release) TarURL() string {
 // HTMLURL the url for a release on the web UI. release must have attributes loaded
 func (r *Release) HTMLURL() string {
 	return r.Repo.HTMLURL() + "/releases/tag/" + util.PathEscapeSegments(r.TagName)
+}
+
+// APIUploadURL the api url to upload assets to a release. release must have attributes loaded
+func (r *Release) APIUploadURL() string {
+	return r.APIURL() + "/assets"
 }
 
 // Link the relative url for a release on the web UI. release must have attributes loaded
@@ -336,6 +342,17 @@ func (s releaseMetaSearch) Less(i, j int) bool {
 	return s.ID[i] < s.ID[j]
 }
 
+func hasDuplicateName(attaches []*Attachment) bool {
+	attachSet := container.Set[string]{}
+	for _, attachment := range attaches {
+		if attachSet.Contains(attachment.Name) {
+			return true
+		}
+		attachSet.Add(attachment.Name)
+	}
+	return false
+}
+
 // GetReleaseAttachments retrieves the attachments for releases
 func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 	if len(rels) == 0 {
@@ -360,7 +377,7 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 	err = db.GetEngine(ctx).
 		Asc("release_id", "name").
 		In("release_id", sortedRels.ID).
-		Find(&attachments, Attachment{})
+		Find(&attachments)
 	if err != nil {
 		return err
 	}
@@ -381,21 +398,8 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 			continue
 		}
 
-		// Check if there are two or more attachments with the same name
-		hasDuplicates := false
-		foundNames := make(map[string]bool)
-		for _, attachment := range release.Attachments {
-			_, found := foundNames[attachment.Name]
-			if found {
-				hasDuplicates = true
-				break
-			} else {
-				foundNames[attachment.Name] = true
-			}
-		}
-
 		// If the names unique, use the URL with the Name instead of the UUID
-		if !hasDuplicates {
+		if !hasDuplicateName(release.Attachments) {
 			for _, attachment := range release.Attachments {
 				attachment.CustomDownloadURL = release.Repo.HTMLURL() + "/releases/download/" + url.PathEscape(release.TagName) + "/" + url.PathEscape(attachment.Name)
 			}
@@ -548,3 +552,31 @@ func (r *Release) GetExternalName() string { return r.OriginalAuthor }
 
 // ExternalID ExternalUserRemappable interface
 func (r *Release) GetExternalID() int64 { return r.OriginalAuthorID }
+
+// InsertReleases migrates release
+func InsertReleases(rels ...*Release) error {
+	ctx, committer, err := db.TxContext(db.DefaultContext)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
+
+	for _, rel := range rels {
+		if _, err := sess.NoAutoTime().Insert(rel); err != nil {
+			return err
+		}
+
+		if len(rel.Attachments) > 0 {
+			for i := range rel.Attachments {
+				rel.Attachments[i].ReleaseID = rel.ID
+			}
+
+			if _, err := sess.NoAutoTime().Insert(rel.Attachments); err != nil {
+				return err
+			}
+		}
+	}
+
+	return committer.Commit()
+}

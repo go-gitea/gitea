@@ -4,17 +4,17 @@
 	<div class="ui container fluid padded">
 		{{$class := ""}}
 		{{if .Commit.Signature}}
-			{{$class = (printf "%s%s" $class " isSigned")}}
+			{{$class = (print $class " isSigned")}}
 			{{if .Verification.Verified}}
 				{{if eq .Verification.TrustStatus "trusted"}}
-					{{$class = (printf "%s%s" $class " isVerified")}}
+					{{$class = (print $class " isVerified")}}
 				{{else if eq .Verification.TrustStatus "untrusted"}}
-					{{$class = (printf "%s%s" $class " isVerifiedUntrusted")}}
+					{{$class = (print $class " isVerifiedUntrusted")}}
 				{{else}}
-					{{$class = (printf "%s%s" $class " isVerifiedUnmatched")}}
+					{{$class = (print $class " isVerifiedUnmatched")}}
 				{{end}}
 			{{else if .Verification.Warning}}
-				{{$class = (printf "%s%s" $class " isWarning")}}
+				{{$class = (print $class " isWarning")}}
 			{{end}}
 		{{end}}
 		<div class="ui top attached header clearing segment gt-relative commit-header {{$class}}">
@@ -75,7 +75,7 @@
 												<input type="hidden" name="ref" value="{{if $.BranchName}}{{$.BranchName}}{{else}}{{$.Repository.DefaultBranch}}{{end}}">
 												<input type="hidden" name="refType" value="branch">
 												<input type="hidden" id="cherry-pick-type" name="cherry-pick-type"><br>
-												<button type="submit" id="cherry-pick-submit" class="ui green button"></button>
+												<button type="submit" id="cherry-pick-submit" class="ui primary button"></button>
 											</form>
 										</div>
 									</div>
@@ -98,7 +98,7 @@
 
 												<div class="text right actions">
 													<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
-													<button class="ui green button">{{.locale.Tr "repo.branch.confirm_create_branch"}}</button>
+													<button class="ui primary button">{{.locale.Tr "repo.branch.confirm_create_branch"}}</button>
 												</div>
 											</form>
 										</div>
@@ -123,7 +123,7 @@
 
 												<div class="text right actions">
 													<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
-													<button class="ui green button">{{.locale.Tr "repo.tag.confirm_create_tag"}}</button>
+													<button class="ui primary button">{{.locale.Tr "repo.tag.confirm_create_tag"}}</button>
 												</div>
 											</form>
 										</div>
@@ -135,36 +135,31 @@
 				{{end}}
 			</div>
 			{{if IsMultilineCommitMessage .Commit.Message}}
-				<pre class="commit-body gt-mt-0">{{RenderCommitBody $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+				<pre class="commit-body">{{RenderCommitBody $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 			{{end}}
-			{{if .BranchName}}
-				<span class="text grey gt-mr-3">{{svg "octicon-git-branch" 16 "gt-mr-2"}}{{.BranchName}}</span>
-			{{end}}
-			{{if .TagName}}
-				<span class="text grey gt-mr-3">{{svg "octicon-tag" 16 "gt-mr-2"}}{{.TagName}}</span>
-			{{end}}
+			{{template "repo/commit_load_branches_and_tags" .}}
 		</div>
 		<div class="ui attached segment gt-df gt-ac gt-sb gt-py-2 commit-header-row gt-fw {{$class}}">
 				<div class="gt-df gt-ac author">
 					{{if .Author}}
-						{{avatar $.Context .Author 28 "gt-mr-3"}}
+						{{ctx.AvatarUtils.Avatar .Author 28 "gt-mr-3"}}
 						{{if .Author.FullName}}
 							<a href="{{.Author.HomeLink}}"><strong>{{.Author.FullName}}</strong></a>
 						{{else}}
 							<a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}}</strong></a>
 						{{end}}
 					{{else}}
-						{{avatarByEmail $.Context .Commit.Author.Email .Commit.Author.Email 28 "gt-mr-3"}}
+						{{ctx.AvatarUtils.AvatarByEmail .Commit.Author.Email .Commit.Author.Email 28 "gt-mr-3"}}
 						<strong>{{.Commit.Author.Name}}</strong>
 					{{end}}
 					<span class="text grey gt-ml-3" id="authored-time">{{TimeSince .Commit.Author.When $.locale}}</span>
 					{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
 						<span class="text grey gt-mx-3">{{.locale.Tr "repo.diff.committed_by"}}</span>
 						{{if ne .Verification.CommittingUser.ID 0}}
-							{{avatar $.Context .Verification.CommittingUser 28 "gt-mx-3"}}
+							{{ctx.AvatarUtils.Avatar .Verification.CommittingUser 28 "gt-mx-3"}}
 							<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a>
 						{{else}}
-							{{avatarByEmail $.Context .Commit.Committer.Email .Commit.Committer.Name 28 "gt-mr-3"}}
+							{{ctx.AvatarUtils.AvatarByEmail .Commit.Committer.Email .Commit.Committer.Name 28 "gt-mr-3"}}
 							<strong>{{.Commit.Committer.Name}}</strong>
 						{{end}}
 					{{end}}
@@ -201,12 +196,12 @@
 							{{else}}
 								<span class="ui text gt-mr-3">{{.locale.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}:</span>
 							{{end}}
-							{{avatar $.Context .Verification.SigningUser 28 "gt-mr-3"}}
+							{{ctx.AvatarUtils.Avatar .Verification.SigningUser 28 "gt-mr-3"}}
 							<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Verification.SigningUser.GetDisplayName}}</strong></a>
 						{{else}}
 							<span title="{{.locale.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog" 16 "gt-mr-3"}}</span>
 							<span class="ui text gt-mr-3">{{.locale.Tr "repo.commits.signed_by"}}:</span>
-							{{avatarByEmail $.Context .Verification.SigningEmail "" 28}}
+							{{ctx.AvatarUtils.AvatarByEmail .Verification.SigningEmail "" 28}}
 							<strong>{{.Verification.SigningUser.GetDisplayName}}</strong>
 						{{end}}
 					{{else}}

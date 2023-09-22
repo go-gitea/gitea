@@ -44,7 +44,7 @@ func getUpdateFileOptions() *api.UpdateFileOptions {
 			},
 			SHA: "103ff9234cefeee5ec5361d22b49fbb04d385885",
 		},
-		Content: contentEncoded,
+		ContentBase64: contentEncoded,
 	}
 }
 
@@ -108,7 +108,7 @@ func getExpectedFileResponseForUpdate(commitID, treePath, lastCommitSHA string) 
 func TestAPIUpdateFile(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})         // owner of the repo1 & repo16
-		user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})         // owner of the repo3, is an org
+		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})          // owner of the repo3, is an org
 		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})         // owner of neither repos
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})   // public repo
 		repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})   // public repo
@@ -247,21 +247,21 @@ func TestAPIUpdateFile(t *testing.T) {
 		req = NewRequestWithJSON(t, "PUT", url, &updateFileOptions)
 		MakeRequest(t, req, http.StatusOK)
 
-		// Test using org repo "user3/repo3" where user2 is a collaborator
+		// Test using org repo "org3/repo3" where user2 is a collaborator
 		fileID++
 		treePath = fmt.Sprintf("update/file%d.txt", fileID)
-		createFile(user3, repo3, treePath)
+		createFile(org3, repo3, treePath)
 		updateFileOptions = getUpdateFileOptions()
-		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user3.Name, repo3.Name, treePath, token2)
+		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", org3.Name, repo3.Name, treePath, token2)
 		req = NewRequestWithJSON(t, "PUT", url, &updateFileOptions)
 		MakeRequest(t, req, http.StatusOK)
 
-		// Test using org repo "user3/repo3" with no user token
+		// Test using org repo "org3/repo3" with no user token
 		fileID++
 		treePath = fmt.Sprintf("update/file%d.txt", fileID)
-		createFile(user3, repo3, treePath)
+		createFile(org3, repo3, treePath)
 		updateFileOptions = getUpdateFileOptions()
-		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user3.Name, repo3.Name, treePath)
+		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", org3.Name, repo3.Name, treePath)
 		req = NewRequestWithJSON(t, "PUT", url, &updateFileOptions)
 		MakeRequest(t, req, http.StatusNotFound)
 
