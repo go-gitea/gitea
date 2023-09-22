@@ -30,7 +30,7 @@ var (
 
 func main() {
 	pathToGiteaRoot := "."
-	fixturesDir = filepath.Join(pathToGiteaRoot, "internal", "fixtures")
+	fixturesDir = filepath.Join(pathToGiteaRoot, "internal", "models", "fixtures")
 	if err := unittest.CreateTestEngine(unittest.FixturesOptions{
 		Dir: fixturesDir,
 	}); err != nil {
