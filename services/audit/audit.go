@@ -4,7 +4,6 @@
 package audit
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -201,14 +200,4 @@ func typeToDescription(val any) TypeDescriptor {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", t))
 	}
-}
-
-func ReleaseReopen() error {
-	var joinedErr error
-	for _, a := range appenders {
-		if err := a.ReleaseReopen(); err != nil {
-			joinedErr = errors.Join(joinedErr, err)
-		}
-	}
-	return joinedErr
 }

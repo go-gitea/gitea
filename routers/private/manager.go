@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/audit"
 )
 
 // ReloadTemplates reloads all the templates
@@ -75,12 +74,6 @@ func ReleaseReopenLogging(ctx *context.PrivateContext) {
 	if err := releasereopen.GetManager().ReleaseReopen(); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: fmt.Sprintf("Error during release and reopen: %v", err),
-		})
-		return
-	}
-	if err := audit.ReleaseReopen(); err != nil {
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Error during audit release and reopen: %v", err),
 		})
 		return
 	}

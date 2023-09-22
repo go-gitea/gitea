@@ -16,7 +16,6 @@ import (
 type Appender interface {
 	Record(context.Context, *Event)
 	Close() error
-	ReleaseReopen() error
 }
 
 // LogAppender writes an info log entry for every audit event
@@ -34,10 +33,6 @@ func formatDescriptor(desc TypeDescriptor) string {
 }
 
 func (a *LogAppender) Close() error {
-	return nil
-}
-
-func (a *LogAppender) ReleaseReopen() error {
 	return nil
 }
 
@@ -63,10 +58,6 @@ func (a *FileAppender) Record(ctx context.Context, e *Event) {
 
 func (a *FileAppender) Close() error {
 	return a.rfw.Close()
-}
-
-func (a *FileAppender) ReleaseReopen() error {
-	return a.rfw.ReleaseReopen()
 }
 
 func WriteEventAsJSON(w io.Writer, e *Event) error {

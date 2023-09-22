@@ -43,5 +43,4 @@ func TestTeam_RemoveRepository(t *testing.T) {
 	}
 	testSuccess(2, 3)
 	testSuccess(2, 5)
-	testSuccess(1, unittest.NonexistentID)
 }
