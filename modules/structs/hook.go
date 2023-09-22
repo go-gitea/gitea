@@ -506,18 +506,20 @@ func (p *WorkflowDispatchPayload) JSONPayload() ([]byte, error) {
 // CommitStatusPayload represents a payload information of commit status event.
 type CommitStatusPayload struct {
 	// TODO: add Branches
-	Commit      *PayloadCommit `json:"commit"`
-	Context     string         `json:"context"`
-	CreatedAt   time.Time      `json:"created_at"`
-	Description string         `json:"description"`
-	ID          int64          `json:"id"`
+	Commit  *PayloadCommit `json:"commit"`
+	Context string         `json:"context"`
+	// swagger:strfmt date-time
+	CreatedAt   time.Time `json:"created_at"`
+	Description string    `json:"description"`
+	ID          int64     `json:"id"`
 	// Name        string         `json:"name"`
 	Repo      *Repository `json:"repository"`
 	Sender    *User       `json:"sender"`
 	SHA       string      `json:"sha"`
 	State     string      `json:"state"`
 	TargetURL string      `json:"target_url"`
-	UpdatedAt *time.Time  `json:"updated_at"`
+	// swagger:strfmt date-time
+	UpdatedAt *time.Time `json:"updated_at"`
 }
 
 // JSONPayload implements Payload
