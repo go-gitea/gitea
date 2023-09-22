@@ -14,12 +14,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/internal/models/db"
+	"code.gitea.io/gitea/internal/models/packages"
+	"code.gitea.io/gitea/internal/models/unittest"
+	user_model "code.gitea.io/gitea/internal/models/user"
+	rpm_module "code.gitea.io/gitea/internal/modules/packages/rpm"
+	"code.gitea.io/gitea/internal/modules/setting"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"

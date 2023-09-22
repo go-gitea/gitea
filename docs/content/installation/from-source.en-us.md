@@ -154,11 +154,11 @@ One option is to use a script file to shadow the `gitea` binary and create an ap
 environment before running Gitea. However, when building you can change these defaults
 using the `LDFLAGS` environment variable for `make`. The appropriate settings are as follows
 
-- To set the _`CustomPath`_ use `LDFLAGS="-X \"code.gitea.io/gitea/modules/setting.CustomPath=custom-path\""`
-- For _`CustomConf`_ you should use `-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
-- For _`AppWorkPath`_ you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkPath=working-path\"`
-- For _`StaticRootPath`_ you should use `-X \"code.gitea.io/gitea/modules/setting.StaticRootPath=static-root-path\"`
-- To change the default PID file location use `-X \"code.gitea.io/gitea/cmd.PIDFile=/run/gitea.pid\"`
+- To set the _`CustomPath`_ use `LDFLAGS="-X \"code.gitea.io/gitea/internal/modules/setting.CustomPath=custom-path\""`
+- For _`CustomConf`_ you should use `-X \"code.gitea.io/gitea/internal/modules/setting.CustomConf=conf.ini\"`
+- For _`AppWorkPath`_ you should use `-X \"code.gitea.io/gitea/internal/modules/setting.AppWorkPath=working-path\"`
+- For _`StaticRootPath`_ you should use `-X \"code.gitea.io/gitea/internal/modules/setting.StaticRootPath=static-root-path\"`
+- To change the default PID file location use `-X \"code.gitea.io/gitea/internal/cmd.PIDFile=/run/gitea.pid\"`
 
 Add as many of the strings with their preceding `-X` to the `LDFLAGS` variable and run `make build`
 with the appropriate `TAGS` as above.

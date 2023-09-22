@@ -1,0 +1,125 @@
+// Copyright 2020 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package repo
+
+import (
+	"net/http"
+
+	"code.gitea.io/gitea/internal/models"
+	repo_model "code.gitea.io/gitea/internal/models/repo"
+	"code.gitea.io/gitea/internal/modules/context"
+	"code.gitea.io/gitea/internal/services/convert"
+	releaseservice "code.gitea.io/gitea/internal/services/release"
+)
+
+// GetReleaseByTag get a single release of a repository by tag name
+func GetReleaseByTag(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/releases/tags/{tag} repository repoGetReleaseByTag
+	// ---
+	// summary: Get a release by tag name
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: tag
+	//   in: path
+	//   description: tag name of the release to get
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Release"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	tag := ctx.Params(":tag")
+
+	release, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tag)
+	if err != nil {
+		if repo_model.IsErrReleaseNotExist(err) {
+			ctx.NotFound()
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "GetRelease", err)
+		return
+	}
+
+	if release.IsTag {
+		ctx.NotFound()
+		return
+	}
+
+	if err = release.LoadAttributes(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convert.ToAPIRelease(ctx, ctx.Repo.Repository, release))
+}
+
+// DeleteReleaseByTag delete a release from a repository by tag name
+func DeleteReleaseByTag(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/releases/tags/{tag} repository repoDeleteReleaseByTag
+	// ---
+	// summary: Delete a release by tag name
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: tag
+	//   in: path
+	//   description: tag name of the release to delete
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "405":
+	//     "$ref": "#/responses/empty"
+
+	tag := ctx.Params(":tag")
+
+	release, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tag)
+	if err != nil {
+		if repo_model.IsErrReleaseNotExist(err) {
+			ctx.NotFound()
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "GetRelease", err)
+		return
+	}
+
+	if release.IsTag {
+		ctx.NotFound()
+		return
+	}
+
+	if err = releaseservice.DeleteReleaseByID(ctx, release.ID, ctx.Doer, false); err != nil {
+		if models.IsErrProtectedTagName(err) {
+			ctx.Error(http.StatusMethodNotAllowed, "delTag", "user not allowed to delete protected tag")
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "DeleteReleaseByID", err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}

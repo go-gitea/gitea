@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/translation"
+	repo_model "code.gitea.io/gitea/internal/models/repo"
+	"code.gitea.io/gitea/internal/models/unittest"
+	"code.gitea.io/gitea/internal/modules/setting"
+	"code.gitea.io/gitea/internal/modules/test"
+	"code.gitea.io/gitea/internal/modules/translation"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/PuerkitoBio/goquery"

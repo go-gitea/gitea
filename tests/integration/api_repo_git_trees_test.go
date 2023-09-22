@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
+	auth_model "code.gitea.io/gitea/internal/models/auth"
+	repo_model "code.gitea.io/gitea/internal/models/repo"
+	"code.gitea.io/gitea/internal/models/unittest"
+	user_model "code.gitea.io/gitea/internal/models/user"
 	"code.gitea.io/gitea/tests"
 )
 

@@ -9,9 +9,9 @@ import (
 	"io"
 	"testing"
 
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/internal/modules/markup"
+	"code.gitea.io/gitea/internal/modules/markup/markdown"
+	"code.gitea.io/gitea/internal/modules/setting"
 )
 
 var renderContext = markup.RenderContext{

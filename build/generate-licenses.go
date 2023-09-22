@@ -15,7 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/internal/modules/util"
 )
 
 func main() {

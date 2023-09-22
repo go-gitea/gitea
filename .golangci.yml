@@ -88,7 +88,7 @@ linters-settings:
             desc: use os or io instead
           - pkg: golang.org/x/exp
             desc: it's experimental and unreliable
-          - pkg: code.gitea.io/gitea/modules/git/internal
+          - pkg: code.gitea.io/gitea/internal/modules/git/internal
             desc: do not use the internal package, use AddXxx function instead
           - pkg: gopkg.in/ini.v1
             desc: do not use the ini package, use gitea's config system instead

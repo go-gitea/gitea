@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/internal/models/unittest"
+	user_model "code.gitea.io/gitea/internal/models/user"
+	"code.gitea.io/gitea/internal/modules/setting"
+	"code.gitea.io/gitea/internal/modules/translation"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"

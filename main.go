@@ -10,16 +10,16 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/cmd"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/internal/cmd"
+	"code.gitea.io/gitea/internal/modules/log"
+	"code.gitea.io/gitea/internal/modules/setting"
 
 	// register supported doc types
-	_ "code.gitea.io/gitea/modules/markup/asciicast"
-	_ "code.gitea.io/gitea/modules/markup/console"
-	_ "code.gitea.io/gitea/modules/markup/csv"
-	_ "code.gitea.io/gitea/modules/markup/markdown"
-	_ "code.gitea.io/gitea/modules/markup/orgmode"
+	_ "code.gitea.io/gitea/internal/modules/markup/asciicast"
+	_ "code.gitea.io/gitea/internal/modules/markup/console"
+	_ "code.gitea.io/gitea/internal/modules/markup/csv"
+	_ "code.gitea.io/gitea/internal/modules/markup/markdown"
+	_ "code.gitea.io/gitea/internal/modules/markup/orgmode"
 
 	"github.com/urfave/cli/v2"
 )

@@ -6,8 +6,8 @@ package main
 import (
 	"os"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/internal/modules/log"
+	"code.gitea.io/gitea/internal/modules/setting"
 
 	"github.com/urfave/cli/v2"
 )

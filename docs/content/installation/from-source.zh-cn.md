@@ -118,11 +118,11 @@ Gitea 将从`CustomPath`中查找许多信息。默认的，这会在运行 Gite
 
 一种选择是使用脚本文件来隐藏`gitea`二进制文件，并在运行Gitea之前创建适当的环境。然而，在构建时，可以使用`make`的`LDFLAGS`环境变量来更改这些默认值。适当的设置如下：
 
-- 要设置`CustomPath`，请使用`LDFLAGS="-X \"code.gitea.io/gitea/modules/setting.CustomPath=custom-path\""`
-- 对于`CustomConf`，应该使用`-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
-- 对于`AppWorkPath`，应该使用`-X \"code.gitea.io/gitea/modules/setting.AppWorkPath=working-path\"`
-- 对于`StaticRootPath`，应该使用`-X \"code.gitea.io/gitea/modules/setting.StaticRootPath=static-root-path\"`
-- 要更改默认的 PID 文件位置，请使用`-X \"code.gitea.io/gitea/cmd.PIDFile=/run/gitea.pid\"`
+- 要设置`CustomPath`，请使用`LDFLAGS="-X \"code.gitea.io/gitea/internal/modules/setting.CustomPath=custom-path\""`
+- 对于`CustomConf`，应该使用`-X \"code.gitea.io/gitea/internal/modules/setting.CustomConf=conf.ini\"`
+- 对于`AppWorkPath`，应该使用`-X \"code.gitea.io/gitea/internal/modules/setting.AppWorkPath=working-path\"`
+- 对于`StaticRootPath`，应该使用`-X \"code.gitea.io/gitea/internal/modules/setting.StaticRootPath=static-root-path\"`
+- 要更改默认的 PID 文件位置，请使用`-X \"code.gitea.io/gitea/internal/cmd.PIDFile=/run/gitea.pid\"`
 
 将这些字符串与其前导的`-X`添加到`LDFLAGS`变量中，并像上面那样使用适当的`TAGS`运行`make build`。
 

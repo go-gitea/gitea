@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/internal/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"

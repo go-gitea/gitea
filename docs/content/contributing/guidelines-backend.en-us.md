@@ -99,7 +99,7 @@ i.e. `services/user`, `models/repository`.
 ### Import Alias
 
 Since there are some packages which use the same package name, it is possible that you find packages like `modules/user`, `models/user`, and `services/user`. When these packages are imported in one Go file, it's difficult to know which package we are using and if it's a variable name or an import name. So, we always recommend to use import aliases. To differ from package variables which are commonly in camelCase, just use **snake_case** for import aliases.
-i.e. `import user_service "code.gitea.io/gitea/services/user"`
+i.e. `import user_service "code.gitea.io/gitea/internal/services/user"`
 
 ### Important Gotchas
 

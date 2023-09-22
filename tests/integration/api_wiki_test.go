@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	api "code.gitea.io/gitea/modules/structs"
+	auth_model "code.gitea.io/gitea/internal/models/auth"
+	api "code.gitea.io/gitea/internal/modules/structs"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"

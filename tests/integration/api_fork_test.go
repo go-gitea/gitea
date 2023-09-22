@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	api "code.gitea.io/gitea/modules/structs"
+	api "code.gitea.io/gitea/internal/modules/structs"
 	"code.gitea.io/gitea/tests"
 )
 

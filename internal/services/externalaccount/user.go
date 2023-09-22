@@ -1,0 +1,100 @@
+// Copyright 2019 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package externalaccount
+
+import (
+	"strings"
+
+	"code.gitea.io/gitea/internal/models/auth"
+	issues_model "code.gitea.io/gitea/internal/models/issues"
+	repo_model "code.gitea.io/gitea/internal/models/repo"
+	user_model "code.gitea.io/gitea/internal/models/user"
+	"code.gitea.io/gitea/internal/modules/structs"
+
+	"github.com/markbates/goth"
+)
+
+func toExternalLoginUser(user *user_model.User, gothUser goth.User) (*user_model.ExternalLoginUser, error) {
+	authSource, err := auth.GetActiveOAuth2SourceByName(gothUser.Provider)
+	if err != nil {
+		return nil, err
+	}
+	return &user_model.ExternalLoginUser{
+		ExternalID:        gothUser.UserID,
+		UserID:            user.ID,
+		LoginSourceID:     authSource.ID,
+		RawData:           gothUser.RawData,
+		Provider:          gothUser.Provider,
+		Email:             gothUser.Email,
+		Name:              gothUser.Name,
+		FirstName:         gothUser.FirstName,
+		LastName:          gothUser.LastName,
+		NickName:          gothUser.NickName,
+		Description:       gothUser.Description,
+		AvatarURL:         gothUser.AvatarURL,
+		Location:          gothUser.Location,
+		AccessToken:       gothUser.AccessToken,
+		AccessTokenSecret: gothUser.AccessTokenSecret,
+		RefreshToken:      gothUser.RefreshToken,
+		ExpiresAt:         gothUser.ExpiresAt,
+	}, nil
+}
+
+// LinkAccountToUser link the gothUser to the user
+func LinkAccountToUser(user *user_model.User, gothUser goth.User) error {
+	externalLoginUser, err := toExternalLoginUser(user, gothUser)
+	if err != nil {
+		return err
+	}
+
+	if err := user_model.LinkExternalToUser(user, externalLoginUser); err != nil {
+		return err
+	}
+
+	externalID := externalLoginUser.ExternalID
+
+	var tp structs.GitServiceType
+	for _, s := range structs.SupportedFullGitService {
+		if strings.EqualFold(s.Name(), gothUser.Provider) {
+			tp = s
+			break
+		}
+	}
+
+	if tp.Name() != "" {
+		return UpdateMigrationsByType(tp, externalID, user.ID)
+	}
+
+	return nil
+}
+
+// UpdateExternalUser updates external user's information
+func UpdateExternalUser(user *user_model.User, gothUser goth.User) error {
+	externalLoginUser, err := toExternalLoginUser(user, gothUser)
+	if err != nil {
+		return err
+	}
+
+	return user_model.UpdateExternalUserByExternalID(externalLoginUser)
+}
+
+// UpdateMigrationsByType updates all migrated repositories' posterid from gitServiceType to replace originalAuthorID to posterID
+func UpdateMigrationsByType(tp structs.GitServiceType, externalUserID string, userID int64) error {
+	if err := issues_model.UpdateIssuesMigrationsByType(tp, externalUserID, userID); err != nil {
+		return err
+	}
+
+	if err := issues_model.UpdateCommentsMigrationsByType(tp, externalUserID, userID); err != nil {
+		return err
+	}
+
+	if err := repo_model.UpdateReleasesMigrationsByType(tp, externalUserID, userID); err != nil {
+		return err
+	}
+
+	if err := issues_model.UpdateReactionsMigrationsByType(tp, externalUserID, userID); err != nil {
+		return err
+	}
+	return issues_model.UpdateReviewsMigrationsByType(tp, externalUserID, userID)
+}

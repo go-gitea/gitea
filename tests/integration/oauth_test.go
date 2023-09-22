@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/web/auth"
+	"code.gitea.io/gitea/internal/modules/json"
+	"code.gitea.io/gitea/internal/modules/setting"
+	"code.gitea.io/gitea/internal/routers/web/auth"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"

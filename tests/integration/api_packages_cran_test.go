@@ -12,11 +12,11 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	cran_module "code.gitea.io/gitea/modules/packages/cran"
+	"code.gitea.io/gitea/internal/models/db"
+	"code.gitea.io/gitea/internal/models/packages"
+	"code.gitea.io/gitea/internal/models/unittest"
+	user_model "code.gitea.io/gitea/internal/models/user"
+	cran_module "code.gitea.io/gitea/internal/modules/packages/cran"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"

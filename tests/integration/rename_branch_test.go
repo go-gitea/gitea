@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"testing"
 
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
+	git_model "code.gitea.io/gitea/internal/models/git"
+	repo_model "code.gitea.io/gitea/internal/models/repo"
+	"code.gitea.io/gitea/internal/models/unittest"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"

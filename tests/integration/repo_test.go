@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/internal/modules/setting"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/PuerkitoBio/goquery"

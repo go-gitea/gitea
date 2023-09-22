@@ -22,17 +22,17 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/unittest"
-	gitea_context "code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/testlogger"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/internal/models/auth"
+	"code.gitea.io/gitea/internal/models/unittest"
+	gitea_context "code.gitea.io/gitea/internal/modules/context"
+	"code.gitea.io/gitea/internal/modules/graceful"
+	"code.gitea.io/gitea/internal/modules/json"
+	"code.gitea.io/gitea/internal/modules/log"
+	"code.gitea.io/gitea/internal/modules/setting"
+	"code.gitea.io/gitea/internal/modules/testlogger"
+	"code.gitea.io/gitea/internal/modules/util"
+	"code.gitea.io/gitea/internal/modules/web"
+	"code.gitea.io/gitea/internal/routers"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/PuerkitoBio/goquery"
@@ -119,7 +119,7 @@ func TestMain(m *testing.M) {
 
 	err := unittest.InitFixtures(
 		unittest.FixturesOptions{
-			Dir: filepath.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
+			Dir: filepath.Join(filepath.Dir(setting.AppPath), "internal/models/fixtures/"),
 		},
 	)
 	if err != nil {

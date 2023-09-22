@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	code_indexer "code.gitea.io/gitea/modules/indexer/code"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/internal/models/db"
+	repo_model "code.gitea.io/gitea/internal/models/repo"
+	code_indexer "code.gitea.io/gitea/internal/modules/indexer/code"
+	"code.gitea.io/gitea/internal/modules/setting"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/PuerkitoBio/goquery"

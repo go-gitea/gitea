@@ -98,7 +98,7 @@ func UpdateIssue(ctx context.Context, repoID int64) error {
 ### 导入别名
 
 由于有一些使用相同包名的包，例如`modules/user`、`models/user`和`services/user`，当这些包在一个Go文件中被导入时，很难知道我们使用的是哪个包以及它是变量名还是导入名。因此，我们始终建议使用导入别名。为了与常见的驼峰命名法的包变量区分开，建议使用**snake_case**作为导入别名的命名规则。
-例如：`import user_service "code.gitea.io/gitea/services/user"`
+例如：`import user_service "code.gitea.io/gitea/internal/services/user"`
 
 ### 重要注意事项
 

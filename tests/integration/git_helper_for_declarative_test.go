@@ -16,10 +16,10 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/ssh"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/internal/modules/git"
+	"code.gitea.io/gitea/internal/modules/setting"
+	"code.gitea.io/gitea/internal/modules/ssh"
+	"code.gitea.io/gitea/internal/modules/util"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"

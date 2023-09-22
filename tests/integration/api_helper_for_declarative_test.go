@@ -13,13 +13,13 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/queue"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/forms"
+	"code.gitea.io/gitea/internal/models/auth"
+	"code.gitea.io/gitea/internal/models/perm"
+	repo_model "code.gitea.io/gitea/internal/models/repo"
+	"code.gitea.io/gitea/internal/modules/json"
+	"code.gitea.io/gitea/internal/modules/queue"
+	api "code.gitea.io/gitea/internal/modules/structs"
+	"code.gitea.io/gitea/internal/services/forms"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -17,14 +17,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/testlogger"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/internal/models/unittest"
+	"code.gitea.io/gitea/internal/modules/graceful"
+	"code.gitea.io/gitea/internal/modules/log"
+	"code.gitea.io/gitea/internal/modules/setting"
+	"code.gitea.io/gitea/internal/modules/testlogger"
+	"code.gitea.io/gitea/internal/modules/util"
+	"code.gitea.io/gitea/internal/modules/web"
+	"code.gitea.io/gitea/internal/routers"
 	"code.gitea.io/gitea/tests"
 )
 
