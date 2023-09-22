@@ -5,7 +5,7 @@ import {createApp} from 'vue';
 import {toggleElem} from '../utils/dom.js';
 import {getCurrentLocale} from '../utils.js';
 import {renderAnsi} from '../render/ansi.js';
-import {POST,DELETE} from '../modules/fetch.js';
+import {POST, DELETE} from '../modules/fetch.js';
 
 const sfc = {
   name: 'RepoActionView',
@@ -201,10 +201,10 @@ const sfc = {
     },
 
     deleteArtifact(name) {
-      if (!confirm(this.locale.artifactDeleteConfirm)) {
+      if (!window.confirm(this.locale.artifactDeleteConfirm)) {
         return;
       }
-      let link = this.run.link + '/artifacts/' + name
+      const link = `${this.run.link}/artifacts/${name}`;
       DELETE(link).then(this.loadJob);
     },
 

@@ -25,10 +25,7 @@ func CleanupArtifacts(taskCtx context.Context) error {
 	if err := cleanExpiredArtifacts(taskCtx); err != nil {
 		return err
 	}
-	if err := cleanNeedDeleteArtifacts(taskCtx); err != nil {
-		return err
-	}
-	return nil
+	return cleanNeedDeleteArtifacts(taskCtx)
 }
 
 func cleanExpiredArtifacts(taskCtx context.Context) error {
