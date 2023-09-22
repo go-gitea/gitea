@@ -11,7 +11,7 @@
 			</a>
 		</div>
 		<div class="gt-text-right">
-			<a class="ui small green button" href="{{$.Link}}/new">{{.locale.Tr "repo.projects.new"}}</a>
+			<a class="ui small primary button" href="{{$.Link}}/new">{{.locale.Tr "repo.projects.new"}}</a>
 		</div>
 	</div>
 {{end}}
@@ -33,8 +33,8 @@
 	<div class="list-header-sort ui small dropdown type jump item">
 		<span class="text">
 			{{.locale.Tr "repo.issues.filter_sort"}}
-			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		</span>
+		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		<div class="menu">
 			<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&sort=oldest&state={{$.State}}">{{.locale.Tr "repo.issues.filter_sort.oldest"}}</a>
 			<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&sort=recentupdate&state={{$.State}}">{{.locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>

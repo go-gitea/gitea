@@ -46,8 +46,10 @@ func ListAccessTokens(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AccessTokenList"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 
-	opts := auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID, ListOptions: utils.GetListOptions(ctx)}
+	opts := auth_model.ListAccessTokensOptions{UserID: ctx.ContextUser.ID, ListOptions: utils.GetListOptions(ctx)}
 
 	count, err := auth_model.CountAccessTokens(ctx, opts)
 	if err != nil {
@@ -98,11 +100,13 @@ func CreateAccessToken(ctx *context.APIContext) {
 	//     "$ref": "#/responses/AccessToken"
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 
 	form := web.GetForm(ctx).(*api.CreateAccessTokenOption)
 
 	t := &auth_model.AccessToken{
-		UID:  ctx.Doer.ID,
+		UID:  ctx.ContextUser.ID,
 		Name: form.Name,
 	}
 
@@ -159,6 +163,8 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "422":
@@ -171,7 +177,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	if tokenID == 0 {
 		tokens, err := auth_model.ListAccessTokens(ctx, auth_model.ListAccessTokensOptions{
 			Name:   token,
-			UserID: ctx.Doer.ID,
+			UserID: ctx.ContextUser.ID,
 		})
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "ListAccessTokens", err)

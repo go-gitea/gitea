@@ -16,19 +16,19 @@
 					</div>
 					<div class="ui twelve wide column detail">
 							<div class="gt-df gt-ac gt-sb gt-fw gt-mb-3">
-								<h4 class="release-list-title gt-df gt-ac">
+								<h4 class="release-list-title">
 									<a href="{{$.RepoLink}}/releases/tag/{{.TagName | PathEscapeSegments}}">{{.Title}}</a>
 									{{if .IsDraft}}
-										<span class="ui yellow label gt-ml-3 gt-mt-1">{{$.locale.Tr "repo.release.draft"}}</span>
+										<span class="ui yellow label">{{$.locale.Tr "repo.release.draft"}}</span>
 									{{else if .IsPrerelease}}
-										<span class="ui orange label gt-ml-3 gt-mt-1">{{$.locale.Tr "repo.release.prerelease"}}</span>
+										<span class="ui orange label">{{$.locale.Tr "repo.release.prerelease"}}</span>
 									{{else if not .IsTag}}
-										<span class="ui green label gt-ml-3 gt-mt-1">{{$.locale.Tr "repo.release.stable"}}</span>
+										<span class="ui green label">{{$.locale.Tr "repo.release.stable"}}</span>
 									{{end}}
 								</h4>
-								<div class="gt-df gt-ac">
+								<div>
 									{{if and $.CanCreateRelease (not .IsTag)}}
-										<a class="muted gt-ml-3 gt-df gt-ac" data-tooltip-content="{{$.locale.Tr "repo.release.edit"}}" href="{{$.RepoLink}}/releases/edit/{{.TagName | PathEscapeSegments}}" rel="nofollow">
+										<a class="muted" data-tooltip-content="{{$.locale.Tr "repo.release.edit"}}" href="{{$.RepoLink}}/releases/edit/{{.TagName | PathEscapeSegments}}" rel="nofollow">
 											{{svg "octicon-pencil"}}
 										</a>
 									{{end}}
@@ -38,7 +38,7 @@
 							<p class="text grey">
 								{{if gt .Publisher.ID 0}}
 								<span class="author">
-									{{ctx.AvatarUtils.Avatar .Publisher 20}}
+									{{ctx.AvatarUtils.Avatar .Publisher 20 "gt-mr-2"}}
 									<a href="{{.Publisher.HomeLink}}">{{.Publisher.Name}}</a>
 								</span>
 								<span class="released">
@@ -55,9 +55,9 @@
 							<p class="text grey">
 								<span class="author">
 								{{if .OriginalAuthor}}
-									{{svg "octicon-mark-github" 16 "gt-mr-2"}}{{.OriginalAuthor}}
+									{{svg "octicon-mark-github" 20 "gt-mr-2"}}{{.OriginalAuthor}}
 								{{else if .Publisher}}
-									{{ctx.AvatarUtils.Avatar .Publisher 20}}
+									{{ctx.AvatarUtils.Avatar .Publisher 20 "gt-mr-2"}}
 									<a href="{{.Publisher.HomeLink}}">{{.Publisher.GetDisplayName}}</a>
 								{{else}}
 									Ghost
@@ -77,8 +77,9 @@
 							<div class="markup desc">
 								{{Str2html .Note}}
 							</div>
-							<details class="download gt-border-secondary-top gt-mt-4 gt-pt-4" {{if eq $idx 0}}open{{end}}>
-								<summary class="gt-mb-4">
+							<div class="divider"></div>
+							<details class="download" {{if eq $idx 0}}open{{end}}>
+								<summary class="gt-my-4">
 									{{$.locale.Tr "repo.release.downloads"}}
 								</summary>
 								<ul class="list">
@@ -93,21 +94,21 @@
 									{{if .Attachments}}
 										{{range .Attachments}}
 											<li>
-												<span class="gt-float-right">
-													<span class="ui text grey">{{.Size | FileSize}}</span>
+												<a target="_blank" rel="nofollow" href="{{.DownloadURL}}">
+													<strong>{{svg "octicon-package" 16 "gt-mr-2"}}{{.Name}}</strong>
+												</a>
+												<div>
+													<span class="text grey">{{.Size | FileSize}}</span>
 													<span data-tooltip-content="{{$.locale.Tr "repo.release.download_count" ($.locale.PrettyNumber .DownloadCount)}}">
 														{{svg "octicon-info"}}
 													</span>
-												</span>
-												<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
-													<strong>{{svg "octicon-package" 16 "gt-mr-2"}}{{.Name}}</strong>
-												</a>
+												</div>
 											</li>
 										{{end}}
 									{{end}}
 								</ul>
 							</details>
-						<span class="dot">&nbsp;</span>
+						<div class="dot"></div>
 					</div>
 				</li>
 			{{end}}

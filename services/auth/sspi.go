@@ -23,19 +23,21 @@ import (
 	"code.gitea.io/gitea/services/auth/source/sspi"
 
 	gouuid "github.com/google/uuid"
-	"github.com/quasoft/websspi"
 )
 
 const (
 	tplSignIn base.TplName = "user/auth/signin"
 )
 
+type SSPIAuth interface {
+	AppendAuthenticateHeader(w http.ResponseWriter, data string)
+	Authenticate(r *http.Request, w http.ResponseWriter) (userInfo *SSPIUserInfo, outToken string, err error)
+}
+
 var (
-	// sspiAuth is a global instance of the websspi authentication package,
-	// which is used to avoid acquiring the server credential handle on
-	// every request
-	sspiAuth     *websspi.Authenticator
-	sspiAuthOnce sync.Once
+	sspiAuth        SSPIAuth // a global instance of the websspi authenticator to avoid acquiring the server credential handle on every request
+	sspiAuthOnce    sync.Once
+	sspiAuthErrInit error
 
 	// Ensure the struct implements the interface.
 	_ Method = &SSPI{}
@@ -43,8 +45,9 @@ var (
 
 // SSPI implements the SingleSignOn interface and authenticates requests
 // via the built-in SSPI module in Windows for SPNEGO authentication.
-// On successful authentication returns a valid user object.
-// Returns nil if authentication fails.
+// The SSPI plugin is expected to be executed last, as it returns 401 status code if negotiation
+// fails (or if negotiation should continue), which would prevent other authentication methods
+// to execute at all.
 type SSPI struct{}
 
 // Name represents the name of auth method
@@ -57,15 +60,10 @@ func (s *SSPI) Name() string {
 // If negotiation should continue or authentication fails, immediately returns a 401 HTTP
 // response code, as required by the SPNEGO protocol.
 func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
-	var errInit error
-	sspiAuthOnce.Do(func() {
-		config := websspi.NewConfig()
-		sspiAuth, errInit = websspi.New(config)
-	})
-	if errInit != nil {
-		return nil, errInit
+	sspiAuthOnce.Do(func() { sspiAuthErrInit = sspiAuthInit() })
+	if sspiAuthErrInit != nil {
+		return nil, sspiAuthErrInit
 	}
-
 	if !s.shouldAuthenticate(req) {
 		return nil, nil
 	}

@@ -420,7 +420,6 @@ a.silenced:hover {
 }
 
 a.label,
-.repository-menu a,
 .ui.search .results a,
 .ui .menu a,
 .ui.cards a.card,
@@ -1969,7 +1968,8 @@ a.ui.ui.ui.basic.primary.label:hover {
 }
 
 .ui.basic.labels .label,
-.ui.basic.label {
+.ui.basic.label,
+.ui.secondary.labels .ui.basic.label {
   background: var(--color-button);
   border-color: var(--color-light-border);
   color: var(--color-text-light);

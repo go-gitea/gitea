@@ -41,6 +41,8 @@ func migratePullMirrors(x *xorm.Engine) error {
 		ID            int64  `xorm:"pk autoincr"`
 		RepoID        int64  `xorm:"INDEX"`
 		RemoteAddress string `xorm:"VARCHAR(2048)"`
+		RepoOwner     string
+		RepoName      string
 	}
 
 	sess := x.NewSession()
@@ -50,19 +52,47 @@ func migratePullMirrors(x *xorm.Engine) error {
 		return err
 	}
 
-	if err := sess.Iterate(new(Mirror), func(_ int, bean any) error {
-		m := bean.(*Mirror)
-		remoteAddress, err := getRemoteAddress(sess, m.RepoID, "origin")
-		if err != nil {
+	limit := setting.Database.IterateBufferSize
+	if limit <= 0 {
+		limit = 50
+	}
+
+	start := 0
+
+	for {
+		var mirrors []Mirror
+		if err := sess.Select("mirror.id, mirror.repo_id, mirror.remote_address, repository.owner_name as repo_owner, repository.name as repo_name").
+			Join("INNER", "repository", "repository.id = mirror.repo_id").
+			Limit(limit, start).Find(&mirrors); err != nil {
 			return err
 		}
 
-		m.RemoteAddress = remoteAddress
+		if len(mirrors) == 0 {
+			break
+		}
+		start += len(mirrors)
 
-		_, err = sess.ID(m.ID).Cols("remote_address").Update(m)
-		return err
-	}); err != nil {
-		return err
+		for _, m := range mirrors {
+			remoteAddress, err := getRemoteAddress(m.RepoOwner, m.RepoName, "origin")
+			if err != nil {
+				return err
+			}
+
+			m.RemoteAddress = remoteAddress
+
+			if _, err = sess.ID(m.ID).Cols("remote_address").Update(m); err != nil {
+				return err
+			}
+		}
+
+		if start%1000 == 0 { // avoid a too big transaction
+			if err := sess.Commit(); err != nil {
+				return err
+			}
+			if err := sess.Begin(); err != nil {
+				return err
+			}
+		}
 	}
 
 	return sess.Commit()
@@ -74,6 +104,8 @@ func migratePushMirrors(x *xorm.Engine) error {
 		RepoID        int64 `xorm:"INDEX"`
 		RemoteName    string
 		RemoteAddress string `xorm:"VARCHAR(2048)"`
+		RepoOwner     string
+		RepoName      string
 	}
 
 	sess := x.NewSession()
@@ -83,43 +115,58 @@ func migratePushMirrors(x *xorm.Engine) error {
 		return err
 	}
 
-	if err := sess.Iterate(new(PushMirror), func(_ int, bean any) error {
-		m := bean.(*PushMirror)
-		remoteAddress, err := getRemoteAddress(sess, m.RepoID, m.RemoteName)
-		if err != nil {
+	limit := setting.Database.IterateBufferSize
+	if limit <= 0 {
+		limit = 50
+	}
+
+	start := 0
+
+	for {
+		var mirrors []PushMirror
+		if err := sess.Select("push_mirror.id, push_mirror.repo_id, push_mirror.remote_name, push_mirror.remote_address, repository.owner_name as repo_owner, repository.name as repo_name").
+			Join("INNER", "repository", "repository.id = push_mirror.repo_id").
+			Limit(limit, start).Find(&mirrors); err != nil {
 			return err
 		}
 
-		m.RemoteAddress = remoteAddress
+		if len(mirrors) == 0 {
+			break
+		}
+		start += len(mirrors)
 
-		_, err = sess.ID(m.ID).Cols("remote_address").Update(m)
-		return err
-	}); err != nil {
-		return err
+		for _, m := range mirrors {
+			remoteAddress, err := getRemoteAddress(m.RepoOwner, m.RepoName, m.RemoteName)
+			if err != nil {
+				return err
+			}
+
+			m.RemoteAddress = remoteAddress
+
+			if _, err = sess.ID(m.ID).Cols("remote_address").Update(m); err != nil {
+				return err
+			}
+		}
+
+		if start%1000 == 0 { // avoid a too big transaction
+			if err := sess.Commit(); err != nil {
+				return err
+			}
+			if err := sess.Begin(); err != nil {
+				return err
+			}
+		}
 	}
 
 	return sess.Commit()
 }
 
-func getRemoteAddress(sess *xorm.Session, repoID int64, remoteName string) (string, error) {
-	var ownerName string
-	var repoName string
-	has, err := sess.
-		Table("repository").
-		Cols("owner_name", "lower_name").
-		Where("id=?", repoID).
-		Get(&ownerName, &repoName)
-	if err != nil {
-		return "", err
-	} else if !has {
-		return "", fmt.Errorf("repository [%v] not found", repoID)
-	}
-
+func getRemoteAddress(ownerName, repoName, remoteName string) (string, error) {
 	repoPath := filepath.Join(setting.RepoRootPath, strings.ToLower(ownerName), strings.ToLower(repoName)+".git")
 
 	remoteURL, err := git.GetRemoteAddress(context.Background(), repoPath, remoteName)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("get remote %s's address of %s/%s failed: %v", remoteName, ownerName, repoName, err)
 	}
 
 	u, err := giturl.Parse(remoteURL)

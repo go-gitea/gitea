@@ -101,9 +101,9 @@
 					</div>
 					{{if .SingleRepoLink}}
 						{{if eq .SingleRepoAction "issue"}}
-							<a class="ui green button gt-ml-4" href="{{.SingleRepoLink}}/issues/new/choose">{{.locale.Tr "repo.issues.new"}}</a>
+							<a class="ui primary button gt-ml-4" href="{{.SingleRepoLink}}/issues/new/choose">{{.locale.Tr "repo.issues.new"}}</a>
 						{{else if eq .SingleRepoAction "pull"}}
-							<a class="ui green button gt-ml-4" href="{{.SingleRepoLink}}/compare">{{.locale.Tr "repo.pulls.new"}}</a>
+							<a class="ui primary button gt-ml-4" href="{{.SingleRepoLink}}/compare">{{.locale.Tr "repo.pulls.new"}}</a>
 						{{end}}
 					{{end}}
 				</div>

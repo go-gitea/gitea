@@ -251,7 +251,7 @@ func CreateTeam(ctx *context.APIContext) {
 
 	audit.Record(audit.OrganizationTeamAdd, ctx.Doer, ctx.Org.Organization, team, "Team %s was added to organization %s.", team.Name, ctx.Org.Organization.Name)
 
-	apiTeam, err := convert.ToTeam(ctx, team)
+	apiTeam, err := convert.ToTeam(ctx, team, true)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
