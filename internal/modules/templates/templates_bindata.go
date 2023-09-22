@@ -5,4 +5,4 @@
 
 package templates
 
-//go:generate go run ../../build/generate-bindata.go ../../templates templates bindata.go true
+//go:generate go run ../../build/generate-bindata.go ../../../templates templates bindata.go true

@@ -5,4 +5,4 @@
 
 package migration
 
-//go:generate go run ../../build/generate-bindata.go ../../modules/migration/schemas migration bindata.go
+//go:generate go run ../../build/generate-bindata.go ../../../modules/migration/schemas migration bindata.go
