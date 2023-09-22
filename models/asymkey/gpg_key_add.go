@@ -153,7 +153,7 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 
 		// Get DB session
 
-		key, err := parseGPGKey(ownerID, ekey, verified)
+		key, err := parseGPGKey(ctx, ownerID, ekey, verified)
 		if err != nil {
 			return nil, err
 		}

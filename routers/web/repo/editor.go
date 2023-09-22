@@ -812,7 +812,7 @@ func UploadFileToServer(ctx *context.Context) {
 		return
 	}
 
-	upload, err := repo_model.NewUpload(name, buf, file)
+	upload, err := repo_model.NewUpload(ctx, name, buf, file)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("NewUpload: %v", err))
 		return
@@ -832,7 +832,7 @@ func RemoveUploadFileFromServer(ctx *context.Context) {
 		return
 	}
 
-	if err := repo_model.DeleteUploadByUUID(form.File); err != nil {
+	if err := repo_model.DeleteUploadByUUID(ctx, form.File); err != nil {
 		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("DeleteUploadByUUID: %v", err))
 		return
 	}

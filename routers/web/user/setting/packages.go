@@ -107,7 +107,7 @@ func RegenerateChefKeyPair(ctx *context.Context) {
 		return
 	}
 
-	if err := user_model.SetUserSetting(ctx.Doer.ID, chef_module.SettingPublicPem, pub); err != nil {
+	if err := user_model.SetUserSetting(ctx, ctx.Doer.ID, chef_module.SettingPublicPem, pub); err != nil {
 		ctx.ServerError("SetUserSetting", err)
 		return
 	}

@@ -16,8 +16,8 @@
 	<div class="ui dropdown type jump item gt-mr-0">
 		<span class="text">
 			{{.locale.Tr "repo.issues.filter_sort"}}
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		</span>
+		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		<div class="menu">
 			<a class="{{if eq .SortType "newest"}}active {{end}}item" href="{{$.Link}}?tab={{$.TabName}}&sort=newest&q={{$.Keyword}}&language={{$.Language}}">{{.locale.Tr "repo.issues.filter_sort.latest"}}</a>
 			<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$.Link}}?tab={{$.TabName}}&sort=oldest&q={{$.Keyword}}&language={{$.Language}}">{{.locale.Tr "repo.issues.filter_sort.oldest"}}</a>
@@ -36,7 +36,7 @@
 </div>
 {{if and .PageIsExploreRepositories .OnlyShowRelevant}}
 	<div class="ui message explore-relevancy-note">
-		<span data-tooltip-content="{{.locale.Tr "explore.relevant_repositories_tooltip"}}">{{.locale.Tr "explore.relevant_repositories" ((printf "%s%s" $.Link "?only_show_relevant=0")|Escape) | Safe}}</span>
+		<span data-tooltip-content="{{.locale.Tr "explore.relevant_repositories_tooltip"}}">{{.locale.Tr "explore.relevant_repositories" ((print $.Link "?only_show_relevant=0")|Escape) | Safe}}</span>
 	</div>
 {{end}}
 <div class="divider"></div>

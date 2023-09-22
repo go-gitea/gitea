@@ -44,7 +44,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 		uploader   = NewGiteaLocalUploader(graceful.GetManager().HammerContext(), user, user.Name, repoName)
 	)
 
-	err := migrateRepository(user, downloader, uploader, base.MigrateOptions{
+	err := migrateRepository(db.DefaultContext, user, downloader, uploader, base.MigrateOptions{
 		CloneAddr:    "https://github.com/go-xorm/builder",
 		RepoName:     repoName,
 		AuthUsername: "",
@@ -113,7 +113,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, issues[0].LoadDiscussComments(db.DefaultContext))
 	assert.Empty(t, issues[0].Comments)
 
-	pulls, _, err := issues_model.PullRequests(repo.ID, &issues_model.PullRequestsOptions{
+	pulls, _, err := issues_model.PullRequests(db.DefaultContext, repo.ID, &issues_model.PullRequestsOptions{
 		SortType: "oldest",
 	})
 	assert.NoError(t, err)

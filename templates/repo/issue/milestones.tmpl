@@ -5,7 +5,7 @@
 		<div class="navbar gt-mb-4">
 			{{template "repo/issue/navbar" .}}
 			{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
-				<a class="ui small green button" href="{{$.Link}}/new">{{.locale.Tr "repo.milestones.new"}}</a>
+				<a class="ui small primary button" href="{{$.Link}}/new">{{.locale.Tr "repo.milestones.new"}}</a>
 			{{end}}
 		</div>
 		{{template "base/alert" .}}
@@ -37,8 +37,8 @@
 			<div class="list-header-sort ui small dropdown type jump item">
 				<span class="text">
 					{{.locale.Tr "repo.issues.filter_sort"}}
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				<div class="menu">
 					<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=closestduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.earliest_due_data"}}</a>
 					<a class="{{if eq .SortType "furthestduedate"}}active {{end}}item" href="{{$.Link}}?sort=furthestduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.latest_due_date"}}</a>
