@@ -25,8 +25,6 @@ var (
 	ErrDuplicatePackageFile = util.NewAlreadyExistErrorf("package file already exists")
 	// ErrPackageFileNotExist indicates a package file not exist error
 	ErrPackageFileNotExist = util.NewNotExistErrorf("package file does not exist")
-	// ErrPackagePropertyNotExist indicates a package property not exist error
-	ErrPackagePropertyNotExist = util.NewNotExistErrorf("package property does not exist")
 )
 
 // EmptyFileKey is a named constant for an empty file key
