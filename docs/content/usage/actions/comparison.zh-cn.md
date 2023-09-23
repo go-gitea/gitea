@@ -120,15 +120,13 @@ Gitea Actions目前不支持此功能。
 
 ### 下载Actions
 
-Gitea Actions默认不从GitHub下载Actions。
-"默认" 意味着您在`uses` 字段中不指定主机，如`uses: actions/checkout@v3`。
-相反，`uses: https://github.com/actions/checkout@v3`是有指定主机的。
+当 `[actions].DEFAULT_ACTIONS_URL` 保持默认值为 `github` 时，Gitea将会从 https://github.com 下载相对路径的actions。比如：
+如果你使用 `uses: actions/checkout@v3`，Gitea将会从 https://github.com/actions/checkout.git 下载这个 actions 项目。
+如果你想要从另外一个 Git服务下载actions，你只需要使用绝对URL `uses: https://gitea.com/actions/checkout@v3` 来下载。
 
-如果您不进行配置，缺失的主机将填充为`https://gitea.com`。
-这意味着`uses: actions/checkout@v3`将从[gitea.com/actions/checkout](https://gitea.com/actions/checkout)下载该Action，而不是[github.com/actions/checkout](https://github.com/actions/checkout)。
+如果你的 Gitea 实例是部署在一个互联网限制的网络中，有可以使用绝对地址来下载 actions。你也可以讲配置项修改为 `[actions].DEFAULT_ACTIONS_URL = self`。这样所有的相对路径的actions引用，将不再会从 github.com 去下载，而会从这个 Gitea 实例自己的仓库中去下载。例如： `uses: actions/checkout@v3` 将会从 `[server].ROOT_URL`/actions/checkout.git 这个地址去下载 actions。
 
-正如前面提到的，这是可配置的。
-如果您希望您的运行程序默认从GitHub或您自己的Gitea实例下载动作，您可以通过设置`[actions].DEFAULT_ACTIONS_URL`进行配置。请参阅[配置备忘单](administration/config-cheat-sheet.md#actions-actions)。
+设置`[actions].DEFAULT_ACTIONS_URL`进行配置。请参阅[配置备忘单](administration/config-cheat-sheet.md#actions-actions)。
 
 ### 上下文可用性
 
