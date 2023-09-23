@@ -1,14 +1,14 @@
 <h4 class="ui top attached header">
 	{{.locale.Tr "repo.issues.label_count" .NumLabels}}
 	<div class="ui right">
-		<div class="ui right floated secondary filter menu">
+		<div class="ui secondary menu">
 			<!-- Sort -->
-			<div class="ui dropdown type jump item">
+			<div class="item ui jump dropdown gt-py-3">
 				<span class="text">
 					{{.locale.Tr "repo.issues.filter_sort"}}
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</span>
-				<div class="menu">
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				<div class="left menu">
 					<a class="{{if or (eq .SortType "alphabetically") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=alphabetically&state={{$.State}}">{{.locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
 					<a class="{{if eq .SortType "reversealphabetically"}}active {{end}}item" href="{{$.Link}}?sort=reversealphabetically&state={{$.State}}">{{.locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
 					<a class="{{if eq .SortType "leastissues"}}active {{end}}item" href="{{$.Link}}?sort=leastissues&state={{$.State}}">{{.locale.Tr "repo.milestones.filter_sort.least_issues"}}</a>

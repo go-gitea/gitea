@@ -33,8 +33,8 @@
 								<div class="ui dropdown type jump item">
 									<span class="text">
 										{{.locale.Tr "repo.issues.filter_type"}}
-										{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 									</span>
+									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 									<div class="menu">
 										<a class="{{if or (eq .IssueType "all") (not .IssueType)}}active {{end}}item" href="{{$.Link}}?sort={{$.SortType}}&state={{$.State}}&issueType=all&labels={{$.Labels}}">{{.locale.Tr "all"}}</a>
 										<a class="{{if eq .IssueType "issues"}}active {{end}}item" href="{{$.Link}}?sort={{$.SortType}}&state={{$.State}}&issueType=issues&labels={{$.Labels}}">{{.locale.Tr "issues"}}</a>
@@ -46,8 +46,8 @@
 							<div class="ui dropdown type jump item">
 								<span class="text">
 									{{.locale.Tr "repo.issues.filter_sort"}}
-									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								</span>
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="menu">
 									<a class="{{if or (eq .SortType "latest") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=latest&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{.locale.Tr "repo.issues.filter_sort.latest"}}</a>
 									<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$.Link}}?sort=oldest&state={{$.State}}&issueType={{$.IssueType}}&labels={{$.Labels}}">{{.locale.Tr "repo.issues.filter_sort.oldest"}}</a>
