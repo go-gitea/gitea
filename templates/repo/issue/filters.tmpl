@@ -18,6 +18,15 @@
 						<i class="icon">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_label"}}">
 					</div>
+					<div class="ui checkbox compact archived-label-filter">
+						<input name="archived" type="checkbox">
+						<label>
+							{{.locale.Tr "repo.issues.label_archived_filter"}}
+							<i class="gt-ml-2" data-tooltip-content={{.locale.Tr "repo.issues.label_archive_tooltip"}}>
+								{{svg "octicon-info"}}
+							</i>
+						</label>
+					</div>
 					<span class="info">{{.locale.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
 					<div class="divider"></div>
 					<a class="{{if .AllLabels}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_label_no_select"}}</a>
