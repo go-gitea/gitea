@@ -1,3 +1,15 @@
+{{if or .UsesIgnoreRevs .FaultyIgnoreRevsFile}}
+	{{$revsFileLink := URLJoin .RepoLink "src" .BranchNameSubURL "/.git-blame-ignore-revs"}}
+	{{if .UsesIgnoreRevs}}
+		<div class="ui info message">
+			<p>{{.locale.Tr "repo.blame.ignore_revs" $revsFileLink (print $revsFileLink "?bypass-blame-ignore=true") | Str2html}}</p>
+		</div>
+	{{else}}
+		<div class="ui error message">
+			<p>{{.locale.Tr "repo.blame.ignore_revs.failed" $revsFileLink | Str2html}}</p>
+		</div>
+	{{end}}
+{{end}}
 <div class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
 	<h4 class="file-header ui top attached header gt-df gt-ac gt-sb gt-fw">
 		<div class="file-header-left gt-df gt-ac gt-py-3 gt-pr-4">

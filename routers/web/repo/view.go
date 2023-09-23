@@ -628,15 +628,6 @@ func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input i
 	return escaped, output, err
 }
 
-func safeURL(address string) string {
-	u, err := url.Parse(address)
-	if err != nil {
-		return address
-	}
-	u.User = nil
-	return u.String()
-}
-
 func checkHomeCodeViewable(ctx *context.Context) {
 	if len(ctx.Repo.Units) > 0 {
 		if ctx.Repo.Repository.IsBeingCreated() {
@@ -660,7 +651,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 
 			ctx.Data["Repo"] = ctx.Repo
 			ctx.Data["MigrateTask"] = task
-			ctx.Data["CloneAddr"] = safeURL(cfg.CloneAddr)
+			ctx.Data["CloneAddr"], _ = util.SanitizeURL(cfg.CloneAddr)
 			ctx.Data["Failed"] = task.Status == structs.TaskStatusFailed
 			ctx.HTML(http.StatusOK, tplMigrating)
 			return
