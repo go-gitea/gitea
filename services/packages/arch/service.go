@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 
@@ -15,14 +16,13 @@ import (
 	pkg_model "code.gitea.io/gitea/models/packages"
 	repository "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/packages/arch"
-	"code.gitea.io/gitea/modules/storage"
+	pkg_service "code.gitea.io/gitea/services/packages"
 )
 
 // Get data related to provided filename and distribution, for package files
 // update download counter.
-func GetPackageFile(ctx *context.Context, distro, file string) (storage.Object, error) {
+func GetPackageFile(ctx *context.Context, distro, file string) (io.ReadSeekCloser, error) {
 	pkgfile := &pkg_model.PackageFile{CompositeKey: distro + "-" + file}
 
 	ok, err := db.GetEngine(ctx).Get(pkgfile)
@@ -30,19 +30,8 @@ func GetPackageFile(ctx *context.Context, distro, file string) (storage.Object, 
 		return nil, fmt.Errorf("%+v %t", err, ok)
 	}
 
-	b, err := pkg_model.GetBlobByID(ctx, pkgfile.BlobID)
-	if err != nil {
-		return nil, err
-	}
-
-	if strings.HasSuffix(file, ".pkg.tar.zst") {
-		err = pkg_model.IncrementDownloadCounter(ctx, pkgfile.VersionID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return packages.NewContentStore().Get(packages.BlobHash256Key(b.HashSHA256))
+	filestream, _, _, err := pkg_service.GetPackageFileStream(ctx, pkgfile)
+	return filestream, err
 }
 
 // This function will search for package signature and if present, will load it
