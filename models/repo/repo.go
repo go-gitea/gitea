@@ -310,6 +310,11 @@ func (repo *Repository) HTMLURL() string {
 	return setting.AppURL + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
 }
 
+// URL returns the repository URL
+func (repo *Repository) URL() string {
+	return setting.AppURL + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
+}
+
 // CommitLink make link to by commit full ID
 // note: won't check whether it's an right id
 func (repo *Repository) CommitLink(commitID string) (result string) {
