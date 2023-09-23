@@ -73,7 +73,7 @@
 					name="name"
 					id="dialog-variable-name"
 					value="{{.name}}"
-					pattern="^[a-zA-Z_][a-zA-Z0-9_]*$"
+					pattern="^(?!GITEA_|GITHUB_)[a-zA-Z_][a-zA-Z0-9_]*$"
 					placeholder="{{.locale.Tr "secrets.creation.name_placeholder"}}"
 				>
 			</div>
