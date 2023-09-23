@@ -300,7 +300,7 @@ func DeleteUser(ctx context.Context, doer, u *user_model.User, purge bool) error
 }
 
 // DeleteInactiveUsers deletes all inactive users and email addresses.
-func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
+func DeleteInactiveUsers(ctx context.Context, doer *user_model.User, olderThan time.Duration) error {
 	users, err := user_model.GetInactiveUsers(ctx, olderThan)
 	if err != nil {
 		return err
@@ -313,7 +313,7 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 			return db.ErrCancelledf("Before delete inactive user %s", u.Name)
 		default:
 		}
-		if err := DeleteUser(ctx, user_model.NewGhostUser(), u, false); err != nil {
+		if err := DeleteUser(ctx, doer, u, false); err != nil {
 			// Ignore users that were set inactive by admin.
 			if models.IsErrUserOwnRepos(err) || models.IsErrUserHasOrgs(err) || models.IsErrUserOwnPackages(err) {
 				continue
