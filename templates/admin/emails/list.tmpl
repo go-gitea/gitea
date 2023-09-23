@@ -15,8 +15,8 @@
 				<div class="ui dropdown type jump item gt-mr-0">
 					<span class="text">
 						{{.locale.Tr "repo.issues.filter_sort"}}
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					</span>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					<div class="menu">
 						<a class="{{if or (eq .SortType "email") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=email&q={{$.Keyword}}">{{.locale.Tr "admin.emails.filter_sort.email"}}</a>
 						<a class="{{if eq .SortType "reverseemail"}}active {{end}}item" href="{{$.Link}}?sort=reverseemail&q={{$.Keyword}}">{{.locale.Tr "admin.emails.filter_sort.email_reverse"}}</a>
