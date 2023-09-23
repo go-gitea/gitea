@@ -181,7 +181,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		Parent:                        parent,
 		Mirror:                        repo.IsMirror,
 		HTMLURL:                       repo.HTMLURL(),
-		URL:                           repo.URL(),
+		URL:                           repo.HTMLURL(),
 		SSHURL:                        cloneLink.SSH,
 		CloneURL:                      cloneLink.HTTPS,
 		OriginalURL:                   repo.SanitizedOriginalURL(),
