@@ -342,7 +342,7 @@ func (stats *ActivityStats) FillReleases(repoID int64, fromTime time.Time) error
 
 	// Published releases list
 	sess := releasesForActivityStatement(repoID, fromTime)
-	sess.OrderBy("release.created_unix DESC")
+	sess.OrderBy("`release`.created_unix DESC")
 	stats.PublishedReleases = make([]*repo_model.Release, 0)
 	if err = sess.Find(&stats.PublishedReleases); err != nil {
 		return err
@@ -350,7 +350,7 @@ func (stats *ActivityStats) FillReleases(repoID int64, fromTime time.Time) error
 
 	// Published releases authors
 	sess = releasesForActivityStatement(repoID, fromTime)
-	if _, err = sess.Select("count(distinct release.publisher_id) as `count`").Table("release").Get(&count); err != nil {
+	if _, err = sess.Select("count(distinct `release`.publisher_id) as `count`").Table("release").Get(&count); err != nil {
 		return err
 	}
 	stats.PublishedReleaseAuthorCount = count
@@ -359,7 +359,7 @@ func (stats *ActivityStats) FillReleases(repoID int64, fromTime time.Time) error
 }
 
 func releasesForActivityStatement(repoID int64, fromTime time.Time) *xorm.Session {
-	return db.GetEngine(db.DefaultContext).Where("release.repo_id = ?", repoID).
-		And("release.is_draft = ?", false).
-		And("release.created_unix >= ?", fromTime.Unix())
+	return db.GetEngine(db.DefaultContext).Where("`release`.repo_id = ?", repoID).
+		And("`release`.is_draft = ?", false).
+		And("`release`.created_unix >= ?", fromTime.Unix())
 }
