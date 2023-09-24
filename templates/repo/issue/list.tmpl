@@ -54,8 +54,8 @@
 					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "repo.issues.action_label"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							<div class="item issue-action" data-action="clear" data-url="{{$.RepoLink}}/issues/labels">
 								{{.locale.Tr "repo.issues.new.clear_labels"}}
@@ -78,8 +78,8 @@
 					<div class="ui {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "repo.issues.action_milestone"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/milestone">
 							{{.locale.Tr "repo.issues.action_milestone_no_select"}}
@@ -109,8 +109,8 @@
 					<div class="ui{{if not (or .OpenProjects .ClosedProjects)}} disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "repo.project_board"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/projects">
 							{{.locale.Tr "repo.issues.new.clear_projects"}}
@@ -144,8 +144,8 @@
 					<div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "repo.issues.action_assignee"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							<div class="item issue-action" data-action="clear" data-url="{{$.Link}}/assignee">
 								{{.locale.Tr "repo.issues.new.clear_assignees"}}
