@@ -1331,7 +1331,7 @@ PROXY_HOSTS = *.github.com
 
 ## Actions (`actions`)
 
-- `ENABLED`: **false**：启用/禁用操作功能
+- `ENABLED`: **true**：启用/禁用操作功能
 - `DEFAULT_ACTIONS_URL`: **github**：获取操作插件的默认平台，`github`表示`https://github.com`，`self`表示当前的 Gitea 实例。
 - `STORAGE_TYPE`: **local**：用于操作日志的存储类型，`local`表示本地磁盘，`minio`表示与S3兼容的对象存储服务，默认为`local`，或者使用定义为`[storage.xxx]`的其他名称。
 - `MINIO_BASE_PATH`: **actions_log/**：Minio存储桶上的基本路径，仅在`STORAGE_TYPE`为`minio`时可用。

@@ -27,6 +27,11 @@ func CodeSearch(ctx *context.Context) {
 	shared_user.PrepareContextForProfileBigAvatar(ctx)
 	shared_user.RenderUserHeader(ctx)
 
+	if err := shared_user.LoadHeaderCount(ctx); err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["Title"] = ctx.Tr("explore.code")

@@ -2044,7 +2044,7 @@
   border: none;
   display: flex;
   align-items: center;
-  padding: 0 0.5em; /* make the UI look better for narrow (mobile) view */
+  padding: 0;
   overflow: hidden;
 }
 
@@ -2056,7 +2056,8 @@
   align-items: center;
   justify-content: center;
   gap: 0.25em;
-  padding: 0 0.25em;
+  padding: 0 0.5em; /* make the UI look better for narrow (mobile) view */
+  text-decoration: none;
 }
 
 .repository .repository-summary .sub-menu .item.active {
@@ -2154,21 +2155,15 @@
   margin-top: 5px;
 }
 
-#search-repo-box .results .result img,
-#search-user-box .results .result img {
+#search-user-box .results .result .image {
   float: left;
   margin-right: 8px;
   width: 2em;
   height: 2em;
 }
 
-#search-repo-box .results .result .content,
 #search-user-box .results .result .content {
-  margin: 6px 0;
-}
-
-#search-team-box .results .result .content {
-  margin: 6px 0;
+  margin: 6px 0; /* this trick is used to align with the sibling avatar image */
 }
 
 .ui.menu .item > img:not(.ui) {

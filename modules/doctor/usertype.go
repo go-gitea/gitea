@@ -11,14 +11,14 @@ import (
 )
 
 func checkUserType(ctx context.Context, logger log.Logger, autofix bool) error {
-	count, err := user_model.CountWrongUserType()
+	count, err := user_model.CountWrongUserType(ctx)
 	if err != nil {
 		logger.Critical("Error: %v whilst counting wrong user types")
 		return err
 	}
 	if count > 0 {
 		if autofix {
-			if count, err = user_model.FixWrongUserType(); err != nil {
+			if count, err = user_model.FixWrongUserType(ctx); err != nil {
 				logger.Critical("Error: %v whilst fixing wrong user types")
 				return err
 			}

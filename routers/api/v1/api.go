@@ -367,6 +367,16 @@ func reqOwner() func(ctx *context.APIContext) {
 	}
 }
 
+// reqSelfOrAdmin doer should be the same as the contextUser or site admin
+func reqSelfOrAdmin() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if !ctx.IsUserSiteAdmin() && ctx.ContextUser != ctx.Doer {
+			ctx.Error(http.StatusForbidden, "reqSelfOrAdmin", "doer should be the site admin or be same as the contextUser")
+			return
+		}
+	}
+}
+
 // reqAdmin user should be an owner or a collaborator with admin write of a repository, or site admin
 func reqAdmin() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
@@ -665,7 +675,7 @@ func mustEnableWiki(ctx *context.APIContext) {
 
 func mustNotBeArchived(ctx *context.APIContext) {
 	if ctx.Repo.Repository.IsArchived {
-		ctx.NotFound()
+		ctx.Error(http.StatusLocked, "RepoArchived", fmt.Errorf("%s is archived", ctx.Repo.Repository.LogString()))
 		return
 	}
 }
@@ -705,7 +715,10 @@ func buildAuthGroup() *auth.Group {
 	if setting.Service.EnableReverseProxyAuthAPI {
 		group.Add(&auth.ReverseProxy{})
 	}
-	specialAdd(group)
+
+	if setting.IsWindows && auth_model.IsSSPIEnabled() {
+		group.Add(&auth.SSPI{}) // it MUST be the last, see the comment of SSPI
+	}
 
 	return group
 }
@@ -776,7 +789,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIC
 				if skip, ok := ctx.Data["SkipLocalTwoFA"]; ok && skip.(bool) {
 					return // Skip 2FA
 				}
-				twofa, err := auth_model.GetTwoFactorByUID(ctx.Doer.ID)
+				twofa, err := auth_model.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 				if err != nil {
 					if auth_model.IsErrTwoFactorNotEnrolled(err) {
 						return // No 2FA enrollment for this user
@@ -907,7 +920,7 @@ func Routes() *web.Route {
 					m.Combo("").Get(user.ListAccessTokens).
 						Post(bind(api.CreateAccessTokenOption{}), reqToken(), user.CreateAccessToken)
 					m.Combo("/{id}").Delete(reqToken(), user.DeleteAccessToken)
-				}, reqBasicOrRevProxyAuth())
+				}, reqSelfOrAdmin(), reqBasicOrRevProxyAuth())
 
 				m.Get("/activities/feeds", user.ListUserActivityFeeds)
 			}, context_service.UserAssignmentAPI())
@@ -1095,23 +1108,23 @@ func Routes() *web.Route {
 				m.Group("/branches", func() {
 					m.Get("", repo.ListBranches)
 					m.Get("/*", repo.GetBranch)
-					m.Delete("/*", reqToken(), reqRepoWriter(unit.TypeCode), repo.DeleteBranch)
-					m.Post("", reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
+					m.Delete("/*", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.DeleteBranch)
+					m.Post("", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
 				}, context.ReferencesGitRepo(), reqRepoReader(unit.TypeCode))
 				m.Group("/branch_protections", func() {
 					m.Get("", repo.ListBranchProtections)
-					m.Post("", bind(api.CreateBranchProtectionOption{}), repo.CreateBranchProtection)
+					m.Post("", bind(api.CreateBranchProtectionOption{}), mustNotBeArchived, repo.CreateBranchProtection)
 					m.Group("/{name}", func() {
 						m.Get("", repo.GetBranchProtection)
-						m.Patch("", bind(api.EditBranchProtectionOption{}), repo.EditBranchProtection)
+						m.Patch("", bind(api.EditBranchProtectionOption{}), mustNotBeArchived, repo.EditBranchProtection)
 						m.Delete("", repo.DeleteBranchProtection)
 					})
 				}, reqToken(), reqAdmin())
 				m.Group("/tags", func() {
 					m.Get("", repo.ListTags)
 					m.Get("/*", repo.GetTag)
-					m.Post("", reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateTagOption{}), repo.CreateTag)
-					m.Delete("/*", reqToken(), repo.DeleteTag)
+					m.Post("", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, bind(api.CreateTagOption{}), repo.CreateTag)
+					m.Delete("/*", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.DeleteTag)
 				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
@@ -1232,15 +1245,15 @@ func Routes() *web.Route {
 					m.Get("/tags/{sha}", repo.GetAnnotatedTag)
 					m.Get("/notes/{sha}", repo.GetNote)
 				}, context.ReferencesGitRepo(true), reqRepoReader(unit.TypeCode))
-				m.Post("/diffpatch", reqRepoWriter(unit.TypeCode), reqToken(), bind(api.ApplyDiffPatchFileOptions{}), repo.ApplyDiffPatch)
+				m.Post("/diffpatch", reqRepoWriter(unit.TypeCode), reqToken(), bind(api.ApplyDiffPatchFileOptions{}), mustNotBeArchived, repo.ApplyDiffPatch)
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)
-					m.Post("", reqToken(), bind(api.ChangeFilesOptions{}), reqRepoBranchWriter, repo.ChangeFiles)
+					m.Post("", reqToken(), bind(api.ChangeFilesOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.ChangeFiles)
 					m.Get("/*", repo.GetContents)
 					m.Group("/*", func() {
-						m.Post("", bind(api.CreateFileOptions{}), reqRepoBranchWriter, repo.CreateFile)
-						m.Put("", bind(api.UpdateFileOptions{}), reqRepoBranchWriter, repo.UpdateFile)
-						m.Delete("", bind(api.DeleteFileOptions{}), reqRepoBranchWriter, repo.DeleteFile)
+						m.Post("", bind(api.CreateFileOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.CreateFile)
+						m.Put("", bind(api.UpdateFileOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.UpdateFile)
+						m.Delete("", bind(api.DeleteFileOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.DeleteFile)
 					}, reqToken())
 				}, reqRepoReader(unit.TypeCode))
 				m.Get("/signing-key.gpg", misc.SigningKey)

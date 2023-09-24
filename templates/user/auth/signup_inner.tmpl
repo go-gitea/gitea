@@ -39,7 +39,7 @@
 
 				<div class="inline field">
 					<label></label>
-					<button class="ui green button">
+					<button class="ui primary button">
 						{{if .LinkAccountMode}}
 							{{.locale.Tr "auth.oauth_signup_submit"}}
 						{{else}}
@@ -54,6 +54,25 @@
 					<a href="{{AppSubUrl}}/user/login">{{.locale.Tr "auth.register_helper_msg"}}</a>
 				</div>
 				{{end}}
+			{{end}}
+
+			{{if and .OrderedOAuth2Names .OAuth2Providers}}
+			<div class="divider divider-text">
+				{{.locale.Tr "sign_in_or"}}
+			</div>
+			<div id="oauth2-login-navigator" class="gt-py-2">
+				<div class="gt-df gt-fc gt-jc">
+					<div id="oauth2-login-navigator-inner" class="gt-df gt-fc gt-fw gt-ac gt-gap-3">
+						{{range $key := .OrderedOAuth2Names}}
+							{{$provider := index $.OAuth2Providers $key}}
+							<a class="{{$provider.Name}} ui button gt-df gt-ac gt-jc gt-py-3 oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
+								{{$provider.IconHTML 28}}
+								{{$.locale.Tr "sign_in_with_provider" $provider.DisplayName}}
+							</a>
+						{{end}}
+					</div>
+				</div>
+			</div>
 			{{end}}
 		</form>
 	</div>

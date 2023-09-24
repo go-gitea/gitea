@@ -136,9 +136,18 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 }
 
 func (m *MinioStorage) buildMinioPath(p string) string {
-	p = util.PathJoinRelX(m.basePath, p)
+	p = strings.TrimPrefix(util.PathJoinRelX(m.basePath, p), "/") // object store doesn't use slash for root path
 	if p == "." {
-		p = "" // minio doesn't use dot as relative path
+		p = "" // object store doesn't use dot as relative path
+	}
+	return p
+}
+
+func (m *MinioStorage) buildMinioDirPrefix(p string) string {
+	// ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
+	p = m.buildMinioPath(p) + "/"
+	if p == "/" {
+		p = "" // object store doesn't use slash for root path
 	}
 	return p
 }
@@ -237,20 +246,11 @@ func (m *MinioStorage) URL(path, name string) (*url.URL, error) {
 // IterateObjects iterates across the objects in the miniostorage
 func (m *MinioStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
 	opts := minio.GetObjectOptions{}
-	lobjectCtx, cancel := context.WithCancel(m.ctx)
-	defer cancel()
-
-	basePath := m.basePath
-	if dirName != "" {
-		// ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
-		basePath = m.buildMinioPath(dirName) + "/"
-	}
-
-	for mObjInfo := range m.client.ListObjects(lobjectCtx, m.bucket, minio.ListObjectsOptions{
-		Prefix:    basePath,
+	for mObjInfo := range m.client.ListObjects(m.ctx, m.bucket, minio.ListObjectsOptions{
+		Prefix:    m.buildMinioDirPrefix(dirName),
 		Recursive: true,
 	}) {
-		object, err := m.client.GetObject(lobjectCtx, m.bucket, mObjInfo.Key, opts)
+		object, err := m.client.GetObject(m.ctx, m.bucket, mObjInfo.Key, opts)
 		if err != nil {
 			return convertMinioErr(err)
 		}

@@ -164,7 +164,7 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 		IsActive: util.OptionalBoolTrue,
 	}
 
-	if err := user_model.CreateUser(user, &overwriteDefault); err != nil {
+	if err := user_model.CreateUser(req.Context(), user, &overwriteDefault); err != nil {
 		// FIXME: should I create a system notice?
 		log.Error("CreateUser: %v", err)
 		return nil

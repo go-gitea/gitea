@@ -128,18 +128,18 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 	ctx.Data["repo_name"] = forkRepo.Name
 	ctx.Data["description"] = forkRepo.Description
 	ctx.Data["IsPrivate"] = forkRepo.IsPrivate || forkRepo.Owner.Visibility == structs.VisibleTypePrivate
-	canForkToUser := forkRepo.OwnerID != ctx.Doer.ID && !repo_model.HasForkedRepo(ctx.Doer.ID, forkRepo.ID)
+	canForkToUser := forkRepo.OwnerID != ctx.Doer.ID && !repo_model.HasForkedRepo(ctx, ctx.Doer.ID, forkRepo.ID)
 
 	ctx.Data["ForkRepo"] = forkRepo
 
-	ownedOrgs, err := organization.GetOrgsCanCreateRepoByUserID(ctx.Doer.ID)
+	ownedOrgs, err := organization.GetOrgsCanCreateRepoByUserID(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
 		return nil
 	}
 	var orgs []*organization.Organization
 	for _, org := range ownedOrgs {
-		if forkRepo.OwnerID != org.ID && !repo_model.HasForkedRepo(org.ID, forkRepo.ID) {
+		if forkRepo.OwnerID != org.ID && !repo_model.HasForkedRepo(ctx, org.ID, forkRepo.ID) {
 			orgs = append(orgs, org)
 		}
 	}
@@ -248,7 +248,7 @@ func ForkPost(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
 			return
 		}
-		repo := repo_model.GetForkedRepo(ctxUser.ID, traverseParentRepo.ID)
+		repo := repo_model.GetForkedRepo(ctx, ctxUser.ID, traverseParentRepo.ID)
 		if repo != nil {
 			ctx.Redirect(ctxUser.HomeLink() + "/" + url.PathEscape(repo.Name))
 			return
@@ -1286,7 +1286,7 @@ func MergePullRequest(ctx *context.Context) {
 	}
 	log.Trace("Pull request merged: %d", pr.ID)
 
-	if err := stopTimerIfAvailable(ctx.Doer, issue); err != nil {
+	if err := stopTimerIfAvailable(ctx, ctx.Doer, issue); err != nil {
 		ctx.ServerError("CreateOrStopIssueStopwatch", err)
 		return
 	}
@@ -1342,9 +1342,9 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 	ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
 }
 
-func stopTimerIfAvailable(user *user_model.User, issue *issues_model.Issue) error {
-	if issues_model.StopwatchExists(user.ID, issue.ID) {
-		if err := issues_model.CreateOrStopIssueStopwatch(user, issue); err != nil {
+func stopTimerIfAvailable(ctx *context.Context, user *user_model.User, issue *issues_model.Issue) error {
+	if issues_model.StopwatchExists(ctx, user.ID, issue.ID) {
+		if err := issues_model.CreateOrStopIssueStopwatch(ctx, user, issue); err != nil {
 			return err
 		}
 	}
