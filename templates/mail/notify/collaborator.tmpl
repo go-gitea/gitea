@@ -9,12 +9,12 @@
 </head>
 
 <body>
-	<p>{{ctx.Locale.Tr "mail.repo.collaborator.added.text"}} <code>{{.RepoName}}</code></p>
+	<p>{{.locale.Tr "mail.repo.collaborator.added.text"}} <code>{{.RepoName}}</code></p>
 	<div class="footer">
 		<p>
 			---
 			<br>
-			<a href="{{.Link}}">{{ctx.Locale.Tr "mail.view_it_on" AppName}}</a>.
+			<a href="{{.Link}}">{{.locale.Tr "mail.view_it_on" AppName}}</a>.
 		</p>
 	</div>
 </body>
