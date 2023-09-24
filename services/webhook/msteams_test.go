@@ -429,7 +429,7 @@ func TestMSTeamsPayload(t *testing.T) {
 		}
 		assert.Len(t, pl.(*MSTeamsPayload).PotentialAction, 1)
 		assert.Len(t, pl.(*MSTeamsPayload).PotentialAction[0].Targets, 1)
-		assert.Equal(t, "http://localhost:3000/api/v1/repos/test/repo/releases/2", pl.(*MSTeamsPayload).PotentialAction[0].Targets[0].URI)
+		assert.Equal(t, "http://localhost:3000/test/repo/releases/tag/v1.0", pl.(*MSTeamsPayload).PotentialAction[0].Targets[0].URI)
 	})
 }
 

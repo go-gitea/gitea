@@ -226,6 +226,7 @@ help:
 	@echo " - test-frontend                    test frontend files"
 	@echo " - test-backend                     test backend files"
 	@echo " - test-e2e[\#TestSpecificName]     test end to end using playwright"
+	@echo " - update                           update js and py dependencies"
 	@echo " - update-js                        update js dependencies"
 	@echo " - update-py                        update py dependencies"
 	@echo " - webpack                          build webpack files"
@@ -923,6 +924,9 @@ node_modules: package-lock.json
 .venv: poetry.lock
 	poetry install
 	@touch .venv
+
+.PHONY: update
+update: update-js update-py
 
 .PHONY: update-js
 update-js: node-check | node_modules
