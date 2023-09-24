@@ -17,13 +17,13 @@ menu:
 
 # Database Preparation
 
-You need a database to use Gitea. Gitea supports PostgreSQL (>=10), MySQL (>=5.7), SQLite, and MSSQL (>=2008R2 SP3). This page will guide into preparing database. Only PostgreSQL and MySQL will be covered here since those database engines are widely-used in production. If you plan to use SQLite, you can ignore this chapter.
+You need a database to use Gitea. Gitea supports PostgreSQL (>=10), MySQL (>=5.7), MariaDB, SQLite, and MSSQL (>=2008R2 SP3). This page will guide into preparing database. Only PostgreSQL and MySQL will be covered here since those database engines are widely-used in production. If you plan to use SQLite, you can ignore this chapter.
 
 Database instance can be on same machine as Gitea (local database setup), or on different machine (remote database).
 
 Note: All steps below requires that the database engine of your choice is installed on your system. For remote database setup, install the server application on database instance and client program on your Gitea server. The client program is used to test connection to the database from Gitea server, while Gitea itself use database driver provided by Go to accomplish the same thing. In addition, make sure you use same engine version for both server and client for some engine features to work. For security reason, protect `root` (MySQL) or `postgres` (PostgreSQL) database superuser with secure password. The steps assumes that you run Linux for both database and Gitea servers.
 
-## MySQL
+## MySQL/MariaDB
 
 1. For remote database setup, you will need to make MySQL listen to your IP address. Edit `bind-address` option on `/etc/mysql/my.cnf` on database instance to:
 
@@ -45,7 +45,7 @@ Note: All steps below requires that the database engine of your choice is instal
 
     ```sql
     SET old_passwords=0;
-    CREATE USER 'gitea' IDENTIFIED BY 'gitea';
+    CREATE USER 'gitea'@'localhost' IDENTIFIED BY 'gitea';
     ```
 
     For remote database:
