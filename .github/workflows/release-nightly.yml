@@ -1,12 +1,8 @@
-name: release-nightly-assets
+name: release-nightly
 
 on:
   push:
     branches: [ main, release/v* ]
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   nightly-binary:
