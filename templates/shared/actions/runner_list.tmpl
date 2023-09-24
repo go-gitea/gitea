@@ -1,7 +1,7 @@
 <div class="runner-container">
 
 	<h4 class="ui top attached header">
-		{{ctx.Locale.Tr "actions.runners.runner_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
+		{{ctx.Locale.Tr "actions.runners.runner_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 		<div class="ui right">
 			<div class="ui top right pointing dropdown">
 				<button class="ui primary tiny button">
@@ -10,8 +10,7 @@
 				</button>
 				<div class="menu">
 					<div class="item">
-						{{/* TODO: replece the document link when there's a better one than the README of act_runner */}}
-						<a href="https://gitea.com/gitea/act_runner/src/branch/main/README.md">{{ctx.Locale.Tr "actions.runners.new_notice"}}</a>
+						<a href="https://docs.gitea.com/usage/actions/act-runner">{{ctx.Locale.Tr "actions.runners.new_notice"}}</a>
 					</div>
 					<div class="divider"></div>
 					<div class="header">
@@ -25,7 +24,7 @@
 					</div>
 					<div class="divider"></div>
 					<div class="item">
-						<a href="{{$.Link}}/reset_registration_token">Reset registration token</a>
+						<a href="{{$.Link}}/reset_registration_token">{{ctx.Locale.Tr "actions.runners.reset_registration_token"}}</a>
 					</div>
 				</div>
 			</div>
@@ -69,7 +68,7 @@
 					{{range .Runners}}
 					<tr>
 						<td>
-							<span class="runner-status-{{if .IsOnline}}online{{else}}offline{{end}}">{{.StatusLocaleName $.locale}}</span>
+							<span class="ui {{if .IsOnline}}green{{else}}basic{{end}} label">{{.StatusLocaleName $.locale}}</span>
 						</td>
 						<td>{{.ID}}</td>
 						<td><p data-tooltip-content="{{.Description}}">{{.Name}}</p></td>
@@ -88,7 +87,7 @@
 					{{end}}
 				{{else}}
 					<tr>
-						<td class="center aligned" colspan="6">{{ctx.Locale.Tr "actions.runners.none"}}</td>
+						<td class="center aligned" colspan="8">{{ctx.Locale.Tr "actions.runners.none"}}</td>
 					</tr>
 				{{end}}
 			</tbody>
