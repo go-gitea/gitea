@@ -3,14 +3,14 @@
 	<div class="ui segment sub-menu repository-menu">
 		{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo)}}
 			<a class="item muted {{if .PageIsCommits}}active{{end}}" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}">
-				{{svg "octicon-history"}} <b>{{.locale.PrettyNumber .CommitsCount}}</b> {{.locale.TrN .CommitsCount "repo.commit" "repo.commits"}}
+				{{svg "octicon-history"}} <b>{{.locale.PrettyNumber .CommitsCount}}</b> {{ctx.Locale.TrN .CommitsCount "repo.commit" "repo.commits"}}
 			</a>
 			<a class="item muted {{if .PageIsBranches}}active{{end}}" href="{{.RepoLink}}/branches">
-				{{svg "octicon-git-branch"}} <b>{{.locale.PrettyNumber .BranchesCount}}</b> {{.locale.TrN .BranchesCount "repo.branch" "repo.branches"}}
+				{{svg "octicon-git-branch"}} <b>{{.locale.PrettyNumber .BranchesCount}}</b> {{ctx.Locale.TrN .BranchesCount "repo.branch" "repo.branches"}}
 			</a>
 			{{if $.Permission.CanRead $.UnitTypeCode}}
 				<a class="item muted {{if .PageIsTagList}}active{{end}}" href="{{.RepoLink}}/tags">
-					{{svg "octicon-tag"}} <b>{{.locale.PrettyNumber .NumTags}}</b> {{.locale.TrN .NumTags "repo.tag" "repo.tags"}}
+					{{svg "octicon-tag"}} <b>{{.locale.PrettyNumber .NumTags}}</b> {{ctx.Locale.TrN .NumTags "repo.tag" "repo.tags"}}
 				</a>
 			{{end}}
 			<span class="item not-mobile" {{if not (eq .Repository.Size 0)}}data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>
@@ -27,7 +27,7 @@
 			<i class="color-icon" style="background-color: {{.Color}}"></i>
 			<span class="gt-font-semibold">
 				{{if eq .Language "other"}}
-					{{$.locale.Tr "repo.language_other"}}
+					{{ctx.Locale.Tr "repo.language_other"}}
 				{{else}}
 					{{.Language}}
 				{{end}}

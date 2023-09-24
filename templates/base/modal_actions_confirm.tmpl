@@ -17,11 +17,11 @@ The ".ok.button" and ".cancel.button" selectors are also used by Fomantic Modal 
 	{{if .ModalButtonDangerText}}
 		<button class="ui danger red ok button">{{.ModalButtonDangerText}}</button>
 	{{else}}
-		{{$textNegitive := .locale.Tr "modal.no"}}
-		{{$textPositive := .locale.Tr "modal.yes"}}
+		{{$textNegitive := ctx.Locale.Tr "modal.no"}}
+		{{$textPositive := ctx.Locale.Tr "modal.yes"}}
 		{{if eq .ModalButtonTypes "confirm"}}
-			{{$textNegitive = .locale.Tr "modal.cancel"}}
-			{{$textPositive = .locale.Tr "modal.confirm"}}
+			{{$textNegitive = ctx.Locale.Tr "modal.cancel"}}
+			{{$textPositive = ctx.Locale.Tr "modal.confirm"}}
 		{{end}}
 		{{if .ModalButtonCancelText}}{{$textNegitive = .ModalButtonCancelText}}{{end}}
 		{{if .ModalButtonOkText}}{{$textPositive = .ModalButtonOkText}}{{end}}

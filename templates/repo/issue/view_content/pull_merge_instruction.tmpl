@@ -1,7 +1,7 @@
 <div class="divider"></div>
-<div class="instruct-toggle"> {{$.locale.Tr "repo.pulls.merge_instruction_hint" | Safe}} </div>
+<div class="instruct-toggle"> {{ctx.Locale.Tr "repo.pulls.merge_instruction_hint" | Safe}} </div>
 <div class="instruct-content gt-mt-3 gt-hidden">
-	<div><h3 class="gt-dib">{{$.locale.Tr "step1"}}</h3> {{$.locale.Tr "repo.pulls.merge_instruction_step1_desc"}}</div>
+	<div><h3 class="gt-dib">{{ctx.Locale.Tr "step1"}}</h3> {{ctx.Locale.Tr "repo.pulls.merge_instruction_step1_desc"}}</div>
 	<div class="ui secondary segment">
 		{{if eq $.Issue.PullRequest.Flow 0}}
 		<div>git checkout -b {{if ne $.Issue.PullRequest.HeadRepo.ID $.Issue.PullRequest.BaseRepo.ID}}{{$.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{$.Issue.PullRequest.HeadBranch}} {{$.Issue.PullRequest.BaseBranch}}</div>
@@ -10,7 +10,7 @@
 		<div>git fetch origin {{$.Issue.PullRequest.GetGitRefName}}:{{$.Issue.PullRequest.HeadBranch}}</div>
 		{{end}}
 	</div>
-	<div><h3 class="gt-dib">{{$.locale.Tr "step2"}}</h3> {{$.locale.Tr "repo.pulls.merge_instruction_step2_desc"}}</div>
+	<div><h3 class="gt-dib">{{ctx.Locale.Tr "step2"}}</h3> {{ctx.Locale.Tr "repo.pulls.merge_instruction_step2_desc"}}</div>
 	<div class="ui secondary segment">
 		<div>git checkout {{$.Issue.PullRequest.BaseBranch}}</div>
 		<div>git merge --no-ff {{if ne $.Issue.PullRequest.HeadRepo.ID $.Issue.PullRequest.BaseRepo.ID}}{{$.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{$.Issue.PullRequest.HeadBranch}}</div>
