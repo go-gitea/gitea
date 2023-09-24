@@ -16,7 +16,6 @@
 				</div>
 				<div class="field">
 					{{template "shared/combomarkdowneditor" (dict
-						"locale" $.locale
 						"MarkdownPreviewUrl" (print .Repository.Link "/markup")
 						"MarkdownPreviewContext" .RepoLink
 						"TextareaName" "content"

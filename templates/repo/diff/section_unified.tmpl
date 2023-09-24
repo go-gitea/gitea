@@ -41,13 +41,13 @@
 			{{$inlineDiff := $section.GetComputedInlineDiffFor $line $.root.locale -}}
 			<td class="lines-escape">
 				{{- if $inlineDiff.EscapeStatus.Escaped -}}
-					<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff "locale" $.root.locale}}"></button>
+					<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"></button>
 				{{- end -}}
 			</td>
 			<td class="lines-type-marker"><span class="gt-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 			{{if eq .GetType 4}}
 				<td class="chroma lines-code blob-hunk">{{/*
-					*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff "locale" $.root.locale}}{{/*
+					*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff}}{{/*
 				*/}}</td>
 			{{else}}
 				<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{/*
@@ -56,7 +56,7 @@
 							*/}}{{svg "octicon-plus"}}{{/*
 						*/}}</button>{{/*
 					*/}}{{end}}{{/*
-					*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff "locale" $.root.locale}}{{/*
+					*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff}}{{/*
 				*/}}</td>
 			{{end}}
 		</tr>

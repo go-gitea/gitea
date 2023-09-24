@@ -77,7 +77,7 @@
 							<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}},{{end}}]">
 							<input type="hidden" name="sort" value="{{$.SortType}}">
 							<input type="hidden" name="state" value="{{$.State}}">
-							{{template "shared/searchinput" dict "locale" .locale "Value" $.Keyword}}
+							{{template "shared/searchinput" dict "Value" $.Keyword}}
 							<button id="issue-list-quick-goto" class="ui small icon button gt-hidden" data-tooltip-content="{{ctx.Locale.Tr "explore.go_to"}}">{{svg "octicon-hash"}}</button>
 							<button class="ui small icon button" aria-label="{{ctx.Locale.Tr "explore.search"}}">{{svg "octicon-search"}}</button>
 						</div>

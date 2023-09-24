@@ -11,7 +11,6 @@
 		<input type="hidden" name="diff_base_cid">
 
 		{{template "shared/combomarkdowneditor" (dict
-			"locale" $.root.locale
 			"MarkdownPreviewUrl" (print $.root.Repository.Link "/markup")
 			"MarkdownPreviewContext" $.root.RepoLink
 			"TextareaName" "content"

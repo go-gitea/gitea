@@ -8,7 +8,7 @@
 	{{range .Runs}}
 		<div class="flex-item gt-ac">
 			<div class="flex-item-leading">
-				{{template "repo/actions/status" (dict "status" .Status.String "locale" $.locale)}}
+				{{template "repo/actions/status" (dict "status" .Status.String)}}
 			</div>
 			<div class="flex-item-main">
 				<a class="flex-item-title" title="{{.Title}}" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
