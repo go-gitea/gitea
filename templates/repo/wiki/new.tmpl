@@ -23,7 +23,6 @@
 				{{$content = .locale.Tr "repo.wiki.welcome"}}
 			{{end}}
 			{{template "shared/combomarkdowneditor" (dict
-				"locale" $.locale
 				"MarkdownPreviewUrl" (print .Repository.Link "/markup")
 				"MarkdownPreviewContext" .RepoLink
 				"TextareaName" "content"
