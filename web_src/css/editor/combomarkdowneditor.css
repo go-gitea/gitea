@@ -86,6 +86,7 @@ text-expander .suggestions {
   border-radius: 5px;
   border: 1px solid var(--color-secondary);
   box-shadow: 0 .5rem 1rem var(--color-shadow);
+  z-index: 100; /* needs to be > 20 to be on top of dropzone's .dz-details */
 }
 
 text-expander .suggestions li {
