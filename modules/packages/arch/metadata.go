@@ -222,21 +222,19 @@ func CreatePacmanDb(entries map[string][]byte) ([]byte, error) {
 	tw := tar.NewWriter(gw)
 
 	for name, content := range entries {
-		hdr := &tar.Header{
+		header := &tar.Header{
 			Name: name,
 			Size: int64(len(content)),
 			Mode: int64(os.ModePerm),
 		}
 
-		err := tw.WriteHeader(hdr)
-		if err != nil {
+		if err := tw.WriteHeader(header); err != nil {
 			tw.Close()
 			gw.Close()
 			return nil, err
 		}
 
-		_, err = io.Copy(tw, bytes.NewReader(content))
-		if err != nil {
+		if _, err := tw.Write(content); err != nil {
 			tw.Close()
 			gw.Close()
 			return nil, err
