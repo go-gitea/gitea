@@ -34,7 +34,7 @@
 
 		'mode': '{{if or .root.IsViewTag .isTag}}tags{{else}}branches{{end}}',
 		'showBranchesInDropdown': {{$showBranchesInDropdown}},
-		'searchFieldPlaceholder': '{{if $.noTag}}{{ctx.Locale.Tr "repo.pulls.filter_branch"}}{{else if $showBranchesInDropdown}}{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}{{else}}{{.root.locale.Tr "repo.find_tag"}}{{end}}...',
+		'searchFieldPlaceholder': '{{if $.noTag}}{{ctx.Locale.Tr "repo.pulls.filter_branch"}}{{else if $showBranchesInDropdown}}{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}{{else}}{{ctx.Locale.Tr "repo.find_tag"}}{{end}}...',
 		'branchForm': {{$.branchForm}},
 		'disableCreateBranch': {{if .disableCreateBranch}}{{.disableCreateBranch}}{{else}}{{not .root.CanCreateBranch}}{{end}},
 		'setAction': {{.setAction}},
@@ -50,11 +50,11 @@
 		'enableFeed': {{.root.EnableFeed}},
 		'rssURLPrefix': '{{$.root.RepoLink}}/rss/branch/',
 		'branchURLPrefix': '{{if .branchURLPrefix}}{{.branchURLPrefix}}{{else}}{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/branch/{{end}}',
-		'branchURLSuffix': '{{if .branchURLSuffix}}{{.branchURLSuffix}}{{else}}{{if ctx.Locale.TreePath}}/{{PathEscapeSegments $.root.TreePath}}{{end}}{{end}}',
+		'branchURLSuffix': '{{if .branchURLSuffix}}{{.branchURLSuffix}}{{else}}{{if $.root.TreePath}}/{{PathEscapeSegments $.root.TreePath}}{{end}}{{end}}',
 		'tagURLPrefix': '{{if .tagURLPrefix}}{{.tagURLPrefix}}{{else if .release}}{{$.root.RepoLink}}/compare/{{else}}{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/tag/{{end}}',
-		'tagURLSuffix': '{{if .tagURLSuffix}}{{.tagURLSuffix}}{{else if .release}}...{{if .release.IsDraft}}{{PathEscapeSegments .release.Target}}{{else}}{{if .release.TagName}}{{PathEscapeSegments .release.TagName}}{{else}}{{PathEscapeSegments .release.Sha1}}{{end}}{{end}}{{else}}{{if ctx.Locale.TreePath}}/{{PathEscapeSegments $.root.TreePath}}{{end}}{{end}}',
+		'tagURLSuffix': '{{if .tagURLSuffix}}{{.tagURLSuffix}}{{else if .release}}...{{if .release.IsDraft}}{{PathEscapeSegments .release.Target}}{{else}}{{if .release.TagName}}{{PathEscapeSegments .release.TagName}}{{else}}{{PathEscapeSegments .release.Sha1}}{{end}}{{end}}{{else}}{{if $.root.TreePath}}/{{PathEscapeSegments $.root.TreePath}}{{end}}{{end}}',
 		'repoLink': {{.root.RepoLink}},
-		'treePath': {{ctx.Locale.TreePath}},
+		'treePath': {{.root.TreePath}},
 		'branchNameSubURL': {{.root.BranchNameSubURL}},
 		'noResults': {{ctx.Locale.Tr "repo.pulls.no_results"}},
 	};
