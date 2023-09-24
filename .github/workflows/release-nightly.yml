@@ -4,6 +4,9 @@ on:
   push:
     branches: [ main, release/v* ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
 jobs:
   nightly-binary:
     runs-on: actuated-4cpu-16gb
