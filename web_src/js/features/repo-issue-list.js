@@ -69,12 +69,7 @@ function initRepoIssueListCheckboxes() {
       }
     }
 
-    updateIssuesMeta(
-      url,
-      action,
-      issueIDs,
-      elementId
-    ).then(() => {
+    updateIssuesMeta(url, action, issueIDs, elementId).then(() => {
       window.location.reload();
     }).catch((reason) => {
       showErrorToast(reason.responseJSON.error);
@@ -185,9 +180,20 @@ async function initIssuePinSort() {
   });
 }
 
+function initArchivedLabelFilter() {
+  const archivedLabelEl = document.querySelector('#archived-filter-checkbox');
+  if (archivedLabelEl) {
+    archivedLabelEl.addEventListener('change', () => {
+      const url = archivedLabelEl.getAttribute('data-url');
+      window.location = (archivedLabelEl.checked) ? url : url.replace(/&archived=true/, '');
+    });
+  }
+}
+
 export function initRepoIssueList() {
   if (!document.querySelectorAll('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list').length) return;
   initRepoIssueListCheckboxes();
   initRepoIssueListAuthorDropdown();
   initIssuePinSort();
+  initArchivedLabelFilter();
 }

@@ -356,6 +356,17 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		labels = append(labels, orgLabels...)
 	}
 
+	if !ctx.FormBool("archived") {
+		var tempLabels []*issues_model.Label
+		for _, l := range labels {
+			if !l.IsArchived() {
+				tempLabels = append(tempLabels, l)
+			}
+		}
+		labels = tempLabels
+	} else {
+		ctx.Data["ShowArchivedLabels"] = true
+	}
 	// Get the exclusive scope for every label ID
 	labelExclusiveScopes := make([]string, 0, len(labelIDs))
 	for _, labelID := range labelIDs {

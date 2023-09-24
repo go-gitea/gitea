@@ -19,7 +19,10 @@
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_label"}}">
 					</div>
 					<div class="ui checkbox compact archived-label-filter">
-						<input name="archived" type="checkbox">
+						<input name="archived" type="checkbox"
+							id="archived-filter-checkbox" {{if .ShowArchivedLabels}}checked{{end}}
+							data-url="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}&archived=true"
+							>
 						<label>
 							{{.locale.Tr "repo.issues.label_archived_filter"}}
 							<i class="gt-ml-2" data-tooltip-content={{.locale.Tr "repo.issues.label_archive_tooltip"}}>
@@ -29,8 +32,8 @@
 					</div>
 					<span class="info">{{.locale.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
 					<div class="divider"></div>
-					<a class="{{if .AllLabels}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_label_no_select"}}</a>
-					<a class="{{if .NoLabel}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels=0&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_label_select_no_label"}}</a>
+					<a class="{{if .AllLabels}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{.locale.Tr "repo.issues.filter_label_no_select"}}</a>
+					<a class="{{if .NoLabel}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels=0&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{.locale.Tr "repo.issues.filter_label_select_no_label"}}</a>
 					{{$previousExclusiveScope := "_no_scope"}}
 					{{range .Labels}}
 						{{$exclusiveScope := .ExclusiveScope}}
@@ -38,7 +41,7 @@
 							<div class="divider"></div>
 						{{end}}
 						{{$previousExclusiveScope = $exclusiveScope}}
-						<a class="item label-filter-item gt-df gt-ac" {{if .IsArchived}}data-is-archived{{end}} href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash"}}{{else if .IsSelected}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}}
+						<a class="item label-filter-item gt-df gt-ac" {{if .IsArchived}}data-is-archived{{end}} href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash"}}{{else if .IsSelected}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}}
 							{{RenderLabel $.Context .}}
 							<p class="gt-ml-auto">{{template "repo/issue/labels/label_archived" .}}</p>
 						</a>
