@@ -154,11 +154,7 @@ func Get(ctx *context.Context) {
 	}
 
 	if strings.HasSuffix(file, ".db.tar.gz") || strings.HasSuffix(file, ".db") {
-		db, err := arch_service.CreatePacmanDb(ctx, &arch_service.DbParams{
-			Owner:        owner,
-			Architecture: arch,
-			Distribution: distro,
-		})
+		db, err := arch_service.CreatePacmanDb(ctx, owner, arch, distro)
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return

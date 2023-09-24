@@ -12,63 +12,42 @@ import (
 	"sort"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	pkg_model "code.gitea.io/gitea/models/packages"
 	repository "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/packages/arch"
+	arch_module "code.gitea.io/gitea/modules/packages/arch"
 	pkg_service "code.gitea.io/gitea/services/packages"
 )
 
 // Get data related to provided filename and distribution, for package files
 // update download counter.
 func GetPackageFile(ctx *context.Context, distro, file string) (io.ReadSeekCloser, error) {
-	pkgfile := &pkg_model.PackageFile{CompositeKey: distro + "-" + file}
-
-	ok, err := db.GetEngine(ctx).Get(pkgfile)
-	if err != nil || !ok {
-		return nil, fmt.Errorf("%+v %t", err, ok)
+	pf, err := pkg_model.GetFileByCompositeKey(ctx, distro+"-"+file)
+	if err != nil {
+		return nil, err
 	}
 
-	filestream, _, _, err := pkg_service.GetPackageFileStream(ctx, pkgfile)
+	filestream, _, _, err := pkg_service.GetPackageFileStream(ctx, pf)
 	return filestream, err
 }
 
 // This function will search for package signature and if present, will load it
 // from package file properties, and return its byte reader.
 func GetPackageSignature(ctx *context.Context, distro, file string) (*bytes.Reader, error) {
-	var (
-		splt        = strings.Split(file, "-")
-		packagename = strings.Join(splt[0:len(splt)-3], "-")
-		versionname = splt[len(splt)-3] + "-" + splt[len(splt)-2]
-		pkgfilename = strings.TrimSuffix(file, ".sig")
-		filekey     = distro + "-" + pkgfilename
-		signkey     = distro + "-" + file
-	)
+	pkgfile := strings.TrimSuffix(distro+"-"+file, ".sig")
 
-	version, err := pkg_model.GetVersionByNameAndVersion(
-		ctx, ctx.Package.Owner.ID, pkg_model.TypeArch, packagename, versionname,
-	)
+	pf, err := pkg_model.GetFileByCompositeKey(ctx, pkgfile)
 	if err != nil {
 		return nil, err
 	}
 
-	pkgfile, err := pkg_model.GetFileForVersionByName(
-		ctx, version.ID, pkgfilename, filekey,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	proprs, err := pkg_model.GetProperties(
-		ctx, pkg_model.PropertyTypeFile, pkgfile.ID,
-	)
+	proprs, err := pkg_model.GetProperties(ctx, pkg_model.PropertyTypeFile, pf.ID)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, pp := range proprs {
-		if pp.Name == signkey {
+		if pp.Name == distro+"-"+file {
 			b, err := hex.DecodeString(pp.Value)
 			if err != nil {
 				return nil, err
@@ -93,18 +72,12 @@ func RepoConnect(ctx *context.Context, owner, repo string, pkgid int64) error {
 	return nil
 }
 
-type DbParams struct {
-	Owner        string
-	Architecture string
-	Distribution string
-}
-
 // Finds all arch packages in user/organization scope, each package version
 // starting from latest in descending order is checked to be compatible with
 // requested combination of architecture and distribution. When/If the first
 // compatible version is found, related desc file will be loaded from database
 // and added to resulting .db.tar.gz archive.
-func CreatePacmanDb(ctx *context.Context, p *DbParams) ([]byte, error) {
+func CreatePacmanDb(ctx *context.Context, owner, arch, distro string) ([]byte, error) {
 	pkgs, err := pkg_model.GetPackagesByType(ctx, ctx.Package.Owner.ID, pkg_model.TypeArch)
 	if err != nil {
 		return nil, err
@@ -127,11 +100,11 @@ func CreatePacmanDb(ctx *context.Context, p *DbParams) ([]byte, error) {
 		for _, version := range versions {
 			filename := fmt.Sprintf(
 				"%s-%s-%s.pkg.tar.zst",
-				pkg.Name, version.Version, p.Architecture,
+				pkg.Name, version.Version, arch,
 			)
 
 			file, err := pkg_model.GetFileForVersionByName(
-				ctx, version.ID, filename, p.Distribution+"-"+filename,
+				ctx, version.ID, filename, distro+"-"+filename,
 			)
 			if err != nil {
 				filename := fmt.Sprintf(
@@ -139,7 +112,7 @@ func CreatePacmanDb(ctx *context.Context, p *DbParams) ([]byte, error) {
 					pkg.Name, version.Version,
 				)
 				file, err = pkg_model.GetFileForVersionByName(
-					ctx, version.ID, filename, p.Distribution+"-"+filename,
+					ctx, version.ID, filename, distro+"-"+filename,
 				)
 				if err != nil {
 					return nil, err
@@ -167,5 +140,5 @@ func CreatePacmanDb(ctx *context.Context, p *DbParams) ([]byte, error) {
 		}
 	}
 
-	return arch.CreatePacmanDb(entries)
+	return arch_module.CreatePacmanDb(entries)
 }
