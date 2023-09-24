@@ -45,7 +45,7 @@ Note: All steps below requires that the database engine of your choice is instal
 
     ```sql
     SET old_passwords=0;
-    CREATE USER 'gitea'@'localhost' IDENTIFIED BY 'gitea';
+    CREATE USER 'gitea'@'%' IDENTIFIED BY 'gitea';
     ```
 
     For remote database:
