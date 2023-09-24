@@ -69,7 +69,12 @@ function initRepoIssueListCheckboxes() {
       }
     }
 
-    updateIssuesMeta(url, action, issueIDs, elementId).then(() => {
+    updateIssuesMeta(
+      url,
+      action,
+      issueIDs,
+      elementId
+    ).then(() => {
       window.location.reload();
     }).catch((reason) => {
       showErrorToast(reason.responseJSON.error);

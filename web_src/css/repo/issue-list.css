@@ -21,16 +21,13 @@
     left: auto !important;
     right: auto !important;
   }
-
   .issue-list-navbar {
     order: 0;
   }
-
   .issue-list-new {
     order: 1;
     margin-left: auto !important;
   }
-
   .issue-list-search {
     order: 2 !important;
   }
