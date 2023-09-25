@@ -1,7 +1,7 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
-			{{ctx.Locale.Tr "admin.packages.package_manage_panel"}} ({{.locale.Tr "admin.total" .TotalCount}},
+			{{ctx.Locale.Tr "admin.packages.package_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .TotalCount}},
 			{{ctx.Locale.Tr "admin.packages.total_size" (FileSize .TotalBlobSize)}},
 			{{ctx.Locale.Tr "admin.packages.unreferenced_size" (FileSize .TotalUnreferencedBlobSize)}})
 			<div class="ui right">

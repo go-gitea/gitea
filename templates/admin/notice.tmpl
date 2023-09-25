@@ -1,7 +1,7 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin notice")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
-			{{ctx.Locale.Tr "admin.notices.system_notice_list"}} ({{.locale.Tr "admin.total" .Total}})
+			{{ctx.Locale.Tr "admin.notices.system_notice_list"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 		</h4>
 		<table class="ui attached segment select selectable striped table unstackable g-table-auto-ellipsis">
 			<thead>

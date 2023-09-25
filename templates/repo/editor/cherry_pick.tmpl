@@ -20,7 +20,7 @@
 					<a class="section" href="{{$.RepoLink}}">{{.Repository.FullName}}</a>
 					<div class="breadcrumb-divider">:</div>
 					<a class="section" href="{{$.BranchLink}}">{{.BranchName}}</a>
-					<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{$shaurl}}">{{.locale.Tr "repo.editor.cancel_lower"}}</a></span>
+					<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{$shaurl}}">{{ctx.Locale.Tr "repo.editor.cancel_lower"}}</a></span>
 				</div>
 			</div>
 			{{template "repo/editor/commit_form" .}}
