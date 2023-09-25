@@ -243,7 +243,7 @@ services:
       # The example container runs as an unprivileged user, `rootless`, and does not have root write permissions.
       # Be sure to write and reference a config file in a directory where the user has write permissions.
       CONFIG_FILE: /home/rootless/config.yaml
-      # Define the act_runner configuraiton in an environment variable
+      # Define the act_runner configuration in an environment variable
       # Note: you can expand environment variables here.
       ACT_RUNNER_CONFIG: |
         # Example configuration file, it's safe to copy this as the default config file without any modification.
