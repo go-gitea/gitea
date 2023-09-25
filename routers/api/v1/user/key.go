@@ -277,7 +277,7 @@ func DeletePublicKey(ctx *context.APIContext) {
 		return
 	}
 
-	if err := asymkey_service.DeletePublicKey(ctx.Doer, id); err != nil {
+	if err := asymkey_service.DeletePublicKey(ctx, ctx.Doer, id); err != nil {
 		if asymkey_model.IsErrKeyAccessDenied(err) {
 			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
 		} else {
