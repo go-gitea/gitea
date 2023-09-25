@@ -187,11 +187,18 @@ async function initIssuePinSort() {
 
 function initArchivedLabelFilter() {
   const archivedLabelEl = document.querySelector('#archived-filter-checkbox');
-  if (archivedLabelEl) {
-    archivedLabelEl.addEventListener('change', () => {
-      const url = archivedLabelEl.getAttribute('data-url');
-      window.location = (archivedLabelEl.checked) ? url : url.replace(/&archived=true/, '');
-    });
+  if (!archivedLabelEl) {
+    return;
+  }
+  archivedLabelEl.addEventListener('change', () => {
+    const url = archivedLabelEl.getAttribute('data-url');
+    window.location = (archivedLabelEl.checked) ? url : url.replace(/&archived=true/, '');
+  });
+  const archivedLabels = $('[data-is-archived]');
+  if (!archivedLabelEl.checked) {
+    for (const label of archivedLabels) {
+      toggleElem(label, archivedLabelEl.checked);
+    }
   }
 }
 
