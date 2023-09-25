@@ -1,11 +1,15 @@
 import $ from 'jquery';
+import {GET} from '../modules/fetch.js';
 import {hideElem} from '../utils/dom.js';
+import {parseUrl} from '../utils.js';
 
-function getDefaultSvgBoundsIfUndefined(svgXml, src) {
+function getDefaultSvgBoundsIfUndefined(text, src) {
   const DefaultSize = 300;
   const MaxSize = 99999;
 
-  const svg = svgXml.documentElement;
+  const parser = new DOMParser();
+  const svgDoc = parser.parseFromString(text, 'image/svg+xml');
+  const svg = svgDoc.documentElement;
   const width = svg?.width?.baseVal;
   const height = svg?.height?.baseVal;
   if (width === undefined || height === undefined) {
@@ -65,7 +69,7 @@ export function initImageDiff() {
     };
   }
 
-  $('.image-diff:not([data-image-diff-loaded])').each(function() {
+  $('.image-diff:not([data-image-diff-loaded])').each(async function() {
     const $container = $(this);
     $container.attr('data-image-diff-loaded', 'true');
 
@@ -88,29 +92,27 @@ export function initImageDiff() {
 
     for (const info of imageInfos) {
       if (info.$image.length > 0) {
-        $.ajax({
-          url: info.path,
-          success: (data, _, jqXHR) => {
-            info.$image.on('load', () => {
-              info.loaded = true;
-              setReadyIfLoaded();
-            }).on('error', () => {
-              info.loaded = true;
-              setReadyIfLoaded();
-              info.$boundsInfo.text('(image error)');
-            });
-            info.$image.attr('src', info.path);
-
-            if (jqXHR.getResponseHeader('Content-Type') === 'image/svg+xml') {
-              const bounds = getDefaultSvgBoundsIfUndefined(data, info.path);
-              if (bounds) {
-                info.$image.attr('width', bounds.width);
-                info.$image.attr('height', bounds.height);
-                hideElem(info.$boundsInfo);
-              }
-            }
-          }
+        info.$image.on('load', () => {
+          info.loaded = true;
+          setReadyIfLoaded();
+        }).on('error', () => {
+          info.loaded = true;
+          setReadyIfLoaded();
+          info.$boundsInfo.text('(image error)');
         });
+        info.$image.attr('src', info.path);
+
+        // this may be dead code as we currently do not render SVGs images in image diffs
+        if (parseUrl(info.path).pathname.toLowerCase().endsWith('.svg')) {
+          const resp = await GET(info.path);
+          const text = await resp.text();
+          const bounds = getDefaultSvgBoundsIfUndefined(text, info.path);
+          if (bounds) {
+            info.$image.attr('width', bounds.width);
+            info.$image.attr('height', bounds.height);
+            hideElem(info.$boundsInfo);
+          }
+        }
       } else {
         info.loaded = true;
         setReadyIfLoaded();
