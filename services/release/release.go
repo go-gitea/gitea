@@ -185,7 +185,7 @@ func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.R
 // addAttachmentUUIDs accept a slice of new created attachments' uuids which will be reassigned release_id as the created release
 // delAttachmentUUIDs accept a slice of attachments' uuids which will be deleted from the release
 // editAttachments accept a map of attachment uuid to new attachment name which will be updated with attachments.
-func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_model.Release,
+func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, rel *repo_model.Release,
 	addAttachmentUUIDs, delAttachmentUUIDs []string, editAttachments map[string]string,
 ) error {
 	if rel.ID == 0 {
@@ -197,7 +197,7 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
