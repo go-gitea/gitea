@@ -236,7 +236,7 @@
 				<input id="new_branch_name" name="new_branch_name" required>
 			</div>
 		</div>
-		{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
+		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 	</form>
 </div>
 
@@ -258,7 +258,7 @@
 				<input name="to" required>
 			</div>
 		</div>
-		{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
+		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 	</form>
 </div>
 {{template "base/footer" .}}
