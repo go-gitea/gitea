@@ -26,8 +26,17 @@ func MakeSelfOnTop(doer *user.User, users []*user.User) []*user.User {
 
 func HandleGitError(ctx *context.Context, msg string, err error) {
 	if git.IsErrNotExist(err) {
-		ctx.Data["NotFoundPrompt"] = ctx.Locale.Tr("repo.tree_path_not_found", ctx.Repo.TreePath, ctx.Repo.BranchName)
-		ctx.Data["NotFoundGoBackURL"] = ctx.Repo.RepoLink + "/src/branch/" + url.PathEscape(ctx.Repo.BranchName)
+		switch {
+		case ctx.Repo.IsViewBranch:
+			ctx.Data["NotFoundPrompt"] = ctx.Locale.Tr("repo.tree_path_not_found_branch", ctx.Repo.TreePath, ctx.Repo.RefName)
+			ctx.Data["NotFoundGoBackURL"] = ctx.Repo.RepoLink + "/src/branch/" + url.PathEscape(ctx.Repo.RefName)
+		case ctx.Repo.IsViewTag:
+			ctx.Data["NotFoundPrompt"] = ctx.Locale.Tr("repo.tree_path_not_found_tag", ctx.Repo.TreePath, ctx.Repo.RefName)
+			ctx.Data["NotFoundGoBackURL"] = ctx.Repo.RepoLink + "/src/tag/" + url.PathEscape(ctx.Repo.RefName)
+		case ctx.Repo.IsViewCommit:
+			ctx.Data["NotFoundPrompt"] = ctx.Locale.Tr("repo.tree_path_not_found_commit", ctx.Repo.TreePath, ctx.Repo.RefName)
+			ctx.Data["NotFoundGoBackURL"] = ctx.Repo.RepoLink + "/src/commit/" + url.PathEscape(ctx.Repo.RefName)
+		}
 		ctx.NotFound(msg, err)
 	} else {
 		ctx.ServerError(msg, err)
