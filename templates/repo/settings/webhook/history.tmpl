@@ -1,9 +1,13 @@
+{{$isNew:=or .PageIsSettingsHooksNew .PageIsAdminDefaultHooksNew .PageIsAdminSystemHooksNew}}
 {{if .PageIsSettingsHooksEdit}}
 	<h4 class="ui top attached header">
 		{{.locale.Tr "repo.settings.recent_deliveries"}}
 		{{if .Permission.IsAdmin}}
 			<div class="ui right">
-				<button class="ui teal tiny button" id="test-delivery" data-tooltip-content="{{.locale.Tr "repo.settings.webhook.test_delivery_desc"}}" data-link="{{.Link}}/test" data-redirect="{{.Link}}">{{.locale.Tr "repo.settings.webhook.test_delivery"}}</button>
+				<!-- the button is wrapped with a span because the tooltip doesn't show on hover if we put data-tooltip-content directly on the button -->
+				<span data-tooltip-content="{{if or $isNew .Webhook.IsActive}}{{.locale.Tr "repo.settings.webhook.test_delivery_desc"}}{{else}}{{.locale.Tr "repo.settings.webhook.test_delivery_desc_disabled"}}{{end}}">
+					<button class="ui teal tiny button{{if not (or $isNew .Webhook.IsActive)}} disabled{{end}}" id="test-delivery" data-link="{{.Link}}/test" data-redirect="{{.Link}}">{{.locale.Tr "repo.settings.webhook.test_delivery"}}</button>
+			</span>
 			</div>
 		{{end}}
 	</h4>
@@ -43,7 +47,9 @@
 							<div class="right menu">
 								<form class="item" action="{{$.Link}}/replay/{{.UUID}}" method="post">
 									{{$.CsrfTokenHtml}}
-									<button class="ui tiny button" data-tooltip-content="{{$.locale.Tr "repo.settings.webhook.replay.description"}}">{{svg "octicon-sync"}}</button>
+									<span data-tooltip-content="{{if $.Webhook.IsActive}}{{$.locale.Tr "repo.settings.webhook.replay.description"}}{{else}}{{$.locale.Tr "repo.settings.webhook.replay.description_disabled"}}{{end}}">
+										<button class="ui tiny button{{if not $.Webhook.IsActive}} disabled{{end}}">{{svg "octicon-sync"}}</button>
+									</span>
 								</form>
 							</div>
 							{{end}}
