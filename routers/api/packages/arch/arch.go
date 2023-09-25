@@ -4,7 +4,6 @@
 package arch
 
 import (
-	"bytes"
 	"encoding/hex"
 	"io"
 	"net/http"
@@ -160,7 +159,7 @@ func Get(ctx *context.Context) {
 			return
 		}
 
-		ctx.ServeContent(bytes.NewReader(db), &context.ServeHeaderOptions{
+		ctx.ServeContent(db, &context.ServeHeaderOptions{
 			Filename: file,
 		})
 		return

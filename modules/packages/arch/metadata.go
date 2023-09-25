@@ -6,7 +6,6 @@ package arch
 import (
 	"archive/tar"
 	"bufio"
-	"bytes"
 	"compress/gzip"
 	"encoding/hex"
 	"fmt"
@@ -215,10 +214,13 @@ func rmEmptyStrings(s []string) []string {
 }
 
 // Create pacman database archive based on provided package metadata structs.
-func CreatePacmanDb(entries map[string][]byte) ([]byte, error) {
-	var out bytes.Buffer
+func CreatePacmanDb(entries map[string][]byte) (io.ReadSeeker, error) {
+	out, err := pkg_module.NewHashedBuffer()
+	if err != nil {
+		return nil, err
+	}
 
-	gw := gzip.NewWriter(&out)
+	gw := gzip.NewWriter(out)
 	tw := tar.NewWriter(gw)
 
 	for name, content := range entries {
@@ -244,5 +246,5 @@ func CreatePacmanDb(entries map[string][]byte) ([]byte, error) {
 	tw.Close()
 	gw.Close()
 
-	return out.Bytes(), nil
+	return out, nil
 }

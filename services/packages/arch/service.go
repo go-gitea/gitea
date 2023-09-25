@@ -77,7 +77,7 @@ func RepoConnect(ctx *context.Context, owner, repo string, pkgid int64) error {
 // requested combination of architecture and distribution. When/If the first
 // compatible version is found, related desc file will be loaded from database
 // and added to resulting .db.tar.gz archive.
-func CreatePacmanDb(ctx *context.Context, owner, arch, distro string) ([]byte, error) {
+func CreatePacmanDb(ctx *context.Context, owner, arch, distro string) (io.ReadSeeker, error) {
 	pkgs, err := pkg_model.GetPackagesByType(ctx, ctx.Package.Owner.ID, pkg_model.TypeArch)
 	if err != nil {
 		return nil, err
