@@ -39,7 +39,7 @@
 					<a class="file-revisions-btn ui basic button" title="{{ctx.Locale.Tr "repo.wiki.file_revision"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_revision" ><span>{{.CommitCount}}</span> {{svg "octicon-history"}}</a>
 					{{$title}}
 					<div class="ui sub header">
-						{{$timeSince := TimeSince .Author.When $.locale}}
+						{{$timeSince := TimeSince .Author.When ctx.Locale}}
 						{{ctx.Locale.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince | Safe}}
 					</div>
 				</div>

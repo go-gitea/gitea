@@ -2,7 +2,7 @@
 	{{if eq (len .Runs) 0}}
 	<div class="empty center">
 		{{svg "octicon-no-entry" 48}}
-		<h2>{{if $.IsFiltered}}{{ctx.Locale.Tr "actions.runs.no_results"}}{{else}}{{.locale.Tr "actions.runs.no_runs"}}{{end}}</h2>
+		<h2>{{if $.IsFiltered}}{{ctx.Locale.Tr "actions.runs.no_results"}}{{else}}{{ctx.Locale.Tr "actions.runs.no_runs"}}{{end}}</h2>
 	</div>
 	{{end}}
 	{{range .Runs}}
@@ -34,7 +34,7 @@
 				{{end}}
 			</div>
 			<div class="run-list-item-right">
-				<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{TimeSinceUnix .Updated $.locale}}</div>
+				<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{TimeSinceUnix .Updated ctx.Locale}}</div>
 				<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{.Duration}}</div>
 			</div>
 		</div>

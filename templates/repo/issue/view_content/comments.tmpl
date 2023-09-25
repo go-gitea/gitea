@@ -1,7 +1,7 @@
 {{template "base/alert"}}
 {{range .Issue.Comments}}
 	{{if call $.ShouldShowCommentType .Type}}
-		{{$createdStr:= TimeSinceUnix .CreatedUnix $.locale}}
+		{{$createdStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
 
 		<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF,
 		5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING,
@@ -130,7 +130,7 @@
 			{{else if eq .RefAction 2}}
 				{{$refTr = "repo.issues.ref_reopening_from"}}
 			{{end}}
-			{{$createdStr:= TimeSinceUnix .CreatedUnix $.locale}}
+			{{$createdStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-bookmark"}}</span>
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
@@ -181,7 +181,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{ctx.Locale.Tr "repo.issues.change_milestone_at" (.OldMilestone.Name|Escape) (.Milestone.Name|Escape) $createdStr | Safe}}{{else}}{{ctx.Locale.Tr "repo.issues.remove_milestone_at" (.OldMilestone.Name|Escape) $createdStr | Safe}}{{end}}{{else if gt .MilestoneID 0}}{{$.locale.Tr "repo.issues.add_milestone_at" (.Milestone.Name|Escape) $createdStr | Safe}}{{end}}
+					{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{ctx.Locale.Tr "repo.issues.change_milestone_at" (.OldMilestone.Name|Escape) (.Milestone.Name|Escape) $createdStr | Safe}}{{else}}{{ctx.Locale.Tr "repo.issues.remove_milestone_at" (.OldMilestone.Name|Escape) $createdStr | Safe}}{{end}}{{else if gt .MilestoneID 0}}{{ctx.Locale.Tr "repo.issues.add_milestone_at" (.Milestone.Name|Escape) $createdStr | Safe}}{{end}}
 				</span>
 			</div>
 		{{else if eq .Type 9}}
@@ -514,7 +514,7 @@
 									<div id="code-comments-{{(index $comms 0).ID}}" class="comment-code-cloud ui segment{{if $resolved}} gt-hidden{{end}}">
 										<div class="ui comments gt-mb-0">
 											{{range $comms}}
-												{{$createdSubStr:= TimeSinceUnix .CreatedUnix $.locale}}
+												{{$createdSubStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
 												<div class="comment code-comment gt-pb-4" id="{{.HashTag}}">
 													<div class="content">
 														<div class="header comment-header">
