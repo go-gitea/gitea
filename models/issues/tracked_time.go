@@ -333,10 +333,8 @@ func GetIssueTotalTrackedTime(opts *IssuesOptions, isClosed bool) (int64, error)
 		return getIssueTotalTrackedTimeChunk(opts, isClosed, opts.IssueIDs)
 	}
 
-	// If too long a list of IDs is provided, we get the statistics in
-	// smaller chunks and get accumulates. Note: this could potentially
-	// get us invalid results. The alternative is to insert the list of
-	// ids in a temporary table and join from them.
+	// If too long a list of IDs is provided,
+	// we get the statistics in smaller chunks and get accumulates
 	var accum int64 = 0
 	for i := 0; i < len(opts.IssueIDs); {
 		chunk := i + MaxQueryParameters
