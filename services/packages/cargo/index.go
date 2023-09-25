@@ -115,9 +115,8 @@ func AddOrUpdatePackageIndex(ctx context.Context, doer, owner *user_model.User, 
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			return nil
-		} else {
-			return fmt.Errorf("GetRepositoryByOwnerAndName: %w", err)
 		}
+		return fmt.Errorf("GetRepositoryByOwnerAndName: %w", err)
 	}
 
 	p, err := packages_model.GetPackageByID(ctx, packageID)
