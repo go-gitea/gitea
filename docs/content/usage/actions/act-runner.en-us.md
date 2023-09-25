@@ -195,7 +195,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 ```
 
-To run the `rootless` variation:
+To run the `rootless` variant:
 
 ```yml
 version: "3.8"
