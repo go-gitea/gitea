@@ -1,2 +1,2 @@
-{{if .diff.EscapeStatus.HasInvisible}}{{.locale.Tr "repo.invisible_runes_line"}} {{end}}{{/*
-*/}}{{if .diff.EscapeStatus.HasAmbiguous}}{{.locale.Tr "repo.ambiguous_runes_line"}}{{end}}
+{{if .diff.EscapeStatus.HasInvisible}}{{ctx.Locale.Tr "repo.invisible_runes_line"}} {{end}}{{/*
+*/}}{{if .diff.EscapeStatus.HasAmbiguous}}{{ctx.Locale.Tr "repo.ambiguous_runes_line"}}{{end}}
