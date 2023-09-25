@@ -93,7 +93,7 @@
 						</a>
 					{{end}}
 					{{if .Project}}
-						<a class="project flex-text-inline" href="{{.Project.Link}}">
+						<a class="project flex-text-inline" href="{{.Project.Link ctx}}">
 							{{svg .Project.IconName 14}}{{.Project.Title}}
 						</a>
 					{{end}}

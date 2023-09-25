@@ -39,7 +39,7 @@
 							</a>
 							{{range .Actors}}
 								<a class="item{{if eq .ID $.CurActor}} active{{end}}" href="{{$.Link}}?workflow={{$.CurWorkflow}}&actor={{.ID}}&status={{$.CurStatus}}">
-									{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}
+									{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName ctx}}
 								</a>
 							{{end}}
 						</div>
