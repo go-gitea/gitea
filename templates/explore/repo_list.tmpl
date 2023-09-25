@@ -61,7 +61,7 @@
 					{{end}}
 					</div>
 				{{end}}
-				<div class="flex-item-body">{{ctx.Locale.Tr "org.repo_updated"}} {{TimeSinceUnix .UpdatedUnix $.locale}}</div>
+				<div class="flex-item-body">{{ctx.Locale.Tr "org.repo_updated"}} {{TimeSinceUnix .UpdatedUnix ctx.Locale}}</div>
 			</div>
 		</div>
 	{{else}}
