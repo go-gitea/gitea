@@ -17,6 +17,7 @@ import (
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -358,12 +359,12 @@ func (c *Comment) LoadPoster(ctx context.Context) (err error) {
 }
 
 // AfterDelete is invoked from XORM after the object is deleted.
-func (c *Comment) AfterDelete() {
+func (c *Comment) AfterDelete(ctx context.Context) {
 	if c.ID <= 0 {
 		return
 	}
 
-	_, err := repo_model.DeleteAttachmentsByComment(c.ID, true)
+	_, err := repo_model.DeleteAttachmentsByComment(ctx, c.ID, true)
 	if err != nil {
 		log.Info("Could not delete files for comment %d on issue #%d: %s", c.ID, c.IssueID, err)
 	}
@@ -1246,4 +1247,45 @@ func FixCommentTypeLabelWithOutsideLabels(ctx context.Context) (int64, error) {
 // HasOriginalAuthor returns if a comment was migrated and has an original author.
 func (c *Comment) HasOriginalAuthor() bool {
 	return c.OriginalAuthor != "" && c.OriginalAuthorID != 0
+}
+
+// InsertIssueComments inserts many comments of issues.
+func InsertIssueComments(comments []*Comment) error {
+	if len(comments) == 0 {
+		return nil
+	}
+
+	issueIDs := make(container.Set[int64])
+	for _, comment := range comments {
+		issueIDs.Add(comment.IssueID)
+	}
+
+	ctx, committer, err := db.TxContext(db.DefaultContext)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	for _, comment := range comments {
+		if _, err := db.GetEngine(ctx).NoAutoTime().Insert(comment); err != nil {
+			return err
+		}
+
+		for _, reaction := range comment.Reactions {
+			reaction.IssueID = comment.IssueID
+			reaction.CommentID = comment.ID
+		}
+		if len(comment.Reactions) > 0 {
+			if err := db.Insert(ctx, comment.Reactions); err != nil {
+				return err
+			}
+		}
+	}
+
+	for issueID := range issueIDs {
+		if _, err := db.Exec(ctx, "UPDATE issue set num_comments = (SELECT count(*) FROM comment WHERE issue_id = ? AND `type`=?) WHERE id = ?",
+			issueID, CommentTypeComment, issueID); err != nil {
+			return err
+		}
+	}
+	return committer.Commit()
 }

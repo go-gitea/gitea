@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -58,7 +59,7 @@ func getDashboardContextUser(ctx *context.Context) *user_model.User {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	orgs, err := organization.GetUserOrgsList(ctx.Doer)
+	orgs, err := organization.GetUserOrgsList(ctx, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserOrgsList", err)
 		return nil
@@ -212,13 +213,13 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 
-	counts, err := issues_model.CountMilestonesByRepoCondAndKw(userRepoCond, keyword, isShowClosed)
+	counts, err := issues_model.CountMilestonesByRepoCondAndKw(ctx, userRepoCond, keyword, isShowClosed)
 	if err != nil {
 		ctx.ServerError("CountMilestonesByRepoIDs", err)
 		return
 	}
 
-	milestones, err := issues_model.SearchMilestones(repoCond, page, isShowClosed, sortType, keyword)
+	milestones, err := issues_model.SearchMilestones(ctx, repoCond, page, isShowClosed, sortType, keyword)
 	if err != nil {
 		ctx.ServerError("SearchMilestones", err)
 		return
@@ -255,7 +256,7 @@ func Milestones(ctx *context.Context) {
 		}
 
 		if milestones[i].Repo.IsTimetrackerEnabled(ctx) {
-			err := milestones[i].LoadTotalTrackedTime()
+			err := milestones[i].LoadTotalTrackedTime(ctx)
 			if err != nil {
 				ctx.ServerError("LoadTotalTrackedTime", err)
 				return
@@ -264,7 +265,7 @@ func Milestones(ctx *context.Context) {
 		i++
 	}
 
-	milestoneStats, err := issues_model.GetMilestonesStatsByRepoCondAndKw(repoCond, keyword)
+	milestoneStats, err := issues_model.GetMilestonesStatsByRepoCondAndKw(ctx, repoCond, keyword)
 	if err != nil {
 		ctx.ServerError("GetMilestoneStats", err)
 		return
@@ -274,7 +275,7 @@ func Milestones(ctx *context.Context) {
 	if len(repoIDs) == 0 {
 		totalMilestoneStats = milestoneStats
 	} else {
-		totalMilestoneStats, err = issues_model.GetMilestonesStatsByRepoCondAndKw(userRepoCond, keyword)
+		totalMilestoneStats, err = issues_model.GetMilestonesStatsByRepoCondAndKw(ctx, userRepoCond, keyword)
 		if err != nil {
 			ctx.ServerError("GetMilestoneStats", err)
 			return
@@ -290,7 +291,7 @@ func Milestones(ctx *context.Context) {
 	if len(repoIDs) == 0 {
 		repoIDs = showRepoIds.Values()
 	}
-	repoIDs = util.SliceRemoveAllFunc(repoIDs, func(v int64) bool {
+	repoIDs = slices.DeleteFunc(repoIDs, func(v int64) bool {
 		return !showRepoIds.Contains(v)
 	})
 
@@ -534,7 +535,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// Gets set when clicking filters on the issues overview page.
 	selectedRepoIDs := getRepoIDs(ctx.FormString("repos"))
 	// Remove repo IDs that are not accessible to the user.
-	selectedRepoIDs = util.SliceRemoveAllFunc(selectedRepoIDs, func(v int64) bool {
+	selectedRepoIDs = slices.DeleteFunc(selectedRepoIDs, func(v int64) bool {
 		return !accessibleRepos.Contains(v)
 	})
 	if len(selectedRepoIDs) > 0 {

@@ -12,6 +12,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -129,7 +130,7 @@ func MustAllowPulls(ctx *context.Context) {
 	}
 
 	// User can send pull request if owns a forked repository.
-	if ctx.IsSigned && repo_model.HasForkedRepo(ctx.Doer.ID, ctx.Repo.Repository.ID) {
+	if ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID) {
 		ctx.Repo.PullRequest.Allowed = true
 		ctx.Repo.PullRequest.HeadInfoSubURL = url.PathEscape(ctx.Doer.Name) + ":" + util.PathEscapeSegments(ctx.Repo.BranchName)
 	}
@@ -833,10 +834,11 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 	return labels
 }
 
-func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles []string) map[string]error {
+// Tries to load and set an issue template. The first return value indicates if a template was loaded.
+func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles []string) (bool, map[string]error) {
 	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
-		return nil
+		return false, nil
 	}
 
 	templateCandidates := make([]string, 0, 1+len(possibleFiles))
@@ -899,16 +901,19 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 		ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
 		ctx.Data["Reference"] = template.Ref
 		ctx.Data["RefEndName"] = git.RefName(template.Ref).ShortName()
-		return templateErrs
+		return true, templateErrs
 	}
-	return templateErrs
+	return false, templateErrs
 }
 
 // NewIssue render creating issue page
 func NewIssue(ctx *context.Context) {
+	issueConfig, _ := issue_service.GetTemplateConfigFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	hasTemplates := issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
+
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
-	ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	ctx.Data["NewIssueChooseTemplate"] = hasTemplates
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	title := ctx.FormString("title")
 	ctx.Data["TitleQuery"] = title
@@ -958,7 +963,8 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["Tags"] = tags
 
 	_, templateErrs := issue_service.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
-	if errs := setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates); len(errs) > 0 {
+	templateLoaded, errs := setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
+	if len(errs) > 0 {
 		for k, v := range errs {
 			templateErrs[k] = v
 		}
@@ -972,6 +978,12 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypeIssues)
+
+	if !issueConfig.BlankIssuesEnabled && hasTemplates && !templateLoaded {
+		// The "issues/new" and "issues/new/choose" share the same query parameters "project" and "milestone", if blank issues are disabled, just redirect to the "issues/choose" page with these parameters.
+		ctx.Redirect(fmt.Sprintf("%s/issues/new/choose?%s", ctx.Repo.Repository.Link(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
+		return
+	}
 
 	ctx.HTML(http.StatusOK, tplIssueNew)
 }
@@ -1404,7 +1416,7 @@ func ViewIssue(ctx *context.Context) {
 	if ctx.Doer != nil {
 		iw.UserID = ctx.Doer.ID
 		iw.IssueID = issue.ID
-		iw.IsWatching, err = issues_model.CheckIssueWatch(ctx.Doer, issue)
+		iw.IsWatching, err = issues_model.CheckIssueWatch(ctx, ctx.Doer, issue)
 		if err != nil {
 			ctx.ServerError("CheckIssueWatch", err)
 			return
@@ -1522,7 +1534,7 @@ func ViewIssue(ctx *context.Context) {
 	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		if ctx.IsSigned {
 			// Deal with the stopwatch
-			ctx.Data["IsStopwatchRunning"] = issues_model.StopwatchExists(ctx.Doer.ID, issue.ID)
+			ctx.Data["IsStopwatchRunning"] = issues_model.StopwatchExists(ctx, ctx.Doer.ID, issue.ID)
 			if !ctx.Data["IsStopwatchRunning"].(bool) {
 				var exists bool
 				var swIssue *issues_model.Issue
@@ -1967,7 +1979,7 @@ func ViewIssue(ctx *context.Context) {
 
 	var hiddenCommentTypes *big.Int
 	if ctx.IsSigned {
-		val, err := user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes)
+		val, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes)
 		if err != nil {
 			ctx.ServerError("GetUserSetting", err)
 			return
@@ -2197,7 +2209,7 @@ func UpdateIssueContent(ctx *context.Context) {
 		return
 	}
 
-	if err := issue_service.ChangeContent(issue, ctx.Doer, ctx.Req.FormValue("content")); err != nil {
+	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, ctx.Req.FormValue("content")); err != nil {
 		ctx.ServerError("ChangeContent", err)
 		return
 	}
@@ -2700,7 +2712,7 @@ func ListIssues(ctx *context.Context) {
 
 	var labelIDs []int64
 	if splitted := strings.Split(ctx.FormString("labels"), ","); len(splitted) > 0 {
-		labelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx.Repo.Repository.ID, splitted)
+		labelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, splitted)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
@@ -2712,7 +2724,7 @@ func ListIssues(ctx *context.Context) {
 		for i := range part {
 			// uses names and fall back to ids
 			// non existent milestones are discarded
-			mile, err := issues_model.GetMilestoneByRepoIDANDName(ctx.Repo.Repository.ID, part[i])
+			mile, err := issues_model.GetMilestoneByRepoIDANDName(ctx, ctx.Repo.Repository.ID, part[i])
 			if err == nil {
 				mileIDs = append(mileIDs, mile.ID)
 				continue
@@ -3029,7 +3041,7 @@ func NewComment(ctx *context.Context) {
 						return
 					}
 				} else {
-					if err := stopTimerIfAvailable(ctx.Doer, issue); err != nil {
+					if err := stopTimerIfAvailable(ctx, ctx.Doer, issue); err != nil {
 						ctx.ServerError("CreateOrStopIssueStopwatch", err)
 						return
 					}
@@ -3443,7 +3455,7 @@ func updateAttachments(ctx *context.Context, item any, files []string) error {
 		if util.SliceContainsString(files, attachments[i].UUID) {
 			continue
 		}
-		if err := repo_model.DeleteAttachment(attachments[i], true); err != nil {
+		if err := repo_model.DeleteAttachment(ctx, attachments[i], true); err != nil {
 			return err
 		}
 	}
@@ -3624,7 +3636,7 @@ func issuePosters(ctx *context.Context, isPullList bool) {
 	if search == "" && ctx.Doer != nil {
 		// the returned posters slice only contains limited number of users,
 		// to make the current user (doer) can quickly filter their own issues, always add doer to the posters slice
-		if !util.SliceContainsFunc(posters, func(user *user_model.User) bool { return user.ID == ctx.Doer.ID }) {
+		if !slices.ContainsFunc(posters, func(user *user_model.User) bool { return user.ID == ctx.Doer.ID }) {
 			posters = append(posters, ctx.Doer)
 		}
 	}
