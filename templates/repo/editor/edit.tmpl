@@ -21,13 +21,13 @@
 							<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
 						{{end}}
 					{{end}}
-					<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}{{if not .IsNewFile}}/{{PathEscapeSegments .TreePath}}{{end}}">{{.locale.Tr "repo.editor.cancel_lower"}}</a></span>
+					<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}{{if not .IsNewFile}}/{{PathEscapeSegments .TreePath}}{{end}}">{{ctx.Locale.Tr "repo.editor.cancel_lower"}}</a></span>
 					<input type="hidden" id="tree_path" name="tree_path" value="{{.TreePath}}" required>
 				</div>
 			</div>
 			<div class="field">
 				<div class="ui top attached tabular menu" data-write="write" data-preview="preview" data-diff="diff">
-					<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{ctx.Locale.Tr "repo.editor.new_file"}}{{else}}{{.locale.Tr "repo.editor.edit_file"}}{{end}}</a>
+					<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{ctx.Locale.Tr "repo.editor.new_file"}}{{else}}{{ctx.Locale.Tr "repo.editor.edit_file"}}{{end}}</a>
 					<a class="item" data-tab="preview" data-url="{{.Repository.Link}}/markup" data-context="{{.RepoLink}}/src/{{.BranchNameSubURL}}" data-markup-mode="file">{{svg "octicon-eye"}} {{ctx.Locale.Tr "preview"}}</a>
 					{{if not .IsNewFile}}
 					<a class="item" data-tab="diff" data-url="{{.RepoLink}}/_preview/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}" data-context="{{.BranchLink}}">{{svg "octicon-diff"}} {{ctx.Locale.Tr "repo.editor.preview_changes"}}</a>

@@ -19,7 +19,7 @@
 							<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
 						{{end}}
 					{{end}}
-					<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}{{if not .IsNewFile}}/{{.TreePath | PathEscapeSegments}}{{end}}">{{.locale.Tr "repo.editor.cancel_lower"}}</a></span>
+					<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}{{if not .IsNewFile}}/{{.TreePath | PathEscapeSegments}}{{end}}">{{ctx.Locale.Tr "repo.editor.cancel_lower"}}</a></span>
 					<input type="hidden" id="tree_path" name="tree_path" value="{{.TreePath}}" required>
 				</div>
 			</div>

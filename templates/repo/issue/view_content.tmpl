@@ -6,7 +6,7 @@
 	<input type="hidden" id="issueIndex" value="{{.Issue.Index}}">
 	<input type="hidden" id="type" value="{{.IssueType}}">
 
-	{{$createdStr:= TimeSinceUnix .Issue.CreatedUnix $.locale}}
+	{{$createdStr:= TimeSinceUnix .Issue.CreatedUnix ctx.Locale}}
 	<div class="issue-content-left comment-list prevent-before-timeline">
 		<div class="ui timeline">
 			<div id="{{.Issue.HashTag}}" class="timeline-item comment first">
@@ -92,7 +92,7 @@
 								<div class="text right">
 									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 										{{if .Issue.IsClosed}}
-											<button id="status-button" class="ui primary basic button" tabindex="6" data-status="{{ctx.Locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" name="status" value="reopen">
+											<button id="status-button" class="ui primary basic button" tabindex="6" data-status="{{ctx.Locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.reopen_comment_issue"}}" name="status" value="reopen">
 												{{ctx.Locale.Tr "repo.issues.reopen_issue"}}
 											</button>
 										{{else}}
@@ -100,7 +100,7 @@
 											{{if .Issue.IsPull}}
 												{{$closeTranslationKey = "repo.pulls.close"}}
 											{{end}}
-											<button id="status-button" class="ui red basic button" tabindex="6" data-status="{{ctx.Locale.Tr $closeTranslationKey}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" name="status" value="close">
+											<button id="status-button" class="ui red basic button" tabindex="6" data-status="{{ctx.Locale.Tr $closeTranslationKey}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.close_comment_issue"}}" name="status" value="close">
 												{{ctx.Locale.Tr $closeTranslationKey}}
 											</button>
 										{{end}}

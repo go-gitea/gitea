@@ -20,7 +20,7 @@
 					</div>
 					{{if .KeepCount}}
 					<div class="flex-item-body">
-						<i>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.count"}}:</i> {{if eq .KeepCount 1}}{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.count.1"}}{{else}}{{$.locale.Tr "packages.owner.settings.cleanuprules.keep.count.n" .KeepCount}}{{end}}
+						<i>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.count"}}:</i> {{if eq .KeepCount 1}}{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.count.1"}}{{else}}{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.count.n" .KeepCount}}{{end}}
 					</div>
 					{{end}}
 					{{if .KeepPattern}}

@@ -2,7 +2,7 @@
 	<div class="diff-detail-box diff-box sticky gt-df gt-sb gt-ac">
 		<div class="gt-df gt-ac gt-fw">
 			{{if not .DiffNotAvailable}}
-				<button class="diff-toggle-file-tree-button gt-df gt-ac not-mobile" data-show-text="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{.locale.Tr "repo.diff.hide_file_tree"}}">
+				<button class="diff-toggle-file-tree-button gt-df gt-ac not-mobile" data-show-text="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
 					{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}
 					{{svg "octicon-sidebar-collapse" 20 "icon gt-hidden"}}
 					{{svg "octicon-sidebar-expand" 20 "icon gt-hidden"}}
@@ -50,11 +50,11 @@
 	{{if not .DiffNotAvailable}}
 		{{if and .IsShowingOnlySingleCommit .PageIsPullFiles}}
 			<div class="ui info message">
-				<div>{{ctx.Locale.Tr "repo.pulls.showing_only_single_commit" (ShortSha .BeforeCommitID)}} - <a href="{{$.Issue.Link}}/files?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">{{.locale.Tr "repo.pulls.show_all_commits"}}</a></div>
+				<div>{{ctx.Locale.Tr "repo.pulls.showing_only_single_commit" (ShortSha .BeforeCommitID)}} - <a href="{{$.Issue.Link}}/files?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">{{ctx.Locale.Tr "repo.pulls.show_all_commits"}}</a></div>
 			</div>
 		{{else if and (not .IsShowingAllCommits) .PageIsPullFiles}}
 			<div class="ui info message">
-				<div>{{ctx.Locale.Tr "repo.pulls.showing_specified_commit_range" (ShortSha .BeforeCommitID) (ShortSha .AfterCommitID)}} - <a href="{{$.Issue.Link}}/files?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">{{.locale.Tr "repo.pulls.show_all_commits"}}</a></div>
+				<div>{{ctx.Locale.Tr "repo.pulls.showing_specified_commit_range" (ShortSha .BeforeCommitID) (ShortSha .AfterCommitID)}} - <a href="{{$.Issue.Link}}/files?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">{{ctx.Locale.Tr "repo.pulls.show_all_commits"}}</a></div>
 			</div>
 		{{end}}
 		<script id="diff-data-script" type="module">

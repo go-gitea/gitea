@@ -10,8 +10,8 @@
 						<input name="t" type="hidden"{{if .CodeIndexerUnavailable}} disabled{{end}} value="{{.queryType}}">{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="text">{{ctx.Locale.Tr (printf "repo.search.%s" (or .queryType "fuzzy"))}}</div>
 						<div class="menu">
-							<div class="item" data-value="" data-tooltip-content="{{ctx.Locale.Tr "repo.search.fuzzy.tooltip"}}">{{.locale.Tr "repo.search.fuzzy"}}</div>
-							<div class="item" data-value="match" data-tooltip-content="{{ctx.Locale.Tr "repo.search.match.tooltip"}}">{{.locale.Tr "repo.search.match"}}</div>
+							<div class="item" data-value="" data-tooltip-content="{{ctx.Locale.Tr "repo.search.fuzzy.tooltip"}}">{{ctx.Locale.Tr "repo.search.fuzzy"}}</div>
+							<div class="item" data-value="match" data-tooltip-content="{{ctx.Locale.Tr "repo.search.match.tooltip"}}">{{ctx.Locale.Tr "repo.search.match"}}</div>
 						</div>
 					</div>
 					<button class="ui icon button"{{if .CodeIndexerUnavailable}} disabled{{end}} type="submit">{{svg "octicon-search" 16}}</button>

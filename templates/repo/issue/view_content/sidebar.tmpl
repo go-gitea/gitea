@@ -114,7 +114,7 @@
 		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .HasMerged) (not .Issue.IsClosed) (not .IsPullWorkInProgress)}}
 			<div class="toggle-wip" data-title="{{.Issue.Title}}" data-wip-prefix="{{(index .PullRequestWorkInProgressPrefixes 0| Escape)}}" data-update-url="{{.Issue.Link}}/title">
 				<a class="muted">
-					{{ctx.Locale.Tr "repo.pulls.still_in_progress"}} {{.locale.Tr "repo.pulls.add_prefix" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}
+					{{ctx.Locale.Tr "repo.pulls.still_in_progress"}} {{ctx.Locale.Tr "repo.pulls.add_prefix" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}
 				</a>
 			</div>
 		{{end}}
@@ -422,7 +422,7 @@
 			{{end}}
 
 			{{if or .BlockingDependencies .BlockingDependenciesNotPermitted}}
-				<span class="text" data-tooltip-content="{{if .Issue.IsPull}}{{ctx.Locale.Tr "repo.issues.dependency.pr_close_blocks"}}{{else}}{{.locale.Tr "repo.issues.dependency.issue_close_blocks"}}{{end}}">
+				<span class="text" data-tooltip-content="{{if .Issue.IsPull}}{{ctx.Locale.Tr "repo.issues.dependency.pr_close_blocks"}}{{else}}{{ctx.Locale.Tr "repo.issues.dependency.issue_close_blocks"}}{{end}}">
 					<strong>{{ctx.Locale.Tr "repo.issues.dependency.blocks_short"}}</strong>
 				</span>
 				<div class="ui relaxed divided list">
@@ -454,7 +454,7 @@
 			{{end}}
 
 			{{if or .BlockedByDependencies .BlockedByDependenciesNotPermitted}}
-				<span class="text" data-tooltip-content="{{if .Issue.IsPull}}{{ctx.Locale.Tr "repo.issues.dependency.pr_closing_blockedby"}}{{else}}{{.locale.Tr "repo.issues.dependency.issue_closing_blockedby"}}{{end}}">
+				<span class="text" data-tooltip-content="{{if .Issue.IsPull}}{{ctx.Locale.Tr "repo.issues.dependency.pr_closing_blockedby"}}{{else}}{{ctx.Locale.Tr "repo.issues.dependency.issue_closing_blockedby"}}{{end}}">
 					<strong>{{ctx.Locale.Tr "repo.issues.dependency.blocked_by_short"}}</strong>
 				</span>
 				<div class="ui relaxed divided list">
