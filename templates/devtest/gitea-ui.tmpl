@@ -112,24 +112,24 @@
 
 	<div>
 		<h1>LocaleNumber</h1>
-		<div>{{.locale.PrettyNumber 1}}</div>
-		<div>{{.locale.PrettyNumber 12}}</div>
-		<div>{{.locale.PrettyNumber 123}}</div>
-		<div>{{.locale.PrettyNumber 1234}}</div>
-		<div>{{.locale.PrettyNumber 12345}}</div>
-		<div>{{.locale.PrettyNumber 123456}}</div>
-		<div>{{.locale.PrettyNumber 1234567}}</div>
+		<div>{{ctx.Locale.PrettyNumber 1}}</div>
+		<div>{{ctx.Locale.PrettyNumber 12}}</div>
+		<div>{{ctx.Locale.PrettyNumber 123}}</div>
+		<div>{{ctx.Locale.PrettyNumber 1234}}</div>
+		<div>{{ctx.Locale.PrettyNumber 12345}}</div>
+		<div>{{ctx.Locale.PrettyNumber 123456}}</div>
+		<div>{{ctx.Locale.PrettyNumber 1234567}}</div>
 	</div>
 
 	<div>
 		<h1>TimeSince</h1>
-		<div>Now: {{TimeSince .TimeNow $.locale}}</div>
-		<div>5s past: {{TimeSince .TimePast5s $.locale}}</div>
-		<div>5s future: {{TimeSince .TimeFuture5s $.locale}}</div>
-		<div>2m past: {{TimeSince .TimePast2m $.locale}}</div>
-		<div>2m future: {{TimeSince .TimeFuture2m $.locale}}</div>
-		<div>1y past: {{TimeSince .TimePast1y $.locale}}</div>
-		<div>1y future: {{TimeSince .TimeFuture1y $.locale}}</div>
+		<div>Now: {{TimeSince .TimeNow ctx.Locale}}</div>
+		<div>5s past: {{TimeSince .TimePast5s ctx.Locale}}</div>
+		<div>5s future: {{TimeSince .TimeFuture5s ctx.Locale}}</div>
+		<div>2m past: {{TimeSince .TimePast2m ctx.Locale}}</div>
+		<div>2m future: {{TimeSince .TimeFuture2m ctx.Locale}}</div>
+		<div>1y past: {{TimeSince .TimePast1y ctx.Locale}}</div>
+		<div>1y future: {{TimeSince .TimeFuture1y ctx.Locale}}</div>
 	</div>
 
 	<div>

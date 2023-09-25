@@ -193,7 +193,7 @@
 					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash}}
 						{{$hasPendingPullRequestMergeTip := ""}}
 						{{if .HasPendingPullRequestMerge}}
-							{{$createdPRMergeStr := TimeSinceUnix .PendingPullRequestMerge.CreatedUnix $.locale}}
+							{{$createdPRMergeStr := TimeSinceUnix .PendingPullRequestMerge.CreatedUnix ctx.Locale}}
 							{{$hasPendingPullRequestMergeTip = ctx.Locale.Tr "repo.pulls.auto_merge_has_pending_schedule" .PendingPullRequestMerge.Doer.Name $createdPRMergeStr}}
 						{{end}}
 						<div class="divider"></div>

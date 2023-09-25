@@ -128,7 +128,7 @@
 						{{if not .IsTag}}
 							<a class="title" href="{{$.RepoLink}}/src/{{.TagName | PathEscapeSegments}}">{{.Title | RenderEmoji $.Context}}</a>
 						{{end}}
-						{{TimeSinceUnix .CreatedUnix $.locale}}
+						{{TimeSinceUnix .CreatedUnix ctx.Locale}}
 					</p>
 				{{end}}
 			</div>
@@ -147,7 +147,7 @@
 					<p class="desc">
 						<span class="ui purple label">{{ctx.Locale.Tr "repo.activity.merged_prs_label"}}</span>
 						#{{.Index}} <a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Issue.Title | RenderEmoji $.Context}}</a>
-						{{TimeSinceUnix .MergedUnix $.locale}}
+						{{TimeSinceUnix .MergedUnix ctx.Locale}}
 					</p>
 				{{end}}
 			</div>
@@ -166,7 +166,7 @@
 					<p class="desc">
 						<span class="ui green label">{{ctx.Locale.Tr "repo.activity.opened_prs_label"}}</span>
 						#{{.Index}} <a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Issue.Title | RenderEmoji $.Context}}</a>
-						{{TimeSinceUnix .Issue.CreatedUnix $.locale}}
+						{{TimeSinceUnix .Issue.CreatedUnix ctx.Locale}}
 					</p>
 				{{end}}
 			</div>
@@ -185,7 +185,7 @@
 					<p class="desc">
 						<span class="ui red label">{{ctx.Locale.Tr "repo.activity.closed_issue_label"}}</span>
 						#{{.Index}} <a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji $.Context}}</a>
-						{{TimeSinceUnix .ClosedUnix $.locale}}
+						{{TimeSinceUnix .ClosedUnix ctx.Locale}}
 					</p>
 				{{end}}
 			</div>
@@ -204,7 +204,7 @@
 					<p class="desc">
 						<span class="ui green label">{{ctx.Locale.Tr "repo.activity.new_issue_label"}}</span>
 						#{{.Index}} <a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji $.Context}}</a>
-						{{TimeSinceUnix .CreatedUnix $.locale}}
+						{{TimeSinceUnix .CreatedUnix ctx.Locale}}
 					</p>
 				{{end}}
 			</div>
@@ -225,7 +225,7 @@
 						{{else}}
 						<a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji $.Context}}</a>
 						{{end}}
-						{{TimeSinceUnix .UpdatedUnix $.locale}}
+						{{TimeSinceUnix .UpdatedUnix ctx.Locale}}
 					</p>
 				{{end}}
 			</div>

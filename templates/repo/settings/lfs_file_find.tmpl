@@ -32,7 +32,7 @@
 								{{ctx.Locale.Tr "repo.diff.commit"}}
 								<a class="ui primary sha label" href="{{$.RepoLink}}/commit/{{.SHA}}">{{ShortSha .SHA}}</a>
 							</td>
-							<td>{{TimeSince .When $.locale}}</td>
+							<td>{{TimeSince .When ctx.Locale}}</td>
 						</tr>
 					{{else}}
 						<tr>

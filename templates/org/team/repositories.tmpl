@@ -20,8 +20,8 @@
 							<button class="ui primary button gt-ml-3">{{ctx.Locale.Tr "add"}}</button>
 						</form>
 						<div class="gt-dib">
-							<button class="ui primary button link-action" data-modal-confirm="{{ctx.Locale.Tr "org.teams.add_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{.locale.Tr "add_all"}}</button>
-							<button class="ui red button link-action" data-modal-confirm="{{ctx.Locale.Tr "org.teams.remove_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/removeall">{{.locale.Tr "remove_all"}}</button>
+							<button class="ui primary button link-action" data-modal-confirm="{{ctx.Locale.Tr "org.teams.add_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{ctx.Locale.Tr "add_all"}}</button>
+							<button class="ui red button link-action" data-modal-confirm="{{ctx.Locale.Tr "org.teams.remove_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/removeall">{{ctx.Locale.Tr "remove_all"}}</button>
 						</div>
 					</div>
 				{{end}}
