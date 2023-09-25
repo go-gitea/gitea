@@ -1,14 +1,13 @@
 import $ from 'jquery';
 import {GET} from '../modules/fetch.js';
 import {hideElem} from '../utils/dom.js';
-import {parseUrl} from '../utils.js';
+import {parseUrl, parseXml} from '../utils.js';
 
 function getDefaultSvgBoundsIfUndefined(text, src) {
   const DefaultSize = 300;
   const MaxSize = 99999;
 
-  const parser = new DOMParser();
-  const svgDoc = parser.parseFromString(text, 'image/svg+xml');
+  const svgDoc = parseXml(text, 'image/svg+xml');
   const svg = svgDoc.documentElement;
   const width = svg?.width?.baseVal;
   const height = svg?.height?.baseVal;
