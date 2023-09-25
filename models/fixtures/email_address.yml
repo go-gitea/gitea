@@ -73,8 +73,8 @@
 -
   id: 10
   uid: 3
-  email: user3@example.com
-  lower_email: user3@example.com
+  email: org3@example.com
+  lower_email: org3@example.com
   is_activated: true
   is_primary: true
 
@@ -97,16 +97,16 @@
 -
   id: 13
   uid: 6
-  email: user6@example.com
-  lower_email: user6@example.com
+  email: org6@example.com
+  lower_email: org6@example.com
   is_activated: true
   is_primary: true
 
 -
   id: 14
   uid: 7
-  email: user7@example.com
-  lower_email: user7@example.com
+  email: org7@example.com
+  lower_email: org7@example.com
   is_activated: true
   is_primary: true
 
@@ -153,8 +153,8 @@
 -
   id: 20
   uid: 17
-  email: user17@example.com
-  lower_email: user17@example.com
+  email: org17@example.com
+  lower_email: org17@example.com
   is_activated: true
   is_primary: true
 
@@ -169,8 +169,8 @@
 -
   id: 22
   uid: 19
-  email: user19@example.com
-  lower_email: user19@example.com
+  email: org19@example.com
+  lower_email: org19@example.com
   is_activated: true
   is_primary: true
 
@@ -276,4 +276,12 @@
   email: user2-2@example.com
   lower_email: user2-2@example.com
   is_activated: false
+  is_primary: false
+
+-
+  id: 36
+  uid: 36
+  email: abcde@gitea.com
+  lower_email: abcde@gitea.com
+  is_activated: true
   is_primary: false

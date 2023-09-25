@@ -390,6 +390,12 @@ func PackageSettings(ctx *context.Context) {
 	ctx.Data["Repos"] = repos
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
 
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	ctx.HTML(http.StatusOK, tplPackagesSettings)
 }
 

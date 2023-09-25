@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
+	secret_service "code.gitea.io/gitea/services/secrets"
 )
 
 func SetVariablesContext(ctx *context.Context, ownerID, repoID int64) {
@@ -33,19 +34,8 @@ func SetVariablesContext(ctx *context.Context, ownerID, repoID int64) {
 // https://docs.github.com/en/actions/learn-github-actions/variables#naming-conventions-for-configuration-variables
 // https://docs.github.com/en/actions/security-guides/encrypted-secrets#naming-your-secrets
 var (
-	nameRx            = regexp.MustCompile("(?i)^[A-Z_][A-Z0-9_]*$")
-	forbiddenPrefixRx = regexp.MustCompile("(?i)^GIT(EA|HUB)_")
-
 	forbiddenEnvNameCIRx = regexp.MustCompile("(?i)^CI")
 )
-
-func NameRegexMatch(name string) error {
-	if !nameRx.MatchString(name) || forbiddenPrefixRx.MatchString(name) {
-		log.Error("Name %s, regex match error", name)
-		return errors.New("name has invalid character")
-	}
-	return nil
-}
 
 func envNameCIRegexMatch(name string) error {
 	if forbiddenEnvNameCIRx.MatchString(name) {
@@ -58,7 +48,7 @@ func envNameCIRegexMatch(name string) error {
 func CreateVariable(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
 
-	if err := NameRegexMatch(form.Name); err != nil {
+	if err := secret_service.ValidateName(form.Name); err != nil {
 		ctx.JSONError(err.Error())
 		return
 	}
@@ -82,7 +72,7 @@ func UpdateVariable(ctx *context.Context, redirectURL string) {
 	id := ctx.ParamsInt64(":variable_id")
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
 
-	if err := NameRegexMatch(form.Name); err != nil {
+	if err := secret_service.ValidateName(form.Name); err != nil {
 		ctx.JSONError(err.Error())
 		return
 	}

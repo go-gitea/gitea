@@ -259,29 +259,33 @@ func ViewPost(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func RerunOne(ctx *context_module.Context) {
+// Rerun will rerun jobs in the given run
+// jobIndex = 0 means rerun all jobs
+func Rerun(ctx *context_module.Context) {
 	runIndex := ctx.ParamsInt64("run")
 	jobIndex := ctx.ParamsInt64("job")
 
-	job, _ := getRunJobs(ctx, runIndex, jobIndex)
-	if ctx.Written() {
-		return
-	}
-
-	if err := rerunJob(ctx, job); err != nil {
+	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, struct{}{})
-}
+	// can not rerun job when workflow is disabled
+	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
+	cfg := cfgUnit.ActionsConfig()
+	if cfg.IsWorkflowDisabled(run.WorkflowID) {
+		ctx.JSONError(ctx.Locale.Tr("actions.workflow.disabled"))
+		return
+	}
 
-func RerunAll(ctx *context_module.Context) {
-	runIndex := ctx.ParamsInt64("run")
-
-	_, jobs := getRunJobs(ctx, runIndex, 0)
+	job, jobs := getRunJobs(ctx, runIndex, jobIndex)
 	if ctx.Written() {
 		return
+	}
+
+	if jobIndex != 0 {
+		jobs = []*actions_model.ActionRunJob{job}
 	}
 
 	for _, j := range jobs {
@@ -482,8 +486,9 @@ type ArtifactsViewResponse struct {
 }
 
 type ArtifactsViewItem struct {
-	Name string `json:"name"`
-	Size int64  `json:"size"`
+	Name   string `json:"name"`
+	Size   int64  `json:"size"`
+	Status string `json:"status"`
 }
 
 func ArtifactsView(ctx *context_module.Context) {
@@ -506,9 +511,14 @@ func ArtifactsView(ctx *context_module.Context) {
 		Artifacts: make([]*ArtifactsViewItem, 0, len(artifacts)),
 	}
 	for _, art := range artifacts {
+		status := "completed"
+		if art.Status == int64(actions_model.ArtifactStatusExpired) {
+			status = "expired"
+		}
 		artifactsResponse.Artifacts = append(artifactsResponse.Artifacts, &ArtifactsViewItem{
-			Name: art.ArtifactName,
-			Size: art.FileSize,
+			Name:   art.ArtifactName,
+			Size:   art.FileSize,
+			Status: status,
 		})
 	}
 	ctx.JSON(http.StatusOK, artifactsResponse)

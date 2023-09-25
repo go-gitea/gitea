@@ -16,7 +16,7 @@
 	{{if .Variables}}
 	<div class="flex-list">
 		{{range .Variables}}
-		<div class="flex-item flex-item-center">
+		<div class="flex-item gt-ac">
 			<div class="flex-item-leading">
 				{{svg "octicon-pencil" 32}}
 			</div>
@@ -73,7 +73,7 @@
 					name="name"
 					id="dialog-variable-name"
 					value="{{.name}}"
-					pattern="^[a-zA-Z_][a-zA-Z0-9_]*$"
+					pattern="^(?!GITEA_|GITHUB_)[a-zA-Z_][a-zA-Z0-9_]*$"
 					placeholder="{{.locale.Tr "secrets.creation.name_placeholder"}}"
 				>
 			</div>
@@ -86,7 +86,7 @@
 				></textarea>
 			</div>
 		</div>
-		{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
+		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 	</form>
 </div>
 

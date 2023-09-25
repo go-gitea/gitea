@@ -1,7 +1,7 @@
 <p><a href="{{.PackageDescriptor.PackageWebLink}}">{{.PackageDescriptor.Package.Name}}</a> / <strong>{{.locale.Tr "packages.versions"}}</strong></p>
 <form class="ui form ignore-dirty">
 	<div class="ui fluid action input">
-		{{template "shared/searchinput" dict "locale" .locale "Value" .Query "AutoFocus" true}}
+		{{template "shared/searchinput" dict "Value" .Query "AutoFocus" true}}
 		<select class="ui dropdown" name="sort">
 			<option value="version_asc"{{if eq .Sort "version_asc"}} selected="selected"{{end}}>{{.locale.Tr "filter.string.asc"}}</option>
 			<option value="version_desc"{{if eq .Sort "version_desc"}} selected="selected"{{end}}>{{.locale.Tr "filter.string.desc"}}</option>
@@ -18,8 +18,9 @@
 		<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 	</div>
 </form>
-<div class="{{if .PackageDescriptors}}flex-list{{end}} gt-pt-4">
+<div>
 	{{range .PackageDescriptors}}
+	<div class="flex-list">
 		<div class="flex-item">
 			<div class="flex-item-main">
 				<a class="flex-item-title" href="{{.FullWebLink}}">{{.Version.LowerVersion}}</a>
@@ -28,8 +29,9 @@
 				</div>
 			</div>
 		</div>
+	</div>
 	{{else}}
-		<p>{{.locale.Tr "packages.filter.no_result"}}</p>
+		<p class="gt-py-4">{{.locale.Tr "packages.filter.no_result"}}</p>
 	{{end}}
 	{{template "base/paginate" .}}
 </div>

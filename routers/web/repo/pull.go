@@ -31,7 +31,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	issue_template "code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/upload"
@@ -42,6 +41,7 @@ import (
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/gitdiff"
+	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 
@@ -128,18 +128,18 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 	ctx.Data["repo_name"] = forkRepo.Name
 	ctx.Data["description"] = forkRepo.Description
 	ctx.Data["IsPrivate"] = forkRepo.IsPrivate || forkRepo.Owner.Visibility == structs.VisibleTypePrivate
-	canForkToUser := forkRepo.OwnerID != ctx.Doer.ID && !repo_model.HasForkedRepo(ctx.Doer.ID, forkRepo.ID)
+	canForkToUser := forkRepo.OwnerID != ctx.Doer.ID && !repo_model.HasForkedRepo(ctx, ctx.Doer.ID, forkRepo.ID)
 
 	ctx.Data["ForkRepo"] = forkRepo
 
-	ownedOrgs, err := organization.GetOrgsCanCreateRepoByUserID(ctx.Doer.ID)
+	ownedOrgs, err := organization.GetOrgsCanCreateRepoByUserID(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
 		return nil
 	}
 	var orgs []*organization.Organization
 	for _, org := range ownedOrgs {
-		if forkRepo.OwnerID != org.ID && !repo_model.HasForkedRepo(org.ID, forkRepo.ID) {
+		if forkRepo.OwnerID != org.ID && !repo_model.HasForkedRepo(ctx, org.ID, forkRepo.ID) {
 			orgs = append(orgs, org)
 		}
 	}
@@ -233,7 +233,7 @@ func ForkPost(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
 			return
 		}
-		repo := repo_model.GetForkedRepo(ctxUser.ID, traverseParentRepo.ID)
+		repo := repo_model.GetForkedRepo(ctx, ctxUser.ID, traverseParentRepo.ID)
 		if repo != nil {
 			ctx.Redirect(ctxUser.HomeLink() + "/" + url.PathEscape(repo.Name))
 			return
@@ -956,7 +956,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	handleTeamMentions(ctx)
 	if ctx.Written() {
@@ -1270,7 +1270,7 @@ func MergePullRequest(ctx *context.Context) {
 	}
 	log.Trace("Pull request merged: %d", pr.ID)
 
-	if err := stopTimerIfAvailable(ctx.Doer, issue); err != nil {
+	if err := stopTimerIfAvailable(ctx, ctx.Doer, issue); err != nil {
 		ctx.ServerError("CreateOrStopIssueStopwatch", err)
 		return
 	}
@@ -1326,9 +1326,9 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 	ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
 }
 
-func stopTimerIfAvailable(user *user_model.User, issue *issues_model.Issue) error {
-	if issues_model.StopwatchExists(user.ID, issue.ID) {
-		if err := issues_model.CreateOrStopIssueStopwatch(user, issue); err != nil {
+func stopTimerIfAvailable(ctx *context.Context, user *user_model.User, issue *issues_model.Issue) error {
+	if issues_model.StopwatchExists(ctx, user.ID, issue.ID) {
+		if err := issues_model.CreateOrStopIssueStopwatch(ctx, user, issue); err != nil {
 			return err
 		}
 	}
@@ -1672,7 +1672,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 		}
 		return
 	}
-	notification.NotifyPullRequestChangeTargetBranch(ctx, ctx.Doer, pr, targetBranch)
+	notify_service.PullRequestChangeTargetBranch(ctx, ctx.Doer, pr, targetBranch)
 
 	ctx.JSON(http.StatusOK, map[string]any{
 		"base_branch": pr.BaseBranch,

@@ -1,4 +1,4 @@
-<div class="flex-list gt-m-0">
+<div class="flex-list">
 	{{if eq (len .Runs) 0}}
 	<div class="empty center">
 		{{svg "octicon-no-entry" 48}}
@@ -6,20 +6,24 @@
 	</div>
 	{{end}}
 	{{range .Runs}}
-		<div class="flex-item flex-item-center">
+		<div class="flex-item gt-ac">
 			<div class="flex-item-leading">
-				{{template "repo/actions/status" (dict "status" .Status.String "locale" $.locale)}}
+				{{template "repo/actions/status" (dict "status" .Status.String)}}
 			</div>
 			<div class="flex-item-main">
 				<a class="flex-item-title" title="{{.Title}}" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 					{{- .Title -}}
 				</a>
 				<div class="flex-item-body">
-					<b>{{if not $.CurWorkflow}}{{.WorkflowID}} {{end}}#{{.Index}}</b>
-					: {{$.locale.Tr "actions.runs.commit"}}
-					<a href="{{$.RepoLink}}/commit/{{.CommitSHA}}">{{ShortSha .CommitSHA}}</a>
-					{{$.locale.Tr "actions.runs.pushed_by"}}
-					<a href="{{.TriggerUser.HomeLink}}">{{.TriggerUser.GetDisplayName}}</a>
+					<b>{{if not $.CurWorkflow}}{{.WorkflowID}} {{end}}#{{.Index}}</b>:
+					{{- if .ScheduleID -}}
+						{{$.locale.Tr "actions.runs.scheduled"}}
+					{{- else -}}
+						{{$.locale.Tr "actions.runs.commit"}}
+						<a href="{{$.RepoLink}}/commit/{{.CommitSHA}}">{{ShortSha .CommitSHA}}</a>
+						{{$.locale.Tr "actions.runs.pushed_by"}}
+						<a href="{{.TriggerUser.HomeLink}}">{{.TriggerUser.GetDisplayName}}</a>
+					{{- end -}}
 				</div>
 			</div>
 			<div class="flex-item-trailing">

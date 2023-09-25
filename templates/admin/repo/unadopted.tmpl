@@ -23,7 +23,7 @@
 							<div class="item gt-df gt-ac">
 								<span class="gt-f1"> {{svg "octicon-file-directory-fill"}} {{$dir}}</span>
 								<div>
-									<button class="ui button green show-modal gt-p-3" data-modal="#adopt-unadopted-modal-{{$dirI}}">{{svg "octicon-plus"}} {{$.locale.Tr "repo.adopt_preexisting_label"}}</button>
+									<button class="ui button primary show-modal gt-p-3" data-modal="#adopt-unadopted-modal-{{$dirI}}">{{svg "octicon-plus"}} {{$.locale.Tr "repo.adopt_preexisting_label"}}</button>
 									<div class="ui g-modal-confirm modal" id="adopt-unadopted-modal-{{$dirI}}">
 										<div class="header">
 											<span class="label">{{$.locale.Tr "repo.adopt_preexisting"}}</span>
@@ -37,7 +37,7 @@
 											<input type="hidden" name="action" value="adopt">
 											<input type="hidden" name="q" value="{{$.Keyword}}">
 											<input type="hidden" name="page" value="{{$.CurrentPage}}">
-											{{template "base/modal_actions_confirm" (dict "locale" $.locale)}}
+											{{template "base/modal_actions_confirm"}}
 										</form>
 									</div>
 									<button class="ui button red show-modal gt-p-3" data-modal="#delete-unadopted-modal-{{$dirI}}">{{svg "octicon-x"}} {{$.locale.Tr "repo.delete_preexisting_label"}}</button>
@@ -54,7 +54,7 @@
 											<input type="hidden" name="action" value="delete">
 											<input type="hidden" name="q" value="{{$.Keyword}}">
 											<input type="hidden" name="page" value="{{$.CurrentPage}}">
-											{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonColors" "yellow")}}
+											{{template "base/modal_actions_confirm" (dict "ModalButtonColors" "yellow")}}
 										</form>
 									</div>
 								</div>

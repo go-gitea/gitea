@@ -10,17 +10,17 @@
 				{{$canAddRemove := and $.IsOrganizationOwner (not $.Team.IncludesAllRepositories)}}
 				{{if $canAddRemove}}
 					<div class="ui attached segment gt-df gt-fw gt-gap-3">
-						<form class="ui form ignore-dirty gt-f1 gt-dif" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/add" method="post">
+						<form class="ui form ignore-dirty gt-f1 gt-df" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/add" method="post">
 							{{.CsrfTokenHtml}}
 							<div id="search-repo-box" data-uid="{{.Org.ID}}" class="ui search">
 								<div class="ui input">
 									<input class="prompt" name="repo_name" placeholder="{{.locale.Tr "org.teams.search_repo_placeholder"}}" autocomplete="off" required>
 								</div>
 							</div>
-							<button class="ui green button gt-ml-3">{{.locale.Tr "add"}}</button>
+							<button class="ui primary button gt-ml-3">{{.locale.Tr "add"}}</button>
 						</form>
 						<div class="gt-dib">
-							<button class="ui green button link-action" data-modal-confirm="{{.locale.Tr "org.teams.add_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{.locale.Tr "add_all"}}</button>
+							<button class="ui primary button link-action" data-modal-confirm="{{.locale.Tr "org.teams.add_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{.locale.Tr "add_all"}}</button>
 							<button class="ui red button link-action" data-modal-confirm="{{.locale.Tr "org.teams.remove_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/removeall">{{.locale.Tr "remove_all"}}</button>
 						</div>
 					</div>
@@ -28,7 +28,7 @@
 				<div class="ui attached segment">
 					<div class="flex-list">
 						{{range .Team.Repos}}
-							<div class="flex-item flex-item-center">
+							<div class="flex-item gt-ac">
 								<div class="flex-item-leading">
 									{{template "repo/icon" .}}
 								</div>
@@ -41,7 +41,7 @@
 									{{if $canAddRemove}}
 										<form method="post" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/remove">
 											{{$.CsrfTokenHtml}}
-											<button type="submit" class="ui red small button right" name="repoid" value="{{.ID}}">{{$.locale.Tr "remove"}}</button>
+											<button type="submit" class="ui red small button" name="repoid" value="{{.ID}}">{{$.locale.Tr "remove"}}</button>
 										</form>
 									{{end}}
 								</div>

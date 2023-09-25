@@ -11,11 +11,11 @@
 			<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter">
 				<span class="text">
 					{{.locale.Tr "repo.issues.filter_label"}}
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				<div class="menu">
 					<div class="ui icon search input">
-						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+						<i class="icon">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_label"}}">
 					</div>
 					<span class="info">{{.locale.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
@@ -29,7 +29,10 @@
 							<div class="divider"></div>
 						{{end}}
 						{{$previousExclusiveScope = $exclusiveScope}}
-						<a class="item label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash"}}{{else if .IsSelected}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel $.Context .}}</a>
+						<a class="item label-filter-item gt-df gt-ac" {{if .IsArchived}}data-is-archived{{end}} href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash"}}{{else if .IsSelected}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}}
+							{{RenderLabel $.Context .}}
+							<p class="gt-ml-auto">{{template "repo/issue/labels/label_archived" .}}</p>
+						</a>
 					{{end}}
 				</div>
 			</div>
@@ -39,11 +42,11 @@
 			<div class="ui {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}} dropdown jump item">
 				<span class="text">
 					{{.locale.Tr "repo.issues.filter_milestone"}}
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				<div class="menu">
 					<div class="ui icon search input">
-						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+						<i class="icon">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_milestone"}}">
 					</div>
 					<div class="divider"></div>
@@ -77,11 +80,11 @@
 			<div class="ui{{if not (or .OpenProjects .ClosedProjects)}} disabled{{end}} dropdown jump item">
 				<span class="text">
 					{{.locale.Tr "repo.issues.filter_project"}}
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				<div class="menu">
 					<div class="ui icon search input">
-						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+						<i class="icon">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_project"}}">
 					</div>
 					<a class="{{if not .ProjectID}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_project_all"}}</a>
@@ -119,11 +122,11 @@
 			>
 				<span class="text">
 					{{.locale.Tr "repo.issues.filter_poster"}}
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				<div class="menu">
 					<div class="ui icon search input">
-						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+						<i class="icon">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_poster"}}">
 					</div>
 					<a class="item" data-value="0">{{.locale.Tr "repo.issues.filter_poster_no_select"}}</a>
@@ -134,11 +137,11 @@
 			<div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
 				<span class="text">
 					{{.locale.Tr "repo.issues.filter_assignee"}}
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				<div class="menu">
 					<div class="ui icon search input">
-						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+						<i class="icon">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignee"}}">
 					</div>
 					<a class="{{if not .AssigneeID}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_assginee_no_select"}}</a>
@@ -157,8 +160,8 @@
 				<div class="ui dropdown type jump item">
 					<span class="text">
 						{{.locale.Tr "repo.issues.filter_type"}}
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					</span>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					<div class="menu">
 						<a class="{{if eq .ViewType "all"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type=all&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_type.all_issues"}}</a>
 						<a class="{{if eq .ViewType "assigned"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type=assigned&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_type.assigned_to_you"}}</a>
@@ -176,8 +179,8 @@
 			<div class="list-header-sort ui small dropdown downward type jump item">
 				<span class="text">
 					{{.locale.Tr "repo.issues.filter_sort"}}
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				<div class="menu">
 					<a class="{{if or (eq .SortType "latest") (not .SortType)}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=latest&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_sort.latest"}}</a>
 					<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=oldest&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_sort.oldest"}}</a>

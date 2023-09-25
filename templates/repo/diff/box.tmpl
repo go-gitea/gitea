@@ -20,7 +20,7 @@
 				</div>
 			{{end}}
 		</div>
-		<div class="diff-detail-actions gt-df gt-ac gt-gap-2 gt-fw">
+		<div class="diff-detail-actions">
 			{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived) (not .DiffNotAvailable)}}
 				<div class="gt-df gt-ac gt-fc gt-whitespace-nowrap gt-mr-2">
 					<label for="viewed-files-summary" id="viewed-files-summary-label" data-text-changed-template="{{.locale.Tr "repo.pulls.viewed_files_label"}}">
@@ -225,15 +225,14 @@
 		<template id="issue-comment-editor-template">
 			<div class="ui comment form">
 				{{template "shared/combomarkdowneditor" (dict
-					"locale" $.locale
 					"MarkdownPreviewUrl" (print $.Repository.Link "/markup")
 					"MarkdownPreviewContext" $.RepoLink
 					"TextareaName" "content"
 					"DropzoneParentContainer" ".ui.form"
 				)}}
 				<div class="text right edit buttons">
-					<button class="ui basic primary cancel button" tabindex="3">{{.locale.Tr "repo.issues.cancel"}}</button>
-					<button class="ui green save button" tabindex="2">{{.locale.Tr "repo.issues.save"}}</button>
+					<button class="ui cancel button" tabindex="3">{{.locale.Tr "repo.issues.cancel"}}</button>
+					<button class="ui primary save button" tabindex="2">{{.locale.Tr "repo.issues.save"}}</button>
 				</div>
 			</div>
 		</template>

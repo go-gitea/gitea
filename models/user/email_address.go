@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/validation"
 
 	"xorm.io/builder"
 )
@@ -161,15 +162,25 @@ func ValidateEmail(email string) error {
 		return ErrEmailInvalid{email}
 	}
 
-	// TODO: add an email allow/block list
+	// if there is no allow list, then check email against block list
+	if len(setting.Service.EmailDomainAllowList) == 0 &&
+		validation.IsEmailDomainListed(setting.Service.EmailDomainBlockList, email) {
+		return ErrEmailInvalid{email}
+	}
+
+	// if there is an allow list, then check email against allow list
+	if len(setting.Service.EmailDomainAllowList) > 0 &&
+		!validation.IsEmailDomainListed(setting.Service.EmailDomainAllowList, email) {
+		return ErrEmailInvalid{email}
+	}
 
 	return nil
 }
 
 // GetEmailAddresses returns all email addresses belongs to given user.
-func GetEmailAddresses(uid int64) ([]*EmailAddress, error) {
+func GetEmailAddresses(ctx context.Context, uid int64) ([]*EmailAddress, error) {
 	emails := make([]*EmailAddress, 0, 5)
-	if err := db.GetEngine(db.DefaultContext).
+	if err := db.GetEngine(ctx).
 		Where("uid=?", uid).
 		Asc("id").
 		Find(&emails); err != nil {
@@ -179,10 +190,10 @@ func GetEmailAddresses(uid int64) ([]*EmailAddress, error) {
 }
 
 // GetEmailAddressByID gets a user's email address by ID
-func GetEmailAddressByID(uid, id int64) (*EmailAddress, error) {
+func GetEmailAddressByID(ctx context.Context, uid, id int64) (*EmailAddress, error) {
 	// User ID is required for security reasons
 	email := &EmailAddress{UID: uid}
-	if has, err := db.GetEngine(db.DefaultContext).ID(id).Get(email); err != nil {
+	if has, err := db.GetEngine(ctx).ID(id).Get(email); err != nil {
 		return nil, err
 	} else if !has {
 		return nil, nil
@@ -242,7 +253,7 @@ func AddEmailAddress(ctx context.Context, email *EmailAddress) error {
 }
 
 // AddEmailAddresses adds an email address to given user.
-func AddEmailAddresses(emails []*EmailAddress) error {
+func AddEmailAddresses(ctx context.Context, emails []*EmailAddress) error {
 	if len(emails) == 0 {
 		return nil
 	}
@@ -250,7 +261,7 @@ func AddEmailAddresses(emails []*EmailAddress) error {
 	// Check if any of them has been used
 	for i := range emails {
 		emails[i].Email = strings.TrimSpace(emails[i].Email)
-		used, err := IsEmailUsed(db.DefaultContext, emails[i].Email)
+		used, err := IsEmailUsed(ctx, emails[i].Email)
 		if err != nil {
 			return err
 		} else if used {
@@ -261,7 +272,7 @@ func AddEmailAddresses(emails []*EmailAddress) error {
 		}
 	}
 
-	if err := db.Insert(db.DefaultContext, emails); err != nil {
+	if err := db.Insert(ctx, emails); err != nil {
 		return fmt.Errorf("Insert: %w", err)
 	}
 
@@ -269,7 +280,7 @@ func AddEmailAddresses(emails []*EmailAddress) error {
 }
 
 // DeleteEmailAddress deletes an email address of given user.
-func DeleteEmailAddress(email *EmailAddress) (err error) {
+func DeleteEmailAddress(ctx context.Context, email *EmailAddress) (err error) {
 	if email.IsPrimary {
 		return ErrPrimaryEmailCannotDelete{Email: email.Email}
 	}
@@ -280,12 +291,12 @@ func DeleteEmailAddress(email *EmailAddress) (err error) {
 		UID: email.UID,
 	}
 	if email.ID > 0 {
-		deleted, err = db.GetEngine(db.DefaultContext).ID(email.ID).Delete(&address)
+		deleted, err = db.GetEngine(ctx).ID(email.ID).Delete(&address)
 	} else {
 		if email.Email != "" && email.LowerEmail == "" {
 			email.LowerEmail = strings.ToLower(email.Email)
 		}
-		deleted, err = db.GetEngine(db.DefaultContext).
+		deleted, err = db.GetEngine(ctx).
 			Where("lower_email=?", email.LowerEmail).
 			Delete(&address)
 	}
@@ -299,9 +310,9 @@ func DeleteEmailAddress(email *EmailAddress) (err error) {
 }
 
 // DeleteEmailAddresses deletes multiple email addresses
-func DeleteEmailAddresses(emails []*EmailAddress) (err error) {
+func DeleteEmailAddresses(ctx context.Context, emails []*EmailAddress) (err error) {
 	for i := range emails {
-		if err = DeleteEmailAddress(emails[i]); err != nil {
+		if err = DeleteEmailAddress(ctx, emails[i]); err != nil {
 			return err
 		}
 	}
@@ -318,8 +329,8 @@ func DeleteInactiveEmailAddresses(ctx context.Context) error {
 }
 
 // ActivateEmail activates the email address to given user.
-func ActivateEmail(email *EmailAddress) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ActivateEmail(ctx context.Context, email *EmailAddress) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -346,8 +357,8 @@ func updateActivation(ctx context.Context, email *EmailAddress, activate bool) e
 }
 
 // MakeEmailPrimary sets primary email address of given user.
-func MakeEmailPrimary(email *EmailAddress) error {
-	has, err := db.GetEngine(db.DefaultContext).Get(email)
+func MakeEmailPrimary(ctx context.Context, email *EmailAddress) error {
+	has, err := db.GetEngine(ctx).Get(email)
 	if err != nil {
 		return err
 	} else if !has {
@@ -359,7 +370,7 @@ func MakeEmailPrimary(email *EmailAddress) error {
 	}
 
 	user := &User{}
-	has, err = db.GetEngine(db.DefaultContext).ID(email.UID).Get(user)
+	has, err = db.GetEngine(ctx).ID(email.UID).Get(user)
 	if err != nil {
 		return err
 	} else if !has {
@@ -370,7 +381,7 @@ func MakeEmailPrimary(email *EmailAddress) error {
 		}
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -400,17 +411,17 @@ func MakeEmailPrimary(email *EmailAddress) error {
 }
 
 // VerifyActiveEmailCode verifies active email code when active account
-func VerifyActiveEmailCode(code, email string) *EmailAddress {
+func VerifyActiveEmailCode(ctx context.Context, code, email string) *EmailAddress {
 	minutes := setting.Service.ActiveCodeLives
 
-	if user := GetVerifyUser(code); user != nil {
+	if user := GetVerifyUser(ctx, code); user != nil {
 		// time limit code
 		prefix := code[:base.TimeLimitCodeLength]
 		data := fmt.Sprintf("%d%s%s%s%s", user.ID, email, user.LowerName, user.Passwd, user.Rands)
 
 		if base.VerifyTimeLimitCode(data, minutes, prefix) {
 			emailAddress := &EmailAddress{UID: user.ID, Email: email}
-			if has, _ := db.GetEngine(db.DefaultContext).Get(emailAddress); has {
+			if has, _ := db.GetEngine(ctx).Get(emailAddress); has {
 				return emailAddress
 			}
 		}
@@ -455,7 +466,7 @@ type SearchEmailResult struct {
 
 // SearchEmails takes options i.e. keyword and part of email name to search,
 // it returns results in given range and number of total results.
-func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error) {
+func SearchEmails(ctx context.Context, opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error) {
 	var cond builder.Cond = builder.Eq{"`user`.`type`": UserTypeIndividual}
 	if len(opts.Keyword) > 0 {
 		likeStr := "%" + strings.ToLower(opts.Keyword) + "%"
@@ -480,7 +491,7 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 		cond = cond.And(builder.Eq{"email_address.is_activated": false})
 	}
 
-	count, err := db.GetEngine(db.DefaultContext).Join("INNER", "`user`", "`user`.ID = email_address.uid").
+	count, err := db.GetEngine(ctx).Join("INNER", "`user`", "`user`.ID = email_address.uid").
 		Where(cond).Count(new(EmailAddress))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %w", err)
@@ -494,7 +505,7 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 	opts.SetDefaultValues()
 
 	emails := make([]*SearchEmailResult, 0, opts.PageSize)
-	err = db.GetEngine(db.DefaultContext).Table("email_address").
+	err = db.GetEngine(ctx).Table("email_address").
 		Select("email_address.*, `user`.name, `user`.full_name").
 		Join("INNER", "`user`", "`user`.ID = email_address.uid").
 		Where(cond).
@@ -507,8 +518,8 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 
 // ActivateUserEmail will change the activated state of an email address,
 // either primary or secondary (all in the email_address table)
-func ActivateUserEmail(userID int64, email string, activate bool) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ActivateUserEmail(ctx context.Context, userID int64, email string, activate bool) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

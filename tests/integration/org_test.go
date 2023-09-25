@@ -33,7 +33,7 @@ func TestOrgRepos(t *testing.T) {
 		t.Run(user, func(t *testing.T) {
 			session := loginUser(t, user)
 			for sortBy, repos := range cases {
-				req := NewRequest(t, "GET", "/user3?sort="+sortBy)
+				req := NewRequest(t, "GET", "/org3?sort="+sortBy)
 				resp := session.MakeRequest(t, req, http.StatusOK)
 
 				htmlDoc := NewHTMLParser(t, resp.Body)

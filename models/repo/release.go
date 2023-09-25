@@ -133,6 +133,11 @@ func (r *Release) HTMLURL() string {
 	return r.Repo.HTMLURL() + "/releases/tag/" + util.PathEscapeSegments(r.TagName)
 }
 
+// APIUploadURL the api url to upload assets to a release. release must have attributes loaded
+func (r *Release) APIUploadURL() string {
+	return r.APIURL() + "/assets"
+}
+
 // Link the relative url for a release on the web UI. release must have attributes loaded
 func (r *Release) Link() string {
 	return r.Repo.Link() + "/releases/tag/" + util.PathEscapeSegments(r.TagName)
@@ -547,3 +552,31 @@ func (r *Release) GetExternalName() string { return r.OriginalAuthor }
 
 // ExternalID ExternalUserRemappable interface
 func (r *Release) GetExternalID() int64 { return r.OriginalAuthorID }
+
+// InsertReleases migrates release
+func InsertReleases(rels ...*Release) error {
+	ctx, committer, err := db.TxContext(db.DefaultContext)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
+
+	for _, rel := range rels {
+		if _, err := sess.NoAutoTime().Insert(rel); err != nil {
+			return err
+		}
+
+		if len(rel.Attachments) > 0 {
+			for i := range rel.Attachments {
+				rel.Attachments[i].ReleaseID = rel.ID
+			}
+
+			if _, err := sess.NoAutoTime().Insert(rel.Attachments); err != nil {
+				return err
+			}
+		}
+	}
+
+	return committer.Commit()
+}

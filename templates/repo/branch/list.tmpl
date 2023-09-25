@@ -70,9 +70,20 @@
 		{{end}}
 
 		{{if .Branches}}
-			<h4 class="ui top attached header">
-				{{.locale.Tr "repo.branches"}}
+			<h4 class="ui top attached header gt-df gt-ac gt-sb">
+				<div class="gt-df gt-ac">
+					{{.locale.Tr "repo.branches"}}
+				</div>
+				<div class="gt-whitespace-nowrap">
+					<form class="ignore-dirty" method="get">
+						<div class="ui tiny search input">
+							<input name="q" placeholder="{{.locale.Tr "repo.branch.search"}}" value="{{.Keyword}}" autofocus>
+						</div>
+						<button class="ui primary tiny button gt-mr-0" data-tooltip-content={{.locale.Tr "repo.commits.search.tooltip"}}>{{.locale.Tr "repo.commits.find"}}</button>
+					</form>
+				</div>
 			</h4>
+
 			<div class="ui attached table segment">
 				<table class="ui very basic striped fixed table single line">
 					<tbody>
@@ -132,11 +143,11 @@
 									{{else}}
 										<a href="{{.LatestPullRequest.Issue.Link}}" class="gt-vm ref-issue">{{if not .LatestPullRequest.IsSameRepo}}{{.LatestPullRequest.BaseRepo.FullName}}{{end}}#{{.LatestPullRequest.Issue.Index}}</a>
 										{{if .LatestPullRequest.HasMerged}}
-											<a href="{{.LatestPullRequest.Issue.Link}}" class="ui text-label purple large label gt-vm">{{svg "octicon-git-merge" 16 "gt-mr-2"}}{{$.locale.Tr "repo.pulls.merged"}}</a>
+											<a href="{{.LatestPullRequest.Issue.Link}}" class="ui purple large label">{{svg "octicon-git-merge" 16 "gt-mr-2"}}{{$.locale.Tr "repo.pulls.merged"}}</a>
 										{{else if .LatestPullRequest.Issue.IsClosed}}
-											<a href="{{.LatestPullRequest.Issue.Link}}" class="ui text-label red large label gt-vm">{{svg "octicon-git-pull-request" 16 "gt-mr-2"}}{{$.locale.Tr "repo.issues.closed_title"}}</a>
+											<a href="{{.LatestPullRequest.Issue.Link}}" class="ui red large label">{{svg "octicon-git-pull-request" 16 "gt-mr-2"}}{{$.locale.Tr "repo.issues.closed_title"}}</a>
 										{{else}}
-											<a href="{{.LatestPullRequest.Issue.Link}}" class="ui text-label green large label gt-vm">{{svg "octicon-git-pull-request" 16 "gt-mr-2"}}{{$.locale.Tr "repo.issues.open_title"}}</a>
+											<a href="{{.LatestPullRequest.Issue.Link}}" class="ui green large label">{{svg "octicon-git-pull-request" 16 "gt-mr-2"}}{{$.locale.Tr "repo.issues.open_title"}}</a>
 										{{end}}
 									{{end}}
 								</td>
@@ -225,7 +236,7 @@
 				<input id="new_branch_name" name="new_branch_name" required>
 			</div>
 		</div>
-		{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
+		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 	</form>
 </div>
 
@@ -247,7 +258,7 @@
 				<input name="to" required>
 			</div>
 		</div>
-		{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
+		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 	</form>
 </div>
 {{template "base/footer" .}}

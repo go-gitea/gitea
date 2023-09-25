@@ -44,22 +44,11 @@
 							{{end}}
 						</div>
 						<div class="comment-header-right actions gt-df gt-ac">
-							{{if gt .Issue.ShowRole 0}}
-								{{if (.Issue.ShowRole.HasRole "Writer")}}
-									<div class="ui basic label role-label">
-										{{$.locale.Tr "repo.issues.collaborator"}}
-									</div>
-								{{end}}
-								{{if (.Issue.ShowRole.HasRole "Owner")}}
-									<div class="ui basic label role-label">
-										{{$.locale.Tr "repo.issues.owner"}}
-									</div>
-								{{end}}
-							{{end}}
+							{{template "repo/issue/view_content/show_role" dict "ShowRole" .Issue.ShowRole "IgnorePoster" true}}
 							{{if not $.Repository.IsArchived}}
 								{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
-								{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" .Issue "delete" false "issue" true "diff" false "IsCommentPoster" $.IsIssuePoster}}
 							{{end}}
+							{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" .Issue "delete" false "issue" true "diff" false "IsCommentPoster" $.IsIssuePoster}}
 						</div>
 					</div>
 					<div class="ui attached segment comment-body" role="article">
@@ -103,7 +92,7 @@
 								<div class="text right">
 									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 										{{if .Issue.IsClosed}}
-											<button id="status-button" class="ui green basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" name="status" value="reopen">
+											<button id="status-button" class="ui primary basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" name="status" value="reopen">
 												{{.locale.Tr "repo.issues.reopen_issue"}}
 											</button>
 										{{else}}
@@ -116,7 +105,7 @@
 											</button>
 										{{end}}
 									{{end}}
-									<button class="ui green button" tabindex="5">
+									<button class="ui primary button" tabindex="5">
 										{{.locale.Tr "repo.issues.create_comment"}}
 									</button>
 								</div>
@@ -158,7 +147,6 @@
 	<div class="ui comment form">
 		<div class="field">
 			{{template "shared/combomarkdowneditor" (dict
-				"locale" $.locale
 				"MarkdownPreviewUrl" (print .Repository.Link "/markup")
 				"MarkdownPreviewContext" .RepoLink
 				"TextareaName" "content"

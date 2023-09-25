@@ -5,9 +5,7 @@
 		<div class="navbar gt-mb-4">
 			{{template "repo/issue/navbar" .}}
 			{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
-				<div class="ui right">
-					<a class="ui small green button" href="{{$.Link}}/new">{{.locale.Tr "repo.milestones.new"}}</a>
-				</div>
+				<a class="ui small primary button" href="{{$.Link}}/new">{{.locale.Tr "repo.milestones.new"}}</a>
 			{{end}}
 		</div>
 		{{template "base/alert" .}}
@@ -28,7 +26,7 @@
 			<form class="list-header-search ui form ignore-dirty">
 				<div class="ui small search fluid action input">
 					<input type="hidden" name="state" value="{{$.State}}">
-					{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword}}
+					{{template "shared/searchinput" dict "Value" .Keyword}}
 					<button class="ui small icon button" type="submit" aria-label="{{.locale.Tr "explore.search"}}">
 						{{svg "octicon-search"}}
 					</button>
@@ -39,11 +37,11 @@
 			<div class="list-header-sort ui small dropdown type jump item">
 				<span class="text">
 					{{.locale.Tr "repo.issues.filter_sort"}}
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				<div class="menu">
-					<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=closestduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.closest_due_date"}}</a>
-					<a class="{{if eq .SortType "furthestduedate"}}active {{end}}item" href="{{$.Link}}?sort=furthestduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.furthest_due_date"}}</a>
+					<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=closestduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.earliest_due_data"}}</a>
+					<a class="{{if eq .SortType "furthestduedate"}}active {{end}}item" href="{{$.Link}}?sort=furthestduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.latest_due_date"}}</a>
 					<a class="{{if eq .SortType "leastcomplete"}}active {{end}}item" href="{{$.Link}}?sort=leastcomplete&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.least_complete"}}</a>
 					<a class="{{if eq .SortType "mostcomplete"}}active {{end}}item" href="{{$.Link}}?sort=mostcomplete&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.most_complete"}}</a>
 					<a class="{{if eq .SortType "mostissues"}}active {{end}}item" href="{{$.Link}}?sort=mostissues&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.most_issues"}}</a>

@@ -7,6 +7,7 @@ package repo
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -235,12 +236,12 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 	}
 
 	// If the readme template does not exist, a 400 will be returned.
-	if opt.AutoInit && len(opt.Readme) > 0 && !util.SliceContains(repo_module.Readmes, opt.Readme) {
+	if opt.AutoInit && len(opt.Readme) > 0 && !slices.Contains(repo_module.Readmes, opt.Readme) {
 		ctx.Error(http.StatusBadRequest, "", fmt.Errorf("readme template does not exist, available templates: %v", repo_module.Readmes))
 		return
 	}
 
-	repo, err := repo_service.CreateRepository(ctx, ctx.Doer, owner, repo_module.CreateRepoOptions{
+	repo, err := repo_service.CreateRepository(ctx, ctx.Doer, owner, repo_service.CreateRepoOptions{
 		Name:          opt.Name,
 		Description:   opt.Description,
 		IssueLabels:   opt.IssueLabels,
@@ -450,6 +451,8 @@ func CreateOrgRepoDeprecated(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	CreateOrgRepo(ctx)
 }
@@ -532,6 +535,8 @@ func Get(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Repository"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	if err := ctx.Repo.Repository.LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "Repository.LoadAttributes", err)
@@ -558,6 +563,8 @@ func GetByID(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Repository"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	repo, err := repo_model.GetRepositoryByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -608,6 +615,8 @@ func Edit(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Repository"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
@@ -994,14 +1003,14 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 			return err
 		}
 		if *opts.Archived {
-			if err := repo_model.SetArchiveRepoState(repo, *opts.Archived); err != nil {
+			if err := repo_model.SetArchiveRepoState(ctx, repo, *opts.Archived); err != nil {
 				log.Error("Tried to archive a repo: %s", err)
 				ctx.Error(http.StatusInternalServerError, "ArchiveRepoState", err)
 				return err
 			}
 			log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		} else {
-			if err := repo_model.SetArchiveRepoState(repo, *opts.Archived); err != nil {
+			if err := repo_model.SetArchiveRepoState(ctx, repo, *opts.Archived); err != nil {
 				log.Error("Tried to un-archive a repo: %s", err)
 				ctx.Error(http.StatusInternalServerError, "ArchiveRepoState", err)
 				return err
@@ -1099,6 +1108,8 @@ func Delete(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
@@ -1146,6 +1157,8 @@ func GetIssueTemplates(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueTemplates"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	ret, err := issue.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTemplatesFromDefaultBranch", err)
@@ -1175,6 +1188,8 @@ func GetIssueConfig(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepoIssueConfig"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	issueConfig, _ := issue.GetTemplateConfigFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	ctx.JSON(http.StatusOK, issueConfig)
 }
@@ -1200,6 +1215,8 @@ func ValidateIssueConfig(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepoIssueConfigValidation"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	_, err := issue.GetTemplateConfigFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
 
 	if err == nil {

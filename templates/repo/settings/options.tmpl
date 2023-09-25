@@ -45,7 +45,7 @@
 					<input id="website" name="website" type="url" maxlength="1024" value="{{.Repository.Website}}">
 				</div>
 				<div class="field">
-					<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
+					<button class="ui primary button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
 				</div>
 			</form>
 
@@ -57,8 +57,8 @@
 					<input name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
 				</div>
 				<div class="field">
-					<button class="ui green button">{{$.locale.Tr "settings.update_avatar"}}</button>
-					<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete" data-redirect="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</button>
+					<button class="ui primary button">{{$.locale.Tr "settings.update_avatar"}}</button>
+					<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete">{{$.locale.Tr "settings.delete_current_avatar"}}</button>
 				</div>
 			</form>
 		</div>
@@ -81,18 +81,18 @@
 			<div class="ui attached segment">
 				{{if $newMirrorsEntirelyEnabled}}
 					{{$.locale.Tr "repo.settings.mirror_settings.docs"}}
-					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pushing-to<ing-to-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/usage/repo-mirror#pushing-to-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.pull_mirror_instructions"}}
-					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_pull_section"}}</a><br>
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/usage/repo-mirror#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_pull_section"}}</a><br>
 				{{else if $onlyNewPushMirrorsEnabled}}
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_pull_mirror.instructions"}}
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.more_information_if_disabled"}}
-					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br>
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/usage/repo-mirror#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br>
 				{{else if $onlyNewPullMirrorsEnabled}}
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.instructions"}}
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.pull_mirror_warning"}}
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.more_information_if_disabled"}}
-					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/usage/repo-mirror#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.info"}}
 					{{if $existingPushMirror}}
 						{{$.locale.Tr "repo.settings.mirror_settings.docs.can_still_use"}}
@@ -116,14 +116,14 @@
 						<tbody>
 							<tr>
 								<td colspan="4">
-									<span class="text red gt-db gt-py-4 gt-border-secondary-bottom">{{$.locale.Tr "repo.settings.mirror_settings.direction.pull"}}: {{$.locale.Tr "error.occurred"}}</span>
+									<div class="text red gt-py-4 gt-border-secondary-bottom">{{$.locale.Tr "repo.settings.mirror_settings.direction.pull"}}: {{$.locale.Tr "error.occurred"}}</div>
 								</td>
 							</tr>
 						</tbody>
 					{{else if $isWorkingPullMirror}}
 					<tbody>
 						<tr>
-							<td>{{(MirrorRemoteAddress $.Context .Repository .PullMirror.GetRemoteName false).Address}}</td>
+							<td>{{.PullMirror.RemoteAddress}}</td>
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
 							<td>{{DateTime "full" .PullMirror.UpdatedUnix}}</td>
 							<td class="right aligned">
@@ -189,7 +189,7 @@
 									</div>
 									{{end}}
 									<div class="field">
-										<button class="ui green button">{{$.locale.Tr "repo.settings.update_mirror_settings"}}</button>
+										<button class="ui primary button">{{$.locale.Tr "repo.settings.update_mirror_settings"}}</button>
 									</div>
 								</form>
 							</td>
@@ -200,8 +200,7 @@
 					<tbody>
 						{{range .PushMirrors}}
 						<tr>
-							{{$address := MirrorRemoteAddress $.Context $.Repository .GetRemoteName true}}
-							<td class="gt-word-break">{{$address.Address}}</td>
+							<td class="gt-word-break">{{.RemoteAddress}}</td>
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
 							<td>{{if .LastUpdateUnix}}{{DateTime "full" .LastUpdateUnix}}{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>
 							<td class="right aligned">
@@ -211,7 +210,7 @@
 									data-tooltip-content="{{$.locale.Tr "repo.settings.mirror_settings.push_mirror.edit_sync_time"}}"
 									data-modal-push-mirror-edit-id="{{.ID}}"
 									data-modal-push-mirror-edit-interval="{{.Interval}}"
-									data-modal-push-mirror-edit-address="{{$address.Address}}"
+									data-modal-push-mirror-edit-address="{{.RemoteAddress}}"
 								>
 									{{svg "octicon-pencil" 14}}
 								</button>
@@ -272,7 +271,7 @@
 											<input id="push_mirror_interval" name="push_mirror_interval" value="{{if .push_mirror_interval}}{{.push_mirror_interval}}{{else}}{{.DefaultMirrorInterval}}{{end}}">
 										</div>
 										<div class="field">
-											<button class="ui green button">{{$.locale.Tr "repo.settings.mirror_settings.push_mirror.add"}}</button>
+											<button class="ui primary button">{{$.locale.Tr "repo.settings.mirror_settings.push_mirror.add"}}</button>
 										</div>
 									</form>
 								</td>
@@ -315,13 +314,13 @@
 				<div class="field{{if not $isWikiEnabled}} disabled{{end}}" id="wiki_box">
 					<div class="field">
 						<div class="ui radio checkbox{{if $isWikiGlobalDisabled}} disabled{{end}}"{{if $isWikiGlobalDisabled}} data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}"{{end}}>
-							<input class="enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="false" data-target="#external_wiki_box" {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalWiki)}}checked{{end}}>
+							<input class="enable-system-radio" name="enable_external_wiki" type="radio" value="false" data-target="#external_wiki_box" {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalWiki)}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.use_internal_wiki"}}</label>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox{{if $isExternalWikiGlobalDisabled}} disabled{{end}}"{{if $isExternalWikiGlobalDisabled}} data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}"{{end}}>
-							<input class="enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="true" data-target="#external_wiki_box" {{if .Repository.UnitEnabled $.Context $.UnitTypeExternalWiki}}checked{{end}}>
+							<input class="enable-system-radio" name="enable_external_wiki" type="radio" value="true" data-target="#external_wiki_box" {{if .Repository.UnitEnabled $.Context $.UnitTypeExternalWiki}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.use_external_wiki"}}</label>
 						</div>
 					</div>
@@ -348,7 +347,7 @@
 				<div class="field {{if not $isIssuesEnabled}}disabled{{end}}" id="issue_box">
 					<div class="field">
 						<div class="ui radio checkbox{{if $isIssuesGlobalDisabled}} disabled{{end}}"{{if $isIssuesGlobalDisabled}} data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}"{{end}}>
-							<input class="enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="false" data-context="#internal_issue_box" data-target="#external_issue_box" {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}checked{{end}}>
+							<input class="enable-system-radio" name="enable_external_tracker" type="radio" value="false" data-context="#internal_issue_box" data-target="#external_issue_box" {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.use_internal_issue_tracker"}}</label>
 						</div>
 					</div>
@@ -380,7 +379,7 @@
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox{{if $isExternalTrackerGlobalDisabled}} disabled{{end}}"{{if $isExternalTrackerGlobalDisabled}} data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}"{{end}}>
-							<input class="enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="true" data-context="#internal_issue_box" data-target="#external_issue_box" {{if .Repository.UnitEnabled $.Context $.UnitTypeExternalTracker}}checked{{end}}>
+							<input class="enable-system-radio" name="enable_external_tracker" type="radio" value="true" data-context="#internal_issue_box" data-target="#external_issue_box" {{if .Repository.UnitEnabled $.Context $.UnitTypeExternalTracker}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.use_external_issue_tracker"}}</label>
 						</div>
 					</div>
@@ -523,7 +522,7 @@
 							<p>
 								{{.locale.Tr "repo.settings.default_merge_style_desc"}}
 							</p>
-							<div class="ui dropdown selection" tabindex="0">
+							<div class="ui dropdown selection">
 								<select name="pulls_default_merge_style">
 									<option value="merge" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "merge")}}selected{{end}}>{{.locale.Tr "repo.pulls.merge_pull_request"}}</option>
 									<option value="rebase" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "rebase")}}selected{{end}}>{{.locale.Tr "repo.pulls.rebase_merge_pull_request"}}</option>
@@ -587,7 +586,7 @@
 
 				<div class="divider"></div>
 				<div class="field">
-					<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
+					<button class="ui primary button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
 				</div>
 			</form>
 		</div>
@@ -633,7 +632,7 @@
 
 				<div class="divider"></div>
 				<div class="field">
-					<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
+					<button class="ui primary button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
 				</div>
 			</form>
 		</div>
@@ -654,7 +653,7 @@
 				</div>
 
 				<div class="field">
-					<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
+					<button class="ui primary button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
 				</div>
 			</form>
 
@@ -676,7 +675,7 @@
 							{{end}}
 						</span>
 						<div class="field">
-							<button class="ui green button" name="request_reindex_type" value="code">{{$.locale.Tr "repo.settings.reindex_button"}}</button>
+							<button class="ui primary button" name="request_reindex_type" value="code">{{$.locale.Tr "repo.settings.reindex_button"}}</button>
 						</div>
 					</div>
 				{{end}}
@@ -695,7 +694,7 @@
 						{{end}}
 					</span>
 					<div class="field">
-						<button class="ui green button" name="request_reindex_type" value="stats">{{$.locale.Tr "repo.settings.reindex_button"}}</button>
+						<button class="ui primary button" name="request_reindex_type" value="stats">{{$.locale.Tr "repo.settings.reindex_button"}}</button>
 					</div>
 				</div>
 			</form>
@@ -774,7 +773,7 @@
 					</div>
 				</div>
 				{{if not .Repository.IsMirror}}
-					<div class="flex-item flex-item-center">
+					<div class="flex-item gt-ac">
 						<div class="flex-item-main">
 							{{if .Repository.IsArchived}}
 								<div class="flex-item-title">{{.locale.Tr "repo.settings.unarchive.header"}}</div>

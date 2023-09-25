@@ -8,7 +8,7 @@
 				<div class="text right gt-f1">
 					{{if or .CanWriteIssues .CanWritePulls}}
 						{{if .Milestone.IsClosed}}
-							<a class="ui green basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.MilestoneID}}/open">{{$.locale.Tr "repo.milestones.open"}}
+							<a class="ui primary basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.MilestoneID}}/open">{{$.locale.Tr "repo.milestones.open"}}
 							</a>
 						{{else}}
 							<a class="ui red basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.MilestoneID}}/close">{{$.locale.Tr "repo.milestones.close"}}

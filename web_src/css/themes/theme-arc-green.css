@@ -198,7 +198,6 @@
   --color-input-border: var(--color-secondary);
   --color-input-border-hover: var(--color-secondary-dark-1);
   --color-header-wrapper: #202430;
-  --color-header-wrapper-transparent: #20243000;
   --color-light: #00000028;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(40 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #ffffff28;
@@ -211,7 +210,7 @@
   --color-button: #1e252e;
   --color-code-bg: #222733;
   --color-code-sidebar-bg: #232834;
-  --color-shadow: #00000060;
+  --color-shadow: #00000058;
   --color-secondary-bg: #2a2e3a;
   --color-text-focus: #fff;
   --color-expand-button: #3c404d;

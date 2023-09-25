@@ -50,7 +50,6 @@
 				</div>
 				<div class="field">
 					{{template "shared/combomarkdowneditor" (dict
-						"locale" $.locale
 						"MarkdownPreviewUrl" (print .Repository.Link "/markup")
 						"MarkdownPreviewContext" .RepoLink
 						"TextareaName" "content"
@@ -61,20 +60,18 @@
 					)}}
 				</div>
 				{{range .attachments}}
-					<div class="field" id="attachment-{{.ID}}">
-						<div class="ui right gt-df gt-ac wrap_remove">
-							<a class="ui mini compact red button remove-rel-attach" data-id="{{.ID}}" data-uuid="{{.UUID}}">
-								{{$.locale.Tr "remove"}}
-							</a>
-						</div>
-						<div class="gt-df gt-ac">
-							<input name="attachment-edit-{{.UUID}}" class="gt-mr-3 attachment_edit" required value="{{.Name}}">
+					<div class="field flex-text-block" id="attachment-{{.ID}}">
+						<div class="flex-text-inline gt-f1">
+							<input name="attachment-edit-{{.UUID}}"  class="attachment_edit" required value="{{.Name}}">
 							<input name="attachment-del-{{.UUID}}" type="hidden" value="false">
-							<span class="ui text grey gt-mr-3">{{.Size | FileSize}}</span>
+							<span class="ui text grey gt-whitespace-nowrap">{{.Size | FileSize}}</span>
 							<span data-tooltip-content="{{$.locale.Tr "repo.release.download_count" ($.locale.PrettyNumber .DownloadCount)}}">
 								{{svg "octicon-info"}}
 							</span>
 						</div>
+						<a class="ui mini compact red button remove-rel-attach" data-id="{{.ID}}" data-uuid="{{.UUID}}">
+							{{$.locale.Tr "remove"}}
+						</a>
 					</div>
 				{{end}}
 				{{if .IsAttachmentEnabled}}

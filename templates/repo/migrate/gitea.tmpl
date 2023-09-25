@@ -21,7 +21,7 @@
 					<div class="inline field {{if .Err_Auth}}error{{end}}">
 						<label for="auth_token">{{.locale.Tr "access_token"}}</label>
 						<input id="auth_token" name="auth_token" type="password" autocomplete="new-password" value="{{.auth_token}}" {{if not .auth_token}} data-need-clear="true" {{end}}>
-						<a target="_blank" href="https://docs.gitea.io/en-us/api-usage">{{svg "octicon-question"}}</a>
+						<a target="_blank" href="https://docs.gitea.com/development/api-usage">{{svg "octicon-question"}}</a>
 					</div>
 
 					{{template "repo/migrate/options" .}}
@@ -116,7 +116,7 @@
 
 					<div class="inline field">
 						<label></label>
-						<button class="ui green button">
+						<button class="ui primary button">
 							{{.locale.Tr "repo.migrate_repo"}}
 						</button>
 					</div>

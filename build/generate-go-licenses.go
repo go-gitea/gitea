@@ -15,6 +15,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"code.gitea.io/gitea/modules/container"
 )
 
 // regexp is based on go-license, excluding README and NOTICE
@@ -55,20 +57,14 @@ func main() {
 	//    yml
 	//
 	// It could be removed once we have a better regex.
-	excludedExt := map[string]bool{
-		".gitignore": true,
-		".go":        true,
-		".mod":       true,
-		".sum":       true,
-		".toml":      true,
-		".yml":       true,
-	}
+	excludedExt := container.SetOf(".gitignore", ".go", ".mod", ".sum", ".toml", ".yml")
+
 	var paths []string
 	err := filepath.WalkDir(base, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if entry.IsDir() || !licenseRe.MatchString(entry.Name()) || excludedExt[filepath.Ext(entry.Name())] {
+		if entry.IsDir() || !licenseRe.MatchString(entry.Name()) || excludedExt.Contains(filepath.Ext(entry.Name())) {
 			return nil
 		}
 		paths = append(paths, path)

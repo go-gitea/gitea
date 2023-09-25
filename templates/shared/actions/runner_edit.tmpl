@@ -9,7 +9,7 @@
 			<div class="runner-basic-info">
 				<div class="field gt-dib gt-mr-4">
 					<label>{{.locale.Tr "actions.runners.status"}}</label>
-					<span class="runner-status-{{if .Runner.IsOnline}}online{{else}}offline{{end}}">{{.Runner.StatusLocaleName $.locale}}</span>
+					<span class="ui {{if .Runner.IsOnline}}green{{else}}basic{{end}} label">{{.Runner.StatusLocaleName $.locale}}</span>
 				</div>
 				<div class="field gt-dib gt-mr-4">
 					<label>{{.locale.Tr "actions.runners.last_online"}}</label>
@@ -39,7 +39,7 @@
 			<div class="divider"></div>
 
 			<div class="field">
-				<button class="ui green button" data-url="{{.Link}}">{{.locale.Tr "actions.runners.update_runner"}}</button>
+				<button class="ui primary button" data-url="{{.Link}}">{{.locale.Tr "actions.runners.update_runner"}}</button>
 				<button class="ui red button delete-button show-modal" data-url="{{.Link}}/delete" data-modal="#runner-delete-modal">
 					{{.locale.Tr "actions.runners.delete_runner"}}</button>
 			</div>

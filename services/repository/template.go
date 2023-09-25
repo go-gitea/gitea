@@ -11,8 +11,8 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // GenerateIssueLabels generates issue labels from a template repository
@@ -130,7 +130,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		return nil, err
 	}
 
-	notification.NotifyCreateRepository(ctx, doer, owner, generateRepo)
+	notify_service.CreateRepository(ctx, doer, owner, generateRepo)
 
 	return generateRepo, nil
 }

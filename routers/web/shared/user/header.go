@@ -22,7 +22,6 @@ import (
 func prepareContextForCommonProfile(ctx *context.Context) {
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["EnableFeed"] = setting.Other.EnableFeed
 	ctx.Data["FeedURL"] = ctx.ContextUser.HomeLink()
 }
@@ -31,11 +30,11 @@ func prepareContextForCommonProfile(ctx *context.Context) {
 func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	prepareContextForCommonProfile(ctx)
 
-	ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx.Doer.ID, ctx.ContextUser.ID)
+	ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail && ctx.ContextUser.Email != "" && ctx.IsSigned && !ctx.ContextUser.KeepEmailPrivate
 
 	// Show OpenID URIs
-	openIDs, err := user_model.GetUserOpenIDs(ctx.ContextUser.ID)
+	openIDs, err := user_model.GetUserOpenIDs(ctx, ctx.ContextUser.ID)
 	if err != nil {
 		ctx.ServerError("GetUserOpenIDs", err)
 		return
