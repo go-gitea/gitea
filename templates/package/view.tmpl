@@ -8,7 +8,7 @@
 				<h1>{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
 			</div>
 			<div>
-				{{$timeStr := TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.locale}}
+				{{$timeStr := TimeSinceUnix .PackageDescriptor.Version.CreatedUnix ctx.Locale}}
 				{{if .HasRepositoryAccess}}
 					{{ctx.Locale.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) .PackageDescriptor.Repository.Link (.PackageDescriptor.Repository.FullName | Escape) | Safe}}
 				{{else}}
@@ -47,7 +47,7 @@
 					{{if .HasRepositoryAccess}}
 					<div class="item">{{svg "octicon-repo" 16 "gt-mr-3"}} <a href="{{.PackageDescriptor.Repository.Link}}">{{.PackageDescriptor.Repository.FullName}}</a></div>
 					{{end}}
-					<div class="item">{{svg "octicon-calendar" 16 "gt-mr-3"}} {{TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.locale}}</div>
+					<div class="item">{{svg "octicon-calendar" 16 "gt-mr-3"}} {{TimeSinceUnix .PackageDescriptor.Version.CreatedUnix ctx.Locale}}</div>
 					<div class="item">{{svg "octicon-download" 16 "gt-mr-3"}} {{.PackageDescriptor.Version.DownloadCount}}</div>
 					{{template "package/metadata/alpine" .}}
 					{{template "package/metadata/cargo" .}}

@@ -5,9 +5,9 @@
 	<div class="gt-df">
 		<div class="gt-f1 gt-df gt-ac">
 			<h2 class="ui compact small menu header small-menu-items">
-				<a class="{{if .PageIsReleaseList}}active {{end}}item" href="{{.RepoLink}}/releases">{{.locale.PrettyNumber .NumReleases}} {{ctx.Locale.TrN .NumReleases "repo.release" "repo.releases"}}</a>
+				<a class="{{if .PageIsReleaseList}}active {{end}}item" href="{{.RepoLink}}/releases">{{ctx.Locale.PrettyNumber .NumReleases}} {{ctx.Locale.TrN .NumReleases "repo.release" "repo.releases"}}</a>
 				{{if $canReadCode}}
-					<a class="{{if .PageIsTagList}}active {{end}}item" href="{{.RepoLink}}/tags">{{.locale.PrettyNumber .NumTags}} {{ctx.Locale.TrN .NumTags "repo.tag" "repo.tags"}}</a>
+					<a class="{{if .PageIsTagList}}active {{end}}item" href="{{.RepoLink}}/tags">{{ctx.Locale.PrettyNumber .NumTags}} {{ctx.Locale.TrN .NumTags "repo.tag" "repo.tags"}}</a>
 				{{end}}
 			</h2>
 			{{if .EnableFeed}}
