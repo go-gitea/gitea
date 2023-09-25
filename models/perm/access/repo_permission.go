@@ -340,7 +340,7 @@ func CanBeAssigned(ctx context.Context, user *user_model.User, repo *repo_model.
 	if err != nil {
 		return false, err
 	}
-	return perm.CanAccessAny(perm_model.AccessModeWrite, unit.TypeCode, unit.TypeIssues) ||
+	return perm.CanAccessAny(perm_model.AccessModeWrite, unit.AllRepoUnitTypes...) ||
 		perm.CanAccessAny(perm_model.AccessModeRead, unit.TypePullRequests), nil
 }
 
