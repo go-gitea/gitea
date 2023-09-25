@@ -78,7 +78,7 @@ func Push(ctx *context.Context) {
 				Name:        desc.Name,
 				Version:     desc.Version,
 			},
-			Creator: ctx.ContextUser,
+			Creator: ctx.Doer,
 			Metadata: &arch_module.Metadata{
 				URL:          desc.URL,
 				Description:  desc.Description,
