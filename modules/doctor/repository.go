@@ -27,10 +27,12 @@ func DeleteOrphanedRepos(ctx context.Context) (int64, error) {
 
 	for {
 		var ids []int64
-		e.Table("`repository`").
+		if err := e.Table("`repository`").
 			Join("LEFT", "`user`", "repository.owner_id=user.id").
 			Where(builder.IsNull{"`user`.id"}).
-			Select("`repository`.id").Limit(batchSize).Find(&ids)
+			Select("`repository`.id").Limit(batchSize).Find(&ids); err != nil {
+			return deleted, err
+		}
 
 		// if we don't get ids we deleted them all
 		if len(ids) == 0 {
