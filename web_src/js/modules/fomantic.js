@@ -57,19 +57,19 @@ export function initGiteaFomantic() {
       if (!isAnimationIn && !isAnimationOut) {
         toShow = this.hasClass('hidden'); // it is a toggle animation
       }
-      argObj.onStart?.(this);
+      argObj.onStart?.call(el);
       if (toShow) {
         el.classList.remove('hidden');
         el.classList.add('visible', 'transition');
         if (argObj.displayType) el.style.setProperty('display', argObj.displayType, 'important');
-        argObj.onShow?.(this);
+        argObj.onShow?.call(el);
       } else {
         el.classList.add('hidden');
         el.classList.remove('visible'); // don't remove the transition class because the Fomantic animation style is `.hidden.transition`.
         el.style.removeProperty('display');
-        argObj.onHidden?.(this);
+        argObj.onHidden?.call(el);
       }
-      argObj.onComplete?.(this);
+      argObj.onComplete?.call(el);
     });
     return this;
   };
