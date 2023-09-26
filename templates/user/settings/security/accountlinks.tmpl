@@ -29,7 +29,7 @@
 			<div class="flex-item">
 				{{$providerData := index $.OAuth2Providers $loginSource.Name}}
 				<div class="flex-item-leading">
-					{{$providerData.IconHTML}}
+					{{$providerData.IconHTML 20}}
 				</div>
 				<div class="flex-item-main">
 					<span class="flex-item-title" data-tooltip-content="{{$provider}}">
