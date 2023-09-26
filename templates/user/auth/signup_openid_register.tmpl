@@ -4,20 +4,20 @@
 	<div class="ui container">
 				{{template "base/alert" .}}
 				<h4 class="ui top attached header">
-					{{.locale.Tr "auth.openid_register_title"}}
+					{{ctx.Locale.Tr "auth.openid_register_title"}}
 				</h4>
 				<div class="ui attached segment">
 					<p>
-						{{.locale.Tr "auth.openid_register_desc"}}
+						{{ctx.Locale.Tr "auth.openid_register_desc"}}
 					</p>
 					<form class="ui form" action="{{.Link}}" method="post">
 					{{.CsrfTokenHtml}}
 					<div class="required inline field {{if .Err_UserName}}error{{end}}">
-						<label for="user_name">{{.locale.Tr "username"}}</label>
+						<label for="user_name">{{ctx.Locale.Tr "username"}}</label>
 						<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
 					</div>
 					<div class="required inline field {{if .Err_Email}}error{{end}}">
-						<label for="email">{{.locale.Tr "email"}}</label>
+						<label for="email">{{ctx.Locale.Tr "email"}}</label>
 						<input id="email" name="email" type="email" value="{{.email}}" required>
 					</div>
 
@@ -29,7 +29,7 @@
 					</div>
 					<div class="inline field">
 						<label></label>
-						<button class="ui green button">{{.locale.Tr "auth.create_new_account"}}</button>
+						<button class="ui primary button">{{ctx.Locale.Tr "auth.create_new_account"}}</button>
 					</div>
 					</form>
 				</div>

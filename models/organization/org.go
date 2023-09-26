@@ -140,8 +140,8 @@ func (org *Organization) LoadTeams() ([]*Team, error) {
 }
 
 // GetMembers returns all members of organization.
-func (org *Organization) GetMembers() (user_model.UserList, map[int64]bool, error) {
-	return FindOrgMembers(&FindOrgMembersOpts{
+func (org *Organization) GetMembers(ctx context.Context) (user_model.UserList, map[int64]bool, error) {
+	return FindOrgMembers(ctx, &FindOrgMembersOpts{
 		OrgID: org.ID,
 	})
 }
@@ -208,8 +208,8 @@ func CountOrgMembers(opts *FindOrgMembersOpts) (int64, error) {
 }
 
 // FindOrgMembers loads organization members according conditions
-func FindOrgMembers(opts *FindOrgMembersOpts) (user_model.UserList, map[int64]bool, error) {
-	ous, err := GetOrgUsersByOrgID(db.DefaultContext, opts)
+func FindOrgMembers(ctx context.Context, opts *FindOrgMembersOpts) (user_model.UserList, map[int64]bool, error) {
+	ous, err := GetOrgUsersByOrgID(ctx, opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -221,7 +221,7 @@ func FindOrgMembers(opts *FindOrgMembersOpts) (user_model.UserList, map[int64]bo
 		idsIsPublic[ou.UID] = ou.IsPublic
 	}
 
-	users, err := user_model.GetUsersByIDs(ids)
+	users, err := user_model.GetUsersByIDs(ctx, ids)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -520,10 +520,10 @@ func HasOrgsVisible(orgs []*Organization, user *user_model.User) bool {
 
 // GetOrgsCanCreateRepoByUserID returns a list of organizations where given user ID
 // are allowed to create repos.
-func GetOrgsCanCreateRepoByUserID(userID int64) ([]*Organization, error) {
+func GetOrgsCanCreateRepoByUserID(ctx context.Context, userID int64) ([]*Organization, error) {
 	orgs := make([]*Organization, 0, 10)
 
-	return orgs, db.GetEngine(db.DefaultContext).Where(builder.In("id", builder.Select("`user`.id").From("`user`").
+	return orgs, db.GetEngine(ctx).Where(builder.In("id", builder.Select("`user`.id").From("`user`").
 		Join("INNER", "`team_user`", "`team_user`.org_id = `user`.id").
 		Join("INNER", "`team`", "`team`.id = `team_user`.team_id").
 		Where(builder.Eq{"`team_user`.uid": userID}).

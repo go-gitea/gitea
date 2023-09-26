@@ -101,7 +101,7 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 		},
 		// find releases without existing repository
 		genericOrphanCheck("Orphaned Releases without existing repository",
-			"release", "repository", "release.repo_id=repository.id"),
+			"release", "repository", "`release`.repo_id=repository.id"),
 		// find pulls without existing issues
 		genericOrphanCheck("Orphaned PullRequests without existing issue",
 			"pull_request", "issue", "pull_request.issue_id=issue.id"),

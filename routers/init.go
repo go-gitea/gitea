@@ -93,7 +93,7 @@ func syncAppConfForGit(ctx context.Context) error {
 		mustInitCtx(ctx, repo_service.SyncRepositoryHooks)
 
 		log.Info("re-write ssh public keys ...")
-		mustInit(asymkey_model.RewriteAllPublicKeys)
+		mustInitCtx(ctx, asymkey_model.RewriteAllPublicKeys)
 
 		return system.AppState.Set(runtimeState)
 	}
@@ -140,7 +140,7 @@ func InitWebInstalled(ctx context.Context) {
 
 	mustInitCtx(ctx, models.Init)
 	mustInitCtx(ctx, authmodel.Init)
-	mustInit(repo_service.Init)
+	mustInitCtx(ctx, repo_service.Init)
 
 	// Booting long running goroutines.
 	mustInit(indexer_service.Init)

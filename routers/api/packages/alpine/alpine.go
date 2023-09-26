@@ -27,7 +27,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 }
 
 func GetRepositoryKey(ctx *context.Context) {
-	_, pub, err := alpine_service.GetOrCreateKeyPair(ctx.Package.Owner.ID)
+	_, pub, err := alpine_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -58,7 +58,7 @@ func GetRepositoryKey(ctx *context.Context) {
 }
 
 func GetRepositoryFile(ctx *context.Context) {
-	pv, err := alpine_service.GetOrCreateRepositoryVersion(ctx.Package.Owner.ID)
+	pv, err := alpine_service.GetOrCreateRepositoryVersion(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -157,7 +157,7 @@ func DeletePackageFile(ctx *context.Context) {
 		return
 	}
 
-	if err := packages_service.RemovePackageFileAndVersionIfUnreferenced(ctx.Doer, pfs[0]); err != nil {
+	if err := packages_service.RemovePackageFileAndVersionIfUnreferenced(ctx, ctx.Doer, pfs[0]); err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {

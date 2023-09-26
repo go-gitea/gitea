@@ -206,7 +206,7 @@ func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.Use
 	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner.Name, IndexRepositoryName)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			repo, err = repo_service.CreateRepositoryDirectly(doer, owner, repo_service.CreateRepoOptions{
+			repo, err = repo_service.CreateRepositoryDirectly(ctx, doer, owner, repo_service.CreateRepoOptions{
 				Name: IndexRepositoryName,
 			})
 			if err != nil {

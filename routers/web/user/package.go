@@ -451,7 +451,7 @@ func PackageSettingsPost(ctx *context.Context) {
 		ctx.Redirect(ctx.Link)
 		return
 	case "delete":
-		err := packages_service.RemovePackageVersion(ctx.Doer, ctx.Package.Descriptor.Version)
+		err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
 		if err != nil {
 			log.Error("Error deleting package: %v", err)
 			ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))

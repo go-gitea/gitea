@@ -117,14 +117,10 @@ func DeleteBranch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.Error(http.StatusNotFound, "", "Git Repository is empty.")
-		return
-	}
-
-	if ctx.Repo.Repository.IsArchived {
-		ctx.Error(http.StatusForbidden, "", "Git Repository is archived.")
 		return
 	}
 
@@ -157,10 +153,6 @@ func DeleteBranch(ctx *context.APIContext) {
 		}
 	}
 
-	if ctx.Repo.Repository.IsArchived {
-		ctx.Error(http.StatusForbidden, "IsArchived", fmt.Errorf("can not delete branch of an archived repository"))
-		return
-	}
 	if ctx.Repo.Repository.IsMirror {
 		ctx.Error(http.StatusForbidden, "IsMirrored", fmt.Errorf("can not delete branch of an mirror repository"))
 		return
@@ -216,14 +208,11 @@ func CreateBranch(ctx *context.APIContext) {
 	//     description: The old branch does not exist.
 	//   "409":
 	//     description: The branch with the same name already exists.
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.Error(http.StatusNotFound, "", "Git Repository is empty.")
-		return
-	}
-
-	if ctx.Repo.Repository.IsArchived {
-		ctx.Error(http.StatusForbidden, "", "Git Repository is archived.")
 		return
 	}
 
@@ -447,7 +436,7 @@ func GetBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToBranchProtection(bp))
+	ctx.JSON(http.StatusOK, convert.ToBranchProtection(ctx, bp))
 }
 
 // ListBranchProtections list branch protections for a repo
@@ -480,7 +469,7 @@ func ListBranchProtections(ctx *context.APIContext) {
 	}
 	apiBps := make([]*api.BranchProtection, len(bps))
 	for i := range bps {
-		apiBps[i] = convert.ToBranchProtection(bps[i])
+		apiBps[i] = convert.ToBranchProtection(ctx, bps[i])
 	}
 
 	ctx.JSON(http.StatusOK, apiBps)
@@ -519,6 +508,8 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm(ctx).(*api.CreateBranchProtectionOption)
 	repo := ctx.Repo.Repository
@@ -688,7 +679,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToBranchProtection(bp))
+	ctx.JSON(http.StatusCreated, convert.ToBranchProtection(ctx, bp))
 }
 
 // EditBranchProtection edits a branch protection for a repo
@@ -727,6 +718,8 @@ func EditBranchProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm(ctx).(*api.EditBranchProtectionOption)
 	repo := ctx.Repo.Repository
 	bpName := ctx.Params(":name")
@@ -960,7 +953,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToBranchProtection(bp))
+	ctx.JSON(http.StatusOK, convert.ToBranchProtection(ctx, bp))
 }
 
 // DeleteBranchProtection deletes a branch protection for a repo
@@ -1004,7 +997,7 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	if err := git_model.DeleteProtectedBranch(ctx, ctx.Repo.Repository.ID, bp.ID); err != nil {
+	if err := git_model.DeleteProtectedBranch(ctx, ctx.Repo.Repository, bp.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteProtectedBranch", err)
 		return
 	}

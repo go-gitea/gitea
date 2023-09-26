@@ -313,7 +313,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: syncing releases with tags...", m.Repo)
-	if err = repo_module.SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
+	if err = repo_module.SyncReleasesWithTags(ctx, m.Repo, gitRepo); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to synchronize tags to releases: %v", m.Repo, err)
 	}
 
@@ -540,7 +540,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		return false
 	}
 
-	if err = repo_model.UpdateRepositoryUpdatedTime(m.RepoID, commitDate); err != nil {
+	if err = repo_model.UpdateRepositoryUpdatedTime(ctx, m.RepoID, commitDate); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: unable to update repository 'updated_unix': %v", m.Repo, err)
 		return false
 	}

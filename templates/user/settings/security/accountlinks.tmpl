@@ -1,16 +1,16 @@
 {{/* No account links, no way to add account links: Menu will not be shown. */}}
 {{if or .AccountLinks .OrderedOAuth2Names}}
 <h4 class="ui top attached header">
-	{{.locale.Tr "settings.manage_account_links"}}
+	{{ctx.Locale.Tr "settings.manage_account_links"}}
 	{{if .OrderedOAuth2Names}}
 		<div class="ui right">
 			<div class="ui dropdown">
-				<div class="ui primary tiny button">{{.locale.Tr "settings.link_account"}}</div>
+				<div class="ui primary tiny button">{{ctx.Locale.Tr "settings.link_account"}}</div>
 				<div class="menu">
 					{{range $key := .OrderedOAuth2Names}}
 						{{$provider := index $.OAuth2Providers $key}}
 						<a class="item" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
-							{{$provider.IconHTML}}
+							{{$provider.IconHTML 20}}
 							{{$provider.DisplayName}}
 						</a>
 					{{end}}
@@ -23,7 +23,7 @@
 <div class="ui attached segment">
 	<div class="flex-list">
 		<div class="flex-item">
-			{{.locale.Tr "settings.manage_account_links_desc"}}
+			{{ctx.Locale.Tr "settings.manage_account_links_desc"}}
 		</div>
 		{{range $loginSource, $provider := .AccountLinks}}
 			<div class="flex-item">
@@ -36,12 +36,12 @@
 						{{$loginSource.Name}}
 					</span>
 					{{if $loginSource.IsActive}}
-					<span class="flex-text-body text primary">{{$.locale.Tr "repo.settings.active"}}</span>
+					<span class="flex-text-body text primary">{{ctx.Locale.Tr "repo.settings.active"}}</span>
 					{{end}}
 				</div>
 				<div class="flex-item-trailing">
 					<button class="ui red tiny button delete-button" data-modal-id="delete-account-link" data-url="{{AppSubUrl}}/user/settings/security/account_link" data-id="{{$loginSource.ID}}">
-						{{$.locale.Tr "settings.delete_key"}}
+						{{ctx.Locale.Tr "settings.delete_key"}}
 					</button>
 				</div>
 			</div>
@@ -51,10 +51,10 @@
 	<div class="ui g-modal-confirm delete modal" id="delete-account-link">
 		<div class="header">
 			{{svg "octicon-trash"}}
-			{{.locale.Tr "settings.remove_account_link"}}
+			{{ctx.Locale.Tr "settings.remove_account_link"}}
 		</div>
 		<div class="content">
-			<p>{{.locale.Tr "settings.remove_account_link_desc"}}</p>
+			<p>{{ctx.Locale.Tr "settings.remove_account_link_desc"}}</p>
 		</div>
 		{{template "base/modal_actions_confirm" .}}
 	</div>
