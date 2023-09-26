@@ -44,5 +44,3 @@ rules:
 ignore: |
   .venv
   node_modules
-  /models/fixtures
-  /models/migrations/fixtures
