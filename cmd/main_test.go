@@ -20,9 +20,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: "..",
-	})
+	unittest.MainTest(m, &unittest.TestOptions{})
 }
 
 func makePathOutput(workPath, customPath, customConf string) string {

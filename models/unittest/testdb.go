@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -62,23 +63,28 @@ func InitSettings(extraConfigs ...string) {
 
 // TestOptions represents test options
 type TestOptions struct {
-	GiteaRootPath string
-	FixtureFiles  []string
-	SetUp         func() error // SetUp will be executed before all tests in this package
-	TearDown      func() error // TearDown will be executed after all tests in this package
+	FixtureFiles []string
+	SetUp        func() error // SetUp will be executed before all tests in this package
+	TearDown     func() error // TearDown will be executed after all tests in this package
 }
 
 // MainTest a reusable TestMain(..) function for unit tests that need to use a
 // test database. Creates the test database, and sets necessary settings.
 func MainTest(m *testing.M, testOpts *TestOptions) {
-	setting.CustomPath = filepath.Join(testOpts.GiteaRootPath, "custom")
+	_, file, _, _ := runtime.Caller(1)
+	for {
+		file = filepath.Dir(file)
+		exist, _ := util.IsFile(filepath.Join(file, "go.mod")) // Gitea workspace should be only one golang project
+		if exist {
+			break
+		}
+	}
+	giteaRoot = file
+
+	setting.CustomPath = filepath.Join(giteaRoot, "custom")
 	InitSettings()
 
-	var err error
-
-	giteaRoot = testOpts.GiteaRootPath
-	fixturesDir = filepath.Join(testOpts.GiteaRootPath, "models", "fixtures")
-
+	fixturesDir = filepath.Join(giteaRoot, "models", "fixtures")
 	var opts FixturesOptions
 	if len(testOpts.FixtureFiles) == 0 {
 		opts.Dir = fixturesDir
@@ -90,6 +96,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 		}
 	}
 
+	var err error
 	if err = CreateTestEngine(opts); err != nil {
 		fatalTestError("Error creating test engine: %v\n", err)
 	}
@@ -112,8 +119,8 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 		fatalTestError("TempDir: %v\n", err)
 	}
 	setting.AppDataPath = appDataPath
-	setting.AppWorkPath = testOpts.GiteaRootPath
-	setting.StaticRootPath = testOpts.GiteaRootPath
+	setting.AppWorkPath = giteaRoot
+	setting.StaticRootPath = giteaRoot
 	setting.GravatarSource = "https://secure.gravatar.com/avatar/"
 
 	setting.Attachment.Storage.Path = filepath.Join(setting.AppDataPath, "attachments")
@@ -144,7 +151,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	if err = util.RemoveAll(repoRootPath); err != nil {
 		fatalTestError("util.RemoveAll: %v\n", err)
 	}
-	if err = CopyDir(filepath.Join(testOpts.GiteaRootPath, "tests", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
+	if err = CopyDir(filepath.Join(giteaRoot, "tests", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
 		fatalTestError("util.CopyDir: %v\n", err)
 	}
 
