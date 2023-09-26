@@ -227,9 +227,8 @@ const sfc = {
         } catch (err) {
           if (err instanceof TypeError) {
             return; // avoid network error while unloading page
-          } else {
-            throw err;
           }
+          throw err;
         }
 
         this.artifacts = artifacts['artifacts'] || [];
