@@ -29,9 +29,9 @@ for (const path of glob('web_src/css/themes/*.css')) {
 const isProduction = env.NODE_ENV !== 'development';
 
 // SOURCEMAPS accepts the following values:
-// "none" - all disabled
 // "reduced" - minimal sourcemaps, the default in production
 // "full" - all enabled, the default in development
+// "none" - all disabled
 let sourceMaps;
 if ('SOURCEMAPS' in env) {
   sourceMaps = ['none', 'full'].includes(env.SOURCEMAPS) ? env.SOURCEMAPS : 'reduced';

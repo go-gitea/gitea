@@ -263,6 +263,6 @@ make build
 
 By default, gitea generates reduced source maps for frontend files to conserve space. This can be controlled with the `SOURCEMAPS` environment variable:
 
-- `SOURCEMAPS=full` generates all source maps
+- `SOURCEMAPS=full` generates all source maps, the default for development builds
 - `SOURCEMAPS=reduced` generates limited source maps, the default for production builds
-- `SOURCEMAPS=none` generates no source maps, the default for development builds
+- `SOURCEMAPS=none` generates no source maps
