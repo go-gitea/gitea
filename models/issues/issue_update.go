@@ -510,17 +510,6 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *us
 	return committer.Commit()
 }
 
-// DeleteInIssue delete records in beans with external key issue_id = ?
-func DeleteInIssue(ctx context.Context, issueID int64, beans ...any) error {
-	e := db.GetEngine(ctx)
-	for _, bean := range beans {
-		if _, err := e.In("issue_id", issueID).Delete(bean); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // FindAndUpdateIssueMentions finds users mentioned in the given content string, and saves them in the database.
 func FindAndUpdateIssueMentions(ctx context.Context, issue *Issue, doer *user_model.User, content string) (mentions []*user_model.User, err error) {
 	rawMentions := references.FindAllMentionsMarkdown(content)

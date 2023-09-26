@@ -262,43 +262,25 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) error {
 	}
 
 	// delete all database data still assigned to this issue
-	if err := issues_model.DeleteInIssue(ctx, issue.ID,
-		&issues_model.ContentHistory{},
-		&issues_model.Comment{},
-		&issues_model.IssueLabel{},
-		&issues_model.IssueDependency{},
-		&issues_model.IssueAssignees{},
-		&issues_model.IssueUser{},
-		&activities_model.Notification{},
-		&issues_model.Reaction{},
-		&issues_model.IssueWatch{},
-		&issues_model.Stopwatch{},
-		&issues_model.TrackedTime{},
-		&project_model.ProjectIssue{},
-		&repo_model.Attachment{},
-		&issues_model.PullRequest{},
+	if err := db.DeleteBeans(ctx,
+		&issues_model.ContentHistory{IssueID: issue.ID},
+		&issues_model.Comment{IssueID: issue.ID},
+		&issues_model.IssueLabel{IssueID: issue.ID},
+		&issues_model.IssueDependency{IssueID: issue.ID},
+		&issues_model.IssueAssignees{IssueID: issue.ID},
+		&issues_model.IssueUser{IssueID: issue.ID},
+		&activities_model.Notification{IssueID: issue.ID},
+		&issues_model.Reaction{IssueID: issue.ID},
+		&issues_model.IssueWatch{IssueID: issue.ID},
+		&issues_model.Stopwatch{IssueID: issue.ID},
+		&issues_model.TrackedTime{IssueID: issue.ID},
+		&project_model.ProjectIssue{IssueID: issue.ID},
+		&repo_model.Attachment{IssueID: issue.ID},
+		&issues_model.PullRequest{IssueID: issue.ID},
+		&issues_model.Comment{RefIssueID: issue.ID},
+		&issues_model.IssueDependency{DependencyID: issue.ID},
+		&issues_model.Comment{DependentIssueID: issue.ID},
 	); err != nil {
-		return err
-	}
-
-	// References to this issue in other issues
-	if _, err := db.DeleteByBean(ctx, &issues_model.Comment{
-		RefIssueID: issue.ID,
-	}); err != nil {
-		return err
-	}
-
-	// Delete dependencies for issues in other repositories
-	if _, err := db.DeleteByBean(ctx, &issues_model.IssueDependency{
-		DependencyID: issue.ID,
-	}); err != nil {
-		return err
-	}
-
-	// delete from dependent issues
-	if _, err := db.DeleteByBean(ctx, &issues_model.Comment{
-		DependentIssueID: issue.ID,
-	}); err != nil {
 		return err
 	}
 
