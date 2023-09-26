@@ -100,7 +100,7 @@ TAGS="bindata sqlite sqlite_unlock_notify" make build
 TAGS="bindata" make backend
 ```
 
-在开发构建中，默认启用 Webpack 源映射，在生产构建中禁用。可以通过设置`ENABLE_SOURCEMAP=true`环境变量来启用它们。
+默认情况下，Webpack 源映射受到限制以节省空间。 当设置`ENABLE_SOURCEMAP=true`时，webpack 构建将生成所有源映射。
 
 ## 测试
 
