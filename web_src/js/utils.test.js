@@ -1,6 +1,6 @@
 import {expect, test} from 'vitest';
 import {
-  basename, extname, isObject, stripTags, joinPaths, parseIssueHref,
+  basename, extname, isObject, stripTags, parseIssueHref,
   parseUrl, translateMonth, translateDay, blobToDataURI,
   toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64,
 } from './utils.js';
@@ -16,45 +16,6 @@ test('extname', () => {
   expect(extname('/path/')).toEqual('');
   expect(extname('/path')).toEqual('');
   expect(extname('file.js')).toEqual('.js');
-});
-
-test('joinPaths', () => {
-  expect(joinPaths('', '')).toEqual('');
-  expect(joinPaths('', 'b')).toEqual('b');
-  expect(joinPaths('', '/b')).toEqual('/b');
-  expect(joinPaths('', '/b/')).toEqual('/b/');
-  expect(joinPaths('a', '')).toEqual('a');
-  expect(joinPaths('/a', '')).toEqual('/a');
-  expect(joinPaths('/a/', '')).toEqual('/a/');
-  expect(joinPaths('a', 'b')).toEqual('a/b');
-  expect(joinPaths('a', '/b')).toEqual('a/b');
-  expect(joinPaths('/a', '/b')).toEqual('/a/b');
-  expect(joinPaths('/a', '/b')).toEqual('/a/b');
-  expect(joinPaths('/a/', '/b')).toEqual('/a/b');
-  expect(joinPaths('/a', '/b/')).toEqual('/a/b/');
-  expect(joinPaths('/a/', '/b/')).toEqual('/a/b/');
-
-  expect(joinPaths('', '', '')).toEqual('');
-  expect(joinPaths('', 'b', '')).toEqual('b');
-  expect(joinPaths('', 'b', 'c')).toEqual('b/c');
-  expect(joinPaths('', '', 'c')).toEqual('c');
-  expect(joinPaths('', '/b', '/c')).toEqual('/b/c');
-  expect(joinPaths('/a', '', '/c')).toEqual('/a/c');
-  expect(joinPaths('/a', '/b', '')).toEqual('/a/b');
-
-  expect(joinPaths('', '/')).toEqual('/');
-  expect(joinPaths('a', '/')).toEqual('a/');
-  expect(joinPaths('', '/', '/')).toEqual('/');
-  expect(joinPaths('/', '/')).toEqual('/');
-  expect(joinPaths('/', '')).toEqual('/');
-  expect(joinPaths('/', 'b')).toEqual('/b');
-  expect(joinPaths('/', 'b/')).toEqual('/b/');
-  expect(joinPaths('/', '', '/')).toEqual('/');
-  expect(joinPaths('/', 'b', '/')).toEqual('/b/');
-  expect(joinPaths('/', 'b/', '/')).toEqual('/b/');
-  expect(joinPaths('a', '/', '/')).toEqual('a/');
-  expect(joinPaths('/', '/', 'c')).toEqual('/c');
-  expect(joinPaths('/', '/', 'c/')).toEqual('/c/');
 });
 
 test('isObject', () => {

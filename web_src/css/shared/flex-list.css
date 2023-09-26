@@ -9,14 +9,6 @@
   padding: 1em 0;
 }
 
-.flex-item-baseline {
-  align-items: baseline;
-}
-
-.flex-item-center {
-  align-items: center;
-}
-
 .flex-item .flex-item-leading {
   display: flex;
   align-items: flex-start;
@@ -41,8 +33,12 @@
   color: var(--color-primary) !important;
 }
 
-.flex-item .flex-item-icon svg {
-  margin-top: 1px;
+.flex-item .flex-item-icon {
+  align-self: baseline; /* mainly used by the issue list, to align the leading icon with the title */
+}
+
+.flex-item .flex-item-icon + .flex-item-main {
+  align-self: baseline;
 }
 
 .flex-item .flex-item-trailing {
@@ -91,11 +87,23 @@
   border-top: 1px solid var(--color-secondary);
 }
 
-/* Fomantic UI segment has default "padding: 1em", so here it removes the padding-top and padding-bottom accordingly */
-.ui.segment > .flex-list:first-child > .flex-item:first-child {
+/* Fomantic UI segment has default "padding: 1em", so here it removes the padding-top and padding-bottom accordingly (there might also be some `gt-hidden` siblings).
+Developers could also use "flex-space-fitted" class to remove the first item's padding-top and the last item's padding-bottom */
+.flex-list.flex-space-fitted > .flex-item:first-child,
+.ui.segment > .flex-list > .flex-item:first-child {
   padding-top: 0;
 }
 
-.ui.segment > .flex-list:last-child > .flex-item:last-child {
+.flex-list.flex-space-fitted > .flex-item:last-child,
+.ui.segment > .flex-list > .flex-item:last-child {
   padding-bottom: 0;
+}
+
+/* If there is a divider besides the flex-list, some padding/margin are not needs */
+.divider + .flex-list > .flex-item:first-child {
+  padding-top: 0;
+}
+
+.flex-list + .divider {
+  margin-top: 0;
 }

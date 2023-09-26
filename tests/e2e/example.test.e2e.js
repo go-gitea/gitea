@@ -20,7 +20,7 @@ test('Test Register Form', async ({page}, workerInfo) => {
   await page.type('input[name=email]', `e2e-test-${workerInfo.workerIndex}@test.com`);
   await page.type('input[name=password]', 'test123test123');
   await page.type('input[name=retype]', 'test123test123');
-  await page.click('form button.ui.green.button:visible');
+  await page.click('form button.ui.primary.button:visible');
   // Make sure we routed to the home page. Else login failed.
   await expect(page.url()).toBe(`${workerInfo.project.use.baseURL}/`);
   await expect(page.locator('.dashboard-navbar span>img.ui.avatar')).toBeVisible();
@@ -35,7 +35,7 @@ test('Test Login Form', async ({page}, workerInfo) => {
 
   await page.type('input[name=user_name]', `user2`);
   await page.type('input[name=password]', `password`);
-  await page.click('form button.ui.green.button:visible');
+  await page.click('form button.ui.primary.button:visible');
 
   await page.waitForLoadState('networkidle');
 

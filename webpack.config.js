@@ -41,10 +41,10 @@ const filterCssImport = (url, ...args) => {
 
   if (cssFile.includes('fomantic')) {
     if (/brand-icons/.test(importedFile)) return false;
-    if (/(eot|ttf|otf|woff|svg)$/.test(importedFile)) return false;
+    if (/(eot|ttf|otf|woff|svg)$/i.test(importedFile)) return false;
   }
 
-  if (cssFile.includes('katex') && /(ttf|woff)$/.test(importedFile)) {
+  if (cssFile.includes('katex') && /(ttf|woff)$/i.test(importedFile)) {
     return false;
   }
 
@@ -117,12 +117,12 @@ export default {
   module: {
     rules: [
       {
-        test: /\.vue$/,
+        test: /\.vue$/i,
         exclude: /node_modules/,
         loader: 'vue-loader',
       },
       {
-        test: /\.js$/,
+        test: /\.js$/i,
         exclude: /node_modules/,
         use: [
           {
@@ -151,12 +151,12 @@ export default {
         ],
       },
       {
-        test: /\.svg$/,
+        test: /\.svg$/i,
         include: fileURLToPath(new URL('public/assets/img/svg', import.meta.url)),
         type: 'asset/source',
       },
       {
-        test: /\.(ttf|woff2?)$/,
+        test: /\.(ttf|woff2?)$/i,
         type: 'asset/resource',
         generator: {
           filename: 'fonts/[name].[contenthash:8][ext]',
@@ -188,7 +188,7 @@ export default {
       filename: 'js/monaco-[name].[contenthash:8].worker.js',
     }),
     isProduction ? new LicenseCheckerWebpackPlugin({
-      outputFilename: 'js/licenses.txt',
+      outputFilename: 'licenses.txt',
       outputWriter: ({dependencies}) => {
         const line = '-'.repeat(80);
         const goJson = readFileSync('assets/go-licenses.json', 'utf8');
@@ -206,12 +206,11 @@ export default {
         }).join('\n');
       },
       override: {
-        'jquery.are-you-sure@*': {licenseName: 'MIT'}, // https://github.com/codedance/jquery.AreYouSure/pull/147
         'khroma@*': {licenseName: 'MIT'}, // https://github.com/fabiospampinato/khroma/pull/33
       },
       emitError: true,
       allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense OR EPL-1.0 OR EPL-2.0)',
-    }) : new AddAssetPlugin('js/licenses.txt', `Licenses are disabled during development`),
+    }) : new AddAssetPlugin('licenses.txt', `Licenses are disabled during development`),
   ],
   performance: {
     hints: false,
@@ -239,7 +238,7 @@ export default {
     entrypoints: false,
     excludeAssets: [
       /^js\/monaco-language-.+\.js$/,
-      !isProduction && /^js\/licenses.txt$/,
+      !isProduction && /^licenses.txt$/,
     ].filter(Boolean),
     groupAssetsByChunk: false,
     groupAssetsByEmitStatus: false,

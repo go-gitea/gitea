@@ -2,7 +2,8 @@
 <link rel="stylesheet" href="{{AssetUrlPrefix}}/css/devtest.css?v={{AssetVersion}}">
 <div class="page-content devtest">
 	<div class="ui container">
-		<h1 class="gt-border-secondary-bottom">Flex List (standalone)</h1>
+		<h1>Flex List (standalone)</h1>
+		<div class="divider"></div>
 		<div class="flex-list">
 			<div class="flex-item">
 				<div class="flex-item-leading">
@@ -26,10 +27,10 @@
 					<button class="ui tiny red button">
 						{{svg "octicon-warning" 14}} CJK文本测试
 					</button>
-					<button class="ui tiny green button">
+					<button class="ui tiny primary button">
 						{{svg "octicon-info" 14}} Button
 					</button>
-					<button class="ui tiny green button">
+					<button class="ui tiny primary button">
 						Button with long text
 					</button>
 				</div>
@@ -68,7 +69,7 @@
 							<a class="text primary" href="{{$.Link}}">
 								gitea-org / gitea
 							</a>
-							<span data-tooltip-content="{{$.locale.Tr "repo.fork"}}">{{svg "octicon-repo-forked"}}</span>
+							<span data-tooltip-content="{{ctx.Locale.Tr "repo.fork"}}">{{svg "octicon-repo-forked"}}</span>
 						</div>
 						<div class="flex-item-trailing">
 							<a class="muted" href="{{$.Link}}">
@@ -85,7 +86,7 @@
 			</div>
 		</div>
 
-		<div class="divider gt-my-0"></div>
+		<div class="divider"></div>
 
 		<h1>Flex List (with "ui segment")</h1>
 		<div class="ui attached segment">
@@ -99,6 +100,14 @@
 			<div class="flex-list">
 				<div class="flex-item">item 1</div>
 				<div class="flex-item">item 2</div>
+			</div>
+		</div>
+
+		<h1>If parent provides the padding/margin space:</h1>
+		<div class="gt-border-secondary gt-py-4">
+			<div class="flex-list flex-space-fitted">
+				<div class="flex-item">item 1 (no padding top)</div>
+				<div class="flex-item">item 2 (no padding bottom)</div>
 			</div>
 		</div>
 	</div>

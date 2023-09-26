@@ -94,11 +94,14 @@ func GetSetting(ctx context.Context, key string) (*Setting, error) {
 const contextCacheKey = "system_setting"
 
 // GetSettingWithCache returns the setting value via the key
-func GetSettingWithCache(ctx context.Context, key string) (string, error) {
+func GetSettingWithCache(ctx context.Context, key, defaultVal string) (string, error) {
 	return cache.GetWithContextCache(ctx, contextCacheKey, key, func() (string, error) {
 		return cache.GetString(genSettingCacheKey(key), func() (string, error) {
 			res, err := GetSetting(ctx, key)
 			if err != nil {
+				if IsErrSettingIsNotExist(err) {
+					return defaultVal, nil
+				}
 				return "", err
 			}
 			return res.SettingValue, nil
@@ -108,17 +111,21 @@ func GetSettingWithCache(ctx context.Context, key string) (string, error) {
 
 // GetSettingBool return bool value of setting,
 // none existing keys and errors are ignored and result in false
-func GetSettingBool(ctx context.Context, key string) bool {
-	s, _ := GetSetting(ctx, key)
-	if s == nil {
-		return false
+func GetSettingBool(ctx context.Context, key string, defaultVal bool) (bool, error) {
+	s, err := GetSetting(ctx, key)
+	switch {
+	case err == nil:
+		v, _ := strconv.ParseBool(s.SettingValue)
+		return v, nil
+	case IsErrSettingIsNotExist(err):
+		return defaultVal, nil
+	default:
+		return false, err
 	}
-	v, _ := strconv.ParseBool(s.SettingValue)
-	return v
 }
 
-func GetSettingWithCacheBool(ctx context.Context, key string) bool {
-	s, _ := GetSettingWithCache(ctx, key)
+func GetSettingWithCacheBool(ctx context.Context, key string, defaultVal bool) bool {
+	s, _ := GetSettingWithCache(ctx, key, strconv.FormatBool(defaultVal))
 	v, _ := strconv.ParseBool(s)
 	return v
 }
@@ -259,52 +266,41 @@ var (
 )
 
 func Init(ctx context.Context) error {
-	var disableGravatar bool
-	disableGravatarSetting, err := GetSetting(ctx, KeyPictureDisableGravatar)
-	if IsErrSettingIsNotExist(err) {
-		disableGravatar = setting_module.GetDefaultDisableGravatar()
-		disableGravatarSetting = &Setting{SettingValue: strconv.FormatBool(disableGravatar)}
-	} else if err != nil {
+	disableGravatar, err := GetSettingBool(ctx, KeyPictureDisableGravatar, setting_module.GetDefaultDisableGravatar())
+	if err != nil {
 		return err
-	} else {
-		disableGravatar = disableGravatarSetting.GetValueBool()
 	}
 
-	var enableFederatedAvatar bool
-	enableFederatedAvatarSetting, err := GetSetting(ctx, KeyPictureEnableFederatedAvatar)
-	if IsErrSettingIsNotExist(err) {
-		enableFederatedAvatar = setting_module.GetDefaultEnableFederatedAvatar(disableGravatar)
-		enableFederatedAvatarSetting = &Setting{SettingValue: strconv.FormatBool(enableFederatedAvatar)}
-	} else if err != nil {
+	enableFederatedAvatar, err := GetSettingBool(ctx, KeyPictureEnableFederatedAvatar, setting_module.GetDefaultEnableFederatedAvatar(disableGravatar))
+	if err != nil {
 		return err
-	} else {
-		enableFederatedAvatar = disableGravatarSetting.GetValueBool()
 	}
 
 	if setting_module.OfflineMode {
-		disableGravatar = true
-		enableFederatedAvatar = false
-		if !GetSettingBool(ctx, KeyPictureDisableGravatar) {
+		if !disableGravatar {
 			if err := SetSettingNoVersion(ctx, KeyPictureDisableGravatar, "true"); err != nil {
-				return fmt.Errorf("Failed to set setting %q: %w", KeyPictureDisableGravatar, err)
+				return fmt.Errorf("failed to set setting %q: %w", KeyPictureDisableGravatar, err)
 			}
 		}
-		if GetSettingBool(ctx, KeyPictureEnableFederatedAvatar) {
+		disableGravatar = true
+
+		if enableFederatedAvatar {
 			if err := SetSettingNoVersion(ctx, KeyPictureEnableFederatedAvatar, "false"); err != nil {
-				return fmt.Errorf("Failed to set setting %q: %w", KeyPictureEnableFederatedAvatar, err)
+				return fmt.Errorf("failed to set setting %q: %w", KeyPictureEnableFederatedAvatar, err)
 			}
 		}
+		enableFederatedAvatar = false
 	}
 
 	if enableFederatedAvatar || !disableGravatar {
 		var err error
 		GravatarSourceURL, err = url.Parse(setting_module.GravatarSource)
 		if err != nil {
-			return fmt.Errorf("Failed to parse Gravatar URL(%s): %w", setting_module.GravatarSource, err)
+			return fmt.Errorf("failed to parse Gravatar URL(%s): %w", setting_module.GravatarSource, err)
 		}
 	}
 
-	if GravatarSourceURL != nil && enableFederatedAvatarSetting.GetValueBool() {
+	if GravatarSourceURL != nil && enableFederatedAvatar {
 		LibravatarService = libravatar.New()
 		if GravatarSourceURL.Scheme == "https" {
 			LibravatarService.SetUseHTTPS(true)

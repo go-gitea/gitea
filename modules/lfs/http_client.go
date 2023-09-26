@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -17,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 )
 
-const batchSize = 20
+const httpBatchSize = 20
 
 // HTTPClient is used to communicate with the LFS server
 // https://github.com/git-lfs/git-lfs/blob/main/docs/api/batch.md
@@ -29,7 +30,7 @@ type HTTPClient struct {
 
 // BatchSize returns the preferred size of batchs to process
 func (c *HTTPClient) BatchSize() int {
-	return batchSize
+	return httpBatchSize
 }
 
 func newHTTPClient(endpoint *url.URL, httpTransport *http.Transport) *HTTPClient {
@@ -43,28 +44,25 @@ func newHTTPClient(endpoint *url.URL, httpTransport *http.Transport) *HTTPClient
 		Transport: httpTransport,
 	}
 
-	client := &HTTPClient{
-		client:    hc,
-		endpoint:  strings.TrimSuffix(endpoint.String(), "/"),
-		transfers: make(map[string]TransferAdapter),
-	}
-
 	basic := &BasicTransferAdapter{hc}
-
-	client.transfers[basic.Name()] = basic
+	client := &HTTPClient{
+		client:   hc,
+		endpoint: strings.TrimSuffix(endpoint.String(), "/"),
+		transfers: map[string]TransferAdapter{
+			basic.Name(): basic,
+		},
+	}
 
 	return client
 }
 
 func (c *HTTPClient) transferNames() []string {
 	keys := make([]string, len(c.transfers))
-
 	i := 0
 	for k := range c.transfers {
 		keys[i] = k
 		i++
 	}
-
 	return keys
 }
 
@@ -74,7 +72,6 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 	url := fmt.Sprintf("%s/objects/batch", c.endpoint)
 
 	request := &BatchRequest{operation, c.transferNames(), nil, objects}
-
 	payload := new(bytes.Buffer)
 	err := json.NewEncoder(payload).Encode(request)
 	if err != nil {
@@ -82,31 +79,16 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 		return nil, err
 	}
 
-	log.Trace("Calling: %s", url)
-
-	req, err := http.NewRequestWithContext(ctx, "POST", url, payload)
+	req, err := createRequest(ctx, http.MethodPost, url, map[string]string{"Content-Type": MediaType}, payload)
 	if err != nil {
-		log.Error("Error creating request: %v", err)
 		return nil, err
 	}
-	req.Header.Set("Content-type", MediaType)
-	req.Header.Set("Accept", MediaType)
 
-	res, err := c.client.Do(req)
+	res, err := performRequest(ctx, c.client, req)
 	if err != nil {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
-		}
-		log.Error("Error while processing request: %v", err)
 		return nil, err
 	}
 	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Unexpected server response: %s", res.Status)
-	}
 
 	var response BatchResponse
 	err = json.NewDecoder(res.Body).Decode(&response)
@@ -177,7 +159,7 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 			link, ok := object.Actions["upload"]
 			if !ok {
 				log.Debug("%+v", object)
-				return errors.New("Missing action 'upload'")
+				return errors.New("missing action 'upload'")
 			}
 
 			content, err := uc(object.Pointer, nil)
@@ -186,8 +168,6 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 			}
 
 			err = transferAdapter.Upload(ctx, link, object.Pointer, content)
-
-			content.Close()
 
 			if err != nil {
 				return err
@@ -203,7 +183,7 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 			link, ok := object.Actions["download"]
 			if !ok {
 				log.Debug("%+v", object)
-				return errors.New("Missing action 'download'")
+				return errors.New("missing action 'download'")
 			}
 
 			content, err := transferAdapter.Download(ctx, link)
@@ -218,4 +198,60 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 	}
 
 	return nil
+}
+
+// createRequest creates a new request, and sets the headers.
+func createRequest(ctx context.Context, method, url string, headers map[string]string, body io.Reader) (*http.Request, error) {
+	log.Trace("createRequest: %s", url)
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
+	if err != nil {
+		log.Error("Error creating request: %v", err)
+		return nil, err
+	}
+
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+	req.Header.Set("Accept", MediaType)
+
+	return req, nil
+}
+
+// performRequest sends a request, optionally performs a callback on the request and returns the response.
+// If the status code is 200, the response is returned, and it will contain a non-nil Body.
+// Otherwise, it will return an error, and the Body will be nil or closed.
+func performRequest(ctx context.Context, client *http.Client, req *http.Request) (*http.Response, error) {
+	log.Trace("performRequest: %s", req.URL)
+	res, err := client.Do(req)
+	if err != nil {
+		select {
+		case <-ctx.Done():
+			return res, ctx.Err()
+		default:
+		}
+		log.Error("Error while processing request: %v", err)
+		return res, err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		defer res.Body.Close()
+		return res, handleErrorResponse(res)
+	}
+
+	return res, nil
+}
+
+func handleErrorResponse(resp *http.Response) error {
+	var er ErrorResponse
+	err := json.NewDecoder(resp.Body).Decode(&er)
+	if err != nil {
+		if err == io.EOF {
+			return io.ErrUnexpectedEOF
+		}
+		log.Error("Error decoding json: %v", err)
+		return err
+	}
+
+	log.Trace("ErrorResponse: %v", er)
+	return errors.New(er.Message)
 }

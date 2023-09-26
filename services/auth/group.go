@@ -5,7 +5,6 @@ package auth
 
 import (
 	"net/http"
-	"reflect"
 	"strings"
 
 	user_model "code.gitea.io/gitea/models/user"
@@ -37,21 +36,16 @@ func (b *Group) Add(method Method) {
 func (b *Group) Name() string {
 	names := make([]string, 0, len(b.methods))
 	for _, m := range b.methods {
-		if n, ok := m.(Named); ok {
-			names = append(names, n.Name())
-		} else {
-			names = append(names, reflect.TypeOf(m).Elem().Name())
-		}
+		names = append(names, m.Name())
 	}
 	return strings.Join(names, ",")
 }
 
-// Verify extracts and validates
 func (b *Group) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
 	// Try to sign in with each of the enabled plugins
 	var retErr error
-	for _, ssoMethod := range b.methods {
-		user, err := ssoMethod.Verify(req, w, store, sess)
+	for _, m := range b.methods {
+		user, err := m.Verify(req, w, store, sess)
 		if err != nil {
 			if retErr == nil {
 				retErr = err
@@ -67,9 +61,7 @@ func (b *Group) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		// Return the user and ignore any error returned by previous methods.
 		if user != nil {
 			if store.GetData()["AuthedMethod"] == nil {
-				if named, ok := ssoMethod.(Named); ok {
-					store.GetData()["AuthedMethod"] = named.Name()
-				}
+				store.GetData()["AuthedMethod"] = m.Name()
 			}
 			return user, nil
 		}
