@@ -38,7 +38,7 @@ export function initGiteaFomantic() {
     const isScale = arg?.animation?.includes('scale');
 
     let ret;
-    if (arg === 'show' || isIn || isScale) {
+    if (arg === 'show' || isIn) {
       arg?.onStart?.(this);
       ret = this.each((_, el) => {
         el.classList.remove('hidden');
@@ -58,8 +58,22 @@ export function initGiteaFomantic() {
         arg?.onHidden?.(this);
       });
       arg?.onComplete?.(this);
+    } else if (isScale) {
+      arg?.onStart?.(this);
+      ret = this.each((_, el) => {
+        if (el.classList.contains('hidden')) {
+          el.classList.remove('hidden');
+          el.classList.add('visible');
+          arg?.onShow?.(this);
+        } else if (el.classList.contains('visible')) {
+          el.classList.remove('visible');
+          el.classList.add('hidden');
+          el.style.removeProperty('display');
+          arg?.onHidden?.(this);
+        }
+      });
+      arg.onComplete?.(this);
     }
-
     return ret;
   };
 
