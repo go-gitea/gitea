@@ -101,9 +101,17 @@ func UploadPackageFile(ctx *context.Context) {
 		defer upload.Close()
 	}
 
-	statusCode, _, err := alpine_service.UploadAlpinePackage(ctx, upload, branch, repository)
+	userError, _, err := alpine_service.UploadAlpinePackage(ctx, upload, branch, repository)
 	if err != nil {
-		apiError(ctx, statusCode, err)
+		if userError {
+			if err == packages_service.ErrQuotaTotalCount || err == packages_service.ErrQuotaTypeSize || err == packages_service.ErrQuotaTotalSize {
+				apiError(ctx, http.StatusForbidden, err)
+			} else {
+				apiError(ctx, http.StatusBadRequest, err)
+			}
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 

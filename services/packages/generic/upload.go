@@ -5,7 +5,6 @@ package generic
 
 import (
 	"io"
-	"net/http"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
@@ -13,16 +12,17 @@ import (
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
-// UploadGenericPackage adds a Generic Package to the registry
-func UploadGenericPackage(ctx *context.Context, upload io.Reader, name, version, filename string) (int, *packages_model.PackageVersion, error) {
+// UploadGenericPackage adds a Generic Package to the registry. The first return value indictaes if the error is a user error.
+func UploadGenericPackage(ctx *context.Context, upload io.Reader, name, version, filename string) (bool, *packages_model.PackageVersion, error) {
 	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
 		ctx.ServerError("CreateHashedBufferFromReader", err)
-		return http.StatusInternalServerError, nil, err
+		return false, nil, err
 	}
 	defer buf.Close()
 
 	pv, _, err := packages_service.CreatePackageOrAddFileToExisting(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
@@ -43,14 +43,12 @@ func UploadGenericPackage(ctx *context.Context, upload io.Reader, name, version,
 	)
 	if err != nil {
 		switch err {
-		case packages_model.ErrDuplicatePackageFile:
-			return http.StatusConflict, nil, err
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-			return http.StatusForbidden, nil, err
+		case packages_model.ErrDuplicatePackageFile, packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			return true, nil, err
 		default:
-			return http.StatusInternalServerError, nil, err
+			return false, nil, err
 		}
 	}
 
-	return http.StatusCreated, pv, nil
+	return false, pv, nil
 }

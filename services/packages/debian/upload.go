@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
@@ -17,28 +16,29 @@ import (
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
-// UploadDebianPackage adds a Debian Package to the registry
-func UploadDebianPackage(ctx *context.Context, upload io.Reader, distribution, component string) (int, *packages_model.PackageVersion, error) {
+// UploadDebianPackage adds a Debian Package to the registry. The first return value indictaes if the error is a user error.
+func UploadDebianPackage(ctx *context.Context, upload io.Reader, distribution, component string) (bool, *packages_model.PackageVersion, error) {
 	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
-		return http.StatusInternalServerError, nil, err
+		return false, nil, err
 	}
 	defer buf.Close()
 
 	pck, err := debian_module.ParsePackage(buf)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			return http.StatusBadRequest, nil, err
+			return true, nil, err
 		}
 
-		return http.StatusInternalServerError, nil, err
+		return false, nil, err
 	}
 
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		return http.StatusInternalServerError, nil, err
+		return false, nil, err
 	}
 
 	pv, _, err := packages_service.CreatePackageOrAddFileToExisting(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
@@ -67,18 +67,16 @@ func UploadDebianPackage(ctx *context.Context, upload io.Reader, distribution, c
 	)
 	if err != nil {
 		switch err {
-		case packages_model.ErrDuplicatePackageVersion, packages_model.ErrDuplicatePackageFile:
-			return http.StatusBadRequest, nil, err
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-			return http.StatusForbidden, nil, err
+		case packages_model.ErrDuplicatePackageVersion, packages_model.ErrDuplicatePackageFile, packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			return true, nil, err
 		default:
-			return http.StatusInternalServerError, nil, err
+			return false, nil, err
 		}
 	}
 
 	if err := BuildSpecificRepositoryFiles(ctx, ctx.Package.Owner.ID, distribution, component, pck.Architecture); err != nil {
-		return http.StatusInternalServerError, nil, err
+		return false, nil, err
 	}
 
-	return http.StatusCreated, pv, nil
+	return false, pv, nil
 }

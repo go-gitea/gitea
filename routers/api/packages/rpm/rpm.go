@@ -90,9 +90,17 @@ func UploadPackageFile(ctx *context.Context) {
 		defer upload.Close()
 	}
 
-	statusCode, _, err := rpm_service.UploadRpmPackage(ctx, upload)
+	userError, _, err := rpm_service.UploadRpmPackage(ctx, upload)
 	if err != nil {
-		apiError(ctx, statusCode, err)
+		if userError {
+			if err == packages_service.ErrQuotaTotalCount || err == packages_service.ErrQuotaTypeSize || err == packages_service.ErrQuotaTotalSize {
+				apiError(ctx, http.StatusForbidden, err)
+			} else {
+				apiError(ctx, http.StatusBadRequest, err)
+			}
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 

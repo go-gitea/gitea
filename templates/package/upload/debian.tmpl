@@ -4,25 +4,25 @@
 	<form class="ui form" action="{{.Link}}/upload" method="post" enctype="multipart/form-data">
 		{{.CsrfTokenHtml}}
 
-		<input name="package_repo" type="hidden" value="{{.PackageUploadRepo}}">
+		<input name="repo" type="hidden" value="{{.PackageUploadRepo}}">
 
 		<div class="field">
-			<label for="package_distribution">{{.locale.Tr "packages.upload.distribution.label"}}</label>
-			<input id="package_distribution" name="package_distribution" placeholder="{{.locale.Tr "packages.upload.distribution.placeholder"}}" maxlength="255" required>
+			<label for="distribution">{{ctx.Locale.Tr "packages.upload.distribution.label"}}</label>
+			<input id="distribution" name="distribution" placeholder="{{ctx.Locale.Tr "packages.upload.distribution.placeholder"}}" maxlength="255" required>
 		</div>
 
 		<div class="field">
-			<label for="package_component">{{.locale.Tr "packages.upload.component.label"}}</label>
-			<input id="package_component" name="package_version" placeholder="{{.locale.Tr "packages.upload.component.placeholder"}}" maxlength="255" required>
+			<label for="component">{{ctx.Locale.Tr "packages.upload.component.label"}}</label>
+			<input id="component" name="version" placeholder="{{ctx.Locale.Tr "packages.upload.component.placeholder"}}" maxlength="255" required>
 		</div>
 
 		<div class="field">
-			<label for="package_file">{{.locale.Tr "packages.upload.file.label"}}</label>
-			<input name="package_file" type="file" accept=".deb" required>
+			<label for="file">{{ctx.Locale.Tr "packages.upload.file.label"}}</label>
+			<input name="file" type="file" accept=".deb" required>
 		</div>
 
 		<div class="field">
-			<button class="ui green button">{{.locale.Tr "packages.upload.button"}}</button>
+			<button class="ui green button">{{ctx.Locale.Tr "upload"}}</button>
 		</div>
 	</form>
 </div>

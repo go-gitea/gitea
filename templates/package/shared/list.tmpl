@@ -9,10 +9,10 @@
 			<option{{if eq $.PackageType $type}} selected="selected"{{end}} value="{{$type}}">{{$type.Name}}</option>
 			{{end}}
 		</select>
-		<button class="ui primary button">{{ctx.locale.Tr "explore.search"}}</button>
+		<button class="ui primary button">{{ctx.Locale.Tr "explore.search"}}</button>
 		{{if .ShowPackageUploadButton}}
 			<div class="ui green button dropdown jump">
-				<span class="text">{{ctx.locale.Tr "packages.upload.button"}}</span>
+				<span class="text">{{ctx.Locale.Tr "upload"}}</span>
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				<div class="menu">
 					{{range $type := .AllowedUploadTypes}}

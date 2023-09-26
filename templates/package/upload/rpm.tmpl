@@ -4,15 +4,15 @@
 	<form class="ui form" action="{{.Link}}/upload" method="post" enctype="multipart/form-data">
 		{{.CsrfTokenHtml}}
 
-		<input name="package_repo" type="hidden" value="{{.PackageUploadRepo}}">
+		<input name="repo" type="hidden" value="{{.PackageUploadRepo}}">
 
 		<div class="field">
-			<label for="package_file">{{.locale.Tr "packages.upload.file.label"}}</label>
-			<input name="package_file" type="file" accept=".rpm" required>
+			<label for="file">{{ctx.Locale.Tr "packages.upload.file.label"}}</label>
+			<input name="file" type="file" accept=".rpm" required>
 		</div>
 
 		<div class="field">
-			<button class="ui green button">{{.locale.Tr "packages.upload.button"}}</button>
+			<button class="ui green button">{{ctx.Locale.Tr "upload"}}</button>
 		</div>
 	</form>
 </div>

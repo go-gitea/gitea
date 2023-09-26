@@ -133,9 +133,17 @@ func UploadPackageFile(ctx *context.Context) {
 		defer upload.Close()
 	}
 
-	statusCode, _, err := debian_service.UploadDebianPackage(ctx, upload, distribution, component)
+	userError, _, err := debian_service.UploadDebianPackage(ctx, upload, distribution, component)
 	if err != nil {
-		apiError(ctx, statusCode, err)
+		if userError {
+			if err == packages_service.ErrQuotaTotalCount || err == packages_service.ErrQuotaTypeSize || err == packages_service.ErrQuotaTotalSize {
+				apiError(ctx, http.StatusForbidden, err)
+			} else {
+				apiError(ctx, http.StatusBadRequest, err)
+			}
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 

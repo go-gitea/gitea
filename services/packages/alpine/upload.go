@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
@@ -18,33 +17,34 @@ import (
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
-// UploadAlpinePackage adds a Alpine Package to the registry
-func UploadAlpinePackage(ctx *context.Context, upload io.Reader, branch, repository string) (int, *packages_model.PackageVersion, error) {
+// UploadAlpinePackage adds a Alpine Package to the registry. The first return value indictaes if the error is a user error.
+func UploadAlpinePackage(ctx *context.Context, upload io.Reader, branch, repository string) (bool, *packages_model.PackageVersion, error) {
 	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
-		return http.StatusInternalServerError, nil, err
+		return false, nil, err
 	}
 	defer buf.Close()
 
 	pck, err := alpine_module.ParsePackage(buf)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) || err == io.EOF {
-			return http.StatusBadRequest, nil, err
+			return true, nil, err
 		}
 
-		return http.StatusInternalServerError, nil, err
+		return false, nil, err
 	}
 
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		return http.StatusInternalServerError, nil, err
+		return false, nil, err
 	}
 
 	fileMetadataRaw, err := json.Marshal(pck.FileMetadata)
 	if err != nil {
-		return http.StatusInternalServerError, nil, err
+		return false, nil, err
 	}
 
 	pv, _, err := packages_service.CreatePackageOrAddFileToExisting(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
@@ -73,18 +73,16 @@ func UploadAlpinePackage(ctx *context.Context, upload io.Reader, branch, reposit
 	)
 	if err != nil {
 		switch err {
-		case packages_model.ErrDuplicatePackageVersion, packages_model.ErrDuplicatePackageFile:
-			return http.StatusBadRequest, nil, err
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-			return http.StatusForbidden, nil, err
+		case packages_model.ErrDuplicatePackageVersion, packages_model.ErrDuplicatePackageFile, packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			return true, nil, err
 		default:
-			return http.StatusInternalServerError, nil, err
+			return false, nil, err
 		}
 	}
 
 	if err := BuildSpecificRepositoryFiles(ctx, ctx.Package.Owner.ID, branch, repository, pck.FileMetadata.Architecture); err != nil {
-		return http.StatusInternalServerError, nil, err
+		return false, nil, err
 	}
 
-	return http.StatusCreated, pv, nil
+	return false, pv, nil
 }

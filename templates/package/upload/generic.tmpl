@@ -4,30 +4,30 @@
 	<form class="ui form" action="{{.Link}}/upload" method="post" enctype="multipart/form-data">
 		{{.CsrfTokenHtml}}
 
-		<input name="package_repo" type="hidden" value="{{.PackageUploadRepo}}">
+		<input name="repo" type="hidden" value="{{.PackageUploadRepo}}">
 
 		<div class="field">
-			<label for="package_name">{{.locale.Tr "packages.upload.name.label"}}</label>
-			<input id="package_name" name="package_name" placeholder="{{.locale.Tr "packages.upload.name.placeholder"}}" maxlength="255" required>
+			<label for="name">{{ctx.Locale.Tr "packages.upload.name.label"}}</label>
+			<input id="name" name="name" placeholder="{{ctx.Locale.Tr "packages.upload.name.placeholder"}}" maxlength="255" required>
 		</div>
 
 		<div class="field">
-			<label for="package_version">{{.locale.Tr "packages.upload.version.label"}}</label>
-			<input id="package_version" name="package_version" placeholder="{{.locale.Tr "packages.upload.version.placeholder"}}" maxlength="255" required>
+			<label for="version">{{ctx.Locale.Tr "packages.upload.version.label"}}</label>
+			<input id="version" name="version" placeholder="{{ctx.Locale.Tr "packages.upload.version.placeholder"}}" maxlength="255" required>
 		</div>
 
 		<div class="field">
-			<label for="package_filename">{{.locale.Tr "packages.upload.filename.label"}}</label>
-			<input id="package_filename" name="package_filename" placeholder="{{.locale.Tr "packages.upload.filename.placeholder"}}" maxlength="255">
+			<label for="filename">{{ctx.Locale.Tr "packages.upload.filename.label"}}</label>
+			<input id="filename" name="filename" placeholder="{{ctx.Locale.Tr "packages.upload.filename.placeholder"}}" maxlength="255">
 		</div>
 
 		<div class="field">
-			<label for="package_file">{{.locale.Tr "packages.upload.file.label"}}</label>
-			<input name="package_file" type="file" required>
+			<label for="file">{{ctx.Locale.Tr "packages.upload.file.label"}}</label>
+			<input name="file" type="file" required>
 		</div>
 
 		<div class="field">
-			<button class="ui green button">{{.locale.Tr "packages.upload.button"}}</button>
+			<button class="ui green button">{{ctx.Locale.Tr "upload"}}</button>
 		</div>
 	</form>
 </div>

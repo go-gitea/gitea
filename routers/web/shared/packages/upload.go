@@ -5,7 +5,6 @@ package packages
 
 import (
 	"fmt"
-	"net/http"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -74,95 +73,99 @@ func uploadPackageFinish(ctx *context.Context, packageType, packageRepo string, 
 
 func UploadAlpinePackagePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.PackageUploadAlpineForm)
-	upload, err := form.PackageFile.Open()
+	upload, err := form.File.Open()
 	if err != nil {
 		ctx.ServerError("GetPackageFile", err)
 		return
 	}
+	defer upload.Close()
 
-	statusCode, pv, err := alpine_service.UploadAlpinePackage(ctx, upload, form.PackageRepo, form.PackageBranch)
+	userError, pv, err := alpine_service.UploadAlpinePackage(ctx, upload, form.Repo, form.Branch)
 	if err != nil {
-		if statusCode == http.StatusInternalServerError {
+		if !userError {
 			ctx.ServerError("UploadAlpinePackage", err)
 			return
 		}
 
-		servePackageUploadError(ctx, err, "alpine", form.PackageRepo)
+		servePackageUploadError(ctx, err, "alpine", form.Repo)
 		return
 	}
 
-	uploadPackageFinish(ctx, "alpine", form.PackageRepo, pv)
+	uploadPackageFinish(ctx, "alpine", form.Repo, pv)
 }
 
 func UploadDebianPackagePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.PackageUploadDebianForm)
-	upload, err := form.PackageFile.Open()
+	upload, err := form.File.Open()
 	if err != nil {
 		ctx.ServerError("GetPackageFile", err)
 		return
 	}
+	defer upload.Close()
 
-	statusCode, pv, err := debian_service.UploadDebianPackage(ctx, upload, form.PackageDistribution, form.PackageComponent)
+	userError, pv, err := debian_service.UploadDebianPackage(ctx, upload, form.Distribution, form.Component)
 	if err != nil {
-		if statusCode == http.StatusInternalServerError {
+		if !userError {
 			ctx.ServerError("UploadDebianPackage", err)
 			return
 		}
 
-		servePackageUploadError(ctx, err, "debian", form.PackageRepo)
+		servePackageUploadError(ctx, err, "debian", form.Repo)
 		return
 	}
 
-	uploadPackageFinish(ctx, "debian", form.PackageRepo, pv)
+	uploadPackageFinish(ctx, "debian", form.Repo, pv)
 }
 
 func UploadGenericPackagePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.PackageUploadGenericForm)
-	upload, err := form.PackageFile.Open()
+	upload, err := form.File.Open()
 	if err != nil {
 		ctx.ServerError("GetPackageFile", err)
 		return
 	}
+	defer upload.Close()
 
 	var filename string
-	if form.PackageFilename == "" {
-		filename = form.PackageFile.Filename
+	if form.Filename == "" {
+		filename = form.File.Filename
 	} else {
-		filename = form.PackageFilename
+		filename = form.Filename
 	}
 
-	statusCode, pv, err := generic_service.UploadGenericPackage(ctx, upload, form.PackageName, form.PackageVersion, filename)
+	userError, pv, err := generic_service.UploadGenericPackage(ctx, upload, form.Name, form.Version, filename)
 	if err != nil {
-		if statusCode == http.StatusInternalServerError {
+		if !userError {
 			ctx.ServerError("UploadGenericPackage", err)
 			return
 		}
 
-		servePackageUploadError(ctx, err, "generic", form.PackageRepo)
+		servePackageUploadError(ctx, err, "generic", form.Repo)
 		return
 	}
 
-	uploadPackageFinish(ctx, "debian", form.PackageRepo, pv)
+	uploadPackageFinish(ctx, "debian", form.Repo, pv)
 }
 
 func UploadRpmPackagePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.PackageUploadRpmForm)
-	upload, err := form.PackageFile.Open()
+	upload, err := form.File.Open()
 	if err != nil {
 		ctx.ServerError("GetPackageFile", err)
 		return
 	}
+	defer upload.Close()
 
-	statusCode, pv, err := rpm_service.UploadRpmPackage(ctx, upload)
+	userError, pv, err := rpm_service.UploadRpmPackage(ctx, upload)
 	if err != nil {
-		if statusCode == http.StatusInternalServerError {
+		if !userError {
 			ctx.ServerError("UploadRpmPackage", err)
 			return
 		}
 
-		servePackageUploadError(ctx, err, "rpm", form.PackageRepo)
+		servePackageUploadError(ctx, err, "rpm", form.Repo)
 		return
 	}
 
-	uploadPackageFinish(ctx, "rpm", form.PackageRepo, pv)
+	uploadPackageFinish(ctx, "rpm", form.Repo, pv)
 }
