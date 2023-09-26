@@ -55,7 +55,9 @@ export function initGiteaFomantic() {
     this.each((_, el) => {
       let toShow = isAnimationIn;
       if (!isAnimationIn && !isAnimationOut) {
-        toShow = this.hasClass('hidden'); // it is a toggle animation
+        // If the animation is not in/out, then it must be a toggle animation.
+        // Fomantic uses computed styles to check "visibility", but to avoid unnecessary arguments, here it only checks the class.
+        toShow = this.hasClass('hidden');
       }
       argObj.onStart?.call(el);
       if (toShow) {
