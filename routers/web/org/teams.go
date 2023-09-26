@@ -433,7 +433,7 @@ func SearchTeam(ctx *context.Context) {
 		ListOptions: listOptions,
 	}
 
-	teams, maxResults, err := org_model.SearchTeam(opts)
+	teams, maxResults, err := org_model.SearchTeam(ctx, opts)
 	if err != nil {
 		log.Error("SearchTeam failed: %v", err)
 		ctx.JSON(http.StatusInternalServerError, map[string]any{

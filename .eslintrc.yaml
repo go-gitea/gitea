@@ -11,7 +11,6 @@ parserOptions:
 plugins:
   - "@eslint-community/eslint-plugin-eslint-comments"
   - eslint-plugin-array-func
-  - eslint-plugin-custom-elements
   - eslint-plugin-import
   - eslint-plugin-jquery
   - eslint-plugin-no-jquery
@@ -46,6 +45,9 @@ overrides:
   - files: ["*.config.*"]
     rules:
       import/no-unused-modules: [0]
+  - files: ["web_src/js/modules/fetch.js", "web_src/js/standalone/**/*"]
+    rules:
+      no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement, SequenceExpression]
 
 rules:
   "@eslint-community/eslint-comments/disable-enable-pair": [2]
@@ -85,19 +87,6 @@ rules:
   consistent-this: [0]
   constructor-super: [2]
   curly: [0]
-  custom-elements/expose-class-on-global: [0]
-  custom-elements/extends-correct-class: [2]
-  custom-elements/file-name-matches-element: [2]
-  custom-elements/no-constructor: [2]
-  custom-elements/no-customized-built-in-elements: [2]
-  custom-elements/no-dom-traversal-in-attributechangedcallback: [2]
-  custom-elements/no-dom-traversal-in-connectedcallback: [2]
-  custom-elements/no-exports-with-element: [2]
-  custom-elements/no-method-prefixed-with-on: [2]
-  custom-elements/no-unchecked-define: [0]
-  custom-elements/one-element-per-file: [0]
-  custom-elements/tag-name-matches-class: [2]
-  custom-elements/valid-tag-name: [2]
   default-case-last: [2]
   default-case: [0]
   default-param-last: [0]
@@ -420,7 +409,7 @@ rules:
   no-restricted-exports: [0]
   no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, location, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, self, status, statusbar, stop, toolbar, top, __dirname, __filename]
   no-restricted-imports: [0]
-  no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement, SequenceExpression]
+  no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement, SequenceExpression, {selector: "CallExpression[callee.name='fetch']", message: "use modules/fetch.js instead"}]
   no-return-assign: [0]
   no-script-url: [2]
   no-self-assign: [2, {props: true}]
@@ -737,14 +726,27 @@ rules:
   valid-typeof: [2, {requireStringLiterals: true}]
   vars-on-top: [0]
   wc/attach-shadow-constructor: [2]
+  wc/define-tag-after-class-definition: [0]
+  wc/expose-class-on-global: [0]
+  wc/file-name-matches-element: [2]
+  wc/guard-define-call: [0]
   wc/guard-super-call: [2]
+  wc/max-elements-per-file: [0]
+  wc/no-child-traversal-in-attributechangedcallback: [2]
+  wc/no-child-traversal-in-connectedcallback: [2]
   wc/no-closed-shadow-root: [2]
   wc/no-constructor-attributes: [2]
   wc/no-constructor-params: [2]
-  wc/no-invalid-element-name: [0] # covered by custom-elements/valid-tag-name
+  wc/no-constructor: [2]
+  wc/no-customized-built-in-elements: [2]
+  wc/no-exports-with-element: [2]
+  wc/no-invalid-element-name: [2]
+  wc/no-invalid-extends: [2]
+  wc/no-method-prefixed-with-on: [2]
   wc/no-self-class: [2]
   wc/no-typos: [2]
   wc/require-listener-teardown: [2]
+  wc/tag-name-matches-class: [2]
   wrap-iife: [2, inside]
   wrap-regex: [0]
   yield-star-spacing: [2, after]
