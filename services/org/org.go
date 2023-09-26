@@ -15,12 +15,44 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
-	user_service "code.gitea.io/gitea/services/user"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // DeleteOrganization completely and permanently deletes everything of organization.
-func DeleteOrganization(org *org_model.Organization) error {
-	ctx, commiter, err := db.TxContext(db.DefaultContext)
+func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge bool) error {
+	if purge {
+		// Delete all repos belonging to this organisation
+		// Now this is not within a transaction because there are internal transactions within the DeleteRepository
+		// BUT: the db will still be consistent even if a number of repos have already been deleted.
+		// And in fact we want to capture any repositories that are being created in other transactions in the meantime
+		//
+		// An alternative option here would be write a DeleteAllRepositoriesForUserID function which would delete all of the repos
+		// but such a function would likely get out of date
+		for {
+			repos, _, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
+				ListOptions: db.ListOptions{
+					PageSize: repo_model.RepositoryListDefaultPageSize,
+					Page:     1,
+				},
+				Private: true,
+				OwnerID: org.ID,
+				Actor:   org.AsUser(),
+			})
+			if err != nil {
+				return fmt.Errorf("GetUserRepositories: %w", err)
+			}
+			if len(repos) == 0 {
+				break
+			}
+			for _, repo := range repos {
+				if err := repo_service.DeleteRepositoryDirectly(ctx, org.AsUser(), org.ID, repo.ID); err != nil {
+					return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %w", repo.Name, org.Name, org.ID, err)
+				}
+			}
+		}
+	}
+
+	ctx, commiter, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -66,9 +98,4 @@ func DeleteOrganization(org *org_model.Organization) error {
 	}
 
 	return nil
-}
-
-// RenameOrganization renames an organization.
-func RenameOrganization(ctx context.Context, org *org_model.Organization, newName string) error {
-	return user_service.RenameUser(ctx, org.AsUser(), newName)
 }
