@@ -21,7 +21,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{})
+	unittest.MainTest(m)
 }
 
 func TestDeleteUser(t *testing.T) {

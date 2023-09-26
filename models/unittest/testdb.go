@@ -70,9 +70,9 @@ type TestOptions struct {
 
 // MainTest a reusable TestMain(..) function for unit tests that need to use a
 // test database. Creates the test database, and sets necessary settings.
-func MainTest(m *testing.M, testOpts *TestOptions) {
+func MainTest(m *testing.M, testOpts ...*TestOptions) {
 	_, file, _, _ := runtime.Caller(1)
-	found := false
+	var found bool
 	for {
 		file = filepath.Dir(file)
 		exist, _ := util.IsFile(filepath.Join(file, "go.mod")) // Gitea workspace should be only one golang project
@@ -91,10 +91,10 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 
 	fixturesDir = filepath.Join(giteaRoot, "models", "fixtures")
 	var opts FixturesOptions
-	if len(testOpts.FixtureFiles) == 0 {
+	if len(testOpts) == 0 || len(testOpts[0].FixtureFiles) == 0 {
 		opts.Dir = fixturesDir
 	} else {
-		for _, f := range testOpts.FixtureFiles {
+		for _, f := range testOpts[0].FixtureFiles {
 			if len(f) != 0 {
 				opts.Files = append(opts.Files, filepath.Join(fixturesDir, f))
 			}
@@ -183,16 +183,16 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 		}
 	}
 
-	if testOpts.SetUp != nil {
-		if err := testOpts.SetUp(); err != nil {
+	if len(testOpts) > 0 && testOpts[0].SetUp != nil {
+		if err := testOpts[0].SetUp(); err != nil {
 			fatalTestError("set up failed: %v\n", err)
 		}
 	}
 
 	exitStatus := m.Run()
 
-	if testOpts.TearDown != nil {
-		if err := testOpts.TearDown(); err != nil {
+	if len(testOpts) > 0 && testOpts[0].TearDown != nil {
+		if err := testOpts[0].TearDown(); err != nil {
 			fatalTestError("tear down failed: %v\n", err)
 		}
 	}

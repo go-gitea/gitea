@@ -17,7 +17,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{})
+	unittest.MainTest(m)
 }
 
 func TestArchive_Basic(t *testing.T) {
