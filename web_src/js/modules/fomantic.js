@@ -35,9 +35,10 @@ export function initGiteaFomantic() {
 
     const isIn = arg?.animation?.endsWith(' in');
     const isOut = arg?.animation?.endsWith(' out');
+    const isScale = arg?.animation?.includes('scale');
 
     let ret;
-    if (arg === 'show' || isIn) {
+    if (arg === 'show' || isIn || isScale) {
       arg?.onStart?.(this);
       ret = this.each((_, el) => {
         el.classList.remove('hidden');
