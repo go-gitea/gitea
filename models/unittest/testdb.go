@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -71,7 +70,10 @@ type TestOptions struct {
 // MainTest a reusable TestMain(..) function for unit tests that need to use a
 // test database. Creates the test database, and sets necessary settings.
 func MainTest(m *testing.M, testOpts ...*TestOptions) {
-	_, file, _, _ := runtime.Caller(1)
+	file, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
 	var found bool
 	for {
 		file = filepath.Dir(file)
@@ -101,7 +103,6 @@ func MainTest(m *testing.M, testOpts ...*TestOptions) {
 		}
 	}
 
-	var err error
 	if err = CreateTestEngine(opts); err != nil {
 		fatalTestError("Error creating test engine: %v\n", err)
 	}
