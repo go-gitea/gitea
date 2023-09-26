@@ -54,9 +54,11 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, r
 	}
 
 	// In case is a organization.
-	org, err := user_model.GetUserByID(ctx, uid)
-	if err != nil {
-		return err
+	var org *user_model.User
+	if uid != 0 {
+		if org, err = user_model.GetUserByID(ctx, uid); err != nil {
+			return err
+		}
 	}
 
 	repo := &repo_model.Repository{OwnerID: uid}
@@ -95,7 +97,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, r
 		}
 	}
 
-	if org.IsOrganization() {
+	if org != nil && org.IsOrganization() {
 		teams, err := organization.FindOrgTeams(ctx, org.ID)
 		if err != nil {
 			return err
