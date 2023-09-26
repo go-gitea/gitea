@@ -72,15 +72,20 @@ type TestOptions struct {
 // test database. Creates the test database, and sets necessary settings.
 func MainTest(m *testing.M, testOpts *TestOptions) {
 	_, file, _, _ := runtime.Caller(1)
+	found := false
 	for {
 		file = filepath.Dir(file)
 		exist, _ := util.IsFile(filepath.Join(file, "go.mod")) // Gitea workspace should be only one golang project
 		if exist {
+			found = true
 			break
 		}
 	}
-	giteaRoot = file
+	if !found {
+		panic("You cannot run the tests out of a golang repository")
+	}
 
+	giteaRoot = file
 	setting.CustomPath = filepath.Join(giteaRoot, "custom")
 	InitSettings()
 
