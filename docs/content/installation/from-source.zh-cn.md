@@ -222,8 +222,8 @@ make build
 
 ## 源映射
 
-默认情况下，gitea 会为前端文件生成精简的源映射以节省空间。 这可以通过“SOURCEMAPS”环境变量进行控制：
+默认情况下，gitea 会为前端文件生成精简的源映射以节省空间。 这可以通过“ENABLE_SOURCEMAP”环境变量进行控制：
 
-- `SOURCEMAPS=full` 生成所有源映射，这是开发版本的默认设置
-- `SOURCEMAPS=reduced` 生成有限的源映射，这是生产版本的默认设置
-- `SOURCEMAPS=none` 不生成源映射
+- `ENABLE_SOURCEMAP=true` 生成所有源映射，这是开发版本的默认设置
+- `ENABLE_SOURCEMAP=reduced` 生成有限的源映射，这是生产版本的默认设置
+- `ENABLE_SOURCEMAP=false` 不生成源映射

@@ -28,15 +28,15 @@ for (const path of glob('web_src/css/themes/*.css')) {
 
 const isProduction = env.NODE_ENV !== 'development';
 
-// SOURCEMAPS accepts the following values:
-// "full" - all enabled, the default in development
+// ENABLE_SOURCEMAP accepts the following values:
+// "true" - all enabled, the default in development
 // "reduced" - minimal sourcemaps, the default in production
-// "none" - all disabled
+// "false" - all disabled
 let sourceMaps;
-if ('SOURCEMAPS' in env) {
-  sourceMaps = ['none', 'full'].includes(env.SOURCEMAPS) ? env.SOURCEMAPS : 'reduced';
+if ('ENABLE_SOURCEMAP' in env) {
+  sourceMaps = ['true', 'false'].includes(env.ENABLE_SOURCEMAP) ? env.ENABLE_SOURCEMAP : 'reduced';
 } else {
-  sourceMaps = isProduction ? 'reduced' : 'full';
+  sourceMaps = isProduction ? 'reduced' : 'true';
 }
 
 const filterCssImport = (url, ...args) => {
@@ -110,7 +110,7 @@ export default {
         legalComments: 'none',
       }),
       LightningCssMinifyPlugin && new LightningCssMinifyPlugin({
-        sourceMap: sourceMaps === 'full',
+        sourceMap: sourceMaps === 'true',
       }),
     ],
     splitChunks: {
@@ -149,7 +149,7 @@ export default {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: sourceMaps === 'full',
+              sourceMap: sourceMaps === 'true',
               url: {filter: filterCssImport},
               import: {filter: filterCssImport},
             },
@@ -187,7 +187,7 @@ export default {
       filename: 'css/[name].css',
       chunkFilename: 'css/[name].[contenthash:8].css',
     }),
-    sourceMaps !== 'none' && new SourceMapDevToolPlugin({
+    sourceMaps !== 'false' && new SourceMapDevToolPlugin({
       filename: '[file].[contenthash:8].map',
       ...(sourceMaps === 'reduced' && {include: /^js\/index\.js$/}),
     }),
