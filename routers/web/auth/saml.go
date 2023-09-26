@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth/source/saml"
 	"code.gitea.io/gitea/services/externalaccount"
+
 	"github.com/markbates/goth"
 )
 
