@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -231,7 +232,7 @@ type CreateReviewOptions struct {
 }
 
 // IsOfficialReviewer check if at least one of the provided reviewers can make official reviews in issue (counts towards required approvals)
-func IsOfficialReviewer(ctx context.Context, issue *Issue, reviewers ...*user_model.User) (bool, error) {
+func IsOfficialReviewer(ctx context.Context, issue *Issue, reviewer *user_model.User) (bool, error) {
 	pr, err := GetPullRequestByIssueID(ctx, issue.ID)
 	if err != nil {
 		return false, err
@@ -242,14 +243,21 @@ func IsOfficialReviewer(ctx context.Context, issue *Issue, reviewers ...*user_mo
 		return false, err
 	}
 	if rule == nil {
-		return false, nil
+		// if no rule is found, then user with write access can make official reviews
+		repo, err := repo_model.GetRepositoryByID(ctx, pr.BaseRepoID)
+		if err != nil {
+			return false, err
+		}
+		writeAccess, err := access_model.HasAccessUnit(ctx, reviewer, repo, unit.TypeCode, perm.AccessModeWrite)
+		if err != nil {
+			return false, err
+		}
+		return writeAccess, nil
 	}
 
-	for _, reviewer := range reviewers {
-		official, err := git_model.IsUserOfficialReviewer(ctx, rule, reviewer)
-		if official || err != nil {
-			return official, err
-		}
+	official, err := git_model.IsUserOfficialReviewer(ctx, rule, reviewer)
+	if official || err != nil {
+		return official, err
 	}
 
 	return false, nil
@@ -578,7 +586,9 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 		return nil, nil
 	}
 
-	official, err := IsOfficialReviewer(ctx, issue, reviewer, doer)
+	// if the reviewer is an official reviewer,
+	// remove the official flag in the all previous reviews
+	official, err := IsOfficialReviewer(ctx, issue, reviewer)
 	if err != nil {
 		return nil, err
 	} else if official {
