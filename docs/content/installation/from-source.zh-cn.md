@@ -100,8 +100,6 @@ TAGS="bindata sqlite sqlite_unlock_notify" make build
 TAGS="bindata" make backend
 ```
 
-默认情况下，Webpack 源映射受到限制以节省空间。 当设置`ENABLE_SOURCEMAP=true`时，webpack 构建将生成所有源映射。
-
 ## 测试
 
 按照上述步骤完成后，工作目录中将会有一个`gitea`二进制文件。可以从该目录进行测试，或将其移动到带有测试数据的目录中。当手动从命令行启动 Gitea 时，可以通过按下`Ctrl + C`来停止程序。
@@ -221,3 +219,11 @@ GOARCH=amd64 \
 TAGS="bindata sqlite sqlite_unlock_notify" \
 make build
 ```
+
+## 源映射
+
+默认情况下，gitea 为前端文件生成缩减的源映射以节省空间。 这可以通过“SOURCEMAPS”环境变量进行控制：
+
+- `SOURCEMAPS=full` 生成所有源映射
+- `SOURCEMAPS=reduced` 生成有限的源映射，默认值
+- `SOURCEMAPS=none` 不生成源映射
