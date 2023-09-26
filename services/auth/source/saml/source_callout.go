@@ -60,19 +60,17 @@ func (source *Source) Callback(request *http.Request, response http.ResponseWrit
 		return user, fmt.Errorf("no nameID found in SAML response")
 	}
 
-	// TODO: rather than hardcoding assertion keys, we should allow setting them in the UI
-
 	// email
-	if _, ok := samlMap["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddres"]; !ok {
-		user.Email = samlMap["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddres"]
+	if _, ok := samlMap[source.EmailAssertionKey]; !ok {
+		user.Email = samlMap[source.EmailAssertionKey]
 	}
 	// name
-	if _, ok := samlMap["http://schemas.xmlsoap.org/claims/CommonName"]; !ok {
-		user.NickName = samlMap["http://schemas.xmlsoap.org/claims/CommonName"]
+	if _, ok := samlMap[source.NameAssertionKey]; !ok {
+		user.NickName = samlMap[source.NameAssertionKey]
 	}
 	// username
-	if _, ok := samlMap["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]; !ok {
-		user.Name = samlMap["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
+	if _, ok := samlMap[source.UsernameAssertionKey]; !ok {
+		user.Name = samlMap[source.UsernameAssertionKey]
 	}
 
 	// TODO: utilize groups later on

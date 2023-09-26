@@ -38,6 +38,13 @@ type Source struct {
 
 	CallbackURL string
 
+	// EmailAssertionKey description: Assertion key for user.Email
+	EmailAssertionKey string
+	// NameAssertionKey description: Assertion key for user.NickName
+	NameAssertionKey string
+	// UsernameAssertionKey description: Assertion key for user.Name
+	UsernameAssertionKey string
+
 	// reference to the authSource
 	authSource *auth.Source
 

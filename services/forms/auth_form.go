@@ -92,6 +92,9 @@ type AuthenticationForm struct {
 	ServiceProviderCertificate               string
 	ServiceProviderPrivateKey                string
 	SignRequests                             bool
+	EmailAssertionKey                        string
+	NameAssertionKey                         string
+	UsernameAssertionKey                     string
 }
 
 // Validate validates fields
