@@ -25,41 +25,55 @@ export function initGiteaFomantic() {
     return escape(text, preserveHTML) + svg('octicon-x', 16, `${className.delete} icon`);
   };
 
+  const transitionNopBehaviors = new Set([
+    'clear queue', 'stop', 'stop all', 'destroy',
+    'force repaint', 'repaint', 'reset',
+    'looping', 'remove looping', 'disable', 'enable',
+    'set duration', 'save conditions', 'restore conditions',
+  ]);
   // stand-in for removed transition module
-  $.fn.transition = function (arg) {
-    if (arg === 'is supported') return true;
-    if (arg === 'is animating') return false;
-    if (arg === 'is inward') return false;
-    if (arg === 'is outward') return false;
-    if (arg === 'stop all') return;
+  $.fn.transition = function (arg0, arg1, arg2) {
+    if (arg0 === 'is supported') return true;
+    if (arg0 === 'is animating') return false;
+    if (arg0 === 'is inward') return false;
+    if (arg0 === 'is outward') return false;
 
-    const isIn = arg?.animation?.endsWith(' in');
-    const isOut = arg?.animation?.endsWith(' out');
-
-    let ret;
-    if (arg === 'show' || isIn) {
-      arg?.onStart?.(this);
-      ret = this.each((_, el) => {
-        el.classList.remove('hidden');
-        el.classList.add('visible');
-        if (isIn) el.classList.add('transition');
-        if (arg?.displayType) el.style.setProperty('display', arg.displayType, 'important');
-        arg?.onShow?.(this);
-      });
-      arg?.onComplete?.(this);
-    } else if (arg === 'hide' || isOut) {
-      arg?.onStart?.(this);
-      ret = this.each((_, el) => {
-        el.classList.add('hidden');
-        el.classList.remove('visible');
-        // don't remove the transition class because fomantic didn't do it either
-        el.style.removeProperty('display');
-        arg?.onHidden?.(this);
-      });
-      arg?.onComplete?.(this);
+    let argObj;
+    if (typeof arg0 === 'string') {
+      // many behaviors are no-op now. https://fomantic-ui.com/modules/transition.html#/usage
+      if (transitionNopBehaviors.has(arg0)) return this;
+      // now, the arg0 is an animation name, the syntax: (animation, duration, complete)
+      argObj = {animation: arg0, ...(arg1 && {duration: arg1}), ...(arg2 && {onComplete: arg2})};
+    } else if (typeof arg0 === 'object') {
+      argObj = arg0;
+    } else {
+      throw new Error(`invalid argument: ${arg0}`);
     }
 
-    return ret;
+    const isAnimationIn = argObj.animation?.startsWith('show') || argObj.animation?.endsWith(' in');
+    const isAnimationOut = argObj.animation?.startsWith('hide') || argObj.animation?.endsWith(' out');
+    this.each((_, el) => {
+      let toShow = isAnimationIn;
+      if (!isAnimationIn && !isAnimationOut) {
+        // If the animation is not in/out, then it must be a toggle animation.
+        // Fomantic uses computed styles to check "visibility", but to avoid unnecessary arguments, here it only checks the class.
+        toShow = this.hasClass('hidden'); // maybe it could also check "!this.hasClass('visible')", leave it to the future until there is a real problem.
+      }
+      argObj.onStart?.call(el);
+      if (toShow) {
+        el.classList.remove('hidden');
+        el.classList.add('visible', 'transition');
+        if (argObj.displayType) el.style.setProperty('display', argObj.displayType, 'important');
+        argObj.onShow?.call(el);
+      } else {
+        el.classList.add('hidden');
+        el.classList.remove('visible'); // don't remove the transition class because the Fomantic animation style is `.hidden.transition`.
+        el.style.removeProperty('display');
+        argObj.onHidden?.call(el);
+      }
+      argObj.onComplete?.call(el);
+    });
+    return this;
   };
 
   initFomanticApiPatch();
