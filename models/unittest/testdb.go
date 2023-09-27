@@ -75,11 +75,16 @@ func MainTest(m *testing.M, testOpts ...*TestOptions) {
 		panic(err)
 	}
 	var found bool
+	var depth int
 	for {
+		depth++
 		file = filepath.Dir(file)
 		exist, _ := util.IsFile(filepath.Join(file, "go.mod")) // Gitea workspace should be only one golang project
 		if exist {
 			found = true
+			break
+		}
+		if depth > 20 { // only support 20 depth directory structure
 			break
 		}
 	}
