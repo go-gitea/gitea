@@ -70,29 +70,22 @@ type TestOptions struct {
 // MainTest a reusable TestMain(..) function for unit tests that need to use a
 // test database. Creates the test database, and sets necessary settings.
 func MainTest(m *testing.M, testOpts ...*TestOptions) {
-	file, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	var found bool
-	var depth int
-	for {
-		depth++
-		file = filepath.Dir(file)
-		exist, _ := util.IsFile(filepath.Join(file, "go.mod")) // Gitea workspace should be only one golang project
-		if exist {
-			found = true
-			break
+	searchDir, _ := os.Getwd()
+	for searchDir != "" {
+		if _, err := os.Stat(filepath.Join(searchDir, "go.mod")); err == nil {
+			break // The "go.mod" should be the one for Gitea repository
 		}
-		if depth > 20 { // only support 20 depth directory structure
-			break
+		if dir := filepath.Dir(searchDir); dir == searchDir {
+			searchDir = "" // reaches the root of filesystem
+		} else {
+			searchDir = dir
 		}
 	}
-	if !found {
-		panic("You cannot run the tests out of a golang repository")
+	if searchDir == "" {
+		panic("The tests should run in a Gitea repository, there should be a 'go.mod' in the root")
 	}
 
-	giteaRoot = file
+	giteaRoot = searchDir
 	setting.CustomPath = filepath.Join(giteaRoot, "custom")
 	InitSettings()
 
@@ -108,7 +101,7 @@ func MainTest(m *testing.M, testOpts ...*TestOptions) {
 		}
 	}
 
-	if err = CreateTestEngine(opts); err != nil {
+	if err := CreateTestEngine(opts); err != nil {
 		fatalTestError("Error creating test engine: %v\n", err)
 	}
 
