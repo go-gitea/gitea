@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -72,6 +73,8 @@ func Milestones(ctx *context.Context) {
 	}
 	ctx.Data["OpenCount"] = stats.OpenCount
 	ctx.Data["ClosedCount"] = stats.ClosedCount
+	ctx.Data["OpenLink"] = fmt.Sprintf("%s/milestones?state=open&q=%s", ctx.Repo.RepoLink, keyword)
+	ctx.Data["ClosedLink"] = fmt.Sprintf("%s/milestones?state=closed&q=%s", ctx.Repo.RepoLink, keyword)
 
 	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		if err := miles.LoadTotalTrackedTimes(ctx); err != nil {

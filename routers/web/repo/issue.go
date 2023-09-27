@@ -417,6 +417,10 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["PinnedIssues"] = pinned
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
 	ctx.Data["IssueStats"] = issueStats
+	ctx.Data["OpenCount"] = issueStats.OpenCount
+	ctx.Data["ClosedCount"] = issueStats.ClosedCount
+	ctx.Data["OpenLink"] = fmt.Sprintf("%s?q=%s&type=%s&sort=%s&state=open&labels=%s&milestone=%d&project=%d&assignee=%d&poster=%d", ctx.Link, keyword, viewType, sortType, selectLabels, mentionedID, projectID, assigneeID, posterID)
+	ctx.Data["ClosedLink"] = fmt.Sprintf("%s?q=%s&type=%s&sort=%s&state=closed&labels=%s&milestone=%d&project=%d&assignee=%d&poster=%d", ctx.Link, keyword, viewType, sortType, selectLabels, mentionedID, projectID, assigneeID, posterID)
 	ctx.Data["SelLabelIDs"] = labelIDs
 	ctx.Data["SelectLabels"] = selectLabels
 	ctx.Data["ViewType"] = viewType

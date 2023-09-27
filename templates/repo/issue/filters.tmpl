@@ -7,6 +7,23 @@
 	</div>
 	<div class="issue-list-toolbar-right">
 		<div class="ui secondary filter menu labels">
+			{{if .PageIsMilestones}}
+			<!-- Sort -->
+            <div class="list-header-sort ui small dropdown type jump item">
+                <span class="text">
+                    {{.locale.Tr "repo.issues.filter_sort"}}
+                </span>
+                {{svg "octicon-triangle-down" 14 "dropdown icon"}}
+                <div class="menu">
+                    <a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=closestduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.earliest_due_data"}}</a>
+                    <a class="{{if eq .SortType "furthestduedate"}}active {{end}}item" href="{{$.Link}}?sort=furthestduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.latest_due_date"}}</a>
+                    <a class="{{if eq .SortType "leastcomplete"}}active {{end}}item" href="{{$.Link}}?sort=leastcomplete&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.least_complete"}}</a>
+                    <a class="{{if eq .SortType "mostcomplete"}}active {{end}}item" href="{{$.Link}}?sort=mostcomplete&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.most_complete"}}</a>
+                    <a class="{{if eq .SortType "mostissues"}}active {{end}}item" href="{{$.Link}}?sort=mostissues&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.most_issues"}}</a>
+                    <a class="{{if eq .SortType "leastissues"}}active {{end}}item" href="{{$.Link}}?sort=leastissues&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.least_issues"}}</a>
+                </div>
+            </div>
+			{{else}}
 			<!-- Label -->
 			<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter">
 				<span class="text">
@@ -192,6 +209,7 @@
 					<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=farduedate&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
 				</div>
 			</div>
+			{{end}}
 		</div>
 	</div>
 </div>
