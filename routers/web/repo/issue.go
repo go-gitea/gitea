@@ -12,6 +12,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -129,7 +130,7 @@ func MustAllowPulls(ctx *context.Context) {
 	}
 
 	// User can send pull request if owns a forked repository.
-	if ctx.IsSigned && repo_model.HasForkedRepo(ctx.Doer.ID, ctx.Repo.Repository.ID) {
+	if ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID) {
 		ctx.Repo.PullRequest.Allowed = true
 		ctx.Repo.PullRequest.HeadInfoSubURL = url.PathEscape(ctx.Doer.Name) + ":" + util.PathEscapeSegments(ctx.Repo.BranchName)
 	}
@@ -230,7 +231,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		} else {
 			// So it did search with the keyword, and found some issues. It needs to get issueStats of these issues.
 			// Or the keyword is empty, so it doesn't need issueIDs as filter, just get issueStats with statsOpts.
-			issueStats, err = issues_model.GetIssueStats(statsOpts)
+			issueStats, err = issues_model.GetIssueStats(ctx, statsOpts)
 			if err != nil {
 				ctx.ServerError("GetIssueStats", err)
 				return
@@ -331,7 +332,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	handleTeamMentions(ctx)
 	if ctx.Written() {
@@ -535,7 +536,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	handleTeamMentions(ctx)
 }
@@ -610,14 +611,14 @@ type repoReviewerSelection struct {
 func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, issue *issues_model.Issue, canChooseReviewer bool) {
 	ctx.Data["CanChooseReviewer"] = canChooseReviewer
 
-	originalAuthorReviews, err := issues_model.GetReviewersFromOriginalAuthorsByIssueID(issue.ID)
+	originalAuthorReviews, err := issues_model.GetReviewersFromOriginalAuthorsByIssueID(ctx, issue.ID)
 	if err != nil {
 		ctx.ServerError("GetReviewersFromOriginalAuthorsByIssueID", err)
 		return
 	}
 	ctx.Data["OriginalReviews"] = originalAuthorReviews
 
-	reviews, err := issues_model.GetReviewsByIssueID(issue.ID)
+	reviews, err := issues_model.GetReviewsByIssueID(ctx, issue.ID)
 	if err != nil {
 		ctx.ServerError("GetReviewersByIssueID", err)
 		return
@@ -829,10 +830,11 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 	return labels
 }
 
-func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles []string) map[string]error {
+// Tries to load and set an issue template. The first return value indicates if a template was loaded.
+func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles []string) (bool, map[string]error) {
 	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
-		return nil
+		return false, nil
 	}
 
 	templateCandidates := make([]string, 0, 1+len(possibleFiles))
@@ -895,16 +897,19 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 		ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
 		ctx.Data["Reference"] = template.Ref
 		ctx.Data["RefEndName"] = git.RefName(template.Ref).ShortName()
-		return templateErrs
+		return true, templateErrs
 	}
-	return templateErrs
+	return false, templateErrs
 }
 
 // NewIssue render creating issue page
 func NewIssue(ctx *context.Context) {
+	issueConfig, _ := issue_service.GetTemplateConfigFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	hasTemplates := issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
+
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
-	ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	ctx.Data["NewIssueChooseTemplate"] = hasTemplates
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	title := ctx.FormString("title")
 	ctx.Data["TitleQuery"] = title
@@ -954,7 +959,8 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["Tags"] = tags
 
 	_, templateErrs := issue_service.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
-	if errs := setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates); len(errs) > 0 {
+	templateLoaded, errs := setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
+	if len(errs) > 0 {
 		for k, v := range errs {
 			templateErrs[k] = v
 		}
@@ -968,6 +974,12 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypeIssues)
+
+	if !issueConfig.BlankIssuesEnabled && hasTemplates && !templateLoaded {
+		// The "issues/new" and "issues/new/choose" share the same query parameters "project" and "milestone", if blank issues are disabled, just redirect to the "issues/choose" page with these parameters.
+		ctx.Redirect(fmt.Sprintf("%s/issues/new/choose?%s", ctx.Repo.Repository.Link(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
+		return
+	}
 
 	ctx.HTML(http.StatusOK, tplIssueNew)
 }
@@ -1228,47 +1240,70 @@ func NewIssuePost(ctx *context.Context) {
 	}
 }
 
-// roleDescriptor returns the Role Descriptor for a comment in/with the given repo, poster and issue
+// roleDescriptor returns the role descriptor for a comment in/with the given repo, poster and issue
 func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *user_model.User, issue *issues_model.Issue, hasOriginalAuthor bool) (issues_model.RoleDescriptor, error) {
+	roleDescriptor := issues_model.RoleDescriptor{}
+
 	if hasOriginalAuthor {
-		return issues_model.RoleDescriptorNone, nil
+		return roleDescriptor, nil
 	}
 
 	perm, err := access_model.GetUserRepoPermission(ctx, repo, poster)
 	if err != nil {
-		return issues_model.RoleDescriptorNone, err
-	}
-
-	// By default the poster has no roles on the comment.
-	roleDescriptor := issues_model.RoleDescriptorNone
-
-	// Check if the poster is owner of the repo.
-	if perm.IsOwner() {
-		// If the poster isn't a admin, enable the owner role.
-		if !poster.IsAdmin {
-			roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorOwner)
-		} else {
-
-			// Otherwise check if poster is the real repo admin.
-			ok, err := access_model.IsUserRealRepoAdmin(repo, poster)
-			if err != nil {
-				return issues_model.RoleDescriptorNone, err
-			}
-			if ok {
-				roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorOwner)
-			}
-		}
-	}
-
-	// Is the poster can write issues or pulls to the repo, enable the Writer role.
-	// Only enable this if the poster doesn't have the owner role already.
-	if !roleDescriptor.HasRole("Owner") && perm.CanWriteIssuesOrPulls(issue.IsPull) {
-		roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorWriter)
+		return roleDescriptor, err
 	}
 
 	// If the poster is the actual poster of the issue, enable Poster role.
-	if issue.IsPoster(poster.ID) {
-		roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorPoster)
+	roleDescriptor.IsPoster = issue.IsPoster(poster.ID)
+
+	// Check if the poster is owner of the repo.
+	if perm.IsOwner() {
+		// If the poster isn't an admin, enable the owner role.
+		if !poster.IsAdmin {
+			roleDescriptor.RoleInRepo = issues_model.RoleRepoOwner
+			return roleDescriptor, nil
+		}
+
+		// Otherwise check if poster is the real repo admin.
+		ok, err := access_model.IsUserRealRepoAdmin(repo, poster)
+		if err != nil {
+			return roleDescriptor, err
+		}
+		if ok {
+			roleDescriptor.RoleInRepo = issues_model.RoleRepoOwner
+			return roleDescriptor, nil
+		}
+	}
+
+	// If repo is organization, check Member role
+	if err := repo.LoadOwner(ctx); err != nil {
+		return roleDescriptor, err
+	}
+	if repo.Owner.IsOrganization() {
+		if isMember, err := organization.IsOrganizationMember(ctx, repo.Owner.ID, poster.ID); err != nil {
+			return roleDescriptor, err
+		} else if isMember {
+			roleDescriptor.RoleInRepo = issues_model.RoleRepoMember
+			return roleDescriptor, nil
+		}
+	}
+
+	// If the poster is the collaborator of the repo
+	if isCollaborator, err := repo_model.IsCollaborator(ctx, repo.ID, poster.ID); err != nil {
+		return roleDescriptor, err
+	} else if isCollaborator {
+		roleDescriptor.RoleInRepo = issues_model.RoleRepoCollaborator
+		return roleDescriptor, nil
+	}
+
+	hasMergedPR, err := issues_model.HasMergedPullRequestInRepo(ctx, repo.ID, poster.ID)
+	if err != nil {
+		return roleDescriptor, err
+	} else if hasMergedPR {
+		roleDescriptor.RoleInRepo = issues_model.RoleRepoContributor
+	} else {
+		// only display first time contributor in the first opening pull request
+		roleDescriptor.RoleInRepo = issues_model.RoleRepoFirstTimeContributor
 	}
 
 	return roleDescriptor, nil
@@ -1377,7 +1412,7 @@ func ViewIssue(ctx *context.Context) {
 	if ctx.Doer != nil {
 		iw.UserID = ctx.Doer.ID
 		iw.IssueID = issue.ID
-		iw.IsWatching, err = issues_model.CheckIssueWatch(ctx.Doer, issue)
+		iw.IsWatching, err = issues_model.CheckIssueWatch(ctx, ctx.Doer, issue)
 		if err != nil {
 			ctx.ServerError("CheckIssueWatch", err)
 			return
@@ -1495,7 +1530,7 @@ func ViewIssue(ctx *context.Context) {
 	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		if ctx.IsSigned {
 			// Deal with the stopwatch
-			ctx.Data["IsStopwatchRunning"] = issues_model.StopwatchExists(ctx.Doer.ID, issue.ID)
+			ctx.Data["IsStopwatchRunning"] = issues_model.StopwatchExists(ctx, ctx.Doer.ID, issue.ID)
 			if !ctx.Data["IsStopwatchRunning"].(bool) {
 				var exists bool
 				var swIssue *issues_model.Issue
@@ -1940,7 +1975,7 @@ func ViewIssue(ctx *context.Context) {
 
 	var hiddenCommentTypes *big.Int
 	if ctx.IsSigned {
-		val, err := user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes)
+		val, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes)
 		if err != nil {
 			ctx.ServerError("GetUserSetting", err)
 			return
@@ -2170,7 +2205,7 @@ func UpdateIssueContent(ctx *context.Context) {
 		return
 	}
 
-	if err := issue_service.ChangeContent(issue, ctx.Doer, ctx.Req.FormValue("content")); err != nil {
+	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, ctx.Req.FormValue("content")); err != nil {
 		ctx.ServerError("ChangeContent", err)
 		return
 	}
@@ -2673,7 +2708,7 @@ func ListIssues(ctx *context.Context) {
 
 	var labelIDs []int64
 	if splitted := strings.Split(ctx.FormString("labels"), ","); len(splitted) > 0 {
-		labelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx.Repo.Repository.ID, splitted)
+		labelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, splitted)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
@@ -2685,7 +2720,7 @@ func ListIssues(ctx *context.Context) {
 		for i := range part {
 			// uses names and fall back to ids
 			// non existent milestones are discarded
-			mile, err := issues_model.GetMilestoneByRepoIDANDName(ctx.Repo.Repository.ID, part[i])
+			mile, err := issues_model.GetMilestoneByRepoIDANDName(ctx, ctx.Repo.Repository.ID, part[i])
 			if err == nil {
 				mileIDs = append(mileIDs, mile.ID)
 				continue
@@ -2935,51 +2970,53 @@ func NewComment(ctx *context.Context) {
 
 				// check whether the ref of PR <refs/pulls/pr_index/head> in base repo is consistent with the head commit of head branch in the head repo
 				// get head commit of PR
-				prHeadRef := pull.GetGitRefName()
-				if err := pull.LoadBaseRepo(ctx); err != nil {
-					ctx.ServerError("Unable to load base repo", err)
-					return
-				}
-				prHeadCommitID, err := git.GetFullCommitID(ctx, pull.BaseRepo.RepoPath(), prHeadRef)
-				if err != nil {
-					ctx.ServerError("Get head commit Id of pr fail", err)
-					return
-				}
-
-				// get head commit of branch in the head repo
-				if err := pull.LoadHeadRepo(ctx); err != nil {
-					ctx.ServerError("Unable to load head repo", err)
-					return
-				}
-				if ok := git.IsBranchExist(ctx, pull.HeadRepo.RepoPath(), pull.BaseBranch); !ok {
-					// todo localize
-					ctx.JSONError("The origin branch is delete, cannot reopen.")
-					return
-				}
-				headBranchRef := pull.GetGitHeadBranchRefName()
-				headBranchCommitID, err := git.GetFullCommitID(ctx, pull.HeadRepo.RepoPath(), headBranchRef)
-				if err != nil {
-					ctx.ServerError("Get head commit Id of head branch fail", err)
-					return
-				}
-
-				err = pull.LoadIssue(ctx)
-				if err != nil {
-					ctx.ServerError("load the issue of pull request error", err)
-					return
-				}
-
-				if prHeadCommitID != headBranchCommitID {
-					// force push to base repo
-					err := git.Push(ctx, pull.HeadRepo.RepoPath(), git.PushOptions{
-						Remote: pull.BaseRepo.RepoPath(),
-						Branch: pull.HeadBranch + ":" + prHeadRef,
-						Force:  true,
-						Env:    repo_module.InternalPushingEnvironment(pull.Issue.Poster, pull.BaseRepo),
-					})
-					if err != nil {
-						ctx.ServerError("force push error", err)
+				if pull.Flow == issues_model.PullRequestFlowGithub {
+					prHeadRef := pull.GetGitRefName()
+					if err := pull.LoadBaseRepo(ctx); err != nil {
+						ctx.ServerError("Unable to load base repo", err)
 						return
+					}
+					prHeadCommitID, err := git.GetFullCommitID(ctx, pull.BaseRepo.RepoPath(), prHeadRef)
+					if err != nil {
+						ctx.ServerError("Get head commit Id of pr fail", err)
+						return
+					}
+
+					// get head commit of branch in the head repo
+					if err := pull.LoadHeadRepo(ctx); err != nil {
+						ctx.ServerError("Unable to load head repo", err)
+						return
+					}
+					if ok := git.IsBranchExist(ctx, pull.HeadRepo.RepoPath(), pull.BaseBranch); !ok {
+						// todo localize
+						ctx.JSONError("The origin branch is delete, cannot reopen.")
+						return
+					}
+					headBranchRef := pull.GetGitHeadBranchRefName()
+					headBranchCommitID, err := git.GetFullCommitID(ctx, pull.HeadRepo.RepoPath(), headBranchRef)
+					if err != nil {
+						ctx.ServerError("Get head commit Id of head branch fail", err)
+						return
+					}
+
+					err = pull.LoadIssue(ctx)
+					if err != nil {
+						ctx.ServerError("load the issue of pull request error", err)
+						return
+					}
+
+					if prHeadCommitID != headBranchCommitID {
+						// force push to base repo
+						err := git.Push(ctx, pull.HeadRepo.RepoPath(), git.PushOptions{
+							Remote: pull.BaseRepo.RepoPath(),
+							Branch: pull.HeadBranch + ":" + prHeadRef,
+							Force:  true,
+							Env:    repo_module.InternalPushingEnvironment(pull.Issue.Poster, pull.BaseRepo),
+						})
+						if err != nil {
+							ctx.ServerError("force push error", err)
+							return
+						}
 					}
 				}
 			}
@@ -3000,7 +3037,7 @@ func NewComment(ctx *context.Context) {
 						return
 					}
 				} else {
-					if err := stopTimerIfAvailable(ctx.Doer, issue); err != nil {
+					if err := stopTimerIfAvailable(ctx, ctx.Doer, issue); err != nil {
 						ctx.ServerError("CreateOrStopIssueStopwatch", err)
 						return
 					}
@@ -3169,7 +3206,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 
 	switch ctx.Params(":action") {
 	case "react":
-		reaction, err := issues_model.CreateIssueReaction(ctx.Doer.ID, issue.ID, form.Content)
+		reaction, err := issues_model.CreateIssueReaction(ctx, ctx.Doer.ID, issue.ID, form.Content)
 		if err != nil {
 			if issues_model.IsErrForbiddenIssueReaction(err) {
 				ctx.ServerError("ChangeIssueReaction", err)
@@ -3187,7 +3224,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 
 		log.Trace("Reaction for issue created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, reaction.ID)
 	case "unreact":
-		if err := issues_model.DeleteIssueReaction(ctx.Doer.ID, issue.ID, form.Content); err != nil {
+		if err := issues_model.DeleteIssueReaction(ctx, ctx.Doer.ID, issue.ID, form.Content); err != nil {
 			ctx.ServerError("DeleteIssueReaction", err)
 			return
 		}
@@ -3271,7 +3308,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 	switch ctx.Params(":action") {
 	case "react":
-		reaction, err := issues_model.CreateCommentReaction(ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Content)
+		reaction, err := issues_model.CreateCommentReaction(ctx, ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Content)
 		if err != nil {
 			if issues_model.IsErrForbiddenIssueReaction(err) {
 				ctx.ServerError("ChangeIssueReaction", err)
@@ -3289,7 +3326,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 		log.Trace("Reaction for comment created: %d/%d/%d/%d", ctx.Repo.Repository.ID, comment.Issue.ID, comment.ID, reaction.ID)
 	case "unreact":
-		if err := issues_model.DeleteCommentReaction(ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Content); err != nil {
+		if err := issues_model.DeleteCommentReaction(ctx, ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Content); err != nil {
 			ctx.ServerError("DeleteCommentReaction", err)
 			return
 		}
@@ -3414,7 +3451,7 @@ func updateAttachments(ctx *context.Context, item any, files []string) error {
 		if util.SliceContainsString(files, attachments[i].UUID) {
 			continue
 		}
-		if err := repo_model.DeleteAttachment(attachments[i], true); err != nil {
+		if err := repo_model.DeleteAttachment(ctx, attachments[i], true); err != nil {
 			return err
 		}
 	}
@@ -3595,12 +3632,12 @@ func issuePosters(ctx *context.Context, isPullList bool) {
 	if search == "" && ctx.Doer != nil {
 		// the returned posters slice only contains limited number of users,
 		// to make the current user (doer) can quickly filter their own issues, always add doer to the posters slice
-		if !util.SliceContainsFunc(posters, func(user *user_model.User) bool { return user.ID == ctx.Doer.ID }) {
+		if !slices.ContainsFunc(posters, func(user *user_model.User) bool { return user.ID == ctx.Doer.ID }) {
 			posters = append(posters, ctx.Doer)
 		}
 	}
 
-	posters = MakeSelfOnTop(ctx, posters)
+	posters = MakeSelfOnTop(ctx.Doer, posters)
 
 	resp := &userSearchResponse{}
 	resp.Results = make([]*userSearchInfo, len(posters))

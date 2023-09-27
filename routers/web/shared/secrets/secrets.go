@@ -4,13 +4,13 @@
 package secrets
 
 import (
-	"code.gitea.io/gitea/models/db"
 	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/shared/actions"
 	"code.gitea.io/gitea/services/forms"
+	secret_service "code.gitea.io/gitea/services/secrets"
 )
 
 func SetSecretsContext(ctx *context.Context, ownerID, repoID int64) {
@@ -26,14 +26,9 @@ func SetSecretsContext(ctx *context.Context, ownerID, repoID int64) {
 func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	form := web.GetForm(ctx).(*forms.AddSecretForm)
 
-	if err := actions.NameRegexMatch(form.Name); err != nil {
-		ctx.JSONError(ctx.Tr("secrets.creation.failed"))
-		return
-	}
-
-	s, err := secret_model.InsertEncryptedSecret(ctx, ownerID, repoID, form.Name, actions.ReserveLineBreakForTextarea(form.Data))
+	s, _, err := secret_service.CreateOrUpdateSecret(ctx, ownerID, repoID, form.Name, actions.ReserveLineBreakForTextarea(form.Data))
 	if err != nil {
-		log.Error("InsertEncryptedSecret: %v", err)
+		log.Error("CreateOrUpdateSecret failed: %v", err)
 		ctx.JSONError(ctx.Tr("secrets.creation.failed"))
 		return
 	}
@@ -45,11 +40,13 @@ func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL
 func PerformSecretsDelete(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	id := ctx.FormInt64("id")
 
-	if _, err := db.DeleteByBean(ctx, &secret_model.Secret{ID: id, OwnerID: ownerID, RepoID: repoID}); err != nil {
-		log.Error("Delete secret %d failed: %v", id, err)
+	err := secret_service.DeleteSecretByID(ctx, ownerID, repoID, id)
+	if err != nil {
+		log.Error("DeleteSecretByID(%d) failed: %v", id, err)
 		ctx.JSONError(ctx.Tr("secrets.deletion.failed"))
 		return
 	}
+
 	ctx.Flash.Success(ctx.Tr("secrets.deletion.success"))
 	ctx.JSONRedirect(redirectURL)
 }

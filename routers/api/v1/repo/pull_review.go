@@ -92,7 +92,7 @@ func ListPullReviews(ctx *context.APIContext) {
 		return
 	}
 
-	count, err := issues_model.CountReviews(opts)
+	count, err := issues_model.CountReviews(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -819,6 +819,8 @@ func DismissPullReview(ctx *context.APIContext) {
 	//     "$ref": "#/responses/PullReview"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	opts := web.GetForm(ctx).(*api.DismissPullReviewOptions)
@@ -860,6 +862,8 @@ func UnDismissPullReview(ctx *context.APIContext) {
 	//     "$ref": "#/responses/PullReview"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	dismissReview(ctx, "", false, false)

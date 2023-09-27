@@ -27,9 +27,9 @@ func TestUpdateAssignee(t *testing.T) {
 	_, _, err = issues_model.ToggleIssueAssignee(db.DefaultContext, issue, &user_model.User{ID: 1}, user2.ID)
 	assert.NoError(t, err)
 
-	user3, err := user_model.GetUserByID(db.DefaultContext, 3)
+	org3, err := user_model.GetUserByID(db.DefaultContext, 3)
 	assert.NoError(t, err)
-	_, _, err = issues_model.ToggleIssueAssignee(db.DefaultContext, issue, &user_model.User{ID: 1}, user3.ID)
+	_, _, err = issues_model.ToggleIssueAssignee(db.DefaultContext, issue, &user_model.User{ID: 1}, org3.ID)
 	assert.NoError(t, err)
 
 	user1, err := user_model.GetUserByID(db.DefaultContext, 1) // This user is already assigned (see the definition in fixtures), so running  UpdateAssignee should unassign him
@@ -47,7 +47,7 @@ func TestUpdateAssignee(t *testing.T) {
 	assert.NoError(t, err)
 
 	var expectedAssignees []*user_model.User
-	expectedAssignees = append(expectedAssignees, user2, user3)
+	expectedAssignees = append(expectedAssignees, user2, org3)
 
 	for in, assignee := range issue.Assignees {
 		assert.Equal(t, assignee.ID, expectedAssignees[in].ID)

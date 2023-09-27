@@ -16,11 +16,11 @@ import (
 )
 
 // UpdateRepositoryOwnerNames updates repository owner_names (this should only be used when the ownerName has changed case)
-func UpdateRepositoryOwnerNames(ownerID int64, ownerName string) error {
+func UpdateRepositoryOwnerNames(ctx context.Context, ownerID int64, ownerName string) error {
 	if ownerID == 0 {
 		return nil
 	}
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -36,8 +36,8 @@ func UpdateRepositoryOwnerNames(ownerID int64, ownerName string) error {
 }
 
 // UpdateRepositoryUpdatedTime updates a repository's updated time
-func UpdateRepositoryUpdatedTime(repoID int64, updateTime time.Time) error {
-	_, err := db.GetEngine(db.DefaultContext).Exec("UPDATE repository SET updated_unix = ? WHERE id = ?", updateTime.Unix(), repoID)
+func UpdateRepositoryUpdatedTime(ctx context.Context, repoID int64, updateTime time.Time) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE repository SET updated_unix = ? WHERE id = ?", updateTime.Unix(), repoID)
 	return err
 }
 
@@ -107,7 +107,7 @@ func (err ErrRepoFilesAlreadyExist) Unwrap() error {
 }
 
 // CheckCreateRepository check if could created a repository
-func CheckCreateRepository(doer, u *user_model.User, name string, overwriteOrAdopt bool) error {
+func CheckCreateRepository(ctx context.Context, doer, u *user_model.User, name string, overwriteOrAdopt bool) error {
 	if !doer.CanCreateRepo() {
 		return ErrReachLimitOfRepo{u.MaxRepoCreation}
 	}
@@ -116,7 +116,7 @@ func CheckCreateRepository(doer, u *user_model.User, name string, overwriteOrAdo
 		return err
 	}
 
-	has, err := IsRepositoryModelOrDirExist(db.DefaultContext, u, name)
+	has, err := IsRepositoryModelOrDirExist(ctx, u, name)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
@@ -136,18 +136,18 @@ func CheckCreateRepository(doer, u *user_model.User, name string, overwriteOrAdo
 }
 
 // ChangeRepositoryName changes all corresponding setting from old repository name to new one.
-func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName string) (err error) {
+func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *Repository, newRepoName string) (err error) {
 	oldRepoName := repo.Name
 	newRepoName = strings.ToLower(newRepoName)
 	if err = IsUsableRepoName(newRepoName); err != nil {
 		return err
 	}
 
-	if err := repo.LoadOwner(db.DefaultContext); err != nil {
+	if err := repo.LoadOwner(ctx); err != nil {
 		return err
 	}
 
-	has, err := IsRepositoryModelOrDirExist(db.DefaultContext, repo.Owner, newRepoName)
+	has, err := IsRepositoryModelOrDirExist(ctx, repo.Owner, newRepoName)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
@@ -171,7 +171,7 @@ func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName s
 		}
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

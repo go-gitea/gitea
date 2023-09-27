@@ -436,7 +436,7 @@ menu:
 - `SQLITE_JOURNAL_MODE`：**""**：更改 SQlite3 的日志模式。可以用于在高负载导致写入拥塞时启用 [WAL 模式](https://www.sqlite.org/wal.html)。有关可能的值，请参阅 [SQlite3 文档](https://www.sqlite.org/pragma.html#pragma_journal_mode)。默认为数据库文件的默认值，通常为 DELETE。
 - `ITERATE_BUFFER_SIZE`：**50**：用于迭代的内部缓冲区大小。
 - `PATH`：**data/gitea.db**：仅适用于 SQLite3 的数据库文件路径。
-- `LOG_SQL`：**true**：记录已执行的 SQL。
+- `LOG_SQL`：**false**：记录已执行的 SQL。
 - `DB_RETRIES`：**10**：允许多少次 ORM 初始化 / DB 连接尝试。
 - `DB_RETRY_BACKOFF`：**3s**：如果发生故障，等待另一个 ORM 初始化 / DB 连接尝试的 time.Duration。
 - `MAX_OPEN_CONNS`：**0**：数据库最大打开连接数 - 默认为 0，表示没有限制。
@@ -648,7 +648,7 @@ Gitea 创建以下非唯一队列：
 
 - `ED25519`：**256**
 - `ECDSA`：**256**
-- `RSA`：**2047**：我们在这里设置为2047，因为一个其他方面有效的2048 RSA密钥可能被报告为2047长度。
+- `RSA`：**3071**：我们在这里设置为2047，因为一个其他方面有效的3072 RSA密钥可能被报告为3071长度。
 - `DSA`：**-1**：默认情况下禁用DSA。设置为**1024**以重新启用，但请注意可能需要重新配置您的SSHD提供者
 
 ## Webhook (`webhook`)
@@ -742,7 +742,7 @@ Gitea 创建以下非唯一队列：
 
 - `PROVIDER`: **memory**：会话存储引擎 \[memory, file, redis, redis-cluster, db, mysql, couchbase, memcache, postgres\]。设置为 `db` 将会重用 `[database]` 的配置信息。
 - `PROVIDER_CONFIG`: **data/sessions**：对于文件，为根路径；对于 db，为空（将使用数据库配置）；对于其他引擎，为连接字符串。相对路径将根据 _`AppWorkPath`_ 绝对化。
-- `COOKIE_SECURE`: **false**：启用此选项以强制在所有会话访问中使用 HTTPS。
+- `COOKIE_SECURE`: **_empty_**：`true` 或 `false`。启用此选项以强制在所有会话访问中使用 HTTPS。如果没有设置，当 ROOT_URL 是 https 链接的时候默认设置为 true。
 - `COOKIE_NAME`: **i\_like\_gitea**：用于会话 ID 的 cookie 名称。
 - `GC_INTERVAL_TIME`: **86400**：GC 间隔时间，以秒为单位。
 - `SESSION_LIFE_TIME`: **86400**：会话生命周期，以秒为单位，默认为 86400（1 天）。
@@ -788,7 +788,7 @@ Gitea 创建以下非唯一队列：
 - `MAX_FILES`: **5**: 一次最多上传的附件数量。
 - `STORAGE_TYPE`: **local**: 附件的存储类型，`local` 表示本地磁盘，`minio` 表示兼容 S3 的对象存储服务，如果未设置将使用默认值 `local` 或其他在 `[storage.xxx]` 中定义的名称。
 - `SERVE_DIRECT`: **false**: 允许存储驱动器重定向到经过身份验证的 URL 以直接提供文件。目前，只支持 Minio/S3 通过签名 URL 提供支持，local 不会执行任何操作。
-- `PATH`: **data/attachments**: 存储附件的路径，仅当 STORAGE_TYPE 为 `local` 时可用。
+- `PATH`: **attachments**: 存储附件的路径，仅当 STORAGE_TYPE 为 `local` 时可用。如果是相对路径，将会被解析为 `${AppDataPath}/${attachment.PATH}`.
 - `MINIO_ENDPOINT`: **localhost:9000**: Minio 端点以连接，仅当 STORAGE_TYPE 为 `minio` 时可用。
 - `MINIO_ACCESS_KEY_ID`: Minio accessKeyID 以连接，仅当 STORAGE_TYPE 为 `minio` 时可用。
 - `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey 以连接，仅当 STORAGE_TYPE 为 `minio` 时可用。
@@ -1331,7 +1331,7 @@ PROXY_HOSTS = *.github.com
 
 ## Actions (`actions`)
 
-- `ENABLED`: **false**：启用/禁用操作功能
+- `ENABLED`: **true**：启用/禁用操作功能
 - `DEFAULT_ACTIONS_URL`: **github**：获取操作插件的默认平台，`github`表示`https://github.com`，`self`表示当前的 Gitea 实例。
 - `STORAGE_TYPE`: **local**：用于操作日志的存储类型，`local`表示本地磁盘，`minio`表示与S3兼容的对象存储服务，默认为`local`，或者使用定义为`[storage.xxx]`的其他名称。
 - `MINIO_BASE_PATH`: **actions_log/**：Minio存储桶上的基本路径，仅在`STORAGE_TYPE`为`minio`时可用。
