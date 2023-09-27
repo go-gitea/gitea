@@ -18,13 +18,13 @@
 			{{template "repo/issue/search" .}}
 			{{if not .Repository.IsArchived}}
 				{{if .PageIsIssueList}}
-					<a class="ui small primary button issue-list-new" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{.locale.Tr "repo.issues.new"}}</a>
+					<a class="ui small primary button issue-list-new" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
 				{{else}}
-					<a class="ui small primary button new-pr-button issue-list-new{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.Repository.Link}}/compare/{{.Repository.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{.locale.Tr "repo.pulls.new"}}</a>
+					<a class="ui small primary button new-pr-button issue-list-new{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.Repository.Link}}/compare/{{.Repository.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{ctx.Locale.Tr "repo.pulls.new"}}</a>
 				{{end}}
 			{{else}}
 				{{if not .PageIsIssueList}}
-					<a class="ui small primary small button issue-list-new{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{$.locale.Tr "action.compare_commits_general"}}</a>
+					<a class="ui small primary small button issue-list-new{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{ctx.Locale.Tr "action.compare_commits_general"}}</a>
 				{{end}}
 			{{end}}
 		</div>
@@ -40,25 +40,25 @@
 					{{if not .Repository.IsArchived}}
 					<!-- Action Button -->
 					{{if .IsShowClosed}}
-						<button class="ui primary basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_open"}}</button>
+						<button class="ui primary basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status">{{ctx.Locale.Tr "repo.issues.action_open"}}</button>
 					{{else}}
-						<button class="ui red basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_close"}}</button>
+						<button class="ui red basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{ctx.Locale.Tr "repo.issues.action_close"}}</button>
 					{{end}}
 					{{if $.IsRepoAdmin}}
 						<button class="ui red button issue-action"
 							data-action="delete" data-url="{{$.RepoLink}}/issues/delete"
-							data-action-delete-confirm="{{.locale.Tr "confirm_delete_selected"}}"
-						>{{.locale.Tr "repo.issues.delete"}}</button>
+							data-action-delete-confirm="{{ctx.Locale.Tr "confirm_delete_selected"}}"
+						>{{ctx.Locale.Tr "repo.issues.delete"}}</button>
 					{{end}}
 					<!-- Labels -->
 					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item">
 						<span class="text">
-							{{.locale.Tr "repo.issues.action_label"}}
+							{{ctx.Locale.Tr "repo.issues.action_label"}}
 						</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							<div class="item issue-action" data-action="clear" data-url="{{$.RepoLink}}/issues/labels">
-								{{.locale.Tr "repo.issues.new.clear_labels"}}
+								{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}
 							</div>
 							{{$previousExclusiveScope := "_no_scope"}}
 							{{range .Labels}}
@@ -77,16 +77,16 @@
 					<!-- Milestone -->
 					<div class="ui {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}} dropdown jump item">
 						<span class="text">
-							{{.locale.Tr "repo.issues.action_milestone"}}
+							{{ctx.Locale.Tr "repo.issues.action_milestone"}}
 						</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/milestone">
-							{{.locale.Tr "repo.issues.action_milestone_no_select"}}
+							{{ctx.Locale.Tr "repo.issues.action_milestone_no_select"}}
 							</div>
 							{{if .OpenMilestones}}
 								<div class="divider"></div>
-								<div class="header">{{.locale.Tr "repo.issues.filter_milestone_open"}}</div>
+								<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_open"}}</div>
 								{{range .OpenMilestones}}
 									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
 										{{.Name}}
@@ -95,7 +95,7 @@
 							{{end}}
 							{{if .ClosedMilestones}}
 								<div class="divider"></div>
-								<div class="header">{{.locale.Tr "repo.issues.filter_milestone_open"}}</div>
+								<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_open"}}</div>
 								{{range .ClosedMilestones}}
 									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
 										{{.Name}}
@@ -108,17 +108,17 @@
 					<!-- Projects -->
 					<div class="ui{{if not (or .OpenProjects .ClosedProjects)}} disabled{{end}} dropdown jump item">
 						<span class="text">
-							{{.locale.Tr "repo.project_board"}}
+							{{ctx.Locale.Tr "repo.project_board"}}
 						</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/projects">
-							{{.locale.Tr "repo.issues.new.clear_projects"}}
+							{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}
 							</div>
 							{{if .OpenProjects}}
 								<div class="divider"></div>
 								<div class="header">
-									{{.locale.Tr "repo.issues.new.open_projects"}}
+									{{ctx.Locale.Tr "repo.issues.new.open_projects"}}
 								</div>
 								{{range .OpenProjects}}
 									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
@@ -129,7 +129,7 @@
 							{{if .ClosedProjects}}
 								<div class="divider"></div>
 								<div class="header">
-									{{.locale.Tr "repo.issues.new.closed_projects"}}
+									{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}
 								</div>
 								{{range .ClosedProjects}}
 									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
@@ -143,15 +143,15 @@
 					<!-- Assignees -->
 					<div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
 						<span class="text">
-							{{.locale.Tr "repo.issues.action_assignee"}}
+							{{ctx.Locale.Tr "repo.issues.action_assignee"}}
 						</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							<div class="item issue-action" data-action="clear" data-url="{{$.Link}}/assignee">
-								{{.locale.Tr "repo.issues.new.clear_assignees"}}
+								{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}
 							</div>
 							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/assignee">
-								{{.locale.Tr "repo.issues.action_assignee_no_select"}}
+								{{ctx.Locale.Tr "repo.issues.action_assignee_no_select"}}
 							</div>
 							{{range .Assignees}}
 								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/assignee">

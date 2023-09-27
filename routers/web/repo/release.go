@@ -244,7 +244,7 @@ func SingleRelease(ctx *context.Context) {
 	writeAccess := ctx.Repo.CanWrite(unit.TypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
-	release, err := repo_model.GetRelease(ctx.Repo.Repository.ID, ctx.Params("*"))
+	release, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, ctx.Params("*"))
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound("GetRelease", err)
@@ -300,7 +300,7 @@ func SingleRelease(ctx *context.Context) {
 
 // LatestRelease redirects to the latest release
 func LatestRelease(ctx *context.Context) {
-	release, err := repo_model.GetLatestReleaseByRepoID(ctx.Repo.Repository.ID)
+	release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound("LatestRelease", err)
@@ -324,7 +324,7 @@ func NewRelease(ctx *context.Context) {
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
 	if tagName := ctx.FormString("tag"); len(tagName) > 0 {
-		rel, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tagName)
+		rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
 		if err != nil && !repo_model.IsErrReleaseNotExist(err) {
 			ctx.ServerError("GetRelease", err)
 			return
@@ -406,7 +406,7 @@ func NewReleasePost(ctx *context.Context) {
 		attachmentUUIDs = form.Files
 	}
 
-	rel, err := repo_model.GetRelease(ctx.Repo.Repository.ID, form.TagName)
+	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, form.TagName)
 	if err != nil {
 		if !repo_model.IsErrReleaseNotExist(err) {
 			ctx.ServerError("GetRelease", err)
@@ -491,7 +491,7 @@ func NewReleasePost(ctx *context.Context) {
 		rel.PublisherID = ctx.Doer.ID
 		rel.IsTag = false
 
-		if err = releaseservice.UpdateRelease(ctx.Doer, ctx.Repo.GitRepo, rel, attachmentUUIDs, nil, nil); err != nil {
+		if err = releaseservice.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo, rel, attachmentUUIDs, nil, nil); err != nil {
 			ctx.Data["Err_TagName"] = true
 			ctx.ServerError("UpdateRelease", err)
 			return
@@ -511,7 +511,7 @@ func EditRelease(ctx *context.Context) {
 	upload.AddUploadContext(ctx, "release")
 
 	tagName := ctx.Params("*")
-	rel, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tagName)
+	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound("GetRelease", err)
@@ -554,7 +554,7 @@ func EditReleasePost(ctx *context.Context) {
 	ctx.Data["PageIsEditRelease"] = true
 
 	tagName := ctx.Params("*")
-	rel, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tagName)
+	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound("GetRelease", err)
@@ -597,7 +597,7 @@ func EditReleasePost(ctx *context.Context) {
 	rel.Note = form.Content
 	rel.IsDraft = len(form.Draft) > 0
 	rel.IsPrerelease = form.Prerelease
-	if err = releaseservice.UpdateRelease(ctx.Doer, ctx.Repo.GitRepo,
+	if err = releaseservice.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo,
 		rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments); err != nil {
 		ctx.ServerError("UpdateRelease", err)
 		return
