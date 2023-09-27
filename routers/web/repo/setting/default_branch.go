@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/web/repo"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -47,11 +48,15 @@ func SetDefaultBranchPost(ctx *context.Context) {
 				}
 			}
 			if err := repo_model.UpdateDefaultBranch(ctx, repo); err != nil {
-				ctx.ServerError("SetDefaultBranch", err)
+				ctx.ServerError("UpdateDefaultBranch", err)
 				return
 			}
-
 			notify_service.ChangeDefaultBranch(ctx, repo)
+			if err := repo_module.UpdateRepoLicenses(ctx, repo, ctx.Repo.Commit); err != nil {
+				ctx.ServerError("UpdateRepoLicenses", err)
+				return
+			}
+			// TODO: add notify_service.ChangeRepoLicenses
 		}
 
 		log.Trace("Repository basic settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
