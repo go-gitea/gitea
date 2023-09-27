@@ -187,13 +187,13 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 		},
 		IsDeletedBranch: util.OptionalBoolFalse,
 		// Add it as the first option
-		ExcludeBranchNames: []string{forkRepo.DefaultBranch},
+		ExcludeBranchNames: []string{ctx.Repo.Repository.DefaultBranch},
 	})
 	if err != nil {
 		ctx.ServerError("FindBranchNames", err)
 		return nil
 	}
-	ctx.Data["Branches"] = append([]string{forkRepo.DefaultBranch}, branches...)
+	ctx.Data["Branches"] = append([]string{ctx.Repo.Repository.DefaultBranch}, branches...)
 
 	return forkRepo
 }
