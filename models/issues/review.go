@@ -244,6 +244,10 @@ func IsOfficialReviewer(ctx context.Context, issue *Issue, reviewer *user_model.
 	}
 	if rule == nil {
 		// if no rule is found, then user with write access can make official reviews
+		err := pr.LoadBaseRepo(ctx)
+		if err != nil {
+			return false, err
+		}
 		repo, err := repo_model.GetRepositoryByID(ctx, pr.BaseRepoID)
 		if err != nil {
 			return false, err
