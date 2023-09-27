@@ -231,7 +231,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		} else {
 			// So it did search with the keyword, and found some issues. It needs to get issueStats of these issues.
 			// Or the keyword is empty, so it doesn't need issueIDs as filter, just get issueStats with statsOpts.
-			issueStats, err = issues_model.GetIssueStats(statsOpts)
+			issueStats, err = issues_model.GetIssueStats(ctx, statsOpts)
 			if err != nil {
 				ctx.ServerError("GetIssueStats", err)
 				return
@@ -616,14 +616,14 @@ type repoReviewerSelection struct {
 func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, issue *issues_model.Issue, canChooseReviewer bool) {
 	ctx.Data["CanChooseReviewer"] = canChooseReviewer
 
-	originalAuthorReviews, err := issues_model.GetReviewersFromOriginalAuthorsByIssueID(issue.ID)
+	originalAuthorReviews, err := issues_model.GetReviewersFromOriginalAuthorsByIssueID(ctx, issue.ID)
 	if err != nil {
 		ctx.ServerError("GetReviewersFromOriginalAuthorsByIssueID", err)
 		return
 	}
 	ctx.Data["OriginalReviews"] = originalAuthorReviews
 
-	reviews, err := issues_model.GetReviewsByIssueID(issue.ID)
+	reviews, err := issues_model.GetReviewsByIssueID(ctx, issue.ID)
 	if err != nil {
 		ctx.ServerError("GetReviewersByIssueID", err)
 		return
@@ -3211,7 +3211,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 
 	switch ctx.Params(":action") {
 	case "react":
-		reaction, err := issues_model.CreateIssueReaction(ctx.Doer.ID, issue.ID, form.Content)
+		reaction, err := issues_model.CreateIssueReaction(ctx, ctx.Doer.ID, issue.ID, form.Content)
 		if err != nil {
 			if issues_model.IsErrForbiddenIssueReaction(err) {
 				ctx.ServerError("ChangeIssueReaction", err)
@@ -3229,7 +3229,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 
 		log.Trace("Reaction for issue created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, reaction.ID)
 	case "unreact":
-		if err := issues_model.DeleteIssueReaction(ctx.Doer.ID, issue.ID, form.Content); err != nil {
+		if err := issues_model.DeleteIssueReaction(ctx, ctx.Doer.ID, issue.ID, form.Content); err != nil {
 			ctx.ServerError("DeleteIssueReaction", err)
 			return
 		}
@@ -3313,7 +3313,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 	switch ctx.Params(":action") {
 	case "react":
-		reaction, err := issues_model.CreateCommentReaction(ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Content)
+		reaction, err := issues_model.CreateCommentReaction(ctx, ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Content)
 		if err != nil {
 			if issues_model.IsErrForbiddenIssueReaction(err) {
 				ctx.ServerError("ChangeIssueReaction", err)
@@ -3331,7 +3331,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 		log.Trace("Reaction for comment created: %d/%d/%d/%d", ctx.Repo.Repository.ID, comment.Issue.ID, comment.ID, reaction.ID)
 	case "unreact":
-		if err := issues_model.DeleteCommentReaction(ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Content); err != nil {
+		if err := issues_model.DeleteCommentReaction(ctx, ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Content); err != nil {
 			ctx.ServerError("DeleteCommentReaction", err)
 			return
 		}
