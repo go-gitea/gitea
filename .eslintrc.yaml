@@ -18,6 +18,7 @@ plugins:
   - eslint-plugin-regexp
   - eslint-plugin-sonarjs
   - eslint-plugin-unicorn
+  - eslint-plugin-vitest-globals
   - eslint-plugin-wc
 
 env:
@@ -45,6 +46,9 @@ overrides:
   - files: ["*.config.*"]
     rules:
       import/no-unused-modules: [0]
+  - files: ["**/*.test.*", "web_src/js/test/setup.js"]
+    env:
+      vitest-globals/env: true
   - files: ["web_src/js/modules/fetch.js", "web_src/js/standalone/**/*"]
     rules:
       no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement, SequenceExpression]

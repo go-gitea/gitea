@@ -225,7 +225,8 @@ const sfc = {
             this.fetchArtifacts(), // refresh artifacts if upload-artifact step done
           ]);
         } catch (err) {
-          if (!(err instanceof TypeError)) throw err; // avoid network error while unloading page
+          if (err instanceof TypeError) return; // avoid network error while unloading page
+          throw err;
         }
 
         this.artifacts = artifacts['artifacts'] || [];

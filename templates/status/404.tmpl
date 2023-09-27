@@ -8,8 +8,7 @@
 
 		<div class="divider"></div>
 		<br>
-
-		{{if .ShowFooterVersion}}<p>{{.locale.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
+		{{if .ShowFooterVersion}}<p>{{ctx.Locale.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
 	</div>
 </div>
 {{template "base/footer" .}}
