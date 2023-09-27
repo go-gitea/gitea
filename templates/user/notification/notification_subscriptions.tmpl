@@ -62,8 +62,8 @@
 						</div>
 					</div>
 				</div>
+				<div class="divider"></div>
 				{{if eq (len .Issues) 0}}
-					<div class="divider"></div>
 					{{ctx.Locale.Tr "notification.no_subscriptions"}}
 				{{else}}
 					{{template "shared/issuelist" dict "." . "listType" "dashboard"}}
