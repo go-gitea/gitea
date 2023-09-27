@@ -205,7 +205,7 @@ func Test_detectLicense(t *testing.T) {
 	err := loadSameLicenses()
 	assert.NoError(t, err)
 	for _, licenseName := range Licenses {
-		license, err := getLicense(licenseName, &licenseValues{
+		license, err := GetLicense(licenseName, &LicenseValues{
 			Owner: "Gitea",
 			Email: "teabot@gitea.io",
 			Repo:  "gitea",
