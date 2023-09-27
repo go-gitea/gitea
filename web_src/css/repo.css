@@ -2044,7 +2044,7 @@
   border: none;
   display: flex;
   align-items: center;
-  padding: 0 0.5em; /* make the UI look better for narrow (mobile) view */
+  padding: 0;
   overflow: hidden;
 }
 
@@ -2056,7 +2056,8 @@
   align-items: center;
   justify-content: center;
   gap: 0.25em;
-  padding: 0 0.25em;
+  padding: 0 0.5em; /* make the UI look better for narrow (mobile) view */
+  text-decoration: none;
 }
 
 .repository .repository-summary .sub-menu .item.active {

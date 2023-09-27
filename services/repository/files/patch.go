@@ -95,6 +95,11 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 
 // ApplyDiffPatch applies a patch to the given repository
 func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
+	err := repo.MustNotBeArchived()
+	if err != nil {
+		return nil, err
+	}
+
 	if err := opts.Validate(ctx, repo, doer); err != nil {
 		return nil, err
 	}
