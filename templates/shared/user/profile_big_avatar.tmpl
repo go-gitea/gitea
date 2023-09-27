@@ -121,7 +121,7 @@
 			{{if and .IsSigned .IsAdmin}}
 			<li class="follow">
 				<a class="ui basic red button" href="{{AppSubUrl}}/admin/users/{{.ContextUser.ID}}">
-					{{.locale.Tr "admin.users.details"}}
+					{{ctx.Locale.Tr "admin.users.details"}}
 				</a>
 			</li>
 			{{end}}
