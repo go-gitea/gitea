@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -248,11 +247,7 @@ func IsOfficialReviewer(ctx context.Context, issue *Issue, reviewer *user_model.
 		if err != nil {
 			return false, err
 		}
-		repo, err := repo_model.GetRepositoryByID(ctx, pr.BaseRepoID)
-		if err != nil {
-			return false, err
-		}
-		writeAccess, err := access_model.HasAccessUnit(ctx, reviewer, repo, unit.TypeCode, perm.AccessModeWrite)
+		writeAccess, err := access_model.HasAccessUnit(ctx, reviewer, pr.BaseRepo, unit.TypeCode, perm.AccessModeWrite)
 		if err != nil {
 			return false, err
 		}
