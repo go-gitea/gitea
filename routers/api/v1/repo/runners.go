@@ -8,7 +8,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/shared"
 )
 
-// GetRegistrationToken list an organization's actions secrets
+// GetRegistrationToken returns the token to register repo runners
 func GetRegistrationToken(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/runners/registration-token repo repoGetRunnerRegistrationToken
 	// ---

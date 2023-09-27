@@ -10,7 +10,7 @@ import (
 
 // https://docs.github.com/en/rest/actions/self-hosted-runners?apiVersion=2022-11-28#create-a-registration-token-for-an-organization
 
-// GetRegistrationToken list an organization's actions secrets
+// GetRegistrationToken returns the token to register global runners
 func GetRegistrationToken(ctx *context.APIContext) {
 	// swagger:operation GET /admin/runners/registration-token admin adminGetRunnerRegistrationToken
 	// ---
