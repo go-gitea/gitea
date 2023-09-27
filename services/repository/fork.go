@@ -139,12 +139,10 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 		needsRollback = true
 
-		var cloneCmd *git.Command
+		cloneCmd := git.NewCommand(txCtx, "clone", "--bare")
 		if opts.SingleBranch != "" {
-			cloneCmd = git.NewCommand(txCtx, "clone", "--bare", "--single-branch", "--branch")
+			cloneCmd.AddArguments("--single-branch", "--branch")
 			cloneCmd = cloneCmd.AddDynamicArguments(opts.SingleBranch)
-		} else {
-			cloneCmd = git.NewCommand(txCtx, "clone", "--bare")
 		}
 		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
 		if stdout, _, err := cloneCmd.AddDynamicArguments(oldRepoPath, repoPath).
