@@ -18,7 +18,7 @@
   /* non-color variables */
   --border-radius: 4px;
   --border-radius-medium: 6px;
-  --border-radius-circle: 100%;
+  --border-radius-circle: 50%;
   --opacity-disabled: 0.55;
   --height-loading: 16rem;
   --tab-size: 4;
@@ -217,6 +217,7 @@
   --color-input-toggle-background: #dedede;
   --color-input-border: var(--color-secondary);
   --color-input-border-hover: var(--color-secondary-dark-1);
+  --color-header-wrapper: transparent;
   --color-light: #00000006;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #0000001d;
@@ -245,6 +246,7 @@
   --color-tooltip-bg: #000000f0;
   --color-nav-bg: #ffffff;
   --color-nav-hover-bg: #ebebeb;
+  --color-nav-text: var(--color-text);
   --color-label-text: #232323;
   --color-label-bg: #cacaca5b;
   --color-label-hover-bg: #cacacaa0;
@@ -419,7 +421,6 @@ a.silenced:hover {
 }
 
 a.label,
-.repository-menu a,
 .ui.search .results a,
 .ui .menu a,
 .ui.cards a.card,
@@ -454,7 +455,7 @@ a.label,
   background: var(--color-hover);
 }
 
-.issue-title code {
+.inline-code-block {
   padding: 2px 4px;
   border-radius: var(--border-radius-medium);
   background-color: var(--color-markup-code-block);
@@ -477,6 +478,15 @@ a.label,
 /* fix Fomantic's line-height cutting off "g" on Windows Chrome with Segoe UI */
 .ui.input > input {
   line-height: var(--line-height-default);
+  text-align: start; /* Override fomantic's `text-align: left` to make RTL work via HTML `dir="auto"` */
+}
+
+/* fix Fomantic's line-height causing vertical scrollbars to appear */
+ul.ui.list li,
+ol.ui.list li,
+.ui.list > .item,
+.ui.list .list > .item {
+  line-height: var(--line-height-default);
 }
 
 .ui.input.focus > input,
@@ -484,8 +494,10 @@ a.label,
   border-color: var(--color-primary);
 }
 
-.ui.action.input .button {
+.ui.action.input .ui.ui.button {
   border-color: var(--color-input-border);
+  padding-top: 0; /* the ".action.input" is "flex + stretch", so let the buttons layout themselves */
+  padding-bottom: 0;
 }
 
 /* currently used for search bar dropdowns in repo search and explore code */
@@ -504,13 +516,6 @@ a.label,
 
 .ui.action.input:not([class*="left action"]) > input:focus {
   border-right-color: var(--color-primary);
-}
-
-/* fix button enlarged vertically by svg icon */
-/* TODO: change to just `.small.button:has(svg)` but may have global side effects */
-.ui.action.input .small.button:has(svg) {
-  padding-top: 7px !important;
-  padding-bottom: 7px !important;
 }
 
 .ui.menu,
@@ -953,14 +958,6 @@ img.ui.avatar,
   filter: saturate(2);
 }
 
-/* TODO: use gt-word-break instead */
-.dont-break-out {
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  word-break: break-all;
-  hyphens: auto;
-}
-
 .full.height {
   flex-grow: 1;
   padding-bottom: 80px;
@@ -1175,14 +1172,8 @@ img.ui.avatar,
   color: var(--color-gold) !important;
 }
 
-/* FIXME: this is a serious pollution, do not use this for "float: left" anymore */
-.ui.left:not(.action) {
-  float: left;
-}
-
-/* FIXME: this is a serious pollution, do not use this for "float: right" anymore */
-.ui.right:not(.action) {
-  float: right;
+.text.small {
+  font-size: 0.75em;
 }
 
 .ui.form .ui.button {
@@ -1257,10 +1248,6 @@ img.ui.avatar,
   text-align: right !important;
 }
 
-.ui .text.small {
-  font-size: 0.75em;
-}
-
 .ui .text.normal {
   font-weight: var(--font-weight-normal);
 }
@@ -1332,9 +1319,13 @@ img.ui.avatar,
 .ui .sha.label {
   font-family: var(--fonts-monospace);
   font-size: 13px;
-  padding: 6px 10px 4px;
   font-weight: var(--font-weight-normal);
   margin: 0 6px;
+  padding: 5px 10px;
+}
+
+.ui .sha.label .shortsha {
+  display: inline-block; /* not sure whether it is still needed */
 }
 
 .ui .button.copy-commit-sha {
@@ -1552,22 +1543,9 @@ img.ui.avatar,
   margin-left: auto;
   margin-right: auto;
   overflow-x: auto;
-}
-
-.ui.menu.new-menu::after {
-  position: absolute;
-  display: block;
-  background: linear-gradient(to right, var(--color-header-wrapper-transparent), var(--color-header-wrapper) 100%);
-  content: "";
-  right: 0;
-  height: 39px;
-  width: 60px;
-  visibility: visible;
-  pointer-events: none;
-}
-
-.ui.menu.new-menu.shadow-body::after {
-  background: linear-gradient(to right, transparent, var(--color-body) 100%);
+  width: 100%;
+  mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 60px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 60px), transparent 100%);
 }
 
 .ui.menu.new-menu .item {
@@ -1672,10 +1650,6 @@ img.ui.avatar,
   margin-top: 1px;
 }
 
-i.icons .icon:first-child {
-  margin-right: 0;
-}
-
 .ui.label {
   padding: 0.3em 0.5em;
   transition: none;
@@ -1709,14 +1683,6 @@ a.ui.active.label:hover {
   background: var(--color-label-active-bg);
   border-color: var(--color-label-active-bg);
   color: var(--color-label-text);
-}
-
-.ui.label > .detail .icons {
-  margin-right: 0.25em;
-}
-
-.ui.label > .detail .icons .icon {
-  margin-right: 0;
 }
 
 .lines-blame-btn {
@@ -1990,7 +1956,8 @@ a.ui.ui.ui.basic.primary.label:hover {
 }
 
 .ui.basic.labels .label,
-.ui.basic.label {
+.ui.basic.label,
+.ui.secondary.labels .ui.basic.label {
   background: var(--color-button);
   border-color: var(--color-light-border);
   color: var(--color-text-light);
@@ -2024,11 +1991,6 @@ a.ui.basic.label:hover {
   margin-left: 0;
 }
 
-/* TODO: replace it with gt-invisible */
-.invisible {
-  visibility: hidden;
-}
-
 .ui.segment,
 .ui.segments,
 .ui.attached.segment {
@@ -2052,25 +2014,20 @@ a.ui.basic.label:hover {
   border-color: var(--color-secondary);
 }
 
-.ui.attached.header .right .button {
-  padding: 8px 10px;
-  font-weight: var(--font-weight-normal);
-}
-
-/* reduce height of buttons with dropdown icon */
-.ui.attached.header .right .button:has(.dropdown.icon) {
-  padding-top: 7px;
-  padding-bottom: 7px;
-}
-
 /* fix misaligned right buttons on box headers */
-.ui.attached.header .right:not(.dropdown) {
+.ui.attached.header > .ui.right {
   position: absolute;
   right: 0.78571429rem;
   top: 0;
   bottom: 0;
   display: flex;
   align-items: center;
+}
+
+.ui.attached.header > .ui.right > .button,
+.ui.attached.header > .ui.right > .dropdown > .button {
+  padding: 8px 10px;
+  font-weight: var(--font-weight-normal);
 }
 
 /* if a .top.attached.header is followed by a .segment, add some margin */
@@ -2129,6 +2086,7 @@ table th[data-sortt-desc] .svg {
   vertical-align: -0.15em;
 }
 
+/* for the jquery.minicolors plugin */
 .minicolors-panel {
   background: var(--color-secondary-dark-1) !important;
 }

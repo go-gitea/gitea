@@ -218,6 +218,7 @@ help:
 	@echo " - lint-md                          lint markdown files"
 	@echo " - lint-swagger                     lint swagger files"
 	@echo " - lint-templates                   lint template files"
+	@echo " - lint-yaml                        lint yaml files"
 	@echo " - checks                           run various consistency checks"
 	@echo " - checks-frontend                  check frontend files"
 	@echo " - checks-backend                   check backend files"
@@ -225,6 +226,7 @@ help:
 	@echo " - test-frontend                    test frontend files"
 	@echo " - test-backend                     test backend files"
 	@echo " - test-e2e[\#TestSpecificName]     test end to end using playwright"
+	@echo " - update                           update js and py dependencies"
 	@echo " - update-js                        update js dependencies"
 	@echo " - update-py                        update py dependencies"
 	@echo " - webpack                          build webpack files"
@@ -426,6 +428,10 @@ lint-actions:
 .PHONY: lint-templates
 lint-templates: .venv
 	@poetry run djlint $(shell find templates -type f -iname '*.tmpl')
+
+.PHONY: lint-yaml
+lint-yaml: .venv
+	@poetry run yamllint .
 
 .PHONY: watch
 watch:
@@ -918,6 +924,9 @@ node_modules: package-lock.json
 .venv: poetry.lock
 	poetry install
 	@touch .venv
+
+.PHONY: update
+update: update-js update-py
 
 .PHONY: update-js
 update-js: node-check | node_modules

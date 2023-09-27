@@ -28,7 +28,6 @@
   border-radius: var(--border-radius);
   background: transparent;
   border: none;
-  display: inline-block;
   display: flex;
   width: 30px;
   height: 30px;

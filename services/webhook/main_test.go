@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	_ "code.gitea.io/gitea/models"
+	_ "code.gitea.io/gitea/models/actions"
 )
 
 func TestMain(m *testing.M) {

@@ -14,7 +14,7 @@ import (
 func Test_getLicense(t *testing.T) {
 	type args struct {
 		name   string
-		values *licenseValues
+		values *LicenseValues
 	}
 	tests := []struct {
 		name    string
@@ -26,7 +26,7 @@ func Test_getLicense(t *testing.T) {
 			name: "regular",
 			args: args{
 				name:   "MIT",
-				values: &licenseValues{Owner: "Gitea", Year: "2023"},
+				values: &LicenseValues{Owner: "Gitea", Year: "2023"},
 			},
 			want: `MIT License
 
@@ -50,11 +50,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := getLicense(tt.args.name, tt.args.values)
-			if !tt.wantErr(t, err, fmt.Sprintf("getLicense(%v, %v)", tt.args.name, tt.args.values)) {
+			got, err := GetLicense(tt.args.name, tt.args.values)
+			if !tt.wantErr(t, err, fmt.Sprintf("GetLicense(%v, %v)", tt.args.name, tt.args.values)) {
 				return
 			}
-			assert.Equalf(t, tt.want, string(got), "getLicense(%v, %v)", tt.args.name, tt.args.values)
+			assert.Equalf(t, tt.want, string(got), "GetLicense(%v, %v)", tt.args.name, tt.args.values)
 		})
 	}
 }
@@ -62,7 +62,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 func Test_fillLicensePlaceholder(t *testing.T) {
 	type args struct {
 		name   string
-		values *licenseValues
+		values *LicenseValues
 		origin string
 	}
 	tests := []struct {
@@ -74,7 +74,7 @@ func Test_fillLicensePlaceholder(t *testing.T) {
 			name: "owner",
 			args: args{
 				name:   "regular",
-				values: &licenseValues{Year: "2023", Owner: "Gitea", Email: "teabot@gitea.io", Repo: "gitea"},
+				values: &LicenseValues{Year: "2023", Owner: "Gitea", Email: "teabot@gitea.io", Repo: "gitea"},
 				origin: `
 <name of author>
 <owner>
@@ -105,7 +105,7 @@ Gitea
 			name: "email",
 			args: args{
 				name:   "regular",
-				values: &licenseValues{Year: "2023", Owner: "Gitea", Email: "teabot@gitea.io", Repo: "gitea"},
+				values: &LicenseValues{Year: "2023", Owner: "Gitea", Email: "teabot@gitea.io", Repo: "gitea"},
 				origin: `
 [EMAIL]
 `,
@@ -118,7 +118,7 @@ teabot@gitea.io
 			name: "repo",
 			args: args{
 				name:   "regular",
-				values: &licenseValues{Year: "2023", Owner: "Gitea", Email: "teabot@gitea.io", Repo: "gitea"},
+				values: &LicenseValues{Year: "2023", Owner: "Gitea", Email: "teabot@gitea.io", Repo: "gitea"},
 				origin: `
 <program>
 <one line to give the program's name and a brief idea of what it does.>
@@ -133,7 +133,7 @@ gitea
 			name: "year",
 			args: args{
 				name:   "regular",
-				values: &licenseValues{Year: "2023", Owner: "Gitea", Email: "teabot@gitea.io", Repo: "gitea"},
+				values: &LicenseValues{Year: "2023", Owner: "Gitea", Email: "teabot@gitea.io", Repo: "gitea"},
 				origin: `
 <year>
 [YEAR]
@@ -156,7 +156,7 @@ gitea
 			name: "0BSD",
 			args: args{
 				name:   "0BSD",
-				values: &licenseValues{Year: "2023", Owner: "Gitea", Email: "teabot@gitea.io", Repo: "gitea"},
+				values: &LicenseValues{Year: "2023", Owner: "Gitea", Email: "teabot@gitea.io", Repo: "gitea"},
 				origin: `
 Copyright (C) YEAR by AUTHOR EMAIL
 

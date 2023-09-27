@@ -389,7 +389,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 			}
 			log.Trace(" currentNumReleases is %d, running SyncReleasesWithTags", oldnum)
 
-			if err = repo_module.SyncReleasesWithTags(repo, gitRepo); err != nil {
+			if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
 				log.Warn(" SyncReleasesWithTags: %v", err)
 				gitRepo.Close()
 				continue
@@ -438,7 +438,7 @@ func runRegenerateKeys(_ *cli.Context) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}
-	return asymkey_model.RewriteAllPublicKeys()
+	return asymkey_model.RewriteAllPublicKeys(ctx)
 }
 
 func parseOAuth2Config(c *cli.Context) *oauth2.Source {

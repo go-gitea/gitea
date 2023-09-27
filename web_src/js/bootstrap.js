@@ -1,11 +1,9 @@
-import {joinPaths} from './utils.js';
-
 // DO NOT IMPORT window.config HERE!
 // to make sure the error handler always works, we should never import `window.config`, because some user's custom template breaks it.
 
 // This sets up the URL prefix used in webpack's chunk loading.
 // This file must be imported before any lazy-loading is being attempted.
-__webpack_public_path__ = joinPaths(window?.config?.assetUrlPrefix ?? '/', '/');
+__webpack_public_path__ = `${window.config?.assetUrlPrefix ?? '/assets'}/`;
 
 export function showGlobalErrorMessage(msg) {
   const pageContent = document.querySelector('.page-content');

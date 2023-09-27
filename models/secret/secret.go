@@ -33,12 +33,6 @@ type ErrSecretNotFound struct {
 	Name string
 }
 
-// IsErrSecretNotFound checks if an error is a ErrSecretNotFound.
-func IsErrSecretNotFound(err error) bool {
-	_, ok := err.(ErrSecretNotFound)
-	return ok
-}
-
 func (err ErrSecretNotFound) Error() string {
 	return fmt.Sprintf("secret was not found [name: %s]", err.Name)
 }
@@ -47,23 +41,18 @@ func (err ErrSecretNotFound) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// newSecret Creates a new already encrypted secret
-func newSecret(ownerID, repoID int64, name, data string) *Secret {
-	return &Secret{
-		OwnerID: ownerID,
-		RepoID:  repoID,
-		Name:    strings.ToUpper(name),
-		Data:    data,
-	}
-}
-
 // InsertEncryptedSecret Creates, encrypts, and validates a new secret with yet unencrypted data and insert into database
 func InsertEncryptedSecret(ctx context.Context, ownerID, repoID int64, name, data string) (*Secret, error) {
 	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, data)
 	if err != nil {
 		return nil, err
 	}
-	secret := newSecret(ownerID, repoID, name, encrypted)
+	secret := &Secret{
+		OwnerID: ownerID,
+		RepoID:  repoID,
+		Name:    strings.ToUpper(name),
+		Data:    encrypted,
+	}
 	if err := secret.Validate(); err != nil {
 		return secret, err
 	}
@@ -83,8 +72,10 @@ func (s *Secret) Validate() error {
 
 type FindSecretsOptions struct {
 	db.ListOptions
-	OwnerID int64
-	RepoID  int64
+	OwnerID  int64
+	RepoID   int64
+	SecretID int64
+	Name     string
 }
 
 func (opts *FindSecretsOptions) toConds() builder.Cond {
@@ -94,6 +85,12 @@ func (opts *FindSecretsOptions) toConds() builder.Cond {
 	}
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+	if opts.SecretID != 0 {
+		cond = cond.And(builder.Eq{"id": opts.SecretID})
+	}
+	if opts.Name != "" {
+		cond = cond.And(builder.Eq{"name": strings.ToUpper(opts.Name)})
 	}
 
 	return cond
@@ -116,47 +113,18 @@ func CountSecrets(ctx context.Context, opts *FindSecretsOptions) (int64, error) 
 }
 
 // UpdateSecret changes org or user reop secret.
-func UpdateSecret(ctx context.Context, orgID, repoID int64, name, data string) error {
-	sc := new(Secret)
-	name = strings.ToUpper(name)
-	has, err := db.GetEngine(ctx).
-		Where("owner_id=?", orgID).
-		And("repo_id=?", repoID).
-		And("name=?", name).
-		Get(sc)
-	if err != nil {
-		return err
-	} else if !has {
-		return ErrSecretNotFound{Name: name}
-	}
-
+func UpdateSecret(ctx context.Context, secretID int64, data string) error {
 	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, data)
 	if err != nil {
 		return err
 	}
 
-	sc.Data = encrypted
-	_, err = db.GetEngine(ctx).ID(sc.ID).Cols("data").Update(sc)
+	s := &Secret{
+		Data: encrypted,
+	}
+	affected, err := db.GetEngine(ctx).ID(secretID).Cols("data").Update(s)
+	if affected != 1 {
+		return ErrSecretNotFound{}
+	}
 	return err
-}
-
-// DeleteSecret deletes secret from an organization.
-func DeleteSecret(ctx context.Context, orgID, repoID int64, name string) error {
-	sc := new(Secret)
-	has, err := db.GetEngine(ctx).
-		Where("owner_id=?", orgID).
-		And("repo_id=?", repoID).
-		And("name=?", strings.ToUpper(name)).
-		Get(sc)
-	if err != nil {
-		return err
-	} else if !has {
-		return ErrSecretNotFound{Name: name}
-	}
-
-	if _, err := db.GetEngine(ctx).ID(sc.ID).Delete(new(Secret)); err != nil {
-		return fmt.Errorf("Delete: %w", err)
-	}
-
-	return nil
 }
