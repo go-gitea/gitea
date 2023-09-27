@@ -26,7 +26,7 @@ import (
 func SignInSAML(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 
-	loginSource, err := auth.GetActiveSAMLLoginSourceByName(provider)
+	loginSource, err := auth.GetActiveAuthSourceByName(provider, auth.SAML)
 	if err != nil || loginSource == nil {
 		ctx.NotFound("SAMLMetadata", err)
 		return
@@ -44,7 +44,7 @@ func SignInSAML(ctx *context.Context) {
 // SignInSAMLCallback
 func SignInSAMLCallback(ctx *context.Context) {
 	provider := ctx.Params(":provider")
-	loginSource, err := auth.GetActiveSAMLLoginSourceByName(provider)
+	loginSource, err := auth.GetActiveAuthSourceByName(provider, auth.SAML)
 	if err != nil || loginSource == nil {
 		ctx.NotFound("SignInSAMLCallback", err)
 		return
@@ -65,7 +65,7 @@ func SignInSAMLCallback(ctx *context.Context) {
 	if u == nil {
 		if ctx.Doer != nil {
 			// attach user to already logged in user
-			err = externalaccount.LinkAccountToUser(ctx.Doer, gothUser)
+			err = externalaccount.LinkAccountToUser(ctx, ctx.Doer, gothUser, auth.SAML)
 			if err != nil {
 				ctx.ServerError("UserLinkAccount", err)
 				return
@@ -77,7 +77,7 @@ func SignInSAMLCallback(ctx *context.Context) {
 			// TODO: allow auto registration from saml users (OAuth2 uses the following setting.OAuth2Client.EnableAutoRegistration)
 		} else {
 			// no existing user is found, request attach or new account
-			showLinkingLogin(ctx, gothUser)
+			showLinkingLogin(ctx, gothUser, auth.SAML)
 			return
 		}
 	}
@@ -101,7 +101,7 @@ func handleSamlSignIn(ctx *context.Context, source *auth.Source, u *user_model.U
 	u.SetLastLogin()
 
 	// update external user information
-	if err := externalaccount.UpdateExternalUser(u, gothUser); err != nil {
+	if err := externalaccount.UpdateExternalUser(u, gothUser, auth.SAML); err != nil {
 		if !errors.Is(err, util.ErrNotExist) {
 			log.Error("UpdateExternalUser failed: %v", err)
 		}
@@ -131,7 +131,7 @@ func samlUserLoginCallback(authSource *auth.Source, request *http.Request, respo
 
 	user := &user_model.User{
 		LoginName:   gothUser.UserID,
-		LoginType:   auth.OAuth2,
+		LoginType:   auth.SAML,
 		LoginSource: authSource.ID,
 	}
 
@@ -165,7 +165,7 @@ func samlUserLoginCallback(authSource *auth.Source, request *http.Request, respo
 // SAMLMetadata
 func SAMLMetadata(ctx *context.Context) {
 	provider := ctx.Params(":provider")
-	loginSource, err := auth.GetActiveSAMLLoginSourceByName(provider)
+	loginSource, err := auth.GetActiveAuthSourceByName(provider, auth.SAML)
 	if err != nil || loginSource == nil {
 		ctx.NotFound("SAMLMetadata", err)
 		return

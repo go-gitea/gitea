@@ -13,7 +13,7 @@ import (
 var samlRWMutex = sync.RWMutex{}
 
 func Init() error {
-	loginSources, _ := auth.GetActiveSAMLProviderLoginSources()
+	loginSources, _ := auth.GetActiveAuthProviderSources(auth.SAML)
 	for _, source := range loginSources {
 		samlSource, ok := source.Cfg.(*Source)
 		if !ok {

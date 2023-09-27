@@ -386,7 +386,7 @@ func ListOAuth2Applications(uid int64, listOptions db.ListOptions) ([]*OAuth2App
 	return apps, total, err
 }
 
-//////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////
 
 // OAuth2AuthorizationCode is a code to obtain an access token in combination with the client secret once. It has a limited lifetime.
 type OAuth2AuthorizationCode struct {
@@ -461,7 +461,7 @@ func GetOAuth2AuthorizationByCode(ctx context.Context, code string) (auth *OAuth
 	return auth, nil
 }
 
-//////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////
 
 // OAuth2Grant represents the permission of an user for a specific application to access resources
 type OAuth2Grant struct {
@@ -626,19 +626,19 @@ func (err ErrOAuthApplicationNotFound) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// GetActiveOAuth2ProviderSources returns all actived LoginOAuth2 sources
-func GetActiveOAuth2ProviderSources() ([]*Source, error) {
+// GetActiveAuthProviderSources returns all actived LoginOAuth2 sources
+func GetActiveAuthProviderSources(authType Type) ([]*Source, error) {
 	sources := make([]*Source, 0, 1)
-	if err := db.GetEngine(db.DefaultContext).Where("is_active = ? and type = ?", true, OAuth2).Find(&sources); err != nil {
+	if err := db.GetEngine(db.DefaultContext).Where("is_active = ? and type = ?", true, authType).Find(&sources); err != nil {
 		return nil, err
 	}
 	return sources, nil
 }
 
-// GetActiveOAuth2SourceByName returns a OAuth2 AuthSource based on the given name
-func GetActiveOAuth2SourceByName(name string) (*Source, error) {
+// GetActiveAuthSourceByName returns a OAuth2 AuthSource based on the given name
+func GetActiveAuthSourceByName(name string, authType Type) (*Source, error) {
 	authSource := new(Source)
-	has, err := db.GetEngine(db.DefaultContext).Where("name = ? and type = ? and is_active = ?", name, OAuth2, true).Get(authSource)
+	has, err := db.GetEngine(db.DefaultContext).Where("name = ? and type = ? and is_active = ?", name, authType, true).Get(authSource)
 	if err != nil {
 		return nil, err
 	}

@@ -3,18 +3,15 @@
 
 package saml
 
-import "context"
-
 // RegisterSource causes an OAuth2 configuration to be registered
 func (source *Source) RegisterSource() error {
 	samlRWMutex.Lock()
 	defer samlRWMutex.Unlock()
-	var err error
-	source, err = createProvider(context.Background(), source)
-	if err == nil {
-		providers[source.authSource.Name] = *source
+	if err := source.initSAMLSp(); err != nil {
+		return err
 	}
-	return err
+	providers[source.authSource.Name] = *source
+	return nil
 }
 
 // UnregisterSource causes an SAML configuration to be unregistered

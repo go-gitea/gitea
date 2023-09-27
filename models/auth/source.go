@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/markbates/goth"
+
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -119,6 +121,12 @@ type Source struct {
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+}
+
+// LinkAccountUser is used to link an external user with a local user
+type LinkAccountUser struct {
+	Type     Type
+	GothUser goth.User
 }
 
 // TableName xorm will read the table name from this method
