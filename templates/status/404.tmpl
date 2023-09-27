@@ -5,8 +5,8 @@
 		<p style="margin-top: 100px"><img src="{{AssetUrlPrefix}}/img/404.png" alt="404"></p>
 		<div class="divider"></div>
 		<br>
-		<p>{{.locale.Tr "error404" | Safe}}</p>
-		{{if .ShowFooterVersion}}<p>{{.locale.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
+		<p>{{ctx.Locale.Tr "error404" | Safe}}</p>
+		{{if .ShowFooterVersion}}<p>{{ctx.Locale.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
 	</div>
 </div>
 {{template "base/footer" .}}

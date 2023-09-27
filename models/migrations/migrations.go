@@ -534,6 +534,8 @@ var migrations = []Migration{
 	NewMigration("Add ScheduleID for ActionRun", v1_21.AddScheduleIDForActionRun),
 	// v276 -> v277
 	NewMigration("Add RemoteAddress to mirrors", v1_21.AddRemoteAddressToMirrors),
+	// v277 -> v278
+	NewMigration("Add Index to issue_user.issue_id", v1_21.AddIndexToIssueUserIssueID),
 }
 
 // GetCurrentDBVersion returns the current db version

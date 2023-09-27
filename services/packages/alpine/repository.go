@@ -34,8 +34,8 @@ const IndexFilename = "APKINDEX.tar.gz"
 
 // GetOrCreateRepositoryVersion gets or creates the internal repository package
 // The Alpine registry needs multiple index files which are stored in this package.
-func GetOrCreateRepositoryVersion(ownerID int64) (*packages_model.PackageVersion, error) {
-	return packages_service.GetOrCreateInternalPackageVersion(ownerID, packages_model.TypeAlpine, alpine_module.RepositoryPackage, alpine_module.RepositoryVersion)
+func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages_model.PackageVersion, error) {
+	return packages_service.GetOrCreateInternalPackageVersion(ctx, ownerID, packages_model.TypeAlpine, alpine_module.RepositoryPackage, alpine_module.RepositoryVersion)
 }
 
 // GetOrCreateKeyPair gets or creates the RSA keys used to sign repository files
@@ -70,7 +70,7 @@ func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, err
 
 // BuildAllRepositoryFiles (re)builds all repository files for every available distributions, components and architectures
 func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
-	pv, err := GetOrCreateRepositoryVersion(ownerID)
+	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
 	if err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
 
 // BuildSpecificRepositoryFiles builds index files for the repository
 func BuildSpecificRepositoryFiles(ctx context.Context, ownerID int64, branch, repository, architecture string) error {
-	pv, err := GetOrCreateRepositoryVersion(ownerID)
+	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
 	if err != nil {
 		return err
 	}
@@ -290,6 +290,7 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 	}
 
 	_, err = packages_service.AddFileToPackageVersionInternal(
+		ctx,
 		repoVersion,
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
