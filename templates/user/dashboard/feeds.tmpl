@@ -81,7 +81,7 @@
 				</div>
 				{{if .GetOpType.InActions "commit_repo" "mirror_sync_push"}}
 					{{$push := ActionContent2Commits .}}
-					{{$repoLink := .GetRepoLink}}
+					{{$repoLink := (.GetRepoLink ctx)}}
 					{{range $push.Commits}}
 						{{$commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
 						<div class="flex-text-block">
