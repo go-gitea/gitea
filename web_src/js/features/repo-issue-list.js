@@ -73,7 +73,7 @@ function initRepoIssueListCheckboxes() {
       url,
       action,
       issueIDs,
-      elementId
+      elementId,
     ).then(() => {
       window.location.reload();
     }).catch((reason) => {
@@ -185,21 +185,52 @@ async function initIssuePinSort() {
   });
 }
 
+// function initArchivedLabelFilter() {
+//   const archivedLabelEl = document.querySelector('#archived-filter-checkbox');
+//   if (!archivedLabelEl) {
+//     return;
+//   }
+//
+//   const archivedLabels = $('[data-is-archived]');
+//   const archivedElToggle = () => {
+//     for (const label of archivedLabels) {
+//       toggleElem(label, archivedLabelEl.checked);
+//     }
+//   };
+//   archivedElToggle();
+//   archivedLabelEl.addEventListener('change', () => {
+//     archivedElToggle();
+//     const url = archivedLabelEl.getAttribute('data-url');
+//     window.location = (archivedLabelEl.checked) ? url : url.replace(/&archived=true/, '');
+//   });
+// }
 function initArchivedLabelFilter() {
   const archivedLabelEl = document.querySelector('#archived-filter-checkbox');
   if (!archivedLabelEl) {
     return;
   }
-  archivedLabelEl.addEventListener('change', () => {
-    const url = archivedLabelEl.getAttribute('data-url');
-    window.location = (archivedLabelEl.checked) ? url : url.replace(/&archived=true/, '');
-  });
-  const archivedLabels = $('[data-is-archived]');
-  if (!archivedLabelEl.checked) {
+
+  const archivedLabels = document.querySelectorAll('[data-is-archived]');
+  const toggleArchivedLabels = () => {
+    const isChecked = archivedLabelEl.checked;
     for (const label of archivedLabels) {
-      toggleElem(label, archivedLabelEl.checked);
+      toggleElem(label, isChecked);
     }
-  }
+  };
+
+  const updateURL = () => {
+    const url = archivedLabelEl.getAttribute('data-url');
+    window.location = archivedLabelEl.checked ? url : url.replace(/&archived=true/, '');
+  };
+
+  // Initial setup
+  toggleArchivedLabels();
+
+  // Event listeners
+  archivedLabelEl.addEventListener('change', () => {
+    toggleArchivedLabels();
+    updateURL();
+  });
 }
 
 export function initRepoIssueList() {
