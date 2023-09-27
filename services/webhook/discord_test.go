@@ -270,7 +270,7 @@ func TestDiscordPayload(t *testing.T) {
 		assert.Len(t, pl.(*DiscordPayload).Embeds, 1)
 		assert.Equal(t, "[test/repo] Release created: v1.0", pl.(*DiscordPayload).Embeds[0].Title)
 		assert.Equal(t, "Note of first stable release", pl.(*DiscordPayload).Embeds[0].Description)
-		assert.Equal(t, "http://localhost:3000/api/v1/repos/test/repo/releases/2", pl.(*DiscordPayload).Embeds[0].URL)
+		assert.Equal(t, "http://localhost:3000/test/repo/releases/tag/v1.0", pl.(*DiscordPayload).Embeds[0].URL)
 		assert.Equal(t, p.Sender.UserName, pl.(*DiscordPayload).Embeds[0].Author.Name)
 		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.(*DiscordPayload).Embeds[0].Author.URL)
 		assert.Equal(t, p.Sender.AvatarURL, pl.(*DiscordPayload).Embeds[0].Author.IconURL)
