@@ -53,7 +53,7 @@ func ListTeams(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	teams, count, err := organization.SearchTeam(&organization.SearchTeamOptions{
+	teams, count, err := organization.SearchTeam(ctx, &organization.SearchTeamOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		OrgID:       ctx.Org.Organization.ID,
 	})
@@ -92,7 +92,7 @@ func ListUserTeams(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
 
-	teams, count, err := organization.SearchTeam(&organization.SearchTeamOptions{
+	teams, count, err := organization.SearchTeam(ctx, &organization.SearchTeamOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		UserID:      ctx.Doer.ID,
 	})
@@ -248,7 +248,7 @@ func CreateTeam(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeam, err := convert.ToTeam(ctx, team)
+	apiTeam, err := convert.ToTeam(ctx, team, true)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -810,7 +810,7 @@ func SearchTeam(ctx *context.APIContext) {
 		opts.UserID = ctx.Doer.ID
 	}
 
-	teams, maxResults, err := organization.SearchTeam(opts)
+	teams, maxResults, err := organization.SearchTeam(ctx, opts)
 	if err != nil {
 		log.Error("SearchTeam failed: %v", err)
 		ctx.JSON(http.StatusInternalServerError, map[string]any{
