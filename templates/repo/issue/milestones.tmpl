@@ -8,7 +8,7 @@
 			{{template "repo/issue/navbar" .}}
 			{{template "repo/issue/search" .}}
 			{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
-				<a class="ui small primary button" href="{{$.Link}}/new">{{.locale.Tr "repo.milestones.new"}}</a>
+				<a class="ui small primary button" href="{{$.Link}}/new">{{ctx.Locale.Tr "repo.milestones.new"}}</a>
 			{{end}}
 		</div>
 
@@ -32,11 +32,11 @@
 						<div class="group">
 							<div class="flex-text-block">
 								{{svg "octicon-issue-opened" 14}}
-								{{$.locale.PrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
+								{{ctx.Locale.PrettyNumber .NumOpenIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 							</div>
 							<div class="flex-text-block">
 								{{svg "octicon-check" 14}}
-								{{$.locale.PrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
+								{{ctx.Locale.PrettyNumber .NumClosedIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 							</div>
 							{{if .TotalTrackedTime}}
 								<div class="flex-text-block">
@@ -47,14 +47,14 @@
 							{{if .UpdatedUnix}}
 								<div class="flex-text-block">
 									{{svg "octicon-clock"}}
-									{{$.locale.Tr "repo.milestones.update_ago" (TimeSinceUnix .UpdatedUnix $.locale) | Safe}}
+									{{ctx.Locale.Tr "repo.milestones.update_ago" (TimeSinceUnix .UpdatedUnix ctx.Locale) | Safe}}
 								</div>
 							{{end}}
 							<div class="flex-text-block">
 								{{if .IsClosed}}
-									{{$closedDate:= TimeSinceUnix .ClosedDateUnix $.locale}}
+									{{$closedDate:= TimeSinceUnix .ClosedDateUnix ctx.Locale}}
 									{{svg "octicon-clock" 14}}
-									{{$.locale.Tr "repo.milestones.closed" $closedDate | Safe}}
+									{{ctx.Locale.Tr "repo.milestones.closed" $closedDate | Safe}}
 								{{else}}
 									{{if .DeadlineString}}
 										<span class="flex-text-inline {{if .IsOverdue}}text red{{end}}">
@@ -63,20 +63,20 @@
 										</span>
 									{{else}}
 										{{svg "octicon-calendar" 14}}
-										{{$.locale.Tr "repo.milestones.no_due_date"}}
+										{{ctx.Locale.Tr "repo.milestones.no_due_date"}}
 									{{end}}
 								{{end}}
 							</div>
 						</div>
 						{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
 							<div class="group">
-								<a class="flex-text-inline" href="{{$.Link}}/{{.ID}}/edit">{{svg "octicon-pencil" 14}}{{$.locale.Tr "repo.issues.label_edit"}}</a>
+								<a class="flex-text-inline" href="{{$.Link}}/{{.ID}}/edit">{{svg "octicon-pencil" 14}}{{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
 								{{if .IsClosed}}
-									<a class="link-action flex-text-inline" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check" 14}}{{$.locale.Tr "repo.milestones.open"}}</a>
+									<a class="link-action flex-text-inline" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check" 14}}{{ctx.Locale.Tr "repo.milestones.open"}}</a>
 								{{else}}
-									<a class="link-action flex-text-inline" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-x" 14}}{{$.locale.Tr "repo.milestones.close"}}</a>
+									<a class="link-action flex-text-inline" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-x" 14}}{{ctx.Locale.Tr "repo.milestones.close"}}</a>
 								{{end}}
-								<a class="delete-button flex-text-inline" href="#" data-url="{{$.RepoLink}}/milestones/delete" data-id="{{.ID}}">{{svg "octicon-trash" 14}}{{$.locale.Tr "repo.issues.label_delete"}}</a>
+								<a class="delete-button flex-text-inline" href="#" data-url="{{$.RepoLink}}/milestones/delete" data-id="{{.ID}}">{{svg "octicon-trash" 14}}{{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
 							</div>
 						{{end}}
 					</div>
@@ -97,10 +97,10 @@
 	<div class="ui g-modal-confirm delete modal">
 		<div class="header">
 			{{svg "octicon-trash"}}
-			{{.locale.Tr "repo.milestones.deletion"}}
+			{{ctx.Locale.Tr "repo.milestones.deletion"}}
 		</div>
 		<div class="content">
-			<p>{{.locale.Tr "repo.milestones.deletion_desc"}}</p>
+			<p>{{ctx.Locale.Tr "repo.milestones.deletion_desc"}}</p>
 		</div>
 		{{template "base/modal_actions_confirm" .}}
 	</div>

@@ -7,10 +7,10 @@
 		{{else}}
 			{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
 		{{end}}
-		{{.locale.PrettyNumber .OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
+		{{ctx.Locale.PrettyNumber .OpenCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 	</a>
 	<a class="{{if .IsShowClosed}}active {{end}}item" href="{{.ClosedLink}}">
 		{{svg "octicon-check" 16 "gt-mr-3"}}
-		{{.locale.PrettyNumber .ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
+		{{ctx.Locale.PrettyNumber .ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 	</a>
 </div>

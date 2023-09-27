@@ -13,7 +13,6 @@ import (
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
@@ -334,7 +333,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 		if loadOrgs {
 			apiOrg, ok := cache[teams[i].OrgID]
 			if !ok {
-				org, err := organization.GetOrgByID(db.DefaultContext, teams[i].OrgID)
+				org, err := organization.GetOrgByID(ctx, teams[i].OrgID)
 				if err != nil {
 					return nil, err
 				}
