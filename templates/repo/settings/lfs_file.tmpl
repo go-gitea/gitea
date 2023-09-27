@@ -2,13 +2,13 @@
 	<div class="user-main-content twelve wide column content repository file list">
 		<div class="tab-size-8 non-diff-file-content">
 			<h4 class="ui top attached header">
-				<a href="{{.LFSFilesLink}}">{{.locale.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.LFSFile.Oid}}</span>
+				<a href="{{.LFSFilesLink}}">{{ctx.Locale.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.LFSFile.Oid}}</span>
 				<div class="ui right">
 					{{if .EscapeStatus.Escaped}}
-						<a class="ui mini basic button unescape-button gt-hidden">{{.locale.Tr "repo.unescape_control_characters"}}</a>
-						<a class="ui mini basic button escape-button">{{.locale.Tr "repo.escape_control_characters"}}</a>
+						<a class="ui mini basic button unescape-button gt-hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</a>
+						<a class="ui mini basic button escape-button">{{ctx.Locale.Tr "repo.escape_control_characters"}}</a>
 					{{end}}
-					<a class="ui primary button" href="{{.LFSFilesLink}}/find?oid={{.LFSFile.Oid}}&size={{.LFSFile.Size}}">{{$.locale.Tr "repo.settings.lfs_findcommits"}}</a>
+					<a class="ui primary button" href="{{.LFSFilesLink}}/find?oid={{.LFSFile.Oid}}&size={{.LFSFile.Size}}">{{ctx.Locale.Tr "repo.settings.lfs_findcommits"}}</a>
 				</div>
 			</h4>
 			<div class="ui attached table unstackable segment">
@@ -24,16 +24,16 @@
 								<img src="{{$.RawFileLink}}">
 							{{else if .IsVideoFile}}
 								<video controls src="{{$.RawFileLink}}">
-									<strong>{{.locale.Tr "repo.video_not_supported_in_browser"}}</strong>
+									<strong>{{ctx.Locale.Tr "repo.video_not_supported_in_browser"}}</strong>
 								</video>
 							{{else if .IsAudioFile}}
 								<audio controls src="{{$.RawFileLink}}">
-									<strong>{{.locale.Tr "repo.audio_not_supported_in_browser"}}</strong>
+									<strong>{{ctx.Locale.Tr "repo.audio_not_supported_in_browser"}}</strong>
 								</audio>
 							{{else if .IsPDFFile}}
-								<div class="pdf-content is-loading" data-src="{{$.RawFileLink}}" data-fallback-button-text="{{.locale.Tr "diff.view_file"}}"></div>
+								<div class="pdf-content is-loading" data-src="{{$.RawFileLink}}" data-fallback-button-text="{{ctx.Locale.Tr "diff.view_file"}}"></div>
 							{{else}}
-								<a href="{{$.RawFileLink}}" rel="nofollow" class="btn btn-gray btn-radius">{{.locale.Tr "repo.file_view_raw"}}</a>
+								<a href="{{$.RawFileLink}}" rel="nofollow" class="btn btn-gray btn-radius">{{ctx.Locale.Tr "repo.file_view_raw"}}</a>
 							{{end}}
 						</div>
 					{{else if .FileSize}}
@@ -41,7 +41,7 @@
 							<tbody>
 								<tr>
 								{{if .IsFileTooLarge}}
-									<td><strong>{{.locale.Tr "repo.file_too_large"}}</strong></td>
+									<td><strong>{{ctx.Locale.Tr "repo.file_too_large"}}</strong></td>
 								{{else}}
 									<td class="lines-num">{{.LineNums}}</td>
 									<td class="lines-code"><pre><code class="{{.HighlightClass}}"><ol>{{.FileContent}}</ol></code></pre></td>
