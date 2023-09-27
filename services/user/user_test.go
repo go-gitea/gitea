@@ -150,7 +150,7 @@ func TestRenameUser(t *testing.T) {
 		assert.NoError(t, RenameUser(db.DefaultContext, user, newUsername))
 		unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID, Name: newUsername, LowerName: strings.ToLower(newUsername)})
 
-		redirectUID, err := user_model.LookupUserRedirect(oldUsername)
+		redirectUID, err := user_model.LookupUserRedirect(db.DefaultContext, oldUsername)
 		assert.NoError(t, err)
 		assert.EqualValues(t, user.ID, redirectUID)
 

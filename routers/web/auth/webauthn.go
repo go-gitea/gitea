@@ -141,7 +141,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 
 	// Now handle account linking if that's requested
 	if ctx.Session.Get("linkAccount") != nil {
-		if err := externalaccount.LinkAccountFromStore(ctx.Session, user); err != nil {
+		if err := externalaccount.LinkAccountFromStore(ctx, ctx.Session, user); err != nil {
 			ctx.ServerError("LinkAccountFromStore", err)
 			return
 		}

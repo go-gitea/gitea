@@ -941,7 +941,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	if u == nil {
 		if ctx.Doer != nil {
 			// attach user to already logged in user
-			err = externalaccount.LinkAccountToUser(ctx.Doer, gothUser)
+			err = externalaccount.LinkAccountToUser(ctx, ctx.Doer, gothUser)
 			if err != nil {
 				ctx.ServerError("UserLinkAccount", err)
 				return
