@@ -10,6 +10,7 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	auth_service "code.gitea.io/gitea/services/auth"
+
 	"github.com/urfave/cli/v2"
 )
 
