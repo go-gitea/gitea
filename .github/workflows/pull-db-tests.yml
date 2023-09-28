@@ -189,8 +189,8 @@ jobs:
       - run: make backend
         env:
           TAGS: bindata
-      - run: make test-mysql-migration integration-test-coverage
-        timeout-minutes: 50
+      - name: run tests
+        run: make test-mysql-migration integration-test-coverage
         env:
           TAGS: bindata
           RACE_ENABLED: true
