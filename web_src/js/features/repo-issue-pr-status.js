@@ -8,11 +8,10 @@ export function initRepoPullRequestCommitStatus() {
     const $this = $(e.currentTarget);
 
     if ($prStatus.hasClass('hide')) {
-      $prStatus.removeClass('hide');
       $this.text($this.attr('data-hide-all'));
     } else {
-      $prStatus.addClass('hide');
       $this.text($this.attr('data-show-all'));
     }
+    $prStatus.toggleClass('hide');
   });
 }
