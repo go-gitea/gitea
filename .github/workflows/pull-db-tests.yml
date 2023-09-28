@@ -86,7 +86,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mysql:
-        image: mysql:5.7
+        image: mysql:8.1
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: test
@@ -152,58 +152,13 @@ jobs:
           RACE_ENABLED: true
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
 
-  test-mysql5:
+  test-mysql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:
       mysql:
-        image: mysql:5.7
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: true
-          MYSQL_DATABASE: test
-        ports:
-          - "3306:3306"
-      elasticsearch:
-        image: elasticsearch:7.5.0
-        env:
-          discovery.type: single-node
-        ports:
-          - "9200:9200"
-      smtpimap:
-        image: tabascoterrier/docker-imap-devel:latest
-        ports:
-          - "25:25"
-          - "143:143"
-          - "587:587"
-          - "993:993"
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
-        with:
-          go-version: "~1.21"
-          check-latest: true
-      - name: Add hosts to /etc/hosts
-        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
-      - run: make deps-backend
-      - run: make backend
-        env:
-          TAGS: bindata
-      - name: run tests
-        run: make test-mysql-migration integration-test-coverage
-        env:
-          TAGS: bindata
-          RACE_ENABLED: true
-          USE_REPO_TEST_DIR: 1
-          TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
-
-  test-mysql8:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
-    needs: files-changed
-    runs-on: ubuntu-latest
-    services:
-      mysql8:
-        image: mysql:8
+        image: mysql:8.1
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: testgitea
@@ -216,12 +171,12 @@ jobs:
           go-version: "~1.21"
           check-latest: true
       - name: Add hosts to /etc/hosts
-        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql8" | sudo tee -a /etc/hosts'
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make backend
         env:
           TAGS: bindata
-      - run: make test-mysql8-migration test-mysql8
+      - run: make test-mysql-migration test-mysql
         timeout-minutes: 50
         env:
           TAGS: bindata
