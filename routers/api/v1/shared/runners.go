@@ -19,7 +19,7 @@ type RegistrationToken struct {
 }
 
 func GetRegistrationToken(ctx *context.APIContext, ownerID, repoID int64) {
-	token, err := actions_model.GetUnactivatedRunnerToken(ctx, ownerID, repoID)
+	token, err := actions_model.GetLastestRunnerToken(ctx, ownerID, repoID)
 	if errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
 		token, err = actions_model.NewRunnerToken(ctx, ownerID, repoID)
 	}
