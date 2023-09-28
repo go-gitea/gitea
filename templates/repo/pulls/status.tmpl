@@ -2,12 +2,12 @@
 Template Attributes:
 * CommitStatus: summary of all commit status state
 * CommitStatuses: all commit status elements
-* IsTippy: whether this template is the content of tippy
+* IsPopup: whether this template is in a popup
 * is_context_required: Used in pull request commit status check table
 */}}
 
 {{if .CommitStatus}}
-<div class="{{if .IsTippy}}tippy-commit-status{{else}}pr-commit-status{{end}}">
+<div class="{{if .IsPopup}}tippy-commit-status{{else}}pr-commit-status{{end}}">
 	<div class="ui attached header top">
 		{{if eq .CommitStatus.State "pending"}}
 			{{ctx.Locale.Tr "repo.pulls.status_checking"}}
@@ -23,7 +23,7 @@ Template Attributes:
 			{{ctx.Locale.Tr "repo.pulls.status_checking"}}
 		{{end}}
 
-		{{if not .IsTippy}}
+		{{if not .IsPopup}}
 		<div class="ui right">
 			<a class="hide-all-checks muted"
 			data-show-all="{{ctx.Locale.Tr "repo.pulls.status_checks_show_all"}}"
