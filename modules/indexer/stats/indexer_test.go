@@ -5,7 +5,6 @@ package stats
 
 import (
 	"context"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -23,9 +22,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", "..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func TestRepoStatsIndex(t *testing.T) {
