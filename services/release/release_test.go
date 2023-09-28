@@ -4,7 +4,6 @@
 package release
 
 import (
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -22,9 +21,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func TestRelease_Create(t *testing.T) {
