@@ -185,25 +185,6 @@ async function initIssuePinSort() {
   });
 }
 
-// function initArchivedLabelFilter() {
-//   const archivedLabelEl = document.querySelector('#archived-filter-checkbox');
-//   if (!archivedLabelEl) {
-//     return;
-//   }
-//
-//   const archivedLabels = $('[data-is-archived]');
-//   const archivedElToggle = () => {
-//     for (const label of archivedLabels) {
-//       toggleElem(label, archivedLabelEl.checked);
-//     }
-//   };
-//   archivedElToggle();
-//   archivedLabelEl.addEventListener('change', () => {
-//     archivedElToggle();
-//     const url = archivedLabelEl.getAttribute('data-url');
-//     window.location = (archivedLabelEl.checked) ? url : url.replace(/&archived=true/, '');
-//   });
-// }
 function initArchivedLabelFilter() {
   const archivedLabelEl = document.querySelector('#archived-filter-checkbox');
   if (!archivedLabelEl) {
