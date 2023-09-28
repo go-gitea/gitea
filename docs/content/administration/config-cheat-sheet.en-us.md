@@ -422,7 +422,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 
 ## Database (`database`)
 
-- `DB_TYPE`: **mysql**: The database type in use \[mysql, postgres, mssql, sqlite3\].
+- `DB_TYPE`: **sqlite3**: The database type in use \[mysql, postgres, mssql, sqlite3\].
 - `HOST`: **127.0.0.1:3306**: Database host address and port or absolute path for unix socket \[mysql, postgres\] (ex: /var/run/mysqld/mysqld.sock).
 - `NAME`: **gitea**: Database name.
 - `USER`: **root**: Database username.

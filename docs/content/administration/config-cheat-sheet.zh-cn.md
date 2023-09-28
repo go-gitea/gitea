@@ -414,7 +414,7 @@ menu:
 
 ## 数据库 (`database`)
 
-- `DB_TYPE`: **mysql**：数据库类型 \[mysql, postgres, mssql, sqlite3\]。
+- `DB_TYPE`: **sqlite3**：数据库类型 \[mysql, postgres, mssql, sqlite3\]。
 - `HOST`: **127.0.0.1:3306**：数据库主机地址和端口或unix套接字的绝对路径 \[mysql, postgres\]（例如：/var/run/mysqld/mysqld.sock）。
 - `NAME`: **gitea**：数据库名称。
 - `USER`: **root**：数据库用户名。
