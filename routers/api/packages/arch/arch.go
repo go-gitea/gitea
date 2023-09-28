@@ -70,7 +70,7 @@ func Push(ctx *context.Context) {
 	}
 
 	_, _, err = pkg_service.CreatePackageOrAddFileToExisting(
-		&pkg_service.PackageCreationInfo{
+		ctx, &pkg_service.PackageCreationInfo{
 			PackageInfo: pkg_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
 				PackageType: pkg_model.TypeArch,
@@ -176,7 +176,7 @@ func Remove(ctx *context.Context) {
 		return
 	}
 
-	err = pkg_service.RemovePackageVersion(ctx.Package.Owner, version)
+	err = pkg_service.RemovePackageVersion(ctx, ctx.Package.Owner, version)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
