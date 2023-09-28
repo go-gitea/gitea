@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -42,4 +43,12 @@ func TestTeam_RemoveRepository(t *testing.T) {
 	testSuccess(2, 3)
 	testSuccess(2, 5)
 	testSuccess(1, unittest.NonexistentID)
+}
+
+func TestDeleteOwnerRepositoriesDirectly(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	assert.NoError(t, DeleteOwnerRepositoriesDirectly(db.DefaultContext, user))
 }

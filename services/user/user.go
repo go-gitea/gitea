@@ -159,27 +159,9 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		//
 		// An alternative option here would be write a DeleteAllRepositoriesForUserID function which would delete all of the repos
 		// but such a function would likely get out of date
-		for {
-			repos, _, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
-				ListOptions: db.ListOptions{
-					PageSize: repo_model.RepositoryListDefaultPageSize,
-					Page:     1,
-				},
-				Private: true,
-				OwnerID: u.ID,
-				Actor:   u,
-			})
-			if err != nil {
-				return fmt.Errorf("GetUserRepositories: %w", err)
-			}
-			if len(repos) == 0 {
-				break
-			}
-			for _, repo := range repos {
-				if err := repo_service.DeleteRepositoryDirectly(ctx, u, u.ID, repo.ID); err != nil {
-					return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %w", repo.Name, u.Name, u.ID, err)
-				}
-			}
+		err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, u)
+		if err != nil {
+			return err
 		}
 
 		// Remove from Organizations and delete last owner organizations
@@ -209,7 +191,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 					if organization.IsErrLastOrgOwner(err) {
 						err = org_service.DeleteOrganization(ctx, org, true)
 						if err != nil {
-							return fmt.Errorf("unable to delete organisation %d: %w", org.ID, err)
+							return fmt.Errorf("unable to delete organization %d: %w", org.ID, err)
 						}
 					}
 					if err != nil {
