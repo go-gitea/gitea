@@ -132,10 +132,10 @@ var (
 	ldapSimpleAuthCLIFlags = append(commonLdapCLIFlags,
 		&cli.StringFlag{
 			Name:  "user-dn",
-			Usage: "The user’s DN.",
+			Usage: "The user's DN.",
 		})
 
-	cmdAuthAddLdapBindDn = &cli.Command{
+	microcmdAuthAddLdapBindDn = &cli.Command{
 		Name:  "add-ldap",
 		Usage: "Add new LDAP (via Bind DN) authentication source",
 		Action: func(c *cli.Context) error {
@@ -144,7 +144,7 @@ var (
 		Flags: ldapBindDnCLIFlags,
 	}
 
-	cmdAuthUpdateLdapBindDn = &cli.Command{
+	microcmdAuthUpdateLdapBindDn = &cli.Command{
 		Name:  "update-ldap",
 		Usage: "Update existing LDAP (via Bind DN) authentication source",
 		Action: func(c *cli.Context) error {
@@ -153,7 +153,7 @@ var (
 		Flags: append([]cli.Flag{idFlag}, ldapBindDnCLIFlags...),
 	}
 
-	cmdAuthAddLdapSimpleAuth = &cli.Command{
+	microcmdAuthAddLdapSimpleAuth = &cli.Command{
 		Name:  "add-ldap-simple",
 		Usage: "Add new LDAP (simple auth) authentication source",
 		Action: func(c *cli.Context) error {
@@ -162,7 +162,7 @@ var (
 		Flags: ldapSimpleAuthCLIFlags,
 	}
 
-	cmdAuthUpdateLdapSimpleAuth = &cli.Command{
+	microcmdAuthUpdateLdapSimpleAuth = &cli.Command{
 		Name:  "update-ldap-simple",
 		Usage: "Update existing LDAP (simple auth) authentication source",
 		Action: func(c *cli.Context) error {
