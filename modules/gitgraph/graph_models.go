@@ -119,7 +119,7 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 			return repo_model.IsOwnerMemberCollaborator(repository, user.ID)
 		}, &keyMap)
 
-		statuses, _, err := git_model.GetLatestCommitStatus(db.DefaultContext, repository.ID, c.Commit.ID.String(), db.ListOptions{})
+		statuses, _, err := git_model.GetLatestCommitStatus(ctx, repository.ID, c.Commit.ID.String(), db.ListOptions{})
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		} else {

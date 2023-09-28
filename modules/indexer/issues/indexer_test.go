@@ -5,7 +5,6 @@ package issues
 
 import (
 	"context"
-	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -22,9 +21,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", "..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func TestDBSearchIssues(t *testing.T) {

@@ -396,7 +396,7 @@ func RedirectDownload(ctx *context.Context) {
 	} else if len(releases) == 0 && vTag == "latest" {
 		// GitHub supports the alias "latest" for the latest release
 		// We only fetch the latest release if the tag is "latest" and no release with the tag "latest" exists
-		release, err := repo_model.GetLatestReleaseByRepoID(ctx.Repo.Repository.ID)
+		release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
 		if err != nil {
 			ctx.Error(http.StatusNotFound)
 			return
