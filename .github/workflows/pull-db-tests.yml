@@ -164,19 +164,19 @@ jobs:
           MYSQL_DATABASE: testgitea
         ports:
           - "3306:3306"
-    elasticsearch:
-      image: elasticsearch:7.5.0
-      env:
-        discovery.type: single-node
-      ports:
-        - "9200:9200"
-    smtpimap:
-      image: tabascoterrier/docker-imap-devel:latest
-      ports:
-        - "25:25"
-        - "143:143"
-        - "587:587"
-        - "993:993"
+      elasticsearch:
+        image: elasticsearch:7.5.0
+        env:
+          discovery.type: single-node
+        ports:
+          - "9200:9200"
+      smtpimap:
+        image: tabascoterrier/docker-imap-devel:latest
+        ports:
+          - "25:25"
+          - "143:143"
+          - "587:587"
+          - "993:993"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
