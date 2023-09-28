@@ -250,6 +250,7 @@ func TestDownloadReleaseAttachment(t *testing.T) {
 	req := NewRequest(t, "GET", url)
 	MakeRequest(t, req, http.StatusNotFound)
 
+	req = NewRequest(t, "GET", url)
 	session := loginUser(t, "user2")
 	session.MakeRequest(t, req, http.StatusOK)
 }
