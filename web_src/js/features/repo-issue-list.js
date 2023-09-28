@@ -191,26 +191,18 @@ function initArchivedLabelFilter() {
     return;
   }
 
-  const archivedLabels = document.querySelectorAll('[data-is-archived]');
-  const toggleArchivedLabels = () => {
-    const isChecked = archivedLabelEl.checked;
+  const archivedLabels = $('[data-is-archived]');
+  const archivedElToggle = () => {
     for (const label of archivedLabels) {
-      toggleElem(label, isChecked);
+      toggleElem(label, archivedLabelEl.checked);
     }
   };
 
-  const updateURL = () => {
-    const url = archivedLabelEl.getAttribute('data-url');
-    window.location = archivedLabelEl.checked ? url : url.replace(/&archived=true/, '');
-  };
-
-  // Initial setup
-  toggleArchivedLabels();
-
-  // Event listeners
+  archivedElToggle();
   archivedLabelEl.addEventListener('change', () => {
-    toggleArchivedLabels();
-    updateURL();
+    archivedElToggle();
+    const url = archivedLabelEl.getAttribute('data-url');
+    window.location = (archivedLabelEl.checked) ? url : url.replace(/&archived=true/, '');
   });
 }
 

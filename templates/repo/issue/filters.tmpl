@@ -21,7 +21,7 @@
 					<div class="ui checkbox compact archived-label-filter">
 						<input name="archived" type="checkbox"
 							id="archived-filter-checkbox" {{if .ShowArchivedLabels}}checked{{end}}
-							data-url="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}&archived=true"
+							data-url="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}&archived=true"
 							>
 						<label>
 							{{ctx.Locale.Tr "repo.issues.label_archived_filter"}}
