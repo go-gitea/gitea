@@ -164,6 +164,19 @@ jobs:
           MYSQL_DATABASE: testgitea
         ports:
           - "3306:3306"
+    elasticsearch:
+      image: elasticsearch:7.5.0
+      env:
+        discovery.type: single-node
+      ports:
+        - "9200:9200"
+    smtpimap:
+      image: tabascoterrier/docker-imap-devel:latest
+      ports:
+        - "25:25"
+        - "143:143"
+        - "587:587"
+        - "993:993"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
@@ -171,7 +184,7 @@ jobs:
           go-version: "~1.21"
           check-latest: true
       - name: Add hosts to /etc/hosts
-        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql" | sudo tee -a /etc/hosts'
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make backend
         env:
@@ -180,7 +193,9 @@ jobs:
         timeout-minutes: 50
         env:
           TAGS: bindata
+          RACE_ENABLED: true
           USE_REPO_TEST_DIR: 1
+          TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
   test-mssql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
