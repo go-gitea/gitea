@@ -246,7 +246,7 @@ type Comment struct {
 	NewTitle         string
 	OldRef           string
 	NewRef           string
-	DependentIssueID int64
+	DependentIssueID int64  `xorm:"index"` // This is used by issue_service.deleteIssue
 	DependentIssue   *Issue `xorm:"-"`
 
 	CommitID        int64
