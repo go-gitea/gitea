@@ -189,6 +189,9 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 		// find action without repository
 		genericOrphanCheck("Action entries without existing repository",
 			"action", "repository", "action.repo_id=repository.id"),
+		// find action without user
+		genericOrphanCheck("Action entries without existing user",
+			"action", "user", "action.act_user_id=`user`.id"),
 		// find OAuth2Grant without existing user
 		genericOrphanCheck("Orphaned OAuth2Grant without existing User",
 			"oauth2_grant", "user", "oauth2_grant.user_id=`user`.id"),
