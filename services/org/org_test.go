@@ -4,7 +4,6 @@
 package org
 
 import (
-	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -16,9 +15,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func TestDeleteOrganization(t *testing.T) {
