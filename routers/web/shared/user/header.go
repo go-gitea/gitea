@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // prepareContextForCommonProfile store some common data into context data for user's profile related pages (including the nav menu)
@@ -21,7 +22,6 @@ import (
 func prepareContextForCommonProfile(ctx *context.Context) {
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["EnableFeed"] = setting.Other.EnableFeed
 	ctx.Data["FeedURL"] = ctx.ContextUser.HomeLink()
 }
@@ -30,11 +30,11 @@ func prepareContextForCommonProfile(ctx *context.Context) {
 func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	prepareContextForCommonProfile(ctx)
 
-	ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx.Doer.ID, ctx.ContextUser.ID)
+	ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail && ctx.ContextUser.Email != "" && ctx.IsSigned && !ctx.ContextUser.KeepEmailPrivate
 
 	// Show OpenID URIs
-	openIDs, err := user_model.GetUserOpenIDs(ctx.ContextUser.ID)
+	openIDs, err := user_model.GetUserOpenIDs(ctx, ctx.ContextUser.ID)
 	if err != nil {
 		ctx.ServerError("GetUserOpenIDs", err)
 		return
@@ -85,7 +85,7 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 
 func FindUserProfileReadme(ctx *context.Context) (profileGitRepo *git.Repository, profileReadmeBlob *git.Blob, profileClose func()) {
 	profileDbRepo, err := repo_model.GetRepositoryByName(ctx.ContextUser.ID, ".profile")
-	if err == nil && !profileDbRepo.IsEmpty {
+	if err == nil && !profileDbRepo.IsEmpty && !profileDbRepo.IsPrivate {
 		if profileGitRepo, err = git.OpenRepository(ctx, profileDbRepo.RepoPath()); err != nil {
 			log.Error("FindUserProfileReadme failed to OpenRepository: %v", err)
 		} else {
@@ -109,4 +109,22 @@ func RenderUserHeader(ctx *context.Context) {
 	_, profileReadmeBlob, profileClose := FindUserProfileReadme(ctx)
 	defer profileClose()
 	ctx.Data["HasProfileReadme"] = profileReadmeBlob != nil
+}
+
+func LoadHeaderCount(ctx *context.Context) error {
+	prepareContextForCommonProfile(ctx)
+
+	repoCount, err := repo_model.CountRepository(ctx, &repo_model.SearchRepoOptions{
+		Actor:              ctx.Doer,
+		OwnerID:            ctx.ContextUser.ID,
+		Private:            ctx.IsSigned,
+		Collaborate:        util.OptionalBoolFalse,
+		IncludeDescription: setting.UI.SearchRepoDescription,
+	})
+	if err != nil {
+		return err
+	}
+	ctx.Data["RepoCount"] = repoCount
+
+	return nil
 }

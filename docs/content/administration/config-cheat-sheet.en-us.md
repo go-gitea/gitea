@@ -446,7 +446,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SQLITE_JOURNAL_MODE`: **""**: Change journal mode for SQlite3. Can be used to enable [WAL mode](https://www.sqlite.org/wal.html) when high load causes write congestion. See [SQlite3 docs](https://www.sqlite.org/pragma.html#pragma_journal_mode) for possible values. Defaults to the default for the database file, often DELETE.
 - `ITERATE_BUFFER_SIZE`: **50**: Internal buffer size for iterating.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
-- `LOG_SQL`: **true**: Log the executed SQL.
+- `LOG_SQL`: **false**: Log the executed SQL.
 - `DB_RETRIES`: **10**: How many ORM init / DB connect attempts allowed.
 - `DB_RETRY_BACKOFF`: **3s**: time.Duration to wait before trying another ORM init / DB connect attempt, if failure occurred.
 - `MAX_OPEN_CONNS` **0**: Database maximum open connections - default is 0, meaning there is no limit.
@@ -559,7 +559,7 @@ And the following unique queues:
     - `scrypt`:    `scrypt$65536$16$2$50`
   - Adjusting the algorithm parameters using this functionality is done at your own risk.
 - `CSRF_COOKIE_HTTP_ONLY`: **true**: Set false to allow JavaScript to read CSRF cookie.
-- `MIN_PASSWORD_LENGTH`: **6**: Minimum password length for new users.
+- `MIN_PASSWORD_LENGTH`: **8**: Minimum password length for new users.
 - `PASSWORD_COMPLEXITY`: **off**: Comma separated list of character classes required to pass minimum complexity. If left empty or no valid values are specified, checking is disabled (off):
   - lower - use one or more lower latin characters
   - upper - use one or more upper latin characters
@@ -621,7 +621,8 @@ And the following unique queues:
    BASIC and the user's password. Please note if you disable this you will not be able to access the
    tokens API endpoints using a password. Further, this only disables BASIC authentication using the
    password - not tokens or OAuth Basic.
-- `ENABLE_REVERSE_PROXY_AUTHENTICATION`: **false**: Enable this to allow reverse proxy authentication.
+- `ENABLE_REVERSE_PROXY_AUTHENTICATION`: **false**: Enable this to allow reverse proxy authentication for web requests
+- `ENABLE_REVERSE_PROXY_AUTHENTICATION_API`: **false**: Enable this to allow reverse proxy authentication for API requests, the reverse proxy is responsible for ensuring that no CSRF is possible.
 - `ENABLE_REVERSE_PROXY_AUTO_REGISTRATION`: **false**: Enable this to allow auto-registration
    for reverse authentication.
 - `ENABLE_REVERSE_PROXY_EMAIL`: **false**: Enable this to allow to auto-registration with a
@@ -681,7 +682,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 
 - `ED25519`: **256**
 - `ECDSA`: **256**
-- `RSA`: **2047**: We set 2047 here because an otherwise valid 2048 RSA key can be reported as 2047 length.
+- `RSA`: **3071**: We set 3071 here because an otherwise valid 3072 RSA key can be reported as 3071 length.
 - `DSA`: **-1**: DSA is now disabled by default. Set to **1024** to re-enable but ensure you may need to reconfigure your SSHD provider
 
 ## Webhook (`webhook`)
@@ -776,7 +777,7 @@ and
 
 - `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, redis-cluster, db, mysql, couchbase, memcache, postgres\]. Setting `db` will reuse the configuration in `[database]`
 - `PROVIDER_CONFIG`: **data/sessions**: For file, the root path; for db, empty (database config will be used); for others, the connection string. Relative paths will be made absolute against _`AppWorkPath`_.
-- `COOKIE_SECURE`: **false**: Enable this to force using HTTPS for all session access.
+- `COOKIE_SECURE`:**_empty_**: `true` or `false`. Enable this to force using HTTPS for all session access. If not set, it defaults to `true` if the ROOT_URL is an HTTPS URL.
 - `COOKIE_NAME`: **i\_like\_gitea**: The name of the cookie used for the session ID.
 - `GC_INTERVAL_TIME`: **86400**: GC interval in seconds.
 - `SESSION_LIFE_TIME`: **86400**: Session life time in seconds, default is 86400 (1 day)
@@ -822,7 +823,7 @@ Default templates for project boards:
 - `MAX_FILES`: **5**: Maximum number of attachments that can be uploaded at once.
 - `STORAGE_TYPE`: **local**: Storage type for attachments, `local` for local disk or `minio` for s3 compatible object storage service, default is `local` or other name defined with `[storage.xxx]`
 - `SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
-- `PATH`: **data/attachments**: Path to store attachments only available when STORAGE_TYPE is `local`
+- `PATH`: **attachments**: Path to store attachments only available when STORAGE_TYPE is `local`, relative paths will be resolved to `${AppDataPath}/${attachment.PATH}`.
 - `MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when STORAGE_TYPE is `minio`
 - `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when STORAGE_TYPE is `minio`
 - `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey to connect only available when STORAGE_TYPE is `minio`
@@ -954,6 +955,12 @@ Default templates for project boards:
 
 - `SCHEDULE`: **@midnight** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
 - `UPDATE_EXISTING`: **true**: Create new users, update existing user data and disable users that are not in external source anymore (default) or only create new users if UPDATE_EXISTING is set to false.
+
+## Cron - Cleanup Expired Actions Assets (`cron.cleanup_actions`)
+
+- `ENABLED`: **true**: Enable cleanup expired actions assets job.
+- `RUN_AT_START`: **true**: Run job at start time (if ENABLED).
+- `SCHEDULE`: **@midnight** : Cron syntax for the job.
 
 ### Extended cron tasks (not enabled by default)
 
@@ -1100,6 +1107,7 @@ This section only does "set" config, a removed config key from this section won'
 - `JWT_SECRET_URI`: **_empty_**: Instead of defining JWT_SECRET in the configuration, this configuration option can be used to give Gitea a path to a file that contains the secret (example value: `file:/etc/gitea/oauth2_jwt_secret`)
 - `JWT_SIGNING_PRIVATE_KEY_FILE`: **jwt/private.pem**: Private key file path used to sign OAuth2 tokens. The path is relative to `APP_DATA_PATH`. This setting is only needed if `JWT_SIGNING_ALGORITHM` is set to `RS256`, `RS384`, `RS512`, `ES256`, `ES384` or `ES512`. The file must contain a RSA or ECDSA private key in the PKCS8 format. If no key exists a 4096 bit key will be created for you.
 - `MAX_TOKEN_LENGTH`: **32767**: Maximum length of token/cookie to accept from OAuth2 provider
+- `DEFAULT_APPLICATIONS`: **git-credential-oauth, git-credential-manager**: Pre-register OAuth applications for some services on startup. See the [OAuth2 documentation](/development/oauth2-provider.md) for the list of available options.
 
 ## i18n (`i18n`)
 
@@ -1376,10 +1384,11 @@ PROXY_HOSTS = *.github.com
 
 ## Actions (`actions`)
 
-- `ENABLED`: **false**: Enable/Disable actions capabilities
+- `ENABLED`: **true**: Enable/Disable actions capabilities
 - `DEFAULT_ACTIONS_URL`: **github**: Default platform to get action plugins, `github` for `https://github.com`, `self` for the current Gitea instance.
 - `STORAGE_TYPE`: **local**: Storage type for actions logs, `local` for local disk or `minio` for s3 compatible object storage service, default is `local` or other name defined with `[storage.xxx]`
 - `MINIO_BASE_PATH`: **actions_log/**: Minio base path on the bucket only available when STORAGE_TYPE is `minio`
+- `ARTIFACT_RETENTION_DAYS`: **90**: Number of days to keep artifacts. Set to 0 to disable artifact retention. Default is 90 days if not set.
 
 `DEFAULT_ACTIONS_URL` indicates where the Gitea Actions runners should find the actions with relative path.
 For example, `uses: actions/checkout@v3` means `https://github.com/actions/checkout@v3` since the value of `DEFAULT_ACTIONS_URL` is `github`.

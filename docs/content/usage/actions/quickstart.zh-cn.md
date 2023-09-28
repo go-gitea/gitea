@@ -127,7 +127,7 @@ jobs:
 
 请注意，演示文件中包含一些表情符号。
 请确保您的数据库支持它们，特别是在使用MySQL时。
-如果字符集不是`utf8mb4，将出现错误，例如`Error 1366 (HY000): Incorrect string value: '\\xF0\\x9F\\x8E\\x89 T...' for column 'name' at row 1`。
+如果字符集不是`utf8mb4`，将出现错误，例如`Error 1366 (HY000): Incorrect string value: '\\xF0\\x9F\\x8E\\x89 T...' for column 'name' at row 1`。
 有关更多信息，请参阅[数据库准备工作](installation/database-preparation.md#mysql)。
 
 或者，您可以从演示文件中删除所有表情符号，然后再尝试一次。

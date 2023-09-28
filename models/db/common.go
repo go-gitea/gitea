@@ -37,3 +37,19 @@ func BuildCaseInsensitiveIn(key string, values []string) builder.Cond {
 
 	return builder.In("UPPER("+key+")", uppers)
 }
+
+// BuilderDialect returns the xorm.Builder dialect of the engine
+func BuilderDialect() string {
+	switch {
+	case setting.Database.Type.IsMySQL():
+		return builder.MYSQL
+	case setting.Database.Type.IsSQLite3():
+		return builder.SQLITE
+	case setting.Database.Type.IsPostgreSQL():
+		return builder.POSTGRES
+	case setting.Database.Type.IsMSSQL():
+		return builder.MSSQL
+	default:
+		return ""
+	}
+}

@@ -45,6 +45,7 @@
 
 @import "./repo.css";
 @import "./repo/release-tag.css";
+@import "./repo/issue-card.css";
 @import "./repo/issue-label.css";
 @import "./repo/issue-list.css";
 @import "./repo/list-header.css";

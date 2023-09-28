@@ -48,5 +48,5 @@ func (*improveActionTableIndicesAction) TableIndices() []*schemas.Index {
 }
 
 func ImproveActionTableIndices(x *xorm.Engine) error {
-	return x.Sync2(&improveActionTableIndicesAction{})
+	return x.Sync(&improveActionTableIndicesAction{})
 }

@@ -147,6 +147,10 @@ func (b *Base) Params(p string) string {
 	return s
 }
 
+func (b *Base) PathParamRaw(p string) string {
+	return chi.URLParam(b.Req, strings.TrimPrefix(p, ":"))
+}
+
 // ParamsInt64 returns the param on route as int64
 func (b *Base) ParamsInt64(p string) int64 {
 	v, _ := strconv.ParseInt(b.Params(p), 10, 64)

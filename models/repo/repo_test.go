@@ -121,7 +121,7 @@ func TestMetas(t *testing.T) {
 	metas = repo.ComposeMetas()
 	assert.Contains(t, metas, "org")
 	assert.Contains(t, metas, "teams")
-	assert.Equal(t, "user3", metas["org"])
+	assert.Equal(t, "org3", metas["org"])
 	assert.Equal(t, ",owners,team1,", metas["teams"])
 }
 

@@ -1,14 +1,18 @@
 {{if eq .HookType "telegram"}}
-	<p>{{.locale.Tr "repo.settings.add_web_hook_desc" "https://core.telegram.org/bots" (.locale.Tr "repo.settings.web_hook_name_telegram") | Str2html}}</p>
+	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://core.telegram.org/bots" (ctx.Locale.Tr "repo.settings.web_hook_name_telegram") | Str2html}}</p>
 	<form class="ui form" action="{{.BaseLink}}/telegram/{{or .Webhook.ID "new"}}" method="post">
 		{{.CsrfTokenHtml}}
 		<div class="required field {{if .Err_BotToken}}error{{end}}">
-			<label for="bot_token">{{.locale.Tr "repo.settings.bot_token"}}</label>
+			<label for="bot_token">{{ctx.Locale.Tr "repo.settings.bot_token"}}</label>
 			<input id="bot_token" name="bot_token" type="text" value="{{.TelegramHook.BotToken}}" autofocus required>
 		</div>
 		<div class="required field {{if .Err_ChatID}}error{{end}}">
-			<label for="chat_id">{{.locale.Tr "repo.settings.chat_id"}}</label>
+			<label for="chat_id">{{ctx.Locale.Tr "repo.settings.chat_id"}}</label>
 			<input id="chat_id" name="chat_id" type="text" value="{{.TelegramHook.ChatID}}" required>
+		</div>
+		<div class="field {{if .Err_ThreadID}}error{{end}}">
+			<label for="thread_id">{{ctx.Locale.Tr "repo.settings.thread_id"}}</label>
+			<input id="thread_id" name="thread_id" type="text" value="{{.TelegramHook.ThreadID}}">
 		</div>
 		{{template "repo/settings/webhook/settings" .}}
 	</form>

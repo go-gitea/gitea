@@ -52,6 +52,8 @@ func GetIssueDependencies(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	// If this issue's repository does not enable dependencies then there can be no dependencies by default
 	if !ctx.Repo.Repository.IsDependenciesEnabled(ctx) {
@@ -185,6 +187,8 @@ func CreateIssueDependency(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Issue"
 	//   "404":
 	//     description: the issue does not exist
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// We want to make <:index> depend on <Form>, i.e. <:index> is the target
 	target := getParamsIssue(ctx)
@@ -242,6 +246,10 @@ func RemoveIssueDependency(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Issue"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// We want to make <:index> depend on <Form>, i.e. <:index> is the target
 	target := getParamsIssue(ctx)
@@ -303,6 +311,8 @@ func GetIssueBlocks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	// We need to list the issues that DEPEND on this issue not the other way round
 	// Therefore whether dependencies are enabled or not in this repository is potentially irrelevant.
@@ -458,6 +468,8 @@ func RemoveIssueBlocking(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Issue"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	dependency := getParamsIssue(ctx)
 	if ctx.Written() {

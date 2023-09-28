@@ -16,7 +16,7 @@ func AddAgitFlowPullRequest(x *xorm.Engine) error {
 		Flow PullRequestFlow `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	if err := x.Sync2(new(PullRequest)); err != nil {
+	if err := x.Sync(new(PullRequest)); err != nil {
 		return fmt.Errorf("sync2: %w", err)
 	}
 	return nil

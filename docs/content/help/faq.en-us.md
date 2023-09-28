@@ -410,7 +410,7 @@ Sometimes when there are migrations the old columns and default values may be le
 unchanged in the database schema. This may lead to warning such as:
 
 ```
-2020/08/02 11:32:29 ...rm/session_schema.go:360:Sync2() [W] Table user Column keep_activity_private db default is , struct default is 0
+2020/08/02 11:32:29 ...rm/session_schema.go:360:Sync() [W] Table user Column keep_activity_private db default is , struct default is 0
 ```
 
 These can safely be ignored, but you are able to stop these warnings by getting Gitea to recreate these tables using:

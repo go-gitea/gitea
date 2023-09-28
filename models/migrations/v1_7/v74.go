@@ -11,5 +11,5 @@ func AddApprovalWhitelistsToProtectedBranches(x *xorm.Engine) error {
 		ApprovalsWhitelistTeamIDs []int64 `xorm:"JSON TEXT"`
 		RequiredApprovals         int64   `xorm:"NOT NULL DEFAULT 0"`
 	}
-	return x.Sync2(new(ProtectedBranch))
+	return x.Sync(new(ProtectedBranch))
 }

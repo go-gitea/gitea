@@ -32,18 +32,18 @@ import (
 
 // GetOrCreateRepositoryVersion gets or creates the internal repository package
 // The Debian registry needs multiple index files which are stored in this package.
-func GetOrCreateRepositoryVersion(ownerID int64) (*packages_model.PackageVersion, error) {
-	return packages_service.GetOrCreateInternalPackageVersion(ownerID, packages_model.TypeDebian, debian_module.RepositoryPackage, debian_module.RepositoryVersion)
+func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages_model.PackageVersion, error) {
+	return packages_service.GetOrCreateInternalPackageVersion(ctx, ownerID, packages_model.TypeDebian, debian_module.RepositoryPackage, debian_module.RepositoryVersion)
 }
 
 // GetOrCreateKeyPair gets or creates the PGP keys used to sign repository files
-func GetOrCreateKeyPair(ownerID int64) (string, string, error) {
-	priv, err := user_model.GetSetting(ownerID, debian_module.SettingKeyPrivate)
+func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, error) {
+	priv, err := user_model.GetSetting(ctx, ownerID, debian_module.SettingKeyPrivate)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return "", "", err
 	}
 
-	pub, err := user_model.GetSetting(ownerID, debian_module.SettingKeyPublic)
+	pub, err := user_model.GetSetting(ctx, ownerID, debian_module.SettingKeyPublic)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return "", "", err
 	}
@@ -54,11 +54,11 @@ func GetOrCreateKeyPair(ownerID int64) (string, string, error) {
 			return "", "", err
 		}
 
-		if err := user_model.SetUserSetting(ownerID, debian_module.SettingKeyPrivate, priv); err != nil {
+		if err := user_model.SetUserSetting(ctx, ownerID, debian_module.SettingKeyPrivate, priv); err != nil {
 			return "", "", err
 		}
 
-		if err := user_model.SetUserSetting(ownerID, debian_module.SettingKeyPublic, pub); err != nil {
+		if err := user_model.SetUserSetting(ctx, ownerID, debian_module.SettingKeyPublic, pub); err != nil {
 			return "", "", err
 		}
 	}
@@ -98,7 +98,7 @@ func generateKeypair() (string, string, error) {
 
 // BuildAllRepositoryFiles (re)builds all repository files for every available distributions, components and architectures
 func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
-	pv, err := GetOrCreateRepositoryVersion(ownerID)
+	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
 
 // BuildSpecificRepositoryFiles builds index files for the repository
 func BuildSpecificRepositoryFiles(ctx context.Context, ownerID int64, distribution, component, architecture string) error {
-	pv, err := GetOrCreateRepositoryVersion(ownerID)
+	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
 	if err != nil {
 		return err
 	}
@@ -212,7 +212,7 @@ func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packa
 		}
 		addSeparator = true
 
-		fmt.Fprint(w, pfd.Properties.GetByName(debian_module.PropertyControl))
+		fmt.Fprintf(w, "%s\n", strings.TrimSpace(pfd.Properties.GetByName(debian_module.PropertyControl)))
 
 		fmt.Fprintf(w, "Filename: pool/%s/%s/%s\n", distribution, component, pfd.File.Name)
 		fmt.Fprintf(w, "Size: %d\n", pfd.Blob.Size)
@@ -234,6 +234,7 @@ func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packa
 		{"Packages.xz", packagesXzContent},
 	} {
 		_, err = packages_service.AddFileToPackageVersionInternal(
+			ctx,
 			repoVersion,
 			&packages_service.PackageFileCreationInfo{
 				PackageFileInfo: packages_service.PackageFileInfo{
@@ -306,7 +307,7 @@ func buildReleaseFiles(ctx context.Context, ownerID int64, repoVersion *packages
 
 	sort.Strings(architectures)
 
-	priv, _, err := GetOrCreateKeyPair(ownerID)
+	priv, _, err := GetOrCreateKeyPair(ctx, ownerID)
 	if err != nil {
 		return err
 	}
@@ -381,6 +382,7 @@ func buildReleaseFiles(ctx context.Context, ownerID int64, repoVersion *packages
 		{"InRelease", inReleaseContent},
 	} {
 		_, err = packages_service.AddFileToPackageVersionInternal(
+			ctx,
 			repoVersion,
 			&packages_service.PackageFileCreationInfo{
 				PackageFileInfo: packages_service.PackageFileInfo{

@@ -4,6 +4,7 @@
 package activities_test
 
 import (
+	"fmt"
 	"path"
 	"testing"
 
@@ -283,4 +284,37 @@ func TestConsistencyUpdateAction(t *testing.T) {
 	//
 	assert.NoError(t, db.GetEngine(db.DefaultContext).Where("id = ?", id).Find(&actions))
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
+}
+
+func TestDeleteIssueActions(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// load an issue
+	issue := unittest.AssertExistsAndLoadBean(t, &issue_model.Issue{ID: 4})
+	assert.NotEqualValues(t, issue.ID, issue.Index) // it needs to use different ID/Index to test the DeleteIssueActions to delete some actions by IssueIndex
+
+	// insert a comment
+	err := db.Insert(db.DefaultContext, &issue_model.Comment{Type: issue_model.CommentTypeComment, IssueID: issue.ID})
+	assert.NoError(t, err)
+	comment := unittest.AssertExistsAndLoadBean(t, &issue_model.Comment{Type: issue_model.CommentTypeComment, IssueID: issue.ID})
+
+	// truncate action table and insert some actions
+	err = db.TruncateBeans(db.DefaultContext, &activities_model.Action{})
+	assert.NoError(t, err)
+	err = db.Insert(db.DefaultContext, &activities_model.Action{
+		OpType:    activities_model.ActionCommentIssue,
+		CommentID: comment.ID,
+	})
+	assert.NoError(t, err)
+	err = db.Insert(db.DefaultContext, &activities_model.Action{
+		OpType:  activities_model.ActionCreateIssue,
+		RepoID:  issue.RepoID,
+		Content: fmt.Sprintf("%d|content...", issue.Index),
+	})
+	assert.NoError(t, err)
+
+	// assert that the actions exist, then delete them
+	unittest.AssertCount(t, &activities_model.Action{}, 2)
+	assert.NoError(t, activities_model.DeleteIssueActions(db.DefaultContext, issue.RepoID, issue.ID, issue.Index))
+	unittest.AssertCount(t, &activities_model.Action{}, 0)
 }

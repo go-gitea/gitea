@@ -254,7 +254,7 @@ documented above, please note that `db` must be used as the database hostname.
 
 # Customization
 
-Customization files described [here](https://docs.gitea.io/en-us/customizing-gitea/) should
+Customization files described [here](administration/customizing-gitea.md) should
 be placed in `/var/lib/gitea/custom` directory. If using host volumes, it's quite easy to access these
 files; for named volumes, this is done through another container or by direct access at
 `/var/lib/docker/volumes/gitea_gitea/_/var_lib_gitea`. The configuration file will be saved at
@@ -313,7 +313,7 @@ services:
       - GITEA__mailer__PASSWD="""${GITEA__mailer__PASSWD:?GITEA__mailer__PASSWD not set}"""
 ```
 
-To set required TOKEN and SECRET values, consider using Gitea's built-in [generate utility functions](https://docs.gitea.io/en-us/command-line/#generate).
+To set required TOKEN and SECRET values, consider using Gitea's built-in [generate utility functions](administration/command-line.md#generate).
 
 # SSH Container Passthrough
 
@@ -342,7 +342,7 @@ Once the wrapper is in place, you can make it the shell for the `git` user:
 sudo usermod -s /usr/local/bin/gitea-shell git
 ```
 
-Now that all the SSH commands are forwarded to the container, you need to set up the SSH authentication on the host. This is done by leveraging the [SSH AuthorizedKeysCommand](https://docs.gitea.io/en-us/command-line/#keys) to match the keys against those accepted by Gitea. Add the following block to `/etc/ssh/sshd_config`, on the host:
+Now that all the SSH commands are forwarded to the container, you need to set up the SSH authentication on the host. This is done by leveraging the [SSH AuthorizedKeysCommand](administration/command-line.md#keys) to match the keys against those accepted by Gitea. Add the following block to `/etc/ssh/sshd_config`, on the host:
 
 ```bash
 Match User git

@@ -43,7 +43,7 @@ func insertSettingsIfNotExist(x *xorm.Engine, sysSettings []*SystemSetting) erro
 }
 
 func CreateSystemSettingsTable(x *xorm.Engine) error {
-	if err := x.Sync2(new(SystemSetting)); err != nil {
+	if err := x.Sync(new(SystemSetting)); err != nil {
 		return fmt.Errorf("sync2: %w", err)
 	}
 
