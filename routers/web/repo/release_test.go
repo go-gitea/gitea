@@ -7,10 +7,13 @@ import (
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewReleasePost(t *testing.T) {
@@ -60,5 +63,59 @@ func TestNewReleasePost(t *testing.T) {
 			Note:        testCase.Form.Content,
 		}, unittest.Cond("is_draft=?", len(testCase.Form.Draft) > 0))
 		ctx.Repo.GitRepo.Close()
+	}
+}
+
+func TestCalReleaseNumCommitsBehind(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx, _ := contexttest.MockContext(t, "user2/repo-release/releases")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 57)
+	contexttest.LoadGitRepo(t, ctx)
+	t.Cleanup(func() { ctx.Repo.GitRepo.Close() })
+
+	releases, err := repo_model.GetReleasesByRepoID(ctx, ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{
+		IncludeDrafts: ctx.Repo.CanWrite(unit.TypeReleases),
+	})
+	assert.NoError(t, err)
+
+	countCache := make(map[string]int64)
+	for _, release := range releases {
+		err := calReleaseNumCommitsBehind(ctx.Repo, release, countCache)
+		assert.NoError(t, err)
+	}
+
+	type computedFields struct {
+		NumCommitsBehind int64
+		TargetBehind     string
+	}
+	expectedComputation := map[string]computedFields{
+		"v1.0": {
+			NumCommitsBehind: 3,
+			TargetBehind:     "main",
+		},
+		"v1.1": {
+			NumCommitsBehind: 1,
+			TargetBehind:     "main",
+		},
+		"v2.0": {
+			NumCommitsBehind: 0,
+			TargetBehind:     "main",
+		},
+		"non-existing-target-branch": {
+			NumCommitsBehind: 1,
+			TargetBehind:     "main",
+		},
+		"empty-target-branch": {
+			NumCommitsBehind: 1,
+			TargetBehind:     "main",
+		},
+	}
+	for _, r := range releases {
+		actual := computedFields{
+			NumCommitsBehind: r.NumCommitsBehind,
+			TargetBehind:     r.TargetBehind,
+		}
+		assert.Equal(t, expectedComputation[r.TagName], actual, "wrong computed fields for %s: %#v", r.TagName, r)
 	}
 }
