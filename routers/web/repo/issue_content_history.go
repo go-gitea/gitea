@@ -93,9 +93,15 @@ func canSoftDeleteContentHistory(ctx *context.Context, issue *issues_model.Issue
 	history *issues_model.ContentHistory,
 ) bool {
 	canSoftDelete := false
-	if ctx.Repo.IsOwner() {
+	// CanWrite means the doer can manage the issue list
+	if ctx.Repo.IsOwner() || ctx.Repo.CanWrite(unit.TypeIssues) {
 		canSoftDelete = true
-	} else if ctx.Repo.CanWrite(unit.TypeIssues) {
+	} else {
+		// for read-only users, they could still post issues or comments,
+		// they should be able to delete the history related to their own issue/comment, a case is:
+		// 1. the user posts some sensitive data
+		// 2. then the repo owner edits the post but didn't remove the sensitive data
+		// 3. the poster wants to delete the edited history revision
 		if comment == nil {
 			// the issue poster or the history poster can soft-delete
 			canSoftDelete = ctx.Doer.ID == issue.PosterID || ctx.Doer.ID == history.PosterID
