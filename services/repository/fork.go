@@ -141,8 +141,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 		cloneCmd := git.NewCommand(txCtx, "clone", "--bare")
 		if opts.SingleBranch != "" {
-			cloneCmd.AddArguments("--single-branch", "--branch")
-			cloneCmd = cloneCmd.AddDynamicArguments(opts.SingleBranch)
+			cloneCmd.AddArguments("--single-branch", "--branch").AddDynamicArguments(opts.SingleBranch)
 		}
 		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
 		if stdout, _, err := cloneCmd.AddDynamicArguments(oldRepoPath, repoPath).
