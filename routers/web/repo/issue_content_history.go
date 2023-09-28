@@ -11,7 +11,6 @@ import (
 
 	"code.gitea.io/gitea/models/avatars"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -91,10 +90,9 @@ func GetContentHistoryList(ctx *context.Context) {
 // Admins or owners can always delete history revisions. Normal users can only delete own history revisions.
 func canSoftDeleteContentHistory(ctx *context.Context, issue *issues_model.Issue, comment *issues_model.Comment,
 	history *issues_model.ContentHistory,
-) bool {
-	canSoftDelete := false
+) (canSoftDelete bool) {
 	// CanWrite means the doer can manage the issue/PR list
-	if ctx.Repo.IsOwner() || (!issue.IsPull && ctx.Repo.CanWrite(unit.TypeIssues)) || (issue.IsPull && ctx.Repo.CanWrite(unit.TypePullRequests)) {
+	if ctx.Repo.IsOwner() || ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		canSoftDelete = true
 	} else {
 		// for read-only users, they could still post issues or comments,
