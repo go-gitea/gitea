@@ -21,7 +21,6 @@
 	{{- else}}red{{end}}">{{svg "octicon-git-merge" 40}}</div>
 	<div class="content">
 		{{template "repo/pulls/status" (dict
-			"locale" .locale
 			"CommitStatus" .LatestCommitStatus
 			"CommitStatuses" .LatestCommitStatuses
 			"is_context_required" .is_context_required
