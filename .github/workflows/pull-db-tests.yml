@@ -161,7 +161,7 @@ jobs:
         image: mysql:8.1
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
-          MYSQL_DATABASE: testgitea
+          MYSQL_DATABASE: test
         ports:
           - "3306:3306"
       elasticsearch:
@@ -189,7 +189,7 @@ jobs:
       - run: make backend
         env:
           TAGS: bindata
-      - run: make test-mysql-migration test-mysql
+      - run: make test-mysql-migration integration-test-coverage
         timeout-minutes: 50
         env:
           TAGS: bindata
