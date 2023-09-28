@@ -2578,12 +2578,14 @@ tbody.commit-list {
 
 .comment-diff-data {
   background: var(--color-code-bg);
+  min-height: 12em;
   max-height: calc(100vh - 10.5rem);
   overflow-y: auto;
 }
 
 .comment-diff-data pre {
   line-height: 18px;
+  margin: 1em;
   white-space: pre-wrap;
   word-break: break-all;
   overflow-wrap: break-word;
