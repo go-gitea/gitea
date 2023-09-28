@@ -418,9 +418,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	if !ctx.FormBool("archived") && len(labelIDs) > 0 {
 		var tempLabelIds []int64
 		for _, l := range labels {
-			for _, labelId := range labelIDs {
-				if labelId == l.ID && !l.IsArchived() {
-					tempLabelIds = append(tempLabelIds, labelId)
+			for _, labelID := range labelIDs {
+				if labelID == l.ID && !l.IsArchived() {
+					tempLabelIds = append(tempLabelIds, labelID)
 				}
 			}
 		}
