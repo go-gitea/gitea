@@ -1504,14 +1504,21 @@
 }
 
 .repository .diff-detail-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 8;
   padding: 7px 0;
+  height: 44px; /* this height should match sticky-2nd-row */
   background: var(--color-body);
 }
 
 @media (max-width: 991.98px) {
   .repository .diff-detail-box {
     flex-direction: row;
-    align-items: flex-start;
+    height: 77px; /* this height should match sticky-2nd-row */
   }
 }
 
@@ -1520,18 +1527,6 @@
     flex-wrap: wrap;
   }
 }
-
-.repository .diff-detail-box.sticky {
-  position: sticky;
-  top: 0;
-  z-index: 8;
-  border-bottom: none;
-  padding-left: 5px;
-  padding-right: 5px;
-  margin-left: -4px;
-  margin-right: -4px;
-}
-
 .repository .diff-detail-box .diff-detail-stats strong {
   margin-left: 0.25rem;
   margin-right: 0.25rem;
@@ -2832,7 +2827,7 @@ tbody.commit-list {
 
 .ui.attached.header.diff-file-header.sticky-2nd-row {
   position: sticky;
-  top: 47px; /* match .repository .diff-detail-box */
+  top: 44px; /* match .repository .diff-detail-box */
   z-index: 7;
 }
 
