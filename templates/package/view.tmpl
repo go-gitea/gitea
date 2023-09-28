@@ -8,11 +8,11 @@
 				<h1>{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
 			</div>
 			<div>
-				{{$timeStr := TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.locale}}
+				{{$timeStr := TimeSinceUnix .PackageDescriptor.Version.CreatedUnix ctx.Locale}}
 				{{if .HasRepositoryAccess}}
-					{{.locale.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) .PackageDescriptor.Repository.Link (.PackageDescriptor.Repository.FullName | Escape) | Safe}}
+					{{ctx.Locale.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) .PackageDescriptor.Repository.Link (.PackageDescriptor.Repository.FullName | Escape) | Safe}}
 				{{else}}
-					{{.locale.Tr "packages.published_by" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) | Safe}}
+					{{ctx.Locale.Tr "packages.published_by" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) | Safe}}
 				{{end}}
 			</div>
 		</div>
@@ -42,13 +42,13 @@
 				{{template "package/content/vagrant" .}}
 			</div>
 			<div class="issue-content-right ui segment">
-				<strong>{{.locale.Tr "packages.details"}}</strong>
+				<strong>{{ctx.Locale.Tr "packages.details"}}</strong>
 				<div class="ui relaxed list">
 					<div class="item">{{svg .PackageDescriptor.Package.Type.SVGName 16 "gt-mr-3"}} {{.PackageDescriptor.Package.Type.Name}}</div>
 					{{if .HasRepositoryAccess}}
 					<div class="item">{{svg "octicon-repo" 16 "gt-mr-3"}} <a href="{{.PackageDescriptor.Repository.Link}}">{{.PackageDescriptor.Repository.FullName}}</a></div>
 					{{end}}
-					<div class="item">{{svg "octicon-calendar" 16 "gt-mr-3"}} {{TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.locale}}</div>
+					<div class="item">{{svg "octicon-calendar" 16 "gt-mr-3"}} {{TimeSinceUnix .PackageDescriptor.Version.CreatedUnix ctx.Locale}}</div>
 					<div class="item">{{svg "octicon-download" 16 "gt-mr-3"}} {{.PackageDescriptor.Version.DownloadCount}}</div>
 					{{template "package/metadata/alpine" .}}
 					{{template "package/metadata/arch" .}}
@@ -77,7 +77,7 @@
 				</div>
 				{{if not (eq .PackageDescriptor.Package.Type "container")}}
 					<div class="divider"></div>
-					<strong>{{.locale.Tr "packages.assets"}} ({{len .PackageDescriptor.Files}})</strong>
+					<strong>{{ctx.Locale.Tr "packages.assets"}} ({{len .PackageDescriptor.Files}})</strong>
 					<div class="ui relaxed list">
 					{{range .PackageDescriptor.Files}}
 						<div class="item">
@@ -88,8 +88,8 @@
 					</div>
 				{{end}}
 				<div class="divider"></div>
-				<strong>{{.locale.Tr "packages.versions"}} ({{.TotalVersionCount}})</strong>
-				<a class="gt-float-right" href="{{$.PackageDescriptor.PackageWebLink}}/versions">{{.locale.Tr "packages.versions.view_all"}}</a>
+				<strong>{{ctx.Locale.Tr "packages.versions"}} ({{.TotalVersionCount}})</strong>
+				<a class="gt-float-right" href="{{$.PackageDescriptor.PackageWebLink}}/versions">{{ctx.Locale.Tr "packages.versions.view_all"}}</a>
 				<div class="ui relaxed list">
 				{{range .LatestVersions}}
 					<div class="item gt-df">
@@ -102,10 +102,10 @@
 					<div class="divider"></div>
 					<div class="ui relaxed list">
 						{{if .HasRepositoryAccess}}
-						<div class="item">{{svg "octicon-issue-opened" 16 "gt-mr-3"}} <a href="{{.PackageDescriptor.Repository.Link}}/issues">{{.locale.Tr "repo.issues"}}</a></div>
+						<div class="item">{{svg "octicon-issue-opened" 16 "gt-mr-3"}} <a href="{{.PackageDescriptor.Repository.Link}}/issues">{{ctx.Locale.Tr "repo.issues"}}</a></div>
 						{{end}}
 						{{if .CanWritePackages}}
-						<div class="item">{{svg "octicon-tools" 16 "gt-mr-3"}} <a href="{{.Link}}/settings">{{.locale.Tr "repo.settings"}}</a></div>
+						<div class="item">{{svg "octicon-tools" 16 "gt-mr-3"}} <a href="{{.Link}}/settings">{{ctx.Locale.Tr "repo.settings"}}</a></div>
 						{{end}}
 					</div>
 				{{end}}

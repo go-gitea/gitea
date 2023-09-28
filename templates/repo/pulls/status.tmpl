@@ -2,17 +2,17 @@
 	{{if not $.Issue.PullRequest.HasMerged}}
 		<div class="ui top attached header">
 			{{if eq .LatestCommitStatus.State "pending"}}
-				{{$.locale.Tr "repo.pulls.status_checking"}}
+				{{ctx.Locale.Tr "repo.pulls.status_checking"}}
 			{{else if eq .LatestCommitStatus.State "success"}}
-				{{$.locale.Tr "repo.pulls.status_checks_success"}}
+				{{ctx.Locale.Tr "repo.pulls.status_checks_success"}}
 			{{else if eq .LatestCommitStatus.State "warning"}}
-				{{$.locale.Tr "repo.pulls.status_checks_warning"}}
+				{{ctx.Locale.Tr "repo.pulls.status_checks_warning"}}
 			{{else if eq .LatestCommitStatus.State "failure"}}
-				{{$.locale.Tr "repo.pulls.status_checks_failure"}}
+				{{ctx.Locale.Tr "repo.pulls.status_checks_failure"}}
 			{{else if eq .LatestCommitStatus.State "error"}}
-				{{$.locale.Tr "repo.pulls.status_checks_error"}}
+				{{ctx.Locale.Tr "repo.pulls.status_checks_error"}}
 			{{else}}
-				{{$.locale.Tr "repo.pulls.status_checking"}}
+				{{ctx.Locale.Tr "repo.pulls.status_checking"}}
 			{{end}}
 			</div>
 	{{end}}
@@ -24,9 +24,9 @@
 				<span>{{.Context}} <span class="text grey">{{.Description}}</span></span>
 				<div class="ui status-details">
 					{{if $.is_context_required}}
-						{{if (call $.is_context_required .Context)}}<div class="ui label">{{$.locale.Tr "repo.pulls.status_checks_requested"}}</div>{{end}}
+						{{if (call $.is_context_required .Context)}}<div class="ui label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>{{end}}
 					{{end}}
-					<span>{{if .TargetURL}}<a href="{{.TargetURL}}">{{$.locale.Tr "repo.pulls.status_checks_details"}}</a>{{end}}</span>
+					<span>{{if .TargetURL}}<a href="{{.TargetURL}}">{{ctx.Locale.Tr "repo.pulls.status_checks_details"}}</a>{{end}}</span>
 				</div>
 			</div>
 		</div>
