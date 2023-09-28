@@ -215,11 +215,14 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 
 	// prepare attachments directory and files
 	assert.NoError(t, util.RemoveAll(setting.Attachment.Storage.Path))
+	attachPath := filepath.Join(filepath.Dir(setting.AppPath), "tests", "testdata", "data", "attachments")
 	if setting.Attachment.Storage.Type == setting.LocalStorageType {
-		assert.NoError(t, unittest.CopyDir(filepath.Join(filepath.Dir(setting.AppPath), "tests", "testdata", "data", "attachments"), setting.Attachment.Storage.Path))
+		assert.NoError(t, unittest.CopyDir(attachPath, setting.Attachment.Storage.Path))
 	} else {
 		assert.EqualValues(t, setting.MinioStorageType, setting.Attachment.Storage.Type)
-		s, err := storage.NewLocalStorage(context.Background(), setting.Attachment.Storage)
+		s, err := storage.NewLocalStorage(context.Background(), &setting.Storage{
+			Path: attachPath,
+		})
 		assert.NoError(t, err)
 		_, err = storage.Copy(storage.Attachments, "", s, "")
 		assert.NoError(t, err)
