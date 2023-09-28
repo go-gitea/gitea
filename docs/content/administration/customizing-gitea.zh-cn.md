@@ -23,13 +23,13 @@ Gitea 引用 `custom` 目录中的自定义配置文件来覆盖配置、模板�
 将会自动创建包括 `custom/` 在内的必要应用目录，应用本身的配置存放在
 `custom/conf/app.ini` 当中。在发行版中可能会以 `/etc/gitea/` 的形式为 `custom` 设置一个符号链接，查看配置详情请移步：
 
-- [快速备忘单](https://docs.gitea.io/en-us/config-cheat-sheet/)
+- [快速备忘单](administration/config-cheat-sheet.md)
 - [完整配置清单](https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini)
 
 如果您在 binary 同目录下无法找到 `custom` 文件夹，请检查您的 `GITEA_CUSTOM`
 环境变量配置， 因为它可能被配置到了其他地方（可能被一些启动脚本设置指定了目录）。
 
-- [环境变量清单](https://docs.gitea.io/en-us/specific-variables/)
+- [环境变量清单](administration/environment-variables.md)
 
 **注：** 必须完全重启 Gitea 以使配置生效。
 
@@ -87,4 +87,4 @@ Gitea 引用 `custom` 目录中的自定义配置文件来覆盖配置、模板�
 ## 更改 Gitea 外观
 
 Gitea 目前由两种内置主题，分别为默认 `gitea` 主题和深色主题 `arc-green`，您可以通过修改
-`app.ini` [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) 部分的 `DEFAULT_THEME` 的值来变更至一个可用的 Gitea 外观。
+`app.ini` [ui](administration/config-cheat-sheet.md#ui-ui) 部分的 `DEFAULT_THEME` 的值来变更至一个可用的 Gitea 外观。

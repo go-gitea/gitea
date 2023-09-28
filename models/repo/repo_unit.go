@@ -6,6 +6,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -176,7 +177,7 @@ func (cfg *ActionsConfig) ToString() string {
 }
 
 func (cfg *ActionsConfig) IsWorkflowDisabled(file string) bool {
-	return util.SliceContains(cfg.DisabledWorkflows, file)
+	return slices.Contains(cfg.DisabledWorkflows, file)
 }
 
 func (cfg *ActionsConfig) DisableWorkflow(file string) {

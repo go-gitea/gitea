@@ -61,7 +61,7 @@ For example:
 Be careful, the `https://` or `http://` prefix is necessary!
 
 Alternatively, if you want your runners to download actions from GitHub or your own Gitea instance by default, you can configure it by setting `[actions].DEFAULT_ACTIONS_URL`.
-See [Configuration Cheat Sheet](https://docs.gitea.io/en-us/config-cheat-sheet/#actions-actions).
+See [Configuration Cheat Sheet](administration/config-cheat-sheet.md#actions-actions).
 
 This is one of the differences from GitHub Actions, but it should allow users much more flexibility in how they run Actions.
 
@@ -69,7 +69,7 @@ This is one of the differences from GitHub Actions, but it should allow users mu
 
 Runners have no more permissions than simply connecting to your Gitea instance.
 When any runner receives a job to run, it will temporarily gain limited permission to the repository associated with the job.
-If you want to give more permissions to the runner, allowing it to access more private repositories or external systems, you can pass [secrets](https://docs.gitea.io/en-us/usage/secrets/) to it.
+If you want to give more permissions to the runner, allowing it to access more private repositories or external systems, you can pass [secrets](usage/secrets.md) to it.
 
 Refined permission control to Actions is a complicated job.
 In the future, we will add more options to Gitea to make it more configurable, such as allowing more write access to repositories or read access to all repositories in the same organization.
@@ -180,3 +180,6 @@ For events supported only by GitHub, see GitHub's [documentation](https://docs.g
 | pull_request_review_comment | `created`, `edited`                                                                                                      |
 | release                     | `published`, `edited`                                                                                                    |
 | registry_package            | `published`                                                                                                              |
+
+> For `pull_request` events, in [GitHub Actions](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request), the `ref` is `refs/pull/:prNumber/merge`, which is a reference to the merge commit preview. However, Gitea has no such reference.
+> Therefore, the `ref` in Gitea Actions is `refs/pull/:prNumber/head`, which points to the head of pull request rather than the preview of the merge commit.

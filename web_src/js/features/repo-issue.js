@@ -110,7 +110,7 @@ export function initRepoIssueSidebarList() {
             }
             filteredResponse.results.push({
               name: `#${issue.number} ${htmlEscape(issue.title)
-              }<div class="text small dont-break-out">${htmlEscape(issue.repository.full_name)}</div>`,
+              }<div class="text small gt-word-break">${htmlEscape(issue.repository.full_name)}</div>`,
               value: issue.id,
             });
           });
@@ -178,9 +178,9 @@ export function initRepoIssueCommentDelete() {
           const idx = $conversationHolder.data('idx');
           const lineType = $conversationHolder.closest('tr').data('line-type');
           if (lineType === 'same') {
-            $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).removeClass('gt-invisible');
           } else {
-            $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('gt-invisible');
           }
           $conversationHolder.remove();
         }

@@ -19,7 +19,7 @@ menu:
 
 ## Setting up the repository indexer
 
-Gitea can search through the files of the repositories by enabling this function in your [`app.ini`](https://docs.gitea.io/en-us/config-cheat-sheet/):
+Gitea can search through the files of the repositories by enabling this function in your [`app.ini`](administration/config-cheat-sheet.md):
 
 ```ini
 [indexer]

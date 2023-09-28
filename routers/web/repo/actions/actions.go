@@ -191,7 +191,7 @@ func List(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	ctx.Data["Actors"] = repo.MakeSelfOnTop(ctx, actors)
+	ctx.Data["Actors"] = repo.MakeSelfOnTop(ctx.Doer, actors)
 
 	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx)
 

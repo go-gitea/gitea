@@ -91,4 +91,4 @@ REVERSE_PROXY_TRUSTED_PROXIES = 127.0.0.0/8,::1/128
 `REVERSE_PROXY_LIMIT` 限制反向代理服务器的层数，设置为 `0` 表示不使用这些标头。
 `REVERSE_PROXY_TRUSTED_PROXIES` 表示受信任的反向代理服务器网络地址，
 经过该网络地址转发来的流量会经过解析 `X-Real-IP` 头部得到真实客户端地址。
-（参考 [configuration cheat sheet](https://docs.gitea.io/en-us/config-cheat-sheet/#security-security)）
+（参考 [configuration cheat sheet](administration/config-cheat-sheet.md#security-security)）
