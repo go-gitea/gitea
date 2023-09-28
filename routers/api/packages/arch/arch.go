@@ -21,7 +21,6 @@ import (
 // Push new package to arch package registry.
 func Push(ctx *context.Context) {
 	var (
-		owner    = ctx.Params("username")
 		filename = ctx.Params("filename")
 		distro   = ctx.Params("distro")
 		sign     = ctx.Params("sign")
@@ -70,7 +69,7 @@ func Push(ctx *context.Context) {
 		props[distro+"-"+filename+".sig"] = sign
 	}
 
-	ver, _, err := pkg_service.CreatePackageOrAddFileToExisting(
+	_, _, err = pkg_service.CreatePackageOrAddFileToExisting(
 		&pkg_service.PackageCreationInfo{
 			PackageInfo: pkg_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
@@ -103,12 +102,6 @@ func Push(ctx *context.Context) {
 			Properties:        props,
 		},
 	)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	err = arch_service.RepoConnect(ctx, owner, desc.Name, ver.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

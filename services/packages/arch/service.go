@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	pkg_model "code.gitea.io/gitea/models/packages"
-	repository "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
 	pkg_service "code.gitea.io/gitea/services/packages"
@@ -57,19 +56,6 @@ func GetPackageSignature(ctx *context.Context, distro, file string) (*bytes.Read
 	}
 
 	return nil, errors.New("signature for requested package not found")
-}
-
-// Automatically connect repository with source code to published package, if
-// repository with the same name exists in user/organization scope.
-func RepoConnect(ctx *context.Context, owner, repo string, pkgid int64) error {
-	r, err := repository.GetRepositoryByOwnerAndName(ctx, owner, repo)
-	if err == nil {
-		err = pkg_model.SetRepositoryLink(ctx, pkgid, r.ID)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // Finds all arch packages in user/organization scope, each package version
