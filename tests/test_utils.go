@@ -224,8 +224,10 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 			Path: attachPath,
 		})
 		assert.NoError(t, err)
-		_, err = storage.Copy(storage.Attachments, "", s, "")
-		assert.NoError(t, err)
+		assert.NoError(t, s.IterateObjects("", func(p string, obj storage.Object) error {
+			_, err = storage.Copy(storage.Attachments, p, s, p)
+			return err
+		}))
 	}
 
 	// load LFS object fixtures
