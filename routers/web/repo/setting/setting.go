@@ -243,6 +243,13 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
+		remoteAddress, err := util.SanitizeURL(form.MirrorAddress)
+		if err != nil {
+			ctx.ServerError("SanitizeURL", err)
+			return
+		}
+		pullMirror.RemoteAddress = remoteAddress
+
 		form.LFS = form.LFS && setting.LFS.StartServer
 
 		if len(form.LFSEndpoint) > 0 {
@@ -397,12 +404,19 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
+		remoteAddress, err := util.SanitizeURL(form.PushMirrorAddress)
+		if err != nil {
+			ctx.ServerError("SanitizeURL", err)
+			return
+		}
+
 		m := &repo_model.PushMirror{
-			RepoID:       repo.ID,
-			Repo:         repo,
-			RemoteName:   fmt.Sprintf("remote_mirror_%s", remoteSuffix),
-			SyncOnCommit: form.PushMirrorSyncOnCommit,
-			Interval:     interval,
+			RepoID:        repo.ID,
+			Repo:          repo,
+			RemoteName:    fmt.Sprintf("remote_mirror_%s", remoteSuffix),
+			SyncOnCommit:  form.PushMirrorSyncOnCommit,
+			Interval:      interval,
+			RemoteAddress: remoteAddress,
 		}
 		if err := repo_model.InsertPushMirror(ctx, m); err != nil {
 			ctx.ServerError("InsertPushMirror", err)
@@ -681,7 +695,7 @@ func SettingsPost(ctx *context.Context) {
 		if _, err := repo_module.CleanUpMigrateInfo(ctx, repo); err != nil {
 			ctx.ServerError("CleanUpMigrateInfo", err)
 			return
-		} else if err = repo_model.DeleteMirrorByRepoID(ctx.Repo.Repository.ID); err != nil {
+		} else if err = repo_model.DeleteMirrorByRepoID(ctx, ctx.Repo.Repository.ID); err != nil {
 			ctx.ServerError("DeleteMirrorByRepoID", err)
 			return
 		}
@@ -799,7 +813,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := models.CancelRepositoryTransfer(ctx.Repo.Repository); err != nil {
+		if err := models.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
 			ctx.ServerError("CancelRepositoryTransfer", err)
 			return
 		}
@@ -863,7 +877,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repo_model.SetArchiveRepoState(repo, true); err != nil {
+		if err := repo_model.SetArchiveRepoState(ctx, repo, true); err != nil {
 			log.Error("Tried to archive a repo: %s", err)
 			ctx.Flash.Error(ctx.Tr("repo.settings.archive.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
@@ -881,7 +895,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repo_model.SetArchiveRepoState(repo, false); err != nil {
+		if err := repo_model.SetArchiveRepoState(ctx, repo, false); err != nil {
 			log.Error("Tried to unarchive a repo: %s", err)
 			ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")

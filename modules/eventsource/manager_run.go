@@ -71,7 +71,7 @@ loop:
 
 			now := timeutil.TimeStampNow().Add(-2)
 
-			uidCounts, err := activities_model.GetUIDsAndNotificationCounts(then, now)
+			uidCounts, err := activities_model.GetUIDsAndNotificationCounts(ctx, then, now)
 			if err != nil {
 				log.Error("Unable to get UIDcounts: %v", err)
 			}
@@ -84,7 +84,7 @@ loop:
 			then = now
 
 			if setting.Service.EnableTimetracking {
-				usersStopwatches, err := issues_model.GetUIDsAndStopwatch()
+				usersStopwatches, err := issues_model.GetUIDsAndStopwatch(ctx)
 				if err != nil {
 					log.Error("Unable to get GetUIDsAndStopwatch: %v", err)
 					return

@@ -1343,7 +1343,7 @@ outer:
 		}
 	}
 
-	return diff, err
+	return diff, nil
 }
 
 // CommentAsDiff returns c.Patch as *Diff

@@ -16,13 +16,13 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/storage"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // NewIssue creates new issue with labels for repository.
 func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64) error {
-	if err := issues_model.NewIssue(repo, issue, labelIDs, uuids); err != nil {
+	if err := issues_model.NewIssue(ctx, repo, issue, labelIDs, uuids); err != nil {
 		return err
 	}
 
@@ -37,12 +37,12 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 		return err
 	}
 
-	notification.NotifyNewIssue(ctx, issue, mentions)
+	notify_service.NewIssue(ctx, issue, mentions)
 	if len(issue.Labels) > 0 {
-		notification.NotifyIssueChangeLabels(ctx, issue.Poster, issue, issue.Labels, nil)
+		notify_service.IssueChangeLabels(ctx, issue.Poster, issue, issue.Labels, nil)
 	}
 	if issue.Milestone != nil {
-		notification.NotifyIssueChangeMilestone(ctx, issue.Poster, issue, 0)
+		notify_service.IssueChangeMilestone(ctx, issue.Poster, issue, 0)
 	}
 
 	return nil
@@ -63,7 +63,7 @@ func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 		}
 	}
 
-	notification.NotifyIssueChangeTitle(ctx, doer, issue, oldTitle)
+	notify_service.IssueChangeTitle(ctx, doer, issue, oldTitle)
 
 	return nil
 }
@@ -73,11 +73,11 @@ func ChangeIssueRef(ctx context.Context, issue *issues_model.Issue, doer *user_m
 	oldRef := issue.Ref
 	issue.Ref = ref
 
-	if err := issues_model.ChangeIssueRef(issue, doer, oldRef); err != nil {
+	if err := issues_model.ChangeIssueRef(ctx, issue, doer, oldRef); err != nil {
 		return err
 	}
 
-	notification.NotifyIssueChangeRef(ctx, doer, issue, oldRef)
+	notify_service.IssueChangeRef(ctx, doer, issue, oldRef)
 
 	return nil
 }
@@ -166,7 +166,7 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 		}
 	}
 
-	notification.NotifyDeleteIssue(ctx, doer, issue)
+	notify_service.DeleteIssue(ctx, doer, issue)
 
 	return nil
 }

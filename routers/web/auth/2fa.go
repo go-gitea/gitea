@@ -53,7 +53,7 @@ func TwoFactorPost(ctx *context.Context) {
 	}
 
 	id := idSess.(int64)
-	twofa, err := auth.GetTwoFactorByUID(id)
+	twofa, err := auth.GetTwoFactorByUID(ctx, id)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -75,7 +75,7 @@ func TwoFactorPost(ctx *context.Context) {
 		}
 
 		if ctx.Session.Get("linkAccount") != nil {
-			err = externalaccount.LinkAccountFromStore(ctx.Session, u)
+			err = externalaccount.LinkAccountFromStore(ctx, ctx.Session, u)
 			if err != nil {
 				ctx.ServerError("UserSignIn", err)
 				return
@@ -83,7 +83,7 @@ func TwoFactorPost(ctx *context.Context) {
 		}
 
 		twofa.LastUsedPasscode = form.Passcode
-		if err = auth.UpdateTwoFactor(twofa); err != nil {
+		if err = auth.UpdateTwoFactor(ctx, twofa); err != nil {
 			ctx.ServerError("UserSignIn", err)
 			return
 		}
@@ -126,7 +126,7 @@ func TwoFactorScratchPost(ctx *context.Context) {
 	}
 
 	id := idSess.(int64)
-	twofa, err := auth.GetTwoFactorByUID(id)
+	twofa, err := auth.GetTwoFactorByUID(ctx, id)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -140,7 +140,7 @@ func TwoFactorScratchPost(ctx *context.Context) {
 			ctx.ServerError("UserSignIn", err)
 			return
 		}
-		if err = auth.UpdateTwoFactor(twofa); err != nil {
+		if err = auth.UpdateTwoFactor(ctx, twofa); err != nil {
 			ctx.ServerError("UserSignIn", err)
 			return
 		}

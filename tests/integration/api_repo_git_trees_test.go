@@ -17,7 +17,7 @@ import (
 func TestAPIReposGitTrees(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})         // owner of the repo1 & repo16
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})         // owner of the repo3
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})          // owner of the repo3
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})         // owner of neither repos
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})   // public repo
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})   // public repo
@@ -57,19 +57,19 @@ func TestAPIReposGitTrees(t *testing.T) {
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s", user2.Name, repo1.Name, badSHA)
 	MakeRequest(t, req, http.StatusBadRequest)
 
-	// Test using org repo "user3/repo3" where user2 is a collaborator
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s?token=%s", user3.Name, repo3.Name, repo3TreeSHA, token)
+	// Test using org repo "org3/repo3" where user2 is a collaborator
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s?token=%s", org3.Name, repo3.Name, repo3TreeSHA, token)
 	MakeRequest(t, req, http.StatusOK)
 
-	// Test using org repo "user3/repo3" with no user token
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s", user3.Name, repo3TreeSHA, repo3.Name)
+	// Test using org repo "org3/repo3" with no user token
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s", org3.Name, repo3TreeSHA, repo3.Name)
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// Login as User4.
 	session = loginUser(t, user4.Name)
 	token4 := getTokenForLoggedInUser(t, session)
 
-	// Test using org repo "user3/repo3" where user4 is a NOT collaborator
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/d56a3073c1dbb7b15963110a049d50cdb5db99fc?access=%s", user3.Name, repo3.Name, token4)
+	// Test using org repo "org3/repo3" where user4 is a NOT collaborator
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/d56a3073c1dbb7b15963110a049d50cdb5db99fc?access=%s", org3.Name, repo3.Name, token4)
 	MakeRequest(t, req, http.StatusNotFound)
 }
