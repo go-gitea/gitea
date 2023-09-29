@@ -129,13 +129,13 @@ export function decodeURLEncodedBase64(base64url) {
     .replace(/-/g, '+'));
 }
 
-const parser = new DOMParser();
-const serializer = new XMLSerializer();
+const domParser = new DOMParser();
+const xmlSerializer = new XMLSerializer();
 
 export function parseDom(text, contentType) {
-  return parser.parseFromString(text, contentType);
+  return domParser.parseFromString(text, contentType);
 }
 
 export function serializeXml(node) {
-  return serializer.serializeToString(node);
+  return xmlSerializer.serializeToString(node);
 }
