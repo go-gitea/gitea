@@ -16,10 +16,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // ErrForkAlreadyExist represents a "ForkAlreadyExist" kind of error.
@@ -45,9 +45,10 @@ func (err ErrForkAlreadyExist) Unwrap() error {
 
 // ForkRepoOptions contains the fork repository options
 type ForkRepoOptions struct {
-	BaseRepo    *repo_model.Repository
-	Name        string
-	Description string
+	BaseRepo     *repo_model.Repository
+	Name         string
+	Description  string
+	SingleBranch string
 }
 
 // ForkRepository forks a repository
@@ -71,6 +72,10 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		}
 	}
 
+	defaultBranch := opts.BaseRepo.DefaultBranch
+	if opts.SingleBranch != "" {
+		defaultBranch = opts.SingleBranch
+	}
 	repo := &repo_model.Repository{
 		OwnerID:       owner.ID,
 		Owner:         owner,
@@ -78,7 +83,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		Name:          opts.Name,
 		LowerName:     strings.ToLower(opts.Name),
 		Description:   opts.Description,
-		DefaultBranch: opts.BaseRepo.DefaultBranch,
+		DefaultBranch: defaultBranch,
 		IsPrivate:     opts.BaseRepo.IsPrivate || opts.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate,
 		IsEmpty:       opts.BaseRepo.IsEmpty,
 		IsFork:        true,
@@ -134,9 +139,12 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 		needsRollback = true
 
+		cloneCmd := git.NewCommand(txCtx, "clone", "--bare")
+		if opts.SingleBranch != "" {
+			cloneCmd.AddArguments("--single-branch", "--branch").AddDynamicArguments(opts.SingleBranch)
+		}
 		repoPath := storage.RepoPath(owner.Name, repo.Name)
-		if stdout, _, err := git.NewCommand(txCtx,
-			"clone", "--bare").AddDynamicArguments(oldRepoPath, repoPath).
+		if stdout, _, err := cloneCmd.AddDynamicArguments(oldRepoPath, repoPath).
 			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", opts.BaseRepo.FullName(), repo.FullName())).
 			RunStdBytes(&git.RunOpts{Timeout: 10 * time.Minute}); err != nil {
 			log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, opts.BaseRepo, stdout, err)
@@ -186,12 +194,12 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		log.Error("Open created git repository failed: %v", err)
 	} else {
 		defer gitRepo.Close()
-		if err := repo_module.SyncReleasesWithTags(repo, gitRepo); err != nil {
+		if err := repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
 			log.Error("Sync releases from git tags failed: %v", err)
 		}
 	}
 
-	notification.NotifyForkRepository(ctx, doer, opts.BaseRepo, repo)
+	notify_service.ForkRepository(ctx, doer, opts.BaseRepo, repo)
 
 	return repo, nil
 }

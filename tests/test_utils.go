@@ -182,7 +182,7 @@ func InitTest(requireGitea bool) {
 
 func PrepareTestEnv(t testing.TB, skip ...int) func() {
 	t.Helper()
-	ourSkip := 2
+	ourSkip := 1
 	if len(skip) > 0 {
 		ourSkip += skip[0]
 	}

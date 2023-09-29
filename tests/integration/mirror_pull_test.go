@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	release_service "code.gitea.io/gitea/services/release"
+	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -39,7 +40,7 @@ func TestMirrorPull(t *testing.T) {
 		Releases:    false,
 	}
 
-	mirrorRepo, err := repository.CreateRepository(user, user, repository.CreateRepoOptions{
+	mirrorRepo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, user, repo_service.CreateRepoOptions{
 		Name:        opts.RepoName,
 		Description: opts.Description,
 		IsPrivate:   opts.Private,
@@ -86,7 +87,7 @@ func TestMirrorPull(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, initCount+1, count)
 
-	release, err := repo_model.GetRelease(repo.ID, "v0.2")
+	release, err := repo_model.GetRelease(db.DefaultContext, repo.ID, "v0.2")
 	assert.NoError(t, err)
 	assert.NoError(t, release_service.DeleteReleaseByID(ctx, release.ID, user, true))
 

@@ -4,29 +4,18 @@
 package context
 
 import (
-	"net/url"
 	"strings"
 	"time"
 )
 
 // GetQueryBeforeSince return parsed time (unix format) from URL query's before and since
 func GetQueryBeforeSince(ctx *Base) (before, since int64, err error) {
-	qCreatedBefore, err := prepareQueryArg(ctx, "before")
+	before, err = parseFormTime(ctx, "before")
 	if err != nil {
 		return 0, 0, err
 	}
 
-	qCreatedSince, err := prepareQueryArg(ctx, "since")
-	if err != nil {
-		return 0, 0, err
-	}
-
-	before, err = parseTime(qCreatedBefore)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	since, err = parseTime(qCreatedSince)
+	since, err = parseFormTime(ctx, "since")
 	if err != nil {
 		return 0, 0, err
 	}
@@ -34,7 +23,8 @@ func GetQueryBeforeSince(ctx *Base) (before, since int64, err error) {
 }
 
 // parseTime parse time and return unix timestamp
-func parseTime(value string) (int64, error) {
+func parseFormTime(ctx *Base, name string) (int64, error) {
+	value := strings.TrimSpace(ctx.FormString(name))
 	if len(value) != 0 {
 		t, err := time.Parse(time.RFC3339, value)
 		if err != nil {
@@ -45,11 +35,4 @@ func parseTime(value string) (int64, error) {
 		}
 	}
 	return 0, nil
-}
-
-// prepareQueryArg unescape and trim a query arg
-func prepareQueryArg(ctx *Base, name string) (value string, err error) {
-	value, err = url.PathUnescape(ctx.FormString(name))
-	value = strings.TrimSpace(value)
-	return value, err
 }

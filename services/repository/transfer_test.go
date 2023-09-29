@@ -15,8 +15,9 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git/storage"
-	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/notification/action"
+	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/feed"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -25,7 +26,7 @@ var notifySync sync.Once
 
 func registerNotifier() {
 	notifySync.Do(func() {
-		notification.RegisterNotifier(action.NewNotifier())
+		notify_service.RegisterNotifier(feed.NewNotifier())
 	})
 }
 
@@ -42,7 +43,7 @@ func TestTransferOwnership(t *testing.T) {
 	transferredRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	assert.EqualValues(t, 2, transferredRepo.OwnerID)
 
-	exist, err := storage.IsExist(storage.RepoRelPath("user3", "repo3"))
+	exist, err := util.IsExist(storage.RepoRelPath("org3", "repo3"))
 	assert.NoError(t, err)
 	assert.False(t, exist)
 	exist, err = storage.IsExist(storage.RepoRelPath("user2", "repo3"))
@@ -52,7 +53,7 @@ func TestTransferOwnership(t *testing.T) {
 		OpType:    activities_model.ActionTransferRepo,
 		ActUserID: 2,
 		RepoID:    3,
-		Content:   "user3/repo3",
+		Content:   "org3/repo3",
 	})
 
 	unittest.CheckConsistencyFor(t, &repo_model.Repository{}, &user_model.User{}, &organization.Team{})

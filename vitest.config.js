@@ -11,6 +11,7 @@ export default defineConfig({
     open: false,
     allowOnly: true,
     passWithNoTests: true,
+    globals: true,
     watch: false,
   },
   plugins: [

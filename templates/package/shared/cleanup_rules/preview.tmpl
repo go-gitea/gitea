@@ -1,17 +1,17 @@
-<h4 class="ui top attached header">{{.locale.Tr "packages.owner.settings.cleanuprules.preview"}}</h4>
+<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.preview"}}</h4>
 <div class="ui attached segment">
-	<p>{{.locale.Tr "packages.owner.settings.cleanuprules.preview.overview" (len .VersionsToRemove)}}</p>
+	<p>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.preview.overview" (len .VersionsToRemove)}}</p>
 </div>
 <div class="ui attached table segment">
 	<table class="ui very basic striped table unstackable">
 		<thead>
 			<tr>
-				<th>{{.locale.Tr "admin.packages.type"}}</th>
-				<th>{{.locale.Tr "admin.packages.name"}}</th>
-				<th>{{.locale.Tr "admin.packages.version"}}</th>
-				<th>{{.locale.Tr "admin.packages.creator"}}</th>
-				<th>{{.locale.Tr "admin.packages.size"}}</th>
-				<th>{{.locale.Tr "admin.packages.published"}}</th>
+				<th>{{ctx.Locale.Tr "admin.packages.type"}}</th>
+				<th>{{ctx.Locale.Tr "admin.packages.name"}}</th>
+				<th>{{ctx.Locale.Tr "admin.packages.version"}}</th>
+				<th>{{ctx.Locale.Tr "admin.packages.creator"}}</th>
+				<th>{{ctx.Locale.Tr "admin.packages.size"}}</th>
+				<th>{{ctx.Locale.Tr "admin.packages.published"}}</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -26,7 +26,7 @@
 				</tr>
 			{{else}}
 				<tr>
-					<td colspan="6">{{.locale.Tr "packages.owner.settings.cleanuprules.preview.none"}}</td>
+					<td colspan="6">{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.preview.none"}}</td>
 				</tr>
 			{{end}}
 		</tbody>

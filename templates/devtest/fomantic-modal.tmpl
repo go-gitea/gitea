@@ -2,41 +2,68 @@
 <div class="page-content devtest ui container">
 	{{template "base/alert" .}}
 
-	<button class="show-modal" data-modal="#test-modal-form">show modal form</button>
-	<div id="test-modal-form" class="ui mini modal">
-		<div class="header">Form dialog</div>
+	<div id="test-modal-form-1" class="ui mini modal">
+		<div class="header">Form dialog (layout 1)</div>
 		<form class="content" method="post">
-			<div class="ui input"><input name="user_input"></div>
-			{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
+			<div class="ui input gt-w-100"><input name="user_input"></div>
+			{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 		</form>
 	</div>
 
-	<div class="divider"></div>
+	<div id="test-modal-form-2" class="ui mini modal">
+		<div class="header">Form dialog (layout 2)</div>
+		<form method="post">
+			<div class="content">
+				<div class="ui input gt-w-100"><input name="user_input"></div>
+				{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+			</div>
+		</form>
+	</div>
+
+	<div id="test-modal-form-3" class="ui mini modal">
+		<div class="header">Form dialog (layout 3)</div>
+		<form method="post">
+			<div class="content">
+				<div class="ui input gt-w-100"><input name="user_input"></div>
+			</div>
+			{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+		</form>
+	</div>
+
+	<div id="test-modal-form-4" class="ui mini modal">
+		<div class="header">Form dialog (layout 4)</div>
+		<div class="content">
+			<div class="ui input gt-w-100"><input name="user_input"></div>
+		</div>
+		<form method="post">
+			{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+		</form>
+	</div>
 
 	<div class="ui g-modal-confirm modal" id="test-modal-default">
 		<div class="header">{{svg "octicon-file"}} Default dialog <span>title</span></div>
 		<div class="content">
 			very long aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 		</div>
-		{{template "base/modal_actions_confirm" (dict "locale" $.locale)}}
+		{{template "base/modal_actions_confirm"}}
 	</div>
 
 	<div class="ui g-modal-confirm modal" id="test-modal-confirm">
 		<div class="header">Confirm dialog</div>
 		<div class="content">hello, this is the modal dialog content</div>
-		{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
+		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 	</div>
 
 	<div class="ui g-modal-confirm modal" id="test-modal-blue">
 		<div class="header">Blue dialog</div>
 		<div class="content">hello, this is the modal dialog content</div>
-		{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonColors" "blue")}}
+		{{template "base/modal_actions_confirm" (dict "ModalButtonColors" "blue")}}
 	</div>
 
 	<div class="ui g-modal-confirm modal" id="test-modal-yellow">
 		<div class="header">yellow dialog</div>
 		<div class="content">hello, this is the modal dialog content</div>
-		{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonColors" "yellow")}}
+		{{template "base/modal_actions_confirm" (dict "ModalButtonColors" "yellow")}}
 	</div>
 
 	<div class="ui g-modal-confirm modal" id="test-modal-danger">
@@ -46,17 +73,14 @@
 		{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" "I know and must do  this is dangerous operation")}}
 	</div>
 
-	<div class="modal-buttons"></div>
+	<div class="modal-buttons flex-text-block gt-fw"></div>
 	<script type="module">
 		for (const el of $('.ui.modal')) {
-			const $btn = $('<button>').text(`Show ${el.id}`).on('click', () => {
+			const $btn = $('<button>').text(`${el.id}`).on('click', () => {
 				$(el).modal({onApprove() {alert('confirmed')}}).modal('show');
 			});
 			$('.modal-buttons').append($btn);
 		}
 	</script>
-	<style>
-		.modal-buttons button { margin: 5px; }
-	</style>
 </div>
 {{template "base/footer" .}}

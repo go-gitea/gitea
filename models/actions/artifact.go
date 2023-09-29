@@ -9,19 +9,21 @@ package actions
 import (
 	"context"
 	"errors"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
 
+// ArtifactStatus is the status of an artifact, uploading, expired or need-delete
+type ArtifactStatus int64
+
 const (
-	// ArtifactStatusUploadPending is the status of an artifact upload that is pending
-	ArtifactStatusUploadPending = 1
-	// ArtifactStatusUploadConfirmed is the status of an artifact upload that is confirmed
-	ArtifactStatusUploadConfirmed = 2
-	// ArtifactStatusUploadError is the status of an artifact upload that is errored
-	ArtifactStatusUploadError = 3
+	ArtifactStatusUploadPending   ArtifactStatus = iota + 1 // 1， ArtifactStatusUploadPending is the status of an artifact upload that is pending
+	ArtifactStatusUploadConfirmed                           // 2， ArtifactStatusUploadConfirmed is the status of an artifact upload that is confirmed
+	ArtifactStatusUploadError                               // 3， ArtifactStatusUploadError is the status of an artifact upload that is errored
+	ArtifactStatusExpired                                   // 4, ArtifactStatusExpired is the status of an artifact that is expired
 )
 
 func init() {
@@ -45,9 +47,10 @@ type ActionArtifact struct {
 	Status             int64              `xorm:"index"`                         // The status of the artifact, uploading, expired or need-delete
 	CreatedUnix        timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix        timeutil.TimeStamp `xorm:"updated index"`
+	ExpiredUnix        timeutil.TimeStamp `xorm:"index"` // The time when the artifact will be expired
 }
 
-func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPath string) (*ActionArtifact, error) {
+func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPath string, expiredDays int64) (*ActionArtifact, error) {
 	if err := t.LoadJob(ctx); err != nil {
 		return nil, err
 	}
@@ -61,7 +64,8 @@ func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPa
 			RepoID:       t.RepoID,
 			OwnerID:      t.OwnerID,
 			CommitSHA:    t.CommitSHA,
-			Status:       ArtifactStatusUploadPending,
+			Status:       int64(ArtifactStatusUploadPending),
+			ExpiredUnix:  timeutil.TimeStamp(time.Now().Unix() + 3600*24*expiredDays),
 		}
 		if _, err := db.GetEngine(ctx).Insert(artifact); err != nil {
 			return nil, err
@@ -126,15 +130,16 @@ func ListUploadedArtifactsByRunID(ctx context.Context, runID int64) ([]*ActionAr
 type ActionArtifactMeta struct {
 	ArtifactName string
 	FileSize     int64
+	Status       int64
 }
 
 // ListUploadedArtifactsMeta returns all uploaded artifacts meta of a run
 func ListUploadedArtifactsMeta(ctx context.Context, runID int64) ([]*ActionArtifactMeta, error) {
 	arts := make([]*ActionArtifactMeta, 0, 10)
 	return arts, db.GetEngine(ctx).Table("action_artifact").
-		Where("run_id=? AND status=?", runID, ArtifactStatusUploadConfirmed).
+		Where("run_id=? AND (status=? OR status=?)", runID, ArtifactStatusUploadConfirmed, ArtifactStatusExpired).
 		GroupBy("artifact_name").
-		Select("artifact_name, sum(file_size) as file_size").
+		Select("artifact_name, sum(file_size) as file_size, max(status) as status").
 		Find(&arts)
 }
 
@@ -148,4 +153,17 @@ func ListArtifactsByRepoID(ctx context.Context, repoID int64) ([]*ActionArtifact
 func ListArtifactsByRunIDAndName(ctx context.Context, runID int64, name string) ([]*ActionArtifact, error) {
 	arts := make([]*ActionArtifact, 0, 10)
 	return arts, db.GetEngine(ctx).Where("run_id=? AND artifact_name=?", runID, name).Find(&arts)
+}
+
+// ListNeedExpiredArtifacts returns all need expired artifacts but not deleted
+func ListNeedExpiredArtifacts(ctx context.Context) ([]*ActionArtifact, error) {
+	arts := make([]*ActionArtifact, 0, 10)
+	return arts, db.GetEngine(ctx).
+		Where("expired_unix < ? AND status = ?", timeutil.TimeStamp(time.Now().Unix()), ArtifactStatusUploadConfirmed).Find(&arts)
+}
+
+// SetArtifactExpired sets an artifact to expired
+func SetArtifactExpired(ctx context.Context, artifactID int64) error {
+	_, err := db.GetEngine(ctx).Where("id=? AND status = ?", artifactID, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: int64(ArtifactStatusExpired)})
+	return err
 }

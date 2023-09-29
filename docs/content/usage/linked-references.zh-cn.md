@@ -66,7 +66,7 @@ menu:
 
 ## 可操作的引用在合并请求和提交消息中
 
-有时，一个提交或合并请求可能会修复或重新出现在某个特定工单中。Gitea 支持在引用之前加上特定的“关键字”来关闭和重新打开被引用的工单。常见的关键字包括“closes”、“fixes”、“reopens”等。这个列表可以由站点管理员进行 [自定义]({{< ref "doc/administration/config-cheat-sheet.zh-cn.md" >}})。
+有时，一个提交或合并请求可能会修复或重新出现在某个特定工单中。Gitea 支持在引用之前加上特定的“关键字”来关闭和重新打开被引用的工单。常见的关键字包括“closes”、“fixes”、“reopens”等。这个列表可以由站点管理员进行 [自定义](administration/config-cheat-sheet.md)。
 
 示例：
 

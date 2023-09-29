@@ -12,5 +12,5 @@ func AddCanCreateOrgRepoColumnForTeam(x *xorm.Engine) error {
 		CanCreateOrgRepo bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	return x.Sync2(new(Team))
+	return x.Sync(new(Team))
 }
