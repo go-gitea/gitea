@@ -1549,7 +1549,7 @@ func ViewIssue(ctx *context.Context) {
 		} else {
 			ctx.Data["CanUseTimetracker"] = false
 		}
-		if ctx.Data["WorkingUsers"], err = issues_model.TotalTimes(ctx, &issues_model.FindTrackedTimesOptions{IssueID: issue.ID}); err != nil {
+		if ctx.Data["WorkingUsers"], err = issues_model.TotalTimesForEachUser(ctx, &issues_model.FindTrackedTimesOptions{IssueID: issue.ID}); err != nil {
 			ctx.ServerError("TotalTimes", err)
 			return
 		}
