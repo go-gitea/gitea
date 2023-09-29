@@ -82,11 +82,11 @@ func UpdateExternalUser(user *user_model.User, gothUser goth.User) error {
 
 // UpdateMigrationsByType updates all migrated repositories' posterid from gitServiceType to replace originalAuthorID to posterID
 func UpdateMigrationsByType(ctx context.Context, tp structs.GitServiceType, externalUserID string, userID int64) error {
-	if err := issues_model.UpdateIssuesMigrationsByType(tp, externalUserID, userID); err != nil {
+	if err := issues_model.UpdateIssuesMigrationsByType(ctx, tp, externalUserID, userID); err != nil {
 		return err
 	}
 
-	if err := issues_model.UpdateCommentsMigrationsByType(tp, externalUserID, userID); err != nil {
+	if err := issues_model.UpdateCommentsMigrationsByType(ctx, tp, externalUserID, userID); err != nil {
 		return err
 	}
 
@@ -94,8 +94,8 @@ func UpdateMigrationsByType(ctx context.Context, tp structs.GitServiceType, exte
 		return err
 	}
 
-	if err := issues_model.UpdateReactionsMigrationsByType(tp, externalUserID, userID); err != nil {
+	if err := issues_model.UpdateReactionsMigrationsByType(ctx, tp, externalUserID, userID); err != nil {
 		return err
 	}
-	return issues_model.UpdateReviewsMigrationsByType(tp, externalUserID, userID)
+	return issues_model.UpdateReviewsMigrationsByType(ctx, tp, externalUserID, userID)
 }

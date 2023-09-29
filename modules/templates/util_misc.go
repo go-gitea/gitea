@@ -58,11 +58,11 @@ func IsMultilineCommitMessage(msg string) bool {
 // Actioner describes an action
 type Actioner interface {
 	GetOpType() activities_model.ActionType
-	GetActUserName() string
-	GetRepoUserName() string
-	GetRepoName() string
-	GetRepoPath() string
-	GetRepoLink() string
+	GetActUserName(ctx context.Context) string
+	GetRepoUserName(ctx context.Context) string
+	GetRepoName(ctx context.Context) string
+	GetRepoPath(ctx context.Context) string
+	GetRepoLink(ctx context.Context) string
 	GetBranch() string
 	GetContent() string
 	GetCreate() time.Time
