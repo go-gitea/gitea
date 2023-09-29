@@ -5,7 +5,6 @@ package user
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -22,9 +21,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func TestDeleteUser(t *testing.T) {
@@ -92,7 +89,7 @@ func TestCreateUser(t *testing.T) {
 		MustChangePassword: false,
 	}
 
-	assert.NoError(t, user_model.CreateUser(user))
+	assert.NoError(t, user_model.CreateUser(db.DefaultContext, user))
 
 	assert.NoError(t, DeleteUser(db.DefaultContext, user, false))
 }
@@ -150,7 +147,7 @@ func TestRenameUser(t *testing.T) {
 		assert.NoError(t, RenameUser(db.DefaultContext, user, newUsername))
 		unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID, Name: newUsername, LowerName: strings.ToLower(newUsername)})
 
-		redirectUID, err := user_model.LookupUserRedirect(oldUsername)
+		redirectUID, err := user_model.LookupUserRedirect(db.DefaultContext, oldUsername)
 		assert.NoError(t, err)
 		assert.EqualValues(t, user.ID, redirectUID)
 
@@ -177,7 +174,7 @@ func TestCreateUser_Issue5882(t *testing.T) {
 	for _, v := range tt {
 		setting.Admin.DisableRegularOrgCreation = v.disableOrgCreation
 
-		assert.NoError(t, user_model.CreateUser(v.user))
+		assert.NoError(t, user_model.CreateUser(db.DefaultContext, v.user))
 
 		u, err := user_model.GetUserByEmail(db.DefaultContext, v.user.Email)
 		assert.NoError(t, err)

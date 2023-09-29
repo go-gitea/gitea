@@ -91,12 +91,6 @@ As a workaround, you can use [go-hashfiles](https://gitea.com/actions/go-hashfil
 
 ## Missing features
 
-### Variables
-
-See [Variables](https://docs.github.com/en/actions/learn-github-actions/variables).
-
-It's under development.
-
 ### Problem Matchers
 
 Problem Matchers are a way to scan the output of actions for a specified regex pattern and surface that information prominently in the UI.
@@ -120,15 +114,17 @@ Pre and Post steps don't have their own section in the job log user interface.
 
 ### Downloading actions
 
-Gitea Actions doesn't download actions from GitHub by default.
-"By default" means that you don't specify the host in the `uses` field, like `uses: actions/checkout@v3`.
-As a contrast, `uses: https://github.com/actions/checkout@v3` has specified host.
+Previously (Pre 1.21.0), `[actions].DEFAULT_ACTIONS_URL` defaulted to `https://gitea.com`.
+We have since restricted this option to only allow two values (`github` and `self`).
+When set to `github`, the new default, Gitea will download non-fully-qualified actions from <https://github.com>.
+For example, if you use `uses: actions/checkout@v3`, it will download the checkout repository from <https://github.com/actions/checkout.git>.
 
-The missing host will be filled with `https://gitea.com` if you don't configure it.
-That means `uses: actions/checkout@v3` will download the action from [gitea.com/actions/checkout](https://gitea.com/actions/checkout), instead of [github.com/actions/checkout](https://github.com/actions/checkout).
+If you want to download an action from another git hoster, you can use an absolute URL, e.g. `uses: https://gitea.com/actions/checkout@v3`.
 
-As mentioned, it's configurable.
-If you want your runners to download actions from GitHub or your own Gitea instance by default, you can configure it by setting `[actions].DEFAULT_ACTIONS_URL`. See [Configuration Cheat Sheet](administration/config-cheat-sheet.md#actions-actions).
+If your Gitea instance is in an intranet or a restricted area, you can set the URL to `self` to only download actions from your own instance by default.
+Of course, you can still use absolute URLs in workflows.
+
+More details about the `[actions].DEFAULT_ACTIONS_URL` configuration can be found in the [Configuration Cheat Sheet](administration/config-cheat-sheet.md#actions-actions)。
 
 ### Context availability
 

@@ -295,7 +295,7 @@ menu:
 - 选项：
   - `--host value`：逗号分隔的主机名和IP地址列表，此证书适用于这些主机。支持使用通配符。必填。
   - `--ecdsa-curve value`：用于生成密钥的ECDSA曲线。可选。有效选项为P224、P256、P384、P521。
-  - `--rsa-bits value`：要生成的RSA密钥的大小。可选。如果设置了--ecdsa-curve，则忽略此选项。（默认值：2048）。
+  - `--rsa-bits value`：要生成的RSA密钥的大小。可选。如果设置了--ecdsa-curve，则忽略此选项。（默认值：3072）。
   - `--start-date value`：证书的创建日期。可选。（格式：`Jan 1 15:04:05 2011`）。
   - `--duration value`：证书有效期。可选。（默认值：8760h0m0s）
   - `--ca`：如果提供此选项，则证书将生成自己的证书颁发机构。可选。
@@ -375,7 +375,7 @@ AuthorizedKeysCommand /path/to/gitea keys -e git -u %u -t %t -k %k
 有时，在迁移时，旧的列和默认值可能会在数据库模式中保持不变。这可能会导致警告，如下所示:
 
 ```
-2020/08/02 11:32:29 ...rm/session_schema.go:360:Sync2() [W] Table user Column keep_activity_private db default is , struct default is 0
+2020/08/02 11:32:29 ...rm/session_schema.go:360:Sync() [W] Table user Column keep_activity_private db default is , struct default is 0
 ```
 
 您可以通过以下方式让 Gitea 重新创建这些表，并将旧数据复制到新表中，并适当设置默认值：

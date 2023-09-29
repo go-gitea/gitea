@@ -71,7 +71,7 @@ func (ct SniffedType) IsRepresentableAsText() bool {
 	return ct.IsText() || ct.IsSvgImage()
 }
 
-// IsBrowsableType returns whether a non-text type can be displayed in a browser
+// IsBrowsableBinaryType returns whether a non-text type can be displayed in a browser
 func (ct SniffedType) IsBrowsableBinaryType() bool {
 	return ct.IsImage() || ct.IsSvgImage() || ct.IsPDF() || ct.IsVideo() || ct.IsAudio()
 }
@@ -116,6 +116,17 @@ func DetectContentType(data []byte) SniffedType {
 		}
 	}
 
+	if ct == "application/ogg" {
+		dataHead := data
+		if len(dataHead) > 256 {
+			dataHead = dataHead[:256] // only need to do a quick check for the file header
+		}
+		if bytes.Contains(dataHead, []byte("theora")) || bytes.Contains(dataHead, []byte("dirac")) {
+			ct = "video/ogg" // ogg is only used for some video formats, and it's not popular
+		} else {
+			ct = "audio/ogg" // for most cases, it is used as an audio container
+		}
+	}
 	return SniffedType{ct}
 }
 

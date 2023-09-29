@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"slices"
 	"strings"
 	"time"
 
@@ -370,7 +371,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		if workFlowErr != nil {
 			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}
-	} else if util.SliceContains([]string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}, ctx.Repo.TreePath) {
+	} else if slices.Contains([]string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}, ctx.Repo.TreePath) {
 		if data, err := blob.GetBlobContent(setting.UI.MaxDisplayFileSize); err == nil {
 			_, warnings := issue_model.GetCodeOwnersFromContent(ctx, data)
 			if len(warnings) > 0 {
@@ -627,19 +628,10 @@ func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input i
 	return escaped, output, err
 }
 
-func safeURL(address string) string {
-	u, err := url.Parse(address)
-	if err != nil {
-		return address
-	}
-	u.User = nil
-	return u.String()
-}
-
 func checkHomeCodeViewable(ctx *context.Context) {
 	if len(ctx.Repo.Units) > 0 {
 		if ctx.Repo.Repository.IsBeingCreated() {
-			task, err := admin_model.GetMigratingTask(ctx.Repo.Repository.ID)
+			task, err := admin_model.GetMigratingTask(ctx, ctx.Repo.Repository.ID)
 			if err != nil {
 				if admin_model.IsErrTaskDoesNotExist(err) {
 					ctx.Data["Repo"] = ctx.Repo
@@ -659,7 +651,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 
 			ctx.Data["Repo"] = ctx.Repo
 			ctx.Data["MigrateTask"] = task
-			ctx.Data["CloneAddr"] = safeURL(cfg.CloneAddr)
+			ctx.Data["CloneAddr"], _ = util.SanitizeURL(cfg.CloneAddr)
 			ctx.Data["Failed"] = task.Status == structs.TaskStatusFailed
 			ctx.HTML(http.StatusOK, tplMigrating)
 			return
@@ -700,7 +692,7 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 	}
 	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
 	if err != nil {
-		ctx.NotFoundOrServerError("Repo.Commit.SubTree", git.IsErrNotExist, err)
+		HandleGitError(ctx, "Repo.Commit.SubTree", err)
 		return
 	}
 	allEntries, err := tree.ListEntries()
@@ -791,7 +783,7 @@ func LastCommit(ctx *context.Context) {
 func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entries {
 	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
 	if err != nil {
-		ctx.NotFoundOrServerError("Repo.Commit.SubTree", git.IsErrNotExist, err)
+		HandleGitError(ctx, "Repo.Commit.SubTree", err)
 		return nil
 	}
 
@@ -800,12 +792,12 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	// Get current entry user currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
-		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
+		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 		return nil
 	}
 
 	if !entry.IsDir() {
-		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
+		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 		return nil
 	}
 
@@ -851,7 +843,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		verification := asymkey_model.ParseCommitWithSignature(ctx, latestCommit)
 
 		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-			return repo_model.IsOwnerMemberCollaborator(ctx.Repo.Repository, user.ID)
+			return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
 		}, nil); err != nil {
 			ctx.ServerError("CalculateTrustStatus", err)
 			return nil
@@ -892,7 +884,7 @@ func renderLanguageStats(ctx *context.Context) {
 }
 
 func renderRepoTopics(ctx *context.Context) {
-	topics, _, err := repo_model.FindTopics(&repo_model.FindTopicOptions{
+	topics, _, err := repo_model.FindTopics(ctx, &repo_model.FindTopicOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	})
 	if err != nil {
@@ -971,7 +963,7 @@ func renderCode(ctx *context.Context) {
 	// Get current entry user currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
-		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
+		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 		return
 	}
 
@@ -1064,7 +1056,7 @@ func Watchers(ctx *context.Context) {
 	ctx.Data["PageIsWatchers"] = true
 
 	RenderUserCards(ctx, ctx.Repo.Repository.NumWatches, func(opts db.ListOptions) ([]*user_model.User, error) {
-		return repo_model.GetRepoWatchers(ctx.Repo.Repository.ID, opts)
+		return repo_model.GetRepoWatchers(ctx, ctx.Repo.Repository.ID, opts)
 	}, tplWatchers)
 }
 
@@ -1074,7 +1066,7 @@ func Stars(ctx *context.Context) {
 	ctx.Data["CardsTitle"] = ctx.Tr("repo.stargazers")
 	ctx.Data["PageIsStargazers"] = true
 	RenderUserCards(ctx, ctx.Repo.Repository.NumStars, func(opts db.ListOptions) ([]*user_model.User, error) {
-		return repo_model.GetStargazers(ctx.Repo.Repository, opts)
+		return repo_model.GetStargazers(ctx, ctx.Repo.Repository, opts)
 	}, tplWatchers)
 }
 
@@ -1090,7 +1082,7 @@ func Forks(ctx *context.Context) {
 	pager := context.NewPagination(ctx.Repo.Repository.NumForks, setting.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
-	forks, err := repo_model.GetForks(ctx.Repo.Repository, db.ListOptions{
+	forks, err := repo_model.GetForks(ctx, ctx.Repo.Repository, db.ListOptions{
 		Page:     pager.Paginater.Current(),
 		PageSize: setting.ItemsPerPage,
 	})

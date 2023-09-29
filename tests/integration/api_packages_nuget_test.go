@@ -414,6 +414,10 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			{"test", 1, 10, 1, 0},
 		}
 
+		req := NewRequestWithBody(t, "PUT", url, createPackage(packageName, "1.0.99"))
+		req = AddBasicAuthHeader(req, user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+
 		t.Run("v2", func(t *testing.T) {
 			t.Run("Search()", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
@@ -493,10 +497,6 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				req = AddBasicAuthHeader(req, user.Name)
 				MakeRequest(t, req, http.StatusCreated)
 
-				req = NewRequestWithBody(t, "PUT", url, createPackage(packageName, "1.0.99"))
-				req = AddBasicAuthHeader(req, user.Name)
-				MakeRequest(t, req, http.StatusCreated)
-
 				req = NewRequest(t, "GET", fmt.Sprintf("%s/query?q=%s", url, packageName))
 				req = AddBasicAuthHeader(req, user.Name)
 				resp := MakeRequest(t, req, http.StatusOK)
@@ -504,7 +504,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				var result nuget.SearchResultResponse
 				DecodeJSON(t, resp, &result)
 
-				assert.EqualValues(t, 3, result.TotalHits)
+				assert.EqualValues(t, 2, result.TotalHits)
 				assert.Len(t, result.Data, 2)
 				for _, sr := range result.Data {
 					if sr.ID == packageName {
@@ -517,12 +517,12 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName+".dummy", "1.0.0"))
 				req = AddBasicAuthHeader(req, user.Name)
 				MakeRequest(t, req, http.StatusNoContent)
-
-				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName, "1.0.99"))
-				req = AddBasicAuthHeader(req, user.Name)
-				MakeRequest(t, req, http.StatusNoContent)
 			})
 		})
+
+		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName, "1.0.99"))
+		req = AddBasicAuthHeader(req, user.Name)
+		MakeRequest(t, req, http.StatusNoContent)
 	})
 
 	t.Run("RegistrationService", func(t *testing.T) {

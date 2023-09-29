@@ -13,7 +13,6 @@ import (
 	"html/template"
 	"io"
 	"net/url"
-	"os"
 	"sort"
 	"strings"
 	"time"
@@ -1152,14 +1151,15 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 	}()
 
 	go func() {
+		stderr := &bytes.Buffer{}
 		cmdDiff.SetDescription(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath))
 		if err := cmdDiff.Run(&git.RunOpts{
 			Timeout: time.Duration(setting.Git.Timeout.Default) * time.Second,
 			Dir:     repoPath,
-			Stderr:  os.Stderr,
 			Stdout:  writer,
+			Stderr:  stderr,
 		}); err != nil {
-			log.Error("error during RunWithContext: %w", err)
+			log.Error("error during GetDiff(git diff dir: %s): %v, stderr: %s", repoPath, err, stderr.String())
 		}
 
 		_ = writer.Close()
@@ -1343,7 +1343,7 @@ outer:
 		}
 	}
 
-	return diff, err
+	return diff, nil
 }
 
 // CommentAsDiff returns c.Patch as *Diff

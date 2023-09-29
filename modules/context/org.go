@@ -24,6 +24,7 @@ type Organization struct {
 	Organization     *organization.Organization
 	OrgLink          string
 	CanCreateOrgRepo bool
+	PublicMemberOnly bool // Only display public members
 
 	Team  *organization.Team
 	Teams []*organization.Team
@@ -45,7 +46,7 @@ func GetOrganizationByParams(ctx *Context) {
 	ctx.Org.Organization, err = organization.GetOrgByName(ctx, orgName)
 	if err != nil {
 		if organization.IsErrOrgNotExist(err) {
-			redirectUserID, err := user_model.LookupUserRedirect(orgName)
+			redirectUserID, err := user_model.LookupUserRedirect(ctx, orgName)
 			if err == nil {
 				RedirectToUser(ctx.Base, orgName, redirectUserID)
 			} else if user_model.IsErrUserRedirectNotExist(err) {
@@ -172,6 +173,18 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	ctx.Org.OrgLink = org.AsUser().OrganisationLink()
 	ctx.Data["OrgLink"] = ctx.Org.OrgLink
 
+	// Member
+	ctx.Org.PublicMemberOnly = ctx.Doer == nil || !ctx.Org.IsMember && !ctx.Doer.IsAdmin
+	opts := &organization.FindOrgMembersOpts{
+		OrgID:      org.ID,
+		PublicOnly: ctx.Org.PublicMemberOnly,
+	}
+	ctx.Data["NumMembers"], err = organization.CountOrgMembers(opts)
+	if err != nil {
+		ctx.ServerError("CountOrgMembers", err)
+		return
+	}
+
 	// Team.
 	if ctx.Org.IsMember {
 		shouldSeeAllTeams := false
@@ -203,6 +216,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 				return
 			}
 		}
+		ctx.Data["NumTeams"] = len(ctx.Org.Teams)
 	}
 
 	teamName := ctx.Params(":team")
@@ -236,6 +250,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			return
 		}
 	}
+	ctx.Data["ContextUser"] = ctx.ContextUser
 
 	ctx.Data["CanReadProjects"] = ctx.Org.CanReadUnit(ctx, unit.TypeProjects)
 	ctx.Data["CanReadPackages"] = ctx.Org.CanReadUnit(ctx, unit.TypePackages)

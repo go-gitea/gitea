@@ -15,8 +15,8 @@ func FeatureChangeTargetBranch(x *xorm.Engine) error {
 		NewRef string
 	}
 
-	if err := x.Sync2(new(Comment)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := x.Sync(new(Comment)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 	return nil
 }
