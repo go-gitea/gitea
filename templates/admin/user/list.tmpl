@@ -77,7 +77,7 @@
 							{{ctx.Locale.Tr "admin.users.last_login"}}
 							{{SortArrow "lastlogin" "reverselastlogin" $.SortType false}}
 						</th>
-						<th>{{.locale.Tr "admin.users.details"}}</th>
+						<th>{{.locale.Tr "actions_noun"}}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -85,7 +85,7 @@
 						<tr>
 							<td>{{.ID}}</td>
 							<td>
-								<a href="{{.HomeLink}}"><span class="flex-text-inline">{{svg "octicon-home"}}{{.Name}}</span></a>
+								<a href="{{.HomeLink}}">{{.Name}}</a>
 								{{if .IsAdmin}}
 									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.admin"}}</span>
 								{{else if eq 2 .Type}}{{/* Reserved user */}}
@@ -106,7 +106,12 @@
 							{{else}}
 								<td><span>{{ctx.Locale.Tr "admin.users.never_login"}}</span></td>
 							{{end}}
-							<td><a href="{{$.Link}}/{{.ID}}">{{svg "octicon-person"}}</a></td>
+							<td>
+								<div class="gt-df gt-gap-3">
+									<a href="{{$.Link}}/{{.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.users.details"}}">{{svg "octicon-person"}}</a>
+									<a href="{{$.Link}}/{{.ID}}/edit" data-tooltip-content="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a>
+								</div>
+							</td>
 						</tr>
 					{{end}}
 				</tbody>
