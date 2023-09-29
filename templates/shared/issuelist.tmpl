@@ -60,7 +60,7 @@
 							#{{.Index}}
 						{{end}}
 					</a>
-					{{$timeStr := TimeSinceUnix .GetLastEventTimestamp $.locale}}
+					{{$timeStr := TimeSinceUnix .GetLastEventTimestamp ctx.Locale}}
 					{{if .OriginalAuthor}}
 						{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
 					{{else if gt .Poster.ID 0}}
@@ -93,7 +93,7 @@
 						</a>
 					{{end}}
 					{{if .Project}}
-						<a class="project flex-text-inline" href="{{.Project.Link}}">
+						<a class="project flex-text-inline" href="{{.Project.Link ctx}}">
 							{{svg .Project.IconName 14}}{{.Project.Title}}
 						</a>
 					{{end}}

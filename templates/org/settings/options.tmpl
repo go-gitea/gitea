@@ -9,7 +9,7 @@
 						<div class="required field {{if .Err_Name}}error{{end}}">
 							<label for="org_name">{{ctx.Locale.Tr "org.org_name_holder"}}
 								<span class="text red gt-hidden" id="org-name-change-prompt">
-									<br>{{ctx.Locale.Tr "org.settings.change_orgname_prompt"}}<br>{{.locale.Tr "org.settings.change_orgname_redirect_prompt"}}
+									<br>{{ctx.Locale.Tr "org.settings.change_orgname_prompt"}}<br>{{ctx.Locale.Tr "org.settings.change_orgname_redirect_prompt"}}
 								</span>
 							</label>
 							<input id="org_name" name="name" value="{{.Org.Name}}" data-org-name="{{.Org.Name}}" autofocus required maxlength="40">
