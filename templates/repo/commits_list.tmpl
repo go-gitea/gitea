@@ -4,9 +4,9 @@
 				<tr>
 					<th class="three wide">{{ctx.Locale.Tr "repo.commits.author"}}</th>
 					<th class="two wide sha">SHA1</th>
-					<th class="seven wide message">{{ctx.Locale.Tr "repo.commits.message"}}</th>
+					<th class="eight wide message">{{ctx.Locale.Tr "repo.commits.message"}}</th>
 					<th class="two wide right aligned">{{ctx.Locale.Tr "repo.commits.date"}}</th>
-					{{if $.FileName}}<th class="two wide right aligned">{{ctx.Locale.Tr "repo.diff.view_file"}}</th>{{end}}
+					{{if $.FileName}}<th class="one wide right aligned">{{ctx.Locale.Tr "repo.commit.operations"}}</th>{{end}}
 				</tr>
 			</thead>
 			<tbody class="commit-list">
@@ -79,7 +79,7 @@
 						{{end}}
 						{{if $.FileName}}
 							<td class="text right aligned">
-								<a class="ui basic button copy-commit-sha" href="{{printf "%s/src/commit/%s/%s" $commitRepoLink (PathEscape .ID.String) $.FileName}}">{{svg "octicon-file-code"}}</a>
+								<a class="btn interact-bg copy-commit-sha" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.view_file"}}" href="{{printf "%s/src/commit/%s/%s" $commitRepoLink (PathEscape .ID.String) $.FileName}}">{{svg "octicon-file-code"}}</a>
 							</td>
 						{{end}}
 					</tr>
