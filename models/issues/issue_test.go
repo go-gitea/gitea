@@ -253,7 +253,7 @@ func testInsertIssue(t *testing.T, title, content string, expectIndex int64) *is
 			Title:    title,
 			Content:  content,
 		}
-		err := issues_model.NewIssue(repo, &issue, nil, nil)
+		err := issues_model.NewIssue(db.DefaultContext, repo, &issue, nil, nil)
 		assert.NoError(t, err)
 
 		has, err := db.GetEngine(db.DefaultContext).ID(issue.ID).Get(&newIssue)

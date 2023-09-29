@@ -179,7 +179,7 @@ func NewProjectPost(ctx *context.Context) {
 		newProject.Type = project_model.TypeIndividual
 	}
 
-	if err := project_model.NewProject(&newProject); err != nil {
+	if err := project_model.NewProject(ctx, &newProject); err != nil {
 		ctx.ServerError("NewProject", err)
 		return
 	}
@@ -201,7 +201,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 	}
 	id := ctx.ParamsInt64(":id")
 
-	if err := project_model.ChangeProjectStatusByRepoIDAndID(0, id, toClose); err != nil {
+	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, 0, id, toClose); err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", err)
 		} else {
@@ -320,7 +320,7 @@ func EditProjectPost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("repo.projects.edit_success", p.Title))
 	if ctx.FormString("redirect") == "project" {
-		ctx.Redirect(p.Link())
+		ctx.Redirect(p.Link(ctx))
 	} else {
 		ctx.Redirect(ctx.ContextUser.HomeLink() + "/-/projects")
 	}
@@ -515,7 +515,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.DeleteBoardByID(ctx.ParamsInt64(":boardID")); err != nil {
+	if err := project_model.DeleteBoardByID(ctx, ctx.ParamsInt64(":boardID")); err != nil {
 		ctx.ServerError("DeleteProjectBoardByID", err)
 		return
 	}
@@ -537,7 +537,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.NewBoard(&project_model.Board{
+	if err := project_model.NewBoard(ctx, &project_model.Board{
 		ProjectID: project.ID,
 		Title:     form.Title,
 		Color:     form.Color,
@@ -623,7 +623,7 @@ func SetDefaultProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.SetDefaultBoard(project.ID, board.ID); err != nil {
+	if err := project_model.SetDefaultBoard(ctx, project.ID, board.ID); err != nil {
 		ctx.ServerError("SetDefaultBoard", err)
 		return
 	}
@@ -638,7 +638,7 @@ func UnsetDefaultProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.SetDefaultBoard(project.ID, 0); err != nil {
+	if err := project_model.SetDefaultBoard(ctx, project.ID, 0); err != nil {
 		ctx.ServerError("SetDefaultBoard", err)
 		return
 	}
@@ -738,7 +738,7 @@ func MoveIssues(ctx *context.Context) {
 		}
 	}
 
-	if err = project_model.MoveIssuesOnProjectBoard(board, sortedIssueIDs); err != nil {
+	if err = project_model.MoveIssuesOnProjectBoard(ctx, board, sortedIssueIDs); err != nil {
 		ctx.ServerError("MoveIssuesOnProjectBoard", err)
 		return
 	}

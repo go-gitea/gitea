@@ -510,7 +510,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 	if len(cms) == 0 {
 		return nil
 	}
-	return issues_model.InsertIssueComments(cms)
+	return issues_model.InsertIssueComments(g.ctx, cms)
 }
 
 // CreatePullRequests creates pull requests
@@ -917,7 +917,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		}
 	}
 
-	return issues_model.InsertReviews(cms)
+	return issues_model.InsertReviews(g.ctx, cms)
 }
 
 // Rollback when migrating failed, this will rollback all the changes.
