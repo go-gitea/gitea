@@ -46,6 +46,8 @@ For documentation about each of the variables available, refer to the
 - `USER`: System user that Gitea will run as. Used for some repository access strings.
 - `USERNAME`: if no `USER` found, Gitea will use `USERNAME`
 - `HOME`: User home directory path. The `USERPROFILE` environment variable is used in Windows.
+- `ALL_PROXY`: a socks5 proxy, the smtp email will send through the proxy if `ALL_PROXY`
+environment variable exported.
 
 ### Only on Windows
 

@@ -29,6 +29,7 @@ import (
 
 	ntlmssp "github.com/Azure/go-ntlmssp"
 	"github.com/jaytaylor/html2text"
+	"golang.org/x/net/proxy"
 	"gopkg.in/gomail.v2"
 )
 
@@ -193,7 +194,7 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 		address = net.JoinHostPort(opts.SMTPAddr, opts.SMTPPort)
 	}
 
-	conn, err := net.Dial(network, address)
+	conn, err := proxy.Dial(context.Background(), network, address)
 	if err != nil {
 		return fmt.Errorf("failed to establish network connection to SMTP server: %w", err)
 	}
