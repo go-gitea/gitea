@@ -1,5 +1,4 @@
 <!-- make sure this matches the color logic in web_src/js/components/DashboardRepoList.vue -->
-<span class="gt-df">
 {{if eq .State "pending"}}
 	{{svg "octicon-dot-fill" 18 "commit-status icon text yellow"}}
 {{end}}
@@ -12,4 +11,3 @@
 {{if eq .State "failure"}}
 	{{svg "octicon-x" 18 "commit-status icon text red"}}
 {{end}}
-</span>
