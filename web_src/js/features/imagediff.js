@@ -101,7 +101,6 @@ export function initImageDiff() {
         });
         info.$image.attr('src', info.path);
 
-        // this may be dead code as we currently do not render SVGs images in image diffs
         if (parseUrl(info.path).pathname.toLowerCase().endsWith('.svg')) {
           const resp = await GET(info.path);
           const text = await resp.text();
