@@ -703,7 +703,7 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 	for {
 		issueIDs := make([]int64, 0, db.DefaultMaxInSize)
 
-		err := sess.Table(&Issue{}).Where("repo_id = ?", repoID).Limit(db.DefaultMaxInSize).Cols("id").Find(&issueIDs)
+		err := sess.Table(&Issue{}).Where("repo_id = ?", repoID).OrderBy("id").Limit(db.DefaultMaxInSize).Cols("id").Find(&issueIDs)
 		if err != nil {
 			return nil, err
 		}
