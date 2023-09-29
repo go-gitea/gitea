@@ -1,5 +1,5 @@
 import {h} from 'vue';
-import {parseXml, serializeXml} from './utils.js';
+import {parseDom, serializeXml} from './utils.js';
 import giteaDoubleChevronLeft from '../../public/assets/img/svg/gitea-double-chevron-left.svg';
 import giteaDoubleChevronRight from '../../public/assets/img/svg/gitea-double-chevron-right.svg';
 import giteaEmptyCheckbox from '../../public/assets/img/svg/gitea-empty-checkbox.svg';
@@ -151,7 +151,7 @@ export function svg(name, size = 16, className = '') {
   if (!(name in svgs)) throw new Error(`Unknown SVG icon: ${name}`);
   if (size === 16 && !className) return svgs[name];
 
-  const document = parseXml(svgs[name], 'image/svg+xml');
+  const document = parseDom(svgs[name], 'image/svg+xml');
   const svgNode = document.firstChild;
   if (size !== 16) {
     svgNode.setAttribute('width', String(size));
@@ -174,7 +174,7 @@ export function svgParseOuterInner(name) {
   if (p1 === -1 || p2 === -1) throw new Error(`Invalid SVG icon: ${name}`);
   const svgInnerHtml = svgStr.slice(p1 + 1, p2);
   const svgOuterHtml = svgStr.slice(0, p1 + 1) + svgStr.slice(p2);
-  const svgDoc = parseXml(svgOuterHtml, 'image/svg+xml');
+  const svgDoc = parseDom(svgOuterHtml, 'image/svg+xml');
   const svgOuter = svgDoc.firstChild;
   return {svgOuter, svgInnerHtml};
 }

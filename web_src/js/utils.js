@@ -132,7 +132,7 @@ export function decodeURLEncodedBase64(base64url) {
 const parser = new DOMParser();
 const serializer = new XMLSerializer();
 
-export function parseXml(text, contentType) {
+export function parseDom(text, contentType) {
   return parser.parseFromString(text, contentType);
 }
 
