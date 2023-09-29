@@ -86,7 +86,7 @@ func ListIssueComments(ctx *context.APIContext) {
 		return
 	}
 
-	totalCount, err := issues_model.CountComments(opts)
+	totalCount, err := issues_model.CountComments(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -285,7 +285,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		return
 	}
 
-	totalCount, err := issues_model.CountComments(opts)
+	totalCount, err := issues_model.CountComments(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
