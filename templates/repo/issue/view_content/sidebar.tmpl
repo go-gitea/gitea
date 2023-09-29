@@ -427,7 +427,7 @@
 				</span>
 				<div class="ui relaxed divided list">
 					{{range .BlockingDependencies}}
-						<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb">
+						<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb gt-ellipsis">
 							<div class="item-left gt-df gt-jc gt-fc gt-f1">
 								<a class="title muted" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
 									#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}
@@ -436,7 +436,7 @@
 									{{.Repository.OwnerName}}/{{.Repository.Name}}
 								</div>
 							</div>
-							<div class="item-right gt-df gt-ac">
+							<div class="item-right gt-df gt-ac gt-m-2">
 								{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 									<a class="delete-dependency-button ci muted" data-id="{{.Issue.ID}}" data-type="blocking" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.remove_info"}}">
 										{{svg "octicon-trash" 16}}
@@ -459,7 +459,7 @@
 				</span>
 				<div class="ui relaxed divided list">
 					{{range .BlockedByDependencies}}
-						<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb">
+						<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb gt-ellipsis">
 							<div class="item-left gt-df gt-jc gt-fc gt-f1">
 								<a class="title muted" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
 									#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}
@@ -468,7 +468,7 @@
 									{{.Repository.OwnerName}}/{{.Repository.Name}}
 								</div>
 							</div>
-							<div class="item-right gt-df gt-ac">
+							<div class="item-right gt-df gt-ac  gt-m-2">
 								{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 									<a class="delete-dependency-button ci muted" data-id="{{.Issue.ID}}" data-type="blockedBy" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.remove_info"}}">
 										{{svg "octicon-trash" 16}}
@@ -479,7 +479,7 @@
 					{{end}}
 					{{if $.CanCreateIssueDependencies}}
 						{{range .BlockedByDependenciesNotPermitted}}
-							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb">
+							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb gt-ellipsis">
 								<div class="item-left gt-df gt-jc gt-fc gt-f1">
 									<div>
 										<span data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.no_permission.can_remove"}}">{{svg "octicon-lock" 16}}</span>
@@ -491,7 +491,7 @@
 										{{.Repository.OwnerName}}/{{.Repository.Name}}
 									</div>
 								</div>
-								<div class="item-right gt-df gt-ac">
+								<div class="item-right gt-df gt-ac  gt-m-2">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 										<a class="delete-dependency-button ci muted" data-id="{{.Issue.ID}}" data-type="blocking" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.remove_info"}}">
 											{{svg "octicon-trash" 16}}
