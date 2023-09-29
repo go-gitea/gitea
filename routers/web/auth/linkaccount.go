@@ -273,7 +273,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		}
 	}
 
-	authSource, err := auth.GetActiveAuthSourceByName(linkUser.GothUser.Name, linkUser.Type)
+	authSource, err := auth.GetActiveAuthSourceByName(linkUser.GothUser.Provider, linkUser.Type)
 	if err != nil {
 		ctx.ServerError("CreateUser", err)
 		return
@@ -293,11 +293,14 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		return
 	}
 
-	source := authSource.Cfg.(*oauth2.Source)
-	if err := syncGroupsToTeams(ctx, source, &linkUser.GothUser, u); err != nil {
-		ctx.ServerError("SyncGroupsToTeams", err)
-		return
+	if linkUser.Type == auth.OAuth2 {
+		source := authSource.Cfg.(*oauth2.Source)
+		if err := syncGroupsToTeams(ctx, source, &linkUser.GothUser, u); err != nil {
+			ctx.ServerError("SyncGroupsToTeams", err)
+			return
+		}
 	}
+	// TODO groups for SAML?
 
 	handleSignIn(ctx, u, false)
 }

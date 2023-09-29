@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/base32"
 	"encoding/base64"
+	"encoding/gob"
 	"fmt"
 	"net"
 	"net/url"
@@ -75,6 +76,8 @@ func Init(ctx context.Context) error {
 	for clientID := range builtinApps {
 		builtinAllClientIDs = append(builtinAllClientIDs, clientID)
 	}
+
+	gob.Register(LinkAccountUser{})
 
 	var registeredApps []*OAuth2Application
 	if err := db.GetEngine(ctx).In("client_id", builtinAllClientIDs).Find(&registeredApps); err != nil {
@@ -644,7 +647,7 @@ func GetActiveAuthSourceByName(name string, authType Type) (*Source, error) {
 	}
 
 	if !has {
-		return nil, fmt.Errorf("oauth2 source not found, name: %q", name)
+		return nil, fmt.Errorf("auth source not found, name: %q", name)
 	}
 
 	return authSource, nil
