@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/cache"
@@ -461,7 +460,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		}
 		defer gitRepo.Close()
 
-		if ok := checkAndUpdateEmptyRepository(m, gitRepo, results); !ok {
+		if ok := checkAndUpdateEmptyRepository(ctx, m, gitRepo, results); !ok {
 			return false
 		}
 	}
@@ -550,7 +549,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	return true
 }
 
-func checkAndUpdateEmptyRepository(m *repo_model.Mirror, gitRepo *git.Repository, results []*mirrorSyncResult) bool {
+func checkAndUpdateEmptyRepository(ctx context.Context, m *repo_model.Mirror, gitRepo *git.Repository, results []*mirrorSyncResult) bool {
 	if !m.Repo.IsEmpty {
 		return true
 	}
@@ -601,7 +600,7 @@ func checkAndUpdateEmptyRepository(m *repo_model.Mirror, gitRepo *git.Repository
 		}
 		m.Repo.IsEmpty = false
 		// Update the is empty and default_branch columns
-		if err := repo_model.UpdateRepositoryCols(db.DefaultContext, m.Repo, "default_branch", "is_empty"); err != nil {
+		if err := repo_model.UpdateRepositoryCols(ctx, m.Repo, "default_branch", "is_empty"); err != nil {
 			log.Error("Failed to update default branch of repository %-v. Error: %v", m.Repo, err)
 			desc := fmt.Sprintf("Failed to uupdate default branch of repository '%s': %v", m.Repo.RepoPath(), err)
 			if err = system_model.CreateRepositoryNotice(desc); err != nil {

@@ -22,7 +22,7 @@ func CanUserDelete(ctx context.Context, repo *repo_model.Repository, user *user_
 	}
 
 	if repo.Owner.IsOrganization() {
-		isAdmin, err := organization.OrgFromUser(repo.Owner).IsOrgAdmin(user.ID)
+		isAdmin, err := organization.OrgFromUser(repo.Owner).IsOrgAdmin(ctx, user.ID)
 		if err != nil {
 			return false, err
 		}

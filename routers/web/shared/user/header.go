@@ -56,7 +56,7 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	}
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
-	orgs, err := organization.FindOrgs(organization.FindOrgOptions{
+	orgs, err := organization.FindOrgs(ctx, organization.FindOrgOptions{
 		UserID:         ctx.ContextUser.ID,
 		IncludePrivate: showPrivate,
 	})
@@ -65,7 +65,7 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Orgs"] = orgs
-	ctx.Data["HasOrgsVisible"] = organization.HasOrgsVisible(orgs, ctx.Doer)
+	ctx.Data["HasOrgsVisible"] = organization.HasOrgsVisible(ctx, orgs, ctx.Doer)
 
 	badges, _, err := user_model.GetUserBadges(ctx, ctx.ContextUser)
 	if err != nil {

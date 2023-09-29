@@ -305,7 +305,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		// Check read status
 		if !ctx.IsSigned {
 			issues[i].IsRead = true
-		} else if err = issues[i].GetIsRead(ctx.Doer.ID); err != nil {
+		} else if err = issues[i].GetIsRead(ctx, ctx.Doer.ID); err != nil {
 			ctx.ServerError("GetIsRead", err)
 			return
 		}
@@ -1265,7 +1265,7 @@ func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *use
 		}
 
 		// Otherwise check if poster is the real repo admin.
-		ok, err := access_model.IsUserRealRepoAdmin(repo, poster)
+		ok, err := access_model.IsUserRealRepoAdmin(ctx, repo, poster)
 		if err != nil {
 			return roleDescriptor, err
 		}
@@ -1549,7 +1549,7 @@ func ViewIssue(ctx *context.Context) {
 		} else {
 			ctx.Data["CanUseTimetracker"] = false
 		}
-		if ctx.Data["WorkingUsers"], err = issues_model.TotalTimes(&issues_model.FindTrackedTimesOptions{IssueID: issue.ID}); err != nil {
+		if ctx.Data["WorkingUsers"], err = issues_model.TotalTimes(ctx, &issues_model.FindTrackedTimesOptions{IssueID: issue.ID}); err != nil {
 			ctx.ServerError("TotalTimes", err)
 			return
 		}
@@ -1723,7 +1723,7 @@ func ViewIssue(ctx *context.Context) {
 			comment.Type == issues_model.CommentTypeStopTracking ||
 			comment.Type == issues_model.CommentTypeDeleteTimeManual {
 			// drop error since times could be pruned from DB..
-			_ = comment.LoadTime()
+			_ = comment.LoadTime(ctx)
 			if comment.Content != "" {
 				// Content before v1.21 did store the formated string instead of seconds,
 				// so "|" is used as delimeter to mark the new format
@@ -3574,7 +3574,7 @@ func handleTeamMentions(ctx *context.Context) {
 	if ctx.Doer.IsAdmin {
 		isAdmin = true
 	} else {
-		isAdmin, err = org.IsOwnedBy(ctx.Doer.ID)
+		isAdmin, err = org.IsOwnedBy(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("IsOwnedBy", err)
 			return
@@ -3582,13 +3582,13 @@ func handleTeamMentions(ctx *context.Context) {
 	}
 
 	if isAdmin {
-		teams, err = org.LoadTeams()
+		teams, err = org.LoadTeams(ctx)
 		if err != nil {
 			ctx.ServerError("LoadTeams", err)
 			return
 		}
 	} else {
-		teams, err = org.GetUserTeams(ctx.Doer.ID)
+		teams, err = org.GetUserTeams(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("GetUserTeams", err)
 			return
