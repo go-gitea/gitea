@@ -52,7 +52,7 @@ func NewNotifier() notify_service.Notifier {
 
 func handler(items ...issueNotificationOpts) []issueNotificationOpts {
 	for _, opts := range items {
-		if err := activities_model.CreateOrUpdateIssueNotifications(opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID); err != nil {
+		if err := activities_model.CreateOrUpdateIssueNotifications(db.DefaultContext, opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID); err != nil {
 			log.Error("Was unable to create issue notification: %v", err)
 		}
 	}
