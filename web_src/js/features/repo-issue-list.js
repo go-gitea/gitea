@@ -191,18 +191,31 @@ function initArchivedLabelFilter() {
     return;
   }
 
-  const archivedLabels = $('[data-is-archived]');
+  const url = new URL(window.location.href);
+  const archivedLabels = document.querySelectorAll('[data-is-archived]');
+
+  const selectedLabels = (url.searchParams.get('labels') || '')
+    .split(',')
+    .map((id) => id < 0 ? `${~id + 1}` : id); // selectedLabels contains -ve ids, which are excluded so convert any -ve value id to +ve
+
   const archivedElToggle = () => {
     for (const label of archivedLabels) {
-      toggleElem(label, archivedLabelEl.checked);
+      const id = label.getAttribute('data-label-id');
+      if (selectedLabels.length && !selectedLabels.includes(id)) {
+        toggleElem(label, archivedLabelEl.checked);
+      }
     }
   };
 
   archivedElToggle();
   archivedLabelEl.addEventListener('change', () => {
     archivedElToggle();
-    const url = archivedLabelEl.getAttribute('data-url');
-    window.location = (archivedLabelEl.checked) ? url : url.replace(/&archived=true/, '');
+    if (archivedLabelEl.checked) {
+      url.searchParams.set('archived', 'true');
+    } else {
+      url.searchParams.delete('archived');
+    }
+    window.location.href = url.href;
   });
 }
 

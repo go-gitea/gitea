@@ -413,22 +413,6 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		ctx.ServerError("GetPinnedIssues", err)
 		return
 	}
-	//	If Show Archived Label check box is not checked, we don't want to select archived labels
-	// and hence they will be unselected and hide from the list.
-	if !ctx.FormBool("archived") && len(labelIDs) > 0 {
-		var tempLabelIds []int64
-		for _, l := range labels {
-			for _, labelID := range labelIDs {
-				if labelID == l.ID && !l.IsArchived() {
-					tempLabelIds = append(tempLabelIds, labelID)
-				}
-			}
-		}
-		if len(tempLabelIds) > 0 {
-			labelIDs = tempLabelIds
-			selectLabels = strings.Join(base.Int64sToStrings(labelIDs), ",")
-		}
-	}
 
 	ctx.Data["PinnedIssues"] = pinned
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
