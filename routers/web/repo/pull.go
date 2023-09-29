@@ -180,6 +180,21 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 		return nil
 	}
 
+	branches, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+		RepoID: ctx.Repo.Repository.ID,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		IsDeletedBranch: util.OptionalBoolFalse,
+		// Add it as the first option
+		ExcludeBranchNames: []string{ctx.Repo.Repository.DefaultBranch},
+	})
+	if err != nil {
+		ctx.ServerError("FindBranchNames", err)
+		return nil
+	}
+	ctx.Data["Branches"] = append([]string{ctx.Repo.Repository.DefaultBranch}, branches...)
+
 	return forkRepo
 }
 
@@ -261,9 +276,10 @@ func ForkPost(ctx *context.Context) {
 	}
 
 	repo, err := repo_service.ForkRepository(ctx, ctx.Doer, ctxUser, repo_service.ForkRepoOptions{
-		BaseRepo:    forkRepo,
-		Name:        form.RepoName,
-		Description: form.Description,
+		BaseRepo:     forkRepo,
+		Name:         form.RepoName,
+		Description:  form.Description,
+		SingleBranch: form.ForkSingleBranch,
 	})
 	if err != nil {
 		ctx.Data["Err_RepoName"] = true
