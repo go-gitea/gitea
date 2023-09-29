@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	shared "code.gitea.io/gitea/routers/web/shared/actions"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 )
 
 const (
@@ -40,6 +41,11 @@ func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
 	}
 
 	if ctx.Data["PageIsOrgSettings"] == true {
+		err := shared_user.LoadHeaderCount(ctx)
+		if err != nil {
+			ctx.ServerError("LoadHeaderCount", err)
+			return nil, nil
+		}
 		return &variablesCtx{
 			OwnerID:           ctx.ContextUser.ID,
 			IsOrg:             true,

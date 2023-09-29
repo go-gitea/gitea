@@ -7,7 +7,6 @@
 
 	{{if $useMarkdownEditor}}
 		{{template "shared/combomarkdowneditor" (dict
-			"locale" .root.locale
 			"ContainerClasses" "gt-hidden"
 			"MarkdownPreviewUrl" (print .root.RepoLink "/markup")
 			"MarkdownPreviewContext" .root.RepoLink
