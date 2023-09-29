@@ -19,12 +19,10 @@
 					<tbody>
 						<tr>
 							<td>
-								{{if .DefaultBranchBranch.IsProtected}}
-									{{svg "octicon-shield-lock"}}
-								{{end}}
-								<div class="gt-df gt-ac">
+								<div class="flex-text-block">
+									{{if .DefaultBranchBranch.IsProtected}}{{svg "octicon-shield-lock"}}{{end}}
 									<a class="gt-ellipsis" href="{{.RepoLink}}/src/branch/{{PathEscapeSegments .DefaultBranchBranch.DBBranch.Name}}">{{.DefaultBranchBranch.DBBranch.Name}}</a>
-									<button class="btn interact-fg gt-p-3" data-clipboard-text="{{.DefaultBranchBranch.DBBranch.Name}}">{{svg "octicon-copy" 14}}</button>
+									<button class="btn interact-fg gt-px-2" data-clipboard-text="{{.DefaultBranchBranch.DBBranch.Name}}">{{svg "octicon-copy" 14}}</button>
 									{{template "repo/commit_statuses" dict "Status" (index $.CommitStatus .DefaultBranchBranch.DBBranch.CommitID) "Statuses" (index $.CommitStatuses .DefaultBranchBranch.DBBranch.CommitID)}}
 								</div>
 								<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.DBBranch.CommitID}}">{{ShortSha .DefaultBranchBranch.DBBranch.CommitID}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DefaultBranchBranch.DBBranch.CommitMessage .RepoLink .Repository.ComposeMetas}}</span> · {{ctx.Locale.Tr "org.repo_updated"}} {{TimeSince .DefaultBranchBranch.DBBranch.CommitTime.AsTime ctx.Locale}}{{if .DefaultBranchBranch.DBBranch.Pusher}} &nbsp;{{template "shared/user/avatarlink" dict "user" .DefaultBranchBranch.DBBranch.Pusher}}{{template "shared/user/namelink" .DefaultBranchBranch.DBBranch.Pusher}}{{end}}</p>
@@ -91,21 +89,19 @@
 							<tr>
 								<td class="eight wide">
 								{{if .DBBranch.IsDeleted}}
-									<div class="gt-df gt-ac">
+									<div class="flex-text-block">
 										<a class="gt-ellipsis" href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments .DBBranch.Name}}">{{.DBBranch.Name}}</a>
-										<button class="btn interact-fg gt-p-3" data-clipboard-text="{{.DBBranch.Name}}">{{svg "octicon-copy" 14}}</button>
+										<button class="btn interact-fg gt-px-2" data-clipboard-text="{{.DBBranch.Name}}">{{svg "octicon-copy" 14}}</button>
 									</div>
 									<p class="info">{{ctx.Locale.Tr "repo.branch.deleted_by" .DBBranch.DeletedBy.Name}} {{TimeSinceUnix .DBBranch.DeletedUnix ctx.Locale}}</p>
 								{{else}}
-									{{if .IsProtected}}
-										{{svg "octicon-shield-lock"}}
-									{{end}}
-									<div class="gt-df gt-ac">
+									<div class="flex-text-block">
+										{{if .IsProtected}}{{svg "octicon-shield-lock"}}{{end}}
 										<a class="gt-ellipsis" href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments .DBBranch.Name}}">{{.DBBranch.Name}}</a>
-										<button class="btn interact-fg gt-p-3" data-clipboard-text="{{.DBBranch.Name}}">{{svg "octicon-copy" 14}}</button>
+										<button class="btn interact-fg gt-px-2" data-clipboard-text="{{.DBBranch.Name}}">{{svg "octicon-copy" 14}}</button>
 										{{template "repo/commit_statuses" dict "Status" (index $.CommitStatus .DBBranch.CommitID) "Statuses" (index $.CommitStatuses .DBBranch.CommitID)}}
 									</div>
-										<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{$.RepoLink}}/commit/{{PathEscape .DBBranch.CommitID}}">{{ShortSha .DBBranch.CommitID}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DBBranch.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{ctx.Locale.Tr "org.repo_updated"}} {{TimeSince .DBBranch.CommitTime.AsTime ctx.Locale}}{{if .DBBranch.Pusher}} &nbsp;{{template "shared/user/avatarlink" dict "user" .DBBranch.Pusher}} &nbsp;{{template "shared/user/namelink" .DBBranch.Pusher}}{{end}}</p>
+									<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{$.RepoLink}}/commit/{{PathEscape .DBBranch.CommitID}}">{{ShortSha .DBBranch.CommitID}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DBBranch.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{ctx.Locale.Tr "org.repo_updated"}} {{TimeSince .DBBranch.CommitTime.AsTime ctx.Locale}}{{if .DBBranch.Pusher}} &nbsp;{{template "shared/user/avatarlink" dict "user" .DBBranch.Pusher}} &nbsp;{{template "shared/user/namelink" .DBBranch.Pusher}}{{end}}</p>
 								{{end}}
 								</td>
 								<td class="two wide ui">

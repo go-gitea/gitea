@@ -127,7 +127,7 @@ func ListRepoNotifications(ctx *context.APIContext) {
 
 	ctx.SetTotalCountHeader(totalCount)
 
-	ctx.JSON(http.StatusOK, convert.ToNotifications(nl))
+	ctx.JSON(http.StatusOK, convert.ToNotifications(ctx, nl))
 }
 
 // ReadRepoNotifications mark notification threads as read on a specific repo
@@ -222,7 +222,7 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 			return
 		}
 		_ = notif.LoadAttributes(ctx)
-		changed = append(changed, convert.ToNotificationThread(notif))
+		changed = append(changed, convert.ToNotificationThread(ctx, notif))
 	}
 	ctx.JSON(http.StatusResetContent, changed)
 }
