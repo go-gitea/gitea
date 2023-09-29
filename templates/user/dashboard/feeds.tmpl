@@ -4,7 +4,7 @@
 			<div class="flex-item-leading">
 				{{ctx.AvatarUtils.AvatarByAction .}}
 			</div>
-			<div class="flex-item-main gt-gap-4">
+			<div class="flex-item-main gt-gap-3">
 				<div>
 					{{if gt .ActUser.ID 0}}
 						<a href="{{AppSubUrl}}/{{(.GetActUserName ctx) | PathEscape}}" title="{{.GetDisplayNameTitle ctx}}">{{.GetDisplayName ctx}}</a>
@@ -88,7 +88,7 @@
 							{{$commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
 							<div class="flex-text-block">
 								<img class="ui avatar" src="{{$push.AvatarLink $.Context .AuthorEmail}}" title="{{.AuthorName}}" width="16" height="16">
-								<a class="ui sha label gt-mono" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
+								<a class="ui sha label" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
 								<span class="text truncate">
 									{{RenderCommitMessage $.Context .Message $repoLink $.ComposeMetas}}
 								</span>
