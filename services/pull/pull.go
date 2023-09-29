@@ -336,7 +336,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 						}
 						if changed {
 							// Mark old reviews as stale if diff to mergebase has changed
-							if err := issues_model.MarkReviewsAsStale(pr.IssueID); err != nil {
+							if err := issues_model.MarkReviewsAsStale(ctx, pr.IssueID); err != nil {
 								log.Error("MarkReviewsAsStale: %v", err)
 							}
 
@@ -351,7 +351,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 								}
 							}
 						}
-						if err := issues_model.MarkReviewsAsNotStale(pr.IssueID, newCommitID); err != nil {
+						if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, newCommitID); err != nil {
 							log.Error("MarkReviewsAsNotStale: %v", err)
 						}
 						divergence, err := GetDiverging(ctx, pr)

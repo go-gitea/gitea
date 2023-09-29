@@ -943,7 +943,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	}
 
 	if ctx.IsSigned && ctx.Doer != nil {
-		if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(issue, ctx.Doer); err != nil {
+		if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
 			ctx.ServerError("CanMarkConversation", err)
 			return
 		}
@@ -970,7 +970,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	}
 	numPendingCodeComments := int64(0)
 	if currentReview != nil {
-		numPendingCodeComments, err = issues_model.CountComments(&issues_model.FindCommentsOptions{
+		numPendingCodeComments, err = issues_model.CountComments(ctx, &issues_model.FindCommentsOptions{
 			Type:     issues_model.CommentTypeCode,
 			ReviewID: currentReview.ID,
 			IssueID:  issue.ID,
