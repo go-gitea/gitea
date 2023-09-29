@@ -6,6 +6,7 @@ package maven
 import (
 	"crypto/md5"
 	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/xml"
@@ -26,8 +27,6 @@ import (
 	maven_module "code.gitea.io/gitea/modules/packages/maven"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
-
-	"github.com/minio/sha256-simd"
 )
 
 const (

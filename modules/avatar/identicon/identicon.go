@@ -7,11 +7,10 @@
 package identicon
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"image"
 	"image/color"
-
-	"github.com/minio/sha256-simd"
 )
 
 const minImageSize = 16

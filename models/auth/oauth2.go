@@ -5,6 +5,7 @@ package auth
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base32"
 	"encoding/base64"
 	"fmt"
@@ -19,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	uuid "github.com/google/uuid"
-	"github.com/minio/sha256-simd"
 	"golang.org/x/crypto/bcrypt"
 	"xorm.io/builder"
 	"xorm.io/xorm"

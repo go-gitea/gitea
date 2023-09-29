@@ -7,12 +7,12 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
 	"regexp"
 	"testing"
 
-	"github.com/minio/sha256-simd"
 	"github.com/stretchr/testify/assert"
 )
 
