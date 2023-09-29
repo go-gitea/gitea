@@ -124,9 +124,9 @@ func (p *Project) LoadRepo(ctx context.Context) (err error) {
 }
 
 // Link returns the project's relative URL.
-func (p *Project) Link() string {
+func (p *Project) Link(ctx context.Context) string {
 	if p.OwnerID > 0 {
-		err := p.LoadOwner(db.DefaultContext)
+		err := p.LoadOwner(ctx)
 		if err != nil {
 			log.Error("LoadOwner: %v", err)
 			return ""
@@ -134,7 +134,7 @@ func (p *Project) Link() string {
 		return fmt.Sprintf("%s/-/projects/%d", p.Owner.HomeLink(), p.ID)
 	}
 	if p.RepoID > 0 {
-		err := p.LoadRepo(db.DefaultContext)
+		err := p.LoadRepo(ctx)
 		if err != nil {
 			log.Error("LoadRepo: %v", err)
 			return ""
@@ -261,7 +261,7 @@ func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, e
 }
 
 // NewProject creates a new Project
-func NewProject(p *Project) error {
+func NewProject(ctx context.Context, p *Project) error {
 	if !IsBoardTypeValid(p.BoardType) {
 		p.BoardType = BoardTypeNone
 	}
@@ -274,7 +274,7 @@ func NewProject(p *Project) error {
 		return util.NewInvalidArgumentErrorf("project type is not valid")
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -348,8 +348,8 @@ func updateRepositoryProjectCount(ctx context.Context, repoID int64) error {
 }
 
 // ChangeProjectStatusByRepoIDAndID toggles a project between opened and closed
-func ChangeProjectStatusByRepoIDAndID(repoID, projectID int64, isClosed bool) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ChangeProjectStatusByRepoIDAndID(ctx context.Context, repoID, projectID int64, isClosed bool) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -372,8 +372,8 @@ func ChangeProjectStatusByRepoIDAndID(repoID, projectID int64, isClosed bool) er
 }
 
 // ChangeProjectStatus toggle a project between opened and closed
-func ChangeProjectStatus(p *Project, isClosed bool) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ChangeProjectStatus(ctx context.Context, p *Project, isClosed bool) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

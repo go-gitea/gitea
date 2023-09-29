@@ -6,10 +6,10 @@
 					<form method="post" class="delete-time-form" action="{{.ctxData.RepoLink}}/issues/{{.ctxData.Issue.Index}}/times/{{.comment.TimeID}}/delete">
 						{{.ctxData.CsrfTokenHtml}}
 					</form>
-					<div class="header">{{.ctxData.locale.Tr "repo.issues.del_time"}}</div>
+					<div class="header">{{ctx.Locale.Tr "repo.issues.del_time"}}</div>
 					{{template "base/modal_actions_confirm"}}
 				</div>
-				<button class="ui icon button compact mini issue-delete-time" data-id="{{.comment.Time.ID}}" data-tooltip-content="{{.ctxData.locale.Tr "repo.issues.del_time"}}">
+				<button class="ui icon button compact mini issue-delete-time" data-id="{{.comment.Time.ID}}" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.del_time"}}">
 					{{svg "octicon-trash"}}
 				</button>
 			</span>

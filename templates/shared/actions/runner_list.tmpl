@@ -68,16 +68,16 @@
 					{{range .Runners}}
 					<tr>
 						<td>
-							<span class="ui {{if .IsOnline}}green{{else}}basic{{end}} label">{{.StatusLocaleName $.locale}}</span>
+							<span class="ui {{if .IsOnline}}green{{else}}basic{{end}} label">{{.StatusLocaleName ctx.Locale}}</span>
 						</td>
 						<td>{{.ID}}</td>
 						<td><p data-tooltip-content="{{.Description}}">{{.Name}}</p></td>
 						<td>{{if .Version}}{{.Version}}{{else}}{{ctx.Locale.Tr "unknown"}}{{end}}</td>
-						<td><span data-tooltip-content="{{.BelongsToOwnerName}}">{{.BelongsToOwnerType.LocaleString $.locale}}</span></td>
+						<td><span data-tooltip-content="{{.BelongsToOwnerName}}">{{.BelongsToOwnerType.LocaleString ctx.Locale}}</span></td>
 						<td class="runner-tags">
 							{{range .AgentLabels}}<span class="ui label">{{.}}</span>{{end}}
 						</td>
-						<td>{{if .LastOnline}}{{TimeSinceUnix .LastOnline $.locale}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>
+						<td>{{if .LastOnline}}{{TimeSinceUnix .LastOnline ctx.Locale}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>
 						<td class="runner-ops">
 							{{if .Editable $.RunnerOwnerID $.RunnerRepoID}}
 							<a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
