@@ -214,21 +214,16 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 	}
 
 	// prepare attachments directory and files
-	assert.NoError(t, util.RemoveAll(setting.Attachment.Storage.Path))
-	attachPath := filepath.Join(filepath.Dir(setting.AppPath), "tests", "testdata", "data", "attachments")
-	if setting.Attachment.Storage.Type == setting.LocalStorageType {
-		assert.NoError(t, unittest.CopyDir(attachPath, setting.Attachment.Storage.Path))
-	} else {
-		assert.EqualValues(t, setting.MinioStorageType, setting.Attachment.Storage.Type)
-		s, err := storage.NewLocalStorage(context.Background(), &setting.Storage{
-			Path: attachPath,
-		})
-		assert.NoError(t, err)
-		assert.NoError(t, s.IterateObjects("", func(p string, obj storage.Object) error {
-			_, err = storage.Copy(storage.Attachments, p, s, p)
-			return err
-		}))
-	}
+	assert.NoError(t, storage.Clean(storage.Attachments))
+
+	s, err := storage.NewStorage(setting.LocalStorageType, &setting.Storage{
+		Path: filepath.Join(filepath.Dir(setting.AppPath), "tests", "testdata", "data", "attachments"),
+	})
+	assert.NoError(t, err)
+	assert.NoError(t, s.IterateObjects("", func(p string, obj storage.Object) error {
+		_, err = storage.Copy(storage.Attachments, p, s, p)
+		return err
+	}))
 
 	// load LFS object fixtures
 	// (LFS storage can be on any of several backends, including remote servers, so we init it with the storage API)
