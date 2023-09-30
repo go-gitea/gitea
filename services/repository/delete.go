@@ -33,7 +33,7 @@ import (
 
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
-func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, repoID int64) error {
+func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, repoID int64, ignoreOrgTeams ...bool) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -53,9 +53,10 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, r
 		return fmt.Errorf("list actions artifacts of repo %v: %w", repoID, err)
 	}
 
-	// In case is a organization.
+	// In case owner is a organization, we delete repo specific teams
+	// if ignoreOrgTeams is not true
 	var org *user_model.User
-	if uid != 0 {
+	if len(ignoreOrgTeams) == 0 || !ignoreOrgTeams[0] {
 		if org, err = user_model.GetUserByID(ctx, uid); err != nil {
 			return err
 		}
