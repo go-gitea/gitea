@@ -231,7 +231,7 @@ type CreateReviewOptions struct {
 }
 
 // IsOfficialReviewer check if at least one of the provided reviewers can make official reviews in issue (counts towards required approvals)
-func IsOfficialReviewer(ctx context.Context, issue *Issue, reviewers ...*user_model.User) (bool, error) {
+func IsOfficialReviewer(ctx context.Context, issue *Issue, reviewer *user_model.User) (bool, error) {
 	pr, err := GetPullRequestByIssueID(ctx, issue.ID)
 	if err != nil {
 		return false, err
@@ -242,14 +242,21 @@ func IsOfficialReviewer(ctx context.Context, issue *Issue, reviewers ...*user_mo
 		return false, err
 	}
 	if rule == nil {
-		return false, nil
+		// if no rule is found, then user with write access can make official reviews
+		err := pr.LoadBaseRepo(ctx)
+		if err != nil {
+			return false, err
+		}
+		writeAccess, err := access_model.HasAccessUnit(ctx, reviewer, pr.BaseRepo, unit.TypeCode, perm.AccessModeWrite)
+		if err != nil {
+			return false, err
+		}
+		return writeAccess, nil
 	}
 
-	for _, reviewer := range reviewers {
-		official, err := git_model.IsUserOfficialReviewer(ctx, rule, reviewer)
-		if official || err != nil {
-			return official, err
-		}
+	official, err := git_model.IsUserOfficialReviewer(ctx, rule, reviewer)
+	if official || err != nil {
+		return official, err
 	}
 
 	return false, nil
@@ -322,8 +329,8 @@ func GetCurrentReview(ctx context.Context, reviewer *user_model.User, issue *Iss
 }
 
 // ReviewExists returns whether a review exists for a particular line of code in the PR
-func ReviewExists(issue *Issue, treePath string, line int64) (bool, error) {
-	return db.GetEngine(db.DefaultContext).Cols("id").Exist(&Comment{IssueID: issue.ID, TreePath: treePath, Line: line, Type: CommentTypeCode})
+func ReviewExists(ctx context.Context, issue *Issue, treePath string, line int64) (bool, error) {
+	return db.GetEngine(ctx).Cols("id").Exist(&Comment{IssueID: issue.ID, TreePath: treePath, Line: line, Type: CommentTypeCode})
 }
 
 // ContentEmptyErr represents an content empty error
@@ -340,8 +347,8 @@ func IsContentEmptyErr(err error) bool {
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
-func SubmitReview(doer *user_model.User, issue *Issue, reviewType ReviewType, content, commitID string, stale bool, attachmentUUIDs []string) (*Review, *Comment, error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, reviewType ReviewType, content, commitID string, stale bool, attachmentUUIDs []string) (*Review, *Comment, error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -487,15 +494,15 @@ func GetTeamReviewerByIssueIDAndTeamID(ctx context.Context, issueID, teamID int6
 }
 
 // MarkReviewsAsStale marks existing reviews as stale
-func MarkReviewsAsStale(issueID int64) (err error) {
-	_, err = db.GetEngine(db.DefaultContext).Exec("UPDATE `review` SET stale=? WHERE issue_id=?", true, issueID)
+func MarkReviewsAsStale(ctx context.Context, issueID int64) (err error) {
+	_, err = db.GetEngine(ctx).Exec("UPDATE `review` SET stale=? WHERE issue_id=?", true, issueID)
 
 	return err
 }
 
 // MarkReviewsAsNotStale marks existing reviews as not stale for a giving commit SHA
-func MarkReviewsAsNotStale(issueID int64, commitID string) (err error) {
-	_, err = db.GetEngine(db.DefaultContext).Exec("UPDATE `review` SET stale=? WHERE issue_id=? AND commit_id=?", false, issueID, commitID)
+func MarkReviewsAsNotStale(ctx context.Context, issueID int64, commitID string) (err error) {
+	_, err = db.GetEngine(ctx).Exec("UPDATE `review` SET stale=? WHERE issue_id=? AND commit_id=?", false, issueID, commitID)
 
 	return err
 }
@@ -518,8 +525,8 @@ func DismissReview(ctx context.Context, review *Review, isDismiss bool) (err err
 }
 
 // InsertReviews inserts review and review comments
-func InsertReviews(reviews []*Review) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func InsertReviews(ctx context.Context, reviews []*Review) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -578,7 +585,9 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 		return nil, nil
 	}
 
-	official, err := IsOfficialReviewer(ctx, issue, reviewer, doer)
+	// if the reviewer is an official reviewer,
+	// remove the official flag in the all previous reviews
+	official, err := IsOfficialReviewer(ctx, issue, reviewer)
 	if err != nil {
 		return nil, err
 	} else if official {
@@ -794,7 +803,7 @@ func RemoveTeamReviewRequest(ctx context.Context, issue *Issue, reviewer *organi
 }
 
 // MarkConversation Add or remove Conversation mark for a code comment
-func MarkConversation(comment *Comment, doer *user_model.User, isResolve bool) (err error) {
+func MarkConversation(ctx context.Context, comment *Comment, doer *user_model.User, isResolve bool) (err error) {
 	if comment.Type != CommentTypeCode {
 		return nil
 	}
@@ -804,7 +813,7 @@ func MarkConversation(comment *Comment, doer *user_model.User, isResolve bool) (
 			return nil
 		}
 
-		if _, err = db.GetEngine(db.DefaultContext).Exec("UPDATE `comment` SET resolve_doer_id=? WHERE id=?", doer.ID, comment.ID); err != nil {
+		if _, err = db.GetEngine(ctx).Exec("UPDATE `comment` SET resolve_doer_id=? WHERE id=?", doer.ID, comment.ID); err != nil {
 			return err
 		}
 	} else {
@@ -812,7 +821,7 @@ func MarkConversation(comment *Comment, doer *user_model.User, isResolve bool) (
 			return nil
 		}
 
-		if _, err = db.GetEngine(db.DefaultContext).Exec("UPDATE `comment` SET resolve_doer_id=? WHERE id=?", 0, comment.ID); err != nil {
+		if _, err = db.GetEngine(ctx).Exec("UPDATE `comment` SET resolve_doer_id=? WHERE id=?", 0, comment.ID); err != nil {
 			return err
 		}
 	}
@@ -822,24 +831,24 @@ func MarkConversation(comment *Comment, doer *user_model.User, isResolve bool) (
 
 // CanMarkConversation  Add or remove Conversation mark for a code comment permission check
 // the PR writer , offfcial reviewer and poster can do it
-func CanMarkConversation(issue *Issue, doer *user_model.User) (permResult bool, err error) {
+func CanMarkConversation(ctx context.Context, issue *Issue, doer *user_model.User) (permResult bool, err error) {
 	if doer == nil || issue == nil {
 		return false, fmt.Errorf("issue or doer is nil")
 	}
 
 	if doer.ID != issue.PosterID {
-		if err = issue.LoadRepo(db.DefaultContext); err != nil {
+		if err = issue.LoadRepo(ctx); err != nil {
 			return false, err
 		}
 
-		p, err := access_model.GetUserRepoPermission(db.DefaultContext, issue.Repo, doer)
+		p, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
 		if err != nil {
 			return false, err
 		}
 
 		permResult = p.CanAccess(perm.AccessModeWrite, unit.TypePullRequests)
 		if !permResult {
-			if permResult, err = IsOfficialReviewer(db.DefaultContext, issue, doer); err != nil {
+			if permResult, err = IsOfficialReviewer(ctx, issue, doer); err != nil {
 				return false, err
 			}
 		}
@@ -853,8 +862,8 @@ func CanMarkConversation(issue *Issue, doer *user_model.User) (permResult bool, 
 }
 
 // DeleteReview delete a review and it's code comments
-func DeleteReview(r *Review) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func DeleteReview(ctx context.Context, r *Review) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -903,7 +912,7 @@ func DeleteReview(r *Review) error {
 }
 
 // GetCodeCommentsCount return count of CodeComments a Review has
-func (r *Review) GetCodeCommentsCount() int {
+func (r *Review) GetCodeCommentsCount(ctx context.Context) int {
 	opts := FindCommentsOptions{
 		Type:     CommentTypeCode,
 		IssueID:  r.IssueID,
@@ -914,7 +923,7 @@ func (r *Review) GetCodeCommentsCount() int {
 		conds = conds.And(builder.Eq{"invalidated": false})
 	}
 
-	count, err := db.GetEngine(db.DefaultContext).Where(conds).Count(new(Comment))
+	count, err := db.GetEngine(ctx).Where(conds).Count(new(Comment))
 	if err != nil {
 		return 0
 	}
@@ -922,18 +931,18 @@ func (r *Review) GetCodeCommentsCount() int {
 }
 
 // HTMLURL formats a URL-string to the related review issue-comment
-func (r *Review) HTMLURL() string {
+func (r *Review) HTMLURL(ctx context.Context) string {
 	opts := FindCommentsOptions{
 		Type:     CommentTypeReview,
 		IssueID:  r.IssueID,
 		ReviewID: r.ID,
 	}
 	comment := new(Comment)
-	has, err := db.GetEngine(db.DefaultContext).Where(opts.ToConds()).Get(comment)
+	has, err := db.GetEngine(ctx).Where(opts.ToConds()).Get(comment)
 	if err != nil || !has {
 		return ""
 	}
-	return comment.HTMLURL()
+	return comment.HTMLURL(ctx)
 }
 
 // RemapExternalUser ExternalUserRemappable interface
@@ -954,8 +963,8 @@ func (r *Review) GetExternalName() string { return r.OriginalAuthor }
 func (r *Review) GetExternalID() int64 { return r.OriginalAuthorID }
 
 // UpdateReviewsMigrationsByType updates reviews' migrations information via given git service type and original id and poster id
-func UpdateReviewsMigrationsByType(tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).Table("review").
+func UpdateReviewsMigrationsByType(ctx context.Context, tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
+	_, err := db.GetEngine(ctx).Table("review").
 		Where("original_author_id = ?", originalAuthorID).
 		And(migratedIssueCond(tp)).
 		Update(map[string]any{
