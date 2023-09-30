@@ -210,6 +210,7 @@ func LoadSettings() {
 	loadCorsFrom(CfgProvider)
 	loadMailsFrom(CfgProvider)
 	loadProxyFrom(CfgProvider)
+	loadSMTPProxyFrom(CfgProvider)
 	loadWebhookFrom(CfgProvider)
 	loadMigrationsFrom(CfgProvider)
 	loadIndexerFrom(CfgProvider)
