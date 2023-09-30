@@ -159,6 +159,10 @@ func testLinksAsUser(userName string, t *testing.T) {
 		"/releases/new",
 		//"/wiki/_pages",
 		"/wiki/?action=_new",
+		"/actions",
+		"/activity",
+		"/packages",
+		"/projects",
 	}
 
 	for _, repo := range apiRepos {
