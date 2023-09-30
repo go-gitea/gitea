@@ -16,10 +16,10 @@
 	</div>
 	<div class="right-links" role="group" aria-label="{{ctx.Locale.Tr "aria.footer.links"}}">
 		<div class="ui dropdown upward language">
-			<span class="flex-text-inline">{{svg "octicon-globe" 14}} {{.locale.LangName}}</span>
+			<span class="flex-text-inline">{{svg "octicon-globe" 14}} {{ctx.Locale.LangName}}</span>
 			<div class="menu language-menu">
 				{{range .AllLangs}}
-					<a lang="{{.Lang}}" data-url="{{AppSubUrl}}/?lang={{.Lang}}" class="item {{if eq $.locale.Lang .Lang}}active selected{{end}}">{{.Name}}</a>
+					<a lang="{{.Lang}}" data-url="{{AppSubUrl}}/?lang={{.Lang}}" class="item {{if eq ctx.Locale.Lang .Lang}}active selected{{end}}">{{.Name}}</a>
 				{{end}}
 			</div>
 		</div>

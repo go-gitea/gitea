@@ -12,7 +12,7 @@
 		<form class="ui form" action="{{.Link}}?action={{if .PageIsWikiEdit}}_edit{{else}}_new{{end}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
-				<input name="title" value="{{.title}}" aria-label="{{ctx.Locale.Tr "repo.wiki.page_title"}}" placeholder="{{.locale.Tr "repo.wiki.page_title"}}" autofocus required>
+				<input name="title" value="{{.title}}" aria-label="{{ctx.Locale.Tr "repo.wiki.page_title"}}" placeholder="{{ctx.Locale.Tr "repo.wiki.page_title"}}" autofocus required>
 			</div>
 			<div class="help">
 				{{ctx.Locale.Tr "repo.wiki.page_name_desc"}}
@@ -32,7 +32,7 @@
 			)}}
 
 			<div class="field gt-mt-4">
-				<input name="message" aria-label="{{ctx.Locale.Tr "repo.wiki.default_commit_message"}}" placeholder="{{.locale.Tr "repo.wiki.default_commit_message"}}">
+				<input name="message" aria-label="{{ctx.Locale.Tr "repo.wiki.default_commit_message"}}" placeholder="{{ctx.Locale.Tr "repo.wiki.default_commit_message"}}">
 			</div>
 			<div class="divider"></div>
 			<div class="text right">

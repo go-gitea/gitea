@@ -38,11 +38,11 @@
 					<div class="small-menu-items ui compact tiny menu list-header-toggle">
 						<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
 							{{svg "octicon-milestone" 16 "gt-mr-3"}}
-							{{.locale.PrettyNumber .MilestoneStats.OpenCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
+							{{ctx.Locale.PrettyNumber .MilestoneStats.OpenCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 						</a>
 						<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
 							{{svg "octicon-check" 16 "gt-mr-3"}}
-							{{.locale.PrettyNumber .MilestoneStats.ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
+							{{ctx.Locale.PrettyNumber .MilestoneStats.ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 						</a>
 					</div>
 					<form class="list-header-search ui form ignore-dirty">
@@ -91,11 +91,11 @@
 								<div class="group">
 									<div class="flex-text-block">
 										{{svg "octicon-issue-opened" 14}}
-										{{$.locale.PrettyNumber .NumOpenIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
+										{{ctx.Locale.PrettyNumber .NumOpenIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 									</div>
 									<div class="flex-text-block">
 										{{svg "octicon-check" 14}}
-										{{$.locale.PrettyNumber .NumClosedIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
+										{{ctx.Locale.PrettyNumber .NumClosedIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 									</div>
 									{{if .TotalTrackedTime}}
 										<div class="flex-text-block">
@@ -106,12 +106,12 @@
 									{{if .UpdatedUnix}}
 										<div class="flex-text-block">
 											{{svg "octicon-clock"}}
-											{{ctx.Locale.Tr "repo.milestones.update_ago" (TimeSinceUnix .UpdatedUnix $.locale) | Safe}}
+											{{ctx.Locale.Tr "repo.milestones.update_ago" (TimeSinceUnix .UpdatedUnix ctx.Locale) | Safe}}
 										</div>
 									{{end}}
 									<div class="flex-text-block">
 										{{if .IsClosed}}
-											{{$closedDate:= TimeSinceUnix .ClosedDateUnix $.locale}}
+											{{$closedDate:= TimeSinceUnix .ClosedDateUnix ctx.Locale}}
 											{{svg "octicon-clock" 14}}
 											{{ctx.Locale.Tr "repo.milestones.closed" $closedDate | Safe}}
 										{{else}}

@@ -19,7 +19,7 @@
 					<input type="checkbox" name="all" value="true" {{.All}}>
 					<label>{{ctx.Locale.Tr "repo.commits.search_all"}}</label>
 				</div>
-				<button class="ui primary tiny button gt-mr-0" data-panel="#add-deploy-key-panel" data-tooltip-content={{ctx.Locale.Tr "repo.commits.search.tooltip"}}>{{.locale.Tr "repo.commits.find"}}</button>
+				<button class="ui primary tiny button gt-mr-0" data-panel="#add-deploy-key-panel" data-tooltip-content={{ctx.Locale.Tr "repo.commits.search.tooltip"}}>{{ctx.Locale.Tr "repo.commits.find"}}</button>
 			</form>
 		{{else if .IsDiffCompare}}
 			<a href="{{$.CommitRepoLink}}/commit/{{.BeforeCommitID | PathEscape}}" class="ui green sha label gt-mx-0">{{if not .BaseIsCommit}}{{if .BaseIsBranch}}{{svg "octicon-git-branch"}}{{else if .BaseIsTag}}{{svg "octicon-tag"}}{{end}}{{.BaseBranch}}{{else}}{{ShortSha .BaseBranch}}{{end}}</a>

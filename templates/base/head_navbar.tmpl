@@ -6,14 +6,14 @@
 <nav id="navbar" aria-label="{{ctx.Locale.Tr "aria.navbar"}}">
 	<div class="navbar-left ui secondary menu">
 		<!-- the logo -->
-		<a class="item" id="navbar-logo" href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{ctx.Locale.Tr "dashboard"}}{{else}}{{.locale.Tr "home"}}{{end}}">
+		<a class="item" id="navbar-logo" href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{ctx.Locale.Tr "dashboard"}}{{else}}{{ctx.Locale.Tr "home"}}{{end}}">
 			<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}" aria-hidden="true">
 		</a>
 
 		<!-- mobile right menu, it must be here because in mobile view, each item is a flex column, the first item is a full row column -->
 		<div class="ui secondary menu item navbar-mobile-right">
 			{{if .IsSigned}}
-			<a id="mobile-notifications-icon" class="item gt-w-auto gt-p-3" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
+			<a id="mobile-notifications-icon" class="item gt-w-auto gt-p-3" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" aria-label="{{ctx.Locale.Tr "notifications"}}">
 				<div class="gt-relative">
 					{{svg "octicon-bell"}}
 					<span class="notification_count{{if not $notificationUnreadCount}} gt-hidden{{end}}">{{$notificationUnreadCount}}</span>
@@ -111,7 +111,7 @@
 			</div>
 			{{end}}
 
-			<a class="item not-mobile gt-mx-0" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
+			<a class="item not-mobile gt-mx-0" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" aria-label="{{ctx.Locale.Tr "notifications"}}">
 				<div class="gt-relative">
 					{{svg "octicon-bell"}}
 					<span class="notification_count{{if not $notificationUnreadCount}} gt-hidden{{end}}">{{$notificationUnreadCount}}</span>

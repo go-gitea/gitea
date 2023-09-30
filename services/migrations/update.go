@@ -62,7 +62,7 @@ func updateMigrationPosterIDByGitService(ctx context.Context, tp structs.GitServ
 			default:
 			}
 			externalUserID := user.ExternalID
-			if err := externalaccount.UpdateMigrationsByType(tp, externalUserID, user.UserID); err != nil {
+			if err := externalaccount.UpdateMigrationsByType(ctx, tp, externalUserID, user.UserID); err != nil {
 				log.Error("UpdateMigrationsByType type %s external user id %v to local user id %v failed: %v", tp.Name(), user.ExternalID, user.UserID, err)
 			}
 		}
