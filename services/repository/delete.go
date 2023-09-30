@@ -53,7 +53,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, r
 		return fmt.Errorf("list actions artifacts of repo %v: %w", repoID, err)
 	}
 
-	// In case owner is a organization, we delete repo specific teams
+	// In case owner is a organization, we have to change repo specific teams
 	// if ignoreOrgTeams is not true
 	var org *user_model.User
 	if len(ignoreOrgTeams) == 0 || !ignoreOrgTeams[0] {
