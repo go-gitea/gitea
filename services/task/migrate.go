@@ -49,9 +49,9 @@ func runMigrateTask(ctx context.Context, t *admin_model.Task) (err error) {
 		}
 
 		if err == nil {
-			err = admin_model.FinishMigrateTask(ctx, t)
+			err = admin_model.FinishMigrateTask(db.DefaultContext, t)
 			if err == nil {
-				notify_service.MigrateRepository(ctx, t.Doer, t.Owner, t.Repo)
+				notify_service.MigrateRepository(db.DefaultContext, t.Doer, t.Owner, t.Repo)
 				return
 			}
 
@@ -64,7 +64,7 @@ func runMigrateTask(ctx context.Context, t *admin_model.Task) (err error) {
 		t.Status = structs.TaskStatusFailed
 		t.Message = err.Error()
 
-		if err := t.UpdateCols(ctx, "status", "message", "end_time"); err != nil {
+		if err := t.UpdateCols(db.DefaultContext, "status", "message", "end_time"); err != nil {
 			log.Error("Task UpdateCols failed: %v", err)
 		}
 
