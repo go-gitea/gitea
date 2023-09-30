@@ -115,3 +115,9 @@ func TestTotalTimesForEachUser(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, total, 2)
 }
+
+func TestGetIssueTotalTrackedTime(t *testing.T) {
+	ttt, err := issues_model.GetIssueTotalTrackedTime(&issues_model.IssuesOptions{MentionedID: 1}, false)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 103682, ttt)
+}

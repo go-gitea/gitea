@@ -335,7 +335,7 @@ func GetIssueTotalTrackedTime(opts *IssuesOptions, isClosed bool) (int64, error)
 
 	// If too long a list of IDs is provided,
 	// we get the statistics in smaller chunks and get accumulates
-	var accum int64 = 0
+	var accum int64
 	for i := 0; i < len(opts.IssueIDs); {
 		chunk := i + MaxQueryParameters
 		if chunk > len(opts.IssueIDs) {
