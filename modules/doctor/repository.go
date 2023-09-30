@@ -34,7 +34,7 @@ func DeleteOrphanedRepos(ctx context.Context) (int64, error) {
 			return deleted, err
 		}
 
-		// if we don't get ids we deleted them all
+		// if we don't get ids we have deleted them all
 		if len(ids) == 0 {
 			return deleted, nil
 		}
