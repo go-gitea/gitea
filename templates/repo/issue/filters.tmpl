@@ -41,7 +41,7 @@
 							<div class="divider"></div>
 						{{end}}
 						{{$previousExclusiveScope = $exclusiveScope}}
-						<a class="item label-filter-item gt-df gt-ac" {{if .IsArchived}}data-is-archived{{end}} href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}" data-is-checked data-label-id="{{.ID}}">
+						<a class="item label-filter-item gt-df gt-ac" {{if .IsArchived}}data-is-archived{{end}} href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}" data-label-id="{{.ID}}">
 							{{if .IsExcluded}}
 								{{svg "octicon-circle-slash"}}
 							{{else if .IsSelected}}

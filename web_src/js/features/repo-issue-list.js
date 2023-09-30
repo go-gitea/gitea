@@ -201,9 +201,7 @@ function initArchivedLabelFilter() {
   const archivedElToggle = () => {
     for (const label of archivedLabels) {
       const id = label.getAttribute('data-label-id');
-      if (selectedLabels.length && !selectedLabels.includes(id)) {
-        toggleElem(label, archivedLabelEl.checked);
-      }
+      toggleElem(label, archivedLabelEl.checked || selectedLabels.includes(id));
     }
   };
 
