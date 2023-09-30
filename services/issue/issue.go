@@ -22,7 +22,7 @@ import (
 
 // NewIssue creates new issue with labels for repository.
 func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64) error {
-	if err := issues_model.NewIssue(repo, issue, labelIDs, uuids); err != nil {
+	if err := issues_model.NewIssue(ctx, repo, issue, labelIDs, uuids); err != nil {
 		return err
 	}
 
@@ -73,7 +73,7 @@ func ChangeIssueRef(ctx context.Context, issue *issues_model.Issue, doer *user_m
 	oldRef := issue.Ref
 	issue.Ref = ref
 
-	if err := issues_model.ChangeIssueRef(issue, doer, oldRef); err != nil {
+	if err := issues_model.ChangeIssueRef(ctx, issue, doer, oldRef); err != nil {
 		return err
 	}
 

@@ -260,7 +260,7 @@ func DeletePullReview(ctx *context.APIContext) {
 		return
 	}
 
-	if err := issues_model.DeleteReview(review); err != nil {
+	if err := issues_model.DeleteReview(ctx, review); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteReview", fmt.Errorf("can not delete ReviewID: %d", review.ID))
 		return
 	}
@@ -713,7 +713,7 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 		}
 
 		if comment != nil && isAdd {
-			if err = comment.LoadReview(); err != nil {
+			if err = comment.LoadReview(ctx); err != nil {
 				ctx.ServerError("ReviewRequest", err)
 				return
 			}
@@ -757,7 +757,7 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 			}
 
 			if comment != nil && isAdd {
-				if err = comment.LoadReview(); err != nil {
+				if err = comment.LoadReview(ctx); err != nil {
 					ctx.ServerError("ReviewRequest", err)
 					return
 				}
