@@ -23,7 +23,7 @@
 							id="archived-filter-checkbox"
 							{{if .ShowArchivedLabels}}checked{{end}}
 						>
-						<label>
+						<label for="archived-filter-checkbox">
 							{{ctx.Locale.Tr "repo.issues.label_archived_filter"}}
 							<i class="gt-ml-2" data-tooltip-content={{ctx.Locale.Tr "repo.issues.label_archive_tooltip"}}>
 								{{svg "octicon-info"}}
