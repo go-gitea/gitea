@@ -13,60 +13,60 @@
 					<div class="labels gt-df gt-ac gt-fw">
 						{{if .IsTemplate}}
 							{{if .IsPrivate}}
-								<span class="ui basic label">{{$.locale.Tr "repo.desc.private_template"}}</span>
+								<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private_template"}}</span>
 							{{else}}
 								{{if .Owner.Visibility.IsPrivate}}
-									<span class="ui basic label">{{$.locale.Tr "repo.desc.internal_template"}}</span>
+									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal_template"}}</span>
 								{{end}}
 							{{end}}
 						{{else}}
 							{{if .IsPrivate}}
-								<span class="ui basic label">{{$.locale.Tr "repo.desc.private"}}</span>
+								<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
 							{{else}}
 								{{if .Owner.Visibility.IsPrivate}}
-									<span class="ui basic label">{{$.locale.Tr "repo.desc.internal"}}</span>
+									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal"}}</span>
 								{{end}}
 							{{end}}
 						{{end}}
 						{{if .IsArchived}}
-							<span class="ui basic label">{{$.locale.Tr "repo.desc.archived"}}</span>
+							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
 						{{end}}
 					</div>
 					{{if $.EnableFeed}}
-						<a class="rss-icon gt-ml-3" href="{{$.RepoLink}}.rss" data-tooltip-content="{{$.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</a>
+						<a class="rss-icon gt-ml-3" href="{{$.RepoLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</a>
 					{{end}}
 				</div>
 				{{if $.PullMirror}}
-					<div class="fork-flag">{{$.locale.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a></div>
+					<div class="fork-flag">{{ctx.Locale.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a></div>
 				{{end}}
-				{{if .IsFork}}<div class="fork-flag">{{$.locale.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{.BaseRepo.FullName}}</a></div>{{end}}
-				{{if .IsGenerated}}<div class="fork-flag">{{$.locale.Tr "repo.generated_from"}} <a href="{{.TemplateRepo.Link}}">{{.TemplateRepo.FullName}}</a></div>{{end}}
+				{{if .IsFork}}<div class="fork-flag">{{ctx.Locale.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{.BaseRepo.FullName}}</a></div>{{end}}
+				{{if .IsGenerated}}<div class="fork-flag">{{ctx.Locale.Tr "repo.generated_from"}} <a href="{{.TemplateRepo.Link}}">{{.TemplateRepo.FullName}}</a></div>{{end}}
 			</div>
 			{{if not (or .IsBeingCreated .IsBroken)}}
 				<div class="repo-buttons">
 					{{if $.RepoTransfer}}
 						<form method="post" action="{{$.RepoLink}}/action/accept_transfer?redirect_to={{$.RepoLink}}">
 							{{$.CsrfTokenHtml}}
-							<div data-tooltip-content="{{if $.CanUserAcceptTransfer}}{{$.locale.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{$.locale.Tr "repo.transfer.no_permission_to_accept"}}{{end}}">
+							<div data-tooltip-content="{{if $.CanUserAcceptTransfer}}{{ctx.Locale.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{ctx.Locale.Tr "repo.transfer.no_permission_to_accept"}}{{end}}">
 								<button type="submit" class="ui basic button {{if $.CanUserAcceptTransfer}}primary {{end}} ok small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
-									{{$.locale.Tr "repo.transfer.accept"}}
+									{{ctx.Locale.Tr "repo.transfer.accept"}}
 								</button>
 							</div>
 						</form>
 						<form method="post" action="{{$.RepoLink}}/action/reject_transfer?redirect_to={{$.RepoLink}}">
 							{{$.CsrfTokenHtml}}
-							<div data-tooltip-content="{{if $.CanUserAcceptTransfer}}{{$.locale.Tr "repo.transfer.reject_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{$.locale.Tr "repo.transfer.no_permission_to_reject"}}{{end}}">
+							<div data-tooltip-content="{{if $.CanUserAcceptTransfer}}{{ctx.Locale.Tr "repo.transfer.reject_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{ctx.Locale.Tr "repo.transfer.no_permission_to_reject"}}{{end}}">
 								<button type="submit" class="ui basic button {{if $.CanUserAcceptTransfer}}red {{end}}ok small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
-									{{$.locale.Tr "repo.transfer.reject"}}
+									{{ctx.Locale.Tr "repo.transfer.reject"}}
 								</button>
 							</div>
 						</form>
 					{{end}}
 					<form method="post" action="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
 						{{$.CsrfTokenHtml}}
-						<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{$.locale.Tr "repo.watch_guest_user"}}"{{end}}>
+						<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.watch_guest_user"}}"{{end}}>
 							<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}}>
-								{{if $.IsWatchingRepo}}{{svg "octicon-eye-closed" 16}}{{$.locale.Tr "repo.unwatch"}}{{else}}{{svg "octicon-eye"}}{{$.locale.Tr "repo.watch"}}{{end}}
+								{{if $.IsWatchingRepo}}{{svg "octicon-eye-closed" 16}}{{ctx.Locale.Tr "repo.unwatch"}}{{else}}{{svg "octicon-eye"}}{{ctx.Locale.Tr "repo.watch"}}{{end}}
 							</button>
 							<a class="ui basic label" href="{{.Link}}/watchers">
 								{{CountFmt .NumWatches}}
@@ -76,9 +76,9 @@
 					{{if not $.DisableStars}}
 						<form method="post" action="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}un{{end}}star?redirect_to={{$.Link}}">
 							{{$.CsrfTokenHtml}}
-							<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{$.locale.Tr "repo.star_guest_user"}}"{{end}}>
+							<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.star_guest_user"}}"{{end}}>
 								<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}}>
-									{{if $.IsStaringRepo}}{{svg "octicon-star-fill"}}{{$.locale.Tr "repo.unstar"}}{{else}}{{svg "octicon-star"}}{{$.locale.Tr "repo.star"}}{{end}}
+									{{if $.IsStaringRepo}}{{svg "octicon-star-fill"}}{{ctx.Locale.Tr "repo.unstar"}}{{else}}{{svg "octicon-star"}}{{ctx.Locale.Tr "repo.star"}}{{end}}
 								</button>
 								<a class="ui basic label {{if $.StarLists}}no-border-radius{{end}}" href="{{.Link}}/stars">
 									{{CountFmt .NumStars}}
@@ -95,9 +95,9 @@
 								disabled
 							{{end}}"
 							{{if not $.IsSigned}}
-								data-tooltip-content="{{$.locale.Tr "repo.fork_guest_user"}}"
+								data-tooltip-content="{{ctx.Locale.Tr "repo.fork_guest_user"}}"
 							{{else if and (not $.CanSignedUserFork) (eq (len $.UserAndOrgForks) 0)}}
-								data-tooltip-content="{{$.locale.Tr "repo.fork_from_self"}}"
+								data-tooltip-content="{{ctx.Locale.Tr "repo.fork_from_self"}}"
 							{{end}}
 						>
 							<a class="ui compact{{if $.ShowForkModal}} show-modal{{end}} small basic button"
@@ -114,11 +114,11 @@
 									data-modal="#fork-repo-modal"
 								{{end}}
 							>
-								{{svg "octicon-repo-forked"}}{{$.locale.Tr "repo.fork"}}
+								{{svg "octicon-repo-forked"}}{{ctx.Locale.Tr "repo.fork"}}
 							</a>
 							<div class="ui small modal" id="fork-repo-modal">
 								<div class="header">
-									{{$.locale.Tr "repo.already_forked" .Name}}
+									{{ctx.Locale.Tr "repo.already_forked" .Name}}
 								</div>
 								<div class="content gt-text-left">
 									<div class="ui list">
@@ -133,7 +133,7 @@
 									{{if $.CanSignedUserFork}}
 									<div class="divider"></div>
 									<a href="{{AppSubUrl}}/repo/fork/{{.ID}}">
-										{{$.locale.Tr "repo.fork_to_different_account"}}
+										{{ctx.Locale.Tr "repo.fork_to_different_account"}}
 									</a>
 									{{end}}
 								</div>
@@ -153,13 +153,13 @@
 			<div class="ui tabular menu navbar gt-overflow-x-auto gt-overflow-y-hidden">
 				{{if .Permission.CanRead $.UnitTypeCode}}
 				<a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if (ne .BranchName .Repository.DefaultBranch)}}/src/{{.BranchNameSubURL}}{{end}}">
-					{{svg "octicon-code"}} {{.locale.Tr "repo.code"}}
+					{{svg "octicon-code"}} {{ctx.Locale.Tr "repo.code"}}
 				</a>
 				{{end}}
 
 				{{if .Permission.CanRead $.UnitTypeIssues}}
 					<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoLink}}/issues">
-						{{svg "octicon-issue-opened"}} {{.locale.Tr "repo.issues"}}
+						{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues"}}
 						{{if .Repository.NumOpenIssues}}
 							<span class="ui small label">{{CountFmt .Repository.NumOpenIssues}}</span>
 						{{end}}
@@ -168,13 +168,13 @@
 
 				{{if .Permission.CanRead $.UnitTypeExternalTracker}}
 					<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoExternalIssuesLink}}" target="_blank" rel="noopener noreferrer">
-						{{svg "octicon-link-external"}} {{.locale.Tr "repo.issues"}}
+						{{svg "octicon-link-external"}} {{ctx.Locale.Tr "repo.issues"}}
 					</a>
 				{{end}}
 
 				{{if and .Repository.CanEnablePulls (.Permission.CanRead $.UnitTypePullRequests)}}
 					<a class="{{if .PageIsPullList}}active {{end}}item" href="{{.RepoLink}}/pulls">
-						{{svg "octicon-git-pull-request"}} {{.locale.Tr "repo.pulls"}}
+						{{svg "octicon-git-pull-request"}} {{ctx.Locale.Tr "repo.pulls"}}
 						{{if .Repository.NumOpenPulls}}
 							<span class="ui small label">{{CountFmt .Repository.NumOpenPulls}}</span>
 						{{end}}
@@ -183,7 +183,7 @@
 
 				{{if and .EnableActions (not .UnitActionsGlobalDisabled) (.Permission.CanRead $.UnitTypeActions)}}
 					<a class="{{if .PageIsActions}}active {{end}}item" href="{{.RepoLink}}/actions">
-						{{svg "octicon-play"}} {{.locale.Tr "actions.actions"}}
+						{{svg "octicon-play"}} {{ctx.Locale.Tr "actions.actions"}}
 						{{if .Repository.NumOpenActionRuns}}
 							<span class="ui small label">{{CountFmt .Repository.NumOpenActionRuns}}</span>
 						{{end}}
@@ -192,13 +192,13 @@
 
 				{{if .Permission.CanRead $.UnitTypePackages}}
 					<a href="{{.RepoLink}}/packages" class="{{if .IsPackagesPage}}active {{end}}item">
-						{{svg "octicon-package"}} {{.locale.Tr "packages.title"}}
+						{{svg "octicon-package"}} {{ctx.Locale.Tr "packages.title"}}
 					</a>
 				{{end}}
 
 				{{if and (not .UnitProjectsGlobalDisabled) (.Permission.CanRead $.UnitTypeProjects)}}
 					<a href="{{.RepoLink}}/projects" class="{{if .IsProjectsPage}}active {{end}}item">
-						{{svg "octicon-project"}} {{.locale.Tr "repo.project_board"}}
+						{{svg "octicon-project"}} {{ctx.Locale.Tr "repo.project_board"}}
 						{{if .Repository.NumOpenProjects}}
 							<span class="ui small label">{{CountFmt .Repository.NumOpenProjects}}</span>
 						{{end}}
@@ -207,7 +207,7 @@
 
 				{{if and (.Permission.CanRead $.UnitTypeReleases) (not .IsEmptyRepo)}}
 				<a class="{{if or .PageIsReleaseList .PageIsTagList}}active {{end}}item" href="{{.RepoLink}}/releases">
-					{{svg "octicon-tag"}} {{.locale.Tr "repo.releases"}}
+					{{svg "octicon-tag"}} {{ctx.Locale.Tr "repo.releases"}}
 					{{if .NumReleases}}
 						<span class="ui small label">{{CountFmt .NumReleases}}</span>
 					{{end}}
@@ -216,19 +216,19 @@
 
 				{{if .Permission.CanRead $.UnitTypeWiki}}
 					<a class="{{if .PageIsWiki}}active {{end}}item" href="{{.RepoLink}}/wiki">
-						{{svg "octicon-book"}} {{.locale.Tr "repo.wiki"}}
+						{{svg "octicon-book"}} {{ctx.Locale.Tr "repo.wiki"}}
 					</a>
 				{{end}}
 
 				{{if .Permission.CanRead $.UnitTypeExternalWiki}}
 					<a class="item" href="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}" target="_blank" rel="noopener noreferrer">
-						{{svg "octicon-link-external"}} {{.locale.Tr "repo.wiki"}}
+						{{svg "octicon-link-external"}} {{ctx.Locale.Tr "repo.wiki"}}
 					</a>
 				{{end}}
 
 				{{if and (.Permission.CanReadAny $.UnitTypePullRequests $.UnitTypeIssues $.UnitTypeReleases) (not .IsEmptyRepo)}}
 					<a class="{{if .PageIsActivity}}active {{end}}item" href="{{.RepoLink}}/activity">
-						{{svg "octicon-pulse"}} {{.locale.Tr "repo.activity"}}
+						{{svg "octicon-pulse"}} {{ctx.Locale.Tr "repo.activity"}}
 					</a>
 				{{end}}
 
@@ -236,14 +236,14 @@
 
 				{{if .Permission.IsAdmin}}
 					<a class="{{if .PageIsRepoSettings}}active {{end}}right item" href="{{.RepoLink}}/settings">
-						{{svg "octicon-tools"}} {{.locale.Tr "repo.settings"}}
+						{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
 					</a>
 				{{end}}
 			</div>
 		{{else if .Permission.IsAdmin}}
 			<div class="ui tabular menu navbar gt-overflow-x-auto gt-overflow-y-hidden">
 				<a class="{{if .PageIsRepoSettings}}active {{end}}right item" href="{{.RepoLink}}/settings">
-					{{svg "octicon-tools"}} {{.locale.Tr "repo.settings"}}
+					{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
 				</a>
 			</div>
 		{{end}}

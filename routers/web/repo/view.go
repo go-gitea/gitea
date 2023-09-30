@@ -692,7 +692,7 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 	}
 	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
 	if err != nil {
-		ctx.NotFoundOrServerError("Repo.Commit.SubTree", git.IsErrNotExist, err)
+		HandleGitError(ctx, "Repo.Commit.SubTree", err)
 		return
 	}
 	allEntries, err := tree.ListEntries()
@@ -783,7 +783,7 @@ func LastCommit(ctx *context.Context) {
 func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entries {
 	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
 	if err != nil {
-		ctx.NotFoundOrServerError("Repo.Commit.SubTree", git.IsErrNotExist, err)
+		HandleGitError(ctx, "Repo.Commit.SubTree", err)
 		return nil
 	}
 
@@ -792,12 +792,12 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	// Get current entry user currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
-		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
+		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 		return nil
 	}
 
 	if !entry.IsDir() {
-		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
+		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 		return nil
 	}
 
@@ -843,7 +843,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		verification := asymkey_model.ParseCommitWithSignature(ctx, latestCommit)
 
 		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-			return repo_model.IsOwnerMemberCollaborator(ctx.Repo.Repository, user.ID)
+			return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
 		}, nil); err != nil {
 			ctx.ServerError("CalculateTrustStatus", err)
 			return nil
@@ -963,7 +963,7 @@ func renderCode(ctx *context.Context) {
 	// Get current entry user currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
-		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
+		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 		return
 	}
 

@@ -53,7 +53,7 @@ func ListCollaborators(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	count, err := repo_model.CountCollaborators(ctx.Repo.Repository.ID)
+	count, err := repo_model.CountCollaborators(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

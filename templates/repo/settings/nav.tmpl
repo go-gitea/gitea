@@ -1,19 +1,19 @@
 <div id="setting-menu" class="grid-1-5 panel panel-radius left">
-	<p class="panel-header"><strong>{{.locale.Tr "repo.settings"}}</strong></p>
+	<p class="panel-header"><strong>{{ctx.Locale.Tr "repo.settings"}}</strong></p>
 	<div class="panel-body">
 		<ul class="menu menu-vertical switching-list grid-1-5 left">
-			<li {{if .PageIsSettingsOptions}}class="current"{{end}}><a href="{{.RepoLink}}/settings">{{.locale.Tr "repo.settings.options"}}</a></li>
-			<li {{if .PageIsSettingsCollaboration}}class="current"{{end}}><a href="{{.RepoLink}}/settings/collaboration">{{.locale.Tr "repo.settings.collaboration"}}</a></li>
-			<li {{if .PageIsSettingsBranches}}class="current"{{end}}><a href="{{.RepoLink}}/settings/branches">{{.locale.Tr "repo.settings.branches"}}</a></li>
-			<li {{if .PageIsSettingsTags}}class="current"{{end}}><a href="{{.RepoLink}}/settings/tags">{{.locale.Tr "repo.settings.tags"}}</a></li>
+			<li {{if .PageIsSettingsOptions}}class="current"{{end}}><a href="{{.RepoLink}}/settings">{{ctx.Locale.Tr "repo.settings.options"}}</a></li>
+			<li {{if .PageIsSettingsCollaboration}}class="current"{{end}}><a href="{{.RepoLink}}/settings/collaboration">{{ctx.Locale.Tr "repo.settings.collaboration"}}</a></li>
+			<li {{if .PageIsSettingsBranches}}class="current"{{end}}><a href="{{.RepoLink}}/settings/branches">{{ctx.Locale.Tr "repo.settings.branches"}}</a></li>
+			<li {{if .PageIsSettingsTags}}class="current"{{end}}><a href="{{.RepoLink}}/settings/tags">{{ctx.Locale.Tr "repo.settings.tags"}}</a></li>
 			{{if not DisableWebhooks}}
-			<li {{if .PageIsSettingsHooks}}class="current"{{end}}><a href="{{.RepoLink}}/settings/hooks">{{.locale.Tr "repo.settings.hooks"}}</a></li>
+			<li {{if .PageIsSettingsHooks}}class="current"{{end}}><a href="{{.RepoLink}}/settings/hooks">{{ctx.Locale.Tr "repo.settings.hooks"}}</a></li>
 			{{end}}
 			{{if or .SignedUser.AllowGitHook .SignedUser.IsAdmin}}
-				<li {{if .PageIsSettingsGitHooks}}class="current"{{end}}><a href="{{.RepoLink}}/settings/hooks/git">{{.locale.Tr "repo.settings.githooks"}}</a></li>
+				<li {{if .PageIsSettingsGitHooks}}class="current"{{end}}><a href="{{.RepoLink}}/settings/hooks/git">{{ctx.Locale.Tr "repo.settings.githooks"}}</a></li>
 			{{end}}
-			<li {{if .PageIsSettingsKeys}}class="current"{{end}}><a href="{{.RepoLink}}/settings/keys">{{.locale.Tr "repo.settings.deploy_keys"}}</a></li>
-			<li {{if .PageIsSharedSettingsSecrets}}class="current"{{end}}><a href="{{.RepoLink}}/settings/secrets">{{.locale.Tr "secrets.secrets"}}</a></li>
+			<li {{if .PageIsSettingsKeys}}class="current"{{end}}><a href="{{.RepoLink}}/settings/keys">{{ctx.Locale.Tr "repo.settings.deploy_keys"}}</a></li>
+			<li {{if .PageIsSharedSettingsSecrets}}class="current"{{end}}><a href="{{.RepoLink}}/settings/secrets">{{ctx.Locale.Tr "secrets.secrets"}}</a></li>
 		</ul>
 	</div>
 </div>

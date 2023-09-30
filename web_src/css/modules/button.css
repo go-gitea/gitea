@@ -30,7 +30,7 @@
   color: var(--color-red);
 }
 
-/* btn is a plain button without any opinionated styling */
+/* btn is a plain button without any opinionated styling, it only uses flex for vertical alignment like ".ui.button" in base.css */
 
 .btn {
   background: transparent;

@@ -114,6 +114,12 @@ type APIFeatureDisabledError struct {
 	APIError
 }
 
+// APIRepoArchivedError is an error that is raised when an archived repo should be modified
+// swagger:response repoArchivedError
+type APIRepoArchivedError struct {
+	APIError
+}
+
 // ServerError responds with error message, status is 500
 func (ctx *APIContext) ServerError(title string, err error) {
 	ctx.Error(http.StatusInternalServerError, title, err)

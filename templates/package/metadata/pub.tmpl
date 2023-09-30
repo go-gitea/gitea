@@ -1,5 +1,5 @@
 {{if eq .PackageDescriptor.Package.Type "pub"}}
-	{{if .PackageDescriptor.Metadata.ProjectURL}}<div class="item">{{svg "octicon-link-external" 16 "gt-mr-3"}} <a href="{{.PackageDescriptor.Metadata.ProjectURL}}" target="_blank" rel="noopener noreferrer me">{{.locale.Tr "packages.details.project_site"}}</a></div>{{end}}
-	{{if .PackageDescriptor.Metadata.RepositoryURL}}<div class="item">{{svg "octicon-link-external" 16 "gt-mr-3"}} <a href="{{.PackageDescriptor.Metadata.RepositoryURL}}" target="_blank" rel="noopener noreferrer me">{{.locale.Tr "packages.details.repository_site"}}</a></div>{{end}}
-	{{if .PackageDescriptor.Metadata.DocumentationURL}}<div class="item">{{svg "octicon-link-external" 16 "gt-mr-3"}} <a href="{{.PackageDescriptor.Metadata.DocumentationURL}}" target="_blank" rel="noopener noreferrer me">{{.locale.Tr "packages.details.documentation_site"}}</a></div>{{end}}
+	{{if .PackageDescriptor.Metadata.ProjectURL}}<div class="item">{{svg "octicon-link-external" 16 "gt-mr-3"}} <a href="{{.PackageDescriptor.Metadata.ProjectURL}}" target="_blank" rel="noopener noreferrer me">{{ctx.Locale.Tr "packages.details.project_site"}}</a></div>{{end}}
+	{{if .PackageDescriptor.Metadata.RepositoryURL}}<div class="item">{{svg "octicon-link-external" 16 "gt-mr-3"}} <a href="{{.PackageDescriptor.Metadata.RepositoryURL}}" target="_blank" rel="noopener noreferrer me">{{ctx.Locale.Tr "packages.details.repository_site"}}</a></div>{{end}}
+	{{if .PackageDescriptor.Metadata.DocumentationURL}}<div class="item">{{svg "octicon-link-external" 16 "gt-mr-3"}} <a href="{{.PackageDescriptor.Metadata.DocumentationURL}}" target="_blank" rel="noopener noreferrer me">{{ctx.Locale.Tr "packages.details.documentation_site"}}</a></div>{{end}}
 {{end}}
