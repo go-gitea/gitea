@@ -35,11 +35,9 @@
 			<div class="issue-list-toolbar-left">
 				{{template "repo/issue/openclose" .}}
 				{{if .TotalTrackedTime}}
-					<div class="ui compact tiny secondary menu">
-						<span class="item">
-							{{svg "octicon-clock"}}
-							{{.TotalTrackedTime | Sec2Time}}
-						</span>
+					<div data-tooltip-content='{{ctx.Locale.Tr "tracked_time_summary"}}'>
+						{{svg "octicon-clock"}}
+						{{.TotalTrackedTime | Sec2Time}}
 					</div>
 				{{end}}
 			</div>
