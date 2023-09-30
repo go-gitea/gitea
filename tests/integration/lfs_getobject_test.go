@@ -18,9 +18,9 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/web"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/klauspost/compress/gzhttp"
 	gzipp "github.com/klauspost/compress/gzip"
 	"github.com/stretchr/testify/assert"
 )
@@ -132,7 +132,7 @@ func TestGetLFSSmallTokenFail(t *testing.T) {
 
 func TestGetLFSLarge(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	content := make([]byte, web.GzipMinSize*10)
+	content := make([]byte, gzhttp.DefaultMinSize*10)
 	for i := range content {
 		content[i] = byte(i % 256)
 	}
@@ -143,7 +143,7 @@ func TestGetLFSLarge(t *testing.T) {
 
 func TestGetLFSGzip(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	b := make([]byte, web.GzipMinSize*10)
+	b := make([]byte, gzhttp.DefaultMinSize*10)
 	for i := range b {
 		b[i] = byte(i % 256)
 	}
@@ -159,7 +159,7 @@ func TestGetLFSGzip(t *testing.T) {
 
 func TestGetLFSZip(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	b := make([]byte, web.GzipMinSize*10)
+	b := make([]byte, gzhttp.DefaultMinSize*10)
 	for i := range b {
 		b[i] = byte(i % 256)
 	}

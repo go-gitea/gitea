@@ -147,6 +147,16 @@ func toHandlerProvider(handler any) func(next http.Handler) http.Handler {
 		}
 	}
 
+	if hp, ok := handler.(func(next http.Handler) http.HandlerFunc); ok {
+		return func(next http.Handler) http.Handler {
+			h := hp(next) // this handle could be dynamically generated, so we can't use it for debug info
+			return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+				routing.UpdateFuncInfo(req.Context(), funcInfo)
+				h.ServeHTTP(resp, req)
+			})
+		}
+	}
+
 	provider := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(respOrig http.ResponseWriter, req *http.Request) {
 			// wrap the response writer to check whether the response has been written
