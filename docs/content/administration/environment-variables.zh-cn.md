@@ -45,8 +45,6 @@ GITEA_CUSTOM=/home/gitea/custom ./gitea web
 * `USER`：Gitea 运行时使用的系统用户，它将作为一些 repository 的访问地址的一部分
 * `USERNAME`： 如果没有配置 `USER`， Gitea 将使用 `USERNAME`
 * `HOME`： 用户的 home 目录，在 Windows 中会使用 `USERPROFILE` 环境变量
-* `ALL_PROXY`: socks5 代理， 如果启动环境导出了 `ALL_PROXY` 环境变量，并配置 smtp 方式发送邮件，Gitea 将通过该 socks5
-代理连接邮件服务器，发送邮件通知。
 
 ### 仅限于 Windows 的配置
 
