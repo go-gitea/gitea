@@ -191,6 +191,12 @@ func TestIssues(t *testing.T) {
 			},
 			[]int64{}, // issues with **both** label 1 and 2, none of these issues matches, TODO: add more tests
 		},
+		{
+			issues_model.IssuesOptions{
+				MilestoneIDs: []int64{1},
+			},
+			[]int64{2},
+		},
 	} {
 		issues, err := issues_model.Issues(db.DefaultContext, &test.Opts)
 		assert.NoError(t, err)
