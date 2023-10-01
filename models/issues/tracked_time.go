@@ -328,9 +328,9 @@ func GetTrackedTimeByID(id int64) (*TrackedTime, error) {
 }
 
 // GetIssueTotalTrackedTime returns the total tracked time for issues by given conditions.
-func GetIssueTotalTrackedTime(opts *IssuesOptions, isClosed bool) (int64, error) {
+func GetIssueTotalTrackedTime(ctx context.Context, opts *IssuesOptions, isClosed bool) (int64, error) {
 	if len(opts.IssueIDs) <= MaxQueryParameters {
-		return getIssueTotalTrackedTimeChunk(opts, isClosed, opts.IssueIDs)
+		return getIssueTotalTrackedTimeChunk(ctx, opts, isClosed, opts.IssueIDs)
 	}
 
 	// If too long a list of IDs is provided,
@@ -341,7 +341,7 @@ func GetIssueTotalTrackedTime(opts *IssuesOptions, isClosed bool) (int64, error)
 		if chunk > len(opts.IssueIDs) {
 			chunk = len(opts.IssueIDs)
 		}
-		time, err := getIssueTotalTrackedTimeChunk(opts, isClosed, opts.IssueIDs[i:chunk])
+		time, err := getIssueTotalTrackedTimeChunk(ctx, opts, isClosed, opts.IssueIDs[i:chunk])
 		if err != nil {
 			return 0, err
 		}
@@ -351,9 +351,9 @@ func GetIssueTotalTrackedTime(opts *IssuesOptions, isClosed bool) (int64, error)
 	return accum, nil
 }
 
-func getIssueTotalTrackedTimeChunk(opts *IssuesOptions, isClosed bool, issueIDs []int64) (int64, error) {
+func getIssueTotalTrackedTimeChunk(ctx context.Context, opts *IssuesOptions, isClosed bool, issueIDs []int64) (int64, error) {
 	sumSession := func(opts *IssuesOptions, issueIDs []int64) *xorm.Session {
-		sess := db.GetEngine(db.DefaultContext).
+		sess := db.GetEngine(ctx).
 			Table("tracked_time").
 			Where("tracked_time.deleted = ?", false).
 			Join("INNER", "issue", "tracked_time.issue_id = issue.id")

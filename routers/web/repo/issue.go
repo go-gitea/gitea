@@ -243,7 +243,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		isShowClosed = true
 	}
 
-	totalTrackedTime, err := issues_model.GetIssueTotalTrackedTime(statsOpts, isShowClosed)
+	totalTrackedTime, err := issues_model.GetIssueTotalTrackedTime(ctx, statsOpts, isShowClosed)
 	if err != nil {
 		ctx.ServerError("GetIssueTotalTrackedTime", err)
 		return
