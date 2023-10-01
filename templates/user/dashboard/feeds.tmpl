@@ -72,7 +72,7 @@
 						{{ctx.Locale.Tr "action.comment_pull" ((printf "%s/pulls/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape) | Str2html}}
 					{{else if .GetOpType.InActions "publish_release"}}
 						{{$linkText := .Content | RenderEmoji $.Context}}
-						{{ctx.Locale.Tr "action.publish_release" ((.GetRepoLink ctx)|Escape) ((printf "%s/releases/tag/%s" .GetRepoLink .GetTag)|Escape) ((.ShortRepoPath ctx)|Escape) $linkText | Str2html}}
+						{{ctx.Locale.Tr "action.publish_release" ((.GetRepoLink ctx)|Escape) ((printf "%s/releases/tag/%s" (.GetRepoLink ctx) .GetTag)|Escape) ((.ShortRepoPath ctx)|Escape) $linkText | Str2html}}
 					{{else if .GetOpType.InActions "review_dismissed"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$reviewer := index .GetIssueInfos 1}}
