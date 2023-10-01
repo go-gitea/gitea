@@ -76,9 +76,11 @@
 						{{else}}
 							<td class="text right aligned">{{TimeSince .Author.When ctx.Locale}}</td>
 						{{end}}
-						<td class="text right aligned">
-							<button class="btn interact-bg" data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</button>
-							{{if $.FileName}}<a class="btn interact-bg" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.view_file"}}" href="{{printf "%s/src/commit/%s/%s" $commitRepoLink (PathEscape .ID.String) $.FileName}}">{{svg "octicon-file-code"}}</a>{{end}}
+						<td class="gt-pt-0 gt-pb-0">
+							<div class="gt-df gt-je">
+								<button class="btn interact-bg gt-p-3" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</button>
+								{{if $.FileName}}<a class="btn interact-bg gt-p-3" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_path"}}" href="{{printf "%s/src/commit/%s/%s" $commitRepoLink (PathEscape .ID.String) $.FileName}}">{{svg "octicon-file-code"}}</a>{{end}}
+							</div>
 						</td>
 					</tr>
 				{{end}}
