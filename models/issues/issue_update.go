@@ -165,8 +165,8 @@ func ChangeIssueTitle(ctx context.Context, issue *Issue, doer *user_model.User, 
 }
 
 // ChangeIssueRef changes the branch of this issue, as the given user.
-func ChangeIssueRef(issue *Issue, doer *user_model.User, oldRef string) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ChangeIssueRef(ctx context.Context, issue *Issue, doer *user_model.User, oldRef string) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -215,8 +215,8 @@ func AddDeletePRBranchComment(ctx context.Context, doer *user_model.User, repo *
 }
 
 // UpdateIssueAttachments update attachments by UUIDs for the issue
-func UpdateIssueAttachments(issueID int64, uuids []string) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func UpdateIssueAttachments(ctx context.Context, issueID int64, uuids []string) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -235,8 +235,8 @@ func UpdateIssueAttachments(issueID int64, uuids []string) (err error) {
 }
 
 // ChangeIssueContent changes issue content, as the given user.
-func ChangeIssueContent(issue *Issue, doer *user_model.User, content string) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ChangeIssueContent(ctx context.Context, issue *Issue, doer *user_model.User, content string) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -381,8 +381,8 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 }
 
 // NewIssue creates new issue with labels for repository.
-func NewIssue(repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -432,8 +432,8 @@ func UpdateIssueMentions(ctx context.Context, issueID int64, mentions []*user_mo
 // UpdateIssueByAPI updates all allowed fields of given issue.
 // If the issue status is changed a statusChangeComment is returned
 // similarly if the title is changed the titleChanged bool is set to true
-func UpdateIssueByAPI(issue *Issue, doer *user_model.User) (statusChangeComment *Comment, titleChanged bool, err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func UpdateIssueByAPI(ctx context.Context, issue *Issue, doer *user_model.User) (statusChangeComment *Comment, titleChanged bool, err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, false, err
 	}
@@ -486,12 +486,12 @@ func UpdateIssueByAPI(issue *Issue, doer *user_model.User) (statusChangeComment 
 }
 
 // UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.
-func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *user_model.User) (err error) {
+func UpdateIssueDeadline(ctx context.Context, issue *Issue, deadlineUnix timeutil.TimeStamp, doer *user_model.User) (err error) {
 	// if the deadline hasn't changed do nothing
 	if issue.DeadlineUnix == deadlineUnix {
 		return nil
 	}
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -669,8 +669,8 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 }
 
 // UpdateIssuesMigrationsByType updates all migrated repositories' issues from gitServiceType to replace originalAuthorID to posterID
-func UpdateIssuesMigrationsByType(gitServiceType api.GitServiceType, originalAuthorID string, posterID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).Table("issue").
+func UpdateIssuesMigrationsByType(ctx context.Context, gitServiceType api.GitServiceType, originalAuthorID string, posterID int64) error {
+	_, err := db.GetEngine(ctx).Table("issue").
 		Where("repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
 		And("original_author_id = ?", originalAuthorID).
 		Update(map[string]any{
@@ -682,8 +682,8 @@ func UpdateIssuesMigrationsByType(gitServiceType api.GitServiceType, originalAut
 }
 
 // UpdateReactionsMigrationsByType updates all migrated repositories' reactions from gitServiceType to replace originalAuthorID to posterID
-func UpdateReactionsMigrationsByType(gitServiceType api.GitServiceType, originalAuthorID string, userID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).Table("reaction").
+func UpdateReactionsMigrationsByType(ctx context.Context, gitServiceType api.GitServiceType, originalAuthorID string, userID int64) error {
+	_, err := db.GetEngine(ctx).Table("reaction").
 		Where("original_author_id = ?", originalAuthorID).
 		And(migratedIssueCond(gitServiceType)).
 		Update(map[string]any{
@@ -809,7 +809,7 @@ func DeleteOrphanedIssues(ctx context.Context) error {
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
-		system_model.RemoveAllWithNotice(db.DefaultContext, "Delete issue attachment", attachmentPaths[i])
+		system_model.RemoveAllWithNotice(ctx, "Delete issue attachment", attachmentPaths[i])
 	}
 	return nil
 }
