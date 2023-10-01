@@ -194,12 +194,7 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 		address = net.JoinHostPort(opts.SMTPAddr, opts.SMTPPort)
 	}
 
-	d, err := proxy2.SMTPProxy()
-	if err != nil {
-		return fmt.Errorf("failed to establish network connection to SMTP server: %w", err)
-	}
-
-	conn, err := d.Dial(network, address)
+	conn, err := proxy2.SMTPConn(network, address)
 	if err != nil {
 		return fmt.Errorf("failed to establish network connection to SMTP server: %w", err)
 	}

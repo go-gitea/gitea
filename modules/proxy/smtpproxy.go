@@ -1,34 +1,59 @@
+// Copyright 2023 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package proxy
 
 import (
+	"bufio"
 	"code.gitea.io/gitea/modules/setting"
 	"golang.org/x/net/proxy"
+	"net"
+	"net/http"
+	"net/url"
 )
 
-func SMTPProxy() (proxy.Dialer, error) {
-	cfg := setting.SMTPProxy
-	if !cfg.Enabled {
-		return proxy.Direct, nil
+// SMTPConn create socks5 or https proxy
+func SMTPConn(network string, addr string) (net.Conn, error) {
+	cfg := setting.Proxy
+	if !cfg.Enabled || !cfg.SMTPProxyEnabled {
+		return proxy.Direct.Dial("tcp", addr)
 	}
 
 	var (
-		dialer proxy.Dialer
-		err    error
+		proxyURL *url.URL
+		err      error
 	)
-	if cfg.ProxyURLFixed != nil {
-		dialer, err = proxy.FromURL(cfg.ProxyURLFixed, proxy.Direct)
+
+	req, err := http.NewRequest("GET", "https://"+addr, &bufio.Reader{})
+	if err != nil {
+		return nil, err
+	}
+
+	proxyURL, err = Proxy()(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if proxyURL == nil {
+		return net.Dial("tcp", addr)
+	}
+
+	if proxyURL.Scheme == "socks5" || proxyURL.Scheme == "socks" {
+		var auth *proxy.Auth
+		if proxyURL.User != nil {
+			auth = &proxy.Auth{User: proxyURL.User.Username(), Password: proxyURL.User.Username()}
+		}
+		d, err := proxy.SOCKS5(network, proxyURL.Host, auth, proxy.Direct)
 		if err != nil {
 			return nil, err
 		}
-
-		if cfg.NoProxy != "" {
-			p := proxy.NewPerHost(dialer, proxy.Direct)
-			p.AddFromString(cfg.NoProxy)
-			return p, nil
-		}
+		return d.Dial(network, addr)
 	}
 
-	dialer = proxy.FromEnvironment()
+	hp, err := newHTTPProxy(proxyURL, proxy.Direct)
+	if err != nil {
+		return nil, err
+	}
 
-	return dialer, nil
+	return hp.Dial("tcp", addr)
 }

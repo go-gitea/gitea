@@ -8,17 +8,8 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"sync"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/gobwas/glob"
-)
-
-var (
-	once         sync.Once
-	hostMatchers []glob.Glob
 )
 
 // GetProxyURL returns proxy url
@@ -42,10 +33,7 @@ func Match(u string) bool {
 		return false
 	}
 
-	// enforce do once
-	Proxy()
-
-	for _, v := range hostMatchers {
+	for _, v := range setting.Proxy.HostMatchers {
 		if v.Match(u) {
 			return true
 		}
@@ -64,18 +52,8 @@ func Proxy() func(req *http.Request) (*url.URL, error) {
 		return http.ProxyFromEnvironment
 	}
 
-	once.Do(func() {
-		for _, h := range setting.Proxy.ProxyHosts {
-			if g, err := glob.Compile(h); err == nil {
-				hostMatchers = append(hostMatchers, g)
-			} else {
-				log.Error("glob.Compile %s failed: %v", h, err)
-			}
-		}
-	})
-
 	return func(req *http.Request) (*url.URL, error) {
-		for _, v := range hostMatchers {
+		for _, v := range setting.Proxy.HostMatchers {
 			if v.Match(req.URL.Host) {
 				return http.ProxyURL(setting.Proxy.ProxyURLFixed)(req)
 			}
