@@ -159,10 +159,7 @@ func testLinksAsUser(userName string, t *testing.T) {
 		"/releases/new",
 		//"/wiki/_pages",
 		"/wiki/?action=_new",
-		"/actions",
 		"/activity",
-		"/packages",
-		"/projects",
 	}
 
 	for _, repo := range apiRepos {
@@ -177,4 +174,19 @@ func TestLinksLogin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	testLinksAsUser("user2", t)
+}
+
+func TestRepoLinks(t *testing.T) {
+	// repo1 has enabled almost features, so we can test most links
+	repoLink := "/user2/repo1"
+	links := []string{
+		"/actions",
+		"/packages",
+		"/projects",
+	}
+
+	for _, link := range links {
+		req := NewRequest(t, "GET", repoLink+link)
+		MakeRequest(t, req, http.StatusOK)
+	}
 }
