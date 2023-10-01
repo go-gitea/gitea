@@ -243,6 +243,8 @@ func TestViewTagsList(t *testing.T) {
 func TestDownloadReleaseAttachment(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
+	tests.PrepareAttachmentsStorage(t)
+
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 
 	url := repo.Link() + "/releases/download/v1.1/README.md"
