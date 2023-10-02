@@ -186,7 +186,7 @@ export function onInputDebounce(fn) {
 
 /**
  * Set the `src` attribute on an element and returns a promise that resolves once it's loaded.
- * @param {Node} el - A <img> node
+ * @param {Node} el - A DOM node that has a `load` event
  * @param {string} src - A source URL
  * @returns {Promise<boolean>} success - Whether the loading was successful
  */
