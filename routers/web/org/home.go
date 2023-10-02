@@ -123,7 +123,7 @@ func Home(ctx *context.Context) {
 		PublicOnly:  ctx.Org.PublicMemberOnly,
 		ListOptions: db.ListOptions{Page: 1, PageSize: 25},
 	}
-	members, _, err := organization.FindOrgMembers(opts)
+	members, _, err := organization.FindOrgMembers(ctx, opts)
 	if err != nil {
 		ctx.ServerError("FindOrgMembers", err)
 		return
@@ -131,7 +131,7 @@ func Home(ctx *context.Context) {
 
 	var isFollowing bool
 	if ctx.Doer != nil {
-		isFollowing = user_model.IsFollowing(ctx.Doer.ID, ctx.ContextUser.ID)
+		isFollowing = user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	}
 
 	ctx.Data["Repos"] = repos
@@ -152,7 +152,6 @@ func Home(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "language", "Language")
 	ctx.Data["Page"] = pager
-	ctx.Data["ContextUser"] = ctx.ContextUser
 
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 

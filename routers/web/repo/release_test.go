@@ -7,8 +7,9 @@ import (
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 
@@ -47,10 +48,10 @@ func TestNewReleasePost(t *testing.T) {
 	} {
 		unittest.PrepareTestEnv(t)
 
-		ctx, _ := test.MockContext(t, "user2/repo1/releases/new")
-		test.LoadUser(t, ctx, 2)
-		test.LoadRepo(t, ctx, 1)
-		test.LoadGitRepo(t, ctx)
+		ctx, _ := contexttest.MockContext(t, "user2/repo1/releases/new")
+		contexttest.LoadUser(t, ctx, 2)
+		contexttest.LoadRepo(t, ctx, 1)
+		contexttest.LoadGitRepo(t, ctx)
 		web.SetForm(ctx, &testCase.Form)
 		NewReleasePost(ctx)
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Release{
@@ -65,16 +66,25 @@ func TestNewReleasePost(t *testing.T) {
 	}
 }
 
-func TestNewReleasesList(t *testing.T) {
+func TestCalReleaseNumCommitsBehind(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "user2/repo-release/releases")
-	test.LoadUser(t, ctx, 2)
-	test.LoadRepo(t, ctx, 57)
-	test.LoadGitRepo(t, ctx)
+	ctx, _ := contexttest.MockContext(t, "user2/repo-release/releases")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 57)
+	contexttest.LoadGitRepo(t, ctx)
 	t.Cleanup(func() { ctx.Repo.GitRepo.Close() })
 
-	Releases(ctx)
-	releases := ctx.Data["Releases"].([]*repo_model.Release)
+	releases, err := repo_model.GetReleasesByRepoID(ctx, ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{
+		IncludeDrafts: ctx.Repo.CanWrite(unit.TypeReleases),
+	})
+	assert.NoError(t, err)
+
+	countCache := make(map[string]int64)
+	for _, release := range releases {
+		err := calReleaseNumCommitsBehind(ctx.Repo, release, countCache)
+		assert.NoError(t, err)
+	}
+
 	type computedFields struct {
 		NumCommitsBehind int64
 		TargetBehind     string

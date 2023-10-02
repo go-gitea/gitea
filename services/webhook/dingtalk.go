@@ -170,7 +170,7 @@ func (d *DingtalkPayload) Repository(p *api.RepositoryPayload) (api.Payloader, e
 func (d *DingtalkPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, _ := getReleasePayloadInfo(p, noneLinkFormatter, true)
 
-	return createDingtalkPayload(text, text, "view release", p.Release.URL), nil
+	return createDingtalkPayload(text, text, "view release", p.Release.HTMLURL), nil
 }
 
 func createDingtalkPayload(title, text, singleTitle, singleURL string) *DingtalkPayload {

@@ -13,6 +13,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	org_model "code.gitea.io/gitea/models/organization"
+	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
@@ -32,6 +34,7 @@ import (
 const (
 	tplUsers    base.TplName = "admin/user/list"
 	tplUserNew  base.TplName = "admin/user/new"
+	tplUserView base.TplName = "admin/user/view"
 	tplUserEdit base.TplName = "admin/user/edit"
 )
 
@@ -74,6 +77,7 @@ func Users(ctx *context.Context) {
 		IsRestricted:       util.OptionalBoolParse(statusFilterMap["is_restricted"]),
 		IsTwoFactorEnabled: util.OptionalBoolParse(statusFilterMap["is_2fa_enabled"]),
 		IsProhibitLogin:    util.OptionalBoolParse(statusFilterMap["is_prohibit_login"]),
+		IncludeReserved:    true, // administrator needs to list all acounts include reserved, bot, remote ones
 		ExtraParamStrings:  extraParamStrings,
 	}, tplUsers)
 }
@@ -166,7 +170,7 @@ func NewUserPost(ctx *context.Context) {
 		u.MustChangePassword = form.MustChangePassword
 	}
 
-	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, u, overwriteDefault); err != nil {
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
@@ -234,12 +238,12 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 	}
 	ctx.Data["Sources"] = sources
 
-	hasTOTP, err := auth.HasTwoFactorByUID(u.ID)
+	hasTOTP, err := auth.HasTwoFactorByUID(ctx, u.ID)
 	if err != nil {
 		ctx.ServerError("auth.HasTwoFactorByUID", err)
 		return nil
 	}
-	hasWebAuthn, err := auth.HasWebAuthnRegistrationsByUID(u.ID)
+	hasWebAuthn, err := auth.HasWebAuthnRegistrationsByUID(ctx, u.ID)
 	if err != nil {
 		ctx.ServerError("auth.HasWebAuthnRegistrationsByUID", err)
 		return nil
@@ -249,6 +253,61 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 	return u
 }
 
+func ViewUser(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.users.details")
+	ctx.Data["PageIsAdminUsers"] = true
+	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
+	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
+	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
+
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		OwnerID:     u.ID,
+		OrderBy:     db.SearchOrderByAlphabetically,
+		Private:     true,
+		Collaborate: util.OptionalBoolFalse,
+	})
+	if err != nil {
+		ctx.ServerError("SearchRepository", err)
+		return
+	}
+
+	ctx.Data["Repos"] = repos
+	ctx.Data["ReposTotal"] = int(count)
+
+	emails, err := user_model.GetEmailAddresses(ctx, u.ID)
+	if err != nil {
+		ctx.ServerError("GetEmailAddresses", err)
+		return
+	}
+	ctx.Data["Emails"] = emails
+	ctx.Data["EmailsTotal"] = len(emails)
+
+	orgs, err := org_model.FindOrgs(org_model.FindOrgOptions{
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		UserID:         u.ID,
+		IncludePrivate: true,
+	})
+	if err != nil {
+		ctx.ServerError("FindOrgs", err)
+		return
+	}
+
+	ctx.Data["Users"] = orgs // needed to be able to use explore/user_list template
+	ctx.Data["OrgsTotal"] = len(orgs)
+
+	ctx.HTML(http.StatusOK, tplUserView)
+}
+
 // EditUser show editing user page
 func EditUser(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
@@ -256,7 +315,9 @@ func EditUser(ctx *context.Context) {
 	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
-	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
+	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar,
+		setting.GetDefaultDisableGravatar(),
+	)
 
 	prepareUserInfo(ctx)
 	if ctx.Written() {
@@ -273,7 +334,8 @@ func EditUserPost(ctx *context.Context) {
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
-	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
+	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar,
+		setting.GetDefaultDisableGravatar())
 
 	u := prepareUserInfo(ctx)
 	if ctx.Written() {
@@ -348,24 +410,24 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if form.Reset2FA {
-		tf, err := auth.GetTwoFactorByUID(u.ID)
+		tf, err := auth.GetTwoFactorByUID(ctx, u.ID)
 		if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.ServerError("auth.GetTwoFactorByUID", err)
 			return
 		} else if tf != nil {
-			if err := auth.DeleteTwoFactorByID(tf.ID, u.ID); err != nil {
+			if err := auth.DeleteTwoFactorByID(ctx, tf.ID, u.ID); err != nil {
 				ctx.ServerError("auth.DeleteTwoFactorByID", err)
 				return
 			}
 		}
 
-		wn, err := auth.GetWebAuthnCredentialsByUID(u.ID)
+		wn, err := auth.GetWebAuthnCredentialsByUID(ctx, u.ID)
 		if err != nil {
 			ctx.ServerError("auth.GetTwoFactorByUID", err)
 			return
 		}
 		for _, cred := range wn {
-			if _, err := auth.DeleteCredential(cred.ID, u.ID); err != nil {
+			if _, err := auth.DeleteCredential(ctx, cred.ID, u.ID); err != nil {
 				ctx.ServerError("auth.DeleteCredential", err)
 				return
 			}
@@ -480,5 +542,5 @@ func DeleteAvatar(ctx *context.Context) {
 		ctx.Flash.Error(err.Error())
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
+	ctx.JSONRedirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
 }

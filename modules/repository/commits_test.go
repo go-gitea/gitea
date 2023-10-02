@@ -103,11 +103,9 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	assert.EqualValues(t, []string{"readme.md"}, headCommit.Modified)
 }
 
-func enableGravatar(t *testing.T) {
-	err := system_model.SetSettingNoVersion(db.DefaultContext, system_model.KeyPictureDisableGravatar, "false")
-	assert.NoError(t, err)
+func initGravatarSource(t *testing.T) {
 	setting.GravatarSource = "https://secure.gravatar.com/avatar"
-	err = system_model.Init(db.DefaultContext)
+	err := system_model.Init(db.DefaultContext)
 	assert.NoError(t, err)
 }
 
@@ -134,7 +132,7 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 		},
 	}
 
-	enableGravatar(t)
+	initGravatarSource(t)
 
 	assert.Equal(t,
 		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f?d=identicon&s="+strconv.Itoa(28*setting.Avatar.RenderedSizeFactor),
