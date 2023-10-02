@@ -43,7 +43,7 @@
 									{{svg "octicon-repo" 16 "text grey"}}
 								{{end}}
 							</div>
-							<a class="notifications-link gt-df gt-f1 gt-fc silenced" href="{{.Link}}">
+							<a class="notifications-link gt-df gt-f1 gt-fc silenced" href="{{.Link ctx}}">
 								<div class="notifications-top-row gt-font-13">
 									{{.Repository.FullName}} {{if .Issue}}<span class="text light-3">#{{.Issue.Index}}</span>{{end}}
 									{{if eq .Status 3}}

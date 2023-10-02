@@ -5,7 +5,6 @@ package wiki
 
 import (
 	"math/rand"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -20,9 +19,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func TestWebPathSegments(t *testing.T) {
