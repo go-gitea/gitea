@@ -59,14 +59,15 @@ func Push(ctx *context.Context) {
 	}
 
 	props := map[string]string{
-		distro + "-" + filename + ".desc": desc.String(),
+		"desc": desc.String(),
 	}
 	if sign != "" {
 		_, err := hex.DecodeString(sign)
 		if err != nil {
 			apiError(ctx, http.StatusBadRequest, err)
+			return
 		}
-		props[distro+"-"+filename+".sig"] = sign
+		props["sign"] = sign
 	}
 
 	_, _, err = pkg_service.CreatePackageOrAddFileToExisting(

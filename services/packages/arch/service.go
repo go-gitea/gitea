@@ -44,7 +44,7 @@ func GetPackageSignature(ctx *context.Context, distro, file string) (*bytes.Read
 	}
 
 	for _, pp := range proprs {
-		if pp.Name == distro+"-"+file {
+		if pp.Name == "sign" {
 			b, err := hex.DecodeString(pp.Value)
 			if err != nil {
 				return nil, err
@@ -62,7 +62,6 @@ func getPackageFile(ctx *context.Context, distro, file string) (*pkg_model.Packa
 		splt    = strings.Split(file, "-")
 		pkgname = strings.Join(splt[0:len(splt)-3], "-")
 		vername = splt[len(splt)-3] + "-" + splt[len(splt)-2]
-		compkey = distro + "-" + file
 	)
 
 	version, err := pkg_model.GetVersionByNameAndVersion(
@@ -72,9 +71,7 @@ func getPackageFile(ctx *context.Context, distro, file string) (*pkg_model.Packa
 		return nil, err
 	}
 
-	pkgfile, err := pkg_model.GetFileForVersionByName(
-		ctx, version.ID, file, compkey,
-	)
+	pkgfile, err := pkg_model.GetFileForVersionByName(ctx, version.ID, file, distro)
 	if err != nil {
 		return nil, err
 	}
@@ -106,36 +103,26 @@ func CreatePacmanDb(ctx *context.Context, owner, arch, distro string) (io.ReadSe
 			return versions[i].CreatedUnix > versions[j].CreatedUnix
 		})
 
-		for _, version := range versions {
-			filename := fmt.Sprintf(
-				"%s-%s-%s.pkg.tar.zst",
-				pkg.Name, version.Version, arch,
-			)
+		for _, ver := range versions {
+			file := fmt.Sprintf("%s-%s-%s.pkg.tar.zst", pkg.Name, ver.Version, arch)
 
-			file, err := pkg_model.GetFileForVersionByName(
-				ctx, version.ID, filename, distro+"-"+filename,
-			)
+			pf, err := pkg_model.GetFileForVersionByName(ctx, ver.ID, file, distro)
 			if err != nil {
-				filename := fmt.Sprintf(
-					"%s-%s-any.pkg.tar.zst",
-					pkg.Name, version.Version,
-				)
-				file, err = pkg_model.GetFileForVersionByName(
-					ctx, version.ID, filename, distro+"-"+filename,
-				)
+				file = fmt.Sprintf("%s-%s-any.pkg.tar.zst", pkg.Name, ver.Version)
+				pf, err = pkg_model.GetFileForVersionByName(ctx, ver.ID, file, distro)
 				if err != nil {
-					return nil, err
+					continue
 				}
 			}
 
-			pps, err := pkg_model.GetProperties(ctx, pkg_model.PropertyTypeFile, file.ID)
+			pps, err := pkg_model.GetProperties(ctx, pkg_model.PropertyTypeFile, pf.ID)
 			if err != nil {
 				return nil, err
 			}
 
 			var descvalue string
 			for _, pp := range pps {
-				if strings.HasSuffix(pp.Name, ".desc") {
+				if pp.Name == "desc" {
 					descvalue = pp.Value
 				}
 			}
@@ -144,7 +131,7 @@ func CreatePacmanDb(ctx *context.Context, owner, arch, distro string) (io.ReadSe
 				continue
 			}
 
-			entries[pkg.Name+"-"+version.Version+"/desc"] = []byte(descvalue)
+			entries[pkg.Name+"-"+ver.Version+"/desc"] = []byte(descvalue)
 			break
 		}
 	}

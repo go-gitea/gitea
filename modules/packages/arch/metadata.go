@@ -104,18 +104,6 @@ func EjectMetadata(p *EjectParams) (*DbDesc, error) {
 			md.URL = value
 		case "packager":
 			md.Packager = value
-		case "builddate":
-			num, err := strconv.ParseInt(value, 10, 64)
-			if err != nil {
-				return nil, err
-			}
-			md.BuildDate = num
-		case "size":
-			num, err := strconv.ParseInt(value, 10, 64)
-			if err != nil {
-				return nil, err
-			}
-			md.InstalledSize = num
 		case "provides":
 			md.Provides = append(md.Provides, value)
 		case "license":
@@ -132,6 +120,16 @@ func EjectMetadata(p *EjectParams) (*DbDesc, error) {
 			md.CheckDepends = append(md.CheckDepends, value)
 		case "backup":
 			md.Backup = append(md.Backup, value)
+		case "builddate":
+			md.BuildDate, err = strconv.ParseInt(value, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+		case "size":
+			md.InstalledSize, err = strconv.ParseInt(value, 10, 64)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -164,53 +162,38 @@ func getPkginfo(data io.Reader) (string, error) {
 
 // Create pacman package description file.
 func (m *DbDesc) String() string {
-	return strings.Join(rmEmptyStrings([]string{
-		formatField("FILENAME", m.Filename),
-		formatField("NAME", m.Name),
-		formatField("BASE", m.Base),
-		formatField("VERSION", m.Version),
-		formatField("DESC", m.Description),
-		formatField("CSIZE", m.CompressedSize),
-		formatField("ISIZE", m.InstalledSize),
-		formatField("MD5SUM", m.MD5),
-		formatField("SHA256SUM", m.SHA256),
-		formatField("URL", m.URL),
-		formatField("LICENSE", m.License),
-		formatField("ARCH", m.Arch),
-		formatField("BUILDDATE", m.BuildDate),
-		formatField("PACKAGER", m.Packager),
-		formatField("PROVIDES", m.Provides),
-		formatField("DEPENDS", m.Depends),
-		formatField("OPTDEPENDS", m.OptDepends),
-		formatField("MAKEDEPENDS", m.MakeDepends),
-		formatField("CHECKDEPENDS", m.CheckDepends),
-	}), "\n\n") + "\n\n"
-}
-
-func formatField(field string, value any) string {
-	switch value := value.(type) {
-	case []string:
-		if value == nil {
-			return ``
-		}
-		val := strings.Join(value, "\n")
-		return fmt.Sprintf("%%%s%%\n%s", field, val)
-	case string:
-		return fmt.Sprintf("%%%s%%\n%s", field, value)
-	case int64:
-		return fmt.Sprintf("%%%s%%\n%d", field, value)
+	var entries = []struct {
+		Key   string
+		Value string
+	}{
+		{Key: "FILENAME", Value: m.Filename},
+		{Key: "NAME", Value: m.Name},
+		{Key: "BASE", Value: m.Base},
+		{Key: "VERSION", Value: m.Version},
+		{Key: "DESC", Value: m.Description},
+		{Key: "CSIZE", Value: fmt.Sprintf("%d", m.CompressedSize)},
+		{Key: "ISIZE", Value: fmt.Sprintf("%d", m.InstalledSize)},
+		{Key: "MD5SUM", Value: m.MD5},
+		{Key: "SHA256SUM", Value: m.SHA256},
+		{Key: "URL", Value: m.URL},
+		{Key: "LICENSE", Value: strings.Join(m.License, "\n")},
+		{Key: "ARCH", Value: strings.Join(m.Arch, "\n")},
+		{Key: "BUILDDATE", Value: fmt.Sprintf("%d", m.BuildDate)},
+		{Key: "PACKAGER", Value: m.Packager},
+		{Key: "PROVIDES", Value: strings.Join(m.Provides, "\n")},
+		{Key: "DEPENDS", Value: strings.Join(m.Depends, "\n")},
+		{Key: "OPTDEPENDS", Value: strings.Join(m.OptDepends, "\n")},
+		{Key: "MAKEDEPENDS", Value: strings.Join(m.MakeDepends, "\n")},
+		{Key: "CHECKDEPENDS", Value: strings.Join(m.CheckDepends, "\n")},
 	}
-	return ``
-}
 
-func rmEmptyStrings(s []string) []string {
-	var r []string
-	for _, str := range s {
-		if str != "" {
-			r = append(r, str)
+	var result string
+	for _, v := range entries {
+		if v.Value != "" {
+			result += fmt.Sprintf("%%%s%%\n%s\n\n", v.Key, v.Value)
 		}
 	}
-	return r
+	return result
 }
 
 // Create pacman database archive based on provided package metadata structs.
