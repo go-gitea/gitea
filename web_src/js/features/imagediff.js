@@ -38,6 +38,39 @@ function getDefaultSvgBoundsIfUndefined(text, src) {
   return null;
 }
 
+async function handleSvgSize(info) {
+  if (info.mime === 'image/svg+xml') {
+    const resp = await GET(info.path);
+    const text = await resp.text();
+    const bounds = getDefaultSvgBoundsIfUndefined(text, info.path);
+    if (bounds) {
+      info.$images.attr('width', bounds.width);
+      info.$images.attr('height', bounds.height);
+      hideElem(info.$boundsInfo);
+    }
+  }
+}
+
+function loadImage(el, src) {
+  return new Promise((resolve) => {
+    if (!el) resolve();
+
+    function onLoad({target}) {
+      if (target === el) resolve();
+      el.removeEventListener('load', onLoad);
+    }
+
+    function onError({target}) {
+      if (target === el) resolve(true);
+      el.removeEventListener('error', onError);
+    }
+
+    el.addEventListener('load', onLoad);
+    el.addEventListener('error', onError);
+    el.src = src;
+  });
+}
+
 export function initImageDiff() {
   function createContext(image1, image2) {
     const size1 = {
@@ -76,62 +109,38 @@ export function initImageDiff() {
     const diffContainerWidth = Math.max($container.closest('.diff-file-box').width() - 300, 100);
 
     const imageInfos = [{
-      loaded: false,
       path: this.getAttribute('data-path-after'),
       mime: this.getAttribute('data-mime-after'),
-      $image: $container.find('img.image-after'),
+      $images: $container.find('img.image-after'), // matches 3 <img>
       $boundsInfo: $container.find('.bounds-info-after')
     }, {
-      loaded: false,
       path: this.getAttribute('data-path-before'),
       mime: this.getAttribute('data-mime-before'),
-      $image: $container.find('img.image-before'),
+      $images: $container.find('img.image-before'), // matches 3 <img>
       $boundsInfo: $container.find('.bounds-info-before')
     }];
 
-    for (const info of imageInfos) {
-      if (info.$image.length > 0) {
-        info.$image.on('load', () => {
-          info.loaded = true;
-          setReadyIfLoaded();
-        }).on('error', () => {
-          info.loaded = true;
-          setReadyIfLoaded();
-          info.$boundsInfo.text('(image error)');
-        });
-        info.$image.attr('src', info.path);
-
-        if (info.mime === 'image/svg+xml') {
-          const resp = await GET(info.path);
-          const text = await resp.text();
-          const bounds = getDefaultSvgBoundsIfUndefined(text, info.path);
-          if (bounds) {
-            info.$image.attr('width', bounds.width);
-            info.$image.attr('height', bounds.height);
-            hideElem(info.$boundsInfo);
-          }
-        }
+    await Promise.all(imageInfos.map(async (info) => {
+      const [hadError] = await Promise.all(Array.from(info.$images, (img) => {
+        return loadImage(img, info.path);
+      }));
+      if (hadError) {
+        info.$boundsInfo.text('(image error)');
       } else {
-        info.loaded = true;
-        setReadyIfLoaded();
+        await handleSvgSize(info);
       }
+    }));
+
+    const $imagesAfter = imageInfos[0].$images;
+    const $imagesBefore = imageInfos[1].$images;
+
+    initSideBySide(createContext($imagesAfter[0], $imagesBefore[0]));
+    if ($imagesAfter.length > 0 && $imagesBefore.length > 0) {
+      initSwipe(createContext($imagesAfter[1], $imagesBefore[1]));
+      initOverlay(createContext($imagesAfter[2], $imagesBefore[2]));
     }
 
-    function setReadyIfLoaded() {
-      if (imageInfos[0].loaded && imageInfos[1].loaded) {
-        initViews(imageInfos[0].$image, imageInfos[1].$image);
-      }
-    }
-
-    function initViews($imageAfter, $imageBefore) {
-      initSideBySide(createContext($imageAfter[0], $imageBefore[0]));
-      if ($imageAfter.length > 0 && $imageBefore.length > 0) {
-        initSwipe(createContext($imageAfter[1], $imageBefore[1]));
-        initOverlay(createContext($imageAfter[2], $imageBefore[2]));
-      }
-
-      $container.find('> .image-diff-tabs').removeClass('is-loading');
-    }
+    $container.find('> .image-diff-tabs').removeClass('is-loading');
 
     function initSideBySide(sizes) {
       let factor = 1;
