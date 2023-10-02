@@ -155,7 +155,7 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 			Name:         "Repos with no existing owner",
 			Counter:      CountOrphanedRepos,
 			Fixer:        DeleteOrphanedRepos,
-			FixedMessage: "Deleted all related stuff of orphaned repos",
+			FixedMessage: "Deleted all content related to orphaned repos",
 		},
 	}
 
