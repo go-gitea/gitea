@@ -446,6 +446,11 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	pager.AddParam(ctx, "project", "ProjectID")
 	pager.AddParam(ctx, "assignee", "AssigneeID")
 	pager.AddParam(ctx, "poster", "PosterID")
+
+	if ctx.FormBool("archived") {
+		ctx.Data["ShowArchivedLabels"] = true
+		pager.AddParam(ctx, "archived", "ShowArchivedLabels")
+	}
 	ctx.Data["Page"] = pager
 }
 
