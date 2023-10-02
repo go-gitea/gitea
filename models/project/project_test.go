@@ -60,7 +60,7 @@ func TestProject(t *testing.T) {
 		CreatorID:   2,
 	}
 
-	assert.NoError(t, NewProject(project))
+	assert.NoError(t, NewProject(db.DefaultContext, project))
 
 	_, err := GetProjectByID(db.DefaultContext, project.ID)
 	assert.NoError(t, err)
@@ -74,7 +74,7 @@ func TestProject(t *testing.T) {
 
 	assert.Equal(t, project.Title, projectFromDB.Title)
 
-	assert.NoError(t, ChangeProjectStatus(project, true))
+	assert.NoError(t, ChangeProjectStatus(db.DefaultContext, project, true))
 
 	// Retrieve from DB afresh to check if it is truly closed
 	projectFromDB, err = GetProjectByID(db.DefaultContext, project.ID)

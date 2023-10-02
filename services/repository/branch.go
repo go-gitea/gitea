@@ -29,6 +29,11 @@ import (
 
 // CreateNewBranch creates a new repository branch
 func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldBranchName, branchName string) (err error) {
+	err = repo.MustNotBeArchived()
+	if err != nil {
+		return err
+	}
+
 	// Check if branch name can be used
 	if err := checkBranchName(ctx, repo, branchName); err != nil {
 		return err
@@ -246,6 +251,11 @@ func checkBranchName(ctx context.Context, repo *repo_model.Repository, name stri
 
 // CreateNewBranchFromCommit creates a new repository branch
 func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commit, branchName string) (err error) {
+	err = repo.MustNotBeArchived()
+	if err != nil {
+		return err
+	}
+
 	// Check if branch name can be used
 	if err := checkBranchName(ctx, repo, branchName); err != nil {
 		return err
@@ -267,6 +277,11 @@ func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo 
 
 // RenameBranch rename a branch
 func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, gitRepo *git.Repository, from, to string) (string, error) {
+	err := repo.MustNotBeArchived()
+	if err != nil {
+		return "", err
+	}
+
 	if from == to {
 		return "target_exist", nil
 	}
@@ -315,6 +330,11 @@ var (
 
 // DeleteBranch delete branch
 func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string) error {
+	err := repo.MustNotBeArchived()
+	if err != nil {
+		return err
+	}
+
 	if branchName == repo.DefaultBranch {
 		return ErrBranchIsDefault
 	}

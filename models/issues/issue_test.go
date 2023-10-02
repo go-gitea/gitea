@@ -253,7 +253,7 @@ func testInsertIssue(t *testing.T, title, content string, expectIndex int64) *is
 			Title:    title,
 			Content:  content,
 		}
-		err := issues_model.NewIssue(repo, &issue, nil, nil)
+		err := issues_model.NewIssue(db.DefaultContext, repo, &issue, nil, nil)
 		assert.NoError(t, err)
 
 		has, err := db.GetEngine(db.DefaultContext).ID(issue.ID).Get(&newIssue)
@@ -369,7 +369,7 @@ func TestCorrectIssueStats(t *testing.T) {
 
 	// Now we will call the GetIssueStats with these IDs and if working,
 	// get the correct stats back.
-	issueStats, err := issues_model.GetIssueStats(&issues_model.IssuesOptions{
+	issueStats, err := issues_model.GetIssueStats(db.DefaultContext, &issues_model.IssuesOptions{
 		RepoIDs:  []int64{1},
 		IssueIDs: ids,
 	})
@@ -403,7 +403,7 @@ func TestCountIssues(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	count, err := issues_model.CountIssues(db.DefaultContext, &issues_model.IssuesOptions{})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 19, count)
+	assert.EqualValues(t, 20, count)
 }
 
 func TestIssueLoadAttributes(t *testing.T) {

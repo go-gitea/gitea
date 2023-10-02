@@ -1,9 +1,9 @@
 {{if not .DisableNewPullMirrors}}
 <div class="inline field">
-	<label>{{.locale.Tr "repo.migrate_options"}}</label>
+	<label>{{ctx.Locale.Tr "repo.migrate_options"}}</label>
 	<div class="ui checkbox">
 		<input id="mirror" name="mirror" type="checkbox" {{if .mirror}} checked{{end}}>
-		<label>{{.locale.Tr "repo.migrate_options_mirror_helper"}}</label>
+		<label>{{ctx.Locale.Tr "repo.migrate_options_mirror_helper"}}</label>
 	</div>
 </div>
 {{end}}
@@ -12,15 +12,15 @@
 	<label></label>
 	<div class="ui checkbox">
 		<input id="lfs" name="lfs" type="checkbox" {{if .lfs}} checked{{end}}>
-		<label>{{.locale.Tr "repo.migrate_options_lfs"}}</label>
+		<label>{{ctx.Locale.Tr "repo.migrate_options_lfs"}}</label>
 	</div>
-	<span id="lfs_settings" class="gt-hidden">(<a id="lfs_settings_show" href="#">{{.locale.Tr "repo.settings.advanced_settings"}}</a>)</span>
+	<span id="lfs_settings" class="gt-hidden">(<a id="lfs_settings_show" href="#">{{ctx.Locale.Tr "repo.settings.advanced_settings"}}</a>)</span>
 </div>
 <div id="lfs_endpoint" class="gt-hidden">
-	<span class="help">{{.locale.Tr "repo.migrate_options_lfs_endpoint.description" "https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#server-discovery" | Str2html}}{{if .ContextUser.CanImportLocal}} {{.locale.Tr "repo.migrate_options_lfs_endpoint.description.local"}}{{end}}</span>
+	<span class="help">{{ctx.Locale.Tr "repo.migrate_options_lfs_endpoint.description" "https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#server-discovery" | Str2html}}{{if .ContextUser.CanImportLocal}} {{ctx.Locale.Tr "repo.migrate_options_lfs_endpoint.description.local"}}{{end}}</span>
 	<div class="inline field {{if .Err_LFSEndpoint}}error{{end}}">
-		<label>{{.locale.Tr "repo.migrate_options_lfs_endpoint.label"}}</label>
-		<input name="lfs_endpoint" value="{{.lfs_endpoint}}" placeholder="{{.locale.Tr "repo.migrate_options_lfs_endpoint.placeholder"}}">
+		<label>{{ctx.Locale.Tr "repo.migrate_options_lfs_endpoint.label"}}</label>
+		<input name="lfs_endpoint" value="{{.lfs_endpoint}}" placeholder="{{ctx.Locale.Tr "repo.migrate_options_lfs_endpoint.placeholder"}}">
 	</div>
 </div>
 {{end}}

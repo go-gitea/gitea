@@ -80,3 +80,11 @@
 #issue-list .flex-item-body .checklist progress::-moz-progress-bar {
   background-color: var(--color-secondary-dark-4);
 }
+
+.archived-label-filter {
+  margin-left: 10px;
+  font-size: 12px;
+  display: flex !important;
+  margin-bottom: 8px;
+  min-width: fit-content;
+}
