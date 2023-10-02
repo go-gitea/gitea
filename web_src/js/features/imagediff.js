@@ -53,15 +53,15 @@ async function handleSvgSize(info) {
 
 function loadImage(el, src) {
   return new Promise((resolve) => {
-    if (!el) resolve();
+    if (!el) resolve(true);
 
     function onLoad({target}) {
-      if (target === el) resolve();
+      if (target === el) resolve(true);
       el.removeEventListener('load', onLoad);
     }
 
     function onError({target}) {
-      if (target === el) resolve(true);
+      if (target === el) resolve(false);
       el.removeEventListener('error', onError);
     }
 
@@ -121,13 +121,13 @@ export function initImageDiff() {
     }];
 
     await Promise.all(imageInfos.map(async (info) => {
-      const [hadError] = await Promise.all(Array.from(info.$images, (img) => {
+      const [success] = await Promise.all(Array.from(info.$images, (img) => {
         return loadImage(img, info.path);
       }));
-      if (hadError) {
-        info.$boundsInfo.text('(image error)');
-      } else {
+      if (success) {
         await handleSvgSize(info);
+      } else {
+        info.$boundsInfo.text('(image error)');
       }
     }));
 
