@@ -185,19 +185,19 @@ export function onInputDebounce(fn) {
 }
 
 /**
- * Load a image into a <img> element. Promise resolves when it's done loading.
+ * Set the `src` attribute on an element and returns a promise that resolves once it's loaded.
  * @param {Node} el - A <img> node
  * @param {string} src - A source URL
  * @returns {Promise<boolean>} success - Whether the loading was successful
  */
-export function loadImage(el, src) {
+export function loadElement(el, src) {
   return new Promise((resolve) => {
-    function onLoad({target}) {
-      if (target === el) resolve(true);
+    function onLoad() {
+      resolve(true);
       el.removeEventListener('load', onLoad);
     }
-    function onError({target}) {
-      if (target === el) resolve(false);
+    function onError() {
+      resolve(false);
       el.removeEventListener('error', onError);
     }
     el.addEventListener('load', onLoad);
