@@ -4,14 +4,14 @@
 		<div class="ui form">
 
 			<div class="field">
-				<label>{{svg "octicon-note"}} {{.locale.Tr "packages.arch.pacmanconf"}}</label>
+				<label>{{svg "octicon-gear"}} {{.locale.Tr "packages.arch.pacmanconf" | Safe}}</label>
 				<div class="markup"><pre class="code-block"><code>[{{.PackageDescriptor.Owner.LowerName}}.{{.RegistryHost}}]
 SigLevel = Optional TrustAll
 Server = <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/arch/$distribution/$arch"></gitea-origin-url></code></pre></div>
 			</div>
 
 			<div class="field">
-				<label>{{svg "octicon-clock"}} {{.locale.Tr "packages.arch.pacmansync"}}</label>
+				<label>{{svg "octicon-sync"}} {{.locale.Tr "packages.arch.pacmansync"}}</label>
 				<div class="markup"><pre class="code-block"><code>pacman -Sy {{.PackageDescriptor.Package.LowerName}}</code></pre></div>
 			</div>
 
