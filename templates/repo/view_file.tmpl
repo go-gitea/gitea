@@ -110,7 +110,7 @@
 								<td class="lines-escape">{{if (index $.LineEscapeStatus $idx).Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{if (index $.LineEscapeStatus $idx).HasInvisible}}{{ctx.Locale.Tr "repo.invisible_runes_line"}} {{end}}{{if (index $.LineEscapeStatus $idx).HasAmbiguous}}{{ctx.Locale.Tr "repo.ambiguous_runes_line"}}{{end}}"></button>{{end}}</td>
 							{{end}}
 							<td rel="L{{$line}}" class="lines-code chroma"><code class="code-inner">{{$codeHTML}}</code>
-								{{- if $.FileContentLines.ShouldShowIncompleteMark $idx -}}<span class="text red unselectable gt-ml-2">🚫</span>{{- end -}}
+								{{- if $.FileContentLines.ShouldShowIncompleteMark $idx -}}<span class="text red gt-ml-2" data-tooltip-content="{{ctx.Locale.Tr "file_missing_final_newline"}}">{{svg "octicon-no-entry" 14}}</span>{{- end -}}
 							</td>
 						</tr>
 						{{end}}
