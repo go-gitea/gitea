@@ -3051,9 +3051,6 @@ tbody.commit-list {
   .commit-table th.sha {
     display: none !important;
   }
-  .commit-table .commit-list .copy-commit-sha {
-    display: none !important;
-  }
   .comment-header {
     flex-wrap: wrap;
   }
