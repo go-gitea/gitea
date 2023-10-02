@@ -55,7 +55,7 @@ func SignInSAMLCallback(ctx *context.Context) {
 		return
 	}
 
-	u, gothUser, err := samlUserLoginCallback(loginSource, ctx.Req, ctx.Resp)
+	u, gothUser, err := samlUserLoginCallback(*ctx, loginSource, ctx.Req, ctx.Resp)
 	if err != nil {
 		// TODO: improve error display
 		ctx.ServerError("SignIn", err)
@@ -121,7 +121,7 @@ func handleSamlSignIn(ctx *context.Context, source *auth.Source, u *user_model.U
 	ctx.Redirect(setting.AppSubURL + "/")
 }
 
-func samlUserLoginCallback(authSource *auth.Source, request *http.Request, response http.ResponseWriter) (*user_model.User, goth.User, error) {
+func samlUserLoginCallback(ctx context.Context, authSource *auth.Source, request *http.Request, response http.ResponseWriter) (*user_model.User, goth.User, error) {
 	samlSource := authSource.Cfg.(*saml.Source)
 
 	gothUser, err := samlSource.Callback(request, response)
@@ -135,7 +135,7 @@ func samlUserLoginCallback(authSource *auth.Source, request *http.Request, respo
 		LoginSource: authSource.ID,
 	}
 
-	hasUser, err := user_model.GetUser(user)
+	hasUser, err := user_model.GetUser(ctx, user)
 	if err != nil {
 		return nil, goth.User{}, err
 	}

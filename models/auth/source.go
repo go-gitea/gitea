@@ -8,13 +8,12 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/markbates/goth"
-
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
+	"github.com/markbates/goth"
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
 )

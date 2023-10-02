@@ -12,14 +12,14 @@ import (
 	"fmt"
 	"net/url"
 
-	saml2 "github.com/russellhaering/gosaml2"
-	"github.com/russellhaering/gosaml2/types"
-	dsig "github.com/russellhaering/goxmldsig"
-
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
+	saml2 "github.com/russellhaering/gosaml2"
+	"github.com/russellhaering/gosaml2/types"
+	dsig "github.com/russellhaering/goxmldsig"
 )
 
 //  _________   _____      _____  .____
