@@ -32,9 +32,9 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
