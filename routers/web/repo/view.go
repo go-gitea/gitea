@@ -535,7 +535,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			//   empty: 0 lines; "a": 1 incomplete-line; "a\n": 1 line; "a\nb": 1 line, 1 incomplete-line;
 			// Gitea uses the definition (like most modern editors):
 			//   empty: 0 lines; "a": 1 line; "a\n": 2 lines (only 1 line is rendered); "a\nb": 2 lines;
-			//   When rendering, the last empty line is not rendered on UI, there is an icon mark to indicate that there is no trailing EOL
+			//   When rendering, the last empty line is not rendered on UI, so "a\n" will be only rendered as one line on the UI.
+			//   If the content doesn't end with an EOL, there will be an icon mark at the end of last line to distinguish from the case above.
 			// This NumLines is only used for the display purpose on the UI: "xxx lines"
 			if len(buf) == 0 {
 				ctx.Data["NumLines"] = 0
