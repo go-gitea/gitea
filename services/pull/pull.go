@@ -25,12 +25,12 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
 	issue_service "code.gitea.io/gitea/services/issue"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // TODO: use clustered lock (unique queue? or *abuse* cache)
@@ -145,12 +145,12 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 		return err
 	}
 
-	notification.NotifyNewPullRequest(ctx, pr, mentions)
+	notify_service.NewPullRequest(ctx, pr, mentions)
 	if len(issue.Labels) > 0 {
-		notification.NotifyIssueChangeLabels(ctx, issue.Poster, issue, issue.Labels, nil)
+		notify_service.IssueChangeLabels(ctx, issue.Poster, issue, issue.Labels, nil)
 	}
 	if issue.Milestone != nil {
-		notification.NotifyIssueChangeMilestone(ctx, issue.Poster, issue, 0)
+		notify_service.IssueChangeMilestone(ctx, issue.Poster, issue, 0)
 	}
 	if len(assigneeIDs) > 0 {
 		for _, assigneeID := range assigneeIDs {
@@ -158,7 +158,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 			if err != nil {
 				return ErrDependenciesLeft
 			}
-			notification.NotifyIssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
+			notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
 		}
 	}
 
@@ -315,7 +315,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 			AddToTaskQueue(ctx, pr)
 			comment, err := CreatePushPullComment(ctx, doer, pr, oldCommitID, newCommitID)
 			if err == nil && comment != nil {
-				notification.NotifyPullRequestPushCommits(ctx, doer, pr, comment)
+				notify_service.PullRequestPushCommits(ctx, doer, pr, comment)
 			}
 		}
 
@@ -336,7 +336,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 						}
 						if changed {
 							// Mark old reviews as stale if diff to mergebase has changed
-							if err := issues_model.MarkReviewsAsStale(pr.IssueID); err != nil {
+							if err := issues_model.MarkReviewsAsStale(ctx, pr.IssueID); err != nil {
 								log.Error("MarkReviewsAsStale: %v", err)
 							}
 
@@ -351,7 +351,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 								}
 							}
 						}
-						if err := issues_model.MarkReviewsAsNotStale(pr.IssueID, newCommitID); err != nil {
+						if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, newCommitID); err != nil {
 							log.Error("MarkReviewsAsNotStale: %v", err)
 						}
 						divergence, err := GetDiverging(ctx, pr)
@@ -365,7 +365,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 						}
 					}
 
-					notification.NotifyPullRequestSynchronized(ctx, doer, pr)
+					notify_service.PullRequestSynchronized(ctx, doer, pr)
 				}
 			}
 		}
@@ -755,11 +755,11 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	}
 
 	for _, author := range authors {
-		if _, err := stringBuilder.Write([]byte("Co-authored-by: ")); err != nil {
+		if _, err := stringBuilder.WriteString("Co-authored-by: "); err != nil {
 			log.Error("Unable to write to string builder Error: %v", err)
 			return ""
 		}
-		if _, err := stringBuilder.Write([]byte(author)); err != nil {
+		if _, err := stringBuilder.WriteString(author); err != nil {
 			log.Error("Unable to write to string builder Error: %v", err)
 			return ""
 		}

@@ -1,30 +1,30 @@
-<div class="ui dropdown tiny basic button" data-tooltip-content="{{.locale.Tr "repo.diff.options_button"}}">
+<div class="ui dropdown tiny basic button" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.options_button"}}">
 	{{svg "octicon-kebab-horizontal"}}
 	<div class="menu">
-		<a class="item" id="show-file-list-btn">{{.locale.Tr "repo.diff.show_diff_stats"}}</a>
+		<a class="item" id="show-file-list-btn">{{ctx.Locale.Tr "repo.diff.show_diff_stats"}}</a>
 		{{if .Issue.Index}}
-			<a class="item" href="{{$.RepoLink}}/pulls/{{.Issue.Index}}.patch" download="{{.Issue.Index}}.patch">{{.locale.Tr "repo.diff.download_patch"}}</a>
-			<a class="item" href="{{$.RepoLink}}/pulls/{{.Issue.Index}}.diff" download="{{.Issue.Index}}.diff">{{.locale.Tr "repo.diff.download_diff"}}</a>
+			<a class="item" href="{{$.RepoLink}}/pulls/{{.Issue.Index}}.patch" download="{{.Issue.Index}}.patch">{{ctx.Locale.Tr "repo.diff.download_patch"}}</a>
+			<a class="item" href="{{$.RepoLink}}/pulls/{{.Issue.Index}}.diff" download="{{.Issue.Index}}.diff">{{ctx.Locale.Tr "repo.diff.download_diff"}}</a>
 		{{else if $.PageIsWiki}}
-			<a class="item" href="{{$.RepoLink}}/wiki/commit/{{PathEscape .Commit.ID.String}}.patch" download="{{ShortSha .Commit.ID.String}}.patch">{{.locale.Tr "repo.diff.download_patch"}}</a>
-			<a class="item" href="{{$.RepoLink}}/wiki/commit/{{PathEscape .Commit.ID.String}}.diff" download="{{ShortSha .Commit.ID.String}}.diff">{{.locale.Tr "repo.diff.download_diff"}}</a>
+			<a class="item" href="{{$.RepoLink}}/wiki/commit/{{PathEscape .Commit.ID.String}}.patch" download="{{ShortSha .Commit.ID.String}}.patch">{{ctx.Locale.Tr "repo.diff.download_patch"}}</a>
+			<a class="item" href="{{$.RepoLink}}/wiki/commit/{{PathEscape .Commit.ID.String}}.diff" download="{{ShortSha .Commit.ID.String}}.diff">{{ctx.Locale.Tr "repo.diff.download_diff"}}</a>
 		{{else if .Commit.ID.String}}
-			<a class="item" href="{{$.RepoLink}}/commit/{{PathEscape .Commit.ID.String}}.patch" download="{{ShortSha .Commit.ID.String}}.patch">{{.locale.Tr "repo.diff.download_patch"}}</a>
-			<a class="item" href="{{$.RepoLink}}/commit/{{PathEscape .Commit.ID.String}}.diff" download="{{ShortSha .Commit.ID.String}}.diff">{{.locale.Tr "repo.diff.download_diff"}}</a>
+			<a class="item" href="{{$.RepoLink}}/commit/{{PathEscape .Commit.ID.String}}.patch" download="{{ShortSha .Commit.ID.String}}.patch">{{ctx.Locale.Tr "repo.diff.download_patch"}}</a>
+			<a class="item" href="{{$.RepoLink}}/commit/{{PathEscape .Commit.ID.String}}.diff" download="{{ShortSha .Commit.ID.String}}.diff">{{ctx.Locale.Tr "repo.diff.download_diff"}}</a>
 		{{end}}
-		<a id="expand-files-btn" class="item">{{.locale.Tr "repo.pulls.expand_files"}}</a>
-		<a id="collapse-files-btn"class="item">{{.locale.Tr "repo.pulls.collapse_files"}}</a>
+		<a id="expand-files-btn" class="item">{{ctx.Locale.Tr "repo.pulls.expand_files"}}</a>
+		<a id="collapse-files-btn"class="item">{{ctx.Locale.Tr "repo.pulls.collapse_files"}}</a>
 		{{if .Issue.Index}}
 			{{if .ShowOutdatedComments}}
 				<a class="item" href="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated=false">
 					<label class="gt-pointer-events-none">
-						{{.locale.Tr "repo.issues.review.option.hide_outdated_comments"}}
+						{{ctx.Locale.Tr "repo.issues.review.option.hide_outdated_comments"}}
 					</label>
 				</a>
 			{{else}}
 				<a class="item" href="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated=true">
 					<label class="gt-pointer-events-none">
-						{{.locale.Tr "repo.issues.review.option.show_outdated_comments"}}
+						{{ctx.Locale.Tr "repo.issues.review.option.show_outdated_comments"}}
 					</label>
 				</a>
 			{{end}}

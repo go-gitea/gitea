@@ -80,7 +80,7 @@ func TestFindLatestReviews(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, reviews, 2)
 	assert.Equal(t, "duplicate review from user5 (latest)", reviews[0].Content)
-	assert.Equal(t, "singular review from user6 and final review for this pr", reviews[1].Content)
+	assert.Equal(t, "singular review from org6 and final review for this pr", reviews[1].Content)
 }
 
 func TestGetCurrentReview(t *testing.T) {
@@ -123,13 +123,13 @@ func TestGetReviewersByIssueID(t *testing.T) {
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 
 	expectedReviews := []*issues_model.Review{}
 	expectedReviews = append(expectedReviews,
 		&issues_model.Review{
-			Reviewer:    user3,
+			Reviewer:    org3,
 			Type:        issues_model.ReviewTypeReject,
 			UpdatedUnix: 946684812,
 		},
@@ -144,7 +144,7 @@ func TestGetReviewersByIssueID(t *testing.T) {
 			UpdatedUnix: 946684814,
 		})
 
-	allReviews, err := issues_model.GetReviewsByIssueID(issue.ID)
+	allReviews, err := issues_model.GetReviewsByIssueID(db.DefaultContext, issue.ID)
 	assert.NoError(t, err)
 	for _, review := range allReviews {
 		assert.NoError(t, review.LoadReviewer(db.DefaultContext))
@@ -157,7 +157,7 @@ func TestGetReviewersByIssueID(t *testing.T) {
 		}
 	}
 
-	allReviews, err = issues_model.GetReviewsByIssueID(issue.ID)
+	allReviews, err = issues_model.GetReviewsByIssueID(db.DefaultContext, issue.ID)
 	assert.NoError(t, err)
 	assert.NoError(t, allReviews.LoadReviewers(db.DefaultContext))
 	if assert.Len(t, allReviews, 3) {
@@ -248,7 +248,7 @@ func TestDeleteReview(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	assert.NoError(t, issues_model.DeleteReview(review2))
+	assert.NoError(t, issues_model.DeleteReview(db.DefaultContext, review2))
 
 	_, err = issues_model.GetReviewByID(db.DefaultContext, review2.ID)
 	assert.Error(t, err)

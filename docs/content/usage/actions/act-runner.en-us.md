@@ -81,7 +81,7 @@ docker run --entrypoint="" --rm -it gitea/act_runner:latest act_runner generate-
 When you are using the docker image, you can specify the configuration file by using the `CONFIG_FILE` environment variable. Make sure that the file is mounted into the container as a volume:
 
 ```bash
-docker run -v $(pwd)/config.yaml:/config.yaml -e CONFIG_FILE=/config.yaml ...
+docker run -v $PWD/config.yaml:/config.yaml -e CONFIG_FILE=/config.yaml ...
 ```
 
 You may notice the commands above are both incomplete, because it is not the time to run the act runner yet.
@@ -157,8 +157,8 @@ If you are using the docker image, behaviour will be slightly different. Registr
 
 ```bash
 docker run \
-    -v $(pwd)/config.yaml:/config.yaml \
-    -v $(pwd)/data:/data \
+    -v $PWD/config.yaml:/config.yaml \
+    -v $PWD/data:/data \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -e CONFIG_FILE=/config.yaml \
     -e GITEA_INSTANCE_URL=<instance_url> \

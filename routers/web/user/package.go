@@ -390,6 +390,12 @@ func PackageSettings(ctx *context.Context) {
 	ctx.Data["Repos"] = repos
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
 
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	ctx.HTML(http.StatusOK, tplPackagesSettings)
 }
 
@@ -433,7 +439,7 @@ func PackageSettingsPost(ctx *context.Context) {
 		ctx.Redirect(ctx.Link)
 		return
 	case "delete":
-		err := packages_service.RemovePackageVersion(ctx.Doer, ctx.Package.Descriptor.Version)
+		err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
 		if err != nil {
 			log.Error("Error deleting package: %v", err)
 			ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))

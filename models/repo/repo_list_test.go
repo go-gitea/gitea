@@ -66,7 +66,7 @@ func getTestCases() []struct {
 			count: 0,
 		},
 		{
-			name:  "PublicRepositoriesOfUser3",
+			name:  "PublicRepositoriesOfOrg3",
 			opts:  &repo_model.SearchRepoOptions{ListOptions: db.ListOptions{Page: 1, PageSize: 10}, OwnerID: 20, Collaborate: util.OptionalBoolFalse},
 			count: 2,
 		},
@@ -81,7 +81,7 @@ func getTestCases() []struct {
 			count: 0,
 		},
 		{
-			name:  "PublicAndPrivateRepositoriesOfUser3",
+			name:  "PublicAndPrivateRepositoriesOfOrg3",
 			opts:  &repo_model.SearchRepoOptions{ListOptions: db.ListOptions{Page: 1, PageSize: 10}, OwnerID: 20, Private: true, Collaborate: util.OptionalBoolFalse},
 			count: 4,
 		},
@@ -96,7 +96,7 @@ func getTestCases() []struct {
 			count: 1,
 		},
 		{
-			name:  "PublicRepositoriesOfUser3IncludingCollaborative",
+			name:  "PublicRepositoriesOfOrg3IncludingCollaborative",
 			opts:  &repo_model.SearchRepoOptions{ListOptions: db.ListOptions{Page: 1, PageSize: 10}, OwnerID: 20},
 			count: 3,
 		},
@@ -111,7 +111,7 @@ func getTestCases() []struct {
 			count: 4,
 		},
 		{
-			name:  "PublicAndPrivateRepositoriesOfUser3IncludingCollaborative",
+			name:  "PublicAndPrivateRepositoriesOfOrg3IncludingCollaborative",
 			opts:  &repo_model.SearchRepoOptions{ListOptions: db.ListOptions{Page: 1, PageSize: 10}, OwnerID: 20, Private: true},
 			count: 7,
 		},
@@ -168,7 +168,7 @@ func getTestCases() []struct {
 		{
 			name:  "OwnerSlashRepoSearch",
 			opts:  &repo_model.SearchRepoOptions{Keyword: "user/repo2", ListOptions: db.ListOptions{Page: 1, PageSize: 10}, Private: true, OwnerID: 0},
-			count: 3,
+			count: 2,
 		},
 		{
 			name:  "OwnerSlashSearch",

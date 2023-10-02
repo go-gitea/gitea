@@ -5,30 +5,29 @@ package archiver
 
 import (
 	"errors"
-	"path/filepath"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/contexttest"
+
+	_ "code.gitea.io/gitea/models/actions"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", "..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func TestArchive_Basic(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	ctx, _ := test.MockContext(t, "user27/repo49")
+	ctx, _ := contexttest.MockContext(t, "user27/repo49")
 	firstCommit, secondCommit := "51f84af23134", "aacbdfe9e1c4"
 
-	test.LoadRepo(t, ctx, 49)
-	test.LoadGitRepo(t, ctx)
+	contexttest.LoadRepo(t, ctx, 49)
+	contexttest.LoadGitRepo(t, ctx)
 	defer ctx.Repo.GitRepo.Close()
 
 	bogusReq, err := NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, firstCommit+".zip")

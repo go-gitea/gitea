@@ -103,7 +103,7 @@ Vous devriez maintenant avoir deux conteneurs Docker pour Gitea et PostgreSQL pl
 
 # Personnalisation
 
-Les fichier personnalisés ([voir les instructions](https://docs.gitea.io/en-us/customizing-gitea/)) peuvent être placés dans le répertoire `/data/gitea`.
+Les fichier personnalisés ([voir les instructions](administration/customizing-gitea.md)) peuvent être placés dans le répertoire `/data/gitea`.
 
 Le fichier de configuration sera sauvegardé à l'emplacement suivant : `/data/gitea/conf/app.ini`
 
