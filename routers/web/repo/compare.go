@@ -103,7 +103,7 @@ func setPathsCompareContext(ctx *context.Context, base, head *git.Commit, headOw
 
 // setImageCompareContext sets context data that is required by image compare template
 func setImageCompareContext(ctx *context.Context) {
-	ctx.Data["IsSniffedTypeImage"] = func(st typesniffer.SniffedType) bool {
+	ctx.Data["IsSniffedTypeAnImage"] = func(st typesniffer.SniffedType) bool {
 		return st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage())
 	}
 }

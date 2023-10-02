@@ -99,7 +99,7 @@
 					{{$blobHead := call $.GetBlobByPathForCommit $.HeadCommit $file.Name}}
 					{{$stBase := call $.GetSniffedTypeForBlob $blobBase}}
 					{{$stHead := call $.GetSniffedTypeForBlob $blobHead}}
-					{{$isImage:= or (call $.IsSniffedTypeImage $stBase) (call $.IsSniffedTypeImage $stHead)}}
+					{{$isImage:= or (call $.IsSniffedTypeAnImage $stBase) (call $.IsSniffedAnTypeImage $stHead)}}
 					{{$isCsv := (call $.IsCsvFile $file)}}
 					{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) $isCsv)}}
 					{{$isExpandable := or (gt $file.Addition 0) (gt $file.Deletion 0) $file.IsBin}}
