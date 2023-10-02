@@ -187,8 +187,23 @@ func TestRepoLinks(t *testing.T) {
 		"/projects",
 	}
 
+	// anonymous user
 	for _, link := range links {
 		req := NewRequest(t, "GET", repoLink+link)
 		MakeRequest(t, req, http.StatusOK)
+	}
+
+	// admin/owner user
+	session := loginUser(t, "user1")
+	for _, link := range links {
+		req := NewRequest(t, "GET", repoLink+link)
+		session.MakeRequest(t, req, http.StatusOK)
+	}
+
+	// non-admin non-owner user
+	session = loginUser(t, "user2")
+	for _, link := range links {
+		req := NewRequest(t, "GET", repoLink+link)
+		session.MakeRequest(t, req, http.StatusOK)
 	}
 }
