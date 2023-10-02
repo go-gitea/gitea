@@ -183,3 +183,25 @@ export function autosize(textarea, {viewportMarginBottom = 0} = {}) {
 export function onInputDebounce(fn) {
   return debounce(300, fn);
 }
+
+/**
+ * Load a image into a <img> element. Promise resolves when it's done loading.
+ * @param {Node} el - A <img> node
+ * @param {string} src - A source URL
+ * @returns {Promise<boolean>} success - Whether an error has occured during loading
+ */
+export function loadImage(el, src) {
+  return new Promise((resolve) => {
+    function onLoad({target}) {
+      if (target === el) resolve(true);
+      el.removeEventListener('load', onLoad);
+    }
+    function onError({target}) {
+      if (target === el) resolve(false);
+      el.removeEventListener('error', onError);
+    }
+    el.addEventListener('load', onLoad);
+    el.addEventListener('error', onError);
+    el.src = src;
+  });
+}

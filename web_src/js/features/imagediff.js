@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {GET} from '../modules/fetch.js';
-import {hideElem} from '../utils/dom.js';
+import {hideElem, loadImage} from '../utils/dom.js';
 import {parseDom} from '../utils.js';
 
 function getDefaultSvgBoundsIfUndefined(text, src) {
@@ -49,26 +49,6 @@ async function handleSvgSize(info) {
       hideElem(info.$boundsInfo);
     }
   }
-}
-
-function loadImage(el, src) {
-  return new Promise((resolve) => {
-    if (!el) resolve(true);
-
-    function onLoad({target}) {
-      if (target === el) resolve(true);
-      el.removeEventListener('load', onLoad);
-    }
-
-    function onError({target}) {
-      if (target === el) resolve(false);
-      el.removeEventListener('error', onError);
-    }
-
-    el.addEventListener('load', onLoad);
-    el.addEventListener('error', onError);
-    el.src = src;
-  });
 }
 
 export function initImageDiff() {
@@ -122,6 +102,7 @@ export function initImageDiff() {
 
     await Promise.all(imageInfos.map(async (info) => {
       const [success] = await Promise.all(Array.from(info.$images, (img) => {
+        if (!img) return true;
         return loadImage(img, info.path);
       }));
       if (success) {
