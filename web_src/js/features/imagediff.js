@@ -74,17 +74,17 @@ export function initImageDiff() {
 
     // the container may be hidden by "viewed" checkbox, so use the parent's width for reference
     const diffContainerWidth = Math.max($container.closest('.diff-file-box').width() - 300, 100);
-    const pathAfter = $container.data('path-after');
-    const pathBefore = $container.data('path-before');
 
     const imageInfos = [{
       loaded: false,
-      path: pathAfter,
+      path: this.getAttribute('data-path-after'),
+      mime: this.getAttribute('data-mime-after'),
       $image: $container.find('img.image-after'),
       $boundsInfo: $container.find('.bounds-info-after')
     }, {
       loaded: false,
-      path: pathBefore,
+      path: this.getAttribute('data-path-before'),
+      mime: this.getAttribute('data-mime-before'),
       $image: $container.find('img.image-before'),
       $boundsInfo: $container.find('.bounds-info-before')
     }];
@@ -101,7 +101,7 @@ export function initImageDiff() {
         });
         info.$image.attr('src', info.path);
 
-        if (parseUrl(info.path).pathname.toLowerCase().endsWith('.svg')) {
+        if (info.mime === 'image/svg+xml') {
           const resp = await GET(info.path);
           const text = await resp.text();
           const bounds = getDefaultSvgBoundsIfUndefined(text, info.path);
