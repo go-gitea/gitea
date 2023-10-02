@@ -177,6 +177,8 @@ func TestLinksLogin(t *testing.T) {
 }
 
 func TestRepoLinks(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
 	// repo1 has enabled almost features, so we can test most links
 	repoLink := "/user2/repo1"
 	links := []string{
