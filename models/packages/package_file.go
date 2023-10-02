@@ -65,20 +65,6 @@ func TryInsertFile(ctx context.Context, pf *PackageFile) (*PackageFile, error) {
 	return pf, nil
 }
 
-// GetFileByCompositeKey gets unique file by composite key if exists
-func GetFileByCompositeKey(ctx context.Context, key string) (*PackageFile, error) {
-	pf := &PackageFile{CompositeKey: key}
-
-	has, err := db.GetEngine(ctx).Get(pf)
-	if err != nil {
-		return nil, err
-	}
-	if !has {
-		return nil, ErrPackageFileNotExist
-	}
-	return pf, nil
-}
-
 // GetFilesByVersionID gets all files of a version
 func GetFilesByVersionID(ctx context.Context, versionID int64) ([]*PackageFile, error) {
 	pfs := make([]*PackageFile, 0, 10)

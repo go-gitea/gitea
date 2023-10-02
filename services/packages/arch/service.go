@@ -21,7 +21,7 @@ import (
 // Get data related to provided filename and distribution, for package files
 // update download counter.
 func GetPackageFile(ctx *context.Context, distro, file string) (io.ReadSeekCloser, error) {
-	pf, err := pkg_model.GetFileByCompositeKey(ctx, distro+"-"+file)
+	pf, err := getPackageFile(ctx, distro, file)
 	if err != nil {
 		return nil, err
 	}
@@ -33,9 +33,7 @@ func GetPackageFile(ctx *context.Context, distro, file string) (io.ReadSeekClose
 // This function will search for package signature and if present, will load it
 // from package file properties, and return its byte reader.
 func GetPackageSignature(ctx *context.Context, distro, file string) (*bytes.Reader, error) {
-	pkgfile := strings.TrimSuffix(distro+"-"+file, ".sig")
-
-	pf, err := pkg_model.GetFileByCompositeKey(ctx, pkgfile)
+	pf, err := getPackageFile(ctx, distro, strings.TrimSuffix(file, ".sig"))
 	if err != nil {
 		return nil, err
 	}
@@ -56,6 +54,31 @@ func GetPackageSignature(ctx *context.Context, distro, file string) (*bytes.Read
 	}
 
 	return nil, errors.New("signature for requested package not found")
+}
+
+// Ejects parameters required to get package file property from file name.
+func getPackageFile(ctx *context.Context, distro, file string) (*pkg_model.PackageFile, error) {
+	var (
+		splt    = strings.Split(file, "-")
+		pkgname = strings.Join(splt[0:len(splt)-3], "-")
+		vername = splt[len(splt)-3] + "-" + splt[len(splt)-2]
+		compkey = distro + "-" + file
+	)
+
+	version, err := pkg_model.GetVersionByNameAndVersion(
+		ctx, ctx.Package.Owner.ID, pkg_model.TypeArch, pkgname, vername,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	pkgfile, err := pkg_model.GetFileForVersionByName(
+		ctx, version.ID, file, compkey,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return pkgfile, nil
 }
 
 // Finds all arch packages in user/organization scope, each package version
