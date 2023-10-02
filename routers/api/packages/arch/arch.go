@@ -93,7 +93,7 @@ func Push(ctx *context.Context) {
 		&pkg_service.PackageFileCreationInfo{
 			PackageFileInfo: pkg_service.PackageFileInfo{
 				Filename:     filename,
-				CompositeKey: distro + "-" + filename,
+				CompositeKey: distro,
 			},
 			OverwriteExisting: true,
 			IsLead:            true,
