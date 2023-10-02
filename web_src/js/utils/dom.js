@@ -188,7 +188,7 @@ export function onInputDebounce(fn) {
  * Load a image into a <img> element. Promise resolves when it's done loading.
  * @param {Node} el - A <img> node
  * @param {string} src - A source URL
- * @returns {Promise<boolean>} success - Whether an error has occured during loading
+ * @returns {Promise<boolean>} success - Whether the loading was successful
  */
 export function loadImage(el, src) {
   return new Promise((resolve) => {
