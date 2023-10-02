@@ -129,11 +129,13 @@
 
 .repository .filter.menu.labels .label-filter .menu .info {
   display: inline-block;
-  padding: 0.5rem 0.25rem;
+  padding: 0.5rem 0;
   font-size: 12px;
   width: 100%;
   white-space: nowrap;
-  text-align: center;
+  margin-left: 10px;
+  margin-right: 8px;
+  text-align: left;
 }
 
 .repository .filter.menu.labels .label-filter .menu .info code {
@@ -3047,9 +3049,6 @@ tbody.commit-list {
   }
   .commit-table td.sha,
   .commit-table th.sha {
-    display: none !important;
-  }
-  .commit-table .commit-list .copy-commit-sha {
     display: none !important;
   }
   .comment-header {

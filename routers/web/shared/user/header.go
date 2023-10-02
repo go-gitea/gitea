@@ -32,6 +32,7 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 
 	ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail && ctx.ContextUser.Email != "" && ctx.IsSigned && !ctx.ContextUser.KeepEmailPrivate
+	ctx.Data["UserLocationMapURL"] = setting.Service.UserLocationMapURL
 
 	// Show OpenID URIs
 	openIDs, err := user_model.GetUserOpenIDs(ctx, ctx.ContextUser.ID)
