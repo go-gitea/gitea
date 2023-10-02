@@ -86,7 +86,7 @@ func (repo *Repository) IsEmpty() (bool, error) {
 			Stdout: &output,
 			Stderr: &errbuf,
 		}); err != nil {
-		if (err.Error() == "exit status 1" || err.Error() == "exit status 129") && strings.TrimSpace(errbuf.String()) == "" {
+		if (err.Error() == "exit status 1" && strings.TrimSpace(errbuf.String()) == "") || err.Error() == "exit status 129" {
 			// git 2.11 exits with 129 if the repo is empty
 			return true, nil
 		}
