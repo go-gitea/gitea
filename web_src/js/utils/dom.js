@@ -190,7 +190,7 @@ export function onInputDebounce(fn) {
  * @param {string} src - A source URL
  * @returns {Promise<boolean>} success - Whether the loading was successful
  */
-export function loadElement(el, src) {
+export function loadElem(el, src) {
   return new Promise((resolve) => {
     function onLoad() {
       resolve(true);
