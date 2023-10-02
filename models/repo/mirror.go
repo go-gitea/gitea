@@ -31,7 +31,7 @@ type Mirror struct {
 	LFS         bool   `xorm:"lfs_enabled NOT NULL DEFAULT false"`
 	LFSEndpoint string `xorm:"lfs_endpoint TEXT"`
 
-	Address string `xorm:"-"`
+	RemoteAddress string `xorm:"VARCHAR(2048)"`
 }
 
 func init() {
@@ -47,12 +47,12 @@ func (m *Mirror) BeforeInsert() {
 }
 
 // GetRepository returns the repository.
-func (m *Mirror) GetRepository() *Repository {
+func (m *Mirror) GetRepository(ctx context.Context) *Repository {
 	if m.Repo != nil {
 		return m.Repo
 	}
 	var err error
-	m.Repo, err = GetRepositoryByID(db.DefaultContext, m.RepoID)
+	m.Repo, err = GetRepositoryByID(ctx, m.RepoID)
 	if err != nil {
 		log.Error("getRepositoryByID[%d]: %v", m.ID, err)
 	}
@@ -99,14 +99,14 @@ func TouchMirror(ctx context.Context, m *Mirror) error {
 }
 
 // DeleteMirrorByRepoID deletes a mirror by repoID
-func DeleteMirrorByRepoID(repoID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).Delete(&Mirror{RepoID: repoID})
+func DeleteMirrorByRepoID(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Delete(&Mirror{RepoID: repoID})
 	return err
 }
 
 // MirrorsIterate iterates all mirror repositories.
-func MirrorsIterate(limit int, f func(idx int, bean any) error) error {
-	sess := db.GetEngine(db.DefaultContext).
+func MirrorsIterate(ctx context.Context, limit int, f func(idx int, bean any) error) error {
+	sess := db.GetEngine(ctx).
 		Where("next_update_unix<=?", time.Now().Unix()).
 		And("next_update_unix!=0").
 		OrderBy("updated_unix ASC")

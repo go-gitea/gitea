@@ -653,7 +653,7 @@ func DeleteManifest(ctx *context.Context) {
 	}
 
 	for _, pv := range pvs {
-		if err := packages_service.RemovePackageVersion(ctx.Doer, pv); err != nil {
+		if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pv); err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}

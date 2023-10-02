@@ -1,6 +1,6 @@
 ---
 date: "2023-08-22T14:21:00+08:00"
-title: "Usage: Multi-factor Authentication (MFA)"
+title: "Multi-factor Authentication (MFA)"
 slug: "multi-factor-authentication"
 weight: 15
 toc: false

@@ -123,14 +123,6 @@
   padding-bottom: 3px;
 }
 
-#git-graph-container #rev-list .sha.label .shortsha {
-  padding-top: 0;
-}
-
-#git-graph-container #rev-list .sha.label .shortsha-pad {
-  padding-right: 10px;
-}
-
 #git-graph-container #rev-list .sha.label .ui.detail.icon.button {
   padding-top: 3px;
   margin-top: -5px;

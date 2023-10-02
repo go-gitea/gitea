@@ -456,7 +456,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 					return nil
 				}
 
-				if redirectUserID, err := user_model.LookupUserRedirect(userName); err == nil {
+				if redirectUserID, err := user_model.LookupUserRedirect(ctx, userName); err == nil {
 					RedirectToUser(ctx.Base, userName, redirectUserID)
 				} else if user_model.IsErrUserRedirectNotExist(err) {
 					ctx.NotFound("GetUserByName", nil)
@@ -471,6 +471,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	}
 	ctx.Repo.Owner = owner
 	ctx.ContextUser = owner
+	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 
 	// redirect link to wiki
@@ -544,7 +545,10 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return nil
 	}
-	ctx.Data["NumReleases"], err = repo_model.GetReleaseCountByRepoID(ctx, ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{})
+	ctx.Data["NumReleases"], err = repo_model.GetReleaseCountByRepoID(ctx, ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{
+		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
+		IncludeDrafts: ctx.Repo.CanWrite(unit_model.TypeReleases),
+	})
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return nil
@@ -560,7 +564,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.TypePullRequests)
 
-	canSignedUserFork, err := repo_module.CanUserForkRepo(ctx.Doer, ctx.Repo.Repository)
+	canSignedUserFork, err := repo_module.CanUserForkRepo(ctx, ctx.Doer, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("CanUserForkRepo", err)
 		return nil
@@ -597,7 +601,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	}
 
 	if ctx.IsSigned {
-		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx.Doer.ID, repo.ID)
+		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, repo.ID)
 		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, repo.ID)
 	}
 
@@ -702,7 +706,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 
 	// People who have push access or have forked repository can propose a new pull request.
 	canPush := ctx.Repo.CanWrite(unit_model.TypeCode) ||
-		(ctx.IsSigned && repo_model.HasForkedRepo(ctx.Doer.ID, ctx.Repo.Repository.ID))
+		(ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID))
 	canCompare := false
 
 	// Pull request is allowed if this is a fork repository
@@ -739,7 +743,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 
 		ctx.Data["RepoTransfer"] = repoTransfer
 		if ctx.Doer != nil {
-			ctx.Data["CanUserAcceptTransfer"] = repoTransfer.CanUserAcceptTransfer(ctx.Doer)
+			ctx.Data["CanUserAcceptTransfer"] = repoTransfer.CanUserAcceptTransfer(ctx, ctx.Doer)
 		}
 	}
 

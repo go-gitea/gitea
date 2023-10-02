@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
@@ -156,6 +157,20 @@ func registerCleanupPackages() {
 	})
 }
 
+func registerActionsCleanup() {
+	RegisterTaskFatal("cleanup_actions", &OlderThanConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    true,
+			RunAtStart: true,
+			Schedule:   "@midnight",
+		},
+		OlderThan: 24 * time.Hour,
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+		realConfig := config.(*OlderThanConfig)
+		return actions.Cleanup(ctx, realConfig.OlderThan)
+	})
+}
+
 func initBasicTasks() {
 	if setting.Mirror.Enabled {
 		registerUpdateMirrorTask()
@@ -171,5 +186,8 @@ func initBasicTasks() {
 	registerCleanupHookTaskTable()
 	if setting.Packages.Enabled {
 		registerCleanupPackages()
+	}
+	if setting.Actions.Enabled {
+		registerActionsCleanup()
 	}
 }
