@@ -4,6 +4,7 @@
 package highlight
 
 import (
+	"html/template"
 	"strings"
 	"testing"
 
@@ -12,6 +13,16 @@ import (
 
 func lines(s string) []string {
 	return strings.Split(strings.ReplaceAll(strings.TrimSpace(s), `\n`, "\n"), "\n")
+}
+
+func join(lines []template.HTML, sep string) (s string) {
+	for i, line := range lines {
+		s += string(line)
+		if i != len(lines)-1 {
+			s += sep
+		}
+	}
+	return s
 }
 
 func TestFile(t *testing.T) {
@@ -97,13 +108,13 @@ c=2
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			out, lexerName, err := File(tt.name, "", []byte(tt.code))
+			out, err := File(tt.name, "", []byte(tt.code))
 			assert.NoError(t, err)
 			expected := strings.Join(tt.want, "\n")
-			actual := strings.Join(out, "\n")
+			actual := join(out.HTMLLines, "\n")
 			assert.Equal(t, strings.Count(actual, "<span"), strings.Count(actual, "</span>"))
 			assert.EqualValues(t, expected, actual)
-			assert.Equal(t, tt.lexerName, lexerName)
+			assert.Equal(t, tt.lexerName, out.LexerName)
 		})
 	}
 }
@@ -166,7 +177,7 @@ c=2`),
 		t.Run(tt.name, func(t *testing.T) {
 			out := PlainText([]byte(tt.code))
 			expected := strings.Join(tt.want, "\n")
-			actual := strings.Join(out, "\n")
+			actual := join(out.HTMLLines, "\n")
 			assert.EqualValues(t, expected, actual)
 		})
 	}

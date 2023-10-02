@@ -36,7 +36,7 @@ export function initCopyContent() {
         btn.classList.remove('is-loading', 'small-loading-icon');
       }
     } else { // text, read from DOM
-      const lineEls = document.querySelectorAll('.file-view .lines-code');
+      const lineEls = document.querySelectorAll('.file-view .lines-code .code-inner');
       content = Array.from(lineEls, (el) => el.textContent).join('');
     }
 

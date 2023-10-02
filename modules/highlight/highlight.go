@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"fmt"
 	gohtml "html"
+	"html/template"
 	"io"
 	"path/filepath"
 	"strings"
@@ -135,12 +136,26 @@ func CodeFromLexer(lexer chroma.Lexer, code string) string {
 	return strings.TrimSuffix(htmlbuf.String(), "\n")
 }
 
+type ContentLines struct {
+	HTMLLines  []template.HTML
+	HasLastEOL bool
+	LexerName  string
+}
+
+func (cl *ContentLines) ShouldShowIncompleteMark(idx int) bool {
+	return !cl.HasLastEOL && idx == len(cl.HTMLLines)-1
+}
+
+func hasLastEOL(code []byte) bool {
+	return len(code) != 0 && code[len(code)-1] == '\n'
+}
+
 // File returns a slice of chroma syntax highlighted HTML lines of code and the matched lexer name
-func File(fileName, language string, code []byte) ([]string, string, error) {
+func File(fileName, language string, code []byte) (*ContentLines, error) {
 	NewContext()
 
 	if len(code) > sizeLimit {
-		return PlainText(code), "", nil
+		return PlainText(code), nil
 	}
 
 	formatter := html.New(html.WithClasses(true),
@@ -177,30 +192,30 @@ func File(fileName, language string, code []byte) ([]string, string, error) {
 
 	iterator, err := lexer.Tokenise(nil, string(code))
 	if err != nil {
-		return nil, "", fmt.Errorf("can't tokenize code: %w", err)
+		return nil, fmt.Errorf("can't tokenize code: %w", err)
 	}
 
 	tokensLines := chroma.SplitTokensIntoLines(iterator.Tokens())
 	htmlBuf := &bytes.Buffer{}
 
-	lines := make([]string, 0, len(tokensLines))
+	lines := make([]template.HTML, 0, len(tokensLines))
 	for _, tokens := range tokensLines {
 		iterator = chroma.Literator(tokens...)
 		err = formatter.Format(htmlBuf, githubStyles, iterator)
 		if err != nil {
-			return nil, "", fmt.Errorf("can't format code: %w", err)
+			return nil, fmt.Errorf("can't format code: %w", err)
 		}
-		lines = append(lines, htmlBuf.String())
+		lines = append(lines, template.HTML(htmlBuf.String()))
 		htmlBuf.Reset()
 	}
 
-	return lines, lexerName, nil
+	return &ContentLines{HTMLLines: lines, HasLastEOL: hasLastEOL(code), LexerName: lexerName}, nil
 }
 
 // PlainText returns non-highlighted HTML for code
-func PlainText(code []byte) []string {
+func PlainText(code []byte) *ContentLines {
 	r := bufio.NewReader(bytes.NewReader(code))
-	m := make([]string, 0, bytes.Count(code, []byte{'\n'})+1)
+	m := make([]template.HTML, 0, bytes.Count(code, []byte{'\n'})+1)
 	for {
 		content, err := r.ReadString('\n')
 		if err != nil && err != io.EOF {
@@ -210,10 +225,9 @@ func PlainText(code []byte) []string {
 		if content == "" && err == io.EOF {
 			break
 		}
-		s := gohtml.EscapeString(content)
-		m = append(m, s)
+		m = append(m, template.HTML(gohtml.EscapeString(content)))
 	}
-	return m
+	return &ContentLines{HTMLLines: m, HasLastEOL: hasLastEOL(code)}
 }
 
 func formatLexerName(name string) string {

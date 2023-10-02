@@ -9,6 +9,7 @@ import (
 	gocontext "context"
 	"encoding/base64"
 	"fmt"
+	"html/template"
 	"image"
 	"io"
 	"net/http"
@@ -488,22 +489,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		} else {
 			buf, _ := io.ReadAll(rd)
 
-			// The Open Group Base Specification: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html
-			//   empty: 0 lines; "a": 1 line, 1 incomplete-line; "a\n": 1 line; "a\nb": 1 line, 1 incomplete-line;
-			// Gitea uses the definition (like most modern editors):
-			//   empty: 0 lines; "a": 1 line; "a\n": 2 lines; "a\nb": 2 lines;
-			//   When rendering, the last empty line is not rendered in UI, while the line-number is still counted, to tell users that the file contains a trailing EOL.
-			//   To make the UI more consistent, it could use an icon mark to indicate that there is no trailing EOL, and show line-number as the rendered lines.
-			// This NumLines is only used for the display on the UI: "xxx lines"
-			if len(buf) == 0 {
-				ctx.Data["NumLines"] = 0
-			} else {
-				ctx.Data["NumLines"] = bytes.Count(buf, []byte{'\n'}) + 1
-			}
-			ctx.Data["NumLinesSet"] = true
-
-			language := ""
-
+			var language string
 			indexFilename, worktree, deleteTemporaryFile, err := ctx.Repo.GitRepo.ReadTreeToTemporaryIndex(ctx.Repo.CommitID)
 			if err == nil {
 				defer deleteTemporaryFile()
@@ -527,21 +513,36 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 					language = ""
 				}
 			}
-			fileContent, lexerName, err := highlight.File(blob.Name(), language, buf)
-			ctx.Data["LexerName"] = lexerName
+			fileContentLines, err := highlight.File(blob.Name(), language, buf)
 			if err != nil {
 				log.Error("highlight.File failed, fallback to plain text: %v", err)
-				fileContent = highlight.PlainText(buf)
+				fileContentLines = highlight.PlainText(buf)
+			} else {
+				ctx.Data["LexerName"] = fileContentLines.LexerName // the LexerName field is also used by "blame" page
 			}
 			status := &charset.EscapeStatus{}
-			statuses := make([]*charset.EscapeStatus, len(fileContent))
-			for i, line := range fileContent {
-				statuses[i], fileContent[i] = charset.EscapeControlHTML(line, ctx.Locale)
+			statuses := make([]*charset.EscapeStatus, len(fileContentLines.HTMLLines))
+			for i, line := range fileContentLines.HTMLLines {
+				st, htm := charset.EscapeControlHTML(string(line), ctx.Locale)
+				statuses[i], fileContentLines.HTMLLines[i] = st, template.HTML(htm)
 				status = status.Or(statuses[i])
 			}
 			ctx.Data["EscapeStatus"] = status
-			ctx.Data["FileContent"] = fileContent
+			ctx.Data["FileContentLines"] = fileContentLines
 			ctx.Data["LineEscapeStatus"] = statuses
+
+			// The Open Group Base Specification: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html
+			//   empty: 0 lines; "a": 1 incomplete-line; "a\n": 1 line; "a\nb": 1 line, 1 incomplete-line;
+			// Gitea uses the definition (like most modern editors):
+			//   empty: 0 lines; "a": 1 line; "a\n": 2 lines (only 1 line is rendered); "a\nb": 2 lines;
+			//   When rendering, the last empty line is not rendered on UI, there is an icon mark to indicate that there is no trailing EOL
+			// This NumLines is only used for the display purpose on the UI: "xxx lines"
+			if len(buf) == 0 {
+				ctx.Data["NumLines"] = 0
+			} else {
+				ctx.Data["NumLines"] = len(fileContentLines.HTMLLines)
+			}
+			ctx.Data["NumLinesSet"] = true
 		}
 		if !fInfo.isLFSFile {
 			if ctx.Repo.CanEnableEditor(ctx, ctx.Doer) {

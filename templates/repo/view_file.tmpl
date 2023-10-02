@@ -102,14 +102,14 @@
 				{{else}}
 				<table>
 					<tbody>
-						{{range $idx, $code := .FileContent}}
+						{{range $idx, $codeHTML := .FileContentLines.HTMLLines}}
 						{{$line := Eval $idx "+" 1}}
 						<tr>
 							<td id="L{{$line}}" class="lines-num"><span id="L{{$line}}" data-line-number="{{$line}}"></span></td>
 							{{if $.EscapeStatus.Escaped}}
 								<td class="lines-escape">{{if (index $.LineEscapeStatus $idx).Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{if (index $.LineEscapeStatus $idx).HasInvisible}}{{ctx.Locale.Tr "repo.invisible_runes_line"}} {{end}}{{if (index $.LineEscapeStatus $idx).HasAmbiguous}}{{ctx.Locale.Tr "repo.ambiguous_runes_line"}}{{end}}"></button>{{end}}</td>
 							{{end}}
-							<td rel="L{{$line}}" class="lines-code chroma"><code class="code-inner">{{$code | Safe}}</code></td>
+							<td rel="L{{$line}}" class="lines-code chroma"><code class="code-inner">{{$codeHTML}}</code>{{if $.FileContentLines.ShouldShowIncompleteMark $idx}}<span class="text red unselectable gt-ml-2">🚫</span>{{end}}</td>
 						</tr>
 						{{end}}
 					</tbody>
