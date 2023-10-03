@@ -655,12 +655,12 @@ func (c *Comment) LoadDepIssueDetails(ctx context.Context) (err error) {
 }
 
 // LoadTime loads the associated time for a CommentTypeAddTimeManual
-func (c *Comment) LoadTime() error {
+func (c *Comment) LoadTime(ctx context.Context) error {
 	if c.Time != nil || c.TimeID == 0 {
 		return nil
 	}
 	var err error
-	c.Time, err = GetTrackedTimeByID(c.TimeID)
+	c.Time, err = GetTrackedTimeByID(ctx, c.TimeID)
 	return err
 }
 
