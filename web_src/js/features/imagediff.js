@@ -38,19 +38,6 @@ function getDefaultSvgBoundsIfUndefined(text, src) {
   return null;
 }
 
-async function handleSvgSize(info) {
-  if (info.mime === 'image/svg+xml') {
-    const resp = await GET(info.path);
-    const text = await resp.text();
-    const bounds = getDefaultSvgBoundsIfUndefined(text, info.path);
-    if (bounds) {
-      info.$images.attr('width', bounds.width);
-      info.$images.attr('height', bounds.height);
-      hideElem(info.$boundsInfo);
-    }
-  }
-}
-
 export function initImageDiff() {
   function createContext(image1, image2) {
     const size1 = {
@@ -105,10 +92,17 @@ export function initImageDiff() {
         if (!img) return true;
         return loadElem(img, info.path);
       }));
-      if (success) {
-        await handleSvgSize(info);
-      } else {
-        info.$boundsInfo.text('(image error)');
+      // only the first images is associated with $boundsInfo
+      if (!success) info.$boundsInfo.text('(image error)');
+      if (info.mime === 'image/svg+xml') {
+        const resp = await GET(info.path);
+        const text = await resp.text();
+        const bounds = getDefaultSvgBoundsIfUndefined(text, info.path);
+        if (bounds) {
+          info.$images.attr('width', bounds.width);
+          info.$images.attr('height', bounds.height);
+          hideElem(info.$boundsInfo);
+        }
       }
     }));
 
