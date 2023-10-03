@@ -32,7 +32,7 @@ func TestUploadAttachment(t *testing.T) {
 	assert.NoError(t, err)
 	defer f.Close()
 
-	attach, err := NewAttachment(&repo_model.Attachment{
+	attach, err := NewAttachment(db.DefaultContext, &repo_model.Attachment{
 		RepoID:     1,
 		UploaderID: user.ID,
 		Name:       filepath.Base(fPath),

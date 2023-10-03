@@ -844,7 +844,7 @@ func EditIssue(ctx *context.APIContext) {
 	}
 	if form.State != nil {
 		if issue.IsPull {
-			if pr, err := issue.GetPullRequest(); err != nil {
+			if pr, err := issue.GetPullRequest(ctx); err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetPullRequest", err)
 				return
 			} else if pr.HasMerged {
