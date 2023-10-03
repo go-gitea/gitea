@@ -22,6 +22,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix INI parsing for value with trailing slash (#26995) (#27001)
   * Fix PushEvent NullPointerException jenkinsci/github-plugin (#27203) (#27249)
   * Fix organization field being null in POST /orgs/{orgid}/teams (#27150) (#27167 & #27162)
+  * Fix bug of review request number (#27406) (#27104)
 * TESTING
   * services/wiki: Close() after error handling (#27129) (#27137)
 * DOCS
