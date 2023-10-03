@@ -1375,6 +1375,7 @@ is `data/repo-archive` and the default of `MINIO_BASE_PATH` is `repo-archive/`.
 - `PROXY_ENABLED`: **false**: Enable the proxy if true, all requests to external via HTTP will be affected, if false, no proxy will be used even environment http_proxy/https_proxy
 - `PROXY_URL`: **_empty_**: Proxy server URL, support http://, https//, socks://, blank will follow environment http_proxy/https_proxy
 - `PROXY_HOSTS`: **_empty_**: Comma separated list of host names requiring proxy. Glob patterns (*) are accepted; use ** to match all hosts.
+- `SMTP_PROXY_ENABLED`: **false**: Enable the smtp proxy when it's **true** and the proxy type is https://, socks://. All notifications through smtp emails will be affected. SMTP_PROXY_ENABLED takes effect with the precondition PROXY_ENABLED = **true**.
 
 i.e.
 
@@ -1382,6 +1383,7 @@ i.e.
 PROXY_ENABLED = true
 PROXY_URL = socks://127.0.0.1:1080
 PROXY_HOSTS = *.github.com
+SMTP_PROXY_ENABLED = false
 ```
 
 ## Actions (`actions`)
