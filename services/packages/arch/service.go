@@ -81,8 +81,8 @@ func getPackageFile(ctx *context.Context, distro, file string) (*pkg_model.Packa
 // Finds all arch packages in user/organization scope, each package version
 // starting from latest in descending order is checked to be compatible with
 // requested combination of architecture and distribution. When/If the first
-// compatible version is found, related desc file will be loaded from database
-// and added to resulting .db.tar.gz archive.
+// compatible version is found, related desc file will be loaded from package
+// properties and added to resulting .db.tar.gz archive.
 func CreatePacmanDb(ctx *context.Context, owner, arch, distro string) (io.ReadSeeker, error) {
 	pkgs, err := pkg_model.GetPackagesByType(ctx, ctx.Package.Owner.ID, pkg_model.TypeArch)
 	if err != nil {
@@ -120,19 +120,12 @@ func CreatePacmanDb(ctx *context.Context, owner, arch, distro string) (io.ReadSe
 				return nil, err
 			}
 
-			var descvalue string
 			for _, pp := range pps {
 				if pp.Name == "desc" {
-					descvalue = pp.Value
+					entries[pkg.Name+"-"+ver.Version+"/desc"] = []byte(pp.Value)
+					break
 				}
 			}
-
-			if descvalue == "" {
-				continue
-			}
-
-			entries[pkg.Name+"-"+ver.Version+"/desc"] = []byte(descvalue)
-			break
 		}
 	}
 
