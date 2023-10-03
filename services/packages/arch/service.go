@@ -115,16 +115,16 @@ func CreatePacmanDb(ctx *context.Context, owner, arch, distro string) (io.ReadSe
 				}
 			}
 
-			pps, err := pkg_model.GetProperties(ctx, pkg_model.PropertyTypeFile, pf.ID)
+			pps, err := pkg_model.GetPropertiesByName(
+				ctx, pkg_model.PropertyTypeFile, pf.ID, "desc",
+			)
 			if err != nil {
 				return nil, err
 			}
 
-			for _, pp := range pps {
-				if pp.Name == "desc" {
-					entries[pkg.Name+"-"+ver.Version+"/desc"] = []byte(pp.Value)
-					break
-				}
+			if len(pps) >= 1 {
+				entries[pkg.Name+"-"+ver.Version+"/desc"] = []byte(pps[0].Value)
+				break
 			}
 		}
 	}
