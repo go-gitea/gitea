@@ -162,7 +162,7 @@ func getPkginfo(data io.Reader) (string, error) {
 
 // Create pacman package description file.
 func (m *DbDesc) String() string {
-	var entries = []struct {
+	entries := []struct {
 		Key   string
 		Value string
 	}{
