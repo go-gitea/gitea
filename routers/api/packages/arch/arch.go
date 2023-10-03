@@ -18,6 +18,12 @@ import (
 	arch_service "code.gitea.io/gitea/services/packages/arch"
 )
 
+func apiError(ctx *context.Context, status int, obj any) {
+	helper.LogAndProcessError(ctx, status, obj, func(message string) {
+		ctx.PlainText(status, message)
+	})
+}
+
 // Push new package to arch package registry.
 func Push(ctx *context.Context) {
 	var (
@@ -184,10 +190,4 @@ func Remove(ctx *context.Context) {
 	}
 
 	ctx.Status(http.StatusOK)
-}
-
-func apiError(ctx *context.Context, status int, obj interface{}) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.PlainText(status, message)
-	})
 }
