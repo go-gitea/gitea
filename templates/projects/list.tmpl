@@ -48,28 +48,28 @@
 		<li class="milestone-card">
 			<h3 class="flex-text-block gt-m-0">
 				{{svg .IconName 16}}
-				<a class="muted" href="{{.Link}}">{{.Title}}</a>
+				<a class="muted" href="{{.Link ctx}}">{{.Title}}</a>
 			</h3>
 			<div class="milestone-toolbar">
 				<div class="group">
 					<div class="flex-text-block">
 						{{svg "octicon-issue-opened" 14}}
-						{{ctx.Locale.PrettyNumber .NumOpenIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
+						{{ctx.Locale.PrettyNumber (.NumOpenIssues ctx)}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 					</div>
 					<div class="flex-text-block">
 						{{svg "octicon-check" 14}}
-						{{ctx.Locale.PrettyNumber .NumClosedIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
+						{{ctx.Locale.PrettyNumber (.NumClosedIssues ctx)}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 					</div>
 				</div>
 				{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
 				<div class="group">
-					<a class="flex-text-inline" href="{{.Link}}/edit">{{svg "octicon-pencil" 14}}{{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
+					<a class="flex-text-inline" href="{{.Link ctx}}/edit">{{svg "octicon-pencil" 14}}{{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
 					{{if .IsClosed}}
-						<a class="link-action flex-text-inline" href data-url="{{.Link}}/open">{{svg "octicon-check" 14}}{{ctx.Locale.Tr "repo.projects.open"}}</a>
+						<a class="link-action flex-text-inline" href data-url="{{.Link ctx}}/open">{{svg "octicon-check" 14}}{{ctx.Locale.Tr "repo.projects.open"}}</a>
 					{{else}}
-						<a class="link-action flex-text-inline" href data-url="{{.Link}}/close">{{svg "octicon-skip" 14}}{{ctx.Locale.Tr "repo.projects.close"}}</a>
+						<a class="link-action flex-text-inline" href data-url="{{.Link ctx}}/close">{{svg "octicon-skip" 14}}{{ctx.Locale.Tr "repo.projects.close"}}</a>
 					{{end}}
-					<a class="delete-button flex-text-inline" href="#" data-url="{{.Link}}/delete">{{svg "octicon-trash" 14}}{{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
+					<a class="delete-button flex-text-inline" href="#" data-url="{{.Link ctx}}/delete">{{svg "octicon-trash" 14}}{{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
 				</div>
 				{{end}}
 			</div>
