@@ -20,18 +20,18 @@ import (
 
 // DeleteOrganization completely and permanently deletes everything of organization.
 func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge bool) error {
+	ctx, commiter, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer commiter.Close()
+
 	if purge {
 		err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, org.AsUser())
 		if err != nil {
 			return err
 		}
 	}
-
-	ctx, commiter, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer commiter.Close()
 
 	// Check ownership of repository.
 	count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: org.ID})
