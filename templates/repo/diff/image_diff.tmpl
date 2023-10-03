@@ -4,8 +4,8 @@
 		<div class="image-diff"
 			data-path-before="{{.root.BeforeRawPath}}/{{PathEscapeSegments .file.OldName}}"
 			data-path-after="{{.root.RawPath}}/{{PathEscapeSegments .file.Name}}"
-			data-mime-before="{{.stBase.GetMimeType}}"
-			data-mime-after="{{.stHead.GetMimeType}}"
+			data-mime-before="{{.sniffedTypeBase.GetMimeType}}"
+			data-mime-after="{{.sniffedTypeHead.GetMimeType}}"
 		>
 			<div class="ui secondary pointing tabular top attached borderless menu new-menu">
 				<div class="new-menu-inner">
