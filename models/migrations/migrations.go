@@ -544,7 +544,6 @@ var migrations = []Migration{
 
 	// v279 -> v280
 	NewMigration("Rename user themes", v1_22.RenameUserThemes),
-
 }
 
 // GetCurrentDBVersion returns the current db version
