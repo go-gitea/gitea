@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {hideElem, showElem} from '../utils/dom.js';
+import {GET, POST} from '../modules/fetch.js';
 
 const {appSubUrl} = window.config;
 
@@ -7,11 +8,13 @@ export function initRepoMigrationStatusChecker() {
   const $repoMigrating = $('#repo_migrating');
   if (!$repoMigrating.length) return;
 
+  $('#repo_migrating_retry').on('click', doMigrationRetry);
+
   const task = $repoMigrating.attr('data-migrating-task-id');
 
   // returns true if the refresh still need to be called after a while
   const refresh = async () => {
-    const res = await fetch(`${appSubUrl}/user/task/${task}`);
+    const res = await GET(`${appSubUrl}/user/task/${task}`);
     if (res.status !== 200) return true; // continue to refresh if network error occurs
 
     const data = await res.json();
@@ -31,6 +34,7 @@ export function initRepoMigrationStatusChecker() {
     if (data.status === 3) {
       hideElem('#repo_migrating_progress');
       hideElem('#repo_migrating');
+      showElem('#repo_migrating_retry');
       showElem('#repo_migrating_failed');
       showElem('#repo_migrating_failed_image');
       $('#repo_migrating_failed_error').text(data.message);
@@ -52,4 +56,9 @@ export function initRepoMigrationStatusChecker() {
   };
 
   syncTaskStatus(); // no await
+}
+
+async function doMigrationRetry(e) {
+  await POST($(e.target).attr('data-migrating-task-retry-url'));
+  window.location.reload();
 }

@@ -6,18 +6,7 @@
   display: flex;
   gap: 8px;
   align-items: flex-start;
-}
-
-.flex-item:not(:last-child) {
-  padding-bottom: 8px;
-}
-
-.flex-item-baseline {
-  align-items: baseline;
-}
-
-.flex-item-center {
-  align-items: center;
+  padding: 1em 0;
 }
 
 .flex-item .flex-item-leading {
@@ -29,7 +18,8 @@
   display: flex;
   flex-direction: column;
   flex-grow: 1;
-  min-width: 0;
+  flex-basis: 60%; /* avoid wrapping the "flex-item-trailing" too aggressively */
+  min-width: 0; /* make the "text truncate" work, otherwise the flex axis is not limited and the text just overflows */
 }
 
 .flex-item-header {
@@ -43,8 +33,12 @@
   color: var(--color-primary) !important;
 }
 
-.flex-item .flex-item-icon svg {
-  margin-top: 1px;
+.flex-item .flex-item-icon {
+  align-self: baseline; /* mainly used by the issue list, to align the leading icon with the title */
+}
+
+.flex-item .flex-item-icon + .flex-item-main {
+  align-self: baseline;
 }
 
 .flex-item .flex-item-trailing {
@@ -54,7 +48,6 @@
   flex-grow: 0;
   flex-wrap: wrap;
   justify-content: end;
-  flex-shrink: 2;
 }
 
 .flex-item .flex-item-title {
@@ -65,8 +58,9 @@
   max-width: 100%;
   color: var(--color-text);
   font-size: 16px;
-  min-width: 0;
   font-weight: var(--font-weight-semibold);
+  word-break: break-word;
+  min-width: 0;
 }
 
 .flex-item .flex-item-title a {
@@ -75,12 +69,12 @@
 }
 
 .flex-item .flex-item-body {
-  font-size: 13px;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: .25rem;
   color: var(--color-text-light-2);
+  word-break: break-word;
 }
 
 .flex-item .flex-item-body a {
@@ -90,5 +84,25 @@
 
 .flex-list > .flex-item + .flex-item {
   border-top: 1px solid var(--color-secondary);
-  padding-top: 8px;
+}
+
+/* Fomantic UI segment has default "padding: 1em", so here it removes the padding-top and padding-bottom accordingly (there might also be some `gt-hidden` siblings).
+Developers could also use "flex-space-fitted" class to remove the first item's padding-top and the last item's padding-bottom */
+.flex-list.flex-space-fitted > .flex-item:first-child,
+.ui.segment > .flex-list > .flex-item:first-child {
+  padding-top: 0;
+}
+
+.flex-list.flex-space-fitted > .flex-item:last-child,
+.ui.segment > .flex-list > .flex-item:last-child {
+  padding-bottom: 0;
+}
+
+/* If there is a divider besides the flex-list, some padding/margin are not needs */
+.divider + .flex-list > .flex-item:first-child {
+  padding-top: 0;
+}
+
+.flex-list + .divider {
+  margin-top: 0;
 }

@@ -172,19 +172,10 @@ func ParseControlFile(r io.Reader) (*Package, error) {
 			value := strings.TrimSpace(parts[1])
 			switch key {
 			case "Package":
-				if !namePattern.MatchString(value) {
-					return nil, ErrInvalidName
-				}
 				p.Name = value
 			case "Version":
-				if !versionPattern.MatchString(value) {
-					return nil, ErrInvalidVersion
-				}
 				p.Version = value
 			case "Architecture":
-				if value == "" {
-					return nil, ErrInvalidArchitecture
-				}
 				p.Architecture = value
 			case "Maintainer":
 				a, err := mail.ParseAddress(value)
@@ -208,13 +199,23 @@ func ParseControlFile(r io.Reader) (*Package, error) {
 		return nil, err
 	}
 
+	if !namePattern.MatchString(p.Name) {
+		return nil, ErrInvalidName
+	}
+	if !versionPattern.MatchString(p.Version) {
+		return nil, ErrInvalidVersion
+	}
+	if p.Architecture == "" {
+		return nil, ErrInvalidArchitecture
+	}
+
 	dependencies := strings.Split(depends.String(), ",")
 	for i := range dependencies {
 		dependencies[i] = strings.TrimSpace(dependencies[i])
 	}
 	p.Metadata.Dependencies = dependencies
 
-	p.Control = control.String()
+	p.Control = strings.TrimSpace(control.String())
 
 	return p, nil
 }

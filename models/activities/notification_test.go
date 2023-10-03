@@ -4,6 +4,7 @@
 package activities_test
 
 import (
+	"context"
 	"testing"
 
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -19,7 +20,7 @@ func TestCreateOrUpdateIssueNotifications(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 
-	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(issue.ID, 0, 2, 0))
+	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(db.DefaultContext, issue.ID, 0, 2, 0))
 
 	// User 9 is inactive, thus notifications for user 1 and 4 are created
 	notf := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 1, IssueID: issue.ID})
@@ -49,7 +50,7 @@ func TestNotificationsForUser(t *testing.T) {
 func TestNotification_GetRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	notf := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{RepoID: 1})
-	repo, err := notf.GetRepo()
+	repo, err := notf.GetRepo(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Equal(t, repo, notf.Repository)
 	assert.EqualValues(t, notf.RepoID, repo.ID)
@@ -58,7 +59,7 @@ func TestNotification_GetRepo(t *testing.T) {
 func TestNotification_GetIssue(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	notf := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{RepoID: 1})
-	issue, err := notf.GetIssue()
+	issue, err := notf.GetIssue(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Equal(t, issue, notf.Issue)
 	assert.EqualValues(t, notf.IssueID, issue.ID)
@@ -108,4 +109,17 @@ func TestUpdateNotificationStatuses(t *testing.T) {
 		&activities_model.Notification{ID: notfRead.ID, Status: activities_model.NotificationStatusRead})
 	unittest.AssertExistsAndLoadBean(t,
 		&activities_model.Notification{ID: notfPinned.ID, Status: activities_model.NotificationStatusPinned})
+}
+
+func TestSetIssueReadBy(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	assert.NoError(t, db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+		return activities_model.SetIssueReadBy(ctx, issue.ID, user.ID)
+	}))
+
+	nt, err := activities_model.GetIssueNotification(db.DefaultContext, user.ID, issue.ID)
+	assert.NoError(t, err)
+	assert.EqualValues(t, activities_model.NotificationStatusRead, nt.Status)
 }

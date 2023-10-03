@@ -46,6 +46,8 @@ func ListLabels(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormString("sort"), utils.GetListOptions(ctx))
 	if err != nil {
@@ -53,7 +55,7 @@ func ListLabels(ctx *context.APIContext) {
 		return
 	}
 
-	count, err := issues_model.CountLabelsByRepoID(ctx.Repo.Repository.ID)
+	count, err := issues_model.CountLabelsByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -90,6 +92,8 @@ func GetLabel(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Label"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	var (
 		l   *issues_model.Label
@@ -140,6 +144,8 @@ func CreateLabel(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Label"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
@@ -151,7 +157,6 @@ func CreateLabel(ctx *context.APIContext) {
 		return
 	}
 	form.Color = color
-
 	l := &issues_model.Label{
 		Name:        form.Name,
 		Exclusive:   form.Exclusive,
@@ -159,6 +164,7 @@ func CreateLabel(ctx *context.APIContext) {
 		RepoID:      ctx.Repo.Repository.ID,
 		Description: form.Description,
 	}
+	l.SetArchived(form.IsArchived)
 	if err := issues_model.NewLabel(ctx, l); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewLabel", err)
 		return
@@ -200,6 +206,8 @@ func EditLabel(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Label"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
@@ -231,7 +239,8 @@ func EditLabel(ctx *context.APIContext) {
 	if form.Description != nil {
 		l.Description = *form.Description
 	}
-	if err := issues_model.UpdateLabel(l); err != nil {
+	l.SetArchived(form.IsArchived != nil && *form.IsArchived)
+	if err := issues_model.UpdateLabel(ctx, l); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateLabel", err)
 		return
 	}
@@ -264,8 +273,10 @@ func DeleteLabel(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	if err := issues_model.DeleteLabel(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
+	if err := issues_model.DeleteLabel(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteLabel", err)
 		return
 	}

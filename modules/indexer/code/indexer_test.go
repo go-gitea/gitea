@@ -6,7 +6,6 @@ package code
 import (
 	"context"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
@@ -16,14 +15,14 @@ import (
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 
 	_ "code.gitea.io/gitea/models"
+	_ "code.gitea.io/gitea/models/actions"
+	_ "code.gitea.io/gitea/models/activities"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", "..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func testIndexer(name string, t *testing.T, indexer internal.Indexer) {

@@ -93,7 +93,7 @@ func EmailPost(ctx *context.Context) {
 
 	// Make emailaddress primary.
 	if ctx.FormString("_method") == "PRIMARY" {
-		if err := user_model.MakeEmailPrimary(&user_model.EmailAddress{ID: ctx.FormInt64("id")}); err != nil {
+		if err := user_model.MakeEmailPrimary(ctx, &user_model.EmailAddress{ID: ctx.FormInt64("id")}); err != nil {
 			ctx.ServerError("MakeEmailPrimary", err)
 			return
 		}
@@ -112,7 +112,7 @@ func EmailPost(ctx *context.Context) {
 		}
 
 		id := ctx.FormInt64("id")
-		email, err := user_model.GetEmailAddressByID(ctx.Doer.ID, id)
+		email, err := user_model.GetEmailAddressByID(ctx, ctx.Doer.ID, id)
 		if err != nil {
 			log.Error("GetEmailAddressByID(%d,%d) error: %v", ctx.Doer.ID, id, err)
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
@@ -161,7 +161,7 @@ func EmailPost(ctx *context.Context) {
 			ctx.ServerError("SetEmailPreference", errors.New("option unrecognized"))
 			return
 		}
-		if err := user_model.SetEmailNotifications(ctx.Doer, preference); err != nil {
+		if err := user_model.SetEmailNotifications(ctx, ctx.Doer, preference); err != nil {
 			log.Error("Set Email Notifications failed: %v", err)
 			ctx.ServerError("SetEmailNotifications", err)
 			return
@@ -220,7 +220,7 @@ func EmailPost(ctx *context.Context) {
 
 // DeleteEmail response for delete user's email
 func DeleteEmail(ctx *context.Context) {
-	if err := user_model.DeleteEmailAddress(&user_model.EmailAddress{ID: ctx.FormInt64("id"), UID: ctx.Doer.ID}); err != nil {
+	if err := user_model.DeleteEmailAddress(ctx, &user_model.EmailAddress{ID: ctx.FormInt64("id"), UID: ctx.Doer.ID}); err != nil {
 		ctx.ServerError("DeleteEmail", err)
 		return
 	}
@@ -235,7 +235,7 @@ func DeleteAccount(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 
-	if _, _, err := auth.UserSignIn(ctx.Doer.Name, ctx.FormString("password")); err != nil {
+	if _, _, err := auth.UserSignIn(ctx, ctx.Doer.Name, ctx.FormString("password")); err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			loadAccountData(ctx)
 
@@ -267,7 +267,7 @@ func DeleteAccount(ctx *context.Context) {
 }
 
 func loadAccountData(ctx *context.Context) {
-	emlist, err := user_model.GetEmailAddresses(ctx.Doer.ID)
+	emlist, err := user_model.GetEmailAddresses(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetEmailAddresses", err)
 		return

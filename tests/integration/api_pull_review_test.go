@@ -76,7 +76,7 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, "a review from a deleted user", reviewComments[0].Body)
 	assert.EqualValues(t, comment.ID, reviewComments[0].ID)
 	assert.EqualValues(t, comment.UpdatedUnix, reviewComments[0].Updated.Unix())
-	assert.EqualValues(t, comment.HTMLURL(), reviewComments[0].HTMLURL)
+	assert.EqualValues(t, comment.HTMLURL(db.DefaultContext), reviewComments[0].HTMLURL)
 
 	// test CreatePullReview
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{

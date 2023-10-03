@@ -17,10 +17,9 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	issue_service "code.gitea.io/gitea/services/issue"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 var notEnoughLines = regexp.MustCompile(`fatal: file .* has only \d+ lines?`)
@@ -85,7 +84,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 	if !pendingReview && replyReviewID != 0 {
 		// It's not part of a review; maybe a reply to a review comment or a single comment.
 		// Check if there are reviews for that line already; if there are, this is a reply
-		if existsReview, err = issues_model.ReviewExists(issue, treePath, line); err != nil {
+		if existsReview, err = issues_model.ReviewExists(ctx, issue, treePath, line); err != nil {
 			return nil, err
 		}
 	}
@@ -114,7 +113,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 			return nil, err
 		}
 
-		notification.NotifyCreateIssueComment(ctx, doer, issue.Repo, issue, comment, mentions)
+		notify_service.CreateIssueComment(ctx, doer, issue.Repo, issue, comment, mentions)
 
 		return comment, nil
 	}
@@ -248,7 +247,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			return nil, err
 		}
 	}
-	return issue_service.CreateComment(ctx, &issues_model.CreateCommentOptions{
+	return issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
 		Type:        issues_model.CommentTypeCode,
 		Doer:        doer,
 		Repo:        repo,
@@ -289,7 +288,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 		}
 	}
 
-	review, comm, err := issues_model.SubmitReview(doer, issue, reviewType, content, commitID, stale, attachmentUUIDs)
+	review, comm, err := issues_model.SubmitReview(ctx, doer, issue, reviewType, content, commitID, stale, attachmentUUIDs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -299,7 +298,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 		return nil, nil, err
 	}
 
-	notification.NotifyPullRequestReview(ctx, pr, review, comm, mentions)
+	notify_service.PullRequestReview(ctx, pr, review, comm, mentions)
 
 	for _, lines := range review.CodeComments {
 		for _, comments := range lines {
@@ -308,7 +307,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 				if err != nil {
 					return nil, nil, err
 				}
-				notification.NotifyPullRequestCodeComment(ctx, pr, codeComment, mentions)
+				notify_service.PullRequestCodeComment(ctx, pr, codeComment, mentions)
 			}
 		}
 	}
@@ -334,13 +333,13 @@ func DismissApprovalReviews(ctx context.Context, doer *user_model.User, pull *is
 		return err
 	}
 
-	return db.WithTx(ctx, func(subCtx context.Context) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		for _, review := range reviews {
-			if err := issues_model.DismissReview(subCtx, review, true); err != nil {
+			if err := issues_model.DismissReview(ctx, review, true); err != nil {
 				return err
 			}
 
-			comment, err := issue_service.CreateComment(ctx, &issues_model.CreateCommentOptions{
+			comment, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
 				Doer:     doer,
 				Content:  "New commits pushed, approval review dismissed automatically according to repository settings",
 				Type:     issues_model.CommentTypeDismissReview,
@@ -356,7 +355,7 @@ func DismissApprovalReviews(ctx context.Context, doer *user_model.User, pull *is
 			comment.Poster = doer
 			comment.Issue = review.Issue
 
-			notification.NotifyPullReviewDismiss(ctx, doer, review, comment)
+			notify_service.PullReviewDismiss(ctx, doer, review, comment)
 		}
 		return nil
 	})
@@ -411,7 +410,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 		return nil, err
 	}
 
-	comment, err = issue_service.CreateComment(ctx, &issues_model.CreateCommentOptions{
+	comment, err = issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
 		Doer:     doer,
 		Content:  message,
 		Type:     issues_model.CommentTypeDismissReview,
@@ -427,7 +426,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 	comment.Poster = doer
 	comment.Issue = review.Issue
 
-	notification.NotifyPullReviewDismiss(ctx, doer, review, comment)
+	notify_service.PullReviewDismiss(ctx, doer, review, comment)
 
 	return comment, nil
 }

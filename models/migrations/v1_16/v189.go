@@ -58,7 +58,7 @@ func UnwrapLDAPSourceCfg(x *xorm.Engine) error {
 	}
 
 	// change lower_email as unique
-	if err := x.Sync2(new(LoginSource)); err != nil {
+	if err := x.Sync(new(LoginSource)); err != nil {
 		return err
 	}
 

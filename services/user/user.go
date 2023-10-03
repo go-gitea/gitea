@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/services/agit"
 	"code.gitea.io/gitea/services/packages"
 	container_service "code.gitea.io/gitea/services/packages/container"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // RenameUser renames a user
@@ -58,7 +59,7 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string) err
 			u.Name = oldUserName
 			return err
 		}
-		return repo_model.UpdateRepositoryOwnerNames(u.ID, newUserName)
+		return repo_model.UpdateRepositoryOwnerNames(ctx, u.ID, newUserName)
 	}
 
 	ctx, committer, err := db.TxContext(ctx)
@@ -174,7 +175,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 				break
 			}
 			for _, repo := range repos {
-				if err := models.DeleteRepository(u, u.ID, repo.ID); err != nil {
+				if err := repo_service.DeleteRepositoryDirectly(ctx, u, u.ID, repo.ID); err != nil {
 					return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %w", repo.Name, u.Name, u.ID, err)
 				}
 			}
@@ -264,10 +265,10 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	}
 	committer.Close()
 
-	if err = asymkey_model.RewriteAllPublicKeys(); err != nil {
+	if err = asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
 		return err
 	}
-	if err = asymkey_model.RewriteAllPrincipalKeys(db.DefaultContext); err != nil {
+	if err = asymkey_model.RewriteAllPrincipalKeys(ctx); err != nil {
 		return err
 	}
 

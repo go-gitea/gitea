@@ -13,7 +13,6 @@ import (
 	"html/template"
 	"io"
 	"net/url"
-	"os"
 	"sort"
 	"strings"
 	"time"
@@ -425,6 +424,23 @@ func (diffFile *DiffFile) GetDiffFileName() string {
 
 func (diffFile *DiffFile) ShouldBeHidden() bool {
 	return diffFile.IsGenerated || diffFile.IsViewed
+}
+
+func (diffFile *DiffFile) ModeTranslationKey(mode string) string {
+	switch mode {
+	case "040000":
+		return "git.filemode.directory"
+	case "100644":
+		return "git.filemode.normal_file"
+	case "100755":
+		return "git.filemode.executable_file"
+	case "120000":
+		return "git.filemode.symbolic_link"
+	case "160000":
+		return "git.filemode.submodule"
+	default:
+		return mode
+	}
 }
 
 func getCommitFileLineCount(commit *git.Commit, filePath string) int {
@@ -1135,14 +1151,15 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 	}()
 
 	go func() {
+		stderr := &bytes.Buffer{}
 		cmdDiff.SetDescription(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath))
 		if err := cmdDiff.Run(&git.RunOpts{
 			Timeout: time.Duration(setting.Git.Timeout.Default) * time.Second,
 			Dir:     repoPath,
-			Stderr:  os.Stderr,
 			Stdout:  writer,
+			Stderr:  stderr,
 		}); err != nil {
-			log.Error("error during RunWithContext: %w", err)
+			log.Error("error during GetDiff(git diff dir: %s): %v, stderr: %s", repoPath, err, stderr.String())
 		}
 
 		_ = writer.Close()
@@ -1326,7 +1343,7 @@ outer:
 		}
 	}
 
-	return diff, err
+	return diff, nil
 }
 
 // CommentAsDiff returns c.Patch as *Diff

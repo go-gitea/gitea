@@ -38,7 +38,7 @@ func Test_DropTableColumns(t *testing.T) {
 
 	for i := range columns {
 		x.SetMapper(names.GonicMapper{})
-		if err := x.Sync2(new(DropTest)); err != nil {
+		if err := x.Sync(new(DropTest)); err != nil {
 			t.Errorf("unable to create DropTest table: %v", err)
 			return
 		}
@@ -65,7 +65,7 @@ func Test_DropTableColumns(t *testing.T) {
 		}
 		for j := range columns[i+1:] {
 			x.SetMapper(names.GonicMapper{})
-			if err := x.Sync2(new(DropTest)); err != nil {
+			if err := x.Sync(new(DropTest)); err != nil {
 				t.Errorf("unable to create DropTest table: %v", err)
 				return
 			}

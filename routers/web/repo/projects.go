@@ -54,6 +54,7 @@ func Projects(ctx *context.Context) {
 	sortType := ctx.FormTrim("sort")
 
 	isShowClosed := strings.ToLower(ctx.FormTrim("state")) == "closed"
+	keyword := ctx.FormTrim("q")
 	repo := ctx.Repo.Repository
 	page := ctx.FormInt("page")
 	if page <= 1 {
@@ -76,6 +77,7 @@ func Projects(ctx *context.Context) {
 		IsClosed: util.OptionalBoolOf(isShowClosed),
 		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
 		Type:     project_model.TypeRepository,
+		Title:    keyword,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
@@ -140,7 +142,7 @@ func NewProjectPost(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.NewProject(&project_model.Project{
+	if err := project_model.NewProject(ctx, &project_model.Project{
 		RepoID:      ctx.Repo.Repository.ID,
 		Title:       form.Title,
 		Description: form.Content,
@@ -170,7 +172,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 	}
 	id := ctx.ParamsInt64(":id")
 
-	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx.Repo.Repository.ID, id, toClose); err != nil {
+	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, ctx.Repo.Repository.ID, id, toClose); err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", err)
 		} else {
@@ -277,7 +279,7 @@ func EditProjectPost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("repo.projects.edit_success", p.Title))
 	if ctx.FormString("redirect") == "project" {
-		ctx.Redirect(p.Link())
+		ctx.Redirect(p.Link(ctx))
 	} else {
 		ctx.Redirect(ctx.Repo.RepoLink + "/projects")
 	}
@@ -364,7 +366,7 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap
-	ctx.Data["Boards"] = boards
+	ctx.Data["Columns"] = boards // TODO: rename boards to columns in backend
 
 	ctx.HTML(http.StatusOK, tplProjectsView)
 }
@@ -443,7 +445,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.DeleteBoardByID(ctx.ParamsInt64(":boardID")); err != nil {
+	if err := project_model.DeleteBoardByID(ctx, ctx.ParamsInt64(":boardID")); err != nil {
 		ctx.ServerError("DeleteProjectBoardByID", err)
 		return
 	}
@@ -471,7 +473,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.NewBoard(&project_model.Board{
+	if err := project_model.NewBoard(ctx, &project_model.Board{
 		ProjectID: project.ID,
 		Title:     form.Title,
 		Color:     form.Color,
@@ -563,7 +565,7 @@ func SetDefaultProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.SetDefaultBoard(project.ID, board.ID); err != nil {
+	if err := project_model.SetDefaultBoard(ctx, project.ID, board.ID); err != nil {
 		ctx.ServerError("SetDefaultBoard", err)
 		return
 	}
@@ -578,7 +580,7 @@ func UnSetDefaultProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.SetDefaultBoard(project.ID, 0); err != nil {
+	if err := project_model.SetDefaultBoard(ctx, project.ID, 0); err != nil {
 		ctx.ServerError("SetDefaultBoard", err)
 		return
 	}
@@ -680,7 +682,7 @@ func MoveIssues(ctx *context.Context) {
 		}
 	}
 
-	if err = project_model.MoveIssuesOnProjectBoard(board, sortedIssueIDs); err != nil {
+	if err = project_model.MoveIssuesOnProjectBoard(ctx, board, sortedIssueIDs); err != nil {
 		ctx.ServerError("MoveIssuesOnProjectBoard", err)
 		return
 	}
