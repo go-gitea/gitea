@@ -198,9 +198,9 @@ func addTime(ctx context.Context, user *user_model.User, issue *Issue, amount in
 	return tt, db.Insert(ctx, tt)
 }
 
-// TotalTimes returns the spent time in seconds for each user by an issue
-func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]int64, error) {
-	trackedTimes, err := GetTrackedTimes(db.DefaultContext, options)
+// TotalTimesForEachUser returns the spent time in seconds for each user by an issue
+func TotalTimesForEachUser(ctx context.Context, options *FindTrackedTimesOptions) (map[*user_model.User]int64, error) {
+	trackedTimes, err := GetTrackedTimes(ctx, options)
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +213,7 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]int64, e
 	totalTimes := make(map[*user_model.User]int64)
 	// Fetching User and making time human readable
 	for userID, total := range totalTimesByUser {
-		user, err := user_model.GetUserByID(db.DefaultContext, userID)
+		user, err := user_model.GetUserByID(ctx, userID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				continue
@@ -226,8 +226,8 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]int64, e
 }
 
 // DeleteIssueUserTimes deletes times for issue
-func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func DeleteIssueUserTimes(ctx context.Context, issue *Issue, user *user_model.User) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -265,8 +265,8 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 }
 
 // DeleteTime delete a specific Time
-func DeleteTime(t *TrackedTime) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func DeleteTime(ctx context.Context, t *TrackedTime) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -315,9 +315,9 @@ func deleteTime(ctx context.Context, t *TrackedTime) error {
 }
 
 // GetTrackedTimeByID returns raw TrackedTime without loading attributes by id
-func GetTrackedTimeByID(id int64) (*TrackedTime, error) {
+func GetTrackedTimeByID(ctx context.Context, id int64) (*TrackedTime, error) {
 	time := new(TrackedTime)
-	has, err := db.GetEngine(db.DefaultContext).ID(id).Get(time)
+	has, err := db.GetEngine(ctx).ID(id).Get(time)
 	if err != nil {
 		return nil, err
 	} else if !has {

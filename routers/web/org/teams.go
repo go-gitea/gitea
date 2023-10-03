@@ -159,7 +159,7 @@ func TeamsAction(ctx *context.Context) {
 			return
 		}
 
-		if ctx.Org.Team.IsMember(u.ID) {
+		if ctx.Org.Team.IsMember(ctx, u.ID) {
 			ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
 		} else {
 			err = models.AddTeamMember(ctx, ctx.Org.Team, u.ID)
