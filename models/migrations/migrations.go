@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_19"
 	"code.gitea.io/gitea/models/migrations/v1_20"
 	"code.gitea.io/gitea/models/migrations/v1_21"
+	"code.gitea.io/gitea/models/migrations/v1_22"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -538,6 +539,12 @@ var migrations = []Migration{
 	NewMigration("Add Index to issue_user.issue_id", v1_21.AddIndexToIssueUserIssueID),
 	// v278 -> v279
 	NewMigration("Add Index to comment.dependent_issue_id", v1_21.AddIndexToCommentDependentIssueID),
+
+	// Gitea 1.21.0 ends at 279
+
+	// v279 -> v280
+	NewMigration("Rename user themes", v1_22.RenameUserThemes),
+
 }
 
 // GetCurrentDBVersion returns the current db version
