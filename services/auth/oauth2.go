@@ -125,7 +125,9 @@ func (o *OAuth2) userIDFromToken(ctx context.Context, tokenSHA string, store Dat
 // If verification is successful returns an existing user object.
 // Returns nil if verification fails.
 func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
-	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isAuthenticatedTokenRequest(req) {
+	// These paths are not API paths, but we still want to check for tokens because they maybe in the API returned URLs
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isAuthenticatedTokenRequest(req) &&
+		!gitRawReleasePathRe.MatchString(req.URL.Path) {
 		return nil, nil
 	}
 

@@ -33,7 +33,7 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 			return fmt.Errorf("Unable to open authorized_keys file. ERROR: %w", err)
 		}
 		logger.Warn("Unable to open authorized_keys. (ERROR: %v). Attempting to rewrite...", err)
-		if err = asymkey_model.RewriteAllPublicKeys(); err != nil {
+		if err = asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
 			logger.Critical("Unable to rewrite authorized_keys file. ERROR: %v", err)
 			return fmt.Errorf("Unable to rewrite authorized_keys file. ERROR: %w", err)
 		}
@@ -76,7 +76,7 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 			return fmt.Errorf(`authorized_keys is out of date and should be regenerated with "gitea admin regenerate keys" or "gitea doctor --run authorized-keys --fix"`)
 		}
 		logger.Warn("authorized_keys is out of date. Attempting rewrite...")
-		err = asymkey_model.RewriteAllPublicKeys()
+		err = asymkey_model.RewriteAllPublicKeys(ctx)
 		if err != nil {
 			logger.Critical("Unable to rewrite authorized_keys file. ERROR: %v", err)
 			return fmt.Errorf("Unable to rewrite authorized_keys file. ERROR: %w", err)

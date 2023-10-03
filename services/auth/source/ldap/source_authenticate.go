@@ -29,7 +29,13 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		// User not in LDAP, do nothing
 		return nil, user_model.ErrUserNotExist{Name: loginName}
 	}
-
+	// Fallback.
+	if len(sr.Username) == 0 {
+		sr.Username = userName
+	}
+	if len(sr.Mail) == 0 {
+		sr.Mail = fmt.Sprintf("%s@localhost.local", sr.Username)
+	}
 	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
 
 	// Update User admin flag if exist
@@ -65,20 +71,11 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 
 	if user != nil {
 		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(user, source.authSource, sr.SSHPublicKey) {
-			if err := asymkey_model.RewriteAllPublicKeys(); err != nil {
+			if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
 				return user, err
 			}
 		}
 	} else {
-		// Fallback.
-		if len(sr.Username) == 0 {
-			sr.Username = userName
-		}
-
-		if len(sr.Mail) == 0 {
-			sr.Mail = fmt.Sprintf("%s@localhost.local", sr.Username)
-		}
-
 		user = &user_model.User{
 			LowerName:   strings.ToLower(sr.Username),
 			Name:        sr.Username,
@@ -100,7 +97,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		}
 
 		if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(user, source.authSource, sr.SSHPublicKey) {
-			if err := asymkey_model.RewriteAllPublicKeys(); err != nil {
+			if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
 				return user, err
 			}
 		}

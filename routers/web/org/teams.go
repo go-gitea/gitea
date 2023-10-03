@@ -159,7 +159,7 @@ func TeamsAction(ctx *context.Context) {
 			return
 		}
 
-		if ctx.Org.Team.IsMember(u.ID) {
+		if ctx.Org.Team.IsMember(ctx, u.ID) {
 			ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
 		} else {
 			err = models.AddTeamMember(ctx, ctx.Org.Team, u.ID)
@@ -428,7 +428,7 @@ func SearchTeam(ctx *context.Context) {
 		ListOptions: listOptions,
 	}
 
-	teams, maxResults, err := org_model.SearchTeam(opts)
+	teams, maxResults, err := org_model.SearchTeam(ctx, opts)
 	if err != nil {
 		log.Error("SearchTeam failed: %v", err)
 		ctx.JSON(http.StatusInternalServerError, map[string]any{

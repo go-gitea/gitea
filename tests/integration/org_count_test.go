@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -117,7 +118,7 @@ func doCheckOrgCounts(username string, orgCounts map[string]int, strict bool, ca
 			Name: username,
 		})
 
-		orgs, err := organization.FindOrgs(organization.FindOrgOptions{
+		orgs, err := organization.FindOrgs(db.DefaultContext, organization.FindOrgOptions{
 			UserID:         user.ID,
 			IncludePrivate: true,
 		})

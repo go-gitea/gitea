@@ -217,6 +217,7 @@
   --color-input-toggle-background: #dedede;
   --color-input-border: var(--color-secondary);
   --color-input-border-hover: var(--color-secondary-dark-1);
+  --color-header-wrapper: transparent;
   --color-light: #00000006;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #0000001d;
@@ -420,7 +421,6 @@ a.silenced:hover {
 }
 
 a.label,
-.repository-menu a,
 .ui.search .results a,
 .ui .menu a,
 .ui.cards a.card,
@@ -1328,13 +1328,6 @@ img.ui.avatar,
   display: inline-block; /* not sure whether it is still needed */
 }
 
-.ui .button.copy-commit-sha {
-  border: 1px solid var(--color-light-border);
-  margin-right: 3px;
-  padding: 6px 6px 4px;
-  background: var(--color-light);
-}
-
 .ui .button.truncate {
   display: inline-block;
   max-width: 100%;
@@ -1543,22 +1536,9 @@ img.ui.avatar,
   margin-left: auto;
   margin-right: auto;
   overflow-x: auto;
-}
-
-.ui.menu.new-menu::after {
-  position: absolute;
-  display: block;
-  background: linear-gradient(to right, var(--color-header-wrapper-transparent), var(--color-header-wrapper) 100%);
-  content: "";
-  right: 0;
-  height: 39px;
-  width: 60px;
-  visibility: visible;
-  pointer-events: none;
-}
-
-.ui.menu.new-menu.shadow-body::after {
-  background: linear-gradient(to right, transparent, var(--color-body) 100%);
+  width: 100%;
+  mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 60px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 60px), transparent 100%);
 }
 
 .ui.menu.new-menu .item {
@@ -2255,6 +2235,7 @@ table th[data-sortt-desc] .svg {
   right: 2em;
 }
 
+.btn,
 .ui.ui.button,
 .ui.ui.dropdown,
 .ui.ui.label,
