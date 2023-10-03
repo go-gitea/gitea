@@ -771,13 +771,13 @@
 							</div>
 							<div class="flex-item-body">
 								{{if and (not .Repository.IsPrivate) (gt .Repository.NumStars 0)}}
-									<p>{{ctx.Locale.Tr "repo.stars_remove_warning"}}</p>
+									{{ctx.Locale.Tr "repo.stars_remove_warning"}}
 								{{end}}
 								{{if and (not .Repository.IsPrivate) (.Repository.NumForks)}}
-									<p class="text red">{{ctx.Locale.Tr "repo.visibility_fork_helper"}}</p>
+									{{ctx.Locale.Tr "repo.visibility_fork_helper"}}
 								{{end}}
 								{{if .Repository.IsPrivate}}
-									<p class="text red">{{ctx.Locale.Tr "repo.visibility_credential"}}</p>
+									{{ctx.Locale.Tr "repo.visibility_credential"}}
 								{{end}}
 							</div>
 						</div>
