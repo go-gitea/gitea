@@ -9,7 +9,7 @@
 		{{else}}
 			{{if and .PullRequest (.PullRequest.IsWorkInProgress ctx)}}
 				{{svg "octicon-git-pull-request-draft" 16 "text grey"}}
-			{{else if and (.GetPullRequest ctx) (.GetPullRequest ctx).IsWorkInProgress}}
+			{{else if and (.GetPullRequest ctx) ((.GetPullRequest ctx).IsWorkInProgress ctx)}}
 				{{svg "octicon-git-pull-request-draft" 16 "text grey"}}
 			{{else}}
 				{{svg "octicon-git-pull-request" 16 "text green"}}
