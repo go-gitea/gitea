@@ -160,7 +160,7 @@ func SettingsAvatar(ctx *context.Context) {
 
 // SettingsDeleteAvatar response for delete avatar on settings page
 func SettingsDeleteAvatar(ctx *context.Context) {
-	if err := user_service.DeleteAvatar(ctx.Org.Organization.AsUser()); err != nil {
+	if err := user_service.DeleteAvatar(ctx, ctx.Org.Organization.AsUser()); err != nil {
 		ctx.Flash.Error(err.Error())
 	}
 

@@ -125,7 +125,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 			return err
 		}
 
-		if !pr.IsWorkInProgress() {
+		if !pr.IsWorkInProgress(ctx) {
 			if err := issues_model.PullRequestCodeOwnersReview(ctx, issue, pr); err != nil {
 				return err
 			}

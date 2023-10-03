@@ -237,7 +237,7 @@ func TeamsRepoAction(ctx *context.Context) {
 	case "add":
 		repoName := path.Base(ctx.FormString("repo_name"))
 		var repo *repo_model.Repository
-		repo, err = repo_model.GetRepositoryByName(ctx.Org.Organization.ID, repoName)
+		repo, err = repo_model.GetRepositoryByName(ctx, ctx.Org.Organization.ID, repoName)
 		if err != nil {
 			if repo_model.IsErrRepoNotExist(err) {
 				ctx.Flash.Error(ctx.Tr("org.teams.add_nonexistent_repo"))

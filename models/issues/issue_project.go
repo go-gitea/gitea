@@ -38,8 +38,8 @@ func (issue *Issue) projectID(ctx context.Context) int64 {
 }
 
 // ProjectBoardID return project board id if issue was assigned to one
-func (issue *Issue) ProjectBoardID() int64 {
-	return issue.projectBoardID(db.DefaultContext)
+func (issue *Issue) ProjectBoardID(ctx context.Context) int64 {
+	return issue.projectBoardID(ctx)
 }
 
 func (issue *Issue) projectBoardID(ctx context.Context) int64 {
@@ -100,8 +100,8 @@ func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList) (m
 }
 
 // ChangeProjectAssign changes the project associated with an issue
-func ChangeProjectAssign(issue *Issue, doer *user_model.User, newProjectID int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ChangeProjectAssign(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID int64) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -156,8 +156,8 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 }
 
 // MoveIssueAcrossProjectBoards move a card from one board to another
-func MoveIssueAcrossProjectBoards(issue *Issue, board *project_model.Board) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func MoveIssueAcrossProjectBoards(ctx context.Context, issue *Issue, board *project_model.Board) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

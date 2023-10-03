@@ -189,7 +189,7 @@
 
 				{{if .AllowMerge}} {{/* user is allowed to merge */}}
 					{{$prUnit := .Repository.MustGetUnit $.Context $.UnitTypePullRequests}}
-					{{$approvers := .Issue.PullRequest.GetApprovers}}
+					{{$approvers := (.Issue.PullRequest.GetApprovers ctx)}}
 					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash}}
 						{{$hasPendingPullRequestMergeTip := ""}}
 						{{if .HasPendingPullRequestMerge}}
