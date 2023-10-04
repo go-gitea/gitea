@@ -1,2 +1,2 @@
 <link rel="stylesheet" href="{{AssetUrlPrefix}}/css/index.css?v={{AssetVersion}}">
-<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{if and .SignedUser .SignedUser.Theme}}{{.SignedUser.Theme | PathEscape}}{{else}}{{DefaultTheme | PathEscape}}{{end}}.css?v={{AssetVersion}}">
+<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/{{template "shared/misc/theme_name" .}}.css?v={{AssetVersion}}">
