@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       pgsql:
-        image: postgres:16
+        image: postgres:12
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -84,49 +84,6 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.1
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: true
-          MYSQL_DATABASE: test
-        ports:
-          - "3306:3306"
-      elasticsearch:
-        image: elasticsearch:7.5.0
-        env:
-          discovery.type: single-node
-        ports:
-          - "9200:9200"
-      meilisearch:
-        image: getmeili/meilisearch:v1.2.0
-        env:
-          MEILI_ENV: development # disable auth
-        ports:
-          - "7700:7700"
-      smtpimap:
-        image: tabascoterrier/docker-imap-devel:latest
-        ports:
-          - "25:25"
-          - "143:143"
-          - "587:587"
-          - "993:993"
-      redis:
-        image: redis
-        options: >- # wait until redis has started
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
-        ports:
-          - 6379:6379
-      minio:
-        image: bitnami/minio:2021.3.17
-        env:
-          MINIO_ACCESS_KEY: 123456
-          MINIO_SECRET_KEY: 12345678
-        ports:
-          - "9000:9000"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
@@ -158,7 +115,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mysql:
-        image: mysql:8.1
+        image: mysql:8.0
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: testgitea
