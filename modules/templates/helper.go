@@ -131,9 +131,13 @@ func NewFuncMap() template.FuncMap {
 		"DisableImportLocal": func() bool {
 			return !setting.ImportLocalPaths
 		},
-		"DefaultTheme": func() string {
+		"ThemeName": func(userTheme string) string {
+			if userTheme != "" {
+				return userTheme
+			}
 			return setting.UI.DefaultTheme
 		},
+
 		"NotificationSettings": func() map[string]any {
 			return map[string]any{
 				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
