@@ -61,17 +61,13 @@ func newIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_m
 
 // Remove all issue labels in the given exclusive scope
 func RemoveDuplicateExclusiveIssueLabels(ctx context.Context, issue *Issue, label *Label, doer *user_model.User) (err error) {
-	fmt.Printf("label %s scope %s\n", label.Name, label.ExclusiveScope())
 	scope := label.ExclusiveScope()
 	if scope == "" {
-		fmt.Printf("No scope\n")
 		return nil
 	}
 
 	var toRemove []*Label
-	fmt.Printf("Hello\n")
 	for _, issueLabel := range issue.Labels {
-		fmt.Printf("label %s scope %s\n", issueLabel.Name, issueLabel.ExclusiveScope())
 		if label.ID != issueLabel.ID && issueLabel.ExclusiveScope() == scope {
 			toRemove = append(toRemove, issueLabel)
 		}
