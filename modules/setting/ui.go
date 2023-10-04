@@ -76,7 +76,7 @@ var UI = struct {
 	CodeCommentLines:    4,
 	ReactionMaxUserNum:  10,
 	MaxDisplayFileSize:  8388608,
-	DefaultTheme:        `auto`,
+	DefaultTheme:        `gitea-auto`,
 	Themes:              []string{`gitea-auto`, `gitea-light`, `gitea-dark`},
 	Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
 	CustomEmojis:        []string{`git`, `gitea`, `codeberg`, `gitlab`, `github`, `gogs`},
