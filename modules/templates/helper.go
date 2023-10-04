@@ -137,7 +137,6 @@ func NewFuncMap() template.FuncMap {
 			}
 			return setting.UI.DefaultTheme
 		},
-
 		"NotificationSettings": func() map[string]any {
 			return map[string]any{
 				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
