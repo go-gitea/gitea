@@ -496,7 +496,7 @@
 											{{end}}
 										</div>
 									</div>
-									{{$diff := (CommentMustAsDiff (index $comms 0))}}
+									{{$diff := (CommentMustAsDiff ctx (index $comms 0))}}
 									{{if $diff}}
 										{{$file := (index $diff.Files 0)}}
 										<div id="code-preview-{{(index $comms 0).ID}}" class="ui table segment{{if $resolved}} gt-hidden{{end}}">
