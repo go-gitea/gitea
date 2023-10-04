@@ -22,5 +22,9 @@ func RenameUserThemes(x *xorm.Engine) error {
 		return err
 	}
 
+	if _, err := sess.Exec("UPDATE `user` SET `theme` = 'gitea-auto' WHERE `theme` = 'auto'"); err != nil {
+		return err
+	}
+
 	return sess.Commit()
 }
