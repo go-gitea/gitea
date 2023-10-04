@@ -48,7 +48,7 @@ RUN pip3 install jupyter docutils
 
 ## `app.ini` 文件配置
 
-在您的自定义 `app.ini` 文件中为每个外部渲染器添加一个 `[markup.XXXXX]` 部分：
+在您的自定义 `app.ini` 文件中为每个外部渲染器添加一个 `[markup:XXXXX]` 部分：
 
 ```ini
 [markup.asciidoc]
@@ -166,19 +166,19 @@ ALLOW_DATA_URI_IMAGES = true
 
 ## 自定义 CSS
 
-在 `.ini` 文件中，可以使用 `[markup.XXXXX]` 的格式指定外部渲染器，并且由外部渲染器生成的 HTML 将被包装在一个带有 `markup` 和 `XXXXX` 类的 `<div>` 中。`markup` 类提供了预定义的样式（如果 `XXXXX` 是 `markdown`，则使用 `markdown` 类）。否则，您可以使用这些类来针对渲染的 HTML 内容进行定制样式。
+在 `.ini` 文件中，可以使用 `[markup:XXXXX]` 的格式指定外部渲染器，并且由外部渲染器生成的 HTML 将被包装在一个带有 `markup` 和 `XXXXX` 类的 `<div>` 中。`markup` 类提供了预定义的样式（如果 `XXXXX` 是 `markdown`，则使用 `markdown` 类）。否则，您可以使用这些类来针对渲染的 HTML 内容进行定制样式。
 
 因此，您可以编写一些 CSS 样式：
 
 ```css
-.markup.XXXXX html {
+.markup:XXXXX html {
   font-size: 100%;
   overflow-y: scroll;
   -webkit-text-size-adjust: 100%;
   -ms-text-size-adjust: 100%;
 }
 
-.markup.XXXXX body {
+.markup:XXXXX body {
   color: #444;
   font-family: Georgia, Palatino, 'Palatino Linotype', Times, 'Times New Roman', serif;
   font-size: 12px;
@@ -189,7 +189,7 @@ ALLOW_DATA_URI_IMAGES = true
   background: #fefefe;
 }
 
-.markup.XXXXX p {
+.markup:XXXXX p {
   color: orangered;
 }
 ```

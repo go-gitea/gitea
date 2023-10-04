@@ -49,7 +49,7 @@ RUN pip3 install jupyter docutils
 
 ## `app.ini` file configuration
 
-add one `[markup.XXXXX]` section per external renderer on your custom `app.ini`:
+add one `[markup:XXXXX]` section per external renderer on your custom `app.ini`:
 
 ```ini
 [markup.asciidoc]
@@ -159,19 +159,19 @@ ALLOW_DATA_URI_IMAGES = true
 
 ## Customizing CSS
 
-The external renderer is specified in the .ini in the format `[markup.XXXXX]` and the HTML supplied by your external renderer will be wrapped in a `<div>` with classes `markup` and `XXXXX`. The `markup` class provides out of the box styling (as does `markdown` if `XXXXX` is `markdown`). Otherwise you can use these classes to specifically target the contents of your rendered HTML.
+The external renderer is specified in the .ini in the format `[markup:XXXXX]` and the HTML supplied by your external renderer will be wrapped in a `<div>` with classes `markup` and `XXXXX`. The `markup` class provides out of the box styling (as does `markdown` if `XXXXX` is `markdown`). Otherwise you can use these classes to specifically target the contents of your rendered HTML.
 
 And so you could write some CSS:
 
 ```css
-.markup.XXXXX html {
+.markup:XXXXX html {
   font-size: 100%;
   overflow-y: scroll;
   -webkit-text-size-adjust: 100%;
   -ms-text-size-adjust: 100%;
 }
 
-.markup.XXXXX body {
+.markup:XXXXX body {
   color: #444;
   font-family: Georgia, Palatino, 'Palatino Linotype', Times, 'Times New Roman', serif;
   font-size: 12px;
@@ -182,7 +182,7 @@ And so you could write some CSS:
   background: #fefefe;
 }
 
-.markup.XXXXX p {
+.markup:XXXXX p {
   color: orangered;
 }
 ```
