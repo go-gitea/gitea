@@ -54,18 +54,24 @@ func newIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_m
 		return err
 	}
 
+	issue.Labels = append(issue.Labels, label)
+
 	return updateLabelCols(ctx, label, "num_issues", "num_closed_issue")
 }
 
 // Remove all issue labels in the given exclusive scope
 func RemoveDuplicateExclusiveIssueLabels(ctx context.Context, issue *Issue, label *Label, doer *user_model.User) (err error) {
+	fmt.Printf("label %s scope %s\n", label.Name, label.ExclusiveScope())
 	scope := label.ExclusiveScope()
 	if scope == "" {
+		fmt.Printf("No scope\n")
 		return nil
 	}
 
 	var toRemove []*Label
+	fmt.Printf("Hello\n")
 	for _, issueLabel := range issue.Labels {
+		fmt.Printf("label %s scope %s\n", issueLabel.Name, issueLabel.ExclusiveScope())
 		if label.ID != issueLabel.ID && issueLabel.ExclusiveScope() == scope {
 			toRemove = append(toRemove, issueLabel)
 		}
@@ -122,11 +128,20 @@ func newIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *us
 	if err = issue.LoadRepo(ctx); err != nil {
 		return err
 	}
+
+	if err = issue.LoadLabels(ctx); err != nil {
+		return err
+	}
+
 	for _, l := range labels {
 		// Don't add already present labels and invalid labels
 		if HasIssueLabel(ctx, issue.ID, l.ID) ||
 			(l.RepoID != issue.RepoID && l.OrgID != issue.Repo.OwnerID) {
 			continue
+		}
+
+		if err = RemoveDuplicateExclusiveIssueLabels(ctx, issue, l, doer); err != nil {
+			return err
 		}
 
 		if err = newIssueLabel(ctx, issue, l, doer); err != nil {
