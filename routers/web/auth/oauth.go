@@ -312,12 +312,12 @@ func getOAuthGroupsForUser(ctx go_context.Context, user *user_model.User) ([]str
 	var groups []string
 	for _, org := range orgs {
 		groups = append(groups, org.Name)
-		teams, err := org.LoadTeams()
+		teams, err := org.LoadTeams(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("LoadTeams: %w", err)
 		}
 		for _, team := range teams {
-			if team.IsMember(user.ID) {
+			if team.IsMember(ctx, user.ID) {
 				groups = append(groups, org.Name+":"+team.LowerName)
 			}
 		}

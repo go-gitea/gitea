@@ -4,8 +4,9 @@
 				<tr>
 					<th class="three wide">{{ctx.Locale.Tr "repo.commits.author"}}</th>
 					<th class="two wide sha">SHA1</th>
-					<th class="nine wide message">{{ctx.Locale.Tr "repo.commits.message"}}</th>
+					<th class="eight wide message">{{ctx.Locale.Tr "repo.commits.message"}}</th>
 					<th class="two wide right aligned">{{ctx.Locale.Tr "repo.commits.date"}}</th>
+					<th class="one wide right aligned"></th>
 				</tr>
 			</thead>
 			<tbody class="commit-list">
@@ -25,7 +26,6 @@
 							{{end}}
 						</td>
 						<td class="sha gt-df">
-							<button class="ui button copy-commit-sha gt-df gt-ac" data-clipboard-text="{{.ID}}">{{svg "octicon-copy" 14}}</button>
 							{{$class := "ui sha label"}}
 							{{if .Signature}}
 								{{$class = (print $class " isSigned")}}
@@ -76,6 +76,12 @@
 						{{else}}
 							<td class="text right aligned">{{TimeSince .Author.When ctx.Locale}}</td>
 						{{end}}
+						<td class="gt-pt-0 gt-pb-0">
+							<div class="gt-df gt-je">
+								<button class="btn interact-bg gt-p-3" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</button>
+								{{if $.FileName}}<a class="btn interact-bg gt-p-3" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_path"}}" href="{{printf "%s/src/commit/%s/%s" $commitRepoLink (PathEscape .ID.String) $.FileName}}">{{svg "octicon-file-code"}}</a>{{end}}
+							</div>
+						</td>
 					</tr>
 				{{end}}
 			</tbody>
