@@ -8,18 +8,29 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	"xorm.io/builder"
 )
 
-// CountOrphanedRepos count repository where user of owner_id do not exist
-func CountOrphanedRepos(ctx context.Context) (int64, error) {
+func handleDeleteOrphanedRepos(ctx context.Context, logger log.Logger, autofix bool) error {
+	test := &consistencyCheck{
+		Name:         "Repos with no existing owner",
+		Counter:      countOrphanedRepos,
+		Fixer:        deleteOrphanedRepos,
+		FixedMessage: "Deleted all content related to orphaned repos",
+	}
+	return test.Run(ctx, logger, autofix)
+}
+
+// countOrphanedRepos count repository where user of owner_id do not exist
+func countOrphanedRepos(ctx context.Context) (int64, error) {
 	return db.CountOrphanedObjects(ctx, "repository", "user", "repository.owner_id=user.id")
 }
 
-// DeleteOrphanedRepos delete repository where user of owner_id do not exist
-func DeleteOrphanedRepos(ctx context.Context) (int64, error) {
+// deleteOrphanedRepos delete repository where user of owner_id do not exist
+func deleteOrphanedRepos(ctx context.Context) (int64, error) {
 	batchSize := db.MaxBatchInsertSize("repository")
 	e := db.GetEngine(ctx)
 	var deleted int64
@@ -46,4 +57,14 @@ func DeleteOrphanedRepos(ctx context.Context) (int64, error) {
 			deleted++
 		}
 	}
+}
+
+func init() {
+	Register(&Check{
+		Title:     "Deleted all content related to orphaned repos",
+		Name:      "delete-orphaned-repos",
+		IsDefault: false,
+		Run:       handleDeleteOrphanedRepos,
+		Priority:  4,
+	})
 }

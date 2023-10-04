@@ -151,12 +151,6 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 			Fixer:        activities_model.FixActionCreatedUnixString,
 			FixedMessage: "Set to zero",
 		},
-		{
-			Name:         "Repos with no existing owner",
-			Counter:      CountOrphanedRepos,
-			Fixer:        DeleteOrphanedRepos,
-			FixedMessage: "Deleted all content related to orphaned repos",
-		},
 	}
 
 	// TODO: function to recalc all counters
