@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       pgsql:
-        image: postgres:16
+        image: postgres:12
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -85,13 +85,6 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     services:
-      mysql:
-        image: mysql:8.1
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: true
-          MYSQL_DATABASE: test
-        ports:
-          - "3306:3306"
       elasticsearch:
         image: elasticsearch:7.5.0
         env:
@@ -104,13 +97,6 @@ jobs:
           MEILI_ENV: development # disable auth
         ports:
           - "7700:7700"
-      smtpimap:
-        image: tabascoterrier/docker-imap-devel:latest
-        ports:
-          - "25:25"
-          - "143:143"
-          - "587:587"
-          - "993:993"
       redis:
         image: redis
         options: >- # wait until redis has started
@@ -158,7 +144,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mysql:
-        image: mysql:8.1
+        image: mysql:8.0
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: testgitea
@@ -203,7 +189,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mssql:
-        image: mcr.microsoft.com/mssql/server:2022-latest
+        image: mcr.microsoft.com/mssql/server:2017-latest
         env:
           ACCEPT_EULA: Y
           MSSQL_PID: Standard
