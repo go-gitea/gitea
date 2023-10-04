@@ -4,6 +4,7 @@
 package task
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -40,15 +41,15 @@ func handleCreateError(owner *user_model.User, err error) error {
 	}
 }
 
-func runMigrateTask(t *admin_model.Task) (err error) {
+func runMigrateTask(ctx context.Context, t *admin_model.Task) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("PANIC whilst trying to do migrate task: %v", e)
 			log.Critical("PANIC during runMigrateTask[%d] by DoerID[%d] to RepoID[%d] for OwnerID[%d]: %v\nStacktrace: %v", t.ID, t.DoerID, t.RepoID, t.OwnerID, e, log.Stack(2))
 		}
-
+		// fixme: Because ctx is canceled here, so the db.DefaultContext is needed.
 		if err == nil {
-			err = admin_model.FinishMigrateTask(t)
+			err = admin_model.FinishMigrateTask(db.DefaultContext, t)
 			if err == nil {
 				notify_service.MigrateRepository(db.DefaultContext, t.Doer, t.Owner, t.Repo)
 				return
@@ -62,15 +63,15 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 		t.EndTime = timeutil.TimeStampNow()
 		t.Status = structs.TaskStatusFailed
 		t.Message = err.Error()
-
-		if err := t.UpdateCols("status", "message", "end_time"); err != nil {
+		// fixme: Because ctx is canceled here, so the db.DefaultContext is needed.
+		if err := t.UpdateCols(db.DefaultContext, "status", "message", "end_time"); err != nil {
 			log.Error("Task UpdateCols failed: %v", err)
 		}
 
 		// then, do not delete the repository, otherwise the users won't be able to see the last error
 	}()
 
-	if err = t.LoadRepo(); err != nil {
+	if err = t.LoadRepo(ctx); err != nil {
 		return err
 	}
 
@@ -79,10 +80,10 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 		return nil
 	}
 
-	if err = t.LoadDoer(); err != nil {
+	if err = t.LoadDoer(ctx); err != nil {
 		return err
 	}
-	if err = t.LoadOwner(); err != nil {
+	if err = t.LoadOwner(ctx); err != nil {
 		return err
 	}
 
@@ -100,7 +101,7 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 
 	t.StartTime = timeutil.TimeStampNow()
 	t.Status = structs.TaskStatusRunning
-	if err = t.UpdateCols("start_time", "status"); err != nil {
+	if err = t.UpdateCols(ctx, "start_time", "status"); err != nil {
 		return err
 	}
 
@@ -112,7 +113,7 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 			case <-ctx.Done():
 				return
 			}
-			task, _ := admin_model.GetMigratingTask(t.RepoID)
+			task, _ := admin_model.GetMigratingTask(ctx, t.RepoID)
 			if task != nil && task.Status != structs.TaskStatusRunning {
 				log.Debug("MigrateTask[%d] by DoerID[%d] to RepoID[%d] for OwnerID[%d] is canceled due to status is not 'running'", t.ID, t.DoerID, t.RepoID, t.OwnerID)
 				cancel()
@@ -128,7 +129,7 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 		}
 		bs, _ := json.Marshal(message)
 		t.Message = string(bs)
-		_ = t.UpdateCols("message")
+		_ = t.UpdateCols(ctx, "message")
 	})
 
 	if err == nil {

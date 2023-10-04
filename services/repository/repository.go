@@ -95,12 +95,12 @@ func PushCreateRepo(ctx context.Context, authUser, owner *user_model.User, repoN
 }
 
 // Init start repository service
-func Init() error {
+func Init(ctx context.Context) error {
 	if err := repo_module.LoadRepoConfig(); err != nil {
 		return err
 	}
-	system_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repository uploads", setting.Repository.Upload.TempPath)
-	system_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repositories", repo_module.LocalCopyPath())
+	system_model.RemoveAllWithNotice(ctx, "Clean up temporary repository uploads", setting.Repository.Upload.TempPath)
+	system_model.RemoveAllWithNotice(ctx, "Clean up temporary repositories", repo_module.LocalCopyPath())
 	if err := initPushQueue(); err != nil {
 		return err
 	}

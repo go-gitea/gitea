@@ -109,7 +109,7 @@ func determineAccessMode(ctx *Base, pkg *Package, doer *user_model.User) (perm.A
 		if doer != nil && !doer.IsGhost() {
 			// 1. If user is logged in, check all team packages permissions
 			var err error
-			accessMode, err = org.GetOrgUserMaxAuthorizeLevel(doer.ID)
+			accessMode, err = org.GetOrgUserMaxAuthorizeLevel(ctx, doer.ID)
 			if err != nil {
 				return accessMode, err
 			}

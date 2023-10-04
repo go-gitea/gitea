@@ -57,7 +57,9 @@ type CreateRepoForm struct {
 	Labels          bool
 	ProtectedBranch bool
 	TrustModel      string
-	SizeLimit       int64
+
+	ForkSingleBranch string
+	SizeLimit        int64
 }
 
 // Validate validates the fields

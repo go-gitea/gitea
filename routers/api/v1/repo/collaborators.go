@@ -53,7 +53,7 @@ func ListCollaborators(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	count, err := repo_model.CountCollaborators(ctx.Repo.Repository.ID)
+	count, err := repo_model.CountCollaborators(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -234,7 +234,7 @@ func DeleteCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	if err := repo_service.DeleteCollaboration(ctx.Repo.Repository, collaborator.ID); err != nil {
+	if err := repo_service.DeleteCollaboration(ctx, ctx.Repo.Repository, collaborator.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteCollaboration", err)
 		return
 	}

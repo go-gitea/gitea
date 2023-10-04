@@ -79,6 +79,11 @@ func prepareGitPath(gitRepo *git.Repository, wikiPath WebPath) (bool, string, er
 
 // updateWikiPage adds a new page or edits an existing page in repository wiki.
 func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldWikiName, newWikiName WebPath, content, message string, isNew bool) (err error) {
+	err = repo.MustNotBeArchived()
+	if err != nil {
+		return err
+	}
+
 	if err = validateWebPath(newWikiName); err != nil {
 		return err
 	}
@@ -238,6 +243,11 @@ func EditWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.R
 
 // DeleteWikiPage deletes a wiki page identified by its path.
 func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, wikiName WebPath) (err error) {
+	err = repo.MustNotBeArchived()
+	if err != nil {
+		return err
+	}
+
 	wikiWorkingPool.CheckIn(fmt.Sprint(repo.ID))
 	defer wikiWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
@@ -340,7 +350,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 // DeleteWiki removes the actual and local copy of repository wiki.
 func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
-	if err := repo_model.UpdateRepositoryUnits(repo, nil, []unit.Type{unit.TypeWiki}); err != nil {
+	if err := repo_model.UpdateRepositoryUnits(ctx, repo, nil, []unit.Type{unit.TypeWiki}); err != nil {
 		return err
 	}
 

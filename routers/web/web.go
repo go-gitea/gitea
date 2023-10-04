@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
@@ -92,7 +93,10 @@ func buildAuthGroup() *auth_service.Group {
 	if setting.Service.EnableReverseProxyAuth {
 		group.Add(&auth_service.ReverseProxy{})
 	}
-	specialAdd(group)
+
+	if setting.IsWindows && auth_model.IsSSPIEnabled() {
+		group.Add(&auth_service.SSPI{}) // it MUST be the last, see the comment of SSPI
+	}
 
 	return group
 }
@@ -975,9 +979,6 @@ func registerRoutes(m *web.Route) {
 		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead, false))
 	}, ignSignIn, context_service.UserAssignmentWeb(), context.OrgAssignment()) // for "/{username}/-" (packages, projects, code)
 
-	// ***** Release Attachment Download without Signin
-	m.Get("/{username}/{reponame}/releases/download/{vTag}/{fileName}", ignSignIn, context.RepoAssignment, repo.MustBeNotEmpty, repo.RedirectDownload)
-
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/settings", func() {
 			m.Group("", func() {
@@ -1237,8 +1238,9 @@ func registerRoutes(m *web.Route) {
 			m.Get(".rss", feedEnabled, repo.ReleasesFeedRSS)
 			m.Get(".atom", feedEnabled, repo.ReleasesFeedAtom)
 		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed),
-			repo.MustBeNotEmpty, reqRepoReleaseReader, context.RepoRefByType(context.RepoRefTag, true))
-		m.Get("/releases/attachments/{uuid}", repo.MustBeNotEmpty, reqRepoReleaseReader, repo.GetAttachment)
+			repo.MustBeNotEmpty, context.RepoRefByType(context.RepoRefTag, true))
+		m.Get("/releases/attachments/{uuid}", repo.MustBeNotEmpty, repo.GetAttachment)
+		m.Get("/releases/download/{vTag}/{fileName}", repo.MustBeNotEmpty, repo.RedirectDownload)
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", web.Bind(forms.NewReleaseForm{}), repo.NewReleasePost)

@@ -30,7 +30,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 }
 
 func GetRepositoryKey(ctx *context.Context) {
-	_, pub, err := debian_service.GetOrCreateKeyPair(ctx.Package.Owner.ID)
+	_, pub, err := debian_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -45,7 +45,7 @@ func GetRepositoryKey(ctx *context.Context) {
 // https://wiki.debian.org/DebianRepository/Format#A.22Release.22_files
 // https://wiki.debian.org/DebianRepository/Format#A.22Packages.22_Indices
 func GetRepositoryFile(ctx *context.Context) {
-	pv, err := debian_service.GetOrCreateRepositoryVersion(ctx.Package.Owner.ID)
+	pv, err := debian_service.GetOrCreateRepositoryVersion(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -81,7 +81,7 @@ func GetRepositoryFile(ctx *context.Context) {
 
 // https://wiki.debian.org/DebianRepository/Format#indices_acquisition_via_hashsums_.28by-hash.29
 func GetRepositoryFileByHash(ctx *context.Context) {
-	pv, err := debian_service.GetOrCreateRepositoryVersion(ctx.Package.Owner.ID)
+	pv, err := debian_service.GetOrCreateRepositoryVersion(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -159,6 +159,7 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
