@@ -289,7 +289,7 @@ func ViewUser(ctx *context.Context) {
 	ctx.Data["Emails"] = emails
 	ctx.Data["EmailsTotal"] = len(emails)
 
-	orgs, err := org_model.FindOrgs(org_model.FindOrgOptions{
+	orgs, err := org_model.FindOrgs(ctx, org_model.FindOrgOptions{
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},

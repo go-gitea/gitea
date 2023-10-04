@@ -137,12 +137,12 @@
 				{{if eq .RefAction 3}}<del>{{end}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr $refTr (.EventTag|Escape) $createdStr (.RefCommentLink|Escape) $refFrom | Safe}}
+					{{ctx.Locale.Tr $refTr (.EventTag|Escape) $createdStr ((.RefCommentLink ctx)|Escape) $refFrom | Safe}}
 				</span>
 				{{if eq .RefAction 3}}</del>{{end}}
 
 				<div class="detail">
-					<span class="text grey muted-links"><a href="{{.RefIssueLink}}"><b>{{.RefIssueTitle}}</b> {{.RefIssueIdent}}</a></span>
+					<span class="text grey muted-links"><a href="{{.RefIssueLink ctx}}"><b>{{.RefIssueTitle ctx}}</b> {{.RefIssueIdent ctx}}</a></span>
 				</div>
 			</div>
 		{{else if eq .Type 4}}
@@ -468,7 +468,7 @@
 										{{$resolveDoer := (index $comms 0).ResolveDoer}}
 										{{$isNotPending := (not (eq (index $comms 0).Review.Type 0))}}
 										<div class="gt-df gt-ac">
-											<a href="{{(index $comms 0).CodeCommentLink}}" class="file-comment gt-ml-3 gt-word-break">{{$filename}}</a>
+											<a href="{{(index $comms 0).CodeCommentLink ctx}}" class="file-comment gt-ml-3 gt-word-break">{{$filename}}</a>
 											{{if $invalid}}
 												<span class="ui label basic small gt-ml-3" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
 													{{ctx.Locale.Tr "repo.issues.review.outdated"}}
@@ -496,7 +496,7 @@
 											{{end}}
 										</div>
 									</div>
-									{{$diff := (CommentMustAsDiff (index $comms 0))}}
+									{{$diff := (CommentMustAsDiff ctx (index $comms 0))}}
 									{{if $diff}}
 										{{$file := (index $diff.Files 0)}}
 										<div id="code-preview-{{(index $comms 0).ID}}" class="ui table segment{{if $resolved}} gt-hidden{{end}}">
