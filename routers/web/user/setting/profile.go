@@ -219,12 +219,12 @@ func Organization(ctx *context.Context) {
 		opts.Page = 1
 	}
 
-	orgs, err := organization.FindOrgs(opts)
+	orgs, err := organization.FindOrgs(ctx, opts)
 	if err != nil {
 		ctx.ServerError("FindOrgs", err)
 		return
 	}
-	total, err := organization.CountOrgs(opts)
+	total, err := organization.CountOrgs(ctx, opts)
 	if err != nil {
 		ctx.ServerError("CountOrgs", err)
 		return

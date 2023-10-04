@@ -45,7 +45,7 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		assert.NotEmpty(t, baseRepo)
 
 		// enable actions
-		err = repo_model.UpdateRepositoryUnits(baseRepo, []repo_model.RepoUnit{{
+		err = repo_model.UpdateRepositoryUnits(db.DefaultContext, baseRepo, []repo_model.RepoUnit{{
 			RepoID: baseRepo.ID,
 			Type:   unit_model.TypeActions,
 		}}, nil)
