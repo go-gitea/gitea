@@ -144,8 +144,8 @@ func (t *Team) IsOwnerTeam() bool {
 }
 
 // IsMember returns true if given user is a member of team.
-func (t *Team) IsMember(userID int64) bool {
-	isMember, err := IsTeamMember(db.DefaultContext, t.OrgID, t.ID, userID)
+func (t *Team) IsMember(ctx context.Context, userID int64) bool {
+	isMember, err := IsTeamMember(ctx, t.OrgID, t.ID, userID)
 	if err != nil {
 		log.Error("IsMember: %v", err)
 		return false
@@ -217,10 +217,10 @@ func GetTeam(ctx context.Context, orgID int64, name string) (*Team, error) {
 }
 
 // GetTeamIDsByNames returns a slice of team ids corresponds to names.
-func GetTeamIDsByNames(orgID int64, names []string, ignoreNonExistent bool) ([]int64, error) {
+func GetTeamIDsByNames(ctx context.Context, orgID int64, names []string, ignoreNonExistent bool) ([]int64, error) {
 	ids := make([]int64, 0, len(names))
 	for _, name := range names {
-		u, err := GetTeam(db.DefaultContext, orgID, name)
+		u, err := GetTeam(ctx, orgID, name)
 		if err != nil {
 			if ignoreNonExistent {
 				continue
@@ -251,13 +251,13 @@ func GetTeamByID(ctx context.Context, teamID int64) (*Team, error) {
 }
 
 // GetTeamNamesByID returns team's lower name from a list of team ids.
-func GetTeamNamesByID(teamIDs []int64) ([]string, error) {
+func GetTeamNamesByID(ctx context.Context, teamIDs []int64) ([]string, error) {
 	if len(teamIDs) == 0 {
 		return []string{}, nil
 	}
 
 	var teamNames []string
-	err := db.GetEngine(db.DefaultContext).Table("team").
+	err := db.GetEngine(ctx).Table("team").
 		Select("lower_name").
 		In("id", teamIDs).
 		Asc("name").

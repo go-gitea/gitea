@@ -1328,13 +1328,6 @@ img.ui.avatar,
   display: inline-block; /* not sure whether it is still needed */
 }
 
-.ui .button.copy-commit-sha {
-  border: 1px solid var(--color-light-border);
-  margin-right: 3px;
-  padding: 6px 6px 4px;
-  background: var(--color-light);
-}
-
 .ui .button.truncate {
   display: inline-block;
   max-width: 100%;
@@ -2242,6 +2235,7 @@ table th[data-sortt-desc] .svg {
   right: 2em;
 }
 
+.btn,
 .ui.ui.button,
 .ui.ui.dropdown,
 .ui.ui.label,

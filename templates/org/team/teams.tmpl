@@ -16,7 +16,7 @@
 					<div class="ui top attached header">
 						<a class="text black" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.Name}}</strong></a>
 						<div class="ui right">
-							{{if .IsMember $.SignedUser.ID}}
+							{{if .IsMember ctx $.SignedUser.ID}}
 								<form>
 									<button class="ui red tiny button delete-button" data-modal-id="leave-team"
 										data-url="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/action/leave" data-datauid="{{$.SignedUser.ID}}"

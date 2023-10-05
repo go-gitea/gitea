@@ -536,6 +536,10 @@ var migrations = []Migration{
 	NewMigration("Add RemoteAddress to mirrors", v1_21.AddRemoteAddressToMirrors),
 	// v277 -> v278
 	NewMigration("Add Index to issue_user.issue_id", v1_21.AddIndexToIssueUserIssueID),
+	// v278 -> v279
+	NewMigration("Add Index to comment.dependent_issue_id", v1_21.AddIndexToCommentDependentIssueID),
+	// v279 -> v280
+	NewMigration("Add Index to action.user_id", v1_21.AddIndexToActionUserID),
 }
 
 // GetCurrentDBVersion returns the current db version

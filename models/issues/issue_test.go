@@ -65,7 +65,7 @@ func TestIssueAPIURL(t *testing.T) {
 	err := issue.LoadAttributes(db.DefaultContext)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/issues/1", issue.APIURL())
+	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/issues/1", issue.APIURL(db.DefaultContext))
 }
 
 func TestGetIssuesByIDs(t *testing.T) {
@@ -253,7 +253,7 @@ func testInsertIssue(t *testing.T, title, content string, expectIndex int64) *is
 			Title:    title,
 			Content:  content,
 		}
-		err := issues_model.NewIssue(repo, &issue, nil, nil)
+		err := issues_model.NewIssue(db.DefaultContext, repo, &issue, nil, nil)
 		assert.NoError(t, err)
 
 		has, err := db.GetEngine(db.DefaultContext).ID(issue.ID).Get(&newIssue)
@@ -477,7 +477,7 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 		Labels:      []*issues_model.Label{label},
 		Reactions:   []*issues_model.Reaction{reaction},
 	}
-	err := issues_model.InsertIssues(is)
+	err := issues_model.InsertIssues(db.DefaultContext, is)
 	assert.NoError(t, err)
 
 	i := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: title})

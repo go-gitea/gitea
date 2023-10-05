@@ -524,7 +524,7 @@ func EditPullRequest(ctx *context.APIContext) {
 			deadlineUnix = timeutil.TimeStamp(deadline.Unix())
 		}
 
-		if err := issues_model.UpdateIssueDeadline(issue, deadlineUnix, ctx.Doer); err != nil {
+		if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateIssueDeadline", err)
 			return
 		}
@@ -591,7 +591,7 @@ func EditPullRequest(ctx *context.APIContext) {
 		}
 		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
 	}
-	statusChangeComment, titleChanged, err := issues_model.UpdateIssueByAPI(issue, ctx.Doer)
+	statusChangeComment, titleChanged, err := issues_model.UpdateIssueByAPI(ctx, issue, ctx.Doer)
 	if err != nil {
 		if issues_model.IsErrDependenciesLeft(err) {
 			ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
@@ -1442,7 +1442,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	maxLines := setting.Git.MaxGitDiffLines
 
 	// FIXME: If there are too many files in the repo, may cause some unpredictable issues.
-	diff, err := gitdiff.GetDiff(baseGitRepo,
+	diff, err := gitdiff.GetDiff(ctx, baseGitRepo,
 		&gitdiff.DiffOptions{
 			BeforeCommitID:     startCommitID,
 			AfterCommitID:      endCommitID,

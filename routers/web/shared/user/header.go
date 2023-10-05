@@ -32,6 +32,7 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 
 	ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail && ctx.ContextUser.Email != "" && ctx.IsSigned && !ctx.ContextUser.KeepEmailPrivate
+	ctx.Data["UserLocationMapURL"] = setting.Service.UserLocationMapURL
 
 	// Show OpenID URIs
 	openIDs, err := user_model.GetUserOpenIDs(ctx, ctx.ContextUser.ID)
@@ -56,7 +57,7 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	}
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
-	orgs, err := organization.FindOrgs(organization.FindOrgOptions{
+	orgs, err := organization.FindOrgs(ctx, organization.FindOrgOptions{
 		UserID:         ctx.ContextUser.ID,
 		IncludePrivate: showPrivate,
 	})
@@ -65,7 +66,7 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Orgs"] = orgs
-	ctx.Data["HasOrgsVisible"] = organization.HasOrgsVisible(orgs, ctx.Doer)
+	ctx.Data["HasOrgsVisible"] = organization.HasOrgsVisible(ctx, orgs, ctx.Doer)
 
 	badges, _, err := user_model.GetUserBadges(ctx, ctx.ContextUser)
 	if err != nil {

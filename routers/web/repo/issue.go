@@ -305,7 +305,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		// Check read status
 		if !ctx.IsSigned {
 			issues[i].IsRead = true
-		} else if err = issues[i].GetIsRead(ctx.Doer.ID); err != nil {
+		} else if err = issues[i].GetIsRead(ctx, ctx.Doer.ID); err != nil {
 			ctx.ServerError("GetIsRead", err)
 			return
 		}
@@ -446,6 +446,11 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	pager.AddParam(ctx, "project", "ProjectID")
 	pager.AddParam(ctx, "assignee", "AssigneeID")
 	pager.AddParam(ctx, "poster", "PosterID")
+
+	if ctx.FormBool("archived") {
+		ctx.Data["ShowArchivedLabels"] = true
+		pager.AddParam(ctx, "archived", "ShowArchivedLabels")
+	}
 	ctx.Data["Page"] = pager
 }
 
@@ -1269,7 +1274,7 @@ func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *use
 		}
 
 		// Otherwise check if poster is the real repo admin.
-		ok, err := access_model.IsUserRealRepoAdmin(repo, poster)
+		ok, err := access_model.IsUserRealRepoAdmin(ctx, repo, poster)
 		if err != nil {
 			return roleDescriptor, err
 		}
@@ -1553,8 +1558,8 @@ func ViewIssue(ctx *context.Context) {
 		} else {
 			ctx.Data["CanUseTimetracker"] = false
 		}
-		if ctx.Data["WorkingUsers"], err = issues_model.TotalTimes(&issues_model.FindTrackedTimesOptions{IssueID: issue.ID}); err != nil {
-			ctx.ServerError("TotalTimes", err)
+		if ctx.Data["WorkingUsers"], err = issues_model.TotalTimesForEachUser(ctx, &issues_model.FindTrackedTimesOptions{IssueID: issue.ID}); err != nil {
+			ctx.ServerError("TotalTimesForEachUser", err)
 			return
 		}
 	}
@@ -1612,7 +1617,7 @@ func ViewIssue(ctx *context.Context) {
 			marked[comment.PosterID] = comment.ShowRole
 			participants = addParticipant(comment.Poster, participants)
 		} else if comment.Type == issues_model.CommentTypeLabel {
-			if err = comment.LoadLabel(); err != nil {
+			if err = comment.LoadLabel(ctx); err != nil {
 				ctx.ServerError("LoadLabel", err)
 				return
 			}
@@ -1633,7 +1638,7 @@ func ViewIssue(ctx *context.Context) {
 			}
 		} else if comment.Type == issues_model.CommentTypeProject {
 
-			if err = comment.LoadProject(); err != nil {
+			if err = comment.LoadProject(ctx); err != nil {
 				ctx.ServerError("LoadProject", err)
 				return
 			}
@@ -1652,12 +1657,12 @@ func ViewIssue(ctx *context.Context) {
 			}
 
 		} else if comment.Type == issues_model.CommentTypeAssignees || comment.Type == issues_model.CommentTypeReviewRequest {
-			if err = comment.LoadAssigneeUserAndTeam(); err != nil {
+			if err = comment.LoadAssigneeUserAndTeam(ctx); err != nil {
 				ctx.ServerError("LoadAssigneeUserAndTeam", err)
 				return
 			}
 		} else if comment.Type == issues_model.CommentTypeRemoveDependency || comment.Type == issues_model.CommentTypeAddDependency {
-			if err = comment.LoadDepIssueDetails(); err != nil {
+			if err = comment.LoadDepIssueDetails(ctx); err != nil {
 				if !issues_model.IsErrIssueNotExist(err) {
 					ctx.ServerError("LoadDepIssueDetails", err)
 					return
@@ -1674,7 +1679,7 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("RenderString", err)
 				return
 			}
-			if err = comment.LoadReview(); err != nil && !issues_model.IsErrReviewNotExist(err) {
+			if err = comment.LoadReview(ctx); err != nil && !issues_model.IsErrReviewNotExist(err) {
 				ctx.ServerError("LoadReview", err)
 				return
 			}
@@ -1713,7 +1718,7 @@ func ViewIssue(ctx *context.Context) {
 					}
 				}
 			}
-			if err = comment.LoadResolveDoer(); err != nil {
+			if err = comment.LoadResolveDoer(ctx); err != nil {
 				ctx.ServerError("LoadResolveDoer", err)
 				return
 			}
@@ -1727,7 +1732,7 @@ func ViewIssue(ctx *context.Context) {
 			comment.Type == issues_model.CommentTypeStopTracking ||
 			comment.Type == issues_model.CommentTypeDeleteTimeManual {
 			// drop error since times could be pruned from DB..
-			_ = comment.LoadTime()
+			_ = comment.LoadTime(ctx)
 			if comment.Content != "" {
 				// Content before v1.21 did store the formated string instead of seconds,
 				// so "|" is used as delimeter to mark the new format
@@ -1798,7 +1803,7 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 
-			if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(issue, ctx.Doer); err != nil {
+			if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
 				ctx.ServerError("CanMarkConversation", err)
 				return
 			}
@@ -2265,7 +2270,7 @@ func UpdateIssueDeadline(ctx *context.Context) {
 		deadlineUnix = timeutil.TimeStamp(deadline.Unix())
 	}
 
-	if err := issues_model.UpdateIssueDeadline(issue, deadlineUnix, ctx.Doer); err != nil {
+	if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateIssueDeadline", err.Error())
 		return
 	}
@@ -3323,7 +3328,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 		}
 		// Reload new reactions
 		comment.Reactions = nil
-		if err = comment.LoadReactions(ctx.Repo.Repository); err != nil {
+		if err = comment.LoadReactions(ctx, ctx.Repo.Repository); err != nil {
 			log.Info("comment.LoadReactions: %s", err)
 			break
 		}
@@ -3337,7 +3342,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 		// Reload new reactions
 		comment.Reactions = nil
-		if err = comment.LoadReactions(ctx.Repo.Repository); err != nil {
+		if err = comment.LoadReactions(ctx, ctx.Repo.Repository); err != nil {
 			log.Info("comment.LoadReactions: %s", err)
 			break
 		}
@@ -3463,9 +3468,9 @@ func updateAttachments(ctx *context.Context, item any, files []string) error {
 	if len(files) > 0 {
 		switch content := item.(type) {
 		case *issues_model.Issue:
-			err = issues_model.UpdateIssueAttachments(content.ID, files)
+			err = issues_model.UpdateIssueAttachments(ctx, content.ID, files)
 		case *issues_model.Comment:
-			err = content.UpdateAttachments(files)
+			err = content.UpdateAttachments(ctx, files)
 		default:
 			return fmt.Errorf("unknown Type: %T", content)
 		}
@@ -3578,7 +3583,7 @@ func handleTeamMentions(ctx *context.Context) {
 	if ctx.Doer.IsAdmin {
 		isAdmin = true
 	} else {
-		isAdmin, err = org.IsOwnedBy(ctx.Doer.ID)
+		isAdmin, err = org.IsOwnedBy(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("IsOwnedBy", err)
 			return
@@ -3586,13 +3591,13 @@ func handleTeamMentions(ctx *context.Context) {
 	}
 
 	if isAdmin {
-		teams, err = org.LoadTeams()
+		teams, err = org.LoadTeams(ctx)
 		if err != nil {
 			ctx.ServerError("LoadTeams", err)
 			return
 		}
 	} else {
-		teams, err = org.GetUserTeams(ctx.Doer.ID)
+		teams, err = org.GetUserTeams(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("GetUserTeams", err)
 			return

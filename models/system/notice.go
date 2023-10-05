@@ -88,8 +88,8 @@ func RemoveStorageWithNotice(ctx context.Context, bucket storage.ObjectStorage, 
 }
 
 // CountNotices returns number of notices.
-func CountNotices() int64 {
-	count, _ := db.GetEngine(db.DefaultContext).Count(new(Notice))
+func CountNotices(ctx context.Context) int64 {
+	count, _ := db.GetEngine(ctx).Count(new(Notice))
 	return count
 }
 
