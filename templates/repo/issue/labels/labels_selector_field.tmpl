@@ -11,18 +11,6 @@
 				<i class="icon">{{svg "octicon-search" 16}}</i>
 				<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_labels"}}">
 			</div>
-			<div class="ui checkbox compact archived-label-filter">
-				<input name="archived" type="checkbox"
-					id="archived-filter-checkbox-issue-page"
-					{{if .ShowArchivedLabels}}checked{{end}}
-				>
-				<label for="archived-filter-checkbox-issue-page">
-					{{ctx.Locale.Tr "repo.issues.label_archived_filter"}}
-					<i class="gt-ml-2" data-tooltip-content={{ctx.Locale.Tr "repo.issues.label_archive_tooltip"}}>
-						{{svg "octicon-info"}}
-					</i>
-				</label>
-			</div>
 		{{end}}
 		<a class="no-select item" href="#">{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}</a>
 		{{if or .Labels .OrgLabels}}

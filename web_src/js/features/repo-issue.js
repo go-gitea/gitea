@@ -682,18 +682,12 @@ export function initIssueTemplateCommentEditors($commentForm) {
 }
 
 export function initArchivedLabelHandler() {
-  const archivedLabelEl = document.querySelector('#archived-filter-checkbox-issue-page');
+  const archivedLabelEl = document.querySelector('.archived-label-hint');
   if (!archivedLabelEl) {
     return;
   }
   const archivedLabels = document.querySelectorAll('[data-is-archived]');
-  const archivedElToggle = () => {
-    for (const label of archivedLabels) {
-      toggleElem(label, archivedLabelEl.checked || label.classList.contains('checked'));
-    }
-  };
-  archivedElToggle();
-  archivedLabelEl.addEventListener('change', () => {
-    archivedElToggle();
-  });
+  for (const label of archivedLabels) {
+    toggleElem(label, label.classList.contains('checked'));
+  }
 }
