@@ -21,7 +21,7 @@ Gitea (starting with version `1.11.0`) supports creating template repositories
 which can be used to generate repositories based on the template, complete with
 variable expansion of certain pre-defined variables.
 
-All files in the repository are included in a generated repository from the
+All files in the template repository are included in a generated repository from the
 template except for the `.gitea/template` file. The `.gitea/template` file tells
 Gitea which files are subject to the variable expansion when creating a
 repository from the template.
