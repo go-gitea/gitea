@@ -1,0 +1,48 @@
+name: Stale Issues and Pull Requests
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Every day at midnight UTC
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check for stale issues and pull requests
+      uses: actions/stale@v3
+      with:
+        daysBeforeStale: 60
+        daysBeforeClose: 14
+        staleIssueLabel: "stale"
+        closeIssue: true
+        staleIssueComment: >
+          This issue has been automatically marked as stale because it has not had recent activity.
+          I am here to help clear issues left open even if solved or waiting for more insight.
+          This issue will be closed if no further activity occurs during the next 2 weeks.
+          If the issue is still valid just add a comment to keep it alive.
+          Thank you for your contributions.
+        closeIssueComment: >
+          This issue has been automatically closed because of inactivity.
+          You can re-open it if needed.
+        exemptLabels: |
+          status/blocked
+          kind/security
+          lgtm/done
+          reviewed/confirmed
+          priority/critical
+          kind/proposal
+        exemptProjects: false
+        exemptMilestones: false
+        limitPerRun: 1
+
+        # Optionally, specify configuration settings that are specific to just 'pulls':
+        pullsDaysBeforeStale: 60
+        pullsDaysBeforeClose: 60
+        pullsStaleIssueComment: >
+          This pull request has been automatically marked as stale because it has not had
+          recent activity. It will be closed if no further activity occurs during the next 2 months. Thank you
+          for your contributions.
+        pullsCloseIssueComment: >
+          This pull request has been automatically closed because of inactivity.
+          You can re-open it if needed.
