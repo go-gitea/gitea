@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
+	user_model "code.gitea.io/gitea/models/user"
 )
 
 // NewFuncMap returns functions for injecting to templates
@@ -131,11 +132,11 @@ func NewFuncMap() template.FuncMap {
 		"DisableImportLocal": func() bool {
 			return !setting.ImportLocalPaths
 		},
-		"ThemeName": func(userTheme any) string {
-			if themeName, ok := userTheme.(string); ok && themeName != "" {
-				return themeName
+		"ThemeName": func(user *user_model.User) string {
+			if user == nil || user.Theme == "" {
+				return setting.UI.DefaultTheme
 			}
-			return setting.UI.DefaultTheme
+			return user.Theme
 		},
 		"NotificationSettings": func() map[string]any {
 			return map[string]any{
