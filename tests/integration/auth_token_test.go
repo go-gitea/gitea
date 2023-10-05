@@ -147,7 +147,7 @@ func TestLTAExpiry(t *testing.T) {
 	assert.False(t, lta.IsExpired())
 
 	// Manually stub LTA's expiry.
-	_, err := db.GetEngine(db.DefaultContext).ID(lta.ID).Table("forgejo_auth_token").Cols("expiry").Update(&auth.AuthorizationToken{Expiry: timeutil.TimeStampNow()})
+	_, err := db.GetEngine(db.DefaultContext).ID(lta.ID).Table("authorization_token").Cols("expiry").Update(&auth.AuthorizationToken{Expiry: timeutil.TimeStampNow()})
 	assert.NoError(t, err)
 
 	// Ensure it's expired.

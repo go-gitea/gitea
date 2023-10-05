@@ -27,7 +27,7 @@ type AuthorizationToken struct {
 
 // TableName provides the real table name.
 func (AuthorizationToken) TableName() string {
-	return "forgejo_auth_token"
+	return "authorization_token"
 }
 
 func init() {
