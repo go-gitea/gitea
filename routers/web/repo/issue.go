@@ -247,10 +247,6 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	archived := ctx.FormBool("archived")
-	showArchivedLabels := "false"
-	if archived {
-		showArchivedLabels = "true"
-	}
 
 	page := ctx.FormInt("page")
 	if page <= 1 {
@@ -425,8 +421,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["OpenCount"] = issueStats.OpenCount
 	ctx.Data["ClosedCount"] = issueStats.ClosedCount
-	ctx.Data["OpenLink"] = fmt.Sprintf("%s?q=%s&type=%s&sort=%s&state=open&labels=%s&milestone=%d&project=%d&assignee=%d&poster=%d&archived=%s", ctx.Link, keyword, viewType, sortType, selectLabels, mentionedID, projectID, assigneeID, posterID, showArchivedLabels)
-	ctx.Data["ClosedLink"] = fmt.Sprintf("%s?q=%s&type=%s&sort=%s&state=closed&labels=%s&milestone=%d&project=%d&assignee=%d&poster=%d&archived=%s", ctx.Link, keyword, viewType, sortType, selectLabels, mentionedID, projectID, assigneeID, posterID, showArchivedLabels)
+	ctx.Data["OpenLink"] = fmt.Sprintf("%s?q=%s&type=%s&sort=%s&state=open&labels=%s&milestone=%d&project=%d&assignee=%d&poster=%d&archived=%t", ctx.Link, keyword, viewType, sortType, selectLabels, mentionedID, projectID, assigneeID, posterID, archived)
+	ctx.Data["ClosedLink"] = fmt.Sprintf("%s?q=%s&type=%s&sort=%s&state=closed&labels=%s&milestone=%d&project=%d&assignee=%d&poster=%d&archived=%t", ctx.Link, keyword, viewType, sortType, selectLabels, mentionedID, projectID, assigneeID, posterID, archived)
 	ctx.Data["SelLabelIDs"] = labelIDs
 	ctx.Data["SelectLabels"] = selectLabels
 	ctx.Data["ViewType"] = viewType
