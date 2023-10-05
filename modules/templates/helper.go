@@ -132,7 +132,7 @@ func NewFuncMap() template.FuncMap {
 			return !setting.ImportLocalPaths
 		},
 		"ThemeName": func(userTheme any) string {
-			if themeName, ok := userTheme.(string) && ok && themeName != "" {
+			if themeName, ok := userTheme.(string); ok && themeName != "" {
 				return themeName
 			}
 			return setting.UI.DefaultTheme
