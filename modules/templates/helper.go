@@ -9,6 +9,7 @@ import (
 	"html"
 	"html/template"
 	"net/url"
+	"reflect"
 	"strings"
 	"time"
 
@@ -131,9 +132,9 @@ func NewFuncMap() template.FuncMap {
 		"DisableImportLocal": func() bool {
 			return !setting.ImportLocalPaths
 		},
-		"ThemeName": func(userTheme string) string {
-			if userTheme != "" {
-				return userTheme
+		"ThemeName": func(userTheme any) string {
+			if reflect.ValueOf(userTheme).Kind() == reflect.String && userTheme != "" {
+				return userTheme.(string)
 			}
 			return setting.UI.DefaultTheme
 		},
