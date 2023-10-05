@@ -23,11 +23,7 @@
 				{{$previousExclusiveScope = $exclusiveScope}}
 				<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" {{if .IsArchived}}data-is-archived{{end}} data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}gt-invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel $.Context .}}
 					{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
-					{{if .IsArchived}}
-						<i class="archived-label-hint" data-tooltip-content={{ctx.Locale.Tr "archived"}}>
-							{{svg "octicon-info"}}
-						</i>
-					{{end}}
+					<p class="archived-label-hint">{{template "repo/issue/labels/label_archived" .}}</p>
 				</a>
 			{{end}}
 			<div class="divider"></div>
@@ -40,11 +36,7 @@
 				{{$previousExclusiveScope = $exclusiveScope}}
 				<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" {{if .IsArchived}}data-is-archived{{end}} data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}gt-invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel $.Context .}}
 					{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
-					{{if .IsArchived}}
-						<i class="archived-label-hint" data-tooltip-content={{ctx.Locale.Tr "archived"}}>
-							{{svg "octicon-info"}}
-						</i>
-					{{end}}
+					<p class="archived-label-hint">{{template "repo/issue/labels/label_archived" .}}</p>
 			</a>
 			{{end}}
 		{{else}}
