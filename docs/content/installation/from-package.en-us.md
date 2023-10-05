@@ -65,7 +65,7 @@ emerge gitea -va
 
 ### Canonical Snap
 
-There is a [Gitea Snap](https://snapcraft.io/gitea) package which follows the latest stable version. 
+There is a [Gitea Snap](https://snapcraft.io/gitea) package which follows the latest stable version.
 *Note: The Gitea snap package is [strictly confined](https://snapcraft.io/docs/snap-confinement). Strictly confined snaps run in complete isolation, so some of the Gitea functionals may not work with the confinement*
 
 ```sh
