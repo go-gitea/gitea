@@ -16,6 +16,7 @@ menu:
 ---
 
 # Register as a Windows service
+
 ## Prerequisites
 
 The following changes are made in C:\gitea\custom\conf\app.ini:
