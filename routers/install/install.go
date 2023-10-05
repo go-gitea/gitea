@@ -430,15 +430,14 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("service").Key("ENABLE_NOTIFY_MAIL").SetValue(fmt.Sprint(form.MailNotify))
 
 	cfg.Section("server").Key("OFFLINE_MODE").SetValue(fmt.Sprint(form.OfflineMode))
-	// if you are reinstalling, this maybe not right because of missing version
-	if err := system_model.SetSettingNoVersion(ctx, system_model.KeyPictureDisableGravatar, strconv.FormatBool(form.DisableGravatar)); err != nil {
+	if err := system_model.SetSettings(ctx, map[string]string{
+		setting.Config().Picture.DisableGravatar.DynKey():       strconv.FormatBool(form.DisableGravatar),
+		setting.Config().Picture.EnableFederatedAvatar.DynKey(): strconv.FormatBool(form.EnableFederatedAvatar),
+	}); err != nil {
 		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
 	}
-	if err := system_model.SetSettingNoVersion(ctx, system_model.KeyPictureEnableFederatedAvatar, strconv.FormatBool(form.EnableFederatedAvatar)); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
-		return
-	}
+
 	cfg.Section("openid").Key("ENABLE_OPENID_SIGNIN").SetValue(fmt.Sprint(form.EnableOpenIDSignIn))
 	cfg.Section("openid").Key("ENABLE_OPENID_SIGNUP").SetValue(fmt.Sprint(form.EnableOpenIDSignUp))
 	cfg.Section("service").Key("DISABLE_REGISTRATION").SetValue(fmt.Sprint(form.DisableRegistration))
