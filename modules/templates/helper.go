@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/markup"
@@ -21,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
-	user_model "code.gitea.io/gitea/models/user"
 )
 
 // NewFuncMap returns functions for injecting to templates
