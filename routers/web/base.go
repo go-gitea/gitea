@@ -26,12 +26,12 @@ func storageHandler(storageSetting *setting.Storage, prefix string, objStore sto
 	if storageSetting.MinioConfig.ServeDirect {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			if req.Method != "GET" && req.Method != "HEAD" {
-				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 				return
 			}
 
 			if !strings.HasPrefix(req.URL.Path, "/"+prefix+"/") {
-				http.Error(w, "file not found", http.StatusNotFound)
+				http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 				return
 			}
 			routing.UpdateFuncInfo(req.Context(), funcInfo)
@@ -43,7 +43,7 @@ func storageHandler(storageSetting *setting.Storage, prefix string, objStore sto
 			if err != nil {
 				if os.IsNotExist(err) || errors.Is(err, os.ErrNotExist) {
 					log.Warn("Unable to find %s %s", prefix, rPath)
-					http.Error(w, "file not found", http.StatusNotFound)
+					http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 					return
 				}
 				log.Error("Error whilst getting URL for %s %s. Error: %v", prefix, rPath, err)
@@ -57,12 +57,12 @@ func storageHandler(storageSetting *setting.Storage, prefix string, objStore sto
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != "GET" && req.Method != "HEAD" {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 			return
 		}
 
 		if !strings.HasPrefix(req.URL.Path, "/"+prefix+"/") {
-			http.Error(w, "file not found", http.StatusNotFound)
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
 		}
 		routing.UpdateFuncInfo(req.Context(), funcInfo)
@@ -70,7 +70,7 @@ func storageHandler(storageSetting *setting.Storage, prefix string, objStore sto
 		rPath := strings.TrimPrefix(req.URL.Path, "/"+prefix+"/")
 		rPath = util.PathJoinRelX(rPath)
 		if rPath == "" || rPath == "." {
-			http.Error(w, "file not found", http.StatusNotFound)
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
 		}
 
@@ -78,7 +78,7 @@ func storageHandler(storageSetting *setting.Storage, prefix string, objStore sto
 		if err != nil {
 			if os.IsNotExist(err) || errors.Is(err, os.ErrNotExist) {
 				log.Warn("Unable to find %s %s", prefix, rPath)
-				http.Error(w, "file not found", http.StatusNotFound)
+				http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 				return
 			}
 			log.Error("Error whilst opening %s %s. Error: %v", prefix, rPath, err)
