@@ -230,7 +230,7 @@ export function initRepoPullRequestUpdate() {
     const redirect = $this.data('redirect');
     $this.addClass('loading');
     $.post($this.data('do'), {
-      _csrf: csrfToken
+      _csrf: csrfToken,
     }).done((data) => {
       if (data.redirect) {
         window.location.href = data.redirect;
@@ -249,7 +249,7 @@ export function initRepoPullRequestUpdate() {
         $pullUpdateButton.find('.button-text').text($choice.text());
         $pullUpdateButton.data('do', $url);
       }
-    }
+    },
   });
 }
 
@@ -270,7 +270,8 @@ export function initRepoPullRequestAllowMaintainerEdit() {
       let url = $checkbox.attr('data-url');
       url += '/set_allow_maintainer_edit';
       $checkbox.checkbox('set disabled');
-      $.ajax({url, type: 'POST',
+      $.ajax({
+        url, type: 'POST',
         data: {_csrf: csrfToken, allow_maintainer_edit: checked},
         error: () => {
           showTemporaryTooltip($checkbox[0], promptError);
@@ -293,7 +294,7 @@ export function initRepoIssueReferenceRepositorySearch() {
           $.each(response.data, (_r, repo) => {
             filteredResponse.results.push({
               name: htmlEscape(repo.repository.full_name),
-              value: repo.repository.full_name
+              value: repo.repository.full_name,
             });
           });
           return filteredResponse;
@@ -304,7 +305,7 @@ export function initRepoIssueReferenceRepositorySearch() {
         const $form = $choice.closest('form');
         $form.attr('action', `${appSubUrl}/${_text}/issues/new`);
       },
-      fullTextSearch: true
+      fullTextSearch: true,
     });
 }
 
@@ -422,7 +423,7 @@ export function initRepoPullRequestReview() {
         }
         window.scrollTo({
           top: commentDiv.offset().top - offset,
-          behavior: 'instant'
+          behavior: 'instant',
         });
       }
     }
@@ -511,9 +512,9 @@ export function initRepoPullRequestReview() {
     if (commentCloud.length === 0 && !ntr.find('button[name="pending_review"]').length) {
       const html = await $.get($(this).closest('[data-new-comment-url]').attr('data-new-comment-url'));
       td.html(html);
-      td.find("input[name='line']").val(idx);
-      td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
-      td.find("input[name='path']").val(path);
+      td.find('input[name=\'line\']').val(idx);
+      td.find('input[name=\'side\']').val(side === 'left' ? 'previous' : 'proposed');
+      td.find('input[name=\'path\']').val(path);
 
       const editor = await initComboMarkdownEditor(td.find('.combo-markdown-editor'));
       editor.focus();
@@ -584,7 +585,7 @@ export function initRepoIssueTitleEdit() {
       }
       $.post(update_url, {
         _csrf: csrfToken,
-        target_branch: targetBranch
+        target_branch: targetBranch,
       }).always(() => {
         window.location.reload();
       });
@@ -597,7 +598,7 @@ export function initRepoIssueTitleEdit() {
     } else {
       $.post($(this).attr('data-update-url'), {
         _csrf: csrfToken,
-        title: $editInput.val()
+        title: $editInput.val(),
       }, (data) => {
         $editInput.val(data.title);
         $issueTitle.text(data.title);
@@ -623,7 +624,7 @@ export function initRepoIssueBranchSelect() {
     // Replace branch name to keep translation from HTML template
     selectionTextField.html(selectionTextField.html().replace(
       `${baseName}:${branchNameOld}`,
-      `${baseName}:${branchNameNew}`
+      `${baseName}:${branchNameNew}`,
     ));
     selectionTextField.data('branch', branchNameNew); // update branch name in setting
   };
@@ -657,7 +658,7 @@ export function initIssueTemplateCommentEditors($commentForm) {
     const editor = await initComboMarkdownEditor($markdownEditor, {
       onContentChanged: (editor) => {
         $formField.val(editor.value());
-      }
+      },
     });
 
     $formField.on('focus', async () => {
@@ -679,4 +680,21 @@ export function initIssueTemplateCommentEditors($commentForm) {
   for (const el of $comboFields) {
     initCombo($(el));
   }
+}
+
+export function initArchivedLabelHandler() {
+  const archivedLabelEl = document.querySelector('#archived-filter-checkbox-issue-page');
+  if (!archivedLabelEl) {
+    return;
+  }
+  const archivedLabels = document.querySelectorAll('[data-is-archived]');
+  const archivedElToggle = () => {
+    for (const label of archivedLabels) {
+      toggleElem(label, archivedLabelEl.checked || label.classList.contains('checked'));
+    }
+  };
+  archivedElToggle();
+  archivedLabelEl.addEventListener('change', () => {
+    archivedElToggle();
+  });
 }
