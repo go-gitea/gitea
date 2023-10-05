@@ -58,25 +58,19 @@ type DbDesc struct {
 	Backup         []string `json:"backup,omitempty"`
 }
 
-type EjectParams struct {
-	Filename     string
-	Distribution string
-	Buffer       *pkg_module.HashedBuffer
-}
-
 // Function that receives arch package archive data and returns it's metadata.
-func EjectMetadata(p *EjectParams) (*DbDesc, error) {
-	pkginfo, err := getPkginfo(p.Buffer)
+func EjectMetadata(file, distro string, b *pkg_module.HashedBuffer) (*DbDesc, error) {
+	pkginfo, err := getPkginfo(b)
 	if err != nil {
 		return nil, err
 	}
 
 	// Add package blob parameters to arch related desc.
-	hashMD5, _, hashSHA256, _ := p.Buffer.Sums()
+	hashMD5, _, hashSHA256, _ := b.Sums()
 	md := DbDesc{
-		Filename:       p.Filename,
-		Name:           p.Filename,
-		CompressedSize: p.Buffer.Size(),
+		Filename:       file,
+		Name:           file,
+		CompressedSize: b.Size(),
 		MD5:            hex.EncodeToString(hashMD5),
 		SHA256:         hex.EncodeToString(hashSHA256),
 	}
@@ -162,10 +156,7 @@ func getPkginfo(data io.Reader) (string, error) {
 
 // Create pacman package description file.
 func (m *DbDesc) String() string {
-	entries := []struct {
-		Key   string
-		Value string
-	}{
+	entries := []struct{ key, value string }{
 		{"FILENAME", m.Filename},
 		{"NAME", m.Name},
 		{"BASE", m.Base},
@@ -188,9 +179,9 @@ func (m *DbDesc) String() string {
 	}
 
 	var result string
-	for _, v := range entries {
-		if v.Value != "" {
-			result += fmt.Sprintf("%%%s%%\n%s\n\n", v.Key, v.Value)
+	for _, e := range entries {
+		if e.value != "" {
+			result += fmt.Sprintf("%%%s%%\n%s\n\n", e.key, e.value)
 		}
 	}
 	return result

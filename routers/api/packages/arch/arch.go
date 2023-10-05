@@ -48,11 +48,7 @@ func Push(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	desc, err := arch_module.EjectMetadata(&arch_module.EjectParams{
-		Filename:     filename,
-		Distribution: distro,
-		Buffer:       buf,
-	})
+	desc, err := arch_module.EjectMetadata(filename, distro, buf)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
@@ -64,7 +60,7 @@ func Push(ctx *context.Context) {
 		return
 	}
 
-	props := map[string]string{
+	properties := map[string]string{
 		"desc": desc.String(),
 	}
 	if sign != "" {
@@ -73,7 +69,7 @@ func Push(ctx *context.Context) {
 			apiError(ctx, http.StatusBadRequest, err)
 			return
 		}
-		props["sign"] = sign
+		properties["sign"] = sign
 	}
 
 	_, _, err = pkg_service.CreatePackageOrAddFileToExisting(
@@ -106,7 +102,7 @@ func Push(ctx *context.Context) {
 			IsLead:            true,
 			Creator:           ctx.ContextUser,
 			Data:              buf,
-			Properties:        props,
+			Properties:        properties,
 		},
 	)
 	if err != nil {
