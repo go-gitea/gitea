@@ -1,4 +1,4 @@
-name: Clean up disk space
+name: disk-clean
 
 on:
   workflow_call:
