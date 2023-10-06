@@ -96,23 +96,23 @@ func (Organization) TableName() string {
 }
 
 // IsOwnedBy returns true if given user is in the owner team.
-func (org *Organization) IsOwnedBy(uid int64) (bool, error) {
-	return IsOrganizationOwner(db.DefaultContext, org.ID, uid)
+func (org *Organization) IsOwnedBy(ctx context.Context, uid int64) (bool, error) {
+	return IsOrganizationOwner(ctx, org.ID, uid)
 }
 
 // IsOrgAdmin returns true if given user is in the owner team or an admin team.
-func (org *Organization) IsOrgAdmin(uid int64) (bool, error) {
-	return IsOrganizationAdmin(db.DefaultContext, org.ID, uid)
+func (org *Organization) IsOrgAdmin(ctx context.Context, uid int64) (bool, error) {
+	return IsOrganizationAdmin(ctx, org.ID, uid)
 }
 
 // IsOrgMember returns true if given user is member of organization.
-func (org *Organization) IsOrgMember(uid int64) (bool, error) {
-	return IsOrganizationMember(db.DefaultContext, org.ID, uid)
+func (org *Organization) IsOrgMember(ctx context.Context, uid int64) (bool, error) {
+	return IsOrganizationMember(ctx, org.ID, uid)
 }
 
 // CanCreateOrgRepo returns true if given user can create repo in organization
-func (org *Organization) CanCreateOrgRepo(uid int64) (bool, error) {
-	return CanCreateOrgRepo(db.DefaultContext, org.ID, uid)
+func (org *Organization) CanCreateOrgRepo(ctx context.Context, uid int64) (bool, error) {
+	return CanCreateOrgRepo(ctx, org.ID, uid)
 }
 
 // GetTeam returns named team of organization.
@@ -135,8 +135,8 @@ func FindOrgTeams(ctx context.Context, orgID int64) ([]*Team, error) {
 }
 
 // LoadTeams load teams if not loaded.
-func (org *Organization) LoadTeams() ([]*Team, error) {
-	return FindOrgTeams(db.DefaultContext, org.ID)
+func (org *Organization) LoadTeams(ctx context.Context) ([]*Team, error) {
+	return FindOrgTeams(ctx, org.ID)
 }
 
 // GetMembers returns all members of organization.
@@ -147,8 +147,8 @@ func (org *Organization) GetMembers(ctx context.Context) (user_model.UserList, m
 }
 
 // HasMemberWithUserID returns true if user with userID is part of the u organisation.
-func (org *Organization) HasMemberWithUserID(userID int64) bool {
-	return org.hasMemberWithUserID(db.DefaultContext, userID)
+func (org *Organization) HasMemberWithUserID(ctx context.Context, userID int64) bool {
+	return org.hasMemberWithUserID(ctx, userID)
 }
 
 func (org *Organization) hasMemberWithUserID(ctx context.Context, userID int64) bool {
@@ -199,8 +199,8 @@ type FindOrgMembersOpts struct {
 }
 
 // CountOrgMembers counts the organization's members
-func CountOrgMembers(opts *FindOrgMembersOpts) (int64, error) {
-	sess := db.GetEngine(db.DefaultContext).Where("org_id=?", opts.OrgID)
+func CountOrgMembers(ctx context.Context, opts *FindOrgMembersOpts) (int64, error) {
+	sess := db.GetEngine(ctx).Where("org_id=?", opts.OrgID)
 	if opts.PublicOnly {
 		sess.And("is_public = ?", true)
 	}
@@ -271,7 +271,7 @@ func (org *Organization) UnitPermission(ctx context.Context, doer *user_model.Us
 }
 
 // CreateOrganization creates record of a new organization.
-func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
+func CreateOrganization(ctx context.Context, org *Organization, owner *user_model.User) (err error) {
 	if !owner.CanCreateOrganization() {
 		return ErrUserNotAllowedCreateOrg{}
 	}
@@ -280,7 +280,7 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 		return err
 	}
 
-	isExist, err := user_model.IsUserExist(db.DefaultContext, 0, org.Name)
+	isExist, err := user_model.IsUserExist(ctx, 0, org.Name)
 	if err != nil {
 		return err
 	} else if isExist {
@@ -300,7 +300,7 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 	org.NumMembers = 1
 	org.Type = user_model.UserTypeOrganization
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -412,9 +412,9 @@ func DeleteOrganization(ctx context.Context, org *Organization) error {
 }
 
 // GetOrgUserMaxAuthorizeLevel returns highest authorize level of user in an organization
-func (org *Organization) GetOrgUserMaxAuthorizeLevel(uid int64) (perm.AccessMode, error) {
+func (org *Organization) GetOrgUserMaxAuthorizeLevel(ctx context.Context, uid int64) (perm.AccessMode, error) {
 	var authorize perm.AccessMode
-	_, err := db.GetEngine(db.DefaultContext).
+	_, err := db.GetEngine(ctx).
 		Select("max(team.authorize)").
 		Table("team").
 		Join("INNER", "team_user", "team_user.team_id = team.id").
@@ -468,9 +468,9 @@ func (opts FindOrgOptions) toConds() builder.Cond {
 }
 
 // FindOrgs returns a list of organizations according given conditions
-func FindOrgs(opts FindOrgOptions) ([]*Organization, error) {
+func FindOrgs(ctx context.Context, opts FindOrgOptions) ([]*Organization, error) {
 	orgs := make([]*Organization, 0, 10)
-	sess := db.GetEngine(db.DefaultContext).
+	sess := db.GetEngine(ctx).
 		Where(opts.toConds()).
 		Asc("`user`.name")
 	if opts.Page > 0 && opts.PageSize > 0 {
@@ -480,8 +480,8 @@ func FindOrgs(opts FindOrgOptions) ([]*Organization, error) {
 }
 
 // CountOrgs returns total count organizations according options
-func CountOrgs(opts FindOrgOptions) (int64, error) {
-	return db.GetEngine(db.DefaultContext).
+func CountOrgs(ctx context.Context, opts FindOrgOptions) (int64, error) {
+	return db.GetEngine(ctx).
 		Where(opts.toConds()).
 		Count(new(Organization))
 }
@@ -505,13 +505,13 @@ func HasOrgOrUserVisible(ctx context.Context, orgOrUser, user *user_model.User) 
 }
 
 // HasOrgsVisible tells if the given user can see at least one of the orgs provided
-func HasOrgsVisible(orgs []*Organization, user *user_model.User) bool {
+func HasOrgsVisible(ctx context.Context, orgs []*Organization, user *user_model.User) bool {
 	if len(orgs) == 0 {
 		return false
 	}
 
 	for _, org := range orgs {
-		if HasOrgOrUserVisible(db.DefaultContext, org.AsUser(), user) {
+		if HasOrgOrUserVisible(ctx, org.AsUser(), user) {
 			return true
 		}
 	}
@@ -550,9 +550,9 @@ func GetOrgUsersByOrgID(ctx context.Context, opts *FindOrgMembersOpts) ([]*OrgUs
 }
 
 // ChangeOrgUserStatus changes public or private membership status.
-func ChangeOrgUserStatus(orgID, uid int64, public bool) error {
+func ChangeOrgUserStatus(ctx context.Context, orgID, uid int64, public bool) error {
 	ou := new(OrgUser)
-	has, err := db.GetEngine(db.DefaultContext).
+	has, err := db.GetEngine(ctx).
 		Where("uid=?", uid).
 		And("org_id=?", orgID).
 		Get(ou)
@@ -563,18 +563,18 @@ func ChangeOrgUserStatus(orgID, uid int64, public bool) error {
 	}
 
 	ou.IsPublic = public
-	_, err = db.GetEngine(db.DefaultContext).ID(ou.ID).Cols("is_public").Update(ou)
+	_, err = db.GetEngine(ctx).ID(ou.ID).Cols("is_public").Update(ou)
 	return err
 }
 
 // AddOrgUser adds new user to given organization.
-func AddOrgUser(orgID, uid int64) error {
-	isAlreadyMember, err := IsOrganizationMember(db.DefaultContext, orgID, uid)
+func AddOrgUser(ctx context.Context, orgID, uid int64) error {
+	isAlreadyMember, err := IsOrganizationMember(ctx, orgID, uid)
 	if err != nil || isAlreadyMember {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -669,19 +669,19 @@ func (org *Organization) getUserTeamIDs(ctx context.Context, userID int64) ([]in
 }
 
 // TeamsWithAccessToRepo returns all teams that have given access level to the repository.
-func (org *Organization) TeamsWithAccessToRepo(repoID int64, mode perm.AccessMode) ([]*Team, error) {
-	return GetTeamsWithAccessToRepo(db.DefaultContext, org.ID, repoID, mode)
+func (org *Organization) TeamsWithAccessToRepo(ctx context.Context, repoID int64, mode perm.AccessMode) ([]*Team, error) {
+	return GetTeamsWithAccessToRepo(ctx, org.ID, repoID, mode)
 }
 
 // GetUserTeamIDs returns of all team IDs of the organization that user is member of.
-func (org *Organization) GetUserTeamIDs(userID int64) ([]int64, error) {
-	return org.getUserTeamIDs(db.DefaultContext, userID)
+func (org *Organization) GetUserTeamIDs(ctx context.Context, userID int64) ([]int64, error) {
+	return org.getUserTeamIDs(ctx, userID)
 }
 
 // GetUserTeams returns all teams that belong to user,
 // and that the user has joined.
-func (org *Organization) GetUserTeams(userID int64) ([]*Team, error) {
-	return org.getUserTeams(db.DefaultContext, userID)
+func (org *Organization) GetUserTeams(ctx context.Context, userID int64) ([]*Team, error) {
+	return org.getUserTeams(ctx, userID)
 }
 
 // AccessibleReposEnvironment operations involving the repositories that are
@@ -733,11 +733,11 @@ func AccessibleReposEnv(ctx context.Context, org *Organization, userID int64) (A
 
 // AccessibleTeamReposEnv an AccessibleReposEnvironment for the repositories in `org`
 // that are accessible to the specified team.
-func (org *Organization) AccessibleTeamReposEnv(team *Team) AccessibleReposEnvironment {
+func (org *Organization) AccessibleTeamReposEnv(ctx context.Context, team *Team) AccessibleReposEnvironment {
 	return &accessibleReposEnv{
 		org:     org,
 		team:    team,
-		ctx:     db.DefaultContext,
+		ctx:     ctx,
 		orderBy: db.SearchOrderByRecentUpdated,
 	}
 }

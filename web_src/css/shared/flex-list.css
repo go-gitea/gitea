@@ -69,7 +69,6 @@
 }
 
 .flex-item .flex-item-body {
-  font-size: 13px;
   display: flex;
   align-items: center;
   flex-wrap: wrap;

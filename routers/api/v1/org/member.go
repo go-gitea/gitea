@@ -25,7 +25,7 @@ func listMembers(ctx *context.APIContext, publicOnly bool) {
 		ListOptions: utils.GetListOptions(ctx),
 	}
 
-	count, err := organization.CountOrgMembers(opts)
+	count, err := organization.CountOrgMembers(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -75,7 +75,7 @@ func ListMembers(ctx *context.APIContext) {
 
 	publicOnly := true
 	if ctx.Doer != nil {
-		isMember, err := ctx.Org.Organization.IsOrgMember(ctx.Doer.ID)
+		isMember, err := ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 			return
@@ -144,12 +144,12 @@ func IsMember(ctx *context.APIContext) {
 		return
 	}
 	if ctx.Doer != nil {
-		userIsMember, err := ctx.Org.Organization.IsOrgMember(ctx.Doer.ID)
+		userIsMember, err := ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 			return
 		} else if userIsMember || ctx.Doer.IsAdmin {
-			userToCheckIsMember, err := ctx.Org.Organization.IsOrgMember(userToCheck.ID)
+			userToCheckIsMember, err := ctx.Org.Organization.IsOrgMember(ctx, userToCheck.ID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 			} else if userToCheckIsMember {
@@ -194,7 +194,7 @@ func IsPublicMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	is, err := organization.IsPublicMembership(ctx.Org.Organization.ID, userToCheck.ID)
+	is, err := organization.IsPublicMembership(ctx, ctx.Org.Organization.ID, userToCheck.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsPublicMembership", err)
 		return
@@ -240,7 +240,7 @@ func PublicizeMember(ctx *context.APIContext) {
 		ctx.Error(http.StatusForbidden, "", "Cannot publicize another member")
 		return
 	}
-	err := organization.ChangeOrgUserStatus(ctx.Org.Organization.ID, userToPublicize.ID, true)
+	err := organization.ChangeOrgUserStatus(ctx, ctx.Org.Organization.ID, userToPublicize.ID, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ChangeOrgUserStatus", err)
 		return
@@ -282,7 +282,7 @@ func ConcealMember(ctx *context.APIContext) {
 		ctx.Error(http.StatusForbidden, "", "Cannot conceal another member")
 		return
 	}
-	err := organization.ChangeOrgUserStatus(ctx.Org.Organization.ID, userToConceal.ID, false)
+	err := organization.ChangeOrgUserStatus(ctx, ctx.Org.Organization.ID, userToConceal.ID, false)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ChangeOrgUserStatus", err)
 		return
