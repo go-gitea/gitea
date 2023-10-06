@@ -970,10 +970,8 @@ func NewIssue(ctx *context.Context) {
 
 	_, templateErrs := issue_service.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	templateLoaded, errs := setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
-	if len(errs) > 0 {
-		for k, v := range errs {
-			templateErrs[k] = v
-		}
+	for k, v := range errs {
+		templateErrs[k] = v
 	}
 	if ctx.Written() {
 		return
