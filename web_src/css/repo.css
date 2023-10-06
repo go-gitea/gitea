@@ -77,6 +77,12 @@
   width: 300px;
 }
 
+.ui.issue-content-right {
+  align-self: flex-start;
+  position: sticky;
+  top: 10px;
+}
+
 @media (max-width: 767.98px) {
   .issue-content-left,
   .issue-content-right {
