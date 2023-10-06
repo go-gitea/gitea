@@ -458,6 +458,7 @@ github.com/go-swagger/scan-repo-boundary v0.0.0-20180623220736-973b3573c013/go.m
 github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0/go.mod h1:fyg7847qk6SyHyPtNmDHnmrv/HOrqktSC+C9fM+CJOE=
 github.com/go-test/deep v1.0.7 h1:/VSMRlnY/JSyqxQUzQLKVMAskpY/NZKFA5j2P+0pP2M=
 github.com/go-test/deep v1.0.7/go.mod h1:QV8Hv/iy04NyLBxAdO9njL0iVPN1S4d/A3NVv1V36o8=
+github.com/go-test/deep v1.1.0 h1:WOcxcdHcvdgThNXjw0t76K42FXTU7HpNQWHpA2HHNlg=
 github.com/go-testfixtures/testfixtures/v3 v3.9.0 h1:938g5V+GWLVejm3Hc+nWCuEXRlcglZDDlN/t1gWzcSY=
 github.com/go-testfixtures/testfixtures/v3 v3.9.0/go.mod h1:cdsKD2ApFBjdog9jRsz6EJqF+LClq/hrwE9K/1Dzo4s=
 github.com/go-webauthn/webauthn v0.8.6 h1:bKMtL1qzd2WTFkf1mFTVbreYrwn7dsYmEPjTq6QN90E=
@@ -717,6 +718,8 @@ github.com/jessevdk/go-flags v1.5.0 h1:1jKYvbxEjfUl0fmqTCOfonvskHHXMjBySTLW4y9LF
 github.com/jessevdk/go-flags v1.5.0/go.mod h1:Fw0T6WPc1dYxT4mKEZRfG5kJhaTDP9pj1c2EWnYs/m4=
 github.com/jhillyerd/enmime v1.0.0 h1:8swYgO1fm68PllCKz5jiLzgD3axNUS388jr6BtRSsl8=
 github.com/jhillyerd/enmime v1.0.0/go.mod h1:EktNOa/V6ka9yCrfoB2uxgefp1lno6OVdszW0iQ5LnM=
+github.com/jhillyerd/enmime v1.0.1 h1:y6RyqIgBOI2hIinOXIzmeB+ITRVls0zTJIm5GwgXnjE=
+github.com/jhillyerd/enmime v1.0.1/go.mod h1:LMMbm6oTlzWHghPavqHtOrP/NosVv3l42CUrZjn03/Q=
 github.com/joho/godotenv v1.3.0/go.mod h1:7hK45KPybAkOC6peb+G5yklZfMxEjkZhHbwpqxOKXbg=
 github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
 github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
