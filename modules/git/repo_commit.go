@@ -116,17 +116,13 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) ([]*Co
 		c.AddArguments("-i")
 
 		// add authors if present in search query
-		if len(opts.Authors) > 0 {
-			for _, v := range opts.Authors {
-				c.AddOptionFormat("--author=%s", v)
-			}
+		for _, v := range opts.Authors {
+			c.AddOptionFormat("--author=%s", v)
 		}
 
 		// add committers if present in search query
-		if len(opts.Committers) > 0 {
-			for _, v := range opts.Committers {
-				c.AddOptionFormat("--committer=%s", v)
-			}
+		for _, v := range opts.Committers {
+			c.AddOptionFormat("--committer=%s", v)
 		}
 
 		// add time constraints if present in search query
@@ -150,10 +146,8 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) ([]*Co
 
 	// add remaining keywords from search string
 	// note this is done only for command created above
-	if len(opts.Keywords) > 0 {
-		for _, v := range opts.Keywords {
-			cmd.AddOptionFormat("--grep=%s", v)
-		}
+	for _, v := range opts.Keywords {
+		cmd.AddOptionFormat("--grep=%s", v)
 	}
 
 	// search for commits matching given constraints and keywords in commit msg
@@ -168,25 +162,23 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) ([]*Co
 
 	// if there are any keywords (ie not committer:, author:, time:)
 	// then let's iterate over them
-	if len(opts.Keywords) > 0 {
-		for _, v := range opts.Keywords {
-			// ignore anything not matching a valid sha pattern
-			if IsValidSHAPattern(v) {
-				// create new git log command with 1 commit limit
-				hashCmd := NewCommand(repo.Ctx, "log", "-1", prettyLogFormat)
-				// add previous arguments except for --grep and --all
-				addCommonSearchArgs(hashCmd)
-				// add keyword as <commit>
-				hashCmd.AddDynamicArguments(v)
+	for _, v := range opts.Keywords {
+		// ignore anything not matching a valid sha pattern
+		if IsValidSHAPattern(v) {
+			// create new git log command with 1 commit limit
+			hashCmd := NewCommand(repo.Ctx, "log", "-1", prettyLogFormat)
+			// add previous arguments except for --grep and --all
+			addCommonSearchArgs(hashCmd)
+			// add keyword as <commit>
+			hashCmd.AddDynamicArguments(v)
 
-				// search with given constraints for commit matching sha hash of v
-				hashMatching, _, err := hashCmd.RunStdBytes(&RunOpts{Dir: repo.Path})
-				if err != nil || bytes.Contains(stdout, hashMatching) {
-					continue
-				}
-				stdout = append(stdout, hashMatching...)
-				stdout = append(stdout, '\n')
+			// search with given constraints for commit matching sha hash of v
+			hashMatching, _, err := hashCmd.RunStdBytes(&RunOpts{Dir: repo.Path})
+			if err != nil || bytes.Contains(stdout, hashMatching) {
+				continue
 			}
+			stdout = append(stdout, hashMatching...)
+			stdout = append(stdout, '\n')
 		}
 	}
 
