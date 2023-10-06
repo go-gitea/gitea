@@ -7,6 +7,7 @@ jobs:
   triage:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       # FIXME: https://github.com/jlumbroso/free-disk-space/issues/17
       - name: same as 'large-packages' but without 'google-cloud-sdk'
         shell: bash
