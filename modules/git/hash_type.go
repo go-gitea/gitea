@@ -7,6 +7,7 @@ type Hash interface {
 	String() string
 	IsZero() bool
 	HashType() HashType
+	Bytes() []byte
 }
 
 type HashType interface {
@@ -16,4 +17,8 @@ type HashType interface {
 	IsValid(sha string) bool
 	NewHashFromBytes(b []byte) Hash
 	EmptyHash() Hash
+}
+
+func (repo *Repository) MustHashFromString(s string) Hash {
+	return MustHashFromStringByType(repo.HashType, s)
 }

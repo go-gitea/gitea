@@ -23,6 +23,10 @@ func (s SHA1) String() string {
 	return hex.EncodeToString(s[:])
 }
 
+func (s SHA1) Bytes() []byte {
+	return s[:]
+}
+
 // IsZero returns whether this SHA1 is all zeroes
 func (s SHA1) IsZero() bool {
 	var empty SHA1

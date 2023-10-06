@@ -76,6 +76,14 @@ func NewHashFromStringByType(ht HashType, s string) (Hash, error) {
 	return ht.NewHashFromBytes(b), nil
 }
 
+func MustHashFromStringByType(ht HashType, s string) Hash {
+	id, err := NewHashFromStringByType(ht, s)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
 // NewIDFromString creates a new SHA1 from a ID string of length 40.
 func NewIDFromString(s string) (Hash, error) {
 	s = strings.TrimSpace(s)
@@ -87,4 +95,12 @@ func NewIDFromString(s string) (Hash, error) {
 	default:
 		return nil, fmt.Errorf("Length must be 40 or 64: %s", s)
 	}
+}
+
+func MustIDFromString(s string) Hash {
+	id, err := NewIDFromString(s)
+	if err != nil {
+		panic(err)
+	}
+	return id
 }

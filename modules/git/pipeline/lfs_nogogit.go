@@ -24,7 +24,7 @@ type LFSResult struct {
 	SHA            string
 	Summary        string
 	When           time.Time
-	ParentHashes   []git.SHA1
+	ParentHashes   []git.Hash
 	BranchName     string
 	FullCommitName string
 }
@@ -36,7 +36,7 @@ func (a lfsResultSlice) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a lfsResultSlice) Less(i, j int) bool { return a[j].When.After(a[i].When) }
 
 // FindLFSFile finds commits that contain a provided pointer file hash
-func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
+func FindLFSFile(repo *git.Repository, hash git.Hash) ([]*LFSResult, error) {
 	resultsMap := map[string]*LFSResult{}
 	results := make([]*LFSResult, 0)
 
@@ -136,7 +136,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 						return nil, err
 					}
 					n += int64(count)
-					if bytes.Equal(sha20byte, hash[:]) {
+					if bytes.Equal(sha20byte, hash.Bytes()) {
 						result := LFSResult{
 							Name:         curPath + string(fname),
 							SHA:          curCommit.ID.String(),

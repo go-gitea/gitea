@@ -109,7 +109,7 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 }
 
 // AddObjectToIndex adds the provided object hash to the index at the provided filename
-func (repo *Repository) AddObjectToIndex(mode string, object SHA1, filename string) error {
+func (repo *Repository) AddObjectToIndex(mode string, object Hash, filename string) error {
 	cmd := NewCommand(repo.Ctx, "update-index", "--add", "--replace", "--cacheinfo").AddDynamicArguments(mode, object.String(), filename)
 	_, _, err := cmd.RunStdString(&RunOpts{Dir: repo.Path})
 	return err

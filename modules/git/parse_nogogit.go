@@ -127,7 +127,7 @@ loop:
 			return nil, fmt.Errorf("unknown mode: %v", string(mode))
 		}
 
-		entry.ID = MustID(sha)
+		entry.ID = ptree.repo.HashType.NewHashFromBytes(sha)
 		entry.name = string(fname)
 		entries = append(entries, entry)
 	}

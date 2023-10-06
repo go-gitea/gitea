@@ -20,6 +20,10 @@ func (s SHA256) String() string {
 	return hex.EncodeToString(s[:])
 }
 
+func (s SHA256) Bytes() []byte {
+	return s[:]
+}
+
 // IsZero returns whether this SHA1 is all zeroes
 func (s SHA256) IsZero() bool {
 	var empty SHA256
