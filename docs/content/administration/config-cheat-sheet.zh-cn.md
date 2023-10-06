@@ -102,7 +102,7 @@ menu:
 - `ENABLE_PUSH_CREATE_USER`:  **false**: 允许用户将本地存储库推送到Gitea，并为用户自动创建它们。
 - `ENABLE_PUSH_CREATE_ORG`:  **false**:  允许用户将本地存储库推送到Gitea，并为组织自动创建它们。
 - `DISABLED_REPO_UNITS`: **_empty_**: 逗号分隔的全局禁用的仓库单元列表。允许的值是：: \[repo.issues, repo.ext_issues, repo.pulls, repo.wiki, repo.ext_wiki, repo.projects, repo.packages, repo.actions\]
-- `DEFAULT_REPO_UNITS`: **repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki,repo.projects,repo.packages**: 逗号分隔的默认新仓库单元列表。允许的值是：: \[repo.code, repo.releases, repo.issues, repo.pulls, repo.wiki, repo.projects, repo.packages, repo.actions\]. 注意：目前无法停用代码和发布。如果您指定了默认的仓库单元，您仍应将它们列出以保持未来的兼容性。外部wiki和问题跟踪器不能默认启用，因为它需要额外的设置。禁用的仓库单元将不会添加到新的仓库中，无论它是否在默认列表中。
+- `DEFAULT_REPO_UNITS`: **repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki,repo.projects,repo.packages,repo.actions**: 逗号分隔的默认新仓库单元列表。允许的值是：: \[repo.code, repo.releases, repo.issues, repo.pulls, repo.wiki, repo.projects, repo.packages, repo.actions\]. 注意：目前无法停用代码和发布。如果您指定了默认的仓库单元，您仍应将它们列出以保持未来的兼容性。外部wiki和问题跟踪器不能默认启用，因为它需要额外的设置。禁用的仓库单元将不会添加到新的仓库中，无论它是否在默认列表中。
 - `DEFAULT_FORK_REPO_UNITS`: **repo.code,repo.pulls**: 逗号分隔的默认分叉仓库单元列表。允许的值和规则与`DEFAULT_REPO_UNITS`相同。
 - `PREFIX_ARCHIVE_FILES`: **true**: 通过将存档文件放置在以仓库命名的目录中来添加前缀。
 - `DISABLE_MIGRATIONS`: **false**: 禁用迁移功能。
