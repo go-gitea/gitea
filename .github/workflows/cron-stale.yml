@@ -35,8 +35,6 @@ jobs:
           exemptProjects: false
           exemptMilestones: false
           limitPerRun: 1
-  
-          # Optionally, specify configuration settings that are specific to just 'pulls':
           pullsDaysBeforeStale: 60
           pullsDaysBeforeClose: 60
           pullsStaleIssueComment: >
