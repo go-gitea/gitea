@@ -49,7 +49,7 @@ func TestCreateRepositoryNotice(t *testing.T) {
 
 func TestCountNotices(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	assert.Equal(t, int64(3), system.CountNotices())
+	assert.Equal(t, int64(3), system.CountNotices(db.DefaultContext))
 }
 
 func TestNotices(t *testing.T) {
