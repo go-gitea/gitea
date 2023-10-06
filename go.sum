@@ -291,6 +291,8 @@ github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+m
 github.com/dvyukov/go-fuzz v0.0.0-20210429054444-fca39067bc72/go.mod h1:11Gm+ccJnvAhCNLlf5+cS9KjtbaD5I5zaZpFMsTHWTw=
 github.com/editorconfig/editorconfig-core-go/v2 v2.5.2 h1:Z/G8cwnwOzGgTtvTutUhWPJ1ySUzuermioYMra7TuDQ=
 github.com/editorconfig/editorconfig-core-go/v2 v2.5.2/go.mod h1:DoNm5QtDjTkizv0Oo1O+OJ92feoyUz3V4StZpOmP69E=
+github.com/editorconfig/editorconfig-core-go/v2 v2.6.0 h1:5O8paxMLmi/5ONoKXzWNYxoSZU7+ITVbGcPga0IrzfE=
+github.com/editorconfig/editorconfig-core-go/v2 v2.6.0/go.mod h1:hdTKe+hwa3mMnMn4JUQziT+yc3pF+6EVmK2LPbLZthE=
 github.com/edsrzf/mmap-go v1.0.0/go.mod h1:YO35OhQPt3KJa3ryjFM5Bs14WD66h8eGKpfaBNrHW5M=
 github.com/elazarl/go-bindata-assetfs v1.0.1/go.mod h1:v+YaWX3bdea5J/mo8dSETolEo7R71Vk1u8bnjau5yw4=
 github.com/elazarl/goproxy v0.0.0-20221015165544-a0805db90819 h1:RIB4cRk+lBqKK3Oy0r2gRX4ui7tuhiZq2SuTtTCi0/0=
