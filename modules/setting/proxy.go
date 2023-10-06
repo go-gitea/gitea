@@ -6,9 +6,9 @@ package setting
 import (
 	"net/url"
 
-	"github.com/gobwas/glob"
-
 	"code.gitea.io/gitea/modules/log"
+
+	"github.com/gobwas/glob"
 )
 
 // Proxy settings

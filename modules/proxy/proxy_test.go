@@ -9,9 +9,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetProxyURL(t *testing.T) {
@@ -48,5 +48,4 @@ func TestGetProxyURL(t *testing.T) {
 	proxyURL, err = Proxy()(req)
 	assert.Nil(t, err)
 	assert.Nil(t, proxyURL) // not in PROXY_HOSTS, from env, ignored by no_proxy
-
 }

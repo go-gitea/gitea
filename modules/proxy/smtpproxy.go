@@ -5,15 +5,17 @@ package proxy
 
 import (
 	"bufio"
-	"code.gitea.io/gitea/modules/setting"
-	"golang.org/x/net/proxy"
 	"net"
 	"net/http"
 	"net/url"
+
+	"code.gitea.io/gitea/modules/setting"
+
+	"golang.org/x/net/proxy"
 )
 
 // SMTPConn create socks5 or https proxy
-func SMTPConn(network string, addr string) (net.Conn, error) {
+func SMTPConn(network, addr string) (net.Conn, error) {
 	cfg := setting.Proxy
 	if !cfg.Enabled || !cfg.SMTPProxyEnabled {
 		return proxy.Direct.Dial("tcp", addr)

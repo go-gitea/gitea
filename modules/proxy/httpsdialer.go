@@ -6,10 +6,11 @@ package proxy
 import (
 	"bufio"
 	"fmt"
-	"golang.org/x/net/proxy"
 	"net"
 	"net/http"
 	"net/url"
+
+	"golang.org/x/net/proxy"
 )
 
 // httpProxy is a HTTPS connect proxy.
