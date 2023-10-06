@@ -61,7 +61,7 @@ require (
 	github.com/gorilla/feeds v1.1.1
 	github.com/gorilla/sessions v1.2.1
 	github.com/hashicorp/go-version v1.6.0
-	github.com/hashicorp/golang-lru/v2 v2.0.6
+	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/huandu/xstrings v1.4.0
 	github.com/jaytaylor/html2text v0.0.0-20230321000545-74c2419ad056
 	github.com/jhillyerd/enmime v1.0.0
