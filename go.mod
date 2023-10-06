@@ -74,7 +74,7 @@ require (
 	github.com/markbates/goth v1.78.0
 	github.com/mattn/go-isatty v0.0.19
 	github.com/mattn/go-sqlite3 v1.14.17
-	github.com/meilisearch/meilisearch-go v0.25.0
+	github.com/meilisearch/meilisearch-go v0.25.1
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/microcosm-cc/bluemonday v1.0.25
 	github.com/minio/minio-go/v7 v7.0.63
@@ -276,7 +276,7 @@ require (
 	github.com/toqueteos/webbrowser v1.2.0 // indirect
 	github.com/unknwon/com v1.0.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v1.49.0 // indirect
+	github.com/valyala/fasthttp v1.50.0 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
