@@ -337,8 +337,12 @@ github.com/glycerine/go-unsnap-stream v0.0.0-20181221182339-f9677308dec2/go.mod 
 github.com/glycerine/goconvey v0.0.0-20190410193231-58a59202ab31/go.mod h1:Ogl1Tioa0aV7gstGFO7KhffUsb9M4ydbEbbxpcEDc24=
 github.com/go-ap/activitypub v0.0.0-20230807182453-602f717f6ca3 h1:Lxp2XxNZ+2bqlpJbKeQme5kMf9NqPJQB1l2eZLJ7W/A=
 github.com/go-ap/activitypub v0.0.0-20230807182453-602f717f6ca3/go.mod h1:qw0WNf+PTG69Xu6mVqUluDuKl1VwVYdgntOZQFBZQ48=
+github.com/go-ap/activitypub v0.0.0-20231003111253-1fba3772399b h1:VLD6IPBDkqEsOZ+EfLO6MayuHycZ0cv4BStTlRoZduo=
+github.com/go-ap/activitypub v0.0.0-20231003111253-1fba3772399b/go.mod h1:cJ9Ye0ZNSMN7RzZDBRY3E+8M3Bpf/R1JX22Ir9yX6WI=
 github.com/go-ap/errors v0.0.0-20221205040414-01c1adfc98ea h1:ywGtLGVjJjMrq4mu35Qmu+NtlhlTk/gTayE6Bb4tQZk=
 github.com/go-ap/errors v0.0.0-20221205040414-01c1adfc98ea/go.mod h1:SaTNjEEkp0q+w3pUS1ccyEL/lUrHteORlDq/e21mCc8=
+github.com/go-ap/errors v0.0.0-20231003111023-183eef4b31b7 h1:I2nuhyVI/48VXoRCCZR2hYBgnSXa+EuDJf/VyX06TC0=
+github.com/go-ap/errors v0.0.0-20231003111023-183eef4b31b7/go.mod h1:5x8a6P/dhmMGFxWLcyYlyOuJ2lRNaHGhRv+yu8BaTSI=
 github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73 h1:GMKIYXyXPGIp+hYiWOhfqK4A023HdgisDT4YGgf99mw=
 github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73/go.mod h1:jyveZeGw5LaADntW+UEsMjl3IlIwk+DxlYNsbofQkGA=
 github.com/go-asn1-ber/asn1-ber v1.5.4 h1:vXT6d/FNDiELJnLb6hGNa309LMsrCoYFvpwHDF0+Y1A=
