@@ -86,5 +86,6 @@ Gitea 引用 `custom` 目录中的自定义配置文件来覆盖配置、模板�
 
 ## 更改 Gitea 外观
 
-Gitea 目前由两种内置主题，分别为默认 `gitea` 主题和深色主题 `arc-green`，您可以通过修改
-`app.ini` [ui](administration/config-cheat-sheet.md#ui-ui) 部分的 `DEFAULT_THEME` 的值来变更至一个可用的 Gitea 外观。
+内置主题是“gitea-light”、“gitea-dark”和“gitea-auto”（自动适应操作系统设置）。
+
+默认主题可以通过 `app.ini` 的 [ui](administration/config-cheat-sheet.md#ui-ui) 部分中的 `DEFAULT_THEME` 进行更改。
