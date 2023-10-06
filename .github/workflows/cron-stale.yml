@@ -1,4 +1,4 @@
-name: Stale Issues and Pull Requests
+name: cron-stale
 
 on:
   schedule:
