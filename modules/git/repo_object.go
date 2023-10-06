@@ -32,10 +32,10 @@ func (o ObjectType) Bytes() []byte {
 }
 
 // HashObject takes a reader and returns SHA1 hash for that reader
-func (repo *Repository) HashObject(reader io.Reader) (SHA1, error) {
+func (repo *Repository) HashObject(reader io.Reader) (Hash, error) {
 	idStr, err := repo.hashObject(reader)
 	if err != nil {
-		return SHA1{}, err
+		return nil, err
 	}
 	return NewIDFromString(idStr)
 }

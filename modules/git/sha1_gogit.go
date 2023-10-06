@@ -13,6 +13,8 @@ import (
 // SHA1 a git commit name
 type SHA1 = plumbing.Hash
 
+var _ Hash = SHA1{}
+
 // ComputeBlobHash compute the hash for a given blob content
 func ComputeBlobHash(content []byte) SHA1 {
 	return plumbing.ComputeHash(plumbing.BlobObject, content)

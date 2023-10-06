@@ -21,13 +21,13 @@ import (
 // Commit represents a git commit.
 type Commit struct {
 	Tree
-	ID            SHA1 // The ID of this commit object
+	ID            Hash // The ID of this commit object
 	Author        *Signature
 	Committer     *Signature
 	CommitMessage string
 	Signature     *CommitGPGSignature
 
-	Parents        []SHA1 // SHA1 strings
+	Parents        []Hash // SHA1 strings
 	submoduleCache *ObjectCache
 }
 
@@ -49,7 +49,7 @@ func (c *Commit) Summary() string {
 
 // ParentID returns oid of n-th parent (0-based index).
 // It returns nil if no such parent exists.
-func (c *Commit) ParentID(n int) (SHA1, error) {
+func (c *Commit) ParentID(n int) (Hash, error) {
 	if n >= len(c.Parents) {
 		return SHA1{}, ErrNotExist{"", ""}
 	}
@@ -208,7 +208,7 @@ func (c *Commit) CommitsBefore() ([]*Commit, error) {
 }
 
 // HasPreviousCommit returns true if a given commitHash is contained in commit's parents
-func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
+func (c *Commit) HasPreviousCommit(commitHash Hash) (bool, error) {
 	this := c.ID.String()
 	that := commitHash.String()
 
@@ -231,7 +231,7 @@ func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
 
 // IsForcePush returns true if a push from oldCommitHash to this is a force push
 func (c *Commit) IsForcePush(oldCommitID string) (bool, error) {
-	if oldCommitID == EmptySHA {
+	if oldCommitID == c.ID.HashType().Empty() {
 		return false, nil
 	}
 	oldCommit, err := c.repo.GetCommit(oldCommitID)

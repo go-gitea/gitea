@@ -13,8 +13,8 @@ import (
 
 // Tree represents a flat directory listing.
 type Tree struct {
-	ID         SHA1
-	ResolvedID SHA1
+	ID         Hash
+	ResolvedID Hash
 	repo       *Repository
 
 	// parent tree

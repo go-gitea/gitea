@@ -17,8 +17,8 @@ const (
 // Tag represents a Git tag.
 type Tag struct {
 	Name      string
-	ID        SHA1
-	Object    SHA1 // The id of this commit object
+	ID        Hash
+	Object    Hash // The id of this commit object
 	Type      string
 	Tagger    *Signature
 	Message   string

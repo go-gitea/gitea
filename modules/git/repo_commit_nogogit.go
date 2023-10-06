@@ -65,7 +65,7 @@ func (repo *Repository) IsCommitExist(name string) bool {
 	return err == nil
 }
 
-func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
+func (repo *Repository) getCommit(id Hash) (*Commit, error) {
 	wr, rd, cancel := repo.CatFileBatch(repo.Ctx)
 	defer cancel()
 
@@ -74,7 +74,7 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 	return repo.getCommitFromBatchReader(rd, id)
 }
 
-func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id SHA1) (*Commit, error) {
+func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id Hash) (*Commit, error) {
 	_, typ, size, err := ReadBatchLine(rd)
 	if err != nil {
 		if errors.Is(err, io.EOF) || IsErrNotExist(err) {
@@ -131,12 +131,12 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id SHA1) (*Co
 	}
 }
 
-// ConvertToSHA1 returns a Hash object from a potential ID string
-func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
-	if len(commitID) == SHAFullLength && IsValidSHAPattern(commitID) {
-		sha1, err := NewIDFromString(commitID)
+// ConvertToHash returns a Hash object from a potential ID string
+func (repo *Repository) ConvertToHash(commitID string) (Hash, error) {
+	if len(commitID) == repo.HashType.FullLength() && repo.HashType.IsValid(commitID) {
+		hash, err := NewIDFromString(commitID)
 		if err == nil {
-			return sha1, nil
+			return hash, nil
 		}
 	}
 
@@ -154,5 +154,5 @@ func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
 		return SHA1{}, err
 	}
 
-	return MustIDFromString(string(sha)), nil
+	return NewIDFromString(string(sha))
 }

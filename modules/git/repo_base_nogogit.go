@@ -33,6 +33,8 @@ type Repository struct {
 
 	Ctx             context.Context
 	LastCommitCache *LastCommitCache
+
+	HashType HashType
 }
 
 // openRepositoryWithDefaultContext opens the repository at the given path with DefaultContext.

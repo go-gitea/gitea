@@ -16,7 +16,7 @@ import (
 
 // ReadTreeToIndex reads a treeish to the index
 func (repo *Repository) ReadTreeToIndex(treeish string, indexFilename ...string) error {
-	if len(treeish) != SHAFullLength {
+	if len(treeish) != repo.HashType.FullLength() {
 		res, _, err := NewCommand(repo.Ctx, "rev-parse", "--verify").AddDynamicArguments(treeish).RunStdString(&RunOpts{Dir: repo.Path})
 		if err != nil {
 			return err
@@ -32,7 +32,7 @@ func (repo *Repository) ReadTreeToIndex(treeish string, indexFilename ...string)
 	return repo.readTreeToIndex(id, indexFilename...)
 }
 
-func (repo *Repository) readTreeToIndex(id SHA1, indexFilename ...string) error {
+func (repo *Repository) readTreeToIndex(id Hash, indexFilename ...string) error {
 	var env []string
 	if len(indexFilename) > 0 {
 		env = append(os.Environ(), "GIT_INDEX_FILE="+indexFilename[0])

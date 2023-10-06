@@ -9,7 +9,7 @@ import (
 	"io"
 )
 
-func (repo *Repository) getTree(id SHA1) (*Tree, error) {
+func (repo *Repository) getTree(id Hash) (*Tree, error) {
 	wr, rd, cancel := repo.CatFileBatch(repo.Ctx)
 	defer cancel()
 
@@ -66,7 +66,7 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 
 // GetTree find the tree object in the repository.
 func (repo *Repository) GetTree(idStr string) (*Tree, error) {
-	if len(idStr) != SHAFullLength {
+	if len(idStr) != repo.HashType.FullLength() {
 		res, err := repo.GetRefCommitID(idStr)
 		if err != nil {
 			return nil, err
