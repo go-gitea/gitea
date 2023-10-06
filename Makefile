@@ -51,7 +51,7 @@ endif
 
 ifeq ($(GOOS),windows)
 	IS_WINDOWS := yes
-else ifeq ($(findstring Windows,$(OS)),Windows)
+else ifeq ($(patsubst Windows%,Windows,$(OS)),Windows)
 	ifeq ($(GOOS),)
 		IS_WINDOWS := yes
 	endif
