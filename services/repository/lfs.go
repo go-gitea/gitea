@@ -84,7 +84,7 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 			return errStop
 		}
 		total++
-		pointerSha := git.ComputeBlobHash([]byte(metaObject.Pointer.StringContent()))
+		pointerSha := git.ComputeBlobHash(gitRepo.HashType, []byte(metaObject.Pointer.StringContent()))
 
 		if gitRepo.IsObjectExist(pointerSha.String()) {
 			return git_model.MarkLFSMetaObject(ctx, metaObject.ID)

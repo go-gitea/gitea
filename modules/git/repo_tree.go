@@ -61,7 +61,7 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 		Stderr: stderr,
 	})
 	if err != nil {
-		return SHA1{}, ConcatenateError(err, stderr.String())
+		return nil, ConcatenateError(err, stderr.String())
 	}
 	return NewIDFromString(strings.TrimSpace(stdout.String()))
 }

@@ -4,8 +4,10 @@
 package git
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"regexp"
+	"strconv"
 )
 
 // EmptySHA256 defines empty git SHA (undefined, non-existent)
@@ -55,4 +57,18 @@ func (ht Sha256HashType) NewHashFromBytes(b []byte) Hash {
 func (ht Sha256HashType) EmptyHash() Hash {
 	b, _ := hex.DecodeString(ht.Empty())
 	return ht.NewHashFromBytes(b)
+}
+
+// ComputeHash compute the hash for a given ObjectType and content
+func (ht Sha256HashType) ComputeHash(t ObjectType, content []byte) Hash {
+	h := sha256.New()
+	_, _ = h.Write(t.Bytes())
+	_, _ = h.Write([]byte(" "))
+	_, _ = h.Write([]byte(strconv.FormatInt(int64(len(content)), 10)))
+	_, _ = h.Write([]byte{0})
+	_, _ = h.Write(content)
+
+	var sha256 SHA256
+	copy(sha256[:], h.Sum(nil))
+	return sha256
 }

@@ -17,6 +17,7 @@ type HashType interface {
 	IsValid(sha string) bool
 	NewHashFromBytes(b []byte) Hash
 	EmptyHash() Hash
+	ComputeHash(t ObjectType, content []byte) Hash
 }
 
 func (repo *Repository) MustHashFromString(s string) Hash {

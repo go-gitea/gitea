@@ -172,7 +172,7 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 	var headBranch string
 	if pr.Flow == issues_model.PullRequestFlowGithub {
 		headBranch = git.BranchPrefix + pr.HeadBranch
-	} else if len(pr.HeadCommitID) == git.SHAFullLength { // for not created pull request
+	} else if len(pr.HeadCommitID) == git.SHA1FullLength || len(pr.HeadCommitID) == git.SHA256FullLength { // for not created pull request
 		headBranch = pr.HeadCommitID
 	} else {
 		headBranch = pr.GetGitRefName()

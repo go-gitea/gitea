@@ -202,7 +202,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		if opts.LastCommitID == "" {
 			opts.LastCommitID = commit.ID.String()
 		} else {
-			lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
+			lastCommitID, err := t.gitRepo.ConvertToHash(opts.LastCommitID)
 			if err != nil {
 				return nil, fmt.Errorf("ConvertToSHA1: Invalid last commit ID: %w", err)
 			}

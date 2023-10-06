@@ -51,7 +51,7 @@ func (c *Commit) Summary() string {
 // It returns nil if no such parent exists.
 func (c *Commit) ParentID(n int) (Hash, error) {
 	if n >= len(c.Parents) {
-		return SHA1{}, ErrNotExist{"", ""}
+		return nil, ErrNotExist{"", ""}
 	}
 	return c.Parents[n], nil
 }

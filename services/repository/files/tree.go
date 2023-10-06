@@ -49,7 +49,7 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	copy(treeURL[apiURLLen:], "/git/trees/")
 
 	// 40 is the size of the sha1 hash in hexadecimal format.
-	copyPos := len(treeURL) - git.SHAFullLength
+	copyPos := len(treeURL) - gitRepo.HashType.FullLength()
 
 	if perPage <= 0 || perPage > setting.API.DefaultGitTreesPerPage {
 		perPage = setting.API.DefaultGitTreesPerPage

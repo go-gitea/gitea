@@ -5,9 +5,11 @@
 package git
 
 import (
+	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -58,6 +60,20 @@ func (ht Sha1HashType) NewHashFromBytes(b []byte) Hash {
 func (ht Sha1HashType) EmptyHash() Hash {
 	b, _ := hex.DecodeString(ht.Empty())
 	return ht.NewHashFromBytes(b)
+}
+
+// ComputeHash compute the hash for a given ObjectType and content
+func (ht Sha1HashType) ComputeHash(t ObjectType, content []byte) Hash {
+	h := sha1.New()
+	_, _ = h.Write(t.Bytes())
+	_, _ = h.Write([]byte(" "))
+	_, _ = h.Write([]byte(strconv.FormatInt(int64(len(content)), 10)))
+	_, _ = h.Write([]byte{0})
+	_, _ = h.Write(content)
+
+	var sha1 SHA1
+	copy(sha1[:], h.Sum(nil))
+	return sha1
 }
 
 type ErrInvalidSHA struct {

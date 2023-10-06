@@ -144,14 +144,14 @@ func (repo *Repository) ConvertToHash(commitID string) (Hash, error) {
 	defer cancel()
 	_, err := wr.Write([]byte(commitID + "\n"))
 	if err != nil {
-		return SHA1{}, err
+		return nil, err
 	}
 	sha, _, _, err := ReadBatchLine(rd)
 	if err != nil {
 		if IsErrNotExist(err) {
-			return SHA1{}, ErrNotExist{commitID, ""}
+			return nil, ErrNotExist{commitID, ""}
 		}
-		return SHA1{}, err
+		return nil, err
 	}
 
 	return NewIDFromString(string(sha))

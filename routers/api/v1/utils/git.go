@@ -69,7 +69,7 @@ func searchRefCommitByType(ctx *context.APIContext, refType, filter string) (str
 	return "", "", nil
 }
 
-// ConvertToSHA1 returns a full-length SHA1 from a potential ID string
+// ConvertToSHA1 returns a full-length Hash from a potential ID string
 func ConvertToHash(ctx gocontext.Context, repo *context.Repository, commitID string) (git.Hash, error) {
 	if len(commitID) == repo.GitRepo.HashType.FullLength() && repo.GitRepo.HashType.IsValid(commitID) {
 		sha1, err := git.NewIDFromString(commitID)
@@ -80,14 +80,14 @@ func ConvertToHash(ctx gocontext.Context, repo *context.Repository, commitID str
 
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.Repository.RepoPath())
 	if err != nil {
-		return git.SHA1{}, fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
+		return nil, fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
 	}
 	defer closer.Close()
 
 	return gitRepo.ConvertToHash(commitID)
 }
 
-// MustConvertToHash returns a full-length SHA1 string from a potential ID string, or returns origin input if it can't convert to SHA1
+// MustConvertToHash returns a full-length Hash string from a potential ID string, or returns origin input if it can't convert to Hash
 func MustConvertToHash(ctx gocontext.Context, repo *context.Repository, commitID string) string {
 	sha, err := ConvertToHash(ctx, repo, commitID)
 	if err != nil {

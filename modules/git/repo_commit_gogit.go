@@ -51,9 +51,9 @@ func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
 	if err != nil {
 		if strings.Contains(err.Error(), "unknown revision or path") ||
 			strings.Contains(err.Error(), "fatal: Needed a single revision") {
-			return SHA1{}, ErrNotExist{commitID, ""}
+			return nil, ErrNotExist{commitID, ""}
 		}
-		return SHA1{}, err
+		return nil, err
 	}
 
 	return NewIDFromString(actualCommitID)

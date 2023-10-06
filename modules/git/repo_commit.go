@@ -247,7 +247,7 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 
 	commits := []*Commit{}
 	shaline := [41]byte{}
-	var sha1 SHA1
+	var sha1 SHA1 // FIXME:
 	for {
 		n, err := io.ReadFull(stdoutReader, shaline[:])
 		if err != nil || n < 40 {

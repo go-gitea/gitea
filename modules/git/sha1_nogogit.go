@@ -7,10 +7,7 @@
 package git
 
 import (
-	"crypto/sha1"
 	"encoding/hex"
-	"hash"
-	"strconv"
 )
 
 // SHA1 a git commit name
@@ -38,34 +35,6 @@ func (s SHA1) HashType() HashType {
 }
 
 // ComputeBlobHash compute the hash for a given blob content
-func ComputeBlobHash(content []byte) SHA1 {
-	return ComputeHash(ObjectBlob, content)
-}
-
-// ComputeHash compute the hash for a given ObjectType and content
-func ComputeHash(t ObjectType, content []byte) SHA1 {
-	h := NewHasher(t, int64(len(content)))
-	_, _ = h.Write(content)
-	return h.Sum()
-}
-
-// Hasher is a struct that will generate a SHA1
-type Hasher struct {
-	hash.Hash
-}
-
-// NewHasher takes an object type and size and creates a hasher to generate a SHA
-func NewHasher(t ObjectType, size int64) Hasher {
-	h := Hasher{sha1.New()}
-	_, _ = h.Write(t.Bytes())
-	_, _ = h.Write([]byte(" "))
-	_, _ = h.Write([]byte(strconv.FormatInt(size, 10)))
-	_, _ = h.Write([]byte{0})
-	return h
-}
-
-// Sum generates a SHA1 for the provided hash
-func (h Hasher) Sum() (sha1 SHA1) {
-	copy(sha1[:], h.Hash.Sum(nil))
-	return sha1
+func ComputeBlobHash(ht HashType, content []byte) Hash {
+	return ht.ComputeHash(ObjectBlob, content)
 }

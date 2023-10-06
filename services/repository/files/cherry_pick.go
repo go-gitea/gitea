@@ -48,7 +48,7 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 	if opts.LastCommitID == "" {
 		opts.LastCommitID = commit.ID.String()
 	} else {
-		lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
+		lastCommitID, err := t.gitRepo.ConvertToHash(opts.LastCommitID)
 		if err != nil {
 			return nil, fmt.Errorf("CherryPick: Invalid last commit ID: %w", err)
 		}

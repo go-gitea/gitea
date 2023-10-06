@@ -32,7 +32,7 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 	if commit, err := gitRepo.GetCommit(sha); err != nil {
 		gitRepo.Close()
 		return fmt.Errorf("GetCommit[%s]: %w", sha, err)
-	} else if len(sha) != git.SHAFullLength {
+	} else if len(sha) != gitRepo.HashType.FullLength() {
 		// use complete commit sha
 		sha = commit.ID.String()
 	}
