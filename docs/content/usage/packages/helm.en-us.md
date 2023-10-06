@@ -44,6 +44,16 @@ helm cm-push ./{chart_file}.tgz {repo}
 | `chart_file` | The Helm Chart archive. |
 | `owner`      | The owner of the package. |
 
+You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
+
+The server responds with the following HTTP Status codes.
+
+| HTTP Status Code  | Meaning |
+| ----------------- | ------- |
+| `201 Created`     | The package has been published. |
+| `400 Bad Request` | The package is invalid. |
+| `409 Conflict`    | A package with the same name exist already. |
+
 ## Install a package
 
 To install a Helm char from the registry, execute the following command:

@@ -24,7 +24,7 @@ To authenticate to the Package Registry, you need to provide [custom HTTP header
 ## Publish a package
 
 To publish a generic package perform a HTTP PUT operation with the package content in the request body.
-You cannot publish a file with the same name twice to a package. You must delete the existing package version first.
+You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
 
 ```
 PUT https://gitea.example.com/api/packages/{owner}/generic/{package_name}/{package_version}/{file_name}
@@ -46,6 +46,7 @@ curl --user your_username:your_password_or_token \
 ```
 
 If you are using 2FA or OAuth use a [personal access token](development/api-usage.md#authentication) instead of the password.
+You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
 
 The server responds with the following HTTP Status codes.
 

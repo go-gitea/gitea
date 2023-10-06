@@ -63,6 +63,16 @@ For example:
 conan upload --remote=gitea ConanPackage/1.2@gitea/final
 ```
 
+You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
+
+The server responds with the following HTTP Status codes.
+
+| HTTP Status Code  | Meaning |
+| ----------------- | ------- |
+| `201 Created`     | The package has been published. |
+| `400 Bad Request` | The package name, version, distribution, component or architecture are invalid. |
+| `409 Conflict`    | A package file with the same combination of parameters exists already. |
+
 The Gitea Conan package registry has full [revision](https://docs.conan.io/en/latest/versioning/revisions.html) support.
 
 ## Install a package
