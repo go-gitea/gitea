@@ -9,6 +9,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  disk-clean:
+    uses: ./.github/workflows/disk-clean.yml
   nightly-binary:
     runs-on: ubuntu-latest
     steps:
@@ -16,7 +18,6 @@ jobs:
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
-      - uses: ./.github/workflows/disk-clean.yml
       - uses: actions/setup-go@v4
         with:
           go-version: "~1.21"
@@ -63,7 +64,6 @@ jobs:
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
-      - uses: ./.github/workflows/disk-clean.yml
       - uses: actions/setup-go@v4
         with:
           go-version: "~1.21"
@@ -101,7 +101,6 @@ jobs:
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
-      - uses: ./.github/workflows/disk-clean.yml
       - uses: actions/setup-go@v4
         with:
           go-version: "~1.21"
