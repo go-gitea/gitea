@@ -36,6 +36,7 @@ groups:
     name: BUGFIXES
     labels:
       - kind/bug
+      - kind/bugfix
   -
     name: TESTING
     labels:
