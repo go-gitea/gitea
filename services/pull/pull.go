@@ -152,14 +152,12 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 	if issue.Milestone != nil {
 		notify_service.IssueChangeMilestone(ctx, issue.Poster, issue, 0)
 	}
-	if len(assigneeIDs) > 0 {
-		for _, assigneeID := range assigneeIDs {
-			assignee, err := user_model.GetUserByID(ctx, assigneeID)
-			if err != nil {
-				return ErrDependenciesLeft
-			}
-			notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
+	for _, assigneeID := range assigneeIDs {
+		assignee, err := user_model.GetUserByID(ctx, assigneeID)
+		if err != nil {
+			return ErrDependenciesLeft
 		}
+		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
 	}
 
 	return nil
@@ -336,7 +334,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 						}
 						if changed {
 							// Mark old reviews as stale if diff to mergebase has changed
-							if err := issues_model.MarkReviewsAsStale(pr.IssueID); err != nil {
+							if err := issues_model.MarkReviewsAsStale(ctx, pr.IssueID); err != nil {
 								log.Error("MarkReviewsAsStale: %v", err)
 							}
 
@@ -351,7 +349,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 								}
 							}
 						}
-						if err := issues_model.MarkReviewsAsNotStale(pr.IssueID, newCommitID); err != nil {
+						if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, newCommitID); err != nil {
 							log.Error("MarkReviewsAsNotStale: %v", err)
 						}
 						divergence, err := GetDiverging(ctx, pr)

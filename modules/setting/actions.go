@@ -6,6 +6,7 @@ package setting
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 )
@@ -18,6 +19,9 @@ var (
 		ArtifactRetentionDays int64    `ini:"ARTIFACT_RETENTION_DAYS"`
 		Enabled               bool
 		DefaultActionsURL     defaultActionsURL `ini:"DEFAULT_ACTIONS_URL"`
+		ZombieTaskTimeout     time.Duration     `ini:"ZOMBIE_TASK_TIMEOUT"`
+		EndlessTaskTimeout    time.Duration     `ini:"ENDLESS_TASK_TIMEOUT"`
+		AbandonedJobTimeout   time.Duration     `ini:"ABANDONED_JOB_TIMEOUT"`
 	}{
 		Enabled:           true,
 		DefaultActionsURL: defaultActionsURLGitHub,
@@ -81,6 +85,10 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	if Actions.ArtifactRetentionDays <= 0 {
 		Actions.ArtifactRetentionDays = 90
 	}
+
+	Actions.ZombieTaskTimeout = sec.Key("ZOMBIE_TASK_TIMEOUT").MustDuration(10 * time.Minute)
+	Actions.EndlessTaskTimeout = sec.Key("ENDLESS_TASK_TIMEOUT").MustDuration(3 * time.Hour)
+	Actions.AbandonedJobTimeout = sec.Key("ABANDONED_JOB_TIMEOUT").MustDuration(24 * time.Hour)
 
 	return err
 }

@@ -15,9 +15,11 @@ menu:
     identifier: "install-from-package"
 ---
 
-# Official packages
+# Installation from Package
 
-## macOS
+## Official packages
+
+### macOS
 
 Currently, the only supported method of installation on MacOS is [Homebrew](http://brew.sh/).
 Following the [deployment from binary](installation/from-binary.md) guide may work,
@@ -27,9 +29,9 @@ but is not supported. To install Gitea via `brew`:
 brew install gitea
 ```
 
-# Unofficial packages
+## Unofficial packages
 
-## Alpine Linux
+### Alpine Linux
 
 Alpine Linux has [Gitea](https://pkgs.alpinelinux.org/packages?name=gitea&branch=edge) in its community repository which follows the latest stable version.
 
@@ -37,7 +39,7 @@ Alpine Linux has [Gitea](https://pkgs.alpinelinux.org/packages?name=gitea&branch
 apk add gitea
 ```
 
-## Arch Linux
+### Arch Linux
 
 The rolling release distribution has [Gitea](https://www.archlinux.org/packages/extra/x86_64/gitea/) in their official extra repository and package updates are provided with new Gitea releases.
 
@@ -45,7 +47,7 @@ The rolling release distribution has [Gitea](https://www.archlinux.org/packages/
 pacman -S gitea
 ```
 
-## Arch Linux ARM
+### Arch Linux ARM
 
 Arch Linux ARM provides packages for [aarch64](https://archlinuxarm.org/packages/aarch64/gitea), [armv7h](https://archlinuxarm.org/packages/armv7h/gitea) and [armv6h](https://archlinuxarm.org/packages/armv6h/gitea).
 
@@ -53,7 +55,7 @@ Arch Linux ARM provides packages for [aarch64](https://archlinuxarm.org/packages
 pacman -S gitea
 ```
 
-## Gentoo Linux
+### Gentoo Linux
 
 The rolling release distribution has [Gitea](https://packages.gentoo.org/packages/www-apps/gitea) in their official community repository and package updates are provided with new Gitea releases.
 
@@ -61,20 +63,21 @@ The rolling release distribution has [Gitea](https://packages.gentoo.org/package
 emerge gitea -va
 ```
 
-## Canonical Snap
+### Canonical Snap
 
 There is a [Gitea Snap](https://snapcraft.io/gitea) package which follows the latest stable version.
+*Note: The Gitea snap package is [strictly confined](https://snapcraft.io/docs/snap-confinement). Strictly confined snaps run in complete isolation, so some of the Gitea functionals may not work with the confinement*
 
 ```sh
 snap install gitea
 ```
 
-## SUSE and openSUSE
+### SUSE and openSUSE
 
 OpenSUSE build service provides packages for [openSUSE and SLE](https://software.opensuse.org/download/package?package=gitea&project=devel%3Atools%3Ascm)
 in the Development Software Configuration Management Repository
 
-## Windows
+### Windows
 
 There is a [Gitea](https://chocolatey.org/packages/gitea) package for Windows by [Chocolatey](https://chocolatey.org/).
 
@@ -84,7 +87,7 @@ choco install gitea
 
 Or follow the [deployment from binary](installation/from-binary.md) guide.
 
-## FreeBSD
+### FreeBSD
 
 A FreeBSD port `www/gitea` is available. To install the pre-built binary package:
 
@@ -107,7 +110,7 @@ is in `/usr/local/etc/rc.d/gitea`.
 
 To enable Gitea to run as a service, run `sysrc gitea_enable=YES` and start it with `service gitea start`.
 
-## Others
+### Others
 
 Various other third-party packages of Gitea exist.
 To see a curated list, head over to [awesome-gitea](https://gitea.com/gitea/awesome-gitea/src/branch/master/README.md#user-content-packages).

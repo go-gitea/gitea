@@ -4,6 +4,7 @@
 package externalaccount
 
 import (
+	"context"
 	"strings"
 
 	"code.gitea.io/gitea/models/auth"
@@ -42,7 +43,7 @@ func toExternalLoginUser(user *user_model.User, gothUser goth.User) (*user_model
 }
 
 // LinkAccountToUser link the gothUser to the user
-func LinkAccountToUser(user *user_model.User, gothUser goth.User) error {
+func LinkAccountToUser(ctx context.Context, user *user_model.User, gothUser goth.User) error {
 	externalLoginUser, err := toExternalLoginUser(user, gothUser)
 	if err != nil {
 		return err
@@ -63,7 +64,7 @@ func LinkAccountToUser(user *user_model.User, gothUser goth.User) error {
 	}
 
 	if tp.Name() != "" {
-		return UpdateMigrationsByType(tp, externalID, user.ID)
+		return UpdateMigrationsByType(ctx, tp, externalID, user.ID)
 	}
 
 	return nil
@@ -80,21 +81,21 @@ func UpdateExternalUser(user *user_model.User, gothUser goth.User) error {
 }
 
 // UpdateMigrationsByType updates all migrated repositories' posterid from gitServiceType to replace originalAuthorID to posterID
-func UpdateMigrationsByType(tp structs.GitServiceType, externalUserID string, userID int64) error {
-	if err := issues_model.UpdateIssuesMigrationsByType(tp, externalUserID, userID); err != nil {
+func UpdateMigrationsByType(ctx context.Context, tp structs.GitServiceType, externalUserID string, userID int64) error {
+	if err := issues_model.UpdateIssuesMigrationsByType(ctx, tp, externalUserID, userID); err != nil {
 		return err
 	}
 
-	if err := issues_model.UpdateCommentsMigrationsByType(tp, externalUserID, userID); err != nil {
+	if err := issues_model.UpdateCommentsMigrationsByType(ctx, tp, externalUserID, userID); err != nil {
 		return err
 	}
 
-	if err := repo_model.UpdateReleasesMigrationsByType(tp, externalUserID, userID); err != nil {
+	if err := repo_model.UpdateReleasesMigrationsByType(ctx, tp, externalUserID, userID); err != nil {
 		return err
 	}
 
-	if err := issues_model.UpdateReactionsMigrationsByType(tp, externalUserID, userID); err != nil {
+	if err := issues_model.UpdateReactionsMigrationsByType(ctx, tp, externalUserID, userID); err != nil {
 		return err
 	}
-	return issues_model.UpdateReviewsMigrationsByType(tp, externalUserID, userID)
+	return issues_model.UpdateReviewsMigrationsByType(ctx, tp, externalUserID, userID)
 }

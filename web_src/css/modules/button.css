@@ -30,7 +30,7 @@
   color: var(--color-red);
 }
 
-/* btn is a plain button without any opinionated styling */
+/* btn is a plain button without any opinionated styling, it only uses flex for vertical alignment like ".ui.button" in base.css */
 
 .btn {
   background: transparent;
@@ -76,6 +76,13 @@ It needs some tricks to tweak the left/right borders with active state */
 
 .ui.buttons .button.active + .button {
   border-left: none;
+}
+
+.ui.basic.buttons .button,
+.ui.basic.button,
+.ui.basic.buttons .button:hover,
+.ui.basic.button:hover {
+  box-shadow: none;
 }
 
 .ui.labeled.button.disabled > .button,
