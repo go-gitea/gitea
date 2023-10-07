@@ -23,6 +23,23 @@ The container registry follows the OCI specs and supports all compatible images 
 To work with the Container registry, you can use the tools for your specific image type.
 The following examples use the `docker` client.
 
+### Reverse Proxy / URL Prefix
+
+The container registry uses a fixed url path `/v2` which can't be changed.
+Even if you deploy Gitea with a prefix, `/v2` will be used by the `docker` client.
+Therefore you may need to add an additional route to your reverse proxy configuration.
+
+Example using nginx:
+```
+location /gitea/ { ## normal Gitea route
+	proxy_pass http://gitea:3000/;
+}
+
+location /v2/ { ## Gitea Docker Registry route
+	proxy_pass http://gitea:3000/v2/;
+}
+```
+
 ## Login to the container registry
 
 To push an image or if the image is in a private registry, you have to authenticate:
