@@ -15,7 +15,7 @@
 		{{if .ContextUser.FullName}}<span class="header text center">{{.ContextUser.FullName}}</span>{{end}}
 		<span class="username text center">{{.ContextUser.Name}} {{if .IsAdmin}}
 					<a class="muted" href="{{AppSubUrl}}/admin/users/{{.ContextUser.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.users.details"}}">
-						{{svg "octicon-gear" 18 "gt-mr-2"}}
+						{{svg "octicon-gear" 18}}
 					</a>
 				{{end}}</span>
 		<div class="gt-mt-3">
