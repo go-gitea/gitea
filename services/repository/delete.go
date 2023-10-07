@@ -276,7 +276,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, r
 	committer.Close()
 
 	if needRewriteKeysFile {
-		if err := asymkey_model.RewriteAllPublicKeys(); err != nil {
+		if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
 			log.Error("RewriteAllPublicKeys failed: %v", err)
 		}
 	}
@@ -286,36 +286,36 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, r
 
 	// Remove repository files.
 	repoPath := repo.RepoPath()
-	system_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository files", repoPath)
+	system_model.RemoveAllWithNotice(ctx, "Delete repository files", repoPath)
 
 	// Remove wiki files
 	if repo.HasWiki() {
-		system_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository wiki", repo.WikiPath())
+		system_model.RemoveAllWithNotice(ctx, "Delete repository wiki", repo.WikiPath())
 	}
 
 	// Remove archives
 	for _, archive := range archivePaths {
-		system_model.RemoveStorageWithNotice(db.DefaultContext, storage.RepoArchives, "Delete repo archive file", archive)
+		system_model.RemoveStorageWithNotice(ctx, storage.RepoArchives, "Delete repo archive file", archive)
 	}
 
 	// Remove lfs objects
 	for _, lfsObj := range lfsPaths {
-		system_model.RemoveStorageWithNotice(db.DefaultContext, storage.LFS, "Delete orphaned LFS file", lfsObj)
+		system_model.RemoveStorageWithNotice(ctx, storage.LFS, "Delete orphaned LFS file", lfsObj)
 	}
 
 	// Remove issue attachment files.
 	for _, attachment := range attachmentPaths {
-		system_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachment)
+		system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", attachment)
 	}
 
 	// Remove release attachment files.
 	for _, releaseAttachment := range releaseAttachments {
-		system_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete release attachment", releaseAttachment)
+		system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete release attachment", releaseAttachment)
 	}
 
 	// Remove attachment with no issue_id and release_id.
 	for _, newAttachment := range newAttachmentPaths {
-		system_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", newAttachment)
+		system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", newAttachment)
 	}
 
 	if len(repo.Avatar) > 0 {
@@ -390,14 +390,14 @@ func removeRepositoryFromTeam(ctx context.Context, t *organization.Team, repo *r
 }
 
 // HasRepository returns true if given repository belong to team.
-func HasRepository(t *organization.Team, repoID int64) bool {
-	return organization.HasTeamRepo(db.DefaultContext, t.OrgID, t.ID, repoID)
+func HasRepository(ctx context.Context, t *organization.Team, repoID int64) bool {
+	return organization.HasTeamRepo(ctx, t.OrgID, t.ID, repoID)
 }
 
 // RemoveRepositoryFromTeam removes repository from team of organization.
 // If the team shall include all repositories the request is ignored.
 func RemoveRepositoryFromTeam(ctx context.Context, t *organization.Team, repoID int64) error {
-	if !HasRepository(t, repoID) {
+	if !HasRepository(ctx, t, repoID) {
 		return nil
 	}
 

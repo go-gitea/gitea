@@ -214,9 +214,9 @@ menu:
 - `SITEMAP_PAGING_NUM`: **20**: 在单个子SiteMap中显示的项数。
 - `GRAPH_MAX_COMMIT_NUM`: **100**: 提交图中显示的最大commit数量。
 - `CODE_COMMENT_LINES`: **4**: 在代码评论中能够显示的最大代码行数。
-- `DEFAULT_THEME`: **auto**: \[auto, gitea, arc-green\]: 在Gitea安装时候设置的默认主题。
+- `DEFAULT_THEME`: **gitea-auto**: \[gitea-auto, gitea-light, gitea-dark\]: 在Gitea安装时候设置的默认主题。
 - `SHOW_USER_EMAIL`: **true**: 用户的电子邮件是否应该显示在`Explore Users`页面中。
-- `THEMES`:  **auto,gitea,arc-green**: 所有可用的主题。允许用户选择个性化的主题，
+- `THEMES`:  **gitea-auto,gitea-light,gitea-dark**: 所有可用的主题。允许用户选择个性化的主题，
   而不受DEFAULT_THEME 值的影响。
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: 能够显示文件的最大大小（默认为8MiB）。
 - `REACTIONS`: 用户可以在问题（Issue）、Pull Request（PR）以及评论中选择的所有可选的反应。
@@ -742,7 +742,7 @@ Gitea 创建以下非唯一队列：
 
 - `PROVIDER`: **memory**：会话存储引擎 \[memory, file, redis, redis-cluster, db, mysql, couchbase, memcache, postgres\]。设置为 `db` 将会重用 `[database]` 的配置信息。
 - `PROVIDER_CONFIG`: **data/sessions**：对于文件，为根路径；对于 db，为空（将使用数据库配置）；对于其他引擎，为连接字符串。相对路径将根据 _`AppWorkPath`_ 绝对化。
-- `COOKIE_SECURE`: **false**：启用此选项以强制在所有会话访问中使用 HTTPS。
+- `COOKIE_SECURE`: **_empty_**：`true` 或 `false`。启用此选项以强制在所有会话访问中使用 HTTPS。如果没有设置，当 ROOT_URL 是 https 链接的时候默认设置为 true。
 - `COOKIE_NAME`: **i\_like\_gitea**：用于会话 ID 的 cookie 名称。
 - `GC_INTERVAL_TIME`: **86400**：GC 间隔时间，以秒为单位。
 - `SESSION_LIFE_TIME`: **86400**：会话生命周期，以秒为单位，默认为 86400（1 天）。
@@ -1331,7 +1331,7 @@ PROXY_HOSTS = *.github.com
 
 ## Actions (`actions`)
 
-- `ENABLED`: **false**：启用/禁用操作功能
+- `ENABLED`: **true**：启用/禁用操作功能
 - `DEFAULT_ACTIONS_URL`: **github**：获取操作插件的默认平台，`github`表示`https://github.com`，`self`表示当前的 Gitea 实例。
 - `STORAGE_TYPE`: **local**：用于操作日志的存储类型，`local`表示本地磁盘，`minio`表示与S3兼容的对象存储服务，默认为`local`，或者使用定义为`[storage.xxx]`的其他名称。
 - `MINIO_BASE_PATH`: **actions_log/**：Minio存储桶上的基本路径，仅在`STORAGE_TYPE`为`minio`时可用。

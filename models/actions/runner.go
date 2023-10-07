@@ -189,6 +189,12 @@ func (opts FindRunnerOptions) toOrder() string {
 		return "last_online ASC"
 	case "alphabetically":
 		return "name ASC"
+	case "reversealphabetically":
+		return "name DESC"
+	case "newest":
+		return "id DESC"
+	case "oldest":
+		return "id ASC"
 	}
 	return "last_online DESC"
 }

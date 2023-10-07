@@ -176,6 +176,9 @@ func (m *mailNotifier) PullRequestPushCommits(ctx context.Context, doer *user_mo
 }
 
 func (m *mailNotifier) PullReviewDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
+	if err := comment.Review.LoadReviewer(ctx); err != nil {
+		log.Error("Error in PullReviewDismiss while loading reviewer for issue[%d], review[%d] and reviewer[%d]: %v", review.Issue.ID, comment.Review.ID, comment.Review.ReviewerID, err)
+	}
 	if err := MailParticipantsComment(ctx, comment, activities_model.ActionPullReviewDismissed, review.Issue, nil); err != nil {
 		log.Error("MailParticipantsComment: %v", err)
 	}

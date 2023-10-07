@@ -47,6 +47,8 @@ func ListTags(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TagList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listOpts := utils.GetListOptions(ctx)
 
@@ -93,6 +95,8 @@ func GetAnnotatedTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/AnnotatedTag"
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	sha := ctx.Params("sha")
 	if len(sha) == 0 {
@@ -180,6 +184,8 @@ func CreateTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "409":
 	//     "$ref": "#/responses/conflict"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm(ctx).(*api.CreateTagOption)
 
 	// If target is not provided use default branch
@@ -247,9 +253,11 @@ func DeleteTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "409":
 	//     "$ref": "#/responses/conflict"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 	tagName := ctx.Params("*")
 
-	tag, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tagName)
+	tag, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound()

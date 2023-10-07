@@ -28,7 +28,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	var sshKeysNeedUpdate bool
 
 	// Find all users with this login type - FIXME: Should this be an iterator?
-	users, err := user_model.GetUsersBySource(source.authSource)
+	users, err := user_model.GetUsersBySource(ctx, source.authSource)
 	if err != nil {
 		log.Error("SyncExternalUsers: %v", err)
 		return err
@@ -77,7 +77,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			log.Warn("SyncExternalUsers: Cancelled at update of %s before completed update of users", source.authSource.Name)
 			// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
 			if sshKeysNeedUpdate {
-				err = asymkey_model.RewriteAllPublicKeys()
+				err = asymkey_model.RewriteAllPublicKeys(ctx)
 				if err != nil {
 					log.Error("RewriteAllPublicKeys: %v", err)
 				}
@@ -128,7 +128,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				IsActive:     util.OptionalBoolTrue,
 			}
 
-			err = user_model.CreateUser(usr, overwriteDefault)
+			err = user_model.CreateUser(ctx, usr, overwriteDefault)
 			if err != nil {
 				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.authSource.Name, su.Username, err)
 			}
@@ -193,7 +193,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 	// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
 	if sshKeysNeedUpdate {
-		err = asymkey_model.RewriteAllPublicKeys()
+		err = asymkey_model.RewriteAllPublicKeys(ctx)
 		if err != nil {
 			log.Error("RewriteAllPublicKeys: %v", err)
 		}

@@ -28,7 +28,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		assert.Len(t, team.Repos, len(repoIds), "%s: repo count", team.Name)
 		for i, rid := range repoIds {
 			if rid > 0 {
-				assert.True(t, HasRepository(team, rid), "%s: HasRepository(%d) %d", rid, i)
+				assert.True(t, HasRepository(db.DefaultContext, team, rid), "%s: HasRepository(%d) %d", rid, i)
 			}
 		}
 	}
@@ -44,7 +44,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		Type:       user_model.UserTypeOrganization,
 		Visibility: structs.VisibleTypePublic,
 	}
-	assert.NoError(t, organization.CreateOrganization(org, user), "CreateOrganization")
+	assert.NoError(t, organization.CreateOrganization(db.DefaultContext, org, user), "CreateOrganization")
 
 	// Check Owner team.
 	ownerTeam, err := org.GetOwnerTeam(db.DefaultContext)
@@ -101,7 +101,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	}
 	for i, team := range teams {
 		if i > 0 { // first team is Owner.
-			assert.NoError(t, models.NewTeam(team), "%s: NewTeam", team.Name)
+			assert.NoError(t, models.NewTeam(db.DefaultContext, team), "%s: NewTeam", team.Name)
 		}
 		testTeamRepositories(team.ID, teamRepos[i])
 	}
@@ -111,7 +111,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	teams[4].IncludesAllRepositories = true
 	teamRepos[4] = repoIds
 	for i, team := range teams {
-		assert.NoError(t, models.UpdateTeam(team, false, true), "%s: UpdateTeam", team.Name)
+		assert.NoError(t, models.UpdateTeam(db.DefaultContext, team, false, true), "%s: UpdateTeam", team.Name)
 		testTeamRepositories(team.ID, teamRepos[i])
 	}
 

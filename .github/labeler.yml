@@ -19,6 +19,9 @@ kind/build:
 
 theme/package-registry:
   - "modules/packages/**"
+  - "services/packages/**"
+  - "routers/api/packages/**"
+  - "routers/web/shared/packages/**"
 
 kind/cli:
   - "cmd/**"

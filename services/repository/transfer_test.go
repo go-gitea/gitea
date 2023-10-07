@@ -42,7 +42,7 @@ func TestTransferOwnership(t *testing.T) {
 	transferredRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	assert.EqualValues(t, 2, transferredRepo.OwnerID)
 
-	exist, err := util.IsExist(repo_model.RepoPath("user3", "repo3"))
+	exist, err := util.IsExist(repo_model.RepoPath("org3", "repo3"))
 	assert.NoError(t, err)
 	assert.False(t, exist)
 	exist, err = util.IsExist(repo_model.RepoPath("user2", "repo3"))
@@ -52,7 +52,7 @@ func TestTransferOwnership(t *testing.T) {
 		OpType:    activities_model.ActionTransferRepo,
 		ActUserID: 2,
 		RepoID:    3,
-		Content:   "user3/repo3",
+		Content:   "org3/repo3",
 	})
 
 	unittest.CheckConsistencyFor(t, &repo_model.Repository{}, &user_model.User{}, &organization.Team{})

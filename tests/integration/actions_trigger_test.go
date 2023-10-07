@@ -28,7 +28,7 @@ import (
 func TestPullRequestTargetEvent(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}) // owner of the base repo
-		user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}) // owner of the forked repo
+		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})  // owner of the forked repo
 
 		// create the base repo
 		baseRepo, err := repo_service.CreateRepository(db.DefaultContext, user2, user2, repo_service.CreateRepoOptions{
@@ -45,14 +45,14 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		assert.NotEmpty(t, baseRepo)
 
 		// enable actions
-		err = repo_model.UpdateRepositoryUnits(baseRepo, []repo_model.RepoUnit{{
+		err = repo_model.UpdateRepositoryUnits(db.DefaultContext, baseRepo, []repo_model.RepoUnit{{
 			RepoID: baseRepo.ID,
 			Type:   unit_model.TypeActions,
 		}}, nil)
 		assert.NoError(t, err)
 
 		// create the forked repo
-		forkedRepo, err := repo_service.ForkRepository(git.DefaultContext, user2, user3, repo_service.ForkRepoOptions{
+		forkedRepo, err := repo_service.ForkRepository(git.DefaultContext, user2, org3, repo_service.ForkRepoOptions{
 			BaseRepo:    baseRepo,
 			Name:        "forked-repo-pull-request-target",
 			Description: "test pull-request-target event",
@@ -89,7 +89,7 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// add a new file to the forked repo
-		addFileToForkedResp, err := files_service.ChangeRepoFiles(git.DefaultContext, forkedRepo, user3, &files_service.ChangeRepoFilesOptions{
+		addFileToForkedResp, err := files_service.ChangeRepoFiles(git.DefaultContext, forkedRepo, org3, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation:     "create",
@@ -101,12 +101,12 @@ func TestPullRequestTargetEvent(t *testing.T) {
 			OldBranch: "main",
 			NewBranch: "fork-branch-1",
 			Author: &files_service.IdentityOptions{
-				Name:  user3.Name,
-				Email: user3.Email,
+				Name:  org3.Name,
+				Email: org3.Email,
 			},
 			Committer: &files_service.IdentityOptions{
-				Name:  user3.Name,
-				Email: user3.Email,
+				Name:  org3.Name,
+				Email: org3.Email,
 			},
 			Dates: &files_service.CommitDateOptions{
 				Author:    time.Now(),
@@ -120,8 +120,8 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		pullIssue := &issues_model.Issue{
 			RepoID:   baseRepo.ID,
 			Title:    "Test pull-request-target-event",
-			PosterID: user3.ID,
-			Poster:   user3,
+			PosterID: org3.ID,
+			Poster:   org3,
 			IsPull:   true,
 		}
 		pullRequest := &issues_model.PullRequest{
@@ -143,7 +143,7 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		assert.Equal(t, actions_module.GithubEventPullRequestTarget, actionRun.TriggerEvent)
 
 		// add another file whose name cannot match the specified path
-		addFileToForkedResp, err = files_service.ChangeRepoFiles(git.DefaultContext, forkedRepo, user3, &files_service.ChangeRepoFilesOptions{
+		addFileToForkedResp, err = files_service.ChangeRepoFiles(git.DefaultContext, forkedRepo, org3, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation:     "create",
@@ -155,12 +155,12 @@ func TestPullRequestTargetEvent(t *testing.T) {
 			OldBranch: "main",
 			NewBranch: "fork-branch-2",
 			Author: &files_service.IdentityOptions{
-				Name:  user3.Name,
-				Email: user3.Email,
+				Name:  org3.Name,
+				Email: org3.Email,
 			},
 			Committer: &files_service.IdentityOptions{
-				Name:  user3.Name,
-				Email: user3.Email,
+				Name:  org3.Name,
+				Email: org3.Email,
 			},
 			Dates: &files_service.CommitDateOptions{
 				Author:    time.Now(),
@@ -174,8 +174,8 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		pullIssue = &issues_model.Issue{
 			RepoID:   baseRepo.ID,
 			Title:    "A mismatched path cannot trigger pull-request-target-event",
-			PosterID: user3.ID,
-			Poster:   user3,
+			PosterID: org3.ID,
+			Poster:   org3,
 			IsPull:   true,
 		}
 		pullRequest = &issues_model.PullRequest{

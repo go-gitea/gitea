@@ -4,6 +4,7 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -22,8 +23,8 @@ func init() {
 }
 
 // UpdateSession updates the session with provided id
-func UpdateSession(key string, data []byte) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(key).Update(&Session{
+func UpdateSession(ctx context.Context, key string, data []byte) error {
+	_, err := db.GetEngine(ctx).ID(key).Update(&Session{
 		Data:   data,
 		Expiry: timeutil.TimeStampNow(),
 	})
@@ -31,12 +32,12 @@ func UpdateSession(key string, data []byte) error {
 }
 
 // ReadSession reads the data for the provided session
-func ReadSession(key string) (*Session, error) {
+func ReadSession(ctx context.Context, key string) (*Session, error) {
 	session := Session{
 		Key: key,
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -55,24 +56,24 @@ func ReadSession(key string) (*Session, error) {
 }
 
 // ExistSession checks if a session exists
-func ExistSession(key string) (bool, error) {
+func ExistSession(ctx context.Context, key string) (bool, error) {
 	session := Session{
 		Key: key,
 	}
-	return db.GetEngine(db.DefaultContext).Get(&session)
+	return db.GetEngine(ctx).Get(&session)
 }
 
 // DestroySession destroys a session
-func DestroySession(key string) error {
-	_, err := db.GetEngine(db.DefaultContext).Delete(&Session{
+func DestroySession(ctx context.Context, key string) error {
+	_, err := db.GetEngine(ctx).Delete(&Session{
 		Key: key,
 	})
 	return err
 }
 
 // RegenerateSession regenerates a session from the old id
-func RegenerateSession(oldKey, newKey string) (*Session, error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func RegenerateSession(ctx context.Context, oldKey, newKey string) (*Session, error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -114,12 +115,12 @@ func RegenerateSession(oldKey, newKey string) (*Session, error) {
 }
 
 // CountSessions returns the number of sessions
-func CountSessions() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Count(&Session{})
+func CountSessions(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Count(&Session{})
 }
 
 // CleanupSessions cleans up expired sessions
-func CleanupSessions(maxLifetime int64) error {
-	_, err := db.GetEngine(db.DefaultContext).Where("expiry <= ?", timeutil.TimeStampNow().Add(-maxLifetime)).Delete(&Session{})
+func CleanupSessions(ctx context.Context, maxLifetime int64) error {
+	_, err := db.GetEngine(ctx).Where("expiry <= ?", timeutil.TimeStampNow().Add(-maxLifetime)).Delete(&Session{})
 	return err
 }

@@ -370,7 +370,8 @@ A full list of supported emoji's is at [emoji list](https://gitea.com/gitea/gite
 
 ## Customizing the look of Gitea
 
-The default built-in themes are `gitea` (light), `arc-green` (dark), and `auto` (chooses light or dark depending on operating system settings).
+The built-in themes are `gitea-light`, `gitea-dark`, and `gitea-auto` (which automatically adapts to OS settings).
+
 The default theme can be changed via `DEFAULT_THEME` in the [ui](administration/config-cheat-sheet.md#ui-ui) section of `app.ini`.
 
 Gitea also has support for user themes, which means every user can select which theme should be used.
@@ -384,7 +385,7 @@ To make a custom theme available to all users:
 
 Community themes are listed in [gitea/awesome-gitea#themes](https://gitea.com/gitea/awesome-gitea#themes).
 
-The `arc-green` theme source can be found [here](https://github.com/go-gitea/gitea/blob/main/web_src/css/themes/theme-arc-green.css).
+The default theme sources can be found [here](https://github.com/go-gitea/gitea/blob/main/web_src/css/themes).
 
 If your custom theme is considered a dark theme, set the global css variable `--is-dark-theme` to `true`.
 This allows Gitea to adjust the Monaco code editor's theme accordingly.

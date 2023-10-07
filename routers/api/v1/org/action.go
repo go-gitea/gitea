@@ -40,6 +40,8 @@ func ListActionsSecrets(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/SecretList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	opts := &secret_model.FindSecretsOptions{
 		OwnerID:     ctx.Org.Organization.ID,

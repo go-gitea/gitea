@@ -8,6 +8,7 @@ import (
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -77,7 +78,7 @@ ssh-dss AAAAB3NzaC1kc3MAAACBAOChCC7lf6Uo9n7BmZ6M8St19PZf4Tn59NriyboW2x/DZuYAz3ib
 			assert.Contains(t, kase.keyContents, key.Content)
 		}
 		for _, key := range keys {
-			DeletePublicKey(user, key.ID)
+			DeletePublicKey(db.DefaultContext, user, key.ID)
 		}
 	}
 }
