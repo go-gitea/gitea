@@ -76,8 +76,6 @@ func ActionIcon(opType activities_model.ActionType) string {
 		return "repo"
 	case activities_model.ActionCommitRepo:
 		return "git-commit"
-	case activities_model.ActionDeleteBranch:
-		return "git-branch"
 	case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 		return "git-merge"
 	case activities_model.ActionCreatePullRequest:
@@ -100,7 +98,7 @@ func ActionIcon(opType activities_model.ActionType) string {
 		return "file-diff"
 	case activities_model.ActionPublishRelease, activities_model.ActionPushTag, activities_model.ActionDeleteTag:
 		return "tag"
-	case activities_model.ActionPullReviewDismissed:
+	case activities_model.ActionPullReviewDismissed, activities_model.ActionDeleteBranch:
 		return "x"
 	default:
 		return "question"
