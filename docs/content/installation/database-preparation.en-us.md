@@ -184,7 +184,7 @@ If the communication between Gitea and your database instance is performed throu
 - On the database server certificate, one of `Subject Alternative Name` or `Common Name` entries must be the fully-qualified domain name (FQDN) of the database instance (e.g. `db.example.com`). On the database client certificate, one of the entries mentioned above must contain the database username that Gitea will be using to connect.
 - You need domain name mappings of both Gitea and database servers to their respective IP addresses. Either set up DNS records for them or add local mappings to `/etc/hosts` (`%WINDIR%\System32\drivers\etc\hosts` in Windows) on each system. This allows the database connections to be performed by domain name instead of IP address. See documentation of your system for details.
 
-### PostgreSQL
+### PostgreSQL TLS
 
 The PostgreSQL driver used by Gitea supports two-way TLS. In two-way TLS, both database client and server authenticate each other by sending their respective certificates to their respective opposite for validation. In other words, the server verifies client certificate, and the client verifies server certificate.
 
@@ -252,7 +252,7 @@ The PostgreSQL driver used by Gitea supports two-way TLS. In two-way TLS, both d
 
     You should be prompted to enter password for the database user, and then be connected to the database.
 
-### MySQL
+### MySQL/MariaDB TLS
 
 While the MySQL driver used by Gitea also supports two-way TLS, Gitea currently supports only one-way TLS. See issue #10828 for details.
 
