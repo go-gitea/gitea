@@ -49,10 +49,14 @@ ifeq ($(HAS_GO), yes)
 	CGO_CFLAGS ?= $(shell $(GO) env CGO_CFLAGS) $(CGO_EXTRA_CFLAGS)
 endif
 
-ifeq ($(OS), Windows_NT)
-	GOFLAGS := -v -buildmode=exe
-	EXECUTABLE ?= gitea.exe
-else ifeq ($(OS), Windows)
+ifeq ($(GOOS),windows)
+	IS_WINDOWS := yes
+else ifeq ($(patsubst Windows%,Windows,$(OS)),Windows)
+	ifeq ($(GOOS),)
+		IS_WINDOWS := yes
+	endif
+endif
+ifeq ($(IS_WINDOWS),yes)
 	GOFLAGS := -v -buildmode=exe
 	EXECUTABLE ?= gitea.exe
 else
