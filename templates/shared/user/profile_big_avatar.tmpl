@@ -83,7 +83,7 @@
 			<li>
 				<ul class="user-orgs">
 				{{range .Orgs}}
-					{{if (or .Visibility.IsPublic (and ($.SignedUser) (or .Visibility.IsLimited (and (.HasMemberWithUserID $.SignedUserID) .Visibility.IsPrivate) ($.IsAdmin))))}}
+					{{if (or .Visibility.IsPublic (and ($.SignedUser) (or .Visibility.IsLimited (and (.HasMemberWithUserID ctx $.SignedUserID) .Visibility.IsPrivate) ($.IsAdmin))))}}
 					<li>
 						<a href="{{.HomeLink}}" data-tooltip-content="{{.Name}}">
 							{{ctx.AvatarUtils.Avatar .}}

@@ -44,9 +44,10 @@ func (err ErrForkAlreadyExist) Unwrap() error {
 
 // ForkRepoOptions contains the fork repository options
 type ForkRepoOptions struct {
-	BaseRepo    *repo_model.Repository
-	Name        string
-	Description string
+	BaseRepo     *repo_model.Repository
+	Name         string
+	Description  string
+	SingleBranch string
 }
 
 // ForkRepository forks a repository
@@ -70,6 +71,10 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		}
 	}
 
+	defaultBranch := opts.BaseRepo.DefaultBranch
+	if opts.SingleBranch != "" {
+		defaultBranch = opts.SingleBranch
+	}
 	repo := &repo_model.Repository{
 		OwnerID:       owner.ID,
 		Owner:         owner,
@@ -77,7 +82,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		Name:          opts.Name,
 		LowerName:     strings.ToLower(opts.Name),
 		Description:   opts.Description,
-		DefaultBranch: opts.BaseRepo.DefaultBranch,
+		DefaultBranch: defaultBranch,
 		IsPrivate:     opts.BaseRepo.IsPrivate || opts.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate,
 		IsEmpty:       opts.BaseRepo.IsEmpty,
 		IsFork:        true,
@@ -134,9 +139,12 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 		needsRollback = true
 
+		cloneCmd := git.NewCommand(txCtx, "clone", "--bare")
+		if opts.SingleBranch != "" {
+			cloneCmd.AddArguments("--single-branch", "--branch").AddDynamicArguments(opts.SingleBranch)
+		}
 		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
-		if stdout, _, err := git.NewCommand(txCtx,
-			"clone", "--bare").AddDynamicArguments(oldRepoPath, repoPath).
+		if stdout, _, err := cloneCmd.AddDynamicArguments(oldRepoPath, repoPath).
 			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", opts.BaseRepo.FullName(), repo.FullName())).
 			RunStdBytes(&git.RunOpts{Timeout: 10 * time.Minute}); err != nil {
 			log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, opts.BaseRepo, stdout, err)
