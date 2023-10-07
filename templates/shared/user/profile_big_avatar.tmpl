@@ -118,9 +118,9 @@
 				{{end}}
 			</li>
 			{{end}}
-			{{if and .IsSigned .IsAdmin}}
-			<li class="follow">
-				<a class="ui basic red button" href="{{AppSubUrl}}/admin/users/{{.ContextUser.ID}}">
+			{{if .IsAdmin}}
+			<li class="admin-shortcut">
+				<a class="ui basic green button" href="{{AppSubUrl}}/admin/users/{{.ContextUser.ID}}">
 					{{ctx.Locale.Tr "admin.users.details"}}
 				</a>
 			</li>
