@@ -776,6 +776,8 @@ const (
 	RepoRefBlob
 )
 
+const headRefName = "HEAD"
+
 // RepoRef handles repository reference names when the ref name is not
 // explicitly given
 func RepoRef() func(*Context) context.CancelFunc {
@@ -836,6 +838,14 @@ func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 	case RepoRefBranch:
 		ref := getRefNameFromPath(ctx, repo, path, repo.GitRepo.IsBranchExist)
 		if len(ref) == 0 {
+
+			// check if ref is HEAD
+			parts := strings.Split(path, "/")
+			if parts[0] == headRefName {
+				repo.TreePath = strings.Join(parts[1:], "/")
+				return repo.Repository.DefaultBranch
+			}
+
 			// maybe it's a renamed branch
 			return getRefNameFromPath(ctx, repo, path, func(s string) bool {
 				b, exist, err := git_model.FindRenamedBranch(ctx, repo.Repository.ID, s)
@@ -863,6 +873,16 @@ func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 		if len(parts) > 0 && len(parts[0]) >= 7 && len(parts[0]) <= git.SHAFullLength {
 			repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
+		}
+
+		if len(parts) > 0 && parts[0] == headRefName {
+			// HEAD ref points to last default branch commit
+			commit, err := repo.GitRepo.GetBranchCommit(repo.Repository.DefaultBranch)
+			if err != nil {
+				return ""
+			}
+			repo.TreePath = strings.Join(parts[1:], "/")
+			return commit.ID.String()
 		}
 	case RepoRefBlob:
 		_, err := repo.GitRepo.GetBlob(path)

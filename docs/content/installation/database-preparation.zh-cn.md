@@ -17,13 +17,13 @@ menu:
 
 # 数据库准备
 
-在使用 Gitea 前，您需要准备一个数据库。Gitea 支持 PostgreSQL（>=10）、MySQL（>=5.7）、SQLite 和 MSSQL（>=2008R2 SP3）这几种数据库。本页将指导您准备数据库。由于 PostgreSQL 和 MySQL 在生产环境中被广泛使用，因此本文档将仅涵盖这两种数据库。如果您计划使用 SQLite，则可以忽略本章内容。
+在使用 Gitea 前，您需要准备一个数据库。Gitea 支持 PostgreSQL（>= 12）、MySQL（>= 8.0）、SQLite 和 MSSQL（>= 2012 SP4）这几种数据库。本页将指导您准备数据库。由于 PostgreSQL 和 MySQL 在生产环境中被广泛使用，因此本文档将仅涵盖这两种数据库。如果您计划使用 SQLite，则可以忽略本章内容。
 
 数据库实例可以与 Gitea 实例在相同机器上（本地数据库），也可以与 Gitea 实例在不同机器上（远程数据库）。
 
 注意：以下所有步骤要求您的选择的数据库引擎已安装在您的系统上。对于远程数据库设置，请在数据库实例上安装服务器应用程序，在 Gitea 服务器上安装客户端程序。客户端程序用于测试 Gitea 服务器与数据库之间的连接，而 Gitea 本身使用 Go 提供的数据库驱动程序完成相同的任务。此外，请确保服务器和客户端使用相同的引擎版本，以使某些引擎功能正常工作。出于安全原因，请使用安全密码保护 `root`（MySQL）或 `postgres`（PostgreSQL）数据库超级用户。以下步骤假设您在数据库和 Gitea 服务器上都使用 Linux。
 
-## MySQL
+## MySQL/MariaDB
 
 1. 对于远程数据库设置，您需要让 MySQL 监听您的 IP 地址。编辑数据库实例上的 `/etc/mysql/my.cnf` 文件中的 `bind-address` 选项为：
 
@@ -182,7 +182,7 @@ menu:
 - 在数据库服务器证书中，`Subject Alternative Name` 或 `Common Name` 条目之一必须是数据库实例的完全限定域名（FQDN）（例如 `db.example.com`）。在数据库客户端证书中，上述提到的条目之一必须包含 Gitea 将用于连接的数据库用户名。
 - 您需要将 Gitea 和数据库服务器的域名映射到它们各自的 IP 地址。可以为它们设置 DNS 记录，也可以在每个系统上的 `/etc/hosts`（Windows 中的 `%WINDIR%\System32\drivers\etc\hosts`）中添加本地映射。这样可以通过域名而不是 IP 地址进行数据库连接。有关详细信息，请参阅您系统的文档。
 
-### PostgreSQL
+### PostgreSQL TLS
 
 Gitea 使用的 PostgreSQL 驱动程序支持双向 TLS。在双向 TLS 中，数据库客户端和服务器通过将各自的证书发送给对方进行验证来相互认证。换句话说，服务器验证客户端证书，客户端验证服务器证书。
 
@@ -250,7 +250,7 @@ Gitea 使用的 PostgreSQL 驱动程序支持双向 TLS。在双向 TLS 中，�
 
     您将被提示输入数据库用户的密码，然后连接到数据库。
 
-### MySQL
+### MySQL/MariaDB TLS
 
 虽然 Gitea 使用的MySQL驱动程序也支持双向 TLS，但目前 Gitea 仅支持单向 TLS。有关详细信息，请参见工单＃10828。
 

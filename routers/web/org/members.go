@@ -38,7 +38,7 @@ func Members(ctx *context.Context) {
 	}
 
 	if ctx.Doer != nil {
-		isMember, err := ctx.Org.Organization.IsOrgMember(ctx.Doer.ID)
+		isMember, err := ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember")
 			return
@@ -47,7 +47,7 @@ func Members(ctx *context.Context) {
 	}
 	ctx.Data["PublicOnly"] = opts.PublicOnly
 
-	total, err := organization.CountOrgMembers(opts)
+	total, err := organization.CountOrgMembers(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CountOrgMembers")
 		return
@@ -70,7 +70,7 @@ func Members(ctx *context.Context) {
 	ctx.Data["Page"] = pager
 	ctx.Data["Members"] = members
 	ctx.Data["MembersIsPublicMember"] = membersIsPublic
-	ctx.Data["MembersIsUserOrgOwner"] = organization.IsUserOrgOwner(members, org.ID)
+	ctx.Data["MembersIsUserOrgOwner"] = organization.IsUserOrgOwner(ctx, members, org.ID)
 	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus(ctx)
 
 	ctx.HTML(http.StatusOK, tplMembers)
@@ -92,13 +92,13 @@ func MembersAction(ctx *context.Context) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		err = organization.ChangeOrgUserStatus(org.ID, uid, false)
+		err = organization.ChangeOrgUserStatus(ctx, org.ID, uid, false)
 	case "public":
 		if ctx.Doer.ID != uid && !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		err = organization.ChangeOrgUserStatus(org.ID, uid, true)
+		err = organization.ChangeOrgUserStatus(ctx, org.ID, uid, true)
 	case "remove":
 		if !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
