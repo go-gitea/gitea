@@ -38,6 +38,8 @@ func TestAPIPullCommits(t *testing.T) {
 
 	assert.NotEmpty(t, commits[0].Files)
 	assert.NotEmpty(t, commits[1].Files)
+	assert.NotNil(t, commits[0].RepoCommit.Verification)
+	assert.NotNil(t, commits[1].RepoCommit.Verification)
 }
 
 // TODO add tests for already merged PR and closed PR
