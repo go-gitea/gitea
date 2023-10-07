@@ -23,9 +23,9 @@ const (
 var commitStatusPriorities = map[CommitStatusState]int{
 	CommitStatusError:   0,
 	CommitStatusFailure: 1,
-	CommitStatusPending: 2,
-	CommitStatusSuccess: 3,
-	CommitStatusWarning: 4,
+	CommitStatusWarning: 2,
+	CommitStatusPending: 3,
+	CommitStatusSuccess: 4,
 }
 
 func (css CommitStatusState) String() string {
