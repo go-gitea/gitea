@@ -16,6 +16,8 @@ const (
 	CommitStatusError CommitStatusState = "error"
 	// CommitStatusFailure is for when the CommitStatus is Failure
 	CommitStatusFailure CommitStatusState = "failure"
+	// CommitStatusWarning is for when the CommitStatus is Warning
+	CommitStatusWarning CommitStatusState = "warning"
 )
 
 var commitStatusPriorities = map[CommitStatusState]int{
@@ -23,6 +25,7 @@ var commitStatusPriorities = map[CommitStatusState]int{
 	CommitStatusFailure: 1,
 	CommitStatusPending: 2,
 	CommitStatusSuccess: 3,
+	CommitStatusWarning: 4,
 }
 
 func (css CommitStatusState) String() string {
@@ -62,4 +65,9 @@ func (css CommitStatusState) IsError() bool {
 // IsFailure represents if commit status state is failure
 func (css CommitStatusState) IsFailure() bool {
 	return css == CommitStatusFailure
+}
+
+// IsWarning represents if commit status state is warning
+func (css CommitStatusState) IsWarning() bool {
+	return css == CommitStatusWarning
 }

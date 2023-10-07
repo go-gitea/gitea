@@ -31,6 +31,10 @@ func TestGetCommitStatuses(t *testing.T) {
 	assert.Equal(t, structs.CommitStatusPending, statuses[0].State)
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[0].APIURL(db.DefaultContext))
 
+	assert.Equal(t, "cov/awesomeness", statuses[1].Context)
+	assert.Equal(t, structs.CommitStatusWarning, statuses[1].State)
+	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[1].APIURL(db.DefaultContext))
+
 	assert.Equal(t, "cov/awesomeness", statuses[2].Context)
 	assert.Equal(t, structs.CommitStatusSuccess, statuses[2].State)
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[2].APIURL(db.DefaultContext))
