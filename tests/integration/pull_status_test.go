@@ -53,6 +53,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			api.CommitStatusError,
 			api.CommitStatusFailure,
 			api.CommitStatusSuccess,
+			api.CommitStatusWarning,
 		}
 
 		statesIcons := map[api.CommitStatusState]string{
@@ -60,6 +61,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			api.CommitStatusSuccess: "octicon-check",
 			api.CommitStatusError:   "gitea-exclamation",
 			api.CommitStatusFailure: "octicon-x",
+			api.CommitStatusWarning: "gitea-exclamation",
 		}
 
 		testCtx := NewAPITestContext(t, "user1", "repo1", auth_model.AccessTokenScopeWriteRepository)
