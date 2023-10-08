@@ -12,7 +12,6 @@ menu:
     sidebar_position: 120
     identifier: "vagrant"
 ---
-
 # Vagrant Package Registry
 
 Publish [Vagrant](https://www.vagrantup.com/) packages for your user or organization.
@@ -29,12 +28,12 @@ Publish a Vagrant box by performing a HTTP PUT request to the registry:
 PUT https://gitea.example.com/api/packages/{owner}/vagrant/{package_name}/{package_version}/{provider}.box
 ```
 
-| Parameter         | Description |
-| ----------------- | ----------- |
-| `owner`           | The owner of the package. |
-| `package_name`    | The package name. |
-| `package_version` | The package version, semver compatible. |
-| `provider`        | One of the [supported provider names](https://www.vagrantup.com/docs/providers). |
+| Parameter           | Description                                                                  |
+| ------------------- | ---------------------------------------------------------------------------- |
+| `owner`           | The owner of the package.                                                    |
+| `package_name`    | The package name.                                                            |
+| `package_version` | The package version, semver compatible.                                      |
+| `provider`        | One of the[supported provider names](https://www.vagrantup.com/docs/providers). |
 
 Example for uploading a Hyper-V box:
 
@@ -49,11 +48,11 @@ You cannot publish a box if a box of the same name, version and provider already
 
 The server responds with the following HTTP Status codes.
 
-| HTTP Status Code  | Meaning |
-| ----------------- | ------- |
-| `201 Created`     | The package has been published. |
-| `400 Bad Request` | The package name, version, distribution, component or architecture are invalid. |
-| `409 Conflict`    | A package file with the same combination of parameters exists already. |
+| HTTP Status Code    | Meaning                                                                         |
+| ------------------- | ------------------------------------------------------------------------------- |
+| `201 Created`     | The package has been published.                                                 |
+| `400 Bad Request` | The package is invalid. |
+| `409 Conflict`    | A package file with the same combination of parameters exists already.          |
 
 ## Install a package
 
@@ -63,10 +62,10 @@ To install a box from the package registry, execute the following command:
 vagrant box add "https://gitea.example.com/api/packages/{owner}/vagrant/{package_name}"
 ```
 
-| Parameter      | Description |
-| -------------- | ----------- |
+| Parameter        | Description               |
+| ---------------- | ------------------------- |
 | `owner`        | The owner of the package. |
-| `package_name` | The package name. |
+| `package_name` | The package name.         |
 
 For example:
 

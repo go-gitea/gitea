@@ -12,7 +12,6 @@ menu:
     sidebar_position: 100
     identifier: "pypi"
 ---
-
 # PyPI Package Registry
 
 Publish [PyPI](https://pypi.org/) packages for your user or organization.
@@ -35,11 +34,11 @@ username = {username}
 password = {password}
 ```
 
-| Placeholder  | Description |
-| ------------ | ----------- |
-| `owner`      | The owner of the package. |
-| `username`   | Your Gitea username. |
-| `password`   | Your Gitea password. If you are using 2FA or OAuth use a [personal access token](development/api-usage.md#authentication) instead of the password. |
+| Placeholder  | Description                                                                                                                                    |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `owner`    | The owner of the package.                                                                                                                      |
+| `username` | Your Gitea username.                                                                                                                           |
+| `password` | Your Gitea password. If you are using 2FA or OAuth use a[personal access token](development/api-usage.md#authentication) instead of the password. |
 
 ## Publish a package
 
@@ -53,14 +52,6 @@ The package files have the extensions `.tar.gz` and `.whl`.
 
 You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
 
-The server responds with the following HTTP Status codes.
-
-| HTTP Status Code  | Meaning |
-| ----------------- | ------- |
-| `201 Created`     | The package has been published. |
-| `400 Bad Request` | The package name, version, distribution, component or architecture are invalid. |
-| `409 Conflict`    | A package file with the same combination of parameters exists already. |
-
 ## Install a package
 
 To install a PyPI package from the package registry, execute the following command:
@@ -69,12 +60,12 @@ To install a PyPI package from the package registry, execute the following comma
 pip install --index-url https://{username}:{password}@gitea.example.com/api/packages/{owner}/pypi/simple --no-deps {package_name}
 ```
 
-| Parameter         | Description |
-| ----------------- | ----------- |
-| `username`        | Your Gitea username. |
-| `password`        | Your Gitea password or a personal access token. |
-| `owner`           | The owner of the package. |
-| `package_name`    | The package name. |
+| Parameter        | Description                                     |
+| ---------------- | ----------------------------------------------- |
+| `username`     | Your Gitea username.                            |
+| `password`     | Your Gitea password or a personal access token. |
+| `owner`        | The owner of the package.                       |
+| `package_name` | The package name.                               |
 
 For example:
 

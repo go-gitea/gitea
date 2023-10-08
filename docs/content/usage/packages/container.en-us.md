@@ -12,7 +12,6 @@ menu:
     sidebar_position: 30
     identifier: "container"
 ---
-
 # Container Registry
 
 Publish [Open Container Initiative](https://opencontainers.org/) compliant images for your user or organization.
@@ -57,11 +56,11 @@ Push an image by executing the following command:
 docker push gitea.example.com/{owner}/{image}:{tag}
 ```
 
-| Parameter | Description |
-| ----------| ----------- |
-| `owner`   | The owner of the image. |
-| `image`   | The name of the image. |
-| `tag`     | The tag of the image. |
+| Parameter | Description             |
+| --------- | ----------------------- |
+| `owner` | The owner of the image. |
+| `image` | The name of the image.  |
+| `tag`   | The tag of the image.   |
 
 For example:
 
@@ -71,14 +70,6 @@ docker push gitea.example.com/testuser/myimage:latest
 
 You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
 
-The server responds with the following HTTP Status codes.
-
-| HTTP Status Code  | Meaning |
-| ----------------- | ------- |
-| `201 Created`     | The package has been published. |
-| `400 Bad Request` | The package name, version, distribution, component or architecture are invalid. |
-| `409 Conflict`    | A package file with the same combination of parameters exists already. |
-
 ## Pull an image
 
 Pull an image by executing the following command:
@@ -87,11 +78,11 @@ Pull an image by executing the following command:
 docker pull gitea.example.com/{owner}/{image}:{tag}
 ```
 
-| Parameter | Description |
-| ----------| ----------- |
-| `owner`   | The owner of the image. |
-| `image`   | The name of the image. |
-| `tag`     | The tag of the image. |
+| Parameter | Description             |
+| --------- | ----------------------- |
+| `owner` | The owner of the image. |
+| `image` | The name of the image.  |
+| `tag`   | The tag of the image.   |
 
 For example:
 

@@ -71,7 +71,7 @@ The server responds with the following HTTP Status codes.
 | HTTP Status Code  | Meaning |
 | ----------------- | ------- |
 | `201 Created`     | The package has been published. |
-| `400 Bad Request` | The package name, version, distribution, component or architecture are invalid. |
+| `400 Bad Request` | The package is invalid. |
 | `409 Conflict`    | A package file with the same combination of parameters exists already. |
 
 ## Install a package

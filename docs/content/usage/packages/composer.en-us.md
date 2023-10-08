@@ -12,7 +12,6 @@ menu:
     sidebar_position: 10
     identifier: "composer"
 ---
-
 # Composer Package Registry
 
 Publish [Composer](https://getcomposer.org/) packages for your user or organization.
@@ -30,9 +29,9 @@ The package content must be the zipped PHP project with the `composer.json` file
 PUT https://gitea.example.com/api/packages/{owner}/composer
 ```
 
-| Parameter  | Description |
-| ---------- | ----------- |
-| `owner`    | The owner of the package. |
+| Parameter | Description               |
+| --------- | ------------------------- |
+| `owner` | The owner of the package. |
 
 If the `composer.json` file does not contain a `version` property, you must provide it as a query parameter:
 
@@ -61,10 +60,10 @@ You cannot publish a package if a package of the same name and version already e
 
 The server responds with the following HTTP Status codes.
 
-| HTTP Status Code  | Meaning |
-| ----------------- | ------- |
-| `201 Created`     | The package has been published. |
-| `400 Bad Request` | The package name, version, distribution, component or architecture are invalid. |
+| HTTP Status Code    | Meaning                                                                |
+| ------------------- | ---------------------------------------------------------------------- |
+| `201 Created`     | The package has been published.                                        |
+| `400 Bad Request` | The package is invalid.                                               |
 | `409 Conflict`    | A package file with the same combination of parameters exists already. |
 
 ## Configuring the package registry
@@ -94,10 +93,10 @@ To access the package registry using credentials, you must specify them in the `
 }
 ```
 
-| Parameter  | Description |
-| ---------- | ----------- |
-| `owner`    | The owner of the package. |
-| `username` | Your Gitea username. |
+| Parameter    | Description                                     |
+| ------------ | ----------------------------------------------- |
+| `owner`    | The owner of the package.                       |
+| `username` | Your Gitea username.                            |
 | `password` | Your Gitea password or a personal access token. |
 
 ## Install a package
@@ -114,7 +113,7 @@ Optional you can specify the package version:
 composer require {package_name}:{package_version}
 ```
 
-| Parameter         | Description |
-| ----------------- | ----------- |
-| `package_name`    | The package name. |
+| Parameter           | Description          |
+| ------------------- | -------------------- |
+| `package_name`    | The package name.    |
 | `package_version` | The package version. |

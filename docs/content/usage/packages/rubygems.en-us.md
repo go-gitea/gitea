@@ -12,7 +12,6 @@ menu:
     sidebar_position: 110
     identifier: "rubygems"
 ---
-
 # RubyGems Package Registry
 
 Publish [RubyGems](https://guides.rubygems.org/) packages for your user or organization.
@@ -30,10 +29,10 @@ To register the package registry edit the `~/.gem/credentials` file and add:
 https://gitea.example.com/api/packages/{owner}/rubygems: Bearer {token}
 ```
 
-| Parameter     | Description |
-| ------------- | ----------- |
-| `owner`       | The owner of the package. |
-| `token`       | Your [personal access token](development/api-usage.md#authentication). |
+| Parameter | Description                                                        |
+| --------- | ------------------------------------------------------------------ |
+| `owner` | The owner of the package.                                          |
+| `token` | Your[personal access token](development/api-usage.md#authentication). |
 
 For example:
 
@@ -50,9 +49,9 @@ Publish a package by running the following command:
 gem push --host {host} {package_file}
 ```
 
-| Parameter      | Description |
-| -------------- | ----------- |
-| `host`         | URL to the package registry. |
+| Parameter        | Description                        |
+| ---------------- | ---------------------------------- |
+| `host`         | URL to the package registry.       |
 | `package_file` | Path to the package `.gem` file. |
 
 For example:
@@ -62,14 +61,6 @@ gem push --host https://gitea.example.com/api/packages/testuser/rubygems test_pa
 ```
 
 You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
-
-The server responds with the following HTTP Status codes.
-
-| HTTP Status Code  | Meaning |
-| ----------------- | ------- |
-| `201 Created`     | The package has been published. |
-| `400 Bad Request` | The package name, version, distribution, component or architecture are invalid. |
-| `409 Conflict`    | A package file with the same combination of parameters exists already. |
 
 ## Install a package
 
@@ -85,10 +76,10 @@ source "https://gitea.example.com/api/packages/{owner}/rubygems" do
 end
 ```
 
-| Parameter         | Description |
-| ----------------- | ----------- |
-| `owner`           | The owner of the package. |
-| `package_name`    | The package name. |
+| Parameter        | Description               |
+| ---------------- | ------------------------- |
+| `owner`        | The owner of the package. |
+| `package_name` | The package name.         |
 
 For example:
 
@@ -112,10 +103,10 @@ Execute the following command:
 gem install --host https://gitea.example.com/api/packages/{owner}/rubygems {package_name}
 ```
 
-| Parameter         | Description |
-| ----------------- | ----------- |
-| `owner`           | The owner of the package. |
-| `package_name`    | The package name. |
+| Parameter        | Description               |
+| ---------------- | ------------------------- |
+| `owner`        | The owner of the package. |
+| `package_name` | The package name.         |
 
 For example:
 

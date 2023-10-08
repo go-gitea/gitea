@@ -12,7 +12,6 @@ menu:
     sidebar_position: 5
     identifier: "cargo"
 ---
-
 # Cargo Package Registry
 
 Publish [Cargo](https://doc.rust-lang.org/stable/cargo/) packages for your user or organization.
@@ -57,9 +56,9 @@ index = "sparse+https://gitea.example.com/api/packages/{owner}/cargo/" # Sparse 
 # git-fetch-with-cli = true
 ```
 
-| Parameter | Description |
-| --------- | ----------- |
-| `owner`   | The owner of the package. |
+| Parameter | Description               |
+| --------- | ------------------------- |
+| `owner` | The owner of the package. |
 
 If the registry is private or you want to publish new packages, you have to configure your credentials.
 Add the credentials section to the credentials file located in the current users home directory (for example `~/.cargo/credentials.toml`):
@@ -69,9 +68,9 @@ Add the credentials section to the credentials file located in the current users
 token = "Bearer {token}"
 ```
 
-| Parameter | Description |
-| --------- | ----------- |
-| `token`   | Your [personal access token](development/api-usage.md#authentication) |
+| Parameter | Description                                                       |
+| --------- | ----------------------------------------------------------------- |
+| `token` | Your[personal access token](development/api-usage.md#authentication) |
 
 ## Git vs Sparse
 
@@ -89,14 +88,6 @@ cargo publish
 
 You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
 
-The server responds with the following HTTP Status codes.
-
-| HTTP Status Code  | Meaning |
-| ----------------- | ------- |
-| `201 Created`     | The package has been published. |
-| `400 Bad Request` | The package name, version, distribution, component or architecture are invalid. |
-| `409 Conflict`    | A package file with the same combination of parameters exists already. |
-
 ## Install a package
 
 To install a package from the package registry, execute the following command:
@@ -105,8 +96,8 @@ To install a package from the package registry, execute the following command:
 cargo add {package_name}
 ```
 
-| Parameter      | Description |
-| -------------- | ----------- |
+| Parameter        | Description       |
+| ---------------- | ----------------- |
 | `package_name` | The package name. |
 
 ## Supported commands
