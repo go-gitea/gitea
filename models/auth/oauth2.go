@@ -66,6 +66,11 @@ func BuiltinApplications() map[string]*BuiltinOAuth2Application {
 		DisplayName:  "Git Credential Manager",
 		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
 	}
+	m["d57cb8c4-630c-4168-8324-ec79935e18d4"] = &BuiltinOAuth2Application{
+		ConfigName:   "tea",
+		DisplayName:  "tea",
+		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+	}
 	return m
 }
 
