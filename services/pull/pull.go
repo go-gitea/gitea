@@ -152,14 +152,12 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 	if issue.Milestone != nil {
 		notify_service.IssueChangeMilestone(ctx, issue.Poster, issue, 0)
 	}
-	if len(assigneeIDs) > 0 {
-		for _, assigneeID := range assigneeIDs {
-			assignee, err := user_model.GetUserByID(ctx, assigneeID)
-			if err != nil {
-				return ErrDependenciesLeft
-			}
-			notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
+	for _, assigneeID := range assigneeIDs {
+		assignee, err := user_model.GetUserByID(ctx, assigneeID)
+		if err != nil {
+			return ErrDependenciesLeft
 		}
+		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
 	}
 
 	return nil

@@ -4,7 +4,6 @@
 package system_test
 
 import (
-	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -15,43 +14,29 @@ import (
 )
 
 func TestSettings(t *testing.T) {
-	keyName := "server.LFS_LOCKS_PAGING_NUM"
+	keyName := "test.key"
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	newSetting := &system.Setting{SettingKey: keyName, SettingValue: "50"}
+	assert.NoError(t, db.TruncateBeans(db.DefaultContext, &system.Setting{}))
 
-	// create setting
-	err := system.SetSetting(db.DefaultContext, newSetting)
+	rev, settings, err := system.GetAllSettings(db.DefaultContext)
 	assert.NoError(t, err)
-	// test about saving unchanged values
-	err = system.SetSetting(db.DefaultContext, newSetting)
-	assert.NoError(t, err)
+	assert.EqualValues(t, 1, rev)
+	assert.Len(t, settings, 1) // there is only one "revision" key
 
-	// get specific setting
-	settings, err := system.GetSettings(db.DefaultContext, []string{keyName})
+	err = system.SetSettings(db.DefaultContext, map[string]string{keyName: "true"})
 	assert.NoError(t, err)
-	assert.Len(t, settings, 1)
-	assert.EqualValues(t, newSetting.SettingValue, settings[strings.ToLower(keyName)].SettingValue)
-
-	// updated setting
-	updatedSetting := &system.Setting{SettingKey: keyName, SettingValue: "100", Version: settings[strings.ToLower(keyName)].Version}
-	err = system.SetSetting(db.DefaultContext, updatedSetting)
+	rev, settings, err = system.GetAllSettings(db.DefaultContext)
 	assert.NoError(t, err)
-
-	value, err := system.GetSetting(db.DefaultContext, keyName)
-	assert.NoError(t, err)
-	assert.EqualValues(t, updatedSetting.SettingValue, value.SettingValue)
-
-	// get all settings
-	settings, err = system.GetAllSettings(db.DefaultContext)
-	assert.NoError(t, err)
-	assert.Len(t, settings, 3)
-	assert.EqualValues(t, updatedSetting.SettingValue, settings[strings.ToLower(updatedSetting.SettingKey)].SettingValue)
-
-	// delete setting
-	err = system.DeleteSetting(db.DefaultContext, &system.Setting{SettingKey: strings.ToLower(keyName)})
-	assert.NoError(t, err)
-	settings, err = system.GetAllSettings(db.DefaultContext)
-	assert.NoError(t, err)
+	assert.EqualValues(t, 2, rev)
 	assert.Len(t, settings, 2)
+	assert.EqualValues(t, "true", settings[keyName])
+
+	err = system.SetSettings(db.DefaultContext, map[string]string{keyName: "false"})
+	assert.NoError(t, err)
+	rev, settings, err = system.GetAllSettings(db.DefaultContext)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, rev)
+	assert.Len(t, settings, 2)
+	assert.EqualValues(t, "false", settings[keyName])
 }

@@ -214,9 +214,9 @@ menu:
 - `SITEMAP_PAGING_NUM`: **20**: 在单个子SiteMap中显示的项数。
 - `GRAPH_MAX_COMMIT_NUM`: **100**: 提交图中显示的最大commit数量。
 - `CODE_COMMENT_LINES`: **4**: 在代码评论中能够显示的最大代码行数。
-- `DEFAULT_THEME`: **auto**: \[auto, gitea, arc-green\]: 在Gitea安装时候设置的默认主题。
+- `DEFAULT_THEME`: **gitea-auto**: \[gitea-auto, gitea-light, gitea-dark\]: 在Gitea安装时候设置的默认主题。
 - `SHOW_USER_EMAIL`: **true**: 用户的电子邮件是否应该显示在`Explore Users`页面中。
-- `THEMES`:  **auto,gitea,arc-green**: 所有可用的主题。允许用户选择个性化的主题，
+- `THEMES`:  **gitea-auto,gitea-light,gitea-dark**: 所有可用的主题。允许用户选择个性化的主题，
   而不受DEFAULT_THEME 值的影响。
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: 能够显示文件的最大大小（默认为8MiB）。
 - `REACTIONS`: 用户可以在问题（Issue）、Pull Request（PR）以及评论中选择的所有可选的反应。
@@ -1056,7 +1056,7 @@ Gitea 创建以下非唯一队列：
 - `JWT_SECRET_URI`：**_empty_**：可以使用此配置选项，而不是在配置中定义`JWT_SECRET`，以向Gitea提供包含密钥的文件的路径（示例值：`file:/etc/gitea/oauth2_jwt_secret`）。
 - `JWT_SIGNING_PRIVATE_KEY_FILE`：**jwt/private.pem**：用于签署OAuth2令牌的私钥文件路径。路径相对于`APP_DATA_PATH`。仅当`JWT_SIGNING_ALGORITHM`设置为`RS256`，`RS384`，`RS512`，`ES256`，`ES384`或`ES512`时才需要此设置。文件必须包含PKCS8格式的RSA或ECDSA私钥。如果不存在密钥，则将为您创建一个4096位密钥。
 - `MAX_TOKEN_LENGTH`：**32767**：从OAuth2提供者接受的令牌/cookie的最大长度。
-- `DEFAULT_APPLICATIONS`：**git-credential-oauth，git-credential-manager**：在启动时预注册用于某些服务的OAuth应用程序。有关可用选项列表，请参阅[OAuth2文档](/development/oauth2-provider.md)。
+- `DEFAULT_APPLICATIONS`：**git-credential-oauth，git-credential-manager, tea**：在启动时预注册用于某些服务的OAuth应用程序。有关可用选项列表，请参阅[OAuth2文档](/development/oauth2-provider.md)。
 
 ## i18n (`i18n`)
 
