@@ -48,13 +48,13 @@ func LinkAccount(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/link_account_signin"
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/link_account_signup"
 
-	gothUser := ctx.Session.Get("linkAccountGothUser")
-	if gothUser == nil {
+	externalLinkUser := ctx.Session.Get("linkAccountUser")
+	if externalLinkUser == nil {
 		ctx.ServerError("UserSignIn", errors.New("not in LinkAccount session"))
 		return
 	}
 
-	gu, _ := gothUser.(goth.User)
+	gu := externalLinkUser.(auth.LinkAccountUser).GothUser
 	uname := getUserName(&gu)
 	email := gu.Email
 	ctx.Data["user_name"] = uname
@@ -131,11 +131,13 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/link_account_signin"
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/link_account_signup"
 
-	gothUser := ctx.Session.Get("linkAccountGothUser")
-	if gothUser == nil {
+	externalLinkUserInterface := ctx.Session.Get("linkAccountUser")
+	if externalLinkUserInterface == nil {
 		ctx.ServerError("UserSignIn", errors.New("not in LinkAccount session"))
 		return
 	}
+
+	externalLinkUser := externalLinkUserInterface.(auth.LinkAccountUser)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplLinkAccount)
@@ -148,10 +150,10 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 		return
 	}
 
-	linkAccount(ctx, u, gothUser.(goth.User), signInForm.Remember)
+	linkAccount(ctx, u, externalLinkUser.GothUser, signInForm.Remember, externalLinkUser.Type)
 }
 
-func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, remember bool) {
+func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, remember bool, authType auth.Type) {
 	updateAvatarIfNeed(gothUser.AvatarURL, u)
 
 	// If this user is enrolled in 2FA, we can't sign the user in just yet.
@@ -164,7 +166,7 @@ func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, r
 			return
 		}
 
-		err = externalaccount.LinkAccountToUser(ctx, u, gothUser)
+		err = externalaccount.LinkAccountToUser(ctx, u, gothUser, authType)
 		if err != nil {
 			ctx.ServerError("UserLinkAccount", err)
 			return
@@ -218,14 +220,14 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/link_account_signin"
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/link_account_signup"
 
-	gothUserInterface := ctx.Session.Get("linkAccountGothUser")
-	if gothUserInterface == nil {
+	externalLinkUser := ctx.Session.Get("linkAccountUser")
+	if externalLinkUser == nil {
 		ctx.ServerError("UserSignUp", errors.New("not in LinkAccount session"))
 		return
 	}
-	gothUser, ok := gothUserInterface.(goth.User)
+	linkUser, ok := externalLinkUser.(auth.LinkAccountUser)
 	if !ok {
-		ctx.ServerError("UserSignUp", fmt.Errorf("session linkAccountGothUser type is %t but not goth.User", gothUserInterface))
+		ctx.ServerError("UserSignUp", fmt.Errorf("session linkAccountUser type is %t but not goth.User", externalLinkUser))
 		return
 	}
 
@@ -271,7 +273,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		}
 	}
 
-	authSource, err := auth.GetActiveOAuth2SourceByName(gothUser.Provider)
+	authSource, err := auth.GetActiveAuthSourceByName(linkUser.GothUser.Provider, linkUser.Type)
 	if err != nil {
 		ctx.ServerError("CreateUser", err)
 		return
@@ -283,19 +285,22 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		Passwd:      form.Password,
 		LoginType:   auth.OAuth2,
 		LoginSource: authSource.ID,
-		LoginName:   gothUser.UserID,
+		LoginName:   linkUser.GothUser.UserID,
 	}
 
-	if !createAndHandleCreatedUser(ctx, tplLinkAccount, form, u, nil, &gothUser, false) {
+	if !createAndHandleCreatedUser(ctx, tplLinkAccount, form, u, nil, &linkUser.GothUser, false, linkUser.Type) {
 		// error already handled
 		return
 	}
 
-	source := authSource.Cfg.(*oauth2.Source)
-	if err := syncGroupsToTeams(ctx, source, &gothUser, u); err != nil {
-		ctx.ServerError("SyncGroupsToTeams", err)
-		return
+	if linkUser.Type == auth.OAuth2 {
+		source := authSource.Cfg.(*oauth2.Source)
+		if err := syncGroupsToTeams(ctx, source, &linkUser.GothUser, u); err != nil {
+			ctx.ServerError("SyncGroupsToTeams", err)
+			return
+		}
 	}
+	// TODO groups for SAML?
 
 	handleSignIn(ctx, u, false)
 }

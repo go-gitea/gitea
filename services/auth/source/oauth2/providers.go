@@ -100,7 +100,7 @@ func GetOAuth2Providers() []Provider {
 func GetActiveOAuth2Providers() ([]string, map[string]Provider, error) {
 	// Maybe also separate used and unused providers so we can force the registration of only 1 active provider for each type
 
-	authSources, err := auth.GetActiveOAuth2ProviderSources()
+	authSources, err := auth.GetActiveAuthProviderSources(auth.OAuth2)
 	if err != nil {
 		return nil, nil, err
 	}

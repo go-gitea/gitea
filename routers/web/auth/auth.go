@@ -154,7 +154,7 @@ func SignIn(ctx *context.Context) {
 	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
 	ctx.Data["OAuth2Providers"] = oauth2Providers
 
-	samlProviders, err := auth.GetActiveSAMLProviderLoginSources()
+	samlProviders, err := auth.GetActiveAuthProviderSources(auth.SAML)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -496,7 +496,7 @@ func SignUpPost(ctx *context.Context) {
 		Passwd: form.Password,
 	}
 
-	if !createAndHandleCreatedUser(ctx, tplSignUp, form, u, nil, nil, false) {
+	if !createAndHandleCreatedUser(ctx, tplSignUp, form, u, nil, nil, false, auth.NoType) {
 		// error already handled
 		return
 	}
@@ -507,16 +507,16 @@ func SignUpPost(ctx *context.Context) {
 
 // createAndHandleCreatedUser calls createUserInContext and
 // then handleUserCreated.
-func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) bool {
-	if !createUserInContext(ctx, tpl, form, u, overwrites, gothUser, allowLink) {
+func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool, authType auth.Type) bool {
+	if !createUserInContext(ctx, tpl, form, u, overwrites, gothUser, allowLink, authType) {
 		return false
 	}
-	return handleUserCreated(ctx, u, gothUser)
+	return handleUserCreated(ctx, u, gothUser, authType)
 }
 
 // createUserInContext creates a user and handles errors within a given context.
 // Optionally a template can be specified.
-func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) (ok bool) {
+func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool, authType auth.Type) (ok bool) {
 	if err := user_model.CreateUser(ctx, u, overwrites); err != nil {
 		if allowLink && (user_model.IsErrUserAlreadyExist(err) || user_model.IsErrEmailAlreadyUsed(err)) {
 			if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingAuto {
@@ -533,10 +533,10 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *us
 				}
 
 				// TODO: probably we should respect 'remember' user's choice...
-				linkAccount(ctx, user, *gothUser, true)
+				linkAccount(ctx, user, *gothUser, true, authType)
 				return false // user is already created here, all redirects are handled
 			} else if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingLogin {
-				showLinkingLogin(ctx, *gothUser)
+				showLinkingLogin(ctx, *gothUser, authType)
 				return false // user will be created only after linking login
 			}
 		}
@@ -582,7 +582,7 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *us
 // handleUserCreated does additional steps after a new user is created.
 // It auto-sets admin for the only user, updates the optional external user and
 // sends a confirmation email if required.
-func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.User) (ok bool) {
+func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.User, authType auth.Type) (ok bool) {
 	// Auto-set admin for the only user.
 	if user_model.CountUsers(ctx, nil) == 1 {
 		u.IsAdmin = true
@@ -596,7 +596,7 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 
 	// update external user information
 	if gothUser != nil {
-		if err := externalaccount.UpdateExternalUser(u, *gothUser); err != nil {
+		if err := externalaccount.UpdateExternalUser(u, *gothUser, authType); err != nil {
 			if !errors.Is(err, util.ErrNotExist) {
 				log.Error("UpdateExternalUser failed: %v", err)
 			}

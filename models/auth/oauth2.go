@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/base32"
 	"encoding/base64"
+	"encoding/gob"
 	"fmt"
 	"net"
 	"net/url"
@@ -75,6 +76,8 @@ func Init(ctx context.Context) error {
 	for clientID := range builtinApps {
 		builtinAllClientIDs = append(builtinAllClientIDs, clientID)
 	}
+
+	gob.Register(LinkAccountUser{})
 
 	var registeredApps []*OAuth2Application
 	if err := db.GetEngine(ctx).In("client_id", builtinAllClientIDs).Find(&registeredApps); err != nil {
@@ -626,25 +629,25 @@ func (err ErrOAuthApplicationNotFound) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// GetActiveOAuth2ProviderSources returns all actived LoginOAuth2 sources
-func GetActiveOAuth2ProviderSources() ([]*Source, error) {
+// GetActiveAuthProviderSources returns all actived LoginOAuth2 sources
+func GetActiveAuthProviderSources(authType Type) ([]*Source, error) {
 	sources := make([]*Source, 0, 1)
-	if err := db.GetEngine(db.DefaultContext).Where("is_active = ? and type = ?", true, OAuth2).Find(&sources); err != nil {
+	if err := db.GetEngine(db.DefaultContext).Where("is_active = ? and type = ?", true, authType).Find(&sources); err != nil {
 		return nil, err
 	}
 	return sources, nil
 }
 
-// GetActiveOAuth2SourceByName returns a OAuth2 AuthSource based on the given name
-func GetActiveOAuth2SourceByName(name string) (*Source, error) {
+// GetActiveAuthSourceByName returns a OAuth2 AuthSource based on the given name
+func GetActiveAuthSourceByName(name string, authType Type) (*Source, error) {
 	authSource := new(Source)
-	has, err := db.GetEngine(db.DefaultContext).Where("name = ? and type = ? and is_active = ?", name, OAuth2, true).Get(authSource)
+	has, err := db.GetEngine(db.DefaultContext).Where("name = ? and type = ? and is_active = ?", name, authType, true).Get(authSource)
 	if err != nil {
 		return nil, err
 	}
 
 	if !has {
-		return nil, fmt.Errorf("oauth2 source not found, name: %q", name)
+		return nil, fmt.Errorf("auth source not found, name: %q", name)
 	}
 
 	return authSource, nil

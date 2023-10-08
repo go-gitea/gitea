@@ -32,14 +32,29 @@ func (source *Source) Callback(request *http.Request, response http.ResponseWrit
 	samlRWMutex.RLock()
 	defer samlRWMutex.RUnlock()
 
-	user := goth.User{}
+	user := goth.User{
+		Provider: source.authSource.Name,
+	}
 	samlResponse := request.FormValue("SAMLResponse")
 	assertions, err := source.samlSP.RetrieveAssertionInfo(samlResponse)
 	if err != nil {
 		return user, err
 	}
-	if warningInfo := assertions.WarningInfo; warningInfo != nil {
-		return user, fmt.Errorf("SAML response contains warnings: %v", warningInfo)
+
+	if assertions.WarningInfo.OneTimeUse {
+		return user, fmt.Errorf("SAML response contains one time use warning")
+	}
+
+	if assertions.WarningInfo.ProxyRestriction != nil {
+		return user, fmt.Errorf("SAML response contains proxy restriction warning: %v", assertions.WarningInfo.ProxyRestriction)
+	}
+
+	if assertions.WarningInfo.NotInAudience {
+		return user, fmt.Errorf("SAML response contains audience warning")
+	}
+
+	if assertions.WarningInfo.InvalidTime {
+		return user, fmt.Errorf("SAML response contains invalid time warning")
 	}
 
 	samlMap := make(map[string]string) // Global.
