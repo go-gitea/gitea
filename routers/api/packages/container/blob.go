@@ -130,7 +130,7 @@ func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageI
 					log.Error("Error linking source code repo to container: %v", err)
 					return err
 				}
-			}	
+			}
 		}
 
 		pv := &packages_model.PackageVersion{
