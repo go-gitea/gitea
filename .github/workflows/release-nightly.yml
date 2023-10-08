@@ -12,7 +12,7 @@ jobs:
   disk-clean:
     uses: ./.github/workflows/disk-clean.yml
   nightly-binary:
-    runs-on: ubuntu-latest
+    runs-on: nscloud
     steps:
       - uses: actions/checkout@v4
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
