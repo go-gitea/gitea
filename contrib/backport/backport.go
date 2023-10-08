@@ -147,7 +147,7 @@ func runBackport(c *cli.Context) error {
 		}
 	}
 
-	fmt.Printf("Backport done! You can now push it with `git push yourremote %s`\n", backportBranch)
+	fmt.Printf("Backport done! You can now push it with `git push <your remote> %s`\n", backportBranch)
 
 	return nil
 }
