@@ -23,7 +23,6 @@ import (
 // Ensure the struct implements the interface.
 var (
 	_ Method = &HTTPSign{}
-	_ Named  = &HTTPSign{}
 )
 
 // HTTPSign implements the Auth interface and authenticates requests (API requests

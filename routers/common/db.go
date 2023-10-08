@@ -10,8 +10,10 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting/config"
 
 	"xorm.io/xorm"
 )
@@ -36,6 +38,7 @@ func InitDBEngine(ctx context.Context) (err error) {
 		time.Sleep(setting.Database.DBConnectBackoff)
 	}
 	db.HasEngine = true
+	config.SetDynGetter(system_model.NewDatabaseDynKeyGetter())
 	return nil
 }
 

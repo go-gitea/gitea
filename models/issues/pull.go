@@ -311,7 +311,7 @@ func (pr *PullRequest) LoadRequestedReviewers(ctx context.Context) error {
 		return nil
 	}
 
-	reviews, err := GetReviewsByIssueID(pr.Issue.ID)
+	reviews, err := GetReviewsByIssueID(ctx, pr.Issue.ID)
 	if err != nil {
 		return err
 	}
@@ -1040,7 +1040,7 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, 
 				warnings = append(warnings, fmt.Sprintf("incorrect codeowner organization: %s", user))
 				continue
 			}
-			teams, err := org.LoadTeams()
+			teams, err := org.LoadTeams(ctx)
 			if err != nil {
 				warnings = append(warnings, fmt.Sprintf("incorrect codeowner team: %s", user))
 				continue
@@ -1104,4 +1104,24 @@ func TokenizeCodeOwnersLine(line string) []string {
 	}
 
 	return tokens
+}
+
+// InsertPullRequests inserted pull requests
+func InsertPullRequests(ctx context.Context, prs ...*PullRequest) error {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
+	for _, pr := range prs {
+		if err := insertIssue(ctx, pr.Issue); err != nil {
+			return err
+		}
+		pr.IssueID = pr.Issue.ID
+		if _, err := sess.NoAutoTime().Insert(pr); err != nil {
+			return err
+		}
+	}
+	return committer.Commit()
 }

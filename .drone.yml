@@ -41,11 +41,13 @@ steps:
         path: /go
 
   - name: static
-    image: techknowlogick/xgo:go-1.20.x
+    image: techknowlogick/xgo:go-1.21.x
     pull: always
     commands:
-      # Upgrade to node 20 once https://github.com/techknowlogick/xgo/issues/163 is resolved
-      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get -qqy install nodejs
+      - apt-get update && apt-get -qqy install ca-certificates curl gnupg
+      - mkdir -p /etc/apt/keyrings && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+      - echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" > /etc/apt/sources.list.d/nodesource.list
+      - apt-get update && apt-get -qqy install nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
@@ -155,7 +157,7 @@ steps:
     when:
       event:
         exclude:
-        - pull_request
+          - pull_request
 
   - name: publish-rootless
     image: plugins/docker:latest
@@ -177,7 +179,7 @@ steps:
     when:
       event:
         exclude:
-        - pull_request
+          - pull_request
 ---
 
 kind: pipeline
@@ -221,7 +223,7 @@ steps:
     when:
       event:
         exclude:
-        - pull_request
+          - pull_request
 
   - name: publish-rootless
     image: plugins/docker:latest
@@ -242,7 +244,7 @@ steps:
     when:
       event:
         exclude:
-        - pull_request
+          - pull_request
 
 ---
 kind: pipeline
@@ -290,7 +292,7 @@ steps:
     when:
       event:
         exclude:
-        - pull_request
+          - pull_request
 
   - name: publish-rootless
     image: plugins/docker:latest
@@ -312,7 +314,7 @@ steps:
     when:
       event:
         exclude:
-        - pull_request
+          - pull_request
 
 ---
 kind: pipeline
@@ -356,7 +358,7 @@ steps:
     when:
       event:
         exclude:
-        - pull_request
+          - pull_request
 
   - name: publish-rootless
     image: plugins/docker:latest
@@ -377,7 +379,7 @@ steps:
     when:
       event:
         exclude:
-        - pull_request
+          - pull_request
 
 ---
 kind: pipeline
@@ -414,7 +416,7 @@ steps:
 
 trigger:
   ref:
-  - "refs/tags/**"
+    - "refs/tags/**"
   paths:
     exclude:
       - "docs/**"

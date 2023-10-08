@@ -65,7 +65,7 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 // RemovePushMirrorRemote removes the push mirror remote.
 func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error {
 	cmd := git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(m.RemoteName)
-	_ = m.GetRepository()
+	_ = m.GetRepository(ctx)
 
 	if _, _, err := cmd.RunStdString(&git.RunOpts{Dir: m.Repo.RepoPath()}); err != nil {
 		return err
@@ -99,7 +99,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 		return false
 	}
 
-	_ = m.GetRepository()
+	_ = m.GetRepository(ctx)
 
 	m.LastError = ""
 
@@ -252,4 +252,16 @@ func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, lfsClient l
 	}
 
 	return nil
+}
+
+func syncPushMirrorWithSyncOnCommit(ctx context.Context, repoID int64) {
+	pushMirrors, err := repo_model.GetPushMirrorsSyncedOnCommit(ctx, repoID)
+	if err != nil {
+		log.Error("repo_model.GetPushMirrorsSyncedOnCommit failed: %v", err)
+		return
+	}
+
+	for _, mirror := range pushMirrors {
+		AddPushMirrorToQueue(mirror.ID)
+	}
 }

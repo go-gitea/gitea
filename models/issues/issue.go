@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"slices"
 
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
@@ -200,12 +201,12 @@ func (issue *Issue) IsTimetrackerEnabled(ctx context.Context) bool {
 }
 
 // GetPullRequest returns the issue pull request
-func (issue *Issue) GetPullRequest() (pr *PullRequest, err error) {
+func (issue *Issue) GetPullRequest(ctx context.Context) (pr *PullRequest, err error) {
 	if !issue.IsPull {
 		return nil, fmt.Errorf("Issue is not a pull request")
 	}
 
-	pr, err = GetPullRequestByIssueID(db.DefaultContext, issue.ID)
+	pr, err = GetPullRequestByIssueID(ctx, issue.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -368,9 +369,9 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 }
 
 // GetIsRead load the `IsRead` field of the issue
-func (issue *Issue) GetIsRead(userID int64) error {
+func (issue *Issue) GetIsRead(ctx context.Context, userID int64) error {
 	issueUser := &IssueUser{IssueID: issue.ID, UID: userID}
-	if has, err := db.GetEngine(db.DefaultContext).Get(issueUser); err != nil {
+	if has, err := db.GetEngine(ctx).Get(issueUser); err != nil {
 		return err
 	} else if !has {
 		issue.IsRead = false
@@ -381,9 +382,9 @@ func (issue *Issue) GetIsRead(userID int64) error {
 }
 
 // APIURL returns the absolute APIURL to this issue.
-func (issue *Issue) APIURL() string {
+func (issue *Issue) APIURL(ctx context.Context) string {
 	if issue.Repo == nil {
-		err := issue.LoadRepo(db.DefaultContext)
+		err := issue.LoadRepo(ctx)
 		if err != nil {
 			log.Error("Issue[%d].APIURL(): %v", issue.ID, err)
 			return ""
@@ -478,9 +479,9 @@ func (issue *Issue) GetLastEventLabel() string {
 }
 
 // GetLastComment return last comment for the current issue.
-func (issue *Issue) GetLastComment() (*Comment, error) {
+func (issue *Issue) GetLastComment(ctx context.Context) (*Comment, error) {
 	var c Comment
-	exist, err := db.GetEngine(db.DefaultContext).Where("type = ?", CommentTypeComment).
+	exist, err := db.GetEngine(ctx).Where("type = ?", CommentTypeComment).
 		And("issue_id = ?", issue.ID).Desc("created_unix").Get(&c)
 	if err != nil {
 		return nil, err
@@ -542,12 +543,12 @@ func GetIssueByID(ctx context.Context, id int64) (*Issue, error) {
 }
 
 // GetIssueWithAttrsByID returns an issue with attributes by given ID.
-func GetIssueWithAttrsByID(id int64) (*Issue, error) {
-	issue, err := GetIssueByID(db.DefaultContext, id)
+func GetIssueWithAttrsByID(ctx context.Context, id int64) (*Issue, error) {
+	issue, err := GetIssueByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	return issue, issue.LoadAttributes(db.DefaultContext)
+	return issue, issue.LoadAttributes(ctx)
 }
 
 // GetIssuesByIDs return issues with the given IDs.
@@ -599,13 +600,13 @@ func GetParticipantsIDsByIssueID(ctx context.Context, issueID int64) ([]int64, e
 }
 
 // IsUserParticipantsOfIssue return true if user is participants of an issue
-func IsUserParticipantsOfIssue(user *user_model.User, issue *Issue) bool {
-	userIDs, err := issue.GetParticipantIDsByIssue(db.DefaultContext)
+func IsUserParticipantsOfIssue(ctx context.Context, user *user_model.User, issue *Issue) bool {
+	userIDs, err := issue.GetParticipantIDsByIssue(ctx)
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
-	return util.SliceContains(userIDs, user.ID)
+	return slices.Contains(userIDs, user.ID)
 }
 
 // DependencyInfo represents high level information about an issue which is a dependency of another issue.
@@ -630,7 +631,7 @@ func (issue *Issue) GetParticipantIDsByIssue(ctx context.Context) ([]int64, erro
 		Find(&userIDs); err != nil {
 		return nil, fmt.Errorf("get poster IDs: %w", err)
 	}
-	if !util.SliceContains(userIDs, issue.PosterID) {
+	if !slices.Contains(userIDs, issue.PosterID) {
 		return append(userIDs, issue.PosterID), nil
 	}
 	return userIDs, nil
@@ -890,4 +891,51 @@ func IsNewPinAllowed(ctx context.Context, repoID int64, isPull bool) (bool, erro
 // IsErrIssueMaxPinReached returns if the error is, that the User can't pin more Issues
 func IsErrIssueMaxPinReached(err error) bool {
 	return err == ErrIssueMaxPinReached
+}
+
+// InsertIssues insert issues to database
+func InsertIssues(ctx context.Context, issues ...*Issue) error {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	for _, issue := range issues {
+		if err := insertIssue(ctx, issue); err != nil {
+			return err
+		}
+	}
+	return committer.Commit()
+}
+
+func insertIssue(ctx context.Context, issue *Issue) error {
+	sess := db.GetEngine(ctx)
+	if _, err := sess.NoAutoTime().Insert(issue); err != nil {
+		return err
+	}
+	issueLabels := make([]IssueLabel, 0, len(issue.Labels))
+	for _, label := range issue.Labels {
+		issueLabels = append(issueLabels, IssueLabel{
+			IssueID: issue.ID,
+			LabelID: label.ID,
+		})
+	}
+	if len(issueLabels) > 0 {
+		if _, err := sess.Insert(issueLabels); err != nil {
+			return err
+		}
+	}
+
+	for _, reaction := range issue.Reactions {
+		reaction.IssueID = issue.ID
+	}
+
+	if len(issue.Reactions) > 0 {
+		if _, err := sess.Insert(issue.Reactions); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

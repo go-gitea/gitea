@@ -60,17 +60,9 @@ func Contexter() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			base, baseCleanUp := context.NewBaseContext(resp, req)
-			ctx := &context.Context{
-				Base:    base,
-				Flash:   &middleware.Flash{},
-				Render:  rnd,
-				Session: session.GetSession(req),
-			}
 			defer baseCleanUp()
 
-			ctx.TemplateContext = context.NewTemplateContext(ctx)
-			ctx.TemplateContext["Locale"] = ctx.Locale
-
+			ctx := context.NewWebContext(base, rnd, session.GetSession(req))
 			ctx.AppendContextValue(context.WebContextKey, ctx)
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
 			ctx.Data.MergeFrom(middleware.ContextData{
@@ -189,7 +181,7 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 	if err = db.InitEngine(ctx); err != nil {
 		if strings.Contains(err.Error(), `Unknown database type: sqlite3`) {
 			ctx.Data["Err_DbType"] = true
-			ctx.RenderWithErr(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.io/en-us/install-from-binary/"), tplInstall, form)
+			ctx.RenderWithErr(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.com/installation/install-from-binary"), tplInstall, form)
 		} else {
 			ctx.Data["Err_DbSetting"] = true
 			ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
@@ -438,15 +430,14 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("service").Key("ENABLE_NOTIFY_MAIL").SetValue(fmt.Sprint(form.MailNotify))
 
 	cfg.Section("server").Key("OFFLINE_MODE").SetValue(fmt.Sprint(form.OfflineMode))
-	// if you are reinstalling, this maybe not right because of missing version
-	if err := system_model.SetSettingNoVersion(ctx, system_model.KeyPictureDisableGravatar, strconv.FormatBool(form.DisableGravatar)); err != nil {
+	if err := system_model.SetSettings(ctx, map[string]string{
+		setting.Config().Picture.DisableGravatar.DynKey():       strconv.FormatBool(form.DisableGravatar),
+		setting.Config().Picture.EnableFederatedAvatar.DynKey(): strconv.FormatBool(form.EnableFederatedAvatar),
+	}); err != nil {
 		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
 	}
-	if err := system_model.SetSettingNoVersion(ctx, system_model.KeyPictureEnableFederatedAvatar, strconv.FormatBool(form.EnableFederatedAvatar)); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
-		return
-	}
+
 	cfg.Section("openid").Key("ENABLE_OPENID_SIGNIN").SetValue(fmt.Sprint(form.EnableOpenIDSignIn))
 	cfg.Section("openid").Key("ENABLE_OPENID_SIGNUP").SetValue(fmt.Sprint(form.EnableOpenIDSignUp))
 	cfg.Section("service").Key("DISABLE_REGISTRATION").SetValue(fmt.Sprint(form.DisableRegistration))
@@ -544,7 +535,7 @@ func SubmitInstall(ctx *context.Context) {
 			IsActive:     util.OptionalBoolTrue,
 		}
 
-		if err = user_model.CreateUser(u, overwriteDefault); err != nil {
+		if err = user_model.CreateUser(ctx, u, overwriteDefault); err != nil {
 			if !user_model.IsErrUserAlreadyExist(err) {
 				setting.InstallLock = false
 				ctx.Data["Err_AdminName"] = true
