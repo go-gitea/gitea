@@ -110,7 +110,6 @@ func AddOrUpdatePackageIndex(ctx context.Context, doer, owner *user_model.User, 
 	// We do not want to force the creation of the repo here
 	// cargo http index does not rely on the repo itself,
 	// so if the repo does not exist, we just do nothing.
-	// This partially resolves #26844 (error 500 when trying to publish a crate if user is missing write access to the repo)
 	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner.Name, IndexRepositoryName)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
