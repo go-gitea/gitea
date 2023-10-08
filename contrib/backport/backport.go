@@ -58,10 +58,6 @@ func main() {
 			Name:  "no-amend-message",
 			Usage: "Set this flag to prevent automatic amendment of the commit message",
 		},
-		&cli.BoolFlag{
-			Name:  "continue",
-			Usage: "Set this flag to continue from a git cherry-pick that has broken",
-		},
 	}
 	cli.AppHelpTemplate = `NAME:
 	{{.Name}} - {{.Usage}}
@@ -86,8 +82,6 @@ OPTIONS:
 func runBackport(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
-
-	continuing := c.Bool("continue")
 
 	version := c.String("version")
 	if version == "" {
@@ -139,10 +133,8 @@ func runBackport(c *cli.Context) error {
 		}
 	}
 
-	if !continuing {
-		if err := checkoutBackportBranch(ctx, backportBranch, localReleaseBranch); err != nil {
-			return err
-		}
+	if err := checkoutBackportBranch(ctx, backportBranch, localReleaseBranch); err != nil {
+		return err
 	}
 
 	if err := cherrypick(ctx, sha); err != nil {
@@ -187,18 +179,6 @@ func amendCommit(ctx context.Context, pr string) error {
 }
 
 func cherrypick(ctx context.Context, sha string) error {
-	// Check if a CHERRY_PICK_HEAD exists
-	if _, err := os.Stat(".git/CHERRY_PICK_HEAD"); err == nil {
-		// Assume that we are in the middle of cherry-pick - continue it
-		fmt.Println("* Attempting git cherry-pick --continue")
-		out, err := exec.CommandContext(ctx, "git", "cherry-pick", "--continue").Output()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "git cherry-pick --continue failed:\n%s\n", string(out))
-			return fmt.Errorf("unable to continue cherry-pick: %w", err)
-		}
-		return nil
-	}
-
 	fmt.Printf("* Attempting git cherry-pick %s\n", sha)
 	out, err := exec.CommandContext(ctx, "git", "cherry-pick", sha).Output()
 	if err != nil {
