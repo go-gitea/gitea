@@ -33,3 +33,4 @@ modifies/internal:
   - ".spectral.yaml"
   - ".stylelintrc.yaml"
   - ".yamllint.yaml"
+  - ".github/**"
