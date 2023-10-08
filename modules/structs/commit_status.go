@@ -35,7 +35,7 @@ func (css CommitStatusState) String() string {
 // NoBetterThan returns true if this State is no better than the given State
 // This function only handles the states defined in CommitStatusPriorities
 func (css CommitStatusState) NoBetterThan(css2 CommitStatusState) bool {
-	// NoBetterThan only handles the 4 states above
+	// NoBetterThan only handles the 5 states above
 	if _, exist := commitStatusPriorities[css]; !exist {
 		return false
 	}
