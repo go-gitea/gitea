@@ -9,7 +9,7 @@ backport() {
   git checkout "release/v$VER" || git checkout -b "release/v$VER"
   git fetch origin "release/v$VER"
   git reset --hard "origin/release/v$VER"
-  git branch -D "backport-$PR-$VER"
+  git branch -D "backport-$PR-$VER" &>/dev/null || true
   git checkout -b "backport-$PR-$VER"
   HASH="$(curl -sH "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/go-gitea/gitea/pulls/$PR" | jq -r .merge_commit_sha)"
   git cherry-pick "$HASH"
