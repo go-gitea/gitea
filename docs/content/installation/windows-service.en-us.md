@@ -14,7 +14,6 @@ menu:
     sidebar_position: 50
     identifier: "windows-service"
 ---
-
 # Register as a Windows service
 
 ## Prerequisites
@@ -38,7 +37,7 @@ If you use SQLite3, change the `PATH` to include the full path:
 PATH     = c:/gitea/data/gitea.db
 ```
 
-## Register as a Windows service
+## Register Gitea
 
 To register Gitea as a Windows service, open a command prompt (cmd) as an Administrator,
 then run the following command:
@@ -72,7 +71,7 @@ sc.exe config gitea depend= mariadb
 
 This will ensure that when the Windows machine restarts, the automatic starting of Gitea is postponed until the database is ready and thus mitigate failed startups.
 
-## Unregister as a service
+## Unregister Gitea
 
 To unregister Gitea as a Windows service, open a command prompt (cmd) as an Administrator and run:
 
