@@ -31,13 +31,11 @@
 						</tr>
 						{{if and (not .SSH.Disabled) (not .SSH.StartBuiltinServer)}}
 							<tr>
-								<td>{{ctx.Locale.Tr "admin.dashboard.resync_all_sshkeys"}}<br>
-								{{ctx.Locale.Tr "admin.dashboard.resync_all_sshkeys.desc"}}</td>
+								<td>{{ctx.Locale.Tr "admin.dashboard.resync_all_sshkeys"}}</td>
 								<td class="text right"><button type="submit" class="ui primary button" name="op" value="resync_all_sshkeys">{{svg "octicon-play"}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
 							</tr>
 							<tr>
-								<td>{{ctx.Locale.Tr "admin.dashboard.resync_all_sshprincipals"}}<br>
-								{{ctx.Locale.Tr "admin.dashboard.resync_all_sshprincipals.desc"}}</td>
+								<td>{{ctx.Locale.Tr "admin.dashboard.resync_all_sshprincipals"}}</td>
 								<td class="text right"><button type="submit" class="ui primary button" name="op" value="resync_all_sshprincipals">{{svg "octicon-play" 16}} {{ctx.Locale.Tr "admin.dashboard.operation_run"}}</button></td>
 							</tr>
 						{{end}}
