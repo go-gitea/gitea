@@ -70,7 +70,7 @@ token = "Bearer {token}"
 
 | Parameter | Description                                                       |
 | --------- | ----------------------------------------------------------------- |
-| `token` | Your[personal access token](development/api-usage.md#authentication) |
+| `token` | Your [personal access token](development/api-usage.md#authentication) |
 
 ## Git vs Sparse
 

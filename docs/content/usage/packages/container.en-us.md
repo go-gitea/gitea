@@ -68,8 +68,6 @@ For example:
 docker push gitea.example.com/testuser/myimage:latest
 ```
 
-You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
-
 ## Pull an image
 
 Pull an image by executing the following command:

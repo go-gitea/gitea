@@ -65,7 +65,7 @@ PUT https://gitea.example.com/api/packages/{owner}/alpine/{branch}/{repository}
 | -------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `owner`      | The owner of the package.                                                                                               |
 | `branch`     | The branch may match the release version of the OS, ex:`v3.17`.                                                       |
-| `repository` | The repository can be used[to group packages](https://wiki.alpinelinux.org/wiki/Repositories) or just `main` or similar. |
+| `repository` | The repository can be used [to group packages](https://wiki.alpinelinux.org/wiki/Repositories) or just `main` or similar. |
 
 Example request using HTTP Basic authentication:
 
@@ -77,7 +77,7 @@ curl --user your_username:your_password_or_token \
 
 If you are using 2FA or OAuth use a [personal access token](development/api-usage.md#authentication) instead of the password.
 
-You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
+You cannot publish a package if a package of the same name, version, branch, repository and architecture already exists. You must delete the existing package first.
 
 The server responds with the following HTTP Status codes.
 

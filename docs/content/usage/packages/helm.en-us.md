@@ -38,7 +38,7 @@ helm cm-push ./{chart_file}.tgz {repo}
 | Parameter      | Description                                                                                                                                    |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | `username`   | Your Gitea username.                                                                                                                           |
-| `password`   | Your Gitea password. If you are using 2FA or OAuth use a[personal access token](development/api-usage.md#authentication) instead of the password. |
+| `password`   | Your Gitea password. If you are using 2FA or OAuth use a [personal access token](development/api-usage.md#authentication) instead of the password. |
 | `repo`       | The name for the repository.                                                                                                                   |
 | `chart_file` | The Helm Chart archive.                                                                                                                        |
 | `owner`      | The owner of the package.                                                                                                                      |

@@ -33,7 +33,7 @@ PUT https://gitea.example.com/api/packages/{owner}/vagrant/{package_name}/{packa
 | `owner`           | The owner of the package.                                                    |
 | `package_name`    | The package name.                                                            |
 | `package_version` | The package version, semver compatible.                                      |
-| `provider`        | One of the[supported provider names](https://www.vagrantup.com/docs/providers). |
+| `provider`        | One of the [supported provider names](https://www.vagrantup.com/docs/providers). |
 
 Example for uploading a Hyper-V box:
 
@@ -44,6 +44,7 @@ curl --user your_username:your_password_or_token \
 ```
 
 If you are using 2FA or OAuth use a [personal access token](development/api-usage.md#authentication) instead of the password.
+
 You cannot publish a box if a box of the same name, version and provider already exists. You must delete the existing package first.
 
 The server responds with the following HTTP Status codes.

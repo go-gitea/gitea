@@ -66,7 +66,7 @@ Afterwards add the following sections to your project `pom.xml` file:
 
 | Parameter        | Description                                                        |
 | ---------------- | ------------------------------------------------------------------ |
-| `access_token` | Your[personal access token](development/api-usage.md#authentication). |
+| `access_token` | Your [personal access token](development/api-usage.md#authentication). |
 | `owner`        | The owner of the package.                                          |
 
 ### Gradle variant

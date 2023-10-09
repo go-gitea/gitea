@@ -33,7 +33,7 @@ conan user --remote {remote} --password {password} {username}
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | `remote`   | The remote name.                                                                                                                               |
 | `username` | Your Gitea username.                                                                                                                           |
-| `password` | Your Gitea password. If you are using 2FA or OAuth use a[personal access token](development/api-usage.md#authentication) instead of the password. |
+| `password` | Your Gitea password. If you are using 2FA or OAuth use a [personal access token](development/api-usage.md#authentication) instead of the password. |
 | `owner`    | The owner of the package.                                                                                                                      |
 
 For example:
@@ -62,7 +62,7 @@ For example:
 conan upload --remote=gitea ConanPackage/1.2@gitea/final
 ```
 
-You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
+You cannot publish a file with the same name twice to a package. You must delete the existing package or file first.
 
 The Gitea Conan package registry has full [revision](https://docs.conan.io/en/latest/versioning/revisions.html) support.
 

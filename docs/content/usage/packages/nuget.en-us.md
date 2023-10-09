@@ -34,7 +34,7 @@ dotnet nuget add source --name {source_name} --username {username} --password {p
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | `source_name` | The desired source name.                                                                                                                       |
 | `username`    | Your Gitea username.                                                                                                                           |
-| `password`    | Your Gitea password. If you are using 2FA or OAuth use a[personal access token](development/api-usage.md#authentication) instead of the password. |
+| `password`    | Your Gitea password. If you are using 2FA or OAuth use a [personal access token](development/api-usage.md#authentication) instead of the password. |
 | `owner`       | The owner of the package.                                                                                                                      |
 
 For example:
