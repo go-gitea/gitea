@@ -195,7 +195,7 @@ function initArchivedLabelFilter() {
   const archivedLabels = document.querySelectorAll('[data-is-archived]');
 
   if (!archivedLabels.length) {
-    hideElem($('.archived-label-filter'));
+    hideElem('.archived-label-filter');
     return;
   }
   const selectedLabels = (url.searchParams.get('labels') || '')
