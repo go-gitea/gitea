@@ -9,8 +9,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  disk-clean:
+    uses: ./.github/workflows/disk-clean.yml
   nightly-binary:
-    runs-on: actuated-4cpu-16gb
+    runs-on: nscloud
     steps:
       - uses: actions/checkout@v4
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
@@ -56,7 +58,7 @@ jobs:
           SOURCE_DIR: dist/release
           DEST_DIR: gitea/${{ steps.clean_name.outputs.branch }}
   nightly-docker-rootful:
-    runs-on: actuated-4cpu-16gb
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
@@ -93,7 +95,7 @@ jobs:
           push: true
           tags: gitea/gitea:${{ steps.clean_name.outputs.branch }}
   nightly-docker-rootless:
-    runs-on: actuated-4cpu-16gb
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
