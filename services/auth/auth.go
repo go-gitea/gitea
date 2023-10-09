@@ -40,8 +40,12 @@ var (
 	lfsPathRe            = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/info/lfs/`)
 )
 
+func isGitRawOrAttachPath(req *http.Request) bool {
+	return gitRawOrAttachPathRe.MatchString(req.URL.Path)
+}
+
 func isGitRawOrAttachOrLFSPath(req *http.Request) bool {
-	if gitRawOrAttachPathRe.MatchString(req.URL.Path) {
+	if isGitRawOrAttachPath(req) {
 		return true
 	}
 	if setting.LFS.StartServer {
