@@ -50,7 +50,7 @@ func ListLabels(ctx *context.APIContext) {
 		return
 	}
 
-	count, err := issues_model.CountLabelsByOrgID(ctx.Org.Organization.ID)
+	count, err := issues_model.CountLabelsByOrgID(ctx, ctx.Org.Organization.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -218,7 +218,7 @@ func EditLabel(ctx *context.APIContext) {
 		l.Description = *form.Description
 	}
 	l.SetArchived(form.IsArchived != nil && *form.IsArchived)
-	if err := issues_model.UpdateLabel(l); err != nil {
+	if err := issues_model.UpdateLabel(ctx, l); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateLabel", err)
 		return
 	}
@@ -249,7 +249,7 @@ func DeleteLabel(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := issues_model.DeleteLabel(ctx.Org.Organization.ID, ctx.ParamsInt64(":id")); err != nil {
+	if err := issues_model.DeleteLabel(ctx, ctx.Org.Organization.ID, ctx.ParamsInt64(":id")); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteLabel", err)
 		return
 	}

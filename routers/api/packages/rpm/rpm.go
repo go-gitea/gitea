@@ -45,7 +45,7 @@ gpgkey=`+url+`/repository.key`)
 
 // Gets or creates the PGP public key used to sign repository metadata files
 func GetRepositoryKey(ctx *context.Context) {
-	_, pub, err := rpm_service.GetOrCreateKeyPair(ctx.Package.Owner.ID)
+	_, pub, err := rpm_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -59,7 +59,7 @@ func GetRepositoryKey(ctx *context.Context) {
 
 // Gets a pre-generated repository metadata file
 func GetRepositoryFile(ctx *context.Context) {
-	pv, err := rpm_service.GetOrCreateRepositoryVersion(ctx.Package.Owner.ID)
+	pv, err := rpm_service.GetOrCreateRepositoryVersion(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -145,6 +145,7 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,

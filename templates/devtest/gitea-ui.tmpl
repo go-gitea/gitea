@@ -31,8 +31,8 @@
 					<h2>Recommended colors:</h2>
 					<button class="ui red button">Red</button>
 					<button class="ui basic red button">Basic Red</button>
-					<button class="ui green button">Green</button>
-					<button class="ui basic green button">Basic Green</button>
+					<button class="ui primary button">Green</button>
+					<button class="ui basic primary button">Basic Green</button>
 					<button class="ui blue button">Blue</button>
 					<button class="ui basic blue button">Basic Blue</button>
 					<button class="ui orange button">Orange</button>
@@ -112,24 +112,24 @@
 
 	<div>
 		<h1>LocaleNumber</h1>
-		<div>{{.locale.PrettyNumber 1}}</div>
-		<div>{{.locale.PrettyNumber 12}}</div>
-		<div>{{.locale.PrettyNumber 123}}</div>
-		<div>{{.locale.PrettyNumber 1234}}</div>
-		<div>{{.locale.PrettyNumber 12345}}</div>
-		<div>{{.locale.PrettyNumber 123456}}</div>
-		<div>{{.locale.PrettyNumber 1234567}}</div>
+		<div>{{ctx.Locale.PrettyNumber 1}}</div>
+		<div>{{ctx.Locale.PrettyNumber 12}}</div>
+		<div>{{ctx.Locale.PrettyNumber 123}}</div>
+		<div>{{ctx.Locale.PrettyNumber 1234}}</div>
+		<div>{{ctx.Locale.PrettyNumber 12345}}</div>
+		<div>{{ctx.Locale.PrettyNumber 123456}}</div>
+		<div>{{ctx.Locale.PrettyNumber 1234567}}</div>
 	</div>
 
 	<div>
 		<h1>TimeSince</h1>
-		<div>Now: {{TimeSince .TimeNow $.locale}}</div>
-		<div>5s past: {{TimeSince .TimePast5s $.locale}}</div>
-		<div>5s future: {{TimeSince .TimeFuture5s $.locale}}</div>
-		<div>2m past: {{TimeSince .TimePast2m $.locale}}</div>
-		<div>2m future: {{TimeSince .TimeFuture2m $.locale}}</div>
-		<div>1y past: {{TimeSince .TimePast1y $.locale}}</div>
-		<div>1y future: {{TimeSince .TimeFuture1y $.locale}}</div>
+		<div>Now: {{TimeSince .TimeNow ctx.Locale}}</div>
+		<div>5s past: {{TimeSince .TimePast5s ctx.Locale}}</div>
+		<div>5s future: {{TimeSince .TimeFuture5s ctx.Locale}}</div>
+		<div>2m past: {{TimeSince .TimePast2m ctx.Locale}}</div>
+		<div>2m future: {{TimeSince .TimeFuture2m ctx.Locale}}</div>
+		<div>1y past: {{TimeSince .TimePast1y ctx.Locale}}</div>
+		<div>1y future: {{TimeSince .TimeFuture1y ctx.Locale}}</div>
 	</div>
 
 	<div>
@@ -171,6 +171,7 @@
 				<span class="text">simple</span>
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				<div class="menu">
+					<div class="ui icon search input"><i class="icon">{{svg "octicon-search"}}</i><input type="text" value="search input in menu"></div>
 					<div class="item">item</div>
 				</div>
 			</div>

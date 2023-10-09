@@ -18,7 +18,7 @@ func TestDeleteNotPassedAssignee(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// Fake issue with assignees
-	issue, err := issues_model.GetIssueWithAttrsByID(1)
+	issue, err := issues_model.GetIssueWithAttrsByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.Len(t, issue.Assignees, 1)
 

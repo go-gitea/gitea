@@ -27,7 +27,7 @@ func ListEmails(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/EmailList"
 
-	emails, err := user_model.GetEmailAddresses(ctx.Doer.ID)
+	emails, err := user_model.GetEmailAddresses(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetEmailAddresses", err)
 		return
@@ -71,7 +71,7 @@ func AddEmail(ctx *context.APIContext) {
 		}
 	}
 
-	if err := user_model.AddEmailAddresses(emails); err != nil {
+	if err := user_model.AddEmailAddresses(ctx, emails); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", "Email address has been used: "+err.(user_model.ErrEmailAlreadyUsed).Email)
 		} else if user_model.IsErrEmailCharIsNotSupported(err) || user_model.IsErrEmailInvalid(err) {
@@ -129,7 +129,7 @@ func DeleteEmail(ctx *context.APIContext) {
 		}
 	}
 
-	if err := user_model.DeleteEmailAddresses(emails); err != nil {
+	if err := user_model.DeleteEmailAddresses(ctx, emails); err != nil {
 		if user_model.IsErrEmailAddressNotExist(err) {
 			ctx.Error(http.StatusNotFound, "DeleteEmailAddresses", err)
 			return

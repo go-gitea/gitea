@@ -129,11 +129,13 @@
 
 .repository .filter.menu.labels .label-filter .menu .info {
   display: inline-block;
-  padding: 0.5rem 0.25rem;
+  padding: 0.5rem 0;
   font-size: 12px;
   width: 100%;
   white-space: nowrap;
-  text-align: center;
+  margin-left: 10px;
+  margin-right: 8px;
+  text-align: left;
 }
 
 .repository .filter.menu.labels .label-filter .menu .info code {
@@ -1502,14 +1504,21 @@
 }
 
 .repository .diff-detail-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 8;
   padding: 7px 0;
+  height: 44px; /* this height should match sticky-2nd-row */
   background: var(--color-body);
 }
 
 @media (max-width: 991.98px) {
   .repository .diff-detail-box {
     flex-direction: row;
-    align-items: flex-start;
+    height: 77px; /* this height should match sticky-2nd-row */
   }
 }
 
@@ -1518,18 +1527,6 @@
     flex-wrap: wrap;
   }
 }
-
-.repository .diff-detail-box.sticky {
-  position: sticky;
-  top: 0;
-  z-index: 8;
-  border-bottom: none;
-  padding-left: 5px;
-  padding-right: 5px;
-  margin-left: -4px;
-  margin-right: -4px;
-}
-
 .repository .diff-detail-box .diff-detail-stats strong {
   margin-left: 0.25rem;
   margin-right: 0.25rem;
@@ -2044,7 +2041,7 @@
   border: none;
   display: flex;
   align-items: center;
-  padding: 0 0.5em; /* make the UI look better for narrow (mobile) view */
+  padding: 0;
   overflow: hidden;
 }
 
@@ -2056,7 +2053,8 @@
   align-items: center;
   justify-content: center;
   gap: 0.25em;
-  padding: 0 0.25em;
+  padding: 0 0.5em; /* make the UI look better for narrow (mobile) view */
+  text-decoration: none;
 }
 
 .repository .repository-summary .sub-menu .item.active {
@@ -2577,12 +2575,14 @@ tbody.commit-list {
 
 .comment-diff-data {
   background: var(--color-code-bg);
+  min-height: 12em;
   max-height: calc(100vh - 10.5rem);
   overflow-y: auto;
 }
 
 .comment-diff-data pre {
   line-height: 18px;
+  margin: 1em;
   white-space: pre-wrap;
   word-break: break-all;
   overflow-wrap: break-word;
@@ -2827,7 +2827,7 @@ tbody.commit-list {
 
 .ui.attached.header.diff-file-header.sticky-2nd-row {
   position: sticky;
-  top: 47px; /* match .repository .diff-detail-box */
+  top: 44px; /* match .repository .diff-detail-box */
   z-index: 7;
 }
 
@@ -3049,9 +3049,6 @@ tbody.commit-list {
   }
   .commit-table td.sha,
   .commit-table th.sha {
-    display: none !important;
-  }
-  .commit-table .commit-list .copy-commit-sha {
     display: none !important;
   }
   .comment-header {
