@@ -82,7 +82,7 @@ func Push(ctx *context.Context) {
 			},
 			Creator: ctx.Doer,
 			Metadata: &arch_module.Metadata{
-				URL:          desc.URL,
+				URL:          desc.ProjectURL,
 				Description:  desc.Description,
 				Provides:     desc.Provides,
 				License:      desc.License,
@@ -90,7 +90,6 @@ func Push(ctx *context.Context) {
 				OptDepends:   desc.OptDepends,
 				MakeDepends:  desc.MakeDepends,
 				CheckDepends: desc.CheckDepends,
-				Backup:       desc.Backup,
 			},
 		},
 		&pkg_service.PackageFileCreationInfo{

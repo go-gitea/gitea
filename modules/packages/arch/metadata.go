@@ -27,10 +27,9 @@ type Metadata struct {
 	Provides     []string `json:"provides,omitempty"`
 	License      []string `json:"license,omitempty"`
 	Depends      []string `json:"depends,omitempty"`
-	OptDepends   []string `json:"opt-depends,omitempty"`
-	MakeDepends  []string `json:"make-depends,omitempty"`
-	CheckDepends []string `json:"check-depends,omitempty"`
-	Backup       []string `json:"backup,omitempty"`
+	OptDepends   []string `json:"opt_depends,omitempty"`
+	MakeDepends  []string `json:"make_depends,omitempty"`
+	CheckDepends []string `json:"check_depends,omitempty"`
 }
 
 // Package description file that will be saved as .desc file in object storage.
@@ -41,20 +40,20 @@ type DbDesc struct {
 	Base           string   `json:"base"`
 	Version        string   `json:"version"`
 	Description    string   `json:"description"`
-	CompressedSize int64    `json:"compressed-size"`
-	InstalledSize  int64    `json:"installed-size"`
+	CompressedSize int64    `json:"compressed_size"`
+	InstalledSize  int64    `json:"installed_size"`
 	MD5            string   `json:"md5"`
 	SHA256         string   `json:"sha256"`
-	URL            string   `json:"url"`
-	BuildDate      int64    `json:"build-date"`
+	ProjectURL     string   `json:"project_url"`
+	BuildDate      int64    `json:"build_date"`
 	Packager       string   `json:"packager"`
 	Provides       []string `json:"provides,omitempty"`
 	License        []string `json:"license,omitempty"`
 	Arch           []string `json:"arch,omitempty"`
 	Depends        []string `json:"depends,omitempty"`
-	OptDepends     []string `json:"opt-depends,omitempty"`
-	MakeDepends    []string `json:"make-depends,omitempty"`
-	CheckDepends   []string `json:"check-depends,omitempty"`
+	OptDepends     []string `json:"opt_depends,omitempty"`
+	MakeDepends    []string `json:"make_depends,omitempty"`
+	CheckDepends   []string `json:"check_depends,omitempty"`
 	Backup         []string `json:"backup,omitempty"`
 }
 
@@ -95,7 +94,7 @@ func EjectMetadata(file, distro string, b *pkg_module.HashedBuffer) (*DbDesc, er
 		case "pkgdesc":
 			md.Description = value
 		case "url":
-			md.URL = value
+			md.ProjectURL = value
 		case "packager":
 			md.Packager = value
 		case "provides":
@@ -166,7 +165,7 @@ func (m *DbDesc) String() string {
 		{"ISIZE", fmt.Sprintf("%d", m.InstalledSize)},
 		{"MD5SUM", m.MD5},
 		{"SHA256SUM", m.SHA256},
-		{"URL", m.URL},
+		{"URL", m.ProjectURL},
 		{"LICENSE", strings.Join(m.License, "\n")},
 		{"ARCH", strings.Join(m.Arch, "\n")},
 		{"BUILDDATE", fmt.Sprintf("%d", m.BuildDate)},

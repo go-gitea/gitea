@@ -64,13 +64,6 @@ Server = <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescri
 				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.CheckDepends ", "}}</td>
 			</tr>
 			{{end}}
-
-			{{if .PackageDescriptor.Metadata.Backup}}
-			<tr>
-				<td class="collapsing"><h5>Backup file</h5></td>
-				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Backup ", "}}</td>
-			</tr>
-			{{end}}
 		</tbody>
 	</table>
 	</div>
