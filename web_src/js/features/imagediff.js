@@ -89,7 +89,7 @@ export function initImageDiff() {
 
     await Promise.all(imageInfos.map(async (info) => {
       const [success] = await Promise.all(Array.from(info.$images, (img) => {
-        return !img ? true : loadElem(img, info.path);
+        return loadElem(img, info.path);
       }));
       // only the first images is associated with $boundsInfo
       if (!success) info.$boundsInfo.text('(image error)');
