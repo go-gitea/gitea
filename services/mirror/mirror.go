@@ -54,7 +54,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 			mirrorType = PullMirrorType
 			referenceID = m.RepoID
 		} else if m, ok := bean.(*repo_model.PushMirror); ok {
-			if m.GetRepository() == nil {
+			if m.GetRepository(ctx) == nil {
 				log.Error("Disconnected push-mirror found: %d", m.ID)
 				return nil
 			}

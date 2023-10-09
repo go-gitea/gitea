@@ -29,7 +29,13 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		// User not in LDAP, do nothing
 		return nil, user_model.ErrUserNotExist{Name: loginName}
 	}
-
+	// Fallback.
+	if len(sr.Username) == 0 {
+		sr.Username = userName
+	}
+	if len(sr.Mail) == 0 {
+		sr.Mail = fmt.Sprintf("%s@localhost.local", sr.Username)
+	}
 	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
 
 	// Update User admin flag if exist
@@ -70,15 +76,6 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 			}
 		}
 	} else {
-		// Fallback.
-		if len(sr.Username) == 0 {
-			sr.Username = userName
-		}
-
-		if len(sr.Mail) == 0 {
-			sr.Mail = fmt.Sprintf("%s@localhost.local", sr.Username)
-		}
-
 		user = &user_model.User{
 			LowerName:   strings.ToLower(sr.Username),
 			Name:        sr.Username,

@@ -215,9 +215,9 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SITEMAP_PAGING_NUM`: **20**: Number of items that are displayed in a single subsitemap.
 - `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
 - `CODE_COMMENT_LINES`: **4**: Number of line of codes shown for a code comment.
-- `DEFAULT_THEME`: **auto**: \[auto, gitea, arc-green\]: Set the default theme for the Gitea install.
+- `DEFAULT_THEME`: **gitea-auto**: \[gitea-auto, gitea-light, gitea-dark\]: Set the default theme for the Gitea installation.
 - `SHOW_USER_EMAIL`: **true**: Whether the email of the user should be shown in the Explore Users page.
-- `THEMES`:  **auto,gitea,arc-green**: All available themes. Allow users select personalized themes.
+- `THEMES`:  **gitea-auto,gitea-light,gitea-dark**: All available themes. Allow users select personalized themes.
   regardless of the value of `DEFAULT_THEME`.
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: Max size of files to be displayed (default is 8MiB)
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
@@ -1107,7 +1107,7 @@ This section only does "set" config, a removed config key from this section won'
 - `JWT_SECRET_URI`: **_empty_**: Instead of defining JWT_SECRET in the configuration, this configuration option can be used to give Gitea a path to a file that contains the secret (example value: `file:/etc/gitea/oauth2_jwt_secret`)
 - `JWT_SIGNING_PRIVATE_KEY_FILE`: **jwt/private.pem**: Private key file path used to sign OAuth2 tokens. The path is relative to `APP_DATA_PATH`. This setting is only needed if `JWT_SIGNING_ALGORITHM` is set to `RS256`, `RS384`, `RS512`, `ES256`, `ES384` or `ES512`. The file must contain a RSA or ECDSA private key in the PKCS8 format. If no key exists a 4096 bit key will be created for you.
 - `MAX_TOKEN_LENGTH`: **32767**: Maximum length of token/cookie to accept from OAuth2 provider
-- `DEFAULT_APPLICATIONS`: **git-credential-oauth, git-credential-manager**: Pre-register OAuth applications for some services on startup. See the [OAuth2 documentation](/development/oauth2-provider.md) for the list of available options.
+- `DEFAULT_APPLICATIONS`: **git-credential-oauth, git-credential-manager, tea**: Pre-register OAuth applications for some services on startup. See the [OAuth2 documentation](/development/oauth2-provider.md) for the list of available options.
 
 ## i18n (`i18n`)
 
@@ -1389,6 +1389,9 @@ PROXY_HOSTS = *.github.com
 - `STORAGE_TYPE`: **local**: Storage type for actions logs, `local` for local disk or `minio` for s3 compatible object storage service, default is `local` or other name defined with `[storage.xxx]`
 - `MINIO_BASE_PATH`: **actions_log/**: Minio base path on the bucket only available when STORAGE_TYPE is `minio`
 - `ARTIFACT_RETENTION_DAYS`: **90**: Number of days to keep artifacts. Set to 0 to disable artifact retention. Default is 90 days if not set.
+- `ZOMBIE_TASK_TIMEOUT`: **10m**: Timeout to stop the task which have running status, but haven't been updated for a long time
+- `ENDLESS_TASK_TIMEOUT`: **3h**: Timeout to stop the tasks which have running status and continuous updates, but don't end for a long time
+- `ABANDONED_JOB_TIMEOUT`: **24h**: Timeout to cancel the jobs which have waiting status, but haven't been picked by a runner for a long time
 
 `DEFAULT_ACTIONS_URL` indicates where the Gitea Actions runners should find the actions with relative path.
 For example, `uses: actions/checkout@v3` means `https://github.com/actions/checkout@v3` since the value of `DEFAULT_ACTIONS_URL` is `github`.

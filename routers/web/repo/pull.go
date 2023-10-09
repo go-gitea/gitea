@@ -265,7 +265,7 @@ func ForkPost(ctx *context.Context) {
 
 	// Check if user is allowed to create repo's on the organization.
 	if ctxUser.IsOrganization() {
-		isAllowedToFork, err := organization.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx.Doer.ID)
+		isAllowedToFork, err := organization.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("CanCreateOrgRepo", err)
 			return
@@ -908,7 +908,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	// as the viewed information is designed to be loaded only on latest PR
 	// diff and if you're signed in.
 	if !ctx.IsSigned || willShowSpecifiedCommit || willShowSpecifiedCommitRange {
-		diff, err = gitdiff.GetDiff(gitRepo, diffOptions, files...)
+		diff, err = gitdiff.GetDiff(ctx, gitRepo, diffOptions, files...)
 		methodWithError = "GetDiff"
 	} else {
 		diff, err = gitdiff.SyncAndGetUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, diffOptions, files...)

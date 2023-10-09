@@ -140,7 +140,7 @@ func (at ActionType) InActions(actions ...string) bool {
 // used in template render.
 type Action struct {
 	ID          int64 `xorm:"pk autoincr"`
-	UserID      int64 // Receiver user id.
+	UserID      int64 `xorm:"INDEX"` // Receiver user id.
 	OpType      ActionType
 	ActUserID   int64            // Action user id.
 	ActUser     *user_model.User `xorm:"-"`
@@ -524,7 +524,7 @@ func activityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 	}
 
 	if opts.RequestedTeam != nil {
-		env := organization.OrgFromUser(opts.RequestedUser).AccessibleTeamReposEnv(opts.RequestedTeam)
+		env := organization.OrgFromUser(opts.RequestedUser).AccessibleTeamReposEnv(ctx, opts.RequestedTeam)
 		teamRepoIDs, err := env.RepoIDs(1, opts.RequestedUser.NumRepos)
 		if err != nil {
 			return nil, fmt.Errorf("GetTeamRepositories: %w", err)

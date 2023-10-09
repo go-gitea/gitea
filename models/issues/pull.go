@@ -1040,7 +1040,7 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, 
 				warnings = append(warnings, fmt.Sprintf("incorrect codeowner organization: %s", user))
 				continue
 			}
-			teams, err := org.LoadTeams()
+			teams, err := org.LoadTeams(ctx)
 			if err != nil {
 				warnings = append(warnings, fmt.Sprintf("incorrect codeowner team: %s", user))
 				continue

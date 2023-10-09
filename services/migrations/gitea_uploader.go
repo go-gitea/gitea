@@ -430,7 +430,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 	}
 
 	if len(iss) > 0 {
-		if err := issues_model.InsertIssues(iss...); err != nil {
+		if err := issues_model.InsertIssues(g.ctx, iss...); err != nil {
 			return err
 		}
 

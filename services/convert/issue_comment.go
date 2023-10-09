@@ -55,7 +55,7 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 		return nil
 	}
 
-	err = c.LoadTime()
+	err = c.LoadTime(ctx)
 	if err != nil {
 		log.Error("LoadTime: %v", err)
 		return nil
