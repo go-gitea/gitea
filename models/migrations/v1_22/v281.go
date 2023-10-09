@@ -2,7 +2,7 @@
 // Copyright 2023 The Forgejo Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_21 //nolint
+package v1_22 //nolint
 
 import (
 	"code.gitea.io/gitea/modules/timeutil"
