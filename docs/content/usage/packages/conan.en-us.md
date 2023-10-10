@@ -12,6 +12,7 @@ menu:
     sidebar_position: 20
     identifier: "conan"
 ---
+
 # Conan Package Registry
 
 Publish [Conan](https://conan.io/) packages for your user or organization.
@@ -29,12 +30,12 @@ conan remote add {remote} https://gitea.example.com/api/packages/{owner}/conan
 conan user --remote {remote} --password {password} {username}
 ```
 
-| Parameter    | Description                                                                                                                                    |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `remote`   | The remote name.                                                                                                                               |
-| `username` | Your Gitea username.                                                                                                                           |
+| Parameter  | Description |
+| -----------| ----------- |
+| `remote`   | The remote name. |
+| `username` | Your Gitea username. |
 | `password` | Your Gitea password. If you are using 2FA or OAuth use a [personal access token](development/api-usage.md#authentication) instead of the password. |
-| `owner`    | The owner of the package.                                                                                                                      |
+| `owner`    | The owner of the package. |
 
 For example:
 
@@ -51,10 +52,10 @@ Publish a Conan package by running the following command:
 conan upload --remote={remote} {recipe}
 ```
 
-| Parameter  | Description           |
-| ---------- | --------------------- |
-| `remote` | The remote name.      |
-| `recipe` | The recipe to upload. |
+| Parameter | Description |
+| ----------| ----------- |
+| `remote`  | The remote name. |
+| `recipe`  | The recipe to upload. |
 
 For example:
 
@@ -74,10 +75,10 @@ To install a Conan package from the package registry, execute the following comm
 conan install --remote={remote} {recipe}
 ```
 
-| Parameter  | Description             |
-| ---------- | ----------------------- |
-| `remote` | The remote name.        |
-| `recipe` | The recipe to download. |
+| Parameter | Description |
+| ----------| ----------- |
+| `remote`  | The remote name. |
+| `recipe`  | The recipe to download. |
 
 For example:
 

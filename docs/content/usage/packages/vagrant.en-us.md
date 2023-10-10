@@ -12,6 +12,7 @@ menu:
     sidebar_position: 120
     identifier: "vagrant"
 ---
+
 # Vagrant Package Registry
 
 Publish [Vagrant](https://www.vagrantup.com/) packages for your user or organization.
@@ -28,11 +29,11 @@ Publish a Vagrant box by performing a HTTP PUT request to the registry:
 PUT https://gitea.example.com/api/packages/{owner}/vagrant/{package_name}/{package_version}/{provider}.box
 ```
 
-| Parameter           | Description                                                                  |
-| ------------------- | ---------------------------------------------------------------------------- |
-| `owner`           | The owner of the package.                                                    |
-| `package_name`    | The package name.                                                            |
-| `package_version` | The package version, semver compatible.                                      |
+| Parameter         | Description |
+| ----------------- | ----------- |
+| `owner`           | The owner of the package. |
+| `package_name`    | The package name. |
+| `package_version` | The package version, semver compatible. |
 | `provider`        | One of the [supported provider names](https://www.vagrantup.com/docs/providers). |
 
 Example for uploading a Hyper-V box:
@@ -63,10 +64,10 @@ To install a box from the package registry, execute the following command:
 vagrant box add "https://gitea.example.com/api/packages/{owner}/vagrant/{package_name}"
 ```
 
-| Parameter        | Description               |
-| ---------------- | ------------------------- |
+| Parameter      | Description |
+| -------------- | ----------- |
 | `owner`        | The owner of the package. |
-| `package_name` | The package name.         |
+| `package_name` | The package name. |
 
 For example:
 

@@ -12,6 +12,7 @@ menu:
     sidebar_position: 60
     identifier: "maven"
 ---
+
 # Maven Package Registry
 
 Publish [Maven](https://maven.apache.org) packages for your user or organization.
@@ -64,10 +65,10 @@ Afterwards add the following sections to your project `pom.xml` file:
 </distributionManagement>
 ```
 
-| Parameter        | Description                                                        |
-| ---------------- | ------------------------------------------------------------------ |
+| Parameter      | Description |
+| -------------- | ----------- |
 | `access_token` | Your [personal access token](development/api-usage.md#authentication). |
-| `owner`        | The owner of the package.                                          |
+| `owner`        | The owner of the package. |
 
 ### Gradle variant
 
@@ -123,9 +124,9 @@ If you want to publish a prebuild package to the registry, you can use [`mvn dep
 mvn deploy:deploy-file -Durl=https://gitea.example.com/api/packages/{owner}/maven -DrepositoryId=gitea -Dfile=/path/to/package.jar
 ```
 
-| Parameter | Description               |
-| --------- | ------------------------- |
-| `owner` | The owner of the package. |
+| Parameter      | Description |
+| -------------- | ----------- |
+| `owner`        | The owner of the package. |
 
 You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
 

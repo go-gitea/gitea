@@ -12,6 +12,7 @@ menu:
     sidebar_position: 30
     identifier: "container"
 ---
+
 # Container Registry
 
 Publish [Open Container Initiative](https://opencontainers.org/) compliant images for your user or organization.
@@ -56,11 +57,11 @@ Push an image by executing the following command:
 docker push gitea.example.com/{owner}/{image}:{tag}
 ```
 
-| Parameter | Description             |
-| --------- | ----------------------- |
-| `owner` | The owner of the image. |
-| `image` | The name of the image.  |
-| `tag`   | The tag of the image.   |
+| Parameter | Description |
+| ----------| ----------- |
+| `owner`   | The owner of the image. |
+| `image`   | The name of the image. |
+| `tag`     | The tag of the image. |
 
 For example:
 
@@ -76,11 +77,11 @@ Pull an image by executing the following command:
 docker pull gitea.example.com/{owner}/{image}:{tag}
 ```
 
-| Parameter | Description             |
-| --------- | ----------------------- |
-| `owner` | The owner of the image. |
-| `image` | The name of the image.  |
-| `tag`   | The tag of the image.   |
+| Parameter | Description |
+| ----------| ----------- |
+| `owner`   | The owner of the image. |
+| `image`   | The name of the image. |
+| `tag`     | The tag of the image. |
 
 For example:
 

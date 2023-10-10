@@ -12,6 +12,7 @@ menu:
     sidebar_position: 80
     identifier: "nuget"
 ---
+
 # NuGet Package Registry
 
 Publish [NuGet](https://www.nuget.org/) packages for your user or organization. The package registry supports the V2 and V3 API protocol and you can work with [NuGet Symbol Packages](https://docs.microsoft.com/en-us/nuget/create-packages/symbol-packages-snupkg) too.
@@ -30,12 +31,12 @@ To register the package registry you need to configure a new NuGet feed source:
 dotnet nuget add source --name {source_name} --username {username} --password {password} https://gitea.example.com/api/packages/{owner}/nuget/index.json
 ```
 
-| Parameter       | Description                                                                                                                                    |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `source_name` | The desired source name.                                                                                                                       |
-| `username`    | Your Gitea username.                                                                                                                           |
+| Parameter     | Description |
+| ------------- | ----------- |
+| `source_name` | The desired source name. |
+| `username`    | Your Gitea username. |
 | `password`    | Your Gitea password. If you are using 2FA or OAuth use a [personal access token](development/api-usage.md#authentication) instead of the password. |
-| `owner`       | The owner of the package.                                                                                                                      |
+| `owner`       | The owner of the package. |
 
 For example:
 
@@ -53,9 +54,9 @@ Publish a package by running the following command:
 dotnet nuget push --source {source_name} {package_file}
 ```
 
-| Parameter        | Description                          |
-| ---------------- | ------------------------------------ |
-| `source_name`  | The desired source name.             |
+| Parameter      | Description |
+| -------------- | ----------- |
+| `source_name`  | The desired source name. |
 | `package_file` | Path to the package `.nupkg` file. |
 
 For example:
@@ -75,9 +76,9 @@ To do so, register the NuGet package registry as symbol source:
 https://gitea.example.com/api/packages/{owner}/nuget/symbols
 ```
 
-| Parameter | Description                        |
-| --------- | ---------------------------------- |
-| `owner` | The owner of the package registry. |
+| Parameter | Description |
+| --------- | ----------- |
+| `owner`   | The owner of the package registry. |
 
 For example:
 
@@ -93,11 +94,11 @@ To install a NuGet package from the package registry, execute the following comm
 dotnet add package --source {source_name} --version {package_version} {package_name}
 ```
 
-| Parameter           | Description              |
-| ------------------- | ------------------------ |
+| Parameter         | Description |
+| ----------------- | ----------- |
 | `source_name`     | The desired source name. |
-| `package_name`    | The package name.        |
-| `package_version` | The package version.     |
+| `package_name`    | The package name. |
+| `package_version` | The package version. |
 
 For example:
 
