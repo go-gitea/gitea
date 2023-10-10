@@ -2,7 +2,7 @@ name: release-tag-version
 
 on:
   push:
-    tag:
+    tags:
       - 'v1.*'
       - '!v1*-rc*'
       - '!v1*-dev'

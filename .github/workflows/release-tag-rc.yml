@@ -2,7 +2,7 @@ name: release-rc-version
 
 on:
   push:
-    tag:
+    tags:
       - 'v1*-rc*'
 
 concurrency:
