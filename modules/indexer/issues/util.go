@@ -192,5 +192,4 @@ func pushIssueIndexerQueue(ctx context.Context, data *IndexerMetadata) error {
 		}
 		return err
 	}
-
 }
