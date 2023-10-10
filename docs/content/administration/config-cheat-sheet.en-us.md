@@ -483,7 +483,7 @@ Configuration at `[queue]` will set defaults for queues with overrides for indiv
 
 - `TYPE`: **level**: General queue type, currently support: `level` (uses a LevelDB internally), `channel`, `redis`, `dummy`. Invalid types are treated as `level`.
 - `DATADIR`: **queues/common**: Base DataDir for storing level queues. `DATADIR` for individual queues can be set in `queue.name` sections. Relative paths will be made absolute against `%(APP_DATA_PATH)s`.
-- `LENGTH`: **100**: Maximal queue size before channel queues block
+- `LENGTH`: **100000**: Maximal queue size before channel queues block
 - `BATCH_LENGTH`: **20**: Batch data before passing to the handler
 - `CONN_STR`: **redis://127.0.0.1:6379/0**: Connection string for the redis queue type. For `redis-cluster` use `redis+cluster://127.0.0.1:6379/0`. Options can be set using query params. Similarly, LevelDB options can also be set using: **leveldb://relative/path?option=value** or **leveldb:///absolute/path?option=value**, and will override `DATADIR`
 - `QUEUE_NAME`: **_queue**: The suffix for default redis and disk queue name. Individual queues will default to **`name`**`QUEUE_NAME` but can be overridden in the specific `queue.name` section.
@@ -1107,7 +1107,7 @@ This section only does "set" config, a removed config key from this section won'
 - `JWT_SECRET_URI`: **_empty_**: Instead of defining JWT_SECRET in the configuration, this configuration option can be used to give Gitea a path to a file that contains the secret (example value: `file:/etc/gitea/oauth2_jwt_secret`)
 - `JWT_SIGNING_PRIVATE_KEY_FILE`: **jwt/private.pem**: Private key file path used to sign OAuth2 tokens. The path is relative to `APP_DATA_PATH`. This setting is only needed if `JWT_SIGNING_ALGORITHM` is set to `RS256`, `RS384`, `RS512`, `ES256`, `ES384` or `ES512`. The file must contain a RSA or ECDSA private key in the PKCS8 format. If no key exists a 4096 bit key will be created for you.
 - `MAX_TOKEN_LENGTH`: **32767**: Maximum length of token/cookie to accept from OAuth2 provider
-- `DEFAULT_APPLICATIONS`: **git-credential-oauth, git-credential-manager**: Pre-register OAuth applications for some services on startup. See the [OAuth2 documentation](/development/oauth2-provider.md) for the list of available options.
+- `DEFAULT_APPLICATIONS`: **git-credential-oauth, git-credential-manager, tea**: Pre-register OAuth applications for some services on startup. See the [OAuth2 documentation](/development/oauth2-provider.md) for the list of available options.
 
 ## i18n (`i18n`)
 
