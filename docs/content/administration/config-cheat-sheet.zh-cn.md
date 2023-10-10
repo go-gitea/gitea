@@ -472,7 +472,7 @@ menu:
 
 - `TYPE`：**level**：通用队列类型，当前支持：`level`（在内部使用 LevelDB）、`channel`、`redis`、`dummy`。无效的类型将视为 `level`。
 - `DATADIR`：**queues/common**：用于存储 level 队列的基本 DataDir。单独的队列的 `DATADIR` 可以在 `queue.name` 部分进行设置。相对路径将根据 `%(APP_DATA_PATH)s` 变为绝对路径。
-- `LENGTH`：**100**：通道队列阻塞之前的最大队列大小
+- `LENGTH`：**100000**：通道队列阻塞之前的最大队列大小
 - `BATCH_LENGTH`：**20**：在传递给处理程序之前批处理数据
 - `CONN_STR`：**redis://127.0.0.1:6379/0**：redis 队列类型的连接字符串。对于 `redis-cluster`，使用 `redis+cluster://127.0.0.1:6379/0`。可以使用查询参数来设置选项。类似地，LevelDB 选项也可以使用：**leveldb://relative/path?option=value** 或 **leveldb:///absolute/path?option=value** 进行设置，并将覆盖 `DATADIR`。
 - `QUEUE_NAME`：**_queue**：默认的 redis 和磁盘队列名称的后缀。单独的队列将默认为 **`name`**`QUEUE_NAME`，但可以在特定的 `queue.name` 部分中进行覆盖。
