@@ -12,6 +12,7 @@ menu:
     sidebar_position: 5
     identifier: "chef"
 ---
+
 # Chef Package Registry
 
 Publish [Chef](https://chef.io/) cookbooks for your user or organization.
@@ -35,9 +36,9 @@ To [configure `knife`](https://docs.chef.io/workstation/knife_setup/) to use the
 knife[:supermarket_site] = 'https://gitea.example.com/api/packages/{owner}/chef'
 ```
 
-| Parameter | Description               |
-| --------- | ------------------------- |
-| `owner` | The owner of the package. |
+| Parameter | Description |
+| --------- | ----------- |
+| `owner`   | The owner of the package. |
 
 ## Publish a package
 
@@ -47,8 +48,8 @@ To publish a Chef package execute the following command:
 knife supermarket share {package_name}
 ```
 
-| Parameter        | Description       |
-| ---------------- | ----------------- |
+| Parameter      | Description |
+| -------------- | ----------- |
 | `package_name` | The package name. |
 
 You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
@@ -67,9 +68,9 @@ Optional you can specify the package version:
 knife supermarket install {package_name} {package_version}
 ```
 
-| Parameter           | Description          |
-| ------------------- | -------------------- |
-| `package_name`    | The package name.    |
+| Parameter         | Description |
+| ----------------- | ----------- |
+| `package_name`    | The package name. |
 | `package_version` | The package version. |
 
 ## Delete a package
@@ -86,7 +87,7 @@ Optional you can specify the package version:
 knife supermarket unshare {package_name}/versions/{package_version}
 ```
 
-| Parameter           | Description          |
-| ------------------- | -------------------- |
-| `package_name`    | The package name.    |
+| Parameter         | Description |
+| ----------------- | ----------- |
+| `package_name`    | The package name. |
 | `package_version` | The package version. |
