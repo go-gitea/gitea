@@ -483,7 +483,7 @@ Configuration at `[queue]` will set defaults for queues with overrides for indiv
 
 - `TYPE`: **level**: General queue type, currently support: `level` (uses a LevelDB internally), `channel`, `redis`, `dummy`. Invalid types are treated as `level`.
 - `DATADIR`: **queues/common**: Base DataDir for storing level queues. `DATADIR` for individual queues can be set in `queue.name` sections. Relative paths will be made absolute against `%(APP_DATA_PATH)s`.
-- `LENGTH`: **100**: Maximal queue size before channel queues block
+- `LENGTH`: **100000**: Maximal queue size before channel queues block
 - `BATCH_LENGTH`: **20**: Batch data before passing to the handler
 - `CONN_STR`: **redis://127.0.0.1:6379/0**: Connection string for the redis queue type. For `redis-cluster` use `redis+cluster://127.0.0.1:6379/0`. Options can be set using query params. Similarly, LevelDB options can also be set using: **leveldb://relative/path?option=value** or **leveldb:///absolute/path?option=value**, and will override `DATADIR`
 - `QUEUE_NAME`: **_queue**: The suffix for default redis and disk queue name. Individual queues will default to **`name`**`QUEUE_NAME` but can be overridden in the specific `queue.name` section.
