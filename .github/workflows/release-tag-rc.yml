@@ -1,4 +1,4 @@
-name: release-rc-version
+name: release-tag-rc
 
 on:
   push:
@@ -74,8 +74,8 @@ jobs:
         id: meta
         with:
           images: gitea/gitea
+          # 1.2.3-rc0
           tags: |
-            # 1.2.3-rc0
             type=semver,pattern={{version}}
       - name: Login to Docker Hub
         uses: docker/login-action@v2
@@ -103,11 +103,11 @@ jobs:
         id: meta
         with:
           images: gitea/gitea
+          # each tag below will have the suffix of -rootless
           flavor: |
-            # each tag below will have the suffix of -rootless
             suffix=-rootless
+          # 1.2.3-rc0
           tags: |
-            # 1.2.3-rc0
             type=semver,pattern={{version}}
       - name: Login to Docker Hub
         uses: docker/login-action@v2
