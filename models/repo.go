@@ -16,7 +16,6 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -24,10 +23,7 @@ import (
 
 // Init initialize model
 func Init(ctx context.Context) error {
-	if err := unit.LoadUnitConfig(); err != nil {
-		return err
-	}
-	return system_model.Init(ctx)
+	return unit.LoadUnitConfig()
 }
 
 type repoChecker struct {
