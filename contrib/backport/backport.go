@@ -7,6 +7,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -18,7 +19,10 @@ import (
 
 	"github.com/google/go-github/v53/github"
 	"github.com/urfave/cli/v2"
+	"gopkg.in/yaml.v3"
 )
+
+const defaultVersion = "v1.18" // to backport to
 
 func main() {
 	app := cli.NewApp()
@@ -50,6 +54,16 @@ func main() {
 			Name:  "backport-branch",
 			Usage: "Backport branch to backport on to (default: backport-<pr>-<version>",
 		},
+		&cli.StringFlag{
+			Name:  "remote",
+			Value: "",
+			Usage: "Remote for your fork of the Gitea upstream",
+		},
+		&cli.StringFlag{
+			Name:  "fork-user",
+			Value: "",
+			Usage: "Forked user name on Github",
+		},
 		&cli.BoolFlag{
 			Name:  "no-fetch",
 			Usage: "Set this flag to prevent fetch of remote branches",
@@ -57,6 +71,18 @@ func main() {
 		&cli.BoolFlag{
 			Name:  "no-amend-message",
 			Usage: "Set this flag to prevent automatic amendment of the commit message",
+		},
+		&cli.BoolFlag{
+			Name:  "no-push",
+			Usage: "Set this flag to prevent pushing the backport up to your fork",
+		},
+		&cli.BoolFlag{
+			Name:  "no-xdg-open",
+			Usage: "Set this flag to not use xdg-open to open the PR URL",
+		},
+		&cli.BoolFlag{
+			Name:  "continue",
+			Usage: "Set this flag to continue from a git cherry-pick that has broken",
 		},
 	}
 	cli.AppHelpTemplate = `NAME:
@@ -75,7 +101,7 @@ OPTIONS:
 	app.Action = runBackport
 
 	if err := app.Run(os.Args); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		fmt.Fprintf(os.Stderr, "Unable to backport: %v\n", err)
 	}
 }
 
@@ -83,14 +109,39 @@ func runBackport(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
+	continuing := c.Bool("continue")
+
+	var pr string
+
 	version := c.String("version")
+	if version == "" && continuing {
+		// determine version from current branch name
+		var err error
+		pr, version, err = readCurrentBranch(ctx)
+		if err != nil {
+			return err
+		}
+	}
 	if version == "" {
-		return fmt.Errorf("Provide a version to backport to")
+		version = readVersion()
+	}
+	if version == "" {
+		version = defaultVersion
 	}
 
 	upstream := c.String("upstream")
 	if upstream == "" {
 		upstream = "origin"
+	}
+
+	forkUser := c.String("fork-user")
+	remote := c.String("remote")
+	if remote == "" && !c.Bool("--no-push") {
+		var err error
+		remote, forkUser, err = determineRemote(ctx, forkUser)
+		if err != nil {
+			return err
+		}
 	}
 
 	upstreamReleaseBranch := c.String("release-branch")
@@ -101,12 +152,14 @@ func runBackport(c *cli.Context) error {
 	localReleaseBranch := path.Join(upstream, upstreamReleaseBranch)
 
 	args := c.Args().Slice()
-	if len(args) == 0 {
-		return fmt.Errorf("Provide a PR number to backport")
-	} else if len(args) != 1 {
-		return fmt.Errorf("Only a single PR can be backported at a time")
+	if len(args) == 0 && pr == "" {
+		return fmt.Errorf("no PR number provided\nProvide a PR number to backport")
+	} else if len(args) != 1 && pr == "" {
+		return fmt.Errorf("multiple PRs provided %v\nOnly a single PR can be backported at a time", args)
 	}
-	pr := args[0]
+	if pr == "" {
+		pr = args[0]
+	}
 
 	backportBranch := c.String("backport-branch")
 	if backportBranch == "" {
@@ -133,8 +186,10 @@ func runBackport(c *cli.Context) error {
 		}
 	}
 
-	if err := checkoutBackportBranch(ctx, backportBranch, localReleaseBranch); err != nil {
-		return err
+	if !continuing {
+		if err := checkoutBackportBranch(ctx, backportBranch, localReleaseBranch); err != nil {
+			return err
+		}
 	}
 
 	if err := cherrypick(ctx, sha); err != nil {
@@ -147,8 +202,41 @@ func runBackport(c *cli.Context) error {
 		}
 	}
 
-	fmt.Printf("Backport done! You can now push it with `git push <your remote> %s`\n", backportBranch)
+	if !c.Bool("no-push") {
+		url := "https://github.com/go-gitea/gitea/compare/" + upstreamReleaseBranch + "..." + forkUser + ":" + backportBranch
 
+		if err := gitPushUp(ctx, remote, backportBranch); err != nil {
+			return err
+		}
+
+		if !c.Bool("no-xdg-open") {
+			if err := xdgOpen(ctx, url); err != nil {
+				return err
+			}
+		} else {
+			fmt.Printf("* Navigate to %s to open PR\n", url)
+		}
+	}
+	return nil
+}
+
+func xdgOpen(ctx context.Context, url string) error {
+	fmt.Printf("* `xdg-open %s`\n", url)
+	out, err := exec.CommandContext(ctx, "xdg-open", url).Output()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s", string(out))
+		return fmt.Errorf("unable to xdg-open to %s: %w", url, err)
+	}
+	return nil
+}
+
+func gitPushUp(ctx context.Context, remote, backportBranch string) error {
+	fmt.Printf("* `git push -u %s %s`\n", remote, backportBranch)
+	out, err := exec.CommandContext(ctx, "git", "push", "-u", remote, backportBranch).Output()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s", string(out))
+		return fmt.Errorf("unable to push up to %s: %w", remote, err)
+	}
 	return nil
 }
 
@@ -179,6 +267,18 @@ func amendCommit(ctx context.Context, pr string) error {
 }
 
 func cherrypick(ctx context.Context, sha string) error {
+	// Check if a CHERRY_PICK_HEAD exists
+	if _, err := os.Stat(".git/CHERRY_PICK_HEAD"); err == nil {
+		// Assume that we are in the middle of cherry-pick - continue it
+		fmt.Println("* Attempting git cherry-pick --continue")
+		out, err := exec.CommandContext(ctx, "git", "cherry-pick", "--continue").Output()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "git cherry-pick --continue failed:\n%s\n", string(out))
+			return fmt.Errorf("unable to continue cherry-pick: %w", err)
+		}
+		return nil
+	}
+
 	fmt.Printf("* Attempting git cherry-pick %s\n", sha)
 	out, err := exec.CommandContext(ctx, "git", "cherry-pick", sha).Output()
 	if err != nil {
@@ -189,8 +289,22 @@ func cherrypick(ctx context.Context, sha string) error {
 }
 
 func checkoutBackportBranch(ctx context.Context, backportBranch, releaseBranch string) error {
-	fmt.Printf("* `git branch -D %s`\n", backportBranch)
-	_ = exec.CommandContext(ctx, "git", "branch", "-D", backportBranch).Run()
+	out, err := exec.CommandContext(ctx, "git", "branch", "--show-current").Output()
+	if err != nil {
+		return fmt.Errorf("unable to check current branch %w", err)
+	}
+
+	currentBranch := strings.TrimSpace(string(out))
+	fmt.Printf("* Current branch is %s\n", currentBranch)
+	if currentBranch == backportBranch {
+		fmt.Printf("* Current branch is %s - not checking out\n", currentBranch)
+		return nil
+	}
+
+	if _, err := exec.CommandContext(ctx, "git", "rev-list", "-1", backportBranch).Output(); err == nil {
+		fmt.Printf("* Branch %s already exists. Checking it out...\n", backportBranch)
+		return exec.CommandContext(ctx, "git", "checkout", "-f", backportBranch).Run()
+	}
 
 	fmt.Printf("* `git checkout -b %s %s`\n", backportBranch, releaseBranch)
 	return exec.CommandContext(ctx, "git", "checkout", "-b", backportBranch, releaseBranch).Run()
@@ -203,6 +317,7 @@ func fetchRemoteAndMain(ctx context.Context, remote, releaseBranch string) error
 		fmt.Println(string(out))
 		return fmt.Errorf("unable to fetch %s from %s: %w", "main", remote, err)
 	}
+	fmt.Println(string(out))
 
 	fmt.Printf("* `git fetch %s %s`\n", remote, releaseBranch)
 	out, err = exec.CommandContext(ctx, "git", "fetch", remote, releaseBranch).Output()
@@ -210,8 +325,106 @@ func fetchRemoteAndMain(ctx context.Context, remote, releaseBranch string) error
 		fmt.Println(string(out))
 		return fmt.Errorf("unable to fetch %s from %s: %w", releaseBranch, remote, err)
 	}
+	fmt.Println(string(out))
 
 	return nil
+}
+
+func determineRemote(ctx context.Context, forkUser string) (string, string, error) {
+	out, err := exec.CommandContext(ctx, "git", "remote", "-v").Output()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to list git remotes:\n%s\n", string(out))
+		return "", "", fmt.Errorf("unable to determine forked remote: %w", err)
+	}
+	lines := strings.Split(string(out), "\n")
+	for _, line := range lines {
+		fields := strings.Split(line, "\t")
+		name, remote := fields[0], fields[1]
+		// only look at pushers
+		if !strings.HasSuffix(remote, " (push)") {
+			continue
+		}
+		// only look at github.com pushes
+		if !strings.Contains(remote, "github.com") {
+			continue
+		}
+		// ignore go-gitea/gitea
+		if strings.Contains(remote, "go-gitea/gitea") {
+			continue
+		}
+		if !strings.Contains(remote, forkUser) {
+			continue
+		}
+		if strings.HasPrefix(remote, "git@github.com:") {
+			forkUser = strings.TrimPrefix(remote, "git@github.com:")
+		} else if strings.HasPrefix(remote, "https://github.com/") {
+			forkUser = strings.TrimPrefix(remote, "https://github.com/")
+		} else if strings.HasPrefix(remote, "https://www.github.com/") {
+			forkUser = strings.TrimPrefix(remote, "https://www.github.com/")
+		} else if forkUser == "" {
+			return "", "", fmt.Errorf("unable to extract forkUser from remote %s: %s", name, remote)
+		}
+		idx := strings.Index(forkUser, "/")
+		if idx >= 0 {
+			forkUser = forkUser[:idx]
+		}
+		return name, forkUser, nil
+	}
+	return "", "", fmt.Errorf("unable to find appropriate remote in:\n%s", string(out))
+}
+
+func readCurrentBranch(ctx context.Context) (pr, version string, err error) {
+	out, err := exec.CommandContext(ctx, "git", "branch", "--show-current").Output()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to read current git branch:\n%s\n", string(out))
+		return "", "", fmt.Errorf("unable to read current git branch: %w", err)
+	}
+	parts := strings.Split(strings.TrimSpace(string(out)), "-")
+
+	if len(parts) != 3 || parts[0] != "backport" {
+		fmt.Fprintf(os.Stderr, "Unable to continue from git branch:\n%s\n", string(out))
+		return "", "", fmt.Errorf("unable to continue from git branch:\n%s", string(out))
+	}
+
+	return parts[1], parts[2], nil
+}
+
+func readVersion() string {
+	bs, err := os.ReadFile("docs/config.yaml")
+	if err != nil {
+		if err == os.ErrNotExist {
+			log.Println("`docs/config.yaml` not present")
+			return ""
+		}
+		fmt.Fprintf(os.Stderr, "Unable to read `docs/config.yaml`: %v\n", err)
+		return ""
+	}
+
+	type params struct {
+		Version string
+	}
+	type docConfig struct {
+		Params params
+	}
+	dc := &docConfig{}
+	if err := yaml.Unmarshal(bs, dc); err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to read `docs/config.yaml`: %v\n", err)
+		return ""
+	}
+
+	if dc.Params.Version == "" {
+		fmt.Fprintf(os.Stderr, "No version in `docs/config.yaml`")
+		return ""
+	}
+
+	version := dc.Params.Version
+	if version[0] != 'v' {
+		version = "v" + version
+	}
+
+	split := strings.SplitN(version, ".", 3)
+
+	return strings.Join(split[:2], ".")
 }
 
 func determineSHAforPR(ctx context.Context, prStr string) (string, error) {
