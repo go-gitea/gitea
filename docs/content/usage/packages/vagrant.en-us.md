@@ -54,7 +54,7 @@ The server responds with the following HTTP Status codes.
 | ------------------- | ------------------------------------------------------------------------------- |
 | `201 Created`     | The package has been published.                                                 |
 | `400 Bad Request` | The package is invalid. |
-| `409 Conflict`    | A package file with the same combination of parameters exists already.          |
+| `409 Conflict`    | A package with the same combination of parameters exists already.          |
 
 ## Install a package
 
