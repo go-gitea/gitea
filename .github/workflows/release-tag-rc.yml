@@ -65,9 +65,8 @@ jobs:
       - run: git fetch --unshallow --quiet --tags --force
       - uses: docker/setup-qemu-action@v2
       - uses: docker/setup-buildx-action@v2
-      - name: Docker meta
+      - uses: docker/metadata-action@v5
         id: meta
-        uses: docker/metadata-action@v5
         with:
           images: gitea/gitea
           tags: |
@@ -95,9 +94,8 @@ jobs:
       - run: git fetch --unshallow --quiet --tags --force
       - uses: docker/setup-qemu-action@v2
       - uses: docker/setup-buildx-action@v2
-      - name: Docker meta
+      - uses: docker/metadata-action@v5
         id: meta
-        uses: docker/metadata-action@v5
         with:
           images: gitea/gitea
           flavor: |
