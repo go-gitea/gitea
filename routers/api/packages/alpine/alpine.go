@@ -9,15 +9,11 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/json"
-	packages_module "code.gitea.io/gitea/modules/packages"
-	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -105,76 +101,17 @@ func UploadPackageFile(ctx *context.Context) {
 		defer upload.Close()
 	}
 
-	buf, err := packages_module.CreateHashedBufferFromReader(upload)
+	userError, _, err := alpine_service.UploadAlpinePackage(ctx, upload, branch, repository)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	defer buf.Close()
-
-	pck, err := alpine_module.ParsePackage(buf)
-	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) || err == io.EOF {
-			apiError(ctx, http.StatusBadRequest, err)
+		if userError {
+			if err == packages_service.ErrQuotaTotalCount || err == packages_service.ErrQuotaTypeSize || err == packages_service.ErrQuotaTotalSize {
+				apiError(ctx, http.StatusForbidden, err)
+			} else {
+				apiError(ctx, http.StatusBadRequest, err)
+			}
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		return
-	}
-
-	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	fileMetadataRaw, err := json.Marshal(pck.FileMetadata)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
-		ctx,
-		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeAlpine,
-				Name:        pck.Name,
-				Version:     pck.Version,
-			},
-			Creator:  ctx.Doer,
-			Metadata: pck.VersionMetadata,
-		},
-		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename:     fmt.Sprintf("%s-%s.apk", pck.Name, pck.Version),
-				CompositeKey: fmt.Sprintf("%s|%s|%s", branch, repository, pck.FileMetadata.Architecture),
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
-			Properties: map[string]string{
-				alpine_module.PropertyBranch:       branch,
-				alpine_module.PropertyRepository:   repository,
-				alpine_module.PropertyArchitecture: pck.FileMetadata.Architecture,
-				alpine_module.PropertyMetadata:     string(fileMetadataRaw),
-			},
-		},
-	)
-	if err != nil {
-		switch err {
-		case packages_model.ErrDuplicatePackageVersion, packages_model.ErrDuplicatePackageFile:
-			apiError(ctx, http.StatusBadRequest, err)
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
-		return
-	}
-
-	if err := alpine_service.BuildSpecificRepositoryFiles(ctx, ctx.Package.Owner.ID, branch, repository, pck.FileMetadata.Architecture); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

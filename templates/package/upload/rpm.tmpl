@@ -1,0 +1,18 @@
+<div class="ui">
+	<h1>{{.Title}}</h1>
+	{{template "base/alert" .}}
+	<form class="ui form" action="{{.Link}}/upload" method="post" enctype="multipart/form-data">
+		{{.CsrfTokenHtml}}
+
+		<input name="repo" type="hidden" value="{{.PackageUploadRepo}}">
+
+		<div class="field">
+			<label for="file">{{ctx.Locale.Tr "packages.upload.file.label"}}</label>
+			<input name="file" type="file" accept=".rpm" required>
+		</div>
+
+		<div class="field">
+			<button class="ui green button">{{ctx.Locale.Tr "upload"}}</button>
+		</div>
+	</form>
+</div>

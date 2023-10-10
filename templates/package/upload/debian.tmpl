@@ -1,0 +1,28 @@
+<div class="ui">
+	<h1>{{.Title}}</h1>
+	{{template "base/alert" .}}
+	<form class="ui form" action="{{.Link}}/upload" method="post" enctype="multipart/form-data">
+		{{.CsrfTokenHtml}}
+
+		<input name="repo" type="hidden" value="{{.PackageUploadRepo}}">
+
+		<div class="field">
+			<label for="distribution">{{ctx.Locale.Tr "packages.upload.distribution.label"}}</label>
+			<input id="distribution" name="distribution" placeholder="{{ctx.Locale.Tr "packages.upload.distribution.placeholder"}}" maxlength="255" required>
+		</div>
+
+		<div class="field">
+			<label for="component">{{ctx.Locale.Tr "packages.upload.component.label"}}</label>
+			<input id="component" name="version" placeholder="{{ctx.Locale.Tr "packages.upload.component.placeholder"}}" maxlength="255" required>
+		</div>
+
+		<div class="field">
+			<label for="file">{{ctx.Locale.Tr "packages.upload.file.label"}}</label>
+			<input name="file" type="file" accept=".deb" required>
+		</div>
+
+		<div class="field">
+			<button class="ui green button">{{ctx.Locale.Tr "upload"}}</button>
+		</div>
+	</form>
+</div>

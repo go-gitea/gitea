@@ -7,16 +7,12 @@ import (
 	stdctx "context"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/json"
-	packages_module "code.gitea.io/gitea/modules/packages"
-	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
@@ -94,72 +90,17 @@ func UploadPackageFile(ctx *context.Context) {
 		defer upload.Close()
 	}
 
-	buf, err := packages_module.CreateHashedBufferFromReader(upload)
+	userError, _, err := rpm_service.UploadRpmPackage(ctx, upload)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	defer buf.Close()
-
-	pck, err := rpm_module.ParsePackage(buf)
-	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			apiError(ctx, http.StatusBadRequest, err)
+		if userError {
+			if err == packages_service.ErrQuotaTotalCount || err == packages_service.ErrQuotaTypeSize || err == packages_service.ErrQuotaTotalSize {
+				apiError(ctx, http.StatusForbidden, err)
+			} else {
+				apiError(ctx, http.StatusBadRequest, err)
+			}
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		return
-	}
-
-	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	fileMetadataRaw, err := json.Marshal(pck.FileMetadata)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
-		ctx,
-		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeRpm,
-				Name:        pck.Name,
-				Version:     pck.Version,
-			},
-			Creator:  ctx.Doer,
-			Metadata: pck.VersionMetadata,
-		},
-		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: fmt.Sprintf("%s-%s.%s.rpm", pck.Name, pck.Version, pck.FileMetadata.Architecture),
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
-			Properties: map[string]string{
-				rpm_module.PropertyMetadata: string(fileMetadataRaw),
-			},
-		},
-	)
-	if err != nil {
-		switch err {
-		case packages_model.ErrDuplicatePackageVersion, packages_model.ErrDuplicatePackageFile:
-			apiError(ctx, http.StatusConflict, err)
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
-		return
-	}
-
-	if err := rpm_service.BuildRepositoryFiles(ctx, ctx.Package.Owner.ID); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

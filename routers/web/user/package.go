@@ -4,7 +4,9 @@
 package user
 
 import (
+	"fmt"
 	"net/http"
+	"slices"
 
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
@@ -23,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	packages_helper "code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/routers/web/shared/packages"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/forms"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -33,6 +36,7 @@ const (
 	tplPackagesView       base.TplName = "package/view"
 	tplPackageVersionList base.TplName = "user/overview/package_versions"
 	tplPackagesSettings   base.TplName = "package/settings"
+	tplPackageUpload      base.TplName = "user/overview/package_upload"
 )
 
 // ListPackages displays a list of all packages of the context user
@@ -100,6 +104,8 @@ func ListPackages(ctx *context.Context) {
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["Total"] = total
 	ctx.Data["RepositoryAccessMap"] = repositoryAccessMap
+	ctx.Data["PackageUploadUrl"] = fmt.Sprintf("%s/-/packages/upload/", ctx.ContextUser.HTMLURL())
+	ctx.Data["AllowedUploadTypes"] = packages.UploadTypeList
 
 	err = shared_user.LoadHeaderCount(ctx)
 	if err != nil {
@@ -116,10 +122,16 @@ func ListPackages(ctx *context.Context) {
 		if ctx.Doer != nil {
 			ctx.Data["IsOrganizationMember"], _ = org_model.IsOrganizationMember(ctx, org.ID, ctx.Doer.ID)
 			ctx.Data["IsOrganizationOwner"], _ = org_model.IsOrganizationOwner(ctx, org.ID, ctx.Doer.ID)
+			ctx.Data["ShowPackageUploadButton"] = ctx.Data["IsOrganizationMember"]
 		} else {
 			ctx.Data["IsOrganizationMember"] = false
 			ctx.Data["IsOrganizationOwner"] = false
+			ctx.Data["ShowPackageUploadButton"] = false
 		}
+	} else if ctx.Doer != nil {
+		ctx.Data["ShowPackageUploadButton"] = ctx.Doer.ID == ctx.ContextUser.ID
+	} else {
+		ctx.Data["ShowPackageUploadButton"] = false
 	}
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
@@ -477,4 +489,28 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 
 	packages_helper.ServePackageFile(ctx, s, u, pf)
+}
+
+func UploadPackage(ctx *context.Context) {
+	shared_user.PrepareContextForProfileBigAvatar(ctx)
+
+	packageType := packages_model.GetPackageTypeByString(ctx.Params("upload_type"))
+
+	if packageType == nil || !slices.Contains(packages.UploadTypeList, *packageType) {
+		ctx.NotFound("", nil)
+		return
+	}
+
+	ctx.Data["IsPackagesPage"] = true
+	ctx.Data["PackageUploadType"] = packageType
+	ctx.Data["PackageUploadRepo"] = ctx.FormString("repo")
+	ctx.Data["Title"] = ctx.Tr("packages.upload.title", packageType.Name())
+
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
+	ctx.HTML(http.StatusOK, tplPackageUpload)
 }

@@ -7,15 +7,12 @@ import (
 	stdctx "context"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
-	packages_module "code.gitea.io/gitea/modules/packages"
-	debian_module "code.gitea.io/gitea/modules/packages/debian"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -136,70 +133,17 @@ func UploadPackageFile(ctx *context.Context) {
 		defer upload.Close()
 	}
 
-	buf, err := packages_module.CreateHashedBufferFromReader(upload)
+	userError, _, err := debian_service.UploadDebianPackage(ctx, upload, distribution, component)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	defer buf.Close()
-
-	pck, err := debian_module.ParsePackage(buf)
-	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			apiError(ctx, http.StatusBadRequest, err)
+		if userError {
+			if err == packages_service.ErrQuotaTotalCount || err == packages_service.ErrQuotaTypeSize || err == packages_service.ErrQuotaTotalSize {
+				apiError(ctx, http.StatusForbidden, err)
+			} else {
+				apiError(ctx, http.StatusBadRequest, err)
+			}
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		return
-	}
-
-	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
-		ctx,
-		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeDebian,
-				Name:        pck.Name,
-				Version:     pck.Version,
-			},
-			Creator:  ctx.Doer,
-			Metadata: pck.Metadata,
-		},
-		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename:     fmt.Sprintf("%s_%s_%s.deb", pck.Name, pck.Version, pck.Architecture),
-				CompositeKey: fmt.Sprintf("%s|%s", distribution, component),
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
-			Properties: map[string]string{
-				debian_module.PropertyDistribution: distribution,
-				debian_module.PropertyComponent:    component,
-				debian_module.PropertyArchitecture: pck.Architecture,
-				debian_module.PropertyControl:      pck.Control,
-			},
-		},
-	)
-	if err != nil {
-		switch err {
-		case packages_model.ErrDuplicatePackageVersion, packages_model.ErrDuplicatePackageFile:
-			apiError(ctx, http.StatusBadRequest, err)
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
-		return
-	}
-
-	if err := debian_service.BuildSpecificRepositoryFiles(ctx, ctx.Package.Owner.ID, distribution, component, pck.Architecture); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

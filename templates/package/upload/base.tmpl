@@ -1,0 +1,9 @@
+{{if eq $.PackageUploadType.String "alpine"}}
+	{{template "package/upload/alpine" .}}
+{{else if eq $.PackageUploadType.String "debian"}}
+	{{template "package/upload/debian" .}}
+{{else if eq $.PackageUploadType.String "generic"}}
+	{{template "package/upload/generic" .}}
+{{else if eq $.PackageUploadType.String "rpm"}}
+	{{template "package/upload/rpm" .}}
+{{end}}

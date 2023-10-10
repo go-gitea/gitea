@@ -37,6 +37,7 @@ import (
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/repo/actions"
 	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
+	"code.gitea.io/gitea/routers/web/shared/packages"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/routers/web/user/setting/security"
@@ -937,6 +938,13 @@ func registerRoutes(m *web.Route) {
 						}, reqPackageAccess(perm.AccessModeWrite))
 					})
 				})
+				m.Group("/upload", func() {
+					m.Get("/{upload_type}", user.UploadPackage)
+					m.Post("/alpine/upload", web.Bind(forms.PackageUploadAlpineForm{}), packages.UploadAlpinePackagePost)
+					m.Post("/debian/upload", web.Bind(forms.PackageUploadDebianForm{}), packages.UploadDebianPackagePost)
+					m.Post("/generic/upload", web.Bind(forms.PackageUploadGenericForm{}), packages.UploadGenericPackagePost)
+					m.Post("/rpm/upload", web.Bind(forms.PackageUploadRpmForm{}), packages.UploadRpmPackagePost)
+				}, reqPackageAccess(perm.AccessModeWrite))
 			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
 

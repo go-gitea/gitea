@@ -4,15 +4,17 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/packages"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/web/shared/packages"
 )
 
 const (
@@ -28,15 +30,15 @@ func Packages(ctx *context.Context) {
 	query := ctx.FormTrim("q")
 	packageType := ctx.FormTrim("type")
 
-	pvs, total, err := packages.SearchLatestVersions(ctx, &packages.PackageSearchOptions{
+	pvs, total, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
 		Paginator: &db.ListOptions{
 			PageSize: setting.UI.PackagesPagingNum,
 			Page:     page,
 		},
 		OwnerID:    ctx.ContextUser.ID,
 		RepoID:     ctx.Repo.Repository.ID,
-		Type:       packages.Type(packageType),
-		Name:       packages.SearchValue{Value: query},
+		Type:       packages_model.Type(packageType),
+		Name:       packages_model.SearchValue{Value: query},
 		IsInternal: util.OptionalBoolFalse,
 	})
 	if err != nil {
@@ -44,13 +46,13 @@ func Packages(ctx *context.Context) {
 		return
 	}
 
-	pds, err := packages.GetPackageDescriptors(ctx, pvs)
+	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
 		ctx.ServerError("GetPackageDescriptors", err)
 		return
 	}
 
-	hasPackages, err := packages.HasRepositoryPackages(ctx, ctx.Repo.Repository.ID)
+	hasPackages, err := packages_model.HasRepositoryPackages(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("HasRepositoryPackages", err)
 		return
@@ -60,10 +62,14 @@ func Packages(ctx *context.Context) {
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType
-	ctx.Data["AvailableTypes"] = packages.TypeList
+	ctx.Data["AvailableTypes"] = packages_model.TypeList
 	ctx.Data["HasPackages"] = hasPackages
 	if ctx.Repo != nil {
 		ctx.Data["CanWritePackages"] = ctx.IsUserRepoWriter([]unit.Type{unit.TypePackages}) || ctx.IsUserSiteAdmin()
+		ctx.Data["ShowPackageUploadButton"] = ctx.Data["CanWritePackages"]
+		ctx.Data["PackageUploadUrl"] = fmt.Sprintf("%s/-/packages/upload/", ctx.Repo.Owner.HTMLURL())
+		ctx.Data["PackageUploadRepo"] = ctx.Repo.Repository.Name
+		ctx.Data["AllowedUploadTypes"] = packages.UploadTypeList
 	}
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["Total"] = total

@@ -1,0 +1,28 @@
+<div class="ui">
+	<h1>{{.Title}}</h1>
+	{{template "base/alert" .}}
+	<form class="ui form" action="{{.Link}}/upload" method="post" enctype="multipart/form-data">
+		{{.CsrfTokenHtml}}
+
+		<input name="repo" type="hidden" value="{{ctx.PackageUploadRepo}}">
+
+		<div class="field">
+			<label for="branch">{{ctx.Locale.Tr "packages.upload.branch.label"}}</label>
+			<input id="branch" name="branch" placeholder="{{ctx.Locale.Tr "packages.upload.branch.placeholder"}}" maxlength="255" required>
+		</div>
+
+		<div class="field">
+			<label for="repo">{{ctx.Locale.Tr "packages.upload.repo.label"}}</label>
+			<input id="repo" name="repo" placeholder="{{ctx.Locale.Tr "packages.upload.repo.placeholder"}}" maxlength="255" required>
+		</div>
+
+		<div class="field">
+			<label for="file">{{ctx.Locale.Tr "packages.upload.file.label"}}</label>
+			<input name="file" type="file" accept=".apk" required>
+		</div>
+
+		<div class="field">
+			<button class="ui green button">{{ctx.Locale.Tr "upload"}}</button>
+		</div>
+	</form>
+</div>
