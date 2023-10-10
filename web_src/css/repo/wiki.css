@@ -26,6 +26,7 @@
     "content toc"
     "content sidebar";
   grid-template-rows: auto 1fr;
+  grid-template-columns: 1fr minmax(200px, 20%);
 }
 
 .repository.wiki .wiki-content-sidebar.wiki-content-toc {
@@ -40,9 +41,6 @@
 .repository.wiki .wiki-content-sidebar {
   grid-area: sidebar;
   align-self: flex-start;
-}
-
-.repository.wiki .wiki-content-sidebar {
   min-width: 150px;
 }
 
@@ -76,6 +74,7 @@
       "toc"
       "content"
       "sidebar";
+    grid-template-columns: 1fr;
   }
 
   .repository.wiki .wiki-content-main.with-sidebar,
