@@ -414,7 +414,7 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 			Name: gitLDAPUser.UserName,
 		})
-		usersOrgs, err := organization.FindOrgs(organization.FindOrgOptions{
+		usersOrgs, err := organization.FindOrgs(db.DefaultContext, organization.FindOrgOptions{
 			UserID:         user.ID,
 			IncludePrivate: true,
 		})
@@ -458,7 +458,7 @@ func TestLDAPGroupTeamSyncRemoveMember(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		Name: gitLDAPUsers[0].UserName,
 	})
-	err = organization.AddOrgUser(org.ID, user.ID)
+	err = organization.AddOrgUser(db.DefaultContext, org.ID, user.ID)
 	assert.NoError(t, err)
 	err = models.AddTeamMember(db.DefaultContext, team, user.ID)
 	assert.NoError(t, err)

@@ -312,12 +312,12 @@ func getOAuthGroupsForUser(ctx go_context.Context, user *user_model.User) ([]str
 	var groups []string
 	for _, org := range orgs {
 		groups = append(groups, org.Name)
-		teams, err := org.LoadTeams()
+		teams, err := org.LoadTeams(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("LoadTeams: %w", err)
 		}
 		for _, team := range teams {
-			if team.IsMember(user.ID) {
+			if team.IsMember(ctx, user.ID) {
 				groups = append(groups, org.Name+":"+team.LowerName)
 			}
 		}
@@ -941,7 +941,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	if u == nil {
 		if ctx.Doer != nil {
 			// attach user to already logged in user
-			err = externalaccount.LinkAccountToUser(ctx.Doer, gothUser)
+			err = externalaccount.LinkAccountToUser(ctx, ctx.Doer, gothUser)
 			if err != nil {
 				ctx.ServerError("UserLinkAccount", err)
 				return
