@@ -317,8 +317,7 @@ func TestAPICron(t *testing.T) {
 		req := NewRequest(t, "POST", urlStr)
 		MakeRequest(t, req, http.StatusNoContent)
 
-		// Check for the latest run time for this cron, to ensure it
-		// has been run.
+		// Check for the latest run time for this cron, to ensure it has been run.
 		urlStr = fmt.Sprintf("/api/v1/admin/cron?token=%s", token)
 		req = NewRequest(t, "GET", urlStr)
 		resp := MakeRequest(t, req, http.StatusOK)
