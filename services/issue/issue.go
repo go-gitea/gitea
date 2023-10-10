@@ -53,6 +53,10 @@ func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 	oldTitle := issue.Title
 	issue.Title = title
 
+	if oldTitle == title {
+		return nil
+	}
+
 	if err := issues_model.ChangeIssueTitle(ctx, issue, doer, oldTitle); err != nil {
 		return err
 	}
