@@ -310,9 +310,9 @@ func TestAPICron(t *testing.T) {
 
 		now := time.Now()
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteAdmin)
-		/// Archive cleanup is harmless, because in the text environment there are none
-		/// and is thus an NOOP operation and therefore doesn't interfere with any other
-		/// tests.
+		// Archive cleanup is harmless, because in the test environment there are none
+		// and is thus an NOOP operation and therefore doesn't interfere with any other
+		// tests.
 		urlStr := fmt.Sprintf("/api/v1/admin/cron/archive_cleanup?token=%s", token)
 		req := NewRequest(t, "POST", urlStr)
 		MakeRequest(t, req, http.StatusNoContent)
