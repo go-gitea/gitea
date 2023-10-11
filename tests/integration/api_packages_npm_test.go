@@ -121,7 +121,7 @@ func TestPackageNpm(t *testing.T) {
 
 		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(buildUpload(packageVersion)))
 		req = addTokenAuthHeader(req, token)
-		MakeRequest(t, req, http.StatusBadRequest)
+		MakeRequest(t, req, http.StatusConflict)
 	})
 
 	t.Run("Download", func(t *testing.T) {

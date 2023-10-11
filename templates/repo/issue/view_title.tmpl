@@ -6,7 +6,7 @@
 <div class="issue-title-header">
 	<div class="issue-title" id="issue-title-wrapper">
 		<h1 class="gt-word-break">
-			<span id="issue-title">{{RenderIssueTitle $.Context .Issue.Title $.RepoLink $.Repository.ComposeMetas | RenderCodeBlock}} <span class="index">#{{.Issue.Index}}</span>
+			<span id="issue-title">{{RenderIssueTitle $.Context .Issue.Title $.RepoLink ($.Repository.ComposeMetas ctx) | RenderCodeBlock}} <span class="index">#{{.Issue.Index}}</span>
 </span>
 			<div id="edit-title-input" class="ui input gt-f1 gt-hidden">
 				<input value="{{.Issue.Title}}" maxlength="255" autocomplete="off">

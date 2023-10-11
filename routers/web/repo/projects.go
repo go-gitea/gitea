@@ -87,7 +87,7 @@ func Projects(ctx *context.Context) {
 	for i := range projects {
 		projects[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 			URLPrefix: ctx.Repo.RepoLink,
-			Metas:     ctx.Repo.Repository.ComposeMetas(),
+			Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
 			GitRepo:   ctx.Repo.GitRepo,
 			Ctx:       ctx,
 		}, projects[i].Description)
@@ -353,7 +353,7 @@ func ViewProject(ctx *context.Context) {
 
 	project.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.Repo.RepoLink,
-		Metas:     ctx.Repo.Repository.ComposeMetas(),
+		Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
 		GitRepo:   ctx.Repo.GitRepo,
 		Ctx:       ctx,
 	}, project.Description)
@@ -391,7 +391,7 @@ func UpdateIssueProject(ctx *context.Context) {
 			}
 		}
 
-		if err := issues_model.ChangeProjectAssign(issue, ctx.Doer, projectID); err != nil {
+		if err := issues_model.ChangeProjectAssign(ctx, issue, ctx.Doer, projectID); err != nil {
 			ctx.ServerError("ChangeProjectAssign", err)
 			return
 		}
