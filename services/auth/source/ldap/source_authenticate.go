@@ -70,7 +70,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	}
 
 	if user != nil {
-		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(user, source.authSource, sr.SSHPublicKey) {
+		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(ctx, user, source.authSource, sr.SSHPublicKey) {
 			if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
 				return user, err
 			}
@@ -96,13 +96,13 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 			return user, err
 		}
 
-		if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(user, source.authSource, sr.SSHPublicKey) {
+		if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(ctx, user, source.authSource, sr.SSHPublicKey) {
 			if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
 				return user, err
 			}
 		}
 		if len(source.AttributeAvatar) > 0 {
-			if err := user_service.UploadAvatar(user, sr.Avatar); err != nil {
+			if err := user_service.UploadAvatar(ctx, user, sr.Avatar); err != nil {
 				return user, err
 			}
 		}

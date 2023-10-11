@@ -121,7 +121,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(cache.NewContext)
 	mustInit(feed_service.Init)
 	mustInit(uinotification.Init)
-	mustInit(archiver.Init)
+	mustInitCtx(ctx, archiver.Init)
 
 	highlight.NewContext()
 	external.RegisterRenderers()

@@ -42,7 +42,7 @@ func (jobs ActionJobList) LoadRuns(ctx context.Context, withRepo bool) error {
 		for _, r := range runs {
 			runsList = append(runsList, r)
 		}
-		return runsList.LoadRepos()
+		return runsList.LoadRepos(ctx)
 	}
 	return nil
 }

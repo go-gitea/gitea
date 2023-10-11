@@ -147,7 +147,7 @@ func TestPackageDebian(t *testing.T) {
 
 							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, packageVersion, architecture))
 							AddBasicAuthHeader(req, user.Name)
-							MakeRequest(t, req, http.StatusBadRequest)
+							MakeRequest(t, req, http.StatusConflict)
 						})
 
 						t.Run("Download", func(t *testing.T) {

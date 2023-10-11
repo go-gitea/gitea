@@ -447,7 +447,7 @@ func (repo *Repository) MustOwner(ctx context.Context) *user_model.User {
 }
 
 // ComposeMetas composes a map of metas for properly rendering issue links and external issue trackers.
-func (repo *Repository) ComposeMetas() map[string]string {
+func (repo *Repository) ComposeMetas(ctx context.Context) map[string]string {
 	if len(repo.RenderingMetas) == 0 {
 		metas := map[string]string{
 			"user":     repo.OwnerName,
@@ -456,7 +456,7 @@ func (repo *Repository) ComposeMetas() map[string]string {
 			"mode":     "comment",
 		}
 
-		unit, err := repo.GetUnit(db.DefaultContext, unit.TypeExternalTracker)
+		unit, err := repo.GetUnit(ctx, unit.TypeExternalTracker)
 		if err == nil {
 			metas["format"] = unit.ExternalTrackerConfig().ExternalTrackerFormat
 			switch unit.ExternalTrackerConfig().ExternalTrackerStyle {
@@ -470,10 +470,10 @@ func (repo *Repository) ComposeMetas() map[string]string {
 			}
 		}
 
-		repo.MustOwner(db.DefaultContext)
+		repo.MustOwner(ctx)
 		if repo.Owner.IsOrganization() {
 			teams := make([]string, 0, 5)
-			_ = db.GetEngine(db.DefaultContext).Table("team_repo").
+			_ = db.GetEngine(ctx).Table("team_repo").
 				Join("INNER", "team", "team.id = team_repo.team_id").
 				Where("team_repo.repo_id = ?", repo.ID).
 				Select("team.lower_name").
@@ -489,10 +489,10 @@ func (repo *Repository) ComposeMetas() map[string]string {
 }
 
 // ComposeDocumentMetas composes a map of metas for properly rendering documents
-func (repo *Repository) ComposeDocumentMetas() map[string]string {
+func (repo *Repository) ComposeDocumentMetas(ctx context.Context) map[string]string {
 	if len(repo.DocumentRenderingMetas) == 0 {
 		metas := map[string]string{}
-		for k, v := range repo.ComposeMetas() {
+		for k, v := range repo.ComposeMetas(ctx) {
 			metas[k] = v
 		}
 		metas["mode"] = "document"
@@ -566,8 +566,8 @@ func (repo *Repository) CanEnablePulls() bool {
 }
 
 // AllowsPulls returns true if repository meets the requirements of accepting pulls and has them enabled.
-func (repo *Repository) AllowsPulls() bool {
-	return repo.CanEnablePulls() && repo.UnitEnabled(db.DefaultContext, unit.TypePullRequests)
+func (repo *Repository) AllowsPulls(ctx context.Context) bool {
+	return repo.CanEnablePulls() && repo.UnitEnabled(ctx, unit.TypePullRequests)
 }
 
 // CanEnableEditor returns true if repository meets the requirements of web editor.
@@ -718,12 +718,12 @@ func GetRepositoryByOwnerAndName(ctx context.Context, ownerName, repoName string
 }
 
 // GetRepositoryByName returns the repository by given name under user if exists.
-func GetRepositoryByName(ownerID int64, name string) (*Repository, error) {
+func GetRepositoryByName(ctx context.Context, ownerID int64, name string) (*Repository, error) {
 	repo := &Repository{
 		OwnerID:   ownerID,
 		LowerName: strings.ToLower(name),
 	}
-	has, err := db.GetEngine(db.DefaultContext).Get(repo)
+	has, err := db.GetEngine(ctx).Get(repo)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -788,9 +788,9 @@ func GetRepositoryByID(ctx context.Context, id int64) (*Repository, error) {
 }
 
 // GetRepositoriesMapByIDs returns the repositories by given id slice.
-func GetRepositoriesMapByIDs(ids []int64) (map[int64]*Repository, error) {
+func GetRepositoriesMapByIDs(ctx context.Context, ids []int64) (map[int64]*Repository, error) {
 	repos := make(map[int64]*Repository, len(ids))
-	return repos, db.GetEngine(db.DefaultContext).In("id", ids).Find(&repos)
+	return repos, db.GetEngine(ctx).In("id", ids).Find(&repos)
 }
 
 // IsRepositoryModelOrDirExist returns true if the repository with given name under user has already existed.
@@ -822,8 +822,8 @@ func GetTemplateRepo(ctx context.Context, repo *Repository) (*Repository, error)
 }
 
 // TemplateRepo returns the repository, which is template of this repository
-func (repo *Repository) TemplateRepo() *Repository {
-	repo, err := GetTemplateRepo(db.DefaultContext, repo)
+func (repo *Repository) TemplateRepo(ctx context.Context) *Repository {
+	repo, err := GetTemplateRepo(ctx, repo)
 	if err != nil {
 		log.Error("TemplateRepo: %v", err)
 		return nil
