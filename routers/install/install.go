@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
@@ -559,7 +560,7 @@ func SubmitInstall(ctx *context.Context) {
 			return
 		}
 
-		ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, 86400*setting.LogInRememberDays)
+		ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 
 		// Auto-login for admin
 		if err = ctx.Session.Set("uid", u.ID); err != nil {

@@ -83,7 +83,7 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 		return false, err
 	}
 
-	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, 86400*setting.LogInRememberDays)
+	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 
 	if err := updateSession(ctx, nil, map[string]any{
 		// Set session IDs
@@ -306,7 +306,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 			return setting.AppSubURL + "/"
 		}
 
-		ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, 86400*setting.LogInRememberDays)
+		ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 	}
 
 	if err := updateSession(ctx, []string{
