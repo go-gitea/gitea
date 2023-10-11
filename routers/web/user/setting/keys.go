@@ -168,7 +168,7 @@ func KeysPost(ctx *context.Context) {
 			return
 		}
 
-		if _, err = asymkey_model.AddPublicKey(ctx.Doer.ID, form.Title, content, 0); err != nil {
+		if _, err = asymkey_model.AddPublicKey(ctx, ctx.Doer.ID, form.Title, content, 0); err != nil {
 			ctx.Data["HasSSHError"] = true
 			switch {
 			case asymkey_model.IsErrKeyAlreadyExist(err):
@@ -231,7 +231,7 @@ func DeleteKey(ctx *context.Context) {
 		}
 	case "ssh":
 		keyID := ctx.FormInt64("id")
-		external, err := asymkey_model.PublicKeyIsExternallyManaged(keyID)
+		external, err := asymkey_model.PublicKeyIsExternallyManaged(ctx, keyID)
 		if err != nil {
 			ctx.ServerError("sshKeysExternalManaged", err)
 			return
@@ -260,14 +260,14 @@ func DeleteKey(ctx *context.Context) {
 }
 
 func loadKeysData(ctx *context.Context) {
-	keys, err := asymkey_model.ListPublicKeys(ctx.Doer.ID, db.ListOptions{})
+	keys, err := asymkey_model.ListPublicKeys(ctx, ctx.Doer.ID, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return
 	}
 	ctx.Data["Keys"] = keys
 
-	externalKeys, err := asymkey_model.PublicKeysAreExternallyManaged(keys)
+	externalKeys, err := asymkey_model.PublicKeysAreExternallyManaged(ctx, keys)
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return

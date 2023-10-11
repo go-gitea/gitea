@@ -65,14 +65,14 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.True(t, repo.HasWiki())
 	assert.EqualValues(t, repo_model.RepositoryReady, repo.Status)
 
-	milestones, _, err := issues_model.GetMilestones(issues_model.GetMilestonesOption{
+	milestones, _, err := issues_model.GetMilestones(db.DefaultContext, issues_model.GetMilestonesOption{
 		RepoID: repo.ID,
 		State:  structs.StateOpen,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, milestones, 1)
 
-	milestones, _, err = issues_model.GetMilestones(issues_model.GetMilestonesOption{
+	milestones, _, err = issues_model.GetMilestones(db.DefaultContext, issues_model.GetMilestonesOption{
 		RepoID: repo.ID,
 		State:  structs.StateClosed,
 	})

@@ -48,8 +48,8 @@ func (key *DeployKey) AfterLoad() {
 }
 
 // GetContent gets associated public key content.
-func (key *DeployKey) GetContent() error {
-	pkey, err := GetPublicKeyByID(key.KeyID)
+func (key *DeployKey) GetContent(ctx context.Context) error {
+	pkey, err := GetPublicKeyByID(ctx, key.KeyID)
 	if err != nil {
 		return err
 	}

@@ -223,7 +223,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		}
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
