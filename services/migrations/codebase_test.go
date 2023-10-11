@@ -137,7 +137,7 @@ func TestCodebaseDownloadRepo(t *testing.T) {
 				RepoName: "test",
 			},
 			Base: base.PullRequestBranch{
-				Ref:      "main",
+				Ref:      "master",
 				SHA:      "f32b0a9dfd09a60f616f29158f772cedd89942d2",
 				RepoName: "test",
 			},

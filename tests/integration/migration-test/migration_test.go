@@ -259,7 +259,7 @@ func restoreOldDB(t *testing.T, version string) bool {
 	case setting.Database.Type.IsMSSQL():
 		host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
 		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
-			host, port, "main", setting.Database.User, setting.Database.Passwd))
+			host, port, "master", setting.Database.User, setting.Database.Passwd))
 		assert.NoError(t, err)
 		defer db.Close()
 

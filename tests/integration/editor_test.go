@@ -55,7 +55,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 		// Check if main branch has been locked successfully
 		flashCookie := session.GetCookie(gitea_context.CookieNameFlash)
 		assert.NotNil(t, flashCookie)
-		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Brule%2B%2522master%2522%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
+		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Brule%2B%main%2522%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
 
 		// Request editor page
 		req = NewRequest(t, "GET", "/user2/repo1/_new/main/")

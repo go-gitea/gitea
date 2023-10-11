@@ -45,7 +45,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		Description:   "Test repository for testing migration from gitlab to gitea",
 		CloneURL:      "https://gitlab.com/gitea/test_repo.git",
 		OriginalURL:   "https://gitlab.com/gitea/test_repo",
-		DefaultBranch: "main",
+		DefaultBranch: "master",
 	}, repo)
 
 	topics, err := downloader.GetTopics()
@@ -290,7 +290,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 				OwnerName: "lafriks",
 			},
 			Base: base.PullRequestBranch{
-				Ref:       "main",
+				Ref:       "master",
 				SHA:       "",
 				OwnerName: "lafriks",
 				RepoName:  "test_repo",
