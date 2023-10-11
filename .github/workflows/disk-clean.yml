@@ -21,6 +21,8 @@ jobs:
           sudo apt-get remove -y azure-cli google-chrome-stable firefox powershell mono-devel libgl1-mesa-dri || true
           sudo apt-get autoremove -y
           sudo apt-get clean
+        env:
+          DEBIAN_FRONTEND: noninteractive
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         with:
