@@ -72,7 +72,7 @@ func AddDependency(ctx *context.Context) {
 		return
 	}
 
-	err = issues_model.CreateIssueDependency(ctx.Doer, issue, dep)
+	err = issues_model.CreateIssueDependency(ctx, ctx.Doer, issue, dep)
 	if err != nil {
 		if issues_model.IsErrDependencyExists(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_exists"))
@@ -131,7 +131,7 @@ func RemoveDependency(ctx *context.Context) {
 		return
 	}
 
-	if err = issues_model.RemoveIssueDependency(ctx.Doer, issue, dep, depType); err != nil {
+	if err = issues_model.RemoveIssueDependency(ctx, ctx.Doer, issue, dep, depType); err != nil {
 		if issues_model.IsErrDependencyNotExists(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_exist"))
 			return

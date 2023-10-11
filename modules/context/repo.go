@@ -495,7 +495,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	}
 
 	// Get repository.
-	repo, err := repo_model.GetRepositoryByName(owner.ID, repoName)
+	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, repoName)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			redirectRepoID, err := repo_model.LookupRedirect(owner.ID, repoName)
@@ -711,13 +711,13 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 
 	// Pull request is allowed if this is a fork repository
 	// and base repository accepts pull requests.
-	if repo.BaseRepo != nil && repo.BaseRepo.AllowsPulls() {
+	if repo.BaseRepo != nil && repo.BaseRepo.AllowsPulls(ctx) {
 		canCompare = true
 		ctx.Data["BaseRepo"] = repo.BaseRepo
 		ctx.Repo.PullRequest.BaseRepo = repo.BaseRepo
 		ctx.Repo.PullRequest.Allowed = canPush
 		ctx.Repo.PullRequest.HeadInfoSubURL = url.PathEscape(ctx.Repo.Owner.Name) + ":" + util.PathEscapeSegments(ctx.Repo.BranchName)
-	} else if repo.AllowsPulls() {
+	} else if repo.AllowsPulls(ctx) {
 		// Or, this is repository accepts pull requests between branches.
 		canCompare = true
 		ctx.Data["BaseRepo"] = repo
