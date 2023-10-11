@@ -371,8 +371,8 @@ func setMergeTarget(ctx *context.Context, pull *issues_model.PullRequest) {
 		ctx.Data["HeadTarget"] = pull.MustHeadUserName(ctx) + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
 	}
 	ctx.Data["BaseTarget"] = pull.BaseBranch
-	ctx.Data["HeadBranchLink"] = pull.GetHeadBranchLink()
-	ctx.Data["BaseBranchLink"] = pull.GetBaseBranchLink()
+	ctx.Data["HeadBranchLink"] = pull.GetHeadBranchLink(ctx)
+	ctx.Data["BaseBranchLink"] = pull.GetBaseBranchLink(ctx)
 }
 
 // GetPullDiffStats get Pull Requests diff stats
@@ -696,7 +696,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 		ctx.Data["IsNothingToCompare"] = true
 	}
 
-	if pull.IsWorkInProgress() {
+	if pull.IsWorkInProgress(ctx) {
 		ctx.Data["IsPullWorkInProgress"] = true
 		ctx.Data["WorkInProgressPrefix"] = pull.GetWorkInProgressPrefix(ctx)
 	}

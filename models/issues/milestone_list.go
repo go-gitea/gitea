@@ -58,8 +58,8 @@ func (opts GetMilestonesOption) toCond() builder.Cond {
 }
 
 // GetMilestones returns milestones filtered by GetMilestonesOption's
-func GetMilestones(opts GetMilestonesOption) (MilestoneList, int64, error) {
-	sess := db.GetEngine(db.DefaultContext).Where(opts.toCond())
+func GetMilestones(ctx context.Context, opts GetMilestonesOption) (MilestoneList, int64, error) {
+	sess := db.GetEngine(ctx).Where(opts.toCond())
 
 	if opts.Page != 0 {
 		sess = db.SetSessionPagination(sess, &opts)

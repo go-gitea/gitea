@@ -91,7 +91,7 @@ func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *acce
 			return nil
 		}
 
-		if pr.IsWorkInProgress() {
+		if pr.IsWorkInProgress(ctx) {
 			return ErrIsWorkInProgress
 		}
 
@@ -360,7 +360,7 @@ func testPR(id int64) {
 	if err := TestPatch(pr); err != nil {
 		log.Error("testPatch[%-v]: %v", pr, err)
 		pr.Status = issues_model.PullRequestStatusError
-		if err := pr.UpdateCols("status"); err != nil {
+		if err := pr.UpdateCols(ctx, "status"); err != nil {
 			log.Error("update pr [%-v] status to PullRequestStatusError failed: %v", pr, err)
 		}
 		return
