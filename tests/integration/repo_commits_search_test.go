@@ -18,7 +18,7 @@ func testRepoCommitsSearch(t *testing.T, query, commit string) {
 	session := loginUser(t, "user2")
 
 	// Request repository commits page
-	req := NewRequestf(t, "GET", "/user2/commits_search_test/commits/branch/master/search?q=%s", url.QueryEscape(query))
+	req := NewRequestf(t, "GET", "/user2/commits_search_test/commits/branch/main/search?q=%s", url.QueryEscape(query))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	doc := NewHTMLParser(t, resp.Body)

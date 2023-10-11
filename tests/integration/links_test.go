@@ -51,12 +51,12 @@ func TestRedirectsNoLogin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	redirects := map[string]string{
-		"/user2/repo1/commits/master":                "/user2/repo1/commits/branch/master",
-		"/user2/repo1/src/master":                    "/user2/repo1/src/branch/master",
-		"/user2/repo1/src/master/file.txt":           "/user2/repo1/src/branch/master/file.txt",
-		"/user2/repo1/src/master/directory/file.txt": "/user2/repo1/src/branch/master/directory/file.txt",
-		"/user/avatar/Ghost/-1":                      "/assets/img/avatar_default.png",
-		"/api/v1/swagger":                            "/api/swagger",
+		"/user2/repo1/commits/main":                "/user2/repo1/commits/branch/main",
+		"/user2/repo1/src/main":                    "/user2/repo1/src/branch/main",
+		"/user2/repo1/src/main/file.txt":           "/user2/repo1/src/branch/main/file.txt",
+		"/user2/repo1/src/main/directory/file.txt": "/user2/repo1/src/branch/main/directory/file.txt",
+		"/user/avatar/Ghost/-1":                    "/assets/img/avatar_default.png",
+		"/api/v1/swagger":                          "/api/swagger",
 	}
 	for link, redirectLink := range redirects {
 		req := NewRequest(t, "GET", link)
@@ -143,7 +143,7 @@ func testLinksAsUser(userName string, t *testing.T) {
 		"",
 		"/issues",
 		"/pulls",
-		"/commits/branch/master",
+		"/commits/branch/main",
 		"/graph",
 		"/settings",
 		"/settings/collaboration",

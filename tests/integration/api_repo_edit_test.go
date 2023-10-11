@@ -106,7 +106,7 @@ func getNewRepoEditOption(opts *api.EditRepoOption) *api.EditRepoOption {
 	private := !*opts.Private
 	hasIssues := !*opts.HasIssues
 	hasWiki := !*opts.HasWiki
-	defaultBranch := "master"
+	defaultBranch := "main"
 	hasPullRequests := !*opts.HasPullRequests
 	ignoreWhitespaceConflicts := !*opts.IgnoreWhitespaceConflicts
 	allowMerge := !*opts.AllowMerge

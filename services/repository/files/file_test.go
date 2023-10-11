@@ -36,10 +36,10 @@ func getExpectedFileResponse() *api.FileResponse {
 	sha := "4b4851ad51df6a7d9f25c979345979eaeb5b349f"
 	encoding := "base64"
 	content := "IyByZXBvMQoKRGVzY3JpcHRpb24gZm9yIHJlcG8x"
-	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master"
-	htmlURL := setting.AppURL + "user2/repo1/src/branch/master/" + treePath
+	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=main"
+	htmlURL := setting.AppURL + "user2/repo1/src/branch/main/" + treePath
 	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha
-	downloadURL := setting.AppURL + "user2/repo1/raw/branch/master/" + treePath
+	downloadURL := setting.AppURL + "user2/repo1/raw/branch/main/" + treePath
 	return &api.FileResponse{
 		Content: &api.ContentsResponse{
 			Name:          treePath,

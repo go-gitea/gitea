@@ -12,7 +12,7 @@ import (
 func Test_parseRemoteUpdateOutput(t *testing.T) {
 	output := `
  * [new tag]         v0.1.8     -> v0.1.8
- * [new branch]      master     -> origin/master
+ * [new branch]      main     -> origin/main
  - [deleted]         (none)     -> origin/test1
  - [deleted]         (none)     -> tag1
  + f895a1e...957a993 test2      -> origin/test2  (forced update)
@@ -24,7 +24,7 @@ func Test_parseRemoteUpdateOutput(t *testing.T) {
 	assert.EqualValues(t, gitShortEmptySha, results[0].oldCommitID)
 	assert.EqualValues(t, "", results[0].newCommitID)
 
-	assert.EqualValues(t, "refs/heads/master", results[1].refName.String())
+	assert.EqualValues(t, "refs/heads/main", results[1].refName.String())
 	assert.EqualValues(t, gitShortEmptySha, results[1].oldCommitID)
 	assert.EqualValues(t, "", results[1].newCommitID)
 

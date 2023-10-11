@@ -940,8 +940,8 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 
 	// Get compared branches information
 	// format: <base branch>...[<head repo>:]<head branch>
-	// base<-head: master...head:feature
-	// same repo: master...feature
+	// base<-head: main...head:feature
+	// same repo: main...feature
 
 	// TODO: Validate form first?
 

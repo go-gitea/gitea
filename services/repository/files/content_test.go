@@ -26,10 +26,10 @@ func getExpectedReadmeContentsResponse() *api.ContentsResponse {
 	sha := "4b4851ad51df6a7d9f25c979345979eaeb5b349f"
 	encoding := "base64"
 	content := "IyByZXBvMQoKRGVzY3JpcHRpb24gZm9yIHJlcG8x"
-	selfURL := "https://try.gitea.io/api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master"
-	htmlURL := "https://try.gitea.io/user2/repo1/src/branch/master/" + treePath
+	selfURL := "https://try.gitea.io/api/v1/repos/user2/repo1/contents/" + treePath + "?ref=main"
+	htmlURL := "https://try.gitea.io/user2/repo1/src/branch/main/" + treePath
 	gitURL := "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/" + sha
-	downloadURL := "https://try.gitea.io/user2/repo1/raw/branch/master/" + treePath
+	downloadURL := "https://try.gitea.io/user2/repo1/raw/branch/main/" + treePath
 	return &api.ContentsResponse{
 		Name:          treePath,
 		Path:          treePath,

@@ -23,26 +23,26 @@ type LFSLockOwner struct {
 }
 
 // LFSLockRequest contains the path of the lock to create
-// https://github.com/git-lfs/git-lfs/blob/master/docs/api/locking.md#create-lock
+// https://github.com/git-lfs/git-lfs/blob/main/docs/api/locking.md#create-lock
 type LFSLockRequest struct {
 	Path string `json:"path"`
 }
 
 // LFSLockResponse represent a lock created
-// https://github.com/git-lfs/git-lfs/blob/master/docs/api/locking.md#create-lock
+// https://github.com/git-lfs/git-lfs/blob/main/docs/api/locking.md#create-lock
 type LFSLockResponse struct {
 	Lock *LFSLock `json:"lock"`
 }
 
 // LFSLockList represent a list of lock requested
-// https://github.com/git-lfs/git-lfs/blob/master/docs/api/locking.md#list-locks
+// https://github.com/git-lfs/git-lfs/blob/main/docs/api/locking.md#list-locks
 type LFSLockList struct {
 	Locks []*LFSLock `json:"locks"`
 	Next  string     `json:"next_cursor,omitempty"`
 }
 
 // LFSLockListVerify represent a list of lock verification requested
-// https://github.com/git-lfs/git-lfs/blob/master/docs/api/locking.md#list-locks-for-verification
+// https://github.com/git-lfs/git-lfs/blob/main/docs/api/locking.md#list-locks-for-verification
 type LFSLockListVerify struct {
 	Ours   []*LFSLock `json:"ours"`
 	Theirs []*LFSLock `json:"theirs"`
@@ -58,7 +58,7 @@ type LFSLockError struct {
 }
 
 // LFSLockDeleteRequest contains params of a delete request
-// https://github.com/git-lfs/git-lfs/blob/master/docs/api/locking.md#delete-lock
+// https://github.com/git-lfs/git-lfs/blob/main/docs/api/locking.md#delete-lock
 type LFSLockDeleteRequest struct {
 	Force bool `json:"force"`
 }

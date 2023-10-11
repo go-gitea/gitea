@@ -30,8 +30,8 @@ func getUpdateFileOptions() *api.UpdateFileOptions {
 	return &api.UpdateFileOptions{
 		DeleteFileOptions: api.DeleteFileOptions{
 			FileOptions: api.FileOptions{
-				BranchName:    "master",
-				NewBranchName: "master",
+				BranchName:    "main",
+				NewBranchName: "main",
 				Message:       "My update of new/file.txt",
 				Author: api.Identity{
 					Name:  "John Doe",
@@ -52,10 +52,10 @@ func getExpectedFileResponseForUpdate(commitID, treePath, lastCommitSHA string) 
 	sha := "08bd14b2e2852529157324de9c226b3364e76136"
 	encoding := "base64"
 	content := "VGhpcyBpcyB1cGRhdGVkIHRleHQ="
-	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master"
-	htmlURL := setting.AppURL + "user2/repo1/src/branch/master/" + treePath
+	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=main"
+	htmlURL := setting.AppURL + "user2/repo1/src/branch/main/" + treePath
 	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha
-	downloadURL := setting.AppURL + "user2/repo1/raw/branch/master/" + treePath
+	downloadURL := setting.AppURL + "user2/repo1/raw/branch/main/" + treePath
 	return &api.FileResponse{
 		Content: &api.ContentsResponse{
 			Name:          filepath.Base(treePath),
@@ -124,8 +124,8 @@ func TestAPIUpdateFile(t *testing.T) {
 
 		// Test updating a file in repo1 which user2 owns, try both with branch and empty branch
 		for _, branch := range [...]string{
-			"master", // Branch
-			"",       // Empty branch
+			"main", // Branch
+			"",     // Empty branch
 		} {
 			fileID++
 			treePath := fmt.Sprintf("update/file%d.txt", fileID)
@@ -182,8 +182,8 @@ func TestAPIUpdateFile(t *testing.T) {
 		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &fileResponse)
 		expectedSHA = "08bd14b2e2852529157324de9c226b3364e76136"
-		expectedHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/master/rename/update/file%d.txt", fileID)
-		expectedDownloadURL = fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/master/rename/update/file%d.txt", fileID)
+		expectedHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/main/rename/update/file%d.txt", fileID)
+		expectedDownloadURL = fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/main/rename/update/file%d.txt", fileID)
 		assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
 		assert.EqualValues(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
 		assert.EqualValues(t, expectedDownloadURL, *fileResponse.Content.DownloadURL)

@@ -57,14 +57,14 @@ func TestGPGGit(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
-			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
+			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "main", func(t *testing.T, branch api.Branch) {
 				assert.NotNil(t, branch.Commit)
 				assert.NotNil(t, branch.Commit.Verification)
 				assert.False(t, branch.Commit.Verification.Verified)
 				assert.Empty(t, branch.Commit.Verification.Signature)
 			}))
 			t.Run("CreateCRUDFile-Never", crudActionCreateFile(
-				t, testCtx, user, "master", "never", "unsigned-never.txt", func(t *testing.T, response api.FileResponse) {
+				t, testCtx, user, "main", "never", "unsigned-never.txt", func(t *testing.T, response api.FileResponse) {
 					assert.False(t, response.Verification.Verified)
 				}))
 			t.Run("CreateCRUDFile-Never", crudActionCreateFile(
@@ -78,7 +78,7 @@ func TestGPGGit(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateCRUDFile-ParentSigned", crudActionCreateFile(
-				t, testCtx, user, "master", "parentsigned", "signed-parent.txt", func(t *testing.T, response api.FileResponse) {
+				t, testCtx, user, "main", "parentsigned", "signed-parent.txt", func(t *testing.T, response api.FileResponse) {
 					assert.False(t, response.Verification.Verified)
 				}))
 			t.Run("CreateCRUDFile-ParentSigned", crudActionCreateFile(
@@ -102,7 +102,7 @@ func TestGPGGit(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateCRUDFile-Always", crudActionCreateFile(
-				t, testCtx, user, "master", "always", "signed-always.txt", func(t *testing.T, response api.FileResponse) {
+				t, testCtx, user, "main", "always", "signed-always.txt", func(t *testing.T, response api.FileResponse) {
 					assert.NotNil(t, response.Verification)
 					if response.Verification == nil {
 						assert.FailNow(t, "no verification provided with response! %v", response)
@@ -150,7 +150,7 @@ func TestGPGGit(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-always", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
-			t.Run("CheckMasterBranchSigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
+			t.Run("CheckMasterBranchSigned", doAPIGetBranch(testCtx, "main", func(t *testing.T, branch api.Branch) {
 				assert.NotNil(t, branch.Commit)
 				if branch.Commit == nil {
 					assert.FailNow(t, "no commit provided with branch! %v", branch)
@@ -173,7 +173,7 @@ func TestGPGGit(t *testing.T) {
 			testCtx := NewAPITestContext(t, username, "initial-always-never", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CreateCRUDFile-Never", crudActionCreateFile(
-				t, testCtx, user, "master", "never", "unsigned-never.txt", func(t *testing.T, response api.FileResponse) {
+				t, testCtx, user, "main", "never", "unsigned-never.txt", func(t *testing.T, response api.FileResponse) {
 					assert.False(t, response.Verification.Verified)
 				}))
 		})
@@ -184,7 +184,7 @@ func TestGPGGit(t *testing.T) {
 			testCtx := NewAPITestContext(t, username, "initial-always-parent", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CreateCRUDFile-ParentSigned", crudActionCreateFile(
-				t, testCtx, user, "master", "parentsigned", "signed-parent.txt", func(t *testing.T, response api.FileResponse) {
+				t, testCtx, user, "main", "parentsigned", "signed-parent.txt", func(t *testing.T, response api.FileResponse) {
 					assert.True(t, response.Verification.Verified)
 					if !response.Verification.Verified {
 						t.FailNow()
@@ -200,7 +200,7 @@ func TestGPGGit(t *testing.T) {
 			testCtx := NewAPITestContext(t, username, "initial-always-always", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CreateCRUDFile-Always", crudActionCreateFile(
-				t, testCtx, user, "master", "always", "signed-always.txt", func(t *testing.T, response api.FileResponse) {
+				t, testCtx, user, "main", "always", "signed-always.txt", func(t *testing.T, response api.FileResponse) {
 					assert.True(t, response.Verification.Verified)
 					if !response.Verification.Verified {
 						t.FailNow()
@@ -215,11 +215,11 @@ func TestGPGGit(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreatePullRequest", func(t *testing.T) {
-				pr, err := doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "never2")(t)
+				pr, err := doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "main", "never2")(t)
 				assert.NoError(t, err)
 				t.Run("MergePR", doAPIMergePullRequest(testCtx, testCtx.Username, testCtx.Reponame, pr.Index))
 			})
-			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
+			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "main", func(t *testing.T, branch api.Branch) {
 				assert.NotNil(t, branch.Commit)
 				assert.NotNil(t, branch.Commit.Verification)
 				assert.False(t, branch.Commit.Verification.Verified)
@@ -232,11 +232,11 @@ func TestGPGGit(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreatePullRequest", func(t *testing.T) {
-				pr, err := doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "parentsigned2")(t)
+				pr, err := doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "main", "parentsigned2")(t)
 				assert.NoError(t, err)
 				t.Run("MergePR", doAPIMergePullRequest(testCtx, testCtx.Username, testCtx.Reponame, pr.Index))
 			})
-			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
+			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "main", func(t *testing.T, branch api.Branch) {
 				assert.NotNil(t, branch.Commit)
 				assert.NotNil(t, branch.Commit.Verification)
 				assert.False(t, branch.Commit.Verification.Verified)
@@ -249,11 +249,11 @@ func TestGPGGit(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreatePullRequest", func(t *testing.T) {
-				pr, err := doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "always-parentsigned")(t)
+				pr, err := doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "main", "always-parentsigned")(t)
 				assert.NoError(t, err)
 				t.Run("MergePR", doAPIMergePullRequest(testCtx, testCtx.Username, testCtx.Reponame, pr.Index))
 			})
-			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
+			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "main", func(t *testing.T, branch api.Branch) {
 				assert.NotNil(t, branch.Commit)
 				assert.NotNil(t, branch.Commit.Verification)
 				assert.True(t, branch.Commit.Verification.Verified)

@@ -355,7 +355,7 @@ func TestRender_emoji(t *testing.T) {
 
 func TestRender_ShortLinks(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
-	tree := util.URLJoin(markup.TestRepoURL, "src", "master")
+	tree := util.URLJoin(markup.TestRepoURL, "src", "main")
 
 	test := func(input, expected, expectedWiki string) {
 		buffer, err := markdown.RenderString(&markup.RenderContext{
@@ -374,7 +374,7 @@ func TestRender_ShortLinks(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
 	}
 
-	rawtree := util.URLJoin(markup.TestRepoURL, "raw", "master")
+	rawtree := util.URLJoin(markup.TestRepoURL, "raw", "main")
 	url := util.URLJoin(tree, "Link")
 	otherURL := util.URLJoin(tree, "Other-Link")
 	encodedURL := util.URLJoin(tree, "Link%3F")
@@ -463,7 +463,7 @@ func TestRender_ShortLinks(t *testing.T) {
 
 func TestRender_RelativeImages(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
-	tree := util.URLJoin(markup.TestRepoURL, "src", "master")
+	tree := util.URLJoin(markup.TestRepoURL, "src", "main")
 
 	test := func(input, expected, expectedWiki string) {
 		buffer, err := markdown.RenderString(&markup.RenderContext{
@@ -484,7 +484,7 @@ func TestRender_RelativeImages(t *testing.T) {
 	}
 
 	rawwiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw")
-	mediatree := util.URLJoin(markup.TestRepoURL, "media", "master")
+	mediatree := util.URLJoin(markup.TestRepoURL, "media", "main")
 
 	test(
 		`<img src="Link">`,

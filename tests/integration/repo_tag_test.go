@@ -29,7 +29,7 @@ func TestCreateNewTagProtected(t *testing.T) {
 	t.Run("API", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		err := release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-1", "first tag")
+		err := release.CreateNewTag(git.DefaultContext, owner, repo, "main", "v-1", "first tag")
 		assert.NoError(t, err)
 
 		err = git_model.InsertProtectedTag(db.DefaultContext, &git_model.ProtectedTag{
@@ -44,11 +44,11 @@ func TestCreateNewTagProtected(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		err = release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-2", "second tag")
+		err = release.CreateNewTag(git.DefaultContext, owner, repo, "main", "v-2", "second tag")
 		assert.Error(t, err)
 		assert.True(t, models.IsErrProtectedTagName(err))
 
-		err = release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-1.1", "third tag")
+		err = release.CreateNewTag(git.DefaultContext, owner, repo, "main", "v-1.1", "third tag")
 		assert.NoError(t, err)
 	})
 

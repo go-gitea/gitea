@@ -68,7 +68,7 @@ func TestMirrorPull(t *testing.T) {
 		PublisherID:  user.ID,
 		Publisher:    user,
 		TagName:      "v0.2",
-		Target:       "master",
+		Target:       "main",
 		Title:        "v0.2 is released",
 		Note:         "v0.2 is released",
 		IsDraft:      false,

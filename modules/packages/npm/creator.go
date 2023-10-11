@@ -46,7 +46,7 @@ type Package struct {
 	Data     []byte
 }
 
-// PackageMetadata https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#package
+// PackageMetadata https://github.com/npm/registry/blob/main/docs/REGISTRY-API.md#package
 type PackageMetadata struct {
 	ID             string                             `json:"_id"`
 	Name           string                             `json:"name"`
@@ -65,8 +65,8 @@ type PackageMetadata struct {
 	License        string                             `json:"license,omitempty"`
 }
 
-// PackageMetadataVersion documentation: https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#version
-// PackageMetadataVersion response: https://github.com/npm/registry/blob/master/docs/responses/package-metadata.md#abbreviated-version-object
+// PackageMetadataVersion documentation: https://github.com/npm/registry/blob/main/docs/REGISTRY-API.md#version
+// PackageMetadataVersion response: https://github.com/npm/registry/blob/main/docs/responses/package-metadata.md#abbreviated-version-object
 type PackageMetadataVersion struct {
 	ID                   string              `json:"_id"`
 	Name                 string              `json:"name"`
@@ -87,7 +87,7 @@ type PackageMetadataVersion struct {
 	Maintainers          []User              `json:"maintainers,omitempty"`
 }
 
-// PackageDistribution https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#version
+// PackageDistribution https://github.com/npm/registry/blob/main/docs/REGISTRY-API.md#version
 type PackageDistribution struct {
 	Integrity    string `json:"integrity"`
 	Shasum       string `json:"shasum"`
@@ -125,7 +125,7 @@ type PackageSearchPackageLinks struct {
 	Repository string `json:"repository,omitempty"`
 }
 
-// User https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#package
+// User https://github.com/npm/registry/blob/main/docs/REGISTRY-API.md#package
 type User struct {
 	Username string `json:"username,omitempty"`
 	Name     string `json:"name"`
@@ -158,13 +158,13 @@ func (u *User) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Repository https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#version
+// Repository https://github.com/npm/registry/blob/main/docs/REGISTRY-API.md#version
 type Repository struct {
 	Type string `json:"type"`
 	URL  string `json:"url"`
 }
 
-// PackageAttachment https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#package
+// PackageAttachment https://github.com/npm/registry/blob/main/docs/REGISTRY-API.md#package
 type PackageAttachment struct {
 	ContentType string `json:"content_type"`
 	Data        string `json:"data"`

@@ -21,7 +21,7 @@ index f0d72cd..7b31963 100644
  # set the following variables to fit your need...
  USERID = 1
  REPOID = 1
- BRANCH = "master"
+ BRANCH = "main"
 
 -mydb = mariadb.connect(
 +mydb = psycopg2.connect(

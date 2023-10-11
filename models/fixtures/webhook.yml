@@ -27,5 +27,5 @@
   repo_id: 2
   url: www.example.com/url4
   content_type: 1 # json
-  events: '{"push_only":true,"branch_filter":"{master,feature*}"}'
+  events: '{"push_only":true,"branch_filter":"{main,feature*}"}'
   is_active: true

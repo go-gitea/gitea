@@ -27,28 +27,28 @@ func TestAPIDownloadArchive(t *testing.T) {
 	session := loginUser(t, user2.LowerName)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
-	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/archive/master.zip", user2.Name, repo.Name))
+	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/archive/main.zip", user2.Name, repo.Name))
 	link.RawQuery = url.Values{"token": {token}}.Encode()
 	resp := MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 	bs, err := io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	assert.Len(t, bs, 320)
 
-	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/archive/master.tar.gz", user2.Name, repo.Name))
+	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/archive/main.tar.gz", user2.Name, repo.Name))
 	link.RawQuery = url.Values{"token": {token}}.Encode()
 	resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 	bs, err = io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	assert.Len(t, bs, 266)
 
-	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/archive/master.bundle", user2.Name, repo.Name))
+	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/archive/main.bundle", user2.Name, repo.Name))
 	link.RawQuery = url.Values{"token": {token}}.Encode()
 	resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 	bs, err = io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	assert.Len(t, bs, 382)
 
-	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/archive/master", user2.Name, repo.Name))
+	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/archive/main", user2.Name, repo.Name))
 	link.RawQuery = url.Values{"token": {token}}.Encode()
 	MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusBadRequest)
 }

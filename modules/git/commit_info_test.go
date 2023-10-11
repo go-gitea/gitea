@@ -151,7 +151,7 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 		}
 		defer repo.Close()
 
-		if commit, err = repo.GetBranchCommit("master"); err != nil {
+		if commit, err = repo.GetBranchCommit("main"); err != nil {
 			b.Fatal(err)
 		} else if entries, err = commit.Tree.ListEntries(); err != nil {
 			b.Fatal(err)

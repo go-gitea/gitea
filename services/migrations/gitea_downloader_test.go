@@ -45,7 +45,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		Description:   "Test repository for testing migration from gitea to gitea",
 		CloneURL:      "https://gitea.com/gitea/test_repo.git",
 		OriginalURL:   "https://gitea.com/gitea/test_repo",
-		DefaultBranch: "master",
+		DefaultBranch: "main",
 	}, repo)
 
 	topics, err := downloader.GetTopics()
@@ -109,7 +109,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		{
 			Name:            "Second Release",
 			TagName:         "v2-rc1",
-			TargetCommitish: "master",
+			TargetCommitish: "main",
 			Body:            "this repo has:\r\n* reactions\r\n* wiki\r\n* issues  (open/closed)\r\n* pulls (open/closed/merged) (external/internal)\r\n* pull reviews\r\n* projects\r\n* milestones\r\n* labels\r\n* releases\r\n\r\nto test migration against",
 			Draft:           false,
 			Prerelease:      true,
@@ -122,7 +122,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		{
 			Name:            "First Release",
 			TagName:         "V1",
-			TargetCommitish: "master",
+			TargetCommitish: "main",
 			Body:            "as title",
 			Draft:           false,
 			Prerelease:      false,
@@ -244,7 +244,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		Assignees:   []string{"techknowlogick"},
 		Base: base.PullRequestBranch{
 			CloneURL:  "",
-			Ref:       "master",
+			Ref:       "main",
 			SHA:       "827aa28a907853e5ddfa40c8f9bc52471a2685fd",
 			RepoName:  "test_repo",
 			OwnerName: "gitea",

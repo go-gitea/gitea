@@ -30,8 +30,8 @@ func getCreateFileOptions() api.CreateFileOptions {
 	contentEncoded := base64.StdEncoding.EncodeToString([]byte(content))
 	return api.CreateFileOptions{
 		FileOptions: api.FileOptions{
-			BranchName:    "master",
-			NewBranchName: "master",
+			BranchName:    "main",
+			NewBranchName: "main",
 			Message:       "Making this new file new/file.txt",
 			Author: api.Identity{
 				Name:  "Anne Doe",
@@ -54,10 +54,10 @@ func getExpectedFileResponseForCreate(repoFullName, commitID, treePath, latestCo
 	sha := "a635aa942442ddfdba07468cf9661c08fbdf0ebf"
 	encoding := "base64"
 	content := "VGhpcyBpcyBuZXcgdGV4dA=="
-	selfURL := setting.AppURL + "api/v1/repos/" + repoFullName + "/contents/" + treePath + "?ref=master"
-	htmlURL := setting.AppURL + repoFullName + "/src/branch/master/" + treePath
+	selfURL := setting.AppURL + "api/v1/repos/" + repoFullName + "/contents/" + treePath + "?ref=main"
+	htmlURL := setting.AppURL + repoFullName + "/src/branch/main/" + treePath
 	gitURL := setting.AppURL + "api/v1/repos/" + repoFullName + "/git/blobs/" + sha
-	downloadURL := setting.AppURL + repoFullName + "/raw/branch/master/" + treePath
+	downloadURL := setting.AppURL + repoFullName + "/raw/branch/main/" + treePath
 	return &api.FileResponse{
 		Content: &api.ContentsResponse{
 			Name:          filepath.Base(treePath),
@@ -157,8 +157,8 @@ func TestAPICreateFile(t *testing.T) {
 
 		// Test creating a file in repo1 which user2 owns, try both with branch and empty branch
 		for _, branch := range [...]string{
-			"master", // Branch
-			"",       // Empty branch
+			"main", // Branch
+			"",     // Empty branch
 		} {
 			createFileOptions := getCreateFileOptions()
 			createFileOptions.BranchName = branch

@@ -71,7 +71,7 @@ func testPushDeployKeyOnEmptyRepo(t *testing.T, u *url.URL) {
 
 		t.Run("AddRemote", doGitAddRemote(dstPath, "origin", sshURL))
 
-		t.Run("SSHPushTestRepository", doGitPushTestRepository(dstPath, "origin", "master"))
+		t.Run("SSHPushTestRepository", doGitPushTestRepository(dstPath, "origin", "main"))
 
 		t.Run("CheckIsNotEmpty", doCheckRepositoryEmptyStatus(ctx, false))
 
@@ -127,7 +127,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 
 			t.Run("AddChanges", doAddChangesToCheckout(dstPath, "CHANGES1.md"))
 
-			t.Run("Push", doGitPushTestRepository(dstPath, "origin", "master"))
+			t.Run("Push", doGitPushTestRepository(dstPath, "origin", "main"))
 
 			t.Run("DeleteUserKey", doAPIDeleteUserKey(ctx, userKeyPublicKeyID))
 		})
@@ -146,7 +146,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 
 			t.Run("AddChanges", doAddChangesToCheckout(dstPath, "CHANGES2.md"))
 
-			t.Run("FailToPush", doGitPushTestRepositoryFail(dstPath, "origin", "master"))
+			t.Run("FailToPush", doGitPushTestRepositoryFail(dstPath, "origin", "main"))
 
 			otherSSHURL := createSSHUrl(otherCtx.GitPath(), u)
 			dstOtherPath := t.TempDir()
@@ -157,7 +157,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 
 			t.Run("AddChangesToOther", doAddChangesToCheckout(dstOtherPath, "CHANGES3.md"))
 
-			t.Run("PushToOther", doGitPushTestRepository(dstOtherPath, "origin", "master"))
+			t.Run("PushToOther", doGitPushTestRepository(dstOtherPath, "origin", "main"))
 
 			t.Run("FailToCreateUserKey", doAPICreateUserKey(failCtx, keyname, keyFile))
 		})
@@ -174,7 +174,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 
 			t.Run("AddChangesToOther", doAddChangesToCheckout(dstOtherPath, "CHANGES3.md"))
 
-			t.Run("PushToOther", doGitPushTestRepository(dstOtherPath, "origin", "master"))
+			t.Run("PushToOther", doGitPushTestRepository(dstOtherPath, "origin", "main"))
 
 			t.Run("DeleteOtherRepository", doAPIDeleteRepository(otherCtxWithDeleteRepo))
 
@@ -192,7 +192,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 
 			t.Run("AddChanges", doAddChangesToCheckout(dstPath, "CHANGES1.md"))
 
-			t.Run("Push", doGitPushTestRepository(dstPath, "origin", "master"))
+			t.Run("Push", doGitPushTestRepository(dstPath, "origin", "main"))
 		})
 
 		t.Run("DeleteUserKeyShouldRemoveAbilityToClone", func(t *testing.T) {

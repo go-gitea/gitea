@@ -29,7 +29,7 @@ func TestNewReleasePost(t *testing.T) {
 			TagName: "v1.1", // pre-existing tag
 			Form: forms.NewReleaseForm{
 				TagName: "newtag",
-				Target:  "master",
+				Target:  "main",
 				Title:   "title",
 				Content: "content",
 			},
@@ -40,7 +40,7 @@ func TestNewReleasePost(t *testing.T) {
 			TagName: "newtag",
 			Form: forms.NewReleaseForm{
 				TagName: "newtag",
-				Target:  "master",
+				Target:  "main",
 				Title:   "title",
 				Content: "content",
 			},

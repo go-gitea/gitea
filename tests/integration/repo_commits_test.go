@@ -26,7 +26,7 @@ func TestRepoCommits(t *testing.T) {
 	session := loginUser(t, "user2")
 
 	// Request repository commits page
-	req := NewRequest(t, "GET", "/user2/repo1/commits/branch/master")
+	req := NewRequest(t, "GET", "/user2/repo1/commits/branch/main")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	doc := NewHTMLParser(t, resp.Body)
@@ -41,7 +41,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	session := loginUser(t, "user2")
 
 	// Request repository commits page
-	req := NewRequest(t, "GET", "/user2/repo1/commits/branch/master")
+	req := NewRequest(t, "GET", "/user2/repo1/commits/branch/main")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	doc := NewHTMLParser(t, resp.Body)
@@ -59,7 +59,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 		Context:     "testci",
 	}))
 
-	req = NewRequest(t, "GET", "/user2/repo1/commits/branch/master")
+	req = NewRequest(t, "GET", "/user2/repo1/commits/branch/main")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	doc = NewHTMLParser(t, resp.Body)
@@ -81,8 +81,8 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	testRepoCommitsWithStatus(t, session.MakeRequest(t, req, http.StatusOK), session.MakeRequest(t, reqOne, http.StatusOK), state)
 
 	// By Ref
-	req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/commits/master/statuses")
-	reqOne = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/commits/master/status")
+	req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/commits/main/statuses")
+	reqOne = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/commits/main/status")
 	testRepoCommitsWithStatus(t, session.MakeRequest(t, req, http.StatusOK), session.MakeRequest(t, reqOne, http.StatusOK), state)
 	req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/commits/v1.1/statuses")
 	reqOne = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/commits/v1.1/status")
@@ -135,7 +135,7 @@ func TestRepoCommitsStatusParallel(t *testing.T) {
 	session := loginUser(t, "user2")
 
 	// Request repository commits page
-	req := NewRequest(t, "GET", "/user2/repo1/commits/branch/master")
+	req := NewRequest(t, "GET", "/user2/repo1/commits/branch/main")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	doc := NewHTMLParser(t, resp.Body)
@@ -170,7 +170,7 @@ func TestRepoCommitsStatusMultiple(t *testing.T) {
 	session := loginUser(t, "user2")
 
 	// Request repository commits page
-	req := NewRequest(t, "GET", "/user2/repo1/commits/branch/master")
+	req := NewRequest(t, "GET", "/user2/repo1/commits/branch/main")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	doc := NewHTMLParser(t, resp.Body)
@@ -195,7 +195,7 @@ func TestRepoCommitsStatusMultiple(t *testing.T) {
 		Context:     "other_context",
 	}))
 
-	req = NewRequest(t, "GET", "/user2/repo1/commits/branch/master")
+	req = NewRequest(t, "GET", "/user2/repo1/commits/branch/main")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	doc = NewHTMLParser(t, resp.Body)

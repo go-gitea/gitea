@@ -224,8 +224,8 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// 4. Now, :baseRepo and :headRepos could be forks of the same repo - so check that
 	//
 	// format: <base branch>...[<head repo>:]<head branch>
-	// base<-head: master...head:feature
-	// same repo: master...feature
+	// base<-head: main...head:feature
+	// same repo: main...feature
 
 	var (
 		isSameRepo bool

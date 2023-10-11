@@ -42,9 +42,9 @@ func TestAPIReposGitCommits(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 
 	for _, ref := range [...]string{
-		"master", // Branch
-		"v1.1",   // Tag
-		"65f1",   // short sha
+		"main", // Branch
+		"v1.1", // Tag
+		"65f1", // short sha
 		"65f1bf27bc3bf70f64657658635e66094edbcb4d", // full sha
 	} {
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/%s?token="+token, user.Name, ref)
@@ -60,7 +60,7 @@ func TestAPIReposGitCommitList(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// Test getting commits (Page 1)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo20/commits?token="+token+"&not=master&sha=remove-files-a", user.Name)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo20/commits?token="+token+"&not=main&sha=remove-files-a", user.Name)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var apiData []api.Commit
@@ -206,7 +206,7 @@ func TestGetFileHistoryNotOnMaster(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo20/commits?path=test.csv&token="+token+"&sha=add-csv&not=master", user.Name)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo20/commits?path=test.csv&token="+token+"&sha=add-csv&not=main", user.Name)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var apiData []api.Commit

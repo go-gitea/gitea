@@ -30,8 +30,8 @@ func getChangeFilesOptions() *api.ChangeFilesOptions {
 	updateContentEncoded := base64.StdEncoding.EncodeToString([]byte(updateContent))
 	return &api.ChangeFilesOptions{
 		FileOptions: api.FileOptions{
-			BranchName:    "master",
-			NewBranchName: "master",
+			BranchName:    "main",
+			NewBranchName: "main",
 			Message:       "My update of new/file.txt",
 			Author: api.Identity{
 				Name:  "Anne Doe",
@@ -79,8 +79,8 @@ func TestAPIChangeFiles(t *testing.T) {
 
 		// Test changing files in repo1 which user2 owns, try both with branch and empty branch
 		for _, branch := range [...]string{
-			"master", // Branch
-			"",       // Empty branch
+			"main", // Branch
+			"",     // Empty branch
 		} {
 			fileID++
 			createTreePath := fmt.Sprintf("new/file%d.txt", fileID)
@@ -172,8 +172,8 @@ func TestAPIChangeFiles(t *testing.T) {
 		resp = MakeRequest(t, req, http.StatusCreated)
 		DecodeJSON(t, resp, &filesResponse)
 		expectedUpdateSHA = "08bd14b2e2852529157324de9c226b3364e76136"
-		expectedUpdateHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/master/rename/update/file%d.txt", fileID)
-		expectedUpdateDownloadURL = fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/master/rename/update/file%d.txt", fileID)
+		expectedUpdateHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/main/rename/update/file%d.txt", fileID)
+		expectedUpdateDownloadURL = fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/main/rename/update/file%d.txt", fileID)
 		assert.EqualValues(t, expectedUpdateSHA, filesResponse.Files[0].SHA)
 		assert.EqualValues(t, expectedUpdateHTMLURL, *filesResponse.Files[0].HTMLURL)
 		assert.EqualValues(t, expectedUpdateDownloadURL, *filesResponse.Files[0].DownloadURL)

@@ -109,10 +109,10 @@ func getExpectedFileResponseForRepofilesCreate(commitID, lastCommitSHA string) *
 	treePath := "new/file.txt"
 	encoding := "base64"
 	content := "VGhpcyBpcyBhIE5FVyBmaWxl"
-	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master"
-	htmlURL := setting.AppURL + "user2/repo1/src/branch/master/" + treePath
+	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=main"
+	htmlURL := setting.AppURL + "user2/repo1/src/branch/main/" + treePath
 	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/103ff9234cefeee5ec5361d22b49fbb04d385885"
-	downloadURL := setting.AppURL + "user2/repo1/raw/branch/master/" + treePath
+	downloadURL := setting.AppURL + "user2/repo1/raw/branch/main/" + treePath
 	return &api.FileResponse{
 		Content: &api.ContentsResponse{
 			Name:          filepath.Base(treePath),
@@ -177,10 +177,10 @@ func getExpectedFileResponseForRepofilesCreate(commitID, lastCommitSHA string) *
 func getExpectedFileResponseForRepofilesUpdate(commitID, filename, lastCommitSHA string) *api.FileResponse {
 	encoding := "base64"
 	content := "VGhpcyBpcyBVUERBVEVEIGNvbnRlbnQgZm9yIHRoZSBSRUFETUUgZmlsZQ=="
-	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + filename + "?ref=master"
-	htmlURL := setting.AppURL + "user2/repo1/src/branch/master/" + filename
+	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + filename + "?ref=main"
+	htmlURL := setting.AppURL + "user2/repo1/src/branch/main/" + filename
 	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/dbf8d00e022e05b7e5cf7e535de857de57925647"
-	downloadURL := setting.AppURL + "user2/repo1/raw/branch/master/" + filename
+	downloadURL := setting.AppURL + "user2/repo1/raw/branch/main/" + filename
 	return &api.FileResponse{
 		Content: &api.ContentsResponse{
 			Name:          filename,

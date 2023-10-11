@@ -41,7 +41,7 @@ func TestRelease_Create(t *testing.T) {
 		PublisherID:  user.ID,
 		Publisher:    user,
 		TagName:      "v0.1",
-		Target:       "master",
+		Target:       "main",
 		Title:        "v0.1 is released",
 		Note:         "v0.1 is released",
 		IsDraft:      false,
@@ -148,7 +148,7 @@ func TestRelease_Update(t *testing.T) {
 		PublisherID:  user.ID,
 		Publisher:    user,
 		TagName:      "v1.1.1",
-		Target:       "master",
+		Target:       "main",
 		Title:        "v1.1.1 is released",
 		Note:         "v1.1.1 is released",
 		IsDraft:      false,
@@ -221,7 +221,7 @@ func TestRelease_Update(t *testing.T) {
 		PublisherID:  user.ID,
 		Publisher:    user,
 		TagName:      "v1.1.2",
-		Target:       "master",
+		Target:       "main",
 		Title:        "v1.1.2 is released",
 		Note:         "v1.1.2 is released",
 		IsDraft:      true,
@@ -291,7 +291,7 @@ func TestRelease_createTag(t *testing.T) {
 		PublisherID:  user.ID,
 		Publisher:    user,
 		TagName:      "v2.1.1",
-		Target:       "master",
+		Target:       "main",
 		Title:        "v2.1.1 is released",
 		Note:         "v2.1.1 is released",
 		IsDraft:      false,
@@ -361,6 +361,6 @@ func TestCreateNewTag(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	assert.NoError(t, CreateNewTag(git.DefaultContext, user, repo, "master", "v2.0",
+	assert.NoError(t, CreateNewTag(git.DefaultContext, user, repo, "main", "v2.0",
 		"v2.0 is released \n\n BUGFIX: .... \n\n 123"))
 }

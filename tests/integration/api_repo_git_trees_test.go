@@ -33,7 +33,7 @@ func TestAPIReposGitTrees(t *testing.T) {
 
 	// Test a public repo that anyone can GET the tree of
 	for _, ref := range [...]string{
-		"master",     // Branch
+		"main",       // Branch
 		repo1TreeSHA, // Tree SHA
 	} {
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s", user2.Name, repo1.Name, ref)
@@ -42,7 +42,7 @@ func TestAPIReposGitTrees(t *testing.T) {
 
 	// Tests a private repo with no token so will fail
 	for _, ref := range [...]string{
-		"master",     // Branch
+		"main",       // Branch
 		repo1TreeSHA, // Tag
 	} {
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s", user2.Name, repo16.Name, ref)

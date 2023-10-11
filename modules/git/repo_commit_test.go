@@ -23,10 +23,10 @@ func TestRepository_GetCommitBranches(t *testing.T) {
 	}{
 		{"2839944139e0de9737a044f78b0e4b40d989a9e3", []string{"branch1"}},
 		{"5c80b0245c1c6f8343fa418ec374b13b5d4ee658", []string{"branch2"}},
-		{"37991dec2c8e592043f47155ce4808d4580f9123", []string{"master"}},
+		{"37991dec2c8e592043f47155ce4808d4580f9123", []string{"main"}},
 		{"95bb4d39648ee7e325106df01a621c530863a653", []string{"branch1", "branch2"}},
-		{"8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2", []string{"branch2", "master"}},
-		{"master", []string{"master"}},
+		{"8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2", []string{"branch2", "main"}},
+		{"main", []string{"main"}},
 	}
 	for _, testCase := range testCases {
 		commit, err := bareRepo1.GetCommit(testCase.CommitID)

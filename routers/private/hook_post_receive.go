@@ -66,8 +66,8 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				RepoName:     repoName,
 			}
 			updates = append(updates, option)
-			if repo.IsEmpty && (refFullName.BranchName() == "master" || refFullName.BranchName() == "main") {
-				// put the master/main branch first
+			if repo.IsEmpty && (refFullName.BranchName() == "main" || refFullName.BranchName() == "main") {
+				// put the main/main branch first
 				copy(updates[1:], updates)
 				updates[0] = option
 			}

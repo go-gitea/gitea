@@ -28,7 +28,7 @@ func TestRepoEdit(t *testing.T) {
 	private := true
 	hasIssues := false
 	hasWiki := false
-	defaultBranch := "master"
+	defaultBranch := "main"
 	hasPullRequests := true
 	ignoreWhitespaceConflicts := true
 	allowMerge := false

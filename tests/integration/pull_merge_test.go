@@ -74,9 +74,9 @@ func TestPullMerge(t *testing.T) {
 
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+		testEditFile(t, session, "user1", "repo1", "main", "README.md", "Hello, World (Edited)\n")
 
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", "main", "This is a pull title")
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
@@ -96,9 +96,9 @@ func TestPullRebase(t *testing.T) {
 
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+		testEditFile(t, session, "user1", "repo1", "main", "README.md", "Hello, World (Edited)\n")
 
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", "main", "This is a pull title")
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
@@ -118,9 +118,9 @@ func TestPullRebaseMerge(t *testing.T) {
 
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+		testEditFile(t, session, "user1", "repo1", "main", "README.md", "Hello, World (Edited)\n")
 
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", "main", "This is a pull title")
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
@@ -140,10 +140,10 @@ func TestPullSquash(t *testing.T) {
 
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
-		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited!)\n")
+		testEditFile(t, session, "user1", "repo1", "main", "README.md", "Hello, World (Edited)\n")
+		testEditFile(t, session, "user1", "repo1", "main", "README.md", "Hello, World (Edited!)\n")
 
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", "main", "This is a pull title")
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
@@ -159,7 +159,7 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feature/test", "README.md", "Hello, World (Edited - TestPullCleanUpAfterMerge)\n")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "main", "feature/test", "README.md", "Hello, World (Edited - TestPullCleanUpAfterMerge)\n")
 
 		resp := testPullCreate(t, session, "user1", "repo1", "feature/test", "This is a pull title")
 
@@ -194,9 +194,9 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+		testEditFile(t, session, "user1", "repo1", "main", "README.md", "Hello, World (Edited)\n")
 
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "[wip] This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", "main", "[wip] This is a pull title")
 
 		req := NewRequest(t, "GET", test.RedirectURL(resp))
 		resp = session.MakeRequest(t, req, http.StatusOK)
@@ -213,8 +213,8 @@ func TestCantMergeConflict(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "base", "README.md", "Hello, World (Edited Twice)\n")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "main", "conflict", "README.md", "Hello, World (Edited Once)\n")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "main", "base", "README.md", "Hello, World (Edited Twice)\n")
 
 		// Use API to create a conflicting pr
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
@@ -259,7 +259,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "base", "README.md", "Hello, World (Edited Twice)\n")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "main", "base", "README.md", "Hello, World (Edited Twice)\n")
 
 		// Now we want to create a commit on a branch that is totally unrelated to our current head
 		// Drop down to pure code at this point
@@ -322,7 +322,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		_, _, err = git.NewCommand(git.DefaultContext, "branch", "unrelated").AddDynamicArguments(commitSha).RunStdString(&git.RunOpts{Dir: path})
 		assert.NoError(t, err)
 
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "main", "conflict", "README.md", "Hello, World (Edited Once)\n")
 
 		// Use API to create a conflicting pr
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)

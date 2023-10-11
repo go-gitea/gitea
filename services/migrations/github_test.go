@@ -33,7 +33,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		Description:   "Test repository for testing migration from github to gitea",
 		CloneURL:      "https://github.com/go-gitea/test_repo.git",
 		OriginalURL:   "https://github.com/go-gitea/test_repo",
-		DefaultBranch: "master",
+		DefaultBranch: "main",
 	}, repo)
 
 	topics, err := downloader.GetTopics()
@@ -118,7 +118,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	assertReleasesEqual(t, []*base.Release{
 		{
 			TagName:         "v0.9.99",
-			TargetCommitish: "master",
+			TargetCommitish: "main",
 			Name:            "First Release",
 			Body:            "A test release",
 			Created:         time.Date(2019, 11, 9, 16, 49, 21, 0, time.UTC),
@@ -270,7 +270,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			},
 			PatchURL: "https://github.com/go-gitea/test_repo/pull/3.patch",
 			Head: base.PullRequestBranch{
-				Ref:      "master",
+				Ref:      "main",
 				CloneURL: "https://github.com/mrsdizzie/test_repo.git",
 				SHA:      "076160cf0b039f13e5eff19619932d181269414b",
 				RepoName: "test_repo",
@@ -278,7 +278,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 				OwnerName: "mrsdizzie",
 			},
 			Base: base.PullRequestBranch{
-				Ref:       "master",
+				Ref:       "main",
 				SHA:       "72866af952e98d02a73003501836074b286a78f6",
 				OwnerName: "go-gitea",
 				RepoName:  "test_repo",
@@ -315,7 +315,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 				CloneURL:  "https://github.com/mrsdizzie/test_repo.git",
 			},
 			Base: base.PullRequestBranch{
-				Ref:       "master",
+				Ref:       "main",
 				SHA:       "f32b0a9dfd09a60f616f29158f772cedd89942d2",
 				OwnerName: "go-gitea",
 				RepoName:  "test_repo",

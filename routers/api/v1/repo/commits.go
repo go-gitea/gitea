@@ -110,7 +110,7 @@ func GetAllCommits(ctx *context.APIContext) {
 	//   required: true
 	// - name: sha
 	//   in: query
-	//   description: SHA or branch to start listing commits from (usually 'master')
+	//   description: SHA or branch to start listing commits from (usually 'main')
 	//   type: string
 	// - name: path
 	//   in: query

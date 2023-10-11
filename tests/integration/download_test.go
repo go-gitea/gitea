@@ -70,7 +70,7 @@ func TestDownloadRawTextFileWithoutMimeTypeMapping(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
-	req := NewRequest(t, "GET", "/user2/repo2/raw/branch/master/test.xml")
+	req := NewRequest(t, "GET", "/user2/repo2/raw/branch/main/test.xml")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
@@ -83,7 +83,7 @@ func TestDownloadRawTextFileWithMimeTypeMapping(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
-	req := NewRequest(t, "GET", "/user2/repo2/raw/branch/master/test.xml")
+	req := NewRequest(t, "GET", "/user2/repo2/raw/branch/main/test.xml")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	assert.Equal(t, "text/xml; charset=utf-8", resp.Header().Get("Content-Type"))

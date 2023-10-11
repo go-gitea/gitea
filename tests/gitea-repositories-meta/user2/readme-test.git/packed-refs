@@ -9,7 +9,7 @@ cf406a96e416d7de5c4c1bbfffdd672300c822bf refs/heads/fallbacks7
 0d6ac644b969e9199915a492da9dba08c179fd23 refs/heads/fallbacks8
 5038febc0c57215beb3748d7ae4091a25a4acc93 refs/heads/fallbacks9
 9134e1f178ca4cccf1a197142646f2d7627e8cd5 refs/heads/i18n
-744d2441e55bc0010d6b340d303f0106a627ad29 refs/heads/master
+744d2441e55bc0010d6b340d303f0106a627ad29 refs/heads/main
 3c492566170b057e962c025515ab38bbd7444077 refs/heads/plain
 3882d6373a0882a6739b3cd9b24d21c630621234 refs/heads/sp-ace
 bf5ed898252eaa50dcc01108ed4417c3ea98a294 refs/heads/special-subdir-.gitea

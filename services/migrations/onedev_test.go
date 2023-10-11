@@ -127,7 +127,7 @@ func TestOneDevDownloadRepo(t *testing.T) {
 				RepoName: "go-gitea-test_repo",
 			},
 			Base: base.PullRequestBranch{
-				Ref:      "master",
+				Ref:      "main",
 				SHA:      "f32b0a9dfd09a60f616f29158f772cedd89942d2",
 				RepoName: "go-gitea-test_repo",
 			},

@@ -98,7 +98,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 				Mirror:        true,
 				Quiet:         true,
 				Timeout:       migrateTimeout,
-				Branch:        "master",
+				Branch:        "main",
 				SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 			}); err != nil {
 				log.Warn("Clone wiki: %v", err)

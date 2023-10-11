@@ -60,7 +60,7 @@ func GetRawFile(ctx *context.APIContext) {
 	//   required: true
 	// - name: ref
 	//   in: query
-	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually main)"
 	//   type: string
 	//   required: false
 	// responses:
@@ -109,7 +109,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	//   required: true
 	// - name: ref
 	//   in: query
-	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually main)"
 	//   type: string
 	//   required: false
 	// responses:
@@ -270,7 +270,7 @@ func GetArchive(ctx *context.APIContext) {
 	//   required: true
 	// - name: archive
 	//   in: path
-	//   description: the git reference for download with attached archive format (e.g. master.zip)
+	//   description: the git reference for download with attached archive format (e.g. main.zip)
 	//   type: string
 	//   required: true
 	// responses:
@@ -368,7 +368,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 	//   required: true
 	// - name: ref
 	//   in: query
-	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually main)"
 	//   type: string
 	//   required: false
 	// responses:
@@ -911,7 +911,7 @@ func GetContents(ctx *context.APIContext) {
 	//   required: true
 	// - name: ref
 	//   in: query
-	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually main)"
 	//   type: string
 	//   required: false
 	// responses:
@@ -962,7 +962,7 @@ func GetContentsList(ctx *context.APIContext) {
 	//   required: true
 	// - name: ref
 	//   in: query
-	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually main)"
 	//   type: string
 	//   required: false
 	// responses:

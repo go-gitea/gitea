@@ -114,7 +114,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
-	err = gitRepo.CreateTag("v0.0.1", "master")
+	err = gitRepo.CreateTag("v0.0.1", "main")
 	assert.NoError(t, err)
 
 	target, err := gitRepo.GetTagCommitID("v0.0.1")
@@ -177,7 +177,7 @@ func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
-	err = gitRepo.CreateTag("v0.0.1", "master")
+	err = gitRepo.CreateTag("v0.0.1", "main")
 	assert.NoError(t, err)
 
 	createNewReleaseUsingAPI(t, session, token, owner, repo, "v0.0.1", "", "v0.0.1", "test")

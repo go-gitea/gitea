@@ -89,8 +89,8 @@ func TestAPIGetBranch(t *testing.T) {
 		BranchName string
 		Exists     bool
 	}{
-		{"master", true},
-		{"master/doesnotexist", false},
+		{"main", true},
+		{"main/doesnotexist", false},
 		{"feature/1", true},
 		{"feature/1/doesnotexist", false},
 	} {
@@ -119,15 +119,15 @@ func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 			NewBranch:          "new_branch_from_default_branch",
 			ExpectedHTTPStatus: http.StatusCreated,
 		},
-		// Creating branch from master
+		// Creating branch from main
 		{
-			OldBranch:          "master",
+			OldBranch:          "main",
 			NewBranch:          "new_branch_from_master_1",
 			ExpectedHTTPStatus: http.StatusCreated,
 		},
-		// Trying to create from master but already exists
+		// Trying to create from main but already exists
 		{
-			OldBranch:          "master",
+			OldBranch:          "main",
 			NewBranch:          "new_branch_from_master_1",
 			ExpectedHTTPStatus: http.StatusConflict,
 		},
@@ -172,43 +172,43 @@ func TestAPIBranchProtection(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	// Branch protection  on branch that not exist
-	testAPICreateBranchProtection(t, "master/doesnotexist", http.StatusCreated)
+	testAPICreateBranchProtection(t, "main/doesnotexist", http.StatusCreated)
 	// Get branch protection on branch that exist but not branch protection
-	testAPIGetBranchProtection(t, "master", http.StatusNotFound)
+	testAPIGetBranchProtection(t, "main", http.StatusNotFound)
 
-	testAPICreateBranchProtection(t, "master", http.StatusCreated)
+	testAPICreateBranchProtection(t, "main", http.StatusCreated)
 	// Can only create once
-	testAPICreateBranchProtection(t, "master", http.StatusForbidden)
+	testAPICreateBranchProtection(t, "main", http.StatusForbidden)
 
 	// Can't delete a protected branch
-	testAPIDeleteBranch(t, "master", http.StatusForbidden)
+	testAPIDeleteBranch(t, "main", http.StatusForbidden)
 
-	testAPIGetBranchProtection(t, "master", http.StatusOK)
-	testAPIEditBranchProtection(t, "master", &api.BranchProtection{
+	testAPIGetBranchProtection(t, "main", http.StatusOK)
+	testAPIEditBranchProtection(t, "main", &api.BranchProtection{
 		EnablePush: true,
 	}, http.StatusOK)
 
 	// enable status checks, require the "test1" check to pass
-	testAPIEditBranchProtection(t, "master", &api.BranchProtection{
+	testAPIEditBranchProtection(t, "main", &api.BranchProtection{
 		EnableStatusCheck:   true,
 		StatusCheckContexts: []string{"test1"},
 	}, http.StatusOK)
-	bp := testAPIGetBranchProtection(t, "master", http.StatusOK)
+	bp := testAPIGetBranchProtection(t, "main", http.StatusOK)
 	assert.Equal(t, true, bp.EnableStatusCheck)
 	assert.Equal(t, []string{"test1"}, bp.StatusCheckContexts)
 
 	// disable status checks, clear the list of required checks
-	testAPIEditBranchProtection(t, "master", &api.BranchProtection{
+	testAPIEditBranchProtection(t, "main", &api.BranchProtection{
 		EnableStatusCheck:   false,
 		StatusCheckContexts: []string{},
 	}, http.StatusOK)
-	bp = testAPIGetBranchProtection(t, "master", http.StatusOK)
+	bp = testAPIGetBranchProtection(t, "main", http.StatusOK)
 	assert.Equal(t, false, bp.EnableStatusCheck)
 	assert.Equal(t, []string{}, bp.StatusCheckContexts)
 
-	testAPIDeleteBranchProtection(t, "master", http.StatusNoContent)
+	testAPIDeleteBranchProtection(t, "main", http.StatusNoContent)
 
 	// Test branch deletion
-	testAPIDeleteBranch(t, "master", http.StatusForbidden)
+	testAPIDeleteBranch(t, "main", http.StatusForbidden)
 	testAPIDeleteBranch(t, "branch2", http.StatusNoContent)
 }

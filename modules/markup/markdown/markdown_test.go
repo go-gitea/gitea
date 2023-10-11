@@ -327,12 +327,12 @@ func TestTotal_RenderString(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
 
-	answers := testAnswers(util.URLJoin(AppSubURL, "src", "master/"), util.URLJoin(AppSubURL, "raw", "master/"))
+	answers := testAnswers(util.URLJoin(AppSubURL, "src", "main/"), util.URLJoin(AppSubURL, "raw", "main/"))
 
 	for i := 0; i < len(sameCases); i++ {
 		line, err := markdown.RenderString(&markup.RenderContext{
 			Ctx:       git.DefaultContext,
-			URLPrefix: util.URLJoin(AppSubURL, "src", "master/"),
+			URLPrefix: util.URLJoin(AppSubURL, "src", "main/"),
 			Metas:     localMetas,
 		}, sameCases[i])
 		assert.NoError(t, err)

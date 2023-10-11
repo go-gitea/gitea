@@ -17,7 +17,7 @@ func TestCleanUploadName(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
 	kases := map[string]string{
-		".git/refs/master":               "",
+		".git/refs/main":                 "",
 		"/root/abc":                      "root/abc",
 		"./../../abc":                    "abc",
 		"a/../.git":                      "",

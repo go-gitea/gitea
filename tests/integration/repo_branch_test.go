@@ -21,7 +21,7 @@ import (
 func testCreateBranch(t testing.TB, session *TestSession, user, repo, oldRefSubURL, newBranchName string, expectedStatus int) string {
 	var csrf string
 	if expectedStatus == http.StatusNotFound {
-		csrf = GetCSRF(t, session, path.Join(user, repo, "src/branch/master"))
+		csrf = GetCSRF(t, session, path.Join(user, repo, "src/branch/main"))
 	} else {
 		csrf = GetCSRF(t, session, path.Join(user, repo, "src", oldRefSubURL))
 	}
@@ -49,40 +49,40 @@ func testCreateBranches(t *testing.T, giteaURL *url.URL) {
 		ExpectedStatus int
 	}{
 		{
-			OldRefSubURL:   "branch/master",
+			OldRefSubURL:   "branch/main",
 			NewBranch:      "feature/test1",
 			ExpectedStatus: http.StatusSeeOther,
 			FlashMessage:   translation.NewLocale("en-US").Tr("repo.branch.create_success", "feature/test1"),
 		},
 		{
-			OldRefSubURL:   "branch/master",
+			OldRefSubURL:   "branch/main",
 			NewBranch:      "",
 			ExpectedStatus: http.StatusSeeOther,
 			FlashMessage:   translation.NewLocale("en-US").Tr("form.NewBranchName") + translation.NewLocale("en-US").Tr("form.require_error"),
 		},
 		{
-			OldRefSubURL:   "branch/master",
+			OldRefSubURL:   "branch/main",
 			NewBranch:      "feature=test1",
 			ExpectedStatus: http.StatusSeeOther,
 			FlashMessage:   translation.NewLocale("en-US").Tr("repo.branch.create_success", "feature=test1"),
 		},
 		{
-			OldRefSubURL:   "branch/master",
+			OldRefSubURL:   "branch/main",
 			NewBranch:      strings.Repeat("b", 101),
 			ExpectedStatus: http.StatusSeeOther,
 			FlashMessage:   translation.NewLocale("en-US").Tr("form.NewBranchName") + translation.NewLocale("en-US").Tr("form.max_size_error", "100"),
 		},
 		{
-			OldRefSubURL:   "branch/master",
-			NewBranch:      "master",
+			OldRefSubURL:   "branch/main",
+			NewBranch:      "main",
 			ExpectedStatus: http.StatusSeeOther,
-			FlashMessage:   translation.NewLocale("en-US").Tr("repo.branch.branch_already_exists", "master"),
+			FlashMessage:   translation.NewLocale("en-US").Tr("repo.branch.branch_already_exists", "main"),
 		},
 		{
-			OldRefSubURL:   "branch/master",
-			NewBranch:      "master/test",
+			OldRefSubURL:   "branch/main",
+			NewBranch:      "main/test",
 			ExpectedStatus: http.StatusSeeOther,
-			FlashMessage:   translation.NewLocale("en-US").Tr("repo.branch.branch_name_conflict", "master/test", "master"),
+			FlashMessage:   translation.NewLocale("en-US").Tr("repo.branch.branch_name_conflict", "main/test", "main"),
 		},
 		{
 			OldRefSubURL:   "commit/acd1d892867872cb47f3993468605b8aa59aa2e0",
@@ -96,7 +96,7 @@ func testCreateBranches(t *testing.T, giteaURL *url.URL) {
 			FlashMessage:   translation.NewLocale("en-US").Tr("repo.branch.create_success", "feature/test3"),
 		},
 		{
-			OldRefSubURL:   "branch/master",
+			OldRefSubURL:   "branch/main",
 			NewBranch:      "v1.0.0",
 			CreateRelease:  "v1.0.0",
 			ExpectedStatus: http.StatusSeeOther,
@@ -131,7 +131,7 @@ func testCreateBranches(t *testing.T, giteaURL *url.URL) {
 func TestCreateBranchInvalidCSRF(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	req := NewRequestWithValues(t, "POST", "user2/repo1/branches/_new/branch/master", map[string]string{
+	req := NewRequestWithValues(t, "POST", "user2/repo1/branches/_new/branch/main", map[string]string{
 		"_csrf":           "fake_csrf",
 		"new_branch_name": "test",
 	})

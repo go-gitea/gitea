@@ -34,7 +34,7 @@ type ApplyDiffPatchOptions struct {
 
 // Validate validates the provided options
 func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_model.Repository, doer *user_model.User) error {
-	// If no branch name is set, assume master
+	// If no branch name is set, assume main
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
 	}

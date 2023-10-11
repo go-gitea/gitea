@@ -49,18 +49,18 @@ func TestNonasciiBranches(t *testing.T) {
 	}{
 		// Branches
 		{
-			from:   "master",
-			to:     "branch/master",
+			from:   "main",
+			to:     "branch/main",
 			status: http.StatusOK,
 		},
 		{
-			from:   "master/README.md",
-			to:     "branch/master/README.md",
+			from:   "main/README.md",
+			to:     "branch/main/README.md",
 			status: http.StatusOK,
 		},
 		{
-			from:   "master/badfile",
-			to:     "branch/master/badfile",
+			from:   "main/badfile",
+			to:     "branch/main/badfile",
 			status: http.StatusNotFound, // it does not exists
 		},
 		{
@@ -210,5 +210,5 @@ func TestNonasciiBranches(t *testing.T) {
 		testSrcRouteRedirect(t, session, user, repo, test.from, test.to, test.status)
 	}
 
-	setDefaultBranch(t, session, user, repo, "master")
+	setDefaultBranch(t, session, user, repo, "main")
 }

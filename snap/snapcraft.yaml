@@ -54,7 +54,7 @@ parts:
       last_committed_tag="$(git for-each-ref --sort=taggerdate --format '%(tag)' refs/tags | tail -n 1)"
       last_released_tag="$(snap info gitea | awk '$1 == "latest/candidate:" { print $2 }')"
       # If the latest tag from the upstream project has not been released to
-      # stable, build that tag instead of master.
+      # stable, build that tag instead of main.
       if [ "${last_committed_tag}" != "${last_released_tag}" ]; then
         git fetch
         git checkout "${last_committed_tag}"

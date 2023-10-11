@@ -21,9 +21,9 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "status1", "README.md", "status1")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "main", "status1", "README.md", "status1")
 
-		url := path.Join("user1", "repo1", "compare", "master...status1")
+		url := path.Join("user1", "repo1", "compare", "main...status1")
 		req := NewRequestWithValues(t, "POST", url,
 			map[string]string{
 				"_csrf": GetCSRF(t, session, url),
@@ -111,16 +111,16 @@ func doAPICreateCommitStatus(ctx APITestContext, commitID string, data api.Creat
 
 func TestPullCreate_EmptyChangesWithDifferentCommits(t *testing.T) {
 	// Merge must continue if commits SHA are different, even if content is same
-	// Reason: gitflow and merging master back into develop, where is high possibility, there are no changes
+	// Reason: gitflow and merging main back into develop, where is high possibility, there are no changes
 	// but just commit saying "Merge branch". And this meta commit can be also tagged,
 	// so we need to have this meta commit also in develop branch.
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "status1", "README.md", "status1")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "main", "status1", "README.md", "status1")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "status1", "status1", "README.md", "# repo1\n\nDescription for repo1")
 
-		url := path.Join("user1", "repo1", "compare", "master...status1")
+		url := path.Join("user1", "repo1", "compare", "main...status1")
 		req := NewRequestWithValues(t, "POST", url,
 			map[string]string{
 				"_csrf": GetCSRF(t, session, url),
@@ -142,8 +142,8 @@ func TestPullCreate_EmptyChangesWithSameCommits(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-		testCreateBranch(t, session, "user1", "repo1", "branch/master", "status1", http.StatusSeeOther)
-		url := path.Join("user1", "repo1", "compare", "master...status1")
+		testCreateBranch(t, session, "user1", "repo1", "branch/main", "status1", http.StatusSeeOther)
+		url := path.Join("user1", "repo1", "compare", "main...status1")
 		req := NewRequestWithValues(t, "POST", url,
 			map[string]string{
 				"_csrf": GetCSRF(t, session, url),

@@ -158,19 +158,19 @@ func TestRoute3(t *testing.T) {
 	assert.EqualValues(t, http.StatusOK, recorder.Code, http.StatusOK)
 	assert.EqualValues(t, 1, hit)
 
-	req, err = http.NewRequest("GET", "http://localhost:8000/api/v1/repos/gitea/gitea/branch_protections/master", nil)
+	req, err = http.NewRequest("GET", "http://localhost:8000/api/v1/repos/gitea/gitea/branch_protections/main", nil)
 	assert.NoError(t, err)
 	r.ServeHTTP(recorder, req)
 	assert.EqualValues(t, http.StatusOK, recorder.Code)
 	assert.EqualValues(t, 2, hit)
 
-	req, err = http.NewRequest("PATCH", "http://localhost:8000/api/v1/repos/gitea/gitea/branch_protections/master", nil)
+	req, err = http.NewRequest("PATCH", "http://localhost:8000/api/v1/repos/gitea/gitea/branch_protections/main", nil)
 	assert.NoError(t, err)
 	r.ServeHTTP(recorder, req)
 	assert.EqualValues(t, http.StatusOK, recorder.Code)
 	assert.EqualValues(t, 3, hit)
 
-	req, err = http.NewRequest("DELETE", "http://localhost:8000/api/v1/repos/gitea/gitea/branch_protections/master", nil)
+	req, err = http.NewRequest("DELETE", "http://localhost:8000/api/v1/repos/gitea/gitea/branch_protections/main", nil)
 	assert.NoError(t, err)
 	r.ServeHTTP(recorder, req)
 	assert.EqualValues(t, http.StatusOK, recorder.Code)

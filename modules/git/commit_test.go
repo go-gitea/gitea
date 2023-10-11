@@ -30,7 +30,7 @@ func TestCommitsCountWithoutBase(t *testing.T) {
 	commitsCount, err := CommitsCount(DefaultContext,
 		CommitsCountOptions{
 			RepoPath: bareRepo1Path,
-			Not:      "master",
+			Not:      "main",
 			Revision: []string{"branch1"},
 		})
 

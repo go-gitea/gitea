@@ -21,8 +21,8 @@ import (
 func getDeleteFileOptions() *api.DeleteFileOptions {
 	return &api.DeleteFileOptions{
 		FileOptions: api.FileOptions{
-			BranchName:    "master",
-			NewBranchName: "master",
+			BranchName:    "main",
+			NewBranchName: "main",
 			Message:       "Removing the file new/file.txt",
 			Author: api.Identity{
 				Name:  "John Doe",
@@ -56,8 +56,8 @@ func TestAPIDeleteFile(t *testing.T) {
 
 		// Test deleting a file in repo1 which user2 owns, try both with branch and empty branch
 		for _, branch := range [...]string{
-			"master", // Branch
-			"",       // Empty branch
+			"main", // Branch
+			"",     // Empty branch
 		} {
 			fileID++
 			treePath := fmt.Sprintf("delete/file%d.txt", fileID)

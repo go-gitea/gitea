@@ -78,7 +78,7 @@ func InitTest(requireGitea bool) {
 	}
 
 	unittest.InitSettings()
-	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
+	setting.Repository.DefaultBranch = "main" // many test code still assume that default branch is called "main"
 	_ = util.RemoveAll(repo_module.LocalCopyPath())
 
 	if err := git.InitFull(context.Background()); err != nil {
@@ -166,7 +166,7 @@ func InitTest(requireGitea bool) {
 	case setting.Database.Type.IsMSSQL():
 		host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
 		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
-			host, port, "master", setting.Database.User, setting.Database.Passwd))
+			host, port, "main", setting.Database.User, setting.Database.Passwd))
 		if err != nil {
 			log.Fatal("sql.Open: %v", err)
 		}

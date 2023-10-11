@@ -192,7 +192,7 @@ func getWikiPage(ctx *context.APIContext, wikiName wiki_service.WebPath) *api.Wi
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
+	commitsCount, _ := wikiRepo.FileCommitsCount("main", pageFilename)
 
 	// Get last change information.
 	lastCommit, err := wikiRepo.GetCommitByPath(pageFilename)
@@ -431,7 +431,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
+	commitsCount, _ := wikiRepo.FileCommitsCount("main", pageFilename)
 
 	page := ctx.FormInt("page")
 	if page <= 1 {
@@ -441,7 +441,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 	// get Commit Count
 	commitsHistory, err := wikiRepo.CommitsByFileAndRange(
 		git.CommitsByFileAndRangeOptions{
-			Revision: "master",
+			Revision: "main",
 			File:     pageFilename,
 			Page:     page,
 		})
@@ -486,7 +486,7 @@ func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit) 
 		return nil, nil
 	}
 
-	commit, err := wikiRepo.GetBranchCommit("master")
+	commit, err := wikiRepo.GetBranchCommit("main")
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(err)

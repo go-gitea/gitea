@@ -126,11 +126,11 @@ func TestPullRequestsOldest(t *testing.T) {
 
 func TestGetUnmergedPullRequest(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr, err := issues_model.GetUnmergedPullRequest(db.DefaultContext, 1, 1, "branch2", "master", issues_model.PullRequestFlowGithub)
+	pr, err := issues_model.GetUnmergedPullRequest(db.DefaultContext, 1, 1, "branch2", "main", issues_model.PullRequestFlowGithub)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), pr.ID)
 
-	_, err = issues_model.GetUnmergedPullRequest(db.DefaultContext, 1, 9223372036854775807, "branch1", "master", issues_model.PullRequestFlowGithub)
+	_, err = issues_model.GetUnmergedPullRequest(db.DefaultContext, 1, 9223372036854775807, "branch1", "main", issues_model.PullRequestFlowGithub)
 	assert.Error(t, err)
 	assert.True(t, issues_model.IsErrPullRequestNotExist(err))
 }
@@ -160,13 +160,13 @@ func TestGetUnmergedPullRequestsByHeadInfo(t *testing.T) {
 
 func TestGetUnmergedPullRequestsByBaseInfo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(db.DefaultContext, 1, "master")
+	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(db.DefaultContext, 1, "main")
 	assert.NoError(t, err)
 	assert.Len(t, prs, 1)
 	pr := prs[0]
 	assert.Equal(t, int64(2), pr.ID)
 	assert.Equal(t, int64(1), pr.BaseRepoID)
-	assert.Equal(t, "master", pr.BaseBranch)
+	assert.Equal(t, "main", pr.BaseBranch)
 }
 
 func TestGetPullRequestByIndex(t *testing.T) {
@@ -231,7 +231,7 @@ func TestPullRequest_UpdateCols(t *testing.T) {
 	assert.NoError(t, pr.UpdateCols(db.DefaultContext, "head_branch"))
 
 	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
-	assert.Equal(t, "master", pr.BaseBranch)
+	assert.Equal(t, "main", pr.BaseBranch)
 	assert.Equal(t, "headBranch", pr.HeadBranch)
 	unittest.CheckConsistencyFor(t, pr)
 }

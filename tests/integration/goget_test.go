@@ -24,7 +24,7 @@ func TestGoGet(t *testing.T) {
 <html>
 	<head>
 		<meta name="go-import" content="%[1]s:%[2]s/blah/glah git %[3]sblah/glah.git">
-		<meta name="go-source" content="%[1]s:%[2]s/blah/glah _ %[3]sblah/glah/src/branch/master{/dir} %[3]sblah/glah/src/branch/master{/dir}/{file}#L{line}">
+		<meta name="go-source" content="%[1]s:%[2]s/blah/glah _ %[3]sblah/glah/src/branch/main{/dir} %[3]sblah/glah/src/branch/main{/dir}/{file}#L{line}">
 	</head>
 	<body>
 		go get --insecure %[1]s:%[2]s/blah/glah
@@ -50,7 +50,7 @@ func TestGoGetForSSH(t *testing.T) {
 <html>
 	<head>
 		<meta name="go-import" content="%[1]s:%[2]s/blah/glah git ssh://git@%[4]s:%[5]d/blah/glah.git">
-		<meta name="go-source" content="%[1]s:%[2]s/blah/glah _ %[3]sblah/glah/src/branch/master{/dir} %[3]sblah/glah/src/branch/master{/dir}/{file}#L{line}">
+		<meta name="go-source" content="%[1]s:%[2]s/blah/glah _ %[3]sblah/glah/src/branch/main{/dir} %[3]sblah/glah/src/branch/main{/dir}/{file}#L{line}">
 	</head>
 	<body>
 		go get --insecure %[1]s:%[2]s/blah/glah

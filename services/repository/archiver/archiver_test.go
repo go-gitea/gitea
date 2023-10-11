@@ -52,10 +52,10 @@ func TestArchive_Basic(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, bogusReq)
 
-	bogusReq, err = NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, "master.zip")
+	bogusReq, err = NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, "main.zip")
 	assert.NoError(t, err)
 	assert.NotNil(t, bogusReq)
-	assert.EqualValues(t, "master.zip", bogusReq.GetArchiveName())
+	assert.EqualValues(t, "main.zip", bogusReq.GetArchiveName())
 
 	bogusReq, err = NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, "test/archive.zip")
 	assert.NoError(t, err)
@@ -129,6 +129,6 @@ func TestArchive_Basic(t *testing.T) {
 }
 
 func TestErrUnknownArchiveFormat(t *testing.T) {
-	err := ErrUnknownArchiveFormat{RequestFormat: "master"}
+	err := ErrUnknownArchiveFormat{RequestFormat: "main"}
 	assert.True(t, errors.Is(err, ErrUnknownArchiveFormat{}))
 }

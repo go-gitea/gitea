@@ -237,7 +237,7 @@ func pullReleaseTestPayload() *api.ReleasePayload {
 		},
 		Release: &api.Release{
 			TagName: "v1.0",
-			Target:  "master",
+			Target:  "main",
 			Title:   "First stable release",
 			Note:    "Note of first stable release",
 			HTMLURL: "http://localhost:3000/test/repo/releases/tag/v1.0",

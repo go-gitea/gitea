@@ -40,7 +40,7 @@ func TestAPIRepoBranchesPlain(t *testing.T) {
 		assert.NoError(t, json.Unmarshal(bs, &branches))
 		assert.Len(t, branches, 2)
 		assert.EqualValues(t, "test_branch", branches[0].Name)
-		assert.EqualValues(t, "master", branches[1].Name)
+		assert.EqualValues(t, "main", branches[1].Name)
 
 		link2, _ := url.Parse(fmt.Sprintf("/api/v1/repos/org3/%s/branches/test_branch", repo3.Name))
 		link2.RawQuery = url.Values{"token": {token}}.Encode()
@@ -71,7 +71,7 @@ func TestAPIRepoBranchesPlain(t *testing.T) {
 		assert.Len(t, branches, 3)
 		assert.EqualValues(t, "test_branch", branches[0].Name)
 		assert.EqualValues(t, "test_branch2", branches[1].Name)
-		assert.EqualValues(t, "master", branches[2].Name)
+		assert.EqualValues(t, "main", branches[2].Name)
 
 		link3, _ := url.Parse(fmt.Sprintf("/api/v1/repos/org3/%s/branches/test_branch2", repo3.Name))
 		MakeRequest(t, NewRequest(t, "DELETE", link3.String()), http.StatusNotFound)
@@ -100,7 +100,7 @@ func TestAPIRepoBranchesMirror(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(bs, &branches))
 	assert.Len(t, branches, 2)
 	assert.EqualValues(t, "test_branch", branches[0].Name)
-	assert.EqualValues(t, "master", branches[1].Name)
+	assert.EqualValues(t, "main", branches[1].Name)
 
 	link2, _ := url.Parse(fmt.Sprintf("/api/v1/repos/org3/%s/branches/test_branch", repo5.Name))
 	link2.RawQuery = url.Values{"token": {token}}.Encode()

@@ -21,8 +21,8 @@ func TestAPIReposGitRefs(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	for _, ref := range [...]string{
-		"refs/heads/master", // Branch
-		"refs/tags/v1.1",    // Tag
+		"refs/heads/main", // Branch
+		"refs/tags/v1.1",  // Tag
 	} {
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/%s?token="+token, user.Name, ref)
 		MakeRequest(t, req, http.StatusOK)

@@ -206,7 +206,7 @@ func TestViewFileInRepo(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
-	req := NewRequest(t, "GET", "/user2/repo1/src/branch/master/README.md")
+	req := NewRequest(t, "GET", "/user2/repo1/src/branch/main/README.md")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
@@ -225,7 +225,7 @@ func TestBlameFileInRepo(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
-	req := NewRequest(t, "GET", "/user2/repo1/blame/branch/master/README.md")
+	req := NewRequest(t, "GET", "/user2/repo1/blame/branch/main/README.md")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
@@ -244,7 +244,7 @@ func TestViewRepoDirectory(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
-	req := NewRequest(t, "GET", "/user2/repo20/src/branch/master/a")
+	req := NewRequest(t, "GET", "/user2/repo20/src/branch/main/a")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
@@ -297,7 +297,7 @@ func TestViewRepoDirectoryReadme(t *testing.T) {
 	check("Home", "/user2/readme-test/", "README.md", "markdown", "The cake is a lie.")
 
 	// viewing different file extensions
-	check("md", "/user2/readme-test/src/branch/master/", "README.md", "markdown", "The cake is a lie.")
+	check("md", "/user2/readme-test/src/branch/main/", "README.md", "markdown", "The cake is a lie.")
 	check("txt", "/user2/readme-test/src/branch/txt/", "README.txt", "plain-text", "My spoon is too big.")
 	check("plain", "/user2/readme-test/src/branch/plain/", "README", "plain-text", "Birken my stocks gee howdy")
 	check("i18n", "/user2/readme-test/src/branch/i18n/", "README.zh.md", "markdown", "蛋糕是一个谎言")
@@ -418,7 +418,7 @@ func TestGeneratedSourceLink(t *testing.T) {
 
 	t.Run("Rendered file", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		req := NewRequest(t, "GET", "/user2/repo1/src/branch/master/README.md?display=source")
+		req := NewRequest(t, "GET", "/user2/repo1/src/branch/main/README.md?display=source")
 		resp := MakeRequest(t, req, http.StatusOK)
 		doc := NewHTMLParser(t, resp.Body)
 
@@ -435,7 +435,7 @@ func TestGeneratedSourceLink(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		session := loginUser(t, "user27")
-		req := NewRequest(t, "GET", "/user27/repo49/src/branch/master/test/test.txt")
+		req := NewRequest(t, "GET", "/user27/repo49/src/branch/main/test/test.txt")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		doc := NewHTMLParser(t, resp.Body)
 

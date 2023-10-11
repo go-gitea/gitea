@@ -376,7 +376,7 @@ Gitea or set your environment appropriately.`, "")
 		oldCommitIDs[count] = string(fields[0])
 		newCommitIDs[count] = string(fields[1])
 		refFullNames[count] = git.RefName(fields[2])
-		if refFullNames[count] == git.BranchPrefix+"master" && newCommitIDs[count] != git.EmptySHA && count == total {
+		if refFullNames[count] == git.BranchPrefix+"main" && newCommitIDs[count] != git.EmptySHA && count == total {
 			masterPushed = true
 		}
 		count++
@@ -401,8 +401,8 @@ Gitea or set your environment appropriately.`, "")
 
 	if count == 0 {
 		if wasEmpty && masterPushed {
-			// We need to tell the repo to reset the default branch to master
-			extra := private.SetDefaultBranch(ctx, repoUser, repoName, "master")
+			// We need to tell the repo to reset the default branch to main
+			extra := private.SetDefaultBranch(ctx, repoUser, repoName, "main")
 			if extra.HasError() {
 				return fail(ctx, extra.UserMsg, "SetDefaultBranch failed: %v", extra.Error)
 			}
@@ -432,8 +432,8 @@ Gitea or set your environment appropriately.`, "")
 	fmt.Fprintf(out, "Processed %d references in total\n", total)
 
 	if wasEmpty && masterPushed {
-		// We need to tell the repo to reset the default branch to master
-		extra := private.SetDefaultBranch(ctx, repoUser, repoName, "master")
+		// We need to tell the repo to reset the default branch to main
+		extra := private.SetDefaultBranch(ctx, repoUser, repoName, "main")
 		if extra.HasError() {
 			return fail(ctx, extra.UserMsg, "SetDefaultBranch failed: %v", extra.Error)
 		}

@@ -56,7 +56,7 @@ func testRepoGenerate(t *testing.T, session *TestSession, templateID, templateOw
 	session.MakeRequest(t, req, http.StatusOK)
 
 	// Step5: check substituted values in Readme
-	req = NewRequestf(t, "GET", "/%s/%s/raw/branch/master/README.md", generateOwnerName, generateRepoName)
+	req = NewRequestf(t, "GET", "/%s/%s/raw/branch/main/README.md", generateOwnerName, generateRepoName)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	body := fmt.Sprintf(`# %s Readme
 Owner: %s
@@ -72,7 +72,7 @@ Clone URL: %s%s/%s.git`,
 	assert.Equal(t, body, resp.Body.String())
 
 	// Step6: check substituted values in substituted file path ${REPO_NAME}
-	req = NewRequestf(t, "GET", "/%s/%s/raw/branch/master/%s.log", generateOwnerName, generateRepoName, generateRepoName)
+	req = NewRequestf(t, "GET", "/%s/%s/raw/branch/main/%s.log", generateOwnerName, generateRepoName, generateRepoName)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.Equal(t, generateRepoName, resp.Body.String())
 

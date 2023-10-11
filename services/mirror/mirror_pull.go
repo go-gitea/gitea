@@ -86,7 +86,7 @@ type mirrorSyncResult struct {
 // possible output example:
 /*
 // * [new tag]         v0.1.8     -> v0.1.8
-// * [new branch]      master     -> origin/master
+// * [new branch]      main     -> origin/main
 // - [deleted]         (none)     -> origin/test // delete a branch
 // - [deleted]         (none)     -> 1 // delete a tag
 //   957a993..a87ba5f  test       -> origin/test
@@ -573,7 +573,7 @@ func checkAndUpdateEmptyRepository(ctx context.Context, m *repo_model.Mirror, gi
 		}
 
 		hasDefault = hasDefault || name == defaultBranchName
-		hasMaster = hasMaster || name == "master"
+		hasMaster = hasMaster || name == "main"
 		hasMain = hasMain || name == "main"
 	}
 
@@ -581,7 +581,7 @@ func checkAndUpdateEmptyRepository(ctx context.Context, m *repo_model.Mirror, gi
 		if hasDefault {
 			m.Repo.DefaultBranch = defaultBranchName
 		} else if hasMaster {
-			m.Repo.DefaultBranch = "master"
+			m.Repo.DefaultBranch = "main"
 		} else if hasMain {
 			m.Repo.DefaultBranch = "main"
 		} else {

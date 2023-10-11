@@ -427,7 +427,7 @@ func (c *Commit) GetBranchName() (string, error) {
 		return "", err
 	}
 
-	// name-rev commitID output will be "master" or "master~12"
+	// name-rev commitID output will be "main" or "main~12"
 	return strings.SplitN(strings.TrimSpace(data), "~", 2)[0], nil
 }
 

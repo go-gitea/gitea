@@ -110,8 +110,8 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 			},
 		},
 		Message:   "Add File A",
-		OldBranch: "master",
-		NewBranch: "master",
+		OldBranch: "main",
+		NewBranch: "main",
 		Author: &files_service.IdentityOptions{
 			Name:  actor.Name,
 			Email: actor.Email,
@@ -137,7 +137,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 			},
 		},
 		Message:   "Add File on PR branch",
-		OldBranch: "master",
+		OldBranch: "main",
 		NewBranch: "newBranch",
 		Author: &files_service.IdentityOptions{
 			Name:  actor.Name,
@@ -166,7 +166,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 		HeadRepoID: headRepo.ID,
 		BaseRepoID: baseRepo.ID,
 		HeadBranch: "newBranch",
-		BaseBranch: "master",
+		BaseBranch: "main",
 		HeadRepo:   headRepo,
 		BaseRepo:   baseRepo,
 		Type:       issues_model.PullRequestGitea,

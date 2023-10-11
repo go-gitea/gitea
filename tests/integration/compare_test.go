@@ -18,7 +18,7 @@ func TestCompareTag(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
-	req := NewRequest(t, "GET", "/user2/repo1/compare/v1.1...master")
+	req := NewRequest(t, "GET", "/user2/repo1/compare/v1.1...main")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	selection := htmlDoc.doc.Find(".choose.branch .filter.dropdown")
@@ -30,7 +30,7 @@ func TestCompareTag(t *testing.T) {
 	assert.False(t, strings.Contains(resp.Body.String(), "/assets/img/500.png"), "expect 404 page not 500")
 }
 
-// Compare with inferred default branch (master)
+// Compare with inferred default branch (main)
 func TestCompareDefault(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
@@ -60,7 +60,7 @@ func inspectCompare(t *testing.T, htmlDoc *HTMLDoc, diffCount int, diffChanges [
 // | * cfe3b3c (origin/remove-files-a) Delete test.csv and link_hi
 // |/
 // * c8e31bc (origin/add-csv) Add test csv file
-// * 808038d (HEAD -> master, origin/master, origin/HEAD) Added test links
+// * 808038d (HEAD -> main, origin/main, origin/HEAD) Added test links
 
 func TestCompareBranches(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()

@@ -31,7 +31,7 @@ func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title st
 	postData := map[string]string{
 		"_csrf":      htmlDoc.GetCSRF(),
 		"tag_name":   tag,
-		"tag_target": "master",
+		"tag_target": "main",
 		"title":      title,
 		"content":    "",
 	}

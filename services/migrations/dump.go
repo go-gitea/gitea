@@ -174,7 +174,7 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 				Mirror:        true,
 				Quiet:         true,
 				Timeout:       migrateTimeout,
-				Branch:        "master",
+				Branch:        "main",
 				SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 			}); err != nil {
 				log.Warn("Clone wiki: %v", err)

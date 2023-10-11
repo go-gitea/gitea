@@ -29,7 +29,7 @@ func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.
 	wikiRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 	assert.NoError(t, err)
 	defer wikiRepo.Close()
-	commit, err := wikiRepo.GetBranchCommit("master")
+	commit, err := wikiRepo.GetBranchCommit("main")
 	assert.NoError(t, err)
 	entries, err := commit.ListEntries()
 	assert.NoError(t, err)

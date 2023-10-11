@@ -96,8 +96,8 @@ func TestAPICreatePullSuccess(t *testing.T) {
 	session := loginUser(t, owner11.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", owner10.Name, repo10.Name, token), &api.CreatePullRequestOption{
-		Head:  fmt.Sprintf("%s:master", owner11.Name),
-		Base:  "master",
+		Head:  fmt.Sprintf("%s:main", owner11.Name),
+		Base:  "main",
 		Title: "create a failure pr",
 	})
 	MakeRequest(t, req, http.StatusCreated)
@@ -117,8 +117,8 @@ func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	opts := &api.CreatePullRequestOption{
-		Head:      fmt.Sprintf("%s:master", owner11.Name),
-		Base:      "master",
+		Head:      fmt.Sprintf("%s:main", owner11.Name),
+		Base:      "main",
 		Title:     "create a failure pr",
 		Body:      "foobaaar",
 		Milestone: 5,
@@ -154,8 +154,8 @@ func TestAPICreatePullWithFieldsFailure(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	opts := &api.CreatePullRequestOption{
-		Head: fmt.Sprintf("%s:master", owner11.Name),
-		Base: "master",
+		Head: fmt.Sprintf("%s:main", owner11.Name),
+		Base: "main",
 	}
 
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", owner10.Name, repo10.Name, token), opts)
@@ -184,13 +184,13 @@ func TestAPIEditPull(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", owner10.Name, repo10.Name, token), &api.CreatePullRequestOption{
 		Head:  "develop",
-		Base:  "master",
+		Base:  "main",
 		Title: "create a success pr",
 	})
 	pull := new(api.PullRequest)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, pull)
-	assert.EqualValues(t, "master", pull.Base.Name)
+	assert.EqualValues(t, "main", pull.Base.Name)
 
 	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d?token=%s", owner10.Name, repo10.Name, pull.Index, token), &api.EditPullRequestOption{
 		Base:  "feature/1",

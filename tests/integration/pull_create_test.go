@@ -25,8 +25,8 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch, titl
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find("#new-pull-request").Attr("href")
 	assert.True(t, exists, "The template has changed")
-	if branch != "master" {
-		link = strings.Replace(link, ":master", ":"+branch, 1)
+	if branch != "main" {
+		link = strings.Replace(link, ":main", ":"+branch, 1)
 	}
 
 	req = NewRequest(t, "GET", link)
@@ -48,8 +48,8 @@ func TestPullCreate(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+		testEditFile(t, session, "user1", "repo1", "main", "README.md", "Hello, World (Edited)\n")
+		resp := testPullCreate(t, session, "user1", "repo1", "main", "This is a pull title")
 
 		// check the redirected URL
 		url := test.RedirectURL(resp)
@@ -76,8 +76,8 @@ func TestPullCreate_TitleEscape(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "<i>XSS PR</i>")
+		testEditFile(t, session, "user1", "repo1", "main", "README.md", "Hello, World (Edited)\n")
+		resp := testPullCreate(t, session, "user1", "repo1", "main", "<i>XSS PR</i>")
 
 		// check the redirected URL
 		url := test.RedirectURL(resp)
@@ -140,7 +140,7 @@ func TestPullBranchDelete(t *testing.T) {
 
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-		testCreateBranch(t, session, "user1", "repo1", "branch/master", "master1", http.StatusSeeOther)
+		testCreateBranch(t, session, "user1", "repo1", "branch/main", "master1", http.StatusSeeOther)
 		testEditFile(t, session, "user1", "repo1", "master1", "README.md", "Hello, World (Edited)\n")
 		resp := testPullCreate(t, session, "user1", "repo1", "master1", "This is a pull title")
 

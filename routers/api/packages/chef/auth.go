@@ -44,7 +44,7 @@ var (
 
 // Documentation:
 // https://docs.chef.io/server/api_chef_server/#required-headers
-// https://github.com/chef-boneyard/chef-rfc/blob/master/rfc065-sign-v1.3.md
+// https://github.com/chef-boneyard/chef-rfc/blob/main/rfc065-sign-v1.3.md
 // https://github.com/chef/mixlib-authentication/blob/bc8adbef833d4be23dc78cb23e6fe44b51ebc34f/lib/mixlib/authentication/signedheaderauth.rb
 
 type Auth struct{}

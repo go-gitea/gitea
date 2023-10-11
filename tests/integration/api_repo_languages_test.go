@@ -17,15 +17,15 @@ func TestRepoLanguages(t *testing.T) {
 		session := loginUser(t, "user2")
 
 		// Request editor page
-		req := NewRequest(t, "GET", "/user2/repo1/_new/master/")
+		req := NewRequest(t, "GET", "/user2/repo1/_new/main/")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 
 		doc := NewHTMLParser(t, resp.Body)
 		lastCommit := doc.GetInputValueByName("last_commit")
 		assert.NotEmpty(t, lastCommit)
 
-		// Save new file to master branch
-		req = NewRequestWithValues(t, "POST", "/user2/repo1/_new/master/", map[string]string{
+		// Save new file to main branch
+		req = NewRequestWithValues(t, "POST", "/user2/repo1/_new/main/", map[string]string{
 			"_csrf":         doc.GetCSRF(),
 			"last_commit":   lastCommit,
 			"tree_path":     "test.go",
@@ -37,7 +37,7 @@ func TestRepoLanguages(t *testing.T) {
 		// let gitea calculate language stats
 		time.Sleep(time.Second)
 
-		// Save new file to master branch
+		// Save new file to main branch
 		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/languages")
 		resp = MakeRequest(t, req, http.StatusOK)
 

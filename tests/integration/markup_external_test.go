@@ -25,7 +25,7 @@ func TestExternalMarkupRenderer(t *testing.T) {
 	}
 
 	const repoURL = "user30/renderer"
-	req := NewRequest(t, "GET", repoURL+"/src/branch/master/README.html")
+	req := NewRequest(t, "GET", repoURL+"/src/branch/main/README.html")
 	resp := MakeRequest(t, req, http.StatusOK)
 	assert.EqualValues(t, "text/html; charset=utf-8", resp.Header()["Content-Type"][0])
 

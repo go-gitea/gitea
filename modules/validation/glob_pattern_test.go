@@ -30,7 +30,7 @@ var globValidationTestCases = []validationTestCase{
 	{
 		description: "Valid glob",
 		data: TestForm{
-			GlobPattern: "{master,release*}",
+			GlobPattern: "{main,release*}",
 		},
 		expectedErrors: binding.Errors{},
 	},

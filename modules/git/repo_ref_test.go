@@ -24,7 +24,7 @@ func TestRepository_GetRefs(t *testing.T) {
 	expectedRefs := []string{
 		BranchPrefix + "branch1",
 		BranchPrefix + "branch2",
-		BranchPrefix + "master",
+		BranchPrefix + "main",
 		TagPrefix + "test",
 		TagPrefix + "signed-tag",
 		NotesRef,
