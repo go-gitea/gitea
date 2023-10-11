@@ -112,7 +112,7 @@ func TestPackageComposer(t *testing.T) {
 
 			req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(content))
 			req = AddBasicAuthHeader(req, user.Name)
-			MakeRequest(t, req, http.StatusBadRequest)
+			MakeRequest(t, req, http.StatusConflict)
 		})
 	})
 
