@@ -425,6 +425,6 @@ func TestConflictChecking(t *testing.T) {
 		// Check if status is correct.
 		assert.Equal(t, issues_model.PullRequestStatusConflict, conflictingPR.Status)
 		// Ensure that mergeable returns false
-		assert.False(t, conflictingPR.Mergeable())
+		assert.False(t, conflictingPR.Mergeable(db.DefaultContext))
 	})
 }

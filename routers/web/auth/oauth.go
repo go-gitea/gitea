@@ -1074,7 +1074,7 @@ func showLinkingLogin(ctx *context.Context, gothUser goth.User) {
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
 }
 
-func updateAvatarIfNeed(url string, u *user_model.User) {
+func updateAvatarIfNeed(ctx *context.Context, url string, u *user_model.User) {
 	if setting.OAuth2Client.UpdateAvatar && len(url) > 0 {
 		resp, err := http.Get(url)
 		if err == nil {
@@ -1086,14 +1086,14 @@ func updateAvatarIfNeed(url string, u *user_model.User) {
 		if err == nil && resp.StatusCode == http.StatusOK {
 			data, err := io.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize+1))
 			if err == nil && int64(len(data)) <= setting.Avatar.MaxFileSize {
-				_ = user_service.UploadAvatar(u, data)
+				_ = user_service.UploadAvatar(ctx, u, data)
 			}
 		}
 	}
 }
 
 func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model.User, gothUser goth.User) {
-	updateAvatarIfNeed(gothUser.AvatarURL, u)
+	updateAvatarIfNeed(ctx, gothUser.AvatarURL, u)
 
 	needs2FA := false
 	if !source.Cfg.(*oauth2.Source).SkipLocalTwoFA {

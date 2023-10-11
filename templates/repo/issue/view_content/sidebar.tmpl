@@ -428,15 +428,15 @@
 				<div class="ui relaxed divided list">
 					{{range .BlockingDependencies}}
 						<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb">
-							<div class="item-left gt-df gt-jc gt-fc gt-f1">
+							<div class="item-left gt-df gt-jc gt-fc gt-f1 gt-ellipsis">
 								<a class="title muted" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
 									#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}
 								</a>
-								<div class="text small">
+								<div class="text small gt-ellipsis" data-tooltip-content="{{.Repository.OwnerName}}/{{.Repository.Name}}">
 									{{.Repository.OwnerName}}/{{.Repository.Name}}
 								</div>
 							</div>
-							<div class="item-right gt-df gt-ac">
+							<div class="item-right gt-df gt-ac gt-m-2">
 								{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 									<a class="delete-dependency-button ci muted" data-id="{{.Issue.ID}}" data-type="blocking" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.remove_info"}}">
 										{{svg "octicon-trash" 16}}
@@ -446,7 +446,7 @@
 						</div>
 					{{end}}
 					{{if .BlockingDependenciesNotPermitted}}
-						<div class="item gt-df gt-ac gt-sb">
+						<div class="item gt-df gt-ac gt-sb gt-ellipsis">
 							<span>{{ctx.Locale.TrN (len .BlockingDependenciesNotPermitted) "repo.issues.dependency.no_permission_1" "repo.issues.dependency.no_permission_n" (len .BlockingDependenciesNotPermitted)}}</span>
 						</div>
 					{{end}}
@@ -460,15 +460,15 @@
 				<div class="ui relaxed divided list">
 					{{range .BlockedByDependencies}}
 						<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb">
-							<div class="item-left gt-df gt-jc gt-fc gt-f1">
+							<div class="item-left gt-df gt-jc gt-fc gt-f1 gt-ellipsis">
 								<a class="title muted" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
 									#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}
 								</a>
-								<div class="text small">
+								<div class="text small gt-ellipsis" data-tooltip-content="{{.Repository.OwnerName}}/{{.Repository.Name}}">
 									{{.Repository.OwnerName}}/{{.Repository.Name}}
 								</div>
 							</div>
-							<div class="item-right gt-df gt-ac">
+							<div class="item-right gt-df gt-ac gt-m-2">
 								{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 									<a class="delete-dependency-button ci muted" data-id="{{.Issue.ID}}" data-type="blockedBy" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.remove_info"}}">
 										{{svg "octicon-trash" 16}}
@@ -480,18 +480,18 @@
 					{{if $.CanCreateIssueDependencies}}
 						{{range .BlockedByDependenciesNotPermitted}}
 							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb">
-								<div class="item-left gt-df gt-jc gt-fc gt-f1">
-									<div>
+								<div class="item-left gt-df gt-jc gt-fc gt-f1 gt-ellipsis">
+									<div class="gt-ellipsis">
 										<span data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.no_permission.can_remove"}}">{{svg "octicon-lock" 16}}</span>
 										<span class="title" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
 											#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}
 										</span>
 									</div>
-									<div class="text small">
+									<div class="text small gt-ellipsis" data-tooltip-content="{{.Repository.OwnerName}}/{{.Repository.Name}}">
 										{{.Repository.OwnerName}}/{{.Repository.Name}}
 									</div>
 								</div>
-								<div class="item-right gt-df gt-ac">
+								<div class="item-right gt-df gt-ac gt-m-2">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 										<a class="delete-dependency-button ci muted" data-id="{{.Issue.ID}}" data-type="blocking" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.remove_info"}}">
 											{{svg "octicon-trash" 16}}
@@ -501,7 +501,7 @@
 							</div>
 						{{end}}
 					{{else if .BlockedByDependenciesNotPermitted}}
-						<div class="item gt-df gt-ac gt-sb">
+						<div class="item gt-df gt-ac gt-sb gt-ellipsis">
 							<span>{{ctx.Locale.TrN (len .BlockedByDependenciesNotPermitted) "repo.issues.dependency.no_permission_1" "repo.issues.dependency.no_permission_n" (len .BlockedByDependenciesNotPermitted)}}</span>
 						</div>
 					{{end}}

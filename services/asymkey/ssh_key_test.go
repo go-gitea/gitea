@@ -66,8 +66,8 @@ ssh-dss AAAAB3NzaC1kc3MAAACBAOChCC7lf6Uo9n7BmZ6M8St19PZf4Tn59NriyboW2x/DZuYAz3ib
 
 	for i, kase := range testCases {
 		s.ID = int64(i) + 20
-		asymkey_model.AddPublicKeysBySource(user, s, []string{kase.keyString})
-		keys, err := asymkey_model.ListPublicKeysBySource(user.ID, s.ID)
+		asymkey_model.AddPublicKeysBySource(db.DefaultContext, user, s, []string{kase.keyString})
+		keys, err := asymkey_model.ListPublicKeysBySource(db.DefaultContext, user.ID, s.ID)
 		assert.NoError(t, err)
 		if err != nil {
 			continue

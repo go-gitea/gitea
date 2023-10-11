@@ -70,6 +70,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -165,7 +166,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 		ctx.ContextUser = owner
 
 		// Get repository.
-		repo, err := repo_model.GetRepositoryByName(owner.ID, repoName)
+		repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, repoName)
 		if err != nil {
 			if repo_model.IsErrRepoNotExist(err) {
 				redirectRepoID, err := repo_model.LookupRedirect(owner.ID, repoName)
@@ -716,7 +717,7 @@ func buildAuthGroup() *auth.Group {
 		group.Add(&auth.ReverseProxy{})
 	}
 
-	if setting.IsWindows && auth_model.IsSSPIEnabled() {
+	if setting.IsWindows && auth_model.IsSSPIEnabled(db.DefaultContext) {
 		group.Add(&auth.SSPI{}) // it MUST be the last, see the comment of SSPI
 	}
 

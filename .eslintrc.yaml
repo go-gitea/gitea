@@ -476,7 +476,7 @@ rules:
   prefer-exponentiation-operator: [2]
   prefer-named-capture-group: [0]
   prefer-numeric-literals: [2]
-  prefer-object-has-own: [0]
+  prefer-object-has-own: [2]
   prefer-object-spread: [2]
   prefer-promise-reject-errors: [2, {allowEmptyReject: false}]
   prefer-regex-literals: [2]

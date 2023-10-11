@@ -332,7 +332,7 @@ func TestLDAPUserSyncWithGroupFilter(t *testing.T) {
 	})
 	ldapConfig := ldapSource.Cfg.(*ldap.Source)
 	ldapConfig.GroupFilter = "(cn=ship_crew)"
-	auth_model.UpdateSource(ldapSource)
+	auth_model.UpdateSource(db.DefaultContext, ldapSource)
 
 	auth.SyncExternalUsers(context.Background(), true)
 
