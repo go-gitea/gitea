@@ -48,13 +48,13 @@ func Authentications(ctx *context.Context) {
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	var err error
-	ctx.Data["Sources"], err = auth.Sources()
+	ctx.Data["Sources"], err = auth.Sources(ctx)
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
 		return
 	}
 
-	ctx.Data["Total"] = auth.CountSources()
+	ctx.Data["Total"] = auth.CountSources(ctx)
 	ctx.HTML(http.StatusOK, tplAuths)
 }
 
@@ -284,7 +284,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 			ctx.RenderWithErr(err.Error(), tplAuthNew, form)
 			return
 		}
-		existing, err := auth.SourcesByType(auth.SSPI)
+		existing, err := auth.SourcesByType(ctx, auth.SSPI)
 		if err != nil || len(existing) > 0 {
 			ctx.Data["Err_Type"] = true
 			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_of_type_exist"), tplAuthNew, form)
@@ -301,7 +301,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 		return
 	}
 
-	if err := auth.CreateSource(&auth.Source{
+	if err := auth.CreateSource(ctx, &auth.Source{
 		Type:          auth.Type(form.Type),
 		Name:          form.Name,
 		IsActive:      form.IsActive,
@@ -337,7 +337,7 @@ func EditAuthSource(ctx *context.Context) {
 	oauth2providers := oauth2.GetOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
-	source, err := auth.GetSourceByID(ctx.ParamsInt64(":authid"))
+	source, err := auth.GetSourceByID(ctx, ctx.ParamsInt64(":authid"))
 	if err != nil {
 		ctx.ServerError("auth.GetSourceByID", err)
 		return
@@ -371,7 +371,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	oauth2providers := oauth2.GetOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
-	source, err := auth.GetSourceByID(ctx.ParamsInt64(":authid"))
+	source, err := auth.GetSourceByID(ctx, ctx.ParamsInt64(":authid"))
 	if err != nil {
 		ctx.ServerError("auth.GetSourceByID", err)
 		return
@@ -421,7 +421,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	source.IsActive = form.IsActive
 	source.IsSyncEnabled = form.IsSyncEnabled
 	source.Cfg = config
-	if err := auth.UpdateSource(source); err != nil {
+	if err := auth.UpdateSource(ctx, source); err != nil {
 		if auth.IsErrSourceAlreadyExist(err) {
 			ctx.Data["Err_Name"] = true
 			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_exist", err.(auth.ErrSourceAlreadyExist).Name), tplAuthEdit, form)
@@ -442,7 +442,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 
 // DeleteAuthSource response for deleting an auth source
 func DeleteAuthSource(ctx *context.Context) {
-	source, err := auth.GetSourceByID(ctx.ParamsInt64(":authid"))
+	source, err := auth.GetSourceByID(ctx, ctx.ParamsInt64(":authid"))
 	if err != nil {
 		ctx.ServerError("auth.GetSourceByID", err)
 		return
