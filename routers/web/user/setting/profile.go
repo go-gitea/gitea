@@ -157,7 +157,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 		if !(st.IsImage() && !st.IsSvgImage()) {
 			return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
 		}
-		if err = user_service.UploadAvatar(ctxUser, data); err != nil {
+		if err = user_service.UploadAvatar(ctx, ctxUser, data); err != nil {
 			return fmt.Errorf("UploadAvatar: %w", err)
 		}
 	} else if ctxUser.UseCustomAvatar && ctxUser.Avatar == "" {
@@ -189,7 +189,7 @@ func AvatarPost(ctx *context.Context) {
 
 // DeleteAvatar render delete avatar page
 func DeleteAvatar(ctx *context.Context) {
-	if err := user_service.DeleteAvatar(ctx.Doer); err != nil {
+	if err := user_service.DeleteAvatar(ctx, ctx.Doer); err != nil {
 		ctx.Flash.Error(err.Error())
 	}
 

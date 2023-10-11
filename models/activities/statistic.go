@@ -102,7 +102,7 @@ func GetStatistic(ctx context.Context) (stats Statistic) {
 	stats.Counter.Follow, _ = e.Count(new(user_model.Follow))
 	stats.Counter.Mirror, _ = e.Count(new(repo_model.Mirror))
 	stats.Counter.Release, _ = e.Count(new(repo_model.Release))
-	stats.Counter.AuthSource = auth.CountSources()
+	stats.Counter.AuthSource = auth.CountSources(ctx)
 	stats.Counter.Webhook, _ = e.Count(new(webhook.Webhook))
 	stats.Counter.Milestone, _ = e.Count(new(issues_model.Milestone))
 	stats.Counter.Label, _ = e.Count(new(issues_model.Label))

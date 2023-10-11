@@ -247,7 +247,7 @@ func Milestones(ctx *context.Context) {
 
 		milestones[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 			URLPrefix: milestones[i].Repo.Link(),
-			Metas:     milestones[i].Repo.ComposeMetas(),
+			Metas:     milestones[i].Repo.ComposeMetas(ctx),
 			Ctx:       ctx,
 		}, milestones[i].Content)
 		if err != nil {
@@ -463,7 +463,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 	accessibleRepos := container.Set[int64]{}
 	{
-		ids, _, err := repo_model.SearchRepositoryIDs(repoOpts)
+		ids, _, err := repo_model.SearchRepositoryIDs(ctx, repoOpts)
 		if err != nil {
 			ctx.ServerError("SearchRepositoryIDs", err)
 			return
@@ -576,7 +576,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 
 	// showReposMap maps repository IDs to their Repository pointers.
-	showReposMap, err := loadRepoByIDs(ctxUser, issueCountByRepo, unitType)
+	showReposMap, err := loadRepoByIDs(ctx, ctxUser, issueCountByRepo, unitType)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			ctx.NotFound("GetRepositoryByID", err)
@@ -734,7 +734,7 @@ func getRepoIDs(reposQuery string) []int64 {
 	return repoIDs
 }
 
-func loadRepoByIDs(ctxUser *user_model.User, issueCountByRepo map[int64]int64, unitType unit.Type) (map[int64]*repo_model.Repository, error) {
+func loadRepoByIDs(ctx *context.Context, ctxUser *user_model.User, issueCountByRepo map[int64]int64, unitType unit.Type) (map[int64]*repo_model.Repository, error) {
 	totalRes := make(map[int64]*repo_model.Repository, len(issueCountByRepo))
 	repoIDs := make([]int64, 0, 500)
 	for id := range issueCountByRepo {
@@ -743,14 +743,14 @@ func loadRepoByIDs(ctxUser *user_model.User, issueCountByRepo map[int64]int64, u
 		}
 		repoIDs = append(repoIDs, id)
 		if len(repoIDs) == 500 {
-			if err := repo_model.FindReposMapByIDs(repoIDs, totalRes); err != nil {
+			if err := repo_model.FindReposMapByIDs(ctx, repoIDs, totalRes); err != nil {
 				return nil, err
 			}
 			repoIDs = repoIDs[:0]
 		}
 	}
 	if len(repoIDs) > 0 {
-		if err := repo_model.FindReposMapByIDs(repoIDs, totalRes); err != nil {
+		if err := repo_model.FindReposMapByIDs(ctx, repoIDs, totalRes); err != nil {
 			return nil, err
 		}
 	}
@@ -759,7 +759,7 @@ func loadRepoByIDs(ctxUser *user_model.User, issueCountByRepo map[int64]int64, u
 
 // ShowSSHKeys output all the ssh keys of user by uid
 func ShowSSHKeys(ctx *context.Context) {
-	keys, err := asymkey_model.ListPublicKeys(ctx.ContextUser.ID, db.ListOptions{})
+	keys, err := asymkey_model.ListPublicKeys(ctx, ctx.ContextUser.ID, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return
