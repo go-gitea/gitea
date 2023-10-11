@@ -136,7 +136,7 @@ func Releases(ctx *context.Context) {
 
 		r.Note, err = markdown.RenderString(&markup.RenderContext{
 			URLPrefix: ctx.Repo.RepoLink,
-			Metas:     ctx.Repo.Repository.ComposeMetas(),
+			Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
 			GitRepo:   ctx.Repo.GitRepo,
 			Ctx:       ctx,
 		}, r.Note)
@@ -285,7 +285,7 @@ func SingleRelease(ctx *context.Context) {
 	}
 	release.Note, err = markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.Repo.RepoLink,
-		Metas:     ctx.Repo.Repository.ComposeMetas(),
+		Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
 		GitRepo:   ctx.Repo.GitRepo,
 		Ctx:       ctx,
 	}, release.Note)

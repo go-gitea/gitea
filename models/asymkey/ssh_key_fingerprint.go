@@ -81,7 +81,7 @@ func CalcFingerprint(publicKeyContent string) (string, error) {
 		fnName, fp string
 		err        error
 	)
-	if setting.SSH.StartBuiltinServer {
+	if len(setting.SSH.KeygenPath) == 0 {
 		fnName = "calcFingerprintNative"
 		fp, err = calcFingerprintNative(publicKeyContent)
 	} else {

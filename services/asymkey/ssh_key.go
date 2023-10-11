@@ -13,7 +13,7 @@ import (
 
 // DeletePublicKey deletes SSH key information both in database and authorized_keys file.
 func DeletePublicKey(ctx context.Context, doer *user_model.User, id int64) (err error) {
-	key, err := asymkey_model.GetPublicKeyByID(id)
+	key, err := asymkey_model.GetPublicKeyByID(ctx, id)
 	if err != nil {
 		return err
 	}
