@@ -24,8 +24,6 @@ rules:
   document-start:
     level: error
     present: false
-    ignore: |
-      /.drone.yml
 
   document-end:
     present: false
