@@ -39,7 +39,7 @@ import {
   initCommitStatuses,
 } from './features/repo-commit.js';
 import {
-  initFootLanguageMenu,
+  initFooterMenus,
   initGlobalButtonClickOnEnter,
   initGlobalButtons,
   initGlobalCommon,
@@ -111,7 +111,7 @@ onDomReady(() => {
   initInstall();
 
   initHeadNavbarContentToggle();
-  initFootLanguageMenu();
+  initFooterMenus();
 
   initCommentContent();
   initContextPopups();

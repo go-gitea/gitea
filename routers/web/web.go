@@ -629,7 +629,7 @@ func registerRoutes(m *web.Route) {
 			})
 			addWebhookEditRoutes()
 		}, webhooksEnabled)
-	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "AllThemes", setting.UI.Themes, "EnablePackages", setting.Packages.Enabled))
+	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "EnablePackages", setting.Packages.Enabled))
 
 	m.Group("/user", func() {
 		m.Get("/activate", auth.Activate)

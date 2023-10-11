@@ -67,10 +67,10 @@
   justify-content: center;
 }
 
-.page-footer .right-links > a {
+.page-footer .right-links > * + * {
   border-left: 1px solid var(--color-secondary-dark-1);
-  padding-left: 8px;
-  margin-left: 5px;
+  padding-left: 7px;
+  margin-left: 7px;
 }
 
 .page-footer .ui.dropdown.language .menu {

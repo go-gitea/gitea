@@ -13,21 +13,17 @@
 
 			<form class="ui form" action="{{.Link}}/theme" method="post">
 				{{.CsrfTokenHtml}}
+				{{$currentTheme := ThemeName .SignedUser}}
 					<div class="field">
 						<label for="ui">{{ctx.Locale.Tr "settings.ui"}}</label>
 						<div class="ui selection dropdown" id="ui">
-							<input name="theme" type="hidden" value="{{.SignedUser.Theme}}">
+							<input name="theme" type="hidden" value="{{$currentTheme}}">
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="text">
-								{{range $i,$a := .AllThemes}}
-									{{if eq $.SignedUser.Theme $a}}{{$a}}{{end}}
-								{{end}}
-							</div>
-
+							<div class="text">{{$currentTheme}}</div>
 							<div class="menu">
-							{{range $i,$a := .AllThemes}}
-								<div class="item{{if eq $.SignedUser.Theme $a}} active selected{{end}}" data-value="{{$a}}">
-									{{$a}}
+							{{range Themes}}
+								<div class="item{{if eq $currentTheme .}} active selected{{end}}" data-value="{{.}}">
+									{{.}}
 								</div>
 							{{end}}
 							</div>

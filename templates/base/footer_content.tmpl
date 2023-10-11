@@ -15,6 +15,17 @@
 		{{end}}
 	</div>
 	<div class="right-links" role="group" aria-label="{{ctx.Locale.Tr "aria.footer.links"}}">
+		<div class="ui dropdown upward">
+			{{$currentTheme := ThemeName .SignedUser}}
+			<span class="flex-text-inline">{{svg (ThemeIcon $currentTheme) 14}} {{$currentTheme}}</span>
+			<div class="menu theme-menu">
+				{{range Themes}}
+					<a data-value="{{.}}" class="item {{if eq $currentTheme .}}active selected{{end}}">
+						{{svg (ThemeIcon .) 14}} {{.}}
+					</a>
+				{{end}}
+			</div>
+		</div>
 		<div class="ui dropdown upward language">
 			<span class="flex-text-inline">{{svg "octicon-globe" 14}} {{ctx.Locale.LangName}}</span>
 			<div class="menu language-menu">

@@ -12,6 +12,7 @@ import {showTemporaryTooltip} from '../modules/tippy.js';
 import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
 import {request} from '../modules/fetch.js';
+import {POST} from '../modules/fetch.js';
 
 const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
 
@@ -35,15 +36,18 @@ export function initHeadNavbarContentToggle() {
   });
 }
 
-export function initFootLanguageMenu() {
-  function linkLanguageAction() {
-    const $this = $(this);
-    $.get($this.data('url')).always(() => {
+export function initFooterMenus() {
+  $('.language-menu a[lang]').on('click', function() {
+    $.get($(this).data('url')).always(() => {
       window.location.reload();
     });
-  }
-
-  $('.language-menu a[lang]').on('click', linkLanguageAction);
+  });
+  $('.theme-menu .item').on('click', async (e) => {
+    const res = await POST(`${appSubUrl}/user/settings/appearance/theme`, {
+      data: new URLSearchParams({theme: e.target.getAttribute('data-value')}),
+    });
+    if (res.ok) window.location.reload();
+  });
 }
 
 

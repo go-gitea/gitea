@@ -138,6 +138,20 @@ func NewFuncMap() template.FuncMap {
 			}
 			return user.Theme
 		},
+		"ThemeIcon": func(theme string) string {
+			if theme == "gitea-dark" {
+				return "octicon-moon"
+			} else if theme == "gitea-light" {
+				return "octicon-sun"
+			} else if theme == "gitea-auto" {
+				return "gitea-eclipse"
+			} else {
+				return "octicon-paintbrush"
+			}
+		},
+		"Themes": func() []string {
+			return setting.UI.Themes
+		},
 		"NotificationSettings": func() map[string]any {
 			return map[string]any{
 				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
