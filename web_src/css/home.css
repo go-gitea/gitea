@@ -73,7 +73,7 @@
   margin-left: 7px;
 }
 
-.page-footer .ui.dropdown.language .menu {
+.page-footer .ui.dropdown .menu {
   max-height: min(500px, calc(100vh - 60px));
   overflow-y: auto;
   margin-bottom: 10px;
