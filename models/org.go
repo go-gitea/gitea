@@ -14,7 +14,14 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 )
 
-func removeOrgUser(ctx context.Context, orgID, userID int64) error {
+// RemoveOrgUser removes user from given organization.
+func RemoveOrgUser(ctx context.Context, orgID, userID int64) error {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
 	ou := new(organization.OrgUser)
 
 	sess := db.GetEngine(ctx)
@@ -93,18 +100,5 @@ func removeOrgUser(ctx context.Context, orgID, userID int64) error {
 		}
 	}
 
-	return nil
-}
-
-// RemoveOrgUser removes user from given organization.
-func RemoveOrgUser(orgID, userID int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	if err := removeOrgUser(ctx, orgID, userID); err != nil {
-		return err
-	}
 	return committer.Commit()
 }
