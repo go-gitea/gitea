@@ -49,9 +49,9 @@ func (schedules ScheduleList) LoadTriggerUser(ctx context.Context) error {
 	return nil
 }
 
-func (schedules ScheduleList) LoadRepos() error {
+func (schedules ScheduleList) LoadRepos(ctx context.Context) error {
 	repoIDs := schedules.GetRepoIDs()
-	repos, err := repo_model.GetRepositoriesMapByIDs(repoIDs)
+	repos, err := repo_model.GetRepositoriesMapByIDs(ctx, repoIDs)
 	if err != nil {
 		return err
 	}

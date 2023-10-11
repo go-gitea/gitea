@@ -21,8 +21,8 @@ import (
 )
 
 // FindReposMapByIDs find repos as map
-func FindReposMapByIDs(repoIDs []int64, res map[int64]*Repository) error {
-	return db.GetEngine(db.DefaultContext).In("id", repoIDs).Find(&res)
+func FindReposMapByIDs(ctx context.Context, repoIDs []int64, res map[int64]*Repository) error {
+	return db.GetEngine(ctx).In("id", repoIDs).Find(&res)
 }
 
 // RepositoryListDefaultPageSize is the default number of repositories
@@ -672,12 +672,12 @@ func SearchRepositoryByName(ctx context.Context, opts *SearchRepoOptions) (Repos
 
 // SearchRepositoryIDs takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
-func SearchRepositoryIDs(opts *SearchRepoOptions) ([]int64, int64, error) {
+func SearchRepositoryIDs(ctx context.Context, opts *SearchRepoOptions) ([]int64, int64, error) {
 	opts.IncludeDescription = false
 
 	cond := SearchRepositoryCondition(opts)
 
-	sess, count, err := searchRepositoryByCondition(db.DefaultContext, opts, cond)
+	sess, count, err := searchRepositoryByCondition(ctx, opts, cond)
 	if err != nil {
 		return nil, 0, err
 	}

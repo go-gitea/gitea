@@ -34,7 +34,7 @@ func TestIssue_ReplaceLabels(t *testing.T) {
 		for i, labelID := range labelIDs {
 			labels[i] = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: labelID, RepoID: repo.ID})
 		}
-		assert.NoError(t, issues_model.ReplaceIssueLabels(issue, labels, doer))
+		assert.NoError(t, issues_model.ReplaceIssueLabels(db.DefaultContext, issue, labels, doer))
 		unittest.AssertCount(t, &issues_model.IssueLabel{IssueID: issueID}, len(expectedLabelIDs))
 		for _, labelID := range expectedLabelIDs {
 			unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issueID, LabelID: labelID})
@@ -122,7 +122,7 @@ func TestIssue_ClearLabels(t *testing.T) {
 		assert.NoError(t, unittest.PrepareTestDatabase())
 		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: test.issueID})
 		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: test.doerID})
-		assert.NoError(t, issues_model.ClearIssueLabels(issue, doer))
+		assert.NoError(t, issues_model.ClearIssueLabels(db.DefaultContext, issue, doer))
 		unittest.AssertNotExistsBean(t, &issues_model.IssueLabel{IssueID: test.issueID})
 	}
 }
@@ -230,7 +230,7 @@ func TestGetRepoIDsForIssuesOptions(t *testing.T) {
 			[]int64{1, 2},
 		},
 	} {
-		repoIDs, err := issues_model.GetRepoIDsForIssuesOptions(&test.Opts, user)
+		repoIDs, err := issues_model.GetRepoIDsForIssuesOptions(db.DefaultContext, &test.Opts, user)
 		assert.NoError(t, err)
 		if assert.Len(t, repoIDs, len(test.ExpectedRepoIDs)) {
 			for i, repoID := range repoIDs {
