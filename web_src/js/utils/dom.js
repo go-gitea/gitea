@@ -185,20 +185,12 @@ export function onInputDebounce(fn) {
 }
 
 // Set the `src` attribute on an element and returns a promise that resolves once the element
-// has loaded. Suitable for all elements mention in:
+// has loaded or errored. Suitable for all elements mention in:
 // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/load_event
 export function loadElem(el, src) {
   return new Promise((resolve) => {
-    function onLoad() {
-      resolve(true);
-      el.removeEventListener('load', onLoad);
-    }
-    function onError() {
-      resolve(false);
-      el.removeEventListener('error', onError);
-    }
-    el.addEventListener('load', onLoad);
-    el.addEventListener('error', onError);
+    el.addEventListener('load', () => resolve(true), {once: true});
+    el.addEventListener('error', () => resolve(false), {once: true});
     el.src = src;
   });
 }
