@@ -83,6 +83,7 @@
 				{{if .GetOpType.InActions "commit_repo" "mirror_sync_push"}}
 					{{$push := ActionContent2Commits .}}
 					{{$repoLink := (.GetRepoLink ctx)}}
+					{{$repo := .Repo}}
 					<div class="gt-df gt-fc gt-gap-2">
 						{{range $push.Commits}}
 							{{$commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
@@ -90,7 +91,7 @@
 								<img class="ui avatar" src="{{$push.AvatarLink $.Context .AuthorEmail}}" title="{{.AuthorName}}" width="16" height="16">
 								<a class="ui sha label" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
 								<span class="text truncate">
-									{{RenderCommitMessage $.Context .Message $repoLink $.ComposeMetas}}
+									{{RenderCommitMessage $.Context .Message $repoLink ($repo.ComposeMetas ctx)}}
 								</span>
 							</div>
 						{{end}}

@@ -40,7 +40,7 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(repoID int64, state api.StateType) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
-		milestones, _, err := issues_model.GetMilestones(issues_model.GetMilestonesOption{
+		milestones, _, err := issues_model.GetMilestones(db.DefaultContext, issues_model.GetMilestonesOption{
 			RepoID: repo.ID,
 			State:  state,
 		})
@@ -77,7 +77,7 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 	test(3, api.StateClosed)
 	test(3, api.StateAll)
 
-	milestones, _, err := issues_model.GetMilestones(issues_model.GetMilestonesOption{
+	milestones, _, err := issues_model.GetMilestones(db.DefaultContext, issues_model.GetMilestonesOption{
 		RepoID: unittest.NonexistentID,
 		State:  api.StateOpen,
 	})
@@ -90,7 +90,7 @@ func TestGetMilestones(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	test := func(sortType string, sortCond func(*issues_model.Milestone) int) {
 		for _, page := range []int{0, 1} {
-			milestones, _, err := issues_model.GetMilestones(issues_model.GetMilestonesOption{
+			milestones, _, err := issues_model.GetMilestones(db.DefaultContext, issues_model.GetMilestonesOption{
 				ListOptions: db.ListOptions{
 					Page:     page,
 					PageSize: setting.UI.IssuePagingNum,
@@ -107,7 +107,7 @@ func TestGetMilestones(t *testing.T) {
 			}
 			assert.True(t, sort.IntsAreSorted(values))
 
-			milestones, _, err = issues_model.GetMilestones(issues_model.GetMilestonesOption{
+			milestones, _, err = issues_model.GetMilestones(db.DefaultContext, issues_model.GetMilestonesOption{
 				ListOptions: db.ListOptions{
 					Page:     page,
 					PageSize: setting.UI.IssuePagingNum,
