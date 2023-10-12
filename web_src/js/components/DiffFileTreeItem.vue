@@ -60,7 +60,7 @@ a, a:hover {
 .sub-items {
   padding-left: 9px;
   margin-left: 9px;
-  border-left: 1px solid #808080;
+  border-left: 1px solid var(--color-secondary);
 }
 
 .item-file {
