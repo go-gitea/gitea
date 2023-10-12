@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"path/filepath"
 	"sort"
 	"time"
 
@@ -67,7 +68,7 @@ func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chun
 	var chunks []*chunkFileItem
 	if err := st.IterateObjects(storageDir, func(path string, obj storage.Object) error {
 		item := chunkFileItem{Path: path}
-		if _, err := fmt.Sscanf(path, storageDir+"/%d-%d-%d.chunk", &item.ArtifactID, &item.Start, &item.End); err != nil {
+		if _, err := fmt.Sscanf(path, filepath.Join(storageDir, "%d-%d-%d.chunk"), &item.ArtifactID, &item.Start, &item.End); err != nil {
 			return fmt.Errorf("parse content range error: %v", err)
 		}
 		chunks = append(chunks, &item)
@@ -178,7 +179,7 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 	// save storage path to artifact
 	log.Debug("[artifact] merge chunks to artifact: %d, %s", artifact.ID, storagePath)
 	artifact.StoragePath = storagePath
-	artifact.Status = actions.ArtifactStatusUploadConfirmed
+	artifact.Status = int64(actions.ArtifactStatusUploadConfirmed)
 	if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
 		return fmt.Errorf("update artifact error: %v", err)
 	}

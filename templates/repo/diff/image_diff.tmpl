@@ -1,46 +1,51 @@
 {{if or .blobBase .blobHead}}
 <tr>
 	<td colspan="2">
-		<div class="image-diff" data-path-before="{{.root.BeforeRawPath}}/{{PathEscapeSegments .file.OldName}}" data-path-after="{{.root.RawPath}}/{{PathEscapeSegments .file.Name}}">
+		<div class="image-diff"
+			data-path-before="{{.root.BeforeRawPath}}/{{PathEscapeSegments .file.OldName}}"
+			data-path-after="{{.root.RawPath}}/{{PathEscapeSegments .file.Name}}"
+			data-mime-before="{{.sniffedTypeBase.GetMimeType}}"
+			data-mime-after="{{.sniffedTypeHead.GetMimeType}}"
+		>
 			<div class="ui secondary pointing tabular top attached borderless menu new-menu">
 				<div class="new-menu-inner">
-					<a class="item active" data-tab="diff-side-by-side-{{.file.Index}}">{{.root.locale.Tr "repo.diff.image.side_by_side"}}</a>
+					<a class="item active" data-tab="diff-side-by-side-{{.file.Index}}">{{ctx.Locale.Tr "repo.diff.image.side_by_side"}}</a>
 					{{if and .blobBase .blobHead}}
-					<a class="item" data-tab="diff-swipe-{{.file.Index}}">{{.root.locale.Tr "repo.diff.image.swipe"}}</a>
-					<a class="item" data-tab="diff-overlay-{{.file.Index}}">{{.root.locale.Tr "repo.diff.image.overlay"}}</a>
+					<a class="item" data-tab="diff-swipe-{{.file.Index}}">{{ctx.Locale.Tr "repo.diff.image.swipe"}}</a>
+					<a class="item" data-tab="diff-overlay-{{.file.Index}}">{{ctx.Locale.Tr "repo.diff.image.overlay"}}</a>
 					{{end}}
 				</div>
 			</div>
-			<div class="gt-hidden">
+			<div class="image-diff-tabs is-loading">
 				<div class="ui bottom attached tab image-diff-container active" data-tab="diff-side-by-side-{{.file.Index}}">
 					<div class="diff-side-by-side">
 						{{if .blobBase}}
 						<span class="side">
-							<p class="side-header">{{.root.locale.Tr "repo.diff.file_before"}}</p>
+							<p class="side-header">{{ctx.Locale.Tr "repo.diff.file_before"}}</p>
 							<span class="before-container"><img class="image-before"></span>
 							<p>
 								<span class="bounds-info-before">
-									{{.root.locale.Tr "repo.diff.file_image_width"}}: <span class="text bounds-info-width"></span>
+									{{ctx.Locale.Tr "repo.diff.file_image_width"}}: <span class="text bounds-info-width"></span>
 									&nbsp;|&nbsp;
-									{{.root.locale.Tr "repo.diff.file_image_height"}}: <span class="text bounds-info-height"></span>
+									{{ctx.Locale.Tr "repo.diff.file_image_height"}}: <span class="text bounds-info-height"></span>
 									&nbsp;|&nbsp;
 								</span>
-								{{.root.locale.Tr "repo.diff.file_byte_size"}}: <span class="text">{{FileSize .blobBase.Size}}</span>
+								{{ctx.Locale.Tr "repo.diff.file_byte_size"}}: <span class="text">{{FileSize .blobBase.Size}}</span>
 							</p>
 						</span>
 						{{end}}
 						{{if .blobHead}}
 						<span class="side">
-							<p class="side-header">{{.root.locale.Tr "repo.diff.file_after"}}</p>
+							<p class="side-header">{{ctx.Locale.Tr "repo.diff.file_after"}}</p>
 							<span class="after-container"><img class="image-after"></span>
 							<p>
 								<span class="bounds-info-after">
-									{{.root.locale.Tr "repo.diff.file_image_width"}}: <span class="text bounds-info-width"></span>
+									{{ctx.Locale.Tr "repo.diff.file_image_width"}}: <span class="text bounds-info-width"></span>
 									&nbsp;|&nbsp;
-									{{.root.locale.Tr "repo.diff.file_image_height"}}: <span class="text bounds-info-height"></span>
+									{{ctx.Locale.Tr "repo.diff.file_image_height"}}: <span class="text bounds-info-height"></span>
 									&nbsp;|&nbsp;
 								</span>
-								{{.root.locale.Tr "repo.diff.file_byte_size"}}: <span class="text">{{FileSize .blobHead.Size}}</span>
+								{{ctx.Locale.Tr "repo.diff.file_byte_size"}}: <span class="text">{{FileSize .blobHead.Size}}</span>
 							</p>
 						</span>
 						{{end}}
@@ -63,10 +68,8 @@
 				</div>
 				<div class="ui bottom attached tab image-diff-container" data-tab="diff-overlay-{{.file.Index}}">
 					<div class="diff-overlay">
+						<input type="range" min="0" max="100" value="50">
 						<div class="overlay-frame">
-							<div class="ui centered">
-								<input type="range" min="0" max="100" value="50">
-							</div>
 							<span class="before-container"><img class="image-before"></span>
 							<span class="after-container"><img class="image-after"></span>
 						</div>
@@ -74,7 +77,6 @@
 				</div>
 				{{end}}
 			</div>
-			<div class="ui active centered inline loader gt-mb-4"></div>
 		</div>
 	</td>
 </tr>

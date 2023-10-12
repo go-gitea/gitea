@@ -157,7 +157,7 @@ func SignIn(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
-	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled()
+	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled(ctx)
 
 	if setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin {
 		context.SetCaptchaData(ctx)
@@ -181,7 +181,7 @@ func SignInPost(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
-	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled()
+	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled(ctx)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplSignIn)
@@ -199,7 +199,7 @@ func SignInPost(ctx *context.Context) {
 		}
 	}
 
-	u, source, err := auth_service.UserSignIn(form.UserName, form.Password)
+	u, source, err := auth_service.UserSignIn(ctx, form.UserName, form.Password)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
@@ -236,14 +236,14 @@ func SignInPost(ctx *context.Context) {
 
 	// If this user is enrolled in 2FA TOTP, we can't sign the user in just yet.
 	// Instead, redirect them to the 2FA authentication page.
-	hasTOTPtwofa, err := auth.HasTwoFactorByUID(u.ID)
+	hasTOTPtwofa, err := auth.HasTwoFactorByUID(ctx, u.ID)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
 
 	// Check if the user has webauthn registration
-	hasWebAuthnTwofa, err := auth.HasWebAuthnRegistrationsByUID(u.ID)
+	hasWebAuthnTwofa, err := auth.HasWebAuthnRegistrationsByUID(ctx, u.ID)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -392,11 +392,25 @@ func SignUp(ctx *context.Context) {
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
+	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers()
+	if err != nil {
+		ctx.ServerError("UserSignUp", err)
+		return
+	}
+
+	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
+	ctx.Data["OAuth2Providers"] = oauth2Providers
 	context.SetCaptchaData(ctx)
+
 	ctx.Data["PageIsSignUp"] = true
 
 	// Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration
+
+	redirectTo := ctx.FormString("redirect_to")
+	if len(redirectTo) > 0 {
+		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
+	}
 
 	ctx.HTML(http.StatusOK, tplSignUp)
 }
@@ -408,7 +422,16 @@ func SignUpPost(ctx *context.Context) {
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
+	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers()
+	if err != nil {
+		ctx.ServerError("UserSignUp", err)
+		return
+	}
+
+	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
+	ctx.Data["OAuth2Providers"] = oauth2Providers
 	context.SetCaptchaData(ctx)
+
 	ctx.Data["PageIsSignUp"] = true
 
 	// Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
@@ -486,15 +509,15 @@ func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form any
 // createUserInContext creates a user and handles errors within a given context.
 // Optionally a template can be specified.
 func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) (ok bool) {
-	if err := user_model.CreateUser(u, overwrites); err != nil {
+	if err := user_model.CreateUser(ctx, u, overwrites); err != nil {
 		if allowLink && (user_model.IsErrUserAlreadyExist(err) || user_model.IsErrEmailAlreadyUsed(err)) {
 			if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingAuto {
 				var user *user_model.User
 				user = &user_model.User{Name: u.Name}
-				hasUser, err := user_model.GetUser(user)
+				hasUser, err := user_model.GetUser(ctx, user)
 				if !hasUser || err != nil {
 					user = &user_model.User{Email: u.Email}
-					hasUser, err = user_model.GetUser(user)
+					hasUser, err = user_model.GetUser(ctx, user)
 					if !hasUser || err != nil {
 						ctx.ServerError("UserLinkAccount", err)
 						return false
@@ -553,7 +576,7 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *us
 // sends a confirmation email if required.
 func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.User) (ok bool) {
 	// Auto-set admin for the only user.
-	if user_model.CountUsers(nil) == 1 {
+	if user_model.CountUsers(ctx, nil) == 1 {
 		u.IsAdmin = true
 		u.IsActive = true
 		u.SetLastLogin()
@@ -629,7 +652,7 @@ func Activate(ctx *context.Context) {
 		return
 	}
 
-	user := user_model.VerifyUserActiveCode(code)
+	user := user_model.VerifyUserActiveCode(ctx, code)
 	// if code is wrong
 	if user == nil {
 		ctx.Data["IsCodeInvalid"] = true
@@ -656,7 +679,7 @@ func ActivatePost(ctx *context.Context) {
 		return
 	}
 
-	user := user_model.VerifyUserActiveCode(code)
+	user := user_model.VerifyUserActiveCode(ctx, code)
 	// if code is wrong
 	if user == nil {
 		ctx.Data["IsCodeInvalid"] = true
@@ -699,7 +722,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 		return
 	}
 
-	if err := user_model.ActivateUserEmail(user.ID, user.Email, true); err != nil {
+	if err := user_model.ActivateUserEmail(ctx, user.ID, user.Email, true); err != nil {
 		log.Error("Unable to activate email for user: %-v with email: %s: %v", user, user.Email, err)
 		ctx.ServerError("ActivateUserEmail", err)
 		return
@@ -729,6 +752,12 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("auth.account_activated"))
+	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 {
+		middleware.DeleteRedirectToCookie(ctx.Resp)
+		ctx.RedirectToFirst(redirectTo)
+		return
+	}
+
 	ctx.Redirect(setting.AppSubURL + "/")
 }
 
@@ -738,8 +767,8 @@ func ActivateEmail(ctx *context.Context) {
 	emailStr := ctx.FormString("email")
 
 	// Verify code.
-	if email := user_model.VerifyActiveEmailCode(code, emailStr); email != nil {
-		if err := user_model.ActivateEmail(email); err != nil {
+	if email := user_model.VerifyActiveEmailCode(ctx, code, emailStr); email != nil {
+		if err := user_model.ActivateEmail(ctx, email); err != nil {
 			ctx.ServerError("ActivateEmail", err)
 		}
 

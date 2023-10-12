@@ -1,36 +1,39 @@
-<h4 class="ui top attached header">{{.locale.Tr "settings.webauthn"}}</h4>
+<h4 class="ui top attached header">{{ctx.Locale.Tr "settings.webauthn"}}</h4>
 <div class="ui attached segment">
-	<p>{{.locale.Tr "settings.webauthn_desc" | Str2html}}</p>
+	<p>{{ctx.Locale.Tr "settings.webauthn_desc" | Str2html}}</p>
 	{{template "user/auth/webauthn_error" .}}
-	<div class="ui key list">
+	<div class="flex-list">
 		{{range .WebAuthnCredentials}}
-			<div class="item">
-				<div class="right floated content">
+			<div class="flex-item">
+				<div class="flex-item-leading">
+					{{svg "octicon-key" 32}}
+				</div>
+				<div class="flex-item-main">
+					<div class="flex-item-title">{{.Name}}</div>
+					<span class="flex-item-body time">{{TimeSinceUnix .CreatedUnix ctx.Locale}}</span>
+				</div>
+				<div class="flex-item-trailing">
 					<button class="ui red tiny button delete-button" data-modal-id="delete-registration" data-url="{{$.Link}}/webauthn/delete" data-id="{{.ID}}">
-					{{$.locale.Tr "settings.delete_key"}}
+					{{ctx.Locale.Tr "settings.delete_key"}}
 					</button>
 				</div>
-				<div class="content">
-					<strong>{{.Name}}</strong>
-				</div>
-				<span class="time">{{TimeSinceUnix .CreatedUnix $.locale}}</span>
 			</div>
 		{{end}}
 	</div>
 	<div class="ui form">
 		<div class="required field">
-			<label for="nickname">{{.locale.Tr "settings.webauthn_nickname"}}</label>
+			<label for="nickname">{{ctx.Locale.Tr "settings.webauthn_nickname"}}</label>
 			<input id="nickname" name="nickname" type="text" required>
 		</div>
-		<button id="register-webauthn" class="ui green button">{{svg "octicon-key"}} {{.locale.Tr "settings.webauthn_register_key"}}</button>
+		<button id="register-webauthn" class="ui primary button">{{svg "octicon-key"}} {{ctx.Locale.Tr "settings.webauthn_register_key"}}</button>
 	</div>
 	<div class="ui g-modal-confirm delete modal" id="delete-registration">
 		<div class="header">
 			{{svg "octicon-trash"}}
-			{{.locale.Tr "settings.webauthn_delete_key"}}
+			{{ctx.Locale.Tr "settings.webauthn_delete_key"}}
 		</div>
 		<div class="content">
-			<p>{{.locale.Tr "settings.webauthn_delete_key_desc"}}</p>
+			<p>{{ctx.Locale.Tr "settings.webauthn_delete_key_desc"}}</p>
 		</div>
 		{{template "base/modal_actions_confirm" .}}
 	</div>

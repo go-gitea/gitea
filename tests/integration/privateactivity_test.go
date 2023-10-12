@@ -24,7 +24,7 @@ const (
 	privateActivityTestUser  = "user2"
 )
 
-// user3 is an organization so it is not usable here
+// org3 is an organization so it is not usable here
 const privateActivityTestOtherUser = "user4"
 
 // activity helpers
@@ -58,7 +58,7 @@ func testPrivateActivityHelperEnablePrivateActivity(t *testing.T) {
 }
 
 func testPrivateActivityHelperHasVisibleActivitiesInHTMLDoc(htmlDoc *HTMLDoc) bool {
-	return htmlDoc.doc.Find(".feeds").Find(".news").Length() > 0
+	return htmlDoc.doc.Find("#activity-feed").Find(".flex-item").Length() > 0
 }
 
 func testPrivateActivityHelperHasVisibleActivitiesFromSession(t *testing.T, session *TestSession) bool {

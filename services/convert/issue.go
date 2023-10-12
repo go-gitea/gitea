@@ -62,7 +62,7 @@ func toIssue(ctx context.Context, issue *issues_model.Issue, getDownloadURL func
 		if err := issue.Repo.LoadOwner(ctx); err != nil {
 			return &api.Issue{}
 		}
-		apiIssue.URL = issue.APIURL()
+		apiIssue.URL = issue.APIURL(ctx)
 		apiIssue.HTMLURL = issue.HTMLURL()
 		apiIssue.Labels = ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner)
 		apiIssue.Repo = &api.RepositoryMeta{
@@ -208,6 +208,7 @@ func ToLabel(label *issues_model.Label, repo *repo_model.Repository, org *user_m
 		Exclusive:   label.Exclusive,
 		Color:       strings.TrimLeft(label.Color, "#"),
 		Description: label.Description,
+		IsArchived:  label.IsArchived(),
 	}
 
 	// calculate URL

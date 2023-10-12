@@ -4,30 +4,30 @@
 	<div class="ui container">
 		<h2 class="ui dividing header">
 			{{if .PageIsEditRelease}}
-				{{.locale.Tr "repo.release.edit_release"}}
-				<div class="sub header">{{.locale.Tr "repo.release.edit_subheader"}}</div>
+				{{ctx.Locale.Tr "repo.release.edit_release"}}
+				<div class="sub header">{{ctx.Locale.Tr "repo.release.edit_subheader"}}</div>
 			{{else}}
-				{{.locale.Tr "repo.release.new_release"}}
-				<div class="sub header">{{.locale.Tr "repo.release.new_subheader"}}</div>
+				{{ctx.Locale.Tr "repo.release.new_release"}}
+				<div class="sub header">{{ctx.Locale.Tr "repo.release.new_subheader"}}</div>
 			{{end}}
 		</h2>
 		{{template "base/alert" .}}
-		<form class="ui form stackable grid" action="{{.Link}}" method="post">
+		<form class="ui form" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
-			<div class="ui seven wide column target">
+			<div class="ui seven wide target">
 				<div class="inline field {{if .Err_TagName}}error{{end}}">
 					{{if .PageIsEditRelease}}
 						<b>{{.tag_name}}</b><span class="at">@</span><strong>{{.tag_target}}</strong>
 					{{else}}
-						<input id="tag-name" name="tag_name" value="{{.tag_name}}" aria-label="{{.locale.Tr "repo.release.tag_name"}}" placeholder="{{.locale.Tr "repo.release.tag_name"}}" autofocus required maxlength="255">
-						<input id="tag-name-editor" type="hidden" data-existing-tags="{{JsonUtils.EncodeToString .Tags}}" data-tag-helper="{{.locale.Tr "repo.release.tag_helper"}}" data-tag-helper-new="{{.locale.Tr "repo.release.tag_helper_new"}}" data-tag-helper-existing="{{.locale.Tr "repo.release.tag_helper_existing"}}">
+						<input id="tag-name" name="tag_name" value="{{.tag_name}}" aria-label="{{ctx.Locale.Tr "repo.release.tag_name"}}" placeholder="{{ctx.Locale.Tr "repo.release.tag_name"}}" autofocus required maxlength="255">
+						<input id="tag-name-editor" type="hidden" data-existing-tags="{{JsonUtils.EncodeToString .Tags}}" data-tag-helper="{{ctx.Locale.Tr "repo.release.tag_helper"}}" data-tag-helper-new="{{ctx.Locale.Tr "repo.release.tag_helper_new"}}" data-tag-helper-existing="{{ctx.Locale.Tr "repo.release.tag_helper_existing"}}">
 						<div id="tag-target-selector" class="gt-dib">
 							<span class="at">@</span>
 							<div class="ui selection dropdown">
 								<input type="hidden" name="tag_target" value="{{.tag_target}}">
 								{{svg "octicon-git-branch"}}
 								<div class="text">
-									{{.locale.Tr "repo.release.target"}} :
+									{{ctx.Locale.Tr "repo.release.target"}} :
 									<strong id="repo-branch-current">{{.Repository.DefaultBranch}}</strong>
 								</div>
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -39,42 +39,39 @@
 							</div>
 						</div>
 						<div>
-							<span id="tag-helper" class="help gt-mt-3 gt-pb-0">{{.locale.Tr "repo.release.tag_helper"}}</span>
+							<span id="tag-helper" class="help gt-mt-3 gt-pb-0">{{ctx.Locale.Tr "repo.release.tag_helper"}}</span>
 						</div>
 					{{end}}
 				</div>
 			</div>
-			<div class="eleven wide column gt-pt-0">
+			<div class="eleven wide gt-pt-0">
 				<div class="field {{if .Err_Title}}error{{end}}">
-					<input name="title" aria-label="{{.locale.Tr "repo.release.title"}}" placeholder="{{.locale.Tr "repo.release.title"}}" value="{{.title}}" autofocus maxlength="255">
+					<input name="title" aria-label="{{ctx.Locale.Tr "repo.release.title"}}" placeholder="{{ctx.Locale.Tr "repo.release.title"}}" value="{{.title}}" autofocus maxlength="255">
 				</div>
 				<div class="field">
 					{{template "shared/combomarkdowneditor" (dict
-						"locale" $.locale
 						"MarkdownPreviewUrl" (print .Repository.Link "/markup")
 						"MarkdownPreviewContext" .RepoLink
 						"TextareaName" "content"
 						"TextareaContent" .content
-						"TextareaPlaceholder" (.locale.Tr "repo.release.message")
-						"TextareaAriaLabel" (.locale.Tr "repo.release.message")
+						"TextareaPlaceholder" (ctx.Locale.Tr "repo.release.message")
+						"TextareaAriaLabel" (ctx.Locale.Tr "repo.release.message")
 						"DropzoneParentContainer" "form"
 					)}}
 				</div>
 				{{range .attachments}}
-					<div class="field" id="attachment-{{.ID}}">
-						<div class="ui right gt-df gt-ac wrap_remove">
-							<a class="ui mini compact red button remove-rel-attach" data-id="{{.ID}}" data-uuid="{{.UUID}}">
-								{{$.locale.Tr "remove"}}
-							</a>
-						</div>
-						<div class="gt-df gt-ac">
-							<input name="attachment-edit-{{.UUID}}" class="gt-mr-3 attachment_edit" required value="{{.Name}}">
+					<div class="field flex-text-block" id="attachment-{{.ID}}">
+						<div class="flex-text-inline gt-f1">
+							<input name="attachment-edit-{{.UUID}}"  class="attachment_edit" required value="{{.Name}}">
 							<input name="attachment-del-{{.UUID}}" type="hidden" value="false">
-							<span class="ui text grey gt-mr-3">{{.Size | FileSize}}</span>
-							<span data-tooltip-content="{{$.locale.Tr "repo.release.download_count" ($.locale.PrettyNumber .DownloadCount)}}">
+							<span class="ui text grey gt-whitespace-nowrap">{{.Size | FileSize}}</span>
+							<span data-tooltip-content="{{ctx.Locale.Tr "repo.release.download_count" (ctx.Locale.PrettyNumber .DownloadCount)}}">
 								{{svg "octicon-info"}}
 							</span>
 						</div>
+						<a class="ui mini compact red button remove-rel-attach" data-id="{{.ID}}" data-uuid="{{.UUID}}">
+							{{ctx.Locale.Tr "remove"}}
+						</a>
 					</div>
 				{{end}}
 				{{if .IsAttachmentEnabled}}
@@ -83,14 +80,14 @@
 					</div>
 				{{end}}
 			</div>
-			<div class="ui container">
-				<div class="divider"></div>
-				<div class="ui text right">
+			<div class="divider"></div>
+			<div class="ui">
+				<div>
 					{{if not .PageIsEditRelease}}
 						<div class="tag-message field">
 							<div class="ui checkbox">
 								<input type="checkbox" name="add_tag_msg">
-								<label><strong>{{.locale.Tr "repo.release.add_tag_msg"}}</strong></label>
+								<label><strong>{{ctx.Locale.Tr "repo.release.add_tag_msg"}}</strong></label>
 							</div>
 						</div>
 					{{else}}
@@ -99,35 +96,32 @@
 					<div class="prerelease field">
 						<div class="ui checkbox">
 							<input type="checkbox" name="prerelease" {{if .prerelease}}checked{{end}}>
-							<label><strong>{{.locale.Tr "repo.release.prerelease_desc"}}</strong></label>
+							<label><strong>{{ctx.Locale.Tr "repo.release.prerelease_desc"}}</strong></label>
 						</div>
 					</div>
-					<span class="help">{{.locale.Tr "repo.release.prerelease_helper"}}</span>
-					<div class="field">
+					<span class="help">{{ctx.Locale.Tr "repo.release.prerelease_helper"}}</span>
+					<div class="divider gt-mt-0"></div>
+					<div class="gt-df gt-je">
 						{{if .PageIsEditRelease}}
-							<a class="ui button" href="{{.RepoLink}}/releases">
-								{{.locale.Tr "repo.release.cancel"}}
+							<a class="ui small button" href="{{.RepoLink}}/releases">
+								{{ctx.Locale.Tr "repo.release.cancel"}}
 							</a>
-							<a class="ui red button delete-button" data-url="{{$.RepoLink}}/releases/delete" data-id="{{.ID}}">
-								{{$.locale.Tr "repo.release.delete_release"}}
+							<a class="ui small red button delete-button" data-url="{{$.RepoLink}}/releases/delete" data-id="{{.ID}}">
+								{{ctx.Locale.Tr "repo.release.delete_release"}}
 							</a>
 							{{if .IsDraft}}
-								<button class="ui button" type="submit" name="draft" value="{{.locale.Tr "repo.release.save_draft"}}">{{.locale.Tr "repo.release.save_draft"}}</button>
-								<button class="ui primary button">
-									{{.locale.Tr "repo.release.publish"}}
+								<button class="ui small button" type="submit" name="draft" value="{{ctx.Locale.Tr "repo.release.save_draft"}}">{{ctx.Locale.Tr "repo.release.save_draft"}}</button>
+								<button class="ui small primary button">
+									{{ctx.Locale.Tr "repo.release.publish"}}
 								</button>
 							{{else}}
-								<button class="ui primary button">
-									{{.locale.Tr "repo.release.edit_release"}}
+								<button class="ui small primary button">
+									{{ctx.Locale.Tr "repo.release.edit_release"}}
 								</button>
 							{{end}}
 						{{else}}
-							{{if not .tag_name}}
-								<button class="ui button" type="submit" name="tag_only" value="{{.locale.Tr "repo.release.add_tag"}}">{{.locale.Tr "repo.release.add_tag"}}</button>
-							{{end}}
-							<button class="ui button" type="submit" name="draft" value="{{.locale.Tr "repo.release.save_draft"}}">{{.locale.Tr "repo.release.save_draft"}}</button>
-							<button class="ui primary button">
-								{{.locale.Tr "repo.release.publish"}}
+							<button class="ui small primary button">
+								{{ctx.Locale.Tr "repo.release.publish"}}
 							</button>
 						{{end}}
 					</div>
@@ -141,10 +135,10 @@
 	<div class="ui g-modal-confirm delete modal">
 		<div class="header">
 			{{svg "octicon-trash"}}
-			{{.locale.Tr "repo.release.deletion"}}
+			{{ctx.Locale.Tr "repo.release.deletion"}}
 		</div>
 		<div class="content">
-			<p>{{.locale.Tr "repo.release.deletion_desc"}}</p>
+			<p>{{ctx.Locale.Tr "repo.release.deletion_desc"}}</p>
 		</div>
 		{{template "base/modal_actions_confirm" .}}
 	</div>

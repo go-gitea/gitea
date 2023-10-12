@@ -1,0 +1,5 @@
+{{if .FullName}}
+	{{.FullName}} <span>(<a class="text primary" href="{{.HomeLink}}">{{.Name}}</a>)</span>
+{{else}}
+	<a class="text primary" href="{{.HomeLink}}">{{.Name}}</a>
+{{end}}

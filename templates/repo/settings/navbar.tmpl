@@ -1,50 +1,50 @@
-<div class="four wide column">
+<div class="flex-container-nav">
 	<div class="ui fluid vertical menu">
-		<div class="header item">{{.locale.Tr "org.settings"}}</div>
+		<div class="header item">{{ctx.Locale.Tr "repo.settings"}}</div>
 		<a class="{{if .PageIsSettingsOptions}}active {{end}}item" href="{{.RepoLink}}/settings">
-			{{.locale.Tr "repo.settings.options"}}
+			{{ctx.Locale.Tr "repo.settings.options"}}
 		</a>
 		<a class="{{if .PageIsSettingsCollaboration}}active {{end}}item" href="{{.RepoLink}}/settings/collaboration">
-			{{.locale.Tr "repo.settings.collaboration"}}
+			{{ctx.Locale.Tr "repo.settings.collaboration"}}
 		</a>
 		{{if not .Repository.IsEmpty}}
 			<a class="{{if .PageIsSettingsBranches}}active {{end}}item" href="{{.RepoLink}}/settings/branches">
-				{{.locale.Tr "repo.settings.branches"}}
+				{{ctx.Locale.Tr "repo.settings.branches"}}
 			</a>
 		{{end}}
 		<a class="{{if .PageIsSettingsTags}}active {{end}}item" href="{{.RepoLink}}/settings/tags">
-			{{.locale.Tr "repo.settings.tags"}}
+			{{ctx.Locale.Tr "repo.settings.tags"}}
 		</a>
 		{{if not DisableWebhooks}}
 			<a class="{{if .PageIsSettingsHooks}}active {{end}}item" href="{{.RepoLink}}/settings/hooks">
-				{{.locale.Tr "repo.settings.hooks"}}
+				{{ctx.Locale.Tr "repo.settings.hooks"}}
 			</a>
 		{{end}}
 		{{if .SignedUser.CanEditGitHook}}
 			<a class="{{if .PageIsSettingsGitHooks}}active {{end}}item" href="{{.RepoLink}}/settings/hooks/git">
-				{{.locale.Tr "repo.settings.githooks"}}
+				{{ctx.Locale.Tr "repo.settings.githooks"}}
 			</a>
 		{{end}}
 		<a class="{{if .PageIsSettingsKeys}}active {{end}}item" href="{{.RepoLink}}/settings/keys">
-			{{.locale.Tr "repo.settings.deploy_keys"}}
+			{{ctx.Locale.Tr "repo.settings.deploy_keys"}}
 		</a>
 		{{if .LFSStartServer}}
 			<a class="{{if .PageIsSettingsLFS}}active {{end}}item" href="{{.RepoLink}}/settings/lfs">
-				{{.locale.Tr "repo.settings.lfs"}}
+				{{ctx.Locale.Tr "repo.settings.lfs"}}
 			</a>
 		{{end}}
 		{{if and .EnableActions (not .UnitActionsGlobalDisabled) (.Permission.CanRead $.UnitTypeActions)}}
 		<details class="item toggleable-item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets .PageIsSharedSettingsVariables}}open{{end}}>
-			<summary>{{.locale.Tr "actions.actions"}}</summary>
+			<summary>{{ctx.Locale.Tr "actions.actions"}}</summary>
 			<div class="menu">
 				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{.RepoLink}}/settings/actions/runners">
-					{{.locale.Tr "actions.runners"}}
+					{{ctx.Locale.Tr "actions.runners"}}
 				</a>
 				<a class="{{if .PageIsSharedSettingsSecrets}}active {{end}}item" href="{{.RepoLink}}/settings/actions/secrets">
-					{{.locale.Tr "secrets.secrets"}}
+					{{ctx.Locale.Tr "secrets.secrets"}}
 				</a>
 				<a class="{{if .PageIsSharedSettingsVariables}}active {{end}}item" href="{{.RepoLink}}/settings/actions/variables">
-					{{.locale.Tr "actions.variables"}}
+					{{ctx.Locale.Tr "actions.variables"}}
 				</a>
 			</div>
 		</details>

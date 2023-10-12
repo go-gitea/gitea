@@ -23,7 +23,6 @@ import (
 // Ensure the struct implements the interface.
 var (
 	_ Method = &HTTPSign{}
-	_ Named  = &HTTPSign{}
 )
 
 // HTTPSign implements the Auth interface and authenticates requests (API requests
@@ -93,7 +92,7 @@ func VerifyPubKey(r *http.Request) (*asymkey_model.PublicKey, error) {
 
 	keyID := verifier.KeyId()
 
-	publicKeys, err := asymkey_model.SearchPublicKey(0, keyID)
+	publicKeys, err := asymkey_model.SearchPublicKey(r.Context(), 0, keyID)
 	if err != nil {
 		return nil, err
 	}

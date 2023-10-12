@@ -1,23 +1,35 @@
 <div class="ui attached segment">
-	<div class="ui key list">
-		<div class="item">
-			{{.locale.Tr "settings.oauth2_application_create_description"}}
+	<div class="flex-list">
+		<div class="flex-item">
+			{{ctx.Locale.Tr "settings.oauth2_application_create_description"}}
 		</div>
-		{{range $app := .Applications}}
-			<div class="item">
-				<div class="right floated content">
-					<a href="{{$.Link}}/oauth2/{{$app.ID}}" class="ui primary tiny button">
-						{{svg "octicon-pencil" 16 "gt-mr-2"}}
-						{{$.locale.Tr "settings.oauth2_application_edit"}}
-					</a>
-					<button class="ui red tiny button delete-button" data-modal-id="remove-gitea-oauth2-application"
-							data-url="{{$.Link}}/oauth2/{{$app.ID}}/delete">
-						{{svg "octicon-trash" 16 "gt-mr-2"}}
-						{{$.locale.Tr "settings.delete_key"}}
-					</button>
+		{{range .Applications}}
+			<div class="flex-item gt-ac">
+				<div class="flex-item-leading">
+					{{svg "octicon-apps" 32}}
 				</div>
-				<div class="content">
-					<strong>{{$app.Name}}</strong>
+				<div class="flex-item-main">
+					<div class="flex-item-title">{{.Name}}</div>
+					<div class="flex-item-body">
+						{{ctx.Locale.Tr "settings.oauth2_client_id"}}
+						<span class="ui label">{{.ClientID}}</span>
+					</div>
+				</div>
+				{{$isBuiltin := and $.BuiltinApplications (index $.BuiltinApplications .ClientID)}}
+				<div class="flex-item-trailing">
+					{{if $isBuiltin}}
+						<span class="ui basic label" data-tooltip-content="{{ctx.Locale.Tr "settings.oauth2_application_locked"}}">{{ctx.Locale.Tr "locked"}}</span>
+					{{else}}
+						<a href="{{$.Link}}/oauth2/{{.ID}}" class="ui primary tiny button">
+							{{svg "octicon-pencil" 16 "gt-mr-2"}}
+							{{ctx.Locale.Tr "settings.oauth2_application_edit"}}
+						</a>
+						<button class="ui red tiny button delete-button" data-modal-id="remove-gitea-oauth2-application"
+								data-url="{{$.Link}}/oauth2/{{.ID}}/delete">
+							{{svg "octicon-trash" 16 "gt-mr-2"}}
+							{{ctx.Locale.Tr "settings.delete_key"}}
+						</button>
+					{{end}}
 				</div>
 			</div>
 		{{end}}
@@ -26,10 +38,10 @@
 	<div class="ui g-modal-confirm delete modal" id="remove-gitea-oauth2-application">
 		<div class="header">
 			{{svg "octicon-trash"}}
-			{{.locale.Tr "settings.remove_oauth2_application"}}
+			{{ctx.Locale.Tr "settings.remove_oauth2_application"}}
 		</div>
 		<div class="content">
-			<p>{{.locale.Tr "settings.oauth2_application_remove_description"}}</p>
+			<p>{{ctx.Locale.Tr "settings.oauth2_application_remove_description"}}</p>
 		</div>
 		{{template "base/modal_actions_confirm" .}}
 	</div>
@@ -37,24 +49,24 @@
 
 <div class="ui attached bottom segment">
 	<h5 class="ui top header">
-		{{.locale.Tr "settings.create_oauth2_application"}}
+		{{ctx.Locale.Tr "settings.create_oauth2_application"}}
 	</h5>
 	<form class="ui form ignore-dirty" action="{{.Link}}/oauth2" method="post">
 		{{.CsrfTokenHtml}}
 		<div class="field {{if .Err_AppName}}error{{end}}">
-			<label for="application-name">{{.locale.Tr "settings.oauth2_application_name"}}</label>
+			<label for="application-name">{{ctx.Locale.Tr "settings.oauth2_application_name"}}</label>
 			<input id="application-name" name="application_name" value="{{.application_name}}" required maxlength="255">
 		</div>
 		<div class="field {{if .Err_RedirectURI}}error{{end}}">
-			<label for="redirect-uris">{{.locale.Tr "settings.oauth2_redirect_uris"}}</label>
+			<label for="redirect-uris">{{ctx.Locale.Tr "settings.oauth2_redirect_uris"}}</label>
 			<textarea name="redirect_uris" id="redirect-uris"></textarea>
 		</div>
 		<div class="field ui checkbox {{if .Err_ConfidentialClient}}error{{end}}">
-			<label>{{.locale.Tr "settings.oauth2_confidential_client"}}</label>
+			<label>{{ctx.Locale.Tr "settings.oauth2_confidential_client"}}</label>
 			<input type="checkbox" name="confidential_client" checked>
 		</div>
-		<button class="ui green button">
-			{{.locale.Tr "settings.create_oauth2_application_button"}}
+		<button class="ui primary button">
+			{{ctx.Locale.Tr "settings.create_oauth2_application_button"}}
 		</button>
 	</form>
 </div>

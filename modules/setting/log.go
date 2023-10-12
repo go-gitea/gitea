@@ -165,7 +165,7 @@ func loadLogModeByName(rootCfg ConfigProvider, loggerName, modeName string) (wri
 		writerMode.WriterOption = writerOption
 	default:
 		if !log.HasEventWriter(writerType) {
-			return "", "", writerMode, fmt.Errorf("invalid log writer type (mode): %s", writerType)
+			return "", "", writerMode, fmt.Errorf("invalid log writer type (mode): %s, maybe it needs something like 'MODE=file' in [log.%s] section", writerType, modeName)
 		}
 	}
 

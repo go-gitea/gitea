@@ -64,7 +64,7 @@
 -
   id: 3
   owner_id: 3
-  owner_name: user3
+  owner_name: org3
   lower_name: repo3
   name: repo3
   default_branch: master
@@ -126,7 +126,7 @@
 -
   id: 5
   owner_id: 3
-  owner_name: user3
+  owner_name: org3
   lower_name: repo5
   name: repo5
   num_watches: 0
@@ -671,7 +671,7 @@
 -
   id: 23
   owner_id: 17
-  owner_name: user17
+  owner_name: org17
   lower_name: big_test_public_4
   name: big_test_public_4
   num_watches: 0
@@ -679,7 +679,7 @@
   num_forks: 0
   num_issues: 0
   num_closed_issues: 0
-  num_pulls: 0
+  num_pulls: 1
   num_closed_pulls: 0
   num_milestones: 0
   num_closed_milestones: 0
@@ -701,7 +701,7 @@
 -
   id: 24
   owner_id: 17
-  owner_name: user17
+  owner_name: org17
   lower_name: big_test_private_4
   name: big_test_private_4
   num_watches: 0
@@ -791,7 +791,7 @@
 -
   id: 27
   owner_id: 19
-  owner_name: user19
+  owner_name: org19
   lower_name: big_test_public_mirror_6
   name: big_test_public_mirror_6
   num_watches: 0
@@ -821,7 +821,7 @@
 -
   id: 28
   owner_id: 19
-  owner_name: user19
+  owner_name: org19
   lower_name: big_test_private_mirror_6
   name: big_test_private_mirror_6
   num_watches: 0
@@ -942,7 +942,7 @@
 -
   id: 32 # org public repo
   owner_id: 3
-  owner_name: user3
+  owner_name: org3
   lower_name: repo21
   name: repo21
   num_watches: 0
@@ -1662,3 +1662,34 @@
   is_private: false
   status: 0
   num_issues: 0
+
+-
+  id: 58 # org public repo
+  owner_id: 2
+  owner_name: user2
+  lower_name: commitsonpr
+  name: commitsonpr
+  default_branch: main
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 1
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: false
+  is_archived: false
+  is_mirror: false
+  status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false

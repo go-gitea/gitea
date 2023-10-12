@@ -1,37 +1,37 @@
-<p><a href="{{.PackageDescriptor.PackageWebLink}}">{{.PackageDescriptor.Package.Name}}</a> / <strong>{{.locale.Tr "packages.versions"}}</strong></p>
+<p><a href="{{.PackageDescriptor.PackageWebLink}}">{{.PackageDescriptor.Package.Name}}</a> / <strong>{{ctx.Locale.Tr "packages.versions"}}</strong></p>
 <form class="ui form ignore-dirty">
 	<div class="ui fluid action input">
-		{{template "shared/searchinput" dict "locale" .locale "Value" .Query "AutoFocus" true}}
+		{{template "shared/searchinput" dict "Value" .Query "AutoFocus" true}}
 		<select class="ui dropdown" name="sort">
-			<option value="version_asc"{{if eq .Sort "version_asc"}} selected="selected"{{end}}>{{.locale.Tr "filter.string.asc"}}</option>
-			<option value="version_desc"{{if eq .Sort "version_desc"}} selected="selected"{{end}}>{{.locale.Tr "filter.string.desc"}}</option>
-			<option value="created_asc"{{if eq .Sort "created_asc"}} selected="selected"{{end}}>{{.locale.Tr "repo.issues.filter_sort.oldest"}}</option>
-			<option value="created_desc"{{if or (eq .Sort "") (eq .Sort "created_desc")}} selected="selected"{{end}}>{{.locale.Tr "repo.issues.filter_sort.latest"}}</option>
+			<option value="version_asc"{{if eq .Sort "version_asc"}} selected="selected"{{end}}>{{ctx.Locale.Tr "filter.string.asc"}}</option>
+			<option value="version_desc"{{if eq .Sort "version_desc"}} selected="selected"{{end}}>{{ctx.Locale.Tr "filter.string.desc"}}</option>
+			<option value="created_asc"{{if eq .Sort "created_asc"}} selected="selected"{{end}}>{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</option>
+			<option value="created_desc"{{if or (eq .Sort "") (eq .Sort "created_desc")}} selected="selected"{{end}}>{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</option>
 		</select>
 		{{if eq .PackageDescriptor.Package.Type "container"}}
 		<select class="ui dropdown" name="tagged">
 			{{$isTagged := or (eq .Tagged "") (eq .Tagged "tagged")}}
-			<option value="tagged"{{if $isTagged}} selected="selected"{{end}}>{{.locale.Tr "packages.filter.container.tagged"}}</option>
-			<option value="untagged"{{if not $isTagged}} selected="selected"{{end}}>{{.locale.Tr "packages.filter.container.untagged"}}</option>
+			<option value="tagged"{{if $isTagged}} selected="selected"{{end}}>{{ctx.Locale.Tr "packages.filter.container.tagged"}}</option>
+			<option value="untagged"{{if not $isTagged}} selected="selected"{{end}}>{{ctx.Locale.Tr "packages.filter.container.untagged"}}</option>
 		</select>
 		{{end}}
-		<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
+		<button class="ui primary button">{{ctx.Locale.Tr "explore.search"}}</button>
 	</div>
 </form>
-<div class="ui {{if .PackageDescriptors}}issue list{{end}}">
+<div>
 	{{range .PackageDescriptors}}
-		<li class="item">
-			<div class="issue-item-main">
-				<div class="issue-item-title">
-					<a class="title" href="{{.FullWebLink}}">{{.Version.LowerVersion}}</a>
-				</div>
-				<div class="issue-item-body">
-					{{$.locale.Tr "packages.published_by" (TimeSinceUnix .Version.CreatedUnix $.locale) .Creator.HomeLink (.Creator.GetDisplayName | Escape) | Safe}}
+	<div class="flex-list">
+		<div class="flex-item">
+			<div class="flex-item-main">
+				<a class="flex-item-title" href="{{.FullWebLink}}">{{.Version.LowerVersion}}</a>
+				<div class="flex-item-body">
+					{{ctx.Locale.Tr "packages.published_by" (TimeSinceUnix .Version.CreatedUnix ctx.Locale) .Creator.HomeLink (.Creator.GetDisplayName | Escape) | Safe}}
 				</div>
 			</div>
-		</li>
+		</div>
+	</div>
 	{{else}}
-		<p>{{.locale.Tr "packages.filter.no_result"}}</p>
+		<p class="gt-py-4">{{ctx.Locale.Tr "packages.filter.no_result"}}</p>
 	{{end}}
 	{{template "base/paginate" .}}
 </div>

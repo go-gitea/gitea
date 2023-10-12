@@ -40,6 +40,29 @@ func TestAPIDeleteMissingToken(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
+// TestAPIGetTokensPermission ensures that only the admin can get tokens from other users
+func TestAPIGetTokensPermission(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// admin can get tokens for other users
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	req := NewRequestf(t, "GET", "/api/v1/users/user2/tokens")
+	req = AddBasicAuthHeader(req, user.Name)
+	MakeRequest(t, req, http.StatusOK)
+
+	// non-admin can get tokens for himself
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	req = NewRequestf(t, "GET", "/api/v1/users/user2/tokens")
+	req = AddBasicAuthHeader(req, user.Name)
+	MakeRequest(t, req, http.StatusOK)
+
+	// non-admin can't get tokens for other users
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	req = NewRequestf(t, "GET", "/api/v1/users/user2/tokens")
+	req = AddBasicAuthHeader(req, user.Name)
+	MakeRequest(t, req, http.StatusForbidden)
+}
+
 type permission struct {
 	category auth_model.AccessTokenScopeCategory
 	level    auth_model.AccessTokenScopeLevel
@@ -138,26 +161,6 @@ func TestAPIDeniesPermissionBasedOnTokenScope(t *testing.T) {
 				{
 					auth_model.AccessTokenScopeCategoryAdmin,
 					auth_model.Read,
-				},
-			},
-		},
-		{
-			"/api/v1/markdown",
-			"POST",
-			[]permission{
-				{
-					auth_model.AccessTokenScopeCategoryMisc,
-					auth_model.Write,
-				},
-			},
-		},
-		{
-			"/api/v1/markdown/raw",
-			"POST",
-			[]permission{
-				{
-					auth_model.AccessTokenScopeCategoryMisc,
-					auth_model.Write,
 				},
 			},
 		},
@@ -348,16 +351,6 @@ func TestAPIDeniesPermissionBasedOnTokenScope(t *testing.T) {
 			},
 		},
 		{
-			"/api/v1/settings/api",
-			"GET",
-			[]permission{
-				{
-					auth_model.AccessTokenScopeCategoryMisc,
-					auth_model.Read,
-				},
-			},
-		},
-		{
 			"/api/v1/user",
 			"GET",
 			[]permission{
@@ -490,8 +483,7 @@ func runTestCase(t *testing.T, testCase *requiredScopeTestCase, user *user_model
 				} else if minRequiredLevel == auth_model.Write {
 					unauthorizedLevel = auth_model.Read
 				} else {
-					assert.Failf(t, "Invalid test case", "Unknown access token scope level: %v", minRequiredLevel)
-					return
+					assert.FailNow(t, "Invalid test case: Unknown access token scope level: %v", minRequiredLevel)
 				}
 			}
 

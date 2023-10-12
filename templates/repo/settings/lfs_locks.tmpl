@@ -2,14 +2,14 @@
 	<div class="user-main-content twelve wide column content repository file list">
 		<div class="tab-size-8 non-diff-file-content">
 			<h4 class="ui top attached header">
-				<a href="{{.LFSFilesLink}}">{{.locale.Tr "repo.settings.lfs"}}</a> / {{.locale.Tr "repo.settings.lfs_locks"}} ({{.locale.Tr "admin.total" .Total}})
+				<a href="{{.LFSFilesLink}}">{{ctx.Locale.Tr "repo.settings.lfs"}}</a> / {{ctx.Locale.Tr "repo.settings.lfs_locks"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 			</h4>
 			<div class="ui attached segment">
 				<form class="ui form ignore-dirty" method="post">
 					{{$.CsrfTokenHtml}}
 					<div class="ui fluid action input">
-						<input name="path" value="" placeholder="{{.locale.Tr "repo.settings.lfs_lock_path"}}" autofocus>
-						<button class="ui primary button">{{.locale.Tr "repo.settings.lfs_lock"}}</button>
+						<input name="path" value="" placeholder="{{ctx.Locale.Tr "repo.settings.lfs_lock_path"}}" autofocus>
+						<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.lfs_lock"}}</button>
 					</div>
 				</form>
 			</div>
@@ -23,29 +23,29 @@
 								<a href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments $.Repository.DefaultBranch}}/{{PathEscapeSegments $lock.Path}}" title="{{$lock.Path}}">{{$lock.Path}}</a>
 								{{else}}
 									{{svg "octicon-diff"}}
-								<span data-tooltip-content="{{$.locale.Tr "repo.settings.lfs_lock_file_no_exist"}}">{{$lock.Path}}</span>
+								<span data-tooltip-content="{{ctx.Locale.Tr "repo.settings.lfs_lock_file_no_exist"}}">{{$lock.Path}}</span>
 								{{end}}
 								{{if not (index $.Lockables $index)}}
-									<span data-tooltip-content="{{$.locale.Tr "repo.settings.lfs_noattribute"}}">{{svg "octicon-alert"}}</span>
+									<span data-tooltip-content="{{ctx.Locale.Tr "repo.settings.lfs_noattribute"}}">{{svg "octicon-alert"}}</span>
 								{{end}}
 							</td>
 							<td>
 								<a href="{{$.Owner.HomeLink}}">
-									{{avatar $.Context $.Owner}}
+									{{ctx.AvatarUtils.Avatar $.Owner}}
 									{{$.Owner.DisplayName}}
 								</a>
 							</td>
-							<td>{{TimeSince .Created $.locale}}</td>
+							<td>{{TimeSince .Created ctx.Locale}}</td>
 							<td class="right aligned">
 								<form action="{{$.LFSFilesLink}}/locks/{{$lock.ID}}/unlock" method="post">
 									{{$.CsrfTokenHtml}}
-									<button class="ui primary button"><span class="btn-octicon">{{svg "octicon-lock"}}</span>{{$.locale.Tr "repo.settings.lfs_force_unlock"}}</button>
+									<button class="ui primary button"><span class="btn-octicon">{{svg "octicon-lock"}}</span>{{ctx.Locale.Tr "repo.settings.lfs_force_unlock"}}</button>
 								</form>
 							</td>
 						</tr>
 					{{else}}
 						<tr>
-							<td colspan="4">{{.locale.Tr "repo.settings.lfs_locks_no_locks"}}</td>
+							<td colspan="4">{{ctx.Locale.Tr "repo.settings.lfs_locks_no_locks"}}</td>
 						</tr>
 					{{end}}
 				</tbody>

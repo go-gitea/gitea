@@ -5,6 +5,7 @@ import {htmlEscape} from 'escape-goat';
 import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
 import {createSortable} from '../modules/sortable.js';
+import {DELETE, POST} from '../modules/fetch.js';
 
 function initRepoIssueListCheckboxes() {
   const $issueSelectAll = $('.issue-checkbox-all');
@@ -72,7 +73,7 @@ function initRepoIssueListCheckboxes() {
       url,
       action,
       issueIDs,
-      elementId
+      elementId,
     ).then(() => {
       window.location.reload();
     }).catch((reason) => {
@@ -140,24 +141,18 @@ function initRepoIssueListAuthorDropdown() {
 }
 
 function initPinRemoveButton() {
-  for (const button of document.getElementsByClassName('pinned-issue-unpin')) {
+  for (const button of document.getElementsByClassName('issue-card-unpin')) {
     button.addEventListener('click', async (event) => {
       const el = event.currentTarget;
       const id = Number(el.getAttribute('data-issue-id'));
 
       // Send the unpin request
-      const response = await fetch(el.getAttribute('data-unpin-url'), {
-        method: 'delete',
-        headers: {
-          'X-Csrf-Token': window.config.csrfToken,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await DELETE(el.getAttribute('data-unpin-url'));
       if (response.ok) {
         // Delete the tooltip
         el._tippy.destroy();
         // Remove the Card
-        el.closest(`div.pinned-issue-card[data-issue-id="${id}"]`).remove();
+        el.closest(`div.issue-card[data-issue-id="${id}"]`).remove();
       }
     });
   }
@@ -166,14 +161,7 @@ function initPinRemoveButton() {
 async function pinMoveEnd(e) {
   const url = e.item.getAttribute('data-move-url');
   const id = Number(e.item.getAttribute('data-issue-id'));
-  await fetch(url, {
-    method: 'post',
-    body: JSON.stringify({id, position: e.newIndex + 1}),
-    headers: {
-      'X-Csrf-Token': window.config.csrfToken,
-      'Content-Type': 'application/json',
-    },
-  });
+  await POST(url, {data: {id, position: e.newIndex + 1}});
 }
 
 async function initIssuePinSort() {
@@ -197,9 +185,42 @@ async function initIssuePinSort() {
   });
 }
 
+function initArchivedLabelFilter() {
+  const archivedLabelEl = document.querySelector('#archived-filter-checkbox');
+  if (!archivedLabelEl) {
+    return;
+  }
+
+  const url = new URL(window.location.href);
+  const archivedLabels = document.querySelectorAll('[data-is-archived]');
+
+  const selectedLabels = (url.searchParams.get('labels') || '')
+    .split(',')
+    .map((id) => id < 0 ? `${~id + 1}` : id); // selectedLabels contains -ve ids, which are excluded so convert any -ve value id to +ve
+
+  const archivedElToggle = () => {
+    for (const label of archivedLabels) {
+      const id = label.getAttribute('data-label-id');
+      toggleElem(label, archivedLabelEl.checked || selectedLabels.includes(id));
+    }
+  };
+
+  archivedElToggle();
+  archivedLabelEl.addEventListener('change', () => {
+    archivedElToggle();
+    if (archivedLabelEl.checked) {
+      url.searchParams.set('archived', 'true');
+    } else {
+      url.searchParams.delete('archived');
+    }
+    window.location.href = url.href;
+  });
+}
+
 export function initRepoIssueList() {
   if (!document.querySelectorAll('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list').length) return;
   initRepoIssueListCheckboxes();
   initRepoIssueListAuthorDropdown();
   initIssuePinSort();
+  initArchivedLabelFilter();
 }

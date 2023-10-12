@@ -9,12 +9,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
+	nuget_model "code.gitea.io/gitea/models/packages/nuget"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
@@ -111,25 +113,17 @@ func getSearchTerm(ctx *context.Context) string {
 
 // https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Protocol/LegacyFeed/V2FeedQueryBuilder.cs
 func SearchServiceV2(ctx *context.Context) {
-	skip, take := ctx.FormInt("skip"), ctx.FormInt("take")
-	if skip == 0 {
-		skip = ctx.FormInt("$skip")
-	}
-	if take == 0 {
-		take = ctx.FormInt("$top")
-	}
+	skip, take := ctx.FormInt("$skip"), ctx.FormInt("$top")
+	paginator := db.NewAbsoluteListOptions(skip, take)
 
-	pvs, total, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+	pvs, total, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
 		Type:    packages_model.TypeNuGet,
 		Name: packages_model.SearchValue{
 			Value: getSearchTerm(ctx),
 		},
 		IsInternal: util.OptionalBoolFalse,
-		Paginator: db.NewAbsoluteListOptions(
-			skip,
-			take,
-		),
+		Paginator:  paginator,
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -142,8 +136,28 @@ func SearchServiceV2(ctx *context.Context) {
 		return
 	}
 
+	skip, take = paginator.GetSkipTake()
+
+	var next *nextOptions
+	if len(pvs) == take {
+		next = &nextOptions{
+			Path:  "Search()",
+			Query: url.Values{},
+		}
+		searchTerm := ctx.FormTrim("searchTerm")
+		if searchTerm != "" {
+			next.Query.Set("searchTerm", searchTerm)
+		}
+		filter := ctx.FormTrim("$filter")
+		if filter != "" {
+			next.Query.Set("$filter", filter)
+		}
+		next.Query.Set("$skip", strconv.Itoa(skip+take))
+		next.Query.Set("$top", strconv.Itoa(take))
+	}
+
 	resp := createFeedResponse(
-		&linkBuilder{setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
+		&linkBuilder{Base: setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget", Next: next},
 		total,
 		pds,
 	)
@@ -153,9 +167,8 @@ func SearchServiceV2(ctx *context.Context) {
 
 // http://docs.oasis-open.org/odata/odata/v4.0/errata03/os/complete/part2-url-conventions/odata-v4.0-errata03-os-part2-url-conventions-complete.html#_Toc453752351
 func SearchServiceV2Count(ctx *context.Context) {
-	count, err := packages_model.CountVersions(ctx, &packages_model.PackageSearchOptions{
+	count, err := nuget_model.CountPackages(ctx, &packages_model.PackageSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
-		Type:    packages_model.TypeNuGet,
 		Name: packages_model.SearchValue{
 			Value: getSearchTerm(ctx),
 		},
@@ -171,9 +184,8 @@ func SearchServiceV2Count(ctx *context.Context) {
 
 // https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-for-packages
 func SearchServiceV3(ctx *context.Context) {
-	pvs, count, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+	pvs, count, err := nuget_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
-		Type:       packages_model.TypeNuGet,
 		Name:       packages_model.SearchValue{Value: ctx.FormTrim("q")},
 		IsInternal: util.OptionalBoolFalse,
 		Paginator: db.NewAbsoluteListOptions(
@@ -193,7 +205,7 @@ func SearchServiceV3(ctx *context.Context) {
 	}
 
 	resp := createSearchResultResponse(
-		&linkBuilder{setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
+		&linkBuilder{Base: setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
 		count,
 		pds,
 	)
@@ -222,7 +234,7 @@ func RegistrationIndex(ctx *context.Context) {
 	}
 
 	resp := createRegistrationIndexResponse(
-		&linkBuilder{setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
+		&linkBuilder{Base: setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
 		pds,
 	)
 
@@ -251,7 +263,7 @@ func RegistrationLeafV2(ctx *context.Context) {
 	}
 
 	resp := createEntryResponse(
-		&linkBuilder{setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
+		&linkBuilder{Base: setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
 		pd,
 	)
 
@@ -280,7 +292,7 @@ func RegistrationLeafV3(ctx *context.Context) {
 	}
 
 	resp := createRegistrationLeafResponse(
-		&linkBuilder{setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
+		&linkBuilder{Base: setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
 		pd,
 	)
 
@@ -291,7 +303,19 @@ func RegistrationLeafV3(ctx *context.Context) {
 func EnumeratePackageVersionsV2(ctx *context.Context) {
 	packageName := strings.Trim(ctx.FormTrim("id"), "'")
 
-	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName)
+	skip, take := ctx.FormInt("$skip"), ctx.FormInt("$top")
+	paginator := db.NewAbsoluteListOptions(skip, take)
+
+	pvs, total, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID: ctx.Package.Owner.ID,
+		Type:    packages_model.TypeNuGet,
+		Name: packages_model.SearchValue{
+			ExactMatch: true,
+			Value:      packageName,
+		},
+		IsInternal: util.OptionalBoolFalse,
+		Paginator:  paginator,
+	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -303,9 +327,22 @@ func EnumeratePackageVersionsV2(ctx *context.Context) {
 		return
 	}
 
+	skip, take = paginator.GetSkipTake()
+
+	var next *nextOptions
+	if len(pvs) == take {
+		next = &nextOptions{
+			Path:  "FindPackagesById()",
+			Query: url.Values{},
+		}
+		next.Query.Set("id", packageName)
+		next.Query.Set("$skip", strconv.Itoa(skip+take))
+		next.Query.Set("$top", strconv.Itoa(take))
+	}
+
 	resp := createFeedResponse(
-		&linkBuilder{setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
-		int64(len(pds)),
+		&linkBuilder{Base: setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget", Next: next},
+		total,
 		pds,
 	)
 
@@ -345,13 +382,7 @@ func EnumeratePackageVersionsV3(ctx *context.Context) {
 		return
 	}
 
-	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	resp := createPackageVersionsResponse(pds)
+	resp := createPackageVersionsResponse(pvs)
 
 	ctx.JSON(http.StatusOK, resp)
 }
@@ -400,6 +431,7 @@ func UploadPackage(ctx *context.Context) {
 	}
 
 	_, _, err := packages_service.CreatePackageAndAddFile(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
@@ -472,6 +504,7 @@ func UploadSymbolPackage(ctx *context.Context) {
 	}
 
 	_, err = packages_service.AddFileToExistingPackage(
+		ctx,
 		pi,
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
@@ -498,6 +531,7 @@ func UploadSymbolPackage(ctx *context.Context) {
 
 	for _, pdb := range pdbs {
 		_, err := packages_service.AddFileToExistingPackage(
+			ctx,
 			pi,
 			&packages_service.PackageFileCreationInfo{
 				PackageFileInfo: packages_service.PackageFileInfo{
@@ -616,6 +650,7 @@ func DeletePackage(ctx *context.Context) {
 	packageVersion := ctx.Params("version")
 
 	err := packages_service.RemovePackageVersionByNameAndVersion(
+		ctx,
 		ctx.Doer,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,

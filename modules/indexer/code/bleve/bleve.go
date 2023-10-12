@@ -41,15 +41,6 @@ const (
 	maxBatchSize         = 16
 )
 
-// numericEqualityQuery a numeric equality query for the given value and field
-func numericEqualityQuery(value int64, field string) *query.NumericRangeQuery {
-	f := float64(value)
-	tru := true
-	q := bleve.NewNumericRangeInclusiveQuery(&f, &f, &tru, &tru)
-	q.SetField(field)
-	return q
-}
-
 func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
 	return m.AddCustomTokenFilter(unicodeNormalizeName, map[string]any{
 		"type": unicodenorm.Name,
@@ -225,7 +216,7 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 
 // Delete deletes indexes by ids
 func (b *Indexer) Delete(_ context.Context, repoID int64) error {
-	query := numericEqualityQuery(repoID, "RepoID")
+	query := inner_bleve.NumericEqualityQuery(repoID, "RepoID")
 	searchRequest := bleve.NewSearchRequestOptions(query, 2147483647, 0, false)
 	result, err := b.inner.Indexer.Search(searchRequest)
 	if err != nil {
@@ -262,7 +253,7 @@ func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword
 	if len(repoIDs) > 0 {
 		repoQueries := make([]query.Query, 0, len(repoIDs))
 		for _, repoID := range repoIDs {
-			repoQueries = append(repoQueries, numericEqualityQuery(repoID, "RepoID"))
+			repoQueries = append(repoQueries, inner_bleve.NumericEqualityQuery(repoID, "RepoID"))
 		}
 
 		indexerQuery = bleve.NewConjunctionQuery(

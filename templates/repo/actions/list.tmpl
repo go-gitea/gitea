@@ -2,10 +2,12 @@
 <div class="page-content repository actions">
 	{{template "repo/header" .}}
 	<div class="ui container">
+		{{template "base/alert" .}}
+
 		<div class="ui stackable grid">
 			<div class="four wide column">
 				<div class="ui fluid vertical menu">
-					<a class="item{{if not $.CurWorkflow}} active{{end}}" href="{{$.Link}}?actor={{$.CurActor}}&status={{$.CurStatus}}">{{.locale.Tr "actions.runs.all_workflows"}}</a>
+					<a class="item{{if not $.CurWorkflow}} active{{end}}" href="{{$.Link}}?actor={{$.CurActor}}&status={{$.CurStatus}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
 					{{range .workflows}}
 						<a class="item{{if eq .Entry.Name $.CurWorkflow}} active{{end}}" href="{{$.Link}}?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}">{{.Entry.Name}}
 							{{if .ErrMsg}}
@@ -13,42 +15,46 @@
 									{{svg "octicon-alert" 16 "text red"}}
 								</span>
 							{{end}}
+
+							{{if $.ActionsConfig.IsWorkflowDisabled .Entry.Name}}
+								<div class="ui red label">{{ctx.Locale.Tr "disabled"}}</div>
+							{{end}}
 						</a>
 					{{end}}
 				</div>
 			</div>
 			<div class="twelve wide column content">
-				<div class="ui secondary filter stackable menu gt-je">
+				<div class="ui secondary filter menu gt-je gt-df gt-ac">
 					<!-- Actor -->
 					<div class="ui{{if not .Actors}} disabled{{end}} dropdown jump item">
-						<span class="text">{{.locale.Tr "actions.runs.actor"}}</span>
+						<span class="text">{{ctx.Locale.Tr "actions.runs.actor"}}</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							<div class="ui icon search input">
 								<i class="icon">{{svg "octicon-search"}}</i>
-								<input type="text" placeholder="{{.locale.Tr "actions.runs.actor"}}">
+								<input type="text" placeholder="{{ctx.Locale.Tr "actions.runs.actor"}}">
 							</div>
 							<a class="item{{if not $.CurActor}} active{{end}}" href="{{$.Link}}?workflow={{$.CurWorkflow}}&status={{$.CurStatus}}&actor=0">
-								{{.locale.Tr "actions.runs.actors_no_select"}}
+								{{ctx.Locale.Tr "actions.runs.actors_no_select"}}
 							</a>
 							{{range .Actors}}
 								<a class="item{{if eq .ID $.CurActor}} active{{end}}" href="{{$.Link}}?workflow={{$.CurWorkflow}}&actor={{.ID}}&status={{$.CurStatus}}">
-									{{avatar $.Context . 20}} {{.GetDisplayName}}
+									{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}
 								</a>
 							{{end}}
 						</div>
 					</div>
 					<!-- Status -->
 					<div class="ui dropdown jump item">
-						<span class="text">{{.locale.Tr "actions.runs.status"}}</span>
+						<span class="text">{{ctx.Locale.Tr "actions.runs.status"}}</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							<div class="ui icon search input">
 								<i class="icon">{{svg "octicon-search"}}</i>
-								<input type="text" placeholder="{{.locale.Tr "actions.runs.status"}}">
+								<input type="text" placeholder="{{ctx.Locale.Tr "actions.runs.status"}}">
 							</div>
 							<a class="item{{if not $.CurStatus}} active{{end}}" href="{{$.Link}}?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status=0">
-								{{.locale.Tr "actions.runs.status_no_select"}}
+								{{ctx.Locale.Tr "actions.runs.status_no_select"}}
 							</a>
 							{{range .StatusInfoList}}
 								<a class="item{{if eq .Status $.CurStatus}} active{{end}}" href="{{$.Link}}?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}">
@@ -57,6 +63,17 @@
 							{{end}}
 						</div>
 					</div>
+
+					{{if .AllowDisableOrEnableWorkflow}}
+						<button class="ui jump dropdown btn interact-bg gt-p-3">
+							{{svg "octicon-kebab-horizontal"}}
+							<div class="menu">
+								<a class="item link-action" data-url="{{$.Link}}/{{if .CurWorkflowDisabled}}enable{{else}}disable{{end}}?workflow={{$.CurWorkflow}}&actor={{.CurActor}}&status={{$.CurStatus}}">
+									{{if .CurWorkflowDisabled}}{{ctx.Locale.Tr "actions.workflow.enable"}}{{else}}{{ctx.Locale.Tr "actions.workflow.disable"}}{{end}}
+								</a>
+							</div>
+						</button>
+					{{end}}
 				</div>
 				{{template "repo/actions/runs_list" .}}
 			</div>
