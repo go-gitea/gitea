@@ -50,7 +50,7 @@ func Milestones(ctx *context.Context) {
 		state = structs.StateClosed
 	}
 
-	miles, total, err := issues_model.GetMilestones(issues_model.GetMilestonesOption{
+	miles, total, err := issues_model.GetMilestones(ctx, issues_model.GetMilestonesOption{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: setting.UI.IssuePagingNum,
@@ -82,7 +82,7 @@ func Milestones(ctx *context.Context) {
 	for _, m := range miles {
 		m.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 			URLPrefix: ctx.Repo.RepoLink,
-			Metas:     ctx.Repo.Repository.ComposeMetas(),
+			Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
 			GitRepo:   ctx.Repo.GitRepo,
 			Ctx:       ctx,
 		}, m.Content)
@@ -275,7 +275,7 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 
 	milestone.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.Repo.RepoLink,
-		Metas:     ctx.Repo.Repository.ComposeMetas(),
+		Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
 		GitRepo:   ctx.Repo.GitRepo,
 		Ctx:       ctx,
 	}, milestone.Content)

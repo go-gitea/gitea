@@ -128,3 +128,14 @@ export function decodeURLEncodedBase64(base64url) {
     .replace(/_/g, '/')
     .replace(/-/g, '+'));
 }
+
+const domParser = new DOMParser();
+const xmlSerializer = new XMLSerializer();
+
+export function parseDom(text, contentType) {
+  return domParser.parseFromString(text, contentType);
+}
+
+export function serializeXml(node) {
+  return xmlSerializer.serializeToString(node);
+}
