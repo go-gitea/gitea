@@ -105,7 +105,14 @@ func Push(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		switch err {
+		case pkg_model.ErrDuplicatePackageVersion, pkg_model.ErrDuplicatePackageFile:
+			apiError(ctx, http.StatusConflict, err)
+		case pkg_service.ErrQuotaTotalCount, pkg_service.ErrQuotaTypeSize, pkg_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
@@ -174,7 +181,12 @@ func Remove(ctx *context.Context) {
 		ctx, ctx.Package.Owner.ID, pkg_model.TypeArch, pkg, ver,
 	)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		switch err {
+		case pkg_model.ErrPackageNotExist:
+			apiError(ctx, http.StatusNotFound, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
