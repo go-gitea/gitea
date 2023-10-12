@@ -59,10 +59,13 @@ a, a:hover {
 
 .sub-items {
   padding-left: 9px;
+  margin-left: 9px;
+  border-left: 1px solid #808080;
 }
 
 .item-file {
   margin-left: 20px;
+  margin-top: 2px;
 }
 
 .item-file.selected {
