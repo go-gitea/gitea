@@ -77,6 +77,7 @@ curl --user your_username:your_password_or_token \
 ```
 
 If you are using 2FA or OAuth use a [personal access token](development/api-usage.md#authentication) instead of the password.
+
 You cannot publish a file with the same name twice to a package. You must delete the existing package file first.
 
 The server responds with the following HTTP Status codes.

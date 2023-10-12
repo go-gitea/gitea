@@ -1,7 +1,12 @@
 {{if or .blobBase .blobHead}}
 <tr>
 	<td colspan="2">
-		<div class="image-diff" data-path-before="{{.root.BeforeRawPath}}/{{PathEscapeSegments .file.OldName}}" data-path-after="{{.root.RawPath}}/{{PathEscapeSegments .file.Name}}">
+		<div class="image-diff"
+			data-path-before="{{.root.BeforeRawPath}}/{{PathEscapeSegments .file.OldName}}"
+			data-path-after="{{.root.RawPath}}/{{PathEscapeSegments .file.Name}}"
+			data-mime-before="{{.sniffedTypeBase.GetMimeType}}"
+			data-mime-after="{{.sniffedTypeHead.GetMimeType}}"
+		>
 			<div class="ui secondary pointing tabular top attached borderless menu new-menu">
 				<div class="new-menu-inner">
 					<a class="item active" data-tab="diff-side-by-side-{{.file.Index}}">{{ctx.Locale.Tr "repo.diff.image.side_by_side"}}</a>
