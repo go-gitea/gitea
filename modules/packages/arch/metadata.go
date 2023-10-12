@@ -58,7 +58,7 @@ type DbDesc struct {
 }
 
 // Function that receives arch package archive data and returns it's metadata.
-func EjectMetadata(file, distro string, b *pkg_module.HashedBuffer) (*DbDesc, error) {
+func ParseMetadata(file, distro string, b *pkg_module.HashedBuffer) (*DbDesc, error) {
 	pkginfo, err := getPkginfo(b)
 	if err != nil {
 		return nil, err

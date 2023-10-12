@@ -138,7 +138,7 @@ func TestMetadata(t *testing.T) {
 	archive.Close()
 	assert.NoError(t, err)
 
-	md, err := EjectMetadata("zstd-1.5.5-1-x86_64.pkg.tar.zst", "archlinux", buf)
+	md, err := ParseMetadata("zstd-1.5.5-1-x86_64.pkg.tar.zst", "archlinux", buf)
 	assert.NoError(t, err)
 
 	assert.Equal(t, md.Name, "zstd")

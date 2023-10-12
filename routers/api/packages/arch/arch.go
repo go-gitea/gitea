@@ -4,15 +4,11 @@
 package arch
 
 import (
-	"encoding/hex"
-	"io"
 	"net/http"
 	"strings"
 
 	pkg_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
-	pkg_module "code.gitea.io/gitea/modules/packages"
-	arch_module "code.gitea.io/gitea/modules/packages/arch"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	pkg_service "code.gitea.io/gitea/services/packages"
 	arch_service "code.gitea.io/gitea/services/packages/arch"
@@ -41,69 +37,7 @@ func Push(ctx *context.Context) {
 		defer upload.Close()
 	}
 
-	buf, err := pkg_module.CreateHashedBufferFromReader(upload)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	defer buf.Close()
-
-	desc, err := arch_module.EjectMetadata(filename, distro, buf)
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	_, err = buf.Seek(0, io.SeekStart)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	properties := map[string]string{
-		"desc": desc.String(),
-	}
-	if sign != "" {
-		_, err := hex.DecodeString(sign)
-		if err != nil {
-			apiError(ctx, http.StatusBadRequest, err)
-			return
-		}
-		properties["sign"] = sign
-	}
-
-	_, _, err = pkg_service.CreatePackageOrAddFileToExisting(
-		ctx, &pkg_service.PackageCreationInfo{
-			PackageInfo: pkg_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: pkg_model.TypeArch,
-				Name:        desc.Name,
-				Version:     desc.Version,
-			},
-			Creator: ctx.Doer,
-			Metadata: &arch_module.Metadata{
-				URL:          desc.ProjectURL,
-				Description:  desc.Description,
-				Provides:     desc.Provides,
-				License:      desc.License,
-				Depends:      desc.Depends,
-				OptDepends:   desc.OptDepends,
-				MakeDepends:  desc.MakeDepends,
-				CheckDepends: desc.CheckDepends,
-			},
-		},
-		&pkg_service.PackageFileCreationInfo{
-			PackageFileInfo: pkg_service.PackageFileInfo{
-				Filename:     filename,
-				CompositeKey: distro,
-			},
-			OverwriteExisting: true,
-			IsLead:            true,
-			Creator:           ctx.ContextUser,
-			Data:              buf,
-			Properties:        properties,
-		},
-	)
+	_, _, err = arch_service.UploadArchPackage(ctx, upload, filename, distro, sign)
 	if err != nil {
 		switch err {
 		case pkg_model.ErrDuplicatePackageVersion, pkg_model.ErrDuplicatePackageFile:
