@@ -1,4 +1,4 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package repo
@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"reflect"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -56,7 +57,7 @@ func GetFundingFromPath(r *Repository, path string, commit *git.Commit) ([]*api.
 		return nil, err
 	}
 
-	fundingMap := make(map[string]string)
+	fundingMap := make(map[string]any)
 	if err := yaml.Unmarshal(configContent, &fundingMap); err != nil {
 		return nil, err
 	}
@@ -68,7 +69,22 @@ func GetFundingFromPath(r *Repository, path string, commit *git.Commit) ([]*api.
 			return nil, fmt.Errorf("Funding Provider %s not found", providerName)
 		}
 
-		entryList = append(entryList, getFundingEntry(provider, fundingData))
+		dataType := reflect.TypeOf(fundingData)
+		switch dataType.Kind() {
+		case reflect.String:
+			entryList = append(entryList, getFundingEntry(provider, fundingData.(string)))
+		case reflect.Slice:
+			stringSlice := reflect.ValueOf(fundingData)
+			for i := 0; i < stringSlice.Len(); i++ {
+				str, ok := stringSlice.Index(i).Interface().(string)
+				if !ok {
+					return nil, fmt.Errorf("%s has a invalid type. Expected string or string array.", providerName)
+				}
+				entryList = append(entryList, getFundingEntry(provider, str))
+			}
+		default:
+			return nil, fmt.Errorf("%s has a invalid type. Expected string or string array.", providerName)
+		}
 	}
 
 	return entryList, nil

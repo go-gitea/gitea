@@ -1,4 +1,4 @@
-// Copyright 2017 The Gogs Authors. All rights reserved.
+// Copyright 2023 The Gogs Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package integration
@@ -20,10 +20,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func createFundingConfig(t *testing.T, user *user_model.User, repo *repo_model.Repository, fundingConfig map[string]string) {
+func createFundingConfig(t *testing.T, user *user_model.User, repo *repo_model.Repository, fundingConfig map[string]any) {
 	config, err := yaml.Marshal(fundingConfig)
 	assert.NoError(t, err)
-	createFileInBranch(user, repo, ".gitea/FUNDING.yaml", repo.DefaultBranch, string(config))
+	assert.NoError(t, createOrReplaceFileInBranch(user, repo, ".gitea/FUNDING.yaml", repo.DefaultBranch, string(config)))
 }
 
 func getRepoFundingConfig(t *testing.T, repo *repo_model.Repository, token string) []*api.RepoFundingEntry {
@@ -49,19 +49,42 @@ func TestAPIRepoFunding(t *testing.T) {
 
 	assert.Len(t, getRepoFundingConfig(t, repo, token), 0)
 
-	config := make(map[string]string)
-	config["custom"] = "https://example.com"
-	// config["ko_fi"] = "test"
+	t.Run("SimpleConfig", func(t *testing.T) {
+		config := make(map[string]any)
+		config["custom"] = "https://example.com"
+		// config["ko_fi"] = "test"
 
-	createFundingConfig(t, owner, repo, config)
+		createFundingConfig(t, owner, repo, config)
 
-	funding := getRepoFundingConfig(t, repo, token)
+		funding := getRepoFundingConfig(t, repo, token)
 
-	assert.Equal(t, "https://example.com", funding[0].Text)
-	assert.Equal(t, "https://example.com", funding[0].URL)
-	assert.Equal(t, setting.AppSubURL+"/assets/img/svg/octicon-link.svg", funding[0].Icon)
+		assert.Equal(t, "https://example.com", funding[0].Text)
+		assert.Equal(t, "https://example.com", funding[0].URL)
+		assert.Equal(t, setting.AppSubURL+"/assets/img/svg/octicon-link.svg", funding[0].Icon)
 
-	// assert.Equal(t, "Ko-Fi/test", funding[1].Text)
-	// assert.Equal(t, "https://ko-fi.com/test", funding[1].URL)
-	// assert.Equal(t, setting.AppSubURL+"/assets/img/funding/ko_fi.svg", funding[1].Icon)
+		// assert.Equal(t, "Ko-Fi/test", funding[1].Text)
+		// assert.Equal(t, "https://ko-fi.com/test", funding[1].URL)
+		// assert.Equal(t, setting.AppSubURL+"/assets/img/funding/ko_fi.svg", funding[1].Icon)
+	})
+
+	t.Run("StringArray", func(t *testing.T) {
+		testSlice := make([]string, 2)
+		testSlice[0] = "https://a.com"
+		testSlice[1] = "https://b.com"
+
+		config := make(map[string]any)
+		config["custom"] = testSlice
+
+		createFundingConfig(t, owner, repo, config)
+
+		funding := getRepoFundingConfig(t, repo, token)
+
+		assert.Equal(t, "https://a.com", funding[0].Text)
+		assert.Equal(t, "https://a.com", funding[0].URL)
+		assert.Equal(t, setting.AppSubURL+"/assets/img/svg/octicon-link.svg", funding[0].Icon)
+
+		assert.Equal(t, "https://b.com", funding[1].Text)
+		assert.Equal(t, "https://b.com", funding[1].URL)
+		assert.Equal(t, setting.AppSubURL+"/assets/img/svg/octicon-link.svg", funding[1].Icon)
+	})
 }
