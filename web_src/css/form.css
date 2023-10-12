@@ -544,7 +544,3 @@ textarea:focus,
     width: 100% !important;
   }
 }
-
-.no-right-margin {
-  margin-right: 0px !important;
-}
