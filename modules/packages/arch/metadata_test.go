@@ -41,7 +41,7 @@ makedepend = gtest
 makedepend = ninja
 `
 
-const pkgdesc = `%%FILENAME%
+const pkgdesc = `%FILENAME%
 zstd-1.5.5-1-x86_64.pkg.tar.zst
 
 %NAME%
@@ -68,7 +68,7 @@ Zstandard - Fast real-time compression algorithm
 %SHA256SUM%
 9fa4ede47e35f5971e4f26ecadcbfb66ab79f1d638317ac80334a3362dedbabd
 
-%%URL%
+%URL%
 https://facebook.github.io/zstd/
 
 %LICENSE%
@@ -152,12 +152,32 @@ func TestMetadata(t *testing.T) {
 	assert.Equal(t, md.Arch, []string{"x86_64"})
 	assert.Equal(t, md.License, []string{"BSD", "GPL2"})
 	assert.Equal(t, md.Provides, []string{"libzstd.so=1-64"})
-	assert.Equal(t, md.Provides, []string{"libzstd.so=1-64"})
 	assert.Equal(t, md.Depends, []string{"glibc", "gcc-libs", "zlib", "xz", "lz4"})
 	assert.Equal(t, md.MakeDepends, []string{"cmake", "gtest", "ninja"})
+}
 
+func TestDescString(t *testing.T) {
+	md := &DbDesc{
+		Filename:       "zstd-1.5.5-1-x86_64.pkg.tar.zst",
+		Name:           "zstd",
+		Base:           "zstd",
+		Version:        "1.5.5-1",
+		Description:    "Zstandard - Fast real-time compression algorithm",
+		CompressedSize: 401,
+		InstalledSize:  1500453,
+		MD5:            "5016660ef3d9aa148a7b72a08d3df1b2",
+		SHA256:         "9fa4ede47e35f5971e4f26ecadcbfb66ab79f1d638317ac80334a3362dedbabd",
+		ProjectURL:     "https://facebook.github.io/zstd/",
+		BuildDate:      1681646714,
+		Packager:       "Jelle van der Waa <jelle@archlinux.org>",
+		Provides:       []string{"libzstd.so=1-64"},
+		License:        []string{"BSD", "GPL2"},
+		Arch:           []string{"x86_64"},
+		Depends:        []string{"glibc", "gcc-libs", "zlib", "xz", "lz4"},
+		MakeDepends:    []string{"cmake", "gtest", "ninja"},
+	}
 	desc := md.String()
-	assert.Equal(t, desc, pkgdesc)
+	assert.Equal(t, pkgdesc, desc)
 }
 
 func TestDatabase(t *testing.T) {
