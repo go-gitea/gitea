@@ -157,16 +157,6 @@ func registerCleanupPackages() {
 	})
 }
 
-func registerCleanupAuthTokens() {
-	RegisterTaskFatal("cleanup_auth_tokens", &BaseConfig{
-		Enabled:    true,
-		RunAtStart: true,
-		Schedule:   "@midnight",
-	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
-		return auth_model.DeleteExpiredAuthTokens(ctx)
-	})
-}
-
 func initBasicTasks() {
 	if setting.Mirror.Enabled {
 		registerUpdateMirrorTask()
@@ -183,5 +173,4 @@ func initBasicTasks() {
 	if setting.Packages.Enabled {
 		registerCleanupPackages()
 	}
-	registerCleanupAuthTokens()
 }

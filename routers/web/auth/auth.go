@@ -56,6 +56,10 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 		}
 	}()
 
+	if err := auth.DeleteExpiredAuthTokens(ctx); err != nil {
+		log.Error("Failed to delete expired auth tokens: %v", err)
+	}
+
 	t, err := auth_service.CheckAuthToken(ctx, ctx.GetSiteCookie(setting.CookieRememberName))
 	if err != nil {
 		switch err {

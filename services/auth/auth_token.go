@@ -20,6 +20,10 @@ import (
 
 // Based on https://paragonie.com/blog/2015/04/secure-authentication-php-with-long-term-persistence#secure-remember-me-cookies
 
+// The auth token consists of two parts: ID and token hash
+// Every device login creates a new auth token with an individual id and hash.
+// If a device uses the token to login into the instance, a fresh token gets generated which has the same id but a new hash.
+
 var (
 	ErrAuthTokenInvalidFormat = util.NewInvalidArgumentErrorf("auth token has an invalid format")
 	ErrAuthTokenExpired       = util.NewInvalidArgumentErrorf("auth token has expired")
@@ -51,6 +55,8 @@ func CheckAuthToken(ctx context.Context, value string) (*auth_model.AuthToken, e
 	hashedToken := sha256.Sum256([]byte(parts[1]))
 
 	if subtle.ConstantTimeCompare([]byte(t.TokenHash), []byte(hex.EncodeToString(hashedToken[:]))) == 0 {
+		// If an attacker steals a token and uses the token to create a new session the hash gets updated.
+		// When the victim uses the old token the hashes don't match anymore and the victim should be notified about the compromised token.
 		return nil, ErrAuthTokenInvalidHash
 	}
 

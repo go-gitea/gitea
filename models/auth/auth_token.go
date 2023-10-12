@@ -18,8 +18,8 @@ var ErrAuthTokenNotExist = util.NewNotExistErrorf("auth token does not exist")
 type AuthToken struct { //nolint:revive
 	ID          string `xorm:"pk"`
 	TokenHash   string
-	UserID      int64 `xorm:"INDEX"`
-	ExpiresUnix timeutil.TimeStamp
+	UserID      int64              `xorm:"INDEX"`
+	ExpiresUnix timeutil.TimeStamp `xorm:"INDEX"`
 }
 
 func init() {

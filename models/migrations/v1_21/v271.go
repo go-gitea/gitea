@@ -13,8 +13,8 @@ func CreateAuthTokenTable(x *xorm.Engine) error {
 	type AuthToken struct {
 		ID          string `xorm:"pk"`
 		TokenHash   string
-		UserID      int64 `xorm:"INDEX"`
-		ExpiresUnix timeutil.TimeStamp
+		UserID      int64              `xorm:"INDEX"`
+		ExpiresUnix timeutil.TimeStamp `xorm:"INDEX"`
 	}
 
 	return x.Sync(new(AuthToken))
