@@ -1,7 +1,7 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package repo
+package funding
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"io"
 	"reflect"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -36,7 +37,7 @@ func getFundingEntry(provider *api.FundingProvider, text string) *api.RepoFundin
 
 // GetFundingFromPath the given funding file.
 // It never returns a nil config.
-func GetFundingFromPath(r *Repository, path string, commit *git.Commit) ([]*api.RepoFundingEntry, error) {
+func GetFundingFromPath(r *repo_model.Repository, path string, commit *git.Commit) ([]*api.RepoFundingEntry, error) {
 	var err error
 
 	treeEntry, err := commit.GetTreeEntryByPath(path)
@@ -78,19 +79,19 @@ func GetFundingFromPath(r *Repository, path string, commit *git.Commit) ([]*api.
 			for i := 0; i < stringSlice.Len(); i++ {
 				str, ok := stringSlice.Index(i).Interface().(string)
 				if !ok {
-					return nil, fmt.Errorf("%s has a invalid type. Expected string or string array.", providerName)
+					return nil, fmt.Errorf("%s has a invalid type. Expected string or string array", providerName)
 				}
 				entryList = append(entryList, getFundingEntry(provider, str))
 			}
 		default:
-			return nil, fmt.Errorf("%s has a invalid type. Expected string or string array.", providerName)
+			return nil, fmt.Errorf("%s has a invalid type. Expected string or string array", providerName)
 		}
 	}
 
 	return entryList, nil
 }
 
-func GetFundingFromCommit(r *Repository, commit *git.Commit) ([]*api.RepoFundingEntry, error) {
+func GetFundingFromCommit(r *repo_model.Repository, commit *git.Commit) ([]*api.RepoFundingEntry, error) {
 	for _, configName := range FundingCandidates {
 		if _, err := commit.GetTreeEntryByPath(configName + ".yaml"); err == nil {
 			return GetFundingFromPath(r, configName+".yaml", commit)
@@ -106,7 +107,7 @@ func GetFundingFromCommit(r *Repository, commit *git.Commit) ([]*api.RepoFunding
 
 // GetFundingFromDefaultBranch returns the funding for this repo.
 // It never returns a nil config.
-func GetFundingFromDefaultBranch(ctx context.Context, r *Repository) ([]*api.RepoFundingEntry, error) {
+func GetFundingFromDefaultBranch(ctx context.Context, r *repo_model.Repository) ([]*api.RepoFundingEntry, error) {
 	if r.IsEmpty {
 		return nil, nil
 	}

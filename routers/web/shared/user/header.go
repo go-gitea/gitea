@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	funding_service "code.gitea.io/gitea/services/funding"
 )
 
 // prepareContextForCommonProfile store some common data into context data for user's profile related pages (including the nav menu)
@@ -95,7 +96,7 @@ func FindUserProfile(ctx *context.Context) (profileGitRepo *git.Repository, prof
 				log.Error("FindUserProfileReadme failed to GetBranchCommit: %v", err)
 			} else {
 				profileReadmeBlob, _ = commit.GetBlobByPath("README.md")
-				funding, _ = repo_model.GetFundingFromCommit(profileDbRepo, commit)
+				funding, _ = funding_service.GetFundingFromCommit(profileDbRepo, commit)
 			}
 		}
 	}

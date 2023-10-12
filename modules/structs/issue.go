@@ -203,11 +203,6 @@ type IssueConfig struct {
 	ContactLinks       []IssueConfigContactLink `json:"contact_links" yaml:"contact_links"`
 }
 
-type IssueConfigValidation struct {
-	Valid   bool   `json:"valid"`
-	Message string `json:"message"`
-}
-
 // IssueTemplateType defines issue template type
 type IssueTemplateType string
 

@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/convert"
+	funding_service "code.gitea.io/gitea/services/funding"
 	"code.gitea.io/gitea/services/issue"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -1214,15 +1215,15 @@ func ValidateIssueConfig(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/RepoIssueConfigValidation"
+	//     "$ref": "#/responses/ConfigValidation"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	_, err := issue.GetTemplateConfigFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
 
 	if err == nil {
-		ctx.JSON(http.StatusOK, api.IssueConfigValidation{Valid: true, Message: ""})
+		ctx.JSON(http.StatusOK, api.ConfigValidation{Valid: true, Message: ""})
 	} else {
-		ctx.JSON(http.StatusOK, api.IssueConfigValidation{Valid: false, Message: err.Error()})
+		ctx.JSON(http.StatusOK, api.ConfigValidation{Valid: false, Message: err.Error()})
 	}
 }
 
@@ -1303,11 +1304,45 @@ func GetFunding(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepoFunding"
-	funding, _ := repo_model.GetFundingFromDefaultBranch(ctx, ctx.Repo.Repository)
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	funding, _ := funding_service.GetFundingFromDefaultBranch(ctx, ctx.Repo.Repository)
 
 	if funding != nil {
 		ctx.JSON(http.StatusOK, funding)
 	} else {
 		ctx.JSON(http.StatusOK, make([]*api.RepoFundingEntry, 0))
+	}
+}
+
+// ValidateFunding returns the validation information for a funding config
+func ValidateFunding(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/funding/validate repository repoValidateFunding
+	// ---
+	// summary: Returns the validation information for a funding config
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ConfigValidation"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	_, err := funding_service.GetFundingFromDefaultBranch(ctx, ctx.Repo.Repository)
+
+	if err == nil {
+		ctx.JSON(http.StatusOK, api.ConfigValidation{Valid: true, Message: ""})
+	} else {
+		ctx.JSON(http.StatusOK, api.ConfigValidation{Valid: false, Message: err.Error()})
 	}
 }

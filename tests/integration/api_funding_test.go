@@ -49,6 +49,12 @@ func TestAPIRepoFunding(t *testing.T) {
 
 	assert.Len(t, getRepoFundingConfig(t, repo, token), 0)
 
+	t.Run("Empty", func(t *testing.T) {
+		funding := getRepoFundingConfig(t, repo, token)
+
+		assert.Len(t, funding, 0)
+	})
+
 	t.Run("SimpleConfig", func(t *testing.T) {
 		config := make(map[string]any)
 		config["custom"] = "https://example.com"
@@ -86,5 +92,59 @@ func TestAPIRepoFunding(t *testing.T) {
 		assert.Equal(t, "https://b.com", funding[1].Text)
 		assert.Equal(t, "https://b.com", funding[1].URL)
 		assert.Equal(t, setting.AppSubURL+"/assets/img/svg/octicon-link.svg", funding[1].Icon)
+	})
+}
+
+func TestAPIRepoValidateFunding(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, owner.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/funding/validate?token=%s", owner.Name, repo.Name, token)
+
+	t.Run("Empty", func(t *testing.T) {
+		resp := MakeRequest(t, NewRequest(t, "GET", urlStr), http.StatusOK)
+
+		var fundingValidation api.ConfigValidation
+		DecodeJSON(t, resp, &fundingValidation)
+
+		assert.True(t, fundingValidation.Valid)
+		assert.Empty(t, fundingValidation.Message)
+	})
+
+	t.Run("Empty", func(t *testing.T) {
+		config := make(map[string]any)
+		config["custom"] = "https://example.com"
+
+		createFundingConfig(t, owner, repo, config)
+
+		resp := MakeRequest(t, NewRequest(t, "GET", urlStr), http.StatusOK)
+
+		var fundingValidation api.ConfigValidation
+		DecodeJSON(t, resp, &fundingValidation)
+
+		assert.True(t, fundingValidation.Valid)
+		assert.Empty(t, fundingValidation.Message)
+	})
+
+	t.Run("Invalid", func(t *testing.T) {
+		testSlice := make([][]string, 1)
+		testSlice[0] = []string{"test"}
+
+		config := make(map[string]any)
+		config["custom"] = testSlice
+
+		createFundingConfig(t, owner, repo, config)
+
+		resp := MakeRequest(t, NewRequest(t, "GET", urlStr), http.StatusOK)
+
+		var fundingValidation api.ConfigValidation
+		DecodeJSON(t, resp, &fundingValidation)
+
+		assert.False(t, fundingValidation.Valid)
+		assert.NotEmpty(t, fundingValidation.Message)
 	})
 }

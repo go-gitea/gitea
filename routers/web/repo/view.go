@@ -47,6 +47,7 @@ import (
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
+	funding_service "code.gitea.io/gitea/services/funding"
 	issue_service "code.gitea.io/gitea/services/issue"
 
 	"github.com/nektos/act/pkg/model"
@@ -371,8 +372,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		if workFlowErr != nil {
 			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}
-	} else if repo_model.IsFundingConfig(ctx.Repo.TreePath) {
-		_, fundingErr := repo_model.GetFundingFromPath(ctx.Repo.Repository, ctx.Repo.TreePath, ctx.Repo.Commit)
+	} else if funding_service.IsFundingConfig(ctx.Repo.TreePath) {
+		_, fundingErr := funding_service.GetFundingFromPath(ctx.Repo.Repository, ctx.Repo.TreePath, ctx.Repo.Commit)
 		if fundingErr != nil {
 			ctx.Data["FileError"] = strings.TrimSpace(fundingErr.Error())
 		}

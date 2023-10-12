@@ -99,3 +99,9 @@ type APIError struct {
 	Message string `json:"message"`
 	URL     string `json:"url"`
 }
+
+// ConfigValidation is a validation for a config file
+type ConfigValidation struct {
+	Valid   bool   `json:"valid"`
+	Message string `json:"message"`
+}

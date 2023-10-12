@@ -5073,6 +5073,45 @@
         "responses": {
           "200": {
             "$ref": "#/responses/RepoFunding"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/funding/validate": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Returns the validation information for a funding config",
+        "operationId": "repoValidateFunding",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ConfigValidation"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -5997,7 +6036,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/RepoIssueConfigValidation"
+            "$ref": "#/responses/ConfigValidation"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -17469,6 +17508,21 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ConfigValidation": {
+      "description": "ConfigValidation is a validation for a config file",
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "valid": {
+          "type": "boolean",
+          "x-go-name": "Valid"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "ContentsResponse": {
       "description": "ContentsResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content",
       "type": "object",
@@ -20308,20 +20362,6 @@
         "url": {
           "type": "string",
           "x-go-name": "URL"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "IssueConfigValidation": {
-      "type": "object",
-      "properties": {
-        "message": {
-          "type": "string",
-          "x-go-name": "Message"
-        },
-        "valid": {
-          "type": "boolean",
-          "x-go-name": "Valid"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -23352,6 +23392,12 @@
         }
       }
     },
+    "ConfigValidation": {
+      "description": "ConfigValidation",
+      "schema": {
+        "$ref": "#/definitions/ConfigValidation"
+      }
+    },
     "ContentsListResponse": {
       "description": "ContentsListResponse",
       "schema": {
@@ -23873,12 +23919,6 @@
       "description": "RepoIssueConfig",
       "schema": {
         "$ref": "#/definitions/IssueConfig"
-      }
-    },
-    "RepoIssueConfigValidation": {
-      "description": "RepoIssueConfigValidation",
-      "schema": {
-        "$ref": "#/definitions/IssueConfigValidation"
       }
     },
     "RepoNewIssuePinsAllowed": {
