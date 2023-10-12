@@ -11,7 +11,7 @@ import (
 	"testing/fstest"
 	"time"
 
-	pkg_module "code.gitea.io/gitea/modules/packages"
+	packages_module "code.gitea.io/gitea/modules/packages"
 
 	"github.com/mholt/archiver/v3"
 	"github.com/stretchr/testify/assert"
@@ -118,7 +118,7 @@ func TestMetadata(t *testing.T) {
 	file, err := fs.Open("pkginfo")
 	assert.NoError(t, err)
 
-	buf, err := pkg_module.NewHashedBuffer()
+	buf, err := packages_module.NewHashedBuffer()
 	assert.NoError(t, err)
 
 	archive := archiver.NewTarZstd()

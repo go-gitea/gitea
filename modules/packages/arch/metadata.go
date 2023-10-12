@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	pkg_module "code.gitea.io/gitea/modules/packages"
+	packages_module "code.gitea.io/gitea/modules/packages"
 
 	"github.com/mholt/archiver/v3"
 )
@@ -58,7 +58,7 @@ type DbDesc struct {
 }
 
 // Function that receives arch package archive data and returns it's metadata.
-func ParseMetadata(file, distro string, b *pkg_module.HashedBuffer) (*DbDesc, error) {
+func ParseMetadata(file, distro string, b *packages_module.HashedBuffer) (*DbDesc, error) {
 	pkginfo, err := getPkginfo(b)
 	if err != nil {
 		return nil, err
@@ -188,7 +188,7 @@ func (m *DbDesc) String() string {
 
 // Create pacman database archive based on provided package metadata structs.
 func CreatePacmanDb(entries map[string][]byte) (io.ReadSeeker, error) {
-	out, err := pkg_module.NewHashedBuffer()
+	out, err := packages_module.NewHashedBuffer()
 	if err != nil {
 		return nil, err
 	}

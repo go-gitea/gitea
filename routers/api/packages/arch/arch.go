@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"strings"
 
-	pkg_model "code.gitea.io/gitea/models/packages"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/routers/api/packages/helper"
-	pkg_service "code.gitea.io/gitea/services/packages"
+	packages_service "code.gitea.io/gitea/services/packages"
 	arch_service "code.gitea.io/gitea/services/packages/arch"
 )
 
@@ -40,9 +40,9 @@ func Push(ctx *context.Context) {
 	_, _, err = arch_service.UploadArchPackage(ctx, upload, filename, distro, sign)
 	if err != nil {
 		switch err {
-		case pkg_model.ErrDuplicatePackageVersion, pkg_model.ErrDuplicatePackageFile:
+		case packages_model.ErrDuplicatePackageVersion, packages_model.ErrDuplicatePackageFile:
 			apiError(ctx, http.StatusConflict, err)
-		case pkg_service.ErrQuotaTotalCount, pkg_service.ErrQuotaTypeSize, pkg_service.ErrQuotaTotalSize:
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
 			apiError(ctx, http.StatusForbidden, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -111,12 +111,12 @@ func Remove(ctx *context.Context) {
 		ver = ctx.Params("version")
 	)
 
-	version, err := pkg_model.GetVersionByNameAndVersion(
-		ctx, ctx.Package.Owner.ID, pkg_model.TypeArch, pkg, ver,
+	version, err := packages_model.GetVersionByNameAndVersion(
+		ctx, ctx.Package.Owner.ID, packages_model.TypeArch, pkg, ver,
 	)
 	if err != nil {
 		switch err {
-		case pkg_model.ErrPackageNotExist:
+		case packages_model.ErrPackageNotExist:
 			apiError(ctx, http.StatusNotFound, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -124,7 +124,7 @@ func Remove(ctx *context.Context) {
 		return
 	}
 
-	err = pkg_service.RemovePackageVersion(ctx, ctx.Package.Owner, version)
+	err = packages_service.RemovePackageVersion(ctx, ctx.Package.Owner, version)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

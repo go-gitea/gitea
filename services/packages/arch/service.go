@@ -12,10 +12,10 @@ import (
 	"sort"
 	"strings"
 
-	pkg_model "code.gitea.io/gitea/models/packages"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
-	pkg_service "code.gitea.io/gitea/services/packages"
+	packages_service "code.gitea.io/gitea/services/packages"
 )
 
 // Get data related to provided filename and distribution, for package files
@@ -26,7 +26,7 @@ func GetPackageFile(ctx *context.Context, distro, file string) (io.ReadSeekClose
 		return nil, err
 	}
 
-	filestream, _, _, err := pkg_service.GetPackageFileStream(ctx, pf)
+	filestream, _, _, err := packages_service.GetPackageFileStream(ctx, pf)
 	return filestream, err
 }
 
@@ -38,7 +38,7 @@ func GetPackageSignature(ctx *context.Context, distro, file string) (*bytes.Read
 		return nil, err
 	}
 
-	proprs, err := pkg_model.GetProperties(ctx, pkg_model.PropertyTypeFile, pf.ID)
+	proprs, err := packages_model.GetProperties(ctx, packages_model.PropertyTypeFile, pf.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -57,21 +57,21 @@ func GetPackageSignature(ctx *context.Context, distro, file string) (*bytes.Read
 }
 
 // Ejects parameters required to get package file property from file name.
-func getPackageFile(ctx *context.Context, distro, file string) (*pkg_model.PackageFile, error) {
+func getPackageFile(ctx *context.Context, distro, file string) (*packages_model.PackageFile, error) {
 	var (
 		splt    = strings.Split(file, "-")
 		pkgname = strings.Join(splt[0:len(splt)-3], "-")
 		vername = splt[len(splt)-3] + "-" + splt[len(splt)-2]
 	)
 
-	version, err := pkg_model.GetVersionByNameAndVersion(
-		ctx, ctx.Package.Owner.ID, pkg_model.TypeArch, pkgname, vername,
+	version, err := packages_model.GetVersionByNameAndVersion(
+		ctx, ctx.Package.Owner.ID, packages_model.TypeArch, pkgname, vername,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	pkgfile, err := pkg_model.GetFileForVersionByName(ctx, version.ID, file, distro)
+	pkgfile, err := packages_model.GetFileForVersionByName(ctx, version.ID, file, distro)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func getPackageFile(ctx *context.Context, distro, file string) (*pkg_model.Packa
 // compatible version is found, related desc file will be loaded from package
 // properties and added to resulting .db.tar.gz archive.
 func CreatePacmanDb(ctx *context.Context, owner, arch, distro string) (io.ReadSeeker, error) {
-	pkgs, err := pkg_model.GetPackagesByType(ctx, ctx.Package.Owner.ID, pkg_model.TypeArch)
+	pkgs, err := packages_model.GetPackagesByType(ctx, ctx.Package.Owner.ID, packages_model.TypeArch)
 	if err != nil {
 		return nil, err
 	}
@@ -92,8 +92,8 @@ func CreatePacmanDb(ctx *context.Context, owner, arch, distro string) (io.ReadSe
 	entries := make(map[string][]byte)
 
 	for _, pkg := range pkgs {
-		versions, err := pkg_model.GetVersionsByPackageName(
-			ctx, ctx.Package.Owner.ID, pkg_model.TypeArch, pkg.Name,
+		versions, err := packages_model.GetVersionsByPackageName(
+			ctx, ctx.Package.Owner.ID, packages_model.TypeArch, pkg.Name,
 		)
 		if err != nil {
 			return nil, err
@@ -106,17 +106,17 @@ func CreatePacmanDb(ctx *context.Context, owner, arch, distro string) (io.ReadSe
 		for _, ver := range versions {
 			file := fmt.Sprintf("%s-%s-%s.pkg.tar.zst", pkg.Name, ver.Version, arch)
 
-			pf, err := pkg_model.GetFileForVersionByName(ctx, ver.ID, file, distro)
+			pf, err := packages_model.GetFileForVersionByName(ctx, ver.ID, file, distro)
 			if err != nil {
 				file = fmt.Sprintf("%s-%s-any.pkg.tar.zst", pkg.Name, ver.Version)
-				pf, err = pkg_model.GetFileForVersionByName(ctx, ver.ID, file, distro)
+				pf, err = packages_model.GetFileForVersionByName(ctx, ver.ID, file, distro)
 				if err != nil {
 					continue
 				}
 			}
 
-			pps, err := pkg_model.GetPropertiesByName(
-				ctx, pkg_model.PropertyTypeFile, pf.ID, "desc",
+			pps, err := packages_model.GetPropertiesByName(
+				ctx, packages_model.PropertyTypeFile, pf.ID, "desc",
 			)
 			if err != nil {
 				return nil, err
