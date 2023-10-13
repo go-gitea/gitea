@@ -37,6 +37,14 @@ func WebAuthn(ctx *context.Context) {
 		return
 	}
 
+	hasTwoFactor, err := auth.HasTwoFactorByUID(ctx, ctx.Session.Get("twofaUid").(int64))
+	if err != nil {
+		ctx.ServerError("HasTwoFactorByUID", err)
+		return
+	}
+
+	ctx.Data["HasTwoFactor"] = hasTwoFactor
+
 	ctx.HTML(http.StatusOK, tplWebAuthn)
 }
 
