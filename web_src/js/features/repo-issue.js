@@ -684,8 +684,7 @@ export function initIssueTemplateCommentEditors($commentForm) {
 export function initArchivedLabelHandler() {
   const archivedLabelEl = document.querySelector('.archived-label-hint');
   if (!archivedLabelEl) return;
-  const archivedLabels = document.querySelectorAll('[data-is-archived]');
-  for (const label of archivedLabels) {
+  for (const label of document.querySelectorAll('[data-is-archived]')) {
     toggleElem(label, label.classList.contains('checked'));
   }
 }
