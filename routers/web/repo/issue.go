@@ -243,10 +243,13 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		isShowClosed = true
 	}
 
-	totalTrackedTime, err := issues_model.GetIssueTotalTrackedTime(ctx, statsOpts, isShowClosed)
-	if err != nil {
-		ctx.ServerError("GetIssueTotalTrackedTime", err)
-		return
+	if repo.IsTimetrackerEnabled(ctx) {
+		totalTrackedTime, err := issues_model.GetIssueTotalTrackedTime(ctx, statsOpts, isShowClosed)
+		if err != nil {
+			ctx.ServerError("GetIssueTotalTrackedTime", err)
+			return
+		}
+		ctx.Data["TotalTrackedTime"] = totalTrackedTime
 	}
 
 	page := ctx.FormInt("page")
@@ -328,7 +331,6 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["Issues"] = issues
 	ctx.Data["CommitLastStatus"] = lastStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
-	ctx.Data["TotalTrackedTime"] = totalTrackedTime
 
 	// Get assignees.
 	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, repo)
