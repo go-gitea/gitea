@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	auth_model "code.gitea.io/gitea/models/auth"
 	git_model "code.gitea.io/gitea/models/git"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
@@ -153,7 +153,21 @@ func registerCleanupPackages() {
 		OlderThan: 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		realConfig := config.(*OlderThanConfig)
-		return packages_cleanup_service.Cleanup(ctx, realConfig.OlderThan)
+		return packages_cleanup_service.CleanupTask(ctx, realConfig.OlderThan)
+	})
+}
+
+func registerActionsCleanup() {
+	RegisterTaskFatal("cleanup_actions", &OlderThanConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    true,
+			RunAtStart: true,
+			Schedule:   "@midnight",
+		},
+		OlderThan: 24 * time.Hour,
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+		realConfig := config.(*OlderThanConfig)
+		return actions.Cleanup(ctx, realConfig.OlderThan)
 	})
 }
 
@@ -172,5 +186,8 @@ func initBasicTasks() {
 	registerCleanupHookTaskTable()
 	if setting.Packages.Enabled {
 		registerCleanupPackages()
+	}
+	if setting.Actions.Enabled {
+		registerActionsCleanup()
 	}
 }

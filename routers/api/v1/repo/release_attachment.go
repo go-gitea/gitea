@@ -50,6 +50,8 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Attachment"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	releaseID := ctx.ParamsInt64(":id")
 	attachID := ctx.ParamsInt64(":attachment_id")
@@ -98,6 +100,8 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AttachmentList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	releaseID := ctx.ParamsInt64(":id")
 	release, err := repo_model.GetReleaseByID(ctx, releaseID)
@@ -161,6 +165,8 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Attachment"
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	// Check if attachments are enabled
 	if !setting.Attachment.Enabled {
@@ -194,7 +200,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Create a new attachment and save the file
-	attach, err := attachment.UploadAttachment(file, setting.Repository.Release.AllowedTypes, header.Size, &repo_model.Attachment{
+	attach, err := attachment.UploadAttachment(ctx, file, setting.Repository.Release.AllowedTypes, header.Size, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     release.RepoID,
@@ -251,6 +257,8 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Attachment"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	form := web.GetForm(ctx).(*api.EditAttachmentOptions)
 
@@ -315,6 +323,8 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
@@ -335,7 +345,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	}
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
 
-	if err := repo_model.DeleteAttachment(attach, true); err != nil {
+	if err := repo_model.DeleteAttachment(ctx, attach, true); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteAttachment", err)
 		return
 	}

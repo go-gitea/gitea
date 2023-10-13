@@ -2,60 +2,61 @@
 	<div class="repo-setting-content">
 		<form class="ui form" action="{{.Link}}" method="post">
 			<h4 class="ui top attached header">
-				{{.locale.Tr "repo.settings.branch_protection" (.Rule.RuleName|Escape) | Str2html}}
+				{{ctx.Locale.Tr "repo.settings.branch_protection" (.Rule.RuleName|Escape) | Str2html}}
 			</h4>
 			<div class="ui attached segment branch-protection">
-				<h5 class="ui dividing header">{{.locale.Tr "repo.settings.protect_patterns"}}</h5>
+				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.protect_patterns"}}</h5>
 				<div class="field">
-					<label>{{.locale.Tr "repo.settings.protect_branch_name_pattern"}}</label>
+					<label>{{ctx.Locale.Tr "repo.settings.protect_branch_name_pattern"}}</label>
 					<input name="rule_name" type="text" value="{{.Rule.RuleName}}">
 					<input name="rule_id" type="hidden" value="{{.Rule.ID}}">
+					<p class="help gt-ml-0">{{ctx.Locale.Tr "repo.settings.protect_branch_name_pattern_desc" | Safe}}</p>
 				</div>
 				<div class="field">
-					<label>{{.locale.Tr "repo.settings.protect_protected_file_patterns"}}</label>
+					<label>{{ctx.Locale.Tr "repo.settings.protect_protected_file_patterns"}}</label>
 					<input name="protected_file_patterns" type="text" value="{{.Rule.ProtectedFilePatterns}}">
-					<p class="help gt-ml-0">{{.locale.Tr "repo.settings.protect_protected_file_patterns_desc" | Safe}}</p>
+					<p class="help gt-ml-0">{{ctx.Locale.Tr "repo.settings.protect_protected_file_patterns_desc" | Safe}}</p>
 				</div>
 				<div class="field">
-					<label>{{.locale.Tr "repo.settings.protect_unprotected_file_patterns"}}</label>
+					<label>{{ctx.Locale.Tr "repo.settings.protect_unprotected_file_patterns"}}</label>
 					<input name="unprotected_file_patterns" type="text" value="{{.Rule.UnprotectedFilePatterns}}">
-					<p class="help gt-ml-0">{{.locale.Tr "repo.settings.protect_unprotected_file_patterns_desc" | Safe}}</p>
+					<p class="help gt-ml-0">{{ctx.Locale.Tr "repo.settings.protect_unprotected_file_patterns_desc" | Safe}}</p>
 				</div>
 
 				{{.CsrfTokenHtml}}
-				<h5 class="ui dividing header">{{.locale.Tr "repo.settings.event_push"}}</h5>
+				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.event_push"}}</h5>
 				<div class="field">
 					<div class="ui radio checkbox">
 						<input name="enable_push" type="radio" value="none" class="toggle-target-disabled" data-target="#whitelist_box" {{if not .Rule.CanPush}}checked{{end}}>
-						<label>{{.locale.Tr "repo.settings.protect_disable_push"}}</label>
-						<p class="help">{{.locale.Tr "repo.settings.protect_disable_push_desc"}}</p>
+						<label>{{ctx.Locale.Tr "repo.settings.protect_disable_push"}}</label>
+						<p class="help">{{ctx.Locale.Tr "repo.settings.protect_disable_push_desc"}}</p>
 					</div>
 				</div>
 				<div class="field">
 					<div class="ui radio checkbox">
 						<input name="enable_push" type="radio" value="all" class="toggle-target-disabled" data-target="#whitelist_box" {{if and (.Rule.CanPush) (not .Rule.EnableWhitelist)}}checked{{end}}>
-						<label>{{.locale.Tr "repo.settings.protect_enable_push"}}</label>
-						<p class="help">{{.locale.Tr "repo.settings.protect_enable_push_desc"}}</p>
+						<label>{{ctx.Locale.Tr "repo.settings.protect_enable_push"}}</label>
+						<p class="help">{{ctx.Locale.Tr "repo.settings.protect_enable_push_desc"}}</p>
 					</div>
 				</div>
 				<div class="grouped fields">
 					<div class="field">
 						<div class="ui radio checkbox">
 							<input name="enable_push" type="radio" value="whitelist" class="toggle-target-enabled" data-target="#whitelist_box" {{if and (.Rule.CanPush) (.Rule.EnableWhitelist)}}checked{{end}}>
-							<label>{{.locale.Tr "repo.settings.protect_whitelist_committers"}}</label>
-							<p class="help">{{.locale.Tr "repo.settings.protect_whitelist_committers_desc"}}</p>
+							<label>{{ctx.Locale.Tr "repo.settings.protect_whitelist_committers"}}</label>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.protect_whitelist_committers_desc"}}</p>
 						</div>
 					</div>
 					<div id="whitelist_box" class="grouped fields {{if not .Rule.EnableWhitelist}}disabled{{end}}">
 						<div class="checkbox-sub-item field">
-							<label>{{.locale.Tr "repo.settings.protect_whitelist_users"}}</label>
+							<label>{{ctx.Locale.Tr "repo.settings.protect_whitelist_users"}}</label>
 							<div class="ui multiple search selection dropdown">
 								<input type="hidden" name="whitelist_users" value="{{.whitelist_users}}">
-								<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
+								<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
 								<div class="menu">
 									{{range .Users}}
 										<div class="item" data-value="{{.ID}}">
-											{{avatar $.Context . 28 "mini"}}{{template "repo/search_name" .}}
+											{{ctx.AvatarUtils.Avatar . 28 "mini"}}{{template "repo/search_name" .}}
 										</div>
 									{{end}}
 								</div>
@@ -63,10 +64,10 @@
 						</div>
 						{{if .Owner.IsOrganization}}
 							<div class="checkbox-sub-item field">
-								<label>{{.locale.Tr "repo.settings.protect_whitelist_teams"}}</label>
+								<label>{{ctx.Locale.Tr "repo.settings.protect_whitelist_teams"}}</label>
 								<div class="ui multiple search selection dropdown">
 									<input type="hidden" name="whitelist_teams" value="{{.whitelist_teams}}">
-									<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
+									<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
 									<div class="menu">
 										{{range .Teams}}
 											<div class="item" data-value="{{.ID}}">
@@ -81,7 +82,7 @@
 						<div class="checkbox-sub-item field">
 							<div class="ui checkbox">
 								<input type="checkbox" name="whitelist_deploy_keys" {{if .Rule.WhitelistDeployKeys}}checked{{end}}>
-								<label>{{.locale.Tr "repo.settings.protect_whitelist_deploy_keys"}}</label>
+								<label>{{ctx.Locale.Tr "repo.settings.protect_whitelist_deploy_keys"}}</label>
 							</div>
 						</div>
 					</div>
@@ -89,34 +90,34 @@
 				<div class="field">
 					<div class="ui checkbox">
 						<input name="require_signed_commits" type="checkbox" {{if .Rule.RequireSignedCommits}}checked{{end}}>
-						<label>{{.locale.Tr "repo.settings.require_signed_commits"}}</label>
-						<p class="help">{{.locale.Tr "repo.settings.require_signed_commits_desc"}}</p>
+						<label>{{ctx.Locale.Tr "repo.settings.require_signed_commits"}}</label>
+						<p class="help">{{ctx.Locale.Tr "repo.settings.require_signed_commits_desc"}}</p>
 					</div>
 				</div>
-				<h5 class="ui dividing header">{{.locale.Tr "repo.settings.event_pull_request_approvals"}}</h5>
+				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.event_pull_request_approvals"}}</h5>
 				<div class="field">
-					<label>{{.locale.Tr "repo.settings.protect_required_approvals"}}</label>
+					<label>{{ctx.Locale.Tr "repo.settings.protect_required_approvals"}}</label>
 					<input name="required_approvals" type="number" value="{{.Rule.RequiredApprovals}}">
-					<p class="help gt-ml-0">{{.locale.Tr "repo.settings.protect_required_approvals_desc"}}</p>
+					<p class="help gt-ml-0">{{ctx.Locale.Tr "repo.settings.protect_required_approvals_desc"}}</p>
 				</div>
 				<div class="grouped fields">
 					<div class="field">
 						<div class="ui checkbox">
 							<input name="enable_approvals_whitelist" type="checkbox" class="toggle-target-enabled" data-target="#approvals_whitelist_box" {{if .Rule.EnableApprovalsWhitelist}}checked{{end}}>
-							<label>{{.locale.Tr "repo.settings.protect_approvals_whitelist_enabled"}}</label>
-							<p class="help">{{.locale.Tr "repo.settings.protect_approvals_whitelist_enabled_desc"}}</p>
+							<label>{{ctx.Locale.Tr "repo.settings.protect_approvals_whitelist_enabled"}}</label>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.protect_approvals_whitelist_enabled_desc"}}</p>
 						</div>
 					</div>
 					<div id="approvals_whitelist_box" class="grouped fields {{if not .Rule.EnableApprovalsWhitelist}}disabled{{end}}">
 						<div class="checkbox-sub-item field">
-							<label>{{.locale.Tr "repo.settings.protect_approvals_whitelist_users"}}</label>
+							<label>{{ctx.Locale.Tr "repo.settings.protect_approvals_whitelist_users"}}</label>
 							<div class="ui multiple search selection dropdown">
 								<input type="hidden" name="approvals_whitelist_users" value="{{.approvals_whitelist_users}}">
-								<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
+								<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
 								<div class="menu">
 								{{range .Users}}
 									<div class="item" data-value="{{.ID}}">
-										{{avatar $.Context . 28 "mini"}}{{template "repo/search_name" .}}
+										{{ctx.AvatarUtils.Avatar . 28 "mini"}}{{template "repo/search_name" .}}
 									</div>
 								{{end}}
 								</div>
@@ -124,10 +125,10 @@
 						</div>
 						{{if .Owner.IsOrganization}}
 							<div class="checkbox-sub-item field">
-								<label>{{.locale.Tr "repo.settings.protect_approvals_whitelist_teams"}}</label>
+								<label>{{ctx.Locale.Tr "repo.settings.protect_approvals_whitelist_teams"}}</label>
 								<div class="ui multiple search selection dropdown">
 									<input type="hidden" name="approvals_whitelist_teams" value="{{.approvals_whitelist_teams}}">
-									<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
+									<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
 									<div class="menu">
 									{{range .Teams}}
 										<div class="item" data-value="{{.ID}}">
@@ -144,26 +145,26 @@
 				<div class="field">
 					<div class="ui checkbox">
 						<input name="dismiss_stale_approvals" type="checkbox" {{if .Rule.DismissStaleApprovals}}checked{{end}}>
-						<label>{{.locale.Tr "repo.settings.dismiss_stale_approvals"}}</label>
-						<p class="help">{{.locale.Tr "repo.settings.dismiss_stale_approvals_desc"}}</p>
+						<label>{{ctx.Locale.Tr "repo.settings.dismiss_stale_approvals"}}</label>
+						<p class="help">{{ctx.Locale.Tr "repo.settings.dismiss_stale_approvals_desc"}}</p>
 					</div>
 				</div>
 				<div class="grouped fields">
 					<div class="field">
 						<div class="ui checkbox">
 							<input name="enable_status_check" type="checkbox" class="toggle-target-enabled" data-target="#statuscheck_contexts_box" {{if .Rule.EnableStatusCheck}}checked{{end}}>
-							<label>{{.locale.Tr "repo.settings.protect_check_status_contexts"}}</label>
-							<p class="help">{{.locale.Tr "repo.settings.protect_check_status_contexts_desc"}}</p>
+							<label>{{ctx.Locale.Tr "repo.settings.protect_check_status_contexts"}}</label>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.protect_check_status_contexts_desc"}}</p>
 						</div>
 					</div>
 					<div id="statuscheck_contexts_box" class="checkbox-sub-item field {{if not .Rule.EnableStatusCheck}}disabled{{end}}">
-						<label>{{.locale.Tr "repo.settings.protect_status_check_patterns"}}</label>
+						<label>{{ctx.Locale.Tr "repo.settings.protect_status_check_patterns"}}</label>
 						<textarea id="status_check_contexts" name="status_check_contexts" rows="3">{{.status_check_contexts}}</textarea>
-						<p class="help">{{.locale.Tr "repo.settings.protect_status_check_patterns_desc"}}</p>
+						<p class="help">{{ctx.Locale.Tr "repo.settings.protect_status_check_patterns_desc"}}</p>
 						<table class="ui celled table">
 							<thead>
 								<tr>
-									<th>{{.locale.Tr "repo.settings.protect_check_status_contexts_list"}}</th>
+									<th>{{ctx.Locale.Tr "repo.settings.protect_check_status_contexts_list"}}</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -171,7 +172,7 @@
 								<tr>
 									<td>
 										<span>{{.}}</span>
-										<span class="status-check-matched-mark gt-hidden" data-status-check="{{.}}">{{$.locale.Tr "repo.settings.protect_status_check_matched"}}</span>
+										<span class="status-check-matched-mark gt-hidden" data-status-check="{{.}}">{{ctx.Locale.Tr "repo.settings.protect_status_check_matched"}}</span>
 									</td>
 								</tr>
 							{{else}}
@@ -181,32 +182,32 @@
 						</table>
 					</div>
 				</div>
-				<h5 class="ui dividing header">{{.locale.Tr "repo.settings.event_pull_request_merge"}}</h5>
+				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.event_pull_request_merge"}}</h5>
 				<div class="grouped fields">
 					<div class="field">
 						<div class="ui radio checkbox">
 							<input name="enable_merge_whitelist" type="radio" value="false" class="toggle-target-disabled" data-target="#merge_whitelist_box" {{if not .Rule.EnableMergeWhitelist}}checked{{end}}>
-							<label>{{.locale.Tr "repo.settings.protect_enable_merge"}}</label>
-							<p class="help">{{.locale.Tr "repo.settings.protect_enable_merge_desc"}}</p>
+							<label>{{ctx.Locale.Tr "repo.settings.protect_enable_merge"}}</label>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.protect_enable_merge_desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox">
 							<input name="enable_merge_whitelist" type="radio" value="true" class="toggle-target-enabled" data-target="#merge_whitelist_box" {{if .Rule.EnableMergeWhitelist}}checked{{end}}>
-							<label>{{.locale.Tr "repo.settings.protect_merge_whitelist_committers"}}</label>
-							<p class="help">{{.locale.Tr "repo.settings.protect_merge_whitelist_committers_desc"}}</p>
+							<label>{{ctx.Locale.Tr "repo.settings.protect_merge_whitelist_committers"}}</label>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.protect_merge_whitelist_committers_desc"}}</p>
 						</div>
 					</div>
 					<div id="merge_whitelist_box" class="grouped fields {{if not .Rule.EnableMergeWhitelist}}disabled{{end}}">
 						<div class="checkbox-sub-item field">
-							<label>{{.locale.Tr "repo.settings.protect_merge_whitelist_users"}}</label>
+							<label>{{ctx.Locale.Tr "repo.settings.protect_merge_whitelist_users"}}</label>
 							<div class="ui multiple search selection dropdown">
 								<input type="hidden" name="merge_whitelist_users" value="{{.merge_whitelist_users}}">
-								<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
+								<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
 								<div class="menu">
 								{{range .Users}}
 									<div class="item" data-value="{{.ID}}">
-										{{avatar $.Context . 28 "mini"}}{{template "repo/search_name" .}}
+										{{ctx.AvatarUtils.Avatar . 28 "mini"}}{{template "repo/search_name" .}}
 									</div>
 								{{end}}
 								</div>
@@ -214,10 +215,10 @@
 						</div>
 					{{if .Owner.IsOrganization}}
 						<div class="checkbox-sub-item field">
-							<label>{{.locale.Tr "repo.settings.protect_merge_whitelist_teams"}}</label>
+							<label>{{ctx.Locale.Tr "repo.settings.protect_merge_whitelist_teams"}}</label>
 							<div class="ui multiple search selection dropdown">
 								<input type="hidden" name="merge_whitelist_teams" value="{{.merge_whitelist_teams}}">
-								<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
+								<div class="default text">{{ctx.Locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
 								<div class="menu">
 								{{range .Teams}}
 									<div class="item" data-value="{{.ID}}">
@@ -234,28 +235,28 @@
 				<div class="field">
 					<div class="ui checkbox">
 						<input name="block_on_rejected_reviews" type="checkbox" {{if .Rule.BlockOnRejectedReviews}}checked{{end}}>
-						<label>{{.locale.Tr "repo.settings.block_rejected_reviews"}}</label>
-						<p class="help">{{.locale.Tr "repo.settings.block_rejected_reviews_desc"}}</p>
+						<label>{{ctx.Locale.Tr "repo.settings.block_rejected_reviews"}}</label>
+						<p class="help">{{ctx.Locale.Tr "repo.settings.block_rejected_reviews_desc"}}</p>
 					</div>
 				</div>
 				<div class="field">
 					<div class="ui checkbox">
 						<input name="block_on_official_review_requests" type="checkbox" {{if .Rule.BlockOnOfficialReviewRequests}}checked{{end}}>
-						<label>{{.locale.Tr "repo.settings.block_on_official_review_requests"}}</label>
-						<p class="help">{{.locale.Tr "repo.settings.block_on_official_review_requests_desc"}}</p>
+						<label>{{ctx.Locale.Tr "repo.settings.block_on_official_review_requests"}}</label>
+						<p class="help">{{ctx.Locale.Tr "repo.settings.block_on_official_review_requests_desc"}}</p>
 					</div>
 				</div>
 				<div class="field">
 					<div class="ui checkbox">
 						<input name="block_on_outdated_branch" type="checkbox" {{if .Rule.BlockOnOutdatedBranch}}checked{{end}}>
-						<label>{{.locale.Tr "repo.settings.block_outdated_branch"}}</label>
-						<p class="help">{{.locale.Tr "repo.settings.block_outdated_branch_desc"}}</p>
+						<label>{{ctx.Locale.Tr "repo.settings.block_outdated_branch"}}</label>
+						<p class="help">{{ctx.Locale.Tr "repo.settings.block_outdated_branch_desc"}}</p>
 					</div>
 				</div>
 				<div class="divider"></div>
 
 				<div class="field">
-					<button class="ui green button">{{$.locale.Tr "repo.settings.protected_branch.save_rule"}}</button>
+					<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.protected_branch.save_rule"}}</button>
 				</div>
 			</div>
 		</form>

@@ -852,7 +852,7 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 }
 
 func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
-	if ctx.Metas == nil {
+	if ctx.Metas == nil || ctx.Metas["mode"] == "document" {
 		return
 	}
 	var (

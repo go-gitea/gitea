@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // OAuth2UsernameType is enum describing the way gitea 'name' should be generated from oauth2 data
@@ -100,6 +101,7 @@ var OAuth2 = struct {
 	JWTSecretBase64            string `ini:"JWT_SECRET"`
 	JWTSigningPrivateKeyFile   string `ini:"JWT_SIGNING_PRIVATE_KEY_FILE"`
 	MaxTokenLength             int
+	DefaultApplications        []string
 }{
 	Enable:                     true,
 	AccessTokenExpirationTime:  3600,
@@ -108,6 +110,7 @@ var OAuth2 = struct {
 	JWTSigningAlgorithm:        "RS256",
 	JWTSigningPrivateKeyFile:   "jwt/private.pem",
 	MaxTokenLength:             math.MaxInt16,
+	DefaultApplications:        []string{"git-credential-oauth", "git-credential-manager", "tea"},
 }
 
 func loadOAuth2From(rootCfg ConfigProvider) {
@@ -127,21 +130,19 @@ func loadOAuth2From(rootCfg ConfigProvider) {
 	}
 
 	if InstallLock {
-		key := make([]byte, 32)
-		n, err := base64.RawURLEncoding.Decode(key, []byte(OAuth2.JWTSecretBase64))
-		if err != nil || n != 32 {
-			key, err = generate.NewJwtSecret()
+		if _, err := util.Base64FixedDecode(base64.RawURLEncoding, []byte(OAuth2.JWTSecretBase64), 32); err != nil {
+			key, err := generate.NewJwtSecret()
 			if err != nil {
 				log.Fatal("error generating JWT secret: %v", err)
 			}
 
-			secretBase64 := base64.RawURLEncoding.EncodeToString(key)
+			OAuth2.JWTSecretBase64 = base64.RawURLEncoding.EncodeToString(key)
 			saveCfg, err := rootCfg.PrepareSaving()
 			if err != nil {
 				log.Fatal("save oauth2.JWT_SECRET failed: %v", err)
 			}
-			rootCfg.Section("oauth2").Key("JWT_SECRET").SetValue(secretBase64)
-			saveCfg.Section("oauth2").Key("JWT_SECRET").SetValue(secretBase64)
+			rootCfg.Section("oauth2").Key("JWT_SECRET").SetValue(OAuth2.JWTSecretBase64)
+			saveCfg.Section("oauth2").Key("JWT_SECRET").SetValue(OAuth2.JWTSecretBase64)
 			if err := saveCfg.Save(); err != nil {
 				log.Fatal("save oauth2.JWT_SECRET failed: %v", err)
 			}

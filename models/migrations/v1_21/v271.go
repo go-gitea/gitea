@@ -2,20 +2,15 @@
 // SPDX-License-Identifier: MIT
 
 package v1_21 //nolint
-
 import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-func CreateAuthTokenTable(x *xorm.Engine) error {
-	type AuthToken struct {
-		ID          string `xorm:"pk"`
-		TokenHash   string
-		UserID      int64              `xorm:"INDEX"`
-		ExpiresUnix timeutil.TimeStamp `xorm:"INDEX"`
+func AddArchivedUnixColumInLabelTable(x *xorm.Engine) error {
+	type Label struct {
+		ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT NULL"`
 	}
-
-	return x.Sync(new(AuthToken))
+	return x.Sync(new(Label))
 }

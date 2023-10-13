@@ -105,7 +105,7 @@ func httpBase(ctx *context.Context) *serviceHandler {
 	}
 
 	repoExist := true
-	repo, err := repo_model.GetRepositoryByName(owner.ID, reponame)
+	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, reponame)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			if redirectRepoID, err := repo_model.LookupRedirect(owner.ID, reponame); err == nil {
@@ -147,7 +147,7 @@ func httpBase(ctx *context.Context) *serviceHandler {
 		// rely on the results of Contexter
 		if !ctx.IsSigned {
 			// TODO: support digit auth - which would be Authorization header with digit
-			ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=\".\"")
+			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea"`)
 			ctx.Error(http.StatusUnauthorized)
 			return nil
 		}
@@ -158,7 +158,7 @@ func httpBase(ctx *context.Context) *serviceHandler {
 		}
 
 		if ctx.IsBasicAuth && ctx.Data["IsApiToken"] != true && ctx.Data["IsActionsToken"] != true {
-			_, err = auth_model.GetTwoFactorByUID(ctx.Doer.ID)
+			_, err = auth_model.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 			if err == nil {
 				// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
 				ctx.PlainText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")

@@ -22,7 +22,7 @@ import (
 type Provider interface {
 	Name() string
 	DisplayName() string
-	IconHTML() template.HTML
+	IconHTML(size int) template.HTML
 	CustomURLSettings() *CustomURLSettings
 }
 
@@ -54,14 +54,16 @@ func (p *AuthSourceProvider) DisplayName() string {
 	return p.sourceName
 }
 
-func (p *AuthSourceProvider) IconHTML() template.HTML {
+func (p *AuthSourceProvider) IconHTML(size int) template.HTML {
 	if p.iconURL != "" {
-		img := fmt.Sprintf(`<img class="gt-mr-3" width="20" height="20" src="%s" alt="%s">`,
+		img := fmt.Sprintf(`<img class="gt-object-contain gt-mr-3" width="%d" height="%d" src="%s" alt="%s">`,
+			size,
+			size,
 			html.EscapeString(p.iconURL), html.EscapeString(p.DisplayName()),
 		)
 		return template.HTML(img)
 	}
-	return p.GothProvider.IconHTML()
+	return p.GothProvider.IconHTML(size)
 }
 
 // Providers contains the map of registered OAuth2 providers in Gitea (based on goth)

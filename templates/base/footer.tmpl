@@ -26,6 +26,8 @@
 	{{end}}
 {{end}}
 	<script src="{{AssetUrlPrefix}}/js/index.js?v={{AssetVersion}}" onerror="alert('Failed to load asset files from ' + this.src + '. Please make sure the asset files can be accessed.')"></script>
-{{template "custom/footer" .}}
+
+	{{template "custom/footer" .}}
+	{{ctx.DataRaceCheck $.Context}}
 </body>
 </html>

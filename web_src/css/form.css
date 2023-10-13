@@ -179,8 +179,7 @@ textarea:focus,
   #create-page-form form .header {
     padding-left: 280px !important;
   }
-  #create-page-form form .inline.field > label,
-  #create-page-form form .inline.field.captcha-field > span {
+  #create-page-form form .inline.field > label {
     text-align: right;
     width: 250px !important;
     word-wrap: break-word;
@@ -206,6 +205,13 @@ textarea:focus,
   }
 }
 
+.m-captcha-style {
+  width: 100%;
+  height: 5em;
+  vertical-align: middle;
+  display: inline-block;
+}
+
 @media (min-width: 768px) {
   .g-recaptcha-style,
   .h-captcha-style {
@@ -215,9 +221,12 @@ textarea:focus,
   }
   .g-recaptcha-style iframe,
   .h-captcha-style iframe {
-    border-radius: 5px !important;
+    border-radius: var(--border-radius) !important;
     width: 302px !important;
     height: 76px !important;
+  }
+  .m-captcha-style {
+    width: 50%;
   }
 }
 
@@ -271,13 +280,7 @@ textarea:focus,
   .user.reset.password form .inline.field > label,
   .user.link-account form .inline.field > label,
   .user.signin form .inline.field > label,
-  .user.signup form .inline.field > label,
-  .user.activate form .inline.field.captcha-field > span,
-  .user.forgot.password form .inline.field.captcha-field > span,
-  .user.reset.password form .inline.field.captcha-field > span,
-  .user.link-account form .inline.field.captcha-field > span,
-  .user.signin form .inline.field.captcha-field > span,
-  .user.signup form .inline.field.captcha-field > span {
+  .user.signup form .inline.field > label {
     text-align: right;
     width: 250px !important;
     word-wrap: break-word;
@@ -421,10 +424,7 @@ textarea:focus,
   }
   .repository.new.repo form .inline.field > label,
   .repository.new.migrate form .inline.field > label,
-  .repository.new.fork form .inline.field > label,
-  .repository.new.repo form .inline.field.captcha-field > span,
-  .repository.new.migrate form .inline.field.captcha-field > span,
-  .repository.new.fork form .inline.field.captcha-field > span {
+  .repository.new.fork form .inline.field > label {
     text-align: right;
     width: 250px !important;
     word-wrap: break-word;

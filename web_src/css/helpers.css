@@ -2,14 +2,10 @@
 Gitea's tailwind-style CSS helper classes have `gt-` prefix.
 Gitea's private styles use `g-` prefix.
 */
-.gt-db { display: block !important; }
 .gt-df { display: flex !important; }
-.gt-di { display: inline !important; }
-.gt-dif { display: inline-flex !important; }
 .gt-dib { display: inline-block !important; }
 .gt-ac { align-items: center !important; }
 .gt-jc { justify-content: center !important; }
-.gt-js { justify-content: flex-start !important; }
 .gt-je { justify-content: flex-end !important; }
 .gt-sb { justify-content: space-between !important; }
 .gt-fc { flex-direction: column !important; }
@@ -60,6 +56,7 @@ Gitea's private styles use `g-` prefix.
 .gt-content-center { align-content: center !important; }
 .gt-cursor-default { cursor: default !important; }
 .gt-cursor-pointer { cursor: pointer !important; }
+.gt-cursor-grab { cursor: grab !important; }
 .gt-invisible { visibility: hidden !important; }
 .gt-items-start { align-items: flex-start !important; }
 .gt-pointer-events-none { pointer-events: none !important; }
@@ -74,7 +71,7 @@ Gitea's private styles use `g-` prefix.
 .gt-no-underline { text-decoration-line: none !important; }
 .gt-w-auto { width: auto !important; }
 .gt-normal-case { text-transform: none !important; }
-
+.gt-italic { font-style: italic !important; }
 .gt-overflow-x-auto { overflow-x: auto !important; }
 .gt-overflow-x-scroll { overflow-x: scroll !important; }
 .gt-overflow-y-hidden { overflow-y: hidden !important; }
@@ -107,8 +104,6 @@ Gitea's private styles use `g-` prefix.
 .gt-border-secondary-bottom { border-bottom: 1px solid var(--color-secondary) !important; }
 .gt-border-secondary-left { border-left: 1px solid var(--color-secondary) !important; }
 .gt-border-secondary-right { border-right: 1px solid var(--color-secondary) !important; }
-
-.gt-no-transition { transition: none !important; }
 
 .gt-bg-red { background: var(--color-red) !important; }
 .gt-bg-orange { background: var(--color-orange) !important; }
@@ -271,12 +266,6 @@ Gitea's private styles use `g-` prefix.
 .gt-font-16 { font-size: 16px !important }
 .gt-font-17 { font-size: 17px !important }
 .gt-font-18 { font-size: 18px !important }
-
-@media (max-width: 767.98px) {
-  .gt-db-small { display: block !important; }
-  .gt-w-100-small { width: 100% !important; }
-  .gt-js-small { justify-content: flex-start !important; }
-}
 
 /*
 gt-hidden must be placed after all other "display: xxx !important" classes to win the chance

@@ -23,7 +23,7 @@ If you don't want your repository to be visible for search engines read further.
 ## Block search engines indexation using robots.txt
 
 To make Gitea serve a custom `robots.txt` (default: empty 404) for top level installations,
-create a file called `robots.txt` in the [`custom` folder or `CustomPath`](administration/customizing-gitea.md)
+create a file with path `public/robots.txt` in the [`custom` folder or `CustomPath`](administration/customizing-gitea.md)
 
 Examples on how to configure the `robots.txt` can be found at [https://moz.com/learn/seo/robotstxt](https://moz.com/learn/seo/robotstxt).
 

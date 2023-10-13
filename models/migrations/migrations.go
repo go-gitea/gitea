@@ -7,7 +7,6 @@ package migrations
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"code.gitea.io/gitea/models/migrations/v1_10"
 	"code.gitea.io/gitea/models/migrations/v1_11"
@@ -21,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_19"
 	"code.gitea.io/gitea/models/migrations/v1_20"
 	"code.gitea.io/gitea/models/migrations/v1_21"
+	"code.gitea.io/gitea/models/migrations/v1_22"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -524,7 +524,30 @@ var migrations = []Migration{
 	// v270 -> v271
 	NewMigration("Fix PackageProperty typo", v1_21.FixPackagePropertyTypo),
 	// v271 -> v272
-	NewMigration("Add auth_token table", v1_21.CreateAuthTokenTable),
+	NewMigration("Allow archiving labels", v1_21.AddArchivedUnixColumInLabelTable),
+	// v272 -> v273
+	NewMigration("Add Version to ActionRun table", v1_21.AddVersionToActionRunTable),
+	// v273 -> v274
+	NewMigration("Add Action Schedule Table", v1_21.AddActionScheduleTable),
+	// v274 -> v275
+	NewMigration("Add Actions artifacts expiration date", v1_21.AddExpiredUnixColumnInActionArtifactTable),
+	// v275 -> v276
+	NewMigration("Add ScheduleID for ActionRun", v1_21.AddScheduleIDForActionRun),
+	// v276 -> v277
+	NewMigration("Add RemoteAddress to mirrors", v1_21.AddRemoteAddressToMirrors),
+	// v277 -> v278
+	NewMigration("Add Index to issue_user.issue_id", v1_21.AddIndexToIssueUserIssueID),
+	// v278 -> v279
+	NewMigration("Add Index to comment.dependent_issue_id", v1_21.AddIndexToCommentDependentIssueID),
+	// v279 -> v280
+	NewMigration("Add Index to action.user_id", v1_21.AddIndexToActionUserID),
+
+	// Gitea 1.21.0 ends at 280
+
+	// v280 -> v281
+	NewMigration("Rename user themes", v1_22.RenameUserThemes),
+	// v281 -> v282
+	NewMigration("Add auth_token table", v1_22.CreateAuthTokenTable),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -610,8 +633,7 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 		if !setting.IsProd {
 			msg += fmt.Sprintf("\nIf you are in development and really know what you're doing, you can force changing the migration version by executing: UPDATE version SET version=%d WHERE id=1;", minDBVersion+len(migrations))
 		}
-		_, _ = fmt.Fprintln(os.Stderr, msg)
-		log.Fatal(msg)
+		log.Fatal("Migration Error: %s", msg)
 		return nil
 	}
 

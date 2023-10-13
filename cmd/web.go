@@ -107,13 +107,18 @@ func createPIDFile(pidPath string) {
 	}
 }
 
-func serveInstall(ctx *cli.Context) error {
+func showWebStartupMessage(msg string) {
 	log.Info("Gitea version: %s%s", setting.AppVer, setting.AppBuiltWith)
-	log.Info("App path: %s", setting.AppPath)
-	log.Info("Work path: %s", setting.AppWorkPath)
-	log.Info("Custom path: %s", setting.CustomPath)
-	log.Info("Config file: %s", setting.CustomConf)
-	log.Info("Prepare to run install page")
+	log.Info("* RunMode: %s", setting.RunMode)
+	log.Info("* AppPath: %s", setting.AppPath)
+	log.Info("* WorkPath: %s", setting.AppWorkPath)
+	log.Info("* CustomPath: %s", setting.CustomPath)
+	log.Info("* ConfigFile: %s", setting.CustomConf)
+	log.Info("%s", msg)
+}
+
+func serveInstall(ctx *cli.Context) error {
+	showWebStartupMessage("Prepare to run install page")
 
 	routers.InitWebInstallPage(graceful.GetManager().HammerContext())
 
@@ -150,29 +155,24 @@ func serveInstalled(ctx *cli.Context) error {
 	setting.LoadCommonSettings()
 	setting.MustInstalled()
 
-	log.Info("Gitea version: %s%s", setting.AppVer, setting.AppBuiltWith)
-	log.Info("App path: %s", setting.AppPath)
-	log.Info("Work path: %s", setting.AppWorkPath)
-	log.Info("Custom path: %s", setting.CustomPath)
-	log.Info("Config file: %s", setting.CustomConf)
-	log.Info("Run mode: %s", setting.RunMode)
-	log.Info("Prepare to run web server")
+	showWebStartupMessage("Prepare to run web server")
 
 	if setting.AppWorkPathMismatch {
 		log.Error("WORK_PATH from config %q doesn't match other paths from environment variables or command arguments. "+
-			"Only WORK_PATH in config should be set and used. Please remove the other outdated work paths from environment variables and command arguments", setting.CustomConf)
+			"Only WORK_PATH in config should be set and used. Please make sure the path in config file is correct, "+
+			"remove the other outdated work paths from environment variables and command arguments", setting.CustomConf)
 	}
 
 	rootCfg := setting.CfgProvider
 	if rootCfg.Section("").Key("WORK_PATH").String() == "" {
 		saveCfg, err := rootCfg.PrepareSaving()
 		if err != nil {
-			log.Error("Unable to prepare saving WORK_PATH=%s to config %q: %v\nYou must set it manually, otherwise there might be bugs when accessing the git repositories.", setting.AppWorkPath, setting.CustomConf, err)
+			log.Error("Unable to prepare saving WORK_PATH=%s to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", setting.AppWorkPath, setting.CustomConf, err)
 		} else {
 			rootCfg.Section("").Key("WORK_PATH").SetValue(setting.AppWorkPath)
 			saveCfg.Section("").Key("WORK_PATH").SetValue(setting.AppWorkPath)
 			if err = saveCfg.Save(); err != nil {
-				log.Error("Unable to update WORK_PATH=%s to config %q: %v\nYou must set it manually, otherwise there might be bugs when accessing the git repositories.", setting.AppWorkPath, setting.CustomConf, err)
+				log.Error("Unable to update WORK_PATH=%s to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", setting.AppWorkPath, setting.CustomConf, err)
 			}
 		}
 	}
@@ -208,8 +208,8 @@ func serveInstalled(ctx *cli.Context) error {
 	}
 
 	// Set up Chi routes
-	c := routers.NormalRoutes()
-	err := listen(c, true)
+	webRoutes := routers.NormalRoutes()
+	err := listen(webRoutes, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
 	log.GetManager().Close()

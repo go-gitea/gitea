@@ -23,7 +23,7 @@ import (
 func TestAPIRepoTeams(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	// publicOrgRepo = user3/repo21
+	// publicOrgRepo = org3/repo21
 	publicOrgRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32})
 	// user4
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
