@@ -28,24 +28,42 @@ func TestGetProxyURL(t *testing.T) {
 	setting.ParseProxy()
 
 	req, err := http.NewRequest("GET", "https://gitea.io", &bufio.Reader{})
-	assert.Nil(t, err)
-	proxyURL, err := Proxy()(req)
-	assert.Nil(t, proxyURL) // direct
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = Proxy()(req)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	cfg.Enabled = true
-	proxyURL, err = Proxy()(req)
+	proxyURL, err := Proxy()(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	assert.NotNil(t, proxyURL)
 	assert.Equal(t, "127.0.0.1:2087", proxyURL.Host) // in PROXY_HOSTS list
 
 	req, err = http.NewRequest("GET", "https://example.com", &bufio.Reader{})
-	assert.Nil(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	proxyURL, err = Proxy()(req)
-	assert.NotNil(t, proxyURL)
+	if err != nil {
+		t.Fatal(err)
+	}
 	assert.Equal(t, "127.0.0.1:1087", proxyURL.Host) // not in PROXY_HOSTS, from env
 
 	req, err = http.NewRequest("GET", "https://example2.com", &bufio.Reader{})
-	assert.Nil(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	proxyURL, err = Proxy()(req)
-	assert.Nil(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	assert.Nil(t, proxyURL) // not in PROXY_HOSTS, from env, ignored by no_proxy
 }

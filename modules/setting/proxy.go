@@ -18,8 +18,8 @@ var Proxy = struct {
 	ProxyHosts       []string `ini:"PROXY_HOSTS"`
 	SMTPProxyEnabled bool     `ini:"SMTP_PROXY_ENABLED"`
 
-	ProxyURLFixed *url.URL    `-`
-	HostMatchers  []glob.Glob `-`
+	ProxyURLFixed *url.URL    `ini:"-"`
+	HostMatchers  []glob.Glob `ini:"-"`
 }{
 	Enabled:          false,
 	SMTPProxyEnabled: false,
@@ -36,7 +36,10 @@ func loadProxyFrom(rootCfg ConfigProvider) {
 	Proxy.ProxyURL = sec.Key("PROXY_URL").MustString("")
 	Proxy.ProxyHosts = sec.Key("PROXY_HOSTS").Strings(",")
 
-	ParseProxy()
+	err := ParseProxy()
+	if err != nil {
+		log.Fatal("failed to load proxy settings: %v", err)
+	}
 }
 
 func ParseProxy() error {
