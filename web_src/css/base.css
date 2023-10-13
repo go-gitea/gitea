@@ -1801,7 +1801,7 @@ a.ui.basic.label:hover {
 
 table th[data-sortt-asc]:hover,
 table th[data-sortt-desc]:hover {
-  background: rgba(0, 0, 0, 0.1) !important;
+  background: var(--color-hover) !important;
   cursor: pointer !important;
 }
 
