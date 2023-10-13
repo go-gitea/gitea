@@ -105,7 +105,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	apiKeys := make([]*api.DeployKey, len(keys))
 	for i := range keys {
-		if err := keys[i].GetContent(); err != nil {
+		if err := keys[i].GetContent(ctx); err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetContent", err)
 			return
 		}
@@ -159,7 +159,7 @@ func GetDeployKey(ctx *context.APIContext) {
 		return
 	}
 
-	if err = key.GetContent(); err != nil {
+	if err = key.GetContent(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetContent", err)
 		return
 	}
@@ -279,7 +279,7 @@ func DeleteDeploykey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := asymkey_service.DeleteDeployKey(ctx.Doer, ctx.ParamsInt64(":id")); err != nil {
+	if err := asymkey_service.DeleteDeployKey(ctx, ctx.Doer, ctx.ParamsInt64(":id")); err != nil {
 		if asymkey_model.IsErrKeyAccessDenied(err) {
 			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
 		} else {

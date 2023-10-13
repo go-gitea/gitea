@@ -4,6 +4,7 @@
 package asymkey
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -17,24 +18,24 @@ import (
 )
 
 // DeleteDeployKey deletes deploy key from its repository authorized_keys file if needed.
-func DeleteDeployKey(doer *user_model.User, id int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error {
+	dbCtx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	key, err := asymkey_model.GetDeployKeyByID(ctx, id)
+	key, err := asymkey_model.GetDeployKeyByID(dbCtx, id)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return fmt.Errorf("GetDeployKeyByID: %w", err)
 	}
 
-	repo, err := repo_model.GetRepositoryByID(ctx, key.RepoID)
+	repo, err := repo_model.GetRepositoryByID(dbCtx, key.RepoID)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByID: %w", err)
 	}
 
-	if err := models.DeleteDeployKey(ctx, doer, id); err != nil {
+	if err := models.DeleteDeployKey(dbCtx, doer, id); err != nil {
 		return err
 	}
 	if err := committer.Commit(); err != nil {
@@ -43,5 +44,5 @@ func DeleteDeployKey(doer *user_model.User, id int64) error {
 
 	audit.Record(audit.RepositoryDeployKeyRemove, doer, repo, key, "Removed deploy key %s.", key.Name)
 
-	return asymkey_model.RewriteAllPublicKeys()
+	return asymkey_model.RewriteAllPublicKeys(ctx)
 }

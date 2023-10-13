@@ -13,7 +13,7 @@
 				{{if eq .TabName "activity"}}
 					{{if .ContextUser.KeepActivityPrivate}}
 						<div class="ui info message">
-							<p>{{.locale.Tr "user.disabled_public_activity"}}</p>
+							<p>{{ctx.Locale.Tr "user.disabled_public_activity"}}</p>
 						</div>
 					{{end}}
 					{{template "user/heatmap" .}}

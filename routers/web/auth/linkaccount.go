@@ -152,7 +152,7 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 }
 
 func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, remember bool) {
-	updateAvatarIfNeed(gothUser.AvatarURL, u)
+	updateAvatarIfNeed(ctx, gothUser.AvatarURL, u)
 
 	// If this user is enrolled in 2FA, we can't sign the user in just yet.
 	// Instead, redirect them to the 2FA authentication page.
@@ -164,7 +164,7 @@ func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, r
 			return
 		}
 
-		err = externalaccount.LinkAccountToUser(u, gothUser)
+		err = externalaccount.LinkAccountToUser(ctx, u, gothUser)
 		if err != nil {
 			ctx.ServerError("UserLinkAccount", err)
 			return

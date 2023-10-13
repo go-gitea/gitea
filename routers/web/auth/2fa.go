@@ -78,7 +78,7 @@ func TwoFactorPost(ctx *context.Context) {
 		remember := ctx.Session.Get("twofaRemember").(bool)
 
 		if ctx.Session.Get("linkAccount") != nil {
-			err = externalaccount.LinkAccountFromStore(ctx.Session, u)
+			err = externalaccount.LinkAccountFromStore(ctx, ctx.Session, u)
 			if err != nil {
 				ctx.ServerError("UserSignIn", err)
 				return

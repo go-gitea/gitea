@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
-	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -45,9 +44,7 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.profile")
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
-	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar,
-		setting.GetDefaultDisableGravatar(),
-	)
+	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value(ctx)
 
 	ctx.HTML(http.StatusOK, tplSettingsProfile)
 }
@@ -89,9 +86,7 @@ func ProfilePost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
-	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar,
-		setting.GetDefaultDisableGravatar(),
-	)
+	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value(ctx)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplSettingsProfile)
@@ -172,7 +167,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 		if !(st.IsImage() && !st.IsSvgImage()) {
 			return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
 		}
-		if err = user_service.UploadAvatar(ctxUser, data); err != nil {
+		if err = user_service.UploadAvatar(ctx, ctxUser, data); err != nil {
 			return fmt.Errorf("UploadAvatar: %w", err)
 		}
 	} else if ctxUser.UseCustomAvatar && ctxUser.Avatar == "" {
@@ -204,7 +199,7 @@ func AvatarPost(ctx *context.Context) {
 
 // DeleteAvatar render delete avatar page
 func DeleteAvatar(ctx *context.Context) {
-	if err := user_service.DeleteAvatar(ctx.Doer); err != nil {
+	if err := user_service.DeleteAvatar(ctx, ctx.Doer); err != nil {
 		ctx.Flash.Error(err.Error())
 	}
 
@@ -229,12 +224,12 @@ func Organization(ctx *context.Context) {
 		opts.Page = 1
 	}
 
-	orgs, err := organization.FindOrgs(opts)
+	orgs, err := organization.FindOrgs(ctx, opts)
 	if err != nil {
 		ctx.ServerError("FindOrgs", err)
 		return
 	}
-	total, err := organization.CountOrgs(opts)
+	total, err := organization.CountOrgs(ctx, opts)
 	if err != nil {
 		ctx.ServerError("CountOrgs", err)
 		return

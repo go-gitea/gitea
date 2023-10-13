@@ -30,7 +30,13 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		// User not in LDAP, do nothing
 		return nil, user_model.ErrUserNotExist{Name: loginName}
 	}
-
+	// Fallback.
+	if len(sr.Username) == 0 {
+		sr.Username = userName
+	}
+	if len(sr.Mail) == 0 {
+		sr.Mail = fmt.Sprintf("%s@localhost.local", sr.Username)
+	}
 	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
 
 	// Update User admin flag if exist
@@ -79,7 +85,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		}
 
 		if isAttributeSSHPublicKeySet {
-			if addedKeys, deletedKeys := asymkey_model.SynchronizePublicKeys(user, source.authSource, sr.SSHPublicKey); len(addedKeys) > 0 || len(deletedKeys) > 0 {
+			if addedKeys, deletedKeys := asymkey_model.SynchronizePublicKeys(ctx, user, source.authSource, sr.SSHPublicKey); len(addedKeys) > 0 || len(deletedKeys) > 0 {
 				for _, key := range addedKeys {
 					audit.Record(audit.UserKeySSHAdd, audit.NewAuthenticationSourceUser(), user, user, "Added SSH key %s.", key.Fingerprint)
 				}
@@ -87,21 +93,12 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 					audit.Record(audit.UserKeySSHRemove, audit.NewAuthenticationSourceUser(), user, user, "Removed SSH key %s.", key.Fingerprint)
 				}
 
-				if err := asymkey_model.RewriteAllPublicKeys(); err != nil {
+				if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
 					return user, err
 				}
 			}
 		}
 	} else {
-		// Fallback.
-		if len(sr.Username) == 0 {
-			sr.Username = userName
-		}
-
-		if len(sr.Mail) == 0 {
-			sr.Mail = fmt.Sprintf("%s@localhost.local", sr.Username)
-		}
-
 		user = &user_model.User{
 			LowerName:   strings.ToLower(sr.Username),
 			Name:        sr.Username,
@@ -125,18 +122,18 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		audit.Record(audit.UserCreate, audit.NewAuthenticationSourceUser(), user, user, "Created user %s.", user.Name)
 
 		if isAttributeSSHPublicKeySet {
-			if addedKeys := asymkey_model.AddPublicKeysBySource(user, source.authSource, sr.SSHPublicKey); len(addedKeys) > 0 {
+			if addedKeys := asymkey_model.AddPublicKeysBySource(ctx, user, source.authSource, sr.SSHPublicKey); len(addedKeys) > 0 {
 				for _, key := range addedKeys {
 					audit.Record(audit.UserKeySSHAdd, audit.NewAuthenticationSourceUser(), user, user, "Added SSH key %s.", key.Fingerprint)
 				}
 
-				if err := asymkey_model.RewriteAllPublicKeys(); err != nil {
+				if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
 					return user, err
 				}
 			}
 		}
 		if len(source.AttributeAvatar) > 0 {
-			if err := user_service.UploadAvatar(user, sr.Avatar); err != nil {
+			if err := user_service.UploadAvatar(ctx, user, sr.Avatar); err != nil {
 				return user, err
 			}
 		}

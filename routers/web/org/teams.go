@@ -167,7 +167,7 @@ func TeamsAction(ctx *context.Context) {
 			return
 		}
 
-		if ctx.Org.Team.IsMember(u.ID) {
+		if ctx.Org.Team.IsMember(ctx, u.ID) {
 			ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
 		} else {
 			err = models.AddTeamMember(ctx, ctx.Org.Team, u.ID)
@@ -245,7 +245,7 @@ func TeamsRepoAction(ctx *context.Context) {
 	action := ctx.Params(":action")
 	switch action {
 	case "add":
-		repo, err := repo_model.GetRepositoryByName(ctx.Org.Organization.ID, path.Base(ctx.FormString("repo_name")))
+		repo, err := repo_model.GetRepositoryByName(ctx, ctx.Org.Organization.ID, path.Base(ctx.FormString("repo_name")))
 		if err != nil {
 			if repo_model.IsErrRepoNotExist(err) {
 				ctx.Flash.Error(ctx.Tr("org.teams.add_nonexistent_repo"))
@@ -464,7 +464,7 @@ func SearchTeam(ctx *context.Context) {
 		ListOptions: listOptions,
 	}
 
-	teams, maxResults, err := org_model.SearchTeam(opts)
+	teams, maxResults, err := org_model.SearchTeam(ctx, opts)
 	if err != nil {
 		log.Error("SearchTeam failed: %v", err)
 		ctx.JSON(http.StatusInternalServerError, map[string]any{

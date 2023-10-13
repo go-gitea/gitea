@@ -456,7 +456,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 					return nil
 				}
 
-				if redirectUserID, err := user_model.LookupUserRedirect(userName); err == nil {
+				if redirectUserID, err := user_model.LookupUserRedirect(ctx, userName); err == nil {
 					RedirectToUser(ctx.Base, userName, redirectUserID)
 				} else if user_model.IsErrUserRedirectNotExist(err) {
 					ctx.NotFound("GetUserByName", nil)
@@ -495,7 +495,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	}
 
 	// Get repository.
-	repo, err := repo_model.GetRepositoryByName(owner.ID, repoName)
+	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, repoName)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			redirectRepoID, err := repo_model.LookupRedirect(owner.ID, repoName)
@@ -545,7 +545,10 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return nil
 	}
-	ctx.Data["NumReleases"], err = repo_model.GetReleaseCountByRepoID(ctx, ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{})
+	ctx.Data["NumReleases"], err = repo_model.GetReleaseCountByRepoID(ctx, ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{
+		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
+		IncludeDrafts: ctx.Repo.CanWrite(unit_model.TypeReleases),
+	})
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return nil
@@ -708,13 +711,13 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 
 	// Pull request is allowed if this is a fork repository
 	// and base repository accepts pull requests.
-	if repo.BaseRepo != nil && repo.BaseRepo.AllowsPulls() {
+	if repo.BaseRepo != nil && repo.BaseRepo.AllowsPulls(ctx) {
 		canCompare = true
 		ctx.Data["BaseRepo"] = repo.BaseRepo
 		ctx.Repo.PullRequest.BaseRepo = repo.BaseRepo
 		ctx.Repo.PullRequest.Allowed = canPush
 		ctx.Repo.PullRequest.HeadInfoSubURL = url.PathEscape(ctx.Repo.Owner.Name) + ":" + util.PathEscapeSegments(ctx.Repo.BranchName)
-	} else if repo.AllowsPulls() {
+	} else if repo.AllowsPulls(ctx) {
 		// Or, this is repository accepts pull requests between branches.
 		canCompare = true
 		ctx.Data["BaseRepo"] = repo
@@ -772,6 +775,8 @@ const (
 	// RepoRefBlob blob
 	RepoRefBlob
 )
+
+const headRefName = "HEAD"
 
 // RepoRef handles repository reference names when the ref name is not
 // explicitly given
@@ -833,6 +838,14 @@ func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 	case RepoRefBranch:
 		ref := getRefNameFromPath(ctx, repo, path, repo.GitRepo.IsBranchExist)
 		if len(ref) == 0 {
+
+			// check if ref is HEAD
+			parts := strings.Split(path, "/")
+			if parts[0] == headRefName {
+				repo.TreePath = strings.Join(parts[1:], "/")
+				return repo.Repository.DefaultBranch
+			}
+
 			// maybe it's a renamed branch
 			return getRefNameFromPath(ctx, repo, path, func(s string) bool {
 				b, exist, err := git_model.FindRenamedBranch(ctx, repo.Repository.ID, s)
@@ -860,6 +873,16 @@ func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 		if len(parts) > 0 && len(parts[0]) >= 7 && len(parts[0]) <= git.SHAFullLength {
 			repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
+		}
+
+		if len(parts) > 0 && parts[0] == headRefName {
+			// HEAD ref points to last default branch commit
+			commit, err := repo.GitRepo.GetBranchCommit(repo.Repository.DefaultBranch)
+			if err != nil {
+				return ""
+			}
+			repo.TreePath = strings.Join(parts[1:], "/")
+			return commit.ID.String()
 		}
 	case RepoRefBlob:
 		_, err := repo.GitRepo.GetBlob(path)

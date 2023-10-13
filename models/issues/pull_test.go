@@ -213,7 +213,7 @@ func TestPullRequest_Update(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	pr.BaseBranch = "baseBranch"
 	pr.HeadBranch = "headBranch"
-	pr.Update()
+	pr.Update(db.DefaultContext)
 
 	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
 	assert.Equal(t, "baseBranch", pr.BaseBranch)
@@ -228,7 +228,7 @@ func TestPullRequest_UpdateCols(t *testing.T) {
 		BaseBranch: "baseBranch",
 		HeadBranch: "headBranch",
 	}
-	assert.NoError(t, pr.UpdateCols("head_branch"))
+	assert.NoError(t, pr.UpdateCols(db.DefaultContext, "head_branch"))
 
 	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	assert.Equal(t, "master", pr.BaseBranch)
@@ -260,13 +260,13 @@ func TestPullRequest_IsWorkInProgress(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	pr.LoadIssue(db.DefaultContext)
 
-	assert.False(t, pr.IsWorkInProgress())
+	assert.False(t, pr.IsWorkInProgress(db.DefaultContext))
 
 	pr.Issue.Title = "WIP: " + pr.Issue.Title
-	assert.True(t, pr.IsWorkInProgress())
+	assert.True(t, pr.IsWorkInProgress(db.DefaultContext))
 
 	pr.Issue.Title = "[wip]: " + pr.Issue.Title
-	assert.True(t, pr.IsWorkInProgress())
+	assert.True(t, pr.IsWorkInProgress(db.DefaultContext))
 }
 
 func TestPullRequest_GetWorkInProgressPrefixWorkInProgress(t *testing.T) {
@@ -334,7 +334,7 @@ func TestGetApprovers(t *testing.T) {
 	// Official reviews are already deduplicated. Allow unofficial reviews
 	// to assert that there are no duplicated approvers.
 	setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly = false
-	approvers := pr.GetApprovers()
+	approvers := pr.GetApprovers(db.DefaultContext)
 	expected := "Reviewed-by: User Five <user5@example.com>\nReviewed-by: Org Six <org6@example.com>\n"
 	assert.EqualValues(t, expected, approvers)
 }

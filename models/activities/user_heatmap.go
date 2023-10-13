@@ -4,6 +4,8 @@
 package activities
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
@@ -18,16 +20,16 @@ type UserHeatmapData struct {
 }
 
 // GetUserHeatmapDataByUser returns an array of UserHeatmapData
-func GetUserHeatmapDataByUser(user, doer *user_model.User) ([]*UserHeatmapData, error) {
-	return getUserHeatmapData(user, nil, doer)
+func GetUserHeatmapDataByUser(ctx context.Context, user, doer *user_model.User) ([]*UserHeatmapData, error) {
+	return getUserHeatmapData(ctx, user, nil, doer)
 }
 
 // GetUserHeatmapDataByUserTeam returns an array of UserHeatmapData
-func GetUserHeatmapDataByUserTeam(user *user_model.User, team *organization.Team, doer *user_model.User) ([]*UserHeatmapData, error) {
-	return getUserHeatmapData(user, team, doer)
+func GetUserHeatmapDataByUserTeam(ctx context.Context, user *user_model.User, team *organization.Team, doer *user_model.User) ([]*UserHeatmapData, error) {
+	return getUserHeatmapData(ctx, user, team, doer)
 }
 
-func getUserHeatmapData(user *user_model.User, team *organization.Team, doer *user_model.User) ([]*UserHeatmapData, error) {
+func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organization.Team, doer *user_model.User) ([]*UserHeatmapData, error) {
 	hdata := make([]*UserHeatmapData, 0)
 
 	if !ActivityReadable(user, doer) {
@@ -45,7 +47,7 @@ func getUserHeatmapData(user *user_model.User, team *organization.Team, doer *us
 		groupByName = groupBy
 	}
 
-	cond, err := activityQueryCondition(GetFeedsOptions{
+	cond, err := activityQueryCondition(ctx, GetFeedsOptions{
 		RequestedUser:  user,
 		RequestedTeam:  team,
 		Actor:          doer,
@@ -60,7 +62,7 @@ func getUserHeatmapData(user *user_model.User, team *organization.Team, doer *us
 		return nil, err
 	}
 
-	return hdata, db.GetEngine(db.DefaultContext).
+	return hdata, db.GetEngine(ctx).
 		Select(groupBy+" AS timestamp, count(user_id) as contributions").
 		Table("action").
 		Where(cond).

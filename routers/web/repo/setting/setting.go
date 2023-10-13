@@ -292,7 +292,7 @@ func SettingsPost(ctx *context.Context) {
 
 		mirror_service.AddPullMirrorToQueue(repo.ID)
 
-		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
+		ctx.Flash.Info(ctx.Tr("repo.settings.pull_mirror_sync_in_progress", repo.OriginalURL))
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-sync":
@@ -309,7 +309,7 @@ func SettingsPost(ctx *context.Context) {
 
 		mirror_service.AddPushMirrorToQueue(m.ID)
 
-		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
+		ctx.Flash.Info(ctx.Tr("repo.settings.push_mirror_sync_in_progress", m.RemoteAddress))
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-update":
@@ -605,7 +605,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repo_model.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
+		if err := repo_model.UpdateRepositoryUnits(ctx, repo, units, deleteUnitTypes); err != nil {
 			ctx.ServerError("UpdateRepositoryUnits", err)
 			return
 		}
@@ -711,7 +711,7 @@ func SettingsPost(ctx *context.Context) {
 		if _, err := repo_module.CleanUpMigrateInfo(ctx, repo); err != nil {
 			ctx.ServerError("CleanUpMigrateInfo", err)
 			return
-		} else if err = repo_model.DeleteMirrorByRepoID(ctx.Repo.Repository.ID); err != nil {
+		} else if err = repo_model.DeleteMirrorByRepoID(ctx, ctx.Repo.Repository.ID); err != nil {
 			ctx.ServerError("DeleteMirrorByRepoID", err)
 			return
 		}
@@ -780,7 +780,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if newOwner.Type == user_model.UserTypeOrganization {
-			if !ctx.Doer.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx.Doer.ID) {
+			if !ctx.Doer.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx, ctx.Doer.ID) {
 				// The user shouldn't know about this organization
 				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
 				return

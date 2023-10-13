@@ -277,7 +277,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, r
 	committer.Close()
 
 	if needRewriteKeysFile {
-		if err := asymkey_model.RewriteAllPublicKeys(); err != nil {
+		if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
 			log.Error("RewriteAllPublicKeys failed: %v", err)
 		}
 	}

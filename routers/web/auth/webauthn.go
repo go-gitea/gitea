@@ -37,6 +37,14 @@ func WebAuthn(ctx *context.Context) {
 		return
 	}
 
+	hasTwoFactor, err := auth.HasTwoFactorByUID(ctx, ctx.Session.Get("twofaUid").(int64))
+	if err != nil {
+		ctx.ServerError("HasTwoFactorByUID", err)
+		return
+	}
+
+	ctx.Data["HasTwoFactor"] = hasTwoFactor
+
 	ctx.HTML(http.StatusOK, tplWebAuthn)
 }
 
@@ -141,7 +149,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 
 	// Now handle account linking if that's requested
 	if ctx.Session.Get("linkAccount") != nil {
-		if err := externalaccount.LinkAccountFromStore(ctx.Session, user); err != nil {
+		if err := externalaccount.LinkAccountFromStore(ctx, ctx.Session, user); err != nil {
 			ctx.ServerError("LinkAccountFromStore", err)
 			return
 		}

@@ -54,7 +54,7 @@ func ListTeams(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	teams, count, err := organization.SearchTeam(&organization.SearchTeamOptions{
+	teams, count, err := organization.SearchTeam(ctx, &organization.SearchTeamOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		OrgID:       ctx.Org.Organization.ID,
 	})
@@ -93,7 +93,7 @@ func ListUserTeams(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
 
-	teams, count, err := organization.SearchTeam(&organization.SearchTeamOptions{
+	teams, count, err := organization.SearchTeam(ctx, &organization.SearchTeamOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		UserID:      ctx.Doer.ID,
 	})
@@ -681,7 +681,7 @@ func GetTeamRepo(ctx *context.APIContext) {
 
 // getRepositoryByParams get repository by a team's organization ID and repo name
 func getRepositoryByParams(ctx *context.APIContext) *repo_model.Repository {
-	repo, err := repo_model.GetRepositoryByName(ctx.Org.Team.OrgID, ctx.Params(":reponame"))
+	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Org.Team.OrgID, ctx.Params(":reponame"))
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			ctx.NotFound()
@@ -854,7 +854,7 @@ func SearchTeam(ctx *context.APIContext) {
 		opts.UserID = ctx.Doer.ID
 	}
 
-	teams, maxResults, err := organization.SearchTeam(opts)
+	teams, maxResults, err := organization.SearchTeam(ctx, opts)
 	if err != nil {
 		log.Error("SearchTeam failed: %v", err)
 		ctx.JSON(http.StatusInternalServerError, map[string]any{

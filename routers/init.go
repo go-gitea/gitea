@@ -94,7 +94,7 @@ func syncAppConfForGit(ctx context.Context) error {
 		mustInitCtx(ctx, repo_service.SyncRepositoryHooks)
 
 		log.Info("re-write ssh public keys ...")
-		mustInit(asymkey_model.RewriteAllPublicKeys)
+		mustInitCtx(ctx, asymkey_model.RewriteAllPublicKeys)
 
 		return system.AppState.Set(runtimeState)
 	}
@@ -122,7 +122,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(cache.NewContext)
 	mustInit(feed_service.Init)
 	mustInit(uinotification.Init)
-	mustInit(archiver.Init)
+	mustInitCtx(ctx, archiver.Init)
 
 	highlight.NewContext()
 	external.RegisterRenderers()

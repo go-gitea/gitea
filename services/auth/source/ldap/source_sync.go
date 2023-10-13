@@ -78,7 +78,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			log.Warn("SyncExternalUsers: Cancelled at update of %s before completed update of users", source.authSource.Name)
 			// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
 			if sshKeysNeedUpdate {
-				err = asymkey_model.RewriteAllPublicKeys()
+				err = asymkey_model.RewriteAllPublicKeys(ctx)
 				if err != nil {
 					log.Error("RewriteAllPublicKeys: %v", err)
 				}
@@ -137,7 +137,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 				if isAttributeSSHPublicKeySet {
 					log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", source.authSource.Name, usr.Name)
-					if addedKeys := asymkey_model.AddPublicKeysBySource(usr, source.authSource, su.SSHPublicKey); len(addedKeys) > 0 {
+					if addedKeys := asymkey_model.AddPublicKeysBySource(ctx, usr, source.authSource, su.SSHPublicKey); len(addedKeys) > 0 {
 						sshKeysNeedUpdate = true
 
 						for _, key := range addedKeys {
@@ -147,13 +147,13 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				}
 
 				if len(source.AttributeAvatar) > 0 {
-					_ = user_service.UploadAvatar(usr, su.Avatar)
+					_ = user_service.UploadAvatar(ctx, usr, su.Avatar)
 				}
 			}
 		} else if updateExisting {
 			// Synchronize SSH Public Key if that attribute is set
 			if isAttributeSSHPublicKeySet {
-				if addedKeys, deletedKeys := asymkey_model.SynchronizePublicKeys(usr, source.authSource, su.SSHPublicKey); len(addedKeys) > 0 || len(deletedKeys) > 0 {
+				if addedKeys, deletedKeys := asymkey_model.SynchronizePublicKeys(ctx, usr, source.authSource, su.SSHPublicKey); len(addedKeys) > 0 || len(deletedKeys) > 0 {
 					sshKeysNeedUpdate = true
 
 					for _, key := range addedKeys {
@@ -210,7 +210,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 			if usr.IsUploadAvatarChanged(su.Avatar) {
 				if err == nil && len(source.AttributeAvatar) > 0 {
-					_ = user_service.UploadAvatar(usr, su.Avatar)
+					_ = user_service.UploadAvatar(ctx, usr, su.Avatar)
 				}
 			}
 		}
@@ -224,7 +224,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 	// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
 	if sshKeysNeedUpdate {
-		err = asymkey_model.RewriteAllPublicKeys()
+		err = asymkey_model.RewriteAllPublicKeys(ctx)
 		if err != nil {
 			log.Error("RewriteAllPublicKeys: %v", err)
 		}

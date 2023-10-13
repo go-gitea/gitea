@@ -166,7 +166,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			}
 
 			results = append(results, private.HookPostReceiveBranchResult{
-				Message: setting.Git.PullRequestPushMessage && repo.AllowsPulls(),
+				Message: setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
 				Create:  false,
 				Branch:  "",
 				URL:     fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
@@ -195,12 +195,12 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 						})
 						return
 					}
-					if repo.BaseRepo.AllowsPulls() {
+					if repo.BaseRepo.AllowsPulls(ctx) {
 						baseRepo = repo.BaseRepo
 					}
 				}
 
-				if !baseRepo.AllowsPulls() {
+				if !baseRepo.AllowsPulls(ctx) {
 					// We can stop there's no need to go any further
 					ctx.JSON(http.StatusOK, private.HookPostReceiveResult{
 						RepoWasEmpty: wasEmpty,
@@ -233,14 +233,14 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 					branch = fmt.Sprintf("%s:%s", repo.OwnerName, branch)
 				}
 				results = append(results, private.HookPostReceiveBranchResult{
-					Message: setting.Git.PullRequestPushMessage && baseRepo.AllowsPulls(),
+					Message: setting.Git.PullRequestPushMessage && baseRepo.AllowsPulls(ctx),
 					Create:  true,
 					Branch:  branch,
 					URL:     fmt.Sprintf("%s/compare/%s...%s", baseRepo.HTMLURL(), util.PathEscapeSegments(baseRepo.DefaultBranch), util.PathEscapeSegments(branch)),
 				})
 			} else {
 				results = append(results, private.HookPostReceiveBranchResult{
-					Message: setting.Git.PullRequestPushMessage && baseRepo.AllowsPulls(),
+					Message: setting.Git.PullRequestPushMessage && baseRepo.AllowsPulls(ctx),
 					Create:  false,
 					Branch:  branch,
 					URL:     fmt.Sprintf("%s/pulls/%d", baseRepo.HTMLURL(), pr.Index),
