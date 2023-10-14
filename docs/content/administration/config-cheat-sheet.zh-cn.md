@@ -506,7 +506,6 @@ Gitea 创建以下非唯一队列：
 - `SECRET_KEY`: **\<每次安装时随机生成\>**：全局服务器安全密钥。这个密钥非常重要，如果丢失将无法解密加密的数据（例如 2FA）。
 - `SECRET_KEY_URI`: **_empty_**：与定义 `SECRET_KEY` 不同，此选项可用于使用存储在文件中的密钥（示例值：`file:/etc/gitea/secret_key`）。它不应该像 `SECRET_KEY` 一样容易丢失。
 - `LOGIN_REMEMBER_DAYS`: **7**：Cookie 保存时间，单位为天。
-- `COOKIE_USERNAME`: **gitea\_awesome**：保存用户名的 Cookie 名称。
 - `COOKIE_REMEMBER_NAME`: **gitea\_incredible**：保存自动登录信息的 Cookie 名称。
 - `REVERSE_PROXY_AUTHENTICATION_USER`: **X-WEBAUTH-USER**：反向代理认证的 HTTP 头部名称，用于提供用户信息。
 - `REVERSE_PROXY_AUTHENTICATION_EMAIL`: **X-WEBAUTH-EMAIL**：反向代理认证的 HTTP 头部名称，用于提供邮箱信息。
