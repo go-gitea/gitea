@@ -2425,6 +2425,12 @@
   height: 0.5em;
 }
 
+/* Reduce emoji sizes to fit within a label. */
+.label > .emoji {
+  font-size: .857143rem;
+  line-height: 1.3;
+}
+
 .labels-list .label {
   margin: 2px 0;
   display: inline-flex !important;
