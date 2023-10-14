@@ -35,7 +35,7 @@ func TestViewRepo(t *testing.T) {
 	assert.True(t, repoTopics.HasClass("repo-topic"))
 	assert.True(t, repoSummary.HasClass("repository-menu"))
 
-	req = NewRequest(t, "GET", "/user3/repo3")
+	req = NewRequest(t, "GET", "/org3/repo3")
 	MakeRequest(t, req, http.StatusNotFound)
 
 	session = loginUser(t, "user1")
@@ -45,7 +45,7 @@ func TestViewRepo(t *testing.T) {
 func testViewRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "GET", "/user3/repo3")
+	req := NewRequest(t, "GET", "/org3/repo3")
 	session := loginUser(t, "user2")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -116,7 +116,7 @@ func TestViewRepo2(t *testing.T) {
 func TestViewRepo3(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "GET", "/user3/repo3")
+	req := NewRequest(t, "GET", "/org3/repo3")
 	session := loginUser(t, "user4")
 	session.MakeRequest(t, req, http.StatusOK)
 }
@@ -301,6 +301,10 @@ func TestViewRepoDirectoryReadme(t *testing.T) {
 	check("txt", "/user2/readme-test/src/branch/txt/", "README.txt", "plain-text", "My spoon is too big.")
 	check("plain", "/user2/readme-test/src/branch/plain/", "README", "plain-text", "Birken my stocks gee howdy")
 	check("i18n", "/user2/readme-test/src/branch/i18n/", "README.zh.md", "markdown", "蛋糕是一个谎言")
+
+	// using HEAD ref
+	check("branch-HEAD", "/user2/readme-test/src/branch/HEAD/", "README.md", "markdown", "The cake is a lie.")
+	check("commit-HEAD", "/user2/readme-test/src/commit/HEAD/", "README.md", "markdown", "The cake is a lie.")
 
 	// viewing different subdirectories
 	check("subdir", "/user2/readme-test/src/branch/subdir/libcake", "README.md", "markdown", "Four pints of sugar.")

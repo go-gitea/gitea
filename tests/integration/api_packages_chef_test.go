@@ -83,7 +83,7 @@ kPuCu6vH9brvOuYo0q8hLVNkBeXcimRpsDjLhQYzEJjoMTbaiVGnjBky+PWNiofJ
 nwIDAQAB
 -----END PUBLIC KEY-----`
 
-	err := user_model.SetUserSetting(user.ID, chef_module.SettingPublicPem, pubPem)
+	err := user_model.SetUserSetting(db.DefaultContext, user.ID, chef_module.SettingPublicPem, pubPem)
 	assert.NoError(t, err)
 
 	t.Run("Authenticate", func(t *testing.T) {
@@ -322,7 +322,7 @@ nwIDAQAB
 		assert.Equal(t, fmt.Sprintf("%s.tar.gz", packageVersion), pfs[0].Name)
 		assert.True(t, pfs[0].IsLead)
 
-		uploadPackage(t, packageVersion, http.StatusBadRequest)
+		uploadPackage(t, packageVersion, http.StatusConflict)
 	})
 
 	t.Run("Download", func(t *testing.T) {

@@ -172,8 +172,8 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 	}
 }
 
-func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
-	txCtx, committer, err := db.TxContext(db.DefaultContext)
+func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
+	txCtx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -291,18 +291,18 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 // anything.  In all cases, the caller should be examining the *ArchiveRequest
 // being returned for completion, as it may be different than the one they passed
 // in.
-func ArchiveRepository(request *ArchiveRequest) (*repo_model.RepoArchiver, error) {
-	return doArchive(request)
+func ArchiveRepository(ctx context.Context, request *ArchiveRequest) (*repo_model.RepoArchiver, error) {
+	return doArchive(ctx, request)
 }
 
 var archiverQueue *queue.WorkerPoolQueue[*ArchiveRequest]
 
 // Init initializes archiver
-func Init() error {
+func Init(ctx context.Context) error {
 	handler := func(items ...*ArchiveRequest) []*ArchiveRequest {
 		for _, archiveReq := range items {
 			log.Trace("ArchiverData Process: %#v", archiveReq)
-			if _, err := doArchive(archiveReq); err != nil {
+			if _, err := doArchive(ctx, archiveReq); err != nil {
 				log.Error("Archive %v failed: %v", archiveReq, err)
 			}
 		}
@@ -346,7 +346,7 @@ func DeleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration) e
 	log.Trace("Doing: ArchiveCleanup")
 
 	for {
-		archivers, err := repo_model.FindRepoArchives(repo_model.FindRepoArchiversOption{
+		archivers, err := repo_model.FindRepoArchives(ctx, repo_model.FindRepoArchiversOption{
 			ListOptions: db.ListOptions{
 				PageSize: 100,
 				Page:     1,
@@ -374,7 +374,7 @@ func DeleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration) e
 
 // DeleteRepositoryArchives deletes all repositories' archives.
 func DeleteRepositoryArchives(ctx context.Context) error {
-	if err := repo_model.DeleteAllRepoArchives(); err != nil {
+	if err := repo_model.DeleteAllRepoArchives(ctx); err != nil {
 		return err
 	}
 	return storage.Clean(storage.RepoArchives)

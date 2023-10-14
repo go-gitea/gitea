@@ -4,15 +4,16 @@
 package org
 
 import (
+	"errors"
 	"net/http"
 
 	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/routers/web/shared/actions"
-	"code.gitea.io/gitea/services/convert"
+	secret_service "code.gitea.io/gitea/services/secrets"
 )
 
 // ListActionsSecrets list an organization's actions secrets
@@ -39,12 +40,9 @@ func ListActionsSecrets(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/SecretList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	listActionsSecrets(ctx)
-}
-
-// listActionsSecrets list an organization's actions secrets
-func listActionsSecrets(ctx *context.APIContext) {
 	opts := &secret_model.FindSecretsOptions{
 		OwnerID:     ctx.Org.Organization.ID,
 		ListOptions: utils.GetListOptions(ctx),
@@ -74,11 +72,11 @@ func listActionsSecrets(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiSecrets)
 }
 
-// CreateOrgSecret create one secret of the organization
-func CreateOrgSecret(ctx *context.APIContext) {
-	// swagger:operation POST /orgs/{org}/actions/secrets organization createOrgSecret
+// create or update one secret of the organization
+func CreateOrUpdateSecret(ctx *context.APIContext) {
+	// swagger:operation PUT /orgs/{org}/actions/secrets/{secretname} organization updateOrgSecret
 	// ---
-	// summary: Create a secret in an organization
+	// summary: Create or Update a secret value in an organization
 	// consumes:
 	// - application/json
 	// produces:
@@ -89,27 +87,85 @@ func CreateOrgSecret(ctx *context.APIContext) {
 	//   description: name of organization
 	//   type: string
 	//   required: true
+	// - name: secretname
+	//   in: path
+	//   description: name of the secret
+	//   type: string
+	//   required: true
 	// - name: body
 	//   in: body
 	//   schema:
-	//     "$ref": "#/definitions/CreateSecretOption"
+	//     "$ref": "#/definitions/CreateOrUpdateSecretOption"
 	// responses:
 	//   "201":
-	//     "$ref": "#/responses/Secret"
+	//     description: response when creating a secret
+	//   "204":
+	//     description: response when updating a secret
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	opt := web.GetForm(ctx).(*api.CreateSecretOption)
-	s, err := secret_model.InsertEncryptedSecret(
-		ctx, ctx.Org.Organization.ID, 0, opt.Name, actions.ReserveLineBreakForTextarea(opt.Data),
-	)
+
+	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
+
+	_, created, err := secret_service.CreateOrUpdateSecret(ctx, ctx.Org.Organization.ID, 0, ctx.Params("secretname"), opt.Data)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "InsertEncryptedSecret", err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			ctx.Error(http.StatusBadRequest, "CreateOrUpdateSecret", err)
+		} else if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, "CreateOrUpdateSecret", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "CreateOrUpdateSecret", err)
+		}
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToSecret(s))
+	if created {
+		ctx.Status(http.StatusCreated)
+	} else {
+		ctx.Status(http.StatusNoContent)
+	}
+}
+
+// DeleteSecret delete one secret of the organization
+func DeleteSecret(ctx *context.APIContext) {
+	// swagger:operation DELETE /orgs/{org}/actions/secrets/{secretname} organization deleteOrgSecret
+	// ---
+	// summary: Delete a secret in an organization
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of organization
+	//   type: string
+	//   required: true
+	// - name: secretname
+	//   in: path
+	//   description: name of the secret
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: delete one secret of the organization
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	err := secret_service.DeleteSecretByName(ctx, ctx.Org.Organization.ID, 0, ctx.Params("secretname"))
+	if err != nil {
+		if errors.Is(err, util.ErrInvalidArgument) {
+			ctx.Error(http.StatusBadRequest, "DeleteSecret", err)
+		} else if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, "DeleteSecret", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "DeleteSecret", err)
+		}
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }

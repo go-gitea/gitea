@@ -21,8 +21,8 @@ import (
 )
 
 // FindReposMapByIDs find repos as map
-func FindReposMapByIDs(repoIDs []int64, res map[int64]*Repository) error {
-	return db.GetEngine(db.DefaultContext).In("id", repoIDs).Find(&res)
+func FindReposMapByIDs(ctx context.Context, repoIDs []int64, res map[int64]*Repository) error {
+	return db.GetEngine(ctx).In("id", repoIDs).Find(&res)
 }
 
 // RepositoryListDefaultPageSize is the default number of repositories
@@ -130,6 +130,10 @@ type SearchRepoOptions struct {
 	// True -> include just collaborative
 	// False -> include just non-collaborative
 	Collaborate util.OptionalBool
+	// What type of unit the user can be collaborative in,
+	// it is ignored if Collaborate is False.
+	// TypeInvalid means any unit type.
+	UnitType unit.Type
 	// None -> include forks AND non-forks
 	// True -> include just forks
 	// False -> include just non-forks
@@ -382,19 +386,25 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 
 		if opts.Collaborate != util.OptionalBoolFalse {
 			// A Collaboration is:
-			collaborateCond := builder.And(
-				// 1. Repository we don't own
-				builder.Neq{"owner_id": opts.OwnerID},
-				// 2. But we can see because of:
-				builder.Or(
-					// A. We have unit independent access
-					UserAccessRepoCond("`repository`.id", opts.OwnerID),
-					// B. We are in a team for
-					UserOrgTeamRepoCond("`repository`.id", opts.OwnerID),
-					// C. Public repositories in organizations that we are member of
-					userOrgPublicRepoCondPrivate(opts.OwnerID),
-				),
-			)
+
+			collaborateCond := builder.NewCond()
+			// 1. Repository we don't own
+			collaborateCond = collaborateCond.And(builder.Neq{"owner_id": opts.OwnerID})
+			// 2. But we can see because of:
+			{
+				userAccessCond := builder.NewCond()
+				// A. We have unit independent access
+				userAccessCond = userAccessCond.Or(UserAccessRepoCond("`repository`.id", opts.OwnerID))
+				// B. We are in a team for
+				if opts.UnitType == unit.TypeInvalid {
+					userAccessCond = userAccessCond.Or(UserOrgTeamRepoCond("`repository`.id", opts.OwnerID))
+				} else {
+					userAccessCond = userAccessCond.Or(userOrgTeamUnitRepoCond("`repository`.id", opts.OwnerID, opts.UnitType))
+				}
+				// C. Public repositories in organizations that we are member of
+				userAccessCond = userAccessCond.Or(userOrgPublicRepoCondPrivate(opts.OwnerID))
+				collaborateCond = collaborateCond.And(userAccessCond)
+			}
 			if !opts.Private {
 				collaborateCond = collaborateCond.And(builder.Expr("owner_id NOT IN (SELECT org_id FROM org_user WHERE org_user.uid = ? AND org_user.is_public = ?)", opts.OwnerID, false))
 			}
@@ -662,12 +672,12 @@ func SearchRepositoryByName(ctx context.Context, opts *SearchRepoOptions) (Repos
 
 // SearchRepositoryIDs takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
-func SearchRepositoryIDs(opts *SearchRepoOptions) ([]int64, int64, error) {
+func SearchRepositoryIDs(ctx context.Context, opts *SearchRepoOptions) ([]int64, int64, error) {
 	opts.IncludeDescription = false
 
 	cond := SearchRepositoryCondition(opts)
 
-	sess, count, err := searchRepositoryByCondition(db.DefaultContext, opts, cond)
+	sess, count, err := searchRepositoryByCondition(ctx, opts, cond)
 	if err != nil {
 		return nil, 0, err
 	}
