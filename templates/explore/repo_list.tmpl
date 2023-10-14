@@ -32,10 +32,12 @@
 								{{end}}
 							{{end}}
 						</span>
-						{{if .IsFork}}
-							<span data-tooltip-content="{{ctx.Locale.Tr "repo.fork"}}">{{svg "octicon-repo-forked"}}</span>
-						{{else if .IsMirror}}
-							<span data-tooltip-content="{{ctx.Locale.Tr "mirror"}}">{{svg "octicon-mirror"}}</span>
+						{{if or (.RelAvatarLink ctx) .IsTemplate .IsPrivate}}
+							{{if .IsFork}}
+								<span data-tooltip-content="{{ctx.Locale.Tr "repo.fork"}}">{{svg "octicon-repo-forked"}}</span>
+							{{else if .IsMirror}}
+								<span data-tooltip-content="{{ctx.Locale.Tr "mirror"}}">{{svg "octicon-mirror"}}</span>
+							{{end}}
 						{{end}}
 					</div>
 					<div class="flex-item-trailing">
