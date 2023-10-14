@@ -41,7 +41,7 @@ func DeleteAccountLink(ctx *context.Context) {
 	if id <= 0 {
 		ctx.Flash.Error("Account link id is not given")
 	} else {
-		if _, err := user_model.RemoveAccountLink(ctx.Doer, id); err != nil {
+		if _, err := user_model.RemoveAccountLink(ctx, ctx.Doer, id); err != nil {
 			ctx.Flash.Error("RemoveAccountLink: " + err.Error())
 		} else {
 			ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
@@ -73,7 +73,7 @@ func loadSecurityData(ctx *context.Context) {
 	}
 	ctx.Data["Tokens"] = tokens
 
-	accountLinks, err := user_model.ListAccountLinks(ctx.Doer)
+	accountLinks, err := user_model.ListAccountLinks(ctx, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("ListAccountLinks", err)
 		return
@@ -105,7 +105,7 @@ func loadSecurityData(ctx *context.Context) {
 	}
 	ctx.Data["AccountLinks"] = sources
 
-	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers()
+	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers(ctx)
 	if err != nil {
 		ctx.ServerError("GetActiveOAuth2Providers", err)
 		return

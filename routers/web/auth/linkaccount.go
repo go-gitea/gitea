@@ -271,7 +271,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		}
 	}
 
-	authSource, err := auth.GetActiveOAuth2SourceByName(gothUser.Provider)
+	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, gothUser.Provider)
 	if err != nil {
 		ctx.ServerError("CreateUser", err)
 		return

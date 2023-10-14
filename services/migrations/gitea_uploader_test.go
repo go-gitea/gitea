@@ -210,7 +210,7 @@ func TestGiteaUploadRemapExternalUser(t *testing.T) {
 		LoginSourceID: 0,
 		Provider:      structs.GiteaService.Name(),
 	}
-	err = user_model.LinkExternalToUser(linkedUser, externalLoginUser)
+	err = user_model.LinkExternalToUser(db.DefaultContext, linkedUser, externalLoginUser)
 	assert.NoError(t, err)
 
 	//
