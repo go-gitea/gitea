@@ -44,7 +44,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		Type:       user_model.UserTypeOrganization,
 		Visibility: structs.VisibleTypePublic,
 	}
-	assert.NoError(t, organization.CreateOrganization(org, user), "CreateOrganization")
+	assert.NoError(t, organization.CreateOrganization(db.DefaultContext, org, user), "CreateOrganization")
 
 	// Check Owner team.
 	ownerTeam, err := org.GetOwnerTeam(db.DefaultContext)

@@ -362,7 +362,7 @@ func AddTeamMember(ctx context.Context, team *organization.Team, userID int64) e
 		return err
 	}
 
-	if err := organization.AddOrgUser(team.OrgID, userID); err != nil {
+	if err := organization.AddOrgUser(ctx, team.OrgID, userID); err != nil {
 		return err
 	}
 

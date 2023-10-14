@@ -187,6 +187,8 @@ func CreateIssueDependency(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Issue"
 	//   "404":
 	//     description: the issue does not exist
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// We want to make <:index> depend on <Form>, i.e. <:index> is the target
 	target := getParamsIssue(ctx)
@@ -246,6 +248,8 @@ func RemoveIssueDependency(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Issue"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// We want to make <:index> depend on <Form>, i.e. <:index> is the target
 	target := getParamsIssue(ctx)
@@ -572,7 +576,7 @@ func createIssueDependency(ctx *context.APIContext, target, dependency *issues_m
 		return
 	}
 
-	err := issues_model.CreateIssueDependency(ctx.Doer, target, dependency)
+	err := issues_model.CreateIssueDependency(ctx, ctx.Doer, target, dependency)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateIssueDependency", err)
 		return
@@ -598,7 +602,7 @@ func removeIssueDependency(ctx *context.APIContext, target, dependency *issues_m
 		return
 	}
 
-	err := issues_model.RemoveIssueDependency(ctx.Doer, target, dependency, issues_model.DependencyTypeBlockedBy)
+	err := issues_model.RemoveIssueDependency(ctx, ctx.Doer, target, dependency, issues_model.DependencyTypeBlockedBy)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateIssueDependency", err)
 		return

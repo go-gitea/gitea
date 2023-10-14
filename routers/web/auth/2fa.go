@@ -26,8 +26,7 @@ var (
 func TwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("twofa")
 
-	// Check auto-login.
-	if checkAutoLogin(ctx) {
+	if CheckAutoLogin(ctx) {
 		return
 	}
 
@@ -75,7 +74,7 @@ func TwoFactorPost(ctx *context.Context) {
 		}
 
 		if ctx.Session.Get("linkAccount") != nil {
-			err = externalaccount.LinkAccountFromStore(ctx.Session, u)
+			err = externalaccount.LinkAccountFromStore(ctx, ctx.Session, u)
 			if err != nil {
 				ctx.ServerError("UserSignIn", err)
 				return
@@ -99,8 +98,7 @@ func TwoFactorPost(ctx *context.Context) {
 func TwoFactorScratch(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("twofa_scratch")
 
-	// Check auto-login.
-	if checkAutoLogin(ctx) {
+	if CheckAutoLogin(ctx) {
 		return
 	}
 

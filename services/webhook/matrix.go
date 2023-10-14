@@ -177,7 +177,7 @@ func (m *MatrixPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, e
 func (m *MatrixPayload) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (api.Payloader, error) {
 	senderLink := MatrixLinkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
 	title := fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title)
-	titleLink := MatrixLinkFormatter(p.PullRequest.URL, title)
+	titleLink := MatrixLinkFormatter(p.PullRequest.HTMLURL, title)
 	repoLink := MatrixLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	var text string
 
