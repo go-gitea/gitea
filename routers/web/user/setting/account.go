@@ -69,16 +69,13 @@ func AccountPost(ctx *context.Context) {
 		}
 		ctx.Flash.Error(errMsg)
 	} else {
-		var err error
-		if err = ctx.Doer.SetPassword(form.Password); err != nil {
-			ctx.ServerError("UpdateUser", err)
+		if err := user_service.ChangePassword(ctx, ctx.Doer, form.Password, false); err != nil {
+			ctx.ServerError("ChangePassword", err)
 			return
 		}
-		if err := user_model.UpdateUserCols(ctx, ctx.Doer, "salt", "passwd_hash_algo", "passwd"); err != nil {
-			ctx.ServerError("UpdateUser", err)
-			return
-		}
+
 		log.Trace("User password updated: %s", ctx.Doer.Name)
+
 		ctx.Flash.Success(ctx.Tr("settings.change_password_success"))
 	}
 

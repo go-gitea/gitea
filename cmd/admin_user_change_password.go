@@ -11,6 +11,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	pwd "code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/setting"
+	user_service "code.gitea.io/gitea/services/user"
 
 	"github.com/urfave/cli/v2"
 )
@@ -65,11 +66,8 @@ func runChangePassword(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	if err = user.SetPassword(c.String("password")); err != nil {
-		return err
-	}
 
-	if err = user_model.UpdateUserCols(ctx, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
+	if err := user_service.ChangePassword(ctx, user, c.String("password"), user.MustChangePassword); err != nil {
 		return err
 	}
 

@@ -228,13 +228,8 @@ func ResetPasswdPost(ctx *context.Context) {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
-	if err = u.SetPassword(passwd); err != nil {
-		ctx.ServerError("UpdateUser", err)
-		return
-	}
-	u.MustChangePassword = false
-	if err := user_model.UpdateUserCols(ctx, u, "must_change_password", "passwd", "passwd_hash_algo", "rands", "salt"); err != nil {
-		ctx.ServerError("UpdateUser", err)
+	if err := user_service.ChangePassword(ctx, u, passwd, false); err != nil {
+		ctx.ServerError("ChangePassword", err)
 		return
 	}
 
@@ -321,15 +316,8 @@ func MustChangePasswordPost(ctx *context.Context) {
 		return
 	}
 
-	if err = u.SetPassword(form.Password); err != nil {
-		ctx.ServerError("UpdateUser", err)
-		return
-	}
-
-	u.MustChangePassword = false
-
-	if err := user_model.UpdateUserCols(ctx, u, "must_change_password", "passwd", "passwd_hash_algo", "salt"); err != nil {
-		ctx.ServerError("UpdateUser", err)
+	if err := user_service.ChangePassword(ctx, u, form.Password, false); err != nil {
+		ctx.ServerError("ChangePassword", err)
 		return
 	}
 

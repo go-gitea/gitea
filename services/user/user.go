@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -118,6 +119,21 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string) err
 		return err
 	}
 	return nil
+}
+
+// ChangePassword sets the users password and invalidates all existing auth tokens
+func ChangePassword(ctx context.Context, u *user_model.User, password string, mustChangePassword bool) error {
+	if err := u.SetPassword(password); err != nil {
+		return err
+	}
+
+	u.MustChangePassword = mustChangePassword
+
+	if err := user_model.UpdateUserCols(ctx, u, "must_change_password", "passwd", "passwd_hash_algo", "rands", "salt"); err != nil {
+		return err
+	}
+
+	return auth_model.DeleteAuthTokensByUserID(ctx, u.ID)
 }
 
 // DeleteUser completely and permanently deletes everything of a user,

@@ -185,6 +185,10 @@ func EditUser(ctx *context.APIContext) {
 		return
 	}
 
+	if form.MustChangePassword != nil {
+		ctx.ContextUser.MustChangePassword = *form.MustChangePassword
+	}
+
 	if len(form.Password) != 0 {
 		if len(form.Password) < setting.MinPasswordLength {
 			ctx.Error(http.StatusBadRequest, "PasswordTooShort", fmt.Errorf("password must be at least %d characters", setting.MinPasswordLength))
@@ -203,18 +207,11 @@ func EditUser(ctx *context.APIContext) {
 			ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
 			return
 		}
-		if ctx.ContextUser.Salt, err = user_model.GetUserSalt(); err != nil {
-			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
-			return
-		}
-		if err = ctx.ContextUser.SetPassword(form.Password); err != nil {
+
+		if err := user_service.ChangePassword(ctx, ctx.ContextUser, form.Password, ctx.ContextUser.MustChangePassword); err != nil {
 			ctx.InternalServerError(err)
 			return
 		}
-	}
-
-	if form.MustChangePassword != nil {
-		ctx.ContextUser.MustChangePassword = *form.MustChangePassword
 	}
 
 	ctx.ContextUser.LoginName = form.LoginName

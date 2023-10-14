@@ -381,12 +381,8 @@ func EditUserPost(ctx *context.Context) {
 			return
 		}
 
-		if u.Salt, err = user_model.GetUserSalt(); err != nil {
-			ctx.ServerError("UpdateUser", err)
-			return
-		}
-		if err = u.SetPassword(form.Password); err != nil {
-			ctx.ServerError("SetPassword", err)
+		if err := user_service.ChangePassword(ctx, u, form.Password, u.MustChangePassword); err != nil {
+			ctx.ServerError("ChangePassword", err)
 			return
 		}
 	}
