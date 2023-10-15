@@ -65,9 +65,9 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPr
 	meta := map[string]string{}
 	if repo != nil && repo.Repository != nil {
 		if mode == "comment" {
-			meta = repo.Repository.ComposeMetas()
+			meta = repo.Repository.ComposeMetas(ctx)
 		} else {
-			meta = repo.Repository.ComposeDocumentMetas()
+			meta = repo.Repository.ComposeDocumentMetas(ctx)
 		}
 	}
 	if mode != "comment" {

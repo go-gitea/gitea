@@ -364,7 +364,7 @@
 				{{end}}
 			</div>
 		{{else if eq .Type 22}}
-			<div class="timeline-item-group">
+			<div class="timeline-item-group" id="{{.HashTag}}">
 				<div class="timeline-item event">
 					{{if .OriginalAuthor}}
 					{{else}}
@@ -403,7 +403,7 @@
 					</span>
 				</div>
 				{{if or .Content .Attachments}}
-				<div class="timeline-item comment" id="{{.HashTag}}">
+				<div class="timeline-item comment">
 					<div class="content comment-container">
 						<div class="ui top attached header comment-header gt-df gt-ac gt-sb">
 							<div class="comment-header-left gt-df gt-ac">

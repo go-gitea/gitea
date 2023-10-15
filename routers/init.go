@@ -121,7 +121,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(cache.NewContext)
 	mustInit(feed_service.Init)
 	mustInit(uinotification.Init)
-	mustInit(archiver.Init)
+	mustInitCtx(ctx, archiver.Init)
 
 	highlight.NewContext()
 	external.RegisterRenderers()
@@ -136,7 +136,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInitCtx(ctx, common.InitDBEngine)
 	log.Info("ORM engine initialization successful!")
 	mustInit(system.Init)
-	mustInit(oauth2.Init)
+	mustInitCtx(ctx, oauth2.Init)
 
 	mustInitCtx(ctx, models.Init)
 	mustInitCtx(ctx, authmodel.Init)

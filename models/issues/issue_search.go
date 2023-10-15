@@ -444,9 +444,9 @@ func applySubscribedCondition(sess *xorm.Session, subscriberID int64) *xorm.Sess
 }
 
 // GetRepoIDsForIssuesOptions find all repo ids for the given options
-func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *user_model.User) ([]int64, error) {
+func GetRepoIDsForIssuesOptions(ctx context.Context, opts *IssuesOptions, user *user_model.User) ([]int64, error) {
 	repoIDs := make([]int64, 0, 5)
-	e := db.GetEngine(db.DefaultContext)
+	e := db.GetEngine(ctx)
 
 	sess := e.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 
