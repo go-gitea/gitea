@@ -4,6 +4,7 @@
 package system
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/json"
 
@@ -15,7 +16,7 @@ type DBStore struct{}
 
 // Get reads the state item
 func (f *DBStore) Get(item StateItem) error {
-	content, err := system.GetAppStateContent(item.Name())
+	content, err := system.GetAppStateContent(db.DefaultContext, item.Name())
 	if err != nil {
 		return err
 	}
@@ -31,5 +32,5 @@ func (f *DBStore) Set(item StateItem) error {
 	if err != nil {
 		return err
 	}
-	return system.SaveAppStateContent(item.Name(), util.BytesToReadOnlyString(b))
+	return system.SaveAppStateContent(db.DefaultContext, item.Name(), util.BytesToReadOnlyString(b))
 }
