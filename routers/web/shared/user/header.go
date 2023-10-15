@@ -85,7 +85,7 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 }
 
 func FindUserProfileReadme(ctx *context.Context) (profileGitRepo *git.Repository, profileReadmeBlob *git.Blob, profileClose func()) {
-	profileDbRepo, err := repo_model.GetRepositoryByName(ctx.ContextUser.ID, ".profile")
+	profileDbRepo, err := repo_model.GetRepositoryByName(ctx, ctx.ContextUser.ID, ".profile")
 	if err == nil && !profileDbRepo.IsEmpty && !profileDbRepo.IsPrivate {
 		if profileGitRepo, err = git.OpenRepository(ctx, profileDbRepo.RepoPath()); err != nil {
 			log.Error("FindUserProfileReadme failed to OpenRepository: %v", err)

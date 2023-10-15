@@ -1,4 +1,4 @@
-name: release-nightly-assets
+name: release-nightly
 
 on:
   push:
