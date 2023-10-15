@@ -976,6 +976,11 @@ func registerRoutes(m *web.Route) {
 					return
 				}
 			})
+		}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), func(ctx *context.Context) {
+			if ctx.ContextUser.IsIndividual() && ctx.ContextUser.Visibility == structs.VisibleTypePrivate && (ctx.Doer == nil || ctx.ContextUser.ID != ctx.Doer.ID) {
+				ctx.NotFound("Visit Project", nil)
+				return
+			}
 		})
 
 		m.Group("", func() {
