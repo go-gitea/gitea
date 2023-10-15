@@ -107,12 +107,11 @@ func ListTasks() TaskTable {
 			prev = e.PreviousRun()
 		}
 
+		task.lock.Lock()
 		// If the manual run is after the cron run, use that instead.
 		if prev.Before(task.LastRun) {
 			prev = task.LastRun
 		}
-
-		task.lock.Lock()
 		tTable = append(tTable, &TaskTableRow{
 			Name:        task.Name,
 			Spec:        spec,

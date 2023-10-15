@@ -35,7 +35,7 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 		return
 	}
 	deployKey.UpdatedUnix = timeutil.TimeStampNow()
-	if err = asymkey_model.UpdateDeployKeyCols(deployKey, "updated_unix"); err != nil {
+	if err = asymkey_model.UpdateDeployKeyCols(ctx, deployKey, "updated_unix"); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),
 		})

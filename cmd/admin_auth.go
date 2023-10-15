@@ -105,5 +105,5 @@ func runDeleteAuth(c *cli.Context) error {
 		return err
 	}
 
-	return auth_service.DeleteSource(source)
+	return auth_service.DeleteSource(ctx, source)
 }
