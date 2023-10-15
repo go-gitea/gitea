@@ -159,7 +159,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		// An alternative option here would be write a DeleteAllRepositoriesForUserID function which would delete all of the repos
 		// but such a function would likely get out of date
 		for {
-			repos, _, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
+			repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
 				ListOptions: db.ListOptions{
 					PageSize: repo_model.RepositoryListDefaultPageSize,
 					Page:     1,
@@ -204,7 +204,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 				break
 			}
 			for _, org := range orgs {
-				if err := models.RemoveOrgUser(org.ID, u.ID); err != nil {
+				if err := models.RemoveOrgUser(ctx, org.ID, u.ID); err != nil {
 					if organization.IsErrLastOrgOwner(err) {
 						err = organization.DeleteOrganization(ctx, org)
 					}
