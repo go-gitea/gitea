@@ -644,7 +644,6 @@ func GetActiveAuthProviderSources(ctx context.Context, authType Type) ([]*Source
 	return sources, nil
 }
 
-func GetActiveAuthSourceByName(ctx context.Context, name string, authType Type) (*Source, error) {
 // GetActiveAuthSourceByName returns a OAuth2 AuthSource based on the given name
 func GetActiveAuthSourceByName(ctx context.Context, name string, authType Type) (*Source, error) {
 	authSource := new(Source)
