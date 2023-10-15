@@ -638,7 +638,6 @@ func (err ErrOAuthApplicationNotFound) Unwrap() error {
 func GetActiveAuthProviderSources(ctx context.Context, authType Type) ([]*Source, error) {
 	sources := make([]*Source, 0, 1)
 	if err := db.GetEngine(ctx).Where("is_active = ? and type = ?", true, authType).Find(&sources); err != nil {
-	if err := db.GetEngine(ctx).Where("is_active = ? and type = ?", true, authType).Find(&sources); err != nil {
 		return nil, err
 	}
 	return sources, nil
