@@ -89,7 +89,7 @@ func TestMigrate_InsertIssueComments(t *testing.T) {
 		Reactions: []*issues_model.Reaction{reaction},
 	}
 
-	err := issues_model.InsertIssueComments([]*issues_model.Comment{comment})
+	err := issues_model.InsertIssueComments(db.DefaultContext, []*issues_model.Comment{comment})
 	assert.NoError(t, err)
 
 	issueModified := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})

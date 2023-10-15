@@ -62,7 +62,7 @@ func CreateOrg(ctx *context.APIContext) {
 		Visibility:  visibility,
 	}
 
-	if err := organization.CreateOrganization(org, ctx.ContextUser); err != nil {
+	if err := organization.CreateOrganization(ctx, org, ctx.ContextUser); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) ||
 			db.IsErrNameReserved(err) ||
 			db.IsErrNameCharsNotAllowed(err) ||

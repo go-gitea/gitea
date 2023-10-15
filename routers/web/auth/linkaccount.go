@@ -154,7 +154,7 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 }
 
 func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, remember bool, authType auth.Type) {
-	updateAvatarIfNeed(gothUser.AvatarURL, u)
+	updateAvatarIfNeed(ctx, gothUser.AvatarURL, u)
 
 	// If this user is enrolled in 2FA, we can't sign the user in just yet.
 	// Instead, redirect them to the 2FA authentication page.
@@ -273,7 +273,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		}
 	}
 
-	authSource, err := auth.GetActiveAuthSourceByName(linkUser.GothUser.Provider, linkUser.Type)
+	authSource, err := auth.GetActiveAuthSourceByName(ctx, linkUser.GothUser.Provider, linkUser.Type)
 	if err != nil {
 		ctx.ServerError("CreateUser", err)
 		return

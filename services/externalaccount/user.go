@@ -16,8 +16,8 @@ import (
 	"github.com/markbates/goth"
 )
 
-func toExternalLoginUser(user *user_model.User, gothUser goth.User, authType auth.Type) (*user_model.ExternalLoginUser, error) {
-	authSource, err := auth.GetActiveAuthSourceByName(gothUser.Provider, authType)
+func toExternalLoginUser(ctx context.Context, user *user_model.User, gothUser goth.User, authType auth.Type) (*user_model.ExternalLoginUser, error) {
+	authSource, err := auth.GetActiveAuthSourceByName(ctx, gothUser.Provider, authType)
 	if err != nil {
 		return nil, err
 	}
@@ -44,12 +44,12 @@ func toExternalLoginUser(user *user_model.User, gothUser goth.User, authType aut
 
 // LinkAccountToUser link the gothUser to the user
 func LinkAccountToUser(ctx context.Context, user *user_model.User, gothUser goth.User, authType auth.Type) error {
-	externalLoginUser, err := toExternalLoginUser(user, gothUser, authType)
+	externalLoginUser, err := toExternalLoginUser(ctx, user, gothUser, authType)
 	if err != nil {
 		return err
 	}
 
-	if err := user_model.LinkExternalToUser(user, externalLoginUser); err != nil {
+	if err := user_model.LinkExternalToUser(ctx, user, externalLoginUser); err != nil {
 		return err
 	}
 
@@ -71,22 +71,22 @@ func LinkAccountToUser(ctx context.Context, user *user_model.User, gothUser goth
 }
 
 // UpdateExternalUser updates external user's information
-func UpdateExternalUser(user *user_model.User, gothUser goth.User, authType auth.Type) error {
-	externalLoginUser, err := toExternalLoginUser(user, gothUser, authType)
+func UpdateExternalUser(ctx context.Context, user *user_model.User, gothUser goth.User, authType auth.Type) error {
+	externalLoginUser, err := toExternalLoginUser(ctx, user, gothUser, authType)
 	if err != nil {
 		return err
 	}
 
-	return user_model.UpdateExternalUserByExternalID(externalLoginUser)
+	return user_model.UpdateExternalUserByExternalID(ctx, externalLoginUser)
 }
 
 // UpdateMigrationsByType updates all migrated repositories' posterid from gitServiceType to replace originalAuthorID to posterID
 func UpdateMigrationsByType(ctx context.Context, tp structs.GitServiceType, externalUserID string, userID int64) error {
-	if err := issues_model.UpdateIssuesMigrationsByType(tp, externalUserID, userID); err != nil {
+	if err := issues_model.UpdateIssuesMigrationsByType(ctx, tp, externalUserID, userID); err != nil {
 		return err
 	}
 
-	if err := issues_model.UpdateCommentsMigrationsByType(tp, externalUserID, userID); err != nil {
+	if err := issues_model.UpdateCommentsMigrationsByType(ctx, tp, externalUserID, userID); err != nil {
 		return err
 	}
 
@@ -94,8 +94,8 @@ func UpdateMigrationsByType(ctx context.Context, tp structs.GitServiceType, exte
 		return err
 	}
 
-	if err := issues_model.UpdateReactionsMigrationsByType(tp, externalUserID, userID); err != nil {
+	if err := issues_model.UpdateReactionsMigrationsByType(ctx, tp, externalUserID, userID); err != nil {
 		return err
 	}
-	return issues_model.UpdateReviewsMigrationsByType(tp, externalUserID, userID)
+	return issues_model.UpdateReviewsMigrationsByType(ctx, tp, externalUserID, userID)
 }

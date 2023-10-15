@@ -67,6 +67,11 @@ func BuiltinApplications() map[string]*BuiltinOAuth2Application {
 		DisplayName:  "Git Credential Manager",
 		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
 	}
+	m["d57cb8c4-630c-4168-8324-ec79935e18d4"] = &BuiltinOAuth2Application{
+		ConfigName:   "tea",
+		DisplayName:  "tea",
+		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+	}
 	return m
 }
 
@@ -168,7 +173,7 @@ const lowerBase32Chars = "abcdefghijklmnopqrstuvwxyz234567"
 var base32Lower = base32.NewEncoding(lowerBase32Chars).WithPadding(base32.NoPadding)
 
 // GenerateClientSecret will generate the client secret and returns the plaintext and saves the hash at the database
-func (app *OAuth2Application) GenerateClientSecret() (string, error) {
+func (app *OAuth2Application) GenerateClientSecret(ctx context.Context) (string, error) {
 	rBytes, err := util.CryptoRandomBytes(32)
 	if err != nil {
 		return "", err
@@ -182,7 +187,7 @@ func (app *OAuth2Application) GenerateClientSecret() (string, error) {
 		return "", err
 	}
 	app.ClientSecret = string(hashedSecret)
-	if _, err := db.GetEngine(db.DefaultContext).ID(app.ID).Cols("client_secret").Update(app); err != nil {
+	if _, err := db.GetEngine(ctx).ID(app.ID).Cols("client_secret").Update(app); err != nil {
 		return "", err
 	}
 	return clientSecret, nil
@@ -282,8 +287,8 @@ type UpdateOAuth2ApplicationOptions struct {
 }
 
 // UpdateOAuth2Application updates an oauth2 application
-func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) (*OAuth2Application, error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func UpdateOAuth2Application(ctx context.Context, opts UpdateOAuth2ApplicationOptions) (*OAuth2Application, error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -350,8 +355,8 @@ func deleteOAuth2Application(ctx context.Context, id, userid int64) error {
 }
 
 // DeleteOAuth2Application deletes the application with the given id and the grants and auth codes related to it. It checks if the userid was the creator of the app.
-func DeleteOAuth2Application(id, userid int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func DeleteOAuth2Application(ctx context.Context, id, userid int64) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -371,8 +376,8 @@ func DeleteOAuth2Application(id, userid int64) error {
 }
 
 // ListOAuth2Applications returns a list of oauth2 applications belongs to given user.
-func ListOAuth2Applications(uid int64, listOptions db.ListOptions) ([]*OAuth2Application, int64, error) {
-	sess := db.GetEngine(db.DefaultContext).
+func ListOAuth2Applications(ctx context.Context, uid int64, listOptions db.ListOptions) ([]*OAuth2Application, int64, error) {
+	sess := db.GetEngine(ctx).
 		Where("uid=?", uid).
 		Desc("id")
 
@@ -630,18 +635,20 @@ func (err ErrOAuthApplicationNotFound) Unwrap() error {
 }
 
 // GetActiveAuthProviderSources returns all actived LoginOAuth2 sources
-func GetActiveAuthProviderSources(authType Type) ([]*Source, error) {
+func GetActiveAuthProviderSources(ctx context.Context, authType Type) ([]*Source, error) {
 	sources := make([]*Source, 0, 1)
-	if err := db.GetEngine(db.DefaultContext).Where("is_active = ? and type = ?", true, authType).Find(&sources); err != nil {
+	if err := db.GetEngine(ctx).Where("is_active = ? and type = ?", true, authType).Find(&sources); err != nil {
+	if err := db.GetEngine(ctx).Where("is_active = ? and type = ?", true, authType).Find(&sources); err != nil {
 		return nil, err
 	}
 	return sources, nil
 }
 
+func GetActiveAuthSourceByName(ctx context.Context, name string, authType Type) (*Source, error) {
 // GetActiveAuthSourceByName returns a OAuth2 AuthSource based on the given name
-func GetActiveAuthSourceByName(name string, authType Type) (*Source, error) {
+func GetActiveAuthSourceByName(ctx context.Context, name string, authType Type) (*Source, error) {
 	authSource := new(Source)
-	has, err := db.GetEngine(db.DefaultContext).Where("name = ? and type = ? and is_active = ?", name, authType, true).Get(authSource)
+	has, err := db.GetEngine(ctx).Where("name = ? and type = ? and is_active = ?", name, authType, true).Get(authSource)
 	if err != nil {
 		return nil, err
 	}

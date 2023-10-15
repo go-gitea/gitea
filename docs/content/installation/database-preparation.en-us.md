@@ -17,7 +17,9 @@ menu:
 
 # Database Preparation
 
-You need a database to use Gitea. Gitea supports PostgreSQL (>=10), MySQL (>=5.7), MariaDB, SQLite, and MSSQL (>=2008R2 SP3). This page will guide into preparing database. Only PostgreSQL and MySQL will be covered here since those database engines are widely-used in production. If you plan to use SQLite, you can ignore this chapter.
+You need a database to use Gitea. Gitea supports PostgreSQL (>= 12), MySQL (>= 8.0), MariaDB, SQLite, and MSSQL (>= 2012 SP4). This page will guide into preparing database. Only PostgreSQL and MySQL will be covered here since those database engines are widely-used in production. If you plan to use SQLite, you can ignore this chapter.
+
+If you use an unsupported database version, please [get in touch](/help/support) with us for information on our Extended Support Contracts. We can provide testing and support for older databases and integrate those fixes into the Gitea codebase.
 
 Database instance can be on same machine as Gitea (local database setup), or on different machine (remote database).
 
@@ -182,7 +184,7 @@ If the communication between Gitea and your database instance is performed throu
 - On the database server certificate, one of `Subject Alternative Name` or `Common Name` entries must be the fully-qualified domain name (FQDN) of the database instance (e.g. `db.example.com`). On the database client certificate, one of the entries mentioned above must contain the database username that Gitea will be using to connect.
 - You need domain name mappings of both Gitea and database servers to their respective IP addresses. Either set up DNS records for them or add local mappings to `/etc/hosts` (`%WINDIR%\System32\drivers\etc\hosts` in Windows) on each system. This allows the database connections to be performed by domain name instead of IP address. See documentation of your system for details.
 
-### PostgreSQL
+### PostgreSQL TLS
 
 The PostgreSQL driver used by Gitea supports two-way TLS. In two-way TLS, both database client and server authenticate each other by sending their respective certificates to their respective opposite for validation. In other words, the server verifies client certificate, and the client verifies server certificate.
 
@@ -250,7 +252,7 @@ The PostgreSQL driver used by Gitea supports two-way TLS. In two-way TLS, both d
 
     You should be prompted to enter password for the database user, and then be connected to the database.
 
-### MySQL
+### MySQL/MariaDB TLS
 
 While the MySQL driver used by Gitea also supports two-way TLS, Gitea currently supports only one-way TLS. See issue #10828 for details.
 

@@ -312,12 +312,12 @@ func getOAuthGroupsForUser(ctx go_context.Context, user *user_model.User) ([]str
 	var groups []string
 	for _, org := range orgs {
 		groups = append(groups, org.Name)
-		teams, err := org.LoadTeams()
+		teams, err := org.LoadTeams(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("LoadTeams: %w", err)
 		}
 		for _, team := range teams {
-			if team.IsMember(user.ID) {
+			if team.IsMember(ctx, user.ID) {
 				groups = append(groups, org.Name+":"+team.LowerName)
 			}
 		}
@@ -847,7 +847,7 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 func SignInOAuth(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 
-	authSource, err := auth.GetActiveAuthSourceByName(provider, auth.OAuth2)
+	authSource, err := auth.GetActiveAuthSourceByName(ctx, provider, auth.OAuth2)
 	if err != nil {
 		ctx.ServerError("SignIn", err)
 		return
@@ -868,7 +868,7 @@ func SignInOAuth(ctx *context.Context) {
 
 	if err = authSource.Cfg.(*oauth2.Source).Callout(ctx.Req, ctx.Resp); err != nil {
 		if strings.Contains(err.Error(), "no provider for ") {
-			if err = oauth2.ResetOAuth2(); err != nil {
+			if err = oauth2.ResetOAuth2(ctx); err != nil {
 				ctx.ServerError("SignIn", err)
 				return
 			}
@@ -898,7 +898,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	// first look if the provider is still active
-	authSource, err := auth.GetActiveAuthSourceByName(provider, auth.OAuth2)
+	authSource, err := auth.GetActiveAuthSourceByName(ctx, provider, auth.OAuth2)
 	if err != nil {
 		ctx.ServerError("SignIn", err)
 		return
@@ -1077,7 +1077,7 @@ func showLinkingLogin(ctx *context.Context, gothUser goth.User, authType auth.Ty
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
 }
 
-func updateAvatarIfNeed(url string, u *user_model.User) {
+func updateAvatarIfNeed(ctx *context.Context, url string, u *user_model.User) {
 	if setting.OAuth2Client.UpdateAvatar && len(url) > 0 {
 		resp, err := http.Get(url)
 		if err == nil {
@@ -1089,14 +1089,14 @@ func updateAvatarIfNeed(url string, u *user_model.User) {
 		if err == nil && resp.StatusCode == http.StatusOK {
 			data, err := io.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize+1))
 			if err == nil && int64(len(data)) <= setting.Avatar.MaxFileSize {
-				_ = user_service.UploadAvatar(u, data)
+				_ = user_service.UploadAvatar(ctx, u, data)
 			}
 		}
 	}
 }
 
 func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model.User, gothUser goth.User) {
-	updateAvatarIfNeed(gothUser.AvatarURL, u)
+	updateAvatarIfNeed(ctx, gothUser.AvatarURL, u)
 
 	needs2FA := false
 	if !source.Cfg.(*oauth2.Source).SkipLocalTwoFA {
@@ -1154,7 +1154,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		}
 
 		// update external user information
-		if err := externalaccount.UpdateExternalUser(u, gothUser, auth.OAuth2); err != nil {
+		if err := externalaccount.UpdateExternalUser(ctx, u, gothUser, auth.OAuth2); err != nil {
 			if !errors.Is(err, util.ErrNotExist) {
 				log.Error("UpdateExternalUser failed: %v", err)
 			}
@@ -1277,7 +1277,7 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 		ExternalID:    gothUser.UserID,
 		LoginSourceID: authSource.ID,
 	}
-	hasUser, err = user_model.GetExternalLogin(externalLoginUser)
+	hasUser, err = user_model.GetExternalLogin(request.Context(), externalLoginUser)
 	if err != nil {
 		return nil, goth.User{}, err
 	}

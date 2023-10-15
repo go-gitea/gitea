@@ -63,6 +63,8 @@ For example:
 conan upload --remote=gitea ConanPackage/1.2@gitea/final
 ```
 
+You cannot publish a file with the same name twice to a package. You must delete the existing package or file first.
+
 The Gitea Conan package registry has full [revision](https://docs.conan.io/en/latest/versioning/revisions.html) support.
 
 ## Install a package
