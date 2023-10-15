@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 var (

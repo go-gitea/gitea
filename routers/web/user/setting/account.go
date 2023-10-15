@@ -69,7 +69,7 @@ func AccountPost(ctx *context.Context) {
 		}
 		ctx.Flash.Error(errMsg)
 	} else {
-		if err := user_service.ChangePassword(ctx, ctx.Doer, form.Password, false); err != nil {
+		if err := user.ChangePassword(ctx, ctx.Doer, form.Password, false); err != nil {
 			ctx.ServerError("ChangePassword", err)
 			return
 		}
