@@ -40,7 +40,7 @@ func LFSPush(ctx context.Context, tmpBasePath, mergeHeadSHA, mergeBaseSHA string
 	// 6. Take the output of cat-file --batch and check if each file in turn
 	// to see if they're pointers to files in the LFS store associated with
 	// the head repo and add them to the base repo if so
-	go createLFSMetaObjectsFromCatFileBatch(catFileBatchReader, &wg, pr)
+	go createLFSMetaObjectsFromCatFileBatch(db.DefaultContext, catFileBatchReader, &wg, pr)
 
 	// 5. Take the shas of the blobs and batch read them
 	go pipeline.CatFileBatch(ctx, shasToBatchReader, catFileBatchWriter, &wg, tmpBasePath)
@@ -68,7 +68,7 @@ func LFSPush(ctx context.Context, tmpBasePath, mergeHeadSHA, mergeBaseSHA string
 	return nil
 }
 
-func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pr *issues_model.PullRequest) {
+func createLFSMetaObjectsFromCatFileBatch(ctx context.Context, catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pr *issues_model.PullRequest) {
 	defer wg.Done()
 	defer catFileBatchReader.Close()
 
@@ -116,7 +116,7 @@ func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 		}
 
 		// Then we need to check that this pointer is in the db
-		if _, err := git_model.GetLFSMetaObjectByOid(db.DefaultContext, pr.HeadRepoID, pointer.Oid); err != nil {
+		if _, err := git_model.GetLFSMetaObjectByOid(ctx, pr.HeadRepoID, pointer.Oid); err != nil {
 			if err == git_model.ErrLFSObjectNotExist {
 				log.Warn("During merge of: %d in %-v, there is a pointer to LFS Oid: %s which although present in the LFS store is not associated with the head repo %-v", pr.Index, pr.BaseRepo, pointer.Oid, pr.HeadRepo)
 				continue
@@ -129,7 +129,7 @@ func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 		// Therefore it should be associated with the base repo
 		meta := &git_model.LFSMetaObject{Pointer: pointer}
 		meta.RepositoryID = pr.BaseRepoID
-		if _, err := git_model.NewLFSMetaObject(db.DefaultContext, meta); err != nil {
+		if _, err := git_model.NewLFSMetaObject(ctx, meta); err != nil {
 			_ = catFileBatchReader.CloseWithError(err)
 			break
 		}

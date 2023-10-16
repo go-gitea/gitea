@@ -36,7 +36,7 @@ func parseAuthSource(ctx *context.APIContext, u *user_model.User, sourceID int64
 		return
 	}
 
-	source, err := auth.GetSourceByID(sourceID)
+	source, err := auth.GetSourceByID(ctx, sourceID)
 	if err != nil {
 		if auth.IsErrSourceNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)

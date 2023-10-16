@@ -547,6 +547,8 @@ var migrations = []Migration{
 	// v280 -> v281
 	NewMigration("Rename user themes", v1_22.RenameUserThemes),
 	// v281 -> v282
+	NewMigration("Add auth_token table", v1_22.CreateAuthTokenTable),
+	// v282 -> v283
 	NewMigration("Add TimeEstimate to issue table", v1_22.AddTimeEstimateColumnToIssueTable),
 }
 

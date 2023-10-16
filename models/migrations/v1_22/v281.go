@@ -4,13 +4,18 @@
 package v1_22 //nolint
 
 import (
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"xorm.io/xorm"
 )
 
-func AddTimeEstimateColumnToIssueTable(x *xorm.Engine) error {
-	type Issue struct {
-		TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
+func CreateAuthTokenTable(x *xorm.Engine) error {
+	type AuthToken struct {
+		ID          string `xorm:"pk"`
+		TokenHash   string
+		UserID      int64              `xorm:"INDEX"`
+		ExpiresUnix timeutil.TimeStamp `xorm:"INDEX"`
 	}
 
-	return x.Sync(new(Issue))
+	return x.Sync(new(AuthToken))
 }

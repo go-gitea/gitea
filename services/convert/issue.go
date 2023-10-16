@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -150,7 +149,7 @@ func ToTrackedTime(ctx context.Context, t *issues_model.TrackedTime) (apiT *api.
 }
 
 // ToStopWatches convert Stopwatch list to api.StopWatches
-func ToStopWatches(sws []*issues_model.Stopwatch) (api.StopWatches, error) {
+func ToStopWatches(ctx context.Context, sws []*issues_model.Stopwatch) (api.StopWatches, error) {
 	result := api.StopWatches(make([]api.StopWatch, 0, len(sws)))
 
 	issueCache := make(map[int64]*issues_model.Issue)
@@ -165,14 +164,14 @@ func ToStopWatches(sws []*issues_model.Stopwatch) (api.StopWatches, error) {
 	for _, sw := range sws {
 		issue, ok = issueCache[sw.IssueID]
 		if !ok {
-			issue, err = issues_model.GetIssueByID(db.DefaultContext, sw.IssueID)
+			issue, err = issues_model.GetIssueByID(ctx, sw.IssueID)
 			if err != nil {
 				return nil, err
 			}
 		}
 		repo, ok = repoCache[issue.RepoID]
 		if !ok {
-			repo, err = repo_model.GetRepositoryByID(db.DefaultContext, issue.RepoID)
+			repo, err = repo_model.GetRepositoryByID(ctx, issue.RepoID)
 			if err != nil {
 				return nil, err
 			}

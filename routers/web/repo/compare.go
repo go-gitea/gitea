@@ -32,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -58,6 +59,21 @@ func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner
 			return nil
 		}
 		return blob
+	}
+
+	ctx.Data["GetSniffedTypeForBlob"] = func(blob *git.Blob) typesniffer.SniffedType {
+		st := typesniffer.SniffedType{}
+
+		if blob == nil {
+			return st
+		}
+
+		st, err := blob.GuessContentType()
+		if err != nil {
+			log.Error("GuessContentType failed: %v", err)
+			return st
+		}
+		return st
 	}
 
 	setPathsCompareContext(ctx, before, head, headOwner, headName)
@@ -87,16 +103,7 @@ func setPathsCompareContext(ctx *context.Context, base, head *git.Commit, headOw
 
 // setImageCompareContext sets context data that is required by image compare template
 func setImageCompareContext(ctx *context.Context) {
-	ctx.Data["IsBlobAnImage"] = func(blob *git.Blob) bool {
-		if blob == nil {
-			return false
-		}
-
-		st, err := blob.GuessContentType()
-		if err != nil {
-			log.Error("GuessContentType failed: %v", err)
-			return false
-		}
+	ctx.Data["IsSniffedTypeAnImage"] = func(st typesniffer.SniffedType) bool {
 		return st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage())
 	}
 }

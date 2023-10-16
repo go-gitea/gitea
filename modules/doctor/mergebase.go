@@ -74,7 +74,7 @@ func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) erro
 			pr.MergeBase = strings.TrimSpace(pr.MergeBase)
 			if pr.MergeBase != oldMergeBase {
 				if autofix {
-					if err := pr.UpdateCols("merge_base"); err != nil {
+					if err := pr.UpdateCols(ctx, "merge_base"); err != nil {
 						logger.Critical("Failed to update merge_base. ERROR: %v", err)
 						return fmt.Errorf("Failed to update merge_base. ERROR: %w", err)
 					}
