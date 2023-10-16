@@ -52,9 +52,9 @@ func (runs RunList) LoadTriggerUser(ctx context.Context) error {
 	return nil
 }
 
-func (runs RunList) LoadRepos() error {
+func (runs RunList) LoadRepos(ctx context.Context) error {
 	repoIDs := runs.GetRepoIDs()
-	repos, err := repo_model.GetRepositoriesMapByIDs(repoIDs)
+	repos, err := repo_model.GetRepositoriesMapByIDs(ctx, repoIDs)
 	if err != nil {
 		return err
 	}

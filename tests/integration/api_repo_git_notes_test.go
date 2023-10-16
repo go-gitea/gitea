@@ -37,5 +37,7 @@ func TestAPIReposGitNotes(t *testing.T) {
 		var apiData api.Note
 		DecodeJSON(t, resp, &apiData)
 		assert.Equal(t, "This is a test note\n", apiData.Message)
+		assert.NotEmpty(t, apiData.Commit.Files)
+		assert.NotNil(t, apiData.Commit.RepoCommit.Verification)
 	})
 }
