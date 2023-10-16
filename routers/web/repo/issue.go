@@ -830,7 +830,7 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 	}
 
 	// Contains true if the user can create issue dependencies
-	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.Doer, isPull)
+	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, isPull)
 
 	return labels
 }
@@ -1548,7 +1548,7 @@ func ViewIssue(ctx *context.Context) {
 					ctx.Data["OtherStopwatchURL"] = swIssue.Link()
 				}
 			}
-			ctx.Data["CanUseTimetracker"] = ctx.Repo.CanUseTimetracker(issue, ctx.Doer)
+			ctx.Data["CanUseTimetracker"] = ctx.Repo.CanUseTimetracker(ctx, issue, ctx.Doer)
 		} else {
 			ctx.Data["CanUseTimetracker"] = false
 		}
@@ -1559,7 +1559,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	// Check if the user can use the dependencies
-	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.Doer, issue.IsPull)
+	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, issue.IsPull)
 
 	// check if dependencies can be created across repositories
 	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
