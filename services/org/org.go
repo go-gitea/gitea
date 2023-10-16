@@ -74,8 +74,3 @@ func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge 
 
 	return nil
 }
-
-// RenameOrganization renames an organization.
-func RenameOrganization(ctx context.Context, org *org_model.Organization, newName string) error {
-	return user_service.RenameUser(ctx, org.AsUser(), newName)
-}
