@@ -48,7 +48,6 @@ type ActionRunner struct {
 
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated"`
-	Deleted timeutil.TimeStamp `xorm:"deleted"`
 }
 
 // BelongsToOwnerName before calling, should guarantee that all attributes are loaded

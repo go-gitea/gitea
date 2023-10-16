@@ -548,6 +548,10 @@ var migrations = []Migration{
 	NewMigration("Rename user themes", v1_22.RenameUserThemes),
 	// v281 -> v282
 	NewMigration("Add auth_token table", v1_22.CreateAuthTokenTable),
+	// v282 -> v283
+	NewMigration("Drop deleted field in action_runner_token table", v1_22.RemoveActionRunnerTokenUnneededCol),
+	// v283 -> v284
+	NewMigration("Drop deleted field in action_runner table", v1_22.RemoveActionRunnerUnneededCol),
 }
 
 // GetCurrentDBVersion returns the current db version
