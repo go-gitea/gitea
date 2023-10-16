@@ -204,12 +204,13 @@ func getIssueIndexerQueueHandler(ctx context.Context) func(items ...*IndexerMeta
 func populateIssueIndexer(ctx context.Context) {
 	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: PopulateIssueIndexer", process.SystemProcessType, true)
 	defer finished()
-	if err := PopulateIssueIndexer(ctx, true); err != nil {
+	ctx = contextWithKeepRetry(ctx) // keep retrying since it's a background task
+	if err := PopulateIssueIndexer(ctx); err != nil {
 		log.Error("Issue indexer population failed: %v", err)
 	}
 }
 
-func PopulateIssueIndexer(ctx context.Context, keepRetrying bool) error {
+func PopulateIssueIndexer(ctx context.Context) error {
 	for page := 1; ; page++ {
 		select {
 		case <-ctx.Done():
@@ -232,20 +233,8 @@ func PopulateIssueIndexer(ctx context.Context, keepRetrying bool) error {
 		}
 
 		for _, repo := range repos {
-			for {
-				select {
-				case <-ctx.Done():
-					return fmt.Errorf("shutdown before completion: %w", ctx.Err())
-				default:
-				}
-				if err := updateRepoIndexer(ctx, repo.ID); err != nil {
-					if keepRetrying && ctx.Err() == nil {
-						log.Warn("Retry to populate issue indexer for repo %d: %v", repo.ID, err)
-						continue
-					}
-					return fmt.Errorf("populate issue indexer for repo %d: %v", repo.ID, err)
-				}
-				break
+			if err := updateRepoIndexer(ctx, repo.ID); err != nil {
+				return fmt.Errorf("populate issue indexer for repo %d: %v", repo.ID, err)
 			}
 		}
 	}
@@ -259,8 +248,8 @@ func UpdateRepoIndexer(ctx context.Context, repoID int64) {
 }
 
 // UpdateIssueIndexer add/update an issue to the issue indexer
-func UpdateIssueIndexer(issueID int64) {
-	if err := updateIssueIndexer(issueID); err != nil {
+func UpdateIssueIndexer(ctx context.Context, issueID int64) {
+	if err := updateIssueIndexer(ctx, issueID); err != nil {
 		log.Error("Unable to push issue %d to issue indexer: %v", issueID, err)
 	}
 }
