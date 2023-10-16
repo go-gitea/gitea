@@ -944,7 +944,8 @@ func registerRoutes(m *web.Route) {
 		m.Group("/projects", func() {
 			m.Group("", func() {
 				m.Get("", org.Projects)
-				m.Get("/{id}", org.ViewProject)
+				m.Get("/{id}", repo.RetrieveLabelsOrg, org.ViewProject)
+				m.Get("/{id}/posters", repo.IssuePosters)
 			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
 			m.Group("", func() { //nolint:dupl
 				m.Get("/new", org.RenderNewProject)
@@ -1283,7 +1284,8 @@ func registerRoutes(m *web.Route) {
 
 		m.Group("/projects", func() {
 			m.Get("", repo.Projects)
-			m.Get("/{id}", repo.ViewProject)
+			m.Get("/{id}", repo.RetrieveLabels, repo.ViewProject)
+			m.Get("/{id}/posters", repo.IssuePosters)
 			m.Group("", func() { //nolint:dupl
 				m.Get("/new", repo.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
