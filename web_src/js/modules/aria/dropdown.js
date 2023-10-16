@@ -57,6 +57,15 @@ function updateSelectionLabel($label) {
 function delegateOne($dropdown) {
   const dropdownCall = fomanticDropdownFn.bind($dropdown);
 
+  // If there is a "search input" in the "menu", Fomantic will only "focus the input" but not "toggle the menu" when the "dropdown icon" is clicked.
+  // Actually, Fomantic UI doesn't support such layout/usage. It needs to patch the "focusSearch" / "blurSearch" functions to make sure it toggles the menu.
+  const oldFocusSearch = dropdownCall('internal', 'focusSearch');
+  const oldBlurSearch = dropdownCall('internal', 'blurSearch');
+  // * If the "dropdown icon" is clicked, Fomantic calls "focusSearch", so show the menu
+  dropdownCall('internal', 'focusSearch', function () { dropdownCall('show'); oldFocusSearch.call(this) });
+  // * If the "dropdown icon" is clicked again when the menu is visible, Fomantic calls "blurSearch", so hide the menu
+  dropdownCall('internal', 'blurSearch', function () { oldBlurSearch.call(this); dropdownCall('hide') });
+
   // the "template" functions are used for dynamic creation (eg: AJAX)
   const dropdownTemplates = {...dropdownCall('setting', 'templates'), t: performance.now()};
   const dropdownTemplatesMenuOld = dropdownTemplates.menu;

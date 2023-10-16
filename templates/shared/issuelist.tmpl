@@ -21,7 +21,7 @@
 						{{end}}
 						<span class="labels-list gt-ml-2">
 							{{range .Labels}}
-								<a href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{RenderLabel $.Context .}}</a>
+								<a href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{RenderLabel $.Context .}}</a>
 							{{end}}
 						</span>
 					</div>
@@ -93,7 +93,7 @@
 						</a>
 					{{end}}
 					{{if .Project}}
-						<a class="project flex-text-inline" href="{{.Project.Link}}">
+						<a class="project flex-text-inline" href="{{.Project.Link ctx}}">
 							{{svg .Project.IconName 14}}{{.Project.Title}}
 						</a>
 					{{end}}

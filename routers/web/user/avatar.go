@@ -47,7 +47,7 @@ func AvatarByUserName(ctx *context.Context) {
 // AvatarByEmailHash redirects the browser to the email avatar link
 func AvatarByEmailHash(ctx *context.Context) {
 	hash := ctx.Params(":hash")
-	email, err := avatars.GetEmailForHash(hash)
+	email, err := avatars.GetEmailForHash(ctx, hash)
 	if err != nil {
 		ctx.ServerError("invalid avatar hash: "+hash, err)
 		return

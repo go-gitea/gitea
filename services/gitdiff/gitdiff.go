@@ -494,7 +494,7 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 const cmdDiffHead = "diff --git "
 
 // ParsePatch builds a Diff object from a io.Reader and some parameters.
-func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader, skipToFile string) (*Diff, error) {
+func ParsePatch(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, reader io.Reader, skipToFile string) (*Diff, error) {
 	log.Debug("ParsePatch(%d, %d, %d, ..., %s)", maxLines, maxLineCharacters, maxFiles, skipToFile)
 	var curFile *DiffFile
 
@@ -709,7 +709,7 @@ parsingLoop:
 					curFile.IsAmbiguous = false
 				}
 				// Otherwise do nothing with this line, but now switch to parsing hunks
-				lineBytes, isFragment, err := parseHunks(curFile, maxLines, maxLineCharacters, input)
+				lineBytes, isFragment, err := parseHunks(ctx, curFile, maxLines, maxLineCharacters, input)
 				diff.TotalAddition += curFile.Addition
 				diff.TotalDeletion += curFile.Deletion
 				if err != nil {
@@ -818,7 +818,7 @@ func skipToNextDiffHead(input *bufio.Reader) (line string, err error) {
 	return line, err
 }
 
-func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio.Reader) (lineBytes []byte, isFragment bool, err error) {
+func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio.Reader) (lineBytes []byte, isFragment bool, err error) {
 	sb := strings.Builder{}
 
 	var (
@@ -995,7 +995,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			oid := strings.TrimPrefix(line[1:], lfs.MetaFileOidPrefix)
 			if len(oid) == 64 {
 				m := &git_model.LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}}
-				count, err := db.CountByBean(db.DefaultContext, m)
+				count, err := db.CountByBean(ctx, m)
 
 				if err == nil && count > 0 {
 					curFile.IsBin = true
@@ -1106,7 +1106,7 @@ type DiffOptions struct {
 // GetDiff builds a Diff between two commits of a repository.
 // Passing the empty string as beforeCommitID returns a diff from the parent commit.
 // The whitespaceBehavior is either an empty string or a git flag
-func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
+func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
 	repoPath := gitRepo.Path
 
 	commit, err := gitRepo.GetCommit(opts.AfterCommitID)
@@ -1165,7 +1165,7 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 		_ = writer.Close()
 	}()
 
-	diff, err := ParsePatch(opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, reader, parsePatchSkipToFile)
+	diff, err := ParsePatch(ctx, opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, reader, parsePatchSkipToFile)
 	if err != nil {
 		return nil, fmt.Errorf("unable to ParsePatch: %w", err)
 	}
@@ -1280,7 +1280,7 @@ func GetPullDiffStats(gitRepo *git.Repository, opts *DiffOptions) (*PullDiffStat
 // SyncAndGetUserSpecificDiff is like GetDiff, except that user specific data such as which files the given user has already viewed on the given PR will also be set
 // Additionally, the database asynchronously is updated if files have changed since the last review
 func SyncAndGetUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.PullRequest, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
-	diff, err := GetDiff(gitRepo, opts, files...)
+	diff, err := GetDiff(ctx, gitRepo, opts, files...)
 	if err != nil {
 		return nil, err
 	}
@@ -1347,8 +1347,8 @@ outer:
 }
 
 // CommentAsDiff returns c.Patch as *Diff
-func CommentAsDiff(c *issues_model.Comment) (*Diff, error) {
-	diff, err := ParsePatch(setting.Git.MaxGitDiffLines,
+func CommentAsDiff(ctx context.Context, c *issues_model.Comment) (*Diff, error) {
+	diff, err := ParsePatch(ctx, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch), "")
 	if err != nil {
 		log.Error("Unable to parse patch: %v", err)
@@ -1365,7 +1365,7 @@ func CommentAsDiff(c *issues_model.Comment) (*Diff, error) {
 }
 
 // CommentMustAsDiff executes AsDiff and logs the error instead of returning
-func CommentMustAsDiff(c *issues_model.Comment) *Diff {
+func CommentMustAsDiff(ctx context.Context, c *issues_model.Comment) *Diff {
 	if c == nil {
 		return nil
 	}
@@ -1374,7 +1374,7 @@ func CommentMustAsDiff(c *issues_model.Comment) *Diff {
 			log.Error("PANIC whilst retrieving diff for comment[%d] Error: %v\nStack: %s", c.ID, err, log.Stack(2))
 		}
 	}()
-	diff, err := CommentAsDiff(c)
+	diff, err := CommentAsDiff(ctx, c)
 	if err != nil {
 		log.Warn("CommentMustAsDiff: %v", err)
 	}

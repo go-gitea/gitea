@@ -172,7 +172,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		// An alternative option here would be write a function which would delete all organizations but it seems
 		// but such a function would likely get out of date
 		for {
-			orgs, err := organization.FindOrgs(organization.FindOrgOptions{
+			orgs, err := organization.FindOrgs(ctx, organization.FindOrgOptions{
 				ListOptions: db.ListOptions{
 					PageSize: repo_model.RepositoryListDefaultPageSize,
 					Page:     1,
@@ -187,7 +187,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 				break
 			}
 			for _, org := range orgs {
-				if err := models.RemoveOrgUser(org.ID, u.ID); err != nil {
+				if err := models.RemoveOrgUser(ctx, org.ID, u.ID); err != nil {
 					if organization.IsErrLastOrgOwner(err) {
 						err = org_service.DeleteOrganization(ctx, org, true)
 						if err != nil {
@@ -209,7 +209,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		}
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

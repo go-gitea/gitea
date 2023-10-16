@@ -1,12 +1,12 @@
 {{/* This page should only depend the minimal template functions/variables, to avoid triggering new panics.
-* base template functions: AppName, AssetUrlPrefix, AssetVersion, AppSubUrl, DefaultTheme, Str2html
+* base template functions: AppName, AssetUrlPrefix, AssetVersion, AppSubUrl, ThemeName, Str2html
 * locale
 * Flash
 * ErrorMsg
 * SignedUser (optional)
 */}}
 <!DOCTYPE html>
-<html lang="{{.locale.Lang}}" class="theme-{{if .SignedUser.Theme}}{{.SignedUser.Theme}}{{else}}{{DefaultTheme}}{{end}}">
+<html lang="{{.locale.Lang}}" data-theme="{{ThemeName .SignedUser}}">
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Internal Server Error - {{AppName}}</title>

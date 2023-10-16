@@ -45,7 +45,7 @@ func startTasks(ctx context.Context) error {
 			return fmt.Errorf("find specs: %w", err)
 		}
 
-		if err := specs.LoadRepos(); err != nil {
+		if err := specs.LoadRepos(ctx); err != nil {
 			return fmt.Errorf("LoadRepos: %w", err)
 		}
 
