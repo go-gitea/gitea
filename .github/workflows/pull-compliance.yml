@@ -176,4 +176,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          check-latest: true
       - run: make lint-actions
