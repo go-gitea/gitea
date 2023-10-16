@@ -21,8 +21,8 @@ import (
 )
 
 // FindReposMapByIDs find repos as map
-func FindReposMapByIDs(repoIDs []int64, res map[int64]*Repository) error {
-	return db.GetEngine(db.DefaultContext).In("id", repoIDs).Find(&res)
+func FindReposMapByIDs(ctx context.Context, repoIDs []int64, res map[int64]*Repository) error {
+	return db.GetEngine(ctx).In("id", repoIDs).Find(&res)
 }
 
 // RepositoryListDefaultPageSize is the default number of repositories
@@ -672,12 +672,12 @@ func SearchRepositoryByName(ctx context.Context, opts *SearchRepoOptions) (Repos
 
 // SearchRepositoryIDs takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
-func SearchRepositoryIDs(opts *SearchRepoOptions) ([]int64, int64, error) {
+func SearchRepositoryIDs(ctx context.Context, opts *SearchRepoOptions) ([]int64, int64, error) {
 	opts.IncludeDescription = false
 
 	cond := SearchRepositoryCondition(opts)
 
-	sess, count, err := searchRepositoryByCondition(db.DefaultContext, opts, cond)
+	sess, count, err := searchRepositoryByCondition(ctx, opts, cond)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -716,7 +716,7 @@ func FindUserCodeAccessibleOwnerRepoIDs(ctx context.Context, ownerID int64, user
 }
 
 // GetUserRepositories returns a list of repositories of given user.
-func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error) {
+func GetUserRepositories(ctx context.Context, opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = "updated_unix DESC"
 	}
@@ -734,7 +734,7 @@ func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error)
 		cond = cond.And(builder.In("lower_name", opts.LowerNames))
 	}
 
-	sess := db.GetEngine(db.DefaultContext)
+	sess := db.GetEngine(ctx)
 
 	count, err := sess.Where(cond).Count(new(Repository))
 	if err != nil {

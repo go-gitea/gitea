@@ -685,85 +685,100 @@ func UpdateReactionsMigrationsByType(ctx context.Context, gitServiceType api.Git
 
 // DeleteIssuesByRepoID deletes issues by repositories id
 func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []string, err error) {
-	deleteCond := builder.Select("id").From("issue").Where(builder.Eq{"issue.repo_id": repoID})
-
+	// MariaDB has a performance bug: https://jira.mariadb.org/browse/MDEV-16289
+	// so here it uses "DELETE ... WHERE IN" with pre-queried IDs.
 	sess := db.GetEngine(ctx)
-	// Delete content histories
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&ContentHistory{}); err != nil {
-		return nil, err
-	}
 
-	// Delete comments and attachments
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Comment{}); err != nil {
-		return nil, err
-	}
+	for {
+		issueIDs := make([]int64, 0, db.DefaultMaxInSize)
 
-	// Dependencies for issues in this repository
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&IssueDependency{}); err != nil {
-		return nil, err
-	}
+		err := sess.Table(&Issue{}).Where("repo_id = ?", repoID).OrderBy("id").Limit(db.DefaultMaxInSize).Cols("id").Find(&issueIDs)
+		if err != nil {
+			return nil, err
+		}
 
-	// Delete dependencies for issues in other repositories
-	if _, err = sess.In("dependency_id", deleteCond).
-		Delete(&IssueDependency{}); err != nil {
-		return nil, err
-	}
+		if len(issueIDs) == 0 {
+			break
+		}
 
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&IssueUser{}); err != nil {
-		return nil, err
-	}
+		// Delete content histories
+		_, err = sess.In("issue_id", issueIDs).Delete(&ContentHistory{})
+		if err != nil {
+			return nil, err
+		}
 
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Reaction{}); err != nil {
-		return nil, err
-	}
+		// Delete comments and attachments
+		_, err = sess.In("issue_id", issueIDs).Delete(&Comment{})
+		if err != nil {
+			return nil, err
+		}
 
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&IssueWatch{}); err != nil {
-		return nil, err
-	}
+		// Dependencies for issues in this repository
+		_, err = sess.In("issue_id", issueIDs).Delete(&IssueDependency{})
+		if err != nil {
+			return nil, err
+		}
 
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Stopwatch{}); err != nil {
-		return nil, err
-	}
+		// Delete dependencies for issues in other repositories
+		_, err = sess.In("dependency_id", issueIDs).Delete(&IssueDependency{})
+		if err != nil {
+			return nil, err
+		}
 
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&TrackedTime{}); err != nil {
-		return nil, err
-	}
+		_, err = sess.In("issue_id", issueIDs).Delete(&IssueUser{})
+		if err != nil {
+			return nil, err
+		}
 
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&project_model.ProjectIssue{}); err != nil {
-		return nil, err
-	}
+		_, err = sess.In("issue_id", issueIDs).Delete(&Reaction{})
+		if err != nil {
+			return nil, err
+		}
 
-	if _, err = sess.In("dependent_issue_id", deleteCond).
-		Delete(&Comment{}); err != nil {
-		return nil, err
-	}
+		_, err = sess.In("issue_id", issueIDs).Delete(&IssueWatch{})
+		if err != nil {
+			return nil, err
+		}
 
-	var attachments []*repo_model.Attachment
-	if err = sess.In("issue_id", deleteCond).
-		Find(&attachments); err != nil {
-		return nil, err
-	}
+		_, err = sess.In("issue_id", issueIDs).Delete(&Stopwatch{})
+		if err != nil {
+			return nil, err
+		}
 
-	for j := range attachments {
-		attachmentPaths = append(attachmentPaths, attachments[j].RelativePath())
-	}
+		_, err = sess.In("issue_id", issueIDs).Delete(&TrackedTime{})
+		if err != nil {
+			return nil, err
+		}
 
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&repo_model.Attachment{}); err != nil {
-		return nil, err
-	}
+		_, err = sess.In("issue_id", issueIDs).Delete(&project_model.ProjectIssue{})
+		if err != nil {
+			return nil, err
+		}
 
-	if _, err = db.DeleteByBean(ctx, &Issue{RepoID: repoID}); err != nil {
-		return nil, err
+		_, err = sess.In("dependent_issue_id", issueIDs).Delete(&Comment{})
+		if err != nil {
+			return nil, err
+		}
+
+		var attachments []*repo_model.Attachment
+		err = sess.In("issue_id", issueIDs).Find(&attachments)
+		if err != nil {
+			return nil, err
+		}
+
+		for j := range attachments {
+			attachmentPaths = append(attachmentPaths, attachments[j].RelativePath())
+		}
+
+		_, err = sess.In("issue_id", issueIDs).Delete(&repo_model.Attachment{})
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = sess.In("id", issueIDs).Delete(&Issue{})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return attachmentPaths, err

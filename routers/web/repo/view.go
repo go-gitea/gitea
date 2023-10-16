@@ -312,7 +312,7 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 			Ctx:          ctx,
 			RelativePath: path.Join(ctx.Repo.TreePath, readmeFile.Name()), // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
 			URLPrefix:    path.Join(readmeTreelink, subfolder),
-			Metas:        ctx.Repo.Repository.ComposeDocumentMetas(),
+			Metas:        ctx.Repo.Repository.ComposeDocumentMetas(ctx),
 			GitRepo:      ctx.Repo.GitRepo,
 		}, rd)
 		if err != nil {
@@ -469,7 +469,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			if !detected {
 				markupType = ""
 			}
-			metas := ctx.Repo.Repository.ComposeDocumentMetas()
+			metas := ctx.Repo.Repository.ComposeDocumentMetas(ctx)
 			metas["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
 			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 				Ctx:          ctx,
@@ -488,8 +488,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		} else {
 			buf, _ := io.ReadAll(rd)
 
-			// empty: 0 lines; "a": one line; "a\n": two lines; "a\nb": two lines;
-			// the NumLines is only used for the display on the UI: "xxx lines"
+			// The Open Group Base Specification: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html
+			//   empty: 0 lines; "a": 1 line, 1 incomplete-line; "a\n": 1 line; "a\nb": 1 line, 1 incomplete-line;
+			// Gitea uses the definition (like most modern editors):
+			//   empty: 0 lines; "a": 1 line; "a\n": 2 lines; "a\nb": 2 lines;
+			//   When rendering, the last empty line is not rendered in UI, while the line-number is still counted, to tell users that the file contains a trailing EOL.
+			//   To make the UI more consistent, it could use an icon mark to indicate that there is no trailing EOL, and show line-number as the rendered lines.
+			// This NumLines is only used for the display on the UI: "xxx lines"
 			if len(buf) == 0 {
 				ctx.Data["NumLines"] = 0
 			} else {
@@ -577,7 +582,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				Ctx:          ctx,
 				RelativePath: ctx.Repo.TreePath,
 				URLPrefix:    path.Dir(treeLink),
-				Metas:        ctx.Repo.Repository.ComposeDocumentMetas(),
+				Metas:        ctx.Repo.Repository.ComposeDocumentMetas(ctx),
 				GitRepo:      ctx.Repo.GitRepo,
 			}, rd)
 			if err != nil {
@@ -874,7 +879,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 }
 
 func renderLanguageStats(ctx *context.Context) {
-	langs, err := repo_model.GetTopLanguageStats(ctx.Repo.Repository, 5)
+	langs, err := repo_model.GetTopLanguageStats(ctx, ctx.Repo.Repository, 5)
 	if err != nil {
 		ctx.ServerError("Repo.GetTopLanguageStats", err)
 		return

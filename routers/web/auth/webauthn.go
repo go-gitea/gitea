@@ -26,8 +26,7 @@ var tplWebAuthn base.TplName = "user/auth/webauthn"
 func WebAuthn(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("twofa")
 
-	// Check auto-login.
-	if checkAutoLogin(ctx) {
+	if CheckAutoLogin(ctx) {
 		return
 	}
 
@@ -36,6 +35,14 @@ func WebAuthn(ctx *context.Context) {
 		ctx.ServerError("UserSignIn", errors.New("not in WebAuthn session"))
 		return
 	}
+
+	hasTwoFactor, err := auth.HasTwoFactorByUID(ctx, ctx.Session.Get("twofaUid").(int64))
+	if err != nil {
+		ctx.ServerError("HasTwoFactorByUID", err)
+		return
+	}
+
+	ctx.Data["HasTwoFactor"] = hasTwoFactor
 
 	ctx.HTML(http.StatusOK, tplWebAuthn)
 }

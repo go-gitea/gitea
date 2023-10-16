@@ -67,7 +67,7 @@ func RenderFile(ctx *context.Context) {
 		Ctx:              ctx,
 		RelativePath:     ctx.Repo.TreePath,
 		URLPrefix:        path.Dir(treeLink),
-		Metas:            ctx.Repo.Repository.ComposeDocumentMetas(),
+		Metas:            ctx.Repo.Repository.ComposeDocumentMetas(ctx),
 		GitRepo:          ctx.Repo.GitRepo,
 		InStandalonePage: true,
 	}, rd, ctx.Resp)
