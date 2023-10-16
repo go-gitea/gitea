@@ -55,29 +55,22 @@
 							<td>
 								<a href="{{.Link}}">{{.Name}}</a>
 								{{if .IsArchived}}
-									<span class="ui basic mini label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
+									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
+								{{end}}
+								{{if .IsPrivate}}
+									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
+								{{else}}
+									{{if .Owner.Visibility.IsPrivate}}
+										<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal"}}</span>
+									{{end}}
 								{{end}}
 								{{if .IsTemplate}}
-									{{if .IsPrivate}}
-										<span class="ui basic mini label">{{ctx.Locale.Tr "repo.desc.private_template"}}</span>
-									{{else}}
-										{{if .Owner.Visibility.IsPrivate}}
-											<span class="ui basic mini label">{{ctx.Locale.Tr "repo.desc.internal_template"}}</span>
-										{{end}}
-									{{end}}
-								{{else}}
-									{{if .IsPrivate}}
-										<span class="ui basic mini label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
-									{{else}}
-										{{if .Owner.Visibility.IsPrivate}}
-											<span class="ui basic mini label">{{ctx.Locale.Tr "repo.desc.internal"}}</span>
-										{{end}}
-									{{end}}
+									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.template"}}</span>
 								{{end}}
-								{{if .IsFork}}
-									{{svg "octicon-repo-forked"}}
-								{{else if .IsMirror}}
+								{{if .IsMirror}}
 									{{svg "octicon-mirror"}}
+								{{else if .IsFork}}
+									{{svg "octicon-repo-forked"}}
 								{{end}}
 							</td>
 							<td>{{.NumWatches}}</td>
