@@ -29,7 +29,7 @@ func GetStopwatches(ctx *context.Context) {
 		return
 	}
 
-	apiSWs, err := convert.ToStopWatches(sws)
+	apiSWs, err := convert.ToStopWatches(ctx, sws)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return

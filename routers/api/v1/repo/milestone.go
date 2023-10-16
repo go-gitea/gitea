@@ -58,7 +58,7 @@ func ListMilestones(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	milestones, total, err := issues_model.GetMilestones(issues_model.GetMilestonesOption{
+	milestones, total, err := issues_model.GetMilestones(ctx, issues_model.GetMilestonesOption{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 		State:       api.StateType(ctx.FormString("state")),

@@ -4,10 +4,12 @@
 package models
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/util"
 
@@ -17,8 +19,8 @@ import (
 func TestFixtureGeneration(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	test := func(gen func() (string, error), name string) {
-		expected, err := gen()
+	test := func(ctx context.Context, gen func(ctx context.Context) (string, error), name string) {
+		expected, err := gen(ctx)
 		if !assert.NoError(t, err) {
 			return
 		}
@@ -31,5 +33,5 @@ func TestFixtureGeneration(t *testing.T) {
 		assert.EqualValues(t, expected, data, "Differences detected for %s", p)
 	}
 
-	test(GetYamlFixturesAccess, "access")
+	test(db.DefaultContext, GetYamlFixturesAccess, "access")
 }

@@ -107,12 +107,12 @@ func watchRepoMode(ctx context.Context, watch Watch, mode WatchMode) (err error)
 }
 
 // WatchRepoMode watch repository in specific mode.
-func WatchRepoMode(userID, repoID int64, mode WatchMode) (err error) {
+func WatchRepoMode(ctx context.Context, userID, repoID int64, mode WatchMode) (err error) {
 	var watch Watch
-	if watch, err = GetWatch(db.DefaultContext, userID, repoID); err != nil {
+	if watch, err = GetWatch(ctx, userID, repoID); err != nil {
 		return err
 	}
-	return watchRepoMode(db.DefaultContext, watch, mode)
+	return watchRepoMode(ctx, watch, mode)
 }
 
 // WatchRepo watch or unwatch repository.

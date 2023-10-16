@@ -322,7 +322,7 @@ nwIDAQAB
 		assert.Equal(t, fmt.Sprintf("%s.tar.gz", packageVersion), pfs[0].Name)
 		assert.True(t, pfs[0].IsLead)
 
-		uploadPackage(t, packageVersion, http.StatusBadRequest)
+		uploadPackage(t, packageVersion, http.StatusConflict)
 	})
 
 	t.Run("Download", func(t *testing.T) {

@@ -36,6 +36,14 @@ func GetNote(ctx *context.APIContext) {
 	//   description: a git ref or commit sha
 	//   type: string
 	//   required: true
+	// - name: verification
+	//   in: query
+	//   description: include verification for every commit (disable for speedup, default 'true')
+	//   type: boolean
+	// - name: files
+	//   in: query
+	//   description: include a list of affected files for every commit (disable for speedup, default 'true')
+	//   type: boolean
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Note"
@@ -78,7 +86,15 @@ func getNote(ctx *context.APIContext, identifier string) {
 		return
 	}
 
-	cmt, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, note.Commit, nil, convert.ToCommitOptions{Stat: true})
+	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
+	files := ctx.FormString("files") == "" || ctx.FormBool("files")
+
+	cmt, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, note.Commit, nil,
+		convert.ToCommitOptions{
+			Stat:         true,
+			Verification: verification,
+			Files:        files,
+		})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ToCommit", err)
 		return

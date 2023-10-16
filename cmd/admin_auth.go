@@ -62,7 +62,7 @@ func runListAuth(c *cli.Context) error {
 		return err
 	}
 
-	authSources, err := auth_model.Sources()
+	authSources, err := auth_model.Sources(ctx)
 	if err != nil {
 		return err
 	}
@@ -100,10 +100,10 @@ func runDeleteAuth(c *cli.Context) error {
 		return err
 	}
 
-	source, err := auth_model.GetSourceByID(c.Int64("id"))
+	source, err := auth_model.GetSourceByID(ctx, c.Int64("id"))
 	if err != nil {
 		return err
 	}
 
-	return auth_service.DeleteSource(source)
+	return auth_service.DeleteSource(ctx, source)
 }
