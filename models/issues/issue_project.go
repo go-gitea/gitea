@@ -51,7 +51,7 @@ func (issue *Issue) ProjectBoardID(ctx context.Context) int64 {
 func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList, error) {
 	issueList := make(IssueList, 0, 10)
 
-	if b.ID != 0 {
+	if b.ID > 0 {
 		issues, err := Issues(ctx, &IssuesOptions{
 			ProjectBoardID: b.ID,
 			ProjectID:      b.ProjectID,
