@@ -1,7 +1,7 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package repository
+package repository_test
 
 import (
 	"testing"
@@ -11,6 +11,8 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	repo_service "code.gitea.io/gitea/services/repository"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +22,7 @@ func TestTeam_HasRepository(t *testing.T) {
 
 	test := func(teamID, repoID int64, expected bool) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.Equal(t, expected, HasRepository(db.DefaultContext, team, repoID))
+		assert.Equal(t, expected, repo_service.HasRepository(db.DefaultContext, team, repoID))
 	}
 	test(1, 1, false)
 	test(1, 3, true)
@@ -36,7 +38,7 @@ func TestTeam_RemoveRepository(t *testing.T) {
 
 	testSuccess := func(teamID, repoID int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.NoError(t, RemoveRepositoryFromTeam(db.DefaultContext, team, repoID))
+		assert.NoError(t, repo_service.RemoveRepositoryFromTeam(db.DefaultContext, team, repoID))
 		unittest.AssertNotExistsBean(t, &organization.TeamRepo{TeamID: teamID, RepoID: repoID})
 		unittest.CheckConsistencyFor(t, &organization.Team{ID: teamID}, &repo_model.Repository{ID: repoID})
 	}
@@ -46,9 +48,9 @@ func TestTeam_RemoveRepository(t *testing.T) {
 }
 
 func TestDeleteOwnerRepositoriesDirectly(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer tests.PrepareTestEnv(t)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	assert.NoError(t, DeleteOwnerRepositoriesDirectly(db.DefaultContext, user))
+	assert.NoError(t, repo_service.DeleteOwnerRepositoriesDirectly(db.DefaultContext, user))
 }
