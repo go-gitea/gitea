@@ -45,6 +45,9 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 	if err := pr.LoadIssue(ctx); err != nil {
 		return "", "", err
 	}
+	if err := pr.Issue.LoadPoster(ctx); err != nil {
+		return "", "", err
+	}
 
 	isExternalTracker := pr.BaseRepo.UnitEnabled(ctx, unit.TypeExternalTracker)
 	issueReference := "#"
