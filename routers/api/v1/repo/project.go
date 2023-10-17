@@ -183,7 +183,7 @@ func CreateRepositoryProject(ctx *context.APIContext) {
 	}
 
 	var err error
-	if err = project_model.NewProject(project); err != nil {
+	if err = project_model.NewProject(ctx, project); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewProject", err)
 		return
 	}
