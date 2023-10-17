@@ -96,7 +96,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 		return
 	}
 
-	count, err := asymkey_model.CountDeployKeys(opts)
+	count, err := asymkey_model.CountDeployKeys(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -238,7 +238,7 @@ func CreateDeployKey(ctx *context.APIContext) {
 		return
 	}
 
-	key, err := asymkey_model.AddDeployKey(ctx.Repo.Repository.ID, form.Title, content, form.ReadOnly)
+	key, err := asymkey_model.AddDeployKey(ctx, ctx.Repo.Repository.ID, form.Title, content, form.ReadOnly)
 	if err != nil {
 		HandleAddKeyError(ctx, err)
 		return

@@ -784,7 +784,7 @@ func ShowGPGKeys(ctx *context.Context) {
 	entities := make([]*openpgp.Entity, 0)
 	failedEntitiesID := make([]string, 0)
 	for _, k := range keys {
-		e, err := asymkey_model.GPGKeyToEntity(k)
+		e, err := asymkey_model.GPGKeyToEntity(ctx, k)
 		if err != nil {
 			if asymkey_model.IsErrGPGKeyImportNotExist(err) {
 				failedEntitiesID = append(failedEntitiesID, k.KeyID)
