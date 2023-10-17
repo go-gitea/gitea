@@ -16,9 +16,6 @@ export function initGiteaFomantic() {
   $.fn.dropdown.settings.fullTextSearch = 'exact';
   // Do not use "cursor: pointer" for dropdown labels
   $.fn.dropdown.settings.className.label += ' gt-cursor-default';
-  // The default selector has a bug: if there is a "search input" in the "menu", Fomantic will only "focus the input" but not "toggle the menu" when the "dropdown icon" is clicked.
-  // Actually, the "search input in menu" shouldn't be considered as the dropdown's input
-  $.fn.dropdown.settings.selector.search = '> input.search, :not(.menu) > .search > input, :not(.menu) input.search';
   // Always use Gitea's SVG icons
   $.fn.dropdown.settings.templates.label = function(_value, text, preserveHTML, className) {
     const escape = $.fn.dropdown.settings.templates.escape;

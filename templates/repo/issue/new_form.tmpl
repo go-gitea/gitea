@@ -134,7 +134,7 @@
 			<span class="no-select item {{if .Project}}gt-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</span>
 			<div class="selected">
 				{{if .Project}}
-					<a class="item muted sidebar-item-link" href="{{.Project.Link}}">
+					<a class="item muted sidebar-item-link" href="{{.Project.Link ctx}}">
 						{{svg .Project.IconName 18 "gt-mr-3"}}{{.Project.Title}}
 					</a>
 				{{end}}

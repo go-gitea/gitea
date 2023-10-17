@@ -53,9 +53,9 @@ func (specs SpecList) GetRepoIDs() []int64 {
 	return ids.Values()
 }
 
-func (specs SpecList) LoadRepos() error {
+func (specs SpecList) LoadRepos(ctx context.Context) error {
 	repoIDs := specs.GetRepoIDs()
-	repos, err := repo_model.GetRepositoriesMapByIDs(repoIDs)
+	repos, err := repo_model.GetRepositoriesMapByIDs(ctx, repoIDs)
 	if err != nil {
 		return err
 	}

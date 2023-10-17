@@ -95,21 +95,8 @@
 }
 
 .repository .issue-content-right .ui.list .title {
-  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-@media (max-width: 1200px) {
-  .repository .issue-content-right .ui.list .title {
-    max-width: 150px;
-  }
-}
-
-@media (max-width: 1000px) {
-  .repository .issue-content-right .ui.list .title {
-    max-width: 100px;
-  }
 }
 
 .repository .issue-content-right #deadlineForm input {
