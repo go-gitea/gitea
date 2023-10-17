@@ -45,3 +45,8 @@
 .label-operation .label {
   height: fit-content;
 }
+
+.archived-label-hint {
+  float: right;
+  margin: -12px;
+}
