@@ -97,8 +97,8 @@ func removeOrgUser(ctx context.Context, orgID, userID int64) error {
 }
 
 // RemoveOrgUser removes user from given organization.
-func RemoveOrgUser(orgID, userID int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func RemoveOrgUser(ctx context.Context, orgID, userID int64) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
