@@ -200,7 +200,12 @@ func ListProjectBoards(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	boards, count, err := project_model.GetBoardsAndCount(ctx, ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	if err != nil {
+		ctx.Error(http.StatusNotFound, "Boards", err)
+		return
+	}
+	boards, count, err := project.GetBoardsAndCount(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Boards", err)
 		return
