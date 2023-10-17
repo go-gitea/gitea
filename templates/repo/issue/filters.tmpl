@@ -38,7 +38,9 @@
 					{{range .Labels}}
 						{{$exclusiveScope := .ExclusiveScope}}
 						{{if and (ne $previousExclusiveScope $exclusiveScope)}}
-							<div class="divider"></div>
+							{{if or (not .IsArchived) (and .IsArchived $.ShowArchivedLabels)}}
+								<div class="divider"></div>
+							{{end}}
 						{{end}}
 						{{$previousExclusiveScope = $exclusiveScope}}
 						<a class="item label-filter-item gt-df gt-ac" {{if .IsArchived}}data-is-archived{{end}} href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}" data-label-id="{{.ID}}">
