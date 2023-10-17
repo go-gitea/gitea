@@ -115,6 +115,7 @@ import {
   LineElement,
   Filler,
 } from 'chart.js';
+import {GET} from '../modules/fetch.js';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import {Line as ChartLine} from 'vue-chartjs';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
@@ -182,7 +183,7 @@ export default {
     async fetchGraphData() {
       this.isLoading = true;
       try {
-        const response = await fetch(`${this.repoLink}/activity/contributors/data`);
+        const response = await GET(`${this.repoLink}/activity/contributors/data`);
         const data = await response.json();
         const {total, ...rest} = data;
         this.contributorsStats = rest;
