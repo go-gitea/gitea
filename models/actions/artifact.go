@@ -165,10 +165,11 @@ func ListNeedExpiredArtifacts(ctx context.Context) ([]*ActionArtifact, error) {
 }
 
 // ListNeedDeleteArtifacts returns all need delete artifacts but not deleted
-func ListNeedDeleteArtifacts(ctx context.Context) ([]*ActionArtifact, error) {
+// limit is the max number of artifacts to return.
+func ListNeedDeleteArtifacts(ctx context.Context, limit int) ([]*ActionArtifact, error) {
 	arts := make([]*ActionArtifact, 0, 10)
 	return arts, db.GetEngine(ctx).
-		Where("status = ?", ArtifactStatusNeedDelete).Find(&arts)
+		Where("status = ?", ArtifactStatusNeedDelete).Limit(limit).Find(&arts)
 }
 
 // SetArtifactExpired sets an artifact to expired
