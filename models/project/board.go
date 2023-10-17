@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"regexp"
 
+	"xorm.io/builder"
+
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/builder"
 )
 
 type (
@@ -247,11 +247,11 @@ func (p *Project) GetBoards(ctx context.Context) (BoardList, error) {
 	return append([]*Board{defaultB}, boards...), nil
 }
 
-func GetBoardsAndCount(ctx context.Context, projectID int64) (BoardList, int64, error) {
+func (p *Project) GetBoardsAndCount(ctx context.Context, projectID int64) (BoardList, int64, error) {
 	engine := db.GetEngine(ctx)
 	boards := make([]*Board, 0, 10)
 
-	defaultB, err := getDefaultBoard(ctx, projectID)
+	defaultB, err := p.getDefaultBoard(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
