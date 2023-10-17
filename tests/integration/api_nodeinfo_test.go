@@ -17,10 +17,10 @@ import (
 
 func TestNodeinfo(t *testing.T) {
 	setting.Federation.Enabled = true
-	c = routers.NormalRoutes()
+	testWebRoutes = routers.NormalRoutes()
 	defer func() {
 		setting.Federation.Enabled = false
-		c = routers.NormalRoutes()
+		testWebRoutes = routers.NormalRoutes()
 	}()
 
 	onGiteaRun(t, func(*testing.T, *url.URL) {
@@ -33,7 +33,7 @@ func TestNodeinfo(t *testing.T) {
 		assert.True(t, nodeinfo.OpenRegistrations)
 		assert.Equal(t, "gitea", nodeinfo.Software.Name)
 		assert.Equal(t, 25, nodeinfo.Usage.Users.Total)
-		assert.Equal(t, 18, nodeinfo.Usage.LocalPosts)
+		assert.Equal(t, 20, nodeinfo.Usage.LocalPosts)
 		assert.Equal(t, 2, nodeinfo.Usage.LocalComments)
 	})
 }

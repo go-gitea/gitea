@@ -88,34 +88,34 @@ func RemoveStorageWithNotice(ctx context.Context, bucket storage.ObjectStorage, 
 }
 
 // CountNotices returns number of notices.
-func CountNotices() int64 {
-	count, _ := db.GetEngine(db.DefaultContext).Count(new(Notice))
+func CountNotices(ctx context.Context) int64 {
+	count, _ := db.GetEngine(ctx).Count(new(Notice))
 	return count
 }
 
 // Notices returns notices in given page.
-func Notices(page, pageSize int) ([]*Notice, error) {
+func Notices(ctx context.Context, page, pageSize int) ([]*Notice, error) {
 	notices := make([]*Notice, 0, pageSize)
-	return notices, db.GetEngine(db.DefaultContext).
+	return notices, db.GetEngine(ctx).
 		Limit(pageSize, (page-1)*pageSize).
 		Desc("created_unix").
 		Find(&notices)
 }
 
 // DeleteNotice deletes a system notice by given ID.
-func DeleteNotice(id int64) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(id).Delete(new(Notice))
+func DeleteNotice(ctx context.Context, id int64) error {
+	_, err := db.GetEngine(ctx).ID(id).Delete(new(Notice))
 	return err
 }
 
 // DeleteNotices deletes all notices with ID from start to end (inclusive).
-func DeleteNotices(start, end int64) error {
+func DeleteNotices(ctx context.Context, start, end int64) error {
 	if start == 0 && end == 0 {
-		_, err := db.GetEngine(db.DefaultContext).Exec("DELETE FROM notice")
+		_, err := db.GetEngine(ctx).Exec("DELETE FROM notice")
 		return err
 	}
 
-	sess := db.GetEngine(db.DefaultContext).Where("id >= ?", start)
+	sess := db.GetEngine(ctx).Where("id >= ?", start)
 	if end > 0 {
 		sess.And("id <= ?", end)
 	}
@@ -124,22 +124,22 @@ func DeleteNotices(start, end int64) error {
 }
 
 // DeleteNoticesByIDs deletes notices by given IDs.
-func DeleteNoticesByIDs(ids []int64) error {
+func DeleteNoticesByIDs(ctx context.Context, ids []int64) error {
 	if len(ids) == 0 {
 		return nil
 	}
-	_, err := db.GetEngine(db.DefaultContext).
+	_, err := db.GetEngine(ctx).
 		In("id", ids).
 		Delete(new(Notice))
 	return err
 }
 
 // DeleteOldSystemNotices deletes all old system notices from database.
-func DeleteOldSystemNotices(olderThan time.Duration) (err error) {
+func DeleteOldSystemNotices(ctx context.Context, olderThan time.Duration) (err error) {
 	if olderThan <= 0 {
 		return nil
 	}
 
-	_, err = db.GetEngine(db.DefaultContext).Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Notice{})
+	_, err = db.GetEngine(ctx).Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Notice{})
 	return err
 }

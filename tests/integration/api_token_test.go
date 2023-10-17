@@ -40,6 +40,56 @@ func TestAPIDeleteMissingToken(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
+// TestAPIGetTokensPermission ensures that only the admin can get tokens from other users
+func TestAPIGetTokensPermission(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// admin can get tokens for other users
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	req := NewRequestf(t, "GET", "/api/v1/users/user2/tokens")
+	req = AddBasicAuthHeader(req, user.Name)
+	MakeRequest(t, req, http.StatusOK)
+
+	// non-admin can get tokens for himself
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	req = NewRequestf(t, "GET", "/api/v1/users/user2/tokens")
+	req = AddBasicAuthHeader(req, user.Name)
+	MakeRequest(t, req, http.StatusOK)
+
+	// non-admin can't get tokens for other users
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	req = NewRequestf(t, "GET", "/api/v1/users/user2/tokens")
+	req = AddBasicAuthHeader(req, user.Name)
+	MakeRequest(t, req, http.StatusForbidden)
+}
+
+// TestAPIDeleteTokensPermission ensures that only the admin can delete tokens from other users
+func TestAPIDeleteTokensPermission(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+
+	// admin can delete tokens for other users
+	createAPIAccessTokenWithoutCleanUp(t, "test-key-1", user2, nil)
+	req := NewRequestf(t, "DELETE", "/api/v1/users/"+user2.LoginName+"/tokens/test-key-1")
+	req = AddBasicAuthHeader(req, admin.Name)
+	MakeRequest(t, req, http.StatusNoContent)
+
+	// non-admin can delete tokens for himself
+	createAPIAccessTokenWithoutCleanUp(t, "test-key-2", user2, nil)
+	req = NewRequestf(t, "DELETE", "/api/v1/users/"+user2.LoginName+"/tokens/test-key-2")
+	req = AddBasicAuthHeader(req, user2.Name)
+	MakeRequest(t, req, http.StatusNoContent)
+
+	// non-admin can't delete tokens for other users
+	createAPIAccessTokenWithoutCleanUp(t, "test-key-3", user2, nil)
+	req = NewRequestf(t, "DELETE", "/api/v1/users/"+user2.LoginName+"/tokens/test-key-3")
+	req = AddBasicAuthHeader(req, user4.Name)
+	MakeRequest(t, req, http.StatusForbidden)
+}
+
 type permission struct {
 	category auth_model.AccessTokenScopeCategory
 	level    auth_model.AccessTokenScopeLevel
@@ -138,26 +188,6 @@ func TestAPIDeniesPermissionBasedOnTokenScope(t *testing.T) {
 				{
 					auth_model.AccessTokenScopeCategoryAdmin,
 					auth_model.Read,
-				},
-			},
-		},
-		{
-			"/api/v1/markdown",
-			"POST",
-			[]permission{
-				{
-					auth_model.AccessTokenScopeCategoryMisc,
-					auth_model.Write,
-				},
-			},
-		},
-		{
-			"/api/v1/markdown/raw",
-			"POST",
-			[]permission{
-				{
-					auth_model.AccessTokenScopeCategoryMisc,
-					auth_model.Write,
 				},
 			},
 		},
@@ -348,16 +378,6 @@ func TestAPIDeniesPermissionBasedOnTokenScope(t *testing.T) {
 			},
 		},
 		{
-			"/api/v1/settings/api",
-			"GET",
-			[]permission{
-				{
-					auth_model.AccessTokenScopeCategoryMisc,
-					auth_model.Read,
-				},
-			},
-		},
-		{
 			"/api/v1/user",
 			"GET",
 			[]permission{
@@ -490,8 +510,7 @@ func runTestCase(t *testing.T, testCase *requiredScopeTestCase, user *user_model
 				} else if minRequiredLevel == auth_model.Write {
 					unauthorizedLevel = auth_model.Read
 				} else {
-					assert.Failf(t, "Invalid test case", "Unknown access token scope level: %v", minRequiredLevel)
-					return
+					assert.FailNow(t, "Invalid test case: Unknown access token scope level: %v", minRequiredLevel)
 				}
 			}
 
@@ -533,7 +552,7 @@ func createAPIAccessTokenWithoutCleanUp(t *testing.T, tokenName string, user *us
 		}
 	}
 	log.Debug("Requesting creation of token with scopes: %v", scopes)
-	req := NewRequestWithJSON(t, "POST", "/api/v1/users/user1/tokens", payload)
+	req := NewRequestWithJSON(t, "POST", "/api/v1/users/"+user.LoginName+"/tokens", payload)
 
 	req = AddBasicAuthHeader(req, user.Name)
 	resp := MakeRequest(t, req, http.StatusCreated)
@@ -553,7 +572,7 @@ func createAPIAccessTokenWithoutCleanUp(t *testing.T, tokenName string, user *us
 // createAPIAccessTokenWithoutCleanUp Delete an API access token and assert that
 // deletion succeeded.
 func deleteAPIAccessToken(t *testing.T, accessToken api.AccessToken, user *user_model.User) {
-	req := NewRequestf(t, "DELETE", "/api/v1/users/user1/tokens/%d", accessToken.ID)
+	req := NewRequestf(t, "DELETE", "/api/v1/users/"+user.LoginName+"/tokens/%d", accessToken.ID)
 	req = AddBasicAuthHeader(req, user.Name)
 	MakeRequest(t, req, http.StatusNoContent)
 

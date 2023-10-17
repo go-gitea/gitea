@@ -1,9 +1,9 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.users.user_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
+			{{ctx.Locale.Tr "admin.users.user_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 			<div class="ui right">
-				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/users/new">{{.locale.Tr "admin.users.new_account"}}</a>
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/users/new">{{ctx.Locale.Tr "admin.users.new_account"}}</a>
 			</div>
 		</h4>
 		<div class="ui attached segment">
@@ -13,47 +13,49 @@
 				<div class="ui right floated secondary filter menu">
 					<!-- Status Filter Menu Item -->
 					<div class="ui dropdown type jump item">
-						<span class="text">{{.locale.Tr "admin.users.list_status_filter.menu_text"}} {{svg "octicon-triangle-down" 14 "dropdown icon"}}</span>
+						<span class="text">{{ctx.Locale.Tr "admin.users.list_status_filter.menu_text"}}</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
-							<a class="item j-reset-status-filter">{{.locale.Tr "admin.users.list_status_filter.reset"}}</a>
+							<a class="item j-reset-status-filter">{{ctx.Locale.Tr "admin.users.list_status_filter.reset"}}</a>
 							<div class="divider"></div>
-							<label class="item"><input type="radio" name="status_filter[is_admin]" value="1"> {{.locale.Tr "admin.users.list_status_filter.is_admin"}}</label>
-							<label class="item"><input type="radio" name="status_filter[is_admin]" value="0"> {{.locale.Tr "admin.users.list_status_filter.not_admin"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_admin]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_admin"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_admin]" value="0"> {{ctx.Locale.Tr "admin.users.list_status_filter.not_admin"}}</label>
 							<div class="divider"></div>
-							<label class="item"><input type="radio" name="status_filter[is_active]" value="1"> {{.locale.Tr "admin.users.list_status_filter.is_active"}}</label>
-							<label class="item"><input type="radio" name="status_filter[is_active]" value="0"> {{.locale.Tr "admin.users.list_status_filter.not_active"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_active]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_active"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_active]" value="0"> {{ctx.Locale.Tr "admin.users.list_status_filter.not_active"}}</label>
 							<div class="divider"></div>
-							<label class="item"><input type="radio" name="status_filter[is_restricted]" value="0"> {{.locale.Tr "admin.users.list_status_filter.not_restricted"}}</label>
-							<label class="item"><input type="radio" name="status_filter[is_restricted]" value="1"> {{.locale.Tr "admin.users.list_status_filter.is_restricted"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_restricted]" value="0"> {{ctx.Locale.Tr "admin.users.list_status_filter.not_restricted"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_restricted]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_restricted"}}</label>
 							<div class="divider"></div>
-							<label class="item"><input type="radio" name="status_filter[is_prohibit_login]" value="0"> {{.locale.Tr "admin.users.list_status_filter.not_prohibit_login"}}</label>
-							<label class="item"><input type="radio" name="status_filter[is_prohibit_login]" value="1"> {{.locale.Tr "admin.users.list_status_filter.is_prohibit_login"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_prohibit_login]" value="0"> {{ctx.Locale.Tr "admin.users.list_status_filter.not_prohibit_login"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_prohibit_login]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_prohibit_login"}}</label>
 							<div class="divider"></div>
-							<label class="item"><input type="radio" name="status_filter[is_2fa_enabled]" value="1"> {{.locale.Tr "admin.users.list_status_filter.is_2fa_enabled"}}</label>
-							<label class="item"><input type="radio" name="status_filter[is_2fa_enabled]" value="0"> {{.locale.Tr "admin.users.list_status_filter.not_2fa_enabled"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_2fa_enabled]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_2fa_enabled"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_2fa_enabled]" value="0"> {{ctx.Locale.Tr "admin.users.list_status_filter.not_2fa_enabled"}}</label>
 						</div>
 					</div>
 
 					<!-- Sort Menu Item -->
 					<div class="ui dropdown type jump item">
 						<span class="text">
-							{{.locale.Tr "repo.issues.filter_sort"}} {{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							{{ctx.Locale.Tr "repo.issues.filter_sort"}}
 						</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
-							<button class="item" name="sort" value="oldest">{{.locale.Tr "repo.issues.filter_sort.oldest"}}</button>
-							<button class="item" name="sort" value="newest">{{.locale.Tr "repo.issues.filter_sort.latest"}}</button>
-							<button class="item" name="sort" value="alphabetically">{{.locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</button>
-							<button class="item" name="sort" value="reversealphabetically">{{.locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</button>
-							<button class="item" name="sort" value="recentupdate">{{.locale.Tr "repo.issues.filter_sort.recentupdate"}}</button>
-							<button class="item" name="sort" value="leastupdate">{{.locale.Tr "repo.issues.filter_sort.leastupdate"}}</button>
+							<button class="item" name="sort" value="oldest">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</button>
+							<button class="item" name="sort" value="newest">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</button>
+							<button class="item" name="sort" value="alphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</button>
+							<button class="item" name="sort" value="reversealphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</button>
+							<button class="item" name="sort" value="recentupdate">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</button>
+							<button class="item" name="sort" value="leastupdate">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</button>
 						</div>
 					</div>
 				</div>
 
 				<!-- Search Text -->
 				<div class="ui fluid action input">
-					{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword "AutoFocus" true}}
-					<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
+					{{template "shared/searchinput" dict "Value" .Keyword "AutoFocus" true}}
+					<button class="ui primary button">{{ctx.Locale.Tr "explore.search"}}</button>
 				</div>
 			</form>
 		</div>
@@ -63,41 +65,53 @@
 					<tr>
 						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" .SortType false}}</th>
 						<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically" data-sortt-default="true">
-							{{.locale.Tr "admin.users.name"}}
+							{{ctx.Locale.Tr "admin.users.name"}}
 							{{SortArrow "alphabetically" "reversealphabetically" $.SortType true}}
 						</th>
-						<th>{{.locale.Tr "email"}}</th>
-						<th>{{.locale.Tr "admin.users.activated"}}</th>
-						<th>{{.locale.Tr "admin.users.admin"}}</th>
-						<th>{{.locale.Tr "admin.users.restricted"}}</th>
-						<th>{{.locale.Tr "admin.users.2fa"}}</th>
-						<th>{{.locale.Tr "admin.users.repos"}}</th>
-						<th>{{.locale.Tr "admin.users.created"}}</th>
+						<th>{{ctx.Locale.Tr "email"}}</th>
+						<th>{{ctx.Locale.Tr "admin.users.activated"}}</th>
+						<th>{{ctx.Locale.Tr "admin.users.restricted"}}</th>
+						<th>{{ctx.Locale.Tr "admin.users.2fa"}}</th>
+						<th>{{ctx.Locale.Tr "admin.users.created"}}</th>
 						<th data-sortt-asc="lastlogin" data-sortt-desc="reverselastlogin">
-							{{.locale.Tr "admin.users.last_login"}}
+							{{ctx.Locale.Tr "admin.users.last_login"}}
 							{{SortArrow "lastlogin" "reverselastlogin" $.SortType false}}
 						</th>
-						<th>{{.locale.Tr "admin.users.edit"}}</th>
+						<th></th>
 					</tr>
 				</thead>
 				<tbody>
 					{{range .Users}}
 						<tr>
 							<td>{{.ID}}</td>
-							<td><a href="{{.HomeLink}}">{{.Name}}</a></td>
-							<td><span class="text truncate email">{{.Email}}</span></td>
+							<td>
+								<a href="{{.HomeLink}}">{{.Name}}</a>
+								{{if .IsAdmin}}
+									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.admin"}}</span>
+								{{else if eq 2 .Type}}{{/* Reserved user */}}
+									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.reserved"}}</span>
+								{{else if eq 4 .Type}}{{/* Bot "user" */}}
+									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.bot"}}</span>
+								{{else if eq 5 .Type}}{{/* Remote user */}}
+									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.remote"}}</span>
+								{{end}}
+							</td>
+							<td class="gt-ellipsis gt-max-width-12rem">{{.Email}}</td>
 							<td>{{if .IsActive}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
-							<td>{{if .IsAdmin}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{if .IsRestricted}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{if index $.UsersTwoFaStatus .ID}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
-							<td>{{.NumRepos}}</td>
 							<td>{{DateTime "short" .CreatedUnix}}</td>
 							{{if .LastLoginUnix}}
 								<td>{{DateTime "short" .LastLoginUnix}}</td>
 							{{else}}
-								<td><span>{{$.locale.Tr "admin.users.never_login"}}</span></td>
+								<td><span>{{ctx.Locale.Tr "admin.users.never_login"}}</span></td>
 							{{end}}
-							<td><a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a></td>
+							<td>
+								<div class="gt-df gt-gap-3">
+									<a href="{{$.Link}}/{{.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.users.details"}}">{{svg "octicon-person"}}</a>
+									<a href="{{$.Link}}/{{.ID}}/edit" data-tooltip-content="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a>
+								</div>
+							</td>
 						</tr>
 					{{end}}
 				</tbody>

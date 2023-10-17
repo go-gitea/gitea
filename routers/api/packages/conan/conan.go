@@ -4,6 +4,7 @@
 package conan
 
 import (
+	std_ctx "context"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,11 +18,11 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	conan_module "code.gitea.io/gitea/modules/packages/conan"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
@@ -325,13 +326,8 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 	}
 	defer buf.Close()
 
-	if buf.Size() == 0 {
-		// ignore empty uploads, second request contains content
-		jsonResponse(ctx, http.StatusOK, nil)
-		return
-	}
-
 	isConanfileFile := filename == conanfileFile
+	isConaninfoFile := filename == conaninfoFile
 
 	pci := &packages_service.PackageCreationInfo{
 		PackageInfo: packages_service.PackageInfo{
@@ -363,7 +359,7 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 		pfci.Properties[conan_module.PropertyPackageRevision] = pref.RevisionOrDefault()
 	}
 
-	if isConanfileFile || filename == conaninfoFile {
+	if isConanfileFile || isConaninfoFile {
 		if isConanfileFile {
 			metadata, err := conan_module.ParseConanfile(buf)
 			if err != nil {
@@ -412,13 +408,14 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 	}
 
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+		ctx,
 		pci,
 		pfci,
 	)
 	if err != nil {
 		switch err {
 		case packages_model.ErrDuplicatePackageFile:
-			apiError(ctx, http.StatusBadRequest, err)
+			apiError(ctx, http.StatusConflict, err)
 		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
 			apiError(ctx, http.StatusForbidden, err)
 		default:
@@ -602,72 +599,67 @@ func DeletePackageV2(ctx *context.Context) {
 }
 
 func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeReference, ignoreRecipeRevision bool, pref *conan_module.PackageReference, ignorePackageRevision bool) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
+	var pd *packages_model.PackageDescriptor
+	versionDeleted := false
 
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, apictx.Package.Owner.ID, packages_model.TypeConan, rref.Name, rref.Version)
-	if err != nil {
-		return err
-	}
-
-	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
-	if err != nil {
-		return err
-	}
-
-	filter := map[string]string{
-		conan_module.PropertyRecipeUser:    rref.User,
-		conan_module.PropertyRecipeChannel: rref.Channel,
-	}
-	if !ignoreRecipeRevision {
-		filter[conan_module.PropertyRecipeRevision] = rref.RevisionOrDefault()
-	}
-	if pref != nil {
-		filter[conan_module.PropertyPackageReference] = pref.Reference
-		if !ignorePackageRevision {
-			filter[conan_module.PropertyPackageRevision] = pref.RevisionOrDefault()
+	err := db.WithTx(apictx, func(ctx std_ctx.Context) error {
+		pv, err := packages_model.GetVersionByNameAndVersion(ctx, apictx.Package.Owner.ID, packages_model.TypeConan, rref.Name, rref.Version)
+		if err != nil {
+			return err
 		}
-	}
 
-	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
-		VersionID:  pv.ID,
-		Properties: filter,
+		pd, err = packages_model.GetPackageDescriptor(ctx, pv)
+		if err != nil {
+			return err
+		}
+
+		filter := map[string]string{
+			conan_module.PropertyRecipeUser:    rref.User,
+			conan_module.PropertyRecipeChannel: rref.Channel,
+		}
+		if !ignoreRecipeRevision {
+			filter[conan_module.PropertyRecipeRevision] = rref.RevisionOrDefault()
+		}
+		if pref != nil {
+			filter[conan_module.PropertyPackageReference] = pref.Reference
+			if !ignorePackageRevision {
+				filter[conan_module.PropertyPackageRevision] = pref.RevisionOrDefault()
+			}
+		}
+
+		pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
+			VersionID:  pv.ID,
+			Properties: filter,
+		})
+		if err != nil {
+			return err
+		}
+		if len(pfs) == 0 {
+			return conan_model.ErrPackageReferenceNotExist
+		}
+
+		for _, pf := range pfs {
+			if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
+				return err
+			}
+		}
+		has, err := packages_model.HasVersionFileReferences(ctx, pv.ID)
+		if err != nil {
+			return err
+		}
+		if !has {
+			versionDeleted = true
+
+			return packages_service.DeletePackageVersionAndReferences(ctx, pv)
+		}
+		return nil
 	})
 	if err != nil {
 		return err
 	}
-	if len(pfs) == 0 {
-		return conan_model.ErrPackageReferenceNotExist
-	}
-
-	for _, pf := range pfs {
-		if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
-			return err
-		}
-	}
-
-	versionDeleted := false
-	has, err := packages_model.HasVersionFileReferences(ctx, pv.ID)
-	if err != nil {
-		return err
-	}
-	if !has {
-		versionDeleted = true
-
-		if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
-			return err
-		}
-	}
-
-	if err := committer.Commit(); err != nil {
-		return err
-	}
 
 	if versionDeleted {
-		notification.NotifyPackageDelete(apictx, apictx.Doer, pd)
+		notify_service.PackageDelete(apictx, apictx.Doer, pd)
 	}
 
 	return nil

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -79,7 +80,7 @@ func CommitInfoCache(ctx *context.Context) {
 }
 
 func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
-	orgs, err := organization.GetOrgsCanCreateRepoByUserID(ctx.Doer.ID)
+	orgs, err := organization.GetOrgsCanCreateRepoByUserID(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
 		return nil
@@ -118,7 +119,7 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 		return nil
 	}
 	if !ctx.Doer.IsAdmin {
-		canCreate, err := organization.OrgFromUser(org).CanCreateOrgRepo(ctx.Doer.ID)
+		canCreate, err := organization.OrgFromUser(org).CanCreateOrgRepo(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("CanCreateOrgRepo", err)
 			return nil
@@ -241,15 +242,16 @@ func CreatePost(ctx *context.Context) {
 	var err error
 	if form.RepoTemplate > 0 {
 		opts := repo_module.GenerateRepoOptions{
-			Name:        form.RepoName,
-			Description: form.Description,
-			Private:     form.Private,
-			GitContent:  form.GitContent,
-			Topics:      form.Topics,
-			GitHooks:    form.GitHooks,
-			Webhooks:    form.Webhooks,
-			Avatar:      form.Avatar,
-			IssueLabels: form.Labels,
+			Name:            form.RepoName,
+			Description:     form.Description,
+			Private:         form.Private,
+			GitContent:      form.GitContent,
+			Topics:          form.Topics,
+			GitHooks:        form.GitHooks,
+			Webhooks:        form.Webhooks,
+			Avatar:          form.Avatar,
+			IssueLabels:     form.Labels,
+			ProtectedBranch: form.ProtectedBranch,
 		}
 
 		if !opts.IsValid() {
@@ -274,7 +276,7 @@ func CreatePost(ctx *context.Context) {
 			return
 		}
 	} else {
-		repo, err = repo_service.CreateRepository(ctx, ctx.Doer, ctxUser, repo_module.CreateRepoOptions{
+		repo, err = repo_service.CreateRepository(ctx, ctx.Doer, ctxUser, repo_service.CreateRepoOptions{
 			Name:          form.RepoName,
 			Description:   form.Description,
 			Gitignores:    form.Gitignores,
@@ -306,9 +308,9 @@ func Action(ctx *context.Context) {
 	case "unwatch":
 		err = repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	case "star":
-		err = repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, true)
+		err = repo_model.StarRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	case "unstar":
-		err = repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, false)
+		err = repo_model.StarRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	case "accept_transfer":
 		err = acceptOrRejectRepoTransfer(ctx, true)
 	case "reject_transfer":
@@ -342,7 +344,7 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 		return err
 	}
 
-	if !repoTransfer.CanUserAcceptTransfer(ctx.Doer) {
+	if !repoTransfer.CanUserAcceptTransfer(ctx, ctx.Doer) {
 		return errors.New("user does not have enough permissions")
 	}
 
@@ -357,7 +359,7 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 		}
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.success"))
 	} else {
-		if err := models.CancelRepositoryTransfer(ctx.Repo.Repository); err != nil {
+		if err := models.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
 			return err
 		}
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
@@ -377,15 +379,28 @@ func RedirectDownload(ctx *context.Context) {
 	curRepo := ctx.Repo.Repository
 	releases, err := repo_model.GetReleasesByRepoIDAndNames(ctx, curRepo.ID, tagNames)
 	if err != nil {
-		if repo_model.IsErrAttachmentNotExist(err) {
-			ctx.Error(http.StatusNotFound)
-			return
-		}
 		ctx.ServerError("RedirectDownload", err)
 		return
 	}
 	if len(releases) == 1 {
 		release := releases[0]
+		att, err := repo_model.GetAttachmentByReleaseIDFileName(ctx, release.ID, fileName)
+		if err != nil {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+		if att != nil {
+			ServeAttachment(ctx, att.UUID)
+			return
+		}
+	} else if len(releases) == 0 && vTag == "latest" {
+		// GitHub supports the alias "latest" for the latest release
+		// We only fetch the latest release if the tag is "latest" and no release with the tag "latest" exists
+		release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
+		if err != nil {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
 		att, err := repo_model.GetAttachmentByReleaseIDFileName(ctx, release.ID, fileName)
 		if err != nil {
 			ctx.Error(http.StatusNotFound)
@@ -599,6 +614,8 @@ func SearchRepo(ctx *context.Context) {
 
 	results := make([]*repo_service.WebSearchRepository, len(repos))
 	for i, repo := range repos {
+		latestCommitStatus := git_model.CalcCommitStatus(repoToItsLatestCommitStatuses[repo.ID])
+
 		results[i] = &repo_service.WebSearchRepository{
 			Repository: &api.Repository{
 				ID:       repo.ID,
@@ -612,7 +629,8 @@ func SearchRepo(ctx *context.Context) {
 				Link:     repo.Link(),
 				Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 			},
-			LatestCommitStatus: git_model.CalcCommitStatus(repoToItsLatestCommitStatuses[repo.ID]),
+			LatestCommitStatus:       latestCommitStatus,
+			LocaleLatestCommitStatus: latestCommitStatus.LocaleString(ctx.Locale),
 		}
 	}
 
@@ -620,4 +638,65 @@ func SearchRepo(ctx *context.Context) {
 		OK:   true,
 		Data: results,
 	})
+}
+
+type branchTagSearchResponse struct {
+	Results []string `json:"results"`
+}
+
+// GetBranchesList get branches for current repo'
+func GetBranchesList(ctx *context.Context) {
+	branchOpts := git_model.FindBranchOptions{
+		RepoID:          ctx.Repo.Repository.ID,
+		IsDeletedBranch: util.OptionalBoolFalse,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+	}
+	branches, err := git_model.FindBranchNames(ctx, branchOpts)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	resp := &branchTagSearchResponse{}
+	// always put default branch on the top if it exists
+	if slices.Contains(branches, ctx.Repo.Repository.DefaultBranch) {
+		branches = util.SliceRemoveAll(branches, ctx.Repo.Repository.DefaultBranch)
+		branches = append([]string{ctx.Repo.Repository.DefaultBranch}, branches...)
+	}
+	resp.Results = branches
+	ctx.JSON(http.StatusOK, resp)
+}
+
+// GetTagList get tag list for current repo
+func GetTagList(ctx *context.Context) {
+	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	resp := &branchTagSearchResponse{}
+	resp.Results = tags
+	ctx.JSON(http.StatusOK, resp)
+}
+
+func PrepareBranchList(ctx *context.Context) {
+	branchOpts := git_model.FindBranchOptions{
+		RepoID:          ctx.Repo.Repository.ID,
+		IsDeletedBranch: util.OptionalBoolFalse,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+	}
+	brs, err := git_model.FindBranchNames(ctx, branchOpts)
+	if err != nil {
+		ctx.ServerError("GetBranches", err)
+		return
+	}
+	// always put default branch on the top if it exists
+	if slices.Contains(brs, ctx.Repo.Repository.DefaultBranch) {
+		brs = util.SliceRemoveAll(brs, ctx.Repo.Repository.DefaultBranch)
+		brs = append([]string{ctx.Repo.Repository.DefaultBranch}, brs...)
+	}
+	ctx.Data["Branches"] = brs
 }

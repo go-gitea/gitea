@@ -304,3 +304,37 @@
   created_unix: 946684830
   updated_unix: 978307200
   is_locked: false
+
+-
+  id: 19
+  repo_id: 58
+  index: 1
+  poster_id: 2
+  original_author_id: 0
+  name: issue for pr
+  content: content
+  milestone_id: 0
+  priority: 0
+  is_closed: false
+  is_pull: true
+  num_comments: 0
+  created_unix: 946684830
+  updated_unix: 978307200
+  is_locked: false
+
+-
+  id: 20
+  repo_id: 23
+  index: 1
+  poster_id: 2
+  original_author_id: 0
+  name: issue for pr
+  content: content
+  milestone_id: 0
+  priority: 0
+  is_closed: false
+  is_pull: true
+  num_comments: 0
+  created_unix: 978307210
+  updated_unix: 978307210
+  is_locked: false

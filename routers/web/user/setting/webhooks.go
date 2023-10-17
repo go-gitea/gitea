@@ -36,13 +36,11 @@ func Webhooks(ctx *context.Context) {
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
-	if err := webhook.DeleteWebhookByOwnerID(ctx.Doer.ID, ctx.FormInt64("id")); err != nil {
+	if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Doer.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": setting.AppSubURL + "/user/settings/hooks",
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/hooks")
 }

@@ -1,6 +1,6 @@
 <div class="runner-container">
 	<h4 class="ui top attached header">
-		{{.locale.Tr "actions.runners.runner_title"}} {{.Runner.ID}} {{.Runner.Name}}
+		{{ctx.Locale.Tr "actions.runners.runner_title"}} {{.Runner.ID}} {{.Runner.Name}}
 	</h4>
 	<div class="ui attached segment">
 		<form class="ui form" method="post">
@@ -8,15 +8,15 @@
 			{{.CsrfTokenHtml}}
 			<div class="runner-basic-info">
 				<div class="field gt-dib gt-mr-4">
-					<label>{{.locale.Tr "actions.runners.status"}}</label>
-					<span class="runner-status-{{if .Runner.IsOnline}}online{{else}}offline{{end}}">{{.Runner.StatusLocaleName $.locale}}</span>
+					<label>{{ctx.Locale.Tr "actions.runners.status"}}</label>
+					<span class="ui {{if .Runner.IsOnline}}green{{else}}basic{{end}} label">{{.Runner.StatusLocaleName ctx.Locale}}</span>
 				</div>
 				<div class="field gt-dib gt-mr-4">
-					<label>{{.locale.Tr "actions.runners.last_online"}}</label>
-					<span>{{if .Runner.LastOnline}}{{TimeSinceUnix .Runner.LastOnline $.locale}}{{else}}{{$.locale.Tr "never"}}{{end}}</span>
+					<label>{{ctx.Locale.Tr "actions.runners.last_online"}}</label>
+					<span>{{if .Runner.LastOnline}}{{TimeSinceUnix .Runner.LastOnline ctx.Locale}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</span>
 				</div>
 				<div class="field gt-dib gt-mr-4">
-					<label>{{.locale.Tr "actions.runners.labels"}}</label>
+					<label>{{ctx.Locale.Tr "actions.runners.labels"}}</label>
 					<span>
 						{{range .Runner.AgentLabels}}
 						<span class="ui label">{{.}}</span>
@@ -24,59 +24,59 @@
 					</span>
 				</div>
 				<div class="field gt-dib gt-mr-4">
-					<label>{{.locale.Tr "actions.runners.owner_type"}}</label>
-					<span data-tooltip-content="{{.Runner.BelongsToOwnerName}}">{{.Runner.BelongsToOwnerType.LocaleString $.locale}}</span>
+					<label>{{ctx.Locale.Tr "actions.runners.owner_type"}}</label>
+					<span data-tooltip-content="{{.Runner.BelongsToOwnerName}}">{{.Runner.BelongsToOwnerType.LocaleString ctx.Locale}}</span>
 				</div>
 			</div>
 
 			<div class="divider"></div>
 
 			<div class="field">
-				<label for="description">{{.locale.Tr "actions.runners.description"}}</label>
+				<label for="description">{{ctx.Locale.Tr "actions.runners.description"}}</label>
 				<input id="description" name="description" value="{{.Runner.Description}}">
 			</div>
 
 			<div class="divider"></div>
 
 			<div class="field">
-				<button class="ui green button" data-url="{{.Link}}">{{.locale.Tr "actions.runners.update_runner"}}</button>
+				<button class="ui primary button" data-url="{{.Link}}">{{ctx.Locale.Tr "actions.runners.update_runner"}}</button>
 				<button class="ui red button delete-button show-modal" data-url="{{.Link}}/delete" data-modal="#runner-delete-modal">
-					{{.locale.Tr "actions.runners.delete_runner"}}</button>
+					{{ctx.Locale.Tr "actions.runners.delete_runner"}}</button>
 			</div>
 		</form>
 	</div>
 
 	<h4 class="ui top attached header">
-		{{.locale.Tr "actions.runners.task_list"}}
+		{{ctx.Locale.Tr "actions.runners.task_list"}}
 	</h4>
 	<div class="ui attached segment">
 		<table class="ui very basic striped table unstackable">
 			<thead>
 				<tr>
-					<th>{{.locale.Tr "actions.runners.task_list.run"}}</th>
-					<th>{{.locale.Tr "actions.runners.task_list.status"}}</th>
-					<th>{{.locale.Tr "actions.runners.task_list.repository"}}</th>
-					<th>{{.locale.Tr "actions.runners.task_list.commit"}}</th>
-					<th>{{.locale.Tr "actions.runners.task_list.done_at"}}</th>
+					<th>{{ctx.Locale.Tr "actions.runners.task_list.run"}}</th>
+					<th>{{ctx.Locale.Tr "actions.runners.task_list.status"}}</th>
+					<th>{{ctx.Locale.Tr "actions.runners.task_list.repository"}}</th>
+					<th>{{ctx.Locale.Tr "actions.runners.task_list.commit"}}</th>
+					<th>{{ctx.Locale.Tr "actions.runners.task_list.done_at"}}</th>
 				</tr>
 			</thead>
 			<tbody>
 				{{range .Tasks}}
 				<tr>
 					<td><a href="{{.GetRunLink}}" target="_blank">{{.ID}}</a></td>
-					<td><span class="ui label task-status-{{.Status.String}}">{{.Status.LocaleString $.locale}}</span></td>
+					<td><span class="ui label task-status-{{.Status.String}}">{{.Status.LocaleString ctx.Locale}}</span></td>
 					<td><a href="{{.GetRepoLink}}" target="_blank">{{.GetRepoName}}</a></td>
 					<td>
 						<strong><a href="{{.GetCommitLink}}" target="_blank">{{ShortSha .CommitSHA}}</a></strong>
 					</td>
 					<td>{{if .IsStopped}}
-						<span>{{TimeSinceUnix .Stopped $.locale}}</span>
+						<span>{{TimeSinceUnix .Stopped ctx.Locale}}</span>
 						{{else}}-{{end}}</td>
 				</tr>
 				{{end}}
 				{{if not .Tasks}}
 				<tr>
-					<td colspan="5">{{.locale.Tr "actions.runners.task_list.no_tasks"}}</td>
+					<td colspan="5">{{ctx.Locale.Tr "actions.runners.task_list.no_tasks"}}</td>
 				</tr>
 				{{end}}
 			</tbody>
@@ -86,10 +86,10 @@
 	<div class="ui g-modal-confirm delete modal" id="runner-delete-modal">
 		<div class="header">
 			{{svg "octicon-trash"}}
-			{{.locale.Tr "actions.runners.delete_runner_header"}}
+			{{ctx.Locale.Tr "actions.runners.delete_runner_header"}}
 		</div>
 		<div class="content">
-			<p>{{.locale.Tr "actions.runners.delete_runner_notice" | Safe}}</p>
+			<p>{{ctx.Locale.Tr "actions.runners.delete_runner_notice" | Safe}}</p>
 		</div>
 		{{template "base/modal_actions_confirm" .}}
 	</div>

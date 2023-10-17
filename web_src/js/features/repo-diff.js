@@ -2,6 +2,7 @@ import $ from 'jquery';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoIssueContentHistory} from './repo-issue-content.js';
 import {initDiffFileTree} from './repo-diff-filetree.js';
+import {initDiffCommitSelect} from './repo-diff-commitselect.js';
 import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.js';
 import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles, initExpandAndCollapseFilesButton} from './pull-view-file.js';
 import {initImageDiff} from './imagediff.js';
@@ -63,9 +64,9 @@ function initRepoDiffConversationForm() {
 
     $form.closest('.conversation-holder').replaceWith($newConversationHolder);
     if ($form.closest('tr').data('line-type') === 'same') {
-      $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).addClass('invisible');
+      $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).addClass('gt-invisible');
     } else {
-      $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).addClass('invisible');
+      $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).addClass('gt-invisible');
     }
     $newConversationHolder.find('.dropdown').dropdown();
     initCompReactionSelector($newConversationHolder);
@@ -188,6 +189,7 @@ export function initRepoDiffView() {
   const diffFileList = $('#diff-file-list');
   if (diffFileList.length === 0) return;
   initDiffFileTree();
+  initDiffCommitSelect();
   initRepoDiffShowMore();
   initRepoDiffReviewButton();
   initRepoDiffFileViewToggle();

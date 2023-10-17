@@ -1,12 +1,12 @@
 {{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings")}}
 	<div class="repo-setting-content">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "repo.settings.deploy_keys"}}
+			{{ctx.Locale.Tr "repo.settings.deploy_keys"}}
 			<div class="ui right">
 			{{if not .DisableSSH}}
-				<button class="ui primary tiny show-panel button" data-panel="#add-deploy-key-panel">{{.locale.Tr "repo.settings.add_deploy_key"}}</button>
+				<button class="ui primary tiny show-panel toggle button" data-panel="#add-deploy-key-panel">{{ctx.Locale.Tr "repo.settings.add_deploy_key"}}</button>
 			{{else}}
-				<button class="ui primary tiny button disabled">{{.locale.Tr "settings.ssh_disabled"}}</button>
+				<button class="ui primary tiny button disabled">{{ctx.Locale.Tr "settings.ssh_disabled"}}</button>
 			{{end}}
 			</div>
 		</h4>
@@ -15,59 +15,59 @@
 				<form class="ui form" action="{{.Link}}" method="post">
 					{{.CsrfTokenHtml}}
 					<div class="field">
-						{{.locale.Tr "repo.settings.deploy_key_desc"}}
+						{{ctx.Locale.Tr "repo.settings.deploy_key_desc"}}
 					</div>
 					<div class="field {{if .Err_Title}}error{{end}}">
-						<label for="title">{{.locale.Tr "repo.settings.title"}}</label>
+						<label for="title">{{ctx.Locale.Tr "repo.settings.title"}}</label>
 						<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required>
 					</div>
 					<div class="field {{if .Err_Content}}error{{end}}">
-						<label for="content">{{.locale.Tr "repo.settings.deploy_key_content"}}</label>
-						<textarea id="ssh-key-content" name="content" placeholder="{{.locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
+						<label for="content">{{ctx.Locale.Tr "repo.settings.deploy_key_content"}}</label>
+						<textarea id="ssh-key-content" name="content" placeholder="{{ctx.Locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
 					</div>
 					<div class="field">
 						<div class="ui checkbox {{if .Err_IsWritable}}error{{end}}">
 							<input id="ssh-key-is-writable" name="is_writable" type="checkbox" value="1">
 							<label for="is_writable">
-								{{.locale.Tr "repo.settings.is_writable"}}
+								{{ctx.Locale.Tr "repo.settings.is_writable"}}
 							</label>
-							<small style="padding-left: 26px;">{{$.locale.Tr "repo.settings.is_writable_info" | Str2html}}</small>
+							<small style="padding-left: 26px;">{{ctx.Locale.Tr "repo.settings.is_writable_info" | Str2html}}</small>
 						</div>
 					</div>
-					<button class="ui green button">
-						{{.locale.Tr "repo.settings.add_deploy_key"}}
+					<button class="ui primary button">
+						{{ctx.Locale.Tr "repo.settings.add_deploy_key"}}
 					</button>
 					<button class="ui hide-panel button" data-panel="#add-deploy-key-panel">
-						{{.locale.Tr "cancel"}}
+						{{ctx.Locale.Tr "cancel"}}
 					</button>
 				</form>
 			</div>
 			{{if .Deploykeys}}
-				<div class="ui key list">
+				<div class="flex-list">
 					{{range .Deploykeys}}
-						<div class="item">
-							<div class="right floated content">
-								<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
-									{{$.locale.Tr "settings.delete_key"}}
-								</button>
+						<div class="flex-item">
+							<div class="flex-item-leading">
+								<span class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
 							</div>
-							<div class="left floated content">
-								<i class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{$.locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</i>
-							</div>
-							<div class="content">
-								<strong>{{.Name}}</strong>
-								<div class="print meta">
+							<div class="flex-item-main">
+								<div class="flex-item-title">{{.Name}}</div>
+								<div class="flex-item-body">
 									{{.Fingerprint}}
 								</div>
-								<div class="activity meta">
-									<i>{{$.locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}} —  {{svg "octicon-info"}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}} - <span>{{$.locale.Tr "settings.can_read_info"}}{{if not .IsReadOnly}} / {{$.locale.Tr "settings.can_write_info"}} {{end}}</span></i>
+								<div class="flex-item-body">
+									<i>{{ctx.Locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}} —  {{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}} - <span>{{ctx.Locale.Tr "settings.can_read_info"}}{{if not .IsReadOnly}} / {{ctx.Locale.Tr "settings.can_write_info"}} {{end}}</span></i>
 								</div>
+							</div>
+							<div class="flex-item-trailing">
+								<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
+									{{ctx.Locale.Tr "settings.delete_key"}}
+								</button>
 							</div>
 						</div>
 					{{end}}
 				</div>
 			{{else}}
-				{{.locale.Tr "repo.settings.no_deploy_keys"}}
+				{{ctx.Locale.Tr "repo.settings.no_deploy_keys"}}
 			{{end}}
 		</div>
 	</div>
@@ -75,10 +75,10 @@
 <div class="ui g-modal-confirm delete modal">
 	<div class="header">
 		{{svg "octicon-trash"}}
-		{{.locale.Tr "repo.settings.deploy_key_deletion"}}
+		{{ctx.Locale.Tr "repo.settings.deploy_key_deletion"}}
 	</div>
 	<div class="content">
-		<p>{{.locale.Tr "repo.settings.deploy_key_deletion_desc"}}</p>
+		<p>{{ctx.Locale.Tr "repo.settings.deploy_key_deletion_desc"}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

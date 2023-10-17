@@ -13,7 +13,6 @@ import (
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
@@ -56,16 +55,16 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, branchName strin
 		var canPush bool
 		var err error
 		if user != nil {
-			hasPerm, err = access_model.HasAccessUnit(db.DefaultContext, user, repo, unit.TypeCode, perm.AccessModeWrite)
+			hasPerm, err = access_model.HasAccessUnit(ctx, user, repo, unit.TypeCode, perm.AccessModeWrite)
 			if err != nil {
 				return nil, err
 			}
 
-			perms, err := access_model.GetUserRepoPermission(db.DefaultContext, repo, user)
+			perms, err := access_model.GetUserRepoPermission(ctx, repo, user)
 			if err != nil {
 				return nil, err
 			}
-			canPush = issues_model.CanMaintainerWriteToBranch(perms, branchName, user)
+			canPush = issues_model.CanMaintainerWriteToBranch(ctx, perms, branchName, user)
 		}
 
 		return &api.Branch{
@@ -94,41 +93,41 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, branchName strin
 	}
 
 	if user != nil {
-		permission, err := access_model.GetUserRepoPermission(db.DefaultContext, repo, user)
+		permission, err := access_model.GetUserRepoPermission(ctx, repo, user)
 		if err != nil {
 			return nil, err
 		}
 		bp.Repo = repo
-		branch.UserCanPush = bp.CanUserPush(db.DefaultContext, user)
-		branch.UserCanMerge = git_model.IsUserMergeWhitelisted(db.DefaultContext, bp, user.ID, permission)
+		branch.UserCanPush = bp.CanUserPush(ctx, user)
+		branch.UserCanMerge = git_model.IsUserMergeWhitelisted(ctx, bp, user.ID, permission)
 	}
 
 	return branch, nil
 }
 
 // ToBranchProtection convert a ProtectedBranch to api.BranchProtection
-func ToBranchProtection(bp *git_model.ProtectedBranch) *api.BranchProtection {
-	pushWhitelistUsernames, err := user_model.GetUserNamesByIDs(bp.WhitelistUserIDs)
+func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch) *api.BranchProtection {
+	pushWhitelistUsernames, err := user_model.GetUserNamesByIDs(ctx, bp.WhitelistUserIDs)
 	if err != nil {
 		log.Error("GetUserNamesByIDs (WhitelistUserIDs): %v", err)
 	}
-	mergeWhitelistUsernames, err := user_model.GetUserNamesByIDs(bp.MergeWhitelistUserIDs)
+	mergeWhitelistUsernames, err := user_model.GetUserNamesByIDs(ctx, bp.MergeWhitelistUserIDs)
 	if err != nil {
 		log.Error("GetUserNamesByIDs (MergeWhitelistUserIDs): %v", err)
 	}
-	approvalsWhitelistUsernames, err := user_model.GetUserNamesByIDs(bp.ApprovalsWhitelistUserIDs)
+	approvalsWhitelistUsernames, err := user_model.GetUserNamesByIDs(ctx, bp.ApprovalsWhitelistUserIDs)
 	if err != nil {
 		log.Error("GetUserNamesByIDs (ApprovalsWhitelistUserIDs): %v", err)
 	}
-	pushWhitelistTeams, err := organization.GetTeamNamesByID(bp.WhitelistTeamIDs)
+	pushWhitelistTeams, err := organization.GetTeamNamesByID(ctx, bp.WhitelistTeamIDs)
 	if err != nil {
 		log.Error("GetTeamNamesByID (WhitelistTeamIDs): %v", err)
 	}
-	mergeWhitelistTeams, err := organization.GetTeamNamesByID(bp.MergeWhitelistTeamIDs)
+	mergeWhitelistTeams, err := organization.GetTeamNamesByID(ctx, bp.MergeWhitelistTeamIDs)
 	if err != nil {
 		log.Error("GetTeamNamesByID (MergeWhitelistTeamIDs): %v", err)
 	}
-	approvalsWhitelistTeams, err := organization.GetTeamNamesByID(bp.ApprovalsWhitelistTeamIDs)
+	approvalsWhitelistTeams, err := organization.GetTeamNamesByID(ctx, bp.ApprovalsWhitelistTeamIDs)
 	if err != nil {
 		log.Error("GetTeamNamesByID (ApprovalsWhitelistTeamIDs): %v", err)
 	}
@@ -289,6 +288,7 @@ func ToOrganization(ctx context.Context, org *organization.Organization) *api.Or
 		Name:                      org.Name,
 		UserName:                  org.Name,
 		FullName:                  org.FullName,
+		Email:                     org.Email,
 		Description:               org.Description,
 		Website:                   org.Website,
 		Location:                  org.Location,
@@ -333,7 +333,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 		if loadOrgs {
 			apiOrg, ok := cache[teams[i].OrgID]
 			if !ok {
-				org, err := organization.GetOrgByID(db.DefaultContext, teams[i].OrgID)
+				org, err := organization.GetOrgByID(ctx, teams[i].OrgID)
 				if err != nil {
 					return nil, err
 				}

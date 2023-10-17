@@ -28,27 +28,15 @@ func AssetFS() *assetfs.LayeredFS {
 	return assetfs.Layered(CustomAssets(), BuiltinAssets())
 }
 
-// AssetsHandlerFunc implements the static handler for serving custom or original assets.
-func AssetsHandlerFunc(prefix string) http.HandlerFunc {
+// FileHandlerFunc implements the static handler for serving files in "public" assets
+func FileHandlerFunc() http.HandlerFunc {
 	assetFS := AssetFS()
-	prefix = strings.TrimSuffix(prefix, "/") + "/"
 	return func(resp http.ResponseWriter, req *http.Request) {
-		subPath := req.URL.Path
-		if !strings.HasPrefix(subPath, prefix) {
-			return
-		}
-		subPath = strings.TrimPrefix(subPath, prefix)
-
 		if req.Method != "GET" && req.Method != "HEAD" {
 			resp.WriteHeader(http.StatusNotFound)
 			return
 		}
-
-		if handleRequest(resp, req, assetFS, subPath) {
-			return
-		}
-
-		resp.WriteHeader(http.StatusNotFound)
+		handleRequest(resp, req, assetFS, req.URL.Path)
 	}
 }
 
@@ -71,16 +59,17 @@ func setWellKnownContentType(w http.ResponseWriter, file string) {
 	}
 }
 
-func handleRequest(w http.ResponseWriter, req *http.Request, fs http.FileSystem, file string) bool {
+func handleRequest(w http.ResponseWriter, req *http.Request, fs http.FileSystem, file string) {
 	// actually, fs (http.FileSystem) is designed to be a safe interface, relative paths won't bypass its parent directory, it's also fine to do a clean here
 	f, err := fs.Open(util.PathJoinRelX(file))
 	if err != nil {
 		if os.IsNotExist(err) {
-			return false
+			w.WriteHeader(http.StatusNotFound)
+			return
 		}
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Error("[Static] Open %q failed: %v", file, err)
-		return true
+		return
 	}
 	defer f.Close()
 
@@ -88,17 +77,16 @@ func handleRequest(w http.ResponseWriter, req *http.Request, fs http.FileSystem,
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Error("[Static] %q exists, but fails to open: %v", file, err)
-		return true
+		return
 	}
 
-	// Try to serve index file
+	// need to serve index file? (no at the moment)
 	if fi.IsDir() {
 		w.WriteHeader(http.StatusNotFound)
-		return true
+		return
 	}
 
 	serveContent(w, req, fi, fi.ModTime(), f)
-	return true
 }
 
 type GzipBytesProvider interface {

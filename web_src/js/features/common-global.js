@@ -1,5 +1,6 @@
 import $ from 'jquery';
-import 'jquery.are-you-sure';
+import '../vendor/jquery.are-you-sure.js';
+import {clippie} from 'clippie';
 import {createDropzone} from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
@@ -7,9 +8,10 @@ import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {svg} from '../svg.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
-import {createTippy} from '../modules/tippy.js';
+import {showTemporaryTooltip} from '../modules/tippy.js';
 import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
+import {request, POST} from '../modules/fetch.js';
 
 const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
 
@@ -63,9 +65,9 @@ export function initGlobalButtonClickOnEnter() {
   });
 }
 
-// doRedirect does real redirection to bypass the browser's limitations of "location"
+// fetchActionDoRedirect does real redirection to bypass the browser's limitations of "location"
 // more details are in the backend's fetch-redirect handler
-function doRedirect(redirect) {
+function fetchActionDoRedirect(redirect) {
   const form = document.createElement('form');
   const input = document.createElement('input');
   form.method = 'post';
@@ -76,6 +78,33 @@ function doRedirect(redirect) {
   form.append(input);
   document.body.append(form);
   form.submit();
+}
+
+async function fetchActionDoRequest(actionElem, url, opt) {
+  try {
+    const resp = await request(url, opt);
+    if (resp.status === 200) {
+      let {redirect} = await resp.json();
+      redirect = redirect || actionElem.getAttribute('data-redirect');
+      actionElem.classList.remove('dirty'); // remove the areYouSure check before reloading
+      if (redirect) {
+        fetchActionDoRedirect(redirect);
+      } else {
+        window.location.reload();
+      }
+    } else if (resp.status >= 400 && resp.status < 500) {
+      const data = await resp.json();
+      // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
+      // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
+      showErrorToast(data.errorMessage || `server error: ${resp.status}`);
+    } else {
+      showErrorToast(`server error: ${resp.status}`);
+    }
+  } catch (e) {
+    console.error('error when doRequest', e);
+    actionElem.classList.remove('is-loading', 'small-loading-icon');
+    showErrorToast(i18n.network_error);
+  }
 }
 
 async function formFetchAction(e) {
@@ -99,7 +128,7 @@ async function formFetchAction(e) {
   }
 
   let reqUrl = formActionUrl;
-  const reqOpt = {method: formMethod.toUpperCase(), headers: {'X-Csrf-Token': csrfToken}};
+  const reqOpt = {method: formMethod.toUpperCase()};
   if (formMethod.toLowerCase() === 'get') {
     const params = new URLSearchParams();
     for (const [key, value] of formData) {
@@ -114,50 +143,7 @@ async function formFetchAction(e) {
     reqOpt.body = formData;
   }
 
-  let errorTippy;
-  const onError = (msg) => {
-    formEl.classList.remove('is-loading', 'small-loading-icon');
-    if (errorTippy) errorTippy.destroy();
-    // TODO: use a better toast UI instead of the tippy. If the form height is large, the tippy position is not good
-    errorTippy = createTippy(formEl, {
-      content: msg,
-      interactive: true,
-      showOnCreate: true,
-      hideOnClick: true,
-      role: 'alert',
-      theme: 'form-fetch-error',
-      trigger: 'manual',
-      arrow: false,
-    });
-  };
-
-  const doRequest = async () => {
-    try {
-      const resp = await fetch(reqUrl, reqOpt);
-      if (resp.status === 200) {
-        const {redirect} = await resp.json();
-        formEl.classList.remove('dirty'); // remove the areYouSure check before reloading
-        if (redirect) {
-          doRedirect(redirect);
-        } else {
-          window.location.reload();
-        }
-      } else if (resp.status >= 400 && resp.status < 500) {
-        const data = await resp.json();
-        // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
-        // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
-        onError(data.errorMessage || `server error: ${resp.status}`);
-      } else {
-        onError(`server error: ${resp.status}`);
-      }
-    } catch (e) {
-      console.error('error when doRequest', e);
-      onError(i18n.network_error);
-    }
-  };
-
-  // TODO: add "confirm" support like "link-action" in the future
-  await doRequest();
+  await fetchActionDoRequest(formEl, reqUrl, reqOpt);
 }
 
 export function initGlobalCommon() {
@@ -208,6 +194,7 @@ export function initGlobalCommon() {
   $('.tabular.menu .item').tab();
 
   document.addEventListener('submit', formFetchAction);
+  document.addEventListener('click', linkAction);
 }
 
 export function initGlobalDropzone() {
@@ -240,7 +227,7 @@ export function initGlobalDropzone() {
           copyLinkElement.className = 'gt-text-center';
           // The a element has a hardcoded cursor: pointer because the default is overridden by .dropzone
           copyLinkElement.innerHTML = `<a href="#" style="cursor: pointer;">${svg('octicon-copy', 14, 'copy link')} Copy link</a>`;
-          copyLinkElement.addEventListener('click', (e) => {
+          copyLinkElement.addEventListener('click', async (e) => {
             e.preventDefault();
             let fileMarkdown = `[${file.name}](/attachments/${file.uuid})`;
             if (file.type.startsWith('image/')) {
@@ -248,16 +235,16 @@ export function initGlobalDropzone() {
             } else if (file.type.startsWith('video/')) {
               fileMarkdown = `<video src="/attachments/${file.uuid}" title="${htmlEscape(file.name)}" controls></video>`;
             }
-            navigator.clipboard.writeText(fileMarkdown);
+            const success = await clippie(fileMarkdown);
+            showTemporaryTooltip(e.target, success ? i18n.copy_success : i18n.copy_error);
           });
           file.previewTemplate.append(copyLinkElement);
         });
         this.on('removedfile', (file) => {
           $(`#${file.uuid}`).remove();
           if ($dropzone.data('remove-url')) {
-            $.post($dropzone.data('remove-url'), {
-              file: file.uuid,
-              _csrf: csrfToken,
+            POST($dropzone.data('remove-url'), {
+              data: new URLSearchParams({file: file.uuid}),
             });
           }
         });
@@ -267,41 +254,29 @@ export function initGlobalDropzone() {
 }
 
 async function linkAction(e) {
-  e.preventDefault();
-
   // A "link-action" can post AJAX request to its "data-url"
   // Then the browser is redirected to: the "redirect" in response, or "data-redirect" attribute, or current URL by reloading.
   // If the "link-action" has "data-modal-confirm" attribute, a confirm modal dialog will be shown before taking action.
+  const el = e.target.closest('.link-action');
+  if (!el) return;
 
-  const $this = $(this);
-  const redirect = $this.attr('data-redirect');
-
-  const doRequest = () => {
-    $this.prop('disabled', true);
-    $.post($this.attr('data-url'), {
-      _csrf: csrfToken
-    }).done((data) => {
-      if (data && data.redirect) {
-        window.location.href = data.redirect;
-      } else if (redirect) {
-        window.location.href = redirect;
-      } else {
-        window.location.reload();
-      }
-    }).always(() => {
-      $this.prop('disabled', false);
-    });
+  e.preventDefault();
+  const url = el.getAttribute('data-url');
+  const doRequest = async () => {
+    el.disabled = true;
+    await fetchActionDoRequest(el, url, {method: 'POST'});
+    el.disabled = false;
   };
 
-  const modalConfirmContent = htmlEscape($this.attr('data-modal-confirm') || '');
+  const modalConfirmContent = htmlEscape(el.getAttribute('data-modal-confirm') || '');
   if (!modalConfirmContent) {
-    doRequest();
+    await doRequest();
     return;
   }
 
-  const isRisky = $this.hasClass('red') || $this.hasClass('yellow') || $this.hasClass('orange') || $this.hasClass('negative');
-  if (await confirmModal({content: modalConfirmContent, buttonColor: isRisky ? 'orange' : 'green'})) {
-    doRequest();
+  const isRisky = el.classList.contains('red') || el.classList.contains('yellow') || el.classList.contains('orange') || el.classList.contains('negative');
+  if (await confirmModal({content: modalConfirmContent, buttonColor: isRisky ? 'orange' : 'primary'})) {
+    await doRequest();
   }
 }
 
@@ -352,7 +327,6 @@ export function initGlobalLinkActions() {
 
   // Helpers.
   $('.delete-button').on('click', showDeletePopup);
-  $('.link-action').on('click', linkAction);
 }
 
 function initGlobalShowModal() {
@@ -414,9 +388,9 @@ export function initGlobalButtons() {
     e.preventDefault();
   });
 
-  $('.show-panel.button').on('click', function (e) {
-    // a '.show-panel.button' can show a panel, by `data-panel="selector"`
-    // if the button is a "toggle" button, it toggles the panel
+  $('.show-panel').on('click', function (e) {
+    // a '.show-panel' element can show a panel, by `data-panel="selector"`
+    // if it has "toggle" class, it toggles the panel
     e.preventDefault();
     const sel = $(this).attr('data-panel');
     if (this.classList.contains('toggle')) {
@@ -426,8 +400,8 @@ export function initGlobalButtons() {
     }
   });
 
-  $('.hide-panel.button').on('click', function (e) {
-    // a `.hide-panel.button` can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
+  $('.hide-panel').on('click', function (e) {
+    // a `.hide-panel` element can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
     e.preventDefault();
     let sel = $(this).attr('data-panel');
     if (sel) {
@@ -461,5 +435,5 @@ export function checkAppUrl() {
     return;
   }
   showGlobalErrorMessage(`Your ROOT_URL in app.ini is "${appUrl}", it's unlikely matching the site you are visiting.
-Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification.`);
+Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`);
 }

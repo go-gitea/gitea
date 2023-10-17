@@ -75,7 +75,8 @@ func UpdateLabel(ctx *context.Context) {
 	l.Exclusive = form.Exclusive
 	l.Description = form.Description
 	l.Color = form.Color
-	if err := issues_model.UpdateLabel(l); err != nil {
+	l.SetArchived(form.IsArchived)
+	if err := issues_model.UpdateLabel(ctx, l); err != nil {
 		ctx.ServerError("UpdateLabel", err)
 		return
 	}
@@ -84,15 +85,13 @@ func UpdateLabel(ctx *context.Context) {
 
 // DeleteLabel delete a label
 func DeleteLabel(ctx *context.Context) {
-	if err := issues_model.DeleteLabel(ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
+	if err := issues_model.DeleteLabel(ctx, ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteLabel: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.issues.label_deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": ctx.Org.OrgLink + "/settings/labels",
-	})
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings/labels")
 }
 
 // InitializeLabels init labels for an organization

@@ -25,7 +25,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
@@ -55,7 +54,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	// Click the little green button to create a pull
+	// Click the little button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find(".timeline-item .delete-button").Attr("data-url")
 	assert.True(t, exists, "The template has changed, can not find delete button url")
@@ -69,7 +68,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 
 func TestPullMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(1, 1) // Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(db.DefaultContext, 1, 1) // Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -83,7 +82,7 @@ func TestPullMerge(t *testing.T) {
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge)
 
-		hookTasks, err = webhook.HookTasks(1, 1)
+		hookTasks, err = webhook.HookTasks(db.DefaultContext, 1, 1)
 		assert.NoError(t, err)
 		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
@@ -91,7 +90,7 @@ func TestPullMerge(t *testing.T) {
 
 func TestPullRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(1, 1) // Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(db.DefaultContext, 1, 1) // Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -105,7 +104,7 @@ func TestPullRebase(t *testing.T) {
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleRebase)
 
-		hookTasks, err = webhook.HookTasks(1, 1)
+		hookTasks, err = webhook.HookTasks(db.DefaultContext, 1, 1)
 		assert.NoError(t, err)
 		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
@@ -113,7 +112,7 @@ func TestPullRebase(t *testing.T) {
 
 func TestPullRebaseMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(1, 1) // Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(db.DefaultContext, 1, 1) // Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -127,7 +126,7 @@ func TestPullRebaseMerge(t *testing.T) {
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleRebaseMerge)
 
-		hookTasks, err = webhook.HookTasks(1, 1)
+		hookTasks, err = webhook.HookTasks(db.DefaultContext, 1, 1)
 		assert.NoError(t, err)
 		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
@@ -135,7 +134,7 @@ func TestPullRebaseMerge(t *testing.T) {
 
 func TestPullSquash(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(1, 1) // Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(db.DefaultContext, 1, 1) // Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -150,7 +149,7 @@ func TestPullSquash(t *testing.T) {
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleSquash)
 
-		hookTasks, err = webhook.HookTasks(1, 1)
+		hookTasks, err = webhook.HookTasks(db.DefaultContext, 1, 1)
 		assert.NoError(t, err)
 		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
@@ -356,7 +355,7 @@ func TestConflictChecking(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 		// Create new clean repo to test conflict checking.
-		baseRepo, err := repo_service.CreateRepository(db.DefaultContext, user, user, repo_module.CreateRepoOptions{
+		baseRepo, err := repo_service.CreateRepository(db.DefaultContext, user, user, repo_service.CreateRepoOptions{
 			Name:          "conflict-checking",
 			Description:   "Tempo repo",
 			AutoInit:      true,
@@ -370,9 +369,9 @@ func TestConflictChecking(t *testing.T) {
 		_, err = files_service.ChangeRepoFiles(git.DefaultContext, baseRepo, user, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
-					Operation: "create",
-					TreePath:  "important_file",
-					Content:   "Just a non-important file",
+					Operation:     "create",
+					TreePath:      "important_file",
+					ContentReader: strings.NewReader("Just a non-important file"),
 				},
 			},
 			Message:   "Add a important file",
@@ -385,9 +384,9 @@ func TestConflictChecking(t *testing.T) {
 		_, err = files_service.ChangeRepoFiles(git.DefaultContext, baseRepo, user, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
-					Operation: "create",
-					TreePath:  "important_file",
-					Content:   "Not the same content :P",
+					Operation:     "create",
+					TreePath:      "important_file",
+					ContentReader: strings.NewReader("Not the same content :P"),
 				},
 			},
 			Message:   "Add a important file",
@@ -426,6 +425,6 @@ func TestConflictChecking(t *testing.T) {
 		// Check if status is correct.
 		assert.Equal(t, issues_model.PullRequestStatusConflict, conflictingPR.Status)
 		// Ensure that mergeable returns false
-		assert.False(t, conflictingPR.Mergeable())
+		assert.False(t, conflictingPR.Mergeable(db.DefaultContext))
 	})
 }

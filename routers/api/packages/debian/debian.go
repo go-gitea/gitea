@@ -14,11 +14,11 @@ import (
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/notification"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	debian_module "code.gitea.io/gitea/modules/packages/debian"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
 	debian_service "code.gitea.io/gitea/services/packages/debian"
 )
@@ -30,7 +30,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 }
 
 func GetRepositoryKey(ctx *context.Context) {
-	_, pub, err := debian_service.GetOrCreateKeyPair(ctx.Package.Owner.ID)
+	_, pub, err := debian_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -45,7 +45,7 @@ func GetRepositoryKey(ctx *context.Context) {
 // https://wiki.debian.org/DebianRepository/Format#A.22Release.22_files
 // https://wiki.debian.org/DebianRepository/Format#A.22Packages.22_Indices
 func GetRepositoryFile(ctx *context.Context) {
-	pv, err := debian_service.GetOrCreateRepositoryVersion(ctx.Package.Owner.ID)
+	pv, err := debian_service.GetOrCreateRepositoryVersion(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -81,7 +81,7 @@ func GetRepositoryFile(ctx *context.Context) {
 
 // https://wiki.debian.org/DebianRepository/Format#indices_acquisition_via_hashsums_.28by-hash.29
 func GetRepositoryFileByHash(ctx *context.Context) {
-	pv, err := debian_service.GetOrCreateRepositoryVersion(ctx.Package.Owner.ID)
+	pv, err := debian_service.GetOrCreateRepositoryVersion(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -159,6 +159,7 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
@@ -187,8 +188,8 @@ func UploadPackageFile(ctx *context.Context) {
 	)
 	if err != nil {
 		switch err {
-		case packages_model.ErrDuplicatePackageVersion:
-			apiError(ctx, http.StatusBadRequest, err)
+		case packages_model.ErrDuplicatePackageVersion, packages_model.ErrDuplicatePackageFile:
+			apiError(ctx, http.StatusConflict, err)
 		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
 			apiError(ctx, http.StatusForbidden, err)
 		default:
@@ -296,7 +297,7 @@ func DeletePackageFile(ctx *context.Context) {
 	}
 
 	if pd != nil {
-		notification.NotifyPackageDelete(ctx, ctx.Doer, pd)
+		notify_service.PackageDelete(ctx, ctx.Doer, pd)
 	}
 
 	if err := debian_service.BuildSpecificRepositoryFiles(ctx, ctx.Package.Owner.ID, distribution, component, architecture); err != nil {

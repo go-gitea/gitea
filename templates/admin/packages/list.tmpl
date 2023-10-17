@@ -1,22 +1,28 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.packages.package_manage_panel"}} ({{.locale.Tr "admin.total" .TotalCount}},
-			{{.locale.Tr "admin.packages.total_size" (FileSize .TotalBlobSize)}},
-			{{.locale.Tr "admin.packages.unreferenced_size" (FileSize .TotalUnreferencedBlobSize)}})
+			{{ctx.Locale.Tr "admin.packages.package_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .TotalCount}},
+			{{ctx.Locale.Tr "admin.packages.total_size" (FileSize .TotalBlobSize)}},
+			{{ctx.Locale.Tr "admin.packages.unreferenced_size" (FileSize .TotalUnreferencedBlobSize)}})
+			<div class="ui right">
+				<form method="post" action="/admin/packages/cleanup">
+					{{.CsrfTokenHtml}}
+					<button class="ui primary tiny button">{{ctx.Locale.Tr "admin.packages.cleanup"}}</button>
+				</form>
+			</div>
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form ignore-dirty">
 				<div class="ui fluid action input">
-					{{template "shared/searchinput" dict "locale" .locale "Value" .Query "AutoFocus" true}}
+					{{template "shared/searchinput" dict "Value" .Query "AutoFocus" true}}
 					<select class="ui dropdown" name="type">
-						<option value="">{{.locale.Tr "packages.filter.type"}}</option>
-						<option value="all">{{.locale.Tr "packages.filter.type.all"}}</option>
+						<option value="">{{ctx.Locale.Tr "packages.filter.type"}}</option>
+						<option value="all">{{ctx.Locale.Tr "packages.filter.type.all"}}</option>
 						{{range $type := .AvailableTypes}}
 						<option{{if eq $.PackageType $type}} selected="selected"{{end}} value="{{$type}}">{{$type.Name}}</option>
 						{{end}}
 					</select>
-					<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
+					<button class="ui primary button">{{ctx.Locale.Tr "explore.search"}}</button>
 				</div>
 			</form>
 		</div>
@@ -25,24 +31,24 @@
 				<thead>
 					<tr>
 						<th>ID</th>
-						<th>{{.locale.Tr "admin.packages.owner"}}</th>
-						<th>{{.locale.Tr "admin.packages.type"}}</th>
+						<th>{{ctx.Locale.Tr "admin.packages.owner"}}</th>
+						<th>{{ctx.Locale.Tr "admin.packages.type"}}</th>
 						<th data-sortt-asc="name_asc" data-sortt-desc="name_desc">
-							{{.locale.Tr "admin.packages.name"}}
+							{{ctx.Locale.Tr "admin.packages.name"}}
 							{{SortArrow "name_asc" "name_desc" .SortType false}}
 						</th>
 						<th data-sortt-asc="version_desc" data-sortt-desc="version_asc">
-							{{.locale.Tr "admin.packages.version"}}
+							{{ctx.Locale.Tr "admin.packages.version"}}
 							{{SortArrow "version_desc" "version_asc" .SortType false}}
 						</th>
-						<th>{{.locale.Tr "admin.packages.creator"}}</th>
-						<th>{{.locale.Tr "admin.packages.repository"}}</th>
-						<th>{{.locale.Tr "admin.packages.size"}}</th>
+						<th>{{ctx.Locale.Tr "admin.packages.creator"}}</th>
+						<th>{{ctx.Locale.Tr "admin.packages.repository"}}</th>
+						<th>{{ctx.Locale.Tr "admin.packages.size"}}</th>
 						<th data-sortt-asc="created_asc" data-sortt-desc="created_desc">
-							{{.locale.Tr "admin.packages.published"}}
+							{{ctx.Locale.Tr "admin.packages.published"}}
 							{{SortArrow "created_asc" "created_desc" .SortType true}}
 						</th>
-						<th>{{.locale.Tr "admin.notices.op"}}</th>
+						<th>{{ctx.Locale.Tr "admin.notices.op"}}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -56,8 +62,8 @@
 								{{end}}
 							</td>
 							<td>{{.Package.Type.Name}}</td>
-							<td class="text truncate email">{{.Package.Name}}</td>
-							<td><a href="{{.FullWebLink}}" class="text truncate email">{{.Version.Version}}</a></td>
+							<td class="gt-ellipsis gt-max-width-12rem">{{.Package.Name}}</td>
+							<td class="gt-ellipsis gt-max-width-12rem"><a href="{{.FullWebLink}}">{{.Version.Version}}</a></td>
 							<td><a href="{{.Creator.HomeLink}}">{{.Creator.Name}}</a></td>
 							<td>
 							{{if .Repository}}
@@ -79,10 +85,10 @@
 <div class="ui g-modal-confirm delete modal">
 	<div class="header">
 		{{svg "octicon-trash"}}
-		{{.locale.Tr "packages.settings.delete"}}
+		{{ctx.Locale.Tr "packages.settings.delete"}}
 	</div>
 	<div class="content">
-		{{.locale.Tr "packages.settings.delete.notice" `<span class="name"></span>` `<span class="dataVersion"></span>` | Safe}}
+		{{ctx.Locale.Tr "packages.settings.delete.notice" `<span class="name"></span>` `<span class="dataVersion"></span>` | Safe}}
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

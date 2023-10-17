@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -25,6 +26,14 @@ type OAuth2CommonHandlers struct {
 func (oa *OAuth2CommonHandlers) renderEditPage(ctx *context.Context) {
 	app := ctx.Data["App"].(*auth.OAuth2Application)
 	ctx.Data["FormActionPath"] = fmt.Sprintf("%s/%d", oa.BasePathEditPrefix, app.ID)
+
+	if ctx.ContextUser != nil && ctx.ContextUser.IsOrganization() {
+		if err := shared_user.LoadHeaderCount(ctx); err != nil {
+			ctx.ServerError("LoadHeaderCount", err)
+			return
+		}
+	}
+
 	ctx.HTML(http.StatusOK, oa.TplAppEdit)
 }
 
@@ -53,11 +62,12 @@ func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 	// render the edit page with secret
 	ctx.Flash.Success(ctx.Tr("settings.create_oauth2_application_success"), true)
 	ctx.Data["App"] = app
-	ctx.Data["ClientSecret"], err = app.GenerateClientSecret()
+	ctx.Data["ClientSecret"], err = app.GenerateClientSecret(ctx)
 	if err != nil {
 		ctx.ServerError("GenerateClientSecret", err)
 		return
 	}
+
 	oa.renderEditPage(ctx)
 }
 
@@ -91,7 +101,7 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 
 	// TODO validate redirect URI
 	var err error
-	if ctx.Data["App"], err = auth.UpdateOAuth2Application(auth.UpdateOAuth2ApplicationOptions{
+	if ctx.Data["App"], err = auth.UpdateOAuth2Application(ctx, auth.UpdateOAuth2ApplicationOptions{
 		ID:                 ctx.ParamsInt64("id"),
 		Name:               form.Name,
 		RedirectURIs:       util.SplitTrimSpace(form.RedirectURIs, "\n"),
@@ -121,7 +131,7 @@ func (oa *OAuth2CommonHandlers) RegenerateSecret(ctx *context.Context) {
 		return
 	}
 	ctx.Data["App"] = app
-	ctx.Data["ClientSecret"], err = app.GenerateClientSecret()
+	ctx.Data["ClientSecret"], err = app.GenerateClientSecret(ctx)
 	if err != nil {
 		ctx.ServerError("GenerateClientSecret", err)
 		return
@@ -132,13 +142,13 @@ func (oa *OAuth2CommonHandlers) RegenerateSecret(ctx *context.Context) {
 
 // DeleteApp deletes the given oauth2 application
 func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
-	if err := auth.DeleteOAuth2Application(ctx.ParamsInt64("id"), oa.OwnerID); err != nil {
+	if err := auth.DeleteOAuth2Application(ctx, ctx.ParamsInt64("id"), oa.OwnerID); err != nil {
 		ctx.ServerError("DeleteOAuth2Application", err)
 		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("settings.remove_oauth2_application_success"))
-	ctx.JSON(http.StatusOK, map[string]any{"redirect": oa.BasePathList})
+	ctx.JSONRedirect(oa.BasePathList)
 }
 
 // RevokeGrant revokes the grant
@@ -149,5 +159,5 @@ func (oa *OAuth2CommonHandlers) RevokeGrant(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("settings.revoke_oauth2_grant_success"))
-	ctx.JSON(http.StatusOK, map[string]any{"redirect": oa.BasePathList})
+	ctx.JSONRedirect(oa.BasePathList)
 }

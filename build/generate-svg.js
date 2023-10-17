@@ -44,7 +44,7 @@ async function processFile(file, {prefix, fullName} = {}) {
     ],
   });
 
-  await writeFile(fileURLToPath(new URL(`../public/img/svg/${name}.svg`, import.meta.url)), data);
+  await writeFile(fileURLToPath(new URL(`../public/assets/img/svg/${name}.svg`, import.meta.url)), data);
 }
 
 function processFiles(pattern, opts) {
@@ -53,13 +53,13 @@ function processFiles(pattern, opts) {
 
 async function main() {
   try {
-    await mkdir(fileURLToPath(new URL('../public/img/svg', import.meta.url)), {recursive: true});
+    await mkdir(fileURLToPath(new URL('../public/assets/img/svg', import.meta.url)), {recursive: true});
   } catch {}
 
   await Promise.all([
     ...processFiles('node_modules/@primer/octicons/build/svg/*-16.svg', {prefix: 'octicon'}),
     ...processFiles('web_src/svg/*.svg'),
-    ...processFiles('public/img/gitea.svg', {fullName: 'gitea-gitea'}),
+    ...processFiles('public/assets/img/gitea.svg', {fullName: 'gitea-gitea'}),
   ]);
 }
 

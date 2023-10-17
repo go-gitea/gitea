@@ -11,6 +11,8 @@ type Label struct {
 	Name string `json:"name"`
 	// example: false
 	Exclusive bool `json:"exclusive"`
+	// example: false
+	IsArchived bool `json:"is_archived"`
 	// example: 00aabb
 	Color       string `json:"color"`
 	Description string `json:"description"`
@@ -27,6 +29,8 @@ type CreateLabelOption struct {
 	// example: #00aabb
 	Color       string `json:"color" binding:"Required"`
 	Description string `json:"description"`
+	// example: false
+	IsArchived bool `json:"is_archived"`
 }
 
 // EditLabelOption options for editing a label
@@ -37,6 +41,8 @@ type EditLabelOption struct {
 	// example: #00aabb
 	Color       *string `json:"color"`
 	Description *string `json:"description"`
+	// example: false
+	IsArchived *bool `json:"is_archived"`
 }
 
 // IssueLabelsOption a collection of labels

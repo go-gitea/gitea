@@ -1,4 +1,3 @@
-{{if .ctxData.IsSigned}}
 <div class="item action ui dropdown jump pointing top right context-dropdown">
 	<a class="context-menu muted">
 		{{svg "octicon-kebab-horizontal"}}
@@ -10,18 +9,19 @@
 		{{else}}
 			{{$referenceUrl = printf "%s/files#%s" .ctxData.Issue.Link .item.HashTag}}
 		{{end}}
-		<div class="item context js-aria-clickable" data-clipboard-text-type="url" data-clipboard-text="{{AppSubUrl}}{{$referenceUrl}}">{{.ctxData.locale.Tr "repo.issues.context.copy_link"}}</div>
-		<div class="item context js-aria-clickable quote-reply {{if .diff}}quote-reply-diff{{end}}" data-target="{{.item.HashTag}}-raw">{{.ctxData.locale.Tr "repo.issues.context.quote_reply"}}</div>
-		{{if not .ctxData.UnitIssuesGlobalDisabled}}
-			<div class="item context js-aria-clickable reference-issue" data-target="{{.item.HashTag}}-raw" data-modal="#reference-issue-modal" data-poster="{{.item.Poster.GetDisplayName}}" data-poster-username="{{.item.Poster.Name}}" data-reference="{{$referenceUrl}}">{{.ctxData.locale.Tr "repo.issues.context.reference_issue"}}</div>
-		{{end}}
-		{{if or .ctxData.Permission.IsAdmin .IsCommentPoster .ctxData.HasIssuesOrPullsWritePermission}}
-			<div class="divider"></div>
-			<div class="item context js-aria-clickable edit-content">{{.ctxData.locale.Tr "repo.issues.context.edit"}}</div>
-			{{if .delete}}
-				<div class="item context js-aria-clickable delete-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctxData.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{.ctxData.locale.Tr "repo.issues.delete_comment_confirm"}}">{{.ctxData.locale.Tr "repo.issues.context.delete"}}</div>
+		<div class="item context js-aria-clickable" data-clipboard-text-type="url" data-clipboard-text="{{$referenceUrl}}">{{ctx.Locale.Tr "repo.issues.context.copy_link"}}</div>
+		{{if and .ctxData.IsSigned (not .ctxData.Repository.IsArchived)}}
+			<div class="item context js-aria-clickable quote-reply {{if .diff}}quote-reply-diff{{end}}" data-target="{{.item.HashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.quote_reply"}}</div>
+			{{if not .ctxData.UnitIssuesGlobalDisabled}}
+				<div class="item context js-aria-clickable reference-issue" data-target="{{.item.HashTag}}-raw" data-modal="#reference-issue-modal" data-poster="{{.item.Poster.GetDisplayName}}" data-poster-username="{{.item.Poster.Name}}" data-reference="{{$referenceUrl}}">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</div>
+			{{end}}
+			{{if or .ctxData.Permission.IsAdmin .IsCommentPoster .ctxData.HasIssuesOrPullsWritePermission}}
+				<div class="divider"></div>
+				<div class="item context js-aria-clickable edit-content">{{ctx.Locale.Tr "repo.issues.context.edit"}}</div>
+				{{if .delete}}
+					<div class="item context js-aria-clickable delete-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctxData.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.issues.context.delete"}}</div>
+				{{end}}
 			{{end}}
 		{{end}}
 	</div>
 </div>
-{{end}}

@@ -1,55 +1,55 @@
-<div class="four wide column">
+<div class="flex-container-nav">
 	<div class="ui fluid vertical menu">
-		<div class="header item">{{.locale.Tr "org.settings"}}</div>
+		<div class="header item">{{ctx.Locale.Tr "user.settings"}}</div>
 		<a class="{{if .PageIsSettingsProfile}}active {{end}}item" href="{{AppSubUrl}}/user/settings">
-			{{.locale.Tr "settings.profile"}}
+			{{ctx.Locale.Tr "settings.profile"}}
 		</a>
 		<a class="{{if .PageIsSettingsAccount}}active {{end}}item" href="{{AppSubUrl}}/user/settings/account">
-			{{.locale.Tr "settings.account"}}
+			{{ctx.Locale.Tr "settings.account"}}
 		</a>
 		<a class="{{if .PageIsSettingsAppearance}}active {{end}}item" href="{{AppSubUrl}}/user/settings/appearance">
-			{{.locale.Tr "settings.appearance"}}
+			{{ctx.Locale.Tr "settings.appearance"}}
 		</a>
 		<a class="{{if .PageIsSettingsSecurity}}active {{end}}item" href="{{AppSubUrl}}/user/settings/security">
-			{{.locale.Tr "settings.security"}}
+			{{ctx.Locale.Tr "settings.security"}}
 		</a>
 		<a class="{{if .PageIsSettingsApplications}}active {{end}}item" href="{{AppSubUrl}}/user/settings/applications">
-			{{.locale.Tr "settings.applications"}}
+			{{ctx.Locale.Tr "settings.applications"}}
 		</a>
 		<a class="{{if .PageIsSettingsKeys}}active {{end}}item" href="{{AppSubUrl}}/user/settings/keys">
-			{{.locale.Tr "settings.ssh_gpg_keys"}}
+			{{ctx.Locale.Tr "settings.ssh_gpg_keys"}}
 		</a>
 		{{if .EnableActions}}
 		<details class="item toggleable-item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets .PageIsSharedSettingsVariables}}open{{end}}>
-			<summary>{{.locale.Tr "actions.actions"}}</summary>
+			<summary>{{ctx.Locale.Tr "actions.actions"}}</summary>
 			<div class="menu">
 				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{AppSubUrl}}/user/settings/actions/runners">
-					{{.locale.Tr "actions.runners"}}
+					{{ctx.Locale.Tr "actions.runners"}}
 				</a>
 				<a class="{{if .PageIsSharedSettingsSecrets}}active {{end}}item" href="{{AppSubUrl}}/user/settings/actions/secrets">
-					{{.locale.Tr "secrets.secrets"}}
+					{{ctx.Locale.Tr "secrets.secrets"}}
 				</a>
 				<a class="{{if .PageIsSharedSettingsVariables}}active {{end}}item" href="{{AppSubUrl}}/user/settings/actions/variables">
-					{{.locale.Tr "actions.variables"}}
+					{{ctx.Locale.Tr "actions.variables"}}
 				</a>
 			</div>
 		</details>
 		{{end}}
 		{{if .EnablePackages}}
 		<a class="{{if .PageIsSettingsPackages}}active {{end}}item" href="{{AppSubUrl}}/user/settings/packages">
-			{{.locale.Tr "packages.title"}}
+			{{ctx.Locale.Tr "packages.title"}}
 		</a>
 		{{end}}
 		{{if not DisableWebhooks}}
 		<a class="{{if .PageIsSettingsHooks}}active {{end}}item" href="{{AppSubUrl}}/user/settings/hooks">
-			{{.locale.Tr "repo.settings.hooks"}}
+			{{ctx.Locale.Tr "repo.settings.hooks"}}
 		</a>
 		{{end}}
 		<a class="{{if .PageIsSettingsOrganization}}active {{end}}item" href="{{AppSubUrl}}/user/settings/organization">
-			{{.locale.Tr "settings.organization"}}
+			{{ctx.Locale.Tr "settings.organization"}}
 		</a>
 		<a class="{{if .PageIsSettingsRepos}}active {{end}}item" href="{{AppSubUrl}}/user/settings/repos">
-			{{.locale.Tr "settings.repos"}}
+			{{ctx.Locale.Tr "settings.repos"}}
 		</a>
 	</div>
 </div>

@@ -166,7 +166,7 @@ export function initRepoTopicBar() {
         rules: [
           {
             type: 'validateTopic',
-            value: /^[a-z0-9][a-z0-9-]{0,35}$/,
+            value: /^\s*[a-z0-9][-.a-z0-9]{0,35}\s*$/,
             prompt: topicPrompts.formatPrompt
           },
           {

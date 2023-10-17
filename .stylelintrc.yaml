@@ -84,6 +84,7 @@ rules:
   media-feature-name-value-allowed-list: null
   media-feature-name-value-no-unknown: true
   media-feature-range-notation: null
+  media-query-no-invalid: true
   named-grid-areas-no-invalid: true
   no-descending-specificity: null
   no-duplicate-at-import-rules: true
@@ -102,7 +103,7 @@ rules:
   property-no-vendor-prefix: null
   rule-empty-line-before: null
   rule-selector-property-disallowed-list: null
-  scale-unlimited/declaration-strict-value: [[color, background-color, border-color, font-weight], {ignoreValues: /^(inherit|transparent|unset|initial|currentcolor|none)$/, ignoreFunctions: false, disableFix: true}]
+  scale-unlimited/declaration-strict-value: [[/color$/, font-weight], {ignoreValues: /^(inherit|transparent|unset|initial|currentcolor|none)$/, ignoreFunctions: false, disableFix: true, expandShorthand: true}]
   selector-attribute-name-disallowed-list: null
   selector-attribute-operator-allowed-list: null
   selector-attribute-operator-disallowed-list: null

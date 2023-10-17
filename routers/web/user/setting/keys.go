@@ -51,7 +51,7 @@ func KeysPost(ctx *context.Context) {
 	}
 	switch form.Type {
 	case "principal":
-		content, err := asymkey_model.CheckPrincipalKeyString(ctx.Doer, form.Content)
+		content, err := asymkey_model.CheckPrincipalKeyString(ctx, ctx.Doer, form.Content)
 		if err != nil {
 			if db.IsErrSSHDisabled(err) {
 				ctx.Flash.Info(ctx.Tr("settings.ssh_disabled"))
@@ -61,7 +61,7 @@ func KeysPost(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 			return
 		}
-		if _, err = asymkey_model.AddPrincipalKey(ctx.Doer.ID, content, 0); err != nil {
+		if _, err = asymkey_model.AddPrincipalKey(ctx, ctx.Doer.ID, content, 0); err != nil {
 			ctx.Data["HasPrincipalError"] = true
 			switch {
 			case asymkey_model.IsErrKeyAlreadyExist(err), asymkey_model.IsErrKeyNameAlreadyUsed(err):
@@ -80,9 +80,9 @@ func KeysPost(ctx *context.Context) {
 		token := asymkey_model.VerificationToken(ctx.Doer, 1)
 		lastToken := asymkey_model.VerificationToken(ctx.Doer, 0)
 
-		keys, err := asymkey_model.AddGPGKey(ctx.Doer.ID, form.Content, token, form.Signature)
+		keys, err := asymkey_model.AddGPGKey(ctx, ctx.Doer.ID, form.Content, token, form.Signature)
 		if err != nil && asymkey_model.IsErrGPGInvalidTokenSignature(err) {
-			keys, err = asymkey_model.AddGPGKey(ctx.Doer.ID, form.Content, lastToken, form.Signature)
+			keys, err = asymkey_model.AddGPGKey(ctx, ctx.Doer.ID, form.Content, lastToken, form.Signature)
 		}
 		if err != nil {
 			ctx.Data["HasGPGError"] = true
@@ -131,9 +131,9 @@ func KeysPost(ctx *context.Context) {
 		token := asymkey_model.VerificationToken(ctx.Doer, 1)
 		lastToken := asymkey_model.VerificationToken(ctx.Doer, 0)
 
-		keyID, err := asymkey_model.VerifyGPGKey(ctx.Doer.ID, form.KeyID, token, form.Signature)
+		keyID, err := asymkey_model.VerifyGPGKey(ctx, ctx.Doer.ID, form.KeyID, token, form.Signature)
 		if err != nil && asymkey_model.IsErrGPGInvalidTokenSignature(err) {
-			keyID, err = asymkey_model.VerifyGPGKey(ctx.Doer.ID, form.KeyID, lastToken, form.Signature)
+			keyID, err = asymkey_model.VerifyGPGKey(ctx, ctx.Doer.ID, form.KeyID, lastToken, form.Signature)
 		}
 		if err != nil {
 			ctx.Data["HasGPGVerifyError"] = true
@@ -168,7 +168,7 @@ func KeysPost(ctx *context.Context) {
 			return
 		}
 
-		if _, err = asymkey_model.AddPublicKey(ctx.Doer.ID, form.Title, content, 0); err != nil {
+		if _, err = asymkey_model.AddPublicKey(ctx, ctx.Doer.ID, form.Title, content, 0); err != nil {
 			ctx.Data["HasSSHError"] = true
 			switch {
 			case asymkey_model.IsErrKeyAlreadyExist(err):
@@ -195,9 +195,9 @@ func KeysPost(ctx *context.Context) {
 		token := asymkey_model.VerificationToken(ctx.Doer, 1)
 		lastToken := asymkey_model.VerificationToken(ctx.Doer, 0)
 
-		fingerprint, err := asymkey_model.VerifySSHKey(ctx.Doer.ID, form.Fingerprint, token, form.Signature)
+		fingerprint, err := asymkey_model.VerifySSHKey(ctx, ctx.Doer.ID, form.Fingerprint, token, form.Signature)
 		if err != nil && asymkey_model.IsErrSSHInvalidTokenSignature(err) {
-			fingerprint, err = asymkey_model.VerifySSHKey(ctx.Doer.ID, form.Fingerprint, lastToken, form.Signature)
+			fingerprint, err = asymkey_model.VerifySSHKey(ctx, ctx.Doer.ID, form.Fingerprint, lastToken, form.Signature)
 		}
 		if err != nil {
 			ctx.Data["HasSSHVerifyError"] = true
@@ -224,14 +224,14 @@ func KeysPost(ctx *context.Context) {
 func DeleteKey(ctx *context.Context) {
 	switch ctx.FormString("type") {
 	case "gpg":
-		if err := asymkey_model.DeleteGPGKey(ctx.Doer, ctx.FormInt64("id")); err != nil {
+		if err := asymkey_model.DeleteGPGKey(ctx, ctx.Doer, ctx.FormInt64("id")); err != nil {
 			ctx.Flash.Error("DeleteGPGKey: " + err.Error())
 		} else {
 			ctx.Flash.Success(ctx.Tr("settings.gpg_key_deletion_success"))
 		}
 	case "ssh":
 		keyID := ctx.FormInt64("id")
-		external, err := asymkey_model.PublicKeyIsExternallyManaged(keyID)
+		external, err := asymkey_model.PublicKeyIsExternallyManaged(ctx, keyID)
 		if err != nil {
 			ctx.ServerError("sshKeysExternalManaged", err)
 			return
@@ -241,13 +241,13 @@ func DeleteKey(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 			return
 		}
-		if err := asymkey_service.DeletePublicKey(ctx.Doer, keyID); err != nil {
+		if err := asymkey_service.DeletePublicKey(ctx, ctx.Doer, keyID); err != nil {
 			ctx.Flash.Error("DeletePublicKey: " + err.Error())
 		} else {
 			ctx.Flash.Success(ctx.Tr("settings.ssh_key_deletion_success"))
 		}
 	case "principal":
-		if err := asymkey_service.DeletePublicKey(ctx.Doer, ctx.FormInt64("id")); err != nil {
+		if err := asymkey_service.DeletePublicKey(ctx, ctx.Doer, ctx.FormInt64("id")); err != nil {
 			ctx.Flash.Error("DeletePublicKey: " + err.Error())
 		} else {
 			ctx.Flash.Success(ctx.Tr("settings.ssh_principal_deletion_success"))
@@ -256,20 +256,18 @@ func DeleteKey(ctx *context.Context) {
 		ctx.Flash.Warning("Function not implemented")
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	}
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": setting.AppSubURL + "/user/settings/keys",
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/keys")
 }
 
 func loadKeysData(ctx *context.Context) {
-	keys, err := asymkey_model.ListPublicKeys(ctx.Doer.ID, db.ListOptions{})
+	keys, err := asymkey_model.ListPublicKeys(ctx, ctx.Doer.ID, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return
 	}
 	ctx.Data["Keys"] = keys
 
-	externalKeys, err := asymkey_model.PublicKeysAreExternallyManaged(keys)
+	externalKeys, err := asymkey_model.PublicKeysAreExternallyManaged(ctx, keys)
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return
@@ -287,7 +285,7 @@ func loadKeysData(ctx *context.Context) {
 	// generate a new aes cipher using the csrfToken
 	ctx.Data["TokenToSign"] = tokenToSign
 
-	principals, err := asymkey_model.ListPrincipalKeys(ctx.Doer.ID, db.ListOptions{})
+	principals, err := asymkey_model.ListPrincipalKeys(ctx, ctx.Doer.ID, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListPrincipalKeys", err)
 		return

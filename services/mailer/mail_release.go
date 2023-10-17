@@ -60,7 +60,7 @@ func mailNewRelease(ctx context.Context, lang string, tos []string, rel *repo_mo
 	rel.RenderedNote, err = markdown.RenderString(&markup.RenderContext{
 		Ctx:       ctx,
 		URLPrefix: rel.Repo.Link(),
-		Metas:     rel.Repo.ComposeMetas(),
+		Metas:     rel.Repo.ComposeMetas(ctx),
 	}, rel.Note)
 	if err != nil {
 		log.Error("markdown.RenderString(%d): %v", rel.RepoID, err)

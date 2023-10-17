@@ -41,41 +41,39 @@ func DeleteAccountLink(ctx *context.Context) {
 	if id <= 0 {
 		ctx.Flash.Error("Account link id is not given")
 	} else {
-		if _, err := user_model.RemoveAccountLink(ctx.Doer, id); err != nil {
+		if _, err := user_model.RemoveAccountLink(ctx, ctx.Doer, id); err != nil {
 			ctx.Flash.Error("RemoveAccountLink: " + err.Error())
 		} else {
 			ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
 		}
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": setting.AppSubURL + "/user/settings/security",
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
 }
 
 func loadSecurityData(ctx *context.Context) {
-	enrolled, err := auth_model.HasTwoFactorByUID(ctx.Doer.ID)
+	enrolled, err := auth_model.HasTwoFactorByUID(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("SettingsTwoFactor", err)
 		return
 	}
 	ctx.Data["TOTPEnrolled"] = enrolled
 
-	credentials, err := auth_model.GetWebAuthnCredentialsByUID(ctx.Doer.ID)
+	credentials, err := auth_model.GetWebAuthnCredentialsByUID(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
 		return
 	}
 	ctx.Data["WebAuthnCredentials"] = credentials
 
-	tokens, err := auth_model.ListAccessTokens(auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID})
+	tokens, err := auth_model.ListAccessTokens(ctx, auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID})
 	if err != nil {
 		ctx.ServerError("ListAccessTokens", err)
 		return
 	}
 	ctx.Data["Tokens"] = tokens
 
-	accountLinks, err := user_model.ListAccountLinks(ctx.Doer)
+	accountLinks, err := user_model.ListAccountLinks(ctx, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("ListAccountLinks", err)
 		return
@@ -84,7 +82,7 @@ func loadSecurityData(ctx *context.Context) {
 	// map the provider display name with the AuthSource
 	sources := make(map[*auth_model.Source]string)
 	for _, externalAccount := range accountLinks {
-		if authSource, err := auth_model.GetSourceByID(externalAccount.LoginSourceID); err == nil {
+		if authSource, err := auth_model.GetSourceByID(ctx, externalAccount.LoginSourceID); err == nil {
 			var providerDisplayName string
 
 			type DisplayNamed interface {
@@ -107,7 +105,7 @@ func loadSecurityData(ctx *context.Context) {
 	}
 	ctx.Data["AccountLinks"] = sources
 
-	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers()
+	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers(ctx)
 	if err != nil {
 		ctx.ServerError("GetActiveOAuth2Providers", err)
 		return
@@ -115,7 +113,7 @@ func loadSecurityData(ctx *context.Context) {
 	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
 	ctx.Data["OAuth2Providers"] = oauth2Providers
 
-	openid, err := user_model.GetUserOpenIDs(ctx.Doer.ID)
+	openid, err := user_model.GetUserOpenIDs(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetUserOpenIDs", err)
 		return

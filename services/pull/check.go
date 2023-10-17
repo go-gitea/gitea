@@ -22,11 +22,11 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/timeutil"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // prPatchCheckerQueue represents a queue to handle update pull request tests
@@ -43,9 +43,9 @@ var (
 )
 
 // AddToTaskQueue adds itself to pull request test task queue.
-func AddToTaskQueue(pr *issues_model.PullRequest) {
+func AddToTaskQueue(ctx context.Context, pr *issues_model.PullRequest) {
 	pr.Status = issues_model.PullRequestStatusChecking
-	err := pr.UpdateColsIfNotMerged(db.DefaultContext, "status")
+	err := pr.UpdateColsIfNotMerged(ctx, "status")
 	if err != nil {
 		log.Error("AddToTaskQueue(%-v).UpdateCols.(add to queue): %v", pr, err)
 		return
@@ -91,7 +91,7 @@ func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *acce
 			return nil
 		}
 
-		if pr.IsWorkInProgress() {
+		if pr.IsWorkInProgress(ctx) {
 			return ErrIsWorkInProgress
 		}
 
@@ -295,7 +295,7 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 		return false
 	}
 
-	notification.NotifyMergePullRequest(ctx, merger, pr)
+	notify_service.MergePullRequest(ctx, merger, pr)
 
 	log.Info("manuallyMerged[%-v]: Marked as manually merged into %s/%s by commit id: %s", pr, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
 	return true
@@ -303,7 +303,7 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 
 // InitializePullRequests checks and tests untested patches of pull requests.
 func InitializePullRequests(ctx context.Context) {
-	prs, err := issues_model.GetPullRequestIDsByCheckStatus(issues_model.PullRequestStatusChecking)
+	prs, err := issues_model.GetPullRequestIDsByCheckStatus(ctx, issues_model.PullRequestStatusChecking)
 	if err != nil {
 		log.Error("Find Checking PRs: %v", err)
 		return
@@ -360,7 +360,7 @@ func testPR(id int64) {
 	if err := TestPatch(pr); err != nil {
 		log.Error("testPatch[%-v]: %v", pr, err)
 		pr.Status = issues_model.PullRequestStatusError
-		if err := pr.UpdateCols("status"); err != nil {
+		if err := pr.UpdateCols(ctx, "status"); err != nil {
 			log.Error("update pr [%-v] status to PullRequestStatusError failed: %v", pr, err)
 		}
 		return
@@ -369,14 +369,14 @@ func testPR(id int64) {
 }
 
 // CheckPRsForBaseBranch check all pulls with baseBrannch
-func CheckPRsForBaseBranch(baseRepo *repo_model.Repository, baseBranchName string) error {
-	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(baseRepo.ID, baseBranchName)
+func CheckPRsForBaseBranch(ctx context.Context, baseRepo *repo_model.Repository, baseBranchName string) error {
+	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, baseRepo.ID, baseBranchName)
 	if err != nil {
 		return err
 	}
 
 	for _, pr := range prs {
-		AddToTaskQueue(pr)
+		AddToTaskQueue(ctx, pr)
 	}
 
 	return nil

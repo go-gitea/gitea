@@ -6,7 +6,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
@@ -14,52 +13,52 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
-var microcmdUserCreate = cli.Command{
+var microcmdUserCreate = &cli.Command{
 	Name:   "create",
 	Usage:  "Create a new user in database",
 	Action: runCreateUser,
 	Flags: []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "name",
 			Usage: "Username. DEPRECATED: use username instead",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "username",
 			Usage: "Username",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "password",
 			Usage: "User password",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "email",
 			Usage: "User email address",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "admin",
 			Usage: "User is an admin",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "random-password",
 			Usage: "Generate a random password for the user",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "must-change-password",
 			Usage: "Set this option to false to prevent forcing the user to change their password after initial login, (Default: true)",
 		},
-		cli.IntFlag{
+		&cli.IntFlag{
 			Name:  "random-password-length",
 			Usage: "Length of the random password to be generated",
 			Value: 12,
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "access-token",
 			Usage: "Generate access token for the user",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "restricted",
 			Usage: "Make a restricted user account",
 		},
@@ -87,7 +86,7 @@ func runCreateUser(c *cli.Context) error {
 		username = c.String("username")
 	} else {
 		username = c.String("name")
-		fmt.Fprintf(os.Stderr, "--name flag is deprecated. Use --username instead.\n")
+		_, _ = fmt.Fprintf(c.App.ErrWriter, "--name flag is deprecated. Use --username instead.\n")
 	}
 
 	ctx, cancel := installSignals()
@@ -116,7 +115,7 @@ func runCreateUser(c *cli.Context) error {
 
 	// If this is the first user being created.
 	// Take it as the admin and don't force a password update.
-	if n := user_model.CountUsers(nil); n == 0 {
+	if n := user_model.CountUsers(ctx, nil); n == 0 {
 		changePassword = false
 	}
 
@@ -147,7 +146,7 @@ func runCreateUser(c *cli.Context) error {
 		IsRestricted: restricted,
 	}
 
-	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, u, overwriteDefault); err != nil {
 		return fmt.Errorf("CreateUser: %w", err)
 	}
 
@@ -157,7 +156,7 @@ func runCreateUser(c *cli.Context) error {
 			UID:  u.ID,
 		}
 
-		if err := auth_model.NewAccessToken(t); err != nil {
+		if err := auth_model.NewAccessToken(ctx, t); err != nil {
 			return err
 		}
 

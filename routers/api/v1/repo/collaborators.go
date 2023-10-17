@@ -8,7 +8,6 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	contributors_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -21,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/convert"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // ListCollaborators list a repository's collaborators
@@ -52,8 +52,10 @@ func ListCollaborators(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	count, err := repo_model.CountCollaborators(ctx.Repo.Repository.ID)
+	count, err := repo_model.CountCollaborators(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -156,6 +158,8 @@ func AddCollaborator(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
@@ -217,6 +221,8 @@ func DeleteCollaborator(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
@@ -230,7 +236,7 @@ func DeleteCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.DeleteCollaboration(ctx.Repo.Repository, collaborator.ID); err != nil {
+	if err := repo_service.DeleteCollaboration(ctx, ctx.Repo.Repository, collaborator.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteCollaboration", err)
 		return
 	}
@@ -313,6 +319,8 @@ func GetReviewers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	reviewers, err := repo_model.GetReviewers(ctx, ctx.Repo.Repository, ctx.Doer.ID, 0)
 	if err != nil {
@@ -343,6 +351,8 @@ func GetAssignees(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	assignees, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
 	if err != nil {

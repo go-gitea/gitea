@@ -15,22 +15,24 @@ import (
 
 	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/install"
 
 	"github.com/felixge/fgprof"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // PIDFile could be set from build tag
 var PIDFile = "/run/gitea.pid"
 
 // CmdWeb represents the available web sub-command.
-var CmdWeb = cli.Command{
+var CmdWeb = &cli.Command{
 	Name:  "web",
 	Usage: "Start Gitea web server",
 	Description: `Gitea web server is the only thing you need to run,
@@ -38,26 +40,29 @@ and it takes care of all the other things for you`,
 	Before: PrepareConsoleLoggerLevel(log.INFO),
 	Action: runWeb,
 	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "port, p",
-			Value: "3000",
-			Usage: "Temporary port number to prevent conflict",
+		&cli.StringFlag{
+			Name:    "port",
+			Aliases: []string{"p"},
+			Value:   "3000",
+			Usage:   "Temporary port number to prevent conflict",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "install-port",
 			Value: "3000",
 			Usage: "Temporary port number to run the install page on to prevent conflict",
 		},
-		cli.StringFlag{
-			Name:  "pid, P",
-			Value: PIDFile,
-			Usage: "Custom pid file path",
+		&cli.StringFlag{
+			Name:    "pid",
+			Aliases: []string{"P"},
+			Value:   PIDFile,
+			Usage:   "Custom pid file path",
 		},
-		cli.BoolFlag{
-			Name:  "quiet, q",
-			Usage: "Only display Fatal logging errors until logging is set-up",
+		&cli.BoolFlag{
+			Name:    "quiet",
+			Aliases: []string{"q"},
+			Usage:   "Only display Fatal logging errors until logging is set-up",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "verbose",
 			Usage: "Set initial logging to TRACE level until logging is properly set-up",
 		},
@@ -102,13 +107,18 @@ func createPIDFile(pidPath string) {
 	}
 }
 
-func serveInstall(ctx *cli.Context) error {
+func showWebStartupMessage(msg string) {
 	log.Info("Gitea version: %s%s", setting.AppVer, setting.AppBuiltWith)
-	log.Info("App path: %s", setting.AppPath)
-	log.Info("Work path: %s", setting.AppWorkPath)
-	log.Info("Custom path: %s", setting.CustomPath)
-	log.Info("Config file: %s", setting.CustomConf)
-	log.Info("Prepare to run install page")
+	log.Info("* RunMode: %s", setting.RunMode)
+	log.Info("* AppPath: %s", setting.AppPath)
+	log.Info("* WorkPath: %s", setting.AppWorkPath)
+	log.Info("* CustomPath: %s", setting.CustomPath)
+	log.Info("* ConfigFile: %s", setting.CustomConf)
+	log.Info("%s", msg)
+}
+
+func serveInstall(ctx *cli.Context) error {
+	showWebStartupMessage("Prepare to run install page")
 
 	routers.InitWebInstallPage(graceful.GetManager().HammerContext())
 
@@ -145,31 +155,40 @@ func serveInstalled(ctx *cli.Context) error {
 	setting.LoadCommonSettings()
 	setting.MustInstalled()
 
-	log.Info("Gitea version: %s%s", setting.AppVer, setting.AppBuiltWith)
-	log.Info("App path: %s", setting.AppPath)
-	log.Info("Work path: %s", setting.AppWorkPath)
-	log.Info("Custom path: %s", setting.CustomPath)
-	log.Info("Config file: %s", setting.CustomConf)
-	log.Info("Run mode: %s", setting.RunMode)
-	log.Info("Prepare to run web server")
+	showWebStartupMessage("Prepare to run web server")
 
 	if setting.AppWorkPathMismatch {
 		log.Error("WORK_PATH from config %q doesn't match other paths from environment variables or command arguments. "+
-			"Only WORK_PATH in config should be set and used. Please remove the other outdated work paths from environment variables and command arguments", setting.CustomConf)
+			"Only WORK_PATH in config should be set and used. Please make sure the path in config file is correct, "+
+			"remove the other outdated work paths from environment variables and command arguments", setting.CustomConf)
 	}
 
 	rootCfg := setting.CfgProvider
 	if rootCfg.Section("").Key("WORK_PATH").String() == "" {
 		saveCfg, err := rootCfg.PrepareSaving()
 		if err != nil {
-			log.Error("Unable to prepare saving WORK_PATH=%s to config %q: %v\nYou must set it manually, otherwise there might be bugs when accessing the git repositories.", setting.AppWorkPath, setting.CustomConf, err)
+			log.Error("Unable to prepare saving WORK_PATH=%s to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", setting.AppWorkPath, setting.CustomConf, err)
 		} else {
 			rootCfg.Section("").Key("WORK_PATH").SetValue(setting.AppWorkPath)
 			saveCfg.Section("").Key("WORK_PATH").SetValue(setting.AppWorkPath)
 			if err = saveCfg.Save(); err != nil {
-				log.Error("Unable to update WORK_PATH=%s to config %q: %v\nYou must set it manually, otherwise there might be bugs when accessing the git repositories.", setting.AppWorkPath, setting.CustomConf, err)
+				log.Error("Unable to update WORK_PATH=%s to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", setting.AppWorkPath, setting.CustomConf, err)
 			}
 		}
+	}
+
+	// in old versions, user's custom web files are placed in "custom/public", and they were served as "http://domain.com/assets/xxx"
+	// now, Gitea only serves pre-defined files in the "custom/public" folder basing on the web root, the user should move their custom files to "custom/public/assets"
+	publicFiles, _ := public.AssetFS().ListFiles(".")
+	publicFilesSet := container.SetOf(publicFiles...)
+	publicFilesSet.Remove(".well-known")
+	publicFilesSet.Remove("assets")
+	publicFilesSet.Remove("robots.txt")
+	for _, fn := range publicFilesSet.Values() {
+		log.Error("Found legacy public asset %q in CustomPath. Please move it to %s/public/assets/%s", fn, setting.CustomPath, fn)
+	}
+	if _, err := os.Stat(filepath.Join(setting.CustomPath, "robots.txt")); err == nil {
+		log.Error(`Found legacy public asset "robots.txt" in CustomPath. Please move it to %s/public/robots.txt`, setting.CustomPath)
 	}
 
 	routers.InitWebInstalled(graceful.GetManager().HammerContext())
@@ -189,8 +208,8 @@ func serveInstalled(ctx *cli.Context) error {
 	}
 
 	// Set up Chi routes
-	c := routers.NormalRoutes()
-	err := listen(c, true)
+	webRoutes := routers.NormalRoutes()
+	err := listen(webRoutes, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
 	log.GetManager().Close()

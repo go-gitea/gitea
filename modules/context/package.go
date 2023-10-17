@@ -109,7 +109,7 @@ func determineAccessMode(ctx *Base, pkg *Package, doer *user_model.User) (perm.A
 		if doer != nil && !doer.IsGhost() {
 			// 1. If user is logged in, check all team packages permissions
 			var err error
-			accessMode, err = org.GetOrgUserMaxAuthorizeLevel(doer.ID)
+			accessMode, err = org.GetOrgUserMaxAuthorizeLevel(ctx, doer.ID)
 			if err != nil {
 				return accessMode, err
 			}
@@ -154,12 +154,10 @@ func PackageContexter() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			base, baseCleanUp := NewBaseContext(resp, req)
-			ctx := &Context{
-				Base:   base,
-				Render: renderer, // it is still needed when rendering 500 page in a package handler
-			}
 			defer baseCleanUp()
 
+			// it is still needed when rendering 500 page in a package handler
+			ctx := NewWebContext(base, renderer, nil)
 			ctx.Base.AppendContextValue(WebContextKey, ctx)
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})

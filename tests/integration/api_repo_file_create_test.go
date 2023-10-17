@@ -46,7 +46,7 @@ func getCreateFileOptions() api.CreateFileOptions {
 				Committer: time.Unix(978307190, 0),
 			},
 		},
-		Content: contentEncoded,
+		ContentBase64: contentEncoded,
 	}
 }
 
@@ -110,14 +110,14 @@ func getExpectedFileResponseForCreate(repoFullName, commitID, treePath, latestCo
 }
 
 func BenchmarkAPICreateFileSmall(b *testing.B) {
-	onGiteaRunTB(b, func(t testing.TB, u *url.URL) {
-		b := t.(*testing.B)
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})       // owner of the repo1 & repo16
-		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}) // public repo
+	onGiteaRun(b, func(b *testing.B, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(b, &user_model.User{ID: 2})       // owner of the repo1 & repo16
+		repo1 := unittest.AssertExistsAndLoadBean(b, &repo_model.Repository{ID: 1}) // public repo
 
+		b.ResetTimer()
 		for n := 0; n < b.N; n++ {
 			treePath := fmt.Sprintf("update/file%d.txt", n)
-			createFileInBranch(user2, repo1, treePath, repo1.DefaultBranch, treePath)
+			_, _ = createFileInBranch(user2, repo1, treePath, repo1.DefaultBranch, treePath)
 		}
 	})
 }
@@ -125,16 +125,15 @@ func BenchmarkAPICreateFileSmall(b *testing.B) {
 func BenchmarkAPICreateFileMedium(b *testing.B) {
 	data := make([]byte, 10*1024*1024)
 
-	onGiteaRunTB(b, func(t testing.TB, u *url.URL) {
-		b := t.(*testing.B)
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})       // owner of the repo1 & repo16
-		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}) // public repo
+	onGiteaRun(b, func(b *testing.B, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(b, &user_model.User{ID: 2})       // owner of the repo1 & repo16
+		repo1 := unittest.AssertExistsAndLoadBean(b, &repo_model.Repository{ID: 1}) // public repo
 
 		b.ResetTimer()
 		for n := 0; n < b.N; n++ {
 			treePath := fmt.Sprintf("update/file%d.txt", n)
 			copy(data, treePath)
-			createFileInBranch(user2, repo1, treePath, repo1.DefaultBranch, treePath)
+			_, _ = createFileInBranch(user2, repo1, treePath, repo1.DefaultBranch, treePath)
 		}
 	})
 }
@@ -142,7 +141,7 @@ func BenchmarkAPICreateFileMedium(b *testing.B) {
 func TestAPICreateFile(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})         // owner of the repo1 & repo16
-		user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})         // owner of the repo3, is an org
+		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})          // owner of the repo3, is an org
 		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})         // owner of neither repos
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})   // public repo
 		repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})   // public repo
@@ -255,19 +254,19 @@ func TestAPICreateFile(t *testing.T) {
 		req = NewRequestWithJSON(t, "POST", url, &createFileOptions)
 		MakeRequest(t, req, http.StatusCreated)
 
-		// Test using org repo "user3/repo3" where user2 is a collaborator
+		// Test using org repo "org3/repo3" where user2 is a collaborator
 		createFileOptions = getCreateFileOptions()
 		fileID++
 		treePath = fmt.Sprintf("new/file%d.txt", fileID)
-		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user3.Name, repo3.Name, treePath, token2)
+		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", org3.Name, repo3.Name, treePath, token2)
 		req = NewRequestWithJSON(t, "POST", url, &createFileOptions)
 		MakeRequest(t, req, http.StatusCreated)
 
-		// Test using org repo "user3/repo3" with no user token
+		// Test using org repo "org3/repo3" with no user token
 		createFileOptions = getCreateFileOptions()
 		fileID++
 		treePath = fmt.Sprintf("new/file%d.txt", fileID)
-		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user3.Name, repo3.Name, treePath)
+		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", org3.Name, repo3.Name, treePath)
 		req = NewRequestWithJSON(t, "POST", url, &createFileOptions)
 		MakeRequest(t, req, http.StatusNotFound)
 

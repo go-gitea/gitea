@@ -55,7 +55,7 @@ type Engine interface {
 	Limit(limit int, start ...int) *xorm.Session
 	NoAutoTime() *xorm.Session
 	SumInt(bean any, columnName string) (res int64, err error)
-	Sync2(...any) error
+	Sync(...any) error
 	Select(string) *xorm.Session
 	NotIn(string, ...any) *xorm.Session
 	OrderBy(any, ...any) *xorm.Session
@@ -172,7 +172,7 @@ func UnsetDefaultEngine() {
 }
 
 // InitEngineWithMigration initializes a new xorm.Engine and sets it as the db.DefaultContext
-// This function must never call .Sync2() if the provided migration function fails.
+// This function must never call .Sync() if the provided migration function fails.
 // When called from the "doctor" command, the migration function is a version check
 // that prevents the doctor from fixing anything in the database if the migration level
 // is different from the expected value.

@@ -4,6 +4,7 @@
 package oauth2
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"html"
@@ -22,7 +23,7 @@ import (
 type Provider interface {
 	Name() string
 	DisplayName() string
-	IconHTML() template.HTML
+	IconHTML(size int) template.HTML
 	CustomURLSettings() *CustomURLSettings
 }
 
@@ -54,14 +55,16 @@ func (p *AuthSourceProvider) DisplayName() string {
 	return p.sourceName
 }
 
-func (p *AuthSourceProvider) IconHTML() template.HTML {
+func (p *AuthSourceProvider) IconHTML(size int) template.HTML {
 	if p.iconURL != "" {
-		img := fmt.Sprintf(`<img class="gt-mr-3" width="20" height="20" src="%s" alt="%s">`,
+		img := fmt.Sprintf(`<img class="gt-object-contain gt-mr-3" width="%d" height="%d" src="%s" alt="%s">`,
+			size,
+			size,
 			html.EscapeString(p.iconURL), html.EscapeString(p.DisplayName()),
 		)
 		return template.HTML(img)
 	}
-	return p.GothProvider.IconHTML()
+	return p.GothProvider.IconHTML(size)
 }
 
 // Providers contains the map of registered OAuth2 providers in Gitea (based on goth)
@@ -95,10 +98,10 @@ func GetOAuth2Providers() []Provider {
 // GetActiveOAuth2Providers returns the map of configured active OAuth2 providers
 // key is used as technical name (like in the callbackURL)
 // values to display
-func GetActiveOAuth2Providers() ([]string, map[string]Provider, error) {
+func GetActiveOAuth2Providers(ctx context.Context) ([]string, map[string]Provider, error) {
 	// Maybe also separate used and unused providers so we can force the registration of only 1 active provider for each type
 
-	authSources, err := auth.GetActiveOAuth2ProviderSources()
+	authSources, err := auth.GetActiveOAuth2ProviderSources(ctx)
 	if err != nil {
 		return nil, nil, err
 	}

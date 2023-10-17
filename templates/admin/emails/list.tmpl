@@ -1,27 +1,27 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.emails.email_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
+			{{ctx.Locale.Tr "admin.emails.email_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 		</h4>
 		<div class="ui attached segment">
 			<div class="ui secondary filter menu gt-ac gt-mx-0">
 				<form class="ui form ignore-dirty gt-f1">
 					<div class="ui fluid action input">
-						{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword "AutoFocus" true}}
-						<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
+						{{template "shared/searchinput" dict "Value" .Keyword "AutoFocus" true}}
+						<button class="ui primary button">{{ctx.Locale.Tr "explore.search"}}</button>
 					</div>
 				</form>
 				<!-- Sort -->
 				<div class="ui dropdown type jump item gt-mr-0">
 					<span class="text">
-						{{.locale.Tr "repo.issues.filter_sort"}}
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						{{ctx.Locale.Tr "repo.issues.filter_sort"}}
 					</span>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					<div class="menu">
-						<a class="{{if or (eq .SortType "email") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=email&q={{$.Keyword}}">{{.locale.Tr "admin.emails.filter_sort.email"}}</a>
-						<a class="{{if eq .SortType "reverseemail"}}active {{end}}item" href="{{$.Link}}?sort=reverseemail&q={{$.Keyword}}">{{.locale.Tr "admin.emails.filter_sort.email_reverse"}}</a>
-						<a class="{{if eq .SortType "username"}}active {{end}}item" href="{{$.Link}}?sort=username&q={{$.Keyword}}">{{.locale.Tr "admin.emails.filter_sort.name"}}</a>
-						<a class="{{if eq .SortType "reverseusername"}}active {{end}}item" href="{{$.Link}}?sort=reverseusername&q={{$.Keyword}}">{{.locale.Tr "admin.emails.filter_sort.name_reverse"}}</a>
+						<a class="{{if or (eq .SortType "email") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=email&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.email"}}</a>
+						<a class="{{if eq .SortType "reverseemail"}}active {{end}}item" href="{{$.Link}}?sort=reverseemail&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.email_reverse"}}</a>
+						<a class="{{if eq .SortType "username"}}active {{end}}item" href="{{$.Link}}?sort=username&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.name"}}</a>
+						<a class="{{if eq .SortType "reverseusername"}}active {{end}}item" href="{{$.Link}}?sort=reverseusername&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.emails.filter_sort.name_reverse"}}</a>
 					</div>
 				</div>
 			</div>
@@ -31,24 +31,24 @@
 				<thead>
 					<tr>
 						<th data-sortt-asc="username" data-sortt-desc="reverseusername">
-							{{.locale.Tr "admin.users.name"}}
+							{{ctx.Locale.Tr "admin.users.name"}}
 							{{SortArrow "username" "reverseusername" $.SortType false}}
 						</th>
-						<th>{{.locale.Tr "admin.users.full_name"}}</th>
+						<th>{{ctx.Locale.Tr "admin.users.full_name"}}</th>
 						<th data-sortt-asc="email" data-sortt-desc="reverseemail" data-sortt-default="true">
-							{{.locale.Tr "email"}}
+							{{ctx.Locale.Tr "email"}}
 							{{SortArrow "email" "reverseemail" $.SortType true}}
 						</th>
-						<th>{{.locale.Tr "admin.emails.primary"}}</th>
-						<th>{{.locale.Tr "admin.emails.activated"}}</th>
+						<th>{{ctx.Locale.Tr "admin.emails.primary"}}</th>
+						<th>{{ctx.Locale.Tr "admin.emails.activated"}}</th>
 					</tr>
 				</thead>
 				<tbody>
 					{{range .Emails}}
 						<tr>
 							<td><a href="{{AppSubUrl}}/{{.Name | PathEscape}}">{{.Name}}</a></td>
-							<td><span class="text truncate">{{.FullName}}</span></td>
-							<td><span class="text email">{{.Email}}</span></td>
+							<td class="gt-ellipsis gt-max-width-12rem">{{.FullName}}</td>
+							<td class="gt-ellipsis gt-max-width-12rem">{{.Email}}</td>
 							<td>{{if .IsPrimary}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>
 								{{if .CanChange}}
@@ -72,10 +72,10 @@
 
 		<div class="ui g-modal-confirm modal" id="change-email-modal">
 			<div class="header">
-				{{.locale.Tr "admin.emails.change_email_header"}}
+				{{ctx.Locale.Tr "admin.emails.change_email_header"}}
 			</div>
 			<div class="content">
-				<p class="center">{{.locale.Tr "admin.emails.change_email_text"}}</p>
+				<p class="center">{{ctx.Locale.Tr "admin.emails.change_email_text"}}</p>
 
 				<form class="ui form" id="email-action-form" action="{{AppSubUrl}}/admin/emails/activate" method="post">
 					{{$.CsrfTokenHtml}}

@@ -20,7 +20,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 const (
@@ -29,12 +29,12 @@ const (
 
 var (
 	// CmdHook represents the available hooks sub-command.
-	CmdHook = cli.Command{
+	CmdHook = &cli.Command{
 		Name:        "hook",
 		Usage:       "Delegate commands to corresponding Git hooks",
 		Description: "This should only be called by Git",
 		Before:      PrepareConsoleLoggerLevel(log.FATAL),
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			subcmdHookPreReceive,
 			subcmdHookUpdate,
 			subcmdHookPostReceive,
@@ -42,47 +42,47 @@ var (
 		},
 	}
 
-	subcmdHookPreReceive = cli.Command{
+	subcmdHookPreReceive = &cli.Command{
 		Name:        "pre-receive",
 		Usage:       "Delegate pre-receive Git hook",
 		Description: "This command should only be called by Git",
 		Action:      runHookPreReceive,
 		Flags: []cli.Flag{
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name: "debug",
 			},
 		},
 	}
-	subcmdHookUpdate = cli.Command{
+	subcmdHookUpdate = &cli.Command{
 		Name:        "update",
 		Usage:       "Delegate update Git hook",
 		Description: "This command should only be called by Git",
 		Action:      runHookUpdate,
 		Flags: []cli.Flag{
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name: "debug",
 			},
 		},
 	}
-	subcmdHookPostReceive = cli.Command{
+	subcmdHookPostReceive = &cli.Command{
 		Name:        "post-receive",
 		Usage:       "Delegate post-receive Git hook",
 		Description: "This command should only be called by Git",
 		Action:      runHookPostReceive,
 		Flags: []cli.Flag{
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name: "debug",
 			},
 		},
 	}
 	// Note: new hook since git 2.29
-	subcmdHookProcReceive = cli.Command{
+	subcmdHookProcReceive = &cli.Command{
 		Name:        "proc-receive",
 		Usage:       "Delegate proc-receive Git hook",
 		Description: "This command should only be called by Git",
 		Action:      runHookProcReceive,
 		Flags: []cli.Flag{
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name: "debug",
 			},
 		},

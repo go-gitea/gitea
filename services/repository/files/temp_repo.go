@@ -114,12 +114,12 @@ func (t *TemporaryUploadRepository) LsFiles(filenames ...string) ([]string, erro
 		return nil, err
 	}
 
-	filelist := make([]string, len(filenames))
+	fileList := make([]string, 0, len(filenames))
 	for _, line := range bytes.Split(stdOut.Bytes(), []byte{'\000'}) {
-		filelist = append(filelist, string(line))
+		fileList = append(fileList, string(line))
 	}
 
-	return filelist, nil
+	return fileList, nil
 }
 
 // RemoveFilesFromIndex removes the given files from the index
@@ -343,7 +343,7 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 			Stderr:  stderr,
 			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 				_ = stdoutWriter.Close()
-				diff, finalErr = gitdiff.ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdoutReader, "")
+				diff, finalErr = gitdiff.ParsePatch(t.ctx, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdoutReader, "")
 				if finalErr != nil {
 					log.Error("ParsePatch: %v", finalErr)
 					cancel()

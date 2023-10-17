@@ -113,16 +113,27 @@ func updateSystemStatus() {
 	sysStatus.NumGC = m.NumGC
 }
 
+func prepareDeprecatedWarningsAlert(ctx *context.Context) {
+	if len(setting.DeprecatedWarnings) > 0 {
+		content := setting.DeprecatedWarnings[0]
+		if len(setting.DeprecatedWarnings) > 1 {
+			content += fmt.Sprintf(" (and %d more)", len(setting.DeprecatedWarnings)-1)
+		}
+		ctx.Flash.Error(content, true)
+	}
+}
+
 // Dashboard show admin panel dashboard
 func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdminDashboard"] = true
-	ctx.Data["NeedUpdate"] = updatechecker.GetNeedUpdate()
-	ctx.Data["RemoteVersion"] = updatechecker.GetRemoteVersion()
+	ctx.Data["NeedUpdate"] = updatechecker.GetNeedUpdate(ctx)
+	ctx.Data["RemoteVersion"] = updatechecker.GetRemoteVersion(ctx)
 	// FIXME: update periodically
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
 	ctx.Data["SSH"] = setting.SSH
+	prepareDeprecatedWarningsAlert(ctx)
 	ctx.HTML(http.StatusOK, tplDashboard)
 }
 
@@ -171,7 +182,7 @@ func CronTasks(ctx *context.Context) {
 func MonitorStats(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.monitor.stats")
 	ctx.Data["PageIsAdminMonitorStats"] = true
-	bs, err := json.Marshal(activities_model.GetStatistic().Counter)
+	bs, err := json.Marshal(activities_model.GetStatistic(ctx).Counter)
 	if err != nil {
 		ctx.ServerError("MonitorStats", err)
 		return

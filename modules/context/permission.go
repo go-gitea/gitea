@@ -35,7 +35,7 @@ func RequireRepoWriter(unitType unit.Type) func(ctx *Context) {
 // CanEnableEditor checks if the user is allowed to write to the branch of the repo
 func CanEnableEditor() func(ctx *Context) {
 	return func(ctx *Context) {
-		if !ctx.Repo.CanWriteToBranch(ctx.Doer, ctx.Repo.BranchName) {
+		if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
 			ctx.NotFound("CanWriteToBranch denies permission", nil)
 			return
 		}

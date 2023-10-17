@@ -58,13 +58,15 @@ func ListIssueComments(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetRawIssueByIndex", err)
 		return
@@ -84,7 +86,7 @@ func ListIssueComments(ctx *context.APIContext) {
 		return
 	}
 
-	totalCount, err := issues_model.CountComments(opts)
+	totalCount, err := issues_model.CountComments(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -155,13 +157,15 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TimelineList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetRawIssueByIndex", err)
 		return
@@ -258,6 +262,8 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
@@ -279,7 +285,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		return
 	}
 
-	totalCount, err := issues_model.CountComments(opts)
+	totalCount, err := issues_model.CountComments(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -350,8 +356,12 @@ func CreateIssueComment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Comment"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm(ctx).(*api.CreateIssueCommentOption)
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		return
@@ -478,7 +488,8 @@ func EditIssueComment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm(ctx).(*api.EditIssueCommentOption)
 	editIssueComment(ctx, *form)
 }

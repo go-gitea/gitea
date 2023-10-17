@@ -1,72 +1,74 @@
 import {h} from 'vue';
-import giteaDoubleChevronLeft from '../../public/img/svg/gitea-double-chevron-left.svg';
-import giteaDoubleChevronRight from '../../public/img/svg/gitea-double-chevron-right.svg';
-import giteaEmptyCheckbox from '../../public/img/svg/gitea-empty-checkbox.svg';
-import giteaExclamation from '../../public/img/svg/gitea-exclamation.svg';
-import octiconArchive from '../../public/img/svg/octicon-archive.svg';
-import octiconArrowSwitch from '../../public/img/svg/octicon-arrow-switch.svg';
-import octiconBlocked from '../../public/img/svg/octicon-blocked.svg';
-import octiconBold from '../../public/img/svg/octicon-bold.svg';
-import octiconCheck from '../../public/img/svg/octicon-check.svg';
-import octiconCheckbox from '../../public/img/svg/octicon-checkbox.svg';
-import octiconCheckCircleFill from '../../public/img/svg/octicon-check-circle-fill.svg';
-import octiconChevronDown from '../../public/img/svg/octicon-chevron-down.svg';
-import octiconChevronLeft from '../../public/img/svg/octicon-chevron-left.svg';
-import octiconChevronRight from '../../public/img/svg/octicon-chevron-right.svg';
-import octiconClock from '../../public/img/svg/octicon-clock.svg';
-import octiconCode from '../../public/img/svg/octicon-code.svg';
-import octiconColumns from '../../public/img/svg/octicon-columns.svg';
-import octiconCopy from '../../public/img/svg/octicon-copy.svg';
-import octiconDiffAdded from '../../public/img/svg/octicon-diff-added.svg';
-import octiconDiffModified from '../../public/img/svg/octicon-diff-modified.svg';
-import octiconDiffRemoved from '../../public/img/svg/octicon-diff-removed.svg';
-import octiconDiffRenamed from '../../public/img/svg/octicon-diff-renamed.svg';
-import octiconDotFill from '../../public/img/svg/octicon-dot-fill.svg';
-import octiconDownload from '../../public/img/svg/octicon-download.svg';
-import octiconEye from '../../public/img/svg/octicon-eye.svg';
-import octiconFile from '../../public/img/svg/octicon-file.svg';
-import octiconFileDirectoryFill from '../../public/img/svg/octicon-file-directory-fill.svg';
-import octiconFilter from '../../public/img/svg/octicon-filter.svg';
-import octiconGear from '../../public/img/svg/octicon-gear.svg';
-import octiconGitBranch from '../../public/img/svg/octicon-git-branch.svg';
-import octiconGitMerge from '../../public/img/svg/octicon-git-merge.svg';
-import octiconGitPullRequest from '../../public/img/svg/octicon-git-pull-request.svg';
-import octiconHeading from '../../public/img/svg/octicon-heading.svg';
-import octiconHorizontalRule from '../../public/img/svg/octicon-horizontal-rule.svg';
-import octiconImage from '../../public/img/svg/octicon-image.svg';
-import octiconIssueClosed from '../../public/img/svg/octicon-issue-closed.svg';
-import octiconIssueOpened from '../../public/img/svg/octicon-issue-opened.svg';
-import octiconItalic from '../../public/img/svg/octicon-italic.svg';
-import octiconKebabHorizontal from '../../public/img/svg/octicon-kebab-horizontal.svg';
-import octiconLink from '../../public/img/svg/octicon-link.svg';
-import octiconListOrdered from '../../public/img/svg/octicon-list-ordered.svg';
-import octiconListUnordered from '../../public/img/svg/octicon-list-unordered.svg';
-import octiconLock from '../../public/img/svg/octicon-lock.svg';
-import octiconMeter from '../../public/img/svg/octicon-meter.svg';
-import octiconMilestone from '../../public/img/svg/octicon-milestone.svg';
-import octiconMirror from '../../public/img/svg/octicon-mirror.svg';
-import octiconOrganization from '../../public/img/svg/octicon-organization.svg';
-import octiconPlay from '../../public/img/svg/octicon-play.svg';
-import octiconPlus from '../../public/img/svg/octicon-plus.svg';
-import octiconProject from '../../public/img/svg/octicon-project.svg';
-import octiconQuote from '../../public/img/svg/octicon-quote.svg';
-import octiconRepo from '../../public/img/svg/octicon-repo.svg';
-import octiconRepoForked from '../../public/img/svg/octicon-repo-forked.svg';
-import octiconRepoTemplate from '../../public/img/svg/octicon-repo-template.svg';
-import octiconRss from '../../public/img/svg/octicon-rss.svg';
-import octiconScreenFull from '../../public/img/svg/octicon-screen-full.svg';
-import octiconSearch from '../../public/img/svg/octicon-search.svg';
-import octiconSidebarCollapse from '../../public/img/svg/octicon-sidebar-collapse.svg';
-import octiconSidebarExpand from '../../public/img/svg/octicon-sidebar-expand.svg';
-import octiconSkip from '../../public/img/svg/octicon-skip.svg';
-import octiconStar from '../../public/img/svg/octicon-star.svg';
-import octiconStrikethrough from '../../public/img/svg/octicon-strikethrough.svg';
-import octiconSync from '../../public/img/svg/octicon-sync.svg';
-import octiconTable from '../../public/img/svg/octicon-table.svg';
-import octiconTag from '../../public/img/svg/octicon-tag.svg';
-import octiconTriangleDown from '../../public/img/svg/octicon-triangle-down.svg';
-import octiconX from '../../public/img/svg/octicon-x.svg';
-import octiconXCircleFill from '../../public/img/svg/octicon-x-circle-fill.svg';
+import {parseDom, serializeXml} from './utils.js';
+import giteaDoubleChevronLeft from '../../public/assets/img/svg/gitea-double-chevron-left.svg';
+import giteaDoubleChevronRight from '../../public/assets/img/svg/gitea-double-chevron-right.svg';
+import giteaEmptyCheckbox from '../../public/assets/img/svg/gitea-empty-checkbox.svg';
+import giteaExclamation from '../../public/assets/img/svg/gitea-exclamation.svg';
+import octiconArchive from '../../public/assets/img/svg/octicon-archive.svg';
+import octiconArrowSwitch from '../../public/assets/img/svg/octicon-arrow-switch.svg';
+import octiconBlocked from '../../public/assets/img/svg/octicon-blocked.svg';
+import octiconBold from '../../public/assets/img/svg/octicon-bold.svg';
+import octiconCheck from '../../public/assets/img/svg/octicon-check.svg';
+import octiconCheckbox from '../../public/assets/img/svg/octicon-checkbox.svg';
+import octiconCheckCircleFill from '../../public/assets/img/svg/octicon-check-circle-fill.svg';
+import octiconChevronDown from '../../public/assets/img/svg/octicon-chevron-down.svg';
+import octiconChevronLeft from '../../public/assets/img/svg/octicon-chevron-left.svg';
+import octiconChevronRight from '../../public/assets/img/svg/octicon-chevron-right.svg';
+import octiconClock from '../../public/assets/img/svg/octicon-clock.svg';
+import octiconCode from '../../public/assets/img/svg/octicon-code.svg';
+import octiconColumns from '../../public/assets/img/svg/octicon-columns.svg';
+import octiconCopy from '../../public/assets/img/svg/octicon-copy.svg';
+import octiconDiffAdded from '../../public/assets/img/svg/octicon-diff-added.svg';
+import octiconDiffModified from '../../public/assets/img/svg/octicon-diff-modified.svg';
+import octiconDiffRemoved from '../../public/assets/img/svg/octicon-diff-removed.svg';
+import octiconDiffRenamed from '../../public/assets/img/svg/octicon-diff-renamed.svg';
+import octiconDotFill from '../../public/assets/img/svg/octicon-dot-fill.svg';
+import octiconDownload from '../../public/assets/img/svg/octicon-download.svg';
+import octiconEye from '../../public/assets/img/svg/octicon-eye.svg';
+import octiconFile from '../../public/assets/img/svg/octicon-file.svg';
+import octiconFileDirectoryFill from '../../public/assets/img/svg/octicon-file-directory-fill.svg';
+import octiconFilter from '../../public/assets/img/svg/octicon-filter.svg';
+import octiconGear from '../../public/assets/img/svg/octicon-gear.svg';
+import octiconGitBranch from '../../public/assets/img/svg/octicon-git-branch.svg';
+import octiconGitCommit from '../../public/assets/img/svg/octicon-git-commit.svg';
+import octiconGitMerge from '../../public/assets/img/svg/octicon-git-merge.svg';
+import octiconGitPullRequest from '../../public/assets/img/svg/octicon-git-pull-request.svg';
+import octiconHeading from '../../public/assets/img/svg/octicon-heading.svg';
+import octiconHorizontalRule from '../../public/assets/img/svg/octicon-horizontal-rule.svg';
+import octiconImage from '../../public/assets/img/svg/octicon-image.svg';
+import octiconIssueClosed from '../../public/assets/img/svg/octicon-issue-closed.svg';
+import octiconIssueOpened from '../../public/assets/img/svg/octicon-issue-opened.svg';
+import octiconItalic from '../../public/assets/img/svg/octicon-italic.svg';
+import octiconKebabHorizontal from '../../public/assets/img/svg/octicon-kebab-horizontal.svg';
+import octiconLink from '../../public/assets/img/svg/octicon-link.svg';
+import octiconListOrdered from '../../public/assets/img/svg/octicon-list-ordered.svg';
+import octiconListUnordered from '../../public/assets/img/svg/octicon-list-unordered.svg';
+import octiconLock from '../../public/assets/img/svg/octicon-lock.svg';
+import octiconMeter from '../../public/assets/img/svg/octicon-meter.svg';
+import octiconMilestone from '../../public/assets/img/svg/octicon-milestone.svg';
+import octiconMirror from '../../public/assets/img/svg/octicon-mirror.svg';
+import octiconOrganization from '../../public/assets/img/svg/octicon-organization.svg';
+import octiconPlay from '../../public/assets/img/svg/octicon-play.svg';
+import octiconPlus from '../../public/assets/img/svg/octicon-plus.svg';
+import octiconProject from '../../public/assets/img/svg/octicon-project.svg';
+import octiconQuote from '../../public/assets/img/svg/octicon-quote.svg';
+import octiconRepo from '../../public/assets/img/svg/octicon-repo.svg';
+import octiconRepoForked from '../../public/assets/img/svg/octicon-repo-forked.svg';
+import octiconRepoTemplate from '../../public/assets/img/svg/octicon-repo-template.svg';
+import octiconRss from '../../public/assets/img/svg/octicon-rss.svg';
+import octiconScreenFull from '../../public/assets/img/svg/octicon-screen-full.svg';
+import octiconSearch from '../../public/assets/img/svg/octicon-search.svg';
+import octiconSidebarCollapse from '../../public/assets/img/svg/octicon-sidebar-collapse.svg';
+import octiconSidebarExpand from '../../public/assets/img/svg/octicon-sidebar-expand.svg';
+import octiconSkip from '../../public/assets/img/svg/octicon-skip.svg';
+import octiconStar from '../../public/assets/img/svg/octicon-star.svg';
+import octiconStrikethrough from '../../public/assets/img/svg/octicon-strikethrough.svg';
+import octiconSync from '../../public/assets/img/svg/octicon-sync.svg';
+import octiconTable from '../../public/assets/img/svg/octicon-table.svg';
+import octiconTag from '../../public/assets/img/svg/octicon-tag.svg';
+import octiconTriangleDown from '../../public/assets/img/svg/octicon-triangle-down.svg';
+import octiconX from '../../public/assets/img/svg/octicon-x.svg';
+import octiconXCircleFill from '../../public/assets/img/svg/octicon-x-circle-fill.svg';
 
 const svgs = {
   'gitea-double-chevron-left': giteaDoubleChevronLeft,
@@ -99,6 +101,7 @@ const svgs = {
   'octicon-filter': octiconFilter,
   'octicon-gear': octiconGear,
   'octicon-git-branch': octiconGitBranch,
+  'octicon-git-commit': octiconGitCommit,
   'octicon-git-merge': octiconGitMerge,
   'octicon-git-pull-request': octiconGitPullRequest,
   'octicon-heading': octiconHeading,
@@ -143,22 +146,19 @@ const svgs = {
 //  At the moment, developers must check, pick and fill the names manually,
 //  most of the SVG icons in assets couldn't be used directly.
 
-const parser = new DOMParser();
-const serializer = new XMLSerializer();
-
 // retrieve an HTML string for given SVG icon name, size and additional classes
 export function svg(name, size = 16, className = '') {
   if (!(name in svgs)) throw new Error(`Unknown SVG icon: ${name}`);
   if (size === 16 && !className) return svgs[name];
 
-  const document = parser.parseFromString(svgs[name], 'image/svg+xml');
+  const document = parseDom(svgs[name], 'image/svg+xml');
   const svgNode = document.firstChild;
   if (size !== 16) {
     svgNode.setAttribute('width', String(size));
     svgNode.setAttribute('height', String(size));
   }
   if (className) svgNode.classList.add(...className.split(/\s+/).filter(Boolean));
-  return serializer.serializeToString(svgNode);
+  return serializeXml(svgNode);
 }
 
 export function svgParseOuterInner(name) {
@@ -174,7 +174,7 @@ export function svgParseOuterInner(name) {
   if (p1 === -1 || p2 === -1) throw new Error(`Invalid SVG icon: ${name}`);
   const svgInnerHtml = svgStr.slice(p1 + 1, p2);
   const svgOuterHtml = svgStr.slice(0, p1 + 1) + svgStr.slice(p2);
-  const svgDoc = parser.parseFromString(svgOuterHtml, 'image/svg+xml');
+  const svgDoc = parseDom(svgOuterHtml, 'image/svg+xml');
   const svgOuter = svgDoc.firstChild;
   return {svgOuter, svgInnerHtml};
 }
@@ -185,9 +185,10 @@ export const SvgIcon = {
     name: {type: String, required: true},
     size: {type: Number, default: 16},
     className: {type: String, default: ''},
+    symbolId: {type: String}
   },
   render() {
-    const {svgOuter, svgInnerHtml} = svgParseOuterInner(this.name);
+    let {svgOuter, svgInnerHtml} = svgParseOuterInner(this.name);
     // https://vuejs.org/guide/extras/render-function.html#creating-vnodes
     // the `^` is used for attr, set SVG attributes like 'width', `aria-hidden`, `viewBox`, etc
     const attrs = {};
@@ -207,7 +208,10 @@ export const SvgIcon = {
     if (this.className) {
       classes.push(...this.className.split(/\s+/).filter(Boolean));
     }
-
+    if (this.symbolId) {
+      classes.push('gt-hidden', 'svg-symbol-container');
+      svgInnerHtml = `<symbol id="${this.symbolId}" viewBox="${attrs['^viewBox']}">${svgInnerHtml}</symbol>`;
+    }
     // create VNode
     return h('svg', {
       ...attrs,

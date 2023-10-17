@@ -11,8 +11,9 @@
 @import "./modules/toast.css";
 @import "./modules/divider.css";
 @import "./modules/svg.css";
+@import "./modules/flexcontainer.css";
 
-@import "./shared/issuelist.css";
+@import "./shared/flex-list.css";
 @import "./shared/milestone.css";
 @import "./shared/repoorg.css";
 @import "./shared/settings.css";
@@ -31,11 +32,7 @@
 @import "./markup/asciicast.css";
 
 @import "./chroma/base.css";
-@import "./chroma/light.css";
-
 @import "./codemirror/base.css";
-@import "./codemirror/light.css";
-
 @import "./font_i18n.css";
 @import "./base.css";
 @import "./home.css";
@@ -44,6 +41,7 @@
 
 @import "./repo.css";
 @import "./repo/release-tag.css";
+@import "./repo/issue-card.css";
 @import "./repo/issue-label.css";
 @import "./repo/issue-list.css";
 @import "./repo/list-header.css";
