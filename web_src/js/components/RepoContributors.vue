@@ -60,7 +60,7 @@
           {{ errorText }}
         </div>
       </div>
-      <CLine
+      <ChartLine
         v-memo="[totalStats.weeks, type]" v-if="Object.keys(totalStats).length !== 0"
         :data="toGraphData(totalStats.weeks)" :options="getOptions('main')"
       />
@@ -80,16 +80,16 @@
           <div class="gt-ml-3">
             <a :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
             <p class="gt-font-12">
-              <strong>{{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}</strong>
-              <strong class="text green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
-              <strong class="text red">
+              <strong v-if="contributor.total_commits">{{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}</strong>
+              <strong v-if="contributor.total_additions" class="text green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
+              <strong v-if="contributor.total_deletions" class="text red">
                 {{ contributor.total_deletions.toLocaleString() }}--</strong>
             </p>
           </div>
         </div>
         <div class="ui attached segment">
           <div>
-            <CLine
+            <ChartLine
               :data="toGraphData(contributor.weeks)"
               :options="getOptions('contributor')"
             />
@@ -116,7 +116,7 @@ import {
   Filler,
 } from 'chart.js';
 import zoomPlugin from 'chartjs-plugin-zoom';
-import {Line as CLine} from 'vue-chartjs';
+import {Line as ChartLine} from 'vue-chartjs';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import $ from 'jquery';
 
@@ -137,7 +137,7 @@ Chart.register(
 );
 
 export default {
-  components: {CLine, SvgIcon},
+  components: {ChartLine, SvgIcon},
   props: {
     locale: {
       type: Object,
@@ -231,6 +231,14 @@ export default {
     },
 
     maxMainGraph() {
+      // This method calculates maximum value for Y value of the main graph.
+      // If the number of maximum contributions for selected contribution type is
+      // 15.955 it is probably better to round it up to 20.000
+      // This method is responsible for doing that
+      // Normally, chartjs handles this automatically, but it will resize the
+      // graph when you zoom, pan etc. I think resizing the graph makes it harder
+      // to compare things visually.
+
       const maxValue = Math.max(
         ...this.totalStats.weeks.map((o) => o[this.type])
       );
@@ -244,6 +252,10 @@ export default {
       return (1 - (cooefficient % 1)) * 10 ** exp + maxValue;
     },
     maxContributorGraph() {
+      // Similar to maxMainGraph method this method calculates maximum value for Y value
+      // for contributors' graph. If I let chartjs do this for me, it will choose different
+      // maxY value for each contributors' graph which again makes it harder to compare.
+
       const maxValue = Math.max(
         ...this.sortedContributors.map((c) => c['max_contribution_type'])
       );

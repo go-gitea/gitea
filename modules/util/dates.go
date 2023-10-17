@@ -7,8 +7,9 @@ import (
 	"time"
 )
 
+const layout = "2006-01-02"
+
 func ListSundaysBetween(startStr, endStr string) ([]int64, error) {
-	layout := "2006-01-02"
 	startDate, err := time.Parse(layout, startStr)
 	if err != nil {
 		return nil, err
@@ -35,8 +36,6 @@ func ListSundaysBetween(startStr, endStr string) ([]int64, error) {
 }
 
 func FindLastSundayBeforeDate(dateStr string) (string, error) {
-	layout := "2006-01-02"
-
 	date, err := time.Parse(layout, dateStr)
 	if err != nil {
 		return "", err
@@ -53,8 +52,6 @@ func FindLastSundayBeforeDate(dateStr string) (string, error) {
 }
 
 func FindFirstSundayAfterDate(dateStr string) (string, error) {
-	layout := "2006-01-02"
-
 	date, err := time.Parse(layout, dateStr)
 	if err != nil {
 		return "", err
