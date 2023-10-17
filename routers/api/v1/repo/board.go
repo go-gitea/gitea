@@ -36,7 +36,6 @@ func GetProjectBoard(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-
 	board, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectBoardNotExist(err) {
@@ -166,7 +165,7 @@ func DeleteProjectBoard(ctx *context.APIContext) {
 		return
 	}
 
-	if err := project_model.DeleteBoardByID(ctx.ParamsInt64(":id")); err != nil {
+	if err := project_model.DeleteBoardByID(ctx, ctx.ParamsInt64(":id")); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteProjectBoard", err)
 		return
 	}
