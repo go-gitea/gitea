@@ -12,11 +12,15 @@ export function initGlobalCopyToClipboardListener() {
     // in case <button data-clipboard-text><svg></button>, so we just search
     // up to 3 levels for performance
     for (let i = 0; i < 3 && target; i++) {
-      let txt = target.getAttribute('data-clipboard-text');
-      if (txt && target.getAttribute('data-clipboard-text-type') === 'url') {
-        txt = toAbsoluteUrl(txt);
+      let text = target.getAttribute('data-clipboard-text');
+
+      if (!text && target.getAttribute('data-clipboard-target')) {
+        text = document.querySelector(target.getAttribute('data-clipboard-target'))?.value;
       }
-      const text = txt || document.querySelector(target.getAttribute('data-clipboard-target'))?.value;
+
+      if (text && target.getAttribute('data-clipboard-text-type') === 'url') {
+        text = toAbsoluteUrl(text);
+      }
 
       if (text) {
         e.preventDefault();
@@ -28,6 +32,7 @@ export function initGlobalCopyToClipboardListener() {
 
         break;
       }
+
       target = target.parentElement;
     }
   });
