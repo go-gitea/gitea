@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	"xorm.io/builder"
+
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -14,8 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-
-	"xorm.io/builder"
 )
 
 type (
@@ -430,17 +430,6 @@ func DeleteProjectByID(ctx context.Context, id int64) error {
 
 		return updateRepositoryProjectCount(ctx, p.RepoID)
 	})
-}
-
-// LoadRepo load repo of the project.
-func (p *Project) LoadRepo(ctx context.Context) (err error) {
-	if p.Repo == nil {
-		p.Repo, err = repo_model.GetRepositoryByID(ctx, p.RepoID)
-		if err != nil {
-			return fmt.Errorf("getRepositoryByID [%d]: %v", p.RepoID, err)
-		}
-	}
-	return nil
 }
 
 // LoadCreator load creator of the project.
