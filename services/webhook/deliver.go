@@ -258,7 +258,7 @@ func webhookProxy(allowList *hostmatcher.HostMatchList) func(req *http.Request) 
 		for _, v := range hostMatchers {
 			if v.Match(req.URL.Host) {
 				if !allowList.MatchHostName(req.URL.Host) {
-					return nil, fmt.Errorf("TODO: add error message")
+					return nil, fmt.Errorf("webhook can only call allowed HTTP servers (check your %s setting), deny '%s'", allowList.SettingKeyHint, req.URL.Host)
 				}
 				return http.ProxyURL(setting.Webhook.ProxyURLFixed)(req)
 			}
