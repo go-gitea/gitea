@@ -200,12 +200,12 @@ const sfc = {
       return await resp.json();
     },
 
-    deleteArtifact(name) {
+    async deleteArtifact(name) {
       if (!window.confirm(this.locale.artifactDeleteConfirm)) {
         return;
       }
-      const link = `${this.run.link}/artifacts/${name}`;
-      DELETE(link).then(this.loadJob);
+      await DELETE(`${this.run.link}/artifacts/${name}`);
+      await this.loadJob();
     },
 
     async fetchJob() {
