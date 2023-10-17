@@ -573,6 +573,14 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		return
 	}
 
+	// if artifacts status is not uploaded-confirmed, treat it as not found
+	for _, art := range artifacts {
+		if art.Status != int64(actions_model.ArtifactStatusUploadConfirmed) {
+			ctx.Error(http.StatusNotFound, "artifact not found")
+			return
+		}
+	}
+
 	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(artifactName), artifactName))
 
 	writer := zip.NewWriter(ctx.Resp)
