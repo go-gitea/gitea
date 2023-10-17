@@ -282,7 +282,7 @@ func Init() error {
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify},
 			Proxy:           webhookProxy(allowedHostMatcher),
-			DialContext:     hostmatcher.NewDialContext("webhook", allowedHostMatcher, nil),
+			DialContext:     hostmatcher.NewDialContextWithProxy("webhook", allowedHostMatcher, nil, setting.Webhook.ProxyURLFixed),
 		},
 	}
 
