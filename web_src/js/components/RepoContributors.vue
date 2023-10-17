@@ -1,105 +1,3 @@
-<template>
-  <div>
-    <h2 class="ui header">
-      <relative-time
-        v-if="dateFrom !== null"
-        format="datetime"
-        year="numeric"
-        month="short"
-        day="numeric"
-        weekday=""
-        :datetime="dateFrom"
-      >
-        {{ dateFrom }}
-      </relative-time>
-      {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: "-" }}
-      <relative-time
-        v-if="dateUntil !== null"
-        format="datetime"
-        year="numeric"
-        month="short"
-        day="numeric"
-        weekday=""
-        :datetime="dateUntil"
-      >
-        {{ dateUntil }}
-      </relative-time>
-
-      <div class="ui right">
-        <!-- Contribution type -->
-        <div class="ui dropdown jump" id="dropdown">
-          <div class="ui basic compact button">
-            <span class="text">
-              {{ locale.filterLabel }} <strong>{{ locale.contributionType[type] }}</strong>
-              <svg-icon name="octicon-triangle-down" :size="14"/>
-            </span>
-          </div>
-          <div class="menu">
-            <div :class="['item', {'active': type === 'commits'}]">
-              {{ locale.contributionType.commits }}
-            </div>
-            <div :class="['item', {'active': type === 'additions'}]">
-              {{ locale.contributionType.additions }}
-            </div>
-            <div :class="['item', {'active': type === 'deletions'}]">
-              {{ locale.contributionType.deletions }}
-            </div>
-          </div>
-        </div>
-      </div>
-    </h2>
-    <div class="divider"/>
-    <div class="gt-df main-graph">
-      <div v-if="isLoading || errorText !== ''" class="gt-tc gt-m-auto">
-        <div v-if="isLoading">
-          <SvgIcon name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
-          {{ locale.loadingInfo }}
-        </div>
-        <div v-else class="text red">
-          <SvgIcon name="octicon-x-circle-fill"/>
-          {{ errorText }}
-        </div>
-      </div>
-      <ChartLine
-        v-memo="[totalStats.weeks, type]" v-if="Object.keys(totalStats).length !== 0"
-        :data="toGraphData(totalStats.weeks)" :options="getOptions('main')"
-      />
-    </div>
-    <div class="divider"/>
-
-    <div class="ui attached two column grid">
-      <div
-        v-for="(contributor, index) in sortedContributors" :key="index" class="column stats-table"
-        v-memo="[sortedContributors, type]"
-      >
-        <div class="ui top attached header gt-df gt-f1">
-          <b class="ui right">#{{ index + 1 }}</b>
-          <a :href="contributor.home_link">
-            <img height="40" width="40" :src="contributor.avatar_link">
-          </a>
-          <div class="gt-ml-3">
-            <a :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
-            <p class="gt-font-12">
-              <strong v-if="contributor.total_commits">{{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}</strong>
-              <strong v-if="contributor.total_additions" class="text green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
-              <strong v-if="contributor.total_deletions" class="text red">
-                {{ contributor.total_deletions.toLocaleString() }}--</strong>
-            </p>
-          </div>
-        </div>
-        <div class="ui attached segment">
-          <div>
-            <ChartLine
-              :data="toGraphData(contributor.weeks)"
-              :options="getOptions('contributor')"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script>
 import {SvgIcon} from '../svg.js';
 import {
@@ -370,6 +268,109 @@ export default {
   },
 };
 </script>
+
+<template>
+  <div>
+    <h2 class="ui header">
+      <relative-time
+        v-if="dateFrom !== null"
+        format="datetime"
+        year="numeric"
+        month="short"
+        day="numeric"
+        weekday=""
+        :datetime="dateFrom"
+      >
+        {{ dateFrom }}
+      </relative-time>
+      {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: "-" }}
+      <relative-time
+        v-if="dateUntil !== null"
+        format="datetime"
+        year="numeric"
+        month="short"
+        day="numeric"
+        weekday=""
+        :datetime="dateUntil"
+      >
+        {{ dateUntil }}
+      </relative-time>
+
+      <div class="ui right">
+        <!-- Contribution type -->
+        <div class="ui dropdown jump" id="dropdown">
+          <div class="ui basic compact button">
+            <span class="text">
+              {{ locale.filterLabel }} <strong>{{ locale.contributionType[type] }}</strong>
+              <svg-icon name="octicon-triangle-down" :size="14"/>
+            </span>
+          </div>
+          <div class="menu">
+            <div :class="['item', {'active': type === 'commits'}]">
+              {{ locale.contributionType.commits }}
+            </div>
+            <div :class="['item', {'active': type === 'additions'}]">
+              {{ locale.contributionType.additions }}
+            </div>
+            <div :class="['item', {'active': type === 'deletions'}]">
+              {{ locale.contributionType.deletions }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </h2>
+    <div class="divider"/>
+    <div class="gt-df main-graph">
+      <div v-if="isLoading || errorText !== ''" class="gt-tc gt-m-auto">
+        <div v-if="isLoading">
+          <SvgIcon name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
+          {{ locale.loadingInfo }}
+        </div>
+        <div v-else class="text red">
+          <SvgIcon name="octicon-x-circle-fill"/>
+          {{ errorText }}
+        </div>
+      </div>
+      <ChartLine
+        v-memo="[totalStats.weeks, type]" v-if="Object.keys(totalStats).length !== 0"
+        :data="toGraphData(totalStats.weeks)" :options="getOptions('main')"
+      />
+    </div>
+    <div class="divider"/>
+
+    <div class="ui attached two column grid">
+      <div
+        v-for="(contributor, index) in sortedContributors" :key="index" class="column stats-table"
+        v-memo="[sortedContributors, type]"
+      >
+        <div class="ui top attached header gt-df gt-f1">
+          <b class="ui right">#{{ index + 1 }}</b>
+          <a :href="contributor.home_link">
+            <img height="40" width="40" :src="contributor.avatar_link">
+          </a>
+          <div class="gt-ml-3">
+            <a :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
+            <p class="gt-font-12">
+              <strong v-if="contributor.total_commits">{{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}</strong>
+              <strong v-if="contributor.total_additions" class="text green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
+              <strong v-if="contributor.total_deletions" class="text red">
+                {{ contributor.total_deletions.toLocaleString() }}--</strong>
+            </p>
+          </div>
+        </div>
+        <div class="ui attached segment">
+          <div>
+            <ChartLine
+              :data="toGraphData(contributor.weeks)"
+              :options="getOptions('contributor')"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .main-graph {
   height: 380px;
