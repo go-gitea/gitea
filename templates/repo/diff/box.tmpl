@@ -97,7 +97,9 @@
 					{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
 					{{$blobBase := call $.GetBlobByPathForCommit $.BeforeCommit $file.OldName}}
 					{{$blobHead := call $.GetBlobByPathForCommit $.HeadCommit $file.Name}}
-					{{$isImage := or (call $.IsBlobAnImage $blobBase) (call $.IsBlobAnImage $blobHead)}}
+					{{$sniffedTypeBase := call $.GetSniffedTypeForBlob $blobBase}}
+					{{$sniffedTypeHead := call $.GetSniffedTypeForBlob $blobHead}}
+					{{$isImage:= or (call $.IsSniffedTypeAnImage $sniffedTypeBase) (call $.IsSniffedTypeAnImage $sniffedTypeHead)}}
 					{{$isCsv := (call $.IsCsvFile $file)}}
 					{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) $isCsv)}}
 					{{$isExpandable := or (gt $file.Addition 0) (gt $file.Deletion 0) $file.IsBin}}
@@ -198,9 +200,9 @@
 								<div id="diff-rendered-{{$file.NameHash}}" class="file-body file-code {{if $.IsSplitStyle}}code-diff-split{{else}}code-diff-unified{{end}} gt-overflow-x-scroll">
 									<table class="chroma gt-w-100">
 										{{if $isImage}}
-											{{template "repo/diff/image_diff" dict "file" . "root" $ "blobBase" $blobBase "blobHead" $blobHead}}
+											{{template "repo/diff/image_diff" dict "file" . "root" $ "blobBase" $blobBase "blobHead" $blobHead "sniffedTypeBase" $sniffedTypeBase "sniffedTypeHead" $sniffedTypeHead}}
 										{{else}}
-											{{template "repo/diff/csv_diff" dict "file" . "root" $ "blobBase" $blobBase "blobHead" $blobHead}}
+											{{template "repo/diff/csv_diff" dict "file" . "root" $ "blobBase" $blobBase "blobHead" $blobHead "sniffedTypeBase" $sniffedTypeBase "sniffedTypeHead" $sniffedTypeHead}}
 										{{end}}
 									</table>
 								</div>

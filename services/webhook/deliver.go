@@ -34,7 +34,7 @@ import (
 
 // Deliver deliver hook task
 func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
-	w, err := webhook_model.GetWebhookByID(t.HookID)
+	w, err := webhook_model.GetWebhookByID(ctx, t.HookID)
 	if err != nil {
 		return err
 	}
@@ -185,7 +185,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 			log.Trace("Hook delivery failed: %s", t.UUID)
 		}
 
-		if err := webhook_model.UpdateHookTask(t); err != nil {
+		if err := webhook_model.UpdateHookTask(ctx, t); err != nil {
 			log.Error("UpdateHookTask [%d]: %v", t.ID, err)
 		}
 
@@ -195,7 +195,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 		} else {
 			w.LastStatus = webhook_module.HookStatusFail
 		}
-		if err = webhook_model.UpdateWebhookLastStatus(w); err != nil {
+		if err = webhook_model.UpdateWebhookLastStatus(ctx, w); err != nil {
 			log.Error("UpdateWebhookLastStatus: %v", err)
 			return
 		}
