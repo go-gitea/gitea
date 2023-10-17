@@ -9,13 +9,16 @@ import (
 	"xorm.io/xorm"
 )
 
-func RemoveActionRunnerTokenUnneededCol(x *xorm.Engine) error {
+func DropDeletedCol(x *xorm.Engine) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 	if err := base.DropTableColumns(sess, "action_runner_token", "deleted"); err != nil {
+		return err
+	}
+	if err := base.DropTableColumns(sess, "action_runner", "deleted"); err != nil {
 		return err
 	}
 	return sess.Commit()
