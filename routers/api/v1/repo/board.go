@@ -260,7 +260,7 @@ func CreateProjectBoard(ctx *context.APIContext) {
 	}
 
 	var err error
-	if err = project_model.NewBoard(board); err != nil {
+	if err = project_model.NewBoard(ctx, board); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateBoard", err)
 		return
 	}
