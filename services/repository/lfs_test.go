@@ -12,17 +12,17 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	repo_service "code.gitea.io/gitea/services/repository"
-	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGarbageCollectLFSMetaObjects(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	unittest.PrepareTestEnv(t)
 
 	setting.LFS.StartServer = true
 	err := storage.Init()
