@@ -383,13 +383,10 @@ func handleSchedules(
 		return nil
 	}
 
-	rows, _, err := actions_model.FindSchedules(ctx, actions_model.FindScheduleOptions{RepoID: input.Repo.ID})
-	if err != nil {
-		log.Error("FindCrons: %v", err)
+	if count, err := actions_model.CountSchedules(ctx, actions_model.FindScheduleOptions{RepoID: input.Repo.ID}); err != nil {
+		log.Error("CountSchedules: %v", err)
 		return err
-	}
-
-	if len(rows) > 0 {
+	} else if count > 0 {
 		if err := actions_model.DeleteScheduleTaskByRepo(ctx, input.Repo.ID); err != nil {
 			log.Error("DeleteCronTaskByRepo: %v", err)
 		}
