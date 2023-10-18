@@ -3068,7 +3068,7 @@ tbody.commit-list {
 
 .ui.segment.commit-status-list {
   padding: 0;
-  max-height: 30vh;
+  max-height: 231px;
   overflow-x: hidden;
   transition: max-height 0.2s;
   border-bottom: 0 !important;
