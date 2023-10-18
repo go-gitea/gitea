@@ -235,7 +235,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	body, err := markdown.RenderString(&markup.RenderContext{
 		Ctx:       ctx,
 		URLPrefix: ctx.Issue.Repo.HTMLURL(),
-		Metas:     ctx.Issue.Repo.ComposeMetas(),
+		Metas:     ctx.Issue.Repo.ComposeMetas(ctx),
 	}, ctx.Content)
 	if err != nil {
 		return nil, err

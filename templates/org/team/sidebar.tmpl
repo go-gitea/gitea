@@ -2,7 +2,7 @@
 	<h4 class="ui top attached header">
 		<strong>{{.Team.Name}}</strong>
 		<div class="ui right">
-			{{if .Team.IsMember $.SignedUser.ID}}
+			{{if .Team.IsMember ctx $.SignedUser.ID}}
 				<form>
 					<button class="ui red tiny button delete-button" data-modal-id="leave-team-sidebar"
 						data-url="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/action/leave" data-datauid="{{$.SignedUser.ID}}"

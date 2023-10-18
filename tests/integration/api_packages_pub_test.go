@@ -121,7 +121,7 @@ description: ` + packageDescription
 		assert.NoError(t, err)
 		assert.Equal(t, int64(len(content)), pb.Size)
 
-		_ = uploadFile(t, result.URL, content, http.StatusBadRequest)
+		_ = uploadFile(t, result.URL, content, http.StatusConflict)
 	})
 
 	t.Run("Download", func(t *testing.T) {

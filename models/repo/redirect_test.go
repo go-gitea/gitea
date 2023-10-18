@@ -16,11 +16,11 @@ import (
 func TestLookupRedirect(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repoID, err := repo_model.LookupRedirect(2, "oldrepo1")
+	repoID, err := repo_model.LookupRedirect(db.DefaultContext, 2, "oldrepo1")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, repoID)
 
-	_, err = repo_model.LookupRedirect(unittest.NonexistentID, "doesnotexist")
+	_, err = repo_model.LookupRedirect(db.DefaultContext, unittest.NonexistentID, "doesnotexist")
 	assert.True(t, repo_model.IsErrRedirectNotExist(err))
 }
 

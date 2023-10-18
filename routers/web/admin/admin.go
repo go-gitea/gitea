@@ -127,8 +127,8 @@ func prepareDeprecatedWarningsAlert(ctx *context.Context) {
 func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdminDashboard"] = true
-	ctx.Data["NeedUpdate"] = updatechecker.GetNeedUpdate()
-	ctx.Data["RemoteVersion"] = updatechecker.GetRemoteVersion()
+	ctx.Data["NeedUpdate"] = updatechecker.GetNeedUpdate(ctx)
+	ctx.Data["RemoteVersion"] = updatechecker.GetRemoteVersion(ctx)
 	// FIXME: update periodically
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
