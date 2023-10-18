@@ -3079,7 +3079,7 @@ tbody.commit-list {
 }
 
 .pr-commit-status.hide .ui.attached.header {
-  border-bottom: 0 !important;
+  border-bottom: none !important;
 }
 
 .pr-commit-status.hide .commit-status-list {
