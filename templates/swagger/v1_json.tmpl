@@ -21183,7 +21183,8 @@
           "type": "string",
           "x-go-name": "Title"
         }
-      }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "NodeInfo": {
       "description": "NodeInfo contains standardized way of exposing metadata about a server running one of the distributed social networks",
@@ -23217,18 +23218,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "UpdateRepoAvatarOption": {
-      "description": "UpdateRepoAvatarUserOption options when updating the repo avatar",
-      "type": "object",
-      "properties": {
-        "image": {
-          "description": "image must be base64 encoded",
-          "type": "string",
-          "x-go-name": "Image"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "UpdateProjectBoardPayload": {
       "type": "object",
       "properties": {
@@ -23240,7 +23229,8 @@
           "type": "string",
           "x-go-name": "Title"
         }
-      }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "UpdateProjectPayload": {
       "type": "object",
@@ -23256,7 +23246,20 @@
           "type": "string",
           "x-go-name": "Title"
         }
-      }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "UpdateRepoAvatarOption": {
+      "description": "UpdateRepoAvatarUserOption options when updating the repo avatar",
+      "type": "object",
+      "properties": {
+        "image": {
+          "description": "image must be base64 encoded",
+          "type": "string",
+          "x-go-name": "Image"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "UpdateUserAvatarOption": {
       "description": "UpdateUserAvatarUserOption options when updating the user avatar",
