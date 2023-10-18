@@ -374,11 +374,6 @@ func handleSchedules(
 	commit *git.Commit,
 	input *notifyInput,
 ) error {
-	if len(detectedWorkflows) == 0 {
-		log.Trace("repo %s with commit %s couldn't find schedules", input.Repo.RepoPath(), commit.ID)
-		return nil
-	}
-
 	branch, err := commit.GetBranchName()
 	if err != nil {
 		return err
@@ -388,16 +383,18 @@ func handleSchedules(
 		return nil
 	}
 
-	rows, _, err := actions_model.FindSchedules(ctx, actions_model.FindScheduleOptions{RepoID: input.Repo.ID})
-	if err != nil {
-		log.Error("FindCrons: %v", err)
+	if count, err := actions_model.CountSchedules(ctx, actions_model.FindScheduleOptions{RepoID: input.Repo.ID}); err != nil {
+		log.Error("CountSchedules: %v", err)
 		return err
-	}
-
-	if len(rows) > 0 {
+	} else if count > 0 {
 		if err := actions_model.DeleteScheduleTaskByRepo(ctx, input.Repo.ID); err != nil {
 			log.Error("DeleteCronTaskByRepo: %v", err)
 		}
+	}
+
+	if len(detectedWorkflows) == 0 {
+		log.Trace("repo %s with commit %s couldn't find schedules", input.Repo.RepoPath(), commit.ID)
+		return nil
 	}
 
 	p, err := json.Marshal(input.Payload)
