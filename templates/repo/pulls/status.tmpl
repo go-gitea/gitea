@@ -25,10 +25,10 @@ Template Attributes:
 
 		{{if not .IsPopup}}
 		<div class="ui right">
-			<a class="hide-all-checks muted"
+			<button class="hide-all-checks btn interact-fg"
 			data-show-all="{{ctx.Locale.Tr "repo.pulls.status_checks_show_all"}}"
 			data-hide-all="{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}">
-			{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}</a>
+			{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}</button>
 		</div>
 		{{end}}
 	</div>
