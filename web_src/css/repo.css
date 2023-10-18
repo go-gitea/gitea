@@ -3139,7 +3139,7 @@ tbody.commit-list {
 }
 
 .tippy-commit-status {
-  max-width: 100vw;
+  max-width: calc(100vw - 16px);
 }
 
 .tippy-commit-status .ui.attached.header {
