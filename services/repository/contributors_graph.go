@@ -69,8 +69,8 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository, revis
 			continue
 		}
 		if _, ok := contributorsCommitStats[v.Author.Email]; !ok {
-			u, err := user_model.GetUserByEmail(ctx, v.Author.Email)
-			if u == nil || user_model.IsErrUserNotExist(err) {
+			u, _ := user_model.GetUserByEmail(ctx, v.Author.Email)
+			if u == nil {
 				contributorsCommitStats[v.Author.Email] = &api.ContributorData{
 					Name:       v.Author.Name,
 					AvatarLink: unknownUserAvatarLink,
