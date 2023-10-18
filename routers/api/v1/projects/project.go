@@ -198,6 +198,55 @@ func CreateRepositoryProject(ctx *context.APIContext) {
 	ctx.JSON(http.StatusCreated, convert.ToAPIProject(project))
 }
 
+func CreateUserProject(ctx *context.APIContext) {
+	// swagger:operation POST /user/projects project projectCreateUserProject
+	// ---
+	// summary: Create a user project
+	// produces:
+	// - application/json
+	// consumes:
+	// - application/json
+	// parameters:
+	// - name: project
+	//   in: body
+	//   required: true
+	//   schema: { "$ref": "#/definitions/NewProjectPayload" }
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Project"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+}
+
+func CreateOrgProject(ctx *context.APIContext) {
+	// swagger:operation POST /orgs/{org}/projects project projectCreateOrgProject
+	// ---
+	// summary: Create a organization project
+	// produces:
+	// - application/json
+	// consumes:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: owner of repo
+	//   type: string
+	//   required: true
+	// - name: project
+	//   in: body
+	//   required: true
+	//   schema: { "$ref": "#/definitions/NewProjectPayload" }
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Project"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+}
+
 func ListRepositoryProjects(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/projects project projectListRepositoryProjects
 	// ---
@@ -256,4 +305,65 @@ func ListRepositoryProjects(ctx *context.APIContext) {
 	}
 
 	ctx.JSON(http.StatusOK, apiProjects)
+}
+
+func ListUserProjects(ctx *context.APIContext) {
+	// swagger:operation GET /user/projects project projectListUserProjects
+	// ---
+	// summary: List repository projects
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: closed
+	//   in: query
+	//   description: include closed issues or not
+	//   type: boolean
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ProjectList"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+}
+
+func ListOrgProjects(ctx *context.APIContext) {
+	// swagger:operation GET /orgs/{org}/projects project projectListOrgProjects
+	// ---
+	// summary: List repository projects
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: owner of the repository
+	//   type: string
+	//   required: true
+	// - name: closed
+	//   in: query
+	//   description: include closed issues or not
+	//   type: boolean
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ProjectList"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 }
