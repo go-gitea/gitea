@@ -11,16 +11,6 @@
   updated_unix: 1688973030
 
 -
-  id: 4
-  title: Fourth project
-  description: This is fourth project
-  repo_id: 1
-  is_closed: true
-  creator_id: 2
-  board_type: 1
-  type: 2
-
--
   id: 2
   title: second project
   owner_id: 0
