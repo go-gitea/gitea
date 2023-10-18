@@ -36,12 +36,16 @@ func isContainerPath(req *http.Request) bool {
 }
 
 var (
-	gitRawReleasePathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/)|(?:raw/)|(?:releases/download/))`)
-	lfsPathRe           = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/info/lfs/`)
+	gitRawOrAttachPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/)|(?:raw/)|(?:releases/download/)|(?:attachments/))`)
+	lfsPathRe            = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/info/lfs/`)
 )
 
-func isGitRawReleaseOrLFSPath(req *http.Request) bool {
-	if gitRawReleasePathRe.MatchString(req.URL.Path) {
+func isGitRawOrAttachPath(req *http.Request) bool {
+	return gitRawOrAttachPathRe.MatchString(req.URL.Path)
+}
+
+func isGitRawOrAttachOrLFSPath(req *http.Request) bool {
+	if isGitRawOrAttachPath(req) {
 		return true
 	}
 	if setting.LFS.StartServer {

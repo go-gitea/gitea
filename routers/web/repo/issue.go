@@ -246,6 +246,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		isShowClosed = true
 	}
 
+	archived := ctx.FormBool("archived")
+
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
@@ -305,7 +307,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		// Check read status
 		if !ctx.IsSigned {
 			issues[i].IsRead = true
-		} else if err = issues[i].GetIsRead(ctx.Doer.ID); err != nil {
+		} else if err = issues[i].GetIsRead(ctx, ctx.Doer.ID); err != nil {
 			ctx.ServerError("GetIsRead", err)
 			return
 		}
@@ -417,6 +419,15 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["PinnedIssues"] = pinned
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
 	ctx.Data["IssueStats"] = issueStats
+	ctx.Data["OpenCount"] = issueStats.OpenCount
+	ctx.Data["ClosedCount"] = issueStats.ClosedCount
+	linkStr := "%s?q=%s&type=%s&sort=%s&state=%s&labels=%s&milestone=%d&project=%d&assignee=%d&poster=%d&archived=%t"
+	ctx.Data["OpenLink"] = fmt.Sprintf(linkStr, ctx.Link,
+		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "open", url.QueryEscape(selectLabels),
+		mentionedID, projectID, assigneeID, posterID, archived)
+	ctx.Data["ClosedLink"] = fmt.Sprintf(linkStr, ctx.Link,
+		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "closed", url.QueryEscape(selectLabels),
+		mentionedID, projectID, assigneeID, posterID, archived)
 	ctx.Data["SelLabelIDs"] = labelIDs
 	ctx.Data["SelectLabels"] = selectLabels
 	ctx.Data["ViewType"] = viewType
@@ -432,6 +443,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	} else {
 		ctx.Data["State"] = "open"
 	}
+	ctx.Data["ShowArchivedLabels"] = archived
 
 	pager.AddParam(ctx, "q", "Keyword")
 	pager.AddParam(ctx, "type", "ViewType")
@@ -442,11 +454,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	pager.AddParam(ctx, "project", "ProjectID")
 	pager.AddParam(ctx, "assignee", "AssigneeID")
 	pager.AddParam(ctx, "poster", "PosterID")
+	pager.AddParam(ctx, "archived", "ShowArchivedLabels")
 
-	if ctx.FormBool("archived") {
-		ctx.Data["ShowArchivedLabels"] = true
-		pager.AddParam(ctx, "archived", "ShowArchivedLabels")
-	}
 	ctx.Data["Page"] = pager
 }
 
@@ -495,7 +504,7 @@ func Issues(ctx *context.Context) {
 
 func renderMilestones(ctx *context.Context) {
 	// Get milestones
-	milestones, _, err := issues_model.GetMilestones(issues_model.GetMilestonesOption{
+	milestones, _, err := issues_model.GetMilestones(ctx, issues_model.GetMilestonesOption{
 		RepoID: ctx.Repo.Repository.ID,
 		State:  api.StateAll,
 	})
@@ -519,7 +528,7 @@ func renderMilestones(ctx *context.Context) {
 // RetrieveRepoMilestonesAndAssignees find all the milestones and assignees of a repository
 func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.Repository) {
 	var err error
-	ctx.Data["OpenMilestones"], _, err = issues_model.GetMilestones(issues_model.GetMilestonesOption{
+	ctx.Data["OpenMilestones"], _, err = issues_model.GetMilestones(ctx, issues_model.GetMilestonesOption{
 		RepoID: repo.ID,
 		State:  api.StateOpen,
 	})
@@ -527,7 +536,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 		ctx.ServerError("GetMilestones", err)
 		return
 	}
-	ctx.Data["ClosedMilestones"], _, err = issues_model.GetMilestones(issues_model.GetMilestonesOption{
+	ctx.Data["ClosedMilestones"], _, err = issues_model.GetMilestones(ctx, issues_model.GetMilestonesOption{
 		RepoID: repo.ID,
 		State:  api.StateClosed,
 	})
@@ -830,7 +839,7 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 	}
 
 	// Contains true if the user can create issue dependencies
-	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.Doer, isPull)
+	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, isPull)
 
 	return labels
 }
@@ -965,10 +974,8 @@ func NewIssue(ctx *context.Context) {
 
 	_, templateErrs := issue_service.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	templateLoaded, errs := setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
-	if len(errs) > 0 {
-		for k, v := range errs {
-			templateErrs[k] = v
-		}
+	for k, v := range errs {
+		templateErrs[k] = v
 	}
 	if ctx.Written() {
 		return
@@ -1231,7 +1238,7 @@ func NewIssuePost(ctx *context.Context) {
 			ctx.Error(http.StatusBadRequest, "user hasn't permissions to read projects")
 			return
 		}
-		if err := issues_model.ChangeProjectAssign(issue, ctx.Doer, projectID); err != nil {
+		if err := issues_model.ChangeProjectAssign(ctx, issue, ctx.Doer, projectID); err != nil {
 			ctx.ServerError("ChangeProjectAssign", err)
 			return
 		}
@@ -1270,7 +1277,7 @@ func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *use
 		}
 
 		// Otherwise check if poster is the real repo admin.
-		ok, err := access_model.IsUserRealRepoAdmin(repo, poster)
+		ok, err := access_model.IsUserRealRepoAdmin(ctx, repo, poster)
 		if err != nil {
 			return roleDescriptor, err
 		}
@@ -1334,7 +1341,7 @@ func ViewIssue(ctx *context.Context) {
 		extIssueUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeExternalTracker)
 		if err == nil && extIssueUnit != nil {
 			if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric || extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == "" {
-				metas := ctx.Repo.Repository.ComposeMetas()
+				metas := ctx.Repo.Repository.ComposeMetas(ctx)
 				metas["index"] = ctx.Params(":index")
 				res, err := vars.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas)
 				if err != nil {
@@ -1427,7 +1434,7 @@ func ViewIssue(ctx *context.Context) {
 
 	issue.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.Repo.RepoLink,
-		Metas:     ctx.Repo.Repository.ComposeMetas(),
+		Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
 		GitRepo:   ctx.Repo.GitRepo,
 		Ctx:       ctx,
 	}, issue.Content)
@@ -1550,18 +1557,18 @@ func ViewIssue(ctx *context.Context) {
 					ctx.Data["OtherStopwatchURL"] = swIssue.Link()
 				}
 			}
-			ctx.Data["CanUseTimetracker"] = ctx.Repo.CanUseTimetracker(issue, ctx.Doer)
+			ctx.Data["CanUseTimetracker"] = ctx.Repo.CanUseTimetracker(ctx, issue, ctx.Doer)
 		} else {
 			ctx.Data["CanUseTimetracker"] = false
 		}
-		if ctx.Data["WorkingUsers"], err = issues_model.TotalTimesForEachUser(&issues_model.FindTrackedTimesOptions{IssueID: issue.ID}); err != nil {
+		if ctx.Data["WorkingUsers"], err = issues_model.TotalTimesForEachUser(ctx, &issues_model.FindTrackedTimesOptions{IssueID: issue.ID}); err != nil {
 			ctx.ServerError("TotalTimesForEachUser", err)
 			return
 		}
 	}
 
 	// Check if the user can use the dependencies
-	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.Doer, issue.IsPull)
+	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, issue.IsPull)
 
 	// check if dependencies can be created across repositories
 	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
@@ -1590,7 +1597,7 @@ func ViewIssue(ctx *context.Context) {
 
 			comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 				URLPrefix: ctx.Repo.RepoLink,
-				Metas:     ctx.Repo.Repository.ComposeMetas(),
+				Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
 				GitRepo:   ctx.Repo.GitRepo,
 				Ctx:       ctx,
 			}, comment.Content)
@@ -1667,7 +1674,7 @@ func ViewIssue(ctx *context.Context) {
 		} else if comment.Type.HasContentSupport() {
 			comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 				URLPrefix: ctx.Repo.RepoLink,
-				Metas:     ctx.Repo.Repository.ComposeMetas(),
+				Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
 				GitRepo:   ctx.Repo.GitRepo,
 				Ctx:       ctx,
 			}, comment.Content)
@@ -1728,7 +1735,7 @@ func ViewIssue(ctx *context.Context) {
 			comment.Type == issues_model.CommentTypeStopTracking ||
 			comment.Type == issues_model.CommentTypeDeleteTimeManual {
 			// drop error since times could be pruned from DB..
-			_ = comment.LoadTime()
+			_ = comment.LoadTime(ctx)
 			if comment.Content != "" {
 				// Content before v1.21 did store the formated string instead of seconds,
 				// so "|" is used as delimeter to mark the new format
@@ -1911,7 +1918,7 @@ func ViewIssue(ctx *context.Context) {
 			if pull.HasMerged || issue.IsClosed || !ctx.IsSigned {
 				return false
 			}
-			if pull.CanAutoMerge() || pull.IsWorkInProgress() || pull.IsChecking() {
+			if pull.CanAutoMerge() || pull.IsWorkInProgress(ctx) || pull.IsChecking() {
 				return false
 			}
 			if (ctx.Doer.IsAdmin || ctx.Repo.IsAdmin()) && prConfig.AllowManualMerge {
@@ -2225,7 +2232,7 @@ func UpdateIssueContent(ctx *context.Context) {
 
 	content, err := markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
-		Metas:     ctx.Repo.Repository.ComposeMetas(),
+		Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
 		GitRepo:   ctx.Repo.GitRepo,
 		Ctx:       ctx,
 	}, issue.Content)
@@ -2288,7 +2295,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 			continue
 		}
 		issue.MilestoneID = milestoneID
-		if err := issue_service.ChangeMilestoneAssign(issue, ctx.Doer, oldMilestoneID); err != nil {
+		if err := issue_service.ChangeMilestoneAssign(ctx, issue, ctx.Doer, oldMilestoneID); err != nil {
 			ctx.ServerError("ChangeMilestoneAssign", err)
 			return
 		}
@@ -2538,7 +2545,7 @@ func SearchIssues(ctx *context.Context) {
 			allPublic = true
 			opts.AllPublic = false // set it false to avoid returning too many repos, we could filter by indexer
 		}
-		repoIDs, _, err = repo_model.SearchRepositoryIDs(opts)
+		repoIDs, _, err = repo_model.SearchRepositoryIDs(ctx, opts)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchRepositoryIDs", err.Error())
 			return
@@ -3129,7 +3136,7 @@ func UpdateCommentContent(ctx *context.Context) {
 
 	content, err := markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
-		Metas:     ctx.Repo.Repository.ComposeMetas(),
+		Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
 		GitRepo:   ctx.Repo.GitRepo,
 		Ctx:       ctx,
 	}, comment.Content)
@@ -3579,7 +3586,7 @@ func handleTeamMentions(ctx *context.Context) {
 	if ctx.Doer.IsAdmin {
 		isAdmin = true
 	} else {
-		isAdmin, err = org.IsOwnedBy(ctx.Doer.ID)
+		isAdmin, err = org.IsOwnedBy(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("IsOwnedBy", err)
 			return
@@ -3587,13 +3594,13 @@ func handleTeamMentions(ctx *context.Context) {
 	}
 
 	if isAdmin {
-		teams, err = org.LoadTeams()
+		teams, err = org.LoadTeams(ctx)
 		if err != nil {
 			ctx.ServerError("LoadTeams", err)
 			return
 		}
 	} else {
-		teams, err = org.GetUserTeams(ctx.Doer.ID)
+		teams, err = org.GetUserTeams(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("GetUserTeams", err)
 			return
