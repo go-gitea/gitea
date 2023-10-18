@@ -193,7 +193,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		return
 	}
 
-	if err := auth_model.DeleteAccessTokenByID(ctx, tokenID, ctx.Doer.ID); err != nil {
+	if err := auth_model.DeleteAccessTokenByID(ctx, tokenID, ctx.ContextUser.ID); err != nil {
 		if auth_model.IsErrAccessTokenNotExist(err) {
 			ctx.NotFound()
 		} else {
@@ -236,7 +236,7 @@ func CreateOauth2Application(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "", "error creating oauth2 application")
 		return
 	}
-	secret, err := app.GenerateClientSecret()
+	secret, err := app.GenerateClientSecret(ctx)
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "", "error creating application secret")
 		return
@@ -266,7 +266,7 @@ func ListOauth2Applications(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/OAuth2ApplicationList"
 
-	apps, total, err := auth_model.ListOAuth2Applications(ctx.Doer.ID, utils.GetListOptions(ctx))
+	apps, total, err := auth_model.ListOAuth2Applications(ctx, ctx.Doer.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListOAuth2Applications", err)
 		return
@@ -302,7 +302,7 @@ func DeleteOauth2Application(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	appID := ctx.ParamsInt64(":id")
-	if err := auth_model.DeleteOAuth2Application(appID, ctx.Doer.ID); err != nil {
+	if err := auth_model.DeleteOAuth2Application(ctx, appID, ctx.Doer.ID); err != nil {
 		if auth_model.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound()
 		} else {
@@ -377,7 +377,7 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 
 	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
 
-	app, err := auth_model.UpdateOAuth2Application(auth_model.UpdateOAuth2ApplicationOptions{
+	app, err := auth_model.UpdateOAuth2Application(ctx, auth_model.UpdateOAuth2ApplicationOptions{
 		Name:               data.Name,
 		UserID:             ctx.Doer.ID,
 		ID:                 appID,
@@ -392,7 +392,7 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 		}
 		return
 	}
-	app.ClientSecret, err = app.GenerateClientSecret()
+	app.ClientSecret, err = app.GenerateClientSecret(ctx)
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "", "error updating application secret")
 		return

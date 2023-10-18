@@ -383,7 +383,7 @@ func PackageSettings(ctx *context.Context) {
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["PackageDescriptor"] = pd
 
-	repos, _, _ := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
+	repos, _, _ := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
 		Actor:   pd.Owner,
 		Private: true,
 	})
@@ -449,7 +449,7 @@ func PackageSettingsPost(ctx *context.Context) {
 
 		redirectURL := ctx.Package.Owner.HomeLink() + "/-/packages"
 		// redirect to the package if there are still versions available
-		if has, _ := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{PackageID: ctx.Package.Descriptor.Package.ID}); has {
+		if has, _ := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{PackageID: ctx.Package.Descriptor.Package.ID, IsInternal: util.OptionalBoolFalse}); has {
 			redirectURL = ctx.Package.Descriptor.PackageWebLink()
 		}
 
