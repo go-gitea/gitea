@@ -20,7 +20,7 @@ jobs:
       - run: git fetch --unshallow --quiet --tags --force
       - uses: actions/setup-go@v4
         with:
-          go-version: "~1.21"
+          go-version-file: go.mod
           check-latest: true
       - uses: actions/setup-node@v3
         with:
@@ -66,7 +66,7 @@ jobs:
       - run: git fetch --unshallow --quiet --tags --force
       - uses: actions/setup-go@v4
         with:
-          go-version: "~1.21"
+          go-version-file: go.mod
           check-latest: true
       - uses: docker/setup-qemu-action@v2
       - uses: docker/setup-buildx-action@v2
@@ -103,7 +103,7 @@ jobs:
       - run: git fetch --unshallow --quiet --tags --force
       - uses: actions/setup-go@v4
         with:
-          go-version: "~1.21"
+          go-version-file: go.mod
           check-latest: true
       - uses: docker/setup-qemu-action@v2
       - uses: docker/setup-buildx-action@v2
