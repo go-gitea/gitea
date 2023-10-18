@@ -3070,7 +3070,7 @@ tbody.commit-list {
   padding: 0;
   max-height: 30vh;
   overflow-x: hidden;
-  transition: max-height 0.4s;
+  transition: max-height 0.2s;
   border-bottom: 0 !important;
 }
 
