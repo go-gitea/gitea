@@ -414,31 +414,3 @@ type swaggerRepoNewIssuePinsAllowed struct {
 	// in:body
 	Body api.NewIssuePinsAllowed `json:"body"`
 }
-
-// Project
-// swagger:response Project
-type swaggerProject struct {
-	// in:body
-	Body api.Project `json:"body"`
-}
-
-// ProjectList
-// swagger:response ProjectList
-type swaggerProjectList struct {
-	// in:body
-	Body []api.Project `json:"body"`
-}
-
-// ProjectBoard
-// swagger:response ProjectBoard
-type swaggerProjectBoard struct {
-	// in:body
-	Body api.ProjectBoard `json:"body"`
-}
-
-// ProjectBoardList
-// swagger:response ProjectBoardList
-type swaggerProjectBoardList struct {
-	// in:body
-	Body []api.ProjectBoard `json:"body"`
-}
