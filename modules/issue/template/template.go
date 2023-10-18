@@ -458,7 +458,6 @@ func (o *valuedOption) getDropdownLabels() map[string][]string {
 			continue
 		}
 
-		fmt.Printf("Hello %s\n", key)
 		stringSlice := reflect.ValueOf(value)
 		for i := 0; i < stringSlice.Len(); i++ {
 			str, ok := stringSlice.Index(i).Interface().(string)
