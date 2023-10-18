@@ -302,7 +302,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		return nil
 	}); err != nil {
 		if rollbackRepo != nil {
-			if errDelete := DeleteRepositoryDirectly(ctx, doer, rollbackRepo.OwnerID, rollbackRepo.ID); errDelete != nil {
+			if errDelete := DeleteRepositoryDirectly(ctx, doer, rollbackRepo.ID); errDelete != nil {
 				log.Error("Rollback deleteRepository: %v", errDelete)
 			}
 		}
