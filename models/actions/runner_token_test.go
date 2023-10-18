@@ -12,10 +12,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetLastestRunnerToken(t *testing.T) {
+func TestGetLatestRunnerToken(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	token := unittest.AssertExistsAndLoadBean(t, &ActionRunnerToken{ID: 3})
-	expectedToken, err := GetLastestRunnerToken(db.DefaultContext, 1, 0)
+	expectedToken, err := GetLatestRunnerToken(db.DefaultContext, 1, 0)
 	assert.NoError(t, err)
 	assert.EqualValues(t, token, expectedToken)
 }
@@ -24,7 +24,7 @@ func TestNewRunnerToken(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	token, err := NewRunnerToken(db.DefaultContext, 1, 0)
 	assert.NoError(t, err)
-	expectedToken, err := GetLastestRunnerToken(db.DefaultContext, 1, 0)
+	expectedToken, err := GetLatestRunnerToken(db.DefaultContext, 1, 0)
 	assert.NoError(t, err)
 	assert.EqualValues(t, token, expectedToken)
 }
@@ -34,7 +34,7 @@ func TestUpdateRunnerToken(t *testing.T) {
 	token := unittest.AssertExistsAndLoadBean(t, &ActionRunnerToken{ID: 3})
 	token.IsActive = true
 	assert.NoError(t, UpdateRunnerToken(db.DefaultContext, token))
-	expectedToken, err := GetLastestRunnerToken(db.DefaultContext, 1, 0)
+	expectedToken, err := GetLatestRunnerToken(db.DefaultContext, 1, 0)
 	assert.NoError(t, err)
 	assert.EqualValues(t, token, expectedToken)
 }
