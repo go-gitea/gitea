@@ -1209,6 +1209,17 @@ func NewIssuePost(ctx *context.Context) {
 	if filename := ctx.Req.Form.Get("template-file"); filename != "" {
 		if template, err := issue_template.UnmarshalFromRepo(ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
 			content = issue_template.RenderToMarkdown(template, ctx.Req.Form)
+
+			templateLabels, err := issue_template.GetTemplateFieldLabels(ctx, template, ctx.Req.Form, repo.ID)
+			if err != nil {
+				ctx.ServerError("GetTemplateFieldLabels", err)
+			}
+
+			for _, labelID := range templateLabels {
+				if !slices.Contains(labelIDs, labelID) {
+					labelIDs = append(labelIDs, labelID)
+				}
+			}
 		}
 	}
 

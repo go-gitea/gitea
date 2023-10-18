@@ -4,12 +4,16 @@
 package template
 
 import (
+	"context"
 	"fmt"
 	"net/url"
+	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
+	issue_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/container"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -247,6 +251,33 @@ func RenderToMarkdown(template *api.IssueTemplate, values url.Values) string {
 	return builder.String()
 }
 
+func GetTemplateFieldLabels(ctx context.Context, template *api.IssueTemplate, values url.Values, repoID int64) ([]int64, error) {
+	labelList := make([]int64, 0)
+
+	for _, field := range template.Fields {
+		f := &valuedField{
+			IssueFormField: field,
+			Values:         values,
+		}
+		if f.ID == "" {
+			continue
+		}
+
+		fieldLabels, err := f.GetLabels(ctx, repoID)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, labelID := range fieldLabels {
+			if !slices.Contains(labelList, labelID) {
+				labelList = append(labelList, labelID)
+			}
+		}
+	}
+
+	return labelList, nil
+}
+
 type valuedField struct {
 	*api.IssueFormField
 	url.Values
@@ -304,6 +335,28 @@ func (f *valuedField) WriteTo(builder *strings.Builder) {
 		}
 	}
 	_, _ = fmt.Fprintln(builder)
+}
+
+func (f *valuedField) GetLabels(ctx context.Context, repoID int64) ([]int64, error) {
+	labelList := make([]int64, 0)
+
+	switch f.Type {
+	case api.IssueFormFieldTypeCheckboxes, api.IssueFormFieldTypeDropdown:
+		for _, option := range f.Options() {
+			fieldLabels, err := option.GetLabels(ctx, repoID)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, labelID := range fieldLabels {
+				if !slices.Contains(labelList, labelID) {
+					labelList = append(labelList, labelID)
+				}
+			}
+		}
+	}
+
+	return labelList, nil
 }
 
 func (f *valuedField) Label() string {
@@ -383,6 +436,91 @@ func (o *valuedOption) IsChecked() bool {
 		return o.field.Get(fmt.Sprintf("form-field-%s-%d", o.field.ID, o.index)) == "on"
 	}
 	return false
+}
+
+func (o *valuedOption) getDropdownLabels() map[string][]string {
+	optionsLabels := make(map[string][]string)
+
+	optionsAny, ok := o.field.Attributes["options_labels"]
+	if !ok {
+		return optionsLabels
+	}
+
+	optionsMap, ok := optionsAny.(map[string]any)
+	if !ok {
+		return optionsLabels
+	}
+
+	for key, value := range optionsMap {
+		optionsLabels[key] = make([]string, 0)
+
+		if reflect.TypeOf(value).Kind() != reflect.Slice {
+			continue
+		}
+
+		fmt.Printf("Hello %s\n", key)
+		stringSlice := reflect.ValueOf(value)
+		for i := 0; i < stringSlice.Len(); i++ {
+			str, ok := stringSlice.Index(i).Interface().(string)
+			if ok {
+				if !slices.Contains(optionsLabels[key], str) {
+					optionsLabels[key] = append(optionsLabels[key], str)
+				}
+			}
+		}
+	}
+
+	return optionsLabels
+}
+
+func (o *valuedOption) getCheckboxLabels() []string {
+	labelList := make([]string, 0)
+
+	vs, ok := o.data.(map[string]any)
+	if !ok {
+		return labelList
+	}
+
+	value, ok := vs["labels"]
+	if !ok {
+		return labelList
+	}
+
+	if reflect.TypeOf(value).Kind() != reflect.Slice {
+		return labelList
+	}
+
+	stringSlice := reflect.ValueOf(value)
+	for i := 0; i < stringSlice.Len(); i++ {
+		str, ok := stringSlice.Index(i).Interface().(string)
+		if ok {
+			if !slices.Contains(labelList, str) {
+				labelList = append(labelList, str)
+			}
+		}
+	}
+
+	return labelList
+}
+
+func (o *valuedOption) GetLabels(ctx context.Context, repoID int64) ([]int64, error) {
+	if !o.IsChecked() {
+		return make([]int64, 0), nil
+	}
+
+	switch o.field.Type {
+	case api.IssueFormFieldTypeDropdown:
+		dropdownLabels := o.getDropdownLabels()
+
+		labels, ok := dropdownLabels[o.Label()]
+		if ok {
+			return issue_model.GetLabelIDsInRepoByNames(ctx, repoID, labels)
+		}
+	case api.IssueFormFieldTypeCheckboxes:
+		return issue_model.GetLabelIDsInRepoByNames(ctx, repoID, o.getCheckboxLabels())
+	}
+
+	return make([]int64, 0), nil
 }
 
 var minQuotesRegex = regexp.MustCompilePOSIX("^`{3,}")
