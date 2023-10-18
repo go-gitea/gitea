@@ -1,17 +1,13 @@
-import $ from 'jquery';
-
 export function initRepoPullRequestCommitStatus() {
-  const $prStatus = $('.pr-status');
-
-  $('.hide-all-checks').on('click', async (e) => {
-    e.preventDefault();
-    const $this = $(e.currentTarget);
-
-    if ($prStatus.hasClass('hide')) {
-      $this.text($this.attr('data-hide-all'));
+  const btn = document.querySelector('.hide-all-checks');
+  const prCommitStatus = document.querySelector('.pr-commit-status');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    if (prCommitStatus.classList.contains('hide')) {
+      btn.textContent = btn.getAttribute('data-hide-all');
     } else {
-      $this.text($this.attr('data-show-all'));
+      btn.textContent = btn.getAttribute('data-show-all');
     }
-    $prStatus.toggleClass('hide');
+    prCommitStatus.classList.toggle('hide');
   });
 }
