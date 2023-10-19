@@ -124,7 +124,7 @@ func SettingsPost(ctx *context.Context) {
 
 	// update forks visibility
 	if visibilityChanged {
-		repos, _, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
+		repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
 			Actor: org.AsUser(), Private: true, ListOptions: db.ListOptions{Page: 1, PageSize: org.NumRepos},
 		})
 		if err != nil {
@@ -180,7 +180,7 @@ func SettingsDelete(ctx *context.Context) {
 			return
 		}
 
-		if err := org_service.DeleteOrganization(ctx.Org.Organization); err != nil {
+		if err := org_service.DeleteOrganization(ctx, ctx.Org.Organization); err != nil {
 			if models.IsErrUserOwnRepos(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
@@ -233,7 +233,7 @@ func Webhooks(ctx *context.Context) {
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
-	if err := webhook.DeleteWebhookByOwnerID(ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
+	if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))

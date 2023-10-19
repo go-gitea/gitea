@@ -82,8 +82,8 @@ func NewRunnerToken(ctx context.Context, ownerID, repoID int64) (*ActionRunnerTo
 	})
 }
 
-// GetLastestRunnerToken returns the latest runner token
-func GetLastestRunnerToken(ctx context.Context, ownerID, repoID int64) (*ActionRunnerToken, error) {
+// GetLatestRunnerToken returns the latest runner token
+func GetLatestRunnerToken(ctx context.Context, ownerID, repoID int64) (*ActionRunnerToken, error) {
 	var runnerToken ActionRunnerToken
 	has, err := db.GetEngine(ctx).Where("owner_id=? AND repo_id=?", ownerID, repoID).
 		OrderBy("id DESC").Get(&runnerToken)

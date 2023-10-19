@@ -72,7 +72,7 @@ func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 
 func syncAppConfForGit(ctx context.Context) error {
 	runtimeState := new(system.RuntimeState)
-	if err := system.AppState.Get(runtimeState); err != nil {
+	if err := system.AppState.Get(ctx, runtimeState); err != nil {
 		return err
 	}
 
@@ -95,7 +95,7 @@ func syncAppConfForGit(ctx context.Context) error {
 		log.Info("re-write ssh public keys ...")
 		mustInitCtx(ctx, asymkey_model.RewriteAllPublicKeys)
 
-		return system.AppState.Set(runtimeState)
+		return system.AppState.Set(ctx, runtimeState)
 	}
 	return nil
 }
@@ -136,7 +136,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInitCtx(ctx, common.InitDBEngine)
 	log.Info("ORM engine initialization successful!")
 	mustInit(system.Init)
-	mustInit(oauth2.Init)
+	mustInitCtx(ctx, oauth2.Init)
 
 	mustInitCtx(ctx, models.Init)
 	mustInitCtx(ctx, authmodel.Init)

@@ -318,7 +318,7 @@ func DeleteMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if err := models.RemoveOrgUser(ctx.Org.Organization.ID, member.ID); err != nil {
+	if err := models.RemoveOrgUser(ctx, ctx.Org.Organization.ID, member.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "RemoveOrgUser", err)
 	}
 	ctx.Status(http.StatusNoContent)

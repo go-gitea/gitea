@@ -144,18 +144,18 @@ func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.Use
 }
 
 // CanUseTimetracker returns whether or not a user can use the timetracker.
-func (r *Repository) CanUseTimetracker(issue *issues_model.Issue, user *user_model.User) bool {
+func (r *Repository) CanUseTimetracker(ctx context.Context, issue *issues_model.Issue, user *user_model.User) bool {
 	// Checking for following:
 	// 1. Is timetracker enabled
 	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
-	isAssigned, _ := issues_model.IsUserAssignedToIssue(db.DefaultContext, issue, user)
-	return r.Repository.IsTimetrackerEnabled(db.DefaultContext) && (!r.Repository.AllowOnlyContributorsToTrackTime(db.DefaultContext) ||
+	isAssigned, _ := issues_model.IsUserAssignedToIssue(ctx, issue, user)
+	return r.Repository.IsTimetrackerEnabled(ctx) && (!r.Repository.AllowOnlyContributorsToTrackTime(ctx) ||
 		r.Permission.CanWriteIssuesOrPulls(issue.IsPull) || issue.IsPoster(user.ID) || isAssigned)
 }
 
 // CanCreateIssueDependencies returns whether or not a user can create dependencies.
-func (r *Repository) CanCreateIssueDependencies(user *user_model.User, isPull bool) bool {
-	return r.Repository.IsDependenciesEnabled(db.DefaultContext) && r.Permission.CanWriteIssuesOrPulls(isPull)
+func (r *Repository) CanCreateIssueDependencies(ctx context.Context, user *user_model.User, isPull bool) bool {
+	return r.Repository.IsDependenciesEnabled(ctx) && r.Permission.CanWriteIssuesOrPulls(isPull)
 }
 
 // GetCommitsCount returns cached commit count for current view
@@ -498,7 +498,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, repoName)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
-			redirectRepoID, err := repo_model.LookupRedirect(owner.ID, repoName)
+			redirectRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, repoName)
 			if err == nil {
 				RedirectToRepo(ctx.Base, redirectRepoID)
 			} else if repo_model.IsErrRedirectNotExist(err) {
