@@ -420,3 +420,30 @@ func RemoveRepositoryFromTeam(ctx context.Context, t *organization.Team, repoID 
 
 	return committer.Commit()
 }
+
+// DeleteOwnerRepositoriesDirectly calls DeleteRepositoryDirectly for all repos of the given owner
+func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User) error {
+	for {
+		repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
+			ListOptions: db.ListOptions{
+				PageSize: repo_model.RepositoryListDefaultPageSize,
+				Page:     1,
+			},
+			Private: true,
+			OwnerID: owner.ID,
+			Actor:   owner,
+		})
+		if err != nil {
+			return fmt.Errorf("GetUserRepositories: %w", err)
+		}
+		if len(repos) == 0 {
+			break
+		}
+		for _, repo := range repos {
+			if err := DeleteRepositoryDirectly(ctx, owner, repo.ID); err != nil {
+				return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %w", repo.Name, owner.Name, owner.ID, err)
+			}
+		}
+	}
+	return nil
+}
