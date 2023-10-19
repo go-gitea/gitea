@@ -1,38 +1,39 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content dashboard issues">
 	{{template "user/dashboard/navbar" .}}
+
 	<div class="ui container">
 		<div class="ui stackable grid">
 			<div class="four wide column">
 				<div class="ui secondary vertical filter menu gt-bg-transparent">
-					<a class="{{if eq .ViewType "your_repositories"}}active{{end}} item" href="{{.Link}}?type=your_repositories&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
+					<a class="{{if eq .ViewType "your_repositories"}}active{{end}} item" href="{{.Link}}?type=your_repositories&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}&assignee={{$.FilterByAssigneeID}}&author={{$.FilterByAuthorID}}">
 						{{ctx.Locale.Tr "home.issues.in_your_repos"}}
 						<strong>{{CountFmt .IssueStats.YourRepositoriesCount}}</strong>
 					</a>
-					<a class="{{if eq .ViewType "assigned"}}active{{end}} item" href="{{.Link}}?type=assigned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
+					<a class="{{if eq .ViewType "assigned"}}active{{end}} item" href="{{.Link}}?type=assigned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}&assignee={{$.FilterByAssigneeID}}&author={{$.FilterByAuthorID}}">
 						{{ctx.Locale.Tr "repo.issues.filter_type.assigned_to_you"}}
 						<strong>{{CountFmt .IssueStats.AssignCount}}</strong>
 					</a>
-					<a class="{{if eq .ViewType "created_by"}}active{{end}} item" href="{{.Link}}?type=created_by&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
+					<a class="{{if eq .ViewType "created_by"}}active{{end}} item" href="{{.Link}}?type=created_by&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}&assignee={{$.FilterByAssigneeID}}&author={{$.FilterByAuthorID}}">
 						{{ctx.Locale.Tr "repo.issues.filter_type.created_by_you"}}
 						<strong>{{CountFmt .IssueStats.CreateCount}}</strong>
 					</a>
 					{{if .PageIsPulls}}
-						<a class="{{if eq .ViewType "review_requested"}}active{{end}} item" href="{{.Link}}?type=review_requested&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
+						<a class="{{if eq .ViewType "review_requested"}}active{{end}} item" href="{{.Link}}?type=review_requested&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}&assignee={{$.FilterByAssigneeID}}&author={{$.FilterByAuthorID}}">
 							{{ctx.Locale.Tr "repo.issues.filter_type.review_requested"}}
 							<strong>{{CountFmt .IssueStats.ReviewRequestedCount}}</strong>
 						</a>
-						<a class="{{if eq .ViewType "reviewed_by"}}active{{end}} item" href="{{.Link}}?type=reviewed_by&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
+						<a class="{{if eq .ViewType "reviewed_by"}}active{{end}} item" href="{{.Link}}?type=reviewed_by&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}&assignee={{$.FilterByAssigneeID}}&author={{$.FilterByAuthorID}}">
 							{{ctx.Locale.Tr "repo.issues.filter_type.reviewed_by_you"}}
 							<strong>{{CountFmt .IssueStats.ReviewedCount}}</strong>
 						</a>
 					{{end}}
-					<a class="{{if eq .ViewType "mentioned"}}active{{end}} item" href="{{.Link}}?type=mentioned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
+					<a class="{{if eq .ViewType "mentioned"}}active{{end}} item" href="{{.Link}}?type=mentioned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}&assignee={{$.FilterByAssigneeID}}&author={{$.FilterByAuthorID}}">
 						{{ctx.Locale.Tr "repo.issues.filter_type.mentioning_you"}}
 						<strong>{{CountFmt .IssueStats.MentionCount}}</strong>
 					</a>
 					<div class="divider"></div>
-					<a class="{{if not $.RepoIDs}}active{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}">
+					<a class="{{if not $.RepoIDs}}active{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}&assignee={{$.FilterByAssigneeID}}&author={{$.FilterByAuthorID}}">
 						<span class="text truncate">{{ctx.Locale.Tr "all"}}</span>
 						<span>{{CountFmt .TotalIssueCount}}</span>
 					</a>
@@ -62,11 +63,11 @@
 			<div class="twelve wide column content">
 				<div class="list-header">
 					<div class="small-menu-items ui compact tiny menu list-header-toggle">
-						<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
+						<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}&assignee={{$.FilterByAssigneeID}}&author={{$.FilterByAuthorID}}">
 							{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
 							{{ctx.Locale.PrettyNumber .IssueStats.OpenCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 						</a>
-						<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
+						<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}&assignee={{$.FilterByAssigneeID}}&author={{$.FilterByAuthorID}}">
 							{{svg "octicon-issue-closed" 16 "gt-mr-3"}}
 							{{ctx.Locale.PrettyNumber .IssueStats.ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 						</a>
@@ -106,7 +107,48 @@
 							<a class="ui primary button gt-ml-4" href="{{.SingleRepoLink}}/compare">{{ctx.Locale.Tr "repo.pulls.new"}}</a>
 						{{end}}
 					{{end}}
+					<div id="issue-filters" class="issue-list-toolbar-right">
+						<div class="ui secondary filter menu labels">
+							<!-- Author -->
+							<div class="ui dropdown jump item user-remote-search" data-tooltip-content="{{.locale.Tr "repo.author_search_tooltip"}}"
+								data-search-url="{{$.Link}}/posters"
+								data-selected-user-id="{{$.PosterID}}"
+								data-action-jump-url="{{$.Link}}?type=search&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{$.FilterByAssigneeID}}&author={user_id}"
+							>
+								<span class="text">
+									{{.locale.Tr "repo.issues.filter_poster"}}
+									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								</span>
+								<div class="menu">
+									<div class="ui icon search input">
+										<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+										<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_poster"}}">
+									</div>
+									<a class="item" data-value="0">{{.locale.Tr "repo.issues.filter_poster_no_select"}}</a>
+								</div>
+							</div>
+							<!-- Assignee -->
+							<div class="ui dropdown jump item user-remote-search" data-tooltip-content="{{.locale.Tr "repo.author_search_tooltip"}}"
+								data-search-url="{{$.Link}}/posters"
+								data-selected-user-id="{{$.PosterID}}"
+								data-action-jump-url="{{$.Link}}?type=search&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={user_id}&author={{$.FilterByAuthorID}}"
+							>
+								<span class="text">
+									{{.locale.Tr "repo.issues.filter_assignee"}}
+									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								</span>
+								<div class="menu">
+									<div class="ui icon search input">
+										<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+										<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignee"}}">
+									</div>
+									<a class="item" data-value="0">{{.locale.Tr "repo.issues.filter_assginee_no_select"}}</a>
+								</div>
+							</div>
+						</div>
+					</div>
 				</div>
+
 				{{template "shared/issuelist" dict "." . "listType" "dashboard"}}
 			</div>
 		</div>

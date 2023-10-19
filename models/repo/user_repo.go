@@ -163,12 +163,17 @@ func GetIssuePostersWithSearch(ctx context.Context, repo *Repository, isPull boo
 	if isShowFullName {
 		prefixCond = prefixCond.Or(builder.Like{"full_name", "%" + search + "%"})
 	}
-
-	cond := builder.In("`user`.id",
-		builder.Select("poster_id").From("issue").Where(
-			builder.Eq{"repo_id": repo.ID}.
-				And(builder.Eq{"is_pull": isPull}),
-		).GroupBy("poster_id")).And(prefixCond)
+	var cond builder.Cond
+	if repo != nil {
+		cond = builder.In("`user`.id",
+			builder.Select("poster_id").From("issue").Where(
+				builder.Eq{"repo_id": repo.ID}.
+					And(builder.Eq{"is_pull": isPull}),
+			).GroupBy("poster_id")).And(prefixCond)
+	} else {
+		cond = builder.In("`user`.id",
+			builder.Select("poster_id").From("issue").GroupBy("poster_id")).And(prefixCond)
+	}
 
 	return users, db.GetEngine(ctx).
 		Where(cond).

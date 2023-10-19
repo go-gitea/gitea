@@ -478,10 +478,15 @@ func registerRoutes(m *web.Route) {
 	}, ignExploreSignIn)
 	m.Group("/issues", func() {
 		m.Get("", user.Issues)
+		m.Get("/posters", repo.IssuePosters)
+		m.Get("/filter", user.Issues)
 		m.Get("/search", repo.SearchIssues)
 	}, reqSignIn)
 
-	m.Get("/pulls", reqSignIn, user.Pulls)
+	m.Group("/pulls", func() {
+		m.Get("", user.Pulls)
+		m.Get("/posters", repo.IssuePosters)
+	}, reqSignIn)
 	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
 
 	// ***** START: User *****

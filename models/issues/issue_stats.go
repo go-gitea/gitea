@@ -33,6 +33,7 @@ const (
 	FilterModeMention
 	FilterModeReviewRequested
 	FilterModeReviewed
+	FilterModeSearch
 	FilterModeYourRepositories
 )
 
