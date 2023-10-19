@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/agit"
+	org_service "code.gitea.io/gitea/services/org"
 	"code.gitea.io/gitea/services/packages"
 	container_service "code.gitea.io/gitea/services/packages/container"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -158,27 +159,9 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		//
 		// An alternative option here would be write a DeleteAllRepositoriesForUserID function which would delete all of the repos
 		// but such a function would likely get out of date
-		for {
-			repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
-				ListOptions: db.ListOptions{
-					PageSize: repo_model.RepositoryListDefaultPageSize,
-					Page:     1,
-				},
-				Private: true,
-				OwnerID: u.ID,
-				Actor:   u,
-			})
-			if err != nil {
-				return fmt.Errorf("GetUserRepositories: %w", err)
-			}
-			if len(repos) == 0 {
-				break
-			}
-			for _, repo := range repos {
-				if err := repo_service.DeleteRepositoryDirectly(ctx, u, repo.ID); err != nil {
-					return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %w", repo.Name, u.Name, u.ID, err)
-				}
-			}
+		err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, u)
+		if err != nil {
+			return err
 		}
 
 		// Remove from Organizations and delete last owner organizations
@@ -206,7 +189,10 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 			for _, org := range orgs {
 				if err := models.RemoveOrgUser(ctx, org.ID, u.ID); err != nil {
 					if organization.IsErrLastOrgOwner(err) {
-						err = organization.DeleteOrganization(ctx, org)
+						err = org_service.DeleteOrganization(ctx, org, true)
+						if err != nil {
+							return fmt.Errorf("unable to delete organization %d: %w", org.ID, err)
+						}
 					}
 					if err != nil {
 						return fmt.Errorf("unable to remove user %s[%d] from org %s[%d]. Error: %w", u.Name, u.ID, org.Name, org.ID, err)
