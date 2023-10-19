@@ -96,7 +96,15 @@ func AssertExistsAndLoadMap(t assert.TestingT, table string, conditions ...any) 
 // GetCount get the count of a bean
 func GetCount(t assert.TestingT, bean any, conditions ...any) int {
 	e := db.GetEngine(db.DefaultContext)
-	count, err := whereOrderConditions(e, conditions).Count(bean)
+	for _, condition := range conditions {
+		switch cond := condition.(type) {
+		case *testCond:
+			e = e.Where(cond.query, cond.args...)
+		default:
+			e = e.Where(cond)
+		}
+	}
+	count, err := e.Count(bean)
 	assert.NoError(t, err)
 	return int(count)
 }

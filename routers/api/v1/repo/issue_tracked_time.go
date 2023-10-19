@@ -191,7 +191,7 @@ func AddTime(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanUseTimetracker(issue, ctx.Doer) {
+	if !ctx.Repo.CanUseTimetracker(ctx, issue, ctx.Doer) {
 		if !ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 			ctx.Error(http.StatusBadRequest, "", "time tracking disabled")
 			return
@@ -274,7 +274,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanUseTimetracker(issue, ctx.Doer) {
+	if !ctx.Repo.CanUseTimetracker(ctx, issue, ctx.Doer) {
 		if !ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 			ctx.JSON(http.StatusBadRequest, struct{ Message string }{Message: "time tracking disabled"})
 			return
@@ -283,7 +283,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 		return
 	}
 
-	err = issues_model.DeleteIssueUserTimes(issue, ctx.Doer)
+	err = issues_model.DeleteIssueUserTimes(ctx, issue, ctx.Doer)
 	if err != nil {
 		if db.IsErrNotExist(err) {
 			ctx.Error(http.StatusNotFound, "DeleteIssueUserTimes", err)
@@ -347,7 +347,7 @@ func DeleteTime(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanUseTimetracker(issue, ctx.Doer) {
+	if !ctx.Repo.CanUseTimetracker(ctx, issue, ctx.Doer) {
 		if !ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 			ctx.JSON(http.StatusBadRequest, struct{ Message string }{Message: "time tracking disabled"})
 			return
@@ -356,7 +356,7 @@ func DeleteTime(ctx *context.APIContext) {
 		return
 	}
 
-	time, err := issues_model.GetTrackedTimeByID(ctx.ParamsInt64(":id"))
+	time, err := issues_model.GetTrackedTimeByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if db.IsErrNotExist(err) {
 			ctx.NotFound(err)
@@ -376,7 +376,7 @@ func DeleteTime(ctx *context.APIContext) {
 		return
 	}
 
-	err = issues_model.DeleteTime(time)
+	err = issues_model.DeleteTime(ctx, time)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteTime", err)
 		return
