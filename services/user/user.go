@@ -159,7 +159,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		// An alternative option here would be write a DeleteAllRepositoriesForUserID function which would delete all of the repos
 		// but such a function would likely get out of date
 		for {
-			repos, _, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
+			repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
 				ListOptions: db.ListOptions{
 					PageSize: repo_model.RepositoryListDefaultPageSize,
 					Page:     1,
@@ -175,7 +175,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 				break
 			}
 			for _, repo := range repos {
-				if err := repo_service.DeleteRepositoryDirectly(ctx, u, u.ID, repo.ID); err != nil {
+				if err := repo_service.DeleteRepositoryDirectly(ctx, u, repo.ID); err != nil {
 					return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %w", repo.Name, u.Name, u.ID, err)
 				}
 			}
@@ -189,7 +189,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		// An alternative option here would be write a function which would delete all organizations but it seems
 		// but such a function would likely get out of date
 		for {
-			orgs, err := organization.FindOrgs(organization.FindOrgOptions{
+			orgs, err := organization.FindOrgs(ctx, organization.FindOrgOptions{
 				ListOptions: db.ListOptions{
 					PageSize: repo_model.RepositoryListDefaultPageSize,
 					Page:     1,
@@ -204,7 +204,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 				break
 			}
 			for _, org := range orgs {
-				if err := models.RemoveOrgUser(org.ID, u.ID); err != nil {
+				if err := models.RemoveOrgUser(ctx, org.ID, u.ID); err != nil {
 					if organization.IsErrLastOrgOwner(err) {
 						err = organization.DeleteOrganization(ctx, org)
 					}
@@ -223,7 +223,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		}
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -265,10 +265,10 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	}
 	committer.Close()
 
-	if err = asymkey_model.RewriteAllPublicKeys(); err != nil {
+	if err = asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
 		return err
 	}
-	if err = asymkey_model.RewriteAllPrincipalKeys(db.DefaultContext); err != nil {
+	if err = asymkey_model.RewriteAllPrincipalKeys(ctx); err != nil {
 		return err
 	}
 

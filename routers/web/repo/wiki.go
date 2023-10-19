@@ -240,7 +240,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	rctx := &markup.RenderContext{
 		Ctx:       ctx,
 		URLPrefix: ctx.Repo.RepoLink,
-		Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
+		Metas:     ctx.Repo.Repository.ComposeDocumentMetas(ctx),
 		IsWiki:    true,
 	}
 	buf := &strings.Builder{}

@@ -13,11 +13,12 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
-	system_model "code.gitea.io/gitea/models/system"
+	"code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 
@@ -62,35 +63,46 @@ func InitSettings(extraConfigs ...string) {
 
 // TestOptions represents test options
 type TestOptions struct {
-	GiteaRootPath string
-	FixtureFiles  []string
-	SetUp         func() error // SetUp will be executed before all tests in this package
-	TearDown      func() error // TearDown will be executed after all tests in this package
+	FixtureFiles []string
+	SetUp        func() error // SetUp will be executed before all tests in this package
+	TearDown     func() error // TearDown will be executed after all tests in this package
 }
 
 // MainTest a reusable TestMain(..) function for unit tests that need to use a
 // test database. Creates the test database, and sets necessary settings.
-func MainTest(m *testing.M, testOpts *TestOptions) {
-	setting.CustomPath = filepath.Join(testOpts.GiteaRootPath, "custom")
+func MainTest(m *testing.M, testOpts ...*TestOptions) {
+	searchDir, _ := os.Getwd()
+	for searchDir != "" {
+		if _, err := os.Stat(filepath.Join(searchDir, "go.mod")); err == nil {
+			break // The "go.mod" should be the one for Gitea repository
+		}
+		if dir := filepath.Dir(searchDir); dir == searchDir {
+			searchDir = "" // reaches the root of filesystem
+		} else {
+			searchDir = dir
+		}
+	}
+	if searchDir == "" {
+		panic("The tests should run in a Gitea repository, there should be a 'go.mod' in the root")
+	}
+
+	giteaRoot = searchDir
+	setting.CustomPath = filepath.Join(giteaRoot, "custom")
 	InitSettings()
 
-	var err error
-
-	giteaRoot = testOpts.GiteaRootPath
-	fixturesDir = filepath.Join(testOpts.GiteaRootPath, "models", "fixtures")
-
+	fixturesDir = filepath.Join(giteaRoot, "models", "fixtures")
 	var opts FixturesOptions
-	if len(testOpts.FixtureFiles) == 0 {
+	if len(testOpts) == 0 || len(testOpts[0].FixtureFiles) == 0 {
 		opts.Dir = fixturesDir
 	} else {
-		for _, f := range testOpts.FixtureFiles {
+		for _, f := range testOpts[0].FixtureFiles {
 			if len(f) != 0 {
 				opts.Files = append(opts.Files, filepath.Join(fixturesDir, f))
 			}
 		}
 	}
 
-	if err = CreateTestEngine(opts); err != nil {
+	if err := CreateTestEngine(opts); err != nil {
 		fatalTestError("Error creating test engine: %v\n", err)
 	}
 
@@ -112,8 +124,8 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 		fatalTestError("TempDir: %v\n", err)
 	}
 	setting.AppDataPath = appDataPath
-	setting.AppWorkPath = testOpts.GiteaRootPath
-	setting.StaticRootPath = testOpts.GiteaRootPath
+	setting.AppWorkPath = giteaRoot
+	setting.StaticRootPath = giteaRoot
 	setting.GravatarSource = "https://secure.gravatar.com/avatar/"
 
 	setting.Attachment.Storage.Path = filepath.Join(setting.AppDataPath, "attachments")
@@ -134,17 +146,15 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 
 	setting.IncomingEmail.ReplyToAddress = "incoming+%{token}@localhost"
 
+	config.SetDynGetter(system.NewDatabaseDynKeyGetter())
+
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
 	}
-	if err = system_model.Init(db.DefaultContext); err != nil {
-		fatalTestError("models.Init: %v\n", err)
-	}
-
 	if err = util.RemoveAll(repoRootPath); err != nil {
 		fatalTestError("util.RemoveAll: %v\n", err)
 	}
-	if err = CopyDir(filepath.Join(testOpts.GiteaRootPath, "tests", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
+	if err = CopyDir(filepath.Join(giteaRoot, "tests", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
 		fatalTestError("util.CopyDir: %v\n", err)
 	}
 
@@ -171,16 +181,16 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 		}
 	}
 
-	if testOpts.SetUp != nil {
-		if err := testOpts.SetUp(); err != nil {
+	if len(testOpts) > 0 && testOpts[0].SetUp != nil {
+		if err := testOpts[0].SetUp(); err != nil {
 			fatalTestError("set up failed: %v\n", err)
 		}
 	}
 
 	exitStatus := m.Run()
 
-	if testOpts.TearDown != nil {
-		if err := testOpts.TearDown(); err != nil {
+	if len(testOpts) > 0 && testOpts[0].TearDown != nil {
+		if err := testOpts[0].TearDown(); err != nil {
 			fatalTestError("tear down failed: %v\n", err)
 		}
 	}

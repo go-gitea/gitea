@@ -79,10 +79,10 @@ func TestGetTrackedTimes(t *testing.T) {
 	assert.Len(t, times, 0)
 }
 
-func TestTotalTimes(t *testing.T) {
+func TestTotalTimesForEachUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	total, err := issues_model.TotalTimes(&issues_model.FindTrackedTimesOptions{IssueID: 1})
+	total, err := issues_model.TotalTimesForEachUser(db.DefaultContext, &issues_model.FindTrackedTimesOptions{IssueID: 1})
 	assert.NoError(t, err)
 	assert.Len(t, total, 1)
 	for user, time := range total {
@@ -90,7 +90,7 @@ func TestTotalTimes(t *testing.T) {
 		assert.EqualValues(t, 400, time)
 	}
 
-	total, err = issues_model.TotalTimes(&issues_model.FindTrackedTimesOptions{IssueID: 2})
+	total, err = issues_model.TotalTimesForEachUser(db.DefaultContext, &issues_model.FindTrackedTimesOptions{IssueID: 2})
 	assert.NoError(t, err)
 	assert.Len(t, total, 2)
 	for user, time := range total {
@@ -103,7 +103,7 @@ func TestTotalTimes(t *testing.T) {
 		}
 	}
 
-	total, err = issues_model.TotalTimes(&issues_model.FindTrackedTimesOptions{IssueID: 5})
+	total, err = issues_model.TotalTimesForEachUser(db.DefaultContext, &issues_model.FindTrackedTimesOptions{IssueID: 5})
 	assert.NoError(t, err)
 	assert.Len(t, total, 1)
 	for user, time := range total {
@@ -111,7 +111,7 @@ func TestTotalTimes(t *testing.T) {
 		assert.EqualValues(t, 1, time)
 	}
 
-	total, err = issues_model.TotalTimes(&issues_model.FindTrackedTimesOptions{IssueID: 4})
+	total, err = issues_model.TotalTimesForEachUser(db.DefaultContext, &issues_model.FindTrackedTimesOptions{IssueID: 4})
 	assert.NoError(t, err)
 	assert.Len(t, total, 2)
 }

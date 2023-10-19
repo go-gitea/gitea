@@ -129,8 +129,8 @@ func TestPackagePyPI(t *testing.T) {
 	t.Run("UploadExists", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		uploadFile(t, "test.whl", content, http.StatusBadRequest)
-		uploadFile(t, "test.tar.gz", content, http.StatusBadRequest)
+		uploadFile(t, "test.whl", content, http.StatusConflict)
+		uploadFile(t, "test.tar.gz", content, http.StatusConflict)
 	})
 
 	t.Run("Download", func(t *testing.T) {

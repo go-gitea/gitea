@@ -3,10 +3,12 @@
 
 package system
 
+import "context"
+
 // StateStore is the interface to get/set app state items
 type StateStore interface {
-	Get(item StateItem) error
-	Set(item StateItem) error
+	Get(ctx context.Context, item StateItem) error
+	Set(ctx context.Context, item StateItem) error
 }
 
 // StateItem provides the name for a state item. the name will be used to generate filenames, etc

@@ -93,7 +93,7 @@ func DeletePackageVersion(ctx *context.Context) {
 		return
 	}
 
-	if err := packages_service.RemovePackageVersion(ctx.Doer, pv); err != nil {
+	if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pv); err != nil {
 		ctx.ServerError("RemovePackageVersion", err)
 		return
 	}
