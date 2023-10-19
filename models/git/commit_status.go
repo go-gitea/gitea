@@ -235,7 +235,7 @@ func GetCommitStatuses(ctx context.Context, repo *repo_model.Repository, sha str
 
 	countSession := listCommitStatusesStatement(ctx, repo, sha, opts)
 	countSession = db.SetSessionPagination(countSession, opts)
-	maxResults, err := countSession.Count(new(CommitStatus))
+	maxResults, err := countSession.OrderBy("1").Count(new(CommitStatus))
 	if err != nil {
 		log.Error("Count PRs: %v", err)
 		return nil, maxResults, err

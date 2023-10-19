@@ -33,13 +33,25 @@ import (
 
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
-func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, repoID int64, ignoreOrgTeams ...bool) error {
+func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID int64, ignoreOrgTeams ...bool) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
+
+	repo := &repo_model.Repository{}
+	has, err := sess.ID(repoID).Get(repo)
+	if err != nil {
+		return err
+	} else if !has {
+		return repo_model.ErrRepoNotExist{
+			ID:        repoID,
+			OwnerName: "",
+			Name:      "",
+		}
+	}
 
 	// Query the action tasks of this repo, they will be needed after they have been deleted to remove the logs
 	tasks, err := actions_model.FindTasks(ctx, actions_model.FindTaskOptions{RepoID: repoID})
@@ -57,21 +69,8 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, r
 	// if ignoreOrgTeams is not true
 	var org *user_model.User
 	if len(ignoreOrgTeams) == 0 || !ignoreOrgTeams[0] {
-		if org, err = user_model.GetUserByID(ctx, uid); err != nil {
+		if org, err = user_model.GetUserByID(ctx, repo.OwnerID); err != nil {
 			return err
-		}
-	}
-
-	repo := &repo_model.Repository{OwnerID: uid}
-	has, err := sess.ID(repoID).Get(repo)
-	if err != nil {
-		return err
-	} else if !has {
-		return repo_model.ErrRepoNotExist{
-			ID:        repoID,
-			UID:       uid,
-			OwnerName: "",
-			Name:      "",
 		}
 	}
 
@@ -92,7 +91,6 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, r
 	} else if cnt != 1 {
 		return repo_model.ErrRepoNotExist{
 			ID:        repoID,
-			UID:       uid,
 			OwnerName: "",
 			Name:      "",
 		}
@@ -195,7 +193,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, r
 		}
 	}
 
-	if _, err := db.Exec(ctx, "UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
+	if _, err := db.Exec(ctx, "UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", repo.OwnerID); err != nil {
 		return err
 	}
 
