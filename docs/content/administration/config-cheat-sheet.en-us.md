@@ -616,7 +616,7 @@ And the following unique queues:
 - `REQUIRE_SIGNIN_VIEW`: **false**: Enable this to force users to log in to view any page or to use API.
 - `ENABLE_NOTIFY_MAIL`: **false**: Enable this to send e-mail to watchers of a repository when
    something happens, like creating issues. Requires `Mailer` to be enabled.
-- `ENABLE_BASIC_AUTHENTICATION`: **true**: Disable this to disallow authenticaton using HTTP
+- `ENABLE_BASIC_AUTHENTICATION`: **true**: Disable this to disallow authentication using HTTP
    BASIC and the user's password. Please note if you disable this you will not be able to access the
    tokens API endpoints using a password. Further, this only disables BASIC authentication using the
    password - not tokens or OAuth Basic.
@@ -1276,7 +1276,7 @@ Default storage configuration for attachments, lfs, avatars, repo-avatars, repo-
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
 
-The recommanded storage configuration for minio like below:
+The recommended storage configuration for minio like below:
 
 ```ini
 [storage]
@@ -1400,7 +1400,7 @@ Please note that using `self` is not recommended for most cases, as it could mak
 Additionally, it requires you to mirror all the actions you need to your Gitea instance, which may not be worth it.
 Therefore, please use `self` only if you understand what you are doing.
 
-In earlier versions (<= 1.19), `DEFAULT_ACTIONS_URL` cound be set to any custom URLs like `https://gitea.com` or `http://your-git-server,https://gitea.com`, and the default value was `https://gitea.com`.
+In earlier versions (<= 1.19), `DEFAULT_ACTIONS_URL` could be set to any custom URLs like `https://gitea.com` or `http://your-git-server,https://gitea.com`, and the default value was `https://gitea.com`.
 However, later updates removed those options, and now the only options are `github` and `self`, with the default value being `github`.
 However, if you want to use actions from other git server, you can use a complete URL in `uses` field, it's supported by Gitea (but not GitHub).
 Like `uses: https://gitea.com/actions/checkout@v3` or `uses: http://your-git-server/actions/checkout@v3`.
