@@ -1383,7 +1383,7 @@ PROXY_HOSTS = *.github.com
 
 ## Actions (`actions`)
 
-- `ENABLED`: **true**: Enable/Disable actions capabilities
+- `ENABLED`: **false**: Enable/Disable actions capabilities
 - `DEFAULT_ACTIONS_URL`: **github**: Default platform to get action plugins, `github` for `https://github.com`, `self` for the current Gitea instance.
 - `STORAGE_TYPE`: **local**: Storage type for actions logs, `local` for local disk or `minio` for s3 compatible object storage service, default is `local` or other name defined with `[storage.xxx]`
 - `MINIO_BASE_PATH`: **actions_log/**: Minio base path on the bucket only available when STORAGE_TYPE is `minio`
