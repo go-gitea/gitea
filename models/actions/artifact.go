@@ -164,7 +164,7 @@ func ListNeedExpiredArtifacts(ctx context.Context) ([]*ActionArtifact, error) {
 		Where("expired_unix < ? AND status = ?", timeutil.TimeStamp(time.Now().Unix()), ArtifactStatusUploadConfirmed).Find(&arts)
 }
 
-// ListNeedDeleteArtifacts returns all need delete artifacts but not deleted
+// ListNeedDeleteArtifacts returns all artifacts in need-delete status.
 // limit is the max number of artifacts to return.
 func ListNeedDeleteArtifacts(ctx context.Context, limit int) ([]*ActionArtifact, error) {
 	arts := make([]*ActionArtifact, 0, 10)

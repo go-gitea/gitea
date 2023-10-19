@@ -201,7 +201,7 @@ const sfc = {
     },
 
     async deleteArtifact(name) {
-      if (!window.confirm(this.locale.artifactDeleteConfirm)) {
+      if (!window.confirm(this.locale.areYouSure)) {
         return;
       }
       await DELETE(`${this.run.link}/artifacts/${name}`);
@@ -336,7 +336,7 @@ export function initRepositoryActionView() {
       cancel: el.getAttribute('data-locale-cancel'),
       rerun: el.getAttribute('data-locale-rerun'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
-      artifactDeleteConfirm: el.getAttribute('data-locale-artifact-delete-confirm'),
+      areYouSure: el.getAttribute('data-locale-are-you-sure'),
       rerun_all: el.getAttribute('data-locale-rerun-all'),
       showTimeStamps: el.getAttribute('data-locale-show-timestamps'),
       showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
