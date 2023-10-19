@@ -201,9 +201,7 @@ const sfc = {
     },
 
     async deleteArtifact(name) {
-      if (!window.confirm(this.locale.areYouSure)) {
-        return;
-      }
+      if (!window.confirm(this.locale.areYouSure)) return;
       await DELETE(`${this.run.link}/artifacts/${name}`);
       await this.loadJob();
     },
