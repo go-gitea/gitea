@@ -33,7 +33,7 @@ import (
 
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
-func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID int64) error {
+func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID int64, ignoreOrgTeams ...bool) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -65,10 +65,13 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 		return fmt.Errorf("list actions artifacts of repo %v: %w", repoID, err)
 	}
 
-	// In case is a organization.
-	org, err := user_model.GetUserByID(ctx, repo.OwnerID)
-	if err != nil {
-		return err
+	// In case owner is a organization, we have to change repo specific teams
+	// if ignoreOrgTeams is not true
+	var org *user_model.User
+	if len(ignoreOrgTeams) == 0 || !ignoreOrgTeams[0] {
+		if org, err = user_model.GetUserByID(ctx, repo.OwnerID); err != nil {
+			return err
+		}
 	}
 
 	// Delete Deploy Keys
@@ -93,7 +96,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 		}
 	}
 
-	if org.IsOrganization() {
+	if org != nil && org.IsOrganization() {
 		teams, err := organization.FindOrgTeams(ctx, org.ID)
 		if err != nil {
 			return err
