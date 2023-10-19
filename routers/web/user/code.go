@@ -100,7 +100,7 @@ func CodeSearch(ctx *context.Context) {
 			}
 		}
 
-		repoMaps, err := repo_model.GetRepositoriesMapByIDs(loadRepoIDs)
+		repoMaps, err := repo_model.GetRepositoriesMapByIDs(ctx, loadRepoIDs)
 		if err != nil {
 			ctx.ServerError("GetRepositoriesMapByIDs", err)
 			return

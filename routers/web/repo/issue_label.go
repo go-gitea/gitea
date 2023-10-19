@@ -85,7 +85,7 @@ func RetrieveLabels(ctx *context.Context) {
 			return
 		}
 		if ctx.Doer != nil {
-			ctx.Org.IsOwner, err = org.IsOwnedBy(ctx.Doer.ID)
+			ctx.Org.IsOwner, err = org.IsOwnedBy(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("org.IsOwnedBy", err)
 				return

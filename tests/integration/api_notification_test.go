@@ -100,7 +100,7 @@ func TestAPINotification(t *testing.T) {
 	assert.True(t, apiN.Unread)
 	assert.EqualValues(t, "issue4", apiN.Subject.Title)
 	assert.EqualValues(t, "Issue", apiN.Subject.Type)
-	assert.EqualValues(t, thread5.Issue.APIURL(), apiN.Subject.URL)
+	assert.EqualValues(t, thread5.Issue.APIURL(db.DefaultContext), apiN.Subject.URL)
 	assert.EqualValues(t, thread5.Repository.HTMLURL(), apiN.Repository.HTMLURL)
 
 	MakeRequest(t, NewRequest(t, "GET", "/api/v1/notifications/new"), http.StatusUnauthorized)

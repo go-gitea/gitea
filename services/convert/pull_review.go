@@ -36,10 +36,10 @@ func ToPullReview(ctx context.Context, r *issues_model.Review, doer *user_model.
 		Stale:             r.Stale,
 		Official:          r.Official,
 		Dismissed:         r.Dismissed,
-		CodeCommentsCount: r.GetCodeCommentsCount(),
+		CodeCommentsCount: r.GetCodeCommentsCount(ctx),
 		Submitted:         r.CreatedUnix.AsTime(),
 		Updated:           r.UpdatedUnix.AsTime(),
-		HTMLURL:           r.HTMLURL(),
+		HTMLURL:           r.HTMLURL(ctx),
 		HTMLPullURL:       r.Issue.HTMLURL(),
 	}
 
@@ -102,7 +102,7 @@ func ToPullReviewCommentList(ctx context.Context, review *issues_model.Review, d
 					CommitID:     comment.CommitSHA,
 					OrigCommitID: comment.OldRef,
 					DiffHunk:     patch2diff(comment.Patch),
-					HTMLURL:      comment.HTMLURL(),
+					HTMLURL:      comment.HTMLURL(ctx),
 					HTMLPullURL:  review.Issue.HTMLURL(),
 				}
 

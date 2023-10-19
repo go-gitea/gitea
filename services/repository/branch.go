@@ -161,7 +161,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 		}
 	}
 
-	pr, err := issues_model.GetLatestPullRequestByHeadInfo(repo.ID, branchName)
+	pr, err := issues_model.GetLatestPullRequestByHeadInfo(ctx, repo.ID, branchName)
 	if err != nil {
 		return nil, fmt.Errorf("GetLatestPullRequestByHeadInfo: %v", err)
 	}
