@@ -1,23 +1,23 @@
 {{$isNew:=or .PageIsSettingsHooksNew .PageIsAdminDefaultHooksNew .PageIsAdminSystemHooksNew}}
 <div class="field">
-	<h4>{{.locale.Tr "repo.settings.event_desc"}}</h4>
+	<h4>{{ctx.Locale.Tr "repo.settings.event_desc"}}</h4>
 	<div class="grouped event type fields">
 		<div class="field">
 			<div class="ui radio non-events checkbox">
 				<input name="events" type="radio" value="push_only" {{if or $isNew .Webhook.PushOnly}}checked{{end}}>
-				<label>{{.locale.Tr "repo.settings.event_push_only" | Str2html}}</label>
+				<label>{{ctx.Locale.Tr "repo.settings.event_push_only" | Str2html}}</label>
 			</div>
 		</div>
 		<div class="field">
 			<div class="ui radio non-events checkbox">
 				<input name="events" type="radio" value="send_everything" {{if .Webhook.SendEverything}}checked{{end}}>
-				<label>{{.locale.Tr "repo.settings.event_send_everything" | Str2html}}</label>
+				<label>{{ctx.Locale.Tr "repo.settings.event_send_everything" | Str2html}}</label>
 			</div>
 		</div>
 		<div class="field">
 			<div class="ui radio events checkbox">
 				<input name="events" type="radio" value="choose_events" {{if .Webhook.ChooseEvents}}checked{{end}}>
-				<label>{{.locale.Tr "repo.settings.event_choose" | Str2html}}</label>
+				<label>{{ctx.Locale.Tr "repo.settings.event_choose" | Str2html}}</label>
 			</div>
 		</div>
 	</div>
@@ -25,15 +25,15 @@
 	<div class="events fields ui grid {{if not .Webhook.ChooseEvents}}gt-hidden{{end}}">
 		<!-- Repository Events -->
 		<div class="fourteen wide column">
-			<label>{{.locale.Tr "repo.settings.event_header_repository"}}</label>
+			<label>{{ctx.Locale.Tr "repo.settings.event_header_repository"}}</label>
 		</div>
 		<!-- Create -->
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="create" type="checkbox" tabindex="0" {{if .Webhook.Create}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_create"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_create_desc"}}</span>
+					<input name="create" type="checkbox" {{if .Webhook.Create}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_create"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_create_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -41,9 +41,9 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="delete" type="checkbox" tabindex="0" {{if .Webhook.Delete}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_delete"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_delete_desc"}}</span>
+					<input name="delete" type="checkbox" {{if .Webhook.Delete}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_delete"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_delete_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -51,9 +51,9 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="fork" type="checkbox" tabindex="0" {{if .Webhook.Fork}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_fork"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_fork_desc"}}</span>
+					<input name="fork" type="checkbox" {{if .Webhook.Fork}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_fork"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_fork_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -61,9 +61,9 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="push" type="checkbox" tabindex="0" {{if .Webhook.Push}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_push"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_push_desc"}}</span>
+					<input name="push" type="checkbox" {{if .Webhook.Push}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_push"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_push_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -71,9 +71,9 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="repository" type="checkbox" tabindex="0" {{if .Webhook.Repository}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_repository"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_repository_desc"}}</span>
+					<input name="repository" type="checkbox" {{if .Webhook.Repository}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_repository"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_repository_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -81,9 +81,9 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="release" type="checkbox" tabindex="0" {{if .Webhook.Release}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_release"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_release_desc"}}</span>
+					<input name="release" type="checkbox" {{if .Webhook.Release}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_release"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_release_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -91,9 +91,9 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="package" type="checkbox" tabindex="0" {{if .Webhook.Package}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_package"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_package_desc"}}</span>
+					<input name="package" type="checkbox" {{if .Webhook.Package}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_package"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_package_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -102,24 +102,24 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="wiki" type="checkbox" tabindex="0" {{if .Webhook.Wiki}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_wiki"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_wiki_desc"}}</span>
+					<input name="wiki" type="checkbox" {{if .Webhook.Wiki}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_wiki"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_wiki_desc"}}</span>
 				</div>
 			</div>
 		</div>
 
 		<!-- Issue Events -->
 		<div class="fourteen wide column">
-			<label>{{.locale.Tr "repo.settings.event_header_issue"}}</label>
+			<label>{{ctx.Locale.Tr "repo.settings.event_header_issue"}}</label>
 		</div>
 		<!-- Issues -->
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="issues" type="checkbox" tabindex="0" {{if .Webhook.Issues}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_issues"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_issues_desc"}}</span>
+					<input name="issues" type="checkbox" {{if .Webhook.Issues}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_issues"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_issues_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -127,9 +127,9 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="issue_assign" type="checkbox" tabindex="0" {{if .Webhook.IssueAssign}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_issue_assign"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_issue_assign_desc"}}</span>
+					<input name="issue_assign" type="checkbox" {{if .Webhook.IssueAssign}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_issue_assign"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_issue_assign_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -137,9 +137,9 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="issue_label" type="checkbox" tabindex="0" {{if .Webhook.IssueLabel}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_issue_label"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_issue_label_desc"}}</span>
+					<input name="issue_label" type="checkbox" {{if .Webhook.IssueLabel}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_issue_label"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_issue_label_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -147,9 +147,9 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="issue_milestone" type="checkbox" tabindex="0" {{if .Webhook.IssueMilestone}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_issue_milestone"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_issue_milestone_desc"}}</span>
+					<input name="issue_milestone" type="checkbox" {{if .Webhook.IssueMilestone}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_issue_milestone"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_issue_milestone_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -157,24 +157,24 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="issue_comment" type="checkbox" tabindex="0" {{if .Webhook.IssueComment}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_issue_comment"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_issue_comment_desc"}}</span>
+					<input name="issue_comment" type="checkbox" {{if .Webhook.IssueComment}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_issue_comment"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_issue_comment_desc"}}</span>
 				</div>
 			</div>
 		</div>
 
 		<!-- Pull Request Events -->
 		<div class="fourteen wide column">
-			<label>{{.locale.Tr "repo.settings.event_header_pull_request"}}</label>
+			<label>{{ctx.Locale.Tr "repo.settings.event_header_pull_request"}}</label>
 		</div>
 		<!-- Pull Request -->
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="pull_request" type="checkbox" tabindex="0" {{if .Webhook.PullRequest}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_pull_request"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_pull_request_desc"}}</span>
+					<input name="pull_request" type="checkbox" {{if .Webhook.PullRequest}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_pull_request"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_pull_request_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -182,9 +182,9 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="pull_request_assign" type="checkbox" tabindex="0" {{if .Webhook.PullRequestAssign}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_pull_request_assign"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_pull_request_assign_desc"}}</span>
+					<input name="pull_request_assign" type="checkbox" {{if .Webhook.PullRequestAssign}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_pull_request_assign"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_pull_request_assign_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -192,9 +192,9 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="pull_request_label" type="checkbox" tabindex="0" {{if .Webhook.PullRequestLabel}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_pull_request_label"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_pull_request_label_desc"}}</span>
+					<input name="pull_request_label" type="checkbox" {{if .Webhook.PullRequestLabel}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_pull_request_label"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_pull_request_label_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -202,9 +202,9 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="pull_request_milestone" type="checkbox" tabindex="0" {{if .Webhook.PullRequestMilestone}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_pull_request_milestone"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_pull_request_milestone_desc"}}</span>
+					<input name="pull_request_milestone" type="checkbox" {{if .Webhook.PullRequestMilestone}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_pull_request_milestone"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_pull_request_milestone_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -212,9 +212,9 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="pull_request_comment" type="checkbox" tabindex="0" {{if .Webhook.PullRequestComment}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_pull_request_comment"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_pull_request_comment_desc"}}</span>
+					<input name="pull_request_comment" type="checkbox" {{if .Webhook.PullRequestComment}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_pull_request_comment"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_pull_request_comment_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -222,9 +222,9 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="pull_request_review" type="checkbox" tabindex="0" {{if .Webhook.PullRequestReview}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_pull_request_review"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_pull_request_review_desc"}}</span>
+					<input name="pull_request_review" type="checkbox" {{if .Webhook.PullRequestReview}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_pull_request_review"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_pull_request_review_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -232,9 +232,9 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="pull_request_sync" type="checkbox" tabindex="0" {{if .Webhook.PullRequestSync}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_pull_request_sync"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_pull_request_sync_desc"}}</span>
+					<input name="pull_request_sync" type="checkbox" {{if .Webhook.PullRequestSync}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_pull_request_sync"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_pull_request_sync_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -242,9 +242,9 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="pull_request_review_request" type="checkbox" tabindex="0" {{if .Webhook.PullRequestReviewRequest}}checked{{end}}>
-					<label>{{.locale.Tr "repo.settings.event_pull_request_review_request"}}</label>
-					<span class="help">{{.locale.Tr "repo.settings.event_pull_request_review_request_desc"}}</span>
+					<input name="pull_request_review_request" type="checkbox" {{if .Webhook.PullRequestReviewRequest}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_pull_request_review_request"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_pull_request_review_request_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -253,17 +253,17 @@
 
 <!-- Branch filter -->
 <div class="field">
-	<label for="branch_filter">{{.locale.Tr "repo.settings.branch_filter"}}</label>
-	<input name="branch_filter" type="text" tabindex="0" value="{{or .Webhook.BranchFilter "*"}}">
-	<span class="help">{{.locale.Tr "repo.settings.branch_filter_desc" | Str2html}}</span>
+	<label for="branch_filter">{{ctx.Locale.Tr "repo.settings.branch_filter"}}</label>
+	<input name="branch_filter" type="text" value="{{or .Webhook.BranchFilter "*"}}">
+	<span class="help">{{ctx.Locale.Tr "repo.settings.branch_filter_desc" | Str2html}}</span>
 </div>
 
 <!-- Authorization Header -->
 <div class="field{{if eq .HookType "matrix"}} required{{end}}">
-	<label for="authorization_header">{{.locale.Tr "repo.settings.authorization_header"}}</label>
+	<label for="authorization_header">{{ctx.Locale.Tr "repo.settings.authorization_header"}}</label>
 	<input id="authorization_header" name="authorization_header" type="text" value="{{.Webhook.HeaderAuthorization}}"{{if eq .HookType "matrix"}} placeholder="Bearer $access_token" required{{end}}>
 	{{if ne .HookType "matrix"}}{{/* Matrix doesn't make the authorization optional but it is implied by the help string, should be changed.*/}}
-		<span class="help">{{.locale.Tr "repo.settings.authorization_header_desc" "<code>Bearer token123456</code>, <code>Basic YWxhZGRpbjpvcGVuc2VzYW1l</code>" | Str2html}}</span>
+		<span class="help">{{ctx.Locale.Tr "repo.settings.authorization_header_desc" "<code>Bearer token123456</code>, <code>Basic YWxhZGRpbjpvcGVuc2VzYW1l</code>" | Str2html}}</span>
 	{{end}}
 </div>
 
@@ -271,17 +271,17 @@
 
 <div class="inline field">
 	<div class="ui checkbox">
-		<input name="active" type="checkbox" tabindex="0" {{if or $isNew .Webhook.IsActive}}checked{{end}}>
-		<label>{{.locale.Tr "repo.settings.active"}}</label>
-		<span class="help">{{.locale.Tr "repo.settings.active_helper"}}</span>
+		<input name="active" type="checkbox" {{if or $isNew .Webhook.IsActive}}checked{{end}}>
+		<label>{{ctx.Locale.Tr "repo.settings.active"}}</label>
+		<span class="help">{{ctx.Locale.Tr "repo.settings.active_helper"}}</span>
 	</div>
 </div>
 <div class="field">
 	{{if $isNew}}
-		<button class="ui green button">{{.locale.Tr "repo.settings.add_webhook"}}</button>
+		<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_webhook"}}</button>
 	{{else}}
-		<button class="ui green button">{{.locale.Tr "repo.settings.update_webhook"}}</button>
-		<a class="ui red delete-button button" data-url="{{.BaseLink}}/delete" data-id="{{.Webhook.ID}}">{{.locale.Tr "repo.settings.delete_webhook"}}</a>
+		<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_webhook"}}</button>
+		<a class="ui red delete-button button" data-url="{{.BaseLink}}/delete" data-id="{{.Webhook.ID}}">{{ctx.Locale.Tr "repo.settings.delete_webhook"}}</a>
 	{{end}}
 </div>
 

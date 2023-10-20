@@ -1,16 +1,18 @@
 <form class="list-header-search ui form ignore-dirty issue-list-search">
 	<div class="ui small search fluid action input">
-		<input type="hidden" name="type" value="{{$.ViewType}}">
 		<input type="hidden" name="state" value="{{$.State}}">
-		<input type="hidden" name="labels" value="{{.SelectLabels}}">
-		<input type="hidden" name="milestone" value="{{$.MilestoneID}}">
-		<input type="hidden" name="project" value="{{$.ProjectID}}">
-		<input type="hidden" name="assignee" value="{{$.AssigneeID}}">
-		<input type="hidden" name="poster" value="{{$.PosterID}}">
-		{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword}}
-		{{if .PageIsIssueList}}
-			<button id="issue-list-quick-goto" class="ui small icon button gt-hidden" data-tooltip-content="{{.locale.Tr "explore.go_to"}}" data-repo-link="{{.RepoLink}}">{{svg "octicon-hash"}}</button>
+		{{if not .PageIsMilestones}}
+			<input type="hidden" name="type" value="{{$.ViewType}}">
+			<input type="hidden" name="labels" value="{{.SelectLabels}}">
+			<input type="hidden" name="milestone" value="{{$.MilestoneID}}">
+			<input type="hidden" name="project" value="{{$.ProjectID}}">
+			<input type="hidden" name="assignee" value="{{$.AssigneeID}}">
+			<input type="hidden" name="poster" value="{{$.PosterID}}">
 		{{end}}
-		<button class="ui small icon button" aria-label="{{.locale.Tr "explore.search"}}">{{svg "octicon-search"}}</button>
+		{{template "shared/searchinput" dict "Value" .Keyword}}
+		{{if .PageIsIssueList}}
+			<button id="issue-list-quick-goto" class="ui small icon button gt-hidden" data-tooltip-content="{{ctx.Locale.Tr "explore.go_to"}}" data-repo-link="{{.RepoLink}}">{{svg "octicon-hash"}}</button>
+		{{end}}
+		<button class="ui small icon button" aria-label="{{ctx.Locale.Tr "explore.search"}}">{{svg "octicon-search"}}</button>
 	</div>
 </form>

@@ -110,7 +110,7 @@ export function initRepoIssueSidebarList() {
             }
             filteredResponse.results.push({
               name: `#${issue.number} ${htmlEscape(issue.title)
-              }<div class="text small dont-break-out">${htmlEscape(issue.repository.full_name)}</div>`,
+              }<div class="text small gt-word-break">${htmlEscape(issue.repository.full_name)}</div>`,
               value: issue.id,
             });
           });
@@ -178,9 +178,9 @@ export function initRepoIssueCommentDelete() {
           const idx = $conversationHolder.data('idx');
           const lineType = $conversationHolder.closest('tr').data('line-type');
           if (lineType === 'same') {
-            $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).removeClass('gt-invisible');
           } else {
-            $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('gt-invisible');
           }
           $conversationHolder.remove();
         }
@@ -678,5 +678,18 @@ export function initIssueTemplateCommentEditors($commentForm) {
 
   for (const el of $comboFields) {
     initCombo($(el));
+  }
+}
+
+// This function used to show and hide archived label on issue/pr
+//  page in the sidebar where we select the labels
+//  If we have any archived label tagged to issue and pr. We will show that
+//  archived label with checked classed otherwise we will hide it
+//  with the help of this function.
+//  This function runs globally.
+export function initArchivedLabelHandler() {
+  if (!document.querySelector('.archived-label-hint')) return;
+  for (const label of document.querySelectorAll('[data-is-archived]')) {
+    toggleElem(label, label.classList.contains('checked'));
   }
 }

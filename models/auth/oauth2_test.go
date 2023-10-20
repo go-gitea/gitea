@@ -18,7 +18,7 @@ import (
 func TestOAuth2Application_GenerateClientSecret(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	app := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: 1})
-	secret, err := app.GenerateClientSecret()
+	secret, err := app.GenerateClientSecret(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.True(t, len(secret) > 0)
 	unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: 1, ClientSecret: app.ClientSecret})
@@ -28,7 +28,7 @@ func BenchmarkOAuth2Application_GenerateClientSecret(b *testing.B) {
 	assert.NoError(b, unittest.PrepareTestDatabase())
 	app := unittest.AssertExistsAndLoadBean(b, &auth_model.OAuth2Application{ID: 1})
 	for i := 0; i < b.N; i++ {
-		_, _ = app.GenerateClientSecret()
+		_, _ = app.GenerateClientSecret(db.DefaultContext)
 	}
 }
 
@@ -63,10 +63,22 @@ func TestOAuth2Application_ContainsRedirectURI_WithPort(t *testing.T) {
 	assert.False(t, app.ContainsRedirectURI(":"))
 }
 
+func TestOAuth2Application_ContainsRedirect_Slash(t *testing.T) {
+	app := &auth_model.OAuth2Application{RedirectURIs: []string{"http://127.0.0.1"}}
+	assert.True(t, app.ContainsRedirectURI("http://127.0.0.1"))
+	assert.True(t, app.ContainsRedirectURI("http://127.0.0.1/"))
+	assert.False(t, app.ContainsRedirectURI("http://127.0.0.1/other"))
+
+	app = &auth_model.OAuth2Application{RedirectURIs: []string{"http://127.0.0.1/"}}
+	assert.True(t, app.ContainsRedirectURI("http://127.0.0.1"))
+	assert.True(t, app.ContainsRedirectURI("http://127.0.0.1/"))
+	assert.False(t, app.ContainsRedirectURI("http://127.0.0.1/other"))
+}
+
 func TestOAuth2Application_ValidateClientSecret(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	app := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: 1})
-	secret, err := app.GenerateClientSecret()
+	secret, err := app.GenerateClientSecret(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.True(t, app.ValidateClientSecret([]byte(secret)))
 	assert.False(t, app.ValidateClientSecret([]byte("fewijfowejgfiowjeoifew")))

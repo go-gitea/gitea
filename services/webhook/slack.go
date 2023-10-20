@@ -223,7 +223,7 @@ func (s *SlackPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, er
 		attachments = append(attachments, SlackAttachment{
 			Color:     fmt.Sprintf("%x", color),
 			Title:     issueTitle,
-			TitleLink: p.PullRequest.URL,
+			TitleLink: p.PullRequest.HTMLURL,
 			Text:      attachmentText,
 		})
 	}

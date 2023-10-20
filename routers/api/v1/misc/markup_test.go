@@ -10,10 +10,10 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
 
 	"github.com/stretchr/testify/assert"
@@ -34,7 +34,7 @@ func testRenderMarkup(t *testing.T, mode, filePath, text, responseBody string, r
 		Wiki:     true,
 		FilePath: filePath,
 	}
-	ctx, resp := test.MockAPIContext(t, "POST /api/v1/markup")
+	ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markup")
 	web.SetForm(ctx, &options)
 	Markup(ctx)
 	assert.Equal(t, responseBody, resp.Body.String())
@@ -50,7 +50,7 @@ func testRenderMarkdown(t *testing.T, mode, text, responseBody string, responseC
 		Context: Repo,
 		Wiki:    true,
 	}
-	ctx, resp := test.MockAPIContext(t, "POST /api/v1/markdown")
+	ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markdown")
 	web.SetForm(ctx, &options)
 	Markdown(ctx)
 	assert.Equal(t, responseBody, resp.Body.String())
@@ -162,7 +162,7 @@ func TestAPI_RenderSimple(t *testing.T) {
 		Text:    "",
 		Context: Repo,
 	}
-	ctx, resp := test.MockAPIContext(t, "POST /api/v1/markdown")
+	ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markdown")
 	for i := 0; i < len(simpleCases); i += 2 {
 		options.Text = simpleCases[i]
 		web.SetForm(ctx, &options)
@@ -174,7 +174,7 @@ func TestAPI_RenderSimple(t *testing.T) {
 
 func TestAPI_RenderRaw(t *testing.T) {
 	setting.AppURL = AppURL
-	ctx, resp := test.MockAPIContext(t, "POST /api/v1/markdown")
+	ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markdown")
 	for i := 0; i < len(simpleCases); i += 2 {
 		ctx.Req.Body = io.NopCloser(strings.NewReader(simpleCases[i]))
 		MarkdownRaw(ctx)

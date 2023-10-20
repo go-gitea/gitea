@@ -10,6 +10,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	secret_model "code.gitea.io/gitea/models/secret"
 	actions_module "code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -55,8 +56,12 @@ func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 
 func getSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) map[string]string {
 	secrets := map[string]string{}
+
+	secrets["GITHUB_TOKEN"] = task.Token
+	secrets["GITEA_TOKEN"] = task.Token
+
 	if task.Job.Run.IsForkPullRequest && task.Job.Run.TriggerEvent != actions_module.GithubEventPullRequestTarget {
-		// ignore secrets for fork pull request
+		// ignore secrets for fork pull request, except GITHUB_TOKEN and GITEA_TOKEN which are automatically generated.
 		// for the tasks triggered by pull_request_target event, they could access the secrets because they will run in the context of the base branch
 		// see the documentation: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_target
 		return secrets
@@ -80,13 +85,6 @@ func getSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) map[s
 		} else {
 			secrets[secret.Name] = v
 		}
-	}
-
-	if _, ok := secrets["GITHUB_TOKEN"]; !ok {
-		secrets["GITHUB_TOKEN"] = task.Token
-	}
-	if _, ok := secrets["GITEA_TOKEN"]; !ok {
-		secrets["GITEA_TOKEN"] = task.Token
 	}
 
 	return secrets
@@ -200,10 +198,7 @@ func findTaskNeeds(ctx context.Context, task *actions_model.ActionTask) (map[str
 	if len(task.Job.Needs) == 0 {
 		return nil, nil
 	}
-	needs := map[string]struct{}{}
-	for _, v := range task.Job.Needs {
-		needs[v] = struct{}{}
-	}
+	needs := container.SetOf(task.Job.Needs...)
 
 	jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: task.Job.RunID})
 	if err != nil {
@@ -212,7 +207,7 @@ func findTaskNeeds(ctx context.Context, task *actions_model.ActionTask) (map[str
 
 	ret := make(map[string]*runnerv1.TaskNeed, len(needs))
 	for _, job := range jobs {
-		if _, ok := needs[job.JobID]; !ok {
+		if !needs.Contains(job.JobID) {
 			continue
 		}
 		if job.TaskID == 0 || !job.Status.IsDone() {
