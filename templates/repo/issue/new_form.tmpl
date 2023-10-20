@@ -66,7 +66,7 @@
 					{{range .Reviewers}}
 						{{if .User}}
 							<a class="item muted" data-id="{{.ItemID}}" data-id-selector="#reviewer_{{.ItemID}}">
-								<span class="octicon-check invisible">{{svg "octicon-check"}}</span>
+								<span class="octicon-check gt-invisible">{{svg "octicon-check"}}</span>
 								<span class="text">
 									{{ctx.AvatarUtils.Avatar .User 28 "gt-mr-3"}}{{template "repo/search_name" .User}}
 								</span>
@@ -77,7 +77,7 @@
 					{{range .Reviewers}}
 						{{if .Team}}
 							<a class="item muted" data-id="{{.ItemID}}" data-id-selector="#reviewer_{{.ItemID}}">
-								<span class="octicon-check invisible">{{svg "octicon-check" 16}}</span>
+								<span class="octicon-check gt-invisible">{{svg "octicon-check" 16}}</span>
 								<span class="text">
 									{{svg "octicon-people" 16 "gt-ml-4 gt-mr-2"}}{{$.Repository.OwnerName}}/{{.Team.Name}}
 								</span>
