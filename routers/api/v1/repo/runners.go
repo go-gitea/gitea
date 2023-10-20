@@ -10,7 +10,7 @@ import (
 
 // GetRegistrationToken returns the token to register repo runners
 func GetRegistrationToken(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/runners/registration-token repo repoGetRunnerRegistrationToken
+	// swagger:operation GET /repos/{owner}/{repo}/runners/registration-token repository repoGetRunnerRegistrationToken
 	// ---
 	// summary: Get a repository's actions runner registration token
 	// produces:
