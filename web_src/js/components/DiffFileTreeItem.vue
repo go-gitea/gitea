@@ -61,7 +61,7 @@ a, a:hover {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  padding-left: 7px;
+  padding-left: 8px;
 }
 
 .sub-items .item-file {
