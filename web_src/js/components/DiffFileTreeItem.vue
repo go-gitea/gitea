@@ -58,11 +58,14 @@ a, a:hover {
 }
 
 .sub-items {
-  padding-left: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: 7px;
 }
 
-.item-file + .item-file {
-  margin-top: 2px;
+.sub-items .item-file {
+  padding-left: 24px;
 }
 
 .item-file.selected {
