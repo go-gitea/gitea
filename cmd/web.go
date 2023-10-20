@@ -330,7 +330,7 @@ func listen(m http.Handler, handleRedirector bool) error {
 				NoHTTPRedirector()
 			}
 		}
-		err = runHTTPS("tcp", listenAddr, "Web", setting.CertFile, setting.KeyFile, m, setting.UseProxyProtocol, setting.ProxyProtocolTLSBridging)
+		err = runHTTPS("tcp", listenAddr, "Web", setting.CertFile, setting.KeyFile, setting.CAFile, m, setting.UseProxyProtocol, setting.ProxyProtocolTLSBridging)
 	case setting.FCGI:
 		if handleRedirector {
 			NoHTTPRedirector()

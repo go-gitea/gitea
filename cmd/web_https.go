@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"net/http"
 	"os"
 	"strings"
@@ -135,7 +136,11 @@ var (
 // be provided. If the certificate is signed by a certificate authority, the
 // certFile should be the concatenation of the server's certificate followed by the
 // CA's certificate.
-func runHTTPS(network, listenAddr, name, certFile, keyFile string, m http.Handler, useProxyProtocol, proxyProtocolTLSBridging bool) error {
+//
+// caFile can optionally point to a PEM encoded CA certificate file. It is used to
+// validate certificates presented by the client against. When supplied, mutual TLS
+// is enforced and no other TLS channels are established.
+func runHTTPS(network, listenAddr, name, certFile, keyFile, caFile string, m http.Handler, useProxyProtocol, proxyProtocolTLSBridging bool) error {
 	tlsConfig := &tls.Config{}
 	if tlsConfig.NextProtos == nil {
 		tlsConfig.NextProtos = []string{"h2", "http/1.1"}
@@ -181,6 +186,22 @@ func runHTTPS(network, listenAddr, name, certFile, keyFile string, m http.Handle
 	if err != nil {
 		log.Error("Failed to create certificate from cert file %s and key file %s for %s:%s: %v", certFile, keyFile, network, listenAddr, err)
 		return err
+	}
+
+	// Adding additional client certificate validation.
+	if caFile != "" {
+		caPEMBlock, err := os.ReadFile(caFile)
+		if err != nil {
+			log.Error("Failed to load https ca file %s for %s:%s: %v", caFile, network, listenAddr, err)
+			return err
+		}
+
+		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+		tlsConfig.ClientCAs = x509.NewCertPool()
+
+		if !tlsConfig.ClientCAs.AppendCertsFromPEM(caPEMBlock) {
+			log.Fatal("Failed to load https ca file %s into cert pool for %s:%s", caFile, network, listenAddr)
+		}
 	}
 
 	return graceful.HTTPListenAndServeTLSConfig(network, listenAddr, name, tlsConfig, m, useProxyProtocol, proxyProtocolTLSBridging)
