@@ -1497,7 +1497,8 @@
   position: sticky;
   top: 0;
   z-index: 8;
-  padding: 7px 0;
+  padding: 7px 5px;
+  margin: 0 -5px; /* negative margin so it covers active file shadow */
   height: 44px; /* this height should match sticky-2nd-row */
   background: var(--color-body);
 }
@@ -2050,6 +2051,7 @@
 
 .repository .repository-summary .segment.language-stats {
   display: flex;
+  gap: 2px;
   padding: 0;
   height: 10px;
   white-space: nowrap;
