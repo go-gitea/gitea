@@ -2051,6 +2051,7 @@
 
 .repository .repository-summary .segment.language-stats {
   display: flex;
+  gap: 2px;
   padding: 0;
   height: 10px;
   white-space: nowrap;
