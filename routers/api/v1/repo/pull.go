@@ -16,6 +16,7 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -420,8 +421,46 @@ func CreatePullRequest(ctx *context.APIContext) {
 			return
 		}
 	}
+	// handle reviewers
+	var reviewerIds []int64
 
-	if err := pull_service.NewPullRequest(ctx, repo, prIssue, labelIDs, []string{}, pr, assigneeIDs, []int64{}); err != nil {
+	for _, r := range form.Reviewers {
+		var reviewer *user_model.User
+		if strings.Contains(r, "@") {
+			reviewer, err = user_model.GetUserByEmail(ctx, r)
+		} else {
+			reviewer, err = user_model.GetUserByName(ctx, r)
+		}
+
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.NotFound("UserNotExist", fmt.Sprintf("User with id '%s' not exist", r))
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "GetUser", err)
+			return
+		}
+		reviewerIds = append(reviewerIds, reviewer.ID)
+	}
+
+	// handle teams as reviewers
+	if ctx.Repo.Repository.Owner.IsOrganization() && len(form.TeamReviewers) > 0 {
+		for _, t := range form.TeamReviewers {
+			var teamReviewer *organization.Team
+			teamReviewer, err = organization.GetTeam(ctx, ctx.Repo.Owner.ID, t)
+			if err != nil {
+				if organization.IsErrTeamNotExist(err) {
+					ctx.NotFound("TeamNotExist", fmt.Sprintf("Team '%s' not exist", t))
+					return
+				}
+				ctx.Error(http.StatusInternalServerError, "ReviewRequest", err)
+				return
+			}
+			reviewerIds = append(reviewerIds, teamReviewer.ID)
+		}
+	}
+
+	if err := pull_service.NewPullRequest(ctx, repo, prIssue, labelIDs, []string{}, pr, assigneeIDs, reviewerIds); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err)
 			return
