@@ -11,25 +11,18 @@
 					<div class="gt-mx-2">/</div>
 					<a href="{{$.RepoLink}}">{{.Name}}</a>
 					<div class="labels gt-df gt-ac gt-fw">
-						{{if .IsTemplate}}
-							{{if .IsPrivate}}
-								<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private_template"}}</span>
-							{{else}}
-								{{if .Owner.Visibility.IsPrivate}}
-									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal_template"}}</span>
-								{{end}}
-							{{end}}
-						{{else}}
-							{{if .IsPrivate}}
-								<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
-							{{else}}
-								{{if .Owner.Visibility.IsPrivate}}
-									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal"}}</span>
-								{{end}}
-							{{end}}
-						{{end}}
 						{{if .IsArchived}}
 							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
+						{{end}}
+						{{if .IsPrivate}}
+							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
+						{{else}}
+							{{if .Owner.Visibility.IsPrivate}}
+								<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal"}}</span>
+							{{end}}
+						{{end}}
+						{{if .IsTemplate}}
+							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.template"}}</span>
 						{{end}}
 					</div>
 					{{if $.EnableFeed}}
