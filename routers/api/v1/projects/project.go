@@ -218,6 +218,30 @@ func CreateUserProject(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	form := web.GetForm(ctx).(*api.NewProjectPayload)
+	project := &project_model.Project{
+		RepoID:      ctx.Repo.Repository.ID,
+		Title:       form.Title,
+		Description: form.Description,
+		CreatorID:   ctx.Doer.ID,
+		BoardType:   project_model.BoardType(form.BoardType),
+		Type:        project_model.TypeIndividual,
+	}
+
+	var err error
+	if err = project_model.NewProject(ctx, project); err != nil {
+		ctx.Error(http.StatusInternalServerError, "NewProject", err)
+		return
+	}
+
+	project, err = project_model.GetProjectByID(ctx, project.ID)
+
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetProjectByID", err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, convert.ToAPIProject(project))
 }
 
 func CreateOrgProject(ctx *context.APIContext) {
@@ -245,6 +269,30 @@ func CreateOrgProject(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	form := web.GetForm(ctx).(*api.NewProjectPayload)
+	project := &project_model.Project{
+		RepoID:      ctx.Repo.Repository.ID,
+		Title:       form.Title,
+		Description: form.Description,
+		CreatorID:   ctx.Doer.ID,
+		BoardType:   project_model.BoardType(form.BoardType),
+		Type:        project_model.TypeOrganization,
+	}
+
+	var err error
+	if err = project_model.NewProject(ctx, project); err != nil {
+		ctx.Error(http.StatusInternalServerError, "NewProject", err)
+		return
+	}
+
+	project, err = project_model.GetProjectByID(ctx, project.ID)
+
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetProjectByID", err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, convert.ToAPIProject(project))
 }
 
 func ListRepositoryProjects(ctx *context.APIContext) {
@@ -333,6 +381,26 @@ func ListUserProjects(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	projects, count, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+		Page:     ctx.FormInt("page"),
+		IsClosed: ctx.FormOptionalBool("closed"),
+		Type:     project_model.TypeIndividual,
+	})
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Projects", err)
+		return
+	}
+
+	ctx.SetLinkHeader(int(count), setting.UI.IssuePagingNum)
+	ctx.SetTotalCountHeader(count)
+
+	apiProjects, err := convert.ToAPIProjectList(projects)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, apiProjects)
 }
 
 func ListOrgProjects(ctx *context.APIContext) {
@@ -366,4 +434,24 @@ func ListOrgProjects(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	projects, count, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+		Page:     ctx.FormInt("page"),
+		IsClosed: ctx.FormOptionalBool("closed"),
+		Type:     project_model.TypeOrganization,
+	})
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Projects", err)
+		return
+	}
+
+	ctx.SetLinkHeader(int(count), setting.UI.IssuePagingNum)
+	ctx.SetTotalCountHeader(count)
+
+	apiProjects, err := convert.ToAPIProjectList(projects)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, apiProjects)
 }
