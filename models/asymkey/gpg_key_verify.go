@@ -4,6 +4,7 @@
 package asymkey
 
 import (
+	"context"
 	"strconv"
 	"time"
 
@@ -29,8 +30,8 @@ import (
 // This file provides functions relating verifying gpg keys
 
 // VerifyGPGKey marks a GPG key as verified
-func VerifyGPGKey(ownerID int64, keyID, token, signature string) (string, error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func VerifyGPGKey(ctx context.Context, ownerID int64, keyID, token, signature string) (string, error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return "", err
 	}

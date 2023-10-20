@@ -811,7 +811,7 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	// handle manually-merged mark
 	if manuallyMerged {
-		if err := pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
+		if err := pull_service.MergedManually(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			if models.IsErrInvalidMergeStyle(err) {
 				ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 				return

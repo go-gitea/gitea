@@ -91,7 +91,7 @@ loop:
 				}
 
 				for _, userStopwatches := range usersStopwatches {
-					apiSWs, err := convert.ToStopWatches(userStopwatches.StopWatches)
+					apiSWs, err := convert.ToStopWatches(ctx, userStopwatches.StopWatches)
 					if err != nil {
 						if !issues_model.IsErrIssueNotExist(err) {
 							log.Error("Unable to APIFormat stopwatches: %v", err)
