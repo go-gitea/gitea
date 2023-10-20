@@ -34,6 +34,7 @@ var microcmdUserChangePassword = &cli.Command{
 		},
 		&cli.BoolFlag{
 			Name:  "must-change-password",
+			Value: true,
 			Usage: "User must change password",
 		},
 	},
