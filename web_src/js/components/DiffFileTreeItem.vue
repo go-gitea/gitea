@@ -61,8 +61,8 @@ a, a:hover {
   padding-left: 9px;
 }
 
-.item-file {
-  margin-left: 20px;
+.item-file + .item-file {
+  margin-top: 2px;
 }
 
 .item-file.selected {
@@ -80,7 +80,7 @@ a, a:hover {
   display: flex;
   align-items: center;
   gap: 0.25em;
-  padding: 2px;
+  padding: 3px 6px;
 }
 
 .item-file:hover,
