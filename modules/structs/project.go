@@ -10,7 +10,9 @@ type NewProjectPayload struct {
 	// required:true
 	Title string `json:"title" binding:"Required"`
 	// required:true
-	BoardType   uint8  `json:"board_type"`
+	BoardType uint8 `json:"board_type"`
+	// required:true
+	CardType    uint8  `json:"card_type"`
 	Description string `json:"description"`
 }
 
