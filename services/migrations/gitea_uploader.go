@@ -162,7 +162,7 @@ func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
 		c++
 	}
 	topics = topics[:c]
-	return repo_model.SaveTopics(g.repo.ID, topics...)
+	return repo_model.SaveTopics(g.ctx, g.repo.ID, topics...)
 }
 
 // CreateMilestones creates milestones
@@ -205,7 +205,7 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 		mss = append(mss, &ms)
 	}
 
-	err := issues_model.InsertMilestones(mss...)
+	err := issues_model.InsertMilestones(g.ctx, mss...)
 	if err != nil {
 		return err
 	}
@@ -236,7 +236,7 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 		})
 	}
 
-	err := issues_model.NewLabels(lbs...)
+	err := issues_model.NewLabels(g.ctx, lbs...)
 	if err != nil {
 		return err
 	}
@@ -350,12 +350,12 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 		rels = append(rels, &rel)
 	}
 
-	return repo_model.InsertReleases(rels...)
+	return repo_model.InsertReleases(g.ctx, rels...)
 }
 
 // SyncTags syncs releases with tags in the database
 func (g *GiteaLocalUploader) SyncTags() error {
-	return repo_module.SyncReleasesWithTags(g.repo, g.gitRepo)
+	return repo_module.SyncReleasesWithTags(g.ctx, g.repo, g.gitRepo)
 }
 
 // CreateIssues creates issues
@@ -430,7 +430,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 	}
 
 	if len(iss) > 0 {
-		if err := issues_model.InsertIssues(iss...); err != nil {
+		if err := issues_model.InsertIssues(g.ctx, iss...); err != nil {
 			return err
 		}
 
@@ -510,13 +510,12 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 	if len(cms) == 0 {
 		return nil
 	}
-	return issues_model.InsertIssueComments(cms)
+	return issues_model.InsertIssueComments(g.ctx, cms)
 }
 
 // CreatePullRequests creates pull requests
 func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error {
 	gprs := make([]*issues_model.PullRequest, 0, len(prs))
-	ctx := db.DefaultContext
 	for _, pr := range prs {
 		gpr, err := g.newPullRequest(pr)
 		if err != nil {
@@ -529,12 +528,12 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 
 		gprs = append(gprs, gpr)
 	}
-	if err := issues_model.InsertPullRequests(ctx, gprs...); err != nil {
+	if err := issues_model.InsertPullRequests(g.ctx, gprs...); err != nil {
 		return err
 	}
 	for _, pr := range gprs {
 		g.issues[pr.Issue.Index] = pr.Issue
-		pull.AddToTaskQueue(ctx, pr)
+		pull.AddToTaskQueue(g.ctx, pr)
 	}
 	return nil
 }
@@ -841,7 +840,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		pr, ok := g.prCache[issue.ID]
 		if !ok {
 			var err error
-			pr, err = issues_model.GetPullRequestByIssueIDWithNoAttributes(issue.ID)
+			pr, err = issues_model.GetPullRequestByIssueIDWithNoAttributes(g.ctx, issue.ID)
 			if err != nil {
 				return err
 			}
@@ -918,7 +917,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		}
 	}
 
-	return issues_model.InsertReviews(cms)
+	return issues_model.InsertReviews(g.ctx, cms)
 }
 
 // Rollback when migrating failed, this will rollback all the changes.
@@ -938,7 +937,7 @@ func (g *GiteaLocalUploader) Finish() error {
 	}
 
 	// update issue_index
-	if err := issues_model.RecalculateIssueIndexForRepo(g.repo.ID); err != nil {
+	if err := issues_model.RecalculateIssueIndexForRepo(g.ctx, g.repo.ID); err != nil {
 		return err
 	}
 
@@ -990,7 +989,7 @@ func (g *GiteaLocalUploader) remapLocalUser(source user_model.ExternalUserMigrat
 func (g *GiteaLocalUploader) remapExternalUser(source user_model.ExternalUserMigrated, target user_model.ExternalUserRemappable) (userid int64, err error) {
 	userid, ok := g.userMap[source.GetExternalID()]
 	if !ok {
-		userid, err = user_model.GetUserIDByExternalUserID(g.gitServiceType.Name(), fmt.Sprintf("%d", source.GetExternalID()))
+		userid, err = user_model.GetUserIDByExternalUserID(g.ctx, g.gitServiceType.Name(), fmt.Sprintf("%d", source.GetExternalID()))
 		if err != nil {
 			log.Error("GetUserIDByExternalUserID: %v", err)
 			return 0, err

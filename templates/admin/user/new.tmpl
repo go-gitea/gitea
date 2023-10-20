@@ -1,7 +1,7 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin new user")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.users.new_account"}}
+			{{ctx.Locale.Tr "admin.users.new_account"}}
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
@@ -9,13 +9,13 @@
 				{{.CsrfTokenHtml}}
 				<!-- Types and name -->
 				<div class="inline required field {{if .Err_LoginType}}error{{end}}">
-					<label>{{.locale.Tr "admin.users.auth_source"}}</label>
+					<label>{{ctx.Locale.Tr "admin.users.auth_source"}}</label>
 					<div class="ui selection type dropdown">
 						<input type="hidden" id="login_type" name="login_type" value="{{.login_type}}" data-password="required" required>
-						<div class="text">{{.locale.Tr "admin.users.local"}}</div>
+						<div class="text">{{ctx.Locale.Tr "admin.users.local"}}</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
-							<div class="item" data-value="0-0">{{.locale.Tr "admin.users.local"}}</div>
+							<div class="item" data-value="0-0">{{ctx.Locale.Tr "admin.users.local"}}</div>
 							{{range .Sources}}
 								<div class="item" data-value="{{.Type.Int}}-{{.ID}}">{{.Name}}</div>
 							{{end}}
@@ -24,23 +24,23 @@
 				</div>
 
 				<div class="inline field {{if .Err_Visibility}}error{{end}}">
-					<span class="inline required field"><label for="visibility">{{.locale.Tr "settings.visibility"}}</label></span>
+					<span class="inline required field"><label for="visibility">{{ctx.Locale.Tr "settings.visibility"}}</label></span>
 					<div class="ui selection type dropdown">
 						<input type="hidden" id="visibility" name="visibility" value="{{if .visibility}}{{.visibility}}{{else}}{{printf "%d" .DefaultUserVisibilityMode}}{{end}}">
 						<div class="text">
-							{{if .DefaultUserVisibilityMode.IsPublic}}{{.locale.Tr "settings.visibility.public"}}{{end}}
-							{{if .DefaultUserVisibilityMode.IsLimited}}{{.locale.Tr "settings.visibility.limited"}}{{end}}
-							{{if .DefaultUserVisibilityMode.IsPrivate}}{{.locale.Tr "settings.visibility.private"}}{{end}}
+							{{if .DefaultUserVisibilityMode.IsPublic}}{{ctx.Locale.Tr "settings.visibility.public"}}{{end}}
+							{{if .DefaultUserVisibilityMode.IsLimited}}{{ctx.Locale.Tr "settings.visibility.limited"}}{{end}}
+							{{if .DefaultUserVisibilityMode.IsPrivate}}{{ctx.Locale.Tr "settings.visibility.private"}}{{end}}
 						</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							{{range $mode := .AllowedUserVisibilityModes}}
 								{{if $mode.IsPublic}}
-									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.locale.Tr "settings.visibility.public"}}</div>
+									<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{ctx.Locale.Tr "settings.visibility.public"}}</div>
 								{{else if $mode.IsLimited}}
-									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.locale.Tr "settings.visibility.limited"}}</div>
+									<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{ctx.Locale.Tr "settings.visibility.limited"}}</div>
 								{{else if $mode.IsPrivate}}
-									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.locale.Tr "settings.visibility.private"}}</div>
+									<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{ctx.Locale.Tr "settings.visibility.private"}}</div>
 								{{end}}
 							{{end}}
 						</div>
@@ -48,25 +48,25 @@
 				</div>
 
 				<div class="required non-local field {{if .Err_LoginName}}error{{end}} {{if eq .login_type "0-0"}}gt-hidden{{end}}">
-					<label for="login_name">{{.locale.Tr "admin.users.auth_login_name"}}</label>
+					<label for="login_name">{{ctx.Locale.Tr "admin.users.auth_login_name"}}</label>
 					<input id="login_name" name="login_name" value="{{.login_name}}">
 				</div>
 				<div class="required field {{if .Err_UserName}}error{{end}}">
-					<label for="user_name">{{.locale.Tr "username"}}</label>
+					<label for="user_name">{{ctx.Locale.Tr "username"}}</label>
 					<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required maxlength="40">
 				</div>
 				<div class="required field {{if .Err_Email}}error{{end}}">
-					<label for="email">{{.locale.Tr "email"}}</label>
+					<label for="email">{{ctx.Locale.Tr "email"}}</label>
 					<input id="email" name="email" type="email" value="{{.email}}" required>
 				</div>
 				<div class="required local field {{if .Err_Password}}error{{end}} {{if not (eq .login_type "0-0")}}gt-hidden{{end}}">
-					<label for="password">{{.locale.Tr "password"}}</label>
+					<label for="password">{{ctx.Locale.Tr "password"}}</label>
 					<input id="password" name="password" type="password" autocomplete="new-password" value="{{.password}}" {{if eq .login_type "0-0"}}required{{end}}>
 				</div>
 
 				<div class="inline field local {{if ne .login_type "0-0"}}gt-hidden{{end}}">
 					<div class="ui checkbox">
-						<label><strong>{{.locale.Tr "auth.allow_password_change"}}</strong></label>
+						<label><strong>{{ctx.Locale.Tr "auth.allow_password_change"}}</strong></label>
 						<input name="must_change_password" type="checkbox" checked>
 					</div>
 				</div>
@@ -75,14 +75,14 @@
 				{{if .CanSendEmail}}
 					<div class="inline field">
 						<div class="ui checkbox">
-							<label><strong>{{.locale.Tr "admin.users.send_register_notify"}}</strong></label>
+							<label><strong>{{ctx.Locale.Tr "admin.users.send_register_notify"}}</strong></label>
 							<input name="send_notify" type="checkbox" {{if .send_notify}}checked{{end}}>
 						</div>
 					</div>
 				{{end}}
 
 				<div class="field">
-					<button class="ui green button">{{.locale.Tr "admin.users.new_account"}}</button>
+					<button class="ui primary button">{{ctx.Locale.Tr "admin.users.new_account"}}</button>
 				</div>
 			</form>
 		</div>

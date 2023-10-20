@@ -36,11 +36,11 @@ func (r *indexerNotifier) AdoptRepository(ctx context.Context, doer, u *user_mod
 func (r *indexerNotifier) CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
-	issue_indexer.UpdateIssueIndexer(issue.ID)
+	issue_indexer.UpdateIssueIndexer(ctx, issue.ID)
 }
 
 func (r *indexerNotifier) NewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
-	issue_indexer.UpdateIssueIndexer(issue.ID)
+	issue_indexer.UpdateIssueIndexer(ctx, issue.ID)
 }
 
 func (r *indexerNotifier) NewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User) {
@@ -48,7 +48,7 @@ func (r *indexerNotifier) NewPullRequest(ctx context.Context, pr *issues_model.P
 		log.Error("LoadIssue: %v", err)
 		return
 	}
-	issue_indexer.UpdateIssueIndexer(pr.Issue.ID)
+	issue_indexer.UpdateIssueIndexer(ctx, pr.Issue.ID)
 }
 
 func (r *indexerNotifier) UpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string) {
@@ -56,7 +56,7 @@ func (r *indexerNotifier) UpdateComment(ctx context.Context, doer *user_model.Us
 		log.Error("LoadIssue: %v", err)
 		return
 	}
-	issue_indexer.UpdateIssueIndexer(c.Issue.ID)
+	issue_indexer.UpdateIssueIndexer(ctx, c.Issue.ID)
 }
 
 func (r *indexerNotifier) DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) {
@@ -64,7 +64,7 @@ func (r *indexerNotifier) DeleteComment(ctx context.Context, doer *user_model.Us
 		log.Error("LoadIssue: %v", err)
 		return
 	}
-	issue_indexer.UpdateIssueIndexer(comment.Issue.ID)
+	issue_indexer.UpdateIssueIndexer(ctx, comment.Issue.ID)
 }
 
 func (r *indexerNotifier) DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) {
@@ -110,14 +110,23 @@ func (r *indexerNotifier) SyncPushCommits(ctx context.Context, pusher *user_mode
 	}
 }
 
+func (r *indexerNotifier) ChangeDefaultBranch(ctx context.Context, repo *repo_model.Repository) {
+	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
+		code_indexer.UpdateRepoIndexer(repo)
+	}
+	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
+		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)
+	}
+}
+
 func (r *indexerNotifier) IssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string) {
-	issue_indexer.UpdateIssueIndexer(issue.ID)
+	issue_indexer.UpdateIssueIndexer(ctx, issue.ID)
 }
 
 func (r *indexerNotifier) IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
-	issue_indexer.UpdateIssueIndexer(issue.ID)
+	issue_indexer.UpdateIssueIndexer(ctx, issue.ID)
 }
 
 func (r *indexerNotifier) IssueChangeRef(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldRef string) {
-	issue_indexer.UpdateIssueIndexer(issue.ID)
+	issue_indexer.UpdateIssueIndexer(ctx, issue.ID)
 }

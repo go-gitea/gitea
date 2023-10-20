@@ -23,9 +23,9 @@ func (specs SpecList) GetScheduleIDs() []int64 {
 	return ids.Values()
 }
 
-func (specs SpecList) LoadSchedules() error {
+func (specs SpecList) LoadSchedules(ctx context.Context) error {
 	scheduleIDs := specs.GetScheduleIDs()
-	schedules, err := GetSchedulesMapByIDs(scheduleIDs)
+	schedules, err := GetSchedulesMapByIDs(ctx, scheduleIDs)
 	if err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func (specs SpecList) LoadSchedules() error {
 	}
 
 	repoIDs := specs.GetRepoIDs()
-	repos, err := GetReposMapByIDs(repoIDs)
+	repos, err := GetReposMapByIDs(ctx, repoIDs)
 	if err != nil {
 		return err
 	}
@@ -53,9 +53,9 @@ func (specs SpecList) GetRepoIDs() []int64 {
 	return ids.Values()
 }
 
-func (specs SpecList) LoadRepos() error {
+func (specs SpecList) LoadRepos(ctx context.Context) error {
 	repoIDs := specs.GetRepoIDs()
-	repos, err := repo_model.GetRepositoriesMapByIDs(repoIDs)
+	repos, err := repo_model.GetRepositoriesMapByIDs(ctx, repoIDs)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func FindSpecs(ctx context.Context, opts FindSpecOptions) (SpecList, int64, erro
 		return nil, 0, err
 	}
 
-	if err := specs.LoadSchedules(); err != nil {
+	if err := specs.LoadSchedules(ctx); err != nil {
 		return nil, 0, err
 	}
 	return specs, total, nil

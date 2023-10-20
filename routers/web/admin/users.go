@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
-	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
@@ -77,6 +76,7 @@ func Users(ctx *context.Context) {
 		IsRestricted:       util.OptionalBoolParse(statusFilterMap["is_restricted"]),
 		IsTwoFactorEnabled: util.OptionalBoolParse(statusFilterMap["is_2fa_enabled"]),
 		IsProhibitLogin:    util.OptionalBoolParse(statusFilterMap["is_prohibit_login"]),
+		IncludeReserved:    true, // administrator needs to list all acounts include reserved, bot, remote ones
 		ExtraParamStrings:  extraParamStrings,
 	}, tplUsers)
 }
@@ -90,7 +90,7 @@ func NewUser(ctx *context.Context) {
 
 	ctx.Data["login_type"] = "0-0"
 
-	sources, err := auth.Sources()
+	sources, err := auth.Sources(ctx)
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
 		return
@@ -109,7 +109,7 @@ func NewUserPost(ctx *context.Context) {
 	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
-	sources, err := auth.Sources()
+	sources, err := auth.Sources(ctx)
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
 		return
@@ -169,7 +169,7 @@ func NewUserPost(ctx *context.Context) {
 		u.MustChangePassword = form.MustChangePassword
 	}
 
-	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, u, overwriteDefault); err != nil {
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
@@ -221,7 +221,7 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 	ctx.Data["User"] = u
 
 	if u.LoginSource > 0 {
-		ctx.Data["LoginSource"], err = auth.GetSourceByID(u.LoginSource)
+		ctx.Data["LoginSource"], err = auth.GetSourceByID(ctx, u.LoginSource)
 		if err != nil {
 			ctx.ServerError("auth.GetSourceByID", err)
 			return nil
@@ -230,19 +230,19 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 		ctx.Data["LoginSource"] = &auth.Source{}
 	}
 
-	sources, err := auth.Sources()
+	sources, err := auth.Sources(ctx)
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
 		return nil
 	}
 	ctx.Data["Sources"] = sources
 
-	hasTOTP, err := auth.HasTwoFactorByUID(u.ID)
+	hasTOTP, err := auth.HasTwoFactorByUID(ctx, u.ID)
 	if err != nil {
 		ctx.ServerError("auth.HasTwoFactorByUID", err)
 		return nil
 	}
-	hasWebAuthn, err := auth.HasWebAuthnRegistrationsByUID(u.ID)
+	hasWebAuthn, err := auth.HasWebAuthnRegistrationsByUID(ctx, u.ID)
 	if err != nil {
 		ctx.ServerError("auth.HasWebAuthnRegistrationsByUID", err)
 		return nil
@@ -281,7 +281,7 @@ func ViewUser(ctx *context.Context) {
 	ctx.Data["Repos"] = repos
 	ctx.Data["ReposTotal"] = int(count)
 
-	emails, err := user_model.GetEmailAddresses(u.ID)
+	emails, err := user_model.GetEmailAddresses(ctx, u.ID)
 	if err != nil {
 		ctx.ServerError("GetEmailAddresses", err)
 		return
@@ -289,7 +289,7 @@ func ViewUser(ctx *context.Context) {
 	ctx.Data["Emails"] = emails
 	ctx.Data["EmailsTotal"] = len(emails)
 
-	orgs, err := org_model.FindOrgs(org_model.FindOrgOptions{
+	orgs, err := org_model.FindOrgs(ctx, org_model.FindOrgOptions{
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},
@@ -307,17 +307,18 @@ func ViewUser(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplUserView)
 }
 
-// EditUser show editing user page
-func EditUser(ctx *context.Context) {
+func editUserCommon(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
-	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar,
-		setting.GetDefaultDisableGravatar(),
-	)
+	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value(ctx)
+}
 
+// EditUser show editing user page
+func EditUser(ctx *context.Context) {
+	editUserCommon(ctx)
 	prepareUserInfo(ctx)
 	if ctx.Written() {
 		return
@@ -328,19 +329,13 @@ func EditUser(ctx *context.Context) {
 
 // EditUserPost response for editing user
 func EditUserPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AdminEditUserForm)
-	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
-	ctx.Data["PageIsAdminUsers"] = true
-	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
-	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
-	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar,
-		setting.GetDefaultDisableGravatar())
-
+	editUserCommon(ctx)
 	u := prepareUserInfo(ctx)
 	if ctx.Written() {
 		return
 	}
 
+	form := web.GetForm(ctx).(*forms.AdminEditUserForm)
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplUserEdit)
 		return
@@ -409,24 +404,24 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if form.Reset2FA {
-		tf, err := auth.GetTwoFactorByUID(u.ID)
+		tf, err := auth.GetTwoFactorByUID(ctx, u.ID)
 		if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.ServerError("auth.GetTwoFactorByUID", err)
 			return
 		} else if tf != nil {
-			if err := auth.DeleteTwoFactorByID(tf.ID, u.ID); err != nil {
+			if err := auth.DeleteTwoFactorByID(ctx, tf.ID, u.ID); err != nil {
 				ctx.ServerError("auth.DeleteTwoFactorByID", err)
 				return
 			}
 		}
 
-		wn, err := auth.GetWebAuthnCredentialsByUID(u.ID)
+		wn, err := auth.GetWebAuthnCredentialsByUID(ctx, u.ID)
 		if err != nil {
 			ctx.ServerError("auth.GetTwoFactorByUID", err)
 			return
 		}
 		for _, cred := range wn {
-			if _, err := auth.DeleteCredential(cred.ID, u.ID); err != nil {
+			if _, err := auth.DeleteCredential(ctx, cred.ID, u.ID); err != nil {
 				ctx.ServerError("auth.DeleteCredential", err)
 				return
 			}
@@ -537,7 +532,7 @@ func DeleteAvatar(ctx *context.Context) {
 		return
 	}
 
-	if err := user_service.DeleteAvatar(u); err != nil {
+	if err := user_service.DeleteAvatar(ctx, u); err != nil {
 		ctx.Flash.Error(err.Error())
 	}
 

@@ -20,10 +20,11 @@ var ErrPushMirrorNotExist = util.NewNotExistErrorf("PushMirror does not exist")
 
 // PushMirror represents mirror information of a repository.
 type PushMirror struct {
-	ID         int64       `xorm:"pk autoincr"`
-	RepoID     int64       `xorm:"INDEX"`
-	Repo       *Repository `xorm:"-"`
-	RemoteName string
+	ID            int64       `xorm:"pk autoincr"`
+	RepoID        int64       `xorm:"INDEX"`
+	Repo          *Repository `xorm:"-"`
+	RemoteName    string
+	RemoteAddress string `xorm:"VARCHAR(2048)"`
 
 	SyncOnCommit   bool `xorm:"NOT NULL DEFAULT true"`
 	Interval       time.Duration
@@ -31,6 +32,7 @@ type PushMirror struct {
 	LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
 	LastError      string             `xorm:"text"`
 }
+
 type PushMirrorOptions struct {
 	ID         int64
 	RepoID     int64
@@ -56,12 +58,12 @@ func init() {
 }
 
 // GetRepository returns the path of the repository.
-func (m *PushMirror) GetRepository() *Repository {
+func (m *PushMirror) GetRepository(ctx context.Context) *Repository {
 	if m.Repo != nil {
 		return m.Repo
 	}
 	var err error
-	m.Repo, err = GetRepositoryByID(db.DefaultContext, m.RepoID)
+	m.Repo, err = GetRepositoryByID(ctx, m.RepoID)
 	if err != nil {
 		log.Error("getRepositoryByID[%d]: %v", m.ID, err)
 	}

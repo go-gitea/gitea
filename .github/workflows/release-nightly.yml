@@ -1,20 +1,26 @@
-name: release-nightly-assets
+name: release-nightly
 
 on:
   push:
     branches: [ main, release/v* ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  disk-clean:
+    uses: ./.github/workflows/disk-clean.yml
   nightly-binary:
-    runs-on: ubuntu-latest
+    runs-on: nscloud
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
       - uses: actions/setup-go@v4
         with:
-          go-version: "~1.21"
+          go-version-file: go.mod
           check-latest: true
       - uses: actions/setup-node@v3
         with:
@@ -42,22 +48,26 @@ jobs:
           REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
           echo "Cleaned name is ${REF_NAME}"
           echo "branch=${REF_NAME}" >> "$GITHUB_OUTPUT"
+      - name: configure aws
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ secrets.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       - name: upload binaries to s3
-        uses: jakejarvis/s3-sync-action@master
-        env:
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          SOURCE_DIR: dist/release
-          DEST_DIR: gitea/${{ steps.clean_name.outputs.branch }}
-  nightly-docker:
+        run: |
+          aws s3 sync dist/release s3://${{ secrets.AWS_S3_BUCKET }}/gitea/${{ steps.clean_name.outputs.branch }} --no-progress
+  nightly-docker-rootful:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          check-latest: true
       - uses: docker/setup-qemu-action@v2
       - uses: docker/setup-buildx-action@v2
       - name: Get cleaned branch name
@@ -75,6 +85,8 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: fetch go modules
+        run: make vendor
       - name: build rootful docker image
         uses: docker/build-push-action@v4
         with:
@@ -82,6 +94,36 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: gitea/gitea:${{ steps.clean_name.outputs.branch }}
+  nightly-docker-rootless:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # fetch all commits instead of only the last as some branches are long lived and could have many between versions
+      # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
+      - run: git fetch --unshallow --quiet --tags --force
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          check-latest: true
+      - uses: docker/setup-qemu-action@v2
+      - uses: docker/setup-buildx-action@v2
+      - name: Get cleaned branch name
+        id: clean_name
+        run: |
+          # if main then say nightly otherwise cleanup name
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "branch=nightly" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
+          echo "branch=${REF_NAME}-nightly" >> "$GITHUB_OUTPUT"
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: fetch go modules
+        run: make vendor
       - name: build rootless docker image
         uses: docker/build-push-action@v4
         with:
