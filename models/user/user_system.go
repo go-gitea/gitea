@@ -35,7 +35,7 @@ func (u *User) IsGhost() bool {
 // NewReplaceUser creates and returns a fake user for external user
 func NewReplaceUser(name string) *User {
 	return &User{
-		ID:        GhostUserID,
+		ID:        0,
 		Name:      name,
 		LowerName: strings.ToLower(name),
 	}
