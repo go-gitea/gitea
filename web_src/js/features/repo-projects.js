@@ -1,6 +1,4 @@
 import $ from 'jquery';
-import {useLightTextOnBackground} from '../utils/color.js';
-import tinycolor from 'tinycolor2';
 import {createSortable} from '../modules/sortable.js';
 
 const {csrfToken} = window.config;
@@ -109,14 +107,10 @@ export function initRepoProject() {
 
   $('.edit-project-column-modal').each(function () {
     const projectHeader = $(this).closest('.project-column-header');
-    const projectTitleLabel = projectHeader.find('.project-column-title');
+    const projectTitleLabel = projectHeader.find('.project-column-issue-title');
     const projectTitleInput = $(this).find('.project-column-title-input');
     const projectColorInput = $(this).find('#new_project_column_color');
-    const boardColumn = $(this).closest('.project-column');
-
-    if (boardColumn.css('backgroundColor')) {
-      setLabelColor(projectHeader, rgbToHex(boardColumn.css('backgroundColor')));
-    }
+    const projectColumnIssueCount = $(this).closest('.project-column').find('.project-column-issue-count');
 
     $(this).find('.edit-project-column-button').on('click', function (e) {
       e.preventDefault();
@@ -132,10 +126,7 @@ export function initRepoProject() {
       }).done(() => {
         projectTitleLabel.text(projectTitleInput.val());
         projectTitleInput.closest('form').removeClass('dirty');
-        if (projectColorInput.val()) {
-          setLabelColor(projectHeader, projectColorInput.val());
-        }
-        boardColumn.attr('style', `background: ${projectColorInput.val()}!important`);
+        projectColumnIssueCount.attr('style', `background: ${projectColorInput.val()}!important`);
         $('.ui.modal').modal('hide');
       });
     });
@@ -207,15 +198,6 @@ export function initRepoProject() {
       createNewColumn(url, columnTitle, projectColorInput);
     }
   });
-}
-
-function setLabelColor(label, color) {
-  const {r, g, b} = tinycolor(color).toRgb();
-  if (useLightTextOnBackground(r, g, b)) {
-    label.removeClass('dark-label').addClass('light-label');
-  } else {
-    label.removeClass('light-label').addClass('dark-label');
-  }
 }
 
 function rgbToHex(rgb) {

@@ -64,13 +64,15 @@
 <div id="project-board">
 	<div class="board {{if .CanWriteProjects}}sortable{{end}}">
 		{{range .Columns}}
-			<div class="ui segment project-column" style="background: {{.Color}} !important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
+			<div class="ui segment project-column" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
 				<div class="project-column-header">
 					<div class="ui large label project-column-title gt-py-2">
-						<div class="ui small circular grey label project-column-issue-count">
+						<div class="ui small circular grey label project-column-issue-count" style="background: {{.Color}} !important;">
 							{{.NumIssues ctx}}
 						</div>
-						{{.Title}}
+						<div class="ui project-column-issue-title">
+							{{.Title}}
+						</div>
 					</div>
 					{{if and $canWriteProject (ne .ID 0)}}
 						<div class="ui dropdown jump item">
