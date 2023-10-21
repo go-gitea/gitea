@@ -1952,7 +1952,7 @@ table th[data-sortt-desc] .svg {
   height: 15px;
 }
 
-.ui.dropdown {
+.ui.dropdown:not(.button) {
   line-height: var(--line-height-default); /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
 }
 

@@ -75,7 +75,7 @@ func SettingsPost(ctx *context.Context) {
 
 	// Check if organization name has been changed.
 	if nameChanged {
-		err := org_service.RenameOrganization(ctx, org, form.Name)
+		err := user_service.RenameUser(ctx, org.AsUser(), form.Name)
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["OrgName"] = true
@@ -180,7 +180,7 @@ func SettingsDelete(ctx *context.Context) {
 			return
 		}
 
-		if err := org_service.DeleteOrganization(ctx, ctx.Org.Organization); err != nil {
+		if err := org_service.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
 			if models.IsErrUserOwnRepos(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
