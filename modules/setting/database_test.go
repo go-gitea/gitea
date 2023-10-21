@@ -10,46 +10,49 @@ import (
 )
 
 func Test_parsePostgreSQLHostPort(t *testing.T) {
-	tests := []struct {
+	tests := map[string]struct {
 		HostPort string
 		Host     string
 		Port     string
 	}{
-		{
+		"host-port": {
 			HostPort: "127.0.0.1:1234",
 			Host:     "127.0.0.1",
 			Port:     "1234",
 		},
-		{
+		"no-port": {
 			HostPort: "127.0.0.1",
 			Host:     "127.0.0.1",
 			Port:     "5432",
 		},
-		{
+		"ipv6-port": {
 			HostPort: "[::1]:1234",
-			Host:     "[::1]",
+			Host:     "::1",
 			Port:     "1234",
 		},
-		{
+		"ipv6-no-port": {
 			HostPort: "[::1]",
-			Host:     "[::1]",
+			Host:     "::1",
 			Port:     "5432",
 		},
-		{
+		"unix-socket": {
 			HostPort: "/tmp/pg.sock:1234",
 			Host:     "/tmp/pg.sock",
 			Port:     "1234",
 		},
-		{
+		"unix-socket-no-port": {
 			HostPort: "/tmp/pg.sock",
 			Host:     "/tmp/pg.sock",
 			Port:     "5432",
 		},
 	}
-	for _, test := range tests {
-		host, port := parsePostgreSQLHostPort(test.HostPort)
-		assert.Equal(t, test.Host, host)
-		assert.Equal(t, test.Port, port)
+	for k, test := range tests {
+		t.Run(k, func(t *testing.T) {
+			t.Log(test.HostPort)
+			host, port := parsePostgreSQLHostPort(test.HostPort)
+			assert.Equal(t, test.Host, host)
+			assert.Equal(t, test.Port, port)
+		})
 	}
 }
 

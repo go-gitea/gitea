@@ -6,6 +6,7 @@ package setting
 import (
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"path"
@@ -135,15 +136,19 @@ func DBConnStr() (string, error) {
 // parsePostgreSQLHostPort parses given input in various forms defined in
 // https://www.postgresql.org/docs/current/static/libpq-connect.html#LIBPQ-CONNSTRING
 // and returns proper host and port number.
-func parsePostgreSQLHostPort(info string) (string, string) {
-	host, port := "127.0.0.1", "5432"
-	if strings.Contains(info, ":") && !strings.HasSuffix(info, "]") {
-		idx := strings.LastIndex(info, ":")
-		host = info[:idx]
-		port = info[idx+1:]
-	} else if len(info) > 0 {
-		host = info
+func parsePostgreSQLHostPort(info string) (host, port string) {
+	host = info
+	h, p, err := net.SplitHostPort(info)
+	if err == nil {
+		host, port = h, p
 	}
+
+	// if it's an IPv6 address, remove the wrapper
+	if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
+		host = host[1 : len(host)-1]
+	}
+
+	// set fallback values
 	if host == "" {
 		host = "127.0.0.1"
 	}
