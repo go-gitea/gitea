@@ -155,14 +155,22 @@ func parsePostgreSQLHostPort(info string) (string, string) {
 
 func getPostgreSQLConnectionString(dbHost, dbUser, dbPasswd, dbName, dbParam, dbsslMode string) (connStr string) {
 	host, port := parsePostgreSQLHostPort(dbHost)
-	if host[0] == '/' { // looks like a unix socket
-		connStr = fmt.Sprintf("postgres://%s:%s@:%s/%s%ssslmode=%s&host=%s",
-			url.PathEscape(dbUser), url.PathEscape(dbPasswd), port, dbName, dbParam, dbsslMode, host)
-	} else {
-		connStr = fmt.Sprintf("postgres://%s:%s@%s:%s/%s%ssslmode=%s",
-			url.PathEscape(dbUser), url.PathEscape(dbPasswd), host, port, dbName, dbParam, dbsslMode)
+	connURL := url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword(dbUser, dbPasswd),
+		Host:     net.JoinHostPort(host, port),
+		Path:     dbName,
+		OmitHost: false,
+		RawQuery: dbParam,
 	}
-	return connStr
+	query := connURL.Query()
+	if dbHost[0] == '/' { // looks like a unix socket
+		query.Add("host", dbHost)
+		connURL.Host = ":" + port
+	}
+	query.Set("sslmode", dbsslMode)
+	connURL.RawQuery = query.Encode()
+	return connURL.String()
 }
 
 // ParseMSSQLHostPort splits the host into host and port

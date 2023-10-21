@@ -72,7 +72,7 @@ func Test_getPostgreSQLConnectionString(t *testing.T) {
 			Name:    "gitea",
 			Param:   "",
 			SSLMode: "false",
-			Output:  "postgres://testuser:space%20space%20%21%23$%25%5E%5E%25%5E%60%60%60-=%3F=@:5432/giteasslmode=false&host=/tmp/pg.sock",
+			Output:  "postgres://testuser:space%20space%20%21%23$%25%5E%5E%25%5E%60%60%60-=%3F=@:5432/gitea?host=%2Ftmp%2Fpg.sock&sslmode=false",
 		},
 		{
 			Host:    "localhost",
@@ -82,7 +82,7 @@ func Test_getPostgreSQLConnectionString(t *testing.T) {
 			Name:    "gitea",
 			Param:   "",
 			SSLMode: "true",
-			Output:  "postgres://pgsqlusername:I%20love%20Gitea%21@localhost:5432/giteasslmode=true",
+			Output:  "postgres://pgsqlusername:I%20love%20Gitea%21@localhost:5432/gitea?sslmode=true",
 		},
 	}
 
