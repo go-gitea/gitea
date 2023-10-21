@@ -384,7 +384,7 @@ func searchIssueInProject(t *testing.T) {
 		},
 		{
 			SearchOptions{
-				ProjectBoardID: int64Pointer(db.NoConditionID), // issue with in default board
+				ProjectBoardID: 0, // issue with in default board
 			},
 			[]int64{2},
 		},
