@@ -1961,7 +1961,7 @@ func ViewIssue(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["BlockingDependencies"], ctx.Data["BlockingByDependenciesNotPermitted"] = checkBlockedByIssues(ctx, blocking)
+	ctx.Data["BlockingDependencies"], ctx.Data["BlockingDependenciesNotPermitted"] = checkBlockedByIssues(ctx, blocking)
 	if ctx.Written() {
 		return
 	}
@@ -2022,38 +2022,27 @@ func ViewIssue(ctx *context.Context) {
 
 // checkBlockedByIssues return canRead and notPermitted
 func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.DependencyInfo) (canRead, notPermitted []*issues_model.DependencyInfo) {
-	var (
-		lastRepoID int64
-		lastPerm   access_model.Permission
-	)
-	for i, blocker := range blockers {
-		// Get the permissions for this repository
-		perm := lastPerm
-		if lastRepoID != blocker.Repository.ID {
-			if blocker.Repository.ID == ctx.Repo.Repository.ID {
-				perm = ctx.Repo.Permission
-			} else {
-				var err error
-				perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
-				if err != nil {
-					ctx.ServerError("GetUserRepoPermission", err)
-					return nil, nil
-				}
+	for _, blocker := range blockers {
+		var perm access_model.Permission
+		if blocker.Repository.ID == ctx.Repo.Repository.ID {
+			perm = ctx.Repo.Permission
+		} else {
+			var err error
+			perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return nil, nil
 			}
-			lastRepoID = blocker.Repository.ID
 		}
-
-		// check permission
-		if !perm.CanReadIssuesOrPulls(blocker.Issue.IsPull) {
-			blockers[len(notPermitted)], blockers[i] = blocker, blockers[len(notPermitted)]
-			notPermitted = blockers[:len(notPermitted)+1]
+		if perm.CanReadIssuesOrPulls(blocker.Issue.IsPull) {
+			canRead = append(canRead, blocker)
+		} else {
+			notPermitted = append(notPermitted, blocker)
 		}
 	}
-	blockers = blockers[len(notPermitted):]
-	sortDependencyInfo(blockers)
+	sortDependencyInfo(canRead)
 	sortDependencyInfo(notPermitted)
-
-	return blockers, notPermitted
+	return canRead, notPermitted
 }
 
 func sortDependencyInfo(blockers []*issues_model.DependencyInfo) {

@@ -102,23 +102,18 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		return
 	}
 
-	var lastRepoID int64
-	var lastPerm access_model.Permission
 	for _, blocker := range blockersInfo {
 		// Get the permissions for this repository
-		perm := lastPerm
-		if lastRepoID != blocker.Repository.ID {
-			if blocker.Repository.ID == ctx.Repo.Repository.ID {
-				perm = ctx.Repo.Permission
-			} else {
-				var err error
-				perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
-				if err != nil {
-					ctx.ServerError("GetUserRepoPermission", err)
-					return
-				}
+		var perm access_model.Permission
+		if blocker.Repository.ID == ctx.Repo.Repository.ID {
+			perm = ctx.Repo.Permission
+		} else {
+			var err error
+			perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return
 			}
-			lastRepoID = blocker.Repository.ID
 		}
 
 		// check permission
