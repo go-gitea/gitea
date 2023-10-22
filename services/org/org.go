@@ -4,6 +4,7 @@
 package org
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models"
@@ -18,8 +19,8 @@ import (
 )
 
 // DeleteOrganization completely and permanently deletes everything of organization.
-func DeleteOrganization(org *org_model.Organization, purge bool) error {
-	ctx, commiter, err := db.TxContext(db.DefaultContext)
+func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge bool) error {
+	ctx, commiter, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
