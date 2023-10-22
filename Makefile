@@ -278,7 +278,6 @@ clean-all: clean
 
 .PHONY: clean
 clean:
-	$(GO) clean -i ./...
 	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST) $(BINDATA_HASH) \
 		integrations*.test \
 		e2e*.test \

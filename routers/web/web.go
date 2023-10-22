@@ -187,7 +187,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 
 		// Redirect to log in page if auto-signin info is provided and has not signed in.
 		if !options.SignOutRequired && !ctx.IsSigned &&
-			len(ctx.GetSiteCookie(setting.CookieUserName)) > 0 {
+			ctx.GetSiteCookie(setting.CookieRememberName) != "" {
 			if ctx.Req.URL.Path != "/user/events" {
 				middleware.SetRedirectToCookie(ctx.Resp, setting.AppSubURL+ctx.Req.URL.RequestURI())
 			}

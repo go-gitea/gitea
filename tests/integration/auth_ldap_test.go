@@ -430,7 +430,7 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 			assert.True(t, isMember, "Membership should be added to the right team")
 			err = models.RemoveTeamMember(db.DefaultContext, team, user.ID)
 			assert.NoError(t, err)
-			err = models.RemoveOrgUser(usersOrgs[0].ID, user.ID)
+			err = models.RemoveOrgUser(db.DefaultContext, usersOrgs[0].ID, user.ID)
 			assert.NoError(t, err)
 		} else {
 			// assert members of LDAP group "cn=admin_staff" keep initial team membership since mapped team does not exist

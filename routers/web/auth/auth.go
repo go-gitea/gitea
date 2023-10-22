@@ -43,40 +43,51 @@ const (
 	TplActivate base.TplName = "user/auth/activate"
 )
 
-// AutoSignIn reads cookie and try to auto-login.
-func AutoSignIn(ctx *context.Context) (bool, error) {
+// autoSignIn reads cookie and try to auto-login.
+func autoSignIn(ctx *context.Context) (bool, error) {
 	if !db.HasEngine {
-		return false, nil
-	}
-
-	uname := ctx.GetSiteCookie(setting.CookieUserName)
-	if len(uname) == 0 {
 		return false, nil
 	}
 
 	isSucceed := false
 	defer func() {
 		if !isSucceed {
-			log.Trace("auto-login cookie cleared: %s", uname)
-			ctx.DeleteSiteCookie(setting.CookieUserName)
 			ctx.DeleteSiteCookie(setting.CookieRememberName)
 		}
 	}()
 
-	u, err := user_model.GetUserByName(ctx, uname)
+	if err := auth.DeleteExpiredAuthTokens(ctx); err != nil {
+		log.Error("Failed to delete expired auth tokens: %v", err)
+	}
+
+	t, err := auth_service.CheckAuthToken(ctx, ctx.GetSiteCookie(setting.CookieRememberName))
+	if err != nil {
+		switch err {
+		case auth_service.ErrAuthTokenInvalidFormat, auth_service.ErrAuthTokenExpired:
+			return false, nil
+		}
+		return false, err
+	}
+	if t == nil {
+		return false, nil
+	}
+
+	u, err := user_model.GetUserByID(ctx, t.UserID)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
-			return false, fmt.Errorf("GetUserByName: %w", err)
+			return false, fmt.Errorf("GetUserByID: %w", err)
 		}
 		return false, nil
 	}
 
-	if val, ok := ctx.GetSuperSecureCookie(
-		base.EncodeMD5(u.Rands+u.Passwd), setting.CookieRememberName); !ok || val != u.Name {
-		return false, nil
+	isSucceed = true
+
+	nt, token, err := auth_service.RegenerateAuthToken(ctx, t)
+	if err != nil {
+		return false, err
 	}
 
-	isSucceed = true
+	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 
 	if err := updateSession(ctx, nil, map[string]any{
 		// Set session IDs
@@ -113,11 +124,15 @@ func resetLocale(ctx *context.Context, u *user_model.User) error {
 	return nil
 }
 
-func checkAutoLogin(ctx *context.Context) bool {
+func CheckAutoLogin(ctx *context.Context) bool {
 	// Check auto-login
-	isSucceed, err := AutoSignIn(ctx)
+	isSucceed, err := autoSignIn(ctx)
 	if err != nil {
-		ctx.ServerError("AutoSignIn", err)
+		if errors.Is(err, auth_service.ErrAuthTokenInvalidHash) {
+			ctx.Flash.Error(ctx.Tr("auth.remember_me.compromised"), true)
+			return false
+		}
+		ctx.ServerError("autoSignIn", err)
 		return true
 	}
 
@@ -141,12 +156,11 @@ func checkAutoLogin(ctx *context.Context) bool {
 func SignIn(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
-	// Check auto-login
-	if checkAutoLogin(ctx) {
+	if CheckAutoLogin(ctx) {
 		return
 	}
 
-	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers()
+	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers(ctx)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -170,7 +184,7 @@ func SignIn(ctx *context.Context) {
 func SignInPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
-	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers()
+	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers(ctx)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -290,10 +304,13 @@ func handleSignIn(ctx *context.Context, u *user_model.User, remember bool) {
 
 func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRedirect bool) string {
 	if remember {
-		days := 86400 * setting.LogInRememberDays
-		ctx.SetSiteCookie(setting.CookieUserName, u.Name, days)
-		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
-			setting.CookieRememberName, u.Name, days)
+		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
+		if err != nil {
+			ctx.ServerError("CreateAuthTokenForUserID", err)
+			return setting.AppSubURL + "/"
+		}
+
+		ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 	}
 
 	if err := updateSession(ctx, []string{
@@ -368,7 +385,6 @@ func getUserName(gothUser *goth.User) string {
 func HandleSignOut(ctx *context.Context) {
 	_ = ctx.Session.Flush()
 	_ = ctx.Session.Destroy(ctx.Resp, ctx.Req)
-	ctx.DeleteSiteCookie(setting.CookieUserName)
 	ctx.DeleteSiteCookie(setting.CookieRememberName)
 	ctx.Csrf.DeleteCookie(ctx)
 	middleware.DeleteRedirectToCookie(ctx.Resp)
@@ -392,7 +408,7 @@ func SignUp(ctx *context.Context) {
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
-	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers()
+	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers(ctx)
 	if err != nil {
 		ctx.ServerError("UserSignUp", err)
 		return
@@ -422,7 +438,7 @@ func SignUpPost(ctx *context.Context) {
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
-	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers()
+	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers(ctx)
 	if err != nil {
 		ctx.ServerError("UserSignUp", err)
 		return
@@ -588,7 +604,7 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 
 	// update external user information
 	if gothUser != nil {
-		if err := externalaccount.UpdateExternalUser(u, *gothUser); err != nil {
+		if err := externalaccount.UpdateExternalUser(ctx, u, *gothUser); err != nil {
 			if !errors.Is(err, util.ErrNotExist) {
 				log.Error("UpdateExternalUser failed: %v", err)
 			}
