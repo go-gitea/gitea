@@ -66,7 +66,7 @@ a, a:hover {
 }
 
 .sub-items .item-file {
-  padding-left: 10px;
+  padding-left: 18px;
 }
 
 .item-file.selected {
