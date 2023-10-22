@@ -380,8 +380,7 @@ If you really need to do so, to make Gitea works with sub-path (eg: `http://exam
 
 1. Set `[server] ROOT_URL = http://example.com/gitea/` in your `app.ini` file.
 2. Make the reverse-proxy pass `http://example.com/gitea/foo` to `http://gitea-server:3000/foo`.
-3. Make sure the reverse-proxy not decode the URI, the request `http://example.com/gitea/a%2Fb` should be passed
-4.  as `http://gitea-server:3000/a%2Fb`.
+3. Make sure the reverse-proxy not decode the URI, the request `http://example.com/gitea/a%2Fb` should be passed as `http://gitea-server:3000/a%2Fb`.
 
 ## Docker / Container Registry
 
