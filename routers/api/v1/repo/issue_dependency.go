@@ -340,29 +340,22 @@ func GetIssueBlocks(ctx *context.APIContext) {
 		return
 	}
 
-	var lastRepoID int64
-	var lastPerm access_model.Permission
-
 	var issues []*issues_model.Issue
 	for i, depMeta := range deps {
 		if i < skip || i >= max {
 			continue
 		}
 
-		// Get the permissions for this repository
-		perm := lastPerm
-		if lastRepoID != depMeta.Repository.ID {
-			if depMeta.Repository.ID == ctx.Repo.Repository.ID {
-				perm = ctx.Repo.Permission
-			} else {
-				var err error
-				perm, err = access_model.GetUserRepoPermission(ctx, &depMeta.Repository, ctx.Doer)
-				if err != nil {
-					ctx.ServerError("GetUserRepoPermission", err)
-					return
-				}
+		var perm access_model.Permission
+		if depMeta.Repository.ID == ctx.Repo.Repository.ID {
+			perm = ctx.Repo.Permission
+		} else {
+			var err error
+			perm, err = access_model.GetUserRepoPermission(ctx, &depMeta.Repository, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return
 			}
-			lastRepoID = depMeta.Repository.ID
 		}
 
 		if !perm.CanReadIssuesOrPulls(depMeta.Issue.IsPull) {
