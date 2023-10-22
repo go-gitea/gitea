@@ -34,6 +34,7 @@
 					</span>
 				{{end}}
 			</th>
+			<th class="text grey"></th>
 			<th class="text grey right age">{{if .LatestCommit}}{{if .LatestCommit.Committer}}{{TimeSince .LatestCommit.Committer.When ctx.Locale}}{{end}}{{end}}</th>
 		</tr>
 	</thead>
@@ -86,6 +87,13 @@
 							{{RenderCommitMessageLinkSubject $.Context $commit.Message $.RepoLink $commitLink ($.Repository.ComposeMetas ctx)}}
 						{{else}}
 							<div class="ui active tiny slow centered inline">…</div>
+						{{end}}
+					</span>
+				</td>
+				<td class="message right three wide">
+					<span class="truncate">
+						{{if and (not $entry.IsDir) (not $entry.IsSubModule)}}
+							{{FileSize $entry.Size}}
 						{{end}}
 					</span>
 				</td>
