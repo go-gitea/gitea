@@ -169,6 +169,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 		toClose = true
 	default:
 		ctx.Redirect(ctx.Repo.RepoLink + "/projects")
+		return
 	}
 	id := ctx.ParamsInt64(":id")
 
