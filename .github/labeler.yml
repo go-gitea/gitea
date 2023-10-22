@@ -1,35 +1,36 @@
-kind/docs:
+modifies/docs:
   - "**/*.md"
   - "docs/**"
 
-kind/ui:
+modifies/frontend:
   - "web_src/**/*"
+
+modifies/templates:
   - all: ["templates/**", "!templates/swagger/v1_json.tmpl"]
 
-kind/api:
-  - "templates/swagger/v1_json.tmpl"
+modifies/api:
   - "routers/api/**"
+  - "templates/swagger/v1_json.tmpl"
 
-kind/build:
+modifies/cli:
+  - "cmd/**"
+
+modifies/translation:
+  - "options/locale/*.ini"
+
+modifies/migrations:
+  - "models/migrations/**/*"
+
+modifies/internal:
   - "Makefile"
   - "Dockerfile"
   - "Dockerfile.rootless"
   - "docker/**"
   - "webpack.config.js"
-
-theme/package-registry:
-  - "modules/packages/**"
-  - "services/packages/**"
-  - "routers/api/packages/**"
-  - "routers/web/shared/packages/**"
-
-kind/cli:
-  - "cmd/**"
-
-kind/lint:
   - ".eslintrc.yaml"
   - ".golangci.yml"
   - ".markdownlint.yaml"
   - ".spectral.yaml"
   - ".stylelintrc.yaml"
   - ".yamllint.yaml"
+  - ".github/**"
