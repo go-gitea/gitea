@@ -508,7 +508,7 @@ func Test_ParseClusterFuzz(t *testing.T) {
 	data := "<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY "
 
 	var res strings.Builder
-	err := PostProcess(&markup.RenderContext{
+	err := markup.PostProcess(&markup.RenderContext{
 		Ctx:       git.DefaultContext,
 		URLPrefix: "https://example.com",
 		Metas:     localMetas,
@@ -519,7 +519,7 @@ func Test_ParseClusterFuzz(t *testing.T) {
 	data = "<!DOCTYPE html>\n<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY "
 
 	res.Reset()
-	err = PostProcess(&markup.RenderContext{
+	err = markup.PostProcess(&markup.RenderContext{
 		Ctx:       git.DefaultContext,
 		URLPrefix: "https://example.com",
 		Metas:     localMetas,
@@ -529,7 +529,7 @@ func Test_ParseClusterFuzz(t *testing.T) {
 	assert.NotContains(t, res.String(), "<html")
 }
 
-func TestPostProcess_RenderDocument(t *testing.T) {
+func Testmarkup.PostProcess_RenderDocument(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 
 	localMetas := map[string]string{
@@ -540,7 +540,7 @@ func TestPostProcess_RenderDocument(t *testing.T) {
 
 	test := func(input, expected string) {
 		var res strings.Builder
-		err := PostProcess(&markup.RenderContext{
+		err := markup.PostProcess(&markup.RenderContext{
 			Ctx:       git.DefaultContext,
 			URLPrefix: "https://example.com",
 			Metas:     localMetas,
@@ -576,7 +576,7 @@ func TestIssue16020(t *testing.T) {
 	data := `<img src="data:image/png;base64,i//V"/>`
 
 	var res strings.Builder
-	err := PostProcess(&markup.RenderContext{
+	err := markup.PostProcess(&markup.RenderContext{
 		Ctx:       git.DefaultContext,
 		URLPrefix: "https://example.com",
 		Metas:     localMetas,
@@ -593,7 +593,7 @@ func BenchmarkEmojiPostprocess(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		var res strings.Builder
-		err := PostProcess(&markup.RenderContext{
+		err := markup.PostProcess(&markup.RenderContext{
 			Ctx:       git.DefaultContext,
 			URLPrefix: "https://example.com",
 			Metas:     localMetas,
@@ -613,7 +613,7 @@ func TestFuzz(t *testing.T) {
 		},
 	}
 
-	err := PostProcess(&renderContext, strings.NewReader(s), io.Discard)
+	err := markup.PostProcess(&renderContext, strings.NewReader(s), io.Discard)
 
 	assert.NoError(t, err)
 }
@@ -622,7 +622,7 @@ func TestIssue18471(t *testing.T) {
 	data := `http://domain/org/repo/compare/783b039...da951ce`
 
 	var res strings.Builder
-	err := PostProcess(&markup.RenderContext{
+	err := markup.PostProcess(&markup.RenderContext{
 		Ctx:       git.DefaultContext,
 		URLPrefix: "https://example.com",
 		Metas:     localMetas,
