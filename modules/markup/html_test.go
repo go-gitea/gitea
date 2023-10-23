@@ -529,7 +529,7 @@ func Test_ParseClusterFuzz(t *testing.T) {
 	assert.NotContains(t, res.String(), "<html")
 }
 
-func Testmarkup.PostProcess_RenderDocument(t *testing.T) {
+func TestPostProcess_RenderDocument(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 
 	localMetas := map[string]string{
