@@ -32,7 +32,7 @@ func TestAPIListTimezones(t *testing.T) {
 
 	assert.NotEmpty(t, timezoneList)
 
-	re, err := regexp.Compile(offsetStringRegEx)
+	re, err := regexp.Compile(offsetStringRegEx) //nolint:gocritic
 	require.NoError(t, err)
 
 	for _, timezone := range timezoneList {

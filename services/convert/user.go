@@ -47,7 +47,7 @@ func ToUserWithAccessMode(ctx context.Context, user *user_model.User, accessMode
 // toUser convert user_model.User to api.User
 // signed shall only be set if requester is logged in. authed shall only be set if user is site admin or user himself
 func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *api.User {
-	user.LoadTimeZone()
+	user.LoadTimeZone() //nolint:errcheck
 
 	result := &api.User{
 		ID:          user.ID,

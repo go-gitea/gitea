@@ -45,7 +45,7 @@ func (timeZone *TimeZone) OffsetString() string {
 
 	// We don't want it to be negative
 	if offsetCopy < 0 {
-		offsetCopy = offsetCopy * -1
+		offsetCopy *= -1
 	}
 
 	offsetString := time.Unix(offsetCopy, 0).UTC().Format("15:04")
@@ -64,7 +64,7 @@ func (timeZone *TimeZone) IsEmpty() bool {
 	return timeZone.Name == ""
 }
 
-type TimeZoneList []*TimeZone
+type TimeZoneList []*TimeZone //nolint:revive
 
 // Returns the timezone with the given name. Retruns nil, if the timezone was not found
 func (zoneList TimeZoneList) GetTimeZoneByName(name string) *TimeZone {
