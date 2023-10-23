@@ -16,6 +16,7 @@
 					<div class="ui top attached header">
 						<a class="text black" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.Name}}</strong></a>
 						<div class="ui right">
+							<a class="ui primary tiny button" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}">{{ctx.Locale.Tr "view"}}</a>
 							{{if .IsMember ctx $.SignedUser.ID}}
 								<form>
 									<button class="ui red tiny button delete-button" data-modal-id="leave-team"

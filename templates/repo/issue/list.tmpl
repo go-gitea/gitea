@@ -34,6 +34,15 @@
 		<div id="issue-actions" class="issue-list-toolbar gt-hidden">
 			<div class="issue-list-toolbar-left">
 				{{template "repo/issue/openclose" .}}
+				<!-- Total Tracked Time -->
+				{{if .TotalTrackedTime}}
+					<div class="ui compact tiny secondary menu">
+						<span class="item" data-tooltip-content='{{ctx.Locale.Tr "tracked_time_summary"}}'>
+							{{svg "octicon-clock"}}
+							{{.TotalTrackedTime | Sec2Time}}
+						</span>
+					</div>
+				{{end}}
 			</div>
 			<div class="issue-list-toolbar-right">
 				{{template "repo/issue/filter_actions" .}}

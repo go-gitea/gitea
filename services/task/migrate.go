@@ -42,13 +42,11 @@ func handleCreateError(owner *user_model.User, err error) error {
 }
 
 func runMigrateTask(ctx context.Context, t *admin_model.Task) (err error) {
-	defer func() {
+	defer func(ctx context.Context) {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("PANIC whilst trying to do migrate task: %v", e)
 			log.Critical("PANIC during runMigrateTask[%d] by DoerID[%d] to RepoID[%d] for OwnerID[%d]: %v\nStacktrace: %v", t.ID, t.DoerID, t.RepoID, t.OwnerID, e, log.Stack(2))
 		}
-		// fixme: Because ctx is canceled here, so the db.DefaultContext is needed.
-		ctx := db.DefaultContext
 		if err == nil {
 			err = admin_model.FinishMigrateTask(ctx, t)
 			if err == nil {
@@ -69,7 +67,7 @@ func runMigrateTask(ctx context.Context, t *admin_model.Task) (err error) {
 		}
 
 		// then, do not delete the repository, otherwise the users won't be able to see the last error
-	}()
+	}(graceful.GetManager().ShutdownContext()) // even if the parent ctx is canceled, this defer-function still needs to update the task record in database
 
 	if err = t.LoadRepo(ctx); err != nil {
 		return err
