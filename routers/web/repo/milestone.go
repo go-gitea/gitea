@@ -239,6 +239,7 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 		toClose = true
 	default:
 		ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones")
+		return
 	}
 	id := ctx.ParamsInt64(":id")
 
