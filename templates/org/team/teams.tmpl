@@ -37,7 +37,7 @@
 						{{end}}
 					</div>
 					<div class="ui bottom attached header">
-						<p class="team-meta">{{.NumMembers}} {{ctx.Locale.Tr "org.lower_members"}} · {{.NumRepos}} {{ctx.Locale.Tr "org.lower_repositories"}}</p>
+						<p class="team-meta"><a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}">{{.NumMembers}} {{ctx.Locale.Tr "org.lower_members"}}</a> · <a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories">{{.NumRepos}} {{ctx.Locale.Tr "org.lower_repositories"}}</a></p>
 					</div>
 				</div>
 			{{end}}
