@@ -126,7 +126,7 @@ export default {
 };
 </script>
 <template>
-  <div v-if="store.fileTreeIsVisible" class="gt-mr-3">
+  <div v-if="store.fileTreeIsVisible" class="diff-file-tree-items">
     <!-- only render the tree if we're visible. in many cases this is something that doesn't change very often -->
     <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item"/>
     <div v-if="store.isIncomplete" class="gt-pt-2">
@@ -134,3 +134,11 @@ export default {
     </div>
   </div>
 </template>
+<style scoped>
+.diff-file-tree-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-right: .5rem;
+}
+</style>

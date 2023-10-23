@@ -38,7 +38,7 @@
 	</div>
 	<a class="ui segment language-stats show-panel toggle" data-panel=".repository-summary > .sub-menu">
 		{{range .LanguageStats}}
-		<div class="bar" style="width: {{.Percentage}}%; background-color: {{.Color}}" data-tooltip-placement="top" data-tooltip-content={{.Language}}></div>
+		<div class="bar" style="width: {{.Percentage}}%; background-color: {{.Color}}" data-tooltip-placement="top" data-tooltip-content={{.Language}} data-tooltip-follow-cursor="horizontal"></div>
 		{{end}}
 	</a>
 	{{end}}
