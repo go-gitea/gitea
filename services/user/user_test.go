@@ -5,7 +5,6 @@ package user
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -22,9 +21,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func TestDeleteUser(t *testing.T) {
@@ -44,7 +41,7 @@ func TestDeleteUser(t *testing.T) {
 		orgUsers := make([]*organization.OrgUser, 0, 10)
 		assert.NoError(t, db.GetEngine(db.DefaultContext).Find(&orgUsers, &organization.OrgUser{UID: userID}))
 		for _, orgUser := range orgUsers {
-			if err := models.RemoveOrgUser(orgUser.OrgID, orgUser.UID); err != nil {
+			if err := models.RemoveOrgUser(db.DefaultContext, orgUser.OrgID, orgUser.UID); err != nil {
 				assert.True(t, organization.IsErrLastOrgOwner(err))
 				return
 			}

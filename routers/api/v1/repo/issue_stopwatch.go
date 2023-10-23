@@ -177,7 +177,7 @@ func prepareIssueStopwatch(ctx *context.APIContext, shouldExist bool) (*issues_m
 		return nil, errors.New("Unable to write to PRs")
 	}
 
-	if !ctx.Repo.CanUseTimetracker(issue, ctx.Doer) {
+	if !ctx.Repo.CanUseTimetracker(ctx, issue, ctx.Doer) {
 		ctx.Status(http.StatusForbidden)
 		return nil, errors.New("Cannot use time tracker")
 	}
@@ -230,7 +230,7 @@ func GetStopwatches(ctx *context.APIContext) {
 		return
 	}
 
-	apiSWs, err := convert.ToStopWatches(sws)
+	apiSWs, err := convert.ToStopWatches(ctx, sws)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "APIFormat", err)
 		return

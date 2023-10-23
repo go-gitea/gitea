@@ -180,6 +180,17 @@ func applyProjectCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Sessio
 	return sess
 }
 
+func applyProjectBoardCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
+	// opts.ProjectBoardID == 0 means all project boards,
+	// do not need to apply any condition
+	if opts.ProjectBoardID > 0 {
+		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}))
+	} else if opts.ProjectBoardID == db.NoConditionID {
+		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Neq{"project_board_id": 0}))
+	}
+	return sess
+}
+
 func applyRepoConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 	if len(opts.RepoIDs) == 1 {
 		opts.RepoCond = builder.Eq{"issue.repo_id": opts.RepoIDs[0]}
@@ -240,13 +251,7 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 
 	applyProjectCondition(sess, opts)
 
-	if opts.ProjectBoardID != 0 {
-		if opts.ProjectBoardID > 0 {
-			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}))
-		} else {
-			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}))
-		}
-	}
+	applyProjectBoardCondition(sess, opts)
 
 	switch opts.IsPull {
 	case util.OptionalBoolTrue:
@@ -444,9 +449,9 @@ func applySubscribedCondition(sess *xorm.Session, subscriberID int64) *xorm.Sess
 }
 
 // GetRepoIDsForIssuesOptions find all repo ids for the given options
-func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *user_model.User) ([]int64, error) {
+func GetRepoIDsForIssuesOptions(ctx context.Context, opts *IssuesOptions, user *user_model.User) ([]int64, error) {
 	repoIDs := make([]int64, 0, 5)
-	e := db.GetEngine(db.DefaultContext)
+	e := db.GetEngine(ctx)
 
 	sess := e.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 

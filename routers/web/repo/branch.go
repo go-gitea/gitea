@@ -37,7 +37,7 @@ const (
 func Branches(ctx *context.Context) {
 	ctx.Data["Title"] = "Branches"
 	ctx.Data["IsRepoToolbarBranches"] = true
-	ctx.Data["AllowsPulls"] = ctx.Repo.Repository.AllowsPulls()
+	ctx.Data["AllowsPulls"] = ctx.Repo.Repository.AllowsPulls(ctx)
 	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(unit.TypeCode)
 	ctx.Data["IsMirror"] = ctx.Repo.Repository.IsMirror
 	ctx.Data["CanPull"] = ctx.Repo.CanWrite(unit.TypeCode) ||

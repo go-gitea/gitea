@@ -25,7 +25,7 @@
 							{{ctx.Locale.Tr "admin.users.created"}}
 							{{SortArrow "recentupdate" "leastupdate" $.SortType false}}
 						</th>
-						<th>{{ctx.Locale.Tr "admin.users.edit"}}</th>
+						<th></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -45,7 +45,7 @@
 							<td>{{.NumMembers}}</td>
 							<td>{{.NumRepos}}</td>
 							<td>{{DateTime "short" .CreatedUnix}}</td>
-							<td><a href="{{.OrganisationLink}}/settings">{{svg "octicon-pencil"}}</a></td>
+							<td><a href="{{.OrganisationLink}}/settings" data-tooltip-content="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a></td>
 						</tr>
 					{{end}}
 				</tbody>
