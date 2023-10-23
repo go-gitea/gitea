@@ -5,6 +5,7 @@ package timezone
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/csv"
 	"fmt"
 	"strconv"
@@ -102,12 +103,18 @@ func GetTimeZoneList() (TimeZoneList, error) {
 
 // Update the timezone cache
 func UpdateTimeZoneListCache() error {
-	content, err := options.AssetFS().ReadFile("timezones.csv")
+	content, err := options.AssetFS().ReadFile("timezones.csv.gz")
 	if err != nil {
 		return fmt.Errorf("ReadFile: %v", err)
 	}
 
-	csvReader := csv.NewReader(bytes.NewBuffer(content))
+	gzipReader, err := gzip.NewReader(bytes.NewBuffer(content))
+	if err != nil {
+		return fmt.Errorf("Create GZIP Reader: %v", err)
+	}
+	defer gzipReader.Close()
+
+	csvReader := csv.NewReader(gzipReader)
 	data, err := csvReader.ReadAll()
 	if err != nil {
 		return err

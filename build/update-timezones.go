@@ -4,6 +4,7 @@ package main
 
 import (
 	"archive/zip"
+	"compress/gzip"
 	"io"
 	"log"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 func main() {
 	const (
 		url      = "https://timezonedb.com/files/TimeZoneDB.csv.zip"
+		dest     = "options/timezones.csv.gz"
 		prefix   = "timezone-archive"
 		filename = "time_zone.csv"
 	)
@@ -56,11 +58,14 @@ func main() {
 	}
 	defer fi.Close()
 
-	fo, err := os.Create("options/timezones.csv")
+	fo, err := os.Create(dest)
 	if err != nil {
 		log.Fatalf("Failed to create file. %s", err)
 	}
 	defer fo.Close()
+
+	zo := gzip.NewWriter(fo)
+	defer zo.Close()
 
 	buf := make([]byte, 1024)
 	for {
@@ -74,7 +79,7 @@ func main() {
 		}
 
 		// write a chunk
-		if _, err := fo.Write(buf[:n]); err != nil {
+		if _, err := zo.Write(buf[:n]); err != nil {
 			log.Fatalf("Failed to write file. %s", err)
 		}
 	}
