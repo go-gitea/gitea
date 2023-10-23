@@ -13,7 +13,6 @@ import (
 
 	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/db"
-	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -59,15 +58,14 @@ func GenerateRandomAvatar(ctx context.Context, u *User) error {
 
 // AvatarLinkWithSize returns a link to the user's avatar with size. size <= 0 means default size
 func (u *User) AvatarLinkWithSize(ctx context.Context, size int) string {
-	if u.ID == -1 {
-		// ghost user
+	if u.IsGhost() {
 		return avatars.DefaultAvatarLink()
 	}
 
 	useLocalAvatar := false
 	autoGenerateAvatar := false
 
-	disableGravatar := system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
+	disableGravatar := setting.Config().Picture.DisableGravatar.Value(ctx)
 
 	switch {
 	case u.UseCustomAvatar:

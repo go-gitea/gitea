@@ -28,23 +28,31 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 		_ = stdoutWriter.Close()
 	}()
 
+	var command *git.Command
+	if oldCommitID == git.EmptySHA {
+		// When creating a new branch, the oldCommitID is empty, by using "newCommitID --not --all":
+		// List commits that are reachable by following the newCommitID, exclude "all" existing heads/tags commits
+		// So, it only lists the new commits received, doesn't list the commits already present in the receiving repository
+		command = git.NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(newCommitID).AddArguments("--not", "--all")
+	} else {
+		command = git.NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(oldCommitID + "..." + newCommitID)
+	}
 	// This is safe as force pushes are already forbidden
-	err = git.NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(oldCommitID + "..." + newCommitID).
-		Run(&git.RunOpts{
-			Env:    env,
-			Dir:    repo.Path,
-			Stdout: stdoutWriter,
-			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
-				_ = stdoutWriter.Close()
-				err := readAndVerifyCommitsFromShaReader(stdoutReader, repo, env)
-				if err != nil {
-					log.Error("%v", err)
-					cancel()
-				}
-				_ = stdoutReader.Close()
-				return err
-			},
-		})
+	err = command.Run(&git.RunOpts{
+		Env:    env,
+		Dir:    repo.Path,
+		Stdout: stdoutWriter,
+		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
+			_ = stdoutWriter.Close()
+			err := readAndVerifyCommitsFromShaReader(stdoutReader, repo, env)
+			if err != nil {
+				log.Error("%v", err)
+				cancel()
+			}
+			_ = stdoutReader.Close()
+			return err
+		},
+	})
 	if err != nil && !isErrUnverifiedCommit(err) {
 		log.Error("Unable to check commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
 	}

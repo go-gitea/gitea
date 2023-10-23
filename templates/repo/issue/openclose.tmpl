@@ -1,14 +1,16 @@
 <div class="small-menu-items ui compact tiny menu">
-	<a class="{{if not .IsShowClosed}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&project={{.ProjectID}}&assignee={{.AssigneeID}}&poster={{.PosterID}}">
-		{{if .PageIsPullList}}
+	<a class="{{if not .IsShowClosed}}active {{end}}item" href="{{.OpenLink}}">
+		{{if .PageIsMilestones}}
+			{{svg "octicon-milestone" 16 "gt-mr-3"}}
+		{{else if .PageIsPullList}}
 			{{svg "octicon-git-pull-request" 16 "gt-mr-3"}}
 		{{else}}
 			{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
 		{{end}}
-		{{.locale.PrettyNumber .IssueStats.OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
+		{{ctx.Locale.PrettyNumber .OpenCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 	</a>
-	<a class="{{if .IsShowClosed}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&project={{.ProjectID}}&assignee={{.AssigneeID}}&poster={{.PosterID}}">
+	<a class="{{if .IsShowClosed}}active {{end}}item" href="{{.ClosedLink}}">
 		{{svg "octicon-check" 16 "gt-mr-3"}}
-		{{.locale.PrettyNumber .IssueStats.ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
+		{{ctx.Locale.PrettyNumber .ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 	</a>
 </div>

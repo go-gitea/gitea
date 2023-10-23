@@ -43,15 +43,17 @@ func ListAccessTokens(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AccessTokenList"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 
-	opts := auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID, ListOptions: utils.GetListOptions(ctx)}
+	opts := auth_model.ListAccessTokensOptions{UserID: ctx.ContextUser.ID, ListOptions: utils.GetListOptions(ctx)}
 
-	count, err := auth_model.CountAccessTokens(opts)
+	count, err := auth_model.CountAccessTokens(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
-	tokens, err := auth_model.ListAccessTokens(opts)
+	tokens, err := auth_model.ListAccessTokens(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -95,15 +97,17 @@ func CreateAccessToken(ctx *context.APIContext) {
 	//     "$ref": "#/responses/AccessToken"
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 
 	form := web.GetForm(ctx).(*api.CreateAccessTokenOption)
 
 	t := &auth_model.AccessToken{
-		UID:  ctx.Doer.ID,
+		UID:  ctx.ContextUser.ID,
 		Name: form.Name,
 	}
 
-	exist, err := auth_model.AccessTokenByNameExists(t)
+	exist, err := auth_model.AccessTokenByNameExists(ctx, t)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -120,7 +124,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 	}
 	t.Scope = scope
 
-	if err := auth_model.NewAccessToken(t); err != nil {
+	if err := auth_model.NewAccessToken(ctx, t); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewAccessToken", err)
 		return
 	}
@@ -153,6 +157,8 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "422":
@@ -162,9 +168,9 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	tokenID, _ := strconv.ParseInt(token, 0, 64)
 
 	if tokenID == 0 {
-		tokens, err := auth_model.ListAccessTokens(auth_model.ListAccessTokensOptions{
+		tokens, err := auth_model.ListAccessTokens(ctx, auth_model.ListAccessTokensOptions{
 			Name:   token,
-			UserID: ctx.Doer.ID,
+			UserID: ctx.ContextUser.ID,
 		})
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "ListAccessTokens", err)
@@ -187,7 +193,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		return
 	}
 
-	if err := auth_model.DeleteAccessTokenByID(tokenID, ctx.Doer.ID); err != nil {
+	if err := auth_model.DeleteAccessTokenByID(ctx, tokenID, ctx.ContextUser.ID); err != nil {
 		if auth_model.IsErrAccessTokenNotExist(err) {
 			ctx.NotFound()
 		} else {
@@ -230,7 +236,7 @@ func CreateOauth2Application(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "", "error creating oauth2 application")
 		return
 	}
-	secret, err := app.GenerateClientSecret()
+	secret, err := app.GenerateClientSecret(ctx)
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "", "error creating application secret")
 		return
@@ -260,7 +266,7 @@ func ListOauth2Applications(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/OAuth2ApplicationList"
 
-	apps, total, err := auth_model.ListOAuth2Applications(ctx.Doer.ID, utils.GetListOptions(ctx))
+	apps, total, err := auth_model.ListOAuth2Applications(ctx, ctx.Doer.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListOAuth2Applications", err)
 		return
@@ -296,7 +302,7 @@ func DeleteOauth2Application(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	appID := ctx.ParamsInt64(":id")
-	if err := auth_model.DeleteOAuth2Application(appID, ctx.Doer.ID); err != nil {
+	if err := auth_model.DeleteOAuth2Application(ctx, appID, ctx.Doer.ID); err != nil {
 		if auth_model.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound()
 		} else {
@@ -371,7 +377,7 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 
 	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
 
-	app, err := auth_model.UpdateOAuth2Application(auth_model.UpdateOAuth2ApplicationOptions{
+	app, err := auth_model.UpdateOAuth2Application(ctx, auth_model.UpdateOAuth2ApplicationOptions{
 		Name:               data.Name,
 		UserID:             ctx.Doer.ID,
 		ID:                 appID,
@@ -386,7 +392,7 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 		}
 		return
 	}
-	app.ClientSecret, err = app.GenerateClientSecret()
+	app.ClientSecret, err = app.GenerateClientSecret(ctx)
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "", "error updating application secret")
 		return

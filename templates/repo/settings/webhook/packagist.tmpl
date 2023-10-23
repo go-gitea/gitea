@@ -1,17 +1,17 @@
 {{if eq .HookType "packagist"}}
-	<p>{{.locale.Tr "repo.settings.add_web_hook_desc" "https://packagist.org" (.locale.Tr "repo.settings.web_hook_name_packagist") | Str2html}}</p>
+	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://packagist.org" (ctx.Locale.Tr "repo.settings.web_hook_name_packagist") | Str2html}}</p>
 	<form class="ui form" action="{{.BaseLink}}/packagist/{{or .Webhook.ID "new"}}" method="post">
 		{{.CsrfTokenHtml}}
 		<div class="required field {{if .Err_Username}}error{{end}}">
-			<label for="username">{{.locale.Tr "repo.settings.packagist_username"}}</label>
+			<label for="username">{{ctx.Locale.Tr "repo.settings.packagist_username"}}</label>
 			<input id="username" name="username" value="{{.PackagistHook.Username}}" placeholder="Gitea" autofocus required>
 		</div>
 		<div class="required field {{if .Err_APIToken}}error{{end}}">
-			<label for="api_token">{{.locale.Tr "repo.settings.packagist_api_token"}}</label>
+			<label for="api_token">{{ctx.Locale.Tr "repo.settings.packagist_api_token"}}</label>
 			<input id="api_token" name="api_token" value="{{.PackagistHook.APIToken}}" placeholder="X5F_tZ-Wj3c1vqaU2Rky" required>
 		</div>
 		<div class="required field {{if .Err_PackageURL}}error{{end}}">
-			<label for="package_url">{{.locale.Tr "repo.settings.packagist_package_url"}}</label>
+			<label for="package_url">{{ctx.Locale.Tr "repo.settings.packagist_package_url"}}</label>
 			<input id="package_url" name="package_url" value="{{.PackagistHook.PackageURL}}" placeholder="https://packagist.org/packages/laravel/framework" required>
 		</div>
 		{{template "repo/settings/webhook/settings" .}}

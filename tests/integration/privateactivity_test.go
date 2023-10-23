@@ -24,7 +24,7 @@ const (
 	privateActivityTestUser  = "user2"
 )
 
-// user3 is an organization so it is not usable here
+// org3 is an organization so it is not usable here
 const privateActivityTestOtherUser = "user4"
 
 // activity helpers

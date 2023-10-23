@@ -5,13 +5,13 @@
 		<div class="ui repo-search">
 			<form class="ui form ignore-dirty" method="get">
 				<div class="ui fluid action input">
-					<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable}} disabled{{end}} placeholder="{{.locale.Tr "repo.search.search_repo"}}">
-					<div class="ui dropdown selection {{if .CodeIndexerUnavailable}} disabled{{end}}" data-tooltip-content="{{.locale.Tr "repo.search.type.tooltip"}}">
+					<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable}} disabled{{end}} placeholder="{{ctx.Locale.Tr "repo.search.search_repo"}}">
+					<div class="ui dropdown selection {{if .CodeIndexerUnavailable}} disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.search.type.tooltip"}}">
 						<input name="t" type="hidden"{{if .CodeIndexerUnavailable}} disabled{{end}} value="{{.queryType}}">{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="text">{{.locale.Tr (printf "repo.search.%s" (or .queryType "fuzzy"))}}</div>
+						<div class="text">{{ctx.Locale.Tr (printf "repo.search.%s" (or .queryType "fuzzy"))}}</div>
 						<div class="menu">
-							<div class="item" data-value="" data-tooltip-content="{{.locale.Tr "repo.search.fuzzy.tooltip"}}">{{.locale.Tr "repo.search.fuzzy"}}</div>
-							<div class="item" data-value="match" data-tooltip-content="{{.locale.Tr "repo.search.match.tooltip"}}">{{.locale.Tr "repo.search.match"}}</div>
+							<div class="item" data-value="" data-tooltip-content="{{ctx.Locale.Tr "repo.search.fuzzy.tooltip"}}">{{ctx.Locale.Tr "repo.search.fuzzy"}}</div>
+							<div class="item" data-value="match" data-tooltip-content="{{ctx.Locale.Tr "repo.search.match.tooltip"}}">{{ctx.Locale.Tr "repo.search.match"}}</div>
 						</div>
 					</div>
 					<button class="ui icon button"{{if .CodeIndexerUnavailable}} disabled{{end}} type="submit">{{svg "octicon-search" 16}}</button>
@@ -20,16 +20,16 @@
 		</div>
 		{{if .CodeIndexerUnavailable}}
 			<div class="ui error message">
-				<p>{{$.locale.Tr "repo.search.code_search_unavailable"}}</p>
+				<p>{{ctx.Locale.Tr "repo.search.code_search_unavailable"}}</p>
 			</div>
 		{{else if .Keyword}}
 			<h3>
-				{{.locale.Tr "repo.search.results" (.Keyword|Escape) (.RepoLink|Escape) (.RepoName|Escape) | Str2html}}
+				{{ctx.Locale.Tr "repo.search.results" (.Keyword|Escape) (.RepoLink|Escape) (.RepoName|Escape) | Str2html}}
 			</h3>
 			{{if .SearchResults}}
-				<div class="gt-df gt-ac gt-fw">
+				<div class="flex-text-block gt-fw">
 					{{range $term := .SearchResultLanguages}}
-					<a class="ui text-label gt-df gt-ac gt-mr-1 gt-my-1 {{if eq $.Language $term.Language}}primary {{end}}basic label" href="{{$.SourcePath}}/search?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}{{if ne $.queryType ""}}&t={{$.queryType}}{{end}}">
+					<a class="ui {{if eq $.Language $term.Language}}primary{{end}} basic label gt-m-0" href="{{$.SourcePath}}/search?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}{{if ne $.queryType ""}}&t={{$.queryType}}{{end}}">
 						<i class="color-icon gt-mr-3" style="background-color: {{$term.Color}}"></i>
 						{{$term.Language}}
 						<div class="detail">{{$term.Count}}</div>
@@ -41,7 +41,7 @@
 						<div class="diff-file-box diff-box file-content non-diff-file-content repo-search-result">
 							<h4 class="ui top attached normal header gt-df gt-fw">
 								<span class="file gt-f1">{{.Filename}}</span>
-								<a role="button" class="ui basic tiny button" rel="nofollow" href="{{$.SourcePath}}/src/commit/{{PathEscape $result.CommitID}}/{{PathEscapeSegments .Filename}}">{{$.locale.Tr "repo.diff.view_file"}}</a>
+								<a role="button" class="ui basic tiny button" rel="nofollow" href="{{$.SourcePath}}/src/commit/{{PathEscape $result.CommitID}}/{{PathEscapeSegments .Filename}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
 							</h4>
 							<div class="ui attached table segment">
 								<div class="file-body file-code code-view">
@@ -65,7 +65,7 @@
 				</div>
 				{{template "base/paginate" .}}
 			{{else}}
-				<div>{{$.locale.Tr "repo.search.code_no_results"}}</div>
+				<div>{{ctx.Locale.Tr "repo.search.code_no_results"}}</div>
 			{{end}}
 		{{end}}
 	</div>

@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -314,6 +315,11 @@ type WhitelistOptions struct {
 // This function also performs check if whitelist user and team's IDs have been changed
 // to avoid unnecessary whitelist delete and regenerate.
 func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, protectBranch *ProtectedBranch, opts WhitelistOptions) (err error) {
+	err = repo.MustNotBeArchived()
+	if err != nil {
+		return err
+	}
+
 	if err = repo.LoadOwner(ctx); err != nil {
 		return fmt.Errorf("LoadOwner: %v", err)
 	}
@@ -435,7 +441,7 @@ func updateTeamWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 
 	whitelist = make([]int64, 0, len(teams))
 	for i := range teams {
-		if util.SliceContains(newWhitelist, teams[i].ID) {
+		if slices.Contains(newWhitelist, teams[i].ID) {
 			whitelist = append(whitelist, teams[i].ID)
 		}
 	}
@@ -444,9 +450,14 @@ func updateTeamWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 }
 
 // DeleteProtectedBranch removes ProtectedBranch relation between the user and repository.
-func DeleteProtectedBranch(ctx context.Context, repoID, id int64) (err error) {
+func DeleteProtectedBranch(ctx context.Context, repo *repo_model.Repository, id int64) (err error) {
+	err = repo.MustNotBeArchived()
+	if err != nil {
+		return err
+	}
+
 	protectedBranch := &ProtectedBranch{
-		RepoID: repoID,
+		RepoID: repo.ID,
 		ID:     id,
 	}
 

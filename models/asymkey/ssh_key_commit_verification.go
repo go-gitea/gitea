@@ -5,6 +5,7 @@ package asymkey
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strings"
 
@@ -17,10 +18,10 @@ import (
 )
 
 // ParseCommitWithSSHSignature check if signature is good against keystore.
-func ParseCommitWithSSHSignature(c *git.Commit, committer *user_model.User) *CommitVerification {
+func ParseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committer *user_model.User) *CommitVerification {
 	// Now try to associate the signature with the committer, if present
 	if committer.ID != 0 {
-		keys, err := ListPublicKeys(committer.ID, db.ListOptions{})
+		keys, err := ListPublicKeys(ctx, committer.ID, db.ListOptions{})
 		if err != nil { // Skipping failed to get ssh keys of user
 			log.Error("ListPublicKeys: %v", err)
 			return &CommitVerification{
@@ -30,7 +31,7 @@ func ParseCommitWithSSHSignature(c *git.Commit, committer *user_model.User) *Com
 			}
 		}
 
-		committerEmailAddresses, err := user_model.GetEmailAddresses(committer.ID)
+		committerEmailAddresses, err := user_model.GetEmailAddresses(ctx, committer.ID)
 		if err != nil {
 			log.Error("GetEmailAddresses: %v", err)
 		}

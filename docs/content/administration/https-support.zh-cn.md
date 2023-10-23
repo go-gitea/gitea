@@ -82,11 +82,11 @@ ACME_DIRECTORY=https
 ACME_EMAIL=email@example.com
 ```
 
-要了解关于配置, 请访问 [配置备忘单](../config-cheat-sheet#server-server)获取更多信息
+要了解关于配置, 请访问 [配置备忘单](administration/config-cheat-sheet.md#server-server)获取更多信息
 
 ## 使用反向代理服务器
 
-按照 [reverse proxy guide](../reverse-proxies) 的规则设置你的反向代理服务器
+按照 [reverse proxy guide](administration/reverse-proxies.md) 的规则设置你的反向代理服务器
 
 然后，按照下面的向导启用 HTTPS：
 
