@@ -135,7 +135,7 @@ func registerDeleteOldActions() {
 		OlderThan: 365 * 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
-		return activities_model.DeleteOldActions(olderThanConfig.OlderThan)
+		return activities_model.DeleteOldActions(ctx, olderThanConfig.OlderThan)
 	})
 }
 
@@ -219,7 +219,7 @@ func registerRebuildIssueIndexer() {
 		RunAtStart: false,
 		Schedule:   "@annually",
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
-		return issue_indexer.PopulateIssueIndexer(ctx, false)
+		return issue_indexer.PopulateIssueIndexer(ctx)
 	})
 }
 

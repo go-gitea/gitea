@@ -4,7 +4,6 @@
 package release
 
 import (
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -22,9 +21,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func TestRelease_Create(t *testing.T) {
@@ -110,7 +107,7 @@ func TestRelease_Create(t *testing.T) {
 
 	testPlayload := "testtest"
 
-	attach, err := attachment.NewAttachment(&repo_model.Attachment{
+	attach, err := attachment.NewAttachment(db.DefaultContext, &repo_model.Attachment{
 		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
@@ -244,7 +241,7 @@ func TestRelease_Update(t *testing.T) {
 
 	// Add new attachments
 	samplePayload := "testtest"
-	attach, err := attachment.NewAttachment(&repo_model.Attachment{
+	attach, err := attachment.NewAttachment(db.DefaultContext, &repo_model.Attachment{
 		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
