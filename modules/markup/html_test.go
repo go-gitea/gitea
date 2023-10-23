@@ -39,7 +39,7 @@ func TestMain(m *testing.M) {
 func TestRender_Commits(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 	test := func(input, expected string) {
-		buffer, err := markup.RenderString(&RenderContext{
+		buffer, err := markup.RenderString(&markup.RenderContext{
 			Ctx:          git.DefaultContext,
 			RelativePath: ".md",
 			URLPrefix:    markup.TestRepoURL,
@@ -90,7 +90,7 @@ func TestRender_CrossReferences(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 
 	test := func(input, expected string) {
-		buffer, err := markup.RenderString(&RenderContext{
+		buffer, err := markup.RenderString(&markup.RenderContext{
 			Ctx:          git.DefaultContext,
 			RelativePath: "a.md",
 			URLPrefix:    setting.AppSubURL,
@@ -124,18 +124,18 @@ func TestMisc_IsSameDomain(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 
 	sha := "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
-	commit := util.URLJoin(TestRepoURL, "commit", sha)
+	commit := util.URLJoin(markup.TestRepoURL, "commit", sha)
 
-	assert.True(t, IsSameDomain(commit))
-	assert.False(t, IsSameDomain("http://google.com/ncr"))
-	assert.False(t, IsSameDomain("favicon.ico"))
+	assert.True(t, markup.IsSameDomain(commit))
+	assert.False(t, markup.IsSameDomain("http://google.com/ncr"))
+	assert.False(t, markup.IsSameDomain("favicon.ico"))
 }
 
 func TestRender_links(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 
 	test := func(input, expected string) {
-		buffer, err := markup.RenderString(&RenderContext{
+		buffer, err := markup.RenderString(&markup.RenderContext{
 			Ctx:          git.DefaultContext,
 			RelativePath: "a.md",
 			URLPrefix:    markup.TestRepoURL,
@@ -147,8 +147,8 @@ func TestRender_links(t *testing.T) {
 
 	defaultCustom := setting.Markdown.CustomURLSchemes
 	setting.Markdown.CustomURLSchemes = []string{"ftp", "magnet"}
-	InitializeSanitizer()
-	CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
+	markup.InitializeSanitizer()
+	markup.CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 
 	test(
 		"https://www.example.com",
@@ -227,15 +227,15 @@ func TestRender_links(t *testing.T) {
 
 	// Restore previous settings
 	setting.Markdown.CustomURLSchemes = defaultCustom
-	InitializeSanitizer()
-	CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
+	markup.InitializeSanitizer()
+	markup.CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 }
 
 func TestRender_email(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 
 	test := func(input, expected string) {
-		res, err := markup.RenderString(&RenderContext{
+		res, err := markup.RenderString(&markup.RenderContext{
 			Ctx:          git.DefaultContext,
 			RelativePath: "a.md",
 			URLPrefix:    markup.TestRepoURL,
@@ -294,7 +294,7 @@ func TestRender_emoji(t *testing.T) {
 
 	test := func(input, expected string) {
 		expected = strings.ReplaceAll(expected, "&", "&amp;")
-		buffer, err := markup.RenderString(&RenderContext{
+		buffer, err := markup.RenderString(&markup.RenderContext{
 			Ctx:          git.DefaultContext,
 			RelativePath: "a.md",
 			URLPrefix:    markup.TestRepoURL,
@@ -355,16 +355,16 @@ func TestRender_emoji(t *testing.T) {
 
 func TestRender_ShortLinks(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
-	tree := util.URLJoin(TestRepoURL, "src", "master")
+	tree := util.URLJoin(markup.TestRepoURL, "src", "master")
 
 	test := func(input, expected, expectedWiki string) {
-		buffer, err := markdown.RenderString(&RenderContext{
+		buffer, err := markdown.RenderString(&markup.RenderContext{
 			Ctx:       git.DefaultContext,
 			URLPrefix: tree,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
-		buffer, err = markdown.RenderString(&RenderContext{
+		buffer, err = markdown.RenderString(&markup.RenderContext{
 			Ctx:       git.DefaultContext,
 			URLPrefix: markup.TestRepoURL,
 			Metas:     localMetas,
@@ -374,7 +374,7 @@ func TestRender_ShortLinks(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
 	}
 
-	rawtree := util.URLJoin(TestRepoURL, "raw", "master")
+	rawtree := util.URLJoin(markup.TestRepoURL, "raw", "master")
 	url := util.URLJoin(tree, "Link")
 	otherURL := util.URLJoin(tree, "Other-Link")
 	encodedURL := util.URLJoin(tree, "Link%3F")
@@ -382,13 +382,13 @@ func TestRender_ShortLinks(t *testing.T) {
 	otherImgurl := util.URLJoin(rawtree, "Link+Other.jpg")
 	encodedImgurl := util.URLJoin(rawtree, "Link+%23.jpg")
 	notencodedImgurl := util.URLJoin(rawtree, "some", "path", "Link+#.jpg")
-	urlWiki := util.URLJoin(TestRepoURL, "wiki", "Link")
-	otherURLWiki := util.URLJoin(TestRepoURL, "wiki", "Other-Link")
-	encodedURLWiki := util.URLJoin(TestRepoURL, "wiki", "Link%3F")
-	imgurlWiki := util.URLJoin(TestRepoURL, "wiki", "raw", "Link.jpg")
-	otherImgurlWiki := util.URLJoin(TestRepoURL, "wiki", "raw", "Link+Other.jpg")
-	encodedImgurlWiki := util.URLJoin(TestRepoURL, "wiki", "raw", "Link+%23.jpg")
-	notencodedImgurlWiki := util.URLJoin(TestRepoURL, "wiki", "raw", "some", "path", "Link+#.jpg")
+	urlWiki := util.URLJoin(markup.TestRepoURL, "wiki", "Link")
+	otherURLWiki := util.URLJoin(markup.TestRepoURL, "wiki", "Other-Link")
+	encodedURLWiki := util.URLJoin(markup.TestRepoURL, "wiki", "Link%3F")
+	imgurlWiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw", "Link.jpg")
+	otherImgurlWiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw", "Link+Other.jpg")
+	encodedImgurlWiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw", "Link+%23.jpg")
+	notencodedImgurlWiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw", "some", "path", "Link+#.jpg")
 	favicon := "http://google.com/favicon.ico"
 
 	test(
@@ -463,17 +463,17 @@ func TestRender_ShortLinks(t *testing.T) {
 
 func TestRender_RelativeImages(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
-	tree := util.URLJoin(TestRepoURL, "src", "master")
+	tree := util.URLJoin(markup.TestRepoURL, "src", "master")
 
 	test := func(input, expected, expectedWiki string) {
-		buffer, err := markdown.RenderString(&RenderContext{
+		buffer, err := markdown.RenderString(&markup.RenderContext{
 			Ctx:       git.DefaultContext,
 			URLPrefix: tree,
 			Metas:     localMetas,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
-		buffer, err = markdown.RenderString(&RenderContext{
+		buffer, err = markdown.RenderString(&markup.RenderContext{
 			Ctx:       git.DefaultContext,
 			URLPrefix: markup.TestRepoURL,
 			Metas:     localMetas,
@@ -483,8 +483,8 @@ func TestRender_RelativeImages(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
 	}
 
-	rawwiki := util.URLJoin(TestRepoURL, "wiki", "raw")
-	mediatree := util.URLJoin(TestRepoURL, "media", "master")
+	rawwiki := util.URLJoin(markup.TestRepoURL, "wiki", "raw")
+	mediatree := util.URLJoin(markup.TestRepoURL, "media", "master")
 
 	test(
 		`<img src="Link">`,
@@ -508,7 +508,7 @@ func Test_ParseClusterFuzz(t *testing.T) {
 	data := "<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY "
 
 	var res strings.Builder
-	err := PostProcess(&RenderContext{
+	err := PostProcess(&markup.RenderContext{
 		Ctx:       git.DefaultContext,
 		URLPrefix: "https://example.com",
 		Metas:     localMetas,
@@ -519,7 +519,7 @@ func Test_ParseClusterFuzz(t *testing.T) {
 	data = "<!DOCTYPE html>\n<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY "
 
 	res.Reset()
-	err = PostProcess(&RenderContext{
+	err = PostProcess(&markup.RenderContext{
 		Ctx:       git.DefaultContext,
 		URLPrefix: "https://example.com",
 		Metas:     localMetas,
@@ -540,7 +540,7 @@ func TestPostProcess_RenderDocument(t *testing.T) {
 
 	test := func(input, expected string) {
 		var res strings.Builder
-		err := PostProcess(&RenderContext{
+		err := PostProcess(&markup.RenderContext{
 			Ctx:       git.DefaultContext,
 			URLPrefix: "https://example.com",
 			Metas:     localMetas,
@@ -576,7 +576,7 @@ func TestIssue16020(t *testing.T) {
 	data := `<img src="data:image/png;base64,i//V"/>`
 
 	var res strings.Builder
-	err := PostProcess(&RenderContext{
+	err := PostProcess(&markup.RenderContext{
 		Ctx:       git.DefaultContext,
 		URLPrefix: "https://example.com",
 		Metas:     localMetas,
@@ -593,7 +593,7 @@ func BenchmarkEmojiPostprocess(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		var res strings.Builder
-		err := PostProcess(&RenderContext{
+		err := PostProcess(&markup.RenderContext{
 			Ctx:       git.DefaultContext,
 			URLPrefix: "https://example.com",
 			Metas:     localMetas,
@@ -622,7 +622,7 @@ func TestIssue18471(t *testing.T) {
 	data := `http://domain/org/repo/compare/783b039...da951ce`
 
 	var res strings.Builder
-	err := PostProcess(&RenderContext{
+	err := PostProcess(&markup.RenderContext{
 		Ctx:       git.DefaultContext,
 		URLPrefix: "https://example.com",
 		Metas:     localMetas,
