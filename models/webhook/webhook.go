@@ -155,8 +155,8 @@ func (w *Webhook) AfterLoad() {
 }
 
 // History returns history of webhook by given conditions.
-func (w *Webhook) History(page int) ([]*HookTask, error) {
-	return HookTasks(w.ID, page)
+func (w *Webhook) History(ctx context.Context, page int) ([]*HookTask, error) {
+	return HookTasks(ctx, w.ID, page)
 }
 
 // UpdateEvent handles conversion from HookEvent to Events.
@@ -394,8 +394,8 @@ func CreateWebhooks(ctx context.Context, ws []*Webhook) error {
 
 // getWebhook uses argument bean as query condition,
 // ID must be specified and do not assign unnecessary fields.
-func getWebhook(bean *Webhook) (*Webhook, error) {
-	has, err := db.GetEngine(db.DefaultContext).Get(bean)
+func getWebhook(ctx context.Context, bean *Webhook) (*Webhook, error) {
+	has, err := db.GetEngine(ctx).Get(bean)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -405,23 +405,23 @@ func getWebhook(bean *Webhook) (*Webhook, error) {
 }
 
 // GetWebhookByID returns webhook of repository by given ID.
-func GetWebhookByID(id int64) (*Webhook, error) {
-	return getWebhook(&Webhook{
+func GetWebhookByID(ctx context.Context, id int64) (*Webhook, error) {
+	return getWebhook(ctx, &Webhook{
 		ID: id,
 	})
 }
 
 // GetWebhookByRepoID returns webhook of repository by given ID.
-func GetWebhookByRepoID(repoID, id int64) (*Webhook, error) {
-	return getWebhook(&Webhook{
+func GetWebhookByRepoID(ctx context.Context, repoID, id int64) (*Webhook, error) {
+	return getWebhook(ctx, &Webhook{
 		ID:     id,
 		RepoID: repoID,
 	})
 }
 
 // GetWebhookByOwnerID returns webhook of a user or organization by given ID.
-func GetWebhookByOwnerID(ownerID, id int64) (*Webhook, error) {
-	return getWebhook(&Webhook{
+func GetWebhookByOwnerID(ctx context.Context, ownerID, id int64) (*Webhook, error) {
+	return getWebhook(ctx, &Webhook{
 		ID:      id,
 		OwnerID: ownerID,
 	})
@@ -466,26 +466,26 @@ func ListWebhooksByOpts(ctx context.Context, opts *ListWebhookOptions) ([]*Webho
 }
 
 // CountWebhooksByOpts count webhooks based on options and ignore pagination
-func CountWebhooksByOpts(opts *ListWebhookOptions) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(opts.toCond()).Count(&Webhook{})
+func CountWebhooksByOpts(ctx context.Context, opts *ListWebhookOptions) (int64, error) {
+	return db.GetEngine(ctx).Where(opts.toCond()).Count(&Webhook{})
 }
 
 // UpdateWebhook updates information of webhook.
-func UpdateWebhook(w *Webhook) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(w.ID).AllCols().Update(w)
+func UpdateWebhook(ctx context.Context, w *Webhook) error {
+	_, err := db.GetEngine(ctx).ID(w.ID).AllCols().Update(w)
 	return err
 }
 
 // UpdateWebhookLastStatus updates last status of webhook.
-func UpdateWebhookLastStatus(w *Webhook) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(w.ID).Cols("last_status").Update(w)
+func UpdateWebhookLastStatus(ctx context.Context, w *Webhook) error {
+	_, err := db.GetEngine(ctx).ID(w.ID).Cols("last_status").Update(w)
 	return err
 }
 
 // deleteWebhook uses argument bean as query condition,
 // ID must be specified and do not assign unnecessary fields.
-func deleteWebhook(bean *Webhook) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func deleteWebhook(ctx context.Context, bean *Webhook) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -503,16 +503,16 @@ func deleteWebhook(bean *Webhook) (err error) {
 }
 
 // DeleteWebhookByRepoID deletes webhook of repository by given ID.
-func DeleteWebhookByRepoID(repoID, id int64) error {
-	return deleteWebhook(&Webhook{
+func DeleteWebhookByRepoID(ctx context.Context, repoID, id int64) error {
+	return deleteWebhook(ctx, &Webhook{
 		ID:     id,
 		RepoID: repoID,
 	})
 }
 
 // DeleteWebhookByOwnerID deletes webhook of a user or organization by given ID.
-func DeleteWebhookByOwnerID(ownerID, id int64) error {
-	return deleteWebhook(&Webhook{
+func DeleteWebhookByOwnerID(ctx context.Context, ownerID, id int64) error {
+	return deleteWebhook(ctx, &Webhook{
 		ID:      id,
 		OwnerID: ownerID,
 	})
