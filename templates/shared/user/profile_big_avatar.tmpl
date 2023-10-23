@@ -69,6 +69,9 @@
 					<a target="_blank" rel="noopener noreferrer me" href="{{.ContextUser.Website}}">{{.ContextUser.Website}}</a>
 				</li>
 			{{end}}
+			{{if .ContextUser.DisplayLocalTime}}
+				<li>{{svg "octicon-clock"}} {{printf `%s <span class="text grey">(UTC %s)</span>` (DateTime "shortTime" .ContextUser.TimeZone.CurrentTimeString) .ContextUser.TimeZone.OffsetString | Safe}}</li>
+			{{end}}
 			{{if $.RenderedDescription}}
 				<li>
 					<div class="render-content markup">{{$.RenderedDescription|Str2html}}</div>

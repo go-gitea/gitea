@@ -55,6 +55,8 @@ func DateTime(format string, datetime any) template.HTML {
 		return template.HTML(fmt.Sprintf(`<relative-time format="datetime" year="numeric" month="long" day="numeric" weekday="" datetime="%s">%s</relative-time>`, datetimeEscaped, textEscaped))
 	case "full":
 		return template.HTML(fmt.Sprintf(`<relative-time format="datetime" weekday="" year="numeric" month="short" day="numeric" hour="numeric" minute="numeric" second="numeric" datetime="%s">%s</relative-time>`, datetimeEscaped, textEscaped))
+	case "shortTime":
+		return template.HTML(fmt.Sprintf(`<relative-time format="datetime" weekday="" year="" month="" day="" hour="numeric" minute="numeric" datetime="%s">%s</relative-time>`, datetimeEscaped, textEscaped))
 	}
 	panic(fmt.Sprintf("Unsupported format %s", format))
 }

@@ -52,6 +52,10 @@ type User struct {
 	Followers    int `json:"followers_count"`
 	Following    int `json:"following_count"`
 	StarredRepos int `json:"starred_repos_count"`
+
+	// timezone
+	DisplayLocalTime bool      `json:"display_local_time"`
+	TimeZone         *TimeZone `json:"timezone"`
 }
 
 // MarshalJSON implements the json.Marshaler interface for User, adding field(s) for backward compatibility
@@ -75,8 +79,9 @@ type UserSettings struct {
 	Theme         string `json:"theme"`
 	DiffViewStyle string `json:"diff_view_style"`
 	// Privacy
-	HideEmail    bool `json:"hide_email"`
-	HideActivity bool `json:"hide_activity"`
+	HideEmail    bool   `json:"hide_email"`
+	HideActivity bool   `json:"hide_activity"`
+	TimeZoneName string `json:"timezone_name"`
 }
 
 // UserSettingsOptions represents options to change user settings
@@ -90,8 +95,9 @@ type UserSettingsOptions struct {
 	Theme         *string `json:"theme"`
 	DiffViewStyle *string `json:"diff_view_style"`
 	// Privacy
-	HideEmail    *bool `json:"hide_email"`
-	HideActivity *bool `json:"hide_activity"`
+	HideEmail    *bool   `json:"hide_email"`
+	HideActivity *bool   `json:"hide_activity"`
+	TimeZoneName *string `json:"timezone_name"`
 }
 
 // RenameUserOption options when renaming a user

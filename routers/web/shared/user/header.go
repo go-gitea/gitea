@@ -82,6 +82,14 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	if _, ok := ctx.Data["NumFollowing"]; !ok {
 		_, ctx.Data["NumFollowing"], _ = user_model.GetUserFollowing(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{PageSize: 1, Page: 1})
 	}
+
+	if ctx.ContextUser.DisplayLocalTime {
+		err = ctx.ContextUser.LoadTimeZone()
+		if err != nil {
+			ctx.ServerError("LoadTimeZone", err)
+			return
+		}
+	}
 }
 
 func FindUserProfileReadme(ctx *context.Context) (profileGitRepo *git.Repository, profileReadmeBlob *git.Blob, profileClose func()) {

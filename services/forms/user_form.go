@@ -225,6 +225,8 @@ type UpdateProfileForm struct {
 	Description         string `binding:"MaxSize(255)"`
 	Visibility          structs.VisibleType
 	KeepActivityPrivate bool
+	DisplayLocalTime    bool
+	SelectedTimezone    string
 }
 
 // Validate validates the fields

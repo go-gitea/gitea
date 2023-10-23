@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	timezone_module "code.gitea.io/gitea/modules/timezone"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
@@ -140,6 +141,11 @@ type User struct {
 	DiffViewStyle       string `xorm:"NOT NULL DEFAULT ''"`
 	Theme               string `xorm:"NOT NULL DEFAULT ''"`
 	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
+
+	// Timezone
+	DisplayLocalTime bool                      `xorm:"NOT NULL DEFAULT false"`
+	TimeZoneName     string                    `xorm:"NOT NULL DEFAULT ''"`
+	TimeZone         *timezone_module.TimeZone `xorm:"-"`
 }
 
 func init() {
@@ -315,6 +321,27 @@ func (u *User) GenerateEmailActivateCode(email string) string {
 	// Add tail hex username
 	code += hex.EncodeToString([]byte(u.LowerName))
 	return code
+}
+
+// LoadTimeZone loads the TimeZone
+func (u *User) LoadTimeZone() error {
+	if u.TimeZone != nil {
+		return nil
+	}
+
+	if u.TimeZoneName == "" {
+		u.TimeZone = timezone_module.GetDefaultTimeZone()
+		return nil
+	}
+
+	zoneList, err := timezone_module.GetTimeZoneList()
+	if err != nil {
+		return err
+	}
+
+	u.TimeZone = zoneList.GetTimeZoneByNameDefault(u.TimeZoneName)
+
+	return nil
 }
 
 // GetUserFollowers returns range of user's followers.

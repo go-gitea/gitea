@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	timezone_module "code.gitea.io/gitea/modules/timezone"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
 )
@@ -439,4 +440,23 @@ func ToChangedFile(f *gitdiff.DiffFile, repo *repo_model.Repository, commit stri
 	}
 
 	return file
+}
+
+// ToTimeZone convert a timezone_module.TimeZone to api.TimeZone
+func ToTimeZone(timeZone *timezone_module.TimeZone) *api.TimeZone {
+	return &api.TimeZone{
+		Name:         timeZone.Name,
+		Offset:       timeZone.Offset,
+		OffsetString: timeZone.OffsetString(),
+		CurrentTime:  timeZone.CurrentTimeString(),
+	}
+}
+
+// ToTimeZoneList convert a timezone_module.TimeZone to []api.TimeZone
+func ToTimeZoneList(zoneList timezone_module.TimeZoneList) []*api.TimeZone {
+	apiList := make([]*api.TimeZone, len(zoneList))
+	for i, zone := range zoneList {
+		apiList[i] = ToTimeZone(zone)
+	}
+	return apiList
 }

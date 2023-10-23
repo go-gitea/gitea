@@ -47,6 +47,8 @@ func ToUserWithAccessMode(ctx context.Context, user *user_model.User, accessMode
 // toUser convert user_model.User to api.User
 // signed shall only be set if requester is logged in. authed shall only be set if user is site admin or user himself
 func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *api.User {
+	user.LoadTimeZone()
+
 	result := &api.User{
 		ID:          user.ID,
 		UserName:    user.Name,
@@ -62,6 +64,9 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 		Followers:    user.NumFollowers,
 		Following:    user.NumFollowing,
 		StarredRepos: user.NumStars,
+		// timezone
+		DisplayLocalTime: user.DisplayLocalTime,
+		TimeZone:         ToTimeZone(user.TimeZone),
 	}
 
 	result.Visibility = user.Visibility.String()
@@ -95,6 +100,7 @@ func User2UserSettings(user *user_model.User) api.UserSettings {
 		HideEmail:     user.KeepEmailPrivate,
 		HideActivity:  user.KeepActivityPrivate,
 		DiffViewStyle: user.DiffViewStyle,
+		TimeZoneName:  user.TimeZoneName,
 	}
 }
 

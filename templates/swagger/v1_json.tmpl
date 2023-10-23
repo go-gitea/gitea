@@ -14462,6 +14462,23 @@
         }
       }
     },
+    "/timezones": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Returns a list of all timeszones",
+        "operationId": "listTimezones",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TimeZoneList"
+          }
+        }
+      }
+    },
     "/topics/search": {
       "get": {
         "produces": [
@@ -22398,6 +22415,31 @@
       "format": "int64",
       "x-go-package": "code.gitea.io/gitea/modules/timeutil"
     },
+    "TimeZone": {
+      "description": "TimeZone is a time zone",
+      "type": "object",
+      "properties": {
+        "current_time": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CurrentTime"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "offset": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Offset"
+        },
+        "offset_string": {
+          "type": "string",
+          "x-go-name": "OffsetString"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "TimelineComment": {
       "description": "TimelineComment represents a timeline comment (comment of any type) on a commit or issue",
       "type": "object",
@@ -22731,6 +22773,11 @@
           "type": "string",
           "x-go-name": "Description"
         },
+        "display_local_time": {
+          "description": "timezone",
+          "type": "boolean",
+          "x-go-name": "DisplayLocalTime"
+        },
         "email": {
           "type": "string",
           "format": "email",
@@ -22804,6 +22851,9 @@
           "format": "int64",
           "x-go-name": "StarredRepos"
         },
+        "timezone": {
+          "$ref": "#/definitions/TimeZone"
+        },
         "visibility": {
           "description": "User visibility level option: public, limited, private",
           "type": "string",
@@ -22869,6 +22919,10 @@
           "type": "string",
           "x-go-name": "Theme"
         },
+        "timezone_name": {
+          "type": "string",
+          "x-go-name": "TimeZoneName"
+        },
         "website": {
           "type": "string",
           "x-go-name": "Website"
@@ -22912,6 +22966,10 @@
         "theme": {
           "type": "string",
           "x-go-name": "Theme"
+        },
+        "timezone_name": {
+          "type": "string",
+          "x-go-name": "TimeZoneName"
         },
         "website": {
           "type": "string",
@@ -23861,6 +23919,15 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Team"
+        }
+      }
+    },
+    "TimeZoneList": {
+      "description": "TimeZoneList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/TimeZone"
         }
       }
     },

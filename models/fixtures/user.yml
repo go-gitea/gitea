@@ -36,6 +36,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  time_zone_name: "Pacific/Honolulu"
 
 -
   id: 2

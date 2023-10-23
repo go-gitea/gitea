@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	timezone_module "code.gitea.io/gitea/modules/timezone"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
@@ -35,15 +36,28 @@ const (
 	tplSettingsProfile      base.TplName = "user/settings/profile"
 	tplSettingsAppearance   base.TplName = "user/settings/appearance"
 	tplSettingsOrganization base.TplName = "user/settings/organization"
-	tplSettingsRepositories base.TplName = "user/settings/repos"
+	tplSettingsRepositories base.TplName = "uuser/settings/repos"
 )
 
 // Profile render user's profile page
 func Profile(ctx *context.Context) {
+	zoneList, err := timezone_module.GetTimeZoneList()
+	if err != nil {
+		ctx.ServerError("GetTimeZoneList", err)
+		return
+	}
+
+	err = ctx.Data["SignedUser"].(*user_model.User).LoadTimeZone()
+	if err != nil {
+		ctx.ServerError("LoadTimeZone", err)
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Tr("settings.profile")
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value(ctx)
+	ctx.Data["TimeZoneList"] = zoneList
 
 	ctx.HTML(http.StatusOK, tplSettingsProfile)
 }
@@ -109,6 +123,8 @@ func ProfilePost(ctx *context.Context) {
 	ctx.Doer.Description = form.Description
 	ctx.Doer.KeepActivityPrivate = form.KeepActivityPrivate
 	ctx.Doer.Visibility = form.Visibility
+	ctx.Doer.DisplayLocalTime = form.DisplayLocalTime
+	ctx.Doer.TimeZoneName = form.SelectedTimezone
 	if err := user_model.UpdateUserSetting(ctx, ctx.Doer); err != nil {
 		if _, ok := err.(user_model.ErrEmailAlreadyUsed); ok {
 			ctx.Flash.Error(ctx.Tr("form.email_been_used"))

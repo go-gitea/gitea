@@ -62,3 +62,10 @@ type swaggerResponseLabelTemplateInfo struct {
 	// in:body
 	Body []api.LabelTemplate `json:"body"`
 }
+
+// TimeZoneList
+// swagger:response TimeZoneList
+type swaggerResponseTimeZoneList struct {
+	// in:body
+	Body []api.TimeZone `json:"body"`
+}

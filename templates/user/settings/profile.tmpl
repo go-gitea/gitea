@@ -39,6 +39,40 @@
 				</div>
 
 				<div class="divider"></div>
+				<!-- timezone block -->
+
+				<div class="field">
+					<label><strong>{{ctx.Locale.Tr "settings.timezone"}}</strong></label>
+				</div>
+
+				<p>{{ctx.Locale.Tr "settings.timezone_desc"}}</p>
+
+				<div class="field">
+					<div class="ui checkbox">
+						<label for="display_local_time"><strong>{{ctx.Locale.Tr "settings.display_local_time"}}</strong></label>
+						<input name="display_local_time" type="checkbox" {{if .SignedUser.DisplayLocalTime}}checked{{end}}>
+					</div>
+				</div>
+
+				<div class="field">
+					<span class="inline required field"><label for="selected_timezone">{{ctx.Locale.Tr "settings.timezone"}}</label></span>
+					<div class="ui selection type dropdown">
+						<input type="hidden" id="selected_timezone" name="selected_timezone" value="{{.SignedUser.TimeZoneName}}">
+						<div class="text">{{printf "%s (UTC %s)" .SignedUser.TimeZone.Name .SignedUser.TimeZone.OffsetString}}</div>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							<div class="ui icon search input">
+								<i class="icon">{{svg "octicon-search" 16}}</i>
+								<input type="text" placeholder="{{ctx.Locale.Tr "explore.search"}}">
+							</div>
+							{{range .TimeZoneList}}
+								<div class="item" data-value="{{.Name}}">{{printf "%s (UTC %s)" .Name .OffsetString}}</div>
+							{{end}}
+						</div>
+					</div>
+				</div>
+
+				<div class="divider"></div>
 				<!-- private block -->
 
 				<div class="field" id="privacy-user-settings">

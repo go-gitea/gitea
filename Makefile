@@ -236,6 +236,7 @@ help:
 	@echo " - fmt                              format the Go code"
 	@echo " - generate-license                 update license files"
 	@echo " - generate-gitignore               update gitignore files"
+	@echo " - update-timezones                 updates the timezones"
 	@echo " - generate-manpage                 generate manpage"
 	@echo " - generate-swagger                 generate the swagger spec from code comments"
 	@echo " - swagger-validate                 check if the swagger spec is valid"
@@ -978,6 +979,10 @@ generate-manpage:
 docker:
 	docker build --disable-content-trust=false -t $(DOCKER_REF) .
 # support also build args docker build --build-arg GITEA_VERSION=v1.2.3 --build-arg TAGS="bindata sqlite sqlite_unlock_notify"  .
+
+.PHONY: update-timezones
+update-timezones:
+	$(GO) run build/update-timezones.go
 
 # This endif closes the if at the top of the file
 endif

@@ -94,6 +94,14 @@ type LicenseTemplateInfo struct {
 	Body           string `json:"body"`
 }
 
+// TimeZone is a time zone
+type TimeZone struct {
+	Name         string `json:"name"`
+	Offset       int64  `json:"offset"`
+	OffsetString string `json:"offset_string"`
+	CurrentTime  string `json:"current_time"`
+}
+
 // APIError is an api error with a message
 type APIError struct {
 	Message string `json:"message"`

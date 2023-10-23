@@ -73,6 +73,10 @@ func UpdateUserSettings(ctx *context.APIContext) {
 		ctx.Doer.KeepActivityPrivate = *form.HideActivity
 	}
 
+	if form.TimeZoneName != nil {
+		ctx.Doer.TimeZoneName = *form.TimeZoneName
+	}
+
 	if err := user_model.UpdateUser(ctx, ctx.Doer, false); err != nil {
 		ctx.InternalServerError(err)
 		return

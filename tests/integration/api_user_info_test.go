@@ -63,5 +63,10 @@ func TestAPIUserInfo(t *testing.T) {
 		var u api.User
 		DecodeJSON(t, resp, &u)
 		assert.Equal(t, user, u.UserName)
+
+		// Pacific/Honolulu don't have daylight saving time, so the offset is always the same
+		assert.Equal(t, "Pacific/Honolulu", u.TimeZone.Name)
+		assert.Equal(t, "-10:00", u.TimeZone.OffsetString)
+		assert.Equal(t, int64(-36000), u.TimeZone.Offset)
 	})
 }
