@@ -1,4 +1,4 @@
-#Build stage
+# Build stage
 FROM docker.io/library/golang:1.21-alpine3.18 AS build-env
 
 ARG GOPROXY
@@ -9,7 +9,7 @@ ARG TAGS="sqlite sqlite_unlock_notify"
 ENV TAGS "bindata timetzdata $TAGS"
 ARG CGO_EXTRA_CFLAGS
 
-#Build deps
+# Build deps
 RUN apk --no-cache add \
     build-base \
     git \
@@ -17,11 +17,11 @@ RUN apk --no-cache add \
     npm \
     && rm -rf /var/cache/apk/*
 
-#Setup repo
+# Setup repo
 COPY . ${GOPATH}/src/code.gitea.io/gitea
 WORKDIR ${GOPATH}/src/code.gitea.io/gitea
 
-#Checkout version if set
+# Checkout version if set
 RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
  && make clean-all build
 
@@ -64,14 +64,14 @@ ENV GITEA_CUSTOM /data/gitea
 
 VOLUME ["/data"]
 
-ENTRYPOINT ["/usr/bin/entrypoint"]
+ENTRYPOINT ["/usr/bin/entrypoint.sh"]
 CMD ["/bin/s6-svscan", "/etc/s6"]
 
 COPY docker/root /
 COPY --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
 COPY --from=build-env /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
 COPY --from=build-env /go/src/code.gitea.io/gitea/contrib/autocompletion/bash_autocomplete /etc/profile.d/gitea_bash_autocomplete.sh
-RUN chmod 755 /usr/bin/entrypoint \
+RUN chmod 755 /usr/bin/entrypoint.sh \
               /app/gitea/gitea \
               /usr/local/bin/gitea \
               /usr/local/bin/environment-to-ini \
