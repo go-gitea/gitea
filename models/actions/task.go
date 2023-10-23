@@ -279,9 +279,8 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		return nil, false, fmt.Errorf("parse workflow of job %d: %w", job.ID, err)
 	} else if len(gots) != 1 {
 		return nil, false, fmt.Errorf("workflow of job %d: not single workflow", job.ID)
-	} else {
-		_, workflowJob = gots[0].Job()
 	}
+	_, workflowJob = gots[0].Job()
 
 	if _, err := e.Insert(task); err != nil {
 		return nil, false, err
