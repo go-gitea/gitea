@@ -207,8 +207,7 @@ function initArchivedLabelFilter() {
       const id = label.getAttribute('data-label-id');
       toggleElem(label, archivedLabelEl.checked || selectedLabels.includes(id));
       // also toggle the divider
-      const divider = $(label).next('.exclusive-scope');
-      toggleElem(divider, archivedLabelEl.checked || selectedLabels.includes(id));
+      toggleElem($(label).next('.exclusive-scope'), archivedLabelEl.checked || selectedLabels.includes(id));
     }
   };
 
