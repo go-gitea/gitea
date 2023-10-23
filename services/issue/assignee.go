@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // DeleteNotPassedAssignee deletes all assignees who aren't passed via the "assignees" array
@@ -54,7 +54,7 @@ func ToggleAssigneeWithNotify(ctx context.Context, issue *issues_model.Issue, do
 		return false, nil, err
 	}
 
-	notification.NotifyIssueChangeAssignee(ctx, doer, issue, assignee, removed, comment)
+	notify_service.IssueChangeAssignee(ctx, doer, issue, assignee, removed, comment)
 
 	return removed, comment, err
 }
@@ -72,7 +72,7 @@ func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer, reviewe
 	}
 
 	if comment != nil {
-		notification.NotifyPullRequestReviewRequest(ctx, doer, issue, reviewer, isAdd, comment)
+		notify_service.PullRequestReviewRequest(ctx, doer, issue, reviewer, isAdd, comment)
 	}
 
 	return comment, err
@@ -259,7 +259,7 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 			continue
 		}
 		comment.AssigneeID = member.ID
-		notification.NotifyPullRequestReviewRequest(ctx, doer, issue, member, isAdd, comment)
+		notify_service.PullRequestReviewRequest(ctx, doer, issue, member, isAdd, comment)
 	}
 
 	return comment, err

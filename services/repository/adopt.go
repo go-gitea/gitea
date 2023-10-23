@@ -18,16 +18,16 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/gobwas/glob"
 )
 
 // AdoptRepository adopts pre-existing repository files for the user/organization.
-func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts repo_module.CreateRepoOptions) (*repo_model.Repository, error) {
+func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateRepoOptions) (*repo_model.Repository, error) {
 	if !doer.IsAdmin && !u.CanCreateRepo() {
 		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: u.MaxRepoCreation,
@@ -104,7 +104,7 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts repo_mo
 		return nil, err
 	}
 
-	notification.NotifyAdoptRepository(ctx, doer, u, repo)
+	notify_service.AdoptRepository(ctx, doer, u, repo)
 
 	return repo, nil
 }
@@ -195,6 +195,10 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 		return fmt.Errorf("updateRepository: %w", err)
 	}
 
+	if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
+		return fmt.Errorf("SyncReleasesWithTags: %w", err)
+	}
+
 	return nil
 }
 
@@ -255,7 +259,7 @@ func checkUnadoptedRepositories(ctx context.Context, userName string, repoNamesT
 		}
 		return err
 	}
-	repos, _, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
+	repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
 		Actor:   ctxUser,
 		Private: true,
 		ListOptions: db.ListOptions{

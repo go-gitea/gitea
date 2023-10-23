@@ -81,7 +81,6 @@ func Commits(ctx *context.Context) {
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
-	ctx.Data["RefName"] = ctx.Repo.RefName
 
 	pager := context.NewPagination(int(commitsCount), pageSize, page, 5)
 	pager.SetDefaultParams(ctx)
@@ -157,7 +156,7 @@ func Graph(ctx *context.Context) {
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
-	ctx.Data["RefName"] = ctx.Repo.RefName
+
 	paginator := context.NewPagination(int(graphCommitsCount), setting.UI.GraphMaxCommitNum, page, 5)
 	paginator.AddParam(ctx, "mode", "Mode")
 	paginator.AddParam(ctx, "hide-pr-refs", "HidePRRefs")
@@ -203,7 +202,6 @@ func SearchCommits(ctx *context.Context) {
 	}
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-	ctx.Data["RefName"] = ctx.Repo.RefName
 	ctx.HTML(http.StatusOK, tplCommits)
 }
 
@@ -247,7 +245,6 @@ func FileHistory(ctx *context.Context) {
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["FileName"] = fileName
 	ctx.Data["CommitCount"] = commitsCount
-	ctx.Data["RefName"] = ctx.Repo.RefName
 
 	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)
@@ -308,7 +305,7 @@ func Diff(ctx *context.Context) {
 		maxLines, maxFiles = -1, -1
 	}
 
-	diff, err := gitdiff.GetDiff(gitRepo, &gitdiff.DiffOptions{
+	diff, err := gitdiff.GetDiff(ctx, gitRepo, &gitdiff.DiffOptions{
 		AfterCommitID:      commitID,
 		SkipTo:             ctx.FormString("skip-to"),
 		MaxLines:           maxLines,
@@ -364,7 +361,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
 
 	if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-		return repo_model.IsOwnerMemberCollaborator(ctx.Repo.Repository, user.ID)
+		return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
 	}, nil); err != nil {
 		ctx.ServerError("CalculateTrustStatus", err)
 		return

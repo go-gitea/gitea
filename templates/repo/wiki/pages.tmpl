@@ -3,10 +3,10 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<h2 class="ui header gt-df gt-ac gt-sb">
-			<span>{{.locale.Tr "repo.wiki.pages"}}</span>
+			<span>{{ctx.Locale.Tr "repo.wiki.pages"}}</span>
 			<span>
 				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
-					<a class="ui green small button" href="{{.RepoLink}}/wiki?action=_new">{{.locale.Tr "repo.wiki.new_page_button"}}</a>
+					<a class="ui small primary button" href="{{.RepoLink}}/wiki?action=_new">{{ctx.Locale.Tr "repo.wiki.new_page_button"}}</a>
 				{{end}}
 			</span>
 		</h2>
@@ -17,10 +17,10 @@
 						<td>
 							{{svg "octicon-file"}}
 							<a href="{{$.RepoLink}}/wiki/{{.SubURL}}">{{.Name}}</a>
-							<a class="wiki-git-entry" href="{{$.RepoLink}}/wiki/{{.GitEntryName | PathEscape}}" data-tooltip-content="{{$.locale.Tr "repo.wiki.original_git_entry_tooltip"}}">{{svg "octicon-chevron-right"}}</a>
+							<a class="wiki-git-entry" href="{{$.RepoLink}}/wiki/{{.GitEntryName | PathEscape}}" data-tooltip-content="{{ctx.Locale.Tr "repo.wiki.original_git_entry_tooltip"}}">{{svg "octicon-chevron-right"}}</a>
 						</td>
-						{{$timeSince := TimeSinceUnix .UpdatedUnix $.locale}}
-						<td class="text right">{{$.locale.Tr "repo.wiki.last_updated" $timeSince | Safe}}</td>
+						{{$timeSince := TimeSinceUnix .UpdatedUnix ctx.Locale}}
+						<td class="text right">{{ctx.Locale.Tr "repo.wiki.last_updated" $timeSince | Safe}}</td>
 					</tr>
 				{{end}}
 			</tbody>

@@ -29,7 +29,7 @@ func listGPGKeys(ctx *context.APIContext, uid int64, listOptions db.ListOptions)
 		apiKeys[i] = convert.ToGPGKey(keys[i])
 	}
 
-	total, err := asymkey_model.CountUserGPGKeys(uid)
+	total, err := asymkey_model.CountUserGPGKeys(ctx, uid)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -63,6 +63,8 @@ func ListGPGKeys(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GPGKeyList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listGPGKeys(ctx, ctx.ContextUser.ID, utils.GetListOptions(ctx))
 }
@@ -110,7 +112,7 @@ func GetGPGKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	key, err := asymkey_model.GetGPGKeyByID(ctx.ParamsInt64(":id"))
+	key, err := asymkey_model.GetGPGKeyByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if asymkey_model.IsErrGPGKeyNotExist(err) {
 			ctx.NotFound()
@@ -127,9 +129,9 @@ func CreateUserGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption, uid 
 	token := asymkey_model.VerificationToken(ctx.Doer, 1)
 	lastToken := asymkey_model.VerificationToken(ctx.Doer, 0)
 
-	keys, err := asymkey_model.AddGPGKey(uid, form.ArmoredKey, token, form.Signature)
+	keys, err := asymkey_model.AddGPGKey(ctx, uid, form.ArmoredKey, token, form.Signature)
 	if err != nil && asymkey_model.IsErrGPGInvalidTokenSignature(err) {
-		keys, err = asymkey_model.AddGPGKey(uid, form.ArmoredKey, lastToken, form.Signature)
+		keys, err = asymkey_model.AddGPGKey(ctx, uid, form.ArmoredKey, lastToken, form.Signature)
 	}
 	if err != nil {
 		HandleAddGPGKeyError(ctx, err, token)
@@ -183,9 +185,9 @@ func VerifyUserGPGKey(ctx *context.APIContext) {
 		return
 	}
 
-	_, err := asymkey_model.VerifyGPGKey(ctx.Doer.ID, form.KeyID, token, form.Signature)
+	_, err := asymkey_model.VerifyGPGKey(ctx, ctx.Doer.ID, form.KeyID, token, form.Signature)
 	if err != nil && asymkey_model.IsErrGPGInvalidTokenSignature(err) {
-		_, err = asymkey_model.VerifyGPGKey(ctx.Doer.ID, form.KeyID, lastToken, form.Signature)
+		_, err = asymkey_model.VerifyGPGKey(ctx, ctx.Doer.ID, form.KeyID, lastToken, form.Signature)
 	}
 
 	if err != nil {
@@ -196,7 +198,7 @@ func VerifyUserGPGKey(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "VerifyUserGPGKey", err)
 	}
 
-	key, err := asymkey_model.GetGPGKeysByKeyID(form.KeyID)
+	key, err := asymkey_model.GetGPGKeysByKeyID(ctx, form.KeyID)
 	if err != nil {
 		if asymkey_model.IsErrGPGKeyNotExist(err) {
 			ctx.NotFound()
@@ -257,7 +259,7 @@ func DeleteGPGKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := asymkey_model.DeleteGPGKey(ctx.Doer, ctx.ParamsInt64(":id")); err != nil {
+	if err := asymkey_model.DeleteGPGKey(ctx, ctx.Doer, ctx.ParamsInt64(":id")); err != nil {
 		if asymkey_model.IsErrGPGKeyAccessDenied(err) {
 			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
 		} else {

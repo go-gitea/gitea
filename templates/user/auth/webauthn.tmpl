@@ -3,20 +3,22 @@
 	<div class="ui page grid">
 		<div class="column center aligned">
 			{{template "user/auth/webauthn_error" .}}
-			<h3 class="ui top attached header">{{.locale.Tr "twofa"}}</h3>
+			<h3 class="ui top attached header">{{ctx.Locale.Tr "twofa"}}</h3>
 			<div class="ui attached segment">
 				{{svg "octicon-key" 56}}
-				<h3>{{.locale.Tr "webauthn_insert_key"}}</h3>
+				<h3>{{ctx.Locale.Tr "webauthn_insert_key"}}</h3>
 				{{template "base/alert" .}}
-				<p>{{.locale.Tr "webauthn_sign_in"}}</p>
+				<p>{{ctx.Locale.Tr "webauthn_sign_in"}}</p>
 			</div>
-			<div class="ui attached segment">
-				<div class="ui active indeterminate inline loader"></div>
-				{{.locale.Tr "webauthn_press_button"}}
+			<div class="ui attached segment gt-df gt-ac gt-jc gt-gap-2 gt-py-3">
+				<div class="is-loading" style="width: 40px; height: 40px"></div>
+				{{ctx.Locale.Tr "webauthn_press_button"}}
 			</div>
-			<div class="ui attached segment">
-				<a href="{{AppSubUrl}}/user/two_factor">{{.locale.Tr "webauthn_use_twofa"}}</a>
-			</div>
+			{{if .HasTwoFactor}}
+				<div class="ui attached segment">
+					<a href="{{AppSubUrl}}/user/two_factor">{{ctx.Locale.Tr "webauthn_use_twofa"}}</a>
+				</div>
+			{{end}}
 		</div>
 	</div>
 </div>

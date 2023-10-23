@@ -20,6 +20,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/forms"
 	org_service "code.gitea.io/gitea/services/org"
@@ -46,6 +47,13 @@ func Settings(ctx *context.Context) {
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
 	ctx.Data["ContextUser"] = ctx.ContextUser
+
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 
@@ -67,7 +75,7 @@ func SettingsPost(ctx *context.Context) {
 
 	// Check if organization name has been changed.
 	if nameChanged {
-		err := org_service.RenameOrganization(ctx, org, form.Name)
+		err := user_service.RenameUser(ctx, org.AsUser(), form.Name)
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["OrgName"] = true
@@ -116,7 +124,7 @@ func SettingsPost(ctx *context.Context) {
 
 	// update forks visibility
 	if visibilityChanged {
-		repos, _, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
+		repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
 			Actor: org.AsUser(), Private: true, ListOptions: db.ListOptions{Page: 1, PageSize: org.NumRepos},
 		})
 		if err != nil {
@@ -152,11 +160,11 @@ func SettingsAvatar(ctx *context.Context) {
 
 // SettingsDeleteAvatar response for delete avatar on settings page
 func SettingsDeleteAvatar(ctx *context.Context) {
-	if err := user_service.DeleteAvatar(ctx.Org.Organization.AsUser()); err != nil {
+	if err := user_service.DeleteAvatar(ctx, ctx.Org.Organization.AsUser()); err != nil {
 		ctx.Flash.Error(err.Error())
 	}
 
-	ctx.Redirect(ctx.Org.OrgLink + "/settings")
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings")
 }
 
 // SettingsDelete response for deleting an organization
@@ -172,7 +180,7 @@ func SettingsDelete(ctx *context.Context) {
 			return
 		}
 
-		if err := org_service.DeleteOrganization(ctx.Org.Organization); err != nil {
+		if err := org_service.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
 			if models.IsErrUserOwnRepos(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
@@ -186,6 +194,12 @@ func SettingsDelete(ctx *context.Context) {
 			log.Trace("Organization deleted: %s", ctx.Org.Organization.Name)
 			ctx.Redirect(setting.AppSubURL + "/")
 		}
+		return
+	}
+
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
 		return
 	}
 
@@ -207,13 +221,19 @@ func Webhooks(ctx *context.Context) {
 		return
 	}
 
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	ctx.Data["Webhooks"] = ws
 	ctx.HTML(http.StatusOK, tplSettingsHooks)
 }
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
-	if err := webhook.DeleteWebhookByOwnerID(ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
+	if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
@@ -228,5 +248,12 @@ func Labels(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsLabels"] = true
 	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
+
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	ctx.HTML(http.StatusOK, tplSettingsLabels)
 }

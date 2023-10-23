@@ -16,6 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	cargo_module "code.gitea.io/gitea/modules/packages/cargo"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	"code.gitea.io/gitea/services/convert"
@@ -48,7 +50,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 
 // https://rust-lang.github.io/rfcs/2789-sparse-index.html
 func RepositoryConfig(ctx *context.Context) {
-	ctx.JSON(http.StatusOK, cargo_service.BuildConfig(ctx.Package.Owner))
+	ctx.JSON(http.StatusOK, cargo_service.BuildConfig(ctx.Package.Owner, setting.Service.RequireSignInView || ctx.Package.Owner.Visibility != structs.VisibleTypePublic))
 }
 
 func EnumeratePackageVersions(ctx *context.Context) {
@@ -212,6 +214,7 @@ func UploadPackage(ctx *context.Context) {
 	}
 
 	pv, _, err := packages_service.CreatePackageAndAddFile(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,

@@ -6,36 +6,36 @@
 			<div class="twelve wide column content">
 				{{template "base/alert" .}}
 				<h4 class="ui top attached header">
-					{{.locale.Tr "auth.login_userpass"}}
+					{{ctx.Locale.Tr "auth.login_userpass"}}
 				</h4>
 				<div class="ui attached segment">
 					<form class="ui form" action="{{.Link}}" method="post">
 					{{.CsrfTokenHtml}}
 					<div class="required inline field {{if .Err_UserName}}error{{end}}">
-						<label for="user_name">{{.locale.Tr "home.uname_holder"}}</label>
+						<label for="user_name">{{ctx.Locale.Tr "home.uname_holder"}}</label>
 						<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
 					</div>
 					<div class="required inline field {{if .Err_Password}}error{{end}}">
-						<label for="password">{{.locale.Tr "password"}}</label>
+						<label for="password">{{ctx.Locale.Tr "password"}}</label>
 						<input id="password" name="password" type="password" value="{{.password}}" autocomplete="off" required>
 					</div>
 					<div class="inline field">
 						<label></label>
 						<div class="ui checkbox">
-							<label>{{.locale.Tr "auth.remember_me"}}</label>
+							<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
 							<input name="remember" type="checkbox">
 						</div>
 					</div>
 
 					<div class="inline field">
 						<label></label>
-						<button class="ui green button">{{.locale.Tr "sign_in"}}</button>
-						<a href="{{AppSubUrl}}/user/forget_password">{{.locale.Tr "auth.forget_password"}}</a>
+						<button class="ui primary button">{{ctx.Locale.Tr "sign_in"}}</button>
+						<a href="{{AppSubUrl}}/user/forget_password">{{ctx.Locale.Tr "auth.forget_password"}}</a>
 					</div>
 					{{if .ShowRegistrationButton}}
 						<div class="inline field">
 							<label></label>
-							<a href="{{AppSubUrl}}/user/sign_up">{{.locale.Tr "auth.sign_up_now" | Str2html}}</a>
+							<a href="{{AppSubUrl}}/user/sign_up">{{ctx.Locale.Tr "auth.sign_up_now" | Str2html}}</a>
 						</div>
 					{{end}}
 					</form>

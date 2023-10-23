@@ -1,16 +1,16 @@
-<h4 class="ui top attached header">{{if .IsEditRule}}{{.locale.Tr "packages.owner.settings.cleanuprules.edit"}}{{else}}{{.locale.Tr "packages.owner.settings.cleanuprules.add"}}{{end}}</h4>
+<h4 class="ui top attached header">{{if .IsEditRule}}{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.edit"}}{{else}}{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.add"}}{{end}}</h4>
 <div class="ui attached segment">
 	<form class="ui form" action="{{.Link}}" method="post">
 		{{.CsrfTokenHtml}}
 		<input name="id" type="hidden" value="{{.CleanupRule.ID}}">
 		<div class="field">
 			<div class="ui checkbox">
-				<label>{{.locale.Tr "enabled"}}</label>
+				<label>{{ctx.Locale.Tr "enabled"}}</label>
 				<input type="checkbox" name="enabled" {{if .CleanupRule.Enabled}}checked{{end}}>
 			</div>
 		</div>
 		<div class="{{if .IsEditRule}}disabled {{end}}field {{if .Err_Type}}error{{end}}">
-			<label>{{.locale.Tr "packages.filter.type"}}</label>
+			<label>{{ctx.Locale.Tr "packages.filter.type"}}</label>
 			<select class="ui selection dropdown" name="type">
 				{{range $type := .AvailableTypes}}
 				<option{{if eq $.CleanupRule.Type $type}} selected="selected"{{end}} value="{{$type}}">{{$type.Name}}</option>
@@ -19,54 +19,54 @@
 		</div>
 		<div class="field">
 			<div class="ui checkbox">
-				<label>{{.locale.Tr "packages.owner.settings.cleanuprules.pattern_full_match"}}</label>
+				<label>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.pattern_full_match"}}</label>
 				<input type="checkbox" name="match_full_name" {{if .CleanupRule.MatchFullName}}checked{{end}}>
 			</div>
 		</div>
 		<div class="divider"></div>
-		<p>{{.locale.Tr "packages.owner.settings.cleanuprules.keep.title"}}</p>
+		<p>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.title"}}</p>
 		<div class="field {{if .Err_KeepCount}}error{{end}}">
-			<label>{{.locale.Tr "packages.owner.settings.cleanuprules.keep.count"}}:</label>
+			<label>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.count"}}:</label>
 			<select class="ui selection dropdown" name="keep_count">
 				<option{{if eq .CleanupRule.KeepCount 0}} selected="selected"{{end}} value="0"></option>
-				<option{{if eq .CleanupRule.KeepCount 1}} selected="selected"{{end}} value="1">{{.locale.Tr "packages.owner.settings.cleanuprules.keep.count.1"}}</option>
-				<option{{if eq .CleanupRule.KeepCount 5}} selected="selected"{{end}} value="5">{{.locale.Tr "packages.owner.settings.cleanuprules.keep.count.n" 5}}</option>
-				<option{{if eq .CleanupRule.KeepCount 10}} selected="selected"{{end}} value="10">{{.locale.Tr "packages.owner.settings.cleanuprules.keep.count.n" 10}}</option>
-				<option{{if eq .CleanupRule.KeepCount 25}} selected="selected"{{end}} value="25">{{.locale.Tr "packages.owner.settings.cleanuprules.keep.count.n" 25}}</option>
-				<option{{if eq .CleanupRule.KeepCount 50}} selected="selected"{{end}} value="50">{{.locale.Tr "packages.owner.settings.cleanuprules.keep.count.n" 50}}</option>
-				<option{{if eq .CleanupRule.KeepCount 100}} selected="selected"{{end}} value="100">{{.locale.Tr "packages.owner.settings.cleanuprules.keep.count.n" 100}}</option>
+				<option{{if eq .CleanupRule.KeepCount 1}} selected="selected"{{end}} value="1">{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.count.1"}}</option>
+				<option{{if eq .CleanupRule.KeepCount 5}} selected="selected"{{end}} value="5">{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.count.n" 5}}</option>
+				<option{{if eq .CleanupRule.KeepCount 10}} selected="selected"{{end}} value="10">{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.count.n" 10}}</option>
+				<option{{if eq .CleanupRule.KeepCount 25}} selected="selected"{{end}} value="25">{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.count.n" 25}}</option>
+				<option{{if eq .CleanupRule.KeepCount 50}} selected="selected"{{end}} value="50">{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.count.n" 50}}</option>
+				<option{{if eq .CleanupRule.KeepCount 100}} selected="selected"{{end}} value="100">{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.count.n" 100}}</option>
 			</select>
 		</div>
 		<div class="field {{if .Err_KeepPattern}}error{{end}}">
-			<label>{{.locale.Tr "packages.owner.settings.cleanuprules.keep.pattern"}}:</label>
+			<label>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.pattern"}}:</label>
 			<input name="keep_pattern" type="text" value="{{.CleanupRule.KeepPattern}}">
-			<p>{{.locale.Tr "packages.owner.settings.cleanuprules.keep.pattern.container" | Safe}}</p>
+			<p>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.pattern.container" | Safe}}</p>
 		</div>
 		<div class="divider"></div>
-		<p>{{.locale.Tr "packages.owner.settings.cleanuprules.remove.title"}}</p>
+		<p>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.remove.title"}}</p>
 		<div class="field {{if .Err_RemoveDays}}error{{end}}">
-			<label>{{.locale.Tr "packages.owner.settings.cleanuprules.remove.days"}}:</label>
+			<label>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.remove.days"}}:</label>
 			<select class="ui selection dropdown" name="remove_days">
 				<option{{if eq .CleanupRule.RemoveDays 0}} selected="selected"{{end}} value="0"></option>
-				<option{{if eq .CleanupRule.RemoveDays 7}} selected="selected"{{end}} value="7">{{.locale.Tr "tool.days" 7}}</option>
-				<option{{if eq .CleanupRule.RemoveDays 14}} selected="selected"{{end}} value="14">{{.locale.Tr "tool.days" 14}}</option>
-				<option{{if eq .CleanupRule.RemoveDays 30}} selected="selected"{{end}} value="30">{{.locale.Tr "tool.days" 30}}</option>
-				<option{{if eq .CleanupRule.RemoveDays 60}} selected="selected"{{end}} value="60">{{.locale.Tr "tool.days" 60}}</option>
-				<option{{if eq .CleanupRule.RemoveDays 90}} selected="selected"{{end}} value="90">{{.locale.Tr "tool.days" 90}}</option>
-				<option{{if eq .CleanupRule.RemoveDays 180}} selected="selected"{{end}} value="180">{{.locale.Tr "tool.days" 180}}</option>
+				<option{{if eq .CleanupRule.RemoveDays 7}} selected="selected"{{end}} value="7">{{ctx.Locale.Tr "tool.days" 7}}</option>
+				<option{{if eq .CleanupRule.RemoveDays 14}} selected="selected"{{end}} value="14">{{ctx.Locale.Tr "tool.days" 14}}</option>
+				<option{{if eq .CleanupRule.RemoveDays 30}} selected="selected"{{end}} value="30">{{ctx.Locale.Tr "tool.days" 30}}</option>
+				<option{{if eq .CleanupRule.RemoveDays 60}} selected="selected"{{end}} value="60">{{ctx.Locale.Tr "tool.days" 60}}</option>
+				<option{{if eq .CleanupRule.RemoveDays 90}} selected="selected"{{end}} value="90">{{ctx.Locale.Tr "tool.days" 90}}</option>
+				<option{{if eq .CleanupRule.RemoveDays 180}} selected="selected"{{end}} value="180">{{ctx.Locale.Tr "tool.days" 180}}</option>
 			</select>
 		</div>
 		<div class="field {{if .Err_RemovePattern}}error{{end}}">
-			<label>{{.locale.Tr "packages.owner.settings.cleanuprules.remove.pattern"}}:</label>
+			<label>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.remove.pattern"}}:</label>
 			<input name="remove_pattern" type="text" value="{{.CleanupRule.RemovePattern}}">
 		</div>
 		<div class="field">
 			{{if .IsEditRule}}
-			<button class="ui green button" name="action" value="save">{{.locale.Tr "save"}}</button>
-			<button class="ui red button" name="action" value="remove">{{.locale.Tr "remove"}}</button>
-			<a class="ui button" href="{{.Link}}/preview">{{.locale.Tr "packages.owner.settings.cleanuprules.preview"}}</a>
+			<button class="ui primary button" name="action" value="save">{{ctx.Locale.Tr "save"}}</button>
+			<button class="ui red button" name="action" value="remove">{{ctx.Locale.Tr "remove"}}</button>
+			<a class="ui button" href="{{.Link}}/preview">{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.preview"}}</a>
 			{{else}}
-			<button class="ui green button" name="action" value="save">{{.locale.Tr "add"}}</button>
+			<button class="ui primary button" name="action" value="save">{{ctx.Locale.Tr "add"}}</button>
 			{{end}}
 		</div>
 	</form>
