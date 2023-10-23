@@ -353,17 +353,17 @@ func TestTotal_RenderString(t *testing.T) {
 
 func TestRender_RenderParagraphs(t *testing.T) {
 	test := func(t *testing.T, str string, cnt int) {
-		res, err :=  markdown.RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, str)
+		res, err := markdown.RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, str)
 		assert.NoError(t, err)
 		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for unix should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 
 		mac := strings.ReplaceAll(str, "\n", "\r")
-		res, err =  markdown.RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, mac)
+		res, err = markdown.RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, mac)
 		assert.NoError(t, err)
 		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for mac should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 
 		dos := strings.ReplaceAll(str, "\n", "\r\n")
-		res, err =  markdown.RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, dos)
+		res, err = markdown.RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, dos)
 		assert.NoError(t, err)
 		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for windows should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 	}
@@ -391,7 +391,7 @@ func TestMarkdownRenderRaw(t *testing.T) {
 
 	for _, testcase := range testcases {
 		log.Info("Test markdown render error with fuzzy data: %x, the following errors can be recovered", testcase)
-		_, err :=  markdown.RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, string(testcase))
+		_, err := markdown.RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, string(testcase))
 		assert.NoError(t, err)
 	}
 }
@@ -403,7 +403,7 @@ func TestRenderSiblingImages_Issue12925(t *testing.T) {
 	expected := `<p><a href="/image1" target="_blank" rel="nofollow noopener"><img src="/image1" alt="image1"></a><br>
 <a href="/image2" target="_blank" rel="nofollow noopener"><img src="/image2" alt="image2"></a></p>
 `
-	res, err :=  markdown.RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, testcase)
+	res, err := markdown.RenderRawString(&markup.RenderContext{Ctx: git.DefaultContext}, testcase)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, res)
 }
