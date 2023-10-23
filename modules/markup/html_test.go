@@ -37,12 +37,12 @@ func TestMain(m *testing.M) {
 }
 
 func TestRender_Commits(t *testing.T) {
-	setting.AppURL = TestAppURL
+	setting.AppURL = markup.TestAppURL
 	test := func(input, expected string) {
-		buffer, err := RenderString(&RenderContext{
+		buffer, err := markup.RenderString(&RenderContext{
 			Ctx:          git.DefaultContext,
 			RelativePath: ".md",
-			URLPrefix:    TestRepoURL,
+			URLPrefix:    markup.TestRepoURL,
 			Metas:        localMetas,
 		}, input)
 		assert.NoError(t, err)
@@ -50,7 +50,7 @@ func TestRender_Commits(t *testing.T) {
 	}
 
 	sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
-	repo := TestRepoURL
+	repo := markup.TestRepoURL
 	commit := util.URLJoin(repo, "commit", sha)
 	tree := util.URLJoin(repo, "tree", sha, "src")
 
@@ -87,10 +87,10 @@ func TestRender_Commits(t *testing.T) {
 }
 
 func TestRender_CrossReferences(t *testing.T) {
-	setting.AppURL = TestAppURL
+	setting.AppURL = markup.TestAppURL
 
 	test := func(input, expected string) {
-		buffer, err := RenderString(&RenderContext{
+		buffer, err := markup.RenderString(&RenderContext{
 			Ctx:          git.DefaultContext,
 			RelativePath: "a.md",
 			URLPrefix:    setting.AppSubURL,
@@ -102,26 +102,26 @@ func TestRender_CrossReferences(t *testing.T) {
 
 	test(
 		"gogits/gogs#12345",
-		`<p><a href="`+util.URLJoin(TestAppURL, "gogits", "gogs", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogits/gogs#12345</a></p>`)
+		`<p><a href="`+util.URLJoin(markup.TestAppURL, "gogits", "gogs", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogits/gogs#12345</a></p>`)
 	test(
 		"go-gitea/gitea#12345",
-		`<p><a href="`+util.URLJoin(TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
+		`<p><a href="`+util.URLJoin(markup.TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
 	test(
 		"/home/gitea/go-gitea/gitea#12345",
 		`<p>/home/gitea/go-gitea/gitea#12345</p>`)
 	test(
-		util.URLJoin(TestAppURL, "gogitea", "gitea", "issues", "12345"),
-		`<p><a href="`+util.URLJoin(TestAppURL, "gogitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/gitea#12345</a></p>`)
+		util.URLJoin(markup.TestAppURL, "gogitea", "gitea", "issues", "12345"),
+		`<p><a href="`+util.URLJoin(markup.TestAppURL, "gogitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/gitea#12345</a></p>`)
 	test(
-		util.URLJoin(TestAppURL, "go-gitea", "gitea", "issues", "12345"),
-		`<p><a href="`+util.URLJoin(TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
+		util.URLJoin(markup.TestAppURL, "go-gitea", "gitea", "issues", "12345"),
+		`<p><a href="`+util.URLJoin(markup.TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
 	test(
-		util.URLJoin(TestAppURL, "gogitea", "some-repo-name", "issues", "12345"),
-		`<p><a href="`+util.URLJoin(TestAppURL, "gogitea", "some-repo-name", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/some-repo-name#12345</a></p>`)
+		util.URLJoin(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345"),
+		`<p><a href="`+util.URLJoin(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/some-repo-name#12345</a></p>`)
 }
 
 func TestMisc_IsSameDomain(t *testing.T) {
-	setting.AppURL = TestAppURL
+	setting.AppURL = markup.TestAppURL
 
 	sha := "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
 	commit := util.URLJoin(TestRepoURL, "commit", sha)
@@ -132,13 +132,13 @@ func TestMisc_IsSameDomain(t *testing.T) {
 }
 
 func TestRender_links(t *testing.T) {
-	setting.AppURL = TestAppURL
+	setting.AppURL = markup.TestAppURL
 
 	test := func(input, expected string) {
-		buffer, err := RenderString(&RenderContext{
+		buffer, err := markup.RenderString(&RenderContext{
 			Ctx:          git.DefaultContext,
 			RelativePath: "a.md",
-			URLPrefix:    TestRepoURL,
+			URLPrefix:    markup.TestRepoURL,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -232,13 +232,13 @@ func TestRender_links(t *testing.T) {
 }
 
 func TestRender_email(t *testing.T) {
-	setting.AppURL = TestAppURL
+	setting.AppURL = markup.TestAppURL
 
 	test := func(input, expected string) {
-		res, err := RenderString(&RenderContext{
+		res, err := markup.RenderString(&RenderContext{
 			Ctx:          git.DefaultContext,
 			RelativePath: "a.md",
-			URLPrefix:    TestRepoURL,
+			URLPrefix:    markup.TestRepoURL,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res))
@@ -289,15 +289,15 @@ func TestRender_email(t *testing.T) {
 }
 
 func TestRender_emoji(t *testing.T) {
-	setting.AppURL = TestAppURL
-	setting.StaticURLPrefix = TestAppURL
+	setting.AppURL = markup.TestAppURL
+	setting.StaticURLPrefix = markup.TestAppURL
 
 	test := func(input, expected string) {
 		expected = strings.ReplaceAll(expected, "&", "&amp;")
-		buffer, err := RenderString(&RenderContext{
+		buffer, err := markup.RenderString(&RenderContext{
 			Ctx:          git.DefaultContext,
 			RelativePath: "a.md",
-			URLPrefix:    TestRepoURL,
+			URLPrefix:    markup.TestRepoURL,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -354,7 +354,7 @@ func TestRender_emoji(t *testing.T) {
 }
 
 func TestRender_ShortLinks(t *testing.T) {
-	setting.AppURL = TestAppURL
+	setting.AppURL = markup.TestAppURL
 	tree := util.URLJoin(TestRepoURL, "src", "master")
 
 	test := func(input, expected, expectedWiki string) {
@@ -366,7 +366,7 @@ func TestRender_ShortLinks(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 		buffer, err = markdown.RenderString(&RenderContext{
 			Ctx:       git.DefaultContext,
-			URLPrefix: TestRepoURL,
+			URLPrefix: markup.TestRepoURL,
 			Metas:     localMetas,
 			IsWiki:    true,
 		}, input)
@@ -462,7 +462,7 @@ func TestRender_ShortLinks(t *testing.T) {
 }
 
 func TestRender_RelativeImages(t *testing.T) {
-	setting.AppURL = TestAppURL
+	setting.AppURL = markup.TestAppURL
 	tree := util.URLJoin(TestRepoURL, "src", "master")
 
 	test := func(input, expected, expectedWiki string) {
@@ -475,7 +475,7 @@ func TestRender_RelativeImages(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 		buffer, err = markdown.RenderString(&RenderContext{
 			Ctx:       git.DefaultContext,
-			URLPrefix: TestRepoURL,
+			URLPrefix: markup.TestRepoURL,
 			Metas:     localMetas,
 			IsWiki:    true,
 		}, input)
@@ -498,7 +498,7 @@ func TestRender_RelativeImages(t *testing.T) {
 }
 
 func Test_ParseClusterFuzz(t *testing.T) {
-	setting.AppURL = TestAppURL
+	setting.AppURL = markup.TestAppURL
 
 	localMetas := map[string]string{
 		"user": "go-gitea",
@@ -530,7 +530,7 @@ func Test_ParseClusterFuzz(t *testing.T) {
 }
 
 func TestPostProcess_RenderDocument(t *testing.T) {
-	setting.AppURL = TestAppURL
+	setting.AppURL = markup.TestAppURL
 
 	localMetas := map[string]string{
 		"user": "go-gitea",
@@ -566,7 +566,7 @@ func TestPostProcess_RenderDocument(t *testing.T) {
 }
 
 func TestIssue16020(t *testing.T) {
-	setting.AppURL = TestAppURL
+	setting.AppURL = markup.TestAppURL
 
 	localMetas := map[string]string{
 		"user": "go-gitea",
@@ -604,7 +604,7 @@ func BenchmarkEmojiPostprocess(b *testing.B) {
 
 func TestFuzz(t *testing.T) {
 	s := "t/l/issues/8#/../../a"
-	renderContext := RenderContext{
+	renderContext := markup.RenderContext{
 		Ctx:       git.DefaultContext,
 		URLPrefix: "https://example.com/go-gitea/gitea",
 		Metas: map[string]string{
