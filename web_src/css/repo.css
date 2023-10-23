@@ -3066,8 +3066,8 @@ tbody.commit-list {
   }
 }
 
-.ui.segment.commit-status-list {
-  padding: 0;
+.commit-status-list {
+  padding: 0 !important;
   max-height: 231px;
   overflow-x: hidden;
   transition: max-height 0.2s;
@@ -3083,11 +3083,7 @@ tbody.commit-list {
 }
 
 .pr-commit-status.hide .commit-status-list {
-  padding: 0;
   max-height: 0;
-  overflow-x: hidden;
-  transition: max-height 0.2s;
-  border: 0;
 }
 
 .commit-status-item {
