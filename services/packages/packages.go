@@ -18,11 +18,11 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 var (
@@ -66,28 +66,28 @@ type PackageFileCreationInfo struct {
 }
 
 // CreatePackageAndAddFile creates a package with a file. If the same package exists already, ErrDuplicatePackageVersion is returned
-func CreatePackageAndAddFile(pvci *PackageCreationInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
-	return createPackageAndAddFile(pvci, pfci, false)
+func CreatePackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
+	return createPackageAndAddFile(ctx, pvci, pfci, false)
 }
 
 // CreatePackageOrAddFileToExisting creates a package with a file or adds the file if the package exists already
-func CreatePackageOrAddFileToExisting(pvci *PackageCreationInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
-	return createPackageAndAddFile(pvci, pfci, true)
+func CreatePackageOrAddFileToExisting(ctx context.Context, pvci *PackageCreationInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
+	return createPackageAndAddFile(ctx, pvci, pfci, true)
 }
 
-func createPackageAndAddFile(pvci *PackageCreationInfo, pfci *PackageFileCreationInfo, allowDuplicate bool) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func createPackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfci *PackageFileCreationInfo, allowDuplicate bool) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
+	dbCtx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer committer.Close()
 
-	pv, created, err := createPackageAndVersion(ctx, pvci, allowDuplicate)
+	pv, created, err := createPackageAndVersion(dbCtx, pvci, allowDuplicate)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	pf, pb, blobCreated, err := addFileToPackageVersion(ctx, pv, &pvci.PackageInfo, pfci)
+	pf, pb, blobCreated, err := addFileToPackageVersion(dbCtx, pv, &pvci.PackageInfo, pfci)
 	removeBlob := false
 	defer func() {
 		if blobCreated && removeBlob {
@@ -108,12 +108,12 @@ func createPackageAndAddFile(pvci *PackageCreationInfo, pfci *PackageFileCreatio
 	}
 
 	if created {
-		pd, err := packages_model.GetPackageDescriptor(db.DefaultContext, pv)
+		pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		notification.NotifyPackageCreate(db.DefaultContext, pvci.Creator, pd)
+		notify_service.PackageCreate(ctx, pvci.Creator, pd)
 	}
 
 	return pv, pf, nil
@@ -189,8 +189,8 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 }
 
 // AddFileToExistingPackage adds a file to an existing package. If the package does not exist, ErrPackageNotExist is returned
-func AddFileToExistingPackage(pvi *PackageInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, error) {
-	return addFileToPackageWrapper(func(ctx context.Context) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
+func AddFileToExistingPackage(ctx context.Context, pvi *PackageInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, error) {
+	return addFileToPackageWrapper(ctx, func(ctx context.Context) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
 		pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
 		if err != nil {
 			return nil, nil, false, err
@@ -202,14 +202,14 @@ func AddFileToExistingPackage(pvi *PackageInfo, pfci *PackageFileCreationInfo) (
 
 // AddFileToPackageVersionInternal adds a file to the package
 // This method skips quota checks and should only be used for system-managed packages.
-func AddFileToPackageVersionInternal(pv *packages_model.PackageVersion, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, error) {
-	return addFileToPackageWrapper(func(ctx context.Context) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
+func AddFileToPackageVersionInternal(ctx context.Context, pv *packages_model.PackageVersion, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, error) {
+	return addFileToPackageWrapper(ctx, func(ctx context.Context) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
 		return addFileToPackageVersionUnchecked(ctx, pv, pfci)
 	})
 }
 
-func addFileToPackageWrapper(fn func(ctx context.Context) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error)) (*packages_model.PackageFile, error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func addFileToPackageWrapper(ctx context.Context, fn func(ctx context.Context) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error)) (*packages_model.PackageFile, error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -418,10 +418,10 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 
 // GetOrCreateInternalPackageVersion gets or creates an internal package
 // Some package types need such internal packages for housekeeping.
-func GetOrCreateInternalPackageVersion(ownerID int64, packageType packages_model.Type, name, version string) (*packages_model.PackageVersion, error) {
+func GetOrCreateInternalPackageVersion(ctx context.Context, ownerID int64, packageType packages_model.Type, name, version string) (*packages_model.PackageVersion, error) {
 	var pv *packages_model.PackageVersion
 
-	return pv, db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	return pv, db.WithTx(ctx, func(ctx context.Context) error {
 		p := &packages_model.Package{
 			OwnerID:    ownerID,
 			Type:       packageType,
@@ -457,31 +457,31 @@ func GetOrCreateInternalPackageVersion(ownerID int64, packageType packages_model
 }
 
 // RemovePackageVersionByNameAndVersion deletes a package version and all associated files
-func RemovePackageVersionByNameAndVersion(doer *user_model.User, pvi *PackageInfo) error {
-	pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
+func RemovePackageVersionByNameAndVersion(ctx context.Context, doer *user_model.User, pvi *PackageInfo) error {
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
 	if err != nil {
 		return err
 	}
 
-	return RemovePackageVersion(doer, pv)
+	return RemovePackageVersion(ctx, doer, pv)
 }
 
 // RemovePackageVersion deletes the package version and all associated files
-func RemovePackageVersion(doer *user_model.User, pv *packages_model.PackageVersion) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func RemovePackageVersion(ctx context.Context, doer *user_model.User, pv *packages_model.PackageVersion) error {
+	dbCtx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
+	pd, err := packages_model.GetPackageDescriptor(dbCtx, pv)
 	if err != nil {
 		return err
 	}
 
 	log.Trace("Deleting package: %v", pv.ID)
 
-	if err := DeletePackageVersionAndReferences(ctx, pv); err != nil {
+	if err := DeletePackageVersionAndReferences(dbCtx, pv); err != nil {
 		return err
 	}
 
@@ -489,16 +489,16 @@ func RemovePackageVersion(doer *user_model.User, pv *packages_model.PackageVersi
 		return err
 	}
 
-	notification.NotifyPackageDelete(db.DefaultContext, doer, pd)
+	notify_service.PackageDelete(ctx, doer, pd)
 
 	return nil
 }
 
 // RemovePackageFileAndVersionIfUnreferenced deletes the package file and the version if there are no referenced files afterwards
-func RemovePackageFileAndVersionIfUnreferenced(doer *user_model.User, pf *packages_model.PackageFile) error {
+func RemovePackageFileAndVersionIfUnreferenced(ctx context.Context, doer *user_model.User, pf *packages_model.PackageFile) error {
 	var pd *packages_model.PackageDescriptor
 
-	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := DeletePackageFile(ctx, pf); err != nil {
 			return err
 		}
@@ -529,7 +529,7 @@ func RemovePackageFileAndVersionIfUnreferenced(doer *user_model.User, pf *packag
 	}
 
 	if pd != nil {
-		notification.NotifyPackageDelete(db.DefaultContext, doer, pd)
+		notify_service.PackageDelete(ctx, doer, pd)
 	}
 
 	return nil

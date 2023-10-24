@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -50,7 +51,7 @@ func Milestones(ctx *context.Context) {
 		state = structs.StateClosed
 	}
 
-	miles, total, err := issues_model.GetMilestones(issues_model.GetMilestonesOption{
+	miles, total, err := issues_model.GetMilestones(ctx, issues_model.GetMilestonesOption{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: setting.UI.IssuePagingNum,
@@ -65,16 +66,21 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	stats, err := issues_model.GetMilestonesStatsByRepoCondAndKw(builder.And(builder.Eq{"id": ctx.Repo.Repository.ID}), keyword)
+	stats, err := issues_model.GetMilestonesStatsByRepoCondAndKw(ctx, builder.And(builder.Eq{"id": ctx.Repo.Repository.ID}), keyword)
 	if err != nil {
 		ctx.ServerError("GetMilestoneStats", err)
 		return
 	}
 	ctx.Data["OpenCount"] = stats.OpenCount
 	ctx.Data["ClosedCount"] = stats.ClosedCount
+	linkStr := "%s/milestones?state=%s&q=%s&sort=%s"
+	ctx.Data["OpenLink"] = fmt.Sprintf(linkStr, ctx.Repo.RepoLink, "open",
+		url.QueryEscape(keyword), url.QueryEscape(sortType))
+	ctx.Data["ClosedLink"] = fmt.Sprintf(linkStr, ctx.Repo.RepoLink, "closed",
+		url.QueryEscape(keyword), url.QueryEscape(sortType))
 
 	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
-		if err := miles.LoadTotalTrackedTimes(); err != nil {
+		if err := miles.LoadTotalTrackedTimes(ctx); err != nil {
 			ctx.ServerError("LoadTotalTrackedTimes", err)
 			return
 		}
@@ -82,7 +88,7 @@ func Milestones(ctx *context.Context) {
 	for _, m := range miles {
 		m.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 			URLPrefix: ctx.Repo.RepoLink,
-			Metas:     ctx.Repo.Repository.ComposeMetas(),
+			Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
 			GitRepo:   ctx.Repo.GitRepo,
 			Ctx:       ctx,
 		}, m.Content)
@@ -142,7 +148,7 @@ func NewMilestonePost(ctx *context.Context) {
 	}
 
 	deadline = time.Date(deadline.Year(), deadline.Month(), deadline.Day(), 23, 59, 59, 0, deadline.Location())
-	if err = issues_model.NewMilestone(&issues_model.Milestone{
+	if err = issues_model.NewMilestone(ctx, &issues_model.Milestone{
 		RepoID:       ctx.Repo.Repository.ID,
 		Name:         form.Title,
 		Content:      form.Content,
@@ -214,7 +220,7 @@ func EditMilestonePost(ctx *context.Context) {
 	m.Name = form.Title
 	m.Content = form.Content
 	m.DeadlineUnix = timeutil.TimeStamp(deadline.Unix())
-	if err = issues_model.UpdateMilestone(m, m.IsClosed); err != nil {
+	if err = issues_model.UpdateMilestone(ctx, m, m.IsClosed); err != nil {
 		ctx.ServerError("UpdateMilestone", err)
 		return
 	}
@@ -225,18 +231,19 @@ func EditMilestonePost(ctx *context.Context) {
 
 // ChangeMilestoneStatus response for change a milestone's status
 func ChangeMilestoneStatus(ctx *context.Context) {
-	toClose := false
+	var toClose bool
 	switch ctx.Params(":action") {
 	case "open":
 		toClose = false
 	case "close":
 		toClose = true
 	default:
-		ctx.Redirect(ctx.Repo.RepoLink + "/milestones")
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones")
+		return
 	}
 	id := ctx.ParamsInt64(":id")
 
-	if err := issues_model.ChangeMilestoneStatusByRepoIDAndID(ctx.Repo.Repository.ID, id, toClose); err != nil {
+	if err := issues_model.ChangeMilestoneStatusByRepoIDAndID(ctx, ctx.Repo.Repository.ID, id, toClose); err != nil {
 		if issues_model.IsErrMilestoneNotExist(err) {
 			ctx.NotFound("", err)
 		} else {
@@ -244,12 +251,12 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 		}
 		return
 	}
-	ctx.Redirect(ctx.Repo.RepoLink + "/milestones?state=" + url.QueryEscape(ctx.Params(":action")))
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones?state=" + url.QueryEscape(ctx.Params(":action")))
 }
 
 // DeleteMilestone delete a milestone
 func DeleteMilestone(ctx *context.Context) {
-	if err := issues_model.DeleteMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
+	if err := issues_model.DeleteMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteMilestoneByRepoID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.milestones.deletion_success"))
@@ -275,7 +282,7 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 
 	milestone.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.Repo.RepoLink,
-		Metas:     ctx.Repo.Repository.ComposeMetas(),
+		Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
 		GitRepo:   ctx.Repo.GitRepo,
 		Ctx:       ctx,
 	}, milestone.Content)

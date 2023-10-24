@@ -54,7 +54,7 @@ func TestAPITopicSearch(t *testing.T) {
 func TestAPIRepoTopic(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}) // owner of repo2
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}) // owner of repo3
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})  // owner of repo3
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}) // write access to repo 3
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
@@ -143,13 +143,13 @@ func TestAPIRepoTopic(t *testing.T) {
 	token4 := getUserToken(t, user4.Name, auth_model.AccessTokenScopeWriteRepository)
 
 	// Test read topics with write access
-	url = fmt.Sprintf("/api/v1/repos/%s/%s/topics?token=%s", user3.Name, repo3.Name, token4)
+	url = fmt.Sprintf("/api/v1/repos/%s/%s/topics?token=%s", org3.Name, repo3.Name, token4)
 	req = NewRequest(t, "GET", url)
 	res = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, res, &topics)
 	assert.Empty(t, topics.TopicNames)
 
 	// Test add a topic to repo with write access (requires repo admin access)
-	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", user3.Name, repo3.Name, "topicName", token4)
+	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", org3.Name, repo3.Name, "topicName", token4)
 	MakeRequest(t, req, http.StatusForbidden)
 }

@@ -4,6 +4,7 @@
 package auth
 
 import (
+	"context"
 	"strings"
 
 	"code.gitea.io/gitea/models/auth"
@@ -20,14 +21,14 @@ import (
 )
 
 // UserSignIn validates user name and password.
-func UserSignIn(username, password string) (*user_model.User, *auth.Source, error) {
+func UserSignIn(ctx context.Context, username, password string) (*user_model.User, *auth.Source, error) {
 	var user *user_model.User
 	isEmail := false
 	if strings.Contains(username, "@") {
 		isEmail = true
 		emailAddress := user_model.EmailAddress{LowerEmail: strings.ToLower(strings.TrimSpace(username))}
 		// check same email
-		has, err := db.GetEngine(db.DefaultContext).Get(&emailAddress)
+		has, err := db.GetEngine(ctx).Get(&emailAddress)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -49,13 +50,13 @@ func UserSignIn(username, password string) (*user_model.User, *auth.Source, erro
 	}
 
 	if user != nil {
-		hasUser, err := user_model.GetUser(user)
+		hasUser, err := user_model.GetUser(ctx, user)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		if hasUser {
-			source, err := auth.GetSourceByID(user.LoginSource)
+			source, err := auth.GetSourceByID(ctx, user.LoginSource)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -69,7 +70,7 @@ func UserSignIn(username, password string) (*user_model.User, *auth.Source, erro
 				return nil, nil, smtp.ErrUnsupportedLoginType
 			}
 
-			user, err := authenticator.Authenticate(user, user.LoginName, password)
+			user, err := authenticator.Authenticate(ctx, user, user.LoginName, password)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -84,7 +85,7 @@ func UserSignIn(username, password string) (*user_model.User, *auth.Source, erro
 		}
 	}
 
-	sources, err := auth.AllActiveSources()
+	sources, err := auth.AllActiveSources(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -100,7 +101,7 @@ func UserSignIn(username, password string) (*user_model.User, *auth.Source, erro
 			continue
 		}
 
-		authUser, err := authenticator.Authenticate(nil, username, password)
+		authUser, err := authenticator.Authenticate(ctx, nil, username, password)
 
 		if err == nil {
 			if !authUser.ProhibitLogin {

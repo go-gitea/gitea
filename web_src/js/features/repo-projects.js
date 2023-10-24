@@ -193,20 +193,6 @@ export function initRepoProject() {
     const url = $(this).data('url');
     createNewColumn(url, columnTitle, projectColorInput);
   });
-
-  $('.new-project-column').on('input keyup', (e) => {
-    const columnTitle = $('#new_project_column');
-    const projectColorInput = $('#new_project_column_color_picker');
-    if (!columnTitle.val()) {
-      $('#new_project_column_submit').addClass('disabled');
-      return;
-    }
-    $('#new_project_column_submit').removeClass('disabled');
-    if (e.key === 'Enter') {
-      const url = $(this).data('url');
-      createNewColumn(url, columnTitle, projectColorInput);
-    }
-  });
 }
 
 function setLabelColor(label, color) {

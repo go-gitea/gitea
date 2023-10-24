@@ -25,12 +25,12 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
 	issue_service "code.gitea.io/gitea/services/issue"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // TODO: use clustered lock (unique queue? or *abuse* cache)
@@ -125,7 +125,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 			return err
 		}
 
-		if !pr.IsWorkInProgress() {
+		if !pr.IsWorkInProgress(ctx) {
 			if err := issues_model.PullRequestCodeOwnersReview(ctx, issue, pr); err != nil {
 				return err
 			}
@@ -145,21 +145,19 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 		return err
 	}
 
-	notification.NotifyNewPullRequest(ctx, pr, mentions)
+	notify_service.NewPullRequest(ctx, pr, mentions)
 	if len(issue.Labels) > 0 {
-		notification.NotifyIssueChangeLabels(ctx, issue.Poster, issue, issue.Labels, nil)
+		notify_service.IssueChangeLabels(ctx, issue.Poster, issue, issue.Labels, nil)
 	}
 	if issue.Milestone != nil {
-		notification.NotifyIssueChangeMilestone(ctx, issue.Poster, issue, 0)
+		notify_service.IssueChangeMilestone(ctx, issue.Poster, issue, 0)
 	}
-	if len(assigneeIDs) > 0 {
-		for _, assigneeID := range assigneeIDs {
-			assignee, err := user_model.GetUserByID(ctx, assigneeID)
-			if err != nil {
-				return ErrDependenciesLeft
-			}
-			notification.NotifyIssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
+	for _, assigneeID := range assigneeIDs {
+		assignee, err := user_model.GetUserByID(ctx, assigneeID)
+		if err != nil {
+			return ErrDependenciesLeft
 		}
+		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
 	}
 
 	return nil
@@ -315,7 +313,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 			AddToTaskQueue(ctx, pr)
 			comment, err := CreatePushPullComment(ctx, doer, pr, oldCommitID, newCommitID)
 			if err == nil && comment != nil {
-				notification.NotifyPullRequestPushCommits(ctx, doer, pr, comment)
+				notify_service.PullRequestPushCommits(ctx, doer, pr, comment)
 			}
 		}
 
@@ -336,7 +334,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 						}
 						if changed {
 							// Mark old reviews as stale if diff to mergebase has changed
-							if err := issues_model.MarkReviewsAsStale(pr.IssueID); err != nil {
+							if err := issues_model.MarkReviewsAsStale(ctx, pr.IssueID); err != nil {
 								log.Error("MarkReviewsAsStale: %v", err)
 							}
 
@@ -351,7 +349,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 								}
 							}
 						}
-						if err := issues_model.MarkReviewsAsNotStale(pr.IssueID, newCommitID); err != nil {
+						if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, newCommitID); err != nil {
 							log.Error("MarkReviewsAsNotStale: %v", err)
 						}
 						divergence, err := GetDiverging(ctx, pr)
@@ -365,7 +363,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 						}
 					}
 
-					notification.NotifyPullRequestSynchronized(ctx, doer, pr)
+					notify_service.PullRequestSynchronized(ctx, doer, pr)
 				}
 			}
 		}
@@ -813,7 +811,7 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 			gitRepos[issue.RepoID] = gitRepo
 		}
 
-		statuses, lastStatus, err := getAllCommitStatus(gitRepo, issue.PullRequest)
+		statuses, lastStatus, err := getAllCommitStatus(ctx, gitRepo, issue.PullRequest)
 		if err != nil {
 			log.Error("getAllCommitStatus: cant get commit statuses of pull [%d]: %v", issue.PullRequest.ID, err)
 			continue
@@ -825,13 +823,13 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 }
 
 // getAllCommitStatus get pr's commit statuses.
-func getAllCommitStatus(gitRepo *git.Repository, pr *issues_model.PullRequest) (statuses []*git_model.CommitStatus, lastStatus *git_model.CommitStatus, err error) {
+func getAllCommitStatus(ctx context.Context, gitRepo *git.Repository, pr *issues_model.PullRequest) (statuses []*git_model.CommitStatus, lastStatus *git_model.CommitStatus, err error) {
 	sha, shaErr := gitRepo.GetRefCommitID(pr.GetGitRefName())
 	if shaErr != nil {
 		return nil, nil, shaErr
 	}
 
-	statuses, _, err = git_model.GetLatestCommitStatus(db.DefaultContext, pr.BaseRepo.ID, sha, db.ListOptions{ListAll: true})
+	statuses, _, err = git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptions{ListAll: true})
 	lastStatus = git_model.CalcCommitStatus(statuses)
 	return statuses, lastStatus, err
 }

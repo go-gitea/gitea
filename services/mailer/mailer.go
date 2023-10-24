@@ -21,11 +21,11 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	ntlmssp "github.com/Azure/go-ntlmssp"
 	"github.com/jaytaylor/html2text"
@@ -361,9 +361,8 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 		return err
 	} else if closeError != nil {
 		return closeError
-	} else {
-		return waitError
 	}
+	return waitError
 }
 
 // Sender sendmail mail sender
@@ -394,7 +393,7 @@ func NewContext(ctx context.Context) {
 	}
 
 	if setting.Service.EnableNotifyMail {
-		notification.RegisterNotifier(NewNotifier())
+		notify_service.RegisterNotifier(NewNotifier())
 	}
 
 	switch setting.MailService.Protocol {

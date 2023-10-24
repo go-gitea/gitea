@@ -91,6 +91,7 @@ var (
 		TypeWiki,
 		TypeProjects,
 		TypePackages,
+		TypeActions,
 	}
 
 	// ForkRepoUnits contains the default unit types for forks

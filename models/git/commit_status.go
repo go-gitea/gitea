@@ -235,7 +235,7 @@ func GetCommitStatuses(ctx context.Context, repo *repo_model.Repository, sha str
 
 	countSession := listCommitStatusesStatement(ctx, repo, sha, opts)
 	countSession = db.SetSessionPagination(countSession, opts)
-	maxResults, err := countSession.Count(new(CommitStatus))
+	maxResults, err := countSession.OrderBy("1").Count(new(CommitStatus))
 	if err != nil {
 		log.Error("Count PRs: %v", err)
 		return nil, maxResults, err
@@ -514,7 +514,7 @@ func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo
 			user_model.ValidateCommitsWithEmails(ctx, commits),
 			repo.GetTrustModel(),
 			func(user *user_model.User) (bool, error) {
-				return repo_model.IsOwnerMemberCollaborator(repo, user.ID)
+				return repo_model.IsOwnerMemberCollaborator(ctx, repo, user.ID)
 			},
 		),
 		repo,
