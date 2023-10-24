@@ -368,7 +368,7 @@ func TestAPIRepoMigrate(t *testing.T) {
 			case "You can not import from disallowed hosts.":
 				assert.EqualValues(t, "private-ip", testCase.repoName)
 			default:
-				assert.Failf(t, "unexpected error '%v' on url '%s'", respJSON["message"], testCase.cloneURL)
+				assert.FailNow(t, "unexpected error '%v' on url '%s'", respJSON["message"], testCase.cloneURL)
 			}
 		} else {
 			assert.EqualValues(t, testCase.expectedStatus, resp.Code)
@@ -541,7 +541,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 
 	// cleanup
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-	_ = repo_service.DeleteRepositoryDirectly(db.DefaultContext, user, repo.OwnerID, repo.ID)
+	_ = repo_service.DeleteRepositoryDirectly(db.DefaultContext, user, repo.ID)
 }
 
 func transfer(t *testing.T) *repo_model.Repository {

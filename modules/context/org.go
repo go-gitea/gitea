@@ -128,7 +128,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		ctx.Org.IsTeamAdmin = true
 		ctx.Org.CanCreateOrgRepo = true
 	} else if ctx.IsSigned {
-		ctx.Org.IsOwner, err = org.IsOwnedBy(ctx.Doer.ID)
+		ctx.Org.IsOwner, err = org.IsOwnedBy(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("IsOwnedBy", err)
 			return
@@ -140,12 +140,12 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			ctx.Org.IsTeamAdmin = true
 			ctx.Org.CanCreateOrgRepo = true
 		} else {
-			ctx.Org.IsMember, err = org.IsOrgMember(ctx.Doer.ID)
+			ctx.Org.IsMember, err = org.IsOrgMember(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("IsOrgMember", err)
 				return
 			}
-			ctx.Org.CanCreateOrgRepo, err = org.CanCreateOrgRepo(ctx.Doer.ID)
+			ctx.Org.CanCreateOrgRepo, err = org.CanCreateOrgRepo(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("CanCreateOrgRepo", err)
 				return
@@ -165,7 +165,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["IsPublicMember"] = func(uid int64) bool {
-		is, _ := organization.IsPublicMembership(ctx.Org.Organization.ID, uid)
+		is, _ := organization.IsPublicMembership(ctx, ctx.Org.Organization.ID, uid)
 		return is
 	}
 	ctx.Data["CanCreateOrgRepo"] = ctx.Org.CanCreateOrgRepo
@@ -179,7 +179,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		OrgID:      org.ID,
 		PublicOnly: ctx.Org.PublicMemberOnly,
 	}
-	ctx.Data["NumMembers"], err = organization.CountOrgMembers(opts)
+	ctx.Data["NumMembers"], err = organization.CountOrgMembers(ctx, opts)
 	if err != nil {
 		ctx.ServerError("CountOrgMembers", err)
 		return
@@ -191,7 +191,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		if ctx.Org.IsOwner {
 			shouldSeeAllTeams = true
 		} else {
-			teams, err := org.GetUserTeams(ctx.Doer.ID)
+			teams, err := org.GetUserTeams(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("GetUserTeams", err)
 				return
@@ -204,13 +204,13 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			}
 		}
 		if shouldSeeAllTeams {
-			ctx.Org.Teams, err = org.LoadTeams()
+			ctx.Org.Teams, err = org.LoadTeams(ctx)
 			if err != nil {
 				ctx.ServerError("LoadTeams", err)
 				return
 			}
 		} else {
-			ctx.Org.Teams, err = org.GetUserTeams(ctx.Doer.ID)
+			ctx.Org.Teams, err = org.GetUserTeams(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("GetUserTeams", err)
 				return

@@ -1,4 +1,3 @@
-import {expect, test} from 'vitest';
 import {pathEscapeSegments} from './url.js';
 
 test('pathEscapeSegments', () => {

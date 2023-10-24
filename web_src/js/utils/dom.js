@@ -183,3 +183,14 @@ export function autosize(textarea, {viewportMarginBottom = 0} = {}) {
 export function onInputDebounce(fn) {
   return debounce(300, fn);
 }
+
+// Set the `src` attribute on an element and returns a promise that resolves once the element
+// has loaded or errored. Suitable for all elements mention in:
+// https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/load_event
+export function loadElem(el, src) {
+  return new Promise((resolve) => {
+    el.addEventListener('load', () => resolve(true), {once: true});
+    el.addEventListener('error', () => resolve(false), {once: true});
+    el.src = src;
+  });
+}
