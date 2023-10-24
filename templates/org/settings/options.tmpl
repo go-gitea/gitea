@@ -22,9 +22,17 @@
 							<label for="email">{{ctx.Locale.Tr "org.settings.email"}}</label>
 							<input id="email" name="email" type="email" value="{{.Org.Email}}" maxlength="255">
 						</div>
-						<div class="field {{if .Err_Description}}error{{end}}">
+						<div class="field combo-markdown-editor-init {{if .Err_Description}}error{{end}}">
 							<label for="description">{{ctx.Locale.Tr "org.org_desc"}}</label>
-							<textarea id="description" name="description" rows="2" maxlength="255">{{.Org.Description}}</textarea>
+							{{template "shared/combomarkdowneditor" (dict
+								"MarkdownPreviewUrl" (printf "%s/-/markup" .Org.HomeLink)
+								"MarkdownPreviewContext" .Org.HomeLink
+								"MarkdownPreviewMode" "markdown"
+								"TextareaName" "description"
+								"TextareaContent" .Org.Description
+								"TextareaMaxLength" 255
+								"HideRepoButtons" true
+							)}}
 						</div>
 						<div class="field {{if .Err_Website}}error{{end}}">
 							<label for="website">{{ctx.Locale.Tr "org.settings.website"}}</label>

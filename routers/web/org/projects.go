@@ -99,10 +99,6 @@ func Projects(ctx *context.Context) {
 		ctx.Data["State"] = "open"
 	}
 
-	for _, project := range projects {
-		project.RenderedContent = project.Description
-	}
-
 	err = shared_user.LoadHeaderCount(ctx)
 	if err != nil {
 		ctx.ServerError("LoadHeaderCount", err)
@@ -142,6 +138,10 @@ func RenderNewProject(ctx *context.Context) {
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["HomeLink"] = ctx.ContextUser.HomeLink()
 	ctx.Data["CancelLink"] = ctx.ContextUser.HomeLink() + "/-/projects"
+	ctx.Data["ProjectMarkdownPreviewURL"] = fmt.Sprintf("%s/-/markup", ctx.ContextUser.HomeLink())
+	ctx.Data["ProjectMarkdownPreviewContext"] = ctx.ContextUser.HomeLink()
+	ctx.Data["ProjectMarkdownPreviewMode"] = "markdown"
+	ctx.Data["ProjectMarkdownHideRepoButtons"] = true
 	shared_user.RenderUserHeader(ctx)
 
 	err := shared_user.LoadHeaderCount(ctx)
@@ -268,6 +268,10 @@ func RenderEditProject(ctx *context.Context) {
 	ctx.Data["HomeLink"] = ctx.ContextUser.HomeLink()
 	ctx.Data["card_type"] = p.CardType
 	ctx.Data["CancelLink"] = fmt.Sprintf("%s/-/projects/%d", ctx.ContextUser.HomeLink(), p.ID)
+	ctx.Data["ProjectMarkdownPreviewURL"] = fmt.Sprintf("%s/-/markup", ctx.ContextUser.HomeLink())
+	ctx.Data["ProjectMarkdownPreviewContext"] = ctx.ContextUser.HomeLink()
+	ctx.Data["ProjectMarkdownPreviewMode"] = "markdown"
+	ctx.Data["ProjectMarkdownHideRepoButtons"] = true
 
 	ctx.HTML(http.StatusOK, tplProjectsNew)
 }
@@ -391,7 +395,6 @@ func ViewProject(ctx *context.Context) {
 		}
 	}
 
-	project.RenderedContent = project.Description
 	ctx.Data["LinkedPRs"] = linkedPrsMap
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)

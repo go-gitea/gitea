@@ -145,7 +145,7 @@ class ComboMarkdownEditor {
 
     this.previewUrl = $tabPreviewer.attr('data-preview-url');
     this.previewContext = $tabPreviewer.attr('data-preview-context');
-    this.previewMode = this.options.previewMode ?? 'comment';
+    this.previewMode = this.options.previewMode ?? $tabPreviewer.attr('data-preview-mode') ?? 'comment';
     this.previewWiki = this.options.previewWiki ?? false;
     $tabPreviewer.on('click', () => {
       $.post(this.previewUrl, {

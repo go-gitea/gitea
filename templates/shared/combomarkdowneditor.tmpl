@@ -3,19 +3,22 @@ Template Attributes:
 * ContainerId: id attribute for the container element
 * ContainerClasses: additional classes for the container element
 * MarkdownPreviewUrl: preview url for the preview tab
+* MarkdownPreviewMode: the preview mode (default to comment)
 * MarkdownPreviewContext: preview context for the preview tab
 * TextareaName: name attribute for the textarea
 * TextareaContent: content for the textarea
 * TextareaPlaceholder: placeholder attribute for the textarea
 * TextareaAriaLabel: aria-label attribute for the textarea
+* TextareaMaxLength: maxlength attribute for the textarea
 * DropzoneParentContainer: container for file upload (leave it empty if no upload)
 * DisableAutosize: whether to disable automatic height resizing
+* HideRepoButtons: hide buttons that belongs to a repo
 */}}
 <div {{if .ContainerId}}id="{{.ContainerId}}"{{end}} class="combo-markdown-editor {{.ContainerClasses}}" data-dropzone-parent-container="{{.DropzoneParentContainer}}">
 	{{if .MarkdownPreviewUrl}}
 	<div class="ui top tabular menu">
 		<a class="active item" data-tab-for="markdown-writer">{{ctx.Locale.Tr "write"}}</a>
-		<a class="item" data-tab-for="markdown-previewer" data-preview-url="{{.MarkdownPreviewUrl}}" data-preview-context="{{.MarkdownPreviewContext}}">{{ctx.Locale.Tr "preview"}}</a>
+		<a class="item" data-tab-for="markdown-previewer" data-preview-url="{{.MarkdownPreviewUrl}}" data-preview-context="{{.MarkdownPreviewContext}}" {{if .MarkdownPreviewMode}}data-preview-mode="{{.MarkdownPreviewMode}}"{{end}}>{{ctx.Locale.Tr "preview"}}</a>
 	</div>
 	{{end}}
 	<div class="ui tab active" data-tab-panel="markdown-writer">
@@ -37,7 +40,9 @@ Template Attributes:
 			</div>
 			<div class="markdown-toolbar-group">
 				<md-mention class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.mention.tooltip"}}">{{svg "octicon-mention"}}</md-mention>
-				<md-ref class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.ref.tooltip"}}">{{svg "octicon-cross-reference"}}</md-ref>
+				{{if not .HideRepoButtons}}
+					<md-ref class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.ref.tooltip"}}">{{svg "octicon-cross-reference"}}</md-ref>
+				{{end}}
 			</div>
 			<div class="markdown-toolbar-group">
 				<button class="markdown-toolbar-button markdown-switch-monospace" role="switch" data-enable-text="{{ctx.Locale.Tr "editor.buttons.enable_monospace_font"}}" data-disable-text="{{ctx.Locale.Tr "editor.buttons.disable_monospace_font"}}">{{svg "octicon-typography"}}</button>
@@ -45,7 +50,7 @@ Template Attributes:
 			</div>
 		</markdown-toolbar>
 		<text-expander keys=": @" suffix="">
-			<textarea class="markdown-text-editor js-quick-submit"{{if .TextareaName}} name="{{.TextareaName}}"{{end}}{{if .TextareaPlaceholder}} placeholder="{{.TextareaPlaceholder}}"{{end}}{{if .TextareaAriaLabel}} aria-label="{{.TextareaAriaLabel}}"{{end}}{{if .DisableAutosize}} data-disable-autosize="{{.DisableAutosize}}"{{end}}>{{.TextareaContent}}</textarea>
+			<textarea class="markdown-text-editor js-quick-submit"{{if .TextareaName}} name="{{.TextareaName}}"{{end}}{{if .TextareaPlaceholder}} placeholder="{{.TextareaPlaceholder}}"{{end}}{{if .TextareaAriaLabel}} aria-label="{{.TextareaAriaLabel}}"{{end}}{{if .DisableAutosize}} data-disable-autosize="{{.DisableAutosize}}"{{end}} {{if .TextareaMaxLength}}maxlength="{{.TextareaMaxLength}}"{{end}}>{{.TextareaContent}}</textarea>
 		</text-expander>
 		<script>
 			if (localStorage?.getItem('markdown-editor-monospace') === 'true') {

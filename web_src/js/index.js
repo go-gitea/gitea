@@ -85,6 +85,7 @@ import {initRepoIssueList} from './features/repo-issue-list.js';
 import {initCommonIssueListQuickGoto} from './features/common-issue-list.js';
 import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.js';
 import {initDirAuto} from './modules/dirauto.js';
+import {initComboMarkdownEditorGlobal} from './features/misc.js';
 
 // Init Gitea's Fomantic settings
 initGiteaFomantic();
@@ -184,4 +185,6 @@ onDomReady(() => {
   initRepoDiffView();
   initPdfViewer();
   initScopedAccessTokenCategories();
+
+  initComboMarkdownEditorGlobal();
 });

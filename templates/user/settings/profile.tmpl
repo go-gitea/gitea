@@ -25,9 +25,18 @@
 					<label for="email">{{ctx.Locale.Tr "email"}}</label>
 					<p>{{.SignedUser.Email}}</p>
 				</div>
-				<div class="field {{if .Err_Description}}error{{end}}">
+				<div class="field combo-markdown-editor-init {{if .Err_Description}}error{{end}}">
 					<label for="description">{{ctx.Locale.Tr "user.user_bio"}}</label>
-					<textarea id="description" name="description" rows="2" placeholder="{{ctx.Locale.Tr "settings.biography_placeholder"}}" maxlength="255">{{.SignedUser.Description}}</textarea>
+					{{template "shared/combomarkdowneditor" (dict
+						"MarkdownPreviewUrl" (printf "%s/-/markup" .SignedUser.HomeLink)
+						"MarkdownPreviewContext" .SignedUser.HomeLink
+						"MarkdownPreviewMode" "markdown"
+						"TextareaName" "description"
+						"TextareaContent" .SignedUser.Description
+						"TextareaPlaceholder" (ctx.Locale.Tr "settings.biography_placeholder")
+						"TextareaMaxLength" 255
+						"HideRepoButtons" true
+					)}}
 				</div>
 				<div class="field {{if .Err_Website}}error{{end}}">
 					<label for="website">{{ctx.Locale.Tr "settings.website"}}</label>
