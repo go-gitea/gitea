@@ -65,9 +65,8 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 				OwnerName: t.repo.OwnerName,
 				Name:      t.repo.Name,
 			}
-		} else {
-			return fmt.Errorf("Clone: %w %s", err, stderr)
 		}
+		return fmt.Errorf("Clone: %w %s", err, stderr)
 	}
 	gitRepo, err := git.OpenRepository(t.ctx, t.basePath)
 	if err != nil {
