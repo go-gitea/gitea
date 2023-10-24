@@ -26,6 +26,10 @@
   flex-wrap: nowrap;
 }
 
+.repo-header .flex-item-trailing svg {
+  display: none;
+}
+
 .repo-buttons {
   align-items: center;
   display: flex;
@@ -84,11 +88,13 @@
   .repo-header .flex-item {
     flex-grow: 1;
   }
-  .repo-header .flex-item-trailing {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
   .repo-buttons .ui.labeled.button .text {
     display: none;
+  }
+  .repo-header .flex-item-trailing .label {
+    display: none;
+  }
+  .repo-header .flex-item-trailing svg {
+    display: initial;
   }
 }

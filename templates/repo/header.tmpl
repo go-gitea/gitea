@@ -12,16 +12,20 @@
 				<div class="flex-item-trailing">
 					{{if .IsArchived}}
 						<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
+						{{svg "octicon-archive" 18}}
 					{{end}}
 					{{if .IsPrivate}}
 						<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
+						{{svg "octicon-lock" 18}}
 					{{else}}
 						{{if .Owner.Visibility.IsPrivate}}
 							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal"}}</span>
+							{{svg "octicon-shield-lock" 18}}
 						{{end}}
 					{{end}}
 					{{if .IsTemplate}}
 						<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.template"}}</span>
+						{{svg "octicon-repo-template" 18}}
 					{{end}}
 					{{if $.EnableFeed}}
 						<a class="rss-icon" href="{{$.RepoLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</a>
