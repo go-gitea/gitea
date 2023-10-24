@@ -5,8 +5,9 @@
 			<div class="flex-item gt-ac">
 				<div class="flex-item-leading">{{template "repo/icon" .}}</div>
 				<div class="flex-item-main">
-					<div class="flex-item-body"><a href="{{.Owner.HomeLink}}">{{.Owner.DisplayName}}</a></div>
-					<div class="flex-item-title"><a class="text primary" href="{{$.RepoLink}}">{{.Name}}</a></div>
+					<div class="flex-item-title">
+						<a class="text light thin btn interact-bg gt-p-2" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/
+						<a class="text primary btn interact-bg gt-p-2" href="{{$.RepoLink}}">{{.Name}}</a></div>
 				</div>
 				<div class="flex-item-trailing">
 					{{if .IsArchived}}

@@ -14,6 +14,10 @@
   padding: 0;
 }
 
+.repo-header .btn.interact-bg:hover {
+  text-decoration: none;
+}
+
 .repo-header .flex-item-main {
   flex-basis: unset;
 }
