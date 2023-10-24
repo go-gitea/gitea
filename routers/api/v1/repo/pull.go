@@ -625,9 +625,8 @@ func EditPullRequest(ctx *context.APIContext) {
 			} else if models.IsErrPullRequestHasMerged(err) {
 				ctx.Error(http.StatusConflict, "IsErrPullRequestHasMerged", err)
 				return
-			} else {
-				ctx.InternalServerError(err)
 			}
+			ctx.InternalServerError(err)
 			return
 		}
 		notify_service.PullRequestChangeTargetBranch(ctx, ctx.Doer, pr, form.Base)
