@@ -263,7 +263,7 @@
 								},
 								{
 									'name': 'manually-merged',
-									'allowed': {{and $prUnit.PullRequestsConfig.AllowManualMerge}},
+									'allowed': {{$prUnit.PullRequestsConfig.AllowManualMerge}},
 									'textDoMerge': {{ctx.Locale.Tr "repo.pulls.merge_manually"}},
 									'hideMergeMessageTexts': true,
 									'hideAutoMerge': true,
