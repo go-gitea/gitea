@@ -106,3 +106,17 @@ export function initRepoSettingBranches() {
   markMatchedStatusChecks();
   document.getElementById('status_check_contexts').addEventListener('input', onInputDebounce(markMatchedStatusChecks));
 }
+
+export function initRepoSettingRepository() {
+  // allow the user to submit the form directly after changing the status of the checkbox
+  initSigningVerificationForm();
+}
+
+function initSigningVerificationForm() {
+  $('input.signing-verification').on('change', function() {
+    $(this).closest('form').trigger('submit');
+  });
+  $('input.admin-settings').on('change', function() {
+    $(this).closest('form').trigger('submit');
+  });
+}

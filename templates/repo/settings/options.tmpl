@@ -602,37 +602,32 @@
 					<label>{{ctx.Locale.Tr "repo.settings.trust_model"}}</label><br>
 					<div class="field">
 						<div class="ui radio checkbox">
-							<input type="radio" id="trust_model_default" name="trust_model" {{if eq .Repository.TrustModel.String "default"}}checked="checked"{{end}} value="default">
+							<input class="signing-verification" type="radio" id="trust_model_default" name="trust_model" {{if eq .Repository.TrustModel.String "default"}}checked="checked"{{end}} value="default">
 							<label for="trust_model_default">{{ctx.Locale.Tr "repo.settings.trust_model.default"}}</label>
 							<p class="help">{{ctx.Locale.Tr "repo.settings.trust_model.default.desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox">
-							<input type="radio" id="trust_model_collaborator" name="trust_model" {{if eq .Repository.TrustModel.String "collaborator"}}checked="checked"{{end}} value="collaborator">
+							<input class="signing-verification" type="radio" id="trust_model_collaborator" name="trust_model" {{if eq .Repository.TrustModel.String "collaborator"}}checked="checked"{{end}} value="collaborator">
 							<label for="trust_model_collaborator">{{ctx.Locale.Tr "repo.settings.trust_model.collaborator.long"}}</label>
 							<p class="help">{{ctx.Locale.Tr "repo.settings.trust_model.collaborator.desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox">
-							<input type="radio" name="trust_model" id="trust_model_committer" {{if eq .Repository.TrustModel.String "committer"}}checked="checked"{{end}} value="committer">
+							<input class="signing-verification" type="radio" name="trust_model" id="trust_model_committer" {{if eq .Repository.TrustModel.String "committer"}}checked="checked"{{end}} value="committer">
 							<label for="trust_model_committer">{{ctx.Locale.Tr "repo.settings.trust_model.committer.long"}}</label>
 							<p class="help">{{ctx.Locale.Tr "repo.settings.trust_model.committer.desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox">
-							<input type="radio" name="trust_model" id="trust_model_collaboratorcommitter" {{if eq .Repository.TrustModel.String "collaboratorcommitter"}}checked="checked"{{end}} value="collaboratorcommitter">
+							<input class="signing-verification" type="radio" name="trust_model" id="trust_model_collaboratorcommitter" {{if eq .Repository.TrustModel.String "collaboratorcommitter"}}checked="checked"{{end}} value="collaboratorcommitter">
 							<label for="trust_model_collaboratorcommitter">{{ctx.Locale.Tr "repo.settings.trust_model.collaboratorcommitter.long"}}</label>
 							<p class="help">{{ctx.Locale.Tr "repo.settings.trust_model.collaboratorcommitter.desc"}}</p>
 						</div>
 					</div>
-				</div>
-
-				<div class="divider"></div>
-				<div class="field">
-					<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
 				</div>
 			</form>
 		</div>
@@ -647,13 +642,9 @@
 				<input type="hidden" name="action" value="admin">
 				<div class="field">
 					<div class="ui checkbox">
-						<input name="enable_health_check" type="checkbox" {{if .Repository.IsFsckEnabled}}checked{{end}}>
+						<input class="admin-settings" name="enable_health_check" type="checkbox" {{if .Repository.IsFsckEnabled}}checked{{end}}>
 						<label>{{ctx.Locale.Tr "repo.settings.admin_enable_health_check"}}</label>
 					</div>
-				</div>
-
-				<div class="field">
-					<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
 				</div>
 			</form>
 

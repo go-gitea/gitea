@@ -60,6 +60,7 @@ import {initRepoArchiveLinks} from './features/repo-common.js';
 import {initRepoMigrationStatusChecker} from './features/repo-migrate.js';
 import {
   initRepoSettingGitHook,
+  initRepoSettingRepository,
   initRepoSettingsCollaboration,
   initRepoSettingSearchTeamBox,
 } from './features/repo-settings.js';
@@ -172,6 +173,7 @@ onDomReady(() => {
   initRepoWikiForm();
   initRepository();
   initRepositoryActionView();
+  initRepoSettingRepository();
 
   initCommitStatuses();
   initCaptcha();
