@@ -1,19 +1,45 @@
 <div class="divider"></div>
-<div class="instruct-toggle"> {{ctx.Locale.Tr "repo.pulls.merge_instruction_hint" | Safe}} </div>
+<div class="instruct-toggle"> {{ctx.Locale.Tr "repo.pulls.cmd_instruction_hint" | Safe}} </div>
 <div class="instruct-content gt-mt-3 gt-hidden">
-	<div><h3 class="gt-dib">{{ctx.Locale.Tr "step1"}}</h3> {{ctx.Locale.Tr "repo.pulls.merge_instruction_step1_desc"}}</div>
+	<div><h3>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_checkout_title"}}</h3>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_checkout_desc"}}</div>
+	{{$localBranch := .PR.HeadBranch}}
+	{{if ne .PR.HeadRepo.ID .PR.BaseRepo.ID}}
+		{{$localBranch = print .PR.HeadRepo.OwnerName "-" .PR.HeadBranch}}
+	{{end}}
 	<div class="ui secondary segment">
-		{{if eq .Flow 0}}
-		<div>git checkout -b {{if ne .HeadRepo.ID .BaseRepo.ID}}{{.HeadRepo.OwnerName}}-{{end}}{{.HeadBranch}} {{.BaseBranch}}</div>
-		<div>git pull {{if ne .HeadRepo.ID .BaseRepo.ID}}<gitea-origin-url data-url="{{.HeadRepo.Link}}"></gitea-origin-url>{{else}}origin{{end}} {{.HeadBranch}}</div>
+		{{if eq .PR.Flow 0}}
+		<div>git fetch -u {{if ne .PR.HeadRepo.ID .PR.BaseRepo.ID}}<gitea-origin-url data-url="{{.PR.HeadRepo.Link}}"></gitea-origin-url>{{else}}origin{{end}} {{.PR.HeadBranch}}:{{$localBranch}}</div>
+		<div>git checkout {{$localBranch}}</div>
 		{{else}}
-		<div>git fetch origin {{.GetGitRefName}}:{{.HeadBranch}}</div>
+		<div>git fetch -u origin {{.GetGitRefName}}:{{$localBranch}}</div>
 		{{end}}
 	</div>
-	<div><h3 class="gt-dib">{{ctx.Locale.Tr "step2"}}</h3> {{ctx.Locale.Tr "repo.pulls.merge_instruction_step2_desc"}}</div>
+	{{if .ShowMergeInstructions}}
+	<div><h3>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_title"}}</h3>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_desc"}}</div>
 	<div class="ui secondary segment">
-		<div>git checkout {{.BaseBranch}}</div>
-		<div>git merge --no-ff {{if ne .HeadRepo.ID .BaseRepo.ID}}{{.HeadRepo.OwnerName}}-{{end}}{{.HeadBranch}}</div>
-		<div>git push origin {{.BaseBranch}}</div>
+		<div class="pull-merge-cmd" data-name="merge">
+			<div>git checkout {{.PR.BaseBranch}}</div>
+			<div>git merge --no-ff {{$localBranch}}</div>
+		</div>
+		<div class="pull-merge-cmd gt-hidden" data-name="rebase">
+			<div>git checkout {{.PR.BaseBranch}}</div>
+			<div>git merge --ff {{$localBranch}}</div>
+		</div>
+		<div class="pull-merge-cmd gt-hidden" data-name="rebase-merge">
+			<div>git checkout {{$localBranch}}</div>
+			<div>git rebase {{.PR.BaseBranch}}</div>
+			<div>git checkout {{.PR.BaseBranch}}</div>
+			<div>git merge --no-ff {{$localBranch}}</div>
+		</div>
+		<div class="pull-merge-cmd gt-hidden" data-name="squash">
+			<div>git checkout {{.PR.BaseBranch}}</div>
+			<div>git merge --squash {{$localBranch}}</div>
+		</div>
+		<div class="pull-merge-cmd gt-hidden" data-name="manually-merged">
+			<div>git checkout {{.PR.BaseBranch}}</div>
+			<div>git merge {{$localBranch}}</div>
+		</div>
+		<div>git push origin {{.PR.BaseBranch}}</div>
 	</div>
+	{{end}}
 </div>

@@ -1,5 +1,6 @@
 <script>
 import {SvgIcon} from '../svg.js';
+import {toggleElem} from '../utils/dom.js';
 
 const {csrfToken, pageData} = window.config;
 
@@ -39,6 +40,9 @@ export default {
   watch: {
     mergeStyle(val) {
       this.mergeStyleDetail = this.mergeForm.mergeStyles.find((e) => e.name === val);
+      for (const elem of document.getElementsByClassName(this.mergeForm.mergeCmdClass)) {
+        toggleElem(elem, elem.getAttribute('data-name') === val);
+      }
     }
   },
   created() {

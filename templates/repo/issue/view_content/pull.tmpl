@@ -226,6 +226,8 @@
 
 								'hasPendingPullRequestMerge': {{.HasPendingPullRequestMerge}},
 								'hasPendingPullRequestMergeTip': {{$hasPendingPullRequestMergeTip}},
+
+								'mergeCmdClass': 'pull-merge-cmd',
 							};
 
 							const generalHideAutoMerge = mergeForm.canMergeNow && mergeForm.allOverridableChecksOk; // if this pr can be merged now, then hide the auto merge
@@ -372,8 +374,8 @@
 				</div>
 			{{end}}
 
-			{{if and .ShowMergeInstructions .Issue.PullRequest.HeadRepo (not .Issue.PullRequest.HasMerged) (not .Issue.IsClosed)}}
-				{{template "repo/issue/view_content/pull_merge_instruction" .Issue.PullRequest}}
+			{{if and .Issue.PullRequest.HeadRepo (not .Issue.PullRequest.HasMerged) (not .Issue.IsClosed)}}
+				{{template "repo/issue/view_content/pull_merge_instruction" dict "PR" .Issue.PullRequest "ShowMergeInstructions" .ShowMergeInstructions}}
 			{{end}}
 		</div>
 	</div>
