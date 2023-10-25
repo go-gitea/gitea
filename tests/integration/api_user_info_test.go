@@ -22,6 +22,7 @@ func TestAPIUserInfo(t *testing.T) {
 
 	user := "user1"
 	user2 := "user31"
+	user3 := "user37"
 
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
 
@@ -63,6 +64,17 @@ func TestAPIUserInfo(t *testing.T) {
 		var u api.User
 		DecodeJSON(t, resp, &u)
 		assert.Equal(t, user, u.UserName)
+	})
+
+	t.Run("GetTimezone", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/?token=%s", user3, token))
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var u api.User
+		DecodeJSON(t, resp, &u)
+		assert.Equal(t, user3, u.UserName)
 
 		// Pacific/Honolulu don't have daylight saving time, so the offset is always the same
 		assert.Equal(t, "Pacific/Honolulu", u.TimeZone.Name)

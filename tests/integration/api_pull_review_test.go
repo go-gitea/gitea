@@ -58,12 +58,12 @@ func TestAPIPullReview(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	var review api.PullReview
 	DecodeJSON(t, resp, &review)
-	assert.EqualValues(t, reviews[3].ID, review.ID)
+	assert.EqualValues(t, reviews[3], review)
 
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/%d/reviews/%d?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, reviews[5].ID, token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &review)
-	assert.EqualValues(t, reviews[5].ID, review.ID)
+	assert.EqualValues(t, reviews[5], review)
 
 	// test GetPullReviewComments
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 7})

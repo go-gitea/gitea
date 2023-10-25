@@ -27,10 +27,16 @@ const (
 type TimeZone struct {
 	Name   string
 	Offset int64
+	IsTest bool
 }
 
 // Returns the current time in this timezone
 func (timeZone *TimeZone) CurrentTime() time.Time {
+	// If we have the test timezone, return Zero epoch
+	if timeZone.IsTest {
+		return time.Unix(0, 0).UTC()
+	}
+
 	return time.Now().UTC().Add(time.Second * time.Duration(timeZone.Offset))
 }
 
@@ -68,6 +74,10 @@ type TimeZoneList []*TimeZone //nolint:revive
 
 // Returns the timezone with the given name. Retruns nil, if the timezone was not found
 func (zoneList TimeZoneList) GetTimeZoneByName(name string) *TimeZone {
+	if name == "Test" {
+		return GetTestTimeZone()
+	}
+
 	for _, zone := range zoneList {
 		if zone.Name == name {
 			return zone
@@ -175,5 +185,15 @@ func GetDefaultTimeZone() *TimeZone {
 	return &TimeZone{
 		Name:   "Europe/London",
 		Offset: 0,
+	}
+}
+
+// Returns the test timezone
+// This timezone will always return 1970-01-01 as CurrentTime, so tehre are no püroblms, when comparing 2 users in a test
+func GetTestTimeZone() *TimeZone {
+	return &TimeZone{
+		Name:   "Test",
+		Offset: -36000,
+		IsTest: true,
 	}
 }
