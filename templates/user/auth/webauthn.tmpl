@@ -14,9 +14,11 @@
 				<div class="is-loading" style="width: 40px; height: 40px"></div>
 				{{ctx.Locale.Tr "webauthn_press_button"}}
 			</div>
-			<div class="ui attached segment">
-				<a href="{{AppSubUrl}}/user/two_factor">{{ctx.Locale.Tr "webauthn_use_twofa"}}</a>
-			</div>
+			{{if .HasTwoFactor}}
+				<div class="ui attached segment">
+					<a href="{{AppSubUrl}}/user/two_factor">{{ctx.Locale.Tr "webauthn_use_twofa"}}</a>
+				</div>
+			{{end}}
 		</div>
 	</div>
 </div>

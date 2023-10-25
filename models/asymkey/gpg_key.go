@@ -111,8 +111,8 @@ func GetGPGKeysByKeyID(ctx context.Context, keyID string) ([]*GPGKey, error) {
 }
 
 // GPGKeyToEntity retrieve the imported key and the traducted entity
-func GPGKeyToEntity(k *GPGKey) (*openpgp.Entity, error) {
-	impKey, err := GetGPGImportByKeyID(k.KeyID)
+func GPGKeyToEntity(ctx context.Context, k *GPGKey) (*openpgp.Entity, error) {
+	impKey, err := GetGPGImportByKeyID(ctx, k.KeyID)
 	if err != nil {
 		return nil, err
 	}

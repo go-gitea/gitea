@@ -106,12 +106,10 @@ func TestGPGGit(t *testing.T) {
 					assert.NotNil(t, response.Verification)
 					if response.Verification == nil {
 						assert.FailNow(t, "no verification provided with response! %v", response)
-						return
 					}
 					assert.True(t, response.Verification.Verified)
 					if !response.Verification.Verified {
 						t.FailNow()
-						return
 					}
 					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
 				}))
@@ -120,12 +118,10 @@ func TestGPGGit(t *testing.T) {
 					assert.NotNil(t, response.Verification)
 					if response.Verification == nil {
 						assert.FailNow(t, "no verification provided with response! %v", response)
-						return
 					}
 					assert.True(t, response.Verification.Verified)
 					if !response.Verification.Verified {
 						t.FailNow()
-						return
 					}
 					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
 				}))
@@ -140,12 +136,10 @@ func TestGPGGit(t *testing.T) {
 					assert.NotNil(t, response.Verification)
 					if response.Verification == nil {
 						assert.FailNow(t, "no verification provided with response! %v", response)
-						return
 					}
 					assert.True(t, response.Verification.Verified)
 					if !response.Verification.Verified {
 						t.FailNow()
-						return
 					}
 					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
 				}))
@@ -160,17 +154,14 @@ func TestGPGGit(t *testing.T) {
 				assert.NotNil(t, branch.Commit)
 				if branch.Commit == nil {
 					assert.FailNow(t, "no commit provided with branch! %v", branch)
-					return
 				}
 				assert.NotNil(t, branch.Commit.Verification)
 				if branch.Commit.Verification == nil {
 					assert.FailNow(t, "no verification provided with branch commit! %v", branch.Commit)
-					return
 				}
 				assert.True(t, branch.Commit.Verification.Verified)
 				if !branch.Commit.Verification.Verified {
 					t.FailNow()
-					return
 				}
 				assert.Equal(t, "gitea@fake.local", branch.Commit.Verification.Signer.Email)
 			}))
