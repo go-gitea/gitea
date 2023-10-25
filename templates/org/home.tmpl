@@ -3,7 +3,7 @@
 	<div class="ui container gt-df">
 		{{ctx.AvatarUtils.Avatar .Org 140 "org-avatar"}}
 		<div id="org-info">
-			<div class="ui header gt-df gt-fw">
+			<div class="ui header">
 				{{.Org.DisplayName}}
 				<span class="org-visibility">
 					{{if .Org.Visibility.IsLimited}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</span>{{end}}
