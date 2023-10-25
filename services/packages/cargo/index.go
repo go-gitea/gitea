@@ -106,10 +106,16 @@ func RebuildIndex(ctx context.Context, doer, owner *user_model.User) error {
 	)
 }
 
-func AddOrUpdatePackageIndex(ctx context.Context, doer, owner *user_model.User, packageID int64) error {
-	repo, err := getOrCreateIndexRepository(ctx, doer, owner)
+func UpdatePackageIndexIfExists(ctx context.Context, doer, owner *user_model.User, packageID int64) error {
+	// We do not want to force the creation of the repo here
+	// cargo http index does not rely on the repo itself,
+	// so if the repo does not exist, we just do nothing.
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner.Name, IndexRepositoryName)
 	if err != nil {
-		return err
+		if errors.Is(err, util.ErrNotExist) {
+			return nil
+		}
+		return fmt.Errorf("GetRepositoryByOwnerAndName: %w", err)
 	}
 
 	p, err := packages_model.GetPackageByID(ctx, packageID)
