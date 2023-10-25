@@ -195,6 +195,72 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 ```
 
+To run the `rootless` variant:
+
+```yml
+version: "3.8"
+services:
+  runner:
+    image: gitea/act_runner:nightly-dind-rootless
+    environment:
+      CONFIG_FILE: /config.yaml
+      # The rootless container runs the Docker socket in the user's namespace.
+      # Let Docker know where to find the socket by updating the environment variable.
+      # @see https://docs.docker.com/engine/reference/commandline/cli/#environment-variables
+      DOCKER_HOST: unix:///run/user/1000/docker.sock
+      # ...
+    # It is required to run the `dind-rootless` container with elevated privileges
+    # @see https://docs.docker.com/engine/security/rootless/#rootless-docker-in-docker
+    privileged: true
+    volumes:
+      - ./config.yaml:/config.yaml
+      - gitea-data:/data
+
+volumes:
+  gitea-data:
+    name: gitea-data
+```
+
+One more trick for keeping the configuration inside your Docker compose `.yaml`:
+
+```yml
+version: "3.8"
+services:
+  gitea-runner:
+    # Override the entrypoint to create a configuration file.
+    # Note: be sure to include the original entrypoint for your base image.
+    # This example is using the entrypoint for the `rootless` variation
+    # @see https://gitea.com/gitea/act_runner/src/commit/10dc6fb60df58358eff562f5eba73a25bf3bb047/Dockerfile.rootless#L24
+    entrypoint:
+      - sh
+      - -euc
+      # Note the use of the double `$$`.
+      # This prevents Docker from expanding environment variables and lets the container expand it during runtime.
+      - |
+        echo "$${ACT_RUNNER_CONFIG}" > /home/rootless/config.yaml
+        /usr/bin/supervisord -c /etc/supervisord.conf
+    environment:
+      # The example container runs as an unprivileged user, `rootless`, and does not have root write permissions.
+      # Be sure to write and reference a config file in a directory where the user has write permissions.
+      CONFIG_FILE: /home/rootless/config.yaml
+      # Define the act_runner configuration in an environment variable
+      # Note: you can expand environment variables here.
+      ACT_RUNNER_CONFIG: |
+        # Example configuration file, it's safe to copy this as the default config file without any modification.
+
+        # You don't have to copy this file to your instance,
+        # just run `./act_runner generate-config > config.yaml` to generate a config file.
+
+        log:
+          # The level of logging, can be trace, debug, info, warn, error, fatal
+          level: info
+
+        # ...
+
+    image: gitea/act_runner:nightly-dind-rootless
+    # ...
+```
+
 ### Configuring cache when starting a Runner using docker image
 
 If you do not intend to use `actions/cache` in workflow, you can ignore this section.
