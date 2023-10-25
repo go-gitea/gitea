@@ -17,25 +17,25 @@
 	{{if .ShowMergeInstructions}}
 	<div><h3>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_title"}}</h3>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_desc"}}</div>
 	<div class="ui secondary segment">
-		<div class="pull-merge-cmd" data-name="merge">
+		<div data-pull-merge-style="merge">
 			<div>git checkout {{.PullRequest.BaseBranch}}</div>
 			<div>git merge --no-ff {{$localBranch}}</div>
 		</div>
-		<div class="pull-merge-cmd gt-hidden" data-name="rebase">
+		<div class="gt-hidden" data-pull-merge-style="rebase">
 			<div>git checkout {{.PullRequest.BaseBranch}}</div>
 			<div>git merge --ff-only {{$localBranch}}</div>
 		</div>
-		<div class="pull-merge-cmd gt-hidden" data-name="rebase-merge">
+		<div class="gt-hidden" data-pull-merge-style="rebase-merge">
 			<div>git checkout {{$localBranch}}</div>
 			<div>git rebase {{.PullRequest.BaseBranch}}</div>
 			<div>git checkout {{.PullRequest.BaseBranch}}</div>
 			<div>git merge --no-ff {{$localBranch}}</div>
 		</div>
-		<div class="pull-merge-cmd gt-hidden" data-name="squash">
+		<div class="gt-hidden" data-pull-merge-style="squash">
 			<div>git checkout {{.PullRequest.BaseBranch}}</div>
 			<div>git merge --squash {{$localBranch}}</div>
 		</div>
-		<div class="pull-merge-cmd gt-hidden" data-name="manually-merged">
+		<div class="gt-hidden" data-pull-merge-style="manually-merged">
 			<div>git checkout {{.PullRequest.BaseBranch}}</div>
 			<div>git merge {{$localBranch}}</div>
 		</div>

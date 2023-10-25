@@ -40,8 +40,8 @@ export default {
   watch: {
     mergeStyle(val) {
       this.mergeStyleDetail = this.mergeForm.mergeStyles.find((e) => e.name === val);
-      for (const elem of document.getElementsByClassName('pull-merge-cmd')) {
-        toggleElem(elem, elem.getAttribute('data-name') === val);
+      for (const elem of document.querySelectorAll('[data-pull-merge-style]')) {
+        toggleElem(elem, elem.getAttribute('data-pull-merge-style') === val);
       }
     }
   },
