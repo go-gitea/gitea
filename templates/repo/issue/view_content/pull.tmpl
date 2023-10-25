@@ -373,7 +373,7 @@
 			{{end}}
 
 			{{if and .Issue.PullRequest.HeadRepo (not .Issue.PullRequest.HasMerged) (not .Issue.IsClosed)}}
-				{{template "repo/issue/view_content/pull_merge_instruction" dict "PR" .Issue.PullRequest "ShowMergeInstructions" .ShowMergeInstructions}}
+				{{template "repo/issue/view_content/pull_merge_instruction" dict "PullRequest" .Issue.PullRequest "ShowMergeInstructions" .ShowMergeInstructions}}
 			{{end}}
 		</div>
 	</div>
