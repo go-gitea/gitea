@@ -23,7 +23,7 @@
 		</div>
 		<div class="pull-merge-cmd gt-hidden" data-name="rebase">
 			<div>git checkout {{.PR.BaseBranch}}</div>
-			<div>git merge --ff {{$localBranch}}</div>
+			<div>git merge --ff-only {{$localBranch}}</div>
 		</div>
 		<div class="pull-merge-cmd gt-hidden" data-name="rebase-merge">
 			<div>git checkout {{$localBranch}}</div>
