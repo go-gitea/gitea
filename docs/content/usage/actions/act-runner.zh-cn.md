@@ -208,12 +208,12 @@ services:
 
 ```yaml
 cache:
-enabled: true
-dir: ""
-# 使用步骤 1. 获取的 LAN IP
-host: "192.168.8.17"
-# 使用步骤 2. 获取的端口号
-port: 8088
+  enabled: true
+  dir: ""
+  # 使用步骤 1. 获取的 LAN IP
+  host: "192.168.8.17"
+  # 使用步骤 2. 获取的端口号
+  port: 8088
 ```
 
 - 4.启动容器时, 将 Cache 端口映射至主机。

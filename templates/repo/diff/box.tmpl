@@ -1,7 +1,8 @@
+{{$showFileTree := (and (not .DiffNotAvailable) (gt .Diff.NumFiles 1))}}
 <div>
 	<div class="diff-detail-box diff-box">
 		<div class="gt-df gt-ac gt-fw">
-			{{if not .DiffNotAvailable}}
+			{{if $showFileTree}}
 				<button class="diff-toggle-file-tree-button gt-df gt-ac not-mobile" data-show-text="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
 					{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}
 					{{svg "octicon-sidebar-collapse" 20 "icon gt-hidden"}}
@@ -15,6 +16,8 @@
 					diffTreeBtn.querySelector(diffTreeIcon).classList.remove('gt-hidden');
 					diffTreeBtn.setAttribute('data-tooltip-content', diffTreeBtn.getAttribute(diffTreeVisible ? 'data-hide-text' : 'data-show-text'));
 				</script>
+			{{end}}
+			{{if not .DiffNotAvailable}}
 				<div class="diff-detail-stats gt-df gt-ac gt-fw">
 					{{svg "octicon-diff" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
 				</div>
@@ -85,13 +88,15 @@
 		<div id="diff-file-list"></div>
 	{{end}}
 	<div id="diff-container">
-		{{if .DiffNotAvailable}}
-			<h4>{{ctx.Locale.Tr "repo.diff.data_not_available"}}</h4>
-		{{else}}
+		{{if $showFileTree}}
 			<div id="diff-file-tree" class="gt-hidden"></div>
 			<script>
 				if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('gt-hidden');
 			</script>
+		{{end}}
+		{{if .DiffNotAvailable}}
+			<h4>{{ctx.Locale.Tr "repo.diff.data_not_available"}}</h4>
+		{{else}}
 			<div id="diff-file-boxes" class="sixteen wide column">
 				{{range $i, $file := .Diff.Files}}
 					{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
