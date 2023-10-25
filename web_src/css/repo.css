@@ -2606,6 +2606,7 @@ tbody.commit-list {
   justify-content: space-between;
   flex-wrap: wrap;
   word-break: break-word;
+  gap: 0.5rem;
 }
 
 @media (max-width: 767.98px) {
@@ -2734,6 +2735,9 @@ tbody.commit-list {
 #diff-file-boxes {
   flex: 1;
   max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 #diff-file-tree {
