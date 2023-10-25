@@ -258,11 +258,14 @@ func buildRepomd(ctx context.Context, pv *packages_model.PackageVersion, ownerID
 	}
 
 	repomdAscContent, _ := packages_module.NewHashedBuffer()
+	defer repomdAscContent.Close()
+
 	if err := openpgp.ArmoredDetachSign(repomdAscContent, e, bytes.NewReader(buf.Bytes()), nil); err != nil {
 		return err
 	}
 
 	repomdContent, _ := packages_module.CreateHashedBufferFromReader(&buf)
+	defer repomdContent.Close()
 
 	for _, file := range []struct {
 		Name string
