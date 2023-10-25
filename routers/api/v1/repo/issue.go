@@ -467,6 +467,20 @@ func ListIssues(ctx *context.APIContext) {
 		return
 	}
 
+	canReadIssues := ctx.Repo.CanRead(unit.TypeIssues)
+	canReadPulls := ctx.Repo.CanRead(unit.TypePullRequests)
+
+	if isPull == util.OptionalBoolNone {
+		if !canReadIssues && !canReadPulls {
+			ctx.NotFound()
+			return
+		} else if !canReadIssues {
+			isPull = util.OptionalBoolTrue
+		} else if !canReadPulls {
+			isPull = util.OptionalBoolFalse
+		}
+	}
+
 	// FIXME: we should be more efficient here
 	createdByID := getUserIDForFilter(ctx, "created_by")
 	if ctx.Written() {
