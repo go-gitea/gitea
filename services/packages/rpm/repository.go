@@ -551,6 +551,8 @@ func (wc *writtenCounter) Written() int64 {
 
 func addDataAsFileToRepo(ctx context.Context, pv *packages_model.PackageVersion, filetype string, obj any) (*repoData, error) {
 	content, _ := packages_module.NewHashedBuffer()
+	defer content.Close()
+
 	gzw := gzip.NewWriter(content)
 	wc := &writtenCounter{}
 	h := sha256.New()
