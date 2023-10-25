@@ -1,0 +1,30 @@
+
+.gotop {
+    position:fixed;
+    z-index:90;
+    right:0px;
+    bottom:45px;
+    width:30px;
+    height:30px;
+    color:var(--color-primary-contrast);
+    background:var(--color-primary-light-3);
+    line-height:30px;
+    border-radius:50%;
+    transition:all 0.5s;
+    text-align:center;
+    box-shadow:0 2px 5px 0 rgba(0,0,0,0.16), 0 2px 10px 0 rgba(0,0,0,0.12);
+    font-family:initial;
+}
+
+#goup {
+    bottom:155px;
+}
+#godown {
+    bottom:120px;
+}
+#gotop {
+    bottom:75px;
+}
+#gobottom {
+    bottom:40px;
+}

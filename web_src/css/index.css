@@ -26,6 +26,7 @@
 @import "./features/projects.css";
 @import "./features/tribute.css";
 @import "./features/console.css";
+@import "./features/gotobottom.css";
 
 @import "./markup/content.css";
 @import "./markup/codecopy.css";
