@@ -121,8 +121,8 @@ func UpdateTimeZoneListCache() error {
 	}
 
 	const nameColumn = 0
-	const timeStartColumn = 3
-	const offsetColumn = 4
+	const timeStartColumn = 1
+	const offsetColumn = 2
 
 	currentTime := time.Now().UTC().Unix()
 	currentZone := new(TimeZone)
