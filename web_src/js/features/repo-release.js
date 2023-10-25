@@ -1,6 +1,5 @@
 import $ from 'jquery';
 import {hideElem, showElem} from '../utils/dom.js';
-import {initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 
 export function initRepoRelease() {
   $(document).on('click', '.remove-rel-attach', function() {
@@ -16,7 +15,6 @@ export function initRepoReleaseNew() {
   if (!$repoReleaseNew.length) return;
 
   initTagNameEditor();
-  initRepoReleaseEditor();
 }
 
 function initTagNameEditor() {
@@ -42,12 +40,4 @@ function initTagNameEditor() {
       tagHelper.textContent = value ? newTagHelperText : defaultTagHelperText;
     }
   });
-}
-
-function initRepoReleaseEditor() {
-  const $editor = $('.repository.new.release .combo-markdown-editor');
-  if ($editor.length === 0) {
-    return;
-  }
-  const _promise = initComboMarkdownEditor($editor);
 }

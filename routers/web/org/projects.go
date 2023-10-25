@@ -18,6 +18,8 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -97,6 +99,18 @@ func Projects(ctx *context.Context) {
 		ctx.Data["State"] = "closed"
 	} else {
 		ctx.Data["State"] = "open"
+	}
+
+	for _, project := range projects {
+		project.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+			Ctx:       ctx,
+			URLPrefix: ctx.ContextUser.HomeLink(),
+			Metas:     map[string]string{"mode": "document"},
+		}, project.Description)
+		if err != nil {
+			ctx.ServerError("RenderString", err)
+			return
+		}
 	}
 
 	err = shared_user.LoadHeaderCount(ctx)
@@ -393,6 +407,16 @@ func ViewProject(ctx *context.Context) {
 				}
 			}
 		}
+	}
+
+	project.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+		Ctx:       ctx,
+		URLPrefix: ctx.ContextUser.HomeLink(),
+		Metas:     map[string]string{"mode": "document"},
+	}, project.Description)
+	if err != nil {
+		ctx.ServerError("RenderString", err)
+		return
 	}
 
 	ctx.Data["LinkedPRs"] = linkedPrsMap

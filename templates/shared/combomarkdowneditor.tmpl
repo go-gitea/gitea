@@ -3,7 +3,7 @@ Template Attributes:
 * ContainerId: id attribute for the container element
 * ContainerClasses: additional classes for the container element
 * MarkdownPreviewUrl: preview url for the preview tab
-* MarkdownPreviewMode: the preview mode (default to comment)
+* MarkdownPreviewMode: the preview mode. possible values are markdown, comment and file. default is comment.
 * MarkdownPreviewContext: preview context for the preview tab
 * TextareaName: name attribute for the textarea
 * TextareaContent: content for the textarea
@@ -12,7 +12,7 @@ Template Attributes:
 * TextareaMaxLength: maxlength attribute for the textarea
 * DropzoneParentContainer: container for file upload (leave it empty if no upload)
 * DisableAutosize: whether to disable automatic height resizing
-* HideRepoButtons: hide buttons that belongs to a repo
+* HideRepoButtons:  hide buttons that belong to repos (issue references)
 */}}
 <div {{if .ContainerId}}id="{{.ContainerId}}"{{end}} class="combo-markdown-editor {{.ContainerClasses}}" data-dropzone-parent-container="{{.DropzoneParentContainer}}">
 	{{if .MarkdownPreviewUrl}}

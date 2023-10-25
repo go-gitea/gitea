@@ -9,7 +9,7 @@
 		{{template "shared/combomarkdowneditor" (dict
 			"ContainerClasses" "gt-hidden"
 			"MarkdownPreviewUrl" (print .root.RepoLink "/markup")
-			"MarkdownPreviewContextg" .root.RepoLink
+			"MarkdownPreviewContext" .root.RepoLink
 			"TextareaContent" .item.Attributes.value
 			"TextareaPlaceholder"  .item.Attributes.placeholder
 			"DropzoneParentContainer" ".combo-editor-dropzone"
