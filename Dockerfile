@@ -39,7 +39,6 @@ RUN chmod 755 /tmp/local/usr/bin/entrypoint \
               /tmp/local/etc/s6/.s6-svscan/* \
               /go/src/code.gitea.io/gitea/gitea \
               /go/src/code.gitea.io/gitea/environment-to-ini
-
 RUN chmod 644 /go/src/code.gitea.io/gitea/contrib/autocompletion/bash_autocomplete
 
 FROM docker.io/library/alpine:3.18
