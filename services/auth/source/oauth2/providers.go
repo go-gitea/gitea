@@ -4,6 +4,7 @@
 package oauth2
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"html"
@@ -97,10 +98,10 @@ func GetOAuth2Providers() []Provider {
 // GetActiveOAuth2Providers returns the map of configured active OAuth2 providers
 // key is used as technical name (like in the callbackURL)
 // values to display
-func GetActiveOAuth2Providers() ([]string, map[string]Provider, error) {
+func GetActiveOAuth2Providers(ctx context.Context) ([]string, map[string]Provider, error) {
 	// Maybe also separate used and unused providers so we can force the registration of only 1 active provider for each type
 
-	authSources, err := auth.GetActiveOAuth2ProviderSources()
+	authSources, err := auth.GetActiveOAuth2ProviderSources(ctx)
 	if err != nil {
 		return nil, nil, err
 	}

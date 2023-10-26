@@ -237,7 +237,7 @@ func UserNameChanged(ctx context.Context, user *user_model.User, newName string)
 	for _, pull := range pulls {
 		pull.HeadBranch = strings.TrimPrefix(pull.HeadBranch, user.LowerName+"/")
 		pull.HeadBranch = newName + "/" + pull.HeadBranch
-		if err = pull.UpdateCols("head_branch"); err != nil {
+		if err = pull.UpdateCols(ctx, "head_branch"); err != nil {
 			return err
 		}
 	}

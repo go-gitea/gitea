@@ -67,7 +67,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 		return nil, nil
 	}
 
-	cfg, err := s.getConfig()
+	cfg, err := s.getConfig(req.Context())
 	if err != nil {
 		log.Error("could not get SSPI config: %v", err)
 		return nil, err
@@ -129,8 +129,8 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 }
 
 // getConfig retrieves the SSPI configuration from login sources
-func (s *SSPI) getConfig() (*sspi.Source, error) {
-	sources, err := auth.ActiveSources(auth.SSPI)
+func (s *SSPI) getConfig(ctx context.Context) (*sspi.Source, error) {
+	sources, err := auth.ActiveSources(ctx, auth.SSPI)
 	if err != nil {
 		return nil, err
 	}

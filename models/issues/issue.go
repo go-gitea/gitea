@@ -219,7 +219,7 @@ func (issue *Issue) LoadPoster(ctx context.Context) (err error) {
 	if issue.Poster == nil && issue.PosterID != 0 {
 		issue.Poster, err = user_model.GetPossibleUserByID(ctx, issue.PosterID)
 		if err != nil {
-			issue.PosterID = -1
+			issue.PosterID = user_model.GhostUserID
 			issue.Poster = user_model.NewGhostUser()
 			if !user_model.IsErrUserNotExist(err) {
 				return fmt.Errorf("getUserByID.(poster) [%d]: %w", issue.PosterID, err)

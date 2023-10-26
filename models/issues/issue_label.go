@@ -83,12 +83,12 @@ func RemoveDuplicateExclusiveIssueLabels(ctx context.Context, issue *Issue, labe
 }
 
 // NewIssueLabel creates a new issue-label relation.
-func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error) {
-	if HasIssueLabel(db.DefaultContext, issue.ID, label.ID) {
+func NewIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_model.User) (err error) {
+	if HasIssueLabel(ctx, issue.ID, label.ID) {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -149,8 +149,8 @@ func newIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *us
 }
 
 // NewIssueLabels creates a list of issue-label relations.
-func NewIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func NewIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *user_model.User) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -359,8 +359,8 @@ func clearIssueLabels(ctx context.Context, issue *Issue, doer *user_model.User) 
 
 // ClearIssueLabels removes all issue labels as the given user.
 // Triggers appropriate WebHooks, if any.
-func ClearIssueLabels(issue *Issue, doer *user_model.User) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ClearIssueLabels(ctx context.Context, issue *Issue, doer *user_model.User) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -432,8 +432,8 @@ func RemoveDuplicateExclusiveLabels(labels []*Label) []*Label {
 
 // ReplaceIssueLabels removes all current labels and add new labels to the issue.
 // Triggers appropriate WebHooks, if any.
-func ReplaceIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ReplaceIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *user_model.User) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
