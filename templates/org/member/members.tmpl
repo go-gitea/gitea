@@ -3,6 +3,12 @@
 	{{template "org/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
+		{{if .IsOrganizationOwner}}
+			<div class="text right">
+				<a class="ui primary button" href="{{.OrgLink}}/members/invite">{{svg "octicon-plus"}} {{ctx.Locale.Tr "org.members.invite_member"}}</a>
+			</div>
+			<div class="divider"></div>
+		{{end}}
 
 		<div class="flex-list">
 			{{range .Members}}
