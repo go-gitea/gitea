@@ -7,6 +7,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -58,7 +59,9 @@ func validateArtifactHash(ctx *ArtifactContext, artifactName string) bool {
 func parseArtifactItemPath(ctx *ArtifactContext) (string, string, bool) {
 	// itemPath is generated from upload-artifact action
 	// it's formatted as {artifact_name}/{artfict_path_in_runner}
-	itemPath := util.PathJoinRel(ctx.Req.URL.Query().Get("itemPath"))
+	// act_runner in host mode on Windows, itemPath contains %255C urlencoded windows slash '\'
+	itemPath, _ := url.QueryUnescape(ctx.Req.URL.Query().Get("itemPath"))
+	itemPath = util.PathJoinRelX(itemPath) // use PathJoinRelX to convert Windows '\' to '/'
 	artifactName := strings.Split(itemPath, "/")[0]
 	artifactPath := strings.TrimPrefix(itemPath, artifactName+"/")
 	if !validateArtifactHash(ctx, artifactName) {
