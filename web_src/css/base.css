@@ -193,6 +193,22 @@ a.label,
   text-decoration: none !important;
 }
 
+.ui.search > .prompt {
+  color: var(--color-text);
+  background: var(--color-box-body);
+  border-color: var(--color-secondary);
+}
+
+.ui.search .prompt {
+  border-radius: var(--border-radius);
+}
+
+.ui.search > .prompt:focus {
+  border-color: var(--color-primary);
+  background: var(--color-box-body);
+  color: var(--color-text);
+}
+
 .ui.search > .results {
   background: var(--color-body);
   border-color: var(--color-secondary);
@@ -257,6 +273,8 @@ ol.ui.list li,
 .ui.input.focus > input,
 .ui.input > input:focus {
   border-color: var(--color-primary);
+  background: var(--color-box-body);
+  color: var(--color-text);
 }
 
 .ui.action.input .ui.ui.button {
