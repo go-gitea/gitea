@@ -70,7 +70,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["PageIsSettingsBranches"] = true
 	c.Data["Title"] = c.Tr("repo.settings.protected_branch") + " - " + rule.RuleName
 
-	users, err := access_model.GetRepoReaders(c.Repo.Repository)
+	users, err := access_model.GetRepoReaders(c, c.Repo.Repository)
 	if err != nil {
 		c.ServerError("Repo.Repository.GetReaders", err)
 		return
@@ -84,7 +84,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["recent_status_checks"] = contexts
 
 	if c.Repo.Owner.IsOrganization() {
-		teams, err := organization.OrgFromUser(c.Repo.Owner).TeamsWithAccessToRepo(c.Repo.Repository.ID, perm.AccessModeRead)
+		teams, err := organization.OrgFromUser(c.Repo.Owner).TeamsWithAccessToRepo(c, c.Repo.Repository.ID, perm.AccessModeRead)
 		if err != nil {
 			c.ServerError("Repo.Owner.TeamsWithAccessToRepo", err)
 			return
@@ -285,7 +285,7 @@ func DeleteProtectedBranchRulePost(ctx *context.Context) {
 		return
 	}
 
-	if err := git_model.DeleteProtectedBranch(ctx, ctx.Repo.Repository.ID, ruleID); err != nil {
+	if err := git_model.DeleteProtectedBranch(ctx, ctx.Repo.Repository, ruleID); err != nil {
 		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", rule.RuleName))
 		ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
 		return

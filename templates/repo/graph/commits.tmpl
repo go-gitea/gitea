@@ -29,7 +29,7 @@
 						</a>
 					</span>
 					<span class="message gt-dib gt-ellipsis gt-mr-3">
-						<span>{{RenderCommitMessage $.Context $commit.Subject $.RepoLink $.Repository.ComposeMetas}}</span>
+						<span>{{RenderCommitMessage $.Context $commit.Subject $.RepoLink ($.Repository.ComposeMetas ctx)}}</span>
 					</span>
 					<span class="commit-refs gt-df gt-ac gt-mr-2">
 						{{range $commit.Refs}}

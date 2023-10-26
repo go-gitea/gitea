@@ -175,8 +175,8 @@ func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_mo
 // CreateOrUpdateIssueNotifications creates an issue notification
 // for each watcher, or updates it if already exists
 // receiverID > 0 just send to receiver, else send to all watcher
-func CreateOrUpdateIssueNotifications(issueID, commentID, notificationAuthorID, receiverID int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func CreateOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -435,21 +435,21 @@ func (n *Notification) loadUser(ctx context.Context) (err error) {
 }
 
 // GetRepo returns the repo of the notification
-func (n *Notification) GetRepo() (*repo_model.Repository, error) {
-	return n.Repository, n.loadRepo(db.DefaultContext)
+func (n *Notification) GetRepo(ctx context.Context) (*repo_model.Repository, error) {
+	return n.Repository, n.loadRepo(ctx)
 }
 
 // GetIssue returns the issue of the notification
-func (n *Notification) GetIssue() (*issues_model.Issue, error) {
-	return n.Issue, n.loadIssue(db.DefaultContext)
+func (n *Notification) GetIssue(ctx context.Context) (*issues_model.Issue, error) {
+	return n.Issue, n.loadIssue(ctx)
 }
 
 // HTMLURL formats a URL-string to the notification
-func (n *Notification) HTMLURL() string {
+func (n *Notification) HTMLURL(ctx context.Context) string {
 	switch n.Source {
 	case NotificationSourceIssue, NotificationSourcePullRequest:
 		if n.Comment != nil {
-			return n.Comment.HTMLURL()
+			return n.Comment.HTMLURL(ctx)
 		}
 		return n.Issue.HTMLURL()
 	case NotificationSourceCommit:
@@ -461,11 +461,11 @@ func (n *Notification) HTMLURL() string {
 }
 
 // Link formats a relative URL-string to the notification
-func (n *Notification) Link() string {
+func (n *Notification) Link(ctx context.Context) string {
 	switch n.Source {
 	case NotificationSourceIssue, NotificationSourcePullRequest:
 		if n.Comment != nil {
-			return n.Comment.Link()
+			return n.Comment.Link(ctx)
 		}
 		return n.Issue.Link()
 	case NotificationSourceCommit:
@@ -733,12 +733,12 @@ type UserIDCount struct {
 }
 
 // GetUIDsAndNotificationCounts between the two provided times
-func GetUIDsAndNotificationCounts(since, until timeutil.TimeStamp) ([]UserIDCount, error) {
+func GetUIDsAndNotificationCounts(ctx context.Context, since, until timeutil.TimeStamp) ([]UserIDCount, error) {
 	sql := `SELECT user_id, count(*) AS count FROM notification ` +
 		`WHERE user_id IN (SELECT user_id FROM notification WHERE updated_unix >= ? AND ` +
 		`updated_unix < ?) AND status = ? GROUP BY user_id`
 	var res []UserIDCount
-	return res, db.GetEngine(db.DefaultContext).SQL(sql, since, until, NotificationStatusUnread).Find(&res)
+	return res, db.GetEngine(ctx).SQL(sql, since, until, NotificationStatusUnread).Find(&res)
 }
 
 // SetIssueReadBy sets issue to be read by given user.

@@ -91,7 +91,7 @@ func addKey(ctx context.Context, key *PublicKey) (err error) {
 }
 
 // AddPublicKey adds new public key to database and authorized_keys file.
-func AddPublicKey(ownerID int64, name, content string, authSourceID int64) (*PublicKey, error) {
+func AddPublicKey(ctx context.Context, ownerID int64, name, content string, authSourceID int64) (*PublicKey, error) {
 	log.Trace(content)
 
 	fingerprint, err := CalcFingerprint(content)
@@ -99,7 +99,7 @@ func AddPublicKey(ownerID int64, name, content string, authSourceID int64) (*Pub
 		return nil, err
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -136,9 +136,9 @@ func AddPublicKey(ownerID int64, name, content string, authSourceID int64) (*Pub
 }
 
 // GetPublicKeyByID returns public key by given ID.
-func GetPublicKeyByID(keyID int64) (*PublicKey, error) {
+func GetPublicKeyByID(ctx context.Context, keyID int64) (*PublicKey, error) {
 	key := new(PublicKey)
-	has, err := db.GetEngine(db.DefaultContext).
+	has, err := db.GetEngine(ctx).
 		ID(keyID).
 		Get(key)
 	if err != nil {
@@ -180,7 +180,7 @@ func SearchPublicKeyByContentExact(ctx context.Context, content string) (*Public
 }
 
 // SearchPublicKey returns a list of public keys matching the provided arguments.
-func SearchPublicKey(uid int64, fingerprint string) ([]*PublicKey, error) {
+func SearchPublicKey(ctx context.Context, uid int64, fingerprint string) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
 	cond := builder.NewCond()
 	if uid != 0 {
@@ -189,12 +189,12 @@ func SearchPublicKey(uid int64, fingerprint string) ([]*PublicKey, error) {
 	if fingerprint != "" {
 		cond = cond.And(builder.Eq{"fingerprint": fingerprint})
 	}
-	return keys, db.GetEngine(db.DefaultContext).Where(cond).Find(&keys)
+	return keys, db.GetEngine(ctx).Where(cond).Find(&keys)
 }
 
 // ListPublicKeys returns a list of public keys belongs to given user.
-func ListPublicKeys(uid int64, listOptions db.ListOptions) ([]*PublicKey, error) {
-	sess := db.GetEngine(db.DefaultContext).Where("owner_id = ? AND type != ?", uid, KeyTypePrincipal)
+func ListPublicKeys(ctx context.Context, uid int64, listOptions db.ListOptions) ([]*PublicKey, error) {
+	sess := db.GetEngine(ctx).Where("owner_id = ? AND type != ?", uid, KeyTypePrincipal)
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 
@@ -207,30 +207,30 @@ func ListPublicKeys(uid int64, listOptions db.ListOptions) ([]*PublicKey, error)
 }
 
 // CountPublicKeys count public keys a user has
-func CountPublicKeys(userID int64) (int64, error) {
-	sess := db.GetEngine(db.DefaultContext).Where("owner_id = ? AND type != ?", userID, KeyTypePrincipal)
+func CountPublicKeys(ctx context.Context, userID int64) (int64, error) {
+	sess := db.GetEngine(ctx).Where("owner_id = ? AND type != ?", userID, KeyTypePrincipal)
 	return sess.Count(&PublicKey{})
 }
 
 // ListPublicKeysBySource returns a list of synchronized public keys for a given user and login source.
-func ListPublicKeysBySource(uid, authSourceID int64) ([]*PublicKey, error) {
+func ListPublicKeysBySource(ctx context.Context, uid, authSourceID int64) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
-	return keys, db.GetEngine(db.DefaultContext).
+	return keys, db.GetEngine(ctx).
 		Where("owner_id = ? AND login_source_id = ?", uid, authSourceID).
 		Find(&keys)
 }
 
 // UpdatePublicKeyUpdated updates public key use time.
-func UpdatePublicKeyUpdated(id int64) error {
+func UpdatePublicKeyUpdated(ctx context.Context, id int64) error {
 	// Check if key exists before update as affected rows count is unreliable
 	//    and will return 0 affected rows if two updates are made at the same time
-	if cnt, err := db.GetEngine(db.DefaultContext).ID(id).Count(&PublicKey{}); err != nil {
+	if cnt, err := db.GetEngine(ctx).ID(id).Count(&PublicKey{}); err != nil {
 		return err
 	} else if cnt != 1 {
 		return ErrKeyNotExist{id}
 	}
 
-	_, err := db.GetEngine(db.DefaultContext).ID(id).Cols("updated_unix").Update(&PublicKey{
+	_, err := db.GetEngine(ctx).ID(id).Cols("updated_unix").Update(&PublicKey{
 		UpdatedUnix: timeutil.TimeStampNow(),
 	})
 	if err != nil {
@@ -250,7 +250,7 @@ func DeletePublicKeys(ctx context.Context, keyIDs ...int64) error {
 }
 
 // PublicKeysAreExternallyManaged returns whether the provided KeyID represents an externally managed Key
-func PublicKeysAreExternallyManaged(keys []*PublicKey) ([]bool, error) {
+func PublicKeysAreExternallyManaged(ctx context.Context, keys []*PublicKey) ([]bool, error) {
 	sources := make([]*auth.Source, 0, 5)
 	externals := make([]bool, len(keys))
 keyloop:
@@ -272,7 +272,7 @@ keyloop:
 
 		if source == nil {
 			var err error
-			source, err = auth.GetSourceByID(key.LoginSourceID)
+			source, err = auth.GetSourceByID(ctx, key.LoginSourceID)
 			if err != nil {
 				if auth.IsErrSourceNotExist(err) {
 					externals[i] = false
@@ -295,15 +295,15 @@ keyloop:
 }
 
 // PublicKeyIsExternallyManaged returns whether the provided KeyID represents an externally managed Key
-func PublicKeyIsExternallyManaged(id int64) (bool, error) {
-	key, err := GetPublicKeyByID(id)
+func PublicKeyIsExternallyManaged(ctx context.Context, id int64) (bool, error) {
+	key, err := GetPublicKeyByID(ctx, id)
 	if err != nil {
 		return false, err
 	}
 	if key.LoginSourceID == 0 {
 		return false, nil
 	}
-	source, err := auth.GetSourceByID(key.LoginSourceID)
+	source, err := auth.GetSourceByID(ctx, key.LoginSourceID)
 	if err != nil {
 		if auth.IsErrSourceNotExist(err) {
 			return false, nil
@@ -318,9 +318,9 @@ func PublicKeyIsExternallyManaged(id int64) (bool, error) {
 }
 
 // deleteKeysMarkedForDeletion returns true if ssh keys needs update
-func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
+func deleteKeysMarkedForDeletion(ctx context.Context, keys []string) (bool, error) {
 	// Start session
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -349,7 +349,7 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 }
 
 // AddPublicKeysBySource add a users public keys. Returns true if there are changes.
-func AddPublicKeysBySource(usr *user_model.User, s *auth.Source, sshPublicKeys []string) bool {
+func AddPublicKeysBySource(ctx context.Context, usr *user_model.User, s *auth.Source, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 	for _, sshKey := range sshPublicKeys {
 		var err error
@@ -368,7 +368,7 @@ func AddPublicKeysBySource(usr *user_model.User, s *auth.Source, sshPublicKeys [
 			marshalled = marshalled[:len(marshalled)-1]
 			sshKeyName := fmt.Sprintf("%s-%s", s.Name, ssh.FingerprintSHA256(out))
 
-			if _, err := AddPublicKey(usr.ID, sshKeyName, marshalled, s.ID); err != nil {
+			if _, err := AddPublicKey(ctx, usr.ID, sshKeyName, marshalled, s.ID); err != nil {
 				if IsErrKeyAlreadyExist(err) {
 					log.Trace("AddPublicKeysBySource[%s]: Public SSH Key %s already exists for user", sshKeyName, usr.Name)
 				} else {
@@ -387,14 +387,14 @@ func AddPublicKeysBySource(usr *user_model.User, s *auth.Source, sshPublicKeys [
 }
 
 // SynchronizePublicKeys updates a users public keys. Returns true if there are changes.
-func SynchronizePublicKeys(usr *user_model.User, s *auth.Source, sshPublicKeys []string) bool {
+func SynchronizePublicKeys(ctx context.Context, usr *user_model.User, s *auth.Source, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 
 	log.Trace("synchronizePublicKeys[%s]: Handling Public SSH Key synchronization for user %s", s.Name, usr.Name)
 
 	// Get Public Keys from DB with current LDAP source
 	var giteaKeys []string
-	keys, err := ListPublicKeysBySource(usr.ID, s.ID)
+	keys, err := ListPublicKeysBySource(ctx, usr.ID, s.ID)
 	if err != nil {
 		log.Error("synchronizePublicKeys[%s]: Error listing Public SSH Keys for user %s: %v", s.Name, usr.Name, err)
 	}
@@ -429,7 +429,7 @@ func SynchronizePublicKeys(usr *user_model.User, s *auth.Source, sshPublicKeys [
 			newKeys = append(newKeys, key)
 		}
 	}
-	if AddPublicKeysBySource(usr, s, newKeys) {
+	if AddPublicKeysBySource(ctx, usr, s, newKeys) {
 		sshKeysNeedUpdate = true
 	}
 
@@ -443,7 +443,7 @@ func SynchronizePublicKeys(usr *user_model.User, s *auth.Source, sshPublicKeys [
 	}
 
 	// Delete keys from DB that no longer exist in the source
-	needUpd, err := deleteKeysMarkedForDeletion(giteaKeysToDelete)
+	needUpd, err := deleteKeysMarkedForDeletion(ctx, giteaKeysToDelete)
 	if err != nil {
 		log.Error("synchronizePublicKeys[%s]: Error deleting Public Keys marked for deletion for user %s: %v", s.Name, usr.Name, err)
 	}
