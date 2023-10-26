@@ -467,10 +467,9 @@ func ListIssues(ctx *context.APIContext) {
 		return
 	}
 
-	canReadIssues := ctx.Repo.CanRead(unit.TypeIssues)
-	canReadPulls := ctx.Repo.CanRead(unit.TypePullRequests)
-
 	if isPull == util.OptionalBoolNone {
+		canReadIssues := ctx.Repo.CanRead(unit.TypeIssues)
+		canReadPulls := ctx.Repo.CanRead(unit.TypePullRequests)
 		if !canReadIssues && !canReadPulls {
 			ctx.NotFound()
 			return
