@@ -96,6 +96,15 @@ func GetOAuth2Providers() []Provider {
 	return providers
 }
 
+func CreateProviderFromSource(source *auth.Source) (Provider, error) {
+	oauth2Cfg, ok := source.Cfg.(*Source)
+	if !ok {
+		return nil, fmt.Errorf("invalid OAuth2 source config: %v", oauth2Cfg)
+	}
+	gothProv := gothProviders[oauth2Cfg.Provider]
+	return &AuthSourceProvider{GothProvider: gothProv, sourceName: source.Name, iconURL: oauth2Cfg.IconURL}, nil
+}
+
 // GetOAuth2ProvidersMap returns the map of configured OAuth2 providers
 func GetOAuth2ProvidersMap(ctx context.Context, isActive util.OptionalBool) ([]string, map[string]Provider, error) {
 	authSources, err := auth.FindSources(ctx, auth.FindSourcesOptions{
@@ -109,13 +118,11 @@ func GetOAuth2ProvidersMap(ctx context.Context, isActive util.OptionalBool) ([]s
 	var orderedKeys []string
 	providers := make(map[string]Provider)
 	for _, source := range authSources {
-		oauth2Cfg, ok := source.Cfg.(*Source)
-		if !ok {
-			log.Error("Invalid OAuth2 source config: %v", oauth2Cfg)
-			continue
+		provider, err := CreateProviderFromSource(source)
+		if err != nil {
+			return nil, nil, err
 		}
-		gothProv := gothProviders[oauth2Cfg.Provider]
-		providers[source.Name] = &AuthSourceProvider{GothProvider: gothProv, sourceName: source.Name, iconURL: oauth2Cfg.IconURL}
+		providers[source.Name] = provider
 		orderedKeys = append(orderedKeys, source.Name)
 	}
 
