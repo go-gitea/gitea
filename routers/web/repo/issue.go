@@ -3105,7 +3105,7 @@ func UpdateCommentContent(ctx *context.Context) {
 	}
 
 	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFoundOrServerError("CompareRepoID", issues_model.IsErrCommentNotExist, err)
+		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
 		return
 	}
 
@@ -3176,7 +3176,7 @@ func DeleteComment(ctx *context.Context) {
 	}
 
 	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFoundOrServerError("CompareRepoID", issues_model.IsErrCommentNotExist, err)
+		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
 		return
 	}
 
@@ -3307,7 +3307,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 	}
 
 	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFoundOrServerError("CompareRepoID", issues_model.IsErrCommentNotExist, err)
+		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
 		return
 	}
 
@@ -3460,7 +3460,7 @@ func GetCommentAttachments(ctx *context.Context) {
 	}
 
 	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFoundOrServerError("CompareRepoID", issues_model.IsErrCommentNotExist, err)
+		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
 		return
 	}
 
