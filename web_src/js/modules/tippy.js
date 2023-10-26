@@ -1,4 +1,4 @@
-import tippy from 'tippy.js';
+import tippy, {followCursor} from 'tippy.js';
 
 const visibleInstances = new Set();
 
@@ -35,6 +35,7 @@ export function createTippy(target, opts = {}) {
     arrow: `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`,
     role: 'menu', // HTML role attribute, only tooltips should use "tooltip"
     theme: other.role || 'menu', // CSS theme, we support either "tooltip" or "menu"
+    plugins: [followCursor],
     ...other,
   });
 
@@ -78,6 +79,7 @@ function attachTooltip(target, content = null) {
     theme: 'tooltip',
     hideOnClick,
     placement: target.getAttribute('data-tooltip-placement') || 'top-start',
+    followCursor: target.getAttribute('data-tooltip-follow-cursor') || false,
     ...(target.getAttribute('data-tooltip-interactive') === 'true' ? {interactive: true, aria: {content: 'describedby', expanded: false}} : {}),
   };
 

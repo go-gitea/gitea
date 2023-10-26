@@ -213,9 +213,8 @@ func GetReviewByID(ctx context.Context, id int64) (*Review, error) {
 		return nil, err
 	} else if !has {
 		return nil, ErrReviewNotExist{ID: id}
-	} else {
-		return review, nil
 	}
+	return review, nil
 }
 
 // CreateReviewOptions represent the options to create a review. Type, Issue and Reviewer are required.
