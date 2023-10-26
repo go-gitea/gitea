@@ -18,7 +18,8 @@ import (
 
 const (
 	// tplMembers template for organization members page
-	tplMembers base.TplName = "org/member/members"
+	tplMembers       base.TplName = "org/member/members"
+	tplMembersInvite base.TplName = "org/member/invite"
 )
 
 // Members render organization users page
@@ -74,6 +75,20 @@ func Members(ctx *context.Context) {
 	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus(ctx)
 
 	ctx.HTML(http.StatusOK, tplMembers)
+}
+
+// MembersInvite render organization members invite page
+func MembersInvite(ctx *context.Context) {
+	org := ctx.Org.Organization
+	ctx.Data["Title"] = org.FullName
+	ctx.Data["PageIsOrgMembers"] = true
+	ctx.Data["Teams"] = ctx.Org.Teams
+	ctx.Data["IsEmailInviteEnabled"] = setting.MailService != nil
+	if err := shared_user.LoadHeaderCount(ctx); err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+	ctx.HTML(http.StatusOK, tplMembersInvite)
 }
 
 // MembersAction response for operation to a member of organization

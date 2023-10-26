@@ -1,0 +1,24 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content organization invitemember">
+    {{template "org/header" .}}
+    <div class="ui container">
+        {{template "base/alert" .}}
+
+        <div class="ui action input">
+            <input type="hidden" name="uid" value="{{.SignedUser.ID}}">
+            <div class="ui label">{{ctx.Locale.Tr "org.members.invite"}}</div>
+            <div id="search-user-box" class="ui search input"{{if .IsEmailInviteEnabled}} data-allow-email="true" data-allow-email-description="{{ctx.Locale.Tr "org.teams.invite_team_member" $.Team.Name}}"{{end}}>
+                <input class="prompt" name="uname" placeholder="{{ctx.Locale.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" autofocus required>
+            </div>
+            <div class="ui label">{{ctx.Locale.Tr "org.members.to"}}</div>
+            <select class="ui selection dropdown" name="team">
+                {{range .Teams}}
+                    <option value="{{.LowerName | PathEscape}}">{{.Name}}</option>
+                {{end}}
+            </select>
+            <div class="ui label">{{ctx.Locale.Tr "org.members.team"}}</div>
+            <button class="ui primary button">{{ctx.Locale.Tr "org.members.invite_now"}}</button>
+        </div>
+    </div>
+</div>
+{{template "base/footer" .}}
