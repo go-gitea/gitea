@@ -655,7 +655,7 @@ func TestWebhook(ctx *context.Context) {
 	if commit == nil {
 		ghost := user_model.NewGhostUser()
 		commit = &git.Commit{
-			ID:            git.MustIDFromString(git.EmptySHA),
+			ID:            git.MustIDFromString(ctx.Repo.GitRepo.HashType.Empty()),
 			Author:        ghost.NewGitSig(),
 			Committer:     ghost.NewGitSig(),
 			CommitMessage: "This is a fake commit",

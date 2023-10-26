@@ -23,3 +23,10 @@ type HashType interface {
 func (repo *Repository) MustHashFromString(s string) Hash {
 	return MustHashFromStringByType(repo.HashType, s)
 }
+
+func HashTypeFromExample(commitID string) HashType {
+	if len(commitID) == SHA1FullLength {
+		return Sha1HashType{}
+	}
+	return Sha256HashType{}
+}

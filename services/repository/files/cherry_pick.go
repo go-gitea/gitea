@@ -65,9 +65,10 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 	if err != nil {
 		return nil, err
 	}
+
 	parent, err := commit.ParentID(0)
 	if err != nil {
-		parent = git.MustIDFromString(git.EmptyTreeSHA)
+		parent = git.MustIDFromString(commit.ID.HashType().EmptyTree())
 	}
 
 	base, right := parent.String(), commit.ID.String()

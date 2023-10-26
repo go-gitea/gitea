@@ -29,7 +29,7 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 	}()
 
 	var command *git.Command
-	if oldCommitID == git.EmptySHA {
+	if oldCommitID == git.HashTypeFromExample(oldCommitID).Empty() {
 		// When creating a new branch, the oldCommitID is empty, by using "newCommitID --not --all":
 		// List commits that are reachable by following the newCommitID, exclude "all" existing heads/tags commits
 		// So, it only lists the new commits received, doesn't list the commits already present in the receiving repository

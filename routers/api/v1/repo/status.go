@@ -189,7 +189,7 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 		ctx.Error(http.StatusBadRequest, "ref/sha not given", nil)
 		return
 	}
-	sha = utils.MustConvertToSHA1(ctx.Base, ctx.Repo, sha)
+	sha = utils.MustConvertToHash(ctx.Base, ctx.Repo, sha)
 	repo := ctx.Repo.Repository
 
 	listOptions := utils.GetListOptions(ctx)

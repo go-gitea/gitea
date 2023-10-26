@@ -206,7 +206,7 @@ func RefURL(repoURL, ref string) string {
 	case refFullName.IsTag():
 		return repoURL + "/src/tag/" + refName
 		// TODO: it should be according repository's hash type
-	case !IsValidSHA1Pattern(ref) && !IsValidSHA256Pattern(ref):
+	case !IsValidSHAPattern(ref):
 		// assume they mean a branch
 		return repoURL + "/src/branch/" + refName
 	default:

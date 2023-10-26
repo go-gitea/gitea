@@ -294,9 +294,8 @@ func Diff(ctx *context.Context) {
 		}
 		return
 	}
-	if len(commitID) != git.SHAFullLength {
-		commitID = commit.ID.String()
-	}
+
+	commitID = commit.ID.String()
 
 	fileOnly := ctx.FormBool("file-only")
 	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles

@@ -25,7 +25,12 @@ const SHA1FullLength = 40
 // SHA1Pattern can be used to determine if a string is an valid sha
 var sha1Pattern = regexp.MustCompile(`^[0-9a-f]{4,40}$`)
 
-// IsValidSHA1Pattern will check if the provided string matches the SHA Pattern
+// IsValidSHAPattern will check if the provided string matches the SHA1 or SHA256 Pattern
+func IsValidSHAPattern(sha string) bool {
+	return IsValidSHA1Pattern(sha) || IsValidSHA256Pattern(sha)
+}
+
+// IsValidSHA1Pattern will check if the provided string matches the SHA1 Pattern
 func IsValidSHA1Pattern(sha string) bool {
 	return sha1Pattern.MatchString(sha)
 }
