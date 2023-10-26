@@ -107,7 +107,7 @@ func loadSecurityData(ctx *context.Context) {
 	ctx.Data["AccountLinks"] = sources
 
 	// here we need to load all possible auth sources because a linked account maybe is using an unactive auth source
-	orderedOAuth2Names, oauth2Providers, err := oauth2.GetOAuth2ProvidersMap(ctx, util.OptionalBoolNone)
+	orderedOAuth2Names, oauth2Providers, err := oauth2.GetOAuth2ProvidersMap(ctx, util.OptionalBoolTrue)
 	if err != nil {
 		ctx.ServerError("GetOAuth2ProvidersMap", err)
 		return
