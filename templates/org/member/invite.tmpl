@@ -6,7 +6,7 @@
 
         <div class="center">
             <h1 class="ui header">{{ctx.Locale.Tr "org.members.invite_member"}}</h1>
-            <form class="ui action input member-invite" data-org-link="{{.OrgLink}}" method="POST">
+            <form class="ui action input member-invite" data-org-link="{{.OrgLink}}" method="post">
                 {{.CsrfTokenHtml}}
                 <input type="hidden" name="uid" value="{{.SignedUser.ID}}">
                 <div class="ui label">{{ctx.Locale.Tr "org.members.invite"}}</div>
