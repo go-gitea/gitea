@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 )
 
@@ -105,9 +106,10 @@ func loadSecurityData(ctx *context.Context) {
 	}
 	ctx.Data["AccountLinks"] = sources
 
-	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers(ctx)
+	// here we need to load all possible auth sources because a linked account maybe is using an unactive auth source
+	orderedOAuth2Names, oauth2Providers, err := oauth2.GetOAuth2ProvidersMap(ctx, util.OptionalBoolNone)
 	if err != nil {
-		ctx.ServerError("GetActiveOAuth2Providers", err)
+		ctx.ServerError("GetOAuth2ProvidersMap", err)
 		return
 	}
 	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names

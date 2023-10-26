@@ -48,13 +48,13 @@ func Authentications(ctx *context.Context) {
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	var err error
-	ctx.Data["Sources"], err = auth.Sources(ctx)
+	ctx.Data["Sources"], err = auth.FindSources(ctx, auth.FindSourcesOptions{})
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
 		return
 	}
 
-	ctx.Data["Total"] = auth.CountSources(ctx)
+	ctx.Data["Total"] = auth.CountSources(ctx, auth.FindSourcesOptions{})
 	ctx.HTML(http.StatusOK, tplAuths)
 }
 
@@ -284,7 +284,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 			ctx.RenderWithErr(err.Error(), tplAuthNew, form)
 			return
 		}
-		existing, err := auth.SourcesByType(ctx, auth.SSPI)
+		existing, err := auth.FindSources(ctx, auth.FindSourcesOptions{LoginType: auth.SSPI})
 		if err != nil || len(existing) > 0 {
 			ctx.Data["Err_Type"] = true
 			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_of_type_exist"), tplAuthNew, form)

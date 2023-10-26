@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/markbates/goth"
 )
@@ -95,13 +96,12 @@ func GetOAuth2Providers() []Provider {
 	return providers
 }
 
-// GetActiveOAuth2Providers returns the map of configured active OAuth2 providers
-// key is used as technical name (like in the callbackURL)
-// values to display
-func GetActiveOAuth2Providers(ctx context.Context) ([]string, map[string]Provider, error) {
-	// Maybe also separate used and unused providers so we can force the registration of only 1 active provider for each type
-
-	authSources, err := auth.GetActiveOAuth2ProviderSources(ctx)
+// GetOAuth2ProvidersMap returns the map of configured OAuth2 providers
+func GetOAuth2ProvidersMap(ctx context.Context, isActive util.OptionalBool) ([]string, map[string]Provider, error) {
+	authSources, err := auth.FindSources(ctx, auth.FindSourcesOptions{
+		IsActive:  isActive,
+		LoginType: auth.OAuth2,
+	})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -122,6 +122,14 @@ func GetActiveOAuth2Providers(ctx context.Context) ([]string, map[string]Provide
 	sort.Strings(orderedKeys)
 
 	return orderedKeys, providers, nil
+}
+
+// GetActiveOAuth2Providers returns the map of configured active OAuth2 providers
+// key is used as technical name (like in the callbackURL)
+// values to display
+func GetActiveOAuth2Providers(ctx context.Context) ([]string, map[string]Provider, error) {
+	// Maybe also separate used and unused providers so we can force the registration of only 1 active provider for each type
+	return GetOAuth2ProvidersMap(ctx, util.OptionalBoolTrue)
 }
 
 // RegisterProviderWithGothic register a OAuth2 provider in goth lib
