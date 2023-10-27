@@ -1664,7 +1664,24 @@ func ViewIssue(ctx *context.Context) {
 			if comment.ProjectID > 0 && comment.Project == nil {
 				comment.Project = ghostProject
 			}
+		} else if comment.Type == issues_model.CommentTypeProjectBoard {
+			if err = comment.LoadProjectBoard(ctx); err != nil {
+				ctx.ServerError("LoadProjectBoard", err)
+				return
+			}
 
+			ghostProjectBoard := &project_model.Board{
+				ID:    -1,
+				Title: ctx.Tr("repo.issues.deleted_project_board"),
+			}
+
+			if comment.OldProjectBoardID > 0 && comment.OldProjectBoard == nil {
+				comment.OldProjectBoard = ghostProjectBoard
+			}
+
+			if comment.ProjectBoardID > 0 && comment.ProjectBoard == nil {
+				comment.ProjectBoard = ghostProjectBoard
+			}
 		} else if comment.Type == issues_model.CommentTypeAssignees || comment.Type == issues_model.CommentTypeReviewRequest {
 			if err = comment.LoadAssigneeUserAndTeam(ctx); err != nil {
 				ctx.ServerError("LoadAssigneeUserAndTeam", err)

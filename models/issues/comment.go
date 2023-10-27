@@ -213,41 +213,45 @@ func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
 
 // Comment represents a comment in commit and issue page.
 type Comment struct {
-	ID               int64            `xorm:"pk autoincr"`
-	Type             CommentType      `xorm:"INDEX"`
-	PosterID         int64            `xorm:"INDEX"`
-	Poster           *user_model.User `xorm:"-"`
-	OriginalAuthor   string
-	OriginalAuthorID int64
-	IssueID          int64  `xorm:"INDEX"`
-	Issue            *Issue `xorm:"-"`
-	LabelID          int64
-	Label            *Label   `xorm:"-"`
-	AddedLabels      []*Label `xorm:"-"`
-	RemovedLabels    []*Label `xorm:"-"`
-	OldProjectID     int64
-	ProjectID        int64
-	OldProject       *project_model.Project `xorm:"-"`
-	Project          *project_model.Project `xorm:"-"`
-	OldMilestoneID   int64
-	MilestoneID      int64
-	OldMilestone     *Milestone `xorm:"-"`
-	Milestone        *Milestone `xorm:"-"`
-	TimeID           int64
-	Time             *TrackedTime `xorm:"-"`
-	AssigneeID       int64
-	RemovedAssignee  bool
-	Assignee         *user_model.User   `xorm:"-"`
-	AssigneeTeamID   int64              `xorm:"NOT NULL DEFAULT 0"`
-	AssigneeTeam     *organization.Team `xorm:"-"`
-	ResolveDoerID    int64
-	ResolveDoer      *user_model.User `xorm:"-"`
-	OldTitle         string
-	NewTitle         string
-	OldRef           string
-	NewRef           string
-	DependentIssueID int64  `xorm:"index"` // This is used by issue_service.deleteIssue
-	DependentIssue   *Issue `xorm:"-"`
+	ID                int64            `xorm:"pk autoincr"`
+	Type              CommentType      `xorm:"INDEX"`
+	PosterID          int64            `xorm:"INDEX"`
+	Poster            *user_model.User `xorm:"-"`
+	OriginalAuthor    string
+	OriginalAuthorID  int64
+	IssueID           int64  `xorm:"INDEX"`
+	Issue             *Issue `xorm:"-"`
+	LabelID           int64
+	Label             *Label   `xorm:"-"`
+	AddedLabels       []*Label `xorm:"-"`
+	RemovedLabels     []*Label `xorm:"-"`
+	OldProjectID      int64
+	ProjectID         int64
+	OldProject        *project_model.Project `xorm:"-"`
+	Project           *project_model.Project `xorm:"-"`
+	OldProjectBoardID int64
+	ProjectBoardID    int64
+	OldProjectBoard   *project_model.Board `xorm:"-"`
+	ProjectBoard      *project_model.Board `xorm:"-"`
+	OldMilestoneID    int64
+	MilestoneID       int64
+	OldMilestone      *Milestone `xorm:"-"`
+	Milestone         *Milestone `xorm:"-"`
+	TimeID            int64
+	Time              *TrackedTime `xorm:"-"`
+	AssigneeID        int64
+	RemovedAssignee   bool
+	Assignee          *user_model.User   `xorm:"-"`
+	AssigneeTeamID    int64              `xorm:"NOT NULL DEFAULT 0"`
+	AssigneeTeam      *organization.Team `xorm:"-"`
+	ResolveDoerID     int64
+	ResolveDoer       *user_model.User `xorm:"-"`
+	OldTitle          string
+	NewTitle          string
+	OldRef            string
+	NewRef            string
+	DependentIssueID  int64  `xorm:"index"` // This is used by issue_service.deleteIssue
+	DependentIssue    *Issue `xorm:"-"`
 
 	CommitID        int64
 	Line            int64 // - previous line / + proposed line
@@ -530,6 +534,31 @@ func (c *Comment) LoadProject(ctx context.Context) error {
 	return nil
 }
 
+// LoadBoard if comment.Type is CommentTypeProjectBoard, then load project.
+func (c *Comment) LoadProjectBoard(ctx context.Context) error {
+	if c.OldProjectBoardID > 0 {
+		var oldProjectBoard project_model.Board
+		has, err := db.GetEngine(ctx).ID(c.OldProjectBoardID).Get(&oldProjectBoard)
+		if err != nil {
+			return err
+		} else if has {
+			c.OldProjectBoard = &oldProjectBoard
+		}
+	}
+
+	if c.ProjectBoardID > 0 {
+		var projectBoard project_model.Board
+		has, err := db.GetEngine(ctx).ID(c.ProjectBoardID).Get(&projectBoard)
+		if err != nil {
+			return err
+		} else if has {
+			c.ProjectBoard = &projectBoard
+		}
+	}
+
+	return nil
+}
+
 // LoadMilestone if comment.Type is CommentTypeMilestone, then load milestone
 func (c *Comment) LoadMilestone(ctx context.Context) error {
 	if c.OldMilestoneID > 0 {
@@ -784,38 +813,40 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 	}
 
 	comment := &Comment{
-		Type:             opts.Type,
-		PosterID:         opts.Doer.ID,
-		Poster:           opts.Doer,
-		IssueID:          opts.Issue.ID,
-		LabelID:          LabelID,
-		OldMilestoneID:   opts.OldMilestoneID,
-		MilestoneID:      opts.MilestoneID,
-		OldProjectID:     opts.OldProjectID,
-		ProjectID:        opts.ProjectID,
-		TimeID:           opts.TimeID,
-		RemovedAssignee:  opts.RemovedAssignee,
-		AssigneeID:       opts.AssigneeID,
-		AssigneeTeamID:   opts.AssigneeTeamID,
-		CommitID:         opts.CommitID,
-		CommitSHA:        opts.CommitSHA,
-		Line:             opts.LineNum,
-		Content:          opts.Content,
-		OldTitle:         opts.OldTitle,
-		NewTitle:         opts.NewTitle,
-		OldRef:           opts.OldRef,
-		NewRef:           opts.NewRef,
-		DependentIssueID: opts.DependentIssueID,
-		TreePath:         opts.TreePath,
-		ReviewID:         opts.ReviewID,
-		Patch:            opts.Patch,
-		RefRepoID:        opts.RefRepoID,
-		RefIssueID:       opts.RefIssueID,
-		RefCommentID:     opts.RefCommentID,
-		RefAction:        opts.RefAction,
-		RefIsPull:        opts.RefIsPull,
-		IsForcePush:      opts.IsForcePush,
-		Invalidated:      opts.Invalidated,
+		Type:              opts.Type,
+		PosterID:          opts.Doer.ID,
+		Poster:            opts.Doer,
+		IssueID:           opts.Issue.ID,
+		LabelID:           LabelID,
+		OldMilestoneID:    opts.OldMilestoneID,
+		MilestoneID:       opts.MilestoneID,
+		OldProjectID:      opts.OldProjectID,
+		ProjectID:         opts.ProjectID,
+		OldProjectBoardID: opts.OldProjectBoardID,
+		ProjectBoardID:    opts.ProjectBoardID,
+		TimeID:            opts.TimeID,
+		RemovedAssignee:   opts.RemovedAssignee,
+		AssigneeID:        opts.AssigneeID,
+		AssigneeTeamID:    opts.AssigneeTeamID,
+		CommitID:          opts.CommitID,
+		CommitSHA:         opts.CommitSHA,
+		Line:              opts.LineNum,
+		Content:           opts.Content,
+		OldTitle:          opts.OldTitle,
+		NewTitle:          opts.NewTitle,
+		OldRef:            opts.OldRef,
+		NewRef:            opts.NewRef,
+		DependentIssueID:  opts.DependentIssueID,
+		TreePath:          opts.TreePath,
+		ReviewID:          opts.ReviewID,
+		Patch:             opts.Patch,
+		RefRepoID:         opts.RefRepoID,
+		RefIssueID:        opts.RefIssueID,
+		RefCommentID:      opts.RefCommentID,
+		RefAction:         opts.RefAction,
+		RefIsPull:         opts.RefIsPull,
+		IsForcePush:       opts.IsForcePush,
+		Invalidated:       opts.Invalidated,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -961,34 +992,36 @@ type CreateCommentOptions struct {
 	Issue *Issue
 	Label *Label
 
-	DependentIssueID int64
-	OldMilestoneID   int64
-	MilestoneID      int64
-	OldProjectID     int64
-	ProjectID        int64
-	TimeID           int64
-	AssigneeID       int64
-	AssigneeTeamID   int64
-	RemovedAssignee  bool
-	OldTitle         string
-	NewTitle         string
-	OldRef           string
-	NewRef           string
-	CommitID         int64
-	CommitSHA        string
-	Patch            string
-	LineNum          int64
-	TreePath         string
-	ReviewID         int64
-	Content          string
-	Attachments      []string // UUIDs of attachments
-	RefRepoID        int64
-	RefIssueID       int64
-	RefCommentID     int64
-	RefAction        references.XRefAction
-	RefIsPull        bool
-	IsForcePush      bool
-	Invalidated      bool
+	DependentIssueID  int64
+	OldMilestoneID    int64
+	MilestoneID       int64
+	OldProjectID      int64
+	ProjectID         int64
+	OldProjectBoardID int64
+	ProjectBoardID    int64
+	TimeID            int64
+	AssigneeID        int64
+	AssigneeTeamID    int64
+	RemovedAssignee   bool
+	OldTitle          string
+	NewTitle          string
+	OldRef            string
+	NewRef            string
+	CommitID          int64
+	CommitSHA         string
+	Patch             string
+	LineNum           int64
+	TreePath          string
+	ReviewID          int64
+	Content           string
+	Attachments       []string // UUIDs of attachments
+	RefRepoID         int64
+	RefIssueID        int64
+	RefCommentID      int64
+	RefAction         references.XRefAction
+	RefIsPull         bool
+	IsForcePush       bool
+	Invalidated       bool
 }
 
 // GetCommentByID returns the comment by given ID.

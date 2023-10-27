@@ -733,6 +733,21 @@
 				</span>
 			</div>
 			{{end}}
+		{{else if eq .Type 31}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-project"}}</span>
+				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				<span class="text grey muted-links">
+					{{template "shared/user/authorlink" .Poster}}
+					{{if and (gt .OldProjectBoardID 0) (gt .ProjectBoardID 0)}}
+						{{ctx.Locale.Tr "repo.issues.change_project_board_at" (.OldProjectBoard.Title | Escape) (.ProjectBoard.Title | Escape) $createdStr | Safe}}
+					{{else if gt .OldProjectBoardID 0}}
+						{{ctx.Locale.Tr "repo.issues.remove_project_board_at" $createdStr | Safe}}
+					{{else if gt .ProjectBoardID 0}}
+						{{ctx.Locale.Tr "repo.issues.add_project_board_at" (.ProjectBoard.Title | Escape) $createdStr | Safe}}
+					{{end}}
+				</span>
+			</div>
 		{{else if eq .Type 32}}
 			<div class="timeline-item-group">
 				<div class="timeline-item event" id="{{.HashTag}}">
