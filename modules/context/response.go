@@ -4,9 +4,13 @@
 package context
 
 import (
+	"bufio"
+	"net"
 	"net/http"
 
 	web_types "code.gitea.io/gitea/modules/web/types"
+
+	"github.com/pkg/errors"
 )
 
 // ResponseWriter represents a response writer for HTTP
@@ -30,6 +34,15 @@ type Response struct {
 	status         int
 	befores        []func(ResponseWriter)
 	beforeExecuted bool
+	hijacker       http.Hijacker
+}
+
+func (r *Response) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h, ok := r.hijacker.(http.Hijacker)
+	if !ok {
+		return nil, nil, errors.New("hijack not supported")
+	}
+	return h.Hijack()
 }
 
 // Write writes bytes to HTTP endpoint
@@ -95,9 +108,11 @@ func WrapResponseWriter(resp http.ResponseWriter) *Response {
 	if v, ok := resp.(*Response); ok {
 		return v
 	}
+	hijacker, _ := resp.(http.Hijacker)
 	return &Response{
 		ResponseWriter: resp,
 		status:         0,
 		befores:        make([]func(ResponseWriter), 0),
+		hijacker:       hijacker,
 	}
 }
