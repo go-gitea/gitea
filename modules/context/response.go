@@ -38,11 +38,10 @@ type Response struct {
 }
 
 func (r *Response) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	h, ok := r.hijacker.(http.Hijacker)
-	if !ok {
-		return nil, nil, errors.New("hijack not supported")
+	if r.hijacker == nil {
+		return nil, nil, errors.New("http.Hijacker not implemented by underlying http.ResponseWriter")
 	}
-	return h.Hijack()
+	return r.hijacker.Hijack()
 }
 
 // Write writes bytes to HTTP endpoint
