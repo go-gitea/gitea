@@ -19,12 +19,12 @@ import (
 func TestToCommitMeta(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	headRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	sha1, _ := git.NewIDFromString("0000000000000000000000000000000000000000")
+	sha1 := git.ObjectFormatFromID(git.Sha1)
 	signature := &git.Signature{Name: "Test Signature", Email: "test@email.com", When: time.Unix(0, 0)}
 	tag := &git.Tag{
 		Name:    "Test Tag",
-		ID:      sha1,
-		Object:  sha1,
+		ID:      sha1.Empty(),
+		Object:  sha1.Empty(),
 		Type:    "Test Type",
 		Tagger:  signature,
 		Message: "Test Message",
@@ -34,8 +34,8 @@ func TestToCommitMeta(t *testing.T) {
 
 	assert.NotNil(t, commitMeta)
 	assert.EqualValues(t, &api.CommitMeta{
-		SHA:     "0000000000000000000000000000000000000000",
-		URL:     util.URLJoin(headRepo.APIURL(), "git/commits", "0000000000000000000000000000000000000000"),
+		SHA:     sha1.Empty().String(),
+		URL:     util.URLJoin(headRepo.APIURL(), "git/commits", sha1.Empty().String()),
 		Created: time.Unix(0, 0),
 	}, commitMeta)
 }

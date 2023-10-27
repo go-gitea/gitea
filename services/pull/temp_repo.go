@@ -93,8 +93,14 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 
 	baseRepoPath := pr.BaseRepo.RepoPath()
 	headRepoPath := pr.HeadRepo.RepoPath()
+	objectFormat, err := git.GetObjectFormatOfRepo(ctx, baseRepoPath)
+	if err != nil {
+		log.Error("Unable to fetch ObjectFormat of repository %s: %v", baseRepoPath, err)
+		cancel()
+		return nil, nil, err
+	}
 
-	if err := git.InitRepository(ctx, tmpBasePath, false); err != nil {
+	if err := git.InitRepository(ctx, tmpBasePath, false, objectFormat); err != nil {
 		log.Error("Unable to init tmpBasePath for %-v: %v", pr, err)
 		cancel()
 		return nil, nil, err
@@ -172,7 +178,7 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 	var headBranch string
 	if pr.Flow == issues_model.PullRequestFlowGithub {
 		headBranch = git.BranchPrefix + pr.HeadBranch
-	} else if len(pr.HeadCommitID) == git.SHAFullLength { // for not created pull request
+	} else if len(pr.HeadCommitID) == objectFormat.FullLength() { // for not created pull request
 		headBranch = pr.HeadCommitID
 	} else {
 		headBranch = pr.GetGitRefName()

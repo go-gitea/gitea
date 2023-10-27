@@ -253,6 +253,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 		DefaultBranch: opt.DefaultBranch,
 		TrustModel:    repo_model.ToTrustModel(opt.TrustModel),
 		IsTemplate:    opt.Template,
+		ObjectFormat:  git.ObjectFormatFromID(git.Sha1),
 	})
 	if err != nil {
 		if repo_model.IsErrRepoAlreadyExist(err) {

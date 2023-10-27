@@ -478,9 +478,13 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 				log.Error("SyncMirrors [repo: %-v]: unable to GetRefCommitID [ref_name: %s]: %v", m.Repo, result.refName, err)
 				continue
 			}
+			objectFormat, err := git.GetObjectFormatOfRepo(ctx, m.Repo.RepoPath())
+			if err != nil {
+				log.Error("SyncMirrors [repo: %-v]: unable to GetHashTypeOfRepo: %v", m.Repo, err)
+			}
 			notify_service.SyncPushCommits(ctx, m.Repo.MustOwner(ctx), m.Repo, &repo_module.PushUpdateOptions{
 				RefFullName: result.refName,
-				OldCommitID: git.EmptySHA,
+				OldCommitID: objectFormat.Empty().String(),
 				NewCommitID: commitID,
 			}, repo_module.NewPushCommits())
 			notify_service.SyncCreateRef(ctx, m.Repo.MustOwner(ctx), m.Repo, result.refName, commitID)
