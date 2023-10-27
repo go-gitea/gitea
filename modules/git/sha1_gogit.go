@@ -11,11 +11,39 @@ import (
 )
 
 // SHA1 a git commit name
-type SHA1 = plumbing.Hash
+type SHA1 struct {
+	plumbing.Hash
+}
 
-var _ Hash = SHA1{}
+func (h SHA1) HashType() HashType {
+	return Sha1HashType{}
+}
+
+func (h SHA1) Bytes() []byte {
+	return h.Hash[:]
+}
+
+type SHA256 struct {
+	plumbing.Hash
+}
+
+func (h SHA256) HashType() HashType {
+	return Sha256HashType{}
+}
+
+func (h SHA256) Bytes() []byte {
+	return h.Hash[:]
+}
+
+var (
+	_ Hash = SHA1{}
+	_ Hash = SHA256{}
+)
 
 // ComputeBlobHash compute the hash for a given blob content
-func ComputeBlobHash(content []byte) SHA1 {
-	return plumbing.ComputeHash(plumbing.BlobObject, content)
+func ComputeBlobHash(ht HashType, content []byte) Hash {
+	if ht.FullLength() == SHA256FullLength {
+		return SHA256{plumbing.ComputeHash(plumbing.BlobObject, content)}
+	}
+	return SHA1{plumbing.ComputeHash(plumbing.BlobObject, content)}
 }

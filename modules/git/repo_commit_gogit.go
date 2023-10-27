@@ -66,7 +66,7 @@ func (repo *Repository) IsCommitExist(name string) bool {
 	return err == nil
 }
 
-func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
+func (repo *Repository) getCommit(id Hash) (*Commit, error) {
 	var tagObject *object.Tag
 
 	gogitCommit, err := repo.gogitRepo.CommitObject(id)

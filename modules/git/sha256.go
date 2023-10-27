@@ -5,7 +5,6 @@ package git
 
 import (
 	"crypto/sha256"
-	"encoding/hex"
 	"regexp"
 	"strconv"
 )
@@ -52,11 +51,6 @@ func (ht Sha256HashType) NewHashFromBytes(b []byte) Hash {
 	var id SHA256
 	copy(id[:], b)
 	return id
-}
-
-func (ht Sha256HashType) EmptyHash() Hash {
-	b, _ := hex.DecodeString(ht.Empty())
-	return ht.NewHashFromBytes(b)
 }
 
 // ComputeHash compute the hash for a given ObjectType and content

@@ -7,7 +7,7 @@ type Hash interface {
 	String() string
 	IsZero() bool
 	HashType() HashType
-	Bytes() []byte
+	Bytes() []byte // TODO: remove this interface when it will not be used.
 }
 
 type HashType interface {
@@ -16,7 +16,6 @@ type HashType interface {
 	FullLength() int
 	IsValid(sha string) bool
 	NewHashFromBytes(b []byte) Hash
-	EmptyHash() Hash
 	ComputeHash(t ObjectType, content []byte) Hash
 }
 

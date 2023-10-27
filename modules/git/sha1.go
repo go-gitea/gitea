@@ -62,11 +62,6 @@ func (ht Sha1HashType) NewHashFromBytes(b []byte) Hash {
 	return id
 }
 
-func (ht Sha1HashType) EmptyHash() Hash {
-	b, _ := hex.DecodeString(ht.Empty())
-	return ht.NewHashFromBytes(b)
-}
-
 // ComputeHash compute the hash for a given ObjectType and content
 func (ht Sha1HashType) ComputeHash(t ObjectType, content []byte) Hash {
 	h := sha1.New()
