@@ -7,13 +7,11 @@ import (
 	"crypto/md5"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -59,9 +57,8 @@ func validateArtifactHash(ctx *ArtifactContext, artifactName string) bool {
 func parseArtifactItemPath(ctx *ArtifactContext) (string, string, bool) {
 	// itemPath is generated from upload-artifact action
 	// it's formatted as {artifact_name}/{artfict_path_in_runner}
-	// act_runner in host mode on Windows, itemPath contains %255C urlencoded windows slash '\'
-	itemPath, _ := url.QueryUnescape(ctx.Req.URL.Query().Get("itemPath"))
-	itemPath = util.PathJoinRelX(itemPath) // use PathJoinRelX to convert Windows '\' to '/'
+	// act_runner in host mode on Windows, itemPath is joined by Windows slash '\' with %5C urlencoded format
+	itemPath := strings.ReplaceAll(ctx.Req.URL.Query().Get("itemPath"), "\\", "/")
 	artifactName := strings.Split(itemPath, "/")[0]
 	artifactPath := strings.TrimPrefix(itemPath, artifactName+"/")
 	if !validateArtifactHash(ctx, artifactName) {
