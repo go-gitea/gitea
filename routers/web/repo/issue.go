@@ -2022,17 +2022,24 @@ func ViewIssue(ctx *context.Context) {
 
 // checkBlockedByIssues return canRead and notPermitted
 func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.DependencyInfo) (canRead, notPermitted []*issues_model.DependencyInfo) {
+	repoPerms := make(map[int64]access_model.Permission)
+	repoPerms[ctx.Repo.Repository.ID] = ctx.Repo.Permission
 	for _, blocker := range blockers {
+		// Get the permissions for this repository
+		// If the repo ID exists in the map, return the exist permissions
+		// else get the permission and add it to the map
 		var perm access_model.Permission
-		if blocker.Repository.ID == ctx.Repo.Repository.ID {
-			perm = ctx.Repo.Permission
+		existPerm, ok := repoPerms[blocker.RepoID]
+		if ok {
+			perm = existPerm
 		} else {
 			var err error
 			perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermission", err)
-				return nil, nil
+				return
 			}
+			repoPerms[blocker.RepoID] = perm
 		}
 		if perm.CanReadIssuesOrPulls(blocker.Issue.IsPull) {
 			canRead = append(canRead, blocker)

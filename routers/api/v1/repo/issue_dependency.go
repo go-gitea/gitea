@@ -102,11 +102,16 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		return
 	}
 
+	repoPerms := make(map[int64]access_model.Permission)
+	repoPerms[ctx.Repo.Repository.ID] = ctx.Repo.Permission
 	for _, blocker := range blockersInfo {
 		// Get the permissions for this repository
+		// If the repo ID exists in the map, return the exist permissions
+		// else get the permission and add it to the map
 		var perm access_model.Permission
-		if blocker.Repository.ID == ctx.Repo.Repository.ID {
-			perm = ctx.Repo.Permission
+		existPerm, ok := repoPerms[blocker.RepoID]
+		if ok {
+			perm = existPerm
 		} else {
 			var err error
 			perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
@@ -114,6 +119,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
 			}
+			repoPerms[blocker.RepoID] = perm
 		}
 
 		// check permission
@@ -341,14 +347,22 @@ func GetIssueBlocks(ctx *context.APIContext) {
 	}
 
 	var issues []*issues_model.Issue
+
+	repoPerms := make(map[int64]access_model.Permission)
+	repoPerms[ctx.Repo.Repository.ID] = ctx.Repo.Permission
+
 	for i, depMeta := range deps {
 		if i < skip || i >= max {
 			continue
 		}
 
+		// Get the permissions for this repository
+		// If the repo ID exists in the map, return the exist permissions
+		// else get the permission and add it to the map
 		var perm access_model.Permission
-		if depMeta.Repository.ID == ctx.Repo.Repository.ID {
-			perm = ctx.Repo.Permission
+		existPerm, ok := repoPerms[depMeta.RepoID]
+		if ok {
+			perm = existPerm
 		} else {
 			var err error
 			perm, err = access_model.GetUserRepoPermission(ctx, &depMeta.Repository, ctx.Doer)
@@ -356,6 +370,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
 			}
+			repoPerms[depMeta.RepoID] = perm
 		}
 
 		if !perm.CanReadIssuesOrPulls(depMeta.Issue.IsPull) {
