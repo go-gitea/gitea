@@ -2037,7 +2037,7 @@ func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.Depende
 			perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermission", err)
-				return
+				return nil, nil
 			}
 			repoPerms[blocker.RepoID] = perm
 		}
