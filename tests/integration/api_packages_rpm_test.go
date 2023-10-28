@@ -81,7 +81,7 @@ Mu0UFYgZ/bYnuvn/vz4wtCz8qMwsHUvP0PX3tbYFUctAPdrY6tiiDtcCddDECahx7SuVNP5dpmb5
 
 		expected := fmt.Sprintf(`[gitea-%s-el9-stable]
 name=%s - %s - el9 - stable
-baseurl=%sapi/packages/%s/rpm/el9/stable
+baseurl=%sapi/packages/%s/rpm/el9/stable/
 enabled=1
 gpgcheck=1
 gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppName, setting.AppURL, user.Name, setting.AppURL, user.Name)

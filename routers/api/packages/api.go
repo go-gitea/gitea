@@ -581,7 +581,7 @@ func CommonRoutes() *web.Route {
 func RpmRoutes(r *web.Route) func() {
 	var (
 		groupRepoInfo = regexp.MustCompile(`\A((?:/(?:[^/]+))*|)\.repo\z`)
-		groupUpload   = regexp.MustCompile(`\A((?:/(?:[^/]+))*|)/package/upload\z`)
+		groupUpload   = regexp.MustCompile(`\A((?:/(?:[^/]+))*|)/upload\z`)
 		groupRpm      = regexp.MustCompile(`\A((?:/(?:[^/]+))*|)/package/([^/]+)/([^/]+)/([^/]+)(?:/([^/]+\.rpm)|)\z`)
 		groupMetadata = regexp.MustCompile(`\A((?:/(?:[^/]+))*|)/repodata/([^/]+)\z`)
 	)
