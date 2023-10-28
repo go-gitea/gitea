@@ -5,10 +5,10 @@
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.rpm.registry"}}</label>
 				<div class="markup"><pre class="code-block"><code># {{ctx.Locale.Tr "packages.rpm.distros.redhat"}}
-dnf config-manager --add-repo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm/{{index .Distributions 0}}/{{index .Components 0}}.repo"></gitea-origin-url>
+dnf config-manager --add-repo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm/{{index .Groups 0}}.repo"></gitea-origin-url>
 
 # {{ctx.Locale.Tr "packages.rpm.distros.suse"}}
-zypper addrepo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm/{{index .Distributions 0}}/{{index .Components 0}}.repo"></gitea-origin-url></code></pre></div>
+zypper addrepo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm/{{index .Groups 0}}.repo"></gitea-origin-url></code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.rpm.install"}}</label>

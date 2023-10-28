@@ -514,7 +514,7 @@ func CommonRoutes() *web.Route {
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/rpm", func() {
 			r.Get("/repository.key", rpm.GetRepositoryKey)
-			r.Group("/{distribution}/{component}", func() {
+			r.Group("/{group}", func() {
 				r.Get(".repo", rpm.GetRepositoryConfig)
 				r.Put("/upload", reqPackageAccess(perm.AccessModeWrite), rpm.UploadPackageFile)
 				r.Group("/package/{name}/{version}/{architecture}", func() {
@@ -522,7 +522,7 @@ func CommonRoutes() *web.Route {
 					// yum/dnf client does not recognize the filename of the header.
 					// which will result in a failure to hit the cache locally.
 					// So add a new spurious route
-					r.Get("/{file_name}", rpm.DownloadPackageFile)
+					r.Get("/{_}", rpm.DownloadPackageFile)
 					r.Delete("", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
 				})
 				r.Get("/repodata/{filename}", rpm.GetRepositoryFile)
