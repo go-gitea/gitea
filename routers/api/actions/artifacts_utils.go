@@ -57,8 +57,8 @@ func validateArtifactHash(ctx *ArtifactContext, artifactName string) bool {
 func parseArtifactItemPath(ctx *ArtifactContext) (string, string, bool) {
 	// itemPath is generated from upload-artifact action
 	// it's formatted as {artifact_name}/{artfict_path_in_runner}
-	// act_runner in host mode on Windows, itemPath is joined by Windows slash '\' with %5C urlencoded format
-	itemPath := strings.ReplaceAll(ctx.Req.URL.Query().Get("itemPath"), "\\", "/")
+	// act_runner in host mode on Windows, itemPath is joined by Windows slash '\'
+	itemPath := util.PathJoinRelX(ctx.Req.URL.Query().Get("itemPath"))
 	artifactName := strings.Split(itemPath, "/")[0]
 	artifactPath := strings.TrimPrefix(itemPath, artifactName+"/")
 	if !validateArtifactHash(ctx, artifactName) {
