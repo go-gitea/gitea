@@ -144,7 +144,7 @@ func TestGetReviewersByIssueID(t *testing.T) {
 			UpdatedUnix: 946684814,
 		})
 
-	allReviews, err := issues_model.GetReviewsByIssueID(issue.ID)
+	allReviews, err := issues_model.GetReviewsByIssueID(db.DefaultContext, issue.ID)
 	assert.NoError(t, err)
 	for _, review := range allReviews {
 		assert.NoError(t, review.LoadReviewer(db.DefaultContext))
@@ -157,7 +157,7 @@ func TestGetReviewersByIssueID(t *testing.T) {
 		}
 	}
 
-	allReviews, err = issues_model.GetReviewsByIssueID(issue.ID)
+	allReviews, err = issues_model.GetReviewsByIssueID(db.DefaultContext, issue.ID)
 	assert.NoError(t, err)
 	assert.NoError(t, allReviews.LoadReviewers(db.DefaultContext))
 	if assert.Len(t, allReviews, 3) {
@@ -248,7 +248,7 @@ func TestDeleteReview(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	assert.NoError(t, issues_model.DeleteReview(review2))
+	assert.NoError(t, issues_model.DeleteReview(db.DefaultContext, review2))
 
 	_, err = issues_model.GetReviewByID(db.DefaultContext, review2.ID)
 	assert.Error(t, err)

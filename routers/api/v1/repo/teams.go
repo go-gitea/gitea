@@ -99,7 +99,7 @@ func IsTeam(ctx *context.APIContext) {
 		return
 	}
 
-	if repo_service.HasRepository(team, ctx.Repo.Repository.ID) {
+	if repo_service.HasRepository(ctx, team, ctx.Repo.Repository.ID) {
 		apiTeam, err := convert.ToTeam(ctx, team)
 		if err != nil {
 			ctx.InternalServerError(err)
@@ -198,14 +198,14 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 		return
 	}
 
-	repoHasTeam := repo_service.HasRepository(team, ctx.Repo.Repository.ID)
+	repoHasTeam := repo_service.HasRepository(ctx, team, ctx.Repo.Repository.ID)
 	var err error
 	if add {
 		if repoHasTeam {
 			ctx.Error(http.StatusUnprocessableEntity, "alreadyAdded", fmt.Errorf("team '%s' is already added to repo", team.Name))
 			return
 		}
-		err = org_service.TeamAddRepository(team, ctx.Repo.Repository)
+		err = org_service.TeamAddRepository(ctx, team, ctx.Repo.Repository)
 	} else {
 		if !repoHasTeam {
 			ctx.Error(http.StatusUnprocessableEntity, "notAdded", fmt.Errorf("team '%s' was not added to repo", team.Name))

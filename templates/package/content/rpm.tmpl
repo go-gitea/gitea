@@ -1,54 +1,44 @@
 {{if eq .PackageDescriptor.Package.Type "rpm"}}
-	<h4 class="ui top attached header">{{.locale.Tr "packages.installation"}}</h4>
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.rpm.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code># {{.locale.Tr "packages.rpm.package.distributions.support"}}  {{StringUtils.Join .Distributions ", "}}
-export distribution='{{index .Distributions 0}}'
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.rpm.registry"}}</label>
+				<div class="markup"><pre class="code-block"><code># {{ctx.Locale.Tr "packages.rpm.distros.redhat"}}
+dnf config-manager --add-repo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm/{{index .Distributions 0}}/{{index .Components 0}}.repo"></gitea-origin-url>
 
-# {{.locale.Tr "packages.rpm.package.components.support"}}  {{StringUtils.Join .Components ", "}}
-export component='{{index .Components 0}}'
-
-# {{.locale.Tr "packages.rpm.distros.redhat"}}
-dnf config-manager --add-repo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm/$distribution/$component.repo"></gitea-origin-url>
-
-# {{.locale.Tr "packages.rpm.distros.suse"}}
-zypper addrepo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm/$distribution/$component.repo"></gitea-origin-url></code></pre></div>
+# {{ctx.Locale.Tr "packages.rpm.distros.suse"}}
+zypper addrepo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm/{{index .Distributions 0}}/{{index .Components 0}}.repo"></gitea-origin-url></code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.rpm.install"}}</label>
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.rpm.install"}}</label>
 				<div class="markup">
-					<pre class="code-block"><code># {{.locale.Tr "packages.rpm.distros.redhat"}}
+					<pre class="code-block"><code># {{ctx.Locale.Tr "packages.rpm.distros.redhat"}}
 dnf install {{$.PackageDescriptor.Package.Name}}
 
-# {{.locale.Tr "packages.rpm.distros.suse"}}
+# {{ctx.Locale.Tr "packages.rpm.distros.suse"}}
 zypper install {{$.PackageDescriptor.Package.Name}}</code></pre>
 				</div>
 			</div>
 			<div class="field">
-				<label>{{.locale.Tr "packages.registry.documentation" "RPM" "https://docs.gitea.com/usage/packages/rpm/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "RPM" "https://docs.gitea.com/usage/packages/rpm/" | Safe}}</label>
 			</div>
 		</div>
 	</div>
 
-	<h4 class="ui top attached header">{{.locale.Tr "packages.rpm.package.info"}}</h4>
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
 	<div class="ui attached segment">
 		<table class="ui single very basic table">
 			<tbody>
-				<tr>
-					<td class="collapsing"><h5>{{.locale.Tr "packages.rpm.package.architectures"}}</h5></td>
-					<td>{{StringUtils.Join .Architectures ", "}}</td>
-				</tr>
 				{{if .PackageDescriptor.Metadata.Summary}}
 				<tr>
-					<td class="collapsing"><h5>{{.locale.Tr "packages.rpm.package.summary"}}</h5></td>
+					<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.rpm.package.summary"}}</h5></td>
 					<td>{{.PackageDescriptor.Metadata.Summary}}</td>
 				</tr>
 				{{end}}
 				{{if .PackageDescriptor.Metadata.Description}}
 				<tr>
-					<td class="collapsing"><h5>{{.locale.Tr "packages.rpm.package.description"}}</h5></td>
+					<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.rpm.package.description"}}</h5></td>
 					<td>{{.PackageDescriptor.Metadata.Description}}</td>
 				</tr>
 				{{end}}

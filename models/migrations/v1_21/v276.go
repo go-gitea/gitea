@@ -4,80 +4,176 @@
 package v1_21 //nolint
 
 import (
+	"context"
 	"fmt"
+	"path/filepath"
+	"strings"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/packages/rpm"
+	"code.gitea.io/gitea/modules/git"
+	giturl "code.gitea.io/gitea/modules/git/url"
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
 )
 
-func RebuildRpmPackage(x *xorm.Engine) error {
+func AddRemoteAddressToMirrors(x *xorm.Engine) error {
+	type Mirror struct {
+		RemoteAddress string `xorm:"VARCHAR(2048)"`
+	}
+
+	type PushMirror struct {
+		RemoteAddress string `xorm:"VARCHAR(2048)"`
+	}
+
+	if err := x.Sync(new(Mirror), new(PushMirror)); err != nil {
+		return err
+	}
+
+	if err := migratePullMirrors(x); err != nil {
+		return err
+	}
+
+	return migratePushMirrors(x)
+}
+
+func migratePullMirrors(x *xorm.Engine) error {
+	type Mirror struct {
+		ID            int64  `xorm:"pk autoincr"`
+		RepoID        int64  `xorm:"INDEX"`
+		RemoteAddress string `xorm:"VARCHAR(2048)"`
+		RepoOwner     string
+		RepoName      string
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
-	compositeKey := fmt.Sprintf("%s|%s", rpm.RepositoryDefaultDistribution, rpm.RepositoryDefaultComponent)
-	// select all old rpm package
-	var oldRpmIds []int64
-	ss := sess.Cols("id").
-		Table("package_file").
-		Where("composite_key not like ?", "%|%").
-		And("lower_name like ?", "%.rpm")
-	err := ss.Find(&oldRpmIds)
-	if err != nil {
-		return err
-	}
-	// add metadata
-	// NOTE: package_property[name='rpm.metadata'] is very large,
-	// and to avoid querying all of them resulting in large memory,
-	// a single RPM package is now used for updating.
-	for _, id := range oldRpmIds {
 
-		metadata := make([]string, 0, 3)
-		_, err := sess.Cols("ref_type", "ref_id", "value").
-			Table("package_property").
-			Where("name = 'rpm.metadata'").
-			And("ref_id = ?", id).
-			Get(&metadata)
-		if err != nil {
-			return err
-		}
-		// get rpm info
-		var rpmMetadata rpm.FileMetadata
-		err = json.Unmarshal([]byte(metadata[2]), &rpmMetadata)
-		if err != nil {
-			return err
-		}
-		_, err = sess.Exec(
-			"INSERT INTO package_property(ref_type, ref_id, name, value) values (?,?,?,?),(?,?,?,?),(?,?,?,?)",
-			metadata[0], metadata[1], "rpm.distribution", rpm.RepositoryDefaultDistribution,
-			metadata[0], metadata[1], "rpm.component", rpm.RepositoryDefaultComponent,
-			metadata[0], metadata[1], "rpm.architecture", rpmMetadata.Architecture,
-		)
-		if err != nil {
-			return err
-		}
-		// set default distribution
-		_, err = sess.Table("package_file").
-			Where("id = ?", id).
-			Update(map[string]any{
-				"composite_key": compositeKey,
-			})
-		if err != nil {
-			return err
-		}
-	}
-	// set old rpm index file to default distribution
-	_, err = sess.Table("package_file").
-		Where(
-			`composite_key = '' AND
-			lower_name IN
-			('primary.xml.gz','other.xml.gz','filelists.xml.gz','other.xml.gz','repomd.xml','repomd.xml.asc')`,
-		).
-		Update(map[string]any{
-			"composite_key": compositeKey,
-		})
-	if err != nil {
+	if err := sess.Begin(); err != nil {
 		return err
 	}
-	return nil
+
+	limit := setting.Database.IterateBufferSize
+	if limit <= 0 {
+		limit = 50
+	}
+
+	start := 0
+
+	for {
+		var mirrors []Mirror
+		if err := sess.Select("mirror.id, mirror.repo_id, mirror.remote_address, repository.owner_name as repo_owner, repository.name as repo_name").
+			Join("INNER", "repository", "repository.id = mirror.repo_id").
+			Limit(limit, start).Find(&mirrors); err != nil {
+			return err
+		}
+
+		if len(mirrors) == 0 {
+			break
+		}
+		start += len(mirrors)
+
+		for _, m := range mirrors {
+			remoteAddress, err := getRemoteAddress(m.RepoOwner, m.RepoName, "origin")
+			if err != nil {
+				return err
+			}
+
+			m.RemoteAddress = remoteAddress
+
+			if _, err = sess.ID(m.ID).Cols("remote_address").Update(m); err != nil {
+				return err
+			}
+		}
+
+		if start%1000 == 0 { // avoid a too big transaction
+			if err := sess.Commit(); err != nil {
+				return err
+			}
+			if err := sess.Begin(); err != nil {
+				return err
+			}
+		}
+	}
+
+	return sess.Commit()
+}
+
+func migratePushMirrors(x *xorm.Engine) error {
+	type PushMirror struct {
+		ID            int64 `xorm:"pk autoincr"`
+		RepoID        int64 `xorm:"INDEX"`
+		RemoteName    string
+		RemoteAddress string `xorm:"VARCHAR(2048)"`
+		RepoOwner     string
+		RepoName      string
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	limit := setting.Database.IterateBufferSize
+	if limit <= 0 {
+		limit = 50
+	}
+
+	start := 0
+
+	for {
+		var mirrors []PushMirror
+		if err := sess.Select("push_mirror.id, push_mirror.repo_id, push_mirror.remote_name, push_mirror.remote_address, repository.owner_name as repo_owner, repository.name as repo_name").
+			Join("INNER", "repository", "repository.id = push_mirror.repo_id").
+			Limit(limit, start).Find(&mirrors); err != nil {
+			return err
+		}
+
+		if len(mirrors) == 0 {
+			break
+		}
+		start += len(mirrors)
+
+		for _, m := range mirrors {
+			remoteAddress, err := getRemoteAddress(m.RepoOwner, m.RepoName, m.RemoteName)
+			if err != nil {
+				return err
+			}
+
+			m.RemoteAddress = remoteAddress
+
+			if _, err = sess.ID(m.ID).Cols("remote_address").Update(m); err != nil {
+				return err
+			}
+		}
+
+		if start%1000 == 0 { // avoid a too big transaction
+			if err := sess.Commit(); err != nil {
+				return err
+			}
+			if err := sess.Begin(); err != nil {
+				return err
+			}
+		}
+	}
+
+	return sess.Commit()
+}
+
+func getRemoteAddress(ownerName, repoName, remoteName string) (string, error) {
+	repoPath := filepath.Join(setting.RepoRootPath, strings.ToLower(ownerName), strings.ToLower(repoName)+".git")
+
+	remoteURL, err := git.GetRemoteAddress(context.Background(), repoPath, remoteName)
+	if err != nil {
+		return "", fmt.Errorf("get remote %s's address of %s/%s failed: %v", remoteName, ownerName, repoName, err)
+	}
+
+	u, err := giturl.Parse(remoteURL)
+	if err != nil {
+		return "", err
+	}
+	u.User = nil
+
+	return u.String(), nil
 }
