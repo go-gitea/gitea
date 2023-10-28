@@ -577,6 +577,13 @@ func CommonRoutes() *web.Route {
 	return r
 }
 
+func rpmGroupFormat(input string) string {
+	if input == "" {
+		return "/"
+	}
+	return input
+}
+
 // Support for uploading rpm packages with arbitrary depth paths
 func RpmRoutes(r *web.Route) func() {
 	var (
@@ -585,14 +592,6 @@ func RpmRoutes(r *web.Route) func() {
 		groupRpm      = regexp.MustCompile(`\A((?:/(?:[^/]+))*|)/package/([^/]+)/([^/]+)/([^/]+)(?:/([^/]+\.rpm)|)\z`)
 		groupMetadata = regexp.MustCompile(`\A((?:/(?:[^/]+))*|)/repodata/([^/]+)\z`)
 	)
-	const DEFAULT_GROUP = "/"
-
-	groupFormat := func(input string) string {
-		if input == "" {
-			return DEFAULT_GROUP
-		}
-		return input
-	}
 
 	return func() {
 		r.Methods("HEAD,GET,POST,PUT,PATCH,DELETE", "*", func(ctx *context.Context) {
@@ -609,15 +608,15 @@ func RpmRoutes(r *web.Route) func() {
 			// get repo
 			m := groupRepoInfo.FindStringSubmatch(path)
 			if len(m) == 2 && isGetHead {
-				ctx.SetParams("group", groupFormat(m[1]))
+				ctx.SetParams("group", rpmGroupFormat(m[1]))
 				rpm.GetRepositoryConfig(ctx)
 				return
 			}
 			// get meta
 			m = groupMetadata.FindStringSubmatch(path)
 			if len(m) == 3 && isGetHead {
-				ctx.SetParams("group", groupFormat(m[1]))
-				ctx.SetParams("filename", groupFormat(m[2]))
+				ctx.SetParams("group", rpmGroupFormat(m[1]))
+				ctx.SetParams("filename", rpmGroupFormat(m[2]))
 				rpm.GetRepositoryFile(ctx)
 				return
 			}
@@ -629,16 +628,16 @@ func RpmRoutes(r *web.Route) func() {
 				if ctx.Written() {
 					return
 				}
-				ctx.SetParams("group", groupFormat(m[1]))
+				ctx.SetParams("group", rpmGroupFormat(m[1]))
 				rpm.UploadPackageFile(ctx)
 				return
 			}
 			// rpm down/delete
 			m = groupRpm.FindStringSubmatch(path)
-			ctx.SetParams("group", groupFormat(m[1]))
+			ctx.SetParams("group", rpmGroupFormat(m[1]))
 
 			if len(m) == 6 {
-				ctx.SetParams("group", groupFormat(m[1]))
+				ctx.SetParams("group", rpmGroupFormat(m[1]))
 				ctx.SetParams("name", m[2])
 				ctx.SetParams("version", m[3])
 				ctx.SetParams("architecture", m[4])
