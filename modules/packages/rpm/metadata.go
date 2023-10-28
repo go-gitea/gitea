@@ -23,9 +23,6 @@ const (
 
 	RepositoryPackage = "_rpm"
 	RepositoryVersion = "_repository"
-
-	RepositoryDefaultDistribution = "default"
-	RepositoryDefaultComponent    = "stable"
 )
 
 const (
