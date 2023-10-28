@@ -34,11 +34,13 @@ func apiError(ctx *context.Context, status int, obj any) {
 // https://dnf.readthedocs.io/en/latest/conf_ref.html
 func GetRepositoryConfig(ctx *context.Context) {
 	group := ctx.Params("group")
+	if group == "/" {
+		group = ""
+	}
 	url := fmt.Sprintf("%sapi/packages/%s/rpm", setting.AppURL, ctx.Package.Owner.Name)
-
-	ctx.PlainText(http.StatusOK, `[gitea-`+ctx.Package.Owner.LowerName+`-`+group+`]
-name=`+ctx.Package.Owner.Name+` - `+setting.AppName+` - `+group+`
-baseurl=`+url+`/`+group+`
+	ctx.PlainText(http.StatusOK, `[gitea-`+ctx.Package.Owner.LowerName+strings.ReplaceAll(group, "/", "-")+`]
+name=`+ctx.Package.Owner.Name+` - `+setting.AppName+strings.ReplaceAll(group, "/", " - ")+`
+baseurl=`+url+group+`/
 enabled=1
 gpgcheck=1
 gpgkey=`+url+`/repository.key`)

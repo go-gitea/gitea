@@ -512,22 +512,7 @@ func CommonRoutes() *web.Route {
 			r.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
 			r.Get("/simple/{id}", pypi.PackageMetadata)
 		}, reqPackageAccess(perm.AccessModeRead))
-		r.Group("/rpm", func() {
-			r.Get("/repository.key", rpm.GetRepositoryKey)
-			r.Group("/{group}", func() {
-				r.Get(".repo", rpm.GetRepositoryConfig)
-				r.Put("/upload", reqPackageAccess(perm.AccessModeWrite), rpm.UploadPackageFile)
-				r.Group("/package/{name}/{version}/{architecture}", func() {
-					r.Get("", rpm.DownloadPackageFile)
-					// yum/dnf client does not recognize the filename of the header.
-					// which will result in a failure to hit the cache locally.
-					// So add a new spurious route
-					r.Get("/{_}", rpm.DownloadPackageFile)
-					r.Delete("", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
-				})
-				r.Get("/repodata/{filename}", rpm.GetRepositoryFile)
-			})
-		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/rpm", RpmRoutes(r), reqPackageAccess(perm.AccessModeRead))
 		r.Group("/rubygems", func() {
 			r.Get("/specs.4.8.gz", rubygems.EnumeratePackages)
 			r.Get("/latest_specs.4.8.gz", rubygems.EnumeratePackagesLatest)
@@ -590,6 +575,88 @@ func CommonRoutes() *web.Route {
 	}, context_service.UserAssignmentWeb(), context.PackageAssignment())
 
 	return r
+}
+
+// Support for uploading rpm packages with arbitrary depth paths
+func RpmRoutes(r *web.Route) func() {
+	var (
+		groupRepoInfo = regexp.MustCompile(`\A((?:/(?:[^/]+))*|)\.repo\z`)
+		groupUpload   = regexp.MustCompile(`\A((?:/(?:[^/]+))*|)/package/upload\z`)
+		groupRpm      = regexp.MustCompile(`\A((?:/(?:[^/]+))*|)/package/([^/]+)/([^/]+)/([^/]+)(?:/([^/]+\.rpm)|)\z`)
+		groupMetadata = regexp.MustCompile(`\A((?:/(?:[^/]+))*|)/repodata/([^/]+)\z`)
+	)
+	const DEFAULT_GROUP = "/"
+
+	groupFormat := func(input string) string {
+		if input == "" {
+			return DEFAULT_GROUP
+		}
+		return input
+	}
+
+	return func() {
+		r.Methods("HEAD,GET,POST,PUT,PATCH,DELETE", "*", func(ctx *context.Context) {
+			path := ctx.Params("*")
+			isGetHead := ctx.Req.Method == "HEAD" || ctx.Req.Method == "GET"
+			isPut := ctx.Req.Method == "PUT"
+			isDelete := ctx.Req.Method == "DELETE"
+
+			if path == "/repository.key" && isGetHead {
+				rpm.GetRepositoryKey(ctx)
+				return
+			}
+
+			// get repo
+			m := groupRepoInfo.FindStringSubmatch(path)
+			if len(m) == 2 && isGetHead {
+				ctx.SetParams("group", groupFormat(m[1]))
+				rpm.GetRepositoryConfig(ctx)
+				return
+			}
+			// get meta
+			m = groupMetadata.FindStringSubmatch(path)
+			if len(m) == 3 && isGetHead {
+				ctx.SetParams("group", groupFormat(m[1]))
+				ctx.SetParams("filename", groupFormat(m[2]))
+				rpm.GetRepositoryFile(ctx)
+				return
+			}
+
+			// upload
+			m = groupUpload.FindStringSubmatch(path)
+			if len(m) == 2 && isPut {
+				reqPackageAccess(perm.AccessModeWrite)(ctx)
+				if ctx.Written() {
+					return
+				}
+				ctx.SetParams("group", groupFormat(m[1]))
+				rpm.UploadPackageFile(ctx)
+				return
+			}
+			// rpm down/delete
+			m = groupRpm.FindStringSubmatch(path)
+			ctx.SetParams("group", groupFormat(m[1]))
+
+			if len(m) == 6 {
+				ctx.SetParams("group", groupFormat(m[1]))
+				ctx.SetParams("name", m[2])
+				ctx.SetParams("version", m[3])
+				ctx.SetParams("architecture", m[4])
+				if isGetHead {
+					rpm.DownloadPackageFile(ctx)
+					return
+				} else if isDelete {
+					reqPackageAccess(perm.AccessModeWrite)(ctx)
+					if ctx.Written() {
+						return
+					}
+					rpm.DeletePackageFile(ctx)
+				}
+			}
+			// default
+			ctx.Status(http.StatusNotFound)
+		})
+	}
 }
 
 // ContainerRoutes provides endpoints that implement the OCI API to serve containers
