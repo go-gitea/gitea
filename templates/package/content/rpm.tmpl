@@ -30,23 +30,9 @@ zypper install {{$.PackageDescriptor.Package.Name}}</code></pre>
 		</div>
 	</div>
 
-	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
-	<div class="ui attached segment">
-		<table class="ui single very basic table">
-			<tbody>
-				{{if .PackageDescriptor.Metadata.Summary}}
-				<tr>
-					<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.rpm.package.summary"}}</h5></td>
-					<td>{{.PackageDescriptor.Metadata.Summary}}</td>
-				</tr>
-				{{end}}
-				{{if .PackageDescriptor.Metadata.Description}}
-				<tr>
-					<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.rpm.package.description"}}</h5></td>
-					<td>{{.PackageDescriptor.Metadata.Description}}</td>
-				</tr>
-				{{end}}
-			</tbody>
-		</table>
-	</div>
+	{{if or .PackageDescriptor.Metadata.Summary .PackageDescriptor.Metadata.Description}}
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
+		{{if .PackageDescriptor.Metadata.Summary}}<div class="ui attached segment">{{.PackageDescriptor.Metadata.Summary}}</div>{{end}}
+		{{if .PackageDescriptor.Metadata.Description}}<div class="ui attached segment">{{.PackageDescriptor.Metadata.Description}}</div>{{end}}
+	{{end}}
 {{end}}
