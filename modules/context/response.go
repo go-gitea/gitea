@@ -5,12 +5,11 @@ package context
 
 import (
 	"bufio"
+	"errors"
 	"net"
 	"net/http"
 
 	web_types "code.gitea.io/gitea/modules/web/types"
-
-	"github.com/pkg/errors"
 )
 
 // ResponseWriter represents a response writer for HTTP
