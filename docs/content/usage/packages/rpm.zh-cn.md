@@ -27,19 +27,18 @@ menu:
 要注册RPM注册表，请将 URL 添加到已知 `apt` 源列表中：
 
 ```shell
-dnf config-manager --add-repo https://gitea.example.com/api/packages/{owner}/rpm/{distribution}/{component}.repo
+dnf config-manager --add-repo https://gitea.example.com/api/packages/{owner}/rpm/{group}.repo
 ```
 
 | 占位符  | 描述                                   |
 | ------- |--------------------------------------|
-| `owner` | 软件包的所有者                              |
-| `distribution` | 软件包适配的系统名称，例如 `centos`、`rocky linux` |
-| `component` | 软件包适合的目标版本,例如 `el7`、`fc38`           |
+| `owner` | 软件包的所有者                           |
+| `group` | 任何名称,例如 `centos/7`、`el-7`、`fc38` |
 
 如果注册表是私有的，请在URL中提供凭据。您可以使用密码或[个人访问令牌](development/api-usage.md#通过-api-认证)：
 
 ```shell
-dnf config-manager --add-repo https://{username}:{your_password_or_token}@gitea.example.com/api/packages/{owner}/rpm/{distribution}/{component}.repo
+dnf config-manager --add-repo https://{username}:{your_password_or_token}@gitea.example.com/api/packages/{owner}/rpm/{group}.repo
 ```
 
 您还必须将凭据添加到 `/etc/yum.repos.d` 中的 `rpm.repo` 文件中的URL中。
@@ -49,14 +48,13 @@ dnf config-manager --add-repo https://{username}:{your_password_or_token}@gitea.
 要发布RPM软件包（`*.rpm`），请执行带有软件包内容的 HTTP `PUT` 操作。
 
 ```
-PUT https://gitea.example.com/api/packages/{owner}/rpm/{distribution}/{component}/upload
+PUT https://gitea.example.com/api/packages/{owner}/rpm/{group}/upload
 ```
 
 | 参数    | 描述           |
 | ------- |--------------|
 | `owner` | 软件包的所有者      |
-| `distribution` | 软件包适配的系统名称   |
-| `component` | 软件包适配的系统发行版本 |
+| `group` | 软件包自定义分组名称 |
 
 使用HTTP基本身份验证的示例请求：
 
@@ -81,14 +79,13 @@ curl --user your_username:your_password_or_token \
 要删除 RPM 软件包，请执行 HTTP `DELETE` 操作。如果没有文件剩余，这也将删除软件包版本。
 
 ```
-DELETE https://gitea.example.com/api/packages/{owner}/rpm/{distribution}/{component}/package/{package_name}/{package_version}/{architecture}
+DELETE https://gitea.example.com/api/packages/{owner}/rpm/{group}/package/{package_name}/{package_version}/{architecture}
 ```
 
 | 参数              | 描述           |
 | ----------------- | -------------- |
 | `owner`           | 软件包的所有者 |
-| `distribution`    | 软件包适配的系统名称  |
-| `component`    | 软件包适配的系统发行版本  |
+| `group`         | 软件包自定义分组 |
 | `package_name`    | 软件包名称     |
 | `package_version` | 软件包版本     |
 | `architecture`    | 软件包架构     |
