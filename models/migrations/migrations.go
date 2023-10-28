@@ -549,7 +549,7 @@ var migrations = []Migration{
 	// v281 -> v282
 	NewMigration("Add auth_token table", v1_22.CreateAuthTokenTable),
 	// v282 -> v283
-	NewMigration("Migrate old rpm package index", v1_21.RebuildRpmPackage),
+	NewMigration("Migrate old rpm package index", v1_22.RebuildRpmPackage),
 }
 
 // GetCurrentDBVersion returns the current db version
