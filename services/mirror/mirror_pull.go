@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/cache"
@@ -33,7 +32,7 @@ const gitShortEmptySha = "0000000"
 // UpdateAddress writes new address to Git repository and database
 func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error {
 	remoteName := m.GetRemoteName()
-	repoPath := m.GetRepository().RepoPath()
+	repoPath := m.GetRepository(ctx).RepoPath()
 	// Remove old remote
 	_, _, err := git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(remoteName).RunStdString(&git.RunOpts{Dir: repoPath})
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
@@ -316,7 +315,7 @@ func runSyncGit(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult,
 
 	log.Trace("SyncMirrors [repo: %-v]: syncing releases with tags...", m.Repo)
 	tagOnlyReleases := false
-	if err = repo_module.SyncReleasesWithTags(m.Repo, gitRepo, tagOnlyReleases); err != nil {
+	if err = repo_module.SyncReleasesWithTags(ctx, m.Repo, gitRepo, tagOnlyReleases); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to synchronize tags to releases: %v", m.Repo, err)
 	}
 
@@ -417,7 +416,7 @@ func runSyncGit(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult,
 // runSyncMisc runs the sync of Issues, Pull Requests, Reviews, Topics, Releases, Labels, and Milestones.
 // It returns true if the sync was successful.
 func runSyncMisc(ctx context.Context, m *repo_model.Mirror, lastSynced time.Time) bool {
-	repo := m.GetRepository()
+	repo := m.GetRepository(ctx)
 
 	remoteURL, remoteErr := git.GetRemoteURL(ctx, repo.RepoPath(), m.GetRemoteName())
 	if remoteErr != nil {
@@ -477,7 +476,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		log.Error("SyncPullMirror [repo_id: %v]: unable to GetMirrorByRepoID: %v", repoID, err)
 		return false
 	}
-	_ = m.GetRepository() // force load repository of mirror
+	_ = m.GetRepository(ctx) // force load repository of mirror
 
 	// UpdatedUnix will be updated by runSyncGit, but we need to store it here to use it in runSyncMisc
 	lastSynced := m.UpdatedUnix.AsTime()
@@ -520,7 +519,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		}
 		defer gitRepo.Close()
 
-		if ok := checkAndUpdateEmptyRepository(m, gitRepo, results); !ok {
+		if ok := checkAndUpdateEmptyRepository(ctx, m, gitRepo, results); !ok {
 			return false
 		}
 	}
@@ -609,7 +608,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	return true
 }
 
-func checkAndUpdateEmptyRepository(m *repo_model.Mirror, gitRepo *git.Repository, results []*mirrorSyncResult) bool {
+func checkAndUpdateEmptyRepository(ctx context.Context, m *repo_model.Mirror, gitRepo *git.Repository, results []*mirrorSyncResult) bool {
 	if !m.Repo.IsEmpty {
 		return true
 	}
@@ -651,7 +650,7 @@ func checkAndUpdateEmptyRepository(m *repo_model.Mirror, gitRepo *git.Repository
 		if err := gitRepo.SetDefaultBranch(m.Repo.DefaultBranch); err != nil {
 			if !git.IsErrUnsupportedVersion(err) {
 				log.Error("Failed to update default branch of underlying git repository %-v. Error: %v", m.Repo, err)
-				desc := fmt.Sprintf("Failed to uupdate default branch of underlying git repository '%s': %v", m.Repo.RepoPath(), err)
+				desc := fmt.Sprintf("Failed to update default branch of underlying git repository '%s': %v", m.Repo.RepoPath(), err)
 				if err = system_model.CreateRepositoryNotice(desc); err != nil {
 					log.Error("CreateRepositoryNotice: %v", err)
 				}
@@ -660,9 +659,9 @@ func checkAndUpdateEmptyRepository(m *repo_model.Mirror, gitRepo *git.Repository
 		}
 		m.Repo.IsEmpty = false
 		// Update the is empty and default_branch columns
-		if err := repo_model.UpdateRepositoryCols(db.DefaultContext, m.Repo, "default_branch", "is_empty"); err != nil {
+		if err := repo_model.UpdateRepositoryCols(ctx, m.Repo, "default_branch", "is_empty"); err != nil {
 			log.Error("Failed to update default branch of repository %-v. Error: %v", m.Repo, err)
-			desc := fmt.Sprintf("Failed to uupdate default branch of repository '%s': %v", m.Repo.RepoPath(), err)
+			desc := fmt.Sprintf("Failed to update default branch of repository '%s': %v", m.Repo.RepoPath(), err)
 			if err = system_model.CreateRepositoryNotice(desc); err != nil {
 				log.Error("CreateRepositoryNotice: %v", err)
 			}

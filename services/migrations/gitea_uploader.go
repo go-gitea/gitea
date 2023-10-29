@@ -379,13 +379,13 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 		return err
 	}
 
-	return repo_model.InsertReleases(rels...)
+	return repo_model.InsertReleases(g.ctx, rels...)
 }
 
 // SyncTags syncs releases with tags in the databases
 func (g *GiteaLocalUploader) SyncTags() error {
 	tagOnlyReleases := false
-	return repo_module.SyncReleasesWithTags(g.repo, g.gitRepo, tagOnlyReleases)
+	return repo_module.SyncReleasesWithTags(g.ctx, g.repo, g.gitRepo, tagOnlyReleases)
 }
 
 func (g *GiteaLocalUploader) prepareIssues(issues ...*base.Issue) ([]*issues_model.Issue, error) {
@@ -470,7 +470,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		return nil
 	}
 
-	if err := issues_model.InsertIssues(iss...); err != nil {
+	if err := issues_model.InsertIssues(g.ctx, iss...); err != nil {
 		return err
 	}
 
@@ -560,7 +560,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 	if len(cms) == 0 {
 		return nil
 	}
-	return issues_model.InsertIssueComments(cms)
+	return issues_model.InsertIssueComments(g.ctx, cms)
 }
 
 func (g *GiteaLocalUploader) preparePullRequests(prs ...*base.PullRequest) ([]*issues_model.PullRequest, error) {
@@ -898,7 +898,7 @@ func (g *GiteaLocalUploader) prepareReviews(reviews ...*base.Review) ([]*issues_
 		pr, ok := g.prCache[issue.ID]
 		if !ok {
 			var err error
-			pr, err = issues_model.GetPullRequestByIssueIDWithNoAttributes(issue.ID)
+			pr, err = issues_model.GetPullRequestByIssueIDWithNoAttributes(g.ctx, issue.ID)
 			if err != nil {
 				return nil, err
 			}
@@ -985,7 +985,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		return err
 	}
 
-	return issues_model.InsertReviews(cms)
+	return issues_model.InsertReviews(g.ctx, cms)
 }
 
 // UpdateTopics updates topics
@@ -1100,7 +1100,7 @@ func (g *GiteaLocalUploader) Finish() error {
 	}
 
 	// update issue_index
-	if err := issues_model.RecalculateIssueIndexForRepo(g.repo.ID); err != nil {
+	if err := issues_model.RecalculateIssueIndexForRepo(g.ctx, g.repo.ID); err != nil {
 		return err
 	}
 
@@ -1152,7 +1152,7 @@ func (g *GiteaLocalUploader) remapLocalUser(source user_model.ExternalUserMigrat
 func (g *GiteaLocalUploader) remapExternalUser(source user_model.ExternalUserMigrated, target user_model.ExternalUserRemappable) (userid int64, err error) {
 	userid, ok := g.userMap[source.GetExternalID()]
 	if !ok {
-		userid, err = user_model.GetUserIDByExternalUserID(g.gitServiceType.Name(), fmt.Sprintf("%d", source.GetExternalID()))
+		userid, err = user_model.GetUserIDByExternalUserID(g.ctx, g.gitServiceType.Name(), fmt.Sprintf("%d", source.GetExternalID()))
 		if err != nil {
 			log.Error("GetUserIDByExternalUserID: %v", err)
 			return 0, err

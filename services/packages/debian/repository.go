@@ -32,8 +32,8 @@ import (
 
 // GetOrCreateRepositoryVersion gets or creates the internal repository package
 // The Debian registry needs multiple index files which are stored in this package.
-func GetOrCreateRepositoryVersion(ownerID int64) (*packages_model.PackageVersion, error) {
-	return packages_service.GetOrCreateInternalPackageVersion(ownerID, packages_model.TypeDebian, debian_module.RepositoryPackage, debian_module.RepositoryVersion)
+func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages_model.PackageVersion, error) {
+	return packages_service.GetOrCreateInternalPackageVersion(ctx, ownerID, packages_model.TypeDebian, debian_module.RepositoryPackage, debian_module.RepositoryVersion)
 }
 
 // GetOrCreateKeyPair gets or creates the PGP keys used to sign repository files
@@ -98,7 +98,7 @@ func generateKeypair() (string, string, error) {
 
 // BuildAllRepositoryFiles (re)builds all repository files for every available distributions, components and architectures
 func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
-	pv, err := GetOrCreateRepositoryVersion(ownerID)
+	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
 
 // BuildSpecificRepositoryFiles builds index files for the repository
 func BuildSpecificRepositoryFiles(ctx context.Context, ownerID int64, distribution, component, architecture string) error {
-	pv, err := GetOrCreateRepositoryVersion(ownerID)
+	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
 	if err != nil {
 		return err
 	}
@@ -165,18 +165,17 @@ func buildRepositoryFiles(ctx context.Context, ownerID int64, repoVersion *packa
 
 // https://wiki.debian.org/DebianRepository/Format#A.22Packages.22_Indices
 func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packages_model.PackageVersion, distribution, component, architecture string) error {
-	pfds, err := debian_model.SearchLatestPackages(ctx, &debian_model.PackageSearchOptions{
+	opts := &debian_model.PackageSearchOptions{
 		OwnerID:      ownerID,
 		Distribution: distribution,
 		Component:    component,
 		Architecture: architecture,
-	})
-	if err != nil {
-		return err
 	}
 
 	// Delete the package indices if there are no packages
-	if len(pfds) == 0 {
+	if has, err := debian_model.ExistPackages(ctx, opts); err != nil {
+		return err
+	} else if !has {
 		key := fmt.Sprintf("%s|%s|%s", distribution, component, architecture)
 		for _, filename := range []string{"Packages", "Packages.gz", "Packages.xz"} {
 			pf, err := packages_model.GetFileForVersionByName(ctx, repoVersion.ID, filename, key)
@@ -196,17 +195,22 @@ func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packa
 	}
 
 	packagesContent, _ := packages_module.NewHashedBuffer()
+	defer packagesContent.Close()
 
 	packagesGzipContent, _ := packages_module.NewHashedBuffer()
+	defer packagesGzipContent.Close()
+
 	gzw := gzip.NewWriter(packagesGzipContent)
 
 	packagesXzContent, _ := packages_module.NewHashedBuffer()
+	defer packagesXzContent.Close()
+
 	xzw, _ := xz.NewWriter(packagesXzContent)
 
 	w := io.MultiWriter(packagesContent, gzw, xzw)
 
 	addSeparator := false
-	for _, pfd := range pfds {
+	if err := debian_model.SearchPackages(ctx, opts, func(pfd *packages_model.PackageFileDescriptor) {
 		if addSeparator {
 			fmt.Fprintln(w)
 		}
@@ -220,6 +224,8 @@ func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packa
 		fmt.Fprintf(w, "SHA1: %s\n", pfd.Blob.HashSHA1)
 		fmt.Fprintf(w, "SHA256: %s\n", pfd.Blob.HashSHA256)
 		fmt.Fprintf(w, "SHA512: %s\n", pfd.Blob.HashSHA512)
+	}); err != nil {
+		return err
 	}
 
 	gzw.Close()
@@ -233,7 +239,8 @@ func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packa
 		{"Packages.gz", packagesGzipContent},
 		{"Packages.xz", packagesXzContent},
 	} {
-		_, err = packages_service.AddFileToPackageVersionInternal(
+		_, err := packages_service.AddFileToPackageVersionInternal(
+			ctx,
 			repoVersion,
 			&packages_service.PackageFileCreationInfo{
 				PackageFileInfo: packages_service.PackageFileInfo{
@@ -322,6 +329,8 @@ func buildReleaseFiles(ctx context.Context, ownerID int64, repoVersion *packages
 	}
 
 	inReleaseContent, _ := packages_module.NewHashedBuffer()
+	defer inReleaseContent.Close()
+
 	sw, err := clearsign.Encode(inReleaseContent, e.PrivateKey, nil)
 	if err != nil {
 		return err
@@ -366,11 +375,14 @@ func buildReleaseFiles(ctx context.Context, ownerID int64, repoVersion *packages
 	sw.Close()
 
 	releaseGpgContent, _ := packages_module.NewHashedBuffer()
+	defer releaseGpgContent.Close()
+
 	if err := openpgp.ArmoredDetachSign(releaseGpgContent, e, bytes.NewReader(buf.Bytes()), nil); err != nil {
 		return err
 	}
 
 	releaseContent, _ := packages_module.CreateHashedBufferFromReader(&buf)
+	defer releaseContent.Close()
 
 	for _, file := range []struct {
 		Name string
@@ -381,6 +393,7 @@ func buildReleaseFiles(ctx context.Context, ownerID int64, repoVersion *packages
 		{"InRelease", inReleaseContent},
 	} {
 		_, err = packages_service.AddFileToPackageVersionInternal(
+			ctx,
 			repoVersion,
 			&packages_service.PackageFileCreationInfo{
 				PackageFileInfo: packages_service.PackageFileInfo{

@@ -95,21 +95,8 @@
 }
 
 .repository .issue-content-right .ui.list .title {
-  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-@media (max-width: 1200px) {
-  .repository .issue-content-right .ui.list .title {
-    max-width: 150px;
-  }
-}
-
-@media (max-width: 1000px) {
-  .repository .issue-content-right .ui.list .title {
-    max-width: 100px;
-  }
 }
 
 .repository .issue-content-right #deadlineForm input {
@@ -129,11 +116,13 @@
 
 .repository .filter.menu.labels .label-filter .menu .info {
   display: inline-block;
-  padding: 0.5rem 0.25rem;
+  padding: 0.5rem 0;
   font-size: 12px;
   width: 100%;
   white-space: nowrap;
-  text-align: center;
+  margin-left: 10px;
+  margin-right: 8px;
+  text-align: left;
 }
 
 .repository .filter.menu.labels .label-filter .menu .info code {
@@ -1502,14 +1491,22 @@
 }
 
 .repository .diff-detail-box {
-  padding: 7px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  padding: 7px 5px;
+  margin: 0 -5px; /* negative margin so it covers active file shadow */
+  height: 44px; /* this height should match sticky-2nd-row */
   background: var(--color-body);
 }
 
 @media (max-width: 991.98px) {
   .repository .diff-detail-box {
     flex-direction: row;
-    align-items: flex-start;
+    height: 77px; /* this height should match sticky-2nd-row */
   }
 }
 
@@ -1518,18 +1515,6 @@
     flex-wrap: wrap;
   }
 }
-
-.repository .diff-detail-box.sticky {
-  position: sticky;
-  top: 0;
-  z-index: 8;
-  border-bottom: none;
-  padding-left: 5px;
-  padding-right: 5px;
-  margin-left: -4px;
-  margin-right: -4px;
-}
-
 .repository .diff-detail-box .diff-detail-stats strong {
   margin-left: 0.25rem;
   margin-right: 0.25rem;
@@ -1813,10 +1798,12 @@
   flex: 1
 }
 
-.repository.packages .empty,
-.repository.actions .empty {
-  padding-top: 70px;
-  padding-bottom: 100px;
+.empty-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 40px;
+  padding-bottom: 40px;
 }
 
 .repository.packages .file-size {
@@ -2066,6 +2053,7 @@
 
 .repository .repository-summary .segment.language-stats {
   display: flex;
+  gap: 2px;
   padding: 0;
   height: 10px;
   white-space: nowrap;
@@ -2578,12 +2566,14 @@ tbody.commit-list {
 
 .comment-diff-data {
   background: var(--color-code-bg);
+  min-height: 12em;
   max-height: calc(100vh - 10.5rem);
   overflow-y: auto;
 }
 
 .comment-diff-data pre {
   line-height: 18px;
+  margin: 1em;
   white-space: pre-wrap;
   word-break: break-all;
   overflow-wrap: break-word;
@@ -2618,6 +2608,7 @@ tbody.commit-list {
   justify-content: space-between;
   flex-wrap: wrap;
   word-break: break-word;
+  gap: 0.5rem;
 }
 
 @media (max-width: 767.98px) {
@@ -2746,6 +2737,9 @@ tbody.commit-list {
 #diff-file-boxes {
   flex: 1;
   max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 #diff-file-tree {
@@ -2828,7 +2822,7 @@ tbody.commit-list {
 
 .ui.attached.header.diff-file-header.sticky-2nd-row {
   position: sticky;
-  top: 47px; /* match .repository .diff-detail-box */
+  top: 44px; /* match .repository .diff-detail-box */
   z-index: 7;
 }
 
@@ -3050,9 +3044,6 @@ tbody.commit-list {
   }
   .commit-table td.sha,
   .commit-table th.sha {
-    display: none !important;
-  }
-  .commit-table .commit-list .copy-commit-sha {
     display: none !important;
   }
   .comment-header {

@@ -1,11 +1,11 @@
-<button class="ui basic citation button" id="citation-copy-apa" data-text="">
+<button class="ui citation button" id="citation-copy-apa" data-text="">
 APA
 </button>
-<button class="ui basic citation button" id="citation-copy-bibtex" data-text="">
+<button class="ui citation button" id="citation-copy-bibtex" data-text="">
 BibTeX
 </button>
 <!-- the value will be updated by initCitationFileCopyContent, the code below is used to avoid UI flicking  -->
 <input id="citation-copy-content" value="" size="1" readonly>
-<button class="ui basic icon button" id="citation-clipboard-btn" data-tooltip-content="{{.locale.Tr "copy"}}" data-clipboard-text="" data-clipboard-target="#citation-copy-content">
+<button class="ui icon button" id="citation-clipboard-btn" data-tooltip-content="{{ctx.Locale.Tr "copy"}}" data-clipboard-text="" data-clipboard-target="#citation-copy-content">
 	{{svg "octicon-copy"}}
 </button>

@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: "~1.21"
+          go-version-file: go.mod
           check-latest: true
       - run: make deps-backend deps-tools
       - run: make lint-backend
@@ -72,7 +72,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: "~1.21"
+          go-version-file: go.mod
           check-latest: true
       - run: make deps-backend deps-tools
       - run: make lint-go-windows lint-go-vet
@@ -89,7 +89,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: "~1.21"
+          go-version-file: go.mod
           check-latest: true
       - run: make deps-backend deps-tools
       - run: make lint-go
@@ -104,7 +104,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: "~1.21"
+          go-version-file: go.mod
           check-latest: true
       - run: make deps-backend deps-tools
       - run: make --always-make checks-backend # ensure the "go-licenses" make target runs
@@ -132,7 +132,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: "~1.21"
+          go-version-file: go.mod
           check-latest: true
       # no frontend build here as backend should be able to build
       # even without any frontend files
@@ -176,4 +176,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          check-latest: true
       - run: make lint-actions

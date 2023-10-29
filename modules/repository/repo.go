@@ -160,7 +160,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			// for pull-mirrors with many tags
 			repo.IsMirror = opts.Mirror
 			tagOnlyReleases := true
-			if err = SyncReleasesWithTags(repo, gitRepo, tagOnlyReleases); err != nil {
+			if err = SyncReleasesWithTags(ctx, repo, gitRepo, tagOnlyReleases); err != nil {
 				log.Error("Failed to synchronize tags to releases for repository: %v", err)
 			}
 		}
@@ -295,13 +295,13 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 // SyncReleasesWithTags synchronizes release table with repository tags for each of the releases.
 //
 // If tagOnlyReleases is true, then it is assumed all releases come from tags.
-func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository, tagOnlyReleases bool) error {
+func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, tagOnlyReleases bool) error {
 	log.Debug("SyncReleasesWithTags: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
 
 	// optimized procedure for pull-mirrors which saves a lot of time (in
 	// particular for repos with many tags).
 	if repo.IsMirror && tagOnlyReleases {
-		return recreateMirrorReleaseFromTags(repo, gitRepo)
+		return recreateMirrorReleaseFromTags(ctx, repo, gitRepo)
 	}
 
 	existingRelTags := make(container.Set[string])
@@ -328,7 +328,7 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository, 
 				return fmt.Errorf("unable to GetTagCommitID for %q in Repo[%d:%s/%s]: %w", rel.TagName, repo.ID, repo.OwnerName, repo.Name, err)
 			}
 			if git.IsErrNotExist(err) || commitID != rel.Sha1 {
-				if err := repo_model.PushUpdateDeleteTag(repo, rel.TagName); err != nil {
+				if err := repo_model.PushUpdateDeleteTag(ctx, repo, rel.TagName); err != nil {
 					return fmt.Errorf("unable to PushUpdateDeleteTag: %q in Repo[%d:%s/%s]: %w", rel.TagName, repo.ID, repo.OwnerName, repo.Name, err)
 				}
 			} else {
@@ -343,7 +343,7 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository, 
 			return nil
 		}
 
-		if err := PushUpdateAddTag(db.DefaultContext, repo, gitRepo, tagName, sha1, refname); err != nil {
+		if err := PushUpdateAddTag(ctx, repo, gitRepo, tagName, sha1, refname); err != nil {
 			return fmt.Errorf("unable to PushUpdateAddTag: %q to Repo[%d:%s/%s]: %w", tagName, repo.ID, repo.OwnerName, repo.Name, err)
 		}
 
@@ -400,7 +400,7 @@ func PushUpdateAddTag(ctx context.Context, repo *repo_model.Repository, gitRepo 
 		rel.PublisherID = author.ID
 	}
 
-	return repo_model.SaveOrUpdateTag(repo, &rel)
+	return repo_model.SaveOrUpdateTag(ctx, repo, &rel)
 }
 
 // StoreMissingLfsObjectsInRepository downloads missing LFS objects
@@ -507,13 +507,13 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 // upstream. Hence, after each sync we want the pull-mirror release set to be
 // identical to the upstream tag set. This is much more efficient for
 // repositories like https://github.com/vim/vim (with over 13000 tags).
-func recreateMirrorReleaseFromTags(repo *repo_model.Repository, gitRepo *git.Repository) error {
+func recreateMirrorReleaseFromTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
 	log.Trace("recreateMirrorReleaseFromTags: rebuilding releases for pull-mirror Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
 	tags, numTags, err := gitRepo.GetTagInfos(0, 0)
 	if err != nil {
 		return fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 	}
-	err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	err = db.WithTx(ctx, func(ctx context.Context) error {
 		//
 		// clear out existing releases
 		//
