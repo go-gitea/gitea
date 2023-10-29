@@ -960,7 +960,7 @@ func Routes() *web.Route {
 			m.Group("/actions/secrets", func() {
 				m.Combo("/{secretname}").
 					Put(bind(api.CreateOrUpdateSecretOption{}), user.CreateOrUpdateSecret).
-					Delete(repo.DeleteSecret)
+					Delete(user.DeleteSecret)
 			})
 
 			m.Get("/followers", user.ListMyFollowers)
