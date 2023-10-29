@@ -634,8 +634,6 @@ func RpmRoutes(r *web.Route) func() {
 			}
 			// rpm down/delete
 			m = groupRpm.FindStringSubmatch(path)
-			ctx.SetParams("group", rpmGroupFormat(m[1]))
-
 			if len(m) == 6 {
 				ctx.SetParams("group", rpmGroupFormat(m[1]))
 				ctx.SetParams("name", m[2])
