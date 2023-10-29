@@ -815,6 +815,11 @@ Default templates for project boards:
 - `PROJECT_BOARD_BASIC_KANBAN_TYPE`: **To Do, In Progress, Done**
 - `PROJECT_BOARD_BUG_TRIAGE_TYPE`: **Needs Triage, High Priority, Low Priority, Closed**
 
+## Project Automation (`project.automation`)
+
+- `ENABLED`: **false**: Whether automation is enabled for projects.
+- `MAX_RULE_PER_PROJECT`: **25**: Maximum number of automation rules per project.
+
 ## Issue and pull request attachments (`attachment`)
 
 - `ENABLED`: **true**: Whether issue and pull request attachments are enabled.

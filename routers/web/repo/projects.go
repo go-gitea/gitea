@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
+	project_service "code.gitea.io/gitea/services/project"
 )
 
 const (
@@ -142,6 +143,14 @@ func NewProjectPost(ctx *context.Context) {
 		return
 	}
 
+	lookupLabelID := func(labelName string) (int64, error) {
+		label, err := issues_model.GetLabelInRepoByName(ctx, ctx.Repo.Repository.ID, labelName)
+		if err != nil {
+			return 0, fmt.Errorf("label %s not found in repo", labelName)
+		}
+		return label.ID, nil
+	}
+
 	if err := project_model.NewProject(ctx, &project_model.Project{
 		RepoID:      ctx.Repo.Repository.ID,
 		Title:       form.Title,
@@ -150,7 +159,7 @@ func NewProjectPost(ctx *context.Context) {
 		BoardType:   form.BoardType,
 		CardType:    form.CardType,
 		Type:        project_model.TypeRepository,
-	}); err != nil {
+	}, lookupLabelID); err != nil {
 		ctx.ServerError("NewProject", err)
 		return
 	}
@@ -683,10 +692,11 @@ func MoveIssues(ctx *context.Context) {
 		}
 	}
 
-	if err = project_model.MoveIssuesOnProjectBoard(ctx, board, sortedIssueIDs); err != nil {
+	reload, err := project_service.MoveIssuesOnProjectBoard(ctx, ctx.Doer, board, sortedIssueIDs)
+	if err != nil {
 		ctx.ServerError("MoveIssuesOnProjectBoard", err)
 		return
 	}
 
-	ctx.JSONOK()
+	ctx.JSON(http.StatusOK, map[string]any{"ok": true, "reload": reload})
 }

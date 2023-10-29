@@ -35,6 +35,9 @@ const (
 
 	// BoardTypeBugTriage is a project board type that has predefined columns suited to hunting down bugs
 	BoardTypeBugTriage
+
+	// Automated Kanban is the same as Basic Kanban but with some predefined automation rules
+	BoardTypeAutomatedKanban
 )
 
 const (
@@ -89,7 +92,7 @@ func init() {
 // IsBoardTypeValid checks if the project board type is valid
 func IsBoardTypeValid(p BoardType) bool {
 	switch p {
-	case BoardTypeNone, BoardTypeBasicKanban, BoardTypeBugTriage:
+	case BoardTypeNone, BoardTypeAutomatedKanban, BoardTypeBasicKanban, BoardTypeBugTriage:
 		return true
 	default:
 		return false
@@ -115,6 +118,9 @@ func createBoardsForProjectsType(ctx context.Context, project *Project) error {
 		items = setting.Project.ProjectBoardBugTriageType
 
 	case BoardTypeBasicKanban:
+		items = setting.Project.ProjectBoardBasicKanbanType
+
+	case BoardTypeAutomatedKanban:
 		items = setting.Project.ProjectBoardBasicKanbanType
 
 	case BoardTypeNone:
@@ -160,6 +166,10 @@ func DeleteBoardByID(ctx context.Context, boardID int64) error {
 	defer committer.Close()
 
 	if err := deleteBoardByID(ctx, boardID); err != nil {
+		return err
+	}
+
+	if err := deleteAutomationByBoardID(ctx, boardID); err != nil {
 		return err
 	}
 

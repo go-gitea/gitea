@@ -44,6 +44,7 @@ import (
 	markup_service "code.gitea.io/gitea/services/markup"
 	repo_migrations "code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
+	project_service "code.gitea.io/gitea/services/project"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/repository/archiver"
@@ -151,6 +152,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(automerge.Init)
 	mustInit(task.Init)
 	mustInit(repo_migrations.Init)
+	mustInit(project_service.Init)
 	eventsource.GetManager().Init()
 	mustInitCtx(ctx, mailer_incoming.Init)
 

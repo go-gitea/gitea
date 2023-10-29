@@ -60,7 +60,7 @@ func TestProject(t *testing.T) {
 		CreatorID:   2,
 	}
 
-	assert.NoError(t, NewProject(db.DefaultContext, project))
+	assert.NoError(t, NewProject(db.DefaultContext, project, func(label string) (int64, error) { return 0, nil }))
 
 	_, err := GetProjectByID(db.DefaultContext, project.ID)
 	assert.NoError(t, err)

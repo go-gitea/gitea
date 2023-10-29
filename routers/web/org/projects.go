@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/forms"
+	project_service "code.gitea.io/gitea/services/project"
 )
 
 const (
@@ -179,7 +180,15 @@ func NewProjectPost(ctx *context.Context) {
 		newProject.Type = project_model.TypeIndividual
 	}
 
-	if err := project_model.NewProject(ctx, &newProject); err != nil {
+	lookupLabelID := func(labelName string) (int64, error) {
+		label, err := issues_model.GetLabelInOrgByName(ctx, ctx.ContextUser.ID, labelName)
+		if err != nil {
+			return 0, fmt.Errorf("label %s not found in org", labelName)
+		}
+		return label.ID, nil
+	}
+
+	if err := project_model.NewProject(ctx, &newProject, lookupLabelID); err != nil {
 		ctx.ServerError("NewProject", err)
 		return
 	}
@@ -738,10 +747,11 @@ func MoveIssues(ctx *context.Context) {
 		}
 	}
 
-	if err = project_model.MoveIssuesOnProjectBoard(ctx, board, sortedIssueIDs); err != nil {
+	reload, err := project_service.MoveIssuesOnProjectBoard(ctx, ctx.Doer, board, sortedIssueIDs)
+	if err != nil {
 		ctx.ServerError("MoveIssuesOnProjectBoard", err)
 		return
 	}
 
-	ctx.JSONOK()
+	ctx.JSON(http.StatusOK, map[string]any{"ok": true, "reload": reload})
 }

@@ -47,6 +47,17 @@ func (issue *Issue) ProjectBoardID(ctx context.Context) int64 {
 	return ip.ProjectBoardID
 }
 
+func (issue *Issue) IsOnProjectBoard(ctx context.Context, board *project_model.Board) bool {
+	var ip project_model.ProjectIssue
+	has, err := db.GetEngine(ctx).Table(project_model.ProjectIssue{}).
+		Where("issue_id=? AND project_board_id=?", issue.ID, board.ID).
+		Get(&ip)
+	if err != nil || !has {
+		return false
+	}
+	return true
+}
+
 // LoadIssuesFromBoard load issues assigned to this board
 func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList, error) {
 	issueList := make(IssueList, 0, 10)

@@ -49,6 +49,10 @@ function moveIssue({item, from, to, oldIndex}) {
     error: () => {
       from.insertBefore(item, from.children[oldIndex]);
     },
+  }).done((response) => {
+    if (response.reload) {
+      window.location.reload();
+    }
   });
 }
 

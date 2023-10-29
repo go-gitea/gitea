@@ -78,6 +78,15 @@ func (a XRefAction) String() string {
 	return actionStrings[a]
 }
 
+func XRefActionFromString(s string) XRefAction {
+	for idx, action := range actionStrings {
+		if action == s {
+			return XRefAction(idx)
+		}
+	}
+	return XRefActionNone
+}
+
 // IssueReference contains an unverified cross-reference to a local issue or pull request
 type IssueReference struct {
 	Index   int64

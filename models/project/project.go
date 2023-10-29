@@ -165,11 +165,15 @@ func init() {
 
 // GetBoardConfig retrieves the types of configurations project boards could have
 func GetBoardConfig() []BoardConfig {
-	return []BoardConfig{
+	config := []BoardConfig{
 		{BoardTypeNone, "repo.projects.type.none"},
 		{BoardTypeBasicKanban, "repo.projects.type.basic_kanban"},
 		{BoardTypeBugTriage, "repo.projects.type.bug_triage"},
 	}
+	if setting.ProjectAutomation.Enabled {
+		config = append(config, BoardConfig{BoardTypeAutomatedKanban, "repo.projects.type.automated_kanban"})
+	}
+	return config
 }
 
 // GetCardConfig retrieves the types of configurations project board cards could have
@@ -261,7 +265,7 @@ func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, e
 }
 
 // NewProject creates a new Project
-func NewProject(ctx context.Context, p *Project) error {
+func NewProject(ctx context.Context, p *Project, lookupLabelID func(label string) (int64, error)) error {
 	if !IsBoardTypeValid(p.BoardType) {
 		p.BoardType = BoardTypeNone
 	}
@@ -291,6 +295,10 @@ func NewProject(ctx context.Context, p *Project) error {
 	}
 
 	if err := createBoardsForProjectsType(ctx, p); err != nil {
+		return err
+	}
+
+	if err := createAutomationForProjectsType(ctx, p, lookupLabelID); err != nil {
 		return err
 	}
 
@@ -417,6 +425,10 @@ func DeleteProjectByID(ctx context.Context, id int64) error {
 		}
 
 		if err := deleteBoardByProjectID(ctx, id); err != nil {
+			return err
+		}
+
+		if err := deleteAutomationByProjectID(ctx, id); err != nil {
 			return err
 		}
 
