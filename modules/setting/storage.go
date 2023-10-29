@@ -250,8 +250,6 @@ func getStorageForMinio(targetSec, overrideSec ConfigSection, tp targetSecType, 
 		return nil, fmt.Errorf("map minio config failed: %v", err)
 	}
 
-	fmt.Println("111", targetSec.Name(), storage.MinioConfig.BasePath)
-
 	defaultPath := name + "/"
 	if storage.MinioConfig.BasePath != "" {
 		if tp == targetSecIsStorage || tp == targetSecIsDefault {
@@ -262,7 +260,6 @@ func getStorageForMinio(targetSec, overrideSec ConfigSection, tp targetSecType, 
 	}
 
 	if overrideSec != nil {
-		fmt.Println("222", overrideSec.Name())
 		storage.MinioConfig.ServeDirect = ConfigSectionKeyBool(overrideSec, "SERVE_DIRECT", storage.MinioConfig.ServeDirect)
 		storage.MinioConfig.BasePath = ConfigSectionKeyString(overrideSec, "MINIO_BASE_PATH", defaultPath)
 		storage.MinioConfig.Bucket = ConfigSectionKeyString(overrideSec, "MINIO_BUCKET", storage.MinioConfig.Bucket)
