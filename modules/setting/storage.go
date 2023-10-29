@@ -250,13 +250,16 @@ func getStorageForMinio(targetSec, overrideSec ConfigSection, tp targetSecType, 
 		return nil, fmt.Errorf("map minio config failed: %v", err)
 	}
 
-	defaultPath := name + "/"
+	var defaultPath string
 	if storage.MinioConfig.BasePath != "" {
 		if tp == targetSecIsStorage || tp == targetSecIsDefault {
-			defaultPath = strings.TrimSuffix(storage.MinioConfig.BasePath, "/") + "/" + defaultPath
+			defaultPath = strings.TrimSuffix(storage.MinioConfig.BasePath, "/") + "/" + name + "/"
 		} else {
 			defaultPath = storage.MinioConfig.BasePath
 		}
+	}
+	if defaultPath == "" {
+		defaultPath = name + "/"
 	}
 
 	if overrideSec != nil {
