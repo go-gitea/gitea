@@ -566,6 +566,11 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			closeTime = pr.UpdatedAt
 		}
 
+		mergeCommitSHA := pr.MergeCommitSHA
+		if mergeCommitSHA == "" {
+			mergeCommitSHA = pr.SquashCommitSHA
+		}
+
 		var locked bool
 		if pr.State == "locked" {
 			locked = true
@@ -608,7 +613,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			Closed:         closeTime,
 			Labels:         labels,
 			Merged:         merged,
-			MergeCommitSHA: pr.MergeCommitSHA,
+			MergeCommitSHA: mergeCommitSHA,
 			MergedTime:     mergeTime,
 			IsLocked:       locked,
 			Reactions:      g.awardsToReactions(reactions),
