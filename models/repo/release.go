@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -574,6 +575,77 @@ func InsertReleases(ctx context.Context, rels ...*Release) error {
 
 			if _, err := sess.NoAutoTime().Insert(rel.Attachments); err != nil {
 				return err
+			}
+		}
+	}
+
+	return committer.Commit()
+}
+
+// UpsertReleases inserts new releases and updates existing releases
+func UpsertReleases(ctx context.Context, rels ...*Release) error {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
+
+	for _, rel := range rels {
+		exists, err := sess.Where("repo_id = ? AND tag_name = ?", rel.RepoID, rel.TagName).Exist(&Release{})
+		if err != nil {
+			return err
+		}
+
+		if !exists {
+			if _, err := sess.NoAutoTime().Insert(rel); err != nil {
+				return err
+			}
+
+			if len(rel.Attachments) > 0 {
+				for i := range rel.Attachments {
+					rel.Attachments[i].ReleaseID = rel.ID
+				}
+
+				if _, err := sess.NoAutoTime().Insert(rel.Attachments); err != nil {
+					return err
+				}
+			}
+		} else {
+			if _, err := sess.NoAutoTime().
+				Where("repo_id = ? AND tag_name = ?", rel.RepoID, rel.TagName).
+				AllCols().Update(rel); err != nil {
+				return err
+			}
+
+			if len(rel.Attachments) > 0 {
+				for i := range rel.Attachments {
+					rel.Attachments[i].ReleaseID = rel.ID
+				}
+
+				var existingReleases []*Attachment
+				err := sess.Where("release_id = ?", rel.ID).Find(&existingReleases)
+				if err != nil {
+					return err
+				}
+
+				if _, err := sess.NoAutoTime().Insert(rel.Attachments); err != nil {
+					return err
+				}
+
+				var ids []int64
+				for _, existingRelease := range existingReleases {
+					// TODO: file operations are not atomic, so errors should be handled
+					err = storage.Attachments.Delete(existingRelease.RelativePath())
+					if err != nil {
+						return err
+					}
+
+					ids = append(ids, existingRelease.ID)
+				}
+				if _, err := sess.NoAutoTime().In("id", ids).Delete(&Attachment{}); err != nil {
+					return err
+				}
 			}
 		}
 	}

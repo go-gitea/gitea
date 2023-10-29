@@ -1290,3 +1290,77 @@ func InsertIssueComments(ctx context.Context, comments []*Comment) error {
 	}
 	return committer.Commit()
 }
+
+// UpsertIssueComments inserts many comments of issues.
+func UpsertIssueComments(ctx context.Context, comments []*Comment) error {
+	if len(comments) == 0 {
+		return nil
+	}
+
+	issueIDs := make(map[int64]bool)
+	for _, comment := range comments {
+		issueIDs[comment.IssueID] = true
+	}
+
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		sess := db.GetEngine(ctx)
+		for _, comment := range comments {
+			exists, err := sess.Exist(&Comment{
+				IssueID:    comment.IssueID,
+				OriginalID: comment.OriginalID,
+			})
+			if err != nil {
+				return err
+			}
+			if !exists {
+				if _, err := sess.NoAutoTime().Insert(comment); err != nil {
+					return err
+				}
+			} else {
+				if _, err := sess.NoAutoTime().Where(
+					"issue_id = ? AND original_id = ?", comment.IssueID, comment.OriginalID,
+				).AllCols().Update(comment); err != nil {
+					return err
+				}
+			}
+
+			for _, reaction := range comment.Reactions {
+				reaction.IssueID = comment.IssueID
+				reaction.CommentID = comment.ID
+			}
+			if len(comment.Reactions) > 0 {
+				for _, reaction := range comment.Reactions {
+					// issue comment reaction is uniquely identified by issue_id, comment_id and type
+					exists, err := sess.Exist(&Reaction{
+						IssueID:   reaction.IssueID,
+						CommentID: reaction.CommentID,
+						Type:      reaction.Type,
+					})
+					if err != nil {
+						return err
+					}
+					if exists {
+						if _, err := sess.Where(
+							"issue_id = ? AND comment_id = ? AND type = ?",
+							reaction.IssueID, reaction.CommentID, reaction.Type,
+						).AllCols().Update(&reaction); err != nil {
+							return err
+						}
+					} else {
+						if _, err := sess.Insert(&reaction); err != nil {
+							return err
+						}
+					}
+				}
+			}
+		}
+
+		for issueID := range issueIDs {
+			if _, err := db.Exec(ctx, "UPDATE issue SET num_comments = (SELECT count(*) FROM comment WHERE issue_id = ? AND `type`=?) WHERE id = ?",
+				issueID, CommentTypeComment, issueID); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}

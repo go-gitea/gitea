@@ -939,3 +939,86 @@ func insertIssue(ctx context.Context, issue *Issue) error {
 
 	return nil
 }
+
+// UpsertIssues creates new issues and updates existing issues in database
+func UpsertIssues(ctx context.Context, issues ...*Issue) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		for _, issue := range issues {
+			if _, err := upsertIssue(ctx, issue); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func upsertIssue(ctx context.Context, issue *Issue) (isInsert bool, err error) {
+	sess := db.GetEngine(ctx)
+
+	var issueIDs []int64
+	err = sess.Table("issue").Where("repo_id = ? AND `index` = ?", issue.RepoID, issue.Index).Cols("id").Find(&issueIDs)
+	if err != nil {
+		return false, err
+	}
+
+	if len(issueIDs) == 0 {
+		return true, insertIssue(ctx, issue)
+	}
+
+	issue.ID = issueIDs[0]
+	return false, updateIssue(ctx, issue)
+}
+
+func updateIssue(ctx context.Context, issue *Issue) error {
+	sess := db.GetEngine(ctx)
+	if _, err := sess.NoAutoTime().ID(issue.ID).AllCols().Update(issue); err != nil {
+		return err
+	}
+	issueLabels := resolveIssueLabels(issue.ID, issue.Labels)
+	if len(issueLabels) > 0 {
+		// delete old labels
+		if _, err := sess.Table("issue_label").Where("issue_id = ?", issue.ID).Delete(); err != nil {
+			return err
+		}
+		// insert new labels
+		if _, err := sess.Insert(issueLabels); err != nil {
+			return err
+		}
+	}
+
+	for _, reaction := range issue.Reactions {
+		reaction.IssueID = issue.ID
+	}
+
+	if len(issue.Reactions) > 0 {
+		// update existing reactions and insert new ones
+		for _, reaction := range issue.Reactions {
+			exists, err := sess.Exist(&Reaction{ID: reaction.ID})
+			if err != nil {
+				return err
+			}
+			if exists {
+				if _, err := sess.ID(reaction.ID).AllCols().Update(&reaction); err != nil {
+					return err
+				}
+			} else {
+				if _, err := sess.Insert(&reaction); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func resolveIssueLabels(issueID int64, labels []*Label) []IssueLabel {
+	issueLabels := make([]IssueLabel, 0, len(labels))
+	for _, label := range labels {
+		issueLabels = append(issueLabels, IssueLabel{
+			IssueID: issueID,
+			LabelID: label.ID,
+		})
+	}
+	return issueLabels
+}

@@ -996,7 +996,7 @@ func (g *GiteaLocalUploader) UpdateTopics(topics ...string) error {
 
 func (g *GiteaLocalUploader) UpdateMilestones(milestones ...*base.Milestone) error {
 	mss := g.prepareMilestones(milestones...)
-	err := models.UpdateMilestones(g.ctx, mss...)
+	err := issues_model.UpdateMilestones(g.ctx, mss...)
 	if err != nil {
 		return err
 	}
@@ -1025,7 +1025,7 @@ func (g *GiteaLocalUploader) PatchReleases(releases ...*base.Release) error {
 		return err
 	}
 
-	return models.UpsertReleases(rels...)
+	return repo_model.UpsertReleases(g.ctx, rels...)
 }
 
 func (g *GiteaLocalUploader) PatchIssues(issues ...*base.Issue) error {
@@ -1037,7 +1037,7 @@ func (g *GiteaLocalUploader) PatchIssues(issues ...*base.Issue) error {
 		return nil
 	}
 
-	if err := models.UpsertIssues(g.ctx, iss...); err != nil {
+	if err := issues_model.UpsertIssues(g.ctx, iss...); err != nil {
 		return err
 	}
 
@@ -1056,7 +1056,7 @@ func (g *GiteaLocalUploader) PatchComments(comments ...*base.Comment) error {
 	if len(cms) == 0 {
 		return nil
 	}
-	return models.UpsertIssueComments(g.ctx, cms)
+	return issues_model.UpsertIssueComments(g.ctx, cms)
 }
 
 func (g *GiteaLocalUploader) PatchPullRequests(prs ...*base.PullRequest) error {
@@ -1064,7 +1064,7 @@ func (g *GiteaLocalUploader) PatchPullRequests(prs ...*base.PullRequest) error {
 	if err != nil {
 		return err
 	}
-	if err := models.UpsertPullRequests(g.ctx, gprs...); err != nil {
+	if err := issues_model.UpsertPullRequests(g.ctx, gprs...); err != nil {
 		return err
 	}
 	for _, pr := range gprs {

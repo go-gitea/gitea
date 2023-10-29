@@ -383,3 +383,85 @@ func InsertMilestones(ctx context.Context, ms ...*Milestone) (err error) {
 	}
 	return committer.Commit()
 }
+
+// UpdateMilestones updates milestones of repository.
+func UpdateMilestones(ctx context.Context, ms ...*Milestone) (err error) {
+	if len(ms) == 0 {
+		return nil
+	}
+
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		sess := db.GetEngine(ctx)
+
+		// get existing milestones
+		existingMilestones := make([]*Milestone, 0)
+		if err = sess.Where("repo_id = ?", ms[0].RepoID).Find(&existingMilestones); err != nil {
+			return err
+		}
+
+		milestonesToAdd := make([]*Milestone, 0)
+		milestonesToUpdate := make([]*Milestone, 0)
+		milestonesToDelete := make([]*Milestone, 0)
+		foundMap := make(map[int64]bool)
+
+		openCount := 0
+		closedCount := 0
+
+		for _, m := range ms {
+			var foundMilestone *Milestone
+			for _, existingMilestone := range existingMilestones {
+				if existingMilestone.OriginalID == m.OriginalID {
+					foundMilestone = existingMilestone
+					foundMap[existingMilestone.ID] = true
+					break
+				}
+			}
+
+			if foundMilestone == nil {
+				milestonesToAdd = append(milestonesToAdd, m)
+			} else if foundMilestone.OriginalID != m.OriginalID {
+				m.ID = foundMilestone.ID
+				milestonesToUpdate = append(milestonesToUpdate, m)
+			}
+
+			if m.IsClosed {
+				closedCount++
+			} else {
+				openCount++
+			}
+		}
+
+		for _, existingMilestone := range existingMilestones {
+			if _, exist := foundMap[existingMilestone.ID]; !exist {
+				milestonesToDelete = append(milestonesToDelete, existingMilestone)
+			}
+		}
+
+		if len(milestonesToAdd) > 0 {
+			if _, err = sess.Insert(milestonesToAdd); err != nil {
+				return err
+			}
+		}
+
+		for _, m := range milestonesToUpdate {
+			if _, err = sess.ID(m.ID).AllCols().Update(m); err != nil {
+				return err
+			}
+		}
+
+		for _, m := range milestonesToDelete {
+			if _, err = sess.ID(m.ID).Delete(m); err != nil {
+				return err
+			}
+		}
+
+		if _, err = sess.ID(ms[0].RepoID).Update(&repo_model.Repository{
+			NumMilestones:       len(ms),
+			NumOpenMilestones:   openCount,
+			NumClosedMilestones: closedCount,
+		}); err != nil {
+			return err
+		}
+		return nil
+	})
+}
