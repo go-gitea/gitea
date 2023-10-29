@@ -101,18 +101,17 @@ func TestPackageDebian(t *testing.T) {
 							AddBasicAuthHeader(req, user.Name)
 							MakeRequest(t, req, http.StatusCreated)
 
-							pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeDebian)
+							pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages.TypeDebian, packageName, packageVersion)
 							assert.NoError(t, err)
-							assert.NotEmpty(t, pvs)
 
-							pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+							pd, err := packages.GetPackageDescriptor(db.DefaultContext, pv)
 							assert.NoError(t, err)
 							assert.Nil(t, pd.SemVer)
 							assert.IsType(t, &debian_module.Metadata{}, pd.Metadata)
 							assert.Equal(t, packageName, pd.Package.Name)
 							assert.Equal(t, packageVersion, pd.Version.Version)
 
-							pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+							pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pv.ID)
 							assert.NoError(t, err)
 							assert.NotEmpty(t, pfs)
 							assert.Condition(t, func() bool {
