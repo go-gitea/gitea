@@ -12414,7 +12414,7 @@
           "application/json"
         ],
         "tags": [
-          "repo"
+          "repository"
         ],
         "summary": "Get a repository's actions runner registration token",
         "operationId": "repoGetRunnerRegistrationToken",
@@ -12429,7 +12429,7 @@
           {
             "type": "string",
             "description": "name of the repo",
-            "name": "repository",
+            "name": "repo",
             "in": "path",
             "required": true
           }
@@ -14595,6 +14595,23 @@
         "responses": {
           "200": {
             "$ref": "#/responses/User"
+          }
+        }
+      }
+    },
+    "/user/actions/runners/registration-token": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get an user's actions runner registration token",
+        "operationId": "userGetRunnerRegistrationToken",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RegistrationToken"
           }
         }
       }

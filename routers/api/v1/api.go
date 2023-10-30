@@ -958,10 +958,16 @@ func Routes() *web.Route {
 				Delete(bind(api.DeleteEmailOption{}), user.DeleteEmail)
 
 			// create or update a user's actions secrets
-			m.Group("/actions/secrets", func() {
-				m.Combo("/{secretname}").
-					Put(bind(api.CreateOrUpdateSecretOption{}), user.CreateOrUpdateSecret).
-					Delete(user.DeleteSecret)
+			m.Group("/actions", func() {
+				m.Group("/secrets", func() {
+					m.Combo("/{secretname}").
+						Put(bind(api.CreateOrUpdateSecretOption{}), user.CreateOrUpdateSecret).
+						Delete(user.DeleteSecret)
+				})
+
+				m.Group("/runners", func() {
+					m.Get("/registration-token", reqToken(), user.GetRegistrationToken)
+				})
 			})
 
 			m.Get("/followers", user.ListMyFollowers)
@@ -1061,10 +1067,16 @@ func Routes() *web.Route {
 					m.Post("/accept", repo.AcceptTransfer)
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
-				m.Group("/actions/secrets", func() {
-					m.Combo("/{secretname}").
-						Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateSecret).
-						Delete(reqToken(), reqOwner(), repo.DeleteSecret)
+				m.Group("/actions", func() {
+					m.Group("/secrets", func() {
+						m.Combo("/{secretname}").
+							Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateSecret).
+							Delete(reqToken(), reqOwner(), repo.DeleteSecret)
+					})
+
+					m.Group("/runners", func() {
+						m.Get("/registration-token", reqToken(), reqOwner(), repo.GetRegistrationToken)
+					})
 				})
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(repo.ListGitHooks)
