@@ -262,6 +262,42 @@ The runner will fetch jobs from the Gitea instance and run them automatically.
 
 Since act runner is still in development, it is recommended to check the latest version and upgrade it regularly.
 
+
+## Systemd service
+
+It is also possible to run act-runner as a [systemd](https://en.wikipedia.org/wiki/Systemd) service. Create an unprivileged `act-runner` user on your system, and the following file in `/etc/systemd/system/act-runner.service`. The paths in `ExecStart` and `WorkingDirectory` may need to be adjusted depending on where you installed the `act-runner` binary, its configuration file, and the home directory of the `act-runner` user.
+
+```ini
+[Unit]
+Description=Gitea Actions runner
+Documentation=https://gitea.com/gitea/act_runner
+After=docker.service
+
+[Service]
+ExecStart=/usr/local/bin/act-runner daemon --config /etc/act-runner/config.yaml
+ExecReload=/bin/kill -s HUP $MAINPID
+WorkingDirectory=/var/lib/act-runner
+TimeoutSec=0
+RestartSec=10
+Restart=always
+User=act-runner
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then:
+
+```bash
+# load the new systemd unit file
+sudo systemctl daemon-reload
+# start the service and enable it at boot
+sudo systemctl enable act-runner --now
+```
+
+If using Docker, the `act-runner` user should also be added to the `docker` group before starting the service. Keep in mind that this effectively gives `act-runner` root access to the system [[1]](https://docs.docker.com/engine/security/#docker-daemon-attack-surface).
+
+
 ## Configuration variable
 
 You can create configuration variables on the user, organization and repository level.
