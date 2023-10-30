@@ -64,7 +64,6 @@ import {
   initRepoSettingSearchTeamBox,
 } from './features/repo-settings.js';
 import {initRepoDiffView} from './features/repo-diff.js';
-import {initOrgMemberInvite} from './features/org-member.js';
 import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.js';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.js';
 import {initRepoRelease, initRepoReleaseNew} from './features/repo-release.js';
@@ -135,8 +134,6 @@ onDomReady(() => {
 
   initNotificationCount();
   initNotificationsTable();
-
-  initOrgMemberInvite();
 
   initOrgTeamSearchRepoBox();
   initOrgTeamSettings();
