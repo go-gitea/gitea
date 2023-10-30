@@ -38,7 +38,7 @@ func ToPackage(ctx context.Context, pd *packages.PackageDescriptor, doer *user_m
 		Name:       pd.Package.Name,
 		Version:    pd.Version.Version,
 		CreatedAt:  pd.Version.CreatedUnix.AsTime(),
-		HTMLURL:    fmt.Sprintf("%s%s/-/packages/%s/%s", setting.AppURL, pd.Owner.LoginName, string(pd.Package.Type), url.PathEscape(pd.Version.Version)),
+		HTMLURL:    pd.FullWebLink(),
 	}, nil
 }
 
