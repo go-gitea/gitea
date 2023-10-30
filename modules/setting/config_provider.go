@@ -213,11 +213,9 @@ func NewConfigProviderFromFile(file string, extraConfigs ...string) (ConfigProvi
 		}
 	}
 
-	if len(extraConfigs) > 0 {
-		for _, s := range extraConfigs {
-			if err := cfg.Append([]byte(s)); err != nil {
-				return nil, fmt.Errorf("unable to append more config: %v", err)
-			}
+	for _, s := range extraConfigs {
+		if err := cfg.Append([]byte(s)); err != nil {
+			return nil, fmt.Errorf("unable to append more config: %v", err)
 		}
 	}
 

@@ -34,7 +34,7 @@ func TestIssue_ReplaceLabels(t *testing.T) {
 		for i, labelID := range labelIDs {
 			labels[i] = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: labelID, RepoID: repo.ID})
 		}
-		assert.NoError(t, issues_model.ReplaceIssueLabels(issue, labels, doer))
+		assert.NoError(t, issues_model.ReplaceIssueLabels(db.DefaultContext, issue, labels, doer))
 		unittest.AssertCount(t, &issues_model.IssueLabel{IssueID: issueID}, len(expectedLabelIDs))
 		for _, labelID := range expectedLabelIDs {
 			unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issueID, LabelID: labelID})
@@ -65,7 +65,7 @@ func TestIssueAPIURL(t *testing.T) {
 	err := issue.LoadAttributes(db.DefaultContext)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/issues/1", issue.APIURL())
+	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/issues/1", issue.APIURL(db.DefaultContext))
 }
 
 func TestGetIssuesByIDs(t *testing.T) {
@@ -122,7 +122,7 @@ func TestIssue_ClearLabels(t *testing.T) {
 		assert.NoError(t, unittest.PrepareTestDatabase())
 		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: test.issueID})
 		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: test.doerID})
-		assert.NoError(t, issues_model.ClearIssueLabels(issue, doer))
+		assert.NoError(t, issues_model.ClearIssueLabels(db.DefaultContext, issue, doer))
 		unittest.AssertNotExistsBean(t, &issues_model.IssueLabel{IssueID: test.issueID})
 	}
 }
@@ -191,6 +191,12 @@ func TestIssues(t *testing.T) {
 			},
 			[]int64{}, // issues with **both** label 1 and 2, none of these issues matches, TODO: add more tests
 		},
+		{
+			issues_model.IssuesOptions{
+				MilestoneIDs: []int64{1},
+			},
+			[]int64{2},
+		},
 	} {
 		issues, err := issues_model.Issues(db.DefaultContext, &test.Opts)
 		assert.NoError(t, err)
@@ -230,7 +236,7 @@ func TestGetRepoIDsForIssuesOptions(t *testing.T) {
 			[]int64{1, 2},
 		},
 	} {
-		repoIDs, err := issues_model.GetRepoIDsForIssuesOptions(&test.Opts, user)
+		repoIDs, err := issues_model.GetRepoIDsForIssuesOptions(db.DefaultContext, &test.Opts, user)
 		assert.NoError(t, err)
 		if assert.Len(t, repoIDs, len(test.ExpectedRepoIDs)) {
 			for i, repoID := range repoIDs {
@@ -253,7 +259,7 @@ func testInsertIssue(t *testing.T, title, content string, expectIndex int64) *is
 			Title:    title,
 			Content:  content,
 		}
-		err := issues_model.NewIssue(repo, &issue, nil, nil)
+		err := issues_model.NewIssue(db.DefaultContext, repo, &issue, nil, nil)
 		assert.NoError(t, err)
 
 		has, err := db.GetEngine(db.DefaultContext).ID(issue.ID).Get(&newIssue)
@@ -477,7 +483,7 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 		Labels:      []*issues_model.Label{label},
 		Reactions:   []*issues_model.Reaction{reaction},
 	}
-	err := issues_model.InsertIssues(is)
+	err := issues_model.InsertIssues(db.DefaultContext, is)
 	assert.NoError(t, err)
 
 	i := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: title})

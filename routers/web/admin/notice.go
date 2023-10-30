@@ -24,7 +24,7 @@ func Notices(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.notices")
 	ctx.Data["PageIsAdminNotices"] = true
 
-	total := system_model.CountNotices()
+	total := system_model.CountNotices(ctx)
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1

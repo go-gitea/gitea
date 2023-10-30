@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/cache"
@@ -31,7 +30,7 @@ const gitShortEmptySha = "0000000"
 // UpdateAddress writes new address to Git repository and database
 func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error {
 	remoteName := m.GetRemoteName()
-	repoPath := m.GetRepository().RepoPath()
+	repoPath := m.GetRepository(ctx).RepoPath()
 	// Remove old remote
 	_, _, err := git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(remoteName).RunStdString(&git.RunOpts{Dir: repoPath})
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
@@ -428,7 +427,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		log.Error("SyncMirrors [repo_id: %v]: unable to GetMirrorByRepoID: %v", repoID, err)
 		return false
 	}
-	_ = m.GetRepository() // force load repository of mirror
+	_ = m.GetRepository(ctx) // force load repository of mirror
 
 	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Syncing Mirror %s/%s", m.Repo.OwnerName, m.Repo.Name))
 	defer finished()
@@ -461,7 +460,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		}
 		defer gitRepo.Close()
 
-		if ok := checkAndUpdateEmptyRepository(m, gitRepo, results); !ok {
+		if ok := checkAndUpdateEmptyRepository(ctx, m, gitRepo, results); !ok {
 			return false
 		}
 	}
@@ -550,7 +549,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	return true
 }
 
-func checkAndUpdateEmptyRepository(m *repo_model.Mirror, gitRepo *git.Repository, results []*mirrorSyncResult) bool {
+func checkAndUpdateEmptyRepository(ctx context.Context, m *repo_model.Mirror, gitRepo *git.Repository, results []*mirrorSyncResult) bool {
 	if !m.Repo.IsEmpty {
 		return true
 	}
@@ -592,7 +591,7 @@ func checkAndUpdateEmptyRepository(m *repo_model.Mirror, gitRepo *git.Repository
 		if err := gitRepo.SetDefaultBranch(m.Repo.DefaultBranch); err != nil {
 			if !git.IsErrUnsupportedVersion(err) {
 				log.Error("Failed to update default branch of underlying git repository %-v. Error: %v", m.Repo, err)
-				desc := fmt.Sprintf("Failed to uupdate default branch of underlying git repository '%s': %v", m.Repo.RepoPath(), err)
+				desc := fmt.Sprintf("Failed to update default branch of underlying git repository '%s': %v", m.Repo.RepoPath(), err)
 				if err = system_model.CreateRepositoryNotice(desc); err != nil {
 					log.Error("CreateRepositoryNotice: %v", err)
 				}
@@ -601,9 +600,9 @@ func checkAndUpdateEmptyRepository(m *repo_model.Mirror, gitRepo *git.Repository
 		}
 		m.Repo.IsEmpty = false
 		// Update the is empty and default_branch columns
-		if err := repo_model.UpdateRepositoryCols(db.DefaultContext, m.Repo, "default_branch", "is_empty"); err != nil {
+		if err := repo_model.UpdateRepositoryCols(ctx, m.Repo, "default_branch", "is_empty"); err != nil {
 			log.Error("Failed to update default branch of repository %-v. Error: %v", m.Repo, err)
-			desc := fmt.Sprintf("Failed to uupdate default branch of repository '%s': %v", m.Repo.RepoPath(), err)
+			desc := fmt.Sprintf("Failed to update default branch of repository '%s': %v", m.Repo.RepoPath(), err)
 			if err = system_model.CreateRepositoryNotice(desc); err != nil {
 				log.Error("CreateRepositoryNotice: %v", err)
 			}
