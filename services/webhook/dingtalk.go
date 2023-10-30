@@ -173,7 +173,7 @@ func (d *DingtalkPayload) Release(p *api.ReleasePayload) (api.Payloader, error) 
 	return createDingtalkPayload(text, text, "view release", p.Release.HTMLURL), nil
 }
 
-func (m *DingtalkPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+func (d *DingtalkPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
 	text, _ := getPackagePayloadInfo(p, noneLinkFormatter, true)
 
 	return createDingtalkPayload(text, text, "view package", p.Package.HTMLURL), nil
