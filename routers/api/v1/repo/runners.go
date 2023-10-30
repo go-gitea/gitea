@@ -21,7 +21,7 @@ func GetRegistrationToken(ctx *context.APIContext) {
 	//   description: owner of the repo
 	//   type: string
 	//   required: true
-	// - name: repo
+	// - name: repository
 	//   in: path
 	//   description: name of the repo
 	//   type: string
