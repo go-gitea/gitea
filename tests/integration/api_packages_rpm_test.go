@@ -118,7 +118,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 		assert.Nil(t, pd.SemVer)
 		assert.IsType(t, &rpm_module.VersionMetadata{}, pd.Metadata)
 		assert.Equal(t, packageName, pd.Package.Name)
-		assert.Equal(t, packageVersion, pd.Version.Version)
+		assert.Equal(t, fmt.Sprintf("/el9/stable/%s", packageVersion), pd.Version.Version)
 
 		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
 		assert.NoError(t, err)

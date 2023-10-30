@@ -1,5 +1,4 @@
 {{if eq .PackageDescriptor.Package.Type "rpm"}}
-	<div class="item" title="package group">{{svg "octicon-file-directory-open-fill" 16 "gt-mr-3"}}{{StringUtils.Join .Groups ", "}}</div>
 	<div class="item" title="package arch">{{svg "octicon-server" 16 "gt-mr-3"}} {{StringUtils.Join .Architectures ", "}}</div>
 	{{if .PackageDescriptor.Metadata.ProjectURL}}<div class="item">{{svg "octicon-link-external" 16 "gt-mr-3"}} <a href="{{.PackageDescriptor.Metadata.ProjectURL}}" target="_blank" rel="noopener noreferrer me">{{ctx.Locale.Tr "packages.details.project_site"}}</a></div>{{end}}
 	{{if .PackageDescriptor.Metadata.License}}<div class="item" title="{{ctx.Locale.Tr "packages.details.license"}}">{{svg "octicon-law" 16 "gt-mr-3"}} {{.PackageDescriptor.Metadata.License}}</div>{{end}}
