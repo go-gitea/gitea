@@ -38,6 +38,23 @@ func (err ErrAccessTokenNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
+// ErrBadAccessToken represents a "BadAccessToken" kind of error.
+type ErrBadAccessToken struct{}
+
+// IsErrBadAccessToken checks if an error is a ErrBadAccessToken.
+func IsErrBadAccessToken(err error) bool {
+	_, ok := err.(ErrBadAccessToken)
+	return ok
+}
+
+func (err ErrBadAccessToken) Error() string {
+	return "Bad credentials or token"
+}
+
+func (err ErrBadAccessToken) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 // ErrAccessTokenEmpty represents a "AccessTokenEmpty" kind of error.
 type ErrAccessTokenEmpty struct{}
 

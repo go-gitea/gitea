@@ -4,8 +4,10 @@
 package common
 
 import (
+	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/web/middleware"
 	auth_service "code.gitea.io/gitea/services/auth"
 )
@@ -18,7 +20,8 @@ type AuthResult struct {
 func AuthShared(ctx *context.Base, sessionStore auth_service.SessionStore, authMethod auth_service.Method) (ar AuthResult, err error) {
 	ar.Doer, err = authMethod.Verify(ctx.Req, ctx.Resp, ctx, sessionStore)
 	if err != nil {
-		return ar, err
+		log.Warn("authentication failed", err)
+		return ar, auth_model.ErrBadAccessToken{}
 	}
 	if ar.Doer != nil {
 		if ctx.Locale.Language() != ar.Doer.Language {
