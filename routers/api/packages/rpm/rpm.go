@@ -147,9 +147,7 @@ func UploadPackageFile(ctx *context.Context) {
 			Data:    buf,
 			IsLead:  true,
 			Properties: map[string]string{
-				rpm_module.PropertyMetadata:     string(fileMetadataRaw),
-				rpm_module.PropertyGroup:        group,
-				rpm_module.PropertyArchitecture: pck.FileMetadata.Architecture,
+				rpm_module.PropertyMetadata: string(fileMetadataRaw),
 			},
 		},
 	)
