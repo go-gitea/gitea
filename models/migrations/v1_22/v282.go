@@ -53,7 +53,6 @@ func RebuildRpmPackage(x *xorm.Engine) error {
 	if err != nil {
 		return err
 	}
-	// add metadata
 	// NOTE: package_property[name='rpm.metadata'] is very large,
 	// and to avoid querying all of them resulting in large memory,
 	// a single RPM package is now used for updating.
