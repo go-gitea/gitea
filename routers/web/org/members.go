@@ -6,14 +6,19 @@ package org
 
 import (
 	"net/http"
+	"net/url"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/routers/utils"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	org_service "code.gitea.io/gitea/services/org"
 )
 
 const (
@@ -89,6 +94,75 @@ func MembersInvite(ctx *context.Context) {
 		return
 	}
 	ctx.HTML(http.StatusOK, tplMembersInvite)
+}
+
+// MembersInviteAction response for invite a member to organization
+func MembersInviteAction(ctx *context.Context) {
+	var err error
+	if !ctx.Org.IsOwner {
+		ctx.Error(http.StatusNotFound)
+		return
+	}
+	uname := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("uname")))
+	var team *organization.Team
+	team, err = organization.GetTeam(ctx, ctx.Org.Organization.ID, ctx.FormString("team"))
+	if err != nil {
+		if organization.IsErrTeamNotExist(err) {
+			ctx.Flash.Error(ctx.Tr("form.team_not_exist"))
+		} else {
+			ctx.ServerError("GetTeam", err)
+		}
+		return
+	}
+	var u *user_model.User
+	u, err = user_model.GetUserByName(ctx, uname)
+	if err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			if setting.MailService != nil && user_model.ValidateEmail(uname) == nil {
+				if err := org_service.CreateTeamInvite(ctx, ctx.Doer, team, uname); err != nil {
+					if organization.IsErrTeamInviteAlreadyExist(err) {
+						ctx.Flash.Error(ctx.Tr("form.duplicate_invite_to_team"))
+					} else if organization.IsErrUserEmailAlreadyAdded(err) {
+						ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
+					} else {
+						ctx.ServerError("CreateTeamInvite", err)
+						return
+					}
+				}
+			} else {
+				ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
+			}
+			ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(team.LowerName))
+		} else {
+			ctx.ServerError("GetUserByName", err)
+		}
+		return
+	}
+
+	if u.IsOrganization() {
+		ctx.Flash.Error(ctx.Tr("form.cannot_add_org_to_team"))
+		ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(team.LowerName))
+		return
+	}
+
+	if team.IsMember(ctx, u.ID) {
+		ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
+	} else {
+		err = models.AddTeamMember(ctx, team, u.ID)
+	}
+	if err != nil {
+		if organization.IsErrLastOrgOwner(err) {
+			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
+		} else {
+			log.Error("Action(%s): %v", ctx.Params(":action"), err)
+			ctx.JSON(http.StatusOK, map[string]any{
+				"ok":  false,
+				"err": err.Error(),
+			})
+			return
+		}
+	}
+	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(team.LowerName))
 }
 
 // MembersAction response for operation to a member of organization
