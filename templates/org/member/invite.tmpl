@@ -11,7 +11,7 @@
 					{{.CsrfTokenHtml}}
 					<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
 					<label>{{ctx.Locale.Tr "org.members.invite"}}</label>
-					<div id="search-user-box" class="ui search input"{{if .IsEmailInviteEnabled}} data-allow-email="true" data-allow-email-description="{{ctx.Locale.Tr "org.teams.invite_team_member" $.Team.Name}}"{{end}}>
+					<div id="search-user-box" class="ui search input"{{if .IsEmailInviteEnabled}} data-allow-email="true" data-allow-email-description="{{ctx.Locale.Tr "org.members.invite_member"}}"{{end}}>
 						<input class="prompt" name="uname" placeholder="{{ctx.Locale.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" autofocus required>
 					</div>
 					<label>{{ctx.Locale.Tr "org.members.to"}}</label>
