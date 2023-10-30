@@ -577,13 +577,6 @@ func CommonRoutes() *web.Route {
 	return r
 }
 
-func rpmGroupFormat(input string) string {
-	if input == "" {
-		return "/"
-	}
-	return input
-}
-
 // Support for uploading rpm packages with arbitrary depth paths
 func RpmRoutes(r *web.Route) func() {
 	var (
@@ -608,19 +601,18 @@ func RpmRoutes(r *web.Route) func() {
 			// get repo
 			m := groupRepoInfo.FindStringSubmatch(path)
 			if len(m) == 2 && isGetHead {
-				ctx.SetParams("group", rpmGroupFormat(m[1]))
+				ctx.SetParams("group", strings.Trim(m[1], "/"))
 				rpm.GetRepositoryConfig(ctx)
 				return
 			}
 			// get meta
 			m = groupMetadata.FindStringSubmatch(path)
 			if len(m) == 3 && isGetHead {
-				ctx.SetParams("group", rpmGroupFormat(m[1]))
-				ctx.SetParams("filename", rpmGroupFormat(m[2]))
+				ctx.SetParams("group", strings.Trim(m[1], "/"))
+				ctx.SetParams("filename", m[2])
 				rpm.GetRepositoryFile(ctx)
 				return
 			}
-
 			// upload
 			m = groupUpload.FindStringSubmatch(path)
 			if len(m) == 2 && isPut {
@@ -628,14 +620,14 @@ func RpmRoutes(r *web.Route) func() {
 				if ctx.Written() {
 					return
 				}
-				ctx.SetParams("group", rpmGroupFormat(m[1]))
+				ctx.SetParams("group", strings.Trim(m[1], "/"))
 				rpm.UploadPackageFile(ctx)
 				return
 			}
 			// rpm down/delete
 			m = groupRpm.FindStringSubmatch(path)
 			if len(m) == 6 {
-				ctx.SetParams("group", rpmGroupFormat(m[1]))
+				ctx.SetParams("group", strings.Trim(m[1], "/"))
 				ctx.SetParams("name", m[2])
 				ctx.SetParams("version", m[3])
 				ctx.SetParams("architecture", m[4])
