@@ -133,7 +133,7 @@ func UploadPackageFile(ctx *context.Context) {
 				Owner:       ctx.Package.Owner,
 				PackageType: packages_model.TypeRpm,
 				Name:        pck.Name,
-				Version:     fmt.Sprintf("%s/%s", group, pck.Version),
+				Version:     fmt.Sprintf("%s/%s", strings.TrimRight(group, "/"), pck.Version),
 			},
 			Creator:  ctx.Doer,
 			Metadata: pck.VersionMetadata,
@@ -183,7 +183,7 @@ func DownloadPackageFile(ctx *context.Context) {
 			Owner:       ctx.Package.Owner,
 			PackageType: packages_model.TypeRpm,
 			Name:        name,
-			Version:     fmt.Sprintf("%s/%s", group, version),
+			Version:     fmt.Sprintf("%s/%s", strings.TrimRight(group, "/"), version),
 		},
 		&packages_service.PackageFileInfo{
 			Filename:     fmt.Sprintf("%s-%s.%s.rpm", name, version, ctx.Params("architecture")),
@@ -210,7 +210,7 @@ func DeletePackageFile(webctx *context.Context) {
 	var pd *packages_model.PackageDescriptor
 
 	err := db.WithTx(webctx, func(ctx stdctx.Context) error {
-		pv, err := packages_model.GetVersionByNameAndVersion(ctx, webctx.Package.Owner.ID, packages_model.TypeRpm, name, fmt.Sprintf("%s/%s", group, version))
+		pv, err := packages_model.GetVersionByNameAndVersion(ctx, webctx.Package.Owner.ID, packages_model.TypeRpm, name, fmt.Sprintf("%s/%s", strings.TrimRight(group, "/"), version))
 		if err != nil {
 			return err
 		}
