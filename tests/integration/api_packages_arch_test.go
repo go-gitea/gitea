@@ -32,11 +32,11 @@ func TestPackageArch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	var (
-		gitV1x86_64 = BuildArchPackage(t, "git", "1-1", "x86_64")
-		gitV1i686   = BuildArchPackage(t, "git", "1-1", "i686")
-		iconsV1any  = BuildArchPackage(t, "icons", "1-1", "any")
-		gitV2x86_64 = BuildArchPackage(t, "git", "2-1", "x86_64")
-		iconsV2any  = BuildArchPackage(t, "icons", "2-1", "any")
+		gitV1x86_64 = buildArchPackage(t, "git", "1-1", "x86_64")
+		gitV1i686   = buildArchPackage(t, "git", "1-1", "i686")
+		iconsV1any  = buildArchPackage(t, "icons", "1-1", "any")
+		gitV2x86_64 = buildArchPackage(t, "git", "2-1", "x86_64")
+		iconsV2any  = buildArchPackage(t, "icons", "2-1", "any")
 
 		firstSign  = []byte{1, 2, 3, 4}
 		secondSign = []byte{4, 3, 2, 1}
@@ -282,7 +282,7 @@ type testArchPackage struct {
 	pkg  arch.Package
 }
 
-func BuildArchPackage(t *testing.T, name, ver, architecture string) testArchPackage {
+func buildArchPackage(t *testing.T, name, ver, architecture string) testArchPackage {
 	fs := fstest.MapFS{
 		"pkginfo": &fstest.MapFile{
 			Data: []byte(fmt.Sprintf(

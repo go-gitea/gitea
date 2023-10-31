@@ -175,7 +175,7 @@ backup = usr/bin/paket1
 }
 
 func TestValidatePackageSpec(t *testing.T) {
-	var newpkg = func() Package {
+	newpkg := func() Package {
 		return Package{
 			Name:    "abc",
 			Version: "1-1",
