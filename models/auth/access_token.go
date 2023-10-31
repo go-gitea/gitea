@@ -52,7 +52,7 @@ func (err ErrBadAccessToken) Error() string {
 }
 
 func (err ErrBadAccessToken) Unwrap() error {
-	return util.ErrPermissionDenied
+	return util.ErrInvalidArgument
 }
 
 // ErrAccessTokenEmpty represents a "AccessTokenEmpty" kind of error.
