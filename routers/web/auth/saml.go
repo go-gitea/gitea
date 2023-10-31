@@ -149,7 +149,7 @@ func samlUserLoginCallback(ctx context.Context, authSource *auth.Source, request
 		ExternalID:    gothUser.UserID,
 		LoginSourceID: authSource.ID,
 	}
-	hasUser, err = user_model.GetExternalLogin(externalLoginUser)
+	hasUser, err = user_model.GetExternalLogin(ctx, externalLoginUser)
 	if err != nil {
 		return nil, goth.User{}, err
 	}
