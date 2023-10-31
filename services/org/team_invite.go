@@ -40,10 +40,9 @@ func AddTeamMember(ctx context.Context, inviter *user_model.User, team *org_mode
 						return false, errors.New(locale.Tr("form.duplicate_invite_to_team"))
 					} else if org_model.IsErrUserEmailAlreadyAdded(err) {
 						return false, errors.New(locale.Tr("org.teams.add_duplicate_users"))
-					} else {
-						log.Error("CreateTeamInvite: %v", err)
-						return true, err
 					}
+					log.Error("CreateTeamInvite: %v", err)
+					return true, err
 				}
 			} else {
 				err = errors.New(locale.Tr("form.user_not_exist"))
