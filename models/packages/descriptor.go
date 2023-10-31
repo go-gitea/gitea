@@ -142,7 +142,7 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 	case TypeAlpine:
 		metadata = &alpine.VersionMetadata{}
 	case TypeArch:
-		metadata = &arch.Metadata{}
+		metadata = &arch.VersionMetadata{}
 	case TypeCargo:
 		metadata = &cargo.Metadata{}
 	case TypeChef:

@@ -6,194 +6,274 @@ package arch
 import (
 	"archive/tar"
 	"bufio"
+	"bytes"
 	"compress/gzip"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
-	packages_module "code.gitea.io/gitea/modules/packages"
-
+	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/validation"
 	"github.com/mholt/archiver/v3"
 )
 
-// JSON with pacakage parameters that are not related to specific
-// architecture/distribution that will be stored in sql database.
-type Metadata struct {
-	URL          string   `json:"url"`
+type Package struct {
+	Name            string `json:"name"`
+	Version         string `json:"version"`
+	VersionMetadata VersionMetadata
+	FileMetadata    FileMetadata
+}
+
+// Arch package metadata related to specific version.
+// Version metadata the same across different architectures and distributions.
+type VersionMetadata struct {
+	Base         string   `json:"base"`
 	Description  string   `json:"description"`
+	ProjectURL   string   `json:"project_url"`
+	Groups       []string `json:"groups,omitempty"`
 	Provides     []string `json:"provides,omitempty"`
 	License      []string `json:"license,omitempty"`
 	Depends      []string `json:"depends,omitempty"`
 	OptDepends   []string `json:"opt_depends,omitempty"`
 	MakeDepends  []string `json:"make_depends,omitempty"`
 	CheckDepends []string `json:"check_depends,omitempty"`
+	Backup       []string `json:"backup,omitempty"`
 }
 
-// Package description file that will be saved as .desc file in object storage.
-// This file will be used to create pacman database.
-type DbDesc struct {
-	Filename       string   `json:"filename"`
-	Name           string   `json:"name"`
-	Base           string   `json:"base"`
-	Version        string   `json:"version"`
-	Description    string   `json:"description"`
-	CompressedSize int64    `json:"compressed_size"`
-	InstalledSize  int64    `json:"installed_size"`
-	MD5            string   `json:"md5"`
-	SHA256         string   `json:"sha256"`
-	ProjectURL     string   `json:"project_url"`
-	BuildDate      int64    `json:"build_date"`
-	Packager       string   `json:"packager"`
-	Provides       []string `json:"provides,omitempty"`
-	License        []string `json:"license,omitempty"`
-	Arch           []string `json:"arch,omitempty"`
-	Depends        []string `json:"depends,omitempty"`
-	OptDepends     []string `json:"opt_depends,omitempty"`
-	MakeDepends    []string `json:"make_depends,omitempty"`
-	CheckDepends   []string `json:"check_depends,omitempty"`
-	Backup         []string `json:"backup,omitempty"`
+// Metadata related to specific pakcage file.
+// This metadata might vary for different architecture and distribution.
+type FileMetadata struct {
+	CompressedSize int64  `json:"compressed_size"`
+	InstalledSize  int64  `json:"installed_size"`
+	MD5            string `json:"md5"`
+	SHA256         string `json:"sha256"`
+	BuildDate      int64  `json:"build_date"`
+	Packager       string `json:"packager"`
+	Arch           string `json:"arch"`
 }
 
 // Function that receives arch package archive data and returns it's metadata.
-func ParseMetadata(file, distro string, b *packages_module.HashedBuffer) (*DbDesc, error) {
-	pkginfo, err := getPkginfo(b)
+func ParsePackage(r io.Reader, md5, sha256 []byte, size int64) (*Package, error) {
+	zstd := archiver.NewTarZstd()
+	err := zstd.Open(r, 0)
 	if err != nil {
 		return nil, err
 	}
+	defer zstd.Close()
 
-	// Add package blob parameters to arch related desc.
-	hashMD5, _, hashSHA256, _ := b.Sums()
-	md := DbDesc{
-		Filename:       file,
-		Name:           file,
-		CompressedSize: b.Size(),
-		MD5:            hex.EncodeToString(hashMD5),
-		SHA256:         hex.EncodeToString(hashSHA256),
-	}
+	var pkg *Package
+	var mtree bool
 
-	for _, line := range strings.Split(pkginfo, "\n") {
-		splt := strings.Split(line, " = ")
-		if len(splt) != 2 {
-			continue
-		}
-		var (
-			parameter = splt[0]
-			value     = splt[1]
-		)
-
-		switch parameter {
-		case "pkgname":
-			md.Name = value
-		case "pkgbase":
-			md.Base = value
-		case "pkgver":
-			md.Version = value
-		case "pkgdesc":
-			md.Description = value
-		case "url":
-			md.ProjectURL = value
-		case "packager":
-			md.Packager = value
-		case "provides":
-			md.Provides = append(md.Provides, value)
-		case "license":
-			md.License = append(md.License, value)
-		case "arch":
-			md.Arch = append(md.Arch, value)
-		case "depend":
-			md.Depends = append(md.Depends, value)
-		case "optdepend":
-			md.OptDepends = append(md.OptDepends, value)
-		case "makedepend":
-			md.MakeDepends = append(md.MakeDepends, value)
-		case "checkdepend":
-			md.CheckDepends = append(md.CheckDepends, value)
-		case "backup":
-			md.Backup = append(md.Backup, value)
-		case "builddate":
-			md.BuildDate, err = strconv.ParseInt(value, 10, 64)
-			if err != nil {
-				return nil, err
-			}
-		case "size":
-			md.InstalledSize, err = strconv.ParseInt(value, 10, 64)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return &md, nil
-}
-
-// Eject .PKGINFO file as string from package archive.
-func getPkginfo(data io.Reader) (string, error) {
-	br := bufio.NewReader(data)
-	zstd := archiver.NewTarZstd()
-	err := zstd.Open(br, int64(250000))
-	if err != nil {
-		return ``, err
-	}
 	for {
 		f, err := zstd.Read()
-		if err != nil {
-			return ``, err
+		if err == io.EOF {
+			break
 		}
-		if f.Name() != ".PKGINFO" {
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+
+		switch f.Name() {
+		case ".PKGINFO":
+			pkg, err = ParsePackageInfo(f)
+			if err != nil {
+				return nil, err
+			}
+		case ".MTREE":
+			mtree = true
+		}
+	}
+
+	if pkg == nil {
+		return nil, util.NewInvalidArgumentErrorf(".PKGINFO file not found")
+	}
+
+	if !mtree {
+		return nil, util.NewInvalidArgumentErrorf(".MTREE file not found")
+	}
+
+	pkg.FileMetadata.CompressedSize = size
+	pkg.FileMetadata.SHA256 = hex.EncodeToString(sha256)
+	pkg.FileMetadata.MD5 = hex.EncodeToString(md5)
+
+	return pkg, nil
+}
+
+// Function that accepts reader for .PKGINFO file from package archive,
+// validates all field according to PKGBUILD spec and returns package.
+func ParsePackageInfo(r io.Reader) (*Package, error) {
+	p := &Package{}
+
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if strings.HasPrefix(line, "#") {
 			continue
 		}
-		b, err := io.ReadAll(f)
-		if err != nil {
-			return ``, err
+
+		i := strings.IndexRune(line, '=')
+		if i == -1 {
+			continue
 		}
-		return string(b), nil
+
+		key := strings.TrimSpace(line[:i])
+		value := strings.TrimSpace(line[i+1:])
+
+		switch key {
+		case "pkgname":
+			p.Name = value
+		case "pkgbase":
+			p.VersionMetadata.Base = value
+		case "pkgver":
+			p.Version = value
+		case "pkgdesc":
+			p.VersionMetadata.Description = value
+		case "url":
+			p.VersionMetadata.ProjectURL = value
+		case "packager":
+			p.FileMetadata.Packager = value
+		case "arch":
+			p.FileMetadata.Arch = value
+		case "provides":
+			p.VersionMetadata.Provides = append(p.VersionMetadata.Provides, value)
+		case "license":
+			p.VersionMetadata.License = append(p.VersionMetadata.License, value)
+		case "depend":
+			p.VersionMetadata.Depends = append(p.VersionMetadata.Depends, value)
+		case "optdepend":
+			p.VersionMetadata.OptDepends = append(p.VersionMetadata.OptDepends, value)
+		case "makedepend":
+			p.VersionMetadata.MakeDepends = append(p.VersionMetadata.MakeDepends, value)
+		case "checkdepend":
+			p.VersionMetadata.CheckDepends = append(p.VersionMetadata.CheckDepends, value)
+		case "backup":
+			p.VersionMetadata.Backup = append(p.VersionMetadata.Backup, value)
+		case "group":
+			p.VersionMetadata.Groups = append(p.VersionMetadata.Groups, value)
+		case "builddate":
+			bd, err := strconv.ParseInt(value, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			p.FileMetadata.BuildDate = bd
+		case "size":
+			is, err := strconv.ParseInt(value, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			p.FileMetadata.InstalledSize = is
+		}
 	}
+
+	return p, errors.Join(scanner.Err(), ValidatePackageSpec(p))
+}
+
+// Arch package validation according to PKGBUILD specification:
+// https://man.archlinux.org/man/PKGBUILD.5
+func ValidatePackageSpec(p *Package) error {
+	var (
+		reName   = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$`)
+		reVer    = regexp.MustCompile(`^[a-zA-Z0-9:_.+]+-+[0-9]+$`)
+		reOptDep = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$|^[a-zA-Z0-9@._+-]+(:.*)`)
+		rePkgVer = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$|^[a-zA-Z0-9@._+-]+(>.*)|^[a-zA-Z0-9@._+-]+(<.*)|^[a-zA-Z0-9@._+-]+(=.*)`)
+	)
+
+	if !reName.MatchString(p.Name) {
+		return util.NewInvalidArgumentErrorf("invalid package name")
+	}
+	if !reName.MatchString(p.VersionMetadata.Base) {
+		return util.NewInvalidArgumentErrorf("invalid package base")
+	}
+	if !reVer.MatchString(p.Version) {
+		return util.NewInvalidArgumentErrorf("invalid package version")
+	}
+	if p.FileMetadata.Arch == "" {
+		return util.NewInvalidArgumentErrorf("architecture should be specified")
+	}
+	if p.VersionMetadata.ProjectURL != "" {
+		if !validation.IsValidURL(p.VersionMetadata.ProjectURL) {
+			return util.NewInvalidArgumentErrorf("invalid project URL")
+		}
+	}
+	for _, cd := range p.VersionMetadata.CheckDepends {
+		if !rePkgVer.MatchString(cd) {
+			return util.NewInvalidArgumentErrorf("invalid check dependency: " + cd)
+		}
+	}
+	for _, d := range p.VersionMetadata.Depends {
+		if !rePkgVer.MatchString(d) {
+			return util.NewInvalidArgumentErrorf("invalid dependency: " + d)
+		}
+	}
+	for _, md := range p.VersionMetadata.MakeDepends {
+		if !rePkgVer.MatchString(md) {
+			return util.NewInvalidArgumentErrorf("invalid make dependency: " + md)
+		}
+	}
+	for _, p := range p.VersionMetadata.Provides {
+		if !rePkgVer.MatchString(p) {
+			return util.NewInvalidArgumentErrorf("invalid provides: " + p)
+		}
+	}
+	for _, od := range p.VersionMetadata.OptDepends {
+		if !reOptDep.MatchString(od) {
+			return util.NewInvalidArgumentErrorf("invalid optional dependency: " + od)
+		}
+	}
+	for _, bf := range p.VersionMetadata.Backup {
+		if strings.HasPrefix(bf, "/") {
+			return util.NewInvalidArgumentErrorf("backup file contains leading forward slash")
+		}
+	}
+	return nil
 }
 
 // Create pacman package description file.
-func (m *DbDesc) String() string {
-	entries := []struct{ key, value string }{
-		{"FILENAME", m.Filename},
-		{"NAME", m.Name},
-		{"BASE", m.Base},
-		{"VERSION", m.Version},
-		{"DESC", m.Description},
-		{"CSIZE", fmt.Sprintf("%d", m.CompressedSize)},
-		{"ISIZE", fmt.Sprintf("%d", m.InstalledSize)},
-		{"MD5SUM", m.MD5},
-		{"SHA256SUM", m.SHA256},
-		{"URL", m.ProjectURL},
-		{"LICENSE", strings.Join(m.License, "\n")},
-		{"ARCH", strings.Join(m.Arch, "\n")},
-		{"BUILDDATE", fmt.Sprintf("%d", m.BuildDate)},
-		{"PACKAGER", m.Packager},
-		{"PROVIDES", strings.Join(m.Provides, "\n")},
-		{"DEPENDS", strings.Join(m.Depends, "\n")},
-		{"OPTDEPENDS", strings.Join(m.OptDepends, "\n")},
-		{"MAKEDEPENDS", strings.Join(m.MakeDepends, "\n")},
-		{"CHECKDEPENDS", strings.Join(m.CheckDepends, "\n")},
+func (p *Package) Desc() string {
+	entries := [40]string{
+		"FILENAME", fmt.Sprintf("%s-%s-%s.pkg.tar.zst", p.Name, p.Version, p.FileMetadata.Arch),
+		"NAME", p.Name,
+		"BASE", p.VersionMetadata.Base,
+		"VERSION", p.Version,
+		"DESC", p.VersionMetadata.Description,
+		"GROUPS", strings.Join(p.VersionMetadata.Groups, "\n"),
+		"CSIZE", fmt.Sprintf("%d", p.FileMetadata.CompressedSize),
+		"ISIZE", fmt.Sprintf("%d", p.FileMetadata.InstalledSize),
+		"MD5SUM", p.FileMetadata.MD5,
+		"SHA256SUM", p.FileMetadata.SHA256,
+		"URL", p.VersionMetadata.ProjectURL,
+		"LICENSE", strings.Join(p.VersionMetadata.License, "\n"),
+		"ARCH", p.FileMetadata.Arch,
+		"BUILDDATE", fmt.Sprintf("%d", p.FileMetadata.BuildDate),
+		"PACKAGER", p.FileMetadata.Packager,
+		"PROVIDES", strings.Join(p.VersionMetadata.Provides, "\n"),
+		"DEPENDS", strings.Join(p.VersionMetadata.Depends, "\n"),
+		"OPTDEPENDS", strings.Join(p.VersionMetadata.OptDepends, "\n"),
+		"MAKEDEPENDS", strings.Join(p.VersionMetadata.MakeDepends, "\n"),
+		"CHECKDEPENDS", strings.Join(p.VersionMetadata.CheckDepends, "\n"),
 	}
 
 	var result string
-	for _, e := range entries {
-		if e.value != "" {
-			result += fmt.Sprintf("%%%s%%\n%s\n\n", e.key, e.value)
+	for i := 0; i < 40; i += 2 {
+		if entries[i+1] != "" {
+			result += fmt.Sprintf("%%%s%%\n%s\n\n", entries[i], entries[i+1])
 		}
 	}
 	return result
 }
 
 // Create pacman database archive based on provided package metadata structs.
-func CreatePacmanDb(entries map[string][]byte) (io.ReadSeeker, error) {
-	out, err := packages_module.NewHashedBuffer()
-	if err != nil {
-		return nil, err
-	}
+func CreatePacmanDb(entries map[string][]byte) (*bytes.Buffer, error) {
+	var b bytes.Buffer
 
-	gw := gzip.NewWriter(out)
+	gw := gzip.NewWriter(&b)
 	tw := tar.NewWriter(gw)
 
 	for name, content := range entries {
@@ -204,20 +284,13 @@ func CreatePacmanDb(entries map[string][]byte) (io.ReadSeeker, error) {
 		}
 
 		if err := tw.WriteHeader(header); err != nil {
-			tw.Close()
-			gw.Close()
-			return nil, err
+			return nil, errors.Join(err, tw.Close(), gw.Close())
 		}
 
 		if _, err := tw.Write(content); err != nil {
-			tw.Close()
-			gw.Close()
-			return nil, err
+			return nil, errors.Join(err, tw.Close(), gw.Close())
 		}
 	}
 
-	tw.Close()
-	gw.Close()
-
-	return out, nil
+	return &b, errors.Join(tw.Close(), gw.Close())
 }

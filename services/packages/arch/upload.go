@@ -24,7 +24,9 @@ func UploadArchPackage(ctx *context.Context, upload io.Reader, filename, distro,
 	}
 	defer buf.Close()
 
-	desc, err := arch_module.ParseMetadata(filename, distro, buf)
+	md5, _, sha256, _ := buf.Sums()
+
+	p, err := arch_module.ParsePackage(buf, md5, sha256, buf.Size())
 	if err != nil {
 		return false, nil, err
 	}
@@ -35,7 +37,7 @@ func UploadArchPackage(ctx *context.Context, upload io.Reader, filename, distro,
 	}
 
 	properties := map[string]string{
-		"desc": desc.String(),
+		"desc": p.Desc(),
 	}
 	if sign != "" {
 		_, err := hex.DecodeString(sign)
@@ -50,20 +52,11 @@ func UploadArchPackage(ctx *context.Context, upload io.Reader, filename, distro,
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
 				PackageType: packages_model.TypeArch,
-				Name:        desc.Name,
-				Version:     desc.Version,
+				Name:        p.Name,
+				Version:     p.Version,
 			},
-			Creator: ctx.Doer,
-			Metadata: &arch_module.Metadata{
-				URL:          desc.ProjectURL,
-				Description:  desc.Description,
-				Provides:     desc.Provides,
-				License:      desc.License,
-				Depends:      desc.Depends,
-				OptDepends:   desc.OptDepends,
-				MakeDepends:  desc.MakeDepends,
-				CheckDepends: desc.CheckDepends,
-			},
+			Creator:  ctx.Doer,
+			Metadata: p.VersionMetadata,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{

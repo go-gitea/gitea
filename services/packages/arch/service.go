@@ -83,7 +83,7 @@ func getPackageFile(ctx *context.Context, distro, file string) (*packages_model.
 // requested combination of architecture and distribution. When/If the first
 // compatible version is found, related desc file will be loaded from package
 // properties and added to resulting .db.tar.gz archive.
-func CreatePacmanDb(ctx *context.Context, owner, arch, distro string) (io.ReadSeeker, error) {
+func CreatePacmanDb(ctx *context.Context, owner, arch, distro string) (*bytes.Buffer, error) {
 	pkgs, err := packages_model.GetPackagesByType(ctx, ctx.Package.Owner.ID, packages_model.TypeArch)
 	if err != nil {
 		return nil, err

@@ -4,6 +4,7 @@
 package arch
 
 import (
+	"bytes"
 	"net/http"
 	"strings"
 
@@ -95,7 +96,7 @@ func Get(ctx *context.Context) {
 			return
 		}
 
-		ctx.ServeContent(db, &context.ServeHeaderOptions{
+		ctx.ServeContent(bytes.NewReader(db.Bytes()), &context.ServeHeaderOptions{
 			Filename: file,
 		})
 		return
