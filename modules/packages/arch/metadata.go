@@ -22,6 +22,14 @@ import (
 	"github.com/mholt/archiver/v3"
 )
 
+var (
+	// https://man.archlinux.org/man/PKGBUILD.5
+	reName   = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$`)
+	reVer    = regexp.MustCompile(`^[a-zA-Z0-9:_.+]+-+[0-9]+$`)
+	reOptDep = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$|^[a-zA-Z0-9@._+-]+(:.*)`)
+	rePkgVer = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$|^[a-zA-Z0-9@._+-]+(>.*)|^[a-zA-Z0-9@._+-]+(<.*)|^[a-zA-Z0-9@._+-]+(=.*)`)
+)
+
 type Package struct {
 	Name            string `json:"name"`
 	Version         string `json:"version"`
@@ -175,16 +183,8 @@ func ParsePackageInfo(r io.Reader) (*Package, error) {
 	return p, errors.Join(scanner.Err(), ValidatePackageSpec(p))
 }
 
-// Arch package validation according to PKGBUILD specification:
-// https://man.archlinux.org/man/PKGBUILD.5
+// Arch package validation according to PKGBUILD specification.
 func ValidatePackageSpec(p *Package) error {
-	var (
-		reName   = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$`)
-		reVer    = regexp.MustCompile(`^[a-zA-Z0-9:_.+]+-+[0-9]+$`)
-		reOptDep = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$|^[a-zA-Z0-9@._+-]+(:.*)`)
-		rePkgVer = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$|^[a-zA-Z0-9@._+-]+(>.*)|^[a-zA-Z0-9@._+-]+(<.*)|^[a-zA-Z0-9@._+-]+(=.*)`)
-	)
-
 	if !reName.MatchString(p.Name) {
 		return util.NewInvalidArgumentErrorf("invalid package name")
 	}
