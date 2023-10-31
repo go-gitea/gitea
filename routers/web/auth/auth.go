@@ -168,7 +168,7 @@ func SignIn(ctx *context.Context) {
 	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
 	ctx.Data["OAuth2Providers"] = oauth2Providers
 
-	samlProviders, err := auth.GetActiveAuthProviderSources(auth.SAML)
+	samlProviders, err := auth.GetActiveAuthProviderSources(ctx, auth.SAML)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
