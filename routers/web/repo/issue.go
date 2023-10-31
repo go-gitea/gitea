@@ -198,46 +198,43 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	var issueStats *issues_model.IssueStats
-	{
-		statsOpts := &issues_model.IssuesOptions{
-			RepoIDs:           []int64{repo.ID},
-			LabelIDs:          labelIDs,
-			MilestoneIDs:      mileIDs,
-			ProjectID:         projectID,
-			AssigneeID:        assigneeID,
-			MentionedID:       mentionedID,
-			PosterID:          posterID,
-			ReviewRequestedID: reviewRequestedID,
-			ReviewedID:        reviewedID,
-			IsPull:            isPullOption,
-			IssueIDs:          nil,
-		}
-		if keyword != "" {
-			allIssueIDs, err := issueIDsFromSearch(ctx, keyword, statsOpts)
-			if err != nil {
-				if issue_indexer.IsAvailable(ctx) {
-					ctx.ServerError("issueIDsFromSearch", err)
-					return
-				}
-				ctx.Data["IssueIndexerUnavailable"] = true
+	statsOpts := &issues_model.IssuesOptions{
+		RepoIDs:           []int64{repo.ID},
+		LabelIDs:          labelIDs,
+		MilestoneIDs:      mileIDs,
+		ProjectID:         projectID,
+		AssigneeID:        assigneeID,
+		MentionedID:       mentionedID,
+		PosterID:          posterID,
+		ReviewRequestedID: reviewRequestedID,
+		ReviewedID:        reviewedID,
+		IsPull:            isPullOption,
+		IssueIDs:          nil,
+	}
+	if keyword != "" {
+		allIssueIDs, err := issueIDsFromSearch(ctx, keyword, statsOpts)
+		if err != nil {
+			if issue_indexer.IsAvailable(ctx) {
+				ctx.ServerError("issueIDsFromSearch", err)
 				return
 			}
-			statsOpts.IssueIDs = allIssueIDs
+			ctx.Data["IssueIndexerUnavailable"] = true
+			return
 		}
-		if keyword != "" && len(statsOpts.IssueIDs) == 0 {
-			// So it did search with the keyword, but no issue found.
-			// Just set issueStats to empty.
-			issueStats = &issues_model.IssueStats{}
-		} else {
-			// So it did search with the keyword, and found some issues. It needs to get issueStats of these issues.
-			// Or the keyword is empty, so it doesn't need issueIDs as filter, just get issueStats with statsOpts.
-			issueStats, err = issues_model.GetIssueStats(ctx, statsOpts)
-			if err != nil {
-				ctx.ServerError("GetIssueStats", err)
-				return
-			}
+		statsOpts.IssueIDs = allIssueIDs
+	}
+	if keyword != "" && len(statsOpts.IssueIDs) == 0 {
+		// So it did search with the keyword, but no issue found.
+		// Just set issueStats to empty.
+		issueStats = &issues_model.IssueStats{}
+	} else {
+		// So it did search with the keyword, and found some issues. It needs to get issueStats of these issues.
+		// Or the keyword is empty, so it doesn't need issueIDs as filter, just get issueStats with statsOpts.
+		issueStats, err = issues_model.GetIssueStats(ctx, statsOpts)
+		if err != nil {
+			ctx.ServerError("GetIssueStats", err)
+			return
 		}
-
 	}
 
 	isShowClosed := ctx.FormString("state") == "closed"
@@ -245,6 +242,17 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	if len(ctx.FormString("state")) == 0 && issueStats.OpenCount == 0 && issueStats.ClosedCount != 0 {
 		isShowClosed = true
 	}
+
+	if repo.IsTimetrackerEnabled(ctx) {
+		totalTrackedTime, err := issues_model.GetIssueTotalTrackedTime(ctx, statsOpts, isShowClosed)
+		if err != nil {
+			ctx.ServerError("GetIssueTotalTrackedTime", err)
+			return
+		}
+		ctx.Data["TotalTrackedTime"] = totalTrackedTime
+	}
+
+	archived := ctx.FormBool("archived")
 
 	page := ctx.FormInt("page")
 	if page <= 1 {
@@ -417,6 +425,15 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["PinnedIssues"] = pinned
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
 	ctx.Data["IssueStats"] = issueStats
+	ctx.Data["OpenCount"] = issueStats.OpenCount
+	ctx.Data["ClosedCount"] = issueStats.ClosedCount
+	linkStr := "%s?q=%s&type=%s&sort=%s&state=%s&labels=%s&milestone=%d&project=%d&assignee=%d&poster=%d&archived=%t"
+	ctx.Data["OpenLink"] = fmt.Sprintf(linkStr, ctx.Link,
+		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "open", url.QueryEscape(selectLabels),
+		mentionedID, projectID, assigneeID, posterID, archived)
+	ctx.Data["ClosedLink"] = fmt.Sprintf(linkStr, ctx.Link,
+		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "closed", url.QueryEscape(selectLabels),
+		mentionedID, projectID, assigneeID, posterID, archived)
 	ctx.Data["SelLabelIDs"] = labelIDs
 	ctx.Data["SelectLabels"] = selectLabels
 	ctx.Data["ViewType"] = viewType
@@ -432,6 +449,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	} else {
 		ctx.Data["State"] = "open"
 	}
+	ctx.Data["ShowArchivedLabels"] = archived
 
 	pager.AddParam(ctx, "q", "Keyword")
 	pager.AddParam(ctx, "type", "ViewType")
@@ -442,11 +460,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	pager.AddParam(ctx, "project", "ProjectID")
 	pager.AddParam(ctx, "assignee", "AssigneeID")
 	pager.AddParam(ctx, "poster", "PosterID")
+	pager.AddParam(ctx, "archived", "ShowArchivedLabels")
 
-	if ctx.FormBool("archived") {
-		ctx.Data["ShowArchivedLabels"] = true
-		pager.AddParam(ctx, "archived", "ShowArchivedLabels")
-	}
 	ctx.Data["Page"] = pager
 }
 
@@ -1758,7 +1773,7 @@ func ViewIssue(ctx *context.Context) {
 		pull := issue.PullRequest
 		pull.Issue = issue
 		canDelete := false
-		ctx.Data["AllowMerge"] = false
+		allowMerge := false
 
 		if ctx.IsSigned {
 			if err := pull.LoadHeadRepo(ctx); err != nil {
@@ -1791,7 +1806,7 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
 			}
-			ctx.Data["AllowMerge"], err = pull_service.IsUserAllowedToMerge(ctx, pull, perm, ctx.Doer)
+			allowMerge, err = pull_service.IsUserAllowedToMerge(ctx, pull, perm, ctx.Doer)
 			if err != nil {
 				ctx.ServerError("IsUserAllowedToMerge", err)
 				return
@@ -1802,6 +1817,8 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 		}
+
+		ctx.Data["AllowMerge"] = allowMerge
 
 		prUnit, err := repo.GetUnit(ctx, unit.TypePullRequests)
 		if err != nil {
@@ -1912,7 +1929,7 @@ func ViewIssue(ctx *context.Context) {
 			if pull.CanAutoMerge() || pull.IsWorkInProgress(ctx) || pull.IsChecking() {
 				return false
 			}
-			if (ctx.Doer.IsAdmin || ctx.Repo.IsAdmin()) && prConfig.AllowManualMerge {
+			if allowMerge && prConfig.AllowManualMerge {
 				return true
 			}
 

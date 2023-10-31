@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -72,6 +73,11 @@ func Milestones(ctx *context.Context) {
 	}
 	ctx.Data["OpenCount"] = stats.OpenCount
 	ctx.Data["ClosedCount"] = stats.ClosedCount
+	linkStr := "%s/milestones?state=%s&q=%s&sort=%s"
+	ctx.Data["OpenLink"] = fmt.Sprintf(linkStr, ctx.Repo.RepoLink, "open",
+		url.QueryEscape(keyword), url.QueryEscape(sortType))
+	ctx.Data["ClosedLink"] = fmt.Sprintf(linkStr, ctx.Repo.RepoLink, "closed",
+		url.QueryEscape(keyword), url.QueryEscape(sortType))
 
 	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		if err := miles.LoadTotalTrackedTimes(ctx); err != nil {
@@ -225,14 +231,15 @@ func EditMilestonePost(ctx *context.Context) {
 
 // ChangeMilestoneStatus response for change a milestone's status
 func ChangeMilestoneStatus(ctx *context.Context) {
-	toClose := false
+	var toClose bool
 	switch ctx.Params(":action") {
 	case "open":
 		toClose = false
 	case "close":
 		toClose = true
 	default:
-		ctx.Redirect(ctx.Repo.RepoLink + "/milestones")
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones")
+		return
 	}
 	id := ctx.ParamsInt64(":id")
 
@@ -244,7 +251,7 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 		}
 		return
 	}
-	ctx.Redirect(ctx.Repo.RepoLink + "/milestones?state=" + url.QueryEscape(ctx.Params(":action")))
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones?state=" + url.QueryEscape(ctx.Params(":action")))
 }
 
 // DeleteMilestone delete a milestone

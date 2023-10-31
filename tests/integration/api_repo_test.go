@@ -541,7 +541,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 
 	// cleanup
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-	_ = repo_service.DeleteRepositoryDirectly(db.DefaultContext, user, repo.OwnerID, repo.ID)
+	_ = repo_service.DeleteRepositoryDirectly(db.DefaultContext, user, repo.ID)
 }
 
 func transfer(t *testing.T) *repo_model.Repository {
