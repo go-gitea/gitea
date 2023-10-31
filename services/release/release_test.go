@@ -108,7 +108,7 @@ func TestRelease_Create(t *testing.T) {
 
 	testPlayload := "testtest"
 
-	attach, err := attachment.NewAttachment(&repo_model.Attachment{
+	attach, err := attachment.NewAttachment(db.DefaultContext, &repo_model.Attachment{
 		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
@@ -242,7 +242,7 @@ func TestRelease_Update(t *testing.T) {
 
 	// Add new attachments
 	samplePayload := "testtest"
-	attach, err := attachment.NewAttachment(&repo_model.Attachment{
+	attach, err := attachment.NewAttachment(db.DefaultContext, &repo_model.Attachment{
 		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",

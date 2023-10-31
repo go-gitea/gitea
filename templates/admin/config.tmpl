@@ -292,15 +292,15 @@
 			<dl class="admin-dl-horizontal">
 				<dt>{{ctx.Locale.Tr "admin.config.disable_gravatar"}}</dt>
 				<dd>
-					<div class="ui toggle checkbox">
-						<input type="checkbox" name="picture.disable_gravatar" version="{{.SystemSettings.GetVersion "picture.disable_gravatar"}}"{{if .SystemSettings.GetBool "picture.disable_gravatar"}} checked{{end}} title="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+					<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+						<input type="checkbox" data-config-dyn-key="picture.disable_gravatar" {{if .SystemConfig.Picture.DisableGravatar.Value ctx}}checked{{end}}>
 					</div>
 				</dd>
 				<div class="divider"></div>
 				<dt>{{ctx.Locale.Tr "admin.config.enable_federated_avatar"}}</dt>
 				<dd>
-					<div class="ui toggle checkbox">
-						<input type="checkbox" name="picture.enable_federated_avatar" version="{{.SystemSettings.GetVersion "picture.enable_federated_avatar"}}"{{if .SystemSettings.GetBool "picture.enable_federated_avatar"}} checked{{end}} title="{{ctx.Locale.Tr "admin.config.enable_federated_avatar"}}">
+					<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.enable_federated_avatar"}}">
+						<input type="checkbox" data-config-dyn-key="picture.enable_federated_avatar" {{if .SystemConfig.Picture.EnableFederatedAvatar.Value ctx}}checked{{end}}>
 					</div>
 				</dd>
 			</dl>

@@ -185,9 +185,9 @@ func VerifyUserGPGKey(ctx *context.APIContext) {
 		return
 	}
 
-	_, err := asymkey_model.VerifyGPGKey(ctx.Doer.ID, form.KeyID, token, form.Signature)
+	_, err := asymkey_model.VerifyGPGKey(ctx, ctx.Doer.ID, form.KeyID, token, form.Signature)
 	if err != nil && asymkey_model.IsErrGPGInvalidTokenSignature(err) {
-		_, err = asymkey_model.VerifyGPGKey(ctx.Doer.ID, form.KeyID, lastToken, form.Signature)
+		_, err = asymkey_model.VerifyGPGKey(ctx, ctx.Doer.ID, form.KeyID, lastToken, form.Signature)
 	}
 
 	if err != nil {

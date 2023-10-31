@@ -123,7 +123,7 @@ func CreateFork(ctx *context.APIContext) {
 			}
 			return
 		}
-		isMember, err := org.IsOrgMember(ctx.Doer.ID)
+		isMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 			return

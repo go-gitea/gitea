@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	git_storage "code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 
@@ -146,11 +147,10 @@ func MainTest(m *testing.M, testOpts ...*TestOptions) {
 
 	setting.IncomingEmail.ReplyToAddress = "incoming+%{token}@localhost"
 
+	config.SetDynGetter(system_model.NewDatabaseDynKeyGetter())
+
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
-	}
-	if err = system_model.Init(db.DefaultContext); err != nil {
-		fatalTestError("models.Init: %v\n", err)
 	}
 
 	if err = git.InitFull(context.Background()); err != nil {

@@ -296,6 +296,20 @@ func (m *MSTeamsPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	), nil
 }
 
+func (m *MSTeamsPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+	title, color := getPackagePayloadInfo(p, noneLinkFormatter, false)
+
+	return createMSTeamsPayload(
+		p.Repository,
+		p.Sender,
+		title,
+		"",
+		p.Package.HTMLURL,
+		color,
+		&MSTeamsFact{"Package:", p.Package.Name},
+	), nil
+}
+
 // GetMSTeamsPayload converts a MSTeams webhook into a MSTeamsPayload
 func GetMSTeamsPayload(p api.Payloader, event webhook_module.HookEventType, _ string) (api.Payloader, error) {
 	return convertPayloader(new(MSTeamsPayload), p, event)

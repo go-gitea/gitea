@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -281,4 +282,53 @@ func TestAPIRenameUser(t *testing.T) {
 		"new_name": "user2",
 	})
 	MakeRequest(t, req, http.StatusOK)
+}
+
+func TestAPICron(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// user1 is an admin user
+	session := loginUser(t, "user1")
+
+	t.Run("List", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadAdmin)
+		urlStr := fmt.Sprintf("/api/v1/admin/cron?token=%s", token)
+		req := NewRequest(t, "GET", urlStr)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		assert.Equal(t, "28", resp.Header().Get("X-Total-Count"))
+
+		var crons []api.Cron
+		DecodeJSON(t, resp, &crons)
+		assert.Len(t, crons, 28)
+	})
+
+	t.Run("Execute", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		now := time.Now()
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteAdmin)
+		// Archive cleanup is harmless, because in the test environment there are none
+		// and is thus an NOOP operation and therefore doesn't interfere with any other
+		// tests.
+		urlStr := fmt.Sprintf("/api/v1/admin/cron/archive_cleanup?token=%s", token)
+		req := NewRequest(t, "POST", urlStr)
+		MakeRequest(t, req, http.StatusNoContent)
+
+		// Check for the latest run time for this cron, to ensure it has been run.
+		urlStr = fmt.Sprintf("/api/v1/admin/cron?token=%s", token)
+		req = NewRequest(t, "GET", urlStr)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var crons []api.Cron
+		DecodeJSON(t, resp, &crons)
+
+		for _, cron := range crons {
+			if cron.Name == "archive_cleanup" {
+				assert.True(t, now.Before(cron.Prev))
+			}
+		}
+	})
 }

@@ -185,7 +185,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	if err := repo_module.UpdateRepoSize(ctx, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
-	if err := repo_model.CopyLanguageStat(opts.BaseRepo, repo); err != nil {
+	if err := repo_model.CopyLanguageStat(ctx, opts.BaseRepo, repo); err != nil {
 		log.Error("Copy language stat from oldRepo failed: %v", err)
 	}
 

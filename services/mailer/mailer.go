@@ -361,9 +361,8 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 		return err
 	} else if closeError != nil {
 		return closeError
-	} else {
-		return waitError
 	}
+	return waitError
 }
 
 // Sender sendmail mail sender
