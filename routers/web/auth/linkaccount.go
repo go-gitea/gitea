@@ -283,7 +283,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		Name:        form.UserName,
 		Email:       form.Email,
 		Passwd:      form.Password,
-		LoginType:   auth.OAuth2,
+		LoginType:   authSource.Type,
 		LoginSource: authSource.ID,
 		LoginName:   linkUser.GothUser.UserID,
 	}

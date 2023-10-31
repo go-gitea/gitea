@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"net/url"
 
@@ -84,6 +85,10 @@ func (source *Source) initSAMLSp() error {
 
 	certStore := dsig.MemoryX509CertificateStore{
 		Roots: []*x509.Certificate{},
+	}
+
+	if metadata.IDPSSODescriptor == nil {
+		return errors.New("saml idp metadata missing IDPSSODescriptor")
 	}
 
 	for _, kd := range metadata.IDPSSODescriptor.KeyDescriptors {
