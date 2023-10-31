@@ -219,7 +219,11 @@ type CommitsByFileAndRangeOptions struct {
 
 // ExtendedCommitStats return the list of *api.ExtendedCommitStats for the given revision
 func (repo *Repository) ExtendedCommitStats(revision string /*, limit int */) ([]*api.ExtendedCommitStats, error) {
-	baseCommit, _ := repo.GetCommit(revision)
+	baseCommit, err := repo.GetCommit(revision)
+
+	if err != nil {
+		return nil, err
+	}
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		return nil, err

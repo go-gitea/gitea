@@ -82,16 +82,20 @@ export default {
       this.isLoading = true;
       try {
         const response = await GET(`${this.repoLink}/activity/contributors/data`);
-        const data = await response.json();
-        const {total, ...rest} = data;
-        this.contributorsStats = rest;
-        this.dateFrom = new Date(total.weeks[0].week);
-        this.dateUntil = new Date();
-        this.startDate = this.dateFrom;
-        this.endDate = this.dateUntil;
-        this.sortContributors();
-        this.totalStats = total;
-        this.errorText = '';
+        if (response.ok) {
+          const data = await response.json();
+          const {total, ...rest} = data;
+          this.contributorsStats = rest;
+          this.dateFrom = new Date(total.weeks[0].week);
+          this.dateUntil = new Date();
+          this.startDate = this.dateFrom;
+          this.endDate = this.dateUntil;
+          this.sortContributors();
+          this.totalStats = total;
+          this.errorText = '';
+        } else {
+          this.errorText = response.statusText;
+        }
       } catch (e) {
         this.errorText = e.message;
       } finally {
