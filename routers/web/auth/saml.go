@@ -26,7 +26,7 @@ import (
 func SignInSAML(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 
-	loginSource, err := auth.GetActiveAuthSourceByName(provider, auth.SAML)
+	loginSource, err := auth.GetActiveAuthSourceByName(ctx, provider, auth.SAML)
 	if err != nil || loginSource == nil {
 		ctx.NotFound("SAMLMetadata", err)
 		return
