@@ -44,7 +44,7 @@ func SignInSAML(ctx *context.Context) {
 // SignInSAMLCallback
 func SignInSAMLCallback(ctx *context.Context) {
 	provider := ctx.Params(":provider")
-	loginSource, err := auth.GetActiveAuthSourceByName(provider, auth.SAML)
+	loginSource, err := auth.GetActiveAuthSourceByName(ctx, provider, auth.SAML)
 	if err != nil || loginSource == nil {
 		ctx.NotFound("SignInSAMLCallback", err)
 		return
@@ -101,7 +101,7 @@ func handleSamlSignIn(ctx *context.Context, source *auth.Source, u *user_model.U
 	u.SetLastLogin()
 
 	// update external user information
-	if err := externalaccount.UpdateExternalUser(u, gothUser, auth.SAML); err != nil {
+	if err := externalaccount.UpdateExternalUser(ctx, u, gothUser, auth.SAML); err != nil {
 		if !errors.Is(err, util.ErrNotExist) {
 			log.Error("UpdateExternalUser failed: %v", err)
 		}
