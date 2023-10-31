@@ -32,127 +32,31 @@ func TestPackageArch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	var (
-		firstV1x86_64 = BuildArchPackage(t, "first", "1-1", "x86_64")
-		firstV1i686   = BuildArchPackage(t, "first", "1-1", "i686")
-		secondV1any   = BuildArchPackage(t, "second", "1-1", "any")
-		firstV2x86_64 = BuildArchPackage(t, "first", "2-1", "x86_64")
-		secondV2any   = BuildArchPackage(t, "second", "2-1", "any")
+		gitV1x86_64 = BuildArchPackage(t, "git", "1-1", "x86_64")
+		gitV1i686   = BuildArchPackage(t, "git", "1-1", "i686")
+		iconsV1any  = BuildArchPackage(t, "icons", "1-1", "any")
+		gitV2x86_64 = BuildArchPackage(t, "git", "2-1", "x86_64")
+		iconsV2any  = BuildArchPackage(t, "icons", "2-1", "any")
 
 		firstSign  = []byte{1, 2, 3, 4}
 		secondSign = []byte{4, 3, 2, 1}
 
 		V1x86_64database = BuildArchDatabase([]arch.Package{
-			{
-				Name:    "first",
-				Version: "1-1",
-				VersionMetadata: arch.VersionMetadata{
-					Base: "first",
-				},
-				FileMetadata: arch.FileMetadata{
-					CompressedSize: firstV1x86_64.size,
-					MD5:            firstV1x86_64.md5,
-					SHA256:         firstV1x86_64.sha256,
-					Arch:           "x86_64",
-				},
-			},
-			{
-				Name:    "second",
-				Version: "1-1",
-				VersionMetadata: arch.VersionMetadata{
-					Base: "second",
-				},
-				FileMetadata: arch.FileMetadata{
-					CompressedSize: secondV1any.size,
-					MD5:            secondV1any.md5,
-					SHA256:         secondV1any.sha256,
-					Arch:           "any",
-				},
-			},
+			gitV1x86_64.pkg,
+			iconsV1any.pkg,
 		})
 		V1i686database = BuildArchDatabase([]arch.Package{
-			{
-				Name:    "first",
-				Version: "1-1",
-				VersionMetadata: arch.VersionMetadata{
-					Base: "first",
-				},
-				FileMetadata: arch.FileMetadata{
-					CompressedSize: firstV1i686.size,
-					MD5:            firstV1i686.md5,
-					SHA256:         firstV1i686.sha256,
-					Arch:           "i686",
-				},
-			},
-			{
-				Name:    "second",
-				Version: "1-1",
-				VersionMetadata: arch.VersionMetadata{
-					Base: "second",
-				},
-				FileMetadata: arch.FileMetadata{
-					CompressedSize: secondV1any.size,
-					MD5:            secondV1any.md5,
-					SHA256:         secondV1any.sha256,
-					Arch:           "any",
-				},
-			},
+			gitV1i686.pkg,
+			iconsV1any.pkg,
 		})
 
 		V2x86_64database = BuildArchDatabase([]arch.Package{
-			{
-				Name:    "first",
-				Version: "2-1",
-				VersionMetadata: arch.VersionMetadata{
-					Base: "first",
-				},
-				FileMetadata: arch.FileMetadata{
-					CompressedSize: firstV2x86_64.size,
-					MD5:            firstV2x86_64.md5,
-					SHA256:         firstV2x86_64.sha256,
-					Arch:           "i686",
-				},
-			},
-			{
-				Name:    "second",
-				Version: "2-1",
-				VersionMetadata: arch.VersionMetadata{
-					Base: "second",
-				},
-				FileMetadata: arch.FileMetadata{
-					CompressedSize: secondV2any.size,
-					MD5:            secondV2any.md5,
-					SHA256:         secondV2any.sha256,
-					Arch:           "any",
-				},
-			},
+			gitV2x86_64.pkg,
+			iconsV2any.pkg,
 		})
 		V2i686database = BuildArchDatabase([]arch.Package{
-			{
-				Name:    "first",
-				Version: "1-1",
-				VersionMetadata: arch.VersionMetadata{
-					Base: "first",
-				},
-				FileMetadata: arch.FileMetadata{
-					CompressedSize: firstV1i686.size,
-					MD5:            firstV1i686.md5,
-					SHA256:         firstV1i686.sha256,
-					Arch:           "i686",
-				},
-			},
-			{
-				Name:    "second",
-				Version: "2-1",
-				VersionMetadata: arch.VersionMetadata{
-					Base: "second",
-				},
-				FileMetadata: arch.FileMetadata{
-					CompressedSize: secondV2any.size,
-					MD5:            secondV2any.md5,
-					SHA256:         secondV2any.sha256,
-					Arch:           "any",
-				},
-			},
+			gitV1i686.pkg,
+			iconsV2any.pkg,
 		})
 
 		user    = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -160,15 +64,15 @@ func TestPackageArch(t *testing.T) {
 	)
 
 	t.Run("Version_1", func(t *testing.T) {
-		t.Run("Push_first_x86_64", func(t *testing.T) {
+		t.Run("Push_git_x86_64", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequestWithBody(t, "PUT",
 				path.Join(
-					rootURL, "push", "first-1-1-x86_64.pkg.tar.zst",
+					rootURL, "push", "git-1-1-x86_64.pkg.tar.zst",
 					"archlinux", hex.EncodeToString(firstSign),
 				),
-				bytes.NewReader(firstV1x86_64.data),
+				bytes.NewReader(gitV1x86_64.data),
 			)
 
 			req = AddBasicAuthHeader(req, user.Name)
@@ -176,15 +80,15 @@ func TestPackageArch(t *testing.T) {
 			MakeRequest(t, req, http.StatusOK)
 		})
 
-		t.Run("Push_first_i686", func(t *testing.T) {
+		t.Run("Push_git_i686", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequestWithBody(t, "PUT",
 				path.Join(
-					rootURL, "push", "first-1-1-i686.pkg.tar.zst",
+					rootURL, "push", "git-1-1-i686.pkg.tar.zst",
 					"archlinux", hex.EncodeToString(secondSign),
 				),
-				bytes.NewReader(firstV1i686.data),
+				bytes.NewReader(gitV1i686.data),
 			)
 
 			req = AddBasicAuthHeader(req, user.Name)
@@ -192,12 +96,12 @@ func TestPackageArch(t *testing.T) {
 			MakeRequest(t, req, http.StatusOK)
 		})
 
-		t.Run("Push_second_any", func(t *testing.T) {
+		t.Run("Push_icons_any", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequestWithBody(t, "PUT",
-				path.Join(rootURL, "push", "second-1-1-any.pkg.tar.zst", "archlinux"),
-				bytes.NewReader(secondV1any.data),
+				path.Join(rootURL, "push", "icons-1-1-any.pkg.tar.zst", "archlinux"),
+				bytes.NewReader(iconsV1any.data),
 			)
 
 			req = AddBasicAuthHeader(req, user.Name)
@@ -205,35 +109,35 @@ func TestPackageArch(t *testing.T) {
 			MakeRequest(t, req, http.StatusOK)
 		})
 
-		t.Run("Get_first_x86_64_package", func(t *testing.T) {
+		t.Run("Get_git_x86_64_package", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET",
-				rootURL+"/archlinux/x86_64/first-1-1-x86_64.pkg.tar.zst",
+				rootURL+"/archlinux/x86_64/git-1-1-x86_64.pkg.tar.zst",
 			)
 
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			assert.Equal(t, firstV1x86_64.data, resp.Body.Bytes())
+			assert.Equal(t, gitV1x86_64.data, resp.Body.Bytes())
 		})
 
-		t.Run("Get_first_i686_package", func(t *testing.T) {
+		t.Run("Get_git_i686_package", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET",
-				rootURL+"/archlinux/x86_64/first-1-1-i686.pkg.tar.zst",
+				rootURL+"/archlinux/i686/git-1-1-i686.pkg.tar.zst",
 			)
 
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			assert.Equal(t, firstV1i686.data, resp.Body.Bytes())
+			assert.Equal(t, gitV1i686.data, resp.Body.Bytes())
 		})
 
-		t.Run("Get_first_x86_64_package_signature", func(t *testing.T) {
+		t.Run("Get_git_x86_64_package_signature", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET",
-				rootURL+"/archlinux/x86_64/first-1-1-x86_64.pkg.tar.zst.sig",
+				rootURL+"/archlinux/x86_64/git-1-1-x86_64.pkg.tar.zst.sig",
 			)
 
 			resp := MakeRequest(t, req, http.StatusOK)
@@ -241,11 +145,11 @@ func TestPackageArch(t *testing.T) {
 			assert.Equal(t, firstSign, resp.Body.Bytes())
 		})
 
-		t.Run("Get_first_i686_package_signature", func(t *testing.T) {
+		t.Run("Get_git_i686_package_signature", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET",
-				rootURL+"/archlinux/x86_64/first-1-1-i686.pkg.tar.zst.sig",
+				rootURL+"/archlinux/i686/git-1-1-i686.pkg.tar.zst.sig",
 			)
 
 			resp := MakeRequest(t, req, http.StatusOK)
@@ -257,24 +161,24 @@ func TestPackageArch(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET",
-				rootURL+"/archlinux/x86_64/second-1-1-any.pkg.tar.zst",
+				rootURL+"/archlinux/x86_64/icons-1-1-any.pkg.tar.zst",
 			)
 
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			assert.Equal(t, secondV1any.data, resp.Body.Bytes())
+			assert.Equal(t, iconsV1any.data, resp.Body.Bytes())
 		})
 
 		t.Run("Get_any_package_from_i686_group", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET",
-				rootURL+"/archlinux/i686/second-1-1-any.pkg.tar.zst",
+				rootURL+"/archlinux/i686/icons-1-1-any.pkg.tar.zst",
 			)
 
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			assert.Equal(t, secondV1any.data, resp.Body.Bytes())
+			assert.Equal(t, iconsV1any.data, resp.Body.Bytes())
 		})
 
 		t.Run("Get_x86_64_pacman_database", func(t *testing.T) {
@@ -303,12 +207,12 @@ func TestPackageArch(t *testing.T) {
 	})
 
 	t.Run("Version_2", func(t *testing.T) {
-		t.Run("Push_first_x86_64", func(t *testing.T) {
+		t.Run("Push_git_x86_64", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequestWithBody(t, "PUT",
-				path.Join(rootURL, "push", "first-2-1-x86_64.pkg.tar.zst", "archlinux"),
-				bytes.NewReader(firstV2x86_64.data),
+				path.Join(rootURL, "push", "git-2-1-x86_64.pkg.tar.zst", "archlinux"),
+				bytes.NewReader(gitV2x86_64.data),
 			)
 
 			req = AddBasicAuthHeader(req, user.Name)
@@ -316,12 +220,12 @@ func TestPackageArch(t *testing.T) {
 			MakeRequest(t, req, http.StatusOK)
 		})
 
-		t.Run("Push_second_any", func(t *testing.T) {
+		t.Run("Push_icons_any", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequestWithBody(t, "PUT",
-				path.Join(rootURL, "push", "first-2-1-x86_64.pkg.tar.zst", "archlinux"),
-				bytes.NewReader(firstV1x86_64.data),
+				path.Join(rootURL, "push", "icons-2-1-any.pkg.tar.zst", "archlinux"),
+				bytes.NewReader(iconsV2any.data),
 			)
 
 			req = AddBasicAuthHeader(req, user.Name)
@@ -356,18 +260,16 @@ func TestPackageArch(t *testing.T) {
 }
 
 type testArchPackage struct {
-	data   []byte
-	md5    string
-	sha256 string
-	size   int64
+	data []byte
+	pkg  arch.Package
 }
 
-func BuildArchPackage(t *testing.T, name, ver, arch string) testArchPackage {
+func BuildArchPackage(t *testing.T, name, ver, architecture string) testArchPackage {
 	fs := fstest.MapFS{
 		"pkginfo": &fstest.MapFile{
 			Data: []byte(fmt.Sprintf(
 				"pkgname = %s\npkgbase = %s\npkgver = %s\narch = %s\n",
-				name, name, ver, arch,
+				name, name, ver, architecture,
 			)),
 			Mode:    os.ModePerm,
 			ModTime: time.Now(),
@@ -423,10 +325,20 @@ func BuildArchPackage(t *testing.T, name, ver, arch string) testArchPackage {
 	md5, sha256, size := archPkgParams(buf.Bytes())
 
 	return testArchPackage{
-		data:   buf.Bytes(),
-		md5:    hex.EncodeToString(md5),
-		sha256: hex.EncodeToString(sha256),
-		size:   size,
+		data: buf.Bytes(),
+		pkg: arch.Package{
+			Name:    name,
+			Version: ver,
+			VersionMetadata: arch.VersionMetadata{
+				Base: name,
+			},
+			FileMetadata: arch.FileMetadata{
+				CompressedSize: size,
+				MD5:            hex.EncodeToString(md5),
+				SHA256:         hex.EncodeToString(sha256),
+				Arch:           architecture,
+			},
+		},
 	}
 }
 
