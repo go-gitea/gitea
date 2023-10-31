@@ -4,6 +4,7 @@
 package saml
 
 import (
+	"context"
 	"sync"
 
 	"code.gitea.io/gitea/models/auth"
@@ -12,8 +13,8 @@ import (
 
 var samlRWMutex = sync.RWMutex{}
 
-func Init() error {
-	loginSources, _ := auth.GetActiveAuthProviderSources(auth.SAML)
+func Init(ctx context.Context) error {
+	loginSources, _ := auth.GetActiveAuthProviderSources(ctx, auth.SAML)
 	for _, source := range loginSources {
 		samlSource, ok := source.Cfg.(*Source)
 		if !ok {
