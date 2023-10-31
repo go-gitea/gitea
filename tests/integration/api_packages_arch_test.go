@@ -256,6 +256,24 @@ func TestPackageArch(t *testing.T) {
 
 			assert.Equal(t, V2i686database, resp.Body.Bytes())
 		})
+
+		t.Run("Remove_v2_git_x86_64", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := NewRequest(t, "DELETE", rootURL+"/remove/git/2-1")
+			req = AddBasicAuthHeader(req, user.Name)
+
+			MakeRequest(t, req, http.StatusOK)
+		})
+
+		t.Run("Remove_v2_icons_any", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := NewRequest(t, "DELETE", rootURL+"/remove/icons/2-1")
+			req = AddBasicAuthHeader(req, user.Name)
+
+			MakeRequest(t, req, http.StatusOK)
+		})
 	})
 }
 
