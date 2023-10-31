@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"path"
 	"strconv"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -24,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/utils"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
@@ -127,42 +125,16 @@ func TeamsAction(ctx *context.Context) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		uname := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("uname")))
-		var u *user_model.User
-		u, err = user_model.GetUserByName(ctx, uname)
-		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
-				if setting.MailService != nil && user_model.ValidateEmail(uname) == nil {
-					if err := org_service.CreateTeamInvite(ctx, ctx.Doer, ctx.Org.Team, uname); err != nil {
-						if org_model.IsErrTeamInviteAlreadyExist(err) {
-							ctx.Flash.Error(ctx.Tr("form.duplicate_invite_to_team"))
-						} else if org_model.IsErrUserEmailAlreadyAdded(err) {
-							ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
-						} else {
-							ctx.ServerError("CreateTeamInvite", err)
-							return
-						}
-					}
-				} else {
-					ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
-				}
-				ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName))
-			} else {
-				ctx.ServerError("GetUserByName", err)
-			}
-			return
-		}
 
-		if u.IsOrganization() {
-			ctx.Flash.Error(ctx.Tr("form.cannot_add_org_to_team"))
+		var isServerError bool
+		isServerError, err = org_service.AddTeamMember(ctx, ctx.Doer, ctx.Org.Team, ctx.FormString("uname"), ctx.Locale)
+		if !isServerError {
+			ctx.ServerError("AddTeamMember", err)
+			return
+		} else if err != nil {
+			ctx.Flash.Error(err.Error())
 			ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName))
 			return
-		}
-
-		if ctx.Org.Team.IsMember(ctx, u.ID) {
-			ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
-		} else {
-			err = models.AddTeamMember(ctx, ctx.Org.Team, u.ID)
 		}
 
 		page = "team"

@@ -110,9 +110,13 @@ func MembersInviteAction(ctx *context.Context) {
 		}
 		return
 	}
-	err = org_service.AddTeamMember(ctx, ctx.Org.Organization, ctx.Doer, team, ctx.FormString("uname"), ctx.Locale)
-	if err != nil {
+	var isServerError bool
+	isServerError, err = org_service.AddTeamMember(ctx, ctx.Doer, team, ctx.FormString("uname"), ctx.Locale)
+	if isServerError {
 		ctx.ServerError("AddTeamMember", err)
+		return
+	} else if err != nil {
+		ctx.Flash.Error(err.Error())
 	}
 	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(team.LowerName))
 }
