@@ -26,6 +26,7 @@ func TestRenderPanicErrorPage(t *testing.T) {
 	respContent := w.Body.String()
 	assert.Contains(t, respContent, `class="page-content status-page-500"`)
 	assert.Contains(t, respContent, `</html>`)
+	assert.Contains(t, respContent, `lang="en-US"`) // make sure the locale work
 
 	// the 500 page doesn't have normal pages footer, it makes it easier to distinguish a normal page and a failed page.
 	// especially when a sub-template causes page error, the HTTP response code is still 200,
