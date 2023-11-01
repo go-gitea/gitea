@@ -16,7 +16,7 @@ Server = <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescri
 			</div>
 
 			<div class="field">
-				<label>{{.locale.Tr "packages.arch.documentation" "https://docs.gitea.io/en-us/usage/packages/arch/" | Safe}}</label>
+				{{.locale.Tr "packages.arch.documentation" (printf `<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/packages/arch/">`) (printf `</a>`) | Safe}}
 			</div>
 		</div>
 	</div>
