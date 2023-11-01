@@ -37,7 +37,7 @@
 
 .tippy-content {
   position: relative;
-  padding: 1rem; /* if you need different padding, set data-theme=menu */
+  padding: 1rem; /* if you need different padding, use different data-theme */
   z-index: 1;
 }
 
