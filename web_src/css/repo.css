@@ -3082,6 +3082,10 @@ tbody.commit-list {
   border-bottom: none !important;
 }
 
+.pr-commit-status[data-toggled="false"] .commit-status-list {
+  max-height: 0; /* hide it for the slide transition */
+}
+
 .pr-commit-status[data-toggled="false"] {
   border-bottom: none !important;
 }
@@ -3089,10 +3093,6 @@ tbody.commit-list {
 .pr-commit-status[data-toggled="false"] .ui.attached.header {
   transition-delay: .2s;
   border-bottom-width: 0 !important;
-}
-
-.pr-commit-status[data-toggled="false"] .commit-status-list {
-  max-height: 0;
 }
 
 .commit-status-item {
