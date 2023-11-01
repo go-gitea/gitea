@@ -40,10 +40,10 @@ func TestPackageArch(t *testing.T) {
 		gitV2x86_64 = BuildArchPackage(t, "git", "2-1", "x86_64")
 		iconsV2any  = BuildArchPackage(t, "icons", "2-1", "any")
 
-		dbV1x86_64d = BuildArchDb([]arch.Package{gitV1x86_64.pkg, iconsV1any.pkg})
-		dbV1i686    = BuildArchDb([]arch.Package{gitV1i686.pkg, iconsV1any.pkg})
-		dbV2x86_64  = BuildArchDb([]arch.Package{gitV2x86_64.pkg, iconsV2any.pkg})
-		dbV2i686    = BuildArchDb([]arch.Package{gitV1i686.pkg, iconsV2any.pkg})
+		dbV1x86_64 = BuildArchDb([]arch.Package{gitV1x86_64.pkg, iconsV1any.pkg})
+		dbV1i686   = BuildArchDb([]arch.Package{gitV1i686.pkg, iconsV1any.pkg})
+		dbV2x86_64 = BuildArchDb([]arch.Package{gitV2x86_64.pkg, iconsV2any.pkg})
+		dbV2i686   = BuildArchDb([]arch.Package{gitV1i686.pkg, iconsV2any.pkg})
 
 		firstSign  = []byte{1, 2, 3, 4}
 		secondSign = []byte{4, 3, 2, 1}
@@ -179,7 +179,7 @@ func TestPackageArch(t *testing.T) {
 
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			CompareDbEntries(t, dbV1x86_64d, resp.Body.Bytes())
+			CompareDbEntries(t, dbV1x86_64, resp.Body.Bytes())
 		})
 
 		t.Run("Get_i686_pacman_database", func(t *testing.T) {
@@ -383,8 +383,8 @@ func BuildArchDb(pkgs []arch.Package) []byte {
 	return b.Bytes()
 }
 
-func CompareDbEntries(t *testing.T, first, second []byte) {
-	fgz, err := gzip.NewReader(bytes.NewReader(first))
+func CompareDbEntries(t *testing.T, expected, actual []byte) {
+	fgz, err := gzip.NewReader(bytes.NewReader(expected))
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -402,7 +402,7 @@ func CompareDbEntries(t *testing.T, first, second []byte) {
 		validatemap[h.Name] = struct{}{}
 	}
 
-	sgz, err := gzip.NewReader(bytes.NewReader(second))
+	sgz, err := gzip.NewReader(bytes.NewReader(actual))
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -417,7 +417,7 @@ func CompareDbEntries(t *testing.T, first, second []byte) {
 
 		_, ok := validatemap[h.Name]
 		if !ok {
-			assert.Fail(t, "Entry not found in first archive: "+h.Name)
+			assert.Fail(t, "Unexpected entry in archive: "+h.Name)
 		}
 		delete(validatemap, h.Name)
 	}
@@ -427,6 +427,6 @@ func CompareDbEntries(t *testing.T, first, second []byte) {
 	}
 
 	for e := range validatemap {
-		assert.Fail(t, "Entry not found in second archive: "+e)
+		assert.Fail(t, "Entry not found in archive: "+e)
 	}
 }
