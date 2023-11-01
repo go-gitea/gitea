@@ -171,6 +171,12 @@ func (s *SlackPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	return s.createPayload(text, nil), nil
 }
 
+func (s *SlackPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+	text, _ := getPackagePayloadInfo(p, SlackLinkFormatter, true)
+
+	return s.createPayload(text, nil), nil
+}
+
 // Push implements PayloadConvertor Push method
 func (s *SlackPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	// n new commits

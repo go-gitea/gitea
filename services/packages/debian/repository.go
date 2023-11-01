@@ -165,18 +165,17 @@ func buildRepositoryFiles(ctx context.Context, ownerID int64, repoVersion *packa
 
 // https://wiki.debian.org/DebianRepository/Format#A.22Packages.22_Indices
 func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packages_model.PackageVersion, distribution, component, architecture string) error {
-	pfds, err := debian_model.SearchLatestPackages(ctx, &debian_model.PackageSearchOptions{
+	opts := &debian_model.PackageSearchOptions{
 		OwnerID:      ownerID,
 		Distribution: distribution,
 		Component:    component,
 		Architecture: architecture,
-	})
-	if err != nil {
-		return err
 	}
 
 	// Delete the package indices if there are no packages
-	if len(pfds) == 0 {
+	if has, err := debian_model.ExistPackages(ctx, opts); err != nil {
+		return err
+	} else if !has {
 		key := fmt.Sprintf("%s|%s|%s", distribution, component, architecture)
 		for _, filename := range []string{"Packages", "Packages.gz", "Packages.xz"} {
 			pf, err := packages_model.GetFileForVersionByName(ctx, repoVersion.ID, filename, key)
@@ -211,7 +210,7 @@ func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packa
 	w := io.MultiWriter(packagesContent, gzw, xzw)
 
 	addSeparator := false
-	for _, pfd := range pfds {
+	if err := debian_model.SearchPackages(ctx, opts, func(pfd *packages_model.PackageFileDescriptor) {
 		if addSeparator {
 			fmt.Fprintln(w)
 		}
@@ -225,6 +224,8 @@ func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packa
 		fmt.Fprintf(w, "SHA1: %s\n", pfd.Blob.HashSHA1)
 		fmt.Fprintf(w, "SHA256: %s\n", pfd.Blob.HashSHA256)
 		fmt.Fprintf(w, "SHA512: %s\n", pfd.Blob.HashSHA512)
+	}); err != nil {
+		return err
 	}
 
 	gzw.Close()
@@ -238,7 +239,7 @@ func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packa
 		{"Packages.gz", packagesGzipContent},
 		{"Packages.xz", packagesXzContent},
 	} {
-		_, err = packages_service.AddFileToPackageVersionInternal(
+		_, err := packages_service.AddFileToPackageVersionInternal(
 			ctx,
 			repoVersion,
 			&packages_service.PackageFileCreationInfo{
