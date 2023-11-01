@@ -30,7 +30,7 @@ SigLevel = Optional TrustAll
 Server = https://{domain}/api/packages/{owner}/arch/{distribution}/{architecture}
 ```
 
-Then, you can run pacman sync command (with -y flag to load connected database file), to install your package.
+Then, you can run pacman sync command (with -y flag to load connected database file), to install your package:
 
 ```sh
 pacman -Sy package
