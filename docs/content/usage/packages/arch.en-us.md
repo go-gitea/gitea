@@ -52,7 +52,7 @@ curl -X PUT \
 
 ## Delete packages
 
-Delete operation will remove specific package version, and all package files related to that version.
+The `DELETE` method will remove specific package version, and all package files related to that version:
 
 ```sh
 curl -X DELETE \
