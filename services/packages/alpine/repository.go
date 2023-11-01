@@ -238,6 +238,8 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 	}
 
 	unsignedIndexContent, _ := packages_module.NewHashedBuffer()
+	defer unsignedIndexContent.Close()
+
 	h := sha1.New()
 
 	if err := writeGzipStream(io.MultiWriter(unsignedIndexContent, h), "APKINDEX", buf.Bytes(), true); err != nil {
@@ -275,6 +277,7 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 	}
 
 	signedIndexContent, _ := packages_module.NewHashedBuffer()
+	defer signedIndexContent.Close()
 
 	if err := writeGzipStream(
 		signedIndexContent,

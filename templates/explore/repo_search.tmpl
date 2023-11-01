@@ -6,8 +6,8 @@
 			{{template "shared/searchinput" dict "Value" .Keyword "AutoFocus" true}}
 			{{if .PageIsExploreRepositories}}
 				<input type="hidden" name="only_show_relevant" value="{{.OnlyShowRelevant}}">
-			{{else}}
-				<input type="hidden" name="tab" value="repositories">
+			{{else if .TabName}}
+				<input type="hidden" name="tab" value="{{.TabName}}">
 			{{end}}
 			<button class="ui primary button">{{ctx.Locale.Tr "explore.search"}}</button>
 		</div>

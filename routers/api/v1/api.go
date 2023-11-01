@@ -961,7 +961,7 @@ func Routes() *web.Route {
 			m.Group("/actions/secrets", func() {
 				m.Combo("/{secretname}").
 					Put(bind(api.CreateOrUpdateSecretOption{}), user.CreateOrUpdateSecret).
-					Delete(repo.DeleteSecret)
+					Delete(user.DeleteSecret)
 			})
 
 			m.Get("/followers", user.ListMyFollowers)
@@ -1444,10 +1444,10 @@ func Routes() *web.Route {
 					Delete(reqToken(), reqOrgMembership(), org.ConcealMember)
 			})
 			m.Group("/teams", func() {
-				m.Get("", reqToken(), org.ListTeams)
-				m.Post("", reqToken(), reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
-				m.Get("/search", reqToken(), org.SearchTeam)
-			}, reqOrgMembership())
+				m.Get("", org.ListTeams)
+				m.Post("", reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
+				m.Get("/search", org.SearchTeam)
+			}, reqToken(), reqOrgMembership())
 			m.Group("/labels", func() {
 				m.Get("", org.ListLabels)
 				m.Post("", reqToken(), reqOrgOwnership(), bind(api.CreateLabelOption{}), org.CreateLabel)

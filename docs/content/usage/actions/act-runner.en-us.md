@@ -114,6 +114,12 @@ If you cannot see the settings page, please make sure that you have the right pe
 
 The format of the registration token is a random string `D0gvfu2iHfUjNqCYVljVyRV14fISpJxxxxxxxxxx`.
 
+A registration token can also be obtained from the gitea [command-line interface](../../administration/command-line.en-us.md#actions-generate-runner-token):
+
+```
+gitea --config /etc/gitea/app.ini actions generate-runner-token
+```
+
 ### Register the runner
 
 The act runner can be registered by running the following command:

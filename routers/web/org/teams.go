@@ -276,6 +276,10 @@ func NewTeam(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeamsNew"] = true
 	ctx.Data["Team"] = &org_model.Team{}
 	ctx.Data["Units"] = unit_model.Units
+	if err := shared_user.LoadHeaderCount(ctx); err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
 	ctx.HTML(http.StatusOK, tplTeamNew)
 }
 
@@ -461,6 +465,10 @@ func EditTeam(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeams"] = true
 	if err := ctx.Org.Team.LoadUnits(ctx); err != nil {
 		ctx.ServerError("LoadUnits", err)
+		return
+	}
+	if err := shared_user.LoadHeaderCount(ctx); err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
 		return
 	}
 	ctx.Data["Team"] = ctx.Org.Team
