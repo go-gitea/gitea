@@ -549,7 +549,7 @@ var migrations = []Migration{
 	// v281 -> v282
 	NewMigration("Add auth_token table", v1_22.CreateAuthTokenTable),
 	// v282 -> v283
-	NewMigration("Add Repository Licenses", v1_21.AddRepositoryLicenses),
+	NewMigration("Add Repository Licenses", v1_22.AddRepositoryLicenses),
 }
 
 // GetCurrentDBVersion returns the current db version
