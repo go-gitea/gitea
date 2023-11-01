@@ -179,7 +179,7 @@ func TestPackageArch(t *testing.T) {
 
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			assert.True(t, CompareDbEntries(dbV1x86_64d, resp.Body.Bytes()))
+			CompareDbEntries(t, dbV1x86_64d, resp.Body.Bytes())
 		})
 
 		t.Run("Get_i686_pacman_database", func(t *testing.T) {
@@ -191,7 +191,7 @@ func TestPackageArch(t *testing.T) {
 
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			assert.True(t, CompareDbEntries(dbV1i686, resp.Body.Bytes()))
+			CompareDbEntries(t, dbV1i686, resp.Body.Bytes())
 		})
 	})
 
@@ -231,7 +231,7 @@ func TestPackageArch(t *testing.T) {
 
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			assert.True(t, CompareDbEntries(dbV2x86_64, resp.Body.Bytes()))
+			CompareDbEntries(t, dbV2x86_64, resp.Body.Bytes())
 		})
 
 		t.Run("Get_i686_pacman_database", func(t *testing.T) {
@@ -243,7 +243,7 @@ func TestPackageArch(t *testing.T) {
 
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			assert.True(t, CompareDbEntries(dbV2i686, resp.Body.Bytes()))
+			CompareDbEntries(t, dbV2i686, resp.Body.Bytes())
 		})
 
 		t.Run("Remove_v2_git_x86_64", func(t *testing.T) {
@@ -383,10 +383,11 @@ func BuildArchDb(pkgs []arch.Package) []byte {
 	return b.Bytes()
 }
 
-func CompareDbEntries(first, second []byte) bool {
+func CompareDbEntries(t *testing.T, first, second []byte) {
 	fgz, err := gzip.NewReader(bytes.NewReader(first))
 	if err != nil {
-		return false
+		assert.NoError(t, err)
+		return
 	}
 	ftar := tar.NewReader(fgz)
 
@@ -403,7 +404,8 @@ func CompareDbEntries(first, second []byte) bool {
 
 	sgz, err := gzip.NewReader(bytes.NewReader(second))
 	if err != nil {
-		return false
+		assert.NoError(t, err)
+		return
 	}
 	star := tar.NewReader(sgz)
 
@@ -415,10 +417,16 @@ func CompareDbEntries(first, second []byte) bool {
 
 		_, ok := validatemap[h.Name]
 		if !ok {
-			return false
+			assert.Fail(t, "Entry not found in first archive: "+h.Name)
 		}
 		delete(validatemap, h.Name)
 	}
 
-	return len(validatemap) == 0
+	if len(validatemap) == 0 {
+		return
+	}
+
+	for e := range validatemap {
+		assert.Fail(t, "Entry not found in second archive: "+e)
+	}
 }
