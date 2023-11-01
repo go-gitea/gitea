@@ -716,7 +716,7 @@ func FindUserCodeAccessibleOwnerRepoIDs(ctx context.Context, ownerID int64, user
 }
 
 // GetUserRepositories returns a list of repositories of given user.
-func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error) {
+func GetUserRepositories(ctx context.Context, opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = "updated_unix DESC"
 	}
@@ -734,7 +734,7 @@ func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error)
 		cond = cond.And(builder.In("lower_name", opts.LowerNames))
 	}
 
-	sess := db.GetEngine(db.DefaultContext)
+	sess := db.GetEngine(ctx)
 
 	count, err := sess.Where(cond).Count(new(Repository))
 	if err != nil {
