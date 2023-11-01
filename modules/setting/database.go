@@ -137,17 +137,16 @@ func DBConnStr() (string, error) {
 // https://www.postgresql.org/docs/current/static/libpq-connect.html#LIBPQ-CONNSTRING
 // and returns proper host and port number.
 func parsePostgreSQLHostPort(info string) (host, port string) {
-	host = info
-	h, p, err := net.SplitHostPort(info)
-	if err == nil {
+	if h, p, err := net.SplitHostPort(info); err == nil {
 		host, port = h, p
+	} else {
+		// treat the "info" as "host", if it's an IPv6 address, remove the wrapper
+		host = info
+		if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
+			host = host[1 : len(host)-1]
+		}
 	}
-
-	// if it's an IPv6 address, remove the wrapper
-	if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
-		host = host[1 : len(host)-1]
-	}
-
+	
 	// set fallback values
 	if host == "" {
 		host = "127.0.0.1"
