@@ -66,7 +66,7 @@ export function initCommitStatuses() {
       placement: top ? 'top-start' : 'bottom-start',
       interactive: true,
       role: 'dialog',
-      theme: 'menu',
+      theme: 'box-with-header',
     });
   });
 }

@@ -49,6 +49,10 @@
   padding: 0;
 }
 
+.tippy-box[data-theme="box-with-header"] .tippy-content {
+  padding: 0;
+}
+
 .tippy-box[data-placement^="top"] > .tippy-svg-arrow {
   bottom: 0;
 }
@@ -115,4 +119,12 @@
 
 .tippy-box[data-theme="menu"] .tippy-svg-arrow-inner {
   fill: var(--color-menu);
+}
+
+.tippy-box[data-theme="box-with-header"][data-placement^="top"] .tippy-svg-arrow-inner {
+  fill: var(--color-box-body);
+}
+
+.tippy-box[data-theme="box-with-header"][data-placement^="bottom"] .tippy-svg-arrow-inner {
+  fill: var(--color-box-header);
 }
