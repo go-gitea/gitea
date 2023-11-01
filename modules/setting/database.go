@@ -146,7 +146,7 @@ func parsePostgreSQLHostPort(info string) (host, port string) {
 			host = host[1 : len(host)-1]
 		}
 	}
-	
+
 	// set fallback values
 	if host == "" {
 		host = "127.0.0.1"
