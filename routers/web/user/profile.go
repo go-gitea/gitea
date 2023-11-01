@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/routers/web/org"
@@ -64,17 +65,17 @@ func userProfile(ctx *context.Context) {
 		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
 	}
 
-	profileGitRepo, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx)
+	profileGitRepo, profileReadmeBlob, funding, profileClose := shared_user.FindUserProfile(ctx)
 	defer profileClose()
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
-	prepareUserProfileTabData(ctx, showPrivate, profileGitRepo, profileReadmeBlob)
+	prepareUserProfileTabData(ctx, showPrivate, profileGitRepo, profileReadmeBlob, funding)
 	// call PrepareContextForProfileBigAvatar later to avoid re-querying the NumFollowers & NumFollowing
 	shared_user.PrepareContextForProfileBigAvatar(ctx)
 	ctx.HTML(http.StatusOK, tplProfile)
 }
 
-func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGitRepo *git.Repository, profileReadme *git.Blob) {
+func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGitRepo *git.Repository, profileReadme *git.Blob, funding []*api.RepoFundingEntry) {
 	// if there is a profile readme, default to "overview" page, otherwise, default to "repositories" page
 	// if there is not a profile readme, the overview tab should be treated as the repositories tab
 	tab := ctx.FormString("tab")
@@ -268,6 +269,8 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGi
 	}
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = total
+	ctx.Data["Funding"] = funding
+	ctx.Data["FundingName"] = ctx.ContextUser.Name
 
 	err = shared_user.LoadHeaderCount(ctx)
 	if err != nil {

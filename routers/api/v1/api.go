@@ -891,6 +891,7 @@ func Routes() *web.Route {
 				m.Get("/api", settings.GetGeneralAPISettings)
 				m.Get("/attachment", settings.GetGeneralAttachmentSettings)
 				m.Get("/repository", settings.GetGeneralRepoSettings)
+				m.Get("/funding", settings.GetFundingSettings)
 			})
 		})
 
@@ -1271,6 +1272,8 @@ func Routes() *web.Route {
 				m.Get("/issue_config/validate", context.ReferencesGitRepo(), repo.ValidateIssueConfig)
 				m.Get("/languages", reqRepoReader(unit.TypeCode), repo.GetLanguages)
 				m.Get("/activities/feeds", repo.ListRepoActivityFeeds)
+				m.Get("/funding", context.ReferencesGitRepo(), repo.GetFunding)
+				m.Get("/funding/validate", context.ReferencesGitRepo(), repo.ValidateFunding)
 				m.Get("/new_pin_allowed", repo.AreNewIssuePinsAllowed)
 				m.Group("/avatar", func() {
 					m.Post("", bind(api.UpdateRepoAvatarOption{}), repo.UpdateAvatar)

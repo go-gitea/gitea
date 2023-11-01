@@ -83,6 +83,15 @@
 				{{end}}
 			{{end}}
 			<li>{{svg "octicon-calendar"}} <span>{{ctx.Locale.Tr "user.joined_on" (DateTime "short" .ContextUser.CreatedUnix) | Safe}}</span></li>
+			{{if $.Funding}}
+				<li>
+					<div class="ui labeled button">
+						<button class="ui compact small basic show-modal button" data-modal="#funding-modal">
+							{{svg "octicon-heart"}}{{$.locale.Tr "sponsor.button_text"}}
+						</button>
+					</div>
+				</li>
+			{{end}}
 			{{if and .Orgs .HasOrgsVisible}}
 			<li>
 				<ul class="user-orgs">
@@ -125,3 +134,9 @@
 		</ul>
 	</div>
 </div>
+
+{{if .Funding}}
+	<div class="ui small modal" id="funding-modal">
+		{{template "shared/funding" .}}
+	</div>
+{{end}}

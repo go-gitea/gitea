@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	funding_service "code.gitea.io/gitea/services/funding"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
@@ -649,6 +650,9 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		ctx.Repo.GitRepo.Close()
 	}
 	ctx.Repo.GitRepo = gitRepo
+
+	ctx.Data["Funding"], _ = funding_service.GetFundingFromDefaultBranch(ctx, ctx.Repo.Repository)
+	ctx.Data["FundingName"] = repo.FullName()
 
 	// We opened it, we should close it
 	cancel := func() {

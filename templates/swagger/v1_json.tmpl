@@ -5044,6 +5044,78 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/funding": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Returns the funding for a repo",
+        "operationId": "repoGetFunding",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepoFunding"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/funding/validate": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Returns the validation information for a funding config",
+        "operationId": "repoValidateFunding",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ConfigValidation"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/git/blobs/{sha}": {
       "get": {
         "produces": [
@@ -5964,7 +6036,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/RepoIssueConfigValidation"
+            "$ref": "#/responses/ConfigValidation"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -13941,6 +14013,23 @@
         }
       }
     },
+    "/settings/funding": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get instance's global funding settings",
+        "operationId": "getFundingSetting",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/FundingSettings"
+          }
+        }
+      }
+    },
     "/settings/repository": {
       "get": {
         "produces": [
@@ -17419,6 +17508,21 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ConfigValidation": {
+      "description": "ConfigValidation is a validation for a config file",
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "valid": {
+          "type": "boolean",
+          "x-go-name": "Valid"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "ContentsResponse": {
       "description": "ContentsResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content",
       "type": "object",
@@ -19571,6 +19675,41 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "FundingProvider": {
+      "type": "object",
+      "properties": {
+        "icon": {
+          "type": "string",
+          "x-go-name": "Icon"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "text": {
+          "type": "string",
+          "x-go-name": "Text"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "FundingSettings": {
+      "type": "object",
+      "properties": {
+        "providers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FundingProvider"
+          },
+          "x-go-name": "Providers"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "GPGKey": {
       "description": "GPGKey a user GPG key to sign commit and tag in repository",
       "type": "object",
@@ -20223,20 +20362,6 @@
         "url": {
           "type": "string",
           "x-go-name": "URL"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "IssueConfigValidation": {
-      "type": "object",
-      "properties": {
-        "message": {
-          "type": "string",
-          "x-go-name": "Message"
-        },
-        "valid": {
-          "type": "boolean",
-          "x-go-name": "Valid"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -21883,6 +22008,25 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "RepoFundingEntry": {
+      "description": "RepoFundingEntry is a funding option for a repo",
+      "type": "object",
+      "properties": {
+        "icon": {
+          "type": "string",
+          "x-go-name": "Icon"
+        },
+        "text": {
+          "type": "string",
+          "x-go-name": "Text"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "RepoTopicOptions": {
       "description": "RepoTopicOptions a collection of repo topic names",
       "type": "object",
@@ -23252,6 +23396,12 @@
         }
       }
     },
+    "ConfigValidation": {
+      "description": "ConfigValidation",
+      "schema": {
+        "$ref": "#/definitions/ConfigValidation"
+      }
+    },
     "ContentsListResponse": {
       "description": "ContentsListResponse",
       "schema": {
@@ -23322,6 +23472,12 @@
       "description": "FilesResponse",
       "schema": {
         "$ref": "#/definitions/FilesResponse"
+      }
+    },
+    "FundingSettings": {
+      "description": "FundingSettings",
+      "schema": {
+        "$ref": "#/definitions/FundingSettings"
       }
     },
     "GPGKey": {
@@ -23754,16 +23910,19 @@
         "$ref": "#/definitions/RepoCollaboratorPermission"
       }
     },
+    "RepoFunding": {
+      "description": "RepoFunding",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/RepoFundingEntry"
+        }
+      }
+    },
     "RepoIssueConfig": {
       "description": "RepoIssueConfig",
       "schema": {
         "$ref": "#/definitions/IssueConfig"
-      }
-    },
-    "RepoIssueConfigValidation": {
-      "description": "RepoIssueConfigValidation",
-      "schema": {
-        "$ref": "#/definitions/IssueConfigValidation"
       }
     },
     "RepoNewIssuePinsAllowed": {

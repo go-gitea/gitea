@@ -152,6 +152,8 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	loadMirrorFrom(cfg)
 	loadMarkupFrom(cfg)
 	loadOtherFrom(cfg)
+	loadBuiltinFundingProviders()
+	loadCustomFundingProvidersFrom(cfg)
 	return nil
 }
 

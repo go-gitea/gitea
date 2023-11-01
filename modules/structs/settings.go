@@ -35,3 +35,14 @@ type GeneralAttachmentSettings struct {
 	MaxSize      int64  `json:"max_size"`
 	MaxFiles     int    `json:"max_files"`
 }
+
+type FundingProvider struct {
+	Name string `json:"name"`
+	Text string `json:"text"`
+	URL  string `json:"url"`
+	Icon string `json:"icon"`
+}
+
+type FundingSettings struct {
+	Providers []*FundingProvider `json:"providers"`
+}

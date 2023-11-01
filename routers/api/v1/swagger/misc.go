@@ -62,3 +62,10 @@ type swaggerResponseLabelTemplateInfo struct {
 	// in:body
 	Body []api.LabelTemplate `json:"body"`
 }
+
+// ConfigValidation
+// swagger:response ConfigValidation
+type swaggerConfigValidation struct {
+	// in:body
+	Body api.ConfigValidation `json:"body"`
+}
