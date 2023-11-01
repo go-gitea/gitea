@@ -44,7 +44,7 @@ func GetPackageSignature(ctx *context.Context, distro, file string) (*bytes.Read
 	}
 
 	for _, pp := range proprs {
-		if pp.Name == "sign" {
+		if pp.Name == arch_module.PropertySignature {
 			b, err := hex.DecodeString(pp.Value)
 			if err != nil {
 				return nil, err
@@ -116,7 +116,7 @@ func CreatePacmanDb(ctx *context.Context, owner, arch, distro string) (*bytes.Bu
 			}
 
 			pps, err := packages_model.GetPropertiesByName(
-				ctx, packages_model.PropertyTypeFile, pf.ID, "desc",
+				ctx, packages_model.PropertyTypeFile, pf.ID, arch_module.PropertyDescription,
 			)
 			if err != nil {
 				return nil, err

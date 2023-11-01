@@ -37,14 +37,14 @@ func UploadArchPackage(ctx *context.Context, upload io.Reader, filename, distro,
 	}
 
 	properties := map[string]string{
-		"desc": p.Desc(),
+		arch_module.PropertyDescription: p.Desc(),
 	}
 	if sign != "" {
 		_, err := hex.DecodeString(sign)
 		if err != nil {
 			return true, nil, errors.New("unable to decode package signature")
 		}
-		properties["sign"] = sign
+		properties[arch_module.PropertySignature] = sign
 	}
 
 	ver, _, err := packages_service.CreatePackageOrAddFileToExisting(

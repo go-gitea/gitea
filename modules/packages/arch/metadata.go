@@ -23,6 +23,11 @@ import (
 	"github.com/mholt/archiver/v3"
 )
 
+const (
+	PropertyDescription = "arch.description"
+	PropertySignature   = "arch.signature"
+)
+
 var (
 	// https://man.archlinux.org/man/PKGBUILD.5
 	reName   = regexp.MustCompile(`^[a-zA-Z0-9@._+-]+$`)
