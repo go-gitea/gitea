@@ -74,6 +74,11 @@ func mailNewRelease(ctx context.Context, lang string, tos []string, rel *repo_mo
 		"Language": locale.Language(),
 	}
 
+	subjectFromTemplate := subjectFromTemplate(string(tplNewReleaseMail), mailMeta)
+	if subjectFromTemplate != "" {
+		subject = subjectFromTemplate
+	}
+
 	var mailBody bytes.Buffer
 
 	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplNewReleaseMail), mailMeta); err != nil {
