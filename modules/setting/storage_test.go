@@ -428,4 +428,40 @@ MINIO_BASE_PATH = /prefix
 	assert.EqualValues(t, "my_secret_key", RepoArchive.Storage.MinioConfig.SecretAccessKey)
 	assert.EqualValues(t, true, RepoArchive.Storage.MinioConfig.UseSSL)
 	assert.EqualValues(t, "/prefix/repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
+
+	cfg, err = NewConfigProviderFromData(`
+[storage]
+STORAGE_TYPE = minio
+MINIO_ACCESS_KEY_ID = my_access_key
+MINIO_SECRET_ACCESS_KEY = my_secret_key
+MINIO_USE_SSL = true
+MINIO_BASE_PATH = /prefix
+
+[lfs]
+MINIO_BASE_PATH = /lfs
+`)
+	assert.NoError(t, err)
+	assert.NoError(t, loadLFSFrom(cfg))
+	assert.EqualValues(t, "my_access_key", LFS.Storage.MinioConfig.AccessKeyID)
+	assert.EqualValues(t, "my_secret_key", LFS.Storage.MinioConfig.SecretAccessKey)
+	assert.EqualValues(t, true, LFS.Storage.MinioConfig.UseSSL)
+	assert.EqualValues(t, "/lfs", LFS.Storage.MinioConfig.BasePath)
+
+	cfg, err = NewConfigProviderFromData(`
+[storage]
+STORAGE_TYPE = minio
+MINIO_ACCESS_KEY_ID = my_access_key
+MINIO_SECRET_ACCESS_KEY = my_secret_key
+MINIO_USE_SSL = true
+MINIO_BASE_PATH = /prefix
+
+[storage.lfs]
+MINIO_BASE_PATH = /lfs
+`)
+	assert.NoError(t, err)
+	assert.NoError(t, loadLFSFrom(cfg))
+	assert.EqualValues(t, "my_access_key", LFS.Storage.MinioConfig.AccessKeyID)
+	assert.EqualValues(t, "my_secret_key", LFS.Storage.MinioConfig.SecretAccessKey)
+	assert.EqualValues(t, true, LFS.Storage.MinioConfig.UseSSL)
+	assert.EqualValues(t, "/lfs", LFS.Storage.MinioConfig.BasePath)
 }
