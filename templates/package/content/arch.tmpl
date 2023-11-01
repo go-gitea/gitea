@@ -1,27 +1,27 @@
 {{if eq .PackageDescriptor.Package.Type "arch"}}
-	<h4 class="ui top attached header">{{.locale.Tr "packages.installation"}}</h4>
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 
 			<div class="field">
-				<label>{{svg "octicon-gear"}} {{.locale.Tr "packages.arch.pacmanconf" | Safe}}</label>
+				<label>{{svg "octicon-gear"}} {{ctx.Locale.Tr "packages.arch.pacmanconf" | Safe}}</label>
 				<div class="markup"><pre class="code-block"><code>[{{.PackageDescriptor.Owner.LowerName}}.{{.RegistryHost}}]
 SigLevel = Optional TrustAll
 Server = <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/arch/$distribution/$arch"></gitea-origin-url></code></pre></div>
 			</div>
 
 			<div class="field">
-				<label>{{svg "octicon-sync"}} {{.locale.Tr "packages.arch.pacmansync"}}</label>
+				<label>{{svg "octicon-sync"}} {{ctx.Locale.Tr "packages.arch.pacmansync"}}</label>
 				<div class="markup"><pre class="code-block"><code>pacman -Sy {{.PackageDescriptor.Package.LowerName}}</code></pre></div>
 			</div>
 
 			<div class="field">
-				{{.locale.Tr "packages.arch.documentation" (printf `<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/packages/arch/">`) (printf `</a>`) | Safe}}
+				{{ctx.Locale.Tr "packages.arch.documentation" (printf `<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/packages/arch/">`) (printf `</a>`) | Safe}}
 			</div>
 		</div>
 	</div>
 
-	<h4 class="ui top attached header">{{.locale.Tr "packages.arch.properties"}}</h4>
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.arch.properties"}}</h4>
 	<div class="ui attached segment">
 	<table class="ui very basic compact table">
 		<tbody>
