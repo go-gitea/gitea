@@ -38,7 +38,7 @@ pacman -Sy package
 
 ## Upload packages
 
-When uploading package to gitea, you have to prepare package file with `.pkg.tar.zst` extension and it's `.pkg.tar.zst.sig` signature. You can use [curl](https://curl.se/) or any other HTTP client, gitea supports multiple [authentication schemes](https://docs.gitea.com/usage/authentication). Upload command will create 3 files: package, signature and desc file for pacman database (which will be created automatically on request).
+When uploading the package to gitea, you have to prepare package file with the `.pkg.tar.zst` extension and its `.pkg.tar.zst.sig` signature. You can use [curl](https://curl.se/) or any other HTTP client, Gitea supports multiple [authentication schemes](https://docs.gitea.com/usage/authentication). The upload command will create 3 files: package, signature and desc file for the pacman database (which will be created automatically on request).
 
 Following command will upload arch package and related signature to gitea. Example with basic auth:
 
