@@ -75,6 +75,12 @@ func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, s
 		"Language":          locale.Language(),
 	}
 
+	subjectFromTemplate := subjectFromTemplate(string(tpl), data)
+	if subjectFromTemplate != "" {
+		subject = subjectFromTemplate
+	}
+	data["Subject"] = subject
+
 	var content bytes.Buffer
 
 	if err := bodyTemplates.ExecuteTemplate(&content, string(tpl), data); err != nil {
@@ -123,6 +129,14 @@ func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
 		"Language":        locale.Language(),
 	}
 
+	subject := locale.Tr("mail.activate_email")
+
+	subjectFromTemplate := subjectFromTemplate(string(mailAuthActivateEmail), data)
+	if subjectFromTemplate != "" {
+		subject = subjectFromTemplate
+	}
+	data["Subject"] = subject
+
 	var content bytes.Buffer
 
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailAuthActivateEmail), data); err != nil {
@@ -130,7 +144,7 @@ func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
 		return
 	}
 
-	msg := NewMessage(email.Email, locale.Tr("mail.activate_email"), content.String())
+	msg := NewMessage(email.Email, subject, content.String())
 	msg.Info = fmt.Sprintf("UID: %d, activate email", u.ID)
 
 	SendAsync(msg)
@@ -151,6 +165,14 @@ func SendRegisterNotifyMail(u *user_model.User) {
 		"Language":    locale.Language(),
 	}
 
+	subject := locale.Tr("mail.register_notify")
+
+	subjectFromTemplate := subjectFromTemplate(string(mailAuthRegisterNotify), data)
+	if subjectFromTemplate != "" {
+		subject = subjectFromTemplate
+	}
+	data["Subject"] = subject
+
 	var content bytes.Buffer
 
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailAuthRegisterNotify), data); err != nil {
@@ -158,7 +180,7 @@ func SendRegisterNotifyMail(u *user_model.User) {
 		return
 	}
 
-	msg := NewMessage(u.Email, locale.Tr("mail.register_notify"), content.String())
+	msg := NewMessage(u.Email, subject, content.String())
 	msg.Info = fmt.Sprintf("UID: %d, registration notify", u.ID)
 
 	SendAsync(msg)
@@ -181,6 +203,12 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 		"Link":     repo.HTMLURL(),
 		"Language": locale.Language(),
 	}
+
+	subjectFromTemplate := subjectFromTemplate(string(mailNotifyCollaborator), data)
+	if subjectFromTemplate != "" {
+		subject = subjectFromTemplate
+	}
+	data["Subject"] = subject
 
 	var content bytes.Buffer
 
@@ -265,17 +293,10 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		"CanReply":        setting.IncomingEmail.Enabled && commentType != issues_model.CommentTypePullRequestPush,
 	}
 
-	var mailSubject bytes.Buffer
-	if err := subjectTemplates.ExecuteTemplate(&mailSubject, tplName, mailMeta); err == nil {
-		subject = sanitizeSubject(mailSubject.String())
-		if subject == "" {
-			subject = fallback
-		}
-	} else {
-		log.Error("ExecuteTemplate [%s]: %v", tplName+"/subject", err)
+	subjectFromTemplate := subjectFromTemplate(tplName, mailMeta)
+	if subjectFromTemplate != "" {
+		subject = subjectFromTemplate
 	}
-
-	subject = emoji.ReplaceAliases(subject)
 
 	mailMeta["Subject"] = subject
 
@@ -519,4 +540,16 @@ func actionToTemplate(issue *issues_model.Issue, actionType activities_model.Act
 		template = "issue/default"
 	}
 	return typeName, name, template
+}
+
+func subjectFromTemplate(tplName string, mailMeta map[string]any) string {
+	var mailSubject bytes.Buffer
+	var subject string
+	if err := subjectTemplates.ExecuteTemplate(&mailSubject, tplName, mailMeta); err == nil {
+		subject = sanitizeSubject(mailSubject.String())
+	} else {
+		log.Error("ExecuteTemplate [%s]: %v", tplName+"/subject", err)
+	}
+	subject = emoji.ReplaceAliases(subject)
+	return subject
 }
