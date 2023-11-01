@@ -732,7 +732,7 @@ and
 - `ENABLE_HELO`: **true**: Enable HELO operation.
 - `HELO_HOSTNAME`: **(retrieved from system)**: HELO hostname.
 - `FROM`: **_empty_**: Mail from address, RFC 5322. This can be just an email address, or the "Name" \<email@example.com\> format.
-- `RETURN_PATH`: **_empty_**: Set the Return-Path header, to let mail clients reply to a different mail as it was send from. See [RFC 4021](https://www.rfc-editor.org/rfc/rfc4021#page-17) for more details.
+- `RETURN_PATH`: **_empty_**: Set the Return-Path header where bounced e-mails will be sent to.
 - `ENVELOPE_FROM`: **_empty_**: Address set as the From address on the SMTP mail envelope. Set to `<>` to send an empty address.
 - `SUBJECT_PREFIX`: **_empty_**: Prefix to be placed before e-mail subject lines.
 - `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be command or full path).
