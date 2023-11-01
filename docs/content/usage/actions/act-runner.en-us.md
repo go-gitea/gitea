@@ -264,7 +264,7 @@ Since act runner is still in development, it is recommended to check the latest 
 
 ## Systemd service
 
-It is also possible to run act-runner as a [systemd](https://en.wikipedia.org/wiki/Systemd) service. Create an unprivileged `act-runner` user on your system, and the following file in `/etc/systemd/system/act-runner.service`. The paths in `ExecStart` and `WorkingDirectory` may need to be adjusted depending on where you installed the `act-runner` binary, its configuration file, and the home directory of the `act-runner` user.
+It is also possible to run act-runner as a [systemd](https://en.wikipedia.org/wiki/Systemd) service. Create an unprivileged `act_runner` user on your system, and the following file in `/etc/systemd/system/act_runner.service`. The paths in `ExecStart` and `WorkingDirectory` may need to be adjusted depending on where you installed the `act_runner` binary, its configuration file, and the home directory of the `act_runner` user.
 
 ```ini
 [Unit]
@@ -273,13 +273,13 @@ Documentation=https://gitea.com/gitea/act_runner
 After=docker.service
 
 [Service]
-ExecStart=/usr/local/bin/act-runner daemon --config /etc/act-runner/config.yaml
+ExecStart=/usr/local/bin/act_runner daemon --config /etc/act_runner/config.yaml
 ExecReload=/bin/kill -s HUP $MAINPID
-WorkingDirectory=/var/lib/act-runner
+WorkingDirectory=/var/lib/act_runner
 TimeoutSec=0
 RestartSec=10
 Restart=always
-User=act-runner
+User=act_runner
 
 [Install]
 WantedBy=multi-user.target
@@ -291,10 +291,10 @@ Then:
 # load the new systemd unit file
 sudo systemctl daemon-reload
 # start the service and enable it at boot
-sudo systemctl enable act-runner --now
+sudo systemctl enable act_runner --now
 ```
 
-If using Docker, the `act-runner` user should also be added to the `docker` group before starting the service. Keep in mind that this effectively gives `act-runner` root access to the system [[1]](https://docs.docker.com/engine/security/#docker-daemon-attack-surface).
+If using Docker, the `act_runner` user should also be added to the `docker` group before starting the service. Keep in mind that this effectively gives `act_runner` root access to the system [[1]](https://docs.docker.com/engine/security/#docker-daemon-attack-surface).
 
 ## Configuration variable
 
