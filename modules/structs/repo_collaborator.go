@@ -16,10 +16,10 @@ type RepoCollaboratorPermission struct {
 }
 
 type WeekData struct {
-	Week      int64 `json:"week"` // Starting day of the week as Unix timestamp
+	Week      int64 `json:"week"`      // Starting day of the week as Unix timestamp
 	Additions int   `json:"additions"` // Number of additions in that week
-	Deletions int   `json:"deletions"`// Number of deletions in that week
-	Commits   int   `json:"commits"`// Number of commits in that week
+	Deletions int   `json:"deletions"` // Number of deletions in that week
+	Commits   int   `json:"commits"`   // Number of commits in that week
 }
 
 // ContributorData represents statistical git commit count data

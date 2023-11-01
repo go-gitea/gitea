@@ -6,9 +6,9 @@ package repo
 import (
 	"net/http"
 
-	contributors_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	contributors_service "code.gitea.io/gitea/services/repository"
 )
 
 const (

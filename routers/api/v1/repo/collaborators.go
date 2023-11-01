@@ -8,7 +8,6 @@ import (
 	"errors"
 	"net/http"
 
-	contributors_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -406,7 +405,7 @@ func GetAllContributorsStats(ctx *context.APIContext) {
 		sha = ctx.Repo.Repository.DefaultBranch
 	}
 
-	if contributorStats, err := contributors_service.GetContributorStats(ctx, ctx.Repo.Repository, sha); err != nil {
+	if contributorStats, err := repo_service.GetContributorStats(ctx, ctx.Repo.Repository, sha); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetContributorStats", err)
 	} else {
 		ctx.JSON(http.StatusOK, &contributorStats)

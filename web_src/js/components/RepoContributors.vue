@@ -231,8 +231,8 @@ export default {
             },
             limits: {
               x: {
-                /* Check https://www.chartjs.org/chartjs-plugin-zoom/latest/guide/options.html#scale-limits
-                   to know what each option means */
+                // Check https://www.chartjs.org/chartjs-plugin-zoom/latest/guide/options.html#scale-limits
+                // to know what each option means
                 min: 'original',
                 max: 'original',
 
