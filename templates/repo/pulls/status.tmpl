@@ -7,7 +7,7 @@ Template Attributes:
 */}}
 
 {{if .CommitStatus}}
-<div class="{{if .IsPopup}}tippy-commit-status{{else}}pr-commit-status{{end}}">
+<div class="{{if .IsPopup}}tippy-commit-status{{else}}pr-commit-status{{end}}"{{if not .IsPopup}} data-toggled="true"{{end}}>
 	<div class="ui attached header top">
 		{{if eq .CommitStatus.State "pending"}}
 			{{ctx.Locale.Tr "repo.pulls.status_checking"}}

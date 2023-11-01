@@ -3078,19 +3078,20 @@ tbody.commit-list {
   padding: 0 !important;
   max-height: 231px;
   overflow-x: hidden;
-  transition: max-height 0.2s;
-  border-bottom: 0 !important;
-}
-
-.pr-commit-status.hide {
-  border-bottom: 0 !important;
-}
-
-.pr-commit-status.hide .ui.attached.header {
+  transition: max-height .2s;
   border-bottom: none !important;
 }
 
-.pr-commit-status.hide .commit-status-list {
+.pr-commit-status[data-toggled="false"] {
+  border-bottom: none !important;
+}
+
+.pr-commit-status[data-toggled="false"] .ui.attached.header {
+  transition-delay: .2s;
+  border-bottom-width: 0 !important;
+}
+
+.pr-commit-status[data-toggled="false"] .commit-status-list {
   max-height: 0;
 }
 
