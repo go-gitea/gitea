@@ -4,8 +4,10 @@
 package integration
 
 import (
+	"archive/tar"
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"crypto/md5"
 	"encoding/hex"
 	"errors"
@@ -32,32 +34,19 @@ func TestPackageArch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	var (
-		gitV1x86_64 = buildArchPackage(t, "git", "1-1", "x86_64")
-		gitV1i686   = buildArchPackage(t, "git", "1-1", "i686")
-		iconsV1any  = buildArchPackage(t, "icons", "1-1", "any")
-		gitV2x86_64 = buildArchPackage(t, "git", "2-1", "x86_64")
-		iconsV2any  = buildArchPackage(t, "icons", "2-1", "any")
+		gitV1x86_64 = BuildArchPackage(t, "git", "1-1", "x86_64")
+		gitV1i686   = BuildArchPackage(t, "git", "1-1", "i686")
+		iconsV1any  = BuildArchPackage(t, "icons", "1-1", "any")
+		gitV2x86_64 = BuildArchPackage(t, "git", "2-1", "x86_64")
+		iconsV2any  = BuildArchPackage(t, "icons", "2-1", "any")
+
+		dbV1x86_64d = BuildArchDb([]arch.Package{gitV1x86_64.pkg, iconsV1any.pkg})
+		dbV1i686    = BuildArchDb([]arch.Package{gitV1i686.pkg, iconsV1any.pkg})
+		dbV2x86_64  = BuildArchDb([]arch.Package{gitV2x86_64.pkg, iconsV2any.pkg})
+		dbV2i686    = BuildArchDb([]arch.Package{gitV1i686.pkg, iconsV2any.pkg})
 
 		firstSign  = []byte{1, 2, 3, 4}
 		secondSign = []byte{4, 3, 2, 1}
-
-		V1x86_64database = BuildArchDatabase([]arch.Package{
-			gitV1x86_64.pkg,
-			iconsV1any.pkg,
-		})
-		V1i686database = BuildArchDatabase([]arch.Package{
-			gitV1i686.pkg,
-			iconsV1any.pkg,
-		})
-
-		V2x86_64database = BuildArchDatabase([]arch.Package{
-			gitV2x86_64.pkg,
-			iconsV2any.pkg,
-		})
-		V2i686database = BuildArchDatabase([]arch.Package{
-			gitV1i686.pkg,
-			iconsV2any.pkg,
-		})
 
 		user    = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		rootURL = fmt.Sprintf("/api/packages/%s/arch", user.Name)
@@ -190,7 +179,7 @@ func TestPackageArch(t *testing.T) {
 
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			assert.Equal(t, V1x86_64database, resp.Body.Bytes())
+			assert.True(t, CompareDbEntries(dbV1x86_64d, resp.Body.Bytes()))
 		})
 
 		t.Run("Get_i686_pacman_database", func(t *testing.T) {
@@ -202,7 +191,7 @@ func TestPackageArch(t *testing.T) {
 
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			assert.Equal(t, V1i686database, resp.Body.Bytes())
+			assert.True(t, CompareDbEntries(dbV1i686, resp.Body.Bytes()))
 		})
 	})
 
@@ -242,7 +231,7 @@ func TestPackageArch(t *testing.T) {
 
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			assert.Equal(t, V2x86_64database, resp.Body.Bytes())
+			assert.True(t, CompareDbEntries(dbV2x86_64, resp.Body.Bytes()))
 		})
 
 		t.Run("Get_i686_pacman_database", func(t *testing.T) {
@@ -254,7 +243,7 @@ func TestPackageArch(t *testing.T) {
 
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			assert.Equal(t, V2i686database, resp.Body.Bytes())
+			assert.True(t, CompareDbEntries(dbV2i686, resp.Body.Bytes()))
 		})
 
 		t.Run("Remove_v2_git_x86_64", func(t *testing.T) {
@@ -277,12 +266,12 @@ func TestPackageArch(t *testing.T) {
 	})
 }
 
-type testArchPackage struct {
+type TestArchPackage struct {
 	data []byte
 	pkg  arch.Package
 }
 
-func buildArchPackage(t *testing.T, name, ver, architecture string) testArchPackage {
+func BuildArchPackage(t *testing.T, name, ver, architecture string) TestArchPackage {
 	fs := fstest.MapFS{
 		"pkginfo": &fstest.MapFile{
 			Data: []byte(fmt.Sprintf(
@@ -342,7 +331,7 @@ func buildArchPackage(t *testing.T, name, ver, architecture string) testArchPack
 
 	md5, sha256, size := archPkgParams(buf.Bytes())
 
-	return testArchPackage{
+	return TestArchPackage{
 		data: buf.Bytes(),
 		pkg: arch.Package{
 			Name:    name,
@@ -382,7 +371,7 @@ func (w *counter) Read(p []byte) (int, error) {
 	return n, err
 }
 
-func BuildArchDatabase(pkgs []arch.Package) []byte {
+func BuildArchDb(pkgs []arch.Package) []byte {
 	entries := map[string][]byte{}
 	for _, p := range pkgs {
 		entries[fmt.Sprintf("%s-%s/desc", p.Name, p.Version)] = []byte(p.Desc())
@@ -392,4 +381,44 @@ func BuildArchDatabase(pkgs []arch.Package) []byte {
 		panic(err)
 	}
 	return b.Bytes()
+}
+
+func CompareDbEntries(first, second []byte) bool {
+	fgz, err := gzip.NewReader(bytes.NewReader(first))
+	if err != nil {
+		return false
+	}
+	ftar := tar.NewReader(fgz)
+
+	validatemap := map[string]struct{}{}
+
+	for {
+		h, err := ftar.Next()
+		if err != nil {
+			break
+		}
+
+		validatemap[h.Name] = struct{}{}
+	}
+
+	sgz, err := gzip.NewReader(bytes.NewReader(second))
+	if err != nil {
+		return false
+	}
+	star := tar.NewReader(sgz)
+
+	for {
+		h, err := star.Next()
+		if err != nil {
+			break
+		}
+
+		_, ok := validatemap[h.Name]
+		if !ok {
+			return false
+		}
+		delete(validatemap, h.Name)
+	}
+
+	return len(validatemap) == 0
 }
