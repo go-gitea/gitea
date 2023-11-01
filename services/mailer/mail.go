@@ -296,6 +296,8 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	subjectFromTemplate := subjectFromTemplate(tplName, mailMeta)
 	if subjectFromTemplate != "" {
 		subject = subjectFromTemplate
+	} else {
+		subject = fallback
 	}
 
 	mailMeta["Subject"] = subject
