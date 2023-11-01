@@ -57,10 +57,13 @@ func (m *Message) ToMessage() *gomail.Message {
 		msg.SetHeader(header, m.Headers[header]...)
 	}
 
-	if len(setting.MailService.SubjectPrefix) > 0 {
+	if setting.MailService.SubjectPrefix != "" {
 		msg.SetHeader("Subject", setting.MailService.SubjectPrefix+" "+m.Subject)
 	} else {
 		msg.SetHeader("Subject", m.Subject)
+	}
+	if setting.MailService.ReturnPath != "" {
+		msg.SetHeader("Return-Path", setting.MailService.ReturnPath)
 	}
 	msg.SetDateHeader("Date", m.Date)
 	msg.SetHeader("X-Auto-Response-Suppress", "All")
