@@ -3076,7 +3076,7 @@ tbody.commit-list {
 
 .commit-status-list {
   padding: 0 !important;
-  max-height: 231px;
+  max-height: 244px; /* fit exactly 5 items */
   overflow-x: hidden;
   transition: max-height .2s;
   border-bottom: none !important;
