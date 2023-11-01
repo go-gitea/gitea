@@ -266,13 +266,13 @@ func (p *Package) Desc() string {
 		"CHECKDEPENDS", strings.Join(p.VersionMetadata.CheckDepends, "\n"),
 	}
 
-	var result string
+	var buf bytes.Buffer
 	for i := 0; i < 40; i += 2 {
 		if entries[i+1] != "" {
-			result += fmt.Sprintf("%%%s%%\n%s\n\n", entries[i], entries[i+1])
+			fmt.Fprintf(&buf, "%%%s%%\n%s\n\n", entries[i], entries[i+1])
 		}
 	}
-	return result
+	return buf.String()
 }
 
 // Create pacman database archive based on provided package metadata structs.
