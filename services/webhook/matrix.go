@@ -210,6 +210,21 @@ func (m *MatrixPayload) Repository(p *api.RepositoryPayload) (api.Payloader, err
 	return getMatrixPayload(text, nil, m.MsgType), nil
 }
 
+func (m *MatrixPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+	senderLink := MatrixLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
+	repoLink := MatrixLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
+	var text string
+
+	switch p.Action {
+	case api.HookPackageCreated:
+		text = fmt.Sprintf("[%s] Package published by %s", repoLink, senderLink)
+	case api.HookPackageDeleted:
+		text = fmt.Sprintf("[%s] Package deleted by %s", repoLink, senderLink)
+	}
+
+	return getMatrixPayload(text, nil, m.MsgType), nil
+}
+
 // GetMatrixPayload converts a Matrix webhook into a MatrixPayload
 func GetMatrixPayload(p api.Payloader, event webhook_module.HookEventType, meta string) (api.Payloader, error) {
 	s := new(MatrixPayload)

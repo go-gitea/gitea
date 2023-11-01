@@ -104,6 +104,10 @@ func (f *PackagistPayload) Release(_ *api.ReleasePayload) (api.Payloader, error)
 	return nil, nil
 }
 
+func (f *PackagistPayload) Package(_ *api.PackagePayload) (api.Payloader, error) {
+	return nil, nil
+}
+
 // GetPackagistPayload converts a packagist webhook into a PackagistPayload
 func GetPackagistPayload(p api.Payloader, event webhook_module.HookEventType, meta string) (api.Payloader, error) {
 	s := new(PackagistPayload)

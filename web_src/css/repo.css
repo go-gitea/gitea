@@ -1798,10 +1798,12 @@
   flex: 1
 }
 
-.repository.packages .empty,
-.repository.actions .empty {
-  padding-top: 70px;
-  padding-bottom: 100px;
+.empty-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 40px;
+  padding-bottom: 40px;
 }
 
 .repository.packages .file-size {
