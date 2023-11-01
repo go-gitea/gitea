@@ -14,7 +14,7 @@ menu:
 
 # Arch package registry
 
-Gitea has arch package registry, which can act as a fully working [arch linux mirror](https://wiki.archlinux.org/title/mirrors) and connected directly in `/etc/pacman.conf`. Gitea automatically creates pacman database for packages in user/organization space when new arch package is uploaded.
+Gitea has a Arch Linux package registry, which can act as a fully working [Arch linux mirror](https://wiki.archlinux.org/title/mirrors) and connected directly in `/etc/pacman.conf`. Gitea automatically creates pacman database for packages in user/organization space when a new Arch package is uploaded.
 
 **Table of Contents**
 
