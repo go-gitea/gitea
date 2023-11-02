@@ -3140,10 +3140,6 @@ tbody.commit-list {
   padding-right: 0.5em; /* To match the alignment with the "required" label */
 }
 
-.tippy-commit-status {
-  max-width: calc(100vw - 16px);
-}
-
 .tippy-commit-status .ui.attached.header {
   border-top: 0 !important;
 }

@@ -6,7 +6,7 @@
 }
 
 [data-tippy-root] {
-  max-width: calc(100vw - 10px);
+  max-width: calc(100vw - 32px);
 }
 
 .tippy-box {
