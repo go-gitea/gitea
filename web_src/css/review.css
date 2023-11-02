@@ -293,6 +293,6 @@
 
 @media (max-width: 480px) {
   #viewed-files-summary-container {
-    display: none !important  ;
+    display: none !important;
   }
 }
