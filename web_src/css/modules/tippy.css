@@ -70,7 +70,6 @@
   fill: var(--color-box-header);
 }
 
-
 .tippy-box[data-placement^="top"] > .tippy-svg-arrow {
   bottom: 0;
 }
