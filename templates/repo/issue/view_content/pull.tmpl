@@ -263,7 +263,7 @@
 								},
 								{
 									'name': 'manually-merged',
-									'allowed': {{and $prUnit.PullRequestsConfig.AllowManualMerge $.IsRepoAdmin}},
+									'allowed': {{$prUnit.PullRequestsConfig.AllowManualMerge}},
 									'textDoMerge': {{ctx.Locale.Tr "repo.pulls.merge_manually"}},
 									'hideMergeMessageTexts': true,
 									'hideAutoMerge': true,
@@ -349,13 +349,13 @@
 			{{end}}{{/* end if: pull request status */}}
 
 			{{/*
-			Manually Merged is not a well-known feature, it helps repo admins to mark a non-mergeable PR (already merged, conflicted) as merged
+			Manually Merged is not a well-known feature, it is used to mark a non-mergeable PR (already merged, conflicted) as merged
 			To test it:
 			* Enable "Manually Merged" feature in the Repository Settings
 			* Create a pull request, either:
 			* - Merge the pull request branch locally and push the merged commit to Gitea
 			* - Make some conflicts between the base branch and the pull request branch
-			* Then the Manually Merged form will be shown to repo admin users
+			* Then the Manually Merged form will be shown in the merge form
 			*/}}
 			{{if and $.StillCanManualMerge (not $showGeneralMergeForm)}}
 				<div class="divider"></div>
