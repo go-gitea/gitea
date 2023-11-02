@@ -12,9 +12,11 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/convert"
@@ -71,6 +73,11 @@ func ListIssueComments(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetRawIssueByIndex", err)
 		return
 	}
+	if !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound()
+		return
+	}
+
 	issue.Repo = ctx.Repo.Repository
 
 	opts := &issues_model.FindCommentsOptions{
@@ -271,12 +278,27 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		return
 	}
 
+	var isPull util.OptionalBool
+	canReadIssue := ctx.Repo.CanRead(unit.TypeIssues)
+	canReadPull := ctx.Repo.CanRead(unit.TypePullRequests)
+	if canReadIssue && canReadPull {
+		isPull = util.OptionalBoolNone
+	} else if canReadIssue {
+		isPull = util.OptionalBoolFalse
+	} else if canReadPull {
+		isPull = util.OptionalBoolTrue
+	} else {
+		ctx.NotFound()
+		return
+	}
+
 	opts := &issues_model.FindCommentsOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 		Type:        issues_model.CommentTypeComment,
 		Since:       since,
 		Before:      before,
+		IsPull:      isPull,
 	}
 
 	comments, err := issues_model.FindComments(ctx, opts)
@@ -365,6 +387,11 @@ func CreateIssueComment(ctx *context.APIContext) {
 		return
 	}
 
+	if !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound()
+		return
+	}
+
 	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
 		ctx.Error(http.StatusForbidden, "CreateIssueComment", errors.New(ctx.Tr("repo.issues.comment_on_locked")))
 		return
@@ -431,6 +458,11 @@ func GetIssueComment(ctx *context.APIContext) {
 	}
 	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
 		ctx.Status(http.StatusNotFound)
+		return
+	}
+
+	if !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull) {
+		ctx.NotFound()
 		return
 	}
 
