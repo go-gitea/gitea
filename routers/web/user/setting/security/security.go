@@ -112,7 +112,7 @@ func loadSecurityData(ctx *context.Context) {
 		LoginType: auth_model.OAuth2,
 	})
 	if err != nil {
-		ctx.ServerError("GetOAuth2ProvidersMap", err)
+		ctx.ServerError("FindSources", err)
 		return
 	}
 
