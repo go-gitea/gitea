@@ -528,11 +528,13 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 		perPage = g.maxPerPage
 	}
 
+	view := "simple"
 	opt := &gitlab.ListProjectMergeRequestsOptions{
 		ListOptions: gitlab.ListOptions{
 			PerPage: perPage,
 			Page:    page,
 		},
+		View: &view,
 	}
 
 	allPRs := make([]*base.PullRequest, 0, perPage)
@@ -541,7 +543,13 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing merge requests: %w", err)
 	}
-	for _, pr := range prs {
+	for _, simplePR := range prs {
+		// Load merge request again by itself, as not all fields are populated in the ListProjectMergeRequests endpoint.
+		// See https://gitlab.com/gitlab-org/gitlab/-/issues/29620
+		pr, _, err := g.client.MergeRequests.GetMergeRequest(g.repoID, simplePR.IID, nil)
+		if err != nil {
+			return nil, false, fmt.Errorf("error while loading merge request: %w", err)
+		}
 
 		labels := make([]*base.Label, 0, len(pr.Labels))
 		for _, l := range pr.Labels {
@@ -564,6 +572,11 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 		closeTime := pr.ClosedAt
 		if merged && pr.ClosedAt == nil {
 			closeTime = pr.UpdatedAt
+		}
+
+		mergeCommitSHA := pr.MergeCommitSHA
+		if mergeCommitSHA == "" {
+			mergeCommitSHA = pr.SquashCommitSHA
 		}
 
 		var locked bool
@@ -608,7 +621,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			Closed:         closeTime,
 			Labels:         labels,
 			Merged:         merged,
-			MergeCommitSHA: pr.MergeCommitSHA,
+			MergeCommitSHA: mergeCommitSHA,
 			MergedTime:     mergeTime,
 			IsLocked:       locked,
 			Reactions:      g.awardsToReactions(reactions),

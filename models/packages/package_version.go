@@ -278,6 +278,9 @@ func (opts *PackageSearchOptions) configureOrderBy(e db.Engine) {
 	default:
 		e.Desc("package_version.created_unix")
 	}
+
+	// Sort by id for stable order with duplicates in the other field
+	e.Asc("package_version.id")
 }
 
 // SearchVersions gets all versions of packages matching the search options
