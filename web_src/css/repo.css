@@ -3098,11 +3098,8 @@ tbody.commit-list {
 }
 
 .commit-status-item .status-context {
-  display: flex;
+  color: var(--color-text);
   flex: 1;
-  justify-content: space-between;
-  gap: 8px;
-  max-width: calc(100% - 26px);
 }
 
 .commit-status-item .status-details {

@@ -37,7 +37,7 @@ Template Attributes:
 		{{range .CommitStatuses}}
 			<div class="commit-status-item">
 				{{template "repo/commit_status" .}}
-				<span class="status-context text truncate">{{.Context}} <span class="text light-2">{{.Description}}</span></span>
+				<div class="status-context gt-ellipsis">{{.Context}} <span class="text light-2">{{.Description}}</span></div>
 				<div class="ui status-details">
 					{{if $.is_context_required}}
 						{{if (call $.is_context_required .Context)}}<div class="ui label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>{{end}}
