@@ -59,6 +59,7 @@
 /* box-with-header theme for .ui.attached.header and .ui.attached.segment */
 
 .tippy-box[data-theme="box-with-header"] .tippy-content {
+  background: var(--color-box-body);
   padding: 0;
 }
 
