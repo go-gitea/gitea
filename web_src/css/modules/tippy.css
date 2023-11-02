@@ -56,7 +56,7 @@
   fill: var(--color-menu);
 }
 
-/* box-with-header theme for .ui.attached.header and .ui.attached.segment */
+/* box-with-header theme to look like .ui.attached.segment. can contain .ui.attached.header */
 
 .tippy-box[data-theme="box-with-header"] .tippy-content {
   background: var(--color-box-body);
