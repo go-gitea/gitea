@@ -3091,7 +3091,7 @@ tbody.commit-list {
 }
 
 .pr-commit-status[data-toggled="false"] .ui.attached.header {
-  transition-delay: .2s;
+  transition-delay: .2s; /* hide border when transition ends */
   border-bottom-width: 0 !important;
 }
 
