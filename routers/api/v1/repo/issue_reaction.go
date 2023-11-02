@@ -61,6 +61,12 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 
 	if err := comment.LoadIssue(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "comment.LoadIssue", err)
+		return
+	}
+
+	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound()
+		return
 	}
 
 	if !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull) {
