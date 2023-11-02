@@ -275,32 +275,33 @@ export default {
 
 <template>
   <div>
-    <h2 class="ui header">
-      <relative-time
-        v-if="dateFrom !== null"
-        format="datetime"
-        year="numeric"
-        month="short"
-        day="numeric"
-        weekday=""
-        :datetime="dateFrom"
-      >
-        {{ dateFrom }}
-      </relative-time>
-      {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: "-" }}
-      <relative-time
-        v-if="dateUntil !== null"
-        format="datetime"
-        year="numeric"
-        month="short"
-        day="numeric"
-        weekday=""
-        :datetime="dateUntil"
-      >
-        {{ dateUntil }}
-      </relative-time>
-
-      <div class="ui right">
+    <h2 class="ui header gt-df gt-ac gt-sb">
+      <div>
+        <relative-time
+          v-if="dateFrom !== null"
+          format="datetime"
+          year="numeric"
+          month="short"
+          day="numeric"
+          weekday=""
+          :datetime="dateFrom"
+        >
+          {{ dateFrom }}
+        </relative-time>
+        {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: "-" }}
+        <relative-time
+          v-if="dateUntil !== null"
+          format="datetime"
+          year="numeric"
+          month="short"
+          day="numeric"
+          weekday=""
+          :datetime="dateUntil"
+        >
+          {{ dateUntil }}
+        </relative-time>
+      </div>
+      <div>
         <!-- Contribution type -->
         <div class="ui dropdown jump" id="dropdown">
           <div class="ui basic compact button">
@@ -323,8 +324,7 @@ export default {
         </div>
       </div>
     </h2>
-    <div class="divider"/>
-    <div class="gt-df main-graph">
+    <div class="gt-df ui segment main-graph">
       <div v-if="isLoading || errorText !== ''" class="gt-tc gt-m-auto">
         <div v-if="isLoading">
           <SvgIcon name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
@@ -340,11 +340,9 @@ export default {
         :data="toGraphData(totalStats.weeks)" :options="getOptions('main')"
       />
     </div>
-    <div class="divider"/>
-
-    <div class="ui attached two column grid">
+    <div class="contributor-grid">
       <div
-        v-for="(contributor, index) in sortedContributors" :key="index" class="column stats-table"
+        v-for="(contributor, index) in sortedContributors" :key="index" class="stats-table"
         v-memo="[sortedContributors, type]"
       >
         <div class="ui top attached header gt-df gt-f1">
@@ -378,5 +376,10 @@ export default {
 <style scoped>
 .main-graph {
   height: 380px;
+}
+.contributor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
 }
 </style>
