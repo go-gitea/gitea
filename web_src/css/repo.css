@@ -1514,6 +1514,34 @@
     flex-wrap: wrap;
   }
 }
+.repository .diff-detail-box .diff-detail-stats strong {
+  margin-left: 0.25rem;
+  margin-right: 0.25rem;
+}
+
+/* Because the translations contain the <strong> we need to style with nth-of-type */
+
+.repository .diff-detail-box .diff-detail-stats strong:nth-of-type(1) {
+  color: var(--color-yellow);
+}
+
+.repository .diff-detail-box .diff-detail-stats strong:nth-of-type(2) {
+  color: var(--color-green);
+}
+
+.repository .diff-detail-box .diff-detail-stats strong:nth-of-type(3) {
+  color: var(--color-red);
+}
+
+@media (max-width: 480px) {
+  .repository .diff-detail-box .diff-detail-stats {
+    font-size: 0;
+    line-height: 1.6rem;
+  }
+  .repository .diff-detail-box .diff-detail-stats strong {
+    font-size: 1rem;
+  }
+}
 
 .diff-detail-actions {
   display: flex;
