@@ -451,6 +451,24 @@ func ListIssues(ctx *context.APIContext) {
 		isPull = util.OptionalBoolNone
 	}
 
+	if isPull != util.OptionalBoolNone && !ctx.Repo.CanWriteIssuesOrPulls(isPull.IsTrue()) {
+		ctx.NotFound()
+		return
+	}
+
+	if isPull == util.OptionalBoolNone {
+		canReadIssues := ctx.Repo.CanRead(unit.TypeIssues)
+		canReadPulls := ctx.Repo.CanRead(unit.TypePullRequests)
+		if !canReadIssues && !canReadPulls {
+			ctx.NotFound()
+			return
+		} else if !canReadIssues {
+			isPull = util.OptionalBoolTrue
+		} else if !canReadPulls {
+			isPull = util.OptionalBoolFalse
+		}
+	}
+
 	// FIXME: we should be more efficient here
 	createdByID := getUserIDForFilter(ctx, "created_by")
 	if ctx.Written() {
@@ -559,6 +577,10 @@ func GetIssue(ctx *context.APIContext) {
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
+		return
+	}
+	if !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound()
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, issue))
