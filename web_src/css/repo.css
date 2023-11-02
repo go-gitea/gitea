@@ -2759,6 +2759,7 @@ tbody.commit-list {
   border: none;
   user-select: none;
   color: inherit;
+  display: flex !important;
 }
 
 .diff-toggle-file-tree-button:hover {
