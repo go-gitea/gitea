@@ -18,7 +18,7 @@ jobs:
       - run: make generate-license generate-gitignore
         timeout-minutes: 40
       - name: push translations to repo
-        uses: appleboy/git-push-action@v0.0.2
+        uses: appleboy/git-push-action@v0.0.3
         with:
           author_email: "teabot@gitea.io"
           author_name: GiteaBot
