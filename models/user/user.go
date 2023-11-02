@@ -636,6 +636,7 @@ type CreateUserOverwriteOptions struct {
 	Theme                        *string
 	IsRestricted                 optional.Option[bool]
 	IsActive                     optional.Option[bool]
+	Type                         *UserType
 }
 
 // CreateUser creates record of a new user.
@@ -695,6 +696,9 @@ func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, o
 		}
 		if overwrite.IsActive.Has() {
 			u.IsActive = overwrite.IsActive.Value()
+		}
+		if overwrite.Type != nil {
+			u.Type = *overwrite.Type
 		}
 	}
 

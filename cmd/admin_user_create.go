@@ -65,6 +65,10 @@ var microcmdUserCreate = &cli.Command{
 			Name:  "restricted",
 			Usage: "Make a restricted user account",
 		},
+		&cli.BoolFlag{
+			Name:  "bot",
+			Usage: "Make a bot user account",
+		},
 	},
 }
 
@@ -145,6 +149,13 @@ func runCreateUser(c *cli.Context) error {
 		restricted = optional.Some(c.Bool("restricted"))
 	}
 
+	userType := user_model.UserTypeIndividual
+	if c.IsSet("bot") {
+		if c.Bool("bot") {
+			userType = user_model.UserTypeBot
+		}
+	}
+
 	// default user visibility in app.ini
 	visibility := setting.Service.DefaultUserVisibilityMode
 
@@ -160,6 +171,7 @@ func runCreateUser(c *cli.Context) error {
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
 		IsActive:     optional.Some(true),
 		IsRestricted: restricted,
+		Type:         &userType,
 	}
 
 	if err := user_model.CreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
