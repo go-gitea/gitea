@@ -26,41 +26,41 @@ Server = <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescri
 	<table class="ui very basic compact table">
 		<tbody>
 			<tr>
-				<td class="collapsing"><h5>Description</h5></td>
+				<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.arch.description"}}</h5></td>
 				<td>{{.PackageDescriptor.Metadata.Description}}</td>
 			</tr>
 
 			{{if .PackageDescriptor.Metadata.Provides}}
 			<tr>
-				<td class="collapsing"><h5>Provides</h5></td>
+				<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.arch.provides"}}</h5></td>
 				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Provides ", "}}</td>
 			</tr>
 			{{end}}
 
 			{{if .PackageDescriptor.Metadata.Depends}}
 			<tr>
-				<td class="collapsing"><h5>Depends</h5></td>
+				<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.arch.depends"}}</h5></td>
 				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Depends ", "}}</td>
 			</tr>
 			{{end}}
 
 			{{if .PackageDescriptor.Metadata.OptDepends}}
 			<tr>
-				<td class="collapsing"><h5>Optional depends</h5></td>
+				<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.arch.optdepends"}}</h5></td>
 				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.OptDepends ", "}}</td>
 			</tr>
 			{{end}}
 
 			{{if .PackageDescriptor.Metadata.MakeDepends}}
 			<tr>
-				<td class="collapsing"><h5>Make depends</h5></td>
+				<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.arch.makedepends"}}</h5></td>
 				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.MakeDepends ", "}}</td>
 			</tr>
 			{{end}}
 
 			{{if .PackageDescriptor.Metadata.CheckDepends}}
 			<tr>
-				<td class="collapsing"><h5>Check depends</h5></td>
+				<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.arch.checkdepends"}}</h5></td>
 				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.CheckDepends ", "}}</td>
 			</tr>
 			{{end}}
