@@ -2,13 +2,13 @@
 Template Attributes:
 * CommitStatus: summary of all commit status state
 * CommitStatuses: all commit status elements
-* IsPopup: whether this template is in a popup
+* ShowHideChecks: whether use a button to show/hide the checks
 * is_context_required: Used in pull request commit status check table
 */}}
 
 {{if .CommitStatus}}
-<div class="{{if .IsPopup}}tippy-commit-status{{else}}pr-commit-status{{end}}"{{if not .IsPopup}} data-toggled="true"{{end}}>
-	<div class="ui attached header top">
+<div class="commit-status-panel">
+	<div class="ui top attached header commit-status-header">
 		{{if eq .CommitStatus.State "pending"}}
 			{{ctx.Locale.Tr "repo.pulls.status_checking"}}
 		{{else if eq .CommitStatus.State "success"}}
@@ -23,9 +23,9 @@ Template Attributes:
 			{{ctx.Locale.Tr "repo.pulls.status_checking"}}
 		{{end}}
 
-		{{if not .IsPopup}}
+		{{if .ShowHideChecks}}
 		<div class="ui right">
-			<button class="hide-all-checks btn interact-fg"
+			<button class="commit-status-hide-checks btn interact-fg"
 			data-show-all="{{ctx.Locale.Tr "repo.pulls.status_checks_show_all"}}"
 			data-hide-all="{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}">
 			{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}</button>
@@ -33,9 +33,9 @@ Template Attributes:
 		{{end}}
 	</div>
 
-	<div class="ui attached segment commit-status-list">
+	<div class="commit-status-list">
 		{{range .CommitStatuses}}
-			<div class="ui attached segment commit-status-item">
+			<div class="commit-status-item">
 				{{template "repo/commit_status" .}}
 				<span class="status-context text truncate">{{.Context}} <span class="text light-2">{{.Description}}</span></span>
 				<div class="ui status-details">

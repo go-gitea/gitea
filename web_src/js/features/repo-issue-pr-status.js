@@ -1,11 +1,10 @@
 export function initRepoPullRequestCommitStatus() {
-  const btn = document.querySelector('.hide-all-checks');
-  if (!btn) return;
-
-  btn.addEventListener('click', () => {
-    const prCommitStatus = document.querySelector('.pr-commit-status');
-    const toggled = prCommitStatus.getAttribute('data-toggled') === 'true';
-    btn.textContent = btn.getAttribute(toggled ? 'data-hide-all' : 'data-show-all');
-    prCommitStatus.setAttribute('data-toggled', String(!toggled));
-  });
+  for (const btn of document.querySelectorAll('.commit-status-hide-checks')) {
+    btn.addEventListener('click', () => {
+      const panel = btn.closest('.commit-status-panel');
+      const list = panel.querySelector('.commit-status-list');
+      list.style.maxHeight = list.style.maxHeight ? '' : '0px';
+      btn.textContent = btn.getAttribute(list.style.maxHeight ? 'data-show-all' : 'data-hide-all');
+    });
+  }
 }

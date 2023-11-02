@@ -3074,25 +3074,15 @@ tbody.commit-list {
   }
 }
 
+.commit-status-header {
+  border: none !important; /* reset the default ".ui.attached.header" styles, to use the outer border */
+  margin: 0 !important;
+}
+
 .commit-status-list {
-  padding: 0 !important;
   max-height: 195px; /* fit exactly 4 items */
   overflow-x: hidden;
   transition: max-height .2s;
-  border-bottom: none !important;
-}
-
-.pr-commit-status[data-toggled="false"] .commit-status-list {
-  max-height: 0; /* hide it for the slide transition */
-}
-
-.pr-commit-status[data-toggled="false"] {
-  border-bottom: none !important;
-}
-
-.pr-commit-status[data-toggled="false"] .ui.attached.header {
-  transition-delay: .2s; /* hide border when transition ends */
-  border-bottom-width: 0 !important;
 }
 
 .commit-status-item {
@@ -3100,14 +3090,7 @@ tbody.commit-list {
   display: flex;
   gap: 8px;
   align-items: center;
-}
-
-.commit-status-item:first-child {
-  border-top: none !important;
-}
-
-.commit-status-item:last-child {
-  border-bottom: none !important;
+  border-top: 1px solid var(--color-secondary);
 }
 
 .commit-status-item .commit-status {
@@ -3138,10 +3121,6 @@ tbody.commit-list {
 
 .commit-status-item .status-details > span {
   padding-right: 0.5em; /* To match the alignment with the "required" label */
-}
-
-.tippy-commit-status .ui.attached.header {
-  border-top: 0 !important;
 }
 
 .search-fullname {

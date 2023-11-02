@@ -8,11 +8,7 @@
 			{{template "repo/commit_status" .Status}}
 		</span>
 	{{end}}
-	<div class="tippy-target ui relaxed list divided">
-		{{template "repo/pulls/status" (dict
-			"CommitStatuses" .Statuses
-			"CommitStatus" .Status
-			"IsPopup" true
-		)}}
+	<div class="tippy-target">
+		{{template "repo/pulls/status" (dict "CommitStatuses" .Statuses "CommitStatus" .Status)}}
 	</div>
 {{end}}
