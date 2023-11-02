@@ -2759,7 +2759,7 @@ tbody.commit-list {
   border: none;
   user-select: none;
   color: inherit;
-  display: flex !important;
+  display: flex;
 }
 
 .diff-toggle-file-tree-button:hover {
