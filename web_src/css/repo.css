@@ -1506,7 +1506,6 @@
 @media (max-width: 991.98px) {
   .repository .diff-detail-box {
     flex-direction: row;
-    height: 77px; /* this height should match sticky-2nd-row */
   }
 }
 
@@ -1705,12 +1704,6 @@
 
 .file.editor .diff-file-box .ui.attached.table {
   border: none;
-}
-
-@media (max-width: 991.98px) {
-  .diff-file-box {
-    scroll-margin-top: 77px; /* match .repository .diff-detail-box */
-  }
 }
 
 /* TODO: this can potentially be made "global" by removing the class prefix */
@@ -2796,18 +2789,6 @@ tbody.commit-list {
   position: sticky;
   top: 44px; /* match .repository .diff-detail-box */
   z-index: 7;
-}
-
-@media (max-width: 991.98px) {
-  .ui.attached.header.diff-file-header.sticky-2nd-row {
-    top: 77px; /* match .repository .diff-detail-box */
-  }
-}
-
-@media (max-width: 480px) {
-  .ui.attached.header.diff-file-header.sticky-2nd-row {
-    position: static;
-  }
 }
 
 .diff-file-name {
