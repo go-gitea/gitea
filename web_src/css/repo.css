@@ -1533,13 +1533,9 @@
   color: var(--color-red);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 991.98px) {
   .repository .diff-detail-box .diff-detail-stats {
-    font-size: 0;
-    line-height: 1.6rem;
-  }
-  .repository .diff-detail-box .diff-detail-stats strong {
-    font-size: 1rem;
+    display: none !important;
   }
 }
 
