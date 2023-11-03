@@ -2,7 +2,7 @@
 	{{.Title}}
 	<div class="ui right">
 		<div class="ui jump dropdown">
-			<div class="ui primary tiny button">{{.locale.Tr "repo.settings.add_webhook"}}</div>
+			<div class="ui primary tiny button">{{ctx.Locale.Tr "repo.settings.add_webhook"}}</div>
 			{{template "webhook/selector" .}}
 		</div>
 	</div>
