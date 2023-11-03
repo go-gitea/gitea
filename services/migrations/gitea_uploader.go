@@ -487,6 +487,12 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			if comment.Meta["NewTitle"] != nil {
 				cm.NewTitle = fmt.Sprintf("%s", comment.Meta["NewTitle"])
 			}
+		case issues_model.CommentTypeChangeTargetBranch:
+			if comment.Meta["OldRef"] != nil && comment.Meta["NewRef"] != nil {
+				cm.OldRef = fmt.Sprintf("%s", comment.Meta["OldRef"])
+				cm.NewRef = fmt.Sprintf("%s", comment.Meta["NewRef"])
+				cm.Content = ""
+			}
 		case issues_model.CommentTypePRScheduledToAutoMerge, issues_model.CommentTypePRUnScheduledToAutoMerge:
 			cm.Content = ""
 		default:
