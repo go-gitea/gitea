@@ -378,7 +378,7 @@
 					<span class="badge{{if eq .Review.Type 1}} gt-bg-green gt-text-white{{else if eq .Review.Type 3}} gt-bg-red gt-text-white{{end}}">{{svg (printf "octicon-%s" .Review.Type.Icon)}}</span>
 					<span class="text grey muted-links">
 						{{if .OriginalAuthor}}
-							<span class="black">
+							<span class="text black">
 								{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 								{{.OriginalAuthor}}
 							</span>
@@ -527,7 +527,7 @@
 																{{end}}
 																<span class="text grey muted-links">
 																	{{if .OriginalAuthor}}
-																		<span class="black">
+																		<span class="text black">
 																			{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 																			{{.OriginalAuthor}}
 																		</span>
@@ -799,7 +799,7 @@
 				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
 				<span class="text grey muted-links">
 					{{if .OriginalAuthor}}
-						<span class="black">
+						<span class="text black">
 							{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 							{{.OriginalAuthor}}
 						</span>
