@@ -283,6 +283,7 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 
 	for _, asset := range rel.Attachments {
 		assetID := asset.ID // Don't optimize this, for closure we need a local variable
+		assetDownloadURL := asset.DownloadURL
 		size := int(asset.Size)
 		dlCount := int(asset.DownloadCount)
 		r.Assets = append(r.Assets, &base.ReleaseAsset{
@@ -298,13 +299,13 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 					return nil, err
 				}
 
-				if !hasBaseURL(asset.DownloadURL, g.baseURL) {
-					WarnAndNotice("Unexpected AssetURL for assetID[%d] in %s: %s", asset.ID, g, asset.DownloadURL)
+				if !hasBaseURL(assetDownloadURL, g.baseURL) {
+					WarnAndNotice("Unexpected AssetURL for assetID[%d] in %s: %s", assetID, g, assetDownloadURL)
 					return io.NopCloser(strings.NewReader(asset.DownloadURL)), nil
 				}
 
 				// FIXME: for a private download?
-				req, err := http.NewRequest("GET", asset.DownloadURL, nil)
+				req, err := http.NewRequest("GET", assetDownloadURL, nil)
 				if err != nil {
 					return nil, err
 				}
