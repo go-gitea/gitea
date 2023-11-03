@@ -162,7 +162,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 			if err != nil {
 				return err
 			}
-			SendAsyncs(msgs)
+			SendAsync(msgs...)
 			receivers = receivers[:i]
 		}
 	}
