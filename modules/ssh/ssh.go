@@ -17,7 +17,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -165,10 +164,6 @@ func sessionHandler(session ssh.Session) {
 }
 
 func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
-	// FIXME: the "ssh.Context" is not thread-safe, so db operations should use the immutable parent "Context"
-	// TODO: Remove after https://github.com/gliderlabs/ssh/pull/211
-	parentCtx := reflect.ValueOf(ctx).Elem().FieldByName("Context").Interface().(context.Context)
-
 	if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
 		log.Debug("Handle Public Key: Fingerprint: %s from %s", gossh.FingerprintSHA256(key), ctx.RemoteAddr())
 	}
@@ -200,7 +195,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 		// look for the exact principal
 	principalLoop:
 		for _, principal := range cert.ValidPrincipals {
-			pkey, err := asymkey_model.SearchPublicKeyByContentExact(parentCtx, principal)
+			pkey, err := asymkey_model.SearchPublicKeyByContentExact(ctx, principal)
 			if err != nil {
 				if asymkey_model.IsErrKeyNotExist(err) {
 					log.Debug("Principal Rejected: %s Unknown Principal: %s", ctx.RemoteAddr(), principal)
@@ -257,7 +252,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 		log.Debug("Handle Public Key: %s Fingerprint: %s is not a certificate", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
 	}
 
-	pkey, err := asymkey_model.SearchPublicKeyByContent(parentCtx, strings.TrimSpace(string(gossh.MarshalAuthorizedKey(key))))
+	pkey, err := asymkey_model.SearchPublicKeyByContent(ctx, strings.TrimSpace(string(gossh.MarshalAuthorizedKey(key))))
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
 			log.Warn("Unknown public key: %s from %s", gossh.FingerprintSHA256(key), ctx.RemoteAddr())
