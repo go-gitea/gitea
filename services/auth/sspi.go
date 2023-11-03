@@ -130,7 +130,10 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 
 // getConfig retrieves the SSPI configuration from login sources
 func (s *SSPI) getConfig(ctx context.Context) (*sspi.Source, error) {
-	sources, err := auth.ActiveSources(ctx, auth.SSPI)
+	sources, err := auth.FindSources(ctx, auth.FindSourcesOptions{
+		IsActive:  util.OptionalBoolTrue,
+		LoginType: auth.SSPI,
+	})
 	if err != nil {
 		return nil, err
 	}
