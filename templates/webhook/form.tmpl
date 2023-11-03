@@ -2,8 +2,9 @@
 	{{.CustomHeaderTitle}}
 	{{if .IsNew}}
 		<div class="ui right jump dropdown">
-			<div class="ui primary tiny">
+			<div class="ui small dropdown downward type jump item">
 				{{template "shared/webhook/icon" .ctxData}}
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			</div>
 			{{template "webhook/selector" .ctxData}}
 		</div>
@@ -27,4 +28,3 @@
 	{{template "repo/settings/webhook/packagist" .ctxData}}
 </div>
 {{template "repo/settings/webhook/history" .ctxData}}
-
