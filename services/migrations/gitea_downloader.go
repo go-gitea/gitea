@@ -282,6 +282,7 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 	httpClient := NewMigrationHTTPClient()
 
 	for _, asset := range rel.Attachments {
+		assetID := asset.ID // Don't optimize this, for closure we need a local variable
 		size := int(asset.Size)
 		dlCount := int(asset.DownloadCount)
 		r.Assets = append(r.Assets, &base.ReleaseAsset{
@@ -292,7 +293,7 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 			Created:       asset.Created,
 			DownloadURL:   &asset.DownloadURL,
 			DownloadFunc: func() (io.ReadCloser, error) {
-				asset, _, err := g.client.GetReleaseAttachment(g.repoOwner, g.repoName, rel.ID, asset.ID)
+				asset, _, err := g.client.GetReleaseAttachment(g.repoOwner, g.repoName, rel.ID, assetID)
 				if err != nil {
 					return nil, err
 				}
