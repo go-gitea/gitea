@@ -324,7 +324,7 @@ func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Relea
 				}
 
 				if !hasBaseURL(link.URL, g.baseURL) {
-					WarnAndNotice("Unexpected AssetURL for assetID[%d] in %s: %s", asset.ID, g, link.URL)
+					WarnAndNotice("Unexpected AssetURL for assetID[%d] in %s: %s", assetID, g, link.URL)
 					return io.NopCloser(strings.NewReader(link.URL)), nil
 				}
 
