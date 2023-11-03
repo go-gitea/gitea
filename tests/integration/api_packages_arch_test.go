@@ -15,11 +15,12 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path"
 	"testing"
 	"testing/fstest"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/packages/arch"
@@ -34,244 +35,260 @@ func TestPackageArch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	var (
-		gitV1x86_64 = BuildArchPackage(t, "git", "1-1", "x86_64")
-		gitV1i686   = BuildArchPackage(t, "git", "1-1", "i686")
-		iconsV1any  = BuildArchPackage(t, "icons", "1-1", "any")
-		gitV2x86_64 = BuildArchPackage(t, "git", "2-1", "x86_64")
-		iconsV2any  = BuildArchPackage(t, "icons", "2-1", "any")
+		user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-		dbV1x86_64 = BuildArchDb([]arch.Package{gitV1x86_64.pkg, iconsV1any.pkg})
-		dbV1i686   = BuildArchDb([]arch.Package{gitV1i686.pkg, iconsV1any.pkg})
-		dbV2x86_64 = BuildArchDb([]arch.Package{gitV2x86_64.pkg, iconsV2any.pkg})
-		dbV2i686   = BuildArchDb([]arch.Package{gitV1i686.pkg, iconsV2any.pkg})
+		pushBatch = []*TestArchPackage{
+			BuildArchPackage(t, "git", "1-1", "x86_64"),
+			BuildArchPackage(t, "git", "2-1", "x86_64"),
+			BuildArchPackage(t, "git", "1-1", "i686"),
+			BuildArchPackage(t, "adwaita", "1-1", "any"),
+			BuildArchPackage(t, "adwaita", "2-1", "any"),
+		}
 
-		firstSign  = []byte{1, 2, 3, 4}
-		secondSign = []byte{4, 3, 2, 1}
+		removeBatch = []*TestArchPackage{
+			BuildArchPackage(t, "curl", "1-1", "x86_64"),
+			BuildArchPackage(t, "curl", "2-1", "x86_64"),
+			BuildArchPackage(t, "dock", "1-1", "any"),
+			BuildArchPackage(t, "dock", "2-1", "any"),
+		}
 
-		user    = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		rootURL = fmt.Sprintf("/api/packages/%s/arch", user.Name)
+		firstDatabaseBatch = []*TestArchPackage{
+			BuildArchPackage(t, "pacman", "1-1", "x86_64"),
+			BuildArchPackage(t, "pacman", "1-1", "i686"),
+			BuildArchPackage(t, "htop", "1-1", "x86_64"),
+			BuildArchPackage(t, "htop", "1-1", "i686"),
+			BuildArchPackage(t, "dash", "1-1", "any"),
+		}
+
+		secondDatabaseBatch = []*TestArchPackage{
+			BuildArchPackage(t, "pacman", "2-1", "x86_64"),
+			BuildArchPackage(t, "htop", "2-1", "i686"),
+			BuildArchPackage(t, "dash", "2-1", "any"),
+		}
+
+		PacmanDBx86 = BuildPacmanDb(t,
+			secondDatabaseBatch[0].Pkg,
+			firstDatabaseBatch[2].Pkg,
+			secondDatabaseBatch[2].Pkg,
+		)
+
+		PacmanDBi686 = BuildPacmanDb(t,
+			firstDatabaseBatch[0].Pkg,
+			secondDatabaseBatch[1].Pkg,
+			secondDatabaseBatch[2].Pkg,
+		)
+
+		signdata = []byte{1, 2, 3, 4}
 	)
 
-	t.Run("Version_1", func(t *testing.T) {
-		t.Run("Push_git_x86_64", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
+	t.Run("PushWithSignature", func(t *testing.T) {
+		for _, p := range pushBatch {
+			t.Run(p.File, func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
 
-			req := NewRequestWithBody(t, "PUT",
-				path.Join(
-					rootURL, "push", "git-1-1-x86_64.pkg.tar.zst",
-					"archlinux", hex.EncodeToString(firstSign),
-				),
-				bytes.NewReader(gitV1x86_64.data),
-			)
+				url := fmt.Sprintf(
+					"/api/packages/%s/arch/push/%s/archlinux/%s",
+					user.Name, p.File, hex.EncodeToString(signdata),
+				)
 
-			req = AddBasicAuthHeader(req, user.Name)
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data))
+				req = AddBasicAuthHeader(req, user.Name)
+				MakeRequest(t, req, http.StatusOK)
 
-			MakeRequest(t, req, http.StatusOK)
-		})
+				pv, err := packages.GetVersionByNameAndVersion(
+					db.DefaultContext, user.ID, packages.TypeArch, p.Name, p.Ver,
+				)
+				assert.NoError(t, err)
 
-		t.Run("Push_git_i686", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
+				pf, err := packages.GetFileForVersionByName(
+					db.DefaultContext, pv.ID, p.File, "archlinux",
+				)
+				assert.NoError(t, err)
+				assert.NotNil(t, pf)
 
-			req := NewRequestWithBody(t, "PUT",
-				path.Join(
-					rootURL, "push", "git-1-1-i686.pkg.tar.zst",
-					"archlinux", hex.EncodeToString(secondSign),
-				),
-				bytes.NewReader(gitV1i686.data),
-			)
-
-			req = AddBasicAuthHeader(req, user.Name)
-
-			MakeRequest(t, req, http.StatusOK)
-		})
-
-		t.Run("Push_icons_any", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequestWithBody(t, "PUT",
-				path.Join(rootURL, "push", "icons-1-1-any.pkg.tar.zst", "archlinux"),
-				bytes.NewReader(iconsV1any.data),
-			)
-
-			req = AddBasicAuthHeader(req, user.Name)
-
-			MakeRequest(t, req, http.StatusOK)
-		})
-
-		t.Run("Get_git_x86_64_package", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequest(t, "GET",
-				rootURL+"/archlinux/x86_64/git-1-1-x86_64.pkg.tar.zst",
-			)
-
-			resp := MakeRequest(t, req, http.StatusOK)
-
-			assert.Equal(t, gitV1x86_64.data, resp.Body.Bytes())
-		})
-
-		t.Run("Get_git_i686_package", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequest(t, "GET",
-				rootURL+"/archlinux/i686/git-1-1-i686.pkg.tar.zst",
-			)
-
-			resp := MakeRequest(t, req, http.StatusOK)
-
-			assert.Equal(t, gitV1i686.data, resp.Body.Bytes())
-		})
-
-		t.Run("Get_git_x86_64_package_signature", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequest(t, "GET",
-				rootURL+"/archlinux/x86_64/git-1-1-x86_64.pkg.tar.zst.sig",
-			)
-
-			resp := MakeRequest(t, req, http.StatusOK)
-
-			assert.Equal(t, firstSign, resp.Body.Bytes())
-		})
-
-		t.Run("Get_git_i686_package_signature", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequest(t, "GET",
-				rootURL+"/archlinux/i686/git-1-1-i686.pkg.tar.zst.sig",
-			)
-
-			resp := MakeRequest(t, req, http.StatusOK)
-
-			assert.Equal(t, secondSign, resp.Body.Bytes())
-		})
-
-		t.Run("Get_any_package_from_x86_64_group", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequest(t, "GET",
-				rootURL+"/archlinux/x86_64/icons-1-1-any.pkg.tar.zst",
-			)
-
-			resp := MakeRequest(t, req, http.StatusOK)
-
-			assert.Equal(t, iconsV1any.data, resp.Body.Bytes())
-		})
-
-		t.Run("Get_any_package_from_i686_group", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequest(t, "GET",
-				rootURL+"/archlinux/i686/icons-1-1-any.pkg.tar.zst",
-			)
-
-			resp := MakeRequest(t, req, http.StatusOK)
-
-			assert.Equal(t, iconsV1any.data, resp.Body.Bytes())
-		})
-
-		t.Run("Get_x86_64_pacman_database", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequest(t, "GET",
-				rootURL+"/archlinux/x86_64/user.db.tar.gz",
-			)
-
-			resp := MakeRequest(t, req, http.StatusOK)
-
-			CompareDbEntries(t, dbV1x86_64, resp.Body.Bytes())
-		})
-
-		t.Run("Get_i686_pacman_database", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequest(t, "GET",
-				rootURL+"/archlinux/i686/user.db.tar.gz",
-			)
-
-			resp := MakeRequest(t, req, http.StatusOK)
-
-			CompareDbEntries(t, dbV1i686, resp.Body.Bytes())
-		})
+				pps, err := packages.GetPropertiesByName(
+					db.DefaultContext, packages.PropertyTypeFile,
+					pf.ID, arch.PropertySignature,
+				)
+				assert.NoError(t, err)
+				assert.Len(t, pps, 1)
+			})
+		}
 	})
 
-	t.Run("Version_2", func(t *testing.T) {
-		t.Run("Push_git_x86_64", func(t *testing.T) {
+	t.Run("PushWithoutSignature", func(t *testing.T) {
+		for _, p := range pushBatch {
+			t.Run(p.File, func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				url := fmt.Sprintf(
+					"/api/packages/%s/arch/push/%s/parabola",
+					user.Name, p.File,
+				)
+
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data))
+				req = AddBasicAuthHeader(req, user.Name)
+				MakeRequest(t, req, http.StatusOK)
+
+				pv, err := packages.GetVersionByNameAndVersion(
+					db.DefaultContext, user.ID, packages.TypeArch, p.Name, p.Ver,
+				)
+				assert.NoError(t, err)
+
+				pf, err := packages.GetFileForVersionByName(
+					db.DefaultContext, pv.ID, p.File, "parabola",
+				)
+				assert.NoError(t, err)
+				assert.NotNil(t, pf)
+			})
+		}
+	})
+
+	t.Run("GetPackage", func(t *testing.T) {
+		for _, p := range pushBatch {
+			t.Run(p.File, func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				url := fmt.Sprintf(
+					"/api/packages/%s/arch/push/%s/artix/%s",
+					user.Name, p.File, hex.EncodeToString(signdata),
+				)
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data))
+				req = AddBasicAuthHeader(req, user.Name)
+				MakeRequest(t, req, http.StatusOK)
+
+				url = fmt.Sprintf(
+					"/api/packages/%s/arch/artix/%s/%s",
+					user.Name, p.Arch, p.File,
+				)
+				req = NewRequest(t, "GET", url)
+				resp := MakeRequest(t, req, http.StatusOK)
+				assert.Equal(t, p.Data, resp.Body.Bytes())
+			})
+		}
+	})
+
+	t.Run("GetSignature", func(t *testing.T) {
+		for _, p := range pushBatch {
+			t.Run(p.File, func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				url := fmt.Sprintf(
+					"/api/packages/%s/arch/push/%s/arco/%s",
+					user.Name, p.File, hex.EncodeToString(signdata),
+				)
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data))
+				req = AddBasicAuthHeader(req, user.Name)
+				MakeRequest(t, req, http.StatusOK)
+
+				url = fmt.Sprintf(
+					"/api/packages/%s/arch/arco/%s/%s.sig",
+					user.Name, p.Arch, p.File,
+				)
+				req = NewRequest(t, "GET", url)
+				resp := MakeRequest(t, req, http.StatusOK)
+				assert.Equal(t, signdata, resp.Body.Bytes())
+			})
+		}
+	})
+
+	t.Run("Remove", func(t *testing.T) {
+		for _, p := range removeBatch {
+			t.Run(p.File, func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				url := fmt.Sprintf(
+					"/api/packages/%s/arch/push/%s/manjaro/%s",
+					user.Name, p.File, hex.EncodeToString(signdata),
+				)
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data))
+				req = AddBasicAuthHeader(req, user.Name)
+				MakeRequest(t, req, http.StatusOK)
+
+				url = fmt.Sprintf(
+					"/api/packages/%s/arch/remove/%s/%s",
+					user.Name, p.Name, p.Ver,
+				)
+				req = NewRequest(t, "DELETE", url)
+				req = AddBasicAuthHeader(req, user.Name)
+				MakeRequest(t, req, http.StatusOK)
+
+				_, err := packages.GetVersionByNameAndVersion(
+					db.DefaultContext, user.ID, packages.TypeArch, p.Name, p.Ver,
+				)
+				assert.ErrorIs(t, err, packages.ErrPackageNotExist)
+			})
+		}
+	})
+
+	t.Run("PacmanDatabase", func(t *testing.T) {
+		prepareDatabasePackages := func(t *testing.T) {
+			for _, p := range firstDatabaseBatch {
+				url := fmt.Sprintf(
+					"/api/packages/%s/arch/push/%s/ion/%s",
+					user.Name, p.File, hex.EncodeToString(signdata),
+				)
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data))
+				req = AddBasicAuthHeader(req, user.Name)
+				MakeRequest(t, req, http.StatusOK)
+			}
+
+			// While creating pacman database, package versions are sorted by
+			// UnixTime, second delay is required to ensure that newer package
+			// version creation time differs from older packages.
+			time.Sleep(time.Second)
+
+			for _, p := range secondDatabaseBatch {
+				url := fmt.Sprintf(
+					"/api/packages/%s/arch/push/%s/ion/%s",
+					user.Name, p.File, hex.EncodeToString(signdata),
+				)
+				req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(p.Data))
+				req = AddBasicAuthHeader(req, user.Name)
+				MakeRequest(t, req, http.StatusOK)
+			}
+		}
+
+		t.Run("x86_64", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequestWithBody(t, "PUT",
-				path.Join(rootURL, "push", "git-2-1-x86_64.pkg.tar.zst", "archlinux"),
-				bytes.NewReader(gitV2x86_64.data),
+			prepareDatabasePackages(t)
+
+			url := fmt.Sprintf(
+				"/api/packages/%s/arch/ion/x86_64/user.db.tar.gz", user.Name,
 			)
-
-			req = AddBasicAuthHeader(req, user.Name)
-
-			MakeRequest(t, req, http.StatusOK)
-		})
-
-		t.Run("Push_icons_any", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequestWithBody(t, "PUT",
-				path.Join(rootURL, "push", "icons-2-1-any.pkg.tar.zst", "archlinux"),
-				bytes.NewReader(iconsV2any.data),
-			)
-
-			req = AddBasicAuthHeader(req, user.Name)
-
-			MakeRequest(t, req, http.StatusOK)
-		})
-
-		t.Run("Get_x86_64_pacman_database", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequest(t, "GET",
-				rootURL+"/archlinux/x86_64/user2.db.tar.gz",
-			)
-
+			req := NewRequest(t, "GET", url)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			CompareDbEntries(t, dbV2x86_64, resp.Body.Bytes())
+			CompareTarGzEntries(t, PacmanDBx86, resp.Body.Bytes())
 		})
 
-		t.Run("Get_i686_pacman_database", func(t *testing.T) {
+		t.Run("i686", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET",
-				rootURL+"/archlinux/i686/user2.db.tar.gz",
-			)
+			prepareDatabasePackages(t)
 
+			url := fmt.Sprintf(
+				"/api/packages/%s/arch/ion/i686/user.db", user.Name,
+			)
+			req := NewRequest(t, "GET", url)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			CompareDbEntries(t, dbV2i686, resp.Body.Bytes())
-		})
-
-		t.Run("Remove_v2_git_x86_64", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequest(t, "DELETE", rootURL+"/remove/git/2-1")
-			req = AddBasicAuthHeader(req, user.Name)
-
-			MakeRequest(t, req, http.StatusOK)
-		})
-
-		t.Run("Remove_v2_icons_any", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequest(t, "DELETE", rootURL+"/remove/icons/2-1")
-			req = AddBasicAuthHeader(req, user.Name)
-
-			MakeRequest(t, req, http.StatusOK)
+			CompareTarGzEntries(t, PacmanDBi686, resp.Body.Bytes())
 		})
 	})
 }
 
 type TestArchPackage struct {
-	data []byte
-	pkg  arch.Package
+	Pkg  arch.Package
+	Data []byte
+	File string
+	Name string
+	Ver  string
+	Arch string
 }
 
-func BuildArchPackage(t *testing.T, name, ver, architecture string) TestArchPackage {
+func BuildArchPackage(t *testing.T, name, ver, architecture string) *TestArchPackage {
 	fs := fstest.MapFS{
 		"pkginfo": &fstest.MapFile{
 			Data: []byte(fmt.Sprintf(
@@ -331,9 +348,13 @@ func BuildArchPackage(t *testing.T, name, ver, architecture string) TestArchPack
 
 	md5, sha256, size := archPkgParams(buf.Bytes())
 
-	return TestArchPackage{
-		data: buf.Bytes(),
-		pkg: arch.Package{
+	return &TestArchPackage{
+		Data: buf.Bytes(),
+		Name: name,
+		Ver:  ver,
+		Arch: architecture,
+		File: fmt.Sprintf("%s-%s-%s.pkg.tar.zst", name, ver, architecture),
+		Pkg: arch.Package{
 			Name:    name,
 			Version: ver,
 			VersionMetadata: arch.VersionMetadata{
@@ -371,19 +392,20 @@ func (w *counter) Read(p []byte) (int, error) {
 	return n, err
 }
 
-func BuildArchDb(pkgs []arch.Package) []byte {
+func BuildPacmanDb(t *testing.T, pkgs ...arch.Package) []byte {
 	entries := map[string][]byte{}
 	for _, p := range pkgs {
 		entries[fmt.Sprintf("%s-%s/desc", p.Name, p.Version)] = []byte(p.Desc())
 	}
 	b, err := arch.CreatePacmanDb(entries)
 	if err != nil {
-		panic(err)
+		assert.NoError(t, err)
+		return nil
 	}
 	return b.Bytes()
 }
 
-func CompareDbEntries(t *testing.T, expected, actual []byte) {
+func CompareTarGzEntries(t *testing.T, expected, actual []byte) {
 	fgz, err := gzip.NewReader(bytes.NewReader(expected))
 	if err != nil {
 		assert.NoError(t, err)
