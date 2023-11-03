@@ -1,9 +1,12 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package admin
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/http"
@@ -24,6 +27,7 @@ import (
 	"code.gitea.io/gitea/services/auth/source/ldap"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	pam_service "code.gitea.io/gitea/services/auth/source/pam"
+	"code.gitea.io/gitea/services/auth/source/saml"
 	"code.gitea.io/gitea/services/auth/source/smtp"
 	"code.gitea.io/gitea/services/auth/source/sspi"
 	"code.gitea.io/gitea/services/forms"
@@ -71,6 +75,7 @@ var (
 			{auth.SMTP.String(), auth.SMTP},
 			{auth.OAuth2.String(), auth.OAuth2},
 			{auth.SSPI.String(), auth.SSPI},
+			{auth.SAML.String(), auth.SAML},
 		}
 		if pam.Supported {
 			items = append(items, dropdownItem{auth.Names[auth.PAM], auth.PAM})
@@ -82,6 +87,16 @@ var (
 		{ldap.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted], ldap.SecurityProtocolUnencrypted},
 		{ldap.SecurityProtocolNames[ldap.SecurityProtocolLDAPS], ldap.SecurityProtocolLDAPS},
 		{ldap.SecurityProtocolNames[ldap.SecurityProtocolStartTLS], ldap.SecurityProtocolStartTLS},
+	}
+
+	nameIDFormats = []dropdownItem{
+		{saml.NameIDFormatNames[saml.SAML20Persistent], saml.SAML20Persistent}, // use this as default value
+		{saml.NameIDFormatNames[saml.SAML11Email], saml.SAML11Email},
+		{saml.NameIDFormatNames[saml.SAML11Persistent], saml.SAML11Persistent},
+		{saml.NameIDFormatNames[saml.SAML11Unspecified], saml.SAML11Unspecified},
+		{saml.NameIDFormatNames[saml.SAML20Email], saml.SAML20Email},
+		{saml.NameIDFormatNames[saml.SAML20Transient], saml.SAML20Transient},
+		{saml.NameIDFormatNames[saml.SAML20Unspecified], saml.SAML20Unspecified},
 	}
 )
 
@@ -98,6 +113,8 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["is_sync_enabled"] = true
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
+	ctx.Data["CurrentNameIDFormat"] = saml.NameIDFormatNames[saml.SAML20Persistent]
+	ctx.Data["NameIDFormats"] = nameIDFormats
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
 	oauth2providers := oauth2.GetSupportedOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
@@ -231,6 +248,51 @@ func parseSSPIConfig(ctx *context.Context, form forms.AuthenticationForm) (*sspi
 	}, nil
 }
 
+func parseSAMLConfig(ctx *context.Context, form forms.AuthenticationForm) (*saml.Source, error) {
+	// TODO: verify form here
+	// if util.IsEmptyString(form.ServiceProviderCertificate) {
+	// 	ctx.Data["Err_SSPISeparatorReplacement"] = true
+	// 	// TODO: need sp cert
+	// 	return nil, errors.New(ctx.Tr("form.require_error"))
+	// }
+	// if util.IsEmptyString(form.ServiceProviderPrivateKey) {
+	// 	ctx.Data["Err_SSPISeparatorReplacement"] = true
+	// 	// TODO: need sp key
+	// 	return nil, errors.New(ctx.Tr("form.require_error"))
+	// }
+	if util.IsEmptyString(form.IdentityProviderMetadata) && util.IsEmptyString(form.IdentityProviderMetadataURL) {
+		return nil, fmt.Errorf("Identity Provider Metadata needed (either raw XML or URL)")
+	}
+	if !util.IsEmptyString(form.IdentityProviderMetadataURL) {
+		_, err := url.Parse(form.IdentityProviderMetadataURL)
+		if err != nil {
+			return nil, fmt.Errorf("Identity Provider Metadata URL is an invalid URL")
+		}
+	}
+	if !util.IsEmptyString(form.ServiceProviderCertificate) && !util.IsEmptyString(form.ServiceProviderPrivateKey) {
+		keyPair, err := tls.X509KeyPair([]byte(form.ServiceProviderCertificate), []byte(form.ServiceProviderPrivateKey))
+		if err != nil {
+			return nil, err
+		}
+		keyPair.Leaf, err = x509.ParseCertificate(keyPair.Certificate[0])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &saml.Source{
+		IdentityProviderMetadata:                 form.IdentityProviderMetadata,
+		IdentityProviderMetadataURL:              form.IdentityProviderMetadataURL,
+		InsecureSkipAssertionSignatureValidation: form.InsecureSkipAssertionSignatureValidation,
+		NameIDFormat:                             saml.NameIDFormat(form.NameIDFormat),
+		ServiceProviderCertificate:               form.ServiceProviderCertificate,
+		ServiceProviderPrivateKey:                form.ServiceProviderPrivateKey,
+		SignRequests:                             form.SignRequests,
+		EmailAssertionKey:                        form.EmailAssertionKey,
+		NameAssertionKey:                         form.NameAssertionKey,
+		UsernameAssertionKey:                     form.UsernameAssertionKey,
+	}, nil
+}
+
 // NewAuthSourcePost response for adding an auth source
 func NewAuthSourcePost(ctx *context.Context) {
 	form := *web.GetForm(ctx).(*forms.AuthenticationForm)
@@ -244,6 +306,8 @@ func NewAuthSourcePost(ctx *context.Context) {
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
 	oauth2providers := oauth2.GetSupportedOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
+	ctx.Data["CurrentNameIDFormat"] = saml.NameIDFormatNames[saml.NameIDFormat(form.NameIDFormat)]
+	ctx.Data["NameIDFormats"] = nameIDFormats
 
 	ctx.Data["SSPIAutoCreateUsers"] = true
 	ctx.Data["SSPIAutoActivateUsers"] = true
@@ -288,6 +352,13 @@ func NewAuthSourcePost(ctx *context.Context) {
 		if err != nil || len(existing) > 0 {
 			ctx.Data["Err_Type"] = true
 			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_of_type_exist"), tplAuthNew, form)
+			return
+		}
+	case auth.SAML:
+		var err error
+		config, err = parseSAMLConfig(ctx, form)
+		if err != nil {
+			ctx.RenderWithErr(err.Error(), tplAuthNew, form)
 			return
 		}
 	default:
@@ -336,6 +407,7 @@ func EditAuthSource(ctx *context.Context) {
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
 	oauth2providers := oauth2.GetSupportedOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
+	ctx.Data["NameIDFormats"] = nameIDFormats
 
 	source, err := auth.GetSourceByID(ctx, ctx.ParamsInt64(":authid"))
 	if err != nil {
@@ -344,6 +416,9 @@ func EditAuthSource(ctx *context.Context) {
 	}
 	ctx.Data["Source"] = source
 	ctx.Data["HasTLS"] = source.HasTLS()
+	if source.IsSAML() {
+		ctx.Data["CurrentNameIDFormat"] = saml.NameIDFormatNames[source.Cfg.(*saml.Source).NameIDFormat]
+	}
 
 	if source.IsOAuth2() {
 		type Named interface {
@@ -378,6 +453,8 @@ func EditAuthSourcePost(ctx *context.Context) {
 	}
 	ctx.Data["Source"] = source
 	ctx.Data["HasTLS"] = source.HasTLS()
+	ctx.Data["CurrentNameIDFormat"] = saml.NameIDFormatNames[saml.SAML20Persistent]
+	ctx.Data["NameIDFormats"] = nameIDFormats
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplAuthEdit)
@@ -408,6 +485,12 @@ func EditAuthSourcePost(ctx *context.Context) {
 		}
 	case auth.SSPI:
 		config, err = parseSSPIConfig(ctx, form)
+		if err != nil {
+			ctx.RenderWithErr(err.Error(), tplAuthEdit, form)
+			return
+		}
+	case auth.SAML:
+		config, err = parseSAMLConfig(ctx, form)
 		if err != nil {
 			ctx.RenderWithErr(err.Error(), tplAuthEdit, form)
 			return

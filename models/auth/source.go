@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
+	"github.com/markbates/goth"
 	"xorm.io/builder"
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
@@ -32,6 +33,7 @@ const (
 	DLDAP       // 5
 	OAuth2      // 6
 	SSPI        // 7
+	SAML        // 8
 )
 
 // String returns the string name of the LoginType
@@ -52,6 +54,7 @@ var Names = map[Type]string{
 	PAM:    "PAM",
 	OAuth2: "OAuth2",
 	SSPI:   "SPNEGO with SSPI",
+	SAML:   "SAML",
 }
 
 // Config represents login config as far as the db is concerned
@@ -121,6 +124,12 @@ type Source struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
+// LinkAccountUser is used to link an external user with a local user
+type LinkAccountUser struct {
+	Type     Type
+	GothUser goth.User
+}
+
 // TableName xorm will read the table name from this method
 func (Source) TableName() string {
 	return "login_source"
@@ -178,6 +187,11 @@ func (source *Source) IsOAuth2() bool {
 // IsSSPI returns true of this source is of the SSPI type.
 func (source *Source) IsSSPI() bool {
 	return source.Type == SSPI
+}
+
+// IsSAML returns true of this source is of the SAML type.
+func (source *Source) IsSAML() bool {
+	return source.Type == SAML
 }
 
 // HasTLS returns true of this source supports TLS.

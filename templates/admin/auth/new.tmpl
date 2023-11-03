@@ -53,6 +53,9 @@
 				<!-- SSPI -->
 				{{template "admin/auth/source/sspi" .}}
 
+				<!-- SAML -->
+				{{template "admin/auth/source/saml" .}}
+
 				<div class="ldap field">
 					<div class="ui checkbox">
 						<label><strong>{{ctx.Locale.Tr "admin.auths.attributes_in_bind"}}</strong></label>
