@@ -48,13 +48,13 @@ func Authentications(ctx *context.Context) {
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	var err error
-	ctx.Data["Sources"], err = auth.Sources(ctx)
+	ctx.Data["Sources"], err = auth.FindSources(ctx, auth.FindSourcesOptions{})
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
 		return
 	}
 
-	ctx.Data["Total"] = auth.CountSources(ctx)
+	ctx.Data["Total"] = auth.CountSources(ctx, auth.FindSourcesOptions{})
 	ctx.HTML(http.StatusOK, tplAuths)
 }
 
@@ -99,7 +99,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	oauth2providers := oauth2.GetOAuth2Providers()
+	oauth2providers := oauth2.GetSupportedOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
 	ctx.Data["SSPIAutoCreateUsers"] = true
@@ -242,7 +242,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	oauth2providers := oauth2.GetOAuth2Providers()
+	oauth2providers := oauth2.GetSupportedOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
 	ctx.Data["SSPIAutoCreateUsers"] = true
@@ -284,7 +284,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 			ctx.RenderWithErr(err.Error(), tplAuthNew, form)
 			return
 		}
-		existing, err := auth.SourcesByType(ctx, auth.SSPI)
+		existing, err := auth.FindSources(ctx, auth.FindSourcesOptions{LoginType: auth.SSPI})
 		if err != nil || len(existing) > 0 {
 			ctx.Data["Err_Type"] = true
 			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_of_type_exist"), tplAuthNew, form)
@@ -334,7 +334,7 @@ func EditAuthSource(ctx *context.Context) {
 
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	oauth2providers := oauth2.GetOAuth2Providers()
+	oauth2providers := oauth2.GetSupportedOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
 	source, err := auth.GetSourceByID(ctx, ctx.ParamsInt64(":authid"))
@@ -368,7 +368,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	oauth2providers := oauth2.GetOAuth2Providers()
+	oauth2providers := oauth2.GetSupportedOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
 	source, err := auth.GetSourceByID(ctx, ctx.ParamsInt64(":authid"))

@@ -631,15 +631,6 @@ func (err ErrOAuthApplicationNotFound) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// GetActiveOAuth2ProviderSources returns all actived LoginOAuth2 sources
-func GetActiveOAuth2ProviderSources(ctx context.Context) ([]*Source, error) {
-	sources := make([]*Source, 0, 1)
-	if err := db.GetEngine(ctx).Where("is_active = ? and type = ?", true, OAuth2).Find(&sources); err != nil {
-		return nil, err
-	}
-	return sources, nil
-}
-
 // GetActiveOAuth2SourceByName returns a OAuth2 AuthSource based on the given name
 func GetActiveOAuth2SourceByName(ctx context.Context, name string) (*Source, error) {
 	authSource := new(Source)

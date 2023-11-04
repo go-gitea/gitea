@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
@@ -63,7 +64,13 @@ func ResetOAuth2(ctx context.Context) error {
 
 // initOAuth2Sources is used to load and register all active OAuth2 providers
 func initOAuth2Sources(ctx context.Context) error {
-	authSources, _ := auth.GetActiveOAuth2ProviderSources(ctx)
+	authSources, err := auth.FindSources(ctx, auth.FindSourcesOptions{
+		IsActive:  util.OptionalBoolTrue,
+		LoginType: auth.OAuth2,
+	})
+	if err != nil {
+		return err
+	}
 	for _, source := range authSources {
 		oauth2Source, ok := source.Cfg.(*Source)
 		if !ok {

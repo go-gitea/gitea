@@ -142,22 +142,14 @@ type Issue struct {
 }
 
 var (
-	issueTasksPat     *regexp.Regexp
-	issueTasksDonePat *regexp.Regexp
-)
-
-const (
-	issueTasksRegexpStr     = `(^\s*[-*]\s\[[\sxX]\]\s.)|(\n\s*[-*]\s\[[\sxX]\]\s.)`
-	issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[xX]\]\s.)|(\n\s*[-*]\s\[[xX]\]\s.)`
+	issueTasksPat     = regexp.MustCompile(`(^\s*[-*]\s\[[\sxX]\]\s.)|(\n\s*[-*]\s\[[\sxX]\]\s.)`)
+	issueTasksDonePat = regexp.MustCompile(`(^\s*[-*]\s\[[xX]\]\s.)|(\n\s*[-*]\s\[[xX]\]\s.)`)
 )
 
 // IssueIndex represents the issue index table
 type IssueIndex db.ResourceIndex
 
 func init() {
-	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
-	issueTasksDonePat = regexp.MustCompile(issueTasksDoneRegexpStr)
-
 	db.RegisterModel(new(Issue))
 	db.RegisterModel(new(IssueIndex))
 }

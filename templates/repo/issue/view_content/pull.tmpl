@@ -20,7 +20,14 @@
 	{{- else if .Issue.PullRequest.CanAutoMerge}}green
 	{{- else}}red{{end}}">{{svg "octicon-git-merge" 40}}</div>
 	<div class="content">
-		{{template "repo/pulls/status" .}}
+		<div class="ui attached segment fitted">
+		{{template "repo/pulls/status" (dict
+			"CommitStatus" .LatestCommitStatus
+			"CommitStatuses" .LatestCommitStatuses
+			"ShowHideChecks" true
+			"is_context_required" .is_context_required
+		)}}
+		</div>
 		{{$showGeneralMergeForm := false}}
 		<div class="ui attached merge-section segment {{if not $.LatestCommitStatus}}no-header{{end}} flex-items-block">
 			{{if .Issue.PullRequest.HasMerged}}

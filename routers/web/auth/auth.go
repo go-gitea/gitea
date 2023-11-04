@@ -160,12 +160,11 @@ func SignIn(ctx *context.Context) {
 		return
 	}
 
-	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers(ctx)
+	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, util.OptionalBoolTrue)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
-	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
 	ctx.Data["OAuth2Providers"] = oauth2Providers
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
@@ -184,12 +183,11 @@ func SignIn(ctx *context.Context) {
 func SignInPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
-	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers(ctx)
+	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, util.OptionalBoolTrue)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
-	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
 	ctx.Data["OAuth2Providers"] = oauth2Providers
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
@@ -408,13 +406,12 @@ func SignUp(ctx *context.Context) {
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
-	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers(ctx)
+	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, util.OptionalBoolTrue)
 	if err != nil {
 		ctx.ServerError("UserSignUp", err)
 		return
 	}
 
-	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
 	ctx.Data["OAuth2Providers"] = oauth2Providers
 	context.SetCaptchaData(ctx)
 
@@ -438,13 +435,12 @@ func SignUpPost(ctx *context.Context) {
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
-	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers(ctx)
+	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, util.OptionalBoolTrue)
 	if err != nil {
 		ctx.ServerError("UserSignUp", err)
 		return
 	}
 
-	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
 	ctx.Data["OAuth2Providers"] = oauth2Providers
 	context.SetCaptchaData(ctx)
 

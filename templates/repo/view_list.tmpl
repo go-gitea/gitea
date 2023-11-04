@@ -24,7 +24,7 @@
 							{{template "repo/shabox_badge" dict "root" $ "verification" .LatestCommitVerification}}
 						{{end}}
 					</a>
-					{{template "repo/commit_statuses" dict "Status" .LatestCommitStatus "Statuses" .LatestCommitStatuses "root" $}}
+					{{template "repo/commit_statuses" dict "Status" .LatestCommitStatus "Statuses" .LatestCommitStatuses}}
 					{{$commitLink:= printf "%s/commit/%s" .RepoLink (PathEscape .LatestCommit.ID.String)}}
 					<span class="grey commit-summary" title="{{.LatestCommit.Summary}}"><span class="message-wrapper">{{RenderCommitMessageLinkSubject $.Context .LatestCommit.Message $.RepoLink $commitLink ($.Repository.ComposeMetas ctx)}}</span>
 						{{if IsMultilineCommitMessage .LatestCommit.Message}}

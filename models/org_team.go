@@ -502,7 +502,7 @@ func removeInvalidOrgUser(ctx context.Context, userID, orgID int64) error {
 	}); err != nil {
 		return err
 	} else if count == 0 {
-		return removeOrgUser(ctx, orgID, userID)
+		return RemoveOrgUser(ctx, orgID, userID)
 	}
 	return nil
 }

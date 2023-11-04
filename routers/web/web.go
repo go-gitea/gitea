@@ -276,6 +276,8 @@ func Routes() *web.Route {
 	return routes
 }
 
+var ignSignInAndCsrf = verifyAuthWithOptions(&common.VerifyOptions{DisableCSRF: true})
+
 // registerRoutes register routes
 func registerRoutes(m *web.Route) {
 	reqSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true})
@@ -283,7 +285,7 @@ func registerRoutes(m *web.Route) {
 	// TODO: rename them to "optSignIn", which means that the "sign-in" could be optional, depends on the VerifyOptions (RequireSignInView)
 	ignSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInView})
 	ignExploreSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView})
-	ignSignInAndCsrf := verifyAuthWithOptions(&common.VerifyOptions{DisableCSRF: true})
+
 	validation.AddBindingRules()
 
 	linkAccountEnabled := func(ctx *context.Context) {
@@ -1512,19 +1514,7 @@ func registerRoutes(m *web.Route) {
 				})
 			}, ignSignInAndCsrf, lfsServerEnabled)
 
-			m.Group("", func() {
-				m.PostOptions("/git-upload-pack", repo.ServiceUploadPack)
-				m.PostOptions("/git-receive-pack", repo.ServiceReceivePack)
-				m.GetOptions("/info/refs", repo.GetInfoRefs)
-				m.GetOptions("/HEAD", repo.GetTextFile("HEAD"))
-				m.GetOptions("/objects/info/alternates", repo.GetTextFile("objects/info/alternates"))
-				m.GetOptions("/objects/info/http-alternates", repo.GetTextFile("objects/info/http-alternates"))
-				m.GetOptions("/objects/info/packs", repo.GetInfoPacks)
-				m.GetOptions("/objects/info/{file:[^/]*}", repo.GetTextFile(""))
-				m.GetOptions("/objects/{head:[0-9a-f]{2}}/{hash:[0-9a-f]{38}}", repo.GetLooseObject)
-				m.GetOptions("/objects/pack/pack-{file:[0-9a-f]{40}}.pack", repo.GetPackFile)
-				m.GetOptions("/objects/pack/pack-{file:[0-9a-f]{40}}.idx", repo.GetIdxFile)
-			}, ignSignInAndCsrf, repo.HTTPGitEnabledHandler, repo.CorsHandler(), context_service.UserAssignmentWeb())
+			gitHTTPRouters(m)
 		})
 	})
 	// ***** END: Repository *****

@@ -66,7 +66,7 @@
 							{{if IsMultilineCommitMessage .Message}}
 							<button class="ui button js-toggle-commit-body ellipsis-button" aria-expanded="false">...</button>
 							{{end}}
-							{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses "root" $}}
+							{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
 							{{if IsMultilineCommitMessage .Message}}
 							<pre class="commit-body gt-hidden">{{RenderCommitBody $.Context .Message $commitRepoLink ($.Repository.ComposeMetas ctx)}}</pre>
 							{{end}}
