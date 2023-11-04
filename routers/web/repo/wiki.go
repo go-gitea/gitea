@@ -598,35 +598,61 @@ func WikiPages(ctx *context.Context) {
 		ctx.ServerError("ListEntries", err)
 		return
 	}
+
+	pages, err := GetPages(entries,"",  wikiRepo, ctx)
+
+	if err != nil {
+		//TODO: DO STUFF
+	}
+
+	ctx.Data["Pages"] = pages
+
+	ctx.HTML(http.StatusOK, tplWikiPages)
+}
+
+// GetPages Returns all Pages, Including the Ones in Subdirs
+func GetPages(entries git.Entries, relPath string,  wikiRepo *git.Repository, ctx *context.Context) ([]PageMeta, error) {
 	pages := make([]PageMeta, 0, len(entries))
 	for _, entry := range entries {
+		entryPath := relPath + entry.Name()
+
+		if entry.IsDir() {
+			subEntries, err := entry.Tree().ListEntries()
+			if err != nil {
+				ctx.ServerError("WikiGetSubEntries", err)
+			}
+			subpages, err := GetPages(subEntries, entryPath+ "/", wikiRepo, ctx)
+			if err != nil {
+				ctx.ServerError("WikiGetSubPages", err)
+			}
+			pages = append(pages, subpages...)
+			continue
+		}
 		if !entry.IsRegular() {
 			continue
 		}
-		c, err := wikiRepo.GetCommitByPath(entry.Name())
+		c, err := wikiRepo.GetCommitByPath(entryPath)
 		if err != nil {
 			ctx.ServerError("GetCommit", err)
-			return
+			return nil, err
 		}
-		wikiName, err := wiki_service.GitPathToWebPath(entry.Name())
+		wikiName, err := wiki_service.GitPathToWebPath(entryPath)
 		if err != nil {
 			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
 			}
 			ctx.ServerError("WikiFilenameToName", err)
-			return
+			return nil, err
 		}
 		_, displayName := wiki_service.WebPathToUserTitle(wikiName)
 		pages = append(pages, PageMeta{
-			Name:         displayName,
+			Name:         relPath + displayName,
 			SubURL:       wiki_service.WebPathToURLPath(wikiName),
-			GitEntryName: entry.Name(),
+			GitEntryName: entryPath,
 			UpdatedUnix:  timeutil.TimeStamp(c.Author.When.Unix()),
 		})
 	}
-	ctx.Data["Pages"] = pages
-
-	ctx.HTML(http.StatusOK, tplWikiPages)
+	return pages, nil
 }
 
 // WikiRaw outputs raw blob requested by user (image for example)
