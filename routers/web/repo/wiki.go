@@ -157,31 +157,12 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		ctx.ServerError("ListEntries", err)
 		return nil, nil
 	}
-	pages := make([]PageMeta, 0, len(entries))
-	for _, entry := range entries {
-		if !entry.IsRegular() {
-			continue
-		}
-		wikiName, err := wiki_service.GitPathToWebPath(entry.Name())
-		if err != nil {
-			if repo_model.IsErrWikiInvalidFileName(err) {
-				continue
-			}
-			if wikiRepo != nil {
-				wikiRepo.Close()
-			}
-			ctx.ServerError("WikiFilenameToName", err)
-			return nil, nil
-		} else if wikiName == "_Sidebar" || wikiName == "_Footer" {
-			continue
-		}
-		_, displayName := wiki_service.WebPathToUserTitle(wikiName)
-		pages = append(pages, PageMeta{
-			Name:         displayName,
-			SubURL:       wiki_service.WebPathToURLPath(wikiName),
-			GitEntryName: entry.Name(),
-		})
+	pages, err := GetPages(entries, "", wikiRepo, ctx)
+	if err != nil {
+		ctx.ServerError("WikiGetPages", err)
+		return nil, nil
 	}
+
 	ctx.Data["Pages"] = pages
 
 	// get requested page name
@@ -599,10 +580,10 @@ func WikiPages(ctx *context.Context) {
 		return
 	}
 
-	pages, err := GetPages(entries,"",  wikiRepo, ctx)
-
+	pages, err := GetPages(entries, "", wikiRepo, ctx)
 	if err != nil {
-		//TODO: DO STUFF
+		ctx.ServerError("WikiGetPages", err)
+		return
 	}
 
 	ctx.Data["Pages"] = pages
@@ -611,7 +592,7 @@ func WikiPages(ctx *context.Context) {
 }
 
 // GetPages Returns all Pages, Including the Ones in Subdirs
-func GetPages(entries git.Entries, relPath string,  wikiRepo *git.Repository, ctx *context.Context) ([]PageMeta, error) {
+func GetPages(entries git.Entries, relPath string, wikiRepo *git.Repository, ctx *context.Context) ([]PageMeta, error) {
 	pages := make([]PageMeta, 0, len(entries))
 	for _, entry := range entries {
 		entryPath := relPath + entry.Name()
@@ -621,7 +602,7 @@ func GetPages(entries git.Entries, relPath string,  wikiRepo *git.Repository, ct
 			if err != nil {
 				ctx.ServerError("WikiGetSubEntries", err)
 			}
-			subpages, err := GetPages(subEntries, entryPath+ "/", wikiRepo, ctx)
+			subpages, err := GetPages(subEntries, entryPath+"/", wikiRepo, ctx)
 			if err != nil {
 				ctx.ServerError("WikiGetSubPages", err)
 			}
