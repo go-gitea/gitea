@@ -35,6 +35,9 @@ func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 			}
 			for _, v := range entries {
 				if v.Name() == name {
+					if v.fullName == "" {
+						v.fullName = relpath
+					}
 					return v, nil
 				}
 			}
