@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -83,6 +84,11 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	if err != nil {
 		return err
 	}
+
+	// Clean Wiki Paths
+	regex := regexp.MustCompile("%2F")
+	oldWikiName = WebPath(regex.ReplaceAllString(string(oldWikiName), "/"))
+	newWikiName = WebPath(regex.ReplaceAllString(string(newWikiName), "/"))
 
 	if err = validateWebPath(newWikiName); err != nil {
 		return err
