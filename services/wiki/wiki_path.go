@@ -27,12 +27,6 @@ import (
 //   - "/.wiki.git/Home-Page.md"
 //   - "/.wiki.git/100%25 Free.md"
 //   - "/.wiki.git/2000-01-02 meeting.-.md"
-// TODO: support subdirectory in the future
-//
-// Although this package now has the ability to support subdirectory, but the route package doesn't:
-// * Double-escaping problem: the URL "/wiki/abc%2Fdef" becomes "/wiki/abc/def" by ctx.Params, which is incorrect
-//   * This problem should have been 99% fixed, but it needs more tests.
-// * The old wiki code's behavior is always using %2F, instead of subdirectory, so there are a lot of legacy "%2F" files in user wikis.
 
 type WebPath string
 
@@ -146,8 +140,6 @@ func WebPathFromRequest(s string) WebPath {
 }
 
 func UserTitleToWebPath(base, title string) WebPath {
-	// TODO: no support for subdirectory, because the old wiki code's behavior is always using %2F, instead of subdirectory.
-	// So we do not add the support for writing slashes in title at the moment.
 	title = strings.TrimSpace(title)
 	title = util.PathJoinRelX(base, escapeSegToWeb(title, false))
 	if title == "" || title == "." {

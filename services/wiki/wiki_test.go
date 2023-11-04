@@ -73,8 +73,10 @@ func TestWebPathToGitPath(t *testing.T) {
 	for _, test := range []test{
 		{"wiki-name.md", "wiki%20name"},
 		{"wiki-name.md", "wiki+name"},
+		{"wiki/name.md", "wiki/name"},
 		{"wiki name.md", "wiki%20name.md"},
 		{"wiki%20name.md", "wiki%2520name.md"},
+		{"wiki/name test.md", "wiki/name%20test.md"},
 		{"2000-01-02-meeting.md", "2000-01-02+meeting"},
 		{"2000-01-02 meeting.-.md", "2000-01-02%20meeting.-"},
 	} {
@@ -122,7 +124,7 @@ func TestUserWebGitPathConsistency(t *testing.T) {
 		}
 
 		userTitle := strings.TrimSpace(string(b[:l]))
-		if userTitle == "" || userTitle == "." || userTitle == ".." {
+		if userTitle == "" || userTitle == "." || userTitle == ".." || strings.HasPrefix(userTitle, "/") || strings.HasSuffix(userTitle, "/"){
 			continue
 		}
 		webPath := UserTitleToWebPath("", userTitle)
