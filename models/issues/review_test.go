@@ -263,11 +263,10 @@ func TestDeleteReview(t *testing.T) {
 func TestDeleteDismissedReview(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	ctx := db.DefaultContext
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
-	review, err := issues_model.CreateReview(ctx, issues_model.CreateReviewOptions{
+	review, err := issues_model.CreateReview(db.DefaultContext, issues_model.CreateReviewOptions{
 		Content:  "reject",
 		Type:     issues_model.ReviewTypeReject,
 		Official: false,
@@ -275,8 +274,8 @@ func TestDeleteDismissedReview(t *testing.T) {
 		Reviewer: user,
 	})
 	assert.NoError(t, err)
-	assert.NoError(t, issues_model.DismissReview(ctx, review, true))
-	comment, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
+	assert.NoError(t, issues_model.DismissReview(db.DefaultContext, review, true))
+	comment, err := issues_model.CreateComment(db.DefaultContext, &issues_model.CreateCommentOptions{
 		Type:     issues_model.CommentTypeDismissReview,
 		Doer:     user,
 		Repo:     repo,
@@ -284,7 +283,8 @@ func TestDeleteDismissedReview(t *testing.T) {
 		ReviewID: review.ID,
 		Content:  "dismiss",
 	})
+	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID})
-	assert.NoError(t, issues_model.DeleteReview(ctx, review))
+	assert.NoError(t, issues_model.DeleteReview(db.DefaultContext, review))
 	unittest.AssertNotExistsBean(t, &issues_model.Comment{ID: comment.ID})
 }
