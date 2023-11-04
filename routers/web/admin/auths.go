@@ -249,17 +249,14 @@ func parseSSPIConfig(ctx *context.Context, form forms.AuthenticationForm) (*sspi
 }
 
 func parseSAMLConfig(ctx *context.Context, form forms.AuthenticationForm) (*saml.Source, error) {
-	// TODO: verify form here
-	// if util.IsEmptyString(form.ServiceProviderCertificate) {
-	// 	ctx.Data["Err_SSPISeparatorReplacement"] = true
-	// 	// TODO: need sp cert
-	// 	return nil, errors.New(ctx.Tr("form.require_error"))
-	// }
-	// if util.IsEmptyString(form.ServiceProviderPrivateKey) {
-	// 	ctx.Data["Err_SSPISeparatorReplacement"] = true
-	// 	// TODO: need sp key
-	// 	return nil, errors.New(ctx.Tr("form.require_error"))
-	// }
+	if util.IsEmptyString(form.ServiceProviderCertificate) {
+		ctx.Data["Err_SSPISeparatorReplacement"] = true
+		return nil, errors.New(ctx.Tr("form.require_error"))
+	}
+	if util.IsEmptyString(form.ServiceProviderPrivateKey) {
+		ctx.Data["Err_SSPISeparatorReplacement"] = true
+		return nil, errors.New(ctx.Tr("form.require_error"))
+	}
 	if util.IsEmptyString(form.IdentityProviderMetadata) && util.IsEmptyString(form.IdentityProviderMetadataURL) {
 		return nil, fmt.Errorf("Identity Provider Metadata needed (either raw XML or URL)")
 	}
