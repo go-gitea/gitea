@@ -75,7 +75,7 @@ type PageMeta struct {
 
 // findEntryForFile finds the tree entry for a target filepath.
 func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error) {
-	entry, err := commit.GetTreeEntryByPath(target)
+	entry, err := commit.GetTreeEntryByPathWithPathAsName(target)
 	if err != nil && !git.IsErrNotExist(err) {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 	if unescapedTarget, err = url.QueryUnescape(target); err != nil {
 		return nil, err
 	}
-	return commit.GetTreeEntryByPath(unescapedTarget)
+	return commit.GetTreeEntryByPathWithPathAsName(unescapedTarget)
 }
 
 func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, error) {

@@ -35,9 +35,6 @@ func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 			}
 			for _, v := range entries {
 				if v.Name() == name {
-					if v.fullName == "" {
-						v.fullName = relpath
-					}
 					return v, nil
 				}
 			}
@@ -49,4 +46,14 @@ func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 		}
 	}
 	return nil, ErrNotExist{"", relpath}
+}
+
+// GetTreeEntryByPathWithPathAsName returns the Same as GetTreeEntryByPath, but it Replaces the Full Name with the relpath
+func (t *Tree) GetTreeEntryByPathWithPathAsName(relpath string) (*TreeEntry, error) {
+	a, err := t.GetTreeEntryByPath(relpath)
+	if err != nil {
+		return nil, err
+	}
+	a.fullName = relpath
+	return a, err
 }
