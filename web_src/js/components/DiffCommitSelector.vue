@@ -94,8 +94,7 @@ export default {
     focusElem(elem, prevElem) {
       if (elem) {
         elem.tabIndex = 0;
-        if (prevElem)
-          prevElem.tabIndex = -1;
+        if (prevElem) prevElem.tabIndex = -1;
         elem.focus();
       }
     },
