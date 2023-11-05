@@ -1,30 +1,31 @@
 <h4 class="ui top attached header">
-	{{.CustomHeaderTitle}}
-	{{if .IsNew}}
-		<div class="ui right jump dropdown">
-			<div class="ui small dropdown downward type jump item">
-				{{template "shared/webhook/icon" .ctxData}}
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			</div>
-			{{template "webhook/selector" .ctxData}}
-		</div>
-	{{else}}
-		<div class="ui right">
-			{{template "shared/webhook/icon" .ctxData}}
-		</div>
-	{{end}}
+    {{.CustomHeaderTitle}}
+    <div class="ui right">
+        {{template "shared/webhook/icon" .ctxData}}
+    </div>
 </h4>
 <div class="ui attached segment">
-	{{template "repo/settings/webhook/gitea" .ctxData}}
-	{{template "repo/settings/webhook/gogs" .ctxData}}
-	{{template "repo/settings/webhook/slack" .ctxData}}
-	{{template "repo/settings/webhook/discord" .ctxData}}
-	{{template "repo/settings/webhook/dingtalk" .ctxData}}
-	{{template "repo/settings/webhook/telegram" .ctxData}}
-	{{template "repo/settings/webhook/msteams" .ctxData}}
-	{{template "repo/settings/webhook/feishu" .ctxData}}
-	{{template "repo/settings/webhook/matrix" .ctxData}}
-	{{template "repo/settings/webhook/wechatwork" .ctxData}}
-	{{template "repo/settings/webhook/packagist" .ctxData}}
+    <div class="ui form">
+        <div class="required field">
+            <label>{{ctx.Locale.Tr "repo.settings.webhook_type"}}</label>
+            <div class="ui selection dropdown">
+                <div class="text">{{template "shared/webhook/type_name" .ctxData}}</div>
+                {{svg "octicon-triangle-down" 14 "dropdown icon"}}
+                {{template "webhook/selector_without_icons" .ctxData}}
+            </div>
+            {{template "webhook/helps" .ctxData}}
+        </div>
+    </div>
+    {{template "repo/settings/webhook/gitea" .ctxData}}
+    {{template "repo/settings/webhook/gogs" .ctxData}}
+    {{template "repo/settings/webhook/slack" .ctxData}}
+    {{template "repo/settings/webhook/discord" .ctxData}}
+    {{template "repo/settings/webhook/dingtalk" .ctxData}}
+    {{template "repo/settings/webhook/telegram" .ctxData}}
+    {{template "repo/settings/webhook/msteams" .ctxData}}
+    {{template "repo/settings/webhook/feishu" .ctxData}}
+    {{template "repo/settings/webhook/matrix" .ctxData}}
+    {{template "repo/settings/webhook/wechatwork" .ctxData}}
+    {{template "repo/settings/webhook/packagist" .ctxData}}
 </div>
 {{template "repo/settings/webhook/history" .ctxData}}
