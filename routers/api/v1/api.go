@@ -316,10 +316,6 @@ func reqToken() func(ctx *context.APIContext) {
 			return
 		}
 
-		if ctx.IsBasicAuth {
-			ctx.CheckForOTP()
-			return
-		}
 		if ctx.IsSigned {
 			return
 		}
@@ -344,7 +340,6 @@ func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
 			ctx.Error(http.StatusUnauthorized, "reqBasicAuth", "auth required")
 			return
 		}
-		ctx.CheckForOTP()
 	}
 }
 
@@ -785,31 +780,6 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIC
 					"message": "This account is not activated.",
 				})
 				return
-			}
-			if ctx.IsSigned && ctx.IsBasicAuth {
-				if skip, ok := ctx.Data["SkipLocalTwoFA"]; ok && skip.(bool) {
-					return // Skip 2FA
-				}
-				twofa, err := auth_model.GetTwoFactorByUID(ctx, ctx.Doer.ID)
-				if err != nil {
-					if auth_model.IsErrTwoFactorNotEnrolled(err) {
-						return // No 2FA enrollment for this user
-					}
-					ctx.InternalServerError(err)
-					return
-				}
-				otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
-				ok, err := twofa.ValidateTOTP(otpHeader)
-				if err != nil {
-					ctx.InternalServerError(err)
-					return
-				}
-				if !ok {
-					ctx.JSON(http.StatusForbidden, map[string]string{
-						"message": "Only signed in user is allowed to call APIs.",
-					})
-					return
-				}
 			}
 		}
 
