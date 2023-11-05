@@ -231,14 +231,15 @@ func EditMilestonePost(ctx *context.Context) {
 
 // ChangeMilestoneStatus response for change a milestone's status
 func ChangeMilestoneStatus(ctx *context.Context) {
-	toClose := false
+	var toClose bool
 	switch ctx.Params(":action") {
 	case "open":
 		toClose = false
 	case "close":
 		toClose = true
 	default:
-		ctx.Redirect(ctx.Repo.RepoLink + "/milestones")
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones")
+		return
 	}
 	id := ctx.ParamsInt64(":id")
 
@@ -250,7 +251,7 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 		}
 		return
 	}
-	ctx.Redirect(ctx.Repo.RepoLink + "/milestones?state=" + url.QueryEscape(ctx.Params(":action")))
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones?state=" + url.QueryEscape(ctx.Params(":action")))
 }
 
 // DeleteMilestone delete a milestone
