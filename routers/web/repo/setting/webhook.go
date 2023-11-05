@@ -336,7 +336,7 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.UpdateWebhook(w); err != nil {
+	} else if err := webhook.UpdateWebhook(ctx, w); err != nil {
 		ctx.ServerError("UpdateWebhook", err)
 		return
 	}
@@ -627,9 +627,9 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 
 	var w *webhook.Webhook
 	if orCtx.Repo != nil {
-		w, err = webhook.GetWebhookByRepoID(orCtx.Repo.ID, ctx.ParamsInt64(":id"))
+		w, err = webhook.GetWebhookByRepoID(ctx, orCtx.Repo.ID, ctx.ParamsInt64(":id"))
 	} else if orCtx.Owner != nil {
-		w, err = webhook.GetWebhookByOwnerID(orCtx.Owner.ID, ctx.ParamsInt64(":id"))
+		w, err = webhook.GetWebhookByOwnerID(ctx, orCtx.Owner.ID, ctx.ParamsInt64(":id"))
 	} else if orCtx.IsAdmin {
 		w, err = webhook.GetSystemOrDefaultWebhook(ctx, ctx.ParamsInt64(":id"))
 	}
@@ -656,7 +656,7 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 		ctx.Data["PackagistHook"] = webhook_service.GetPackagistHook(w)
 	}
 
-	ctx.Data["History"], err = w.History(1)
+	ctx.Data["History"], err = w.History(ctx, 1)
 	if err != nil {
 		ctx.ServerError("History", err)
 	}
@@ -681,7 +681,7 @@ func WebHooksEdit(ctx *context.Context) {
 // TestWebhook test if web hook is work fine
 func TestWebhook(ctx *context.Context) {
 	hookID := ctx.ParamsInt64(":id")
-	w, err := webhook.GetWebhookByRepoID(ctx.Repo.Repository.ID, hookID)
+	w, err := webhook.GetWebhookByRepoID(ctx, ctx.Repo.Repository.ID, hookID)
 	if err != nil {
 		ctx.Flash.Error("GetWebhookByRepoID: " + err.Error())
 		ctx.Status(http.StatusInternalServerError)
@@ -762,13 +762,13 @@ func ReplayWebhook(ctx *context.Context) {
 
 // DeleteWebhook delete a webhook
 func DeleteWebhook(ctx *context.Context) {
-	hook, err := webhook.GetWebhookByRepoID(ctx.Repo.Repository.ID, ctx.FormInt64("id"))
+	hook, err := webhook.GetWebhookByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id"))
 	if err != nil {
 		ctx.ServerError("GetWebhookByRepoID", err)
 		return
 	}
 
-	if err := webhook.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
+	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteWebhookByRepoID: " + err.Error())
 	} else {
 		audit.Record(audit.RepositoryWebhookRemove, ctx.Doer, ctx.Repo.Repository, hook, "Removed webhook %s.", hook.URL)

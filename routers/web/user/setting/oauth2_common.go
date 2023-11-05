@@ -85,7 +85,7 @@ func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 	// render the edit page with secret
 	ctx.Flash.Success(ctx.Tr("settings.create_oauth2_application_success"), true)
 	ctx.Data["App"] = app
-	ctx.Data["ClientSecret"], err = app.GenerateClientSecret()
+	ctx.Data["ClientSecret"], err = app.GenerateClientSecret(ctx)
 	if err != nil {
 		ctx.ServerError("GenerateClientSecret", err)
 		return
@@ -123,7 +123,7 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 	}
 
 	// TODO validate redirect URI
-	app, err := auth.UpdateOAuth2Application(auth.UpdateOAuth2ApplicationOptions{
+	app, err := auth.UpdateOAuth2Application(ctx, auth.UpdateOAuth2ApplicationOptions{
 		ID:                 ctx.ParamsInt64("id"),
 		Name:               form.Name,
 		RedirectURIs:       util.SplitTrimSpace(form.RedirectURIs, "\n"),
@@ -159,7 +159,7 @@ func (oa *OAuth2CommonHandlers) RegenerateSecret(ctx *context.Context) {
 		return
 	}
 	ctx.Data["App"] = app
-	ctx.Data["ClientSecret"], err = app.GenerateClientSecret()
+	ctx.Data["ClientSecret"], err = app.GenerateClientSecret(ctx)
 	if err != nil {
 		ctx.ServerError("GenerateClientSecret", err)
 		return
@@ -183,7 +183,7 @@ func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
 		return
 	}
 
-	if err := auth.DeleteOAuth2Application(app.ID, oa.ownerID()); err != nil {
+	if err := auth.DeleteOAuth2Application(ctx, app.ID, oa.ownerID()); err != nil {
 		ctx.ServerError("DeleteOAuth2Application", err)
 		return
 	}

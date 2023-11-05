@@ -49,6 +49,13 @@
 		</div>
 		{{end}}
 		{{end}}
+		{{$tasks := .GetTasks}}
+		{{if gt $tasks 0}}
+			<div class="meta gt-my-2">
+				{{svg "octicon-checklist" 16 "gt-mr-2 gt-vm"}}
+				<span class="gt-vm">{{.GetTasksDone}} / {{$tasks}}</span>
+			</div>
+		{{end}}
 	</div>
 
 	{{if or .Labels .Assignees}}

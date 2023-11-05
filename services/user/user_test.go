@@ -41,7 +41,7 @@ func TestDeleteUser(t *testing.T) {
 		orgUsers := make([]*organization.OrgUser, 0, 10)
 		assert.NoError(t, db.GetEngine(db.DefaultContext).Find(&orgUsers, &organization.OrgUser{UID: userID}))
 		for _, orgUser := range orgUsers {
-			if err := models.RemoveOrgUser(orgUser.OrgID, orgUser.UID); err != nil {
+			if err := models.RemoveOrgUser(db.DefaultContext, orgUser.OrgID, orgUser.UID); err != nil {
 				assert.True(t, organization.IsErrLastOrgOwner(err))
 				return
 			}

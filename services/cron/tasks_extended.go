@@ -219,7 +219,7 @@ func registerRebuildIssueIndexer() {
 		RunAtStart: false,
 		Schedule:   "@annually",
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
-		return issue_indexer.PopulateIssueIndexer(ctx, false)
+		return issue_indexer.PopulateIssueIndexer(ctx)
 	})
 }
 

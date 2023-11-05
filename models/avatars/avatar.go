@@ -94,13 +94,13 @@ func HashEmail(email string) string {
 }
 
 // GetEmailForHash converts a provided md5sum to the email
-func GetEmailForHash(md5Sum string) (string, error) {
+func GetEmailForHash(ctx context.Context, md5Sum string) (string, error) {
 	return cache.GetString("Avatar:"+md5Sum, func() (string, error) {
 		emailHash := EmailHash{
 			Hash: strings.ToLower(strings.TrimSpace(md5Sum)),
 		}
 
-		_, err := db.GetEngine(db.DefaultContext).Get(&emailHash)
+		_, err := db.GetEngine(ctx).Get(&emailHash)
 		return emailHash.Email, err
 	})
 }
@@ -127,7 +127,7 @@ func LibravatarURL(email string) (*url.URL, error) {
 
 // saveEmailHash returns an avatar link for a provided email,
 // the email and hash are saved into database, which will be used by GetEmailForHash later
-func saveEmailHash(email string) string {
+func saveEmailHash(ctx context.Context, email string) string {
 	lowerEmail := strings.ToLower(strings.TrimSpace(email))
 	emailHash := HashEmail(lowerEmail)
 	_, _ = cache.GetString("Avatar:"+emailHash, func() (string, error) {
@@ -136,7 +136,7 @@ func saveEmailHash(email string) string {
 			Hash:  emailHash,
 		}
 		// OK we're going to open a session just because I think that that might hide away any problems with postgres reporting errors
-		if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+		if err := db.WithTx(ctx, func(ctx context.Context) error {
 			has, err := db.GetEngine(ctx).Where("email = ? AND hash = ?", emailHash.Email, emailHash.Hash).Get(new(EmailHash))
 			if has || err != nil {
 				// Seriously we don't care about any DB problems just return the lowerEmail - we expect the transaction to fail most of the time
@@ -196,7 +196,7 @@ func generateEmailAvatarLink(ctx context.Context, email string, size int, final 
 
 	enableFederatedAvatar := setting.Config().Picture.EnableFederatedAvatar.Value(ctx)
 	if enableFederatedAvatar {
-		emailHash := saveEmailHash(email)
+		emailHash := saveEmailHash(ctx, email)
 		if final {
 			// for final link, we can spend more time on slow external query
 			var avatarURL *url.URL

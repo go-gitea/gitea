@@ -862,7 +862,7 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 func SignInOAuth(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 
-	authSource, err := auth.GetActiveOAuth2SourceByName(provider)
+	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, provider)
 	if err != nil {
 		ctx.ServerError("SignIn", err)
 		return
@@ -883,7 +883,7 @@ func SignInOAuth(ctx *context.Context) {
 
 	if err = authSource.Cfg.(*oauth2.Source).Callout(ctx.Req, ctx.Resp); err != nil {
 		if strings.Contains(err.Error(), "no provider for ") {
-			if err = oauth2.ResetOAuth2(); err != nil {
+			if err = oauth2.ResetOAuth2(ctx); err != nil {
 				ctx.ServerError("SignIn", err)
 				return
 			}
@@ -913,7 +913,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	// first look if the provider is still active
-	authSource, err := auth.GetActiveOAuth2SourceByName(provider)
+	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, provider)
 	if err != nil {
 		ctx.ServerError("SignIn", err)
 		return
@@ -1173,7 +1173,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		}
 
 		// update external user information
-		if err := externalaccount.UpdateExternalUser(u, gothUser); err != nil {
+		if err := externalaccount.UpdateExternalUser(ctx, u, gothUser); err != nil {
 			if !errors.Is(err, util.ErrNotExist) {
 				log.Error("UpdateExternalUser failed: %v", err)
 			}
@@ -1303,7 +1303,7 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 		ExternalID:    gothUser.UserID,
 		LoginSourceID: authSource.ID,
 	}
-	hasUser, err = user_model.GetExternalLogin(externalLoginUser)
+	hasUser, err = user_model.GetExternalLogin(request.Context(), externalLoginUser)
 	if err != nil {
 		return nil, goth.User{}, err
 	}

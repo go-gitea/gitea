@@ -1,4 +1,4 @@
-<div class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
+<div {{if .ReadmeInList}}id="readme" {{end}}class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
 	{{- if .FileError}}
 		<div class="ui error message">
 			<div class="text left gt-whitespace-pre">{{.FileError}}</div>
@@ -13,7 +13,7 @@
 		<div class="file-header-left gt-df gt-ac gt-py-3 gt-pr-4">
 			{{if .ReadmeInList}}
 				{{svg "octicon-book" 16 "gt-mr-3"}}
-				<strong>{{.FileName}}</strong>
+				<strong><a class="default-link muted" href="#readme">{{.FileName}}</a></strong>
 			{{else}}
 				{{template "repo/file_info" .}}
 			{{end}}

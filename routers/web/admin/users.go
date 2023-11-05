@@ -92,7 +92,9 @@ func NewUser(ctx *context.Context) {
 
 	ctx.Data["login_type"] = "0-0"
 
-	sources, err := auth.Sources(ctx)
+	sources, err := auth.FindSources(ctx, auth.FindSourcesOptions{
+		IsActive: util.OptionalBoolTrue,
+	})
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
 		return
@@ -111,7 +113,9 @@ func NewUserPost(ctx *context.Context) {
 	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
-	sources, err := auth.Sources(ctx)
+	sources, err := auth.FindSources(ctx, auth.FindSourcesOptions{
+		IsActive: util.OptionalBoolTrue,
+	})
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
 		return
@@ -235,7 +239,7 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 		ctx.Data["LoginSource"] = &auth.Source{}
 	}
 
-	sources, err := auth.Sources(ctx)
+	sources, err := auth.FindSources(ctx, auth.FindSourcesOptions{})
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
 		return nil

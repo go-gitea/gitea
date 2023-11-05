@@ -6,12 +6,14 @@ package security
 
 import (
 	"net/http"
+	"sort"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 )
@@ -39,7 +41,7 @@ func Security(ctx *context.Context) {
 // DeleteAccountLink delete a single account link
 func DeleteAccountLink(ctx *context.Context) {
 	elu := &user_model.ExternalLoginUser{UserID: ctx.Doer.ID, LoginSourceID: ctx.FormInt64("id")}
-	if has, err := user_model.GetExternalLogin(elu); err != nil || !has {
+	if has, err := user_model.GetExternalLogin(ctx, elu); err != nil || !has {
 		if !has {
 			err = user_model.ErrExternalLoginUserNotExist{UserID: elu.UserID, LoginSourceID: elu.LoginSourceID}
 		}
@@ -47,7 +49,7 @@ func DeleteAccountLink(ctx *context.Context) {
 		return
 	}
 
-	if _, err := user_model.RemoveAccountLink(ctx.Doer, elu.LoginSourceID); err != nil {
+	if _, err := user_model.RemoveAccountLink(ctx, ctx.Doer, elu.LoginSourceID); err != nil {
 		ctx.Flash.Error("RemoveAccountLink: " + err.Error())
 		return
 	} else {
@@ -81,7 +83,7 @@ func loadSecurityData(ctx *context.Context) {
 	}
 	ctx.Data["Tokens"] = tokens
 
-	accountLinks, err := user_model.ListAccountLinks(ctx.Doer)
+	accountLinks, err := user_model.ListAccountLinks(ctx, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("ListAccountLinks", err)
 		return
@@ -90,7 +92,7 @@ func loadSecurityData(ctx *context.Context) {
 	// map the provider display name with the AuthSource
 	sources := make(map[*auth_model.Source]string)
 	for _, externalAccount := range accountLinks {
-		if authSource, err := auth_model.GetSourceByID(ctx, externalAccount.LoginSourceID); err == nil {
+		if authSource, err := auth_model.GetSourceByID(ctx, externalAccount.LoginSourceID); err == nil && authSource.IsActive {
 			var providerDisplayName string
 
 			type DisplayNamed interface {
@@ -113,11 +115,31 @@ func loadSecurityData(ctx *context.Context) {
 	}
 	ctx.Data["AccountLinks"] = sources
 
-	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers()
+	authSources, err := auth_model.FindSources(ctx, auth_model.FindSourcesOptions{
+		IsActive:  util.OptionalBoolNone,
+		LoginType: auth_model.OAuth2,
+	})
 	if err != nil {
-		ctx.ServerError("GetActiveOAuth2Providers", err)
+		ctx.ServerError("FindSources", err)
 		return
 	}
+
+	var orderedOAuth2Names []string
+	oauth2Providers := make(map[string]oauth2.Provider)
+	for _, source := range authSources {
+		provider, err := oauth2.CreateProviderFromSource(source)
+		if err != nil {
+			ctx.ServerError("CreateProviderFromSource", err)
+			return
+		}
+		oauth2Providers[source.Name] = provider
+		if source.IsActive {
+			orderedOAuth2Names = append(orderedOAuth2Names, source.Name)
+		}
+	}
+
+	sort.Strings(orderedOAuth2Names)
+
 	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
 	ctx.Data["OAuth2Providers"] = oauth2Providers
 

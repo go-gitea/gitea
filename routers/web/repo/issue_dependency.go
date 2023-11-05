@@ -22,7 +22,7 @@ func AddDependency(ctx *context.Context) {
 	}
 
 	// Check if the Repo is allowed to have dependencies
-	if !ctx.Repo.CanCreateIssueDependencies(ctx.Doer, issue.IsPull) {
+	if !ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies")
 		return
 	}
@@ -80,10 +80,9 @@ func AddDependency(ctx *context.Context) {
 		} else if issues_model.IsErrCircularDependency(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_cannot_create_circular"))
 			return
-		} else {
-			ctx.ServerError("CreateOrUpdateIssueDependency", err)
-			return
 		}
+		ctx.ServerError("CreateOrUpdateIssueDependency", err)
+		return
 	}
 }
 
@@ -97,7 +96,7 @@ func RemoveDependency(ctx *context.Context) {
 	}
 
 	// Check if the Repo is allowed to have dependencies
-	if !ctx.Repo.CanCreateIssueDependencies(ctx.Doer, issue.IsPull) {
+	if !ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies")
 		return
 	}

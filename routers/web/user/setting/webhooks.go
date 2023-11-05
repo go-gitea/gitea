@@ -37,13 +37,13 @@ func Webhooks(ctx *context.Context) {
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
-	hook, err := webhook.GetWebhookByOwnerID(ctx.Doer.ID, ctx.FormInt64("id"))
+	hook, err := webhook.GetWebhookByOwnerID(ctx, ctx.Doer.ID, ctx.FormInt64("id"))
 	if err != nil {
 		ctx.ServerError("GetWebhookByOwnerID", err)
 		return
 	}
 
-	if err := webhook.DeleteWebhookByOwnerID(ctx.Doer.ID, hook.ID); err != nil {
+	if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Doer.ID, hook.ID); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
 		audit.Record(audit.UserWebhookRemove, ctx.Doer, ctx.Doer, hook, "Removed webhook %s.", hook.URL)

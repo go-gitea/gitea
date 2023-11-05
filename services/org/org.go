@@ -16,16 +16,23 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/audit"
-	user_service "code.gitea.io/gitea/services/user"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // DeleteOrganization completely and permanently deletes everything of organization.
-func DeleteOrganization(doer *user_model.User, org *org_model.Organization) error {
-	ctx, commiter, err := db.TxContext(db.DefaultContext)
+func DeleteOrganization(ctx context.Context, doer *user_model.User, org *org_model.Organization, purge bool) error {
+	ctx, commiter, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer commiter.Close()
+
+	if purge {
+		err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, org.AsUser())
+		if err != nil {
+			return err
+		}
+	}
 
 	// Check ownership of repository.
 	count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: org.ID})
@@ -69,9 +76,4 @@ func DeleteOrganization(doer *user_model.User, org *org_model.Organization) erro
 	}
 
 	return nil
-}
-
-// RenameOrganization renames an organization.
-func RenameOrganization(ctx context.Context, doer *user_model.User, org *org_model.Organization, newName string) error {
-	return user_service.RenameUser(ctx, doer, org.AsUser(), newName)
 }

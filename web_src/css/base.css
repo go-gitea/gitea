@@ -1411,6 +1411,7 @@ img.ui.avatar,
 .ui.label {
   padding: 0.3em 0.5em;
   transition: none;
+  white-space: nowrap;
 }
 
 .ui.label,
@@ -1801,7 +1802,7 @@ a.ui.basic.label:hover {
 
 table th[data-sortt-asc]:hover,
 table th[data-sortt-desc]:hover {
-  background: rgba(0, 0, 0, 0.1) !important;
+  background: var(--color-hover) !important;
   cursor: pointer !important;
 }
 
@@ -1952,7 +1953,7 @@ table th[data-sortt-desc] .svg {
   height: 15px;
 }
 
-.ui.dropdown {
+.ui.dropdown:not(.button) {
   line-height: var(--line-height-default); /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
 }
 

@@ -73,7 +73,7 @@
 
 				<div class="field">
 					<div class="ui checkbox">
-						<label data-tooltip-content="{{ctx.Locale.Tr "settings.keep_email_private_popup"}}"><strong>{{ctx.Locale.Tr "settings.keep_email_private"}}</strong></label>
+						<label data-tooltip-content="{{ctx.Locale.Tr "settings.keep_email_private_popup" .SignedUser.GetPlaceholderEmail}}"><strong>{{ctx.Locale.Tr "settings.keep_email_private"}}</strong></label>
 						<input name="keep_email_private" type="checkbox" {{if .SignedUser.KeepEmailPrivate}}checked{{end}}>
 					</div>
 				</div>
