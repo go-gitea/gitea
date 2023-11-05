@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -60,7 +59,7 @@ func getExpectedFileResponseForCreate(repoFullName, commitID, treePath, latestCo
 	downloadURL := setting.AppURL + repoFullName + "/raw/branch/master/" + treePath
 	return &api.FileResponse{
 		Content: &api.ContentsResponse{
-			Name:          filepath.Base(treePath),
+			Name:          treePath,
 			Path:          treePath,
 			SHA:           sha,
 			LastCommitSHA: latestCommitSHA,
