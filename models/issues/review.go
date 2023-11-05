@@ -897,6 +897,16 @@ func DeleteReview(ctx context.Context, r *Review) error {
 		return err
 	}
 
+	opts = FindCommentsOptions{
+		Type:     CommentTypeDismissReview,
+		IssueID:  r.IssueID,
+		ReviewID: r.ID,
+	}
+
+	if _, err := sess.Where(opts.ToConds()).Delete(new(Comment)); err != nil {
+		return err
+	}
+
 	if _, err := sess.ID(r.ID).Delete(new(Review)); err != nil {
 		return err
 	}

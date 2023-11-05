@@ -6,6 +6,7 @@ package doctor
 import (
 	"context"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -150,6 +151,12 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 			Counter:      activities_model.CountActionCreatedUnixString,
 			Fixer:        activities_model.FixActionCreatedUnixString,
 			FixedMessage: "Set to zero",
+		},
+		{
+			Name:         "Action Runners without existing owner",
+			Counter:      actions_model.CountRunnersWithoutBelongingOwner,
+			Fixer:        actions_model.FixRunnersWithoutBelongingOwner,
+			FixedMessage: "Removed",
 		},
 	}
 
