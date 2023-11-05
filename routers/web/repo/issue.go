@@ -3466,6 +3466,11 @@ func GetCommentAttachments(ctx *context.Context) {
 		return
 	}
 
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
+		ctx.NotFound("CanReadIssuesOrPulls", issues_model.ErrCommentNotExist{})
+		return
+	}
+
 	if !comment.Type.HasAttachmentSupport() {
 		ctx.ServerError("GetCommentAttachments", fmt.Errorf("comment type %v does not support attachments", comment.Type))
 		return
