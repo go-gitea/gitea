@@ -40,7 +40,7 @@ func TestUserTitleToWebPath(t *testing.T) {
 		{"title.md.-", "title.md"},
 		{"wiki-name.-", "wiki-name"},
 		{"the+wiki-name.-", "the wiki-name"},
-		{"a%2Fb", "a/b"},
+		{"a/b", "a/b"},
 		{"a%25b", "a%b"},
 	} {
 		assert.EqualValues(t, test.Expected, UserTitleToWebPath("", test.UserTitle))
@@ -55,7 +55,7 @@ func TestWebPathToDisplayName(t *testing.T) {
 	for _, test := range []test{
 		{"wiki name", "wiki-name"},
 		{"wiki-name", "wiki-name.-"},
-		{"name with / slash", "name-with %2F slash"},
+		{"path", "name with/path"},
 		{"name with % percent", "name-with %25 percent"},
 		{"2000-01-02 meeting", "2000-01-02+meeting.-.md"},
 		{"a b", "a%20b.md"},
@@ -123,20 +123,24 @@ func TestUserWebGitPathConsistency(t *testing.T) {
 			b[j] = byte(r)
 		}
 
-		userTitle := strings.TrimSpace(string(b[:l]))
-		if userTitle == "" || userTitle == "." || userTitle == ".." || strings.HasPrefix(userTitle, "/") || strings.HasSuffix(userTitle, "/"){
+		testPath := strings.TrimSpace(string(b[:l]))
+		if testPath == "" || testPath == "." || testPath == ".." || strings.HasPrefix(testPath, "/") || strings.HasSuffix(testPath, "/") {
 			continue
 		}
-		webPath := UserTitleToWebPath("", userTitle)
+
+		a := strings.Split(testPath, "/")
+		userTitle := a[len(a)-1]
+
+		webPath := UserTitleToWebPath("", testPath)
 		gitPath := WebPathToGitPath(webPath)
 
 		webPath1, _ := GitPathToWebPath(gitPath)
 		_, userTitle1 := WebPathToUserTitle(webPath1)
 		gitPath1 := WebPathToGitPath(webPath1)
 
-		assert.EqualValues(t, userTitle, userTitle1, "UserTitle for userTitle: %q", userTitle)
-		assert.EqualValues(t, webPath, webPath1, "WebPath for userTitle: %q", userTitle)
-		assert.EqualValues(t, gitPath, gitPath1, "GitPath for userTitle: %q", userTitle)
+		assert.EqualValues(t, userTitle, userTitle1, "UserTitle for testPath: %q", testPath)
+		assert.EqualValues(t, webPath, webPath1, "WebPath for testPath: %q", testPath)
+		assert.EqualValues(t, gitPath, gitPath1, "GitPath for testPath: %q", testPath)
 	}
 }
 
@@ -326,7 +330,8 @@ func TestWebPathConversion(t *testing.T) {
 }
 
 func TestWebPathFromRequest(t *testing.T) {
-	assert.Equal(t, WebPath("a%2Fb"), WebPathFromRequest("a/b"))
+	assert.Equal(t, WebPath("a/b"), WebPathFromRequest("a/b"))
+	assert.Equal(t, WebPath("a%2Fb"), WebPathFromRequest("a%2Fb"))
 	assert.Equal(t, WebPath("a"), WebPathFromRequest("a"))
 	assert.Equal(t, WebPath("b"), WebPathFromRequest("a/../b"))
 }

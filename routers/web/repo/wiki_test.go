@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -25,24 +26,35 @@ const (
 	message = "Wiki commit message for unit tests"
 )
 
-func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) *git.TreeEntry {
+func wikiEntry(t *testing.T, repo *repo_model.Repository, entry *git.TreeEntry, wikiName wiki_service.WebPath) *git.TreeEntry {
 	wikiRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 	assert.NoError(t, err)
 	defer wikiRepo.Close()
 	commit, err := wikiRepo.GetBranchCommit("master")
 	assert.NoError(t, err)
 	entries, err := commit.ListEntries()
+
+	if entry != nil {
+		entries, err = entry.Tree().ListEntries()
+	}
 	assert.NoError(t, err)
+
+	a := strings.Split(string(wikiName), "/")
+	currentDir := wiki_service.WebPath(a[0])
+
 	for _, entry := range entries {
 		if entry.Name() == wiki_service.WebPathToGitPath(wikiName) {
 			return entry
+		}
+		if entry.IsDir() && entry.Name() == string(currentDir) {
+			return wikiEntry(t, repo, entry, wiki_service.WebPath(strings.Join(a[1:], "/")))
 		}
 	}
 	return nil
 }
 
 func wikiContent(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) string {
-	entry := wikiEntry(t, repo, wikiName)
+	entry := wikiEntry(t, repo, nil, wikiName)
 	if !assert.NotNil(t, entry) {
 		return ""
 	}
@@ -55,11 +67,11 @@ func wikiContent(t *testing.T, repo *repo_model.Repository, wikiName wiki_servic
 }
 
 func assertWikiExists(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) {
-	assert.NotNil(t, wikiEntry(t, repo, wikiName))
+	assert.NotNil(t, wikiEntry(t, repo, nil, wikiName))
 }
 
 func assertWikiNotExists(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) {
-	assert.Nil(t, wikiEntry(t, repo, wikiName))
+	assert.Nil(t, wikiEntry(t, repo, nil, wikiName))
 }
 
 func assertPagesMetas(t *testing.T, expectedNames []string, metas any) {
@@ -161,9 +173,11 @@ func TestEditWiki(t *testing.T) {
 }
 
 func TestEditWikiPost(t *testing.T) {
-	for _, title := range []string{
+	for _, path := range []string{
 		"Home",
-		"New/<page>",
+		"New<page>",
+		"New%2Fpage",
+		"New/page",
 	} {
 		unittest.PrepareTestEnv(t)
 		ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/Home?action=_new")
@@ -171,15 +185,17 @@ func TestEditWikiPost(t *testing.T) {
 		contexttest.LoadUser(t, ctx, 2)
 		contexttest.LoadRepo(t, ctx, 1)
 		web.SetForm(ctx, &forms.NewWikiForm{
-			Title:   title,
+			Title:   path,
 			Content: content,
 			Message: message,
 		})
+
 		EditWikiPost(ctx)
 		assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
-		assertWikiExists(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title))
-		assert.Equal(t, wikiContent(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title)), content)
-		if title != "Home" {
+
+		assertWikiExists(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", path))
+		assert.Equal(t, content, wikiContent(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", path)))
+		if path != "Home" {
 			assertWikiNotExists(t, ctx.Repo.Repository, "Home")
 		}
 	}

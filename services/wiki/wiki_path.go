@@ -134,14 +134,16 @@ func WebPathToURLPath(s WebPath) string {
 
 func WebPathFromRequest(s string) WebPath {
 	s = util.PathJoinRelX(s)
-	// The old wiki code's behavior is always using %2F, instead of subdirectory.
-	s = strings.ReplaceAll(s, "/", "%2F")
 	return WebPath(s)
 }
 
 func UserTitleToWebPath(base, title string) WebPath {
 	title = strings.TrimSpace(title)
-	title = util.PathJoinRelX(base, escapeSegToWeb(title, false))
+	a := strings.Split(title, "/")
+	for i := range a {
+		a[i] = escapeSegToWeb(a[i], false)
+	}
+	title = util.PathJoinRelX(base, strings.Join(a, "/"))
 	if title == "" || title == "." {
 		title = "unnamed"
 	}
