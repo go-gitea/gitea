@@ -100,8 +100,6 @@ TAGS="bindata sqlite sqlite_unlock_notify" make build
 TAGS="bindata" make backend
 ```
 
-在开发构建中，默认启用 Webpack 源映射，在生产构建中禁用。可以通过设置`ENABLE_SOURCEMAP=true`环境变量来启用它们。
-
 ## 测试
 
 按照上述步骤完成后，工作目录中将会有一个`gitea`二进制文件。可以从该目录进行测试，或将其移动到带有测试数据的目录中。当手动从命令行启动 Gitea 时，可以通过按下`Ctrl + C`来停止程序。
@@ -221,3 +219,11 @@ GOARCH=amd64 \
 TAGS="bindata sqlite sqlite_unlock_notify" \
 make build
 ```
+
+## Source Map
+
+默认情况下，gitea 会为前端文件生成精简的 Source Map 以节省空间。 这可以通过“ENABLE_SOURCEMAP”环境变量进行控制：
+
+- `ENABLE_SOURCEMAP=true` 生成所有Source Map，这是开发版本的默认设置
+- `ENABLE_SOURCEMAP=reduced` 生成有限的Source Map，这是生产版本的默认设置
+- `ENABLE_SOURCEMAP=false` 不生成Source Map

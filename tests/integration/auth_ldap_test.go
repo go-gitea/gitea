@@ -332,7 +332,7 @@ func TestLDAPUserSyncWithGroupFilter(t *testing.T) {
 	})
 	ldapConfig := ldapSource.Cfg.(*ldap.Source)
 	ldapConfig.GroupFilter = "(cn=ship_crew)"
-	auth_model.UpdateSource(ldapSource)
+	auth_model.UpdateSource(db.DefaultContext, ldapSource)
 
 	auth.SyncExternalUsers(context.Background(), true)
 
@@ -414,7 +414,7 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 			Name: gitLDAPUser.UserName,
 		})
-		usersOrgs, err := organization.FindOrgs(organization.FindOrgOptions{
+		usersOrgs, err := organization.FindOrgs(db.DefaultContext, organization.FindOrgOptions{
 			UserID:         user.ID,
 			IncludePrivate: true,
 		})
@@ -428,9 +428,9 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 			isMember, err := organization.IsTeamMember(db.DefaultContext, usersOrgs[0].ID, team.ID, user.ID)
 			assert.NoError(t, err)
 			assert.True(t, isMember, "Membership should be added to the right team")
-			err = models.RemoveTeamMember(team, user.ID)
+			err = models.RemoveTeamMember(db.DefaultContext, team, user.ID)
 			assert.NoError(t, err)
-			err = models.RemoveOrgUser(usersOrgs[0].ID, user.ID)
+			err = models.RemoveOrgUser(db.DefaultContext, usersOrgs[0].ID, user.ID)
 			assert.NoError(t, err)
 		} else {
 			// assert members of LDAP group "cn=admin_staff" keep initial team membership since mapped team does not exist
@@ -458,9 +458,9 @@ func TestLDAPGroupTeamSyncRemoveMember(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		Name: gitLDAPUsers[0].UserName,
 	})
-	err = organization.AddOrgUser(org.ID, user.ID)
+	err = organization.AddOrgUser(db.DefaultContext, org.ID, user.ID)
 	assert.NoError(t, err)
-	err = models.AddTeamMember(team, user.ID)
+	err = models.AddTeamMember(db.DefaultContext, team, user.ID)
 	assert.NoError(t, err)
 	isMember, err := organization.IsOrganizationMember(db.DefaultContext, org.ID, user.ID)
 	assert.NoError(t, err)

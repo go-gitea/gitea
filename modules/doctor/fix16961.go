@@ -290,7 +290,7 @@ func fixBrokenRepoUnits16961(ctx context.Context, logger log.Logger, autofix boo
 				return nil
 			}
 
-			return repo_model.UpdateRepoUnit(repoUnit)
+			return repo_model.UpdateRepoUnit(ctx, repoUnit)
 		},
 	)
 	if err != nil {

@@ -6,7 +6,10 @@ package web
 import (
 	gocontext "context"
 	"net/http"
+	"strings"
 
+	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
@@ -19,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/modules/web/routing"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/web/admin"
@@ -46,7 +50,7 @@ import (
 
 	"gitea.com/go-chi/captcha"
 	"github.com/NYTimes/gziphandler"
-	"github.com/go-chi/chi/v5/middleware"
+	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -90,9 +94,115 @@ func buildAuthGroup() *auth_service.Group {
 	if setting.Service.EnableReverseProxyAuth {
 		group.Add(&auth_service.ReverseProxy{})
 	}
-	specialAdd(group)
+
+	if setting.IsWindows && auth_model.IsSSPIEnabled(db.DefaultContext) {
+		group.Add(&auth_service.SSPI{}) // it MUST be the last, see the comment of SSPI
+	}
 
 	return group
+}
+
+func webAuth(authMethod auth_service.Method) func(*context.Context) {
+	return func(ctx *context.Context) {
+		ar, err := common.AuthShared(ctx.Base, ctx.Session, authMethod)
+		if err != nil {
+			log.Error("Failed to verify user: %v", err)
+			ctx.Error(http.StatusUnauthorized, "Verify")
+			return
+		}
+		ctx.Doer = ar.Doer
+		ctx.IsSigned = ar.Doer != nil
+		ctx.IsBasicAuth = ar.IsBasicAuth
+		if ctx.Doer == nil {
+			// ensure the session uid is deleted
+			_ = ctx.Session.Delete("uid")
+		}
+	}
+}
+
+// verifyAuthWithOptions checks authentication according to options
+func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Context) {
+	return func(ctx *context.Context) {
+		// Check prohibit login users.
+		if ctx.IsSigned {
+			if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
+				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
+				ctx.HTML(http.StatusOK, "user/auth/activate")
+				return
+			}
+			if !ctx.Doer.IsActive || ctx.Doer.ProhibitLogin {
+				log.Info("Failed authentication attempt for %s from %s", ctx.Doer.Name, ctx.RemoteAddr())
+				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+				ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
+				return
+			}
+
+			if ctx.Doer.MustChangePassword {
+				if ctx.Req.URL.Path != "/user/settings/change_password" {
+					if strings.HasPrefix(ctx.Req.UserAgent(), "git") {
+						ctx.Error(http.StatusUnauthorized, ctx.Tr("auth.must_change_password"))
+						return
+					}
+					ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
+					ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
+					if ctx.Req.URL.Path != "/user/events" {
+						middleware.SetRedirectToCookie(ctx.Resp, setting.AppSubURL+ctx.Req.URL.RequestURI())
+					}
+					ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
+					return
+				}
+			} else if ctx.Req.URL.Path == "/user/settings/change_password" {
+				// make sure that the form cannot be accessed by users who don't need this
+				ctx.Redirect(setting.AppSubURL + "/")
+				return
+			}
+		}
+
+		// Redirect to dashboard (or alternate location) if user tries to visit any non-login page.
+		if options.SignOutRequired && ctx.IsSigned && ctx.Req.URL.RequestURI() != "/" {
+			ctx.RedirectToFirst(ctx.FormString("redirect_to"))
+			return
+		}
+
+		if !options.SignOutRequired && !options.DisableCSRF && ctx.Req.Method == "POST" {
+			ctx.Csrf.Validate(ctx)
+			if ctx.Written() {
+				return
+			}
+		}
+
+		if options.SignInRequired {
+			if !ctx.IsSigned {
+				if ctx.Req.URL.Path != "/user/events" {
+					middleware.SetRedirectToCookie(ctx.Resp, setting.AppSubURL+ctx.Req.URL.RequestURI())
+				}
+				ctx.Redirect(setting.AppSubURL + "/user/login")
+				return
+			} else if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
+				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
+				ctx.HTML(http.StatusOK, "user/auth/activate")
+				return
+			}
+		}
+
+		// Redirect to log in page if auto-signin info is provided and has not signed in.
+		if !options.SignOutRequired && !ctx.IsSigned &&
+			ctx.GetSiteCookie(setting.CookieRememberName) != "" {
+			if ctx.Req.URL.Path != "/user/events" {
+				middleware.SetRedirectToCookie(ctx.Resp, setting.AppSubURL+ctx.Req.URL.RequestURI())
+			}
+			ctx.Redirect(setting.AppSubURL + "/user/login")
+			return
+		}
+
+		if options.AdminRequired {
+			if !ctx.Doer.IsAdmin {
+				ctx.Error(http.StatusForbidden)
+				return
+			}
+			ctx.Data["PageIsAdmin"] = true
+		}
+	}
 }
 
 func ctxDataSet(args ...any) func(ctx *context.Context) {
@@ -144,10 +254,10 @@ func Routes() *web.Route {
 	mid = append(mid, common.Sessioner(), context.Contexter())
 
 	// Get user from session if logged in.
-	mid = append(mid, auth_service.Auth(buildAuthGroup()))
+	mid = append(mid, webAuth(buildAuthGroup()))
 
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
-	mid = append(mid, middleware.GetHead)
+	mid = append(mid, chi_middleware.GetHead)
 
 	if setting.API.EnableSwagger {
 		// Note: The route is here but no in API routes because it renders a web page
@@ -166,14 +276,16 @@ func Routes() *web.Route {
 	return routes
 }
 
+var ignSignInAndCsrf = verifyAuthWithOptions(&common.VerifyOptions{DisableCSRF: true})
+
 // registerRoutes register routes
 func registerRoutes(m *web.Route) {
-	reqSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: true})
-	reqSignOut := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignOutRequired: true})
+	reqSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true})
+	reqSignOut := verifyAuthWithOptions(&common.VerifyOptions{SignOutRequired: true})
 	// TODO: rename them to "optSignIn", which means that the "sign-in" could be optional, depends on the VerifyOptions (RequireSignInView)
-	ignSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: setting.Service.RequireSignInView})
-	ignExploreSignIn := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView})
-	ignSignInAndCsrf := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{DisableCSRF: true})
+	ignSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInView})
+	ignExploreSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView})
+
 	validation.AddBindingRules()
 
 	linkAccountEnabled := func(ctx *context.Context) {
@@ -543,7 +655,7 @@ func registerRoutes(m *web.Route) {
 
 	m.Get("/avatar/{hash}", user.AvatarByEmailHash)
 
-	adminReq := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: true, AdminRequired: true})
+	adminReq := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true, AdminRequired: true})
 
 	// ***** START: Admin *****
 	m.Group("/admin", func() {
@@ -573,7 +685,8 @@ func registerRoutes(m *web.Route) {
 		m.Group("/users", func() {
 			m.Get("", admin.Users)
 			m.Combo("/new").Get(admin.NewUser).Post(web.Bind(forms.AdminCreateUserForm{}), admin.NewUserPost)
-			m.Combo("/{userid}").Get(admin.EditUser).Post(web.Bind(forms.AdminEditUserForm{}), admin.EditUserPost)
+			m.Get("/{userid}", admin.ViewUser)
+			m.Combo("/{userid}/edit").Get(admin.EditUser).Post(web.Bind(forms.AdminEditUserForm{}), admin.EditUserPost)
 			m.Post("/{userid}/delete", admin.DeleteUser)
 			m.Post("/{userid}/avatar", web.Bind(forms.AvatarForm{}), admin.AvatarPost)
 			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
@@ -868,9 +981,6 @@ func registerRoutes(m *web.Route) {
 		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead, false))
 	}, ignSignIn, context_service.UserAssignmentWeb(), context.OrgAssignment()) // for "/{username}/-" (packages, projects, code)
 
-	// ***** Release Attachment Download without Signin
-	m.Get("/{username}/{reponame}/releases/download/{vTag}/{fileName}", ignSignIn, context.RepoAssignment, repo.MustBeNotEmpty, repo.RedirectDownload)
-
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/settings", func() {
 			m.Group("", func() {
@@ -1130,8 +1240,9 @@ func registerRoutes(m *web.Route) {
 			m.Get(".rss", feedEnabled, repo.ReleasesFeedRSS)
 			m.Get(".atom", feedEnabled, repo.ReleasesFeedAtom)
 		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed),
-			repo.MustBeNotEmpty, reqRepoReleaseReader, context.RepoRefByType(context.RepoRefTag, true))
-		m.Get("/releases/attachments/{uuid}", repo.MustBeNotEmpty, reqRepoReleaseReader, repo.GetAttachment)
+			repo.MustBeNotEmpty, context.RepoRefByType(context.RepoRefTag, true))
+		m.Get("/releases/attachments/{uuid}", repo.MustBeNotEmpty, repo.GetAttachment)
+		m.Get("/releases/download/{vTag}/{fileName}", repo.MustBeNotEmpty, repo.RedirectDownload)
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", web.Bind(forms.NewReleaseForm{}), repo.NewReleasePost)
@@ -1211,14 +1322,14 @@ func registerRoutes(m *web.Route) {
 					m.Combo("").
 						Get(actions.View).
 						Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
-					m.Post("/rerun", reqRepoActionsWriter, actions.RerunOne)
+					m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 					m.Get("/logs", actions.Logs)
 				})
 				m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
 				m.Post("/approve", reqRepoActionsWriter, actions.Approve)
 				m.Post("/artifacts", actions.ArtifactsView)
 				m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
-				m.Post("/rerun", reqRepoActionsWriter, actions.RerunAll)
+				m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 			})
 		}, reqRepoActionsReader, actions.MustEnableActions)
 
@@ -1403,19 +1514,7 @@ func registerRoutes(m *web.Route) {
 				})
 			}, ignSignInAndCsrf, lfsServerEnabled)
 
-			m.Group("", func() {
-				m.PostOptions("/git-upload-pack", repo.ServiceUploadPack)
-				m.PostOptions("/git-receive-pack", repo.ServiceReceivePack)
-				m.GetOptions("/info/refs", repo.GetInfoRefs)
-				m.GetOptions("/HEAD", repo.GetTextFile("HEAD"))
-				m.GetOptions("/objects/info/alternates", repo.GetTextFile("objects/info/alternates"))
-				m.GetOptions("/objects/info/http-alternates", repo.GetTextFile("objects/info/http-alternates"))
-				m.GetOptions("/objects/info/packs", repo.GetInfoPacks)
-				m.GetOptions("/objects/info/{file:[^/]*}", repo.GetTextFile(""))
-				m.GetOptions("/objects/{head:[0-9a-f]{2}}/{hash:[0-9a-f]{38}}", repo.GetLooseObject)
-				m.GetOptions("/objects/pack/pack-{file:[0-9a-f]{40}}.pack", repo.GetPackFile)
-				m.GetOptions("/objects/pack/pack-{file:[0-9a-f]{40}}.idx", repo.GetIdxFile)
-			}, ignSignInAndCsrf, repo.HTTPGitEnabledHandler, repo.CorsHandler(), context_service.UserAssignmentWeb())
+			gitHTTPRouters(m)
 		})
 	})
 	// ***** END: Repository *****

@@ -1,9 +1,9 @@
 {{if eq .HookType "dingtalk"}}
-	<p>{{.locale.Tr "repo.settings.add_web_hook_desc" "https://dingtalk.com" (.locale.Tr "repo.settings.web_hook_name_dingtalk") | Str2html}}</p>
+	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://dingtalk.com" (ctx.Locale.Tr "repo.settings.web_hook_name_dingtalk") | Str2html}}</p>
 	<form class="ui form" action="{{.BaseLink}}/dingtalk/{{or .Webhook.ID "new"}}" method="post">
 		{{.CsrfTokenHtml}}
 		<div class="required field {{if .Err_PayloadURL}}error{{end}}">
-			<label for="payload_url">{{.locale.Tr "repo.settings.payload_url"}}</label>
+			<label for="payload_url">{{ctx.Locale.Tr "repo.settings.payload_url"}}</label>
 			<input id="payload_url" name="payload_url" type="url" value="{{.Webhook.URL}}" autofocus required>
 		</div>
 		{{template "repo/settings/webhook/settings" .}}

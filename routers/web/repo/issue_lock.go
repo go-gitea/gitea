@@ -29,7 +29,7 @@ func LockIssue(ctx *context.Context) {
 		return
 	}
 
-	if err := issues_model.LockIssue(&issues_model.IssueLockOptions{
+	if err := issues_model.LockIssue(ctx, &issues_model.IssueLockOptions{
 		Doer:   ctx.Doer,
 		Issue:  issue,
 		Reason: form.Reason,
@@ -53,7 +53,7 @@ func UnlockIssue(ctx *context.Context) {
 		return
 	}
 
-	if err := issues_model.UnlockIssue(&issues_model.IssueLockOptions{
+	if err := issues_model.UnlockIssue(ctx, &issues_model.IssueLockOptions{
 		Doer:  ctx.Doer,
 		Issue: issue,
 	}); err != nil {

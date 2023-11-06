@@ -87,7 +87,7 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, doer *u
 		attachmentIDs := make([]string, 0, len(content.Attachments))
 		if setting.Attachment.Enabled {
 			for _, attachment := range content.Attachments {
-				a, err := attachment_service.UploadAttachment(bytes.NewReader(attachment.Content), setting.Attachment.AllowedTypes, int64(len(attachment.Content)), &repo_model.Attachment{
+				a, err := attachment_service.UploadAttachment(ctx, bytes.NewReader(attachment.Content), setting.Attachment.AllowedTypes, int64(len(attachment.Content)), &repo_model.Attachment{
 					Name:       attachment.Name,
 					UploaderID: doer.ID,
 					RepoID:     issue.Repo.ID,
@@ -170,7 +170,7 @@ func (h *UnsubscribeHandler) Handle(ctx context.Context, _ *MailContent, doer *u
 			return nil
 		}
 
-		return issues_model.CreateOrUpdateIssueWatch(doer.ID, issue.ID, false)
+		return issues_model.CreateOrUpdateIssueWatch(ctx, doer.ID, issue.ID, false)
 	}
 
 	return fmt.Errorf("unsupported unsubscribe reference: %v", ref)

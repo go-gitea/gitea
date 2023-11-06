@@ -4,7 +4,6 @@
 package packages_test
 
 import (
-	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -13,14 +12,14 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 
 	_ "code.gitea.io/gitea/models"
+	_ "code.gitea.io/gitea/models/actions"
+	_ "code.gitea.io/gitea/models/activities"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func TestHasOwnerPackages(t *testing.T) {
