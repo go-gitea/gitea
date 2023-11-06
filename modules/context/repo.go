@@ -545,7 +545,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return nil
 	}
-	ctx.Data["NumReleases"], err = repo_model.GetReleaseCountByRepoID(ctx, ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{
+	numReleases, err := repo_model.GetReleaseCountByRepoID(ctx, ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{
 		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
 		IncludeDrafts: ctx.Repo.CanWrite(unit_model.TypeReleases),
 	})
@@ -553,16 +553,20 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return nil
 	}
-	release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
-	if err != nil {
-		ctx.ServerError("GetLatestReleaseByRepoID", err)
-		return nil
+	ctx.Data["NumReleases"] = numReleases
+
+	if numReleases > 0 {
+		release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
+		if err != nil {
+			ctx.ServerError("GetLatestReleaseByRepoID", err)
+			return nil
+		}
+		if err = release.LoadAttributes(ctx); err != nil {
+			ctx.ServerError("release.LoadAttributes", err)
+			return nil
+		}
+		ctx.Data["LatestRelease"] = release
 	}
-	if err = release.LoadAttributes(ctx); err != nil {
-		ctx.ServerError("release.LoadAttributes", err)
-		return nil
-	}
-	ctx.Data["LatestRelease"] = release
 
 	ctx.Data["Title"] = owner.Name + "/" + repo.Name
 	ctx.Data["Repository"] = repo
