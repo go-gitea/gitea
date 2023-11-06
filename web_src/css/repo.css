@@ -214,14 +214,6 @@
   margin-bottom: 5px;
 }
 
-@media (max-width: 767.68px) {
-  .repository.file.list .repo-description {
-    flex-direction: column;
-    gap: 8px;
-    align-items: normal;
-  }
-}
-
 .repository.file.list .repo-path {
   word-break: break-word;
 }
