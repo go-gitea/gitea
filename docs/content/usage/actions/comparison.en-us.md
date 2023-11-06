@@ -130,34 +130,3 @@ More details about the `[actions].DEFAULT_ACTIONS_URL` configuration can be foun
 
 Context availability is not checked, so you can use the env context on more places.
 See [Context availability](https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability).
-
-## Known issues
-
-### `docker/build-push-action@v4`
-
-See [act_runner#119](https://gitea.com/gitea/act_runner/issues/119#issuecomment-738294).
-
-`ACTIONS_RUNTIME_TOKEN` is a random string in Gitea Actions, not a JWT.
-But the `docker/build-push-action@v4` tries to parse the token as JWT and doesn't handle the error, so the job fails.
-
-There are two workarounds:
-
-Set the `ACTIONS_RUNTIME_TOKEN` to empty manually, like:
-
-``` yml
-- name: Build and push
-  uses: docker/build-push-action@v4
-  env:
-    ACTIONS_RUNTIME_TOKEN: ''
-  with:
-...
-```
-
-The bug has been fixed in a newer [commit](https://gitea.com/docker/build-push-action/commit/d8823bfaed2a82c6f5d4799a2f8e86173c461aba?style=split&whitespace=show-all#diff-1af9a5bdf96ddff3a2f3427ed520b7005e9564ad), but it has not been released. So you could use the latest version by specifying the branch name, like:
-
-``` yml
-- name: Build and push
-  uses: docker/build-push-action@master
-  with:
-...
-```
