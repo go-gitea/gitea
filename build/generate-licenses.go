@@ -15,6 +15,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/json"
@@ -138,7 +139,7 @@ func main() {
 				if !ok {
 					sameFiles[md5] = make([]string, 0)
 				}
-				if !contains(sameFiles[md5], preLicenseName) {
+				if !slices.Contains(sameFiles[md5], preLicenseName) {
 					sameFiles[md5] = append(sameFiles[md5], preLicenseName)
 				}
 				sameFiles[md5] = append(sameFiles[md5], licenseName)
@@ -268,13 +269,4 @@ func getLicenseKey(fnl []string) string {
 		}
 	}
 	return ""
-}
-
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
 }
