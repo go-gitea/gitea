@@ -330,7 +330,7 @@ func AddRepositoryLicenses(x *xorm.Engine) error {
 				}
 			}
 		}
-		// Delete old languages
+		// Delete old licenses
 		licenseToDelete := make([]int64, 0, len(oldLicenses))
 		for _, o := range oldLicenses {
 			if o.CommitID != commit.ID.String() {
