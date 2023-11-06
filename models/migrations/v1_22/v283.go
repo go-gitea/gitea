@@ -181,13 +181,16 @@ func detectLicense(content string) []string {
 		log.Error("licenseclassifier.MatchFrom: %v", err)
 		return nil
 	}
-	results := make(container.Set[string], len(matches.Matches))
-	for _, r := range matches.Matches {
-		if r.MatchType == "License" && !results.Contains(r.Variant) {
-			results.Add(r.Variant)
+	if len(matches.Matches) > 0 {
+		results := make(container.Set[string], len(matches.Matches))
+		for _, r := range matches.Matches {
+			if r.MatchType == "License" && !results.Contains(r.Variant) {
+				results.Add(r.Variant)
+			}
 		}
+		return results.Values()
 	}
-	return results.Values()
+	return nil
 }
 
 func ConvertLicenseName(name string) string {
