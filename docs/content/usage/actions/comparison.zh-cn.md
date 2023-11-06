@@ -128,7 +128,6 @@ Gitea Actions目前不支持此功能。
 
 设置`[actions].DEFAULT_ACTIONS_URL`进行配置。请参阅[配置备忘单](administration/config-cheat-sheet.md#actions-actions)。
 
-
 ### 上下文可用性
 
 不检查上下文可用性，因此您可以在更多地方使用env上下文。
