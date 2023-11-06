@@ -3083,7 +3083,7 @@ tbody.commit-list {
 }
 
 .commit-status-list {
-  max-height: 234px; /* fit exactly 6 items */
+  max-height: 233px; /* fit exactly 6 items */
   overflow-x: hidden;
   transition: max-height .2s;
 }
