@@ -65,29 +65,36 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository, revis
 	total := contributorsCommitStats["total"]
 
 	for _, v := range extendedCommitStats {
-		if len(v.Author.Email) == 0 {
+		userEmail := v.Author.Email
+		if len(userEmail) == 0 {
 			continue
 		}
-		if _, ok := contributorsCommitStats[v.Author.Email]; !ok {
-			u, _ := user_model.GetUserByEmail(ctx, v.Author.Email)
+		u, _ := user_model.GetUserByEmail(ctx, userEmail)
+		if u != nil {
+			// update userEmail with user's primary email address so
+			// that different mail addresses will linked to same account
+			userEmail = u.GetEmail()
+		}
+		if _, ok := contributorsCommitStats[userEmail]; !ok {
 			if u == nil {
-				contributorsCommitStats[v.Author.Email] = &api.ContributorData{
+				contributorsCommitStats[userEmail] = &api.ContributorData{
 					Name:       v.Author.Name,
 					AvatarLink: unknownUserAvatarLink,
 					Weeks:      CreateWeeks(sundays),
 				}
 			} else {
-				contributorsCommitStats[v.Author.Email] = &api.ContributorData{
+				contributorsCommitStats[userEmail] = &api.ContributorData{
 					Name:       u.DisplayName(),
 					Login:      u.LowerName,
 					AvatarLink: u.AvatarLink(ctx),
 					HomeLink:   u.HomeLink(),
 					Weeks:      CreateWeeks(sundays),
 				}
+
 			}
 		}
 		// Update user statistics
-		user := contributorsCommitStats[v.Author.Email]
+		user := contributorsCommitStats[userEmail]
 		startingOfWeek, _ := util.FindLastSundayBeforeDate(v.Author.Date)
 
 		val, _ := time.Parse(layout, startingOfWeek)
