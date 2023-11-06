@@ -9,7 +9,6 @@ const threshold = 50;
 let files = [];
 let $repoFindFileInput, $repoFindFileTableBody, $repoFindFileNoResult;
 
-
 // return the case-insensitive sub-match result as an array:  [unmatched, matched, unmatched, matched, ...]
 // res[even] is unmatched, res[odd] is matched, see unit tests for examples
 // argument subLower must be a lower-cased string.
