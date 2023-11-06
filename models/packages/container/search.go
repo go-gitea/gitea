@@ -207,6 +207,9 @@ func (opts *ImageTagsSearchOptions) configureOrderBy(e db.Engine) {
 	default:
 		e.Desc("package_version.created_unix")
 	}
+
+	// Sort by id for stable order with duplicates in the other field
+	e.Asc("package_version.id")
 }
 
 // SearchImageTags gets a sorted list of the tags of an image
