@@ -875,7 +875,7 @@ node_modules: package-lock.json
 	@touch node_modules
 
 .venv: poetry.lock
-	poetry install
+	poetry install --no-root
 	@touch .venv
 
 .PHONY: update
