@@ -3080,7 +3080,7 @@ tbody.commit-list {
 }
 
 .commit-status-list {
-  max-height: 195px; /* fit exactly 4 items */
+  max-height: 196px; /* fit exactly 4 items */
   overflow-x: hidden;
   transition: max-height .2s;
 }
