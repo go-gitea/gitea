@@ -47,28 +47,28 @@ func main() {
 	on the configuration cheat sheet.`
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
-			Name:  "custom-path",
+			Name:    "custom-path",
 			Aliases: []string{"C"},
-			Value: setting.CustomPath,
-			Usage: "Custom path file path",
+			Value:   setting.CustomPath,
+			Usage:   "Custom path file path",
 		},
 		&cli.StringFlag{
-			Name:  "config",
+			Name:    "config",
 			Aliases: []string{"c"},
-			Value: setting.CustomConf,
-			Usage: "Custom configuration file path",
+			Value:   setting.CustomConf,
+			Usage:   "Custom configuration file path",
 		},
 		&cli.StringFlag{
-			Name:  "work-path",
+			Name:    "work-path",
 			Aliases: []string{"w"},
-			Value: setting.AppWorkPath,
-			Usage: "Set the gitea working path",
+			Value:   setting.AppWorkPath,
+			Usage:   "Set the gitea working path",
 		},
 		&cli.StringFlag{
-			Name:  "out",
+			Name:    "out",
 			Aliases: []string{"o"},
-			Value: "",
-			Usage: "Destination file to write to",
+			Value:   "",
+			Usage:   "Destination file to write to",
 		},
 	}
 	app.Action = runEnvironmentToIni
