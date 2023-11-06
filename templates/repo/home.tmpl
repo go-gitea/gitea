@@ -35,9 +35,9 @@
 		</div>
 		{{end}}
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
-		<div class="ui form gt-hidden gt-df gt-mt-4" id="topic_edit">
-			<div class="field gt-f1 gt-mr-3">
-				<div class="ui fluid multiple search selection dropdown" data-text-count-prompt="{{ctx.Locale.Tr "repo.topic.count_prompt"}}" data-text-format-prompt="{{ctx.Locale.Tr "repo.topic.format_prompt"}}">
+		<div class="ui form gt-hidden gt-df gt-fc gt-mt-4" id="topic_edit">
+			<div class="field gt-f1 gt-mb-2">
+				<div class="ui fluid multiple search selection dropdown gt-fw" data-text-count-prompt="{{ctx.Locale.Tr "repo.topic.count_prompt"}}" data-text-format-prompt="{{ctx.Locale.Tr "repo.topic.format_prompt"}}">
 					<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.Topics)}},{{end}}{{end}}">
 					{{range .Topics}}
 						{{/* keey the same layout as Fomantic UI generated labels */}}
