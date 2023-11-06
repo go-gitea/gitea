@@ -106,6 +106,51 @@
   white-space: nowrap;
 }
 
+.repo-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+@media (max-width: 767.98px) {
+  .repo-content {
+    flex-direction: column;
+  }
+}
+
+.repo-content-main[data-home="true"] {
+  margin: 0 !important;
+  width: calc(100% - 316px);
+}
+
+.repo-content-main[data-home="false"] {
+  margin: 0 !important;
+  width: 100%;
+}
+
+@media (max-width: 767.98px) {
+  .repo-content-main[data-home="true"] {
+    margin: 0 !important;
+    width: 100%;
+  }
+}
+
+.repo-content-sidebar[data-home="true"] {
+  margin: 0 !important;
+  width: 300px;
+}
+
+.repo-content-sidebar[data-home="false"] {
+  display: none;
+}
+
+@media (max-width: 767.98px) {
+  .repo-content-sidebar[data-home="true"] {
+    margin: 0 !important;
+    width: 100%;
+  }
+}
+
 .repository .header-wrapper {
   background-color: var(--color-header-wrapper);
 }
@@ -3139,4 +3184,8 @@ tbody.commit-list {
 
 #cherry-pick-modal .scrolling.menu {
   max-height: 200px;
+}
+
+#repo-desc .description {
+  max-height: 150px;
 }

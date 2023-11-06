@@ -553,6 +553,16 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return nil
 	}
+	release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("GetLatestReleaseByRepoID", err)
+		return nil
+	}
+	if err = release.LoadAttributes(ctx); err != nil {
+		ctx.ServerError("release.LoadAttributes", err)
+		return nil
+	}
+	ctx.Data["LatestRelease"] = release
 
 	ctx.Data["Title"] = owner.Name + "/" + repo.Name
 	ctx.Data["Repository"] = repo

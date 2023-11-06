@@ -1026,6 +1026,7 @@ func renderCode(ctx *context.Context) {
 	}
 
 	ctx.Data["Paths"] = paths
+	ctx.Data["IsHomePage"] = len(paths) == 0
 	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink

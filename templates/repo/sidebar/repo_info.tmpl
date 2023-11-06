@@ -1,0 +1,60 @@
+{{if and (not .HideRepoInfo) (not .IsBlame)}}
+	<div class="flex-item">
+		<div class="flex-item-main">
+			<div class="flex-item-title">
+				{{ctx.Locale.Tr "repo.repo_desc"}}
+			</div>
+			<div class="flex-item-body">
+				<div class="ui repo-description">
+					<div id="repo-desc" class="gt-font-16">
+						{{$description := .Repository.DescriptionHTML $.Context}}
+						{{if $description}}<span class="description gt-word-break">{{$description | RenderCodeBlock}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{ctx.Locale.Tr "repo.no_desc"}}</span>{{end}}
+						<a class="link" href="{{.Repository.Website}}">{{.Repository.Website}}</a>
+					</div>
+								
+					{{if .RepoSearchEnabled}}
+						<div class="ui repo-search">
+							<form class="ui form ignore-dirty" action="{{.RepoLink}}/search" method="get">
+								<div class="field">
+									<div class="ui small action input{{if .CodeIndexerUnavailable}} disabled left icon{{end}}"{{if .CodeIndexerUnavailable}} data-tooltip-content="{{ctx.Locale.Tr "repo.search.code_search_unavailable"}}"{{end}}>
+										<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable}} disabled{{end}} placeholder="{{ctx.Locale.Tr "repo.search.search_repo"}}">
+										{{if .CodeIndexerUnavailable}}
+											<i class="icon">{{svg "octicon-alert"}}</i>
+										{{end}}
+										<button class="ui small icon button"{{if .CodeIndexerUnavailable}} disabled{{end}} type="submit">
+											{{svg "octicon-search"}}
+										</button>
+									</div>
+								</div>
+							</form>
+						</div>
+					{{end}}
+				</div>
+			</div>
+			<div class="flex-item-body">
+				<div class="gt-df gt-ac gt-fw gt-gap-2" id="repo-topics">
+					{{range .Topics}}<a class="ui repo-topic large label topic gt-m-0" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
+					{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<button id="manage_topic" class="btn interact-fg gt-font-12">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>{{end}}
+				</div>
+				{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
+				<div class="ui form gt-hidden gt-df gt-mt-4" id="topic_edit">
+					<div class="field gt-f1 gt-mr-3">
+						<div class="ui fluid multiple search selection dropdown" data-text-count-prompt="{{ctx.Locale.Tr "repo.topic.count_prompt"}}" data-text-format-prompt="{{ctx.Locale.Tr "repo.topic.format_prompt"}}">
+							<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.Topics)}},{{end}}{{end}}">
+							{{range .Topics}}
+								{{/* keey the same layout as Fomantic UI generated labels */}}
+								<a class="ui label transition visible gt-cursor-default gt-dib" data-value="{{.Name}}">{{.Name}}{{svg "octicon-x" 16 "delete icon"}}</a>
+							{{end}}
+							<div class="text"></div>
+						</div>
+					</div>
+					<div>
+						<button class="ui basic button" id="cancel_topic_edit">{{ctx.Locale.Tr "cancel"}}</button>
+						<button class="ui primary button" id="save_topic" data-link="{{.RepoLink}}/topics">{{ctx.Locale.Tr "save"}}</button>
+					</div>
+				</div>
+				{{end}}
+			</div>
+		</div>
+	</div>
+{{end}}
