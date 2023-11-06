@@ -315,10 +315,6 @@ func reqToken() func(ctx *context.APIContext) {
 			return
 		}
 
-		if ctx.IsBasicAuth {
-			ctx.CheckForOTP()
-			return
-		}
 		if ctx.IsSigned {
 			return
 		}
@@ -340,7 +336,6 @@ func reqBasicAuth() func(ctx *context.APIContext) {
 			ctx.Error(http.StatusUnauthorized, "reqBasicAuth", "auth required")
 			return
 		}
-		ctx.CheckForOTP()
 	}
 }
 
@@ -687,12 +682,6 @@ func bind[T any](_ T) any {
 	}
 }
 
-// The OAuth2 plugin is expected to be executed first, as it must ignore the user id stored
-// in the session (if there is a user id stored in session other plugins might return the user
-// object for that id).
-//
-// The Session plugin is expected to be executed second, in order to skip authentication
-// for users that have already signed in.
 func buildAuthGroup() *auth.Group {
 	group := auth.NewGroup(
 		&auth.OAuth2{},
