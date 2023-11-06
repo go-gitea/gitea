@@ -23,7 +23,7 @@ type RepoLicense struct { //revive:disable-line:exported
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
-// LanguageStatList defines a list of language statistics
+// RepoLicenseList defines a list of repo licenses
 type RepoLicenseList []*RepoLicense //revive:disable-line:exported
 
 func (rll RepoLicenseList) StringList() []string {
