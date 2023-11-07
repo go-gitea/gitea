@@ -60,8 +60,13 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 
 	// we can not set orderBy to `models.SearchOrderByXxx`, because there may be a JOIN in the statement, different tables may have the same name columns
 
-	ctx.Data["SortType"] = ctx.FormString("sort")
-	switch ctx.FormString("sort") {
+	sortOrder := ctx.FormString("sort")
+	if sortOrder == "" {
+		sortOrder = UserSearchDefaultSortType
+	}
+	ctx.Data["SortType"] = sortOrder
+
+	switch sortOrder {
 	case "newest":
 		orderBy = "`user`.id DESC"
 	case "oldest":
