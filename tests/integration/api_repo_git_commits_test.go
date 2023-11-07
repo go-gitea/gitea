@@ -75,7 +75,7 @@ func TestAPIReposGitCommitList(t *testing.T) {
 	assert.EqualValues(t, resp.Header().Get("X-Total"), "2")
 }
 
-func TestAPIReposGitCommitListNotMaster(t *testing.T) {
+func TestAPIReposGitCommitListNotMain(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	// Login as User2.
@@ -199,7 +199,7 @@ func TestGetFileHistory(t *testing.T) {
 	assert.EqualValues(t, resp.Header().Get("X-Total"), "1")
 }
 
-func TestGetFileHistoryNotOnMaster(t *testing.T) {
+func TestGetFileHistoryNotOnMain(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	// Login as User2.

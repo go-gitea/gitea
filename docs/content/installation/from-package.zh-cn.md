@@ -106,6 +106,6 @@ make install clean
 
 ## 第三方
 
-如果这里没有找到你喜欢的包管理器，可以使用 Gitea 第三方软件包。这里有一个完整的列表： [awesome-gitea](https://gitea.com/gitea/awesome-gitea/src/branch/master/README.md#user-content-packages)。
+如果这里没有找到你喜欢的包管理器，可以使用 Gitea 第三方软件包。这里有一个完整的列表： [awesome-gitea](https://gitea.com/gitea/awesome-gitea/src/branch/main/README.md#user-content-packages)。
 
 如果你知道其他 Gitea 第三方软件包，请发送 PR 来添加它。

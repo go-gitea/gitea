@@ -94,7 +94,7 @@ X-Gitea-Event: push
     "forks_count": 1,
     "watchers_count": 1,
     "open_issues_count": 7,
-    "default_branch": "master",
+    "default_branch": "main",
     "created_at": "2017-02-26T04:29:06-05:00",
     "updated_at": "2017-03-13T13:51:58-04:00"
   },

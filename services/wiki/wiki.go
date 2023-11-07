@@ -94,7 +94,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("InitWiki: %w", err)
 	}
 
-	hasMasterBranch := git.IsBranchExist(ctx, repo.WikiPath(), DefaultBranch)
+	hasMainBranch := git.IsBranchExist(ctx, repo.WikiPath(), DefaultBranch)
 
 	basePath, err := repo_module.CreateTemporaryPath("update-wiki")
 	if err != nil {
@@ -111,7 +111,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		Shared: true,
 	}
 
-	if hasMasterBranch {
+	if hasMainBranch {
 		cloneOpts.Branch = DefaultBranch
 	}
 
@@ -127,7 +127,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	}
 	defer gitRepo.Close()
 
-	if hasMasterBranch {
+	if hasMainBranch {
 		if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
 			log.Error("Unable to read HEAD tree to index in: %s %v", basePath, err)
 			return fmt.Errorf("fnable to read HEAD tree to index in: %s %w", basePath, err)
@@ -199,7 +199,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	} else {
 		commitTreeOpts.NoGPGSign = true
 	}
-	if hasMasterBranch {
+	if hasMainBranch {
 		commitTreeOpts.Parents = []string{"HEAD"}
 	}
 

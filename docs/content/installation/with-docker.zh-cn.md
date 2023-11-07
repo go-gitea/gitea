@@ -278,7 +278,7 @@ docker-compose up -d
 
 ## 使用环境变量管理部署
 
-除了上面的环境变量之外，`app.ini` 中的任何设置都可以使用以下形式的环境变量进行设置或覆盖：`GITEA__SECTION_NAME__KEY_NAME`。 每次 docker 容器启动时都会应用这些设置。 完整信息在[这里](https://github.com/go-gitea/gitea/tree/master/contrib/environment-to-ini)。
+除了上面的环境变量之外，`app.ini` 中的任何设置都可以使用以下形式的环境变量进行设置或覆盖：`GITEA__SECTION_NAME__KEY_NAME`。 每次 docker 容器启动时都会应用这些设置。 完整信息在[这里](https://github.com/go-gitea/gitea/tree/main/contrib/environment-to-ini)。
 
 ```bash
 ...

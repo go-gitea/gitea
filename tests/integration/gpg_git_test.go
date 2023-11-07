@@ -57,7 +57,7 @@ func TestGPGGit(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
-			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "main", func(t *testing.T, branch api.Branch) {
+			t.Run("CheckMainBranchUnsigned", doAPIGetBranch(testCtx, "main", func(t *testing.T, branch api.Branch) {
 				assert.NotNil(t, branch.Commit)
 				assert.NotNil(t, branch.Commit.Verification)
 				assert.False(t, branch.Commit.Verification.Verified)
@@ -150,7 +150,7 @@ func TestGPGGit(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-always", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
-			t.Run("CheckMasterBranchSigned", doAPIGetBranch(testCtx, "main", func(t *testing.T, branch api.Branch) {
+			t.Run("CheckMainBranchsigned", doAPIGetBranch(testCtx, "main", func(t *testing.T, branch api.Branch) {
 				assert.NotNil(t, branch.Commit)
 				if branch.Commit == nil {
 					assert.FailNow(t, "no commit provided with branch! %v", branch)
@@ -219,7 +219,7 @@ func TestGPGGit(t *testing.T) {
 				assert.NoError(t, err)
 				t.Run("MergePR", doAPIMergePullRequest(testCtx, testCtx.Username, testCtx.Reponame, pr.Index))
 			})
-			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "main", func(t *testing.T, branch api.Branch) {
+			t.Run("CheckMainBranchUnsigned", doAPIGetBranch(testCtx, "main", func(t *testing.T, branch api.Branch) {
 				assert.NotNil(t, branch.Commit)
 				assert.NotNil(t, branch.Commit.Verification)
 				assert.False(t, branch.Commit.Verification.Verified)
@@ -236,7 +236,7 @@ func TestGPGGit(t *testing.T) {
 				assert.NoError(t, err)
 				t.Run("MergePR", doAPIMergePullRequest(testCtx, testCtx.Username, testCtx.Reponame, pr.Index))
 			})
-			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "main", func(t *testing.T, branch api.Branch) {
+			t.Run("CheckMainBranchUnsigned", doAPIGetBranch(testCtx, "main", func(t *testing.T, branch api.Branch) {
 				assert.NotNil(t, branch.Commit)
 				assert.NotNil(t, branch.Commit.Verification)
 				assert.False(t, branch.Commit.Verification.Verified)
@@ -253,7 +253,7 @@ func TestGPGGit(t *testing.T) {
 				assert.NoError(t, err)
 				t.Run("MergePR", doAPIMergePullRequest(testCtx, testCtx.Username, testCtx.Reponame, pr.Index))
 			})
-			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "main", func(t *testing.T, branch api.Branch) {
+			t.Run("CheckMainBranchUnsigned", doAPIGetBranch(testCtx, "main", func(t *testing.T, branch api.Branch) {
 				assert.NotNil(t, branch.Commit)
 				assert.NotNil(t, branch.Commit.Verification)
 				assert.True(t, branch.Commit.Verification.Verified)

@@ -20,7 +20,7 @@ const (
 	blobSizeCutoff = 1024
 
 	// MetaFileIdentifier is the string appearing at the first line of LFS pointer files.
-	// https://github.com/git-lfs/git-lfs/blob/master/docs/spec.md
+	// https://github.com/git-lfs/git-lfs/blob/main/docs/spec.md
 	MetaFileIdentifier = "version https://git-lfs.github.com/spec/v1"
 
 	// MetaFileOidPrefix appears in LFS pointer files on a line before the sha256 hash.

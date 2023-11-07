@@ -169,10 +169,10 @@ func TestRepository_AddWikiPage(t *testing.T) {
 				return
 			}
 			defer gitRepo.Close()
-			masterTree, err := gitRepo.GetTree(DefaultBranch)
+			mainTree, err := gitRepo.GetTree(DefaultBranch)
 			assert.NoError(t, err)
 			gitPath := WebPathToGitPath(webPath)
-			entry, err := masterTree.GetTreeEntryByPath(gitPath)
+			entry, err := mainTree.GetTreeEntryByPath(gitPath)
 			assert.NoError(t, err)
 			assert.EqualValues(t, gitPath, entry.Name(), "%s not added correctly", userTitle)
 		})
@@ -214,15 +214,15 @@ func TestRepository_EditWikiPage(t *testing.T) {
 		// Now need to show that the page has been added:
 		gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 		assert.NoError(t, err)
-		masterTree, err := gitRepo.GetTree(DefaultBranch)
+		mainTree, err := gitRepo.GetTree(DefaultBranch)
 		assert.NoError(t, err)
 		gitPath := WebPathToGitPath(webPath)
-		entry, err := masterTree.GetTreeEntryByPath(gitPath)
+		entry, err := mainTree.GetTreeEntryByPath(gitPath)
 		assert.NoError(t, err)
 		assert.EqualValues(t, gitPath, entry.Name(), "%s not edited correctly", newWikiName)
 
 		if newWikiName != "Home" {
-			_, err := masterTree.GetTreeEntryByPath("Home.md")
+			_, err := mainTree.GetTreeEntryByPath("Home.md")
 			assert.Error(t, err)
 		}
 		gitRepo.Close()
@@ -241,10 +241,10 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 		return
 	}
 	defer gitRepo.Close()
-	masterTree, err := gitRepo.GetTree(DefaultBranch)
+	mainTree, err := gitRepo.GetTree(DefaultBranch)
 	assert.NoError(t, err)
 	gitPath := WebPathToGitPath("Home")
-	_, err = masterTree.GetTreeEntryByPath(gitPath)
+	_, err = mainTree.GetTreeEntryByPath(gitPath)
 	assert.Error(t, err)
 }
 

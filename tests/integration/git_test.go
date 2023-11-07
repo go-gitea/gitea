@@ -396,7 +396,7 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 
 		t.Run("ProtectProtectedBranchWhitelist", doProtectBranch(ctx, "protected", baseCtx.Username, ""))
 
-		t.Run("CheckoutMaster", doGitCheckoutBranch(dstPath, "main"))
+		t.Run("CheckoutMain", doGitCheckoutBranch(dstPath, "main"))
 		t.Run("CreateBranchForced", doGitCreateBranch(dstPath, "toforce"))
 		t.Run("GenerateCommit", func(t *testing.T) {
 			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
@@ -405,7 +405,7 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 		t.Run("FailToForcePushToProtectedBranch", doGitPushTestRepositoryFail(dstPath, "-f", "origin", "toforce:protected"))
 		t.Run("MergeProtectedToToforce", doGitMerge(dstPath, "protected"))
 		t.Run("PushToProtectedBranch", doGitPushTestRepository(dstPath, "origin", "toforce:protected"))
-		t.Run("CheckoutMasterAgain", doGitCheckoutBranch(dstPath, "main"))
+		t.Run("CheckoutMainAgain", doGitCheckoutBranch(dstPath, "main"))
 	}
 }
 
@@ -845,6 +845,6 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			assert.Equal(t, commit, prMsg.Head.Sha)
 		})
 		t.Run("Merge", doAPIMergePullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index))
-		t.Run("CheckoutMasterAgain", doGitCheckoutBranch(dstPath, "main"))
+		t.Run("CheckoutMainAgain", doGitCheckoutBranch(dstPath, "main"))
 	}
 }

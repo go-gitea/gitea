@@ -140,9 +140,9 @@ func TestPullBranchDelete(t *testing.T) {
 
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-		testCreateBranch(t, session, "user1", "repo1", "branch/main", "master1", http.StatusSeeOther)
-		testEditFile(t, session, "user1", "repo1", "master1", "README.md", "Hello, World (Edited)\n")
-		resp := testPullCreate(t, session, "user1", "repo1", "master1", "This is a pull title")
+		testCreateBranch(t, session, "user1", "repo1", "branch/main", "main1", http.StatusSeeOther)
+		testEditFile(t, session, "user1", "repo1", "main1", "README.md", "Hello, World (Edited)\n")
+		resp := testPullCreate(t, session, "user1", "repo1", "main1", "This is a pull title")
 
 		// check the redirected URL
 		url := test.RedirectURL(resp)
@@ -151,7 +151,7 @@ func TestPullBranchDelete(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusOK)
 
 		// delete head branch and confirm pull page is ok
-		testUIDeleteBranch(t, session, "user1", "repo1", "master1")
+		testUIDeleteBranch(t, session, "user1", "repo1", "main1")
 		req = NewRequest(t, "GET", url)
 		session.MakeRequest(t, req, http.StatusOK)
 

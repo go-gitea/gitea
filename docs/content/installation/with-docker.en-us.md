@@ -286,7 +286,7 @@ docker-compose up -d
 In addition to the environment variables above, any settings in `app.ini` can be set
 or overridden with an environment variable of the form: `GITEA__SECTION_NAME__KEY_NAME`.
 These settings are applied each time the docker container starts, and won't be passed into Gitea's sub-processes.
-Full information [here](https://github.com/go-gitea/gitea/tree/master/contrib/environment-to-ini).
+Full information [here](https://github.com/go-gitea/gitea/tree/main/contrib/environment-to-ini).
 
 These environment variables can be passed to the docker container in `docker-compose.yml`.
 The following example will enable an smtp mail server if the required env variables

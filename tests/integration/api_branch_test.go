@@ -122,18 +122,18 @@ func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 		// Creating branch from main
 		{
 			OldBranch:          "main",
-			NewBranch:          "new_branch_from_master_1",
+			NewBranch:          "new_branch_from_main_1",
 			ExpectedHTTPStatus: http.StatusCreated,
 		},
 		// Trying to create from main but already exists
 		{
 			OldBranch:          "main",
-			NewBranch:          "new_branch_from_master_1",
+			NewBranch:          "new_branch_from_main_1",
 			ExpectedHTTPStatus: http.StatusConflict,
 		},
 		// Trying to create from other branch (not default branch)
 		{
-			OldBranch:          "new_branch_from_master_1",
+			OldBranch:          "new_branch_from_main_1",
 			NewBranch:          "branch_2",
 			ExpectedHTTPStatus: http.StatusCreated,
 		},

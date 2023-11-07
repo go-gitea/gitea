@@ -357,7 +357,7 @@ Gitea or set your environment appropriately.`, "")
 	count := 0
 	total := 0
 	wasEmpty := false
-	masterPushed := false
+	mainPushed := false
 	results := make([]private.HookPostReceiveBranchResult, 0)
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -377,7 +377,7 @@ Gitea or set your environment appropriately.`, "")
 		newCommitIDs[count] = string(fields[1])
 		refFullNames[count] = git.RefName(fields[2])
 		if refFullNames[count] == git.BranchPrefix+"main" && newCommitIDs[count] != git.EmptySHA && count == total {
-			masterPushed = true
+			mainPushed = true
 		}
 		count++
 		total++
@@ -400,7 +400,7 @@ Gitea or set your environment appropriately.`, "")
 	}
 
 	if count == 0 {
-		if wasEmpty && masterPushed {
+		if wasEmpty && mainPushed {
 			// We need to tell the repo to reset the default branch to main
 			extra := private.SetDefaultBranch(ctx, repoUser, repoName, "main")
 			if extra.HasError() {
@@ -431,7 +431,7 @@ Gitea or set your environment appropriately.`, "")
 
 	fmt.Fprintf(out, "Processed %d references in total\n", total)
 
-	if wasEmpty && masterPushed {
+	if wasEmpty && mainPushed {
 		// We need to tell the repo to reset the default branch to main
 		extra := private.SetDefaultBranch(ctx, repoUser, repoName, "main")
 		if extra.HasError() {
