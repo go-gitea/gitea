@@ -211,7 +211,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 5px;
   margin-bottom: 5px;
+}
+
+@media (max-width: 767.98px) {
+  .repository.file.list .repo-description {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 .repository.file.list .repo-path {
