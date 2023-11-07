@@ -892,7 +892,7 @@ update-js: node-check | node_modules
 update-py: node-check | node_modules
 	npx updates -u -f pyproject.toml
 	rm -rf .venv poetry.lock
-	poetry install
+	poetry install --no-root
 	@touch .venv
 
 .PHONY: fomantic
