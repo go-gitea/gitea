@@ -46,7 +46,6 @@ export function initFootLanguageMenu() {
   $('.language-menu a[lang]').on('click', linkLanguageAction);
 }
 
-
 export function initGlobalEnterQuickSubmit() {
   $(document).on('keydown', '.js-quick-submit', (e) => {
     if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.key === 'Enter')) {
