@@ -16,7 +16,7 @@
 					</div>
 					<div class="ui twelve wide column detail">
 							<div class="gt-df gt-ac gt-sb gt-fw gt-mb-3">
-								<h4 class="release-list-title">
+								<h4 class="release-list-title gt-word-break">
 									<a href="{{$.RepoLink}}/releases/tag/{{.TagName | PathEscapeSegments}}">{{.Title}}</a>
 									{{if .IsDraft}}
 										<span class="ui yellow label">{{ctx.Locale.Tr "repo.release.draft"}}</span>
