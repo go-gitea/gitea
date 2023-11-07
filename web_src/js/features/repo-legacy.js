@@ -301,7 +301,6 @@ export function initRepoCommentForm() {
   selectItem('.select-assignee', '#assignee_id');
 }
 
-
 async function onEditContent(event) {
   event.preventDefault();
 
@@ -538,7 +537,6 @@ export function initRepository() {
 
     initRepoDiffConversationNav();
     initRepoIssueReferenceIssue();
-
 
     initRepoIssueCommentDelete();
     initRepoIssueDependencyDelete();
