@@ -23,9 +23,6 @@ const (
 	tplExploreUsers base.TplName = "explore/users"
 )
 
-// UserSearchDefaultAdminSort is the default sort type for admin view
-const UserSearchDefaultAdminSort = "alphabetically"
-
 var nullByte = []byte{0x00}
 
 func isKeywordValid(keyword string) bool {
