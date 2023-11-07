@@ -74,6 +74,8 @@ type InstallForm struct {
 	ReinstallConfirmFirst  bool
 	ReinstallConfirmSecond bool
 	ReinstallConfirmThird  bool
+
+	CommitLanguage string
 }
 
 // Validate validates the fields

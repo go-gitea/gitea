@@ -162,6 +162,8 @@ func Install(ctx *context.Context) {
 	form.NoReplyAddress = setting.Service.NoReplyAddress
 	form.PasswordAlgorithm = hash.ConfigHashAlgorithm(setting.PasswordHashAlgo)
 
+	form.CommitLanguage = setting.UI.CommitLanguage
+
 	middleware.AssignForm(form, ctx.Data)
 	ctx.HTML(http.StatusOK, tplInstall)
 }
@@ -461,6 +463,8 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("repository.pull-request").Key("DEFAULT_MERGE_STYLE").SetValue("merge")
 
 	cfg.Section("repository.signing").Key("DEFAULT_TRUST_MODEL").SetValue("committer")
+
+	cfg.Section("ui").Key("COMMIT_LANGUAGE").SetValue(fmt.Sprint(form.CommitLanguage))
 
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")
 

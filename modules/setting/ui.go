@@ -63,6 +63,8 @@ var UI = struct {
 		Description string
 		Keywords    string
 	} `ini:"ui.meta"`
+
+	CommitLanguage string `ini:"ui.commit_language"`
 }{
 	ExplorePagingNum:    20,
 	SitemapPagingNum:    20,
@@ -127,6 +129,7 @@ var UI = struct {
 		Description: "Gitea (Git with a cup of tea) is a painless self-hosted Git service written in Go",
 		Keywords:    "go,git,self-hosted,gitea",
 	},
+	CommitLanguage: "en_US",
 }
 
 func loadUIFrom(rootCfg ConfigProvider) {
