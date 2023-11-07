@@ -90,7 +90,6 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository, revis
 					HomeLink:   u.HomeLink(),
 					Weeks:      CreateWeeks(sundays),
 				}
-
 			}
 		}
 		// Update user statistics
