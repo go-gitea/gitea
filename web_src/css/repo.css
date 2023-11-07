@@ -3075,27 +3075,22 @@ tbody.commit-list {
 }
 
 .commit-status-header {
-  /* reset the default ".ui.attached.header" styles, to use the outer border */
-  border-top: none !important;
-  border-left: none !important;
-  border-right: none !important;
+  border: none !important; /* reset the default ".ui.attached.header" styles, to use the outer border */
   margin: 0 !important;
 }
 
 .commit-status-list {
-  max-height: 233px; /* fit exactly 6 items */
+  max-height: 240px; /* fit exactly 6 items, commit-status-item.height * 6 */
   overflow-x: hidden;
   transition: max-height .2s;
 }
 
 .commit-status-item {
-  padding: 9px 10px !important;
+  height: 40px;
+  padding: 0 10px;
   display: flex;
   gap: 8px;
   align-items: center;
-}
-
-.commit-status-item + .commit-status-item {
   border-top: 1px solid var(--color-secondary);
 }
 
