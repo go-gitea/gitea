@@ -490,7 +490,7 @@ func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 		}
 		for _, comment := range comments {
 			for _, note := range comment.Notes {
-				allComments = append(allComments, convertNoteToComment(commentable.GetLocalIndex(), note))
+				allComments = append(allComments, g.convertNoteToComment(commentable.GetLocalIndex(), note))
 			}
 		}
 		if resp.NextPage == 0 {
@@ -501,7 +501,7 @@ func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 	return allComments, true, nil
 }
 
-func convertNoteToComment(localIndex int64, note *gitlab.Note) *base.Comment {
+func (g *GitlabDownloader) convertNoteToComment(localIndex int64, note *gitlab.Note) *base.Comment {
 	comment := &base.Comment{
 		IssueIndex:  localIndex,
 		Index:       int64(note.ID),
