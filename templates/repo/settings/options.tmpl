@@ -15,10 +15,8 @@
 				<div class="inline field">
 					<label>{{ctx.locale.Tr "repo.repo_size"}}</label>
 					<span {{if .Err_RepoSize}}class="ui text red"{{end}} {{if not (eq .Repository.Size 0)}} data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>{{FileSize .Repository.Size}}
-						{{if .ActualSizeLimit}}
-						{{if .EnableSizeLimit}}
+						{{if and .ActualSizeLimit .EnableSizeLimit}}
 							/{{FileSize .ActualSizeLimit}}
-						{{end}}
 						{{end}}
 					</span>
 				</div>
