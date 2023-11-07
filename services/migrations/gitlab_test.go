@@ -594,7 +594,7 @@ func TestNoteToComment(t *testing.T) {
 	}}
 
 	for i, note := range notes {
-		actualComment := *downloader.convertNoteToComment(17, &note)
+		actualComment := *downloader.convertNoteToComment(17, &note, nil)
 		assert.EqualValues(t, actualComment, comments[i])
 	}
 }
