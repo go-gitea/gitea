@@ -1,12 +1,12 @@
 {{/* This page should only depend the minimal template functions/variables, to avoid triggering new panics.
-* base template functions: AppName, AssetUrlPrefix, AssetVersion, AppSubUrl, DefaultTheme, Str2html
-* locale
-* Flash
-* ErrorMsg
-* SignedUser (optional)
+* base template functions: AppName, AssetUrlPrefix, AssetVersion, AppSubUrl, ThemeName, Str2html
+* ctx.Locale
+* .Flash
+* .ErrorMsg
+* .SignedUser (optional)
 */}}
 <!DOCTYPE html>
-<html lang="{{.locale.Lang}}" class="theme-{{if .SignedUser.Theme}}{{.SignedUser.Theme}}{{else}}{{DefaultTheme}}{{end}}">
+<html lang="{{ctx.Locale.Lang}}" data-theme="{{ThemeName .SignedUser}}">
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Internal Server Error - {{AppName}}</title>
@@ -19,8 +19,8 @@
 		<nav class="ui secondary menu gt-border-secondary-bottom">
 			<div class="ui container gt-df">
 				<div class="item gt-f1">
-					<a href="{{AppSubUrl}}/" aria-label="{{.locale.Tr "home"}}">
-						<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{.locale.Tr "logo"}}" aria-hidden="true">
+					<a href="{{AppSubUrl}}/" aria-label="{{ctx.Locale.Tr "home"}}">
+						<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}" aria-hidden="true">
 					</a>
 				</div>
 				<div class="item">
@@ -37,12 +37,12 @@
 			<div class="divider"></div>
 			<div class="ui container gt-my-5">
 				{{if .ErrorMsg}}
-					<p>{{.locale.Tr "error.occurred"}}:</p>
+					<p>{{ctx.Locale.Tr "error.occurred"}}:</p>
 					<pre class="gt-whitespace-pre-wrap gt-break-all">{{.ErrorMsg}}</pre>
 				{{end}}
 				<div class="center gt-mt-5">
-					{{if or .SignedUser.IsAdmin .ShowFooterVersion}}<p>{{.locale.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
-					{{if .SignedUser.IsAdmin}}<p>{{.locale.Tr "error.report_message" | Str2html}}</p>{{end}}
+					{{if or .SignedUser.IsAdmin .ShowFooterVersion}}<p>{{ctx.Locale.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
+					{{if .SignedUser.IsAdmin}}<p>{{ctx.Locale.Tr "error.report_message" | Str2html}}</p>{{end}}
 				</div>
 			</div>
 		</div>

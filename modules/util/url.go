@@ -45,3 +45,12 @@ func URLJoin(base string, elems ...string) string {
 	}
 	return joinedURL.String()
 }
+
+func SanitizeURL(s string) (string, error) {
+	u, err := url.Parse(s)
+	if err != nil {
+		return "", err
+	}
+	u.User = nil
+	return u.String(), nil
+}

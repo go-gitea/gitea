@@ -1,3 +1,3 @@
 {{if not $.DisableMigrations}}
-	<p class="ui center">{{.locale.Tr "repo.new_repo_helper" ((printf "%s%s" AppSubUrl "/repo/migrate")|Escape) | Safe}}</p>
+	<p class="ui center">{{ctx.Locale.Tr "repo.new_repo_helper" ((print AppSubUrl "/repo/migrate")|Escape) | Safe}}</p>
 {{end}}

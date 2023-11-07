@@ -6,6 +6,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -176,7 +177,7 @@ func (cfg *ActionsConfig) ToString() string {
 }
 
 func (cfg *ActionsConfig) IsWorkflowDisabled(file string) bool {
-	return util.SliceContains(cfg.DisabledWorkflows, file)
+	return slices.Contains(cfg.DisabledWorkflows, file)
 }
 
 func (cfg *ActionsConfig) DisableWorkflow(file string) {
@@ -278,14 +279,14 @@ func getUnitsByRepoID(ctx context.Context, repoID int64) (units []*RepoUnit, err
 }
 
 // UpdateRepoUnit updates the provided repo unit
-func UpdateRepoUnit(unit *RepoUnit) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(unit.ID).Update(unit)
+func UpdateRepoUnit(ctx context.Context, unit *RepoUnit) error {
+	_, err := db.GetEngine(ctx).ID(unit.ID).Update(unit)
 	return err
 }
 
 // UpdateRepositoryUnits updates a repository's units
-func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes []unit.Type) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func UpdateRepositoryUnits(ctx context.Context, repo *Repository, units []RepoUnit, deleteUnitTypes []unit.Type) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

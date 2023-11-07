@@ -70,6 +70,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -90,6 +91,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/auth"
 	context_service "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -147,7 +149,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 			owner, err = user_model.GetUserByName(ctx, userName)
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
-					if redirectUserID, err := user_model.LookupUserRedirect(userName); err == nil {
+					if redirectUserID, err := user_model.LookupUserRedirect(ctx, userName); err == nil {
 						context.RedirectToUser(ctx.Base, userName, redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.NotFound("GetUserByName", err)
@@ -164,10 +166,10 @@ func repoAssignment() func(ctx *context.APIContext) {
 		ctx.ContextUser = owner
 
 		// Get repository.
-		repo, err := repo_model.GetRepositoryByName(owner.ID, repoName)
+		repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, repoName)
 		if err != nil {
 			if repo_model.IsErrRepoNotExist(err) {
-				redirectRepoID, err := repo_model.LookupRedirect(owner.ID, repoName)
+				redirectRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, repoName)
 				if err == nil {
 					context.RedirectToRepo(ctx.Base, redirectRepoID)
 				} else if repo_model.IsErrRedirectNotExist(err) {
@@ -314,10 +316,6 @@ func reqToken() func(ctx *context.APIContext) {
 			return
 		}
 
-		if ctx.IsBasicAuth {
-			ctx.CheckForOTP()
-			return
-		}
 		if ctx.IsSigned {
 			return
 		}
@@ -333,13 +331,15 @@ func reqExploreSignIn() func(ctx *context.APIContext) {
 	}
 }
 
-func reqBasicAuth() func(ctx *context.APIContext) {
+func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
+		if ctx.IsSigned && setting.Service.EnableReverseProxyAuthAPI && ctx.Data["AuthedMethod"].(string) == auth.ReverseProxyMethodName {
+			return
+		}
 		if !ctx.IsBasicAuth {
 			ctx.Error(http.StatusUnauthorized, "reqBasicAuth", "auth required")
 			return
 		}
-		ctx.CheckForOTP()
 	}
 }
 
@@ -358,6 +358,16 @@ func reqOwner() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.Repo.IsOwner() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqOwner", "user should be the owner of the repo")
+			return
+		}
+	}
+}
+
+// reqSelfOrAdmin doer should be the same as the contextUser or site admin
+func reqSelfOrAdmin() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if !ctx.IsUserSiteAdmin() && ctx.ContextUser != ctx.Doer {
+			ctx.Error(http.StatusForbidden, "reqSelfOrAdmin", "doer should be the site admin or be same as the contextUser")
 			return
 		}
 	}
@@ -550,7 +560,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 			ctx.Org.Organization, err = organization.GetOrgByName(ctx, ctx.Params(":org"))
 			if err != nil {
 				if organization.IsErrOrgNotExist(err) {
-					redirectUserID, err := user_model.LookupUserRedirect(ctx.Params(":org"))
+					redirectUserID, err := user_model.LookupUserRedirect(ctx, ctx.Params(":org"))
 					if err == nil {
 						context.RedirectToUser(ctx.Base, ctx.Params(":org"), redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
@@ -661,7 +671,7 @@ func mustEnableWiki(ctx *context.APIContext) {
 
 func mustNotBeArchived(ctx *context.APIContext) {
 	if ctx.Repo.Repository.IsArchived {
-		ctx.NotFound()
+		ctx.Error(http.StatusLocked, "RepoArchived", fmt.Errorf("%s is archived", ctx.Repo.Repository.LogString()))
 		return
 	}
 }
@@ -686,21 +696,96 @@ func bind[T any](_ T) any {
 	}
 }
 
-// The OAuth2 plugin is expected to be executed first, as it must ignore the user id stored
-// in the session (if there is a user id stored in session other plugins might return the user
-// object for that id).
-//
-// The Session plugin is expected to be executed second, in order to skip authentication
-// for users that have already signed in.
 func buildAuthGroup() *auth.Group {
 	group := auth.NewGroup(
 		&auth.OAuth2{},
 		&auth.HTTPSign{},
 		&auth.Basic{}, // FIXME: this should be removed once we don't allow basic auth in API
 	)
-	specialAdd(group)
+	if setting.Service.EnableReverseProxyAuthAPI {
+		group.Add(&auth.ReverseProxy{})
+	}
+
+	if setting.IsWindows && auth_model.IsSSPIEnabled(db.DefaultContext) {
+		group.Add(&auth.SSPI{}) // it MUST be the last, see the comment of SSPI
+	}
 
 	return group
+}
+
+func apiAuth(authMethod auth.Method) func(*context.APIContext) {
+	return func(ctx *context.APIContext) {
+		ar, err := common.AuthShared(ctx.Base, nil, authMethod)
+		if err != nil {
+			ctx.Error(http.StatusUnauthorized, "APIAuth", err)
+			return
+		}
+		ctx.Doer = ar.Doer
+		ctx.IsSigned = ar.Doer != nil
+		ctx.IsBasicAuth = ar.IsBasicAuth
+	}
+}
+
+// verifyAuthWithOptions checks authentication according to options
+func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		// Check prohibit login users.
+		if ctx.IsSigned {
+			if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
+				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
+				ctx.JSON(http.StatusForbidden, map[string]string{
+					"message": "This account is not activated.",
+				})
+				return
+			}
+			if !ctx.Doer.IsActive || ctx.Doer.ProhibitLogin {
+				log.Info("Failed authentication attempt for %s from %s", ctx.Doer.Name, ctx.RemoteAddr())
+				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+				ctx.JSON(http.StatusForbidden, map[string]string{
+					"message": "This account is prohibited from signing in, please contact your site administrator.",
+				})
+				return
+			}
+
+			if ctx.Doer.MustChangePassword {
+				ctx.JSON(http.StatusForbidden, map[string]string{
+					"message": "You must change your password. Change it at: " + setting.AppURL + "/user/change_password",
+				})
+				return
+			}
+		}
+
+		// Redirect to dashboard if user tries to visit any non-login page.
+		if options.SignOutRequired && ctx.IsSigned && ctx.Req.URL.RequestURI() != "/" {
+			ctx.Redirect(setting.AppSubURL + "/")
+			return
+		}
+
+		if options.SignInRequired {
+			if !ctx.IsSigned {
+				// Restrict API calls with error message.
+				ctx.JSON(http.StatusForbidden, map[string]string{
+					"message": "Only signed in user is allowed to call APIs.",
+				})
+				return
+			} else if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
+				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
+				ctx.JSON(http.StatusForbidden, map[string]string{
+					"message": "This account is not activated.",
+				})
+				return
+			}
+		}
+
+		if options.AdminRequired {
+			if !ctx.Doer.IsAdmin {
+				ctx.JSON(http.StatusForbidden, map[string]string{
+					"message": "You have no permission to request for this.",
+				})
+				return
+			}
+		}
+	}
 }
 
 // Routes registers all v1 APIs routes to web application.
@@ -722,9 +807,9 @@ func Routes() *web.Route {
 	m.Use(context.APIContexter())
 
 	// Get user from session if logged in.
-	m.Use(auth.APIAuth(buildAuthGroup()))
+	m.Use(apiAuth(buildAuthGroup()))
 
-	m.Use(auth.VerifyAuthWithOptionsAPI(&auth.VerifyOptions{
+	m.Use(verifyAuthWithOptions(&common.VerifyOptions{
 		SignInRequired: setting.Service.RequireSignInView,
 	}))
 
@@ -776,11 +861,11 @@ func Routes() *web.Route {
 		// Notifications (requires 'notifications' scope)
 		m.Group("/notifications", func() {
 			m.Combo("").
-				Get(notify.ListNotifications).
+				Get(reqToken(), notify.ListNotifications).
 				Put(reqToken(), notify.ReadNotifications)
-			m.Get("/new", notify.NewAvailable)
+			m.Get("/new", reqToken(), notify.NewAvailable)
 			m.Combo("/threads/{id}").
-				Get(notify.GetThread).
+				Get(reqToken(), notify.GetThread).
 				Patch(reqToken(), notify.ReadThread)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification))
 
@@ -800,7 +885,7 @@ func Routes() *web.Route {
 					m.Combo("").Get(user.ListAccessTokens).
 						Post(bind(api.CreateAccessTokenOption{}), reqToken(), user.CreateAccessToken)
 					m.Combo("/{id}").Delete(reqToken(), user.DeleteAccessToken)
-				}, reqBasicAuth())
+				}, reqSelfOrAdmin(), reqBasicOrRevProxyAuth())
 
 				m.Get("/activities/feeds", user.ListUserActivityFeeds)
 			}, context_service.UserAssignmentAPI())
@@ -835,6 +920,13 @@ func Routes() *web.Route {
 				Get(user.ListEmails).
 				Post(bind(api.CreateEmailOption{}), user.AddEmail).
 				Delete(bind(api.DeleteEmailOption{}), user.DeleteEmail)
+
+			// create or update a user's actions secrets
+			m.Group("/actions/secrets", func() {
+				m.Combo("/{secretname}").
+					Put(bind(api.CreateOrUpdateSecretOption{}), user.CreateOrUpdateSecret).
+					Delete(user.DeleteSecret)
+			})
 
 			m.Get("/followers", user.ListMyFollowers)
 			m.Group("/following", func() {
@@ -933,6 +1025,11 @@ func Routes() *web.Route {
 					m.Post("/accept", repo.AcceptTransfer)
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
+				m.Group("/actions/secrets", func() {
+					m.Combo("/{secretname}").
+						Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateSecret).
+						Delete(reqToken(), reqOwner(), repo.DeleteSecret)
+				})
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(repo.ListGitHooks)
 					m.Group("/{id}", func() {
@@ -976,23 +1073,23 @@ func Routes() *web.Route {
 				m.Group("/branches", func() {
 					m.Get("", repo.ListBranches)
 					m.Get("/*", repo.GetBranch)
-					m.Delete("/*", reqToken(), reqRepoWriter(unit.TypeCode), repo.DeleteBranch)
-					m.Post("", reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
+					m.Delete("/*", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.DeleteBranch)
+					m.Post("", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
 				}, context.ReferencesGitRepo(), reqRepoReader(unit.TypeCode))
 				m.Group("/branch_protections", func() {
 					m.Get("", repo.ListBranchProtections)
-					m.Post("", bind(api.CreateBranchProtectionOption{}), repo.CreateBranchProtection)
+					m.Post("", bind(api.CreateBranchProtectionOption{}), mustNotBeArchived, repo.CreateBranchProtection)
 					m.Group("/{name}", func() {
 						m.Get("", repo.GetBranchProtection)
-						m.Patch("", bind(api.EditBranchProtectionOption{}), repo.EditBranchProtection)
+						m.Patch("", bind(api.EditBranchProtectionOption{}), mustNotBeArchived, repo.EditBranchProtection)
 						m.Delete("", repo.DeleteBranchProtection)
 					})
 				}, reqToken(), reqAdmin())
 				m.Group("/tags", func() {
 					m.Get("", repo.ListTags)
 					m.Get("/*", repo.GetTag)
-					m.Post("", reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateTagOption{}), repo.CreateTag)
-					m.Delete("/*", reqToken(), repo.DeleteTag)
+					m.Post("", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, bind(api.CreateTagOption{}), repo.CreateTag)
+					m.Delete("/*", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.DeleteTag)
 				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
@@ -1113,15 +1210,15 @@ func Routes() *web.Route {
 					m.Get("/tags/{sha}", repo.GetAnnotatedTag)
 					m.Get("/notes/{sha}", repo.GetNote)
 				}, context.ReferencesGitRepo(true), reqRepoReader(unit.TypeCode))
-				m.Post("/diffpatch", reqRepoWriter(unit.TypeCode), reqToken(), bind(api.ApplyDiffPatchFileOptions{}), repo.ApplyDiffPatch)
+				m.Post("/diffpatch", reqRepoWriter(unit.TypeCode), reqToken(), bind(api.ApplyDiffPatchFileOptions{}), mustNotBeArchived, repo.ApplyDiffPatch)
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)
-					m.Post("", reqToken(), bind(api.ChangeFilesOptions{}), reqRepoBranchWriter, repo.ChangeFiles)
+					m.Post("", reqToken(), bind(api.ChangeFilesOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.ChangeFiles)
 					m.Get("/*", repo.GetContents)
 					m.Group("/*", func() {
-						m.Post("", bind(api.CreateFileOptions{}), reqRepoBranchWriter, repo.CreateFile)
-						m.Put("", bind(api.UpdateFileOptions{}), reqRepoBranchWriter, repo.UpdateFile)
-						m.Delete("", bind(api.DeleteFileOptions{}), reqRepoBranchWriter, repo.DeleteFile)
+						m.Post("", bind(api.CreateFileOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.CreateFile)
+						m.Put("", bind(api.UpdateFileOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.UpdateFile)
+						m.Delete("", bind(api.DeleteFileOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.DeleteFile)
 					}, reqToken())
 				}, reqRepoReader(unit.TypeCode))
 				m.Get("/signing-key.gpg", misc.SigningKey)
@@ -1301,8 +1398,8 @@ func Routes() *web.Route {
 			m.Group("/actions/secrets", func() {
 				m.Get("", reqToken(), reqOrgOwnership(), org.ListActionsSecrets)
 				m.Combo("/{secretname}").
-					Put(reqToken(), reqOrgOwnership(), bind(api.CreateOrUpdateSecretOption{}), org.CreateOrUpdateOrgSecret).
-					Delete(reqToken(), reqOrgOwnership(), org.DeleteOrgSecret)
+					Put(reqToken(), reqOrgOwnership(), bind(api.CreateOrUpdateSecretOption{}), org.CreateOrUpdateSecret).
+					Delete(reqToken(), reqOrgOwnership(), org.DeleteSecret)
 			})
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)
@@ -1311,10 +1408,10 @@ func Routes() *web.Route {
 					Delete(reqToken(), reqOrgMembership(), org.ConcealMember)
 			})
 			m.Group("/teams", func() {
-				m.Get("", reqToken(), org.ListTeams)
-				m.Post("", reqToken(), reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
-				m.Get("/search", reqToken(), org.SearchTeam)
-			}, reqOrgMembership())
+				m.Get("", org.ListTeams)
+				m.Post("", reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
+				m.Get("/search", org.SearchTeam)
+			}, reqToken(), reqOrgMembership())
 			m.Group("/labels", func() {
 				m.Get("", org.ListLabels)
 				m.Post("", reqToken(), reqOrgOwnership(), bind(api.CreateLabelOption{}), org.CreateLabel)

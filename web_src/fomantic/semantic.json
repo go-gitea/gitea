@@ -31,7 +31,6 @@
     "grid",
     "header",
     "input",
-    "item",
     "label",
     "list",
     "menu",
@@ -41,7 +40,6 @@
     "segment",
     "site",
     "tab",
-    "table",
-    "text"
+    "table"
   ]
 }

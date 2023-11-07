@@ -1,34 +1,34 @@
 <h4 class="ui top attached header">
-	{{.locale.Tr "settings.twofa"}}
+	{{ctx.Locale.Tr "settings.twofa"}}
 </h4>
 <div class="ui attached segment">
-	<p>{{.locale.Tr "settings.twofa_desc"}}</p>
+	<p>{{ctx.Locale.Tr "settings.twofa_desc"}}</p>
 	{{if .TOTPEnrolled}}
-	<p>{{$.locale.Tr "settings.twofa_is_enrolled" | Str2html}}</p>
+	<p>{{ctx.Locale.Tr "settings.twofa_is_enrolled" | Str2html}}</p>
 	<form class="ui form" action="{{AppSubUrl}}/user/settings/security/two_factor/regenerate_scratch" method="post" enctype="multipart/form-data">
 		{{.CsrfTokenHtml}}
-		<p>{{.locale.Tr "settings.regenerate_scratch_token_desc"}}</p>
-		<button class="ui primary button">{{$.locale.Tr "settings.twofa_scratch_token_regenerate"}}</button>
+		<p>{{ctx.Locale.Tr "settings.regenerate_scratch_token_desc"}}</p>
+		<button class="ui primary button">{{ctx.Locale.Tr "settings.twofa_scratch_token_regenerate"}}</button>
 	</form>
 	<form class="ui form" action="{{AppSubUrl}}/user/settings/security/two_factor/disable" method="post" enctype="multipart/form-data" id="disable-form">
 		{{.CsrfTokenHtml}}
-		<p>{{.locale.Tr "settings.twofa_disable_note"}}</p>
-		<button class="ui red button delete-button" data-modal-id="disable-twofa" data-type="form" data-form="#disable-form">{{$.locale.Tr "settings.twofa_disable"}}</button>
+		<p>{{ctx.Locale.Tr "settings.twofa_disable_note"}}</p>
+		<button class="ui red button delete-button" data-modal-id="disable-twofa" data-type="form" data-form="#disable-form">{{ctx.Locale.Tr "settings.twofa_disable"}}</button>
 	</form>
 	{{else}}
-	<p>{{.locale.Tr "settings.twofa_not_enrolled"}}</p>
+	<p>{{ctx.Locale.Tr "settings.twofa_not_enrolled"}}</p>
 	<div class="inline field">
-		<a class="ui green button" href="{{AppSubUrl}}/user/settings/security/two_factor/enroll">{{$.locale.Tr "settings.twofa_enroll"}}</a>
+		<a class="ui primary button" href="{{AppSubUrl}}/user/settings/security/two_factor/enroll">{{ctx.Locale.Tr "settings.twofa_enroll"}}</a>
 	</div>
 	{{end}}
 
 	<div class="ui g-modal-confirm delete modal" id="disable-twofa">
 		<div class="header">
 			{{svg "octicon-trash"}}
-			{{.locale.Tr "settings.twofa_disable"}}
+			{{ctx.Locale.Tr "settings.twofa_disable"}}
 		</div>
 		<div class="content">
-			<p>{{.locale.Tr "settings.twofa_disable_desc"}}</p>
+			<p>{{ctx.Locale.Tr "settings.twofa_disable_desc"}}</p>
 		</div>
 		{{template "base/modal_actions_confirm" .}}
 	</div>

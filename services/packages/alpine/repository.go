@@ -34,18 +34,18 @@ const IndexFilename = "APKINDEX.tar.gz"
 
 // GetOrCreateRepositoryVersion gets or creates the internal repository package
 // The Alpine registry needs multiple index files which are stored in this package.
-func GetOrCreateRepositoryVersion(ownerID int64) (*packages_model.PackageVersion, error) {
-	return packages_service.GetOrCreateInternalPackageVersion(ownerID, packages_model.TypeAlpine, alpine_module.RepositoryPackage, alpine_module.RepositoryVersion)
+func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages_model.PackageVersion, error) {
+	return packages_service.GetOrCreateInternalPackageVersion(ctx, ownerID, packages_model.TypeAlpine, alpine_module.RepositoryPackage, alpine_module.RepositoryVersion)
 }
 
 // GetOrCreateKeyPair gets or creates the RSA keys used to sign repository files
-func GetOrCreateKeyPair(ownerID int64) (string, string, error) {
-	priv, err := user_model.GetSetting(ownerID, alpine_module.SettingKeyPrivate)
+func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, error) {
+	priv, err := user_model.GetSetting(ctx, ownerID, alpine_module.SettingKeyPrivate)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return "", "", err
 	}
 
-	pub, err := user_model.GetSetting(ownerID, alpine_module.SettingKeyPublic)
+	pub, err := user_model.GetSetting(ctx, ownerID, alpine_module.SettingKeyPublic)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return "", "", err
 	}
@@ -56,11 +56,11 @@ func GetOrCreateKeyPair(ownerID int64) (string, string, error) {
 			return "", "", err
 		}
 
-		if err := user_model.SetUserSetting(ownerID, alpine_module.SettingKeyPrivate, priv); err != nil {
+		if err := user_model.SetUserSetting(ctx, ownerID, alpine_module.SettingKeyPrivate, priv); err != nil {
 			return "", "", err
 		}
 
-		if err := user_model.SetUserSetting(ownerID, alpine_module.SettingKeyPublic, pub); err != nil {
+		if err := user_model.SetUserSetting(ctx, ownerID, alpine_module.SettingKeyPublic, pub); err != nil {
 			return "", "", err
 		}
 	}
@@ -70,7 +70,7 @@ func GetOrCreateKeyPair(ownerID int64) (string, string, error) {
 
 // BuildAllRepositoryFiles (re)builds all repository files for every available distributions, components and architectures
 func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
-	pv, err := GetOrCreateRepositoryVersion(ownerID)
+	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
 	if err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
 
 // BuildSpecificRepositoryFiles builds index files for the repository
 func BuildSpecificRepositoryFiles(ctx context.Context, ownerID int64, branch, repository, architecture string) error {
-	pv, err := GetOrCreateRepositoryVersion(ownerID)
+	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
 	if err != nil {
 		return err
 	}
@@ -238,13 +238,15 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 	}
 
 	unsignedIndexContent, _ := packages_module.NewHashedBuffer()
+	defer unsignedIndexContent.Close()
+
 	h := sha1.New()
 
 	if err := writeGzipStream(io.MultiWriter(unsignedIndexContent, h), "APKINDEX", buf.Bytes(), true); err != nil {
 		return err
 	}
 
-	priv, _, err := GetOrCreateKeyPair(ownerID)
+	priv, _, err := GetOrCreateKeyPair(ctx, ownerID)
 	if err != nil {
 		return err
 	}
@@ -275,6 +277,7 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 	}
 
 	signedIndexContent, _ := packages_module.NewHashedBuffer()
+	defer signedIndexContent.Close()
 
 	if err := writeGzipStream(
 		signedIndexContent,
@@ -290,6 +293,7 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 	}
 
 	_, err = packages_service.AddFileToPackageVersionInternal(
+		ctx,
 		repoVersion,
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{

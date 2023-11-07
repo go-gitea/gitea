@@ -89,17 +89,17 @@ func TestRepository_CountCollaborators(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	count, err := repo_model.CountCollaborators(repo1.ID)
+	count, err := repo_model.CountCollaborators(db.DefaultContext, repo1.ID)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, count)
 
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 22})
-	count, err = repo_model.CountCollaborators(repo2.ID)
+	count, err = repo_model.CountCollaborators(db.DefaultContext, repo2.ID)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, count)
 
 	// Non-existent repository.
-	count, err = repo_model.CountCollaborators(unittest.NonexistentID)
+	count, err = repo_model.CountCollaborators(db.DefaultContext, unittest.NonexistentID)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
 }
@@ -110,31 +110,31 @@ func TestRepository_IsOwnerMemberCollaborator(t *testing.T) {
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 
 	// Organisation owner.
-	actual, err := repo_model.IsOwnerMemberCollaborator(repo1, 2)
+	actual, err := repo_model.IsOwnerMemberCollaborator(db.DefaultContext, repo1, 2)
 	assert.NoError(t, err)
 	assert.True(t, actual)
 
 	// Team member.
-	actual, err = repo_model.IsOwnerMemberCollaborator(repo1, 4)
+	actual, err = repo_model.IsOwnerMemberCollaborator(db.DefaultContext, repo1, 4)
 	assert.NoError(t, err)
 	assert.True(t, actual)
 
 	// Normal user.
-	actual, err = repo_model.IsOwnerMemberCollaborator(repo1, 1)
+	actual, err = repo_model.IsOwnerMemberCollaborator(db.DefaultContext, repo1, 1)
 	assert.NoError(t, err)
 	assert.False(t, actual)
 
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 
 	// Collaborator.
-	actual, err = repo_model.IsOwnerMemberCollaborator(repo2, 4)
+	actual, err = repo_model.IsOwnerMemberCollaborator(db.DefaultContext, repo2, 4)
 	assert.NoError(t, err)
 	assert.True(t, actual)
 
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 15})
 
 	// Repository owner.
-	actual, err = repo_model.IsOwnerMemberCollaborator(repo3, 2)
+	actual, err = repo_model.IsOwnerMemberCollaborator(db.DefaultContext, repo3, 2)
 	assert.NoError(t, err)
 	assert.True(t, actual)
 }

@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/models/user"
 	gitea_context "code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -42,7 +42,7 @@ func TestProcessorHelper(t *testing.T) {
 	assert.NoError(t, err)
 	base, baseCleanUp := gitea_context.NewBaseContext(httptest.NewRecorder(), req)
 	defer baseCleanUp()
-	giteaCtx := gitea_context.NewWebContext(base, &test.MockRender{}, nil)
+	giteaCtx := gitea_context.NewWebContext(base, &contexttest.MockRender{}, nil)
 
 	assert.True(t, ProcessorHelper().IsUsernameMentionable(giteaCtx, userPublic))
 	assert.False(t, ProcessorHelper().IsUsernameMentionable(giteaCtx, userPrivate))

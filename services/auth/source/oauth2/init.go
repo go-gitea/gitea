@@ -4,6 +4,7 @@
 package oauth2
 
 import (
+	"context"
 	"encoding/gob"
 	"net/http"
 	"sync"
@@ -11,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
@@ -26,7 +28,7 @@ const UsersStoreKey = "gitea-oauth2-sessions"
 const ProviderHeaderKey = "gitea-oauth2-provider"
 
 // Init initializes the oauth source
-func Init() error {
+func Init(ctx context.Context) error {
 	if err := InitSigningKey(); err != nil {
 		return err
 	}
@@ -51,18 +53,24 @@ func Init() error {
 	// Unlock our mutex
 	gothRWMutex.Unlock()
 
-	return initOAuth2Sources()
+	return initOAuth2Sources(ctx)
 }
 
 // ResetOAuth2 clears existing OAuth2 providers and loads them from DB
-func ResetOAuth2() error {
+func ResetOAuth2(ctx context.Context) error {
 	ClearProviders()
-	return initOAuth2Sources()
+	return initOAuth2Sources(ctx)
 }
 
 // initOAuth2Sources is used to load and register all active OAuth2 providers
-func initOAuth2Sources() error {
-	authSources, _ := auth.GetActiveOAuth2ProviderSources()
+func initOAuth2Sources(ctx context.Context) error {
+	authSources, err := auth.FindSources(ctx, auth.FindSourcesOptions{
+		IsActive:  util.OptionalBoolTrue,
+		LoginType: auth.OAuth2,
+	})
+	if err != nil {
+		return err
+	}
 	for _, source := range authSources {
 		oauth2Source, ok := source.Cfg.(*Source)
 		if !ok {

@@ -18,10 +18,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
+	notify_service "code.gitea.io/gitea/services/notify"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"xorm.io/builder"
@@ -29,6 +29,11 @@ import (
 
 // CreateNewBranch creates a new repository branch
 func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldBranchName, branchName string) (err error) {
+	err = repo.MustNotBeArchived()
+	if err != nil {
+		return err
+	}
+
 	// Check if branch name can be used
 	if err := checkBranchName(ctx, repo, branchName); err != nil {
 		return err
@@ -66,7 +71,7 @@ type Branch struct {
 }
 
 // LoadBranches loads branches from the repository limited by page & pageSize.
-func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, isDeletedBranch util.OptionalBool, page, pageSize int) (*Branch, []*Branch, int64, error) {
+func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, isDeletedBranch util.OptionalBool, keyword string, page, pageSize int) (*Branch, []*Branch, int64, error) {
 	defaultDBBranch, err := git_model.GetBranch(ctx, repo.ID, repo.DefaultBranch)
 	if err != nil {
 		return nil, nil, 0, err
@@ -79,6 +84,7 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 			Page:     page,
 			PageSize: pageSize,
 		},
+		Keyword: keyword,
 	}
 
 	totalNumOfBranches, err := git_model.CountBranches(ctx, branchOpts)
@@ -155,7 +161,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 		}
 	}
 
-	pr, err := issues_model.GetLatestPullRequestByHeadInfo(repo.ID, branchName)
+	pr, err := issues_model.GetLatestPullRequestByHeadInfo(ctx, repo.ID, branchName)
 	if err != nil {
 		return nil, fmt.Errorf("GetLatestPullRequestByHeadInfo: %v", err)
 	}
@@ -245,6 +251,11 @@ func checkBranchName(ctx context.Context, repo *repo_model.Repository, name stri
 
 // CreateNewBranchFromCommit creates a new repository branch
 func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commit, branchName string) (err error) {
+	err = repo.MustNotBeArchived()
+	if err != nil {
+		return err
+	}
+
 	// Check if branch name can be used
 	if err := checkBranchName(ctx, repo, branchName); err != nil {
 		return err
@@ -266,6 +277,11 @@ func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo 
 
 // RenameBranch rename a branch
 func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, gitRepo *git.Repository, from, to string) (string, error) {
+	err := repo.MustNotBeArchived()
+	if err != nil {
+		return "", err
+	}
+
 	if from == to {
 		return "target_exist", nil
 	}
@@ -301,8 +317,8 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		return "", err
 	}
 
-	notification.NotifyDeleteRef(ctx, doer, repo, git.RefNameFromBranch(from))
-	notification.NotifyCreateRef(ctx, doer, repo, refNameTo, refID)
+	notify_service.DeleteRef(ctx, doer, repo, git.RefNameFromBranch(from))
+	notify_service.CreateRef(ctx, doer, repo, refNameTo, refID)
 
 	return "", nil
 }
@@ -314,6 +330,11 @@ var (
 
 // DeleteBranch delete branch
 func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string) error {
+	err := repo.MustNotBeArchived()
+	if err != nil {
+		return err
+	}
+
 	if branchName == repo.DefaultBranch {
 		return ErrBranchIsDefault
 	}

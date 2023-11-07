@@ -43,9 +43,7 @@
 						<label for="new_project_column_color">{{ctx.Locale.Tr "repo.projects.column.color"}}</label>
 						<div class="color picker column">
 							<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_project_column_color_picker" name="color">
-							<div class="column precolors">
-								{{template "repo/issue/label_precolors"}}
-							</div>
+							{{template "repo/issue/label_precolors"}}
 						</div>
 					</div>
 
@@ -70,7 +68,7 @@
 				<div class="project-column-header">
 					<div class="ui large label project-column-title gt-py-2">
 						<div class="ui small circular grey label project-column-issue-count">
-							{{.NumIssues}}
+							{{.NumIssues ctx}}
 						</div>
 						{{.Title}}
 					</div>
@@ -125,9 +123,7 @@
 												<label for="new_project_column_color">{{ctx.Locale.Tr "repo.projects.column.color"}}</label>
 												<div class="color picker column">
 													<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_project_column_color" name="color" value="{{.Color}}">
-													<div class="column precolors">
-														{{template "repo/issue/label_precolors"}}
-													</div>
+													{{template "repo/issue/label_precolors"}}
 												</div>
 											</div>
 
@@ -146,7 +142,7 @@
 									<div class="content">
 										<label id="default-project-column-content"></label>
 									</div>
-									{{template "base/modal_actions_confirm" (dict "locale" ctx.Locale "ModalButtonTypes" "confirm")}}
+									{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 								</div>
 
 								<div class="ui g-modal-confirm modal" id="delete-project-column-modal-{{.ID}}">
@@ -158,7 +154,7 @@
 											{{ctx.Locale.Tr "repo.projects.column.deletion_desc"}}
 										</label>
 									</div>
-									{{template "base/modal_actions_confirm" (dict "locale" ctx.Locale "ModalButtonTypes" "confirm")}}
+									{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 								</div>
 							</div>
 						</div>

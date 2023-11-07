@@ -1,32 +1,32 @@
 <div class="sspi field {{if not (eq .type 7)}}gt-hidden{{end}}">
 	<div class="field">
 		<div class="ui checkbox">
-			<label for="sspi_auto_create_users"><strong>{{.locale.Tr "admin.auths.sspi_auto_create_users"}}</strong></label>
+			<label for="sspi_auto_create_users"><strong>{{ctx.Locale.Tr "admin.auths.sspi_auto_create_users"}}</strong></label>
 			<input id="sspi_auto_create_users" name="sspi_auto_create_users" class="sspi-auto-create-users" type="checkbox" {{if .SSPIAutoCreateUsers}}checked{{end}}>
-			<p class="help">{{.locale.Tr "admin.auths.sspi_auto_create_users_helper"}}</p>
+			<p class="help">{{ctx.Locale.Tr "admin.auths.sspi_auto_create_users_helper"}}</p>
 		</div>
 	</div>
 	<div class="field">
 		<div class="ui checkbox">
-			<label for="sspi_auto_activate_users"><strong>{{.locale.Tr "admin.auths.sspi_auto_activate_users"}}</strong></label>
+			<label for="sspi_auto_activate_users"><strong>{{ctx.Locale.Tr "admin.auths.sspi_auto_activate_users"}}</strong></label>
 			<input id="sspi_auto_activate_users" name="sspi_auto_activate_users" class="sspi-auto-activate-users" type="checkbox" {{if .SSPIAutoActivateUsers}}checked{{end}}>
-			<p class="help">{{.locale.Tr "admin.auths.sspi_auto_activate_users_helper"}}</p>
+			<p class="help">{{ctx.Locale.Tr "admin.auths.sspi_auto_activate_users_helper"}}</p>
 		</div>
 	</div>
 	<div class="field">
 		<div class="ui checkbox">
-			<label for="sspi_strip_domain_names"><strong>{{.locale.Tr "admin.auths.sspi_strip_domain_names"}}</strong></label>
+			<label for="sspi_strip_domain_names"><strong>{{ctx.Locale.Tr "admin.auths.sspi_strip_domain_names"}}</strong></label>
 			<input id="sspi_strip_domain_names" name="sspi_strip_domain_names" class="sspi-strip-domain-names" type="checkbox" {{if .SSPIStripDomainNames}}checked{{end}}>
-			<p class="help">{{.locale.Tr "admin.auths.sspi_strip_domain_names_helper"}}</p>
+			<p class="help">{{ctx.Locale.Tr "admin.auths.sspi_strip_domain_names_helper"}}</p>
 		</div>
 	</div>
 	<div class="required field">
-		<label for="sspi_separator_replacement">{{.locale.Tr "admin.auths.sspi_separator_replacement"}}</label>
+		<label for="sspi_separator_replacement">{{ctx.Locale.Tr "admin.auths.sspi_separator_replacement"}}</label>
 		<input id="sspi_separator_replacement" name="sspi_separator_replacement" value="{{.SSPISeparatorReplacement}}">
-		<p class="help">{{.locale.Tr "admin.auths.sspi_separator_replacement_helper"}}</p>
+		<p class="help">{{ctx.Locale.Tr "admin.auths.sspi_separator_replacement_helper"}}</p>
 	</div>
 	<div class="field">
-		<label for="sspi_default_language">{{.locale.Tr "admin.auths.sspi_default_language"}}</label>
+		<label for="sspi_default_language">{{ctx.Locale.Tr "admin.auths.sspi_default_language"}}</label>
 		<div class="ui language selection dropdown" id="sspi_default_language">
 			<input name="sspi_default_language" type="hidden" value="{{.SSPIDefaultLanguage}}">
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -38,6 +38,6 @@
 			{{end}}
 			</div>
 		</div>
-		<p class="help">{{.locale.Tr "admin.auths.sspi_default_language_helper"}}</p>
+		<p class="help">{{ctx.Locale.Tr "admin.auths.sspi_default_language_helper"}}</p>
 	</div>
 </div>

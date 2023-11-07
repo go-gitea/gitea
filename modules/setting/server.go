@@ -80,7 +80,6 @@ var (
 	StaticCacheTime            time.Duration
 	EnableGzip                 bool
 	LandingPageURL             LandingPage
-	LandingPageCustom          string
 	UnixSocketPermission       uint32
 	EnablePprof                bool
 	PprofDataPath              string
@@ -102,7 +101,6 @@ var (
 	StaticURLPrefix            string
 	AbsoluteAssetURL           string
 
-	HasRobotsTxt bool
 	ManifestData string
 )
 
