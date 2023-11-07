@@ -120,26 +120,17 @@
 				<div class="flex-list">
 					{{template "repo/sidebar/repo_info" .}}
 
+					{{if .ReadmeExist}}
 					<div class="flex-item">
 						<div class="flex-item-main">
-							{{if .ReadmeExist}}
 							<div class="flex-item-body">
 								<a class="muted" href="{{.TreeLink}}/{{.FileName}}">
-									{{svg "octicon-book"}}{{ctx.Locale.Tr "repo.sidebar.readme"}}
+									{{svg "octicon-book"}}{{ctx.Locale.Tr "readme"}}
 								</a>
-							</div>
-							{{end}}
-							<div class="flex-item-body">
-								{{svg "octicon-star"}}{{CountFmt .Repository.NumStars}} {{ctx.Locale.Tr "repo.sidebar.stars"}}
-							</div>
-							<div class="flex-item-body">
-								{{svg "octicon-repo-forked"}}{{CountFmt .Repository.NumForks}} {{ctx.Locale.Tr "repo.sidebar.forks"}}
-							</div>
-							<div class="flex-item-body">
-								{{svg "octicon-eye"}}{{CountFmt .Repository.NumWatches}} {{ctx.Locale.Tr "repo.sidebar.watching"}}
 							</div>
 						</div>
 					</div>
+					{{end}}
 					
 					{{if .LatestRelease}}
 					<div class="flex-item">
@@ -151,10 +142,16 @@
 								<span class="ui basic label">{{CountFmt .NumReleases}}</span>
 							</div>
 							<div class="flex-item-body">
-								<a class="muted" href="{{.LatestRelease.Link}}">
-									{{svg "octicon-tag" 16 "gt-mr-2"}}{{.LatestRelease.TagName}}
+								<a class="latest-release" href="{{.LatestRelease.Link}}">
+									<div class="latest-release-tag">
+										{{svg "octicon-tag" 16}}
+										<div class="gt-word-break">
+											{{.LatestRelease.TagName}}
+										</div>
+										<span class="ui basic green label">{{ctx.Locale.Tr "latest"}}</span>
+									</div>
+									<span class="time">{{TimeSinceUnix .LatestRelease.CreatedUnix ctx.Locale}}</span>
 								</a>
-								<span class="ui basic green label">{{ctx.Locale.Tr "repo.latest_release"}}</span>
 							</div>
 						</div>
 					</div>

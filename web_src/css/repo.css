@@ -151,6 +151,21 @@
   }
 }
 
+.latest-release {
+  text-decoration-line: none;
+  margin: 1rem;
+}
+
+.latest-release-tag {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.latest-release .time{
+  margin-left: 1.6rem;
+}
+
 .repository .header-wrapper {
   background-color: var(--color-header-wrapper);
 }
