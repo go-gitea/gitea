@@ -3095,6 +3095,9 @@ tbody.commit-list {
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+.commit-status-item + .commit-status-item {
   border-top: 1px solid var(--color-secondary);
 }
 
