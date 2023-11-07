@@ -375,7 +375,7 @@ export default {
 
 <style scoped>
 .main-graph {
-  height: 380px;
+  height: 280px;
 }
 .contributor-grid {
   display: grid;
