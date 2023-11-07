@@ -92,6 +92,12 @@ it's recommended to use `const _promise = asyncFoo()` to tell readers
 that this is done by purpose, we want to call the async function and ignore the Promise.
 Some lint rules and IDEs also have warnings if the returned Promise is not handled.
 
+### Fetching data
+
+To fetch data, use the wrapper functions `GET`, `POST` etc. from `modules/fetch.js`. They
+accept a `data` option for the content, will automatically set CSRF token and return a
+Promise for a [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response).
+
 ### HTML Attributes and `dataset`
 
 The usage of `dataset` is forbidden, its camel-casing behaviour makes it hard to grep for attributes.

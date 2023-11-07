@@ -486,8 +486,9 @@ type ArtifactsViewResponse struct {
 }
 
 type ArtifactsViewItem struct {
-	Name string `json:"name"`
-	Size int64  `json:"size"`
+	Name   string `json:"name"`
+	Size   int64  `json:"size"`
+	Status string `json:"status"`
 }
 
 func ArtifactsView(ctx *context_module.Context) {
@@ -510,9 +511,14 @@ func ArtifactsView(ctx *context_module.Context) {
 		Artifacts: make([]*ArtifactsViewItem, 0, len(artifacts)),
 	}
 	for _, art := range artifacts {
+		status := "completed"
+		if art.Status == int64(actions_model.ArtifactStatusExpired) {
+			status = "expired"
+		}
 		artifactsResponse.Artifacts = append(artifactsResponse.Artifacts, &ArtifactsViewItem{
-			Name: art.ArtifactName,
-			Size: art.FileSize,
+			Name:   art.ArtifactName,
+			Size:   art.FileSize,
+			Status: status,
 		})
 	}
 	ctx.JSON(http.StatusOK, artifactsResponse)
@@ -602,7 +608,7 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 		cfg.DisableWorkflow(workflow)
 	}
 
-	if err := repo_model.UpdateRepoUnit(cfgUnit); err != nil {
+	if err := repo_model.UpdateRepoUnit(ctx, cfgUnit); err != nil {
 		ctx.ServerError("UpdateRepoUnit", err)
 		return
 	}

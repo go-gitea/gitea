@@ -135,8 +135,7 @@ type Writer struct {
 
 const mailto = "mailto:"
 
-// WriteRegularLink renders images, links or videos
-func (r *Writer) WriteRegularLink(l org.RegularLink) {
+func (r *Writer) resolveLink(l org.RegularLink) string {
 	link := html.EscapeString(l.URL)
 	if l.Protocol == "file" {
 		link = link[len("file:"):]
@@ -154,17 +153,34 @@ func (r *Writer) WriteRegularLink(l org.RegularLink) {
 		}
 		link = util.URLJoin(base, link)
 	}
+	return link
+}
 
-	description := link
-	if l.Description != nil {
-		description = r.WriteNodesAsString(l.Description...)
-	}
+// WriteRegularLink renders images, links or videos
+func (r *Writer) WriteRegularLink(l org.RegularLink) {
+	link := r.resolveLink(l)
+
+	// Inspired by https://github.com/niklasfasching/go-org/blob/6eb20dbda93cb88c3503f7508dc78cbbc639378f/org/html_writer.go#L406-L427
 	switch l.Kind() {
 	case "image":
-		fmt.Fprintf(r, `<img src="%s" alt="%s" title="%s" />`, link, description, description)
+		if l.Description == nil {
+			fmt.Fprintf(r, `<img src="%s" alt="%s" title="%s" />`, link, link, link)
+		} else {
+			imageSrc := r.resolveLink(l.Description[0].(org.RegularLink))
+			fmt.Fprintf(r, `<a href="%s"><img src="%s" alt="%s" /></a>`, link, imageSrc, imageSrc)
+		}
 	case "video":
-		fmt.Fprintf(r, `<video src="%s" title="%s">%s</video>`, link, description, description)
+		if l.Description == nil {
+			fmt.Fprintf(r, `<video src="%s" title="%s">%s</video>`, link, link, link)
+		} else {
+			videoSrc := r.resolveLink(l.Description[0].(org.RegularLink))
+			fmt.Fprintf(r, `<a href="%s"><video src="%s" title="%s"></video></a>`, link, videoSrc, videoSrc)
+		}
 	default:
+		description := link
+		if l.Description != nil {
+			description = r.WriteNodesAsString(l.Description...)
+		}
 		fmt.Fprintf(r, `<a href="%s" title="%s">%s</a>`, link, description, description)
 	}
 }

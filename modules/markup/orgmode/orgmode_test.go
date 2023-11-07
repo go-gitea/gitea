@@ -44,7 +44,7 @@ func TestRender_StandardLinks(t *testing.T) {
 		"<p><a href=\""+lnk+"\" title=\"WikiPage\">WikiPage</a></p>")
 }
 
-func TestRender_Images(t *testing.T) {
+func TestRender_Media(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
 
@@ -64,6 +64,18 @@ func TestRender_Images(t *testing.T) {
 
 	test("[[file:"+url+"]]",
 		"<p><img src=\""+result+"\" alt=\""+result+"\" title=\""+result+"\" /></p>")
+
+	// With description.
+	test("[[https://example.com][https://example.com/example.svg]]",
+		`<p><a href="https://example.com"><img src="https://example.com/example.svg" alt="https://example.com/example.svg" /></a></p>`)
+	test("[[https://example.com][https://example.com/example.mp4]]",
+		`<p><a href="https://example.com"><video src="https://example.com/example.mp4" title="https://example.com/example.mp4"></video></a></p>`)
+
+	// Without description.
+	test("[[https://example.com/example.svg]]",
+		`<p><img src="https://example.com/example.svg" alt="https://example.com/example.svg" title="https://example.com/example.svg" /></p>`)
+	test("[[https://example.com/example.mp4]]",
+		`<p><video src="https://example.com/example.mp4" title="https://example.com/example.mp4">https://example.com/example.mp4</video></p>`)
 }
 
 func TestRender_Source(t *testing.T) {

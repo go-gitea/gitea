@@ -1,0 +1,66 @@
+<div class="flex-list">
+	<div class="flex-item">
+		<div class="flex-item-leading">
+			{{ctx.AvatarUtils.Avatar .User 48}}
+		</div>
+		<div class="flex-item-main">
+			<div class="flex-item-title">
+				{{template "shared/user/name" .User}}
+				{{if .User.IsAdmin}}
+					<span class="ui basic label">{{ctx.Locale.Tr "admin.users.admin"}}</span>
+				{{end}}
+			</div>
+			<div class="flex-item-body">
+				<b>{{ctx.Locale.Tr "admin.users.auth_source"}}:</b>
+				{{if eq .LoginSource.ID 0}}
+					{{ctx.Locale.Tr "admin.users.local"}}
+				{{else}}
+					{{.LoginSource.Name}}
+				{{end}}
+			</div>
+			<div class="flex-item-body">
+				<b>{{ctx.Locale.Tr "admin.users.activated"}}:</b>
+				{{if .User.IsActive}}
+					{{svg "octicon-check"}}
+				{{else}}
+					{{svg "octicon-x"}}
+				{{end}}
+			</div>
+			<div class="flex-item-body">
+				<b>{{ctx.Locale.Tr "admin.users.restricted"}}:</b>
+				{{if .User.IsRestricted}}
+					{{svg "octicon-check"}}
+				{{else}}
+					{{svg "octicon-x"}}
+				{{end}}
+			</div>
+			<div class="flex-item-body">
+				<b>{{ctx.Locale.Tr "settings.visibility"}}:</b>
+				{{if .User.Visibility.IsPublic}}{{ctx.Locale.Tr "settings.visibility.public"}}{{end}}
+				{{if .User.Visibility.IsLimited}}{{ctx.Locale.Tr "settings.visibility.limited"}}{{end}}
+				{{if .User.Visibility.IsPrivate}}{{ctx.Locale.Tr "settings.visibility.private"}}{{end}}
+			</div>
+			<div class="flex-item-body">
+				<b>{{ctx.Locale.Tr "admin.users.2fa"}}:</b>
+				{{if .TwoFactorEnabled}}
+					<span class="text green">{{svg "octicon-check"}}</span>
+				{{else}}
+					{{svg "octicon-x"}}
+				{{end}}
+			</div>
+			{{if .User.Location}}
+				<div class="flex-item-body">
+					<span class="flex-text-inline">{{svg "octicon-location"}}{{.User.Location}}</span>
+				</div>
+			{{end}}
+			{{if .User.Website}}
+				<div class="flex-item-body">
+					<span class="flex-text-inline">
+						{{svg "octicon-link"}}
+						<a target="_blank" href="{{.User.Website}}">{{.User.Website}}</a>
+					</span>
+				</div>
+			{{end}}
+		</div>
+	</div>
+</div>

@@ -19,9 +19,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	cargo_module "code.gitea.io/gitea/modules/packages/cargo"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
@@ -105,10 +106,16 @@ func RebuildIndex(ctx context.Context, doer, owner *user_model.User) error {
 	)
 }
 
-func AddOrUpdatePackageIndex(ctx context.Context, doer, owner *user_model.User, packageID int64) error {
-	repo, err := getOrCreateIndexRepository(ctx, doer, owner)
+func UpdatePackageIndexIfExists(ctx context.Context, doer, owner *user_model.User, packageID int64) error {
+	// We do not want to force the creation of the repo here
+	// cargo http index does not rely on the repo itself,
+	// so if the repo does not exist, we just do nothing.
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner.Name, IndexRepositoryName)
 	if err != nil {
-		return err
+		if errors.Is(err, util.ErrNotExist) {
+			return nil
+		}
+		return fmt.Errorf("GetRepositoryByOwnerAndName: %w", err)
 	}
 
 	p, err := packages_model.GetPackageByID(ctx, packageID)
@@ -205,7 +212,7 @@ func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.Use
 	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner.Name, IndexRepositoryName)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			repo, err = repo_module.CreateRepository(doer, owner, repo_module.CreateRepoOptions{
+			repo, err = repo_service.CreateRepositoryDirectly(ctx, doer, owner, repo_service.CreateRepoOptions{
 				Name: IndexRepositoryName,
 			})
 			if err != nil {
@@ -220,14 +227,16 @@ func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.Use
 }
 
 type Config struct {
-	DownloadURL string `json:"dl"`
-	APIURL      string `json:"api"`
+	DownloadURL  string `json:"dl"`
+	APIURL       string `json:"api"`
+	AuthRequired bool   `json:"auth-required"`
 }
 
-func BuildConfig(owner *user_model.User) *Config {
+func BuildConfig(owner *user_model.User, isPrivate bool) *Config {
 	return &Config{
-		DownloadURL: setting.AppURL + "api/packages/" + owner.Name + "/cargo/api/v1/crates",
-		APIURL:      setting.AppURL + "api/packages/" + owner.Name + "/cargo",
+		DownloadURL:  setting.AppURL + "api/packages/" + owner.Name + "/cargo/api/v1/crates",
+		APIURL:       setting.AppURL + "api/packages/" + owner.Name + "/cargo",
+		AuthRequired: isPrivate,
 	}
 }
 
@@ -239,7 +248,7 @@ func createOrUpdateConfigFile(ctx context.Context, repo *repo_model.Repository, 
 		"Initialize Cargo Config",
 		func(t *files_service.TemporaryUploadRepository) error {
 			var b bytes.Buffer
-			err := json.NewEncoder(&b).Encode(BuildConfig(owner))
+			err := json.NewEncoder(&b).Encode(BuildConfig(owner, setting.Service.RequireSignInView || owner.Visibility != structs.VisibleTypePublic || repo.IsPrivate))
 			if err != nil {
 				return err
 			}

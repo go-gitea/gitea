@@ -46,7 +46,7 @@ CONN_STR = redis://
 	assert.Equal(t, "default", q.GetName())
 	assert.Equal(t, "level", q.GetType())
 	assert.Equal(t, filepath.Join(setting.AppDataPath, "queues/common"), q.baseConfig.DataFullDir)
-	assert.Equal(t, 100, q.baseConfig.Length)
+	assert.Equal(t, 100000, q.baseConfig.Length)
 	assert.Equal(t, 20, q.batchLength)
 	assert.Equal(t, "", q.baseConfig.ConnStr)
 	assert.Equal(t, "default_queue", q.baseConfig.QueueFullName)

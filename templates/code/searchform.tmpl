@@ -1,14 +1,14 @@
 <form class="ui form ignore-dirty">
 	<div class="ui fluid action input">
-		{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword "AutoFocus" true "Disabled" .CodeIndexerUnavailable}}
-		<div class="ui dropdown selection {{if .CodeIndexerUnavailable}} disabled{{end}}" data-tooltip-content="{{.locale.Tr "explore.search.type.tooltip"}}">
+		{{template "shared/searchinput" dict "Value" .Keyword "AutoFocus" true "Disabled" .CodeIndexerUnavailable}}
+		<div class="ui dropdown selection {{if .CodeIndexerUnavailable}} disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "explore.search.type.tooltip"}}">
 			<input name="t" type="hidden" value="{{.queryType}}"{{if .CodeIndexerUnavailable}} disabled{{end}}>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			<div class="text">{{.locale.Tr (printf "explore.search.%s" (or .queryType "fuzzy"))}}</div>
+			<div class="text">{{ctx.Locale.Tr (printf "explore.search.%s" (or .queryType "fuzzy"))}}</div>
 			<div class="menu">
-				<div class="item" data-value="" data-tooltip-content="{{.locale.Tr "explore.search.fuzzy.tooltip"}}">{{.locale.Tr "explore.search.fuzzy"}}</div>
-				<div class="item" data-value="match" data-tooltip-content="{{.locale.Tr "explore.search.match.tooltip"}}">{{.locale.Tr "explore.search.match"}}</div>
+				<div class="item" data-value="" data-tooltip-content="{{ctx.Locale.Tr "explore.search.fuzzy.tooltip"}}">{{ctx.Locale.Tr "explore.search.fuzzy"}}</div>
+				<div class="item" data-value="match" data-tooltip-content="{{ctx.Locale.Tr "explore.search.match.tooltip"}}">{{ctx.Locale.Tr "explore.search.match"}}</div>
 			</div>
 		</div>
-		<button class="ui primary button"{{if .CodeIndexerUnavailable}} disabled{{end}}>{{.locale.Tr "explore.search"}}</button>
+		<button class="ui primary button"{{if .CodeIndexerUnavailable}} disabled{{end}}>{{ctx.Locale.Tr "explore.search"}}</button>
 	</div>
 </form>

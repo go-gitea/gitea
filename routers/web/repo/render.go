@@ -66,7 +66,7 @@ func RenderFile(ctx *context.Context) {
 			BranchPath: ctx.Repo.BranchNameSubURL(),
 			TreePath:   path.Dir(ctx.Repo.TreePath),
 		},
-		Metas:            ctx.Repo.Repository.ComposeDocumentMetas(),
+		Metas:            ctx.Repo.Repository.ComposeDocumentMetas(ctx),
 		GitRepo:          ctx.Repo.GitRepo,
 		InStandalonePage: true,
 	}, rd, ctx.Resp)
