@@ -59,7 +59,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 
 	sortOrder := ctx.FormString("sort")
 	if sortOrder == "" {
-		sortOrder = UserSearchDefaultSortType
+		sortOrder = setting.UI.ExploreDefaultSort
 	}
 	ctx.Data["SortType"] = sortOrder
 

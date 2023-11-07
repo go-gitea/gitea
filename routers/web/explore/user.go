@@ -62,7 +62,7 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 
 	sortOrder := ctx.FormString("sort")
 	if sortOrder == "" {
-		sortOrder = UserSearchDefaultSortType
+		sortOrder = setting.UI.ExploreDefaultSort
 	}
 	ctx.Data["SortType"] = sortOrder
 
@@ -139,7 +139,7 @@ func Users(ctx *context.Context) {
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	if ctx.FormString("sort") == "" {
-		ctx.SetFormString("sort", UserSearchDefaultSortType)
+		ctx.SetFormString("sort", setting.UI.ExploreDefaultSort)
 	}
 
 	RenderUserSearch(ctx, &user_model.SearchUserOptions{
