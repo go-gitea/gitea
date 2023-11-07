@@ -37,24 +37,29 @@ func deleteOrphanedRepos(ctx context.Context) (int64, error) {
 	adminUser := &user_model.User{IsAdmin: true}
 
 	for {
-		var ids []int64
-		if err := e.Table("`repository`").
-			Join("LEFT", "`user`", "repository.owner_id=user.id").
-			Where(builder.IsNull{"`user`.id"}).
-			Select("`repository`.id").Limit(batchSize).Find(&ids); err != nil {
-			return deleted, err
-		}
-
-		// if we don't get ids we have deleted them all
-		if len(ids) == 0 {
-			return deleted, nil
-		}
-
-		for _, id := range ids {
-			if err := repo_service.DeleteRepositoryDirectly(ctx, adminUser, id, true); err != nil {
+		select {
+		case <-ctx.Done():
+			return deleted, ctx.Err()
+		default:
+			var ids []int64
+			if err := e.Table("`repository`").
+				Join("LEFT", "`user`", "repository.owner_id=user.id").
+				Where(builder.IsNull{"`user`.id"}).
+				Select("`repository`.id").Limit(batchSize).Find(&ids); err != nil {
 				return deleted, err
 			}
-			deleted++
+
+			// if we don't get ids we have deleted them all
+			if len(ids) == 0 {
+				return deleted, nil
+			}
+
+			for _, id := range ids {
+				if err := repo_service.DeleteRepositoryDirectly(ctx, adminUser, id, true); err != nil {
+					return deleted, err
+				}
+				deleted++
+			}
 		}
 	}
 }

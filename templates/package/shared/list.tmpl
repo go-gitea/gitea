@@ -38,7 +38,7 @@
 	</div>
 	{{else}}
 		{{if not .HasPackages}}
-			<div class="empty center">
+			<div class="empty-placeholder">
 				{{svg "octicon-package" 48}}
 				<h2>{{ctx.Locale.Tr "packages.empty"}}</h2>
 				{{if and .Repository .CanWritePackages}}
