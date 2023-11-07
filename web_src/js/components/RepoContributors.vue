@@ -21,6 +21,24 @@ import $ from 'jquery';
 
 const {pageData} = window.config;
 
+const colors = {
+  text: '--color-text',
+  border: '--color-secondary-alpha-60',
+  commits: '--color-primary-alpha-60',
+  additions: '--color-green',
+  deletions: '--color-red',
+};
+
+const styles = window.getComputedStyle(document.documentElement);
+const getColor = (name) => styles.getPropertyValue(name).trim();
+
+for (const [key, value] of Object.entries(colors)) {
+  colors[key] = getColor(value);
+}
+
+Chart.defaults.color = colors.text;
+Chart.defaults.borderColor = colors.border;
+
 Chart.register(
   TimeScale,
   CategoryScale,
@@ -78,6 +96,7 @@ export default {
         a[sortingCriteria] > b[sortingCriteria] ? -1 : a[sortingCriteria] === b[sortingCriteria] ? 0 : 1
       ).slice(0, 100);
     },
+
     async fetchGraphData() {
       this.isLoading = true;
       try {
@@ -145,15 +164,16 @@ export default {
       const maxValue = Math.max(
         ...this.totalStats.weeks.map((o) => o[this.type])
       );
-      const [cooefficient, exp] = maxValue
+      const [coefficient, exp] = maxValue
         .toExponential()
         .split('e')
         .map(Number);
-      if (cooefficient % 1 === 0) {
+      if (coefficient % 1 === 0) {
         return maxValue;
       }
-      return (1 - (cooefficient % 1)) * 10 ** exp + maxValue;
+      return (1 - (coefficient % 1)) * 10 ** exp + maxValue;
     },
+
     maxContributorGraph() {
       // Similar to maxMainGraph method this method calculates maximum value for Y value
       // for contributors' graph. If I let chartjs do this for me, it will choose different
@@ -162,20 +182,17 @@ export default {
       const maxValue = Math.max(
         ...this.sortedContributors.map((c) => c['max_contribution_type'])
       );
-      const [cooefficient, exp] = maxValue
+      const [coefficient, exp] = maxValue
         .toExponential()
         .split('e')
         .map(Number);
-      if (cooefficient % 1 === 0) {
+      if (coefficient % 1 === 0) {
         return maxValue;
       }
-      return (1 - (cooefficient % 1)) * 10 ** exp + maxValue;
+      return (1 - (coefficient % 1)) * 10 ** exp + maxValue;
     },
 
     toGraphData(data) {
-      const style = getComputedStyle(document.body);
-      const colorName = this.type === 'commits' ? '--color-primary-alpha-60' : (this.type === 'additions' ? '--color-green-badge-hover-bg' : '--color-red-badge-hover-bg');
-      const color = style.getPropertyValue(colorName).trim();
       return {
         datasets: [
           {
@@ -185,7 +202,7 @@ export default {
             pointRadius: 0,
             pointHitRadius: 0,
             fill: 'start',
-            backgroundColor: color,
+            backgroundColor: colors[this.type],
             borderWidth: 0,
             tension: 0.3,
           },
@@ -259,12 +276,19 @@ export default {
               display: false,
             },
             time: {
-              minUnit: 'day',
+              minUnit: 'month',
+            },
+            ticks: {
+              maxRotation: 0,
+              maxTicksLimit: type === 'main' ? 12 : 6,
             },
           },
           y: {
             min: 0,
             max: type === 'main' ? this.maxMainGraph() : this.maxContributorGraph(),
+            ticks: {
+              maxTicksLimit: type === 'main' ? 6 : 4,
+            },
           },
         },
       };
@@ -272,7 +296,6 @@ export default {
   },
 };
 </script>
-
 <template>
   <div>
     <h2 class="ui header gt-df gt-ac gt-sb">
@@ -372,10 +395,9 @@ export default {
     </div>
   </div>
 </template>
-
 <style scoped>
 .main-graph {
-  height: 280px;
+  height: 240px;
 }
 .contributor-grid {
   display: grid;
