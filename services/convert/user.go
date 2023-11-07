@@ -44,6 +44,21 @@ func ToUserWithAccessMode(ctx context.Context, user *user_model.User, accessMode
 	return toUser(ctx, user, accessMode != perm.AccessModeNone, false)
 }
 
+// isWebhook checks if the context belongs to a Webhook
+func isWebhook(ctx context.Context) bool {
+	value := ctx.Value("IsWebhook")
+	if value == nil {
+		return false
+	}
+
+	boolValue, ok := value.(bool)
+	if !ok {
+		return false
+	}
+
+	return boolValue
+}
+
 // toUser convert user_model.User to api.User
 // signed shall only be set if requester is logged in. authed shall only be set if user is site admin or user himself
 func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *api.User {
@@ -67,7 +82,7 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 	result.Visibility = user.Visibility.String()
 
 	// hide primary email if API caller is anonymous or user keep email private
-	if signed && (!user.KeepEmailPrivate || authed) {
+	if (signed || isWebhook(ctx)) && (!user.KeepEmailPrivate || authed) {
 		result.Email = user.Email
 	}
 

@@ -157,6 +157,11 @@ func checkBranch(w *webhook_model.Webhook, branch string) bool {
 	return g.Match(branch)
 }
 
+// GetWebhookCOntext marks that the context belongs to a webhook
+func GetWebhookContext(ctx context.Context) context.Context {
+	return context.WithValue(ctx, "IsWebhook", true)
+}
+
 // PrepareWebhook creates a hook task and enqueues it for processing
 func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook_module.HookEventType, p api.Payloader) error {
 	// Skip sending if webhooks are disabled.
@@ -218,6 +223,8 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 // PrepareWebhooks adds new webhooks to task queue for given payload.
 func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_module.HookEventType, p api.Payloader) error {
 	owner := source.Owner
+
+	ctx = GetWebhookContext(ctx)
 
 	var ws []*webhook_model.Webhook
 

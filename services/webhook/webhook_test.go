@@ -9,11 +9,14 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+	"code.gitea.io/gitea/services/convert"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWebhook_GetSlackHook(t *testing.T) {
@@ -26,6 +29,15 @@ func TestWebhook_GetSlackHook(t *testing.T) {
 		Username: "username",
 		Color:    "blue",
 	})
+}
+
+func TestGetWebhookContextUserMail(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	assert.Equal(t, user.GetPlaceholderEmail(), convert.ToUser(db.DefaultContext, user, nil).Email)
+	assert.Equal(t, user.Email, convert.ToUser(GetWebhookContext(db.DefaultContext), user, nil).Email)
 }
 
 func TestPrepareWebhooks(t *testing.T) {
