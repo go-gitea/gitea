@@ -61,21 +61,19 @@ export default {
       required: true
     },
   },
-  data: () => {
-    return {
-      isLoading: false,
-      errorText: '',
-      totalStats: {},
-      sortedContributors: {},
-      repoLink: pageData.repoLink || [],
-      type: pageData.contributionType,
-      contributorsStats: [],
-      dateFrom: null,
-      dateUntil: null,
-      startDate: null,
-      endDate: null,
-    };
-  },
+  data: () => ({
+    isLoading: false,
+    errorText: '',
+    totalStats: {},
+    sortedContributors: {},
+    repoLink: pageData.repoLink || [],
+    type: pageData.contributionType,
+    contributorsStats: [],
+    dateFrom: null,
+    dateUntil: null,
+    startDate: null,
+    endDate: null,
+  }),
   mounted() {
     this.fetchGraphData();
 
@@ -91,10 +89,11 @@ export default {
   methods: {
     sortContributors() {
       const contributors = this.filterContributorWeeksByDateRange();
-      const sortingCriteria = `total_${this.type}`;
-      this.sortedContributors = Object.values(contributors).filter((contributor) => contributor[sortingCriteria] !== 0).sort((a, b) =>
-        a[sortingCriteria] > b[sortingCriteria] ? -1 : a[sortingCriteria] === b[sortingCriteria] ? 0 : 1
-      ).slice(0, 100);
+      const criteria = `total_${this.type}`;
+      this.sortedContributors = Object.values(contributors)
+        .filter((contributor) => contributor[criteria] !== 0)
+        .sort((a, b) => a[criteria] > b[criteria] ? -1 : a[criteria] === b[criteria] ? 0 : 1)
+        .slice(0, 100);
     },
 
     async fetchGraphData() {
@@ -115,8 +114,8 @@ export default {
         } else {
           this.errorText = response.statusText;
         }
-      } catch (e) {
-        this.errorText = e.message;
+      } catch (err) {
+        this.errorText = err.message;
       } finally {
         this.isLoading = false;
       }
@@ -124,7 +123,6 @@ export default {
 
     filterContributorWeeksByDateRange() {
       const filteredData = {};
-
       const data = this.contributorsStats;
       for (const key of Object.keys(data)) {
         const user = data[key];
@@ -153,24 +151,16 @@ export default {
     },
 
     maxMainGraph() {
-      // This method calculates maximum value for Y value of the main graph.
-      // If the number of maximum contributions for selected contribution type is
-      // 15.955 it is probably better to round it up to 20.000
-      // This method is responsible for doing that
-      // Normally, chartjs handles this automatically, but it will resize the
-      // graph when you zoom, pan etc. I think resizing the graph makes it harder
-      // to compare things visually.
-
+      // This method calculates maximum value for Y value of the main graph. If the number
+      // of maximum contributions for selected contribution type is 15.955 it is probably
+      // better to round it up to 20.000.This method is responsible for doing that.
+      // Normally, chartjs handles this automatically, but it will resize the graph when you
+      // zoom, pan etc. I think resizing the graph makes it harder to compare things visually.
       const maxValue = Math.max(
         ...this.totalStats.weeks.map((o) => o[this.type])
       );
-      const [coefficient, exp] = maxValue
-        .toExponential()
-        .split('e')
-        .map(Number);
-      if (coefficient % 1 === 0) {
-        return maxValue;
-      }
+      const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
+      if (coefficient % 1 === 0) return maxValue;
       return (1 - (coefficient % 1)) * 10 ** exp + maxValue;
     },
 
@@ -178,17 +168,11 @@ export default {
       // Similar to maxMainGraph method this method calculates maximum value for Y value
       // for contributors' graph. If I let chartjs do this for me, it will choose different
       // maxY value for each contributors' graph which again makes it harder to compare.
-
       const maxValue = Math.max(
         ...this.sortedContributors.map((c) => c['max_contribution_type'])
       );
-      const [coefficient, exp] = maxValue
-        .toExponential()
-        .split('e')
-        .map(Number);
-      if (coefficient % 1 === 0) {
-        return maxValue;
-      }
+      const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
+      if (coefficient % 1 === 0) return maxValue;
       return (1 - (coefficient % 1)) * 10 ** exp + maxValue;
     },
 
@@ -196,9 +180,7 @@ export default {
       return {
         datasets: [
           {
-            data: data.map((i) => {
-              return {x: i.week, y: i[this.type]};
-            }),
+            data: data.map((i) => ({x: i.week, y: i[this.type]})),
             pointRadius: 0,
             pointHitRadius: 0,
             fill: 'start',
