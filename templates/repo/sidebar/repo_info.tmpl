@@ -1,5 +1,5 @@
 {{if and (not .HideRepoInfo) (not .IsBlame)}}
-	<div class="flex-item">
+	<div class="flex-item gt-hidden-mobile">
 		<div class="flex-item-main">
 			<div class="flex-item-title">
 				{{ctx.Locale.Tr "repo.repo_desc"}}
@@ -69,8 +69,8 @@
 			{{if .CitiationExist}}
 			<div class="flex-item-body">
 				<a class="item" id="cite-repo-button">{{svg "octicon-cross-reference" 16 "gt-mr-3"}}{{ctx.Locale.Tr "repo.cite_this_repo"}}</a>
-			</div>	
-			{{end}}	
+			</div>
+			{{end}}
 		</div>
 	</div>
 {{end}}
