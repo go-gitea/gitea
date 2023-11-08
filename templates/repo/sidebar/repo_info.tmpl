@@ -5,7 +5,7 @@
 				{{ctx.Locale.Tr "repo.repo_desc"}}
 			</div>
 			<div class="flex-item-body">
-				<div class="ui repo-description">
+				<div class="ui repo-description gt-word-break">
 					<div id="repo-desc" class="gt-font-16">
 						{{$description := .Repository.DescriptionHTML $.Context}}
 						{{if $description}}<span class="description gt-word-break">{{$description | RenderCodeBlock}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{ctx.Locale.Tr "repo.no_desc"}}</span>{{end}}
