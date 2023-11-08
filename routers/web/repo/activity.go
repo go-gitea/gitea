@@ -23,7 +23,6 @@ func Activity(ctx *context.Context) {
 	ctx.Data["PageIsActivity"] = true
 
 	ctx.Data["PageIsPulse"] = true
-	ctx.Data["PageIsContributors"] = false
 
 	ctx.Data["Period"] = ctx.Params("period")
 

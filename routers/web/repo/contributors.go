@@ -20,7 +20,6 @@ func Contributors(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.contributors")
 
 	ctx.Data["PageIsActivity"] = true
-	ctx.Data["PageIsPulse"] = false
 	ctx.Data["PageIsContributors"] = true
 
 	ctx.PageData["contributionType"] = "commits"
