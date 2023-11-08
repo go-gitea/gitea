@@ -27,14 +27,14 @@
 	{{end}}
 
 	{{if .ContextUser.IsOrganization}}
-		{{if .IsOrganizationMember}}
-			<a class="item" href="{{$.OrgLink}}/members">
+		{{if .NumMembers}}
+			<a class="{{if $.PageIsOrgMembers}}active {{end}}item" href="{{$.OrgLink}}/members">
 				{{svg "octicon-person"}}&nbsp;{{ctx.Locale.Tr "org.members"}}
-				{{if .NumMembers}}
-					<div class="ui small label">{{.NumMembers}}</div>
-				{{end}}
+				<div class="ui small label">{{.NumMembers}}</div>
 			</a>
-			<a class="item" href="{{$.OrgLink}}/teams">
+		{{end}}
+		{{if .IsOrganizationMember}}
+			<a class="{{if $.PageIsOrgTeams}}active {{end}}item" href="{{$.OrgLink}}/teams">
 				{{svg "octicon-people"}}&nbsp;{{ctx.Locale.Tr "org.teams"}}
 				{{if .NumTeams}}
 					<div class="ui small label">{{.NumTeams}}</div>

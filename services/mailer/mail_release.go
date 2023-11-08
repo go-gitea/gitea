@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 )
 
@@ -69,13 +68,10 @@ func mailNewRelease(ctx context.Context, lang string, tos []string, rel *repo_mo
 
 	subject := locale.Tr("mail.release.new.subject", rel.TagName, rel.Repo.FullName())
 	mailMeta := map[string]any{
+		"locale":   locale,
 		"Release":  rel,
 		"Subject":  subject,
 		"Language": locale.Language(),
-		// helper
-		"locale":    locale,
-		"Str2html":  templates.Str2html,
-		"DotEscape": templates.DotEscape,
 	}
 
 	var mailBody bytes.Buffer
@@ -95,5 +91,5 @@ func mailNewRelease(ctx context.Context, lang string, tos []string, rel *repo_mo
 		msgs = append(msgs, msg)
 	}
 
-	SendAsyncs(msgs)
+	SendAsync(msgs...)
 }
