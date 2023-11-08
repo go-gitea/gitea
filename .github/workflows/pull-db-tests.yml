@@ -37,6 +37,14 @@ jobs:
           MINIO_ROOT_PASSWORD: 12345678
         ports:
           - "9000:9000"
+      simplesaml:
+        image: kristophjunge/test-saml-idp
+        ports:
+          - "8080:8080"
+        env:
+          - SIMPLESAMLPHP_SP_ENTITY_ID=http://localhost:3000/user/saml/test-sp/metadata
+          - SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3000/user/saml/test-sp/acs
+          - SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost:3000/user/saml/test-sp/acs
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
@@ -62,6 +70,15 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
+    services:
+      simplesaml:
+        image: kristophjunge/test-saml-idp
+        ports:
+          - "8080:8080"
+        env:
+          - SIMPLESAMLPHP_SP_ENTITY_ID=http://localhost:3000/user/saml/test-sp/metadata
+          - SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3000/user/saml/test-sp/acs
+          - SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost:3000/user/saml/test-sp/acs
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
@@ -163,6 +180,14 @@ jobs:
           - "143:143"
           - "587:587"
           - "993:993"
+      simplesaml:
+        image: kristophjunge/test-saml-idp
+        ports:
+          - "8080:8080"
+        env:
+          - SIMPLESAMLPHP_SP_ENTITY_ID=http://localhost:3000/user/saml/test-sp/metadata
+          - SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3000/user/saml/test-sp/acs
+          - SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost:3000/user/saml/test-sp/acs
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
@@ -196,6 +221,14 @@ jobs:
           SA_PASSWORD: MwantsaSecurePassword1
         ports:
           - "1433:1433"
+      simplesaml:
+        image: kristophjunge/test-saml-idp
+        ports:
+          - "8080:8080"
+        env:
+          - SIMPLESAMLPHP_SP_ENTITY_ID=http://localhost:3000/user/saml/test-sp/metadata
+          - SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3000/user/saml/test-sp/acs
+          - SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost:3000/user/saml/test-sp/acs
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
