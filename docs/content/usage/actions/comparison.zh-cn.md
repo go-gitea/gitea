@@ -132,34 +132,3 @@ Gitea Actions目前不支持此功能。
 
 不检查上下文可用性，因此您可以在更多地方使用env上下文。
 请参阅[上下文可用性](https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability)。
-
-## 已知问题
-
-### `docker/build-push-action@v4`
-
-请参阅[act_runner#119](https://gitea.com/gitea/act_runner/issues/119#issuecomment-738294)。
-
-`ACTIONS_RUNTIME_TOKEN`在Gitea Actions中是一个随机字符串，而不是JWT。
-但是`DOCKER/BUILD-PUSH-ACTION@V4尝试将令牌解析为JWT，并且不处理错误，因此Job失败。
-
-有两种解决方法：
-
-手动将`ACTIONS_RUNTIME_TOKEN`设置为空字符串，例如：
-
-``` yml
-- name: Build and push
-  uses: docker/build-push-action@v4
-  env:
-    ACTIONS_RUNTIME_TOKEN: ''
-  with:
-...
-```
-
-该问题已在较新的[提交](https://gitea.com/docker/build-push-action/commit/d8823bfaed2a82c6f5d4799a2f8e86173c461aba?style=split&whitespace=show-all#diff-1af9a5bdf96ddff3a2f3427ed520b7005e9564ad)中修复，但尚未发布。因此，您可以通过指定分支名称来使用最新版本，例如：
-
-``` yml
-- name: Build and push
-  uses: docker/build-push-action@master
-  with:
-...
-```
