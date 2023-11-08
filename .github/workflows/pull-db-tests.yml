@@ -42,9 +42,9 @@ jobs:
         ports:
           - "8080:8080"
         env:
-          SIMPLESAMLPHP_SP_ENTITY_ID=http://localhost:3000/user/saml/test-sp/metadata
-          SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3000/user/saml/test-sp/acs
-          SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost:3000/user/saml/test-sp/acs
+          SIMPLESAMLPHP_SP_ENTITY_ID: http://localhost:3000/user/saml/test-sp/metadata
+          SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE: http://localhost:3000/user/saml/test-sp/acs
+          SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE: http://localhost:3000/user/saml/test-sp/acs
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
@@ -76,9 +76,9 @@ jobs:
         ports:
           - "8080:8080"
         env:
-          SIMPLESAMLPHP_SP_ENTITY_ID=http://localhost:3000/user/saml/test-sp/metadata
-          SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3000/user/saml/test-sp/acs
-          SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost:3000/user/saml/test-sp/acs
+          SIMPLESAMLPHP_SP_ENTITY_ID: http://localhost:3000/user/saml/test-sp/metadata
+          SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE: http://localhost:3000/user/saml/test-sp/acs
+          SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE: http://localhost:3000/user/saml/test-sp/acs
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
@@ -185,9 +185,9 @@ jobs:
         ports:
           - "8080:8080"
         env:
-          SIMPLESAMLPHP_SP_ENTITY_ID=http://localhost:3000/user/saml/test-sp/metadata
-          SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3000/user/saml/test-sp/acs
-          SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost:3000/user/saml/test-sp/acs
+          SIMPLESAMLPHP_SP_ENTITY_ID: http://localhost:3000/user/saml/test-sp/metadata
+          SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE: http://localhost:3000/user/saml/test-sp/acs
+          SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE: http://localhost:3000/user/saml/test-sp/acs
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
@@ -226,9 +226,9 @@ jobs:
         ports:
           - "8080:8080"
         env:
-          SIMPLESAMLPHP_SP_ENTITY_ID=http://localhost:3000/user/saml/test-sp/metadata
-          SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3000/user/saml/test-sp/acs
-          SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost:3000/user/saml/test-sp/acs
+          SIMPLESAMLPHP_SP_ENTITY_ID: http://localhost:3000/user/saml/test-sp/metadata
+          SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE: http://localhost:3000/user/saml/test-sp/acs
+          SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE: http://localhost:3000/user/saml/test-sp/acs
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
