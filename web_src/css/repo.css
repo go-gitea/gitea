@@ -2131,7 +2131,7 @@
 .language-stats-details .item {
   height: 30px;
   line-height: var(--line-height-default);
-  display: inline-block;
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.25em;
