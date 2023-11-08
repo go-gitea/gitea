@@ -21,13 +21,14 @@ func CodeFrequency(ctx *context.Context) {
 
 	ctx.Data["PageIsActivity"] = true
 	ctx.Data["PageIsCodeFrequency"] = true
+	ctx.PageData["repoLink"] = ctx.Repo.RepoLink
 
 	ctx.HTML(http.StatusOK, tplCodeFrequency)
 }
 
 // CodeFrequencyData returns JSON of code frequency data
 func CodeFrequencyData(ctx *context.Context) {
-	if contributorStats, err := contributors_service.GetContributorStats(ctx, ctx.Repo.Repository, ctx.Repo.CommitID); err != nil {
+	if contributorStats, err := contributors_service.GetContributorStats(ctx, ctx.Cache, ctx.Repo.Repository, ctx.Repo.CommitID); err != nil {
 		ctx.ServerError("GetCodeFrequencyData", err)
 	} else {
 		ctx.JSON(http.StatusOK, contributorStats["total"].Weeks)

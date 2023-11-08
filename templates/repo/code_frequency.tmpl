@@ -1,3 +1,9 @@
 {{if .Permission.CanRead $.UnitTypeCode}}
-  <h1>Code Frequency</h1>
+	<div id="repo-code-frequency-chart"
+		data-locale-loading-title="{{ctx.Locale.Tr "repo.code_frequency.loading_title"}}"
+		data-locale-loading-title-failed="{{ctx.Locale.Tr "repo.code_frequency.loading_title_failed"}}"
+		data-locale-loading-info="{{ctx.Locale.Tr "repo.code_frequency.loading_info"}}"
+		data-locale-component-failed-to-load="{{ctx.Locale.Tr "repo.code_frequency.component_failed_to_load"}}"
+	>
+	</div>
 {{end}}
