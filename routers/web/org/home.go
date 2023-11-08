@@ -159,12 +159,12 @@ func Home(ctx *context.Context) {
 
 	profileGitRepo, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx)
 	defer profileClose()
-	calcOrgProfileReadme(ctx, profileGitRepo, profileReadmeBlob)
+	prepareOrgProfileReadme(ctx, profileGitRepo, profileReadmeBlob)
 
 	ctx.HTML(http.StatusOK, tplOrgHome)
 }
 
-func calcOrgProfileReadme(ctx *context.Context, profileGitRepo *git.Repository, profileReadme *git.Blob) {
+func prepareOrgProfileReadme(ctx *context.Context, profileGitRepo *git.Repository, profileReadme *git.Blob) {
 	if profileGitRepo == nil || profileReadme == nil {
 		ctx.Data["HasProfileReadme"] = false
 		return
