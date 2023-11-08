@@ -272,6 +272,12 @@ func (g *Manager) InformCleanup() {
 	g.createServerWaitGroup.Done()
 }
 
+// Should we need to create multile listener for one type (e.g. SSH built-in server),
+// the number of expected routines needs to be increased accordingly.
+func (g *Manager) IncreaseListenerCountBy(extraNumberOfServersToCreate int) {
+	g.createServerWaitGroup.Add(extraNumberOfServersToCreate)
+}
+
 // Done allows the manager to be viewed as a context.Context, it returns a channel that is closed when the server is finished terminating
 func (g *Manager) Done() <-chan struct{} {
 	return g.managerCtx.Done()

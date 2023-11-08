@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -22,11 +23,16 @@ func Init() error {
 	}
 
 	if setting.SSH.StartBuiltinServer {
-		Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
-		log.Info("SSH server started on %s. Cipher list (%v), key exchange algorithms (%v), MACs (%v)",
-			net.JoinHostPort(setting.SSH.ListenHost, strconv.Itoa(setting.SSH.ListenPort)),
-			setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs,
-		)
+		if len(setting.SSH.ListenHost) > 1 {
+			graceful.GetManager().IncreaseListenerCountBy(len(setting.SSH.ListenHost) - 1)
+		}
+		for _, listenHost := range setting.SSH.ListenHost {
+			Listen(listenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
+			log.Info("SSH server started on %s. Cipher list (%v), key exchange algorithms (%v), MACs (%v)",
+				net.JoinHostPort(listenHost, strconv.Itoa(setting.SSH.ListenPort)),
+				setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs,
+			)
+		}
 		return nil
 	}
 

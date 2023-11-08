@@ -25,7 +25,7 @@ var SSH = struct {
 	Domain                                string             `ini:"SSH_DOMAIN"`
 	Port                                  int                `ini:"SSH_PORT"`
 	User                                  string             `ini:"SSH_USER"`
-	ListenHost                            string             `ini:"SSH_LISTEN_HOST"`
+	ListenHost                            []string           `ini:"SSH_LISTEN_HOST"`
 	ListenPort                            int                `ini:"SSH_LISTEN_PORT"`
 	RootPath                              string             `ini:"SSH_ROOT_PATH"`
 	ServerCiphers                         []string           `ini:"SSH_SERVER_CIPHERS"`
