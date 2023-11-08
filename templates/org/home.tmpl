@@ -38,7 +38,7 @@
 	<div class="ui container">
 		<div class="ui mobile reversed stackable grid">
 			<div class="ui {{if .ShowMemberAndTeamTab}}eleven wide{{end}} column">
-				{{if .HasProfileReadme}}
+				{{if .ProfileReadme}}
 					<div id="readme_profile" class="markup">{{.ProfileReadme | Str2html}}</div>
 				{{end}}
 
