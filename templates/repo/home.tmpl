@@ -156,6 +156,39 @@
 						</div>
 					</div>
 					{{end}}
+
+					{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) .LanguageStats}}
+					<div class="flex-item">
+						<div class="flex-item-main">
+							<div class="flex-item-title">
+								{{ctx.Locale.Tr "repo.repo_lang"}}
+							</div>
+
+							<div class="flex-item-body">
+								<div class="language-stats">
+									{{range .LanguageStats}}
+									<div class="bar" style="width: {{.Percentage}}%; background-color: {{.Color}}" data-tooltip-placement="top" data-tooltip-content={{.Language}} data-tooltip-follow-cursor="horizontal"></div>
+									{{end}}
+								</div>
+								<div class="language-stats-details">
+									{{range .LanguageStats}}
+									<div class="item">
+										<i class="color-icon" style="background-color: {{.Color}}"></i>
+										<span class="gt-font-semibold gt-dib">
+											{{if eq .Language "other"}}
+												{{ctx.Locale.Tr "repo.language_other"}}
+											{{else}}
+												{{.Language}}
+											{{end}}
+										</span>
+										{{.Percentage}}%
+									</div>
+									{{end}}
+								</div>
+							</div>
+						</div>
+					</div>
+					{{end}}
 				</div>
 			</div>
 		</div>

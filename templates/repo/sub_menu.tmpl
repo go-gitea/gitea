@@ -20,27 +20,5 @@
 			</span>
 		{{end}}
 	</div>
-	{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) .LanguageStats}}
-	<div class="ui segment sub-menu language-stats-details gt-hidden">
-		{{range .LanguageStats}}
-		<div class="item">
-			<i class="color-icon" style="background-color: {{.Color}}"></i>
-			<span class="gt-font-semibold">
-				{{if eq .Language "other"}}
-					{{ctx.Locale.Tr "repo.language_other"}}
-				{{else}}
-					{{.Language}}
-				{{end}}
-			</span>
-			{{.Percentage}}%
-		</div>
-		{{end}}
-	</div>
-	<a class="ui segment language-stats show-panel toggle" data-panel=".repository-summary > .sub-menu">
-		{{range .LanguageStats}}
-		<div class="bar" style="width: {{.Percentage}}%; background-color: {{.Color}}" data-tooltip-placement="top" data-tooltip-content={{.Language}} data-tooltip-follow-cursor="horizontal"></div>
-		{{end}}
-	</a>
-	{{end}}
 </div>
 {{end}}
