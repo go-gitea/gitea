@@ -1,1 +1,9 @@
-[] # empty
+-
+  id: 1
+  type: 8
+  name: test-sp
+  is_active: 1
+  is_sync_enabled: 0
+  cfg: {"IdentityProviderMetadata":"","IdentityProviderMetadataURL":"http://localhost:8080/simplesaml/saml2/idp/metadata.php","InsecureSkipAssertionSignatureValidation":false,"NameIDFormat":4,"ServiceProviderCertificate":"","ServiceProviderIssuer":"","ServiceProviderPrivateKey":"","SignRequests":false,"CallbackURL":"","EmailAssertionKey":"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress","NameAssertionKey":"http://schemas.xmlsoap.org/claims/CommonName","UsernameAssertionKey":"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"}
+  created_unix: 1697568527
+  updated_unix: 1699288881
