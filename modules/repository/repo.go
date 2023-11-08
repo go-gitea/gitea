@@ -159,8 +159,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			// note: this will greatly improve release (tag) sync
 			// for pull-mirrors with many tags
 			repo.IsMirror = opts.Mirror
-			tagOnlyReleases := true
-			if err = SyncReleasesWithTags(ctx, repo, gitRepo, tagOnlyReleases); err != nil {
+			if err = SyncReleasesWithTags(ctx, repo, gitRepo, true); err != nil {
 				log.Error("Failed to synchronize tags to releases for repository: %v", err)
 			}
 		}
