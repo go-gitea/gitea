@@ -716,14 +716,11 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 				return
 			}
 			defer dataRc.Close()
-			buf := make([]byte, 1024)
-			n, err := util.ReadAtMost(dataRc, buf)
+			ctx.PageData["citationFileContent"], err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
 			if err != nil {
-				ctx.ServerError("ReadAtMost", err)
+				ctx.ServerError("GetBlobContent", err)
 				return
 			}
-			buf = buf[:n]
-			ctx.PageData["citationFileContent"] = string(buf)
 			break
 		}
 	}
