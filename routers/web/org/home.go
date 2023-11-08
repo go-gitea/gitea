@@ -166,7 +166,6 @@ func Home(ctx *context.Context) {
 
 func prepareOrgProfileReadme(ctx *context.Context, profileGitRepo *git.Repository, profileReadme *git.Blob) {
 	if profileGitRepo == nil || profileReadme == nil {
-		ctx.Data["HasProfileReadme"] = false
 		return
 	}
 
@@ -181,7 +180,6 @@ func prepareOrgProfileReadme(ctx *context.Context, profileGitRepo *git.Repositor
 			log.Error("failed to RenderString: %v", err)
 		} else {
 			ctx.Data["ProfileReadme"] = profileContent
-			ctx.Data["HasProfileReadme"] = true
 		}
 	}
 }
