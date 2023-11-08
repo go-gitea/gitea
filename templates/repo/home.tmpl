@@ -5,7 +5,7 @@
 		{{template "base/alert" .}}
 		{{template "repo/code/recently_pushed_new_branches" .}}
 		{{if and (not .HideRepoInfo) (not .IsBlame)}}
-		<div class="ui repo-description">
+		<div class="ui repo-description gt-word-break">
 			<div id="repo-desc" class="gt-font-16">
 				{{$description := .Repository.DescriptionHTML $.Context}}
 				{{if $description}}<span class="description">{{$description | RenderCodeBlock}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{ctx.Locale.Tr "repo.no_desc"}}</span>{{end}}
