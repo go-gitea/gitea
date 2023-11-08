@@ -11,7 +11,6 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -74,41 +73,8 @@ func SignInSAMLCallback(ctx *context.Context) {
 
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 			return
-		} else if !setting.Service.AllowOnlyInternalRegistration && setting.SAMLServiceProvider.EnableAutoRegistration {
-			var missingFields []string
-			if gothUser.UserID == "" {
-				missingFields = append(missingFields, "nameID")
-			}
-			if gothUser.Email == "" {
-				missingFields = append(missingFields, "email")
-			}
-			if gothUser.NickName == "" {
-				missingFields = append(missingFields, "nickname")
-			}
-			if len(missingFields) > 0 {
-				log.Error("SAML Provider %s returned empty or missing fields: %s", loginSource.Name, missingFields)
-				ctx.ServerError("CreateUser", fmt.Errorf("SAML Provider %s returned empty or missing fields: %s", loginSource.Name, missingFields))
-				return
-			}
-			u = &user_model.User{
-				Name:        getUserName(&gothUser),
-				FullName:    gothUser.Name,
-				Email:       gothUser.Email,
-				LoginType:   auth.OAuth2,
-				LoginSource: loginSource.ID,
-				LoginName:   gothUser.UserID,
-			}
-
-			overwriteDefault := &user_model.CreateUserOverwriteOptions{
-				IsActive: util.OptionalBoolOf(!setting.SAMLServiceProvider.RegisterEmailConfirm && !setting.Service.RegisterManualConfirm),
-			}
-
-			// TODO add account linking setting to match oauth?
-			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, overwriteDefault, &gothUser, true, auth.OAuth2) {
-				// error already handled
-				return
-			}
-			// TODO group mapping
+		} else if !setting.Service.AllowOnlyInternalRegistration && false {
+			// TODO: allow auto registration from saml users (OAuth2 uses the following setting.OAuth2Client.EnableAutoRegistration)
 		} else {
 			// no existing user is found, request attach or new account
 			showLinkingLogin(ctx, gothUser, auth.SAML)
