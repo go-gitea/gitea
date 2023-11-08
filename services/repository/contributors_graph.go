@@ -47,7 +47,7 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository, revis
 		return nil, fmt.Errorf("ExtendedCommitStats: %w", err)
 	}
 
-	layout := "2006-01-02"
+	layout := time.DateOnly
 	initialCommitDate := extendedCommitStats[0].Author.Date
 
 	startingSunday, _ := util.FindLastSundayBeforeDate(initialCommitDate)

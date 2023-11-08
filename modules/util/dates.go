@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const layout = "2006-01-02"
+const layout = time.DateOnly
 
 func ListSundaysBetween(startStr, endStr string) ([]int64, error) {
 	startDate, err := time.Parse(layout, startStr)
