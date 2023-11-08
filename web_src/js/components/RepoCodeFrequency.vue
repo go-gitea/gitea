@@ -22,7 +22,6 @@ import {
   fillEmptyStartDaysWithZeroes,
 } from '../utils/time.js';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
-import $ from 'jquery';
 
 const {pageData} = window.config;
 
@@ -106,8 +105,8 @@ export default {
             pointRadius: 0,
             pointHitRadius: 0,
             fill: true,
-            label: "Additions",
-            backgroundColor: colors["additions"],
+            label: 'Additions',
+            backgroundColor: colors['additions'],
             borderWidth: 0,
             tension: 0.3,
           },
@@ -116,15 +115,14 @@ export default {
             pointRadius: 0,
             pointHitRadius: 0,
             fill: true,
-            label: "Deletions",
-            backgroundColor: colors["deletions"],
+            label: 'Deletions',
+            backgroundColor: colors['deletions'],
             borderWidth: 0,
             tension: 0.3,
           },
         ],
       };
     },
-
 
     getOptions() {
       return {
@@ -160,11 +158,11 @@ export default {
     },
   },
 };
-  </script>
+</script>
 <template>
   <div>
     <div class="ui header gt-df gt-ac gt-sb">
-      {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: `Code frequency over the history of ${this.repoLink.slice(1)}` }}
+      {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: `Code frequency over the history of ${repoLink.slice(1)}` }}
     </div>
     <div class="gt-df ui segment main-graph">
       <div v-if="isLoading || errorText !== ''" class="gt-tc gt-m-auto">
