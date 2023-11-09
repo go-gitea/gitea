@@ -33,7 +33,7 @@
 				</div>
 			</div>
 
-			<div class="flex-item-body gt-mt-4">
+			<div class="flex-item-body gt-mt-4 gt-mb-4">
 				<div class="gt-df gt-ac gt-fw gt-gap-2" id="repo-topics">
 					{{range .Topics}}<a class="ui repo-topic large label topic gt-m-0" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
 					{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<button id="manage_topic" class="btn interact-fg gt-font-12">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>{{end}}
@@ -59,7 +59,7 @@
 			</div>
 
 			{{if .ReadmeExist}}
-			<div class="flex-item-body gt-mt-4">
+			<div class="flex-item-body">
 				<a class="gt-df gt-ac gt-gap-3 muted" href="{{.TreeLink}}/{{.FileName}}">
 					{{svg "octicon-book"}}{{ctx.Locale.Tr "readme"}}
 				</a>
