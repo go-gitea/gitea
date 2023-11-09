@@ -84,7 +84,7 @@ func loadSecurityData(ctx *context.Context) {
 	// map the provider display name with the AuthSource
 	sources := make(map[*auth_model.Source]string)
 	for _, externalAccount := range accountLinks {
-		if authSource, err := auth_model.GetSourceByID(ctx, externalAccount.LoginSourceID); err == nil && authSource.IsActive {
+		if authSource, err := auth_model.GetSourceByID(ctx, externalAccount.LoginSourceID); err == nil {
 			var providerDisplayName string
 
 			type DisplayNamed interface {
