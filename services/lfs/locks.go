@@ -126,7 +126,7 @@ func GetListLockHandler(ctx *context.Context) {
 		lockListAPI[i] = convert.ToLFSLock(ctx, l)
 	}
 	if limit > 0 && len(lockList) == limit {
-		next = strconv.Itoa(cursor + 1)
+		next = strconv.Itoa(cursor + limit)
 	}
 	ctx.JSON(http.StatusOK, api.LFSLockList{
 		Locks: lockListAPI,
@@ -259,7 +259,7 @@ func VerifyLockHandler(ctx *context.Context) {
 	}
 	next := ""
 	if limit > 0 && len(lockList) == limit {
-		next = strconv.Itoa(cursor + 1)
+		next = strconv.Itoa(cursor + limit)
 	}
 	lockOursListAPI := make([]*api.LFSLock, 0, len(lockList))
 	lockTheirsListAPI := make([]*api.LFSLock, 0, len(lockList))
