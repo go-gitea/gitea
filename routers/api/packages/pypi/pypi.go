@@ -5,6 +5,7 @@ package pypi
 
 import (
 	"encoding/hex"
+	"errors"
 	"io"
 	"net/http"
 	"regexp"
@@ -16,6 +17,7 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	pypi_module "code.gitea.io/gitea/modules/packages/pypi"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -175,10 +177,12 @@ func UploadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		switch err {
-		case packages_model.ErrDuplicatePackageFile:
+		switch {
+		case errors.Is(err, util.ErrAlreadyExist):
 			apiError(ctx, http.StatusConflict, err)
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+		case errors.Is(err, util.ErrInvalidArgument):
+			apiError(ctx, http.StatusForbidden, err)
+		case errors.Is(err, util.ErrPermissionDenied):
 			apiError(ctx, http.StatusForbidden, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)

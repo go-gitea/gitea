@@ -5,6 +5,7 @@ package conan
 
 import (
 	std_ctx "context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -21,6 +22,7 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	conan_module "code.gitea.io/gitea/modules/packages/conan"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -413,10 +415,12 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 		pfci,
 	)
 	if err != nil {
-		switch err {
-		case packages_model.ErrDuplicatePackageFile:
+		switch {
+		case errors.Is(err, util.ErrAlreadyExist):
 			apiError(ctx, http.StatusConflict, err)
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+		case errors.Is(err, util.ErrInvalidArgument):
+			apiError(ctx, http.StatusForbidden, err)
+		case errors.Is(err, util.ErrPermissionDenied):
 			apiError(ctx, http.StatusForbidden, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)

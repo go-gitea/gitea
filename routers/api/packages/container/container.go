@@ -546,17 +546,19 @@ func UploadManifest(ctx *context.Context) {
 	digest, err := processManifest(ctx, mci, buf)
 	if err != nil {
 		var namedError *namedError
-		if errors.As(err, &namedError) {
+		switch {
+		case errors.As(err, &namedError):
 			apiErrorDefined(ctx, namedError)
-		} else if errors.Is(err, container_model.ErrContainerBlobNotExist) {
+		case errors.Is(err, container_model.ErrContainerBlobNotExist):
 			apiErrorDefined(ctx, errBlobUnknown)
-		} else {
-			switch err {
-			case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-				apiError(ctx, http.StatusForbidden, err)
-			default:
-				apiError(ctx, http.StatusInternalServerError, err)
-			}
+		case errors.Is(err, util.ErrAlreadyExist):
+			apiError(ctx, http.StatusConflict, err)
+		case errors.Is(err, util.ErrInvalidArgument):
+			apiError(ctx, http.StatusForbidden, err)
+		case errors.Is(err, util.ErrPermissionDenied):
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
 		}
 		return
 	}

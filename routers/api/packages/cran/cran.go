@@ -207,10 +207,12 @@ func uploadPackageFile(ctx *context.Context, compositeKey string, properties map
 		},
 	)
 	if err != nil {
-		switch err {
-		case packages_model.ErrDuplicatePackageFile:
+		switch {
+		case errors.Is(err, util.ErrAlreadyExist):
 			apiError(ctx, http.StatusConflict, err)
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+		case errors.Is(err, util.ErrInvalidArgument):
+			apiError(ctx, http.StatusForbidden, err)
+		case errors.Is(err, util.ErrPermissionDenied):
 			apiError(ctx, http.StatusForbidden, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
