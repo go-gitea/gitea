@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	container_module "code.gitea.io/gitea/modules/packages/container"
@@ -119,17 +118,6 @@ func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageI
 			if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository, strings.ToLower(pi.Owner.LowerName+"/"+pi.Name)); err != nil {
 				log.Error("Error setting package property: %v", err)
 				return err
-			}
-
-			repository, err := repo_model.GetRepositoryByOwnerAndName(
-				ctx, pi.Owner.Name, p.Name,
-			)
-			if err == nil {
-				err = packages_model.SetRepositoryLink(ctx, p.ID, repository.ID)
-				if err != nil {
-					log.Error("Error linking source code repo to container: %v", err)
-					return err
-				}
 			}
 		}
 

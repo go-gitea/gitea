@@ -12,6 +12,9 @@ import (
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	conda_model "code.gitea.io/gitea/models/packages/conda"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -205,6 +208,26 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
+	repo, err := repo_model.GetRepositoryByURL(ctx, pck.VersionMetadata.RepositoryURL)
+	if err == nil {
+		canWrite := repo.OwnerID == ctx.Doer.ID
+
+		if !canWrite {
+			perms, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+			if err != nil {
+				apiError(ctx, http.StatusInternalServerError, err)
+				return
+			}
+
+			canWrite = perms.CanWrite(unit.TypePackages)
+		}
+
+		if !canWrite {
+			apiError(ctx, http.StatusForbidden, "no permission to upload this package")
+			return
+		}
+	}
+
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -228,7 +251,7 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+	pv, _, err := packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
@@ -269,6 +292,13 @@ func UploadPackageFile(ctx *context.Context) {
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
 		return
+	}
+
+	if repo != nil {
+		if err := packages_model.SetRepositoryLink(ctx, pv.PackageID, repo.ID); err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
 	}
 
 	ctx.Status(http.StatusCreated)
