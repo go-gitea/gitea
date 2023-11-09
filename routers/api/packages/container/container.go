@@ -551,11 +551,7 @@ func UploadManifest(ctx *context.Context) {
 			apiErrorDefined(ctx, namedError)
 		case errors.Is(err, container_model.ErrContainerBlobNotExist):
 			apiErrorDefined(ctx, errBlobUnknown)
-		case errors.Is(err, util.ErrAlreadyExist):
-			apiError(ctx, http.StatusConflict, err)
 		case errors.Is(err, util.ErrInvalidArgument):
-			apiError(ctx, http.StatusForbidden, err)
-		case errors.Is(err, util.ErrPermissionDenied):
 			apiError(ctx, http.StatusForbidden, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)

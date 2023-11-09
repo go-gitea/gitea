@@ -212,8 +212,6 @@ func uploadPackageFile(ctx *context.Context, compositeKey string, properties map
 			apiError(ctx, http.StatusConflict, err)
 		case errors.Is(err, util.ErrInvalidArgument):
 			apiError(ctx, http.StatusForbidden, err)
-		case errors.Is(err, util.ErrPermissionDenied):
-			apiError(ctx, http.StatusForbidden, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
