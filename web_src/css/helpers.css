@@ -281,9 +281,9 @@ only use:
 .gt-hidden { display: none !important; }
 
 @media (max-width: 767.98px) {
-  .gt-hidden-mobile { display: none !important; }
+  .gt-hidden-in-mobile { display: none !important; }
 }
 
 @media (min-width: 767.98px) {
-  .gt-hidden-desktop { display: none !important; }
+  .gt-hidden-in-desktop { display: none !important; }
 }

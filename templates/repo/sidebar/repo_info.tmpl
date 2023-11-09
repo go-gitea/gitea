@@ -1,28 +1,30 @@
-{{if and (not .HideRepoInfo) (not .IsBlame)}}
-	<div class="flex-item gt-hidden-mobile">
+{{if and (not .ctxData.HideRepoInfo) (not .ctxData.IsBlame)}}
+	<div class="flex-item {{if .HiddenInMobileView}}gt-hidden-in-mobile{{else}}gt-hidden-in-desktop{{end}}">
 		<div class="flex-item-main">
-			<div class="flex-item-title">
-				{{ctx.Locale.Tr "repo.repo_desc"}}
-			</div>
+			{{if .HiddenInMobileView}}
+				<div class="flex-item-title">
+					{{ctx.Locale.Tr "repo.repo_desc"}}
+				</div>
+			{{end}}
 
-			<div class="flex-item-body gt-mt-4">
+			<div class="flex-item-body {{if .HiddenInMobileView}}gt-mt-4{{end}}">
 				<div class="ui repo-description gt-word-break">
 					<div id="repo-desc" class="gt-font-16">
-						{{$description := .Repository.DescriptionHTML $.Context}}
-						{{if $description}}<span class="description gt-word-break">{{$description | RenderCodeBlock}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{ctx.Locale.Tr "repo.no_desc"}}</span>{{end}}
-						<a class="link" href="{{.Repository.Website}}">{{.Repository.Website}}</a>
+						{{$description := .ctxData.Repository.DescriptionHTML $.ctxData.Context}}
+						{{if $description}}<span class="description gt-word-break">{{$description | RenderCodeBlock}}</span>{{else if .ctxData.IsRepositoryAdmin}}<span class="no-description text-italic">{{ctx.Locale.Tr "repo.no_desc"}}</span>{{end}}
+						<a class="link" href="{{.ctxData.Repository.Website}}">{{.ctxData.Repository.Website}}</a>
 					</div>
 
-					{{if .RepoSearchEnabled}}
+					{{if .ctxData.RepoSearchEnabled}}
 						<div class="ui repo-search">
-							<form class="ui form ignore-dirty" action="{{.RepoLink}}/search" method="get">
+							<form class="ui form ignore-dirty" action="{{.ctxData.RepoLink}}/search" method="get">
 								<div class="field">
-									<div class="ui small action input{{if .CodeIndexerUnavailable}} disabled left icon{{end}}"{{if .CodeIndexerUnavailable}} data-tooltip-content="{{ctx.Locale.Tr "repo.search.code_search_unavailable"}}"{{end}}>
-										<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable}} disabled{{end}} placeholder="{{ctx.Locale.Tr "repo.search.search_repo"}}">
-										{{if .CodeIndexerUnavailable}}
+									<div class="ui small action input{{if .ctxData.CodeIndexerUnavailable}} disabled left icon{{end}}"{{if .ctxData.CodeIndexerUnavailable}} data-tooltip-content="{{ctx.Locale.Tr "repo.search.code_search_unavailable"}}"{{end}}>
+										<input name="q" value="{{.Keyword}}"{{if .ctxData.CodeIndexerUnavailable}} disabled{{end}} placeholder="{{ctx.Locale.Tr "repo.search.search_repo"}}">
+										{{if .ctxData.CodeIndexerUnavailable}}
 											<i class="icon">{{svg "octicon-alert"}}</i>
 										{{end}}
-										<button class="ui small icon button"{{if .CodeIndexerUnavailable}} disabled{{end}} type="submit">
+										<button class="ui small icon button"{{if .ctxData.CodeIndexerUnavailable}} disabled{{end}} type="submit">
 											{{svg "octicon-search"}}
 										</button>
 									</div>
@@ -35,15 +37,15 @@
 
 			<div class="flex-item-body gt-mt-4 gt-mb-4">
 				<div class="gt-df gt-ac gt-fw gt-gap-2" id="repo-topics">
-					{{range .Topics}}<a class="ui repo-topic large label topic gt-m-0" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
-					{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<button id="manage_topic" class="btn interact-fg gt-font-12">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>{{end}}
+					{{range .ctxData.Topics}}<a class="ui repo-topic large label topic gt-m-0" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
+					{{if and .ctxData.Permission.IsAdmin (not .ctxData.Repository.IsArchived)}}<button id="manage_topic" class="btn interact-fg gt-font-12">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>{{end}}
 				</div>
-				{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
+				{{if and .ctxData.Permission.IsAdmin (not .ctxData.Repository.IsArchived)}}
 				<div class="ui form gt-hidden gt-df gt-fc gt-mt-4" id="topic_edit">
 					<div class="field gt-f1 gt-mb-2">
 						<div class="ui fluid multiple search selection dropdown gt-fw" data-text-count-prompt="{{ctx.Locale.Tr "repo.topic.count_prompt"}}" data-text-format-prompt="{{ctx.Locale.Tr "repo.topic.format_prompt"}}">
-							<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.Topics)}},{{end}}{{end}}">
-							{{range .Topics}}
+							<input type="hidden" name="topics" value="{{range $i, $v := .ctxData.Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.ctxData.Topics)}},{{end}}{{end}}">
+							{{range .ctxData.Topics}}
 								{{/* keey the same layout as Fomantic UI generated labels */}}
 								<a class="ui label transition visible gt-cursor-default gt-dib" data-value="{{.Name}}">{{.Name}}{{svg "octicon-x" 16 "delete icon"}}</a>
 							{{end}}
@@ -52,21 +54,21 @@
 					</div>
 					<div>
 						<button class="ui basic button" id="cancel_topic_edit">{{ctx.Locale.Tr "cancel"}}</button>
-						<button class="ui primary button" id="save_topic" data-link="{{.RepoLink}}/topics">{{ctx.Locale.Tr "save"}}</button>
+						<button class="ui primary button" id="save_topic" data-link="{{.ctxData.RepoLink}}/topics">{{ctx.Locale.Tr "save"}}</button>
 					</div>
 				</div>
 				{{end}}
 			</div>
 
-			{{if .ReadmeExist}}
+			{{if and .ctxData.ReadmeExist .HiddenInMobileView}}
 			<div class="flex-item-body">
-				<a class="gt-df gt-ac gt-gap-3 muted" href="{{.TreeLink}}/{{.FileName}}">
+				<a class="gt-df gt-ac gt-gap-3 muted" href="{{.ctxData.TreeLink}}/{{.ctxData.FileName}}">
 					{{svg "octicon-book"}}{{ctx.Locale.Tr "readme"}}
 				</a>
 			</div>
 			{{end}}
 
-			{{if .CitiationExist}}
+			{{if .ctxData.CitiationExist}}
 			<div class="flex-item-body">
 				<a class="item" id="cite-repo-button">{{svg "octicon-cross-reference" 16 "gt-mr-3"}}{{ctx.Locale.Tr "repo.cite_this_repo"}}</a>
 			</div>
