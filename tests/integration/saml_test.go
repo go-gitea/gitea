@@ -29,10 +29,10 @@ import (
 func TestSAMLRegistration(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	samlURL := "simplesaml:8080"
+	samlURL := "127.0.0.1:8080"
 
 	if os.Getenv("CI") == "" {
-		// Make it possible to run tests against a local elasticsearch instance
+		// Make it possible to run tests against a local simplesaml instance
 		samlURL = os.Getenv("TEST_SIMPLESAML_URL")
 		if samlURL == "" {
 			t.Skip("TEST_SIMPLESAML_URL not set and not running in CI")
