@@ -129,7 +129,7 @@ var UI = struct {
 		Description: "Gitea (Git with a cup of tea) is a painless self-hosted Git service written in Go",
 		Keywords:    "go,git,self-hosted,gitea",
 	},
-	CommitLanguage: "en-US",
+	CommitLanguage: "auto",
 }
 
 func loadUIFrom(rootCfg ConfigProvider) {
@@ -151,4 +151,5 @@ func loadUIFrom(rootCfg ConfigProvider) {
 	for _, emoji := range UI.CustomEmojis {
 		UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
 	}
+	UI.CommitLanguage = sec.Key("COMMIT_LANGUAGE").Value()
 }

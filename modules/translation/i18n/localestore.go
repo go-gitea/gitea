@@ -122,6 +122,10 @@ func (store *localeStore) Close() error {
 func (l *locale) Tr(trKey string, trArgs ...any) string {
 	format := trKey
 
+	if trKey == "repo.editor.update" {
+		format = trKey
+	}
+
 	idx, ok := l.store.trKeyToIdxMap[trKey]
 	if ok {
 		if msg, ok := l.idxToMsgMap[idx]; ok {
@@ -134,6 +138,25 @@ func (l *locale) Tr(trKey string, trArgs ...any) string {
 		}
 	}
 
+	msg, err := Format(format, trArgs...)
+	if err != nil {
+		log.Error("Error whilst formatting %q in %s: %v", trKey, l.langName, err)
+	}
+	return msg
+}
+
+// TrC translates commit specific messages to commit language
+func (l *locale) TrC(trKey string, trArgs ...any) string {
+	format := trKey
+	if setting.UI.CommitLanguage == "auto" {
+		return l.Tr(trKey, trArgs)
+	} else if cl, ok := l.store.localeMap[setting.UI.CommitLanguage]; ok {
+		if idx, ok := cl.store.trKeyToIdxMap[trKey]; ok {
+			if msg, ok := cl.idxToMsgMap[idx]; ok {
+				format = msg
+			}
+		}
+	}
 	msg, err := Format(format, trArgs...)
 	if err != nil {
 		log.Error("Error whilst formatting %q in %s: %v", trKey, l.langName, err)

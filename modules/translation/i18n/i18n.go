@@ -12,6 +12,8 @@ var DefaultLocales = NewLocaleStore()
 type Locale interface {
 	// Tr translates a given key and arguments for a language
 	Tr(trKey string, trArgs ...any) string
+	// TrC translates a given key and arguments for a commit language
+	TrC(trKey string, trArgs ...any) string
 	// Has reports if a locale has a translation for a given key
 	Has(trKey string) bool
 }

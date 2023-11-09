@@ -54,10 +54,20 @@ func getSupportedDbTypeNames() (dbTypeNames []map[string]string) {
 	return dbTypeNames
 }
 
+func getCommitLangs() []string {
+	comLangs := []string{
+		"auto",
+		"en-US",
+	}
+	// comLangs = append(comLangs, "auto", "en-US")
+	return comLangs
+}
+
 // Contexter prepare for rendering installation page
 func Contexter() func(next http.Handler) http.Handler {
 	rnd := templates.HTMLRenderer()
 	dbTypeNames := getSupportedDbTypeNames()
+	comLangs := getCommitLangs()
 	envConfigKeys := setting.CollectEnvConfigKeys()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
@@ -76,6 +86,7 @@ func Contexter() func(next http.Handler) http.Handler {
 				"EnvConfigKeys":  envConfigKeys,
 				"CustomConfFile": setting.CustomConf,
 				"AllLangs":       translation.AllLangs(),
+				"CommitLangs":    comLangs,
 
 				"PasswordHashAlgorithms": hash.RecommendedHashAlgorithms,
 			})
@@ -162,7 +173,7 @@ func Install(ctx *context.Context) {
 	form.NoReplyAddress = setting.Service.NoReplyAddress
 	form.PasswordAlgorithm = hash.ConfigHashAlgorithm(setting.PasswordHashAlgo)
 
-	form.CommitLanguage = setting.UI.CommitLanguage
+	ctx.Data["CurCommitLang"] = setting.UI.CommitLanguage
 
 	middleware.AssignForm(form, ctx.Data)
 	ctx.HTML(http.StatusOK, tplInstall)

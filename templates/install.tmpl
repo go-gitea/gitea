@@ -319,9 +319,20 @@
 							<input id="admin_confirm_passwd" name="admin_confirm_passwd" autocomplete="new-password" type="password" value="{{.admin_confirm_passwd}}">
 						</div>
 					</details>
-					<div class="inline field">
-						<label for="commit_language">Commit Language</label>
-						<input id="commit_language" name="commit_language" value="{{.commit_language}}">
+					<div class="inline field required">
+							<label>{{ctx.Locale.Tr "install.commit_language"}}</label>
+							<div class="ui selection dropdown">
+								<input type="hidden" id="commit_language" name="commit_language" value="{{.CurCommitLang}}">
+								<div class="text">{{.CurCommitLang}}</div>
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								<div class="menu">
+									{{range .CommitLangs}}
+										<div class="item" data-value="{{.}}">{{.}}</div>
+									{{end}}
+								</div>
+							</div>
+
+						<!-- <input id="commit_language" name="commit_language" value="{{.commit_language}}"> -->
 					</div>
 
 					{{if .EnvConfigKeys}}
