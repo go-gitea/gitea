@@ -4,19 +4,23 @@
 package integration
 
 import (
+	"fmt"
 	"html"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/services/auth/source/saml"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -24,6 +28,36 @@ import (
 
 func TestSAMLRegistration(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+
+	samlURL := "simplesaml:8080"
+
+	if os.Getenv("CI") == "" {
+		// Make it possible to run tests against a local elasticsearch instance
+		samlURL = os.Getenv("TEST_SIMPLESAML_URL")
+		if samlURL == "" {
+			t.Skip("TEST_SIMPLESAML_URL not set and not running in CI")
+			return
+		}
+	}
+
+	assert.NoError(t, auth.CreateSource(db.DefaultContext, &auth.Source{
+		Type:          auth.SAML,
+		Name:          "test-sp",
+		IsActive:      true,
+		IsSyncEnabled: false,
+		Cfg: &saml.Source{
+			IdentityProviderMetadata:                 "",
+			IdentityProviderMetadataURL:              fmt.Sprintf("http://%s/simplesaml/saml2/idp/metadata.php", samlURL),
+			InsecureSkipAssertionSignatureValidation: false,
+			NameIDFormat:                             4,
+			ServiceProviderCertificate:               "",
+			ServiceProviderPrivateKey:                "",
+			SignRequests:                             false,
+			EmailAssertionKey:                        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
+			NameAssertionKey:                         "http://schemas.xmlsoap.org/claims/CommonName",
+			UsernameAssertionKey:                     "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+		},
+	}))
 
 	// check the saml metadata url
 	req := NewRequest(t, "GET", "/user/saml/test-sp/metadata")
@@ -62,7 +96,7 @@ func TestSAMLRegistration(t *testing.T) {
 		"AuthState": {html.UnescapeString(matches[1])},
 	}
 
-	req, err = http.NewRequest("POST", "http://localhost:8080/simplesaml/module.php/core/loginuserpass.php", strings.NewReader(form.Encode()))
+	req, err = http.NewRequest("POST", fmt.Sprintf("http://%s/simplesaml/module.php/core/loginuserpass.php", samlURL), strings.NewReader(form.Encode()))
 	assert.NoError(t, err)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
