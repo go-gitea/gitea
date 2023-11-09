@@ -357,7 +357,7 @@ export default {
           </a>
           <div class="gt-ml-3">
             <a :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
-            <p class="gt-font-12">
+            <p class="gt-font-12 gt-df gt-gap-2">
               <strong v-if="contributor.total_commits">{{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}</strong>
               <strong v-if="contributor.total_additions" class="text green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
               <strong v-if="contributor.total_deletions" class="text red">

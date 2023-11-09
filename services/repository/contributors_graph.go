@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"code.gitea.io/gitea/models/avatars"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -77,9 +78,13 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository, revis
 		}
 		if _, ok := contributorsCommitStats[userEmail]; !ok {
 			if u == nil {
+				avatarLink := avatars.GenerateEmailAvatarFastLink(ctx, userEmail, 0)
+				if avatarLink == "" {
+					avatarLink = unknownUserAvatarLink
+				}
 				contributorsCommitStats[userEmail] = &api.ContributorData{
 					Name:       v.Author.Name,
-					AvatarLink: unknownUserAvatarLink,
+					AvatarLink: avatarLink,
 					Weeks:      CreateWeeks(sundays),
 				}
 			} else {
