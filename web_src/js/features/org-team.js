@@ -15,7 +15,6 @@ export function initOrgTeamSettings() {
   });
 }
 
-
 export function initOrgTeamSearchRepoBox() {
   const $searchRepoBox = $('#search-repo-box');
   $searchRepoBox.search({

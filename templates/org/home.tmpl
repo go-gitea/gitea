@@ -38,6 +38,9 @@
 	<div class="ui container">
 		<div class="ui mobile reversed stackable grid">
 			<div class="ui {{if .ShowMemberAndTeamTab}}eleven wide{{end}} column">
+				{{if .ProfileReadme}}
+					<div id="readme_profile" class="markup">{{.ProfileReadme | Str2html}}</div>
+				{{end}}
 				{{template "explore/repo_search" .}}
 				{{template "explore/repo_list" .}}
 				{{template "base/paginate" .}}

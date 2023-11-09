@@ -37,6 +37,9 @@ const (
 	tplUserEdit base.TplName = "admin/user/edit"
 )
 
+// UserSearchDefaultAdminSort is the default sort type for admin view
+const UserSearchDefaultAdminSort = "alphabetically"
+
 // Users show all the users
 func Users(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users")
@@ -56,7 +59,7 @@ func Users(ctx *context.Context) {
 
 	sortType := ctx.FormString("sort")
 	if sortType == "" {
-		sortType = explore.UserSearchDefaultAdminSort
+		sortType = UserSearchDefaultAdminSort
 		ctx.SetFormString("sort", sortType)
 	}
 	ctx.PageData["adminUserListSearchForm"] = map[string]any{
