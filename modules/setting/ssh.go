@@ -54,6 +54,7 @@ var SSH = struct {
 	Disabled:                      false,
 	StartBuiltinServer:            false,
 	Domain:                        "",
+	ListenHost:                    []string{"0.0.0.0"},
 	Port:                          22,
 	ServerCiphers:                 []string{"chacha20-poly1305@openssh.com", "aes128-ctr", "aes192-ctr", "aes256-ctr", "aes128-gcm@openssh.com", "aes256-gcm@openssh.com"},
 	ServerKeyExchanges:            []string{"curve25519-sha256", "ecdh-sha2-nistp256", "ecdh-sha2-nistp384", "ecdh-sha2-nistp521", "diffie-hellman-group14-sha256", "diffie-hellman-group14-sha1"},
