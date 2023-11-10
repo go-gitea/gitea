@@ -59,7 +59,6 @@ func getCommitLangs() []string {
 		"auto",
 		"en-US",
 	}
-	// comLangs = append(comLangs, "auto", "en-US")
 	return comLangs
 }
 
