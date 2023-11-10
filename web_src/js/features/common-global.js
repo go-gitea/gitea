@@ -248,6 +248,10 @@ export function initGlobalDropzone() {
             });
           }
         });
+        this.on('error', function (file, message) {
+          showErrorToast(message);
+          this.removeFile(file);
+        });
       },
     });
   }
