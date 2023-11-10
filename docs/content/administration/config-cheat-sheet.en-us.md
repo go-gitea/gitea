@@ -332,7 +332,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SSH_USER`: **%(BUILTIN_SSH_SERVER_USER)s**: SSH username displayed in clone URLs. This is only for people who configure the SSH server themselves; in most cases, you want to leave this blank and modify the `BUILTIN_SSH_SERVER_USER`.
 - `SSH_DOMAIN`: **%(DOMAIN)s**: Domain name of this server, used for displayed clone URL.
 - `SSH_PORT`: **22**: SSH port displayed in clone URL.
-- `SSH_LISTEN_HOST`: **0.0.0.0**: Listen address(es) for the built-in SSH server; multiple addresses can be separated by comma.
+- `SSH_LISTEN_HOST`: **0.0.0.0**: Listen address(es) for the built-in SSH server; multiple addresses can be separated by comma, addresses can include a port statement to override SSH_LISTEN_PORT.
 - `SSH_LISTEN_PORT`: **%(SSH\_PORT)s**: Port for the built-in SSH server.
 - `SSH_ROOT_PATH`: **~/.ssh**: Root path of SSH directory.
 - `SSH_CREATE_AUTHORIZED_KEYS_FILE`: **true**: Gitea will create a authorized_keys file by default when it is not using the internal ssh server. If you intend to use the AuthorizedKeysCommand functionality then you should turn this off.

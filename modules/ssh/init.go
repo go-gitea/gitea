@@ -27,10 +27,15 @@ func Init() error {
 			graceful.GetManager().IncreaseListenerCountBy(len(setting.SSH.ListenHost) - 1)
 		}
 		for _, listenHost := range setting.SSH.ListenHost {
-			Listen(listenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
+			var addr string
+			if _, _, err := net.SplitHostPort(listenHost); err == nil {
+				addr = listenHost
+			} else {
+				addr = net.JoinHostPort(listenHost, strconv.Itoa(setting.SSH.ListenPort))
+			}
+			Listen(addr, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
 			log.Info("SSH server started on %s. Cipher list (%v), key exchange algorithms (%v), MACs (%v)",
-				net.JoinHostPort(listenHost, strconv.Itoa(setting.SSH.ListenPort)),
-				setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs,
+				addr, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs,
 			)
 		}
 		return nil
