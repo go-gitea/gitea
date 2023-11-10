@@ -407,7 +407,7 @@ type RecentlyPushedNewBranch struct {
 
 // FindRecentlyPushedNewBranches return at most 2 new branches pushed by the user in 2 hours which has no opened PRs created
 // opts.Actor should not be nil
-// if opts.CommitAfterUnix is 0, we will find the branches committed in recently 6 hours
+// if opts.CommitAfterUnix is 0, we will find the branches that were committed to in the last 2 hours
 // if opts.ListOptions is not set, we will only display top 2 latest branch
 func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushedNewBranchesOptions) ([]*RecentlyPushedNewBranch, error) {
 	// find all related repo ids
