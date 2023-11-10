@@ -4,6 +4,61 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.20.5](https://github.com/go-gitea/gitea/releases/tag/v1.20.5) - 2023-10-03
+
+* ENHANCEMENTS
+  * Fix z-index on markdown completion (#27237) (#27242 & #27238)
+  * Use secure cookie for HTTPS sites (#26999) (#27013)
+* BUGFIXES
+  * Fix git 2.11 error when checking IsEmpty (#27393) (#27396)
+  * Allow get release download files and lfs files with oauth2 token format (#26430) (#27378)
+  * Fix orphan check for deleted branch (#27310) (#27320)
+  * Quote table `release` in sql queries (#27205) (#27219)
+  * Fix release URL in webhooks (#27182) (#27184)
+  * Fix successful return value for `SyncAndGetUserSpecificDiff` (#27152) (#27156)
+  * fix pagination for followers and following (#27127) (#27138)
+  * Fix issue templates when blank isses are disabled (#27061) (#27082)
+  * Fix context cache bug & enable context cache for dashabord commits' authors(#26991) (#27017)
+  * Fix INI parsing for value with trailing slash (#26995) (#27001)
+  * Fix PushEvent NullPointerException jenkinsci/github-plugin (#27203) (#27249)
+  * Fix organization field being null in POST /orgs/{orgid}/teams (#27150) (#27167 & #27162)
+  * Fix bug of review request number (#27406) (#27104)
+* TESTING
+  * services/wiki: Close() after error handling (#27129) (#27137)
+* DOCS
+  * Improve actions docs related to `pull_request` event (#27126) (#27145)
+* MISC
+  * Add logs for data broken of comment review (#27326) (#27344)
+  * Load reviewer before sending notification (#27063) (#27064)
+
+## [1.20.4](https://github.com/go-gitea/gitea/releases/tag/v1.20.4) - 2023-09-08
+
+* SECURITY
+  * Check blocklist for emails when adding them to account (#26812) (#26831)
+* ENHANCEMENTS
+  * Add `branch_filter` to hooks API endpoints (#26599) (#26632)
+  * Fix incorrect "tabindex" attributes (#26733) (#26734)
+  * Use line-height: normal by default (#26635) (#26708)
+  * Fix unable to display individual-level project (#26198) (#26636)
+* BUGFIXES
+  * Fix wrong review requested number (#26784) (#26880)
+  * Avoid double-unescaping of form value (#26853) (#26863)
+  * Redirect from `{repo}/issues/new` to `{repo}/issues/new/choose` when blank issues are disabled (#26813) (#26847)
+  * Sync tags when adopting repos (#26816) (#26834)
+  * Fix verifyCommits error when push a new branch (#26664) (#26810)
+  * Include the GITHUB_TOKEN/GITEA_TOKEN secret for fork pull requests (#26759) (#26806)
+  * Fix some slice append usages (#26778) (#26798)
+  * Add fix incorrect can_create_org_repo for org owner team (#26683) (#26791)
+  * Fix bug for ctx usage (#26763)
+  * Make issue template field template access correct template data (#26698) (#26709)
+  * Use correct minio error (#26634) (#26639)
+  * Ignore the trailing slashes when comparing oauth2 redirect_uri (#26597) (#26618)
+  * Set errwriter for urfave/cli v1 (#26616)
+  * Fix reopen logic for agit flow pull request (#26399) (#26613)
+  * Fix context filter has no effect in dashboard (#26695) (#26811)
+  * Fix being unable to use a repo that prohibits accepting PRs as a PR source. (#26785) (#26790)
+  * Fix Page Not Found error (#26768)
+
 ## [1.20.3](https://github.com/go-gitea/gitea/releases/tag/v1.20.3) - 2023-08-20
 
 * BREAKING

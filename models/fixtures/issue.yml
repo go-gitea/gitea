@@ -324,6 +324,23 @@
 
 -
   id: 20
+  repo_id: 23
+  index: 1
+  poster_id: 2
+  original_author_id: 0
+  name: issue for pr
+  content: content
+  milestone_id: 0
+  priority: 0
+  is_closed: false
+  is_pull: true
+  num_comments: 0
+  created_unix: 978307210
+  updated_unix: 978307210
+  is_locked: false
+
+-
+  id: 21
   repo_id: 10
   index: 2
   poster_id: 12
@@ -340,7 +357,7 @@
   is_locked: false
 
 -
-  id: 21
+  id: 22
   repo_id: 10
   index: 3
   poster_id: 12
@@ -357,7 +374,7 @@
   is_locked: false
 
 -
-  id: 22
+  id: 23
   repo_id: 10
   index: 4
   poster_id: 12
@@ -374,7 +391,7 @@
   is_locked: false
 
 -
-  id: 23
+  id: 24
   repo_id: 10
   index: 5
   poster_id: 12
@@ -391,7 +408,7 @@
   is_locked: false
 
 -
-  id: 24
+  id: 25
   repo_id: 10
   index: 6
   poster_id: 12
@@ -408,7 +425,7 @@
   is_locked: false
 
 -
-  id: 25
+  id: 26
   repo_id: 11
   index: 1
   poster_id: 13

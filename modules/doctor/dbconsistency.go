@@ -6,6 +6,7 @@ package doctor
 import (
 	"context"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -101,7 +102,7 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 		},
 		// find releases without existing repository
 		genericOrphanCheck("Orphaned Releases without existing repository",
-			"release", "repository", "release.repo_id=repository.id"),
+			"release", "repository", "`release`.repo_id=repository.id"),
 		// find pulls without existing issues
 		genericOrphanCheck("Orphaned PullRequests without existing issue",
 			"pull_request", "issue", "pull_request.issue_id=issue.id"),
@@ -151,6 +152,12 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 			Fixer:        activities_model.FixActionCreatedUnixString,
 			FixedMessage: "Set to zero",
 		},
+		{
+			Name:         "Action Runners without existing owner",
+			Counter:      actions_model.CountRunnersWithoutBelongingOwner,
+			Fixer:        actions_model.FixRunnersWithoutBelongingOwner,
+			FixedMessage: "Removed",
+		},
 	}
 
 	// TODO: function to recalc all counters
@@ -168,9 +175,9 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 		// find protected branches without existing repository
 		genericOrphanCheck("Protected Branches without existing repository",
 			"protected_branch", "repository", "protected_branch.repo_id=repository.id"),
-		// find deleted branches without existing repository
-		genericOrphanCheck("Deleted Branches without existing repository",
-			"deleted_branch", "repository", "deleted_branch.repo_id=repository.id"),
+		// find branches without existing repository
+		genericOrphanCheck("Branches without existing repository",
+			"branch", "repository", "branch.repo_id=repository.id"),
 		// find LFS locks without existing repository
 		genericOrphanCheck("LFS locks without existing repository",
 			"lfs_lock", "repository", "lfs_lock.repo_id=repository.id"),
@@ -189,6 +196,9 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 		// find action without repository
 		genericOrphanCheck("Action entries without existing repository",
 			"action", "repository", "action.repo_id=repository.id"),
+		// find action without user
+		genericOrphanCheck("Action entries without existing user",
+			"action", "user", "action.act_user_id=`user`.id"),
 		// find OAuth2Grant without existing user
 		genericOrphanCheck("Orphaned OAuth2Grant without existing User",
 			"oauth2_grant", "user", "oauth2_grant.user_id=`user`.id"),

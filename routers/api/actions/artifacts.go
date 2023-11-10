@@ -170,8 +170,9 @@ func (ar artifactRoutes) buildArtifactURL(runID int64, artifactHash, suffix stri
 }
 
 type getUploadArtifactRequest struct {
-	Type string
-	Name string
+	Type          string
+	Name          string
+	RetentionDays int64
 }
 
 type getUploadArtifactResponse struct {
@@ -192,10 +193,16 @@ func (ar artifactRoutes) getUploadArtifactURL(ctx *ArtifactContext) {
 		return
 	}
 
+	// set retention days
+	retentionQuery := ""
+	if req.RetentionDays > 0 {
+		retentionQuery = fmt.Sprintf("?retentionDays=%d", req.RetentionDays)
+	}
+
 	// use md5(artifact_name) to create upload url
 	artifactHash := fmt.Sprintf("%x", md5.Sum([]byte(req.Name)))
 	resp := getUploadArtifactResponse{
-		FileContainerResourceURL: ar.buildArtifactURL(runID, artifactHash, "upload"),
+		FileContainerResourceURL: ar.buildArtifactURL(runID, artifactHash, "upload"+retentionQuery),
 	}
 	log.Debug("[artifact] get upload url: %s", resp.FileContainerResourceURL)
 	ctx.JSON(http.StatusOK, resp)
@@ -219,8 +226,21 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 		return
 	}
 
+	// get artifact retention days
+	expiredDays := setting.Actions.ArtifactRetentionDays
+	if queryRetentionDays := ctx.Req.URL.Query().Get("retentionDays"); queryRetentionDays != "" {
+		expiredDays, err = strconv.ParseInt(queryRetentionDays, 10, 64)
+		if err != nil {
+			log.Error("Error parse retention days: %v", err)
+			ctx.Error(http.StatusBadRequest, "Error parse retention days")
+			return
+		}
+	}
+	log.Debug("[artifact] upload chunk, name: %s, path: %s, size: %d, retention days: %d",
+		artifactName, artifactPath, fileRealTotalSize, expiredDays)
+
 	// create or get artifact with name and path
-	artifact, err := actions.CreateArtifact(ctx, task, artifactName, artifactPath)
+	artifact, err := actions.CreateArtifact(ctx, task, artifactName, artifactPath, expiredDays)
 	if err != nil {
 		log.Error("Error create or get artifact: %v", err)
 		ctx.Error(http.StatusInternalServerError, "Error create or get artifact")

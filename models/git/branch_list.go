@@ -96,6 +96,7 @@ type FindBranchOptions struct {
 	CommitAfterUnix    int64
 	CommitBeforeUnix   int64
 	OrderBy            string
+	Keyword            string
 
 	// find branch by pull request
 	PullRequestCond builder.Cond
@@ -125,6 +126,9 @@ func (opts *FindBranchOptions) Cond() builder.Cond {
 
 	if !opts.IsDeletedBranch.IsNone() {
 		cond = cond.And(builder.Eq{"branch.is_deleted": opts.IsDeletedBranch.IsTrue()})
+	}
+	if opts.Keyword != "" {
+		cond = cond.And(builder.Like{"name", opts.Keyword})
 	}
 
 	if opts.CommitAfterUnix != 0 {

@@ -5,6 +5,7 @@ package asymkey
 
 import (
 	"bytes"
+	"context"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
@@ -13,8 +14,8 @@ import (
 )
 
 // VerifySSHKey marks a SSH key as verified
-func VerifySSHKey(ownerID int64, fingerprint, token, signature string) (string, error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func VerifySSHKey(ctx context.Context, ownerID int64, fingerprint, token, signature string) (string, error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return "", err
 	}

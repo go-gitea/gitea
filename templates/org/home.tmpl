@@ -3,14 +3,14 @@
 	<div class="ui container gt-df">
 		{{ctx.AvatarUtils.Avatar .Org 140 "org-avatar"}}
 		<div id="org-info">
-			<div class="ui header gt-df gt-fw">
+			<div class="ui header">
 				{{.Org.DisplayName}}
 				<span class="org-visibility">
-					{{if .Org.Visibility.IsLimited}}<span class="ui large basic horizontal label">{{.locale.Tr "org.settings.visibility.limited_shortname"}}</span>{{end}}
-					{{if .Org.Visibility.IsPrivate}}<span class="ui large basic horizontal label">{{.locale.Tr "org.settings.visibility.private_shortname"}}</span>{{end}}
+					{{if .Org.Visibility.IsLimited}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</span>{{end}}
+					{{if .Org.Visibility.IsPrivate}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</span>{{end}}
 				</span>
 				{{if .EnableFeed}}
-					<a class="rss-icon gt-mx-3" href="{{.Org.HomeLink}}.rss" data-tooltip-content="{{.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 24}}</a>
+					<a class="rss-icon gt-mx-3" href="{{.Org.HomeLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss" 24}}</a>
 				{{end}}
 			</div>
 			{{if $.RenderedDescription}}<div class="render-content markup">{{$.RenderedDescription|Str2html}}</div>{{end}}
@@ -25,9 +25,9 @@
 		<div class="right menu">
 			<button class="link-action ui basic button gt-mr-0" data-url="{{.Org.HomeLink}}?action={{if $.IsFollowing}}unfollow{{else}}follow{{end}}">
 				{{if $.IsFollowing}}
-					{{.locale.Tr "user.unfollow"}}
+					{{ctx.Locale.Tr "user.unfollow"}}
 				{{else}}
-					{{.locale.Tr "user.follow"}}
+					{{ctx.Locale.Tr "user.follow"}}
 				{{end}}
 			</button>
 		</div>
@@ -38,6 +38,9 @@
 	<div class="ui container">
 		<div class="ui mobile reversed stackable grid">
 			<div class="ui {{if .ShowMemberAndTeamTab}}eleven wide{{end}} column">
+				{{if .ProfileReadme}}
+					<div id="readme_profile" class="markup">{{.ProfileReadme | Str2html}}</div>
+				{{end}}
 				{{template "explore/repo_search" .}}
 				{{template "explore/repo_list" .}}
 				{{template "base/paginate" .}}
@@ -47,16 +50,16 @@
 			<div class="ui five wide column">
 				{{if .CanCreateOrgRepo}}
 					<div class="center aligned">
-						<a class="ui green button" href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{.locale.Tr "new_repo"}}</a>
+						<a class="ui primary button" href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{ctx.Locale.Tr "new_repo"}}</a>
 						{{if not .DisableNewPullMirrors}}
-							<a class="ui green button" href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{.locale.Tr "new_migrate"}}</a>
+							<a class="ui primary button" href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{ctx.Locale.Tr "new_migrate"}}</a>
 						{{end}}
 					</div>
 					<div class="divider"></div>
 				{{end}}
 				{{if .NumMembers}}
 					<h4 class="ui top attached header gt-df">
-						<strong class="gt-f1">{{.locale.Tr "org.members"}}</strong>
+						<strong class="gt-f1">{{ctx.Locale.Tr "org.members"}}</strong>
 						<a class="text grey gt-df gt-ac" href="{{.OrgLink}}/members"><span>{{.NumMembers}}</span> {{svg "octicon-chevron-right"}}</a>
 					</h4>
 					<div class="ui attached segment members">
@@ -70,7 +73,7 @@
 				{{end}}
 				{{if .IsOrganizationMember}}
 					<div class="ui top attached header gt-df">
-						<strong class="gt-f1">{{.locale.Tr "org.teams"}}</strong>
+						<strong class="gt-f1">{{ctx.Locale.Tr "org.teams"}}</strong>
 						<a class="text grey gt-df gt-ac" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
 					</div>
 					<div class="ui attached table segment teams">
@@ -78,15 +81,15 @@
 							<div class="item">
 								<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong class="team-name">{{.Name}}</strong></a>
 								<p class="text grey">
-									<a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.NumMembers}}</strong> {{$.locale.Tr "org.lower_members"}}</a> ·
-									<a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories"><strong>{{.NumRepos}}</strong> {{$.locale.Tr "org.lower_repositories"}}</a>
+									<a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.NumMembers}}</strong> {{ctx.Locale.Tr "org.lower_members"}}</a> ·
+									<a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories"><strong>{{.NumRepos}}</strong> {{ctx.Locale.Tr "org.lower_repositories"}}</a>
 								</p>
 							</div>
 						{{end}}
 					</div>
 					{{if .IsOrganizationOwner}}
 						<div class="ui bottom attached segment">
-							<a class="ui primary small button" href="{{.OrgLink}}/teams/new">{{.locale.Tr "org.create_new_team"}}</a>
+							<a class="ui primary small button" href="{{.OrgLink}}/teams/new">{{ctx.Locale.Tr "org.create_new_team"}}</a>
 						</div>
 					{{end}}
 				{{end}}

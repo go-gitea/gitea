@@ -181,7 +181,7 @@ Use [Fail2Ban](administration/fail2ban-setup.md) to monitor and stop automated l
 
 ## How to add/use custom themes
 
-Gitea supports three official themes right now, `gitea` (light), `arc-green` (dark), and `auto` (automatically switches between the previous two depending on operating system settings).
+Gitea supports three official themes right now, `gitea-light`, `gitea-dark`, and `gitea-auto` (automatically switches between the previous two depending on operating system settings).
 To add your own theme, currently the only way is to provide a complete theme (not just color overrides)
 
 As an example, let's say our theme is `arc-blue` (this is a real theme, and can be found [in this issue](https://github.com/go-gitea/gitea/issues/6011))

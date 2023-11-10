@@ -95,6 +95,15 @@
   type: 0 # gitea pull request
   status: 2 # mergable
   issue_id: 20
+  index: 1
+  head_repo_id: 23
+  base_repo_id: 23
+
+-
+  id: 9
+  type: 0 # gitea pull request
+  status: 2 # mergable
+  issue_id: 21
   index: 2
   head_repo_id: 10
   base_repo_id: 10
@@ -104,10 +113,10 @@
   has_merged: false
 
 -
-  id: 9
+  id: 10
   type: 0 # gitea pull request
   status: 2 # mergable
-  issue_id: 21
+  issue_id: 22
   index: 3
   head_repo_id: 10
   base_repo_id: 10
@@ -117,10 +126,10 @@
   has_merged: false
 
 -
-  id: 10
+  id: 11
   type: 0 # gitea pull request
   status: 3 # manually merged
-  issue_id: 22
+  issue_id: 23
   index: 4
   head_repo_id: 10
   base_repo_id: 10
@@ -130,10 +139,10 @@
   has_merged: true
 
 -
-  id: 11
+  id: 12
   type: 0 # gitea pull request
   status: 2 # mergable
-  issue_id: 23
+  issue_id: 24
   index: 5
   head_repo_id: 10
   base_repo_id: 10
@@ -143,10 +152,10 @@
   has_merged: false
 
 -
-  id: 12
+  id: 13
   type: 0 # gitea pull request
   status: 3 # manually merged
-  issue_id: 24
+  issue_id: 25
   index: 6
   head_repo_id: 10
   base_repo_id: 10
@@ -156,10 +165,10 @@
   has_merged: true
 
 -
-  id: 13
+  id: 14
   type: 0 # gitea pull request
   status: 2 # mergable
-  issue_id: 25
+  issue_id: 26
   index: 1
   head_repo_id: 11
   base_repo_id: 10

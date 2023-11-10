@@ -48,8 +48,8 @@ func (key *DeployKey) AfterLoad() {
 }
 
 // GetContent gets associated public key content.
-func (key *DeployKey) GetContent() error {
-	pkey, err := GetPublicKeyByID(key.KeyID)
+func (key *DeployKey) GetContent(ctx context.Context) error {
+	pkey, err := GetPublicKeyByID(ctx, key.KeyID)
 	if err != nil {
 		return err
 	}
@@ -106,15 +106,15 @@ func addDeployKey(ctx context.Context, keyID, repoID int64, name, fingerprint st
 }
 
 // HasDeployKey returns true if public key is a deploy key of given repository.
-func HasDeployKey(keyID, repoID int64) bool {
-	has, _ := db.GetEngine(db.DefaultContext).
+func HasDeployKey(ctx context.Context, keyID, repoID int64) bool {
+	has, _ := db.GetEngine(ctx).
 		Where("key_id = ? AND repo_id = ?", keyID, repoID).
 		Get(new(DeployKey))
 	return has
 }
 
 // AddDeployKey add new deploy key to database and authorized_keys file.
-func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey, error) {
+func AddDeployKey(ctx context.Context, repoID int64, name, content string, readOnly bool) (*DeployKey, error) {
 	fingerprint, err := CalcFingerprint(content)
 	if err != nil {
 		return nil, err
@@ -125,7 +125,7 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 		accessMode = perm.AccessModeWrite
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -197,8 +197,8 @@ func IsDeployKeyExistByKeyID(ctx context.Context, keyID int64) (bool, error) {
 }
 
 // UpdateDeployKeyCols updates deploy key information in the specified columns.
-func UpdateDeployKeyCols(key *DeployKey, cols ...string) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(key.ID).Cols(cols...).Update(key)
+func UpdateDeployKeyCols(ctx context.Context, key *DeployKey, cols ...string) error {
+	_, err := db.GetEngine(ctx).ID(key.ID).Cols(cols...).Update(key)
 	return err
 }
 
@@ -240,6 +240,6 @@ func ListDeployKeys(ctx context.Context, opts *ListDeployKeysOptions) ([]*Deploy
 }
 
 // CountDeployKeys returns count deploy keys matching the provided arguments.
-func CountDeployKeys(opts *ListDeployKeysOptions) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(opts.toCond()).Count(&DeployKey{})
+func CountDeployKeys(ctx context.Context, opts *ListDeployKeysOptions) (int64, error) {
+	return db.GetEngine(ctx).Where(opts.toCond()).Count(&DeployKey{})
 }

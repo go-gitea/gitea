@@ -27,18 +27,18 @@ func TestUserOrgs(t *testing.T) {
 
 	orgs := getUserOrgs(t, adminUsername, normalUsername)
 
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user3"})
-	user17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user17"})
-	user35 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "private_org35"})
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
+	org17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org17"})
+	org35 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "private_org35"})
 
 	assert.Equal(t, []*api.Organization{
 		{
 			ID:          35,
-			Name:        user35.Name,
-			UserName:    user35.Name,
-			FullName:    user35.FullName,
-			Email:       user35.Email,
-			AvatarURL:   user35.AvatarLink(db.DefaultContext),
+			Name:        org35.Name,
+			UserName:    org35.Name,
+			FullName:    org35.FullName,
+			Email:       org35.Email,
+			AvatarURL:   org35.AvatarLink(db.DefaultContext),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -46,11 +46,11 @@ func TestUserOrgs(t *testing.T) {
 		},
 		{
 			ID:          17,
-			Name:        user17.Name,
-			UserName:    user17.Name,
-			FullName:    user17.FullName,
-			Email:       user17.Email,
-			AvatarURL:   user17.AvatarLink(db.DefaultContext),
+			Name:        org17.Name,
+			UserName:    org17.Name,
+			FullName:    org17.FullName,
+			Email:       org17.Email,
+			AvatarURL:   org17.AvatarLink(db.DefaultContext),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -58,11 +58,11 @@ func TestUserOrgs(t *testing.T) {
 		},
 		{
 			ID:          3,
-			Name:        user3.Name,
-			UserName:    user3.Name,
-			FullName:    user3.FullName,
-			Email:       user3.Email,
-			AvatarURL:   user3.AvatarLink(db.DefaultContext),
+			Name:        org3.Name,
+			UserName:    org3.Name,
+			FullName:    org3.FullName,
+			Email:       org3.Email,
+			AvatarURL:   org3.AvatarLink(db.DefaultContext),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -112,18 +112,18 @@ func TestMyOrgs(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	var orgs []*api.Organization
 	DecodeJSON(t, resp, &orgs)
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user3"})
-	user17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user17"})
-	user35 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "private_org35"})
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
+	org17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org17"})
+	org35 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "private_org35"})
 
 	assert.Equal(t, []*api.Organization{
 		{
 			ID:          35,
-			Name:        user35.Name,
-			UserName:    user35.Name,
-			FullName:    user35.FullName,
-			Email:       user35.Email,
-			AvatarURL:   user35.AvatarLink(db.DefaultContext),
+			Name:        org35.Name,
+			UserName:    org35.Name,
+			FullName:    org35.FullName,
+			Email:       org35.Email,
+			AvatarURL:   org35.AvatarLink(db.DefaultContext),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -131,11 +131,11 @@ func TestMyOrgs(t *testing.T) {
 		},
 		{
 			ID:          17,
-			Name:        user17.Name,
-			UserName:    user17.Name,
-			FullName:    user17.FullName,
-			Email:       user17.Email,
-			AvatarURL:   user17.AvatarLink(db.DefaultContext),
+			Name:        org17.Name,
+			UserName:    org17.Name,
+			FullName:    org17.FullName,
+			Email:       org17.Email,
+			AvatarURL:   org17.AvatarLink(db.DefaultContext),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -143,11 +143,11 @@ func TestMyOrgs(t *testing.T) {
 		},
 		{
 			ID:          3,
-			Name:        user3.Name,
-			UserName:    user3.Name,
-			FullName:    user3.FullName,
-			Email:       user3.Email,
-			AvatarURL:   user3.AvatarLink(db.DefaultContext),
+			Name:        org3.Name,
+			UserName:    org3.Name,
+			FullName:    org3.FullName,
+			Email:       org3.Email,
+			AvatarURL:   org3.AvatarLink(db.DefaultContext),
 			Description: "",
 			Website:     "",
 			Location:    "",
