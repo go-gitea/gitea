@@ -5,16 +5,31 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"code.gitea.io/gitea/models/avatars"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	util "code.gitea.io/gitea/modules/util"
+	"gitea.com/go-chi/cache"
+)
+
+const (
+	contributorStatsCacheKey           = "GetContributorStats/%s/%s"
+	contributorStatsCacheTimeout int64 = 60 * 10
+)
+
+var (
+	ErrAwaitGeneration  = errors.New("generation took longer than ")
+	awaitGenerationTime = time.Second * 5
+	generateLock        = sync.Map{}
 )
 
 // CreateWeeks converts list of sundays to list of *api.WeekData
@@ -33,10 +48,50 @@ func CreateWeeks(sundays []int64) []*api.WeekData {
 }
 
 // GetContributorStats returns contributors stats for git commits for given revision or default branch
-func GetContributorStats(ctx context.Context, repo *repo_model.Repository, revision string) (map[string]*api.ContributorData, error) {
+func GetContributorStats(ctx context.Context, cache cache.Cache, repo *repo_model.Repository, revision string) (map[string]*api.ContributorData, error) {
+	// as GetContributorStats is resource intensive we cache the result
+	cacheKey := fmt.Sprintf(contributorStatsCacheKey, repo.FullName(), revision)
+	if !cache.IsExist(cacheKey) {
+		genReady := make(chan struct{})
+
+		// dont start multible async generations
+		_, run := generateLock.Load(cacheKey)
+		if run {
+			return nil, ErrAwaitGeneration
+		} else {
+			generateLock.Store(cacheKey, struct{}{})
+		}
+
+		// run generation async
+		go generateContributorStats(genReady, cache, cacheKey, repo, revision)
+
+		select {
+		case <-time.After(awaitGenerationTime):
+			return nil, ErrAwaitGeneration
+		case <-genReady:
+			// we got generation ready before timeout
+			break
+		}
+	}
+	// TODO: renew timeout of cache cache.UpdateTimeout(cacheKey, contributorStatsCacheTimeout)
+
+	switch v := cache.Get(cacheKey).(type) {
+	case error:
+		return nil, v
+	case map[string]*api.ContributorData:
+		return v, nil
+	default:
+		return nil, fmt.Errorf("unexpected type in cache detected")
+	}
+}
+
+func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey string, repo *repo_model.Repository, revision string) {
+	ctx := graceful.GetManager().HammerContext()
+
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
 	if err != nil {
-		return nil, fmt.Errorf("OpenRepository: %w", err)
+		err := fmt.Errorf("OpenRepository: %w", err)
+		cache.Put(cacheKey, err, contributorStatsCacheTimeout)
 	}
 	defer closer.Close()
 
@@ -45,7 +100,8 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository, revis
 	}
 	extendedCommitStats, err := gitRepo.ExtendedCommitStats(revision)
 	if err != nil {
-		return nil, fmt.Errorf("ExtendedCommitStats: %w", err)
+		err := fmt.Errorf("ExtendedCommitStats: %w", err)
+		cache.Put(cacheKey, err, contributorStatsCacheTimeout)
 	}
 
 	layout := time.DateOnly
@@ -121,5 +177,7 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository, revis
 		}
 	}
 
-	return contributorsCommitStats, nil
+	cache.Put(cacheKey, contributorsCommitStats, contributorStatsCacheTimeout)
+	generateLock.Delete(cacheKey)
+	genDone <- struct{}{}
 }

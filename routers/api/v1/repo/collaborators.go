@@ -384,6 +384,9 @@ func GetAllContributorsStats(ctx *context.APIContext) {
 	//   description: SHA or branch to start listing commits from (usually 'master')
 	//   type: string
 	// responses:
+	//   "102":
+	//     description: request later as stats are still generated
+	//     "$ref": "#/responses/empty"
 	//   "200":
 	//     "$ref": "#/responses/ContributorDataMap"
 	//   "404":
@@ -405,7 +408,11 @@ func GetAllContributorsStats(ctx *context.APIContext) {
 		sha = ctx.Repo.Repository.DefaultBranch
 	}
 
-	if contributorStats, err := repo_service.GetContributorStats(ctx, ctx.Repo.Repository, sha); err != nil {
+	if contributorStats, err := repo_service.GetContributorStats(ctx, ctx.Cache, ctx.Repo.Repository, sha); err != nil {
+		if errors.Is(err, repo_service.ErrAwaitGeneration) {
+			ctx.Status(http.StatusProcessing)
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "GetContributorStats", err)
 	} else {
 		ctx.JSON(http.StatusOK, &contributorStats)
