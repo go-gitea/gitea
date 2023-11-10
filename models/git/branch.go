@@ -440,7 +440,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 		))
 
 	if opts.CommitAfterUnix == 0 {
-		opts.CommitAfterUnix = time.Now().Add(-time.Hour * 6).Unix()
+		opts.CommitAfterUnix = time.Now().Add(-time.Hour * 2).Unix()
 	}
 
 	baseBranch, err := GetBranch(ctx, opts.BaseRepo.ID, opts.BaseRepo.DefaultBranch)
