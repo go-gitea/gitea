@@ -694,7 +694,9 @@ func MoveIssues(ctx *context.Context) {
 	}
 
 	type movedIssuesForm struct {
-		Issues []struct {
+		IssueID int64 `json:"issueID"`
+		From    int64 `json:"from"`
+		Issues  []struct {
 			IssueID int64 `json:"issueID"`
 			Sorting int64 `json:"sorting"`
 		} `json:"issues"`
@@ -721,6 +723,16 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
+	issue, err := issues_model.GetIssueByID(ctx, form.IssueID)
+	if err != nil {
+		if issues_model.IsErrIssueNotExist(err) {
+			ctx.NotFound("IssueNotExisting", nil)
+		} else {
+			ctx.ServerError("GetIssueByID", err)
+		}
+		return
+	}
+
 	if len(movedIssues) != len(form.Issues) {
 		ctx.ServerError("some issues do not exist", errors.New("some issues do not exist"))
 		return
@@ -734,6 +746,24 @@ func MoveIssues(ctx *context.Context) {
 	for _, issue := range movedIssues {
 		if issue.RepoID != project.RepoID && issue.Repo.OwnerID != project.OwnerID {
 			ctx.ServerError("Some issue's repoID is not equal to project's repoID", errors.New("Some issue's repoID is not equal to project's repoID"))
+			return
+		}
+	}
+
+	if form.From > 0 || board.ID > 0 {
+		if err := issue.LoadRepo(ctx); err != nil {
+			ctx.ServerError("LoadRepo", err)
+			return
+		}
+		if _, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
+			Type:              issues_model.CommentTypeProjectBoard,
+			Doer:              ctx.Doer,
+			Repo:              issue.Repo,
+			Issue:             issue,
+			OldProjectBoardID: form.From,
+			ProjectBoardID:    board.ID,
+		}); err != nil {
+			ctx.ServerError("CreateComment", err)
 			return
 		}
 	}
