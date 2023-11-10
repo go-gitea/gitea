@@ -50,7 +50,7 @@ func TestPackageMaven(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		putFile(t, fmt.Sprintf("/%s/%s", packageVersion, filename), "test", http.StatusCreated)
-		putFile(t, fmt.Sprintf("/%s/%s", packageVersion, filename), "test", http.StatusBadRequest)
+		putFile(t, fmt.Sprintf("/%s/%s", packageVersion, filename), "test", http.StatusConflict)
 		putFile(t, "/maven-metadata.xml", "test", http.StatusOK)
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeMaven)
@@ -78,7 +78,7 @@ func TestPackageMaven(t *testing.T) {
 	t.Run("UploadExists", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		putFile(t, fmt.Sprintf("/%s/%s", packageVersion, filename), "test", http.StatusBadRequest)
+		putFile(t, fmt.Sprintf("/%s/%s", packageVersion, filename), "test", http.StatusConflict)
 	})
 
 	t.Run("Download", func(t *testing.T) {

@@ -8,25 +8,25 @@
 		<div class="ui attached header resolved-placeholder gt-df gt-ac gt-sb">
 			<div class="ui grey text gt-df gt-ac gt-fw gt-gap-2">
 				{{svg "octicon-check" 16 "icon gt-mr-2"}}
-				<b>{{$resolveDoer.Name}}</b> {{$.locale.Tr "repo.issues.review.resolved_by"}}
+				<b>{{$resolveDoer.Name}}</b> {{ctx.Locale.Tr "repo.issues.review.resolved_by"}}
 				{{if $invalid}}
 					<!--
 					We only handle the case $resolved=true and $invalid=true in this template because if the comment is not resolved it has the outdated label in the comments area (not the header above).
 					The case $resolved=false and $invalid=true is handled in repo/diff/comments.tmpl
 					-->
-					<a href="{{AppSubUrl}}{{$referenceUrl}}" class="ui label basic small gt-ml-3" data-tooltip-content="{{$.locale.Tr "repo.issues.review.outdated_description"}}">
-						{{$.locale.Tr "repo.issues.review.outdated"}}
+					<a href="{{AppSubUrl}}{{$referenceUrl}}" class="ui label basic small gt-ml-3" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
+						{{ctx.Locale.Tr "repo.issues.review.outdated"}}
 					</a>
 				{{end}}
 			</div>
 			<div class="gt-df gt-ac gt-gap-3">
 				<button id="show-outdated-{{(index .comments 0).ID}}" data-comment="{{(index .comments 0).ID}}" class="ui tiny labeled button show-outdated gt-df gt-ac">
 					{{svg "octicon-unfold" 16 "gt-mr-3"}}
-					{{$.locale.Tr "repo.issues.review.show_resolved"}}
+					{{ctx.Locale.Tr "repo.issues.review.show_resolved"}}
 				</button>
 				<button id="hide-outdated-{{(index .comments 0).ID}}" data-comment="{{(index .comments 0).ID}}" class="ui tiny labeled button hide-outdated gt-df gt-ac gt-hidden">
 					{{svg "octicon-fold" 16 "gt-mr-3"}}
-					{{$.locale.Tr "repo.issues.review.hide_resolved"}}
+					{{ctx.Locale.Tr "repo.issues.review.hide_resolved"}}
 				</button>
 			</div>
 		</div>
@@ -37,27 +37,27 @@
 				{{template "repo/diff/comments" dict "root" $ "comments" .comments}}
 			</ui>
 		</div>
-		<div class="gt-df gt-je gt-js-small gt-ac gt-fw gt-mt-3">
+		<div class="gt-df gt-je gt-ac gt-fw gt-mt-3">
 			<div class="ui buttons gt-mr-2">
 				<button class="ui icon tiny basic button previous-conversation">
-					{{svg "octicon-arrow-up" 12 "icon"}} {{$.locale.Tr "repo.issues.previous"}}
+					{{svg "octicon-arrow-up" 12 "icon"}} {{ctx.Locale.Tr "repo.issues.previous"}}
 				</button>
 				<button class="ui icon tiny basic button next-conversation">
-					{{svg "octicon-arrow-down" 12 "icon"}} {{$.locale.Tr "repo.issues.next"}}
+					{{svg "octicon-arrow-down" 12 "icon"}} {{ctx.Locale.Tr "repo.issues.next"}}
 				</button>
 			</div>
 			{{if and $.CanMarkConversation $isNotPending}}
 				<button class="ui icon tiny basic button resolve-conversation" data-origin="diff" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index .comments 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
 					{{if $resolved}}
-						{{$.locale.Tr "repo.issues.review.un_resolve_conversation"}}
+						{{ctx.Locale.Tr "repo.issues.review.un_resolve_conversation"}}
 					{{else}}
-						{{$.locale.Tr "repo.issues.review.resolve_conversation"}}
+						{{ctx.Locale.Tr "repo.issues.review.resolve_conversation"}}
 					{{end}}
 				</button>
 			{{end}}
 			{{if and $.SignedUserID (not $.Repository.IsArchived)}}
-				<button class="comment-form-reply ui green tiny labeled icon button gt-ml-2 gt-mr-0">
-					{{svg "octicon-reply" 16 "reply icon gt-mr-2"}}{{$.locale.Tr "repo.diff.comment.reply"}}
+				<button class="comment-form-reply ui primary tiny labeled icon button gt-ml-2 gt-mr-0">
+					{{svg "octicon-reply" 16 "reply icon gt-mr-2"}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
 				</button>
 			{{end}}
 		</div>

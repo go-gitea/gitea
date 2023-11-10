@@ -1,86 +1,17 @@
-<template>
-  <div class="ui scrolling dropdown custom">
-    <button
-      class="ui basic button"
-      id="diff-commit-list-expand"
-      @click.stop="toggleMenu()"
-      :data-tooltip-content="locale.filter_changes_by_commit"
-      aria-haspopup="true"
-      tabindex="0"
-      aria-controls="diff-commit-selector-menu"
-      :aria-label="locale.filter_changes_by_commit"
-      aria-activedescendant="diff-commit-list-show-all"
-    >
-      <svg-icon name="octicon-git-commit"/>
-    </button>
-    <div class="menu left transition" id="diff-commit-selector-menu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
-      <div class="loading-indicator is-loading" v-if="isLoading"/>
-      <div v-if="!isLoading" class="vertical item gt-df gt-fc gt-gap-2" id="diff-commit-list-show-all" role="menuitem" tabindex="-1" @keydown.enter="showAllChanges()" @click="showAllChanges()">
-        <div class="gt-ellipsis">
-          {{ locale.show_all_commits }}
-        </div>
-        <div class="gt-ellipsis text light-2 gt-mb-0">
-          {{ locale.stats_num_commits }}
-        </div>
-      </div>
-      <!-- only show the show changes since last review if there is a review AND we are commits ahead of the last review -->
-      <div
-        v-if="lastReviewCommitSha != null" role="menuitem" tabindex="-1"
-        class="vertical item gt-df gt-fc gt-gap-2 gt-border-secondary-top"
-        :class="{disabled: commitsSinceLastReview === 0}"
-        @keydown.enter="changesSinceLastReviewClick()"
-        @click="changesSinceLastReviewClick()"
-      >
-        <div class="gt-ellipsis">
-          {{ locale.show_changes_since_your_last_review }}
-        </div>
-        <div class="gt-ellipsis text light-2">
-          {{ commitsSinceLastReview }} commits
-        </div>
-      </div>
-      <span v-if="!isLoading" class="info gt-border-secondary-top text light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
-      <template v-for="commit in commits" :key="commit.id">
-        <div
-          class="vertical item gt-df gt-gap-2 gt-border-secondary-top" role="menuitem" tabindex="-1"
-          :class="{selection: commit.selected, hovered: commit.hovered}"
-          @keydown.enter.exact="commitClicked(commit.id)"
-          @keydown.enter.shift.exact="commitClickedShift(commit)"
-          @mouseover.shift="highlight(commit)"
-          @click.exact="commitClicked(commit.id)"
-          @click.ctrl.exact="commitClicked(commit.id, true)"
-          @click.meta.exact="commitClicked(commit.id, true)"
-          @click.shift.exact.stop.prevent="commitClickedShift(commit)"
-        >
-          <div class="gt-f1 gt-df gt-fc gt-gap-2">
-            <div class="gt-ellipsis commit-list-summary">
-              {{ commit.summary }}
-            </div>
-            <div class="gt-ellipsis text light-2">
-              {{ commit.committer_or_author_name }}
-              <span class="text right">
-                <relative-time class="time-since" prefix="" :datetime="commit.time" data-tooltip-content data-tooltip-interactive="true">{{ commit.time }}</relative-time>
-              </span>
-            </div>
-          </div>
-          <div class="gt-mono">
-            {{ commit.short_sha }}
-          </div>
-        </div>
-      </template>
-    </div>
-  </div>
-</template>
-
 <script>
 import {SvgIcon} from '../svg.js';
+import {GET} from '../modules/fetch.js';
 
 export default {
   components: {SvgIcon},
   data: () => {
+    const el = document.getElementById('diff-commit-select');
     return {
       menuVisible: false,
       isLoading: false,
-      locale: {},
+      locale: {
+        filter_changes_by_commit: el.getAttribute('data-filter_changes_by_commit'),
+      },
       commits: [],
       hoverActivated: false,
       lastReviewCommitSha: null
@@ -163,7 +94,7 @@ export default {
     focusElem(elem, prevElem) {
       if (elem) {
         elem.tabIndex = 0;
-        prevElem.tabIndex = -1;
+        if (prevElem) prevElem.tabIndex = -1;
         elem.focus();
       }
     },
@@ -193,7 +124,7 @@ export default {
     },
     /** Load the commits to show in this dropdown */
     async fetchCommits() {
-      const resp = await fetch(`${this.issueLink}/commits/list`);
+      const resp = await GET(`${this.issueLink}/commits/list`);
       const results = await resp.json();
       this.commits.push(...results.commits.map((x) => {
         x.hovered = false;
@@ -257,6 +188,77 @@ export default {
   }
 };
 </script>
+<template>
+  <div class="ui scrolling dropdown custom">
+    <button
+      class="ui basic button"
+      id="diff-commit-list-expand"
+      @click.stop="toggleMenu()"
+      :data-tooltip-content="locale.filter_changes_by_commit"
+      aria-haspopup="true"
+      aria-controls="diff-commit-selector-menu"
+      :aria-label="locale.filter_changes_by_commit"
+      aria-activedescendant="diff-commit-list-show-all"
+    >
+      <svg-icon name="octicon-git-commit"/>
+    </button>
+    <div class="menu left transition" id="diff-commit-selector-menu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
+      <div class="loading-indicator is-loading" v-if="isLoading"/>
+      <div v-if="!isLoading" class="vertical item gt-df gt-fc gt-gap-2" id="diff-commit-list-show-all" role="menuitem" @keydown.enter="showAllChanges()" @click="showAllChanges()">
+        <div class="gt-ellipsis">
+          {{ locale.show_all_commits }}
+        </div>
+        <div class="gt-ellipsis text light-2 gt-mb-0">
+          {{ locale.stats_num_commits }}
+        </div>
+      </div>
+      <!-- only show the show changes since last review if there is a review AND we are commits ahead of the last review -->
+      <div
+        v-if="lastReviewCommitSha != null" role="menuitem"
+        class="vertical item gt-df gt-fc gt-gap-2 gt-border-secondary-top"
+        :class="{disabled: commitsSinceLastReview === 0}"
+        @keydown.enter="changesSinceLastReviewClick()"
+        @click="changesSinceLastReviewClick()"
+      >
+        <div class="gt-ellipsis">
+          {{ locale.show_changes_since_your_last_review }}
+        </div>
+        <div class="gt-ellipsis text light-2">
+          {{ commitsSinceLastReview }} commits
+        </div>
+      </div>
+      <span v-if="!isLoading" class="info gt-border-secondary-top text light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
+      <template v-for="commit in commits" :key="commit.id">
+        <div
+          class="vertical item gt-df gt-gap-2 gt-border-secondary-top" role="menuitem"
+          :class="{selection: commit.selected, hovered: commit.hovered}"
+          @keydown.enter.exact="commitClicked(commit.id)"
+          @keydown.enter.shift.exact="commitClickedShift(commit)"
+          @mouseover.shift="highlight(commit)"
+          @click.exact="commitClicked(commit.id)"
+          @click.ctrl.exact="commitClicked(commit.id, true)"
+          @click.meta.exact="commitClicked(commit.id, true)"
+          @click.shift.exact.stop.prevent="commitClickedShift(commit)"
+        >
+          <div class="gt-f1 gt-df gt-fc gt-gap-2">
+            <div class="gt-ellipsis commit-list-summary">
+              {{ commit.summary }}
+            </div>
+            <div class="gt-ellipsis text light-2">
+              {{ commit.committer_or_author_name }}
+              <span class="text right">
+                <relative-time class="time-since" prefix="" :datetime="commit.time" data-tooltip-content data-tooltip-interactive="true">{{ commit.time }}</relative-time>
+              </span>
+            </div>
+          </div>
+          <div class="gt-mono">
+            {{ commit.short_sha }}
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+</template>
 <style scoped>
   .hovered:not(.selection) {
     background-color: var(--color-small-accent) !important;

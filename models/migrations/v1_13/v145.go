@@ -17,7 +17,7 @@ func IncreaseLanguageField(x *xorm.Engine) error {
 		Language string `xorm:"VARCHAR(50) UNIQUE(s) INDEX NOT NULL"`
 	}
 
-	if err := x.Sync2(new(LanguageStat)); err != nil {
+	if err := x.Sync(new(LanguageStat)); err != nil {
 		return err
 	}
 

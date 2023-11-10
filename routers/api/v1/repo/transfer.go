@@ -68,7 +68,7 @@ func Transfer(ctx *context.APIContext) {
 	}
 
 	if newOwner.Type == user_model.UserTypeOrganization {
-		if !ctx.Doer.IsAdmin && newOwner.Visibility == api.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx.Doer.ID) {
+		if !ctx.Doer.IsAdmin && newOwner.Visibility == api.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx, ctx.Doer.ID) {
 			// The user shouldn't know about this organization
 			ctx.Error(http.StatusNotFound, "", "The new owner does not exist or cannot be found")
 			return
@@ -221,7 +221,7 @@ func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
 		return err
 	}
 
-	if !repoTransfer.CanUserAcceptTransfer(ctx.Doer) {
+	if !repoTransfer.CanUserAcceptTransfer(ctx, ctx.Doer) {
 		ctx.Error(http.StatusForbidden, "CanUserAcceptTransfer", nil)
 		return fmt.Errorf("user does not have permissions to do this")
 	}
@@ -230,5 +230,5 @@ func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
 		return repo_service.TransferOwnership(ctx, repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams)
 	}
 
-	return models.CancelRepositoryTransfer(ctx.Repo.Repository)
+	return models.CancelRepositoryTransfer(ctx, ctx.Repo.Repository)
 }

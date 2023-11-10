@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/markup"
@@ -52,14 +53,10 @@ func NewFuncMap() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// svg / avatar / icon
-		"svg":            svg.RenderHTML,
-		"avatar":         Avatar,
-		"avatarHTML":     AvatarHTML,
-		"avatarByAction": AvatarByAction,
-		"avatarByEmail":  AvatarByEmail,
-		"EntryIcon":      base.EntryIcon,
-		"MigrationIcon":  MigrationIcon,
-		"ActionIcon":     ActionIcon,
+		"svg":           svg.RenderHTML,
+		"EntryIcon":     base.EntryIcon,
+		"MigrationIcon": MigrationIcon,
+		"ActionIcon":    ActionIcon,
 
 		"SortArrow": SortArrow,
 
@@ -135,8 +132,11 @@ func NewFuncMap() template.FuncMap {
 		"DisableImportLocal": func() bool {
 			return !setting.ImportLocalPaths
 		},
-		"DefaultTheme": func() string {
-			return setting.UI.DefaultTheme
+		"ThemeName": func(user *user_model.User) string {
+			if user == nil || user.Theme == "" {
+				return setting.UI.DefaultTheme
+			}
+			return user.Theme
 		},
 		"NotificationSettings": func() map[string]any {
 			return map[string]any{

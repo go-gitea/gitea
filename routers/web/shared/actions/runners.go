@@ -35,15 +35,15 @@ func RunnersList(ctx *context.Context, opts actions_model.FindRunnerOptions) {
 
 	// ownid=0,repo_id=0,means this token is used for global
 	var token *actions_model.ActionRunnerToken
-	token, err = actions_model.GetUnactivatedRunnerToken(ctx, opts.OwnerID, opts.RepoID)
-	if errors.Is(err, util.ErrNotExist) {
+	token, err = actions_model.GetLatestRunnerToken(ctx, opts.OwnerID, opts.RepoID)
+	if errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
 		token, err = actions_model.NewRunnerToken(ctx, opts.OwnerID, opts.RepoID)
 		if err != nil {
 			ctx.ServerError("CreateRunnerToken", err)
 			return
 		}
 	} else if err != nil {
-		ctx.ServerError("GetUnactivatedRunnerToken", err)
+		ctx.ServerError("GetLatestRunnerToken", err)
 		return
 	}
 
@@ -51,8 +51,9 @@ func RunnersList(ctx *context.Context, opts actions_model.FindRunnerOptions) {
 	ctx.Data["Runners"] = runners
 	ctx.Data["Total"] = count
 	ctx.Data["RegistrationToken"] = token.Token
-	ctx.Data["RunnerOnwerID"] = opts.OwnerID
+	ctx.Data["RunnerOwnerID"] = opts.OwnerID
 	ctx.Data["RunnerRepoID"] = opts.RepoID
+	ctx.Data["SortType"] = opts.Sort
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 

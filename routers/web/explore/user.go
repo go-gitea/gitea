@@ -23,12 +23,6 @@ const (
 	tplExploreUsers base.TplName = "explore/users"
 )
 
-// UserSearchDefaultSortType is the default sort type for user search
-const (
-	UserSearchDefaultSortType  = "recentupdate"
-	UserSearchDefaultAdminSort = "alphabetically"
-)
-
 var nullByte = []byte{0x00}
 
 func isKeywordValid(keyword string) bool {
@@ -60,8 +54,13 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 
 	// we can not set orderBy to `models.SearchOrderByXxx`, because there may be a JOIN in the statement, different tables may have the same name columns
 
-	ctx.Data["SortType"] = ctx.FormString("sort")
-	switch ctx.FormString("sort") {
+	sortOrder := ctx.FormString("sort")
+	if sortOrder == "" {
+		sortOrder = setting.UI.ExploreDefaultSort
+	}
+	ctx.Data["SortType"] = sortOrder
+
+	switch sortOrder {
 	case "newest":
 		orderBy = "`user`.id DESC"
 	case "oldest":
@@ -87,7 +86,7 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 	opts.Keyword = ctx.FormTrim("q")
 	opts.OrderBy = orderBy
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
-		users, count, err = user_model.SearchUsers(opts)
+		users, count, err = user_model.SearchUsers(ctx, opts)
 		if err != nil {
 			ctx.ServerError("SearchUsers", err)
 			return
@@ -108,7 +107,7 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 	ctx.Data["Keyword"] = opts.Keyword
 	ctx.Data["Total"] = count
 	ctx.Data["Users"] = users
-	ctx.Data["UsersTwoFaStatus"] = user_model.UserList(users).GetTwoFaStatus()
+	ctx.Data["UsersTwoFaStatus"] = user_model.UserList(users).GetTwoFaStatus(ctx)
 	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
@@ -134,7 +133,7 @@ func Users(ctx *context.Context) {
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	if ctx.FormString("sort") == "" {
-		ctx.SetFormString("sort", UserSearchDefaultSortType)
+		ctx.SetFormString("sort", setting.UI.ExploreDefaultSort)
 	}
 
 	RenderUserSearch(ctx, &user_model.SearchUserOptions{

@@ -107,6 +107,29 @@ func GetValidateContext(req *http.Request) (ctx *ValidateContext) {
 	return ctx
 }
 
+func NewTemplateContextForWeb(ctx *Context) TemplateContext {
+	tmplCtx := NewTemplateContext(ctx)
+	tmplCtx["Locale"] = ctx.Base.Locale
+	tmplCtx["AvatarUtils"] = templates.NewAvatarUtils(ctx)
+	return tmplCtx
+}
+
+func NewWebContext(base *Base, render Render, session session.Store) *Context {
+	ctx := &Context{
+		Base:    base,
+		Render:  render,
+		Session: session,
+
+		Cache: mc.GetCache(),
+		Link:  setting.AppSubURL + strings.TrimSuffix(base.Req.URL.EscapedPath(), "/"),
+		Repo:  &Repository{PullRequest: &PullRequest{}},
+		Org:   &Organization{},
+	}
+	ctx.TemplateContext = NewTemplateContextForWeb(ctx)
+	ctx.Flash = &middleware.Flash{DataStore: ctx, Values: url.Values{}}
+	return ctx
+}
+
 // Contexter initializes a classic context for a request.
 func Contexter() func(next http.Handler) http.Handler {
 	rnd := templates.HTMLRenderer()
@@ -127,26 +150,13 @@ func Contexter() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			base, baseCleanUp := NewBaseContext(resp, req)
-			ctx := &Context{
-				Base:    base,
-				Cache:   mc.GetCache(),
-				Link:    setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/"),
-				Render:  rnd,
-				Session: session.GetSession(req),
-				Repo:    &Repository{PullRequest: &PullRequest{}},
-				Org:     &Organization{},
-			}
 			defer baseCleanUp()
-
-			// TODO: "install.go" also shares the same logic, which should be refactored to a general function
-			ctx.TemplateContext = NewTemplateContext(ctx)
-			ctx.TemplateContext["Locale"] = ctx.Locale
+			ctx := NewWebContext(base, rnd, session.GetSession(req))
 
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
 			ctx.Data["Context"] = ctx // TODO: use "ctx" in template and remove this
 			ctx.Data["CurrentURL"] = setting.AppSubURL + req.URL.RequestURI()
 			ctx.Data["Link"] = ctx.Link
-			ctx.Data["locale"] = ctx.Locale
 
 			// PageData is passed by reference, and it will be rendered to `window.config.pageData` in `head.tmpl` for JavaScript modules
 			ctx.PageData = map[string]any{}
@@ -171,8 +181,7 @@ func Contexter() func(next http.Handler) http.Handler {
 				}
 			}
 
-			// prepare an empty Flash message for current request
-			ctx.Flash = &middleware.Flash{DataStore: ctx, Values: url.Values{}}
+			// if there are new messages in the ctx.Flash, write them into cookie
 			ctx.Resp.Before(func(resp ResponseWriter) {
 				if val := ctx.Flash.Encode(); val != "" {
 					middleware.SetSiteCookie(ctx.Resp, CookieNameFlash, val, 0)

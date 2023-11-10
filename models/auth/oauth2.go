@@ -66,6 +66,11 @@ func BuiltinApplications() map[string]*BuiltinOAuth2Application {
 		DisplayName:  "Git Credential Manager",
 		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
 	}
+	m["d57cb8c4-630c-4168-8324-ec79935e18d4"] = &BuiltinOAuth2Application{
+		ConfigName:   "tea",
+		DisplayName:  "tea",
+		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+	}
 	return m
 }
 
@@ -132,6 +137,15 @@ func (app *OAuth2Application) TableName() string {
 
 // ContainsRedirectURI checks if redirectURI is allowed for app
 func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
+	contains := func(s string) bool {
+		s = strings.TrimSuffix(strings.ToLower(s), "/")
+		for _, u := range app.RedirectURIs {
+			if strings.TrimSuffix(strings.ToLower(u), "/") == s {
+				return true
+			}
+		}
+		return false
+	}
 	if !app.ConfidentialClient {
 		uri, err := url.Parse(redirectURI)
 		// ignore port for http loopback uris following https://datatracker.ietf.org/doc/html/rfc8252#section-7.3
@@ -140,13 +154,13 @@ func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
 			if ip != nil && ip.IsLoopback() {
 				// strip port
 				uri.Host = uri.Hostname()
-				if util.SliceContainsString(app.RedirectURIs, uri.String(), true) {
+				if contains(uri.String()) {
 					return true
 				}
 			}
 		}
 	}
-	return util.SliceContainsString(app.RedirectURIs, redirectURI, true)
+	return contains(redirectURI)
 }
 
 // Base32 characters, but lowercased.
@@ -156,7 +170,7 @@ const lowerBase32Chars = "abcdefghijklmnopqrstuvwxyz234567"
 var base32Lower = base32.NewEncoding(lowerBase32Chars).WithPadding(base32.NoPadding)
 
 // GenerateClientSecret will generate the client secret and returns the plaintext and saves the hash at the database
-func (app *OAuth2Application) GenerateClientSecret() (string, error) {
+func (app *OAuth2Application) GenerateClientSecret(ctx context.Context) (string, error) {
 	rBytes, err := util.CryptoRandomBytes(32)
 	if err != nil {
 		return "", err
@@ -170,7 +184,7 @@ func (app *OAuth2Application) GenerateClientSecret() (string, error) {
 		return "", err
 	}
 	app.ClientSecret = string(hashedSecret)
-	if _, err := db.GetEngine(db.DefaultContext).ID(app.ID).Cols("client_secret").Update(app); err != nil {
+	if _, err := db.GetEngine(ctx).ID(app.ID).Cols("client_secret").Update(app); err != nil {
 		return "", err
 	}
 	return clientSecret, nil
@@ -270,8 +284,8 @@ type UpdateOAuth2ApplicationOptions struct {
 }
 
 // UpdateOAuth2Application updates an oauth2 application
-func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) (*OAuth2Application, error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func UpdateOAuth2Application(ctx context.Context, opts UpdateOAuth2ApplicationOptions) (*OAuth2Application, error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -338,8 +352,8 @@ func deleteOAuth2Application(ctx context.Context, id, userid int64) error {
 }
 
 // DeleteOAuth2Application deletes the application with the given id and the grants and auth codes related to it. It checks if the userid was the creator of the app.
-func DeleteOAuth2Application(id, userid int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func DeleteOAuth2Application(ctx context.Context, id, userid int64) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -359,8 +373,8 @@ func DeleteOAuth2Application(id, userid int64) error {
 }
 
 // ListOAuth2Applications returns a list of oauth2 applications belongs to given user.
-func ListOAuth2Applications(uid int64, listOptions db.ListOptions) ([]*OAuth2Application, int64, error) {
-	sess := db.GetEngine(db.DefaultContext).
+func ListOAuth2Applications(ctx context.Context, uid int64, listOptions db.ListOptions) ([]*OAuth2Application, int64, error) {
+	sess := db.GetEngine(ctx).
 		Where("uid=?", uid).
 		Desc("id")
 
@@ -617,19 +631,10 @@ func (err ErrOAuthApplicationNotFound) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// GetActiveOAuth2ProviderSources returns all actived LoginOAuth2 sources
-func GetActiveOAuth2ProviderSources() ([]*Source, error) {
-	sources := make([]*Source, 0, 1)
-	if err := db.GetEngine(db.DefaultContext).Where("is_active = ? and type = ?", true, OAuth2).Find(&sources); err != nil {
-		return nil, err
-	}
-	return sources, nil
-}
-
 // GetActiveOAuth2SourceByName returns a OAuth2 AuthSource based on the given name
-func GetActiveOAuth2SourceByName(name string) (*Source, error) {
+func GetActiveOAuth2SourceByName(ctx context.Context, name string) (*Source, error) {
 	authSource := new(Source)
-	has, err := db.GetEngine(db.DefaultContext).Where("name = ? and type = ? and is_active = ?", name, OAuth2, true).Get(authSource)
+	has, err := db.GetEngine(ctx).Where("name = ? and type = ? and is_active = ?", name, OAuth2, true).Get(authSource)
 	if err != nil {
 		return nil, err
 	}

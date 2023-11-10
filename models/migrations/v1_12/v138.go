@@ -14,8 +14,8 @@ func AddResolveDoerIDCommentColumn(x *xorm.Engine) error {
 		ResolveDoerID int64
 	}
 
-	if err := x.Sync2(new(Comment)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := x.Sync(new(Comment)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 	return nil
 }

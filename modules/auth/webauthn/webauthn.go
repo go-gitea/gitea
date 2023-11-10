@@ -68,7 +68,7 @@ func (u *User) WebAuthnIcon() string {
 
 // WebAuthnCredentials implementns the webauthn.User interface
 func (u *User) WebAuthnCredentials() []webauthn.Credential {
-	dbCreds, err := auth.GetWebAuthnCredentialsByUID(u.ID)
+	dbCreds, err := auth.GetWebAuthnCredentialsByUID(db.DefaultContext, u.ID)
 	if err != nil {
 		return nil
 	}
