@@ -3,12 +3,12 @@
 * ContainerClasses
 * (TODO: search "branch_dropdown" in the template direcotry)
 */}}
-{{$defaultBranch := $.root.BranchName}}
+{{$defaultSelectedRefName := $.root.BranchName}}
 {{if and .root.IsViewTag (not .noTag)}}
-	{{$defaultBranch = .root.TagName}}
+	{{$defaultSelectedRefName = .root.TagName}}
 {{end}}
-{{if eq $defaultBranch ""}}
-	{{$defaultBranch = $.root.Repository.DefaultBranch}}
+{{if eq $defaultSelectedRefName ""}}
+	{{$defaultSelectedRefName = $.root.Repository.DefaultBranch}}
 {{end}}
 
 {{$type := ""}}
@@ -24,16 +24,17 @@
 
 <script type="module">
 	const data = {
-		'textReleaseCompare': {{.root.locale.Tr "repo.release.compare"}},
-		'textCreateTag': {{.root.locale.Tr "repo.tag.create_tag"}},
-		'textCreateBranch': {{.root.locale.Tr "repo.branch.create_branch"}},
-		'textCreateBranchFrom': {{.root.locale.Tr "repo.branch.create_from"}},
-		'textBranches': {{.root.locale.Tr "repo.branches"}},
-		'textTags': {{.root.locale.Tr "repo.tags"}},
+		'textReleaseCompare': {{ctx.Locale.Tr "repo.release.compare"}},
+		'textCreateTag': {{ctx.Locale.Tr "repo.tag.create_tag"}},
+		'textCreateBranch': {{ctx.Locale.Tr "repo.branch.create_branch"}},
+		'textCreateBranchFrom': {{ctx.Locale.Tr "repo.branch.create_from"}},
+		'textBranches': {{ctx.Locale.Tr "repo.branches"}},
+		'textTags': {{ctx.Locale.Tr "repo.tags"}},
+		'textDefaultBranchLabel': {{ctx.Locale.Tr "repo.default_branch_label"}},
 
 		'mode': '{{if or .root.IsViewTag .isTag}}tags{{else}}branches{{end}}',
 		'showBranchesInDropdown': {{$showBranchesInDropdown}},
-		'searchFieldPlaceholder': '{{if $.noTag}}{{.root.locale.Tr "repo.pulls.filter_branch"}}{{else if $showBranchesInDropdown}}{{.root.locale.Tr "repo.filter_branch_and_tag"}}{{else}}{{.root.locale.Tr "repo.find_tag"}}{{end}}...',
+		'searchFieldPlaceholder': '{{if $.noTag}}{{ctx.Locale.Tr "repo.pulls.filter_branch"}}{{else if $showBranchesInDropdown}}{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}{{else}}{{ctx.Locale.Tr "repo.find_tag"}}{{end}}...',
 		'branchForm': {{$.branchForm}},
 		'disableCreateBranch': {{if .disableCreateBranch}}{{.disableCreateBranch}}{{else}}{{not .root.CanCreateBranch}}{{end}},
 		'setAction': {{.setAction}},
@@ -44,9 +45,8 @@
 		'tagName': {{.root.TagName}},
 		'branchName': {{.root.BranchName}},
 		'noTag': {{.noTag}},
-		'branches': {{.root.Branches}},
-		'tags': {{.root.Tags}},
-		'defaultBranch': {{$defaultBranch}},
+		'defaultSelectedRefName': {{$defaultSelectedRefName}},
+		'repoDefaultBranch': {{.root.Repository.DefaultBranch}},
 		'enableFeed': {{.root.EnableFeed}},
 		'rssURLPrefix': '{{$.root.RepoLink}}/rss/branch/',
 		'branchURLPrefix': '{{if .branchURLPrefix}}{{.branchURLPrefix}}{{else}}{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/branch/{{end}}',
@@ -56,7 +56,7 @@
 		'repoLink': {{.root.RepoLink}},
 		'treePath': {{.root.TreePath}},
 		'branchNameSubURL': {{.root.BranchNameSubURL}},
-		'noResults': {{.root.locale.Tr "repo.pulls.no_results"}},
+		'noResults': {{ctx.Locale.Tr "repo.pulls.no_results"}},
 	};
 	{{if .release}}
 	data.release = {
@@ -69,11 +69,11 @@
 
 <div class="js-branch-tag-selector {{if .ContainerClasses}}{{.ContainerClasses}}{{end}}">
 	{{/* show dummy elements before Vue componment is mounted, this code must match the code in BranchTagSelector.vue */}}
-	<div class="ui floating filter dropdown custom">
+	<div class="ui dropdown custom">
 		<button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df gt-m-0">
 			<span class="text gt-df gt-ac gt-mr-2">
 				{{if .release}}
-					{{.root.locale.Tr "repo.release.compare"}}
+					{{ctx.Locale.Tr "repo.release.compare"}}
 				{{else}}
 					{{if eq $type "tag"}}
 						{{svg "octicon-tag"}}

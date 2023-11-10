@@ -21,7 +21,7 @@ type NewBranchForm struct {
 
 // Validate validates the fields
 func (f *NewBranchForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -33,6 +33,6 @@ type RenameBranchForm struct {
 
 // Validate validates the fields
 func (f *RenameBranchForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

@@ -4,15 +4,13 @@
 package secrets
 
 import (
-	"net/http"
-	"strings"
-
-	"code.gitea.io/gitea/models/db"
 	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/web/shared/actions"
 	"code.gitea.io/gitea/services/forms"
+	secret_service "code.gitea.io/gitea/services/secrets"
 )
 
 func SetSecretsContext(ctx *context.Context, ownerID, repoID int64) {
@@ -28,36 +26,27 @@ func SetSecretsContext(ctx *context.Context, ownerID, repoID int64) {
 func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	form := web.GetForm(ctx).(*forms.AddSecretForm)
 
-	content := form.Content
-	// Since the content is from a form which is a textarea, the line endings are \r\n.
-	// It's a standard behavior of HTML.
-	// But we want to store them as \n like what GitHub does.
-	// And users are unlikely to really need to keep the \r.
-	// Other than this, we should respect the original content, even leading or trailing spaces.
-	content = strings.ReplaceAll(content, "\r\n", "\n")
-
-	s, err := secret_model.InsertEncryptedSecret(ctx, ownerID, repoID, form.Title, content)
+	s, _, err := secret_service.CreateOrUpdateSecret(ctx, ownerID, repoID, form.Name, actions.ReserveLineBreakForTextarea(form.Data))
 	if err != nil {
-		log.Error("InsertEncryptedSecret: %v", err)
-		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
-	} else {
-		ctx.Flash.Success(ctx.Tr("secrets.creation.success", s.Name))
+		log.Error("CreateOrUpdateSecret failed: %v", err)
+		ctx.JSONError(ctx.Tr("secrets.creation.failed"))
+		return
 	}
 
-	ctx.Redirect(redirectURL)
+	ctx.Flash.Success(ctx.Tr("secrets.creation.success", s.Name))
+	ctx.JSONRedirect(redirectURL)
 }
 
 func PerformSecretsDelete(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	id := ctx.FormInt64("id")
 
-	if _, err := db.DeleteByBean(ctx, &secret_model.Secret{ID: id, OwnerID: ownerID, RepoID: repoID}); err != nil {
-		log.Error("Delete secret %d failed: %v", id, err)
-		ctx.Flash.Error(ctx.Tr("secrets.deletion.failed"))
-	} else {
-		ctx.Flash.Success(ctx.Tr("secrets.deletion.success"))
+	err := secret_service.DeleteSecretByID(ctx, ownerID, repoID, id)
+	if err != nil {
+		log.Error("DeleteSecretByID(%d) failed: %v", id, err)
+		ctx.JSONError(ctx.Tr("secrets.deletion.failed"))
+		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": redirectURL,
-	})
+	ctx.Flash.Success(ctx.Tr("secrets.deletion.success"))
+	ctx.JSONRedirect(redirectURL)
 }

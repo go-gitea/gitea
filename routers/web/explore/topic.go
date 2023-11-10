@@ -23,7 +23,7 @@ func TopicSearch(ctx *context.Context) {
 		},
 	}
 
-	topics, total, err := repo_model.FindTopics(opts)
+	topics, total, err := repo_model.FindTopics(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError)
 		return
@@ -35,7 +35,7 @@ func TopicSearch(ctx *context.Context) {
 	}
 
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"topics": topicResponses,
 	})
 }

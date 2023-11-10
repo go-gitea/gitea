@@ -29,7 +29,7 @@ func IssueWatch(ctx *context.Context) {
 				log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
 					"User in Repo has Permissions: %-+v",
 					ctx.Doer,
-					log.NewColoredIDValue(issue.PosterID),
+					issue.PosterID,
 					issueType,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)
@@ -47,7 +47,7 @@ func IssueWatch(ctx *context.Context) {
 		return
 	}
 
-	if err := issues_model.CreateOrUpdateIssueWatch(ctx.Doer.ID, issue.ID, watch); err != nil {
+	if err := issues_model.CreateOrUpdateIssueWatch(ctx, ctx.Doer.ID, issue.ID, watch); err != nil {
 		ctx.ServerError("CreateOrUpdateIssueWatch", err)
 		return
 	}

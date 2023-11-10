@@ -36,7 +36,7 @@ func (d *DingtalkPayload) JSONPayload() ([]byte, error) {
 // Create implements PayloadConvertor Create method
 func (d *DingtalkPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 	// created tag/branch
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
 
 	return createDingtalkPayload(title, title, fmt.Sprintf("view ref %s", refName), p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName)), nil
@@ -45,7 +45,7 @@ func (d *DingtalkPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 // Delete implements PayloadConvertor Delete method
 func (d *DingtalkPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	// created tag/branch
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
 
 	return createDingtalkPayload(title, title, fmt.Sprintf("view ref %s", refName), p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName)), nil
@@ -61,7 +61,7 @@ func (d *DingtalkPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
 // Push implements PayloadConvertor Push method
 func (d *DingtalkPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	var (
-		branchName = git.RefEndName(p.Ref)
+		branchName = git.RefName(p.Ref).ShortName()
 		commitDesc string
 	)
 
@@ -170,7 +170,13 @@ func (d *DingtalkPayload) Repository(p *api.RepositoryPayload) (api.Payloader, e
 func (d *DingtalkPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, _ := getReleasePayloadInfo(p, noneLinkFormatter, true)
 
-	return createDingtalkPayload(text, text, "view release", p.Release.URL), nil
+	return createDingtalkPayload(text, text, "view release", p.Release.HTMLURL), nil
+}
+
+func (d *DingtalkPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+	text, _ := getPackagePayloadInfo(p, noneLinkFormatter, true)
+
+	return createDingtalkPayload(text, text, "view package", p.Package.HTMLURL), nil
 }
 
 func createDingtalkPayload(title, text, singleTitle, singleURL string) *DingtalkPayload {

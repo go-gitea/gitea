@@ -28,6 +28,9 @@ const (
 // RenderNewCodeCommentForm will render the form for creating a new review comment
 func RenderNewCodeCommentForm(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
 	if !issue.IsPull {
 		return
 	}
@@ -52,10 +55,10 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 func CreateCodeComment(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CodeCommentForm)
 	issue := GetActionIssue(ctx)
-	if !issue.IsPull {
+	if ctx.Written() {
 		return
 	}
-	if ctx.Written() {
+	if !issue.IsPull {
 		return
 	}
 
@@ -98,7 +101,7 @@ func CreateCodeComment(ctx *context.Context) {
 		renderConversation(ctx, comment)
 		return
 	}
-	ctx.Redirect(comment.Link())
+	ctx.Redirect(comment.Link(ctx))
 }
 
 // UpdateResolveConversation add or remove an Conversation resolved mark
@@ -124,7 +127,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 	}
 
 	var permResult bool
-	if permResult, err = issues_model.CanMarkConversation(comment.Issue, ctx.Doer); err != nil {
+	if permResult, err = issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer); err != nil {
 		ctx.ServerError("CanMarkConversation", err)
 		return
 	}
@@ -139,7 +142,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 	}
 
 	if action == "Resolve" || action == "UnResolve" {
-		err = issues_model.MarkConversation(comment, ctx.Doer, action == "Resolve")
+		err = issues_model.MarkConversation(ctx, comment, ctx.Doer, action == "Resolve")
 		if err != nil {
 			ctx.ServerError("MarkConversation", err)
 			return
@@ -153,13 +156,11 @@ func UpdateResolveConversation(ctx *context.Context) {
 		renderConversation(ctx, comment)
 		return
 	}
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 func renderConversation(ctx *context.Context, comment *issues_model.Comment) {
-	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line)
+	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, ctx.Data["ShowOutdatedComments"].(bool))
 	if err != nil {
 		ctx.ServerError("FetchCodeCommentsByLine", err)
 		return
@@ -185,15 +186,15 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment) {
 func SubmitReview(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.SubmitReviewForm)
 	issue := GetActionIssue(ctx)
-	if !issue.IsPull {
+	if ctx.Written() {
 		return
 	}
-	if ctx.Written() {
+	if !issue.IsPull {
 		return
 	}
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
+		ctx.JSONRedirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		return
 	}
 
@@ -214,7 +215,7 @@ func SubmitReview(ctx *context.Context) {
 			}
 
 			ctx.Flash.Error(translated)
-			ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
+			ctx.JSONRedirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 			return
 		}
 	}
@@ -228,14 +229,13 @@ func SubmitReview(ctx *context.Context) {
 	if err != nil {
 		if issues_model.IsContentEmptyErr(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
-			ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
+			ctx.JSONRedirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		} else {
 			ctx.ServerError("SubmitReview", err)
 		}
 		return
 	}
-
-	ctx.Redirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, issue.Index, comm.HashTag()))
+	ctx.JSONRedirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, issue.Index, comm.HashTag()))
 }
 
 // DismissReview dismissing stale review by repo admin
@@ -259,8 +259,8 @@ type viewedFilesUpdate struct {
 
 func UpdateViewedFiles(ctx *context.Context) {
 	// Find corresponding PR
-	issue := checkPullInfo(ctx)
-	if ctx.Written() {
+	issue, ok := getPullInfo(ctx)
+	if !ok {
 		return
 	}
 	pull := issue.PullRequest

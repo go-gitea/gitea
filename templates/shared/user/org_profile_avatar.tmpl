@@ -1,0 +1,16 @@
+{{with .ContextUser}}
+	<div class="ui container">
+		<div class="ui vertically grid head">
+			<div class="column">
+				<div class="ui header gt-df gt-ac gt-word-break">
+					{{ctx.AvatarUtils.Avatar . 100}}
+					<span class="text thin grey"><a href="{{.HomeLink}}">{{.DisplayName}}</a></span>
+					<span class="org-visibility">
+						{{if .Visibility.IsLimited}}<div class="ui medium basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
+						{{if .Visibility.IsPrivate}}<div class="ui medium basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
+					</span>
+				</div>
+			</div>
+		</div>
+	</div>
+{{end}}

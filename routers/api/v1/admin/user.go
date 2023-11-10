@@ -36,7 +36,7 @@ func parseAuthSource(ctx *context.APIContext, u *user_model.User, sourceID int64
 		return
 	}
 
-	source, err := auth.GetSourceByID(sourceID)
+	source, err := auth.GetSourceByID(ctx, sourceID)
 	if err != nil {
 		if auth.IsErrSourceNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -128,7 +128,7 @@ func CreateUser(ctx *context.APIContext) {
 		u.UpdatedUnix = u.CreatedUnix
 	}
 
-	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, u, overwriteDefault); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) ||
 			user_model.IsErrEmailAlreadyUsed(err) ||
 			db.IsErrNameReserved(err) ||
@@ -312,6 +312,8 @@ func DeleteUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
@@ -400,7 +402,7 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := asymkey_service.DeletePublicKey(ctx.ContextUser, ctx.ParamsInt64(":id")); err != nil {
+	if err := asymkey_service.DeletePublicKey(ctx, ctx.ContextUser, ctx.ParamsInt64(":id")); err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.NotFound()
 		} else if asymkey_model.IsErrKeyAccessDenied(err) {
@@ -448,7 +450,7 @@ func SearchUsers(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	users, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
+	users, maxResults, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		Type:        user_model.UserTypeIndividual,
 		LoginName:   ctx.FormTrim("login_name"),
@@ -502,17 +504,15 @@ func RenameUser(ctx *context.APIContext) {
 		return
 	}
 
+	oldName := ctx.ContextUser.Name
 	newName := web.GetForm(ctx).(*api.RenameUserOption).NewName
-
-	if strings.EqualFold(newName, ctx.ContextUser.Name) {
-		// Noop as username is not changed
-		ctx.Status(http.StatusNoContent)
-		return
-	}
 
 	// Check if user name has been changed
 	if err := user_service.RenameUser(ctx, ctx.ContextUser, newName); err != nil {
 		switch {
+		case user_model.IsErrUsernameNotChanged(err):
+			// Noop as username is not changed
+			ctx.Status(http.StatusNoContent)
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("form.username_been_taken"))
 		case db.IsErrNameReserved(err):
@@ -526,5 +526,7 @@ func RenameUser(ctx *context.APIContext) {
 		}
 		return
 	}
-	ctx.Status(http.StatusNoContent)
+
+	log.Trace("User name changed: %s -> %s", oldName, newName)
+	ctx.Status(http.StatusOK)
 }

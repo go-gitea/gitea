@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
@@ -115,7 +114,7 @@ func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Du
 	return nil
 }
 
-func gatherMissingRepoRecords(ctx context.Context) ([]*repo_model.Repository, error) {
+func gatherMissingRepoRecords(ctx context.Context) (repo_model.RepositoryList, error) {
 	repos := make([]*repo_model.Repository, 0, 10)
 	if err := db.Iterate(
 		ctx,
@@ -165,7 +164,7 @@ func DeleteMissingRepositories(ctx context.Context, doer *user_model.User) error
 		default:
 		}
 		log.Trace("Deleting %d/%d...", repo.OwnerID, repo.ID)
-		if err := models.DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {
+		if err := DeleteRepositoryDirectly(ctx, doer, repo.ID); err != nil {
 			log.Error("Failed to DeleteRepository %-v: Error: %v", repo, err)
 			if err2 := system_model.CreateRepositoryNotice("Failed to DeleteRepository %s [%d]: Error: %v", repo.FullName(), repo.ID, err); err2 != nil {
 				log.Error("CreateRepositoryNotice: %v", err)

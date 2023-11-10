@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -20,7 +21,7 @@ func TestAPIReposGitNotes(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		// Login as User2.
 		session := loginUser(t, user.Name)
-		token := getTokenForLoggedInUser(t, session)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 		// check invalid requests
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/notes/12345?token=%s", user.Name, token)
@@ -36,5 +37,7 @@ func TestAPIReposGitNotes(t *testing.T) {
 		var apiData api.Note
 		DecodeJSON(t, resp, &apiData)
 		assert.Equal(t, "This is a test note\n", apiData.Message)
+		assert.NotEmpty(t, apiData.Commit.Files)
+		assert.NotNil(t, apiData.Commit.RepoCommit.Verification)
 	})
 }

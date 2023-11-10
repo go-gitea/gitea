@@ -5,9 +5,7 @@
 		<div class="navbar gt-mb-4">
 			{{template "repo/issue/navbar" .}}
 			{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
-				<div class="ui right">
-					<button class="ui green new-label button">{{.locale.Tr "repo.issues.new_label"}}</button>
-				</div>
+				<button class="ui small primary new-label button">{{ctx.Locale.Tr "repo.issues.new_label"}}</button>
 			{{end}}
 		</div>
 		{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
@@ -19,7 +17,6 @@
 </div>
 
 {{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
-{{template "repo/issue/labels/edit_delete_label" .}}
+	{{template "repo/issue/labels/edit_delete_label" .}}
 {{end}}
-</div>
 {{template "base/footer" .}}

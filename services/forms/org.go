@@ -30,7 +30,7 @@ type CreateOrgForm struct {
 
 // Validate validates the fields
 func (f *CreateOrgForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -38,6 +38,7 @@ func (f *CreateOrgForm) Validate(req *http.Request, errs binding.Errors) binding
 type UpdateOrgSettingForm struct {
 	Name                      string `binding:"Required;Username;MaxSize(40)" locale:"org.org_name_holder"`
 	FullName                  string `binding:"MaxSize(100)"`
+	Email                     string `binding:"MaxSize(255)"`
 	Description               string `binding:"MaxSize(255)"`
 	Website                   string `binding:"ValidUrl;MaxSize(255)"`
 	Location                  string `binding:"MaxSize(50)"`
@@ -48,7 +49,7 @@ type UpdateOrgSettingForm struct {
 
 // Validate validates the fields
 func (f *UpdateOrgSettingForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -70,6 +71,6 @@ type CreateTeamForm struct {
 
 // Validate validates the fields
 func (f *CreateTeamForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

@@ -49,7 +49,7 @@ func NewCustomProvider(name, displayName string, customURLSetting *CustomURLSett
 	}
 }
 
-var _ (GothProvider) = &CustomProvider{}
+var _ GothProvider = &CustomProvider{}
 
 func init() {
 	RegisterGothProvider(NewCustomProvider(

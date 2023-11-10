@@ -1,13 +1,13 @@
 {{if eq .PackageDescriptor.Package.Type "go"}}
-	<h4 class="ui top attached header">{{.locale.Tr "packages.installation"}}</h4>
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.go.install"}}</label>
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.go.install"}}</label>
 				<div class="markup"><pre class="code-block"><code>GOPROXY=<gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/go"></gitea-origin-url> go install {{$.PackageDescriptor.Package.Name}}@{{$.PackageDescriptor.Version.Version}}</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{.locale.Tr "packages.go.documentation" "https://docs.gitea.io/en-us/usage/packages/go" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Go" "https://docs.gitea.com/usage/packages/go" | Safe}}</label>
 			</div>
 		</div>
 	</div>

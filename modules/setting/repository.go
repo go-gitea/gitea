@@ -90,6 +90,7 @@ var (
 		// Issue Setting
 		Issue struct {
 			LockReasons []string
+			MaxPinned   int
 		} `ini:"repository.issue"`
 
 		Release struct {
@@ -227,8 +228,10 @@ var (
 		// Issue settings
 		Issue: struct {
 			LockReasons []string
+			MaxPinned   int
 		}{
 			LockReasons: strings.Split("Too heated,Off-topic,Spam,Resolved", ","),
+			MaxPinned:   3,
 		},
 
 		Release: struct {
@@ -262,10 +265,6 @@ var (
 	}
 	RepoRootPath string
 	ScriptType   = "bash"
-
-	RepoArchive = struct {
-		Storage
-	}{}
 )
 
 func loadRepositoryFrom(rootCfg ConfigProvider) {
@@ -278,7 +277,6 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
 	Repository.DefaultBranch = sec.Key("DEFAULT_BRANCH").MustString(Repository.DefaultBranch)
 	RepoRootPath = sec.Key("ROOT").MustString(path.Join(AppDataPath, "gitea-repositories"))
-	forcePathSeparator(RepoRootPath)
 	if !filepath.IsAbs(RepoRootPath) {
 		RepoRootPath = filepath.Join(AppWorkPath, RepoRootPath)
 	} else {
@@ -306,11 +304,11 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
 	}
 
-	if !rootCfg.Section("packages").Key("ENABLED").MustBool(true) {
+	if !rootCfg.Section("packages").Key("ENABLED").MustBool(Packages.Enabled) {
 		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.packages")
 	}
 
-	if !rootCfg.Section("actions").Key("ENABLED").MustBool(true) {
+	if !rootCfg.Section("actions").Key("ENABLED").MustBool(Actions.Enabled) {
 		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.actions")
 	}
 
@@ -357,5 +355,7 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		Repository.Upload.TempPath = path.Join(AppWorkPath, Repository.Upload.TempPath)
 	}
 
-	RepoArchive.Storage = getStorage(rootCfg, "repo-archive", "", nil)
+	if err := loadRepoArchiveFrom(rootCfg); err != nil {
+		log.Fatal("loadRepoArchiveFrom: %v", err)
+	}
 }

@@ -40,9 +40,8 @@ func PathJoinRel(elem ...string) string {
 		return ""
 	} else if p == "/" {
 		return "."
-	} else {
-		return p[1:]
 	}
+	return p[1:]
 }
 
 // PathJoinRelX joins the path elements into a single path like PathJoinRel,
@@ -222,7 +221,10 @@ func isOSWindows() bool {
 	return runtime.GOOS == "windows"
 }
 
+var driveLetterRegexp = regexp.MustCompile("/[A-Za-z]:/")
+
 // FileURLToPath extracts the path information from a file://... url.
+// It returns an error only if the URL is not a file URL.
 func FileURLToPath(u *url.URL) (string, error) {
 	if u.Scheme != "file" {
 		return "", errors.New("URL scheme is not 'file': " + u.String())
@@ -235,8 +237,7 @@ func FileURLToPath(u *url.URL) (string, error) {
 	}
 
 	// If it looks like there's a Windows drive letter at the beginning, strip off the leading slash.
-	re := regexp.MustCompile("/[A-Za-z]:/")
-	if re.MatchString(path) {
+	if driveLetterRegexp.MatchString(path) {
 		return path[1:], nil
 	}
 	return path, nil

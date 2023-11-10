@@ -73,7 +73,7 @@ func MatrixLinkFormatter(url, text string) string {
 
 // MatrixLinkToRef Matrix-formatter link to a repo ref
 func MatrixLinkToRef(repoURL, ref string) string {
-	refName := git.RefEndName(ref)
+	refName := git.RefName(ref).ShortName()
 	switch {
 	case strings.HasPrefix(ref, git.BranchPrefix):
 		return MatrixLinkFormatter(repoURL+"/src/branch/"+util.PathEscapeSegments(refName), refName)
@@ -95,7 +95,7 @@ func (m *MatrixPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 
 // Delete composes Matrix payload for delete a branch or tag.
 func (m *MatrixPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	repoLink := MatrixLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	text := fmt.Sprintf("[%s:%s] %s deleted by %s", repoLink, refName, p.RefType, p.Sender.UserName)
 
@@ -177,7 +177,7 @@ func (m *MatrixPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, e
 func (m *MatrixPayload) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (api.Payloader, error) {
 	senderLink := MatrixLinkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
 	title := fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title)
-	titleLink := MatrixLinkFormatter(p.PullRequest.URL, title)
+	titleLink := MatrixLinkFormatter(p.PullRequest.HTMLURL, title)
 	repoLink := MatrixLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	var text string
 
@@ -205,6 +205,21 @@ func (m *MatrixPayload) Repository(p *api.RepositoryPayload) (api.Payloader, err
 		text = fmt.Sprintf("[%s] Repository created by %s", repoLink, senderLink)
 	case api.HookRepoDeleted:
 		text = fmt.Sprintf("[%s] Repository deleted by %s", repoLink, senderLink)
+	}
+
+	return getMatrixPayload(text, nil, m.MsgType), nil
+}
+
+func (m *MatrixPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+	senderLink := MatrixLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
+	repoLink := MatrixLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
+	var text string
+
+	switch p.Action {
+	case api.HookPackageCreated:
+		text = fmt.Sprintf("[%s] Package published by %s", repoLink, senderLink)
+	case api.HookPackageDeleted:
+		text = fmt.Sprintf("[%s] Package deleted by %s", repoLink, senderLink)
 	}
 
 	return getMatrixPayload(text, nil, m.MsgType), nil

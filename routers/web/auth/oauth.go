@@ -4,7 +4,7 @@
 package auth
 
 import (
-	stdContext "context"
+	go_context "context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/models/auth"
@@ -36,9 +37,10 @@ import (
 	user_service "code.gitea.io/gitea/services/user"
 
 	"gitea.com/go-chi/binding"
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
+	go_oauth2 "golang.org/x/oauth2"
 )
 
 const (
@@ -143,7 +145,7 @@ type AccessTokenResponse struct {
 	IDToken      string    `json:"id_token,omitempty"`
 }
 
-func newAccessTokenResponse(ctx stdContext.Context, grant *auth.OAuth2Grant, serverKey, clientKey oauth2.JWTSigningKey) (*AccessTokenResponse, *AccessTokenError) {
+func newAccessTokenResponse(ctx go_context.Context, grant *auth.OAuth2Grant, serverKey, clientKey oauth2.JWTSigningKey) (*AccessTokenResponse, *AccessTokenError) {
 	if setting.OAuth2.InvalidateRefreshTokens {
 		if err := grant.IncreaseCounter(ctx); err != nil {
 			return nil, &AccessTokenError{
@@ -235,7 +237,7 @@ func newAccessTokenResponse(ctx stdContext.Context, grant *auth.OAuth2Grant, ser
 			idToken.EmailVerified = user.IsActive
 		}
 		if grant.ScopeContains("groups") {
-			groups, err := getOAuthGroupsForUser(user)
+			groups, err := getOAuthGroupsForUser(ctx, user)
 			if err != nil {
 				log.Error("Error getting groups: %v", err)
 				return nil, &AccessTokenError{
@@ -289,7 +291,7 @@ func InfoOAuth(ctx *context.Context) {
 		Picture:  ctx.Doer.AvatarLink(ctx),
 	}
 
-	groups, err := getOAuthGroupsForUser(ctx.Doer)
+	groups, err := getOAuthGroupsForUser(ctx, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("Oauth groups for user", err)
 		return
@@ -301,8 +303,8 @@ func InfoOAuth(ctx *context.Context) {
 
 // returns a list of "org" and "org:team" strings,
 // that the given user is a part of.
-func getOAuthGroupsForUser(user *user_model.User) ([]string, error) {
-	orgs, err := org_model.GetUserOrgsList(user)
+func getOAuthGroupsForUser(ctx go_context.Context, user *user_model.User) ([]string, error) {
+	orgs, err := org_model.GetUserOrgsList(ctx, user)
 	if err != nil {
 		return nil, fmt.Errorf("GetUserOrgList: %w", err)
 	}
@@ -310,12 +312,12 @@ func getOAuthGroupsForUser(user *user_model.User) ([]string, error) {
 	var groups []string
 	for _, org := range orgs {
 		groups = append(groups, org.Name)
-		teams, err := org.LoadTeams()
+		teams, err := org.LoadTeams(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("LoadTeams: %w", err)
 		}
 		for _, team := range teams {
-			if team.IsMember(user.ID) {
+			if team.IsMember(ctx, user.ID) {
 				groups = append(groups, org.Name+":"+team.LowerName)
 			}
 		}
@@ -340,17 +342,15 @@ func IntrospectOAuth(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.IntrospectTokenForm)
 	token, err := oauth2.ParseToken(form.Token, oauth2.DefaultSigningKey)
 	if err == nil {
-		if token.Valid() == nil {
-			grant, err := auth.GetOAuth2GrantByID(ctx, token.GrantID)
-			if err == nil && grant != nil {
-				app, err := auth.GetOAuth2ApplicationByID(ctx, grant.ApplicationID)
-				if err == nil && app != nil {
-					response.Active = true
-					response.Scope = grant.Scope
-					response.Issuer = setting.AppURL
-					response.Audience = []string{app.ClientID}
-					response.Subject = fmt.Sprint(grant.UserID)
-				}
+		grant, err := auth.GetOAuth2GrantByID(ctx, token.GrantID)
+		if err == nil && grant != nil {
+			app, err := auth.GetOAuth2ApplicationByID(ctx, grant.ApplicationID)
+			if err == nil && app != nil {
+				response.Active = true
+				response.Scope = grant.Scope
+				response.Issuer = setting.AppURL
+				response.Audience = []string{app.ClientID}
+				response.Subject = fmt.Sprint(grant.UserID)
 			}
 		}
 	}
@@ -578,7 +578,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 
 // OIDCWellKnown generates JSON so OIDC clients know Gitea's capabilities
 func OIDCWellKnown(ctx *context.Context) {
-	t, err := ctx.Render.TemplateLookup("user/auth/oidc_wellknown")
+	t, err := ctx.Render.TemplateLookup("user/auth/oidc_wellknown", nil)
 	if err != nil {
 		ctx.ServerError("unable to find template", err)
 		return
@@ -695,7 +695,7 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, server
 	}
 	// "The authorization server MUST ... require client authentication for confidential clients"
 	// https://datatracker.ietf.org/doc/html/rfc6749#section-6
-	if !app.ValidateClientSecret([]byte(form.ClientSecret)) {
+	if app.ConfidentialClient && !app.ValidateClientSecret([]byte(form.ClientSecret)) {
 		errorDescription := "invalid client secret"
 		if form.ClientSecret == "" {
 			errorDescription = "invalid empty client secret"
@@ -753,7 +753,7 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 		})
 		return
 	}
-	if !app.ValidateClientSecret([]byte(form.ClientSecret)) {
+	if app.ConfidentialClient && !app.ValidateClientSecret([]byte(form.ClientSecret)) {
 		errorDescription := "invalid client secret"
 		if form.ClientSecret == "" {
 			errorDescription = "invalid empty client secret"
@@ -847,7 +847,7 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 func SignInOAuth(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 
-	authSource, err := auth.GetActiveOAuth2SourceByName(provider)
+	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, provider)
 	if err != nil {
 		ctx.ServerError("SignIn", err)
 		return
@@ -859,7 +859,7 @@ func SignInOAuth(ctx *context.Context) {
 	}
 
 	// try to do a direct callback flow, so we don't authenticate the user again but use the valid accesstoken to get the user
-	user, gothUser, err := oAuth2UserLoginCallback(authSource, ctx.Req, ctx.Resp)
+	user, gothUser, err := oAuth2UserLoginCallback(ctx, authSource, ctx.Req, ctx.Resp)
 	if err == nil && user != nil {
 		// we got the user without going through the whole OAuth2 authentication flow again
 		handleOAuth2SignIn(ctx, authSource, user, gothUser)
@@ -868,7 +868,7 @@ func SignInOAuth(ctx *context.Context) {
 
 	if err = authSource.Cfg.(*oauth2.Source).Callout(ctx.Req, ctx.Resp); err != nil {
 		if strings.Contains(err.Error(), "no provider for ") {
-			if err = oauth2.ResetOAuth2(); err != nil {
+			if err = oauth2.ResetOAuth2(ctx); err != nil {
 				ctx.ServerError("SignIn", err)
 				return
 			}
@@ -886,19 +886,30 @@ func SignInOAuth(ctx *context.Context) {
 func SignInOAuthCallback(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 
+	if ctx.Req.FormValue("error") != "" {
+		var errorKeyValues []string
+		for k, vv := range ctx.Req.Form {
+			for _, v := range vv {
+				errorKeyValues = append(errorKeyValues, fmt.Sprintf("%s = %s", html.EscapeString(k), html.EscapeString(v)))
+			}
+		}
+		sort.Strings(errorKeyValues)
+		ctx.Flash.Error(strings.Join(errorKeyValues, "<br>"), true)
+	}
+
 	// first look if the provider is still active
-	authSource, err := auth.GetActiveOAuth2SourceByName(provider)
+	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, provider)
 	if err != nil {
 		ctx.ServerError("SignIn", err)
 		return
 	}
 
 	if authSource == nil {
-		ctx.ServerError("SignIn", errors.New("No valid provider found, check configured callback url in provider"))
+		ctx.ServerError("SignIn", errors.New("no valid provider found, check configured callback url in provider"))
 		return
 	}
 
-	u, gothUser, err := oAuth2UserLoginCallback(authSource, ctx.Req, ctx.Resp)
+	u, gothUser, err := oAuth2UserLoginCallback(ctx, authSource, ctx.Req, ctx.Resp)
 	if err != nil {
 		if user_model.IsErrUserProhibitLogin(err) {
 			uplerr := err.(user_model.ErrUserProhibitLogin)
@@ -920,6 +931,9 @@ func SignInOAuthCallback(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/user/login")
 			return
 		}
+		if err, ok := err.(*go_oauth2.RetrieveError); ok {
+			ctx.Flash.Error("OAuth2 RetrieveError: "+err.Error(), true)
+		}
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
@@ -927,7 +941,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	if u == nil {
 		if ctx.Doer != nil {
 			// attach user to already logged in user
-			err = externalaccount.LinkAccountToUser(ctx.Doer, gothUser)
+			err = externalaccount.LinkAccountToUser(ctx, ctx.Doer, gothUser)
 			if err != nil {
 				ctx.ServerError("UserLinkAccount", err)
 				return
@@ -992,13 +1006,13 @@ func SignInOAuthCallback(ctx *context.Context) {
 	handleOAuth2SignIn(ctx, authSource, u, gothUser)
 }
 
-func claimValueToStringSet(claimValue interface{}) container.Set[string] {
+func claimValueToStringSet(claimValue any) container.Set[string] {
 	var groups []string
 
 	switch rawGroup := claimValue.(type) {
 	case []string:
 		groups = rawGroup
-	case []interface{}:
+	case []any:
 		for _, group := range rawGroup {
 			groups = append(groups, fmt.Sprintf("%s", group))
 		}
@@ -1051,7 +1065,7 @@ func setUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, u *user_mod
 }
 
 func showLinkingLogin(ctx *context.Context, gothUser goth.User) {
-	if err := updateSession(ctx, nil, map[string]interface{}{
+	if err := updateSession(ctx, nil, map[string]any{
 		"linkAccountGothUser": gothUser,
 	}); err != nil {
 		ctx.ServerError("updateSession", err)
@@ -1060,7 +1074,7 @@ func showLinkingLogin(ctx *context.Context, gothUser goth.User) {
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
 }
 
-func updateAvatarIfNeed(url string, u *user_model.User) {
+func updateAvatarIfNeed(ctx *context.Context, url string, u *user_model.User) {
 	if setting.OAuth2Client.UpdateAvatar && len(url) > 0 {
 		resp, err := http.Get(url)
 		if err == nil {
@@ -1072,18 +1086,18 @@ func updateAvatarIfNeed(url string, u *user_model.User) {
 		if err == nil && resp.StatusCode == http.StatusOK {
 			data, err := io.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize+1))
 			if err == nil && int64(len(data)) <= setting.Avatar.MaxFileSize {
-				_ = user_service.UploadAvatar(u, data)
+				_ = user_service.UploadAvatar(ctx, u, data)
 			}
 		}
 	}
 }
 
 func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model.User, gothUser goth.User) {
-	updateAvatarIfNeed(gothUser.AvatarURL, u)
+	updateAvatarIfNeed(ctx, gothUser.AvatarURL, u)
 
 	needs2FA := false
 	if !source.Cfg.(*oauth2.Source).SkipLocalTwoFA {
-		_, err := auth.GetTwoFactorByUID(u.ID)
+		_, err := auth.GetTwoFactorByUID(ctx, u.ID)
 		if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.ServerError("UserSignIn", err)
 			return
@@ -1103,7 +1117,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 	// If this user is enrolled in 2FA and this source doesn't override it,
 	// we can't sign the user in just yet. Instead, redirect them to the 2FA authentication page.
 	if !needs2FA {
-		if err := updateSession(ctx, nil, map[string]interface{}{
+		if err := updateSession(ctx, nil, map[string]any{
 			"uid":   u.ID,
 			"uname": u.Name,
 		}); err != nil {
@@ -1137,7 +1151,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		}
 
 		// update external user information
-		if err := externalaccount.UpdateExternalUser(u, gothUser); err != nil {
+		if err := externalaccount.UpdateExternalUser(ctx, u, gothUser); err != nil {
 			if !errors.Is(err, util.ErrNotExist) {
 				log.Error("UpdateExternalUser failed: %v", err)
 			}
@@ -1173,7 +1187,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		}
 	}
 
-	if err := updateSession(ctx, nil, map[string]interface{}{
+	if err := updateSession(ctx, nil, map[string]any{
 		// User needs to use 2FA, save data and redirect to 2FA page.
 		"twofaUid":      u.ID,
 		"twofaRemember": false,
@@ -1183,7 +1197,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 	}
 
 	// If WebAuthn is enrolled -> Redirect to WebAuthn instead
-	regs, err := auth.GetWebAuthnCredentialsByUID(u.ID)
+	regs, err := auth.GetWebAuthnCredentialsByUID(ctx, u.ID)
 	if err == nil && len(regs) > 0 {
 		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
 		return
@@ -1194,7 +1208,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 
 // OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful
 // login the user
-func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, response http.ResponseWriter) (*user_model.User, goth.User, error) {
+func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, request *http.Request, response http.ResponseWriter) (*user_model.User, goth.User, error) {
 	oauth2Source := authSource.Cfg.(*oauth2.Source)
 
 	// Make sure that the response is not an error response.
@@ -1246,7 +1260,7 @@ func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, res
 		LoginSource: authSource.ID,
 	}
 
-	hasUser, err := user_model.GetUser(user)
+	hasUser, err := user_model.GetUser(ctx, user)
 	if err != nil {
 		return nil, goth.User{}, err
 	}
@@ -1260,7 +1274,7 @@ func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, res
 		ExternalID:    gothUser.UserID,
 		LoginSourceID: authSource.ID,
 	}
-	hasUser, err = user_model.GetExternalLogin(externalLoginUser)
+	hasUser, err = user_model.GetExternalLogin(request.Context(), externalLoginUser)
 	if err != nil {
 		return nil, goth.User{}, err
 	}

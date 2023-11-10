@@ -34,6 +34,8 @@ func ListGitHooks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GitHookList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	hooks, err := ctx.Repo.GitRepo.Hooks()
 	if err != nil {

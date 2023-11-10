@@ -180,7 +180,7 @@ func TestAPINewWikiPage(t *testing.T) {
 		defer tests.PrepareTestEnv(t)()
 		username := "user2"
 		session := loginUser(t, username)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/new?token=%s", username, "repo1", token)
 
@@ -197,7 +197,7 @@ func TestAPIEditWikiPage(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	username := "user2"
 	session := loginUser(t, username)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/page/Page-With-Spaced-Name?token=%s", username, "repo1", token)
 

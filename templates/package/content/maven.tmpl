@@ -1,9 +1,9 @@
 {{if eq .PackageDescriptor.Package.Type "maven"}}
-	<h4 class="ui top attached header">{{.locale.Tr "packages.installation"}}</h4>
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-code"}} {{.locale.Tr "packages.maven.registry" | Safe}}</label>
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.maven.registry" | Safe}}</label>
 				<div class="markup"><pre class="code-block"><code>&lt;repositories&gt;
 	&lt;repository&gt;
 		&lt;id&gt;gitea&lt;/id&gt;
@@ -24,7 +24,7 @@
 &lt;/distributionManagement&gt;</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{svg "octicon-code"}} {{.locale.Tr "packages.maven.install" | Safe}}</label>
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.maven.install" | Safe}}</label>
 				<div class="markup"><pre class="code-block"><code>&lt;dependency&gt;
 	&lt;groupId&gt;{{.PackageDescriptor.Metadata.GroupID}}&lt;/groupId&gt;
 	&lt;artifactId&gt;{{.PackageDescriptor.Metadata.ArtifactID}}&lt;/artifactId&gt;
@@ -32,28 +32,28 @@
 &lt;/dependency&gt;</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.maven.install2"}}</label>
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.maven.install2"}}</label>
 				<div class="markup"><pre class="code-block"><code>mvn install</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.maven.download"}}</label>
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.maven.download"}}</label>
 				<div class="markup"><pre class="code-block"><code>mvn dependency:get -DremoteRepositories=<gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/maven"></gitea-origin-url> -Dartifact={{.PackageDescriptor.Metadata.GroupID}}:{{.PackageDescriptor.Metadata.ArtifactID}}:{{.PackageDescriptor.Version.Version}}</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{.locale.Tr "packages.maven.documentation" "https://docs.gitea.io/en-us/usage/packages/maven/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Maven" "https://docs.gitea.com/usage/packages/maven/" | Safe}}</label>
 			</div>
 		</div>
 	</div>
 
 	{{if .PackageDescriptor.Metadata.Description}}
-		<h4 class="ui top attached header">{{.locale.Tr "packages.about"}}</h4>
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
 		<div class="ui attached segment">
 			{{.PackageDescriptor.Metadata.Description}}
 		</div>
 	{{end}}
 
 	{{if .PackageDescriptor.Metadata.Dependencies}}
-		<h4 class="ui top attached header">{{.locale.Tr "packages.dependencies"}}</h4>
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.dependencies"}}</h4>
 		<div class="ui attached segment">
 			<div class="ui list">
 				{{range .PackageDescriptor.Metadata.Dependencies}}

@@ -8,9 +8,9 @@ import (
 	gotemplate "html/template"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
-	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
@@ -45,10 +45,6 @@ func RefBlame(ctx *context.Context) {
 		return
 	}
 
-	userName := ctx.Repo.Owner.Name
-	repoName := ctx.Repo.Repository.Name
-	commitID := ctx.Repo.CommitID
-
 	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	treeLink := branchLink
 	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL()
@@ -74,7 +70,7 @@ func RefBlame(ctx *context.Context) {
 	// Get current entry user currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
-		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
+		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 		return
 	}
 
@@ -101,26 +97,16 @@ func RefBlame(ctx *context.Context) {
 		return
 	}
 
-	blameReader, err := git.CreateBlameReader(ctx, repo_model.RepoPath(userName, repoName), commitID, fileName)
+	bypassBlameIgnore, _ := strconv.ParseBool(ctx.FormString("bypass-blame-ignore"))
+
+	result, err := performBlame(ctx, ctx.Repo.Repository.RepoPath(), ctx.Repo.Commit, fileName, bypassBlameIgnore)
 	if err != nil {
 		ctx.NotFound("CreateBlameReader", err)
 		return
 	}
-	defer blameReader.Close()
 
-	blameParts := make([]git.BlamePart, 0)
-
-	for {
-		blamePart, err := blameReader.NextPart()
-		if err != nil {
-			ctx.NotFound("NextPart", err)
-			return
-		}
-		if blamePart == nil {
-			break
-		}
-		blameParts = append(blameParts, *blamePart)
-	}
+	ctx.Data["UsesIgnoreRevs"] = result.UsesIgnoreRevs
+	ctx.Data["FaultyIgnoreRevsFile"] = result.FaultyIgnoreRevsFile
 
 	// Get Topics of this repo
 	renderRepoTopics(ctx)
@@ -128,14 +114,75 @@ func RefBlame(ctx *context.Context) {
 		return
 	}
 
-	commitNames, previousCommits := processBlameParts(ctx, blameParts)
+	commitNames, previousCommits := processBlameParts(ctx, result.Parts)
 	if ctx.Written() {
 		return
 	}
 
-	renderBlame(ctx, blameParts, commitNames, previousCommits)
+	renderBlame(ctx, result.Parts, commitNames, previousCommits)
 
 	ctx.HTML(http.StatusOK, tplRepoHome)
+}
+
+type blameResult struct {
+	Parts                []git.BlamePart
+	UsesIgnoreRevs       bool
+	FaultyIgnoreRevsFile bool
+}
+
+func performBlame(ctx *context.Context, repoPath string, commit *git.Commit, file string, bypassBlameIgnore bool) (*blameResult, error) {
+	blameReader, err := git.CreateBlameReader(ctx, repoPath, commit, file, bypassBlameIgnore)
+	if err != nil {
+		return nil, err
+	}
+
+	r := &blameResult{}
+	if err := fillBlameResult(blameReader, r); err != nil {
+		_ = blameReader.Close()
+		return nil, err
+	}
+
+	err = blameReader.Close()
+	if err != nil {
+		if len(r.Parts) == 0 && r.UsesIgnoreRevs {
+			// try again without ignored revs
+
+			blameReader, err = git.CreateBlameReader(ctx, repoPath, commit, file, true)
+			if err != nil {
+				return nil, err
+			}
+
+			r := &blameResult{
+				FaultyIgnoreRevsFile: true,
+			}
+			if err := fillBlameResult(blameReader, r); err != nil {
+				_ = blameReader.Close()
+				return nil, err
+			}
+
+			return r, blameReader.Close()
+		}
+		return nil, err
+	}
+	return r, nil
+}
+
+func fillBlameResult(br *git.BlameReader, r *blameResult) error {
+	r.UsesIgnoreRevs = br.UsesIgnoreRevs()
+
+	r.Parts = make([]git.BlamePart, 0, 5)
+	for {
+		blamePart, err := br.NextPart()
+		if err != nil {
+			return fmt.Errorf("BlameReader.NextPart failed: %w", err)
+		}
+		if blamePart == nil {
+			break
+		}
+		r.Parts = append(r.Parts, *blamePart)
+	}
+
+	return nil
 }
 
 func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[string]*user_model.UserCommit, map[string]string) {
@@ -235,6 +282,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 
 	var lexerName string
 
+	avatarUtils := templates.NewAvatarUtils(ctx)
 	i := 0
 	commitCnt := 0
 	for _, part := range blameParts {
@@ -257,9 +305,9 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 
 				var avatar string
 				if commit.User != nil {
-					avatar = string(templates.Avatar(ctx, commit.User, 18, "gt-mr-3"))
+					avatar = string(avatarUtils.Avatar(commit.User, 18, "gt-mr-3"))
 				} else {
-					avatar = string(templates.AvatarByEmail(ctx, commit.Author.Email, commit.Author.Name, 18, "gt-mr-3"))
+					avatar = string(avatarUtils.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "gt-mr-3"))
 				}
 
 				br.Avatar = gotemplate.HTML(avatar)

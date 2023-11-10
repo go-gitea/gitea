@@ -24,7 +24,9 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
 
@@ -35,6 +37,8 @@ import (
 var currentEngine *xorm.Engine
 
 func initMigrationTest(t *testing.T) func() {
+	log.RegisterEventWriter("test", testlogger.NewTestLoggerWriter)
+
 	deferFn := tests.PrintCurrentTest(t, 2)
 	giteaRoot := base.SetupGiteaRoot()
 	if giteaRoot == "" {
@@ -84,7 +88,7 @@ func initMigrationTest(t *testing.T) func() {
 
 	assert.NoError(t, git.InitFull(context.Background()))
 	setting.LoadDBSetting()
-	setting.InitLogs(true)
+	setting.InitLoggersForTest()
 	return deferFn
 }
 
@@ -292,7 +296,7 @@ func doMigrationTest(t *testing.T, version string) {
 		return
 	}
 
-	setting.InitSQLLog(false)
+	setting.InitSQLLoggersForCli(log.INFO)
 
 	err := db.InitEngineWithMigration(context.Background(), wrappedMigrate)
 	assert.NoError(t, err)

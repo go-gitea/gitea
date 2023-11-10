@@ -15,17 +15,17 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/notification"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
 	rpm_service "code.gitea.io/gitea/services/packages/rpm"
 )
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
@@ -45,7 +45,7 @@ gpgkey=`+url+`/repository.key`)
 
 // Gets or creates the PGP public key used to sign repository metadata files
 func GetRepositoryKey(ctx *context.Context) {
-	_, pub, err := rpm_service.GetOrCreateKeyPair(ctx.Package.Owner.ID)
+	_, pub, err := rpm_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -59,13 +59,13 @@ func GetRepositoryKey(ctx *context.Context) {
 
 // Gets a pre-generated repository metadata file
 func GetRepositoryFile(ctx *context.Context) {
-	pv, err := rpm_service.GetOrCreateRepositoryVersion(ctx.Package.Owner.ID)
+	pv, err := rpm_service.GetOrCreateRepositoryVersion(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	s, pf, err := packages_service.GetFileStreamByPackageVersion(
+	s, u, pf, err := packages_service.GetFileStreamByPackageVersion(
 		ctx,
 		pv,
 		&packages_service.PackageFileInfo{
@@ -80,12 +80,8 @@ func GetRepositoryFile(ctx *context.Context) {
 		}
 		return
 	}
-	defer s.Close()
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }
 
 func UploadPackageFile(ctx *context.Context) {
@@ -127,6 +123,7 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
@@ -173,7 +170,7 @@ func DownloadPackageFile(ctx *context.Context) {
 	name := ctx.Params("name")
 	version := ctx.Params("version")
 
-	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -193,13 +190,8 @@ func DownloadPackageFile(ctx *context.Context) {
 		}
 		return
 	}
-	defer s.Close()
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		ContentType:  "application/x-rpm",
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }
 
 func DeletePackageFile(webctx *context.Context) {
@@ -256,7 +248,7 @@ func DeletePackageFile(webctx *context.Context) {
 	}
 
 	if pd != nil {
-		notification.NotifyPackageDelete(webctx, webctx.Doer, pd)
+		notify_service.PackageDelete(webctx, webctx.Doer, pd)
 	}
 
 	if err := rpm_service.BuildRepositoryFiles(webctx, webctx.Package.Owner.ID); err != nil {

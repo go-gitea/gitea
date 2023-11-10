@@ -9,14 +9,14 @@ import (
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func runSendMail(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setting.Init(&setting.Options{})
+	setting.MustInstalled()
 
 	if err := argsSet(c, "title"); err != nil {
 		return err

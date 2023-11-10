@@ -7,12 +7,6 @@ import (
 	"fmt"
 )
 
-// FileBlame return the Blame object of file
-func (repo *Repository) FileBlame(revision, path, file string) ([]byte, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "blame", "--root").AddDashesAndList(file).RunStdBytes(&RunOpts{Dir: path})
-	return stdout, err
-}
-
 // LineBlame returns the latest commit at the given line
 func (repo *Repository) LineBlame(revision, path, file string, line uint) (*Commit, error) {
 	res, _, err := NewCommand(repo.Ctx, "blame").

@@ -1,6 +1,6 @@
-<div class="gt-df gt-ac gt-fw">
+<div class="flex-text-block gt-fw">
 	{{range $term := .SearchResultLanguages}}
-	<a class="ui text-label gt-df gt-ac gt-mr-1 gt-my-1 {{if eq $.Language $term.Language}}primary {{end}}basic label" href="{{AppSubUrl}}{{if $.ContextUser}}/{{$.ContextUser.Name}}/-/code{{else}}/explore/code{{end}}?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}{{if ne $.queryType ""}}&t={{$.queryType}}{{end}}">
+	<a class="ui {{if eq $.Language $term.Language}}primary{{end}} basic label gt-m-0" href="{{AppSubUrl}}{{if $.ContextUser}}/{{$.ContextUser.Name}}/-/code{{else}}/explore/code{{end}}?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}{{if ne $.queryType ""}}&t={{$.queryType}}{{end}}">
 		<i class="color-icon gt-mr-3" style="background-color: {{$term.Color}}"></i>
 		{{$term.Language}}
 		<div class="detail">{{$term.Count}}</div>
@@ -15,11 +15,11 @@
 				<span class="file gt-f1">
 					<a rel="nofollow" href="{{$repo.Link}}">{{$repo.FullName}}</a>
 						{{if $repo.IsArchived}}
-							<span class="ui basic label">{{$.locale.Tr "repo.desc.archived"}}</span>
+							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
 						{{end}}
 					- {{.Filename}}
 				</span>
-				<a role="button" class="ui basic tiny button" rel="nofollow" href="{{$repo.Link}}/src/commit/{{$result.CommitID | PathEscape}}/{{.Filename | PathEscapeSegments}}">{{$.locale.Tr "repo.diff.view_file"}}</a>
+				<a role="button" class="ui basic tiny button" rel="nofollow" href="{{$repo.Link}}/src/commit/{{$result.CommitID | PathEscape}}/{{.Filename | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
 			</h4>
 			<div class="ui attached table segment">
 				<div class="file-body file-code code-view">

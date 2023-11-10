@@ -112,7 +112,7 @@ var _ PayloadConvertor = &DiscordPayload{}
 // Create implements PayloadConvertor Create method
 func (d *DiscordPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 	// created tag/branch
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
 
 	return d.createPayload(p.Sender, title, "", p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName), greenColor), nil
@@ -121,7 +121,7 @@ func (d *DiscordPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 // Delete implements PayloadConvertor Delete method
 func (d *DiscordPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	// deleted tag/branch
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
 
 	return d.createPayload(p.Sender, title, "", p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName), redColor), nil
@@ -137,7 +137,7 @@ func (d *DiscordPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
 // Push implements PayloadConvertor Push method
 func (d *DiscordPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	var (
-		branchName = git.RefEndName(p.Ref)
+		branchName = git.RefName(p.Ref).ShortName()
 		commitDesc string
 	)
 
@@ -253,7 +253,13 @@ func (d *DiscordPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
 func (d *DiscordPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, color := getReleasePayloadInfo(p, noneLinkFormatter, false)
 
-	return d.createPayload(p.Sender, text, p.Release.Note, p.Release.URL, color), nil
+	return d.createPayload(p.Sender, text, p.Release.Note, p.Release.HTMLURL, color), nil
+}
+
+func (d *DiscordPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+	text, color := getPackagePayloadInfo(p, noneLinkFormatter, false)
+
+	return d.createPayload(p.Sender, text, "", p.Package.HTMLURL, color), nil
 }
 
 // GetDiscordPayload converts a discord webhook into a DiscordPayload

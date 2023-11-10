@@ -156,7 +156,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		sizes[firstExcludedLanguage] = firstExcludedLanguageSize
 	}
 
-	return sizes, nil
+	return mergeLanguageStats(sizes), nil
 }
 
 func readFile(f *object.File, limit int64) ([]byte, error) {

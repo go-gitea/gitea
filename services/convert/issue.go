@@ -9,20 +9,28 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 )
+
+func ToIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
+	return toIssue(ctx, issue, WebAssetDownloadURL)
+}
 
 // ToAPIIssue converts an Issue to API format
 // it assumes some fields assigned with values:
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest
 func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
+	return toIssue(ctx, issue, APIAssetDownloadURL)
+}
+
+func toIssue(ctx context.Context, issue *issues_model.Issue, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Issue {
 	if err := issue.LoadLabels(ctx); err != nil {
 		return &api.Issue{}
 	}
@@ -39,20 +47,21 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 		Poster:      ToUser(ctx, issue.Poster, nil),
 		Title:       issue.Title,
 		Body:        issue.Content,
-		Attachments: ToAttachments(issue.Attachments),
+		Attachments: toAttachments(issue.Repo, issue.Attachments, getDownloadURL),
 		Ref:         issue.Ref,
 		State:       issue.State(),
 		IsLocked:    issue.IsLocked,
 		Comments:    issue.NumComments,
 		Created:     issue.CreatedUnix.AsTime(),
 		Updated:     issue.UpdatedUnix.AsTime(),
+		PinOrder:    issue.PinOrder,
 	}
 
 	if issue.Repo != nil {
 		if err := issue.Repo.LoadOwner(ctx); err != nil {
 			return &api.Issue{}
 		}
-		apiIssue.URL = issue.APIURL()
+		apiIssue.URL = issue.APIURL(ctx)
 		apiIssue.HTMLURL = issue.HTMLURL()
 		apiIssue.Labels = ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner)
 		apiIssue.Repo = &api.RepositoryMeta{
@@ -103,6 +112,15 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 	return apiIssue
 }
 
+// ToIssueList converts an IssueList to API format
+func ToIssueList(ctx context.Context, il issues_model.IssueList) []*api.Issue {
+	result := make([]*api.Issue, len(il))
+	for i := range il {
+		result[i] = ToIssue(ctx, il[i])
+	}
+	return result
+}
+
 // ToAPIIssueList converts an IssueList to API format
 func ToAPIIssueList(ctx context.Context, il issues_model.IssueList) []*api.Issue {
 	result := make([]*api.Issue, len(il))
@@ -131,7 +149,7 @@ func ToTrackedTime(ctx context.Context, t *issues_model.TrackedTime) (apiT *api.
 }
 
 // ToStopWatches convert Stopwatch list to api.StopWatches
-func ToStopWatches(sws []*issues_model.Stopwatch) (api.StopWatches, error) {
+func ToStopWatches(ctx context.Context, sws []*issues_model.Stopwatch) (api.StopWatches, error) {
 	result := api.StopWatches(make([]api.StopWatch, 0, len(sws)))
 
 	issueCache := make(map[int64]*issues_model.Issue)
@@ -146,14 +164,14 @@ func ToStopWatches(sws []*issues_model.Stopwatch) (api.StopWatches, error) {
 	for _, sw := range sws {
 		issue, ok = issueCache[sw.IssueID]
 		if !ok {
-			issue, err = issues_model.GetIssueByID(db.DefaultContext, sw.IssueID)
+			issue, err = issues_model.GetIssueByID(ctx, sw.IssueID)
 			if err != nil {
 				return nil, err
 			}
 		}
 		repo, ok = repoCache[issue.RepoID]
 		if !ok {
-			repo, err = repo_model.GetRepositoryByID(db.DefaultContext, issue.RepoID)
+			repo, err = repo_model.GetRepositoryByID(ctx, issue.RepoID)
 			if err != nil {
 				return nil, err
 			}
@@ -189,6 +207,7 @@ func ToLabel(label *issues_model.Label, repo *repo_model.Repository, org *user_m
 		Exclusive:   label.Exclusive,
 		Color:       strings.TrimLeft(label.Color, "#"),
 		Description: label.Description,
+		IsArchived:  label.IsArchived(),
 	}
 
 	// calculate URL
@@ -237,4 +256,25 @@ func ToAPIMilestone(m *issues_model.Milestone) *api.Milestone {
 		apiMilestone.Deadline = m.DeadlineUnix.AsTimePtr()
 	}
 	return apiMilestone
+}
+
+// ToLabelTemplate converts Label to API format
+func ToLabelTemplate(label *label.Label) *api.LabelTemplate {
+	result := &api.LabelTemplate{
+		Name:        label.Name,
+		Exclusive:   label.Exclusive,
+		Color:       strings.TrimLeft(label.Color, "#"),
+		Description: label.Description,
+	}
+
+	return result
+}
+
+// ToLabelTemplateList converts list of Label to API format
+func ToLabelTemplateList(labels []*label.Label) []*api.LabelTemplate {
+	result := make([]*api.LabelTemplate, len(labels))
+	for i := range labels {
+		result[i] = ToLabelTemplate(labels[i])
+	}
+	return result
 }

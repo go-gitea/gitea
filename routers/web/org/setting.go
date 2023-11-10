@@ -20,10 +20,10 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/forms"
-	"code.gitea.io/gitea/services/org"
-	container_service "code.gitea.io/gitea/services/packages/container"
+	org_service "code.gitea.io/gitea/services/org"
 	repo_service "code.gitea.io/gitea/services/repository"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -47,6 +47,13 @@ func Settings(ctx *context.Context) {
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
 	ctx.Data["ContextUser"] = ctx.ContextUser
+
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 
@@ -67,38 +74,29 @@ func SettingsPost(ctx *context.Context) {
 	nameChanged := org.Name != form.Name
 
 	// Check if organization name has been changed.
-	if org.LowerName != strings.ToLower(form.Name) {
-		isExist, err := user_model.IsUserExist(ctx, org.ID, form.Name)
-		if err != nil {
-			ctx.ServerError("IsUserExist", err)
-			return
-		} else if isExist {
+	if nameChanged {
+		err := user_service.RenameUser(ctx, org.AsUser(), form.Name)
+		switch {
+		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["OrgName"] = true
 			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSettingsOptions, &form)
 			return
-		} else if err = user_model.ChangeUserName(ctx, org.AsUser(), form.Name); err != nil {
-			switch {
-			case db.IsErrNameReserved(err):
-				ctx.Data["OrgName"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
-			case db.IsErrNamePatternNotAllowed(err):
-				ctx.Data["OrgName"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
-			default:
-				ctx.ServerError("ChangeUserName", err)
-			}
+		case db.IsErrNameReserved(err):
+			ctx.Data["OrgName"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
 			return
-		}
-
-		if err := container_service.UpdateRepositoryNames(ctx, org.AsUser(), form.Name); err != nil {
-			ctx.ServerError("UpdateRepositoryNames", err)
+		case db.IsErrNamePatternNotAllowed(err):
+			ctx.Data["OrgName"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
+			return
+		case err != nil:
+			ctx.ServerError("org_service.RenameOrganization", err)
 			return
 		}
 
 		// reset ctx.org.OrgLink with new name
 		ctx.Org.OrgLink = setting.AppSubURL + "/org/" + url.PathEscape(form.Name)
 		log.Trace("Organization name changed: %s -> %s", org.Name, form.Name)
-		nameChanged = false
 	}
 
 	// In case it's just a case change.
@@ -110,6 +108,7 @@ func SettingsPost(ctx *context.Context) {
 	}
 
 	org.FullName = form.FullName
+	org.Email = form.Email
 	org.Description = form.Description
 	org.Website = form.Website
 	org.Location = form.Location
@@ -125,7 +124,7 @@ func SettingsPost(ctx *context.Context) {
 
 	// update forks visibility
 	if visibilityChanged {
-		repos, _, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
+		repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
 			Actor: org.AsUser(), Private: true, ListOptions: db.ListOptions{Page: 1, PageSize: org.NumRepos},
 		})
 		if err != nil {
@@ -138,11 +137,6 @@ func SettingsPost(ctx *context.Context) {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}
-		}
-	} else if nameChanged {
-		if err := repo_model.UpdateRepositoryOwnerNames(org.ID, org.Name); err != nil {
-			ctx.ServerError("UpdateRepository", err)
-			return
 		}
 	}
 
@@ -166,11 +160,11 @@ func SettingsAvatar(ctx *context.Context) {
 
 // SettingsDeleteAvatar response for delete avatar on settings page
 func SettingsDeleteAvatar(ctx *context.Context) {
-	if err := user_service.DeleteAvatar(ctx.Org.Organization.AsUser()); err != nil {
+	if err := user_service.DeleteAvatar(ctx, ctx.Org.Organization.AsUser()); err != nil {
 		ctx.Flash.Error(err.Error())
 	}
 
-	ctx.Redirect(ctx.Org.OrgLink + "/settings")
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings")
 }
 
 // SettingsDelete response for deleting an organization
@@ -186,7 +180,7 @@ func SettingsDelete(ctx *context.Context) {
 			return
 		}
 
-		if err := org.DeleteOrganization(ctx.Org.Organization); err != nil {
+		if err := org_service.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
 			if models.IsErrUserOwnRepos(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
@@ -200,6 +194,12 @@ func SettingsDelete(ctx *context.Context) {
 			log.Trace("Organization deleted: %s", ctx.Org.Organization.Name)
 			ctx.Redirect(setting.AppSubURL + "/")
 		}
+		return
+	}
+
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
 		return
 	}
 
@@ -221,21 +221,25 @@ func Webhooks(ctx *context.Context) {
 		return
 	}
 
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	ctx.Data["Webhooks"] = ws
 	ctx.HTML(http.StatusOK, tplSettingsHooks)
 }
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
-	if err := webhook.DeleteWebhookByOwnerID(ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
+	if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Org.OrgLink + "/settings/hooks",
-	})
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings/hooks")
 }
 
 // Labels render organization labels page
@@ -244,5 +248,12 @@ func Labels(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsLabels"] = true
 	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
+
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	ctx.HTML(http.StatusOK, tplSettingsLabels)
 }

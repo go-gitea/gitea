@@ -22,6 +22,7 @@ type PayloadConvertor interface {
 	Repository(*api.RepositoryPayload) (api.Payloader, error)
 	Release(*api.ReleasePayload) (api.Payloader, error)
 	Wiki(*api.WikiPayload) (api.Payloader, error)
+	Package(*api.PackagePayload) (api.Payloader, error)
 }
 
 func convertPayloader(s PayloadConvertor, p api.Payloader, event webhook_module.HookEventType) (api.Payloader, error) {
@@ -43,7 +44,7 @@ func convertPayloader(s PayloadConvertor, p api.Payloader, event webhook_module.
 	case webhook_module.HookEventPush:
 		return s.Push(p.(*api.PushPayload))
 	case webhook_module.HookEventPullRequest, webhook_module.HookEventPullRequestAssign, webhook_module.HookEventPullRequestLabel,
-		webhook_module.HookEventPullRequestMilestone, webhook_module.HookEventPullRequestSync:
+		webhook_module.HookEventPullRequestMilestone, webhook_module.HookEventPullRequestSync, webhook_module.HookEventPullRequestReviewRequest:
 		return s.PullRequest(p.(*api.PullRequestPayload))
 	case webhook_module.HookEventPullRequestReviewApproved, webhook_module.HookEventPullRequestReviewRejected, webhook_module.HookEventPullRequestReviewComment:
 		return s.Review(p.(*api.PullRequestPayload), event)
@@ -53,6 +54,8 @@ func convertPayloader(s PayloadConvertor, p api.Payloader, event webhook_module.
 		return s.Release(p.(*api.ReleasePayload))
 	case webhook_module.HookEventWiki:
 		return s.Wiki(p.(*api.WikiPayload))
+	case webhook_module.HookEventPackage:
+		return s.Package(p.(*api.PackagePayload))
 	}
 	return s, nil
 }

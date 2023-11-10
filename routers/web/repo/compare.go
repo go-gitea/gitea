@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -31,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -57,6 +59,21 @@ func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner
 			return nil
 		}
 		return blob
+	}
+
+	ctx.Data["GetSniffedTypeForBlob"] = func(blob *git.Blob) typesniffer.SniffedType {
+		st := typesniffer.SniffedType{}
+
+		if blob == nil {
+			return st
+		}
+
+		st, err := blob.GuessContentType()
+		if err != nil {
+			log.Error("GuessContentType failed: %v", err)
+			return st
+		}
+		return st
 	}
 
 	setPathsCompareContext(ctx, before, head, headOwner, headName)
@@ -86,16 +103,7 @@ func setPathsCompareContext(ctx *context.Context, base, head *git.Commit, headOw
 
 // setImageCompareContext sets context data that is required by image compare template
 func setImageCompareContext(ctx *context.Context) {
-	ctx.Data["IsBlobAnImage"] = func(blob *git.Blob) bool {
-		if blob == nil {
-			return false
-		}
-
-		st, err := blob.GuessContentType()
-		if err != nil {
-			log.Error("GuessContentType failed: %v", err)
-			return false
-		}
+	ctx.Data["IsSniffedTypeAnImage"] = func(st typesniffer.SniffedType) bool {
 		return st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage())
 	}
 }
@@ -251,7 +259,6 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		isSameRepo = true
 		ci.HeadUser = ctx.Repo.Owner
 		ci.HeadBranch = headInfos[0]
-
 	} else if len(headInfos) == 2 {
 		headInfosSplit := strings.Split(headInfos[0], "/")
 		if len(headInfosSplit) == 1 {
@@ -356,7 +363,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// "OwnForkRepo"
 	var ownForkRepo *repo_model.Repository
 	if ctx.Doer != nil && baseRepo.OwnerID != ctx.Doer.ID {
-		repo := repo_model.GetForkedRepo(ctx.Doer.ID, baseRepo.ID)
+		repo := repo_model.GetForkedRepo(ctx, ctx.Doer.ID, baseRepo.ID)
 		if repo != nil {
 			ownForkRepo = repo
 			ctx.Data["OwnForkRepo"] = ownForkRepo
@@ -380,13 +387,13 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 
 	// 5. If the headOwner has a fork of the baseRepo - use that
 	if !has {
-		ci.HeadRepo = repo_model.GetForkedRepo(ci.HeadUser.ID, baseRepo.ID)
+		ci.HeadRepo = repo_model.GetForkedRepo(ctx, ci.HeadUser.ID, baseRepo.ID)
 		has = ci.HeadRepo != nil
 	}
 
 	// 6. If the baseRepo is a fork and the headUser has a fork of that use that
 	if !has && baseRepo.IsFork {
-		ci.HeadRepo = repo_model.GetForkedRepo(ci.HeadUser.ID, baseRepo.ForkID)
+		ci.HeadRepo = repo_model.GetForkedRepo(ctx, ci.HeadUser.ID, baseRepo.ForkID)
 		has = ci.HeadRepo != nil
 	}
 
@@ -406,6 +413,9 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 			return nil
 		}
 		defer ci.HeadGitRepo.Close()
+	} else {
+		ctx.NotFound("ParseCompareInfo", nil)
+		return nil
 	}
 
 	ctx.Data["HeadRepo"] = ci.HeadRepo
@@ -459,7 +469,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		rootRepo.ID != ci.HeadRepo.ID &&
 		rootRepo.ID != baseRepo.ID {
 		canRead := access_model.CheckRepoUnitUser(ctx, rootRepo, ctx.Doer, unit.TypeCode)
-		if canRead && rootRepo.AllowsPulls() {
+		if canRead {
 			ctx.Data["RootRepo"] = rootRepo
 			if !fileOnly {
 				branches, tags, err := getBranchesAndTagsForRepo(ctx, rootRepo)
@@ -608,7 +618,7 @@ func PrepareCompareDiff(
 		maxLines, maxFiles = -1, -1
 	}
 
-	diff, err := gitdiff.GetDiff(ci.HeadGitRepo,
+	diff, err := gitdiff.GetDiff(ctx, ci.HeadGitRepo,
 		&gitdiff.DiffOptions{
 			BeforeCommitID:     beforeCommitID,
 			AfterCommitID:      headCommitID,
@@ -683,7 +693,13 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 	}
 	defer gitRepo.Close()
 
-	branches, _, err = gitRepo.GetBranchNames(0, 0)
+	branches, err = git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+		RepoID: repo.ID,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		IsDeletedBranch: util.OptionalBoolFalse,
+	})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -734,12 +750,24 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
-	headBranches, _, err := ci.HeadGitRepo.GetBranchNames(0, 0)
+	headBranches, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+		RepoID: ci.HeadRepo.ID,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		IsDeletedBranch: util.OptionalBoolFalse,
+	})
 	if err != nil {
 		ctx.ServerError("GetBranches", err)
 		return
 	}
 	ctx.Data["HeadBranches"] = headBranches
+
+	// For compare repo branches
+	PrepareBranchList(ctx)
+	if ctx.Written() {
+		return
+	}
 
 	headTags, err := repo_model.GetTagNamesByRepoID(ctx, ci.HeadRepo.ID)
 	if err != nil {
@@ -785,7 +813,7 @@ func CompareDiff(ctx *context.Context) {
 
 	ctx.Data["IsRepoToolbarCommits"] = true
 	ctx.Data["IsDiffCompare"] = true
-	templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
+	_, templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
 
 	if len(templateErrs) > 0 {
 		ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)

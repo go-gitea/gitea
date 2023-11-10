@@ -47,22 +47,30 @@ func (s *Service) Register(
 
 	runnerToken, err := actions_model.GetRunnerToken(ctx, req.Msg.Token)
 	if err != nil {
-		return nil, errors.New("runner token not found")
+		return nil, errors.New("runner registration token not found")
 	}
 
-	if runnerToken.IsActive {
-		return nil, errors.New("runner token has already been activated")
+	if !runnerToken.IsActive {
+		return nil, errors.New("runner registration token has been invalidated, please use the latest one")
+	}
+
+	labels := req.Msg.Labels
+	// TODO: agent_labels should be removed from pb after Gitea 1.20 released.
+	// Old version runner's agent_labels slice is not empty and labels slice is empty.
+	// And due to compatibility with older versions, it is temporarily marked as Deprecated in pb, so use `//nolint` here.
+	if len(req.Msg.AgentLabels) > 0 && len(req.Msg.Labels) == 0 { //nolint:staticcheck
+		labels = req.Msg.AgentLabels //nolint:staticcheck
 	}
 
 	// create new runner
 	name, _ := util.SplitStringAtByteN(req.Msg.Name, 255)
 	runner := &actions_model.ActionRunner{
-		UUID:         gouuid.New().String(),
-		Name:         name,
-		OwnerID:      runnerToken.OwnerID,
-		RepoID:       runnerToken.RepoID,
-		AgentLabels:  req.Msg.AgentLabels,
-		CustomLabels: req.Msg.CustomLabels,
+		UUID:        gouuid.New().String(),
+		Name:        name,
+		OwnerID:     runnerToken.OwnerID,
+		RepoID:      runnerToken.RepoID,
+		Version:     req.Msg.Version,
+		AgentLabels: labels,
 	}
 	if err := runner.GenerateToken(); err != nil {
 		return nil, errors.New("can't generate token")
@@ -81,35 +89,77 @@ func (s *Service) Register(
 
 	res := connect.NewResponse(&runnerv1.RegisterResponse{
 		Runner: &runnerv1.Runner{
-			Id:           runner.ID,
-			Uuid:         runner.UUID,
-			Token:        runner.Token,
-			Name:         runner.Name,
-			AgentLabels:  runner.AgentLabels,
-			CustomLabels: runner.CustomLabels,
+			Id:      runner.ID,
+			Uuid:    runner.UUID,
+			Token:   runner.Token,
+			Name:    runner.Name,
+			Version: runner.Version,
+			Labels:  runner.AgentLabels,
 		},
 	})
 
 	return res, nil
 }
 
+func (s *Service) Declare(
+	ctx context.Context,
+	req *connect.Request[runnerv1.DeclareRequest],
+) (*connect.Response[runnerv1.DeclareResponse], error) {
+	runner := GetRunner(ctx)
+	runner.AgentLabels = req.Msg.Labels
+	runner.Version = req.Msg.Version
+	if err := actions_model.UpdateRunner(ctx, runner, "agent_labels", "version"); err != nil {
+		return nil, status.Errorf(codes.Internal, "update runner: %v", err)
+	}
+
+	return connect.NewResponse(&runnerv1.DeclareResponse{
+		Runner: &runnerv1.Runner{
+			Id:      runner.ID,
+			Uuid:    runner.UUID,
+			Token:   runner.Token,
+			Name:    runner.Name,
+			Version: runner.Version,
+			Labels:  runner.AgentLabels,
+		},
+	}), nil
+}
+
 // FetchTask assigns a task to the runner
 func (s *Service) FetchTask(
 	ctx context.Context,
-	_ *connect.Request[runnerv1.FetchTaskRequest],
+	req *connect.Request[runnerv1.FetchTaskRequest],
 ) (*connect.Response[runnerv1.FetchTaskResponse], error) {
 	runner := GetRunner(ctx)
 
 	var task *runnerv1.Task
-	if t, ok, err := pickTask(ctx, runner); err != nil {
-		log.Error("pick task failed: %v", err)
-		return nil, status.Errorf(codes.Internal, "pick task: %v", err)
-	} else if ok {
-		task = t
+	tasksVersion := req.Msg.TasksVersion // task version from runner
+	latestVersion, err := actions_model.GetTasksVersionByScope(ctx, runner.OwnerID, runner.RepoID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "query tasks version failed: %v", err)
+	} else if latestVersion == 0 {
+		if err := actions_model.IncreaseTaskVersion(ctx, runner.OwnerID, runner.RepoID); err != nil {
+			return nil, status.Errorf(codes.Internal, "fail to increase task version: %v", err)
+		}
+		// if we don't increase the value of `latestVersion` here,
+		// the response of FetchTask will return tasksVersion as zero.
+		// and the runner will treat it as an old version of Gitea.
+		latestVersion++
 	}
 
+	if tasksVersion != latestVersion {
+		// if the task version in request is not equal to the version in db,
+		// it means there may still be some tasks not be assgined.
+		// try to pick a task for the runner that send the request.
+		if t, ok, err := pickTask(ctx, runner); err != nil {
+			log.Error("pick task failed: %v", err)
+			return nil, status.Errorf(codes.Internal, "pick task: %v", err)
+		} else if ok {
+			task = t
+		}
+	}
 	res := connect.NewResponse(&runnerv1.FetchTaskResponse{
-		Task: task,
+		Task:         task,
+		TasksVersion: latestVersion,
 	})
 	return res, nil
 }
@@ -152,8 +202,14 @@ func (s *Service) UpdateTask(
 	if err := task.LoadJob(ctx); err != nil {
 		return nil, status.Errorf(codes.Internal, "load job: %v", err)
 	}
+	if err := task.Job.LoadRun(ctx); err != nil {
+		return nil, status.Errorf(codes.Internal, "load run: %v", err)
+	}
 
-	actions_service.CreateCommitStatus(ctx, task.Job)
+	// don't create commit status for cron job
+	if task.Job.Run.ScheduleID == 0 {
+		actions_service.CreateCommitStatus(ctx, task.Job)
+	}
 
 	if req.Msg.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 		if err := actions_service.EmitJobsIfReady(task.Job.RunID); err != nil {

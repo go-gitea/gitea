@@ -280,8 +280,16 @@ func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
 }
 
 // GetFilesChangedBetween returns a list of all files that have been changed between the given commits
+// If base is undefined empty SHA (zeros), it only returns the files changed in the head commit
+// If base is the SHA of an empty tree (EmptyTreeSHA), it returns the files changes from the initial commit to the head commit
 func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "diff", "--name-only", "-z").AddDynamicArguments(base + ".." + head).RunStdString(&RunOpts{Dir: repo.Path})
+	cmd := NewCommand(repo.Ctx, "diff-tree", "--name-only", "--root", "--no-commit-id", "-r", "-z")
+	if base == EmptySHA {
+		cmd.AddDynamicArguments(head)
+	} else {
+		cmd.AddDynamicArguments(base, head)
+	}
+	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err
 	}

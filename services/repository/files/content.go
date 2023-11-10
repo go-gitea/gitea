@@ -40,9 +40,9 @@ func (ct *ContentType) String() string {
 
 // GetContentsOrList gets the meta data of a file's contents (*ContentsResponse) if treePath not a tree
 // directory, otherwise a listing of file contents ([]*ContentsResponse). Ref can be a branch, commit or tag
-func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, treePath, ref string) (interface{}, error) {
+func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, treePath, ref string) (any, error) {
 	if repo.IsEmpty {
-		return make([]interface{}, 0), nil
+		return make([]any, 0), nil
 	}
 	if ref == "" {
 		ref = repo.DefaultBranch
@@ -203,7 +203,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 	} else if entry.IsLink() {
 		contentsResponse.Type = string(ContentTypeLink)
 		// The target of a symlink file is the content of the file
-		targetFromContent, err := entry.Blob().GetBlobContent()
+		targetFromContent, err := entry.Blob().GetBlobContent(1024)
 		if err != nil {
 			return nil, err
 		}

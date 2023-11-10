@@ -31,6 +31,7 @@ func TestPackageDebian(t *testing.T) {
 
 	packageName := "gitea"
 	packageVersion := "1.0.3"
+	packageVersion2 := "1.0.4"
 	packageDescription := "Package Description"
 
 	createArchive := func(name, version, architecture string) io.Reader {
@@ -80,10 +81,10 @@ func TestPackageDebian(t *testing.T) {
 			for _, component := range components {
 				for _, architecture := range architectures {
 					t.Run(fmt.Sprintf("[Component:%s,Architecture:%s]", component, architecture), func(t *testing.T) {
+						uploadURL := fmt.Sprintf("%s/pool/%s/%s/upload", rootURL, distribution, component)
+
 						t.Run("Upload", func(t *testing.T) {
 							defer tests.PrintCurrentTest(t)()
-
-							uploadURL := fmt.Sprintf("%s/pool/%s/%s/upload", rootURL, distribution, component)
 
 							req := NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader([]byte{}))
 							MakeRequest(t, req, http.StatusUnauthorized)
@@ -100,18 +101,17 @@ func TestPackageDebian(t *testing.T) {
 							AddBasicAuthHeader(req, user.Name)
 							MakeRequest(t, req, http.StatusCreated)
 
-							pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeDebian)
+							pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages.TypeDebian, packageName, packageVersion)
 							assert.NoError(t, err)
-							assert.Len(t, pvs, 1)
 
-							pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+							pd, err := packages.GetPackageDescriptor(db.DefaultContext, pv)
 							assert.NoError(t, err)
 							assert.Nil(t, pd.SemVer)
 							assert.IsType(t, &debian_module.Metadata{}, pd.Metadata)
 							assert.Equal(t, packageName, pd.Package.Name)
 							assert.Equal(t, packageVersion, pd.Version.Version)
 
-							pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+							pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pv.ID)
 							assert.NoError(t, err)
 							assert.NotEmpty(t, pfs)
 							assert.Condition(t, func() bool {
@@ -144,6 +144,10 @@ func TestPackageDebian(t *testing.T) {
 								}
 								return seen
 							})
+
+							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, packageVersion, architecture))
+							AddBasicAuthHeader(req, user.Name)
+							MakeRequest(t, req, http.StatusConflict)
 						})
 
 						t.Run("Download", func(t *testing.T) {
@@ -158,17 +162,23 @@ func TestPackageDebian(t *testing.T) {
 						t.Run("Packages", func(t *testing.T) {
 							defer tests.PrintCurrentTest(t)()
 
+							req := NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, packageVersion2, architecture))
+							AddBasicAuthHeader(req, user.Name)
+							MakeRequest(t, req, http.StatusCreated)
+
 							url := fmt.Sprintf("%s/dists/%s/%s/binary-%s/Packages", rootURL, distribution, component, architecture)
 
-							req := NewRequest(t, "GET", url)
+							req = NewRequest(t, "GET", url)
 							resp := MakeRequest(t, req, http.StatusOK)
 
 							body := resp.Body.String()
 
-							assert.Contains(t, body, "Package: "+packageName)
-							assert.Contains(t, body, "Version: "+packageVersion)
-							assert.Contains(t, body, "Architecture: "+architecture)
-							assert.Contains(t, body, fmt.Sprintf("Filename: pool/%s/%s/%s_%s_%s.deb", distribution, component, packageName, packageVersion, architecture))
+							assert.Contains(t, body, "Package: "+packageName+"\n")
+							assert.Contains(t, body, "Version: "+packageVersion+"\n")
+							assert.Contains(t, body, "Version: "+packageVersion2+"\n")
+							assert.Contains(t, body, "Architecture: "+architecture+"\n")
+							assert.Contains(t, body, fmt.Sprintf("Filename: pool/%s/%s/%s_%s_%s.deb\n", distribution, component, packageName, packageVersion, architecture))
+							assert.Contains(t, body, fmt.Sprintf("Filename: pool/%s/%s/%s_%s_%s.deb\n", distribution, component, packageName, packageVersion2, architecture))
 
 							req = NewRequest(t, "GET", url+".gz")
 							MakeRequest(t, req, http.StatusOK)
@@ -194,14 +204,14 @@ func TestPackageDebian(t *testing.T) {
 
 				body := resp.Body.String()
 
-				assert.Contains(t, body, "Components: "+strings.Join(components, " "))
-				assert.Contains(t, body, "Architectures: "+strings.Join(architectures, " "))
+				assert.Contains(t, body, "Components: "+strings.Join(components, " ")+"\n")
+				assert.Contains(t, body, "Architectures: "+strings.Join(architectures, " ")+"\n")
 
 				for _, component := range components {
 					for _, architecture := range architectures {
-						assert.Contains(t, body, fmt.Sprintf("%s/binary-%s/Packages", component, architecture))
-						assert.Contains(t, body, fmt.Sprintf("%s/binary-%s/Packages.gz", component, architecture))
-						assert.Contains(t, body, fmt.Sprintf("%s/binary-%s/Packages.xz", component, architecture))
+						assert.Contains(t, body, fmt.Sprintf("%s/binary-%s/Packages\n", component, architecture))
+						assert.Contains(t, body, fmt.Sprintf("%s/binary-%s/Packages.gz\n", component, architecture))
+						assert.Contains(t, body, fmt.Sprintf("%s/binary-%s/Packages.xz\n", component, architecture))
 					}
 				}
 
@@ -237,6 +247,10 @@ func TestPackageDebian(t *testing.T) {
 			AddBasicAuthHeader(req, user.Name)
 			MakeRequest(t, req, http.StatusNoContent)
 
+			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/pool/%s/%s/%s/%s/%s", rootURL, distribution, component, packageName, packageVersion2, architecture))
+			AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusNoContent)
+
 			req = NewRequest(t, "GET", fmt.Sprintf("%s/dists/%s/%s/binary-%s/Packages", rootURL, distribution, component, architecture))
 			MakeRequest(t, req, http.StatusNotFound)
 		}
@@ -246,7 +260,7 @@ func TestPackageDebian(t *testing.T) {
 
 		body := resp.Body.String()
 
-		assert.Contains(t, body, "Components: "+strings.Join(components, " "))
-		assert.Contains(t, body, "Architectures: "+architectures[1])
+		assert.Contains(t, body, "Components: "+strings.Join(components, " ")+"\n")
+		assert.Contains(t, body, "Architectures: "+architectures[1]+"\n")
 	})
 }

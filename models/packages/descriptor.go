@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/packages/conan"
 	"code.gitea.io/gitea/modules/packages/conda"
 	"code.gitea.io/gitea/modules/packages/container"
+	"code.gitea.io/gitea/modules/packages/cran"
 	"code.gitea.io/gitea/modules/packages/debian"
 	"code.gitea.io/gitea/modules/packages/helm"
 	"code.gitea.io/gitea/modules/packages/maven"
@@ -58,7 +59,7 @@ type PackageDescriptor struct {
 	Creator           *user_model.User
 	PackageProperties PackagePropertyList
 	VersionProperties PackagePropertyList
-	Metadata          interface{}
+	Metadata          any
 	Files             []*PackageFileDescriptor
 }
 
@@ -135,7 +136,7 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		return nil, err
 	}
 
-	var metadata interface{}
+	var metadata any
 	switch p.Type {
 	case TypeAlpine:
 		metadata = &alpine.VersionMetadata{}
@@ -151,6 +152,8 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		metadata = &conda.VersionMetadata{}
 	case TypeContainer:
 		metadata = &container.Metadata{}
+	case TypeCran:
+		metadata = &cran.Metadata{}
 	case TypeDebian:
 		metadata = &debian.Metadata{}
 	case TypeGeneric:

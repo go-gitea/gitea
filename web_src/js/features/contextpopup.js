@@ -34,6 +34,7 @@ export function attachRefIssueContextPopup(refIssues) {
       content: el,
       placement: 'top-start',
       interactive: true,
+      role: 'dialog',
       interactiveBorder: 5,
       onShow: () => {
         el.firstChild.dispatchEvent(new CustomEvent('ce-load-context-popup', {detail: {owner, repo, index}}));

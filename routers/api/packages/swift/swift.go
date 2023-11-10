@@ -69,7 +69,7 @@ func setResponseHeaders(resp http.ResponseWriter, h *headers) {
 }
 
 // https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#33-error-handling
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	// https://www.rfc-editor.org/rfc/rfc7807
 	type Problem struct {
 		Status int    `json:"status"`
@@ -329,6 +329,7 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	pv, _, err := packages_service.CreatePackageAndAddFile(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
@@ -397,18 +398,17 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	pf := pd.Files[0].File
 
-	s, _, err := packages_service.GetPackageFileStream(ctx, pf)
+	s, u, _, err := packages_service.GetPackageFileStream(ctx, pf)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	defer s.Close()
 
 	setResponseHeaders(ctx.Resp, &headers{
 		Digest: pd.Files[0].Blob.HashSHA256,
 	})
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
+	helper.ServePackageFile(ctx, s, u, pf, &context.ServeHeaderOptions{
 		Filename:     pf.Name,
 		ContentType:  "application/zip",
 		LastModified: pf.CreatedUnix.AsLocalTime(),

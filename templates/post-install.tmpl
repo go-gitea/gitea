@@ -5,15 +5,15 @@
 			<div class="sixteen wide column content">
 				<div class="home">
 					<div class="ui stackable middle very relaxed page grid">
-						<div id="repo_migrating" class="sixteen wide center aligned centered column">
+						<div class="sixteen wide center aligned centered column">
 							<div>
-								<img src="{{AssetUrlPrefix}}/img/loading.png">
+								<img src="{{AssetUrlPrefix}}/img/loading.png" alt="{{ctx.Locale.Tr "loading"}}">
 							</div>
 						</div>
 					</div>
 					<div class="ui stackable middle very relaxed page grid">
 						<div class="sixteen wide center aligned centered column">
-							<p><a id="goto-user-login" href="{{AppSubUrl}}/user/login">{{.locale.Tr "loading"}}</a></p>
+							<p><a id="goto-user-login" href="{{AppSubUrl}}/user/login">{{ctx.Locale.Tr "loading"}}</a></p>
 						</div>
 					</div>
 				</div>

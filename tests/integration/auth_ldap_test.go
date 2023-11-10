@@ -226,8 +226,37 @@ func TestLDAPUserSync(t *testing.T) {
 	addAuthSourceLDAP(t, "", "")
 	auth.SyncExternalUsers(context.Background(), true)
 
-	session := loginUser(t, "user1")
 	// Check if users exists
+	for _, gitLDAPUser := range gitLDAPUsers {
+		dbUser, err := user_model.GetUserByName(db.DefaultContext, gitLDAPUser.UserName)
+		assert.NoError(t, err)
+		assert.Equal(t, gitLDAPUser.UserName, dbUser.Name)
+		assert.Equal(t, gitLDAPUser.Email, dbUser.Email)
+		assert.Equal(t, gitLDAPUser.IsAdmin, dbUser.IsAdmin)
+		assert.Equal(t, gitLDAPUser.IsRestricted, dbUser.IsRestricted)
+	}
+
+	// Check if no users exist
+	for _, otherLDAPUser := range otherLDAPUsers {
+		_, err := user_model.GetUserByName(db.DefaultContext, otherLDAPUser.UserName)
+		assert.True(t, user_model.IsErrUserNotExist(err))
+	}
+}
+
+func TestLDAPUserSyncWithEmptyUsernameAttribute(t *testing.T) {
+	if skipLDAPTests() {
+		t.Skip()
+		return
+	}
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user1")
+	csrf := GetCSRF(t, session, "/admin/auths/new")
+	payload := buildAuthSourceLDAPPayload(csrf, "", "", "", "")
+	payload["attribute_username"] = ""
+	req := NewRequestWithValues(t, "POST", "/admin/auths/new", payload)
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
 	for _, u := range gitLDAPUsers {
 		req := NewRequest(t, "GET", "/admin/users?q="+u.UserName)
 		resp := session.MakeRequest(t, req, http.StatusOK)
@@ -235,36 +264,33 @@ func TestLDAPUserSync(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
 		tr := htmlDoc.doc.Find("table.table tbody tr")
-		if !assert.True(t, tr.Length() == 1) {
-			continue
-		}
-		tds := tr.Find("td")
-		if !assert.True(t, tds.Length() > 0) {
-			continue
-		}
-		assert.Equal(t, u.UserName, strings.TrimSpace(tds.Find("td:nth-child(2) a").Text()))
-		assert.Equal(t, u.Email, strings.TrimSpace(tds.Find("td:nth-child(3) span").Text()))
-		if u.IsAdmin {
-			assert.True(t, tds.Find("td:nth-child(5) svg").HasClass("octicon-check"))
-		} else {
-			assert.True(t, tds.Find("td:nth-child(5) svg").HasClass("octicon-x"))
-		}
-		if u.IsRestricted {
-			assert.True(t, tds.Find("td:nth-child(6) svg").HasClass("octicon-check"))
-		} else {
-			assert.True(t, tds.Find("td:nth-child(6) svg").HasClass("octicon-x"))
-		}
+		assert.True(t, tr.Length() == 0)
 	}
 
-	// Check if no users exist
-	for _, u := range otherLDAPUsers {
-		req := NewRequest(t, "GET", "/admin/users?q="+u.UserName)
-		resp := session.MakeRequest(t, req, http.StatusOK)
+	for _, u := range gitLDAPUsers {
+		req := NewRequestWithValues(t, "POST", "/user/login", map[string]string{
+			"_csrf":     csrf,
+			"user_name": u.UserName,
+			"password":  u.Password,
+		})
+		MakeRequest(t, req, http.StatusSeeOther)
+	}
 
-		htmlDoc := NewHTMLParser(t, resp.Body)
+	auth.SyncExternalUsers(context.Background(), true)
 
-		tr := htmlDoc.doc.Find("table.table tbody tr")
-		assert.True(t, tr.Length() == 0)
+	authSource := unittest.AssertExistsAndLoadBean(t, &auth_model.Source{
+		Name: payload["name"],
+	})
+	unittest.AssertCount(t, &user_model.User{
+		LoginType:   auth_model.LDAP,
+		LoginSource: authSource.ID,
+	}, len(gitLDAPUsers))
+
+	for _, u := range gitLDAPUsers {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{
+			Name: u.UserName,
+		})
+		assert.True(t, user.IsActive)
 	}
 }
 
@@ -306,7 +332,7 @@ func TestLDAPUserSyncWithGroupFilter(t *testing.T) {
 	})
 	ldapConfig := ldapSource.Cfg.(*ldap.Source)
 	ldapConfig.GroupFilter = "(cn=ship_crew)"
-	auth_model.UpdateSource(ldapSource)
+	auth_model.UpdateSource(db.DefaultContext, ldapSource)
 
 	auth.SyncExternalUsers(context.Background(), true)
 
@@ -361,7 +387,7 @@ func TestLDAPUserSSHKeySync(t *testing.T) {
 
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
-		divs := htmlDoc.doc.Find(".key.list .print.meta")
+		divs := htmlDoc.doc.Find("#keys-ssh .flex-item .flex-item-body:not(:last-child)")
 
 		syncedKeys := make([]string, divs.Length())
 		for i := 0; i < divs.Length(); i++ {
@@ -388,7 +414,7 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 			Name: gitLDAPUser.UserName,
 		})
-		usersOrgs, err := organization.FindOrgs(organization.FindOrgOptions{
+		usersOrgs, err := organization.FindOrgs(db.DefaultContext, organization.FindOrgOptions{
 			UserID:         user.ID,
 			IncludePrivate: true,
 		})
@@ -402,9 +428,9 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 			isMember, err := organization.IsTeamMember(db.DefaultContext, usersOrgs[0].ID, team.ID, user.ID)
 			assert.NoError(t, err)
 			assert.True(t, isMember, "Membership should be added to the right team")
-			err = models.RemoveTeamMember(team, user.ID)
+			err = models.RemoveTeamMember(db.DefaultContext, team, user.ID)
 			assert.NoError(t, err)
-			err = models.RemoveOrgUser(usersOrgs[0].ID, user.ID)
+			err = models.RemoveOrgUser(db.DefaultContext, usersOrgs[0].ID, user.ID)
 			assert.NoError(t, err)
 		} else {
 			// assert members of LDAP group "cn=admin_staff" keep initial team membership since mapped team does not exist
@@ -432,9 +458,9 @@ func TestLDAPGroupTeamSyncRemoveMember(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		Name: gitLDAPUsers[0].UserName,
 	})
-	err = organization.AddOrgUser(org.ID, user.ID)
+	err = organization.AddOrgUser(db.DefaultContext, org.ID, user.ID)
 	assert.NoError(t, err)
-	err = models.AddTeamMember(team, user.ID)
+	err = models.AddTeamMember(db.DefaultContext, team, user.ID)
 	assert.NoError(t, err)
 	isMember, err := organization.IsOrganizationMember(db.DefaultContext, org.ID, user.ID)
 	assert.NoError(t, err)

@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -21,6 +22,7 @@ var defaultFileBlockSize int64 = 32 * 1024
 type File interface {
 	io.ReadWriteCloser
 	io.Seeker
+	fs.File
 }
 
 type file struct {
@@ -193,8 +195,24 @@ func (f *file) Close() error {
 	return nil
 }
 
+func (f *file) Stat() (os.FileInfo, error) {
+	if f.metaID == 0 {
+		return nil, os.ErrInvalid
+	}
+
+	fileMeta, err := findFileMetaByID(f.ctx, f.metaID)
+	if err != nil {
+		return nil, err
+	}
+	return fileMeta, nil
+}
+
 func timeToFileTimestamp(t time.Time) int64 {
 	return t.UnixMicro()
+}
+
+func fileTimestampToTime(timestamp int64) time.Time {
+	return time.UnixMicro(timestamp)
 }
 
 func (f *file) loadMetaByPath() (*dbfsMeta, error) {

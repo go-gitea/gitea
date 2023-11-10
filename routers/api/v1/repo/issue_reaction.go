@@ -46,6 +46,8 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	//     "$ref": "#/responses/ReactionList"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	comment, err := issues_model.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -66,7 +68,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 		return
 	}
 
-	reactions, _, err := issues_model.FindCommentReactions(comment.IssueID, comment.ID)
+	reactions, _, err := issues_model.FindCommentReactions(ctx, comment.IssueID, comment.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindCommentReactions", err)
 		return
@@ -126,6 +128,8 @@ func PostIssueCommentReaction(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Reaction"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	form := web.GetForm(ctx).(*api.EditReactionOption)
 
@@ -167,6 +171,8 @@ func DeleteIssueCommentReaction(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	form := web.GetForm(ctx).(*api.EditReactionOption)
 
@@ -196,7 +202,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 
 	if isCreateType {
 		// PostIssueCommentReaction part
-		reaction, err := issues_model.CreateCommentReaction(ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Reaction)
+		reaction, err := issues_model.CreateCommentReaction(ctx, ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Reaction)
 		if err != nil {
 			if issues_model.IsErrForbiddenIssueReaction(err) {
 				ctx.Error(http.StatusForbidden, err.Error(), err)
@@ -219,7 +225,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		})
 	} else {
 		// DeleteIssueCommentReaction part
-		err = issues_model.DeleteCommentReaction(ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Reaction)
+		err = issues_model.DeleteCommentReaction(ctx, ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Reaction)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "DeleteCommentReaction", err)
 			return
@@ -268,8 +274,10 @@ func GetIssueReactions(ctx *context.APIContext) {
 	//     "$ref": "#/responses/ReactionList"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -284,7 +292,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 		return
 	}
 
-	reactions, count, err := issues_model.FindIssueReactions(issue.ID, utils.GetListOptions(ctx))
+	reactions, count, err := issues_model.FindIssueReactions(ctx, issue.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindIssueReactions", err)
 		return
@@ -345,6 +353,8 @@ func PostIssueReaction(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Reaction"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.EditReactionOption)
 	changeIssueReaction(ctx, *form, true)
 }
@@ -384,12 +394,14 @@ func DeleteIssueReaction(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.EditReactionOption)
 	changeIssueReaction(ctx, *form, false)
 }
 
 func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, isCreateType bool) {
-	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -406,7 +418,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 
 	if isCreateType {
 		// PostIssueReaction part
-		reaction, err := issues_model.CreateIssueReaction(ctx.Doer.ID, issue.ID, form.Reaction)
+		reaction, err := issues_model.CreateIssueReaction(ctx, ctx.Doer.ID, issue.ID, form.Reaction)
 		if err != nil {
 			if issues_model.IsErrForbiddenIssueReaction(err) {
 				ctx.Error(http.StatusForbidden, err.Error(), err)
@@ -429,7 +441,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		})
 	} else {
 		// DeleteIssueReaction part
-		err = issues_model.DeleteIssueReaction(ctx.Doer.ID, issue.ID, form.Reaction)
+		err = issues_model.DeleteIssueReaction(ctx, ctx.Doer.ID, issue.ID, form.Reaction)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "DeleteIssueReaction", err)
 			return

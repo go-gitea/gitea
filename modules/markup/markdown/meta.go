@@ -55,14 +55,14 @@ func isYAMLSeparator(line []byte) bool {
 
 // ExtractMetadata consumes a markdown file, parses YAML frontmatter,
 // and returns the frontmatter metadata separated from the markdown content
-func ExtractMetadata(contents string, out interface{}) (string, error) {
+func ExtractMetadata(contents string, out any) (string, error) {
 	body, err := ExtractMetadataBytes([]byte(contents), out)
 	return string(body), err
 }
 
 // ExtractMetadata consumes a markdown file, parses YAML frontmatter,
 // and returns the frontmatter metadata separated from the markdown content
-func ExtractMetadataBytes(contents []byte, out interface{}) ([]byte, error) {
+func ExtractMetadataBytes(contents []byte, out any) ([]byte, error) {
 	var front, body []byte
 
 	start, end := 0, len(contents)

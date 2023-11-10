@@ -36,11 +36,11 @@ func AddBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 		IssueID    int64 `xorm:"index"`
 	}
 
-	if err := x.Sync2(new(ProtectedBranch)); err != nil {
+	if err := x.Sync(new(ProtectedBranch)); err != nil {
 		return err
 	}
 
-	if err := x.Sync2(new(Review)); err != nil {
+	if err := x.Sync(new(Review)); err != nil {
 		return err
 	}
 

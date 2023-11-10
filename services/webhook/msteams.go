@@ -70,7 +70,7 @@ var _ PayloadConvertor = &MSTeamsPayload{}
 // Create implements PayloadConvertor Create method
 func (m *MSTeamsPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 	// created tag/branch
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
 
 	return createMSTeamsPayload(
@@ -87,7 +87,7 @@ func (m *MSTeamsPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 // Delete implements PayloadConvertor Delete method
 func (m *MSTeamsPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	// deleted tag/branch
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
 
 	return createMSTeamsPayload(
@@ -119,7 +119,7 @@ func (m *MSTeamsPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
 // Push implements PayloadConvertor Push method
 func (m *MSTeamsPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	var (
-		branchName = git.RefEndName(p.Ref)
+		branchName = git.RefName(p.Ref).ShortName()
 		commitDesc string
 	)
 
@@ -290,9 +290,23 @@ func (m *MSTeamsPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 		p.Sender,
 		title,
 		"",
-		p.Release.URL,
+		p.Release.HTMLURL,
 		color,
 		&MSTeamsFact{"Tag:", p.Release.TagName},
+	), nil
+}
+
+func (m *MSTeamsPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+	title, color := getPackagePayloadInfo(p, noneLinkFormatter, false)
+
+	return createMSTeamsPayload(
+		p.Repository,
+		p.Sender,
+		title,
+		"",
+		p.Package.HTMLURL,
+		color,
+		&MSTeamsFact{"Package:", p.Package.Name},
 	), nil
 }
 

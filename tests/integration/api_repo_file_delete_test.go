@@ -40,7 +40,7 @@ func getDeleteFileOptions() *api.DeleteFileOptions {
 func TestAPIDeleteFile(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})         // owner of the repo1 & repo16
-		user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})         // owner of the repo3, is an org
+		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})          // owner of the repo3, is an org
 		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})         // owner of neither repos
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})   // public repo
 		repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})   // public repo
@@ -49,10 +49,10 @@ func TestAPIDeleteFile(t *testing.T) {
 
 		// Get user2's token
 		session := loginUser(t, user2.Name)
-		token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+		token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 		// Get user4's token
 		session = loginUser(t, user4.Name)
-		token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+		token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 		// Test deleting a file in repo1 which user2 owns, try both with branch and empty branch
 		for _, branch := range [...]string{
@@ -139,21 +139,21 @@ func TestAPIDeleteFile(t *testing.T) {
 		req = NewRequestWithJSON(t, "DELETE", url, &deleteFileOptions)
 		MakeRequest(t, req, http.StatusOK)
 
-		// Test using org repo "user3/repo3" where user2 is a collaborator
+		// Test using org repo "org3/repo3" where user2 is a collaborator
 		fileID++
 		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
-		createFile(user3, repo3, treePath)
+		createFile(org3, repo3, treePath)
 		deleteFileOptions = getDeleteFileOptions()
-		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user3.Name, repo3.Name, treePath, token2)
+		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", org3.Name, repo3.Name, treePath, token2)
 		req = NewRequestWithJSON(t, "DELETE", url, &deleteFileOptions)
 		MakeRequest(t, req, http.StatusOK)
 
-		// Test using org repo "user3/repo3" with no user token
+		// Test using org repo "org3/repo3" with no user token
 		fileID++
 		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
-		createFile(user3, repo3, treePath)
+		createFile(org3, repo3, treePath)
 		deleteFileOptions = getDeleteFileOptions()
-		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user3.Name, repo3.Name, treePath)
+		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", org3.Name, repo3.Name, treePath)
 		req = NewRequestWithJSON(t, "DELETE", url, &deleteFileOptions)
 		MakeRequest(t, req, http.StatusNotFound)
 

@@ -14,12 +14,11 @@ import (
 
 // EditRunnerForm form for admin to create runner
 type EditRunnerForm struct {
-	Description  string
-	CustomLabels string // comma-separated
+	Description string
 }
 
 // Validate validates form fields
 func (f *EditRunnerForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

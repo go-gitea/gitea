@@ -110,7 +110,7 @@ export function initRepoIssueSidebarList() {
             }
             filteredResponse.results.push({
               name: `#${issue.number} ${htmlEscape(issue.title)
-              }<div class="text small dont-break-out">${htmlEscape(issue.repository.full_name)}</div>`,
+              }<div class="text small gt-word-break">${htmlEscape(issue.repository.full_name)}</div>`,
               value: issue.id,
             });
           });
@@ -149,6 +149,7 @@ export function initRepoIssueSidebarList() {
       }
     }
   });
+  $('.ui.dropdown.label-filter, .ui.dropdown.select-label').dropdown('setting', {'hideDividers': 'empty'}).dropdown('refreshItems');
 }
 
 export function initRepoIssueCommentDelete() {
@@ -177,9 +178,9 @@ export function initRepoIssueCommentDelete() {
           const idx = $conversationHolder.data('idx');
           const lineType = $conversationHolder.closest('tr').data('line-type');
           if (lineType === 'same') {
-            $(`[data-path="${path}"] a.add-code-comment[data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).removeClass('gt-invisible');
           } else {
-            $(`[data-path="${path}"] a.add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('gt-invisible');
           }
           $conversationHolder.remove();
         }
@@ -307,7 +308,6 @@ export function initRepoIssueReferenceRepositorySearch() {
     });
 }
 
-
 export function initRepoIssueWipTitle() {
   $('.title_wip_desc > a').on('click', (e) => {
     e.preventDefault();
@@ -356,13 +356,6 @@ export function initRepoIssueComments() {
       issueId,
       id,
     ).then(() => window.location.reload());
-  });
-
-  $('.dismiss-review-btn').on('click', function (e) {
-    e.preventDefault();
-    const $this = $(this);
-    const $dismissReviewModal = $this.next();
-    $dismissReviewModal.modal('show');
   });
 
   $(document).on('click', (event) => {
@@ -476,7 +469,6 @@ export function initRepoPullRequestReview() {
       content: $panel[0],
       placement: 'bottom',
       trigger: 'click',
-      role: 'menu',
       maxWidth: 'none',
       interactive: true,
       hideOnClick: true,
@@ -488,7 +480,7 @@ export function initRepoPullRequestReview() {
     });
   }
 
-  $(document).on('click', 'a.add-code-comment', async function (e) {
+  $(document).on('click', '.add-code-comment', async function (e) {
     if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
     e.preventDefault();
 
@@ -558,7 +550,6 @@ export function initRepoIssueWipToggle() {
     window.location.reload();
   });
 }
-
 
 export function initRepoIssueTitleEdit() {
   // Edit issue title
@@ -644,11 +635,6 @@ export function initSingleCommentEditor($commentForm) {
   const opts = {};
   const $statusButton = $('#status-button');
   if ($statusButton.length) {
-    $statusButton.on('click', (e) => {
-      e.preventDefault();
-      $('#status').val($statusButton.data('status-val'));
-      $('#comment-form').trigger('submit');
-    });
     opts.onContentChanged = (editor) => {
       $statusButton.text($statusButton.attr(editor.value().trim() ? 'data-status-and-comment' : 'data-status'));
     };
@@ -690,5 +676,18 @@ export function initIssueTemplateCommentEditors($commentForm) {
 
   for (const el of $comboFields) {
     initCombo($(el));
+  }
+}
+
+// This function used to show and hide archived label on issue/pr
+//  page in the sidebar where we select the labels
+//  If we have any archived label tagged to issue and pr. We will show that
+//  archived label with checked classed otherwise we will hide it
+//  with the help of this function.
+//  This function runs globally.
+export function initArchivedLabelHandler() {
+  if (!document.querySelector('.archived-label-hint')) return;
+  for (const label of document.querySelectorAll('[data-is-archived]')) {
+    toggleElem(label, label.classList.contains('checked'));
   }
 }

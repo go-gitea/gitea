@@ -4,41 +4,60 @@
 }
 
 .is-loading {
-  background: transparent !important;
-  color: transparent !important;
-  border: transparent !important;
   pointer-events: none !important;
   position: relative !important;
   overflow: hidden !important;
+}
+
+.is-loading > * {
+  opacity: 0.3;
 }
 
 .is-loading::after {
   content: "";
   position: absolute;
   display: block;
-  width: 4rem;
-  height: 4rem;
   left: 50%;
   top: 50%;
+  height: min(4em, 66.6%);
+  aspect-ratio: 1;
   transform: translate(-50%, -50%);
   animation: isloadingspin 500ms infinite linear;
   border-width: 4px;
   border-style: solid;
   border-color: var(--color-secondary) var(--color-secondary) var(--color-secondary-dark-8) var(--color-secondary-dark-8);
-  border-radius: 100%;
+  border-radius: var(--border-radius-circle);
+}
+
+.is-loading.small-loading-icon::after {
+  border-width: 2px;
+}
+
+/* for single form button, the loading state should be on the button, but not go semi-transparent, just replace the text on the button with the loader. */
+form.single-button-form.is-loading > * {
+  opacity: 1;
+}
+
+form.single-button-form.is-loading .button {
+  color: transparent;
 }
 
 .markup pre.is-loading,
-.editor-loading.is-loading {
+.editor-loading.is-loading,
+.pdf-content.is-loading {
   height: var(--height-loading);
 }
 
-.btn-octicon.is-loading::after {
-  border-width: 2px;
-  height: 1.25rem;
-  width: 1.25rem;
+.markup .is-loading > * {
+  visibility: hidden;
 }
 
+.markup .is-loading {
+  color: transparent;
+  background: transparent;
+}
+
+/* TODO: not needed, use "is-loading small-loading-icon" instead */
 code.language-math.is-loading::after {
   padding: 0;
   border-width: 2px;
@@ -78,4 +97,11 @@ code.language-math.is-loading::after {
 
 .pulse {
   animation: pulse 2s linear;
+}
+
+.ui.modal,
+.ui.dimmer.transition {
+  animation-name: fadein;
+  animation-duration: 100ms;
+  animation-timing-function: ease-in-out;
 }

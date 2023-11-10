@@ -6,14 +6,13 @@ package setting
 import (
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
-
-	"code.gitea.io/gitea/modules/log"
 )
 
 var (
@@ -36,7 +35,7 @@ var (
 		SSLMode           string
 		Path              string
 		LogSQL            bool
-		Charset           string
+		MysqlCharset      string
 		Timeout           int // seconds
 		SQLiteJournalMode string
 		DBConnectRetries  int
@@ -60,11 +59,6 @@ func LoadDBSetting() {
 func loadDBSetting(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("database")
 	Database.Type = DatabaseType(sec.Key("DB_TYPE").String())
-	defaultCharset := "utf8"
-
-	if Database.Type.IsMySQL() {
-		defaultCharset = "utf8mb4"
-	}
 
 	Database.Host = sec.Key("HOST").String()
 	Database.Name = sec.Key("NAME").String()
@@ -74,10 +68,7 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	}
 	Database.Schema = sec.Key("SCHEMA").String()
 	Database.SSLMode = sec.Key("SSL_MODE").MustString("disable")
-	Database.Charset = sec.Key("CHARSET").In(defaultCharset, []string{"utf8", "utf8mb4"})
-	if Database.Type.IsMySQL() && defaultCharset != "utf8mb4" {
-		log.Error("Deprecated database mysql charset utf8 support, please use utf8mb4 or convert utf8 to utf8mb4.")
-	}
+	Database.MysqlCharset = sec.Key("MYSQL_CHARSET").MustString("utf8mb4") // do not document it, end users won't need it.
 
 	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
 	Database.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
@@ -92,7 +83,7 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	Database.MaxOpenConns = sec.Key("MAX_OPEN_CONNS").MustInt(0)
 
 	Database.IterateBufferSize = sec.Key("ITERATE_BUFFER_SIZE").MustInt(50)
-	Database.LogSQL = sec.Key("LOG_SQL").MustBool(true)
+	Database.LogSQL = sec.Key("LOG_SQL").MustBool(false)
 	Database.DBConnectRetries = sec.Key("DB_RETRIES").MustInt(10)
 	Database.DBConnectBackoff = sec.Key("DB_RETRY_BACKOFF").MustDuration(3 * time.Second)
 	Database.AutoMigration = sec.Key("AUTO_MIGRATION").MustBool(true)
@@ -101,9 +92,9 @@ func loadDBSetting(rootCfg ConfigProvider) {
 // DBConnStr returns database connection string
 func DBConnStr() (string, error) {
 	var connStr string
-	Param := "?"
-	if strings.Contains(Database.Name, Param) {
-		Param = "&"
+	paramSep := "?"
+	if strings.Contains(Database.Name, paramSep) {
+		paramSep = "&"
 	}
 	switch Database.Type {
 	case "mysql":
@@ -116,15 +107,15 @@ func DBConnStr() (string, error) {
 			tls = "false"
 		}
 		connStr = fmt.Sprintf("%s:%s@%s(%s)/%s%scharset=%s&parseTime=true&tls=%s",
-			Database.User, Database.Passwd, connType, Database.Host, Database.Name, Param, Database.Charset, tls)
+			Database.User, Database.Passwd, connType, Database.Host, Database.Name, paramSep, Database.MysqlCharset, tls)
 	case "postgres":
-		connStr = getPostgreSQLConnectionString(Database.Host, Database.User, Database.Passwd, Database.Name, Param, Database.SSLMode)
+		connStr = getPostgreSQLConnectionString(Database.Host, Database.User, Database.Passwd, Database.Name, paramSep, Database.SSLMode)
 	case "mssql":
 		host, port := ParseMSSQLHostPort(Database.Host)
 		connStr = fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;", host, port, Database.Name, Database.User, Database.Passwd)
 	case "sqlite3":
 		if !EnableSQLite3 {
-			return "", errors.New("this binary version does not build support for SQLite3")
+			return "", errors.New("this Gitea binary was not built with SQLite3 support")
 		}
 		if err := os.MkdirAll(path.Dir(Database.Path), os.ModePerm); err != nil {
 			return "", fmt.Errorf("Failed to create directories: %w", err)
@@ -136,7 +127,7 @@ func DBConnStr() (string, error) {
 		connStr = fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d&_txlock=immediate%s",
 			Database.Path, Database.Timeout, journalMode)
 	default:
-		return "", fmt.Errorf("Unknown database type: %s", Database.Type)
+		return "", fmt.Errorf("unknown database type: %s", Database.Type)
 	}
 
 	return connStr, nil
@@ -145,15 +136,18 @@ func DBConnStr() (string, error) {
 // parsePostgreSQLHostPort parses given input in various forms defined in
 // https://www.postgresql.org/docs/current/static/libpq-connect.html#LIBPQ-CONNSTRING
 // and returns proper host and port number.
-func parsePostgreSQLHostPort(info string) (string, string) {
-	host, port := "127.0.0.1", "5432"
-	if strings.Contains(info, ":") && !strings.HasSuffix(info, "]") {
-		idx := strings.LastIndex(info, ":")
-		host = info[:idx]
-		port = info[idx+1:]
-	} else if len(info) > 0 {
+func parsePostgreSQLHostPort(info string) (host, port string) {
+	if h, p, err := net.SplitHostPort(info); err == nil {
+		host, port = h, p
+	} else {
+		// treat the "info" as "host", if it's an IPv6 address, remove the wrapper
 		host = info
+		if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
+			host = host[1 : len(host)-1]
+		}
 	}
+
+	// set fallback values
 	if host == "" {
 		host = "127.0.0.1"
 	}
@@ -165,14 +159,22 @@ func parsePostgreSQLHostPort(info string) (string, string) {
 
 func getPostgreSQLConnectionString(dbHost, dbUser, dbPasswd, dbName, dbParam, dbsslMode string) (connStr string) {
 	host, port := parsePostgreSQLHostPort(dbHost)
-	if host[0] == '/' { // looks like a unix socket
-		connStr = fmt.Sprintf("postgres://%s:%s@:%s/%s%ssslmode=%s&host=%s",
-			url.PathEscape(dbUser), url.PathEscape(dbPasswd), port, dbName, dbParam, dbsslMode, host)
-	} else {
-		connStr = fmt.Sprintf("postgres://%s:%s@%s:%s/%s%ssslmode=%s",
-			url.PathEscape(dbUser), url.PathEscape(dbPasswd), host, port, dbName, dbParam, dbsslMode)
+	connURL := url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword(dbUser, dbPasswd),
+		Host:     net.JoinHostPort(host, port),
+		Path:     dbName,
+		OmitHost: false,
+		RawQuery: dbParam,
 	}
-	return connStr
+	query := connURL.Query()
+	if dbHost[0] == '/' { // looks like a unix socket
+		query.Add("host", dbHost)
+		connURL.Host = ":" + port
+	}
+	query.Set("sslmode", dbsslMode)
+	connURL.RawQuery = query.Encode()
+	return connURL.String()
 }
 
 // ParseMSSQLHostPort splits the host into host and port

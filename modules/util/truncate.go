@@ -3,7 +3,10 @@
 
 package util
 
-import "unicode/utf8"
+import (
+	"strings"
+	"unicode/utf8"
+)
 
 // in UTF8 "…" is 3 bytes so doesn't really gain us anything...
 const (
@@ -34,4 +37,18 @@ func SplitStringAtByteN(input string, n int) (left, right string) {
 	}
 
 	return input[:end] + utf8Ellipsis, utf8Ellipsis + input[end:]
+}
+
+// SplitTrimSpace splits the string at given separator and trims leading and trailing space
+func SplitTrimSpace(input, sep string) []string {
+	// replace CRLF with LF
+	input = strings.ReplaceAll(input, "\r\n", "\n")
+
+	var stringList []string
+	for _, s := range strings.Split(input, sep) {
+		// trim leading and trailing space
+		stringList = append(stringList, strings.TrimSpace(s))
+	}
+
+	return stringList
 }

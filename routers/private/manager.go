@@ -10,13 +10,26 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/graceful/releasereopen"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 )
+
+// ReloadTemplates reloads all the templates
+func ReloadTemplates(ctx *context.PrivateContext) {
+	err := templates.ReloadHTMLTemplates()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			UserMsg: fmt.Sprintf("Template error: %v", err),
+		})
+		return
+	}
+	ctx.PlainText(http.StatusOK, "success")
+}
 
 // FlushQueues flushes all the Queues
 func FlushQueues(ctx *context.PrivateContext) {
@@ -46,19 +59,19 @@ func FlushQueues(ctx *context.PrivateContext) {
 
 // PauseLogging pauses logging
 func PauseLogging(ctx *context.PrivateContext) {
-	log.Pause()
+	log.GetManager().PauseAll()
 	ctx.PlainText(http.StatusOK, "success")
 }
 
 // ResumeLogging resumes logging
 func ResumeLogging(ctx *context.PrivateContext) {
-	log.Resume()
+	log.GetManager().ResumeAll()
 	ctx.PlainText(http.StatusOK, "success")
 }
 
 // ReleaseReopenLogging releases and reopens logging files
 func ReleaseReopenLogging(ctx *context.PrivateContext) {
-	if err := log.ReleaseReopen(); err != nil {
+	if err := releasereopen.GetManager().ReleaseReopen(); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: fmt.Sprintf("Error during release and reopen: %v", err),
 		})
@@ -75,90 +88,108 @@ func SetLogSQL(ctx *context.PrivateContext) {
 
 // RemoveLogger removes a logger
 func RemoveLogger(ctx *context.PrivateContext) {
-	group := ctx.Params("group")
-	name := ctx.Params("name")
-	ok, err := log.GetLogger(group).DelLogger(name)
+	logger := ctx.Params("logger")
+	writer := ctx.Params("writer")
+	err := log.GetManager().GetLogger(logger).RemoveWriter(writer)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Failed to remove logger: %s %s %v", group, name, err),
+			Err: fmt.Sprintf("Failed to remove log writer: %s %s %v", logger, writer, err),
 		})
 		return
 	}
-	if ok {
-		setting.RemoveSubLogDescription(group, name)
-	}
-	ctx.PlainText(http.StatusOK, fmt.Sprintf("Removed %s %s", group, name))
+	ctx.PlainText(http.StatusOK, fmt.Sprintf("Removed %s %s", logger, writer))
 }
 
 // AddLogger adds a logger
 func AddLogger(ctx *context.PrivateContext) {
 	opts := web.GetForm(ctx).(*private.LoggerOptions)
-	if len(opts.Group) == 0 {
-		opts.Group = log.DEFAULT
+
+	if len(opts.Logger) == 0 {
+		opts.Logger = log.DEFAULT
 	}
-	if _, ok := opts.Config["flags"]; !ok {
-		switch opts.Group {
+
+	writerMode := log.WriterMode{}
+	writerType := opts.Mode
+
+	var flags string
+	var ok bool
+	if flags, ok = opts.Config["flags"].(string); !ok {
+		switch opts.Logger {
 		case "access":
-			opts.Config["flags"] = log.FlagsFromString("")
+			flags = ""
 		case "router":
-			opts.Config["flags"] = log.FlagsFromString("date,time")
+			flags = "date,time"
 		default:
-			opts.Config["flags"] = log.FlagsFromString("stdflags")
+			flags = "stdflags"
 		}
 	}
+	writerMode.Flags = log.FlagsFromString(flags)
 
-	if _, ok := opts.Config["colorize"]; !ok && opts.Mode == "console" {
+	if writerMode.Colorize, ok = opts.Config["colorize"].(bool); !ok && opts.Mode == "console" {
 		if _, ok := opts.Config["stderr"]; ok {
-			opts.Config["colorize"] = log.CanColorStderr
+			writerMode.Colorize = log.CanColorStderr
 		} else {
-			opts.Config["colorize"] = log.CanColorStdout
+			writerMode.Colorize = log.CanColorStdout
 		}
 	}
 
-	if _, ok := opts.Config["level"]; !ok {
-		opts.Config["level"] = setting.Log.Level
+	writerMode.Level = setting.Log.Level
+	if level, ok := opts.Config["level"].(string); ok {
+		writerMode.Level = log.LevelFromString(level)
 	}
 
-	if _, ok := opts.Config["stacktraceLevel"]; !ok {
-		opts.Config["stacktraceLevel"] = setting.Log.StacktraceLogLevel
+	writerMode.StacktraceLevel = setting.Log.StacktraceLogLevel
+	if stacktraceLevel, ok := opts.Config["level"].(string); ok {
+		writerMode.StacktraceLevel = log.LevelFromString(stacktraceLevel)
 	}
 
-	if opts.Mode == "file" {
-		if _, ok := opts.Config["maxsize"]; !ok {
-			opts.Config["maxsize"] = 1 << 28
-		}
-		if _, ok := opts.Config["maxdays"]; !ok {
-			opts.Config["maxdays"] = 7
-		}
-		if _, ok := opts.Config["compressionLevel"]; !ok {
-			opts.Config["compressionLevel"] = -1
-		}
-	}
+	writerMode.Prefix, _ = opts.Config["prefix"].(string)
+	writerMode.Expression, _ = opts.Config["expression"].(string)
 
-	bufferLen := setting.Log.BufferLength
-	byteConfig, err := json.Marshal(opts.Config)
+	switch writerType {
+	case "console":
+		writerOption := log.WriterConsoleOption{}
+		writerOption.Stderr, _ = opts.Config["stderr"].(bool)
+		writerMode.WriterOption = writerOption
+	case "file":
+		writerOption := log.WriterFileOption{}
+		fileName, _ := opts.Config["filename"].(string)
+		writerOption.FileName = setting.LogPrepareFilenameForWriter(fileName, opts.Writer+".log")
+		writerOption.LogRotate, _ = opts.Config["rotate"].(bool)
+		maxSizeShift, _ := opts.Config["maxsize"].(int)
+		if maxSizeShift == 0 {
+			maxSizeShift = 28
+		}
+		writerOption.MaxSize = 1 << maxSizeShift
+		writerOption.DailyRotate, _ = opts.Config["daily"].(bool)
+		writerOption.MaxDays, _ = opts.Config["maxdays"].(int)
+		if writerOption.MaxDays == 0 {
+			writerOption.MaxDays = 7
+		}
+		writerOption.Compress, _ = opts.Config["compress"].(bool)
+		writerOption.CompressionLevel, _ = opts.Config["compressionLevel"].(int)
+		if writerOption.CompressionLevel == 0 {
+			writerOption.CompressionLevel = -1
+		}
+		writerMode.WriterOption = writerOption
+	case "conn":
+		writerOption := log.WriterConnOption{}
+		writerOption.ReconnectOnMsg, _ = opts.Config["reconnectOnMsg"].(bool)
+		writerOption.Reconnect, _ = opts.Config["reconnect"].(bool)
+		writerOption.Protocol, _ = opts.Config["net"].(string)
+		writerOption.Addr, _ = opts.Config["address"].(string)
+		writerMode.WriterOption = writerOption
+	default:
+		panic(fmt.Sprintf("invalid log writer mode: %s", writerType))
+	}
+	writer, err := log.NewEventWriter(opts.Writer, writerType, writerMode)
 	if err != nil {
-		log.Error("Failed to marshal log configuration: %v %v", opts.Config, err)
+		log.Error("Failed to create new log writer: %v", err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Failed to marshal log configuration: %v %v", opts.Config, err),
+			Err: fmt.Sprintf("Failed to create new log writer: %v", err),
 		})
 		return
 	}
-	config := string(byteConfig)
-
-	if err := log.NewNamedLogger(opts.Group, bufferLen, opts.Name, opts.Mode, config); err != nil {
-		log.Error("Failed to create new named logger: %s %v", config, err)
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Failed to create new named logger: %s %v", config, err),
-		})
-		return
-	}
-
-	setting.AddSubLogDescription(opts.Group, setting.SubLogDescription{
-		Name:     opts.Name,
-		Provider: opts.Mode,
-		Config:   config,
-	})
-
+	log.GetManager().GetLogger(opts.Logger).AddWriters(writer)
 	ctx.PlainText(http.StatusOK, "success")
 }

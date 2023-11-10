@@ -23,9 +23,9 @@
 }
 
 .markup .anchor {
+  float: left;
   padding-right: 4px;
   margin-left: -20px;
-  line-height: 1;
   color: inherit;
 }
 
@@ -35,6 +35,10 @@
 
 .markup .anchor:focus {
   outline: none;
+}
+
+.markup h1 .anchor {
+  margin-top: -2px; /* re-align to center */
 }
 
 .markup h1 .anchor .svg,
@@ -70,7 +74,7 @@
 .markup h6 {
   margin-top: 24px;
   margin-bottom: 16px;
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
   line-height: 1.25;
 }
 
@@ -151,23 +155,29 @@
 
 .markup .task-list-item {
   list-style-type: none;
-  position: relative;
-  line-height: 1.5rem;
-  min-height: 1.5rem; /* // to render a checkbox list without content `- [ ]`, we need this min-height to make sure the <li> can be visible */
+}
+
+.markup .task-list-item p + ul {
+  margin-top: 16px;
 }
 
 .markup .task-list-item input[type="checkbox"] {
-  position: absolute;
-  top: 0.25em;
-  left: -1.6em;
+  margin: 0 .3em .25em -1.4em;
+  vertical-align: middle;
+  padding: 0;
 }
 
-.markup .task-list-item p {
-  line-height: 1.5rem;
+.markup .task-list-item input[type="checkbox"] + p {
+  margin-left: -0.2em;
+  display: inline;
+}
+
+.markup .task-list-item > p {
+  margin-inline: 16px;
 }
 
 .markup .task-list-item + .task-list-item {
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
 .markup input[type="checkbox"] {
@@ -176,7 +186,7 @@
   appearance: none;
   position: relative;
   border: 1px solid var(--color-secondary);
-  border-radius: 2px;
+  border-radius: var(--border-radius);
   background: var(--color-input-background);
   height: 14px;
   width: 14px;
@@ -248,7 +258,7 @@
   margin-top: 16px;
   font-size: 1em;
   font-style: italic;
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
 }
 
 .markup dl dd {
@@ -280,7 +290,7 @@
 }
 
 .markup table th {
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
 }
 
 .markup table th,
@@ -297,7 +307,8 @@
   background-color: var(--color-markup-table-row);
 }
 
-.markup img {
+.markup img,
+.markup video {
   max-width: 100%;
   box-sizing: initial;
 }
@@ -305,18 +316,24 @@
 /* this background ensures images can break <hr>. We can only do this on
    cases where the background is known and not transparent. */
 .markup.file-view img,
+.markup.file-view video,
 .comment-body .markup img, /* regular comment */
+.comment-body .markup video,
 .comment-content .markup img, /* code comment */
-.wiki .markup img {
+.comment-content .markup video,
+.wiki .markup img,
+.wiki .markup video {
   background: var(--color-box-body);
 }
 
-.markup img[align="right"] {
+.markup img[align="right"],
+.markup video[align="right"] {
   padding-left: 20px;
 }
 
-.markup img[align="left"] {
-  padding-right: 20px;
+.markup img[align="left"],
+.markup video[align="left"] {
+  padding-right: 28px;
 }
 
 .markup .emoji {
@@ -339,7 +356,8 @@
   border: 1px solid var(--color-secondary);
 }
 
-.markup span.frame span img {
+.markup span.frame span img,
+.markup span.frame span video {
   display: block;
   float: left;
 }
@@ -364,7 +382,8 @@
   text-align: center;
 }
 
-.markup span.align-center span img {
+.markup span.align-center span img
+.markup span.align-center span video {
   margin: 0 auto;
   text-align: center;
 }
@@ -382,7 +401,8 @@
   text-align: right;
 }
 
-.markup span.align-right span img {
+.markup span.align-right span img,
+.markup span.align-right span video {
   margin: 0;
   text-align: right;
 }
@@ -419,7 +439,7 @@
   font-size: 85%;
   white-space: break-spaces;
   background-color: var(--color-markup-code-block);
-  border-radius: 4px;
+  border-radius: var(--border-radius);
 }
 
 .markup code br,
@@ -452,7 +472,7 @@
   font-size: 85%;
   line-height: 1.45;
   background-color: var(--color-markup-code-block);
-  border-radius: 4px;
+  border-radius: var(--border-radius);
 }
 
 .markup .highlight pre {
@@ -467,10 +487,7 @@
 .markup pre code,
 .markup pre tt {
   display: inline;
-  max-width: initial;
   padding: 0;
-  margin: 0;
-  overflow: initial;
   line-height: inherit;
   word-wrap: normal;
   background-color: transparent;
@@ -493,7 +510,7 @@
   vertical-align: middle;
   background-color: var(--color-markup-code-block);
   border: 1px solid var(--color-secondary);
-  border-radius: 3px;
+  border-radius: var(--border-radius);
   box-shadow: inset 0 -1px 0 var(--color-secondary);
 }
 
@@ -501,20 +518,6 @@
 .markup ol.ui.list ol,
 .markup ul.ui.list ul {
   padding-left: 2em;
-}
-
-.repository.wiki.revisions .ui.container > .ui.stackable.grid {
-  -ms-flex-direction: row-reverse;
-  flex-direction: row-reverse;
-}
-
-.repository.wiki.revisions .ui.container > .ui.stackable.grid > .header {
-  margin-top: 0;
-}
-
-.repository.wiki.revisions .ui.container > .ui.stackable.grid > .header .sub.header {
-  padding-left: 52px;
-  word-break: break-word;
 }
 
 .file-revisions-btn {
@@ -558,4 +561,27 @@
   margin-top: 0 !important;
   border-top-left-radius: 0 !important;
   border-top-right-radius: 0 !important;
+}
+
+.file-view.markup.orgmode li.unchecked::before {
+  content: "[ ] ";
+}
+
+.file-view.markup.orgmode li.checked::before {
+  content: "[x] ";
+}
+
+.file-view.markup.orgmode li.indeterminate::before {
+  content: "[-] ";
+}
+
+/* This is only needed for <p> because they are literally acting as paragraphs,
+ * and thus having an ::before on the same line would force the paragraph to
+ * move to the next line. This can be avoided by an inline-block display that
+ * avoids that property while still having the other properties of the block
+ * display. */
+.file-view.markup.orgmode li.unchecked > p,
+.file-view.markup.orgmode li.checked > p,
+.file-view.markup.orgmode li.indeterminate > p {
+  display: inline-block;
 }

@@ -25,7 +25,7 @@ import (
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
-func jsonResponse(ctx *context.Context, status int, obj interface{}) {
+func jsonResponse(ctx *context.Context, status int, obj any) {
 	resp := ctx.Resp
 	resp.Header().Set("Content-Type", "application/vnd.pub.v2+json")
 	resp.WriteHeader(status)
@@ -34,7 +34,7 @@ func jsonResponse(ctx *context.Context, status int, obj interface{}) {
 	}
 }
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	type Error struct {
 		Code    string `json:"code"`
 		Message string `json:"message"`
@@ -60,10 +60,10 @@ type packageVersions struct {
 }
 
 type versionMetadata struct {
-	Version    string      `json:"version"`
-	ArchiveURL string      `json:"archive_url"`
-	Published  time.Time   `json:"published"`
-	Pubspec    interface{} `json:"pubspec,omitempty"`
+	Version    string    `json:"version"`
+	ArchiveURL string    `json:"archive_url"`
+	Published  time.Time `json:"published"`
+	Pubspec    any       `json:"pubspec,omitempty"`
 }
 
 func packageDescriptorToMetadata(baseURL string, pd *packages_model.PackageDescriptor) *versionMetadata {
@@ -189,6 +189,7 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	_, _, err = packages_service.CreatePackageAndAddFile(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
@@ -212,7 +213,7 @@ func UploadPackageFile(ctx *context.Context) {
 	if err != nil {
 		switch err {
 		case packages_model.ErrDuplicatePackageVersion:
-			apiError(ctx, http.StatusBadRequest, err)
+			apiError(ctx, http.StatusConflict, err)
 		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
 			apiError(ctx, http.StatusForbidden, err)
 		default:
@@ -273,15 +274,11 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	pf := pd.Files[0].File
 
-	s, _, err := packages_service.GetPackageFileStream(ctx, pf)
+	s, u, _, err := packages_service.GetPackageFileStream(ctx, pf)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	defer s.Close()
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }

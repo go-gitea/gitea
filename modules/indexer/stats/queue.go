@@ -29,13 +29,11 @@ func handler(items ...int64) []int64 {
 }
 
 func initStatsQueue() error {
-	statsQueue = queue.CreateUniqueQueue("repo_stats_update", handler)
+	statsQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "repo_stats_update", handler)
 	if statsQueue == nil {
-		return fmt.Errorf("Unable to create repo_stats_update Queue")
+		return fmt.Errorf("unable to create repo_stats_update queue")
 	}
-
-	go graceful.GetManager().RunWithShutdownFns(statsQueue.Run)
-
+	go graceful.GetManager().RunWithCancel(statsQueue)
 	return nil
 }
 

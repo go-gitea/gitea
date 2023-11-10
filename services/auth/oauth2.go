@@ -5,13 +5,13 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -22,11 +22,10 @@ import (
 // Ensure the struct implements the interface.
 var (
 	_ Method = &OAuth2{}
-	_ Named  = &OAuth2{}
 )
 
 // CheckOAuthAccessToken returns uid of user from oauth token
-func CheckOAuthAccessToken(accessToken string) int64 {
+func CheckOAuthAccessToken(ctx context.Context, accessToken string) int64 {
 	// JWT tokens require a "."
 	if !strings.Contains(accessToken, ".") {
 		return 0
@@ -37,7 +36,7 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 		return 0
 	}
 	var grant *auth_model.OAuth2Grant
-	if grant, err = auth_model.GetOAuth2GrantByID(db.DefaultContext, token.GrantID); err != nil || grant == nil {
+	if grant, err = auth_model.GetOAuth2GrantByID(ctx, token.GrantID); err != nil || grant == nil {
 		return 0
 	}
 	if token.Type != oauth2.TypeAccessToken {
@@ -59,45 +58,46 @@ func (o *OAuth2) Name() string {
 	return "oauth2"
 }
 
+// parseToken returns the token from request, and a boolean value
+// representing whether the token exists or not
+func parseToken(req *http.Request) (string, bool) {
+	_ = req.ParseForm()
+	// Check token.
+	if token := req.Form.Get("token"); token != "" {
+		return token, true
+	}
+	// Check access token.
+	if token := req.Form.Get("access_token"); token != "" {
+		return token, true
+	}
+	// check header token
+	if auHead := req.Header.Get("Authorization"); auHead != "" {
+		auths := strings.Fields(auHead)
+		if len(auths) == 2 && (auths[0] == "token" || strings.ToLower(auths[0]) == "bearer") {
+			return auths[1], true
+		}
+	}
+	return "", false
+}
+
 // userIDFromToken returns the user id corresponding to the OAuth token.
 // It will set 'IsApiToken' to true if the token is an API token and
 // set 'ApiTokenScope' to the scope of the access token
-func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
-	_ = req.ParseForm()
-
-	// Check access token.
-	tokenSHA := req.Form.Get("token")
-	if len(tokenSHA) == 0 {
-		tokenSHA = req.Form.Get("access_token")
-	}
-	if len(tokenSHA) == 0 {
-		// Well, check with header again.
-		auHead := req.Header.Get("Authorization")
-		if len(auHead) > 0 {
-			auths := strings.Fields(auHead)
-			if len(auths) == 2 && (auths[0] == "token" || strings.ToLower(auths[0]) == "bearer") {
-				tokenSHA = auths[1]
-			}
-		}
-	}
-	if len(tokenSHA) == 0 {
-		return 0
-	}
-
+func (o *OAuth2) userIDFromToken(ctx context.Context, tokenSHA string, store DataStore) int64 {
 	// Let's see if token is valid.
 	if strings.Contains(tokenSHA, ".") {
-		uid := CheckOAuthAccessToken(tokenSHA)
+		uid := CheckOAuthAccessToken(ctx, tokenSHA)
 		if uid != 0 {
 			store.GetData()["IsApiToken"] = true
 			store.GetData()["ApiTokenScope"] = auth_model.AccessTokenScopeAll // fallback to all
 		}
 		return uid
 	}
-	t, err := auth_model.GetAccessTokenBySHA(tokenSHA)
+	t, err := auth_model.GetAccessTokenBySHA(ctx, tokenSHA)
 	if err != nil {
 		if auth_model.IsErrAccessTokenNotExist(err) {
 			// check task token
-			task, err := actions_model.GetRunningTaskByToken(db.DefaultContext, tokenSHA)
+			task, err := actions_model.GetRunningTaskByToken(ctx, tokenSHA)
 			if err == nil && task != nil {
 				log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
 
@@ -112,7 +112,7 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 		return 0
 	}
 	t.UpdatedUnix = timeutil.TimeStampNow()
-	if err = auth_model.UpdateAccessToken(t); err != nil {
+	if err = auth_model.UpdateAccessToken(ctx, t); err != nil {
 		log.Error("UpdateAccessToken: %v", err)
 	}
 	store.GetData()["IsApiToken"] = true
@@ -125,14 +125,21 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 // If verification is successful returns an existing user object.
 // Returns nil if verification fails.
 func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
-	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isAuthenticatedTokenRequest(req) {
+	// These paths are not API paths, but we still want to check for tokens because they maybe in the API returned URLs
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isAuthenticatedTokenRequest(req) &&
+		!isGitRawOrAttachPath(req) {
 		return nil, nil
 	}
 
-	id := o.userIDFromToken(req, store)
+	token, ok := parseToken(req)
+	if !ok {
+		return nil, nil
+	}
+
+	id := o.userIDFromToken(req.Context(), token, store)
 
 	if id <= 0 && id != -2 { // -2 means actions, so we need to allow it.
-		return nil, nil
+		return nil, user_model.ErrUserNotExist{}
 	}
 	log.Trace("OAuth2 Authorization: Found token for user[%d]", id)
 

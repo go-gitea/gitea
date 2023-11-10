@@ -24,8 +24,8 @@ func init() {
 }
 
 // StarRepo or unstar repository.
-func StarRepo(userID, repoID int64, star bool) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func StarRepo(ctx context.Context, userID, repoID int64, star bool) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -72,8 +72,8 @@ func IsStaring(ctx context.Context, userID, repoID int64) bool {
 }
 
 // GetStargazers returns the users that starred the repo.
-func GetStargazers(repo *Repository, opts db.ListOptions) ([]*user_model.User, error) {
-	sess := db.GetEngine(db.DefaultContext).Where("star.repo_id = ?", repo.ID).
+func GetStargazers(ctx context.Context, repo *Repository, opts db.ListOptions) ([]*user_model.User, error) {
+	sess := db.GetEngine(ctx).Where("star.repo_id = ?", repo.ID).
 		Join("LEFT", "star", "`user`.id = star.uid")
 	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, &opts)
@@ -84,4 +84,18 @@ func GetStargazers(repo *Repository, opts db.ListOptions) ([]*user_model.User, e
 
 	users := make([]*user_model.User, 0, 8)
 	return users, sess.Find(&users)
+}
+
+// ClearRepoStars clears all stars for a repository and from the user that starred it.
+// Used when a repository is set to private.
+func ClearRepoStars(ctx context.Context, repoID int64) error {
+	if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repoID); err != nil {
+		return err
+	}
+
+	if _, err := db.Exec(ctx, "UPDATE `repository` SET num_stars = 0 WHERE id = ?", repoID); err != nil {
+		return err
+	}
+
+	return db.DeleteBeans(ctx, Star{RepoID: repoID})
 }

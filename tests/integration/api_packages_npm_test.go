@@ -28,7 +28,7 @@ func TestPackageNpm(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	token := fmt.Sprintf("Bearer %s", getTokenForLoggedInUser(t, loginUser(t, user.Name), auth_model.AccessTokenScopePackage))
+	token := fmt.Sprintf("Bearer %s", getTokenForLoggedInUser(t, loginUser(t, user.Name), auth_model.AccessTokenScopeWritePackage))
 
 	packageName := "@scope/test-package"
 	packageVersion := "1.0.1-pre"
@@ -121,7 +121,7 @@ func TestPackageNpm(t *testing.T) {
 
 		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(buildUpload(packageVersion)))
 		req = addTokenAuthHeader(req, token)
-		MakeRequest(t, req, http.StatusBadRequest)
+		MakeRequest(t, req, http.StatusConflict)
 	})
 
 	t.Run("Download", func(t *testing.T) {

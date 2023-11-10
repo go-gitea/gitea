@@ -92,7 +92,7 @@ func (t *HookTask) AfterLoad() {
 	}
 }
 
-func (t *HookTask) simpleMarshalJSON(v interface{}) string {
+func (t *HookTask) simpleMarshalJSON(v any) string {
 	p, err := json.Marshal(v)
 	if err != nil {
 		log.Error("Marshal [%d]: %v", t.ID, err)
@@ -101,9 +101,9 @@ func (t *HookTask) simpleMarshalJSON(v interface{}) string {
 }
 
 // HookTasks returns a list of hook tasks by given conditions.
-func HookTasks(hookID int64, page int) ([]*HookTask, error) {
+func HookTasks(ctx context.Context, hookID int64, page int) ([]*HookTask, error) {
 	tasks := make([]*HookTask, 0, setting.Webhook.PagingNum)
-	return tasks, db.GetEngine(db.DefaultContext).
+	return tasks, db.GetEngine(ctx).
 		Limit(setting.Webhook.PagingNum, (page-1)*setting.Webhook.PagingNum).
 		Where("hook_id=?", hookID).
 		Desc("id").
@@ -143,8 +143,8 @@ func GetHookTaskByID(ctx context.Context, id int64) (*HookTask, error) {
 }
 
 // UpdateHookTask updates information of hook task.
-func UpdateHookTask(t *HookTask) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(t.ID).AllCols().Update(t)
+func UpdateHookTask(ctx context.Context, t *HookTask) error {
+	_, err := db.GetEngine(ctx).ID(t.ID).AllCols().Update(t)
 	return err
 }
 

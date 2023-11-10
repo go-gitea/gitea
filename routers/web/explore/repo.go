@@ -57,8 +57,13 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy db.SearchOrderBy
 	)
 
-	ctx.Data["SortType"] = ctx.FormString("sort")
-	switch ctx.FormString("sort") {
+	sortOrder := ctx.FormString("sort")
+	if sortOrder == "" {
+		sortOrder = setting.UI.ExploreDefaultSort
+	}
+	ctx.Data["SortType"] = sortOrder
+
+	switch sortOrder {
 	case "newest":
 		orderBy = db.SearchOrderByNewest
 	case "oldest":
@@ -73,6 +78,14 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy = db.SearchOrderBySizeReverse
 	case "size":
 		orderBy = db.SearchOrderBySize
+	case "reversegitsize":
+		orderBy = db.SearchOrderByGitSizeReverse
+	case "gitsize":
+		orderBy = db.SearchOrderByGitSize
+	case "reverselfssize":
+		orderBy = db.SearchOrderByLFSSizeReverse
+	case "lfssize":
+		orderBy = db.SearchOrderByLFSSize
 	case "moststars":
 		orderBy = db.SearchOrderByStarsReverse
 	case "feweststars":

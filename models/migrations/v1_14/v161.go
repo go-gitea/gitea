@@ -41,7 +41,7 @@ func ConvertTaskTypeToString(x *xorm.Engine) error {
 	type HookTask struct {
 		Typ string `xorm:"VARCHAR(16) index"`
 	}
-	if err := x.Sync2(new(HookTask)); err != nil {
+	if err := x.Sync(new(HookTask)); err != nil {
 		return err
 	}
 

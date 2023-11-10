@@ -27,7 +27,7 @@ func UpdateCodeCommentReplies(x *xorm.Engine) error {
 		ReviewID int64 `xorm:"index"`
 	}
 
-	if err := x.Sync2(new(Comment)); err != nil {
+	if err := x.Sync(new(Comment)); err != nil {
 		return err
 	}
 

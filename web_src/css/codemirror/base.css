@@ -43,3 +43,7 @@
 .CodeMirror-focused {
   border-color: var(--color-primary) !important;
 }
+
+.CodeMirror :focus {
+  outline: none;
+}

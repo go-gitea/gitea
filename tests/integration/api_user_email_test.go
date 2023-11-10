@@ -46,7 +46,7 @@ func TestAPIAddEmail(t *testing.T) {
 
 	normalUsername := "user2"
 	session := loginUser(t, normalUsername)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeUser)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser)
 
 	opts := api.CreateEmailOption{
 		Emails: []string{"user101@example.com"},
@@ -83,7 +83,7 @@ func TestAPIDeleteEmail(t *testing.T) {
 
 	normalUsername := "user2"
 	session := loginUser(t, normalUsername)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeUser)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser)
 
 	opts := api.DeleteEmailOption{
 		Emails: []string{"user2-3@example.com"},

@@ -68,7 +68,7 @@ func sessionHandler(session ssh.Session) {
 
 	log.Trace("SSH: Payload: %v", command)
 
-	args := []string{"serv", "key-" + keyID, "--config=" + setting.CustomConf}
+	args := []string{"--config=" + setting.CustomConf, "serv", "key-" + keyID}
 	log.Trace("SSH: Arguments: %v", args)
 
 	ctx, cancel := context.WithCancel(session.Context())
@@ -186,6 +186,12 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 			return false
 		}
 
+		if cert.CertType != gossh.UserCert {
+			log.Warn("Certificate Rejected: Not a user certificate")
+			log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
+			return false
+		}
+
 		// look for the exact principal
 	principalLoop:
 		for _, principal := range cert.ValidPrincipals {
@@ -223,9 +229,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 			// validate the cert for this principal
 			if err := c.CheckCert(principal, cert); err != nil {
 				// User is presenting an invalid certificate - STOP any further processing
-				if log.IsError() {
-					log.Error("Invalid Certificate KeyID %s with Signature Fingerprint %s presented for Principal: %s from %s", cert.KeyId, gossh.FingerprintSHA256(cert.SignatureKey), principal, ctx.RemoteAddr())
-				}
+				log.Error("Invalid Certificate KeyID %s with Signature Fingerprint %s presented for Principal: %s from %s", cert.KeyId, gossh.FingerprintSHA256(cert.SignatureKey), principal, ctx.RemoteAddr())
 				log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
 
 				return false
@@ -239,10 +243,8 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 			return true
 		}
 
-		if log.IsWarn() {
-			log.Warn("From %s Fingerprint: %s is a certificate, but no valid principals found", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
-			log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
-		}
+		log.Warn("From %s Fingerprint: %s is a certificate, but no valid principals found", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
+		log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
 		return false
 	}
 
@@ -253,10 +255,8 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 	pkey, err := asymkey_model.SearchPublicKeyByContent(ctx, strings.TrimSpace(string(gossh.MarshalAuthorizedKey(key))))
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
-			if log.IsWarn() {
-				log.Warn("Unknown public key: %s from %s", gossh.FingerprintSHA256(key), ctx.RemoteAddr())
-				log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
-			}
+			log.Warn("Unknown public key: %s from %s", gossh.FingerprintSHA256(key), ctx.RemoteAddr())
+			log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
 			return false
 		}
 		log.Error("SearchPublicKeyByContent: %v", err)

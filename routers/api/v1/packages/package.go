@@ -40,7 +40,7 @@ func ListPackages(ctx *context.APIContext) {
 	//   in: query
 	//   description: package type filter
 	//   type: string
-	//   enum: [alpine, cargo, chef, composer, conan, conda, container, debian, generic, go, helm, maven, npm, nuget, pub, pypi, rpm, rubygems, swift, vagrant]
+	//   enum: [alpine, cargo, chef, composer, conan, conda, container, cran, debian, generic, go, helm, maven, npm, nuget, pub, pypi, rpm, rubygems, swift, vagrant]
 	// - name: q
 	//   in: query
 	//   description: name filter
@@ -48,6 +48,8 @@ func ListPackages(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PackageList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listOptions := utils.GetListOptions(ctx)
 
@@ -162,7 +164,7 @@ func DeletePackage(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := packages_service.RemovePackageVersion(ctx.Doer, ctx.Package.Descriptor.Version)
+	err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "RemovePackageVersion", err)
 		return

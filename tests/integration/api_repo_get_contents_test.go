@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -57,7 +58,7 @@ func TestAPIGetContents(t *testing.T) {
 func testAPIGetContents(t *testing.T, u *url.URL) {
 	/*** SETUP ***/
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})         // owner of the repo1 & repo16
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})         // owner of the repo3, is an org
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})          // owner of the repo3, is an org
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})         // owner of neither repos
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})   // public repo
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})   // public repo
@@ -66,10 +67,10 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 
 	// Get user2's token
 	session := loginUser(t, user2.Name)
-	token2 := getTokenForLoggedInUser(t, session)
+	token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 	// Get user4's token
 	session = loginUser(t, user4.Name)
-	token4 := getTokenForLoggedInUser(t, session)
+	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// Make a new branch in repo1
 	newBranch := "test_branch"
@@ -156,8 +157,8 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/readme.md?token=%s", user2.Name, repo16.Name, token2)
 	MakeRequest(t, req, http.StatusOK)
 
-	// Test access of org user3 private repo file by owner user2
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?token=%s", user3.Name, repo3.Name, treePath, token2)
+	// Test access of org org3 private repo file by owner user2
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?token=%s", org3.Name, repo3.Name, treePath, token2)
 	MakeRequest(t, req, http.StatusOK)
 }
 

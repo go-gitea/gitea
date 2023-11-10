@@ -38,18 +38,18 @@ type Package struct {
 
 // Metadata represents the metadata of a Composer package
 type Metadata struct {
-	Description string                 `json:"description,omitempty"`
-	Keywords    []string               `json:"keywords,omitempty"`
-	Homepage    string                 `json:"homepage,omitempty"`
-	License     Licenses               `json:"license,omitempty"`
-	Authors     []Author               `json:"authors,omitempty"`
-	Autoload    map[string]interface{} `json:"autoload,omitempty"`
-	AutoloadDev map[string]interface{} `json:"autoload-dev,omitempty"`
-	Extra       map[string]interface{} `json:"extra,omitempty"`
-	Require     map[string]string      `json:"require,omitempty"`
-	RequireDev  map[string]string      `json:"require-dev,omitempty"`
-	Suggest     map[string]string      `json:"suggest,omitempty"`
-	Provide     map[string]string      `json:"provide,omitempty"`
+	Description string            `json:"description,omitempty"`
+	Keywords    []string          `json:"keywords,omitempty"`
+	Homepage    string            `json:"homepage,omitempty"`
+	License     Licenses          `json:"license,omitempty"`
+	Authors     []Author          `json:"authors,omitempty"`
+	Autoload    map[string]any    `json:"autoload,omitempty"`
+	AutoloadDev map[string]any    `json:"autoload-dev,omitempty"`
+	Extra       map[string]any    `json:"extra,omitempty"`
+	Require     map[string]string `json:"require,omitempty"`
+	RequireDev  map[string]string `json:"require-dev,omitempty"`
+	Suggest     map[string]string `json:"suggest,omitempty"`
+	Provide     map[string]string `json:"provide,omitempty"`
 }
 
 // Licenses represents the licenses of a Composer package

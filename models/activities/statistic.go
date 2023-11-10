@@ -4,6 +4,8 @@
 package activities
 
 import (
+	"context"
+
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -21,7 +23,7 @@ import (
 type Statistic struct {
 	Counter struct {
 		User, Org, PublicKey,
-		Repo, Watch, Star, Action, Access,
+		Repo, Watch, Star, Access,
 		Issue, IssueClosed, IssueOpen,
 		Comment, Oauth, Follow,
 		Mirror, Release, AuthSource, Webhook,
@@ -47,15 +49,14 @@ type IssueByRepositoryCount struct {
 }
 
 // GetStatistic returns the database statistics
-func GetStatistic() (stats Statistic) {
-	e := db.GetEngine(db.DefaultContext)
-	stats.Counter.User = user_model.CountUsers(nil)
-	stats.Counter.Org, _ = organization.CountOrgs(organization.FindOrgOptions{IncludePrivate: true})
+func GetStatistic(ctx context.Context) (stats Statistic) {
+	e := db.GetEngine(ctx)
+	stats.Counter.User = user_model.CountUsers(ctx, nil)
+	stats.Counter.Org, _ = organization.CountOrgs(ctx, organization.FindOrgOptions{IncludePrivate: true})
 	stats.Counter.PublicKey, _ = e.Count(new(asymkey_model.PublicKey))
-	stats.Counter.Repo, _ = repo_model.CountRepositories(db.DefaultContext, repo_model.CountRepositoryOptions{})
+	stats.Counter.Repo, _ = repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{})
 	stats.Counter.Watch, _ = e.Count(new(repo_model.Watch))
 	stats.Counter.Star, _ = e.Count(new(repo_model.Star))
-	stats.Counter.Action, _ = db.EstimateCount(db.DefaultContext, new(Action))
 	stats.Counter.Access, _ = e.Count(new(access_model.Access))
 
 	type IssueCount struct {
@@ -83,7 +84,7 @@ func GetStatistic() (stats Statistic) {
 			Find(&stats.Counter.IssueByRepository)
 	}
 
-	issueCounts := []IssueCount{}
+	var issueCounts []IssueCount
 
 	_ = e.Select("COUNT(*) AS count, is_closed").Table("issue").GroupBy("is_closed").Find(&issueCounts)
 	for _, c := range issueCounts {
@@ -101,7 +102,7 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.Follow, _ = e.Count(new(user_model.Follow))
 	stats.Counter.Mirror, _ = e.Count(new(repo_model.Mirror))
 	stats.Counter.Release, _ = e.Count(new(repo_model.Release))
-	stats.Counter.AuthSource = auth.CountSources()
+	stats.Counter.AuthSource = auth.CountSources(ctx, auth.FindSourcesOptions{})
 	stats.Counter.Webhook, _ = e.Count(new(webhook.Webhook))
 	stats.Counter.Milestone, _ = e.Count(new(issues_model.Milestone))
 	stats.Counter.Label, _ = e.Count(new(issues_model.Label))

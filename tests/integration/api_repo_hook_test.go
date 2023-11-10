@@ -26,7 +26,7 @@ func TestAPICreateHook(t *testing.T) {
 
 	// user1 is an admin user
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepoHook)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	completeURL := func(lastSegment string) string {
 		return fmt.Sprintf("/api/v1/repos/%s/%s/%s?token=%s", owner.Name, repo.Name, lastSegment, token)
 	}

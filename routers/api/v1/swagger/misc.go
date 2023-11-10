@@ -48,3 +48,17 @@ type swaggerResponseStringSlice struct {
 	// in:body
 	Body []string `json:"body"`
 }
+
+// LabelTemplateList
+// swagger:response LabelTemplateList
+type swaggerResponseLabelTemplateList struct {
+	// in:body
+	Body []string `json:"body"`
+}
+
+// LabelTemplateInfo
+// swagger:response LabelTemplateInfo
+type swaggerResponseLabelTemplateInfo struct {
+	// in:body
+	Body []api.LabelTemplate `json:"body"`
+}

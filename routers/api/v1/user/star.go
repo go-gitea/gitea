@@ -28,11 +28,11 @@ func getStarredRepos(ctx std_context.Context, user *user_model.User, private boo
 
 	repos := make([]*api.Repository, len(starredRepos))
 	for i, starred := range starredRepos {
-		access, err := access_model.AccessLevel(ctx, user, starred)
+		permission, err := access_model.GetUserRepoPermission(ctx, starred, user)
 		if err != nil {
 			return nil, err
 		}
-		repos[i] = convert.ToRepo(ctx, starred, access)
+		repos[i] = convert.ToRepo(ctx, starred, permission)
 	}
 	return repos, nil
 }
@@ -61,6 +61,8 @@ func GetStarredRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	private := ctx.ContextUser.ID == ctx.Doer.ID
 	repos, err := getStarredRepos(ctx, ctx.ContextUser, private, utils.GetListOptions(ctx))
@@ -150,8 +152,10 @@ func Star(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	err := repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, true)
+	err := repo_model.StarRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "StarRepo", err)
 		return
@@ -178,8 +182,10 @@ func Unstar(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	err := repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, false)
+	err := repo_model.StarRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "StarRepo", err)
 		return

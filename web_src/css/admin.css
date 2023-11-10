@@ -4,10 +4,6 @@
   margin: 12px -1rem -1rem;
 }
 
-.admin.user table.table .email {
-  max-width: 200px;
-}
-
 .admin dl.admin-dl-horizontal {
   padding: 1em;
   margin: 0;
@@ -15,35 +11,22 @@
   flex-wrap: wrap;
 }
 
+.admin dl.admin-dl-horizontal dt,
 .admin dl.admin-dl-horizontal dd {
-  margin-left: auto;
-  width: calc(100% - 245px);
-}
-
-@media (max-width: 767px) {
-  .admin dl.admin-dl-horizontal dd {
-    width: calc(100% - 185px);
-  }
-}
-
-/* divider needs explicit width to become visible here */
-.admin dl.admin-dl-horizontal .ui.divider {
-  width: 100%;
+  line-height: var(--line-height-default);
+  padding: 5px 0;
 }
 
 .admin dl.admin-dl-horizontal dt {
-  font-weight: var(--font-weight-bold);
-  width: 220px;
-  margin-right: 5px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  width: 300px;
+  max-width: calc(100% - 100px - 1em);
+  font-weight: var(--font-weight-semibold);
 }
 
-@media (max-width: 767px) {
-  .admin dl.admin-dl-horizontal dt {
-    width: 160px;
-  }
+.admin dl.admin-dl-horizontal dd {
+  margin-left: auto;
+  width: calc(100% - 300px - 1em);
+  min-width: 100px;
 }
 
 .admin code,
@@ -54,4 +37,15 @@
 
 .admin .ui.table.segment {
   overflow-x: auto; /* if the screen width is small, many wide tables (eg: user list) need scroll bars */
+}
+
+.admin .table th {
+  white-space: nowrap;
+}
+
+.admin-responsive-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }

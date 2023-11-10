@@ -32,5 +32,5 @@ func RestoreRepo(ctx context.Context, repoDir, ownerName, repoName string, units
 		Validation: validation,
 	})
 	req.SetTimeout(3*time.Second, 0) // since the request will spend much time, don't timeout
-	return requestJSONUserMsg(req, fmt.Sprintf("Restore repo %s/%s successfully", ownerName, repoName))
+	return requestJSONClientMsg(req, fmt.Sprintf("Restore repo %s/%s successfully", ownerName, repoName))
 }

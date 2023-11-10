@@ -93,7 +93,7 @@ func SlackLinkFormatter(url, text string) string {
 // SlackLinkToRef slack-formatter link to a repo ref
 func SlackLinkToRef(repoURL, ref string) string {
 	url := git.RefURL(repoURL, ref)
-	refName := git.RefEndName(ref)
+	refName := git.RefName(ref).ShortName()
 	return SlackLinkFormatter(url, refName)
 }
 
@@ -110,7 +110,7 @@ func (s *SlackPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 
 // Delete composes Slack payload for delete a branch or tag.
 func (s *SlackPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	repoLink := SlackLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	text := fmt.Sprintf("[%s:%s] %s deleted by %s", repoLink, refName, p.RefType, p.Sender.UserName)
 
@@ -171,6 +171,12 @@ func (s *SlackPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	return s.createPayload(text, nil), nil
 }
 
+func (s *SlackPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+	text, _ := getPackagePayloadInfo(p, SlackLinkFormatter, true)
+
+	return s.createPayload(text, nil), nil
+}
+
 // Push implements PayloadConvertor Push method
 func (s *SlackPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	// n new commits
@@ -223,7 +229,7 @@ func (s *SlackPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, er
 		attachments = append(attachments, SlackAttachment{
 			Color:     fmt.Sprintf("%x", color),
 			Title:     issueTitle,
-			TitleLink: p.PullRequest.URL,
+			TitleLink: p.PullRequest.HTMLURL,
 			Text:      attachmentText,
 		})
 	}

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -47,7 +46,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		// tags.  Updates to other refs (eg, refs/notes, refs/changes,
 		// or other less-standard refs spaces are ignored since there
 		// may be a very large number of them).
-		if strings.HasPrefix(refFullName, git.BranchPrefix) || strings.HasPrefix(refFullName, git.TagPrefix) {
+		if refFullName.IsBranch() || refFullName.IsTag() {
 			if repo == nil {
 				repo = loadRepository(ctx, ownerName, repoName)
 				if ctx.Written() {
@@ -67,7 +66,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				RepoName:     repoName,
 			}
 			updates = append(updates, option)
-			if repo.IsEmpty && option.IsBranch() && (option.BranchName() == "master" || option.BranchName() == "main") {
+			if repo.IsEmpty && (refFullName.BranchName() == "master" || refFullName.BranchName() == "main") {
 				// put the master/main branch first
 				copy(updates[1:], updates)
 				updates[0] = option
@@ -79,7 +78,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		if err := repo_service.PushUpdates(updates); err != nil {
 			log.Error("Failed to Update: %s/%s Total Updates: %d", ownerName, repoName, len(updates))
 			for i, update := range updates {
-				log.Error("Failed to Update: %s/%s Update: %d/%d: Branch: %s", ownerName, repoName, i, len(updates), update.BranchName())
+				log.Error("Failed to Update: %s/%s Update: %d/%d: Branch: %s", ownerName, repoName, i, len(updates), update.RefFullName.BranchName())
 			}
 			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
 
@@ -124,7 +123,8 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		newCommitID := opts.NewCommitIDs[i]
 
 		// post update for agit pull request
-		if git.SupportProcReceive && strings.HasPrefix(refFullName, git.PullPrefix) {
+		// FIXME: use pr.Flow to test whether it's an Agit PR or a GH PR
+		if git.SupportProcReceive && refFullName.IsPull() {
 			if repo == nil {
 				repo = loadRepository(ctx, ownerName, repoName)
 				if ctx.Written() {
@@ -132,9 +132,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				}
 			}
 
-			pullIndexStr := strings.TrimPrefix(refFullName, git.PullPrefix)
-			pullIndexStr = strings.Split(pullIndexStr, "/")[0]
-			pullIndex, _ := strconv.ParseInt(pullIndexStr, 10, 64)
+			pullIndex, _ := strconv.ParseInt(refFullName.PullName(), 10, 64)
 			if pullIndex <= 0 {
 				continue
 			}
@@ -152,7 +150,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			}
 
 			results = append(results, private.HookPostReceiveBranchResult{
-				Message: setting.Git.PullRequestPushMessage && repo.AllowsPulls(),
+				Message: setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
 				Create:  false,
 				Branch:  "",
 				URL:     fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
@@ -160,10 +158,8 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			continue
 		}
 
-		branch := git.RefEndName(opts.RefFullNames[i])
-
 		// If we've pushed a branch (and not deleted it)
-		if newCommitID != git.EmptySHA && strings.HasPrefix(refFullName, git.BranchPrefix) {
+		if newCommitID != git.EmptySHA && refFullName.IsBranch() {
 
 			// First ensure we have the repository loaded, we're allowed pulls requests and we can get the base repo
 			if repo == nil {
@@ -183,12 +179,12 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 						})
 						return
 					}
-					if repo.BaseRepo.AllowsPulls() {
+					if repo.BaseRepo.AllowsPulls(ctx) {
 						baseRepo = repo.BaseRepo
 					}
 				}
 
-				if !baseRepo.AllowsPulls() {
+				if !baseRepo.AllowsPulls(ctx) {
 					// We can stop there's no need to go any further
 					ctx.JSON(http.StatusOK, private.HookPostReceiveResult{
 						RepoWasEmpty: wasEmpty,
@@ -196,6 +192,8 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 					return
 				}
 			}
+
+			branch := refFullName.BranchName()
 
 			// If our branch is the default branch of an unforked repo - there's no PR to create or refer to
 			if !repo.IsFork && branch == baseRepo.DefaultBranch {
@@ -219,14 +217,14 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 					branch = fmt.Sprintf("%s:%s", repo.OwnerName, branch)
 				}
 				results = append(results, private.HookPostReceiveBranchResult{
-					Message: setting.Git.PullRequestPushMessage && baseRepo.AllowsPulls(),
+					Message: setting.Git.PullRequestPushMessage && baseRepo.AllowsPulls(ctx),
 					Create:  true,
 					Branch:  branch,
 					URL:     fmt.Sprintf("%s/compare/%s...%s", baseRepo.HTMLURL(), util.PathEscapeSegments(baseRepo.DefaultBranch), util.PathEscapeSegments(branch)),
 				})
 			} else {
 				results = append(results, private.HookPostReceiveBranchResult{
-					Message: setting.Git.PullRequestPushMessage && baseRepo.AllowsPulls(),
+					Message: setting.Git.PullRequestPushMessage && baseRepo.AllowsPulls(ctx),
 					Create:  false,
 					Branch:  branch,
 					URL:     fmt.Sprintf("%s/pulls/%d", baseRepo.HTMLURL(), pr.Index),

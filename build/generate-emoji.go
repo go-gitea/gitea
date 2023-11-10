@@ -25,7 +25,7 @@ import (
 
 const (
 	gemojiURL         = "https://raw.githubusercontent.com/github/gemoji/master/db/emoji.json"
-	maxUnicodeVersion = 14
+	maxUnicodeVersion = 15
 )
 
 var flagOut = flag.String("o", "modules/emoji/emoji_data.go", "out")

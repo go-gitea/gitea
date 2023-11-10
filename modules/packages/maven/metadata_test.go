@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/text/encoding/charmap"
 )
 
 const (
@@ -68,5 +69,21 @@ func TestParsePackageMetaData(t *testing.T) {
 		assert.Equal(t, dependencyGroupID, m.Dependencies[0].GroupID)
 		assert.Equal(t, dependencyArtifactID, m.Dependencies[0].ArtifactID)
 		assert.Equal(t, dependencyVersion, m.Dependencies[0].Version)
+	})
+
+	t.Run("Encoding", func(t *testing.T) {
+		// UTF-8 is default but the metadata could be encoded differently
+		pomContent8859_1, err := charmap.ISO8859_1.NewEncoder().String(
+			strings.ReplaceAll(
+				pomContent,
+				`<?xml version="1.0"?>`,
+				`<?xml version="1.0" encoding="ISO-8859-1"?>`,
+			),
+		)
+		assert.NoError(t, err)
+
+		m, err := ParsePackageMetaData(strings.NewReader(pomContent8859_1))
+		assert.NoError(t, err)
+		assert.NotNil(t, m)
 	})
 }

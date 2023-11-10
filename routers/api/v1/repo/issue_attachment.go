@@ -64,7 +64,7 @@ func GetIssueAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAttachment(attach))
+	ctx.JSON(http.StatusOK, convert.ToAPIAttachment(ctx.Repo.Repository, attach))
 }
 
 // ListIssueAttachments lists all attachments of the issue
@@ -153,6 +153,8 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/error"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	issue := getIssueFromContext(ctx)
 	if issue == nil {
@@ -176,7 +178,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 		filename = query
 	}
 
-	attachment, err := attachment.UploadAttachment(file, setting.Attachment.AllowedTypes, header.Size, &repo_model.Attachment{
+	attachment, err := attachment.UploadAttachment(ctx, file, setting.Attachment.AllowedTypes, header.Size, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,
@@ -189,12 +191,12 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 
 	issue.Attachments = append(issue.Attachments, attachment)
 
-	if err := issue_service.ChangeContent(issue, ctx.Doer, issue.Content); err != nil {
+	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, issue.Content); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ChangeContent", err)
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAttachment(attachment))
+	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attachment))
 }
 
 // EditIssueAttachment updates the given attachment
@@ -238,6 +240,8 @@ func EditIssueAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Attachment"
 	//   "404":
 	//     "$ref": "#/responses/error"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	attachment := getIssueAttachmentSafeWrite(ctx)
 	if attachment == nil {
@@ -254,7 +258,7 @@ func EditIssueAttachment(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", err)
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAttachment(attachment))
+	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attachment))
 }
 
 // DeleteIssueAttachment delete a given attachment
@@ -292,13 +296,15 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/error"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	attachment := getIssueAttachmentSafeWrite(ctx)
 	if attachment == nil {
 		return
 	}
 
-	if err := repo_model.DeleteAttachment(attachment, true); err != nil {
+	if err := repo_model.DeleteAttachment(ctx, attachment, true); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteAttachment", err)
 		return
 	}
@@ -307,7 +313,7 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 }
 
 func getIssueFromContext(ctx *context.APIContext) *issues_model.Issue {
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64("index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64("index"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetIssueByIndex", issues_model.IsErrIssueNotExist, err)
 		return nil
@@ -332,7 +338,7 @@ func getIssueAttachmentSafeWrite(ctx *context.APIContext) *repo_model.Attachment
 }
 
 func getIssueAttachmentSafeRead(ctx *context.APIContext, issue *issues_model.Issue) *repo_model.Attachment {
-	attachment, err := repo_model.GetAttachmentByID(ctx, ctx.ParamsInt64("asset"))
+	attachment, err := repo_model.GetAttachmentByID(ctx, ctx.ParamsInt64("attachment_id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetAttachmentByID", repo_model.IsErrAttachmentNotExist, err)
 		return nil
@@ -344,7 +350,7 @@ func getIssueAttachmentSafeRead(ctx *context.APIContext, issue *issues_model.Iss
 }
 
 func canUserWriteIssueAttachment(ctx *context.APIContext, issue *issues_model.Issue) bool {
-	canEditIssue := ctx.IsSigned && (ctx.Doer.ID == issue.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin()) && ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
+	canEditIssue := ctx.IsSigned && (ctx.Doer.ID == issue.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin() || ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull))
 	if !canEditIssue {
 		ctx.Error(http.StatusForbidden, "", "user should have permission to write issue")
 		return false

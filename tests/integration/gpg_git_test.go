@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -24,12 +25,7 @@ import (
 )
 
 func TestGPGGit(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	username := "user2"
-
-	// OK Set a new GPG home
-	tmpDir := t.TempDir()
-
+	tmpDir := t.TempDir() // use a temp dir to avoid messing with the user's GPG keyring
 	err := os.Chmod(tmpDir, 0o700)
 	assert.NoError(t, err)
 
@@ -40,37 +36,26 @@ func TestGPGGit(t *testing.T) {
 
 	// Need to create a root key
 	rootKeyPair, err := importTestingKey(tmpDir, "gitea", "gitea@fake.local")
-	assert.NoError(t, err)
-	if err != nil {
-		assert.FailNow(t, "Unable to import rootKeyPair")
+	if !assert.NoError(t, err, "importTestingKey") {
+		return
 	}
 
-	rootKeyID := rootKeyPair.PrimaryKey.KeyIdShortString()
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningKey, rootKeyPair.PrimaryKey.KeyIdShortString())()
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningName, "gitea")()
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningEmail, "gitea@fake.local")()
+	defer test.MockVariableValue(&setting.Repository.Signing.InitialCommit, []string{"never"})()
+	defer test.MockVariableValue(&setting.Repository.Signing.CRUDActions, []string{"never"})()
 
-	oldKeyID := setting.Repository.Signing.SigningKey
-	oldName := setting.Repository.Signing.SigningName
-	oldEmail := setting.Repository.Signing.SigningEmail
-	defer func() {
-		setting.Repository.Signing.SigningKey = oldKeyID
-		setting.Repository.Signing.SigningName = oldName
-		setting.Repository.Signing.SigningEmail = oldEmail
-	}()
-
-	setting.Repository.Signing.SigningKey = rootKeyID
-	setting.Repository.Signing.SigningName = "gitea"
-	setting.Repository.Signing.SigningEmail = "gitea@fake.local"
+	username := "user2"
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: username})
-
-	setting.Repository.Signing.InitialCommit = []string{"never"}
-	setting.Repository.Signing.CRUDActions = []string{"never"}
-
 	baseAPITestContext := NewAPITestContext(t, username, "repo1")
+
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		u.Path = baseAPITestContext.GitPath()
 
 		t.Run("Unsigned-Initial", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeRepo)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
 				assert.NotNil(t, branch.Commit)
@@ -87,14 +72,11 @@ func TestGPGGit(t *testing.T) {
 					assert.False(t, response.Verification.Verified)
 				}))
 		})
-	}, false)
-	setting.Repository.Signing.CRUDActions = []string{"parentsigned"}
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		u.Path = baseAPITestContext.GitPath()
 
+		setting.Repository.Signing.CRUDActions = []string{"parentsigned"}
 		t.Run("Unsigned-Initial-CRUD-ParentSigned", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeRepo)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateCRUDFile-ParentSigned", crudActionCreateFile(
 				t, testCtx, user, "master", "parentsigned", "signed-parent.txt", func(t *testing.T, response api.FileResponse) {
 					assert.False(t, response.Verification.Verified)
@@ -104,38 +86,30 @@ func TestGPGGit(t *testing.T) {
 					assert.False(t, response.Verification.Verified)
 				}))
 		})
-	}, false)
-	setting.Repository.Signing.CRUDActions = []string{"never"}
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		u.Path = baseAPITestContext.GitPath()
 
+		setting.Repository.Signing.CRUDActions = []string{"never"}
 		t.Run("Unsigned-Initial-CRUD-Never", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeRepo)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateCRUDFile-Never", crudActionCreateFile(
 				t, testCtx, user, "parentsigned", "parentsigned-never", "unsigned-never2.txt", func(t *testing.T, response api.FileResponse) {
 					assert.False(t, response.Verification.Verified)
 				}))
 		})
-	}, false)
-	setting.Repository.Signing.CRUDActions = []string{"always"}
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		u.Path = baseAPITestContext.GitPath()
 
+		setting.Repository.Signing.CRUDActions = []string{"always"}
 		t.Run("Unsigned-Initial-CRUD-Always", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeRepo)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateCRUDFile-Always", crudActionCreateFile(
 				t, testCtx, user, "master", "always", "signed-always.txt", func(t *testing.T, response api.FileResponse) {
 					assert.NotNil(t, response.Verification)
 					if response.Verification == nil {
 						assert.FailNow(t, "no verification provided with response! %v", response)
-						return
 					}
 					assert.True(t, response.Verification.Verified)
 					if !response.Verification.Verified {
 						t.FailNow()
-						return
 					}
 					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
 				}))
@@ -144,88 +118,70 @@ func TestGPGGit(t *testing.T) {
 					assert.NotNil(t, response.Verification)
 					if response.Verification == nil {
 						assert.FailNow(t, "no verification provided with response! %v", response)
-						return
 					}
 					assert.True(t, response.Verification.Verified)
 					if !response.Verification.Verified {
 						t.FailNow()
-						return
 					}
 					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
 				}))
 		})
-	}, false)
-	setting.Repository.Signing.CRUDActions = []string{"parentsigned"}
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		u.Path = baseAPITestContext.GitPath()
 
+		setting.Repository.Signing.CRUDActions = []string{"parentsigned"}
 		t.Run("Unsigned-Initial-CRUD-ParentSigned", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeRepo)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateCRUDFile-Always-ParentSigned", crudActionCreateFile(
 				t, testCtx, user, "always", "always-parentsigned", "signed-always-parentsigned.txt", func(t *testing.T, response api.FileResponse) {
 					assert.NotNil(t, response.Verification)
 					if response.Verification == nil {
 						assert.FailNow(t, "no verification provided with response! %v", response)
-						return
 					}
 					assert.True(t, response.Verification.Verified)
 					if !response.Verification.Verified {
 						t.FailNow()
-						return
 					}
 					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
 				}))
 		})
-	}, false)
-	setting.Repository.Signing.InitialCommit = []string{"always"}
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		u.Path = baseAPITestContext.GitPath()
 
+		setting.Repository.Signing.InitialCommit = []string{"always"}
 		t.Run("AlwaysSign-Initial", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-always", auth_model.AccessTokenScopeRepo)
+			testCtx := NewAPITestContext(t, username, "initial-always", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CheckMasterBranchSigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
 				assert.NotNil(t, branch.Commit)
 				if branch.Commit == nil {
 					assert.FailNow(t, "no commit provided with branch! %v", branch)
-					return
 				}
 				assert.NotNil(t, branch.Commit.Verification)
 				if branch.Commit.Verification == nil {
 					assert.FailNow(t, "no verification provided with branch commit! %v", branch.Commit)
-					return
 				}
 				assert.True(t, branch.Commit.Verification.Verified)
 				if !branch.Commit.Verification.Verified {
 					t.FailNow()
-					return
 				}
 				assert.Equal(t, "gitea@fake.local", branch.Commit.Verification.Signer.Email)
 			}))
 		})
-	}, false)
-	setting.Repository.Signing.CRUDActions = []string{"never"}
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		u.Path = baseAPITestContext.GitPath()
 
+		setting.Repository.Signing.CRUDActions = []string{"never"}
 		t.Run("AlwaysSign-Initial-CRUD-Never", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-always-never", auth_model.AccessTokenScopeRepo)
+			testCtx := NewAPITestContext(t, username, "initial-always-never", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CreateCRUDFile-Never", crudActionCreateFile(
 				t, testCtx, user, "master", "never", "unsigned-never.txt", func(t *testing.T, response api.FileResponse) {
 					assert.False(t, response.Verification.Verified)
 				}))
 		})
-	}, false)
-	setting.Repository.Signing.CRUDActions = []string{"parentsigned"}
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		u.Path = baseAPITestContext.GitPath()
+
+		setting.Repository.Signing.CRUDActions = []string{"parentsigned"}
 		t.Run("AlwaysSign-Initial-CRUD-ParentSigned-On-Always", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-always-parent", auth_model.AccessTokenScopeRepo)
+			testCtx := NewAPITestContext(t, username, "initial-always-parent", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CreateCRUDFile-ParentSigned", crudActionCreateFile(
 				t, testCtx, user, "master", "parentsigned", "signed-parent.txt", func(t *testing.T, response api.FileResponse) {
@@ -237,14 +193,11 @@ func TestGPGGit(t *testing.T) {
 					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
 				}))
 		})
-	}, false)
-	setting.Repository.Signing.CRUDActions = []string{"always"}
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		u.Path = baseAPITestContext.GitPath()
 
+		setting.Repository.Signing.CRUDActions = []string{"always"}
 		t.Run("AlwaysSign-Initial-CRUD-Always", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-always-always", auth_model.AccessTokenScopeRepo)
+			testCtx := NewAPITestContext(t, username, "initial-always-always", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CreateCRUDFile-Always", crudActionCreateFile(
 				t, testCtx, user, "master", "always", "signed-always.txt", func(t *testing.T, response api.FileResponse) {
@@ -256,21 +209,16 @@ func TestGPGGit(t *testing.T) {
 					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
 				}))
 		})
-	}, false)
-	var pr api.PullRequest
-	setting.Repository.Signing.Merges = []string{"commitssigned"}
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		u.Path = baseAPITestContext.GitPath()
 
+		setting.Repository.Signing.Merges = []string{"commitssigned"}
 		t.Run("UnsignedMerging", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeRepo)
-			var err error
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreatePullRequest", func(t *testing.T) {
-				pr, err = doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "never2")(t)
+				pr, err := doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "never2")(t)
 				assert.NoError(t, err)
+				t.Run("MergePR", doAPIMergePullRequest(testCtx, testCtx.Username, testCtx.Reponame, pr.Index))
 			})
-			t.Run("MergePR", doAPIMergePullRequest(testCtx, testCtx.Username, testCtx.Reponame, pr.Index))
 			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
 				assert.NotNil(t, branch.Commit)
 				assert.NotNil(t, branch.Commit.Verification)
@@ -278,20 +226,16 @@ func TestGPGGit(t *testing.T) {
 				assert.Empty(t, branch.Commit.Verification.Signature)
 			}))
 		})
-	}, false)
-	setting.Repository.Signing.Merges = []string{"basesigned"}
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		u.Path = baseAPITestContext.GitPath()
 
+		setting.Repository.Signing.Merges = []string{"basesigned"}
 		t.Run("BaseSignedMerging", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeRepo)
-			var err error
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreatePullRequest", func(t *testing.T) {
-				pr, err = doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "parentsigned2")(t)
+				pr, err := doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "parentsigned2")(t)
 				assert.NoError(t, err)
+				t.Run("MergePR", doAPIMergePullRequest(testCtx, testCtx.Username, testCtx.Reponame, pr.Index))
 			})
-			t.Run("MergePR", doAPIMergePullRequest(testCtx, testCtx.Username, testCtx.Reponame, pr.Index))
 			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
 				assert.NotNil(t, branch.Commit)
 				assert.NotNil(t, branch.Commit.Verification)
@@ -299,27 +243,23 @@ func TestGPGGit(t *testing.T) {
 				assert.Empty(t, branch.Commit.Verification.Signature)
 			}))
 		})
-	}, false)
-	setting.Repository.Signing.Merges = []string{"commitssigned"}
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		u.Path = baseAPITestContext.GitPath()
 
+		setting.Repository.Signing.Merges = []string{"commitssigned"}
 		t.Run("CommitsSignedMerging", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeRepo)
-			var err error
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreatePullRequest", func(t *testing.T) {
-				pr, err = doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "always-parentsigned")(t)
+				pr, err := doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "always-parentsigned")(t)
 				assert.NoError(t, err)
+				t.Run("MergePR", doAPIMergePullRequest(testCtx, testCtx.Username, testCtx.Reponame, pr.Index))
 			})
-			t.Run("MergePR", doAPIMergePullRequest(testCtx, testCtx.Username, testCtx.Reponame, pr.Index))
 			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
 				assert.NotNil(t, branch.Commit)
 				assert.NotNil(t, branch.Commit.Verification)
 				assert.True(t, branch.Commit.Verification.Verified)
 			}))
 		})
-	}, false)
+	})
 }
 
 func crudActionCreateFile(t *testing.T, ctx APITestContext, user *user_model.User, from, to, path string, callback ...func(*testing.T, api.FileResponse)) func(*testing.T) {
@@ -337,7 +277,7 @@ func crudActionCreateFile(t *testing.T, ctx APITestContext, user *user_model.Use
 				Email: user.Email,
 			},
 		},
-		Content: base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("This is new text for %s", path))),
+		ContentBase64: base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("This is new text for %s", path))),
 	}, callback...)
 }
 

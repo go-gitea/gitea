@@ -55,7 +55,7 @@ func testAPICreateOAuth2Application(t *testing.T) {
 func testAPIListOAuth2Applications(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadApplication)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
 
 	existApp := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{
 		UID:  user.ID,
@@ -86,7 +86,7 @@ func testAPIListOAuth2Applications(t *testing.T) {
 func testAPIDeleteOAuth2Application(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteApplication)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser)
 
 	oldApp := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{
 		UID:  user.ID,
@@ -107,7 +107,7 @@ func testAPIDeleteOAuth2Application(t *testing.T) {
 func testAPIGetOAuth2Application(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadApplication)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
 
 	existApp := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{
 		UID:  user.ID,

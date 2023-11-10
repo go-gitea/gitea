@@ -30,3 +30,17 @@ func TestRepository_GetLanguageStats(t *testing.T) {
 		"Java":   112,
 	}, stats)
 }
+
+func TestMergeLanguageStats(t *testing.T) {
+	assert.EqualValues(t, map[string]int64{
+		"PHP":    1,
+		"python": 10,
+		"JAVA":   700,
+	}, mergeLanguageStats(map[string]int64{
+		"PHP":    1,
+		"python": 10,
+		"Java":   100,
+		"java":   200,
+		"JAVA":   400,
+	}))
+}

@@ -86,6 +86,6 @@ type AuthenticationForm struct {
 
 // Validate validates fields
 func (f *AuthenticationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

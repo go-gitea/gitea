@@ -1,7 +1,7 @@
 {{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings options")}}
 	<div class="user-main-content twelve wide column">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "repo.settings.basic_settings"}}
+			{{ctx.Locale.Tr "repo.settings.basic_settings"}}
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
@@ -9,101 +9,128 @@
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="update">
 				<div class="required field {{if .Err_RepoName}}error{{end}}">
-					<label for="repo_name">{{.locale.Tr "repo.repo_name"}}</label>
+					<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
 					<input id="repo_name" name="repo_name" value="{{.Repository.Name}}" data-repo-name="{{.Repository.Name}}" autofocus required>
 				</div>
 				<div class="inline field">
-					<label>{{.locale.Tr "repo.repo_size"}}</label>
-					<span>{{FileSize .Repository.Size}}</span>
+					<label>{{ctx.Locale.Tr "repo.repo_size"}}</label>
+					<span {{if not (eq .Repository.Size 0)}} data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>{{FileSize .Repository.Size}}</span>
 				</div>
 				<div class="inline field">
-					<label>{{.locale.Tr "repo.template"}}</label>
+					<label>{{ctx.Locale.Tr "repo.template"}}</label>
 					<div class="ui checkbox">
 						<input name="template" type="checkbox" {{if .Repository.IsTemplate}}checked{{end}}>
-						<label>{{.locale.Tr "repo.template_helper"}}</label>
+						<label>{{ctx.Locale.Tr "repo.template_helper"}}</label>
 					</div>
 				</div>
 				{{if not .Repository.IsFork}}
 					<div class="inline field">
-						<label>{{.locale.Tr "repo.visibility"}}</label>
-						<div class="ui checkbox">
+						<label>{{ctx.Locale.Tr "repo.visibility"}}</label>
+						<div class="ui checkbox" {{if and (not .Repository.IsPrivate) (gt .Repository.NumStars 0)}}data-tooltip-content="{{ctx.Locale.Tr "repo.stars_remove_warning"}}"{{end}}>
 							{{if .IsAdmin}}
 							<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}>
 							{{else}}
 							<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}{{if and $.ForcePrivate .Repository.IsPrivate}} readonly{{end}}>
 							{{end}}
-							<label>{{.locale.Tr "repo.visibility_helper" | Safe}} {{if .Repository.NumForks}}<span class="text red">{{.locale.Tr "repo.visibility_fork_helper"}}</span>{{end}}</label>
+							<label>{{ctx.Locale.Tr "repo.visibility_helper" | Safe}} {{if .Repository.NumForks}}<span class="text red">{{ctx.Locale.Tr "repo.visibility_fork_helper"}}</span>{{end}}</label>
 						</div>
 					</div>
 				{{end}}
 				<div class="field {{if .Err_Description}}error{{end}}">
-					<label for="description">{{$.locale.Tr "repo.repo_desc"}}</label>
+					<label for="description">{{ctx.Locale.Tr "repo.repo_desc"}}</label>
 					<textarea id="description" name="description" rows="2" maxlength="2048">{{.Repository.Description}}</textarea>
 				</div>
 				<div class="field {{if .Err_Website}}error{{end}}">
-					<label for="website">{{.locale.Tr "repo.settings.site"}}</label>
+					<label for="website">{{ctx.Locale.Tr "repo.settings.site"}}</label>
 					<input id="website" name="website" type="url" maxlength="1024" value="{{.Repository.Website}}">
 				</div>
-
 				<div class="field">
-					<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
+					<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
 				</div>
 			</form>
 
-			<div class="ui divider"></div>
-
+			<div class="divider"></div>
 			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
 				{{.CsrfTokenHtml}}
 				<div class="inline field">
-					<label for="avatar">{{.locale.Tr "settings.choose_new_avatar"}}</label>
+					<label for="avatar">{{ctx.Locale.Tr "settings.choose_new_avatar"}}</label>
 					<input name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
 				</div>
-
 				<div class="field">
-					<button class="ui green button">{{$.locale.Tr "settings.update_avatar"}}</button>
-					<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</a>
+					<button class="ui primary button">{{ctx.Locale.Tr "settings.update_avatar"}}</button>
+					<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete">{{ctx.Locale.Tr "settings.delete_current_avatar"}}</button>
 				</div>
 			</form>
-
 		</div>
 
-		{{if .MirrorsEnabled}}
+		{{/* These variables exist to make the logic in the Settings window easier to comprehend and are not used later on. */}}
+		{{$newMirrorsPartiallyEnabled := or (not .DisableNewPullMirrors) (not .DisableNewPushMirrors)}}
+		{{/* .Repository.IsMirror is not always reliable if the repository is not actively acting as a mirror because of errors. */}}
+		{{$showMirrorSettings := or $newMirrorsPartiallyEnabled .Repository.IsMirror .PullMirror .PushMirrors}}
+		{{$newMirrorsEntirelyEnabled := and (not .DisableNewPullMirrors) (not .DisableNewPushMirrors)}}
+		{{$onlyNewPushMirrorsEnabled := and (not .DisableNewPushMirrors) .DisableNewPullMirrors}}
+		{{$onlyNewPullMirrorsEnabled := and .DisableNewPushMirrors (not .DisableNewPullMirrors)}}
+		{{$existingPushMirror := or .Repository.IsMirror .PushMirrors}}
+		{{$modifyBrokenPullMirror := and .Repository.IsMirror (not .PullMirror)}}
+		{{$isWorkingPullMirror := .PullMirror}}
+
+		{{if $showMirrorSettings}}
 			<h4 class="ui top attached header">
-				{{.locale.Tr "repo.settings.mirror_settings"}}
+				{{ctx.Locale.Tr "repo.settings.mirror_settings"}}
 			</h4>
 			<div class="ui attached segment">
-				{{$.locale.Tr "repo.settings.mirror_settings.docs" | Safe}}
+				{{if $newMirrorsEntirelyEnabled}}
+					{{ctx.Locale.Tr "repo.settings.mirror_settings.docs"}}
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/usage/repo-mirror#pushing-to-a-remote-repository">{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
+					{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.pull_mirror_instructions"}}
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/usage/repo-mirror#pulling-from-a-remote-repository">{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.doc_link_pull_section"}}</a><br>
+				{{else if $onlyNewPushMirrorsEnabled}}
+					{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.disabled_pull_mirror.instructions"}}
+					{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.more_information_if_disabled"}}
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/usage/repo-mirror#pulling-from-a-remote-repository">{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br>
+				{{else if $onlyNewPullMirrorsEnabled}}
+					{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.instructions"}}
+					{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.pull_mirror_warning"}}
+					{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.more_information_if_disabled"}}
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/usage/repo-mirror#pulling-from-a-remote-repository">{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
+					{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.info"}}
+					{{if $existingPushMirror}}
+						{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.can_still_use"}}
+					{{end}}
+				{{else}}
+					{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.no_new_mirrors"}} {{ctx.Locale.Tr "repo.settings.mirror_settings.docs.can_still_use"}}<br>
+				{{end}}
 				<table class="ui table">
-					{{if or .Repository.IsMirror .PushMirrors}}
+					{{if $existingPushMirror}}
 					<thead>
 						<tr>
-							<th style="width:40%">{{$.locale.Tr "repo.settings.mirror_settings.mirrored_repository"}}</th>
-							<th>{{$.locale.Tr "repo.settings.mirror_settings.direction"}}</th>
-							<th>{{$.locale.Tr "repo.settings.mirror_settings.last_update"}}</th>
+							<th style="width:40%">{{ctx.Locale.Tr "repo.settings.mirror_settings.mirrored_repository"}}</th>
+							<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction"}}</th>
+							<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.last_update"}}</th>
 							<th></th>
 						</tr>
 					</thead>
 					{{end}}
-					{{if and .Repository.IsMirror (not .PullMirror)}}
+					{{if $modifyBrokenPullMirror}}
 						{{/* even if a repo is a pull mirror (IsMirror=true), the PullMirror might still be nil if the mirror migration is broken */}}
 						<tbody>
 							<tr>
 								<td colspan="4">
-									<span class="text red gt-db gt-py-4 gt-border-secondary-bottom">{{$.locale.Tr "repo.settings.mirror_settings.direction.pull"}}: {{$.locale.Tr "error.occurred"}}</span>
+									<div class="text red gt-py-4 gt-border-secondary-bottom">{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}: {{ctx.Locale.Tr "error.occurred"}}</div>
 								</td>
 							</tr>
 						</tbody>
-					{{else if .PullMirror}}
+					{{else if $isWorkingPullMirror}}
 					<tbody>
 						<tr>
-							<td>{{(MirrorRemoteAddress $.Context .Repository .PullMirror.GetRemoteName false).Address}}</td>
-							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
+							<td>{{.PullMirror.RemoteAddress}}</td>
+							<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
 							<td>{{DateTime "full" .PullMirror.UpdatedUnix}}</td>
 							<td class="right aligned">
 								<form method="post" class="gt-dib">
 									{{.CsrfTokenHtml}}
 									<input type="hidden" name="action" value="mirror-sync">
-									<button class="ui primary tiny button inline text-thin">{{$.locale.Tr "repo.settings.sync_mirror"}}</button>
+									<button class="ui primary tiny button inline text-thin">{{ctx.Locale.Tr "repo.settings.sync_mirror"}}</button>
 								</form>
 							</td>
 						</tr>
@@ -114,55 +141,55 @@
 									{{.CsrfTokenHtml}}
 									<input type="hidden" name="action" value="mirror">
 									<div class="inline field {{if .Err_EnablePrune}}error{{end}}">
-										<label>{{.locale.Tr "repo.mirror_prune"}}</label>
+										<label>{{ctx.Locale.Tr "repo.mirror_prune"}}</label>
 										<div class="ui checkbox">
 									<input id="enable_prune" name="enable_prune" type="checkbox" {{if .PullMirror.EnablePrune}}checked{{end}}>
-									<label>{{.locale.Tr "repo.mirror_prune_desc"}}</label>
+									<label>{{ctx.Locale.Tr "repo.mirror_prune_desc"}}</label>
 										</div>
 									</div>
 									<div class="inline field {{if .Err_Interval}}error{{end}}">
-										<label for="interval">{{.locale.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
+										<label for="interval">{{ctx.Locale.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
 										<input id="interval" name="interval" value="{{.PullMirror.Interval}}">
 									</div>
 									{{$address := MirrorRemoteAddress $.Context .Repository .PullMirror.GetRemoteName false}}
 									<div class="field {{if .Err_MirrorAddress}}error{{end}}">
-										<label for="mirror_address">{{.locale.Tr "repo.mirror_address"}}</label>
+										<label for="mirror_address">{{ctx.Locale.Tr "repo.mirror_address"}}</label>
 										<input id="mirror_address" name="mirror_address" value="{{$address.Address}}" required>
-										<p class="help">{{.locale.Tr "repo.mirror_address_desc"}}</p>
+										<p class="help">{{ctx.Locale.Tr "repo.mirror_address_desc"}}</p>
 									</div>
 									<details class="ui optional field" {{if or .Err_Auth $address.Username}}open{{end}}>
 										<summary class="gt-p-2">
-											{{.locale.Tr "repo.need_auth"}}
+											{{ctx.Locale.Tr "repo.need_auth"}}
 										</summary>
 										<div class="gt-p-2">
 											<div class="inline field {{if .Err_Auth}}error{{end}}">
-												<label for="mirror_username">{{.locale.Tr "username"}}</label>
+												<label for="mirror_username">{{ctx.Locale.Tr "username"}}</label>
 												<input id="mirror_username" name="mirror_username" value="{{$address.Username}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
 											</div>
 											<div class="inline field {{if .Err_Auth}}error{{end}}">
-												<label for="mirror_password">{{.locale.Tr "password"}}</label>
-												<input id="mirror_password" name="mirror_password" type="password" placeholder="{{if $address.Password}}{{.locale.Tr "repo.mirror_password_placeholder"}}{{else}}{{.locale.Tr "repo.mirror_password_blank_placeholder"}}{{end}}" value="" {{if not .mirror_password}}data-need-clear="true"{{end}} autocomplete="off">
+												<label for="mirror_password">{{ctx.Locale.Tr "password"}}</label>
+												<input id="mirror_password" name="mirror_password" type="password" placeholder="{{if $address.Password}}{{ctx.Locale.Tr "repo.mirror_password_placeholder"}}{{else}}{{ctx.Locale.Tr "repo.mirror_password_blank_placeholder"}}{{end}}" value="" {{if not .mirror_password}}data-need-clear="true"{{end}} autocomplete="off">
 											</div>
-											<p class="help">{{.locale.Tr "repo.mirror_password_help"}}</p>
+											<p class="help">{{ctx.Locale.Tr "repo.mirror_password_help"}}</p>
 										</div>
 									</details>
 
 									{{if .LFSStartServer}}
 									<div class="inline field">
-										<label>{{.locale.Tr "repo.mirror_lfs"}}</label>
+										<label>{{ctx.Locale.Tr "repo.mirror_lfs"}}</label>
 										<div class="ui checkbox">
 											<input id="mirror_lfs" name="mirror_lfs" type="checkbox" {{if .PullMirror.LFS}}checked{{end}}>
-											<label>{{.locale.Tr "repo.mirror_lfs_desc"}}</label>
+											<label>{{ctx.Locale.Tr "repo.mirror_lfs_desc"}}</label>
 										</div>
 									</div>
 									<div class="field {{if .Err_LFSEndpoint}}error{{end}}">
-										<label for="mirror_lfs_endpoint">{{.locale.Tr "repo.mirror_lfs_endpoint"}}</label>
-										<input id="mirror_lfs_endpoint" name="mirror_lfs_endpoint" value="{{.PullMirror.LFSEndpoint}}" placeholder="{{.locale.Tr "repo.migrate_options_lfs_endpoint.placeholder"}}">
-										<p class="help">{{.locale.Tr "repo.mirror_lfs_endpoint_desc" "https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#server-discovery" | Str2html}}</p>
+										<label for="mirror_lfs_endpoint">{{ctx.Locale.Tr "repo.mirror_lfs_endpoint"}}</label>
+										<input id="mirror_lfs_endpoint" name="mirror_lfs_endpoint" value="{{.PullMirror.LFSEndpoint}}" placeholder="{{ctx.Locale.Tr "repo.migrate_options_lfs_endpoint.placeholder"}}">
+										<p class="help">{{ctx.Locale.Tr "repo.mirror_lfs_endpoint_desc" "https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#server-discovery" | Str2html}}</p>
 									</div>
 									{{end}}
 									<div class="field">
-										<button class="ui green button">{{$.locale.Tr "repo.settings.update_mirror_settings"}}</button>
+										<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_mirror_settings"}}</button>
 									</div>
 								</form>
 							</td>
@@ -173,28 +200,37 @@
 					<tbody>
 						{{range .PushMirrors}}
 						<tr>
-							{{$address := MirrorRemoteAddress $.Context $.Repository .GetRemoteName true}}
-							<td class="gt-word-break">{{$address.Address}}</td>
-							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
-							<td>{{if .LastUpdateUnix}}{{DateTime "full" .LastUpdateUnix}}{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>
+							<td class="gt-word-break">{{.RemoteAddress}}</td>
+							<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
+							<td>{{if .LastUpdateUnix}}{{DateTime "full" .LastUpdateUnix}}{{else}}{{ctx.Locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{ctx.Locale.Tr "error"}}</div>{{end}}</td>
 							<td class="right aligned">
-								<form method="post" class="gt-dib">
-									{{$.CsrfTokenHtml}}
-									<input type="hidden" name="action" value="push-mirror-remove">
-									<input type="hidden" name="push_mirror_id" value="{{.ID}}">
-									<button class="ui basic red tiny button inline text-thin">{{$.locale.Tr "remove"}}</button>
-								</form>
+								<button
+									class="ui tiny button show-modal"
+									data-modal="#push-mirror-edit-modal"
+									data-tooltip-content="{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.edit_sync_time"}}"
+									data-modal-push-mirror-edit-id="{{.ID}}"
+									data-modal-push-mirror-edit-interval="{{.Interval}}"
+									data-modal-push-mirror-edit-address="{{.RemoteAddress}}"
+								>
+									{{svg "octicon-pencil" 14}}
+								</button>
 								<form method="post" class="gt-dib">
 									{{$.CsrfTokenHtml}}
 									<input type="hidden" name="action" value="push-mirror-sync">
 									<input type="hidden" name="push_mirror_id" value="{{.ID}}">
-									<button class="ui primary tiny button inline text-thin">{{$.locale.Tr "repo.settings.sync_mirror"}}</button>
+									<button class="ui primary tiny button" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.sync_mirror"}}">{{svg "octicon-sync" 14}}</button>
+								</form>
+								<form method="post" class="gt-dib">
+									{{$.CsrfTokenHtml}}
+									<input type="hidden" name="action" value="push-mirror-remove">
+									<input type="hidden" name="push_mirror_id" value="{{.ID}}">
+									<button class="ui basic red tiny button" data-tooltip-content="{{ctx.Locale.Tr "remove"}}">{{svg "octicon-trash" 14}}</button>
 								</form>
 							</td>
 						</tr>
 						{{else}}
 						<tr>
-							<td>{{$.locale.Tr "repo.settings.mirror_settings.push_mirror.none"}}</td>
+							<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.none"}}</td>
 						</tr>
 						{{end}}
 						{{if (not .DisableNewPushMirrors)}}
@@ -205,21 +241,21 @@
 										{{.CsrfTokenHtml}}
 										<input type="hidden" name="action" value="push-mirror-add">
 										<div class="field {{if .Err_PushMirrorAddress}}error{{end}}">
-											<label for="push_mirror_address">{{.locale.Tr "repo.settings.mirror_settings.push_mirror.remote_url"}}</label>
+											<label for="push_mirror_address">{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.remote_url"}}</label>
 											<input id="push_mirror_address" name="push_mirror_address" value="{{.push_mirror_address}}" required>
-											<p class="help">{{.locale.Tr "repo.mirror_address_desc"}}</p>
+											<p class="help">{{ctx.Locale.Tr "repo.mirror_address_desc"}}</p>
 										</div>
 										<details class="ui optional field" {{if or .Err_PushMirrorAuth .push_mirror_username}}open{{end}}>
 											<summary class="gt-p-2">
-												{{.locale.Tr "repo.need_auth"}}
+												{{ctx.Locale.Tr "repo.need_auth"}}
 											</summary>
 											<div class="gt-p-2">
 												<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
-													<label for="push_mirror_username">{{.locale.Tr "username"}}</label>
+													<label for="push_mirror_username">{{ctx.Locale.Tr "username"}}</label>
 													<input id="push_mirror_username" name="push_mirror_username" value="{{.push_mirror_username}}">
 												</div>
 												<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
-													<label for="push_mirror_password">{{.locale.Tr "password"}}</label>
+													<label for="push_mirror_password">{{ctx.Locale.Tr "password"}}</label>
 													<input id="push_mirror_password" name="push_mirror_password" type="password" value="{{.push_mirror_password}}" autocomplete="off">
 												</div>
 											</div>
@@ -227,15 +263,15 @@
 										<div class="field">
 											<div class="ui checkbox">
 												<input id="push_mirror_sync_on_commit" name="push_mirror_sync_on_commit" type="checkbox" {{if .push_mirror_sync_on_commit}}checked{{end}}>
-												<label for="push_mirror_sync_on_commit">{{.locale.Tr "repo.mirror_sync_on_commit"}}</label>
+												<label for="push_mirror_sync_on_commit">{{ctx.Locale.Tr "repo.mirror_sync_on_commit"}}</label>
 											</div>
 										</div>
 										<div class="inline field {{if .Err_PushMirrorInterval}}error{{end}}">
-											<label for="push_mirror_interval">{{.locale.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
+											<label for="push_mirror_interval">{{ctx.Locale.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
 											<input id="push_mirror_interval" name="push_mirror_interval" value="{{if .push_mirror_interval}}{{.push_mirror_interval}}{{else}}{{.DefaultMirrorInterval}}{{end}}">
 										</div>
 										<div class="field">
-											<button class="ui green button">{{$.locale.Tr "repo.settings.mirror_settings.push_mirror.add"}}</button>
+											<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.add"}}</button>
 										</div>
 									</form>
 								</td>
@@ -247,7 +283,7 @@
 		{{end}}
 
 		<h4 class="ui top attached header">
-			{{.locale.Tr "repo.settings.advanced_settings"}}
+			{{ctx.Locale.Tr "repo.settings.advanced_settings"}}
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" method="post">
@@ -255,391 +291,355 @@
 				<input type="hidden" name="action" value="advanced">
 
 				{{$isCodeEnabled := .Repository.UnitEnabled $.Context $.UnitTypeCode}}
+				{{$isCodeGlobalDisabled := .UnitTypeCode.UnitGlobalDisabled}}
 				<div class="inline field">
-					<label>{{.locale.Tr "repo.code"}}</label>
-					{{if .UnitTypeCode.UnitGlobalDisabled}}
-					<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-					{{else}}
-					<div class="ui checkbox">
-					{{end}}
+					<label>{{ctx.Locale.Tr "repo.code"}}</label>
+					<div class="ui checkbox{{if $isCodeGlobalDisabled}} disabled{{end}}"{{if $isCodeGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_code" type="checkbox"{{if $isCodeEnabled}} checked{{end}}>
-						<label>{{.locale.Tr "repo.code.desc"}}</label>
+						<label>{{ctx.Locale.Tr "repo.code.desc"}}</label>
 					</div>
 				</div>
 
 				{{$isWikiEnabled := or (.Repository.UnitEnabled $.Context $.UnitTypeWiki) (.Repository.UnitEnabled $.Context $.UnitTypeExternalWiki)}}
+				{{$isWikiGlobalDisabled := .UnitTypeWiki.UnitGlobalDisabled}}
+				{{$isExternalWikiGlobalDisabled := .UnitTypeExternalWiki.UnitGlobalDisabled}}
+				{{$isBothWikiGlobalDisabled := and $isWikiGlobalDisabled $isExternalWikiGlobalDisabled}}
 				<div class="inline field">
-					<label>{{.locale.Tr "repo.wiki"}}</label>
-					{{if and (.UnitTypeWiki.UnitGlobalDisabled) (.UnitTypeExternalWiki.UnitGlobalDisabled)}}
-					<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-					{{else}}
-					<div class="ui checkbox">
-					{{end}}
+					<label>{{ctx.Locale.Tr "repo.wiki"}}</label>
+					<div class="ui checkbox{{if $isBothWikiGlobalDisabled}} disabled{{end}}"{{if $isBothWikiGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_wiki" type="checkbox" data-target="#wiki_box" {{if $isWikiEnabled}}checked{{end}}>
-						<label>{{.locale.Tr "repo.settings.wiki_desc"}}</label>
+						<label>{{ctx.Locale.Tr "repo.settings.wiki_desc"}}</label>
 					</div>
 				</div>
-				<div class="field {{if not $isWikiEnabled}}disabled{{end}}" id="wiki_box">
+				<div class="field{{if not $isWikiEnabled}} disabled{{end}}" id="wiki_box">
 					<div class="field">
-						{{if .UnitTypeWiki.UnitGlobalDisabled}}
-						<div class="ui radio checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-						{{else}}
-						<div class="ui radio checkbox">
-						{{end}}
-							<input class="enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="false" data-target="#external_wiki_box" {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalWiki)}}checked{{end}}>
-							<label>{{.locale.Tr "repo.settings.use_internal_wiki"}}</label>
+						<div class="ui radio checkbox{{if $isWikiGlobalDisabled}} disabled{{end}}"{{if $isWikiGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
+							<input class="enable-system-radio" name="enable_external_wiki" type="radio" value="false" data-target="#external_wiki_box" {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalWiki)}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.settings.use_internal_wiki"}}</label>
 						</div>
 					</div>
 					<div class="field">
-						{{if .UnitTypeExternalWiki.UnitGlobalDisabled}}
-						<div class="ui radio checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-						{{else}}
-						<div class="ui radio checkbox">
-						{{end}}
-							<input class="enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="true" data-target="#external_wiki_box" {{if .Repository.UnitEnabled $.Context $.UnitTypeExternalWiki}}checked{{end}}>
-							<label>{{.locale.Tr "repo.settings.use_external_wiki"}}</label>
+						<div class="ui radio checkbox{{if $isExternalWikiGlobalDisabled}} disabled{{end}}"{{if $isExternalWikiGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
+							<input class="enable-system-radio" name="enable_external_wiki" type="radio" value="true" data-target="#external_wiki_box" {{if .Repository.UnitEnabled $.Context $.UnitTypeExternalWiki}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.settings.use_external_wiki"}}</label>
 						</div>
 					</div>
-					<div class="field {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalWiki)}}disabled{{end}}" id="external_wiki_box">
-						<label for="external_wiki_url">{{.locale.Tr "repo.settings.external_wiki_url"}}</label>
+					<div class="field gt-pl-4 {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalWiki)}}disabled{{end}}" id="external_wiki_box">
+						<label for="external_wiki_url">{{ctx.Locale.Tr "repo.settings.external_wiki_url"}}</label>
 						<input id="external_wiki_url" name="external_wiki_url" type="url" value="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}">
-						<p class="help">{{.locale.Tr "repo.settings.external_wiki_url_desc"}}</p>
+						<p class="help">{{ctx.Locale.Tr "repo.settings.external_wiki_url_desc"}}</p>
 					</div>
 				</div>
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				{{$isIssuesEnabled := or (.Repository.UnitEnabled $.Context $.UnitTypeIssues) (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}
+				{{$isIssuesGlobalDisabled := .UnitTypeIssues.UnitGlobalDisabled}}
+				{{$isExternalTrackerGlobalDisabled := .UnitTypeExternalTracker.UnitGlobalDisabled}}
+				{{$isIssuesAndExternalGlobalDisabled := and $isIssuesGlobalDisabled $isExternalTrackerGlobalDisabled}}
 				<div class="inline field">
-					<label>{{.locale.Tr "repo.issues"}}</label>
-					{{if and (.UnitTypeIssues.UnitGlobalDisabled) (.UnitTypeExternalTracker.UnitGlobalDisabled)}}
-					<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-					{{else}}
-					<div class="ui checkbox">
-					{{end}}
+					<label>{{ctx.Locale.Tr "repo.issues"}}</label>
+					<div class="ui checkbox{{if $isIssuesAndExternalGlobalDisabled}} disabled{{end}}"{{if $isIssuesAndExternalGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_issues" type="checkbox" data-target="#issue_box" {{if $isIssuesEnabled}}checked{{end}}>
-						<label>{{.locale.Tr "repo.settings.issues_desc"}}</label>
+						<label>{{ctx.Locale.Tr "repo.settings.issues_desc"}}</label>
 					</div>
 				</div>
 				<div class="field {{if not $isIssuesEnabled}}disabled{{end}}" id="issue_box">
 					<div class="field">
-						{{if .UnitTypeIssues.UnitGlobalDisabled}}
-						<div class="ui radio checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-						{{else}}
-						<div class="ui radio checkbox">
-						{{end}}
-							<input class="enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="false" data-context="#internal_issue_box" data-target="#external_issue_box" {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}checked{{end}}>
-							<label>{{.locale.Tr "repo.settings.use_internal_issue_tracker"}}</label>
+						<div class="ui radio checkbox{{if $isIssuesGlobalDisabled}} disabled{{end}}"{{if $isIssuesGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
+							<input class="enable-system-radio" name="enable_external_tracker" type="radio" value="false" data-context="#internal_issue_box" data-target="#external_issue_box" {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.settings.use_internal_issue_tracker"}}</label>
 						</div>
 					</div>
-					<div class="field {{if (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}disabled{{end}}" id="internal_issue_box">
+					<div class="field gt-pl-4 {{if (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}disabled{{end}}" id="internal_issue_box">
 						{{if .Repository.CanEnableTimetracker}}
 							<div class="field">
 								<div class="ui checkbox">
 									<input name="enable_timetracker" class="enable-system" data-target="#only_contributors" type="checkbox" {{if .Repository.IsTimetrackerEnabled $.Context}}checked{{end}}>
-									<label>{{.locale.Tr "repo.settings.enable_timetracker"}}</label>
+									<label>{{ctx.Locale.Tr "repo.settings.enable_timetracker"}}</label>
 								</div>
 							</div>
 							<div class="field {{if not (.Repository.IsTimetrackerEnabled $.Context)}}disabled{{end}}" id="only_contributors">
 								<div class="ui checkbox">
 									<input name="allow_only_contributors_to_track_time" type="checkbox" {{if .Repository.AllowOnlyContributorsToTrackTime $.Context}}checked{{end}}>
-									<label>{{.locale.Tr "repo.settings.allow_only_contributors_to_track_time"}}</label>
+									<label>{{ctx.Locale.Tr "repo.settings.allow_only_contributors_to_track_time"}}</label>
 								</div>
 							</div>
 						{{end}}
 						<div class="field">
 							<div class="ui checkbox">
 								<input name="enable_issue_dependencies" type="checkbox" {{if (.Repository.IsDependenciesEnabled $.Context)}}checked{{end}}>
-								<label>{{.locale.Tr "repo.issues.dependency.setting"}}</label>
+								<label>{{ctx.Locale.Tr "repo.issues.dependency.setting"}}</label>
 							</div>
 						</div>
 						<div class="ui checkbox">
 							<input name="enable_close_issues_via_commit_in_any_branch" type="checkbox" {{if .Repository.CloseIssuesViaCommitInAnyBranch}}checked{{end}}>
-							<label>{{.locale.Tr "repo.settings.admin_enable_close_issues_via_commit_in_any_branch"}}</label>
+							<label>{{ctx.Locale.Tr "repo.settings.admin_enable_close_issues_via_commit_in_any_branch"}}</label>
 						</div>
 					</div>
 					<div class="field">
-						{{if .UnitTypeExternalTracker.UnitGlobalDisabled}}
-						<div class="ui radio checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-						{{else}}
-						<div class="ui radio checkbox">
-						{{end}}
-							<input class="enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="true" data-context="#internal_issue_box" data-target="#external_issue_box" {{if .Repository.UnitEnabled $.Context $.UnitTypeExternalTracker}}checked{{end}}>
-							<label>{{.locale.Tr "repo.settings.use_external_issue_tracker"}}</label>
+						<div class="ui radio checkbox{{if $isExternalTrackerGlobalDisabled}} disabled{{end}}"{{if $isExternalTrackerGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
+							<input class="enable-system-radio" name="enable_external_tracker" type="radio" value="true" data-context="#internal_issue_box" data-target="#external_issue_box" {{if .Repository.UnitEnabled $.Context $.UnitTypeExternalTracker}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.settings.use_external_issue_tracker"}}</label>
 						</div>
 					</div>
-					<div class="field {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}disabled{{end}}" id="external_issue_box">
+					<div class="field gt-pl-4 {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}disabled{{end}}" id="external_issue_box">
 						<div class="field">
-							<label for="external_tracker_url">{{.locale.Tr "repo.settings.external_tracker_url"}}</label>
+							<label for="external_tracker_url">{{ctx.Locale.Tr "repo.settings.external_tracker_url"}}</label>
 							<input id="external_tracker_url" name="external_tracker_url" type="url" value="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerURL}}">
-							<p class="help">{{.locale.Tr "repo.settings.external_tracker_url_desc"}}</p>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.external_tracker_url_desc"}}</p>
 						</div>
 						<div class="field">
-							<label for="tracker_url_format">{{.locale.Tr "repo.settings.tracker_url_format"}}</label>
-							<input id="tracker_url_format" name="tracker_url_format" type="url" value="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerFormat}}" placeholder="e.g. https://github.com/{user}/{repo}/issues/{index}">
-							<p class="help">{{.locale.Tr "repo.settings.tracker_url_format_desc" | Str2html}}</p>
+							<label for="tracker_url_format">{{ctx.Locale.Tr "repo.settings.tracker_url_format"}}</label>
+							<input id="tracker_url_format" name="tracker_url_format" type="url" value="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerFormat}}" placeholder="https://github.com/{user}/{repo}/issues/{index}">
+							<p class="help">{{ctx.Locale.Tr "repo.settings.tracker_url_format_desc" | Str2html}}</p>
 						</div>
 						<div class="inline fields">
-							<label for="issue_style">{{.locale.Tr "repo.settings.tracker_issue_style"}}</label>
+							<label for="issue_style">{{ctx.Locale.Tr "repo.settings.tracker_issue_style"}}</label>
 							<div class="field">
 								<div class="ui radio checkbox">
 								{{$externalTracker := (.Repository.MustGetUnit $.Context $.UnitTypeExternalTracker)}}
 								{{$externalTrackerStyle := $externalTracker.ExternalTrackerConfig.ExternalTrackerStyle}}
 									<input class="js-tracker-issue-style" name="tracker_issue_style" type="radio" value="numeric" {{if eq $externalTrackerStyle "numeric"}}checked{{end}}>
-									<label>{{.locale.Tr "repo.settings.tracker_issue_style.numeric"}} <span class="ui light grey text">#1234</span></label>
+									<label>{{ctx.Locale.Tr "repo.settings.tracker_issue_style.numeric"}} <span class="ui light grey text">#1234</span></label>
 								</div>
 							</div>
 							<div class="field">
 								<div class="ui radio checkbox">
 									<input class="js-tracker-issue-style" name="tracker_issue_style" type="radio" value="alphanumeric" {{if eq $externalTrackerStyle "alphanumeric"}}checked{{end}}>
-									<label>{{.locale.Tr "repo.settings.tracker_issue_style.alphanumeric"}} <span class="ui light grey text">ABC-123 , DEFG-234</span></label>
+									<label>{{ctx.Locale.Tr "repo.settings.tracker_issue_style.alphanumeric"}} <span class="ui light grey text">ABC-123 , DEFG-234</span></label>
 								</div>
 							</div>
 							<div class="field">
 								<div class="ui radio checkbox">
 									<input class="js-tracker-issue-style" name="tracker_issue_style" type="radio" value="regexp" {{if eq $externalTrackerStyle "regexp"}}checked{{end}}>
-									<label>{{.locale.Tr "repo.settings.tracker_issue_style.regexp"}} <span class="ui light grey text">(ISSUE-\d+) , ISSUE-(\d+)</span></label>
+									<label>{{ctx.Locale.Tr "repo.settings.tracker_issue_style.regexp"}} <span class="ui light grey text">(ISSUE-\d+) , ISSUE-(\d+)</span></label>
 								</div>
 							</div>
 						</div>
 						<div class="field {{if ne $externalTrackerStyle "regexp"}}disabled{{end}}" id="tracker-issue-style-regex-box">
-							<label for="external_tracker_regexp_pattern">{{.locale.Tr "repo.settings.tracker_issue_style.regexp_pattern"}}</label>
+							<label for="external_tracker_regexp_pattern">{{ctx.Locale.Tr "repo.settings.tracker_issue_style.regexp_pattern"}}</label>
 							<input id="external_tracker_regexp_pattern" name="external_tracker_regexp_pattern" value="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerRegexpPattern}}">
-							<p class="help">{{.locale.Tr "repo.settings.tracker_issue_style.regexp_pattern_desc" | Str2html}}</p>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.tracker_issue_style.regexp_pattern_desc" | Str2html}}</p>
 						</div>
 					</div>
 				</div>
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				{{$isProjectsEnabled := .Repository.UnitEnabled $.Context $.UnitTypeProjects}}
+				{{$isProjectsGlobalDisabled := .UnitTypeProjects.UnitGlobalDisabled}}
 				<div class="inline field">
-					<label>{{.locale.Tr "repo.project_board"}}</label>
-					{{if .UnitTypeProjects.UnitGlobalDisabled}}
-					<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-					{{else}}
-					<div class="ui checkbox">
-					{{end}}
+					<label>{{ctx.Locale.Tr "repo.project_board"}}</label>
+					<div class="ui checkbox{{if $isProjectsGlobalDisabled}} disabled{{end}}"{{if $isProjectsGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_projects" type="checkbox" {{if $isProjectsEnabled}}checked{{end}}>
-						<label>{{.locale.Tr "repo.settings.projects_desc"}}</label>
+						<label>{{ctx.Locale.Tr "repo.settings.projects_desc"}}</label>
 					</div>
 				</div>
 
 				{{$isReleasesEnabled := .Repository.UnitEnabled $.Context $.UnitTypeReleases}}
+				{{$isReleasesGlobalDisabled := .UnitTypeReleases.UnitGlobalDisabled}}
 				<div class="inline field">
-					<label>{{.locale.Tr "repo.releases"}}</label>
-					{{if .UnitTypeReleases.UnitGlobalDisabled}}
-					<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-					{{else}}
-					<div class="ui checkbox">
-					{{end}}
+					<label>{{ctx.Locale.Tr "repo.releases"}}</label>
+					<div class="ui checkbox{{if $isReleasesGlobalDisabled}} disabled{{end}}"{{if $isReleasesGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_releases" type="checkbox" {{if $isReleasesEnabled}}checked{{end}}>
-						<label>{{.locale.Tr "repo.settings.releases_desc"}}</label>
+						<label>{{ctx.Locale.Tr "repo.settings.releases_desc"}}</label>
 					</div>
 				</div>
 
 				{{$isPackagesEnabled := .Repository.UnitEnabled $.Context $.UnitTypePackages}}
+				{{$isPackagesGlobalDisabled := .UnitTypePackages.UnitGlobalDisabled}}
 				<div class="inline field">
-					<label>{{.locale.Tr "repo.packages"}}</label>
-					{{if .UnitTypePackages.UnitGlobalDisabled}}
-					<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-					{{else}}
-					<div class="ui checkbox">
-					{{end}}
+					<label>{{ctx.Locale.Tr "repo.packages"}}</label>
+					<div class="ui checkbox{{if $isPackagesGlobalDisabled}} disabled{{end}}"{{if $isPackagesGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_packages" type="checkbox" {{if $isPackagesEnabled}}checked{{end}}>
-						<label>{{.locale.Tr "repo.settings.packages_desc"}}</label>
+						<label>{{ctx.Locale.Tr "repo.settings.packages_desc"}}</label>
 					</div>
 				</div>
 
 				{{if .EnableActions}}
 					{{$isActionsEnabled := .Repository.UnitEnabled $.Context $.UnitTypeActions}}
+					{{$isActionsGlobalDisabled := .UnitTypeActions.UnitGlobalDisabled}}
 					<div class="inline field">
-						<label>{{.locale.Tr "actions.actions"}}</label>
-						{{if .UnitTypeActions.UnitGlobalDisabled}}
-							<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-						{{else}}
-							<div class="ui checkbox">
-						{{end}}
+						<label>{{ctx.Locale.Tr "actions.actions"}}</label>
+							<div class="ui checkbox{{if $isActionsGlobalDisabled}} disabled{{end}}"{{if $isActionsGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 							<input class="enable-system" name="enable_actions" type="checkbox" {{if $isActionsEnabled}}checked{{end}}>
-							<label>{{.locale.Tr "repo.settings.actions_desc"}}</label>
+							<label>{{ctx.Locale.Tr "repo.settings.actions_desc"}}</label>
 						</div>
 					</div>
 				{{end}}
 
 				{{if not .IsMirror}}
-					<div class="ui divider"></div>
+					<div class="divider"></div>
 					{{$pullRequestEnabled := .Repository.UnitEnabled $.Context $.UnitTypePullRequests}}
+					{{$pullRequestGlobalDisabled := .UnitTypePullRequests.UnitGlobalDisabled}}
 					{{$prUnit := .Repository.MustGetUnit $.Context $.UnitTypePullRequests}}
 					<div class="inline field">
-						<label>{{.locale.Tr "repo.pulls"}}</label>
-						{{if .UnitTypePullRequests.UnitGlobalDisabled}}
-						<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-						{{else}}
-						<div class="ui checkbox">
-						{{end}}
+						<label>{{ctx.Locale.Tr "repo.pulls"}}</label>
+						<div class="ui checkbox{{if $pullRequestGlobalDisabled}} disabled{{end}}"{{if $pullRequestGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 							<input class="enable-system" name="enable_pulls" type="checkbox" data-target="#pull_box" {{if $pullRequestEnabled}}checked{{end}}>
-							<label>{{.locale.Tr "repo.settings.pulls_desc"}}</label>
+							<label>{{ctx.Locale.Tr "repo.settings.pulls_desc"}}</label>
 						</div>
 					</div>
 					<div class="field{{if not $pullRequestEnabled}} disabled{{end}}" id="pull_box">
 						<div class="field">
 							<p>
-								{{.locale.Tr "repo.settings.merge_style_desc"}}
+								{{ctx.Locale.Tr "repo.settings.merge_style_desc"}}
 							</p>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
 								<input name="pulls_allow_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowMerge)}}checked{{end}}>
-								<label>{{.locale.Tr "repo.pulls.merge_pull_request"}}</label>
+								<label>{{ctx.Locale.Tr "repo.pulls.merge_pull_request"}}</label>
 							</div>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
 								<input name="pulls_allow_rebase" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowRebase)}}checked{{end}}>
-								<label>{{.locale.Tr "repo.pulls.rebase_merge_pull_request"}}</label>
+								<label>{{ctx.Locale.Tr "repo.pulls.rebase_merge_pull_request"}}</label>
 							</div>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
 								<input name="pulls_allow_rebase_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowRebaseMerge)}}checked{{end}}>
-								<label>{{.locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</label>
+								<label>{{ctx.Locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</label>
 							</div>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
 								<input name="pulls_allow_squash" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowSquash)}}checked{{end}}>
-								<label>{{.locale.Tr "repo.pulls.squash_merge_pull_request"}}</label>
+								<label>{{ctx.Locale.Tr "repo.pulls.squash_merge_pull_request"}}</label>
 							</div>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
 								<input name="pulls_allow_manual_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowManualMerge)}}checked{{end}}>
-								<label>{{.locale.Tr "repo.pulls.merge_manually"}}</label>
+								<label>{{ctx.Locale.Tr "repo.pulls.merge_manually"}}</label>
 							</div>
 						</div>
 
 						<div class="field">
 							<p>
-								{{.locale.Tr "repo.settings.default_merge_style_desc"}}
+								{{ctx.Locale.Tr "repo.settings.default_merge_style_desc"}}
 							</p>
-							<div class="ui dropdown selection" tabindex="0">
+							<div class="ui dropdown selection">
 								<select name="pulls_default_merge_style">
-									<option value="merge" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "merge")}}selected{{end}}>{{.locale.Tr "repo.pulls.merge_pull_request"}}</option>
-									<option value="rebase" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "rebase")}}selected{{end}}>{{.locale.Tr "repo.pulls.rebase_merge_pull_request"}}</option>
-									<option value="rebase-merge" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "rebase-merge")}}selected{{end}}>{{.locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</option>
-									<option value="squash" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "squash")}}selected{{end}}>{{.locale.Tr "repo.pulls.squash_merge_pull_request"}}</option>
+									<option value="merge" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "merge")}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.merge_pull_request"}}</option>
+									<option value="rebase" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "rebase")}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.rebase_merge_pull_request"}}</option>
+									<option value="rebase-merge" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "rebase-merge")}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</option>
+									<option value="squash" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "squash")}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.squash_merge_pull_request"}}</option>
 								</select>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="default text">
 									{{if (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "merge")}}
-										{{.locale.Tr "repo.pulls.merge_pull_request"}}
+										{{ctx.Locale.Tr "repo.pulls.merge_pull_request"}}
 									{{end}}
 									{{if (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "rebase")}}
-										{{.locale.Tr "repo.pulls.rebase_merge_pull_request"}}
+										{{ctx.Locale.Tr "repo.pulls.rebase_merge_pull_request"}}
 									{{end}}
 									{{if (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "rebase-merge")}}
-										{{.locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}}
+										{{ctx.Locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}}
 									{{end}}
 									{{if (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "squash")}}
-										{{.locale.Tr "repo.pulls.squash_merge_pull_request"}}
+										{{ctx.Locale.Tr "repo.pulls.squash_merge_pull_request"}}
 									{{end}}
 								</div>
 								<div class="menu">
-									<div class="item" data-value="merge">{{.locale.Tr "repo.pulls.merge_pull_request"}}</div>
-									<div class="item" data-value="rebase">{{.locale.Tr "repo.pulls.rebase_merge_pull_request"}}</div>
-									<div class="item" data-value="rebase-merge">{{.locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</div>
-									<div class="item" data-value="squash">{{.locale.Tr "repo.pulls.squash_merge_pull_request"}}</div>
+									<div class="item" data-value="merge">{{ctx.Locale.Tr "repo.pulls.merge_pull_request"}}</div>
+									<div class="item" data-value="rebase">{{ctx.Locale.Tr "repo.pulls.rebase_merge_pull_request"}}</div>
+									<div class="item" data-value="rebase-merge">{{ctx.Locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</div>
+									<div class="item" data-value="squash">{{ctx.Locale.Tr "repo.pulls.squash_merge_pull_request"}}</div>
 								</div>
 							</div>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
 								<input name="default_allow_maintainer_edit" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.DefaultAllowMaintainerEdit)}}checked{{end}}>
-								<label>{{.locale.Tr "repo.settings.pulls.default_allow_edits_from_maintainers"}}</label>
+								<label>{{ctx.Locale.Tr "repo.settings.pulls.default_allow_edits_from_maintainers"}}</label>
 							</div>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
 								<input name="pulls_allow_rebase_update" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowRebaseUpdate)}}checked{{end}}>
-								<label>{{.locale.Tr "repo.settings.pulls.allow_rebase_update"}}</label>
+								<label>{{ctx.Locale.Tr "repo.settings.pulls.allow_rebase_update"}}</label>
 							</div>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
 								<input name="default_delete_branch_after_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge)}}checked{{end}}>
-								<label>{{.locale.Tr "repo.settings.pulls.default_delete_branch_after_merge"}}</label>
+								<label>{{ctx.Locale.Tr "repo.settings.pulls.default_delete_branch_after_merge"}}</label>
 							</div>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
 								<input name="enable_autodetect_manual_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AutodetectManualMerge)}}checked{{end}}>
-								<label>{{.locale.Tr "repo.settings.pulls.enable_autodetect_manual_merge"}}</label>
+								<label>{{ctx.Locale.Tr "repo.settings.pulls.enable_autodetect_manual_merge"}}</label>
 							</div>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
 								<input name="pulls_ignore_whitespace" type="checkbox" {{if and $pullRequestEnabled ($prUnit.PullRequestsConfig.IgnoreWhitespaceConflicts)}}checked{{end}}>
-								<label>{{.locale.Tr "repo.settings.pulls.ignore_whitespace"}}</label>
+								<label>{{ctx.Locale.Tr "repo.settings.pulls.ignore_whitespace"}}</label>
 							</div>
 						</div>
 					</div>
 				{{end}}
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 				<div class="field">
-					<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
+					<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
 				</div>
 			</form>
 		</div>
 
 		<h4 class="ui top attached header">
-			{{.locale.Tr "repo.settings.signing_settings"}}
+			{{ctx.Locale.Tr "repo.settings.signing_settings"}}
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" method="post">
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="signing">
 				<div class="field">
-					<label>{{.locale.Tr "repo.settings.trust_model"}}</label><br>
+					<label>{{ctx.Locale.Tr "repo.settings.trust_model"}}</label><br>
 					<div class="field">
 						<div class="ui radio checkbox">
 							<input type="radio" id="trust_model_default" name="trust_model" {{if eq .Repository.TrustModel.String "default"}}checked="checked"{{end}} value="default">
-							<label for="trust_model_default">{{.locale.Tr "repo.settings.trust_model.default"}}</label>
-							<p class="help">{{.locale.Tr "repo.settings.trust_model.default.desc"}}</p>
+							<label for="trust_model_default">{{ctx.Locale.Tr "repo.settings.trust_model.default"}}</label>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.trust_model.default.desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox">
 							<input type="radio" id="trust_model_collaborator" name="trust_model" {{if eq .Repository.TrustModel.String "collaborator"}}checked="checked"{{end}} value="collaborator">
-							<label for="trust_model_collaborator">{{.locale.Tr "repo.settings.trust_model.collaborator.long"}}</label>
-							<p class="help">{{.locale.Tr "repo.settings.trust_model.collaborator.desc"}}</p>
+							<label for="trust_model_collaborator">{{ctx.Locale.Tr "repo.settings.trust_model.collaborator.long"}}</label>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.trust_model.collaborator.desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox">
 							<input type="radio" name="trust_model" id="trust_model_committer" {{if eq .Repository.TrustModel.String "committer"}}checked="checked"{{end}} value="committer">
-							<label for="trust_model_committer">{{.locale.Tr "repo.settings.trust_model.committer.long"}}</label>
-							<p class="help">{{.locale.Tr "repo.settings.trust_model.committer.desc"}}</p>
+							<label for="trust_model_committer">{{ctx.Locale.Tr "repo.settings.trust_model.committer.long"}}</label>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.trust_model.committer.desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox">
 							<input type="radio" name="trust_model" id="trust_model_collaboratorcommitter" {{if eq .Repository.TrustModel.String "collaboratorcommitter"}}checked="checked"{{end}} value="collaboratorcommitter">
-							<label for="trust_model_collaboratorcommitter">{{.locale.Tr "repo.settings.trust_model.collaboratorcommitter.long"}}</label>
-							<p class="help">{{.locale.Tr "repo.settings.trust_model.collaboratorcommitter.desc"}}</p>
+							<label for="trust_model_collaboratorcommitter">{{ctx.Locale.Tr "repo.settings.trust_model.collaboratorcommitter.long"}}</label>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.trust_model.collaboratorcommitter.desc"}}</p>
 						</div>
 					</div>
 				</div>
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 				<div class="field">
-					<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
+					<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
 				</div>
 			</form>
 		</div>
 
 		{{if .IsAdmin}}
 		<h4 class="ui top attached header">
-			{{.locale.Tr "repo.settings.admin_settings"}}
+			{{ctx.Locale.Tr "repo.settings.admin_settings"}}
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" method="post">
@@ -648,51 +648,53 @@
 				<div class="field">
 					<div class="ui checkbox">
 						<input name="enable_health_check" type="checkbox" {{if .Repository.IsFsckEnabled}}checked{{end}}>
-						<label>{{.locale.Tr "repo.settings.admin_enable_health_check"}}</label>
+						<label>{{ctx.Locale.Tr "repo.settings.admin_enable_health_check"}}</label>
 					</div>
 				</div>
 
 				<div class="field">
-					<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
+					<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
 				</div>
 			</form>
 
-			<div class="ui divider"></div>
+			<div class="divider"></div>
 			<form class="ui form" method="post">
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="admin_index">
 				{{if .CodeIndexerEnabled}}
-					<h4 class="ui header">{{.locale.Tr "repo.settings.admin_code_indexer"}}</h4>
+					<h4 class="ui header">{{ctx.Locale.Tr "repo.settings.admin_code_indexer"}}</h4>
 					<div class="inline fields">
-						<label>{{.locale.Tr "repo.settings.admin_indexer_commit_sha"}}</label>
+						<label>{{ctx.Locale.Tr "repo.settings.admin_indexer_commit_sha"}}</label>
 						<span class="field">
 							{{if .CodeIndexerStatus}}
 								<a rel="nofollow" class="ui sha label" href="{{.RepoLink}}/commit/{{.CodeIndexerStatus.CommitSha}}">
 									<span class="shortsha">{{ShortSha .CodeIndexerStatus.CommitSha}}</span>
 								</a>
 							{{else}}
-									<span>{{.locale.Tr "repo.settings.admin_indexer_unindexed"}}</span>
+									<span>{{ctx.Locale.Tr "repo.settings.admin_indexer_unindexed"}}</span>
 							{{end}}
 						</span>
 						<div class="field">
-							<button class="ui green button" name="request_reindex_type" value="code">{{$.locale.Tr "repo.settings.reindex_button"}}</button>
+							<button class="ui primary button" name="request_reindex_type" value="code">{{ctx.Locale.Tr "repo.settings.reindex_button"}}</button>
 						</div>
 					</div>
 				{{end}}
-				<h4 class="ui header">{{.locale.Tr "repo.settings.admin_stats_indexer"}}</h4>
+				<h4 class="ui header">{{ctx.Locale.Tr "repo.settings.admin_stats_indexer"}}</h4>
 				<div class="inline fields">
-					<label>{{.locale.Tr "repo.settings.admin_indexer_commit_sha"}}</label>
+					{{if and .StatsIndexerStatus .StatsIndexerStatus.CommitSha}}
+						<label>{{ctx.Locale.Tr "repo.settings.admin_indexer_commit_sha"}}</label>
+					{{end}}
 					<span class="field">
-						{{if .StatsIndexerStatus}}
+						{{if and .StatsIndexerStatus .StatsIndexerStatus.CommitSha}}
 							<a rel="nofollow" class="ui sha label" href="{{.RepoLink}}/commit/{{.StatsIndexerStatus.CommitSha}}">
 								<span class="shortsha">{{ShortSha .StatsIndexerStatus.CommitSha}}</span>
 							</a>
 						{{else}}
-							<span>{{.locale.Tr "repo.settings.admin_indexer_unindexed"}}</span>
+							<span>{{ctx.Locale.Tr "repo.settings.admin_indexer_unindexed"}}</span>
 						{{end}}
 					</span>
 					<div class="field">
-						<button class="ui green button" name="request_reindex_type" value="stats">{{$.locale.Tr "repo.settings.reindex_button"}}</button>
+						<button class="ui primary button" name="request_reindex_type" value="stats">{{ctx.Locale.Tr "repo.settings.reindex_button"}}</button>
 					</div>
 				</div>
 			</form>
@@ -701,105 +703,98 @@
 
 		{{if .Permission.IsOwner}}
 		<h4 class="ui top attached error header">
-			{{.locale.Tr "repo.settings.danger_zone"}}
+			{{ctx.Locale.Tr "repo.settings.danger_zone"}}
 		</h4>
-		<div class="ui attached error table danger segment">
-			{{if .Repository.IsMirror}}
-				<div class="item">
-					<div class="ui right">
-						<button class="ui basic red show-modal button" data-modal="#convert-mirror-repo-modal">{{.locale.Tr "repo.settings.convert"}}</button>
+		<div class="ui attached error danger segment">
+			<div class="flex-list">
+				{{if .Repository.IsMirror}}
+					<div class="flex-item">
+						<div class="flex-item-main">
+							<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.convert"}}</div>
+							<div class="flex-item-body">{{ctx.Locale.Tr "repo.settings.convert_desc"}}</div>
+						</div>
+						<div class="flex-item-trailing">
+							<button class="ui basic red show-modal button" data-modal="#convert-mirror-repo-modal">{{ctx.Locale.Tr "repo.settings.convert"}}</button>
+						</div>
 					</div>
-					<div>
-						<h5>{{.locale.Tr "repo.settings.convert"}}</h5>
-						<p>{{.locale.Tr "repo.settings.convert_desc"}}</p>
+				{{end}}
+				{{if and .Repository.IsFork .Repository.Owner.CanCreateRepo}}
+					<div class="flex-item">
+						<div class="flex-item-main">
+							<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.convert_fork"}}</div>
+							<div class="flex-item-body">{{ctx.Locale.Tr "repo.settings.convert_fork_desc"}}</div>
+						</div>
+						<div class="flex-item-trailing">
+							<button class="ui basic red show-modal button" data-modal="#convert-fork-repo-modal">{{ctx.Locale.Tr "repo.settings.convert_fork"}}</button>
+						</div>
 					</div>
-				</div>
-				<div class="ui divider"></div>
-			{{end}}
-			{{if and .Repository.IsFork .Repository.Owner.CanCreateRepo}}
-				<div class="item">
-					<div class="ui right">
-						<button class="ui basic red show-modal button" data-modal="#convert-fork-repo-modal">{{.locale.Tr "repo.settings.convert_fork"}}</button>
-					</div>
-					<div>
-						<h5>{{.locale.Tr "repo.settings.convert_fork"}}</h5>
-						<p>{{.locale.Tr "repo.settings.convert_fork_desc"}}</p>
-					</div>
-				</div>
-				<div class="ui divider"></div>
-			{{end}}
-			<div class="item">
-				<div class="ui right">
-					{{if .RepoTransfer}}
-						<form class="ui form" action="{{.Link}}" method="post">
-							{{.CsrfTokenHtml}}
-							<input type="hidden" name="action" value="cancel_transfer">
-							<button class="ui red button">{{.locale.Tr "repo.settings.transfer_abort"}}</button>
-						</form>
-					{{else}}
-						<button class="ui basic red show-modal button" data-modal="#transfer-repo-modal">{{.locale.Tr "repo.settings.transfer"}}</button>
-					{{end}}
-				</div>
-				<div>
-					<h5>{{.locale.Tr "repo.settings.transfer"}}</h5>
-					{{if .RepoTransfer}}
-						<p>{{.locale.Tr "repo.settings.transfer_started" .RepoTransfer.Recipient.DisplayName}}</p>
-					{{else}}
-						<p>{{.locale.Tr "repo.settings.transfer_desc"}}</p>
-					{{end}}
-				</div>
-			</div>
-
-			{{if .Permission.CanRead $.UnitTypeWiki}}
-				<div class="ui divider"></div>
-
-				<div class="item">
-					<div class="ui right">
-						<button class="ui basic red show-modal button" data-modal="#delete-wiki-modal">{{.locale.Tr "repo.settings.wiki_delete"}}</button>
-					</div>
-					<div>
-						<h5>{{.locale.Tr "repo.settings.wiki_delete"}}</h5>
-						<p>{{.locale.Tr "repo.settings.wiki_delete_desc"}}</p>
-					</div>
-				</div>
-			{{end}}
-
-			<div class="ui divider"></div>
-
-			<div class="item">
-				<div class="ui right">
-					<button class="ui basic red show-modal button" data-modal="#delete-repo-modal">{{.locale.Tr "repo.settings.delete"}}</button>
-				</div>
-				<div>
-					<h5>{{.locale.Tr "repo.settings.delete"}}</h5>
-					<p>{{.locale.Tr "repo.settings.delete_desc"}}</p>
-				</div>
-			</div>
-
-			{{if not .Repository.IsMirror}}
-				<div class="ui divider"></div>
-
-				<div class="item">
-					<div class="ui right">
-						<button class="ui basic red show-modal button" data-modal="#archive-repo-modal">
-							{{if .Repository.IsArchived}}
-								{{.locale.Tr "repo.settings.unarchive.button"}}
+				{{end}}
+				<div class="flex-item">
+					<div class="flex-item-main">
+						<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.transfer"}}</div>
+						<div class="flex-item-body">
+							{{if .RepoTransfer}}
+								{{ctx.Locale.Tr "repo.settings.transfer_started" .RepoTransfer.Recipient.DisplayName}}
 							{{else}}
-								{{.locale.Tr "repo.settings.archive.button"}}
+								{{ctx.Locale.Tr "repo.settings.transfer_desc"}}
 							{{end}}
-						</button>
+						</div>
 					</div>
-					<div>
-						{{if .Repository.IsArchived}}
-							<h5>{{.locale.Tr "repo.settings.unarchive.header"}}</h5>
-							<p>{{.locale.Tr "repo.settings.unarchive.text"}}</p>
+					<div class="flex-item-trailing">
+						{{if .RepoTransfer}}
+							<form class="ui form" action="{{.Link}}" method="post">
+								{{.CsrfTokenHtml}}
+								<input type="hidden" name="action" value="cancel_transfer">
+								<button class="ui red button">{{ctx.Locale.Tr "repo.settings.transfer_abort"}}</button>
+							</form>
 						{{else}}
-							<h5>{{.locale.Tr "repo.settings.archive.header"}}</h5>
-							<p>{{.locale.Tr "repo.settings.archive.text"}}</p>
+							<button class="ui basic red show-modal button" data-modal="#transfer-repo-modal">{{ctx.Locale.Tr "repo.settings.transfer"}}</button>
 						{{end}}
 					</div>
 				</div>
-			{{end}}
+				{{if .Permission.CanRead $.UnitTypeWiki}}
+					<div class="flex-item">
+						<div class="flex-item-main">
+							<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.wiki_delete"}}</div>
+							<div class="flex-item-body">{{ctx.Locale.Tr "repo.settings.wiki_delete_desc"}}</div>
+						</div>
+						<div class="flex-item-trailing">
+							<button class="ui basic red show-modal button" data-modal="#delete-wiki-modal">{{ctx.Locale.Tr "repo.settings.wiki_delete"}}</button>
+						</div>
+					</div>
+				{{end}}
+				<div class="flex-item">
+					<div class="flex-item-main">
+						<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.delete"}}</div>
+						<div class="flex-item-body">{{ctx.Locale.Tr "repo.settings.delete_desc"}}</div>
+					</div>
+					<div class="flex-item-trailing">
+						<button class="ui basic red show-modal button" data-modal="#delete-repo-modal">{{ctx.Locale.Tr "repo.settings.delete"}}</button>
+					</div>
+				</div>
+				{{if not .Repository.IsMirror}}
+					<div class="flex-item gt-ac">
+						<div class="flex-item-main">
+							{{if .Repository.IsArchived}}
+								<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.unarchive.header"}}</div>
+								<div class="flex-item-body">{{ctx.Locale.Tr "repo.settings.unarchive.text"}}</div>
+							{{else}}
+								<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.archive.header"}}</div>
+								<div class="flex-item-body">{{ctx.Locale.Tr "repo.settings.archive.text"}}</div>
+							{{end}}
+						</div>
+						<div class="flex-item-trailing">
+							<button class="ui basic red show-modal button" data-modal="#archive-repo-modal">
+								{{if .Repository.IsArchived}}
+									{{ctx.Locale.Tr "repo.settings.unarchive.button"}}
+								{{else}}
+									{{ctx.Locale.Tr "repo.settings.archive.button"}}
+								{{end}}
+							</button>
+						</div>
+					</div>
+				{{end}}
+			</div>
 		</div>
 		{{end}}
 	</div>
@@ -809,29 +804,29 @@
 	{{if .Repository.IsMirror}}
 		<div class="ui small modal" id="convert-mirror-repo-modal">
 			<div class="header">
-				{{.locale.Tr "repo.settings.convert"}}
+				{{ctx.Locale.Tr "repo.settings.convert"}}
 			</div>
 			<div class="content">
 				<div class="ui warning message">
-					{{.locale.Tr "repo.settings.convert_notices_1"}}
+					{{ctx.Locale.Tr "repo.settings.convert_notices_1"}}
 				</div>
 				<form class="ui form" action="{{.Link}}" method="post">
 					{{.CsrfTokenHtml}}
 					<input type="hidden" name="action" value="convert">
 					<div class="field">
 						<label>
-							{{.locale.Tr "repo.settings.transfer_form_title"}}
+							{{ctx.Locale.Tr "repo.settings.transfer_form_title"}}
 							<span class="text red">{{.Repository.Name}}</span>
 						</label>
 					</div>
 					<div class="required field">
-						<label for="repo_name">{{.locale.Tr "repo.repo_name"}}</label>
-						<input id="repo_name" name="repo_name" required>
+						<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
+						<input id="repo_name" name="repo_name" required maxlength="100">
 					</div>
 
 					<div class="text right actions">
-						<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
-						<button class="ui red button">{{.locale.Tr "repo.settings.convert_confirm"}}</button>
+						<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+						<button class="ui red button">{{ctx.Locale.Tr "repo.settings.convert_confirm"}}</button>
 					</div>
 				</form>
 			</div>
@@ -840,29 +835,29 @@
 	{{if and .Repository.IsFork .Repository.Owner.CanCreateRepo}}
 		<div class="ui small modal" id="convert-fork-repo-modal">
 			<div class="header">
-				{{.locale.Tr "repo.settings.convert_fork"}}
+				{{ctx.Locale.Tr "repo.settings.convert_fork"}}
 			</div>
 			<div class="content">
 				<div class="ui warning message">
-					{{.locale.Tr "repo.settings.convert_fork_notices_1"}}
+					{{ctx.Locale.Tr "repo.settings.convert_fork_notices_1"}}
 				</div>
 				<form class="ui form" action="{{.Link}}" method="post">
 					{{.CsrfTokenHtml}}
 					<input type="hidden" name="action" value="convert_fork">
 					<div class="field">
 						<label>
-							{{.locale.Tr "repo.settings.transfer_form_title"}}
+							{{ctx.Locale.Tr "repo.settings.transfer_form_title"}}
 							<span class="text red">{{.Repository.Name}}</span>
 						</label>
 					</div>
 					<div class="required field">
-						<label for="repo_name">{{.locale.Tr "repo.repo_name"}}</label>
+						<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
 						<input id="repo_name" name="repo_name" required>
 					</div>
 
 					<div class="text right actions">
-						<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
-						<button class="ui red button">{{.locale.Tr "repo.settings.convert_fork_confirm"}}</button>
+						<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+						<button class="ui red button">{{ctx.Locale.Tr "repo.settings.convert_fork_confirm"}}</button>
 					</div>
 				</form>
 			</div>
@@ -870,35 +865,35 @@
 	{{end}}
 	<div class="ui small modal" id="transfer-repo-modal">
 		<div class="header">
-			{{.locale.Tr "repo.settings.transfer"}}
+			{{ctx.Locale.Tr "repo.settings.transfer"}}
 		</div>
 		<div class="content">
 			<div class="ui warning message">
-				{{.locale.Tr "repo.settings.transfer_notices_1"}} <br>
-				{{.locale.Tr "repo.settings.transfer_notices_2"}} <br>
-				{{.locale.Tr "repo.settings.transfer_notices_3"}}
+				{{ctx.Locale.Tr "repo.settings.transfer_notices_1"}} <br>
+				{{ctx.Locale.Tr "repo.settings.transfer_notices_2"}} <br>
+				{{ctx.Locale.Tr "repo.settings.transfer_notices_3"}}
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="transfer">
 				<div class="field">
 					<label>
-						{{.locale.Tr "repo.settings.transfer_form_title"}}
+						{{ctx.Locale.Tr "repo.settings.transfer_form_title"}}
 						<span class="text red">{{.Repository.Name}}</span>
 					</label>
 				</div>
 				<div class="required field">
-					<label for="repo_name">{{.locale.Tr "repo.repo_name"}}</label>
+					<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
 					<input id="repo_name" name="repo_name" required>
 				</div>
 				<div class="required field">
-					<label for="new_owner_name">{{.locale.Tr "repo.settings.transfer_owner"}}</label>
+					<label for="new_owner_name">{{ctx.Locale.Tr "repo.settings.transfer_owner"}}</label>
 					<input id="new_owner_name" name="new_owner_name" required>
 				</div>
 
 				<div class="text right actions">
-					<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
-					<button class="ui red button">{{.locale.Tr "repo.settings.transfer_perform"}}</button>
+					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+					<button class="ui red button">{{ctx.Locale.Tr "repo.settings.transfer_perform"}}</button>
 				</div>
 			</form>
 		</div>
@@ -906,14 +901,14 @@
 
 	<div class="ui small modal" id="delete-repo-modal">
 		<div class="header">
-			{{.locale.Tr "repo.settings.delete"}}
+			{{ctx.Locale.Tr "repo.settings.delete"}}
 		</div>
 		<div class="content">
 			<div class="ui warning message">
-				{{.locale.Tr "repo.settings.delete_notices_1" | Safe}}<br>
-				{{.locale.Tr "repo.settings.delete_notices_2" .Repository.FullName | Safe}}
+				{{ctx.Locale.Tr "repo.settings.delete_notices_1" | Safe}}<br>
+				{{ctx.Locale.Tr "repo.settings.delete_notices_2" .Repository.FullName | Safe}}
 				{{if .Repository.NumForks}}<br>
-				{{.locale.Tr "repo.settings.delete_notices_fork_1"}}
+				{{ctx.Locale.Tr "repo.settings.delete_notices_fork_1"}}
 				{{end}}
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
@@ -921,18 +916,18 @@
 				<input type="hidden" name="action" value="delete">
 				<div class="field">
 					<label>
-						{{.locale.Tr "repo.settings.transfer_form_title"}}
+						{{ctx.Locale.Tr "repo.settings.transfer_form_title"}}
 						<span class="text red">{{.Repository.Name}}</span>
 					</label>
 				</div>
 				<div class="required field">
-					<label for="repo_name">{{.locale.Tr "repo.repo_name"}}</label>
+					<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
 					<input id="repo_name" name="repo_name" required>
 				</div>
 
 				<div class="text right actions">
-					<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
-					<button class="ui red button">{{.locale.Tr "repo.settings.confirm_delete"}}</button>
+					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+					<button class="ui red button">{{ctx.Locale.Tr "repo.settings.confirm_delete"}}</button>
 				</div>
 			</form>
 		</div>
@@ -941,30 +936,30 @@
 	{{if .Repository.UnitEnabled $.Context $.UnitTypeWiki}}
 	<div class="ui small modal" id="delete-wiki-modal">
 		<div class="header">
-			{{.locale.Tr "repo.settings.wiki_delete"}}
+			{{ctx.Locale.Tr "repo.settings.wiki_delete"}}
 		</div>
 		<div class="content">
 			<div class="ui warning message">
-				{{.locale.Tr "repo.settings.delete_notices_1" | Safe}}<br>
-				{{.locale.Tr "repo.settings.wiki_delete_notices_1" .Repository.Name | Safe}}
+				{{ctx.Locale.Tr "repo.settings.delete_notices_1" | Safe}}<br>
+				{{ctx.Locale.Tr "repo.settings.wiki_delete_notices_1" .Repository.Name | Safe}}
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="delete-wiki">
 				<div class="field">
 					<label>
-						{{.locale.Tr "repo.settings.transfer_form_title"}}
+						{{ctx.Locale.Tr "repo.settings.transfer_form_title"}}
 						<span class="text red">{{.Repository.Name}}</span>
 					</label>
 				</div>
 				<div class="required field">
-					<label for="repo_name">{{.locale.Tr "repo.repo_name"}}</label>
+					<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
 					<input id="repo_name" name="repo_name" required>
 				</div>
 
 				<div class="text right actions">
-					<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
-					<button class="ui red button">{{.locale.Tr "repo.settings.confirm_wiki_delete"}}</button>
+					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+					<button class="ui red button">{{ctx.Locale.Tr "repo.settings.confirm_wiki_delete"}}</button>
 				</div>
 			</form>
 		</div>
@@ -975,17 +970,17 @@
 		<div class="ui g-modal-confirm modal" id="archive-repo-modal">
 			<div class="header">
 				{{if .Repository.IsArchived}}
-					{{.locale.Tr "repo.settings.unarchive.header"}}
+					{{ctx.Locale.Tr "repo.settings.unarchive.header"}}
 				{{else}}
-					{{.locale.Tr "repo.settings.archive.header"}}
+					{{ctx.Locale.Tr "repo.settings.archive.header"}}
 				{{end}}
 			</div>
 			<div class="content">
 				<p>
 					{{if .Repository.IsArchived}}
-						{{.locale.Tr "repo.settings.unarchive.text"}}
+						{{ctx.Locale.Tr "repo.settings.unarchive.text"}}
 					{{else}}
-						{{.locale.Tr "repo.settings.archive.text"}}
+						{{ctx.Locale.Tr "repo.settings.archive.text"}}
 					{{end}}
 				</p>
 			</div>
@@ -998,3 +993,5 @@
 		</div>
 	{{end}}
 {{end}}
+
+{{template "repo/settings/push_mirror_sync_modal" .}}

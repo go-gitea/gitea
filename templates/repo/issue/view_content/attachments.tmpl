@@ -1,12 +1,12 @@
 <div class="dropzone-attachments">
 	{{if .Attachments}}
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 	{{end}}
 	{{$hasThumbnails := false}}
 	{{- range .Attachments -}}
 		<div class="gt-df">
 			<div class="gt-f1 gt-p-3">
-				<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}" title='{{$.ctxData.locale.Tr "repo.issues.attachment.open_tab" .Name}}'>
+				<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" .Name}}">
 					{{if FilenameIsImage .Name}}
 						{{if not (StringUtils.Contains $.Content .UUID)}}
 							{{$hasThumbnails = true}}
@@ -19,19 +19,19 @@
 				</a>
 			</div>
 			<div class="gt-p-3 gt-df gt-ac">
-				<span class="ui text grey right">{{.Size | FileSize}}</span>
+				<span class="ui text grey">{{.Size | FileSize}}</span>
 			</div>
 		</div>
 	{{end -}}
 
 	{{if $hasThumbnails}}
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 		<div class="ui small thumbnails">
 			{{- range .Attachments -}}
 				{{if FilenameIsImage .Name}}
 					{{if not (StringUtils.Contains $.Content .UUID)}}
 					<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
-						<img alt="{{.Name}}" src="{{.DownloadURL}}" title='{{$.ctxData.locale.Tr "repo.issues.attachment.open_tab" .Name}}'>
+						<img alt="{{.Name}}" src="{{.DownloadURL}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" .Name}}">
 					</a>
 					{{end}}
 				{{end}}

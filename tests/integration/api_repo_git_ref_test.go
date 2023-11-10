@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/tests"
@@ -17,7 +18,7 @@ func TestAPIReposGitRefs(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	// Login as User2.
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	for _, ref := range [...]string{
 		"refs/heads/master", // Branch

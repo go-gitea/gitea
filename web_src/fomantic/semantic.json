@@ -26,26 +26,20 @@
     "checkbox",
     "container",
     "dimmer",
-    "divider",
     "dropdown",
     "form",
     "grid",
     "header",
     "input",
-    "item",
     "label",
     "list",
-    "loader",
     "menu",
     "message",
     "modal",
-    "reset",
     "search",
     "segment",
     "site",
     "tab",
-    "table",
-    "text",
-    "transition"
+    "table"
   ]
 }

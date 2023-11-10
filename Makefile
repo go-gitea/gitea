@@ -23,18 +23,19 @@ SHASUM ?= shasum -a 256
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 COMMA := ,
 
-XGO_VERSION := go-1.20.x
+XGO_VERSION := go-1.21.x
 
-AIR_PACKAGE ?= github.com/cosmtrek/air@v1.43.0
+AIR_PACKAGE ?= github.com/cosmtrek/air@v1.44.0
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.7.0
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.5.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.52.2
-GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.0
+GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
 MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.4
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.5
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.6.0
-GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@latest
+GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.0.1
+ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.6.25
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -48,10 +49,14 @@ ifeq ($(HAS_GO), yes)
 	CGO_CFLAGS ?= $(shell $(GO) env CGO_CFLAGS) $(CGO_EXTRA_CFLAGS)
 endif
 
-ifeq ($(OS), Windows_NT)
-	GOFLAGS := -v -buildmode=exe
-	EXECUTABLE ?= gitea.exe
-else ifeq ($(OS), Windows)
+ifeq ($(GOOS),windows)
+	IS_WINDOWS := yes
+else ifeq ($(patsubst Windows%,Windows,$(OS)),Windows)
+	ifeq ($(GOOS),)
+		IS_WINDOWS := yes
+	endif
+endif
+ifeq ($(IS_WINDOWS),yes)
 	GOFLAGS := -v -buildmode=exe
 	EXECUTABLE ?= gitea.exe
 else
@@ -67,7 +72,7 @@ endif
 
 EXTRA_GOFLAGS ?=
 
-MAKE_VERSION := $(shell "$(MAKE)" -v | head -n 1)
+MAKE_VERSION := $(shell "$(MAKE)" -v | cat | head -n 1)
 MAKE_EVIDENCE_DIR := .make_evidence
 
 ifeq ($(RACE_ENABLED),true)
@@ -78,12 +83,15 @@ endif
 STORED_VERSION_FILE := VERSION
 HUGO_VERSION ?= 0.111.3
 
-ifneq ($(DRONE_TAG),)
-	VERSION ?= $(subst v,,$(DRONE_TAG))
+GITHUB_REF_TYPE ?= branch
+GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
+
+ifneq ($(GITHUB_REF_TYPE),branch)
+	VERSION ?= $(subst v,,$(GITHUB_REF_NAME))
 	GITEA_VERSION ?= $(VERSION)
 else
-	ifneq ($(DRONE_BRANCH),)
-		VERSION ?= $(subst release/v,,$(DRONE_BRANCH))
+	ifneq ($(GITHUB_REF_NAME),)
+		VERSION ?= $(subst release/v,,$(GITHUB_REF_NAME))
 	else
 		VERSION ?= main
 	endif
@@ -112,15 +120,15 @@ FOMANTIC_WORK_DIR := web_src/fomantic
 
 WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
 WEBPACK_CONFIGS := webpack.config.js
-WEBPACK_DEST := public/js/index.js public/css/index.css
-WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/img/webpack public/serviceworker.js
+WEBPACK_DEST := public/assets/js/index.js public/assets/css/index.css
+WEBPACK_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts public/assets/img/webpack
 
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
 
 GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_gen.go
 
-SVG_DEST_DIR := public/img/svg
+SVG_DEST_DIR := public/assets/img/svg
 
 AIR_TMP_DIR := .air
 
@@ -163,10 +171,6 @@ TEST_MYSQL_HOST ?= mysql:3306
 TEST_MYSQL_DBNAME ?= testgitea
 TEST_MYSQL_USERNAME ?= root
 TEST_MYSQL_PASSWORD ?=
-TEST_MYSQL8_HOST ?= mysql8:3306
-TEST_MYSQL8_DBNAME ?= testgitea
-TEST_MYSQL8_USERNAME ?= root
-TEST_MYSQL8_PASSWORD ?=
 TEST_PGSQL_HOST ?= pgsql:5432
 TEST_PGSQL_DBNAME ?= testgitea
 TEST_PGSQL_USERNAME ?= postgres
@@ -193,12 +197,13 @@ help:
 	@echo " - clean                            delete backend and integration files"
 	@echo " - clean-all                        delete backend, frontend and integration files"
 	@echo " - deps                             install dependencies"
-	@echo " - deps-docs                        install docs dependencies"
 	@echo " - deps-frontend                    install frontend dependencies"
 	@echo " - deps-backend                     install backend dependencies"
 	@echo " - deps-tools                       install tool dependencies"
+	@echo " - deps-py                          install python dependencies"
 	@echo " - lint                             lint everything"
 	@echo " - lint-fix                         lint everything and fix issues"
+	@echo " - lint-actions                     lint action workflow files"
 	@echo " - lint-frontend                    lint frontend files"
 	@echo " - lint-frontend-fix                lint frontend files and fix issues"
 	@echo " - lint-backend                     lint backend files"
@@ -212,6 +217,8 @@ help:
 	@echo " - lint-css-fix                     lint css files and fix issues"
 	@echo " - lint-md                          lint markdown files"
 	@echo " - lint-swagger                     lint swagger files"
+	@echo " - lint-templates                   lint template files"
+	@echo " - lint-yaml                        lint yaml files"
 	@echo " - checks                           run various consistency checks"
 	@echo " - checks-frontend                  check frontend files"
 	@echo " - checks-backend                   check backend files"
@@ -219,6 +226,9 @@ help:
 	@echo " - test-frontend                    test frontend files"
 	@echo " - test-backend                     test backend files"
 	@echo " - test-e2e[\#TestSpecificName]     test end to end using playwright"
+	@echo " - update                           update js and py dependencies"
+	@echo " - update-js                        update js dependencies"
+	@echo " - update-py                        update py dependencies"
 	@echo " - webpack                          build webpack files"
 	@echo " - svg                              build svg files"
 	@echo " - fomantic                         build fomantic files"
@@ -268,16 +278,15 @@ clean-all: clean
 
 .PHONY: clean
 clean:
-	$(GO) clean -i ./...
 	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST) $(BINDATA_HASH) \
 		integrations*.test \
 		e2e*.test \
-		tests/integration/gitea-integration-pgsql/ tests/integration/gitea-integration-mysql/ tests/integration/gitea-integration-mysql8/ tests/integration/gitea-integration-sqlite/ \
-		tests/integration/gitea-integration-mssql/ tests/integration/indexers-mysql/ tests/integration/indexers-mysql8/ tests/integration/indexers-pgsql tests/integration/indexers-sqlite \
-		tests/integration/indexers-mssql tests/mysql.ini tests/mysql8.ini tests/pgsql.ini tests/mssql.ini man/ \
-		tests/e2e/gitea-e2e-pgsql/ tests/e2e/gitea-e2e-mysql/ tests/e2e/gitea-e2e-mysql8/ tests/e2e/gitea-e2e-sqlite/ \
-		tests/e2e/gitea-e2e-mssql/ tests/e2e/indexers-mysql/ tests/e2e/indexers-mysql8/ tests/e2e/indexers-pgsql/ tests/e2e/indexers-sqlite/ \
-		tests/e2e/indexers-mssql/ tests/e2e/reports/ tests/e2e/test-artifacts/ tests/e2e/test-snapshots/
+		tests/integration/gitea-integration-* \
+		tests/integration/indexers-* \
+		tests/mysql.ini tests/pgsql.ini tests/mssql.ini man/ \
+		tests/e2e/gitea-e2e-*/ \
+		tests/e2e/indexers-*/ \
+		tests/e2e/reports/ tests/e2e/test-artifacts/ tests/e2e/test-snapshots/
 
 .PHONY: fmt
 fmt:
@@ -351,10 +360,10 @@ lint: lint-frontend lint-backend
 lint-fix: lint-frontend-fix lint-backend-fix
 
 .PHONY: lint-frontend
-lint-frontend: lint-js lint-css lint-md lint-swagger
+lint-frontend: lint-js lint-css
 
 .PHONY: lint-frontend-fix
-lint-frontend-fix: lint-js-fix lint-css-fix lint-md lint-swagger
+lint-frontend-fix: lint-js-fix lint-css-fix
 
 .PHONY: lint-backend
 lint-backend: lint-go lint-go-vet lint-editorconfig
@@ -364,19 +373,19 @@ lint-backend-fix: lint-go-fix lint-go-vet lint-editorconfig
 
 .PHONY: lint-js
 lint-js: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e
+	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js tests/e2e
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e --fix
+	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js tests/e2e --fix
 
 .PHONY: lint-css
 lint-css: node_modules
-	npx stylelint --color --max-warnings=0 web_src/css
+	npx stylelint --color --max-warnings=0 web_src/css web_src/js/components/*.vue
 
 .PHONY: lint-css-fix
 lint-css-fix: node_modules
-	npx stylelint --color --max-warnings=0 web_src/css --fix
+	npx stylelint --color --max-warnings=0 web_src/css web_src/js/components/*.vue --fix
 
 .PHONY: lint-swagger
 lint-swagger: node_modules
@@ -411,13 +420,25 @@ lint-go-vet:
 lint-editorconfig:
 	$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) templates .github/workflows
 
+.PHONY: lint-actions
+lint-actions:
+	$(GO) run $(ACTIONLINT_PACKAGE)
+
+.PHONY: lint-templates
+lint-templates: .venv
+	@poetry run djlint $(shell find templates -type f -iname '*.tmpl')
+
+.PHONY: lint-yaml
+lint-yaml: .venv
+	@poetry run yamllint .
+
 .PHONY: watch
 watch:
-	bash build/watch.sh
+	@bash build/watch.sh
 
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules
-	rm -rf $(WEBPACK_DEST_ENTRIES)
+	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	NODE_ENV=development npx webpack --watch --progress
 
 .PHONY: watch-backend
@@ -529,27 +550,6 @@ test-mysql\#%: integrations.mysql.test generate-ini-mysql
 .PHONY: test-mysql-migration
 test-mysql-migration: migrations.mysql.test migrations.individual.mysql.test
 
-generate-ini-mysql8:
-	sed -e 's|{{TEST_MYSQL8_HOST}}|${TEST_MYSQL8_HOST}|g' \
-		-e 's|{{TEST_MYSQL8_DBNAME}}|${TEST_MYSQL8_DBNAME}|g' \
-		-e 's|{{TEST_MYSQL8_USERNAME}}|${TEST_MYSQL8_USERNAME}|g' \
-		-e 's|{{TEST_MYSQL8_PASSWORD}}|${TEST_MYSQL8_PASSWORD}|g' \
-		-e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
-		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
-		-e 's|{{TEST_TYPE}}|$(or $(TEST_TYPE),integration)|g' \
-			tests/mysql8.ini.tmpl > tests/mysql8.ini
-
-.PHONY: test-mysql8
-test-mysql8: integrations.mysql8.test generate-ini-mysql8
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql8.ini ./integrations.mysql8.test
-
-.PHONY: test-mysql8\#%
-test-mysql8\#%: integrations.mysql8.test generate-ini-mysql8
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql8.ini ./integrations.mysql8.test -test.run $(subst .,/,$*)
-
-.PHONY: test-mysql8-migration
-test-mysql8-migration: migrations.mysql8.test migrations.individual.mysql8.test
-
 generate-ini-pgsql:
 	sed -e 's|{{TEST_PGSQL_HOST}}|${TEST_PGSQL_HOST}|g' \
 		-e 's|{{TEST_PGSQL_DBNAME}}|${TEST_PGSQL_DBNAME}|g' \
@@ -622,14 +622,6 @@ test-e2e-mysql: playwright e2e.mysql.test generate-ini-mysql
 test-e2e-mysql\#%: playwright e2e.mysql.test generate-ini-mysql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini ./e2e.mysql.test -test.run TestE2e/$*
 
-.PHONY: test-e2e-mysql8
-test-e2e-mysql8: playwright e2e.mysql8.test generate-ini-mysql8
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql8.ini ./e2e.mysql8.test
-
-.PHONY: test-e2e-mysql8\#%
-test-e2e-mysql8\#%: playwright e2e.mysql8.test generate-ini-mysql8
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql8.ini ./e2e.mysql8.test -test.run TestE2e/$*
-
 .PHONY: test-e2e-pgsql
 test-e2e-pgsql: playwright e2e.pgsql.test generate-ini-pgsql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini ./e2e.pgsql.test
@@ -673,9 +665,6 @@ integration-test-coverage-sqlite: integrations.cover.sqlite.test generate-ini-sq
 integrations.mysql.test: git-check $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -o integrations.mysql.test
 
-integrations.mysql8.test: git-check $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -o integrations.mysql8.test
-
 integrations.pgsql.test: git-check $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -o integrations.pgsql.test
 
@@ -695,11 +684,6 @@ integrations.cover.sqlite.test: git-check $(GO_SOURCES)
 migrations.mysql.test: $(GO_SOURCES) generate-ini-mysql
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration/migration-test -o migrations.mysql.test
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini ./migrations.mysql.test
-
-.PHONY: migrations.mysql8.test
-migrations.mysql8.test: $(GO_SOURCES) generate-ini-mysql8
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration/migration-test -o migrations.mysql8.test
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql8.ini ./migrations.mysql8.test
 
 .PHONY: migrations.pgsql.test
 migrations.pgsql.test: $(GO_SOURCES) generate-ini-pgsql
@@ -722,13 +706,7 @@ migrations.individual.mysql.test: $(GO_SOURCES)
 		GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' $$pkg; \
 	done
 
-.PHONY: migrations.individual.mysql8.test
-migrations.individual.mysql8.test: $(GO_SOURCES)
-	for pkg in $(shell $(GO) list code.gitea.io/gitea/models/migrations/...); do \
-		GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql8.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' $$pkg; \
-	done
-
-.PHONY: migrations.individual.mysql8.test\#%
+.PHONY: migrations.individual.sqlite.test\#%
 migrations.individual.sqlite.test\#%: $(GO_SOURCES) generate-ini-sqlite
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' code.gitea.io/gitea/models/migrations/$*
 
@@ -765,9 +743,6 @@ migrations.individual.sqlite.test\#%: $(GO_SOURCES) generate-ini-sqlite
 
 e2e.mysql.test: $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.mysql.test
-
-e2e.mysql8.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.mysql8.test
 
 e2e.pgsql.test: $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.pgsql.test
@@ -825,30 +800,18 @@ release-windows: | $(DIST_DIRS)
 ifeq (,$(findstring gogit,$(TAGS)))
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'osusergo gogit $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION)-gogit .
 endif
-ifeq ($(CI),true)
-	cp /build/* $(DIST)/binaries
-endif
 
 .PHONY: release-linux
 release-linux: | $(DIST_DIRS)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets '$(LINUX_ARCHS)' -out gitea-$(VERSION) .
-ifeq ($(CI),true)
-	cp /build/* $(DIST)/binaries
-endif
 
 .PHONY: release-darwin
 release-darwin: | $(DIST_DIRS)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin-10.12/amd64,darwin-10.12/arm64' -out gitea-$(VERSION) .
-ifeq ($(CI),true)
-	cp /build/* $(DIST)/binaries
-endif
 
 .PHONY: release-freebsd
 release-freebsd: | $(DIST_DIRS)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'freebsd/amd64' -out gitea-$(VERSION) .
-ifeq ($(CI),true)
-	cp /build/* $(DIST)/binaries
-endif
 
 .PHONY: release-copy
 release-copy: | $(DIST_DIRS)
@@ -860,7 +823,7 @@ release-check: | $(DIST_DIRS)
 
 .PHONY: release-compress
 release-compress: | $(DIST_DIRS)
-	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && $(GO) run $(GXZ_PAGAGE) -k -9 $${file}; done;
+	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && $(GO) run $(GXZ_PACKAGE) -k -9 $${file}; done;
 
 .PHONY: release-sources
 release-sources: | $(DIST_DIRS)
@@ -874,20 +837,17 @@ release-sources: | $(DIST_DIRS)
 
 .PHONY: release-docs
 release-docs: | $(DIST_DIRS) docs
-	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs/public .
+	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs .
 
 .PHONY: docs
-docs: deps-docs
-	cd docs; make trans-copy clean build-offline;
-
-.PHONY: deps-docs
-deps-docs:
-	@hash hugo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		curl -sL https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_$(HUGO_VERSION)_Linux-64bit.tar.gz | tar zxf - -C /tmp && mkdir -p ~/go/bin && mv /tmp/hugo ~/go/bin/hugo && chmod +x ~/go/bin/hugo; \
-	fi
+docs:
+	cd docs; bash scripts/trans-copy.sh;
 
 .PHONY: deps
-deps: deps-frontend deps-backend deps-tools deps-docs
+deps: deps-frontend deps-backend deps-tools deps-py
+
+.PHONY: deps-py
+deps-py: .venv
 
 .PHONY: deps-frontend
 deps-frontend: node_modules
@@ -902,23 +862,38 @@ deps-tools:
 	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE)
 	$(GO) install $(GOFUMPT_PACKAGE)
 	$(GO) install $(GOLANGCI_LINT_PACKAGE)
-	$(GO) install $(GXZ_PAGAGE)
+	$(GO) install $(GXZ_PACKAGE)
 	$(GO) install $(MISSPELL_PACKAGE)
 	$(GO) install $(SWAGGER_PACKAGE)
 	$(GO) install $(XGO_PACKAGE)
 	$(GO) install $(GO_LICENSES_PACKAGE)
 	$(GO) install $(GOVULNCHECK_PACKAGE)
+	$(GO) install $(ACTIONLINT_PACKAGE)
 
 node_modules: package-lock.json
 	npm install --no-save
 	@touch node_modules
 
-.PHONY: npm-update
-npm-update: node-check | node_modules
-	npx updates -cu
+.venv: poetry.lock
+	poetry install --no-root
+	@touch .venv
+
+.PHONY: update
+update: update-js update-py
+
+.PHONY: update-js
+update-js: node-check | node_modules
+	npx updates -u -f package.json
 	rm -rf node_modules package-lock.json
 	npm install --package-lock
 	@touch node_modules
+
+.PHONY: update-py
+update-py: node-check | node_modules
+	npx updates -u -f pyproject.toml
+	rm -rf .venv poetry.lock
+	poetry install --no-root
+	@touch .venv
 
 .PHONY: fomantic
 fomantic:
@@ -1002,10 +977,6 @@ generate-manpage:
 docker:
 	docker build --disable-content-trust=false -t $(DOCKER_REF) .
 # support also build args docker build --build-arg GITEA_VERSION=v1.2.3 --build-arg TAGS="bindata sqlite sqlite_unlock_notify"  .
-
-.PHONY: docker-build
-docker-build:
-	docker run -ti --rm -v "$(CURDIR):/srv/app/src/code.gitea.io/gitea" -w /srv/app/src/code.gitea.io/gitea -e TAGS="bindata $(TAGS)" LDFLAGS="$(LDFLAGS)" CGO_EXTRA_CFLAGS="$(CGO_EXTRA_CFLAGS)" webhippie/golang:edge make clean build
 
 # This endif closes the if at the top of the file
 endif

@@ -1,6 +1,14 @@
+.image-diff-tabs {
+  min-height: 60px;
+
+}
+.image-diff-tabs.is-loading .tab {
+  display: none;
+}
+
 .image-diff-container {
   text-align: center;
-  padding: 1em 0;
+  padding: 0.5em 0 1em;
 }
 
 .image-diff-container img {
@@ -26,11 +34,12 @@
 }
 
 .image-diff-container .diff-side-by-side .side .side-header {
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
 }
 
 .image-diff-container .diff-swipe {
   margin: auto;
+  padding: 1em 0;
 }
 
 .image-diff-container .diff-swipe .swipe-frame {
@@ -50,11 +59,7 @@
   overflow: hidden;
 }
 
-.image-diff-container
-  .diff-swipe
-  .swipe-frame
-  .swipe-container
-  .after-container {
+.image-diff-container .diff-swipe .swipe-frame .swipe-container .after-container {
   position: absolute;
   right: 0;
 }
@@ -93,7 +98,7 @@
 }
 
 .image-diff-container .diff-overlay .overlay-frame {
-  margin: 0 auto;
+  margin: 1em auto 0;
   position: relative;
 }
 

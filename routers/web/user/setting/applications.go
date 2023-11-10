@@ -53,7 +53,7 @@ func ApplicationsPost(ctx *context.Context) {
 		Scope: scope,
 	}
 
-	exist, err := auth_model.AccessTokenByNameExists(t)
+	exist, err := auth_model.AccessTokenByNameExists(ctx, t)
 	if err != nil {
 		ctx.ServerError("AccessTokenByNameExists", err)
 		return
@@ -64,7 +64,7 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 
-	if err := auth_model.NewAccessToken(t); err != nil {
+	if err := auth_model.NewAccessToken(ctx, t); err != nil {
 		ctx.ServerError("NewAccessToken", err)
 		return
 	}
@@ -77,25 +77,25 @@ func ApplicationsPost(ctx *context.Context) {
 
 // DeleteApplication response for delete user access token
 func DeleteApplication(ctx *context.Context) {
-	if err := auth_model.DeleteAccessTokenByID(ctx.FormInt64("id"), ctx.Doer.ID); err != nil {
+	if err := auth_model.DeleteAccessTokenByID(ctx, ctx.FormInt64("id"), ctx.Doer.ID); err != nil {
 		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/applications",
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/applications")
 }
 
 func loadApplicationsData(ctx *context.Context) {
-	tokens, err := auth_model.ListAccessTokens(auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID})
+	ctx.Data["AccessTokenScopePublicOnly"] = auth_model.AccessTokenScopePublicOnly
+	tokens, err := auth_model.ListAccessTokens(ctx, auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID})
 	if err != nil {
 		ctx.ServerError("ListAccessTokens", err)
 		return
 	}
 	ctx.Data["Tokens"] = tokens
 	ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
+	ctx.Data["IsAdmin"] = ctx.Doer.IsAdmin
 	if setting.OAuth2.Enable {
 		ctx.Data["Applications"], err = auth_model.GetOAuth2ApplicationsByUserID(ctx, ctx.Doer.ID)
 		if err != nil {

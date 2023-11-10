@@ -4,7 +4,6 @@
 package packages
 
 import (
-	gocontext "context"
 	"net/http"
 	"regexp"
 	"strings"
@@ -22,6 +21,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/conan"
 	"code.gitea.io/gitea/routers/api/packages/conda"
 	"code.gitea.io/gitea/routers/api/packages/container"
+	"code.gitea.io/gitea/routers/api/packages/cran"
 	"code.gitea.io/gitea/routers/api/packages/debian"
 	"code.gitea.io/gitea/routers/api/packages/generic"
 	"code.gitea.io/gitea/routers/api/packages/goproxy"
@@ -95,10 +95,10 @@ func verifyAuth(r *web.Route, authMethods []auth.Method) {
 
 // CommonRoutes provide endpoints for most package managers (except containers - see below)
 // These are mounted on `/api/packages` (not `/api/v1/packages`)
-func CommonRoutes(ctx gocontext.Context) *web.Route {
+func CommonRoutes() *web.Route {
 	r := web.NewRoute()
 
-	r.Use(context.PackageContexter(ctx))
+	r.Use(context.PackageContexter())
 
 	verifyAuth(r, []auth.Method{
 		&auth.OAuth2{},
@@ -293,6 +293,24 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 				ctx.SetParams("filename", m[2])
 
 				conda.UploadPackageFile(ctx)
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/cran", func() {
+			r.Group("/src", func() {
+				r.Group("/contrib", func() {
+					r.Get("/PACKAGES", cran.EnumerateSourcePackages)
+					r.Get("/PACKAGES{format}", cran.EnumerateSourcePackages)
+					r.Get("/{filename}", cran.DownloadSourcePackageFile)
+				})
+				r.Put("", reqPackageAccess(perm.AccessModeWrite), cran.UploadSourcePackageFile)
+			})
+			r.Group("/bin", func() {
+				r.Group("/{platform}/contrib/{rversion}", func() {
+					r.Get("/PACKAGES", cran.EnumerateBinaryPackages)
+					r.Get("/PACKAGES{format}", cran.EnumerateBinaryPackages)
+					r.Get("/{filename}", cran.DownloadBinaryPackageFile)
+				})
+				r.Put("", reqPackageAccess(perm.AccessModeWrite), cran.UploadBinaryPackageFile)
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/debian", func() {
@@ -571,10 +589,10 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 // ContainerRoutes provides endpoints that implement the OCI API to serve containers
 // These have to be mounted on `/v2/...` to comply with the OCI spec:
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md
-func ContainerRoutes(ctx gocontext.Context) *web.Route {
+func ContainerRoutes() *web.Route {
 	r := web.NewRoute()
 
-	r.Use(context.PackageContexter(ctx))
+	r.Use(context.PackageContexter())
 
 	verifyAuth(r, []auth.Method{
 		&auth.Basic{},
@@ -616,7 +634,7 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 		)
 
 		// Manual mapping of routes because {image} can contain slashes which chi does not support
-		r.RouteMethods("/*", "HEAD,GET,POST,PUT,PATCH,DELETE", func(ctx *context.Context) {
+		r.Methods("HEAD,GET,POST,PUT,PATCH,DELETE", "/*", func(ctx *context.Context) {
 			path := ctx.Params("*")
 			isHead := ctx.Req.Method == "HEAD"
 			isGet := ctx.Req.Method == "GET"

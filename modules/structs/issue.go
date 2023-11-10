@@ -75,6 +75,8 @@ type Issue struct {
 
 	PullRequest *PullRequestMeta `json:"pull_request"`
 	Repo        *RepositoryMeta  `json:"repository"`
+
+	PinOrder int `json:"pin_order"`
 }
 
 // CreateIssueOption options to create one issue
@@ -138,10 +140,10 @@ const (
 // IssueFormField represents a form field
 // swagger:model
 type IssueFormField struct {
-	Type        IssueFormFieldType     `json:"type" yaml:"type"`
-	ID          string                 `json:"id" yaml:"id"`
-	Attributes  map[string]interface{} `json:"attributes" yaml:"attributes"`
-	Validations map[string]interface{} `json:"validations" yaml:"validations"`
+	Type        IssueFormFieldType `json:"type" yaml:"type"`
+	ID          string             `json:"id" yaml:"id"`
+	Attributes  map[string]any     `json:"attributes" yaml:"attributes"`
+	Validations map[string]any     `json:"validations" yaml:"validations"`
 }
 
 // IssueTemplate represents an issue template for a repository

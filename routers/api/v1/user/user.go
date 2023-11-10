@@ -54,7 +54,7 @@ func Search(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	users, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
+	users, maxResults, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		Keyword:     ctx.FormTrim("q"),
 		UID:         ctx.FormInt64("uid"),
@@ -62,7 +62,7 @@ func Search(ctx *context.APIContext) {
 		ListOptions: listOptions,
 	})
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]any{
 			"ok":    false,
 			"error": err.Error(),
 		})
@@ -72,7 +72,7 @@ func Search(ctx *context.APIContext) {
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
 	ctx.SetTotalCountHeader(maxResults)
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok":   true,
 		"data": convert.ToUsers(ctx, ctx.Doer, users),
 	})
@@ -138,7 +138,7 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	heatmap, err := activities_model.GetUserHeatmapDataByUser(ctx.ContextUser, ctx.Doer)
+	heatmap, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserHeatmapDataByUser", err)
 		return

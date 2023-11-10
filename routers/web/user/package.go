@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	packages_helper "code.gitea.io/gitea/routers/api/packages/helper"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/forms"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -36,6 +37,7 @@ const (
 
 // ListPackages displays a list of all packages of the context user
 func ListPackages(ctx *context.Context) {
+	shared_user.PrepareContextForProfileBigAvatar(ctx)
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
@@ -98,6 +100,12 @@ func ListPackages(ctx *context.Context) {
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["Total"] = total
 	ctx.Data["RepositoryAccessMap"] = repositoryAccessMap
+
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
 
 	// TODO: context/org -> HandleOrgAssignment() can not be used
 	if ctx.ContextUser.IsOrganization() {
@@ -253,11 +261,18 @@ func ViewPackageVersion(ctx *context.Context) {
 	}
 	ctx.Data["HasRepositoryAccess"] = hasRepositoryAccess
 
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	ctx.HTML(http.StatusOK, tplPackagesView)
 }
 
 // ListPackageVersions lists all versions of a package
 func ListPackageVersions(ctx *context.Context) {
+	shared_user.PrepareContextForProfileBigAvatar(ctx)
 	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.Params("type")), ctx.Params("name"))
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
@@ -343,6 +358,12 @@ func ListPackageVersions(ctx *context.Context) {
 
 	ctx.Data["Total"] = total
 
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
 	for k, v := range pagerParams {
 		pager.AddParamString(k, v)
@@ -362,12 +383,18 @@ func PackageSettings(ctx *context.Context) {
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["PackageDescriptor"] = pd
 
-	repos, _, _ := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
+	repos, _, _ := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
 		Actor:   pd.Owner,
 		Private: true,
 	})
 	ctx.Data["Repos"] = repos
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
+
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
 
 	ctx.HTML(http.StatusOK, tplPackagesSettings)
 }
@@ -412,7 +439,7 @@ func PackageSettingsPost(ctx *context.Context) {
 		ctx.Redirect(ctx.Link)
 		return
 	case "delete":
-		err := packages_service.RemovePackageVersion(ctx.Doer, ctx.Package.Descriptor.Version)
+		err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
 		if err != nil {
 			log.Error("Error deleting package: %v", err)
 			ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
@@ -420,7 +447,13 @@ func PackageSettingsPost(ctx *context.Context) {
 			ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
 		}
 
-		ctx.Redirect(ctx.Package.Owner.HomeLink() + "/-/packages")
+		redirectURL := ctx.Package.Owner.HomeLink() + "/-/packages"
+		// redirect to the package if there are still versions available
+		if has, _ := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{PackageID: ctx.Package.Descriptor.Package.ID, IsInternal: util.OptionalBoolFalse}); has {
+			redirectURL = ctx.Package.Descriptor.PackageWebLink()
+		}
+
+		ctx.Redirect(redirectURL)
 		return
 	}
 }
@@ -437,18 +470,11 @@ func DownloadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	s, _, err := packages_service.GetPackageFileStream(
-		ctx,
-		pf,
-	)
+	s, u, _, err := packages_service.GetPackageFileStream(ctx, pf)
 	if err != nil {
 		ctx.ServerError("GetPackageFileStream", err)
 		return
 	}
-	defer s.Close()
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	packages_helper.ServePackageFile(ctx, s, u, pf)
 }

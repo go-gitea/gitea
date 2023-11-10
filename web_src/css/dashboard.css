@@ -23,12 +23,6 @@
   justify-content: space-between;
 }
 
-.dashboard.feeds .filter.menu .item .text,
-.dashboard.issues .filter.menu .item .text {
-  height: 16px;
-  vertical-align: middle;
-}
-
 .dashboard.feeds .filter.menu .item .text.truncate,
 .dashboard.issues .filter.menu .item .text.truncate {
   width: 75%;
@@ -41,7 +35,7 @@
   width: 15%;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .dashboard.feeds .filter.menu .item .floating.label,
   .dashboard.issues .filter.menu .item .floating.label {
     top: 10px;
@@ -66,7 +60,7 @@
   left: auto !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .dashboard.feeds .filter.menu,
   .dashboard.issues .filter.menu {
     width: 100%;
@@ -94,105 +88,4 @@
 
 .dashboard .dashboard-navbar .ui.dropdown {
   max-width: 100%;
-}
-
-@media (max-width: 767px) {
-  .dashboard .dashboard-navbar .ui.dropdown > .menu {
-    position: static;
-  }
-}
-
-.feeds .news li {
-  display: flex;
-  align-items: baseline;
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.feeds .news li img {
-  align-self: flex-start;
-}
-
-.feeds .news li > * + * {
-  margin-left: 0.35rem;
-}
-
-.feeds .news > .ui.grid {
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.feeds .news .left .ui.avatar {
-  margin-top: 13px;
-}
-
-.feeds .news .time-since {
-  font-size: 13px;
-}
-
-.feeds .news .issue.title {
-  width: 80%;
-  margin: 0 0 1em;
-}
-
-.feeds .news .push.news .content ul {
-  line-height: 18px;
-  font-size: 13px;
-  list-style: none;
-  padding-left: 10px;
-}
-
-.feeds .news .push.news .content ul .text.truncate {
-  width: 80%;
-}
-
-.feeds .news .commit-id {
-  font-family: var(--fonts-monospace);
-}
-
-.feeds .news code {
-  padding: 2px 4px;
-  border-radius: 3px;
-  background-color: var(--color-markup-code-block);
-  word-break: break-all;
-}
-
-.feeds .news:last-of-type .divider {
-  display: none !important;
-}
-
-.feeds .list ul {
-  list-style: none;
-  margin: 0;
-  padding-left: 0;
-}
-
-.feeds .list ul li:not(:last-child) {
-  border-bottom: 1px solid var(--color-secondary);
-}
-
-.feeds .list ul li .repo-list-link {
-  padding: 6px 1em;
-  display: block;
-}
-
-.feeds .list ul li .repo-list-link .svg {
-  color: var(--color-text-light-2);
-}
-
-.feeds .list ul li .repo-list-link .star-num {
-  font-size: 12px;
-}
-
-.feeds .list #privateFilterCheckbox .svg {
-  color: var(--color-grey);
-  margin-right: 0.25rem;
-}
-
-.feeds .list .repo-owner-name-list .item-name {
-  min-width: 0;
-}
-
-.feeds .list .repo-owner-name-list .item-name svg {
-  min-width: 16px;
 }

@@ -7,7 +7,9 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	system_model "code.gitea.io/gitea/models/system"
@@ -36,6 +38,8 @@ type Task struct {
 	LastMessage string
 	LastDoer    string
 	ExecTimes   int64
+	// This stores the time of the last manual run of this task.
+	LastRun time.Time
 }
 
 // DoRunAtStart returns if this task should run at the start
@@ -87,6 +91,12 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 		}
 	}()
 	graceful.GetManager().RunWithShutdownContext(func(baseCtx context.Context) {
+		// Store the time of this run, before the function is executed, so it
+		// matches the behavior of what the cron library does.
+		t.lock.Lock()
+		t.LastRun = time.Now()
+		t.lock.Unlock()
+
 		pm := process.GetManager()
 		doerName := ""
 		if doer != nil && doer.ID != -1 {
@@ -176,8 +186,7 @@ func RegisterTask(name string, config Config, fun func(context.Context, *user_mo
 
 	if config.IsEnabled() {
 		// We cannot use the entry return as there is no way to lock it
-		if _, err = c.AddJob(name, config.GetSchedule(), task); err != nil {
-			log.Error("Unable to register cron task with name: %s Error: %v", name, err)
+		if err := addTaskToScheduler(task); err != nil {
 			return err
 		}
 	}
@@ -198,4 +207,22 @@ func RegisterTaskFatal(name string, config Config, fun func(context.Context, *us
 	if err := RegisterTask(name, config, fun); err != nil {
 		log.Fatal("Unable to register cron task %s Error: %v", name, err)
 	}
+}
+
+func addTaskToScheduler(task *Task) error {
+	tags := []string{task.Name, task.config.GetSchedule()} // name and schedule can't be get from job, so we add them as tag
+	if scheduleHasSeconds(task.config.GetSchedule()) {
+		scheduler = scheduler.CronWithSeconds(task.config.GetSchedule())
+	} else {
+		scheduler = scheduler.Cron(task.config.GetSchedule())
+	}
+	if _, err := scheduler.Tag(tags...).Do(task.Run); err != nil {
+		log.Error("Unable to register cron task with name: %s Error: %v", task.Name, err)
+		return err
+	}
+	return nil
+}
+
+func scheduleHasSeconds(schedule string) bool {
+	return len(strings.Fields(schedule)) >= 6
 }

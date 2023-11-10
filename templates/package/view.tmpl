@@ -1,116 +1,112 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository view issue packages">
-	{{template "user/overview/header" .}}
+	{{template "shared/user/org_profile_avatar" .}}
 	<div class="ui container">
-		<div>
-			<div class="ui stackable grid">
-				<div class="sixteen wide column title">
-					<div class="issue-title">
-						<h1>{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
-					</div>
-					<div>
-						{{$timeStr := TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.locale}}
-						{{if .HasRepositoryAccess}}
-							{{.locale.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) .PackageDescriptor.Repository.Link (.PackageDescriptor.Repository.FullName | Escape) | Safe}}
-						{{else}}
-							{{.locale.Tr "packages.published_by" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) | Safe}}
-						{{end}}
-					</div>
-					<div class="ui divider"></div>
+		{{template "user/overview/header" .}}
+		<div class="issue-title-header">
+			<div class="issue-title">
+				<h1>{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
+			</div>
+			<div>
+				{{$timeStr := TimeSinceUnix .PackageDescriptor.Version.CreatedUnix ctx.Locale}}
+				{{if .HasRepositoryAccess}}
+					{{ctx.Locale.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) .PackageDescriptor.Repository.Link (.PackageDescriptor.Repository.FullName | Escape) | Safe}}
+				{{else}}
+					{{ctx.Locale.Tr "packages.published_by" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) | Safe}}
+				{{end}}
+			</div>
+		</div>
+		<div class="issue-content">
+			<div class="issue-content-left">
+				{{template "package/content/alpine" .}}
+				{{template "package/content/cargo" .}}
+				{{template "package/content/chef" .}}
+				{{template "package/content/composer" .}}
+				{{template "package/content/conan" .}}
+				{{template "package/content/conda" .}}
+				{{template "package/content/container" .}}
+				{{template "package/content/cran" .}}
+				{{template "package/content/debian" .}}
+				{{template "package/content/generic" .}}
+				{{template "package/content/go" .}}
+				{{template "package/content/helm" .}}
+				{{template "package/content/maven" .}}
+				{{template "package/content/npm" .}}
+				{{template "package/content/nuget" .}}
+				{{template "package/content/pub" .}}
+				{{template "package/content/pypi" .}}
+				{{template "package/content/rpm" .}}
+				{{template "package/content/rubygems" .}}
+				{{template "package/content/swift" .}}
+				{{template "package/content/vagrant" .}}
+			</div>
+			<div class="issue-content-right ui segment">
+				<strong>{{ctx.Locale.Tr "packages.details"}}</strong>
+				<div class="ui relaxed list">
+					<div class="item">{{svg .PackageDescriptor.Package.Type.SVGName 16 "gt-mr-3"}} {{.PackageDescriptor.Package.Type.Name}}</div>
+					{{if .HasRepositoryAccess}}
+					<div class="item">{{svg "octicon-repo" 16 "gt-mr-3"}} <a href="{{.PackageDescriptor.Repository.Link}}">{{.PackageDescriptor.Repository.FullName}}</a></div>
+					{{end}}
+					<div class="item">{{svg "octicon-calendar" 16 "gt-mr-3"}} {{TimeSinceUnix .PackageDescriptor.Version.CreatedUnix ctx.Locale}}</div>
+					<div class="item">{{svg "octicon-download" 16 "gt-mr-3"}} {{.PackageDescriptor.Version.DownloadCount}}</div>
+					{{template "package/metadata/alpine" .}}
+					{{template "package/metadata/cargo" .}}
+					{{template "package/metadata/chef" .}}
+					{{template "package/metadata/composer" .}}
+					{{template "package/metadata/conan" .}}
+					{{template "package/metadata/conda" .}}
+					{{template "package/metadata/container" .}}
+					{{template "package/metadata/cran" .}}
+					{{template "package/metadata/debian" .}}
+					{{template "package/metadata/generic" .}}
+					{{template "package/metadata/helm" .}}
+					{{template "package/metadata/maven" .}}
+					{{template "package/metadata/npm" .}}
+					{{template "package/metadata/nuget" .}}
+					{{template "package/metadata/pub" .}}
+					{{template "package/metadata/pypi" .}}
+					{{template "package/metadata/rpm" .}}
+					{{template "package/metadata/rubygems" .}}
+					{{template "package/metadata/swift" .}}
+					{{template "package/metadata/vagrant" .}}
+					{{if not (and (eq .PackageDescriptor.Package.Type "container") .PackageDescriptor.Metadata.Manifests)}}
+					<div class="item">{{svg "octicon-database" 16 "gt-mr-3"}} {{FileSize .PackageDescriptor.CalculateBlobSize}}</div>
+					{{end}}
 				</div>
-				<div class="twelve wide column">
-					{{template "package/content/alpine" .}}
-					{{template "package/content/cargo" .}}
-					{{template "package/content/chef" .}}
-					{{template "package/content/composer" .}}
-					{{template "package/content/conan" .}}
-					{{template "package/content/conda" .}}
-					{{template "package/content/container" .}}
-					{{template "package/content/debian" .}}
-					{{template "package/content/generic" .}}
-					{{template "package/content/go" .}}
-					{{template "package/content/helm" .}}
-					{{template "package/content/maven" .}}
-					{{template "package/content/npm" .}}
-					{{template "package/content/nuget" .}}
-					{{template "package/content/pub" .}}
-					{{template "package/content/pypi" .}}
-					{{template "package/content/rpm" .}}
-					{{template "package/content/rubygems" .}}
-					{{template "package/content/swift" .}}
-					{{template "package/content/vagrant" .}}
-				</div>
-				<div class="four wide column">
-					<div class="ui segment metas">
-						<strong>{{.locale.Tr "packages.details"}}</strong>
-						<div class="ui relaxed list">
-							<div class="item">{{svg .PackageDescriptor.Package.Type.SVGName 16 "gt-mr-3"}} {{.PackageDescriptor.Package.Type.Name}}</div>
-							{{if .HasRepositoryAccess}}
-							<div class="item">{{svg "octicon-repo" 16 "gt-mr-3"}} <a href="{{.PackageDescriptor.Repository.Link}}">{{.PackageDescriptor.Repository.FullName}}</a></div>
-							{{end}}
-							<div class="item">{{svg "octicon-calendar" 16 "gt-mr-3"}} {{TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.locale}}</div>
-							<div class="item">{{svg "octicon-download" 16 "gt-mr-3"}} {{.PackageDescriptor.Version.DownloadCount}}</div>
-							{{template "package/metadata/alpine" .}}
-							{{template "package/metadata/cargo" .}}
-							{{template "package/metadata/chef" .}}
-							{{template "package/metadata/composer" .}}
-							{{template "package/metadata/conan" .}}
-							{{template "package/metadata/conda" .}}
-							{{template "package/metadata/container" .}}
-							{{template "package/metadata/debian" .}}
-							{{template "package/metadata/generic" .}}
-							{{template "package/metadata/helm" .}}
-							{{template "package/metadata/maven" .}}
-							{{template "package/metadata/npm" .}}
-							{{template "package/metadata/nuget" .}}
-							{{template "package/metadata/pub" .}}
-							{{template "package/metadata/pypi" .}}
-							{{template "package/metadata/rpm" .}}
-							{{template "package/metadata/rubygems" .}}
-							{{template "package/metadata/swift" .}}
-							{{template "package/metadata/vagrant" .}}
-							{{if not (and (eq .PackageDescriptor.Package.Type "container") .PackageDescriptor.Metadata.Manifests)}}
-							<div class="item">{{svg "octicon-database" 16 "gt-mr-3"}} {{FileSize .PackageDescriptor.CalculateBlobSize}}</div>
-							{{end}}
+				{{if not (eq .PackageDescriptor.Package.Type "container")}}
+					<div class="divider"></div>
+					<strong>{{ctx.Locale.Tr "packages.assets"}} ({{len .PackageDescriptor.Files}})</strong>
+					<div class="ui relaxed list">
+					{{range .PackageDescriptor.Files}}
+						<div class="item">
+							<a href="{{$.Link}}/files/{{.File.ID}}">{{.File.Name}}</a>
+							<span class="text small file-size">{{FileSize .Blob.Size}}</span>
 						</div>
-						{{if not (eq .PackageDescriptor.Package.Type "container")}}
-							<div class="ui divider"></div>
-							<strong>{{.locale.Tr "packages.assets"}} ({{len .PackageDescriptor.Files}})</strong>
-							<div class="ui relaxed list">
-							{{range .PackageDescriptor.Files}}
-								<div class="item">
-									<a href="{{$.Link}}/files/{{.File.ID}}">{{.File.Name}}</a>
-									<span class="text small file-size">{{FileSize .Blob.Size}}</span>
-								</div>
-							{{end}}
-							</div>
+					{{end}}
+					</div>
+				{{end}}
+				<div class="divider"></div>
+				<strong>{{ctx.Locale.Tr "packages.versions"}} ({{.TotalVersionCount}})</strong>
+				<a class="gt-float-right" href="{{$.PackageDescriptor.PackageWebLink}}/versions">{{ctx.Locale.Tr "packages.versions.view_all"}}</a>
+				<div class="ui relaxed list">
+				{{range .LatestVersions}}
+					<div class="item gt-df">
+						<a class="gt-f1" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
+						<span class="text small">{{DateTime "short" .CreatedUnix}}</span>
+					</div>
+				{{end}}
+				</div>
+				{{if or .CanWritePackages .HasRepositoryAccess}}
+					<div class="divider"></div>
+					<div class="ui relaxed list">
+						{{if .HasRepositoryAccess}}
+						<div class="item">{{svg "octicon-issue-opened" 16 "gt-mr-3"}} <a href="{{.PackageDescriptor.Repository.Link}}/issues">{{ctx.Locale.Tr "repo.issues"}}</a></div>
 						{{end}}
-						{{if .LatestVersions}}
-							<div class="ui divider"></div>
-							<strong>{{.locale.Tr "packages.versions"}} ({{.TotalVersionCount}})</strong>
-							<a class="ui right" href="{{$.PackageDescriptor.PackageWebLink}}/versions">{{.locale.Tr "packages.versions.view_all"}}</a>
-							<div class="ui relaxed list">
-							{{range .LatestVersions}}
-								<div class="item gt-df">
-									<a class="gt-f1" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
-									<span class="text small">{{DateTime "short" .CreatedUnix}}</span>
-								</div>
-							{{end}}
-							</div>
-						{{end}}
-						{{if or .CanWritePackages .HasRepositoryAccess}}
-							<div class="ui divider"></div>
-							<div class="ui relaxed list">
-								{{if .HasRepositoryAccess}}
-								<div class="item">{{svg "octicon-issue-opened" 16 "gt-mr-3"}} <a href="{{.PackageDescriptor.Repository.Link}}/issues">{{.locale.Tr "repo.issues"}}</a></div>
-								{{end}}
-								{{if .CanWritePackages}}
-								<div class="item">{{svg "octicon-tools" 16 "gt-mr-3"}} <a href="{{.Link}}/settings">{{.locale.Tr "repo.settings"}}</a></div>
-								{{end}}
-							</div>
+						{{if .CanWritePackages}}
+						<div class="item">{{svg "octicon-tools" 16 "gt-mr-3"}} <a href="{{.Link}}/settings">{{ctx.Locale.Tr "repo.settings"}}</a></div>
 						{{end}}
 					</div>
-				</div>
+				{{end}}
 			</div>
 		</div>
 	</div>

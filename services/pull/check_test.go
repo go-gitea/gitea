@@ -5,10 +5,12 @@
 package pull
 
 import (
+	"context"
 	"strconv"
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/queue"
@@ -31,11 +33,11 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 
 	cfg, err := setting.GetQueueSettings(setting.CfgProvider, "pr_patch_checker")
 	assert.NoError(t, err)
-	prPatchCheckerQueue, err = queue.NewWorkerPoolQueueBySetting("pr_patch_checker", cfg, testHandler, true)
+	prPatchCheckerQueue, err = queue.NewWorkerPoolQueueWithContext(context.Background(), "pr_patch_checker", cfg, testHandler, true)
 	assert.NoError(t, err)
 
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-	AddToTaskQueue(pr)
+	AddToTaskQueue(db.DefaultContext, pr)
 
 	assert.Eventually(t, func() bool {
 		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
@@ -46,18 +48,13 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	assert.True(t, has)
 	assert.NoError(t, err)
 
-	var queueShutdown, queueTerminate []func()
-	go prPatchCheckerQueue.Run(func(shutdown func()) {
-		queueShutdown = append(queueShutdown, shutdown)
-	}, func(terminate func()) {
-		queueTerminate = append(queueTerminate, terminate)
-	})
+	go prPatchCheckerQueue.Run()
 
 	select {
 	case id := <-idChan:
 		assert.EqualValues(t, pr.ID, id)
 	case <-time.After(time.Second):
-		assert.Fail(t, "Timeout: nothing was added to pullRequestQueue")
+		assert.FailNow(t, "Timeout: nothing was added to pullRequestQueue")
 	}
 
 	has, err = prPatchCheckerQueue.Has(strconv.FormatInt(pr.ID, 10))
@@ -67,12 +64,6 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	assert.Equal(t, issues_model.PullRequestStatusChecking, pr.Status)
 
-	for _, callback := range queueShutdown {
-		callback()
-	}
-	for _, callback := range queueTerminate {
-		callback()
-	}
-
+	prPatchCheckerQueue.ShutdownWait(5 * time.Second)
 	prPatchCheckerQueue = nil
 }

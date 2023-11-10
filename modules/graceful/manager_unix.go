@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"code.gitea.io/gitea/modules/graceful/releasereopen"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -40,7 +41,6 @@ type Manager struct {
 	terminateWaitGroup     sync.WaitGroup
 
 	toRunAtShutdown  []func()
-	toRunAtHammer    []func()
 	toRunAtTerminate []func()
 }
 
@@ -185,7 +185,7 @@ func (g *Manager) handleSignals(ctx context.Context) {
 			case syscall.SIGUSR1:
 				log.Warn("PID %d. Received SIGUSR1. Releasing and reopening logs", pid)
 				g.notify(statusMsg("Releasing and reopening logs"))
-				if err := log.ReleaseReopen(); err != nil {
+				if err := releasereopen.GetManager().ReleaseReopen(); err != nil {
 					log.Error("Error whilst releasing and reopening logs: %v", err)
 				}
 			case syscall.SIGUSR2:
@@ -243,6 +243,10 @@ func (g *Manager) DoGracefulRestart() {
 				log.Error("Error whilst forking from PID: %d : %v", os.Getpid(), err)
 			}
 		}
+		// doFork calls RestartProcess which starts a new Gitea process, so this parent process needs to exit
+		// Otherwise some resources (eg: leveldb lock) will be held by this parent process and the new process will fail to start
+		log.Info("PID: %d. Shutting down after forking ...", os.Getpid())
+		g.doShutdown()
 	} else {
 		log.Info("PID: %d. Not set restartable. Shutting down...", os.Getpid())
 		g.notify(stoppingMsg)

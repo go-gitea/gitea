@@ -5,11 +5,18 @@ package packages
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/builder"
 )
 
 // ErrPackageBlobNotExist indicates a package blob not exist error
@@ -97,4 +104,43 @@ func GetTotalUnreferencedBlobSize(ctx context.Context) (int64, error) {
 		Join("LEFT", "package_file", "package_file.blob_id = package_blob.id").
 		Where("package_file.id IS NULL").
 		SumInt(&PackageBlob{}, "size")
+}
+
+// IsBlobAccessibleForUser tests if the user has access to the blob
+func IsBlobAccessibleForUser(ctx context.Context, blobID int64, user *user_model.User) (bool, error) {
+	if user.IsAdmin {
+		return true, nil
+	}
+
+	maxTeamAuthorize := builder.
+		Select("max(team.authorize)").
+		From("team").
+		InnerJoin("team_user", "team_user.team_id = team.id").
+		Where(builder.Eq{"team_user.uid": user.ID}.And(builder.Expr("team_user.org_id = `user`.id")))
+
+	maxTeamUnitAccessMode := builder.
+		Select("max(team_unit.access_mode)").
+		From("team").
+		InnerJoin("team_user", "team_user.team_id = team.id").
+		InnerJoin("team_unit", "team_unit.team_id = team.id").
+		Where(builder.Eq{"team_user.uid": user.ID, "team_unit.type": unit.TypePackages}.And(builder.Expr("team_user.org_id = `user`.id")))
+
+	cond := builder.Eq{"package_blob.id": blobID}.And(
+		// owner = user
+		builder.Eq{"`user`.id": user.ID}.
+			// user can see owner
+			Or(builder.Eq{"`user`.visibility": structs.VisibleTypePublic}.Or(builder.Eq{"`user`.visibility": structs.VisibleTypeLimited})).
+			// owner is an organization and user has access to it
+			Or(builder.Eq{"`user`.type": user_model.UserTypeOrganization}.
+				And(builder.Lte{strconv.Itoa(int(perm.AccessModeRead)): maxTeamAuthorize}.Or(builder.Lte{strconv.Itoa(int(perm.AccessModeRead)): maxTeamUnitAccessMode}))),
+	)
+
+	return db.GetEngine(ctx).
+		Table("package_blob").
+		Join("INNER", "package_file", "package_file.blob_id = package_blob.id").
+		Join("INNER", "package_version", "package_version.id = package_file.version_id").
+		Join("INNER", "package", "package.id = package_version.package_id").
+		Join("INNER", "user", "`user`.id = package.owner_id").
+		Where(cond).
+		Exist(&PackageBlob{})
 }

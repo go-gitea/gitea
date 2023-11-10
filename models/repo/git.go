@@ -3,7 +3,11 @@
 
 package repo
 
-import "code.gitea.io/gitea/models/db"
+import (
+	"context"
+
+	"code.gitea.io/gitea/models/db"
+)
 
 // MergeStyle represents the approach to merge commits into base branch.
 type MergeStyle string
@@ -11,7 +15,7 @@ type MergeStyle string
 const (
 	// MergeStyleMerge create merge commit
 	MergeStyleMerge MergeStyle = "merge"
-	// MergeStyleRebase rebase before merging
+	// MergeStyleRebase rebase before merging, and fast-forward
 	MergeStyleRebase MergeStyle = "rebase"
 	// MergeStyleRebaseMerge rebase before merging with merge commit (--no-ff)
 	MergeStyleRebaseMerge MergeStyle = "rebase-merge"
@@ -24,7 +28,7 @@ const (
 )
 
 // UpdateDefaultBranch updates the default branch
-func UpdateDefaultBranch(repo *Repository) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(repo.ID).Cols("default_branch").Update(repo)
+func UpdateDefaultBranch(ctx context.Context, repo *Repository) error {
+	_, err := db.GetEngine(ctx).ID(repo.ID).Cols("default_branch").Update(repo)
 	return err
 }

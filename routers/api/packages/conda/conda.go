@@ -24,7 +24,7 @@ import (
 	"github.com/dsnet/compress/bzip2"
 )
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.JSON(status, struct {
 			Reason  string `json:"reason"`
@@ -229,6 +229,7 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
@@ -292,15 +293,11 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	pf := pfs[0]
 
-	s, _, err := packages_service.GetPackageFileStream(ctx, pf)
+	s, u, _, err := packages_service.GetPackageFileStream(ctx, pf)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	defer s.Close()
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }

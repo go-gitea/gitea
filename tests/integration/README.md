@@ -6,7 +6,6 @@ appropriate backends, namely:
 make test-sqlite
 make test-pgsql
 make test-mysql
-make test-mysql8
 make test-mssql
 ```
 
@@ -15,9 +14,26 @@ Make sure to perform a clean build before running tests:
 make clean build
 ```
 
-## Run all tests via local drone
+## Run tests via local act_runner
+
+### Run all jobs
+
 ```
-drone exec --local --build-event "pull_request"
+act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest
+```
+
+Warning: This file defines many jobs, so it will be resource-intensive and therefor not recommended.
+
+### Run single job
+
+```SHELL
+act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -j <job_name>
+```
+
+You can list all job names via:
+
+```SHELL
+act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -l
 ```
 
 ## Run sqlite integration tests
@@ -67,7 +83,7 @@ For SQLite:
 make test-sqlite#GPG
 ```
 
-For other databases(replace `mssql` to `mysql`, `mysql8` or `pgsql`):
+For other databases(replace `mssql` to `mysql`, or `pgsql`):
 
 ```
 TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=test TEST_MSSQL_USERNAME=sa TEST_MSSQL_PASSWORD=MwantsaSecurePassword1 make test-mssql#GPG

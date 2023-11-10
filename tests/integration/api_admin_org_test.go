@@ -21,7 +21,7 @@ import (
 func TestAPIAdminOrgCreate(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		session := loginUser(t, "user1")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeSudo)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteAdmin)
 
 		org := api.CreateOrgOption{
 			UserName:    "user2_org",
@@ -55,7 +55,7 @@ func TestAPIAdminOrgCreate(t *testing.T) {
 func TestAPIAdminOrgCreateBadVisibility(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		session := loginUser(t, "user1")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeSudo)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteAdmin)
 
 		org := api.CreateOrgOption{
 			UserName:    "user2_org",

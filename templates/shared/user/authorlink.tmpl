@@ -1,1 +1,1 @@
-<a class="author text black gt-bold muted"{{if gt .ID 0}} href="{{.HomeLink}}"{{end}}>{{.GetDisplayName}}</a>
+<a class="author text black gt-font-semibold muted"{{if gt .ID 0}} href="{{.HomeLink}}"{{end}}>{{.GetDisplayName}}</a>{{if .IsBot}}<span class="ui basic label gt-p-2">bot</span>{{end}}

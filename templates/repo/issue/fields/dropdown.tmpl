@@ -4,7 +4,9 @@
 	<div class="ui fluid selection dropdown {{if .item.Attributes.multiple}}multiple clearable{{end}}">
 		<input type="hidden" name="form-field-{{.item.ID}}" value="0">
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+		{{if not .item.Validations.required}}
 		{{svg "octicon-x" 14 "remove icon"}}
+		{{end}}
 		<div class="default text"></div>
 		<div class="menu">
 			{{range $i, $opt := .item.Attributes.options}}

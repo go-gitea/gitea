@@ -4,7 +4,7 @@
 		{{.Captcha.CreateHTML}}
 	</div>
 	<div class="required inline field {{if .Err_Captcha}}error{{end}}">
-		<label for="captcha">{{.locale.Tr "captcha"}}</label>
+		<label for="captcha">{{ctx.Locale.Tr "captcha"}}</label>
 		<input id="captcha" name="captcha" value="{{.captcha}}" autocomplete="off">
 	</div>
 {{else if eq .CaptchaType "recaptcha"}}
@@ -16,13 +16,13 @@
 		<div id="captcha" data-captcha-type="h-captcha" class="h-captcha-style" data-sitekey="{{.HcaptchaSitekey}}"></div>
 	</div>
 {{else if eq .CaptchaType "mcaptcha"}}
-	<div class="inline field gt-df gt-ac gt-db-small captcha-field">
-		<span>{{.locale.Tr "captcha"}}</span>
-		<div class="gt-border-secondary gt-w-100-small" id="mcaptcha__widget-container" style="width: 50%; height: 5em"></div>
-		<div id="captcha" data-captcha-type="m-captcha" class="m-captcha" data-sitekey="{{.McaptchaSitekey}}" data-instance-url="{{.McaptchaURL}}"></div>
+	<div class="inline field">
+		<label></label>
+		<div class="m-captcha-style" id="mcaptcha__widget-container"></div>
+		<div id="captcha" data-captcha-type="m-captcha" data-sitekey="{{.McaptchaSitekey}}" data-instance-url="{{.McaptchaURL}}"></div>
 	</div>
 {{else if eq .CaptchaType "cfturnstile"}}
-	<div class="inline field captcha-field gt-tc">
+	<div class="inline field gt-text-center">
 		<div id="captcha" data-captcha-type="cf-turnstile" data-sitekey="{{.CfTurnstileSitekey}}"></div>
 	</div>
 {{end}}{{end}}

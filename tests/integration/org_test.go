@@ -33,7 +33,7 @@ func TestOrgRepos(t *testing.T) {
 		t.Run(user, func(t *testing.T) {
 			session := loginUser(t, user)
 			for sortBy, repos := range cases {
-				req := NewRequest(t, "GET", "/user3?sort="+sortBy)
+				req := NewRequest(t, "GET", "/org3?sort="+sortBy)
 				resp := session.MakeRequest(t, req, http.StatusOK)
 
 				htmlDoc := NewHTMLParser(t, resp.Body)
@@ -159,7 +159,7 @@ func TestOrgRestrictedUser(t *testing.T) {
 
 	// Therefore create a read-only team
 	adminSession := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, adminSession, auth_model.AccessTokenScopeAdminOrg)
+	token := getTokenForLoggedInUser(t, adminSession, auth_model.AccessTokenScopeWriteOrganization)
 
 	teamToCreate := &api.CreateTeamOption{
 		Name:                    "codereader",

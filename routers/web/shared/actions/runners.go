@@ -5,8 +5,6 @@ package actions
 
 import (
 	"errors"
-	"net/http"
-	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -39,15 +37,15 @@ func RunnersList(ctx *context.Context, opts actions_model.FindRunnerOptions) {
 
 	// ownid=0,repo_id=0,means this token is used for global
 	var token *actions_model.ActionRunnerToken
-	token, err = actions_model.GetUnactivatedRunnerToken(ctx, opts.OwnerID, opts.RepoID)
-	if errors.Is(err, util.ErrNotExist) {
+	token, err = actions_model.GetLatestRunnerToken(ctx, opts.OwnerID, opts.RepoID)
+	if errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
 		token, err = actions_model.NewRunnerToken(ctx, opts.OwnerID, opts.RepoID)
 		if err != nil {
 			ctx.ServerError("CreateRunnerToken", err)
 			return
 		}
 	} else if err != nil {
-		ctx.ServerError("GetUnactivatedRunnerToken", err)
+		ctx.ServerError("GetLatestRunnerToken", err)
 		return
 	}
 
@@ -57,6 +55,7 @@ func RunnersList(ctx *context.Context, opts actions_model.FindRunnerOptions) {
 	ctx.Data["RegistrationToken"] = token.Token
 	ctx.Data["RunnerOwner"] = opts.Owner
 	ctx.Data["RunnerRepo"] = opts.Repo
+	ctx.Data["SortType"] = opts.Sort
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 
@@ -134,9 +133,8 @@ func RunnerDetailsEditPost(ctx *context.Context, runnerID int64, redirectTo stri
 
 	form := web.GetForm(ctx).(*forms.EditRunnerForm)
 	runner.Description = form.Description
-	runner.CustomLabels = splitLabels(form.CustomLabels)
 
-	err = actions_model.UpdateRunner(ctx, runner, "description", "custom_labels")
+	err = actions_model.UpdateRunner(ctx, runner, "description")
 	if err != nil {
 		log.Warn("RunnerDetailsEditPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
 		ctx.Flash.Warning(ctx.Tr("actions.runners.update_runner_failed"))
@@ -170,9 +168,7 @@ func RunnerDeletePost(ctx *context.Context, runnerID int64,
 		log.Warn("DeleteRunnerPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
 		ctx.Flash.Warning(ctx.Tr("actions.runners.delete_runner_failed"))
 
-		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"redirect": failedRedirectTo,
-		})
+		ctx.JSONRedirect(failedRedirectTo)
 		return
 	}
 
@@ -180,15 +176,5 @@ func RunnerDeletePost(ctx *context.Context, runnerID int64,
 
 	ctx.Flash.Success(ctx.Tr("actions.runners.delete_runner_success"))
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": successRedirectTo,
-	})
-}
-
-func splitLabels(s string) []string {
-	labels := strings.Split(s, ",")
-	for i, v := range labels {
-		labels[i] = strings.TrimSpace(v)
-	}
-	return labels
+	ctx.JSONRedirect(successRedirectTo)
 }

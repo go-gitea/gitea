@@ -1,0 +1,1 @@
+Unlimited distribution and/or modification is allowed as long as this copyright notice remains intact.

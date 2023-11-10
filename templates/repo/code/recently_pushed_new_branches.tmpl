@@ -1,0 +1,11 @@
+{{range .RecentlyPushedNewBranches}}
+	<div class="ui positive message gt-df gt-ac">
+		<div class="gt-f1">
+			{{$timeSince := TimeSince .CommitTime.AsTime ctx.Locale}}
+			{{ctx.Locale.Tr "repo.pulls.recently_pushed_new_branches" (Escape .Name) $timeSince | Safe}}
+		</div>
+		<a role="button" class="ui compact positive button gt-m-0" href="{{$.Repository.ComposeBranchCompareURL $.Repository.BaseRepo .Name}}">
+			{{ctx.Locale.Tr "repo.pulls.compare_changes"}}
+		</a>
+	</div>
+{{end}}

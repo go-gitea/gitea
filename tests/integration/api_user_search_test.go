@@ -4,13 +4,12 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -26,7 +25,7 @@ func TestAPIUserSearchLoggedIn(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
 	query := "user2"
 	req := NewRequestf(t, "GET", "/api/v1/users/search?token=%s&q=%s", token, query)
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -53,11 +52,7 @@ func TestAPIUserSearchNotLoggedIn(t *testing.T) {
 	for _, user := range results.Data {
 		assert.Contains(t, user.UserName, query)
 		modelUser = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID})
-		if modelUser.KeepEmailPrivate {
-			assert.EqualValues(t, fmt.Sprintf("%s@%s", modelUser.LowerName, setting.Service.NoReplyAddress), user.Email)
-		} else {
-			assert.EqualValues(t, modelUser.Email, user.Email)
-		}
+		assert.EqualValues(t, modelUser.GetPlaceholderEmail(), user.Email)
 	}
 }
 
@@ -65,7 +60,7 @@ func TestAPIUserSearchAdminLoggedInUserHidden(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
 	query := "user31"
 	req := NewRequestf(t, "GET", "/api/v1/users/search?token=%s&q=%s", token, query)
 	req.SetBasicAuth(token, "x-oauth-basic")

@@ -6,7 +6,6 @@ package ldap
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -14,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	auth_module "code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	source_service "code.gitea.io/gitea/services/auth/source"
@@ -24,12 +24,11 @@ import (
 func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	log.Trace("Doing: SyncExternalUsers[%s]", source.authSource.Name)
 
-	var existingUsers []int
 	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
 	var sshKeysNeedUpdate bool
 
 	// Find all users with this login type - FIXME: Should this be an iterator?
-	users, err := user_model.GetUsersBySource(source.authSource)
+	users, err := user_model.GetUsersBySource(ctx, source.authSource)
 	if err != nil {
 		log.Error("SyncExternalUsers: %v", err)
 		return err
@@ -41,9 +40,14 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	default:
 	}
 
-	sort.Slice(users, func(i, j int) bool {
-		return users[i].LowerName < users[j].LowerName
-	})
+	usernameUsers := make(map[string]*user_model.User, len(users))
+	mailUsers := make(map[string]*user_model.User, len(users))
+	keepActiveUsers := make(container.Set[int64])
+
+	for _, u := range users {
+		usernameUsers[u.LowerName] = u
+		mailUsers[strings.ToLower(u.Email)] = u
+	}
 
 	sr, err := source.SearchEntries()
 	if err != nil {
@@ -59,11 +63,6 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		log.Warn("LDAP search found no entries but did not report an error. All users will be deactivated as per settings")
 	}
 
-	sort.Slice(sr, func(i, j int) bool {
-		return sr[i].LowerName < sr[j].LowerName
-	})
-
-	userPos := 0
 	orgCache := make(map[string]*organization.Organization)
 	teamCache := make(map[string]*organization.Team)
 
@@ -78,7 +77,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			log.Warn("SyncExternalUsers: Cancelled at update of %s before completed update of users", source.authSource.Name)
 			// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
 			if sshKeysNeedUpdate {
-				err = asymkey_model.RewriteAllPublicKeys()
+				err = asymkey_model.RewriteAllPublicKeys(ctx)
 				if err != nil {
 					log.Error("RewriteAllPublicKeys: %v", err)
 				}
@@ -86,21 +85,27 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			return db.ErrCancelledf("During update of %s before completed update of users", source.authSource.Name)
 		default:
 		}
-		if len(su.Username) == 0 {
+		if len(su.Username) == 0 && len(su.Mail) == 0 {
+			continue
+		}
+
+		var usr *user_model.User
+		if len(su.Username) > 0 {
+			usr = usernameUsers[su.LowerName]
+		}
+		if usr == nil && len(su.Mail) > 0 {
+			usr = mailUsers[strings.ToLower(su.Mail)]
+		}
+
+		if usr != nil {
+			keepActiveUsers.Add(usr.ID)
+		} else if len(su.Username) == 0 {
+			// we cannot create the user if su.Username is empty
 			continue
 		}
 
 		if len(su.Mail) == 0 {
-			su.Mail = fmt.Sprintf("%s@localhost", su.Username)
-		}
-
-		var usr *user_model.User
-		for userPos < len(users) && users[userPos].LowerName < su.LowerName {
-			userPos++
-		}
-		if userPos < len(users) && users[userPos].LowerName == su.LowerName {
-			usr = users[userPos]
-			existingUsers = append(existingUsers, userPos)
+			su.Mail = fmt.Sprintf("%s@localhost.local", su.Username)
 		}
 
 		fullName := composeFullName(su.Name, su.Surname, su.Username)
@@ -123,24 +128,24 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				IsActive:     util.OptionalBoolTrue,
 			}
 
-			err = user_model.CreateUser(usr, overwriteDefault)
+			err = user_model.CreateUser(ctx, usr, overwriteDefault)
 			if err != nil {
 				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.authSource.Name, su.Username, err)
 			}
 
 			if err == nil && isAttributeSSHPublicKeySet {
 				log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", source.authSource.Name, usr.Name)
-				if asymkey_model.AddPublicKeysBySource(usr, source.authSource, su.SSHPublicKey) {
+				if asymkey_model.AddPublicKeysBySource(ctx, usr, source.authSource, su.SSHPublicKey) {
 					sshKeysNeedUpdate = true
 				}
 			}
 
 			if err == nil && len(source.AttributeAvatar) > 0 {
-				_ = user_service.UploadAvatar(usr, su.Avatar)
+				_ = user_service.UploadAvatar(ctx, usr, su.Avatar)
 			}
 		} else if updateExisting {
 			// Synchronize SSH Public Key if that attribute is set
-			if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(usr, source.authSource, su.SSHPublicKey) {
+			if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(ctx, usr, source.authSource, su.SSHPublicKey) {
 				sshKeysNeedUpdate = true
 			}
 
@@ -174,7 +179,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 			if usr.IsUploadAvatarChanged(su.Avatar) {
 				if err == nil && len(source.AttributeAvatar) > 0 {
-					_ = user_service.UploadAvatar(usr, su.Avatar)
+					_ = user_service.UploadAvatar(ctx, usr, su.Avatar)
 				}
 			}
 		}
@@ -188,7 +193,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 	// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
 	if sshKeysNeedUpdate {
-		err = asymkey_model.RewriteAllPublicKeys()
+		err = asymkey_model.RewriteAllPublicKeys(ctx)
 		if err != nil {
 			log.Error("RewriteAllPublicKeys: %v", err)
 		}
@@ -203,19 +208,17 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 	// Deactivate users not present in LDAP
 	if updateExisting {
-		existPos := 0
-		for i, usr := range users {
-			for existPos < len(existingUsers) && i > existingUsers[existPos] {
-				existPos++
+		for _, usr := range users {
+			if keepActiveUsers.Contains(usr.ID) {
+				continue
 			}
-			if usr.IsActive && (existPos >= len(existingUsers) || i < existingUsers[existPos]) {
-				log.Trace("SyncExternalUsers[%s]: Deactivating user %s", source.authSource.Name, usr.Name)
 
-				usr.IsActive = false
-				err = user_model.UpdateUserCols(ctx, usr, "is_active")
-				if err != nil {
-					log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.authSource.Name, usr.Name, err)
-				}
+			log.Trace("SyncExternalUsers[%s]: Deactivating user %s", source.authSource.Name, usr.Name)
+
+			usr.IsActive = false
+			err = user_model.UpdateUserCols(ctx, usr, "is_active")
+			if err != nil {
+				log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.authSource.Name, usr.Name, err)
 			}
 		}
 	}

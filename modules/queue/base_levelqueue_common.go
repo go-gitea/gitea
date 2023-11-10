@@ -17,6 +17,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
+// baseLevelQueuePushPoper is the common interface for levelqueue.Queue and levelqueue.UniqueQueue
 type baseLevelQueuePushPoper interface {
 	RPush(data []byte) error
 	LPop() ([]byte, error)
@@ -24,9 +25,9 @@ type baseLevelQueuePushPoper interface {
 }
 
 type baseLevelQueueCommonImpl struct {
-	length   int
-	internal baseLevelQueuePushPoper
-	mu       *sync.Mutex
+	length       int
+	internalFunc func() baseLevelQueuePushPoper
+	mu           *sync.Mutex
 }
 
 func (q *baseLevelQueueCommonImpl) PushItem(ctx context.Context, data []byte) error {
@@ -36,11 +37,11 @@ func (q *baseLevelQueueCommonImpl) PushItem(ctx context.Context, data []byte) er
 			defer q.mu.Unlock()
 		}
 
-		cnt := int(q.internal.Len())
+		cnt := int(q.internalFunc().Len())
 		if cnt >= q.length {
 			return true, nil
 		}
-		retry, err = false, q.internal.RPush(data)
+		retry, err = false, q.internalFunc().RPush(data)
 		if err == levelqueue.ErrAlreadyInQueue {
 			err = ErrAlreadyInQueue
 		}
@@ -55,7 +56,7 @@ func (q *baseLevelQueueCommonImpl) PopItem(ctx context.Context) ([]byte, error) 
 			defer q.mu.Unlock()
 		}
 
-		data, err = q.internal.LPop()
+		data, err = q.internalFunc().LPop()
 		if err == levelqueue.ErrNotFound {
 			return true, nil, nil
 		}
@@ -66,8 +67,8 @@ func (q *baseLevelQueueCommonImpl) PopItem(ctx context.Context) ([]byte, error) 
 	})
 }
 
-func baseLevelQueueCommon(cfg *BaseConfig, internal baseLevelQueuePushPoper, mu *sync.Mutex) *baseLevelQueueCommonImpl {
-	return &baseLevelQueueCommonImpl{length: cfg.Length, internal: internal}
+func baseLevelQueueCommon(cfg *BaseConfig, mu *sync.Mutex, internalFunc func() baseLevelQueuePushPoper) *baseLevelQueueCommonImpl {
+	return &baseLevelQueueCommonImpl{length: cfg.Length, mu: mu, internalFunc: internalFunc}
 }
 
 func prepareLevelDB(cfg *BaseConfig) (conn string, db *leveldb.DB, err error) {

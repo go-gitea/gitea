@@ -1,30 +1,30 @@
 {{if eq .PackageDescriptor.Package.Type "conan"}}
-	<h4 class="ui top attached header">{{.locale.Tr "packages.installation"}}</h4>
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.conan.registry"}}</label>
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.conan.registry"}}</label>
 				<div class="markup"><pre class="code-block"><code>conan remote add gitea <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/conan"></gitea-origin-url></code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.conan.install"}}</label>
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.conan.install"}}</label>
 				<div class="markup"><pre class="code-block"><code>conan install --remote=gitea {{.PackageDescriptor.Package.Name}}/{{.PackageDescriptor.Version.Version}}</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{.locale.Tr "packages.conan.documentation" "https://docs.gitea.io/en-us/usage/packages/conan/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Conan" "https://docs.gitea.com/usage/packages/conan/" | Safe}}</label>
 			</div>
 		</div>
 	</div>
 
 	{{if .PackageDescriptor.Metadata.Description}}
-		<h4 class="ui top attached header">{{.locale.Tr "packages.about"}}</h4>
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
 		<div class="ui attached segment">
 			{{if .PackageDescriptor.Metadata.Description}}{{.PackageDescriptor.Metadata.Description}}{{end}}
 		</div>
 	{{end}}
 
 	{{if or .PackageDescriptor.Metadata.Keywords}}
-		<h4 class="ui top attached header">{{.locale.Tr "packages.keywords"}}</h4>
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.keywords"}}</h4>
 		<div class="ui attached segment">
 			{{range .PackageDescriptor.Metadata.Keywords}}
 				{{.}}
