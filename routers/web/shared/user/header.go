@@ -88,17 +88,21 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 
 func FindUserProfileReadme(ctx *context.Context, doer *user_model.User) (profileGitRepo *git.Repository, profileReadmeBlob *git.Blob, profileClose func()) {
 	profileDbRepo, err := repo_model.GetRepositoryByName(ctx, ctx.ContextUser.ID, ".profile")
-	perm, err := access_model.GetUserRepoPermission(ctx, profileDbRepo, doer)
-	if err == nil && !profileDbRepo.IsEmpty && perm.CanRead(unit.TypeCode) {
-		if profileGitRepo, err = git.OpenRepository(ctx, profileDbRepo.RepoPath()); err != nil {
-			log.Error("FindUserProfileReadme failed to OpenRepository: %v", err)
-		} else {
-			if commit, err := profileGitRepo.GetBranchCommit(profileDbRepo.DefaultBranch); err != nil {
-				log.Error("FindUserProfileReadme failed to GetBranchCommit: %v", err)
+	if err == nil {
+		perm, err := access_model.GetUserRepoPermission(ctx, profileDbRepo, doer)
+		if err == nil && !profileDbRepo.IsEmpty && perm.CanRead(unit.TypeCode) {
+			if profileGitRepo, err = git.OpenRepository(ctx, profileDbRepo.RepoPath()); err != nil {
+				log.Error("FindUserProfileReadme failed to OpenRepository: %v", err)
 			} else {
-				profileReadmeBlob, _ = commit.GetBlobByPath("README.md")
+				if commit, err := profileGitRepo.GetBranchCommit(profileDbRepo.DefaultBranch); err != nil {
+					log.Error("FindUserProfileReadme failed to GetBranchCommit: %v", err)
+				} else {
+					profileReadmeBlob, _ = commit.GetBlobByPath("README.md")
+				}
 			}
 		}
+	} else if !repo_model.IsErrRepoNotExist(err) {
+		log.Error("FindUserProfileReadme failed to GetRepositoryByName: %v", err)
 	}
 	return profileGitRepo, profileReadmeBlob, func() {
 		if profileGitRepo != nil {
