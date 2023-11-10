@@ -29,11 +29,13 @@ func ToAPIProject(project *project_model.Project) *api.Project {
 		Closed:      project.ClosedDateUnix.AsTime(),
 	}
 
-	apiProject.Repo = &api.RepositoryMeta{
-		ID:       project.Repo.ID,
-		Name:     project.Repo.Name,
-		Owner:    project.Repo.OwnerName,
-		FullName: project.Repo.FullName(),
+	if project.Repo != nil {
+		apiProject.Repo = &api.RepositoryMeta{
+			ID:       project.Repo.ID,
+			Name:     project.Repo.Name,
+			Owner:    project.Repo.OwnerName,
+			FullName: project.Repo.FullName(),
+		}
 	}
 
 	apiProject.Creator = &api.User{

@@ -20,7 +20,9 @@ func (pl List) LoadAttributes(ctx context.Context) (err error) {
 	var ok bool
 
 	for i := range pl {
-		if pl[i].Repo == nil {
+		// Organization projects don't have a Repo assgined and the repo_id for it is 0
+		// So lets make sure we handle that case as well
+		if pl[i].Repo == nil && pl[i].RepoID != 0 {
 			pl[i].Repo, ok = repos[pl[i].RepoID]
 			if !ok {
 				repo, err := repo_model.GetRepositoryByID(ctx, pl[i].RepoID)
