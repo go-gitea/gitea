@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/markbates/goth"
 )
@@ -80,10 +81,10 @@ func RegisterGothProvider(provider GothProvider) {
 	gothProviders[provider.Name()] = provider
 }
 
-// GetOAuth2Providers returns the map of unconfigured OAuth2 providers
+// GetSupportedOAuth2Providers returns the map of unconfigured OAuth2 providers
 // key is used as technical name (like in the callbackURL)
 // values to display
-func GetOAuth2Providers() []Provider {
+func GetSupportedOAuth2Providers() []Provider {
 	providers := make([]Provider, 0, len(gothProviders))
 
 	for _, provider := range gothProviders {
@@ -95,33 +96,39 @@ func GetOAuth2Providers() []Provider {
 	return providers
 }
 
-// GetActiveOAuth2Providers returns the map of configured active OAuth2 providers
-// key is used as technical name (like in the callbackURL)
-// values to display
-func GetActiveOAuth2Providers(ctx context.Context) ([]string, map[string]Provider, error) {
-	// Maybe also separate used and unused providers so we can force the registration of only 1 active provider for each type
+func CreateProviderFromSource(source *auth.Source) (Provider, error) {
+	oauth2Cfg, ok := source.Cfg.(*Source)
+	if !ok {
+		return nil, fmt.Errorf("invalid OAuth2 source config: %v", oauth2Cfg)
+	}
+	gothProv := gothProviders[oauth2Cfg.Provider]
+	return &AuthSourceProvider{GothProvider: gothProv, sourceName: source.Name, iconURL: oauth2Cfg.IconURL}, nil
+}
 
-	authSources, err := auth.GetActiveOAuth2ProviderSources(ctx)
+// GetOAuth2Providers returns the list of configured OAuth2 providers
+func GetOAuth2Providers(ctx context.Context, isActive util.OptionalBool) ([]Provider, error) {
+	authSources, err := auth.FindSources(ctx, auth.FindSourcesOptions{
+		IsActive:  isActive,
+		LoginType: auth.OAuth2,
+	})
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	var orderedKeys []string
-	providers := make(map[string]Provider)
+	providers := make([]Provider, 0, len(authSources))
 	for _, source := range authSources {
-		oauth2Cfg, ok := source.Cfg.(*Source)
-		if !ok {
-			log.Error("Invalid OAuth2 source config: %v", oauth2Cfg)
-			continue
+		provider, err := CreateProviderFromSource(source)
+		if err != nil {
+			return nil, err
 		}
-		gothProv := gothProviders[oauth2Cfg.Provider]
-		providers[source.Name] = &AuthSourceProvider{GothProvider: gothProv, sourceName: source.Name, iconURL: oauth2Cfg.IconURL}
-		orderedKeys = append(orderedKeys, source.Name)
+		providers = append(providers, provider)
 	}
 
-	sort.Strings(orderedKeys)
+	sort.Slice(providers, func(i, j int) bool {
+		return providers[i].Name() < providers[j].Name()
+	})
 
-	return orderedKeys, providers, nil
+	return providers, nil
 }
 
 // RegisterProviderWithGothic register a OAuth2 provider in goth lib

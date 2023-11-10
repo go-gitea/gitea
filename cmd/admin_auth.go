@@ -62,7 +62,7 @@ func runListAuth(c *cli.Context) error {
 		return err
 	}
 
-	authSources, err := auth_model.Sources(ctx)
+	authSources, err := auth_model.FindSources(ctx, auth_model.FindSourcesOptions{})
 	if err != nil {
 		return err
 	}

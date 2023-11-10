@@ -419,9 +419,8 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 		// if body is short, just log the whole thing
 		t.Log("Response: ", string(respBytes))
 		return
-	} else {
-		t.Log("Response length: ", len(respBytes))
 	}
+	t.Log("Response length: ", len(respBytes))
 
 	// log the "flash" error message, if one exists
 	// we must create a new buffer, so that we don't "use up" resp.Body
