@@ -264,6 +264,18 @@ func TestRender_email(t *testing.T) {
 		"send email to info@gitea.co.uk.",
 		`<p>send email to <a href="mailto:info@gitea.co.uk" rel="nofollow">info@gitea.co.uk</a>.</p>`)
 
+	test(
+		`j.doe@example.com,
+	j.doe@example.com.
+	j.doe@example.com;
+	j.doe@example.com?
+	j.doe@example.com!`,
+		`<p><a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>,<br/>
+<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>.<br/>
+<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>;<br/>
+<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>?<br/>
+<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>!</p>`)
+
 	// Test that should *not* be turned into email links
 	test(
 		"\"info@gitea.com\"",
