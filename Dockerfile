@@ -48,7 +48,7 @@ RUN apk --no-cache add \
     git \
     curl \
     gnupg \
-    && rm -rf /var/cache/apk/*
+  && rm -rf /var/cache/apk/*
 
 RUN addgroup -S -g 1000 git
 
