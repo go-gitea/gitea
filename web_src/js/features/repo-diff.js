@@ -45,6 +45,9 @@ function initRepoDiffConversationForm() {
     e.preventDefault();
 
     const $form = $(e.target);
+    if ($form.hasClass('is-loading')) return;
+    $form.addClass('is-loading');
+
     const $textArea = $form.find('textarea');
     if (!validateTextareaNonEmpty($textArea)) {
       return;
