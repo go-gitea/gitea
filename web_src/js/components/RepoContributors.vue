@@ -99,7 +99,13 @@ export default {
     async fetchGraphData() {
       this.isLoading = true;
       try {
-        const response = await GET(`${this.repoLink}/activity/contributors/data`);
+        let response;
+        do {
+          response = await GET(`${this.repoLink}/activity/contributors/data`);
+          if (response.status === 216) {
+            await new Promise(resolve => setTimeout(resolve, 1000)); // wait for 1 second before retrying
+          }
+        } while (response.status === 216);
         if (response.ok) {
           const data = await response.json();
           const {total, ...rest} = data;
