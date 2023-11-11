@@ -164,23 +164,23 @@ func (r *Writer) WriteRegularLink(l org.RegularLink) {
 	switch l.Kind() {
 	case "image":
 		if l.Description == nil {
-			fmt.Fprintf(r, `<img src="%s" alt="%s" title="%s" />`, link, link, link)
+			fmt.Fprintf(r, `<img src="%s" alt="%s" />`, link, link)
 		} else {
 			imageSrc := r.resolveLink(l.Description[0].(org.RegularLink))
 			fmt.Fprintf(r, `<a href="%s"><img src="%s" alt="%s" /></a>`, link, imageSrc, imageSrc)
 		}
 	case "video":
 		if l.Description == nil {
-			fmt.Fprintf(r, `<video src="%s" title="%s">%s</video>`, link, link, link)
+			fmt.Fprintf(r, `<video src="%s">%s</video>`, link, link)
 		} else {
 			videoSrc := r.resolveLink(l.Description[0].(org.RegularLink))
-			fmt.Fprintf(r, `<a href="%s"><video src="%s" title="%s"></video></a>`, link, videoSrc, videoSrc)
+			fmt.Fprintf(r, `<a href="%s"><video src="%s">%s</video></a>`, link, videoSrc, videoSrc)
 		}
 	default:
 		description := link
 		if l.Description != nil {
 			description = r.WriteNodesAsString(l.Description...)
 		}
-		fmt.Fprintf(r, `<a href="%s" title="%s">%s</a>`, link, description, description)
+		fmt.Fprintf(r, `<a href="%s">%s</a>`, link, description)
 	}
 }
