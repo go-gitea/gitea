@@ -11,7 +11,7 @@ jobs:
   files-changed:
     uses: ./.github/workflows/files-changed.yml
 
-  regular:
+  docker:
     if: needs.files-changed.outputs.docker == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
@@ -19,17 +19,13 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
+          target: gitea
+          pull: true
           push: false
           tags: gitea/gitea:linux-amd64
-
-  rootless:
-    if: needs.files-changed.outputs.docker == 'true' || needs.files-changed.outputs.actions == 'true'
-    needs: files-changed
-    runs-on: ubuntu-latest
-    steps:
-      - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
+          target: gitea-rootless
+          pull: true
           push: false
-          file: Dockerfile.rootless
           tags: gitea/gitea:linux-amd64

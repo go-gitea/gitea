@@ -78,7 +78,6 @@ jobs:
 
             docker:
               - "Dockerfile"
-              - "Dockerfile.rootless"
               - "docker/**"
               - "Makefile"
 

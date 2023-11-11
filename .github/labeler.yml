@@ -24,7 +24,6 @@ modifies/migrations:
 modifies/internal:
   - "Makefile"
   - "Dockerfile"
-  - "Dockerfile.rootless"
   - "docker/**"
   - "webpack.config.js"
   - ".eslintrc.yaml"

@@ -111,3 +111,7 @@ prime/
 
 # Manpage
 /man
+
+Dockerfile
+.dockerignore
+.github/
