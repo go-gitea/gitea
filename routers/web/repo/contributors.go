@@ -34,7 +34,7 @@ func Contributors(ctx *context.Context) {
 func ContributorsData(ctx *context.Context) {
 	if contributorStats, err := contributors_service.GetContributorStats(ctx, ctx.Cache, ctx.Repo.Repository, ctx.Repo.CommitID); err != nil {
 		if errors.Is(err, contributors_service.ErrAwaitGeneration) {
-			ctx.Status(http.StatusProcessing)
+			ctx.Status(216)
 			return
 		}
 		ctx.ServerError("GetContributorStats", err)
