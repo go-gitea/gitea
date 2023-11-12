@@ -81,7 +81,6 @@ var (
 	StaticCacheTime            time.Duration
 	EnableGzip                 bool
 	LandingPageURL             LandingPage
-	LandingPageCustom          string
 	UnixSocketPermission       uint32
 	EnablePprof                bool
 	PprofDataPath              string
@@ -103,7 +102,6 @@ var (
 	StaticURLPrefix            string
 	AbsoluteAssetURL           string
 
-	HasRobotsTxt bool
 	ManifestData string
 )
 
@@ -348,10 +346,5 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		LandingPageURL = LandingPageHome
 	default:
 		LandingPageURL = LandingPage(landingPage)
-	}
-
-	HasRobotsTxt, err = util.IsFile(path.Join(CustomPath, "robots.txt"))
-	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", path.Join(CustomPath, "robots.txt"), err)
 	}
 }

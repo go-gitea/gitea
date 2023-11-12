@@ -8,50 +8,50 @@
 					<span class="sha" id="{{$commit.ShortRev}}">
 						{{$class := "ui sha label"}}
 						{{if $commit.Commit.Signature}}
-							{{$class = (printf "%s%s" $class " isSigned")}}
+							{{$class = (print $class " isSigned")}}
 							{{if $commit.Verification.Verified}}
 								{{if eq $commit.Verification.TrustStatus "trusted"}}
-									{{$class = (printf "%s%s" $class " isVerified")}}
+									{{$class = (print $class " isVerified")}}
 								{{else if eq $commit.Verification.TrustStatus "untrusted"}}
-									{{$class = (printf "%s%s" $class " isVerifiedUntrusted")}}
+									{{$class = (print $class " isVerifiedUntrusted")}}
 								{{else}}
-									{{$class = (printf "%s%s" $class " isVerifiedUnmatched")}}
+									{{$class = (print $class " isVerifiedUnmatched")}}
 								{{end}}
 							{{else if $commit.Verification.Warning}}
-								{{$class = (printf "%s%s" $class " isWarning")}}
+								{{$class = (print $class " isWarning")}}
 							{{end}}
 						{{end}}
 						<a href="{{$.RepoLink}}/commit/{{$commit.Rev|PathEscape}}" rel="nofollow" class="{{$class}}">
 							<span class="shortsha">{{ShortSha $commit.Commit.ID.String}}</span>
 							{{- if $commit.Commit.Signature -}}
-								<span class="shortsha-pad"></span>{{template "repo/shabox_badge" dict "root" $ "verification" $commit.Verification}}
+								{{template "repo/shabox_badge" dict "root" $ "verification" $commit.Verification}}
 							{{- end -}}
 						</a>
 					</span>
 					<span class="message gt-dib gt-ellipsis gt-mr-3">
-						<span>{{RenderCommitMessage $.Context $commit.Subject $.RepoLink $.Repository.ComposeMetas}}</span>
+						<span>{{RenderCommitMessage $.Context $commit.Subject $.RepoLink ($.Repository.ComposeMetas ctx)}}</span>
 					</span>
-					<span class="tags gt-df gt-ac gt-mr-2">
+					<span class="commit-refs gt-df gt-ac gt-mr-2">
 						{{range $commit.Refs}}
 							{{$refGroup := .RefGroup}}
 							{{if eq $refGroup "pull"}}
 								{{if or (not $.HidePRRefs) (SliceUtils.Contains $.SelectedBranches .Name)}}
 									<!-- it's intended to use issues not pulls, if it's a pull you will get redirected -->
-									<a class="ui labelled icon button basic tiny gt-mr-2" href="{{$.RepoLink}}/{{if $.Repository.UnitEnabled $.Context $.UnitTypePullRequests}}pulls{{else}}issues{{end}}/{{.ShortName|PathEscape}}">
-										{{svg "octicon-git-pull-request" 16 "gt-mr-2"}}#{{.ShortName}}
+									<a class="ui labelled basic tiny button" href="{{$.RepoLink}}/{{if $.Repository.UnitEnabled $.Context $.UnitTypePullRequests}}pulls{{else}}issues{{end}}/{{.ShortName|PathEscape}}">
+										{{svg "octicon-git-pull-request"}} #{{.ShortName}}
 									</a>
 								{{end}}
 							{{else if eq $refGroup "tags"}}
-								<a class="ui labelled icon button basic tiny gt-mr-2" href="{{$.RepoLink}}/src/tag/{{.ShortName|PathEscape}}">
-									{{svg "octicon-tag" 16 "gt-mr-2"}}{{.ShortName}}
+								<a class="ui labelled basic tiny button" href="{{$.RepoLink}}/src/tag/{{.ShortName|PathEscape}}">
+									{{svg "octicon-tag"}} {{.ShortName}}
 								</a>
 							{{else if eq $refGroup "remotes"}}
-								<a class="ui labelled icon button basic tiny gt-mr-2" href="{{$.RepoLink}}/src/commit/{{$commit.Rev|PathEscape}}">
-									{{svg "octicon-cross-reference" 16 "gt-mr-2"}}{{.ShortName}}
+								<a class="ui labelled basic tiny button" href="{{$.RepoLink}}/src/commit/{{$commit.Rev|PathEscape}}">
+									{{svg "octicon-cross-reference"}} {{.ShortName}}
 								</a>
 							{{else if eq $refGroup "heads"}}
-								<a class="ui labelled icon button basic tiny gt-mr-2" href="{{$.RepoLink}}/src/branch/{{.ShortName|PathEscape}}">
-									{{svg "octicon-git-branch" 16 "gt-mr-2"}}{{.ShortName}}
+								<a class="ui labelled basic tiny button" href="{{$.RepoLink}}/src/branch/{{.ShortName|PathEscape}}">
+									{{svg "octicon-git-branch"}} {{.ShortName}}
 								</a>
 							{{else}}
 								<!-- Unknown ref type .Name -->
@@ -64,10 +64,10 @@
 							{{if $commit.User.FullName}}
 								{{$userName = $commit.User.FullName}}
 							{{end}}
-							<span class="gt-mr-2">{{avatar $.Context $commit.User}}</span>
+							<span class="gt-mr-2">{{ctx.AvatarUtils.Avatar $commit.User}}</span>
 							<a href="{{$commit.User.HomeLink}}">{{$userName}}</a>
 						{{else}}
-							<span class="gt-mr-2">{{avatarByEmail $.Context $commit.Commit.Author.Email $userName}}</span>
+							<span class="gt-mr-2">{{ctx.AvatarUtils.AvatarByEmail $commit.Commit.Author.Email $userName}}</span>
 							{{$userName}}
 						{{end}}
 					</span>

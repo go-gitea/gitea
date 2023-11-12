@@ -1,0 +1,26 @@
+<div id="issue-filters" class="issue-list-toolbar">
+	<div class="issue-list-toolbar-left">
+		{{if and ($.CanWriteIssuesOrPulls) (gt (len .Issues) 0)}}
+			<input type="checkbox" autocomplete="off" class="issue-checkbox-all gt-mr-4" title="{{ctx.Locale.Tr "repo.issues.action_check_all"}}">
+		{{end}}
+		{{template "repo/issue/openclose" .}}
+		<!-- Total Tracked Time -->
+		{{if .TotalTrackedTime}}
+			<div class="ui compact tiny secondary menu">
+				<span class="item" data-tooltip-content='{{ctx.Locale.Tr "tracked_time_summary"}}'>
+					{{svg "octicon-clock"}}
+					{{.TotalTrackedTime | Sec2Time}}
+				</span>
+			</div>
+		{{end}}
+	</div>
+	<div class="issue-list-toolbar-right">
+		<div class="ui secondary filter menu labels">
+			{{if .PageIsMilestones}}
+				{{template "repo/issue/milestone/filter_list" .}}
+			{{else}}
+				{{template "repo/issue/filter_list" .}}
+			{{end}}
+		</div>
+	</div>
+</div>

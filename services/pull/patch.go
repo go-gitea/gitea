@@ -62,14 +62,19 @@ func TestPatch(pr *issues_model.PullRequest) error {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("TestPatch: %s", pr))
 	defer finished()
 
-	// Clone base repo.
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
 	if err != nil {
-		log.Error("createTemporaryRepoForPR %-v: %v", pr, err)
+		if !git_model.IsErrBranchNotExist(err) {
+			log.Error("CreateTemporaryRepoForPR %-v: %v", pr, err)
+		}
 		return err
 	}
 	defer cancel()
 
+	return testPatch(ctx, prCtx, pr)
+}
+
+func testPatch(ctx context.Context, prCtx *prContext, pr *issues_model.PullRequest) error {
 	gitRepo, err := git.OpenRepository(ctx, prCtx.tmpBasePath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %w", err)

@@ -42,7 +42,7 @@ func TestDumpAuthSource(t *testing.T) {
 
 	auth_model.RegisterTypeConfig(auth_model.OAuth2, new(TestSource))
 
-	auth_model.CreateSource(&auth_model.Source{
+	auth_model.CreateSource(db.DefaultContext, &auth_model.Source{
 		Type:     auth_model.OAuth2,
 		Name:     "TestSource",
 		IsActive: false,

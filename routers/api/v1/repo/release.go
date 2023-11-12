@@ -64,7 +64,7 @@ func GetRelease(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToRelease(ctx, release))
+	ctx.JSON(http.StatusOK, convert.ToAPIRelease(ctx, ctx.Repo.Repository, release))
 }
 
 // GetLatestRelease gets the most recent non-prerelease, non-draft release of a repository, sorted by created_at
@@ -90,7 +90,7 @@ func GetLatestRelease(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Release"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	release, err := repo_model.GetLatestReleaseByRepoID(ctx.Repo.Repository.ID)
+	release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
 		ctx.Error(http.StatusInternalServerError, "GetLatestRelease", err)
 		return
@@ -105,7 +105,7 @@ func GetLatestRelease(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToRelease(ctx, release))
+	ctx.JSON(http.StatusOK, convert.ToAPIRelease(ctx, ctx.Repo.Repository, release))
 }
 
 // ListReleases list a repository's releases
@@ -150,6 +150,8 @@ func ListReleases(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ReleaseList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	listOptions := utils.GetListOptions(ctx)
 	if listOptions.PageSize == 0 && ctx.FormInt("per_page") != 0 {
 		listOptions.PageSize = ctx.FormInt("per_page")
@@ -174,10 +176,10 @@ func ListReleases(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 			return
 		}
-		rels[i] = convert.ToRelease(ctx, release)
+		rels[i] = convert.ToAPIRelease(ctx, ctx.Repo.Repository, release)
 	}
 
-	filteredCount, err := repo_model.CountReleasesByRepoID(ctx.Repo.Repository.ID, opts)
+	filteredCount, err := repo_model.CountReleasesByRepoID(ctx, ctx.Repo.Repository.ID, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -220,7 +222,7 @@ func CreateRelease(ctx *context.APIContext) {
 	//   "409":
 	//     "$ref": "#/responses/error"
 	form := web.GetForm(ctx).(*api.CreateReleaseOption)
-	rel, err := repo_model.GetRelease(ctx.Repo.Repository.ID, form.TagName)
+	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, form.TagName)
 	if err != nil {
 		if !repo_model.IsErrReleaseNotExist(err) {
 			ctx.Error(http.StatusInternalServerError, "GetRelease", err)
@@ -267,12 +269,12 @@ func CreateRelease(ctx *context.APIContext) {
 		rel.Publisher = ctx.Doer
 		rel.Target = form.Target
 
-		if err = release_service.UpdateRelease(ctx.Doer, ctx.Repo.GitRepo, rel, nil, nil, nil); err != nil {
+		if err = release_service.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo, rel, nil, nil, nil); err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateRelease", err)
 			return
 		}
 	}
-	ctx.JSON(http.StatusCreated, convert.ToRelease(ctx, rel))
+	ctx.JSON(http.StatusCreated, convert.ToAPIRelease(ctx, ctx.Repo.Repository, rel))
 }
 
 // EditRelease edit a release
@@ -342,7 +344,7 @@ func EditRelease(ctx *context.APIContext) {
 	if form.IsPrerelease != nil {
 		rel.IsPrerelease = *form.IsPrerelease
 	}
-	if err := release_service.UpdateRelease(ctx.Doer, ctx.Repo.GitRepo, rel, nil, nil, nil); err != nil {
+	if err := release_service.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo, rel, nil, nil, nil); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateRelease", err)
 		return
 	}
@@ -357,7 +359,7 @@ func EditRelease(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToRelease(ctx, rel))
+	ctx.JSON(http.StatusOK, convert.ToAPIRelease(ctx, ctx.Repo.Repository, rel))
 }
 
 // DeleteRelease delete a release from a repository

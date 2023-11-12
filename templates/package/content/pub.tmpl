@@ -1,18 +1,18 @@
 {{if eq .PackageDescriptor.Package.Type "pub"}}
-	<h4 class="ui top attached header">{{.locale.Tr "packages.installation"}}</h4>
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.pub.install"}}</label>
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.pub.install"}}</label>
 				<div class="markup"><pre class="code-block"><code>dart pub add {{.PackageDescriptor.Package.Name}}:{{.PackageDescriptor.Version.Version}} --hosted-url=<gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/pub/"></gitea-origin-url></code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{.locale.Tr "packages.pub.documentation" "https://docs.gitea.io/en-us/usage/packages/pub/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Pub" "https://docs.gitea.com/usage/packages/pub/" | Safe}}</label>
 			</div>
 		</div>
 	</div>
 	{{if or .PackageDescriptor.Metadata.Description .PackageDescriptor.Metadata.Readme}}
-		<h4 class="ui top attached header">{{.locale.Tr "packages.about"}}</h4>
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
 		{{if .PackageDescriptor.Metadata.Description}}<div class="ui attached segment">{{.PackageDescriptor.Metadata.Description}}</div>{{end}}
 		{{if .PackageDescriptor.Metadata.Readme}}<div class="ui attached segment">{{RenderMarkdownToHtml $.Context .PackageDescriptor.Metadata.Readme}}</div>{{end}}
 	{{end}}

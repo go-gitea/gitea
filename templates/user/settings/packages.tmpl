@@ -4,19 +4,19 @@
 		{{template "package/shared/cargo" .}}
 
 		<h4 class="ui top attached header">
-			{{.locale.Tr "packages.owner.settings.chef.title"}}
+			{{ctx.Locale.Tr "packages.owner.settings.chef.title"}}
 		</h4>
 		<div class="ui attached segment">
 			<div class="ui form">
 				<div class="field">
-					<label>{{$.locale.Tr "packages.owner.settings.chef.keypair.description"}}</label>
+					<label>{{ctx.Locale.Tr "packages.owner.settings.chef.keypair.description"}}</label>
 				</div>
 				<form class="field" action="{{.Link}}/chef/regenerate_keypair" method="post">
 					{{.CsrfTokenHtml}}
-					<button class="ui green button">{{$.locale.Tr "packages.owner.settings.chef.keypair"}}</button>
+					<button class="ui primary button">{{ctx.Locale.Tr "packages.owner.settings.chef.keypair"}}</button>
 				</form>
 				<div class="field">
-					<label>{{.locale.Tr "packages.chef.documentation" "https://docs.gitea.io/en-us/usage/packages/chef/" | Safe}}</label>
+					<label>{{ctx.Locale.Tr "packages.registry.documentation" "Chef" "https://docs.gitea.com/usage/packages/chef/" | Safe}}</label>
 				</div>
 			</div>
 		</div>

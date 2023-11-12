@@ -10,7 +10,6 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -35,13 +34,13 @@ type uploadInfo struct {
 	lfsMetaObject *git_model.LFSMetaObject
 }
 
-func cleanUpAfterFailure(infos *[]uploadInfo, t *TemporaryUploadRepository, original error) error {
+func cleanUpAfterFailure(ctx context.Context, infos *[]uploadInfo, t *TemporaryUploadRepository, original error) error {
 	for _, info := range *infos {
 		if info.lfsMetaObject == nil {
 			continue
 		}
 		if !info.lfsMetaObject.Existing {
-			if _, err := git_model.RemoveLFSMetaObjectByOid(db.DefaultContext, t.repo.ID, info.lfsMetaObject.Oid); err != nil {
+			if _, err := git_model.RemoveLFSMetaObjectByOid(ctx, t.repo.ID, info.lfsMetaObject.Oid); err != nil {
 				original = fmt.Errorf("%w, %v", original, err) // We wrap the original error - as this is the underlying error that required the fallback
 			}
 		}
@@ -55,7 +54,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		return nil
 	}
 
-	uploads, err := repo_model.GetUploadsByUUIDs(opts.Files)
+	uploads, err := repo_model.GetUploadsByUUIDs(ctx, opts.Files)
 	if err != nil {
 		return fmt.Errorf("GetUploadsByUUIDs [uuids: %v]: %w", opts.Files, err)
 	}
@@ -147,7 +146,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		infos[i].lfsMetaObject, err = git_model.NewLFSMetaObject(ctx, infos[i].lfsMetaObject)
 		if err != nil {
 			// OK Now we need to cleanup
-			return cleanUpAfterFailure(&infos, t, err)
+			return cleanUpAfterFailure(ctx, &infos, t, err)
 		}
 		// Don't move the files yet - we need to ensure that
 		// everything can be inserted first
@@ -158,7 +157,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	contentStore := lfs.NewContentStore()
 	for _, info := range infos {
 		if err := uploadToLFSContentStore(info, contentStore); err != nil {
-			return cleanUpAfterFailure(&infos, t, err)
+			return cleanUpAfterFailure(ctx, &infos, t, err)
 		}
 	}
 
@@ -167,7 +166,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		return err
 	}
 
-	return repo_model.DeleteUploads(uploads...)
+	return repo_model.DeleteUploads(ctx, uploads...)
 }
 
 func copyUploadedLFSFileIntoRepository(info *uploadInfo, filename2attribute2info map[string]map[string]string, t *TemporaryUploadRepository, treePath string) error {

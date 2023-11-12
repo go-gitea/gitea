@@ -206,7 +206,7 @@ func ServeContentByReader(r *http.Request, w http.ResponseWriter, filePath strin
 	_, _ = io.CopyN(w, reader, partialLength) // just like http.ServeContent, not necessary to handle the error
 }
 
-func ServeContentByReadSeeker(r *http.Request, w http.ResponseWriter, filePath string, modTime time.Time, reader io.ReadSeeker) {
+func ServeContentByReadSeeker(r *http.Request, w http.ResponseWriter, filePath string, modTime *time.Time, reader io.ReadSeeker) {
 	buf := make([]byte, mimeDetectionBufferLen)
 	n, err := util.ReadAtMost(reader, buf)
 	if err != nil {
@@ -221,5 +221,8 @@ func ServeContentByReadSeeker(r *http.Request, w http.ResponseWriter, filePath s
 		buf = buf[:n]
 	}
 	setServeHeadersByFile(r, w, filePath, buf)
-	http.ServeContent(w, r, path.Base(filePath), modTime, reader)
+	if modTime == nil {
+		modTime = &time.Time{}
+	}
+	http.ServeContent(w, r, path.Base(filePath), *modTime, reader)
 }

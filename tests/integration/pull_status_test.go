@@ -52,8 +52,8 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			api.CommitStatusPending,
 			api.CommitStatusError,
 			api.CommitStatusFailure,
-			api.CommitStatusWarning,
 			api.CommitStatusSuccess,
+			api.CommitStatusWarning,
 		}
 
 		statesIcons := map[api.CommitStatusState]string{

@@ -13,66 +13,64 @@
 					{{$n := len .TreeNames}}
 					{{$l := Eval $n "-" 1}}
 					{{range $i, $v := .TreeNames}}
-						<div class="divider"> / </div>
+						<div class="breadcrumb-divider">/</div>
 						{{if eq $i $l}}
-							<input id="file-name" value="{{$v}}" placeholder="{{$.locale.Tr "repo.editor.name_your_file"}}" data-editorconfig="{{$.Editorconfig}}" required autofocus>
-							<span data-tooltip-content="{{$.locale.Tr "repo.editor.filename_help"}}">{{svg "octicon-info"}}</span>
+							<input id="file-name" value="{{$v}}" placeholder="{{ctx.Locale.Tr "repo.editor.name_your_file"}}" data-editorconfig="{{$.EditorconfigJson}}" required autofocus>
+							<span data-tooltip-content="{{ctx.Locale.Tr "repo.editor.filename_help"}}">{{svg "octicon-info"}}</span>
 						{{else}}
 							<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
 						{{end}}
 					{{end}}
-					<span>{{.locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}{{if not .IsNewFile}}/{{PathEscapeSegments .TreePath}}{{end}}">{{.locale.Tr "repo.editor.cancel_lower"}}</a></span>
+					<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}{{if not .IsNewFile}}/{{PathEscapeSegments .TreePath}}{{end}}">{{ctx.Locale.Tr "repo.editor.cancel_lower"}}</a></span>
 					<input type="hidden" id="tree_path" name="tree_path" value="{{.TreePath}}" required>
 				</div>
 			</div>
 			<div class="field">
 				<div class="ui top attached tabular menu" data-write="write" data-preview="preview" data-diff="diff">
-					<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{.locale.Tr "repo.editor.new_file"}}{{else}}{{.locale.Tr "repo.editor.edit_file"}}{{end}}</a>
-					<a class="item" data-tab="preview" data-url="{{.Repository.Link}}/markup" data-context="{{.RepoLink}}/src/{{.BranchNameSubURL}}" data-markup-mode="file">{{svg "octicon-eye"}} {{.locale.Tr "preview"}}</a>
+					<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{ctx.Locale.Tr "repo.editor.new_file"}}{{else}}{{ctx.Locale.Tr "repo.editor.edit_file"}}{{end}}</a>
+					<a class="item" data-tab="preview" data-url="{{.Repository.Link}}/markup" data-context="{{.RepoLink}}/src/{{.BranchNameSubURL}}" data-markup-mode="file">{{svg "octicon-eye"}} {{ctx.Locale.Tr "preview"}}</a>
 					{{if not .IsNewFile}}
-					<a class="item" data-tab="diff" data-url="{{.RepoLink}}/_preview/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}" data-context="{{.BranchLink}}">{{svg "octicon-diff"}} {{.locale.Tr "repo.editor.preview_changes"}}</a>
+					<a class="item" data-tab="diff" data-url="{{.RepoLink}}/_preview/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}" data-context="{{.BranchLink}}">{{svg "octicon-diff"}} {{ctx.Locale.Tr "repo.editor.preview_changes"}}</a>
 					{{end}}
 				</div>
 				<div class="ui bottom attached active tab segment" data-tab="write">
-					<textarea id="edit_area" name="content" class="gt-hidden" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
+					<textarea id="edit_area" name="content" class="gt-hidden"
+						data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
 						data-url="{{.Repository.Link}}/markup"
 						data-context="{{.RepoLink}}"
 						data-previewable-extensions="{{.PreviewableExtensions}}"
-						data-line-wrap-extensions="{{.LineWrapExtensions}}">
-{{.FileContent}}</textarea>
+						data-line-wrap-extensions="{{.LineWrapExtensions}}"
+						data-initial-value="{{JsonUtils.EncodeToString .FileContent}}"></textarea>
 					<div class="editor-loading is-loading"></div>
 				</div>
 				<div class="ui bottom attached tab segment markup" data-tab="preview">
-					{{.locale.Tr "loading"}}
+					{{ctx.Locale.Tr "loading"}}
 				</div>
 				<div class="ui bottom attached tab segment diff edit-diff" data-tab="diff">
-					{{.locale.Tr "loading"}}
+					{{ctx.Locale.Tr "loading"}}
 				</div>
 			</div>
 			{{template "repo/editor/commit_form" .}}
 		</form>
 	</div>
-
-
 	<div class="ui g-modal-confirm modal" id="edit-empty-content-modal">
 		<div class="header">
 			{{svg "octicon-file"}}
-			{{.locale.Tr "repo.editor.commit_empty_file_header"}}
+			{{ctx.Locale.Tr "repo.editor.commit_empty_file_header"}}
 		</div>
 		<div class="center content">
-			<p>{{.locale.Tr "repo.editor.commit_empty_file_text"}}</p>
+			<p>{{ctx.Locale.Tr "repo.editor.commit_empty_file_text"}}</p>
 		</div>
 		<div class="actions">
-			<button class="ui red cancel button">
+			<button class="ui cancel button">
 				{{svg "octicon-x"}}
-				{{.locale.Tr "repo.editor.cancel"}}
+				{{ctx.Locale.Tr "repo.editor.cancel"}}
 			</button>
-			<button class="ui green ok button">
+			<button class="ui primary ok button">
 				{{svg "fontawesome-save"}}
-				{{.locale.Tr "repo.editor.commit_changes"}}
+				{{ctx.Locale.Tr "repo.editor.commit_changes"}}
 			</button>
 		</div>
 	</div>
-
 </div>
 {{template "base/footer" .}}

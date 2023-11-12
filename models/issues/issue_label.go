@@ -39,7 +39,7 @@ func newIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_m
 	}
 
 	if err = issue.LoadRepo(ctx); err != nil {
-		return
+		return err
 	}
 
 	opts := &CreateCommentOptions{
@@ -53,6 +53,8 @@ func newIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_m
 	if _, err = CreateComment(ctx, opts); err != nil {
 		return err
 	}
+
+	issue.Labels = append(issue.Labels, label)
 
 	return updateLabelCols(ctx, label, "num_issues", "num_closed_issue")
 }
@@ -81,12 +83,12 @@ func RemoveDuplicateExclusiveIssueLabels(ctx context.Context, issue *Issue, labe
 }
 
 // NewIssueLabel creates a new issue-label relation.
-func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error) {
-	if HasIssueLabel(db.DefaultContext, issue.ID, label.ID) {
+func NewIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_model.User) (err error) {
+	if HasIssueLabel(ctx, issue.ID, label.ID) {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -122,11 +124,20 @@ func newIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *us
 	if err = issue.LoadRepo(ctx); err != nil {
 		return err
 	}
+
+	if err = issue.LoadLabels(ctx); err != nil {
+		return err
+	}
+
 	for _, l := range labels {
 		// Don't add already present labels and invalid labels
 		if HasIssueLabel(ctx, issue.ID, l.ID) ||
 			(l.RepoID != issue.RepoID && l.OrgID != issue.Repo.OwnerID) {
 			continue
+		}
+
+		if err = RemoveDuplicateExclusiveIssueLabels(ctx, issue, l, doer); err != nil {
+			return err
 		}
 
 		if err = newIssueLabel(ctx, issue, l, doer); err != nil {
@@ -138,8 +149,8 @@ func newIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *us
 }
 
 // NewIssueLabels creates a list of issue-label relations.
-func NewIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func NewIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *user_model.User) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -168,7 +179,7 @@ func deleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *use
 	}
 
 	if err = issue.LoadRepo(ctx); err != nil {
-		return
+		return err
 	}
 
 	opts := &CreateCommentOptions{
@@ -348,8 +359,8 @@ func clearIssueLabels(ctx context.Context, issue *Issue, doer *user_model.User) 
 
 // ClearIssueLabels removes all issue labels as the given user.
 // Triggers appropriate WebHooks, if any.
-func ClearIssueLabels(issue *Issue, doer *user_model.User) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ClearIssueLabels(ctx context.Context, issue *Issue, doer *user_model.User) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -421,8 +432,8 @@ func RemoveDuplicateExclusiveLabels(labels []*Label) []*Label {
 
 // ReplaceIssueLabels removes all current labels and add new labels to the issue.
 // Triggers appropriate WebHooks, if any.
-func ReplaceIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func ReplaceIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *user_model.User) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

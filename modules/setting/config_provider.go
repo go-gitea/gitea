@@ -174,9 +174,16 @@ func (s *iniConfigSection) ChildSections() (sections []ConfigSection) {
 	return sections
 }
 
+func configProviderLoadOptions() ini.LoadOptions {
+	return ini.LoadOptions{
+		KeyValueDelimiterOnWrite: " = ",
+		IgnoreContinuation:       true,
+	}
+}
+
 // NewConfigProviderFromData this function is mainly for testing purpose
 func NewConfigProviderFromData(configContent string) (ConfigProvider, error) {
-	cfg, err := ini.Load(strings.NewReader(configContent))
+	cfg, err := ini.LoadSources(configProviderLoadOptions(), strings.NewReader(configContent))
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +197,7 @@ func NewConfigProviderFromData(configContent string) (ConfigProvider, error) {
 // NewConfigProviderFromFile load configuration from file.
 // NOTE: do not print any log except error.
 func NewConfigProviderFromFile(file string, extraConfigs ...string) (ConfigProvider, error) {
-	cfg := ini.Empty(ini.LoadOptions{KeyValueDelimiterOnWrite: " = "})
+	cfg := ini.Empty(configProviderLoadOptions())
 	loadedFromEmpty := true
 
 	if file != "" {
@@ -206,11 +213,9 @@ func NewConfigProviderFromFile(file string, extraConfigs ...string) (ConfigProvi
 		}
 	}
 
-	if len(extraConfigs) > 0 {
-		for _, s := range extraConfigs {
-			if err := cfg.Append([]byte(s)); err != nil {
-				return nil, fmt.Errorf("unable to append more config: %v", err)
-			}
+	for _, s := range extraConfigs {
+		if err := cfg.Append([]byte(s)); err != nil {
+			return nil, fmt.Errorf("unable to append more config: %v", err)
 		}
 	}
 
@@ -316,15 +321,14 @@ func mustMapSetting(rootCfg ConfigProvider, sectionName string, setting any) {
 	}
 }
 
+// DeprecatedWarnings contains the warning message for various deprecations, including: setting option, file/folder, etc
+var DeprecatedWarnings []string
+
 func deprecatedSetting(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		log.Error("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
-	}
-}
-
-func deprecatedSettingFatal(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
-	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		log.Fatal("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
+		msg := fmt.Sprintf("Deprecated config option `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
+		log.Error("%v", msg)
+		DeprecatedWarnings = append(DeprecatedWarnings, msg)
 	}
 }
 
@@ -340,6 +344,7 @@ func NewConfigProviderForLocale(source any, others ...any) (ConfigProvider, erro
 	iniFile, err := ini.LoadSources(ini.LoadOptions{
 		IgnoreInlineComment:         true,
 		UnescapeValueCommentSymbols: true,
+		IgnoreContinuation:          true,
 	}, source, others...)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load locale ini: %w", err)

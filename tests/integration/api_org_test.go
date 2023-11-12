@@ -102,19 +102,19 @@ func TestAPIOrgEdit(t *testing.T) {
 
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
 		org := api.EditOrgOption{
-			FullName:    "User3 organization new full name",
+			FullName:    "Org3 organization new full name",
 			Description: "A new description",
 			Website:     "https://try.gitea.io/new",
 			Location:    "Beijing",
 			Visibility:  "private",
 		}
-		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/user3?token="+token, &org)
+		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3?token="+token, &org)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var apiOrg api.Organization
 		DecodeJSON(t, resp, &apiOrg)
 
-		assert.Equal(t, "user3", apiOrg.Name)
+		assert.Equal(t, "org3", apiOrg.Name)
 		assert.Equal(t, org.FullName, apiOrg.FullName)
 		assert.Equal(t, org.Description, apiOrg.Description)
 		assert.Equal(t, org.Website, apiOrg.Website)
@@ -129,13 +129,13 @@ func TestAPIOrgEditBadVisibility(t *testing.T) {
 
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
 		org := api.EditOrgOption{
-			FullName:    "User3 organization new full name",
+			FullName:    "Org3 organization new full name",
 			Description: "A new description",
 			Website:     "https://try.gitea.io/new",
 			Location:    "Beijing",
 			Visibility:  "badvisibility",
 		}
-		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/user3?token="+token, &org)
+		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3?token="+token, &org)
 		MakeRequest(t, req, http.StatusUnprocessableEntity)
 	})
 }
@@ -170,9 +170,9 @@ func TestAPIGetAll(t *testing.T) {
 	var apiOrgList []*api.Organization
 
 	DecodeJSON(t, resp, &apiOrgList)
-	assert.Len(t, apiOrgList, 9)
-	assert.Equal(t, "org25", apiOrgList[1].FullName)
-	assert.Equal(t, "public", apiOrgList[1].Visibility)
+	assert.Len(t, apiOrgList, 11)
+	assert.Equal(t, "Limited Org 36", apiOrgList[1].FullName)
+	assert.Equal(t, "limited", apiOrgList[1].Visibility)
 
 	// accessing without a token will return only public orgs
 	req = NewRequestf(t, "GET", "/api/v1/orgs")
@@ -180,7 +180,7 @@ func TestAPIGetAll(t *testing.T) {
 
 	DecodeJSON(t, resp, &apiOrgList)
 	assert.Len(t, apiOrgList, 7)
-	assert.Equal(t, "org25", apiOrgList[0].FullName)
+	assert.Equal(t, "org 17", apiOrgList[0].FullName)
 	assert.Equal(t, "public", apiOrgList[0].Visibility)
 }
 

@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/translation"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -191,10 +192,15 @@ func (status *CommitStatus) APIURL(ctx context.Context) string {
 	return status.Repo.APIURL() + "/statuses/" + url.PathEscape(status.SHA)
 }
 
+// LocaleString returns the locale string name of the Status
+func (status *CommitStatus) LocaleString(lang translation.Locale) string {
+	return lang.Tr("repo.commitstatus." + status.State.String())
+}
+
 // CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc
 func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
 	var lastStatus *CommitStatus
-	var state api.CommitStatusState
+	state := api.CommitStatusSuccess
 	for _, status := range statuses {
 		if status.State.NoBetterThan(state) {
 			state = status.State
@@ -283,9 +289,9 @@ func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOp
 		Where("repo_id = ?", repoID).And("sha = ?", sha).
 		Select("max( id ) as id").
 		GroupBy("context_hash").OrderBy("max( id ) desc")
-
-	sess = db.SetSessionPagination(sess, &listOptions)
-
+	if !listOptions.IsListAll() {
+		sess = db.SetSessionPagination(sess, &listOptions)
+	}
 	count, err := sess.FindAndCount(&ids)
 	if err != nil {
 		return nil, count, err
@@ -340,6 +346,53 @@ func GetLatestCommitStatusForPairs(ctx context.Context, repoIDsToLatestCommitSHA
 		// Group the statuses by repo ID
 		for _, status := range statuses {
 			repoStatuses[status.RepoID] = append(repoStatuses[status.RepoID], status)
+		}
+	}
+
+	return repoStatuses, nil
+}
+
+// GetLatestCommitStatusForRepoCommitIDs returns all statuses with a unique context for a given list of repo-sha pairs
+func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, commitIDs []string) (map[string][]*CommitStatus, error) {
+	type result struct {
+		ID  int64
+		Sha string
+	}
+
+	results := make([]result, 0, len(commitIDs))
+
+	sess := db.GetEngine(ctx).Table(&CommitStatus{})
+
+	// Create a disjunction of conditions for each repoID and SHA pair
+	conds := make([]builder.Cond, 0, len(commitIDs))
+	for _, sha := range commitIDs {
+		conds = append(conds, builder.Eq{"sha": sha})
+	}
+	sess = sess.Where(builder.Eq{"repo_id": repoID}.And(builder.Or(conds...))).
+		Select("max( id ) as id, sha").
+		GroupBy("context_hash, sha").OrderBy("max( id ) desc")
+
+	err := sess.Find(&results)
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]int64, 0, len(results))
+	repoStatuses := make(map[string][]*CommitStatus)
+	for _, result := range results {
+		ids = append(ids, result.ID)
+	}
+
+	statuses := make([]*CommitStatus, 0, len(ids))
+	if len(ids) > 0 {
+		err = db.GetEngine(ctx).In("id", ids).Find(&statuses)
+		if err != nil {
+			return nil, err
+		}
+
+		// Group the statuses by repo ID
+		for _, status := range statuses {
+			repoStatuses[status.SHA] = append(repoStatuses[status.SHA], status)
 		}
 	}
 
@@ -461,7 +514,7 @@ func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo
 			user_model.ValidateCommitsWithEmails(ctx, commits),
 			repo.GetTrustModel(),
 			func(user *user_model.User) (bool, error) {
-				return repo_model.IsOwnerMemberCollaborator(repo, user.ID)
+				return repo_model.IsOwnerMemberCollaborator(ctx, repo, user.ID)
 			},
 		),
 		repo,

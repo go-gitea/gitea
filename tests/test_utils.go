@@ -30,7 +30,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func exitf(format string, args ...interface{}) {
+func exitf(format string, args ...any) {
 	fmt.Printf(format+"\n", args...)
 	os.Exit(1)
 }
@@ -42,6 +42,9 @@ func InitTest(requireGitea bool) {
 	if giteaRoot == "" {
 		exitf("Environment variable $GITEA_ROOT not set")
 	}
+
+	// TODO: Speedup tests that rely on the event source ticker, confirm whether there is any bug or failure.
+	// setting.UI.Notification.EventSourceUpdateTime = time.Second
 
 	setting.IsInTesting = true
 	setting.AppWorkPath = giteaRoot
@@ -176,9 +179,23 @@ func InitTest(requireGitea bool) {
 	routers.InitWebInstalled(graceful.GetManager().HammerContext())
 }
 
+func PrepareAttachmentsStorage(t testing.TB) {
+	// prepare attachments directory and files
+	assert.NoError(t, storage.Clean(storage.Attachments))
+
+	s, err := storage.NewStorage(setting.LocalStorageType, &setting.Storage{
+		Path: filepath.Join(filepath.Dir(setting.AppPath), "tests", "testdata", "data", "attachments"),
+	})
+	assert.NoError(t, err)
+	assert.NoError(t, s.IterateObjects("", func(p string, obj storage.Object) error {
+		_, err = storage.Copy(storage.Attachments, p, s, p)
+		return err
+	}))
+}
+
 func PrepareTestEnv(t testing.TB, skip ...int) func() {
 	t.Helper()
-	ourSkip := 2
+	ourSkip := 1
 	if len(skip) > 0 {
 		ourSkip += skip[0]
 	}
@@ -247,6 +264,6 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 }
 
 // Printf takes a format and args and prints the string to os.Stdout
-func Printf(format string, args ...interface{}) {
+func Printf(format string, args ...any) {
 	testlogger.Printf(format, args...)
 }

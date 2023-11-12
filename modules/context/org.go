@@ -24,6 +24,7 @@ type Organization struct {
 	Organization     *organization.Organization
 	OrgLink          string
 	CanCreateOrgRepo bool
+	PublicMemberOnly bool // Only display public members
 
 	Team  *organization.Team
 	Teams []*organization.Team
@@ -45,7 +46,7 @@ func GetOrganizationByParams(ctx *Context) {
 	ctx.Org.Organization, err = organization.GetOrgByName(ctx, orgName)
 	if err != nil {
 		if organization.IsErrOrgNotExist(err) {
-			redirectUserID, err := user_model.LookupUserRedirect(orgName)
+			redirectUserID, err := user_model.LookupUserRedirect(ctx, orgName)
 			if err == nil {
 				RedirectToUser(ctx.Base, orgName, redirectUserID)
 			} else if user_model.IsErrUserRedirectNotExist(err) {
@@ -127,7 +128,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		ctx.Org.IsTeamAdmin = true
 		ctx.Org.CanCreateOrgRepo = true
 	} else if ctx.IsSigned {
-		ctx.Org.IsOwner, err = org.IsOwnedBy(ctx.Doer.ID)
+		ctx.Org.IsOwner, err = org.IsOwnedBy(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("IsOwnedBy", err)
 			return
@@ -139,12 +140,12 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			ctx.Org.IsTeamAdmin = true
 			ctx.Org.CanCreateOrgRepo = true
 		} else {
-			ctx.Org.IsMember, err = org.IsOrgMember(ctx.Doer.ID)
+			ctx.Org.IsMember, err = org.IsOrgMember(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("IsOrgMember", err)
 				return
 			}
-			ctx.Org.CanCreateOrgRepo, err = org.CanCreateOrgRepo(ctx.Doer.ID)
+			ctx.Org.CanCreateOrgRepo, err = org.CanCreateOrgRepo(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("CanCreateOrgRepo", err)
 				return
@@ -161,11 +162,10 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	}
 	ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
 	ctx.Data["IsOrganizationMember"] = ctx.Org.IsMember
-	ctx.Data["IsProjectEnabled"] = true
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["IsPublicMember"] = func(uid int64) bool {
-		is, _ := organization.IsPublicMembership(ctx.Org.Organization.ID, uid)
+		is, _ := organization.IsPublicMembership(ctx, ctx.Org.Organization.ID, uid)
 		return is
 	}
 	ctx.Data["CanCreateOrgRepo"] = ctx.Org.CanCreateOrgRepo
@@ -173,13 +173,25 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	ctx.Org.OrgLink = org.AsUser().OrganisationLink()
 	ctx.Data["OrgLink"] = ctx.Org.OrgLink
 
+	// Member
+	ctx.Org.PublicMemberOnly = ctx.Doer == nil || !ctx.Org.IsMember && !ctx.Doer.IsAdmin
+	opts := &organization.FindOrgMembersOpts{
+		OrgID:      org.ID,
+		PublicOnly: ctx.Org.PublicMemberOnly,
+	}
+	ctx.Data["NumMembers"], err = organization.CountOrgMembers(ctx, opts)
+	if err != nil {
+		ctx.ServerError("CountOrgMembers", err)
+		return
+	}
+
 	// Team.
 	if ctx.Org.IsMember {
 		shouldSeeAllTeams := false
 		if ctx.Org.IsOwner {
 			shouldSeeAllTeams = true
 		} else {
-			teams, err := org.GetUserTeams(ctx.Doer.ID)
+			teams, err := org.GetUserTeams(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("GetUserTeams", err)
 				return
@@ -192,18 +204,19 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			}
 		}
 		if shouldSeeAllTeams {
-			ctx.Org.Teams, err = org.LoadTeams()
+			ctx.Org.Teams, err = org.LoadTeams(ctx)
 			if err != nil {
 				ctx.ServerError("LoadTeams", err)
 				return
 			}
 		} else {
-			ctx.Org.Teams, err = org.GetUserTeams(ctx.Doer.ID)
+			ctx.Org.Teams, err = org.GetUserTeams(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("GetUserTeams", err)
 				return
 			}
 		}
+		ctx.Data["NumTeams"] = len(ctx.Org.Teams)
 	}
 
 	teamName := ctx.Params(":team")
@@ -237,6 +250,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			return
 		}
 	}
+	ctx.Data["ContextUser"] = ctx.ContextUser
 
 	ctx.Data["CanReadProjects"] = ctx.Org.CanReadUnit(ctx, unit.TypeProjects)
 	ctx.Data["CanReadPackages"] = ctx.Org.CanReadUnit(ctx, unit.TypePackages)

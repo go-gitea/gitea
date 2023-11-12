@@ -86,7 +86,7 @@ func ListNotifications(ctx *context.APIContext) {
 	}
 
 	ctx.SetTotalCountHeader(totalCount)
-	ctx.JSON(http.StatusOK, convert.ToNotifications(nl))
+	ctx.JSON(http.StatusOK, convert.ToNotifications(ctx, nl))
 }
 
 // ReadNotifications mark notification threads as read, unread, or pinned
@@ -132,7 +132,7 @@ func ReadNotifications(ctx *context.APIContext) {
 	if len(qLastRead) > 0 {
 		tmpLastRead, err := time.Parse(time.RFC3339, qLastRead)
 		if err != nil {
-			ctx.InternalServerError(err)
+			ctx.Error(http.StatusBadRequest, "Parse", err)
 			return
 		}
 		if !tmpLastRead.IsZero() {
@@ -167,7 +167,7 @@ func ReadNotifications(ctx *context.APIContext) {
 			return
 		}
 		_ = notif.LoadAttributes(ctx)
-		changed = append(changed, convert.ToNotificationThread(notif))
+		changed = append(changed, convert.ToNotificationThread(ctx, notif))
 	}
 
 	ctx.JSON(http.StatusResetContent, changed)

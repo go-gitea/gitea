@@ -1,13 +1,13 @@
 <p align="center">
   <a href="https://gitea.io/">
-    <img alt="Gitea" src="https://raw.githubusercontent.com/go-gitea/gitea/main/public/img/gitea.svg" width="220"/>
+    <img alt="Gitea" src="https://raw.githubusercontent.com/go-gitea/gitea/main/public/assets/img/gitea.svg" width="220"/>
   </a>
 </p>
 <h1 align="center">Gitea - Git with a cup of tea</h1>
 
 <p align="center">
-  <a href="https://drone.gitea.io/go-gitea/gitea" title="Build Status">
-    <img src="https://drone.gitea.io/api/badges/go-gitea/gitea/status.svg?ref=refs/heads/main">
+  <a href="https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml?query=branch%3Amain" title="Release Nightly">
+    <img src="https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml/badge.svg?branch=main">
   </a>
   <a href="https://discord.gg/Gitea" title="Join the Discord chat at https://discord.gg/Gitea">
     <img src="https://img.shields.io/discord/322538954119184384.svg">
@@ -64,7 +64,7 @@ architectures that are supported by Go, including Linux, macOS, and
 Windows on x86, amd64, ARM and PowerPC architectures.
 You can try it out using [the online demo](https://try.gitea.io/).
 This project has been
-[forked](https://blog.gitea.io/2016/12/welcome-to-gitea/) from
+[forked](https://blog.gitea.com/welcome-to-gitea/) from
 [Gogs](https://gogs.io) since November of 2016, but a lot has changed.
 
 ## Building
@@ -79,14 +79,14 @@ or if SQLite support is required:
 
 The `build` target is split into two sub-targets:
 
-- `make backend` which requires [Go Stable](https://go.dev/dl/), required version is defined in [go.mod](/go.mod).
-- `make frontend` which requires [Node.js LTS](https://nodejs.org/en/download/) or greater and Internet connectivity to download npm dependencies.
+- `make backend` which requires [Go Stable](https://go.dev/dl/), the required version is defined in [go.mod](/go.mod).
+- `make frontend` which requires [Node.js LTS](https://nodejs.org/en/download/) or greater.
 
-When building from the official source tarballs which include pre-built frontend files, the `frontend` target will not be triggered, making it possible to build without Node.js and Internet connectivity.
+Internet connectivity is required to download the go and npm modules. When building from the official source tarballs which include pre-built frontend files, the `frontend` target will not be triggered, making it possible to build without Node.js.
 
 Parallelism (`make -j <num>`) is not supported.
 
-More info: https://docs.gitea.io/en-us/install-from-source/
+More info: https://docs.gitea.com/installation/install-from-source
 
 ## Using
 
@@ -110,18 +110,16 @@ Translations are done through Crowdin. If you want to translate to a new languag
 
 You can also just create an issue for adding a language or ask on discord on the #translation channel. If you need context or find some translation issues, you can leave a comment on the string or ask on Discord. For general translation questions there is a section in the docs. Currently a bit empty but we hope to fill it as questions pop up.
 
-https://docs.gitea.io/en-us/contributing/translation-guidelines/
+https://docs.gitea.com/contributing/localization
 
 [![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea)
 
 ## Further information
 
-For more information and instructions about how to install Gitea, please look at our [documentation](https://docs.gitea.io/en-us/).
+For more information and instructions about how to install Gitea, please look at our [documentation](https://docs.gitea.com/).
 If you have questions that are not covered by the documentation, you can get in contact with us on our [Discord server](https://discord.gg/Gitea) or create  a post in the [discourse forum](https://discourse.gitea.io/).
 
 We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea).
-
-The Hugo-based documentation theme is hosted at [gitea/theme](https://gitea.com/gitea/theme).
 
 The official Gitea CLI is developed at [gitea/tea](https://gitea.com/gitea/tea).
 
@@ -151,7 +149,6 @@ Support this project by becoming a sponsor. Your logo will show up here with a l
 <a href="https://opencollective.com/gitea/sponsor/7/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/7/avatar.svg"></a>
 <a href="https://opencollective.com/gitea/sponsor/8/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/8/avatar.svg"></a>
 <a href="https://opencollective.com/gitea/sponsor/9/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/9/avatar.svg"></a>
-<a href="https://cynkra.com/" target="_blank"><img src="https://images.opencollective.com/cynkra/logo/square/64/192.png"></a>
 
 ## FAQ
 

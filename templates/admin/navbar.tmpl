@@ -1,69 +1,94 @@
-<div class="four wide column">
+<div class="flex-container-nav">
 	<div class="ui fluid vertical menu">
-		<div class="header item">{{.locale.Tr "settings"}}</div>
+		<div class="header item">{{ctx.Locale.Tr "admin.settings"}}</div>
 		<a class="{{if .PageIsAdminDashboard}}active {{end}}item" href="{{AppSubUrl}}/admin">
-			{{.locale.Tr "admin.dashboard"}}
+			{{ctx.Locale.Tr "admin.dashboard"}}
 		</a>
-		<a class="{{if .PageIsAdminUsers}}active {{end}}item" href="{{AppSubUrl}}/admin/users">
-			{{.locale.Tr "admin.users"}}
-		</a>
-		<a class="{{if .PageIsAdminOrganizations}}active {{end}}item" href="{{AppSubUrl}}/admin/orgs">
-			{{.locale.Tr "admin.organizations"}}
-		</a>
-		<a class="{{if .PageIsAdminRepositories}}active {{end}}item" href="{{AppSubUrl}}/admin/repos">
-			{{.locale.Tr "admin.repositories"}}
-		</a>
-		{{if .EnablePackages}}
-			<a class="{{if .PageIsAdminPackages}}active {{end}}item" href="{{AppSubUrl}}/admin/packages">
-				{{.locale.Tr "packages.title"}}
-			</a>
-		{{end}}
-		{{if not DisableWebhooks}}
+		<details class="item toggleable-item" {{if or .PageIsAdminUsers .PageIsAdminEmails .PageIsAdminOrganizations .PageIsAdminAuthentications}}open{{end}}>
+			<summary>{{ctx.Locale.Tr "admin.identity_access"}}</summary>
+			<div class="menu">
+				<a class="{{if .PageIsAdminAuthentications}}active {{end}}item" href="{{AppSubUrl}}/admin/auths">
+					{{ctx.Locale.Tr "admin.authentication"}}
+				</a>
+				<a class="{{if .PageIsAdminOrganizations}}active {{end}}item" href="{{AppSubUrl}}/admin/orgs">
+					{{ctx.Locale.Tr "admin.organizations"}}
+				</a>
+				<a class="{{if .PageIsAdminUsers}}active {{end}}item" href="{{AppSubUrl}}/admin/users">
+					{{ctx.Locale.Tr "admin.users"}}
+				</a>
+				<a class="{{if .PageIsAdminEmails}}active {{end}}item" href="{{AppSubUrl}}/admin/emails">
+					{{ctx.Locale.Tr "admin.emails"}}
+				</a>
+			</div>
+		</details>
+		<details class="item toggleable-item" {{if or .PageIsAdminRepositories (and .EnablePackages .PageIsAdminPackages)}}open{{end}}>
+			<summary>{{ctx.Locale.Tr "admin.assets"}}</summary>
+			<div class="menu">
+				{{if .EnablePackages}}
+					<a class="{{if .PageIsAdminPackages}}active {{end}}item" href="{{AppSubUrl}}/admin/packages">
+						{{ctx.Locale.Tr "packages.title"}}
+					</a>
+				{{end}}
+				<a class="{{if .PageIsAdminRepositories}}active {{end}}item" href="{{AppSubUrl}}/admin/repos">
+					{{ctx.Locale.Tr "admin.repositories"}}
+				</a>
+			</div>
+		</details>
+		<!-- Webhooks and OAuth can be both disabled here, so add this if statement to display different ui -->
+		{{if and (not DisableWebhooks) .EnableOAuth2}}
+			<details class="item toggleable-item" {{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks .PageIsAdminApplications}}open{{end}}>
+				<summary>{{ctx.Locale.Tr "admin.integrations"}}</summary>
+				<div class="menu">
+					<a class="{{if .PageIsAdminApplications}}active {{end}}item" href="{{AppSubUrl}}/admin/applications">
+						{{ctx.Locale.Tr "settings.applications"}}
+					</a>
+					<a class="{{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks}}active {{end}}item" href="{{AppSubUrl}}/admin/hooks">
+						{{ctx.Locale.Tr "admin.hooks"}}
+					</a>
+				</div>
+			</details>
+		{{else}}
+			{{if not DisableWebhooks}}
 			<a class="{{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks}}active {{end}}item" href="{{AppSubUrl}}/admin/hooks">
-				{{.locale.Tr "admin.hooks"}}
+				{{ctx.Locale.Tr "admin.hooks"}}
 			</a>
-		{{end}}
-		<a class="{{if .PageIsAdminAuthentications}}active {{end}}item" href="{{AppSubUrl}}/admin/auths">
-			{{.locale.Tr "admin.authentication"}}
-		</a>
-		<a class="{{if .PageIsAdminEmails}}active {{end}}item" href="{{AppSubUrl}}/admin/emails">
-			{{.locale.Tr "admin.emails"}}
-		</a>
-		{{if .EnableOAuth2}}
-			<a class="{{if .PageIsAdminApplications}}active {{end}}item" href="{{AppSubUrl}}/admin/applications">
-				{{.locale.Tr "settings.applications"}}
-			</a>
+			{{end}}
+			{{if .EnableOAuth2}}
+				<a class="{{if .PageIsAdminApplications}}active {{end}}item" href="{{AppSubUrl}}/admin/applications">
+					{{ctx.Locale.Tr "settings.applications"}}
+				</a>
+			{{end}}
 		{{end}}
 		{{if .EnableActions}}
 		<details class="item toggleable-item" {{if .PageIsSharedSettingsRunners}}open{{end}}>
-			<summary>{{.locale.Tr "actions.actions"}}</summary>
+			<summary>{{ctx.Locale.Tr "actions.actions"}}</summary>
 			<div class="menu">
 				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{AppSubUrl}}/admin/actions/runners">
-					{{.locale.Tr "actions.runners"}}
+					{{ctx.Locale.Tr "actions.runners"}}
 				</a>
 			</div>
 		</details>
 		{{end}}
 		<a class="{{if .PageIsAdminConfig}}active {{end}}item" href="{{AppSubUrl}}/admin/config">
-			{{.locale.Tr "admin.config"}}
+			{{ctx.Locale.Tr "admin.config"}}
 		</a>
 		<a class="{{if .PageIsAdminNotices}}active {{end}}item" href="{{AppSubUrl}}/admin/notices">
-			{{.locale.Tr "admin.notices"}}
+			{{ctx.Locale.Tr "admin.notices"}}
 		</a>
 		<details class="item toggleable-item" {{if or .PageIsAdminMonitorStats .PageIsAdminMonitorCron .PageIsAdminMonitorQueue .PageIsAdminMonitorStacktrace}}open{{end}}>
-			<summary>{{.locale.Tr "admin.monitor"}}</summary>
+			<summary>{{ctx.Locale.Tr "admin.monitor"}}</summary>
 			<div class="menu">
 				<a class="{{if .PageIsAdminMonitorStats}}active {{end}}item" href="{{AppSubUrl}}/admin/monitor/stats">
-					{{.locale.Tr "admin.monitor.stats"}}
+					{{ctx.Locale.Tr "admin.monitor.stats"}}
 				</a>
 				<a class="{{if .PageIsAdminMonitorCron}}active {{end}}item" href="{{AppSubUrl}}/admin/monitor/cron">
-					{{.locale.Tr "admin.monitor.cron"}}
+					{{ctx.Locale.Tr "admin.monitor.cron"}}
 				</a>
 				<a class="{{if .PageIsAdminMonitorQueue}}active {{end}}item" href="{{AppSubUrl}}/admin/monitor/queue">
-					{{.locale.Tr "admin.monitor.queues"}}
+					{{ctx.Locale.Tr "admin.monitor.queues"}}
 				</a>
 				<a class="{{if .PageIsAdminMonitorStacktrace}}active {{end}}item" href="{{AppSubUrl}}/admin/monitor/stacktrace">
-					{{.locale.Tr "admin.monitor.stacktrace"}}
+					{{ctx.Locale.Tr "admin.monitor.stacktrace"}}
 				</a>
 			</div>
 		</details>

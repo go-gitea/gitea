@@ -1,32 +1,34 @@
 {{if .AllowPrincipals}}
 	<h4 class="ui top attached header">
-		{{.locale.Tr "settings.manage_ssh_principals"}}
+		{{ctx.Locale.Tr "settings.manage_ssh_principals"}}
 		<div class="ui right">
 		{{if not .DisableSSH}}
-			<button class="ui primary tiny show-panel button" data-panel="#add-ssh-principal-panel">{{.locale.Tr "settings.add_new_principal"}}</button>
+			<button class="ui primary tiny show-panel button" data-panel="#add-ssh-principal-panel">{{ctx.Locale.Tr "settings.add_new_principal"}}</button>
 		{{else}}
-			<button class="ui primary tiny button disabled">{{.locale.Tr "settings.ssh_disabled"}}</button>
+			<button class="ui primary tiny button disabled">{{ctx.Locale.Tr "settings.ssh_disabled"}}</button>
 		{{end}}
 		</div>
 	</h4>
 	<div class="ui attached segment">
-		<div class="ui key list">
-			<div class="item">
-				{{.locale.Tr "settings.principal_desc"}}
+		<div class="flex-list">
+			<div class="flex-item">
+				{{ctx.Locale.Tr "settings.principal_desc"}}
 			</div>
 			{{range .Principals}}
-				<div class="item">
-					<div class="right floated content">
-						<button class="ui red tiny button delete-button" data-modal-id="delete-principal" data-url="{{$.Link}}/delete?type=principal" data-id="{{.ID}}">
-							{{$.locale.Tr "settings.delete_key"}}
-						</button>
+				<div class="flex-item">
+					<div class="flex-item-leading">
+						<span class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.principal_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
 					</div>
-					<i class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{$.locale.Tr "settings.principal_state_desc"}}"{{end}}>{{svg "octicon-key" 36}}</i>
-					<div class="content">
-						<strong>{{.Name}}</strong>
-						<div class="activity meta">
-							<i>{{$.locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}} —  {{svg "octicon-info" 16}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
+					<div class="flex-item-main">
+						<div class="flex-item-title">{{.Name}}</div>
+						<div class="flex-item-body">
+							<i>{{ctx.Locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}} —  {{svg "octicon-info" 16}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
 						</div>
+					</div>
+					<div class="flex-item-trailing">
+						<button class="ui red tiny button delete-button" data-modal-id="delete-principal" data-url="{{$.Link}}/delete?type=principal" data-id="{{.ID}}">
+							{{ctx.Locale.Tr "settings.delete_key"}}
+						</button>
 					</div>
 				</div>
 			{{end}}
@@ -36,19 +38,19 @@
 
 	<div {{if not .HasPrincipalError}}class="gt-hidden"{{end}} id="add-ssh-principal-panel">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "settings.add_new_principal"}}
+			{{ctx.Locale.Tr "settings.add_new_principal"}}
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_Content}}error{{end}}">
-					<label for="content">{{.locale.Tr "settings.principal_content"}}</label>
+					<label for="content">{{ctx.Locale.Tr "settings.principal_content"}}</label>
 					<input id="ssh-principal-content" name="content" value="{{.content}}" autofocus required>
 				</div>
 				<input name="title" type="hidden" value="principal">
 				<input name="type" type="hidden" value="principal">
-				<button class="ui green button">
-					{{.locale.Tr "settings.add_new_principal"}}
+				<button class="ui primary button">
+					{{ctx.Locale.Tr "settings.add_new_principal"}}
 				</button>
 			</form>
 		</div>
@@ -57,10 +59,10 @@
 	<div class="ui g-modal-confirm delete modal" id="delete-principal">
 		<div class="header">
 			{{svg "octicon-trash"}}
-			{{.locale.Tr "settings.ssh_principal_deletion"}}
+			{{ctx.Locale.Tr "settings.ssh_principal_deletion"}}
 		</div>
 		<div class="content">
-			<p>{{.locale.Tr "settings.ssh_principal_deletion_desc"}}</p>
+			<p>{{ctx.Locale.Tr "settings.ssh_principal_deletion_desc"}}</p>
 		</div>
 		{{template "base/modal_actions_confirm" .}}
 	</div>

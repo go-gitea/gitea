@@ -15,7 +15,7 @@ import (
 )
 
 // ServeBlob download a git.Blob
-func ServeBlob(ctx *context.Base, filePath string, blob *git.Blob, lastModified time.Time) error {
+func ServeBlob(ctx *context.Base, filePath string, blob *git.Blob, lastModified *time.Time) error {
 	if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 		return nil
 	}
@@ -38,6 +38,6 @@ func ServeContentByReader(ctx *context.Base, filePath string, size int64, reader
 	httplib.ServeContentByReader(ctx.Req, ctx.Resp, filePath, size, reader)
 }
 
-func ServeContentByReadSeeker(ctx *context.Base, filePath string, modTime time.Time, reader io.ReadSeeker) {
+func ServeContentByReadSeeker(ctx *context.Base, filePath string, modTime *time.Time, reader io.ReadSeeker) {
 	httplib.ServeContentByReadSeeker(ctx.Req, ctx.Resp, filePath, modTime, reader)
 }

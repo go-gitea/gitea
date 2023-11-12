@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/queue"
@@ -36,7 +37,7 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	assert.NoError(t, err)
 
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-	AddToTaskQueue(pr)
+	AddToTaskQueue(db.DefaultContext, pr)
 
 	assert.Eventually(t, func() bool {
 		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
@@ -53,7 +54,7 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	case id := <-idChan:
 		assert.EqualValues(t, pr.ID, id)
 	case <-time.After(time.Second):
-		assert.Fail(t, "Timeout: nothing was added to pullRequestQueue")
+		assert.FailNow(t, "Timeout: nothing was added to pullRequestQueue")
 	}
 
 	has, err = prPatchCheckerQueue.Has(strconv.FormatInt(pr.ID, 10))

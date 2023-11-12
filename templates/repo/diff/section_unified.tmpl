@@ -38,25 +38,25 @@
 				<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{$file.NameHash}}L{{$line.LeftIdx}}{{end}}"></span></td>
 				<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{$file.NameHash}}R{{$line.RightIdx}}{{end}}"></span></td>
 			{{end}}
-			{{$inlineDiff := $section.GetComputedInlineDiffFor $line $.root.locale -}}
+			{{$inlineDiff := $section.GetComputedInlineDiffFor $line ctx.Locale -}}
 			<td class="lines-escape">
 				{{- if $inlineDiff.EscapeStatus.Escaped -}}
-					<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff "locale" $.root.locale}}"></button>
+					<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"></button>
 				{{- end -}}
 			</td>
 			<td class="lines-type-marker"><span class="gt-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 			{{if eq .GetType 4}}
 				<td class="chroma lines-code blob-hunk">{{/*
-					*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff "locale" $.root.locale}}{{/*
+					*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff}}{{/*
 				*/}}</td>
 			{{else}}
 				<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{/*
 					*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles}}{{/*
-						*/}}<a class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">{{/*
+						*/}}<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} gt-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">{{/*
 							*/}}{{svg "octicon-plus"}}{{/*
-						*/}}</a>{{/*
+						*/}}</button>{{/*
 					*/}}{{end}}{{/*
-					*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff "locale" $.root.locale}}{{/*
+					*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff}}{{/*
 				*/}}</td>
 			{{end}}
 		</tr>

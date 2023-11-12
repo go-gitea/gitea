@@ -5,7 +5,7 @@ import {toggleElem} from '../utils/dom.js';
 const {csrfToken} = window.config;
 
 export function initRepoEllipsisButton() {
-  $('.ellipsis-button').on('click', function (e) {
+  $('.js-toggle-commit-body').on('click', function (e) {
     e.preventDefault();
     const expanded = $(this).attr('aria-expanded') === 'true';
     toggleElem($(this).parent().find('.commit-body'));
@@ -66,6 +66,7 @@ export function initCommitStatuses() {
       placement: top ? 'top-start' : 'bottom-start',
       interactive: true,
       role: 'dialog',
+      theme: 'box-with-header',
     });
   });
 }

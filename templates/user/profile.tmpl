@@ -3,138 +3,21 @@
 	<div class="ui container">
 		<div class="ui stackable grid">
 			<div class="ui four wide column">
-				<div class="ui card">
-					<div id="profile-avatar" class="content gt-df">
-					{{if eq .SignedUserID .ContextUser.ID}}
-						<a class="image" href="{{AppSubUrl}}/user/settings" data-tooltip-content="{{.locale.Tr "user.change_avatar"}}">
-							{{/* the size doesn't take affect (and no need to take affect), image size(width) should be controlled by the parent container since this is not a flex layout*/}}
-							{{avatar $.Context .ContextUser 256}}
-						</a>
-					{{else}}
-						<span class="image">
-							{{avatar $.Context .ContextUser 256}}
-						</span>
-					{{end}}
-					</div>
-					<div class="content gt-word-break profile-avatar-name">
-						{{if .ContextUser.FullName}}<span class="header text center">{{.ContextUser.FullName}}</span>{{end}}
-						<span class="username text center">{{.ContextUser.Name}}</span>
-						{{if .EnableFeed}}
-							<a href="{{.ContextUser.HomeLink}}.rss"><i class="ui text grey gt-ml-3" data-tooltip-content="{{.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
-						{{end}}
-						<div class="gt-mt-3">
-							<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "gt-mr-2"}}{{.NumFollowers}} {{.locale.Tr "user.followers"}}</a> · <a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{.NumFollowing}} {{.locale.Tr "user.following"}}</a>
-						</div>
-					</div>
-					<div class="extra content gt-word-break">
-						<ul>
-							{{if .ContextUser.Location}}
-								<li>{{svg "octicon-location"}} {{.ContextUser.Location}}</li>
-							{{end}}
-							{{if (eq .SignedUserID .ContextUser.ID)}}
-								<li>
-									{{svg "octicon-mail"}}
-									<a href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
-									<a href="{{AppSubUrl}}/user/settings#privacy-user-settings">
-										{{if .ShowUserEmail}}
-											<i class="ui right" data-tooltip-content="{{.locale.Tr "user.email_visibility.limited"}}">
-												{{svg "octicon-unlock"}}
-											</i>
-										{{else}}
-											<i class="ui right" data-tooltip-content="{{.locale.Tr "user.email_visibility.private"}}">
-												{{svg "octicon-lock"}}
-											</i>
-										{{end}}
-									</a>
-								</li>
-							{{else}}
-								{{if .ShowUserEmail}}
-									<li>
-										{{svg "octicon-mail"}}
-										<a href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
-									</li>
-								{{end}}
-							{{end}}
-							{{if .ContextUser.Website}}
-								<li>
-									{{svg "octicon-link"}}
-									<a target="_blank" rel="noopener noreferrer me" href="{{.ContextUser.Website}}">{{.ContextUser.Website}}</a>
-								</li>
-							{{end}}
-							{{if $.RenderedDescription}}
-								<li>
-									<div class="render-content markup">{{$.RenderedDescription|Str2html}}</div>
-								</li>
-							{{end}}
-							{{range .OpenIDs}}
-								{{if .Show}}
-									<li>
-										{{svg "fontawesome-openid"}}
-										<a target="_blank" rel="noopener noreferrer" href="{{.URI}}">{{.URI}}</a>
-									</li>
-								{{end}}
-							{{end}}
-							<li>{{svg "octicon-clock"}} {{.locale.Tr "user.joined_on" (DateTime "short" .ContextUser.CreatedUnix) | Safe}}</li>
-							{{if and .Orgs .HasOrgsVisible}}
-							<li>
-								<ul class="user-orgs">
-								{{range .Orgs}}
-									{{if (or .Visibility.IsPublic (and ($.SignedUser) (or .Visibility.IsLimited (and (.HasMemberWithUserID $.SignedUserID) .Visibility.IsPrivate) ($.IsAdmin))))}}
-									<li>
-										<a href="{{.HomeLink}}" data-tooltip-content="{{.Name}}">
-											{{avatar $.Context .}}
-										</a>
-									</li>
-									{{end}}
-								{{end}}
-								</ul>
-							</li>
-							{{end}}
-							{{if .Badges}}
-							<li>
-								<ul class="user-badges">
-								{{range .Badges}}
-									<li>
-										<img width="64" height="64" src="{{.ImageURL}}" alt="{{.Description}}" data-tooltip-content="{{.Description}}">
-									</li>
-								{{end}}
-								</ul>
-							</li>
-							{{end}}
-							{{if and .IsSigned (ne .SignedUserID .ContextUser.ID)}}
-							<li class="follow">
-								{{if $.IsFollowing}}
-									<form method="post" action="{{.Link}}?action=unfollow&redirect_to={{$.Link}}">
-										{{$.CsrfTokenHtml}}
-										<button type="submit" class="ui basic red button">{{svg "octicon-person"}} {{.locale.Tr "user.unfollow"}}</button>
-									</form>
-								{{else}}
-									<form method="post" action="{{.Link}}?action=follow&redirect_to={{$.Link}}">
-										{{$.CsrfTokenHtml}}
-										<button type="submit" class="ui basic green button">{{svg "octicon-person"}} {{.locale.Tr "user.follow"}}</button>
-									</form>
-								{{end}}
-							</li>
-							{{end}}
-						</ul>
-					</div>
-				</div>
+				{{template "shared/user/profile_big_avatar" .}}
 			</div>
 			<div class="ui twelve wide column">
-				<div class="gt-mb-4 gt-df">
+				<div class="gt-mb-4">
 					{{template "user/overview/header" .}}
 				</div>
 
 				{{if eq .TabName "activity"}}
 					{{if .ContextUser.KeepActivityPrivate}}
 						<div class="ui info message">
-							<p>{{.locale.Tr "user.disabled_public_activity"}}</p>
+							<p>{{ctx.Locale.Tr "user.disabled_public_activity"}}</p>
 						</div>
 					{{end}}
 					{{template "user/heatmap" .}}
-					<div class="feeds">
-						{{template "user/dashboard/feeds" .}}
-					</div>
+					{{template "user/dashboard/feeds" .}}
 				{{else if eq .TabName "stars"}}
 					<div class="stars">
 						{{template "explore/repo_search" .}}
@@ -145,12 +28,12 @@
 					{{template "repo/user_cards" .}}
 				{{else if eq .TabName "followers"}}
 					{{template "repo/user_cards" .}}
-				{{else if or (eq .TabName "repositories") (not .ProfileReadme)}}
+				{{else if eq .TabName "overview"}}
+					<div id="readme_profile" class="markup">{{.ProfileReadme | Str2html}}</div>
+				{{else}}
 					{{template "explore/repo_search" .}}
 					{{template "explore/repo_list" .}}
 					{{template "base/paginate" .}}
-				{{else if .ProfileReadme}}
-					<div id="readme_profile" class="render-content markup"> {{$.ProfileReadme|Str2html}} </div>
 				{{end}}
 			</div>
 		</div>

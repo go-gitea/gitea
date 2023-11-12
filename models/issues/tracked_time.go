@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // TrackedTime represents a time that was spent for a specific issue.
@@ -43,11 +44,7 @@ func (t *TrackedTime) AfterLoad() {
 }
 
 // LoadAttributes load Issue, User
-func (t *TrackedTime) LoadAttributes() (err error) {
-	return t.loadAttributes(db.DefaultContext)
-}
-
-func (t *TrackedTime) loadAttributes(ctx context.Context) (err error) {
+func (t *TrackedTime) LoadAttributes(ctx context.Context) (err error) {
 	// Load the issue
 	if t.Issue == nil {
 		t.Issue, err = GetIssueByID(ctx, t.IssueID)
@@ -76,9 +73,9 @@ func (t *TrackedTime) loadAttributes(ctx context.Context) (err error) {
 }
 
 // LoadAttributes load Issue, User
-func (tl TrackedTimeList) LoadAttributes() error {
+func (tl TrackedTimeList) LoadAttributes(ctx context.Context) error {
 	for _, t := range tl {
-		if err := t.LoadAttributes(); err != nil {
+		if err := t.LoadAttributes(ctx); err != nil {
 			return err
 		}
 	}
@@ -143,8 +140,8 @@ func GetTrackedTimes(ctx context.Context, options *FindTrackedTimesOptions) (tra
 }
 
 // CountTrackedTimes returns count of tracked times that fit to the given options.
-func CountTrackedTimes(opts *FindTrackedTimesOptions) (int64, error) {
-	sess := db.GetEngine(db.DefaultContext).Where(opts.toCond())
+func CountTrackedTimes(ctx context.Context, opts *FindTrackedTimesOptions) (int64, error) {
+	sess := db.GetEngine(ctx).Where(opts.toCond())
 	if opts.RepositoryID > 0 || opts.MilestoneID > 0 {
 		sess = sess.Join("INNER", "issue", "issue.id = tracked_time.issue_id")
 	}
@@ -157,8 +154,8 @@ func GetTrackedSeconds(ctx context.Context, opts FindTrackedTimesOptions) (track
 }
 
 // AddTime will add the given time (in seconds) to the issue
-func AddTime(user *user_model.User, issue *Issue, amount int64, created time.Time) (*TrackedTime, error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func AddTime(ctx context.Context, user *user_model.User, issue *Issue, amount int64, created time.Time) (*TrackedTime, error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -202,9 +199,9 @@ func addTime(ctx context.Context, user *user_model.User, issue *Issue, amount in
 	return tt, db.Insert(ctx, tt)
 }
 
-// TotalTimes returns the spent time in seconds for each user by an issue
-func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]int64, error) {
-	trackedTimes, err := GetTrackedTimes(db.DefaultContext, options)
+// TotalTimesForEachUser returns the spent time in seconds for each user by an issue
+func TotalTimesForEachUser(ctx context.Context, options *FindTrackedTimesOptions) (map[*user_model.User]int64, error) {
+	trackedTimes, err := GetTrackedTimes(ctx, options)
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +214,7 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]int64, e
 	totalTimes := make(map[*user_model.User]int64)
 	// Fetching User and making time human readable
 	for userID, total := range totalTimesByUser {
-		user, err := user_model.GetUserByID(db.DefaultContext, userID)
+		user, err := user_model.GetUserByID(ctx, userID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				continue
@@ -230,8 +227,8 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]int64, e
 }
 
 // DeleteIssueUserTimes deletes times for issue
-func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func DeleteIssueUserTimes(ctx context.Context, issue *Issue, user *user_model.User) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -269,14 +266,14 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 }
 
 // DeleteTime delete a specific Time
-func DeleteTime(t *TrackedTime) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func DeleteTime(ctx context.Context, t *TrackedTime) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	if err := t.loadAttributes(ctx); err != nil {
+	if err := t.LoadAttributes(ctx); err != nil {
 		return err
 	}
 
@@ -302,7 +299,7 @@ func DeleteTime(t *TrackedTime) error {
 func deleteTimes(ctx context.Context, opts FindTrackedTimesOptions) (removedTime int64, err error) {
 	removedTime, err = GetTrackedSeconds(ctx, opts)
 	if err != nil || removedTime == 0 {
-		return
+		return removedTime, err
 	}
 
 	_, err = opts.toSession(db.GetEngine(ctx)).Table("tracked_time").Cols("deleted").Update(&TrackedTime{Deleted: true})
@@ -319,13 +316,56 @@ func deleteTime(ctx context.Context, t *TrackedTime) error {
 }
 
 // GetTrackedTimeByID returns raw TrackedTime without loading attributes by id
-func GetTrackedTimeByID(id int64) (*TrackedTime, error) {
+func GetTrackedTimeByID(ctx context.Context, id int64) (*TrackedTime, error) {
 	time := new(TrackedTime)
-	has, err := db.GetEngine(db.DefaultContext).ID(id).Get(time)
+	has, err := db.GetEngine(ctx).ID(id).Get(time)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, db.ErrNotExist{Resource: "tracked_time", ID: id}
 	}
 	return time, nil
+}
+
+// GetIssueTotalTrackedTime returns the total tracked time for issues by given conditions.
+func GetIssueTotalTrackedTime(ctx context.Context, opts *IssuesOptions, isClosed bool) (int64, error) {
+	if len(opts.IssueIDs) <= MaxQueryParameters {
+		return getIssueTotalTrackedTimeChunk(ctx, opts, isClosed, opts.IssueIDs)
+	}
+
+	// If too long a list of IDs is provided,
+	// we get the statistics in smaller chunks and get accumulates
+	var accum int64
+	for i := 0; i < len(opts.IssueIDs); {
+		chunk := i + MaxQueryParameters
+		if chunk > len(opts.IssueIDs) {
+			chunk = len(opts.IssueIDs)
+		}
+		time, err := getIssueTotalTrackedTimeChunk(ctx, opts, isClosed, opts.IssueIDs[i:chunk])
+		if err != nil {
+			return 0, err
+		}
+		accum += time
+		i = chunk
+	}
+	return accum, nil
+}
+
+func getIssueTotalTrackedTimeChunk(ctx context.Context, opts *IssuesOptions, isClosed bool, issueIDs []int64) (int64, error) {
+	sumSession := func(opts *IssuesOptions, issueIDs []int64) *xorm.Session {
+		sess := db.GetEngine(ctx).
+			Table("tracked_time").
+			Where("tracked_time.deleted = ?", false).
+			Join("INNER", "issue", "tracked_time.issue_id = issue.id")
+
+		return applyIssuesOptions(sess, opts, issueIDs)
+	}
+
+	type trackedTime struct {
+		Time int64
+	}
+
+	return sumSession(opts, issueIDs).
+		And("issue.is_closed = ?", isClosed).
+		SumInt(new(trackedTime), "tracked_time.time")
 }

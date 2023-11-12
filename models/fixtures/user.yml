@@ -66,7 +66,7 @@
   num_followers: 2
   num_following: 1
   num_stars: 2
-  num_repos: 13
+  num_repos: 14
   num_teams: 0
   num_members: 0
   visibility: 0
@@ -76,17 +76,17 @@
 
 -
   id: 3
-  lower_name: user3
-  name: user3
+  lower_name: org3
+  name: org3
   full_name: ' <<<< >> >> > >> > >>> >> '
-  email: user3@example.com
+  email: org3@example.com
   keep_email_private: false
   email_notifications_preference: onmention
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
-  login_name: user3
+  login_name: org3
   type: 1
   salt: ZogKvWdyEx
   max_repo_creation: -1
@@ -98,7 +98,7 @@
   allow_create_organization: true
   prohibit_login: false
   avatar: avatar3
-  avatar_email: user3@example.com
+  avatar_email: org3@example.com
   use_custom_avatar: false
   num_followers: 0
   num_following: 0
@@ -187,17 +187,17 @@
 
 -
   id: 6
-  lower_name: user6
-  name: user6
-  full_name: User Six
-  email: user6@example.com
+  lower_name: org6
+  name: org6
+  full_name: Org Six
+  email: org6@example.com
   keep_email_private: false
   email_notifications_preference: enabled
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
-  login_name: user6
+  login_name: org6
   type: 1
   salt: ZogKvWdyEx
   max_repo_creation: -1
@@ -209,7 +209,7 @@
   allow_create_organization: true
   prohibit_login: false
   avatar: avatar6
-  avatar_email: user6@example.com
+  avatar_email: org6@example.com
   use_custom_avatar: false
   num_followers: 0
   num_following: 0
@@ -224,17 +224,17 @@
 
 -
   id: 7
-  lower_name: user7
-  name: user7
-  full_name: User Seven
-  email: user7@example.com
+  lower_name: org7
+  name: org7
+  full_name: Org Seven
+  email: org7@example.com
   keep_email_private: false
   email_notifications_preference: disabled
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
-  login_name: user7
+  login_name: org7
   type: 1
   salt: ZogKvWdyEx
   max_repo_creation: -1
@@ -246,7 +246,7 @@
   allow_create_organization: true
   prohibit_login: false
   avatar: avatar7
-  avatar_email: user7@example.com
+  avatar_email: org7@example.com
   use_custom_avatar: false
   num_followers: 0
   num_following: 0
@@ -594,17 +594,17 @@
 
 -
   id: 17
-  lower_name: user17
-  name: user17
-  full_name: User 17
-  email: user17@example.com
+  lower_name: org17
+  name: org17
+  full_name: org 17
+  email: org17@example.com
   keep_email_private: false
   email_notifications_preference: enabled
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
-  login_name: user17
+  login_name: org17
   type: 1
   salt: ZogKvWdyEx
   max_repo_creation: -1
@@ -616,7 +616,7 @@
   allow_create_organization: true
   prohibit_login: false
   avatar: avatar17
-  avatar_email: user17@example.com
+  avatar_email: org17@example.com
   use_custom_avatar: false
   num_followers: 0
   num_following: 0
@@ -668,17 +668,17 @@
 
 -
   id: 19
-  lower_name: user19
-  name: user19
-  full_name: User 19
-  email: user19@example.com
+  lower_name: org19
+  name: org19
+  full_name: Org 19
+  email: org19@example.com
   keep_email_private: false
   email_notifications_preference: enabled
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
-  login_name: user19
+  login_name: org19
   type: 1
   salt: ZogKvWdyEx
   max_repo_creation: -1
@@ -690,7 +690,7 @@
   allow_create_organization: true
   prohibit_login: false
   avatar: avatar19
-  avatar_email: user19@example.com
+  avatar_email: org19@example.com
   use_custom_avatar: false
   num_followers: 0
   num_following: 0
@@ -1255,6 +1255,80 @@
   num_teams: 0
   num_members: 0
   visibility: 0
+  repo_admin_change_team_access: false
+  theme: ""
+  keep_activity_private: false
+
+-
+  id: 35
+  lower_name: private_org35
+  name: private_org35
+  full_name: Private Org 35
+  email: private_org35@example.com
+  keep_email_private: false
+  email_notifications_preference: enabled
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
+  must_change_password: false
+  login_source: 0
+  login_name: private_org35
+  type: 1
+  salt: ZogKvWdyEx
+  max_repo_creation: -1
+  is_active: true
+  is_admin: false
+  is_restricted: false
+  allow_git_hook: false
+  allow_import_local: false
+  allow_create_organization: true
+  prohibit_login: false
+  avatar: avatar35
+  avatar_email: private_org35@example.com
+  use_custom_avatar: false
+  num_followers: 0
+  num_following: 0
+  num_stars: 0
+  num_repos: 0
+  num_teams: 1
+  num_members: 1
+  visibility: 2
+  repo_admin_change_team_access: false
+  theme: ""
+  keep_activity_private: false
+
+-
+  id: 36
+  lower_name: limited_org36
+  name: limited_org36
+  full_name: Limited Org 36
+  email: abcde@gitea.com
+  keep_email_private: false
+  email_notifications_preference: enabled
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
+  must_change_password: false
+  login_source: 0
+  login_name: limited_org36
+  type: 1
+  salt: ZogKvWdyEx
+  max_repo_creation: -1
+  is_active: true
+  is_admin: false
+  is_restricted: false
+  allow_git_hook: false
+  allow_import_local: false
+  allow_create_organization: true
+  prohibit_login: false
+  avatar: avatar22
+  avatar_email: abcde@gitea.com
+  use_custom_avatar: false
+  num_followers: 0
+  num_following: 0
+  num_stars: 0
+  num_repos: 0
+  num_teams: 2
+  num_members: 2
+  visibility: 1
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false

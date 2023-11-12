@@ -6,6 +6,7 @@ package util
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -57,22 +58,6 @@ func OptionalBoolParse(s string) OptionalBool {
 		return OptionalBoolNone
 	}
 	return OptionalBoolOf(b)
-}
-
-// Max max of two ints
-func Max(a, b int) int {
-	if a < b {
-		return b
-	}
-	return a
-}
-
-// Min min of two ints
-func Min(a, b int) int {
-	if a > b {
-		return b
-	}
-	return a
 }
 
 // IsEmptyString checks if the provided string is empty
@@ -174,7 +159,7 @@ func ToTitleCaseNoLower(s string) string {
 }
 
 // ToInt64 transform a given int into int64.
-func ToInt64(number interface{}) (int64, error) {
+func ToInt64(number any) (int64, error) {
 	var value int64
 	switch v := number.(type) {
 	case int:
@@ -216,7 +201,7 @@ func ToInt64(number interface{}) (int64, error) {
 }
 
 // ToFloat64 transform a given int into float64.
-func ToFloat64(number interface{}) (float64, error) {
+func ToFloat64(number any) (float64, error) {
 	var value float64
 	switch v := number.(type) {
 	case int:
@@ -255,4 +240,19 @@ func ToFloat64(number interface{}) (float64, error) {
 		return 0, fmt.Errorf("unable to convert %v to float64", number)
 	}
 	return value, nil
+}
+
+// ToPointer returns the pointer of a copy of any given value
+func ToPointer[T any](val T) *T {
+	return &val
+}
+
+func Base64FixedDecode(encoding *base64.Encoding, src []byte, length int) ([]byte, error) {
+	decoded := make([]byte, encoding.DecodedLen(len(src))+3)
+	if n, err := encoding.Decode(decoded, src); err != nil {
+		return nil, err
+	} else if n != length {
+		return nil, fmt.Errorf("invalid base64 decoded length: %d, expects: %d", n, length)
+	}
+	return decoded[:length], nil
 }

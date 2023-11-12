@@ -58,13 +58,15 @@ func ListIssueComments(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetRawIssueByIndex", err)
 		return
@@ -84,7 +86,7 @@ func ListIssueComments(ctx *context.APIContext) {
 		return
 	}
 
-	totalCount, err := issues_model.CountComments(opts)
+	totalCount, err := issues_model.CountComments(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -103,7 +105,7 @@ func ListIssueComments(ctx *context.APIContext) {
 	apiComments := make([]*api.Comment, len(comments))
 	for i, comment := range comments {
 		comment.Issue = issue
-		apiComments[i] = convert.ToComment(ctx, comments[i])
+		apiComments[i] = convert.ToAPIComment(ctx, ctx.Repo.Repository, comments[i])
 	}
 
 	ctx.SetTotalCountHeader(totalCount)
@@ -155,13 +157,15 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TimelineList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetRawIssueByIndex", err)
 		return
@@ -191,7 +195,7 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 	for _, comment := range comments {
 		if comment.Type != issues_model.CommentTypeCode && isXRefCommentAccessible(ctx, ctx.Doer, comment, issue.RepoID) {
 			comment.Issue = issue
-			apiComments = append(apiComments, convert.ToTimelineComment(ctx, comment, ctx.Doer))
+			apiComments = append(apiComments, convert.ToTimelineComment(ctx, issue.Repo, comment, ctx.Doer))
 		}
 	}
 
@@ -258,6 +262,8 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
@@ -279,7 +285,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		return
 	}
 
-	totalCount, err := issues_model.CountComments(opts)
+	totalCount, err := issues_model.CountComments(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -308,7 +314,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		return
 	}
 	for i := range comments {
-		apiComments[i] = convert.ToComment(ctx, comments[i])
+		apiComments[i] = convert.ToAPIComment(ctx, ctx.Repo.Repository, comments[i])
 	}
 
 	ctx.SetTotalCountHeader(totalCount)
@@ -350,8 +356,12 @@ func CreateIssueComment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Comment"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm(ctx).(*api.CreateIssueCommentOption)
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		return
@@ -368,7 +378,7 @@ func CreateIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToComment(ctx, comment))
+	ctx.JSON(http.StatusCreated, convert.ToAPIComment(ctx, ctx.Repo.Repository, comment))
 }
 
 // GetIssueComment Get a comment by ID
@@ -436,7 +446,7 @@ func GetIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToComment(ctx, comment))
+	ctx.JSON(http.StatusOK, convert.ToAPIComment(ctx, ctx.Repo.Repository, comment))
 }
 
 // EditIssueComment modify a comment of an issue
@@ -478,7 +488,8 @@ func EditIssueComment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm(ctx).(*api.EditIssueCommentOption)
 	editIssueComment(ctx, *form)
 }
@@ -561,7 +572,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToComment(ctx, comment))
+	ctx.JSON(http.StatusOK, convert.ToAPIComment(ctx, ctx.Repo.Repository, comment))
 }
 
 // DeleteIssueComment delete a comment from an issue

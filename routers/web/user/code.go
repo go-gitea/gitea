@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 )
 
 const (
@@ -23,12 +24,17 @@ func CodeSearch(ctx *context.Context) {
 		ctx.Redirect(ctx.ContextUser.HomeLink())
 		return
 	}
+	shared_user.PrepareContextForProfileBigAvatar(ctx)
+	shared_user.RenderUserHeader(ctx)
 
-	ctx.Data["IsProjectEnabled"] = true
+	if err := shared_user.LoadHeaderCount(ctx); err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["Title"] = ctx.Tr("explore.code")
-	ctx.Data["ContextUser"] = ctx.ContextUser
 
 	language := ctx.FormTrim("l")
 	keyword := ctx.FormTrim("q")
@@ -94,7 +100,7 @@ func CodeSearch(ctx *context.Context) {
 			}
 		}
 
-		repoMaps, err := repo_model.GetRepositoriesMapByIDs(loadRepoIDs)
+		repoMaps, err := repo_model.GetRepositoriesMapByIDs(ctx, loadRepoIDs)
 		if err != nil {
 			ctx.ServerError("GetRepositoriesMapByIDs", err)
 			return

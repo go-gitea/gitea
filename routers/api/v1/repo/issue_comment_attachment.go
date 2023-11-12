@@ -68,7 +68,7 @@ func GetIssueCommentAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAttachment(attachment))
+	ctx.JSON(http.StatusOK, convert.ToAPIAttachment(ctx.Repo.Repository, attachment))
 }
 
 // ListIssueCommentAttachments lists all attachments of the comment
@@ -110,7 +110,7 @@ func ListIssueCommentAttachments(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAttachments(comment.Attachments))
+	ctx.JSON(http.StatusOK, convert.ToAPIAttachments(ctx.Repo.Repository, comment.Attachments))
 }
 
 // CreateIssueCommentAttachment creates an attachment and saves the given file
@@ -156,6 +156,8 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/error"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// Check if comment exists and load comment
 	comment := getIssueCommentSafe(ctx)
@@ -180,7 +182,7 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 		filename = query
 	}
 
-	attachment, err := attachment.UploadAttachment(file, setting.Attachment.AllowedTypes, header.Size, &repo_model.Attachment{
+	attachment, err := attachment.UploadAttachment(ctx, file, setting.Attachment.AllowedTypes, header.Size, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,
@@ -201,7 +203,7 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAttachment(attachment))
+	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attachment))
 }
 
 // EditIssueCommentAttachment updates the given attachment
@@ -245,7 +247,8 @@ func EditIssueCommentAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Attachment"
 	//   "404":
 	//     "$ref": "#/responses/error"
-
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 	attach := getIssueCommentAttachmentSafeWrite(ctx)
 	if attach == nil {
 		return
@@ -259,7 +262,7 @@ func EditIssueCommentAttachment(ctx *context.APIContext) {
 	if err := repo_model.UpdateAttachment(ctx, attach); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", attach)
 	}
-	ctx.JSON(http.StatusCreated, convert.ToAttachment(attach))
+	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attach))
 }
 
 // DeleteIssueCommentAttachment delete a given attachment
@@ -297,13 +300,14 @@ func DeleteIssueCommentAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/error"
-
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 	attach := getIssueCommentAttachmentSafeWrite(ctx)
 	if attach == nil {
 		return
 	}
 
-	if err := repo_model.DeleteAttachment(attach, true); err != nil {
+	if err := repo_model.DeleteAttachment(ctx, attach, true); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteAttachment", err)
 		return
 	}
@@ -352,7 +356,7 @@ func canUserWriteIssueCommentAttachment(ctx *context.APIContext, comment *issues
 }
 
 func getIssueCommentAttachmentSafeRead(ctx *context.APIContext, comment *issues_model.Comment) *repo_model.Attachment {
-	attachment, err := repo_model.GetAttachmentByID(ctx, ctx.ParamsInt64("asset"))
+	attachment, err := repo_model.GetAttachmentByID(ctx, ctx.ParamsInt64("attachment_id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetAttachmentByID", repo_model.IsErrAttachmentNotExist, err)
 		return nil

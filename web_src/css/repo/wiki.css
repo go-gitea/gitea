@@ -1,14 +1,19 @@
+.repository.wiki .wiki-pages-list tr:hover {
+  background-color: var(--color-hover);
+}
+
 .repository.wiki .wiki-pages-list .wiki-git-entry {
   margin-left: 10px;
   display: none;
 }
 
-.repository.wiki .wiki-pages-list td:hover .wiki-git-entry {
+.repository.wiki .wiki-pages-list tr:hover .wiki-git-entry {
   display: inline-block;
 }
 
 .repository.wiki .markup {
   overflow: visible;
+  min-height: 340px;
 }
 
 .repository.wiki .wiki-content-parts .markup {

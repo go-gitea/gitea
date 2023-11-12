@@ -3,17 +3,17 @@
 	{{$notificationUnreadCount = call .NotificationUnreadCount}}
 {{end}}
 
-<nav id="navbar" aria-label="{{.locale.Tr "aria.navbar"}}">
+<nav id="navbar" aria-label="{{ctx.Locale.Tr "aria.navbar"}}">
 	<div class="navbar-left ui secondary menu">
 		<!-- the logo -->
-		<a class="item" id="navbar-logo" href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{.locale.Tr "dashboard"}}{{else}}{{.locale.Tr "home"}}{{end}}">
-			<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{.locale.Tr "logo"}}" aria-hidden="true">
+		<a class="item" id="navbar-logo" href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{ctx.Locale.Tr "dashboard"}}{{else}}{{ctx.Locale.Tr "home"}}{{end}}">
+			<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}" aria-hidden="true">
 		</a>
 
 		<!-- mobile right menu, it must be here because in mobile view, each item is a flex column, the first item is a full row column -->
 		<div class="ui secondary menu item navbar-mobile-right">
 			{{if .IsSigned}}
-			<a id="mobile-notifications-icon" class="item gt-w-auto gt-p-3" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
+			<a id="mobile-notifications-icon" class="item gt-w-auto gt-p-3" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" aria-label="{{ctx.Locale.Tr "notifications"}}">
 				<div class="gt-relative">
 					{{svg "octicon-bell"}}
 					<span class="notification_count{{if not $notificationUnreadCount}} gt-hidden{{end}}">{{$notificationUnreadCount}}</span>
@@ -23,65 +23,64 @@
 			<button class="item gt-w-auto ui icon mini button gt-p-3 gt-m-0" id="navbar-expand-toggle">{{svg "octicon-three-bars"}}</button>
 		</div>
 
-
 		<!-- navbar links non-mobile -->
 		{{if and .IsSigned .MustChangePassword}}
 			{{/* No links */}}
 		{{else if .IsSigned}}
 			{{if not .UnitIssuesGlobalDisabled}}
-				<a class="item{{if .PageIsIssues}} active{{end}}" href="{{AppSubUrl}}/issues">{{.locale.Tr "issues"}}</a>
+				<a class="item{{if .PageIsIssues}} active{{end}}" href="{{AppSubUrl}}/issues">{{ctx.Locale.Tr "issues"}}</a>
 			{{end}}
 			{{if not .UnitPullsGlobalDisabled}}
-				<a class="item{{if .PageIsPulls}} active{{end}}" href="{{AppSubUrl}}/pulls">{{.locale.Tr "pull_requests"}}</a>
+				<a class="item{{if .PageIsPulls}} active{{end}}" href="{{AppSubUrl}}/pulls">{{ctx.Locale.Tr "pull_requests"}}</a>
 			{{end}}
 			{{if not (and .UnitIssuesGlobalDisabled .UnitPullsGlobalDisabled)}}
 				{{if .ShowMilestonesDashboardPage}}
-					<a class="item{{if .PageIsMilestonesDashboard}} active{{end}}" href="{{AppSubUrl}}/milestones">{{.locale.Tr "milestones"}}</a>
+					<a class="item{{if .PageIsMilestonesDashboard}} active{{end}}" href="{{AppSubUrl}}/milestones">{{ctx.Locale.Tr "milestones"}}</a>
 				{{end}}
 			{{end}}
-			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.locale.Tr "explore"}}</a>
+			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{ctx.Locale.Tr "explore"}}</a>
 		{{else if .IsLandingPageOrganizations}}
-			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/organizations">{{.locale.Tr "explore"}}</a>
+			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/organizations">{{ctx.Locale.Tr "explore"}}</a>
 		{{else}}
-			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.locale.Tr "explore"}}</a>
+			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{ctx.Locale.Tr "explore"}}</a>
 		{{end}}
 
 		{{template "custom/extra_links" .}}
 
 		{{if not .IsSigned}}
-			<a class="item" target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io">{{.locale.Tr "help"}}</a>
+			<a class="item" target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com">{{ctx.Locale.Tr "help"}}</a>
 		{{end}}
 	</div>
 
 	<!-- the full dropdown menus -->
 	<div class="navbar-right ui secondary menu">
 		{{if and .IsSigned .MustChangePassword}}
-			<div class="ui dropdown jump item" data-tooltip-content="{{.locale.Tr "user_profile_and_more"}}">
+			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
 				<span class="text gt-df gt-ac">
-					{{avatar $.Context .SignedUser 24 "gt-mr-2"}}
+					{{ctx.AvatarUtils.Avatar .SignedUser 24 "gt-mr-2"}}
 					<span class="mobile-only gt-ml-3">{{.SignedUser.Name}}</span>
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
 				</span>
 				<div class="menu user-menu">
 					<div class="ui header">
-						{{.locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
+						{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
 					</div>
 
 					<div class="divider"></div>
 					<a class="item link-action" href data-url="{{AppSubUrl}}/user/logout">
 						{{svg "octicon-sign-out"}}
-						{{.locale.Tr "sign_out"}}
+						{{ctx.Locale.Tr "sign_out"}}
 					</a>
 				</div><!-- end content avatar menu -->
 			</div><!-- end dropdown avatar menu -->
 		{{else if .IsSigned}}
 			{{if EnableTimetracking}}
-			<a class="active-stopwatch-trigger item gt-mx-0{{if not .ActiveStopwatch}} gt-hidden{{end}}" href="{{.ActiveStopwatch.IssueLink}}" title="{{.locale.Tr "active_stopwatch"}}">
+			<a class="active-stopwatch-trigger item gt-mx-0{{if not .ActiveStopwatch}} gt-hidden{{end}}" href="{{.ActiveStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}">
 				<div class="gt-relative">
 					{{svg "octicon-stopwatch"}}
 					<span class="header-stopwatch-dot"></span>
 				</div>
-				<span class="mobile-only gt-ml-3">{{.locale.Tr "active_stopwatch"}}</span>
+				<span class="mobile-only gt-ml-3">{{ctx.Locale.Tr "active_stopwatch"}}</span>
 			</a>
 			<div class="active-stopwatch-popup item tippy-target gt-p-3">
 				<div class="gt-df gt-ac">
@@ -97,7 +96,7 @@
 						<button
 							type="submit"
 							class="ui button mini compact basic icon"
-							data-tooltip-content="{{.locale.Tr "repo.issues.stop_tracking"}}"
+							data-tooltip-content="{{ctx.Locale.Tr "repo.issues.stop_tracking"}}"
 						>{{svg "octicon-square-fill"}}</button>
 					</form>
 					<form class="stopwatch-cancel" method="post" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/cancel">
@@ -105,101 +104,101 @@
 						<button
 							type="submit"
 							class="ui button mini compact basic icon"
-							data-tooltip-content="{{.locale.Tr "repo.issues.cancel_tracking"}}"
+							data-tooltip-content="{{ctx.Locale.Tr "repo.issues.cancel_tracking"}}"
 						>{{svg "octicon-trash"}}</button>
 					</form>
 				</div>
 			</div>
 			{{end}}
 
-			<a class="item not-mobile gt-mx-0" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
+			<a class="item not-mobile gt-mx-0" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" aria-label="{{ctx.Locale.Tr "notifications"}}">
 				<div class="gt-relative">
 					{{svg "octicon-bell"}}
 					<span class="notification_count{{if not $notificationUnreadCount}} gt-hidden{{end}}">{{$notificationUnreadCount}}</span>
 				</div>
 			</a>
 
-			<div class="ui dropdown jump item gt-mx-0 gt-pr-3" data-tooltip-content="{{.locale.Tr "create_new"}}">
+			<div class="ui dropdown jump item gt-mx-0 gt-pr-3" data-tooltip-content="{{ctx.Locale.Tr "create_new"}}">
 				<span class="text">
 					{{svg "octicon-plus"}}
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
-					<span class="mobile-only">{{.locale.Tr "create_new"}}</span>
+					<span class="mobile-only">{{ctx.Locale.Tr "create_new"}}</span>
 				</span>
 				<div class="menu">
 					<a class="item" href="{{AppSubUrl}}/repo/create">
-						{{svg "octicon-plus"}} {{.locale.Tr "new_repo"}}
+						{{svg "octicon-plus"}} {{ctx.Locale.Tr "new_repo"}}
 					</a>
 					{{if not .DisableMigrations}}
 						<a class="item" href="{{AppSubUrl}}/repo/migrate">
-							{{svg "octicon-repo-push"}} {{.locale.Tr "new_migrate"}}
+							{{svg "octicon-repo-push"}} {{ctx.Locale.Tr "new_migrate"}}
 						</a>
 					{{end}}
 					{{if .SignedUser.CanCreateOrganization}}
 					<a class="item" href="{{AppSubUrl}}/org/create">
-						{{svg "octicon-organization"}} {{.locale.Tr "new_org"}}
+						{{svg "octicon-organization"}} {{ctx.Locale.Tr "new_org"}}
 					</a>
 					{{end}}
 				</div><!-- end content create new menu -->
 			</div><!-- end dropdown menu create new -->
 
-			<div class="ui dropdown jump item gt-mx-0 gt-pr-3" data-tooltip-content="{{.locale.Tr "user_profile_and_more"}}">
+			<div class="ui dropdown jump item gt-mx-0 gt-pr-3" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
 				<span class="text gt-df gt-ac">
-					{{avatar $.Context .SignedUser 24 "gt-mr-2"}}
+					{{ctx.AvatarUtils.Avatar .SignedUser 24 "gt-mr-2"}}
 					<span class="mobile-only gt-ml-3">{{.SignedUser.Name}}</span>
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
 				</span>
 				<div class="menu user-menu">
 					<div class="ui header">
-						{{.locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
+						{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
 					</div>
 
 					<div class="divider"></div>
 					<a class="item" href="{{.SignedUser.HomeLink}}">
 						{{svg "octicon-person"}}
-						{{.locale.Tr "your_profile"}}
+						{{ctx.Locale.Tr "your_profile"}}
 					</a>
 					{{if not .DisableStars}}
 						<a class="item" href="{{.SignedUser.HomeLink}}?tab=stars">
 							{{svg "octicon-star"}}
-							{{.locale.Tr "your_starred"}}
+							{{ctx.Locale.Tr "your_starred"}}
 						</a>
 					{{end}}
 					<a class="item" href="{{AppSubUrl}}/notifications/subscriptions">
 						{{svg "octicon-bell"}}
-						{{.locale.Tr "notification.subscriptions"}}
+						{{ctx.Locale.Tr "notification.subscriptions"}}
 					</a>
 					<a class="{{if .PageIsUserSettings}}active {{end}}item" href="{{AppSubUrl}}/user/settings">
 						{{svg "octicon-tools"}}
-						{{.locale.Tr "your_settings"}}
+						{{ctx.Locale.Tr "your_settings"}}
 					</a>
-					<a class="item" target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io">
+					<a class="item" target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com">
 						{{svg "octicon-question"}}
-						{{.locale.Tr "help"}}
+						{{ctx.Locale.Tr "help"}}
 					</a>
 					{{if .IsAdmin}}
 						<div class="divider"></div>
 
 						<a class="{{if .PageIsAdmin}}active {{end}}item" href="{{AppSubUrl}}/admin">
 							{{svg "octicon-server"}}
-							{{.locale.Tr "admin_panel"}}
+							{{ctx.Locale.Tr "admin_panel"}}
 						</a>
 					{{end}}
 
 					<div class="divider"></div>
 					<a class="item link-action" href data-url="{{AppSubUrl}}/user/logout">
 						{{svg "octicon-sign-out"}}
-						{{.locale.Tr "sign_out"}}
+						{{ctx.Locale.Tr "sign_out"}}
 					</a>
 				</div><!-- end content avatar menu -->
 			</div><!-- end dropdown avatar menu -->
 		{{else}}
 			{{if .ShowRegistrationButton}}
 				<a class="item{{if .PageIsSignUp}} active{{end}}" href="{{AppSubUrl}}/user/sign_up">
-					{{svg "octicon-person"}} {{.locale.Tr "register"}}
+					{{svg "octicon-person"}} {{ctx.Locale.Tr "register"}}
 				</a>
 			{{end}}
 			<a class="item{{if .PageIsSignIn}} active{{end}}" rel="nofollow" href="{{AppSubUrl}}/user/login{{if not .PageIsSignIn}}?redirect_to={{.CurrentURL}}{{end}}">
-				{{svg "octicon-sign-in"}} {{.locale.Tr "sign_in"}}
+				{{svg "octicon-sign-in"}} {{ctx.Locale.Tr "sign_in"}}
 			</a>
 		{{end}}
 	</div><!-- end full right menu -->

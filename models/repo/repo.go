@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
@@ -44,6 +45,14 @@ func (err ErrUserDoesNotHaveAccessToRepo) Error() string {
 
 func (err ErrUserDoesNotHaveAccessToRepo) Unwrap() error {
 	return util.ErrPermissionDenied
+}
+
+type ErrRepoIsArchived struct {
+	Repo *Repository
+}
+
+func (err ErrRepoIsArchived) Error() string {
+	return fmt.Sprintf("%s is archived", err.Repo.LogString())
 }
 
 var (
@@ -163,6 +172,8 @@ type Repository struct {
 	IsTemplate                      bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	TemplateID                      int64              `xorm:"INDEX"`
 	Size                            int64              `xorm:"NOT NULL DEFAULT 0"`
+	GitSize                         int64              `xorm:"NOT NULL DEFAULT 0"`
+	LFSSize                         int64              `xorm:"NOT NULL DEFAULT 0"`
 	CodeIndexerStatus               *RepoIndexerStatus `xorm:"-"`
 	StatsIndexerStatus              *RepoIndexerStatus `xorm:"-"`
 	IsFsckEnabled                   bool               `xorm:"NOT NULL DEFAULT true"`
@@ -188,12 +199,44 @@ func (repo *Repository) SanitizedOriginalURL() string {
 	if repo.OriginalURL == "" {
 		return ""
 	}
-	u, err := url.Parse(repo.OriginalURL)
-	if err != nil {
-		return ""
+	u, _ := util.SanitizeURL(repo.OriginalURL)
+	return u
+}
+
+// text representations to be returned in SizeDetail.Name
+const (
+	SizeDetailNameGit = "git"
+	SizeDetailNameLFS = "lfs"
+)
+
+type SizeDetail struct {
+	Name string
+	Size int64
+}
+
+// SizeDetails forms a struct with various size details about repository
+func (repo *Repository) SizeDetails() []SizeDetail {
+	sizeDetails := []SizeDetail{
+		{
+			Name: SizeDetailNameGit,
+			Size: repo.GitSize,
+		},
+		{
+			Name: SizeDetailNameLFS,
+			Size: repo.LFSSize,
+		},
 	}
-	u.User = nil
-	return u.String()
+	return sizeDetails
+}
+
+// SizeDetailsString returns a concatenation of all repository size details as a string
+func (repo *Repository) SizeDetailsString() string {
+	var str strings.Builder
+	sizeDetails := repo.SizeDetails()
+	for _, detail := range sizeDetails {
+		str.WriteString(fmt.Sprintf("%s: %s, ", detail.Name, base.FileSize(detail.Size)))
+	}
+	return strings.TrimSuffix(str.String(), ", ")
 }
 
 func (repo *Repository) LogString() string {
@@ -352,7 +395,13 @@ func (repo *Repository) MustGetUnit(ctx context.Context, tp unit.Type) *RepoUnit
 			Type:   tp,
 			Config: new(IssuesConfig),
 		}
+	} else if tp == unit.TypeActions {
+		return &RepoUnit{
+			Type:   tp,
+			Config: new(ActionsConfig),
+		}
 	}
+
 	return &RepoUnit{
 		Type:   tp,
 		Config: new(UnitConfig),
@@ -398,7 +447,7 @@ func (repo *Repository) MustOwner(ctx context.Context) *user_model.User {
 }
 
 // ComposeMetas composes a map of metas for properly rendering issue links and external issue trackers.
-func (repo *Repository) ComposeMetas() map[string]string {
+func (repo *Repository) ComposeMetas(ctx context.Context) map[string]string {
 	if len(repo.RenderingMetas) == 0 {
 		metas := map[string]string{
 			"user":     repo.OwnerName,
@@ -407,7 +456,7 @@ func (repo *Repository) ComposeMetas() map[string]string {
 			"mode":     "comment",
 		}
 
-		unit, err := repo.GetUnit(db.DefaultContext, unit.TypeExternalTracker)
+		unit, err := repo.GetUnit(ctx, unit.TypeExternalTracker)
 		if err == nil {
 			metas["format"] = unit.ExternalTrackerConfig().ExternalTrackerFormat
 			switch unit.ExternalTrackerConfig().ExternalTrackerStyle {
@@ -421,10 +470,10 @@ func (repo *Repository) ComposeMetas() map[string]string {
 			}
 		}
 
-		repo.MustOwner(db.DefaultContext)
+		repo.MustOwner(ctx)
 		if repo.Owner.IsOrganization() {
 			teams := make([]string, 0, 5)
-			_ = db.GetEngine(db.DefaultContext).Table("team_repo").
+			_ = db.GetEngine(ctx).Table("team_repo").
 				Join("INNER", "team", "team.id = team_repo.team_id").
 				Where("team_repo.repo_id = ?", repo.ID).
 				Select("team.lower_name").
@@ -440,10 +489,10 @@ func (repo *Repository) ComposeMetas() map[string]string {
 }
 
 // ComposeDocumentMetas composes a map of metas for properly rendering documents
-func (repo *Repository) ComposeDocumentMetas() map[string]string {
+func (repo *Repository) ComposeDocumentMetas(ctx context.Context) map[string]string {
 	if len(repo.DocumentRenderingMetas) == 0 {
 		metas := map[string]string{}
-		for k, v := range repo.ComposeMetas() {
+		for k, v := range repo.ComposeMetas(ctx) {
 			metas[k] = v
 		}
 		metas["mode"] = "document"
@@ -489,6 +538,18 @@ func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) strin
 	return fmt.Sprintf("%s/%s/compare/%s...%s", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name), util.PathEscapeSegments(oldCommitID), util.PathEscapeSegments(newCommitID))
 }
 
+func (repo *Repository) ComposeBranchCompareURL(baseRepo *Repository, branchName string) string {
+	if baseRepo == nil {
+		baseRepo = repo
+	}
+	var cmpBranchEscaped string
+	if repo.ID != baseRepo.ID {
+		cmpBranchEscaped = fmt.Sprintf("%s/%s:", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name))
+	}
+	cmpBranchEscaped = fmt.Sprintf("%s%s", cmpBranchEscaped, util.PathEscapeSegments(branchName))
+	return fmt.Sprintf("%s/compare/%s...%s", baseRepo.Link(), util.PathEscapeSegments(baseRepo.DefaultBranch), cmpBranchEscaped)
+}
+
 // IsOwnedBy returns true when user owns this repository
 func (repo *Repository) IsOwnedBy(userID int64) bool {
 	return repo.OwnerID == userID
@@ -505,8 +566,8 @@ func (repo *Repository) CanEnablePulls() bool {
 }
 
 // AllowsPulls returns true if repository meets the requirements of accepting pulls and has them enabled.
-func (repo *Repository) AllowsPulls() bool {
-	return repo.CanEnablePulls() && repo.UnitEnabled(db.DefaultContext, unit.TypePullRequests)
+func (repo *Repository) AllowsPulls(ctx context.Context) bool {
+	return repo.CanEnablePulls() && repo.UnitEnabled(ctx, unit.TypePullRequests)
 }
 
 // CanEnableEditor returns true if repository meets the requirements of web editor.
@@ -601,6 +662,14 @@ func (repo *Repository) GetTrustModel() TrustModelType {
 	return trustModel
 }
 
+// MustNotBeArchived returns ErrRepoIsArchived if the repo is archived
+func (repo *Repository) MustNotBeArchived() error {
+	if repo.IsArchived {
+		return ErrRepoIsArchived{Repo: repo}
+	}
+	return nil
+}
+
 // __________                           .__  __
 // \______   \ ____ ______   ____  _____|__|/  |_  ___________ ___.__.
 //  |       _// __ \\____ \ /  _ \/  ___/  \   __\/  _ \_  __ <   |  |
@@ -649,12 +718,12 @@ func GetRepositoryByOwnerAndName(ctx context.Context, ownerName, repoName string
 }
 
 // GetRepositoryByName returns the repository by given name under user if exists.
-func GetRepositoryByName(ownerID int64, name string) (*Repository, error) {
+func GetRepositoryByName(ctx context.Context, ownerID int64, name string) (*Repository, error) {
 	repo := &Repository{
 		OwnerID:   ownerID,
 		LowerName: strings.ToLower(name),
 	}
-	has, err := db.GetEngine(db.DefaultContext).Get(repo)
+	has, err := db.GetEngine(ctx).Get(repo)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -719,9 +788,9 @@ func GetRepositoryByID(ctx context.Context, id int64) (*Repository, error) {
 }
 
 // GetRepositoriesMapByIDs returns the repositories by given id slice.
-func GetRepositoriesMapByIDs(ids []int64) (map[int64]*Repository, error) {
+func GetRepositoriesMapByIDs(ctx context.Context, ids []int64) (map[int64]*Repository, error) {
 	repos := make(map[int64]*Repository, len(ids))
-	return repos, db.GetEngine(db.DefaultContext).In("id", ids).Find(&repos)
+	return repos, db.GetEngine(ctx).In("id", ids).Find(&repos)
 }
 
 // IsRepositoryModelOrDirExist returns true if the repository with given name under user has already existed.
@@ -753,8 +822,8 @@ func GetTemplateRepo(ctx context.Context, repo *Repository) (*Repository, error)
 }
 
 // TemplateRepo returns the repository, which is template of this repository
-func (repo *Repository) TemplateRepo() *Repository {
-	repo, err := GetTemplateRepo(db.DefaultContext, repo)
+func (repo *Repository) TemplateRepo(ctx context.Context) *Repository {
+	repo, err := GetTemplateRepo(ctx, repo)
 	if err != nil {
 		log.Error("TemplateRepo: %v", err)
 		return nil

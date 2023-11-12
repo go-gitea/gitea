@@ -19,7 +19,6 @@ var (
 	SecretKey                          string
 	InternalToken                      string // internal access token
 	LogInRememberDays                  int
-	CookieUserName                     string
 	CookieRememberName                 string
 	ReverseProxyAuthUser               string
 	ReverseProxyAuthEmail              string
@@ -102,9 +101,8 @@ func generateSaveInternalToken(rootCfg ConfigProvider) {
 
 func loadSecurityFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("security")
-	InstallLock = sec.Key("INSTALL_LOCK").MustBool(false)
+	InstallLock = HasInstallLock(rootCfg)
 	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(7)
-	CookieUserName = sec.Key("COOKIE_USERNAME").MustString("gitea_awesome")
 	SecretKey = loadSecret(sec, "SECRET_KEY_URI", "SECRET_KEY")
 	if SecretKey == "" {
 		// FIXME: https://github.com/go-gitea/gitea/issues/16832
@@ -124,7 +122,7 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 		ReverseProxyTrustedProxies = []string{"127.0.0.0/8", "::1/128"}
 	}
 
-	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
+	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(8)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(true)
 	DisableWebhooks = sec.Key("DISABLE_WEBHOOKS").MustBool(false)

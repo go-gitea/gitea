@@ -1,13 +1,13 @@
 <p align="center">
   <a href="https://gitea.io/">
-    <img alt="Gitea" src="https://raw.githubusercontent.com/go-gitea/gitea/main/public/img/gitea.svg" width="220"/>
+    <img alt="Gitea" src="https://raw.githubusercontent.com/go-gitea/gitea/main/public/assets/img/gitea.svg" width="220"/>
   </a>
 </p>
 <h1 align="center">Gitea - Git with a cup of tea</h1>
 
 <p align="center">
-  <a href="https://drone.gitea.io/go-gitea/gitea" title="Build Status">
-    <img src="https://drone.gitea.io/api/badges/go-gitea/gitea/status.svg?ref=refs/heads/main">
+  <a href="https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml?query=branch%3Amain" title="Release Nightly">
+    <img src="https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml/badge.svg?branch=main">
   </a>
   <a href="https://discord.gg/Gitea" title="Join the Discord chat at https://discord.gg/Gitea">
     <img src="https://img.shields.io/discord/322538954119184384.svg">
@@ -68,7 +68,7 @@ Gitea 的首要目标是创建一个极易安装，运行非常快速，安装�
 
 ## 文档
 
-关于如何安装请访问我们的 [文档站](https://docs.gitea.io/zh-cn/)，如果没有找到对应的文档，你也可以通过 [Discord - 英文](https://discord.gg/gitea) 和 QQ群 328432459 来和我们交流。
+关于如何安装请访问我们的 [文档站](https://docs.gitea.com/zh-cn/category/installation)，如果没有找到对应的文档，你也可以通过 [Discord - 英文](https://discord.gg/gitea) 和 QQ群 328432459 来和我们交流。
 
 ## 贡献流程
 

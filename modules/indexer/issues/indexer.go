@@ -5,14 +5,15 @@ package issues
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"runtime/pprof"
 	"sync/atomic"
 	"time"
 
 	db_model "code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/indexer/issues/bleve"
 	"code.gitea.io/gitea/modules/indexer/issues/db"
@@ -26,9 +27,24 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+// IndexerMetadata is used to send data to the queue, so it contains only the ids.
+// It may look weired, because it has to be compatible with the old queue data format.
+// If the IsDelete flag is true, the IDs specify the issues to delete from the index without querying the database.
+// If the IsDelete flag is false, the ID specify the issue to index, so Indexer will query the database to get the issue data.
+// It should be noted that if the id is not existing in the database, it's index will be deleted too even if IsDelete is false.
+// Valid values:
+//   - IsDelete = true, IDs = [1, 2, 3], and ID will be ignored
+//   - IsDelete = false, ID = 1, and IDs will be ignored
+type IndexerMetadata struct {
+	ID int64 `json:"id"`
+
+	IsDelete bool    `json:"is_delete"`
+	IDs      []int64 `json:"ids"`
+}
+
 var (
 	// issueIndexerQueue queue of issue ids to be updated
-	issueIndexerQueue *queue.WorkerPoolQueue[*internal.IndexerData]
+	issueIndexerQueue *queue.WorkerPoolQueue[*IndexerMetadata]
 	// globalIndexer is the global indexer, it cannot be nil.
 	// When the real indexer is not ready, it will be a dummy indexer which will return error to explain it's not ready.
 	// So it's always safe use it as *globalIndexer.Load() and call its methods.
@@ -50,37 +66,7 @@ func InitIssueIndexer(syncReindex bool) {
 	indexerInitWaitChannel := make(chan time.Duration, 1)
 
 	// Create the Queue
-	switch setting.Indexer.IssueType {
-	case "bleve", "elasticsearch", "meilisearch":
-		handler := func(items ...*internal.IndexerData) (unhandled []*internal.IndexerData) {
-			indexer := *globalIndexer.Load()
-			toIndex := make([]*internal.IndexerData, 0, len(items))
-			for _, indexerData := range items {
-				log.Trace("IndexerData Process: %d %v %t", indexerData.ID, indexerData.IDs, indexerData.IsDelete)
-				if indexerData.IsDelete {
-					if err := indexer.Delete(ctx, indexerData.IDs...); err != nil {
-						log.Error("Issue indexer handler: failed to from index: %v Error: %v", indexerData.IDs, err)
-						unhandled = append(unhandled, indexerData)
-					}
-					continue
-				}
-				toIndex = append(toIndex, indexerData)
-			}
-			if err := indexer.Index(ctx, toIndex); err != nil {
-				log.Error("Error whilst indexing: %v Error: %v", toIndex, err)
-				unhandled = append(unhandled, toIndex...)
-			}
-			return unhandled
-		}
-
-		issueIndexerQueue = queue.CreateSimpleQueue(ctx, "issue_indexer", handler)
-
-		if issueIndexerQueue == nil {
-			log.Fatal("Unable to create issue indexer queue")
-		}
-	default:
-		issueIndexerQueue = queue.CreateSimpleQueue[*internal.IndexerData](ctx, "issue_indexer", nil)
-	}
+	issueIndexerQueue = queue.CreateUniqueQueue(ctx, "issue_indexer", getIssueIndexerQueueHandler(ctx))
 
 	graceful.GetManager().RunAtTerminate(finished)
 
@@ -176,15 +162,59 @@ func InitIssueIndexer(syncReindex bool) {
 	}
 }
 
+func getIssueIndexerQueueHandler(ctx context.Context) func(items ...*IndexerMetadata) []*IndexerMetadata {
+	return func(items ...*IndexerMetadata) []*IndexerMetadata {
+		var unhandled []*IndexerMetadata
+
+		indexer := *globalIndexer.Load()
+		for _, item := range items {
+			log.Trace("IndexerMetadata Process: %d %v %t", item.ID, item.IDs, item.IsDelete)
+			if item.IsDelete {
+				if err := indexer.Delete(ctx, item.IDs...); err != nil {
+					log.Error("Issue indexer handler: failed to from index: %v Error: %v", item.IDs, err)
+					unhandled = append(unhandled, item)
+				}
+				continue
+			}
+			data, existed, err := getIssueIndexerData(ctx, item.ID)
+			if err != nil {
+				log.Error("Issue indexer handler: failed to get issue data of %d: %v", item.ID, err)
+				unhandled = append(unhandled, item)
+				continue
+			}
+			if !existed {
+				if err := indexer.Delete(ctx, item.ID); err != nil {
+					log.Error("Issue indexer handler: failed to delete issue %d from index: %v", item.ID, err)
+					unhandled = append(unhandled, item)
+				}
+				continue
+			}
+			if err := indexer.Index(ctx, data); err != nil {
+				log.Error("Issue indexer handler: failed to index issue %d: %v", item.ID, err)
+				unhandled = append(unhandled, item)
+				continue
+			}
+		}
+
+		return unhandled
+	}
+}
+
 // populateIssueIndexer populate the issue indexer with issue data
 func populateIssueIndexer(ctx context.Context) {
 	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: PopulateIssueIndexer", process.SystemProcessType, true)
 	defer finished()
+	ctx = contextWithKeepRetry(ctx) // keep retrying since it's a background task
+	if err := PopulateIssueIndexer(ctx); err != nil {
+		log.Error("Issue indexer population failed: %v", err)
+	}
+}
+
+func PopulateIssueIndexer(ctx context.Context) error {
 	for page := 1; ; page++ {
 		select {
 		case <-ctx.Done():
-			log.Warn("Issue Indexer population shutdown before completion")
-			return
+			return fmt.Errorf("shutdown before completion: %w", ctx.Err())
 		default:
 		}
 		repos, _, err := repo_model.SearchRepositoryByName(ctx, &repo_model.SearchRepoOptions{
@@ -199,99 +229,115 @@ func populateIssueIndexer(ctx context.Context) {
 		}
 		if len(repos) == 0 {
 			log.Debug("Issue Indexer population complete")
-			return
+			return nil
 		}
 
 		for _, repo := range repos {
-			select {
-			case <-ctx.Done():
-				log.Info("Issue Indexer population shutdown before completion")
-				return
-			default:
+			if err := updateRepoIndexer(ctx, repo.ID); err != nil {
+				return fmt.Errorf("populate issue indexer for repo %d: %v", repo.ID, err)
 			}
-			UpdateRepoIndexer(ctx, repo)
 		}
 	}
 }
 
 // UpdateRepoIndexer add/update all issues of the repositories
-func UpdateRepoIndexer(ctx context.Context, repo *repo_model.Repository) {
-	is, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
-		RepoIDs:  []int64{repo.ID},
-		IsClosed: util.OptionalBoolNone,
-		IsPull:   util.OptionalBoolNone,
-	})
-	if err != nil {
-		log.Error("Issues: %v", err)
-		return
-	}
-	if err = issues_model.IssueList(is).LoadDiscussComments(ctx); err != nil {
-		log.Error("LoadDiscussComments: %v", err)
-		return
-	}
-	for _, issue := range is {
-		UpdateIssueIndexer(issue)
+func UpdateRepoIndexer(ctx context.Context, repoID int64) {
+	if err := updateRepoIndexer(ctx, repoID); err != nil {
+		log.Error("Unable to push repo %d to issue indexer: %v", repoID, err)
 	}
 }
 
 // UpdateIssueIndexer add/update an issue to the issue indexer
-func UpdateIssueIndexer(issue *issues_model.Issue) {
-	var comments []string
-	for _, comment := range issue.Comments {
-		if comment.Type == issues_model.CommentTypeComment {
-			comments = append(comments, comment.Content)
-		}
-	}
-	indexerData := &internal.IndexerData{
-		ID:       issue.ID,
-		RepoID:   issue.RepoID,
-		Title:    issue.Title,
-		Content:  issue.Content,
-		Comments: comments,
-	}
-	log.Debug("Adding to channel: %v", indexerData)
-	if err := issueIndexerQueue.Push(indexerData); err != nil {
-		log.Error("Unable to push to issue indexer: %v: Error: %v", indexerData, err)
+func UpdateIssueIndexer(ctx context.Context, issueID int64) {
+	if err := updateIssueIndexer(ctx, issueID); err != nil {
+		log.Error("Unable to push issue %d to issue indexer: %v", issueID, err)
 	}
 }
 
 // DeleteRepoIssueIndexer deletes repo's all issues indexes
-func DeleteRepoIssueIndexer(ctx context.Context, repo *repo_model.Repository) {
-	var ids []int64
-	ids, err := issues_model.GetIssueIDsByRepoID(ctx, repo.ID)
-	if err != nil {
-		log.Error("GetIssueIDsByRepoID failed: %v", err)
-		return
+func DeleteRepoIssueIndexer(ctx context.Context, repoID int64) {
+	if err := deleteRepoIssueIndexer(ctx, repoID); err != nil {
+		log.Error("Unable to push deleted repo %d to issue indexer: %v", repoID, err)
 	}
-
-	if len(ids) == 0 {
-		return
-	}
-	indexerData := &internal.IndexerData{
-		IDs:      ids,
-		IsDelete: true,
-	}
-	if err := issueIndexerQueue.Push(indexerData); err != nil {
-		log.Error("Unable to push to issue indexer: %v: Error: %v", indexerData, err)
-	}
-}
-
-// SearchIssuesByKeyword search issue ids by keywords and repo id
-// WARNNING: You have to ensure user have permission to visit repoIDs' issues
-func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string) ([]int64, error) {
-	var issueIDs []int64
-	indexer := *globalIndexer.Load()
-	res, err := indexer.Search(ctx, keyword, repoIDs, 50, 0)
-	if err != nil {
-		return nil, err
-	}
-	for _, r := range res.Hits {
-		issueIDs = append(issueIDs, r.ID)
-	}
-	return issueIDs, nil
 }
 
 // IsAvailable checks if issue indexer is available
 func IsAvailable(ctx context.Context) bool {
 	return (*globalIndexer.Load()).Ping(ctx) == nil
+}
+
+// SearchOptions indicates the options for searching issues
+type SearchOptions = internal.SearchOptions
+
+const (
+	SortByCreatedDesc  = internal.SortByCreatedDesc
+	SortByUpdatedDesc  = internal.SortByUpdatedDesc
+	SortByCommentsDesc = internal.SortByCommentsDesc
+	SortByDeadlineDesc = internal.SortByDeadlineDesc
+	SortByCreatedAsc   = internal.SortByCreatedAsc
+	SortByUpdatedAsc   = internal.SortByUpdatedAsc
+	SortByCommentsAsc  = internal.SortByCommentsAsc
+	SortByDeadlineAsc  = internal.SortByDeadlineAsc
+)
+
+// SearchIssues search issues by options.
+func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, error) {
+	indexer := *globalIndexer.Load()
+
+	if opts.Keyword == "" {
+		// This is a conservative shortcut.
+		// If the keyword is empty, db has better (at least not worse) performance to filter issues.
+		// When the keyword is empty, it tends to listing rather than searching issues.
+		// So if the user creates an issue and list issues immediately, the issue may not be listed because the indexer needs time to index the issue.
+		// Even worse, the external indexer like elastic search may not be available for a while,
+		// and the user may not be able to list issues completely until it is available again.
+		indexer = db.NewIndexer()
+	}
+
+	result, err := indexer.Search(ctx, opts)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	ret := make([]int64, 0, len(result.Hits))
+	for _, hit := range result.Hits {
+		ret = append(ret, hit.ID)
+	}
+
+	return ret, result.Total, nil
+}
+
+// CountIssues counts issues by options. It is a shortcut of SearchIssues(ctx, opts) but only returns the total count.
+func CountIssues(ctx context.Context, opts *SearchOptions) (int64, error) {
+	opts = opts.Copy(func(options *SearchOptions) { opts.Paginator = &db_model.ListOptions{PageSize: 0} })
+
+	_, total, err := SearchIssues(ctx, opts)
+	return total, err
+}
+
+// CountIssuesByRepo counts issues by options and group by repo id.
+// It's not a complete implementation, since it requires the caller should provide the repo ids.
+// That means opts.RepoIDs must be specified, and opts.AllPublic must be false.
+// It's good enough for the current usage, and it can be improved if needed.
+// TODO: use "group by" of the indexer engines to implement it.
+func CountIssuesByRepo(ctx context.Context, opts *SearchOptions) (map[int64]int64, error) {
+	if len(opts.RepoIDs) == 0 {
+		return nil, fmt.Errorf("opts.RepoIDs must be specified")
+	}
+	if opts.AllPublic {
+		return nil, fmt.Errorf("opts.AllPublic must be false")
+	}
+
+	repoIDs := container.SetOf(opts.RepoIDs...).Values()
+	ret := make(map[int64]int64, len(repoIDs))
+	// TODO: it could be faster if do it in parallel for some indexer engines. Improve it if users report it's slow.
+	for _, repoID := range repoIDs {
+		count, err := CountIssues(ctx, opts.Copy(func(o *internal.SearchOptions) { o.RepoIDs = []int64{repoID} }))
+		if err != nil {
+			return nil, err
+		}
+		ret[repoID] = count
+	}
+
+	return ret, nil
 }

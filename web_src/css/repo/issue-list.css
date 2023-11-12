@@ -1,6 +1,6 @@
 .issue-list-toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: wrap-reverse;
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
@@ -14,13 +14,9 @@
 .issue-list-toolbar-right .filter.menu {
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 8px;
 }
 
 @media (max-width: 767.98px) {
-  .issue-list-toolbar {
-    flex-direction: column-reverse;
-  }
   .issue-list-toolbar-right .dropdown .menu {
     left: auto !important;
     right: auto !important;
@@ -35,4 +31,60 @@
   .issue-list-search {
     order: 2 !important;
   }
+}
+
+#issue-list .flex-item-title .labels-list {
+  display: flex;
+  gap: 0.25em;
+}
+
+#issue-list .flex-item-title .labels-list a {
+  display: flex;
+  text-decoration: none;
+}
+
+#issue-list .flex-item-title .labels-list .label {
+  padding: 0 6px;
+  margin: 0;
+  min-height: 20px;
+}
+
+#issue-list .flex-item-body .branches {
+  display: inline-flex;
+}
+
+#issue-list .flex-item-body .branches .branch {
+  background-color: var(--color-secondary-alpha-40);
+  border-radius: var(--border-radius);
+  padding: 0 4px;
+}
+
+#issue-list .flex-item-body .branches .truncated-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 10em;
+}
+
+#issue-list .flex-item-body .checklist progress {
+  margin-left: 2px;
+  width: 80px;
+  height: 6px;
+  display: inline-block;
+}
+
+#issue-list .flex-item-body .checklist progress::-webkit-progress-value {
+  background-color: var(--color-secondary-dark-4);
+}
+
+#issue-list .flex-item-body .checklist progress::-moz-progress-bar {
+  background-color: var(--color-secondary-dark-4);
+}
+
+.archived-label-filter {
+  margin-left: 10px;
+  font-size: 12px;
+  display: flex !important;
+  margin-bottom: 8px;
+  min-width: fit-content;
 }

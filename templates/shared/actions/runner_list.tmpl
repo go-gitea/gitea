@@ -1,17 +1,16 @@
 <div class="runner-container">
 
 	<h4 class="ui top attached header">
-		{{.locale.Tr "actions.runners.runner_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
+		{{ctx.Locale.Tr "actions.runners.runner_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 		<div class="ui right">
 			<div class="ui top right pointing dropdown">
 				<button class="ui primary tiny button">
-					{{.locale.Tr "actions.runners.new"}}
+					{{ctx.Locale.Tr "actions.runners.new"}}
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</button>
 				<div class="menu">
 					<div class="item">
-						{{/* TODO: replece the document link when there's a better one than the README of act_runner */}}
-						<a href="https://gitea.com/gitea/act_runner/src/branch/main/README.md">{{.locale.Tr "actions.runners.new_notice"}}</a>
+						<a href="https://docs.gitea.com/usage/actions/act-runner">{{ctx.Locale.Tr "actions.runners.new_notice"}}</a>
 					</div>
 					<div class="divider"></div>
 					<div class="header">
@@ -19,13 +18,13 @@
 					</div>
 					<div class="ui input">
 						<input type="text" value="{{.RegistrationToken}}">
-						<button class="ui basic label button" aria-label="{{.locale.Tr "copy"}}" data-clipboard-text="{{.RegistrationToken}}">
+						<button class="ui basic label button" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-text="{{.RegistrationToken}}">
 							{{svg "octicon-copy" 14}}
 						</button>
 					</div>
 					<div class="divider"></div>
 					<div class="item">
-						<a href="{{$.Link}}/reset_registration_token">Reset registration token</a>
+						<a href="{{$.Link}}/reset_registration_token">{{ctx.Locale.Tr "actions.runners.reset_registration_token"}}</a>
 					</div>
 				</div>
 			</div>
@@ -36,8 +35,8 @@
 		<form class="ui form ignore-dirty" id="user-list-search-form" action="{{$.Link}}">
 			<!-- Search Text -->
 			<div class="ui fluid action input">
-				{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword "AutoFocus" true}}
-				<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
+				{{template "shared/searchinput" dict "Value" .Keyword "AutoFocus" true}}
+				<button class="ui primary button">{{ctx.Locale.Tr "explore.search"}}</button>
 			</div>
 		</form>
 	</div>
@@ -45,14 +44,23 @@
 		<table class="ui very basic striped table unstackable">
 			<thead>
 				<tr>
-					<th data-sortt-asc="online" data-sortt-desc="offline">{{.locale.Tr "actions.runners.status"}}</th>
-					<th data-sortt-asc="alphabetically">{{.locale.Tr "actions.runners.id"}}</th>
-					<th>{{.locale.Tr "actions.runners.name"}}</th>
-					<th>{{.locale.Tr "actions.runners.version"}}</th>
-					<th>{{.locale.Tr "actions.runners.owner_type"}}</th>
-					<th>{{.locale.Tr "actions.runners.labels"}}</th>
-					<th>{{.locale.Tr "actions.runners.last_online"}}</th>
-					<th>{{.locale.Tr "edit"}}</th>
+					<th data-sortt-asc="online" data-sortt-desc="offline">
+						{{ctx.Locale.Tr "actions.runners.status"}}
+						{{SortArrow "online" "offline" .SortType false}}
+					</th>
+					<th data-sortt-asc="newest" data-sortt-desc="oldest">
+						{{ctx.Locale.Tr "actions.runners.id"}}
+						{{SortArrow "oldest" "newest" .SortType false}}
+					</th>
+					<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
+						{{ctx.Locale.Tr "actions.runners.name"}}
+						{{SortArrow "alphabetically" "reversealphabetically" .SortType false}}
+					</th>
+					<th>{{ctx.Locale.Tr "actions.runners.version"}}</th>
+					<th>{{ctx.Locale.Tr "actions.runners.owner_type"}}</th>
+					<th>{{ctx.Locale.Tr "actions.runners.labels"}}</th>
+					<th>{{ctx.Locale.Tr "actions.runners.last_online"}}</th>
+					<th>{{ctx.Locale.Tr "edit"}}</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -60,18 +68,18 @@
 					{{range .Runners}}
 					<tr>
 						<td>
-							<span class="runner-status-{{if .IsOnline}}online{{else}}offline{{end}}">{{.StatusLocaleName $.locale}}</span>
+							<span class="ui {{if .IsOnline}}green{{else}}basic{{end}} label">{{.StatusLocaleName ctx.Locale}}</span>
 						</td>
 						<td>{{.ID}}</td>
 						<td><p data-tooltip-content="{{.Description}}">{{.Name}}</p></td>
-						<td>{{if .Version}}{{.Version}}{{else}}{{$.locale.Tr "unknown"}}{{end}}</td>
-						<td><span data-tooltip-content="{{.BelongsToOwnerName}}">{{.BelongsToOwnerType.LocaleString $.locale}}</span></td>
+						<td>{{if .Version}}{{.Version}}{{else}}{{ctx.Locale.Tr "unknown"}}{{end}}</td>
+						<td><span data-tooltip-content="{{.BelongsToOwnerName}}">{{.BelongsToOwnerType.LocaleString ctx.Locale}}</span></td>
 						<td class="runner-tags">
 							{{range .AgentLabels}}<span class="ui label">{{.}}</span>{{end}}
 						</td>
-						<td>{{if .LastOnline}}{{TimeSinceUnix .LastOnline $.locale}}{{else}}{{$.locale.Tr "never"}}{{end}}</td>
+						<td>{{if .LastOnline}}{{TimeSinceUnix .LastOnline ctx.Locale}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>
 						<td class="runner-ops">
-							{{if .Editable $.RunnerOnwerID $.RunnerRepoID}}
+							{{if .Editable $.RunnerOwnerID $.RunnerRepoID}}
 							<a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
 							{{end}}
 						</td>
@@ -79,7 +87,7 @@
 					{{end}}
 				{{else}}
 					<tr>
-						<td class="center aligned" colspan="6">{{.locale.Tr "actions.runners.none"}}</td>
+						<td class="center aligned" colspan="8">{{ctx.Locale.Tr "actions.runners.none"}}</td>
 					</tr>
 				{{end}}
 			</tbody>

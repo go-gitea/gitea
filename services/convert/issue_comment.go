@@ -14,54 +14,54 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// ToComment converts a issues_model.Comment to the api.Comment format
-func ToComment(ctx context.Context, c *issues_model.Comment) *api.Comment {
+// ToAPIComment converts a issues_model.Comment to the api.Comment format for API usage
+func ToAPIComment(ctx context.Context, repo *repo_model.Repository, c *issues_model.Comment) *api.Comment {
 	return &api.Comment{
 		ID:          c.ID,
 		Poster:      ToUser(ctx, c.Poster, nil),
-		HTMLURL:     c.HTMLURL(),
-		IssueURL:    c.IssueURL(),
-		PRURL:       c.PRURL(),
+		HTMLURL:     c.HTMLURL(ctx),
+		IssueURL:    c.IssueURL(ctx),
+		PRURL:       c.PRURL(ctx),
 		Body:        c.Content,
-		Attachments: ToAttachments(c.Attachments),
+		Attachments: ToAPIAttachments(repo, c.Attachments),
 		Created:     c.CreatedUnix.AsTime(),
 		Updated:     c.UpdatedUnix.AsTime(),
 	}
 }
 
 // ToTimelineComment converts a issues_model.Comment to the api.TimelineComment format
-func ToTimelineComment(ctx context.Context, c *issues_model.Comment, doer *user_model.User) *api.TimelineComment {
+func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issues_model.Comment, doer *user_model.User) *api.TimelineComment {
 	err := c.LoadMilestone(ctx)
 	if err != nil {
 		log.Error("LoadMilestone: %v", err)
 		return nil
 	}
 
-	err = c.LoadAssigneeUserAndTeam()
+	err = c.LoadAssigneeUserAndTeam(ctx)
 	if err != nil {
 		log.Error("LoadAssigneeUserAndTeam: %v", err)
 		return nil
 	}
 
-	err = c.LoadResolveDoer()
+	err = c.LoadResolveDoer(ctx)
 	if err != nil {
 		log.Error("LoadResolveDoer: %v", err)
 		return nil
 	}
 
-	err = c.LoadDepIssueDetails()
+	err = c.LoadDepIssueDetails(ctx)
 	if err != nil {
 		log.Error("LoadDepIssueDetails: %v", err)
 		return nil
 	}
 
-	err = c.LoadTime()
+	err = c.LoadTime(ctx)
 	if err != nil {
 		log.Error("LoadTime: %v", err)
 		return nil
 	}
 
-	err = c.LoadLabel()
+	err = c.LoadLabel(ctx)
 	if err != nil {
 		log.Error("LoadLabel: %v", err)
 		return nil
@@ -82,9 +82,9 @@ func ToTimelineComment(ctx context.Context, c *issues_model.Comment, doer *user_
 		ID:       c.ID,
 		Type:     c.Type.String(),
 		Poster:   ToUser(ctx, c.Poster, nil),
-		HTMLURL:  c.HTMLURL(),
-		IssueURL: c.IssueURL(),
-		PRURL:    c.PRURL(),
+		HTMLURL:  c.HTMLURL(ctx),
+		IssueURL: c.IssueURL(ctx),
+		PRURL:    c.PRURL(ctx),
 		Body:     c.Content,
 		Created:  c.CreatedUnix.AsTime(),
 		Updated:  c.UpdatedUnix.AsTime(),
@@ -114,7 +114,7 @@ func ToTimelineComment(ctx context.Context, c *issues_model.Comment, doer *user_
 	}
 
 	if c.Time != nil {
-		err = c.Time.LoadAttributes()
+		err = c.Time.LoadAttributes(ctx)
 		if err != nil {
 			log.Error("Time.LoadAttributes: %v", err)
 			return nil
@@ -143,7 +143,7 @@ func ToTimelineComment(ctx context.Context, c *issues_model.Comment, doer *user_
 			log.Error("LoadPoster: %v", err)
 			return nil
 		}
-		comment.RefComment = ToComment(ctx, com)
+		comment.RefComment = ToAPIComment(ctx, repo, com)
 	}
 
 	if c.Label != nil {

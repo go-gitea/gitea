@@ -4,14 +4,20 @@
 package actions
 
 import (
+	"archive/zip"
+	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
@@ -253,29 +259,33 @@ func ViewPost(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func RerunOne(ctx *context_module.Context) {
+// Rerun will rerun jobs in the given run
+// jobIndex = 0 means rerun all jobs
+func Rerun(ctx *context_module.Context) {
 	runIndex := ctx.ParamsInt64("run")
 	jobIndex := ctx.ParamsInt64("job")
 
-	job, _ := getRunJobs(ctx, runIndex, jobIndex)
-	if ctx.Written() {
-		return
-	}
-
-	if err := rerunJob(ctx, job); err != nil {
+	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, struct{}{})
-}
+	// can not rerun job when workflow is disabled
+	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
+	cfg := cfgUnit.ActionsConfig()
+	if cfg.IsWorkflowDisabled(run.WorkflowID) {
+		ctx.JSONError(ctx.Locale.Tr("actions.workflow.disabled"))
+		return
+	}
 
-func RerunAll(ctx *context_module.Context) {
-	runIndex := ctx.ParamsInt64("run")
-
-	_, jobs := getRunJobs(ctx, runIndex, 0)
+	job, jobs := getRunJobs(ctx, runIndex, jobIndex)
 	if ctx.Written() {
 		return
+	}
+
+	if jobIndex != 0 {
+		jobs = []*actions_model.ActionRunJob{job}
 	}
 
 	for _, j := range jobs {
@@ -308,6 +318,55 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob) erro
 
 	actions_service.CreateCommitStatus(ctx, job)
 	return nil
+}
+
+func Logs(ctx *context_module.Context) {
+	runIndex := ctx.ParamsInt64("run")
+	jobIndex := ctx.ParamsInt64("job")
+
+	job, _ := getRunJobs(ctx, runIndex, jobIndex)
+	if ctx.Written() {
+		return
+	}
+	if job.TaskID == 0 {
+		ctx.Error(http.StatusNotFound, "job is not started")
+		return
+	}
+
+	err := job.LoadRun(ctx)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	task, err := actions_model.GetTaskByID(ctx, job.TaskID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	if task.LogExpired {
+		ctx.Error(http.StatusNotFound, "logs have been cleaned up")
+		return
+	}
+
+	reader, err := actions.OpenLogs(ctx, task.LogInStorage, task.LogFilename)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer reader.Close()
+
+	workflowName := job.Run.WorkflowID
+	if p := strings.Index(workflowName, "."); p > 0 {
+		workflowName = workflowName[0:p]
+	}
+	ctx.ServeContent(reader, &context_module.ServeHeaderOptions{
+		Filename:           fmt.Sprintf("%v-%v-%v.log", workflowName, job.Name, task.ID),
+		ContentLength:      &task.LogSize,
+		ContentType:        "text/plain",
+		ContentTypeCharset: "utf-8",
+		Disposition:        "attachment",
+	})
 }
 
 func Cancel(ctx *context_module.Context) {
@@ -427,9 +486,9 @@ type ArtifactsViewResponse struct {
 }
 
 type ArtifactsViewItem struct {
-	Name string `json:"name"`
-	Size int64  `json:"size"`
-	ID   int64  `json:"id"`
+	Name   string `json:"name"`
+	Size   int64  `json:"size"`
+	Status string `json:"status"`
 }
 
 func ArtifactsView(ctx *context_module.Context) {
@@ -443,7 +502,7 @@ func ArtifactsView(ctx *context_module.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	artifacts, err := actions_model.ListUploadedArtifactsByRunID(ctx, run.ID)
+	artifacts, err := actions_model.ListUploadedArtifactsMeta(ctx, run.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
@@ -452,10 +511,14 @@ func ArtifactsView(ctx *context_module.Context) {
 		Artifacts: make([]*ArtifactsViewItem, 0, len(artifacts)),
 	}
 	for _, art := range artifacts {
+		status := "completed"
+		if art.Status == int64(actions_model.ArtifactStatusExpired) {
+			status = "expired"
+		}
 		artifactsResponse.Artifacts = append(artifactsResponse.Artifacts, &ArtifactsViewItem{
-			Name: art.ArtifactName,
-			Size: art.FileSize,
-			ID:   art.ID,
+			Name:   art.ArtifactName,
+			Size:   art.FileSize,
+			Status: status,
 		})
 	}
 	ctx.JSON(http.StatusOK, artifactsResponse)
@@ -463,15 +526,8 @@ func ArtifactsView(ctx *context_module.Context) {
 
 func ArtifactsDownloadView(ctx *context_module.Context) {
 	runIndex := ctx.ParamsInt64("run")
-	artifactID := ctx.ParamsInt64("id")
+	artifactName := ctx.Params("artifact_name")
 
-	artifact, err := actions_model.GetArtifactByID(ctx, artifactID)
-	if errors.Is(err, util.ErrNotExist) {
-		ctx.Error(http.StatusNotFound, err.Error())
-	} else if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
-	}
 	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
@@ -481,20 +537,89 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	if artifact.RunID != run.ID {
-		ctx.Error(http.StatusNotFound, "artifact not found")
-		return
-	}
 
-	f, err := storage.ActionsArtifacts.Open(artifact.StoragePath)
+	artifacts, err := actions_model.ListArtifactsByRunIDAndName(ctx, run.ID, artifactName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	defer f.Close()
+	if len(artifacts) == 0 {
+		ctx.Error(http.StatusNotFound, "artifact not found")
+		return
+	}
 
-	ctx.ServeContent(f, &context_module.ServeHeaderOptions{
-		Filename:     artifact.ArtifactName,
-		LastModified: artifact.CreatedUnix.AsLocalTime(),
-	})
+	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(artifactName), artifactName))
+
+	writer := zip.NewWriter(ctx.Resp)
+	defer writer.Close()
+	for _, art := range artifacts {
+
+		f, err := storage.ActionsArtifacts.Open(art.StoragePath)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		var r io.ReadCloser
+		if art.ContentEncoding == "gzip" {
+			r, err = gzip.NewReader(f)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, err.Error())
+				return
+			}
+		} else {
+			r = f
+		}
+		defer r.Close()
+
+		w, err := writer.Create(art.ArtifactPath)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+		if _, err := io.Copy(w, r); err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+}
+
+func DisableWorkflowFile(ctx *context_module.Context) {
+	disableOrEnableWorkflowFile(ctx, false)
+}
+
+func EnableWorkflowFile(ctx *context_module.Context) {
+	disableOrEnableWorkflowFile(ctx, true)
+}
+
+func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
+	workflow := ctx.FormString("workflow")
+	if len(workflow) == 0 {
+		ctx.ServerError("workflow", nil)
+		return
+	}
+
+	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
+	cfg := cfgUnit.ActionsConfig()
+
+	if isEnable {
+		cfg.EnableWorkflow(workflow)
+	} else {
+		cfg.DisableWorkflow(workflow)
+	}
+
+	if err := repo_model.UpdateRepoUnit(ctx, cfgUnit); err != nil {
+		ctx.ServerError("UpdateRepoUnit", err)
+		return
+	}
+
+	if isEnable {
+		ctx.Flash.Success(ctx.Tr("actions.workflow.enable_success", workflow))
+	} else {
+		ctx.Flash.Success(ctx.Tr("actions.workflow.disable_success", workflow))
+	}
+
+	redirectURL := fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s", ctx.Repo.RepoLink, url.QueryEscape(workflow),
+		url.QueryEscape(ctx.FormString("actor")), url.QueryEscape(ctx.FormString("status")))
+	ctx.JSONRedirect(redirectURL)
 }

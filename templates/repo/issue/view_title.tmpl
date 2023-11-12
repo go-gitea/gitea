@@ -6,7 +6,7 @@
 <div class="issue-title-header">
 	<div class="issue-title" id="issue-title-wrapper">
 		<h1 class="gt-word-break">
-			<span id="issue-title">{{RenderIssueTitle $.Context .Issue.Title $.RepoLink $.Repository.ComposeMetas | RenderCodeBlock}} <span class="index">#{{.Issue.Index}}</span>
+			<span id="issue-title">{{RenderIssueTitle $.Context .Issue.Title $.RepoLink ($.Repository.ComposeMetas ctx) | RenderCodeBlock}} <span class="index">#{{.Issue.Index}}</span>
 </span>
 			<div id="edit-title-input" class="ui input gt-f1 gt-hidden">
 				<input value="{{.Issue.Title}}" maxlength="255" autocomplete="off">
@@ -14,32 +14,32 @@
 		</h1>
 		<div class="issue-title-buttons">
 			{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
-				<button id="edit-title" class="ui small basic button edit-button not-in-edit{{if .Issue.IsPull}} gt-mr-0{{end}}">{{.locale.Tr "repo.issues.edit"}}</button>
+				<button id="edit-title" class="ui small basic button edit-button not-in-edit{{if .Issue.IsPull}} gt-mr-0{{end}}">{{ctx.Locale.Tr "repo.issues.edit"}}</button>
 			{{end}}
 			{{if not .Issue.IsPull}}
-				<a role="button" class="ui small green button new-issue-button gt-mr-0" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{.locale.Tr "repo.issues.new"}}</a>
+				<a role="button" class="ui small primary button new-issue-button gt-mr-0" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
 			{{end}}
 		</div>
 		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
 			<div class="edit-buttons">
-				<button id="cancel-edit-title" class="ui small basic button in-edit gt-hidden">{{.locale.Tr "repo.issues.cancel"}}</button>
-				<button id="save-edit-title" class="ui small primary button in-edit gt-hidden gt-mr-0" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title" {{if .Issue.IsPull}}data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch"{{end}}>{{.locale.Tr "repo.issues.save"}}</button>
+				<button id="cancel-edit-title" class="ui small basic button in-edit gt-hidden">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
+				<button id="save-edit-title" class="ui small primary button in-edit gt-hidden gt-mr-0" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title" {{if .Issue.IsPull}}data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch"{{end}}>{{ctx.Locale.Tr "repo.issues.save"}}</button>
 			</div>
 		{{end}}
 	</div>
 	<div class="issue-title-meta">
 		{{if .HasMerged}}
-			<div class="ui purple label issue-state-label">{{svg "octicon-git-merge" 16 "gt-mr-2"}} {{if eq .Issue.PullRequest.Status 3}}{{.locale.Tr "repo.pulls.manually_merged"}}{{else}}{{.locale.Tr "repo.pulls.merged"}}{{end}}</div>
+			<div class="ui purple label issue-state-label">{{svg "octicon-git-merge" 16 "gt-mr-2"}} {{if eq .Issue.PullRequest.Status 3}}{{ctx.Locale.Tr "repo.pulls.manually_merged"}}{{else}}{{ctx.Locale.Tr "repo.pulls.merged"}}{{end}}</div>
 		{{else if .Issue.IsClosed}}
-			<div class="ui red label issue-state-label">{{if .Issue.IsPull}}{{svg "octicon-git-pull-request"}}{{else}}{{svg "octicon-issue-closed"}}{{end}} {{.locale.Tr "repo.issues.closed_title"}}</div>
+			<div class="ui red label issue-state-label">{{if .Issue.IsPull}}{{svg "octicon-git-pull-request"}}{{else}}{{svg "octicon-issue-closed"}}{{end}} {{ctx.Locale.Tr "repo.issues.closed_title"}}</div>
 		{{else if .Issue.IsPull}}
 			{{if .IsPullWorkInProgress}}
-				<div class="ui grey label issue-state-label">{{svg "octicon-git-pull-request-draft"}} {{.locale.Tr "repo.issues.draft_title"}}</div>
+				<div class="ui grey label issue-state-label">{{svg "octicon-git-pull-request-draft"}} {{ctx.Locale.Tr "repo.issues.draft_title"}}</div>
 			{{else}}
-				<div class="ui green label issue-state-label">{{svg "octicon-git-pull-request"}} {{.locale.Tr "repo.issues.open_title"}}</div>
+				<div class="ui green label issue-state-label">{{svg "octicon-git-pull-request"}} {{ctx.Locale.Tr "repo.issues.open_title"}}</div>
 			{{end}}
 		{{else}}
-			<div class="ui green label issue-state-label">{{svg "octicon-issue-opened"}} {{.locale.Tr "repo.issues.open_title"}}</div>
+			<div class="ui green label issue-state-label">{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues.open_title"}}</div>
 		{{end}}
 		<div class="gt-ml-3">
 			{{if .Issue.IsPull}}
@@ -47,45 +47,45 @@
 				{{if .HeadBranchLink}}
 					{{$headHref = printf `<a href="%s">%s</a>` (.HeadBranchLink | Escape) $headHref}}
 				{{end}}
-				{{$headHref = printf `%s <button class="btn interact-fg" data-tooltip-content="%s" data-clipboard-text="%s">%s</button>` $headHref (.locale.Tr "copy_branch") (.HeadTarget | Escape) (svg "octicon-copy" 14)}}
+				{{$headHref = printf `%s <button class="btn interact-fg" data-tooltip-content="%s" data-clipboard-text="%s">%s</button>` $headHref (ctx.Locale.Tr "copy_branch") (.HeadTarget | Escape) (svg "octicon-copy" 14)}}
 				{{$baseHref := .BaseTarget|Escape}}
 				{{if .BaseBranchLink}}
 					{{$baseHref = printf `<a href="%s">%s</a>` (.BaseBranchLink | Escape) $baseHref}}
 				{{end}}
 				{{if .Issue.PullRequest.HasMerged}}
-					{{$mergedStr:= TimeSinceUnix .Issue.PullRequest.MergedUnix $.locale}}
+					{{$mergedStr:= TimeSinceUnix .Issue.PullRequest.MergedUnix ctx.Locale}}
 					{{if .Issue.OriginalAuthor}}
 						{{.Issue.OriginalAuthor}}
-						<span class="pull-desc">{{$.locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr | Safe}}</span>
+						<span class="pull-desc">{{ctx.Locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr | Safe}}</span>
 					{{else}}
 						<a {{if gt .Issue.PullRequest.Merger.ID 0}}href="{{.Issue.PullRequest.Merger.HomeLink}}"{{end}}>{{.Issue.PullRequest.Merger.GetDisplayName}}</a>
-						<span class="pull-desc">{{$.locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr | Safe}}</span>
+						<span class="pull-desc">{{ctx.Locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr | Safe}}</span>
 					{{end}}
 				{{else}}
 					{{if .Issue.OriginalAuthor}}
-						<span id="pull-desc" class="pull-desc">{{.Issue.OriginalAuthor}} {{$.locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref | Safe}}</span>
+						<span id="pull-desc" class="pull-desc">{{.Issue.OriginalAuthor}} {{ctx.Locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref | Safe}}</span>
 					{{else}}
 						<span id="pull-desc" class="pull-desc">
 							<a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
-							{{$.locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref | Safe}}
+							{{ctx.Locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref | Safe}}
 						</span>
 					{{end}}
 					<span id="pull-desc-edit" class="gt-hidden flex-text-block">
 						<div class="ui floating filter dropdown">
 							<div class="ui basic small button gt-mr-0">
-								<span class="text">{{.locale.Tr "repo.pulls.compare_compare"}}: {{$.HeadTarget}}</span>
+								<span class="text">{{ctx.Locale.Tr "repo.pulls.compare_compare"}}: {{$.HeadTarget}}</span>
 							</div>
 						</div>
 						{{svg "octicon-arrow-right"}}
-						<div class="ui floating filter dropdown" data-no-results="{{.locale.Tr "repo.pulls.no_results"}}">
+						<div class="ui floating filter dropdown" data-no-results="{{ctx.Locale.Tr "repo.pulls.no_results"}}">
 							<div class="ui basic small button">
-								<span class="text" id="pull-target-branch" data-basename="{{$.BaseName}}" data-branch="{{$.BaseBranch}}">{{.locale.Tr "repo.pulls.compare_base"}}: {{$.BaseName}}:{{$.BaseBranch}}</span>
+								<span class="text" id="pull-target-branch" data-basename="{{$.BaseName}}" data-branch="{{$.BaseBranch}}">{{ctx.Locale.Tr "repo.pulls.compare_base"}}: {{$.BaseName}}:{{$.BaseBranch}}</span>
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							</div>
 							<div class="menu">
 								<div class="ui icon search input">
 									<i class="icon">{{svg "octicon-filter" 16}}</i>
-									<input name="search" placeholder="{{.locale.Tr "repo.pulls.filter_branch"}}...">
+									<input name="search" placeholder="{{ctx.Locale.Tr "repo.pulls.filter_branch"}}...">
 								</div>
 								<div class="scrolling menu" id="branch-select">
 									{{range .Branches}}
@@ -101,17 +101,17 @@
 					</span>
 				{{end}}
 			{{else}}
-				{{$createdStr:= TimeSinceUnix .Issue.CreatedUnix $.locale}}
+				{{$createdStr:= TimeSinceUnix .Issue.CreatedUnix ctx.Locale}}
 				<span class="time-desc">
 					{{if .Issue.OriginalAuthor}}
-						{{$.locale.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.OriginalAuthor|Escape) | Safe}}
+						{{ctx.Locale.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.OriginalAuthor|Escape) | Safe}}
 					{{else if gt .Issue.Poster.ID 0}}
-						{{$.locale.Tr "repo.issues.opened_by" $createdStr (.Issue.Poster.HomeLink|Escape) (.Issue.Poster.GetDisplayName|Escape) | Safe}}
+						{{ctx.Locale.Tr "repo.issues.opened_by" $createdStr (.Issue.Poster.HomeLink|Escape) (.Issue.Poster.GetDisplayName|Escape) | Safe}}
 					{{else}}
-						{{$.locale.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.Poster.GetDisplayName|Escape) | Safe}}
+						{{ctx.Locale.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.Poster.GetDisplayName|Escape) | Safe}}
 					{{end}}
 					·
-					{{$.locale.Tr "repo.issues.num_comments" .Issue.NumComments}}
+					{{ctx.Locale.TrN .Issue.NumComments "repo.issues.num_comments_1" "repo.issues.num_comments" .Issue.NumComments}}
 				</span>
 			{{end}}
 		</div>

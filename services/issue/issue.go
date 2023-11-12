@@ -16,18 +16,18 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/storage"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // NewIssue creates new issue with labels for repository.
 func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64) error {
-	if err := issues_model.NewIssue(repo, issue, labelIDs, uuids); err != nil {
+	if err := issues_model.NewIssue(ctx, repo, issue, labelIDs, uuids); err != nil {
 		return err
 	}
 
 	for _, assigneeID := range assigneeIDs {
-		if err := AddAssigneeIfNotAssigned(ctx, issue, issue.Poster, assigneeID); err != nil {
+		if _, err := AddAssigneeIfNotAssigned(ctx, issue, issue.Poster, assigneeID, true); err != nil {
 			return err
 		}
 	}
@@ -37,33 +37,37 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 		return err
 	}
 
-	notification.NotifyNewIssue(ctx, issue, mentions)
+	notify_service.NewIssue(ctx, issue, mentions)
 	if len(issue.Labels) > 0 {
-		notification.NotifyIssueChangeLabels(ctx, issue.Poster, issue, issue.Labels, nil)
+		notify_service.IssueChangeLabels(ctx, issue.Poster, issue, issue.Labels, nil)
 	}
 	if issue.Milestone != nil {
-		notification.NotifyIssueChangeMilestone(ctx, issue.Poster, issue, 0)
+		notify_service.IssueChangeMilestone(ctx, issue.Poster, issue, 0)
 	}
 
 	return nil
 }
 
 // ChangeTitle changes the title of this issue, as the given user.
-func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, title string) (err error) {
+func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, title string) error {
 	oldTitle := issue.Title
 	issue.Title = title
 
-	if err = issues_model.ChangeIssueTitle(ctx, issue, doer, oldTitle); err != nil {
-		return
+	if oldTitle == title {
+		return nil
+	}
+
+	if err := issues_model.ChangeIssueTitle(ctx, issue, doer, oldTitle); err != nil {
+		return err
 	}
 
 	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issues_model.HasWorkInProgressPrefix(title) {
-		if err = issues_model.PullRequestCodeOwnersReview(ctx, issue, issue.PullRequest); err != nil {
-			return
+		if err := issues_model.PullRequestCodeOwnersReview(ctx, issue, issue.PullRequest); err != nil {
+			return err
 		}
 	}
 
-	notification.NotifyIssueChangeTitle(ctx, doer, issue, oldTitle)
+	notify_service.IssueChangeTitle(ctx, doer, issue, oldTitle)
 
 	return nil
 }
@@ -73,11 +77,11 @@ func ChangeIssueRef(ctx context.Context, issue *issues_model.Issue, doer *user_m
 	oldRef := issue.Ref
 	issue.Ref = ref
 
-	if err := issues_model.ChangeIssueRef(issue, doer, oldRef); err != nil {
+	if err := issues_model.ChangeIssueRef(ctx, issue, doer, oldRef); err != nil {
 		return err
 	}
 
-	notification.NotifyIssueChangeRef(ctx, doer, issue, oldRef)
+	notify_service.IssueChangeRef(ctx, doer, issue, oldRef)
 
 	return nil
 }
@@ -128,7 +132,7 @@ func UpdateAssignees(ctx context.Context, issue *issues_model.Issue, oneAssignee
 	// has access to the repo.
 	for _, assignee := range allNewAssignees {
 		// Extra method to prevent double adding (which would result in removing)
-		err = AddAssigneeIfNotAssigned(ctx, issue, doer, assignee.ID)
+		_, err = AddAssigneeIfNotAssigned(ctx, issue, doer, assignee.ID, true)
 		if err != nil {
 			return err
 		}
@@ -166,43 +170,43 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 		}
 	}
 
-	notification.NotifyDeleteIssue(ctx, doer, issue)
+	notify_service.DeleteIssue(ctx, doer, issue)
 
 	return nil
 }
 
 // AddAssigneeIfNotAssigned adds an assignee only if he isn't already assigned to the issue.
 // Also checks for access of assigned user
-func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assigneeID int64) (err error) {
+func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assigneeID int64, notify bool) (comment *issues_model.Comment, err error) {
 	assignee, err := user_model.GetUserByID(ctx, assigneeID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Check if the user is already assigned
 	isAssigned, err := issues_model.IsUserAssignedToIssue(ctx, issue, assignee)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if isAssigned {
 		// nothing to to
-		return nil
+		return nil, nil
 	}
 
 	valid, err := access_model.CanBeAssigned(ctx, assignee, issue.Repo, issue.IsPull)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !valid {
-		return repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: issue.Repo.Name}
+		return nil, repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: issue.Repo.Name}
 	}
 
-	_, _, err = ToggleAssignee(ctx, issue, doer, assigneeID)
-	if err != nil {
-		return err
+	if notify {
+		_, comment, err = ToggleAssigneeWithNotify(ctx, issue, doer, assigneeID)
+		return comment, err
 	}
-
-	return nil
+	_, comment, err = issues_model.ToggleIssueAssignee(ctx, issue, doer, assigneeID)
+	return comment, err
 }
 
 // GetRefEndNamesAndURLs retrieves the ref end names (e.g. refs/heads/branch-name -> branch-name)
@@ -248,7 +252,7 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) error {
 			issue.MilestoneID, err)
 	}
 
-	if err := activities_model.DeleteIssueActions(ctx, issue.RepoID, issue.ID); err != nil {
+	if err := activities_model.DeleteIssueActions(ctx, issue.RepoID, issue.ID, issue.Index); err != nil {
 		return err
 	}
 
@@ -262,43 +266,25 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) error {
 	}
 
 	// delete all database data still assigned to this issue
-	if err := issues_model.DeleteInIssue(ctx, issue.ID,
-		&issues_model.ContentHistory{},
-		&issues_model.Comment{},
-		&issues_model.IssueLabel{},
-		&issues_model.IssueDependency{},
-		&issues_model.IssueAssignees{},
-		&issues_model.IssueUser{},
-		&activities_model.Notification{},
-		&issues_model.Reaction{},
-		&issues_model.IssueWatch{},
-		&issues_model.Stopwatch{},
-		&issues_model.TrackedTime{},
-		&project_model.ProjectIssue{},
-		&repo_model.Attachment{},
-		&issues_model.PullRequest{},
+	if err := db.DeleteBeans(ctx,
+		&issues_model.ContentHistory{IssueID: issue.ID},
+		&issues_model.Comment{IssueID: issue.ID},
+		&issues_model.IssueLabel{IssueID: issue.ID},
+		&issues_model.IssueDependency{IssueID: issue.ID},
+		&issues_model.IssueAssignees{IssueID: issue.ID},
+		&issues_model.IssueUser{IssueID: issue.ID},
+		&activities_model.Notification{IssueID: issue.ID},
+		&issues_model.Reaction{IssueID: issue.ID},
+		&issues_model.IssueWatch{IssueID: issue.ID},
+		&issues_model.Stopwatch{IssueID: issue.ID},
+		&issues_model.TrackedTime{IssueID: issue.ID},
+		&project_model.ProjectIssue{IssueID: issue.ID},
+		&repo_model.Attachment{IssueID: issue.ID},
+		&issues_model.PullRequest{IssueID: issue.ID},
+		&issues_model.Comment{RefIssueID: issue.ID},
+		&issues_model.IssueDependency{DependencyID: issue.ID},
+		&issues_model.Comment{DependentIssueID: issue.ID},
 	); err != nil {
-		return err
-	}
-
-	// References to this issue in other issues
-	if _, err := db.DeleteByBean(ctx, &issues_model.Comment{
-		RefIssueID: issue.ID,
-	}); err != nil {
-		return err
-	}
-
-	// Delete dependencies for issues in other repositories
-	if _, err := db.DeleteByBean(ctx, &issues_model.IssueDependency{
-		DependencyID: issue.ID,
-	}); err != nil {
-		return err
-	}
-
-	// delete from dependent issues
-	if _, err := db.DeleteByBean(ctx, &issues_model.Comment{
-		DependentIssueID: issue.ID,
-	}); err != nil {
 		return err
 	}
 

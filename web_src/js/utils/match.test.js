@@ -1,4 +1,3 @@
-import {test, expect} from 'vitest';
 import {matchEmoji, matchMention} from './match.js';
 
 test('matchEmoji', () => {
@@ -38,6 +37,10 @@ test('matchEmoji', () => {
 
   expect(matchEmoji('1st_')).toEqual([
     '1st_place_medal',
+  ]);
+
+  expect(matchEmoji('jellyfis')).toEqual([
+    'jellyfish',
   ]);
 });
 

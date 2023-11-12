@@ -17,14 +17,24 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Release, msg string) (bool, error) {
+	err := rel.LoadAttributes(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	err = rel.Repo.MustNotBeArchived()
+	if err != nil {
+		return false, err
+	}
+
 	var created bool
 	// Only actual create when publish.
 	if !rel.IsDraft {
@@ -81,14 +91,14 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 			commits.CompareURL = rel.Repo.ComposeCompareURL(git.EmptySHA, commit.ID.String())
 
 			refFullName := git.RefNameFromTag(rel.TagName)
-			notification.NotifyPushCommits(
+			notify_service.PushCommits(
 				ctx, rel.Publisher, rel.Repo,
 				&repository.PushUpdateOptions{
 					RefFullName: refFullName,
 					OldCommitID: git.EmptySHA,
 					NewCommitID: commit.ID.String(),
 				}, commits)
-			notification.NotifyCreateRef(ctx, rel.Publisher, rel.Repo, refFullName, commit.ID.String())
+			notify_service.CreateRef(ctx, rel.Publisher, rel.Repo, refFullName, commit.ID.String())
 			rel.CreatedUnix = timeutil.TimeStampNow()
 		}
 		commit, err := gitRepo.GetTagCommit(rel.TagName)
@@ -139,7 +149,7 @@ func CreateRelease(gitRepo *git.Repository, rel *repo_model.Release, attachmentU
 	}
 
 	if !rel.IsDraft {
-		notification.NotifyNewRelease(gitRepo.Ctx, rel)
+		notify_service.NewRelease(gitRepo.Ctx, rel)
 	}
 
 	return nil
@@ -185,9 +195,9 @@ func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.R
 // addAttachmentUUIDs accept a slice of new created attachments' uuids which will be reassigned release_id as the created release
 // delAttachmentUUIDs accept a slice of attachments' uuids which will be deleted from the release
 // editAttachments accept a map of attachment uuid to new attachment name which will be updated with attachments.
-func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_model.Release,
+func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, rel *repo_model.Release,
 	addAttachmentUUIDs, delAttachmentUUIDs []string, editAttachments map[string]string,
-) (err error) {
+) error {
 	if rel.ID == 0 {
 		return errors.New("UpdateRelease only accepts an exist release")
 	}
@@ -197,7 +207,7 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -264,8 +274,8 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 		}
 	}
 
-	if err = committer.Commit(); err != nil {
-		return
+	if err := committer.Commit(); err != nil {
+		return err
 	}
 
 	for _, uuid := range delAttachmentUUIDs {
@@ -279,15 +289,15 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 	}
 
 	if !isCreated {
-		notification.NotifyUpdateRelease(gitRepo.Ctx, doer, rel)
-		return
+		notify_service.UpdateRelease(gitRepo.Ctx, doer, rel)
+		return nil
 	}
 
 	if !rel.IsDraft {
-		notification.NotifyNewRelease(gitRepo.Ctx, rel)
+		notify_service.NewRelease(gitRepo.Ctx, rel)
 	}
 
-	return err
+	return nil
 }
 
 // DeleteReleaseByID deletes a release and corresponding Git tag by given ID.
@@ -325,14 +335,14 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 		}
 
 		refName := git.RefNameFromTag(rel.TagName)
-		notification.NotifyPushCommits(
+		notify_service.PushCommits(
 			ctx, doer, repo,
 			&repository.PushUpdateOptions{
 				RefFullName: refName,
 				OldCommitID: rel.Sha1,
 				NewCommitID: git.EmptySHA,
 			}, repository.NewPushCommits())
-		notification.NotifyDeleteRef(ctx, doer, repo, refName)
+		notify_service.DeleteRef(ctx, doer, repo, refName)
 
 		if err := repo_model.DeleteReleaseByID(ctx, id); err != nil {
 			return fmt.Errorf("DeleteReleaseByID: %w", err)
@@ -361,7 +371,7 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 		}
 	}
 
-	notification.NotifyDeleteRelease(ctx, doer, rel)
+	notify_service.DeleteRelease(ctx, doer, rel)
 
 	return nil
 }

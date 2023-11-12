@@ -4,6 +4,9 @@
 package integration
 
 import (
+	"strings"
+
+	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -15,9 +18,9 @@ func createFileInBranch(user *user_model.User, repo *repo_model.Repository, tree
 	opts := &files_service.ChangeRepoFilesOptions{
 		Files: []*files_service.ChangeRepoFile{
 			{
-				Operation: "create",
-				TreePath:  treePath,
-				Content:   content,
+				Operation:     "create",
+				TreePath:      treePath,
+				ContentReader: strings.NewReader(content),
 			},
 		},
 		OldBranch: branchName,
@@ -25,6 +28,32 @@ func createFileInBranch(user *user_model.User, repo *repo_model.Repository, tree
 		Committer: nil,
 	}
 	return files_service.ChangeRepoFiles(git.DefaultContext, repo, user, opts)
+}
+
+func deleteFileInBranch(user *user_model.User, repo *repo_model.Repository, treePath, branchName string) (*api.FilesResponse, error) {
+	opts := &files_service.ChangeRepoFilesOptions{
+		Files: []*files_service.ChangeRepoFile{
+			{
+				Operation: "delete",
+				TreePath:  treePath,
+			},
+		},
+		OldBranch: branchName,
+		Author:    nil,
+		Committer: nil,
+	}
+	return files_service.ChangeRepoFiles(git.DefaultContext, repo, user, opts)
+}
+
+func createOrReplaceFileInBranch(user *user_model.User, repo *repo_model.Repository, treePath, branchName, content string) error {
+	_, err := deleteFileInBranch(user, repo, treePath, branchName)
+
+	if err != nil && !models.IsErrRepoFileDoesNotExist(err) {
+		return err
+	}
+
+	_, err = createFileInBranch(user, repo, treePath, branchName, content)
+	return err
 }
 
 func createFile(user *user_model.User, repo *repo_model.Repository, treePath string) (*api.FilesResponse, error) {

@@ -52,9 +52,9 @@ func (runs RunList) LoadTriggerUser(ctx context.Context) error {
 	return nil
 }
 
-func (runs RunList) LoadRepos() error {
+func (runs RunList) LoadRepos(ctx context.Context) error {
 	repoIDs := runs.GetRepoIDs()
-	repos, err := repo_model.GetRepositoriesMapByIDs(repoIDs)
+	repos, err := repo_model.GetRepositoriesMapByIDs(ctx, repoIDs)
 	if err != nil {
 		return err
 	}
@@ -66,12 +66,13 @@ func (runs RunList) LoadRepos() error {
 
 type FindRunOptions struct {
 	db.ListOptions
-	RepoID           int64
-	OwnerID          int64
-	WorkflowFileName string
-	TriggerUserID    int64
-	Approved         bool // not util.OptionalBool, it works only when it's true
-	Status           Status
+	RepoID        int64
+	OwnerID       int64
+	WorkflowID    string
+	Ref           string // the commit/tag/… that caused this workflow
+	TriggerUserID int64
+	Approved      bool // not util.OptionalBool, it works only when it's true
+	Status        []Status
 }
 
 func (opts FindRunOptions) toConds() builder.Cond {
@@ -82,8 +83,8 @@ func (opts FindRunOptions) toConds() builder.Cond {
 	if opts.OwnerID > 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
 	}
-	if opts.WorkflowFileName != "" {
-		cond = cond.And(builder.Eq{"workflow_id": opts.WorkflowFileName})
+	if opts.WorkflowID != "" {
+		cond = cond.And(builder.Eq{"workflow_id": opts.WorkflowID})
 	}
 	if opts.TriggerUserID > 0 {
 		cond = cond.And(builder.Eq{"trigger_user_id": opts.TriggerUserID})
@@ -91,8 +92,11 @@ func (opts FindRunOptions) toConds() builder.Cond {
 	if opts.Approved {
 		cond = cond.And(builder.Gt{"approved_by": 0})
 	}
-	if opts.Status > StatusUnknown {
-		cond = cond.And(builder.Eq{"status": opts.Status})
+	if len(opts.Status) > 0 {
+		cond = cond.And(builder.In("status", opts.Status))
+	}
+	if opts.Ref != "" {
+		cond = cond.And(builder.Eq{"ref": opts.Ref})
 	}
 	return cond
 }

@@ -108,10 +108,9 @@ func RenderCommitBody(ctx context.Context, msg, urlPrefix string, metas map[stri
 // Match text that is between back ticks.
 var codeMatcher = regexp.MustCompile("`([^`]+)`")
 
-// RenderCodeBlock renders "`…`" as highlighted "<code>" block.
-// Intended for issue and PR titles, these containers should have styles for "<code>" elements
+// RenderCodeBlock renders "`…`" as highlighted "<code>" block, intended for issue and PR titles
 func RenderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
-	htmlWithCodeTags := codeMatcher.ReplaceAllString(string(htmlEscapedTextToRender), "<code>$1</code>") // replace with HTML <code> tags
+	htmlWithCodeTags := codeMatcher.ReplaceAllString(string(htmlEscapedTextToRender), `<code class="inline-code-block">$1</code>`) // replace with HTML <code> tags
 	return template.HTML(htmlWithCodeTags)
 }
 
@@ -180,7 +179,7 @@ func RenderLabel(ctx context.Context, label *issues_model.Label) template.HTML {
 
 	s := fmt.Sprintf("<span class='ui label scope-parent' title='%s'>"+
 		"<div class='ui label scope-left' style='color: %s !important; background-color: %s !important'>%s</div>"+
-		"<div class='ui label scope-right' style='color: %s !important; background-color: %s !important''>%s</div>"+
+		"<div class='ui label scope-right' style='color: %s !important; background-color: %s !important'>%s</div>"+
 		"</span>",
 		description,
 		textColor, scopeColor, scopeText,

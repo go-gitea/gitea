@@ -1,0 +1,20 @@
+{{if not .PageIsWiki}}
+<div class="branch-and-tag-area" data-text-default-branch-tooltip="{{ctx.Locale.Tr "repo.commit.contained_in_default_branch"}}">
+	<button class="ui button ellipsis-button load-branches-and-tags gt-mt-3" aria-expanded="false"
+		data-fetch-url="{{.RepoLink}}/commit/{{.CommitID}}/load-branches-and-tags"
+		data-tooltip-content="{{ctx.Locale.Tr "repo.commit.load_referencing_branches_and_tags"}}"
+	>...</button>
+	<div class="branch-and-tag-detail gt-hidden">
+		<div class="divider"></div>
+		<div>{{ctx.Locale.Tr "repo.commit.contained_in"}}</div>
+		<div class="gt-df gt-mt-3">
+			<div class="gt-p-2">{{svg "octicon-git-branch"}}</div>
+			<div class="branch-area flex-text-block gt-f1"></div>
+		</div>
+		<div class="gt-df gt-mt-3">
+			<div class="gt-p-2">{{svg "octicon-tag"}}</div>
+			<div class="tag-area flex-text-block gt-f1"></div>
+		</div>
+	</div>
+</div>
+{{end}}

@@ -44,7 +44,7 @@ func GetReleaseByTag(ctx *context.APIContext) {
 
 	tag := ctx.Params(":tag")
 
-	release, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tag)
+	release, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tag)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound()
@@ -63,7 +63,7 @@ func GetReleaseByTag(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToRelease(ctx, release))
+	ctx.JSON(http.StatusOK, convert.ToAPIRelease(ctx, ctx.Repo.Repository, release))
 }
 
 // DeleteReleaseByTag delete a release from a repository by tag name
@@ -97,7 +97,7 @@ func DeleteReleaseByTag(ctx *context.APIContext) {
 
 	tag := ctx.Params(":tag")
 
-	release, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tag)
+	release, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tag)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound()

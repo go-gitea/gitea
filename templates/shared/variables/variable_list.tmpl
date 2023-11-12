@@ -1,44 +1,51 @@
 <h4 class="ui top attached header">
-	{{.locale.Tr "actions.variables.management"}}
+	{{ctx.Locale.Tr "actions.variables.management"}}
 	<div class="ui right">
 		<button class="ui primary tiny button show-modal"
 			data-modal="#edit-variable-modal"
 			data-modal-form.action="{{.Link}}/new"
-			data-modal-header="{{.locale.Tr "actions.variables.creation"}}"
+			data-modal-header="{{ctx.Locale.Tr "actions.variables.creation"}}"
 			data-modal-dialog-variable-name=""
 			data-modal-dialog-variable-data=""
 		>
-			{{.locale.Tr "actions.variables.creation"}}
+			{{ctx.Locale.Tr "actions.variables.creation"}}
 		</button>
 	</div>
 </h4>
 <div class="ui attached segment">
 	{{if .Variables}}
-	<div class="ui list">
-		{{range $i, $v := .Variables}}
-		<div class="item gt-df gt-ac gt-fw {{if gt $i 0}} gt-py-4{{end}}">
-			<div class="content gt-f1 gt-ellipsis">
-				<strong>{{$v.Name}}</strong>
-				<div class="print meta gt-ellipsis">{{$v.Data}}</div>
+	<div class="flex-list">
+		{{range .Variables}}
+		<div class="flex-item gt-ac">
+			<div class="flex-item-leading">
+				{{svg "octicon-pencil" 32}}
 			</div>
-			<div class="content">
-				<span class="color-text-light-2 gt-mr-5">
-					{{$.locale.Tr "settings.added_on" (DateTime "short" $v.CreatedUnix) | Safe}}
+			<div class="flex-item-main">
+				<div class="flex-item-title">
+					{{.Name}}
+				</div>
+				<div class="flex-item-body">
+					{{.Data}}
+				</div>
+			</div>
+			<div class="flex-item-trailing">
+				<span class="color-text-light-2">
+					{{ctx.Locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}}
 				</span>
 				<button class="btn interact-bg gt-p-3 show-modal"
-					data-tooltip-content="{{$.locale.Tr "variables.edit"}}"
+					data-tooltip-content="{{ctx.Locale.Tr "variables.edit"}}"
 					data-modal="#edit-variable-modal"
-					data-modal-form.action="{{$.Link}}/{{$v.ID}}/edit"
-					data-modal-header="{{$.locale.Tr "actions.variables.edit"}}"
-					data-modal-dialog-variable-name="{{$v.Name}}"
-					data-modal-dialog-variable-data="{{$v.Data}}"
+					data-modal-form.action="{{$.Link}}/{{.ID}}/edit"
+					data-modal-header="{{ctx.Locale.Tr "actions.variables.edit"}}"
+					data-modal-dialog-variable-name="{{.Name}}"
+					data-modal-dialog-variable-data="{{.Data}}"
 				>
 					{{svg "octicon-pencil"}}
 				</button>
 				<button class="btn interact-bg gt-p-3 link-action"
-					data-tooltip-content="{{$.locale.Tr "actions.variables.deletion"}}"
-					data-url="{{$.Link}}/{{$v.ID}}/delete"
-					data-modal-confirm="{{$.locale.Tr "actions.variables.deletion.description"}}"
+					data-tooltip-content="{{ctx.Locale.Tr "actions.variables.deletion"}}"
+					data-url="{{$.Link}}/{{.ID}}/delete"
+					data-modal-confirm="{{ctx.Locale.Tr "actions.variables.deletion.description"}}"
 				>
 					{{svg "octicon-trash"}}
 				</button>
@@ -47,7 +54,7 @@
 		{{end}}
 	</div>
 	{{else}}
-		{{.locale.Tr "actions.variables.none"}}
+		{{ctx.Locale.Tr "actions.variables.none"}}
 	{{end}}
 </div>
 
@@ -58,28 +65,28 @@
 		<div class="content">
 			{{.CsrfTokenHtml}}
 			<div class="field">
-				{{.locale.Tr "actions.variables.description"}}
+				{{ctx.Locale.Tr "actions.variables.description"}}
 			</div>
 			<div class="field">
-				<label for="dialog-variable-name">{{.locale.Tr "name"}}</label>
+				<label for="dialog-variable-name">{{ctx.Locale.Tr "name"}}</label>
 				<input autofocus required
 					name="name"
 					id="dialog-variable-name"
 					value="{{.name}}"
-					pattern="^[a-zA-Z_][a-zA-Z0-9_]*$"
-					placeholder="{{.locale.Tr "secrets.creation.name_placeholder"}}"
+					pattern="^(?!GITEA_|GITHUB_)[a-zA-Z_][a-zA-Z0-9_]*$"
+					placeholder="{{ctx.Locale.Tr "secrets.creation.name_placeholder"}}"
 				>
 			</div>
 			<div class="field">
-				<label for="dialog-variable-data">{{.locale.Tr "value"}}</label>
+				<label for="dialog-variable-data">{{ctx.Locale.Tr "value"}}</label>
 				<textarea required
 					name="data"
 					id="dialog-variable-data"
-					placeholder="{{.locale.Tr "secrets.creation.value_placeholder"}}"
+					placeholder="{{ctx.Locale.Tr "secrets.creation.value_placeholder"}}"
 				></textarea>
 			</div>
 		</div>
-		{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
+		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 	</form>
 </div>
 

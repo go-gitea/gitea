@@ -29,7 +29,6 @@ linters:
   fast: false
 
 run:
-  go: "1.20"
   timeout: 10m
   skip-dirs:
     - node_modules
@@ -75,18 +74,22 @@ linters-settings:
       - name: modifies-value-receiver
   gofumpt:
     extra-rules: true
-    lang-version: "1.20"
   depguard:
-    list-type: denylist
-    # Check the list against standard lib.
-    include-go-root: true
-    packages-with-error-message:
-      - encoding/json: "use gitea's modules/json instead of encoding/json"
-      - github.com/unknwon/com: "use gitea's util and replacements"
-      - io/ioutil: "use os or io instead"
-      - golang.org/x/exp: "it's experimental and unreliable."
-      - code.gitea.io/gitea/modules/git/internal: "do not use the internal package, use AddXxx function instead"
-      - gopkg.in/ini.v1: "do not use the ini package, use gitea's config system instead"
+    rules:
+      main:
+        deny:
+          - pkg: encoding/json
+            desc: use gitea's modules/json instead of encoding/json
+          - pkg: github.com/unknwon/com
+            desc: use gitea's util and replacements
+          - pkg: io/ioutil
+            desc: use os or io instead
+          - pkg: golang.org/x/exp
+            desc: it's experimental and unreliable
+          - pkg: code.gitea.io/gitea/modules/git/internal
+            desc: do not use the internal package, use AddXxx function instead
+          - pkg: gopkg.in/ini.v1
+            desc: do not use the ini package, use gitea's config system instead
 
 issues:
   max-issues-per-linter: 0

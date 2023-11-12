@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -20,6 +22,8 @@ func TestAPIUserInfo(t *testing.T) {
 
 	user := "user1"
 	user2 := "user31"
+
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
 
 	session := loginUser(t, user)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
@@ -36,6 +40,18 @@ func TestAPIUserInfo(t *testing.T) {
 
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s", user2))
 		MakeRequest(t, req, http.StatusNotFound)
+
+		// test if the placaholder Mail is returned if a User is not logged in
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s", org3.Name))
+		resp = MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, &u)
+		assert.Equal(t, org3.GetPlaceholderEmail(), u.Email)
+
+		// Test if the correct Mail is returned if a User is logged in
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s?token=%s", org3.Name, token))
+		resp = MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, &u)
+		assert.Equal(t, org3.GetEmail(), u.Email)
 	})
 
 	t.Run("GetAuthenticatedUser", func(t *testing.T) {

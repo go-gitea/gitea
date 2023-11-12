@@ -27,7 +27,7 @@ func NewFlushingBatch(index bleve.Index, maxBatchSize int) *FlushingBatch {
 }
 
 // Index add a new index to batch
-func (b *FlushingBatch) Index(id string, data interface{}) error {
+func (b *FlushingBatch) Index(id string, data any) error {
 	if err := b.batch.Index(id, data); err != nil {
 		return err
 	}

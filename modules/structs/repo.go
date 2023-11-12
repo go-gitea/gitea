@@ -63,6 +63,7 @@ type Repository struct {
 	Language      string      `json:"language"`
 	LanguagesURL  string      `json:"languages_url"`
 	HTMLURL       string      `json:"html_url"`
+	URL           string      `json:"url"`
 	Link          string      `json:"link"`
 	SSHURL        string      `json:"ssh_url"`
 	CloneURL      string      `json:"clone_url"`
@@ -238,6 +239,8 @@ type GenerateRepoOption struct {
 	Avatar bool `json:"avatar"`
 	// include labels in template repo
 	Labels bool `json:"labels"`
+	// include protected branches in template repo
+	ProtectedBranch bool `json:"protected_branch"`
 }
 
 // CreateBranchRepoOption options when creating a branch in a repository
@@ -327,7 +330,7 @@ type MigrateRepoOptions struct {
 	// required: true
 	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 
-	// enum: git,github,gitea,gitlab
+	// enum: git,github,gitea,gitlab,gogs,onedev,gitbucket,codebase
 	Service      string `json:"service"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`
@@ -379,4 +382,10 @@ type RepoTransfer struct {
 type NewIssuePinsAllowed struct {
 	Issues       bool `json:"issues"`
 	PullRequests bool `json:"pull_requests"`
+}
+
+// UpdateRepoAvatarUserOption options when updating the repo avatar
+type UpdateRepoAvatarOption struct {
+	// image must be base64 encoded
+	Image string `json:"image" binding:"Required"`
 }

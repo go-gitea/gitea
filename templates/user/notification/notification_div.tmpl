@@ -1,21 +1,21 @@
-<div role="main" aria-label="{{.Title}}" class="page-content user notification" id="notification_div" data-params="{{.Page.GetParams}}" data-sequence-number="{{.SequenceNumber}}">
+<div role="main" aria-label="{{.Title}}" class="page-content user notification" id="notification_div" data-sequence-number="{{.SequenceNumber}}">
 	<div class="ui container">
 		{{$notificationUnreadCount := call .NotificationUnreadCount}}
 		<div class="gt-df gt-ac gt-sb gt-mb-4">
 			<div class="small-menu-items ui compact tiny menu">
 				<a class="{{if eq .Status 1}}active {{end}}item" href="{{AppSubUrl}}/notifications?q=unread">
-					{{.locale.Tr "notification.unread"}}
+					{{ctx.Locale.Tr "notification.unread"}}
 					<div class="notifications-unread-count ui label {{if not $notificationUnreadCount}}gt-hidden{{end}}">{{$notificationUnreadCount}}</div>
 				</a>
 				<a class="{{if eq .Status 2}}active {{end}}item" href="{{AppSubUrl}}/notifications?q=read">
-					{{.locale.Tr "notification.read"}}
+					{{ctx.Locale.Tr "notification.read"}}
 				</a>
 			</div>
 			{{if and (eq .Status 1)}}
 				<form action="{{AppSubUrl}}/notifications/purge" method="post">
 					{{$.CsrfTokenHtml}}
 					<div class="{{if not $notificationUnreadCount}}gt-hidden{{end}}">
-						<button class="ui mini button primary gt-mr-0" title='{{$.locale.Tr "notification.mark_all_as_read"}}'>
+						<button class="ui mini button primary gt-mr-0" title="{{ctx.Locale.Tr "notification.mark_all_as_read"}}">
 							{{svg "octicon-checklist"}}
 						</button>
 					</div>
@@ -28,13 +28,12 @@
 					<div class="gt-df gt-ac gt-fc gt-p-4">
 						{{svg "octicon-inbox" 56 "gt-mb-4"}}
 						{{if eq .Status 1}}
-							{{.locale.Tr "notification.no_unread"}}
+							{{ctx.Locale.Tr "notification.no_unread"}}
 						{{else}}
-							{{.locale.Tr "notification.no_read"}}
+							{{ctx.Locale.Tr "notification.no_read"}}
 						{{end}}
 					</div>
 				{{else}}
-					{{$locale := .locale}}
 					{{range $notification := .Notifications}}
 						<div class="notifications-item gt-df gt-ac gt-fw gt-gap-3 gt-p-3" id="notification_{{.ID}}" data-status="{{.Status}}">
 							<div class="notifications-icon gt-ml-3 gt-mr-2 gt-self-start gt-mt-2">
@@ -44,7 +43,7 @@
 									{{svg "octicon-repo" 16 "text grey"}}
 								{{end}}
 							</div>
-							<a class="notifications-link gt-df gt-f1 gt-fc silenced" href="{{.Link}}">
+							<a class="notifications-link gt-df gt-f1 gt-fc silenced" href="{{.Link ctx}}">
 								<div class="notifications-top-row gt-font-13">
 									{{.Repository.FullName}} {{if .Issue}}<span class="text light-3">#{{.Issue.Index}}</span>{{end}}
 									{{if eq .Status 3}}
@@ -63,9 +62,9 @@
 							</a>
 							<div class="notifications-updated gt-ac gt-mr-3">
 								{{if .Issue}}
-									{{TimeSinceUnix .Issue.UpdatedUnix $locale}}
+									{{TimeSinceUnix .Issue.UpdatedUnix ctx.Locale}}
 								{{else}}
-									{{TimeSinceUnix .UpdatedUnix $locale}}
+									{{TimeSinceUnix .UpdatedUnix ctx.Locale}}
 								{{end}}
 							</div>
 							<div class="notifications-buttons gt-ac gt-je gt-gap-2 gt-px-2">
@@ -74,7 +73,7 @@
 										{{$.CsrfTokenHtml}}
 										<input type="hidden" name="notification_id" value="{{.ID}}">
 										<input type="hidden" name="status" value="pinned">
-										<button class="btn interact-bg gt-p-3" title='{{$.locale.Tr "notification.pin"}}'
+										<button class="btn interact-bg gt-p-3" title="{{ctx.Locale.Tr "notification.pin"}}"
 											data-url="{{AppSubUrl}}/notifications/status"
 											data-status="pinned"
 											data-page="{{$.Page.Paginater.Current}}"
@@ -90,7 +89,7 @@
 										<input type="hidden" name="notification_id" value="{{.ID}}">
 										<input type="hidden" name="status" value="read">
 										<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
-										<button class="btn interact-bg gt-p-3" title='{{$.locale.Tr "notification.mark_as_read"}}'
+										<button class="btn interact-bg gt-p-3" title="{{ctx.Locale.Tr "notification.mark_as_read"}}"
 											data-url="{{AppSubUrl}}/notifications/status"
 											data-status="read"
 											data-page="{{$.Page.Paginater.Current}}"
@@ -105,7 +104,7 @@
 										<input type="hidden" name="notification_id" value="{{.ID}}">
 										<input type="hidden" name="status" value="unread">
 										<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
-										<button class="btn interact-bg gt-p-3" title='{{$.locale.Tr "notification.mark_as_unread"}}'
+										<button class="btn interact-bg gt-p-3" title="{{ctx.Locale.Tr "notification.mark_as_unread"}}"
 											data-url="{{AppSubUrl}}/notifications/status"
 											data-status="unread"
 											data-page="{{$.Page.Paginater.Current}}"

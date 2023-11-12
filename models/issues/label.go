@@ -97,6 +97,8 @@ type Label struct {
 	QueryString       string `xorm:"-"`
 	IsSelected        bool   `xorm:"-"`
 	IsExcluded        bool   `xorm:"-"`
+
+	ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT NULL"`
 }
 
 func init() {
@@ -107,6 +109,16 @@ func init() {
 // CalOpenIssues sets the number of open issues of a label based on the already stored number of closed issues.
 func (l *Label) CalOpenIssues() {
 	l.NumOpenIssues = l.NumIssues - l.NumClosedIssues
+}
+
+// SetArchived set the label as archived
+func (l *Label) SetArchived(isArchived bool) {
+	if !isArchived {
+		l.ArchivedUnix = timeutil.TimeStamp(0)
+	} else if isArchived && l.ArchivedUnix.IsZero() {
+		// Only change the date when it is newly archived.
+		l.ArchivedUnix = timeutil.TimeStampNow()
+	}
 }
 
 // CalOpenOrgIssues calculates the open issues of a label for a specific repo
@@ -153,6 +165,11 @@ func (l *Label) BelongsToOrg() bool {
 	return l.OrgID > 0
 }
 
+// IsArchived returns true if label is an archived
+func (l *Label) IsArchived() bool {
+	return l.ArchivedUnix > 0
+}
+
 // BelongsToRepo returns true if label is a repository label
 func (l *Label) BelongsToRepo() bool {
 	return l.RepoID > 0
@@ -182,8 +199,8 @@ func NewLabel(ctx context.Context, l *Label) error {
 }
 
 // NewLabels creates new labels
-func NewLabels(labels ...*Label) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func NewLabels(ctx context.Context, labels ...*Label) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -204,19 +221,19 @@ func NewLabels(labels ...*Label) error {
 }
 
 // UpdateLabel updates label information.
-func UpdateLabel(l *Label) error {
+func UpdateLabel(ctx context.Context, l *Label) error {
 	color, err := label.NormalizeColor(l.Color)
 	if err != nil {
 		return err
 	}
 	l.Color = color
 
-	return updateLabelCols(db.DefaultContext, l, "name", "description", "color", "exclusive")
+	return updateLabelCols(ctx, l, "name", "description", "color", "exclusive", "archived_unix")
 }
 
 // DeleteLabel delete a label
-func DeleteLabel(id, labelID int64) error {
-	l, err := GetLabelByID(db.DefaultContext, labelID)
+func DeleteLabel(ctx context.Context, id, labelID int64) error {
+	l, err := GetLabelByID(ctx, labelID)
 	if err != nil {
 		if IsErrLabelNotExist(err) {
 			return nil
@@ -224,7 +241,7 @@ func DeleteLabel(id, labelID int64) error {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -272,12 +289,12 @@ func GetLabelByID(ctx context.Context, labelID int64) (*Label, error) {
 }
 
 // GetLabelsByIDs returns a list of labels by IDs
-func GetLabelsByIDs(labelIDs []int64) ([]*Label, error) {
+func GetLabelsByIDs(ctx context.Context, labelIDs []int64, cols ...string) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
-	return labels, db.GetEngine(db.DefaultContext).Table("label").
+	return labels, db.GetEngine(ctx).Table("label").
 		In("id", labelIDs).
 		Asc("name").
-		Cols("id", "repo_id", "org_id").
+		Cols(cols...).
 		Find(&labels)
 }
 
@@ -322,9 +339,9 @@ func GetLabelInRepoByID(ctx context.Context, repoID, labelID int64) (*Label, err
 // GetLabelIDsInRepoByNames returns a list of labelIDs by names in a given
 // repository.
 // it silently ignores label names that do not belong to the repository.
-func GetLabelIDsInRepoByNames(repoID int64, labelNames []string) ([]int64, error) {
+func GetLabelIDsInRepoByNames(ctx context.Context, repoID int64, labelNames []string) ([]int64, error) {
 	labelIDs := make([]int64, 0, len(labelNames))
-	return labelIDs, db.GetEngine(db.DefaultContext).Table("label").
+	return labelIDs, db.GetEngine(ctx).Table("label").
 		Where("repo_id = ?", repoID).
 		In("name", labelNames).
 		Asc("name").
@@ -381,8 +398,8 @@ func GetLabelsByRepoID(ctx context.Context, repoID int64, sortType string, listO
 }
 
 // CountLabelsByRepoID count number of all labels that belong to given repository by ID.
-func CountLabelsByRepoID(repoID int64) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where("repo_id = ?", repoID).Count(&Label{})
+func CountLabelsByRepoID(ctx context.Context, repoID int64) (int64, error) {
+	return db.GetEngine(ctx).Where("repo_id = ?", repoID).Count(&Label{})
 }
 
 // GetLabelInOrgByName returns a label by name in given organization.
@@ -425,13 +442,13 @@ func GetLabelInOrgByID(ctx context.Context, orgID, labelID int64) (*Label, error
 
 // GetLabelIDsInOrgByNames returns a list of labelIDs by names in a given
 // organization.
-func GetLabelIDsInOrgByNames(orgID int64, labelNames []string) ([]int64, error) {
+func GetLabelIDsInOrgByNames(ctx context.Context, orgID int64, labelNames []string) ([]int64, error) {
 	if orgID <= 0 {
 		return nil, ErrOrgLabelNotExist{0, orgID}
 	}
 	labelIDs := make([]int64, 0, len(labelNames))
 
-	return labelIDs, db.GetEngine(db.DefaultContext).Table("label").
+	return labelIDs, db.GetEngine(ctx).Table("label").
 		Where("org_id = ?", orgID).
 		In("name", labelNames).
 		Asc("name").
@@ -476,9 +493,21 @@ func GetLabelsByOrgID(ctx context.Context, orgID int64, sortType string, listOpt
 	return labels, sess.Find(&labels)
 }
 
+// GetLabelIDsByNames returns a list of labelIDs by names.
+// It doesn't filter them by repo or org, so it could return labels belonging to different repos/orgs.
+// It's used for filtering issues via indexer, otherwise it would be useless.
+// Since it could return labels with the same name, so the length of returned ids could be more than the length of names.
+func GetLabelIDsByNames(ctx context.Context, labelNames []string) ([]int64, error) {
+	labelIDs := make([]int64, 0, len(labelNames))
+	return labelIDs, db.GetEngine(ctx).Table("label").
+		In("name", labelNames).
+		Cols("id").
+		Find(&labelIDs)
+}
+
 // CountLabelsByOrgID count all labels that belong to given organization by ID.
-func CountLabelsByOrgID(orgID int64) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where("org_id = ?", orgID).Count(&Label{})
+func CountLabelsByOrgID(ctx context.Context, orgID int64) (int64, error) {
+	return db.GetEngine(ctx).Where("org_id = ?", orgID).Count(&Label{})
 }
 
 func updateLabelCols(ctx context.Context, l *Label, cols ...string) error {

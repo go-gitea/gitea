@@ -387,34 +387,34 @@ body:
 					{
 						Type: "markdown",
 						ID:   "id1",
-						Attributes: map[string]interface{}{
+						Attributes: map[string]any{
 							"value": "Value of the markdown",
 						},
 					},
 					{
 						Type: "textarea",
 						ID:   "id2",
-						Attributes: map[string]interface{}{
+						Attributes: map[string]any{
 							"label":       "Label of textarea",
 							"description": "Description of textarea",
 							"placeholder": "Placeholder of textarea",
 							"value":       "Value of textarea",
 							"render":      "bash",
 						},
-						Validations: map[string]interface{}{
+						Validations: map[string]any{
 							"required": true,
 						},
 					},
 					{
 						Type: "input",
 						ID:   "id3",
-						Attributes: map[string]interface{}{
+						Attributes: map[string]any{
 							"label":       "Label of input",
 							"description": "Description of input",
 							"placeholder": "Placeholder of input",
 							"value":       "Value of input",
 						},
-						Validations: map[string]interface{}{
+						Validations: map[string]any{
 							"required":  true,
 							"is_number": true,
 							"regex":     "[a-zA-Z0-9]+",
@@ -423,30 +423,30 @@ body:
 					{
 						Type: "dropdown",
 						ID:   "id4",
-						Attributes: map[string]interface{}{
+						Attributes: map[string]any{
 							"label":       "Label of dropdown",
 							"description": "Description of dropdown",
 							"multiple":    true,
-							"options": []interface{}{
+							"options": []any{
 								"Option 1 of dropdown",
 								"Option 2 of dropdown",
 								"Option 3 of dropdown",
 							},
 						},
-						Validations: map[string]interface{}{
+						Validations: map[string]any{
 							"required": true,
 						},
 					},
 					{
 						Type: "checkboxes",
 						ID:   "id5",
-						Attributes: map[string]interface{}{
+						Attributes: map[string]any{
 							"label":       "Label of checkboxes",
 							"description": "Description of checkboxes",
-							"options": []interface{}{
-								map[string]interface{}{"label": "Option 1 of checkboxes", "required": true},
-								map[string]interface{}{"label": "Option 2 of checkboxes", "required": false},
-								map[string]interface{}{"label": "Option 3 of checkboxes", "required": true},
+							"options": []any{
+								map[string]any{"label": "Option 1 of checkboxes", "required": true},
+								map[string]any{"label": "Option 2 of checkboxes", "required": false},
+								map[string]any{"label": "Option 3 of checkboxes", "required": true},
 							},
 						},
 					},
@@ -479,7 +479,7 @@ body:
 					{
 						Type: "markdown",
 						ID:   "id1",
-						Attributes: map[string]interface{}{
+						Attributes: map[string]any{
 							"value": "Value of the markdown",
 						},
 					},
@@ -512,7 +512,7 @@ body:
 					{
 						Type: "markdown",
 						ID:   "id1",
-						Attributes: map[string]interface{}{
+						Attributes: map[string]any{
 							"value": "Value of the markdown",
 						},
 					},
@@ -545,7 +545,7 @@ body:
 					{
 						Type: "markdown",
 						ID:   "id1",
-						Attributes: map[string]interface{}{
+						Attributes: map[string]any{
 							"value": "Value of the markdown",
 						},
 					},

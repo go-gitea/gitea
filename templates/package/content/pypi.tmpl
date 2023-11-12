@@ -1,18 +1,18 @@
 {{if eq .PackageDescriptor.Package.Type "pypi"}}
-	<h4 class="ui top attached header">{{.locale.Tr "packages.installation"}}</h4>
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.pypi.install"}}</label>
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.pypi.install"}}</label>
 				<div class="markup"><pre class="code-block"><code>pip install --index-url <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/pypi/simple/"></gitea-origin-url> {{.PackageDescriptor.Package.Name}}</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{.locale.Tr "packages.pypi.documentation" "https://docs.gitea.io/en-us/usage/packages/pypi/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "PyPI" "https://docs.gitea.com/usage/packages/pypi/" | Safe}}</label>
 			</div>
 		</div>
 	</div>
 	{{if or .PackageDescriptor.Metadata.Description .PackageDescriptor.Metadata.LongDescription .PackageDescriptor.Metadata.Summary}}
-		<h4 class="ui top attached header">{{.locale.Tr "packages.about"}}</h4>
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
 		<div class="ui attached segment">
 			<p>{{if .PackageDescriptor.Metadata.Summary}}{{.PackageDescriptor.Metadata.Summary}}{{end}}</p>
 			{{if .PackageDescriptor.Metadata.LongDescription}}
@@ -23,9 +23,9 @@
 		</div>
 	{{end}}
 	{{if .PackageDescriptor.Metadata.RequiresPython}}
-		<h4 class="ui top attached header">{{.locale.Tr "packages.requirements"}}</h4>
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.requirements"}}</h4>
 		<div class="ui attached segment">
-			{{.locale.Tr "packages.pypi.requires"}}: {{.PackageDescriptor.Metadata.RequiresPython}}
+			{{ctx.Locale.Tr "packages.pypi.requires"}}: {{.PackageDescriptor.Metadata.RequiresPython}}
 		</div>
 	{{end}}
 {{end}}

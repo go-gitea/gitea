@@ -20,7 +20,6 @@ import (
 
 // Commit represents a git commit.
 type Commit struct {
-	Branch string // Branch this commit belongs to
 	Tree
 	ID            SHA1 // The ID of this commit object
 	Author        *Signature
@@ -432,31 +431,6 @@ func (c *Commit) GetBranchName() (string, error) {
 	return strings.SplitN(strings.TrimSpace(data), "~", 2)[0], nil
 }
 
-// LoadBranchName load branch name for commit
-func (c *Commit) LoadBranchName() (err error) {
-	if len(c.Branch) != 0 {
-		return
-	}
-
-	c.Branch, err = c.GetBranchName()
-	return err
-}
-
-// GetTagName gets the current tag name for given commit
-func (c *Commit) GetTagName() (string, error) {
-	data, _, err := NewCommand(c.repo.Ctx, "describe", "--exact-match", "--tags", "--always").AddDynamicArguments(c.ID.String()).RunStdString(&RunOpts{Dir: c.repo.Path})
-	if err != nil {
-		// handle special case where there is no tag for this commit
-		if strings.Contains(err.Error(), "no tag exactly matches") {
-			return "", nil
-		}
-
-		return "", err
-	}
-
-	return strings.TrimSpace(data), nil
-}
-
 // CommitFileStatus represents status of files in a commit.
 type CommitFileStatus struct {
 	Added    []string
@@ -521,7 +495,7 @@ func GetCommitFileStatus(ctx context.Context, repoPath, commitID string) (*Commi
 	}()
 
 	stderr := new(bytes.Buffer)
-	err := NewCommand(ctx, "log", "--name-status", "-c", "--pretty=format:", "--parents", "--no-renames", "-z", "-1").AddDynamicArguments(commitID).Run(&RunOpts{
+	err := NewCommand(ctx, "log", "--name-status", "-m", "--pretty=format:", "--first-parent", "--no-renames", "-z", "-1").AddDynamicArguments(commitID).Run(&RunOpts{
 		Dir:    repoPath,
 		Stdout: w,
 		Stderr: stderr,

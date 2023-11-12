@@ -86,7 +86,7 @@ func (store *localeStore) SetDefaultLang(lang string) {
 }
 
 // Tr translates content to target language. fall back to default language.
-func (store *localeStore) Tr(lang, trKey string, trArgs ...interface{}) string {
+func (store *localeStore) Tr(lang, trKey string, trArgs ...any) string {
 	l, _ := store.Locale(lang)
 
 	return l.Tr(trKey, trArgs...)
@@ -119,7 +119,7 @@ func (store *localeStore) Close() error {
 }
 
 // Tr translates content to locale language. fall back to default language.
-func (l *locale) Tr(trKey string, trArgs ...interface{}) string {
+func (l *locale) Tr(trKey string, trArgs ...any) string {
 	format := trKey
 
 	idx, ok := l.store.trKeyToIdxMap[trKey]

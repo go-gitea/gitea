@@ -71,18 +71,6 @@ func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *repo_model
 func Releases(ctx *context.Context) {
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
-	releasesOrTags(ctx, false)
-}
-
-// TagsList render tags list page
-func TagsList(ctx *context.Context) {
-	ctx.Data["PageIsTagList"] = true
-	ctx.Data["Title"] = ctx.Tr("repo.release.tags")
-	releasesOrTags(ctx, true)
-}
-
-func releasesOrTags(ctx *context.Context, isTagList bool) {
-	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
 	ctx.Data["IsViewBranch"] = false
 	ctx.Data["IsViewTag"] = true
 	// Disable the showCreateNewBranch form in the dropdown on this page.
@@ -100,46 +88,18 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 		listOptions.PageSize = setting.API.MaxResponseItems
 	}
 
-	// TODO(20073) tags are used for compare feature which needs all tags
-	// filtering is done on the client-side atm
-	tagListStart, tagListEnd := 0, 0
-	if isTagList {
-		tagListStart, tagListEnd = listOptions.GetStartEnd()
-	}
-
-	tags, err := ctx.Repo.GitRepo.GetTags(tagListStart, tagListEnd)
-	if err != nil {
-		ctx.ServerError("GetTags", err)
-		return
-	}
-	ctx.Data["Tags"] = tags
-
 	writeAccess := ctx.Repo.CanWrite(unit.TypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
 	opts := repo_model.FindReleasesOptions{
 		ListOptions: listOptions,
-	}
-	if isTagList {
-		// for the tags list page, show all releases with real tags (having real commit-id),
-		// the drafts should also be included because a real tag might be used as a draft.
-		opts.IncludeDrafts = true
-		opts.IncludeTags = true
-		opts.HasSha1 = util.OptionalBoolTrue
-	} else {
 		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
-		opts.IncludeDrafts = writeAccess
+		IncludeDrafts: writeAccess,
 	}
 
 	releases, err := repo_model.GetReleasesByRepoID(ctx, ctx.Repo.Repository.ID, opts)
 	if err != nil {
 		ctx.ServerError("GetReleasesByRepoID", err)
-		return
-	}
-
-	count, err := repo_model.GetReleaseCountByRepoID(ctx, ctx.Repo.Repository.ID, opts)
-	if err != nil {
-		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return
 	}
 
@@ -176,7 +136,7 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 
 		r.Note, err = markdown.RenderString(&markup.RenderContext{
 			URLPrefix: ctx.Repo.RepoLink,
-			Metas:     ctx.Repo.Repository.ComposeMetas(),
+			Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
 			GitRepo:   ctx.Repo.GitRepo,
 			Ctx:       ctx,
 		}, r.Note)
@@ -196,17 +156,60 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 	}
 
 	ctx.Data["Releases"] = releases
-	ctx.Data["ReleasesNum"] = len(releases)
 
-	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
+	numReleases := ctx.Data["NumReleases"].(int64)
+	pager := context.NewPagination(int(numReleases), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	if isTagList {
-		ctx.HTML(http.StatusOK, tplTagsList)
-	} else {
-		ctx.HTML(http.StatusOK, tplReleasesList)
+	ctx.HTML(http.StatusOK, tplReleasesList)
+}
+
+// TagsList render tags list page
+func TagsList(ctx *context.Context) {
+	ctx.Data["PageIsTagList"] = true
+	ctx.Data["Title"] = ctx.Tr("repo.release.tags")
+	ctx.Data["IsViewBranch"] = false
+	ctx.Data["IsViewTag"] = true
+	// Disable the showCreateNewBranch form in the dropdown on this page.
+	ctx.Data["CanCreateBranch"] = false
+	ctx.Data["HideBranchesInDropdown"] = true
+
+	listOptions := db.ListOptions{
+		Page:     ctx.FormInt("page"),
+		PageSize: ctx.FormInt("limit"),
 	}
+	if listOptions.PageSize == 0 {
+		listOptions.PageSize = setting.Repository.Release.DefaultPagingNum
+	}
+	if listOptions.PageSize > setting.API.MaxResponseItems {
+		listOptions.PageSize = setting.API.MaxResponseItems
+	}
+
+	opts := repo_model.FindReleasesOptions{
+		ListOptions: listOptions,
+		// for the tags list page, show all releases with real tags (having real commit-id),
+		// the drafts should also be included because a real tag might be used as a draft.
+		IncludeDrafts: true,
+		IncludeTags:   true,
+		HasSha1:       util.OptionalBoolTrue,
+	}
+
+	releases, err := repo_model.GetReleasesByRepoID(ctx, ctx.Repo.Repository.ID, opts)
+	if err != nil {
+		ctx.ServerError("GetReleasesByRepoID", err)
+		return
+	}
+
+	ctx.Data["Releases"] = releases
+
+	numTags := ctx.Data["NumTags"].(int64)
+	pager := context.NewPagination(int(numTags), opts.PageSize, opts.Page, 5)
+	pager.SetDefaultParams(ctx)
+	ctx.Data["Page"] = pager
+
+	ctx.Data["PageIsViewCode"] = !ctx.Repo.Repository.UnitEnabled(ctx, unit.TypeReleases)
+	ctx.HTML(http.StatusOK, tplTagsList)
 }
 
 // ReleasesFeedRSS get feeds for releases in RSS format
@@ -241,7 +244,7 @@ func SingleRelease(ctx *context.Context) {
 	writeAccess := ctx.Repo.CanWrite(unit.TypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
-	release, err := repo_model.GetRelease(ctx.Repo.Repository.ID, ctx.Params("*"))
+	release, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, ctx.Params("*"))
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound("GetRelease", err)
@@ -282,7 +285,7 @@ func SingleRelease(ctx *context.Context) {
 	}
 	release.Note, err = markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.Repo.RepoLink,
-		Metas:     ctx.Repo.Repository.ComposeMetas(),
+		Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
 		GitRepo:   ctx.Repo.GitRepo,
 		Ctx:       ctx,
 	}, release.Note)
@@ -297,7 +300,7 @@ func SingleRelease(ctx *context.Context) {
 
 // LatestRelease redirects to the latest release
 func LatestRelease(ctx *context.Context) {
-	release, err := repo_model.GetLatestReleaseByRepoID(ctx.Repo.Repository.ID)
+	release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound("LatestRelease", err)
@@ -321,7 +324,7 @@ func NewRelease(ctx *context.Context) {
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
 	if tagName := ctx.FormString("tag"); len(tagName) > 0 {
-		rel, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tagName)
+		rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
 		if err != nil && !repo_model.IsErrReleaseNotExist(err) {
 			ctx.ServerError("GetRelease", err)
 			return
@@ -349,9 +352,23 @@ func NewRelease(ctx *context.Context) {
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	upload.AddUploadContext(ctx, "release")
+
+	// For New Release page
+	PrepareBranchList(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("GetTagNamesByRepoID", err)
+		return
+	}
+	ctx.Data["Tags"] = tags
+
 	ctx.HTML(http.StatusOK, tplReleaseNew)
 }
 
@@ -360,6 +377,13 @@ func NewReleasePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewReleaseForm)
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
+
+	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("GetTagNamesByRepoID", err)
+		return
+	}
+	ctx.Data["Tags"] = tags
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplReleaseNew)
@@ -382,7 +406,7 @@ func NewReleasePost(ctx *context.Context) {
 		attachmentUUIDs = form.Files
 	}
 
-	rel, err := repo_model.GetRelease(ctx.Repo.Repository.ID, form.TagName)
+	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, form.TagName)
 	if err != nil {
 		if !repo_model.IsErrReleaseNotExist(err) {
 			ctx.ServerError("GetRelease", err)
@@ -467,7 +491,7 @@ func NewReleasePost(ctx *context.Context) {
 		rel.PublisherID = ctx.Doer.ID
 		rel.IsTag = false
 
-		if err = releaseservice.UpdateRelease(ctx.Doer, ctx.Repo.GitRepo, rel, attachmentUUIDs, nil, nil); err != nil {
+		if err = releaseservice.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo, rel, attachmentUUIDs, nil, nil); err != nil {
 			ctx.Data["Err_TagName"] = true
 			ctx.ServerError("UpdateRelease", err)
 			return
@@ -487,7 +511,7 @@ func EditRelease(ctx *context.Context) {
 	upload.AddUploadContext(ctx, "release")
 
 	tagName := ctx.Params("*")
-	rel, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tagName)
+	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound("GetRelease", err)
@@ -517,7 +541,7 @@ func EditRelease(ctx *context.Context) {
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	ctx.HTML(http.StatusOK, tplReleaseNew)
 }
@@ -530,7 +554,7 @@ func EditReleasePost(ctx *context.Context) {
 	ctx.Data["PageIsEditRelease"] = true
 
 	tagName := ctx.Params("*")
-	rel, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tagName)
+	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound("GetRelease", err)
@@ -573,7 +597,7 @@ func EditReleasePost(ctx *context.Context) {
 	rel.Note = form.Content
 	rel.IsDraft = len(form.Draft) > 0
 	rel.IsPrerelease = form.Prerelease
-	if err = releaseservice.UpdateRelease(ctx.Doer, ctx.Repo.GitRepo,
+	if err = releaseservice.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo,
 		rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments); err != nil {
 		ctx.ServerError("UpdateRelease", err)
 		return
@@ -607,13 +631,9 @@ func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 	}
 
 	if isDelTag {
-		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"redirect": ctx.Repo.RepoLink + "/tags",
-		})
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/tags")
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Repo.RepoLink + "/releases",
-	})
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/releases")
 }

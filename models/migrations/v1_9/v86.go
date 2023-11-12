@@ -12,5 +12,5 @@ func AddHTTPMethodToWebhook(x *xorm.Engine) error {
 		HTTPMethod string `xorm:"http_method DEFAULT 'POST'"`
 	}
 
-	return x.Sync2(new(Webhook))
+	return x.Sync(new(Webhook))
 }

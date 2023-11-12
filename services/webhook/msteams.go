@@ -290,9 +290,23 @@ func (m *MSTeamsPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 		p.Sender,
 		title,
 		"",
-		p.Release.URL,
+		p.Release.HTMLURL,
 		color,
 		&MSTeamsFact{"Tag:", p.Release.TagName},
+	), nil
+}
+
+func (m *MSTeamsPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+	title, color := getPackagePayloadInfo(p, noneLinkFormatter, false)
+
+	return createMSTeamsPayload(
+		p.Repository,
+		p.Sender,
+		title,
+		"",
+		p.Package.HTMLURL,
+		color,
+		&MSTeamsFact{"Package:", p.Package.Name},
 	), nil
 }
 
