@@ -461,7 +461,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Adding  branch-name copy  to clipboard branches screen. (#25596)
   * Move some files under repo/setting (#25585)
   * Store and use seconds for timeline time comments (#25392)
-  * Refactor: TotalTimest return seconds (#25370)
+  * Refactor: TotalTimes return seconds (#25370)
   * Add API for changing Avatars (#25369)
   * Only show 'Manage Account Links' when necessary (#25311)
   * Improve 'Privacy' section in profile settings (#25309)
