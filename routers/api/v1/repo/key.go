@@ -155,6 +155,11 @@ func GetDeployKey(ctx *context.APIContext) {
 		return
 	}
 
+	if key.RepoID != ctx.Repo.Repository.ID {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
 	if err = key.GetContent(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetContent", err)
 		return
