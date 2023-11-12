@@ -3441,6 +3441,16 @@ func GetCommentAttachments(ctx *context.Context) {
 		return
 	}
 
+	if err := comment.LoadIssue(ctx); err != nil {
+		ctx.NotFoundOrServerError("LoadIssue", issues_model.IsErrIssueNotExist, err)
+		return
+	}
+
+	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
+		return
+	}
+
 	if !comment.Type.HasAttachmentSupport() {
 		ctx.ServerError("GetCommentAttachments", fmt.Errorf("comment type %v does not support attachments", comment.Type))
 		return
