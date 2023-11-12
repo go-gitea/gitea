@@ -234,7 +234,7 @@ func CreateSource(ctx context.Context, source *Source) error {
 	err = registerableSource.RegisterSource()
 	if err != nil {
 		// remove the AuthSource in case of errors while registering configuration
-		if _, err := db.GetEngine(ctx).Delete(&Source{ID: source.ID}); err != nil {
+		if _, err := db.GetEngine(ctx).ID(source.ID).Delete(new(Source)); err != nil {
 			log.Error("CreateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
 		}
 	}
