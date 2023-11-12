@@ -10,7 +10,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Restrict certificate type for builtin SSH server (#26789)
   * Refactor to use urfave/cli/v2 (#25959)
   * Move public asset files to the proper directory (#25907)
-  * Remove commit status running and warning to align GitHub (#25839)
+  * Remove commit status running and warning to align GitHub (#25839) (partially reverted: Restore warning commit status (#27504) (#27529))
   * Remove "CHARSET" config option for MySQL, always use "utf8mb4" (#25413)
   * Set SSH_AUTHORIZED_KEYS_BACKUP to false (#25412)
 * FEATURES
@@ -362,7 +362,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Show manual cron run's last time (#27544) (#27577)
   * Avoid run change title process when the title is same (#27467) (#27558)
   * Respect SSH.KeygenPath option when calculating ssh key fingerprints (#27536) (#27551)
-  * Restore warning commit status (#27504) (#27529)
   * Add Index to `action.user_id` (#27403) (#27425)
   * Don't use subselect in `DeleteIssuesByRepoID` (#27332) (#27408)
   * Add protected branch name description (#27257) (#27351)
