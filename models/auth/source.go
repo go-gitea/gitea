@@ -232,7 +232,7 @@ func CreateSource(source *Source) error {
 	err = registerableSource.RegisterSource()
 	if err != nil {
 		// remove the AuthSource in case of errors while registering configuration
-		if _, err := db.GetEngine(db.DefaultContext).Delete(source); err != nil {
+		if _, err := db.GetEngine(db.DefaultContext).ID(source.ID).Delete(new(Source)); err != nil {
 			log.Error("CreateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
 		}
 	}
