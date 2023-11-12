@@ -94,7 +94,7 @@ func TwoFactorPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(audit.UserAuthenticationFailTwoFactor, user_model.NewGhostUser(), u, twofa, "Failed two-factor authentication for user %s.", u.Name)
+	audit.Record(ctx, audit.UserAuthenticationFailTwoFactor, user_model.NewGhostUser(), u, twofa, "Failed two-factor authentication for user %s.", u.Name)
 
 	ctx.RenderWithErr(ctx.Tr("auth.twofa_passcode_incorrect"), tplTwofa, forms.TwoFactorAuthForm{})
 }

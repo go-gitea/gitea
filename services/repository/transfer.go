@@ -49,14 +49,14 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 		return err
 	}
 
-	audit.Record(audit.RepositoryTransferAccept, doer, newRepo, newRepo, "Accepted repository transfer from %s to %s.", oldOwner.Name, newRepo.OwnerName)
+	audit.Record(ctx, audit.RepositoryTransferAccept, doer, newRepo, newRepo, "Accepted repository transfer from %s to %s.", oldOwner.Name, newRepo.OwnerName)
 
 	for _, team := range teams {
 		if err := models.AddRepository(ctx, team, newRepo); err != nil {
 			return err
 		}
 
-		audit.Record(audit.RepositoryCollaboratorTeamAdd, doer, newRepo, team, "Added team %s as collaborator for %s.", team.Name, newRepo.FullName())
+		audit.Record(ctx, audit.RepositoryCollaboratorTeamAdd, doer, newRepo, team, "Added team %s as collaborator for %s.", team.Name, newRepo.FullName())
 	}
 
 	notify_service.TransferRepository(ctx, doer, repo, oldOwner.Name)
@@ -83,7 +83,7 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 
 	repo.Name = newRepoName
 
-	audit.Record(audit.RepositoryName, doer, repo, repo, "Repository name changed from %s to %s.", oldRepoName, newRepoName)
+	audit.Record(ctx, audit.RepositoryName, doer, repo, repo, "Repository name changed from %s to %s.", oldRepoName, newRepoName)
 
 	notify_service.RenameRepository(ctx, doer, repo, oldRepoName)
 
@@ -133,7 +133,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		return err
 	}
 
-	audit.Record(audit.RepositoryTransferStart, doer, repo, repo, "Started repository transfer from %s to %s.", repo.OwnerName, newOwner.Name)
+	audit.Record(ctx, audit.RepositoryTransferStart, doer, repo, repo, "Started repository transfer from %s to %s.", repo.OwnerName, newOwner.Name)
 
 	// notify users who are able to accept / reject transfer
 	notify_service.RepoPendingTransfer(ctx, doer, newOwner, repo)

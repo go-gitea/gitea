@@ -120,7 +120,7 @@ func RenameUser(ctx context.Context, doer, u *user_model.User, newUserName strin
 		return err
 	}
 
-	audit.Record(audit.UserName, doer, u, u, "User %s changed name to %s.", oldUserName, newUserName)
+	audit.Record(ctx, audit.UserName, doer, u, u, "User %s changed name to %s.", oldUserName, newUserName)
 
 	return nil
 }
@@ -280,7 +280,7 @@ func DeleteUser(ctx context.Context, doer, u *user_model.User, purge bool) error
 		}
 	}
 
-	audit.Record(audit.UserDelete, doer, u, u, "User %s was deleted.", u.Name)
+	audit.Record(ctx, audit.UserDelete, doer, u, u, "User %s was deleted.", u.Name)
 
 	return nil
 }

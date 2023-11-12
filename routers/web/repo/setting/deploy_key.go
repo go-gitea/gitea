@@ -93,7 +93,7 @@ func DeployKeysPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(audit.RepositoryDeployKeyAdd, ctx.Doer, ctx.Repo.Repository, key, "Added deploy key %s.", key.Name)
+	audit.Record(ctx, audit.RepositoryDeployKeyAdd, ctx.Doer, ctx.Repo.Repository, key, "Added deploy key %s.", key.Name)
 
 	log.Trace("Deploy key added: %d", ctx.Repo.Repository.ID)
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_key_success", key.Name))

@@ -133,7 +133,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			if err != nil {
 				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.authSource.Name, su.Username, err)
 			} else {
-				audit.Record(audit.UserCreate, audit.NewAuthenticationSourceUser(), usr, usr, "Created user %s.", usr.Name)
+				audit.Record(ctx, audit.UserCreate, audit.NewAuthenticationSourceUser(), usr, usr, "Created user %s.", usr.Name)
 
 				if isAttributeSSHPublicKeySet {
 					log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", source.authSource.Name, usr.Name)
@@ -141,7 +141,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 						sshKeysNeedUpdate = true
 
 						for _, key := range addedKeys {
-							audit.Record(audit.UserKeySSHAdd, audit.NewAuthenticationSourceUser(), usr, usr, "Added SSH key %s.", key.Fingerprint)
+							audit.Record(ctx, audit.UserKeySSHAdd, audit.NewAuthenticationSourceUser(), usr, usr, "Added SSH key %s.", key.Fingerprint)
 						}
 					}
 				}
@@ -157,10 +157,10 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 					sshKeysNeedUpdate = true
 
 					for _, key := range addedKeys {
-						audit.Record(audit.UserKeySSHAdd, audit.NewAuthenticationSourceUser(), usr, usr, "Added SSH key %s.", key.Fingerprint)
+						audit.Record(ctx, audit.UserKeySSHAdd, audit.NewAuthenticationSourceUser(), usr, usr, "Added SSH key %s.", key.Fingerprint)
 					}
 					for _, key := range deletedKeys {
-						audit.Record(audit.UserKeySSHRemove, audit.NewAuthenticationSourceUser(), usr, usr, "Removed SSH key %s.", key.Fingerprint)
+						audit.Record(ctx, audit.UserKeySSHRemove, audit.NewAuthenticationSourceUser(), usr, usr, "Removed SSH key %s.", key.Fingerprint)
 					}
 				}
 			}
@@ -198,13 +198,13 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				}
 
 				if isActiveChanged {
-					audit.Record(audit.UserActive, audit.NewAuthenticationSourceUser(), usr, usr, "Activation status of user %s changed to %s.", usr.Name, audit.UserActiveString(usr.IsActive))
+					audit.Record(ctx, audit.UserActive, audit.NewAuthenticationSourceUser(), usr, usr, "Activation status of user %s changed to %s.", usr.Name, audit.UserActiveString(usr.IsActive))
 				}
 				if isAdminChanged {
-					audit.Record(audit.UserAdmin, audit.NewAuthenticationSourceUser(), usr, usr, "Admin status of user %s changed to %s.", usr.Name, audit.UserAdminString(usr.IsAdmin))
+					audit.Record(ctx, audit.UserAdmin, audit.NewAuthenticationSourceUser(), usr, usr, "Admin status of user %s changed to %s.", usr.Name, audit.UserAdminString(usr.IsAdmin))
 				}
 				if isRestrictedChanged {
-					audit.Record(audit.UserRestricted, audit.NewAuthenticationSourceUser(), usr, usr, "Restricted status of user %s changed to %s.", usr.Name, audit.UserRestrictedString(usr.IsRestricted))
+					audit.Record(ctx, audit.UserRestricted, audit.NewAuthenticationSourceUser(), usr, usr, "Restricted status of user %s changed to %s.", usr.Name, audit.UserRestrictedString(usr.IsRestricted))
 				}
 			}
 
@@ -251,7 +251,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			if err := user_model.UpdateUserCols(ctx, usr, "is_active"); err != nil {
 				log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.authSource.Name, usr.Name, err)
 			} else {
-				audit.Record(audit.UserActive, audit.NewAuthenticationSourceUser(), usr, usr, "Activation status of user %s changed to %s.", usr.Name, audit.UserActiveString(usr.IsActive))
+				audit.Record(ctx, audit.UserActive, audit.NewAuthenticationSourceUser(), usr, usr, "Activation status of user %s changed to %s.", usr.Name, audit.UserActiveString(usr.IsActive))
 			}
 		}
 	}

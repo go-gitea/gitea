@@ -30,7 +30,7 @@ func TeamAddRepository(ctx context.Context, doer *user_model.User, t *organizati
 		return err
 	}
 
-	audit.Record(audit.RepositoryCollaboratorTeamAdd, doer, repo, t, "Added team %s as collaborator for %s.", t.Name, repo.FullName())
+	audit.Record(ctx, audit.RepositoryCollaboratorTeamAdd, doer, repo, t, "Added team %s as collaborator for %s.", t.Name, repo.FullName())
 
 	return nil
 }

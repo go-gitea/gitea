@@ -49,12 +49,12 @@ func DeletePublicKey(ctx context.Context, doer *user_model.User, id int64) (err 
 	committer.Close()
 
 	if key.Type == asymkey_model.KeyTypePrincipal {
-		audit.Record(audit.UserKeyPrincipalRemove, doer, owner, key, "Removed principal key %s.", key.Name)
+		audit.Record(ctx, audit.UserKeyPrincipalRemove, doer, owner, key, "Removed principal key %s.", key.Name)
 
 		return asymkey_model.RewriteAllPrincipalKeys(ctx)
 	}
 
-	audit.Record(audit.UserKeySSHRemove, doer, owner, key, "Removed SSH key %s.", key.Fingerprint)
+	audit.Record(ctx, audit.UserKeySSHRemove, doer, owner, key, "Removed SSH key %s.", key.Fingerprint)
 
 	return asymkey_model.RewriteAllPublicKeys(ctx)
 }

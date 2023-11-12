@@ -55,7 +55,7 @@ func SetDefaultBranchPost(ctx *context.Context) {
 
 			notify_service.ChangeDefaultBranch(ctx, repo)
 
-			audit.Record(audit.RepositoryBranchDefault, ctx.Doer, repo, repo, "Changed default branch from %s to %s.", oldBranch, branch)
+			audit.Record(ctx, audit.RepositoryBranchDefault, ctx.Doer, repo, repo, "Changed default branch from %s to %s.", oldBranch, branch)
 		}
 
 		log.Trace("Repository basic settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)

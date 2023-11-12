@@ -33,7 +33,7 @@ func CreateOrUpdateSecret(ctx context.Context, doer, owner *user_model.User, rep
 			return nil, false, err
 		}
 
-		audit.Record(
+		audit.Record(ctx,
 			auditActionSwitch(owner, repo, audit.UserSecretAdd, audit.OrganizationSecretAdd, audit.RepositorySecretAdd),
 			doer,
 			auditScopeSwitch(owner, repo),
@@ -51,7 +51,7 @@ func CreateOrUpdateSecret(ctx context.Context, doer, owner *user_model.User, rep
 		return nil, false, err
 	}
 
-	audit.Record(
+	audit.Record(ctx,
 		auditActionSwitch(owner, repo, audit.UserSecretUpdate, audit.OrganizationSecretUpdate, audit.RepositorySecretUpdate),
 		doer,
 		auditScopeSwitch(owner, repo),
@@ -104,7 +104,7 @@ func deleteSecret(ctx context.Context, doer, owner *user_model.User, repo *repo_
 		return err
 	}
 
-	audit.Record(
+	audit.Record(ctx,
 		auditActionSwitch(owner, repo, audit.UserSecretRemove, audit.OrganizationSecretRemove, audit.RepositorySecretRemove),
 		doer,
 		auditScopeSwitch(owner, repo),

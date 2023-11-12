@@ -70,7 +70,7 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(audit.UserAccessTokenAdd, ctx.Doer, ctx.Doer, t, "Added access token %s for user %s with scope %s.", t.Name, ctx.Doer.Name, t.Scope)
+	audit.Record(ctx, audit.UserAccessTokenAdd, ctx.Doer, ctx.Doer, t, "Added access token %s for user %s with scope %s.", t.Name, ctx.Doer.Name, t.Scope)
 
 	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
 	ctx.Flash.Info(t.Token)
@@ -89,7 +89,7 @@ func DeleteApplication(ctx *context.Context) {
 	if err := auth_model.DeleteAccessTokenByID(ctx, t.ID, ctx.Doer.ID); err != nil {
 		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
 	} else {
-		audit.Record(audit.UserAccessTokenRemove, ctx.Doer, ctx.Doer, t, "Removed access token %s from user %s.", t.Name, ctx.Doer.Name)
+		audit.Record(ctx, audit.UserAccessTokenRemove, ctx.Doer, ctx.Doer, t, "Removed access token %s from user %s.", t.Name, ctx.Doer.Name)
 
 		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
 	}

@@ -53,7 +53,7 @@ func DeleteAccountLink(ctx *context.Context) {
 		ctx.Flash.Error("RemoveAccountLink: " + err.Error())
 		return
 	} else {
-		audit.Record(audit.UserExternalLoginRemove, ctx.Doer, ctx.Doer, elu, "Removed external login %s for user %s.", elu.ExternalID, ctx.Doer.Name)
+		audit.Record(ctx, audit.UserExternalLoginRemove, ctx.Doer, ctx.Doer, elu, "Removed external login %s for user %s.", elu.ExternalID, ctx.Doer.Name)
 
 		ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
 	}

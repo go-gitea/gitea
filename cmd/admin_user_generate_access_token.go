@@ -85,7 +85,7 @@ func runGenerateAccessToken(c *cli.Context) error {
 		return err
 	}
 
-	audit.Record(audit.UserAccessTokenAdd, audit.NewCLIUser(), user, t, "Added access token %s for user %s with scope %s.", t.Name, user.Name, t.Scope)
+	audit.Record(ctx, audit.UserAccessTokenAdd, audit.NewCLIUser(), user, t, "Added access token %s for user %s with scope %s.", t.Name, user.Name, t.Scope)
 
 	if c.Bool("raw") {
 		fmt.Printf("%s\n", t.Token)

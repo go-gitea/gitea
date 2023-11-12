@@ -123,7 +123,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				return
 			}
 
-			audit.Record(audit.RepositoryVisibility, doer, repo, repo, "Changed visibility of repository %s to %s.", repo.FullName(), audit.PublicString(!repo.IsPrivate))
+			audit.Record(ctx, audit.RepositoryVisibility, doer, repo, repo, "Changed visibility of repository %s to %s.", repo.FullName(), audit.PublicString(!repo.IsPrivate))
 		}
 	}
 

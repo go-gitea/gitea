@@ -95,7 +95,7 @@ func createSource(ctx context.Context, source *auth_model.Source) error {
 		return err
 	}
 
-	audit.Record(audit.SystemAuthenticationSourceAdd, audit.NewCLIUser(), nil, source, "Created authentication source %s [%s].", source.Name, source.Type.String())
+	audit.Record(ctx, audit.SystemAuthenticationSourceAdd, audit.NewCLIUser(), nil, source, "Created authentication source %s [%s].", source.Name, source.Type.String())
 
 	return nil
 }
@@ -105,7 +105,7 @@ func updateSource(ctx context.Context, source *auth_model.Source) error {
 		return err
 	}
 
-	audit.Record(audit.SystemAuthenticationSourceUpdate, audit.NewCLIUser(), nil, source, "Updated authentication source %s.", source.Name)
+	audit.Record(ctx, audit.SystemAuthenticationSourceUpdate, audit.NewCLIUser(), nil, source, "Updated authentication source %s.", source.Name)
 
 	return nil
 }

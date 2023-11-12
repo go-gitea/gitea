@@ -100,7 +100,7 @@ func settingsOpenIDVerify(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(audit.UserOpenIDAdd, ctx.Doer, ctx.Doer, oid, "Associated OpenID %s to user %s.", oid.URI, ctx.Doer.Name)
+	audit.Record(ctx, audit.UserOpenIDAdd, ctx.Doer, ctx.Doer, oid, "Associated OpenID %s to user %s.", oid.URI, ctx.Doer.Name)
 
 	log.Trace("Associated OpenID %s to user %s", id, ctx.Doer.Name)
 	ctx.Flash.Success(ctx.Tr("settings.add_openid_success"))
@@ -122,7 +122,7 @@ func DeleteOpenID(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(audit.UserOpenIDAdd, ctx.Doer, ctx.Doer, oid, "Removed OpenID %s from user %s.", oid.URI, ctx.Doer.Name)
+	audit.Record(ctx, audit.UserOpenIDAdd, ctx.Doer, ctx.Doer, oid, "Removed OpenID %s from user %s.", oid.URI, ctx.Doer.Name)
 
 	log.Trace("OpenID address deleted: %s", ctx.Doer.Name)
 

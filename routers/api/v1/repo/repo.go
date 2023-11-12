@@ -744,9 +744,9 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		return err
 	}
 
-	audit.Record(audit.RepositoryUpdate, ctx.Doer, repo, repo, "Changed settings of repository %s.", repo.FullName())
+	audit.Record(ctx, audit.RepositoryUpdate, ctx.Doer, repo, repo, "Changed settings of repository %s.", repo.FullName())
 	if visibilityChanged {
-		audit.Record(audit.RepositoryVisibility, ctx.Doer, repo, repo, "Changed visibility of repository %s to %s.", repo.FullName(), audit.PublicString(!repo.IsPrivate))
+		audit.Record(ctx, audit.RepositoryVisibility, ctx.Doer, repo, repo, "Changed visibility of repository %s to %s.", repo.FullName(), audit.PublicString(!repo.IsPrivate))
 	}
 
 	log.Trace("Repository basic settings updated: %s/%s", owner.Name, repo.Name)

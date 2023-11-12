@@ -88,7 +88,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 
 	mailer.SendResetPasswordMail(u)
 
-	audit.Record(audit.UserPasswordReset, u, u, u, "User %s requested a password reset.", u.Name)
+	audit.Record(ctx, audit.UserPasswordReset, u, u, u, "User %s requested a password reset.", u.Name)
 
 	if setting.CacheService.Enabled {
 		if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
@@ -213,7 +213,7 @@ func ResetPasswdPost(ctx *context.Context) {
 				return
 			}
 			if !ok || twofa.LastUsedPasscode == passcode {
-				audit.Record(audit.UserAuthenticationFailTwoFactor, u, u, twofa, "Failed two-factor authentication for user %s.", u.Name)
+				audit.Record(ctx, audit.UserAuthenticationFailTwoFactor, u, u, twofa, "Failed two-factor authentication for user %s.", u.Name)
 
 				ctx.Data["IsResetForm"] = true
 				ctx.Data["Err_Passcode"] = true
@@ -243,7 +243,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(audit.UserPassword, u, u, u, "Password of user %s changed.", u.Name)
+	audit.Record(ctx, audit.UserPassword, u, u, u, "Password of user %s changed.", u.Name)
 
 	log.Trace("User password reset: %s", u.Name)
 	ctx.Data["IsResetFailed"] = true
@@ -344,7 +344,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	log.Trace("User updated password: %s", u.Name)
 
-	audit.Record(audit.UserPassword, u, u, u, "Password of user %s changed.", u.Name)
+	audit.Record(ctx, audit.UserPassword, u, u, u, "Password of user %s changed.", u.Name)
 
 	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
 		middleware.DeleteRedirectToCookie(ctx.Resp)

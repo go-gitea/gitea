@@ -421,7 +421,7 @@ func RemoveRepositoryFromTeam(ctx context.Context, doer *user_model.User, t *org
 		return err
 	}
 
-	audit.Record(audit.RepositoryCollaboratorTeamRemove, doer, repo, t, "Removed team %s as collaborator from %s.", t.Name, repo.FullName())
+	audit.Record(ctx, audit.RepositoryCollaboratorTeamRemove, doer, repo, t, "Removed team %s as collaborator from %s.", t.Name, repo.FullName())
 
 	return nil
 }

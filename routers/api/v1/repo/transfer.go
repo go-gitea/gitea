@@ -235,7 +235,7 @@ func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
 		return err
 	}
 
-	audit.Record(audit.RepositoryTransferReject, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Repository, "Rejected repository transfer.")
+	audit.Record(ctx, audit.RepositoryTransferReject, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Repository, "Rejected repository transfer.")
 
 	return nil
 }

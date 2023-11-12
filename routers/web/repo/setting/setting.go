@@ -181,9 +181,9 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(audit.RepositoryUpdate, ctx.Doer, repo, repo, "Changed settings of repository %s.", repo.FullName())
+		audit.Record(ctx, audit.RepositoryUpdate, ctx.Doer, repo, repo, "Changed settings of repository %s.", repo.FullName())
 		if visibilityChanged {
-			audit.Record(audit.RepositoryVisibility, ctx.Doer, repo, repo, "Changed visibility of repository %s to %s.", repo.FullName(), audit.PublicString(!repo.IsPrivate))
+			audit.Record(ctx, audit.RepositoryVisibility, ctx.Doer, repo, repo, "Changed visibility of repository %s to %s.", repo.FullName(), audit.PublicString(!repo.IsPrivate))
 		}
 
 		log.Trace("Repository basic settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -375,7 +375,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(audit.RepositoryMirrorPushRemove, ctx.Doer, repo, m, "Removed push mirror for repository %s.", repo.FullName())
+		audit.Record(ctx, audit.RepositoryMirrorPushRemove, ctx.Doer, repo, m, "Removed push mirror for repository %s.", repo.FullName())
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(repo.Link() + "/settings")
@@ -440,7 +440,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(audit.RepositoryMirrorPushAdd, ctx.Doer, repo, m, "Added push mirror for repository %s.", repo.FullName())
+		audit.Record(ctx, audit.RepositoryMirrorPushAdd, ctx.Doer, repo, m, "Added push mirror for repository %s.", repo.FullName())
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(repo.Link() + "/settings")
@@ -616,7 +616,7 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 
-		audit.Record(audit.RepositoryUpdate, ctx.Doer, repo, repo, "Changed settings of repository %s.", repo.FullName())
+		audit.Record(ctx, audit.RepositoryUpdate, ctx.Doer, repo, repo, "Changed settings of repository %s.", repo.FullName())
 
 		log.Trace("Repository advanced settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
@@ -637,7 +637,7 @@ func SettingsPost(ctx *context.Context) {
 				return
 			}
 
-			audit.Record(audit.RepositorySigningVerification, ctx.Doer, repo, repo, "Changed signing verification of repository %s to %s.", repo.FullName(), repo.TrustModel.String())
+			audit.Record(ctx, audit.RepositorySigningVerification, ctx.Doer, repo, repo, "Changed signing verification of repository %s to %s.", repo.FullName(), repo.TrustModel.String())
 		}
 		log.Trace("Repository signing settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
@@ -716,7 +716,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(audit.RepositoryConvertMirror, ctx.Doer, repo, repo, "Converted repository %s from mirror to regular repository.", repo.FullName())
+		audit.Record(ctx, audit.RepositoryConvertMirror, ctx.Doer, repo, repo, "Converted repository %s from mirror to regular repository.", repo.FullName())
 
 		log.Trace("Repository converted from mirror to regular: %s", repo.FullName())
 		ctx.Flash.Success(ctx.Tr("repo.settings.convert_succeed"))
@@ -837,7 +837,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(audit.RepositoryTransferReject, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Repository, "Rejected transfer of repository %s.", ctx.Repo.Repository.FullName())
+		audit.Record(ctx, audit.RepositoryTransferReject, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Repository, "Rejected transfer of repository %s.", ctx.Repo.Repository.FullName())
 
 		log.Trace("Repository transfer process was cancelled: %s/%s ", ctx.Repo.Owner.Name, repo.Name)
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_abort_success", repoTransfer.Recipient.Name))
@@ -906,7 +906,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(audit.RepositoryArchive, ctx.Doer, repo, repo, "Archived repository %s.", repo.FullName())
+		audit.Record(ctx, audit.RepositoryArchive, ctx.Doer, repo, repo, "Archived repository %s.", repo.FullName())
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
 
@@ -926,7 +926,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(audit.RepositoryUnarchive, ctx.Doer, repo, repo, "Unarchived repository %s.", repo.FullName())
+		audit.Record(ctx, audit.RepositoryUnarchive, ctx.Doer, repo, repo, "Unarchived repository %s.", repo.FullName())
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
 

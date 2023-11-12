@@ -202,7 +202,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 	notify_service.ForkRepository(ctx, doer, opts.BaseRepo, repo)
 
-	audit.Record(audit.RepositoryCreateFork, doer, repo, repo, "Created fork %s of repository %s.", repo.FullName(), opts.BaseRepo.FullName())
+	audit.Record(ctx, audit.RepositoryCreateFork, doer, repo, repo, "Created fork %s of repository %s.", repo.FullName(), opts.BaseRepo.FullName())
 
 	return repo, nil
 }
@@ -238,7 +238,7 @@ func ConvertForkToNormalRepository(ctx context.Context, doer *user_model.User, r
 		return err
 	}
 
-	audit.Record(audit.RepositoryConvertFork, doer, repo, repo, "Converted repository %s from fork to regular repository.", repo.FullName())
+	audit.Record(ctx, audit.RepositoryConvertFork, doer, repo, repo, "Converted repository %s from fork to regular repository.", repo.FullName())
 
 	return nil
 }

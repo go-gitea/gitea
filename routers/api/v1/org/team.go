@@ -249,7 +249,7 @@ func CreateTeam(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(audit.OrganizationTeamAdd, ctx.Doer, ctx.Org.Organization, team, "Team %s was added to organization %s.", team.Name, ctx.Org.Organization.Name)
+	audit.Record(ctx, audit.OrganizationTeamAdd, ctx.Doer, ctx.Org.Organization, team, "Team %s was added to organization %s.", team.Name, ctx.Org.Organization.Name)
 
 	apiTeam, err := convert.ToTeam(ctx, team, true)
 	if err != nil {
@@ -346,9 +346,9 @@ func EditTeam(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(audit.OrganizationTeamUpdate, ctx.Doer, org, team, "Updated settings of team %s/%s.", org.Name, team.Name)
+	audit.Record(ctx, audit.OrganizationTeamUpdate, ctx.Doer, org, team, "Updated settings of team %s/%s.", org.Name, team.Name)
 	if isAuthChanged {
-		audit.Record(audit.OrganizationTeamPermission, ctx.Doer, org, team, "Permission of team %s/%s changed from %s to %s.", org.Name, team.Name, oldAccessMode.String(), team.AccessMode.String())
+		audit.Record(ctx, audit.OrganizationTeamPermission, ctx.Doer, org, team, "Permission of team %s/%s changed from %s to %s.", org.Name, team.Name, oldAccessMode.String(), team.AccessMode.String())
 	}
 
 	apiTeam, err := convert.ToTeam(ctx, team)
@@ -388,7 +388,7 @@ func DeleteTeam(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(audit.OrganizationTeamRemove, ctx.Doer, org, ctx.Org.Team, "Team %s was removed from organization %s.", ctx.Org.Team.Name, org.Name)
+	audit.Record(ctx, audit.OrganizationTeamRemove, ctx.Doer, org, ctx.Org.Team, "Team %s was removed from organization %s.", ctx.Org.Team.Name, org.Name)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -529,7 +529,7 @@ func AddTeamMember(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(audit.OrganizationTeamMemberAdd, ctx.Doer, org, ctx.Org.Team, "User %s was added to team %s/%s.", u.Name, org.Name, ctx.Org.Team.Name)
+	audit.Record(ctx, audit.OrganizationTeamMemberAdd, ctx.Doer, org, ctx.Org.Team, "User %s was added to team %s/%s.", u.Name, org.Name, ctx.Org.Team.Name)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -575,7 +575,7 @@ func RemoveTeamMember(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(audit.OrganizationTeamMemberRemove, ctx.Doer, org, ctx.Org.Team, "User %s was removed from team %s/%s.", u.Name, org.Name, ctx.Org.Team.Name)
+	audit.Record(ctx, audit.OrganizationTeamMemberRemove, ctx.Doer, org, ctx.Org.Team, "User %s was removed from team %s/%s.", u.Name, org.Name, ctx.Org.Team.Name)
 
 	ctx.Status(http.StatusNoContent)
 }

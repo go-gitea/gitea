@@ -250,9 +250,9 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	}
 
 	if isNewProtectedBranch {
-		audit.Record(audit.RepositoryBranchProtectionAdd, ctx.Doer, ctx.Repo.Repository, protectBranch, "Added branch protection %s.", protectBranch.RuleName)
+		audit.Record(ctx, audit.RepositoryBranchProtectionAdd, ctx.Doer, ctx.Repo.Repository, protectBranch, "Added branch protection %s.", protectBranch.RuleName)
 	} else {
-		audit.Record(audit.RepositoryBranchProtectionUpdate, ctx.Doer, ctx.Repo.Repository, protectBranch, "Updated branch protection %s.", protectBranch.RuleName)
+		audit.Record(ctx, audit.RepositoryBranchProtectionUpdate, ctx.Doer, ctx.Repo.Repository, protectBranch, "Updated branch protection %s.", protectBranch.RuleName)
 	}
 
 	// FIXME: since we only need to recheck files protected rules, we could improve this
@@ -300,7 +300,7 @@ func DeleteProtectedBranchRulePost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(audit.RepositoryBranchProtectionRemove, ctx.Doer, ctx.Repo.Repository, rule, "Removed branch protection %s.", rule.RuleName)
+	audit.Record(ctx, audit.RepositoryBranchProtectionRemove, ctx.Doer, ctx.Repo.Repository, rule, "Removed branch protection %s.", rule.RuleName)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.remove_protected_branch_success", rule.RuleName))
 	ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))

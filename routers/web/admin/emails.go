@@ -134,7 +134,7 @@ func ActivateEmail(ctx *context.Context) {
 				ctx.Flash.Error(ctx.Tr("admin.emails.not_updated", err))
 			}
 		} else {
-			audit.Record(audit.UserEmailActivate, ctx.Doer, u, u, "Email %s of user %s activated.", email, u.Name)
+			audit.Record(ctx, audit.UserEmailActivate, ctx.Doer, u, u, "Email %s of user %s activated.", email, u.Name)
 
 			log.Info("Activation for User ID: %d, email: %s, primary: %v changed to %v", uid, email, primary, activate)
 			ctx.Flash.Info(ctx.Tr("admin.emails.updated"))

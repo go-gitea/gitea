@@ -64,7 +64,7 @@ func NewProtectedTagPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(audit.RepositoryTagProtectionAdd, ctx.Doer, repo, pt, "Added tag protection for %s.", pt.NamePattern)
+	audit.Record(ctx, audit.RepositoryTagProtectionAdd, ctx.Doer, repo, pt, "Added tag protection for %s.", pt.NamePattern)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
@@ -119,7 +119,7 @@ func EditProtectedTagPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(audit.RepositoryTagProtectionUpdate, ctx.Doer, ctx.Repo.Repository, pt, "Updated tag protection for %s.", pt.NamePattern)
+	audit.Record(ctx, audit.RepositoryTagProtectionUpdate, ctx.Doer, ctx.Repo.Repository, pt, "Updated tag protection for %s.", pt.NamePattern)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(ctx.Repo.Repository.Link() + "/settings/tags")
@@ -137,7 +137,7 @@ func DeleteProtectedTagPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(audit.RepositoryTagProtectionRemove, ctx.Doer, ctx.Repo.Repository, pt, "Removed tag protection for %s.", pt.NamePattern)
+	audit.Record(ctx, audit.RepositoryTagProtectionRemove, ctx.Doer, ctx.Repo.Repository, pt, "Removed tag protection for %s.", pt.NamePattern)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(ctx.Repo.Repository.Link() + "/settings/tags")

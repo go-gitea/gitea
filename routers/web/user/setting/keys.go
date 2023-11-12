@@ -77,7 +77,7 @@ func KeysPost(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(audit.UserKeyPrincipalAdd, ctx.Doer, ctx.Doer, key, "Added principal key %s.", key.Name)
+		audit.Record(ctx, audit.UserKeyPrincipalAdd, ctx.Doer, ctx.Doer, key, "Added principal key %s.", key.Name)
 
 		ctx.Flash.Success(ctx.Tr("settings.add_principal_success", form.Content))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
@@ -124,7 +124,7 @@ func KeysPost(ctx *context.Context) {
 		}
 
 		for _, key := range keys {
-			audit.Record(audit.UserKeyGPGAdd, ctx.Doer, ctx.Doer, key, "Added GPG key %s.", key.KeyID)
+			audit.Record(ctx, audit.UserKeyGPGAdd, ctx.Doer, ctx.Doer, key, "Added GPG key %s.", key.KeyID)
 		}
 
 		keyIDs := ""
@@ -201,7 +201,7 @@ func KeysPost(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(audit.UserKeySSHAdd, ctx.Doer, ctx.Doer, key, "Added SSH key %s.", key.Fingerprint)
+		audit.Record(ctx, audit.UserKeySSHAdd, ctx.Doer, ctx.Doer, key, "Added SSH key %s.", key.Fingerprint)
 
 		ctx.Flash.Success(ctx.Tr("settings.add_key_success", form.Title))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
@@ -245,7 +245,7 @@ func DeleteKey(ctx *context.Context) {
 			if err := asymkey_model.DeleteGPGKey(ctx, ctx.Doer, key.ID); err != nil {
 				ctx.Flash.Error("DeleteGPGKey: " + err.Error())
 			} else {
-				audit.Record(audit.UserKeyGPGRemove, ctx.Doer, ctx.Doer, key, "Removed GPG key %s.", key.KeyID)
+				audit.Record(ctx, audit.UserKeyGPGRemove, ctx.Doer, ctx.Doer, key, "Removed GPG key %s.", key.KeyID)
 
 				ctx.Flash.Success(ctx.Tr("settings.gpg_key_deletion_success"))
 			}

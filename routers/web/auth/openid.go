@@ -281,7 +281,7 @@ func ConnectOpenIDPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(audit.UserOpenIDAdd, u, u, userOID, "Associated OpenID %s to user %s.", userOID.URI, u.Name)
+	audit.Record(ctx, audit.UserOpenIDAdd, u, u, userOID, "Associated OpenID %s to user %s.", userOID.URI, u.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.add_openid_success"))
 
@@ -387,7 +387,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(audit.UserOpenIDAdd, u, u, userOID, "Associated OpenID %s to user %s.", userOID.URI, u.Name)
+	audit.Record(ctx, audit.UserOpenIDAdd, u, u, userOID, "Associated OpenID %s to user %s.", userOID.URI, u.Name)
 
 	remember, _ := ctx.Session.Get("openid_signin_remember").(bool)
 	log.Trace("Session stored openid-remember: %t", remember)

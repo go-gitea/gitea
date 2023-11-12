@@ -41,7 +41,7 @@ func DeleteSource(ctx context.Context, doer *user_model.User, source *auth.Sourc
 	_, err = db.GetEngine(ctx).ID(source.ID).Delete(new(auth.Source))
 
 	if err == nil {
-		audit.Record(audit.SystemAuthenticationSourceRemove, doer, nil, source, "Removed authentication source %s.", source.Name)
+		audit.Record(ctx, audit.SystemAuthenticationSourceRemove, doer, nil, source, "Removed authentication source %s.", source.Name)
 	}
 
 	return err

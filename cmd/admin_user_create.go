@@ -152,7 +152,7 @@ func runCreateUser(c *cli.Context) error {
 		return fmt.Errorf("CreateUser: %w", err)
 	}
 
-	audit.Record(audit.UserCreate, audit.NewCLIUser(), u, u, "Created user %s.", u.Name)
+	audit.Record(ctx, audit.UserCreate, audit.NewCLIUser(), u, u, "Created user %s.", u.Name)
 
 	if c.Bool("access-token") {
 		t := &auth_model.AccessToken{
@@ -164,7 +164,7 @@ func runCreateUser(c *cli.Context) error {
 			return err
 		}
 
-		audit.Record(audit.UserAccessTokenAdd, audit.NewCLIUser(), u, t, "Added access token %s for user %s with scope %s.", t.Name, u.Name, t.Scope)
+		audit.Record(ctx, audit.UserAccessTokenAdd, audit.NewCLIUser(), u, t, "Added access token %s for user %s with scope %s.", t.Name, u.Name, t.Scope)
 
 		fmt.Printf("Access token was successfully created... %s\n", t.Token)
 	}

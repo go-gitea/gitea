@@ -46,7 +46,7 @@ func DeleteWebhook(ctx *context.Context) {
 	if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Doer.ID, hook.ID); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
-		audit.Record(audit.UserWebhookRemove, ctx.Doer, ctx.Doer, hook, "Removed webhook %s.", hook.URL)
+		audit.Record(ctx, audit.UserWebhookRemove, ctx.Doer, ctx.Doer, hook, "Removed webhook %s.", hook.URL)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}

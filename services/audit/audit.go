@@ -4,7 +4,9 @@
 package audit
 
 import (
+	"context"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"time"
@@ -23,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util/rotatingfilewriter"
+	"code.gitea.io/gitea/modules/web/middleware"
 )
 
 type TypeDescriptor struct {
@@ -33,12 +36,13 @@ type TypeDescriptor struct {
 }
 
 type Event struct {
-	Action  Action         `json:"action"`
-	Doer    TypeDescriptor `json:"doer"`
-	Scope   TypeDescriptor `json:"scope"`
-	Target  TypeDescriptor `json:"target"`
-	Message string         `json:"message"`
-	Time    time.Time      `json:"time"`
+	Action    Action         `json:"action"`
+	Doer      TypeDescriptor `json:"doer"`
+	Scope     TypeDescriptor `json:"scope"`
+	Target    TypeDescriptor `json:"target"`
+	Message   string         `json:"message"`
+	Time      time.Time      `json:"time"`
+	IPAddress string         `json:"ip_address"`
 }
 
 var (
@@ -114,26 +118,27 @@ func Init() {
 	go graceful.GetManager().RunWithCancel(auditQueue)
 }
 
-func Record(action Action, doer *user_model.User, scope, target any, format string, v ...any) {
+func Record(ctx context.Context, action Action, doer *user_model.User, scope, target any, message string, v ...any) {
 	if !setting.Audit.Enabled {
 		return
 	}
 
-	e := BuildEvent(action, doer, scope, target, format, v...)
+	e := BuildEvent(ctx, action, doer, scope, target, message, v...)
 
 	if err := auditQueue.Push(e); err != nil {
 		log.Error("Error pushing audit event to queue: %v", err)
 	}
 }
 
-func BuildEvent(action Action, doer *user_model.User, scope, target any, format string, v ...any) *Event {
+func BuildEvent(ctx context.Context, action Action, doer *user_model.User, scope, target any, message string, v ...any) *Event {
 	return &Event{
-		Action:  action,
-		Doer:    typeToDescription(doer),
-		Scope:   scopeToDescription(scope),
-		Target:  typeToDescription(target),
-		Message: fmt.Sprintf(format, v...),
-		Time:    time.Now(),
+		Action:    action,
+		Doer:      typeToDescription(doer),
+		Scope:     scopeToDescription(scope),
+		Target:    typeToDescription(target),
+		Message:   fmt.Sprintf(message, v...),
+		Time:      time.Now(),
+		IPAddress: tryGetIPAddress(ctx),
 	}
 }
 
@@ -200,4 +205,15 @@ func typeToDescription(val any) TypeDescriptor {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", t))
 	}
+}
+
+func tryGetIPAddress(ctx context.Context) string {
+	if req := middleware.GetContextRequest(ctx); req != nil {
+		host, _, err := net.SplitHostPort(req.RemoteAddr)
+		if err != nil {
+			return req.RemoteAddr
+		}
+		return host
+	}
+	return ""
 }

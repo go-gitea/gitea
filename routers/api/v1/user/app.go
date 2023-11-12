@@ -132,7 +132,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(audit.UserAccessTokenAdd, ctx.Doer, ctx.Doer, t, "Added access token %s for user %s with scope %s.", t.Name, ctx.Doer.Name, t.Scope)
+	audit.Record(ctx, audit.UserAccessTokenAdd, ctx.Doer, ctx.Doer, t, "Added access token %s for user %s with scope %s.", t.Name, ctx.Doer.Name, t.Scope)
 
 	ctx.JSON(http.StatusCreated, &api.AccessToken{
 		Name:           t.Name,
@@ -216,7 +216,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(audit.UserAccessTokenRemove, ctx.Doer, ctx.Doer, t, "Removed access token %s from user %s.", t.Name, ctx.Doer.Name)
+	audit.Record(ctx, audit.UserAccessTokenRemove, ctx.Doer, ctx.Doer, t, "Removed access token %s from user %s.", t.Name, ctx.Doer.Name)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -259,7 +259,7 @@ func CreateOauth2Application(ctx *context.APIContext) {
 	}
 	app.ClientSecret = secret
 
-	audit.Record(audit.UserOAuth2ApplicationAdd, ctx.Doer, ctx.Doer, app, "Created OAuth2 application %s.", app.Name)
+	audit.Record(ctx, audit.UserOAuth2ApplicationAdd, ctx.Doer, ctx.Doer, app, "Created OAuth2 application %s.", app.Name)
 
 	ctx.JSON(http.StatusCreated, convert.ToOAuth2Application(app))
 }
@@ -339,7 +339,7 @@ func DeleteOauth2Application(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(audit.UserOAuth2ApplicationRemove, ctx.Doer, ctx.Doer, app, "Removed OAuth2 application %s.", app.Name)
+	audit.Record(ctx, audit.UserOAuth2ApplicationRemove, ctx.Doer, ctx.Doer, app, "Removed OAuth2 application %s.", app.Name)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -428,7 +428,7 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(audit.UserOAuth2ApplicationUpdate, ctx.Doer, ctx.Doer, app, "Updated OAuth2 application %s.", app.Name)
+	audit.Record(ctx, audit.UserOAuth2ApplicationUpdate, ctx.Doer, ctx.Doer, app, "Updated OAuth2 application %s.", app.Name)
 
 	ctx.JSON(http.StatusOK, convert.ToOAuth2Application(app))
 }

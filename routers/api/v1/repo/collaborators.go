@@ -184,7 +184,7 @@ func AddCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(audit.RepositoryCollaboratorAdd, ctx.Doer, ctx.Repo.Repository, collaborator, "Added user %s as collaborator for repository %s.", collaborator.Name, ctx.Repo.Repository.FullName())
+	audit.Record(ctx, audit.RepositoryCollaboratorAdd, ctx.Doer, ctx.Repo.Repository, collaborator, "Added user %s as collaborator for repository %s.", collaborator.Name, ctx.Repo.Repository.FullName())
 
 	if form.Permission != nil {
 		accessMode := perm.ParseAccessMode(*form.Permission)
@@ -193,7 +193,7 @@ func AddCollaborator(ctx *context.APIContext) {
 			return
 		}
 
-		audit.Record(audit.RepositoryCollaboratorAccess, ctx.Doer, ctx.Repo.Repository, collaborator, "Changed access mode of collaborator %s to %s.", collaborator.Name, accessMode.String())
+		audit.Record(ctx, audit.RepositoryCollaboratorAccess, ctx.Doer, ctx.Repo.Repository, collaborator, "Changed access mode of collaborator %s to %s.", collaborator.Name, accessMode.String())
 	}
 
 	ctx.Status(http.StatusNoContent)
@@ -245,7 +245,7 @@ func DeleteCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(audit.RepositoryCollaboratorRemove, ctx.Doer, ctx.Repo.Repository, collaborator, "Removed collaborator %s.", collaborator.Name)
+	audit.Record(ctx, audit.RepositoryCollaboratorRemove, ctx.Doer, ctx.Repo.Repository, collaborator, "Removed collaborator %s.", collaborator.Name)
 
 	ctx.Status(http.StatusNoContent)
 }

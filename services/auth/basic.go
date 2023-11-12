@@ -156,7 +156,7 @@ func validateTOTP(req *http.Request, u *user_model.User) error {
 	if ok, err := twofa.ValidateTOTP(req.Header.Get("X-Gitea-OTP")); err != nil {
 		return err
 	} else if !ok {
-		audit.Record(audit.UserAuthenticationFailTwoFactor, u, u, twofa, "Failed two-factor authentication for user %s.", u.Name)
+		audit.Record(req.Context(), audit.UserAuthenticationFailTwoFactor, u, u, twofa, "Failed two-factor authentication for user %s.", u.Name)
 
 		return util.NewInvalidArgumentErrorf("invalid provided OTP")
 	}

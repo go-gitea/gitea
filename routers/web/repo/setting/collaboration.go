@@ -111,7 +111,7 @@ func CollaborationPost(ctx *context.Context) {
 		mailer.SendCollaboratorMail(u, ctx.Doer, ctx.Repo.Repository)
 	}
 
-	audit.Record(audit.RepositoryCollaboratorAdd, ctx.Doer, ctx.Repo.Repository, u, "Added user %s as collaborator for repository %s.", u.Name, ctx.Repo.Repository.FullName())
+	audit.Record(ctx, audit.RepositoryCollaboratorAdd, ctx.Doer, ctx.Repo.Repository, u, "Added user %s as collaborator for repository %s.", u.Name, ctx.Repo.Repository.FullName())
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_collaborator_success"))
 	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
@@ -134,7 +134,7 @@ func ChangeCollaborationAccessMode(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(audit.RepositoryCollaboratorAccess, ctx.Doer, ctx.Repo.Repository, u, "Changed access mode of collaborator %s to %s.", u.Name, perm.AccessMode(ctx.FormInt("mode")).String())
+	audit.Record(ctx, audit.RepositoryCollaboratorAccess, ctx.Doer, ctx.Repo.Repository, u, "Changed access mode of collaborator %s to %s.", u.Name, perm.AccessMode(ctx.FormInt("mode")).String())
 }
 
 // DeleteCollaboration delete a collaboration for a repository
@@ -148,7 +148,7 @@ func DeleteCollaboration(ctx *context.Context) {
 	if err := repo_service.DeleteCollaboration(ctx, ctx.Repo.Repository, u.ID); err != nil {
 		ctx.Flash.Error("DeleteCollaboration: " + err.Error())
 	} else {
-		audit.Record(audit.RepositoryCollaboratorRemove, ctx.Doer, ctx.Repo.Repository, u, "Removed user %s as collaborator.", u.Name)
+		audit.Record(ctx, audit.RepositoryCollaboratorRemove, ctx.Doer, ctx.Repo.Repository, u, "Removed user %s as collaborator.", u.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.remove_collaborator_success"))
 	}
@@ -221,7 +221,7 @@ func DeleteTeam(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(audit.RepositoryCollaboratorTeamRemove, ctx.Doer, ctx.Repo.Repository, team, "Removed team %s as collaborator from %s.", team.Name, ctx.Repo.Repository.FullName())
+	audit.Record(ctx, audit.RepositoryCollaboratorTeamRemove, ctx.Doer, ctx.Repo.Repository, team, "Removed team %s as collaborator from %s.", team.Name, ctx.Repo.Repository.FullName())
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.remove_team_success"))
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/collaboration")
