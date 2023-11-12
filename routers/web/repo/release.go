@@ -613,7 +613,17 @@ func DeleteTag(ctx *context.Context) {
 }
 
 func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
-	if err := releaseservice.DeleteReleaseByID(ctx, ctx.FormInt64("id"), ctx.Doer, isDelTag); err != nil {
+	id := ctx.FormInt64("id")
+	rel, err := repo_model.GetReleaseByID(ctx, id)
+	if err != nil {
+		ctx.ServerError("GetRelease", err)
+		return
+	}
+	if ctx.Repo.Repository.ID != rel.RepoID {
+		ctx.NotFound("CompareRepoID", repo_model.ErrReleaseNotExist{})
+		return
+	}
+	if err := releaseservice.DeleteReleaseByID(ctx, id, ctx.Doer, isDelTag); err != nil {
 		if models.IsErrProtectedTagName(err) {
 			ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))
 		} else {
