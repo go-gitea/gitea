@@ -336,7 +336,7 @@ func TestTotal_RenderString(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
 
-	answers := testAnswers(util.URLJoin(AppSubURL, "src", "master"), util.URLJoin(AppSubURL, "raw", "master"))
+	answers := testAnswers(util.URLJoin(AppSubURL, "src", "master"), util.URLJoin(AppSubURL, "media", "master"))
 
 	for i := 0; i < len(sameCases); i++ {
 		line, err := markdown.RenderString(&markup.RenderContext{
@@ -598,7 +598,7 @@ mail@domain.com
 		IsWiki   bool
 		Expected string
 	}{
-		{
+		{ // 0
 			Links:  markup.Links{},
 			IsWiki: false,
 			Expected: `<p>space @mention-user<br/>
@@ -623,7 +623,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 space</p>
 `,
 		},
-		{
+		{ // 1
 			Links:  markup.Links{},
 			IsWiki: true,
 			Expected: `<p>space @mention-user<br/>
@@ -648,7 +648,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 space</p>
 `,
 		},
-		{
+		{ // 2
 			Links: markup.Links{
 				Base: "https://gitea.io/",
 			},
@@ -675,7 +675,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 space</p>
 `,
 		},
-		{
+		{ // 3
 			Links: markup.Links{
 				Base: "https://gitea.io/",
 			},
@@ -702,7 +702,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 space</p>
 `,
 		},
-		{
+		{ // 4
 			Links: markup.Links{
 				Base: "/relative/path",
 			},
@@ -729,7 +729,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 space</p>
 `,
 		},
-		{
+		{ // 5
 			Links: markup.Links{
 				Base: "/relative/path",
 			},
@@ -756,7 +756,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 space</p>
 `,
 		},
-		{
+		{ // 6
 			Links: markup.Links{
 				Base:       "/user/repo",
 				BranchPath: "branch/main",
@@ -771,7 +771,7 @@ space</p>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/user/repo/media/branch/main/image.jpg" target="_blank" rel="nofollow noopener"><img src="/user/repo/media/branch/main/image.jpg" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
-<a href="/user/repo/raw/branch/main/image.jpg" rel="nofollow"><img src="/user/repo/raw/branch/main/image.jpg" title="local image" alt="local image"/></a><br/>
+<a href="/user/repo/media/branch/main/image.jpg" rel="nofollow"><img src="/user/repo/media/branch/main/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
 <a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
@@ -784,7 +784,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 space</p>
 `,
 		},
-		{
+		{ // 7
 			Links: markup.Links{
 				Base:       "/relative/path",
 				BranchPath: "branch/main",
@@ -812,7 +812,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 space</p>
 `,
 		},
-		{
+		{ // 8
 			Links: markup.Links{
 				Base:     "/user/repo",
 				TreePath: "sub/folder",
@@ -840,7 +840,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 space</p>
 `,
 		},
-		{
+		{ // 9
 			Links: markup.Links{
 				Base:     "/relative/path",
 				TreePath: "sub/folder",
@@ -868,7 +868,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 space</p>
 `,
 		},
-		{
+		{ // 10
 			Links: markup.Links{
 				Base:       "/user/repo",
 				BranchPath: "branch/main",
@@ -884,7 +884,7 @@ space</p>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/user/repo/media/branch/main/sub/folder/image.jpg" target="_blank" rel="nofollow noopener"><img src="/user/repo/media/branch/main/sub/folder/image.jpg" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
-<a href="/user/repo/raw/branch/main/sub/folder/image.jpg" rel="nofollow"><img src="/user/repo/raw/branch/main/sub/folder/image.jpg" title="local image" alt="local image"/></a><br/>
+<a href="/user/repo/media/branch/main/sub/folder/image.jpg" rel="nofollow"><img src="/user/repo/media/branch/main/sub/folder/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
 <a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
@@ -897,7 +897,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
 space</p>
 `,
 		},
-		{
+		{ // 11
 			Links: markup.Links{
 				Base:       "/relative/path",
 				BranchPath: "branch/main",
