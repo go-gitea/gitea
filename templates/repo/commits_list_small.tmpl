@@ -14,7 +14,7 @@
 		{{$commitLink:= printf "%s/commit/%s" $.comment.Issue.PullRequest.BaseRepo.Link (PathEscape .ID.String)}}
 
 		<span class="shabox gt-df gt-ac gt-float-right">
-			{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses "root" $.root}}
+			{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
 			{{$class := "ui sha label"}}
 			{{if .Signature}}
 				{{$class = (print $class " isSigned")}}
