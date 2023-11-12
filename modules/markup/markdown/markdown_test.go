@@ -928,8 +928,6 @@ space</p>
 		},
 	}
 
-	log.Error(setting.AppURL)
-
 	for i, c := range cases {
 		result, err := markdown.RenderString(&markup.RenderContext{Ctx: context.Background(), Links: c.Links, IsWiki: c.IsWiki}, input)
 		assert.NoError(t, err, "Unexpected error in testcase: %v", i)
