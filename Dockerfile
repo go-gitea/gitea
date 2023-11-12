@@ -78,7 +78,7 @@ RUN mkdir -p /var/lib/gitea /etc/gitea
 RUN chown git:git /var/lib/gitea /etc/gitea
 
 # Copy local files
-COPY --chmod=755 docker/rootless /tmp/local
+COPY --chmod=755 docker/rootless /
 
 COPY --from=build-env --chmod=755 --chown=root:root /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
 COPY --from=build-env --chmod=755 --chown=root:root /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
@@ -130,7 +130,7 @@ VOLUME ["/data"]
 ENTRYPOINT ["/usr/bin/entrypoint"]
 CMD ["/bin/s6-svscan", "/etc/s6"]
 
-COPY --chmod=755 docker/root /tmp/local
+COPY --chmod=755 docker/root /
 
 COPY --from=build-env --chmod=755 /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
 COPY --from=build-env --chmod=755 /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
