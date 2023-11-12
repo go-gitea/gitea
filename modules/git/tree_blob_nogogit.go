@@ -54,6 +54,8 @@ func (t *Tree) GetTreeEntryByPathWithPathAsName(relpath string) (*TreeEntry, err
 	if err != nil {
 		return nil, err
 	}
-	a.fullName = relpath
+	if a.fullName == "" {
+		a.fullName = relpath
+	}
 	return a, err
 }
