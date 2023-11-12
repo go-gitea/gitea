@@ -87,28 +87,37 @@ type Links struct {
 	TreePath   string
 }
 
-func (ctx *Links) HasBranchInfo() bool {
-	return ctx.BranchPath != ""
+func (l *Links) HasBranchInfo() bool {
+	return l.BranchPath != ""
 }
 
-func (ctx *Links) SrcLink() string {
-	return util.URLJoin(ctx.Base, "src", ctx.BranchPath, ctx.TreePath)
+func (l *Links) SrcLink() string {
+	return util.URLJoin(l.Base, "src", l.BranchPath, l.TreePath)
 }
 
-func (ctx *Links) MediaLink() string {
-	return util.URLJoin(ctx.Base, "media", ctx.BranchPath, ctx.TreePath)
+func (l *Links) MediaLink() string {
+	return util.URLJoin(l.Base, "media", l.BranchPath, l.TreePath)
 }
 
-func (ctx *Links) RawLink() string {
-	return util.URLJoin(ctx.Base, "raw", ctx.BranchPath, ctx.TreePath)
+func (l *Links) RawLink() string {
+	return util.URLJoin(l.Base, "raw", l.BranchPath, l.TreePath)
 }
 
-func (ctx *Links) WikiLink() string {
-	return util.URLJoin(ctx.Base, "wiki")
+func (l *Links) WikiLink() string {
+	return util.URLJoin(l.Base, "wiki")
 }
 
-func (ctx *Links) WikiRawLink() string {
-	return util.URLJoin(ctx.Base, "wiki/raw")
+func (l *Links) WikiRawLink() string {
+	return util.URLJoin(l.Base, "wiki/raw")
+}
+
+func (l *Links) ResolveMediaLink(isWiki bool) string {
+	if isWiki {
+		return l.WikiRawLink()
+	} else if l.HasBranchInfo() {
+		return l.MediaLink()
+	}
+	return l.Base
 }
 
 // Cancel runs any cleanup functions that have been registered for this Ctx

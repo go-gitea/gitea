@@ -87,16 +87,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			// Check if the destination is a real link
 			link := v.Destination
 			if len(link) > 0 && !markup.IsLink(link) {
-				var base string
-				if ctx.IsWiki {
-					base = ctx.Links.WikiRawLink()
-				} else if ctx.Links.HasBranchInfo() {
-					base = ctx.Links.MediaLink()
-				} else {
-					base = ctx.Links.Base
-				}
-
-				v.Destination = []byte(giteautil.URLJoin(base, string(link)))
+				v.Destination = []byte(giteautil.URLJoin(ctx.Links.ResolveMediaLink(ctx.IsWiki), string(link)))
 			}
 
 			parent := n.Parent()

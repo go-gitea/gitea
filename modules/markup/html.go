@@ -400,16 +400,7 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) {
 					continue
 				}
 				if len(attr.Val) > 0 && !IsLinkStr(attr.Val) && !strings.HasPrefix(attr.Val, "data:image/") {
-					var base string
-					if ctx.IsWiki {
-						base = ctx.Links.WikiRawLink()
-					} else if ctx.Links.HasBranchInfo() {
-						base = ctx.Links.MediaLink()
-					} else {
-						base = ctx.Links.Base
-					}
-
-					attr.Val = util.URLJoin(base, attr.Val)
+					attr.Val = util.URLJoin(ctx.Links.ResolveMediaLink(ctx.IsWiki), attr.Val)
 				}
 				attr.Val = camoHandleLink(attr.Val)
 				node.Attr[i] = attr
@@ -746,17 +737,8 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 			}
 		}
 		if image {
-			var base string
-			if ctx.IsWiki {
-				base = ctx.Links.WikiRawLink()
-			} else if ctx.Links.HasBranchInfo() {
-				base = ctx.Links.RawLink()
-			} else {
-				base = ctx.Links.Base
-			}
-
 			if !absoluteLink {
-				link = util.URLJoin(base, link)
+				link = util.URLJoin(ctx.Links.ResolveMediaLink(ctx.IsWiki), link)
 			}
 			title := props["title"]
 			if title == "" {

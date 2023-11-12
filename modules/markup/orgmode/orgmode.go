@@ -145,11 +145,7 @@ func (r *Writer) resolveLink(l org.RegularLink) string {
 		base := r.Ctx.Links.Base
 		switch l.Kind() {
 		case "image", "video":
-			if r.Ctx.IsWiki {
-				base = r.Ctx.Links.WikiRawLink()
-			} else if r.Ctx.Links.HasBranchInfo() {
-				base = r.Ctx.Links.MediaLink()
-			}
+			base = r.Ctx.Links.ResolveMediaLink(r.Ctx.IsWiki)
 		}
 		link = util.URLJoin(base, link)
 	}
