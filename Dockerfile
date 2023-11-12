@@ -20,14 +20,19 @@ RUN apk --no-cache add \
 # Setup repo
 WORKDIR ${GOPATH}/src/code.gitea.io/gitea
 
-COPY ./go.mod .
+COPY Makefile .
 
-RUN go mod download
+# Download Golang Modules
+COPY go.mod .
+COPY go.sum .
 
+RUN make deps-backend
+
+# Download NPM Packages
 COPY package.json .
 COPY package-lock.json .
 
-RUN npm install --no-save --verbose
+RUN make deps-frontend
 
 COPY . .
 
