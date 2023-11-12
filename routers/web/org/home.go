@@ -13,6 +13,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -155,5 +157,29 @@ func Home(ctx *context.Context) {
 
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
+	profileGitRepo, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx)
+	defer profileClose()
+	prepareOrgProfileReadme(ctx, profileGitRepo, profileReadmeBlob)
+
 	ctx.HTML(http.StatusOK, tplOrgHome)
+}
+
+func prepareOrgProfileReadme(ctx *context.Context, profileGitRepo *git.Repository, profileReadme *git.Blob) {
+	if profileGitRepo == nil || profileReadme == nil {
+		return
+	}
+
+	if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+		log.Error("failed to GetBlobContent: %v", err)
+	} else {
+		if profileContent, err := markdown.RenderString(&markup.RenderContext{
+			Ctx:     ctx,
+			GitRepo: profileGitRepo,
+			Metas:   map[string]string{"mode": "document"},
+		}, bytes); err != nil {
+			log.Error("failed to RenderString: %v", err)
+		} else {
+			ctx.Data["ProfileReadme"] = profileContent
+		}
+	}
 }
