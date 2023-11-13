@@ -76,6 +76,15 @@ var getBucketVersioning = func(ctx context.Context, minioClient *minio.Client, b
 	return err
 }
 
+// newMinioStorage returns a minio storage
+func newMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, error) {
+	if cfg.MinioConfig.BucketDomain != "" {
+		return NewHWCloudStorage(ctx, cfg)
+	}
+
+	return NewMinioStorage(ctx, cfg)
+}
+
 // NewMinioStorage returns a minio storage
 func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, error) {
 	config := cfg.MinioConfig
@@ -265,5 +274,5 @@ func (m *MinioStorage) IterateObjects(dirName string, fn func(path string, obj O
 }
 
 func init() {
-	RegisterStorageType(setting.MinioStorageType, NewMinioStorage)
+	RegisterStorageType(setting.MinioStorageType, newMinioStorage)
 }
