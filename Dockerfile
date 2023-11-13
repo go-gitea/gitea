@@ -1,5 +1,40 @@
 # Build stage
-FROM docker.io/library/golang:1.21-alpine3.18 AS build-env
+FROM docker.io/library/node:20-alpine3.18 AS build-frontend
+
+ARG GITEA_VERSION
+
+# Build deps
+RUN apk --no-cache add \
+    build-base \
+    git \
+    && rm -rf /var/cache/apk/*
+
+# Setup repo
+WORKDIR /usr/src/code.gitea.io/gitea
+
+COPY Makefile .
+
+# Download NPM Packages
+COPY package.json .
+COPY package-lock.json .
+
+RUN make deps-frontend
+
+# Copy source files
+COPY ./webpack.config.js .
+COPY ./assets ./assets
+COPY ./public ./public
+COPY ./web_src ./web_src
+
+# Checkout version if set
+COPY ./.git ./.git
+RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi
+
+# Build frontend
+RUN make clean-all frontend
+
+# Build stage
+FROM docker.io/library/golang:1.21-alpine3.18 AS build-backend
 
 ARG GOPROXY
 ENV GOPROXY ${GOPROXY:-direct}
@@ -13,8 +48,6 @@ ARG CGO_EXTRA_CFLAGS
 RUN apk --no-cache add \
     build-base \
     git \
-    nodejs \
-    npm \
     && rm -rf /var/cache/apk/*
 
 # Setup repo
@@ -28,19 +61,35 @@ COPY go.sum .
 
 RUN make deps-backend
 
-# Download NPM Packages
-COPY package.json .
-COPY package-lock.json .
-
-RUN make deps-frontend
-
-COPY . .
+# Copy source files
+COPY ./build ./build
+COPY ./cmd ./cmd
+COPY ./models ./models
+COPY ./modules ./modules
+COPY ./options ./options
+COPY ./routers ./routers
+COPY ./services ./services
+COPY ./templates ./templates
+COPY ./build.go .
+COPY ./main.go .
 
 # Checkout version if set
-RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
- && make clean-all build
+COPY ./.git ./.git
+RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi
+
+# Clean directory
+RUN make clean-all
+
+# Copy frontend build artifacts
+COPY --from=build-frontend /usr/src/code.gitea.io/gitea/public ./public
+
+# Build backend
+RUN make backend
 
 # Begin env-to-ini build
+COPY contrib/environment-to-ini/environment-to-ini.go contrib/environment-to-ini/environment-to-ini.go
+COPY ./custom ./custom
+
 RUN go build contrib/environment-to-ini/environment-to-ini.go
 
 FROM docker.io/library/alpine:3.18 AS gitea-base
@@ -57,8 +106,11 @@ RUN apk --no-cache add \
 
 RUN addgroup -S -g 1000 git
 
+COPY --chmod=644 ./contrib/autocompletion/bash_autocomplete /etc/profile.d/gitea_bash_autocomplete.sh
+COPY --chmod=755 --from=build-backend /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
+COPY --chmod=755 --from=build-backend /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
+
 FROM gitea-base AS gitea-rootless
-LABEL maintainer="maintainers@gitea.io"
 
 EXPOSE 2222 3000
 
@@ -80,10 +132,6 @@ RUN chown git:git /var/lib/gitea /etc/gitea
 # Copy local files
 COPY --chmod=755 docker/rootless /
 
-COPY --from=build-env --chmod=755 --chown=root:root /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
-COPY --from=build-env --chmod=755 --chown=root:root /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
-COPY --from=build-env --chmod=644 /go/src/code.gitea.io/gitea/contrib/autocompletion/bash_autocomplete /etc/profile.d/gitea_bash_autocomplete.sh
-
 # git:git
 USER 1000:1000
 ENV GITEA_WORK_DIR /var/lib/gitea
@@ -101,7 +149,6 @@ ENTRYPOINT ["/usr/bin/dumb-init", "--", "/usr/local/bin/docker-entrypoint.sh"]
 CMD []
 
 FROM gitea-base AS gitea
-LABEL maintainer="maintainers@gitea.io"
 
 EXPOSE 22 3000
 
@@ -131,7 +178,3 @@ ENTRYPOINT ["/usr/bin/entrypoint"]
 CMD ["/bin/s6-svscan", "/etc/s6"]
 
 COPY --chmod=755 docker/root /
-
-COPY --from=build-env --chmod=755 /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
-COPY --from=build-env --chmod=755 /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
-COPY --from=build-env --chmod=644 /go/src/code.gitea.io/gitea/contrib/autocompletion/bash_autocomplete /etc/profile.d/gitea_bash_autocomplete.sh
