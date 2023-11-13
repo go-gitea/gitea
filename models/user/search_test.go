@@ -58,6 +58,12 @@ func TestBuildCanSeeUserCondition(t *testing.T) {
 	assert.Len(t, ids, 28)
 	assert.EqualValues(t, []int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 27, 28, 29, 30, 31, 32, 33, 34, 36}, ids)
 
+	// limited user who is followed by private user
+	cond = user.BuildCanSeeUserCondition(getUser(t, 33))
+	ids = getIDs(cond)
+	assert.Len(t, ids, 28)
+	assert.EqualValues(t, []int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 27, 28, 29, 30, 31, 32, 33, 34, 36}, ids)
+
 	// restricted user
 	cond = user.BuildCanSeeUserCondition(getUser(t, 29))
 	ids = getIDs(cond)
