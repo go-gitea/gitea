@@ -412,6 +412,6 @@ func GetAllContributorsStats(ctx *context.APIContext) {
 		}
 		ctx.Error(http.StatusInternalServerError, "GetContributorStats", err)
 	} else {
-		ctx.JSON(http.StatusOK, &api.ContributorDataResponse{IsReady: false, Data: contributorStats})
+		ctx.JSON(http.StatusOK, &api.ContributorDataResponse{IsReady: true, Data: contributorStats})
 	}
 }
