@@ -245,13 +245,13 @@ export default sfc; // activate IDE's Vue plugin
 </script>
 <template>
   <div class="ui dropdown custom">
-    <button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df gt-m-0" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-      <span class="text gt-df gt-ac gt-mr-2">
+    <button class="branch-dropdown-button ui basic small compact button gt-df gt-m-0" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
+      <span class="text gt-df gt-ac gt-mr-2" style="overflow: hidden">
         <template v-if="release">{{ textReleaseCompare }}</template>
         <template v-else>
           <svg-icon v-if="isViewTag" name="octicon-tag"/>
           <svg-icon v-else name="octicon-git-branch"/>
-          <strong ref="dropdownRefName" class="gt-ml-3">{{ refNameText }}</strong>
+          <strong ref="dropdownRefName" class="gt-ml-3 gt-ellipsis">{{ refNameText }}</strong>
         </template>
       </span>
       <svg-icon name="octicon-triangle-down" :size="14" class-name="dropdown icon"/>
