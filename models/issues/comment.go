@@ -183,6 +183,14 @@ func (t CommentType) HasAttachmentSupport() bool {
 	return false
 }
 
+func (t CommentType) HasMailReplySupport() bool {
+	switch t {
+	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview, CommentTypeReopen, CommentTypeClose, CommentTypeMergePull, CommentTypeAssignees:
+		return true
+	}
+	return false
+}
+
 // RoleInRepo presents the user's participation in the repo
 type RoleInRepo string
 

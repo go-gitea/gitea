@@ -211,14 +211,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 5px;
   margin-bottom: 5px;
 }
 
-@media (max-width: 767.68px) {
+@media (max-width: 767.98px) {
   .repository.file.list .repo-description {
     flex-direction: column;
-    gap: 8px;
-    align-items: normal;
+    align-items: stretch;
   }
 }
 
@@ -3075,21 +3075,29 @@ tbody.commit-list {
 }
 
 .commit-status-header {
-  border: none !important; /* reset the default ".ui.attached.header" styles, to use the outer border */
-  margin: 0 !important;
+  /* reset the default ".ui.attached.header" styles, to use the outer border */
+  border: none !important;
+  /* add a bottom border to make sure the there is always a divider between the header and list when the list is scrolling */
+  border-bottom: 1px solid var(--color-secondary) !important;
+  /* use negative margin to avoid the newly added border conflict with the list's top border */
+  margin: 0 0 -1px !important;
 }
 
 .commit-status-list {
-  max-height: 195px; /* fit exactly 4 items */
+  max-height: 240px; /* fit exactly 6 items, commit-status-item.height * 6 */
   overflow-x: hidden;
   transition: max-height .2s;
 }
 
 .commit-status-item {
-  padding: 14px 10px !important;
+  height: 40px;
+  padding: 0 10px;
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+.commit-status-item + .commit-status-item {
   border-top: 1px solid var(--color-secondary);
 }
 
