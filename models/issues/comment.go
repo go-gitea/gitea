@@ -342,7 +342,7 @@ func (c *Comment) AfterLoad(session *xorm.Session) {
 
 // LoadPoster loads comment poster
 func (c *Comment) LoadPoster(ctx context.Context) (err error) {
-	if c.PosterID <= 0 || c.Poster != nil {
+	if c.Poster != nil {
 		return nil
 	}
 
