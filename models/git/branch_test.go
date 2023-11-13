@@ -133,24 +133,24 @@ func TestRenameBranch(t *testing.T) {
 	}, git_model.WhitelistOptions{}))
 	assert.NoError(t, committer.Commit())
 
-	assert.NoError(t, git_model.RenameBranch(db.DefaultContext, repo1, "main", "main", func(isDefault bool) error {
+	assert.NoError(t, git_model.RenameBranch(db.DefaultContext, repo1, "main", "master", func(isDefault bool) error {
 		_isDefault = isDefault
 		return nil
 	}))
 
 	assert.True(t, _isDefault)
 	repo1 = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	assert.Equal(t, "main", repo1.DefaultBranch)
+	assert.Equal(t, "master", repo1.DefaultBranch)
 
 	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}) // merged
 	assert.Equal(t, "main", pull.BaseBranch)
 
 	pull = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}) // open
-	assert.Equal(t, "main", pull.BaseBranch)
+	assert.Equal(t, "master", pull.BaseBranch)
 
 	renamedBranch := unittest.AssertExistsAndLoadBean(t, &git_model.RenamedBranch{ID: 2})
 	assert.Equal(t, "main", renamedBranch.From)
-	assert.Equal(t, "main", renamedBranch.To)
+	assert.Equal(t, "master", renamedBranch.To)
 	assert.Equal(t, int64(1), renamedBranch.RepoID)
 
 	unittest.AssertExistsAndLoadBean(t, &git_model.ProtectedBranch{

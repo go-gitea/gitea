@@ -79,7 +79,7 @@ func baseURL(ctx *context.Context) string {
 	return setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/pub/api/packages"
 }
 
-// https://github.com/dart-lang/pub/blob/main/doc/repository-spec-v2.md#list-all-versions-of-a-package
+// https://github.com/dart-lang/pub/blob/master/doc/repository-spec-v2.md#list-all-versions-of-a-package
 func EnumeratePackageVersions(ctx *context.Context) {
 	packageName := ctx.Params("id")
 
@@ -117,7 +117,7 @@ func EnumeratePackageVersions(ctx *context.Context) {
 	})
 }
 
-// https://github.com/dart-lang/pub/blob/main/doc/repository-spec-v2.md#deprecated-inspect-a-specific-version-of-a-package
+// https://github.com/dart-lang/pub/blob/master/doc/repository-spec-v2.md#deprecated-inspect-a-specific-version-of-a-package
 func PackageVersionMetadata(ctx *context.Context) {
 	packageName := ctx.Params("id")
 	packageVersion := ctx.Params("version")
@@ -144,7 +144,7 @@ func PackageVersionMetadata(ctx *context.Context) {
 	))
 }
 
-// https://github.com/dart-lang/pub/blob/main/doc/repository-spec-v2.md#publishing-packages
+// https://github.com/dart-lang/pub/blob/master/doc/repository-spec-v2.md#publishing-packages
 func RequestUpload(ctx *context.Context) {
 	type UploadRequest struct {
 		URL    string            `json:"url"`
@@ -157,7 +157,7 @@ func RequestUpload(ctx *context.Context) {
 	})
 }
 
-// https://github.com/dart-lang/pub/blob/main/doc/repository-spec-v2.md#publishing-packages
+// https://github.com/dart-lang/pub/blob/master/doc/repository-spec-v2.md#publishing-packages
 func UploadPackageFile(ctx *context.Context) {
 	file, _, err := ctx.Req.FormFile("file")
 	if err != nil {
@@ -226,7 +226,7 @@ func UploadPackageFile(ctx *context.Context) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// https://github.com/dart-lang/pub/blob/main/doc/repository-spec-v2.md#publishing-packages
+// https://github.com/dart-lang/pub/blob/master/doc/repository-spec-v2.md#publishing-packages
 func FinalizePackage(ctx *context.Context) {
 	packageName := ctx.Params("id")
 	packageVersion := ctx.Params("version")
@@ -251,7 +251,7 @@ func FinalizePackage(ctx *context.Context) {
 	jsonResponse(ctx, http.StatusOK, SuccessWrapper{Success{}})
 }
 
-// https://github.com/dart-lang/pub/blob/main/doc/repository-spec-v2.md#deprecated-download-a-specific-version-of-a-package
+// https://github.com/dart-lang/pub/blob/master/doc/repository-spec-v2.md#deprecated-download-a-specific-version-of-a-package
 func DownloadPackageFile(ctx *context.Context) {
 	packageName := ctx.Params("id")
 	packageVersion := strings.TrimSuffix(ctx.Params("version"), ".tar.gz")
