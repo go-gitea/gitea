@@ -229,8 +229,9 @@ The following configuration set `Content-Type: application/vnd.android.package-a
     add it to this config.
 - `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 - `SEARCH_REPO_DESCRIPTION`: **true**: Whether to search within description at repository search on explore page.
-- `ONLY_SHOW_RELEVANT_REPOS`: **false** Whether to only show relevant repos on the explore page when no keyword is specified and default sorting is used.
+- `ONLY_SHOW_RELEVANT_REPOS`: **false**: Whether to only show relevant repos on the explore page when no keyword is specified and default sorting is used.
     A repo is considered irrelevant if it's a fork or if it has no metadata (no description, no icon, no topic).
+- `EXPLORE_PAGING_DEFAULT_SORT`: **recentupdate**: Change the sort type of the explore pages. Valid values are "recentupdate", "alphabetically", "reverselastlogin", "newest" and "oldest"
 
 ### UI - Admin (`ui.admin`)
 
