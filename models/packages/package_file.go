@@ -230,3 +230,14 @@ func CalculateFileSize(ctx context.Context, opts *PackageFileSearchOptions) (int
 		Join("INNER", "package_blob", "package_blob.id = package_file.blob_id").
 		SumInt(new(PackageBlob), "size")
 }
+
+// GetUserBlobs sums up all blob sizes matching the search options.
+// It does NOT respect the deduplication of blobs.
+func CalculateCreatorPackageQuota(ctx context.Context, creatorID int64) (int64, error) {
+	return db.GetEngine(ctx).
+		Table("package_version").
+		Where(builder.Eq{"creator_id": creatorID}).
+		Join("INNER", "package_file", "package_version.id = package_file.version_id").
+		Join("INNER", "package_blob", "package_blob.id = package_file.blob_id").
+		SumInt(new(PackageBlob), "size")
+}
