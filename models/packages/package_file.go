@@ -231,7 +231,8 @@ func CalculateFileSize(ctx context.Context, opts *PackageFileSearchOptions) (int
 		SumInt(new(PackageBlob), "size")
 }
 
-// GetUserBlobs sums up all blob sizes matching the search options.
+// CalculateCreatorPackageQuota sums up all blob sizes related to package
+// version creator id.
 // It does NOT respect the deduplication of blobs.
 func CalculateCreatorPackageQuota(ctx context.Context, creatorID int64) (int64, error) {
 	return db.GetEngine(ctx).
