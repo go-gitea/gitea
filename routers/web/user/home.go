@@ -822,6 +822,11 @@ func UsernameSubRoute(ctx *context.Context) {
 	reloadParam := func(suffix string) (success bool) {
 		ctx.SetParams("username", strings.TrimSuffix(username, suffix))
 		context_service.UserAssignmentWeb()(ctx)
+		// check view permissions
+		if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
+			ctx.NotFound("user", fmt.Errorf(ctx.ContextUser.Name))
+			return false
+		}
 		return !ctx.Written()
 	}
 	switch {
