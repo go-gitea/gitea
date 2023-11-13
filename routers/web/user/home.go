@@ -823,7 +823,7 @@ func UsernameSubRoute(ctx *context.Context) {
 		ctx.SetParams("username", strings.TrimSuffix(username, suffix))
 		context_service.UserAssignmentWeb()(ctx)
 		// check view permissions
-		if ctx.ContextUser.IsIndividual() && !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
+		if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
 			ctx.NotFound("user", fmt.Errorf(ctx.ContextUser.Name))
 			return false
 		}
