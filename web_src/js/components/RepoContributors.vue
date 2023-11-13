@@ -112,7 +112,7 @@ export default {
           }
         } while (data.is_ready !== true);
         if (data.is_ready) {
-          const {total, ...rest} = data;
+          const {total, ...rest} = data.data;
           this.contributorsStats = rest;
           this.dateFrom = new Date(total.weeks[0].week);
           this.dateUntil = new Date();
