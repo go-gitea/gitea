@@ -4881,7 +4881,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/ContributorDataResponse"
+            "$ref": "#/responses/ContributorDataMap"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -17571,24 +17571,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "ContributorDataResponse": {
-      "description": "ContributorDataResponse returns ContributorData or indicates it is still generated in the backend",
-      "type": "object",
-      "properties": {
-        "data": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/ContributorData"
-          },
-          "x-go-name": "Data"
-        },
-        "is_ready": {
-          "type": "boolean",
-          "x-go-name": "IsReady"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "CreateAccessTokenOption": {
       "description": "CreateAccessTokenOption options when create access token",
       "type": "object",
@@ -23391,10 +23373,13 @@
         "$ref": "#/definitions/ContentsResponse"
       }
     },
-    "ContributorDataResponse": {
-      "description": "ContributorDataResponse",
+    "ContributorDataMap": {
+      "description": "ContributorDataMap",
       "schema": {
-        "$ref": "#/definitions/ContributorDataResponse"
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/definitions/ContributorData"
+        }
       }
     },
     "CronList": {

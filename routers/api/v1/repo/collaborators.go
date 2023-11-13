@@ -385,7 +385,10 @@ func GetAllContributorsStats(ctx *context.APIContext) {
 	//   type: string
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/ContributorDataResponse"
+	//     "$ref": "#/responses/ContributorDataMap"
+	//   "202":
+	//     description: request later as stats are still generated
+	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "409":
@@ -407,11 +410,11 @@ func GetAllContributorsStats(ctx *context.APIContext) {
 
 	if contributorStats, err := repo_service.GetContributorStats(ctx, ctx.Cache, ctx.Repo.Repository, sha); err != nil {
 		if errors.Is(err, repo_service.ErrAwaitGeneration) {
-			ctx.JSON(http.StatusOK, &api.ContributorDataResponse{IsReady: false})
+			ctx.Status(http.StatusAccepted)
 			return
 		}
 		ctx.Error(http.StatusInternalServerError, "GetContributorStats", err)
 	} else {
-		ctx.JSON(http.StatusOK, &api.ContributorDataResponse{IsReady: true, Data: contributorStats})
+		ctx.JSON(http.StatusOK, &contributorStats)
 	}
 }

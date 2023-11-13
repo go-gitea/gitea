@@ -58,8 +58,9 @@ func GetContributorStats(ctx context.Context, cache cache.Cache, repo *repo_mode
 		_, run := generateLock.Load(cacheKey)
 		if run {
 			return nil, ErrAwaitGeneration
+		} else {
+			generateLock.Store(cacheKey, struct{}{})
 		}
-		generateLock.Store(cacheKey, struct{}{})
 
 		// run generation async
 		go generateContributorStats(genReady, cache, cacheKey, repo, revision)
@@ -90,7 +91,7 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
 	if err != nil {
 		err := fmt.Errorf("OpenRepository: %w", err)
-		_ = cache.Put(cacheKey, err, contributorStatsCacheTimeout)
+		cache.Put(cacheKey, err, contributorStatsCacheTimeout)
 	}
 	defer closer.Close()
 
@@ -100,7 +101,7 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 	extendedCommitStats, err := gitRepo.ExtendedCommitStats(revision)
 	if err != nil {
 		err := fmt.Errorf("ExtendedCommitStats: %w", err)
-		_ = cache.Put(cacheKey, err, contributorStatsCacheTimeout)
+		cache.Put(cacheKey, err, contributorStatsCacheTimeout)
 	}
 
 	layout := time.DateOnly
@@ -176,7 +177,7 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 		}
 	}
 
-	_ = cache.Put(cacheKey, contributorsCommitStats, contributorStatsCacheTimeout)
+	cache.Put(cacheKey, contributorsCommitStats, contributorStatsCacheTimeout)
 	generateLock.Delete(cacheKey)
 	genDone <- struct{}{}
 }

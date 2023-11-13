@@ -99,17 +99,16 @@ export default {
     async fetchGraphData() {
       this.isLoading = true;
       try {
-        let data, response;
+        let response;
         do {
           response = await GET(`${this.repoLink}/activity/contributors/data`);
-          if (response.status !== 200) break;
-          data = await response.json();
-          if (!data.is_ready) {
+          if (response.status === 202) {
             await new Promise(resolve => setTimeout(resolve, 1000)); // wait for 1 second before retrying
           }
-        } while (!data.is_ready);
-        if (response.status === 200) {
-          const {total, ...rest} = data.data;
+        } while (response.status === 202);
+        if (response.ok) {
+          const data = await response.json();
+          const {total, ...rest} = data;
           this.contributorsStats = rest;
           this.dateFrom = new Date(total.weeks[0].week);
           this.dateUntil = new Date();

@@ -31,9 +31,3 @@ type ContributorData struct {
 	TotalCommits int64       `json:"total_commits"`
 	Weeks        []*WeekData `json:"weeks"`
 }
-
-// ContributorDataResponse returns ContributorData or indicates it is still generated in the backend
-type ContributorDataResponse struct {
-	Data    map[string]*ContributorData `json:"data"`
-	IsReady bool                        `json:"is_ready"`
-}
