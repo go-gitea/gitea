@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/structs"
 	contributors_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -34,11 +35,11 @@ func Contributors(ctx *context.Context) {
 func ContributorsData(ctx *context.Context) {
 	if contributorStats, err := contributors_service.GetContributorStats(ctx, ctx.Cache, ctx.Repo.Repository, ctx.Repo.CommitID); err != nil {
 		if errors.Is(err, contributors_service.ErrAwaitGeneration) {
-			ctx.Status(216)
+			ctx.JSON(http.StatusOK, &structs.ContributorDataResponse{IsReady: false})
 			return
 		}
 		ctx.ServerError("GetContributorStats", err)
 	} else {
-		ctx.JSON(http.StatusOK, contributorStats)
+		ctx.JSON(http.StatusOK, &structs.ContributorDataResponse{IsReady: true, Data: contributorStats})
 	}
 }
