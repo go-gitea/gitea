@@ -102,16 +102,13 @@ export default {
         let data, response;
         do {
           response = await GET(`${this.repoLink}/activity/contributors/data`);
-          if (response.status !== 200) {
-            this.errorText = response.statusText;
-            break;
-          }
+          if (response.status !== 200) break;
           data = await response.json();
           if (!data.is_ready) {
             await new Promise(resolve => setTimeout(resolve, 1000)); // wait for 1 second before retrying
           }
         } while (!data.is_ready);
-        if (response.status === 200 && data.is_ready) {
+        if (response.status === 200) {
           const {total, ...rest} = data.data;
           this.contributorsStats = rest;
           this.dateFrom = new Date(total.weeks[0].week);
@@ -121,6 +118,8 @@ export default {
           this.sortContributors();
           this.totalStats = total;
           this.errorText = '';
+        } else {
+          this.errorText = response.statusText;
         }
       } catch (err) {
         this.errorText = err.message;
