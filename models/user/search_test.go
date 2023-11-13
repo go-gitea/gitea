@@ -37,7 +37,7 @@ func TestBuildCanSeeUserCondition(t *testing.T) {
 	assert.NotNil(t, cond)
 	ids := getIDs(cond)
 	assert.Len(t, ids, 24)
-	assert.EqualValues(t, []int64([]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 24, 27, 28, 29, 30, 32, 34}), ids)
+	assert.EqualValues(t, []int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 24, 27, 28, 29, 30, 32, 34}, ids)
 
 	// normal user
 	cond = user.BuildCanSeeUserCondition(getUser(t, 5))
