@@ -166,7 +166,7 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 			break
 		} else if branch == setting.Repository.DefaultBranch {
 			hasDefault = true
-		} else if branch == "main" {
+		} else if branch == "master" {
 			hasMaster = true
 		} else if branch == "main" {
 			hasMain = true
@@ -176,7 +176,7 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 		if hasDefault {
 			repo.DefaultBranch = setting.Repository.DefaultBranch
 		} else if hasMaster {
-			repo.DefaultBranch = "main"
+			repo.DefaultBranch = "master"
 		} else if hasMain {
 			repo.DefaultBranch = "main"
 		} else if len(branches) > 0 {

@@ -573,7 +573,7 @@ func checkAndUpdateEmptyRepository(ctx context.Context, m *repo_model.Mirror, gi
 		}
 
 		hasDefault = hasDefault || name == defaultBranchName
-		hasMaster = hasMaster || name == "main"
+		hasMaster = hasMaster || name == "master"
 		hasMain = hasMain || name == "main"
 	}
 
@@ -581,7 +581,7 @@ func checkAndUpdateEmptyRepository(ctx context.Context, m *repo_model.Mirror, gi
 		if hasDefault {
 			m.Repo.DefaultBranch = defaultBranchName
 		} else if hasMaster {
-			m.Repo.DefaultBranch = "main"
+			m.Repo.DefaultBranch = "master"
 		} else if hasMain {
 			m.Repo.DefaultBranch = "main"
 		} else {

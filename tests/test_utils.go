@@ -78,7 +78,7 @@ func InitTest(requireGitea bool) {
 	}
 
 	unittest.InitSettings()
-	setting.Repository.DefaultBranch = "main" // many test code still assume that default branch is called "main"
+	setting.Repository.DefaultBranch = "main"
 	_ = util.RemoveAll(repo_module.LocalCopyPath())
 
 	if err := git.InitFull(context.Background()); err != nil {
