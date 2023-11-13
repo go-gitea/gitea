@@ -426,7 +426,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Remove outdated paragraphs when comparing Gitea Actions to GitHub Actions (#27119)
   * Update brew installation documentation since gitea moved to brew core package (#27070)
   * Actions are no longer experimental, so enable them by default (#27054)
-  * Add v1.20.4 changelog (#26974)
   * Add a documentation note for Windows Service (#26938)
   * Add sparse url in cargo package guide (#26937)
   * Update nginx recommendations (#26924)
