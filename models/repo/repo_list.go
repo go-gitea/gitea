@@ -652,12 +652,12 @@ func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) bu
 				userOrgTeamUnitRepoCond("`repository`.id", user.ID, unitType),
 			)
 		}
-		// 4. Repositories that we directly own
-		cond = cond.Or(builder.Eq{"`repository`.owner_id": user.ID})
-		if !user.IsRestricted {
+		cond = cond.Or(
+			// 4. Repositories that we directly own
+			builder.Eq{"`repository`.owner_id": user.ID},
 			// 5. Be able to see all public repos in private organizations that we are an org_user of
-			cond = cond.Or(userOrgPublicRepoCond(user.ID))
-		}
+			userOrgPublicRepoCond(user.ID),
+		)
 	}
 
 	return cond
