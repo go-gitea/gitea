@@ -11,12 +11,14 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+
+	"github.com/editorconfig/editorconfig-core-go/v2"
 )
 
 // SetEditorconfigIfExists set editor config as render variable
 func SetEditorconfigIfExists(ctx *context.Context) {
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.Data["Editorconfig"] = nil
+		ctx.Data["Editorconfig"] = (*editorconfig.Editorconfig)(nil)
 		return
 	}
 
