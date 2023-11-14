@@ -28,13 +28,13 @@ func StatusFromError(err error) int {
 	switch {
 	case errors.Is(err, ErrNotExist):
 		return http.StatusNotFound
-	case errors.Is(err, ErrAlreadyExist):
+	case errors.Is(err, ErrAlreadyExist) || errors.Is(err, ErrLimitExceeded):
 		return http.StatusConflict
 	case errors.Is(err, ErrPayloadTooLarge):
 		return http.StatusRequestEntityTooLarge
 	case errors.Is(err, ErrInvalidArgument) || errors.Is(err, io.EOF):
 		return http.StatusBadRequest
-	case errors.Is(err, ErrPermissionDenied) || errors.Is(err, ErrLimitExceeded):
+	case errors.Is(err, ErrPermissionDenied):
 		return http.StatusForbidden
 	}
 	return http.StatusInternalServerError
