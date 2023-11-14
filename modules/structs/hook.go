@@ -494,3 +494,30 @@ type PackagePayload struct {
 func (p *PackagePayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }
+
+// HookWorkflowRunAction an action that happens to a workflow run
+type HookWorkflowRunAction string
+
+const (
+	// HookWorkflowRunCompleted completed
+	HookWorkflowRunCompleted HookWorkflowRunAction = "completed"
+	// HookWorkflowRunInProgress in progress
+	HookWorkflowRunInProgress HookWorkflowRunAction = "in_progress"
+	// HookWorkflowRunRequested deleted
+	HookWorkflowRunRequested HookWorkflowRunAction = "requested"
+)
+
+// HookWorkflowRunPayload represents a package payload
+type HookWorkflowRunPayload struct {
+	Action       HookWorkflowRunAction `json:"action"`
+	Repository   *Repository           `json:"repository"`
+	Workflow     *Workflow             `json:"workflow"`
+	WorkflowRun  *WorkflowRun          `json:"workflow_run"`
+	Organization *User                 `json:"organization"`
+	Sender       *User                 `json:"sender"`
+}
+
+// JSONPayload implements Payload
+func (p *HookWorkflowRunPayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
+}

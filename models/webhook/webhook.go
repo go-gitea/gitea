@@ -380,17 +380,6 @@ func CreateWebhook(ctx context.Context, w *Webhook) error {
 	return db.Insert(ctx, w)
 }
 
-// CreateWebhooks creates multiple web hooks
-func CreateWebhooks(ctx context.Context, ws []*Webhook) error {
-	// xorm returns err "no element on slice when insert" for empty slices.
-	if len(ws) == 0 {
-		return nil
-	}
-	for i := 0; i < len(ws); i++ {
-		ws[i].Type = strings.TrimSpace(ws[i].Type)
-	}
-	return db.Insert(ctx, ws)
-}
 
 // getWebhook uses argument bean as query condition,
 // ID must be specified and do not assign unnecessary fields.
@@ -427,48 +416,6 @@ func GetWebhookByOwnerID(ctx context.Context, ownerID, id int64) (*Webhook, erro
 	})
 }
 
-// ListWebhookOptions are options to filter webhooks on ListWebhooksByOpts
-type ListWebhookOptions struct {
-	db.ListOptions
-	RepoID   int64
-	OwnerID  int64
-	IsActive util.OptionalBool
-}
-
-func (opts *ListWebhookOptions) toCond() builder.Cond {
-	cond := builder.NewCond()
-	if opts.RepoID != 0 {
-		cond = cond.And(builder.Eq{"webhook.repo_id": opts.RepoID})
-	}
-	if opts.OwnerID != 0 {
-		cond = cond.And(builder.Eq{"webhook.owner_id": opts.OwnerID})
-	}
-	if !opts.IsActive.IsNone() {
-		cond = cond.And(builder.Eq{"webhook.is_active": opts.IsActive.IsTrue()})
-	}
-	return cond
-}
-
-// ListWebhooksByOpts return webhooks based on options
-func ListWebhooksByOpts(ctx context.Context, opts *ListWebhookOptions) ([]*Webhook, error) {
-	sess := db.GetEngine(ctx).Where(opts.toCond())
-
-	if opts.Page != 0 {
-		sess = db.SetSessionPagination(sess, opts)
-		webhooks := make([]*Webhook, 0, opts.PageSize)
-		err := sess.Find(&webhooks)
-		return webhooks, err
-	}
-
-	webhooks := make([]*Webhook, 0, 10)
-	err := sess.Find(&webhooks)
-	return webhooks, err
-}
-
-// CountWebhooksByOpts count webhooks based on options and ignore pagination
-func CountWebhooksByOpts(ctx context.Context, opts *ListWebhookOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toCond()).Count(&Webhook{})
-}
 
 // UpdateWebhook updates information of webhook.
 func UpdateWebhook(ctx context.Context, w *Webhook) error {
