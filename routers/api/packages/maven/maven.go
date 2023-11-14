@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	maven_module "code.gitea.io/gitea/modules/packages/maven"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 
@@ -48,7 +47,8 @@ var (
 	illegalCharacters    = regexp.MustCompile(`[\\/:"<>|?\*]`)
 )
 
-func apiError(ctx *context.Context, status int, obj any) {
+func apiError(ctx *context.Context, obj any, statuses ...int) {
+	status := helper.FormResponseCode(obj, statuses...)
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		// The maven client does not present the error message to the user. Log it for users with access to server logs.
 		if status == http.StatusBadRequest || status == http.StatusInternalServerError {
@@ -72,7 +72,7 @@ func ProvidePackageFileHeader(ctx *context.Context) {
 func handlePackageFile(ctx *context.Context, serveContent bool) {
 	params, err := extractPathParameters(ctx)
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		apiError(ctx, err, http.StatusBadRequest)
 		return
 	}
 
@@ -89,17 +89,17 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 	packageName := params.GroupID + "-" + params.ArtifactID
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeMaven, packageName)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, packages_model.ErrPackageNotExist)
+		apiError(ctx, packages_model.ErrPackageNotExist, http.StatusNotFound)
 		return
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -110,7 +110,7 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 
 	xmlMetadata, err := xml.Marshal(createMetadataResponse(pds))
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	xmlMetadataWithHeader := append([]byte(xml.Header), xmlMetadata...)
@@ -152,11 +152,7 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeMaven, packageName, params.Version)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -169,17 +165,13 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 
 	pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, filename, packages_model.EmptyFileKey)
 	if err != nil {
-		if err == packages_model.ErrPackageFileNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	pb, err := packages_model.GetBlobByID(ctx, pf.BlobID)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -218,7 +210,7 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 
 	s, u, _, err := packages_service.GetPackageBlobStream(ctx, pf, pb)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -231,7 +223,7 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 func UploadPackageFile(ctx *context.Context) {
 	params, err := extractPathParameters(ctx)
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		apiError(ctx, err, http.StatusBadRequest)
 		return
 	}
 
@@ -247,7 +239,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 	buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	defer buf.Close()
@@ -269,31 +261,23 @@ func UploadPackageFile(ctx *context.Context) {
 	if isChecksumExtension(ext) {
 		pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version)
 		if err != nil {
-			if err == packages_model.ErrPackageNotExist {
-				apiError(ctx, http.StatusNotFound, err)
-				return
-			}
-			apiError(ctx, http.StatusInternalServerError, err)
+			apiError(ctx, err)
 			return
 		}
 		pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, params.Filename[:len(params.Filename)-len(ext)], packages_model.EmptyFileKey)
 		if err != nil {
-			if err == packages_model.ErrPackageFileNotExist {
-				apiError(ctx, http.StatusNotFound, err)
-				return
-			}
-			apiError(ctx, http.StatusInternalServerError, err)
+			apiError(ctx, err)
 			return
 		}
 		pb, err := packages_model.GetBlobByID(ctx, pf.BlobID)
 		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
+			apiError(ctx, err)
 			return
 		}
 
 		hash, err := io.ReadAll(buf)
 		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
+			apiError(ctx, err)
 			return
 		}
 
@@ -301,7 +285,7 @@ func UploadPackageFile(ctx *context.Context) {
 			(ext == extensionSHA1 && pb.HashSHA1 != string(hash)) ||
 			(ext == extensionSHA256 && pb.HashSHA256 != string(hash)) ||
 			(ext == extensionSHA512 && pb.HashSHA512 != string(hash)) {
-			apiError(ctx, http.StatusBadRequest, "hash mismatch")
+			apiError(ctx, "hash mismatch", http.StatusBadRequest)
 			return
 		}
 
@@ -326,32 +310,32 @@ func UploadPackageFile(ctx *context.Context) {
 		var err error
 		pvci.Metadata, err = maven_module.ParsePackageMetaData(buf)
 		if err != nil {
-			apiError(ctx, http.StatusBadRequest, err)
+			apiError(ctx, err, http.StatusBadRequest)
 			return
 		}
 
 		if pvci.Metadata != nil {
 			pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version)
 			if err != nil && err != packages_model.ErrPackageNotExist {
-				apiError(ctx, http.StatusInternalServerError, err)
+				apiError(ctx, err)
 				return
 			}
 			if pv != nil {
 				raw, err := json.Marshal(pvci.Metadata)
 				if err != nil {
-					apiError(ctx, http.StatusInternalServerError, err)
+					apiError(ctx, err)
 					return
 				}
 				pv.MetadataJSON = string(raw)
 				if err := packages_model.UpdateVersion(ctx, pv); err != nil {
-					apiError(ctx, http.StatusInternalServerError, err)
+					apiError(ctx, err)
 					return
 				}
 			}
 		}
 
 		if _, err := buf.Seek(0, io.SeekStart); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
+			apiError(ctx, err)
 			return
 		}
 	}
@@ -362,14 +346,7 @@ func UploadPackageFile(ctx *context.Context) {
 		pfci,
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, util.ErrAlreadyExist):
-			apiError(ctx, http.StatusConflict, err)
-		case errors.Is(err, util.ErrInvalidArgument):
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 

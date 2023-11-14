@@ -4,7 +4,6 @@
 package vagrant
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,14 +16,14 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	vagrant_module "code.gitea.io/gitea/modules/packages/vagrant"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 
 	"github.com/hashicorp/go-version"
 )
 
-func apiError(ctx *context.Context, status int, obj any) {
+func apiError(ctx *context.Context, obj any, statuses ...int) {
+	status := helper.FormResponseCode(obj, statuses...)
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.JSON(status, struct {
 			Errors []string `json:"errors"`
@@ -38,7 +37,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 
 func CheckAuthenticate(ctx *context.Context) {
 	if ctx.Doer == nil {
-		apiError(ctx, http.StatusUnauthorized, "Invalid access token")
+		apiError(ctx, "Invalid access token", http.StatusUnauthorized)
 		return
 	}
 
@@ -48,11 +47,11 @@ func CheckAuthenticate(ctx *context.Context) {
 func CheckBoxAvailable(ctx *context.Context) {
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeVagrant, ctx.Params("name"))
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, err)
+		apiError(ctx, nil, http.StatusNotFound)
 		return
 	}
 
@@ -105,17 +104,17 @@ func packageDescriptorToMetadata(baseURL string, pd *packages_model.PackageDescr
 func EnumeratePackageVersions(ctx *context.Context) {
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeVagrant, ctx.Params("name"))
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, err)
+		apiError(ctx, nil, http.StatusNotFound)
 		return
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -142,18 +141,18 @@ func UploadPackageFile(ctx *context.Context) {
 	boxVersion := ctx.Params("version")
 	_, err := version.NewSemver(boxVersion)
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		apiError(ctx, err, http.StatusBadRequest)
 		return
 	}
 	boxProvider := ctx.Params("provider")
 	if !strings.HasSuffix(boxProvider, ".box") {
-		apiError(ctx, http.StatusBadRequest, err)
+		apiError(ctx, err, http.StatusBadRequest)
 		return
 	}
 
 	upload, needsClose, err := ctx.UploadStream()
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if needsClose {
@@ -162,19 +161,19 @@ func UploadPackageFile(ctx *context.Context) {
 
 	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	defer buf.Close()
 
 	metadata, err := vagrant_module.ParseMetadataFromBox(buf)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -204,14 +203,7 @@ func UploadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, util.ErrAlreadyExist):
-			apiError(ctx, http.StatusConflict, err)
-		case errors.Is(err, util.ErrInvalidArgument):
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -232,11 +224,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 

@@ -4,7 +4,6 @@
 package composer
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -26,7 +25,8 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-func apiError(ctx *context.Context, status int, obj any) {
+func apiError(ctx *context.Context, obj any, statuses ...int) {
+	status := helper.FormResponseCode(obj, statuses...)
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		type Error struct {
 			Status  int    `json:"status"`
@@ -77,7 +77,7 @@ func SearchPackages(ctx *context.Context) {
 
 	pvs, total, err := packages_model.SearchLatestVersions(ctx, opts)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -85,7 +85,7 @@ func SearchPackages(ctx *context.Context) {
 	if len(pvs) == paginator.PageSize {
 		u, err := url.Parse(setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/composer/search.json")
 		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
+			apiError(ctx, err)
 			return
 		}
 		q := u.Query()
@@ -102,7 +102,7 @@ func SearchPackages(ctx *context.Context) {
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -116,7 +116,7 @@ func SearchPackages(ctx *context.Context) {
 func EnumeratePackages(ctx *context.Context) {
 	ps, err := packages_model.GetPackagesByType(ctx, ctx.Package.Owner.ID, packages_model.TypeComposer)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -138,17 +138,17 @@ func PackageMetadata(ctx *context.Context) {
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeComposer, vendorName+"/"+projectName)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, packages_model.ErrPackageNotExist)
+		apiError(ctx, packages_model.ErrPackageNotExist)
 		return
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -175,11 +175,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -190,30 +186,26 @@ func DownloadPackageFile(ctx *context.Context) {
 func UploadPackage(ctx *context.Context) {
 	buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	defer buf.Close()
 
 	cp, err := composer_module.ParsePackage(buf, buf.Size())
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			apiError(ctx, http.StatusBadRequest, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	if cp.Version == "" {
 		v, err := version.NewVersion(ctx.FormTrim("version"))
 		if err != nil {
-			apiError(ctx, http.StatusBadRequest, composer_module.ErrInvalidVersion)
+			apiError(ctx, composer_module.ErrInvalidVersion)
 			return
 		}
 		cp.Version = v.String()
@@ -245,14 +237,7 @@ func UploadPackage(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, util.ErrAlreadyExist):
-			apiError(ctx, http.StatusConflict, err)
-		case errors.Is(err, util.ErrInvalidArgument):
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 

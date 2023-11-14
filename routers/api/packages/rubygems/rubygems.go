@@ -6,7 +6,6 @@ package rubygems
 import (
 	"compress/gzip"
 	"compress/zlib"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -21,7 +20,8 @@ import (
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
-func apiError(ctx *context.Context, status int, obj any) {
+func apiError(ctx *context.Context, obj any, statuses ...int) {
+	status := helper.FormResponseCode(obj, statuses...)
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
@@ -31,7 +31,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 func EnumeratePackages(ctx *context.Context) {
 	packages, err := packages_model.GetVersionsByPackageType(ctx, ctx.Package.Owner.ID, packages_model.TypeRubyGems)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -46,7 +46,7 @@ func EnumeratePackagesLatest(ctx *context.Context) {
 		IsInternal: util.OptionalBoolFalse,
 	})
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -61,7 +61,7 @@ func EnumeratePackagesPreRelease(ctx *context.Context) {
 func enumeratePackages(ctx *context.Context, filename string, pvs []*packages_model.PackageVersion) {
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -96,24 +96,24 @@ func ServePackageSpecification(ctx *context.Context) {
 	filename := ctx.Params("filename")
 
 	if !strings.HasSuffix(filename, ".gemspec.rz") {
-		apiError(ctx, http.StatusNotImplemented, nil)
+		apiError(ctx, nil, http.StatusNotImplemented)
 		return
 	}
 
 	pvs, err := getVersionsByFilename(ctx, filename[:len(filename)-10]+"gem")
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	if len(pvs) != 1 {
-		apiError(ctx, http.StatusNotFound, nil)
+		apiError(ctx, nil, http.StatusNotFound)
 		return
 	}
 
 	pd, err := packages_model.GetPackageDescriptor(ctx, pvs[0])
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -166,12 +166,12 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	pvs, err := getVersionsByFilename(ctx, filename)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	if len(pvs) != 1 {
-		apiError(ctx, http.StatusNotFound, nil)
+		apiError(ctx, nil, http.StatusNotFound)
 		return
 	}
 
@@ -183,11 +183,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageFileNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -198,7 +194,7 @@ func DownloadPackageFile(ctx *context.Context) {
 func UploadPackageFile(ctx *context.Context) {
 	upload, close, err := ctx.UploadStream()
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		apiError(ctx, err)
 		return
 	}
 	if close {
@@ -207,22 +203,18 @@ func UploadPackageFile(ctx *context.Context) {
 
 	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	defer buf.Close()
 
 	rp, err := rubygems_module.ParsePackageMetaData(buf)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			apiError(ctx, http.StatusBadRequest, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -256,14 +248,7 @@ func UploadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, util.ErrAlreadyExist):
-			apiError(ctx, http.StatusConflict, err)
-		case errors.Is(err, util.ErrInvalidArgument):
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -274,7 +259,7 @@ func UploadPackageFile(ctx *context.Context) {
 func DeletePackage(ctx *context.Context) {
 	// Go populates the form only for POST, PUT and PATCH requests
 	if err := ctx.Req.ParseMultipartForm(32 << 20); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	packageName := ctx.FormString("gem_name")
@@ -291,11 +276,7 @@ func DeletePackage(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 	}
 }
 

@@ -4,7 +4,6 @@
 package generic
 
 import (
-	"errors"
 	"net/http"
 	"regexp"
 	"strings"
@@ -23,7 +22,8 @@ var (
 	filenameRegex    = packageNameRegex
 )
 
-func apiError(ctx *context.Context, status int, obj any) {
+func apiError(ctx *context.Context, obj any, statuses ...int) {
+	status := helper.FormResponseCode(obj, statuses...)
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
@@ -44,11 +44,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -62,19 +58,19 @@ func UploadPackage(ctx *context.Context) {
 	filename := ctx.Params("filename")
 
 	if !packageNameRegex.MatchString(packageName) || !filenameRegex.MatchString(filename) {
-		apiError(ctx, http.StatusBadRequest, errors.New("Invalid package name or filename"))
+		apiError(ctx, util.NewInvalidArgumentErrorf("Invalid package name or filename"))
 		return
 	}
 
 	packageVersion := ctx.Params("packageversion")
 	if packageVersion != strings.TrimSpace(packageVersion) {
-		apiError(ctx, http.StatusBadRequest, errors.New("Invalid package version"))
+		apiError(ctx, util.NewInvalidArgumentErrorf("Invalid package version"))
 		return
 	}
 
 	upload, close, err := ctx.UploadStream()
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if close {
@@ -84,7 +80,7 @@ func UploadPackage(ctx *context.Context) {
 	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
 		log.Error("Error creating hashed buffer: %v", err)
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	defer buf.Close()
@@ -110,14 +106,7 @@ func UploadPackage(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, util.ErrAlreadyExist):
-			apiError(ctx, http.StatusConflict, err)
-		case errors.Is(err, util.ErrInvalidArgument):
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -137,11 +126,7 @@ func DeletePackage(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -164,28 +149,24 @@ func DeletePackageFile(ctx *context.Context) {
 		return pv, pf, nil
 	}()
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	pfs, err := packages_model.GetFilesByVersionID(ctx, pv.ID)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	if len(pfs) == 1 {
 		if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pv); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
+			apiError(ctx, err)
 			return
 		}
 	} else {
 		if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
+			apiError(ctx, err)
 			return
 		}
 	}

@@ -27,7 +27,8 @@ import (
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
-func apiError(ctx *context.Context, status int, obj any) {
+func apiError(ctx *context.Context, obj any, statuses ...int) {
+	status := helper.FormResponseCode(obj, statuses...)
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.JSON(status, map[string]string{
 			"Message": message,
@@ -126,13 +127,13 @@ func SearchServiceV2(ctx *context.Context) {
 		Paginator:  paginator,
 	})
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -175,7 +176,7 @@ func SearchServiceV2Count(ctx *context.Context) {
 		IsInternal: util.OptionalBoolFalse,
 	})
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -194,13 +195,13 @@ func SearchServiceV3(ctx *context.Context) {
 		),
 	})
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -219,17 +220,17 @@ func RegistrationIndex(ctx *context.Context) {
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, err)
+		apiError(ctx, err, http.StatusNotFound)
 		return
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -248,17 +249,13 @@ func RegistrationLeafV2(ctx *context.Context) {
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName, packageVersion)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -277,17 +274,13 @@ func RegistrationLeafV3(ctx *context.Context) {
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName, packageVersion)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -317,13 +310,13 @@ func EnumeratePackageVersionsV2(ctx *context.Context) {
 		Paginator:  paginator,
 	})
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -361,7 +354,7 @@ func EnumeratePackageVersionsV2Count(ctx *context.Context) {
 		IsInternal: util.OptionalBoolFalse,
 	})
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -374,11 +367,11 @@ func EnumeratePackageVersionsV3(ctx *context.Context) {
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, err)
+		apiError(ctx, err, http.StatusNotFound)
 		return
 	}
 
@@ -406,11 +399,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -453,14 +442,7 @@ func UploadPackage(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, util.ErrAlreadyExist):
-			apiError(ctx, http.StatusConflict, err)
-		case errors.Is(err, util.ErrInvalidArgument):
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -482,17 +464,13 @@ func UploadSymbolPackage(ctx *context.Context) {
 
 	pdbs, err := nuget_module.ExtractPortablePdb(buf, buf.Size())
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			apiError(ctx, http.StatusBadRequest, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 	defer pdbs.Close()
 
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -516,16 +494,7 @@ func UploadSymbolPackage(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		switch err {
-		case packages_model.ErrPackageNotExist:
-			apiError(ctx, http.StatusNotFound, err)
-		case packages_model.ErrDuplicatePackageFile:
-			apiError(ctx, http.StatusConflict, err)
-		case packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -547,14 +516,7 @@ func UploadSymbolPackage(ctx *context.Context) {
 			},
 		)
 		if err != nil {
-			switch err {
-			case packages_model.ErrDuplicatePackageFile:
-				apiError(ctx, http.StatusConflict, err)
-			case packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-				apiError(ctx, http.StatusForbidden, err)
-			default:
-				apiError(ctx, http.StatusInternalServerError, err)
-			}
+			apiError(ctx, err)
 			return
 		}
 	}
@@ -567,7 +529,7 @@ func processUploadedFile(ctx *context.Context, expectedType nuget_module.Package
 
 	upload, close, err := ctx.UploadStream()
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		apiError(ctx, err, http.StatusBadRequest)
 		return nil, nil, closables
 	}
 
@@ -577,7 +539,7 @@ func processUploadedFile(ctx *context.Context, expectedType nuget_module.Package
 
 	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return nil, nil, closables
 	}
 	closables = append(closables, buf)
@@ -585,18 +547,18 @@ func processUploadedFile(ctx *context.Context, expectedType nuget_module.Package
 	np, err := nuget_module.ParsePackageMetaData(buf, buf.Size())
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			apiError(ctx, http.StatusBadRequest, err)
+			apiError(ctx, err, http.StatusBadRequest)
 		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
+			apiError(ctx, err)
 		}
 		return nil, nil, closables
 	}
 	if np.PackageType != expectedType {
-		apiError(ctx, http.StatusBadRequest, errors.New("unexpected package type"))
+		apiError(ctx, errors.New("unexpected package type"), http.StatusBadRequest)
 		return nil, nil, closables
 	}
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return nil, nil, closables
 	}
 	return np, buf, closables
@@ -609,7 +571,7 @@ func DownloadSymbolFile(ctx *context.Context) {
 	filename2 := ctx.Params("filename2")
 
 	if filename != filename2 {
-		apiError(ctx, http.StatusBadRequest, nil)
+		apiError(ctx, nil, http.StatusBadRequest)
 		return
 	}
 
@@ -622,21 +584,17 @@ func DownloadSymbolFile(ctx *context.Context) {
 		},
 	})
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if len(pfs) != 1 {
-		apiError(ctx, http.StatusNotFound, nil)
+		apiError(ctx, nil, http.StatusNotFound)
 		return
 	}
 
 	s, u, pf, err := packages_service.GetPackageFileStream(ctx, pfs[0])
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -660,11 +618,7 @@ func DeletePackage(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 	}
 
 	ctx.Status(http.StatusNoContent)

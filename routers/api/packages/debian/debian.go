@@ -5,7 +5,6 @@ package debian
 
 import (
 	stdctx "context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,14 +15,14 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	debian_module "code.gitea.io/gitea/modules/packages/debian"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
 	debian_service "code.gitea.io/gitea/services/packages/debian"
 )
 
-func apiError(ctx *context.Context, status int, obj any) {
+func apiError(ctx *context.Context, obj any, statuses ...int) {
+	status := helper.FormResponseCode(obj, statuses...)
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
@@ -32,7 +31,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 func GetRepositoryKey(ctx *context.Context) {
 	_, pub, err := debian_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -47,7 +46,7 @@ func GetRepositoryKey(ctx *context.Context) {
 func GetRepositoryFile(ctx *context.Context) {
 	pv, err := debian_service.GetOrCreateRepositoryVersion(ctx, ctx.Package.Owner.ID)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -68,11 +67,7 @@ func GetRepositoryFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -83,7 +78,7 @@ func GetRepositoryFile(ctx *context.Context) {
 func GetRepositoryFileByHash(ctx *context.Context) {
 	pv, err := debian_service.GetOrCreateRepositoryVersion(ctx, ctx.Package.Owner.ID)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -98,21 +93,17 @@ func GetRepositoryFileByHash(ctx *context.Context) {
 		HashAlgorithm: algorithm,
 	})
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if len(pfs) != 1 {
-		apiError(ctx, http.StatusNotFound, nil)
+		apiError(ctx, nil, http.StatusNotFound)
 		return
 	}
 
 	s, u, pf, err := packages_service.GetPackageFileStream(ctx, pfs[0])
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -123,13 +114,13 @@ func UploadPackageFile(ctx *context.Context) {
 	distribution := strings.TrimSpace(ctx.Params("distribution"))
 	component := strings.TrimSpace(ctx.Params("component"))
 	if distribution == "" || component == "" {
-		apiError(ctx, http.StatusBadRequest, "invalid distribution or component")
+		apiError(ctx, "invalid distribution or component", http.StatusBadRequest)
 		return
 	}
 
 	upload, close, err := ctx.UploadStream()
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if close {
@@ -138,23 +129,19 @@ func UploadPackageFile(ctx *context.Context) {
 
 	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	defer buf.Close()
 
 	pck, err := debian_module.ParsePackage(buf)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			apiError(ctx, http.StatusBadRequest, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -187,19 +174,12 @@ func UploadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, util.ErrAlreadyExist):
-			apiError(ctx, http.StatusConflict, err)
-		case errors.Is(err, util.ErrInvalidArgument):
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	if err := debian_service.BuildSpecificRepositoryFiles(ctx, ctx.Package.Owner.ID, distribution, component, pck.Architecture); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -224,11 +204,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -288,11 +264,7 @@ func DeletePackageFile(ctx *context.Context) {
 		return nil
 	})
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -301,7 +273,7 @@ func DeletePackageFile(ctx *context.Context) {
 	}
 
 	if err := debian_service.BuildSpecificRepositoryFiles(ctx, ctx.Package.Owner.ID, distribution, component, architecture); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 

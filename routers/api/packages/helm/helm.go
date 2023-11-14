@@ -4,7 +4,6 @@
 package helm
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -26,7 +25,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func apiError(ctx *context.Context, status int, obj any) {
+func apiError(ctx *context.Context, obj any, statuses ...int) {
+	status := helper.FormResponseCode(obj, statuses...)
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		type Error struct {
 			Error string `json:"error"`
@@ -45,7 +45,7 @@ func Index(ctx *context.Context) {
 		IsInternal: util.OptionalBoolFalse,
 	})
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -74,7 +74,7 @@ func Index(ctx *context.Context) {
 	for _, pv := range pvs {
 		metadata := &helm_module.Metadata{}
 		if err := json.Unmarshal([]byte(pv.MetadataJSON), &metadata); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
+			apiError(ctx, err)
 			return
 		}
 
@@ -113,11 +113,11 @@ func DownloadPackageFile(ctx *context.Context) {
 		IsInternal:      util.OptionalBoolFalse,
 	})
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if len(pvs) != 1 {
-		apiError(ctx, http.StatusNotFound, nil)
+		apiError(ctx, nil, http.StatusNotFound)
 		return
 	}
 
@@ -129,11 +129,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageFileNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -144,7 +140,7 @@ func DownloadPackageFile(ctx *context.Context) {
 func UploadPackage(ctx *context.Context) {
 	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if needToClose {
@@ -153,23 +149,19 @@ func UploadPackage(ctx *context.Context) {
 
 	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	defer buf.Close()
 
 	metadata, err := helm_module.ParseChartArchive(buf)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			apiError(ctx, http.StatusBadRequest, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -197,14 +189,7 @@ func UploadPackage(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, util.ErrAlreadyExist):
-			apiError(ctx, http.StatusConflict, err)
-		case errors.Is(err, util.ErrInvalidArgument):
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 

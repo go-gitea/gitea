@@ -27,7 +27,7 @@ func SearchRecipes(ctx *context.Context) {
 
 	results, err := conan_model.SearchRecipes(ctx, opts)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -76,26 +76,18 @@ func searchPackages(ctx *context.Context, searchAllRevisions bool) {
 	if !searchAllRevisions && rref.Revision == "" {
 		lastRevision, err := conan_model.GetLastRecipeRevision(ctx, ctx.Package.Owner.ID, rref)
 		if err != nil {
-			if err == conan_model.ErrRecipeReferenceNotExist {
-				apiError(ctx, http.StatusNotFound, err)
-			} else {
-				apiError(ctx, http.StatusInternalServerError, err)
-			}
+			apiError(ctx, err)
 			return
 		}
 		rref = rref.WithRevision(lastRevision.Value)
 	} else {
 		has, err := conan_model.RecipeExists(ctx, ctx.Package.Owner.ID, rref)
 		if err != nil {
-			if err == conan_model.ErrRecipeReferenceNotExist {
-				apiError(ctx, http.StatusNotFound, err)
-			} else {
-				apiError(ctx, http.StatusInternalServerError, err)
-			}
+			apiError(ctx, err)
 			return
 		}
 		if !has {
-			apiError(ctx, http.StatusNotFound, nil)
+			apiError(ctx, nil, http.StatusNotFound)
 			return
 		}
 	}
@@ -105,7 +97,7 @@ func searchPackages(ctx *context.Context, searchAllRevisions bool) {
 		var err error
 		recipeRevisions, err = conan_model.GetRecipeRevisions(ctx, ctx.Package.Owner.ID, rref)
 		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
+			apiError(ctx, err)
 			return
 		}
 	}
@@ -119,11 +111,7 @@ func searchPackages(ctx *context.Context, searchAllRevisions bool) {
 		}
 		packageReferences, err := conan_model.GetPackageReferences(ctx, ctx.Package.Owner.ID, currentRef)
 		if err != nil {
-			if err == conan_model.ErrRecipeReferenceNotExist {
-				apiError(ctx, http.StatusNotFound, err)
-			} else {
-				apiError(ctx, http.StatusInternalServerError, err)
-			}
+			apiError(ctx, err)
 			return
 		}
 		for _, packageReference := range packageReferences {
@@ -133,26 +121,18 @@ func searchPackages(ctx *context.Context, searchAllRevisions bool) {
 			pref, _ := conan_module.NewPackageReference(currentRef, packageReference.Value, "")
 			lastPackageRevision, err := conan_model.GetLastPackageRevision(ctx, ctx.Package.Owner.ID, pref)
 			if err != nil {
-				if err == conan_model.ErrPackageReferenceNotExist {
-					apiError(ctx, http.StatusNotFound, err)
-				} else {
-					apiError(ctx, http.StatusInternalServerError, err)
-				}
+				apiError(ctx, err)
 				return
 			}
 			pref = pref.WithRevision(lastPackageRevision.Value)
 			infoRaw, err := conan_model.GetPackageInfo(ctx, ctx.Package.Owner.ID, pref)
 			if err != nil {
-				if err == conan_model.ErrPackageReferenceNotExist {
-					apiError(ctx, http.StatusNotFound, err)
-				} else {
-					apiError(ctx, http.StatusInternalServerError, err)
-				}
+				apiError(ctx, err)
 				return
 			}
 			var info *conan_module.Conaninfo
 			if err := json.Unmarshal([]byte(infoRaw), &info); err != nil {
-				apiError(ctx, http.StatusInternalServerError, err)
+				apiError(ctx, err)
 				return
 			}
 			result[pref.Reference] = info

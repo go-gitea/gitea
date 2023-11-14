@@ -4,7 +4,6 @@
 package pub
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -20,7 +19,6 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	pub_module "code.gitea.io/gitea/modules/packages/pub"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
@@ -34,7 +32,8 @@ func jsonResponse(ctx *context.Context, status int, obj any) {
 	}
 }
 
-func apiError(ctx *context.Context, status int, obj any) {
+func apiError(ctx *context.Context, obj any, statuses ...int) {
+	status := helper.FormResponseCode(obj, statuses...)
 	type Error struct {
 		Code    string `json:"code"`
 		Message string `json:"message"`
@@ -85,17 +84,17 @@ func EnumeratePackageVersions(ctx *context.Context) {
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypePub, packageName)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, err)
+		apiError(ctx, err, http.StatusNotFound)
 		return
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -124,17 +123,13 @@ func PackageVersionMetadata(ctx *context.Context) {
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypePub, packageName, packageVersion)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -161,30 +156,26 @@ func RequestUpload(ctx *context.Context) {
 func UploadPackageFile(ctx *context.Context) {
 	file, _, err := ctx.Req.FormFile("file")
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		apiError(ctx, err, http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
 	buf, err := packages_module.CreateHashedBufferFromReader(file)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	defer buf.Close()
 
 	pck, err := pub_module.ParsePackage(buf)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			apiError(ctx, http.StatusBadRequest, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -211,14 +202,7 @@ func UploadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, util.ErrAlreadyExist):
-			apiError(ctx, http.StatusConflict, err)
-		case errors.Is(err, util.ErrInvalidArgument):
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -233,11 +217,7 @@ func FinalizePackage(ctx *context.Context) {
 
 	_, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypePub, packageName, packageVersion)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -258,17 +238,13 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypePub, packageName, packageVersion)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -276,7 +252,7 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	s, u, _, err := packages_service.GetPackageFileStream(ctx, pf)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 

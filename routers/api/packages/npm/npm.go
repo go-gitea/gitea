@@ -6,7 +6,6 @@ package npm
 import (
 	"bytes"
 	std_ctx "context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -28,10 +27,11 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-// errInvalidTagName indicates an invalid tag name
-var errInvalidTagName = errors.New("The tag name is invalid")
+// ErrInvalidTagName indicates an invalid tag name
+var ErrInvalidTagName = util.NewInvalidArgumentErrorf("The tag name is invalid")
 
-func apiError(ctx *context.Context, status int, obj any) {
+func apiError(ctx *context.Context, obj any, statuses ...int) {
+	status := helper.FormResponseCode(obj, statuses...)
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.JSON(status, map[string]string{
 			"error": message,
@@ -56,17 +56,17 @@ func PackageMetadata(ctx *context.Context) {
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, err)
+		apiError(ctx, err, http.StatusNotFound)
 		return
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -97,11 +97,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -123,11 +119,11 @@ func DownloadPackageFileByName(ctx *context.Context) {
 		IsInternal:      util.OptionalBoolFalse,
 	})
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if len(pvs) != 1 {
-		apiError(ctx, http.StatusNotFound, nil)
+		apiError(ctx, nil, http.StatusNotFound)
 		return
 	}
 
@@ -139,11 +135,7 @@ func DownloadPackageFileByName(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageFileNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -154,11 +146,7 @@ func DownloadPackageFileByName(ctx *context.Context) {
 func UploadPackage(ctx *context.Context) {
 	npmPackage, err := npm_module.ParsePackage(ctx.Req.Body)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			apiError(ctx, http.StatusBadRequest, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -169,7 +157,7 @@ func UploadPackage(ctx *context.Context) {
 		if !canWrite {
 			perms, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 			if err != nil {
-				apiError(ctx, http.StatusInternalServerError, err)
+				apiError(ctx, err)
 				return
 			}
 
@@ -177,14 +165,14 @@ func UploadPackage(ctx *context.Context) {
 		}
 
 		if !canWrite {
-			apiError(ctx, http.StatusForbidden, "no permission to upload this package")
+			apiError(ctx, "no permission to upload this package", http.StatusForbidden)
 			return
 		}
 	}
 
 	buf, err := packages_module.CreateHashedBufferFromReader(bytes.NewReader(npmPackage.Data))
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	defer buf.Close()
@@ -212,31 +200,20 @@ func UploadPackage(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, util.ErrAlreadyExist):
-			apiError(ctx, http.StatusConflict, err)
-		case errors.Is(err, util.ErrInvalidArgument):
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	for _, tag := range npmPackage.DistTags {
 		if err := setPackageTag(ctx, tag, pv, false); err != nil {
-			if err == errInvalidTagName {
-				apiError(ctx, http.StatusBadRequest, err)
-				return
-			}
-			apiError(ctx, http.StatusInternalServerError, err)
+			apiError(ctx, err)
 			return
 		}
 	}
 
 	if repo != nil {
 		if err := packages_model.SetRepositoryLink(ctx, pv.PackageID, repo.ID); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
+			apiError(ctx, err)
 			return
 		}
 	}
@@ -266,11 +243,7 @@ func DeletePackageVersion(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -283,18 +256,18 @@ func DeletePackage(ctx *context.Context) {
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, err)
+		apiError(ctx, err, http.StatusNotFound)
 		return
 	}
 
 	for _, pv := range pvs {
 		if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pv); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
+			apiError(ctx, err)
 			return
 		}
 	}
@@ -308,7 +281,7 @@ func ListPackageTags(ctx *context.Context) {
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -316,7 +289,7 @@ func ListPackageTags(ctx *context.Context) {
 	for _, pv := range pvs {
 		pvps, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeVersion, pv.ID, npm_module.TagProperty)
 		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
+			apiError(ctx, err)
 			return
 		}
 		for _, pvp := range pvps {
@@ -333,27 +306,19 @@ func AddPackageTag(ctx *context.Context) {
 
 	body, err := io.ReadAll(ctx.Req.Body)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	version := strings.Trim(string(body), "\"") // is as "version" in the body
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName, version)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	if err := setPackageTag(ctx, ctx.Params("tag"), pv, false); err != nil {
-		if err == errInvalidTagName {
-			apiError(ctx, http.StatusBadRequest, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 }
@@ -364,17 +329,13 @@ func DeletePackageTag(ctx *context.Context) {
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	if len(pvs) != 0 {
 		if err := setPackageTag(ctx, ctx.Params("tag"), pvs[0], true); err != nil {
-			if err == errInvalidTagName {
-				apiError(ctx, http.StatusBadRequest, err)
-				return
-			}
-			apiError(ctx, http.StatusInternalServerError, err)
+			apiError(ctx, err)
 			return
 		}
 	}
@@ -382,11 +343,11 @@ func DeletePackageTag(ctx *context.Context) {
 
 func setPackageTag(ctx std_ctx.Context, tag string, pv *packages_model.PackageVersion, deleteOnly bool) error {
 	if tag == "" {
-		return errInvalidTagName
+		return ErrInvalidTagName
 	}
 	_, err := version.NewVersion(tag)
 	if err == nil {
-		return errInvalidTagName
+		return ErrInvalidTagName
 	}
 
 	return db.WithTx(ctx, func(ctx std_ctx.Context) error {
@@ -442,13 +403,13 @@ func PackageSearch(ctx *context.Context) {
 		),
 	})
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 

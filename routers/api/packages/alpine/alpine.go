@@ -7,7 +7,6 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,7 +23,8 @@ import (
 	alpine_service "code.gitea.io/gitea/services/packages/alpine"
 )
 
-func apiError(ctx *context.Context, status int, obj any) {
+func apiError(ctx *context.Context, obj any, statuses ...int) {
+	status := helper.FormResponseCode(obj, statuses...)
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
@@ -33,25 +33,25 @@ func apiError(ctx *context.Context, status int, obj any) {
 func GetRepositoryKey(ctx *context.Context) {
 	_, pub, err := alpine_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	pubPem, _ := pem.Decode([]byte(pub))
 	if pubPem == nil {
-		apiError(ctx, http.StatusInternalServerError, "failed to decode private key pem")
+		apiError(ctx, "failed to decode private key pem")
 		return
 	}
 
 	pubKey, err := x509.ParsePKIXPublicKey(pubPem.Bytes)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	fingerprint, err := util.CreatePublicKeyFingerprint(pubKey)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -64,7 +64,7 @@ func GetRepositoryKey(ctx *context.Context) {
 func GetRepositoryFile(ctx *context.Context) {
 	pv, err := alpine_service.GetOrCreateRepositoryVersion(ctx, ctx.Package.Owner.ID)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -77,11 +77,7 @@ func GetRepositoryFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -92,13 +88,13 @@ func UploadPackageFile(ctx *context.Context) {
 	branch := strings.TrimSpace(ctx.Params("branch"))
 	repository := strings.TrimSpace(ctx.Params("repository"))
 	if branch == "" || repository == "" {
-		apiError(ctx, http.StatusBadRequest, "invalid branch or repository")
+		apiError(ctx, "invalid branch or repository", http.StatusBadRequest)
 		return
 	}
 
 	upload, close, err := ctx.UploadStream()
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if close {
@@ -107,29 +103,25 @@ func UploadPackageFile(ctx *context.Context) {
 
 	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	defer buf.Close()
 
 	pck, err := alpine_module.ParsePackage(buf)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) || err == io.EOF {
-			apiError(ctx, http.StatusBadRequest, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	fileMetadataRaw, err := json.Marshal(pck.FileMetadata)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -162,19 +154,12 @@ func UploadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, util.ErrAlreadyExist):
-			apiError(ctx, http.StatusConflict, err)
-		case errors.Is(err, util.ErrInvalidArgument):
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	if err := alpine_service.BuildSpecificRepositoryFiles(ctx, ctx.Package.Owner.ID, branch, repository, pck.FileMetadata.Architecture); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -189,21 +174,17 @@ func DownloadPackageFile(ctx *context.Context) {
 		CompositeKey: fmt.Sprintf("%s|%s|%s", ctx.Params("branch"), ctx.Params("repository"), ctx.Params("architecture")),
 	})
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if len(pfs) != 1 {
-		apiError(ctx, http.StatusNotFound, nil)
+		apiError(ctx, nil, http.StatusNotFound)
 		return
 	}
 
 	s, u, pf, err := packages_service.GetPackageFileStream(ctx, pfs[0])
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -220,25 +201,21 @@ func DeletePackageFile(ctx *context.Context) {
 		CompositeKey: fmt.Sprintf("%s|%s|%s", branch, repository, architecture),
 	})
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if len(pfs) != 1 {
-		apiError(ctx, http.StatusNotFound, nil)
+		apiError(ctx, nil, http.StatusNotFound)
 		return
 	}
 
 	if err := packages_service.RemovePackageFileAndVersionIfUnreferenced(ctx, ctx.Doer, pfs[0]); err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	if err := alpine_service.BuildSpecificRepositoryFiles(ctx, ctx.Package.Owner.ID, branch, repository, architecture); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 

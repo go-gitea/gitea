@@ -5,7 +5,6 @@ package rpm
 
 import (
 	stdctx "context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,14 +17,14 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
 	rpm_service "code.gitea.io/gitea/services/packages/rpm"
 )
 
-func apiError(ctx *context.Context, status int, obj any) {
+func apiError(ctx *context.Context, obj any, statuses ...int) {
+	status := helper.FormResponseCode(obj, statuses...)
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
@@ -47,7 +46,7 @@ gpgkey=`+url+`/repository.key`)
 func GetRepositoryKey(ctx *context.Context) {
 	_, pub, err := rpm_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -61,7 +60,7 @@ func GetRepositoryKey(ctx *context.Context) {
 func GetRepositoryFile(ctx *context.Context) {
 	pv, err := rpm_service.GetOrCreateRepositoryVersion(ctx, ctx.Package.Owner.ID)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -73,11 +72,7 @@ func GetRepositoryFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -87,7 +82,7 @@ func GetRepositoryFile(ctx *context.Context) {
 func UploadPackageFile(ctx *context.Context) {
 	upload, close, err := ctx.UploadStream()
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if close {
@@ -96,29 +91,25 @@ func UploadPackageFile(ctx *context.Context) {
 
 	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	defer buf.Close()
 
 	pck, err := rpm_module.ParsePackage(buf)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			apiError(ctx, http.StatusBadRequest, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	fileMetadataRaw, err := json.Marshal(pck.FileMetadata)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -147,19 +138,12 @@ func UploadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, util.ErrAlreadyExist):
-			apiError(ctx, http.StatusConflict, err)
-		case errors.Is(err, util.ErrInvalidArgument):
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	if err := rpm_service.BuildRepositoryFiles(ctx, ctx.Package.Owner.ID); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -183,11 +167,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -239,11 +219,7 @@ func DeletePackageFile(webctx *context.Context) {
 		return nil
 	})
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(webctx, http.StatusNotFound, err)
-		} else {
-			apiError(webctx, http.StatusInternalServerError, err)
-		}
+		apiError(webctx, err)
 		return
 	}
 
@@ -252,7 +228,7 @@ func DeletePackageFile(webctx *context.Context) {
 	}
 
 	if err := rpm_service.BuildRepositoryFiles(webctx, webctx.Package.Owner.ID); err != nil {
-		apiError(webctx, http.StatusInternalServerError, err)
+		apiError(webctx, err)
 		return
 	}
 

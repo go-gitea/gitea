@@ -412,7 +412,7 @@ func TestPackageQuota(t *testing.T) {
 		setting.Packages.LimitTotalOwnerSize = limitTotalOwnerSize
 
 		setting.Packages.LimitSizeGeneric = 0
-		uploadPackage(user, "1.2", http.StatusForbidden)
+		uploadPackage(user, "1.2", http.StatusRequestEntityTooLarge)
 		uploadPackage(admin, "1.2", http.StatusCreated)
 		setting.Packages.LimitSizeGeneric = limitSizeGeneric
 	})

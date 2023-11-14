@@ -5,7 +5,6 @@ package cran
 
 import (
 	"compress/gzip"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,12 +15,12 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	cran_module "code.gitea.io/gitea/modules/packages/cran"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
-func apiError(ctx *context.Context, status int, obj any) {
+func apiError(ctx *context.Context, obj any, statuses ...int) {
+	status := helper.FormResponseCode(obj, statuses...)
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
@@ -45,23 +44,23 @@ func EnumerateBinaryPackages(ctx *context.Context) {
 
 func enumeratePackages(ctx *context.Context, format string, opts *cran_model.SearchOptions) {
 	if format != "" && format != ".gz" {
-		apiError(ctx, http.StatusNotFound, nil)
+		apiError(ctx, nil, http.StatusNotFound)
 		return
 	}
 
 	pvs, err := cran_model.SearchLatestVersions(ctx, opts)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, nil)
+		apiError(ctx, nil, http.StatusNotFound)
 		return
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -135,7 +134,7 @@ func UploadSourcePackageFile(ctx *context.Context) {
 func UploadBinaryPackageFile(ctx *context.Context) {
 	platform, rversion := ctx.FormTrim("platform"), ctx.FormTrim("rversion")
 	if platform == "" || rversion == "" {
-		apiError(ctx, http.StatusBadRequest, nil)
+		apiError(ctx, nil, http.StatusBadRequest)
 		return
 	}
 
@@ -153,7 +152,7 @@ func UploadBinaryPackageFile(ctx *context.Context) {
 func uploadPackageFile(ctx *context.Context, compositeKey string, properties map[string]string) {
 	upload, close, err := ctx.UploadStream()
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		apiError(ctx, err, http.StatusBadRequest)
 		return
 	}
 	if close {
@@ -162,23 +161,19 @@ func uploadPackageFile(ctx *context.Context, compositeKey string, properties map
 
 	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	defer buf.Close()
 
 	pck, err := cran_module.ParsePackage(buf, buf.Size())
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			apiError(ctx, http.StatusBadRequest, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -207,14 +202,7 @@ func uploadPackageFile(ctx *context.Context, compositeKey string, properties map
 		},
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, util.ErrAlreadyExist):
-			apiError(ctx, http.StatusConflict, err)
-		case errors.Is(err, util.ErrInvalidArgument):
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -242,21 +230,13 @@ func DownloadBinaryPackageFile(ctx *context.Context) {
 func downloadPackageFile(ctx *context.Context, opts *cran_model.SearchOptions) {
 	pf, err := cran_model.SearchFile(ctx, opts)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	s, u, _, err := packages_service.GetPackageFileStream(ctx, pf)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 

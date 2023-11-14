@@ -4,7 +4,6 @@
 package goproxy
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -20,7 +19,8 @@ import (
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
-func apiError(ctx *context.Context, status int, obj any) {
+func apiError(ctx *context.Context, obj any, statuses ...int) {
+	status := helper.FormResponseCode(obj, statuses...)
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
@@ -29,11 +29,11 @@ func apiError(ctx *context.Context, status int, obj any) {
 func EnumeratePackageVersions(ctx *context.Context) {
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeGo, ctx.Params("name"))
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, err)
+		apiError(ctx, err, http.StatusNotFound)
 		return
 	}
 
@@ -51,11 +51,7 @@ func EnumeratePackageVersions(ctx *context.Context) {
 func PackageVersionMetadata(ctx *context.Context) {
 	pv, err := resolvePackage(ctx, ctx.Package.Owner.ID, ctx.Params("name"), ctx.Params("version"))
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -71,17 +67,13 @@ func PackageVersionMetadata(ctx *context.Context) {
 func PackageVersionGoModContent(ctx *context.Context) {
 	pv, err := resolvePackage(ctx, ctx.Package.Owner.ID, ctx.Params("name"), ctx.Params("version"))
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	pps, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeVersion, pv.ID, goproxy_module.PropertyGoMod)
 	if err != nil || len(pps) != 1 {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -91,27 +83,19 @@ func PackageVersionGoModContent(ctx *context.Context) {
 func DownloadPackageFile(ctx *context.Context) {
 	pv, err := resolvePackage(ctx, ctx.Package.Owner.ID, ctx.Params("name"), ctx.Params("version"))
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	pfs, err := packages_model.GetFilesByVersionID(ctx, pv.ID)
 	if err != nil || len(pfs) != 1 {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	s, u, _, err := packages_service.GetPackageFileStream(ctx, pfs[0])
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -155,7 +139,7 @@ func resolvePackage(ctx *context.Context, ownerID int64, name, version string) (
 func UploadPackage(ctx *context.Context) {
 	upload, close, err := ctx.UploadStream()
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if close {
@@ -164,23 +148,19 @@ func UploadPackage(ctx *context.Context) {
 
 	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	defer buf.Close()
 
 	pck, err := goproxy_module.ParsePackage(buf, buf.Size())
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			apiError(ctx, http.StatusBadRequest, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -208,14 +188,7 @@ func UploadPackage(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, util.ErrAlreadyExist):
-			apiError(ctx, http.StatusConflict, err)
-		case errors.Is(err, util.ErrInvalidArgument):
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 

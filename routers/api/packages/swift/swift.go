@@ -69,7 +69,8 @@ func setResponseHeaders(resp http.ResponseWriter, h *headers) {
 }
 
 // https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#33-error-handling
-func apiError(ctx *context.Context, status int, obj any) {
+func apiError(ctx *context.Context, obj any, statuses ...int) {
+	status := helper.FormResponseCode(obj, statuses...)
 	// https://www.rfc-editor.org/rfc/rfc7807
 	type Problem struct {
 		Status int    `json:"status"`
@@ -95,7 +96,7 @@ func CheckAcceptMediaType(requiredAcceptHeader string) func(ctx *context.Context
 	return func(ctx *context.Context) {
 		accept := ctx.Req.Header.Get("Accept")
 		if accept != "" && accept != requiredAcceptHeader {
-			apiError(ctx, http.StatusBadRequest, fmt.Sprintf("Unexpected accept header. Should be '%s'.", requiredAcceptHeader))
+			apiError(ctx, fmt.Sprintf("Unexpected accept header. Should be '%s'.", requiredAcceptHeader), http.StatusBadRequest)
 		}
 	}
 }
@@ -119,17 +120,17 @@ func EnumeratePackageVersions(ctx *context.Context) {
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeSwift, buildPackageID(packageScope, packageName))
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, nil)
+		apiError(ctx, nil, http.StatusNotFound)
 		return
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -175,17 +176,13 @@ func PackageVersionMetadata(ctx *context.Context) {
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeSwift, id, ctx.Params("version"))
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -235,17 +232,13 @@ func DownloadManifest(ctx *context.Context) {
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeSwift, buildPackageID(packageScope, packageName), packageVersion)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -287,7 +280,7 @@ func UploadPackageFile(ctx *context.Context) {
 	v, err := version.NewVersion(ctx.Params("version"))
 
 	if !scopePattern.MatchString(packageScope) || !namePattern.MatchString(packageName) || err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		apiError(ctx, err, http.StatusBadRequest)
 		return
 	}
 
@@ -295,14 +288,14 @@ func UploadPackageFile(ctx *context.Context) {
 
 	file, _, err := ctx.Req.FormFile("source-archive")
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		apiError(ctx, err, http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
 	buf, err := packages_module.CreateHashedBufferFromReader(file)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	defer buf.Close()
@@ -315,16 +308,12 @@ func UploadPackageFile(ctx *context.Context) {
 
 	pck, err := swift_module.ParsePackage(buf, buf.Size(), mr)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			apiError(ctx, http.StatusBadRequest, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -355,14 +344,7 @@ func UploadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, util.ErrAlreadyExist):
-			apiError(ctx, http.StatusConflict, err)
-		case errors.Is(err, util.ErrInvalidArgument):
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -383,16 +365,16 @@ func DownloadPackageFile(ctx *context.Context) {
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeSwift, buildPackageID(ctx.Params("scope"), ctx.Params("name")), ctx.Params("version"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
+			apiError(ctx, err, http.StatusNotFound)
 		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
+			apiError(ctx, err)
 		}
 		return
 	}
 
 	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -400,7 +382,7 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	s, u, _, err := packages_service.GetPackageFileStream(ctx, pf)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -423,7 +405,7 @@ type LookupPackageIdentifiersResponse struct {
 func LookupPackageIdentifiers(ctx *context.Context) {
 	url := ctx.FormTrim("url")
 	if url == "" {
-		apiError(ctx, http.StatusBadRequest, nil)
+		apiError(ctx, nil, http.StatusBadRequest)
 		return
 	}
 
@@ -436,18 +418,18 @@ func LookupPackageIdentifiers(ctx *context.Context) {
 		IsInternal: util.OptionalBoolFalse,
 	})
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, nil)
+		apiError(ctx, nil, http.StatusNotFound)
 		return
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 

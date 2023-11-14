@@ -26,9 +26,9 @@ import (
 )
 
 var (
-	ErrQuotaTypeSize   = util.NewInvalidArgumentErrorf("maximum allowed package type size exceeded")
-	ErrQuotaTotalSize  = util.NewInvalidArgumentErrorf("maximum allowed package storage quota exceeded")
-	ErrQuotaTotalCount = util.NewInvalidArgumentErrorf("maximum allowed package count exceeded")
+	ErrQuotaTypeSize   = util.NewPayloadTooLargeErrorf("maximum allowed package type size exceeded")
+	ErrQuotaTotalSize  = util.NewLimitExceededErrorf("maximum allowed package storage quota exceeded")
+	ErrQuotaTotalCount = util.NewLimitExceededErrorf("maximum allowed package count exceeded")
 )
 
 // PackageInfo describes a package

@@ -4,7 +4,6 @@
 package conda
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,14 +16,14 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	conda_module "code.gitea.io/gitea/modules/packages/conda"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 
 	"github.com/dsnet/compress/bzip2"
 )
 
-func apiError(ctx *context.Context, status int, obj any) {
+func apiError(ctx *context.Context, obj any, statuses ...int) {
+	status := helper.FormResponseCode(obj, statuses...)
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.JSON(status, struct {
 			Reason  string `json:"reason"`
@@ -79,12 +78,12 @@ func EnumeratePackages(ctx *context.Context) {
 		Subdir:  repoData.Info.Subdir,
 	})
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	if len(pfs) == 0 {
-		apiError(ctx, http.StatusNotFound, nil)
+		apiError(ctx, nil, http.StatusNotFound)
 		return
 	}
 
@@ -95,13 +94,13 @@ func EnumeratePackages(ctx *context.Context) {
 		if !exists {
 			pv, err := packages_model.GetVersionByID(ctx, pf.VersionID)
 			if err != nil {
-				apiError(ctx, http.StatusInternalServerError, err)
+				apiError(ctx, err)
 				return
 			}
 
 			pd, err = packages_model.GetPackageDescriptor(ctx, pv)
 			if err != nil {
-				apiError(ctx, http.StatusInternalServerError, err)
+				apiError(ctx, err)
 				return
 			}
 
@@ -118,7 +117,7 @@ func EnumeratePackages(ctx *context.Context) {
 
 		var fileMetadata *conda_module.FileMetadata
 		if err := json.Unmarshal([]byte(pfd.Properties.GetByName(conda_module.PropertyMetadata)), &fileMetadata); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
+			apiError(ctx, err)
 			return
 		}
 
@@ -158,7 +157,7 @@ func EnumeratePackages(ctx *context.Context) {
 
 		zw, err := bzip2.NewWriter(w, nil)
 		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
+			apiError(ctx, err)
 			return
 		}
 		defer zw.Close()
@@ -176,7 +175,7 @@ func EnumeratePackages(ctx *context.Context) {
 func UploadPackageFile(ctx *context.Context) {
 	upload, close, err := ctx.UploadStream()
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if close {
@@ -185,7 +184,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	defer buf.Close()
@@ -197,16 +196,12 @@ func UploadPackageFile(ctx *context.Context) {
 		pck, err = conda_module.ParsePackageConda(buf, buf.Size())
 	}
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			apiError(ctx, http.StatusBadRequest, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -224,7 +219,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 	fileMetadataRaw, err := json.Marshal(pck.FileMetadata)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -260,14 +255,7 @@ func UploadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, util.ErrAlreadyExist):
-			apiError(ctx, http.StatusConflict, err)
-		case errors.Is(err, util.ErrInvalidArgument):
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -282,12 +270,12 @@ func DownloadPackageFile(ctx *context.Context) {
 		Filename: ctx.Params("filename"),
 	})
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	if len(pfs) != 1 {
-		apiError(ctx, http.StatusNotFound, nil)
+		apiError(ctx, nil, http.StatusNotFound)
 		return
 	}
 
@@ -295,7 +283,7 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	s, u, _, err := packages_service.GetPackageFileStream(ctx, pf)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 

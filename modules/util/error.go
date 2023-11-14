@@ -6,6 +6,8 @@ package util
 import (
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 )
 
 // Common Errors forming the base of our error system
@@ -17,7 +19,26 @@ var (
 	ErrPermissionDenied = errors.New("permission denied")
 	ErrAlreadyExist     = errors.New("resource already exists")
 	ErrNotExist         = errors.New("resource does not exist")
+	ErrPayloadTooLarge  = errors.New("payload too large")
+	ErrLimitExceeded    = errors.New("limit exceeded")
 )
+
+// Automatically get HTTP status from error.
+func StatusFromError(err error) int {
+	switch {
+	case errors.Is(err, ErrNotExist):
+		return http.StatusNotFound
+	case errors.Is(err, ErrAlreadyExist):
+		return http.StatusConflict
+	case errors.Is(err, ErrPayloadTooLarge):
+		return http.StatusRequestEntityTooLarge
+	case errors.Is(err, ErrInvalidArgument) || errors.Is(err, io.EOF):
+		return http.StatusBadRequest
+	case errors.Is(err, ErrPermissionDenied) || errors.Is(err, ErrLimitExceeded):
+		return http.StatusForbidden
+	}
+	return http.StatusInternalServerError
+}
 
 // SilentWrap provides a simple wrapper for a wrapped error where the wrapped error message plays no part in the error message
 // Especially useful for "untyped" errors created with "errors.New(…)" that can be classified as 'invalid argument', 'permission denied', 'exists already', or 'does not exist'
@@ -62,4 +83,14 @@ func NewAlreadyExistErrorf(message string, args ...any) error {
 // NewNotExistErrorf returns an error that formats as the given text but unwraps as an ErrNotExist
 func NewNotExistErrorf(message string, args ...any) error {
 	return NewSilentWrapErrorf(ErrNotExist, message, args...)
+}
+
+// NewPayloadTooLargeErrorf returns an error that formats as the given text but unwraps as an ErrPayloadTooLarge
+func NewPayloadTooLargeErrorf(message string, args ...any) error {
+	return NewSilentWrapErrorf(ErrPayloadTooLarge, message, args...)
+}
+
+// NewLimitExceededErrorf returns an error that formats as the given text but unwraps as an ErrLimitExceeded
+func NewLimitExceededErrorf(message string, args ...any) error {
+	return NewSilentWrapErrorf(ErrLimitExceeded, message, args...)
 }

@@ -4,7 +4,6 @@
 package cargo
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -35,7 +34,8 @@ type StatusMessage struct {
 	Message string `json:"detail"`
 }
 
-func apiError(ctx *context.Context, status int, obj any) {
+func apiError(ctx *context.Context, obj any, statuses ...int) {
+	status := helper.FormResponseCode(obj, statuses...)
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.JSON(status, StatusResponse{
 			OK: false,
@@ -56,21 +56,17 @@ func RepositoryConfig(ctx *context.Context) {
 func EnumeratePackageVersions(ctx *context.Context) {
 	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeCargo, ctx.Params("package"))
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
 	b, err := cargo_service.BuildPackageIndex(ctx, p)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if b == nil {
-		apiError(ctx, http.StatusNotFound, nil)
+		apiError(ctx, nil, http.StatusNotFound)
 		return
 	}
 
@@ -115,13 +111,13 @@ func SearchPackages(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -180,11 +176,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -197,19 +189,19 @@ func UploadPackage(ctx *context.Context) {
 
 	cp, err := cargo_module.ParsePackage(ctx.Req.Body)
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		apiError(ctx, err, http.StatusBadRequest)
 		return
 	}
 
 	buf, err := packages_module.CreateHashedBufferFromReader(cp.Content)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	defer buf.Close()
 
 	if buf.Size() != cp.ContentSize {
-		apiError(ctx, http.StatusBadRequest, "invalid content size")
+		apiError(ctx, "invalid content size", http.StatusBadRequest)
 		return
 	}
 
@@ -239,14 +231,7 @@ func UploadPackage(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, util.ErrAlreadyExist):
-			apiError(ctx, http.StatusConflict, err)
-		case errors.Is(err, util.ErrInvalidArgument):
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
@@ -254,8 +239,7 @@ func UploadPackage(ctx *context.Context) {
 		if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
 			log.Error("Rollback creation of package version: %v", err)
 		}
-
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
@@ -275,21 +259,17 @@ func UnyankPackage(ctx *context.Context) {
 func yankPackage(ctx *context.Context, yank bool) {
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeCargo, ctx.Params("package"), ctx.Params("version"))
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	pps, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeVersion, pv.ID, cargo_module.PropertyYanked)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 	if len(pps) == 0 {
-		apiError(ctx, http.StatusInternalServerError, "Property not found")
+		apiError(ctx, "Property not found")
 		return
 	}
 
@@ -297,12 +277,12 @@ func yankPackage(ctx *context.Context, yank bool) {
 	pp.Value = strconv.FormatBool(yank)
 
 	if err := packages_model.UpdateProperty(ctx, pp); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 
 	if err := cargo_service.UpdatePackageIndexIfExists(ctx, ctx.Doer, ctx.Package.Owner, pv.PackageID); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, err)
 		return
 	}
 

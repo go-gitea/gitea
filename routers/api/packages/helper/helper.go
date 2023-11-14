@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // LogAndProcessError logs an error and calls a custom callback with the processed error message.
@@ -60,4 +61,15 @@ func ServePackageFile(ctx *context.Context, s io.ReadSeekCloser, u *url.URL, pf 
 	}
 
 	ctx.ServeContent(s, opts)
+}
+
+// Automatically get HTTP status from error.
+func FormResponseCode(obj any, status ...int) int {
+	if status != nil {
+		return status[0]
+	}
+	if err, ok := obj.(error); ok {
+		return util.StatusFromError(err)
+	}
+	return http.StatusInternalServerError
 }
