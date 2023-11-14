@@ -308,7 +308,6 @@ export function initRepoIssueReferenceRepositorySearch() {
     });
 }
 
-
 export function initRepoIssueWipTitle() {
   $('.title_wip_desc > a').on('click', (e) => {
     e.preventDefault();
@@ -551,7 +550,6 @@ export function initRepoIssueWipToggle() {
     window.location.reload();
   });
 }
-
 
 export function initRepoIssueTitleEdit() {
   // Edit issue title

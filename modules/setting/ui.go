@@ -33,6 +33,7 @@ var UI = struct {
 	CustomEmojisMap       map[string]string `ini:"-"`
 	SearchRepoDescription bool
 	OnlyShowRelevantRepos bool
+	ExploreDefaultSort    string `ini:"EXPLORE_PAGING_DEFAULT_SORT"`
 
 	Notification struct {
 		MinTimeout            time.Duration
