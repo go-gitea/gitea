@@ -70,6 +70,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Add API for changing Avatars (#25369)
 * BUGFIXES
   * Fix viewing wiki commit on empty repo (#28040) (#28044)
+  * Enable system users for comment.LoadPoster (#28014) (#28032)
   * Fixed duplicate attachments on dump on windows (#28019) (#28031)
   * Fix wrong xorm Delete usage(backport for 1.21) (#28002)
   * Add word-break to repo description in home page (#27924) (#27957)
