@@ -69,6 +69,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Add file status for API "Get a single commit from a repository" (#16205) (#25831)
   * Add API for changing Avatars (#25369)
 * BUGFIXES
+  * fixed duplicate attachments on dump on windows (#28019) (#28031)
   * Fix wrong xorm Delete usage(backport for 1.21) (#28002)
   * Add word-break to repo description in home page (#27924) (#27957)
   * Fix rendering assignee changed comments without assignee (#27927) (#27952)
@@ -394,6 +395,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Add merge files files to GetCommitFileStatus (#20515)
   * Show OpenID Connect and OAuth on signup page (#20242)
 * SECURITY
+  * Dont leak private users via extensions (#28023) (#28029)
   * Expanded minimum RSA Keylength to 3072 (#26604)
 * TESTING
   * Add user secrets API integration tests (#27832) (#27852)
