@@ -1205,6 +1205,8 @@ func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 	return builder.Neq{
 		"`user`.visibility": structs.VisibleTypePrivate,
 	}.Or(
+		// viewer's self
+		builder.Eq{"`user`.id": viewer.ID},
 		// viewer's following
 		builder.In("`user`.id",
 			builder.
