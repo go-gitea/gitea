@@ -246,7 +246,7 @@ export default sfc; // activate IDE's Vue plugin
 <template>
   <div class="ui dropdown custom">
     <button class="branch-dropdown-button ui basic small compact button gt-df gt-m-0" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-      <span class="text gt-df gt-ac gt-mr-2" style="overflow: hidden">
+      <span class="text gt-df gt-ac gt-overflow-x-auto gt-as">
         <template v-if="release">{{ textReleaseCompare }}</template>
         <template v-else>
           <svg-icon v-if="isViewTag" name="octicon-tag"/>
