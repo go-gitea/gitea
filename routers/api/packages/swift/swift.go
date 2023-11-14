@@ -4,7 +4,6 @@
 package swift
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -364,11 +363,7 @@ func UploadPackageFile(ctx *context.Context) {
 func DownloadPackageFile(ctx *context.Context) {
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeSwift, buildPackageID(ctx.Params("scope"), ctx.Params("name")), ctx.Params("version"))
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, err, http.StatusNotFound)
-		} else {
-			apiError(ctx, err)
-		}
+		apiError(ctx, err)
 		return
 	}
 
