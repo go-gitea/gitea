@@ -6,6 +6,7 @@ package webhook
 import (
 	"context"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	issues_model "code.gitea.io/gitea/models/issues"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
@@ -883,6 +884,32 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 		Action:  action,
 		Package: apiPackage,
 		Sender:  convert.ToUser(ctx, sender, nil),
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
+func (m *webhookNotifier) WorkflowJob(ctx context.Context, doer *user_model.User, run *actions_model.ActionRun, job *actions_model.ActionRunJob, action api.HookWorkflowRunAction) {
+	source := EventSource{
+		Repository: run.Repo,
+		Owner:      run.Repo.Owner,
+	}
+
+	perm, err := access_model.GetUserRepoPermission(ctx, run.Repo, doer)
+	if err != nil {
+		log.Error("GetUserRepoPermission: %v", err)
+		return
+	}
+
+	apiRepo := convert.ToRepo(ctx, run.Repo, perm)
+	apiJob := convert.ToWorkflowJob(ctx, doer, job, run)
+	apiRun := convert.ToWorkflowRun(ctx, doer, job, run)
+	if err := PrepareWebhooks(ctx, source, webhook_module.HookEventWorkflowJob, &api.WorkflowJobPayload{
+		Action:      action,
+		Repository:  apiRepo,
+		Workflow:    apiJob,
+		WorkflowRun: apiRun,
+		Sender:      convert.ToUser(ctx, doer, nil),
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}

@@ -507,8 +507,8 @@ const (
 	HookWorkflowRunRequested HookWorkflowRunAction = "requested"
 )
 
-// HookWorkflowRunPayload represents a package payload
-type HookWorkflowRunPayload struct {
+// WorkflowJobPayload represents a package payload
+type WorkflowJobPayload struct {
 	Action       HookWorkflowRunAction `json:"action"`
 	Repository   *Repository           `json:"repository"`
 	Workflow     *Workflow             `json:"workflow"`
@@ -518,6 +518,6 @@ type HookWorkflowRunPayload struct {
 }
 
 // JSONPayload implements Payload
-func (p *HookWorkflowRunPayload) JSONPayload() ([]byte, error) {
+func (p *WorkflowJobPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }
