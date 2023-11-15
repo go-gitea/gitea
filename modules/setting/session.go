@@ -50,7 +50,7 @@ func loadSessionFrom(rootCfg ConfigProvider) {
 	}
 	SessionConfig.CookieName = sec.Key("COOKIE_NAME").MustString("i_like_gitea")
 	SessionConfig.CookiePath = AppSubURL + "/" // there was a bug, old code only set CookePath=AppSubURL, no trailing slash
-	SessionConfig.Secure = sec.Key("COOKIE_SECURE").MustBool(false)
+	SessionConfig.Secure = sec.Key("COOKIE_SECURE").MustBool(strings.HasPrefix(strings.ToLower(AppURL), "https://"))
 	SessionConfig.Gclifetime = sec.Key("GC_INTERVAL_TIME").MustInt64(86400)
 	SessionConfig.Maxlifetime = sec.Key("SESSION_LIFE_TIME").MustInt64(86400)
 	SessionConfig.Domain = sec.Key("DOMAIN").String()

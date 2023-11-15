@@ -15,7 +15,7 @@ import (
 type IssueUser struct {
 	ID          int64 `xorm:"pk autoincr"`
 	UID         int64 `xorm:"INDEX"` // User ID.
-	IssueID     int64
+	IssueID     int64 `xorm:"INDEX"`
 	IsRead      bool
 	IsMentioned bool
 }

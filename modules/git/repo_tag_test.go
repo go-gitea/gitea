@@ -71,7 +71,6 @@ func TestRepository_GetTag(t *testing.T) {
 	if lTag == nil {
 		assert.NotNil(t, lTag)
 		assert.FailNow(t, "nil lTag: %s", lTagName)
-		return
 	}
 	assert.EqualValues(t, lTagName, lTag.Name)
 	assert.EqualValues(t, lTagCommitID, lTag.ID.String())
@@ -105,7 +104,6 @@ func TestRepository_GetTag(t *testing.T) {
 	if aTag == nil {
 		assert.NotNil(t, aTag)
 		assert.FailNow(t, "nil aTag: %s", aTagName)
-		return
 	}
 	assert.EqualValues(t, aTagName, aTag.Name)
 	assert.EqualValues(t, aTagID, aTag.ID.String())

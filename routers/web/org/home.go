@@ -13,9 +13,12 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 )
 
 const (
@@ -119,50 +122,64 @@ func Home(ctx *context.Context) {
 
 	opts := &organization.FindOrgMembersOpts{
 		OrgID:       org.ID,
-		PublicOnly:  true,
+		PublicOnly:  ctx.Org.PublicMemberOnly,
 		ListOptions: db.ListOptions{Page: 1, PageSize: 25},
 	}
-
-	if ctx.Doer != nil {
-		isMember, err := org.IsOrgMember(ctx.Doer.ID)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "IsOrgMember")
-			return
-		}
-		opts.PublicOnly = !isMember && !ctx.Doer.IsAdmin
-	}
-
-	members, _, err := organization.FindOrgMembers(opts)
+	members, _, err := organization.FindOrgMembers(ctx, opts)
 	if err != nil {
 		ctx.ServerError("FindOrgMembers", err)
 		return
 	}
 
-	membersCount, err := organization.CountOrgMembers(opts)
-	if err != nil {
-		ctx.ServerError("CountOrgMembers", err)
-		return
-	}
-
 	var isFollowing bool
 	if ctx.Doer != nil {
-		isFollowing = user_model.IsFollowing(ctx.Doer.ID, ctx.ContextUser.ID)
+		isFollowing = user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	}
 
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
-	ctx.Data["MembersTotal"] = membersCount
 	ctx.Data["Members"] = members
 	ctx.Data["Teams"] = ctx.Org.Teams
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["PageIsViewRepositories"] = true
 	ctx.Data["IsFollowing"] = isFollowing
 
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "language", "Language")
 	ctx.Data["Page"] = pager
-	ctx.Data["ContextUser"] = ctx.ContextUser
+
+	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
+
+	profileGitRepo, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
+	defer profileClose()
+	prepareOrgProfileReadme(ctx, profileGitRepo, profileReadmeBlob)
 
 	ctx.HTML(http.StatusOK, tplOrgHome)
+}
+
+func prepareOrgProfileReadme(ctx *context.Context, profileGitRepo *git.Repository, profileReadme *git.Blob) {
+	if profileGitRepo == nil || profileReadme == nil {
+		return
+	}
+
+	if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+		log.Error("failed to GetBlobContent: %v", err)
+	} else {
+		if profileContent, err := markdown.RenderString(&markup.RenderContext{
+			Ctx:     ctx,
+			GitRepo: profileGitRepo,
+			Metas:   map[string]string{"mode": "document"},
+		}, bytes); err != nil {
+			log.Error("failed to RenderString: %v", err)
+		} else {
+			ctx.Data["ProfileReadme"] = profileContent
+		}
+	}
 }

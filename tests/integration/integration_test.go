@@ -40,7 +40,7 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-var c *web.Route
+var testWebRoutes *web.Route
 
 type NilResponseRecorder struct {
 	httptest.ResponseRecorder
@@ -87,7 +87,7 @@ func TestMain(m *testing.M) {
 	defer cancel()
 
 	tests.InitTest(true)
-	c = routers.NormalRoutes()
+	testWebRoutes = routers.NormalRoutes()
 
 	// integration test settings...
 	if setting.CfgProvider != nil {
@@ -374,7 +374,7 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.
 	if req.RemoteAddr == "" {
 		req.RemoteAddr = "test-mock:12345"
 	}
-	c.ServeHTTP(recorder, req)
+	testWebRoutes.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code, "Request: %s %s", req.Method, req.URL.String()) {
 			logUnexpectedResponse(t, recorder)
@@ -386,7 +386,7 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.
 func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
 	t.Helper()
 	recorder := NewNilResponseRecorder()
-	c.ServeHTTP(recorder, req)
+	testWebRoutes.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
@@ -399,7 +399,7 @@ func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedSta
 func MakeRequestNilResponseHashSumRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseHashSumRecorder {
 	t.Helper()
 	recorder := NewNilResponseHashSumRecorder()
-	c.ServeHTTP(recorder, req)
+	testWebRoutes.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
@@ -419,9 +419,8 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 		// if body is short, just log the whole thing
 		t.Log("Response: ", string(respBytes))
 		return
-	} else {
-		t.Log("Response length: ", len(respBytes))
 	}
+	t.Log("Response length: ", len(respBytes))
 
 	// log the "flash" error message, if one exists
 	// we must create a new buffer, so that we don't "use up" resp.Body

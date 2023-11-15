@@ -106,15 +106,15 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 		return int64(len(allBranches)), nil
 	}
 
-	if err := db.WithTx(ctx, func(subCtx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if len(toAdd) > 0 {
-			if err := git_model.AddBranches(subCtx, toAdd); err != nil {
+			if err := git_model.AddBranches(ctx, toAdd); err != nil {
 				return err
 			}
 		}
 
 		for _, b := range toUpdate {
-			if _, err := db.GetEngine(subCtx).ID(b.ID).
+			if _, err := db.GetEngine(ctx).ID(b.ID).
 				Cols("commit_id, commit_message, pusher_id, commit_time, is_deleted").
 				Update(b); err != nil {
 				return err
@@ -122,7 +122,7 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 		}
 
 		if len(toRemove) > 0 {
-			if err := git_model.DeleteBranches(subCtx, repo.ID, doerID, toRemove); err != nil {
+			if err := git_model.DeleteBranches(ctx, repo.ID, doerID, toRemove); err != nil {
 				return err
 			}
 		}

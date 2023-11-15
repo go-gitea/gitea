@@ -30,6 +30,8 @@ func TestAPINotification(t *testing.T) {
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteNotification, auth_model.AccessTokenScopeWriteRepository)
 
+	MakeRequest(t, NewRequest(t, "GET", "/api/v1/notifications"), http.StatusUnauthorized)
+
 	// -- GET /notifications --
 	// test filter
 	since := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801
@@ -80,6 +82,8 @@ func TestAPINotification(t *testing.T) {
 	assert.False(t, apiNL[1].Unread)
 	assert.True(t, apiNL[1].Pinned)
 
+	MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/threads/%d", 1)), http.StatusUnauthorized)
+
 	// -- GET /notifications/threads/{id} --
 	// get forbidden
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/threads/%d?token=%s", 1, token))
@@ -96,8 +100,10 @@ func TestAPINotification(t *testing.T) {
 	assert.True(t, apiN.Unread)
 	assert.EqualValues(t, "issue4", apiN.Subject.Title)
 	assert.EqualValues(t, "Issue", apiN.Subject.Type)
-	assert.EqualValues(t, thread5.Issue.APIURL(), apiN.Subject.URL)
+	assert.EqualValues(t, thread5.Issue.APIURL(db.DefaultContext), apiN.Subject.URL)
 	assert.EqualValues(t, thread5.Repository.HTMLURL(), apiN.Repository.HTMLURL)
+
+	MakeRequest(t, NewRequest(t, "GET", "/api/v1/notifications/new"), http.StatusUnauthorized)
 
 	new := struct {
 		New int64 `json:"new"`

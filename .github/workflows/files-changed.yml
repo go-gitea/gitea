@@ -17,6 +17,8 @@ on:
         value: ${{ jobs.detect.outputs.docker }}
       swagger:
         value: ${{ jobs.detect.outputs.swagger }}
+      yaml:
+        value: ${{ jobs.detect.outputs.yaml }}
 
 jobs:
   detect:
@@ -30,8 +32,9 @@ jobs:
       templates: ${{ steps.changes.outputs.templates }}
       docker: ${{ steps.changes.outputs.docker }}
       swagger: ${{ steps.changes.outputs.swagger }}
+      yaml: ${{ steps.changes.outputs.yaml }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v2
         id: changes
         with:
@@ -43,6 +46,8 @@ jobs:
               - "go.mod"
               - "go.sum"
               - "Makefile"
+              - ".golangci.yml"
+              - ".editorconfig"
 
             frontend:
               - "**/*.js"
@@ -51,16 +56,24 @@ jobs:
               - "package.json"
               - "package-lock.json"
               - "Makefile"
+              - ".eslintrc.yaml"
+              - ".stylelintrc.yaml"
+              - ".npmrc"
 
             docs:
               - "**/*.md"
               - "docs/**"
+              - ".markdownlint.yaml"
+              - "package.json"
+              - "package-lock.json"
 
             actions:
               - ".github/workflows/*"
+              - "Makefile"
 
             templates:
               - "templates/**/*.tmpl"
+              - "pyproject.toml"
               - "poetry.lock"
 
             docker:
@@ -71,3 +84,14 @@ jobs:
 
             swagger:
               - "templates/swagger/v1_json.tmpl"
+              - "Makefile"
+              - "package.json"
+              - "package-lock.json"
+              - ".spectral.yaml"
+
+            yaml:
+              - "**/*.yml"
+              - "**/*.yaml"
+              - ".yamllint.yaml"
+              - "pyproject.toml"
+              - "poetry.lock"

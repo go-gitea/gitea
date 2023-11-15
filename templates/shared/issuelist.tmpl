@@ -1,27 +1,27 @@
-<div id="issue-list" class="flex-list gt-pt-4">
+<div id="issue-list" class="flex-list">
 	{{$approvalCounts := .ApprovalCounts}}
 	{{range .Issues}}
-		<div class="flex-item flex-item-baseline">
-			<div class="flex-item-leading gt-ac">
+		<div class="flex-item">
+
+			<div class="flex-item-icon">
 				{{if $.CanWriteIssuesOrPulls}}
-					<input type="checkbox" autocomplete="off" class="issue-checkbox gt-mr-4" data-issue-id={{.ID}} aria-label="{{$.locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
+				<input type="checkbox" autocomplete="off" class="issue-checkbox gt-mr-4" data-issue-id={{.ID}} aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
 				{{end}}
-				<div class="flex-item-icon">
-					{{template "shared/issueicon" .}}
-				</div>
+				{{template "shared/issueicon" .}}
 			</div>
+
 			<div class="flex-item-main">
 				<div class="flex-item-header">
 					<div class="flex-item-title">
 						<a class="gt-no-underline issue-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji $.Context .Title | RenderCodeBlock}}</a>
 						{{if .IsPull}}
 							{{if (index $.CommitStatuses .PullRequest.ID)}}
-								{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID) "root" $}}
+								{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID)}}
 							{{end}}
 						{{end}}
 						<span class="labels-list gt-ml-2">
 							{{range .Labels}}
-								<a href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{RenderLabel $.Context .}}</a>
+								<a href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{RenderLabel $.Context .}}</a>
 							{{end}}
 						</span>
 					</div>
@@ -37,14 +37,14 @@
 						<div class="text grey">
 							{{range .Assignees}}
 								<a class="ui assignee gt-no-underline" href="{{.HomeLink}}" data-tooltip-content="{{.GetDisplayName}}">
-									{{avatar $.Context . 20}}
+									{{ctx.AvatarUtils.Avatar . 20}}
 								</a>
 							{{end}}
 						</div>
 						{{end}}
 						{{if .NumComments}}
 						<div class="text grey">
-							<a class="gt-no-underline muted flex-text-inline" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+							<a class="gt-no-underline muted flex-text-block" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 								{{svg "octicon-comment" 16}}{{.NumComments}}
 							</a>
 						</div>
@@ -60,13 +60,13 @@
 							#{{.Index}}
 						{{end}}
 					</a>
-					{{$timeStr := TimeSinceUnix .GetLastEventTimestamp $.locale}}
+					{{$timeStr := TimeSinceUnix .GetLastEventTimestamp ctx.Locale}}
 					{{if .OriginalAuthor}}
-						{{$.locale.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
+						{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
 					{{else if gt .Poster.ID 0}}
-						{{$.locale.Tr .GetLastEventLabel $timeStr (.Poster.HomeLink|Escape) (.Poster.GetDisplayName | Escape) | Safe}}
+						{{ctx.Locale.Tr .GetLastEventLabel $timeStr (.Poster.HomeLink|Escape) (.Poster.GetDisplayName | Escape) | Safe}}
 					{{else}}
-						{{$.locale.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
+						{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
 					{{end}}
 					{{if .IsPull}}
 						<div class="branches flex-text-inline">
@@ -93,7 +93,7 @@
 						</a>
 					{{end}}
 					{{if .Project}}
-						<a class="project flex-text-inline" href="{{.Project.Link}}">
+						<a class="project flex-text-inline" href="{{.Project.Link ctx}}">
 							{{svg .Project.IconName 14}}{{.Project.Title}}
 						</a>
 					{{end}}
@@ -111,7 +111,7 @@
 						</span>
 					{{end}}
 					{{if ne .DeadlineUnix 0}}
-						<span class="due-date flex-text-inline" data-tooltip-content="{{$.locale.Tr "repo.issues.due_date"}}">
+						<span class="due-date flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date"}}">
 							<span{{if .IsOverdue}} class="text red"{{end}}>
 								{{svg "octicon-calendar" 14}}
 								{{DateTime "short" .DeadlineUnix}}
@@ -125,25 +125,25 @@
 						{{if gt $approveOfficial 0}}
 							<span class="approvals green flex-text-inline">
 								{{svg "octicon-check" 14}}
-								{{$.locale.TrN $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n" $approveOfficial}}
+								{{ctx.Locale.TrN $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n" $approveOfficial}}
 							</span>
 						{{end}}
 						{{if gt $rejectOfficial 0}}
 							<span class="rejects red flex-text-inline">
 								{{svg "octicon-diff" 14}}
-								{{$.locale.TrN $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n" $rejectOfficial}}
+								{{ctx.Locale.TrN $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n" $rejectOfficial}}
 							</span>
 						{{end}}
 						{{if gt $waitingOfficial 0}}
 							<span class="waiting flex-text-inline">
 								{{svg "octicon-eye" 14}}
-								{{$.locale.TrN $waitingOfficial "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n" $waitingOfficial}}
+								{{ctx.Locale.TrN $waitingOfficial "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n" $waitingOfficial}}
 							</span>
 						{{end}}
 						{{if and (not .PullRequest.HasMerged) (gt (len .PullRequest.ConflictedFiles) 0)}}
 							<span class="conflicting flex-text-inline">
 								{{svg "octicon-x" 14}}
-								{{$.locale.TrN (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n" (len .PullRequest.ConflictedFiles)}}
+								{{ctx.Locale.TrN (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n" (len .PullRequest.ConflictedFiles)}}
 							</span>
 						{{end}}
 					{{end}}
@@ -153,7 +153,7 @@
 	{{end}}
 	{{if .IssueIndexerUnavailable}}
 		<div class="ui error message">
-			<p>{{$.locale.Tr "repo.issues.keyword_search_unavailable"}}</p>
+			<p>{{ctx.Locale.Tr "repo.issues.keyword_search_unavailable"}}</p>
 		</div>
 	{{end}}
 </div>

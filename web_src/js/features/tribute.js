@@ -31,7 +31,7 @@ function makeCollections({mentions, emoji}) {
 
   if (mentions) {
     collections.push({
-      values: window.config.mentionValues,
+      values: window.config.mentionValues ?? [],
       requireLeadingSpace: true,
       menuItemTemplate: (item) => {
         return `

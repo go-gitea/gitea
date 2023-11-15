@@ -181,7 +181,7 @@ Use [Fail2Ban](administration/fail2ban-setup.md) to monitor and stop automated l
 
 ## How to add/use custom themes
 
-Gitea supports three official themes right now, `gitea` (light), `arc-green` (dark), and `auto` (automatically switches between the previous two depending on operating system settings).
+Gitea supports three official themes right now, `gitea-light`, `gitea-dark`, and `gitea-auto` (automatically switches between the previous two depending on operating system settings).
 To add your own theme, currently the only way is to provide a complete theme (not just color overrides)
 
 As an example, let's say our theme is `arc-blue` (this is a real theme, and can be found [in this issue](https://github.com/go-gitea/gitea/issues/6011))
@@ -410,7 +410,7 @@ Sometimes when there are migrations the old columns and default values may be le
 unchanged in the database schema. This may lead to warning such as:
 
 ```
-2020/08/02 11:32:29 ...rm/session_schema.go:360:Sync2() [W] Table user Column keep_activity_private db default is , struct default is 0
+2020/08/02 11:32:29 ...rm/session_schema.go:360:Sync() [W] Table user Column keep_activity_private db default is , struct default is 0
 ```
 
 These can safely be ignored, but you are able to stop these warnings by getting Gitea to recreate these tables using:

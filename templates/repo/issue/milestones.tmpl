@@ -2,55 +2,17 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository milestones">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<div class="navbar gt-mb-4">
-			{{template "repo/issue/navbar" .}}
-			{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
-				<div class="ui right">
-					<a class="ui small green button" href="{{$.Link}}/new">{{.locale.Tr "repo.milestones.new"}}</a>
-				</div>
-			{{end}}
-		</div>
 		{{template "base/alert" .}}
 
 		<div class="list-header">
-			<div class="small-menu-items ui compact tiny menu list-header-toggle">
-				<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=open&q={{$.Keyword}}">
-					{{svg "octicon-milestone" 16 "gt-mr-3"}}
-					{{.locale.PrettyNumber .OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
-				</a>
-				<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=closed&q={{$.Keyword}}">
-					{{svg "octicon-check" 16 "gt-mr-3"}}
-					{{.locale.PrettyNumber .ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
-				</a>
-			</div>
-
-			<!-- Search -->
-			<form class="list-header-search ui form ignore-dirty">
-				<div class="ui small search fluid action input">
-					<input type="hidden" name="state" value="{{$.State}}">
-					{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword}}
-					<button class="ui small icon button" type="submit" aria-label="{{.locale.Tr "explore.search"}}">
-						{{svg "octicon-search"}}
-					</button>
-				</div>
-			</form>
-
-			<!-- Sort -->
-			<div class="list-header-sort ui small dropdown type jump item">
-				<span class="text">
-					{{.locale.Tr "repo.issues.filter_sort"}}
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				</span>
-				<div class="menu">
-					<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=closestduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.closest_due_date"}}</a>
-					<a class="{{if eq .SortType "furthestduedate"}}active {{end}}item" href="{{$.Link}}?sort=furthestduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.furthest_due_date"}}</a>
-					<a class="{{if eq .SortType "leastcomplete"}}active {{end}}item" href="{{$.Link}}?sort=leastcomplete&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.least_complete"}}</a>
-					<a class="{{if eq .SortType "mostcomplete"}}active {{end}}item" href="{{$.Link}}?sort=mostcomplete&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.most_complete"}}</a>
-					<a class="{{if eq .SortType "mostissues"}}active {{end}}item" href="{{$.Link}}?sort=mostissues&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.most_issues"}}</a>
-					<a class="{{if eq .SortType "leastissues"}}active {{end}}item" href="{{$.Link}}?sort=leastissues&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.least_issues"}}</a>
-				</div>
-			</div>
+			{{template "repo/issue/navbar" .}}
+			{{template "repo/issue/search" .}}
+			{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
+				<a class="ui small primary button" href="{{$.Link}}/new">{{ctx.Locale.Tr "repo.milestones.new"}}</a>
+			{{end}}
 		</div>
+
+		{{template "repo/issue/filters" .}}
 
 		<!-- milestone list -->
 		<div class="milestone-list">
@@ -70,11 +32,11 @@
 						<div class="group">
 							<div class="flex-text-block">
 								{{svg "octicon-issue-opened" 14}}
-								{{$.locale.PrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
+								{{ctx.Locale.PrettyNumber .NumOpenIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 							</div>
 							<div class="flex-text-block">
 								{{svg "octicon-check" 14}}
-								{{$.locale.PrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
+								{{ctx.Locale.PrettyNumber .NumClosedIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 							</div>
 							{{if .TotalTrackedTime}}
 								<div class="flex-text-block">
@@ -85,36 +47,36 @@
 							{{if .UpdatedUnix}}
 								<div class="flex-text-block">
 									{{svg "octicon-clock"}}
-									{{$.locale.Tr "repo.milestones.update_ago" (TimeSinceUnix .UpdatedUnix $.locale) | Safe}}
+									{{ctx.Locale.Tr "repo.milestones.update_ago" (TimeSinceUnix .UpdatedUnix ctx.Locale) | Safe}}
 								</div>
 							{{end}}
 							<div class="flex-text-block">
 								{{if .IsClosed}}
-									{{$closedDate:= TimeSinceUnix .ClosedDateUnix $.locale}}
+									{{$closedDate:= TimeSinceUnix .ClosedDateUnix ctx.Locale}}
 									{{svg "octicon-clock" 14}}
-									{{$.locale.Tr "repo.milestones.closed" $closedDate | Safe}}
+									{{ctx.Locale.Tr "repo.milestones.closed" $closedDate | Safe}}
 								{{else}}
 									{{if .DeadlineString}}
-										<span{{if .IsOverdue}} class="text red"{{end}}>
+										<span class="flex-text-inline {{if .IsOverdue}}text red{{end}}">
 											{{svg "octicon-calendar" 14}}
 											{{DateTime "short" .DeadlineString}}
 										</span>
 									{{else}}
 										{{svg "octicon-calendar" 14}}
-										{{$.locale.Tr "repo.milestones.no_due_date"}}
+										{{ctx.Locale.Tr "repo.milestones.no_due_date"}}
 									{{end}}
 								{{end}}
 							</div>
 						</div>
 						{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
 							<div class="group">
-								<a class="flex-text-inline" href="{{$.Link}}/{{.ID}}/edit">{{svg "octicon-pencil" 14}}{{$.locale.Tr "repo.issues.label_edit"}}</a>
+								<a class="flex-text-inline" href="{{$.Link}}/{{.ID}}/edit">{{svg "octicon-pencil" 14}}{{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
 								{{if .IsClosed}}
-									<a class="link-action flex-text-inline" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check" 14}}{{$.locale.Tr "repo.milestones.open"}}</a>
+									<a class="link-action flex-text-inline" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check" 14}}{{ctx.Locale.Tr "repo.milestones.open"}}</a>
 								{{else}}
-									<a class="link-action flex-text-inline" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-x" 14}}{{$.locale.Tr "repo.milestones.close"}}</a>
+									<a class="link-action flex-text-inline" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-x" 14}}{{ctx.Locale.Tr "repo.milestones.close"}}</a>
 								{{end}}
-								<a class="delete-button flex-text-inline" href="#" data-url="{{$.RepoLink}}/milestones/delete" data-id="{{.ID}}">{{svg "octicon-trash" 14}}{{$.locale.Tr "repo.issues.label_delete"}}</a>
+								<a class="delete-button flex-text-inline" href="#" data-url="{{$.RepoLink}}/milestones/delete" data-id="{{.ID}}">{{svg "octicon-trash" 14}}{{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
 							</div>
 						{{end}}
 					</div>
@@ -135,10 +97,10 @@
 	<div class="ui g-modal-confirm delete modal">
 		<div class="header">
 			{{svg "octicon-trash"}}
-			{{.locale.Tr "repo.milestones.deletion"}}
+			{{ctx.Locale.Tr "repo.milestones.deletion"}}
 		</div>
 		<div class="content">
-			<p>{{.locale.Tr "repo.milestones.deletion_desc"}}</p>
+			<p>{{ctx.Locale.Tr "repo.milestones.deletion_desc"}}</p>
 		</div>
 		{{template "base/modal_actions_confirm" .}}
 	</div>

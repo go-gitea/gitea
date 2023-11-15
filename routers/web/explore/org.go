@@ -6,15 +6,9 @@ package explore
 import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-)
-
-const (
-	// tplExploreOrganizations explore organizations page template
-	tplExploreOrganizations base.TplName = "explore/organizations"
 )
 
 // Organizations render explore organizations page
@@ -31,7 +25,7 @@ func Organizations(ctx *context.Context) {
 	}
 
 	if ctx.FormString("sort") == "" {
-		ctx.SetFormString("sort", UserSearchDefaultSortType)
+		ctx.SetFormString("sort", setting.UI.ExploreDefaultSort)
 	}
 
 	RenderUserSearch(ctx, &user_model.SearchUserOptions{
@@ -39,5 +33,5 @@ func Organizations(ctx *context.Context) {
 		Type:        user_model.UserTypeOrganization,
 		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
 		Visible:     visibleTypes,
-	}, tplExploreOrganizations)
+	}, tplExploreUsers)
 }

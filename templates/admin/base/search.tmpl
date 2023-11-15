@@ -1,23 +1,23 @@
 <div class="ui secondary filter menu gt-ac gt-mx-0">
 	<form class="ui form ignore-dirty gt-f1">
 		<div class="ui fluid action input">
-			{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword "AutoFocus" true}}
-			<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
+			{{template "shared/searchinput" dict "Value" .Keyword "AutoFocus" true}}
+			<button class="ui primary button">{{ctx.Locale.Tr "explore.search"}}</button>
 		</div>
 	</form>
 	<!-- Sort -->
 	<div class="ui dropdown type jump item gt-mr-0">
 		<span class="text">
-			{{.locale.Tr "repo.issues.filter_sort"}}
-			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			{{ctx.Locale.Tr "repo.issues.filter_sort"}}
 		</span>
+		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		<div class="menu">
-			<a class="{{if or (eq .SortType "oldest") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=oldest&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.oldest"}}</a>
-			<a class="{{if eq .SortType "newest"}}active {{end}}item" href="{{$.Link}}?sort=newest&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.latest"}}</a>
-			<a class="{{if eq .SortType "alphabetically"}}active {{end}}item" href="{{$.Link}}?sort=alphabetically&q={{$.Keyword}}">{{.locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
-			<a class="{{if eq .SortType "reversealphabetically"}}active {{end}}item" href="{{$.Link}}?sort=reversealphabetically&q={{$.Keyword}}">{{.locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
-			<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="{{$.Link}}?sort=recentupdate&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
-			<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="{{$.Link}}?sort=leastupdate&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+			<a class="{{if or (eq .SortType "oldest") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=oldest&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
+			<a class="{{if eq .SortType "newest"}}active {{end}}item" href="{{$.Link}}?sort=newest&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
+			<a class="{{if eq .SortType "alphabetically"}}active {{end}}item" href="{{$.Link}}?sort=alphabetically&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
+			<a class="{{if eq .SortType "reversealphabetically"}}active {{end}}item" href="{{$.Link}}?sort=reversealphabetically&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
+			<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="{{$.Link}}?sort=recentupdate&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+			<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="{{$.Link}}?sort=leastupdate&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
 		</div>
 	</div>
 </div>
