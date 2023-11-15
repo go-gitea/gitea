@@ -54,15 +54,15 @@
 			<input id="reviewer_ids" name="reviewer_ids" type="hidden" value="{{.reviewer_ids}}">
 			<div class="ui {{if not .Reviewers}}disabled{{end}} floating jump select-reviewers dropdown">
 				<span class="text flex-text-block">
-					<strong>{{.locale.Tr "repo.issues.review.reviewers"}}</strong>
+					<strong>{{ctx.Locale.Tr "repo.issues.review.reviewers"}}</strong>
 					{{svg "octicon-gear" 16 "gt-ml-2"}}
 				</span>
 				<div class="filter menu" data-id="#reviewer_ids">
 					<div class="ui icon search input">
 						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_reviewers"}}">
+						<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_reviewers"}}">
 					</div>
-					<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_reviewers"}}</div>
+					<div class="no-select item">{{ctx.Locale.Tr "repo.issues.new.clear_reviewers"}}</div>
 					{{range .Reviewers}}
 						{{if .User}}
 							<a class="item muted" data-id="{{.ItemID}}" data-id-selector="#reviewer_{{.ItemID}}">
@@ -88,7 +88,7 @@
 			</div>
 			<div class="ui reviewers list">
 				<span class="no-select item">
-					{{.locale.Tr "repo.issues.new.no_reviewers"}}
+					{{ctx.Locale.Tr "repo.issues.new.no_reviewers"}}
 				</span>
 				<div class="selected">
 					{{range .Reviewers}}
