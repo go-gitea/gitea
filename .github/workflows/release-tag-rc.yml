@@ -62,7 +62,7 @@ jobs:
           gh-cli-version: 2.14.2 # optional, see action.yml for current default
       - name: create github release
         run: |
-          gh release create ${{ github.ref_name }} --title ${{ github.ref_name }} --draft --notes-from-tag dist/release/*
+          gh release create ${{ github.ref_name }} --title ${{ github.ref_name }} --notes-from-tag dist/release/*
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
   docker-rootful:
