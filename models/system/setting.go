@@ -119,20 +119,20 @@ func (d *dbConfigCachedGetter) GetRevision(ctx context.Context) int {
 	if time.Since(d.cacheTime) < time.Second {
 		return d.revision
 	}
+	d.mu.RUnlock()
+	d.mu.Lock()
 	if GetRevision(ctx) != d.revision {
-		d.mu.RUnlock()
-		d.mu.Lock()
 		rev, set, err := GetAllSettings(ctx)
 		if err != nil {
 			log.Error("Unable to get all settings: %v", err)
 		} else {
-			d.cacheTime = time.Now()
 			d.revision = rev
 			d.settings = set
 		}
-		d.mu.Unlock()
-		d.mu.RLock()
 	}
+	d.cacheTime = time.Now()
+	d.mu.Unlock()
+	d.mu.RLock()
 	return d.revision
 }
 
