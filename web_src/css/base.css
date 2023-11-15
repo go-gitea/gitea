@@ -1289,13 +1289,6 @@ img.ui.avatar,
   }
 }
 
-@media (max-width: 991.98px) {
-  /* double selector so it wins over .gt-df etc */
-  .hide-992.hide-992 {
-    display: none !important;
-  }
-}
-
 .ui.menu.new-menu {
   margin-bottom: 15px;
   background: var(--color-header-wrapper);
