@@ -53,7 +53,7 @@
 	{{if not .DiffNotAvailable}}
 		{{if and .IsShowingOnlySingleCommit .PageIsPullFiles}}
 			<div class="ui info message">
-				<div>{{ctx.Locale.Tr "repo.pulls.showing_only_single_commit" (ShortSha .BeforeCommitID)}} - <a href="{{$.Issue.Link}}/files?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">{{ctx.Locale.Tr "repo.pulls.show_all_commits"}}</a></div>
+				<div>{{ctx.Locale.Tr "repo.pulls.showing_only_single_commit" (ShortSha .AfterCommitID)}} - <a href="{{$.Issue.Link}}/files?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">{{ctx.Locale.Tr "repo.pulls.show_all_commits"}}</a></div>
 			</div>
 		{{else if and (not .IsShowingAllCommits) .PageIsPullFiles}}
 			<div class="ui info message">
@@ -238,8 +238,8 @@
 					"DropzoneParentContainer" ".ui.form"
 				)}}
 				<div class="text right edit buttons">
-					<button class="ui cancel button" tabindex="3">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
-					<button class="ui primary save button" tabindex="2">{{ctx.Locale.Tr "repo.issues.save"}}</button>
+					<button class="ui cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
+					<button class="ui primary save button">{{ctx.Locale.Tr "repo.issues.save"}}</button>
 				</div>
 			</div>
 		</template>

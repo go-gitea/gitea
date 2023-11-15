@@ -85,7 +85,9 @@ func (g *Manager) start() {
 	g.shutdownRequested = make(chan struct{})
 
 	// Set the running state
-	g.setState(stateRunning)
+	if !g.setStateTransition(stateInit, stateRunning) {
+		panic("invalid graceful manager state: transition from init to running failed")
+	}
 	if skip, _ := strconv.ParseBool(os.Getenv("SKIP_MINWINSVC")); skip {
 		log.Trace("Skipping SVC check as SKIP_MINWINSVC is set")
 		return
