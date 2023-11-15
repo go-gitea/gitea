@@ -146,11 +146,11 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 
 	if input.Event == webhook_module.HookEventPush || input.Event == webhook_module.HookEventPullRequest {
-		// skip runs with skip ci prefix in commit message if the event is push or pull_request
+		// skip runs with a configured skip-ci string in commit message if the event is push or pull_request
 		// https://docs.github.com/en/actions/managing-workflow-runs/skipping-workflow-runs
-		for _, prefix := range setting.Actions.SkipRunPrefix {
-			if strings.HasPrefix(commit.CommitMessage, prefix) {
-				log.Debug("repo %s with commit %s: skipped run because of %s prefix", input.Repo.RepoPath(), commit.ID, prefix)
+		for _, s := range setting.Actions.SkipRunStrings {
+			if strings.Contains(commit.CommitMessage, s) {
+				log.Debug("repo %s with commit %s: skipped run because of %s string", input.Repo.RepoPath(), commit.ID, s)
 				return nil
 			}
 		}

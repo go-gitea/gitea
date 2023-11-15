@@ -22,11 +22,11 @@ var (
 		ZombieTaskTimeout     time.Duration     `ini:"ZOMBIE_TASK_TIMEOUT"`
 		EndlessTaskTimeout    time.Duration     `ini:"ENDLESS_TASK_TIMEOUT"`
 		AbandonedJobTimeout   time.Duration     `ini:"ABANDONED_JOB_TIMEOUT"`
-		SkipRunPrefix         []string          `ìni:"SKIP_RUN_PREFIX"`
+		SkipRunStrings        []string          `ìni:"SKIP_RUN_STRINGS"`
 	}{
 		Enabled:           true,
 		DefaultActionsURL: defaultActionsURLGitHub,
-		SkipRunPrefix:     []string{"[skip ci]", "[ci skip]", "[no ci]", "[skip actions]", "[actions skip]"},
+		SkipRunStrings:    []string{"[skip ci]", "[ci skip]", "[no ci]", "[skip actions]", "[actions skip]"},
 	}
 )
 

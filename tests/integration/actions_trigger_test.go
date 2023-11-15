@@ -203,7 +203,7 @@ func TestSkipCI(t *testing.T) {
 
 		// create the repo
 		repo, err := repo_service.CreateRepository(db.DefaultContext, user2, user2, repo_service.CreateRepoOptions{
-			Name:          "skip-ci-prefix",
+			Name:          "skip-ci",
 			Description:   "test skip ci functionality",
 			AutoInit:      true,
 			Gitignores:    "Go",
@@ -253,7 +253,7 @@ func TestSkipCI(t *testing.T) {
 		// a run has been created
 		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
 
-		// add a file with [skip ci] prefix in commit message
+		// add a file with a configured skip-ci string in commit message
 		addFileResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
@@ -262,7 +262,7 @@ func TestSkipCI(t *testing.T) {
 					ContentReader: strings.NewReader("bar"),
 				},
 			},
-			Message:   fmt.Sprintf("%s add bar", setting.Actions.SkipRunPrefix[0]),
+			Message:   fmt.Sprintf("%s add bar", setting.Actions.SkipRunStrings[0]),
 			OldBranch: "main",
 			NewBranch: "main",
 			Author: &files_service.IdentityOptions{
@@ -281,7 +281,7 @@ func TestSkipCI(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, addFileResp)
 
-		// the commit message contains a [skip ci] prefix, so there is still only 1 record
+		// the commit message contains a configured skip-ci string, so there is still only 1 record
 		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
 	})
 }
