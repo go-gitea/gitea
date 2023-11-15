@@ -38,7 +38,7 @@ jobs:
         ports:
           - "9000:9000"
       simplesaml:
-        image: kristophjunge/test-saml-idp
+        image: allspice/simple-saml
         ports:
           - "8080:8080"
         env:
@@ -72,7 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       simplesaml:
-        image: kristophjunge/test-saml-idp
+        image: allspice/simple-saml
         ports:
           - "8080:8080"
         env:
@@ -181,7 +181,7 @@ jobs:
           - "587:587"
           - "993:993"
       simplesaml:
-        image: kristophjunge/test-saml-idp
+        image: allspice/simple-saml
         ports:
           - "8080:8080"
         env:
@@ -222,7 +222,7 @@ jobs:
         ports:
           - "1433:1433"
       simplesaml:
-        image: kristophjunge/test-saml-idp
+        image: allspice/simple-saml
         ports:
           - "8080:8080"
         env:

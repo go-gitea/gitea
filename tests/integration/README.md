@@ -121,7 +121,7 @@ docker run \
 -e SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3003/user/saml/test-sp/acs \
 -e SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost:3003/user/saml/test-sp/acs \
 --add-host=localhost:192.168.65.2 \
--d kristophjunge/test-saml-idp
+-d allspice/simple-saml
 ```
 
 ```shell
