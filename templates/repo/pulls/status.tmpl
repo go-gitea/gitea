@@ -1,34 +1,51 @@
-{{if $.LatestCommitStatus}}
-	{{if not $.Issue.PullRequest.HasMerged}}
-		<div class="ui top attached header">
-			{{if eq .LatestCommitStatus.State "pending"}}
-				{{$.locale.Tr "repo.pulls.status_checking"}}
-			{{else if eq .LatestCommitStatus.State "success"}}
-				{{$.locale.Tr "repo.pulls.status_checks_success"}}
-			{{else if eq .LatestCommitStatus.State "warning"}}
-				{{$.locale.Tr "repo.pulls.status_checks_warning"}}
-			{{else if eq .LatestCommitStatus.State "failure"}}
-				{{$.locale.Tr "repo.pulls.status_checks_failure"}}
-			{{else if eq .LatestCommitStatus.State "error"}}
-				{{$.locale.Tr "repo.pulls.status_checks_error"}}
-			{{else}}
-				{{$.locale.Tr "repo.pulls.status_checking"}}
-			{{end}}
-			</div>
-	{{end}}
+{{/*
+Template Attributes:
+* CommitStatus: summary of all commit status state
+* CommitStatuses: all commit status elements
+* ShowHideChecks: whether use a button to show/hide the checks
+* is_context_required: Used in pull request commit status check table
+*/}}
 
-	{{range $.LatestCommitStatuses}}
-		<div class="ui attached segment pr-status">
-			{{template "repo/commit_status" .}}
-			<div class="status-context">
-				<span>{{.Context}} <span class="text grey">{{.Description}}</span></span>
+{{if .CommitStatus}}
+<div class="commit-status-panel">
+	<div class="ui top attached header commit-status-header">
+		{{if eq .CommitStatus.State "pending"}}
+			{{ctx.Locale.Tr "repo.pulls.status_checking"}}
+		{{else if eq .CommitStatus.State "success"}}
+			{{ctx.Locale.Tr "repo.pulls.status_checks_success"}}
+		{{else if eq .CommitStatus.State "warning"}}
+			{{ctx.Locale.Tr "repo.pulls.status_checks_warning"}}
+		{{else if eq .CommitStatus.State "failure"}}
+			{{ctx.Locale.Tr "repo.pulls.status_checks_failure"}}
+		{{else if eq .CommitStatus.State "error"}}
+			{{ctx.Locale.Tr "repo.pulls.status_checks_error"}}
+		{{else}}
+			{{ctx.Locale.Tr "repo.pulls.status_checking"}}
+		{{end}}
+
+		{{if .ShowHideChecks}}
+		<div class="ui right">
+			<button class="commit-status-hide-checks btn interact-fg"
+			data-show-all="{{ctx.Locale.Tr "repo.pulls.status_checks_show_all"}}"
+			data-hide-all="{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}">
+			{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}</button>
+		</div>
+		{{end}}
+	</div>
+
+	<div class="commit-status-list">
+		{{range .CommitStatuses}}
+			<div class="commit-status-item">
+				{{template "repo/commit_status" .}}
+				<div class="status-context gt-ellipsis">{{.Context}} <span class="text light-2">{{.Description}}</span></div>
 				<div class="ui status-details">
 					{{if $.is_context_required}}
-						{{if (call $.is_context_required .Context)}}<div class="ui label">{{$.locale.Tr "repo.pulls.status_checks_requested"}}</div>{{end}}
+						{{if (call $.is_context_required .Context)}}<div class="ui label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>{{end}}
 					{{end}}
-					<span>{{if .TargetURL}}<a href="{{.TargetURL}}">{{$.locale.Tr "repo.pulls.status_checks_details"}}</a>{{end}}</span>
+					<span>{{if .TargetURL}}<a href="{{.TargetURL}}">{{ctx.Locale.Tr "repo.pulls.status_checks_details"}}</a>{{end}}</span>
 				</div>
 			</div>
-		</div>
-	{{end}}
+		{{end}}
+	</div>
+</div>
 {{end}}

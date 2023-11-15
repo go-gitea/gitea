@@ -28,7 +28,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		assert.Len(t, team.Repos, len(repoIds), "%s: repo count", team.Name)
 		for i, rid := range repoIds {
 			if rid > 0 {
-				assert.True(t, HasRepository(team, rid), "%s: HasRepository(%d) %d", rid, i)
+				assert.True(t, HasRepository(db.DefaultContext, team, rid), "%s: HasRepository(%d) %d", rid, i)
 			}
 		}
 	}
@@ -44,7 +44,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		Type:       user_model.UserTypeOrganization,
 		Visibility: structs.VisibleTypePublic,
 	}
-	assert.NoError(t, organization.CreateOrganization(org, user), "CreateOrganization")
+	assert.NoError(t, organization.CreateOrganization(db.DefaultContext, org, user), "CreateOrganization")
 
 	// Check Owner team.
 	ownerTeam, err := org.GetOwnerTeam(db.DefaultContext)
@@ -101,7 +101,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	}
 	for i, team := range teams {
 		if i > 0 { // first team is Owner.
-			assert.NoError(t, models.NewTeam(team), "%s: NewTeam", team.Name)
+			assert.NoError(t, models.NewTeam(db.DefaultContext, team), "%s: NewTeam", team.Name)
 		}
 		testTeamRepositories(team.ID, teamRepos[i])
 	}
@@ -111,7 +111,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	teams[4].IncludesAllRepositories = true
 	teamRepos[4] = repoIds
 	for i, team := range teams {
-		assert.NoError(t, models.UpdateTeam(team, false, true), "%s: UpdateTeam", team.Name)
+		assert.NoError(t, models.UpdateTeam(db.DefaultContext, team, false, true), "%s: UpdateTeam", team.Name)
 		testTeamRepositories(team.ID, teamRepos[i])
 	}
 
@@ -129,7 +129,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	}
 
 	// Remove repo and check teams repositories.
-	assert.NoError(t, DeleteRepositoryDirectly(db.DefaultContext, user, org.ID, repoIds[0]), "DeleteRepository")
+	assert.NoError(t, DeleteRepositoryDirectly(db.DefaultContext, user, repoIds[0]), "DeleteRepository")
 	teamRepos[0] = repoIds[1:]
 	teamRepos[1] = repoIds[1:]
 	teamRepos[3] = repoIds[1:3]
@@ -141,7 +141,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	// Wipe created items.
 	for i, rid := range repoIds {
 		if i > 0 { // first repo already deleted.
-			assert.NoError(t, DeleteRepositoryDirectly(db.DefaultContext, user, org.ID, rid), "DeleteRepository %d", i)
+			assert.NoError(t, DeleteRepositoryDirectly(db.DefaultContext, user, rid), "DeleteRepository %d", i)
 		}
 	}
 	assert.NoError(t, organization.DeleteOrganization(db.DefaultContext, org), "DeleteOrganization")

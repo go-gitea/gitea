@@ -5,6 +5,7 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 
@@ -13,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
+	"xorm.io/builder"
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
 )
@@ -199,8 +201,8 @@ func (source *Source) SkipVerify() bool {
 
 // CreateSource inserts a AuthSource in the DB if not already
 // existing with the given name.
-func CreateSource(source *Source) error {
-	has, err := db.GetEngine(db.DefaultContext).Where("name=?", source.Name).Exist(new(Source))
+func CreateSource(ctx context.Context, source *Source) error {
+	has, err := db.GetEngine(ctx).Where("name=?", source.Name).Exist(new(Source))
 	if err != nil {
 		return err
 	} else if has {
@@ -211,7 +213,7 @@ func CreateSource(source *Source) error {
 		source.IsSyncEnabled = false
 	}
 
-	_, err = db.GetEngine(db.DefaultContext).Insert(source)
+	_, err = db.GetEngine(ctx).Insert(source)
 	if err != nil {
 		return err
 	}
@@ -232,53 +234,45 @@ func CreateSource(source *Source) error {
 	err = registerableSource.RegisterSource()
 	if err != nil {
 		// remove the AuthSource in case of errors while registering configuration
-		if _, err := db.GetEngine(db.DefaultContext).Delete(source); err != nil {
+		if _, err := db.GetEngine(ctx).ID(source.ID).Delete(new(Source)); err != nil {
 			log.Error("CreateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
 		}
 	}
 	return err
 }
 
-// Sources returns a slice of all login sources found in DB.
-func Sources() ([]*Source, error) {
+type FindSourcesOptions struct {
+	IsActive  util.OptionalBool
+	LoginType Type
+}
+
+func (opts FindSourcesOptions) ToConds() builder.Cond {
+	conds := builder.NewCond()
+	if !opts.IsActive.IsNone() {
+		conds = conds.And(builder.Eq{"is_active": opts.IsActive.IsTrue()})
+	}
+	if opts.LoginType != NoType {
+		conds = conds.And(builder.Eq{"`type`": opts.LoginType})
+	}
+	return conds
+}
+
+// FindSources returns a slice of login sources found in DB according to given conditions.
+func FindSources(ctx context.Context, opts FindSourcesOptions) ([]*Source, error) {
 	auths := make([]*Source, 0, 6)
-	return auths, db.GetEngine(db.DefaultContext).Find(&auths)
-}
-
-// SourcesByType returns all sources of the specified type
-func SourcesByType(loginType Type) ([]*Source, error) {
-	sources := make([]*Source, 0, 1)
-	if err := db.GetEngine(db.DefaultContext).Where("type = ?", loginType).Find(&sources); err != nil {
-		return nil, err
-	}
-	return sources, nil
-}
-
-// AllActiveSources returns all active sources
-func AllActiveSources() ([]*Source, error) {
-	sources := make([]*Source, 0, 5)
-	if err := db.GetEngine(db.DefaultContext).Where("is_active = ?", true).Find(&sources); err != nil {
-		return nil, err
-	}
-	return sources, nil
-}
-
-// ActiveSources returns all active sources of the specified type
-func ActiveSources(tp Type) ([]*Source, error) {
-	sources := make([]*Source, 0, 1)
-	if err := db.GetEngine(db.DefaultContext).Where("is_active = ? and type = ?", true, tp).Find(&sources); err != nil {
-		return nil, err
-	}
-	return sources, nil
+	return auths, db.GetEngine(ctx).Where(opts.ToConds()).Find(&auths)
 }
 
 // IsSSPIEnabled returns true if there is at least one activated login
 // source of type LoginSSPI
-func IsSSPIEnabled() bool {
+func IsSSPIEnabled(ctx context.Context) bool {
 	if !db.HasEngine {
 		return false
 	}
-	sources, err := ActiveSources(SSPI)
+	sources, err := FindSources(ctx, FindSourcesOptions{
+		IsActive:  util.OptionalBoolTrue,
+		LoginType: SSPI,
+	})
 	if err != nil {
 		log.Error("ActiveSources: %v", err)
 		return false
@@ -287,7 +281,7 @@ func IsSSPIEnabled() bool {
 }
 
 // GetSourceByID returns login source by given ID.
-func GetSourceByID(id int64) (*Source, error) {
+func GetSourceByID(ctx context.Context, id int64) (*Source, error) {
 	source := new(Source)
 	if id == 0 {
 		source.Cfg = registeredConfigs[NoType]()
@@ -297,7 +291,7 @@ func GetSourceByID(id int64) (*Source, error) {
 		return source, nil
 	}
 
-	has, err := db.GetEngine(db.DefaultContext).ID(id).Get(source)
+	has, err := db.GetEngine(ctx).ID(id).Get(source)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -307,24 +301,24 @@ func GetSourceByID(id int64) (*Source, error) {
 }
 
 // UpdateSource updates a Source record in DB.
-func UpdateSource(source *Source) error {
+func UpdateSource(ctx context.Context, source *Source) error {
 	var originalSource *Source
 	if source.IsOAuth2() {
 		// keep track of the original values so we can restore in case of errors while registering OAuth2 providers
 		var err error
-		if originalSource, err = GetSourceByID(source.ID); err != nil {
+		if originalSource, err = GetSourceByID(ctx, source.ID); err != nil {
 			return err
 		}
 	}
 
-	has, err := db.GetEngine(db.DefaultContext).Where("name=? AND id!=?", source.Name, source.ID).Exist(new(Source))
+	has, err := db.GetEngine(ctx).Where("name=? AND id!=?", source.Name, source.ID).Exist(new(Source))
 	if err != nil {
 		return err
 	} else if has {
 		return ErrSourceAlreadyExist{source.Name}
 	}
 
-	_, err = db.GetEngine(db.DefaultContext).ID(source.ID).AllCols().Update(source)
+	_, err = db.GetEngine(ctx).ID(source.ID).AllCols().Update(source)
 	if err != nil {
 		return err
 	}
@@ -345,7 +339,7 @@ func UpdateSource(source *Source) error {
 	err = registerableSource.RegisterSource()
 	if err != nil {
 		// restore original values since we cannot update the provider it self
-		if _, err := db.GetEngine(db.DefaultContext).ID(source.ID).AllCols().Update(originalSource); err != nil {
+		if _, err := db.GetEngine(ctx).ID(source.ID).AllCols().Update(originalSource); err != nil {
 			log.Error("UpdateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
 		}
 	}
@@ -353,8 +347,8 @@ func UpdateSource(source *Source) error {
 }
 
 // CountSources returns number of login sources.
-func CountSources() int64 {
-	count, _ := db.GetEngine(db.DefaultContext).Count(new(Source))
+func CountSources(ctx context.Context, opts FindSourcesOptions) int64 {
+	count, _ := db.GetEngine(ctx).Where(opts.ToConds()).Count(new(Source))
 	return count
 }
 

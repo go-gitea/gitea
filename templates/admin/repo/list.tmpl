@@ -1,9 +1,9 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.repos.repo_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
+			{{ctx.Locale.Tr "admin.repos.repo_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 			<div class="ui right">
-				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/repos/unadopted">{{.locale.Tr "admin.repos.unadopted"}}</a>
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/repos/unadopted">{{ctx.Locale.Tr "admin.repos.unadopted"}}</a>
 			</div>
 		</h4>
 		<div class="ui attached segment">
@@ -14,32 +14,32 @@
 				<thead>
 					<tr>
 						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" $.SortType false}}</th>
-						<th>{{.locale.Tr "admin.repos.owner"}}</th>
+						<th>{{ctx.Locale.Tr "admin.repos.owner"}}</th>
 						<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
-							{{.locale.Tr "admin.repos.name"}}
+							{{ctx.Locale.Tr "admin.repos.name"}}
 							{{SortArrow "alphabetically" "reversealphabetically" $.SortType false}}
 						</th>
-						<th>{{.locale.Tr "admin.repos.watches"}}</th>
+						<th>{{ctx.Locale.Tr "admin.repos.watches"}}</th>
 						<th  data-sortt-asc="moststars" data-sortt-desc="feweststars">
-							{{.locale.Tr "admin.repos.stars"}}
+							{{ctx.Locale.Tr "admin.repos.stars"}}
 							{{SortArrow "moststars" "feweststars" $.SortType false}}
 						</th>
 						<th  data-sortt-asc="mostforks" data-sortt-desc="fewestforks">
-							{{.locale.Tr "admin.repos.forks"}}
+							{{ctx.Locale.Tr "admin.repos.forks"}}
 							{{SortArrow "mostforks" "fewestforks" $.SortType false}}
 						</th>
-						<th>{{.locale.Tr "admin.repos.issues"}}</th>
+						<th>{{ctx.Locale.Tr "admin.repos.issues"}}</th>
 						<th  data-sortt-asc="gitsize" data-sortt-desc="reversegitsize">
-							{{.locale.Tr "admin.repos.size"}}
+							{{ctx.Locale.Tr "admin.repos.size"}}
 							{{SortArrow "gitsize" "reversegitsize" $.SortType false}}
 						</th>
 						<th  data-sortt-asc="lfssize" data-sortt-desc="reverselfssize">
-							{{.locale.Tr "admin.repos.lfs_size"}}
+							{{ctx.Locale.Tr "admin.repos.lfs_size"}}
 							{{SortArrow "lfssize" "reverselfssize" $.SortType false}}
 						</th>
-						<th>{{.locale.Tr "admin.auths.updated"}}</th>
-						<th>{{.locale.Tr "admin.users.created"}}</th>
-						<th>{{.locale.Tr "admin.notices.op"}}</th>
+						<th>{{ctx.Locale.Tr "admin.auths.updated"}}</th>
+						<th>{{ctx.Locale.Tr "admin.users.created"}}</th>
+						<th>{{ctx.Locale.Tr "admin.notices.op"}}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -47,37 +47,30 @@
 						<tr>
 							<td>{{.ID}}</td>
 							<td>
-								<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
+								<a class="gt-word-break" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
 								{{if .Owner.Visibility.IsPrivate}}
 									<span class="text gold">{{svg "octicon-lock"}}</span>
 								{{end}}
 							</td>
 							<td>
-								<a href="{{.Link}}">{{.Name}}</a>
+								<a class="gt-word-break" href="{{.Link}}">{{.Name}}</a>
 								{{if .IsArchived}}
-									<span class="ui basic mini label">{{$.locale.Tr "repo.desc.archived"}}</span>
+									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
+								{{end}}
+								{{if .IsPrivate}}
+									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
+								{{else}}
+									{{if .Owner.Visibility.IsPrivate}}
+										<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal"}}</span>
+									{{end}}
 								{{end}}
 								{{if .IsTemplate}}
-									{{if .IsPrivate}}
-										<span class="ui basic mini label">{{$.locale.Tr "repo.desc.private_template"}}</span>
-									{{else}}
-										{{if .Owner.Visibility.IsPrivate}}
-											<span class="ui basic mini label">{{$.locale.Tr "repo.desc.internal_template"}}</span>
-										{{end}}
-									{{end}}
-								{{else}}
-									{{if .IsPrivate}}
-										<span class="ui basic mini label">{{$.locale.Tr "repo.desc.private"}}</span>
-									{{else}}
-										{{if .Owner.Visibility.IsPrivate}}
-											<span class="ui basic mini label">{{$.locale.Tr "repo.desc.internal"}}</span>
-										{{end}}
-									{{end}}
+									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.template"}}</span>
 								{{end}}
-								{{if .IsFork}}
-									{{svg "octicon-repo-forked"}}
-								{{else if .IsMirror}}
+								{{if .IsMirror}}
 									{{svg "octicon-mirror"}}
+								{{else if .IsFork}}
+									{{svg "octicon-repo-forked"}}
 								{{end}}
 							</td>
 							<td>{{.NumWatches}}</td>
@@ -101,12 +94,12 @@
 <div class="ui g-modal-confirm delete modal">
 	<div class="header">
 		{{svg "octicon-trash"}}
-		{{.locale.Tr "repo.settings.delete"}}
+		{{ctx.Locale.Tr "repo.settings.delete"}}
 	</div>
 	<div class="content">
-		<p>{{.locale.Tr "repo.settings.delete_desc"}}</p>
-		{{.locale.Tr "repo.settings.delete_notices_2" `<span class="name"></span>` | Safe}}<br>
-		{{.locale.Tr "repo.settings.delete_notices_fork_1"}}<br>
+		<p>{{ctx.Locale.Tr "repo.settings.delete_desc"}}</p>
+		{{ctx.Locale.Tr "repo.settings.delete_notices_2" `<span class="name"></span>` | Safe}}<br>
+		{{ctx.Locale.Tr "repo.settings.delete_notices_fork_1"}}<br>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

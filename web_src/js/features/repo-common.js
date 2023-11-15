@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import {hideElem, showElem, toggleElem} from '../utils/dom.js';
+import {hideElem, showElem} from '../utils/dom.js';
 
 const {csrfToken} = window.config;
 
@@ -90,14 +90,4 @@ export function initRepoCommonFilterSearchDropdown(selector) {
     },
     message: {noResults: $dropdown.attr('data-no-results')},
   });
-}
-
-export function initRepoCommonLanguageStats() {
-  // Language stats
-  if ($('.language-stats').length > 0) {
-    $('.language-stats').on('click', (e) => {
-      e.preventDefault();
-      toggleElem($('.language-stats-details, .repository-menu'));
-    });
-  }
 }

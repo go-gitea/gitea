@@ -15,7 +15,7 @@
 						<br>{{.About | RenderEmojiPlain}}
 					</div>
 					<div class="column right aligned">
-						<a href="{{$.RepoLink}}/issues/new?template={{.FileName}}{{if $.milestone}}&milestone={{$.milestone}}{{end}}{{if $.project}}&project={{$.project}}{{end}}" class="ui green button">{{$.locale.Tr "repo.issues.choose.get_started"}}</a>
+						<a href="{{$.RepoLink}}/issues/new?template={{.FileName}}{{if $.milestone}}&milestone={{$.milestone}}{{end}}{{if $.project}}&project={{$.project}}{{end}}" class="ui primary button">{{ctx.Locale.Tr "repo.issues.choose.get_started"}}</a>
 					</div>
 				</div>
 			</div>
@@ -28,7 +28,7 @@
 						<br>{{.About | RenderEmojiPlain}}
 					</div>
 					<div class="column right aligned">
-						<a href="{{.URL}}" class="ui green button">{{svg "octicon-link-external"}} {{$.locale.Tr "repo.issues.choose.open_external_link"}}</a>
+						<a href="{{.URL}}" class="ui primary button">{{svg "octicon-link-external"}} {{ctx.Locale.Tr "repo.issues.choose.open_external_link"}}</a>
 					</div>
 				</div>
 			</div>
@@ -37,11 +37,11 @@
 			<div class="ui attached segment">
 				<div class="ui two column grid">
 					<div class="column left aligned">
-						<strong>{{.locale.Tr "repo.issues.choose.blank"}}</strong>
-						<br/>{{.locale.Tr "repo.issues.choose.blank_about"}}
+						<strong>{{ctx.Locale.Tr "repo.issues.choose.blank"}}</strong>
+						<br/>{{ctx.Locale.Tr "repo.issues.choose.blank_about"}}
 					</div>
 					<div class="column right aligned">
-						<a href="{{.RepoLink}}/issues/new?{{if .milestone}}&milestone={{.milestone}}{{end}}{{if $.project}}&project={{$.project}}{{end}}" class="ui green button">{{$.locale.Tr "repo.issues.choose.get_started"}}</a>
+						<a href="{{.RepoLink}}/issues/new?{{if .milestone}}&milestone={{.milestone}}{{end}}{{if $.project}}&project={{$.project}}{{end}}" class="ui primary button">{{ctx.Locale.Tr "repo.issues.choose.get_started"}}</a>
 					</div>
 				</div>
 			</div>
@@ -49,7 +49,7 @@
 		{{- if .IssueConfigError}}{{/* normal warning flash makes problems here*/}}
 			<div class="ui warning message">
 				<div class="text left">
-					<div>{{.locale.Tr "repo.issues.choose.invalid_config"}}</div>
+					<div>{{ctx.Locale.Tr "repo.issues.choose.invalid_config"}}</div>
 					<div>{{.IssueConfigError}}</div>
 				</div>
 			</div>

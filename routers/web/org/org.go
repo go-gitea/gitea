@@ -58,7 +58,7 @@ func CreatePost(ctx *context.Context) {
 		RepoAdminChangeTeamAccess: form.RepoAdminChangeTeamAccess,
 	}
 
-	if err := organization.CreateOrganization(org, ctx.Doer); err != nil {
+	if err := organization.CreateOrganization(ctx, org, ctx.Doer); err != nil {
 		ctx.Data["Err_OrgName"] = true
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):

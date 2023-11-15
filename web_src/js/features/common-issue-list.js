@@ -1,7 +1,8 @@
 import $ from 'jquery';
 import {isElemHidden, onInputDebounce, toggleElem} from '../utils/dom.js';
-const {appSubUrl} = window.config;
+import {GET} from '../modules/fetch.js';
 
+const {appSubUrl} = window.config;
 const reIssueIndex = /^(\d+)$/; // eg: "123"
 const reIssueSharpIndex = /^#(\d+)$/; // eg: "#123"
 const reIssueOwnerRepoIndex = /^([-.\w]+)\/([-.\w]+)#(\d+)$/;  // eg: "{owner}/{repo}#{index}"
@@ -54,7 +55,7 @@ export function initCommonIssueListQuickGoto() {
     // try to check whether the parsed goto link is valid
     let targetUrl = parseIssueListQuickGotoLink(repoLink, searchText);
     if (targetUrl) {
-      const res = await fetch(`${targetUrl}/info`);
+      const res = await GET(`${targetUrl}/info`);
       if (res.status !== 200) targetUrl = '';
     }
 

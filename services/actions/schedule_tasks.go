@@ -45,7 +45,7 @@ func startTasks(ctx context.Context) error {
 			return fmt.Errorf("find specs: %w", err)
 		}
 
-		if err := specs.LoadRepos(); err != nil {
+		if err := specs.LoadRepos(ctx); err != nil {
 			return fmt.Errorf("LoadRepos: %w", err)
 		}
 
@@ -113,6 +113,7 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 		CommitSHA:     cron.CommitSHA,
 		Event:         cron.Event,
 		EventPayload:  cron.EventPayload,
+		ScheduleID:    cron.ID,
 		Status:        actions_model.StatusWaiting,
 	}
 
@@ -125,19 +126,6 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 	// Insert the action run and its associated jobs into the database
 	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
 		return err
-	}
-
-	// Retrieve the jobs for the newly created action run
-	jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID})
-	if err != nil {
-		return err
-	}
-
-	// Create commit statuses for each job
-	for _, job := range jobs {
-		if err := createCommitStatus(ctx, job); err != nil {
-			return err
-		}
 	}
 
 	// Return nil if no errors occurred

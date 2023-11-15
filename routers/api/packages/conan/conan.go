@@ -326,13 +326,8 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 	}
 	defer buf.Close()
 
-	if buf.Size() == 0 {
-		// ignore empty uploads, second request contains content
-		jsonResponse(ctx, http.StatusOK, nil)
-		return
-	}
-
 	isConanfileFile := filename == conanfileFile
+	isConaninfoFile := filename == conaninfoFile
 
 	pci := &packages_service.PackageCreationInfo{
 		PackageInfo: packages_service.PackageInfo{
@@ -364,7 +359,7 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 		pfci.Properties[conan_module.PropertyPackageRevision] = pref.RevisionOrDefault()
 	}
 
-	if isConanfileFile || filename == conaninfoFile {
+	if isConanfileFile || isConaninfoFile {
 		if isConanfileFile {
 			metadata, err := conan_module.ParseConanfile(buf)
 			if err != nil {
@@ -413,13 +408,14 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 	}
 
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+		ctx,
 		pci,
 		pfci,
 	)
 	if err != nil {
 		switch err {
 		case packages_model.ErrDuplicatePackageFile:
-			apiError(ctx, http.StatusBadRequest, err)
+			apiError(ctx, http.StatusConflict, err)
 		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
 			apiError(ctx, http.StatusForbidden, err)
 		default:
