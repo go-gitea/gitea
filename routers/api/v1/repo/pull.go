@@ -456,7 +456,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 				ctx.Error(http.StatusInternalServerError, "ReviewRequest", err)
 				return
 			}
-			reviewerIds = append(reviewerIds, teamReviewer.ID)
+			reviewerIds = append(reviewerIds, -teamReviewer.ID)
 		}
 	}
 
