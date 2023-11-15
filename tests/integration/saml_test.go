@@ -5,7 +5,6 @@ package integration
 
 import (
 	"fmt"
-	"html"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -77,26 +76,25 @@ func TestSAMLRegistration(t *testing.T) {
 	req, err = http.NewRequest("GET", test.RedirectURL(resp), nil)
 	assert.NoError(t, err)
 
-	res, err := client.Do(req)
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-
-	// find the auth state hidden input
-	authStateMatcher := regexp.MustCompile(`<input.*?name="AuthState".*?value="([^"]+)".*?>`)
-	body, err := io.ReadAll(res.Body)
-	assert.NoError(t, err)
-
-	matches := authStateMatcher.FindStringSubmatch(string(body))
-	assert.Len(t, matches, 2)
-	assert.NoError(t, res.Body.Close())
-
-	form := url.Values{
-		"username":  {"user1"},
-		"password":  {"user1pass"},
-		"AuthState": {html.UnescapeString(matches[1])},
+	var formRedirectURL *url.URL
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		// capture the redirected destination to use in POST request
+		formRedirectURL = req.URL
+		return nil
 	}
 
-	req, err = http.NewRequest("POST", fmt.Sprintf("http://%s/simplesaml/module.php/core/loginuserpass.php", samlURL), strings.NewReader(form.Encode()))
+	res, err := client.Do(req)
+	client.CheckRedirect = nil
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.NotNil(t, formRedirectURL)
+
+	form := url.Values{
+		"username": {"user1"},
+		"password": {"user1pass"},
+	}
+
+	req, err = http.NewRequest("POST", formRedirectURL.String(), strings.NewReader(form.Encode()))
 	assert.NoError(t, err)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
@@ -104,12 +102,11 @@ func TestSAMLRegistration(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
-	samlResMatcher := regexp.MustCompile(`<input.*?value="([^"]+)".*?>`)
-
-	body, err = io.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	assert.NoError(t, err)
 
-	matches = samlResMatcher.FindStringSubmatch(string(body))
+	samlResMatcher := regexp.MustCompile(`<input.*?name="SAMLResponse".*?value="([^"]+)".*?>`)
+	matches := samlResMatcher.FindStringSubmatch(string(body))
 	assert.Len(t, matches, 2)
 	assert.NoError(t, res.Body.Close())
 
