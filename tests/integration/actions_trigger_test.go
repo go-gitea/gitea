@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 	"testing"
@@ -18,6 +19,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -260,7 +262,7 @@ func TestSkipCI(t *testing.T) {
 					ContentReader: strings.NewReader("bar"),
 				},
 			},
-			Message:   "[skip ci] add bar",
+			Message:   fmt.Sprintf("%s add bar", setting.Actions.SkipRunPrefix[0]),
 			OldBranch: "main",
 			NewBranch: "main",
 			Author: &files_service.IdentityOptions{

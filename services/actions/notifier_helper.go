@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/convert"
@@ -147,7 +148,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	if input.Event == webhook_module.HookEventPush || input.Event == webhook_module.HookEventPullRequest {
 		// skip runs with skip ci prefix in commit message if the event is push or pull_request
 		// https://docs.github.com/en/actions/managing-workflow-runs/skipping-workflow-runs
-		for _, prefix := range []string{"[skip ci]", "[ci skip]", "[no ci]", "[skip actions]", "[actions skip]"} {
+		for _, prefix := range setting.Actions.SkipRunPrefix {
 			if strings.HasPrefix(commit.CommitMessage, prefix) {
 				log.Debug("repo %s with commit %s: skipped run because of %s prefix", input.Repo.RepoPath(), commit.ID, prefix)
 				return nil
