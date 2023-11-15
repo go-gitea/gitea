@@ -92,15 +92,11 @@
 				</span>
 				<div class="selected">
 					{{range .Reviewers}}
-						{{if .User}}
-							<a class="item gt-p-2 muted gt-hidden" id="reviewer_{{.ItemID}}" href="#">
-								{{ctx.AvatarUtils.Avatar .User 28 "gt-mr-3 gt-vm"}}{{.User.GetDisplayName}}
-							</a>
-						{{else if .Team}}
-							<a class="item gt-p-2 muted gt-hidden" id="reviewer_{{.ItemID}}" href="#">
-								{{svg "octicon-people" 20 "gt-mr-3"}}{{$.Repository.OwnerName}}/{{.Team.Name}}
-							</a>
-						{{end}}
+								{{if .User}}
+									<a id="reviewer_{{.ItemID}}" class="muted sidebar-item-link item gt-df gt-ac gt-f1 gt-py-3 gt-hidden" href="{{.User.HomeLink}}">{{ctx.AvatarUtils.Avatar .User 20 "gt-mr-3"}}{{.User.GetDisplayName}}</a>
+								{{else if .Team}}
+									<span id="reviewer_{{.ItemID}}" class="text item gt-df gt-ac gt-f1 gt-py-3 gt-hidden">{{svg "octicon-people" 20 "gt-mr-3"}}{{$.Repository.OwnerName}}/{{.Team.Name}}</span>
+								{{end}}
 					{{end}}
 				</div>
 			</div>
@@ -228,7 +224,7 @@
 				</span>
 				<div class="selected">
 				{{range .Assignees}}
-					<a class="item gt-p-2 muted gt-hidden" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
+					<a class="item gt-p-2 muted sidebar-item-link gt-df gt-ac gt-f1 gt-py-3 gt-hidden" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
 						{{ctx.AvatarUtils.Avatar . 28 "gt-mr-3 gt-vm"}}{{.GetDisplayName}}
 					</a>
 				{{end}}
