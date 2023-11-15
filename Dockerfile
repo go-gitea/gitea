@@ -1,12 +1,8 @@
 # Build stage
 FROM docker.io/library/node:20-alpine3.18 AS build-frontend
 
-ARG GITEA_VERSION
-
 # Build deps
-RUN apk --no-cache add \
-    build-base \
-    git \
+RUN apk --no-cache add build-base git \
     && rm -rf /var/cache/apk/*
 
 # Setup repo
@@ -26,9 +22,13 @@ COPY ./assets ./assets
 COPY ./public ./public
 COPY ./web_src ./web_src
 
-# Checkout version if set
-COPY ./.git ./.git
-RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi
+ARG GITHUB_REF_NAME
+ARG GITHUB_REF_TYPE
+ARG DOCKER_GITEA_VERSION
+
+ENV GITHUB_REF_NAME=${GITHUB_REF_NAME:-docker-develop}
+ENV GITHUB_REF_TYPE=${GITHUB_REF_TYPE:-branch}
+ENV DOCKER_GITEA_VERSION=${DOCKER_GITEA_VERSION}
 
 # Build frontend
 RUN make clean-all frontend
@@ -39,15 +39,12 @@ FROM docker.io/library/golang:1.21-alpine3.18 AS build-backend
 ARG GOPROXY
 ENV GOPROXY ${GOPROXY:-direct}
 
-ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
 ENV TAGS "bindata timetzdata $TAGS"
 ARG CGO_EXTRA_CFLAGS
 
 # Build deps
-RUN apk --no-cache add \
-    build-base \
-    git \
+RUN apk --no-cache add build-base git \
     && rm -rf /var/cache/apk/*
 
 # Setup repo
@@ -73,15 +70,19 @@ COPY ./templates ./templates
 COPY ./build.go .
 COPY ./main.go .
 
-# Checkout version if set
-COPY ./.git ./.git
-RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi
-
 # Clean directory
 RUN make clean-all
 
 # Copy frontend build artifacts
 COPY --from=build-frontend /usr/src/code.gitea.io/gitea/public ./public
+
+ARG GITHUB_REF_NAME
+ARG GITHUB_REF_TYPE
+ARG DOCKER_GITEA_VERSION
+
+ENV GITHUB_REF_NAME=${GITHUB_REF_NAME:-docker-develop}
+ENV GITHUB_REF_TYPE=${GITHUB_REF_TYPE:-branch}
+ENV DOCKER_GITEA_VERSION=${DOCKER_GITEA_VERSION-${GITHUB_REF_NAME}}
 
 # Build backend
 RUN make backend

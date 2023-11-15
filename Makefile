@@ -96,6 +96,10 @@ else
 		VERSION ?= main
 	endif
 
+	ifneq ($(DOCKER_GITEA_VERSION),)
+		GITEA_VERSION ?= $(DOCKER_GITEA_VERSION)
+	endif
+
 	STORED_VERSION=$(shell cat $(STORED_VERSION_FILE) 2>/dev/null)
 	ifneq ($(STORED_VERSION),)
 		GITEA_VERSION ?= $(STORED_VERSION)
@@ -975,8 +979,8 @@ generate-manpage:
 
 .PHONY: docker
 docker:
-	docker build --disable-content-trust=false -t $(DOCKER_REF) .
-# support also build args docker build --build-arg GITEA_VERSION=v1.2.3 --build-arg TAGS="bindata sqlite sqlite_unlock_notify"  .
+	docker build --disable-content-trust=false -t $(DOCKER_REF) --taget gitea .
+# support also build args docker build --build-arg TAGS="bindata sqlite sqlite_unlock_notify" --target gitea .
 
 # This endif closes the if at the top of the file
 endif
