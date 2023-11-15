@@ -713,9 +713,8 @@ func DeleteIssueActions(ctx context.Context, repoID, issueID, issueIndex int64) 
 			break
 		} else if _, err = db.GetEngine(ctx).In("comment_id", commentIDs).Delete(&Action{}); err != nil {
 			return err
-		} else {
-			lastCommentID = commentIDs[len(commentIDs)-1]
 		}
+		lastCommentID = commentIDs[len(commentIDs)-1]
 	}
 
 	_, err := e.Where("repo_id = ?", repoID).

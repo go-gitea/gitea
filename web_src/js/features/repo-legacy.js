@@ -20,6 +20,7 @@ import {initCommentContent, initMarkupContent} from '../markup/content.js';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoSettingBranches} from './repo-settings.js';
 import {initRepoPullRequestMergeForm} from './repo-issue-pr-form.js';
+import {initRepoPullRequestCommitStatus} from './repo-issue-pr-status.js';
 import {hideElem, showElem} from '../utils/dom.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 import {attachRefIssueContextPopup} from './contextpopup.js';
@@ -304,7 +305,6 @@ export function initRepoCommentForm() {
   selectItem('.select-reviewer', '#reviewer_id');
 }
 
-
 async function onEditContent(event) {
   event.preventDefault();
 
@@ -542,7 +542,6 @@ export function initRepository() {
     initRepoDiffConversationNav();
     initRepoIssueReferenceIssue();
 
-
     initRepoIssueCommentDelete();
     initRepoIssueDependencyDelete();
     initRepoIssueCodeCommentCancel();
@@ -550,6 +549,7 @@ export function initRepository() {
     initCompReactionSelector($(document));
 
     initRepoPullRequestMergeForm();
+    initRepoPullRequestCommitStatus();
   }
 
   // Pull request
