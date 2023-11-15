@@ -144,6 +144,17 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
 
+	if input.Event == webhook_module.HookEventPush || input.Event == webhook_module.HookEventPullRequest {
+		// skip runs with skip ci prefix in commit message if the event is push or pull_request
+		// https://docs.github.com/en/actions/managing-workflow-runs/skipping-workflow-runs
+		for _, prefix := range []string{"[skip ci]", "[ci skip]", "[no ci]", "[skip actions]", "[actions skip]"} {
+			if strings.HasPrefix(commit.CommitMessage, prefix) {
+				log.Debug("repo %s with commit %s: skipped run because of %s prefix", input.Repo.RepoPath(), commit.ID, prefix)
+				return nil
+			}
+		}
+	}
+
 	var detectedWorkflows []*actions_module.DetectedWorkflow
 	actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
 	workflows, schedules, err := actions_module.DetectWorkflows(gitRepo, commit, input.Event, input.Payload)
