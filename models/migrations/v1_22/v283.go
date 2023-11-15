@@ -9,8 +9,8 @@ import (
 
 func AddCombinedIndexToIssueUser(x *xorm.Engine) error {
 	type IssueUser struct {
-		UID     int64 `xorm:"INDEX(uidtoissue)"` // User ID.
-		IssueID int64 `xorm:"INDEX(uidtoissue)"`
+		UID     int64 `xorm:"INDEX unique(uidtoissue)"` // User ID.
+		IssueID int64 `xorm:"INDEX unique(uidtoissue)"`
 	}
 
 	return x.Sync(&IssueUser{})
