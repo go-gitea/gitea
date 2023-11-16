@@ -146,8 +146,13 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
 
-	if slices.Contains([]webhook_module.HookEventType{webhook_module.HookEventPush, webhook_module.HookEventPullRequest, webhook_module.HookEventPullRequestSync}, input.Event) {
-		// skip runs with a configured skip-ci string in commit message if the event is push or pull_request
+	skipRunEvents := []webhook_module.HookEventType{
+		webhook_module.HookEventPush,
+		webhook_module.HookEventPullRequest,
+		webhook_module.HookEventPullRequestSync,
+	}
+	if slices.Contains(skipRunEvents, input.Event) {
+		// skip runs with a configured skip-ci string in commit message if the event is push or pull_request(_sync)
 		// https://docs.github.com/en/actions/managing-workflow-runs/skipping-workflow-runs
 		for _, s := range setting.Actions.SkipRunStrings {
 			if strings.Contains(commit.CommitMessage, s) {
