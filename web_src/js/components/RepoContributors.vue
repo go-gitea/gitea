@@ -36,6 +36,18 @@ for (const [key, value] of Object.entries(colors)) {
   colors[key] = getColor(value);
 }
 
+const customEventListener = {
+  id: 'customEventListener',
+  afterEvent: (chart, args, opts) => {
+    // event will be replayed from chart.update when reset zoom,
+    // so we need to check whether args.replay is true to avoid call loops
+    if (args.event.type === 'dblclick' && opts.chartType === 'main' && args.replay !== true) {
+      chart.resetZoom();
+      opts.instance.updateOtherCharts(args.event, true);
+    }
+  }
+};
+
 Chart.defaults.color = colors.text;
 Chart.defaults.borderColor = colors.border;
 
@@ -50,7 +62,8 @@ Chart.register(
   PointElement,
   LineElement,
   Filler,
-  zoomPlugin
+  zoomPlugin,
+  customEventListener
 );
 
 export default {
@@ -218,13 +231,12 @@ export default {
         responsive: true,
         maintainAspectRatio: false,
         animation: false,
-        onClick: (e) => {
-          if (type === 'main') {
-            e.chart.resetZoom();
-            this.updateOtherCharts(e, true);
-          }
-        },
+        events: ['mousemove', 'mouseout', 'click', 'touchstart', 'touchmove', 'dblclick'],
         plugins: {
+          customEventListener: {
+            chartType: type,
+            instance: this,
+          },
           legend: {
             display: false,
           },
