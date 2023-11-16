@@ -362,7 +362,7 @@ export default {
         <div class="ui top attached header gt-df gt-f1">
           <b class="ui right">#{{ index + 1 }}</b>
           <a :href="contributor.home_link">
-            <img height="40" width="40" :src="contributor.avatar_link">
+            <img class="ui avatar gt-vm" height="40" width="40" :src="contributor.avatar_link">
           </a>
           <div class="gt-ml-3">
             <a :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
