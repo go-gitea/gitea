@@ -212,7 +212,7 @@ func (m *MatrixPayload) Repository(p *api.RepositoryPayload) (api.Payloader, err
 
 func (m *MatrixPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
 	senderLink := MatrixLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
-	repoLink := MatrixLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
+	repoLink := MatrixLinkFormatter(p.Package.HTMLURL, p.Package.Name)
 	var text string
 
 	switch p.Action {
