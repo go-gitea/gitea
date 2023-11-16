@@ -168,7 +168,7 @@ func Find[T any](ctx context.Context, opts FindOptions) ([]T, error) {
 		findPageSize = pageSize
 	}
 	objects := make([]T, 0, findPageSize)
-	if err := sess.Find(objects); err != nil {
+	if err := sess.Find(&objects); err != nil {
 		return nil, err
 	}
 	return objects, nil
