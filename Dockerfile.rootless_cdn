@@ -1,0 +1,92 @@
+# Build stage
+FROM openeuler/openeuler:22.03 AS build-env
+
+RUN dnf -y update && dnf install -y wget make xz git && \
+    dnf clean all
+
+# install go
+RUN wget https://golang.google.cn/dl/go1.21.4.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.21.4.linux-amd64.tar.gz && \
+    rm go1.21.4.linux-amd64.tar.gz
+ENV PATH=$PATH:/usr/local/go/bin
+
+# install nodejs
+RUN mkdir -p /usr/local/lib/nodejs
+RUN wget https://nodejs.org/dist/v20.9.0/node-v20.9.0-linux-x64.tar.xz && \
+    tar -C /usr/local/lib/nodejs -xJvf node-v20.9.0-linux-x64.tar.xz && \
+    rm node-v20.9.0-linux-x64.tar.xz
+ENV PATH=$PATH:/usr/local/lib/nodejs/node-v20.9.0-linux-x64/bin
+
+# install dumb-init
+RUN wget -O /usr/local/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.5/dumb-init_1.2.5_x86_64
+RUN chmod +x /usr/local/bin/dumb-init
+
+ARG GOPROXY
+ENV GOPROXY ${GOPROXY:-direct}
+
+ARG GITEA_VERSION
+ARG TAGS="sqlite sqlite_unlock_notify"
+ENV TAGS "bindata timetzdata $TAGS"
+ARG CGO_EXTRA_CFLAGS
+
+# Setup repo
+COPY . /go/src/code.gitea.io/gitea
+WORKDIR /go/src/code.gitea.io/gitea
+
+# Checkout version if set
+RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
+ && make clean-all build
+
+# Begin env-to-ini build
+RUN go build contrib/environment-to-ini/environment-to-ini.go
+
+# Copy local files
+COPY docker/rootless /tmp/local
+
+# Set permissions
+RUN chmod 755 /tmp/local/usr/local/bin/docker-entrypoint.sh \
+              /tmp/local/usr/local/bin/docker-setup.sh \
+              /tmp/local/usr/local/bin/gitea \
+              /go/src/code.gitea.io/gitea/gitea \
+              /go/src/code.gitea.io/gitea/environment-to-ini
+RUN chmod 644 /go/src/code.gitea.io/gitea/contrib/autocompletion/bash_autocomplete
+
+FROM openeuler/openeuler:22.03
+
+EXPOSE 2222 3000
+
+RUN dnf in -y \
+    bash \
+    ca-certificates \
+    gettext \
+    git \
+    curl \
+    gnupg \
+    && dnf clean all
+
+RUN groupadd -r -g 1000 git && useradd -r -u 1000 -g git git
+
+RUN mkdir -p /var/lib/gitea /etc/gitea
+RUN chown git:git /var/lib/gitea /etc/gitea
+
+COPY --from=build-env /tmp/local /
+COPY --from=build-env --chown=root:root /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
+COPY --from=build-env --chown=root:root /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
+COPY --from=build-env /go/src/code.gitea.io/gitea/contrib/autocompletion/bash_autocomplete /etc/profile.d/gitea_bash_autocomplete.sh
+COPY --from=build-env /usr/local/bin/dumb-init /usr/bin/dumb-init
+
+# git:git
+USER 1000:1000
+ENV GITEA_WORK_DIR /var/lib/gitea
+ENV GITEA_CUSTOM /var/lib/gitea/custom
+ENV GITEA_TEMP /tmp/gitea
+ENV TMPDIR /tmp/gitea
+
+# TODO add to docs the ability to define the ini to load (useful to test and revert a config)
+ENV GITEA_APP_INI /etc/gitea/app.ini
+ENV HOME "/var/lib/gitea/git"
+VOLUME ["/var/lib/gitea", "/etc/gitea"]
+WORKDIR /var/lib/gitea
+
+ENTRYPOINT ["/usr/bin/dumb-init", "--", "/usr/local/bin/docker-entrypoint.sh"]
+CMD []
