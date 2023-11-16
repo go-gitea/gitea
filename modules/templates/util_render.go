@@ -237,6 +237,18 @@ func RenderMarkdownToHtml(ctx context.Context, input string) template.HTML { //n
 	return template.HTML(output)
 }
 
+func RenderMarkdownDocumentToHTML(ctx context.Context, input string) template.HTML {
+	output, err := markdown.RenderString(&markup.RenderContext{
+		Ctx:       ctx,
+		URLPrefix: setting.AppSubURL,
+		Metas:     map[string]string{"mode": "document"},
+	}, input)
+	if err != nil {
+		log.Error("RenderString: %v", err)
+	}
+	return template.HTML(output)
+}
+
 func RenderLabels(ctx context.Context, labels []*issues_model.Label, repoLink string) template.HTML {
 	htmlCode := `<span class="labels-list">`
 	for _, label := range labels {
