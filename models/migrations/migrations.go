@@ -551,7 +551,7 @@ var migrations = []Migration{
 	// v282 -> v283
 	NewMigration("Add Index to pull_auto_merge.doer_id", v1_22.AddIndexToPullAutoMergeDoerID),
 	// v283 -> v284
-	NewMigration("Fix missing admin team unit records", v1_21.FixMissingAdminTeamUnitRecords),
+	NewMigration("Fix missing admin team unit records", v1_22.FixMissingAdminTeamUnitRecords),
 }
 
 // GetCurrentDBVersion returns the current db version
