@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
 	secret_model "code.gitea.io/gitea/models/secret"
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/container"
@@ -200,7 +201,7 @@ func findTaskNeeds(ctx context.Context, task *actions_model.ActionTask) (map[str
 	}
 	needs := container.SetOf(task.Job.Needs...)
 
-	jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: task.Job.RunID})
+	jobs, err := db.Find[*actions_model.ActionRunJob](ctx, &actions_model.FindRunJobOptions{RunID: task.Job.RunID})
 	if err != nil {
 		return nil, fmt.Errorf("FindRunJobs: %w", err)
 	}

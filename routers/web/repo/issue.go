@@ -570,8 +570,10 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	}
 	var err error
 	projects, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
 		RepoID:   repo.ID,
-		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
 		Type:     project_model.TypeRepository,
 	})
@@ -580,8 +582,10 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		return
 	}
 	projects2, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
 		OwnerID:  repo.OwnerID,
-		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
 		Type:     repoOwnerType,
 	})
@@ -593,8 +597,10 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	ctx.Data["OpenProjects"] = append(projects, projects2...)
 
 	projects, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
 		RepoID:   repo.ID,
-		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,
 		Type:     project_model.TypeRepository,
 	})
@@ -603,8 +609,10 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		return
 	}
 	projects2, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
 		OwnerID:  repo.OwnerID,
-		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,
 		Type:     repoOwnerType,
 	})

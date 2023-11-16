@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	project_model "code.gitea.io/gitea/models/project"
@@ -72,8 +73,11 @@ func Projects(ctx *context.Context) {
 	}
 
 	projects, count, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+		ListOptions: db.ListOptions{
+			PageSize: setting.UI.IssuePagingNum,
+			Page:     page,
+		},
 		RepoID:   repo.ID,
-		Page:     page,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
 		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
 		Type:     project_model.TypeRepository,
