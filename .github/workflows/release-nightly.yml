@@ -77,7 +77,9 @@ jobs:
           REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
           echo "branch=${REF_NAME}-nightly" >> "$GITHUB_OUTPUT"
       - name: Get nightly version
-        run: echo "NIGHTLY_VERSION=$(git describe --tags --always | sed 's/-/+/' | sed 's/^v//')" >> $GITHUB_ENV
+        run: |
+          NIGHTLY_VERSION="$(git describe --tags --always | sed 's/-/+/' | sed 's/^v//')"
+          echo "NIGHTLY_VERSION=${NIGHTLY_VERSION}" >> "${GITHUB_ENV}"
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -88,10 +90,10 @@ jobs:
         with:
           context: .
           target: gitea
-          build-args:
-            - GITHUB_REF_NAME=${{ env.GITHUB_REF_NAME }}
-            - GITHUB_REF_TYPE=${{ env.GITHUB_REF_TYPE }}
-            - DOCKER_GITEA_VERSION=${{ env.NIGHTLY_VERSION }}
+          build-args: |
+            GITHUB_REF_NAME=${{ env.GITHUB_REF_NAME }}
+            GITHUB_REF_TYPE=${{ env.GITHUB_REF_TYPE }}
+            DOCKER_GITEA_VERSION=${{ env.NIGHTLY_VERSION }}
           platforms: linux/amd64,linux/arm64
           pull: true
           push: true
@@ -101,10 +103,10 @@ jobs:
         with:
           context: .
           target: gitea-rootless
-          build-args:
-            - GITHUB_REF_NAME=${{ env.GITHUB_REF_NAME }}
-            - GITHUB_REF_TYPE=${{ env.GITHUB_REF_TYPE }}
-            - DOCKER_GITEA_VERSION=${{ env.NIGHTLY_VERSION }}
+          build-args: |
+            GITHUB_REF_NAME=${{ env.GITHUB_REF_NAME }}
+            GITHUB_REF_TYPE=${{ env.GITHUB_REF_TYPE }}
+            DOCKER_GITEA_VERSION=${{ env.NIGHTLY_VERSION }}
           platforms: linux/amd64,linux/arm64
           pull: true
           push: true

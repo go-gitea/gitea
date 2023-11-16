@@ -109,9 +109,9 @@ jobs:
         with:
           context: .
           target: gitea
-          build-args:
-            - GITHUB_REF_NAME=${{ env.GITHUB_REF_NAME }}
-            - GITHUB_REF_TYPE=${{ env.GITHUB_REF_TYPE }}
+          build-args: |
+            GITHUB_REF_NAME=${{ env.GITHUB_REF_NAME }}
+            GITHUB_REF_TYPE=${{ env.GITHUB_REF_TYPE }}
           platforms: linux/amd64,linux/arm64
           pull: true
           push: true
@@ -122,9 +122,9 @@ jobs:
         with:
           context: .
           target: gitea-rootless
-          build-args:
-            - GITHUB_REF_NAME=${{ env.GITHUB_REF_NAME }}
-            - GITHUB_REF_TYPE=${{ env.GITHUB_REF_TYPE }}
+          build-args: |
+            GITHUB_REF_NAME=${{ env.GITHUB_REF_NAME }}
+            GITHUB_REF_TYPE=${{ env.GITHUB_REF_TYPE }}
           platforms: linux/amd64,linux/arm64
           pull: true
           push: true
