@@ -5,69 +5,53 @@ package setting
 
 import (
 	"compress/gzip"
+	"os"
 	"path"
 	"path/filepath"
-	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
 
 var Audit = struct {
-	Enabled         bool
-	Appender        string
-	AppenderOptions map[string]*AppenderOptions
+	Enabled     bool
+	FileOptions *log.WriterFileOption `ini:"-"`
 }{
-	Enabled:         false,
-	AppenderOptions: make(map[string]*AppenderOptions),
-}
-
-type AppenderOptions struct {
-	Filename         string
-	Rotate           bool
-	MaximumSize      int64
-	RotateDaily      bool
-	KeepDays         int
-	Compress         bool
-	CompressionLevel int
+	Enabled: false,
 }
 
 func loadAuditFrom(rootCfg ConfigProvider) {
 	mustMapSetting(rootCfg, "audit", &Audit)
 
-	for _, name := range strings.Split(Audit.Appender, ",") {
-		name = strings.TrimSpace(name)
-		if name == "" {
-			continue
-		}
-
-		sec, err := rootCfg.GetSection("audit." + name)
-		if err != nil {
-			sec, _ = rootCfg.NewSection("audit." + name)
-		}
-
-		opts := &AppenderOptions{
-			Filename:         path.Join(Log.RootPath, "audit.log"),
-			Rotate:           true,
-			RotateDaily:      true,
-			KeepDays:         7,
+	sec, err := rootCfg.GetSection("audit.file")
+	if err == nil {
+		opts := &log.WriterFileOption{
+			FileName:         path.Join(Log.RootPath, "audit.log"),
+			LogRotate:        true,
+			DailyRotate:      true,
+			MaxDays:          7,
+			Compress:         true,
 			CompressionLevel: gzip.DefaultCompression,
 		}
 
 		if err := sec.MapTo(opts); err != nil {
-			log.Error("audit.%s: %v", name, err.Error())
+			log.Fatal("Failed to map audit file settings: %v", err)
 		}
 
-		opts.Filename = util.FilePathJoinAbs(opts.Filename)
-		if !filepath.IsAbs(opts.Filename) {
-			opts.Filename = path.Join(Log.RootPath, opts.Filename)
+		opts.FileName = util.FilePathJoinAbs(opts.FileName)
+		if !filepath.IsAbs(opts.FileName) {
+			opts.FileName = path.Join(Log.RootPath, opts.FileName)
 		}
 
-		opts.MaximumSize = mustBytes(sec, "MAXIMUM_SIZE")
-		if opts.MaximumSize <= 0 {
-			opts.MaximumSize = 1 << 28
+		if err := os.MkdirAll(filepath.Dir(opts.FileName), os.ModePerm); err != nil {
+			log.Fatal("Unable to create directory for audit log %s: %v", opts.FileName, err)
 		}
 
-		Audit.AppenderOptions[name] = opts
+		opts.MaxSize = mustBytes(sec, "MAXIMUM_SIZE")
+		if opts.MaxSize <= 0 {
+			opts.MaxSize = 1 << 28
+		}
+
+		Audit.FileOptions = opts
 	}
 }

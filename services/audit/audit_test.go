@@ -4,6 +4,8 @@
 package audit
 
 import (
+	"context"
+	"net/http"
 	"testing"
 	"time"
 
@@ -16,6 +18,7 @@ import (
 	secret_model "code.gitea.io/gitea/models/secret"
 	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/web/middleware"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -27,6 +30,8 @@ func TestBuildEvent(t *testing.T) {
 
 		assert.Equal(t, expected, e)
 	}
+
+	ctx := context.Background()
 
 	u := &user_model.User{ID: 1, Name: "TestUser"}
 	r := &repository_model.Repository{ID: 3, Name: "TestRepo", OwnerName: "TestUser"}
@@ -42,6 +47,7 @@ func TestBuildEvent(t *testing.T) {
 			Message: "Updated settings of user TestUser.",
 		},
 		BuildEvent(
+			ctx,
 			UserUpdate,
 			doer,
 			u,
@@ -59,6 +65,7 @@ func TestBuildEvent(t *testing.T) {
 			Message: "Added push mirror for repository TestUser/TestRepo.",
 		},
 		BuildEvent(
+			ctx,
 			RepositoryMirrorPushAdd,
 			doer,
 			r,
@@ -67,6 +74,14 @@ func TestBuildEvent(t *testing.T) {
 			r.FullName(),
 		),
 	)
+
+	e := BuildEvent(ctx, UserUpdate, doer, u, u, "")
+	assert.Empty(t, e.IPAddress)
+
+	ctx = middleware.WithContextRequest(ctx, &http.Request{RemoteAddr: "127.0.0.1:1234"})
+
+	e = BuildEvent(ctx, UserUpdate, doer, u, u, "")
+	assert.Equal(t, "127.0.0.1", e.IPAddress)
 }
 
 func TestScopeToDescription(t *testing.T) {

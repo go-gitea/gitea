@@ -7,8 +7,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"os"
-	"path/filepath"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -20,11 +18,8 @@ import (
 	secret_model "code.gitea.io/gitea/models/secret"
 	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util/rotatingfilewriter"
 	"code.gitea.io/gitea/modules/web/middleware"
 )
 
@@ -45,77 +40,12 @@ type Event struct {
 	IPAddress string         `json:"ip_address"`
 }
 
-var (
-	appenders  = make([]Appender, 0, 5)
-	auditQueue *queue.WorkerPoolQueue[*Event]
-)
-
-func TestingOnlyAddAppender(a Appender) {
-	appenders = append(appenders, a)
-}
-
-func TestingOnlyRemoveAppender(a Appender) {
-	for i, app := range appenders {
-		if app == a {
-			last := len(appenders) - 1
-			appenders[last], appenders[i] = nil, appenders[last]
-			appenders = appenders[:last]
-			return
-		}
-	}
-}
-
-func Init() {
+func Init() error {
 	if !setting.Audit.Enabled {
-		return
+		return nil
 	}
 
-	for name, opts := range setting.Audit.AppenderOptions {
-		var a Appender
-		switch name {
-		case "log":
-			a = &LogAppender{}
-		case "file":
-			if err := os.MkdirAll(filepath.Dir(opts.Filename), os.ModePerm); err != nil {
-				panic(err.Error())
-			}
-
-			fa, err := NewFileAppender(opts.Filename, &rotatingfilewriter.Options{
-				Rotate:           opts.Rotate,
-				MaximumSize:      opts.MaximumSize,
-				RotateDaily:      opts.RotateDaily,
-				KeepDays:         opts.KeepDays,
-				Compress:         opts.Compress,
-				CompressionLevel: opts.CompressionLevel,
-			})
-			if err != nil {
-				log.Error("Failed to create file appender: %v", err)
-				continue
-			}
-			a = fa
-		}
-
-		if a != nil {
-			appenders = append(appenders, a)
-		}
-	}
-
-	auditQueue = queue.CreateSimpleQueue(
-		graceful.GetManager().ShutdownContext(),
-		"audit",
-		func(data ...*Event) []*Event {
-			ctx := graceful.GetManager().ShutdownContext()
-
-			for _, e := range data {
-				for _, a := range appenders {
-					a.Record(ctx, e)
-				}
-			}
-			return nil
-		},
-	)
-
-	go graceful.GetManager().RunWithCancel(auditQueue)
+	return initAuditFile()
 }
 
 func Record(ctx context.Context, action Action, doer *user_model.User, scope, target any, message string, v ...any) {
@@ -125,8 +55,8 @@ func Record(ctx context.Context, action Action, doer *user_model.User, scope, ta
 
 	e := BuildEvent(ctx, action, doer, scope, target, message, v...)
 
-	if err := auditQueue.Push(e); err != nil {
-		log.Error("Error pushing audit event to queue: %v", err)
+	if err := writeToFile(e); err != nil {
+		log.Error("Error writing audit event to file: %v", err)
 	}
 }
 
