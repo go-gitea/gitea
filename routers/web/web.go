@@ -1331,8 +1331,9 @@ func registerRoutes(m *web.Route) {
 				m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
 				m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 			})
-			m.Group("/workflows", func() {
-				m.Get("/*", actions.GetWorkflowBadge)
+			m.Group("/workflows/{workflow_name}", func() {
+				m.Get("/badge.svg", actions.GetDefaultBranchWorkflowBadge)
+				m.Get("/{branch_name}/badge.svg", actions.GetWorkflowBadge)
 			})
 		}, reqRepoActionsReader, actions.MustEnableActions)
 
