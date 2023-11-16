@@ -36,6 +36,18 @@ for (const [key, value] of Object.entries(colors)) {
   colors[key] = getColor(value);
 }
 
+const customEventListener = {
+  id: 'customEventListener',
+  afterEvent: (chart, args, opts) => {
+    // event will be replayed from chart.update when reset zoom,
+    // so we need to check whether args.replay is true to avoid call loops
+    if (args.event.type === 'dblclick' && opts.chartType === 'main' && !args.replay) {
+      chart.resetZoom();
+      opts.instance.updateOtherCharts(args.event, true);
+    }
+  }
+};
+
 Chart.defaults.color = colors.text;
 Chart.defaults.borderColor = colors.border;
 
@@ -50,7 +62,8 @@ Chart.register(
   PointElement,
   LineElement,
   Filler,
-  zoomPlugin
+  zoomPlugin,
+  customEventListener
 );
 
 export default {
@@ -69,18 +82,18 @@ export default {
     repoLink: pageData.repoLink || [],
     type: pageData.contributionType,
     contributorsStats: [],
-    dateFrom: null,
-    dateUntil: null,
-    startDate: null,
-    endDate: null,
+    xAxisStart: null,
+    xAxisEnd: null,
+    xAxisMin: null,
+    xAxisMax: null,
   }),
   mounted() {
     this.fetchGraphData();
 
     $('.ui.dropdown').dropdown({
       onChange: (val) => {
-        this.dateFrom = this.startDate;
-        this.dateUntil = this.endDate;
+        this.xAxisMin = this.xAxisStart;
+        this.xAxisMax = this.xAxisEnd;
         this.type = val;
         this.sortContributors();
       }
@@ -103,17 +116,17 @@ export default {
         do {
           response = await GET(`${this.repoLink}/activity/contributors/data`);
           if (response.status === 202) {
-            await new Promise(resolve => setTimeout(resolve, 1000)); // wait for 1 second before retrying
+            await new Promise((resolve) => setTimeout(resolve, 1000)); // wait for 1 second before retrying
           }
         } while (response.status === 202);
         if (response.ok) {
           const data = await response.json();
           const {total, ...rest} = data;
           this.contributorsStats = rest;
-          this.dateFrom = new Date(total.weeks[0].week);
-          this.dateUntil = new Date();
-          this.startDate = this.dateFrom;
-          this.endDate = this.dateUntil;
+          this.xAxisStart = total.weeks[0].week;
+          this.xAxisEnd = total.weeks[total.weeks.length - 1].week;
+          this.xAxisMin = this.xAxisStart;
+          this.xAxisMax = this.xAxisEnd;
           this.sortContributors();
           this.totalStats = total;
           this.errorText = '';
@@ -137,8 +150,8 @@ export default {
         user['total_deletions'] = 0;
         user['max_contribution_type'] = 0;
         const filteredWeeks = user.weeks.filter((week) => {
-          const weekDate = new Date(week.week);
-          if (weekDate >= this.dateFrom && weekDate <= this.dateUntil) {
+          const oneWeek = 7 * 24 * 60 * 60 * 1000;
+          if (week.week >= this.xAxisMin - oneWeek && week.week <= this.xAxisMax + oneWeek) {
             user['total_commits'] += week.commits;
             user['total_additions'] += week.additions;
             user['total_deletions'] += week.deletions;
@@ -202,12 +215,12 @@ export default {
       const minVal = event.chart.options.scales.x.min;
       const maxVal = event.chart.options.scales.x.max;
       if (reset) {
-        this.dateFrom = this.startDate;
-        this.dateUntil = this.endDate;
+        this.xAxisMin = this.xAxisStart;
+        this.xAxisMax = this.xAxisEnd;
         this.sortContributors();
       } else if (minVal) {
-        this.dateFrom = new Date(minVal);
-        this.dateUntil = new Date(maxVal);
+        this.xAxisMin = minVal;
+        this.xAxisMax = maxVal;
         this.sortContributors();
       }
     },
@@ -217,13 +230,12 @@ export default {
         responsive: true,
         maintainAspectRatio: false,
         animation: false,
-        onClick: (e) => {
-          if (type === 'main') {
-            e.chart.resetZoom();
-            this.updateOtherCharts(e, true);
-          }
-        },
+        events: ['mousemove', 'mouseout', 'click', 'touchstart', 'touchmove', 'dblclick'],
         plugins: {
+          customEventListener: {
+            chartType: type,
+            instance: this,
+          },
           legend: {
             display: false,
           },
@@ -259,6 +271,8 @@ export default {
         },
         scales: {
           x: {
+            min: this.xAxisMin,
+            max: this.xAxisMax,
             type: 'time',
             grid: {
               display: false,
@@ -289,27 +303,27 @@ export default {
     <h2 class="ui header gt-df gt-ac gt-sb">
       <div>
         <relative-time
-          v-if="dateFrom !== null"
+          v-if="xAxisMin > 0"
           format="datetime"
           year="numeric"
           month="short"
           day="numeric"
           weekday=""
-          :datetime="dateFrom"
+          :datetime="new Date(xAxisMin)"
         >
-          {{ dateFrom }}
+          {{ new Date(xAxisMin) }}
         </relative-time>
         {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: "-" }}
         <relative-time
-          v-if="dateUntil !== null"
+          v-if="xAxisMax > 0"
           format="datetime"
           year="numeric"
           month="short"
           day="numeric"
           weekday=""
-          :datetime="dateUntil"
+          :datetime="new Date(xAxisMax)"
         >
-          {{ dateUntil }}
+          {{ new Date(xAxisMax) }}
         </relative-time>
       </div>
       <div>
@@ -359,7 +373,7 @@ export default {
         <div class="ui top attached header gt-df gt-f1">
           <b class="ui right">#{{ index + 1 }}</b>
           <a :href="contributor.home_link">
-            <img height="40" width="40" :src="contributor.avatar_link">
+            <img class="ui avatar gt-vm" height="40" width="40" :src="contributor.avatar_link">
           </a>
           <div class="gt-ml-3">
             <a :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
