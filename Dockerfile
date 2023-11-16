@@ -3,7 +3,7 @@ FROM docker.io/library/node:20-alpine3.18 AS build-frontend
 
 # Build deps
 RUN apk --no-cache add build-base git \
-    && rm -rf /var/cache/apk/*
+  && rm -rf /var/cache/apk/*
 
 # Setup repo
 WORKDIR /usr/src/code.gitea.io/gitea
@@ -28,7 +28,7 @@ ARG DOCKER_GITEA_VERSION
 
 ENV GITHUB_REF_NAME=${GITHUB_REF_NAME:-docker-develop}
 ENV GITHUB_REF_TYPE=${GITHUB_REF_TYPE:-branch}
-ENV DOCKER_GITEA_VERSION=${DOCKER_GITEA_VERSION}
+ENV DOCKER_GITEA_VERSION=${DOCKER_GITEA_VERSION:-${GITHUB_REF_NAME}}
 
 # Build frontend
 RUN make clean-all frontend
@@ -45,7 +45,7 @@ ARG CGO_EXTRA_CFLAGS
 
 # Build deps
 RUN apk --no-cache add build-base git \
-    && rm -rf /var/cache/apk/*
+  && rm -rf /var/cache/apk/*
 
 # Setup repo
 WORKDIR ${GOPATH}/src/code.gitea.io/gitea
@@ -82,7 +82,7 @@ ARG DOCKER_GITEA_VERSION
 
 ENV GITHUB_REF_NAME=${GITHUB_REF_NAME:-docker-develop}
 ENV GITHUB_REF_TYPE=${GITHUB_REF_TYPE:-branch}
-ENV DOCKER_GITEA_VERSION=${DOCKER_GITEA_VERSION-${GITHUB_REF_NAME}}
+ENV DOCKER_GITEA_VERSION=${DOCKER_GITEA_VERSION:-${GITHUB_REF_NAME}}
 
 # Build backend
 RUN make backend
@@ -97,12 +97,12 @@ FROM docker.io/library/alpine:3.18 AS gitea-base
 LABEL maintainer="maintainers@gitea.io"
 
 RUN apk --no-cache add \
-    bash \
-    ca-certificates \
-    gettext \
-    git \
-    curl \
-    gnupg \
+  bash \
+  ca-certificates \
+  gettext \
+  git \
+  curl \
+  gnupg \
   && rm -rf /var/cache/apk/*
 
 RUN addgroup -S -g 1000 git
@@ -116,16 +116,16 @@ FROM gitea-base AS gitea-rootless
 EXPOSE 2222 3000
 
 RUN apk --no-cache add \
-    dumb-init \
-    && rm -rf /var/cache/apk/*
+  dumb-init \
+  && rm -rf /var/cache/apk/*
 
 RUN adduser \
-    -S -H -D \
-    -h /var/lib/gitea/git \
-    -s /bin/bash \
-    -u 1000 \
-    -G git \
-    git
+  -S -H -D \
+  -h /var/lib/gitea/git \
+  -s /bin/bash \
+  -u 1000 \
+  -G git \
+  git
 
 RUN mkdir -p /var/lib/gitea /etc/gitea
 RUN chown git:git /var/lib/gitea /etc/gitea
@@ -154,21 +154,21 @@ FROM gitea-base AS gitea
 EXPOSE 22 3000
 
 RUN apk --no-cache add \
-    linux-pam \
-    openssh \
-    s6 \
-    sqlite \
-    su-exec \
-    && rm -rf /var/cache/apk/*
+  linux-pam \
+  openssh \
+  s6 \
+  sqlite \
+  su-exec \
+  && rm -rf /var/cache/apk/*
 
 RUN adduser \
-    -S -H -D \
-    -h /data/git \
-    -s /bin/bash \
-    -u 1000 \
-    -G git \
-    git && \
-    echo "git:*" | chpasswd -e
+  -S -H -D \
+  -h /data/git \
+  -s /bin/bash \
+  -u 1000 \
+  -G git \
+  git && \
+  echo "git:*" | chpasswd -e
 
 ENV USER git
 ENV GITEA_CUSTOM /data/gitea
