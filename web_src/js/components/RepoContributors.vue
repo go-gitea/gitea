@@ -41,7 +41,7 @@ const customEventListener = {
   afterEvent: (chart, args, opts) => {
     // event will be replayed from chart.update when reset zoom,
     // so we need to check whether args.replay is true to avoid call loops
-    if (args.event.type === 'dblclick' && opts.chartType === 'main' && args.replay !== true) {
+    if (args.event.type === 'dblclick' && opts.chartType === 'main' && !args.replay) {
       chart.resetZoom();
       opts.instance.updateOtherCharts(args.event, true);
     }
@@ -163,7 +163,6 @@ export default {
           return false;
         });
 
-        user['max_contribution_type'] += 1;
         filteredData[key] = {...user, weeks: filteredWeeks};
       }
 
