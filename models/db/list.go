@@ -14,7 +14,8 @@ import (
 
 const (
 	// DefaultMaxInSize represents default variables number on IN () in SQL
-	DefaultMaxInSize = 50
+	DefaultMaxInSize     = 50
+	defaultFindSliceSize = 10
 )
 
 // Paginator is the base for different ListOptions types
@@ -162,7 +163,11 @@ func Find[T any](ctx context.Context, opts FindOptions) ([]T, error) {
 		sess.OrderBy(newOpt.ToOrders())
 	}
 
-	var objects []T
+	findPageSize := defaultFindSliceSize
+	if pageSize > 0 {
+		findPageSize = pageSize
+	}
+	objects := make([]T, 0, findPageSize)
 	if err := sess.Find(objects); err != nil {
 		return nil, err
 	}
@@ -186,7 +191,11 @@ func FindAndCount[T any](ctx context.Context, opts FindOptions) ([]T, int64, err
 		sess.OrderBy(newOpt.ToOrders())
 	}
 
-	var objects []T
+	findPageSize := defaultFindSliceSize
+	if pageSize > 0 {
+		findPageSize = pageSize
+	}
+	objects := make([]T, 0, findPageSize)
 	cnt, err := sess.FindAndCount(&objects)
 	if err != nil {
 		return nil, 0, err
