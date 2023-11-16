@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -145,7 +146,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
 
-	if input.Event == webhook_module.HookEventPush || input.Event == webhook_module.HookEventPullRequest {
+	if slices.Contains([]webhook_module.HookEventType{webhook_module.HookEventPush, webhook_module.HookEventPullRequest, webhook_module.HookEventPullRequestSync}, input.Event) {
 		// skip runs with a configured skip-ci string in commit message if the event is push or pull_request
 		// https://docs.github.com/en/actions/managing-workflow-runs/skipping-workflow-runs
 		for _, s := range setting.Actions.SkipRunStrings {
