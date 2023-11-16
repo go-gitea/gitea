@@ -115,12 +115,16 @@ func (d *dbConfigCachedGetter) GetValue(ctx context.Context, key string) (v stri
 
 func (d *dbConfigCachedGetter) GetRevision(ctx context.Context) int {
 	d.mu.RLock()
-	defer d.mu.RUnlock()
-	if time.Since(d.cacheTime) < time.Second {
-		return d.revision
-	}
+	cachedDuration := time.Since(d.cacheTime)
+	cachedRevision := d.revision
 	d.mu.RUnlock()
+
+	if cachedDuration < time.Second {
+		return cachedRevision
+	}
+
 	d.mu.Lock()
+	defer d.mu.Unlock()
 	if GetRevision(ctx) != d.revision {
 		rev, set, err := GetAllSettings(ctx)
 		if err != nil {
@@ -131,8 +135,6 @@ func (d *dbConfigCachedGetter) GetRevision(ctx context.Context) int {
 		}
 	}
 	d.cacheTime = time.Now()
-	d.mu.Unlock()
-	d.mu.RLock()
 	return d.revision
 }
 
