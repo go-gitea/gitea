@@ -1506,7 +1506,6 @@
 @media (max-width: 991.98px) {
   .repository .diff-detail-box {
     flex-direction: row;
-    height: 77px; /* this height should match sticky-2nd-row */
   }
 }
 
@@ -1534,13 +1533,9 @@
   color: var(--color-red);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 991.98px) {
   .repository .diff-detail-box .diff-detail-stats {
-    font-size: 0;
-    line-height: 1.6rem;
-  }
-  .repository .diff-detail-box .diff-detail-stats strong {
-    font-size: 1rem;
+    display: none !important;
   }
 }
 
@@ -1733,12 +1728,6 @@
 
 .file.editor .diff-file-box .ui.attached.table {
   border: none;
-}
-
-@media (max-width: 991.98px) {
-  .diff-file-box {
-    scroll-margin-top: 77px; /* match .repository .diff-detail-box */
-  }
 }
 
 /* TODO: this can potentially be made "global" by removing the class prefix */
@@ -2824,18 +2813,6 @@ tbody.commit-list {
   position: sticky;
   top: 44px; /* match .repository .diff-detail-box */
   z-index: 7;
-}
-
-@media (max-width: 991.98px) {
-  .ui.attached.header.diff-file-header.sticky-2nd-row {
-    top: 77px; /* match .repository .diff-detail-box */
-  }
-}
-
-@media (max-width: 480px) {
-  .ui.attached.header.diff-file-header.sticky-2nd-row {
-    position: static;
-  }
 }
 
 .diff-file-name {

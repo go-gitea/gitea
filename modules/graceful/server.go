@@ -20,30 +20,10 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-var (
-	// DefaultReadTimeOut default read timeout
-	DefaultReadTimeOut time.Duration
-	// DefaultWriteTimeOut default write timeout
-	DefaultWriteTimeOut time.Duration
-	// DefaultMaxHeaderBytes default max header bytes
-	DefaultMaxHeaderBytes int
-	// PerWriteWriteTimeout timeout for writes
-	PerWriteWriteTimeout = 30 * time.Second
-	// PerWriteWriteTimeoutKbTime is a timeout taking account of how much there is to be written
-	PerWriteWriteTimeoutKbTime = 10 * time.Second
-)
-
-// GetListener returns a listener from a GetListener function, which must have the
-// signature: `func FunctioName(network, address string) (net.Listener, error)`.
-// This determines the implementation of net.Listener which the server will use.`
-// It is implemented in this way so that downstreams may specify the type of listener
-// they want to provide Gitea on by default, such as with a hidden service or a p2p network
-// No need to worry about "breaking" if there would be a refactoring for the Listeners. No compatibility-guarantee for this mechanism
+// GetListener returns a net listener
+// This determines the implementation of net.Listener which the server will use,
+// so that downstreams could provide their own Listener, such as with a hidden service or a p2p network
 var GetListener = DefaultGetListener
-
-func init() {
-	DefaultMaxHeaderBytes = 0 // use http.DefaultMaxHeaderBytes - which currently is 1 << 20 (1MB)
-}
 
 // ServeFunction represents a listen.Accept loop
 type ServeFunction = func(net.Listener) error
