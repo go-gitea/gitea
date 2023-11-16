@@ -83,14 +83,3 @@ func (opts FindRunJobOptions) ToConds() builder.Cond {
 	}
 	return cond
 }
-
-/*
-func FindRunJobs(ctx context.Context, opts FindRunJobOptions) (ActionJobList, int64, error) {
-	e := db.GetEngine(ctx).Where(opts.ToConds())
-	if opts.PageSize > 0 && opts.Page >= 1 {
-		e.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-	}
-	var tasks ActionJobList
-	total, err := e.FindAndCount(&tasks)
-	return tasks, total, err
-}*/
