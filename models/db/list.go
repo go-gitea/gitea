@@ -52,6 +52,8 @@ type ListOptions struct {
 	ListAll  bool // if true, then PageSize and Page will not be taken
 }
 
+var ListOptionsAll = ListOptions{ListAll: true}
+
 var (
 	_ Paginator   = &ListOptions{}
 	_ FindOptions = &ListOptions{}
@@ -156,7 +158,7 @@ func Find[T any](ctx context.Context, opts FindOptions) ([]T, error) {
 	if !opts.IsListAll() && pageSize > 0 && page >= 1 {
 		sess.Limit(pageSize, (page-1)*pageSize)
 	}
-	if newOpt, ok := opts.(FindOptionsOrder); ok {
+	if newOpt, ok := opts.(FindOptionsOrder); ok && newOpt.ToOrders() != "" {
 		sess.OrderBy(newOpt.ToOrders())
 	}
 
@@ -180,7 +182,7 @@ func FindAndCount[T any](ctx context.Context, opts FindOptions) ([]T, int64, err
 	if !opts.IsListAll() && pageSize > 0 && page >= 1 {
 		sess.Limit(pageSize, (page-1)*pageSize)
 	}
-	if newOpt, ok := opts.(FindOptionsOrder); ok {
+	if newOpt, ok := opts.(FindOptionsOrder); ok && newOpt.ToOrders() != "" {
 		sess.OrderBy(newOpt.ToOrders())
 	}
 

@@ -226,6 +226,10 @@ func (opts *SearchOptions) ToConds() builder.Cond {
 	return cond
 }
 
+func (opts *SearchOptions) ToOrders() string {
+	return opts.OrderBy.String()
+}
+
 func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
 	switch sortType {
 	case "oldest":
@@ -237,22 +241,6 @@ func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
 	default:
 		return db.SearchOrderByNewest
 	}
-}
-
-// FindProjects returns a list of all projects that have been created in the repository
-func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
-	e := db.GetEngine(ctx).Where(opts.ToConds())
-	if opts.OrderBy.String() != "" {
-		e = e.OrderBy(opts.OrderBy.String())
-	}
-	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
-
-	if opts.Page > 0 && !opts.ListAll {
-		e = e.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-	}
-
-	count, err := e.FindAndCount(&projects)
-	return projects, count, err
 }
 
 // NewProject creates a new Project
