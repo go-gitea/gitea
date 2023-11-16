@@ -520,14 +520,14 @@ func DeleteProtectedBranch(ctx context.Context, repo *repo_model.Repository, id 
 
 // RemoveUserIDFromProtectedBranch remove all user ids from protected branch options
 func RemoveUserIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, userID int64) error {
-	lenIDs, lenApprovalIDs, lenMergeIDs := len(p.WhitelistUserIDs), len(p.ApprovalsWhitelistUserIDs), len(p.MergeWhitelistUserIDs)
+	lenIDs, lenForcePushIDs, lenApprovalIDs, lenMergeIDs := len(p.WhitelistUserIDs), len(p.ForcePushWhitelistUserIDs), len(p.ApprovalsWhitelistUserIDs), len(p.MergeWhitelistUserIDs)
 	p.WhitelistUserIDs = util.SliceRemoveAll(p.WhitelistUserIDs, userID)
 	p.ForcePushWhitelistUserIDs = util.SliceRemoveAll(p.ForcePushWhitelistUserIDs, userID)
 	p.ApprovalsWhitelistUserIDs = util.SliceRemoveAll(p.ApprovalsWhitelistUserIDs, userID)
 	p.MergeWhitelistUserIDs = util.SliceRemoveAll(p.MergeWhitelistUserIDs, userID)
 
 	if lenIDs != len(p.WhitelistUserIDs) ||
-		lenApprovalIDs != len(p.ForcePushWhitelistUserIDs) ||
+		lenForcePushIDs != len(p.ForcePushWhitelistUserIDs) ||
 		lenApprovalIDs != len(p.ApprovalsWhitelistUserIDs) ||
 		lenMergeIDs != len(p.MergeWhitelistUserIDs) {
 		if _, err := db.GetEngine(ctx).ID(p.ID).Cols(
@@ -544,12 +544,14 @@ func RemoveUserIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, us
 
 // RemoveTeamIDFromProtectedBranch remove all team ids from protected branch options
 func RemoveTeamIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, teamID int64) error {
-	lenIDs, lenApprovalIDs, lenMergeIDs := len(p.WhitelistTeamIDs), len(p.ApprovalsWhitelistTeamIDs), len(p.MergeWhitelistTeamIDs)
+	lenIDs, lenForcePushIDs, lenApprovalIDs, lenMergeIDs := len(p.WhitelistTeamIDs), len(p.ForcePushWhitelistTeamIDs), len(p.ApprovalsWhitelistTeamIDs), len(p.MergeWhitelistTeamIDs)
 	p.WhitelistTeamIDs = util.SliceRemoveAll(p.WhitelistTeamIDs, teamID)
+	p.ForcePushWhitelistTeamIDs = util.SliceRemoveAll(p.ForcePushWhitelistTeamIDs, teamID)
 	p.ApprovalsWhitelistTeamIDs = util.SliceRemoveAll(p.ApprovalsWhitelistTeamIDs, teamID)
 	p.MergeWhitelistTeamIDs = util.SliceRemoveAll(p.MergeWhitelistTeamIDs, teamID)
 
 	if lenIDs != len(p.WhitelistTeamIDs) ||
+	    lenForcePushIDs != len(p.ForcePushWhitelistTeamIDs) ||
 		lenApprovalIDs != len(p.ApprovalsWhitelistTeamIDs) ||
 		lenMergeIDs != len(p.MergeWhitelistTeamIDs) {
 		if _, err := db.GetEngine(ctx).ID(p.ID).Cols(
