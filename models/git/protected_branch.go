@@ -551,7 +551,7 @@ func RemoveTeamIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, te
 	p.MergeWhitelistTeamIDs = util.SliceRemoveAll(p.MergeWhitelistTeamIDs, teamID)
 
 	if lenIDs != len(p.WhitelistTeamIDs) ||
-	    lenForcePushIDs != len(p.ForcePushWhitelistTeamIDs) ||
+		lenForcePushIDs != len(p.ForcePushWhitelistTeamIDs) ||
 		lenApprovalIDs != len(p.ApprovalsWhitelistTeamIDs) ||
 		lenMergeIDs != len(p.MergeWhitelistTeamIDs) {
 		if _, err := db.GetEngine(ctx).ID(p.ID).Cols(
