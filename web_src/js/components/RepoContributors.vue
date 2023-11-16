@@ -150,6 +150,7 @@ export default {
           return false;
         });
 
+        user['max_contribution_type'] += 1;
         filteredData[key] = {...user, weeks: filteredWeeks};
       }
 
