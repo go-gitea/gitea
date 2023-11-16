@@ -103,7 +103,7 @@ export default {
         do {
           response = await GET(`${this.repoLink}/activity/contributors/data`);
           if (response.status === 202) {
-            await new Promise(resolve => setTimeout(resolve, 1000)); // wait for 1 second before retrying
+            await new Promise((resolve) => setTimeout(resolve, 1000)); // wait for 1 second before retrying
           }
         } while (response.status === 202);
         if (response.ok) {
