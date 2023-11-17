@@ -5,7 +5,6 @@
 package templates
 
 import (
-	"context"
 	"fmt"
 	"html"
 	"html/template"
@@ -13,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	system_model "code.gitea.io/gitea/models/system"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/markup"
@@ -28,6 +27,8 @@ import (
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() template.FuncMap {
 	return map[string]any{
+		"ctx": func() any { return nil }, // template context function
+
 		"DumpVar": dumpVar,
 
 		// -----------------------------------------------------------------
@@ -52,15 +53,10 @@ func NewFuncMap() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// svg / avatar / icon
-		"svg":            svg.RenderHTML,
-		"avatar":         Avatar,
-		"avatarHTML":     AvatarHTML,
-		"avatarByAction": AvatarByAction,
-		"avatarByEmail":  AvatarByEmail,
-		"repoAvatar":     RepoAvatar,
-		"EntryIcon":      base.EntryIcon,
-		"MigrationIcon":  MigrationIcon,
-		"ActionIcon":     ActionIcon,
+		"svg":           svg.RenderHTML,
+		"EntryIcon":     base.EntryIcon,
+		"MigrationIcon": MigrationIcon,
+		"ActionIcon":    ActionIcon,
 
 		"SortArrow": SortArrow,
 
@@ -103,9 +99,6 @@ func NewFuncMap() template.FuncMap {
 		"AssetVersion": func() string {
 			return setting.AssetVersion
 		},
-		"DisableGravatar": func(ctx context.Context) bool {
-			return system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
-		},
 		"DefaultShowFullName": func() bool {
 			return setting.UI.DefaultShowFullName
 		},
@@ -139,8 +132,11 @@ func NewFuncMap() template.FuncMap {
 		"DisableImportLocal": func() bool {
 			return !setting.ImportLocalPaths
 		},
-		"DefaultTheme": func() string {
-			return setting.UI.DefaultTheme
+		"ThemeName": func(user *user_model.User) string {
+			if user == nil || user.Theme == "" {
+				return setting.UI.DefaultTheme
+			}
+			return user.Theme
 		},
 		"NotificationSettings": func() map[string]any {
 			return map[string]any{

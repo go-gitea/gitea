@@ -3,11 +3,11 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<h2 class="ui dividing header">
-			{{.locale.Tr "repo.forks"}}
+			{{ctx.Locale.Tr "repo.forks"}}
 		</h2>
 		{{range .Forks}}
 			<div class="gt-df gt-ac gt-py-3">
-				<span class="gt-mr-2">{{avatar $.Context .Owner}}</span>
+				<span class="gt-mr-2">{{ctx.AvatarUtils.Avatar .Owner}}</span>
 				<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a> / <a href="{{.Link}}">{{.Name}}</a>
 			</div>
 		{{end}}

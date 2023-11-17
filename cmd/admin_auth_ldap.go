@@ -17,9 +17,9 @@ import (
 type (
 	authService struct {
 		initDB            func(ctx context.Context) error
-		createAuthSource  func(*auth.Source) error
-		updateAuthSource  func(*auth.Source) error
-		getAuthSourceByID func(id int64) (*auth.Source, error)
+		createAuthSource  func(context.Context, *auth.Source) error
+		updateAuthSource  func(context.Context, *auth.Source) error
+		getAuthSourceByID func(ctx context.Context, id int64) (*auth.Source, error)
 	}
 )
 
@@ -132,10 +132,10 @@ var (
 	ldapSimpleAuthCLIFlags = append(commonLdapCLIFlags,
 		&cli.StringFlag{
 			Name:  "user-dn",
-			Usage: "The user’s DN.",
+			Usage: "The user's DN.",
 		})
 
-	cmdAuthAddLdapBindDn = &cli.Command{
+	microcmdAuthAddLdapBindDn = &cli.Command{
 		Name:  "add-ldap",
 		Usage: "Add new LDAP (via Bind DN) authentication source",
 		Action: func(c *cli.Context) error {
@@ -144,7 +144,7 @@ var (
 		Flags: ldapBindDnCLIFlags,
 	}
 
-	cmdAuthUpdateLdapBindDn = &cli.Command{
+	microcmdAuthUpdateLdapBindDn = &cli.Command{
 		Name:  "update-ldap",
 		Usage: "Update existing LDAP (via Bind DN) authentication source",
 		Action: func(c *cli.Context) error {
@@ -153,7 +153,7 @@ var (
 		Flags: append([]cli.Flag{idFlag}, ldapBindDnCLIFlags...),
 	}
 
-	cmdAuthAddLdapSimpleAuth = &cli.Command{
+	microcmdAuthAddLdapSimpleAuth = &cli.Command{
 		Name:  "add-ldap-simple",
 		Usage: "Add new LDAP (simple auth) authentication source",
 		Action: func(c *cli.Context) error {
@@ -162,7 +162,7 @@ var (
 		Flags: ldapSimpleAuthCLIFlags,
 	}
 
-	cmdAuthUpdateLdapSimpleAuth = &cli.Command{
+	microcmdAuthUpdateLdapSimpleAuth = &cli.Command{
 		Name:  "update-ldap-simple",
 		Usage: "Update existing LDAP (simple auth) authentication source",
 		Action: func(c *cli.Context) error {
@@ -289,12 +289,12 @@ func findLdapSecurityProtocolByName(name string) (ldap.SecurityProtocol, bool) {
 
 // getAuthSource gets the login source by its id defined in the command line flags.
 // It returns an error if the id is not set, does not match any source or if the source is not of expected type.
-func (a *authService) getAuthSource(c *cli.Context, authType auth.Type) (*auth.Source, error) {
+func (a *authService) getAuthSource(ctx context.Context, c *cli.Context, authType auth.Type) (*auth.Source, error) {
 	if err := argsSet(c, "id"); err != nil {
 		return nil, err
 	}
 
-	authSource, err := a.getAuthSourceByID(c.Int64("id"))
+	authSource, err := a.getAuthSourceByID(ctx, c.Int64("id"))
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +332,7 @@ func (a *authService) addLdapBindDn(c *cli.Context) error {
 		return err
 	}
 
-	return a.createAuthSource(authSource)
+	return a.createAuthSource(ctx, authSource)
 }
 
 // updateLdapBindDn updates a new LDAP via Bind DN authentication source.
@@ -344,7 +344,7 @@ func (a *authService) updateLdapBindDn(c *cli.Context) error {
 		return err
 	}
 
-	authSource, err := a.getAuthSource(c, auth.LDAP)
+	authSource, err := a.getAuthSource(ctx, c, auth.LDAP)
 	if err != nil {
 		return err
 	}
@@ -354,7 +354,7 @@ func (a *authService) updateLdapBindDn(c *cli.Context) error {
 		return err
 	}
 
-	return a.updateAuthSource(authSource)
+	return a.updateAuthSource(ctx, authSource)
 }
 
 // addLdapSimpleAuth adds a new LDAP (simple auth) authentication source.
@@ -383,7 +383,7 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 		return err
 	}
 
-	return a.createAuthSource(authSource)
+	return a.createAuthSource(ctx, authSource)
 }
 
 // updateLdapBindDn updates a new LDAP (simple auth) authentication source.
@@ -395,7 +395,7 @@ func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
 		return err
 	}
 
-	authSource, err := a.getAuthSource(c, auth.DLDAP)
+	authSource, err := a.getAuthSource(ctx, c, auth.DLDAP)
 	if err != nil {
 		return err
 	}
@@ -405,5 +405,5 @@ func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
 		return err
 	}
 
-	return a.updateAuthSource(authSource)
+	return a.updateAuthSource(ctx, authSource)
 }

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{.locale.Lang}}" class="theme-{{if .SignedUser.Theme}}{{.SignedUser.Theme}}{{else}}{{DefaultTheme}}{{end}}">
+<html lang="{{ctx.Locale.Lang}}" data-theme="{{ThemeName .SignedUser}}">
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}}{{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}}</title>
@@ -25,50 +25,16 @@
 			.ui.secondary.menu .dropdown.item > .menu { margin-top: 0; }
 		</style>
 	</noscript>
-{{if .PageIsUserProfile}}
-	<meta property="og:title" content="{{.ContextUser.DisplayName}}">
-	<meta property="og:type" content="profile">
-	<meta property="og:image" content="{{.ContextUser.AvatarLink $.Context}}">
-	<meta property="og:url" content="{{.ContextUser.HTMLURL}}">
-	{{if .ContextUser.Description}}
-		<meta property="og:description" content="{{.ContextUser.Description}}">
-	{{end}}
-{{else if .Repository}}
-	{{if .Issue}}
-		<meta property="og:title" content="{{.Issue.Title}}">
-		<meta property="og:url" content="{{.Issue.HTMLURL}}">
-		{{if .Issue.Content}}
-			<meta property="og:description" content="{{.Issue.Content}}">
-		{{end}}
-	{{else}}
-		<meta property="og:title" content="{{.Repository.Name}}">
-		<meta property="og:url" content="{{.Repository.HTMLURL}}">
-		{{if .Repository.Description}}
-			<meta property="og:description" content="{{.Repository.Description}}">
-		{{end}}
-	{{end}}
-	<meta property="og:type" content="object">
-	{{if (.Repository.AvatarLink $.Context)}}
-		<meta property="og:image" content="{{.Repository.AvatarLink $.Context}}">
-	{{else}}
-		<meta property="og:image" content="{{.Repository.Owner.AvatarLink $.Context}}">
-	{{end}}
-{{else}}
-	<meta property="og:title" content="{{AppName}}">
-	<meta property="og:type" content="website">
-	<meta property="og:image" content="{{AssetUrlPrefix}}/img/logo.png">
-	<meta property="og:url" content="{{AppUrl}}">
-	<meta property="og:description" content="{{MetaDescription}}">
-{{end}}
-	<meta property="og:site_name" content="{{AppName}}">
+	{{template "base/head_opengraph" .}}
 	{{template "base/head_style" .}}
 	{{template "custom/header" .}}
 </head>
 <body>
+	{{ctx.DataRaceCheck $.Context}}
 	{{template "custom/body_outer_pre" .}}
 
 	<div class="full height">
-		<noscript>{{.locale.Tr "enable_javascript"}}</noscript>
+		<noscript>{{ctx.Locale.Tr "enable_javascript"}}</noscript>
 
 		{{template "custom/body_inner_pre" .}}
 

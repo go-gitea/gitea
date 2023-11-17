@@ -9,247 +9,19 @@
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
-  /* backgrounds */
+  /* line-height: use the default value as "modules/normalize.css" */
+  --line-height-default: normal;
+  /* images */
   --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
   --octicon-chevron-right: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg>');
-  /* non-color variables */
-  --border-radius: 0.28571429rem;
+  /* other variables */
+  --border-radius: 4px;
+  --border-radius-medium: 6px;
+  --border-radius-circle: 50%;
   --opacity-disabled: 0.55;
   --height-loading: 16rem;
   --tab-size: 4;
-  /* base colors */
-  --color-primary: #4183c4;
-  --color-primary-contrast: #ffffff;
-  --color-primary-dark-1: #3876b3;
-  --color-primary-dark-2: #31699f;
-  --color-primary-dark-3: #2b5c8b;
-  --color-primary-dark-4: #254f77;
-  --color-primary-dark-5: #193450;
-  --color-primary-dark-6: #0c1a28;
-  --color-primary-dark-7: #04080c;
-  --color-primary-light-1: #548fca;
-  --color-primary-light-2: #679cd0;
-  --color-primary-light-3: #7aa8d6;
-  --color-primary-light-4: #8db5dc;
-  --color-primary-light-5: #b3cde7;
-  --color-primary-light-6: #d9e6f3;
-  --color-primary-light-7: #f4f8fb;
-  --color-primary-alpha-10: #4183c419;
-  --color-primary-alpha-20: #4183c433;
-  --color-primary-alpha-30: #4183c44b;
-  --color-primary-alpha-40: #4183c466;
-  --color-primary-alpha-50: #4183c480;
-  --color-primary-alpha-60: #4183c499;
-  --color-primary-alpha-70: #4183c4b3;
-  --color-primary-alpha-80: #4183c4cc;
-  --color-primary-alpha-90: #4183c4e1;
-  --color-primary-hover: var(--color-primary-dark-1);
-  --color-primary-active: var(--color-primary-dark-2);
-  --color-secondary: #dedede;
-  --color-secondary-dark-1: #cecece;
-  --color-secondary-dark-2: #bfbfbf;
-  --color-secondary-dark-3: #a0a0a0;
-  --color-secondary-dark-4: #909090;
-  --color-secondary-dark-5: #818181;
-  --color-secondary-dark-6: #717171;
-  --color-secondary-dark-7: #626262;
-  --color-secondary-dark-8: #525252;
-  --color-secondary-dark-9: #434343;
-  --color-secondary-dark-10: #333333;
-  --color-secondary-dark-11: #242424;
-  --color-secondary-dark-12: #141414;
-  --color-secondary-dark-13: #040404;
-  --color-secondary-light-1: #e5e5e5;
-  --color-secondary-light-2: #ebebeb;
-  --color-secondary-light-3: #f2f2f2;
-  --color-secondary-light-4: #f8f8f8;
-  --color-secondary-alpha-10: #dedede19;
-  --color-secondary-alpha-20: #dedede33;
-  --color-secondary-alpha-30: #dedede4b;
-  --color-secondary-alpha-40: #dedede66;
-  --color-secondary-alpha-50: #dedede80;
-  --color-secondary-alpha-60: #dedede99;
-  --color-secondary-alpha-70: #dededeb3;
-  --color-secondary-alpha-80: #dededecc;
-  --color-secondary-alpha-90: #dededee1;
-  --color-secondary-button: var(--color-secondary-dark-4);
-  --color-secondary-hover: var(--color-secondary-dark-5);
-  --color-secondary-active: var(--color-secondary-dark-6);
-  /* console colors - used for actions console and console files */
-  --color-console-fg: #eeeff2;
-  --color-console-fg-subtle: #959cab;
-  --color-console-bg: #262936;
-  --color-console-border: #383c47;
-  --color-console-hover-bg: #ffffff16;
-  --color-console-active-bg: #454a57;
-  --color-console-menu-bg: #383c47;
-  --color-console-menu-border: #5c6374;
-  /* named colors */
-  --color-red: #db2828;
-  --color-orange: #f2711c;
-  --color-yellow: #fbbd08;
-  --color-olive: #b5cc18;
-  --color-green: #21ba45;
-  --color-teal: #00b5ad;
-  --color-blue: #2185d0;
-  --color-violet: #6435c9;
-  --color-purple: #a333c8;
-  --color-pink: #e03997;
-  --color-brown: #a5673f;
-  --color-black: #1b1c1d;
-  /* light variants - produced via Sass scale-color(color, $lightness: +25%) */
-  --color-red-light: #e45e5e;
-  --color-orange-light: #f59555;
-  --color-yellow-light: #fcce46;
-  --color-olive-light: #d3e942;
-  --color-green-light: #46de6a;
-  --color-teal-light: #08fff4;
-  --color-blue-light: #51a5e3;
-  --color-violet-light: #8b67d7;
-  --color-purple-light: #bb64d8;
-  --color-pink-light: #e86bb1;
-  --color-brown-light: #c58b66;
-  --color-black-light: #525558;
-  /* dark 1 variants - produced via Sass scale-color(color, $lightness: -10%) */
-  --color-red-dark-1: #c82121;
-  --color-orange-dark-1: #e6630d;
-  --color-yellow-dark-1: #e5ac04;
-  --color-olive-dark-1: #a3b816;
-  --color-green-dark-1: #1ea73e;
-  --color-teal-dark-1: #00a39c;
-  --color-blue-dark-1: #1e78bb;
-  --color-violet-dark-1: #5a30b5;
-  --color-purple-dark-1: #932eb4;
-  --color-pink-dark-1: #db228a;
-  --color-brown-dark-1: #955d39;
-  --color-black-dark-1: #18191a;
-  /* dark 2 variants - produced via Sass scale-color(color, $lightness: -20%) */
-  --color-red-dark-2: #b11e1e;
-  --color-orange-dark-2: #cc580c;
-  --color-yellow-dark-2: #cc9903;
-  --color-olive-dark-2: #91a313;
-  --color-green-dark-2: #1a9537;
-  --color-teal-dark-2: #00918a;
-  --color-blue-dark-2: #1a6aa6;
-  --color-violet-dark-2: #502aa1;
-  --color-purple-dark-2: #8229a0;
-  --color-pink-dark-2: #c21e7b;
-  --color-brown-dark-2: #845232;
-  --color-black-dark-2: #161617;
-  /* ansi colors used for actions console and console files */
-  --color-ansi-black: var(--color-black);
-  --color-ansi-red: var(--color-red);
-  --color-ansi-green: var(--color-green);
-  --color-ansi-yellow: var(--color-yellow);
-  --color-ansi-blue: var(--color-blue);
-  --color-ansi-magenta: var(--color-pink);
-  --color-ansi-cyan: var(--color-teal);
-  --color-ansi-white: var(--color-console-fg-subtle);
-  --color-ansi-bright-black: var(--color-black-light);
-  --color-ansi-bright-red: var(--color-red-light);
-  --color-ansi-bright-green: var(--color-green-light);
-  --color-ansi-bright-yellow: var(--color-yellow-light);
-  --color-ansi-bright-blue: var(--color-blue-light);
-  --color-ansi-bright-magenta: var(--color-pink-light);
-  --color-ansi-bright-cyan: var(--color-teal-light);
-  --color-ansi-bright-white: var(--color-console-fg);
-  /* other colors */
-  --color-grey: #707070;
-  --color-grey-light: #838383;
-  --color-gold: #a1882b;
-  --color-white: #ffffff;
-  --color-diff-removed-word-bg: #fdb8c0;
-  --color-diff-added-word-bg: #acf2bd;
-  --color-diff-removed-row-bg: #ffeef0;
-  --color-diff-moved-row-bg: #f1f8d1;
-  --color-diff-added-row-bg: #e6ffed;
-  --color-diff-removed-row-border: #f1c0c0;
-  --color-diff-moved-row-border: #d0e27f;
-  --color-diff-added-row-border: #e6ffed;
-  --color-diff-inactive: #f2f2f2;
-  --color-error-border: #e0b4b4;
-  --color-error-bg: #fff6f6;
-  --color-error-bg-active: #fbb;
-  --color-error-bg-hover: #fdd;
-  --color-error-text: #9f3a38;
-  --color-success-border: #a3c293;
-  --color-success-bg: #fcfff5;
-  --color-success-text: #2c662d;
-  --color-warning-border: #c9ba9b;
-  --color-warning-bg: #fffaf3;
-  --color-warning-text: #573a08;
-  --color-info-border: #a9d5de;
-  --color-info-bg: #f8ffff;
-  --color-info-text: #276f86;
-  --color-red-badge: #db2828;
-  --color-red-badge-bg: #db28281a;
-  --color-red-badge-hover-bg: #db28284d;
-  --color-green-badge: #21ba45;
-  --color-green-badge-bg: #21ba451a;
-  --color-green-badge-hover-bg: #21ba454d;
-  --color-yellow-badge: #fbbd08;
-  --color-yellow-badge-bg: #fbbd081a;
-  --color-yellow-badge-hover-bg: #fbbd084d;
-  --color-orange-badge: #f2711c;
-  --color-orange-badge-bg: #f2711c1a;
-  --color-orange-badge-hover-bg: #f2711c4d;
-  --color-git: #f05133;
-  /* target-based colors */
-  --color-body: #ffffff;
-  --color-text-dark: #080808;
-  --color-text: #212121;
-  --color-text-light: #555555;
-  --color-text-light-1: #6a6a6a;
-  --color-text-light-2: #808080;
-  --color-text-light-3: #a0a0a0;
-  --color-box-header: #f7f7f7;
-  --color-box-body: #ffffff;
-  --color-box-body-highlight: #fafafa;
-  --color-footer: #ffffff;
-  --color-timeline: #ececec;
-  --color-input-text: #212121;
-  --color-input-background: #fafafa;
-  --color-input-toggle-background: #dedede;
-  --color-input-border: var(--color-secondary);
-  --color-input-border-hover: var(--color-secondary-dark-1);
-  --color-light: #00000006;
-  --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
-  --color-light-border: #0000001d;
-  --color-hover: #00000014;
-  --color-active: #0000001b;
-  --color-menu: #fafafa;
-  --color-card: #fafafa;
-  --color-markup-table-row: #00000008;
-  --color-markup-code-block: #00000010;
-  --color-button: #fafafa;
-  --color-code-bg: #ffffff;
-  --color-code-sidebar-bg: #f5f5f5;
-  --color-shadow: #00000030;
-  --color-secondary-bg: #f4f4f4;
-  --color-expand-button: #d8efff;
-  --color-placeholder-text: #aaa;
-  --color-editor-line-highlight: var(--color-primary-light-6);
-  --color-project-board-bg: var(--color-secondary-light-4);
-  --color-project-board-dark-label: #111111;
-  --color-project-board-light-label: #eeeeee;
-  --color-caret: var(--color-text-dark);
-  --color-reaction-bg: #0000000a;
-  --color-reaction-hover-bg: var(--color-primary-light-5);
-  --color-reaction-active-bg: var(--color-primary-light-6);
-  --color-tooltip-text: #ffffff;
-  --color-tooltip-bg: #000000f0;
-  --color-nav-bg: #ffffff;
-  --color-nav-hover-bg: #ebebeb;
-  --color-label-text: #232323;
-  --color-label-bg: #cacaca5b;
-  --color-label-hover-bg: #cacacaa0;
-  --color-label-active-bg: #cacacaff;
-  --color-accent: var(--color-primary-light-1);
-  --color-small-accent: var(--color-primary-light-6);
-  --color-active-line: #fffbdd;
-  accent-color: var(--color-accent);
-  color-scheme: light;
 }
 
 :root * {
@@ -306,7 +78,7 @@ details summary > * {
 
 progress {
   background: var(--color-secondary-dark-1);
-  border-radius: 6px;
+  border-radius: var(--border-radius);
   border: none;
   overflow: hidden;
 }
@@ -336,7 +108,7 @@ progress::-moz-progress-bar {
 ::-webkit-scrollbar-thumb {
   box-shadow: inset 0 0 0 6px var(--color-primary);
   border: 2px solid transparent;
-  border-radius: 5px !important;
+  border-radius: var(--border-radius);
 }
 
 ::-webkit-scrollbar-thumb:window-inactive {
@@ -414,7 +186,6 @@ a.silenced:hover {
 }
 
 a.label,
-.repository-menu a,
 .ui.search .results a,
 .ui .menu a,
 .ui.cards a.card,
@@ -449,9 +220,9 @@ a.label,
   background: var(--color-hover);
 }
 
-.issue-title code {
+.inline-code-block {
   padding: 2px 4px;
-  border-radius: 6px;
+  border-radius: var(--border-radius-medium);
   background-color: var(--color-markup-code-block);
 }
 
@@ -471,7 +242,16 @@ a.label,
 
 /* fix Fomantic's line-height cutting off "g" on Windows Chrome with Segoe UI */
 .ui.input > input {
-  line-height: 1.3;
+  line-height: var(--line-height-default);
+  text-align: start; /* Override fomantic's `text-align: left` to make RTL work via HTML `dir="auto"` */
+}
+
+/* fix Fomantic's line-height causing vertical scrollbars to appear */
+ul.ui.list li,
+ol.ui.list li,
+.ui.list > .item,
+.ui.list .list > .item {
+  line-height: var(--line-height-default);
 }
 
 .ui.input.focus > input,
@@ -479,8 +259,10 @@ a.label,
   border-color: var(--color-primary);
 }
 
-.ui.action.input .button {
+.ui.action.input .ui.ui.button {
   border-color: var(--color-input-border);
+  padding-top: 0; /* the ".action.input" is "flex + stretch", so let the buttons layout themselves */
+  padding-bottom: 0;
 }
 
 /* currently used for search bar dropdowns in repo search and explore code */
@@ -501,13 +283,6 @@ a.label,
   border-right-color: var(--color-primary);
 }
 
-/* fix button enlarged vertically by svg icon */
-/* TODO: change to just `.small.button:has(svg)` but may have global side effects */
-.ui.action.input .small.button:has(svg) {
-  padding-top: 7px !important;
-  padding-bottom: 7px !important;
-}
-
 .ui.menu,
 .ui.vertical.menu {
   background: var(--color-menu);
@@ -517,6 +292,7 @@ a.label,
 .ui.menu .item {
   color: var(--color-text);
   user-select: auto;
+  line-height: var(--line-height-default); /* fomantic uses "1" which causes overflow problems because "1" doesn't consider the descent part */
 }
 
 .ui.menu .item > .svg {
@@ -633,6 +409,11 @@ a.label,
   color: var(--color-text-light-2);
 }
 
+.ui.dropdown > .text > .description,
+.ui.dropdown .menu > .item > .description {
+  color: var(--color-text-light-2);
+}
+
 .ui.list .list > .item .header,
 .ui.list > .item .header {
   color: var(--color-text-dark);
@@ -646,6 +427,18 @@ a.label,
 .ui.list .list > .item .description,
 .ui.list > .item .description {
   color: var(--color-text);
+}
+
+/* replace item margin on secondary menu items with gap and remove both the
+   negative margins on the menu as well as margin on the items */
+.ui.secondary.menu {
+  margin-left: 0;
+  margin-right: 0;
+  gap: .35714286em;
+}
+.ui.secondary.menu .item {
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .ui.secondary.menu .dropdown.item:hover,
@@ -665,6 +458,11 @@ a.label,
   padding-right: 0.85714286em;
 }
 
+/* remove the menu clearfix so that it won't add undesired gaps when using "gap" */
+.ui.menu::after {
+  content: normal;
+}
+
 .ui.menu .dropdown.item .menu {
   background: var(--color-body);
 }
@@ -681,6 +479,16 @@ a.label,
 .ui.menu .ui.dropdown .menu > .active.item {
   color: var(--color-text) !important;
   background: var(--color-active) !important;
+}
+
+/* styles from removed fomantic transition module */
+.hidden.transition {
+  visibility: hidden;
+  display: none;
+}
+.visible.transition {
+  display: block !important;
+  visibility: visible !important;
 }
 
 .ui.message {
@@ -774,7 +582,7 @@ a.label,
 .ui.selection.active.dropdown:hover,
 .ui.selection.active.dropdown .menu,
 .ui.selection.active.dropdown:hover .menu {
-  border-color: var(--color-primary-light-2);
+  border-color: var(--color-primary);
 }
 
 .ui.selection.dropdown .menu {
@@ -883,7 +691,7 @@ a.label,
 .ui.table > thead > tr > th,
 .ui.table > tbody > tr > td,
 .ui.table > tr > td {
-  padding: 6px 3px;
+  padding: 6px 5px;
 }
 /* use more horizontal padding on first and last items for visuals */
 .ui.table > thead > tr > th:first-of-type,
@@ -913,13 +721,6 @@ img.ui.avatar,
 .ui.warning.message .header {
   color: inherit;
   filter: saturate(2);
-}
-
-.dont-break-out {
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  word-break: break-all;
-  hyphens: auto;
 }
 
 .full.height {
@@ -1136,14 +937,8 @@ img.ui.avatar,
   color: var(--color-gold) !important;
 }
 
-/* FIXME: this is a serious pollution, do not use this for "float: left" anymore */
-.ui.left:not(.action) {
-  float: left;
-}
-
-/* FIXME: this is a serious pollution, do not use this for "float: right" anymore */
-.ui.right:not(.action) {
-  float: right;
+.text.small {
+  font-size: 0.75em;
 }
 
 .ui.form .ui.button {
@@ -1162,6 +957,24 @@ img.ui.avatar,
 .ui.vertical.menu,
 .ui.segment {
   box-shadow: none;
+}
+
+/* replace fomantic popover box shadows */
+.ui.dropdown .menu,
+.ui.upward.dropdown > .menu,
+.ui.menu .dropdown.item .menu,
+.ui.selection.active.dropdown .menu,
+.ui.upward.selection.dropdown .menu,
+.ui.selection.active.dropdown:hover .menu,
+.ui.upward.active.selection.dropdown:hover .menu {
+  box-shadow: 0 6px 18px var(--color-shadow);
+}
+.ui.floating.dropdown .menu {
+  box-shadow: 0 6px 18px var(--color-shadow) !important;
+}
+
+.ui.dimmer {
+  background: var(--color-overlay-backdrop);
 }
 
 /* Override semantic selector '.ui.menu:not(.vertical) .item > .button' */
@@ -1200,10 +1013,6 @@ img.ui.avatar,
   text-align: right !important;
 }
 
-.ui .text.small {
-  font-size: 0.75em;
-}
-
 .ui .text.normal {
   font-weight: var(--font-weight-normal);
 }
@@ -1213,7 +1022,7 @@ img.ui.avatar,
 }
 
 .ui .text.truncate {
-  overflow: hidden;
+  overflow-x: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   display: inline-block;
@@ -1275,16 +1084,13 @@ img.ui.avatar,
 .ui .sha.label {
   font-family: var(--fonts-monospace);
   font-size: 13px;
-  padding: 6px 10px 4px;
   font-weight: var(--font-weight-normal);
   margin: 0 6px;
+  padding: 5px 10px;
 }
 
-.ui .button.copy-commit-sha {
-  border: 1px solid var(--color-light-border);
-  margin-right: 3px;
-  padding: 6px 6px 4px;
-  background: var(--color-light);
+.ui .sha.label .shortsha {
+  display: inline-block; /* not sure whether it is still needed */
 }
 
 .ui .button.truncate {
@@ -1402,10 +1208,6 @@ img.ui.avatar,
   border-color: var(--color-gold) !important;
 }
 
-.ui .branch-tag-choice {
-  line-height: 20px;
-}
-
 @media (max-width: 767.98px) {
   .ui.pagination.menu .item:not(.active,.navigation),
   .ui.pagination.menu .item.navigation span.navigation_label {
@@ -1429,7 +1231,7 @@ img.ui.avatar,
   height: 3em;
   float: none;
   display: block;
-  line-height: 1;
+  line-height: var(--line-height-default);
   padding: 0;
   margin: 0 auto 0.5rem;
   opacity: 1;
@@ -1459,7 +1261,7 @@ img.ui.avatar,
   margin-left: 0.4em;
   height: 0.67em;
   width: 0.67em;
-  border-radius: 0.15em;
+  border-radius: var(--border-radius);
 }
 
 .attention-icon {
@@ -1499,22 +1301,9 @@ img.ui.avatar,
   margin-left: auto;
   margin-right: auto;
   overflow-x: auto;
-}
-
-.ui.menu.new-menu::after {
-  position: absolute;
-  display: block;
-  background: linear-gradient(to right, var(--color-header-wrapper-transparent), var(--color-header-wrapper) 100%);
-  content: "";
-  right: 0;
-  height: 39px;
-  width: 60px;
-  visibility: visible;
-  pointer-events: none;
-}
-
-.ui.menu.new-menu.shadow-body::after {
-  background: linear-gradient(to right, transparent, var(--color-body) 100%);
+  width: 100%;
+  mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 60px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 60px), transparent 100%);
 }
 
 .ui.menu.new-menu .item {
@@ -1586,10 +1375,6 @@ img.ui.avatar,
   margin-left: 0.5rem;
 }
 
-.repo-icon {
-  display: inline-block;
-}
-
 .activity-bar-graph {
   background-color: var(--color-primary);
   color: var(--color-primary-contrast);
@@ -1623,17 +1408,10 @@ img.ui.avatar,
   margin-top: 1px;
 }
 
-i.icons .icon:first-child {
-  margin-right: 0;
-}
-
-i.icon.centerlock {
-  top: 1em;
-}
-
 .ui.label {
   padding: 0.3em 0.5em;
   transition: none;
+  white-space: nowrap;
 }
 
 .ui.label,
@@ -1664,14 +1442,6 @@ a.ui.active.label:hover {
   background: var(--color-label-active-bg);
   border-color: var(--color-label-active-bg);
   color: var(--color-label-text);
-}
-
-.ui.label > .detail .icons {
-  margin-right: 0.25em;
-}
-
-.ui.label > .detail .icons .icon {
-  margin-right: 0;
 }
 
 .lines-blame-btn {
@@ -1825,10 +1595,6 @@ a.ui.active.label:hover {
   width: 100%;
 }
 
-.octicon-tiny {
-  font-size: 0.85714286rem;
-}
-
 .ui.primary.label,
 .ui.primary.labels .label,
 .ui.ui.ui.primary.label {
@@ -1949,7 +1715,8 @@ a.ui.ui.ui.basic.primary.label:hover {
 }
 
 .ui.basic.labels .label,
-.ui.basic.label {
+.ui.basic.label,
+.ui.secondary.labels .ui.basic.label {
   background: var(--color-button);
   border-color: var(--color-light-border);
   color: var(--color-text-light);
@@ -1974,17 +1741,13 @@ a.ui.basic.label:hover {
 
 .color-icon {
   display: inline-block;
-  border-radius: 100%;
+  border-radius: var(--border-radius-circle);
   height: 14px;
   width: 14px;
 }
 
 .ui.label > .color-icon {
   margin-left: 0;
-}
-
-.invisible {
-  visibility: hidden;
 }
 
 .ui.segment,
@@ -2010,25 +1773,20 @@ a.ui.basic.label:hover {
   border-color: var(--color-secondary);
 }
 
-.ui.attached.header .right .button {
-  padding: 8px 10px;
-  font-weight: var(--font-weight-normal);
-}
-
-/* reduce height of buttons with dropdown icon */
-.ui.attached.header .right .button:has(.dropdown.icon) {
-  padding-top: 7px;
-  padding-bottom: 7px;
-}
-
 /* fix misaligned right buttons on box headers */
-.ui.attached.header .right:not(.dropdown) {
+.ui.attached.header > .ui.right {
   position: absolute;
   right: 0.78571429rem;
   top: 0;
   bottom: 0;
   display: flex;
   align-items: center;
+}
+
+.ui.attached.header > .ui.right > .button,
+.ui.attached.header > .ui.right > .dropdown > .button {
+  padding: 8px 10px;
+  font-weight: var(--font-weight-normal);
 }
 
 /* if a .top.attached.header is followed by a .segment, add some margin */
@@ -2044,7 +1802,7 @@ a.ui.basic.label:hover {
 
 table th[data-sortt-asc]:hover,
 table th[data-sortt-desc]:hover {
-  background: rgba(0, 0, 0, 0.1) !important;
+  background: var(--color-hover) !important;
   cursor: pointer !important;
 }
 
@@ -2069,15 +1827,10 @@ table th[data-sortt-desc] .svg {
   box-shadow: 0 0 0 1px var(--color-secondary) inset;
 }
 
-.text-label {
-  display: inline-flex !important;
-  align-items: center !important;
-}
-
 .emoji,
 .reaction {
   font-size: 1.25em;
-  line-height: 1;
+  line-height: var(--line-height-default);
   font-style: normal !important;
   font-weight: var(--font-weight-normal) !important;
   vertical-align: -0.075em;
@@ -2092,6 +1845,7 @@ table th[data-sortt-desc] .svg {
   vertical-align: -0.15em;
 }
 
+/* for the jquery.minicolors plugin */
 .minicolors-panel {
   background: var(--color-secondary-dark-1) !important;
 }
@@ -2187,20 +1941,20 @@ table th[data-sortt-desc] .svg {
 }
 
 .precolors {
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-  margin: 3px 10px auto !important;
-  width: 120px !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-left: 1em;
 }
 
 .precolors .color {
-  float: left;
+  display: inline-block;
   width: 15px;
   height: 15px;
 }
 
-.ui.dropdown {
-  line-height: 1; /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
+.ui.dropdown:not(.button) {
+  line-height: var(--line-height-default); /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
 }
 
 /* dropdown has some kinds of icons:
@@ -2247,13 +2001,14 @@ table th[data-sortt-desc] .svg {
   right: 2em;
 }
 
+.btn,
 .ui.ui.button,
 .ui.ui.dropdown,
+.ui.ui.label,
 .flex-items-inline > .item,
 .flex-text-inline {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: .25rem;
   vertical-align: middle;
 }
@@ -2264,6 +2019,10 @@ table th[data-sortt-desc] .svg {
 
 .ui.dropdown .ui.label .svg {
   vertical-align: middle;
+}
+
+.ui.ui.circular.label {
+  justify-content: center;
 }
 
 .ui.ui.labeled.button {
@@ -2281,6 +2040,5 @@ table th[data-sortt-desc] .svg {
 .flex-text-block {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: .25rem;
 }

@@ -1,70 +1,70 @@
 {{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings profile")}}
 	<div class="user-setting-content">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "settings.public_profile"}}
+			{{ctx.Locale.Tr "settings.public_profile"}}
 		</h4>
 		<div class="ui attached segment">
-			<p>{{.locale.Tr "settings.profile_desc"}}</p>
+			<p>{{ctx.Locale.Tr "settings.profile_desc"}}</p>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="required field {{if .Err_Name}}error{{end}}">
-					<label for="username">{{.locale.Tr "username"}}
-						<span class="text red gt-hidden" id="name-change-prompt"> {{.locale.Tr "settings.change_username_prompt"}}</span>
-						<span class="text red gt-hidden" id="name-change-redirect-prompt"> {{.locale.Tr "settings.change_username_redirect_prompt"}}</span>
+					<label for="username">{{ctx.Locale.Tr "username"}}
+						<span class="text red gt-hidden" id="name-change-prompt"> {{ctx.Locale.Tr "settings.change_username_prompt"}}</span>
+						<span class="text red gt-hidden" id="name-change-redirect-prompt"> {{ctx.Locale.Tr "settings.change_username_redirect_prompt"}}</span>
 					</label>
 					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus required {{if or (not .SignedUser.IsLocal) .IsReverseProxy}}disabled{{end}} maxlength="40">
 					{{if or (not .SignedUser.IsLocal) .IsReverseProxy}}
-					<p class="help text blue">{{$.locale.Tr "settings.password_username_disabled"}}</p>
+					<p class="help text blue">{{ctx.Locale.Tr "settings.password_username_disabled"}}</p>
 					{{end}}
 				</div>
 				<div class="field {{if .Err_FullName}}error{{end}}">
-					<label for="full_name">{{.locale.Tr "settings.full_name"}}</label>
+					<label for="full_name">{{ctx.Locale.Tr "settings.full_name"}}</label>
 					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}" maxlength="100">
 				</div>
 				<div class="field {{if .Err_Email}}error{{end}}">
-					<label for="email">{{.locale.Tr "email"}}</label>
+					<label for="email">{{ctx.Locale.Tr "email"}}</label>
 					<p>{{.SignedUser.Email}}</p>
 				</div>
 				<div class="field {{if .Err_Description}}error{{end}}">
-					<label for="description">{{$.locale.Tr "user.user_bio"}}</label>
-					<textarea id="description" name="description" rows="2" placeholder="{{.locale.Tr "settings.biography_placeholder"}}" maxlength="255">{{.SignedUser.Description}}</textarea>
+					<label for="description">{{ctx.Locale.Tr "user.user_bio"}}</label>
+					<textarea id="description" name="description" rows="2" placeholder="{{ctx.Locale.Tr "settings.biography_placeholder"}}" maxlength="255">{{.SignedUser.Description}}</textarea>
 				</div>
 				<div class="field {{if .Err_Website}}error{{end}}">
-					<label for="website">{{.locale.Tr "settings.website"}}</label>
+					<label for="website">{{ctx.Locale.Tr "settings.website"}}</label>
 					<input id="website" name="website" type="url" value="{{.SignedUser.Website}}" maxlength="255">
 				</div>
 				<div class="field">
-					<label for="location">{{.locale.Tr "settings.location"}}</label>
-					<input id="location" name="location"  value="{{.SignedUser.Location}}" maxlength="50">
+					<label for="location">{{ctx.Locale.Tr "settings.location"}}</label>
+					<input id="location" name="location" placeholder="{{ctx.Locale.Tr "settings.location_placeholder"}}" value="{{.SignedUser.Location}}" maxlength="50">
 				</div>
 
 				<div class="divider"></div>
 				<!-- private block -->
 
 				<div class="field" id="privacy-user-settings">
-					<label for="security-private"><strong>{{.locale.Tr "settings.privacy"}}</strong></label>
+					<label for="security-private"><strong>{{ctx.Locale.Tr "settings.privacy"}}</strong></label>
 				</div>
 
 				<div class="inline field {{if .Err_Visibility}}error{{end}}">
-					<span class="inline required field"><label for="visibility">{{.locale.Tr "settings.visibility"}}</label></span>
+					<span class="inline required field"><label for="visibility">{{ctx.Locale.Tr "settings.visibility"}}</label></span>
 					<div class="ui selection type dropdown">
 						{{if .SignedUser.Visibility.IsPublic}}<input type="hidden" id="visibility" name="visibility" value="0">{{end}}
 						{{if .SignedUser.Visibility.IsLimited}}<input type="hidden" id="visibility" name="visibility" value="1">{{end}}
 						{{if .SignedUser.Visibility.IsPrivate}}<input type="hidden" id="visibility" name="visibility" value="2">{{end}}
 						<div class="text">
-							{{if .SignedUser.Visibility.IsPublic}}{{.locale.Tr "settings.visibility.public"}}{{end}}
-							{{if .SignedUser.Visibility.IsLimited}}{{.locale.Tr "settings.visibility.limited"}}{{end}}
-							{{if .SignedUser.Visibility.IsPrivate}}{{.locale.Tr "settings.visibility.private"}}{{end}}
+							{{if .SignedUser.Visibility.IsPublic}}{{ctx.Locale.Tr "settings.visibility.public"}}{{end}}
+							{{if .SignedUser.Visibility.IsLimited}}{{ctx.Locale.Tr "settings.visibility.limited"}}{{end}}
+							{{if .SignedUser.Visibility.IsPrivate}}{{ctx.Locale.Tr "settings.visibility.private"}}{{end}}
 						</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							{{range $mode := .AllowedUserVisibilityModes}}
 								{{if $mode.IsPublic}}
-									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.locale.Tr "settings.visibility.public"}}</div>
+									<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{ctx.Locale.Tr "settings.visibility.public"}}</div>
 								{{else if $mode.IsLimited}}
-									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.locale.Tr "settings.visibility.limited"}}</div>
+									<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{ctx.Locale.Tr "settings.visibility.limited"}}</div>
 								{{else if $mode.IsPrivate}}
-									<div class="item" data-tooltip-content="{{$.locale.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.locale.Tr "settings.visibility.private"}}</div>
+									<div class="item" data-tooltip-content="{{ctx.Locale.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{ctx.Locale.Tr "settings.visibility.private"}}</div>
 								{{end}}
 							{{end}}
 						</div>
@@ -73,14 +73,14 @@
 
 				<div class="field">
 					<div class="ui checkbox">
-						<label data-tooltip-content="{{.locale.Tr "settings.keep_email_private_popup"}}"><strong>{{.locale.Tr "settings.keep_email_private"}}</strong></label>
+						<label data-tooltip-content="{{ctx.Locale.Tr "settings.keep_email_private_popup" .SignedUser.GetPlaceholderEmail}}"><strong>{{ctx.Locale.Tr "settings.keep_email_private"}}</strong></label>
 						<input name="keep_email_private" type="checkbox" {{if .SignedUser.KeepEmailPrivate}}checked{{end}}>
 					</div>
 				</div>
 
 				<div class="field">
 					<div class="ui checkbox" id="keep-activity-private">
-						<label data-tooltip-content="{{.locale.Tr "settings.keep_activity_private_popup"}}"><strong>{{.locale.Tr "settings.keep_activity_private"}}</strong></label>
+						<label data-tooltip-content="{{ctx.Locale.Tr "settings.keep_activity_private_popup"}}"><strong>{{ctx.Locale.Tr "settings.keep_activity_private"}}</strong></label>
 						<input name="keep_activity_private" type="checkbox" {{if .SignedUser.KeepActivityPrivate}}checked{{end}}>
 					</div>
 				</div>
@@ -88,26 +88,26 @@
 				<div class="divider"></div>
 
 				<div class="field">
-					<button class="ui green button">{{$.locale.Tr "settings.update_profile"}}</button>
+					<button class="ui primary button">{{ctx.Locale.Tr "settings.update_profile"}}</button>
 				</div>
 			</form>
 		</div>
 
 		<h4 class="ui top attached header">
-			{{.locale.Tr "settings.avatar"}}
+			{{ctx.Locale.Tr "settings.avatar"}}
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
 				{{.CsrfTokenHtml}}
-				{{if not (DisableGravatar $.Context)}}
+				{{if not .DisableGravatar}}
 				<div class="inline field">
 					<div class="ui radio checkbox">
 						<input name="source" value="lookup" type="radio" {{if not .SignedUser.UseCustomAvatar}}checked{{end}}>
-						<label>{{.locale.Tr "settings.lookup_avatar_by_mail"}}</label>
+						<label>{{ctx.Locale.Tr "settings.lookup_avatar_by_mail"}}</label>
 					</div>
 				</div>
 				<div class="field gt-pl-4 {{if .Err_Gravatar}}error{{end}}">
-					<label for="gravatar">Avatar {{.locale.Tr "email"}}</label>
+					<label for="gravatar">Avatar {{ctx.Locale.Tr "email"}}</label>
 					<input id="gravatar" name="gravatar" value="{{.SignedUser.AvatarEmail}}">
 				</div>
 				{{end}}
@@ -115,18 +115,18 @@
 				<div class="inline field">
 					<div class="ui radio checkbox">
 						<input name="source" value="local" type="radio" {{if .SignedUser.UseCustomAvatar}}checked{{end}}>
-						<label>{{.locale.Tr "settings.enable_custom_avatar"}}</label>
+						<label>{{ctx.Locale.Tr "settings.enable_custom_avatar"}}</label>
 					</div>
 				</div>
 
 				<div class="inline field gt-pl-4">
-					<label for="avatar">{{.locale.Tr "settings.choose_new_avatar"}}</label>
+					<label for="avatar">{{ctx.Locale.Tr "settings.choose_new_avatar"}}</label>
 					<input name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
 				</div>
 
 				<div class="field">
-					<button class="ui green button">{{$.locale.Tr "settings.update_avatar"}}</button>
-					<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete" data-redirect="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</button>
+					<button class="ui primary button">{{ctx.Locale.Tr "settings.update_avatar"}}</button>
+					<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete">{{ctx.Locale.Tr "settings.delete_current_avatar"}}</button>
 				</div>
 			</form>
 		</div>

@@ -9,18 +9,18 @@
 			<input type="hidden" name="page_has_posted" value="{{.PageHasPosted}}">
 			<div class="repo-editor-header">
 				<div class="ui breadcrumb field {{if .Err_TreePath}}error{{end}}">
-					{{.locale.Tr "repo.editor.patching"}}
+					{{ctx.Locale.Tr "repo.editor.patching"}}
 					<a class="section" href="{{$.RepoLink}}">{{.Repository.FullName}}</a>
-					<div class="divider">:</div>
+					<div class="breadcrumb-divider">:</div>
 					<a class="section" href="{{$.BranchLink}}">{{.BranchName}}</a>
-					<span>{{.locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}">{{.locale.Tr "repo.editor.cancel_lower"}}</a></span>
+					<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}">{{ctx.Locale.Tr "repo.editor.cancel_lower"}}</a></span>
 					<input type="hidden" id="tree_path" name="tree_path" value="" required>
 					<input id="file-name" type="hidden" value="diff.patch">
 				</div>
 			</div>
 			<div class="field">
 				<div class="ui top attached tabular menu" data-write="write">
-					<a class="active item" data-tab="write">{{svg "octicon-code" 16 "gt-mr-2"}}{{.locale.Tr "repo.editor.new_patch"}}</a>
+					<a class="active item" data-tab="write">{{svg "octicon-code" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.editor.new_patch"}}</a>
 				</div>
 				<div class="ui bottom attached active tab segment" data-tab="write">
 					<textarea id="edit_area" name="content" class="gt-hidden" data-id="repo-{{.Repository.Name}}-patch"
@@ -37,19 +37,19 @@
 	<div class="ui g-modal-confirm modal" id="edit-empty-content-modal">
 		<div class="header">
 			{{svg "octicon-file"}}
-			{{.locale.Tr "repo.editor.commit_empty_file_header"}}
+			{{ctx.Locale.Tr "repo.editor.commit_empty_file_header"}}
 		</div>
 		<div class="center content">
-			<p>{{.locale.Tr "repo.editor.commit_empty_file_text"}}</p>
+			<p>{{ctx.Locale.Tr "repo.editor.commit_empty_file_text"}}</p>
 		</div>
 		<div class="actions">
-			<button class="ui red cancel button">
+			<button class="ui cancel button">
 				{{svg "octicon-x"}}
-				{{.locale.Tr "repo.editor.cancel"}}
+				{{ctx.Locale.Tr "repo.editor.cancel"}}
 			</button>
-			<button class="ui green ok button">
+			<button class="ui primary ok button">
 				{{svg "fontawesome-save"}}
-				{{.locale.Tr "repo.editor.commit_changes"}}
+				{{ctx.Locale.Tr "repo.editor.commit_changes"}}
 			</button>
 		</div>
 	</div>

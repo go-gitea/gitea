@@ -1,18 +1,18 @@
 <h4 class="ui top attached header">
-	{{.locale.Tr "repo.issues.label_count" .NumLabels}}
+	{{ctx.Locale.Tr "repo.issues.label_count" .NumLabels}}
 	<div class="ui right">
-		<div class="ui right floated secondary filter menu">
+		<div class="ui secondary menu">
 			<!-- Sort -->
-			<div class="ui dropdown type jump item">
+			<div class="item ui jump dropdown gt-py-3">
 				<span class="text">
-					{{.locale.Tr "repo.issues.filter_sort"}}
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					{{ctx.Locale.Tr "repo.issues.filter_sort"}}
 				</span>
-				<div class="menu">
-					<a class="{{if or (eq .SortType "alphabetically") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=alphabetically&state={{$.State}}">{{.locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
-					<a class="{{if eq .SortType "reversealphabetically"}}active {{end}}item" href="{{$.Link}}?sort=reversealphabetically&state={{$.State}}">{{.locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
-					<a class="{{if eq .SortType "leastissues"}}active {{end}}item" href="{{$.Link}}?sort=leastissues&state={{$.State}}">{{.locale.Tr "repo.milestones.filter_sort.least_issues"}}</a>
-					<a class="{{if eq .SortType "mostissues"}}active {{end}}item" href="{{$.Link}}?sort=mostissues&state={{$.State}}">{{.locale.Tr "repo.milestones.filter_sort.most_issues"}}</a>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				<div class="left menu">
+					<a class="{{if or (eq .SortType "alphabetically") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=alphabetically&state={{$.State}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
+					<a class="{{if eq .SortType "reversealphabetically"}}active {{end}}item" href="{{$.Link}}?sort=reversealphabetically&state={{$.State}}">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
+					<a class="{{if eq .SortType "leastissues"}}active {{end}}item" href="{{$.Link}}?sort=leastissues&state={{$.State}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.least_issues"}}</a>
+					<a class="{{if eq .SortType "mostissues"}}active {{end}}item" href="{{$.Link}}?sort=mostissues&state={{$.State}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.most_issues"}}</a>
 				</div>
 			</div>
 		</div>
@@ -37,19 +37,22 @@
 			</div>
 			<div class="label-issues">
 				{{if $.PageIsOrgSettingsLabels}}
-					<a class="open-issues" href="{{AppSubUrl}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{$.locale.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
+					<a class="open-issues" href="{{AppSubUrl}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
 				{{else}}
-					<a class="open-issues" href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{$.locale.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
+					<a class="open-issues" href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
 				{{end}}
 			</div>
-			<div class="label-operation">
-				{{if and (not $.PageIsOrgSettingsLabels) (not $.Repository.IsArchived) (or $.CanWriteIssues $.CanWritePulls)}}
-					<a class="edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" {{if .Exclusive}}data-exclusive{{end}} data-num-issues="{{.NumIssues}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil"}} {{$.locale.Tr "repo.issues.label_edit"}}</a>
-					<a class="delete-button" href="#" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{$.locale.Tr "repo.issues.label_delete"}}</a>
-				{{else if $.PageIsOrgSettingsLabels}}
-					<a class="edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" {{if .Exclusive}}data-exclusive{{end}} data-num-issues="{{.NumIssues}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil"}} {{$.locale.Tr "repo.issues.label_edit"}}</a>
-					<a class="delete-button" href="#" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{$.locale.Tr "repo.issues.label_delete"}}</a>
-				{{end}}
+			<div class="label-operation gt-df">
+				{{template "repo/issue/labels/label_archived" .}}
+				<div class="gt-df gt-ml-auto">
+					{{if and (not $.PageIsOrgSettingsLabels) (not $.Repository.IsArchived) (or $.CanWriteIssues $.CanWritePulls)}}
+						<a class="edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" {{if .Exclusive}}data-exclusive{{end}} {{if gt .ArchivedUnix 0}}data-is-archived{{end}} data-num-issues="{{.NumIssues}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil"}} {{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
+						<a class="delete-button" href="#" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
+					{{else if $.PageIsOrgSettingsLabels}}
+						<a class="edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" {{if .Exclusive}}data-exclusive{{end}} {{if gt .ArchivedUnix 0}}data-is-archived{{end}} data-num-issues="{{.NumIssues}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil"}} {{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
+						<a class="delete-button" href="#" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
+					{{end}}
+				</div>
 			</div>
 		</li>
 		{{end}}
@@ -58,9 +61,9 @@
 			<li class="item">
 				<div class="ui grid middle aligned">
 					<div class="ten wide column">
-						{{$.locale.Tr "repo.org_labels_desc" | Str2html}}
+						{{ctx.Locale.Tr "repo.org_labels_desc" | Str2html}}
 						{{if .IsOrganizationOwner}}
-							<a href="{{.OrganizationLink}}/settings/labels">({{$.locale.Tr "repo.org_labels_desc_manage"}})</a>:
+							<a href="{{.OrganizationLink}}/settings/labels">({{ctx.Locale.Tr "repo.org_labels_desc_manage"}})</a>:
 						{{end}}
 					</div>
 				</div>
@@ -73,9 +76,11 @@
 					{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
 				</div>
 				<div class="label-issues">
-					<a class="open-issues" href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{$.locale.Tr "repo.issues.label_open_issues" .NumOpenRepoIssues}}</a>
+					<a class="open-issues" {{if .IsArchived}}data-is-archived{{end}} href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues.label_open_issues" .NumOpenRepoIssues}}</a>
 				</div>
-				<div class="label-operation"></div>
+				<div class="label-operation">
+					{{template "repo/issue/labels/label_archived" .}}
+				</div>
 			</li>
 			{{end}}
 		{{end}}

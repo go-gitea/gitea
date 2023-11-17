@@ -89,13 +89,13 @@ func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 		if v, ok := record.responseWriter.(types.ResponseStatusProvider); ok {
 			status = v.WrittenStatus()
 		}
-		logf := log.Info
+		logf := logger.Info
 		if strings.HasPrefix(req.RequestURI, "/assets/") {
-			logf = log.Trace
+			logf = logger.Trace
 		}
 		message := completedMessage
 		if isUnknownHandler {
-			logf = log.Error
+			logf = logger.Error
 			message = unknownHandlerMessage
 		}
 

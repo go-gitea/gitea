@@ -1,15 +1,10 @@
-<div class="repo-icon gt-mr-3">
-	{{if $.IsTemplate}}
-		{{svg "octicon-repo-template" 32}}
-	{{else}}
-		{{if $.IsPrivate}}
-			{{svg "octicon-lock" 32}}
-		{{else if $.IsMirror}}
-			{{svg "octicon-mirror" 32}}
-		{{else if $.IsFork}}
-			{{svg "octicon-repo-forked" 32}}
-		{{else}}
-			{{svg "octicon-repo" 32}}
-		{{end}}
-	{{end}}
-</div>
+{{$avatarLink := (.RelAvatarLink ctx)}}
+{{if $avatarLink}}
+	<img class="ui avatar gt-vm" src="{{$avatarLink}}" width="32" height="32" alt="{{.FullName}}">
+{{else if $.IsMirror}}
+	{{svg "octicon-mirror" 32}}
+{{else if $.IsFork}}
+	{{svg "octicon-repo-forked" 32}}
+{{else}}
+	{{svg "octicon-repo" 32}}
+{{end}}

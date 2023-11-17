@@ -4,9 +4,9 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -14,7 +14,6 @@ import (
 // Ensure the struct implements the interface.
 var (
 	_ Method = &Session{}
-	_ Named  = &Session{}
 )
 
 // Session checks if there is a user uid stored in the session and returns the user
@@ -30,7 +29,7 @@ func (s *Session) Name() string {
 // object for that uid.
 // Returns nil if there is no user uid stored in the session.
 func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
-	user := SessionUser(sess)
+	user := SessionUser(req.Context(), sess)
 	if user != nil {
 		return user, nil
 	}
@@ -38,7 +37,7 @@ func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataSto
 }
 
 // SessionUser returns the user object corresponding to the "uid" session variable.
-func SessionUser(sess SessionStore) *user_model.User {
+func SessionUser(ctx context.Context, sess SessionStore) *user_model.User {
 	if sess == nil {
 		return nil
 	}
@@ -56,7 +55,7 @@ func SessionUser(sess SessionStore) *user_model.User {
 	}
 
 	// Get user object
-	user, err := user_model.GetUserByID(db.DefaultContext, id)
+	user, err := user_model.GetUserByID(ctx, id)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserById: %v", err)

@@ -35,7 +35,7 @@ func TestViewRepo(t *testing.T) {
 	assert.True(t, repoTopics.HasClass("repo-topic"))
 	assert.True(t, repoSummary.HasClass("repository-menu"))
 
-	req = NewRequest(t, "GET", "/user3/repo3")
+	req = NewRequest(t, "GET", "/org3/repo3")
 	MakeRequest(t, req, http.StatusNotFound)
 
 	session = loginUser(t, "user1")
@@ -45,7 +45,7 @@ func TestViewRepo(t *testing.T) {
 func testViewRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "GET", "/user3/repo3")
+	req := NewRequest(t, "GET", "/org3/repo3")
 	session := loginUser(t, "user2")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -116,7 +116,7 @@ func TestViewRepo2(t *testing.T) {
 func TestViewRepo3(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "GET", "/user3/repo3")
+	req := NewRequest(t, "GET", "/org3/repo3")
 	session := loginUser(t, "user4")
 	session.MakeRequest(t, req, http.StatusOK)
 }
@@ -302,6 +302,10 @@ func TestViewRepoDirectoryReadme(t *testing.T) {
 	check("plain", "/user2/readme-test/src/branch/plain/", "README", "plain-text", "Birken my stocks gee howdy")
 	check("i18n", "/user2/readme-test/src/branch/i18n/", "README.zh.md", "markdown", "蛋糕是一个谎言")
 
+	// using HEAD ref
+	check("branch-HEAD", "/user2/readme-test/src/branch/HEAD/", "README.md", "markdown", "The cake is a lie.")
+	check("commit-HEAD", "/user2/readme-test/src/commit/HEAD/", "README.md", "markdown", "The cake is a lie.")
+
 	// viewing different subdirectories
 	check("subdir", "/user2/readme-test/src/branch/subdir/libcake", "README.md", "markdown", "Four pints of sugar.")
 	check("docs-direct", "/user2/readme-test/src/branch/special-subdir-docs/docs/", "README.md", "markdown", "This is in docs/")
@@ -407,4 +411,40 @@ func TestMarkDownReadmeImageSubfolder(t *testing.T) {
 	src, exists = htmlDoc.doc.Find(`.markdown img`).Attr("src")
 	assert.True(t, exists, "Image not found in markdown file")
 	assert.Equal(t, "/user2/repo1/media/branch/sub-home-md-img-check/docs/test-fake-img.jpg", src)
+}
+
+func TestGeneratedSourceLink(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	t.Run("Rendered file", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		req := NewRequest(t, "GET", "/user2/repo1/src/branch/master/README.md?display=source")
+		resp := MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+
+		dataURL, exists := doc.doc.Find(".copy-line-permalink").Attr("data-url")
+		assert.True(t, exists)
+		assert.Equal(t, "/user2/repo1/src/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d/README.md?display=source", dataURL)
+
+		dataURL, exists = doc.doc.Find(".ref-in-new-issue").Attr("data-url-param-body-link")
+		assert.True(t, exists)
+		assert.Equal(t, "/user2/repo1/src/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d/README.md?display=source", dataURL)
+	})
+
+	t.Run("Non-Rendered file", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		session := loginUser(t, "user27")
+		req := NewRequest(t, "GET", "/user27/repo49/src/branch/master/test/test.txt")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+
+		dataURL, exists := doc.doc.Find(".copy-line-permalink").Attr("data-url")
+		assert.True(t, exists)
+		assert.Equal(t, "/user27/repo49/src/commit/aacbdfe9e1c4b47f60abe81849045fa4e96f1d75/test/test.txt", dataURL)
+
+		dataURL, exists = doc.doc.Find(".ref-in-new-issue").Attr("data-url-param-body-link")
+		assert.True(t, exists)
+		assert.Equal(t, "/user27/repo49/src/commit/aacbdfe9e1c4b47f60abe81849045fa4e96f1d75/test/test.txt", dataURL)
+	})
 }

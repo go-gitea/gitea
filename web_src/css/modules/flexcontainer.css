@@ -1,0 +1,23 @@
+/* container for full-page content with sidebar on left */
+
+.flex-container {
+  display: flex !important;
+  gap: 16px;
+}
+
+.flex-container-nav {
+  width: 240px;
+}
+
+.flex-container-main {
+  flex: 1;
+}
+
+@media (max-width: 767.98px) {
+  .flex-container {
+    flex-direction: column;
+  }
+  .flex-container-nav {
+    width: auto;
+  }
+}

@@ -31,8 +31,8 @@
 					<h2>Recommended colors:</h2>
 					<button class="ui red button">Red</button>
 					<button class="ui basic red button">Basic Red</button>
-					<button class="ui green button">Green</button>
-					<button class="ui basic green button">Basic Green</button>
+					<button class="ui primary button">Green</button>
+					<button class="ui basic primary button">Basic Green</button>
 					<button class="ui blue button">Blue</button>
 					<button class="ui basic blue button">Basic Blue</button>
 					<button class="ui orange button">Orange</button>
@@ -80,6 +80,14 @@
 	</div>
 
 	<div>
+		<h1>Buttons</h1>
+		<div class="ui buttons"><button class="ui button">1</button><button class="ui button">2</button><button class="ui button">3</button></div>
+		<div class="ui buttons"><button class="ui button active">1</button><button class="ui button">2</button><button class="ui button">3</button></div>
+		<div class="ui buttons"><button class="ui button">1</button><button class="ui button active">2</button><button class="ui button">3</button></div>
+		<div class="ui buttons"><button class="ui button">1</button><button class="ui button">2</button><button class="ui button active">3</button></div>
+	</div>
+
+	<div>
 		<h1>Tooltip</h1>
 		<div><span data-tooltip-content="test tooltip">text with tooltip</span></div>
 		<div><span data-tooltip-content="test tooltip" data-tooltip-interactive="true">text with interactive tooltip</span></div>
@@ -104,24 +112,24 @@
 
 	<div>
 		<h1>LocaleNumber</h1>
-		<div>{{.locale.PrettyNumber 1}}</div>
-		<div>{{.locale.PrettyNumber 12}}</div>
-		<div>{{.locale.PrettyNumber 123}}</div>
-		<div>{{.locale.PrettyNumber 1234}}</div>
-		<div>{{.locale.PrettyNumber 12345}}</div>
-		<div>{{.locale.PrettyNumber 123456}}</div>
-		<div>{{.locale.PrettyNumber 1234567}}</div>
+		<div>{{ctx.Locale.PrettyNumber 1}}</div>
+		<div>{{ctx.Locale.PrettyNumber 12}}</div>
+		<div>{{ctx.Locale.PrettyNumber 123}}</div>
+		<div>{{ctx.Locale.PrettyNumber 1234}}</div>
+		<div>{{ctx.Locale.PrettyNumber 12345}}</div>
+		<div>{{ctx.Locale.PrettyNumber 123456}}</div>
+		<div>{{ctx.Locale.PrettyNumber 1234567}}</div>
 	</div>
 
 	<div>
 		<h1>TimeSince</h1>
-		<div>Now: {{TimeSince .TimeNow $.locale}}</div>
-		<div>5s past: {{TimeSince .TimePast5s $.locale}}</div>
-		<div>5s future: {{TimeSince .TimeFuture5s $.locale}}</div>
-		<div>2m past: {{TimeSince .TimePast2m $.locale}}</div>
-		<div>2m future: {{TimeSince .TimeFuture2m $.locale}}</div>
-		<div>1y past: {{TimeSince .TimePast1y $.locale}}</div>
-		<div>1y future: {{TimeSince .TimeFuture1y $.locale}}</div>
+		<div>Now: {{TimeSince .TimeNow ctx.Locale}}</div>
+		<div>5s past: {{TimeSince .TimePast5s ctx.Locale}}</div>
+		<div>5s future: {{TimeSince .TimeFuture5s ctx.Locale}}</div>
+		<div>2m past: {{TimeSince .TimePast2m ctx.Locale}}</div>
+		<div>2m future: {{TimeSince .TimeFuture2m ctx.Locale}}</div>
+		<div>1y past: {{TimeSince .TimePast1y ctx.Locale}}</div>
+		<div>1y future: {{TimeSince .TimeFuture1y ctx.Locale}}</div>
 	</div>
 
 	<div>
@@ -130,9 +138,13 @@
 		<h2>Text with SVG</h2>
 		<div class="flex-text-block">{{svg "octicon-alert"}} {{svg "octicon-x"}} text (block)</div>
 		<div><div class="flex-text-inline">{{svg "octicon-alert"}} {{svg "octicon-x"}} text</div> (inline)</div>
+
+		<div class="flex-text-block">{{svg "octicon-alert"}} flex item with very very very very very very very very long content</div>
+
 		<div class="flex-items-block">
 			<div class="item">{{svg "octicon-alert"}} flex every line</div>
 			<div class="item">{{svg "octicon-alert"}} flex every item</div>
+			<div class="item">{{svg "octicon-alert"}} flex item with very very very very very very very very long content</div>
 		</div>
 
 		<h2>Button with SVG</h2>
@@ -142,6 +154,7 @@
 				<button class="ui basic button">labeled button</button>
 				<a class="ui basic label">123</a>
 			</div>
+			<button class="ui yellow button">{{svg "octicon-x" 16}} button with very very very very very very very very long text</button>
 		</div>
 
 		<h2>Input with SVG</h2>
@@ -158,6 +171,7 @@
 				<span class="text">simple</span>
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				<div class="menu">
+					<div class="ui icon search input"><i class="icon">{{svg "octicon-search"}}</i><input type="text" value="search input in menu"></div>
 					<div class="item">item</div>
 				</div>
 			</div>
@@ -233,6 +247,15 @@
 			</div>
 			<div class="ui dropdown large compact button">
 				<span class="text">large compact</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			</div>
+		</div>
+
+		<div>
+			<hr>
+			<div class="ui tiny button">Button align with ...</div>
+			<div class="ui dropdown tiny button">
+				<span class="text">... Dropdown Button</span>
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			</div>
 		</div>

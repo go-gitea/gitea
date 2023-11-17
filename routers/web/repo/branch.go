@@ -37,11 +37,11 @@ const (
 func Branches(ctx *context.Context) {
 	ctx.Data["Title"] = "Branches"
 	ctx.Data["IsRepoToolbarBranches"] = true
-	ctx.Data["AllowsPulls"] = ctx.Repo.Repository.AllowsPulls()
+	ctx.Data["AllowsPulls"] = ctx.Repo.Repository.AllowsPulls(ctx)
 	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(unit.TypeCode)
 	ctx.Data["IsMirror"] = ctx.Repo.Repository.IsMirror
 	ctx.Data["CanPull"] = ctx.Repo.CanWrite(unit.TypeCode) ||
-		(ctx.IsSigned && repo_model.HasForkedRepo(ctx.Doer.ID, ctx.Repo.Repository.ID))
+		(ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID))
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
 
@@ -51,7 +51,9 @@ func Branches(ctx *context.Context) {
 	}
 	pageSize := setting.Git.BranchesRangeSize
 
-	defaultBranch, branches, branchesCount, err := repo_service.LoadBranches(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, util.OptionalBoolNone, page, pageSize)
+	kw := ctx.FormString("q")
+
+	defaultBranch, branches, branchesCount, err := repo_service.LoadBranches(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, util.OptionalBoolNone, kw, page, pageSize)
 	if err != nil {
 		ctx.ServerError("LoadBranches", err)
 		return
@@ -73,6 +75,7 @@ func Branches(ctx *context.Context) {
 		commitStatus[commitID] = git_model.CalcCommitStatus(cs)
 	}
 
+	ctx.Data["Keyword"] = kw
 	ctx.Data["Branches"] = branches
 	ctx.Data["CommitStatus"] = commitStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
@@ -162,9 +165,7 @@ func RestoreBranchPost(ctx *context.Context) {
 }
 
 func redirect(ctx *context.Context) {
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": ctx.Repo.RepoLink + "/branches?page=" + url.QueryEscape(ctx.FormString("page")),
-	})
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/branches?page=" + url.QueryEscape(ctx.FormString("page")))
 }
 
 // CreateBranch creates new branch in repository

@@ -47,6 +47,7 @@ func Projects(ctx *context.Context) {
 	sortType := ctx.FormTrim("sort")
 
 	isShowClosed := strings.ToLower(ctx.FormTrim("state")) == "closed"
+	keyword := ctx.FormTrim("q")
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
@@ -64,6 +65,7 @@ func Projects(ctx *context.Context) {
 		IsClosed: util.OptionalBoolOf(isShowClosed),
 		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
 		Type:     projectType,
+		Title:    keyword,
 	})
 	if err != nil {
 		ctx.ServerError("FindProjects", err)
@@ -101,6 +103,12 @@ func Projects(ctx *context.Context) {
 		project.RenderedContent = project.Description
 	}
 
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	numPages := 0
 	if total > 0 {
 		numPages = (int(total) - 1/setting.UI.IssuePagingNum)
@@ -135,6 +143,13 @@ func RenderNewProject(ctx *context.Context) {
 	ctx.Data["HomeLink"] = ctx.ContextUser.HomeLink()
 	ctx.Data["CancelLink"] = ctx.ContextUser.HomeLink() + "/-/projects"
 	shared_user.RenderUserHeader(ctx)
+
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	ctx.HTML(http.StatusOK, tplProjectsNew)
 }
 
@@ -164,7 +179,7 @@ func NewProjectPost(ctx *context.Context) {
 		newProject.Type = project_model.TypeIndividual
 	}
 
-	if err := project_model.NewProject(&newProject); err != nil {
+	if err := project_model.NewProject(ctx, &newProject); err != nil {
 		ctx.ServerError("NewProject", err)
 		return
 	}
@@ -186,7 +201,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 	}
 	id := ctx.ParamsInt64(":id")
 
-	if err := project_model.ChangeProjectStatusByRepoIDAndID(0, id, toClose); err != nil {
+	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, 0, id, toClose); err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", err)
 		} else {
@@ -219,9 +234,7 @@ func DeleteProject(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.projects.deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": ctx.ContextUser.HomeLink() + "/-/projects",
-	})
+	ctx.JSONRedirect(ctx.ContextUser.HomeLink() + "/-/projects")
 }
 
 // RenderEditProject allows a project to be edited
@@ -272,6 +285,12 @@ func EditProjectPost(ctx *context.Context) {
 
 	shared_user.RenderUserHeader(ctx)
 
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplProjectsNew)
 		return
@@ -301,7 +320,7 @@ func EditProjectPost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("repo.projects.edit_success", p.Title))
 	if ctx.FormString("redirect") == "project" {
-		ctx.Redirect(p.Link())
+		ctx.Redirect(p.Link(ctx))
 	} else {
 		ctx.Redirect(ctx.ContextUser.HomeLink() + "/-/projects")
 	}
@@ -378,8 +397,14 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap
-	ctx.Data["Boards"] = boards
+	ctx.Data["Columns"] = boards // TODO: rename boards to columns in backend
 	shared_user.RenderUserHeader(ctx)
+
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
 
 	ctx.HTML(http.StatusOK, tplProjectsView)
 }
@@ -443,15 +468,13 @@ func UpdateIssueProject(ctx *context.Context) {
 			}
 		}
 
-		if err := issues_model.ChangeProjectAssign(issue, ctx.Doer, projectID); err != nil {
+		if err := issues_model.ChangeProjectAssign(ctx, issue, ctx.Doer, projectID); err != nil {
 			ctx.ServerError("ChangeProjectAssign", err)
 			return
 		}
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // DeleteProjectBoard allows for the deletion of a project board
@@ -492,14 +515,12 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.DeleteBoardByID(ctx.ParamsInt64(":boardID")); err != nil {
+	if err := project_model.DeleteBoardByID(ctx, ctx.ParamsInt64(":boardID")); err != nil {
 		ctx.ServerError("DeleteProjectBoardByID", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // AddBoardToProjectPost allows a new board to be added to a project.
@@ -516,7 +537,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.NewBoard(&project_model.Board{
+	if err := project_model.NewBoard(ctx, &project_model.Board{
 		ProjectID: project.ID,
 		Title:     form.Title,
 		Color:     form.Color,
@@ -526,9 +547,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // CheckProjectBoardChangePermissions check permission
@@ -594,9 +613,7 @@ func EditProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // SetDefaultProjectBoard set default board for uncategorized issues/pulls
@@ -606,14 +623,12 @@ func SetDefaultProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.SetDefaultBoard(project.ID, board.ID); err != nil {
+	if err := project_model.SetDefaultBoard(ctx, project.ID, board.ID); err != nil {
 		ctx.ServerError("SetDefaultBoard", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // UnsetDefaultProjectBoard unset default board for uncategorized issues/pulls
@@ -623,14 +638,12 @@ func UnsetDefaultProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.SetDefaultBoard(project.ID, 0); err != nil {
+	if err := project_model.SetDefaultBoard(ctx, project.ID, 0); err != nil {
 		ctx.ServerError("SetDefaultBoard", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // MoveIssues moves or keeps issues in a column and sorts them inside that column
@@ -725,12 +738,10 @@ func MoveIssues(ctx *context.Context) {
 		}
 	}
 
-	if err = project_model.MoveIssuesOnProjectBoard(board, sortedIssueIDs); err != nil {
+	if err = project_model.MoveIssuesOnProjectBoard(ctx, board, sortedIssueIDs); err != nil {
 		ctx.ServerError("MoveIssuesOnProjectBoard", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }

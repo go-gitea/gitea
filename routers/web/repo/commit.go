@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/gitdiff"
+	git_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -80,7 +81,6 @@ func Commits(ctx *context.Context) {
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
-	ctx.Data["RefName"] = ctx.Repo.RefName
 
 	pager := context.NewPagination(int(commitsCount), pageSize, page, 5)
 	pager.SetDefaultParams(ctx)
@@ -156,7 +156,7 @@ func Graph(ctx *context.Context) {
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
-	ctx.Data["RefName"] = ctx.Repo.RefName
+
 	paginator := context.NewPagination(int(graphCommitsCount), setting.UI.GraphMaxCommitNum, page, 5)
 	paginator.AddParam(ctx, "mode", "Mode")
 	paginator.AddParam(ctx, "hide-pr-refs", "HidePRRefs")
@@ -202,7 +202,6 @@ func SearchCommits(ctx *context.Context) {
 	}
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-	ctx.Data["RefName"] = ctx.Repo.RefName
 	ctx.HTML(http.StatusOK, tplCommits)
 }
 
@@ -246,13 +245,21 @@ func FileHistory(ctx *context.Context) {
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["FileName"] = fileName
 	ctx.Data["CommitCount"] = commitsCount
-	ctx.Data["RefName"] = ctx.Repo.RefName
 
 	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplCommits)
+}
+
+func LoadBranchesAndTags(ctx *context.Context) {
+	response, err := git_service.LoadBranchesAndTags(ctx, ctx.Repo, ctx.Params("sha"))
+	if err == nil {
+		ctx.JSON(http.StatusOK, response)
+		return
+	}
+	ctx.NotFoundOrServerError(fmt.Sprintf("could not load branches and tags the commit %s belongs to", ctx.Params("sha")), git.IsErrNotExist, err)
 }
 
 // Diff show different from current commit to previous commit
@@ -298,7 +305,7 @@ func Diff(ctx *context.Context) {
 		maxLines, maxFiles = -1, -1
 	}
 
-	diff, err := gitdiff.GetDiff(gitRepo, &gitdiff.DiffOptions{
+	diff, err := gitdiff.GetDiff(ctx, gitRepo, &gitdiff.DiffOptions{
 		AfterCommitID:      commitID,
 		SkipTo:             ctx.FormString("skip-to"),
 		MaxLines:           maxLines,
@@ -339,7 +346,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Commit"] = commit
 	ctx.Data["Diff"] = diff
 
-	statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptions{})
+	statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptions{ListAll: true})
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
@@ -354,7 +361,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
 
 	if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-		return repo_model.IsOwnerMemberCollaborator(ctx.Repo.Repository, user.ID)
+		return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
 	}, nil); err != nil {
 		ctx.ServerError("CalculateTrustStatus", err)
 		return
@@ -374,11 +381,6 @@ func Diff(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["TagName"], err = commit.GetTagName()
-	if err != nil {
-		ctx.ServerError("commit.GetTagName", err)
-		return
-	}
 	ctx.HTML(http.StatusOK, tplCommitPage)
 }
 

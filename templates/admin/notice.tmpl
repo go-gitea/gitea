@@ -1,25 +1,25 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin notice")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.notices.system_notice_list"}} ({{.locale.Tr "admin.total" .Total}})
+			{{ctx.Locale.Tr "admin.notices.system_notice_list"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 		</h4>
 		<table class="ui attached segment select selectable striped table unstackable g-table-auto-ellipsis">
 			<thead>
 				<tr>
 					<th></th>
 					<th>ID</th>
-					<th>{{.locale.Tr "admin.notices.type"}}</th>
-					<th>{{.locale.Tr "admin.notices.desc"}}</th>
-					<th>{{.locale.Tr "admin.users.created"}}</th>
-					<th>{{.locale.Tr "admin.notices.op"}}</th>
+					<th>{{ctx.Locale.Tr "admin.notices.type"}}</th>
+					<th>{{ctx.Locale.Tr "admin.notices.desc"}}</th>
+					<th>{{ctx.Locale.Tr "admin.users.created"}}</th>
+					<th>{{ctx.Locale.Tr "admin.notices.op"}}</th>
 				</tr>
 			</thead>
 			<tbody>
 				{{range .Notices}}
 					<tr>
-						<td><div class="ui checkbox gt-db" data-id="{{.ID}}"><input type="checkbox"></div></td>
+						<td><div class="ui checkbox gt-df" data-id="{{.ID}}"><input type="checkbox"></div></td>
 						<td>{{.ID}}</td>
-						<td>{{$.locale.Tr .TrStr}}</td>
+						<td>{{ctx.Locale.Tr .TrStr}}</td>
 						<td class="view-detail auto-ellipsis" style="width: 80%;"><span class="notice-description">{{.Description}}</span></td>
 						<td nowrap>{{DateTime "short" .CreatedUnix}}</td>
 						<td class="view-detail"><a href="#">{{svg "octicon-note" 16}}</a></td>
@@ -31,26 +31,26 @@
 						<tr>
 							<th></th>
 							<th colspan="5">
-								<form class="ui right" method="post" action="{{AppSubUrl}}/admin/notices/empty">
+								<form class="gt-float-right" method="post" action="{{AppSubUrl}}/admin/notices/empty">
 									{{.CsrfTokenHtml}}
-									<button type="submit" class="ui red small button">{{.locale.Tr "admin.notices.delete_all"}}</button>
+									<button type="submit" class="ui red small button">{{ctx.Locale.Tr "admin.notices.delete_all"}}</button>
 								</form>
 								<div class="ui floating upward dropdown small button">{{/* TODO: Make this dropdown accessible */}}
-									<span class="text">{{.locale.Tr "admin.notices.operations"}}</span>
+									<span class="text">{{ctx.Locale.Tr "admin.notices.operations"}}</span>
 									<div class="menu">
 										<div class="item select action" data-action="select-all">
-											{{.locale.Tr "admin.notices.select_all"}}
+											{{ctx.Locale.Tr "admin.notices.select_all"}}
 										</div>
 										<div class="item select action" data-action="deselect-all">
-											{{.locale.Tr "admin.notices.deselect_all"}}
+											{{ctx.Locale.Tr "admin.notices.deselect_all"}}
 										</div>
 										<div class="item select action" data-action="inverse">
-											{{.locale.Tr "admin.notices.inverse_selection"}}
+											{{ctx.Locale.Tr "admin.notices.inverse_selection"}}
 										</div>
 									</div>
 								</div>
 								<button class="ui small teal button" id="delete-selection" data-link="{{.Link}}/delete" data-redirect="{{.Link}}?page={{.Page.Paginater.Current}}">
-									{{.locale.Tr "admin.notices.delete_selected"}}
+									{{ctx.Locale.Tr "admin.notices.delete_selected"}}
 								</button>
 							</th>
 						</tr>
@@ -61,7 +61,7 @@
 	</div>
 
 <div class="ui modal admin" id="detail-modal">
-	<div class="header">{{$.locale.Tr "admin.notices.view_detail_header"}}</div>
+	<div class="header">{{ctx.Locale.Tr "admin.notices.view_detail_header"}}</div>
 	<div class="content">
 		<div class="sub header"></div>
 		<pre></pre>

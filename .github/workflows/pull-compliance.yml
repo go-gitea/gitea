@@ -16,10 +16,10 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: ">=1.20"
+          go-version-file: go.mod
           check-latest: true
       - run: make deps-backend deps-tools
       - run: make lint-backend
@@ -31,7 +31,7 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
@@ -39,13 +39,26 @@ jobs:
       - run: make deps-py
       - run: make lint-templates
 
+  lint-yaml:
+    if: needs.files-changed.outputs.yaml == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - run: pip install poetry
+      - run: make deps-py
+      - run: make lint-yaml
+
   lint-swagger:
     if: needs.files-changed.outputs.swagger == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: make deps-frontend
@@ -56,10 +69,10 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: ">=1.20"
+          go-version-file: go.mod
           check-latest: true
       - run: make deps-backend deps-tools
       - run: make lint-go-windows lint-go-vet
@@ -73,10 +86,10 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: ">=1.20"
+          go-version-file: go.mod
           check-latest: true
       - run: make deps-backend deps-tools
       - run: make lint-go
@@ -88,10 +101,10 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: ">=1.20"
+          go-version-file: go.mod
           check-latest: true
       - run: make deps-backend deps-tools
       - run: make --always-make checks-backend # ensure the "go-licenses" make target runs
@@ -101,8 +114,8 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: make deps-frontend
@@ -116,10 +129,10 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: ">=1.20"
+          go-version-file: go.mod
           check-latest: true
       # no frontend build here as backend should be able to build
       # even without any frontend files
@@ -148,19 +161,22 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: make deps-frontend
       - run: make lint-md
-      - run: make docs # test if build could succeed
+      - run: make docs
 
   actions:
     if: needs.files-changed.outputs.actions == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          check-latest: true
       - run: make lint-actions

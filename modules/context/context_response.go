@@ -75,7 +75,7 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 		return strconv.FormatInt(time.Since(tmplStartTime).Nanoseconds()/1e6, 10) + "ms"
 	}
 
-	err := ctx.Render.HTML(ctx.Resp, status, string(name), ctx.Data)
+	err := ctx.Render.HTML(ctx.Resp, status, string(name), ctx.Data, ctx.TemplateContext)
 	if err == nil {
 		return
 	}
@@ -93,7 +93,7 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 // RenderToString renders the template content to a string
 func (ctx *Context) RenderToString(name base.TplName, data map[string]any) (string, error) {
 	var buf strings.Builder
-	err := ctx.Render.HTML(&buf, http.StatusOK, string(name), data)
+	err := ctx.Render.HTML(&buf, http.StatusOK, string(name), data, ctx.TemplateContext)
 	return buf.String(), err
 }
 
@@ -166,6 +166,7 @@ func (ctx *Context) serverErrorInternal(logMsg string, logErr error) {
 // NotFoundOrServerError use error check function to determine if the error
 // is about not found. It responds with 404 status code for not found error,
 // or error context description for logging purpose of 500 server error.
+// TODO: remove the "errCheck" and use util.ErrNotFound to check
 func (ctx *Context) NotFoundOrServerError(logMsg string, errCheck func(error) bool, logErr error) {
 	if errCheck(logErr) {
 		ctx.notFoundInternal(logMsg, logErr)

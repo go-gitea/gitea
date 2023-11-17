@@ -1,42 +1,55 @@
 <div class="ui card">
 	<div id="profile-avatar" class="content gt-df">
 	{{if eq .SignedUserID .ContextUser.ID}}
-		<a class="image" href="{{AppSubUrl}}/user/settings" data-tooltip-content="{{.locale.Tr "user.change_avatar"}}">
+		<a class="image" href="{{AppSubUrl}}/user/settings" data-tooltip-content="{{ctx.Locale.Tr "user.change_avatar"}}">
 			{{/* the size doesn't take affect (and no need to take affect), image size(width) should be controlled by the parent container since this is not a flex layout*/}}
-			{{avatar $.Context .ContextUser 256}}
+			{{ctx.AvatarUtils.Avatar .ContextUser 256}}
 		</a>
 	{{else}}
 		<span class="image">
-			{{avatar $.Context .ContextUser 256}}
+			{{ctx.AvatarUtils.Avatar .ContextUser 256}}
 		</span>
 	{{end}}
 	</div>
 	<div class="content gt-word-break profile-avatar-name">
 		{{if .ContextUser.FullName}}<span class="header text center">{{.ContextUser.FullName}}</span>{{end}}
-		<span class="username text center">{{.ContextUser.Name}}</span>
-		{{if .EnableFeed}}
-			<a href="{{.ContextUser.HomeLink}}.rss"><i class="ui text grey gt-ml-3" data-tooltip-content="{{.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
-		{{end}}
+		<span class="username text center">{{.ContextUser.Name}} {{if .IsAdmin}}
+					<a class="muted" href="{{AppSubUrl}}/admin/users/{{.ContextUser.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.users.details"}}">
+						{{svg "octicon-gear" 18}}
+					</a>
+				{{end}}</span>
 		<div class="gt-mt-3">
-			<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "gt-mr-2"}}{{.NumFollowers}} {{.locale.Tr "user.followers"}}</a> · <a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{.NumFollowing}} {{.locale.Tr "user.following"}}</a>
+			<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "gt-mr-2"}}{{.NumFollowers}} {{ctx.Locale.Tr "user.followers"}}</a> · <a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{.NumFollowing}} {{ctx.Locale.Tr "user.following"}}</a>
+			{{if .EnableFeed}}
+				<a href="{{.ContextUser.HomeLink}}.rss"><i class="ui text grey gt-ml-3" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
+			{{end}}
 		</div>
 	</div>
 	<div class="extra content gt-word-break">
 		<ul>
 			{{if .ContextUser.Location}}
-				<li>{{svg "octicon-location"}} {{.ContextUser.Location}}</li>
+				<li>
+					{{svg "octicon-location"}}
+					<span class="gt-f1">{{.ContextUser.Location}}</span>
+					{{if .UserLocationMapURL}}
+						{{/* We presume that the UserLocationMapURL is safe, as it is provided by the site administrator. */}}
+						<a href="{{.UserLocationMapURL | Safe}}{{.ContextUser.Location | QueryEscape}}" rel="nofollow noreferrer" data-tooltip-content="{{ctx.Locale.Tr "user.show_on_map"}}">
+							{{svg "octicon-link-external"}}
+						</a>
+					{{end}}
+				</li>
 			{{end}}
 			{{if (eq .SignedUserID .ContextUser.ID)}}
 				<li>
 					{{svg "octicon-mail"}}
-					<a href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
-					<a href="{{AppSubUrl}}/user/settings#keep-email-private">
+					<a class="gt-f1" href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
+					<a href="{{AppSubUrl}}/user/settings#privacy-user-settings">
 						{{if .ShowUserEmail}}
-							<i class="ui right" data-tooltip-content="{{.locale.Tr "user.email_visibility.limited"}}">
+							<i data-tooltip-content="{{ctx.Locale.Tr "user.email_visibility.limited"}}">
 								{{svg "octicon-unlock"}}
 							</i>
 						{{else}}
-							<i class="ui right" data-tooltip-content="{{.locale.Tr "user.email_visibility.private"}}">
+							<i data-tooltip-content="{{ctx.Locale.Tr "user.email_visibility.private"}}">
 								{{svg "octicon-lock"}}
 							</i>
 						{{end}}
@@ -69,15 +82,15 @@
 					</li>
 				{{end}}
 			{{end}}
-			<li>{{svg "octicon-clock"}} {{.locale.Tr "user.joined_on" (DateTime "short" .ContextUser.CreatedUnix) | Safe}}</li>
+			<li>{{svg "octicon-calendar"}} <span>{{ctx.Locale.Tr "user.joined_on" (DateTime "short" .ContextUser.CreatedUnix) | Safe}}</span></li>
 			{{if and .Orgs .HasOrgsVisible}}
 			<li>
 				<ul class="user-orgs">
 				{{range .Orgs}}
-					{{if (or .Visibility.IsPublic (and ($.SignedUser) (or .Visibility.IsLimited (and (.HasMemberWithUserID $.SignedUserID) .Visibility.IsPrivate) ($.IsAdmin))))}}
+					{{if (or .Visibility.IsPublic (and ($.SignedUser) (or .Visibility.IsLimited (and (.HasMemberWithUserID ctx $.SignedUserID) .Visibility.IsPrivate) ($.IsAdmin))))}}
 					<li>
 						<a href="{{.HomeLink}}" data-tooltip-content="{{.Name}}">
-							{{avatar $.Context .}}
+							{{ctx.AvatarUtils.Avatar .}}
 						</a>
 					</li>
 					{{end}}
@@ -100,11 +113,11 @@
 			<li class="follow">
 				{{if $.IsFollowing}}
 					<button class="ui basic red button link-action" data-url="{{.ContextUser.HomeLink}}?action=unfollow">
-						{{svg "octicon-person"}} {{.locale.Tr "user.unfollow"}}
+						{{svg "octicon-person"}} {{ctx.Locale.Tr "user.unfollow"}}
 					</button>
 				{{else}}
-					<button class="ui basic green button link-action" data-url="{{.ContextUser.HomeLink}}?action=follow">
-						{{svg "octicon-person"}} {{.locale.Tr "user.follow"}}
+					<button class="ui basic primary button link-action" data-url="{{.ContextUser.HomeLink}}?action=follow">
+						{{svg "octicon-person"}} {{ctx.Locale.Tr "user.follow"}}
 					</button>
 				{{end}}
 			</li>

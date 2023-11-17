@@ -1,47 +1,7 @@
 {{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings new webhook")}}
 	<div class="repo-setting-content">
-		<h4 class="ui top attached header">
-			{{if .PageIsSettingsHooksNew}}{{.locale.Tr "repo.settings.add_webhook"}}{{else}}{{.locale.Tr "repo.settings.update_webhook"}}{{end}}
-			<div class="ui right">
-				{{if eq .HookType "gitea"}}
-					<img width="26" height="26" src="{{AssetUrlPrefix}}/img/gitea.svg">
-				{{else if eq .HookType "gogs"}}
-					<img width="26" height="26" src="{{AssetUrlPrefix}}/img/gogs.ico">
-				{{else if eq .HookType "slack"}}
-					<img width="26" height="26" src="{{AssetUrlPrefix}}/img/slack.png">
-				{{else if eq .HookType "discord"}}
-					<img width="26" height="26" src="{{AssetUrlPrefix}}/img/discord.png">
-				{{else if eq .HookType "dingtalk"}}
-					<img width="26" height="26" src="{{AssetUrlPrefix}}/img/dingtalk.ico">
-				{{else if eq .HookType "telegram"}}
-					<img width="26" height="26" src="{{AssetUrlPrefix}}/img/telegram.png">
-				{{else if eq .HookType "msteams"}}
-					<img width="26" height="26" src="{{AssetUrlPrefix}}/img/msteams.png">
-				{{else if eq .HookType "feishu"}}
-					<img width="26" height="26" src="{{AssetUrlPrefix}}/img/feishu.png">
-				{{else if eq .HookType "matrix"}}
-					{{svg "gitea-matrix" 26}}
-				{{else if eq .HookType "wechatwork"}}
-					<img width="26" height="26" src="{{AssetUrlPrefix}}/img/wechatwork.png">
-				{{else if eq .HookType "packagist"}}
-					<img width="26" height="26" src="{{AssetUrlPrefix}}/img/packagist.png">
-				{{end}}
-			</div>
-		</h4>
-		<div class="ui attached segment">
-			{{template "repo/settings/webhook/gitea" .}}
-			{{template "repo/settings/webhook/gogs" .}}
-			{{template "repo/settings/webhook/slack" .}}
-			{{template "repo/settings/webhook/discord" .}}
-			{{template "repo/settings/webhook/dingtalk" .}}
-			{{template "repo/settings/webhook/telegram" .}}
-			{{template "repo/settings/webhook/msteams" .}}
-			{{template "repo/settings/webhook/feishu" .}}
-			{{template "repo/settings/webhook/matrix" .}}
-			{{template "repo/settings/webhook/wechatwork" .}}
-			{{template "repo/settings/webhook/packagist" .}}
-		</div>
-
-		{{template "repo/settings/webhook/history" .}}
+		{{$CustomHeaderTitle := ctx.Locale.Tr "repo.settings.update_webhook"}}
+		{{if .PageIsSettingsHooksNew}}{{$CustomHeaderTitle = ctx.Locale.Tr "repo.settings.add_webhook"}}{{end}}
+		{{template "webhook/new" (dict "ctxData" . "CustomHeaderTitle" $CustomHeaderTitle)}}
 	</div>
 {{template "repo/settings/layout_footer" .}}

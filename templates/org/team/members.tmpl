@@ -12,50 +12,64 @@
 						<form class="ui form ignore-dirty gt-df gt-fw gt-gap-3" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/add" method="post">
 							{{.CsrfTokenHtml}}
 							<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
-							<div id="search-user-box" class="ui search gt-mr-3"{{if .IsEmailInviteEnabled}} data-allow-email="true" data-allow-email-description="{{.locale.Tr "org.teams.invite_team_member" $.Team.Name}}"{{end}}>
+							<div id="search-user-box" class="ui search gt-mr-3"{{if .IsEmailInviteEnabled}} data-allow-email="true" data-allow-email-description="{{ctx.Locale.Tr "org.teams.invite_team_member" $.Team.Name}}"{{end}}>
 								<div class="ui input">
-									<input class="prompt" name="uname" placeholder="{{.locale.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" required>
+									<input class="prompt" name="uname" placeholder="{{ctx.Locale.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" required>
 								</div>
 							</div>
-							<button class="ui green button">{{.locale.Tr "org.teams.add_team_member"}}</button>
+							<button class="ui primary button">{{ctx.Locale.Tr "org.teams.add_team_member"}}</button>
 						</form>
 					</div>
 				{{end}}
-				<div class="ui bottom attached table segment members">
-					{{range .Team.Members}}
-						<div class="item gt-df gt-ac gt-fw">
-							<a href="{{.HomeLink}}">{{avatar $.Context . 48 "gt-mr-3 gt-mb-0"}}</a>
-							<a class="gt-f1" href="{{.HomeLink}}">
-								<strong>{{.DisplayName}}</strong>
-							</a>
-							{{if and $.IsOrganizationOwner (not (and ($.Team.IsOwnerTeam) (eq (len $.Team.Members) 1)))}}
-								<form>
-									<button class="ui red button delete-button" data-modal-id="remove-team-member"
-										data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove" data-datauid="{{.ID}}"
-										data-name="{{.DisplayName}}"
-										data-data-team-name="{{$.Team.Name}}">{{$.locale.Tr "org.members.remove"}}</button>
-								</form>
-							{{end}}
-						</div>
-					{{else}}
-						<div class="item">
-							<span class="text grey italic">{{$.locale.Tr "org.teams.members.none"}}</span>
-						</div>
-					{{end}}
+				<div class="ui attached segment">
+					<div class="flex-list">
+						{{range .Team.Members}}
+							<div class="flex-item gt-ac">
+								<div class="flex-item-leading">
+									<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
+								</div>
+								<div class="flex-item-main">
+									<div class="flex-item-title">
+										{{template "shared/user/name" .}}
+									</div>
+								</div>
+								<div class="flex-item-trailing">
+									{{if and $.IsOrganizationOwner (not (and ($.Team.IsOwnerTeam) (eq (len $.Team.Members) 1)))}}
+										<form>
+											<button class="ui red button delete-button" data-modal-id="remove-team-member"
+												data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove" data-datauid="{{.ID}}"
+												data-name="{{.DisplayName}}"
+												data-data-team-name="{{$.Team.Name}}">{{ctx.Locale.Tr "org.members.remove"}}</button>
+										</form>
+									{{end}}
+								</div>
+							</div>
+						{{else}}
+							<div class="flex-item">
+								<span class="text grey italic">{{ctx.Locale.Tr "org.teams.members.none"}}</span>
+							</div>
+						{{end}}
+					</div>
 				</div>
 				{{if and .Invites $.IsOrganizationOwner}}
-				<h4 class="ui top attached header">{{$.locale.Tr "org.teams.invite_team_member.list"}}</h4>
-				<div class="ui bottom attached table segment members">
-					{{range .Invites}}
-						<div class="item gt-df gt-ac gt-fw">
-							<span class="gt-f1">{{.Email}}</span>
-							<form action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove_invite" method="post">
-								{{$.CsrfTokenHtml}}
-								<input type="hidden" name="iid" value="{{.ID}}">
-								<button class="ui red button">{{$.locale.Tr "org.members.remove"}}</button>
-							</form>
-						</div>
-					{{end}}
+				<h4 class="ui top attached header">{{ctx.Locale.Tr "org.teams.invite_team_member.list"}}</h4>
+				<div class="ui attached segment">
+					<div class="flex-list">
+						{{range .Invites}}
+							<div class="flex-item gt-ac">
+								<div class="flex-item-main">
+									{{.Email}}
+								</div>
+								<div class="flex-item-trailing">
+									<form action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove_invite" method="post">
+										{{$.CsrfTokenHtml}}
+										<input type="hidden" name="iid" value="{{.ID}}">
+										<button class="ui red button">{{ctx.Locale.Tr "org.members.remove"}}</button>
+									</form>
+								</div>
+							</div>
+						{{end}}
+					</div>
 				</div>
 				{{end}}
 			</div>
@@ -64,10 +78,10 @@
 </div>
 <div class="ui g-modal-confirm delete modal" id="remove-team-member">
 	<div class="header">
-		{{$.locale.Tr "org.members.remove"}}
+		{{ctx.Locale.Tr "org.members.remove"}}
 	</div>
 	<div class="content">
-		<p>{{$.locale.Tr "org.members.remove.detail" `<span class="name"></span>` `<span class="dataTeamName"></span>` | Safe}}</p>
+		<p>{{ctx.Locale.Tr "org.members.remove.detail" `<span class="name"></span>` `<span class="dataTeamName"></span>` | Safe}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

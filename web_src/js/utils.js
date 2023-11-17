@@ -11,16 +11,6 @@ export function extname(path = '') {
   return ext || '';
 }
 
-// join a list of path segments with slashes, ensuring no double slashes
-export function joinPaths(...parts) {
-  let str = '';
-  for (const part of parts) {
-    if (!part) continue;
-    str = !str ? part : `${str.replace(/\/$/, '')}/${part.replace(/^\//, '')}`;
-  }
-  return str;
-}
-
 // test whether a variable is an object
 export function isObject(obj) {
   return Object.prototype.toString.call(obj) === '[object Object]';
@@ -137,4 +127,15 @@ export function decodeURLEncodedBase64(base64url) {
   return decode(base64url
     .replace(/_/g, '/')
     .replace(/-/g, '+'));
+}
+
+const domParser = new DOMParser();
+const xmlSerializer = new XMLSerializer();
+
+export function parseDom(text, contentType) {
+  return domParser.parseFromString(text, contentType);
+}
+
+export function serializeXml(node) {
+  return xmlSerializer.serializeToString(node);
 }

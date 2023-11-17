@@ -80,6 +80,8 @@ func ListDeployKeys(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/DeployKeyList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	opts := &asymkey_model.ListDeployKeysOptions{
 		ListOptions: utils.GetListOptions(ctx),
@@ -94,7 +96,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 		return
 	}
 
-	count, err := asymkey_model.CountDeployKeys(opts)
+	count, err := asymkey_model.CountDeployKeys(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -103,7 +105,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	apiKeys := make([]*api.DeployKey, len(keys))
 	for i := range keys {
-		if err := keys[i].GetContent(); err != nil {
+		if err := keys[i].GetContent(ctx); err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetContent", err)
 			return
 		}
@@ -144,6 +146,8 @@ func GetDeployKey(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/DeployKey"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	key, err := asymkey_model.GetDeployKeyByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -155,7 +159,7 @@ func GetDeployKey(ctx *context.APIContext) {
 		return
 	}
 
-	if err = key.GetContent(); err != nil {
+	if err = key.GetContent(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetContent", err)
 		return
 	}
@@ -222,6 +226,8 @@ func CreateDeployKey(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/DeployKey"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
@@ -232,7 +238,7 @@ func CreateDeployKey(ctx *context.APIContext) {
 		return
 	}
 
-	key, err := asymkey_model.AddDeployKey(ctx.Repo.Repository.ID, form.Title, content, form.ReadOnly)
+	key, err := asymkey_model.AddDeployKey(ctx, ctx.Repo.Repository.ID, form.Title, content, form.ReadOnly)
 	if err != nil {
 		HandleAddKeyError(ctx, err)
 		return
@@ -270,8 +276,10 @@ func DeleteDeploykey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	if err := asymkey_service.DeleteDeployKey(ctx.Doer, ctx.ParamsInt64(":id")); err != nil {
+	if err := asymkey_service.DeleteDeployKey(ctx, ctx.Doer, ctx.ParamsInt64(":id")); err != nil {
 		if asymkey_model.IsErrKeyAccessDenied(err) {
 			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
 		} else {

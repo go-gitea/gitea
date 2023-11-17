@@ -20,10 +20,11 @@ var ErrPushMirrorNotExist = util.NewNotExistErrorf("PushMirror does not exist")
 
 // PushMirror represents mirror information of a repository.
 type PushMirror struct {
-	ID         int64       `xorm:"pk autoincr"`
-	RepoID     int64       `xorm:"INDEX"`
-	Repo       *Repository `xorm:"-"`
-	RemoteName string
+	ID            int64       `xorm:"pk autoincr"`
+	RepoID        int64       `xorm:"INDEX"`
+	Repo          *Repository `xorm:"-"`
+	RemoteName    string
+	RemoteAddress string `xorm:"VARCHAR(2048)"`
 
 	SyncOnCommit   bool `xorm:"NOT NULL DEFAULT true"`
 	Interval       time.Duration
@@ -31,6 +32,7 @@ type PushMirror struct {
 	LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
 	LastError      string             `xorm:"text"`
 }
+
 type PushMirrorOptions struct {
 	ID         int64
 	RepoID     int64
@@ -56,12 +58,12 @@ func init() {
 }
 
 // GetRepository returns the path of the repository.
-func (m *PushMirror) GetRepository() *Repository {
+func (m *PushMirror) GetRepository(ctx context.Context) *Repository {
 	if m.Repo != nil {
 		return m.Repo
 	}
 	var err error
-	m.Repo, err = GetRepositoryByID(db.DefaultContext, m.RepoID)
+	m.Repo, err = GetRepositoryByID(ctx, m.RepoID)
 	if err != nil {
 		log.Error("getRepositoryByID[%d]: %v", m.ID, err)
 	}
@@ -82,6 +84,12 @@ func InsertPushMirror(ctx context.Context, m *PushMirror) error {
 // UpdatePushMirror updates the push-mirror
 func UpdatePushMirror(ctx context.Context, m *PushMirror) error {
 	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Update(m)
+	return err
+}
+
+// UpdatePushMirrorInterval updates the push-mirror
+func UpdatePushMirrorInterval(ctx context.Context, m *PushMirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("interval").Update(m)
 	return err
 }
 
@@ -122,7 +130,7 @@ func GetPushMirrorsByRepoID(ctx context.Context, repoID int64, listOptions db.Li
 func GetPushMirrorsSyncedOnCommit(ctx context.Context, repoID int64) ([]*PushMirror, error) {
 	mirrors := make([]*PushMirror, 0, 10)
 	return mirrors, db.GetEngine(ctx).
-		Where("repo_id=? AND sync_on_commit=?", repoID, true).
+		Where("repo_id = ? AND sync_on_commit = ?", repoID, true).
 		Find(&mirrors)
 }
 

@@ -22,7 +22,7 @@ func init() {
 	db.RegisterModel(new(RepoTopic))
 }
 
-var topicPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
+var topicPattern = regexp.MustCompile(`^[a-z0-9][-.a-z0-9]*$`)
 
 // Topic represents a topic of repositories
 type Topic struct {
@@ -92,9 +92,9 @@ func SanitizeAndValidateTopics(topics []string) (validTopics, invalidTopics []st
 }
 
 // GetTopicByName retrieves topic by name
-func GetTopicByName(name string) (*Topic, error) {
+func GetTopicByName(ctx context.Context, name string) (*Topic, error) {
 	var topic Topic
-	if has, err := db.GetEngine(db.DefaultContext).Where("name = ?", name).Get(&topic); err != nil {
+	if has, err := db.GetEngine(ctx).Where("name = ?", name).Get(&topic); err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrTopicNotExist{name}
@@ -192,8 +192,8 @@ func (opts *FindTopicOptions) toConds() builder.Cond {
 }
 
 // FindTopics retrieves the topics via FindTopicOptions
-func FindTopics(opts *FindTopicOptions) ([]*Topic, int64, error) {
-	sess := db.GetEngine(db.DefaultContext).Select("topic.*").Where(opts.toConds())
+func FindTopics(ctx context.Context, opts *FindTopicOptions) ([]*Topic, int64, error) {
+	sess := db.GetEngine(ctx).Select("topic.*").Where(opts.toConds())
 	orderBy := "topic.repo_count DESC"
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
@@ -208,8 +208,8 @@ func FindTopics(opts *FindTopicOptions) ([]*Topic, int64, error) {
 }
 
 // CountTopics counts the number of topics matching the FindTopicOptions
-func CountTopics(opts *FindTopicOptions) (int64, error) {
-	sess := db.GetEngine(db.DefaultContext).Where(opts.toConds())
+func CountTopics(ctx context.Context, opts *FindTopicOptions) (int64, error) {
+	sess := db.GetEngine(ctx).Where(opts.toConds())
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
 	}
@@ -231,8 +231,8 @@ func GetRepoTopicByName(ctx context.Context, repoID int64, topicName string) (*T
 }
 
 // AddTopic adds a topic name to a repository (if it does not already have it)
-func AddTopic(repoID int64, topicName string) (*Topic, error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func AddTopic(ctx context.Context, repoID int64, topicName string) (*Topic, error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -261,8 +261,8 @@ func AddTopic(repoID int64, topicName string) (*Topic, error) {
 }
 
 // DeleteTopic removes a topic name from a repository (if it has it)
-func DeleteTopic(repoID int64, topicName string) (*Topic, error) {
-	topic, err := GetRepoTopicByName(db.DefaultContext, repoID, topicName)
+func DeleteTopic(ctx context.Context, repoID int64, topicName string) (*Topic, error) {
+	topic, err := GetRepoTopicByName(ctx, repoID, topicName)
 	if err != nil {
 		return nil, err
 	}
@@ -271,26 +271,26 @@ func DeleteTopic(repoID int64, topicName string) (*Topic, error) {
 		return nil, nil
 	}
 
-	err = removeTopicFromRepo(db.DefaultContext, repoID, topic)
+	err = removeTopicFromRepo(ctx, repoID, topic)
 	if err != nil {
 		return nil, err
 	}
 
-	err = syncTopicsInRepository(db.GetEngine(db.DefaultContext), repoID)
+	err = syncTopicsInRepository(db.GetEngine(ctx), repoID)
 
 	return topic, err
 }
 
 // SaveTopics save topics to a repository
-func SaveTopics(repoID int64, topicNames ...string) error {
-	topics, _, err := FindTopics(&FindTopicOptions{
+func SaveTopics(ctx context.Context, repoID int64, topicNames ...string) error {
+	topics, _, err := FindTopics(ctx, &FindTopicOptions{
 		RepoID: repoID,
 	})
 	if err != nil {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

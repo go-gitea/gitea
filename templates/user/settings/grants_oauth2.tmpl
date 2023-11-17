@@ -1,27 +1,27 @@
 <h4 class="ui top attached header">
-	{{.locale.Tr "settings.authorized_oauth2_applications"}}
+	{{ctx.Locale.Tr "settings.authorized_oauth2_applications"}}
 </h4>
 <div class="ui attached segment">
-	<div class="ui key list">
-		<div class="item">
-			{{.locale.Tr "settings.authorized_oauth2_applications_description"}}
+	<div class="flex-list">
+		<div class="flex-item">
+			{{ctx.Locale.Tr "settings.authorized_oauth2_applications_description"}}
 		</div>
-		{{range $grant := .Grants}}
-			<div class="item">
-				<div class="right floated content">
-					<button class="ui red tiny button delete-button" data-modal-id="revoke-gitea-oauth2-grant"
-							data-url="{{AppSubUrl}}/user/settings/applications/oauth2/{{$grant.ApplicationID}}/revoke/{{$grant.ID}}">
-						{{$.locale.Tr "settings.revoke_key"}}
-					</button>
+		{{range .Grants}}
+			<div class="flex-item">
+				<div class="flex-item-leading">
+					{{svg "octicon-key" 32}}
 				</div>
-				<div class="left floated content">
-					{{svg "octicon-key"}}
-				</div>
-				<div class="content">
-					<strong>{{$grant.Application.Name}}</strong>
-					<div class="activity meta">
-						<i>{{$.locale.Tr "settings.added_on" (DateTime "short" $grant.CreatedUnix) | Safe}}</i>
+				<div class="flex-item-main">
+					<div class="flex-item-title">{{.Application.Name}}</div>
+					<div class="flex-item-body">
+						<i>{{ctx.Locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}}</i>
 					</div>
+				</div>
+				<div class="flex-item-trailing">
+					<button class="ui red tiny button delete-button" data-modal-id="revoke-gitea-oauth2-grant"
+							data-url="{{AppSubUrl}}/user/settings/applications/oauth2/{{.ApplicationID}}/revoke/{{.ID}}">
+						{{ctx.Locale.Tr "settings.revoke_key"}}
+					</button>
 				</div>
 			</div>
 		{{end}}
@@ -30,10 +30,10 @@
 	<div class="ui g-modal-confirm delete modal" id="revoke-gitea-oauth2-grant">
 		<div class="header">
 			{{svg "octicon-shield" 16 "gt-mr-2"}}
-			{{.locale.Tr "settings.revoke_oauth2_grant"}}
+			{{ctx.Locale.Tr "settings.revoke_oauth2_grant"}}
 		</div>
 		<div class="content">
-			<p>{{.locale.Tr "settings.revoke_oauth2_grant_description"}}</p>
+			<p>{{ctx.Locale.Tr "settings.revoke_oauth2_grant_description"}}</p>
 		</div>
 		{{template "base/modal_actions_confirm" .}}
 	</div>

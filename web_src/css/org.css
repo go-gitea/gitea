@@ -13,8 +13,7 @@
   #create-page-form form .header {
     padding-left: 280px !important;
   }
-  #create-page-form form .inline.field > label,
-  #create-page-form form .inline.field.captcha-field > span {
+  #create-page-form form .inline.field > label {
     text-align: right;
     width: 250px !important;
     word-wrap: break-word;
@@ -59,8 +58,7 @@
   .organization.new.org form .header {
     padding-left: 280px !important;
   }
-  .organization.new.org form .inline.field > label,
-  .organization.new.org form .inline.field.captcha-field > span {
+  .organization.new.org form .inline.field > label {
     text-align: right;
     width: 250px !important;
     word-wrap: break-word;
@@ -104,6 +102,7 @@
 .organization.profile #org-info {
   overflow-wrap: anywhere;
   flex: 1;
+  word-break: break-all;
 }
 
 .organization.profile #org-info .ui.header {
@@ -118,13 +117,11 @@
   margin-bottom: 10px;
 }
 
-.organization.profile #org-info .meta .item {
-  display: inline-block;
-  margin-right: 10px;
-}
-
-.organization.profile #org-info .meta .item .icon {
-  margin-right: 5px;
+.organization.profile #org-info .meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .organization.profile .ui.top.header .ui.right {
@@ -135,7 +132,6 @@
   padding: 10px 15px;
 }
 
-.organization.teams .members .ui.avatar,
 .organization.profile .members .ui.avatar {
   width: 48px;
   height: 48px;
@@ -163,47 +159,12 @@
   height: 100%;
 }
 
-.organization.members .list .item {
-  margin-left: 0;
-  margin-right: 0;
-  border-bottom: 1px solid var(--color-secondary);
-}
-
-.organization.members .list .item .ui.avatar {
-  width: 48px;
-  height: 48px;
-  margin-right: 1rem;
-  align-self: flex-start;
-}
-
-.organization.members .list .item .meta {
-  line-height: 24px;
-  word-break: break-word;
-  min-width: 2em;
-}
-
 .organization.teams .detail .item {
   padding: 10px 15px;
 }
 
 .organization.teams .detail .item:not(:last-child) {
   border-bottom: 1px solid var(--color-secondary);
-}
-
-.organization.teams .repositories .item,
-.organization.teams .members .item {
-  padding: 10px 19px;
-}
-
-.organization.teams .repositories .item:not(:last-child),
-.organization.teams .members .item:not(:last-child) {
-  border-bottom: 1px solid var(--color-secondary);
-}
-
-.organization.teams .repositories .item .button,
-.organization.teams .members .item .button {
-  padding: 9px 10px;
-  margin: 0;
 }
 
 .org-team-navbar .active.item {

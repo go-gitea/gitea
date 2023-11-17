@@ -8,12 +8,12 @@
 	<div class="issue-content-left">
 		<div class="ui comments">
 			<div class="comment">
-				{{avatar $.Context .SignedUser 40}}
+				{{ctx.AvatarUtils.Avatar .SignedUser 40}}
 				<div class="ui segment content gt-my-0">
 					<div class="field">
-						<input name="title" id="issue_title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" tabindex="3" autofocus required maxlength="255" autocomplete="off">
+						<input name="title" id="issue_title" placeholder="{{ctx.Locale.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" autofocus required maxlength="255" autocomplete="off">
 						{{if .PageIsComparePull}}
-							<div class="title_wip_desc" data-wip-prefixes="{{JsonUtils.EncodeToString .PullRequestWorkInProgressPrefixes}}">{{.locale.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}</div>
+							<div class="title_wip_desc" data-wip-prefixes="{{JsonUtils.EncodeToString .PullRequestWorkInProgressPrefixes}}">{{ctx.Locale.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}</div>
 						{{end}}
 					</div>
 					{{if .Fields}}
@@ -35,11 +35,11 @@
 						{{template "repo/issue/comment_tab" .}}
 					{{end}}
 					<div class="text right">
-						<button class="ui green button" tabindex="6">
+						<button class="ui primary button">
 							{{if .PageIsComparePull}}
-								{{.locale.Tr "repo.pulls.create"}}
+								{{ctx.Locale.Tr "repo.pulls.create"}}
 							{{else}}
-								{{.locale.Tr "repo.issues.create"}}
+								{{ctx.Locale.Tr "repo.issues.create"}}
 							{{end}}
 						</button>
 					</div>
@@ -60,7 +60,7 @@
 		<input id="milestone_id" name="milestone_id" type="hidden" value="{{.milestone_id}}">
 		<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-milestone dropdown">
 			<span class="text flex-text-block">
-				<strong>{{.locale.Tr "repo.issues.new.milestone"}}</strong>
+				<strong>{{ctx.Locale.Tr "repo.issues.new.milestone"}}</strong>
 				{{if .HasIssuesOrPullsWritePermission}}
 					{{svg "octicon-gear" 16 "gt-ml-2"}}
 				{{end}}
@@ -70,7 +70,7 @@
 			</div>
 		</div>
 		<div class="ui select-milestone list">
-			<span class="no-select item {{if .Milestone}}gt-hidden{{end}}">{{.locale.Tr "repo.issues.new.no_milestone"}}</span>
+			<span class="no-select item {{if .Milestone}}gt-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_milestone"}}</span>
 			<div class="selected">
 				{{if .Milestone}}
 					<a class="item muted sidebar-item-link" href="{{.RepoLink}}/issues?milestone={{.Milestone.ID}}">
@@ -87,7 +87,7 @@
 		<input id="project_id" name="project_id" type="hidden" value="{{.project_id}}">
 		<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-project dropdown">
 			<span class="text flex-text-block">
-				<strong>{{.locale.Tr "repo.issues.new.projects"}}</strong>
+				<strong>{{ctx.Locale.Tr "repo.issues.new.projects"}}</strong>
 				{{if .HasIssuesOrPullsWritePermission}}
 					{{svg "octicon-gear" 16 "gt-ml-2"}}
 				{{end}}
@@ -95,23 +95,23 @@
 			<div class="menu">
 				{{if or .OpenProjects .ClosedProjects}}
 				<div class="ui icon search input">
-					<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-					<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_projects"}}">
+					<i class="icon">{{svg "octicon-search" 16}}</i>
+					<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_projects"}}">
 				</div>
 				{{end}}
-				<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_projects"}}</div>
+				<div class="no-select item">{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}</div>
 				{{if and (not .OpenProjects) (not .ClosedProjects)}}
 					<div class="disabled item">
-						{{.locale.Tr "repo.issues.new.no_items"}}
+						{{ctx.Locale.Tr "repo.issues.new.no_items"}}
 					</div>
 				{{else}}
 					{{if .OpenProjects}}
 						<div class="divider"></div>
 						<div class="header">
-							{{.locale.Tr "repo.issues.new.open_projects"}}
+							{{ctx.Locale.Tr "repo.issues.new.open_projects"}}
 						</div>
 						{{range .OpenProjects}}
-							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
+							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link ctx}}">
 								{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
 							</a>
 						{{end}}
@@ -119,10 +119,10 @@
 					{{if .ClosedProjects}}
 						<div class="divider"></div>
 						<div class="header">
-							{{.locale.Tr "repo.issues.new.closed_projects"}}
+							{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}
 						</div>
 						{{range .ClosedProjects}}
-							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
+							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link ctx}}">
 								{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
 							</a>
 						{{end}}
@@ -131,10 +131,10 @@
 			</div>
 		</div>
 		<div class="ui select-project list">
-			<span class="no-select item {{if .Project}}gt-hidden{{end}}">{{.locale.Tr "repo.issues.new.no_projects"}}</span>
+			<span class="no-select item {{if .Project}}gt-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</span>
 			<div class="selected">
 				{{if .Project}}
-					<a class="item muted sidebar-item-link" href="{{.Project.Link}}">
+					<a class="item muted sidebar-item-link" href="{{.Project.Link ctx}}">
 						{{svg .Project.IconName 18 "gt-mr-3"}}{{.Project.Title}}
 					</a>
 				{{end}}
@@ -145,22 +145,22 @@
 			<input id="assignee_ids" name="assignee_ids" type="hidden" value="{{.assignee_ids}}">
 			<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-assignees dropdown">
 				<span class="text flex-text-block">
-					<strong>{{.locale.Tr "repo.issues.new.assignees"}}</strong>
+					<strong>{{ctx.Locale.Tr "repo.issues.new.assignees"}}</strong>
 					{{if .HasIssuesOrPullsWritePermission}}
 						{{svg "octicon-gear" 16 "gt-ml-2"}}
 					{{end}}
 				</span>
 				<div class="filter menu" data-id="#assignee_ids">
 					<div class="ui icon search input">
-						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignees"}}">
+						<i class="icon">{{svg "octicon-search" 16}}</i>
+						<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_assignees"}}">
 					</div>
-					<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_assignees"}}</div>
+					<div class="no-select item">{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}</div>
 					{{range .Assignees}}
 						<a class="item muted" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
-							<span class="octicon-check invisible">{{svg "octicon-check"}}</span>
+							<span class="octicon-check gt-invisible">{{svg "octicon-check"}}</span>
 							<span class="text">
-								{{avatar $.Context . 28 "gt-mr-3"}}{{template "repo/search_name" .}}
+								{{ctx.AvatarUtils.Avatar . 28 "gt-mr-3"}}{{template "repo/search_name" .}}
 							</span>
 						</a>
 					{{end}}
@@ -168,19 +168,21 @@
 			</div>
 			<div class="ui assignees list">
 				<span class="no-select item {{if .HasSelectedLabel}}gt-hidden{{end}}">
-					{{.locale.Tr "repo.issues.new.no_assignees"}}
+					{{ctx.Locale.Tr "repo.issues.new.no_assignees"}}
 				</span>
+				<div class="selected">
 				{{range .Assignees}}
 					<a class="item gt-p-2 muted gt-hidden" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
-						{{avatar $.Context . 28 "gt-mr-3 gt-vm"}}{{.GetDisplayName}}
+						{{ctx.AvatarUtils.Avatar . 28 "gt-mr-3 gt-vm"}}{{.GetDisplayName}}
 					</a>
 				{{end}}
+				</div>
 			</div>
 		{{if and .PageIsComparePull (not (eq .HeadRepo.FullName .BaseCompareRepo.FullName)) .CanWriteToHeadRepo}}
 			<div class="divider"></div>
 			<div class="inline field">
 				<div class="ui checkbox">
-					<label data-tooltip-content="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"><strong>{{.locale.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
+					<label data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"><strong>{{ctx.Locale.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
 					<input name="allow_maintainer_edit" type="checkbox" {{if .AllowMaintainerEdit}}checked{{end}}>
 				</div>
 			</div>

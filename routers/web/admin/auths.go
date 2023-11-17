@@ -48,13 +48,13 @@ func Authentications(ctx *context.Context) {
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	var err error
-	ctx.Data["Sources"], err = auth.Sources()
+	ctx.Data["Sources"], err = auth.FindSources(ctx, auth.FindSourcesOptions{})
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
 		return
 	}
 
-	ctx.Data["Total"] = auth.CountSources()
+	ctx.Data["Total"] = auth.CountSources(ctx, auth.FindSourcesOptions{})
 	ctx.HTML(http.StatusOK, tplAuths)
 }
 
@@ -99,7 +99,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	oauth2providers := oauth2.GetOAuth2Providers()
+	oauth2providers := oauth2.GetSupportedOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
 	ctx.Data["SSPIAutoCreateUsers"] = true
@@ -242,7 +242,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	oauth2providers := oauth2.GetOAuth2Providers()
+	oauth2providers := oauth2.GetSupportedOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
 	ctx.Data["SSPIAutoCreateUsers"] = true
@@ -284,7 +284,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 			ctx.RenderWithErr(err.Error(), tplAuthNew, form)
 			return
 		}
-		existing, err := auth.SourcesByType(auth.SSPI)
+		existing, err := auth.FindSources(ctx, auth.FindSourcesOptions{LoginType: auth.SSPI})
 		if err != nil || len(existing) > 0 {
 			ctx.Data["Err_Type"] = true
 			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_of_type_exist"), tplAuthNew, form)
@@ -301,7 +301,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 		return
 	}
 
-	if err := auth.CreateSource(&auth.Source{
+	if err := auth.CreateSource(ctx, &auth.Source{
 		Type:          auth.Type(form.Type),
 		Name:          form.Name,
 		IsActive:      form.IsActive,
@@ -334,10 +334,10 @@ func EditAuthSource(ctx *context.Context) {
 
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	oauth2providers := oauth2.GetOAuth2Providers()
+	oauth2providers := oauth2.GetSupportedOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
-	source, err := auth.GetSourceByID(ctx.ParamsInt64(":authid"))
+	source, err := auth.GetSourceByID(ctx, ctx.ParamsInt64(":authid"))
 	if err != nil {
 		ctx.ServerError("auth.GetSourceByID", err)
 		return
@@ -368,10 +368,10 @@ func EditAuthSourcePost(ctx *context.Context) {
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	oauth2providers := oauth2.GetOAuth2Providers()
+	oauth2providers := oauth2.GetSupportedOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
-	source, err := auth.GetSourceByID(ctx.ParamsInt64(":authid"))
+	source, err := auth.GetSourceByID(ctx, ctx.ParamsInt64(":authid"))
 	if err != nil {
 		ctx.ServerError("auth.GetSourceByID", err)
 		return
@@ -421,7 +421,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	source.IsActive = form.IsActive
 	source.IsSyncEnabled = form.IsSyncEnabled
 	source.Cfg = config
-	if err := auth.UpdateSource(source); err != nil {
+	if err := auth.UpdateSource(ctx, source); err != nil {
 		if auth.IsErrSourceAlreadyExist(err) {
 			ctx.Data["Err_Name"] = true
 			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_exist", err.(auth.ErrSourceAlreadyExist).Name), tplAuthEdit, form)
@@ -442,27 +442,23 @@ func EditAuthSourcePost(ctx *context.Context) {
 
 // DeleteAuthSource response for deleting an auth source
 func DeleteAuthSource(ctx *context.Context) {
-	source, err := auth.GetSourceByID(ctx.ParamsInt64(":authid"))
+	source, err := auth.GetSourceByID(ctx, ctx.ParamsInt64(":authid"))
 	if err != nil {
 		ctx.ServerError("auth.GetSourceByID", err)
 		return
 	}
 
-	if err = auth_service.DeleteSource(source); err != nil {
+	if err = auth_service.DeleteSource(ctx, source); err != nil {
 		if auth.IsErrSourceInUse(err) {
 			ctx.Flash.Error(ctx.Tr("admin.auths.still_in_used"))
 		} else {
 			ctx.Flash.Error(fmt.Sprintf("auth_service.DeleteSource: %v", err))
 		}
-		ctx.JSON(http.StatusOK, map[string]any{
-			"redirect": setting.AppSubURL + "/admin/auths/" + url.PathEscape(ctx.Params(":authid")),
-		})
+		ctx.JSONRedirect(setting.AppSubURL + "/admin/auths/" + url.PathEscape(ctx.Params(":authid")))
 		return
 	}
 	log.Trace("Authentication deleted by admin(%s): %d", ctx.Doer.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.deletion_success"))
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": setting.AppSubURL + "/admin/auths",
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/admin/auths")
 }

@@ -6,7 +6,7 @@
 					<div class="ui active tiny slow centered inline">…</div>
 				{{else}}
 					{{if .LatestCommitUser}}
-						{{avatar $.Context .LatestCommitUser 24}}
+						{{ctx.AvatarUtils.Avatar .LatestCommitUser 24 "gt-mr-2"}}
 						{{if .LatestCommitUser.FullName}}
 							<a class="muted author-wrapper" title="{{.LatestCommitUser.FullName}}" href="{{.LatestCommitUser.HomeLink}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
 						{{else}}
@@ -14,7 +14,7 @@
 						{{end}}
 					{{else}}
 						{{if .LatestCommit.Author}}
-							{{avatarByEmail $.Context .LatestCommit.Author.Email .LatestCommit.Author.Name 24}}
+							{{ctx.AvatarUtils.AvatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 24 "gt-mr-2"}}
 							<span class="author-wrapper" title="{{.LatestCommit.Author.Name}}"><strong>{{.LatestCommit.Author.Name}}</strong></span>
 						{{end}}
 					{{end}}
@@ -24,17 +24,17 @@
 							{{template "repo/shabox_badge" dict "root" $ "verification" .LatestCommitVerification}}
 						{{end}}
 					</a>
-					{{template "repo/commit_statuses" dict "Status" .LatestCommitStatus "Statuses" .LatestCommitStatuses "root" $}}
+					{{template "repo/commit_statuses" dict "Status" .LatestCommitStatus "Statuses" .LatestCommitStatuses}}
 					{{$commitLink:= printf "%s/commit/%s" .RepoLink (PathEscape .LatestCommit.ID.String)}}
-					<span class="grey commit-summary" title="{{.LatestCommit.Summary}}"><span class="message-wrapper">{{RenderCommitMessageLinkSubject $.Context .LatestCommit.Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
+					<span class="grey commit-summary" title="{{.LatestCommit.Summary}}"><span class="message-wrapper">{{RenderCommitMessageLinkSubject $.Context .LatestCommit.Message $.RepoLink $commitLink ($.Repository.ComposeMetas ctx)}}</span>
 						{{if IsMultilineCommitMessage .LatestCommit.Message}}
-							<button class="ui button ellipsis-button" aria-expanded="false">...</button>
-							<pre class="commit-body gt-hidden">{{RenderCommitBody $.Context .LatestCommit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+							<button class="ui button js-toggle-commit-body ellipsis-button" aria-expanded="false">...</button>
+							<pre class="commit-body gt-hidden">{{RenderCommitBody $.Context .LatestCommit.Message $.RepoLink ($.Repository.ComposeMetas ctx)}}</pre>
 						{{end}}
 					</span>
 				{{end}}
 			</th>
-			<th class="text grey right age">{{if .LatestCommit}}{{if .LatestCommit.Committer}}{{TimeSince .LatestCommit.Committer.When $.locale}}{{end}}{{end}}</th>
+			<th class="text grey right age">{{if .LatestCommit}}{{if .LatestCommit.Committer}}{{TimeSince .LatestCommit.Committer.When ctx.Locale}}{{end}}{{end}}</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -83,13 +83,13 @@
 					<span class="truncate">
 						{{if $commit}}
 							{{$commitLink := printf "%s/commit/%s" $.RepoLink (PathEscape $commit.ID.String)}}
-							{{RenderCommitMessageLinkSubject $.Context $commit.Message $.RepoLink $commitLink $.Repository.ComposeMetas}}
+							{{RenderCommitMessageLinkSubject $.Context $commit.Message $.RepoLink $commitLink ($.Repository.ComposeMetas ctx)}}
 						{{else}}
 							<div class="ui active tiny slow centered inline">…</div>
 						{{end}}
 					</span>
 				</td>
-				<td class="text right age three wide">{{if $commit}}{{TimeSince $commit.Committer.When $.locale}}{{end}}</td>
+				<td class="text right age three wide">{{if $commit}}{{TimeSince $commit.Committer.When ctx.Locale}}{{end}}</td>
 			</tr>
 		{{end}}
 	</tbody>

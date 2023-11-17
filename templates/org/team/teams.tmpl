@@ -5,7 +5,7 @@
 		{{template "base/alert" .}}
 		{{if .IsOrganizationOwner}}
 			<div class="text right">
-				<a class="ui green button" href="{{.OrgLink}}/teams/new">{{svg "octicon-plus"}} {{.locale.Tr "org.create_new_team"}}</a>
+				<a class="ui primary button" href="{{.OrgLink}}/teams/new">{{svg "octicon-plus"}} {{ctx.Locale.Tr "org.create_new_team"}}</a>
 			</div>
 			<div class="divider"></div>
 		{{end}}
@@ -16,27 +16,28 @@
 					<div class="ui top attached header">
 						<a class="text black" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.Name}}</strong></a>
 						<div class="ui right">
-							{{if .IsMember $.SignedUser.ID}}
+							<a class="ui primary tiny button" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}">{{ctx.Locale.Tr "view"}}</a>
+							{{if .IsMember ctx $.SignedUser.ID}}
 								<form>
 									<button class="ui red tiny button delete-button" data-modal-id="leave-team"
 										data-url="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/action/leave" data-datauid="{{$.SignedUser.ID}}"
-										data-name="{{.Name}}">{{$.locale.Tr "org.teams.leave"}}</button>
+										data-name="{{.Name}}">{{ctx.Locale.Tr "org.teams.leave"}}</button>
 								</form>
 							{{else if $.IsOrganizationOwner}}
 								<form method="post" action="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/action/join">
 									{{$.CsrfTokenHtml}}
-									<button type="submit" class="ui primary small button" name="uid" value="{{$.SignedUser.ID}}">{{$.locale.Tr "org.teams.join"}}</button>
+									<button type="submit" class="ui primary small button" name="uid" value="{{$.SignedUser.ID}}">{{ctx.Locale.Tr "org.teams.join"}}</button>
 								</form>
 							{{end}}
 						</div>
 					</div>
 					<div class="ui attached segment members">
 						{{range .Members}}
-							{{template "shared/user/avatarlink" dict "Context" $.Context "user" .}}
+							{{template "shared/user/avatarlink" dict "user" .}}
 						{{end}}
 					</div>
 					<div class="ui bottom attached header">
-						<p class="team-meta">{{.NumMembers}} {{$.locale.Tr "org.lower_members"}} · {{.NumRepos}} {{$.locale.Tr "org.lower_repositories"}}</p>
+						<p class="team-meta"><a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}">{{.NumMembers}} {{ctx.Locale.Tr "org.lower_members"}}</a> · <a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories">{{.NumRepos}} {{ctx.Locale.Tr "org.lower_repositories"}}</a></p>
 					</div>
 				</div>
 			{{end}}
@@ -45,10 +46,10 @@
 </div>
 <div class="ui g-modal-confirm delete modal" id="leave-team">
 	<div class="header">
-		{{$.locale.Tr "org.teams.leave"}}
+		{{ctx.Locale.Tr "org.teams.leave"}}
 	</div>
 	<div class="content">
-		<p>{{$.locale.Tr "org.teams.leave.detail" `<span class="name"></span>` | Safe}}</p>
+		<p>{{ctx.Locale.Tr "org.teams.leave.detail" `<span class="name"></span>` | Safe}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

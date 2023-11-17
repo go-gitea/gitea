@@ -2,10 +2,11 @@
 		<table class="ui very basic striped table unstackable" id="commits-table">
 			<thead>
 				<tr>
-					<th class="three wide">{{.locale.Tr "repo.commits.author"}}</th>
+					<th class="three wide">{{ctx.Locale.Tr "repo.commits.author"}}</th>
 					<th class="two wide sha">SHA1</th>
-					<th class="nine wide message">{{.locale.Tr "repo.commits.message"}}</th>
-					<th class="two wide right aligned">{{.locale.Tr "repo.commits.date"}}</th>
+					<th class="eight wide message">{{ctx.Locale.Tr "repo.commits.message"}}</th>
+					<th class="two wide right aligned">{{ctx.Locale.Tr "repo.commits.date"}}</th>
+					<th class="one wide"></th>
 				</tr>
 			</thead>
 			<tbody class="commit-list">
@@ -18,47 +19,40 @@
 								{{if .User.FullName}}
 									{{$userName = .User.FullName}}
 								{{end}}
-								{{avatar $.Context .User 28 "gt-mr-2"}}<a href="{{.User.HomeLink}}">{{$userName}}</a>
+								{{ctx.AvatarUtils.Avatar .User 28 "gt-mr-2"}}<a href="{{.User.HomeLink}}">{{$userName}}</a>
 							{{else}}
-								{{avatarByEmail $.Context .Author.Email .Author.Name 28 "gt-mr-2"}}
+								{{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 28 "gt-mr-2"}}
 								{{$userName}}
 							{{end}}
 						</td>
-						<td class="sha gt-df">
-							<button class="ui button copy-commit-sha gt-df gt-ac" data-clipboard-text="{{.ID}}">{{svg "octicon-copy" 14}}</button>
+						<td class="sha">
 							{{$class := "ui sha label"}}
 							{{if .Signature}}
-								{{$class = (printf "%s%s" $class " isSigned")}}
+								{{$class = (print $class " isSigned")}}
 								{{if .Verification.Verified}}
 									{{if eq .Verification.TrustStatus "trusted"}}
-										{{$class = (printf "%s%s" $class " isVerified")}}
+										{{$class = (print $class " isVerified")}}
 									{{else if eq .Verification.TrustStatus "untrusted"}}
-										{{$class = (printf "%s%s" $class " isVerifiedUntrusted")}}
+										{{$class = (print $class " isVerifiedUntrusted")}}
 									{{else}}
-										{{$class = (printf "%s%s" $class " isVerifiedUnmatched")}}
+										{{$class = (print $class " isVerifiedUnmatched")}}
 									{{end}}
 								{{else if .Verification.Warning}}
-									{{$class = (printf "%s%s" $class " isWarning")}}
+									{{$class = (print $class " isWarning")}}
 								{{end}}
 							{{end}}
+							{{$commitShaLink := ""}}
 							{{if $.PageIsWiki}}
-								<a href="{{$commitRepoLink}}/wiki/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
+								{{$commitShaLink = (printf "%s/wiki/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
+							{{else if $.PageIsPullCommits}}
+								{{$commitShaLink = (printf "%s/pulls/%d/commits/%s" $commitRepoLink $.Issue.Index (PathEscape .ID.String))}}
 							{{else if $.Reponame}}
-								<a href="{{$commitRepoLink}}/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
-							{{else}}
-								<span class="{{$class}}">
+								{{$commitShaLink = (printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
 							{{end}}
+							<a {{if $commitShaLink}}href="{{$commitShaLink}}"{{end}} class="{{$class}}">
 								<span class="shortsha">{{ShortSha .ID.String}}</span>
-								{{if .Signature}}
-									{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}
-								{{end}}
-							{{if $.PageIsWiki}}
-								</a>
-							{{else if $.Reponame}}
-								</a>
-							{{else}}
-								</span>
-							{{end}}
+								{{if .Signature}}{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}{{end}}
+							</a>
 						</td>
 						<td class="message">
 							<span class="message-wrapper">
@@ -66,22 +60,28 @@
 								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary | RenderEmoji $.Context}}</span>
 							{{else}}
 								{{$commitLink:= printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String)}}
-								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.Context .Message $commitRepoLink $commitLink $.Repository.ComposeMetas}}</span>
+								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.Context .Message $commitRepoLink $commitLink ($.Repository.ComposeMetas ctx)}}</span>
 							{{end}}
 							</span>
 							{{if IsMultilineCommitMessage .Message}}
-							<button class="ui button ellipsis-button" aria-expanded="false">...</button>
+							<button class="ui button js-toggle-commit-body ellipsis-button" aria-expanded="false">...</button>
 							{{end}}
-							{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses "root" $}}
+							{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
 							{{if IsMultilineCommitMessage .Message}}
-							<pre class="commit-body gt-hidden">{{RenderCommitBody $.Context .Message $commitRepoLink $.Repository.ComposeMetas}}</pre>
+							<pre class="commit-body gt-hidden">{{RenderCommitBody $.Context .Message $commitRepoLink ($.Repository.ComposeMetas ctx)}}</pre>
 							{{end}}
 						</td>
 						{{if .Committer}}
-							<td class="text right aligned">{{TimeSince .Committer.When $.locale}}</td>
+							<td class="text right aligned">{{TimeSince .Committer.When ctx.Locale}}</td>
 						{{else}}
-							<td class="text right aligned">{{TimeSince .Author.When $.locale}}</td>
+							<td class="text right aligned">{{TimeSince .Author.When ctx.Locale}}</td>
 						{{end}}
+						<td class="text right aligned gt-py-0">
+							<button class="btn interact-bg gt-p-3" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</button>
+							{{if $.FileName}}
+								<a class="btn interact-bg gt-p-3" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_path"}}" href="{{printf "%s/src/commit/%s/%s" $commitRepoLink (PathEscape .ID.String) (PathEscapeSegments $.FileName)}}">{{svg "octicon-file-code"}}</a>
+							{{end}}
+						</td>
 					</tr>
 				{{end}}
 			</tbody>

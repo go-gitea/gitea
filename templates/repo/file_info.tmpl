@@ -1,17 +1,17 @@
 <div class="file-info text grey normal gt-mono">
 	{{if .FileIsSymlink}}
 		<div class="file-info-entry">
-			{{.locale.Tr "repo.symbolic_link"}}
+			{{ctx.Locale.Tr "repo.symbolic_link"}}
 		</div>
 	{{end}}
 	{{if .NumLinesSet}}{{/* Explicit attribute needed to show 0 line changes */}}
 		<div class="file-info-entry">
-			{{.NumLines}} {{.locale.TrN .NumLines "repo.line" "repo.lines"}}
+			{{.NumLines}} {{ctx.Locale.TrN .NumLines "repo.line" "repo.lines"}}
 		</div>
 	{{end}}
 	{{if .FileSize}}
 		<div class="file-info-entry">
-			{{FileSize .FileSize}}{{if .IsLFSFile}} ({{.locale.Tr "repo.stored_lfs"}}){{end}}
+			{{FileSize .FileSize}}{{if .IsLFSFile}} ({{ctx.Locale.Tr "repo.stored_lfs"}}){{end}}
 		</div>
 	{{end}}
 	{{if .LFSLock}}
@@ -27,7 +27,12 @@
 	{{end}}
 	{{if .IsExecutable}}
 		<div class="file-info-entry">
-			{{.locale.Tr "repo.executable_file"}}
+			{{ctx.Locale.Tr "repo.executable_file"}}
+		</div>
+	{{end}}
+	{{if .ImageSize}}
+		<div class="file-info-entry">
+			{{.ImageSize}}
 		</div>
 	{{end}}
 </div>

@@ -16,7 +16,7 @@ import (
 type (
 	// FeishuPayload represents
 	FeishuPayload struct {
-		MsgType string `json:"msg_type"` // text / post / image / share_chat / interactive
+		MsgType string `json:"msg_type"` // text / post / image / share_chat / interactive / file /audio / media
 		Content struct {
 			Text string `json:"text"`
 		} `json:"content"`
@@ -97,23 +97,40 @@ func (f *FeishuPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 
 // Issue implements PayloadConvertor Issue method
 func (f *FeishuPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
-	text, issueTitle, attachmentText, _ := getIssuesPayloadInfo(p, noneLinkFormatter, true)
-
-	return newFeishuTextPayload(issueTitle + "\r\n" + text + "\r\n\r\n" + attachmentText), nil
+	title, link, by, operator, result, assignees := getIssuesInfo(p)
+	var res api.Payloader
+	if assignees != "" {
+		if p.Action == api.HookIssueAssigned || p.Action == api.HookIssueUnassigned || p.Action == api.HookIssueMilestoned {
+			res = newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, result, assignees, p.Issue.Body))
+		} else {
+			res = newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, assignees, p.Issue.Body))
+		}
+	} else {
+		res = newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, p.Issue.Body))
+	}
+	return res, nil
 }
 
 // IssueComment implements PayloadConvertor IssueComment method
 func (f *FeishuPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader, error) {
-	text, issueTitle, _ := getIssueCommentPayloadInfo(p, noneLinkFormatter, true)
-
-	return newFeishuTextPayload(issueTitle + "\r\n" + text + "\r\n\r\n" + p.Comment.Body), nil
+	title, link, by, operator := getIssuesCommentInfo(p)
+	return newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, p.Comment.Body)), nil
 }
 
 // PullRequest implements PayloadConvertor PullRequest method
 func (f *FeishuPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, error) {
-	text, issueTitle, attachmentText, _ := getPullRequestPayloadInfo(p, noneLinkFormatter, true)
-
-	return newFeishuTextPayload(issueTitle + "\r\n" + text + "\r\n\r\n" + attachmentText), nil
+	title, link, by, operator, result, assignees := getPullRequestInfo(p)
+	var res api.Payloader
+	if assignees != "" {
+		if p.Action == api.HookIssueAssigned || p.Action == api.HookIssueUnassigned || p.Action == api.HookIssueMilestoned {
+			res = newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, result, assignees, p.PullRequest.Body))
+		} else {
+			res = newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, assignees, p.PullRequest.Body))
+		}
+	} else {
+		res = newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, p.PullRequest.Body))
+	}
+	return res, nil
 }
 
 // Review implements PayloadConvertor Review method
@@ -154,6 +171,12 @@ func (f *FeishuPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
 // Release implements PayloadConvertor Release method
 func (f *FeishuPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, _ := getReleasePayloadInfo(p, noneLinkFormatter, true)
+
+	return newFeishuTextPayload(text), nil
+}
+
+func (f *FeishuPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+	text, _ := getPackagePayloadInfo(p, noneLinkFormatter, true)
 
 	return newFeishuTextPayload(text), nil
 }
