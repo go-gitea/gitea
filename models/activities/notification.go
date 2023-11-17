@@ -93,7 +93,7 @@ type FindNotificationOptions struct {
 }
 
 // ToCond will convert each condition into a xorm-Cond
-func (opts *FindNotificationOptions) ToCond() builder.Cond {
+func (opts *FindNotificationOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.UserID != 0 {
 		cond = cond.And(builder.Eq{"notification.user_id": opts.UserID})
@@ -119,24 +119,17 @@ func (opts *FindNotificationOptions) ToCond() builder.Cond {
 	return cond
 }
 
+func (opts *FindNotificationOptions) ToOrders() string {
+	return "notification.updated_unix DESC"
+}
+
 // ToSession will convert the given options to a xorm Session by using the conditions from ToCond and joining with issue table if required
 func (opts *FindNotificationOptions) ToSession(ctx context.Context) *xorm.Session {
-	sess := db.GetEngine(ctx).Where(opts.ToCond())
+	sess := db.GetEngine(ctx).Where(opts.ToConds())
 	if opts.Page != 0 {
 		sess = db.SetSessionPagination(sess, opts)
 	}
 	return sess
-}
-
-// GetNotifications returns all notifications that fit to the given options.
-func GetNotifications(ctx context.Context, options *FindNotificationOptions) (nl NotificationList, err error) {
-	err = options.ToSession(ctx).OrderBy("notification.updated_unix DESC").Find(&nl)
-	return nl, err
-}
-
-// CountNotifications count all notifications that fit to the given options and ignore pagination.
-func CountNotifications(ctx context.Context, opts *FindNotificationOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.ToCond()).Count(&Notification{})
 }
 
 // CreateRepoTransferNotification creates  notification for the user a repository was transferred to

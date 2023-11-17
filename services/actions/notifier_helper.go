@@ -384,7 +384,7 @@ func handleSchedules(
 		return nil
 	}
 
-	if count, err := actions_model.CountSchedules(ctx, actions_model.FindScheduleOptions{RepoID: input.Repo.ID}); err != nil {
+	if count, err := db.Count[actions_model.ActionSchedule](ctx, &actions_model.FindScheduleOptions{RepoID: input.Repo.ID}); err != nil {
 		log.Error("CountSchedules: %v", err)
 		return err
 	} else if count > 0 {
