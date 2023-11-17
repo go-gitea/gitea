@@ -146,7 +146,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
 
-	if skipped := skipWorkflowsForCommit(input, commit); skipped {
+	if skipWorkflowsForCommit(input, commit) {
 		return nil
 	}
 
