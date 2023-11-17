@@ -145,7 +145,7 @@ menu:
 - `ENABLED`: **true**: 是否启用仓库文件上传。
 - `TEMP_PATH`: **data/tmp/uploads**: 文件上传的临时保存路径(在Gitea重启的时候该目录会被清空)。
 - `ALLOWED_TYPES`: **_empty_**: 以逗号分割的列表，代表支持上传的文件类型。(`.zip`), mime类型 (`text/plain`) or 通配符类型 (`image/*`, `audio/*`, `video/*`). 为空或者 `*/*`代表允许所有类型文件。
-- `FILE_MAX_SIZE`: **3**: 每个文件的最大大小(MB)。
+- `FILE_MAX_SIZE`: **50**: 每个文件的最大大小(MB)。
 - `MAX_FILES`: **5**: 每次上传的最大文件数。
 
 ### 仓库 - 版本发布 (`repository.release`)
@@ -783,7 +783,7 @@ Gitea 创建以下非唯一队列：
 
 - `ENABLED`: **true**: 是否允许用户上传附件。
 - `ALLOWED_TYPES`: **.csv,.docx,.fodg,.fodp,.fods,.fodt,.gif,.gz,.jpeg,.jpg,.log,.md,.mov,.mp4,.odf,.odg,.odp,.ods,.odt,.patch,.pdf,.png,.pptx,.svg,.tgz,.txt,.webm,.xls,.xlsx,.zip**: 允许的文件扩展名（`.zip`）、mime 类型（`text/plain`）或通配符类型（`image/*`、`audio/*`、`video/*`）的逗号分隔列表。空值或 `*/*` 允许所有类型。
-- `MAX_SIZE`: **4**: 附件的最大限制（MB）。
+- `MAX_SIZE`: **2048**: 附件的最大限制（MB）。
 - `MAX_FILES`: **5**: 一次最多上传的附件数量。
 - `STORAGE_TYPE`: **local**: 附件的存储类型，`local` 表示本地磁盘，`minio` 表示兼容 S3 的对象存储服务，如果未设置将使用默认值 `local` 或其他在 `[storage.xxx]` 中定义的名称。
 - `SERVE_DIRECT`: **false**: 允许存储驱动器重定向到经过身份验证的 URL 以直接提供文件。目前，只支持 Minio/S3 通过签名 URL 提供支持，local 不会执行任何操作。
