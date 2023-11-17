@@ -40,22 +40,6 @@ const (
 	DEFAULT_OFFSET    = 9
 	DEFAULT_SPACING   = 0
 	DEFAULT_FONT_SIZE = 11
-
-	COLOR_BLUE        = "#007ec6"
-	COLOR_BRIGHTGREEN = "#4c1"
-	COLOR_GREEN       = "#97ca00"
-	COLOR_GREY        = "#555"
-	COLOR_LIGHTGREY   = "#9f9f9f"
-	COLOR_ORANGE      = "#fe7d37"
-	COLOR_RED         = "#e05d44"
-	COLOR_YELLOW      = "#dfb317"
-	COLOR_YELLOWGREEN = "#a4a61d"
-
-	COLOR_SUCCESS       = "#4c1"
-	COLOR_IMPORTANT     = "#fe7d37"
-	COLOR_CRITICAL      = "#e05d44"
-	COLOR_INFORMATIONAL = "#007ec6"
-	COLOR_INACTIVE      = "#9f9f9f"
 )
 
 var (
@@ -64,20 +48,15 @@ var (
 	}
 )
 
-type badgeInfo struct {
-	color  string
-	status string
-}
-
-var statusBadgeInfoMap = map[actions_model.Status]badgeInfo{
-	actions_model.StatusSuccess:   {COLOR_SUCCESS, "success"},
-	actions_model.StatusSkipped:   {COLOR_YELLOW, "skipped"},
-	actions_model.StatusUnknown:   {COLOR_GREEN, "unknown"},
-	actions_model.StatusFailure:   {COLOR_CRITICAL, "failure"},
-	actions_model.StatusCancelled: {COLOR_IMPORTANT, "cancelled"},
-	actions_model.StatusWaiting:   {COLOR_YELLOW, "waiting"},
-	actions_model.StatusRunning:   {COLOR_YELLOW, "running"},
-	actions_model.StatusBlocked:   {COLOR_YELLOW, "blocked"},
+var statusColorMap = map[actions_model.Status]string{
+	actions_model.StatusSuccess:   "#4c1",    // Green
+	actions_model.StatusSkipped:   "#dfb317", // Yellow
+	actions_model.StatusUnknown:   "#97ca00", // Light Green
+	actions_model.StatusFailure:   "#e05d44", // Red
+	actions_model.StatusCancelled: "#fe7d37", // Orange
+	actions_model.StatusWaiting:   "#dfb317", // Yellow
+	actions_model.StatusRunning:   "#dfb317", // Yellow
+	actions_model.StatusBlocked:   "#dfb317", // Yellow
 }
 
 func GetDefaultBranchWorkflowBadge(ctx *context.Context) {
@@ -117,21 +96,20 @@ func getWorkflowBadge(ctx *context.Context, workflowFile string, branchName stri
 		return Badge{}, err
 	}
 
-	badgeInfo, ok := statusBadgeInfoMap[run.Status]
+	color, ok := statusColorMap[run.Status]
 	if !ok {
 		return Badge{}, fmt.Errorf("unknown status %d", run.Status)
 	}
 
 	extension := filepath.Ext(workflowFile)
 	workflowName := strings.TrimSuffix(workflowFile, extension)
-	return generateBadge(workflowName, badgeInfo.status, badgeInfo.color), nil
+	return generateBadge(workflowName, run.Status.String(), color), nil
 }
 
 //utils for badge generation -------------------------------------
 
 // generateBadge generates badge with given template
 func generateBadge(label, message, color string) Badge {
-	c := parseColor(color)
 	gF := float64(DEFAULT_OFFSET)
 	lW := float64(drawer.MeasureString(label)>>6) + gF
 	mW := float64(drawer.MeasureString(message)>>6) + gF
@@ -142,7 +120,7 @@ func generateBadge(label, message, color string) Badge {
 	mL := (mW - gF) * (10.0 + DEFAULT_SPACING - 0.5)
 	fS := DEFAULT_FONT_SIZE * 10
 
-	mC, mS := getMessageColors(c)
+	mC, mS := determineMessageColorsFromHex(color)
 
 	return Badge{
 		Label:         label,
@@ -161,47 +139,39 @@ func generateBadge(label, message, color string) Badge {
 	}
 }
 
-// parseColor parses hex color
-func parseColor(c string) int64 {
-	if strings.HasPrefix(c, "#") {
-		c = strings.TrimLeft(c, "#")
+// determineMessageColorsFromHex takes a hex color string and returns text and shadow colors
+func determineMessageColorsFromHex(hexColor string) (string, string) {
+	hexColor = strings.TrimPrefix(hexColor, "#")
+	// Check for shorthand hex color
+	if len(hexColor) == 3 {
+		hexColor = strings.Repeat(string(hexColor[0]), 2) +
+			strings.Repeat(string(hexColor[1]), 2) +
+			strings.Repeat(string(hexColor[2]), 2)
 	}
 
-	// Shorthand hex color
-	if len(c) == 3 {
-		c = strings.Repeat(string(c[0]), 2) +
-			strings.Repeat(string(c[1]), 2) +
-			strings.Repeat(string(c[2]), 2)
-	}
+	badgeColor, _ := strconv.ParseInt(hexColor, 16, 32)
 
-	i, _ := strconv.ParseInt(c, 16, 32)
-
-	return i
-}
-
-// getMessageColors returns message text and shadow colors based on color of badge
-func getMessageColors(c int64) (string, string) {
-	if c == 0 || calcLuminance(c) < 0.65 {
+	if badgeColor == 0 || computeLuminance(badgeColor) < 0.65 {
 		return "#fff", "#010101"
 	}
 
 	return "#333", "#ccc"
 }
 
-// calcLuminance calculates relative luminance
-func calcLuminance(color int64) float64 {
-	r := calcLumColor(float64(color>>16&0xFF) / 255)
-	g := calcLumColor(float64(color>>8&0xFF) / 255)
-	b := calcLumColor(float64(color&0xFF) / 255)
+// computeLuminance calculates the relative luminance of a color
+func computeLuminance(inputColor int64) float64 {
+	r := singleColorLuminance(float64(inputColor>>16&0xFF) / 255)
+	g := singleColorLuminance(float64(inputColor>>8&0xFF) / 255)
+	b := singleColorLuminance(float64(inputColor&0xFF) / 255)
 
 	return 0.2126*r + 0.7152*g + 0.0722*b
 }
 
-// calcLumColor calculates luminance for one color
-func calcLumColor(c float64) float64 {
-	if c <= 0.03928 {
-		return c / 12.92
+// singleColorLuminance calculates luminance for a single color
+func singleColorLuminance(colorValue float64) float64 {
+	if colorValue <= 0.03928 {
+		return colorValue / 12.92
 	}
 
-	return math.Pow(((c + 0.055) / 1.055), 2.4)
+	return math.Pow((colorValue+0.055)/1.055, 2.4)
 }
