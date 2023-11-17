@@ -37,9 +37,9 @@ type Badge struct {
 }
 
 const (
-	DEFAULT_OFFSET    = 9
-	DEFAULT_SPACING   = 0
-	DEFAULT_FONT_SIZE = 11
+	defaultOffset   = 9
+	defaultSpacing  = 0
+	defaultFontSize = 11
 )
 
 var (
@@ -111,15 +111,15 @@ func getWorkflowBadge(ctx *context.Context, workflowFile string, branchName stri
 
 // generateBadge generates badge with given template
 func generateBadge(label, message, color string) Badge {
-	gF := float64(DEFAULT_OFFSET)
+	gF := float64(defaultOffset)
 	lW := float64(drawer.MeasureString(label)>>6) + gF
 	mW := float64(drawer.MeasureString(message)>>6) + gF
 	fW := lW + mW
 	lX := (lW/2 + 1) * 10
 	mX := (lW + (mW / 2) - 1) * 10
-	lL := (lW - gF) * (10.0 + DEFAULT_SPACING - 0.5)
-	mL := (mW - gF) * (10.0 + DEFAULT_SPACING - 0.5)
-	fS := DEFAULT_FONT_SIZE * 10
+	lL := (lW - gF) * (10.0 + defaultSpacing - 0.5)
+	mL := (mW - gF) * (10.0 + defaultSpacing - 0.5)
+	fS := defaultFontSize * 10
 
 	mC, mS := determineMessageColorsFromHex(color)
 
