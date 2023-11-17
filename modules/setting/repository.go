@@ -184,7 +184,7 @@ var (
 			Enabled:      true,
 			TempPath:     "data/tmp/uploads",
 			AllowedTypes: "",
-			FileMaxSize:  200,
+			FileMaxSize:  50,
 			MaxFiles:     5,
 		},
 
