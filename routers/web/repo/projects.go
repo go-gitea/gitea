@@ -72,7 +72,7 @@ func Projects(ctx *context.Context) {
 		total = repo.NumClosedProjects
 	}
 
-	projects, count, err := db.FindAndCount[*project_model.Project](ctx, &project_model.SearchOptions{
+	projects, count, err := db.FindAndCount[*project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.IssuePagingNum,
 			Page:     page,

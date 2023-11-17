@@ -274,7 +274,7 @@ func handleWorkflows(
 			continue
 		}
 
-		alljobs, err := db.Find[*actions_model.ActionRunJob](ctx, &actions_model.FindRunJobOptions{RunID: run.ID})
+		alljobs, err := db.Find[*actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
 		if err != nil {
 			log.Error("FindRunJobs: %v", err)
 			continue
@@ -353,7 +353,7 @@ func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *rep
 	}
 
 	// don't need approval if the user has been approved before
-	if count, err := db.Count[actions_model.ActionRun](ctx, &actions_model.FindRunOptions{
+	if count, err := db.Count[actions_model.ActionRun](ctx, actions_model.FindRunOptions{
 		RepoID:        repo.ID,
 		TriggerUserID: user.ID,
 		Approved:      true,
@@ -384,7 +384,7 @@ func handleSchedules(
 		return nil
 	}
 
-	if count, err := db.Count[actions_model.ActionSchedule](ctx, &actions_model.FindScheduleOptions{RepoID: input.Repo.ID}); err != nil {
+	if count, err := db.Count[actions_model.ActionSchedule](ctx, actions_model.FindScheduleOptions{RepoID: input.Repo.ID}); err != nil {
 		log.Error("CountSchedules: %v", err)
 		return err
 	} else if count > 0 {

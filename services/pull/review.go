@@ -50,7 +50,7 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 	}
 	issueIDs := prs.GetIssueIDs()
 
-	codeComments, err := db.Find[*issues_model.Comment](ctx, &issues_model.FindCommentsOptions{
+	codeComments, err := db.Find[*issues_model.Comment](ctx, issues_model.FindCommentsOptions{
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},

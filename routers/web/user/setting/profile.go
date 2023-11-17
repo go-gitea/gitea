@@ -214,7 +214,7 @@ func Organization(ctx *context.Context) {
 		opts.Page = 1
 	}
 
-	orgs, total, err := db.FindAndCount[organization.Organization](ctx, &opts)
+	orgs, total, err := db.FindAndCount[organization.Organization](ctx, opts)
 	if err != nil {
 		ctx.ServerError("FindOrgs", err)
 		return

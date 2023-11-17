@@ -30,7 +30,7 @@ type FindNotificationOptions struct {
 }
 
 // ToCond will convert each condition into a xorm-Cond
-func (opts *FindNotificationOptions) ToConds() builder.Cond {
+func (opts FindNotificationOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.UserID != 0 {
 		cond = cond.And(builder.Eq{"notification.user_id": opts.UserID})
@@ -60,7 +60,7 @@ func (opts *FindNotificationOptions) ToConds() builder.Cond {
 	return cond
 }
 
-func (opts *FindNotificationOptions) ToOrders() string {
+func (opts FindNotificationOptions) ToOrders() string {
 	return "notification.updated_unix DESC"
 }
 

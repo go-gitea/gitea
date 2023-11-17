@@ -201,7 +201,7 @@ func findTaskNeeds(ctx context.Context, task *actions_model.ActionTask) (map[str
 	}
 	needs := container.SetOf(task.Job.Needs...)
 
-	jobs, err := db.Find[*actions_model.ActionRunJob](ctx, &actions_model.FindRunJobOptions{RunID: task.Job.RunID})
+	jobs, err := db.Find[*actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: task.Job.RunID})
 	if err != nil {
 		return nil, fmt.Errorf("FindRunJobs: %w", err)
 	}

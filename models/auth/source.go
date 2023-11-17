@@ -264,7 +264,7 @@ func IsSSPIEnabled(ctx context.Context) bool {
 	if !db.HasEngine {
 		return false
 	}
-	sources, err := db.Find[Source](ctx, &FindSourcesOptions{
+	sources, err := db.Find[Source](ctx, FindSourcesOptions{
 		IsActive:  util.OptionalBoolTrue,
 		LoginType: SSPI,
 	})

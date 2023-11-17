@@ -18,11 +18,11 @@ type mockListOptions struct {
 	db.ListOptions
 }
 
-func (opts *mockListOptions) IsListAll() bool {
+func (opts mockListOptions) IsListAll() bool {
 	return true
 }
 
-func (opts *mockListOptions) ToConds() builder.Cond {
+func (opts mockListOptions) ToConds() builder.Cond {
 	return builder.NewCond()
 }
 
@@ -37,15 +37,15 @@ func TestFind(t *testing.T) {
 	assert.NotEmpty(t, repoUnitCount)
 
 	opts := mockListOptions{}
-	repoUnits, err := db.Find[repo_model.RepoUnit](db.DefaultContext, &opts)
+	repoUnits, err := db.Find[repo_model.RepoUnit](db.DefaultContext, opts)
 	assert.NoError(t, err)
 	assert.Len(t, repoUnits, repoUnitCount)
 
-	cnt, err := db.Count[repo_model.RepoUnit](db.DefaultContext, &opts)
+	cnt, err := db.Count[repo_model.RepoUnit](db.DefaultContext, opts)
 	assert.NoError(t, err)
 	assert.EqualValues(t, repoUnitCount, cnt)
 
-	repoUnits, newCnt, err := db.FindAndCount[repo_model.RepoUnit](db.DefaultContext, &opts)
+	repoUnits, newCnt, err := db.FindAndCount[repo_model.RepoUnit](db.DefaultContext, opts)
 	assert.NoError(t, err)
 	assert.EqualValues(t, cnt, newCnt)
 	assert.Len(t, repoUnits, repoUnitCount)

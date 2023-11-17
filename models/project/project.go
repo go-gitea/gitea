@@ -201,7 +201,7 @@ type SearchOptions struct {
 	Title    string
 }
 
-func (opts *SearchOptions) ToConds() builder.Cond {
+func (opts SearchOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
@@ -226,7 +226,7 @@ func (opts *SearchOptions) ToConds() builder.Cond {
 	return cond
 }
 
-func (opts *SearchOptions) ToOrders() string {
+func (opts SearchOptions) ToOrders() string {
 	return opts.OrderBy.String()
 }
 

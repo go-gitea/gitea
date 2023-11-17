@@ -30,12 +30,12 @@ func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 		UserID:         u.ID,
 		IncludePrivate: showPrivate,
 	}
-	orgs, err := db.Find[*organization.Organization](ctx, &opts)
+	orgs, err := db.Find[*organization.Organization](ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindOrgs", err)
 		return
 	}
-	maxResults, err := db.Count[organization.Organization](ctx, &opts)
+	maxResults, err := db.Count[organization.Organization](ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CountOrgs", err)
 		return

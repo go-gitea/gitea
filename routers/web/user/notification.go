@@ -42,7 +42,7 @@ func GetNotificationCount(ctx *context.Context) {
 	}
 
 	ctx.Data["NotificationUnreadCount"] = func() int64 {
-		count, err := db.Count[activities_model.Notification](ctx, &activities_model.FindNotificationOptions{
+		count, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
 			UserID: ctx.Doer.ID,
 			Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
 		})
@@ -92,7 +92,7 @@ func getNotifications(ctx *context.Context) {
 		status = activities_model.NotificationStatusUnread
 	}
 
-	total, err := db.Count[activities_model.Notification](ctx, &activities_model.FindNotificationOptions{
+	total, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
 		UserID: ctx.Doer.ID,
 		Status: []activities_model.NotificationStatus{status},
 	})
@@ -415,7 +415,7 @@ func NotificationWatching(ctx *context.Context) {
 
 // NewAvailable returns the notification counts
 func NewAvailable(ctx *context.Context) {
-	total, err := db.Count[activities_model.Notification](ctx, &activities_model.FindNotificationOptions{
+	total, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
 		UserID: ctx.Doer.ID,
 		Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
 	})

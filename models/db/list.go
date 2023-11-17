@@ -57,7 +57,7 @@ var ListOptionsAll = ListOptions{ListAll: true}
 
 var (
 	_ Paginator   = &ListOptions{}
-	_ FindOptions = &ListOptions{}
+	_ FindOptions = ListOptions{}
 )
 
 // GetSkipTake returns the skip and take values
