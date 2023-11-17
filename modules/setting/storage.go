@@ -118,6 +118,8 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		return getStorageForLocal(targetSec, overrideSec, tp, name)
 	case string(MinioStorageType):
 		return getStorageForMinio(targetSec, overrideSec, tp, name)
+	case string(AzureBlobStorageType):
+		return getStorageForAzureBlob(targetSec, overrideSec, tp, name)
 	default:
 		return nil, fmt.Errorf("unsupported storage type %q", targetType)
 	}
@@ -251,22 +253,6 @@ func getStorageForLocal(targetSec, overrideSec ConfigSection, tp targetSecType, 
 				storage.Path = filepath.Join(targetPath, storage.Path)
 			}
 		}
-	case string(AzureBlobStorageType):
-		storage.AzureBlobConfig.BasePath = name + "/"
-
-		if err := targetSec.MapTo(&storage.AzureBlobConfig); err != nil {
-			return nil, fmt.Errorf("map azure blob config failed: %v", err)
-		}
-		// extra config section will be read SERVE_DIRECT, PATH, MINIO_BASE_PATH to override the targetsec
-		extraConfigSec := sec
-		if extraConfigSec == nil {
-			extraConfigSec = storageNameSec
-		}
-
-		if extraConfigSec != nil {
-			storage.AzureBlobConfig.BasePath = ConfigSectionKeyString(extraConfigSec, "AZUREBLOB_BASE_PATH", storage.AzureBlobConfig.BasePath)
-			storage.AzureBlobConfig.Container = ConfigSectionKeyString(extraConfigSec, "AZUREBLOB_CONTAINER", storage.AzureBlobConfig.Container)
-		}
 	}
 
 	return &storage, nil
@@ -297,6 +283,34 @@ func getStorageForMinio(targetSec, overrideSec ConfigSection, tp targetSecType, 
 		storage.MinioConfig.Bucket = ConfigSectionKeyString(overrideSec, "MINIO_BUCKET", storage.MinioConfig.Bucket)
 	} else {
 		storage.MinioConfig.BasePath = defaultPath
+	}
+	return &storage, nil
+}
+
+func getStorageForAzureBlob(targetSec, overrideSec ConfigSection, tp targetSecType, name string) (*Storage, error) {
+	var storage Storage
+	storage.Type = StorageType(targetSec.Key("STORAGE_TYPE").String())
+	if err := targetSec.MapTo(&storage.AzureBlobConfig); err != nil {
+		return nil, fmt.Errorf("map azure blob config failed: %v", err)
+	}
+
+	var defaultPath string
+	if storage.AzureBlobConfig.BasePath != "" {
+		if tp == targetSecIsStorage || tp == targetSecIsDefault {
+			defaultPath = strings.TrimSuffix(storage.AzureBlobConfig.BasePath, "/") + "/" + name + "/"
+		} else {
+			defaultPath = storage.AzureBlobConfig.BasePath
+		}
+	}
+	if defaultPath == "" {
+		defaultPath = name + "/"
+	}
+
+	if overrideSec != nil {
+		storage.AzureBlobConfig.BasePath = ConfigSectionKeyString(overrideSec, "AZUREBLOB_BASE_PATH", storage.AzureBlobConfig.BasePath)
+		storage.AzureBlobConfig.Container = ConfigSectionKeyString(overrideSec, "AZUREBLOB_CONTAINER", storage.AzureBlobConfig.Container)
+	} else {
+		storage.AzureBlobConfig.BasePath = defaultPath
 	}
 	return &storage, nil
 }
