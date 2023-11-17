@@ -24,16 +24,16 @@ type Badge struct {
 	Label         string
 	Message       string
 	Color         string
-	Width         string
-	LabelWidth    string
-	MessageWidth  string
-	LabelX        string
-	MessageX      string
-	LabelLength   string
-	MessageLength string
+	Width         int
+	LabelWidth    int
+	MessageWidth  int
+	LabelX        int
+	MessageX      int
+	LabelLength   int
+	MessageLength int
 	MessageColor  string
 	MessageShadow string
-	FontSize      string
+	FontSize      int
 }
 
 const (
@@ -147,17 +147,17 @@ func generateBadge(label, message, color string) Badge {
 	return Badge{
 		Label:         label,
 		Message:       message,
-		Color:         formatColor(c),
-		Width:         formatFloat(fW),
-		LabelWidth:    formatFloat(lW),
-		MessageWidth:  formatFloat(mW),
-		LabelX:        formatFloat(lX),
-		MessageX:      formatFloat(mX),
-		LabelLength:   formatFloat(lL),
-		MessageLength: formatFloat(mL),
+		Color:         color,
+		Width:         int(fW),
+		LabelWidth:    int(lW),
+		MessageWidth:  int(mW),
+		LabelX:        int(lX),
+		MessageX:      int(mX),
+		LabelLength:   int(lL),
+		MessageLength: int(mL),
 		MessageColor:  mC,
 		MessageShadow: mS,
-		FontSize:      strconv.Itoa(fS),
+		FontSize:      fS,
 	}
 }
 
@@ -177,22 +177,6 @@ func parseColor(c string) int64 {
 	i, _ := strconv.ParseInt(c, 16, 32)
 
 	return i
-}
-
-// formatColor formats color
-func formatColor(c int64) string {
-	k := fmt.Sprintf("%06x", c)
-
-	if k[0] == k[1] && k[2] == k[3] && k[4] == k[5] {
-		k = k[0:1] + k[2:3] + k[4:5]
-	}
-
-	return "#" + k
-}
-
-// formatFloat formats float values
-func formatFloat(v float64) string {
-	return strconv.FormatFloat(v, 'f', 0, 64)
 }
 
 // getMessageColors returns message text and shadow colors based on color of badge
