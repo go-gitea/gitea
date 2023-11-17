@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/util"
+
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
 )
@@ -42,11 +43,9 @@ const (
 	defaultFontSize = 11
 )
 
-var (
-	drawer = &font.Drawer{
-		Face: basicfont.Face7x13,
-	}
-)
+var drawer = &font.Drawer{
+	Face: basicfont.Face7x13,
+}
 
 var statusColorMap = map[actions_model.Status]string{
 	actions_model.StatusSuccess:   "#4c1",    // Green
@@ -91,7 +90,7 @@ func GetWorkflowBadge(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, "shared/actions/runner_badge")
 }
 
-func getWorkflowBadge(ctx *context.Context, workflowFile string, branchName string) (Badge, error) {
+func getWorkflowBadge(ctx *context.Context, workflowFile, branchName string) (Badge, error) {
 	run, err := actions_model.GetRepoBranchLastRun(ctx, ctx.Repo.Repository.ID, branchName, workflowFile)
 	if err != nil {
 		return Badge{}, err
@@ -107,7 +106,7 @@ func getWorkflowBadge(ctx *context.Context, workflowFile string, branchName stri
 	return generateBadge(workflowName, run.Status.String(), color), nil
 }
 
-//utils for badge generation -------------------------------------
+// utils for badge generation -------------------------------------
 
 // generateBadge generates badge with given template
 func generateBadge(label, message, color string) Badge {
