@@ -25,7 +25,7 @@
 		</div>
 		<div class="diff-detail-actions">
 			{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived) (not .DiffNotAvailable)}}
-				<div class="gt-df gt-ac gt-fc gt-whitespace-nowrap gt-mr-2">
+				<div class="not-mobile gt-df gt-ac gt-fc gt-whitespace-nowrap gt-mr-2">
 					<label for="viewed-files-summary" id="viewed-files-summary-label" data-text-changed-template="{{ctx.Locale.Tr "repo.pulls.viewed_files_label"}}">
 						{{ctx.Locale.Tr "repo.pulls.viewed_files_label" .Diff.NumViewedFiles .Diff.NumFiles}}
 					</label>
