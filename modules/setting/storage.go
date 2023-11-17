@@ -54,11 +54,12 @@ type MinioStorageConfig struct {
 
 // MinioStorageConfig represents the configuration for a minio storage
 type AzureBlobStorageConfig struct {
-	Endpoint    string `ini:"AZUREBLOB_ENDPOINT" json:",omitempty"`
-	AccountName string `ini:"AZUREBLOB_ACCOUNT_NAME" json:",omitempty"`
-	AccountKey  string `ini:"AZUREBLOB_ACCOUNT_KEY" json:",omitempty"`
-	Container   string `ini:"AZUREBLOB_CONTAINER" json:",omitempty"`
-	BasePath    string `ini:"AZUREBLOB_BASE_PATH" json:",omitempty"`
+	Endpoint    string `ini:"AZURE_BLOB_ENDPOINT" json:",omitempty"`
+	AccountName string `ini:"AZURE_BLOB_ACCOUNT_NAME" json:",omitempty"`
+	AccountKey  string `ini:"AZURE_BLOB_ACCOUNT_KEY" json:",omitempty"`
+	Container   string `ini:"AZURE_BLOB_CONTAINER" json:",omitempty"`
+	BasePath    string `ini:"AZURE_BLOB_BASE_PATH" json:",omitempty"`
+	ServeDirect bool   `ini:"SERVE_DIRECT"`
 }
 
 // Storage represents configuration of storages
@@ -95,6 +96,10 @@ func getDefaultStorageSection(rootCfg ConfigProvider) ConfigSection {
 	storageSec.Key("MINIO_USE_SSL").MustBool(false)
 	storageSec.Key("MINIO_INSECURE_SKIP_VERIFY").MustBool(false)
 	storageSec.Key("MINIO_CHECKSUM_ALGORITHM").MustString("default")
+	storageSec.Key("AZURE_BLOB_ENDPOINT").MustString("")
+	storageSec.Key("AZURE_BLOB_ACCOUNT_NAME").MustString("")
+	storageSec.Key("AZURE_BLOB_ACCOUNT_KEY").MustString("")
+	storageSec.Key("AZURE_BLOB_CONTAINER").MustString("gitea")
 	return storageSec
 }
 
@@ -307,8 +312,9 @@ func getStorageForAzureBlob(targetSec, overrideSec ConfigSection, tp targetSecTy
 	}
 
 	if overrideSec != nil {
-		storage.AzureBlobConfig.BasePath = ConfigSectionKeyString(overrideSec, "AZUREBLOB_BASE_PATH", storage.AzureBlobConfig.BasePath)
-		storage.AzureBlobConfig.Container = ConfigSectionKeyString(overrideSec, "AZUREBLOB_CONTAINER", storage.AzureBlobConfig.Container)
+		storage.AzureBlobConfig.ServeDirect = ConfigSectionKeyBool(overrideSec, "SERVE_DIRECT", storage.MinioConfig.ServeDirect)
+		storage.AzureBlobConfig.BasePath = ConfigSectionKeyString(overrideSec, "AZURE_BLOB_BASE_PATH", storage.AzureBlobConfig.BasePath)
+		storage.AzureBlobConfig.Container = ConfigSectionKeyString(overrideSec, "AZURE_BLOB_CONTAINER", storage.AzureBlobConfig.Container)
 	} else {
 		storage.AzureBlobConfig.BasePath = defaultPath
 	}

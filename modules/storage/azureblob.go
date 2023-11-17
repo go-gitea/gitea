@@ -25,6 +25,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blockblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/sas"
 )
 
 var _ ObjectStorage = &AzureBlobStorage{}
@@ -255,8 +256,15 @@ func (a *AzureBlobStorage) Delete(path string) error {
 
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
 func (a *AzureBlobStorage) URL(path, name string) (*url.URL, error) {
-	// TODO: Support download blobs directly from azure
-	return nil, ErrURLNotSupported
+	blobClient := a.client.ServiceClient().NewContainerClient(a.container).NewBlobClient(a.buildAzureBlobPath(path))
+	perm := sas.BlobPermissions{
+		Read: true,
+	}
+	u, err := blobClient.GetSASURL(perm, time.Now().Add(5*time.Minute), &blob.GetSASURLOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return url.Parse(u)
 }
 
 // IterateObjects iterates across the objects in the azureblobstorage
