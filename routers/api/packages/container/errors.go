@@ -7,6 +7,15 @@ import (
 	"net/http"
 )
 
+type ContainerError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+type ContainerErrors struct {
+	Errors []ContainerError `json:"errors"`
+}
+
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#error-codes
 var (
 	errBlobUnknown         = &namedError{Code: "BLOB_UNKNOWN", StatusCode: http.StatusNotFound}

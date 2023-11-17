@@ -430,12 +430,12 @@ func TestPackageQuota(t *testing.T) {
 		}
 
 		setting.Packages.LimitTotalOwnerSize = 0
-		uploadBlob(user, "2", http.StatusForbidden)
+		uploadBlob(user, "2", http.StatusConflict)
 		uploadBlob(admin, "2", http.StatusCreated)
 		setting.Packages.LimitTotalOwnerSize = limitTotalOwnerSize
 
 		setting.Packages.LimitSizeContainer = 0
-		uploadBlob(user, "3", http.StatusForbidden)
+		uploadBlob(user, "3", http.StatusRequestEntityTooLarge)
 		uploadBlob(admin, "3", http.StatusCreated)
 		setting.Packages.LimitSizeContainer = limitSizeContainer
 	})
