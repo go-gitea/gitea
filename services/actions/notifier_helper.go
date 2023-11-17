@@ -146,7 +146,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
 
-	if skipped := skipCIRuns(input, commit); skipped {
+	if skipped := skipWorkflowsForCommit(input, commit); skipped {
 		return nil
 	}
 
@@ -201,7 +201,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref)
 }
 
-func skipCIRuns(input *notifyInput, commit *git.Commit) bool {
+func skipWorkflowsForCommit(input *notifyInput, commit *git.Commit) bool {
 	// skip runs with a configured skip-ci string in commit message if the event is push or pull_request(_sync)
 	// https://docs.github.com/en/actions/managing-workflow-runs/skipping-workflow-runs
 	skipRunEvents := []webhook_module.HookEventType{
