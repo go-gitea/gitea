@@ -262,7 +262,7 @@ func TestSkipCI(t *testing.T) {
 					ContentReader: strings.NewReader("bar"),
 				},
 			},
-			Message:   fmt.Sprintf("%s add bar", setting.Actions.SkipRunStrings[0]),
+			Message:   fmt.Sprintf("%s add bar", setting.Actions.SkipWorkflowStrings[0]),
 			OldBranch: "main",
 			NewBranch: "main",
 			Author: &files_service.IdentityOptions{
