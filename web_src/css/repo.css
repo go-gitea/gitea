@@ -2743,26 +2743,6 @@ tbody.commit-list {
   overflow-y: auto;
 }
 
-.diff-toggle-file-tree-button {
-  background: none;
-  border: none;
-  user-select: none;
-  color: inherit;
-}
-
-.diff-toggle-file-tree-button:hover {
-  color: var(--color-primary);
-}
-
-@media (max-width: 991.98px) {
-  #diff-file-tree {
-    display: none !important;
-  }
-  .diff-toggle-file-tree-button {
-    display: none !important;
-  }
-}
-
 .ui.message.unicode-escape-prompt {
   margin-bottom: 0;
   border-radius: 0;
