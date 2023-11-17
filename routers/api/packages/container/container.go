@@ -87,10 +87,10 @@ func jsonResponse(ctx *context.Context, status int, obj any) {
 
 func apiError(ctx *context.Context, err error) {
 	switch err := err.(type) {
-	case *namedError:
+	case *Error:
 		helper.LogAndProcessError(ctx, err.StatusCode, err, nil)
-		jsonResponse(ctx, err.StatusCode, ContainerErrors{
-			Errors: []ContainerError{
+		jsonResponse(ctx, err.StatusCode, Errors{
+			Errors: []Error{
 				{
 					Code:    err.Code,
 					Message: err.Message,
@@ -100,8 +100,8 @@ func apiError(ctx *context.Context, err error) {
 	default:
 		status := helper.FormResponseCode(err)
 		helper.LogAndProcessError(ctx, status, err, func(s string) {
-			jsonResponse(ctx, status, ContainerErrors{
-				Errors: []ContainerError{
+			jsonResponse(ctx, status, Errors{
+				Errors: []Error{
 					{
 						Code:    "UNKNOWN",
 						Message: s,
@@ -532,7 +532,7 @@ func UploadManifest(ctx *context.Context) {
 
 	digest, err := processManifest(ctx, mci, buf)
 	if err != nil {
-		var namedError *namedError
+		var namedError *Error
 		switch {
 		case errors.As(err, &namedError):
 			apiError(ctx, namedError)
