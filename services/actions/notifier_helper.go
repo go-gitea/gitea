@@ -146,20 +146,8 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
 
-	skipRunEvents := []webhook_module.HookEventType{
-		webhook_module.HookEventPush,
-		webhook_module.HookEventPullRequest,
-		webhook_module.HookEventPullRequestSync,
-	}
-	if slices.Contains(skipRunEvents, input.Event) {
-		// skip runs with a configured skip-ci string in commit message if the event is push or pull_request(_sync)
-		// https://docs.github.com/en/actions/managing-workflow-runs/skipping-workflow-runs
-		for _, s := range setting.Actions.SkipRunStrings {
-			if strings.Contains(commit.CommitMessage, s) {
-				log.Debug("repo %s with commit %s: skipped run because of %s string", input.Repo.RepoPath(), commit.ID, s)
-				return nil
-			}
-		}
+	if skipped := skipCIRuns(input, commit); skipped {
+		return nil
 	}
 
 	var detectedWorkflows []*actions_module.DetectedWorkflow
@@ -211,6 +199,25 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 
 	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref)
+}
+
+func skipCIRuns(input *notifyInput, commit *git.Commit) bool {
+	// skip runs with a configured skip-ci string in commit message if the event is push or pull_request(_sync)
+	// https://docs.github.com/en/actions/managing-workflow-runs/skipping-workflow-runs
+	skipRunEvents := []webhook_module.HookEventType{
+		webhook_module.HookEventPush,
+		webhook_module.HookEventPullRequest,
+		webhook_module.HookEventPullRequestSync,
+	}
+	if slices.Contains(skipRunEvents, input.Event) {
+		for _, s := range setting.Actions.SkipRunStrings {
+			if strings.Contains(commit.CommitMessage, s) {
+				log.Debug("repo %s with commit %s: skipped run because of %s string", input.Repo.RepoPath(), commit.ID, s)
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func handleWorkflows(
