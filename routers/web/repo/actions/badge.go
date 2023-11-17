@@ -74,6 +74,7 @@ func GetDefaultBranchWorkflowBadge(ctx *context.Context) {
 	ctx.Data["Badge"] = badge
 	ctx.HTML(http.StatusOK, "shared/actions/runner_badge")
 }
+
 func GetWorkflowBadge(ctx *context.Context) {
 	workflowFile := ctx.Params("workflow_name")
 	branchName := ctx.Params("branch_name")
