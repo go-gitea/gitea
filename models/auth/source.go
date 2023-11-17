@@ -242,6 +242,7 @@ func CreateSource(ctx context.Context, source *Source) error {
 }
 
 type FindSourcesOptions struct {
+	db.ListOptions
 	IsActive  util.OptionalBool
 	LoginType Type
 }
@@ -257,19 +258,13 @@ func (opts FindSourcesOptions) ToConds() builder.Cond {
 	return conds
 }
 
-// FindSources returns a slice of login sources found in DB according to given conditions.
-func FindSources(ctx context.Context, opts FindSourcesOptions) ([]*Source, error) {
-	auths := make([]*Source, 0, 6)
-	return auths, db.GetEngine(ctx).Where(opts.ToConds()).Find(&auths)
-}
-
 // IsSSPIEnabled returns true if there is at least one activated login
 // source of type LoginSSPI
 func IsSSPIEnabled(ctx context.Context) bool {
 	if !db.HasEngine {
 		return false
 	}
-	sources, err := FindSources(ctx, FindSourcesOptions{
+	sources, err := db.Find[Source](ctx, &FindSourcesOptions{
 		IsActive:  util.OptionalBoolTrue,
 		LoginType: SSPI,
 	})
@@ -344,12 +339,6 @@ func UpdateSource(ctx context.Context, source *Source) error {
 		}
 	}
 	return err
-}
-
-// CountSources returns number of login sources.
-func CountSources(ctx context.Context, opts FindSourcesOptions) int64 {
-	count, _ := db.GetEngine(ctx).Where(opts.ToConds()).Count(new(Source))
-	return count
 }
 
 // ErrSourceNotExist represents a "SourceNotExist" kind of error.

@@ -73,16 +73,16 @@ func (opts *ListOptions) GetStartEnd() (start, end int) {
 	return start, end
 }
 
-func (opts *ListOptions) GetPage() int {
+func (opts ListOptions) GetPage() int {
 	return opts.Page
 }
 
-func (opts *ListOptions) GetPageSize() int {
+func (opts ListOptions) GetPageSize() int {
 	return opts.PageSize
 }
 
 // IsListAll indicates PageSize and Page will be ignored
-func (opts *ListOptions) IsListAll() bool {
+func (opts ListOptions) IsListAll() bool {
 	return opts.ListAll
 }
 
@@ -99,7 +99,7 @@ func (opts *ListOptions) SetDefaultValues() {
 	}
 }
 
-func (opts *ListOptions) ToConds() builder.Cond {
+func (opts ListOptions) ToConds() builder.Cond {
 	return builder.NewCond()
 }
 
