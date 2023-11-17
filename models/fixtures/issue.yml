@@ -345,7 +345,7 @@
   index: 2
   poster_id: 12
   original_author_id: 0
-  name: opening pr for recently new branch search test 
+  name: opening pr for recently new branch search test
   content: content
   milestone_id: 0
   priority: 0
@@ -362,7 +362,7 @@
   index: 3
   poster_id: 12
   original_author_id: 0
-  name: closed pr for recently new branch search test 
+  name: closed pr for recently new branch search test
   content: content
   milestone_id: 0
   priority: 0
@@ -379,7 +379,7 @@
   index: 4
   poster_id: 12
   original_author_id: 0
-  name: merged pr for recently new branch search test 
+  name: merged pr for recently new branch search test
   content: content
   milestone_id: 0
   priority: 0
@@ -396,7 +396,7 @@
   index: 5
   poster_id: 12
   original_author_id: 0
-  name: closed pr with deleted branch for recently new branch search test 
+  name: closed pr with deleted branch for recently new branch search test
   content: content
   milestone_id: 0
   priority: 0
@@ -413,7 +413,7 @@
   index: 6
   poster_id: 12
   original_author_id: 0
-  name: merged pr with deleted branch for recently new branch search test 
+  name: merged pr with deleted branch for recently new branch search test
   content: content
   milestone_id: 0
   priority: 0
@@ -430,7 +430,7 @@
   index: 1
   poster_id: 13
   original_author_id: 0
-  name: pr with same branch name for recently new branch search test 
+  name: pr with same branch name for recently new branch search test
   content: content
   milestone_id: 0
   priority: 0
