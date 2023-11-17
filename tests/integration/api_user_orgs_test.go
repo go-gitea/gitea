@@ -33,18 +33,6 @@ func TestUserOrgs(t *testing.T) {
 
 	assert.Equal(t, []*api.Organization{
 		{
-			ID:          35,
-			Name:        org35.Name,
-			UserName:    org35.Name,
-			FullName:    org35.FullName,
-			Email:       org35.Email,
-			AvatarURL:   org35.AvatarLink(db.DefaultContext),
-			Description: "",
-			Website:     "",
-			Location:    "",
-			Visibility:  "private",
-		},
-		{
 			ID:          17,
 			Name:        org17.Name,
 			UserName:    org17.Name,
@@ -67,6 +55,18 @@ func TestUserOrgs(t *testing.T) {
 			Website:     "",
 			Location:    "",
 			Visibility:  "public",
+		},
+		{
+			ID:          35,
+			Name:        org35.Name,
+			UserName:    org35.Name,
+			FullName:    org35.FullName,
+			Email:       org35.Email,
+			AvatarURL:   org35.AvatarLink(db.DefaultContext),
+			Description: "",
+			Website:     "",
+			Location:    "",
+			Visibility:  "private",
 		},
 	}, orgs)
 
@@ -118,18 +118,6 @@ func TestMyOrgs(t *testing.T) {
 
 	assert.Equal(t, []*api.Organization{
 		{
-			ID:          35,
-			Name:        org35.Name,
-			UserName:    org35.Name,
-			FullName:    org35.FullName,
-			Email:       org35.Email,
-			AvatarURL:   org35.AvatarLink(db.DefaultContext),
-			Description: "",
-			Website:     "",
-			Location:    "",
-			Visibility:  "private",
-		},
-		{
 			ID:          17,
 			Name:        org17.Name,
 			UserName:    org17.Name,
@@ -152,6 +140,18 @@ func TestMyOrgs(t *testing.T) {
 			Website:     "",
 			Location:    "",
 			Visibility:  "public",
+		},
+		{
+			ID:          35,
+			Name:        org35.Name,
+			UserName:    org35.Name,
+			FullName:    org35.FullName,
+			Email:       org35.Email,
+			AvatarURL:   org35.AvatarLink(db.DefaultContext),
+			Description: "",
+			Website:     "",
+			Location:    "",
+			Visibility:  "private",
 		},
 	}, orgs)
 }
