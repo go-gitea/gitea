@@ -131,7 +131,9 @@ func CreateOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) error {
 	// init
 	var toNotify container.Set[int64]
-	notifications, err := getNotificationsByIssueID(ctx, issueID)
+	notifications, err := db.Find[*Notification](ctx, FindNotificationOptions{
+		IssueID: issueID,
+	})
 	if err != nil {
 		return err
 	}

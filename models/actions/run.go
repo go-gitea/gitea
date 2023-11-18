@@ -188,7 +188,7 @@ func CancelRunningJobs(ctx context.Context, repoID int64, ref, workflowID string
 	// Iterate over each found run and cancel its associated jobs.
 	for _, run := range runs {
 		// Find all jobs associated with the current run.
-		jobs, _, err := db.FindAndCount[*ActionRunJob](ctx, FindRunJobOptions{
+		jobs, err := db.Find[*ActionRunJob](ctx, FindRunJobOptions{
 			RunID: run.ID,
 		})
 		if err != nil {

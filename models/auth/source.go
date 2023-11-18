@@ -264,15 +264,16 @@ func IsSSPIEnabled(ctx context.Context) bool {
 	if !db.HasEngine {
 		return false
 	}
-	sources, err := db.Find[Source](ctx, FindSourcesOptions{
+
+	exist, err := db.Exits[Source](ctx, FindSourcesOptions{
 		IsActive:  util.OptionalBoolTrue,
 		LoginType: SSPI,
 	})
 	if err != nil {
-		log.Error("ActiveSources: %v", err)
+		log.Error("Active SSPI Sources: %v", err)
 		return false
 	}
-	return len(sources) > 0
+	return exist
 }
 
 // GetSourceByID returns login source by given ID.

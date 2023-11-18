@@ -109,11 +109,20 @@ func getNotifications(ctx *context.Context) {
 	}
 
 	statuses := []activities_model.NotificationStatus{status, activities_model.NotificationStatusPinned}
-	notifications, err := activities_model.NotificationsForUser(ctx, ctx.Doer, statuses, page, perPage)
+	nls, err := db.Find[*activities_model.Notification](ctx, activities_model.FindNotificationOptions{
+		ListOptions: db.ListOptions{
+			PageSize: perPage,
+			Page:     page,
+		},
+		UserID: ctx.Doer.ID,
+		Status: statuses,
+	})
 	if err != nil {
-		ctx.ServerError("ErrNotificationsForUser", err)
+		ctx.ServerError("db.Find[*activities_model.Notification]", err)
 		return
 	}
+
+	notifications := activities_model.NotificationList(nls)
 
 	failCount := 0
 

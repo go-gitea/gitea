@@ -84,17 +84,12 @@ func RunnerDetails(ctx *context.Context, page int, runnerID, ownerID, repoID int
 		RunnerID:    runner.ID,
 	}
 
-	count, err := db.Count[actions_model.ActionTask](ctx, opts)
+	tasks, count, err := db.FindAndCount[*actions_model.ActionTask](ctx, opts)
 	if err != nil {
 		ctx.ServerError("CountTasks", err)
 		return
 	}
 
-	tasks, err := db.Find[*actions_model.ActionTask](ctx, opts)
-	if err != nil {
-		ctx.ServerError("FindTasks", err)
-		return
-	}
 	if err = actions_model.TaskList(tasks).LoadAttributes(ctx); err != nil {
 		ctx.ServerError("TasksLoadAttributes", err)
 		return

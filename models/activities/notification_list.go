@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // FindNotificationOptions represent the filters for notifications. If an ID is 0 it will be ignored.
@@ -65,22 +64,6 @@ func (opts FindNotificationOptions) ToOrders() string {
 	return "notification.updated_unix DESC"
 }
 
-// ToSession will convert the given options to a xorm Session by using the conditions from ToCond and joining with issue table if required
-func (opts *FindNotificationOptions) ToSession(ctx context.Context) *xorm.Session {
-	sess := db.GetEngine(ctx).Where(opts.ToConds())
-	if opts.Page != 0 {
-		sess = db.SetSessionPagination(sess, opts)
-	}
-	return sess
-}
-
-func getNotificationsByIssueID(ctx context.Context, issueID int64) (notifications []*Notification, err error) {
-	err = db.GetEngine(ctx).
-		Where("issue_id = ?", issueID).
-		Find(&notifications)
-	return notifications, err
-}
-
 func notificationExists(notifications []*Notification, issueID, userID int64) bool {
 	for _, notification := range notifications {
 		if notification.IssueID == issueID && notification.UserID == userID {
@@ -89,25 +72,6 @@ func notificationExists(notifications []*Notification, issueID, userID int64) bo
 	}
 
 	return false
-}
-
-// NotificationsForUser returns notifications for a given user and status
-func NotificationsForUser(ctx context.Context, user *user_model.User, statuses []NotificationStatus, page, perPage int) (notifications NotificationList, err error) {
-	if len(statuses) == 0 {
-		return nil, nil
-	}
-
-	sess := db.GetEngine(ctx).
-		Where("user_id = ?", user.ID).
-		In("status", statuses).
-		OrderBy("updated_unix DESC")
-
-	if page > 0 && perPage > 0 {
-		sess.Limit(perPage, (page-1)*perPage)
-	}
-
-	err = sess.Find(&notifications)
-	return notifications, err
 }
 
 // UserIDCount is a simple coalition of UserID and Count
@@ -130,12 +94,17 @@ type NotificationList []*Notification
 
 // LoadAttributes load Repo Issue User and Comment if not loaded
 func (nl NotificationList) LoadAttributes(ctx context.Context) error {
-	var err error
-	for i := 0; i < len(nl); i++ {
-		err = nl[i].LoadAttributes(ctx)
-		if err != nil && !issues_model.IsErrCommentNotExist(err) {
-			return err
-		}
+	if _, _, err := nl.LoadRepos(ctx); err != nil {
+		return err
+	}
+	if _, err := nl.LoadIssues(ctx); err != nil {
+		return err
+	}
+	if _, err := nl.LoadUsers(ctx); err != nil {
+		return err
+	}
+	if _, err := nl.LoadComments(ctx); err != nil {
+		return err
 	}
 	return nil
 }
@@ -307,6 +276,68 @@ func (nl NotificationList) getPendingCommentIDs() []int64 {
 		ids.Add(notification.CommentID)
 	}
 	return ids.Values()
+}
+
+func (nl NotificationList) getUserIDs() []int64 {
+	ids := make(container.Set[int64], len(nl))
+	for _, notification := range nl {
+		if notification.UserID == 0 || notification.User != nil {
+			continue
+		}
+		ids.Add(notification.UserID)
+	}
+	return ids.Values()
+}
+
+// LoadUsers loads users from database
+func (nl NotificationList) LoadUsers(ctx context.Context) ([]int, error) {
+	if len(nl) == 0 {
+		return []int{}, nil
+	}
+
+	userIDs := nl.getUserIDs()
+	users := make(map[int64]*user_model.User, len(userIDs))
+	left := len(userIDs)
+	for left > 0 {
+		limit := db.DefaultMaxInSize
+		if left < limit {
+			limit = left
+		}
+		rows, err := db.GetEngine(ctx).
+			In("id", userIDs[:limit]).
+			Rows(new(user_model.User))
+		if err != nil {
+			return nil, err
+		}
+
+		for rows.Next() {
+			var user user_model.User
+			err = rows.Scan(&user)
+			if err != nil {
+				rows.Close()
+				return nil, err
+			}
+
+			users[user.ID] = &user
+		}
+		_ = rows.Close()
+
+		left -= limit
+		userIDs = userIDs[limit:]
+	}
+
+	failures := []int{}
+	for i, notification := range nl {
+		if notification.UserID > 0 && notification.User == nil && users[notification.UserID] != nil {
+			notification.User = users[notification.UserID]
+			if notification.User == nil {
+				log.Error("Notification[%d]: UserID[%d] failed to load", notification.ID, notification.UserID)
+				failures = append(failures, i)
+				continue
+			}
+		}
+	}
+	return failures, nil
 }
 
 // LoadComments loads comments from database
