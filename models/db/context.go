@@ -265,7 +265,7 @@ func inTransaction(ctx context.Context) (*xorm.Session, bool) {
 	}
 }
 
-func Exits[T any](ctx context.Context, opts FindOptions) (bool, error) {
+func Exists[T any](ctx context.Context, opts FindOptions) (bool, error) {
 	var bean T
 	return GetEngine(ctx).Where(opts.ToConds()).Exist(&bean)
 }
