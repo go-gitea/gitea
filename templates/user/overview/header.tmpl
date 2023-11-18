@@ -13,6 +13,9 @@
 	{{if or .ContextUser.IsIndividual (and .ContextUser.IsOrganization .CanReadProjects)}}
 	<a href="{{.ContextUser.HomeLink}}/-/projects" class="{{if .PageIsViewProjects}}active {{end}}item">
 		{{svg "octicon-project-symlink"}} {{ctx.Locale.Tr "user.projects"}}
+		{{if .ProjectCount}}
+			<div class="ui small label">{{.ProjectCount}}</div>
+		{{end}}
 	</a>
 	{{end}}
 	{{if and .IsPackageEnabled (or .ContextUser.IsIndividual (and .ContextUser.IsOrganization .CanReadPackages))}}
