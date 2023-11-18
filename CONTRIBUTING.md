@@ -262,8 +262,10 @@ Changing the default value of a setting or replacing the setting with another on
 #### How to handle breaking PRs?
 
 If your PR has a breaking change, you must add two things to the summary of your PR:
+
 1. A reasoning why this breaking change is necessary
 2. A `BREAKING` section explaining in simple terms (understandable for a typical user) how this PR affects users and how to mitigate these changes. This section can look for example like
+
 ```md
 ## :warning: BREAKING :warning:
 ```
