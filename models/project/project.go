@@ -95,6 +95,7 @@ type Project struct {
 	RepoID      int64                  `xorm:"INDEX"`
 	Repo        *repo_model.Repository `xorm:"-"`
 	CreatorID   int64                  `xorm:"NOT NULL"`
+	Creator     *user_model.User       `xorm:"-"`
 	IsClosed    bool                   `xorm:"INDEX"`
 	BoardType   BoardType
 	CardType    CardType
@@ -112,6 +113,14 @@ func (p *Project) LoadOwner(ctx context.Context) (err error) {
 		return nil
 	}
 	p.Owner, err = user_model.GetUserByID(ctx, p.OwnerID)
+	return err
+}
+
+func (p *Project) LoadCreator(ctx context.Context) (err error) {
+	if p.Creator != nil {
+		return nil
+	}
+	p.Creator, err = user_model.GetUserByID(ctx, p.CreatorID)
 	return err
 }
 
@@ -348,7 +357,11 @@ func updateRepositoryProjectCount(ctx context.Context, repoID int64) error {
 }
 
 // ChangeProjectStatusByRepoIDAndID toggles a project between opened and closed
-func ChangeProjectStatusByRepoIDAndID(ctx context.Context, repoID, projectID int64, isClosed bool) error {
+func ChangeProjectStatusByRepoIDAndID(
+	ctx context.Context,
+	repoID, projectID int64,
+	isClosed bool,
+) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -389,7 +402,11 @@ func ChangeProjectStatus(ctx context.Context, p *Project, isClosed bool) error {
 func changeProjectStatus(ctx context.Context, p *Project, isClosed bool) error {
 	p.IsClosed = isClosed
 	p.ClosedDateUnix = timeutil.TimeStampNow()
-	count, err := db.GetEngine(ctx).ID(p.ID).Where("repo_id = ? AND is_closed = ?", p.RepoID, !isClosed).Cols("is_closed", "closed_date_unix").Update(p)
+	count, err := db.GetEngine(ctx).
+		ID(p.ID).
+		Where("repo_id = ? AND is_closed = ?", p.RepoID, !isClosed).
+		Cols("is_closed", "closed_date_unix").
+		Update(p)
 	if err != nil {
 		return err
 	}
