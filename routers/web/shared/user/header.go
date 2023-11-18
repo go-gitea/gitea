@@ -141,7 +141,7 @@ func LoadHeaderCount(ctx *context.Context) error {
 	} else {
 		projectType = project_model.TypeIndividual
 	}
-	projectCount, err := project_model.CountProjects(ctx, project_model.SearchOptions{
+	projectCount, err := db.Count[project_model.Project](ctx, project_model.SearchOptions{
 		OwnerID:  ctx.ContextUser.ID,
 		IsClosed: util.OptionalBoolOf(false),
 		Type:     projectType,
