@@ -213,6 +213,10 @@ If you are implementing a new feature, your PR will only be merged if your scree
 Furthermore, feature PRs will only be merged if their summary contains a clear usage description (understandable for users) and testing description (understandable for reviewers).
 You should strive to combine both into a single description.
 
+Another requirement for merging PRs is that the PR is labeled correctly.\
+However, this is not your job as a contributor, but the job of the person merging your PR.\
+If you think that your PR was labeled incorrectly, or notice that it was merged without labels, please let us know.
+
 If your PR closes some issues, you must note that in a way that both GitHub and Gitea understand, i.e. by appending a paragraph like
 
 ```text
