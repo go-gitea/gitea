@@ -162,6 +162,9 @@ export default {
           }
           return false;
         });
+        // this line is required. See https://github.com/sahinakkaya/gitea/pull/3#discussion_r1396495722
+        // for details.
+        user['max_contribution_type'] += 1;
 
         filteredData[key] = {...user, weeks: filteredWeeks};
       }
