@@ -149,6 +149,9 @@ func NewFuncMap() template.FuncMap {
 		"MermaidMaxSourceCharacters": func() int {
 			return setting.MermaidMaxSourceCharacters
 		},
+		"EditorEol": func() string {
+			return setting.UI.EditorEol
+		},
 
 		// -----------------------------------------------------------------
 		// render

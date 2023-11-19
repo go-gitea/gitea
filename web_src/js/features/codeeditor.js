@@ -4,6 +4,7 @@ import {onInputDebounce} from '../utils/dom.js';
 
 const languagesByFilename = {};
 const languagesByExt = {};
+const {editorEol} = window.config;
 
 const baseOptions = {
   fontFamily: 'var(--fonts-monospace)',
@@ -62,7 +63,7 @@ export async function createMonaco(textarea, filename, editorOpts) {
   const monaco = await import(/* webpackChunkName: "monaco" */'monaco-editor');
 
   initLanguages(monaco);
-  let {language, eol, ...other} = editorOpts;
+  let {language, eol: editorConfigEol, ...other} = editorOpts;
   if (!language) language = getLanguage(filename);
 
   const container = document.createElement('div');
@@ -121,8 +122,8 @@ export async function createMonaco(textarea, filename, editorOpts) {
 
   const model = editor.getModel();
 
-  // Monaco performs auto-detection of dominant EOL in the file, biased towards LF for
-  // empty files. If there is an editorconfig value, override this detected value.
+  // Use eol format from editorconfig if present, otherwise fall back to ui.EDITOR_EOL
+  const eol = editorConfigEol ?? editorEol;
   if (eol in monaco.editor.EndOfLineSequence) {
     model.setEOL(monaco.editor.EndOfLineSequence[eol]);
   }
