@@ -3,7 +3,7 @@
 	<div class="diff-detail-box diff-box">
 		<div class="gt-df gt-ac gt-fw">
 			{{if $showFileTree}}
-				<button class="diff-toggle-file-tree-button gt-df gt-ac not-mobile" data-show-text="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
+				<button class="diff-toggle-file-tree-button not-mobile btn interact-fg" data-show-text="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
 					{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}
 					{{svg "octicon-sidebar-collapse" 20 "icon gt-hidden"}}
 					{{svg "octicon-sidebar-expand" 20 "icon gt-hidden"}}
@@ -89,7 +89,7 @@
 	{{end}}
 	<div id="diff-container">
 		{{if $showFileTree}}
-			<div id="diff-file-tree" class="gt-hidden"></div>
+			<div id="diff-file-tree" class="gt-hidden not-mobile"></div>
 			<script>
 				if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('gt-hidden');
 			</script>
