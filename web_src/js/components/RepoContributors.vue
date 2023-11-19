@@ -27,6 +27,7 @@ const colors = {
   commits: '--color-primary-alpha-60',
   additions: '--color-green',
   deletions: '--color-red',
+  title: '--color-secondary-dark-4'
 };
 
 const styles = window.getComputedStyle(document.documentElement);
@@ -235,6 +236,13 @@ export default {
         animation: false,
         events: ['mousemove', 'mouseout', 'click', 'touchstart', 'touchmove', 'dblclick'],
         plugins: {
+          title: {
+            display: type === 'main',
+            text: ['drag: zoom', 'shift+drag: pan', 'double click: reset zoom'],
+            color: colors.title,
+            position: 'top',
+            align: 'end',
+          },
           customEventListener: {
             chartType: type,
             instance: this,
