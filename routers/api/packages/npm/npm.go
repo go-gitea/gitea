@@ -208,7 +208,10 @@ func UploadPackage(ctx *context.Context) {
 						return err
 					}
 				}
-				return packages_model.SetRepositoryLink(ctx, v.PackageVersion.PackageID, repo.ID)
+				if repo != nil {
+					return packages_model.SetRepositoryLink(ctx, v.PackageVersion.PackageID, repo.ID)
+				}
+				return nil
 			},
 		},
 		&packages_service.PackageFileCreationInfo{
