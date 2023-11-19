@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	audit_model "code.gitea.io/gitea/models/audit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
@@ -80,7 +81,7 @@ func AccountPost(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(ctx, audit.UserPassword, ctx.Doer, ctx.Doer, ctx.Doer, "Password of user %s changed.", ctx.Doer.Name)
+		audit.Record(ctx, audit_model.UserPassword, ctx.Doer, ctx.Doer, ctx.Doer, "Password of user %s changed.", ctx.Doer.Name)
 
 		log.Trace("User password updated: %s", ctx.Doer.Name)
 		ctx.Flash.Success(ctx.Tr("settings.change_password_success"))
@@ -218,7 +219,7 @@ func EmailPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
 	}
 
-	audit.Record(ctx, audit.UserEmailAdd, ctx.Doer, ctx.Doer, email, "Email %s added to user %s.", email.Email, ctx.Doer.Name)
+	audit.Record(ctx, audit_model.UserEmailAdd, ctx.Doer, ctx.Doer, email, "Email %s added to user %s.", email.Email, ctx.Doer.Name)
 
 	log.Trace("Email address added: %s", email.Email)
 	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
@@ -237,7 +238,7 @@ func DeleteEmail(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit.UserEmailRemove, ctx.Doer, ctx.Doer, email, "Email %s removed from user %s.", email.Email, ctx.Doer.Name)
+	audit.Record(ctx, audit_model.UserEmailRemove, ctx.Doer, ctx.Doer, email, "Email %s removed from user %s.", email.Email, ctx.Doer.Name)
 
 	log.Trace("Email address deleted: %s", ctx.Doer.Name)
 

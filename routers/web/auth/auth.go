@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
@@ -581,7 +582,7 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *us
 		return false
 	}
 
-	audit.Record(ctx, audit.UserCreate, audit.NewAuthenticationSourceUser(), u, u, "Created user %s.", u.Name)
+	audit.Record(ctx, audit_model.UserCreate, audit.NewAuthenticationSourceUser(), u, u, "Created user %s.", u.Name)
 
 	log.Trace("Account created: %s", u.Name)
 	return true
@@ -744,7 +745,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 		return
 	}
 
-	audit.Record(ctx, audit.UserActive, user, user, user, "Activation status of user %s changed to %s.", user.Name, audit.UserActiveString(user.IsActive))
+	audit.Record(ctx, audit_model.UserActive, user, user, user, "Activation status of user %s changed to %s.", user.Name, audit.UserActiveString(user.IsActive))
 
 	log.Trace("User activated: %s", user.Name)
 
@@ -798,7 +799,7 @@ func ActivateEmail(ctx *context.Context) {
 			_ = ctx.Cache.Delete("MailResendLimit_" + user.LowerName)
 		}
 
-		audit.Record(ctx, audit.UserEmailActivate, user, user, email, "Email %s of user %s activated.", email.Email, user.Name)
+		audit.Record(ctx, audit_model.UserEmailActivate, user, user, email, "Email %s of user %s activated.", email.Email, user.Name)
 	}
 
 	// FIXME: e-mail verification does not require the user to be logged in,

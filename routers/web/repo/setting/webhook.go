@@ -12,6 +12,7 @@ import (
 	"path"
 	"strings"
 
+	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -68,7 +69,7 @@ type ownerRepoCtx struct {
 	NewTemplate     base.TplName
 }
 
-func (ctx *ownerRepoCtx) auditActionSwitch(user, org, repo, system audit.Action) audit.Action {
+func (ctx *ownerRepoCtx) auditActionSwitch(user, org, repo, system audit_model.Action) audit_model.Action {
 	if ctx.IsAdmin {
 		return system
 	}
@@ -287,7 +288,7 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 		return
 	}
 
-	audit.Record(ctx, orCtx.auditActionSwitch(audit.UserWebhookAdd, audit.OrganizationWebhookAdd, audit.RepositoryWebhookAdd, audit.SystemWebhookAdd), ctx.Doer, orCtx.auditScopeSwitch(), w, "Added webhook %s.", w.URL)
+	audit.Record(ctx, orCtx.auditActionSwitch(audit_model.UserWebhookAdd, audit_model.OrganizationWebhookAdd, audit_model.RepositoryWebhookAdd, audit_model.SystemWebhookAdd), ctx.Doer, orCtx.auditScopeSwitch(), w, "Added webhook %s.", w.URL)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
 	ctx.Redirect(orCtx.Link)
@@ -341,7 +342,7 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 		return
 	}
 
-	audit.Record(ctx, orCtx.auditActionSwitch(audit.UserWebhookUpdate, audit.OrganizationWebhookUpdate, audit.RepositoryWebhookUpdate, audit.SystemWebhookUpdate), ctx.Doer, orCtx.auditScopeSwitch(), w, "Updated webhook %s.", w.URL)
+	audit.Record(ctx, orCtx.auditActionSwitch(audit_model.UserWebhookUpdate, audit_model.OrganizationWebhookUpdate, audit_model.RepositoryWebhookUpdate, audit_model.SystemWebhookUpdate), ctx.Doer, orCtx.auditScopeSwitch(), w, "Updated webhook %s.", w.URL)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
@@ -771,7 +772,7 @@ func DeleteWebhook(ctx *context.Context) {
 	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteWebhookByRepoID: " + err.Error())
 	} else {
-		audit.Record(ctx, audit.RepositoryWebhookRemove, ctx.Doer, ctx.Repo.Repository, hook, "Removed webhook %s.", hook.URL)
+		audit.Record(ctx, audit_model.RepositoryWebhookRemove, ctx.Doer, ctx.Repo.Repository, hook, "Removed webhook %s.", hook.URL)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}

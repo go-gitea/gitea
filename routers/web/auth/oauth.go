@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strings"
 
+	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/auth"
 	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
@@ -565,7 +566,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit.UserOAuth2ApplicationGrant, ctx.Doer, owner, grant, "Granted OAuth2 access to application %s.", app.Name)
+	audit.Record(ctx, audit_model.UserOAuth2ApplicationGrant, ctx.Doer, owner, grant, "Granted OAuth2 access to application %s.", app.Name)
 
 	if len(form.Nonce) > 0 {
 		err := grant.SetNonce(ctx, form.Nonce)
@@ -1159,10 +1160,10 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		}
 
 		if changedIsAdmin {
-			audit.Record(ctx, audit.UserAdmin, audit.NewAuthenticationSourceUser(), u, u, "Admin status of user %s changed to %s.", u.Name, audit.UserAdminString(u.IsAdmin))
+			audit.Record(ctx, audit_model.UserAdmin, audit.NewAuthenticationSourceUser(), u, u, "Admin status of user %s changed to %s.", u.Name, audit.UserAdminString(u.IsAdmin))
 		}
 		if changedIsRestricted {
-			audit.Record(ctx, audit.UserRestricted, audit.NewAuthenticationSourceUser(), u, u, "Restricted status of user %s changed to %s.", u.Name, audit.UserRestrictedString(u.IsRestricted))
+			audit.Record(ctx, audit_model.UserRestricted, audit.NewAuthenticationSourceUser(), u, u, "Restricted status of user %s changed to %s.", u.Name, audit.UserRestrictedString(u.IsRestricted))
 		}
 
 		if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {
@@ -1203,10 +1204,10 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 	}
 
 	if changedIsAdmin {
-		audit.Record(ctx, audit.UserAdmin, audit.NewAuthenticationSourceUser(), u, u, "Admin status of user %s changed to %s.", u.Name, audit.UserAdminString(u.IsAdmin))
+		audit.Record(ctx, audit_model.UserAdmin, audit.NewAuthenticationSourceUser(), u, u, "Admin status of user %s changed to %s.", u.Name, audit.UserAdminString(u.IsAdmin))
 	}
 	if changedIsRestricted {
-		audit.Record(ctx, audit.UserRestricted, audit.NewAuthenticationSourceUser(), u, u, "Restricted status of user %s changed to %s.", u.Name, audit.UserRestrictedString(u.IsRestricted))
+		audit.Record(ctx, audit_model.UserRestricted, audit.NewAuthenticationSourceUser(), u, u, "Restricted status of user %s changed to %s.", u.Name, audit.UserRestrictedString(u.IsRestricted))
 	}
 
 	if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {

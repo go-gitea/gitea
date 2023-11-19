@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/base"
@@ -324,7 +325,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit.SystemAuthenticationSourceAdd, ctx.Doer, nil, source, "Created authentication source %s [%s].", source.Name, source.Type.String())
+	audit.Record(ctx, audit_model.SystemAuthenticationSourceAdd, ctx.Doer, nil, source, "Created authentication source %s [%s].", source.Name, source.Type.String())
 
 	log.Trace("Authentication created by admin(%s): %s", ctx.Doer.Name, form.Name)
 
@@ -440,7 +441,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit.SystemAuthenticationSourceUpdate, ctx.Doer, nil, source, "Updated authentication source %s.", source.Name)
+	audit.Record(ctx, audit_model.SystemAuthenticationSourceUpdate, ctx.Doer, nil, source, "Updated authentication source %s.", source.Name)
 
 	log.Trace("Authentication changed by admin(%s): %d", ctx.Doer.Name, source.ID)
 

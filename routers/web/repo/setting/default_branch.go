@@ -6,6 +6,7 @@ package setting
 import (
 	"net/http"
 
+	audit_model "code.gitea.io/gitea/models/audit"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -55,7 +56,7 @@ func SetDefaultBranchPost(ctx *context.Context) {
 
 			notify_service.ChangeDefaultBranch(ctx, repo)
 
-			audit.Record(ctx, audit.RepositoryBranchDefault, ctx.Doer, repo, repo, "Changed default branch from %s to %s.", oldBranch, branch)
+			audit.Record(ctx, audit_model.RepositoryBranchDefault, ctx.Doer, repo, repo, "Changed default branch from %s to %s.", oldBranch, branch)
 		}
 
 		log.Trace("Repository basic settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)

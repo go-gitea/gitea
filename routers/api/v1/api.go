@@ -69,6 +69,7 @@ import (
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	audit_model "code.gitea.io/gitea/models/audit"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
@@ -122,7 +123,7 @@ func sudo() func(ctx *context.APIContext) {
 					return
 				}
 
-				audit.Record(ctx, audit.UserImpersonation, ctx.Doer, ctx.Doer, user, "User %s impersonating user %s.", ctx.Doer.Name, user.Name)
+				audit.Record(ctx, audit_model.UserImpersonation, ctx.Doer, ctx.Doer, user, "User %s impersonating user %s.", ctx.Doer.Name, user.Name)
 
 				log.Trace("Sudo from (%s) to: %s", ctx.Doer.Name, user.Name)
 				ctx.Doer = user

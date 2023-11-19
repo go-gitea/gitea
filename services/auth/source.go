@@ -6,6 +6,7 @@ package auth
 import (
 	"context"
 
+	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
@@ -41,7 +42,7 @@ func DeleteSource(ctx context.Context, doer *user_model.User, source *auth.Sourc
 	_, err = db.GetEngine(ctx).ID(source.ID).Delete(new(auth.Source))
 
 	if err == nil {
-		audit.Record(ctx, audit.SystemAuthenticationSourceRemove, doer, nil, source, "Removed authentication source %s.", source.Name)
+		audit.Record(ctx, audit_model.SystemAuthenticationSourceRemove, doer, nil, source, "Removed authentication source %s.", source.Name)
 	}
 
 	return err

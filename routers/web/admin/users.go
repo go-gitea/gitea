@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
@@ -207,7 +208,7 @@ func NewUserPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit.UserCreate, ctx.Doer, u, u, "Created user %s.", u.Name)
+	audit.Record(ctx, audit_model.UserCreate, ctx.Doer, u, u, "Created user %s.", u.Name)
 
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
@@ -499,22 +500,22 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if passwordChanged {
-		audit.Record(ctx, audit.UserPassword, ctx.Doer, u, u, "Password of user %s changed.", u.Name)
+		audit.Record(ctx, audit_model.UserPassword, ctx.Doer, u, u, "Password of user %s changed.", u.Name)
 	}
 	if auditFields.LoginSource != u.LoginSource {
-		audit.Record(ctx, audit.UserAuthenticationSource, ctx.Doer, u, u, "Authentication source of user %s changed.", u.Name)
+		audit.Record(ctx, audit_model.UserAuthenticationSource, ctx.Doer, u, u, "Authentication source of user %s changed.", u.Name)
 	}
 	if auditFields.Visibility != u.Visibility {
-		audit.Record(ctx, audit.UserVisibility, ctx.Doer, u, u, "Visibility of user %s changed from %s to %s.", u.Name, auditFields.Visibility.String(), u.Visibility.String())
+		audit.Record(ctx, audit_model.UserVisibility, ctx.Doer, u, u, "Visibility of user %s changed from %s to %s.", u.Name, auditFields.Visibility.String(), u.Visibility.String())
 	}
 	if auditFields.IsActive != u.IsActive {
-		audit.Record(ctx, audit.UserActive, ctx.Doer, u, u, "Activation status of user %s changed to %s.", u.Name, audit.UserActiveString(u.IsActive))
+		audit.Record(ctx, audit_model.UserActive, ctx.Doer, u, u, "Activation status of user %s changed to %s.", u.Name, audit.UserActiveString(u.IsActive))
 	}
 	if auditFields.IsAdmin != u.IsAdmin {
-		audit.Record(ctx, audit.UserAdmin, ctx.Doer, u, u, "Admin status of user %s changed to %s.", u.Name, audit.UserAdminString(u.IsAdmin))
+		audit.Record(ctx, audit_model.UserAdmin, ctx.Doer, u, u, "Admin status of user %s changed to %s.", u.Name, audit.UserAdminString(u.IsAdmin))
 	}
 	if auditFields.IsRestricted != u.IsRestricted {
-		audit.Record(ctx, audit.UserRestricted, ctx.Doer, u, u, "Restricted status of user %s changed to %s.", u.Name, audit.UserRestrictedString(u.IsRestricted))
+		audit.Record(ctx, audit_model.UserRestricted, ctx.Doer, u, u, "Restricted status of user %s changed to %s.", u.Name, audit.UserRestrictedString(u.IsRestricted))
 	}
 
 	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, u.Name)

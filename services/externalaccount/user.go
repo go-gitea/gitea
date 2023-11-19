@@ -7,6 +7,7 @@ import (
 	"context"
 	"strings"
 
+	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/auth"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -54,7 +55,7 @@ func LinkAccountToUser(ctx context.Context, user *user_model.User, gothUser goth
 		return err
 	}
 
-	audit.Record(ctx, audit.UserExternalLoginAdd, user, user, externalLoginUser, "Added external login %s for user %s using provider %s.", externalLoginUser.ExternalID, user.Name, gothUser.Provider)
+	audit.Record(ctx, audit_model.UserExternalLoginAdd, user, user, user, "Added external login %s for user %s using provider %s.", externalLoginUser.ExternalID, user.Name, gothUser.Provider)
 
 	externalID := externalLoginUser.ExternalID
 

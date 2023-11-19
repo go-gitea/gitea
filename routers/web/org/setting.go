@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -143,12 +144,12 @@ func SettingsPost(ctx *context.Context) {
 		}
 	}
 
-	audit.Record(ctx, audit.OrganizationUpdate, ctx.Doer, org, org, "Updated settings of organization %s.", org.Name)
+	audit.Record(ctx, audit_model.OrganizationUpdate, ctx.Doer, org, org, "Updated settings of organization %s.", org.Name)
 	if nameChanged {
-		audit.Record(ctx, audit.OrganizationName, ctx.Doer, org, org, "Organization name changed from %s to %s.", oldName, org.Name)
+		audit.Record(ctx, audit_model.OrganizationName, ctx.Doer, org, org, "Organization name changed from %s to %s.", oldName, org.Name)
 	}
 	if org.Visibility != oldVisibility {
-		audit.Record(ctx, audit.OrganizationVisibility, ctx.Doer, org, org, "Visibility of organization %s changed from %s to %s.", org.Name, oldVisibility.String(), org.Visibility.String())
+		audit.Record(ctx, audit_model.OrganizationVisibility, ctx.Doer, org, org, "Visibility of organization %s changed from %s to %s.", org.Name, oldVisibility.String(), org.Visibility.String())
 	}
 
 	log.Trace("Organization setting updated: %s", org.Name)
@@ -253,7 +254,7 @@ func DeleteWebhook(ctx *context.Context) {
 	if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
-		audit.Record(ctx, audit.OrganizationWebhookRemove, ctx.Doer, ctx.Org.Organization, hook, "Removed webhook %s.", hook.URL)
+		audit.Record(ctx, audit_model.OrganizationWebhookRemove, ctx.Doer, ctx.Org.Organization, hook, "Removed webhook %s.", hook.URL)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}

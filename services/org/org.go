@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -57,7 +58,7 @@ func DeleteOrganization(ctx context.Context, doer *user_model.User, org *org_mod
 		return err
 	}
 
-	audit.Record(ctx, audit.OrganizationDelete, doer, org, org, "Organization %s was deleted.", org.Name)
+	audit.Record(ctx, audit_model.OrganizationDelete, doer, org, org, "Organization %s was deleted.", org.Name)
 
 	// FIXME: system notice
 	// Note: There are something just cannot be roll back,

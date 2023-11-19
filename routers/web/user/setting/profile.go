@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -124,10 +125,10 @@ func ProfilePost(ctx *context.Context) {
 
 	log.Trace("User settings updated: %s", ctx.Doer.Name)
 
-	audit.Record(ctx, audit.UserUpdate, ctx.Doer, ctx.Doer, ctx.Doer, "Updated settings of user %s.", ctx.Doer.Name)
+	audit.Record(ctx, audit_model.UserUpdate, ctx.Doer, ctx.Doer, ctx.Doer, "Updated settings of user %s.", ctx.Doer.Name)
 
 	if oldVisibility != ctx.Doer.Visibility {
-		audit.Record(ctx, audit.UserVisibility, ctx.Doer, ctx.Doer, ctx.Doer, "Visibility of user %s changed from %s to %s.", ctx.Doer.Name, oldVisibility.String(), ctx.Doer.Visibility.String())
+		audit.Record(ctx, audit_model.UserVisibility, ctx.Doer, ctx.Doer, ctx.Doer, "Visibility of user %s changed from %s to %s.", ctx.Doer.Name, oldVisibility.String(), ctx.Doer.Visibility.String())
 	}
 
 	ctx.Flash.Success(ctx.Tr("settings.update_profile_success"))

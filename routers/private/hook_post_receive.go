@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
+	audit_model "code.gitea.io/gitea/models/audit"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -123,7 +124,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				return
 			}
 
-			audit.Record(ctx, audit.RepositoryVisibility, doer, repo, repo, "Changed visibility of repository %s to %s.", repo.FullName(), audit.PublicString(!repo.IsPrivate))
+			audit.Record(ctx, audit_model.RepositoryVisibility, doer, repo, repo, "Changed visibility of repository %s to %s.", repo.FullName(), audit.PublicString(!repo.IsPrivate))
 		}
 	}
 

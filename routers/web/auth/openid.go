@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 
+	audit_model "code.gitea.io/gitea/models/audit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/base"
@@ -281,7 +282,7 @@ func ConnectOpenIDPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit.UserOpenIDAdd, u, u, userOID, "Associated OpenID %s to user %s.", userOID.URI, u.Name)
+	audit.Record(ctx, audit_model.UserOpenIDAdd, u, u, userOID, "Associated OpenID %s to user %s.", userOID.URI, u.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.add_openid_success"))
 
@@ -387,7 +388,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit.UserOpenIDAdd, u, u, userOID, "Associated OpenID %s to user %s.", userOID.URI, u.Name)
+	audit.Record(ctx, audit_model.UserOpenIDAdd, u, u, userOID, "Associated OpenID %s to user %s.", userOID.URI, u.Name)
 
 	remember, _ := ctx.Session.Get("openid_signin_remember").(bool)
 	log.Trace("Session stored openid-remember: %t", remember)

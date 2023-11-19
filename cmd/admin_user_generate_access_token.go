@@ -6,6 +6,7 @@ package cmd
 import (
 	"fmt"
 
+	audit_model "code.gitea.io/gitea/models/audit"
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/services/audit"
@@ -85,7 +86,7 @@ func runGenerateAccessToken(c *cli.Context) error {
 		return err
 	}
 
-	audit.Record(ctx, audit.UserAccessTokenAdd, audit.NewCLIUser(), user, t, "Added access token %s for user %s with scope %s.", t.Name, user.Name, t.Scope)
+	audit.Record(ctx, audit_model.UserAccessTokenAdd, audit.NewCLIUser(), user, t, "Added access token %s for user %s with scope %s.", t.Name, user.Name, t.Scope)
 
 	if c.Bool("raw") {
 		fmt.Printf("%s\n", t.Token)

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	auth_module "code.gitea.io/gitea/modules/auth"
@@ -78,19 +79,19 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 
 	if user != nil {
 		if isAdminChanged {
-			audit.Record(ctx, audit.UserAdmin, audit.NewAuthenticationSourceUser(), user, user, "Admin status of user %s changed to %s.", user.Name, audit.UserAdminString(user.IsAdmin))
+			audit.Record(ctx, audit_model.UserAdmin, audit.NewAuthenticationSourceUser(), user, user, "Admin status of user %s changed to %s.", user.Name, audit.UserAdminString(user.IsAdmin))
 		}
 		if isRestrictedChanged {
-			audit.Record(ctx, audit.UserRestricted, audit.NewAuthenticationSourceUser(), user, user, "Restricted status of user %s changed to %s.", user.Name, audit.UserRestrictedString(user.IsRestricted))
+			audit.Record(ctx, audit_model.UserRestricted, audit.NewAuthenticationSourceUser(), user, user, "Restricted status of user %s changed to %s.", user.Name, audit.UserRestrictedString(user.IsRestricted))
 		}
 
 		if isAttributeSSHPublicKeySet {
 			if addedKeys, deletedKeys := asymkey_model.SynchronizePublicKeys(ctx, user, source.authSource, sr.SSHPublicKey); len(addedKeys) > 0 || len(deletedKeys) > 0 {
 				for _, key := range addedKeys {
-					audit.Record(ctx, audit.UserKeySSHAdd, audit.NewAuthenticationSourceUser(), user, user, "Added SSH key %s.", key.Fingerprint)
+					audit.Record(ctx, audit_model.UserKeySSHAdd, audit.NewAuthenticationSourceUser(), user, user, "Added SSH key %s.", key.Fingerprint)
 				}
 				for _, key := range deletedKeys {
-					audit.Record(ctx, audit.UserKeySSHRemove, audit.NewAuthenticationSourceUser(), user, user, "Removed SSH key %s.", key.Fingerprint)
+					audit.Record(ctx, audit_model.UserKeySSHRemove, audit.NewAuthenticationSourceUser(), user, user, "Removed SSH key %s.", key.Fingerprint)
 				}
 
 				if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
@@ -119,12 +120,12 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 			return user, err
 		}
 
-		audit.Record(ctx, audit.UserCreate, audit.NewAuthenticationSourceUser(), user, user, "Created user %s.", user.Name)
+		audit.Record(ctx, audit_model.UserCreate, audit.NewAuthenticationSourceUser(), user, user, "Created user %s.", user.Name)
 
 		if isAttributeSSHPublicKeySet {
 			if addedKeys := asymkey_model.AddPublicKeysBySource(ctx, user, source.authSource, sr.SSHPublicKey); len(addedKeys) > 0 {
 				for _, key := range addedKeys {
-					audit.Record(ctx, audit.UserKeySSHAdd, audit.NewAuthenticationSourceUser(), user, user, "Added SSH key %s.", key.Fingerprint)
+					audit.Record(ctx, audit_model.UserKeySSHAdd, audit.NewAuthenticationSourceUser(), user, user, "Added SSH key %s.", key.Fingerprint)
 				}
 
 				if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {

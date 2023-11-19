@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 
+	audit_model "code.gitea.io/gitea/models/audit"
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	pwd "code.gitea.io/gitea/modules/auth/password"
@@ -152,7 +153,7 @@ func runCreateUser(c *cli.Context) error {
 		return fmt.Errorf("CreateUser: %w", err)
 	}
 
-	audit.Record(ctx, audit.UserCreate, audit.NewCLIUser(), u, u, "Created user %s.", u.Name)
+	audit.Record(ctx, audit_model.UserCreate, audit.NewCLIUser(), u, u, "Created user %s.", u.Name)
 
 	if c.Bool("access-token") {
 		t := &auth_model.AccessToken{
@@ -164,7 +165,7 @@ func runCreateUser(c *cli.Context) error {
 			return err
 		}
 
-		audit.Record(ctx, audit.UserAccessTokenAdd, audit.NewCLIUser(), u, t, "Added access token %s for user %s with scope %s.", t.Name, u.Name, t.Scope)
+		audit.Record(ctx, audit_model.UserAccessTokenAdd, audit.NewCLIUser(), u, t, "Added access token %s for user %s with scope %s.", t.Name, u.Name, t.Scope)
 
 		fmt.Printf("Access token was successfully created... %s\n", t.Token)
 	}

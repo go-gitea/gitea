@@ -10,6 +10,7 @@ import (
 	"net/textproto"
 	"strings"
 
+	audit_model "code.gitea.io/gitea/models/audit"
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/util"
@@ -83,7 +84,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		return user, err
 	}
 
-	audit.Record(ctx, audit.UserCreate, audit.NewAuthenticationSourceUser(), user, user, "Created user %s.", user.Name)
+	audit.Record(ctx, audit_model.UserCreate, audit.NewAuthenticationSourceUser(), user, user, "Created user %s.", user.Name)
 
 	return user, nil
 }

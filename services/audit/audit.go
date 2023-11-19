@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	audit_model "code.gitea.io/gitea/models/audit"
 	auth_model "code.gitea.io/gitea/models/auth"
 	git_model "code.gitea.io/gitea/models/git"
 	organization_model "code.gitea.io/gitea/models/organization"
@@ -24,20 +25,20 @@ import (
 )
 
 type TypeDescriptor struct {
-	Type         string `json:"type"`
-	PrimaryKey   any    `json:"primary_key"`
-	FriendlyName string `json:"friendly_name"`
-	Target       any    `json:"-"`
+	Type        audit_model.ObjectType `json:"type"`
+	ID          int64                  `json:"id"`
+	DisplayName string                 `json:"display_name"`
+	Object      any                    `json:"-"`
 }
 
 type Event struct {
-	Action    Action         `json:"action"`
-	Doer      TypeDescriptor `json:"doer"`
-	Scope     TypeDescriptor `json:"scope"`
-	Target    TypeDescriptor `json:"target"`
-	Message   string         `json:"message"`
-	Time      time.Time      `json:"time"`
-	IPAddress string         `json:"ip_address"`
+	Action    audit_model.Action `json:"action"`
+	Actor     TypeDescriptor     `json:"actor"`
+	Scope     TypeDescriptor     `json:"scope"`
+	Target    TypeDescriptor     `json:"target"`
+	Message   string             `json:"message"`
+	Time      time.Time          `json:"time"`
+	IPAddress string             `json:"ip_address"`
 }
 
 func Init() error {
@@ -48,22 +49,25 @@ func Init() error {
 	return initAuditFile()
 }
 
-func Record(ctx context.Context, action Action, doer *user_model.User, scope, target any, message string, v ...any) {
+func Record(ctx context.Context, action audit_model.Action, actor *user_model.User, scope, target any, message string, v ...any) {
 	if !setting.Audit.Enabled {
 		return
 	}
 
-	e := BuildEvent(ctx, action, doer, scope, target, message, v...)
+	e := BuildEvent(ctx, action, actor, scope, target, message, v...)
 
 	if err := writeToFile(e); err != nil {
 		log.Error("Error writing audit event to file: %v", err)
 	}
+	if err := writeToDatabase(ctx, e); err != nil {
+		log.Error("Error writing audit event to database: %v", err)
+	}
 }
 
-func BuildEvent(ctx context.Context, action Action, doer *user_model.User, scope, target any, message string, v ...any) *Event {
+func BuildEvent(ctx context.Context, action audit_model.Action, actor *user_model.User, scope, target any, message string, v ...any) *Event {
 	return &Event{
 		Action:    action,
-		Doer:      typeToDescription(doer),
+		Actor:     typeToDescription(actor),
 		Scope:     scopeToDescription(scope),
 		Target:    typeToDescription(target),
 		Message:   fmt.Sprintf(message, v...),
@@ -74,7 +78,7 @@ func BuildEvent(ctx context.Context, action Action, doer *user_model.User, scope
 
 func scopeToDescription(scope any) TypeDescriptor {
 	if scope == nil {
-		return TypeDescriptor{"system", 0, "System", nil}
+		return TypeDescriptor{audit_model.TypeSystem, 0, "System", nil}
 	}
 
 	switch s := scope.(type) {
@@ -88,50 +92,48 @@ func scopeToDescription(scope any) TypeDescriptor {
 func typeToDescription(val any) TypeDescriptor {
 	switch t := val.(type) {
 	case *repository_model.Repository:
-		return TypeDescriptor{"repository", t.ID, t.FullName(), val}
+		return TypeDescriptor{audit_model.TypeRepository, t.ID, t.FullName(), val}
 	case *user_model.User:
 		if t.IsOrganization() {
-			return TypeDescriptor{"organization", t.ID, t.Name, val}
+			return TypeDescriptor{audit_model.TypeOrganization, t.ID, t.Name, val}
 		}
-		return TypeDescriptor{"user", t.ID, t.Name, val}
+		return TypeDescriptor{audit_model.TypeUser, t.ID, t.Name, val}
 	case *organization_model.Organization:
-		return TypeDescriptor{"organization", t.ID, t.Name, val}
+		return TypeDescriptor{audit_model.TypeOrganization, t.ID, t.Name, val}
 	case *user_model.EmailAddress:
-		return TypeDescriptor{"email_address", t.ID, t.Email, val}
+		return TypeDescriptor{audit_model.TypeEmailAddress, t.ID, t.Email, val}
 	case *organization_model.Team:
-		return TypeDescriptor{"team", t.ID, t.Name, val}
+		return TypeDescriptor{audit_model.TypeTeam, t.ID, t.Name, val}
 	case *auth_model.TwoFactor:
-		return TypeDescriptor{"twofactor", t.ID, "", val}
+		return TypeDescriptor{audit_model.TypeTwoFactor, t.ID, "", val}
 	case *auth_model.WebAuthnCredential:
-		return TypeDescriptor{"webauthn", t.ID, t.Name, val}
+		return TypeDescriptor{audit_model.TypeWebAuthnCredential, t.ID, t.Name, val}
 	case *user_model.UserOpenID:
-		return TypeDescriptor{"openid", t.ID, t.URI, val}
+		return TypeDescriptor{audit_model.TypeOpenID, t.ID, t.URI, val}
 	case *auth_model.AccessToken:
-		return TypeDescriptor{"access_token", t.ID, t.Name, val}
+		return TypeDescriptor{audit_model.TypeAccessToken, t.ID, t.Name, val}
 	case *auth_model.OAuth2Application:
-		return TypeDescriptor{"oauth2_application", t.ID, t.Name, val}
+		return TypeDescriptor{audit_model.TypeOAuth2Application, t.ID, t.Name, val}
 	case *auth_model.OAuth2Grant:
-		return TypeDescriptor{"oauth2_grant", t.ID, "", val}
+		return TypeDescriptor{audit_model.TypeOAuth2Grant, t.ID, "", val}
 	case *auth_model.Source:
-		return TypeDescriptor{"authentication_source", t.ID, t.Name, val}
-	case *user_model.ExternalLoginUser:
-		return TypeDescriptor{"external_account", t.ExternalID, t.ExternalID, val}
+		return TypeDescriptor{audit_model.TypeAuthenticationSource, t.ID, t.Name, val}
 	case *asymkey_model.PublicKey:
-		return TypeDescriptor{"public_key", t.ID, t.Fingerprint, val}
+		return TypeDescriptor{audit_model.TypePublicKey, t.ID, t.Fingerprint, val}
 	case *asymkey_model.GPGKey:
-		return TypeDescriptor{"gpg_key", t.ID, t.KeyID, val}
+		return TypeDescriptor{audit_model.TypeGPGKey, t.ID, t.KeyID, val}
 	case *secret_model.Secret:
-		return TypeDescriptor{"secret", t.ID, t.Name, val}
+		return TypeDescriptor{audit_model.TypeSecret, t.ID, t.Name, val}
 	case *webhook_model.Webhook:
-		return TypeDescriptor{"webhook", t.ID, t.URL, val}
+		return TypeDescriptor{audit_model.TypeWebhook, t.ID, t.URL, val}
 	case *git_model.ProtectedTag:
-		return TypeDescriptor{"protected_tag", t.ID, t.NamePattern, val}
+		return TypeDescriptor{audit_model.TypeProtectedTag, t.ID, t.NamePattern, val}
 	case *git_model.ProtectedBranch:
-		return TypeDescriptor{"protected_branch", t.ID, t.RuleName, val}
+		return TypeDescriptor{audit_model.TypeProtectedBranch, t.ID, t.RuleName, val}
 	case *repository_model.PushMirror:
-		return TypeDescriptor{"push_mirror", t.ID, t.RemoteAddress, val}
+		return TypeDescriptor{audit_model.TypePushMirror, t.ID, t.RemoteAddress, val}
 	case *models.RepoTransfer:
-		return TypeDescriptor{"repo_transfer", t.ID, "", val}
+		return TypeDescriptor{audit_model.TypeRepoTransfer, t.ID, "", val}
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", t))
 	}

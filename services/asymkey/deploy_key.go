@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -42,7 +43,7 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 		return err
 	}
 
-	audit.Record(ctx, audit.RepositoryDeployKeyRemove, doer, repo, key, "Removed deploy key %s.", key.Name)
+	audit.Record(ctx, audit_model.RepositoryDeployKeyRemove, doer, repo, key, "Removed deploy key %s.", key.Name)
 
 	return asymkey_model.RewriteAllPublicKeys(ctx)
 }

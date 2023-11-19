@@ -12,6 +12,7 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -421,7 +422,7 @@ func RemoveRepositoryFromTeam(ctx context.Context, doer *user_model.User, t *org
 		return err
 	}
 
-	audit.Record(ctx, audit.RepositoryCollaboratorTeamRemove, doer, repo, t, "Removed team %s as collaborator from %s.", t.Name, repo.FullName())
+	audit.Record(ctx, audit_model.RepositoryCollaboratorTeamRemove, doer, repo, t, "Removed team %s as collaborator from %s.", t.Name, repo.FullName())
 
 	return nil
 }

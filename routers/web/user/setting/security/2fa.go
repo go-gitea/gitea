@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -50,7 +51,7 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit.UserTwoFactorRegenerate, ctx.Doer, ctx.Doer, t, "User %s regenerated two-factor authentication secret.", ctx.Doer.Name)
+	audit.Record(ctx, audit_model.UserTwoFactorRegenerate, ctx.Doer, ctx.Doer, t, "User %s regenerated two-factor authentication secret.", ctx.Doer.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.twofa_scratch_token_regenerated", token))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
@@ -81,7 +82,7 @@ func DisableTwoFactor(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit.UserTwoFactorDisable, ctx.Doer, ctx.Doer, t, "User %s disabled two-factor authentication.", ctx.Doer.Name)
+	audit.Record(ctx, audit_model.UserTwoFactorDisable, ctx.Doer, ctx.Doer, t, "User %s disabled two-factor authentication.", ctx.Doer.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.twofa_disabled"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
@@ -249,7 +250,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit.UserTwoFactorEnable, ctx.Doer, ctx.Doer, t, "User %s enabled two-factor authentication.", ctx.Doer.Name)
+	audit.Record(ctx, audit_model.UserTwoFactorEnable, ctx.Doer, ctx.Doer, t, "User %s enabled two-factor authentication.", ctx.Doer.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.twofa_enrolled", token))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")

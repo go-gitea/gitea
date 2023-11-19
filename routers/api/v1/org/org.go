@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -281,7 +282,7 @@ func Create(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(ctx, audit.OrganizationCreate, ctx.Doer, org, org, "Organization %s was created.", org.Name)
+	audit.Record(ctx, audit_model.OrganizationCreate, ctx.Doer, org, org, "Organization %s was created.", org.Name)
 
 	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, org))
 }
@@ -368,9 +369,9 @@ func Edit(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(ctx, audit.OrganizationUpdate, ctx.Doer, org, org, "Updated settings of organization %s.", org.Name)
+	audit.Record(ctx, audit_model.OrganizationUpdate, ctx.Doer, org, org, "Updated settings of organization %s.", org.Name)
 	if org.Visibility != oldVisibility {
-		audit.Record(ctx, audit.OrganizationVisibility, ctx.Doer, org, org, "Visibility of organization %s changed from %s to %s.", org.Name, oldVisibility.String(), org.Visibility.String())
+		audit.Record(ctx, audit_model.OrganizationVisibility, ctx.Doer, org, org, "Visibility of organization %s changed from %s to %s.", org.Name, oldVisibility.String(), org.Visibility.String())
 	}
 
 	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, org))

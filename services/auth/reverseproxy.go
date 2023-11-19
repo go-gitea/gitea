@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "code.gitea.io/gitea/models/audit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -171,7 +172,7 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 		return nil
 	}
 
-	audit.Record(req.Context(), audit.UserCreate, audit.NewAuthenticationSourceUser(), user, user, "Created user %s.", user.Name)
+	audit.Record(req.Context(), audit_model.UserCreate, audit.NewAuthenticationSourceUser(), user, user, "Created user %s.", user.Name)
 
 	return user
 }

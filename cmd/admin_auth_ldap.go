@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/auth/source/ldap"
@@ -357,7 +358,7 @@ func (a *authService) addLdapSource(c *cli.Context, authType auth.Type, args ...
 		return err
 	}
 
-	audit.Record(ctx, audit.SystemAuthenticationSourceAdd, audit.NewCLIUser(), nil, authSource, "Created authentication source %s [%s].", authSource.Name, authSource.Type.String())
+	audit.Record(ctx, audit_model.SystemAuthenticationSourceAdd, audit.NewCLIUser(), nil, authSource, "Created authentication source %s [%s].", authSource.Name, authSource.Type.String())
 
 	return nil
 }
@@ -385,7 +386,7 @@ func (a *authService) updateLdapSource(c *cli.Context, authType auth.Type) error
 		return err
 	}
 
-	audit.Record(ctx, audit.SystemAuthenticationSourceUpdate, audit.NewCLIUser(), nil, authSource, "Updated authentication source %s.", authSource.Name)
+	audit.Record(ctx, audit_model.SystemAuthenticationSourceUpdate, audit.NewCLIUser(), nil, authSource, "Updated authentication source %s.", authSource.Name)
 
 	return nil
 }

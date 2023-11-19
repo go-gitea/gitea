@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/avatars"
 	user_model "code.gitea.io/gitea/models/user"
@@ -184,7 +185,7 @@ func (s *SSPI) newUser(ctx context.Context, username string, cfg *sspi.Source) (
 		return nil, err
 	}
 
-	audit.Record(ctx, audit.UserCreate, audit.NewAuthenticationSourceUser(), user, user, "Created user %s.", user.Name)
+	audit.Record(ctx, audit_model.UserCreate, audit.NewAuthenticationSourceUser(), user, user, "Created user %s.", user.Name)
 
 	return user, nil
 }

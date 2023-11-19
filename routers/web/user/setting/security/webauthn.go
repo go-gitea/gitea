@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/auth"
 	wa "code.gitea.io/gitea/modules/auth/webauthn"
 	"code.gitea.io/gitea/modules/context"
@@ -107,7 +108,7 @@ func WebauthnRegisterPost(ctx *context.Context) {
 	}
 	_ = ctx.Session.Delete("webauthnName")
 
-	audit.Record(ctx, audit.UserWebAuthAdd, ctx.Doer, ctx.Doer, dbCred, "User %s added WebAuthn key %s.", ctx.Doer.Name, dbCred.Name)
+	audit.Record(ctx, audit_model.UserWebAuthAdd, ctx.Doer, ctx.Doer, dbCred, "User %s added WebAuthn key %s.", ctx.Doer.Name, dbCred.Name)
 
 	ctx.JSON(http.StatusCreated, cred)
 }
@@ -126,7 +127,7 @@ func WebauthnDelete(ctx *context.Context) {
 		ctx.ServerError("DeleteCredential", err)
 		return
 	} else if ok {
-		audit.Record(ctx, audit.UserWebAuthRemove, ctx.Doer, ctx.Doer, cred, "User %s removed WebAuthn key %s.", ctx.Doer.Name, cred.Name)
+		audit.Record(ctx, audit_model.UserWebAuthRemove, ctx.Doer, ctx.Doer, cred, "User %s removed WebAuthn key %s.", ctx.Doer.Name, cred.Name)
 	}
 
 	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
