@@ -13,9 +13,6 @@ import (
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -326,26 +323,6 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	repo, err := repo_model.GetRepositoryByURL(ctx, pck.Metadata.RepositoryURL)
-	if err == nil {
-		canWrite := repo.OwnerID == ctx.Doer.ID
-
-		if !canWrite {
-			perms, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-			if err != nil {
-				apiError(ctx, http.StatusInternalServerError, err)
-				return
-			}
-
-			canWrite = perms.CanWrite(unit.TypePackages)
-		}
-
-		if !canWrite {
-			apiError(ctx, http.StatusForbidden, "no permission to upload this package")
-			return
-		}
-	}
-
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -367,6 +344,7 @@ func UploadPackageFile(ctx *context.Context) {
 				swift_module.PropertyScope: packageScope,
 				swift_module.PropertyName:  packageName,
 			},
+			RepositoryURL: pck.Metadata.RepositoryURL,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
@@ -393,13 +371,6 @@ func UploadPackageFile(ctx *context.Context) {
 		_, err = packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, swift_module.PropertyRepositoryURL, url)
 		if err != nil {
 			log.Error("InsertProperty failed: %v", err)
-		}
-	}
-
-	if repo != nil {
-		if err := packages_model.SetRepositoryLink(ctx, pv.PackageID, repo.ID); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
 		}
 	}
 

@@ -121,24 +121,6 @@ func processImageManifest(ctx context.Context, mci *manifestCreationInfo, buf *p
 			return err
 		}
 
-		repo, err := repo_model.GetRepositoryByURL(ctx, metadata.RepositoryURL)
-		if err == nil {
-			canWrite := repo.OwnerID == mci.Creator.ID
-
-			if !canWrite {
-				perms, err := access_model.GetUserRepoPermission(ctx, repo, mci.Creator)
-				if err != nil {
-					return err
-				}
-
-				canWrite = perms.CanWrite(unit.TypePackages)
-			}
-
-			if !canWrite {
-				return util.NewPermissionDeniedErrorf("not allowed to upload to repository %s", repo.Name)
-			}
-		}
-
 		blobReferences := make([]*blobReference, 0, 1+len(manifest.Layers))
 
 		blobReferences = append(blobReferences, &blobReference{
@@ -171,9 +153,27 @@ func processImageManifest(ctx context.Context, mci *manifestCreationInfo, buf *p
 			return err
 		}
 
-		if repo != nil {
-			if err := packages_model.SetRepositoryLink(ctx, pv.PackageID, repo.ID); err != nil {
-				return err
+		if metadata.RepositoryURL != "" {
+			repo, err := repo_model.GetRepositoryByURL(ctx, metadata.RepositoryURL)
+			if err == nil {
+				canWrite := repo.OwnerID == mci.Creator.ID
+
+				if !canWrite {
+					perms, err := access_model.GetUserRepoPermission(ctx, repo, mci.Creator)
+					if err != nil {
+						return err
+					}
+
+					canWrite = perms.CanWrite(unit.TypePackages)
+				}
+
+				if !canWrite {
+					return util.NewPermissionDeniedErrorf("no permission to connect this container to repository: %s", metadata.RepositoryURL)
+				}
+
+				if err := packages_model.SetRepositoryLink(ctx, pv.PackageID, repo.ID); err != nil {
+					return err
+				}
 			}
 		}
 

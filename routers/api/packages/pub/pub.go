@@ -14,9 +14,6 @@ import (
 	"time"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -186,32 +183,12 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	repo, err := repo_model.GetRepositoryByURL(ctx, pck.Metadata.RepositoryURL)
-	if err == nil {
-		canWrite := repo.OwnerID == ctx.Doer.ID
-
-		if !canWrite {
-			perms, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-			if err != nil {
-				apiError(ctx, http.StatusInternalServerError, err)
-				return
-			}
-
-			canWrite = perms.CanWrite(unit.TypePackages)
-		}
-
-		if !canWrite {
-			apiError(ctx, http.StatusForbidden, "no permission to upload this package")
-			return
-		}
-	}
-
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	pv, _, err := packages_service.CreatePackageAndAddFile(
+	_, _, err = packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
@@ -223,6 +200,7 @@ func UploadPackageFile(ctx *context.Context) {
 			SemverCompatible: true,
 			Creator:          ctx.Doer,
 			Metadata:         pck.Metadata,
+			RepositoryURL:    pck.Metadata.RepositoryURL,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
@@ -243,13 +221,6 @@ func UploadPackageFile(ctx *context.Context) {
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
 		return
-	}
-
-	if repo != nil {
-		if err := packages_model.SetRepositoryLink(ctx, pv.PackageID, repo.ID); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
 	}
 
 	ctx.Resp.Header().Set("Location", fmt.Sprintf("%s/versions/new/finalize/%s/%s", baseURL(ctx), url.PathEscape(pck.Name), url.PathEscape(pck.Version)))

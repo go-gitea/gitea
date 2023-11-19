@@ -14,9 +14,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	conan_model "code.gitea.io/gitea/models/packages/conan"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
@@ -362,8 +359,6 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 		pfci.Properties[conan_module.PropertyPackageRevision] = pref.RevisionOrDefault()
 	}
 
-	var repo *repo_model.Repository
-
 	if isConanfileFile || isConaninfoFile {
 		if isConanfileFile {
 			metadata, err := conan_module.ParseConanfile(buf)
@@ -372,26 +367,7 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 				apiError(ctx, http.StatusInternalServerError, err)
 				return
 			}
-
-			repo, err = repo_model.GetRepositoryByURL(ctx, metadata.RepositoryURL)
-			if err == nil {
-				canWrite := repo.OwnerID == ctx.Doer.ID
-
-				if !canWrite {
-					perms, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-					if err != nil {
-						apiError(ctx, http.StatusInternalServerError, err)
-						return
-					}
-
-					canWrite = perms.CanWrite(unit.TypePackages)
-				}
-
-				if !canWrite {
-					apiError(ctx, http.StatusForbidden, "no permission to upload this package")
-					return
-				}
-			}
+			pci.RepositoryURL = metadata.RepositoryURL
 
 			pv, err := packages_model.GetVersionByNameAndVersion(ctx, pci.Owner.ID, pci.PackageType, pci.Name, pci.Version)
 			if err != nil && err != packages_model.ErrPackageNotExist {
@@ -433,7 +409,7 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 		}
 	}
 
-	pv, _, err := packages_service.CreatePackageOrAddFileToExisting(
+	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		pci,
 		pfci,
@@ -448,13 +424,6 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
 		return
-	}
-
-	if repo != nil {
-		if err := packages_model.SetRepositoryLink(ctx, pv.PackageID, repo.ID); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
 	}
 
 	ctx.Status(http.StatusCreated)

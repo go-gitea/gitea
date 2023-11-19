@@ -14,7 +14,9 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -47,6 +49,8 @@ type PackageCreationInfo struct {
 	Metadata          any
 	PackageProperties map[string]string
 	VersionProperties map[string]string
+	// Repository which gitea will try to connect package to, if such exists.
+	RepositoryURL string
 }
 
 // PackageFileInfo describes a package file
@@ -85,6 +89,30 @@ func createPackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfc
 	pv, created, err := createPackageAndVersion(dbCtx, pvci, allowDuplicate)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	if pvci.RepositoryURL != "" {
+		repo, err := repo_model.GetRepositoryByURL(ctx, pvci.RepositoryURL)
+		if err == nil {
+			canWrite := repo.OwnerID == pvci.Creator.ID
+
+			if !canWrite {
+				perms, err := access_model.GetUserRepoPermission(ctx, repo, pvci.Creator)
+				if err != nil {
+					return nil, nil, err
+				}
+
+				canWrite = perms.CanWrite(unit.TypePackages)
+			}
+
+			if !canWrite {
+				return nil, nil, util.NewPermissionDeniedErrorf("no permission to connect this package to repository: %s", pvci.RepositoryURL)
+			}
+
+			if err := packages_model.SetRepositoryLink(ctx, pv.PackageID, repo.ID); err != nil {
+				return nil, nil, err
+			}
+		}
 	}
 
 	pf, pb, blobCreated, err := addFileToPackageVersion(dbCtx, pv, &pvci.PackageInfo, pfci)
