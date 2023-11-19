@@ -1,5 +1,5 @@
 .fork-flag {
-  margin-top: 1rem;
+  margin-top: 0.5rem;
   font-size: 12px;
 }
 
@@ -7,7 +7,7 @@
   display: flex;
   flex-flow: row wrap;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
 .repo-header .flex-item {
@@ -75,6 +75,7 @@
 }
 
 .repository .header-wrapper .new-menu {
+  padding-top: 0 !important;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
 }
