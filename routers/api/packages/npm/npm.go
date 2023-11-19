@@ -189,7 +189,7 @@ func UploadPackage(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	pv, _, err := packages_service.CreatePackageAndAddFile(
+	err = packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
@@ -208,7 +208,7 @@ func UploadPackage(ctx *context.Context) {
 						return err
 					}
 				}
-				return nil
+				return packages_model.SetRepositoryLink(ctx, v.PackageVersion.PackageID, repo.ID)
 			},
 		},
 		&packages_service.PackageFileCreationInfo{
@@ -230,13 +230,6 @@ func UploadPackage(ctx *context.Context) {
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
 		return
-	}
-
-	if repo != nil {
-		if err := packages_model.SetRepositoryLink(ctx, pv.PackageID, repo.ID); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
 	}
 
 	ctx.Status(http.StatusCreated)

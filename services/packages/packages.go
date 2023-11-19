@@ -80,25 +80,25 @@ type CreatedValues struct {
 type PostProcessingFunction func(ctx context.Context, v *CreatedValues) error
 
 // CreatePackageAndAddFile creates a package with a file. If the same package exists already, ErrDuplicatePackageVersion is returned
-func CreatePackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
+func CreatePackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfci *PackageFileCreationInfo) error {
 	return createPackageAndAddFile(ctx, pvci, pfci, false)
 }
 
 // CreatePackageOrAddFileToExisting creates a package with a file or adds the file if the package exists already
-func CreatePackageOrAddFileToExisting(ctx context.Context, pvci *PackageCreationInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
+func CreatePackageOrAddFileToExisting(ctx context.Context, pvci *PackageCreationInfo, pfci *PackageFileCreationInfo) error {
 	return createPackageAndAddFile(ctx, pvci, pfci, true)
 }
 
-func createPackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfci *PackageFileCreationInfo, allowDuplicate bool) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
+func createPackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfci *PackageFileCreationInfo, allowDuplicate bool) error {
 	dbCtx, committer, err := db.TxContext(ctx)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 	defer committer.Close()
 
 	pv, created, err := createPackageAndVersion(dbCtx, pvci, allowDuplicate)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	pf, pb, blobCreated, err := addFileToPackageVersion(dbCtx, pv, &pvci.PackageInfo, pfci)
@@ -113,7 +113,7 @@ func createPackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfc
 	}()
 	if err != nil {
 		removeBlob = true
-		return nil, nil, err
+		return err
 	}
 
 	if pvci.PostProcessing != nil {
@@ -126,25 +126,25 @@ func createPackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfc
 		})
 		if err != nil {
 			removeBlob = true
-			return nil, nil, err
+			return err
 		}
 	}
 
 	if err := committer.Commit(); err != nil {
 		removeBlob = true
-		return nil, nil, err
+		return err
 	}
 
 	if created {
 		pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 
 		notify_service.PackageCreate(ctx, pvci.Creator, pd)
 	}
 
-	return pv, pf, nil
+	return nil
 }
 
 func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, allowDuplicate bool) (*packages_model.PackageVersion, bool, error) {

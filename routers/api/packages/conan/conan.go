@@ -407,7 +407,7 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 		}
 	}
 
-	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+	err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		pci,
 		pfci,

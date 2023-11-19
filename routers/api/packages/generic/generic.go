@@ -88,7 +88,7 @@ func UploadPackage(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+	err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{

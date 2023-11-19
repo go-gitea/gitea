@@ -233,7 +233,7 @@ func UploadPackageFile(ctx *context.Context) {
 		filename = strings.ToLower(fmt.Sprintf("%s-%s-%s.gem", rp.Name, rp.Version, rp.Metadata.Platform))
 	}
 
-	_, _, err = packages_service.CreatePackageAndAddFile(
+	err = packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
