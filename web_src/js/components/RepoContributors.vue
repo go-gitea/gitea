@@ -238,10 +238,10 @@ export default {
         plugins: {
           title: {
             display: type === 'main',
-            text: ['drag: zoom', 'shift+drag: pan', 'double click: reset zoom'],
+            text: 'drag: zoom, shift+drag: pan, double click: reset zoom',
             color: colors.title,
             position: 'top',
-            align: 'end',
+            align: 'center',
           },
           customEventListener: {
             chartType: type,
@@ -411,7 +411,7 @@ export default {
 </template>
 <style scoped>
 .main-graph {
-  height: 240px;
+  height: 260px;
 }
 .contributor-grid {
   display: grid;
