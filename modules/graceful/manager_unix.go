@@ -107,7 +107,9 @@ func (g *Manager) start(ctx context.Context) {
 	defer pprof.SetGoroutineLabels(ctx)
 
 	// Set the running state & handle signals
-	g.setState(stateRunning)
+	if !g.setStateTransition(stateInit, stateRunning) {
+		panic("invalid graceful manager state: transition from init to running failed")
+	}
 	g.notify(statusMsg("Starting Gitea"))
 	g.notify(pidMsg())
 	go g.handleSignals(g.managerCtx)
