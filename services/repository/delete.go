@@ -60,7 +60,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	}
 
 	// Query the artifacts of this repo, they will be needed after they have been deleted to remove artifacts files in ObjectStorage
-	artifacts, err := actions_model.ListArtifactsByRepoID(ctx, repoID)
+	artifacts, err := db.Find[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{RepoID: repoID})
 	if err != nil {
 		return fmt.Errorf("list actions artifacts of repo %v: %w", repoID, err)
 	}
