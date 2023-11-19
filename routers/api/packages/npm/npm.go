@@ -5,7 +5,7 @@ package npm
 
 import (
 	"bytes"
-	std_ctx "context"
+	stdctx "context"
 	"errors"
 	"fmt"
 	"io"
@@ -201,6 +201,15 @@ func UploadPackage(ctx *context.Context) {
 			SemverCompatible: true,
 			Creator:          ctx.Doer,
 			Metadata:         npmPackage.Metadata,
+			PostProcessing: func(ctx stdctx.Context, v *packages_service.CreatedValues) error {
+				for _, tag := range npmPackage.DistTags {
+					err := setPackageTag(ctx, tag, v.PackageVersion, false)
+					if err != nil {
+						return err
+					}
+				}
+				return nil
+			},
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
@@ -221,17 +230,6 @@ func UploadPackage(ctx *context.Context) {
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
 		return
-	}
-
-	for _, tag := range npmPackage.DistTags {
-		if err := setPackageTag(ctx, tag, pv, false); err != nil {
-			if err == errInvalidTagName {
-				apiError(ctx, http.StatusBadRequest, err)
-				return
-			}
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
 	}
 
 	if repo != nil {
@@ -380,7 +378,7 @@ func DeletePackageTag(ctx *context.Context) {
 	}
 }
 
-func setPackageTag(ctx std_ctx.Context, tag string, pv *packages_model.PackageVersion, deleteOnly bool) error {
+func setPackageTag(ctx stdctx.Context, tag string, pv *packages_model.PackageVersion, deleteOnly bool) error {
 	if tag == "" {
 		return errInvalidTagName
 	}
@@ -389,7 +387,7 @@ func setPackageTag(ctx std_ctx.Context, tag string, pv *packages_model.PackageVe
 		return errInvalidTagName
 	}
 
-	return db.WithTx(ctx, func(ctx std_ctx.Context) error {
+	return db.WithTx(ctx, func(ctx stdctx.Context) error {
 		pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 			PackageID: pv.PackageID,
 			Properties: map[string]string{

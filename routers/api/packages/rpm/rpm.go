@@ -133,6 +133,9 @@ func UploadPackageFile(ctx *context.Context) {
 			},
 			Creator:  ctx.Doer,
 			Metadata: pck.VersionMetadata,
+			PostProcessing: func(dbctx stdctx.Context, v *packages_service.CreatedValues) error {
+				return rpm_service.BuildRepositoryFiles(dbctx, ctx.Package.Owner.ID)
+			},
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
@@ -155,11 +158,6 @@ func UploadPackageFile(ctx *context.Context) {
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		return
-	}
-
-	if err := rpm_service.BuildRepositoryFiles(ctx, ctx.Package.Owner.ID); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

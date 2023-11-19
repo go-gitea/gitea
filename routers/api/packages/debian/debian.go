@@ -169,6 +169,9 @@ func UploadPackageFile(ctx *context.Context) {
 			},
 			Creator:  ctx.Doer,
 			Metadata: pck.Metadata,
+			PostProcessing: func(txctx stdctx.Context, v *packages_service.CreatedValues) error {
+				return debian_service.BuildSpecificRepositoryFiles(txctx, ctx.Package.Owner.ID, distribution, component, pck.Architecture)
+			},
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
@@ -195,11 +198,6 @@ func UploadPackageFile(ctx *context.Context) {
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		return
-	}
-
-	if err := debian_service.BuildSpecificRepositoryFiles(ctx, ctx.Package.Owner.ID, distribution, component, pck.Architecture); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

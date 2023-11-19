@@ -4,6 +4,7 @@
 package swift
 
 import (
+	stdctx "context"
 	"errors"
 	"fmt"
 	"io"
@@ -328,7 +329,7 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	pv, _, err := packages_service.CreatePackageAndAddFile(
+	_, _, err = packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
@@ -343,6 +344,16 @@ func UploadPackageFile(ctx *context.Context) {
 			PackageProperties: map[string]string{
 				swift_module.PropertyScope: packageScope,
 				swift_module.PropertyName:  packageName,
+			},
+			PostProcessing: func(ctx stdctx.Context, v *packages_service.CreatedValues) error {
+				for _, url := range pck.RepositoryURLs {
+					_, err = packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, v.PackageVersion.ID, swift_module.PropertyRepositoryURL, url)
+					if err != nil {
+						log.Error("InsertProperty failed: %v", err)
+						return err
+					}
+				}
+				return nil
 			},
 		},
 		&packages_service.PackageFileCreationInfo{
@@ -364,13 +375,6 @@ func UploadPackageFile(ctx *context.Context) {
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
 		return
-	}
-
-	for _, url := range pck.RepositoryURLs {
-		_, err = packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, swift_module.PropertyRepositoryURL, url)
-		if err != nil {
-			log.Error("InsertProperty failed: %v", err)
-		}
 	}
 
 	setResponseHeaders(ctx.Resp, &headers{})

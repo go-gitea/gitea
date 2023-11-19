@@ -4,6 +4,7 @@
 package alpine
 
 import (
+	stdctx "context"
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
@@ -144,6 +145,9 @@ func UploadPackageFile(ctx *context.Context) {
 			},
 			Creator:  ctx.Doer,
 			Metadata: pck.VersionMetadata,
+			PostProcessing: func(txctx stdctx.Context, v *packages_service.CreatedValues) error {
+				return alpine_service.BuildSpecificRepositoryFiles(txctx, ctx.Package.Owner.ID, branch, repository, pck.FileMetadata.Architecture)
+			},
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
@@ -170,11 +174,6 @@ func UploadPackageFile(ctx *context.Context) {
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		return
-	}
-
-	if err := alpine_service.BuildSpecificRepositoryFiles(ctx, ctx.Package.Owner.ID, branch, repository, pck.FileMetadata.Architecture); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

@@ -47,6 +47,10 @@ type PackageCreationInfo struct {
 	Metadata          any
 	PackageProperties map[string]string
 	VersionProperties map[string]string
+	// Funciton that will be executed after package version and file
+	// have been created, but before transaciton is commited, to include
+	// additional logic to package creation transaction model.
+	PostProcessing PostProcessingFunction
 }
 
 // PackageFileInfo describes a package file
@@ -64,6 +68,16 @@ type PackageFileCreationInfo struct {
 	Properties        map[string]string
 	OverwriteExisting bool
 }
+
+type CreatedValues struct {
+	*packages_model.PackageVersion
+	VersionCreated bool
+	*packages_model.PackageFile
+	*packages_model.PackageBlob
+	BlobCreated bool
+}
+
+type PostProcessingFunction func(ctx context.Context, v *CreatedValues) error
 
 // CreatePackageAndAddFile creates a package with a file. If the same package exists already, ErrDuplicatePackageVersion is returned
 func CreatePackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
@@ -100,6 +114,20 @@ func createPackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfc
 	if err != nil {
 		removeBlob = true
 		return nil, nil, err
+	}
+
+	if pvci.PostProcessing != nil {
+		err := pvci.PostProcessing(dbCtx, &CreatedValues{
+			PackageVersion: pv,
+			VersionCreated: created,
+			PackageFile:    pf,
+			PackageBlob:    pb,
+			BlobCreated:    blobCreated,
+		})
+		if err != nil {
+			removeBlob = true
+			return nil, nil, err
+		}
 	}
 
 	if err := committer.Commit(); err != nil {
