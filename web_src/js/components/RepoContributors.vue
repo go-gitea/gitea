@@ -245,6 +245,7 @@ export default {
           zoom: {
             pan: {
               enabled: true,
+              modifierKey: 'shift',
               mode: 'x',
               threshold: 20,
               onPanComplete: this.updateOtherCharts,
@@ -261,7 +262,7 @@ export default {
               },
             },
             zoom: {
-              wheel: {
+              drag: {
                 enabled: type === 'main',
               },
               pinch: {
