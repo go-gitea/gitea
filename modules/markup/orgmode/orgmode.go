@@ -158,7 +158,7 @@ func (r *Writer) WriteRegularLink(l org.RegularLink) {
 	case "image":
 		if l.Description == nil {
 			imageSrc := getMediaURL(link)
-			fmt.Fprintf(r, `<img src="%s" alt="%s" title="%s" />`, imageSrc, link, link)
+			fmt.Fprintf(r, `<img src="%s" alt="%s" />`, imageSrc, link)
 		} else {
 			description := strings.TrimPrefix(org.String(l.Description...), "file:")
 			imageSrc := getMediaURL([]byte(description))
@@ -167,18 +167,18 @@ func (r *Writer) WriteRegularLink(l org.RegularLink) {
 	case "video":
 		if l.Description == nil {
 			imageSrc := getMediaURL(link)
-			fmt.Fprintf(r, `<video src="%s" title="%s">%s</video>`, imageSrc, link, link)
+			fmt.Fprintf(r, `<video src="%s">%s</video>`, imageSrc, link)
 		} else {
 			description := strings.TrimPrefix(org.String(l.Description...), "file:")
 			videoSrc := getMediaURL([]byte(description))
-			fmt.Fprintf(r, `<a href="%s"><video src="%s" title="%s"></video></a>`, link, videoSrc, videoSrc)
+			fmt.Fprintf(r, `<a href="%s"><video src="%s">%s</video></a>`, link, videoSrc, videoSrc)
 		}
 	default:
 		description := string(link)
 		if l.Description != nil {
 			description = r.WriteNodesAsString(l.Description...)
 		}
-		fmt.Fprintf(r, `<a href="%s" title="%s">%s</a>`, link, description, description)
+		fmt.Fprintf(r, `<a href="%s">%s</a>`, link, description)
 	}
 }
 

@@ -146,7 +146,7 @@ In addition, there is _`StaticRootPath`_ which can be set as a built-in at build
 - `ENABLED`: **true**: Whether repository file uploads are enabled
 - `TEMP_PATH`: **data/tmp/uploads**: Path for uploads (content gets deleted on Gitea restart)
 - `ALLOWED_TYPES`: **_empty_**: Comma-separated list of allowed file extensions (`.zip`), mime types (`text/plain`) or wildcard type (`image/*`, `audio/*`, `video/*`). Empty value or `*/*` allows all types.
-- `FILE_MAX_SIZE`: **3**: Max size of each file in megabytes.
+- `FILE_MAX_SIZE`: **50**: Max size of each file in megabytes.
 - `MAX_FILES`: **5**: Max number of files per upload
 
 ### Repository - Release (`repository.release`)
@@ -223,13 +223,15 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
     Values can be emoji alias (:smile:) or a unicode emoji.
     For custom reactions, add a tightly cropped square image to public/assets/img/emoji/reaction_name.png
+- `REACTION_MAX_USER_NUM`: **10**: Change the number of users that are displayed in reactions tooltip (triggered by mouse hover).
 - `CUSTOM_EMOJIS`: **gitea, codeberg, gitlab, git, github, gogs**: Additional Emojis not defined in the utf8 standard.
     By default, we support Gitea (:gitea:), to add more copy them to public/assets/img/emoji/emoji_name.png and
     add it to this config.
 - `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 - `SEARCH_REPO_DESCRIPTION`: **true**: Whether to search within description at repository search on explore page.
-- `ONLY_SHOW_RELEVANT_REPOS`: **false** Whether to only show relevant repos on the explore page when no keyword is specified and default sorting is used.
+- `ONLY_SHOW_RELEVANT_REPOS`: **false**: Whether to only show relevant repos on the explore page when no keyword is specified and default sorting is used.
     A repo is considered irrelevant if it's a fork or if it has no metadata (no description, no icon, no topic).
+- `EXPLORE_PAGING_DEFAULT_SORT`: **recentupdate**: Change the sort type of the explore pages. Valid values are "recentupdate", "alphabetically", "reverselastlogin", "newest" and "oldest"
 
 ### UI - Admin (`ui.admin`)
 
@@ -424,7 +426,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 ## Database (`database`)
 
 - `DB_TYPE`: **mysql**: The database type in use \[mysql, postgres, mssql, sqlite3\].
-- `HOST`: **127.0.0.1:3306**: Database host address and port or absolute path for unix socket \[mysql, postgres\] (ex: /var/run/mysqld/mysqld.sock).
+- `HOST`: **127.0.0.1:3306**: Database host address and port or absolute path for unix socket \[mysql, postgres[^1]\] (ex: /var/run/mysqld/mysqld.sock).
 - `NAME`: **gitea**: Database name.
 - `USER`: **root**: Database username.
 - `PASSWD`: **_empty_**: Database user password. Use \`your password\` or """your password""" for quoting if you use special characters in the password.
@@ -454,6 +456,8 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `MAX_IDLE_CONNS` **2**: Max idle database connections on connection pool, default is 2 - this will be capped to `MAX_OPEN_CONNS`.
 - `CONN_MAX_LIFETIME` **0 or 3s**: Sets the maximum amount of time a DB connection may be reused - default is 0, meaning there is no limit (except on MySQL where it is 3s - see #6804 & #7071).
 - `AUTO_MIGRATION` **true**: Whether execute database models migrations automatically.
+
+[^1]: It may be necessary to specify a hostport even when listening on a unix socket, as the port is part of the socket name. see [#24552](https://github.com/go-gitea/gitea/issues/24552#issuecomment-1681649367) for additional details.
 
 Please see #8540 & #8273 for further discussion of the appropriate values for `MAX_OPEN_CONNS`, `MAX_IDLE_CONNS` & `CONN_MAX_LIFETIME` and their
 relation to port exhaustion.
@@ -819,7 +823,7 @@ Default templates for project boards:
 
 - `ENABLED`: **true**: Whether issue and pull request attachments are enabled.
 - `ALLOWED_TYPES`: **.csv,.docx,.fodg,.fodp,.fods,.fodt,.gif,.gz,.jpeg,.jpg,.log,.md,.mov,.mp4,.odf,.odg,.odp,.ods,.odt,.patch,.pdf,.png,.pptx,.svg,.tgz,.txt,.webm,.xls,.xlsx,.zip**: Comma-separated list of allowed file extensions (`.zip`), mime types (`text/plain`) or wildcard type (`image/*`, `audio/*`, `video/*`). Empty value or `*/*` allows all types.
-- `MAX_SIZE`: **4**: Maximum size (MB).
+- `MAX_SIZE`: **2048**: Maximum size (MB).
 - `MAX_FILES`: **5**: Maximum number of attachments that can be uploaded at once.
 - `STORAGE_TYPE`: **local**: Storage type for attachments, `local` for local disk or `minio` for s3 compatible object storage service, default is `local` or other name defined with `[storage.xxx]`
 - `SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
@@ -1392,6 +1396,7 @@ PROXY_HOSTS = *.github.com
 - `ZOMBIE_TASK_TIMEOUT`: **10m**: Timeout to stop the task which have running status, but haven't been updated for a long time
 - `ENDLESS_TASK_TIMEOUT`: **3h**: Timeout to stop the tasks which have running status and continuous updates, but don't end for a long time
 - `ABANDONED_JOB_TIMEOUT`: **24h**: Timeout to cancel the jobs which have waiting status, but haven't been picked by a runner for a long time
+- `SKIP_WORKFLOW_STRINGS`: **[skip ci],[ci skip],[no ci],[skip actions],[actions skip]**: Strings committers can place inside a commit message to skip executing the corresponding actions workflow
 
 `DEFAULT_ACTIONS_URL` indicates where the Gitea Actions runners should find the actions with relative path.
 For example, `uses: actions/checkout@v3` means `https://github.com/actions/checkout@v3` since the value of `DEFAULT_ACTIONS_URL` is `github`.
