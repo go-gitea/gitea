@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	cargo_module "code.gitea.io/gitea/modules/packages/cargo"
 	"code.gitea.io/gitea/modules/setting"
@@ -214,9 +213,6 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
-	// TODO: remove this vairalbe, use post processing function
-	var pv *packages_model.PackageVersion
-
 	err = packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
@@ -232,9 +228,8 @@ func UploadPackage(ctx *context.Context) {
 			VersionProperties: map[string]string{
 				cargo_module.PropertyYanked: strconv.FormatBool(false),
 			},
-			PostProcessing: func(txctx stdctx.Context, v *packages_service.CreatedValues) error {
-				pv = v.PackageVersion
-				return nil
+			CreateCallback: func(txctx stdctx.Context, c *packages_service.Created) error {
+				return cargo_service.UpdatePackageIndexIfExists(txctx, ctx.Doer, ctx.Package.Owner, c.PackageVersion.PackageID)
 			},
 		},
 		&packages_service.PackageFileCreationInfo{
@@ -255,15 +250,6 @@ func UploadPackage(ctx *context.Context) {
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		return
-	}
-
-	if err := cargo_service.UpdatePackageIndexIfExists(ctx, ctx.Doer, ctx.Package.Owner, pv.PackageID); err != nil {
-		if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
-			log.Error("Rollback creation of package version: %v", err)
-		}
-
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

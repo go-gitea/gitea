@@ -169,7 +169,7 @@ func UploadPackageFile(ctx *context.Context) {
 			},
 			Creator:  ctx.Doer,
 			Metadata: pck.Metadata,
-			PostProcessing: func(txctx stdctx.Context, v *packages_service.CreatedValues) error {
+			CreateCallback: func(txctx stdctx.Context, c *packages_service.Created) error {
 				return debian_service.BuildSpecificRepositoryFiles(txctx, ctx.Package.Owner.ID, distribution, component, pck.Architecture)
 			},
 		},

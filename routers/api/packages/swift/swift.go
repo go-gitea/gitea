@@ -345,9 +345,9 @@ func UploadPackageFile(ctx *context.Context) {
 				swift_module.PropertyScope: packageScope,
 				swift_module.PropertyName:  packageName,
 			},
-			PostProcessing: func(ctx stdctx.Context, v *packages_service.CreatedValues) error {
+			CreateCallback: func(txctx stdctx.Context, c *packages_service.Created) error {
 				for _, url := range pck.RepositoryURLs {
-					_, err = packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, v.PackageVersion.ID, swift_module.PropertyRepositoryURL, url)
+					_, err = packages_model.InsertProperty(txctx, packages_model.PropertyTypeVersion, c.PackageVersion.ID, swift_module.PropertyRepositoryURL, url)
 					if err != nil {
 						log.Error("InsertProperty failed: %v", err)
 						return err

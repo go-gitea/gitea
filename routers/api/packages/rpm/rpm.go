@@ -133,8 +133,8 @@ func UploadPackageFile(ctx *context.Context) {
 			},
 			Creator:  ctx.Doer,
 			Metadata: pck.VersionMetadata,
-			PostProcessing: func(dbctx stdctx.Context, v *packages_service.CreatedValues) error {
-				return rpm_service.BuildRepositoryFiles(dbctx, ctx.Package.Owner.ID)
+			CreateCallback: func(txctx stdctx.Context, c *packages_service.Created) error {
+				return rpm_service.BuildRepositoryFiles(txctx, ctx.Package.Owner.ID)
 			},
 		},
 		&packages_service.PackageFileCreationInfo{

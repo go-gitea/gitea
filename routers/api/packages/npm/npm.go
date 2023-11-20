@@ -201,15 +201,15 @@ func UploadPackage(ctx *context.Context) {
 			SemverCompatible: true,
 			Creator:          ctx.Doer,
 			Metadata:         npmPackage.Metadata,
-			PostProcessing: func(ctx stdctx.Context, v *packages_service.CreatedValues) error {
+			CreateCallback: func(txctx stdctx.Context, c *packages_service.Created) error {
 				for _, tag := range npmPackage.DistTags {
-					err := setPackageTag(ctx, tag, v.PackageVersion, false)
+					err := setPackageTag(txctx, tag, c.PackageVersion, false)
 					if err != nil {
 						return err
 					}
 				}
 				if repo != nil {
-					return packages_model.SetRepositoryLink(ctx, v.PackageVersion.PackageID, repo.ID)
+					return packages_model.SetRepositoryLink(txctx, c.PackageVersion.PackageID, repo.ID)
 				}
 				return nil
 			},

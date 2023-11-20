@@ -50,7 +50,7 @@ type PackageCreationInfo struct {
 	// Funciton that will be executed after package version and file
 	// have been created, but before transaciton is commited, to include
 	// additional logic to package creation transaction model.
-	PostProcessing PostProcessingFunction
+	CreateCallback CallbackFunction
 }
 
 // PackageFileInfo describes a package file
@@ -69,7 +69,8 @@ type PackageFileCreationInfo struct {
 	OverwriteExisting bool
 }
 
-type CreatedValues struct {
+// New values that have been created
+type Created struct {
 	*packages_model.PackageVersion
 	VersionCreated bool
 	*packages_model.PackageFile
@@ -77,7 +78,7 @@ type CreatedValues struct {
 	BlobCreated bool
 }
 
-type PostProcessingFunction func(ctx context.Context, v *CreatedValues) error
+type CallbackFunction func(ctx context.Context, c *Created) error
 
 // CreatePackageAndAddFile creates a package with a file. If the same package exists already, ErrDuplicatePackageVersion is returned
 func CreatePackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfci *PackageFileCreationInfo) error {
@@ -116,8 +117,8 @@ func createPackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfc
 		return err
 	}
 
-	if pvci.PostProcessing != nil {
-		err := pvci.PostProcessing(dbCtx, &CreatedValues{
+	if pvci.CreateCallback != nil {
+		err := pvci.CreateCallback(dbCtx, &Created{
 			PackageVersion: pv,
 			VersionCreated: created,
 			PackageFile:    pf,

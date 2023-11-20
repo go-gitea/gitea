@@ -145,7 +145,7 @@ func UploadPackageFile(ctx *context.Context) {
 			},
 			Creator:  ctx.Doer,
 			Metadata: pck.VersionMetadata,
-			PostProcessing: func(txctx stdctx.Context, v *packages_service.CreatedValues) error {
+			CreateCallback: func(txctx stdctx.Context, c *packages_service.Created) error {
 				return alpine_service.BuildSpecificRepositoryFiles(txctx, ctx.Package.Owner.ID, branch, repository, pck.FileMetadata.Architecture)
 			},
 		},
