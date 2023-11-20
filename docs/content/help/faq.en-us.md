@@ -138,9 +138,9 @@ All Gitea instances have the built-in API and there is no way to disable it comp
 You can, however, disable showing its documentation by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`.
 For more information, refer to Gitea's [API docs](development/api-usage.md).
 
-You can see the latest API (for example) on <https://try.gitea.io/api/swagger>.
+You can see the latest API (for example) on https://try.gitea.io/api/swagger
 
-You can also see an example of the `swagger.json` file at <https://try.gitea.io/swagger.v1.json>.
+You can also see an example of the `swagger.json` file at https://try.gitea.io/swagger.v1.json
 
 ## Adjusting your server for public/private use
 
