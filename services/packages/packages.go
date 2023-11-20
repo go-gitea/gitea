@@ -47,8 +47,8 @@ type PackageCreationInfo struct {
 	Metadata          any
 	PackageProperties map[string]string
 	VersionProperties map[string]string
-	// Funciton that will be executed after package version and file
-	// have been created, but before transaciton is commited, to include
+	// Function that will be executed after package version and file
+	// have been created, but before transactions is committed, to include
 	// additional logic to package creation transaction model.
 	CreateCallback CallbackFunction
 }
