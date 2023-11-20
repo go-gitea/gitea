@@ -173,7 +173,7 @@ func (a *AzureBlobStorage) getObjectNameFromPath(path string) string {
 
 // Open opens a file
 func (a *AzureBlobStorage) Open(path string) (Object, error) {
-	blobClient := a.client.ServiceClient().NewContainerClient(a.container).NewBlobClient(a.buildAzureBlobPath(path))
+	blobClient := a.getBlobClient(path)
 	res, err := blobClient.GetProperties(a.ctx, &blob.GetPropertiesOptions{})
 	if err != nil {
 		return nil, convertAzureBlobErr(err)
@@ -234,7 +234,7 @@ func (a azureBlobFileInfo) Sys() interface{} {
 
 // Stat returns the stat information of the object
 func (a *AzureBlobStorage) Stat(path string) (os.FileInfo, error) {
-	blobClient := a.client.ServiceClient().NewContainerClient(a.container).NewBlobClient(a.buildAzureBlobPath(path))
+	blobClient := a.getBlobClient(path)
 	res, err := blobClient.GetProperties(a.ctx, &blob.GetPropertiesOptions{})
 	if err != nil {
 		return nil, convertAzureBlobErr(err)
@@ -249,14 +249,14 @@ func (a *AzureBlobStorage) Stat(path string) (os.FileInfo, error) {
 
 // Delete delete a file
 func (a *AzureBlobStorage) Delete(path string) error {
-	blobClient := a.client.ServiceClient().NewContainerClient(a.container).NewBlobClient(a.buildAzureBlobPath(path))
+	blobClient := a.getBlobClient(path)
 	_, err := blobClient.Delete(a.ctx, &blob.DeleteOptions{})
 	return convertAzureBlobErr(err)
 }
 
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
 func (a *AzureBlobStorage) URL(path, name string) (*url.URL, error) {
-	blobClient := a.client.ServiceClient().NewContainerClient(a.container).NewBlobClient(a.buildAzureBlobPath(path))
+	blobClient := a.getBlobClient(path)
 	perm := sas.BlobPermissions{
 		Read: true,
 	}
@@ -300,6 +300,11 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 		}
 	}
 	return nil
+}
+
+// Delete delete a file
+func (a *AzureBlobStorage) getBlobClient(path string) *blob.Client {
+	return a.client.ServiceClient().NewContainerClient(a.container).NewBlobClient(a.buildAzureBlobPath(path))
 }
 
 func init() {
