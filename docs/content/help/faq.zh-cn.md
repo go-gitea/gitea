@@ -142,9 +142,9 @@ Gitea不提供内置的Pages服务器。您需要一个专用的域名来提供�
 但是，您可以在app.ini的api部分将ENABLE_SWAGGER设置为false，以禁用其文档显示。
 有关更多信息，请参阅Gitea的[API文档](development/api-usage.md)。
 
-您可以在上查看最新的API（例如）<https://try.gitea.io/api/swagger>。
+您可以在上查看最新的API（例如）https://try.gitea.io/api/swagger
 
-您还可以在上查看`swagger.json`文件的示例 <https://try.gitea.io/swagger.v1.json>。
+您还可以在上查看`swagger.json`文件的示例 https://try.gitea.io/swagger.v1.json
 
 ## 调整服务器用于公共/私有使用
 
