@@ -31,27 +31,35 @@ func TestMigratePackages(t *testing.T) {
 	assert.NoError(t, err)
 	defer buf.Close()
 
-	v, f, err := packages_service.CreatePackageAndAddFile(db.DefaultContext, &packages_service.PackageCreationInfo{
-		PackageInfo: packages_service.PackageInfo{
-			Owner:       creator,
-			PackageType: packages.TypeGeneric,
-			Name:        "test",
-			Version:     "1.0.0",
+	err = packages_service.CreatePackageAndAddFile(
+		db.DefaultContext,
+		&packages_service.PackageCreationInfo{
+			PackageInfo: packages_service.PackageInfo{
+				Owner:       creator,
+				PackageType: packages.TypeGeneric,
+				Name:        "test",
+				Version:     "1.0.0",
+			},
+			Creator:           creator,
+			SemverCompatible:  true,
+			VersionProperties: map[string]string{},
+			CreateCallback: func(ctx context.Context, c *packages_service.Created) error {
+				assert.NotNil(t, c.PackageVersion)
+				assert.NotNil(t, c.PackageFile)
+				assert.NotNil(t, c.PackageBlob)
+				return nil
+			},
 		},
-		Creator:           creator,
-		SemverCompatible:  true,
-		VersionProperties: map[string]string{},
-	}, &packages_service.PackageFileCreationInfo{
-		PackageFileInfo: packages_service.PackageFileInfo{
-			Filename: "a.go",
+		&packages_service.PackageFileCreationInfo{
+			PackageFileInfo: packages_service.PackageFileInfo{
+				Filename: "a.go",
+			},
+			Creator: creator,
+			Data:    buf,
+			IsLead:  true,
 		},
-		Creator: creator,
-		Data:    buf,
-		IsLead:  true,
-	})
+	)
 	assert.NoError(t, err)
-	assert.NotNil(t, v)
-	assert.NotNil(t, f)
 
 	ctx := context.Background()
 
