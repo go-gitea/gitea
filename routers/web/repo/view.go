@@ -332,13 +332,7 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 		ctx.Data["FileContent"] = buf.String()
 	}
 
-	lfsLock, err := git_model.GetTreePathLock(ctx, ctx.Repo.Repository.ID, path.Join(ctx.Repo.TreePath, readmeFile.Name()))
-	if err != nil {
-		ctx.ServerError("GetTreePathLock", err)
-		return
-	}
-
-	if !fInfo.isLFSFile && ctx.Repo.CanEnableEditor(ctx, ctx.Doer) && (lfsLock == nil || lfsLock.OwnerID == ctx.Doer.ID) {
+	if !fInfo.isLFSFile && ctx.Repo.CanEnableEditor(ctx, ctx.Doer) {
 		ctx.Data["CanEditReadmeFile"] = true
 	}
 }
