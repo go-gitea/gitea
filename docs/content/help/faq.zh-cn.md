@@ -142,9 +142,9 @@ Gitea不提供内置的Pages服务器。您需要一个专用的域名来提供�
 但是，您可以在app.ini的api部分将ENABLE_SWAGGER设置为false，以禁用其文档显示。
 有关更多信息，请参阅Gitea的[API文档](development/api-usage.md)。
 
-您可以在上查看最新的API（例如）<https://try.gitea.io/api/swagger>。
+您可以在上查看最新的API（例如）https://try.gitea.io/api/swagger
 
-您还可以在上查看`swagger.json`文件的示例 <https://try.gitea.io/swagger.v1.json>。
+您还可以在上查看`swagger.json`文件的示例 https://try.gitea.io/swagger.v1.json
 
 ## 调整服务器用于公共/私有使用
 
@@ -346,7 +346,7 @@ Gitea 提供了一个子命令`gitea migrate`来初始化数据库，然后您�
   - 转到您的`站点管理 -> 用户账户`页面并编辑用户。
 - 使用[管理 CLI 命令](administration/command-line.md#admin)。
 
-  请注意，大多数命令还需要一个[全局标志]({{< relref "doc/administration/command-line.zh-cn.- md#global-options" >}})来指向正确的配置。
+  请注意，大多数命令还需要一个[全局标志](administration/command-line.md#global-options)来指向正确的配置。
 - 作为**用户**，您可以更改密码...
   - 在您的账户的`设置 -> 账户`页面（此方法**需要**您知道当前密码）。
   - 使用`忘记密码`链接。
