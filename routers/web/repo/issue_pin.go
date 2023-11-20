@@ -89,6 +89,10 @@ func IssuePinMove(ctx *context.Context) {
 		log.Error(err.Error())
 		return
 	}
+	if issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
+		return
+	}
 
 	err = issue.MovePin(ctx, form.Position)
 	if err != nil {
