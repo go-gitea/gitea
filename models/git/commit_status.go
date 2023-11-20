@@ -37,7 +37,7 @@ type CommitStatus struct {
 	SHA         string                 `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
 	TargetURL   string                 `xorm:"TEXT"`
 	Description string                 `xorm:"TEXT"`
-	ContextHash string                 `xorm:"char(40) index"`
+	ContextHash string                 `xorm:"VARCHAR(64) index"`
 	Context     string                 `xorm:"TEXT"`
 	Creator     *user_model.User       `xorm:"-"`
 	CreatorID   int64

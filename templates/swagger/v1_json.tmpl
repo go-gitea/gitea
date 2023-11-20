@@ -18354,6 +18354,15 @@
           "type": "string",
           "x-go-name": "Gitignores"
         },
+        "hash_type": {
+          "description": "HashType of the underlying git repository",
+          "type": "string",
+          "enum": [
+            "sha1",
+            "sha256"
+          ],
+          "x-go-name": "HashType"
+        },
         "issue_labels": {
           "description": "Label-Set to use",
           "type": "string",
@@ -22135,6 +22144,10 @@
         "has_wiki": {
           "type": "boolean",
           "x-go-name": "HasWiki"
+        },
+        "hash_type": {
+          "type": "string",
+          "x-go-name": "HashType"
         },
         "html_url": {
           "type": "string",

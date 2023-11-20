@@ -270,7 +270,7 @@ type Comment struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 
 	// Reference issue in commit message
-	CommitSHA string `xorm:"VARCHAR(40)"`
+	CommitSHA string `xorm:"VARCHAR(64)"`
 
 	Attachments []*repo_model.Attachment `xorm:"-"`
 	Reactions   ReactionList             `xorm:"-"`

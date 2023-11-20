@@ -159,7 +159,7 @@ func Create(ctx *context.Context) {
 	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["default_branch"] = setting.Repository.DefaultBranch
-	ctx.Data["hash_type"] = "sha1"
+	ctx.Data["object_type"] = setting.Repository.HashType
 
 	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))
 	if ctx.Written() {

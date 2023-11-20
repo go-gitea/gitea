@@ -13,6 +13,8 @@ func ParseGogitHash(h plumbing.Hash) ObjectID {
 	switch hash.Size {
 	case 20:
 		return Sha1ObjectFormat.MustID(h[:])
+	case 32:
+		return Sha256ObjectFormat.MustID(h[:])
 	}
 
 	return nil

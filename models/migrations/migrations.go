@@ -552,6 +552,8 @@ var migrations = []Migration{
 	NewMigration("Add Index to pull_auto_merge.doer_id", v1_22.AddIndexToPullAutoMergeDoerID),
 	// v283 -> v284
 	NewMigration("Add combined Index to issue_user.uid and issue_id", v1_22.AddCombinedIndexToIssueUser),
+	// v284 -> v285
+	NewMigration("Add support for SHA256 git hash references", v1_22.ExpandHashReferencesToSha256),
 }
 
 // GetCurrentDBVersion returns the current db version

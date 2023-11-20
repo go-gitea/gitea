@@ -46,18 +46,18 @@ var (
 	// valid chars in encoded path and parameter: [-+~_%.a-zA-Z0-9/]
 
 	// sha1CurrentPattern matches string that represents a commit SHA, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
-	// Although SHA1 hashes are 40 chars long, the regex matches the hash from 7 to 40 chars in length
+	// Although SHA1 hashes are 40 chars long, SHA256 are 64, the regex matches the hash from 7 to 64 chars in length
 	// so that abbreviated hash links can be used as well. This matches git and GitHub usability.
-	sha1CurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,40})(?:\s|$|\)|\]|[.,](\s|$))`)
+	sha1CurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,64})(?:\s|$|\)|\]|[.,](\s|$))`)
 
 	// shortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
 	shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
 
 	// anySHA1Pattern splits url containing SHA into parts
-	anySHA1Pattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40})(/[-+~_%.a-zA-Z0-9/]+)?(#[-+~_%.a-zA-Z0-9]+)?`)
+	anySHA1Pattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40,64})(/[-+~_%.a-zA-Z0-9/]+)?(#[-+~_%.a-zA-Z0-9]+)?`)
 
 	// comparePattern matches "http://domain/org/repo/compare/COMMIT1...COMMIT2#hash"
-	comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{7,40})(\.\.\.?)([0-9a-f]{7,40})?(#[-+~_%.a-zA-Z0-9]+)?`)
+	comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{7,64})(\.\.\.?)([0-9a-f]{7,64})?(#[-+~_%.a-zA-Z0-9]+)?`)
 
 	validLinksPattern = regexp.MustCompile(`^[a-z][\w-]+://`)
 
