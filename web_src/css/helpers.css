@@ -5,7 +5,7 @@ Gitea's private styles use `g-` prefix.
 .gt-df { display: flex !important; }
 .gt-dib { display: inline-block !important; }
 .gt-ac { align-items: center !important; }
-.gt-as { align-items: stretch !important; }
+.gt-items-stretch { align-items: stretch !important; }
 .gt-jc { justify-content: center !important; }
 .gt-je { justify-content: flex-end !important; }
 .gt-sb { justify-content: space-between !important; }
