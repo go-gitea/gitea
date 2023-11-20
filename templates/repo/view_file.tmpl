@@ -61,6 +61,9 @@
 				<button class="ui mini basic button unescape-button gt-mr-2 gt-hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
 				<button class="ui mini basic button escape-button gt-mr-2">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 			{{end}}
+			{{if and .ReadmeInList .CanEditReadmeFile}}
+				<a class="btn-octicon" data-tooltip-content="{{ctx.Locale.Tr "repo.editor.edit_this_file"}}" href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}/{{PathEscapeSegments .FileName}}">{{svg "octicon-pencil"}}</a>
+			{{end}}
 		</div>
 	</h4>
 	<div class="ui attached table unstackable segment">
