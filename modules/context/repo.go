@@ -563,6 +563,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(unit_model.TypeCode)
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.TypePullRequests)
+	ctx.Data["CanWriteActions"] = ctx.Repo.CanWrite(unit_model.TypeActions)
 
 	canSignedUserFork, err := repo_module.CanUserForkRepo(ctx, ctx.Doer, ctx.Repo.Repository)
 	if err != nil {
@@ -851,7 +852,7 @@ func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 			return getRefNameFromPath(ctx, repo, path, func(s string) bool {
 				b, exist, err := git_model.FindRenamedBranch(ctx, repo.Repository.ID, s)
 				if err != nil {
-					log.Error("FindRenamedBranch", err)
+					log.Error("FindRenamedBranch: %v", err)
 					return false
 				}
 
