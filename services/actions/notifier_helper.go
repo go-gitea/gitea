@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -20,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/convert"
@@ -144,6 +146,10 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
 
+	if skipWorkflowsForCommit(input, commit) {
+		return nil
+	}
+
 	var detectedWorkflows []*actions_module.DetectedWorkflow
 	actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
 	workflows, schedules, err := actions_module.DetectWorkflows(gitRepo, commit, input.Event, input.Payload)
@@ -193,6 +199,25 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 
 	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref)
+}
+
+func skipWorkflowsForCommit(input *notifyInput, commit *git.Commit) bool {
+	// skip workflow runs with a configured skip-ci string in commit message if the event is push or pull_request(_sync)
+	// https://docs.github.com/en/actions/managing-workflow-runs/skipping-workflow-runs
+	skipWorkflowEvents := []webhook_module.HookEventType{
+		webhook_module.HookEventPush,
+		webhook_module.HookEventPullRequest,
+		webhook_module.HookEventPullRequestSync,
+	}
+	if slices.Contains(skipWorkflowEvents, input.Event) {
+		for _, s := range setting.Actions.SkipWorkflowStrings {
+			if strings.Contains(commit.CommitMessage, s) {
+				log.Debug("repo %s with commit %s: skipped run because of %s string", input.Repo.RepoPath(), commit.ID, s)
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func handleWorkflows(
