@@ -199,13 +199,13 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				}
 
 				if isActiveChanged {
-					audit.Record(ctx, audit_model.UserActive, audit.NewAuthenticationSourceUser(), usr, usr, "Activation status of user %s changed to %s.", usr.Name, audit.UserActiveString(usr.IsActive))
+					audit.Record(ctx, audit_model.UserActive, audit.NewAuthenticationSourceUser(), usr, usr, "Changed activation status of user %s to %s.", usr.Name, audit.UserActiveString(usr.IsActive))
 				}
 				if isAdminChanged {
-					audit.Record(ctx, audit_model.UserAdmin, audit.NewAuthenticationSourceUser(), usr, usr, "Admin status of user %s changed to %s.", usr.Name, audit.UserAdminString(usr.IsAdmin))
+					audit.Record(ctx, audit_model.UserAdmin, audit.NewAuthenticationSourceUser(), usr, usr, "Changed admin status of user %s to %s.", usr.Name, audit.UserAdminString(usr.IsAdmin))
 				}
 				if isRestrictedChanged {
-					audit.Record(ctx, audit_model.UserRestricted, audit.NewAuthenticationSourceUser(), usr, usr, "Restricted status of user %s changed to %s.", usr.Name, audit.UserRestrictedString(usr.IsRestricted))
+					audit.Record(ctx, audit_model.UserRestricted, audit.NewAuthenticationSourceUser(), usr, usr, "Changed restricted status of user %s to %s.", usr.Name, audit.UserRestrictedString(usr.IsRestricted))
 				}
 			}
 
@@ -252,7 +252,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			if err := user_model.UpdateUserCols(ctx, usr, "is_active"); err != nil {
 				log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.authSource.Name, usr.Name, err)
 			} else {
-				audit.Record(ctx, audit_model.UserActive, audit.NewAuthenticationSourceUser(), usr, usr, "Activation status of user %s changed to %s.", usr.Name, audit.UserActiveString(usr.IsActive))
+				audit.Record(ctx, audit_model.UserActive, audit.NewAuthenticationSourceUser(), usr, usr, "Changed activation status of user %s to %s.", usr.Name, audit.UserActiveString(usr.IsActive))
 			}
 		}
 	}

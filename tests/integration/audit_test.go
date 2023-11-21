@@ -4,12 +4,17 @@
 package integration
 
 import (
-	"context"
+	"fmt"
 	"net/http"
 	"net/url"
+	"sync/atomic"
 	"testing"
 
+	audit_model "code.gitea.io/gitea/models/audit"
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/audit"
@@ -17,37 +22,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type testAppender struct {
-	Events []*audit.Event
-}
-
-func (a *testAppender) Record(ctx context.Context, e *audit.Event) {
-	a.Events = append(a.Events, e)
-}
-
-func (a *testAppender) Close() error {
-	return nil
-}
-
-func (a *testAppender) ReleaseReopen() error {
-	a.Events = nil
-	return nil
-}
-
 func TestAuditLogging(t *testing.T) {
-	a := &testAppender{}
-	audit.TestingOnlyAddAppender(a)
-	defer audit.TestingOnlyRemoveAppender(a)
-
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		token := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+		assert.NoError(t, db.TruncateBeans(db.DefaultContext, &audit_model.Event{}))
+
+		actor := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		token := getUserToken(t, actor.Name, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs?token="+token, &api.CreateOrgOption{
 			UserName:    "user1_audit_org",
 			FullName:    "User1's organization",
 			Description: "This organization created by user1",
 			Website:     "https://try.gitea.io",
-			Location:    "Shanghai",
+			Location:    "Universe",
 			Visibility:  "limited",
 		})
 		MakeRequest(t, req, http.StatusCreated)
@@ -55,13 +42,10 @@ func TestAuditLogging(t *testing.T) {
 		req = NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/user1_audit_org?token="+token, &api.EditOrgOption{
 			Description: "A new description",
 			Website:     "https://try.gitea.io/new",
-			Location:    "Beijing",
+			Location:    "Earth",
 			Visibility:  "private",
 		})
 		MakeRequest(t, req, http.StatusOK)
-
-		req = NewRequest(t, "DELETE", "/api/v1/orgs/user1_audit_org?token="+token)
-		MakeRequest(t, req, http.StatusNoContent)
 
 		req = NewRequestWithJSON(t, "POST", "/api/v1/user/repos?token="+token, &api.CreateRepoOption{
 			Name: "audit_repo",
@@ -79,88 +63,134 @@ func TestAuditLogging(t *testing.T) {
 		})
 		MakeRequest(t, req, http.StatusCreated)
 
-		req = NewRequest(t, "DELETE", "/api/v1/repos/user1/audit_repo?token="+token)
-		MakeRequest(t, req, http.StatusNoContent)
+		type TestTypeDescriptor struct {
+			Type        audit_model.ObjectType
+			DisplayName string
+			HTMLURL     string
+		}
 
 		cases := []struct {
-			Action audit.Action
-			Scope  audit.TypeDescriptor
-			Target audit.TypeDescriptor
+			Action audit_model.Action
+			Scope  TestTypeDescriptor
+			Target TestTypeDescriptor
 		}{
 			{
-				Action: audit.UserAccessTokenAdd,
-				Scope:  audit.TypeDescriptor{Type: "user", FriendlyName: "user1"},
-				Target: audit.TypeDescriptor{Type: "access_token"}, // can't test name because it depends on other tests
+				Action: audit_model.UserAccessTokenAdd,
+				Scope:  TestTypeDescriptor{Type: audit_model.TypeUser, DisplayName: "user1", HTMLURL: "http://localhost:3003/user1"},
+				Target: TestTypeDescriptor{Type: audit_model.TypeAccessToken, DisplayName: fmt.Sprintf("api-testing-token-%d", atomic.LoadInt64(&tokenCounter))},
 			},
 			{
-				Action: audit.OrganizationCreate,
-				Scope:  audit.TypeDescriptor{Type: "organization", FriendlyName: "user1_audit_org"},
-				Target: audit.TypeDescriptor{Type: "organization", FriendlyName: "user1_audit_org"},
+				Action: audit_model.OrganizationCreate,
+				Scope:  TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: "http://localhost:3003/user1_audit_org"},
+				Target: TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: "http://localhost:3003/user1_audit_org"},
 			},
 			{
-				Action: audit.OrganizationUpdate,
-				Scope:  audit.TypeDescriptor{Type: "organization", FriendlyName: "user1_audit_org"},
-				Target: audit.TypeDescriptor{Type: "organization", FriendlyName: "user1_audit_org"},
+				Action: audit_model.OrganizationUpdate,
+				Scope:  TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: "http://localhost:3003/user1_audit_org"},
+				Target: TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: "http://localhost:3003/user1_audit_org"},
 			},
 			{
-				Action: audit.OrganizationVisibility,
-				Scope:  audit.TypeDescriptor{Type: "organization", FriendlyName: "user1_audit_org"},
-				Target: audit.TypeDescriptor{Type: "organization", FriendlyName: "user1_audit_org"},
+				Action: audit_model.OrganizationVisibility,
+				Scope:  TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: "http://localhost:3003/user1_audit_org"},
+				Target: TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: "http://localhost:3003/user1_audit_org"},
 			},
 			{
-				Action: audit.OrganizationDelete,
-				Scope:  audit.TypeDescriptor{Type: "organization", FriendlyName: "user1_audit_org"},
-				Target: audit.TypeDescriptor{Type: "organization", FriendlyName: "user1_audit_org"},
+				Action: audit_model.RepositoryCreate,
+				Scope:  TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: "http://localhost:3003/user1/audit_repo"},
+				Target: TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: "http://localhost:3003/user1/audit_repo"},
 			},
 			{
-				Action: audit.RepositoryCreate,
-				Scope:  audit.TypeDescriptor{Type: "repository", FriendlyName: "user1/audit_repo"},
-				Target: audit.TypeDescriptor{Type: "repository", FriendlyName: "user1/audit_repo"},
+				Action: audit_model.RepositoryUpdate,
+				Scope:  TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: "http://localhost:3003/user1/audit_repo"},
+				Target: TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: "http://localhost:3003/user1/audit_repo"},
 			},
 			{
-				Action: audit.RepositoryUpdate,
-				Scope:  audit.TypeDescriptor{Type: "repository", FriendlyName: "user1/audit_repo"},
-				Target: audit.TypeDescriptor{Type: "repository", FriendlyName: "user1/audit_repo"},
+				Action: audit_model.RepositoryVisibility,
+				Scope:  TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: "http://localhost:3003/user1/audit_repo"},
+				Target: TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: "http://localhost:3003/user1/audit_repo"},
 			},
 			{
-				Action: audit.RepositoryVisibility,
-				Scope:  audit.TypeDescriptor{Type: "repository", FriendlyName: "user1/audit_repo"},
-				Target: audit.TypeDescriptor{Type: "repository", FriendlyName: "user1/audit_repo"},
-			},
-			{
-				Action: audit.UserSecretAdd,
-				Scope:  audit.TypeDescriptor{Type: "user", FriendlyName: "user1"},
-				Target: audit.TypeDescriptor{Type: "secret", FriendlyName: "AUDIT_SECRET"},
-			},
-			{
-				Action: audit.RepositoryDelete,
-				Scope:  audit.TypeDescriptor{Type: "repository", FriendlyName: "user1/audit_repo"},
-				Target: audit.TypeDescriptor{Type: "repository", FriendlyName: "user1/audit_repo"},
+				Action: audit_model.UserSecretAdd,
+				Scope:  TestTypeDescriptor{Type: audit_model.TypeUser, DisplayName: "user1", HTMLURL: "http://localhost:3003/user1"},
+				Target: TestTypeDescriptor{Type: audit_model.TypeSecret, DisplayName: "AUDIT_SECRET"},
 			},
 		}
 
-		assert.Len(t, a.Events, len(cases))
+		events, total, err := audit.FindEvents(db.DefaultContext, &audit_model.EventSearchOptions{Sort: audit_model.SortTimestampAsc})
+		assert.NoError(t, err)
+		assert.EqualValues(t, len(cases), total)
+		assert.Len(t, events, int(total))
+
 		for i, c := range cases {
-			e := a.Events[i]
+			e := events[i]
 
 			assert.Equal(t, c.Action, e.Action)
 
-			assert.Equal(t, "user", e.Doer.Type)
-			assert.EqualValues(t, int64(1), e.Doer.PrimaryKey)
-
-			// Can't test PrimaryKey because it depends on other tests
+			assert.Equal(t, audit_model.TypeUser, e.Actor.Type)
+			assert.NotNil(t, e.Actor.Object)
+			assert.Equal(t, actor.ID, e.Actor.ID)
 
 			assert.Equal(t, c.Scope.Type, e.Scope.Type)
-			if c.Scope.FriendlyName != "" {
-				assert.Equal(t, c.Scope.FriendlyName, e.Scope.FriendlyName)
-			}
+			assert.NotNil(t, e.Scope.Object)
+			assert.Equal(t, c.Scope.DisplayName, e.Scope.DisplayName())
+			assert.Equal(t, c.Scope.HTMLURL, e.Scope.HTMLURL())
 
 			assert.Equal(t, c.Target.Type, e.Target.Type)
-			if c.Target.FriendlyName != "" {
-				assert.Equal(t, c.Target.FriendlyName, e.Target.FriendlyName)
-			}
+			assert.NotNil(t, e.Target.Object)
+			assert.Equal(t, c.Target.DisplayName, e.Target.DisplayName())
+			assert.Equal(t, c.Target.HTMLURL, e.Target.HTMLURL())
+		}
+
+		// Deleted objects don't have display names anymore
+
+		assert.NoError(t, db.TruncateBeans(db.DefaultContext, &audit_model.Event{}))
+
+		req = NewRequest(t, "DELETE", "/api/v1/orgs/user1_audit_org?token="+token)
+		MakeRequest(t, req, http.StatusNoContent)
+
+		req = NewRequest(t, "DELETE", "/api/v1/repos/user1/audit_repo?token="+token)
+		MakeRequest(t, req, http.StatusNoContent)
+
+		cases = []struct {
+			Action audit_model.Action
+			Scope  TestTypeDescriptor
+			Target TestTypeDescriptor
+		}{
+			{
+				Action: audit_model.OrganizationDelete,
+				Scope:  TestTypeDescriptor{Type: audit_model.TypeOrganization},
+				Target: TestTypeDescriptor{Type: audit_model.TypeOrganization},
+			},
+			{
+				Action: audit_model.RepositoryDelete,
+				Scope:  TestTypeDescriptor{Type: audit_model.TypeRepository},
+				Target: TestTypeDescriptor{Type: audit_model.TypeRepository},
+			},
+		}
+
+		events, total, err = audit.FindEvents(db.DefaultContext, &audit_model.EventSearchOptions{Sort: audit_model.SortTimestampAsc})
+		assert.NoError(t, err)
+		assert.EqualValues(t, len(cases), total)
+		assert.Len(t, events, int(total))
+
+		for i, c := range cases {
+			e := events[i]
+
+			assert.Equal(t, c.Action, e.Action)
+
+			assert.Equal(t, audit_model.TypeUser, e.Actor.Type)
+			assert.NotNil(t, e.Actor.Object)
+			assert.Equal(t, actor.ID, e.Actor.ID)
+
+			assert.Equal(t, c.Scope.Type, e.Scope.Type)
+			assert.Nil(t, e.Scope.Object)
+			assert.Empty(t, e.Scope.DisplayName())
+			assert.Empty(t, e.Scope.HTMLURL())
+
+			assert.Equal(t, c.Target.Type, e.Target.Type)
+			assert.Nil(t, e.Target.Object)
+			assert.Empty(t, e.Target.DisplayName())
+			assert.Empty(t, e.Target.HTMLURL())
 		}
 	})
-
-	audit.ReleaseReopen()
 }

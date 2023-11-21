@@ -84,7 +84,7 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 
 	repo.Name = newRepoName
 
-	audit.Record(ctx, audit_model.RepositoryName, doer, repo, repo, "Repository name changed from %s to %s.", oldRepoName, newRepoName)
+	audit.Record(ctx, audit_model.RepositoryName, doer, repo, repo, "Changed repository name from %s to %s.", oldRepoName, newRepoName)
 
 	notify_service.RenameRepository(ctx, doer, repo, oldRepoName)
 

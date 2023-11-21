@@ -51,7 +51,7 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserTwoFactorRegenerate, ctx.Doer, ctx.Doer, t, "User %s regenerated two-factor authentication secret.", ctx.Doer.Name)
+	audit.Record(ctx, audit_model.UserTwoFactorRegenerate, ctx.Doer, ctx.Doer, t, "Regenerated two-factor authentication secret for user %s.", ctx.Doer.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.twofa_scratch_token_regenerated", token))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
@@ -82,7 +82,7 @@ func DisableTwoFactor(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserTwoFactorDisable, ctx.Doer, ctx.Doer, t, "User %s disabled two-factor authentication.", ctx.Doer.Name)
+	audit.Record(ctx, audit_model.UserTwoFactorDisable, ctx.Doer, ctx.Doer, t, "Disabled two-factor authentication for user %s.", ctx.Doer.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.twofa_disabled"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
@@ -250,7 +250,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserTwoFactorEnable, ctx.Doer, ctx.Doer, t, "User %s enabled two-factor authentication.", ctx.Doer.Name)
+	audit.Record(ctx, audit_model.UserTwoFactorEnable, ctx.Doer, ctx.Doer, ctx.Doer, "Enabled two-factor authentication for user %s.", ctx.Doer.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.twofa_enrolled", token))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")

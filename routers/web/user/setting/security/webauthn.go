@@ -108,7 +108,7 @@ func WebauthnRegisterPost(ctx *context.Context) {
 	}
 	_ = ctx.Session.Delete("webauthnName")
 
-	audit.Record(ctx, audit_model.UserWebAuthAdd, ctx.Doer, ctx.Doer, dbCred, "User %s added WebAuthn key %s.", ctx.Doer.Name, dbCred.Name)
+	audit.Record(ctx, audit_model.UserWebAuthAdd, ctx.Doer, ctx.Doer, dbCred, "Added WebAuthn key %s for user %s.", dbCred.Name, ctx.Doer.Name)
 
 	ctx.JSON(http.StatusCreated, cred)
 }
@@ -127,7 +127,7 @@ func WebauthnDelete(ctx *context.Context) {
 		ctx.ServerError("DeleteCredential", err)
 		return
 	} else if ok {
-		audit.Record(ctx, audit_model.UserWebAuthRemove, ctx.Doer, ctx.Doer, cred, "User %s removed WebAuthn key %s.", ctx.Doer.Name, cred.Name)
+		audit.Record(ctx, audit_model.UserWebAuthRemove, ctx.Doer, ctx.Doer, cred, "Removed WebAuthn key %s from user %s.", cred.Name, ctx.Doer.Name)
 	}
 
 	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")

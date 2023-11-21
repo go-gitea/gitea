@@ -745,7 +745,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserActive, user, user, user, "Activation status of user %s changed to %s.", user.Name, audit.UserActiveString(user.IsActive))
+	audit.Record(ctx, audit_model.UserActive, user, user, user, "Changed activation status of user %s to %s.", user.Name, audit.UserActiveString(user.IsActive))
 
 	log.Trace("User activated: %s", user.Name)
 
@@ -799,7 +799,7 @@ func ActivateEmail(ctx *context.Context) {
 			_ = ctx.Cache.Delete("MailResendLimit_" + user.LowerName)
 		}
 
-		audit.Record(ctx, audit_model.UserEmailActivate, user, user, email, "Email %s of user %s activated.", email.Email, user.Name)
+		audit.Record(ctx, audit_model.UserEmailActivate, user, user, email, "Activated email %s of user %s.", email.Email, user.Name)
 	}
 
 	// FIXME: e-mail verification does not require the user to be logged in,

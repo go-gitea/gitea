@@ -39,21 +39,21 @@ Audit events are grouped by `user`, `organization`, `repository` and `system`.
 | Event | Description |
 | - | - |
 | `user:impersonation` | Admin impersonating user |
-| `user:create` | User was created |
+| `user:create` | Created user |
 | `user:update` | Updated settings of user |
-| `user:delete` | User was deleted |
+| `user:delete` | Deleted user |
 | `user:authentication:fail:twofactor` | Failed two-factor authentication for user |
-| `user:authentication:source` | Authentication source of user changed |
-| `user:active` | Activation status of user changed |
-| `user:restricted` | Restriction status of user changed |
-| `user:admin` | Admin status of user changed |
-| `user:name` | User changed name |
-| `user:password` | Password of user changed |
-| `user:password:reset` | User requested a password reset |
-| `user:visibility` | Visibility of user changed |
-| `user:email:add` | Email added to user |
-| `user:email:activate` | Email of user activated |
-| `user:email:remove` | Email removed from user |
+| `user:authentication:source` | Changed authentication source of user |
+| `user:active` | Changed activation status of user |
+| `user:restricted` | Changed restriction status of user |
+| `user:admin` | Changed admin status of user |
+| `user:name` | Changed user name |
+| `user:password` | Changed password of user |
+| `user:password:reset` | Requested a password reset |
+| `user:visibility` | Changed visibility of user |
+| `user:email:add` | Added email to user |
+| `user:email:activate` | Activated email of user |
+| `user:email:remove` | Removed email from user |
 | `user:twofactor:enable` | User enabled two-factor authentication |
 | `user:twofactor:regenerate` | User regenerated two-factor authentication secret |
 | `user:twofactor:disable` | User disabled two-factor authentication |
@@ -88,17 +88,17 @@ Audit events are grouped by `user`, `organization`, `repository` and `system`.
 
 | Event | Description |
 | - | - |
-| `organization:create` | Organization was created |
+| `organization:create` | Created organization |
 | `organization:update` | Updated settings of organization |
-| `organization:delete` | Organization was deleted |
-| `organization:name` | Organization name changed |
-| `organization:visibility` | Visibility of organization changed |
-| `organization:team:add` | Team was added to organization |
+| `organization:delete` | Deleted organization |
+| `organization:name` | Changed organization name |
+| `organization:visibility` | Changed visibility of organization |
+| `organization:team:add` | Added team to organization |
 | `organization:team:update` | Updated settings of team |
-| `organization:team:remove` | Team was removed from organization |
-| `organization:team:permission` | Permission of team changed |
-| `organization:team:member:add` | User was added to team |
-| `organization:team:member:remove` | User was removed from team |
+| `organization:team:remove` | Removed team from organization |
+| `organization:team:permission` | Changed permission of team |
+| `organization:team:member:add` | Added user to team |
+| `organization:team:member:remove` | Removed User from team |
 | `organization:oauth2application:add` | Created OAuth2 application |
 | `organization:oauth2application:update` | Updated OAuth2 application |
 | `organization:oauth2application:secret` | Regenerated secret for OAuth2 application |
@@ -114,13 +114,13 @@ Audit events are grouped by `user`, `organization`, `repository` and `system`.
 
 | Event | Description |
 | - | - |
-| `repository:create` | Repository was created |
-| `repository:create:fork` | Fork of repository was created |
+| `repository:create` | Crated repository |
+| `repository:create:fork` | Created fork of repository |
 | `repository:update` | Updated settings of repository |
 | `repository:archive` | Archived repository |
 | `repository:unarchive` | Unarchived repository |
-| `repository:delete` | Repository was deleted |
-| `repository:name` | Repository name changed |
+| `repository:delete` | Deleted repository |
+| `repository:name` | Changed repository name |
 | `repository:visibility` | Changed visibility of repository |
 | `repository:convert:fork` | Converted repository from fork to regular repository |
 | `repository:convert:mirror` | Converted repository from mirror to regular repository |

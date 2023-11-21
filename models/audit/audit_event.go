@@ -17,16 +17,16 @@ func init() {
 }
 
 type Event struct {
-	ID          int64      `xorm:"pk autoincr"`
-	Action      Action     `xorm:"INDEX NOT NULL"`
-	ActorID     int64      `xorm:"INDEX NOT NULL"`
-	ScopeType   ObjectType `xorm:"INDEX(scope) NOT NULL"`
-	ScopeID     int64      `xorm:"INDEX(scope) NOT NULL"`
-	TargetType  ObjectType `xorm:"NOT NULL"`
-	TargetID    int64      `xorm:"NOT NULL"`
-	Message     string
-	IPAddress   string
-	CreatedUnix timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
+	ID            int64      `xorm:"pk autoincr"`
+	Action        Action     `xorm:"INDEX NOT NULL"`
+	ActorID       int64      `xorm:"INDEX NOT NULL"`
+	ScopeType     ObjectType `xorm:"INDEX(scope) NOT NULL"`
+	ScopeID       int64      `xorm:"INDEX(scope) NOT NULL"`
+	TargetType    ObjectType `xorm:"NOT NULL"`
+	TargetID      int64      `xorm:"NOT NULL"`
+	Message       string
+	IPAddress     string
+	TimestampUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL"`
 }
 
 func (_ *Event) TableName() string {
@@ -40,12 +40,10 @@ func InsertEvent(ctx context.Context, e *Event) (*Event, error) {
 type EventSort = string
 
 const (
-	SortCreatedAsc  EventSort = "created_asc"
-	SortCreatedDesc EventSort = "created_desc"
+	SortTimestampAsc  EventSort = "timestamp_asc"
+	SortTimestampDesc EventSort = "timestamp_desc"
 )
 
-// PackageSearchOptions are options for SearchXXX methods
-// All fields optional and are not used if they have their default value (nil, "", 0)
 type EventSearchOptions struct {
 	Action    Action
 	ActorID   int64
@@ -76,10 +74,10 @@ func (opts *EventSearchOptions) ToConds() builder.Cond {
 
 func (opts *EventSearchOptions) configureOrderBy(e db.Engine) {
 	switch opts.Sort {
-	case SortCreatedAsc:
-		e.Asc("created_unix")
+	case SortTimestampAsc:
+		e.Asc("timestamp_unix")
 	default:
-		e.Desc("created_unix")
+		e.Desc("timestamp_unix")
 	}
 
 	// Sort by id for stable order with duplicates in the other field

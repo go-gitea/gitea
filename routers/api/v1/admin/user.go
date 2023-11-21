@@ -310,22 +310,22 @@ func EditUser(ctx *context.APIContext) {
 	}
 
 	if passwordChanged {
-		audit.Record(ctx, audit_model.UserPassword, ctx.Doer, ctx.ContextUser, ctx.ContextUser, "Password of user %s changed.", ctx.ContextUser.Name)
+		audit.Record(ctx, audit_model.UserPassword, ctx.Doer, ctx.ContextUser, ctx.ContextUser, "Changed password of user %s.", ctx.ContextUser.Name)
 	}
 	if auditFields.LoginSource != ctx.ContextUser.LoginSource {
-		audit.Record(ctx, audit_model.UserAuthenticationSource, ctx.Doer, ctx.ContextUser, ctx.ContextUser, "Authentication source of user %s changed.", ctx.ContextUser.Name)
+		audit.Record(ctx, audit_model.UserAuthenticationSource, ctx.Doer, ctx.ContextUser, ctx.ContextUser, "Changed authentication source of user %s.", ctx.ContextUser.Name)
 	}
 	if auditFields.Visibility != ctx.ContextUser.Visibility {
-		audit.Record(ctx, audit_model.UserVisibility, ctx.Doer, ctx.ContextUser, ctx.ContextUser, "Visibility of user %s changed from %s to %s.", ctx.ContextUser.Name, auditFields.Visibility.String(), ctx.ContextUser.Visibility.String())
+		audit.Record(ctx, audit_model.UserVisibility, ctx.Doer, ctx.ContextUser, ctx.ContextUser, "Changed visibility of user %s from %s to %s.", ctx.ContextUser.Name, auditFields.Visibility.String(), ctx.ContextUser.Visibility.String())
 	}
 	if auditFields.IsActive != ctx.ContextUser.IsActive {
-		audit.Record(ctx, audit_model.UserActive, ctx.Doer, ctx.ContextUser, ctx.ContextUser, "Activation status of user %s changed to %s.", ctx.ContextUser.Name, audit.UserActiveString(ctx.ContextUser.IsActive))
+		audit.Record(ctx, audit_model.UserActive, ctx.Doer, ctx.ContextUser, ctx.ContextUser, "Changed activation status of user %s to %s.", ctx.ContextUser.Name, audit.UserActiveString(ctx.ContextUser.IsActive))
 	}
 	if auditFields.IsAdmin != ctx.ContextUser.IsAdmin {
-		audit.Record(ctx, audit_model.UserAdmin, ctx.Doer, ctx.ContextUser, ctx.ContextUser, "Admin status of user %s changed to %s.", ctx.ContextUser.Name, audit.UserAdminString(ctx.ContextUser.IsAdmin))
+		audit.Record(ctx, audit_model.UserAdmin, ctx.Doer, ctx.ContextUser, ctx.ContextUser, "Changed admin status of user %s to %s.", ctx.ContextUser.Name, audit.UserAdminString(ctx.ContextUser.IsAdmin))
 	}
 	if auditFields.IsRestricted != ctx.ContextUser.IsRestricted {
-		audit.Record(ctx, audit_model.UserRestricted, ctx.Doer, ctx.ContextUser, ctx.ContextUser, "Restricted status of user %s changed to %s.", ctx.ContextUser.Name, audit.UserRestrictedString(ctx.ContextUser.IsRestricted))
+		audit.Record(ctx, audit_model.UserRestricted, ctx.Doer, ctx.ContextUser, ctx.ContextUser, "Changed restricted status of user %s to %s.", ctx.ContextUser.Name, audit.UserRestrictedString(ctx.ContextUser.IsRestricted))
 	}
 
 	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, ctx.ContextUser.Name)

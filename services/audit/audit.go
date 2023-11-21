@@ -9,7 +9,6 @@ import (
 	"net"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	audit_model "code.gitea.io/gitea/models/audit"
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -25,10 +24,66 @@ import (
 )
 
 type TypeDescriptor struct {
-	Type        audit_model.ObjectType `json:"type"`
-	ID          int64                  `json:"id"`
-	DisplayName string                 `json:"display_name"`
-	Object      any                    `json:"-"`
+	Type   audit_model.ObjectType `json:"type"`
+	ID     int64                  `json:"id"`
+	Object any                    `json:"-"`
+}
+
+func (d TypeDescriptor) DisplayName() string {
+	switch t := d.Object.(type) {
+	case *repository_model.Repository:
+		return t.FullName()
+	case *user_model.User:
+		return t.Name
+	case *organization_model.Organization:
+		return t.Name
+	case *user_model.EmailAddress:
+		return t.Email
+	case *organization_model.Team:
+		return t.Name
+	case *auth_model.WebAuthnCredential:
+		return t.Name
+	case *user_model.UserOpenID:
+		return t.URI
+	case *auth_model.AccessToken:
+		return t.Name
+	case *auth_model.OAuth2Application:
+		return t.Name
+	case *auth_model.Source:
+		return t.Name
+	case *asymkey_model.PublicKey:
+		return t.Fingerprint
+	case *asymkey_model.GPGKey:
+		return t.KeyID
+	case *secret_model.Secret:
+		return t.Name
+	case *webhook_model.Webhook:
+		return t.URL
+	case *git_model.ProtectedTag:
+		return t.NamePattern
+	case *git_model.ProtectedBranch:
+		return t.RuleName
+	case *repository_model.PushMirror:
+		return t.RemoteAddress
+	}
+
+	if d.Type == audit_model.TypeSystem {
+		return "System"
+	}
+
+	return ""
+}
+
+func (d TypeDescriptor) HTMLURL() string {
+	switch t := d.Object.(type) {
+	case *repository_model.Repository:
+		return t.HTMLURL()
+	case *user_model.User:
+		return t.HTMLURL()
+	case *organization_model.Organization:
+		return t.HTMLURL()
+	}
+	return ""
 }
 
 type Event struct {
@@ -78,7 +133,7 @@ func BuildEvent(ctx context.Context, action audit_model.Action, actor *user_mode
 
 func scopeToDescription(scope any) TypeDescriptor {
 	if scope == nil {
-		return TypeDescriptor{audit_model.TypeSystem, 0, "System", nil}
+		return TypeDescriptor{audit_model.TypeSystem, 0, nil}
 	}
 
 	switch s := scope.(type) {
@@ -92,48 +147,42 @@ func scopeToDescription(scope any) TypeDescriptor {
 func typeToDescription(val any) TypeDescriptor {
 	switch t := val.(type) {
 	case *repository_model.Repository:
-		return TypeDescriptor{audit_model.TypeRepository, t.ID, t.FullName(), val}
+		return TypeDescriptor{audit_model.TypeRepository, t.ID, val}
 	case *user_model.User:
 		if t.IsOrganization() {
-			return TypeDescriptor{audit_model.TypeOrganization, t.ID, t.Name, val}
+			return TypeDescriptor{audit_model.TypeOrganization, t.ID, val}
 		}
-		return TypeDescriptor{audit_model.TypeUser, t.ID, t.Name, val}
+		return TypeDescriptor{audit_model.TypeUser, t.ID, val}
 	case *organization_model.Organization:
-		return TypeDescriptor{audit_model.TypeOrganization, t.ID, t.Name, val}
+		return TypeDescriptor{audit_model.TypeOrganization, t.ID, val}
 	case *user_model.EmailAddress:
-		return TypeDescriptor{audit_model.TypeEmailAddress, t.ID, t.Email, val}
+		return TypeDescriptor{audit_model.TypeEmailAddress, t.ID, val}
 	case *organization_model.Team:
-		return TypeDescriptor{audit_model.TypeTeam, t.ID, t.Name, val}
-	case *auth_model.TwoFactor:
-		return TypeDescriptor{audit_model.TypeTwoFactor, t.ID, "", val}
+		return TypeDescriptor{audit_model.TypeTeam, t.ID, val}
 	case *auth_model.WebAuthnCredential:
-		return TypeDescriptor{audit_model.TypeWebAuthnCredential, t.ID, t.Name, val}
+		return TypeDescriptor{audit_model.TypeWebAuthnCredential, t.ID, val}
 	case *user_model.UserOpenID:
-		return TypeDescriptor{audit_model.TypeOpenID, t.ID, t.URI, val}
+		return TypeDescriptor{audit_model.TypeOpenID, t.ID, val}
 	case *auth_model.AccessToken:
-		return TypeDescriptor{audit_model.TypeAccessToken, t.ID, t.Name, val}
+		return TypeDescriptor{audit_model.TypeAccessToken, t.ID, val}
 	case *auth_model.OAuth2Application:
-		return TypeDescriptor{audit_model.TypeOAuth2Application, t.ID, t.Name, val}
-	case *auth_model.OAuth2Grant:
-		return TypeDescriptor{audit_model.TypeOAuth2Grant, t.ID, "", val}
+		return TypeDescriptor{audit_model.TypeOAuth2Application, t.ID, val}
 	case *auth_model.Source:
-		return TypeDescriptor{audit_model.TypeAuthenticationSource, t.ID, t.Name, val}
+		return TypeDescriptor{audit_model.TypeAuthenticationSource, t.ID, val}
 	case *asymkey_model.PublicKey:
-		return TypeDescriptor{audit_model.TypePublicKey, t.ID, t.Fingerprint, val}
+		return TypeDescriptor{audit_model.TypePublicKey, t.ID, val}
 	case *asymkey_model.GPGKey:
-		return TypeDescriptor{audit_model.TypeGPGKey, t.ID, t.KeyID, val}
+		return TypeDescriptor{audit_model.TypeGPGKey, t.ID, val}
 	case *secret_model.Secret:
-		return TypeDescriptor{audit_model.TypeSecret, t.ID, t.Name, val}
+		return TypeDescriptor{audit_model.TypeSecret, t.ID, val}
 	case *webhook_model.Webhook:
-		return TypeDescriptor{audit_model.TypeWebhook, t.ID, t.URL, val}
+		return TypeDescriptor{audit_model.TypeWebhook, t.ID, val}
 	case *git_model.ProtectedTag:
-		return TypeDescriptor{audit_model.TypeProtectedTag, t.ID, t.NamePattern, val}
+		return TypeDescriptor{audit_model.TypeProtectedTag, t.ID, val}
 	case *git_model.ProtectedBranch:
-		return TypeDescriptor{audit_model.TypeProtectedBranch, t.ID, t.RuleName, val}
+		return TypeDescriptor{audit_model.TypeProtectedBranch, t.ID, val}
 	case *repository_model.PushMirror:
-		return TypeDescriptor{audit_model.TypePushMirror, t.ID, t.RemoteAddress, val}
-	case *models.RepoTransfer:
-		return TypeDescriptor{audit_model.TypeRepoTransfer, t.ID, "", val}
+		return TypeDescriptor{audit_model.TypePushMirror, t.ID, val}
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", t))
 	}

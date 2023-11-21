@@ -77,7 +77,7 @@ func CreatePost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.OrganizationCreate, ctx.Doer, org, org, "Organization %s was created.", org.Name)
+	audit.Record(ctx, audit_model.OrganizationCreate, ctx.Doer, org, org, "Created organization %s.", org.Name)
 
 	log.Trace("Organization created: %s", org.Name)
 

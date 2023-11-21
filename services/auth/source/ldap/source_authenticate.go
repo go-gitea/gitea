@@ -79,10 +79,10 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 
 	if user != nil {
 		if isAdminChanged {
-			audit.Record(ctx, audit_model.UserAdmin, audit.NewAuthenticationSourceUser(), user, user, "Admin status of user %s changed to %s.", user.Name, audit.UserAdminString(user.IsAdmin))
+			audit.Record(ctx, audit_model.UserAdmin, audit.NewAuthenticationSourceUser(), user, user, "Changed admin status of user %s to %s.", user.Name, audit.UserAdminString(user.IsAdmin))
 		}
 		if isRestrictedChanged {
-			audit.Record(ctx, audit_model.UserRestricted, audit.NewAuthenticationSourceUser(), user, user, "Restricted status of user %s changed to %s.", user.Name, audit.UserRestrictedString(user.IsRestricted))
+			audit.Record(ctx, audit_model.UserRestricted, audit.NewAuthenticationSourceUser(), user, user, "Changed restricted status of user %s to %s.", user.Name, audit.UserRestrictedString(user.IsRestricted))
 		}
 
 		if isAttributeSSHPublicKeySet {

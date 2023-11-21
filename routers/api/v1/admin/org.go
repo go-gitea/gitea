@@ -76,7 +76,7 @@ func CreateOrg(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.OrganizationCreate, ctx.Doer, org, org, "Organization %s was created.", org.Name)
+	audit.Record(ctx, audit_model.OrganizationCreate, ctx.Doer, org, org, "Created organization %s.", org.Name)
 
 	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, org))
 }

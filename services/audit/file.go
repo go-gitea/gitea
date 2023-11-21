@@ -6,6 +6,7 @@ package audit
 import (
 	"io"
 
+	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util/rotatingfilewriter"
@@ -37,6 +38,20 @@ func writeToFile(e *Event) error {
 		return nil
 	}
 	return WriteEventAsJSON(rfw, e)
+}
+
+func (d TypeDescriptor) MarshalJSON() ([]byte, error) {
+	type out struct {
+		Type        audit_model.ObjectType `json:"type"`
+		ID          int64                  `json:"id"`
+		DisplayName string                 `json:"display_name"`
+	}
+
+	return json.Marshal(out{
+		Type:        d.Type,
+		ID:          d.ID,
+		DisplayName: d.DisplayName(),
+	})
 }
 
 func WriteEventAsJSON(w io.Writer, e *Event) error {

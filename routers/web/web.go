@@ -669,6 +669,7 @@ func registerRoutes(m *web.Route) {
 		})
 
 		m.Group("/monitor", func() {
+			m.Get("/audit_logs", admin.ViewAuditLogs)
 			m.Get("/stats", admin.MonitorStats)
 			m.Get("/cron", admin.CronTasks)
 			m.Get("/stacktrace", admin.Stacktrace)
@@ -886,6 +887,8 @@ func registerRoutes(m *web.Route) {
 					addSettingVariablesRoutes()
 				}, actions.MustEnableActions)
 
+				m.Get("/audit_logs", org_setting.ViewAuditLogs)
+
 				m.Methods("GET,POST", "/delete", org.SettingsDelete)
 
 				m.Group("/packages", func() {
@@ -1064,6 +1067,7 @@ func registerRoutes(m *web.Route) {
 				addSettingsSecretsRoutes()
 				addSettingVariablesRoutes()
 			}, actions.MustEnableActions)
+			m.Get("/audit_logs", repo_setting.ViewAuditLogs)
 			// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
 			m.Group("/migrate", func() {
 				m.Post("/retry", repo.MigrateRetryPost)

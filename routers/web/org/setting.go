@@ -146,10 +146,10 @@ func SettingsPost(ctx *context.Context) {
 
 	audit.Record(ctx, audit_model.OrganizationUpdate, ctx.Doer, org, org, "Updated settings of organization %s.", org.Name)
 	if nameChanged {
-		audit.Record(ctx, audit_model.OrganizationName, ctx.Doer, org, org, "Organization name changed from %s to %s.", oldName, org.Name)
+		audit.Record(ctx, audit_model.OrganizationName, ctx.Doer, org, org, "Changed organization name from %s to %s.", oldName, org.Name)
 	}
 	if org.Visibility != oldVisibility {
-		audit.Record(ctx, audit_model.OrganizationVisibility, ctx.Doer, org, org, "Visibility of organization %s changed from %s to %s.", org.Name, oldVisibility.String(), org.Visibility.String())
+		audit.Record(ctx, audit_model.OrganizationVisibility, ctx.Doer, org, org, "Changed visibility of organization %s from %s to %s.", org.Name, oldVisibility.String(), org.Visibility.String())
 	}
 
 	log.Trace("Organization setting updated: %s", org.Name)

@@ -81,7 +81,7 @@ func AccountPost(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(ctx, audit_model.UserPassword, ctx.Doer, ctx.Doer, ctx.Doer, "Password of user %s changed.", ctx.Doer.Name)
+		audit.Record(ctx, audit_model.UserPassword, ctx.Doer, ctx.Doer, ctx.Doer, "Changed password of user %s.", ctx.Doer.Name)
 
 		log.Trace("User password updated: %s", ctx.Doer.Name)
 		ctx.Flash.Success(ctx.Tr("settings.change_password_success"))
@@ -219,7 +219,7 @@ func EmailPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
 	}
 
-	audit.Record(ctx, audit_model.UserEmailAdd, ctx.Doer, ctx.Doer, email, "Email %s added to user %s.", email.Email, ctx.Doer.Name)
+	audit.Record(ctx, audit_model.UserEmailAdd, ctx.Doer, ctx.Doer, email, "Added email %s to user %s.", email.Email, ctx.Doer.Name)
 
 	log.Trace("Email address added: %s", email.Email)
 	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
@@ -238,7 +238,7 @@ func DeleteEmail(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserEmailRemove, ctx.Doer, ctx.Doer, email, "Email %s removed from user %s.", email.Email, ctx.Doer.Name)
+	audit.Record(ctx, audit_model.UserEmailRemove, ctx.Doer, ctx.Doer, email, "Removed email %s from user %s.", email.Email, ctx.Doer.Name)
 
 	log.Trace("Email address deleted: %s", ctx.Doer.Name)
 

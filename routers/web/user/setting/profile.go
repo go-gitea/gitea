@@ -128,7 +128,7 @@ func ProfilePost(ctx *context.Context) {
 	audit.Record(ctx, audit_model.UserUpdate, ctx.Doer, ctx.Doer, ctx.Doer, "Updated settings of user %s.", ctx.Doer.Name)
 
 	if oldVisibility != ctx.Doer.Visibility {
-		audit.Record(ctx, audit_model.UserVisibility, ctx.Doer, ctx.Doer, ctx.Doer, "Visibility of user %s changed from %s to %s.", ctx.Doer.Name, oldVisibility.String(), ctx.Doer.Visibility.String())
+		audit.Record(ctx, audit_model.UserVisibility, ctx.Doer, ctx.Doer, ctx.Doer, "Changed visibility of user %s from %s to %s.", ctx.Doer.Name, oldVisibility.String(), ctx.Doer.Visibility.String())
 	}
 
 	ctx.Flash.Success(ctx.Tr("settings.update_profile_success"))

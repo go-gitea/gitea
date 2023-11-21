@@ -74,7 +74,7 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 		return err
 	}
 
-	audit.Record(ctx, audit_model.RepositoryDelete, doer, repo, repo, "Deleted repository %s.", repo.FullName()) // repo.Owner load?
+	audit.Record(ctx, audit_model.RepositoryDelete, doer, repo, repo, "Deleted repository %s.", repo.FullName())
 
 	return nil
 }

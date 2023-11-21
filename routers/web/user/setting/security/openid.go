@@ -123,7 +123,7 @@ func DeleteOpenID(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserOpenIDAdd, ctx.Doer, ctx.Doer, oid, "Removed OpenID %s from user %s.", oid.URI, ctx.Doer.Name)
+	audit.Record(ctx, audit_model.UserOpenIDRemove, ctx.Doer, ctx.Doer, oid, "Removed OpenID %s from user %s.", oid.URI, ctx.Doer.Name)
 
 	log.Trace("OpenID address deleted: %s", ctx.Doer.Name)
 

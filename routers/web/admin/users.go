@@ -500,22 +500,22 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if passwordChanged {
-		audit.Record(ctx, audit_model.UserPassword, ctx.Doer, u, u, "Password of user %s changed.", u.Name)
+		audit.Record(ctx, audit_model.UserPassword, ctx.Doer, u, u, "Changed password of user %s.", u.Name)
 	}
 	if auditFields.LoginSource != u.LoginSource {
-		audit.Record(ctx, audit_model.UserAuthenticationSource, ctx.Doer, u, u, "Authentication source of user %s changed.", u.Name)
+		audit.Record(ctx, audit_model.UserAuthenticationSource, ctx.Doer, u, u, "Changed authentication source of user %s.", u.Name)
 	}
 	if auditFields.Visibility != u.Visibility {
-		audit.Record(ctx, audit_model.UserVisibility, ctx.Doer, u, u, "Visibility of user %s changed from %s to %s.", u.Name, auditFields.Visibility.String(), u.Visibility.String())
+		audit.Record(ctx, audit_model.UserVisibility, ctx.Doer, u, u, "Changed visibility of user %s from %s to %s.", u.Name, auditFields.Visibility.String(), u.Visibility.String())
 	}
 	if auditFields.IsActive != u.IsActive {
-		audit.Record(ctx, audit_model.UserActive, ctx.Doer, u, u, "Activation status of user %s changed to %s.", u.Name, audit.UserActiveString(u.IsActive))
+		audit.Record(ctx, audit_model.UserActive, ctx.Doer, u, u, "Changed activation status of user %s to %s.", u.Name, audit.UserActiveString(u.IsActive))
 	}
 	if auditFields.IsAdmin != u.IsAdmin {
-		audit.Record(ctx, audit_model.UserAdmin, ctx.Doer, u, u, "Admin status of user %s changed to %s.", u.Name, audit.UserAdminString(u.IsAdmin))
+		audit.Record(ctx, audit_model.UserAdmin, ctx.Doer, u, u, "Changed admin status of user %s to %s.", u.Name, audit.UserAdminString(u.IsAdmin))
 	}
 	if auditFields.IsRestricted != u.IsRestricted {
-		audit.Record(ctx, audit_model.UserRestricted, ctx.Doer, u, u, "Restricted status of user %s changed to %s.", u.Name, audit.UserRestrictedString(u.IsRestricted))
+		audit.Record(ctx, audit_model.UserRestricted, ctx.Doer, u, u, "Changed restricted status of user %s to %s.", u.Name, audit.UserRestrictedString(u.IsRestricted))
 	}
 
 	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, u.Name)
