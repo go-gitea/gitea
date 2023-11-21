@@ -277,8 +277,21 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		operation = "create"
 	}
 
+	eol := setting.UI.EditorEol
+	editorconfigEol := ""
+	ec, _, err := ctx.Repo.GetEditorconfig()
+	if err == nil {
+		def, err := ec.GetDefinitionForFilename(form.TreePath)
+		if err == nil {
+			editorconfigEol = strings.ToUpper(def.EndOfLine)
+			if editorconfigEol != "" {
+				eol = editorconfigEol
+			}
+		}
+	}
+
 	content := form.Content
-	if setting.UI.EditorEol == "CRLF" {
+	if eol == "CRLF" {
 		content = util.ConvertToCRLF(content)
 	} else {
 		content = util.ConvertToLF(content)

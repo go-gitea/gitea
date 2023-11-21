@@ -5,6 +5,7 @@ package util
 
 import (
 	"strings"
+
 	"github.com/yuin/goldmark/util"
 )
 
