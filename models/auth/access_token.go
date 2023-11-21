@@ -15,9 +15,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	"xorm.io/builder"
 
 	lru "github.com/hashicorp/golang-lru/v2"
+	"xorm.io/builder"
 )
 
 // ErrAccessTokenNotExist represents a "AccessTokenNotExist" kind of error.
