@@ -277,6 +277,13 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		operation = "create"
 	}
 
+	content := form.Content
+	if setting.UI.EditorEol == "CRLF" {
+		content = util.ConvertToCRLF(content)
+	} else {
+		content = utils.ConvertToLF(content)
+	}
+
 	if _, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.ChangeRepoFilesOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
@@ -287,7 +294,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 				Operation:     operation,
 				FromTreePath:  ctx.Repo.TreePath,
 				TreePath:      form.TreePath,
-				ContentReader: strings.NewReader(form.Content),
+				ContentReader: strings.NewReader(content),
 			},
 		},
 		Signoff: form.Signoff,

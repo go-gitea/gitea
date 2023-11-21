@@ -45,3 +45,11 @@ func TestToSnakeCase(t *testing.T) {
 		assert.Equal(t, expected, ToSnakeCase(input))
 	}
 }
+
+func TestConvertToLF(t *testing.T) {
+	assert.Equal(t, "\na\nbc\n\n", ConvertToLF("\r\na\r\nb\rc\n\n"))
+}
+
+func TestConvertToCRLF(t *testing.T) {
+	assert.Equal(t, "\r\na\r\nbc\r\n\r\n", ConvertToCRLF("\r\na\r\nb\rc\n\n"))
+}

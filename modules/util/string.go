@@ -3,7 +3,10 @@
 
 package util
 
-import "github.com/yuin/goldmark/util"
+import (
+	"strings"
+	"github.com/yuin/goldmark/util"
+)
 
 func isSnakeCaseUpper(c byte) bool {
 	return 'A' <= c && c <= 'Z'
@@ -84,4 +87,12 @@ func ToSnakeCase(input string) string {
 		}
 	}
 	return util.BytesToReadOnlyString(res)
+}
+
+func ConvertToLF(str string) string {
+	return strings.ReplaceAll(str, "\r", "")
+}
+
+func ConvertToCRLF(str string) string {
+	return strings.ReplaceAll(ConvertToLF(str), "\n", "\r\n")
 }
