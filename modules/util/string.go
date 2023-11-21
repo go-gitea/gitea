@@ -90,10 +90,12 @@ func ToSnakeCase(input string) string {
 	return util.BytesToReadOnlyString(res)
 }
 
-func ConvertToLF(str string) string {
+// convert all newlines in string to \n
+func ToLF(str string) string {
 	return strings.ReplaceAll(str, "\r", "")
 }
 
-func ConvertToCRLF(str string) string {
-	return strings.ReplaceAll(ConvertToLF(str), "\n", "\r\n")
+// convert all newlines in string to \r\n
+func ToCRLF(str string) string {
+	return strings.ReplaceAll(ToLF(str), "\n", "\r\n")
 }
