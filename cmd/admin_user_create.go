@@ -97,7 +97,9 @@ func runCreateUser(c *cli.Context) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}
-	audit.Init()
+	if err := audit.Init(); err != nil {
+		return err
+	}
 
 	var password string
 	if c.IsSet("password") {

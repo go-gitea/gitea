@@ -51,13 +51,13 @@ func DeleteAccountLink(ctx *context.Context) {
 	}
 
 	if _, err := user_model.RemoveAccountLink(ctx, ctx.Doer, elu.LoginSourceID); err != nil {
-		ctx.Flash.Error("RemoveAccountLink: " + err.Error())
+		ctx.ServerError("RemoveAccountLink", err)
 		return
-	} else {
-		audit.Record(ctx, audit_model.UserExternalLoginRemove, ctx.Doer, ctx.Doer, ctx.Doer, "Removed external login %s for user %s.", elu.ExternalID, ctx.Doer.Name)
-
-		ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
 	}
+
+	audit.Record(ctx, audit_model.UserExternalLoginRemove, ctx.Doer, ctx.Doer, ctx.Doer, "Removed external login %s for user %s.", elu.ExternalID, ctx.Doer.Name)
+
+	ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
 
 	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
 }

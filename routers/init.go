@@ -164,7 +164,7 @@ func InitWebInstalled(ctx context.Context) {
 
 	actions_service.Init()
 
-	audit.Init()
+	mustInit(audit.Init)
 
 	// Finally start up the cron
 	cron.NewContext(ctx)

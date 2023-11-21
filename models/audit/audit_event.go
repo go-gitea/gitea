@@ -29,7 +29,7 @@ type Event struct {
 	TimestampUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL"`
 }
 
-func (_ *Event) TableName() string {
+func (*Event) TableName() string {
 	return "audit_event"
 }
 

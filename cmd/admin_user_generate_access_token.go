@@ -53,7 +53,9 @@ func runGenerateAccessToken(c *cli.Context) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}
-	audit.Init()
+	if err := audit.Init(); err != nil {
+		return err
+	}
 
 	user, err := user_model.GetUserByName(ctx, c.String("username"))
 	if err != nil {

@@ -339,7 +339,9 @@ func (a *authService) addLdapSource(c *cli.Context, authType auth.Type, args ...
 	if err := a.initDB(ctx); err != nil {
 		return err
 	}
-	audit.Init()
+	if err := audit.Init(); err != nil {
+		return err
+	}
 
 	authSource := &auth.Source{
 		Type:     authType,
@@ -370,7 +372,9 @@ func (a *authService) updateLdapSource(c *cli.Context, authType auth.Type) error
 	if err := a.initDB(ctx); err != nil {
 		return err
 	}
-	audit.Init()
+	if err := audit.Init(); err != nil {
+		return err
+	}
 
 	authSource, err := a.getAuthSource(ctx, c, authType)
 	if err != nil {

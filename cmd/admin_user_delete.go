@@ -52,7 +52,9 @@ func runDeleteUser(c *cli.Context) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}
-	audit.Init()
+	if err := audit.Init(); err != nil {
+		return err
+	}
 	if err := storage.Init(); err != nil {
 		return err
 	}
