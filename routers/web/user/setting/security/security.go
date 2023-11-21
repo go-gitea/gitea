@@ -76,7 +76,10 @@ func loadSecurityData(ctx *context.Context) {
 	}
 	ctx.Data["Tokens"] = tokens
 
-	accountLinks, err := user_model.ListAccountLinks(ctx, ctx.Doer)
+	accountLinks, err := db.Find[user_model.ExternalLoginUser](ctx, user_model.FindExternalUserOptions{
+		UserID:  ctx.Doer.ID,
+		OrderBy: "login_source_id DESC",
+	})
 	if err != nil {
 		ctx.ServerError("ListAccountLinks", err)
 		return
