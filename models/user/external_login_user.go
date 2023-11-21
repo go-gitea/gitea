@@ -180,16 +180,3 @@ func (opts FindExternalUserOptions) ToConds() builder.Cond {
 func (opts FindExternalUserOptions) ToOrders() string {
 	return opts.OrderBy
 }
-
-// FindExternalUsersByProvider represents external users via provider
-/*func FindExternalUsersByProvider(ctx context.Context, opts FindExternalUserOptions) ([]ExternalLoginUser, error) {
-	var users []ExternalLoginUser
-	err := db.GetEngine(ctx).Where(opts.toConds()).
-		Limit(opts.Limit, opts.Start).
-		OrderBy("login_source_id ASC, external_id ASC").
-		Find(&users)
-	if err != nil {
-		return nil, err
-	}
-	return users, nil
-}*/
