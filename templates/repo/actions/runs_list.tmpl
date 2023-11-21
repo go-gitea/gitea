@@ -12,7 +12,7 @@
 			</div>
 			<div class="flex-item-main">
 				<a class="flex-item-title" title="{{.Title}}" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
-					{{if .Title}}{{- .Title -}}{{else}}&lt;{{ctx.Locale.Tr "actions.runs.no_commit_message"}}&gt;{{end}}
+					{{if .Title}}{{- .Title -}}{{else}}&lt;{{ctx.Locale.Tr "actions.runs.empty_commit_message"}}&gt;{{end}}
 				</a>
 				<div class="flex-item-body">
 					<b>{{if not $.CurWorkflow}}{{.WorkflowID}} {{end}}#{{.Index}}</b>:
