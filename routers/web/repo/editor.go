@@ -281,7 +281,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 	if setting.UI.EditorEol == "CRLF" {
 		content = util.ConvertToCRLF(content)
 	} else {
-		content = utils.ConvertToLF(content)
+		content = util.ConvertToLF(content)
 	}
 
 	if _, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.ChangeRepoFilesOptions{
