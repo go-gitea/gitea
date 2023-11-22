@@ -331,6 +331,10 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 
 		ctx.Data["FileContent"] = buf.String()
 	}
+
+	if !fInfo.isLFSFile && ctx.Repo.CanEnableEditor(ctx, ctx.Doer) {
+		ctx.Data["CanEditReadmeFile"] = true
+	}
 }
 
 func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink string) {

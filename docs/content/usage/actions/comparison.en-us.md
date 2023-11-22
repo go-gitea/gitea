@@ -116,8 +116,8 @@ Pre and Post steps don't have their own section in the job log user interface.
 
 Previously (Pre 1.21.0), `[actions].DEFAULT_ACTIONS_URL` defaulted to `https://gitea.com`.
 We have since restricted this option to only allow two values (`github` and `self`).
-When set to `github`, the new default, Gitea will download non-fully-qualified actions from <https://github.com>.
-For example, if you use `uses: actions/checkout@v3`, it will download the checkout repository from <https://github.com/actions/checkout.git>.
+When set to `github`, the new default, Gitea will download non-fully-qualified actions from `https://github.com`.
+For example, if you use `uses: actions/checkout@v3`, it will download the checkout repository from `https://github.com/actions/checkout.git`.
 
 If you want to download an action from another git hoster, you can use an absolute URL, e.g. `uses: https://gitea.com/actions/checkout@v3`.
 
