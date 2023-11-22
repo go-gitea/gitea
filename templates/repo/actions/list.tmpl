@@ -4,6 +4,7 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 
+		{{if .workflows}}
 		<div class="ui stackable grid">
 			<div class="four wide column">
 				<div class="ui fluid vertical menu">
@@ -78,6 +79,9 @@
 				{{template "repo/actions/runs_list" .}}
 			</div>
 		</div>
+		{{else}}
+			{{template "repo/actions/no_workflows" .}}
+		{{end}}
 	</div>
 </div>
 {{template "base/footer" .}}
