@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -199,7 +198,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 }
 
 // CreateRepositoryDirectly creates a repository for the user/organization.
-func CreateRepositoryDirectly(doer, u *user_model.User, opts CreateRepoOptions) (*repo_model.Repository, error) {
+func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opts CreateRepoOptions) (*repo_model.Repository, error) {
 	if !doer.IsAdmin && !u.CanCreateRepo() {
 		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: u.MaxRepoCreation,
@@ -239,7 +238,7 @@ func CreateRepositoryDirectly(doer, u *user_model.User, opts CreateRepoOptions) 
 
 	var rollbackRepo *repo_model.Repository
 
-	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := repo_module.CreateRepositoryByExample(ctx, doer, u, repo, false, false); err != nil {
 			return err
 		}
@@ -303,7 +302,7 @@ func CreateRepositoryDirectly(doer, u *user_model.User, opts CreateRepoOptions) 
 		return nil
 	}); err != nil {
 		if rollbackRepo != nil {
-			if errDelete := models.DeleteRepository(doer, rollbackRepo.OwnerID, rollbackRepo.ID); errDelete != nil {
+			if errDelete := DeleteRepositoryDirectly(ctx, doer, rollbackRepo.ID); errDelete != nil {
 				log.Error("Rollback deleteRepository: %v", errDelete)
 			}
 		}

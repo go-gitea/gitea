@@ -16,7 +16,6 @@ import (
 // SetEditorconfigIfExists set editor config as render variable
 func SetEditorconfigIfExists(ctx *context.Context) {
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.Data["Editorconfig"] = nil
 		return
 	}
 
@@ -56,7 +55,7 @@ func SetDiffViewStyle(ctx *context.Context) {
 	}
 
 	ctx.Data["IsSplitStyle"] = style == "split"
-	if err := user_model.UpdateUserDiffViewStyle(ctx.Doer, style); err != nil {
+	if err := user_model.UpdateUserDiffViewStyle(ctx, ctx.Doer, style); err != nil {
 		ctx.ServerError("ErrUpdateDiffViewStyle", err)
 	}
 }
@@ -72,12 +71,12 @@ func SetWhitespaceBehavior(ctx *context.Context) {
 		whitespaceBehavior = defaultWhitespaceBehavior
 	}
 	if ctx.IsSigned {
-		userWhitespaceBehavior, err := user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsKeyDiffWhitespaceBehavior, defaultWhitespaceBehavior)
+		userWhitespaceBehavior, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyDiffWhitespaceBehavior, defaultWhitespaceBehavior)
 		if err == nil {
 			if whitespaceBehavior == "" {
 				whitespaceBehavior = userWhitespaceBehavior
 			} else if whitespaceBehavior != userWhitespaceBehavior {
-				_ = user_model.SetUserSetting(ctx.Doer.ID, user_model.SettingsKeyDiffWhitespaceBehavior, whitespaceBehavior)
+				_ = user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyDiffWhitespaceBehavior, whitespaceBehavior)
 			}
 		} // else: we can ignore the error safely
 	}
@@ -98,7 +97,7 @@ func SetShowOutdatedComments(ctx *context.Context) {
 	if showOutdatedCommentsValue != "true" && showOutdatedCommentsValue != "false" {
 		// invalid or no value for this form string -> use default or stored user setting
 		if ctx.IsSigned {
-			showOutdatedCommentsValue, _ = user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsKeyShowOutdatedComments, "false")
+			showOutdatedCommentsValue, _ = user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyShowOutdatedComments, "false")
 		} else {
 			// not logged in user -> use the default value
 			showOutdatedCommentsValue = "false"
@@ -106,7 +105,7 @@ func SetShowOutdatedComments(ctx *context.Context) {
 	} else {
 		// valid value -> update user setting if user is logged in
 		if ctx.IsSigned {
-			_ = user_model.SetUserSetting(ctx.Doer.ID, user_model.SettingsKeyShowOutdatedComments, showOutdatedCommentsValue)
+			_ = user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyShowOutdatedComments, showOutdatedCommentsValue)
 		}
 	}
 

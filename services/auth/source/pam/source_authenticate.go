@@ -4,6 +4,7 @@
 package pam
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -18,7 +19,7 @@ import (
 
 // Authenticate queries if login/password is valid against the PAM,
 // and create a local user if success when enabled.
-func (source *Source) Authenticate(user *user_model.User, userName, password string) (*user_model.User, error) {
+func (source *Source) Authenticate(ctx context.Context, user *user_model.User, userName, password string) (*user_model.User, error) {
 	pamLogin, err := pam.Auth(source.ServiceName, userName, password)
 	if err != nil {
 		if strings.Contains(err.Error(), "Authentication failure") {
@@ -62,7 +63,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 		IsActive: util.OptionalBoolTrue,
 	}
 
-	if err := user_model.CreateUser(user, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, user, overwriteDefault); err != nil {
 		return user, err
 	}
 

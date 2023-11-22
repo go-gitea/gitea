@@ -150,7 +150,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`)
 	t.Run("UploadExists", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		uploadFile(t, http.StatusBadRequest)
+		uploadFile(t, http.StatusConflict)
 	})
 
 	t.Run("Download", func(t *testing.T) {

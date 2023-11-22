@@ -138,9 +138,9 @@ All Gitea instances have the built-in API and there is no way to disable it comp
 You can, however, disable showing its documentation by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`.
 For more information, refer to Gitea's [API docs](development/api-usage.md).
 
-You can see the latest API (for example) on <https://try.gitea.io/api/swagger>.
+You can see the latest API (for example) on https://try.gitea.io/api/swagger
 
-You can also see an example of the `swagger.json` file at <https://try.gitea.io/swagger.v1.json>.
+You can also see an example of the `swagger.json` file at https://try.gitea.io/swagger.v1.json
 
 ## Adjusting your server for public/private use
 
@@ -181,7 +181,7 @@ Use [Fail2Ban](administration/fail2ban-setup.md) to monitor and stop automated l
 
 ## How to add/use custom themes
 
-Gitea supports three official themes right now, `gitea` (light), `arc-green` (dark), and `auto` (automatically switches between the previous two depending on operating system settings).
+Gitea supports three official themes right now, `gitea-light`, `gitea-dark`, and `gitea-auto` (automatically switches between the previous two depending on operating system settings).
 To add your own theme, currently the only way is to provide a complete theme (not just color overrides)
 
 As an example, let's say our theme is `arc-blue` (this is a real theme, and can be found [in this issue](https://github.com/go-gitea/gitea/issues/6011))

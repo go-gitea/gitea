@@ -252,22 +252,22 @@ func (c *Comment) neuterCrossReferences(ctx context.Context) error {
 }
 
 // LoadRefComment loads comment that created this reference from database
-func (c *Comment) LoadRefComment() (err error) {
+func (c *Comment) LoadRefComment(ctx context.Context) (err error) {
 	if c.RefComment != nil {
 		return nil
 	}
-	c.RefComment, err = GetCommentByID(db.DefaultContext, c.RefCommentID)
+	c.RefComment, err = GetCommentByID(ctx, c.RefCommentID)
 	return err
 }
 
 // LoadRefIssue loads comment that created this reference from database
-func (c *Comment) LoadRefIssue() (err error) {
+func (c *Comment) LoadRefIssue(ctx context.Context) (err error) {
 	if c.RefIssue != nil {
 		return nil
 	}
-	c.RefIssue, err = GetIssueByID(db.DefaultContext, c.RefIssueID)
+	c.RefIssue, err = GetIssueByID(ctx, c.RefIssueID)
 	if err == nil {
-		err = c.RefIssue.LoadRepo(db.DefaultContext)
+		err = c.RefIssue.LoadRepo(ctx)
 	}
 	return err
 }
@@ -278,21 +278,21 @@ func CommentTypeIsRef(t CommentType) bool {
 }
 
 // RefCommentLink returns the relative URL for the comment that created this reference
-func (c *Comment) RefCommentLink() string {
+func (c *Comment) RefCommentLink(ctx context.Context) string {
 	// Edge case for when the reference is inside the title or the description of the referring issue
 	if c.RefCommentID == 0 {
-		return c.RefIssueLink()
+		return c.RefIssueLink(ctx)
 	}
-	if err := c.LoadRefComment(); err != nil { // Silently dropping errors :unamused:
+	if err := c.LoadRefComment(ctx); err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadRefComment(%d): %v", c.RefCommentID, err)
 		return ""
 	}
-	return c.RefComment.Link()
+	return c.RefComment.Link(ctx)
 }
 
 // RefIssueLink returns the relative URL of the issue where this reference was created
-func (c *Comment) RefIssueLink() string {
-	if err := c.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
+func (c *Comment) RefIssueLink(ctx context.Context) string {
+	if err := c.LoadRefIssue(ctx); err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadRefIssue(%d): %v", c.RefCommentID, err)
 		return ""
 	}
@@ -300,8 +300,8 @@ func (c *Comment) RefIssueLink() string {
 }
 
 // RefIssueTitle returns the title of the issue where this reference was created
-func (c *Comment) RefIssueTitle() string {
-	if err := c.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
+func (c *Comment) RefIssueTitle(ctx context.Context) string {
+	if err := c.LoadRefIssue(ctx); err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadRefIssue(%d): %v", c.RefCommentID, err)
 		return ""
 	}
@@ -309,8 +309,8 @@ func (c *Comment) RefIssueTitle() string {
 }
 
 // RefIssueIdent returns the user friendly identity (e.g. "#1234") of the issue where this reference was created
-func (c *Comment) RefIssueIdent() string {
-	if err := c.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
+func (c *Comment) RefIssueIdent(ctx context.Context) string {
+	if err := c.LoadRefIssue(ctx); err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadRefIssue(%d): %v", c.RefCommentID, err)
 		return ""
 	}
