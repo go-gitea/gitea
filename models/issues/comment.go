@@ -1274,6 +1274,7 @@ func InsertIssueComments(ctx context.Context, comments []*Comment) error {
 	}
 	defer committer.Close()
 	for _, comment := range comments {
+		comment.Content = replaceNullByte(comment.Content)
 		if _, err := db.GetEngine(ctx).NoAutoTime().Insert(comment); err != nil {
 			return err
 		}

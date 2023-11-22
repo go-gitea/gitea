@@ -5,6 +5,7 @@
 package issues
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"regexp"
@@ -901,8 +902,17 @@ func InsertIssues(ctx context.Context, issues ...*Issue) error {
 	return committer.Commit()
 }
 
+func replaceNullByte(s string) string {
+	if !setting.Database.Type.IsPostgreSQL() {
+		return s
+	}
+	return string(bytes.ReplaceAll([]byte(s), []byte{0x00}, []byte{}))
+}
+
 func insertIssue(ctx context.Context, issue *Issue) error {
 	sess := db.GetEngine(ctx)
+	issue.Title = replaceNullByte(issue.Title)
+	issue.Content = replaceNullByte(issue.Content)
 	if _, err := sess.NoAutoTime().Insert(issue); err != nil {
 		return err
 	}
