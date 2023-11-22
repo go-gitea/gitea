@@ -75,6 +75,10 @@
 							</div>
 						</button>
 					{{end}}
+
+					{{if .AllowTriggerWorkflowDispatchEvent}}
+						<button class="ui basic small compact button gt-mr-0 link-action" data-url="{{$.Link}}/run?workflow={{$.CurWorkflow}}&actor={{.CurActor}}&status={{$.CurStatus}}">{{ctx.Locale.Tr "Run workflow"}}</button>
+					{{end}}
 				</div>
 				{{template "repo/actions/runs_list" .}}
 			</div>

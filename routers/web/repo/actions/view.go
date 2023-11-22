@@ -5,10 +5,12 @@ package actions
 
 import (
 	"archive/zip"
+	"code.gitea.io/gitea/modules/log"
 	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/nektos/act/pkg/jobparser"
 	"io"
 	"net/http"
 	"net/url"
@@ -26,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 	actions_service "code.gitea.io/gitea/services/actions"
 	context_module "code.gitea.io/gitea/services/context"
 
@@ -670,6 +673,103 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 	} else {
 		ctx.Flash.Success(ctx.Tr("actions.workflow.disable_success", workflow))
 	}
+
+	redirectURL := fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s", ctx.Repo.RepoLink, url.QueryEscape(workflow),
+		url.QueryEscape(ctx.FormString("actor")), url.QueryEscape(ctx.FormString("status")))
+	ctx.JSONRedirect(redirectURL)
+}
+
+func Run(ctx *context_module.Context) {
+	workflow := ctx.FormString("workflow")
+	if len(workflow) == 0 {
+		ctx.ServerError("workflow", nil)
+		return
+	}
+
+	// can not rerun job when workflow is disabled
+	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
+	cfg := cfgUnit.ActionsConfig()
+	if cfg.IsWorkflowDisabled(workflow) {
+		ctx.JSONError(ctx.Locale.Tr("actions.workflow.disabled"))
+		return
+	}
+
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	entries, err := actions.ListWorkflows(commit)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	var dwf *actions.DetectedWorkflow = nil
+	for _, entry := range entries {
+		if entry.Name() == workflow {
+			content, err := actions.GetContentFromEntry(entry)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, err.Error())
+				return
+			}
+			dwf = &actions.DetectedWorkflow{
+				EntryName:    entry.Name(),
+				TriggerEvent: webhook_module.HookEventWorkflowDispatch.Event(),
+				Content:      content,
+			}
+			break
+		}
+	}
+
+	if dwf == nil {
+		ctx.JSONError(ctx.Locale.Tr("actions.workflow.not_found"))
+		return
+	}
+
+	run := &actions_model.ActionRun{
+		Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
+		RepoID:            ctx.Repo.Repository.ID,
+		OwnerID:           ctx.Repo.Repository.OwnerID,
+		WorkflowID:        workflow,
+		TriggerUserID:     ctx.Doer.ID,
+		Ref:               ctx.Repo.Repository.DefaultBranch,
+		CommitSHA:         commit.ID.String(),
+		IsForkPullRequest: false,
+		Event:             webhook_module.HookEventWorkflowDispatch,
+		TriggerEvent:      webhook_module.HookEventWorkflowDispatch.Event(),
+		Status:            actions_model.StatusWaiting,
+	}
+
+	// cancel running jobs of the same workflow
+	if err := actions_model.CancelRunningJobs(
+		ctx,
+		run.RepoID,
+		run.Ref,
+		run.WorkflowID,
+	); err != nil {
+		log.Error("CancelRunningJobs: %v", err)
+	}
+
+	// Parse the workflow specification from the cron schedule
+	workflows, err := jobparser.Parse(dwf.Content)
+	if err != nil {
+		ctx.ServerError("workflow", err)
+		return
+	}
+
+	// Insert the action run and its associated jobs into the database
+	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
+		ctx.ServerError("workflow", err)
+		return
+	}
+
+	alljobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID})
+	if err != nil {
+		log.Error("FindRunJobs: %v", err)
+	}
+	actions_service.CreateCommitStatus(ctx, alljobs...)
 
 	redirectURL := fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s", ctx.Repo.RepoLink, url.QueryEscape(workflow),
 		url.QueryEscape(ctx.FormString("actor")), url.QueryEscape(ctx.FormString("status")))
