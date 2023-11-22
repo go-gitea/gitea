@@ -4,7 +4,8 @@
 		{{$createdStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
 
 		<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF,
-		5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING,
+		5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 8 = MILESTONE_CHANGE,
+		9 = ASSIGNEES_CHANGE, 10 = TITLE_CHANGE, 11 = DELETE_BRANCH, 12 = START_TRACKING,
 		13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL, 16 = ADDED_DEADLINE, 17 = MODIFIED_DEADLINE,
 		18 = REMOVED_DEADLINE, 19 = ADD_DEPENDENCY, 20 = REMOVE_DEPENDENCY, 21 = CODE,
 		22 = REVIEW, 23 = ISSUE_LOCKED, 24 = ISSUE_UNLOCKED, 25 = TARGET_BRANCH_CHANGED,
@@ -184,31 +185,29 @@
 					{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{ctx.Locale.Tr "repo.issues.change_milestone_at" (.OldMilestone.Name|Escape) (.Milestone.Name|Escape) $createdStr | Safe}}{{else}}{{ctx.Locale.Tr "repo.issues.remove_milestone_at" (.OldMilestone.Name|Escape) $createdStr | Safe}}{{end}}{{else if gt .MilestoneID 0}}{{ctx.Locale.Tr "repo.issues.add_milestone_at" (.Milestone.Name|Escape) $createdStr | Safe}}{{end}}
 				</span>
 			</div>
-		{{else if eq .Type 9}}
+		{{else if and (eq .Type 9) (gt .AssigneeID 0)}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-person"}}</span>
-				{{if gt .AssigneeID 0}}
-					{{if .RemovedAssignee}}
-						{{template "shared/user/avatarlink" dict "user" .Assignee}}
-						<span class="text grey muted-links">
-							{{template "shared/user/authorlink" .Assignee}}
-							{{if eq .Poster.ID .Assignee.ID}}
-								{{ctx.Locale.Tr "repo.issues.remove_self_assignment" $createdStr | Safe}}
-							{{else}}
-								{{ctx.Locale.Tr "repo.issues.remove_assignee_at" (.Poster.GetDisplayName|Escape) $createdStr | Safe}}
-							{{end}}
-						</span>
-					{{else}}
-						{{template "shared/user/avatarlink" dict "user" .Assignee}}
-						<span class="text grey muted-links">
-							{{template "shared/user/authorlink" .Assignee}}
-							{{if eq .Poster.ID .AssigneeID}}
-								{{ctx.Locale.Tr "repo.issues.self_assign_at" $createdStr | Safe}}
-							{{else}}
-								{{ctx.Locale.Tr "repo.issues.add_assignee_at" (.Poster.GetDisplayName|Escape) $createdStr | Safe}}
-							{{end}}
-						</span>
-					{{end}}
+				{{if .RemovedAssignee}}
+					{{template "shared/user/avatarlink" dict "user" .Assignee}}
+					<span class="text grey muted-links">
+						{{template "shared/user/authorlink" .Assignee}}
+						{{if eq .Poster.ID .Assignee.ID}}
+							{{ctx.Locale.Tr "repo.issues.remove_self_assignment" $createdStr | Safe}}
+						{{else}}
+							{{ctx.Locale.Tr "repo.issues.remove_assignee_at" (.Poster.GetDisplayName|Escape) $createdStr | Safe}}
+						{{end}}
+					</span>
+				{{else}}
+					{{template "shared/user/avatarlink" dict "user" .Assignee}}
+					<span class="text grey muted-links">
+						{{template "shared/user/authorlink" .Assignee}}
+						{{if eq .Poster.ID .AssigneeID}}
+							{{ctx.Locale.Tr "repo.issues.self_assign_at" $createdStr | Safe}}
+						{{else}}
+							{{ctx.Locale.Tr "repo.issues.add_assignee_at" (.Poster.GetDisplayName|Escape) $createdStr | Safe}}
+						{{end}}
+					</span>
 				{{end}}
 			</div>
 		{{else if eq .Type 10}}

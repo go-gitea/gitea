@@ -251,7 +251,7 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
-	if err := cargo_service.AddOrUpdatePackageIndex(ctx, ctx.Doer, ctx.Package.Owner, pv.PackageID); err != nil {
+	if err := cargo_service.UpdatePackageIndexIfExists(ctx, ctx.Doer, ctx.Package.Owner, pv.PackageID); err != nil {
 		if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
 			log.Error("Rollback creation of package version: %v", err)
 		}
@@ -302,7 +302,7 @@ func yankPackage(ctx *context.Context, yank bool) {
 		return
 	}
 
-	if err := cargo_service.AddOrUpdatePackageIndex(ctx, ctx.Doer, ctx.Package.Owner, pv.PackageID); err != nil {
+	if err := cargo_service.UpdatePackageIndexIfExists(ctx, ctx.Doer, ctx.Package.Owner, pv.PackageID); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}

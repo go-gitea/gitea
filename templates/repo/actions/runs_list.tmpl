@@ -1,6 +1,6 @@
 <div class="flex-list">
 	{{if eq (len .Runs) 0}}
-	<div class="empty center">
+	<div class="empty-placeholder">
 		{{svg "octicon-no-entry" 48}}
 		<h2>{{if $.IsFiltered}}{{ctx.Locale.Tr "actions.runs.no_results"}}{{else}}{{ctx.Locale.Tr "actions.runs.no_runs"}}{{end}}</h2>
 	</div>
@@ -12,7 +12,7 @@
 			</div>
 			<div class="flex-item-main">
 				<a class="flex-item-title" title="{{.Title}}" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
-					{{- .Title -}}
+					{{if .Title}}{{.Title}}{{else}}{{ctx.Locale.Tr "actions.runs.empty_commit_message"}}{{end}}
 				</a>
 				<div class="flex-item-body">
 					<b>{{if not $.CurWorkflow}}{{.WorkflowID}} {{end}}#{{.Index}}</b>:
