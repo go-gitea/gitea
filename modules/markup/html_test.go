@@ -287,6 +287,14 @@ func TestRender_email(t *testing.T) {
 		"git@try.gitea.io:go-gitea/gitea.git",
 		`<p>git@try.gitea.io:go-gitea/gitea.git</p>`)
 	test(
+		"?a@example.com",
+		`<p>?a@example.com</p>`)
+	test(
+		"~a@example.com",
+		`<p>~a@example.com</p>`)
+	test("*a@example.com",
+		`<p>*a@example.com</p>`)
+	test(
 		"gitea@3",
 		`<p>gitea@3</p>`)
 	test(
