@@ -69,22 +69,14 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 		})
 		count = len(keys)
 	} else {
-		total, err2 := db.Count[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
-			OwnerID:    user.ID,
-			NotKeytype: asymkey_model.KeyTypePrincipal,
-		})
-		if err2 != nil {
-			ctx.InternalServerError(err)
-			return
-		}
-		count = int(total)
-
+		var total int64
 		// Use ListPublicKeys
-		keys, err = db.Find[*asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+		keys, total, err = db.FindAndCount[*asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
 			ListOptions: utils.GetListOptions(ctx),
 			OwnerID:     user.ID,
 			NotKeytype:  asymkey_model.KeyTypePrincipal,
 		})
+		count = int(total)
 	}
 
 	if err != nil {

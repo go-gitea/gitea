@@ -31,6 +31,27 @@ func TestCreateOrUpdateIssueNotifications(t *testing.T) {
 	assert.Equal(t, activities_model.NotificationStatusUnread, notf.Status)
 }
 
+func TestNotificationsForUser(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	notfs, err := db.Find[activities_model.Notification](db.DefaultContext, activities_model.FindNotificationOptions{
+		UserID: user.ID,
+		Status: []activities_model.NotificationStatus{
+			activities_model.NotificationStatusRead,
+			activities_model.NotificationStatusUnread,
+		},
+	})
+	assert.NoError(t, err)
+	if assert.Len(t, notfs, 3) {
+		assert.EqualValues(t, 5, notfs[0].ID)
+		assert.EqualValues(t, user.ID, notfs[0].UserID)
+		assert.EqualValues(t, 4, notfs[1].ID)
+		assert.EqualValues(t, user.ID, notfs[1].UserID)
+		assert.EqualValues(t, 2, notfs[2].ID)
+		assert.EqualValues(t, user.ID, notfs[2].UserID)
+	}
+}
+
 func TestNotification_GetRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	notf := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{RepoID: 1})
@@ -38,6 +59,28 @@ func TestNotification_GetRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, repo, notf.Repository)
 	assert.EqualValues(t, notf.RepoID, repo.ID)
+}
+
+func TestGetNotificationCount(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	cnt, err := db.Count[activities_model.Notification](db.DefaultContext, activities_model.FindNotificationOptions{
+		UserID: user.ID,
+		Status: []activities_model.NotificationStatus{
+			activities_model.NotificationStatusRead,
+		},
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, cnt)
+
+	cnt, err = db.Count[activities_model.Notification](db.DefaultContext, activities_model.FindNotificationOptions{
+		UserID: user.ID,
+		Status: []activities_model.NotificationStatus{
+			activities_model.NotificationStatusUnread,
+		},
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
 }
 
 func TestNotification_GetIssue(t *testing.T) {
