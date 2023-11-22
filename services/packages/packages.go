@@ -175,17 +175,6 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 				return nil, false, err
 			}
 		}
-
-		repository, err := repo_model.GetRepositoryByOwnerAndName(
-			ctx, pvci.Owner.Name, pvci.Name,
-		)
-		if err == nil {
-			err = packages_model.SetRepositoryLink(ctx, p.ID, repository.ID)
-			if err != nil {
-				log.Error("Error linking source code repo to package: %v", err)
-				return nil, false, err
-			}
-		}
 	}
 
 	metadataJSON, err := json.Marshal(pvci.Metadata)
