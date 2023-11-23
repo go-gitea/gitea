@@ -706,7 +706,7 @@ func Run(ctx *context_module.Context) {
 		return
 	}
 
-	var dwf *actions.DetectedWorkflow = nil
+	var dwf *actions.DetectedWorkflow
 	for _, entry := range entries {
 		if entry.Name() == workflow {
 			content, err := actions.GetContentFromEntry(entry)
