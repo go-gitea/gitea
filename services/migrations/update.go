@@ -44,7 +44,7 @@ func updateMigrationPosterIDByGitService(ctx context.Context, tp structs.GitServ
 		default:
 		}
 
-		users, err := db.Find[user_model.ExternalLoginUser](ctx, user_model.FindExternalUserOptions{
+		users, err := db.Find[*user_model.ExternalLoginUser](ctx, user_model.FindExternalUserOptions{
 			ListOptions: db.ListOptions{
 				PageSize: batchSize,
 				Page:     page,

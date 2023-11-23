@@ -37,7 +37,7 @@ func TestFind(t *testing.T) {
 	assert.NotEmpty(t, repoUnitCount)
 
 	opts := mockListOptions{}
-	repoUnits, err := db.Find[repo_model.RepoUnit](db.DefaultContext, opts)
+	repoUnits, err := db.Find[*repo_model.RepoUnit](db.DefaultContext, opts)
 	assert.NoError(t, err)
 	assert.Len(t, repoUnits, repoUnitCount)
 
@@ -45,7 +45,7 @@ func TestFind(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, repoUnitCount, cnt)
 
-	repoUnits, newCnt, err := db.FindAndCount[repo_model.RepoUnit](db.DefaultContext, opts)
+	repoUnits, newCnt, err := db.FindAndCount[*repo_model.RepoUnit](db.DefaultContext, opts)
 	assert.NoError(t, err)
 	assert.EqualValues(t, cnt, newCnt)
 	assert.Len(t, repoUnits, repoUnitCount)

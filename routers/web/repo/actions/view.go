@@ -538,7 +538,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		return
 	}
 
-	artifacts, err := db.Find[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{
+	artifacts, err := db.Find[*actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{
 		RunID:        run.ID,
 		ArtifactName: artifactName,
 	})

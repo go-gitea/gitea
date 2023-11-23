@@ -69,14 +69,14 @@ func loadSecurityData(ctx *context.Context) {
 	}
 	ctx.Data["WebAuthnCredentials"] = credentials
 
-	tokens, err := db.Find[auth_model.AccessToken](ctx, auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID})
+	tokens, err := db.Find[*auth_model.AccessToken](ctx, auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID})
 	if err != nil {
 		ctx.ServerError("ListAccessTokens", err)
 		return
 	}
 	ctx.Data["Tokens"] = tokens
 
-	accountLinks, err := db.Find[user_model.ExternalLoginUser](ctx, user_model.FindExternalUserOptions{
+	accountLinks, err := db.Find[*user_model.ExternalLoginUser](ctx, user_model.FindExternalUserOptions{
 		UserID:  ctx.Doer.ID,
 		OrderBy: "login_source_id DESC",
 	})

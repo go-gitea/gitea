@@ -382,7 +382,7 @@ func SynchronizePublicKeys(ctx context.Context, usr *user_model.User, s *auth.So
 
 	// Get Public Keys from DB with current LDAP source
 	var giteaKeys []string
-	keys, err := db.Find[PublicKey](ctx, FindPublicKeyOptions{
+	keys, err := db.Find[*PublicKey](ctx, FindPublicKeyOptions{
 		OwnerID:       usr.ID,
 		LoginSourceID: s.ID,
 	})

@@ -183,7 +183,7 @@ func TestIsPublicMembership(t *testing.T) {
 func TestFindOrgs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	orgs, err := db.Find[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
+	orgs, err := db.Find[*organization.Organization](db.DefaultContext, organization.FindOrgOptions{
 		UserID:         4,
 		IncludePrivate: true,
 	})
@@ -192,7 +192,7 @@ func TestFindOrgs(t *testing.T) {
 		assert.EqualValues(t, 3, orgs[0].ID)
 	}
 
-	orgs, err = db.Find[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
+	orgs, err = db.Find[*organization.Organization](db.DefaultContext, organization.FindOrgOptions{
 		UserID:         4,
 		IncludePrivate: false,
 	})

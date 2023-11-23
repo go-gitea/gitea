@@ -36,7 +36,7 @@ func Applications(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsApplications"] = true
 
-	apps, err := db.Find[auth.OAuth2Application](ctx, auth.FindOAuth2ApplicationsOptions{
+	apps, err := db.Find[*auth.OAuth2Application](ctx, auth.FindOAuth2ApplicationsOptions{
 		OwnerID: ctx.Org.Organization.ID,
 	})
 	if err != nil {

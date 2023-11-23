@@ -34,7 +34,7 @@ func TestCreateOrUpdateIssueNotifications(t *testing.T) {
 func TestNotificationsForUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	notfs, err := db.Find[activities_model.Notification](db.DefaultContext, activities_model.FindNotificationOptions{
+	notfs, err := db.Find[*activities_model.Notification](db.DefaultContext, activities_model.FindNotificationOptions{
 		UserID: user.ID,
 		Status: []activities_model.NotificationStatus{
 			activities_model.NotificationStatusRead,
