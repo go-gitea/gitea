@@ -79,6 +79,53 @@ func init() {
 	db.RegisterModel(new(Notification))
 }
 
+// FindNotificationOptions represent the filters for notifications. If an ID is 0 it will be ignored.
+type FindNotificationOptions struct {
+	db.ListOptions
+	UserID            int64
+	RepoID            int64
+	IssueID           int64
+	Status            []NotificationStatus
+	Source            []NotificationSource
+	UpdatedAfterUnix  int64
+	UpdatedBeforeUnix int64
+}
+
+// ToCond will convert each condition into a xorm-Cond
+func (opts FindNotificationOptions) ToConds() builder.Cond {
+	cond := builder.NewCond()
+	if opts.UserID != 0 {
+		cond = cond.And(builder.Eq{"notification.user_id": opts.UserID})
+	}
+	if opts.RepoID != 0 {
+		cond = cond.And(builder.Eq{"notification.repo_id": opts.RepoID})
+	}
+	if opts.IssueID != 0 {
+		cond = cond.And(builder.Eq{"notification.issue_id": opts.IssueID})
+	}
+	if len(opts.Status) > 0 {
+		if len(opts.Status) == 1 {
+			cond = cond.And(builder.Eq{"notification.status": opts.Status[0]})
+		} else {
+			cond = cond.And(builder.In("notification.status", opts.Status))
+		}
+	}
+	if len(opts.Source) > 0 {
+		cond = cond.And(builder.In("notification.source", opts.Source))
+	}
+	if opts.UpdatedAfterUnix != 0 {
+		cond = cond.And(builder.Gte{"notification.updated_unix": opts.UpdatedAfterUnix})
+	}
+	if opts.UpdatedBeforeUnix != 0 {
+		cond = cond.And(builder.Lte{"notification.updated_unix": opts.UpdatedBeforeUnix})
+	}
+	return cond
+}
+
+func (opts FindNotificationOptions) ToOrders() string {
+	return "notification.updated_unix DESC"
+}
+
 // CreateRepoTransferNotification creates  notification for the user a repository was transferred to
 func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
@@ -375,53 +422,6 @@ func (n *Notification) Link(ctx context.Context) string {
 // APIURL formats a URL-string to the notification
 func (n *Notification) APIURL() string {
 	return setting.AppURL + "api/v1/notifications/threads/" + strconv.FormatInt(n.ID, 10)
-}
-
-// FindNotificationOptions represent the filters for notifications. If an ID is 0 it will be ignored.
-type FindNotificationOptions struct {
-	db.ListOptions
-	UserID            int64
-	RepoID            int64
-	IssueID           int64
-	Status            []NotificationStatus
-	Source            []NotificationSource
-	UpdatedAfterUnix  int64
-	UpdatedBeforeUnix int64
-}
-
-// ToCond will convert each condition into a xorm-Cond
-func (opts FindNotificationOptions) ToConds() builder.Cond {
-	cond := builder.NewCond()
-	if opts.UserID != 0 {
-		cond = cond.And(builder.Eq{"notification.user_id": opts.UserID})
-	}
-	if opts.RepoID != 0 {
-		cond = cond.And(builder.Eq{"notification.repo_id": opts.RepoID})
-	}
-	if opts.IssueID != 0 {
-		cond = cond.And(builder.Eq{"notification.issue_id": opts.IssueID})
-	}
-	if len(opts.Status) > 0 {
-		if len(opts.Status) == 1 {
-			cond = cond.And(builder.Eq{"notification.status": opts.Status[0]})
-		} else {
-			cond = cond.And(builder.In("notification.status", opts.Status))
-		}
-	}
-	if len(opts.Source) > 0 {
-		cond = cond.And(builder.In("notification.source", opts.Source))
-	}
-	if opts.UpdatedAfterUnix != 0 {
-		cond = cond.And(builder.Gte{"notification.updated_unix": opts.UpdatedAfterUnix})
-	}
-	if opts.UpdatedBeforeUnix != 0 {
-		cond = cond.And(builder.Lte{"notification.updated_unix": opts.UpdatedBeforeUnix})
-	}
-	return cond
-}
-
-func (opts FindNotificationOptions) ToOrders() string {
-	return "notification.updated_unix DESC"
 }
 
 func notificationExists(notifications []*Notification, issueID, userID int64) bool {
