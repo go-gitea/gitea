@@ -275,7 +275,18 @@ func TestRender_email(t *testing.T) {
 <a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>;<br/>
 <a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>?<br/>
 <a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>!</p>`)
-
+	test(
+		"?a@example.com",
+		`<p>?<a href="mailto:a@example.com" rel="nofollow">a@example.com</a></p>`)
+	test(
+		"*a@example.com",
+		`<p>*<a href="mailto:a@example.com" rel="nofollow">a@example.com</a></p>`)
+	test(
+		"~a@example.com",
+	`<p>~<a href="mailto:a@example.com" rel="nofollow">a@example.com</a></p>`)
+	test(
+		"email@domain@domain.com",
+		`<p>email@<a href="mailto:domain@domain.com" rel="nofollow">domain@domain.com</a></p>`)
 	// Test that should *not* be turned into email links
 	test(
 		"\"info@gitea.com\"",
@@ -287,22 +298,11 @@ func TestRender_email(t *testing.T) {
 		"git@try.gitea.io:go-gitea/gitea.git",
 		`<p>git@try.gitea.io:go-gitea/gitea.git</p>`)
 	test(
-		"?a@example.com",
-		`<p>?a@example.com</p>`)
-	test(
-		"~a@example.com",
-		`<p>~a@example.com</p>`)
-	test("*a@example.com",
-		`<p>*a@example.com</p>`)
-	test(
 		"gitea@3",
 		`<p>gitea@3</p>`)
 	test(
 		"gitea@gmail.c",
 		`<p>gitea@gmail.c</p>`)
-	test(
-		"email@domain@domain.com",
-		`<p>email@domain@domain.com</p>`)
 	test(
 		"email@domain..com",
 		`<p>email@domain..com</p>`)
