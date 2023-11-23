@@ -34,7 +34,7 @@ func TestCreateOrUpdateIssueNotifications(t *testing.T) {
 func TestNotificationsForUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	notfs, err := db.Find[*activities_model.Notification](db.DefaultContext, activities_model.FindNotificationOptions{
+	notfs, err := db.Find[activities_model.Notification](db.DefaultContext, activities_model.FindNotificationOptions{
 		UserID: user.ID,
 		Status: []activities_model.NotificationStatus{
 			activities_model.NotificationStatusRead,
@@ -61,6 +61,15 @@ func TestNotification_GetRepo(t *testing.T) {
 	assert.EqualValues(t, notf.RepoID, repo.ID)
 }
 
+func TestNotification_GetIssue(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	notf := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{RepoID: 1})
+	issue, err := notf.GetIssue(db.DefaultContext)
+	assert.NoError(t, err)
+	assert.Equal(t, issue, notf.Issue)
+	assert.EqualValues(t, notf.IssueID, issue.ID)
+}
+
 func TestGetNotificationCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
@@ -81,15 +90,6 @@ func TestGetNotificationCount(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
-}
-
-func TestNotification_GetIssue(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	notf := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{RepoID: 1})
-	issue, err := notf.GetIssue(db.DefaultContext)
-	assert.NoError(t, err)
-	assert.Equal(t, issue, notf.Issue)
-	assert.EqualValues(t, notf.IssueID, issue.ID)
 }
 
 func TestSetNotificationStatus(t *testing.T) {

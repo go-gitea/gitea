@@ -87,7 +87,7 @@ func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chun
 
 func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID int64, artifactName string) error {
 	// read all db artifacts by name
-	artifacts, err := db.Find[*actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
+	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
 		RunID:        runID,
 		ArtifactName: artifactName,
 	})

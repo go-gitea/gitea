@@ -17,7 +17,7 @@ import (
 
 // RunnersList prepares data for runners list
 func RunnersList(ctx *context.Context, opts actions_model.FindRunnerOptions) {
-	runners, count, err := db.FindAndCount[*actions_model.ActionRunner](ctx, opts)
+	runners, count, err := db.FindAndCount[actions_model.ActionRunner](ctx, opts)
 	if err != nil {
 		ctx.ServerError("CountRunners", err)
 		return
@@ -84,7 +84,7 @@ func RunnerDetails(ctx *context.Context, page int, runnerID, ownerID, repoID int
 		RunnerID:    runner.ID,
 	}
 
-	tasks, count, err := db.FindAndCount[*actions_model.ActionTask](ctx, opts)
+	tasks, count, err := db.FindAndCount[actions_model.ActionTask](ctx, opts)
 	if err != nil {
 		ctx.ServerError("CountTasks", err)
 		return

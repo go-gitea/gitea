@@ -27,7 +27,7 @@ func ListOwnerHooks(ctx *context.APIContext, owner *user_model.User) {
 		OwnerID:     owner.ID,
 	}
 
-	hooks, count, err := db.FindAndCount[*webhook.Webhook](ctx, opts)
+	hooks, count, err := db.FindAndCount[webhook.Webhook](ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

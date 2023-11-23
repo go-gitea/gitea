@@ -34,7 +34,7 @@ func Applications(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.applications")
 	ctx.Data["PageIsAdminApplications"] = true
 
-	apps, err := db.Find[*auth.OAuth2Application](ctx, auth.FindOAuth2ApplicationsOptions{
+	apps, err := db.Find[auth.OAuth2Application](ctx, auth.FindOAuth2ApplicationsOptions{
 		IsGlobal: true,
 	})
 	if err != nil {

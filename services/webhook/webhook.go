@@ -223,7 +223,7 @@ func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_modu
 	var ws []*webhook_model.Webhook
 
 	if source.Repository != nil {
-		repoHooks, err := db.Find[*webhook_model.Webhook](ctx, webhook_model.ListWebhookOptions{
+		repoHooks, err := db.Find[webhook_model.Webhook](ctx, webhook_model.ListWebhookOptions{
 			RepoID:   source.Repository.ID,
 			IsActive: util.OptionalBoolTrue,
 		})
@@ -237,7 +237,7 @@ func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_modu
 
 	// append additional webhooks of a user or organization
 	if owner != nil {
-		ownerHooks, err := db.Find[*webhook_model.Webhook](ctx, webhook_model.ListWebhookOptions{
+		ownerHooks, err := db.Find[webhook_model.Webhook](ctx, webhook_model.ListWebhookOptions{
 			OwnerID:  owner.ID,
 			IsActive: util.OptionalBoolTrue,
 		})

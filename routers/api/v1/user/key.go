@@ -63,7 +63,7 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 			// Restrict to provided uid
 			userID = user.ID
 		}
-		keys, err = db.Find[*asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+		keys, err = db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
 			OwnerID:     userID,
 			Fingerprint: fingerprint,
 		})
@@ -71,7 +71,7 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 	} else {
 		var total int64
 		// Use ListPublicKeys
-		keys, total, err = db.FindAndCount[*asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+		keys, total, err = db.FindAndCount[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
 			ListOptions: utils.GetListOptions(ctx),
 			OwnerID:     user.ID,
 			NotKeytype:  asymkey_model.KeyTypePrincipal,

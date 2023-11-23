@@ -63,7 +63,7 @@ func runListAuth(c *cli.Context) error {
 		return err
 	}
 
-	authSources, err := db.Find[*auth_model.Source](ctx, auth_model.FindSourcesOptions{})
+	authSources, err := db.Find[auth_model.Source](ctx, auth_model.FindSourcesOptions{})
 	if err != nil {
 		return err
 	}

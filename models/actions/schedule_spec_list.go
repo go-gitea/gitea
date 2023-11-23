@@ -89,7 +89,7 @@ func (opts FindSpecOptions) ToOrders() string {
 }
 
 func FindSpecs(ctx context.Context, opts FindSpecOptions) (SpecList, int64, error) {
-	specs, total, err := db.FindAndCount[*ActionScheduleSpec](ctx, opts)
+	specs, total, err := db.FindAndCount[ActionScheduleSpec](ctx, opts)
 	if err != nil {
 		return nil, 0, err
 	}

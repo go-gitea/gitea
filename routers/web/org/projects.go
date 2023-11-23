@@ -60,7 +60,7 @@ func Projects(ctx *context.Context) {
 	} else {
 		projectType = project_model.TypeIndividual
 	}
-	projects, total, err := db.FindAndCount[*project_model.Project](ctx, project_model.SearchOptions{
+	projects, total, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: setting.UI.IssuePagingNum,

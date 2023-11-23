@@ -759,7 +759,7 @@ func loadRepoByIDs(ctx *context.Context, ctxUser *user_model.User, issueCountByR
 
 // ShowSSHKeys output all the ssh keys of user by uid
 func ShowSSHKeys(ctx *context.Context) {
-	keys, err := db.Find[*asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+	keys, err := db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
 		OwnerID: ctx.ContextUser.ID,
 	})
 	if err != nil {

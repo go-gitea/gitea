@@ -90,7 +90,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 		Fingerprint: ctx.FormString("fingerprint"),
 	}
 
-	keys, count, err := db.FindAndCount[*asymkey_model.DeployKey](ctx, opts)
+	keys, count, err := db.FindAndCount[asymkey_model.DeployKey](ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

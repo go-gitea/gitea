@@ -59,7 +59,7 @@ func ListHooks(ctx *context.APIContext) {
 		RepoID:      ctx.Repo.Repository.ID,
 	}
 
-	hooks, count, err := db.FindAndCount[*webhook.Webhook](ctx, opts)
+	hooks, count, err := db.FindAndCount[webhook.Webhook](ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

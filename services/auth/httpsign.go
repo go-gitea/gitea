@@ -93,7 +93,7 @@ func VerifyPubKey(r *http.Request) (*asymkey_model.PublicKey, error) {
 
 	keyID := verifier.KeyId()
 
-	publicKeys, err := db.Find[*asymkey_model.PublicKey](r.Context(), asymkey_model.FindPublicKeyOptions{
+	publicKeys, err := db.Find[asymkey_model.PublicKey](r.Context(), asymkey_model.FindPublicKeyOptions{
 		Fingerprint: keyID,
 	})
 	if err != nil {

@@ -153,7 +153,7 @@ type FindOptionsOrder interface {
 }
 
 // Find represents a common find function which accept an options interface
-func Find[T any](ctx context.Context, opts FindOptions) ([]T, error) {
+func Find[T any](ctx context.Context, opts FindOptions) ([]*T, error) {
 	sess := GetEngine(ctx).Where(opts.ToConds())
 	page, pageSize := opts.GetPage(), opts.GetPageSize()
 	if !opts.IsListAll() && pageSize > 0 && page >= 1 {
@@ -167,7 +167,7 @@ func Find[T any](ctx context.Context, opts FindOptions) ([]T, error) {
 	if pageSize > 0 {
 		findPageSize = pageSize
 	}
-	objects := make([]T, 0, findPageSize)
+	objects := make([]*T, 0, findPageSize)
 	if err := sess.Find(&objects); err != nil {
 		return nil, err
 	}
@@ -181,7 +181,7 @@ func Count[T any](ctx context.Context, opts FindOptions) (int64, error) {
 }
 
 // FindAndCount represents a common findandcount function which accept an options interface
-func FindAndCount[T any](ctx context.Context, opts FindOptions) ([]T, int64, error) {
+func FindAndCount[T any](ctx context.Context, opts FindOptions) ([]*T, int64, error) {
 	sess := GetEngine(ctx).Where(opts.ToConds())
 	page, pageSize := opts.GetPage(), opts.GetPageSize()
 	if !opts.IsListAll() && pageSize > 0 && page >= 1 {
@@ -195,7 +195,7 @@ func FindAndCount[T any](ctx context.Context, opts FindOptions) ([]T, int64, err
 	if pageSize > 0 {
 		findPageSize = pageSize
 	}
-	objects := make([]T, 0, findPageSize)
+	objects := make([]*T, 0, findPageSize)
 	cnt, err := sess.FindAndCount(&objects)
 	if err != nil {
 		return nil, 0, err

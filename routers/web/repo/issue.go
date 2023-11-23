@@ -569,7 +569,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		repoOwnerType = project_model.TypeOrganization
 	}
 	var err error
-	projects, err := db.Find[*project_model.Project](ctx, project_model.SearchOptions{
+	projects, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptionsAll,
 		RepoID:      repo.ID,
 		IsClosed:    util.OptionalBoolFalse,
@@ -579,7 +579,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
-	projects2, err := db.Find[*project_model.Project](ctx, project_model.SearchOptions{
+	projects2, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptionsAll,
 		OwnerID:     repo.OwnerID,
 		IsClosed:    util.OptionalBoolFalse,
@@ -592,7 +592,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 
 	ctx.Data["OpenProjects"] = append(projects, projects2...)
 
-	projects, err = db.Find[*project_model.Project](ctx, project_model.SearchOptions{
+	projects, err = db.Find[project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptionsAll,
 		RepoID:      repo.ID,
 		IsClosed:    util.OptionalBoolTrue,
@@ -602,7 +602,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
-	projects2, err = db.Find[*project_model.Project](ctx, project_model.SearchOptions{
+	projects2, err = db.Find[project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptionsAll,
 		OwnerID:     repo.OwnerID,
 		IsClosed:    util.OptionalBoolTrue,

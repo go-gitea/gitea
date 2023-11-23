@@ -75,7 +75,7 @@ func List(ctx *context.Context) {
 		}
 
 		// Get all runner labels
-		runners, err := db.Find[*actions_model.ActionRunner](ctx, actions_model.FindRunnerOptions{
+		runners, err := db.Find[actions_model.ActionRunner](ctx, actions_model.FindRunnerOptions{
 			RepoID:        ctx.Repo.Repository.ID,
 			WithAvailable: true,
 		})
@@ -168,7 +168,7 @@ func List(ctx *context.Context) {
 		opts.Status = []actions_model.Status{actions_model.Status(status)}
 	}
 
-	runs, total, err := db.FindAndCount[*actions_model.ActionRun](ctx, opts)
+	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return

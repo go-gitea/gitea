@@ -108,7 +108,7 @@ func CreateProviderFromSource(source *auth.Source) (Provider, error) {
 
 // GetOAuth2Providers returns the list of configured OAuth2 providers
 func GetOAuth2Providers(ctx context.Context, isActive util.OptionalBool) ([]Provider, error) {
-	authSources, err := db.Find[*auth.Source](ctx, auth.FindSourcesOptions{
+	authSources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
 		IsActive:  isActive,
 		LoginType: auth.OAuth2,
 	})

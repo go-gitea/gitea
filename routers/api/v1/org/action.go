@@ -49,7 +49,7 @@ func ListActionsSecrets(ctx *context.APIContext) {
 		ListOptions: utils.GetListOptions(ctx),
 	}
 
-	secrets, count, err := db.FindAndCount[*secret_model.Secret](ctx, opts)
+	secrets, count, err := db.FindAndCount[secret_model.Secret](ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

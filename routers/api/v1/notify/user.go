@@ -75,7 +75,7 @@ func ListNotifications(ctx *context.APIContext) {
 		return
 	}
 
-	nl, err := db.Find[*activities_model.Notification](ctx, opts)
+	nl, err := db.Find[activities_model.Notification](ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -148,7 +148,7 @@ func ReadNotifications(ctx *context.APIContext) {
 		statuses := ctx.FormStrings("status-types")
 		opts.Status = statusStringsToNotificationStatuses(statuses, []string{"unread"})
 	}
-	nl, err := db.Find[*activities_model.Notification](ctx, opts)
+	nl, err := db.Find[activities_model.Notification](ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

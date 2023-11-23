@@ -67,7 +67,7 @@ ssh-dss AAAAB3NzaC1kc3MAAACBAOChCC7lf6Uo9n7BmZ6M8St19PZf4Tn59NriyboW2x/DZuYAz3ib
 	for i, kase := range testCases {
 		s.ID = int64(i) + 20
 		asymkey_model.AddPublicKeysBySource(db.DefaultContext, user, s, []string{kase.keyString})
-		keys, err := db.Find[*asymkey_model.PublicKey](db.DefaultContext, asymkey_model.FindPublicKeyOptions{
+		keys, err := db.Find[asymkey_model.PublicKey](db.DefaultContext, asymkey_model.FindPublicKeyOptions{
 			OwnerID:       user.ID,
 			LoginSourceID: s.ID,
 		})

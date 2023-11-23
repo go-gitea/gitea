@@ -115,7 +115,7 @@ func ListRepoNotifications(ctx *context.APIContext) {
 		return
 	}
 
-	nl, err := db.Find[*activities_model.Notification](ctx, opts)
+	nl, err := db.Find[activities_model.Notification](ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -203,7 +203,7 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 		opts.Status = statusStringsToNotificationStatuses(statuses, []string{"unread"})
 		log.Error("%v", opts.Status)
 	}
-	nl, err := db.Find[*activities_model.Notification](ctx, opts)
+	nl, err := db.Find[activities_model.Notification](ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

@@ -49,7 +49,7 @@ func ListAccessTokens(ctx *context.APIContext) {
 
 	opts := auth_model.ListAccessTokensOptions{UserID: ctx.ContextUser.ID, ListOptions: utils.GetListOptions(ctx)}
 
-	tokens, count, err := db.FindAndCount[*auth_model.AccessToken](ctx, opts)
+	tokens, count, err := db.FindAndCount[auth_model.AccessToken](ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -164,7 +164,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	tokenID, _ := strconv.ParseInt(token, 0, 64)
 
 	if tokenID == 0 {
-		tokens, err := db.Find[*auth_model.AccessToken](ctx, auth_model.ListAccessTokensOptions{
+		tokens, err := db.Find[auth_model.AccessToken](ctx, auth_model.ListAccessTokensOptions{
 			Name:   token,
 			UserID: ctx.ContextUser.ID,
 		})
@@ -262,7 +262,7 @@ func ListOauth2Applications(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/OAuth2ApplicationList"
 
-	apps, total, err := db.FindAndCount[*auth_model.OAuth2Application](ctx, auth_model.FindOAuth2ApplicationsOptions{
+	apps, total, err := db.FindAndCount[auth_model.OAuth2Application](ctx, auth_model.FindOAuth2ApplicationsOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		OwnerID:     ctx.Doer.ID,
 	})

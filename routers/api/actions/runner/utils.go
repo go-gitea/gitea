@@ -68,12 +68,12 @@ func getSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) map[s
 		return secrets
 	}
 
-	ownerSecrets, err := db.Find[*secret_model.Secret](ctx, secret_model.FindSecretsOptions{OwnerID: task.Job.Run.Repo.OwnerID})
+	ownerSecrets, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{OwnerID: task.Job.Run.Repo.OwnerID})
 	if err != nil {
 		log.Error("find secrets of owner %v: %v", task.Job.Run.Repo.OwnerID, err)
 		// go on
 	}
-	repoSecrets, err := db.Find[*secret_model.Secret](ctx, secret_model.FindSecretsOptions{RepoID: task.Job.Run.RepoID})
+	repoSecrets, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{RepoID: task.Job.Run.RepoID})
 	if err != nil {
 		log.Error("find secrets of repo %v: %v", task.Job.Run.RepoID, err)
 		// go on
@@ -95,13 +95,13 @@ func getVariablesOfTask(ctx context.Context, task *actions_model.ActionTask) map
 	variables := map[string]string{}
 
 	// Org / User level
-	ownerVariables, err := db.Find[*actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{OwnerID: task.Job.Run.Repo.OwnerID})
+	ownerVariables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{OwnerID: task.Job.Run.Repo.OwnerID})
 	if err != nil {
 		log.Error("find variables of org: %d, error: %v", task.Job.Run.Repo.OwnerID, err)
 	}
 
 	// Repo level
-	repoVariables, err := db.Find[*actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{RepoID: task.Job.Run.RepoID})
+	repoVariables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{RepoID: task.Job.Run.RepoID})
 	if err != nil {
 		log.Error("find variables of repo: %d, error: %v", task.Job.Run.RepoID, err)
 	}
@@ -201,7 +201,7 @@ func findTaskNeeds(ctx context.Context, task *actions_model.ActionTask) (map[str
 	}
 	needs := container.SetOf(task.Job.Needs...)
 
-	jobs, err := db.Find[*actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: task.Job.RunID})
+	jobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: task.Job.RunID})
 	if err != nil {
 		return nil, fmt.Errorf("FindRunJobs: %w", err)
 	}
