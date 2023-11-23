@@ -1,7 +1,7 @@
 <p><a href="{{.PackageDescriptor.PackageWebLink}}">{{.PackageDescriptor.Package.Name}}</a> / <strong>{{ctx.Locale.Tr "packages.versions"}}</strong></p>
 <form class="ui form ignore-dirty">
 	<div class="ui fluid action input">
-		{{template "shared/searchinput" dict "Value" .Query "AutoFocus" true}}
+		{{template "shared/searchinput" dict "Value" .Query}}
 		<select class="ui dropdown" name="sort">
 			<option value="version_asc"{{if eq .Sort "version_asc"}} selected="selected"{{end}}>{{ctx.Locale.Tr "filter.string.asc"}}</option>
 			<option value="version_desc"{{if eq .Sort "version_desc"}} selected="selected"{{end}}>{{ctx.Locale.Tr "filter.string.desc"}}</option>
