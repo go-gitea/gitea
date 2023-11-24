@@ -295,16 +295,15 @@ func DeleteMilestoneByRepoID(ctx context.Context, repoID, id int64) error {
 		return err
 	}
 
-	numMilestones, err := CountMilestones(ctx, GetMilestonesOption{
+	numMilestones, err := db.Count[Milestone](ctx, FindMilestoneOptions{
 		RepoID: repo.ID,
-		State:  api.StateAll,
 	})
 	if err != nil {
 		return err
 	}
-	numClosedMilestones, err := CountMilestones(ctx, GetMilestonesOption{
-		RepoID: repo.ID,
-		State:  api.StateClosed,
+	numClosedMilestones, err := db.Count[Milestone](ctx, FindMilestoneOptions{
+		RepoID:   repo.ID,
+		IsClosed: util.OptionalBoolTrue,
 	})
 	if err != nil {
 		return err

@@ -668,11 +668,9 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
 		IsDeletedBranch: util.OptionalBoolFalse,
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		ListOptions:     db.ListOptionsAll,
 	}
-	branchesTotal, err := git_model.CountBranches(ctx, branchOpts)
+	branchesTotal, err := db.Count[git_model.Branch](ctx, branchOpts)
 	if err != nil {
 		ctx.ServerError("CountBranches", err)
 		return cancel
