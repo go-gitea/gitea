@@ -256,7 +256,7 @@ func findLicenseFile(commit *git.Commit) (string, *git.TreeEntry, error) {
 }
 
 // detectLicense returns the licenses detected by the given content buff
-func detectLicense(r io.ReadCloser) ([]string, error) {
+func detectLicense(r io.Reader) ([]string, error) {
 	if r == nil {
 		return nil, nil
 	}

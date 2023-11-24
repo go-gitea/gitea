@@ -5,6 +5,7 @@ package repository
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -224,11 +225,14 @@ func Test_detectLicense(t *testing.T) {
 	assert.NoError(t, err)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, detectLicense(tt.arg))
+			license, err := detectLicense(strings.NewReader(tt.arg))
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, license)
 		})
 	}
 
-	result := detectLicense(tests[2].arg + tests[3].arg + tests[4].arg)
+	result, err := detectLicense(strings.NewReader(tests[2].arg + tests[3].arg + tests[4].arg))
+	assert.NoError(t, err)
 	t.Run("multiple licenses test", func(t *testing.T) {
 		assert.Equal(t, 3, len(result))
 		assert.Contains(t, result, tests[2].want[0])
