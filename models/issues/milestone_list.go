@@ -87,49 +87,6 @@ func GetMilestoneIDsByNames(ctx context.Context, names []string) ([]int64, error
 		Find(&ids)
 }
 
-// SearchMilestones search milestones
-/*func SearchMilestones(ctx context.Context, repoCond builder.Cond, page int, isClosed bool, sortType, keyword string) (MilestoneList, error) {
-	miles := make([]*Milestone, 0, setting.UI.IssuePagingNum)
-	sess := db.GetEngine(ctx).Where("is_closed = ?", isClosed)
-	if len(keyword) > 0 {
-		sess = sess.And(builder.Like{"UPPER(name)", strings.ToUpper(keyword)})
-	}
-	if repoCond.IsValid() {
-		sess.In("repo_id", builder.Select("id").From("repository").Where(repoCond))
-	}
-	if page > 0 {
-		sess = sess.Limit(setting.UI.IssuePagingNum, (page-1)*setting.UI.IssuePagingNum)
-	}
-
-	switch sortType {
-	case "furthestduedate":
-		sess.Desc("deadline_unix")
-	case "leastcomplete":
-		sess.Asc("completeness")
-	case "mostcomplete":
-		sess.Desc("completeness")
-	case "leastissues":
-		sess.Asc("num_issues")
-	case "mostissues":
-		sess.Desc("num_issues")
-	default:
-		sess.Asc("deadline_unix")
-	}
-	return miles, sess.Find(&miles)
-}*/
-
-// GetMilestonesByRepoIDs returns a list of milestones of given repositories and status.
-/*func GetMilestonesByRepoIDs(ctx context.Context, repoIDs []int64, page int, isClosed bool, sortType string) (MilestoneList, error) {
-	return SearchMilestones(
-		ctx,
-		builder.In("repo_id", repoIDs),
-		page,
-		isClosed,
-		sortType,
-		"",
-	)
-}*/
-
 // LoadTotalTrackedTimes loads for every milestone in the list the TotalTrackedTime by a batch request
 func (milestones MilestoneList) LoadTotalTrackedTimes(ctx context.Context) error {
 	type totalTimesByMilestone struct {
