@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 
@@ -15,9 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	licenseclassifier "github.com/google/licenseclassifier/v2"
@@ -211,14 +210,19 @@ func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, commit
 	if err != nil {
 		return fmt.Errorf("findLicenseFile: %w", err)
 	}
-	licenses, err := detectLicenseByEntry(licenseFile)
-	if err != nil {
-		return fmt.Errorf("checkLicenseFile: %w", err)
+	if licenseFile != nil {
+		r, err := licenseFile.Blob().DataAsync()
+		if err != nil {
+			return err
+		}
+		licenses, err := detectLicense(r)
+		if err != nil {
+			return fmt.Errorf("detectLicense: %w", err)
+		}
+		if err := repo_model.UpdateRepoLicenses(ctx, repo, commit.ID.String(), licenses); err != nil {
+			return fmt.Errorf("UpdateRepositoryCols: %v", err)
+		}
 	}
-	if err := repo_model.UpdateRepoLicenses(ctx, repo, commit.ID.String(), licenses); err != nil {
-		return fmt.Errorf("UpdateRepositoryCols: %v", err)
-	}
-
 	return nil
 }
 
@@ -249,33 +253,18 @@ func findLicenseFile(commit *git.Commit) (string, *git.TreeEntry, error) {
 	return FindFileInEntries(util.FileTypeLicense, entries, "", "", false)
 }
 
-// detectLicenseByEntry returns the licenses detected by the given tree entry
-func detectLicenseByEntry(file *git.TreeEntry) ([]string, error) {
-	if file == nil {
+// detectLicense returns the licenses detected by the given content buff
+func detectLicense(r io.ReadCloser) ([]string, error) {
+	if r == nil {
 		return nil, nil
 	}
-
-	blob := file.Blob()
-	content, err := blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
-	if err != nil {
-		return nil, fmt.Errorf("GetBlobAll: %w", err)
-	}
-	return detectLicense(content), nil
-}
-
-// detectLicense returns the licenses detected by the given content buff
-func detectLicense(content string) []string {
-	if len(content) == 0 {
-		return nil
-	}
 	if err := initClassifier(); err != nil {
-		return nil
+		return nil, err
 	}
 
-	matches, err := classifier.MatchFrom(strings.NewReader(content))
+	matches, err := classifier.MatchFrom(r)
 	if err != nil {
-		log.Error("licenseclassifier.MatchFrom: %v", err)
-		return nil
+		return nil, err
 	}
 	if len(matches.Matches) > 0 {
 		results := make(container.Set[string], len(matches.Matches))
@@ -284,7 +273,7 @@ func detectLicense(content string) []string {
 				results.Add(r.Variant)
 			}
 		}
-		return results.Values()
+		return results.Values(), nil
 	}
-	return nil
+	return nil, nil
 }
