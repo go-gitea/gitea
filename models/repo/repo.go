@@ -584,9 +584,9 @@ func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 	}, repo.Description)
 	if err != nil {
 		log.Error("Failed to render description for %s (ID: %d): %v", repo.Name, repo.ID, err)
-		return template.HTML(markup.Sanitize(repo.Description))
+		return template.HTML(markup.SanitizeDescription(repo.Description))
 	}
-	return template.HTML(markup.Sanitize(desc))
+	return template.HTML(markup.SanitizeDescription(desc))
 }
 
 // CloneLink represents different types of clone URLs of repository.

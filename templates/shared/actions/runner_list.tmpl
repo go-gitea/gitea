@@ -35,7 +35,7 @@
 		<form class="ui form ignore-dirty" id="user-list-search-form" action="{{$.Link}}">
 			<!-- Search Text -->
 			<div class="ui fluid action input">
-				{{template "shared/searchinput" dict "Value" .Keyword "AutoFocus" true}}
+				{{template "shared/searchinput" dict "Value" .Keyword}}
 				<button class="ui primary button">{{ctx.Locale.Tr "explore.search"}}</button>
 			</div>
 		</form>
