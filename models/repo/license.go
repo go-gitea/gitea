@@ -101,14 +101,20 @@ func CopyLicense(originalRepo, destRepo *Repository) error {
 		return err
 	}
 	if len(repoLicenses) > 0 {
+		newRepoLicenses := make(RepoLicenseList, 0, len(repoLicenses))
+
 		time := timeutil.TimeStampNow()
-		for i := range repoLicenses {
-			repoLicenses[i].ID = 0
-			repoLicenses[i].RepoID = destRepo.ID
-			repoLicenses[i].CreatedUnix = time
-			repoLicenses[i].UpdatedUnix = time
+		for _, rl := range repoLicenses {
+			newRepoLicense := &RepoLicense{
+				RepoID:      destRepo.ID,
+				CommitID:    rl.CommitID,
+				License:     rl.License,
+				CreatedUnix: time,
+				UpdatedUnix: time,
+			}
+			newRepoLicenses = append(newRepoLicenses, newRepoLicense)
 		}
-		if err := db.Insert(ctx, &repoLicenses); err != nil {
+		if err := db.Insert(ctx, &newRepoLicenses); err != nil {
 			return err
 		}
 	}
