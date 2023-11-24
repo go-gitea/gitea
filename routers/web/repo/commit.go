@@ -86,9 +86,9 @@ func Commits(ctx *context.Context) {
 	pager := context.NewPagination(int(commitsCount), pageSize, page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
-	ctx.Data["LicenseFileName"], err = repo_module.GetLicenseFileName(ctx, ctx.Repo.Repository, ctx.Repo.Commit)
+	ctx.Data["DetectedLicenseFileName"], err = repo_module.GetDetectedLicenseFileName(ctx, ctx.Repo.Repository, ctx.Repo.Commit)
 	if err != nil {
-		ctx.ServerError("GetLicenseFileName", err)
+		ctx.ServerError("GetDetectedLicenseFileName", err)
 		return
 	}
 	ctx.HTML(http.StatusOK, tplCommits)
@@ -208,9 +208,9 @@ func SearchCommits(ctx *context.Context) {
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["RefName"] = ctx.Repo.RefName
-	ctx.Data["LicenseFileName"], err = repo_module.GetLicenseFileName(ctx, ctx.Repo.Repository, ctx.Repo.Commit)
+	ctx.Data["DetectedLicenseFileName"], err = repo_module.GetDetectedLicenseFileName(ctx, ctx.Repo.Repository, ctx.Repo.Commit)
 	if err != nil {
-		ctx.ServerError("GetLicenseFileName", err)
+		ctx.ServerError("GetDetectedLicenseFileName", err)
 		return
 	}
 	ctx.HTML(http.StatusOK, tplCommits)
@@ -261,9 +261,9 @@ func FileHistory(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	ctx.Data["LicenseFileName"], err = repo_module.GetLicenseFileName(ctx, ctx.Repo.Repository, ctx.Repo.Commit)
+	ctx.Data["DetectedLicenseFileName"], err = repo_module.GetDetectedLicenseFileName(ctx, ctx.Repo.Repository, ctx.Repo.Commit)
 	if err != nil {
-		ctx.ServerError("GetLicenseFileName", err)
+		ctx.ServerError("GetDetectedLicenseFileName", err)
 		return
 	}
 	ctx.HTML(http.StatusOK, tplCommits)

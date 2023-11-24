@@ -13,9 +13,9 @@
 					{{svg "octicon-tag"}} <b>{{ctx.Locale.PrettyNumber .NumTags}}</b> {{ctx.Locale.TrN .NumTags "repo.tag" "repo.tags"}}
 				</a>
 			{{end}}
-			{{if .Licenses}}
-				<a class="item muted" href="{{.RepoLink}}/src/{{.DefaultBranch}}/{{PathEscapeSegments .LicenseFileName}}" data-tooltip-content="{{StringUtils.Join .Licenses ", "}}">
-					{{svg "octicon-law"}} <b>{{if eq (len .Licenses) 1}}{{index .Licenses 0}}{{else}}{{.locale.Tr "repo.multiple_licenses"}}{{end}}</b>
+			{{if .DetectedRepoLicenses}}
+				<a class="item muted" href="{{.RepoLink}}/src/{{.DefaultBranch}}/{{PathEscapeSegments .DetectedLicenseFileName}}" data-tooltip-content="{{StringUtils.Join .DetectedRepoLicenses ", "}}">
+					{{svg "octicon-law"}} <b>{{if eq (len .DetectedRepoLicenses) 1}}{{index .DetectedRepoLicenses 0}}{{else}}{{.locale.Tr "repo.multiple_licenses"}}{{end}}</b>
 				</a>
 			{{end}}
 			<span class="item not-mobile" {{if not (eq .Repository.Size 0)}}data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>

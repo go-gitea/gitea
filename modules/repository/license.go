@@ -222,8 +222,8 @@ func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, commit
 	return nil
 }
 
-// GetLicenseFileName returns license file name in the repository if it exists
-func GetLicenseFileName(ctx context.Context, repo *repo_model.Repository, commit *git.Commit) (string, error) {
+// GetDetectedLicenseFileName returns license file name in the repository if it exists
+func GetDetectedLicenseFileName(ctx context.Context, repo *repo_model.Repository, commit *git.Commit) (string, error) {
 	if commit == nil {
 		return "", nil
 	}
