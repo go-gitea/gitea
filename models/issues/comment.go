@@ -1027,7 +1027,7 @@ type FindCommentsOptions struct {
 }
 
 // ToConds implements FindOptions interface
-func (opts *FindCommentsOptions) ToConds() builder.Cond {
+func (opts FindCommentsOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
