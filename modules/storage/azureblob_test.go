@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAzureBlobStorageIterator(t *testing.T) {
@@ -25,4 +26,30 @@ func TestAzureBlobStorageIterator(t *testing.T) {
 			Container:   "test",
 		},
 	})
+}
+
+func TestAzureBlobStoragePath(t *testing.T) {
+	m := &AzureBlobStorage{cfg: &setting.AzureBlobStorageConfig{BasePath: ""}}
+	assert.Equal(t, "", m.buildAzureBlobPath("/"))
+	assert.Equal(t, "", m.buildAzureBlobPath("."))
+	assert.Equal(t, "a", m.buildAzureBlobPath("/a"))
+	assert.Equal(t, "a/b", m.buildAzureBlobPath("/a/b/"))
+
+	m = &AzureBlobStorage{cfg: &setting.AzureBlobStorageConfig{BasePath: "/"}}
+	assert.Equal(t, "", m.buildAzureBlobPath("/"))
+	assert.Equal(t, "", m.buildAzureBlobPath("."))
+	assert.Equal(t, "a", m.buildAzureBlobPath("/a"))
+	assert.Equal(t, "a/b", m.buildAzureBlobPath("/a/b/"))
+
+	m = &AzureBlobStorage{cfg: &setting.AzureBlobStorageConfig{BasePath: "/base"}}
+	assert.Equal(t, "base", m.buildAzureBlobPath("/"))
+	assert.Equal(t, "base", m.buildAzureBlobPath("."))
+	assert.Equal(t, "base/a", m.buildAzureBlobPath("/a"))
+	assert.Equal(t, "base/a/b", m.buildAzureBlobPath("/a/b/"))
+
+	m = &AzureBlobStorage{cfg: &setting.AzureBlobStorageConfig{BasePath: "/base/"}}
+	assert.Equal(t, "base", m.buildAzureBlobPath("/"))
+	assert.Equal(t, "base", m.buildAzureBlobPath("."))
+	assert.Equal(t, "base/a", m.buildAzureBlobPath("/a"))
+	assert.Equal(t, "base/a/b", m.buildAzureBlobPath("/a/b/"))
 }
