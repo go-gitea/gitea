@@ -20,7 +20,7 @@ type RepoLicense struct { //revive:disable-line:exported
 	CommitID    string
 	License     string             `xorm:"VARCHAR(50) UNIQUE(s) INDEX NOT NULL"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX UPDATED"`
 }
 
 // RepoLicenseList defines a list of repo licenses
