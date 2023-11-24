@@ -106,10 +106,9 @@ func (a *azureBlobObject) Stat() (os.FileInfo, error) {
 type AzureBlobStorage struct {
 	cfg             *setting.AzureBlobStorageConfig
 	ctx             context.Context
+	credential      *azblob.SharedKeyCredential
 	client          *azblob.Client
 	containerClient *container.Client
-	container       string
-	basePath        string
 }
 
 func convertAzureBlobErr(err error) error {
@@ -153,15 +152,14 @@ func NewAzureBlobStorage(ctx context.Context, cfg *setting.Storage) (ObjectStora
 	return &AzureBlobStorage{
 		cfg:             &config,
 		ctx:             ctx,
+		credential:      cred,
 		client:          client,
 		containerClient: client.ServiceClient().NewContainerClient(config.Container),
-		container:       config.Container,
-		basePath:        config.BasePath,
 	}, nil
 }
 
 func (a *AzureBlobStorage) buildAzureBlobPath(p string) string {
-	p = util.PathJoinRelX(a.basePath, p)
+	p = util.PathJoinRelX(a.cfg.BasePath, p)
 	if p == "." || p == "/" {
 		p = "" // azure uses prefix, so path should be empty as relative path
 	}
@@ -193,7 +191,7 @@ func (a *AzureBlobStorage) Open(path string) (Object, error) {
 func (a *AzureBlobStorage) Save(path string, r io.Reader, size int64) (int64, error) {
 	_, err := a.client.UploadStream(
 		a.ctx,
-		a.container,
+		a.cfg.Container,
 		a.buildAzureBlobPath(path),
 		r,
 		// TODO: support set block size and concurrency
@@ -260,14 +258,23 @@ func (a *AzureBlobStorage) Delete(path string) error {
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
 func (a *AzureBlobStorage) URL(path, name string) (*url.URL, error) {
 	blobClient := a.getBlobClient(path)
-	perm := sas.BlobPermissions{
-		Read: true,
-	}
-	u, err := blobClient.GetSASURL(perm, time.Now().Add(5*time.Minute), nil)
+
+	// GetSASURL is a generic method built for common use cases. We need to implement it by ourselves
+	startTime := time.Now()
+	expiryTime := startTime.Add(5 * time.Minute)
+	qps, err := sas.BlobSignatureValues{
+		ContainerName:      a.cfg.Container,
+		BlobName:           a.buildAzureBlobPath(path),
+		Version:            sas.Version,
+		Permissions:        (&sas.BlobPermissions{Read: true}).String(),
+		StartTime:          startTime.UTC(),
+		ExpiryTime:         expiryTime.UTC(),
+		ContentDisposition: "attachment; filename=\"" + quoteEscaper.Replace(name) + "\"",
+	}.SignWithSharedKey(a.credential)
 	if err != nil {
 		return nil, err
 	}
-	return url.Parse(u)
+	return url.Parse(blobClient.URL() + "?" + qps.Encode())
 }
 
 // IterateObjects iterates across the objects in the azureblobstorage
@@ -276,7 +283,7 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 	if dirName != "" {
 		dirName += "/"
 	}
-	pager := a.client.NewListBlobsFlatPager(a.container, &container.ListBlobsFlatOptions{
+	pager := a.client.NewListBlobsFlatPager(a.cfg.Container, &container.ListBlobsFlatOptions{
 		Prefix: &dirName,
 	})
 	for pager.More() {
@@ -295,7 +302,7 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 			}
 			if err := func(object *azureBlobObject, fn func(path string, obj Object) error) error {
 				defer object.Close()
-				return fn(strings.TrimPrefix(object.Name, a.basePath), object)
+				return fn(strings.TrimPrefix(object.Name, a.cfg.BasePath), object)
 			}(object, fn); err != nil {
 				return convertAzureBlobErr(err)
 			}
