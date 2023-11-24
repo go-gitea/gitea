@@ -96,19 +96,6 @@ func GetExternalLogin(ctx context.Context, externalLoginUser *ExternalLoginUser)
 	return db.GetEngine(ctx).Get(externalLoginUser)
 }
 
-// ListAccountLinks returns a map with the ExternalLoginUser and its LoginSource
-func ListAccountLinks(ctx context.Context, user *User) ([]*ExternalLoginUser, error) {
-	externalAccounts := make([]*ExternalLoginUser, 0, 5)
-	err := db.GetEngine(ctx).Where("user_id=?", user.ID).
-		Desc("login_source_id").
-		Find(&externalAccounts)
-	if err != nil {
-		return nil, err
-	}
-
-	return externalAccounts, nil
-}
-
 // LinkExternalToUser link the external user to the user
 func LinkExternalToUser(ctx context.Context, user *User, externalLoginUser *ExternalLoginUser) error {
 	has, err := db.GetEngine(ctx).Where("external_id=? AND login_source_id=?", externalLoginUser.ExternalID, externalLoginUser.LoginSourceID).
@@ -173,28 +160,23 @@ func UpdateExternalUserByExternalID(ctx context.Context, external *ExternalLogin
 
 // FindExternalUserOptions represents an options to find external users
 type FindExternalUserOptions struct {
+	db.ListOptions
 	Provider string
-	Limit    int
-	Start    int
+	UserID   int64
+	OrderBy  string
 }
 
-func (opts FindExternalUserOptions) toConds() builder.Cond {
+func (opts FindExternalUserOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if len(opts.Provider) > 0 {
 		cond = cond.And(builder.Eq{"provider": opts.Provider})
 	}
+	if opts.UserID > 0 {
+		cond = cond.And(builder.Eq{"user_id": opts.UserID})
+	}
 	return cond
 }
 
-// FindExternalUsersByProvider represents external users via provider
-func FindExternalUsersByProvider(ctx context.Context, opts FindExternalUserOptions) ([]ExternalLoginUser, error) {
-	var users []ExternalLoginUser
-	err := db.GetEngine(ctx).Where(opts.toConds()).
-		Limit(opts.Limit, opts.Start).
-		OrderBy("login_source_id ASC, external_id ASC").
-		Find(&users)
-	if err != nil {
-		return nil, err
-	}
-	return users, nil
+func (opts FindExternalUserOptions) ToOrders() string {
+	return opts.OrderBy
 }
