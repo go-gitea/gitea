@@ -113,7 +113,7 @@ Runner级别决定了从哪里获取注册令牌。
 
 注册令牌的格式是一个随机字符串 `D0gvfu2iHfUjNqCYVljVyRV14fISpJxxxxxxxxxx`。
 
-注册令牌也可以通过 Gitea 的 [命令行](../../administration/command-line.en-us.md#actions-generate-runner-token) 获得:
+注册令牌也可以通过 Gitea 的 [命令行](../../administration/command-line.md#actions-generate-runner-token) 获得:
 
 ### 注册Runner
 
