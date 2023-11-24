@@ -28,18 +28,11 @@ var (
 	sameLicenses map[string]string
 )
 
-func init() {
-	err := loadSameLicenses()
-	if err != nil {
-		log.Error("loadSameLicenses: %v", err)
-	}
-	err = initClassifier()
-	if err != nil {
-		log.Error("initClassifier: %v", err)
-	}
-}
-
 func loadSameLicenses() error {
+	if sameLicenses == nil {
+		return nil
+	}
+
 	data, err := options.AssetFS().ReadFile("", "sameLicenses")
 	if err != nil {
 		return err
@@ -52,7 +45,7 @@ func loadSameLicenses() error {
 }
 
 func ConvertLicenseName(name string) string {
-	if sameLicenses == nil {
+	if err := loadSameLicenses(); err != nil {
 		return name
 	}
 
@@ -64,6 +57,10 @@ func ConvertLicenseName(name string) string {
 }
 
 func initClassifier() error {
+	if classifier != nil {
+		return nil
+	}
+
 	// threshold should be 0.84~0.86 or the test will be failed
 	classifier = licenseclassifier.NewClassifier(.85)
 	licenseFiles, err := options.AssetFS().ListFiles("license", true)
@@ -271,8 +268,7 @@ func detectLicense(content string) []string {
 	if len(content) == 0 {
 		return nil
 	}
-	if classifier == nil {
-		log.Error("detectLicense: license classifier is null.")
+	if err := initClassifier(); err != nil {
 		return nil
 	}
 
