@@ -39,7 +39,6 @@ If a bug fix is targeted on 1.20.1 but 1.20.1 is not released yet, you can get t
 
 To migrate from Gogs to Gitea:
 
-- [Gogs version 0.9.146 or less](installation/upgrade-from-gogs.md)
 - [Gogs version 0.11.46.0418](https://github.com/go-gitea/gitea/issues/4286)
 
 To migrate from GitHub to Gitea, you can use Gitea's built-in migration form.
