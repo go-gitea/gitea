@@ -192,16 +192,16 @@ func IsTypeValid(p Type) bool {
 
 // SearchOptions are options for GetProjects
 type SearchOptions struct {
+	db.ListOptions
 	OwnerID  int64
 	RepoID   int64
-	Page     int
 	IsClosed util.OptionalBool
 	OrderBy  db.SearchOrderBy
 	Type     Type
 	Title    string
 }
 
-func (opts *SearchOptions) toConds() builder.Cond {
+func (opts SearchOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
@@ -226,9 +226,8 @@ func (opts *SearchOptions) toConds() builder.Cond {
 	return cond
 }
 
-// CountProjects counts projects
-func CountProjects(ctx context.Context, opts SearchOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(Project))
+func (opts SearchOptions) ToOrders() string {
+	return opts.OrderBy.String()
 }
 
 func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
@@ -242,22 +241,6 @@ func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
 	default:
 		return db.SearchOrderByNewest
 	}
-}
-
-// FindProjects returns a list of all projects that have been created in the repository
-func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
-	e := db.GetEngine(ctx).Where(opts.toConds())
-	if opts.OrderBy.String() != "" {
-		e = e.OrderBy(opts.OrderBy.String())
-	}
-	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
-
-	if opts.Page > 0 {
-		e = e.Limit(setting.UI.IssuePagingNum, (opts.Page-1)*setting.UI.IssuePagingNum)
-	}
-
-	count, err := e.FindAndCount(&projects)
-	return projects, count, err
 }
 
 // NewProject creates a new Project

@@ -60,7 +60,7 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	}
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
-	orgs, err := organization.FindOrgs(ctx, organization.FindOrgOptions{
+	orgs, err := db.Find[organization.Organization](ctx, organization.FindOrgOptions{
 		UserID:         ctx.ContextUser.ID,
 		IncludePrivate: showPrivate,
 	})
@@ -141,7 +141,7 @@ func LoadHeaderCount(ctx *context.Context) error {
 	} else {
 		projectType = project_model.TypeIndividual
 	}
-	projectCount, err := project_model.CountProjects(ctx, project_model.SearchOptions{
+	projectCount, err := db.Count[project_model.Project](ctx, project_model.SearchOptions{
 		OwnerID:  ctx.ContextUser.ID,
 		IsClosed: util.OptionalBoolOf(false),
 		Type:     projectType,
