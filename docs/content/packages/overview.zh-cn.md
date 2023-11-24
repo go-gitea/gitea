@@ -36,7 +36,6 @@ menu:
 | [NuGet](packages/nuget.md)         | .NET       | `nuget`                   |
 | [Pub](packages/pub.md)             | Dart       | `dart`, `flutter`         |
 | [PyPI](packages/pypi.md)           | Python     | `pip`, `twine`            |
-| [RPM](packages/rpm.md)             | -          | `yum`, `dnf`              |
 | [RubyGems](packages/rubygems.md)   | Ruby       | `gem`, `Bundler`          |
 | [Swift](packages/rubygems.md)      | Swift      | `swift`                   |
 | [Vagrant](packages/vagrant.md)     | -          | `vagrant`                 |
