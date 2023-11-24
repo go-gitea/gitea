@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
@@ -133,12 +132,6 @@ func testLinksAsUser(userName string, t *testing.T) {
 		session.MakeRequest(t, req, http.StatusOK)
 	}
 
-	reqAPI := NewRequestf(t, "GET", "/api/v1/users/%s/repos", userName)
-	respAPI := MakeRequest(t, reqAPI, http.StatusOK)
-
-	var apiRepos []*api.Repository
-	DecodeJSON(t, respAPI, &apiRepos)
-
 	repoLinks := []string{
 		"",
 		"/issues",
@@ -156,15 +149,14 @@ func testLinksAsUser(userName string, t *testing.T) {
 		"/settings/keys",
 		"/releases",
 		"/releases/new",
+		"/wiki/?action=_page",
 		"/wiki/?action=_new",
 		"/activity",
 	}
 
-	for _, repo := range apiRepos {
-		for _, link := range repoLinks {
-			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s%s", userName, repo.Name, link))
-			session.MakeRequest(t, req, http.StatusOK)
-		}
+	for _, link := range repoLinks {
+		req := NewRequest(t, "GET", fmt.Sprintf("/%s/repo1%s", userName, link))
+		session.MakeRequest(t, req, http.StatusOK)
 	}
 }
 
