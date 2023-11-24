@@ -23,24 +23,19 @@ menu:
 
 | Name                                                          | Language   | Package client            |
 | ------------------------------------------------------------- | ---------- | ------------------------- |
-| [Alpine](packages/alpine.md)       | -          | `apk`                     |
 | [Cargo](packages/cargo.md)         | Rust       | `cargo`                   |
 | [Chef](packages/chef.md)           | -          | `knife`                   |
 | [Composer](packages/composer.md)   | PHP        | `composer`                |
 | [Conan](packages/conan.md)         | C++        | `conan`                   |
 | [Conda](packages/conda.md)         | -          | `conda`                   |
 | [Container](packages/container.md) | -          | 任何符合OCI规范的客户端   |
-| [CRAN](packages/cran.md)           | R          | -                         |
-| [Debian](packages/debian.md)       | -          | `apt`                     |
 | [Generic](packages/generic.md)     | -          | 任何HTTP客户端            |
-| [Go](packages/go.md)               | Go         | `go`                      |
 | [Helm](packages/helm.md)           | -          | 任何HTTP客户端, `cm-push` |
 | [Maven](packages/maven.md)         | Java       | `mvn`, `gradle`           |
 | [npm](packages/npm.md)             | JavaScript | `npm`, `yarn`, `pnpm`     |
 | [NuGet](packages/nuget.md)         | .NET       | `nuget`                   |
 | [Pub](packages/pub.md)             | Dart       | `dart`, `flutter`         |
 | [PyPI](packages/pypi.md)           | Python     | `pip`, `twine`            |
-| [RPM](packages/rpm.md)             | -          | `yum`, `dnf`              |
 | [RubyGems](packages/rubygems.md)   | Ruby       | `gem`, `Bundler`          |
 | [Swift](packages/rubygems.md)      | Swift      | `swift`                   |
 | [Vagrant](packages/vagrant.md)     | -          | `vagrant`                 |
