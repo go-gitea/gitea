@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	packages_model "code.gitea.io/gitea/models/packages"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -298,7 +299,7 @@ func handleWorkflows(
 			continue
 		}
 
-		alljobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID})
+		alljobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
 		if err != nil {
 			log.Error("FindRunJobs: %v", err)
 			continue
@@ -377,7 +378,7 @@ func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *rep
 	}
 
 	// don't need approval if the user has been approved before
-	if count, err := actions_model.CountRuns(ctx, actions_model.FindRunOptions{
+	if count, err := db.Count[actions_model.ActionRun](ctx, actions_model.FindRunOptions{
 		RepoID:        repo.ID,
 		TriggerUserID: user.ID,
 		Approved:      true,
@@ -408,7 +409,7 @@ func handleSchedules(
 		return nil
 	}
 
-	if count, err := actions_model.CountSchedules(ctx, actions_model.FindScheduleOptions{RepoID: input.Repo.ID}); err != nil {
+	if count, err := db.Count[actions_model.ActionSchedule](ctx, actions_model.FindScheduleOptions{RepoID: input.Repo.ID}); err != nil {
 		log.Error("CountSchedules: %v", err)
 		return err
 	} else if count > 0 {
