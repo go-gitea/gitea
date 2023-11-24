@@ -23,7 +23,6 @@ menu:
 
 | Name                                                          | Language   | Package client            |
 | ------------------------------------------------------------- | ---------- | ------------------------- |
-| [Alpine](packages/alpine.md)       | -          | `apk`                     |
 | [Cargo](packages/cargo.md)         | Rust       | `cargo`                   |
 | [Chef](packages/chef.md)           | -          | `knife`                   |
 | [Composer](packages/composer.md)   | PHP        | `composer`                |
