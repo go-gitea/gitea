@@ -29,7 +29,6 @@ menu:
 | [Conan](packages/conan.md)         | C++        | `conan`                   |
 | [Conda](packages/conda.md)         | -          | `conda`                   |
 | [Container](packages/container.md) | -          | 任何符合OCI规范的客户端   |
-| [Debian](packages/debian.md)       | -          | `apt`                     |
 | [Generic](packages/generic.md)     | -          | 任何HTTP客户端            |
 | [Go](packages/go.md)               | Go         | `go`                      |
 | [Helm](packages/helm.md)           | -          | 任何HTTP客户端, `cm-push` |
