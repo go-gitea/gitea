@@ -199,6 +199,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				err := repo_module.UpdateRepoLicensesByGitRepo(ctx, repo, nil)
 				if err != nil {
 					ctx.JSON(http.StatusInternalServerError, private.Response{Err: err.Error()})
+					return
 				}
 
 				// If our branch is the default branch of an unforked repo - there's no PR to create or refer to
