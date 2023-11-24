@@ -16914,6 +16914,14 @@
           "type": "boolean",
           "x-go-name": "EnableApprovalsWhitelist"
         },
+        "enable_force_push": {
+          "type": "boolean",
+          "x-go-name": "EnableForcePush"
+        },
+        "enable_force_push_whitelist": {
+          "type": "boolean",
+          "x-go-name": "EnableForcePushWhitelist"
+        },
         "enable_merge_whitelist": {
           "type": "boolean",
           "x-go-name": "EnableMergeWhitelist"
@@ -16926,17 +16934,27 @@
           "type": "boolean",
           "x-go-name": "EnablePushWhitelist"
         },
-        "enable_force_push": {
-          "type": "boolean",
-          "x-go-name": "EnableForcePush"
-        },
-        "enable_force_push_whitelist": {
-          "type": "boolean",
-          "x-go-name": "EnableForcePushWhitelist"
-        },
         "enable_status_check": {
           "type": "boolean",
           "x-go-name": "EnableStatusCheck"
+        },
+        "force_push_whitelist_deploy_keys": {
+          "type": "boolean",
+          "x-go-name": "ForcePushWhitelistDeployKeys"
+        },
+        "force_push_whitelist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "ForcePushWhitelistTeams"
+        },
+        "force_push_whitelist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "ForcePushWhitelistUsernames"
         },
         "merge_whitelist_teams": {
           "type": "array",
@@ -16973,24 +16991,6 @@
             "type": "string"
           },
           "x-go-name": "PushWhitelistUsernames"
-        },
-        "force_push_whitelist_deploy_keys": {
-          "type": "boolean",
-          "x-go-name": "ForcePushWhitelistDeployKeys"
-        },
-        "force_push_whitelist_teams": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "ForcePushWhitelistTeams"
-        },
-        "force_push_whitelist_usernames": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "ForcePushWhitelistUsernames"
         },
         "require_signed_commits": {
           "type": "boolean",
@@ -17581,6 +17581,14 @@
           "type": "boolean",
           "x-go-name": "EnableApprovalsWhitelist"
         },
+        "enable_force_push": {
+          "type": "boolean",
+          "x-go-name": "EnableForcePush"
+        },
+        "enable_force_push_whitelist": {
+          "type": "boolean",
+          "x-go-name": "EnableForcePushWhitelist"
+        },
         "enable_merge_whitelist": {
           "type": "boolean",
           "x-go-name": "EnableMergeWhitelist"
@@ -17593,17 +17601,27 @@
           "type": "boolean",
           "x-go-name": "EnablePushWhitelist"
         },
-        "enable_force_push": {
-          "type": "boolean",
-          "x-go-name": "EnableForcePush"
-        },
-        "enable_force_push_whitelist": {
-          "type": "boolean",
-          "x-go-name": "EnableForcePushWhitelist"
-        },
         "enable_status_check": {
           "type": "boolean",
           "x-go-name": "EnableStatusCheck"
+        },
+        "force_push_whitelist_deploy_keys": {
+          "type": "boolean",
+          "x-go-name": "ForcePushWhitelistDeployKeys"
+        },
+        "force_push_whitelist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "ForcePushWhitelistTeams"
+        },
+        "force_push_whitelist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "ForcePushWhitelistUsernames"
         },
         "merge_whitelist_teams": {
           "type": "array",
@@ -17640,24 +17658,6 @@
             "type": "string"
           },
           "x-go-name": "PushWhitelistUsernames"
-        },
-        "force_push_whitelist_deploy_keys": {
-          "type": "boolean",
-          "x-go-name": "ForcePushWhitelistDeployKeys"
-        },
-        "force_push_whitelist_teams": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "ForcePushWhitelistTeams"
-        },
-        "force_push_whitelist_usernames": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "ForcePushWhitelistUsernames"
         },
         "require_signed_commits": {
           "type": "boolean",
@@ -18739,6 +18739,14 @@
           "type": "boolean",
           "x-go-name": "EnableApprovalsWhitelist"
         },
+        "enable_force_push": {
+          "type": "boolean",
+          "x-go-name": "EnableForcePush"
+        },
+        "enable_force_push_whitelist": {
+          "type": "boolean",
+          "x-go-name": "EnableForcePushWhitelist"
+        },
         "enable_merge_whitelist": {
           "type": "boolean",
           "x-go-name": "EnableMergeWhitelist"
@@ -18751,17 +18759,27 @@
           "type": "boolean",
           "x-go-name": "EnablePushWhitelist"
         },
-        "enable_force_push": {
-          "type": "boolean",
-          "x-go-name": "EnableForcePush"
-        },
-        "enable_force_push_whitelist": {
-          "type": "boolean",
-          "x-go-name": "EnableForcePushWhitelist"
-        },
         "enable_status_check": {
           "type": "boolean",
           "x-go-name": "EnableStatusCheck"
+        },
+        "force_push_whitelist_deploy_keys": {
+          "type": "boolean",
+          "x-go-name": "ForcePushWhitelistDeployKeys"
+        },
+        "force_push_whitelist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "ForcePushWhitelistTeams"
+        },
+        "force_push_whitelist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "ForcePushWhitelistUsernames"
         },
         "merge_whitelist_teams": {
           "type": "array",
@@ -18798,24 +18816,6 @@
             "type": "string"
           },
           "x-go-name": "PushWhitelistUsernames"
-        },
-        "force_push_whitelist_deploy_keys": {
-          "type": "boolean",
-          "x-go-name": "ForcePushWhitelistDeployKeys"
-        },
-        "force_push_whitelist_teams": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "ForcePushWhitelistTeams"
-        },
-        "force_push_whitelist_usernames": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "ForcePushWhitelistUsernames"
         },
         "require_signed_commits": {
           "type": "boolean",
