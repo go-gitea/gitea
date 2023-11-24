@@ -56,7 +56,7 @@
   is_active: true
   is_admin: false
   is_restricted: false
-  allow_git_hook: false
+  allow_git_hook: true
   allow_import_local: false
   allow_create_organization: true
   prohibit_login: false
