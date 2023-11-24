@@ -338,7 +338,7 @@ func GetRunByIndex(ctx context.Context, repoID, index int64) (*ActionRun, error)
 func GetRepoBranchLastRun(ctx context.Context, repoID int64, branch, workflowFile string) (*ActionRun, error) {
 	var run ActionRun
 	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).
-		In("ref", branch, ""). // cron job has no branch
+		And("ref = ? or schedule_id != ?", branch, 0). // schedule_id != 0 indicates cron job
 		And("workflow_id = ?", workflowFile).
 		Desc("id").
 		Get(&run)
