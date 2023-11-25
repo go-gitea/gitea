@@ -301,7 +301,7 @@ func DeleteHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	if err := webhook.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
+	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
 		if webhook.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {
