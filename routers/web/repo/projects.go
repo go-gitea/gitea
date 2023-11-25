@@ -468,18 +468,13 @@ func AddBoardToProjectPost(ctx *context.Context) {
 		return
 	}
 
-	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
 		} else {
 			ctx.ServerError("GetProjectByID", err)
 		}
-		return
-	}
-
-	if project.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("AddBoardToProjectPost", nil)
 		return
 	}
 

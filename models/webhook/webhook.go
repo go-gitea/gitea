@@ -406,11 +406,11 @@ func GetWebhookByID(ctx context.Context, id int64) (*Webhook, error) {
 
 // GetWebhookByRepoID returns webhook of repository by given ID.
 func GetWebhookByRepoID(ctx context.Context, repoID, id int64) (*Webhook, error) {
-	webhook, err := GetWebhookByID(ctx, id)
+	webhook := new(Webhook)
+	has, err := db.GetEngine(ctx).Where("id=? AND repo_id=?", id, repoID).Get(webhook)
 	if err != nil {
 		return nil, err
-	}
-	if webhook.RepoID != repoID {
+	} else if !has {
 		return nil, ErrWebhookNotExist{ID: id}
 	}
 	return webhook, nil
@@ -418,11 +418,11 @@ func GetWebhookByRepoID(ctx context.Context, repoID, id int64) (*Webhook, error)
 
 // GetWebhookByOwnerID returns webhook of a user or organization by given ID.
 func GetWebhookByOwnerID(ctx context.Context, ownerID, id int64) (*Webhook, error) {
-	webhook, err := GetWebhookByID(ctx, id)
+	webhook := new(Webhook)
+	has, err := db.GetEngine(ctx).Where("id=? AND owner_id=?", id, ownerID).Get(webhook)
 	if err != nil {
 		return nil, err
-	}
-	if webhook.OwnerID != ownerID {
+	} else if !has {
 		return nil, ErrWebhookNotExist{ID: id}
 	}
 	return webhook, nil
