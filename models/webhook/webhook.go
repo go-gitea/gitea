@@ -484,24 +484,16 @@ func DeleteWebhookByID(ctx context.Context, id int64) (err error) {
 
 // DeleteWebhookByRepoID deletes webhook of repository by given ID.
 func DeleteWebhookByRepoID(ctx context.Context, repoID, id int64) error {
-	webhook, err := GetWebhookByID(ctx, id)
-	if err != nil {
+	if _, err := GetWebhookByRepoID(ctx, repoID, id); err != nil {
 		return err
-	}
-	if webhook.RepoID != repoID {
-		return ErrWebhookNotExist{ID: id}
 	}
 	return DeleteWebhookByID(ctx, id)
 }
 
 // DeleteWebhookByOwnerID deletes webhook of a user or organization by given ID.
 func DeleteWebhookByOwnerID(ctx context.Context, ownerID, id int64) error {
-	webhook, err := GetWebhookByID(ctx, id)
-	if err != nil {
+	if _, err := GetWebhookByOwnerID(ctx, ownerID, id); err != nil {
 		return err
-	}
-	if webhook.OwnerID != ownerID {
-		return ErrWebhookNotExist{ID: id}
 	}
 	return DeleteWebhookByID(ctx, id)
 }

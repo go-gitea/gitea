@@ -633,7 +633,7 @@ func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 	}
 
 	if rel.RepoID != ctx.Repo.Repository.ID {
-		redirect()
+		ctx.NotFound("deleteReleaseOrTag", nil)
 		return
 	}
 

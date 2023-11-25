@@ -479,7 +479,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 	}
 
 	if project.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("", nil)
+		ctx.NotFound("AddBoardToProjectPost", nil)
 		return
 	}
 
