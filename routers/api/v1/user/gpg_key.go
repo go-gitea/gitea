@@ -121,6 +121,10 @@ func GetGPGKey(ctx *context.APIContext) {
 		}
 		return
 	}
+	if !ctx.Doer.IsAdmin && key.OwnerID != ctx.Doer.ID {
+		ctx.NotFound()
+		return
+	}
 	ctx.JSON(http.StatusOK, convert.ToGPGKey(key))
 }
 
