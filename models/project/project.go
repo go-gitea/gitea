@@ -294,6 +294,18 @@ func GetProjectByID(ctx context.Context, id int64) (*Project, error) {
 	return p, nil
 }
 
+// GetProjectForRepoByID returns the projects in a repository
+func GetProjectForRepoByID(ctx context.Context, repoID, id int64) (*Project, error) {
+	p := new(Project)
+	has, err := db.GetEngine(ctx).Where("id=? AND repo_id=?", id, repoID).Get(p)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrProjectNotExist{ID: id}
+	}
+	return p, nil
+}
+
 // UpdateProject updates project properties
 func UpdateProject(ctx context.Context, p *Project) error {
 	if !IsCardTypeValid(p.CardType) {
