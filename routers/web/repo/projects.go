@@ -478,6 +478,11 @@ func AddBoardToProjectPost(ctx *context.Context) {
 		return
 	}
 
+	if project.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound("", nil)
+		return
+	}
+
 	if err := project_model.NewBoard(ctx, &project_model.Board{
 		ProjectID: project.ID,
 		Title:     form.Title,

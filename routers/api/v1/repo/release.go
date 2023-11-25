@@ -403,7 +403,7 @@ func DeleteRelease(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	if err := release_service.DeleteReleaseByID(ctx, id, ctx.Doer, false); err != nil {
+	if err := release_service.DeleteReleaseByID(ctx, ctx.Repo.Repository, rel, ctx.Doer, false); err != nil {
 		if models.IsErrProtectedTagName(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "delTag", "user not allowed to delete protected tag")
 			return

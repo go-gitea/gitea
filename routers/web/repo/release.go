@@ -616,7 +616,28 @@ func DeleteTag(ctx *context.Context) {
 }
 
 func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
-	if err := releaseservice.DeleteReleaseByID(ctx, ctx.FormInt64("id"), ctx.Doer, isDelTag); err != nil {
+	redirect := func() {
+		if isDelTag {
+			ctx.JSONRedirect(ctx.Repo.RepoLink + "/tags")
+			return
+		}
+
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/releases")
+	}
+
+	rel, err := repo_model.GetReleaseByID(ctx, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
+		redirect()
+		return
+	}
+
+	if rel.RepoID != ctx.Repo.Repository.ID {
+		redirect()
+		return
+	}
+
+	if err := releaseservice.DeleteReleaseByID(ctx, ctx.Repo.Repository, rel, ctx.Doer, isDelTag); err != nil {
 		if models.IsErrProtectedTagName(err) {
 			ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))
 		} else {
@@ -630,10 +651,5 @@ func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 		}
 	}
 
-	if isDelTag {
-		ctx.JSONRedirect(ctx.Repo.RepoLink + "/tags")
-		return
-	}
-
-	ctx.JSONRedirect(ctx.Repo.RepoLink + "/releases")
+	redirect()
 }

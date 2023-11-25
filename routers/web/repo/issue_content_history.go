@@ -130,6 +130,11 @@ func GetContentHistoryDetail(ctx *context.Context) {
 		return
 	}
 
+	if history.IssueID != issue.ID {
+		ctx.NotFound("GetContentHistoryDetail", nil)
+		return
+	}
+
 	// get the related comment if this history revision is for a comment, otherwise the history revision is for an issue.
 	var comment *issues_model.Comment
 	if history.CommentID != 0 {
