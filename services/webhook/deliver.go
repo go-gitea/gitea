@@ -34,7 +34,7 @@ import (
 
 // Deliver deliver hook task
 func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
-	w, err := webhook_model.GetWebhookByID(t.HookID)
+	w, err := webhook_model.GetWebhookByID(ctx, t.HookID)
 	if err != nil {
 		return err
 	}

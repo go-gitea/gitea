@@ -337,6 +337,10 @@ func GetOauth2Application(ctx *context.APIContext) {
 		}
 		return
 	}
+	if app.UID != ctx.Doer.ID {
+		ctx.NotFound()
+		return
+	}
 
 	app.ClientSecret = ""
 

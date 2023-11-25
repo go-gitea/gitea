@@ -325,6 +325,10 @@ func getIssueCommentSafe(ctx *context.APIContext) *issues_model.Comment {
 		return nil
 	}
 
+	if !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull) {
+		return nil
+	}
+
 	comment.Issue.Repo = ctx.Repo.Repository
 
 	return comment
