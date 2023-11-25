@@ -112,17 +112,13 @@ func GetGPGKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	key, err := asymkey_model.GetGPGKeyByID(ctx, ctx.ParamsInt64(":id"))
+	key, err := asymkey_model.GetGPGKeyForUserByID(ctx, ctx.Doer.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if asymkey_model.IsErrGPGKeyNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetGPGKeyByID", err)
 		}
-		return
-	}
-	if !ctx.Doer.IsAdmin && key.OwnerID != ctx.Doer.ID {
-		ctx.NotFound()
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToGPGKey(key))

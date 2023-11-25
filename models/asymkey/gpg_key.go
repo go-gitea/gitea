@@ -92,13 +92,15 @@ func CountUserGPGKeys(ctx context.Context, userID int64) (int64, error) {
 	return db.GetEngine(ctx).Where("owner_id=? AND primary_key_id=''", userID).Count(&GPGKey{})
 }
 
-// GetGPGKeyByID returns public key by given ID.
-func GetGPGKeyByID(ctx context.Context, keyID int64) (*GPGKey, error) {
+func GetGPGKeyForUserByID(ctx context.Context, ownerID, keyID int64) (*GPGKey, error) {
 	key := new(GPGKey)
 	has, err := db.GetEngine(ctx).ID(keyID).Get(key)
 	if err != nil {
 		return nil, err
 	} else if !has {
+		return nil, ErrGPGKeyNotExist{keyID}
+	}
+	if key.OwnerID != ownerID {
 		return nil, ErrGPGKeyNotExist{keyID}
 	}
 	return key, nil
@@ -225,17 +227,12 @@ func deleteGPGKey(ctx context.Context, keyID string) (int64, error) {
 
 // DeleteGPGKey deletes GPG key information in database.
 func DeleteGPGKey(ctx context.Context, doer *user_model.User, id int64) (err error) {
-	key, err := GetGPGKeyByID(ctx, id)
+	key, err := GetGPGKeyForUserByID(ctx, doer.ID, id)
 	if err != nil {
 		if IsErrGPGKeyNotExist(err) {
 			return nil
 		}
 		return fmt.Errorf("GetPublicKeyByID: %w", err)
-	}
-
-	// Check if user has access to delete this key.
-	if !doer.IsAdmin && doer.ID != key.OwnerID {
-		return ErrGPGKeyAccessDenied{doer.ID, key.ID}
 	}
 
 	ctx, committer, err := db.TxContext(ctx)

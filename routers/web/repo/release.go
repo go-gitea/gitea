@@ -625,15 +625,14 @@ func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 		ctx.JSONRedirect(ctx.Repo.RepoLink + "/releases")
 	}
 
-	rel, err := repo_model.GetReleaseByID(ctx, ctx.FormInt64("id"))
+	rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id"))
 	if err != nil {
-		ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
-		redirect()
-		return
-	}
-
-	if rel.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("deleteReleaseOrTag", nil)
+		if repo_model.IsErrReleaseNotExist(err) {
+			ctx.NotFound("GetReleaseForRepoByID", err)
+		} else {
+			ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
+			redirect()
+		}
 		return
 	}
 

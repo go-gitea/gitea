@@ -207,6 +207,19 @@ func GetReleaseByID(ctx context.Context, id int64) (*Release, error) {
 	return rel, nil
 }
 
+// GetReleaseForRepoByID returns release with given ID.
+func GetReleaseForRepoByID(ctx context.Context, repoID, id int64) (*Release, error) {
+	rel, err := GetReleaseByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if rel.RepoID != repoID {
+		return nil, ErrReleaseNotExist{id, ""}
+	}
+
+	return rel, nil
+}
+
 // FindReleasesOptions describes the conditions to Find releases
 type FindReleasesOptions struct {
 	db.ListOptions
