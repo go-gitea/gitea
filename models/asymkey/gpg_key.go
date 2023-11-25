@@ -94,13 +94,10 @@ func CountUserGPGKeys(ctx context.Context, userID int64) (int64, error) {
 
 func GetGPGKeyForUserByID(ctx context.Context, ownerID, keyID int64) (*GPGKey, error) {
 	key := new(GPGKey)
-	has, err := db.GetEngine(ctx).ID(keyID).Get(key)
+	has, err := db.GetEngine(ctx).Where("id=? AND owner_id=?", keyID, ownerID).Get(key)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrGPGKeyNotExist{keyID}
-	}
-	if key.OwnerID != ownerID {
 		return nil, ErrGPGKeyNotExist{keyID}
 	}
 	return key, nil

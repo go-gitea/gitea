@@ -209,11 +209,13 @@ func GetReleaseByID(ctx context.Context, id int64) (*Release, error) {
 
 // GetReleaseForRepoByID returns release with given ID.
 func GetReleaseForRepoByID(ctx context.Context, repoID, id int64) (*Release, error) {
-	rel, err := GetReleaseByID(ctx, id)
+	rel := new(Release)
+	has, err := db.GetEngine(ctx).
+		Where("id=? AND repo_id=?", id, repoID).
+		Get(rel)
 	if err != nil {
 		return nil, err
-	}
-	if rel.RepoID != repoID {
+	} else if !has {
 		return nil, ErrReleaseNotExist{id, ""}
 	}
 
