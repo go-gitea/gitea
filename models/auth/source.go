@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
+	"xorm.io/builder"
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
 )
@@ -233,44 +234,28 @@ func CreateSource(ctx context.Context, source *Source) error {
 	err = registerableSource.RegisterSource()
 	if err != nil {
 		// remove the AuthSource in case of errors while registering configuration
-		if _, err := db.GetEngine(ctx).Delete(source); err != nil {
+		if _, err := db.GetEngine(ctx).ID(source.ID).Delete(new(Source)); err != nil {
 			log.Error("CreateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
 		}
 	}
 	return err
 }
 
-// Sources returns a slice of all login sources found in DB.
-func Sources(ctx context.Context) ([]*Source, error) {
-	auths := make([]*Source, 0, 6)
-	return auths, db.GetEngine(ctx).Find(&auths)
+type FindSourcesOptions struct {
+	db.ListOptions
+	IsActive  util.OptionalBool
+	LoginType Type
 }
 
-// SourcesByType returns all sources of the specified type
-func SourcesByType(ctx context.Context, loginType Type) ([]*Source, error) {
-	sources := make([]*Source, 0, 1)
-	if err := db.GetEngine(ctx).Where("type = ?", loginType).Find(&sources); err != nil {
-		return nil, err
+func (opts FindSourcesOptions) ToConds() builder.Cond {
+	conds := builder.NewCond()
+	if !opts.IsActive.IsNone() {
+		conds = conds.And(builder.Eq{"is_active": opts.IsActive.IsTrue()})
 	}
-	return sources, nil
-}
-
-// AllActiveSources returns all active sources
-func AllActiveSources(ctx context.Context) ([]*Source, error) {
-	sources := make([]*Source, 0, 5)
-	if err := db.GetEngine(ctx).Where("is_active = ?", true).Find(&sources); err != nil {
-		return nil, err
+	if opts.LoginType != NoType {
+		conds = conds.And(builder.Eq{"`type`": opts.LoginType})
 	}
-	return sources, nil
-}
-
-// ActiveSources returns all active sources of the specified type
-func ActiveSources(ctx context.Context, tp Type) ([]*Source, error) {
-	sources := make([]*Source, 0, 1)
-	if err := db.GetEngine(ctx).Where("is_active = ? and type = ?", true, tp).Find(&sources); err != nil {
-		return nil, err
-	}
-	return sources, nil
+	return conds
 }
 
 // IsSSPIEnabled returns true if there is at least one activated login
@@ -279,12 +264,16 @@ func IsSSPIEnabled(ctx context.Context) bool {
 	if !db.HasEngine {
 		return false
 	}
-	sources, err := ActiveSources(ctx, SSPI)
+
+	exist, err := db.Exists[Source](ctx, FindSourcesOptions{
+		IsActive:  util.OptionalBoolTrue,
+		LoginType: SSPI,
+	})
 	if err != nil {
-		log.Error("ActiveSources: %v", err)
+		log.Error("Active SSPI Sources: %v", err)
 		return false
 	}
-	return len(sources) > 0
+	return exist
 }
 
 // GetSourceByID returns login source by given ID.
@@ -351,12 +340,6 @@ func UpdateSource(ctx context.Context, source *Source) error {
 		}
 	}
 	return err
-}
-
-// CountSources returns number of login sources.
-func CountSources(ctx context.Context) int64 {
-	count, _ := db.GetEngine(ctx).Count(new(Source))
-	return count
 }
 
 // ErrSourceNotExist represents a "SourceNotExist" kind of error.
