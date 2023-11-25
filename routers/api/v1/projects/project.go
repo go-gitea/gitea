@@ -136,7 +136,7 @@ func CreateRepoProject(ctx *context.APIContext) {
 }
 
 func GetProject(ctx *context.APIContext) {
-	// swagger:operation GET /projects/{id} project projectGetProject
+	// swagger:operation GET /projects/{projectId} project projectGetProject
 	// ---
 	// summary: Get project
 	// produces:
@@ -154,7 +154,7 @@ func GetProject(ctx *context.APIContext) {
 	//	  "$ref": "#/responses/forbidden"
 	//	"404":
 	//	  "$ref": "#/responses/notFound"
-	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":projectId"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound()
@@ -168,7 +168,7 @@ func GetProject(ctx *context.APIContext) {
 }
 
 func UpdateProject(ctx *context.APIContext) {
-	// swagger:operation PATCH /projects/{id} project projectUpdateProject
+	// swagger:operation PATCH /projects/{projectId} project projectUpdateProject
 	// ---
 	// summary: Update project
 	// produces:
@@ -193,7 +193,7 @@ func UpdateProject(ctx *context.APIContext) {
 	//	"404":
 	//	  "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.UpdateProjectPayload)
-	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64("id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":projectId"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound()
@@ -218,7 +218,7 @@ func UpdateProject(ctx *context.APIContext) {
 }
 
 func DeleteProject(ctx *context.APIContext) {
-	// swagger:operation DELETE /projects/{id} project projectDeleteProject
+	// swagger:operation DELETE /projects/{projectId} project projectDeleteProject
 	// ---
 	// summary: Delete project
 	// parameters:
@@ -235,7 +235,7 @@ func DeleteProject(ctx *context.APIContext) {
 	//	"404":
 	//	  "$ref": "#/responses/notFound"
 
-	if err := project_model.DeleteProjectByID(ctx, ctx.ParamsInt64(":id")); err != nil {
+	if err := project_model.DeleteProjectByID(ctx, ctx.ParamsInt64(":projectId")); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteProjectByID", err)
 		return
 	}

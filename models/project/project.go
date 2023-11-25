@@ -108,6 +108,8 @@ type Project struct {
 	ClosedDateUnix timeutil.TimeStamp
 }
 
+type ProjectList []*Project
+
 func (p *Project) LoadOwner(ctx context.Context) (err error) {
 	if p.Owner != nil {
 		return nil

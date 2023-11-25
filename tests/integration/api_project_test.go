@@ -67,7 +67,8 @@ func TestAPICreateOrgProject(t *testing.T) {
 	assert.Equal(t, title, apiProject.Title)
 	assert.Equal(t, description, apiProject.Description)
 	assert.Equal(t, board_type, apiProject.BoardType)
-	assert.Equal(t, "org17", apiProject.Creator.UserName)
+	assert.Equal(t, "org17", apiProject.Owner.UserName)
+	assert.Equal(t, "user2", apiProject.Creator.UserName)
 }
 
 func TestAPICreateRepoProject(t *testing.T) {

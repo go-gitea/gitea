@@ -1747,11 +1747,23 @@ func Routes() *web.Route {
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryAdmin), reqToken(), reqSiteAdmin())
 
 		m.Group("/projects", func() {
-			m.
-				Combo("/{id}").
-				Get(projects.GetProject).
-				Patch(bind(api.UpdateProjectPayload{}), projects.UpdateProject).
-				Delete(projects.DeleteProject)
+			m.Group("/{projectId}", func() {
+				m.Combo("").
+					Get(projects.GetProject).
+					Patch(bind(api.UpdateProjectPayload{}), projects.UpdateProject).
+					Delete(projects.DeleteProject)
+				m.Combo("/boards").
+					Get(projects.ListProjectBoards).
+					Post(bind(api.NewProjectBoardPayload{}), projects.CreateProjectBoard)
+			})
+
+			m.Group("/boards", func() {
+				m.Combo("/{boardId}").
+					Get(projects.GetProjectBoard).
+					Patch(bind(api.UpdateProjectBoardPayload{}), projects.UpdateProjectBoard).
+					Delete(projects.DeleteProjectBoard)
+			})
+
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue), reqToken())
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)

@@ -10,6 +10,29 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
+func ToAPIProjectBoard(ctx context.Context, board *project_model.Board) *api.ProjectBoard {
+	apiProjectBoard := api.ProjectBoard{
+		ID:      board.ID,
+		Title:   board.Title,
+		Color:   board.Color,
+		Default: board.Default,
+		Sorting: board.Sorting,
+	}
+
+	return &apiProjectBoard
+}
+
+func ToApiProjectBoardList(
+	ctx context.Context,
+	boards []*project_model.Board,
+) ([]*api.ProjectBoard, error) {
+	result := make([]*api.ProjectBoard, len(boards))
+	for i := range boards {
+		result[i] = ToAPIProjectBoard(ctx, boards[i])
+	}
+	return result, nil
+}
+
 func ToAPIProject(ctx context.Context, project *project_model.Project) *api.Project {
 
 	apiProject := &api.Project{
