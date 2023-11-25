@@ -83,20 +83,14 @@ func ListDeployKeys(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	opts := &asymkey_model.ListDeployKeysOptions{
+	opts := asymkey_model.ListDeployKeysOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 		KeyID:       ctx.FormInt64("key_id"),
 		Fingerprint: ctx.FormString("fingerprint"),
 	}
 
-	keys, err := asymkey_model.ListDeployKeys(ctx, opts)
-	if err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
-
-	count, err := asymkey_model.CountDeployKeys(ctx, opts)
+	keys, count, err := db.FindAndCount[asymkey_model.DeployKey](ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

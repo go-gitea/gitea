@@ -435,7 +435,7 @@ type ListWebhookOptions struct {
 	IsActive util.OptionalBool
 }
 
-func (opts *ListWebhookOptions) toCond() builder.Cond {
+func (opts ListWebhookOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID != 0 {
 		cond = cond.And(builder.Eq{"webhook.repo_id": opts.RepoID})
@@ -447,27 +447,6 @@ func (opts *ListWebhookOptions) toCond() builder.Cond {
 		cond = cond.And(builder.Eq{"webhook.is_active": opts.IsActive.IsTrue()})
 	}
 	return cond
-}
-
-// ListWebhooksByOpts return webhooks based on options
-func ListWebhooksByOpts(ctx context.Context, opts *ListWebhookOptions) ([]*Webhook, error) {
-	sess := db.GetEngine(ctx).Where(opts.toCond())
-
-	if opts.Page != 0 {
-		sess = db.SetSessionPagination(sess, opts)
-		webhooks := make([]*Webhook, 0, opts.PageSize)
-		err := sess.Find(&webhooks)
-		return webhooks, err
-	}
-
-	webhooks := make([]*Webhook, 0, 10)
-	err := sess.Find(&webhooks)
-	return webhooks, err
-}
-
-// CountWebhooksByOpts count webhooks based on options and ignore pagination
-func CountWebhooksByOpts(ctx context.Context, opts *ListWebhookOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toCond()).Count(&Webhook{})
 }
 
 // UpdateWebhook updates information of webhook.

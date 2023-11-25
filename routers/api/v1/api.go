@@ -2,7 +2,7 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-// Package v1 Gitea API.
+// Package v1 Gitea API
 //
 // This documentation describes the Gitea API.
 //

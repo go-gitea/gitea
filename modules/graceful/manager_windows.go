@@ -7,11 +7,9 @@
 package graceful
 
 import (
-	"context"
 	"os"
 	"runtime/pprof"
 	"strconv"
-	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -30,64 +28,11 @@ const (
 	acceptHammerCode = svc.Accepted(hammerCode)
 )
 
-// Manager manages the graceful shutdown process
-type Manager struct {
-	ctx                    context.Context
-	isChild                bool
-	lock                   *sync.RWMutex
-	state                  state
-	shutdownCtx            context.Context
-	hammerCtx              context.Context
-	terminateCtx           context.Context
-	managerCtx             context.Context
-	shutdownCtxCancel      context.CancelFunc
-	hammerCtxCancel        context.CancelFunc
-	terminateCtxCancel     context.CancelFunc
-	managerCtxCancel       context.CancelFunc
-	runningServerWaitGroup sync.WaitGroup
-	createServerWaitGroup  sync.WaitGroup
-	terminateWaitGroup     sync.WaitGroup
-	shutdownRequested      chan struct{}
-
-	toRunAtShutdown  []func()
-	toRunAtTerminate []func()
-}
-
-func newGracefulManager(ctx context.Context) *Manager {
-	manager := &Manager{
-		isChild: false,
-		lock:    &sync.RWMutex{},
-		ctx:     ctx,
-	}
-	manager.createServerWaitGroup.Add(numberOfServersToCreate)
-	manager.start()
-	return manager
-}
-
 func (g *Manager) start() {
-	// Make contexts
-	g.terminateCtx, g.terminateCtxCancel = context.WithCancel(g.ctx)
-	g.shutdownCtx, g.shutdownCtxCancel = context.WithCancel(g.ctx)
-	g.hammerCtx, g.hammerCtxCancel = context.WithCancel(g.ctx)
-	g.managerCtx, g.managerCtxCancel = context.WithCancel(g.ctx)
-
-	// Next add pprof labels to these contexts
-	g.terminateCtx = pprof.WithLabels(g.terminateCtx, pprof.Labels("graceful-lifecycle", "with-terminate"))
-	g.shutdownCtx = pprof.WithLabels(g.shutdownCtx, pprof.Labels("graceful-lifecycle", "with-shutdown"))
-	g.hammerCtx = pprof.WithLabels(g.hammerCtx, pprof.Labels("graceful-lifecycle", "with-hammer"))
-	g.managerCtx = pprof.WithLabels(g.managerCtx, pprof.Labels("graceful-lifecycle", "with-manager"))
-
 	// Now label this and all goroutines created by this goroutine with the graceful-lifecycle manager
 	pprof.SetGoroutineLabels(g.managerCtx)
 	defer pprof.SetGoroutineLabels(g.ctx)
 
-	// Make channels
-	g.shutdownRequested = make(chan struct{})
-
-	// Set the running state
-	if !g.setStateTransition(stateInit, stateRunning) {
-		panic("invalid graceful manager state: transition from init to running failed")
-	}
 	if skip, _ := strconv.ParseBool(os.Getenv("SKIP_MINWINSVC")); skip {
 		log.Trace("Skipping SVC check as SKIP_MINWINSVC is set")
 		return
@@ -201,30 +146,6 @@ hammerLoop:
 	return false, 0
 }
 
-// DoImmediateHammer causes an immediate hammer
-func (g *Manager) DoImmediateHammer() {
-	g.doHammerTime(0 * time.Second)
-}
-
-// DoGracefulShutdown causes a graceful shutdown
-func (g *Manager) DoGracefulShutdown() {
-	g.lock.Lock()
-	select {
-	case <-g.shutdownRequested:
-		g.lock.Unlock()
-	default:
-		close(g.shutdownRequested)
-		g.lock.Unlock()
-		g.doShutdown()
-	}
-}
-
-// RegisterServer registers the running of a listening server.
-// Any call to RegisterServer must be matched by a call to ServerDone
-func (g *Manager) RegisterServer() {
-	g.runningServerWaitGroup.Add(1)
-}
-
 func (g *Manager) awaitServer(limit time.Duration) bool {
 	c := make(chan struct{})
 	go func() {
@@ -248,4 +169,12 @@ func (g *Manager) awaitServer(limit time.Duration) bool {
 			return false
 		}
 	}
+}
+
+func (g *Manager) notify(msg systemdNotifyMsg) {
+	// Windows doesn't use systemd to notify
+}
+
+func KillParent() {
+	// Windows doesn't need to "kill parent" because there is no graceful restart
 }

@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -92,7 +93,9 @@ func VerifyPubKey(r *http.Request) (*asymkey_model.PublicKey, error) {
 
 	keyID := verifier.KeyId()
 
-	publicKeys, err := asymkey_model.SearchPublicKey(r.Context(), 0, keyID)
+	publicKeys, err := db.Find[asymkey_model.PublicKey](r.Context(), asymkey_model.FindPublicKeyOptions{
+		Fingerprint: keyID,
+	})
 	if err != nil {
 		return nil, err
 	}
