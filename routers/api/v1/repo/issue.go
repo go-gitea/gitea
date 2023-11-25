@@ -462,7 +462,7 @@ func ListIssues(ctx *context.APIContext) {
 		isPull = util.OptionalBoolNone
 	}
 
-	if isPull != util.OptionalBoolNone && !ctx.Repo.CanWriteIssuesOrPulls(isPull.IsTrue()) {
+	if isPull != util.OptionalBoolNone && !ctx.Repo.CanReadIssuesOrPulls(isPull.IsTrue()) {
 		ctx.NotFound()
 		return
 	}
