@@ -61,7 +61,7 @@ PASSWD         = `password`
 
 - 通过端口 587 的 STARTTLS（也称为 Opportunistic TLS）。初始连接是明文的，但如果服务器支持，则可以升级为 TLS。
 - 通过默认端口 465 的 SMTPS 连接。连接到服务器从一开始就使用 TLS。
-- 使用 `IS_TLS_ENABLED=true` 进行强制的 SMTPS 连接。（这两种方式都被称为 Implicit TLS）
+- 使用 `PROTOCOL=smtps` 进行强制的 SMTPS 连接。（这两种方式都被称为 Implicit TLS）
 这是由于 Go 内部库对 STRIPTLS 攻击的保护机制。
 
 请注意，自2018年起，[RFC8314](https://tools.ietf.org/html/rfc8314#section-3) 推荐使用 Implicit TLS。
