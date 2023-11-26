@@ -30,7 +30,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Add guide page to actions when there's no workflows (#28145) (#28153)
 * MISC
   * Use full width for PR comparison (#28182) (#28186)
-  * Fix typo in `packages.cleanup.success` (#28133) (#28136)
 
 ## [1.21.0](https://github.com/go-gitea/gitea/releases/tag/v1.21.0) - 2023-11-14
 
