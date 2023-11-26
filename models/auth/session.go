@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+
 	"xorm.io/builder"
 )
 
@@ -40,26 +41,23 @@ func ReadSession(ctx context.Context, key string) (*Session, error) {
 	}
 	defer committer.Close()
 
-	var session Session
-
-	if has, err := db.GetEngine(ctx).Where("key=?", key).Get(ctx, &session); err != nil {
-		return nil, err
-	} else if !has {
-		session.Expiry = timeutil.TimeStampNow()
-		if err := db.Insert(ctx, &session); err != nil {
-			return nil, err
+	session, err := db.Get[Session](ctx, builder.Eq{"key": key})
+	if err != nil {
+		if db.IsErrNotExist(err) {
+			session.Expiry = timeutil.TimeStampNow()
+			if err := db.Insert(ctx, &session); err != nil {
+				return nil, err
+			}
 		}
+		return nil, err
 	}
 
-	return &session, committer.Commit()
+	return session, committer.Commit()
 }
 
 // ExistSession checks if a session exists
 func ExistSession(ctx context.Context, key string) (bool, error) {
-	session := Session{
-		Key: key,
-	}
-	return db.GetEngine(ctx).Get(&session)
+	return db.Exist[Session](ctx, builder.Eq{"key": key})
 }
 
 // DestroySession destroys a session
@@ -99,12 +97,13 @@ func RegenerateSession(ctx context.Context, oldKey, newKey string) (*Session, er
 		return nil, err
 	}
 
-	var s Session
-	if _, err := db.GetEngine(ctx).Where("key=?", newKey).Get(&s); err != nil {
+	s, err := db.Get[Session](ctx, builder.Eq{"key": newKey})
+	if err != nil {
+		// is not exist, it should be impossible
 		return nil, err
 	}
 
-	return &s, committer.Commit()
+	return s, committer.Commit()
 }
 
 // CountSessions returns the number of sessions

@@ -21,10 +21,10 @@ func AddCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_m
 			"repo_id": repo.ID,
 			"user_id": u.ID,
 		})
-		if err != nil {
-			if db.IsErrNotExist(err) {
-				return nil
-			}
+		if err == nil {
+			return nil
+		}
+		if !db.IsErrNotExist(err) {
 			return err
 		}
 

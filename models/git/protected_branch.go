@@ -21,10 +21,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	"xorm.io/builder"
 
 	"github.com/gobwas/glob"
 	"github.com/gobwas/glob/syntax"
+	"xorm.io/builder"
 )
 
 var ErrBranchIsProtected = errors.New("branch is protected")

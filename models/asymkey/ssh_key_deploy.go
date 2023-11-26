@@ -132,10 +132,8 @@ func AddDeployKey(ctx context.Context, repoID int64, name, content string, readO
 	defer committer.Close()
 
 	pkey, err := db.Get[PublicKey](ctx, builder.Eq{"fingerprint": fingerprint})
-	if err != nil {
-		if !db.IsErrNotExist(err) {
-			return nil, err
-		}
+	if err != nil && !db.IsErrNotExist(err) {
+		return nil, err
 	}
 
 	if err == nil {
