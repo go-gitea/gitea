@@ -144,12 +144,10 @@ func NewLFSMetaObject(ctx context.Context, repoID int64, p lfs.Pointer) (*LFSMet
 	}
 	defer committer.Close()
 
-	m, err := db.Get[LFSMetaObject](ctx, builder.Eq{"repository_id": repoID, "oid": p.Oid})
-	if err != nil && !db.IsErrNotExist(err) {
+	m, exist, err := db.Get[LFSMetaObject](ctx, builder.Eq{"repository_id": repoID, "oid": p.Oid})
+	if err != nil {
 		return nil, err
-	}
-
-	if err == nil {
+	} else if exist {
 		m.Existing = true
 		return m, committer.Commit()
 	}

@@ -41,15 +41,14 @@ func ReadSession(ctx context.Context, key string) (*Session, error) {
 	}
 	defer committer.Close()
 
-	session, err := db.Get[Session](ctx, builder.Eq{"key": key})
+	session, exist, err := db.Get[Session](ctx, builder.Eq{"key": key})
 	if err != nil {
-		if db.IsErrNotExist(err) {
-			session.Expiry = timeutil.TimeStampNow()
-			if err := db.Insert(ctx, &session); err != nil {
-				return nil, err
-			}
-		}
 		return nil, err
+	} else if !exist {
+		session.Expiry = timeutil.TimeStampNow()
+		if err := db.Insert(ctx, &session); err != nil {
+			return nil, err
+		}
 	}
 
 	return session, committer.Commit()
@@ -97,7 +96,7 @@ func RegenerateSession(ctx context.Context, oldKey, newKey string) (*Session, er
 		return nil, err
 	}
 
-	s, err := db.Get[Session](ctx, builder.Eq{"key": newKey})
+	s, _, err := db.Get[Session](ctx, builder.Eq{"key": newKey})
 	if err != nil {
 		// is not exist, it should be impossible
 		return nil, err

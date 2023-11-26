@@ -53,12 +53,11 @@ func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Re
 		return perm.AccessModeOwner, nil
 	}
 
-	a, err := db.Get[Access](ctx, builder.Eq{"user_id": userID, "repo_id": repo.ID})
+	a, exist, err := db.Get[Access](ctx, builder.Eq{"user_id": userID, "repo_id": repo.ID})
 	if err != nil {
-		if db.IsErrNotExist(err) {
-			return mode, nil
-		}
 		return mode, err
+	} else if !exist {
+		return mode, nil
 	}
 	return a.Mode, nil
 }

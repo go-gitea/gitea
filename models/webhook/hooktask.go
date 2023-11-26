@@ -151,15 +151,14 @@ func UpdateHookTask(ctx context.Context, t *HookTask) error {
 
 // ReplayHookTask copies a hook task to get re-delivered
 func ReplayHookTask(ctx context.Context, hookID int64, uuid string) (*HookTask, error) {
-	task, err := db.Get[HookTask](ctx, builder.Eq{"hook_id": hookID, "uuid": uuid})
+	task, exist, err := db.Get[HookTask](ctx, builder.Eq{"hook_id": hookID, "uuid": uuid})
 	if err != nil {
-		if db.IsErrNotExist(err) {
-			return nil, ErrHookTaskNotExist{
-				HookID: hookID,
-				UUID:   uuid,
-			}
-		}
 		return nil, err
+	} else if !exist {
+		return nil, ErrHookTaskNotExist{
+			HookID: hookID,
+			UUID:   uuid,
+		}
 	}
 
 	return CreateHookTask(ctx, &HookTask{

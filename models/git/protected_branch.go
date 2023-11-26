@@ -276,24 +276,22 @@ func (protectBranch *ProtectedBranch) IsUnprotectedFile(patterns []glob.Glob, pa
 // GetProtectedBranchRuleByName getting protected branch rule by name
 func GetProtectedBranchRuleByName(ctx context.Context, repoID int64, ruleName string) (*ProtectedBranch, error) {
 	// branch_name is legacy name, it actually is rule name
-	rel, err := db.Get[ProtectedBranch](ctx, builder.Eq{"repo_id": repoID, "branch_name": ruleName})
+	rel, exist, err := db.Get[ProtectedBranch](ctx, builder.Eq{"repo_id": repoID, "branch_name": ruleName})
 	if err != nil {
-		if db.IsErrNotExist(err) {
-			return nil, nil
-		}
 		return nil, err
+	} else if !exist {
+		return nil, nil
 	}
 	return rel, nil
 }
 
 // GetProtectedBranchRuleByID getting protected branch rule by rule ID
 func GetProtectedBranchRuleByID(ctx context.Context, repoID, ruleID int64) (*ProtectedBranch, error) {
-	rel, err := db.Get[ProtectedBranch](ctx, builder.Eq{"repo_id": repoID, "id": ruleID})
+	rel, exist, err := db.Get[ProtectedBranch](ctx, builder.Eq{"repo_id": repoID, "id": ruleID})
 	if err != nil {
-		if db.IsErrNotExist(err) {
-			return nil, nil
-		}
 		return nil, err
+	} else if !exist {
+		return nil, nil
 	}
 	return rel, nil
 }

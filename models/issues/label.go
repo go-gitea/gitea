@@ -304,12 +304,11 @@ func GetLabelInRepoByName(ctx context.Context, repoID int64, labelName string) (
 		return nil, ErrRepoLabelNotExist{0, repoID}
 	}
 
-	l, err := db.Get[Label](ctx, builder.Eq{"name": labelName, "repo_id": repoID})
+	l, exist, err := db.Get[Label](ctx, builder.Eq{"name": labelName, "repo_id": repoID})
 	if err != nil {
-		if db.IsErrNotExist(err) {
-			return nil, ErrRepoLabelNotExist{0, repoID}
-		}
 		return nil, err
+	} else if !exist {
+		return nil, ErrRepoLabelNotExist{0, repoID}
 	}
 	return l, nil
 }
@@ -320,12 +319,11 @@ func GetLabelInRepoByID(ctx context.Context, repoID, labelID int64) (*Label, err
 		return nil, ErrRepoLabelNotExist{labelID, repoID}
 	}
 
-	l, err := db.Get[Label](ctx, builder.Eq{"id": labelID, "repo_id": repoID})
+	l, exist, err := db.Get[Label](ctx, builder.Eq{"id": labelID, "repo_id": repoID})
 	if err != nil {
-		if db.IsErrNotExist(err) {
-			return nil, ErrRepoLabelNotExist{l.ID, l.RepoID}
-		}
 		return nil, err
+	} else if !exist {
+		return nil, ErrRepoLabelNotExist{l.ID, l.RepoID}
 	}
 	return l, nil
 }
@@ -402,12 +400,11 @@ func GetLabelInOrgByName(ctx context.Context, orgID int64, labelName string) (*L
 		return nil, ErrOrgLabelNotExist{0, orgID}
 	}
 
-	l, err := db.Get[Label](ctx, builder.Eq{"name": labelName, "org_id": orgID})
+	l, exist, err := db.Get[Label](ctx, builder.Eq{"name": labelName, "org_id": orgID})
 	if err != nil {
-		if db.IsErrNotExist(err) {
-			return nil, ErrOrgLabelNotExist{0, orgID}
-		}
 		return nil, err
+	} else if !exist {
+		return nil, ErrOrgLabelNotExist{0, orgID}
 	}
 	return l, nil
 }
@@ -418,12 +415,11 @@ func GetLabelInOrgByID(ctx context.Context, orgID, labelID int64) (*Label, error
 		return nil, ErrOrgLabelNotExist{labelID, orgID}
 	}
 
-	l, err := db.Get[Label](ctx, builder.Eq{"id": labelID, "org_id": orgID})
+	l, exist, err := db.Get[Label](ctx, builder.Eq{"id": labelID, "org_id": orgID})
 	if err != nil {
-		if db.IsErrNotExist(err) {
-			return nil, ErrOrgLabelNotExist{l.ID, l.OrgID}
-		}
 		return nil, err
+	} else if !exist {
+		return nil, ErrOrgLabelNotExist{l.ID, l.OrgID}
 	}
 	return l, nil
 }

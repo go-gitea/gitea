@@ -173,30 +173,30 @@ func Exec(ctx context.Context, sqlAndArgs ...any) (sql.Result, error) {
 	return GetEngine(ctx).Exec(sqlAndArgs...)
 }
 
-func Get[T any](ctx context.Context, cond builder.Cond) (*T, error) {
+func Get[T any](ctx context.Context, cond builder.Cond) (*T, bool, error) {
 	if !cond.IsValid() {
-		return nil, ErrConditionRequired{}
+		return nil, false, ErrConditionRequired{}
 	}
 
 	var bean T
 	has, err := GetEngine(ctx).Where(cond).NoAutoCondition().Get(&bean)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	} else if !has {
-		return nil, ErrNotExist{Resource: TableName(bean)}
+		return nil, false, nil
 	}
-	return &bean, nil
+	return &bean, true, nil
 }
 
-func GetByID[T any](ctx context.Context, id int64) (*T, error) {
+func GetByID[T any](ctx context.Context, id int64) (*T, bool, error) {
 	var bean T
 	has, err := GetEngine(ctx).ID(id).NoAutoCondition().Get(&bean)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	} else if !has {
-		return nil, ErrNotExist{Resource: TableName(bean), ID: id}
+		return nil, false, nil
 	}
-	return &bean, nil
+	return &bean, true, nil
 }
 
 func Exist[T any](ctx context.Context, cond builder.Cond) (bool, error) {

@@ -527,13 +527,13 @@ func ActivateUserEmail(ctx context.Context, userID int64, email string, activate
 
 	// Activate/deactivate a user's secondary email address
 	// First check if there's another user active with the same address
-	addr, err := db.Get[EmailAddress](ctx, builder.Eq{"uid": userID, "lower_email": strings.ToLower(email)})
+	addr, exist, err := db.Get[EmailAddress](ctx, builder.Eq{"uid": userID, "lower_email": strings.ToLower(email)})
 	if err != nil {
-		if db.IsErrNotExist(err) {
-			return fmt.Errorf("no such email: %d (%s)", userID, email)
-		}
 		return err
+	} else if !exist {
+		return fmt.Errorf("no such email: %d (%s)", userID, email)
 	}
+
 	if addr.IsActivated == activate {
 		// Already in the desired state; no action
 		return nil
@@ -551,13 +551,13 @@ func ActivateUserEmail(ctx context.Context, userID int64, email string, activate
 
 	// Activate/deactivate a user's primary email address and account
 	if addr.IsPrimary {
-		user, err := db.Get[User](ctx, builder.Eq{"id": userID, "email": email})
+		user, exist, err := db.Get[User](ctx, builder.Eq{"id": userID, "email": email})
 		if err != nil {
-			if db.IsErrNotExist(err) {
-				return fmt.Errorf("no user with ID: %d and Email: %s", userID, email)
-			}
 			return err
+		} else if !exist {
+			return fmt.Errorf("no user with ID: %d and Email: %s", userID, email)
 		}
+
 		// The user's activation state should be synchronized with the primary email
 		if user.IsActive != activate {
 			user.IsActive = activate

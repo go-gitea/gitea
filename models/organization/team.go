@@ -205,12 +205,11 @@ func IsUsableTeamName(name string) error {
 
 // GetTeam returns team by given team name and organization.
 func GetTeam(ctx context.Context, orgID int64, name string) (*Team, error) {
-	t, err := db.Get[Team](ctx, builder.Eq{"org_id": orgID, "lower_name": strings.ToLower(name)})
+	t, exist, err := db.Get[Team](ctx, builder.Eq{"org_id": orgID, "lower_name": strings.ToLower(name)})
 	if err != nil {
-		if db.IsErrNotExist(err) {
-			return nil, ErrTeamNotExist{orgID, 0, name}
-		}
 		return nil, err
+	} else if !exist {
+		return nil, ErrTeamNotExist{orgID, 0, name}
 	}
 	return t, nil
 }
