@@ -150,11 +150,10 @@ func UpdateHookTask(ctx context.Context, t *HookTask) error {
 
 // ReplayHookTask copies a hook task to get re-delivered
 func ReplayHookTask(ctx context.Context, hookID int64, uuid string) (*HookTask, error) {
-	task := &HookTask{
-		HookID: hookID,
-		UUID:   uuid,
-	}
-	has, err := db.GetByBean(ctx, task)
+	task := &HookTask{}
+	has, err := db.GetEngine(ctx).Where("hook_id=? AND uuid=?", hookID, uuid).
+		NoAutoCondition().
+		Get(ctx, task)
 	if err != nil {
 		return nil, err
 	} else if !has {

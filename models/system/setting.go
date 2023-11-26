@@ -36,8 +36,10 @@ func init() {
 const keyRevision = "revision"
 
 func GetRevision(ctx context.Context) int {
-	revision := &Setting{SettingKey: keyRevision}
-	if has, err := db.GetByBean(ctx, revision); err != nil {
+	revision := &Setting{}
+	if has, err := db.GetEngine(ctx).Where("setting_key=?", keyRevision).
+		NoAutoCondition().
+		Get(revision); err != nil {
 		return 0
 	} else if !has {
 		err = db.Insert(ctx, &Setting{SettingKey: keyRevision, Version: 1})

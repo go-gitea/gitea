@@ -51,8 +51,10 @@ func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Re
 		return perm.AccessModeOwner, nil
 	}
 
-	a := &Access{UserID: userID, RepoID: repo.ID}
-	if has, err := db.GetByBean(ctx, a); !has || err != nil {
+	a := &Access{}
+	if has, err := db.GetEngine(ctx).Where("user_id=? AND repo_id=?", userID, repo.ID).
+		NoAutoCondition().
+		Get(a); !has || err != nil {
 		return mode, err
 	}
 	return a.Mode, nil

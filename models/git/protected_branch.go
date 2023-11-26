@@ -274,8 +274,10 @@ func (protectBranch *ProtectedBranch) IsUnprotectedFile(patterns []glob.Glob, pa
 
 // GetProtectedBranchRuleByName getting protected branch rule by name
 func GetProtectedBranchRuleByName(ctx context.Context, repoID int64, ruleName string) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{RepoID: repoID, RuleName: ruleName}
-	has, err := db.GetByBean(ctx, rel)
+	rel := &ProtectedBranch{}
+	has, err := db.GetEngine(ctx).Where("repo_id=? AND rule_name=?", repoID, ruleName).
+		NoAutoCondition().
+		Get(rel)
 	if err != nil {
 		return nil, err
 	}
@@ -287,8 +289,10 @@ func GetProtectedBranchRuleByName(ctx context.Context, repoID int64, ruleName st
 
 // GetProtectedBranchRuleByID getting protected branch rule by rule ID
 func GetProtectedBranchRuleByID(ctx context.Context, repoID, ruleID int64) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{ID: ruleID, RepoID: repoID}
-	has, err := db.GetByBean(ctx, rel)
+	rel := &ProtectedBranch{}
+	has, err := db.GetEngine(ctx).Where("repo_id=? AND id=?", repoID, ruleID).
+		NoAutoCondition().
+		Get(rel)
 	if err != nil {
 		return nil, err
 	}

@@ -162,7 +162,9 @@ func NewTeam(ctx context.Context, t *organization.Team) (err error) {
 		return err
 	}
 
-	has, err := db.GetEngine(ctx).ID(t.OrgID).Get(new(user_model.User))
+	has, err := db.GetEngine(ctx).ID(t.OrgID).
+		NoAutoCondition().
+		Get(new(user_model.User))
 	if err != nil {
 		return err
 	}
@@ -174,6 +176,7 @@ func NewTeam(ctx context.Context, t *organization.Team) (err error) {
 	has, err = db.GetEngine(ctx).
 		Where("org_id=?", t.OrgID).
 		And("lower_name=?", t.LowerName).
+		NoAutoCondition().
 		Get(new(organization.Team))
 	if err != nil {
 		return err
@@ -239,6 +242,7 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 		Where("org_id=?", t.OrgID).
 		And("lower_name=?", t.LowerName).
 		And("id!=?", t.ID).
+		NoAutoCondition().
 		Get(new(organization.Team))
 	if err != nil {
 		return err

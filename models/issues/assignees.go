@@ -59,7 +59,9 @@ func GetAssigneeIDsByIssue(ctx context.Context, issueID int64) ([]int64, error) 
 
 // IsUserAssignedToIssue returns true when the user is assigned to the issue
 func IsUserAssignedToIssue(ctx context.Context, issue *Issue, user *user_model.User) (isAssigned bool, err error) {
-	return db.GetByBean(ctx, &IssueAssignees{IssueID: issue.ID, AssigneeID: user.ID})
+	return db.GetEngine(ctx).Where("assignee_id=? AND issue_id=?", user.ID, issue.ID).
+		NoAutoCondition().
+		Exist(new(IssueAssignees))
 }
 
 // ToggleIssueAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.

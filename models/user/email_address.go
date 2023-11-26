@@ -527,8 +527,10 @@ func ActivateUserEmail(ctx context.Context, userID int64, email string, activate
 
 	// Activate/deactivate a user's secondary email address
 	// First check if there's another user active with the same address
-	addr := EmailAddress{UID: userID, LowerEmail: strings.ToLower(email)}
-	if has, err := db.GetByBean(ctx, &addr); err != nil {
+	addr := EmailAddress{}
+	if has, err := db.GetEngine(ctx).Where("uid=? AND lower_email =?", userID, strings.ToLower(email)).
+		NoAutoCondition().
+		Get(&addr); err != nil {
 		return err
 	} else if !has {
 		return fmt.Errorf("no such email: %d (%s)", userID, email)
@@ -550,8 +552,10 @@ func ActivateUserEmail(ctx context.Context, userID int64, email string, activate
 
 	// Activate/deactivate a user's primary email address and account
 	if addr.IsPrimary {
-		user := User{ID: userID, Email: email}
-		if has, err := db.GetByBean(ctx, &user); err != nil {
+		user := User{}
+		if has, err := db.GetEngine(ctx).Where("id=? AND email=?", userID, email).
+			NoAutoCondition().
+			Get(&user); err != nil {
 			return err
 		} else if !has {
 			return fmt.Errorf("no user with ID: %d and Email: %s", userID, email)

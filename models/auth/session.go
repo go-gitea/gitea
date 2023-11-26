@@ -33,17 +33,15 @@ func UpdateSession(ctx context.Context, key string, data []byte) error {
 
 // ReadSession reads the data for the provided session
 func ReadSession(ctx context.Context, key string) (*Session, error) {
-	session := Session{
-		Key: key,
-	}
-
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer committer.Close()
 
-	if has, err := db.GetByBean(ctx, &session); err != nil {
+	var session Session
+
+	if has, err := db.GetEngine(ctx).Where("key=?", key).Get(ctx, &session); err != nil {
 		return nil, err
 	} else if !has {
 		session.Expiry = timeutil.TimeStampNow()
@@ -79,17 +77,17 @@ func RegenerateSession(ctx context.Context, oldKey, newKey string) (*Session, er
 	}
 	defer committer.Close()
 
-	if has, err := db.GetByBean(ctx, &Session{
-		Key: newKey,
-	}); err != nil {
+	if has, err := db.GetEngine(ctx).Where("key=?", newKey).
+		NoAutoCondition().
+		Exist(new(Session)); err != nil {
 		return nil, err
 	} else if has {
 		return nil, fmt.Errorf("session Key: %s already exists", newKey)
 	}
 
-	if has, err := db.GetByBean(ctx, &Session{
-		Key: oldKey,
-	}); err != nil {
+	if has, err := db.GetEngine(ctx).Where("key=?", oldKey).
+		NoAutoCondition().
+		Exist(new(Session)); err != nil {
 		return nil, err
 	} else if !has {
 		if err := db.Insert(ctx, &Session{
@@ -104,10 +102,8 @@ func RegenerateSession(ctx context.Context, oldKey, newKey string) (*Session, er
 		return nil, err
 	}
 
-	s := Session{
-		Key: newKey,
-	}
-	if _, err := db.GetByBean(ctx, &s); err != nil {
+	var s Session
+	if _, err := db.GetEngine(ctx).Where("key=?", newKey).Get(&s); err != nil {
 		return nil, err
 	}
 

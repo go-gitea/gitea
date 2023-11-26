@@ -203,11 +203,10 @@ func IsUsableTeamName(name string) error {
 
 // GetTeam returns team by given team name and organization.
 func GetTeam(ctx context.Context, orgID int64, name string) (*Team, error) {
-	t := &Team{
-		OrgID:     orgID,
-		LowerName: strings.ToLower(name),
-	}
-	has, err := db.GetByBean(ctx, t)
+	t := &Team{}
+	has, err := db.GetEngine(ctx).Where("org_id=? AND lower_name=?", orgID, strings.ToLower(name)).
+		NoAutoCondition().
+		Get(t)
 	if err != nil {
 		return nil, err
 	} else if !has {

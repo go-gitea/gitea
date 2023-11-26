@@ -304,11 +304,10 @@ func GetLabelInRepoByName(ctx context.Context, repoID int64, labelName string) (
 		return nil, ErrRepoLabelNotExist{0, repoID}
 	}
 
-	l := &Label{
-		Name:   labelName,
-		RepoID: repoID,
-	}
-	has, err := db.GetByBean(ctx, l)
+	l := &Label{}
+	has, err := db.GetEngine(ctx).Where("name=? AND repo_id=?", labelName, repoID).
+		NoAutoCondition().
+		Get(l)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -323,11 +322,10 @@ func GetLabelInRepoByID(ctx context.Context, repoID, labelID int64) (*Label, err
 		return nil, ErrRepoLabelNotExist{labelID, repoID}
 	}
 
-	l := &Label{
-		ID:     labelID,
-		RepoID: repoID,
-	}
-	has, err := db.GetByBean(ctx, l)
+	l := &Label{}
+	has, err := db.GetEngine(ctx).Where("id=? AND repo_id=?", labelID, repoID).
+		NoAutoCondition().
+		Get(l)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -408,11 +406,10 @@ func GetLabelInOrgByName(ctx context.Context, orgID int64, labelName string) (*L
 		return nil, ErrOrgLabelNotExist{0, orgID}
 	}
 
-	l := &Label{
-		Name:  labelName,
-		OrgID: orgID,
-	}
-	has, err := db.GetByBean(ctx, l)
+	l := &Label{}
+	has, err := db.GetEngine(ctx).Where("name = ? AND org_id=?", labelName, orgID).
+		NoAutoCondition().
+		Get(l)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -427,11 +424,10 @@ func GetLabelInOrgByID(ctx context.Context, orgID, labelID int64) (*Label, error
 		return nil, ErrOrgLabelNotExist{labelID, orgID}
 	}
 
-	l := &Label{
-		ID:    labelID,
-		OrgID: orgID,
-	}
-	has, err := db.GetByBean(ctx, l)
+	l := &Label{}
+	has, err := db.GetEngine(ctx).Where("id = ? AND org_id=?", labelID, orgID).
+		NoAutoCondition().
+		Get(l)
 	if err != nil {
 		return nil, err
 	} else if !has {

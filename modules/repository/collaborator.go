@@ -15,12 +15,11 @@ import (
 
 func AddCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_model.User) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		collaboration := &repo_model.Collaboration{
-			RepoID: repo.ID,
-			UserID: u.ID,
-		}
+		collaboration := &repo_model.Collaboration{}
 
-		has, err := db.GetByBean(ctx, collaboration)
+		has, err := db.GetEngine(ctx).Where("repo_id=? AND user_id=?", repo.ID, u.ID).
+			NoAutoCondition().
+			Get(ctx, collaboration)
 		if err != nil {
 			return err
 		} else if has {

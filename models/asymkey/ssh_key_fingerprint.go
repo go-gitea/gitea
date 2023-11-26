@@ -31,9 +31,7 @@ import (
 // checkKeyFingerprint only checks if key fingerprint has been used as public key,
 // it is OK to use same key as deploy key for multiple repositories/users.
 func checkKeyFingerprint(ctx context.Context, fingerprint string) error {
-	has, err := db.GetByBean(ctx, &PublicKey{
-		Fingerprint: fingerprint,
-	})
+	has, err := db.GetEngine(ctx).Where("fingerprint=?", fingerprint).Exist(&PublicKey{})
 	if err != nil {
 		return err
 	} else if has {
