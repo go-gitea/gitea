@@ -55,6 +55,9 @@ func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Re
 
 	a, err := db.Get[Access](ctx, builder.Eq{"user_id": userID, "repo_id": repo.ID})
 	if err != nil {
+		if db.IsErrNotExist(err) {
+			return mode, nil
+		}
 		return mode, err
 	}
 	return a.Mode, nil
