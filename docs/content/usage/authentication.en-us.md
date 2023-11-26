@@ -198,7 +198,7 @@ administrative user.
     field is set to `mail.com`, then Gitea will expect the `user email` field
     for an authenticated GIT instance to be `gituser@mail.com`.[^2]
 
-**Note**: PAM support is added via [build-time flags](installation/install-from-source.md#build),
+**Note**: PAM support is added via [build-time flags](installation/from-source.md#build),
 and the official binaries provided do not have this enabled.  PAM requires that
 the necessary libpam dynamic library be available and the necessary PAM
 development headers be accessible to the compiler.
