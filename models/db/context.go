@@ -174,6 +174,10 @@ func Exec(ctx context.Context, sqlAndArgs ...any) (sql.Result, error) {
 }
 
 func Get[T any](ctx context.Context, cond builder.Cond) (*T, error) {
+	if !cond.IsValid() {
+		return nil, ErrConditionRequired{}
+	}
+
 	var bean T
 	has, err := GetEngine(ctx).Where(cond).NoAutoCondition().Get(&bean)
 	if err != nil {
@@ -196,6 +200,10 @@ func GetByID[T any](ctx context.Context, id int64) (*T, error) {
 }
 
 func Exist[T any](ctx context.Context, cond builder.Cond) (bool, error) {
+	if !cond.IsValid() {
+		return false, ErrConditionRequired{}
+	}
+
 	var bean T
 	return GetEngine(ctx).Where(cond).NoAutoCondition().Exist(&bean)
 }
