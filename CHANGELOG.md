@@ -4,6 +4,38 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.20.6](https://github.com/go-gitea/gitea/releases/tag/1.20.6) - 2023-11-26
+
+* SECURITY
+  * Fix comment permissions (#28213) (#28217)
+  * Dont leak private users via extensions (#28023) (#28028)
+  * Unify two factor check (#27915) (#27939)
+  * Support allowed hosts for webhook to work with proxy (#27655) (#27674)
+* BUGFIXES
+  * Fix no ActionTaskOutput table waring (#28149) (#28151)
+  * Restricted users only see repos in orgs which their team was assigned to (#28025) (#28050)
+  * Fix DownloadFunc when migrating releases (#27887) (#27889)
+  * Fix http protocol auth (#27875) (#27878)
+  * Revert "fix orphan check for deleted branch (#27310) (#27320)" (#27763)
+  * Fix label render containing invalid HTML (#27752) (#27761)
+  * Fix poster is not loaded in get default merge message (#27657) (#27665)
+  * Fix 404 when deleting Docker package with an internal version (#27615) (#27629)
+  * Fix attachment download bug (#27486) (#27570)
+  * When comparing with an non-exist repository, return 404 but 500 (#27437) (#27441)
+* API
+  * Fix package webhook (#27839) (#27854)
+  * Fix org team endpoint (#27721) (#27729)
+* ENHANCEMENTS
+  * Render email addresses as such if followed by punctuation (#27987) (#27991)
+  * Fix mermaid flowchart margin issue (#27503) (#27517)
+  * Fix panic in storageHandler (#27446) (#27478)
+* DOCS
+  * Update agit-support.en-us.md (#27652)
+* MISC
+  * Fix wrong xorm Delete usage(backport for 1.20) (#28003)
+  * Remove duplicated button in Install web page (#27941)
+  * Avoid run change title process when the title is same (#27467) (#27557)
+
 ## [1.20.5](https://github.com/go-gitea/gitea/releases/tag/1.20.5) - 2023-10-03
 
 * ENHANCEMENTS
