@@ -78,6 +78,8 @@ jobs:
         id: meta
         with:
           images: gitea/gitea
+          flavor: |
+            latest=false
           # 1.2.3-rc0
           tags: |
             type=semver,pattern={{version}}
@@ -109,6 +111,7 @@ jobs:
           images: gitea/gitea
           # each tag below will have the suffix of -rootless
           flavor: |
+            latest=false
             suffix=-rootless
           # 1.2.3-rc0
           tags: |
