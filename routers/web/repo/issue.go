@@ -569,21 +569,21 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		repoOwnerType = project_model.TypeOrganization
 	}
 	var err error
-	projects, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
-		RepoID:   repo.ID,
-		Page:     -1,
-		IsClosed: util.OptionalBoolFalse,
-		Type:     project_model.TypeRepository,
+	projects, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
+		ListOptions: db.ListOptionsAll,
+		RepoID:      repo.ID,
+		IsClosed:    util.OptionalBoolFalse,
+		Type:        project_model.TypeRepository,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
-	projects2, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
-		OwnerID:  repo.OwnerID,
-		Page:     -1,
-		IsClosed: util.OptionalBoolFalse,
-		Type:     repoOwnerType,
+	projects2, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
+		ListOptions: db.ListOptionsAll,
+		OwnerID:     repo.OwnerID,
+		IsClosed:    util.OptionalBoolFalse,
+		Type:        repoOwnerType,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
@@ -592,21 +592,21 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 
 	ctx.Data["OpenProjects"] = append(projects, projects2...)
 
-	projects, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
-		RepoID:   repo.ID,
-		Page:     -1,
-		IsClosed: util.OptionalBoolTrue,
-		Type:     project_model.TypeRepository,
+	projects, err = db.Find[project_model.Project](ctx, project_model.SearchOptions{
+		ListOptions: db.ListOptionsAll,
+		RepoID:      repo.ID,
+		IsClosed:    util.OptionalBoolTrue,
+		Type:        project_model.TypeRepository,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
-	projects2, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
-		OwnerID:  repo.OwnerID,
-		Page:     -1,
-		IsClosed: util.OptionalBoolTrue,
-		Type:     repoOwnerType,
+	projects2, err = db.Find[project_model.Project](ctx, project_model.SearchOptions{
+		ListOptions: db.ListOptionsAll,
+		OwnerID:     repo.OwnerID,
+		IsClosed:    util.OptionalBoolTrue,
+		Type:        repoOwnerType,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
@@ -3106,6 +3106,11 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
+	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
+		return
+	}
+
 	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Error(http.StatusForbidden)
 		return
@@ -3169,6 +3174,11 @@ func DeleteComment(ctx *context.Context) {
 
 	if err := comment.LoadIssue(ctx); err != nil {
 		ctx.NotFoundOrServerError("LoadIssue", issues_model.IsErrIssueNotExist, err)
+		return
+	}
+
+	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
 		return
 	}
 
@@ -3295,6 +3305,11 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 	if err := comment.LoadIssue(ctx); err != nil {
 		ctx.NotFoundOrServerError("LoadIssue", issues_model.IsErrIssueNotExist, err)
+		return
+	}
+
+	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
 		return
 	}
 
@@ -3438,6 +3453,21 @@ func GetCommentAttachments(ctx *context.Context) {
 	comment, err := issues_model.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommentByID", issues_model.IsErrCommentNotExist, err)
+		return
+	}
+
+	if err := comment.LoadIssue(ctx); err != nil {
+		ctx.NotFoundOrServerError("LoadIssue", issues_model.IsErrIssueNotExist, err)
+		return
+	}
+
+	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
+		return
+	}
+
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
+		ctx.NotFound("CanReadIssuesOrPulls", issues_model.ErrCommentNotExist{})
 		return
 	}
 
