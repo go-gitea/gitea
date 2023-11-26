@@ -202,3 +202,8 @@ func FindAndCount[T any](ctx context.Context, opts FindOptions) ([]*T, int64, er
 	}
 	return objects, cnt, nil
 }
+
+func Exists[T any](ctx context.Context, opts FindOptions) (bool, error) {
+	var bean T
+	return GetEngine(ctx).Where(opts.ToConds()).Exist(&bean)
+}

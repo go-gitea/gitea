@@ -14,6 +14,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+	"xorm.io/builder"
 
 	gouuid "github.com/google/uuid"
 )
@@ -150,17 +151,15 @@ func UpdateHookTask(ctx context.Context, t *HookTask) error {
 
 // ReplayHookTask copies a hook task to get re-delivered
 func ReplayHookTask(ctx context.Context, hookID int64, uuid string) (*HookTask, error) {
-	task := &HookTask{}
-	has, err := db.GetEngine(ctx).Where("hook_id=? AND uuid=?", hookID, uuid).
-		NoAutoCondition().
-		Get(ctx, task)
+	task, err := db.Get[HookTask](ctx, builder.Eq{"hook_id": hookID, "uuid": uuid})
 	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrHookTaskNotExist{
-			HookID: hookID,
-			UUID:   uuid,
+		if db.IsErrNotExist(err) {
+			return nil, ErrHookTaskNotExist{
+				HookID: hookID,
+				UUID:   uuid,
+			}
 		}
+		return nil, err
 	}
 
 	return CreateHookTask(ctx, &HookTask{

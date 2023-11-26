@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"xorm.io/builder"
 
 	"github.com/gobwas/glob"
 	"github.com/gobwas/glob/syntax"
@@ -274,30 +275,24 @@ func (protectBranch *ProtectedBranch) IsUnprotectedFile(patterns []glob.Glob, pa
 
 // GetProtectedBranchRuleByName getting protected branch rule by name
 func GetProtectedBranchRuleByName(ctx context.Context, repoID int64, ruleName string) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{}
-	has, err := db.GetEngine(ctx).Where("repo_id=? AND rule_name=?", repoID, ruleName).
-		NoAutoCondition().
-		Get(rel)
+	rel, err := db.Get[ProtectedBranch](ctx, builder.Eq{"repo_id": repoID, "rule_name": ruleName})
 	if err != nil {
+		if db.IsErrNotExist(err) {
+			return nil, nil
+		}
 		return nil, err
-	}
-	if !has {
-		return nil, nil
 	}
 	return rel, nil
 }
 
 // GetProtectedBranchRuleByID getting protected branch rule by rule ID
 func GetProtectedBranchRuleByID(ctx context.Context, repoID, ruleID int64) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{}
-	has, err := db.GetEngine(ctx).Where("repo_id=? AND id=?", repoID, ruleID).
-		NoAutoCondition().
-		Get(rel)
+	rel, err := db.Get[ProtectedBranch](ctx, builder.Eq{"repo_id": repoID, "id": ruleID})
 	if err != nil {
+		if db.IsErrNotExist(err) {
+			return nil, nil
+		}
 		return nil, err
-	}
-	if !has {
-		return nil, nil
 	}
 	return rel, nil
 }

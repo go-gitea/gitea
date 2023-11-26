@@ -527,13 +527,12 @@ func ActivateUserEmail(ctx context.Context, userID int64, email string, activate
 
 	// Activate/deactivate a user's secondary email address
 	// First check if there's another user active with the same address
-	addr := EmailAddress{}
-	if has, err := db.GetEngine(ctx).Where("uid=? AND lower_email =?", userID, strings.ToLower(email)).
-		NoAutoCondition().
-		Get(&addr); err != nil {
+	addr, err := db.Get[EmailAddress](ctx, builder.Eq{"uid": userID, "lower_email": strings.ToLower(email)})
+	if err != nil {
+		if db.IsErrNotExist(err) {
+			return fmt.Errorf("no such email: %d (%s)", userID, email)
+		}
 		return err
-	} else if !has {
-		return fmt.Errorf("no such email: %d (%s)", userID, email)
 	}
 	if addr.IsActivated == activate {
 		// Already in the desired state; no action
@@ -546,19 +545,18 @@ func ActivateUserEmail(ctx context.Context, userID int64, email string, activate
 			return ErrEmailAlreadyUsed{Email: email}
 		}
 	}
-	if err = updateActivation(ctx, &addr, activate); err != nil {
+	if err = updateActivation(ctx, addr, activate); err != nil {
 		return fmt.Errorf("unable to updateActivation() for %d:%s: %w", addr.ID, addr.Email, err)
 	}
 
 	// Activate/deactivate a user's primary email address and account
 	if addr.IsPrimary {
-		user := User{}
-		if has, err := db.GetEngine(ctx).Where("id=? AND email=?", userID, email).
-			NoAutoCondition().
-			Get(&user); err != nil {
+		user, err := db.Get[User](ctx, builder.Eq{"id": userID, "email": email})
+		if err != nil {
+			if db.IsErrNotExist(err) {
+				return fmt.Errorf("no user with ID: %d and Email: %s", userID, email)
+			}
 			return err
-		} else if !has {
-			return fmt.Errorf("no user with ID: %d and Email: %s", userID, email)
 		}
 		// The user's activation state should be synchronized with the primary email
 		if user.IsActive != activate {
@@ -566,7 +564,7 @@ func ActivateUserEmail(ctx context.Context, userID int64, email string, activate
 			if user.Rands, err = GetUserSalt(); err != nil {
 				return fmt.Errorf("unable to generate salt: %w", err)
 			}
-			if err = UpdateUserCols(ctx, &user, "is_active", "rands"); err != nil {
+			if err = UpdateUserCols(ctx, user, "is_active", "rands"); err != nil {
 				return fmt.Errorf("unable to updateUserCols() for user ID: %d: %w", userID, err)
 			}
 		}

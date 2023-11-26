@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/util"
+	"xorm.io/builder"
 )
 
 // IssueAssignees saves all issue assignees
@@ -59,9 +60,7 @@ func GetAssigneeIDsByIssue(ctx context.Context, issueID int64) ([]int64, error) 
 
 // IsUserAssignedToIssue returns true when the user is assigned to the issue
 func IsUserAssignedToIssue(ctx context.Context, issue *Issue, user *user_model.User) (isAssigned bool, err error) {
-	return db.GetEngine(ctx).Where("assignee_id=? AND issue_id=?", user.ID, issue.ID).
-		NoAutoCondition().
-		Exist(new(IssueAssignees))
+	return db.Exist[IssueAssignees](ctx, builder.Eq{"assignee_id": user.ID, "issue_id": issue.ID})
 }
 
 // ToggleIssueAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.

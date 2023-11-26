@@ -660,14 +660,12 @@ func GetPullRequestByIssueIDWithNoAttributes(ctx context.Context, issueID int64)
 
 // GetPullRequestByIssueID returns pull request by given issue ID.
 func GetPullRequestByIssueID(ctx context.Context, issueID int64) (*PullRequest, error) {
-	pr := &PullRequest{}
-	has, err := db.GetEngine(ctx).Where("issue_id = ?", issueID).
-		NoAutoCondition().
-		Get(pr)
+	pr, err := db.Get[PullRequest](ctx, builder.Eq{"issue_id": issueID})
 	if err != nil {
+		if db.IsErrNotExist(err) {
+			return nil, ErrPullRequestNotExist{0, issueID, 0, 0, "", ""}
+		}
 		return nil, err
-	} else if !has {
-		return nil, ErrPullRequestNotExist{0, issueID, 0, 0, "", ""}
 	}
 	return pr, pr.LoadAttributes(ctx)
 }

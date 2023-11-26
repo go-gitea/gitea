@@ -131,15 +131,14 @@ func AddDeployKey(ctx context.Context, repoID int64, name, content string, readO
 	}
 	defer committer.Close()
 
-	pkey := &PublicKey{}
-	has, err := db.GetEngine(ctx).Where("fingerprint=?", fingerprint).
-		NoAutoCondition().
-		Get(ctx, pkey)
+	pkey, err := db.Get[PublicKey](ctx, builder.Eq{"fingerprint": fingerprint})
 	if err != nil {
-		return nil, err
+		if !db.IsErrNotExist(err) {
+			return nil, err
+		}
 	}
 
-	if has {
+	if err == nil {
 		if pkey.Type != KeyTypeDeploy {
 			return nil, ErrKeyAlreadyExist{0, fingerprint, ""}
 		}
@@ -164,26 +163,26 @@ func AddDeployKey(ctx context.Context, repoID int64, name, content string, readO
 
 // GetDeployKeyByID returns deploy key by given ID.
 func GetDeployKeyByID(ctx context.Context, id int64) (*DeployKey, error) {
-	key := new(DeployKey)
-	has, err := db.GetEngine(ctx).ID(id).Get(key)
+	key, err := db.GetByID[DeployKey](ctx, id)
 	if err != nil {
+		if db.IsErrNotExist(err) {
+			return nil, ErrDeployKeyNotExist{0, 0, id}
+		}
 		return nil, err
-	} else if !has {
-		return nil, ErrDeployKeyNotExist{id, 0, 0}
 	}
 	return key, nil
 }
 
 // GetDeployKeyByRepo returns deploy key by given public key ID and repository ID.
 func GetDeployKeyByRepo(ctx context.Context, keyID, repoID int64) (*DeployKey, error) {
-	var key DeployKey
-	has, err := db.GetEngine(ctx).Where("key_id=? AND repo_id=?", keyID, repoID).Get(&key)
+	key, err := db.Get[DeployKey](ctx, builder.Eq{"key_id": keyID, "repo_id": repoID})
 	if err != nil {
+		if db.IsErrNotExist(err) {
+			return nil, ErrDeployKeyNotExist{0, keyID, repoID}
+		}
 		return nil, err
-	} else if !has {
-		return nil, ErrDeployKeyNotExist{0, keyID, repoID}
 	}
-	return &key, nil
+	return key, nil
 }
 
 // IsDeployKeyExistByKeyID return true if there is at least one deploykey with the key id

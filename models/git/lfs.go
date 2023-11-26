@@ -144,24 +144,22 @@ func NewLFSMetaObject(ctx context.Context, repoID int64, p lfs.Pointer) (*LFSMet
 	}
 	defer committer.Close()
 
-	m := LFSMetaObject{Pointer: p, RepositoryID: repoID}
-	has, err := db.GetEngine(ctx).Where("repo_id=? AND oid=?", repoID, p.Oid).
-		NoAutoCondition().
-		Get(&m)
-	if err != nil {
+	m, err := db.Get[LFSMetaObject](ctx, builder.Eq{"repo_id": repoID, "oid": p.Oid})
+	if err != nil && !db.IsErrNotExist(err) {
 		return nil, err
 	}
 
-	if has {
+	if err == nil {
 		m.Existing = true
-		return &m, committer.Commit()
+		return m, committer.Commit()
 	}
 
+	m = &LFSMetaObject{Pointer: p, RepositoryID: repoID}
 	if err = db.Insert(ctx, m); err != nil {
 		return nil, err
 	}
 
-	return &m, committer.Commit()
+	return m, committer.Commit()
 }
 
 // GetLFSMetaObjectByOid selects a LFSMetaObject entry from database by its OID.

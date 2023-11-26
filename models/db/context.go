@@ -173,6 +173,38 @@ func Exec(ctx context.Context, sqlAndArgs ...any) (sql.Result, error) {
 	return GetEngine(ctx).Exec(sqlAndArgs...)
 }
 
+func Get[T any](ctx context.Context, cond builder.Cond) (*T, error) {
+	var bean T
+	has, err := GetEngine(ctx).Where(cond).NoAutoCondition().Get(&bean)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrNotExist{Resource: TableName(bean)}
+	}
+	return &bean, nil
+}
+
+func GetByID[T any](ctx context.Context, id int64) (*T, error) {
+	var bean T
+	has, err := GetEngine(ctx).ID(id).NoAutoCondition().Get(&bean)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrNotExist{Resource: TableName(bean), ID: id}
+	}
+	return &bean, nil
+}
+
+func Exist[T any](ctx context.Context, cond builder.Cond) (bool, error) {
+	var bean T
+	return GetEngine(ctx).Where(cond).NoAutoCondition().Exist(&bean)
+}
+
+func ExistByID[T any](ctx context.Context, id int64) (bool, error) {
+	var bean T
+	return GetEngine(ctx).ID(id).NoAutoCondition().Exist(&bean)
+}
+
 // DeleteByBean deletes all records according non-empty fields of the bean as conditions.
 func DeleteByBean(ctx context.Context, bean any) (int64, error) {
 	return GetEngine(ctx).Delete(bean)
@@ -258,9 +290,4 @@ func inTransaction(ctx context.Context) (*xorm.Session, bool) {
 	default:
 		return nil, false
 	}
-}
-
-func Exists[T any](ctx context.Context, opts FindOptions) (bool, error) {
-	var bean T
-	return GetEngine(ctx).Where(opts.ToConds()).Exist(&bean)
 }

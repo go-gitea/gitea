@@ -16,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
+	"xorm.io/builder"
 )
 
 // ___________
@@ -203,14 +204,12 @@ func IsUsableTeamName(name string) error {
 
 // GetTeam returns team by given team name and organization.
 func GetTeam(ctx context.Context, orgID int64, name string) (*Team, error) {
-	t := &Team{}
-	has, err := db.GetEngine(ctx).Where("org_id=? AND lower_name=?", orgID, strings.ToLower(name)).
-		NoAutoCondition().
-		Get(t)
+	t, err := db.Get[Team](ctx, builder.Eq{"org_id": orgID, "lower_name": strings.ToLower(name)})
 	if err != nil {
+		if db.IsErrNotExist(err) {
+			return nil, ErrTeamNotExist{orgID, 0, name}
+		}
 		return nil, err
-	} else if !has {
-		return nil, ErrTeamNotExist{orgID, 0, name}
 	}
 	return t, nil
 }

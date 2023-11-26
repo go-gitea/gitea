@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	"xorm.io/builder"
 )
 
 // Session represents a session compatible for go-chi session
@@ -77,17 +78,13 @@ func RegenerateSession(ctx context.Context, oldKey, newKey string) (*Session, er
 	}
 	defer committer.Close()
 
-	if has, err := db.GetEngine(ctx).Where("key=?", newKey).
-		NoAutoCondition().
-		Exist(new(Session)); err != nil {
+	if has, err := db.Exist[Session](ctx, builder.Eq{"key": newKey}); err != nil {
 		return nil, err
 	} else if has {
 		return nil, fmt.Errorf("session Key: %s already exists", newKey)
 	}
 
-	if has, err := db.GetEngine(ctx).Where("key=?", oldKey).
-		NoAutoCondition().
-		Exist(new(Session)); err != nil {
+	if has, err := db.Exist[Session](ctx, builder.Eq{"key": oldKey}); err != nil {
 		return nil, err
 	} else if !has {
 		if err := db.Insert(ctx, &Session{

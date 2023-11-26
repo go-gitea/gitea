@@ -304,14 +304,12 @@ func GetLabelInRepoByName(ctx context.Context, repoID int64, labelName string) (
 		return nil, ErrRepoLabelNotExist{0, repoID}
 	}
 
-	l := &Label{}
-	has, err := db.GetEngine(ctx).Where("name=? AND repo_id=?", labelName, repoID).
-		NoAutoCondition().
-		Get(l)
+	l, err := db.Get[Label](ctx, builder.Eq{"name": labelName, "repo_id": repoID})
 	if err != nil {
+		if db.IsErrNotExist(err) {
+			return nil, ErrRepoLabelNotExist{0, repoID}
+		}
 		return nil, err
-	} else if !has {
-		return nil, ErrRepoLabelNotExist{0, l.RepoID}
 	}
 	return l, nil
 }
@@ -322,14 +320,12 @@ func GetLabelInRepoByID(ctx context.Context, repoID, labelID int64) (*Label, err
 		return nil, ErrRepoLabelNotExist{labelID, repoID}
 	}
 
-	l := &Label{}
-	has, err := db.GetEngine(ctx).Where("id=? AND repo_id=?", labelID, repoID).
-		NoAutoCondition().
-		Get(l)
+	l, err := db.Get[Label](ctx, builder.Eq{"id": labelID, "repo_id": repoID})
 	if err != nil {
+		if db.IsErrNotExist(err) {
+			return nil, ErrRepoLabelNotExist{l.ID, l.RepoID}
+		}
 		return nil, err
-	} else if !has {
-		return nil, ErrRepoLabelNotExist{l.ID, l.RepoID}
 	}
 	return l, nil
 }
@@ -406,14 +402,12 @@ func GetLabelInOrgByName(ctx context.Context, orgID int64, labelName string) (*L
 		return nil, ErrOrgLabelNotExist{0, orgID}
 	}
 
-	l := &Label{}
-	has, err := db.GetEngine(ctx).Where("name = ? AND org_id=?", labelName, orgID).
-		NoAutoCondition().
-		Get(l)
+	l, err := db.Get[Label](ctx, builder.Eq{"name": labelName, "org_id": orgID})
 	if err != nil {
+		if db.IsErrNotExist(err) {
+			return nil, ErrOrgLabelNotExist{0, orgID}
+		}
 		return nil, err
-	} else if !has {
-		return nil, ErrOrgLabelNotExist{0, l.OrgID}
 	}
 	return l, nil
 }
@@ -424,14 +418,12 @@ func GetLabelInOrgByID(ctx context.Context, orgID, labelID int64) (*Label, error
 		return nil, ErrOrgLabelNotExist{labelID, orgID}
 	}
 
-	l := &Label{}
-	has, err := db.GetEngine(ctx).Where("id = ? AND org_id=?", labelID, orgID).
-		NoAutoCondition().
-		Get(l)
+	l, err := db.Get[Label](ctx, builder.Eq{"id": labelID, "org_id": orgID})
 	if err != nil {
+		if db.IsErrNotExist(err) {
+			return nil, ErrOrgLabelNotExist{l.ID, l.OrgID}
+		}
 		return nil, err
-	} else if !has {
-		return nil, ErrOrgLabelNotExist{l.ID, l.OrgID}
 	}
 	return l, nil
 }

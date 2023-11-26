@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"xorm.io/builder"
 )
 
 // Access represents the highest access level of a user to the repository. The only access type
@@ -51,10 +52,8 @@ func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Re
 		return perm.AccessModeOwner, nil
 	}
 
-	a := &Access{}
-	if has, err := db.GetEngine(ctx).Where("user_id=? AND repo_id=?", userID, repo.ID).
-		NoAutoCondition().
-		Get(a); !has || err != nil {
+	a, err := db.Get[Access](ctx, builder.Eq{"user_id": userID, "repo_id": repo.ID})
+	if err != nil {
 		return mode, err
 	}
 	return a.Mode, nil
