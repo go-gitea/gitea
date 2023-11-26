@@ -83,7 +83,7 @@ func IsErrConditionRequired(err error) bool {
 }
 
 func (err ErrConditionRequired) Error() string {
-	return fmt.Sprintf("condition is required")
+	return "condition is required"
 }
 
 // Unwrap unwraps this as a ErrNotExist err
