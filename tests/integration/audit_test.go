@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/audit"
@@ -77,42 +78,42 @@ func TestAuditLogging(t *testing.T) {
 	}{
 		{
 			Action: audit_model.UserAccessTokenAdd,
-			Scope:  TestTypeDescriptor{Type: audit_model.TypeUser, DisplayName: "user1", HTMLURL: "http://localhost:3003/user1"},
+			Scope:  TestTypeDescriptor{Type: audit_model.TypeUser, DisplayName: "user1", HTMLURL: setting.AppURL + "user1"},
 			Target: TestTypeDescriptor{Type: audit_model.TypeAccessToken, DisplayName: fmt.Sprintf("api-testing-token-%d", atomic.LoadInt64(&tokenCounter))},
 		},
 		{
 			Action: audit_model.OrganizationCreate,
-			Scope:  TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: "http://localhost:3003/user1_audit_org"},
-			Target: TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: "http://localhost:3003/user1_audit_org"},
+			Scope:  TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: setting.AppURL + "user1_audit_org"},
+			Target: TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: setting.AppURL + "user1_audit_org"},
 		},
 		{
 			Action: audit_model.OrganizationUpdate,
-			Scope:  TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: "http://localhost:3003/user1_audit_org"},
-			Target: TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: "http://localhost:3003/user1_audit_org"},
+			Scope:  TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: setting.AppURL + "user1_audit_org"},
+			Target: TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: setting.AppURL + "user1_audit_org"},
 		},
 		{
 			Action: audit_model.OrganizationVisibility,
-			Scope:  TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: "http://localhost:3003/user1_audit_org"},
-			Target: TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: "http://localhost:3003/user1_audit_org"},
+			Scope:  TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: setting.AppURL + "user1_audit_org"},
+			Target: TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: setting.AppURL + "user1_audit_org"},
 		},
 		{
 			Action: audit_model.RepositoryCreate,
-			Scope:  TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: "http://localhost:3003/user1/audit_repo"},
-			Target: TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: "http://localhost:3003/user1/audit_repo"},
+			Scope:  TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: setting.AppURL + "user1/audit_repo"},
+			Target: TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: setting.AppURL + "user1/audit_repo"},
 		},
 		{
 			Action: audit_model.RepositoryUpdate,
-			Scope:  TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: "http://localhost:3003/user1/audit_repo"},
-			Target: TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: "http://localhost:3003/user1/audit_repo"},
+			Scope:  TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: setting.AppURL + "user1/audit_repo"},
+			Target: TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: setting.AppURL + "user1/audit_repo"},
 		},
 		{
 			Action: audit_model.RepositoryVisibility,
-			Scope:  TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: "http://localhost:3003/user1/audit_repo"},
-			Target: TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: "http://localhost:3003/user1/audit_repo"},
+			Scope:  TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: setting.AppURL + "user1/audit_repo"},
+			Target: TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: setting.AppURL + "user1/audit_repo"},
 		},
 		{
 			Action: audit_model.UserSecretAdd,
-			Scope:  TestTypeDescriptor{Type: audit_model.TypeUser, DisplayName: "user1", HTMLURL: "http://localhost:3003/user1"},
+			Scope:  TestTypeDescriptor{Type: audit_model.TypeUser, DisplayName: "user1", HTMLURL: setting.AppURL + "user1"},
 			Target: TestTypeDescriptor{Type: audit_model.TypeSecret, DisplayName: "AUDIT_SECRET"},
 		},
 	}
