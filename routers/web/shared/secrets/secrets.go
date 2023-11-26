@@ -4,6 +4,7 @@
 package secrets
 
 import (
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	secret_model "code.gitea.io/gitea/models/secret"
 	user_model "code.gitea.io/gitea/models/user"
@@ -25,7 +26,7 @@ func SetSecretsContext(ctx *context.Context, owner *user_model.User, repo *repo_
 		repoID = repo.ID
 	}
 
-	secrets, err := secret_model.FindSecrets(ctx, secret_model.FindSecretsOptions{OwnerID: ownerID, RepoID: repoID})
+	secrets, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{OwnerID: ownerID, RepoID: repoID})
 	if err != nil {
 		ctx.ServerError("FindSecrets", err)
 		return

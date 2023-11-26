@@ -34,13 +34,12 @@
 					{{end}}
 				</div>
 				<div class="ui bottom attached active tab segment" data-tab="write">
-					<textarea id="edit_area" name="content" class="gt-hidden"
-						data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
+					<textarea id="edit_area" name="content" class="gt-hidden" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
 						data-url="{{.Repository.Link}}/markup"
 						data-context="{{.RepoLink}}"
 						data-previewable-extensions="{{.PreviewableExtensions}}"
-						data-line-wrap-extensions="{{.LineWrapExtensions}}"
-						data-initial-value="{{JsonUtils.EncodeToString .FileContent}}"></textarea>
+						data-line-wrap-extensions="{{.LineWrapExtensions}}">
+{{.FileContent}}</textarea>
 					<div class="editor-loading is-loading"></div>
 				</div>
 				<div class="ui bottom attached tab segment markup" data-tab="preview">

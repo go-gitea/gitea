@@ -19,7 +19,7 @@ func CreateOrUpdateSecret(ctx context.Context, doer, owner *user_model.User, rep
 		return nil, false, err
 	}
 
-	ss, err := secret_model.FindSecrets(ctx, secret_model.FindSecretsOptions{
+	ss, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
 		OwnerID: tryGetOwnerID(owner),
 		RepoID:  tryGetRepositoryID(repo),
 		Name:    name,
@@ -65,7 +65,7 @@ func CreateOrUpdateSecret(ctx context.Context, doer, owner *user_model.User, rep
 }
 
 func DeleteSecretByID(ctx context.Context, doer, owner *user_model.User, repo *repo_model.Repository, secretID int64) error {
-	s, err := secret_model.FindSecrets(ctx, secret_model.FindSecretsOptions{
+	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
 		OwnerID:  tryGetOwnerID(owner),
 		RepoID:   tryGetRepositoryID(repo),
 		SecretID: secretID,
@@ -85,7 +85,7 @@ func DeleteSecretByName(ctx context.Context, doer, owner *user_model.User, repo 
 		return err
 	}
 
-	s, err := secret_model.FindSecrets(ctx, secret_model.FindSecretsOptions{
+	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
 		OwnerID: tryGetOwnerID(owner),
 		RepoID:  tryGetRepositoryID(repo),
 		Name:    name,

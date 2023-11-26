@@ -13,6 +13,7 @@ import (
 	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/avatars"
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	gitea_context "code.gitea.io/gitea/modules/context"
@@ -132,7 +133,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 
 // getConfig retrieves the SSPI configuration from login sources
 func (s *SSPI) getConfig(ctx context.Context) (*sspi.Source, error) {
-	sources, err := auth.FindSources(ctx, auth.FindSourcesOptions{
+	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
 		IsActive:  util.OptionalBoolTrue,
 		LoginType: auth.SSPI,
 	})

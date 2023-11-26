@@ -11,6 +11,7 @@ import (
 
 	audit_model "code.gitea.io/gitea/models/audit"
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/services/audit"
 	auth_service "code.gitea.io/gitea/services/auth"
 
@@ -65,7 +66,7 @@ func runListAuth(c *cli.Context) error {
 		return err
 	}
 
-	authSources, err := auth_model.FindSources(ctx, auth_model.FindSourcesOptions{})
+	authSources, err := db.Find[auth_model.Source](ctx, auth_model.FindSourcesOptions{})
 	if err != nil {
 		return err
 	}

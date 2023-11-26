@@ -239,9 +239,9 @@ func KeysPost(ctx *context.Context) {
 func DeleteKey(ctx *context.Context) {
 	switch ctx.FormString("type") {
 	case "gpg":
-		key, err := asymkey_model.GetGPGKeyByID(ctx, ctx.FormInt64("id"))
+		key, err := asymkey_model.GetGPGKeyForUserByID(ctx, ctx.Doer.ID, ctx.FormInt64("id"))
 		if err != nil && !asymkey_model.IsErrGPGKeyNotExist(err) {
-			ctx.Flash.Error("GetGPGKeyByID: " + err.Error())
+			ctx.Flash.Error("GetGPGKeyForUserByID: " + err.Error())
 		} else {
 			if err := asymkey_model.DeleteGPGKey(ctx, ctx.Doer, key.ID); err != nil {
 				ctx.Flash.Error("DeleteGPGKey: " + err.Error())
@@ -282,7 +282,10 @@ func DeleteKey(ctx *context.Context) {
 }
 
 func loadKeysData(ctx *context.Context) {
-	keys, err := asymkey_model.ListPublicKeys(ctx, ctx.Doer.ID, db.ListOptions{})
+	keys, err := db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+		OwnerID:    ctx.Doer.ID,
+		NotKeytype: asymkey_model.KeyTypePrincipal,
+	})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return

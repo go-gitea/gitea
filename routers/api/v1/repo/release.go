@@ -49,13 +49,12 @@ func GetRelease(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	id := ctx.ParamsInt64(":id")
-	release, err := repo_model.GetReleaseByID(ctx, id)
+	release, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, id)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
-		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
+		ctx.Error(http.StatusInternalServerError, "GetReleaseForRepoByID", err)
 		return
 	}
-	if err != nil && repo_model.IsErrReleaseNotExist(err) ||
-		release.IsTag || release.RepoID != ctx.Repo.Repository.ID {
+	if err != nil && repo_model.IsErrReleaseNotExist(err) || release.IsTag {
 		ctx.NotFound()
 		return
 	}
@@ -315,13 +314,12 @@ func EditRelease(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.EditReleaseOption)
 	id := ctx.ParamsInt64(":id")
-	rel, err := repo_model.GetReleaseByID(ctx, id)
+	rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, id)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
-		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
+		ctx.Error(http.StatusInternalServerError, "GetReleaseForRepoByID", err)
 		return
 	}
-	if err != nil && repo_model.IsErrReleaseNotExist(err) ||
-		rel.IsTag || rel.RepoID != ctx.Repo.Repository.ID {
+	if err != nil && repo_model.IsErrReleaseNotExist(err) || rel.IsTag {
 		ctx.NotFound()
 		return
 	}
@@ -393,17 +391,16 @@ func DeleteRelease(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 
 	id := ctx.ParamsInt64(":id")
-	rel, err := repo_model.GetReleaseByID(ctx, id)
+	rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, id)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
-		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
+		ctx.Error(http.StatusInternalServerError, "GetReleaseForRepoByID", err)
 		return
 	}
-	if err != nil && repo_model.IsErrReleaseNotExist(err) ||
-		rel.IsTag || rel.RepoID != ctx.Repo.Repository.ID {
+	if err != nil && repo_model.IsErrReleaseNotExist(err) || rel.IsTag {
 		ctx.NotFound()
 		return
 	}
-	if err := release_service.DeleteReleaseByID(ctx, id, ctx.Doer, false); err != nil {
+	if err := release_service.DeleteReleaseByID(ctx, ctx.Repo.Repository, rel, ctx.Doer, false); err != nil {
 		if models.IsErrProtectedTagName(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "delTag", "user not allowed to delete protected tag")
 			return
