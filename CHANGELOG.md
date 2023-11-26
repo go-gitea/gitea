@@ -4,6 +4,34 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.21.1](https://github.com/go-gitea/gitea/releases/tag/1.21.1) - 2023-11-26
+
+* SECURITY
+  * Fix comment permissions (#28213) (#28216)
+* BUGFIXES
+  * Fix delete-orphaned-repos (#28200) (#28202)
+  * Make CORS work for oauth2 handlers (#28184) (#28185)
+  * Fix missing buttons (#28179) (#28181)
+  * Fix no ActionTaskOutput table waring (#28149) (#28152)
+  * Fix empty action run title (#28113) (#28148)
+  * Use "is-loading" to avoid duplicate form submit for code comment (#28143) (#28147)
+  * Fix Matrix and MSTeams nil dereference (#28089) (#28105)
+  * Fix incorrect pgsql conn builder behavior (#28085) (#28098)
+  * Fix system config cache expiration timing (#28072) (#28090)
+  * Restricted users only see repos in orgs which their team was assigned to (#28025) (#28051)
+* API
+  * Fix permissions for Token DELETE endpoint to match GET and POST (#27610) (#28099)
+* ENHANCEMENTS
+  * Do not display search box when there's no packages yet (#28146) (#28159)
+  * Add missing `packages.cleanup.success` (#28129) (#28132)
+* DOCS
+  * Docs: Replace deprecated IS_TLS_ENABLED mailer setting in email setup (#28205) (#28208)
+  * Fix the description about the default setting for action in quick start document (#28160) (#28168)
+  * Add guide page to actions when there's no workflows (#28145) (#28153)
+* MISC
+  * Use full width for PR comparison (#28182) (#28186)
+  * Fix typo in `packages.cleanup.success` (#28133) (#28136)
+
 ## [1.21.0](https://github.com/go-gitea/gitea/releases/tag/v1.21.0) - 2023-11-14
 
 * BREAKING
