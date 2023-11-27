@@ -70,15 +70,6 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
-    services:
-      simplesaml:
-        image: allspice/simple-saml
-        ports:
-          - "8080:8080"
-        env:
-          SIMPLESAMLPHP_SP_ENTITY_ID: http://localhost:3003/user/saml/test-sp/metadata
-          SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE: http://localhost:3003/user/saml/test-sp/acs
-          SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE: http://localhost:3003/user/saml/test-sp/acs
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
@@ -180,14 +171,6 @@ jobs:
           - "143:143"
           - "587:587"
           - "993:993"
-      simplesaml:
-        image: allspice/simple-saml
-        ports:
-          - "8080:8080"
-        env:
-          SIMPLESAMLPHP_SP_ENTITY_ID: http://localhost:3001/user/saml/test-sp/metadata
-          SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE: http://localhost:3001/user/saml/test-sp/acs
-          SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE: http://localhost:3001/user/saml/test-sp/acs
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
@@ -221,14 +204,6 @@ jobs:
           SA_PASSWORD: MwantsaSecurePassword1
         ports:
           - "1433:1433"
-      simplesaml:
-        image: allspice/simple-saml
-        ports:
-          - "8080:8080"
-        env:
-          SIMPLESAMLPHP_SP_ENTITY_ID: http://localhost:3003/user/saml/test-sp/metadata
-          SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE: http://localhost:3003/user/saml/test-sp/acs
-          SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE: http://localhost:3003/user/saml/test-sp/acs
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4

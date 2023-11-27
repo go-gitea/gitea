@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/services/auth/source/saml"
 	"code.gitea.io/gitea/tests"
@@ -30,7 +31,7 @@ func TestSAMLRegistration(t *testing.T) {
 
 	samlURL := "localhost:8080"
 
-	if os.Getenv("CI") == "" {
+	if os.Getenv("CI") == "" || !setting.Database.Type.IsPostgreSQL() {
 		// Make it possible to run tests against a local simplesaml instance
 		samlURL = os.Getenv("TEST_SIMPLESAML_URL")
 		if samlURL == "" {
