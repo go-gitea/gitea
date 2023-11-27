@@ -283,7 +283,7 @@ func TestRender_email(t *testing.T) {
 		`<p>*<a href="mailto:a@example.com" rel="nofollow">a@example.com</a></p>`)
 	test(
 		"~a@example.com",
-	`<p>~<a href="mailto:a@example.com" rel="nofollow">a@example.com</a></p>`)
+		`<p>~<a href="mailto:a@example.com" rel="nofollow">a@example.com</a></p>`)
 	test(
 		"email@domain@domain.com",
 		`<p>email@<a href="mailto:domain@domain.com" rel="nofollow">domain@domain.com</a></p>`)
