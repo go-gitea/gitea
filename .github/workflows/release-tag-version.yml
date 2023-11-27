@@ -80,6 +80,8 @@ jobs:
         id: meta
         with:
           images: gitea/gitea
+          flavor: |
+            latest=false
           # this will generate tags in the following format:
           # since it's not a main stable version, just generation 1.x and 1.x.x
           # latest
@@ -117,6 +119,7 @@ jobs:
           images: gitea/gitea
           # each tag below will have the suffix of -rootless
           flavor: |
+            latest=false
             suffix=-rootless
           # this will generate tags in the following format (with -rootless suffix added):
           # since it's not a main stable version, just generation 1.x and 1.x.x
