@@ -14,6 +14,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/builder"
 )
 
 // ArtifactStatus is the status of an artifact, uploading, expired or need-delete
@@ -108,29 +110,37 @@ func UpdateArtifactByID(ctx context.Context, id int64, art *ActionArtifact) erro
 	return err
 }
 
-// ListArtifactsByRunID returns all artifacts of a run
-func ListArtifactsByRunID(ctx context.Context, runID int64) ([]*ActionArtifact, error) {
-	arts := make([]*ActionArtifact, 0, 10)
-	return arts, db.GetEngine(ctx).Where("run_id=?", runID).Find(&arts)
+type FindArtifactsOptions struct {
+	db.ListOptions
+	RepoID       int64
+	RunID        int64
+	ArtifactName string
+	Status       int
 }
 
-// ListArtifactsByRunIDAndArtifactName returns an artifacts of a run by artifact name
-func ListArtifactsByRunIDAndArtifactName(ctx context.Context, runID int64, artifactName string) ([]*ActionArtifact, error) {
-	arts := make([]*ActionArtifact, 0, 10)
-	return arts, db.GetEngine(ctx).Where("run_id=? AND artifact_name=?", runID, artifactName).Find(&arts)
-}
+func (opts FindArtifactsOptions) ToConds() builder.Cond {
+	cond := builder.NewCond()
+	if opts.RepoID > 0 {
+		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+	if opts.RunID > 0 {
+		cond = cond.And(builder.Eq{"run_id": opts.RunID})
+	}
+	if opts.ArtifactName != "" {
+		cond = cond.And(builder.Eq{"artifact_name": opts.ArtifactName})
+	}
+	if opts.Status > 0 {
+		cond = cond.And(builder.Eq{"status": opts.Status})
+	}
 
-// ListUploadedArtifactsByRunID returns all uploaded artifacts of a run
-func ListUploadedArtifactsByRunID(ctx context.Context, runID int64) ([]*ActionArtifact, error) {
-	arts := make([]*ActionArtifact, 0, 10)
-	return arts, db.GetEngine(ctx).Where("run_id=? AND status=?", runID, ArtifactStatusUploadConfirmed).Find(&arts)
+	return cond
 }
 
 // ActionArtifactMeta is the meta data of an artifact
 type ActionArtifactMeta struct {
 	ArtifactName string
 	FileSize     int64
-	Status       int64
+	Status       ArtifactStatus
 }
 
 // ListUploadedArtifactsMeta returns all uploaded artifacts meta of a run
@@ -141,18 +151,6 @@ func ListUploadedArtifactsMeta(ctx context.Context, runID int64) ([]*ActionArtif
 		GroupBy("artifact_name").
 		Select("artifact_name, sum(file_size) as file_size, max(status) as status").
 		Find(&arts)
-}
-
-// ListArtifactsByRepoID returns all artifacts of a repo
-func ListArtifactsByRepoID(ctx context.Context, repoID int64) ([]*ActionArtifact, error) {
-	arts := make([]*ActionArtifact, 0, 10)
-	return arts, db.GetEngine(ctx).Where("repo_id=?", repoID).Find(&arts)
-}
-
-// ListArtifactsByRunIDAndName returns artifacts by name of a run
-func ListArtifactsByRunIDAndName(ctx context.Context, runID int64, name string) ([]*ActionArtifact, error) {
-	arts := make([]*ActionArtifact, 0, 10)
-	return arts, db.GetEngine(ctx).Where("run_id=? AND artifact_name=?", runID, name).Find(&arts)
 }
 
 // ListNeedExpiredArtifacts returns all need expired artifacts but not deleted

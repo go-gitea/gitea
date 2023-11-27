@@ -109,7 +109,7 @@ func DBConnStr() (string, error) {
 		connStr = fmt.Sprintf("%s:%s@%s(%s)/%s%scharset=%s&parseTime=true&tls=%s",
 			Database.User, Database.Passwd, connType, Database.Host, Database.Name, paramSep, Database.MysqlCharset, tls)
 	case "postgres":
-		connStr = getPostgreSQLConnectionString(Database.Host, Database.User, Database.Passwd, Database.Name, paramSep, Database.SSLMode)
+		connStr = getPostgreSQLConnectionString(Database.Host, Database.User, Database.Passwd, Database.Name, Database.SSLMode)
 	case "mssql":
 		host, port := ParseMSSQLHostPort(Database.Host)
 		connStr = fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;", host, port, Database.Name, Database.User, Database.Passwd)
@@ -157,7 +157,8 @@ func parsePostgreSQLHostPort(info string) (host, port string) {
 	return host, port
 }
 
-func getPostgreSQLConnectionString(dbHost, dbUser, dbPasswd, dbName, dbParam, dbsslMode string) (connStr string) {
+func getPostgreSQLConnectionString(dbHost, dbUser, dbPasswd, dbName, dbsslMode string) (connStr string) {
+	dbName, dbParam, _ := strings.Cut(dbName, "?")
 	host, port := parsePostgreSQLHostPort(dbHost)
 	connURL := url.URL{
 		Scheme:   "postgres",

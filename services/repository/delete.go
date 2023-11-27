@@ -54,13 +54,13 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	}
 
 	// Query the action tasks of this repo, they will be needed after they have been deleted to remove the logs
-	tasks, err := actions_model.FindTasks(ctx, actions_model.FindTaskOptions{RepoID: repoID})
+	tasks, err := db.Find[actions_model.ActionTask](ctx, actions_model.FindTaskOptions{RepoID: repoID})
 	if err != nil {
 		return fmt.Errorf("find actions tasks of repo %v: %w", repoID, err)
 	}
 
 	// Query the artifacts of this repo, they will be needed after they have been deleted to remove artifacts files in ObjectStorage
-	artifacts, err := actions_model.ListArtifactsByRepoID(ctx, repoID)
+	artifacts, err := db.Find[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{RepoID: repoID})
 	if err != nil {
 		return fmt.Errorf("list actions artifacts of repo %v: %w", repoID, err)
 	}
@@ -75,7 +75,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	}
 
 	// Delete Deploy Keys
-	deployKeys, err := asymkey_model.ListDeployKeys(ctx, &asymkey_model.ListDeployKeysOptions{RepoID: repoID})
+	deployKeys, err := db.Find[asymkey_model.DeployKey](ctx, asymkey_model.ListDeployKeysOptions{RepoID: repoID})
 	if err != nil {
 		return fmt.Errorf("listDeployKeys: %w", err)
 	}

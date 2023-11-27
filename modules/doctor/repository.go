@@ -26,7 +26,7 @@ func handleDeleteOrphanedRepos(ctx context.Context, logger log.Logger, autofix b
 
 // countOrphanedRepos count repository where user of owner_id do not exist
 func countOrphanedRepos(ctx context.Context) (int64, error) {
-	return db.CountOrphanedObjects(ctx, "repository", "user", "repository.owner_id=user.id")
+	return db.CountOrphanedObjects(ctx, "repository", "user", "repository.owner_id=`user`.id")
 }
 
 // deleteOrphanedRepos delete repository where user of owner_id do not exist
@@ -43,7 +43,7 @@ func deleteOrphanedRepos(ctx context.Context) (int64, error) {
 		default:
 			var ids []int64
 			if err := e.Table("`repository`").
-				Join("LEFT", "`user`", "repository.owner_id=user.id").
+				Join("LEFT", "`user`", "repository.owner_id=`user`.id").
 				Where(builder.IsNull{"`user`.id"}).
 				Select("`repository`.id").Limit(batchSize).Find(&ids); err != nil {
 				return deleted, err
