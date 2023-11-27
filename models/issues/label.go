@@ -323,7 +323,7 @@ func GetLabelInRepoByID(ctx context.Context, repoID, labelID int64) (*Label, err
 	if err != nil {
 		return nil, err
 	} else if !exist {
-		return nil, ErrRepoLabelNotExist{l.ID, l.RepoID}
+		return nil, ErrRepoLabelNotExist{labelID, repoID}
 	}
 	return l, nil
 }
