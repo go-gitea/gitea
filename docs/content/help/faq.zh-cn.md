@@ -132,7 +132,7 @@ Gitea不提供内置的Pages服务器。您需要一个专用的域名来提供�
 
 ## 设置日志记录
 
-- [官方文档](administration/logging-config.md)
+- [官方文档](administration/logging-documentation.md)
 
 ## 什么是Swagger？
 
