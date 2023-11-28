@@ -419,7 +419,7 @@ func GetLabelInOrgByID(ctx context.Context, orgID, labelID int64) (*Label, error
 	if err != nil {
 		return nil, err
 	} else if !exist {
-		return nil, ErrOrgLabelNotExist{l.ID, l.OrgID}
+		return nil, ErrOrgLabelNotExist{labelID, orgID}
 	}
 	return l, nil
 }

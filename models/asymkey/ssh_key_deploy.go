@@ -166,7 +166,7 @@ func GetDeployKeyByID(ctx context.Context, id int64) (*DeployKey, error) {
 	if err != nil {
 		return nil, err
 	} else if !exist {
-		return nil, ErrDeployKeyNotExist{0, 0, id}
+		return nil, ErrDeployKeyNotExist{id, 0, 0}
 	}
 	return key, nil
 }
