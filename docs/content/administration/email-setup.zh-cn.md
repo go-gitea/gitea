@@ -55,7 +55,7 @@ PASSWD         = `password`
 
 要发送测试邮件以验证设置，请转到 Gitea > 站点管理 > 配置 > SMTP 邮件配置。
 
-有关所有选项的完整列表，请查看[配置速查表](doc/administration/config-cheat-sheet.md)。
+有关所有选项的完整列表，请查看[配置速查表](administration/config-cheat-sheet.md)。
 
 请注意：只有在使用 TLS 或 `HOST=localhost` 加密 SMTP 服务器通信时才支持身份验证。TLS 加密可以通过以下方式进行：
 
