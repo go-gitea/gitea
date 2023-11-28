@@ -217,14 +217,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 5px;
   margin-bottom: 5px;
 }
 
-@media (max-width: 767.68px) {
+@media (max-width: 767.98px) {
   .repository.file.list .repo-description {
     flex-direction: column;
-    gap: 8px;
-    align-items: normal;
+    align-items: stretch;
   }
 }
 
@@ -1503,7 +1503,8 @@
   position: sticky;
   top: 0;
   z-index: 8;
-  padding: 7px 0;
+  padding: 7px 5px;
+  margin: 0 -5px; /* negative margin so it covers active file shadow */
   height: 44px; /* this height should match sticky-2nd-row */
   background: var(--color-body);
 }
@@ -1511,7 +1512,6 @@
 @media (max-width: 991.98px) {
   .repository .diff-detail-box {
     flex-direction: row;
-    height: 77px; /* this height should match sticky-2nd-row */
   }
 }
 
@@ -1539,13 +1539,9 @@
   color: var(--color-red);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 991.98px) {
   .repository .diff-detail-box .diff-detail-stats {
-    font-size: 0;
-    line-height: 1.6rem;
-  }
-  .repository .diff-detail-box .diff-detail-stats strong {
-    font-size: 1rem;
+    display: none !important;
   }
 }
 
@@ -1740,12 +1736,6 @@
   border: none;
 }
 
-@media (max-width: 991.98px) {
-  .diff-file-box {
-    scroll-margin-top: 77px; /* match .repository .diff-detail-box */
-  }
-}
-
 /* TODO: this can potentially be made "global" by removing the class prefix */
 .diff-file-box .ui.attached.header,
 .diff-file-box .ui.attached.table {
@@ -1803,10 +1793,12 @@
   flex: 1
 }
 
-.repository.packages .empty,
-.repository.actions .empty {
-  padding-top: 70px;
-  padding-bottom: 100px;
+.empty-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 40px;
+  padding-bottom: 40px;
 }
 
 .repository.packages .file-size {
@@ -2056,6 +2048,7 @@
 
 .repository .repository-summary .segment.language-stats {
   display: flex;
+  gap: 2px;
   padding: 0;
   height: 10px;
   white-space: nowrap;
@@ -2610,6 +2603,7 @@ tbody.commit-list {
   justify-content: space-between;
   flex-wrap: wrap;
   word-break: break-word;
+  gap: 0.5rem;
 }
 
 @media (max-width: 767.98px) {
@@ -2738,6 +2732,9 @@ tbody.commit-list {
 #diff-file-boxes {
   flex: 1;
   max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 #diff-file-tree {
@@ -2750,26 +2747,6 @@ tbody.commit-list {
   max-height: calc(100vh - 47px);
   height: 100%;
   overflow-y: auto;
-}
-
-.diff-toggle-file-tree-button {
-  background: none;
-  border: none;
-  user-select: none;
-  color: inherit;
-}
-
-.diff-toggle-file-tree-button:hover {
-  color: var(--color-primary);
-}
-
-@media (max-width: 991.98px) {
-  #diff-file-tree {
-    display: none !important;
-  }
-  .diff-toggle-file-tree-button {
-    display: none !important;
-  }
 }
 
 .ui.message.unicode-escape-prompt {
@@ -2822,18 +2799,6 @@ tbody.commit-list {
   position: sticky;
   top: 44px; /* match .repository .diff-detail-box */
   z-index: 7;
-}
-
-@media (max-width: 991.98px) {
-  .ui.attached.header.diff-file-header.sticky-2nd-row {
-    top: 77px; /* match .repository .diff-detail-box */
-  }
-}
-
-@media (max-width: 480px) {
-  .ui.attached.header.diff-file-header.sticky-2nd-row {
-    position: static;
-  }
 }
 
 .diff-file-name {
@@ -3072,43 +3037,57 @@ tbody.commit-list {
   }
 }
 
-.pr-status {
-  padding: 0 !important; /* To clear fomantic's padding on .ui.segment elements */
+.commit-status-header {
+  /* reset the default ".ui.attached.header" styles, to use the outer border */
+  border: none !important;
+  /* add a bottom border to make sure the there is always a divider between the header and list when the list is scrolling */
+  border-bottom: 1px solid var(--color-secondary) !important;
+  /* use negative margin to avoid the newly added border conflict with the list's top border */
+  margin: 0 0 -1px !important;
+}
+
+.commit-status-list {
+  max-height: 240px; /* fit exactly 6 items, commit-status-item.height * 6 */
+  overflow-x: hidden;
+  transition: max-height .2s;
+}
+
+.commit-status-item {
+  height: 40px;
+  padding: 0 10px;
   display: flex;
+  gap: 8px;
   align-items: center;
 }
 
-.pr-status .commit-status {
-  margin: 1em;
+.commit-status-item + .commit-status-item {
+  border-top: 1px solid var(--color-secondary);
+}
+
+.commit-status-item .commit-status {
   flex-shrink: 0;
 }
 
-.pr-status .status-context {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
+.commit-status-item .status-context {
+  color: var(--color-text);
+  flex: 1;
 }
 
-.pr-status .status-context > span {
-  padding: 1em 0;
-}
-
-.pr-status .status-details {
+.commit-status-item .status-details {
   display: flex;
-  padding-right: 0.5em;
   align-items: center;
   justify-content: flex-end;
 }
 
 @media (max-width: 767.98px) {
-  .pr-status .status-details {
+  .commit-status-item .status-details {
     flex-direction: column;
     align-items: flex-end;
     justify-content: center;
   }
 }
 
-.pr-status .status-details > span {
+.commit-status-item .status-details > span {
   padding-right: 0.5em; /* To match the alignment with the "required" label */
 }
 

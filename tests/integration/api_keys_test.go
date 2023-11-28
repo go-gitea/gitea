@@ -72,6 +72,17 @@ func TestCreateReadOnlyDeployKey(t *testing.T) {
 		Content: rawKeyBody.Key,
 		Mode:    perm.AccessModeRead,
 	})
+
+	// Using the ID of a key that does not belong to the repository must fail
+	{
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/keys/%d?token=%s", repoOwner.Name, repo.Name, newDeployKey.ID, token))
+		MakeRequest(t, req, http.StatusOK)
+
+		session5 := loginUser(t, "user5")
+		token5 := getTokenForLoggedInUser(t, session5, auth_model.AccessTokenScopeWriteRepository)
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user5/repo4/keys/%d?token=%s", newDeployKey.ID, token5))
+		MakeRequest(t, req, http.StatusNotFound)
+	}
 }
 
 func TestCreateReadWriteDeployKey(t *testing.T) {

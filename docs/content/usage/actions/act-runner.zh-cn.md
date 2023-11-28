@@ -113,6 +113,8 @@ Runner级别决定了从哪里获取注册令牌。
 
 注册令牌的格式是一个随机字符串 `D0gvfu2iHfUjNqCYVljVyRV14fISpJxxxxxxxxxx`。
 
+注册令牌也可以通过 Gitea 的 [命令行](administration/command-line.md#actions-generate-runner-token) 获得:
+
 ### 注册Runner
 
 可以通过运行以下命令来注册Act Runner：
@@ -208,12 +210,12 @@ services:
 
 ```yaml
 cache:
-enabled: true
-dir: ""
-# 使用步骤 1. 获取的 LAN IP
-host: "192.168.8.17"
-# 使用步骤 2. 获取的端口号
-port: 8088
+  enabled: true
+  dir: ""
+  # 使用步骤 1. 获取的 LAN IP
+  host: "192.168.8.17"
+  # 使用步骤 2. 获取的端口号
+  port: 8088
 ```
 
 - 4.启动容器时, 将 Cache 端口映射至主机。

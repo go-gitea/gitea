@@ -2,8 +2,8 @@
 <div role="main" aria-label="{{.Title}}" class="page-content dashboard issues">
 	{{template "user/dashboard/navbar" .}}
 	<div class="ui container">
-		<div class="ui stackable grid">
-			<div class="four wide column">
+		<div class="flex-container">
+			<div class="flex-container-nav">
 				<div class="ui secondary vertical filter menu gt-bg-transparent">
 					<a class="{{if eq .ViewType "your_repositories"}}active{{end}} item" href="{{.Link}}?type=your_repositories&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 						{{ctx.Locale.Tr "home.issues.in_your_repos"}}
@@ -59,7 +59,7 @@
 					{{end}}
 				</div>
 			</div>
-			<div class="twelve wide column content">
+			<div class="flex-container-main content">
 				<div class="list-header">
 					<div class="small-menu-items ui compact tiny menu list-header-toggle">
 						<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">

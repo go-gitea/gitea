@@ -28,7 +28,7 @@ XGO_VERSION := go-1.21.x
 AIR_PACKAGE ?= github.com/cosmtrek/air@v1.44.0
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.7.0
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.5.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.54.1
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.0
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
 MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.5
@@ -278,7 +278,6 @@ clean-all: clean
 
 .PHONY: clean
 clean:
-	$(GO) clean -i ./...
 	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST) $(BINDATA_HASH) \
 		integrations*.test \
 		e2e*.test \
@@ -876,7 +875,7 @@ node_modules: package-lock.json
 	@touch node_modules
 
 .venv: poetry.lock
-	poetry install
+	poetry install --no-root
 	@touch .venv
 
 .PHONY: update
@@ -893,7 +892,7 @@ update-js: node-check | node_modules
 update-py: node-check | node_modules
 	npx updates -u -f pyproject.toml
 	rm -rf .venv poetry.lock
-	poetry install
+	poetry install --no-root
 	@touch .venv
 
 .PHONY: fomantic

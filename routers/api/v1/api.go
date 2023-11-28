@@ -2,7 +2,7 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-// Package v1 Gitea API.
+// Package v1 Gitea API
 //
 // This documentation describes the Gitea API.
 //
@@ -316,10 +316,6 @@ func reqToken() func(ctx *context.APIContext) {
 			return
 		}
 
-		if ctx.IsBasicAuth {
-			ctx.CheckForOTP()
-			return
-		}
 		if ctx.IsSigned {
 			return
 		}
@@ -344,7 +340,6 @@ func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
 			ctx.Error(http.StatusUnauthorized, "reqBasicAuth", "auth required")
 			return
 		}
-		ctx.CheckForOTP()
 	}
 }
 
@@ -701,12 +696,6 @@ func bind[T any](_ T) any {
 	}
 }
 
-// The OAuth2 plugin is expected to be executed first, as it must ignore the user id stored
-// in the session (if there is a user id stored in session other plugins might return the user
-// object for that id).
-//
-// The Session plugin is expected to be executed second, in order to skip authentication
-// for users that have already signed in.
 func buildAuthGroup() *auth.Group {
 	group := auth.NewGroup(
 		&auth.OAuth2{},
@@ -785,31 +774,6 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIC
 					"message": "This account is not activated.",
 				})
 				return
-			}
-			if ctx.IsSigned && ctx.IsBasicAuth {
-				if skip, ok := ctx.Data["SkipLocalTwoFA"]; ok && skip.(bool) {
-					return // Skip 2FA
-				}
-				twofa, err := auth_model.GetTwoFactorByUID(ctx, ctx.Doer.ID)
-				if err != nil {
-					if auth_model.IsErrTwoFactorNotEnrolled(err) {
-						return // No 2FA enrollment for this user
-					}
-					ctx.InternalServerError(err)
-					return
-				}
-				otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
-				ok, err := twofa.ValidateTOTP(otpHeader)
-				if err != nil {
-					ctx.InternalServerError(err)
-					return
-				}
-				if !ok {
-					ctx.JSON(http.StatusForbidden, map[string]string{
-						"message": "Only signed in user is allowed to call APIs.",
-					})
-					return
-				}
 			}
 		}
 
@@ -961,7 +925,7 @@ func Routes() *web.Route {
 			m.Group("/actions/secrets", func() {
 				m.Combo("/{secretname}").
 					Put(bind(api.CreateOrUpdateSecretOption{}), user.CreateOrUpdateSecret).
-					Delete(repo.DeleteSecret)
+					Delete(user.DeleteSecret)
 			})
 
 			m.Get("/followers", user.ListMyFollowers)
@@ -1295,8 +1259,8 @@ func Routes() *web.Route {
 			m.Group("/{username}/{reponame}", func() {
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
-						Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueOption{}), repo.CreateIssue)
-					m.Get("/pinned", repo.ListPinnedIssues)
+						Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueOption{}), reqRepoReader(unit.TypeIssues), repo.CreateIssue)
+					m.Get("/pinned", reqRepoReader(unit.TypeIssues), repo.ListPinnedIssues)
 					m.Group("/comments", func() {
 						m.Get("", repo.ListRepoIssueComments)
 						m.Group("/{id}", func() {
@@ -1444,10 +1408,10 @@ func Routes() *web.Route {
 					Delete(reqToken(), reqOrgMembership(), org.ConcealMember)
 			})
 			m.Group("/teams", func() {
-				m.Get("", reqToken(), org.ListTeams)
-				m.Post("", reqToken(), reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
-				m.Get("/search", reqToken(), org.SearchTeam)
-			}, reqOrgMembership())
+				m.Get("", org.ListTeams)
+				m.Post("", reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
+				m.Get("/search", org.SearchTeam)
+			}, reqToken(), reqOrgMembership())
 			m.Group("/labels", func() {
 				m.Get("", org.ListLabels)
 				m.Post("", reqToken(), reqOrgOwnership(), bind(api.CreateLabelOption{}), org.CreateLabel)

@@ -13,7 +13,7 @@ var Attachment = struct {
 }{
 	Storage:      &Storage{},
 	AllowedTypes: ".csv,.docx,.fodg,.fodp,.fods,.fodt,.gif,.gz,.jpeg,.jpg,.log,.md,.mov,.mp4,.odf,.odg,.odp,.ods,.odt,.patch,.pdf,.png,.pptx,.svg,.tgz,.txt,.webm,.xls,.xlsx,.zip",
-	MaxSize:      4,
+	MaxSize:      2048,
 	MaxFiles:     5,
 	Enabled:      true,
 }

@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 )
 
@@ -53,16 +52,13 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 
 	subject := locale.Tr("mail.team_invite.subject", inviter.DisplayName(), org.DisplayName())
 	mailMeta := map[string]any{
+		"locale":       locale,
 		"Inviter":      inviter,
 		"Organization": org,
 		"Team":         team,
 		"Invite":       invite,
 		"Subject":      subject,
 		"InviteURL":    inviteURL,
-		// helper
-		"locale":    locale,
-		"Str2html":  templates.Str2html,
-		"DotEscape": templates.DotEscape,
 	}
 
 	var mailBody bytes.Buffer
