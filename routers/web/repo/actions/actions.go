@@ -139,6 +139,7 @@ func List(ctx *context.Context) {
 					for _, event := range events {
 						if event.Name == webhook_module.HookEventWorkflowDispatch.Event() {
 							ctx.Data["AllowTriggerWorkflowDispatchEvent"] = true
+							ctx.Data["WorkflowDispatchConfig"] = event.WorkflowDispatch()
 							break
 						}
 					}

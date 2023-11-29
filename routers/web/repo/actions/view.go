@@ -680,6 +680,9 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 }
 
 func Run(ctx *context_module.Context) {
+	redirectURL := fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s", ctx.Repo.RepoLink, url.QueryEscape(ctx.FormString("workflow")),
+		url.QueryEscape(ctx.FormString("actor")), url.QueryEscape(ctx.FormString("status")))
+
 	workflow := ctx.FormString("workflow")
 	if len(workflow) == 0 {
 		ctx.ServerError("workflow", nil)
@@ -690,7 +693,8 @@ func Run(ctx *context_module.Context) {
 	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
 	if cfg.IsWorkflowDisabled(workflow) {
-		ctx.JSONError(ctx.Locale.Tr("actions.workflow.disabled"))
+		ctx.Flash.Error(ctx.Tr("actions.workflow.disabled", workflow))
+		ctx.Redirect(redirectURL)
 		return
 	}
 
@@ -724,7 +728,8 @@ func Run(ctx *context_module.Context) {
 	}
 
 	if dwf == nil {
-		ctx.JSONError(ctx.Locale.Tr("actions.workflow.not_found"))
+		ctx.Flash.Error(ctx.Tr("actions.workflow.not_found", workflow))
+		ctx.Redirect(redirectURL)
 		return
 	}
 
@@ -759,6 +764,18 @@ func Run(ctx *context_module.Context) {
 		return
 	}
 
+	for _, wf := range workflows {
+		if wf.Env == nil {
+			wf.Env = make(map[string]string)
+		}
+		for k, v := range ctx.Req.PostForm {
+			if k == "_csrf" || len(v) == 0 || v[0] == "" {
+				continue
+			}
+			wf.Env[k] = v[0]
+		}
+	}
+
 	// Insert the action run and its associated jobs into the database
 	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
 		ctx.ServerError("workflow", err)
@@ -771,7 +788,6 @@ func Run(ctx *context_module.Context) {
 	}
 	actions_service.CreateCommitStatus(ctx, alljobs...)
 
-	redirectURL := fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s", ctx.Repo.RepoLink, url.QueryEscape(workflow),
-		url.QueryEscape(ctx.FormString("actor")), url.QueryEscape(ctx.FormString("status")))
-	ctx.JSONRedirect(redirectURL)
+	ctx.Flash.Success(ctx.Tr("actions.workflow.run_success", workflow))
+	ctx.Redirect(redirectURL)
 }

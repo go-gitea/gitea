@@ -1,0 +1,35 @@
+<div class="ui ignored info message">
+	This workflow has a workflow_dispatch event trigger.
+	<button class="ui right floated mini button" onclick="$('#runWorkflowDispatchModal').modal('show');">{{ctx.Locale.Tr "actions.workflow.run"}}{{svg "octicon-triangle-down" 14 "dropdown icon"}}</button>
+</div>
+<div id="runWorkflowDispatchModal" class="ui mini modal">
+	<div class="content">
+		<form class="ui form" action="{{$.Link}}/run?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}" method="post">
+			{{.CsrfTokenHtml}}
+			{{if .WorkflowDispatchConfig}}
+			{{range $key, $item := .WorkflowDispatchConfig.Inputs}}
+			<div class="ui field {{if .Required}}required{{end}}">
+				<label>{{$key}} :</label>
+				{{if eq .Type "choice"}}
+				<select class="ui fluid dropdown" name="{{$key}}">
+					{{range .Options}}
+					<option value="{{.}}" {{if eq $item.Default .}}selected{{end}} >{{.}}</option>
+					{{end}}
+				</select>
+				<span class="help">{{.Description}}</span>
+				{{else if eq .Type "boolean"}}
+				<div class="ui toggle checkbox">
+					<input type="checkbox" name="{{$key}}" {{if eq .Default "true"}}checked{{end}}>
+					<label class="help">{{.Description}}</label>
+				</div>
+				{{else}}
+				<input name="{{$key}}" value="{{.Default}}">
+				<span class="help">{{.Description}}</span>
+				{{end}}
+			</div>
+			{{end}}
+			{{end}}
+			<button class="ui tiny blue button">Submit</button>
+		</form>
+	</div>
+</div>
