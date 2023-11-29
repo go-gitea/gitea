@@ -8,7 +8,9 @@
 		<div class="ui stackable grid">
 			<div class="four wide column">
 				<div class="ui fluid vertical menu">
-					<a class="item{{if not $.CurWorkflow}} active{{end}}" href="{{$.Link}}?actor={{$.CurActor}}&status={{$.CurStatus}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
+					<a class="item{{if not $.CurWorkflow}} active{{end}}" href="{{$.Link}}?actor={{$.CurActor}}&status={{$.CurStatus}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}
+						<span class="ui label">{{.Workflows.TotalOpenRuns}}</span>
+					</a>
 					{{range $workflowID, $workflow := .Workflows}}
 						<a class="item{{if eq $workflowID $.CurWorkflow}} active{{end}}" href="{{$.Link}}?workflow={{$workflowID}}&actor={{$.CurActor}}&status={{$.CurStatus}}">{{$workflowID}}
 							{{if .ErrMsg}}
@@ -29,17 +31,17 @@
 				</div>
 			</div>
 			<div class="twelve wide column content">
-				<div class="issue-list-toolbar">
+				<div class="issue-list-toolbar gt-mt-0 gt-mb-4">
 					<div class="issue-list-toolbar-left">
-						{{if and .CurWorkflow .Workflows}}
+						{{if .CurWorkflow}}
 							{{$curWorkflow := index .Workflows .CurWorkflow}}
-							{{$curWorkflow.RunsStatus.NumRuns}} Runs, {{$curWorkflow.RunsStatus.NumOpenRuns}} Open Runs, {{$curWorkflow.RunsStatus.NumClosedRuns}} Closed Runs
+							{{ctx.Locale.Tr "actions.runs.status_count" $curWorkflow.RunsStatus.NumRuns $curWorkflow.RunsStatus.NumOpenRuns $curWorkflow.RunsStatus.NumClosedRuns}}
 						{{else}}
-							{{.Workflows.TotalRuns}} Runs, {{.Workflows.TotalOpenRuns}} Open Runs, {{.Workflows.TotalClosedRuns}} Closed Runs
+							{{ctx.Locale.Tr "actions.runs.status_count" .Workflows.TotalRuns .Workflows.TotalOpenRuns .Workflows.TotalClosedRuns}}
 						{{end}}
 					</div>
 					<div class="issue-list-toolbar-right">
-						<div class="ui secondary filter menu gt-je gt-df gt-ac">
+						<div class="ui secondary filter menu labels">
 							<!-- Actor -->
 							<div class="ui{{if not .Actors}} disabled{{end}} dropdown jump item">
 								<span class="text">{{ctx.Locale.Tr "actions.runs.actor"}}</span>
