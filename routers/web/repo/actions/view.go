@@ -782,7 +782,7 @@ func Run(ctx *context_module.Context) {
 		return
 	}
 
-	alljobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID})
+	alljobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
 	if err != nil {
 		log.Error("FindRunJobs: %v", err)
 	}
