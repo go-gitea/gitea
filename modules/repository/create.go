@@ -160,28 +160,25 @@ const notRegularFileMode = os.ModeSymlink | os.ModeNamedPipe | os.ModeSocket | o
 // getDirectorySize returns the disk consumption for a given path
 func getDirectorySize(path string) (int64, error) {
 	var size int64
-	err := filepath.WalkDir(path, func(_ string, info os.DirEntry, err error) error {
-		if err != nil {
-			if os.IsNotExist(err) { // ignore the error because the file maybe deleted during traversing.
-				return nil
-			}
+	err := filepath.WalkDir(path, func(_ string, entry os.DirEntry, err error) error {
+		if os.IsNotExist(err) { // ignore the error because some files (like temp/lock file) may be deleted during traversing.
+			return nil
+		} else if err != nil {
 			return err
 		}
-
-		fileName := info.Name()
-		// Ignore temporary Git files as they will like be missing once info.Info is
-		// called and cause a disrupt to the whole operation.
-		if info.IsDir() || strings.HasSuffix(fileName, ".lock") || strings.HasPrefix(filepath.Base(fileName), "tmp_graph") {
+		if entry.IsDir() {
 			return nil
 		}
-		f, err := info.Info()
-		if err != nil {
+		info, err := entry.Info()
+		if os.IsNotExist(err) { // ignore the error as above
+			return nil
+		} else if err != nil {
 			return err
 		}
-		if (f.Mode() & notRegularFileMode) == 0 {
-			size += f.Size()
+		if (info.Mode() & notRegularFileMode) == 0 {
+			size += info.Size()
 		}
-		return err
+		return nil
 	})
 	return size, err
 }
