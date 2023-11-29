@@ -128,16 +128,16 @@
 								<span class="ui basic label">{{CountFmt .NumReleases}}</span>
 							</div>
 							<div class="flex-item-body">
-								<a class="latest-release" href="{{.LatestRelease.Link}}">
-									<div class="latest-release-tag">
-										{{svg "octicon-tag" 16}}
-										<div class="gt-word-break">
+								<div class="latest-release">
+									<div class="gt-df gt-gap-3">
+										<a class="latest-release-tag gt-word-break" href="{{.LatestRelease.Link}}">
+											{{svg "octicon-tag" 16}}
 											{{.LatestRelease.TagName}}
-										</div>
-										<span class="ui basic green label">{{ctx.Locale.Tr "latest"}}</span>
+										</a>
+										<span class="ui basic green label gt-h-100">{{ctx.Locale.Tr "latest"}}</span>
 									</div>
 									<span class="time">{{TimeSinceUnix .LatestRelease.CreatedUnix ctx.Locale}}</span>
-								</a>
+								</div>
 							</div>
 						</div>
 					</div>
