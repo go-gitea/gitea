@@ -49,7 +49,7 @@ import {
   initGlobalLinkActions,
   initHeadNavbarContentToggle,
 } from './features/common-global.js';
-import {initRepoTopicBar} from './features/repo-home.js';
+import {initRepoTopicBars} from './features/repo-home.js';
 import {initAdminEmails} from './features/admin/emails.js';
 import {initAdminCommon} from './features/admin/common.js';
 import {initRepoTemplateSearch} from './features/repo-template.js';
@@ -168,7 +168,7 @@ onDomReady(() => {
   initRepoSettingSearchTeamBox();
   initRepoSettingsCollaboration();
   initRepoTemplateSearch();
-  initRepoTopicBar();
+  initRepoTopicBars();
   initRepoWikiForm();
   initRepository();
   initRepositoryActionView();

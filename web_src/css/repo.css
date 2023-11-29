@@ -3227,6 +3227,7 @@ tbody.commit-list {
   max-height: 200px;
 }
 
-#repo-desc .description {
+#repo-desc-mobile .description,
+#repo-desc-desktop .description {
   max-height: 150px;
 }

@@ -4,13 +4,22 @@ import {hideElem, showElem} from '../utils/dom.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
-export function initRepoTopicBar() {
-  const mgrBtn = $('#manage_topic');
-  if (!mgrBtn.length) return;
-  const editDiv = $('#topic_edit');
-  const viewDiv = $('#repo-topics');
-  const saveBtn = $('#save_topic');
-  const topicDropdown = $('#topic_edit .dropdown');
+export function initRepoTopicBars() {
+  $('.manage-topic').each(function () {
+    const viewType = $(this).attr('data-view-type');
+    if (!viewType.length) {
+      throw new Error('no view type defined in attributes for manage topic button');
+    }
+    initRepoTopicBar($(this), viewType);
+  });
+}
+
+function initRepoTopicBar(mgrBtn, viewType) {
+  const editDiv = $(`#topic_edit_${viewType}`);
+  const viewDiv = $(`#repo-topics-${viewType}`);
+  const saveBtn = $(`#save_topic_${viewType}`);
+  const cancelBtn = $(`#cancel_topic_edit_${viewType}`);
+  const topicDropdown = $(`#topic_edit_${viewType} .dropdown`);
   const topicForm = editDiv; // the old logic, editDiv is topicForm
   const topicDropdownSearch = topicDropdown.find('input.search');
   const topicPrompts = {
@@ -21,17 +30,17 @@ export function initRepoTopicBar() {
   mgrBtn.on('click', () => {
     hideElem(viewDiv);
     showElem(editDiv);
-    topicDropdownSearch.focus();
+    topicDropdownSearch.trigger('focus');
   });
 
-  $('#cancel_topic_edit').on('click', () => {
+  cancelBtn.on('click', () => {
     hideElem(editDiv);
     showElem(viewDiv);
-    mgrBtn.focus();
+    mgrBtn.trigger('focus');
   });
 
   saveBtn.on('click', () => {
-    const topics = $('input[name=topics]').val();
+    const topics = $(`input[name=topics-${viewType}]`).val();
 
     $.post(saveBtn.attr('data-link'), {
       _csrf: csrfToken,

@@ -1,5 +1,9 @@
+{{$viewType := "desktop"}}
+{{if .HiddenInMobileView}}
+{{$viewType = "mobile"}}
+{{end}}
 {{if and (not .ctxData.HideRepoInfo) (not .ctxData.IsBlame)}}
-	<div class="flex-item {{if .HiddenInMobileView}}gt-hidden-in-mobile{{else}}gt-hidden-in-desktop{{end}}">
+	<div class="flex-item gt-hidden-in-{{$viewType}}">
 		<div class="flex-item-main">
 			{{if .HiddenInMobileView}}
 				<div class="flex-item-title">
@@ -9,7 +13,7 @@
 
 			<div class="flex-item-body {{if .HiddenInMobileView}}gt-mt-4{{end}}">
 				<div class="ui repo-description gt-word-break">
-					<div id="repo-desc" class="gt-font-16">
+					<div id="repo-desc-{{$viewType}}" class="gt-font-16">
 						{{$description := .ctxData.Repository.DescriptionHTML $.ctxData.Context}}
 						{{if $description}}<span class="description gt-word-break">{{$description | RenderCodeBlock}}</span>{{else if .ctxData.IsRepositoryAdmin}}<span class="no-description text-italic">{{ctx.Locale.Tr "repo.no_desc"}}</span>{{end}}
 						<a class="link" href="{{.ctxData.Repository.Website}}">{{.ctxData.Repository.Website}}</a>
@@ -18,15 +22,15 @@
 			</div>
 
 			<div class="flex-item-body gt-mt-4 gt-mb-4">
-				<div class="gt-df gt-ac gt-fw gt-gap-2" id="repo-topics">
+				<div class="gt-df gt-ac gt-fw gt-gap-2" id="repo-topics-{{$viewType}}">
 					{{range .ctxData.Topics}}<a class="ui repo-topic large label topic gt-m-0" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
-					{{if and .ctxData.Permission.IsAdmin (not .ctxData.Repository.IsArchived)}}<button id="manage_topic" class="btn interact-fg gt-font-12">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>{{end}}
+					{{if and .ctxData.Permission.IsAdmin (not .ctxData.Repository.IsArchived)}}<button class="btn interact-fg gt-font-12 manage-topic" data-view-type="{{$viewType}}">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>{{end}}
 				</div>
 				{{if and .ctxData.Permission.IsAdmin (not .ctxData.Repository.IsArchived)}}
-				<div class="ui form gt-hidden gt-df gt-fc gt-mt-4" id="topic_edit">
+				<div class="ui form gt-hidden gt-df gt-fc gt-mt-4" id="topic_edit_{{$viewType}}">
 					<div class="field gt-f1 gt-mb-2">
 						<div class="ui fluid multiple search selection dropdown gt-fw" data-text-count-prompt="{{ctx.Locale.Tr "repo.topic.count_prompt"}}" data-text-format-prompt="{{ctx.Locale.Tr "repo.topic.format_prompt"}}">
-							<input type="hidden" name="topics" value="{{range $i, $v := .ctxData.Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.ctxData.Topics)}},{{end}}{{end}}">
+							<input type="hidden" name="topics-{{$viewType}}" value="{{range $i, $v := .ctxData.Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.ctxData.Topics)}},{{end}}{{end}}">
 							{{range .ctxData.Topics}}
 								{{/* keey the same layout as Fomantic UI generated labels */}}
 								<a class="ui label transition visible gt-cursor-default gt-dib" data-value="{{.Name}}">{{.Name}}{{svg "octicon-x" 16 "delete icon"}}</a>
@@ -35,8 +39,8 @@
 						</div>
 					</div>
 					<div>
-						<button class="ui basic button" id="cancel_topic_edit">{{ctx.Locale.Tr "cancel"}}</button>
-						<button class="ui primary button" id="save_topic" data-link="{{.ctxData.RepoLink}}/topics">{{ctx.Locale.Tr "save"}}</button>
+						<button class="ui basic button" id="cancel_topic_edit_{{$viewType}}">{{ctx.Locale.Tr "cancel"}}</button>
+						<button class="ui primary button" id="save_topic_{{$viewType}}" data-link="{{.ctxData.RepoLink}}/topics">{{ctx.Locale.Tr "save"}}</button>
 					</div>
 				</div>
 				{{end}}
@@ -52,7 +56,7 @@
 
 			{{if .ctxData.CitiationExist}}
 			<div class="flex-item-body">
-				<a class="item" id="cite-repo-button">{{svg "octicon-cross-reference" 16 "gt-mr-3"}}{{ctx.Locale.Tr "repo.cite_this_repo"}}</a>
+				<a class="item cite-repo-button">{{svg "octicon-cross-reference" 16 "gt-mr-3"}}{{ctx.Locale.Tr "repo.cite_this_repo"}}</a>
 			</div>
 			{{end}}
 		</div>
