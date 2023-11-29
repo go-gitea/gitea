@@ -375,3 +375,34 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 }
 
 type ActionRunIndex db.ResourceIndex
+
+type WorkflowRunsStatus struct {
+	NumRuns       int64
+	NumOpenRuns   int64
+	NumClosedRuns int64
+}
+
+func GetRepoWorkflowRunsStatus(ctx context.Context, repoID int64, workflowID string) (wrs WorkflowRunsStatus, err error) {
+	wrs.NumRuns, err = db.Count[ActionRun](ctx, FindRunOptions{
+		RepoID:     repoID,
+		WorkflowID: workflowID,
+	})
+	if err != nil {
+		return wrs, err
+	}
+	wrs.NumClosedRuns, err = db.Count[ActionRun](ctx, FindRunOptions{
+		RepoID:     repoID,
+		WorkflowID: workflowID,
+		Status: []Status{
+			StatusSuccess,
+			StatusFailure,
+			StatusCancelled,
+			StatusSkipped,
+		},
+	})
+	if err != nil {
+		return wrs, err
+	}
+	wrs.NumOpenRuns = wrs.NumRuns - wrs.NumClosedRuns
+	return wrs, err
+}

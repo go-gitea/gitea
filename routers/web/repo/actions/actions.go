@@ -30,8 +30,34 @@ const (
 )
 
 type Workflow struct {
-	Entry  git.TreeEntry
-	ErrMsg string
+	Entry      git.TreeEntry
+	RunsStatus actions_model.WorkflowRunsStatus
+	ErrMsg     string
+}
+type WorkflowMap map[string]Workflow
+
+func (wfs WorkflowMap) TotalRuns() int64 {
+	var total int64
+	for _, wf := range wfs {
+		total += wf.RunsStatus.NumRuns
+	}
+	return total
+}
+
+func (wfs WorkflowMap) TotalOpenRuns() int64 {
+	var total int64
+	for _, wf := range wfs {
+		total += wf.RunsStatus.NumOpenRuns
+	}
+	return total
+}
+
+func (wfs WorkflowMap) TotalClosedRuns() int64 {
+	var total int64
+	for _, wf := range wfs {
+		total += wf.RunsStatus.NumClosedRuns
+	}
+	return total
 }
 
 // MustEnableActions check if actions are enabled in settings
@@ -58,7 +84,7 @@ func List(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsActions"] = true
 
-	var workflows []Workflow
+	var workflows WorkflowMap
 	if empty, err := ctx.Repo.GitRepo.IsEmpty(); err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
@@ -88,9 +114,18 @@ func List(ctx *context.Context) {
 			allRunnerLabels.AddMultiple(r.AgentLabels...)
 		}
 
-		workflows = make([]Workflow, 0, len(entries))
+		workflows = make(WorkflowMap, 0)
 		for _, entry := range entries {
 			workflow := Workflow{Entry: *entry}
+			workflowID := entry.Name()
+
+			// Get workflow runs status
+			workflow.RunsStatus, err = actions_model.GetRepoWorkflowRunsStatus(ctx, ctx.Repo.Repository.ID, entry.Name())
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, err.Error())
+				return
+			}
+
 			content, err := actions.GetContentFromEntry(entry)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, err.Error())
@@ -99,9 +134,10 @@ func List(ctx *context.Context) {
 			wf, err := model.ReadWorkflow(bytes.NewReader(content))
 			if err != nil {
 				workflow.ErrMsg = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", err.Error())
-				workflows = append(workflows, workflow)
+				workflows[workflowID] = workflow
 				continue
 			}
+
 			// Check whether have matching runner
 			for _, j := range wf.Jobs {
 				runsOnList := j.RunsOn()
@@ -121,10 +157,10 @@ func List(ctx *context.Context) {
 					break
 				}
 			}
-			workflows = append(workflows, workflow)
+			workflows[workflowID] = workflow
 		}
 	}
-	ctx.Data["workflows"] = workflows
+	ctx.Data["Workflows"] = workflows
 	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
 
 	page := ctx.FormInt("page")
