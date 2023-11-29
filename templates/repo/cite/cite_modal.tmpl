@@ -4,13 +4,11 @@
 	</div>
 	<div class="content">
 		<div class="ui stackable secondary menu">
-			<div class="fitted item">
-				<div class="ui action input" id="citation-panel">
-					{{template "repo/cite/cite_buttons" .}}
-					<a id="goto-citation-btn" class="ui basic jump icon button" href="{{$.RepoLink}}/src/{{$.BranchName}}/CITATION.cff" data-tooltip-content="{{ctx.Locale.Tr "repo.find_file.go_to_file"}}">
-						{{svg "octicon-file-moved"}}
-					</a>
-				</div>
+			<div class="ui action input" id="citation-panel">
+				{{template "repo/cite/cite_buttons" .}}
+				<a id="goto-citation-btn" class="ui basic jump icon button" href="{{$.RepoLink}}/src/{{$.BranchName}}/CITATION.cff" data-tooltip-content="{{ctx.Locale.Tr "repo.find_file.go_to_file"}}">
+					{{svg "octicon-file-moved"}}
+				</a>
 			</div>
 		</div>
 	</div>
