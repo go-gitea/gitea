@@ -28,7 +28,7 @@ var (
 )
 
 func loadSameLicenses() error {
-	if sameLicenses == nil {
+	if sameLicenses != nil {
 		return nil
 	}
 
