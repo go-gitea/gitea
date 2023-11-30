@@ -26,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -335,7 +334,6 @@ func Pulls(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("pull_requests")
 	ctx.Data["PageIsPulls"] = true
-	ctx.Data["SingleRepoAction"] = "pull"
 	buildIssueOverview(ctx, unit.TypePullRequests)
 }
 
@@ -349,7 +347,6 @@ func Issues(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("issues")
 	ctx.Data["PageIsIssues"] = true
-	ctx.Data["SingleRepoAction"] = "issue"
 	buildIssueOverview(ctx, unit.TypeIssues)
 }
 
@@ -617,15 +614,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		ctx.Data["State"] = "open"
 	}
 
-	// Convert []int64 to string
-	reposParam, _ := json.Marshal(opts.RepoIDs)
-
-	ctx.Data["ReposParam"] = string(reposParam)
-
 	pager := context.NewPagination(shownIssues, setting.UI.IssuePagingNum, page, 5)
 	pager.AddParam(ctx, "q", "Keyword")
 	pager.AddParam(ctx, "type", "ViewType")
-	pager.AddParam(ctx, "repos", "ReposParam")
 	pager.AddParam(ctx, "sort", "SortType")
 	pager.AddParam(ctx, "state", "State")
 	pager.AddParam(ctx, "labels", "SelectLabels")
