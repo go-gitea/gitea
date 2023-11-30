@@ -473,7 +473,10 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		}
 	}
 	if ctx.Doer.ID == ctxUser.ID && filterMode != issues_model.FilterModeYourRepositories {
-		// TODO: explain
+		// If the doer is the same as the context user, which means the doer is viewing his own dashboard,
+		// it's not enough to show the repos that the doer owns or has been explicitly granted access to,
+		// because the doer may create issues or be mentioned in any public repo.
+		// So we need search issues in all public repos.
 		opts.AllPublic = true
 	}
 
@@ -744,6 +747,10 @@ func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMod
 	doerID := ctx.Doer.ID
 
 	opts = opts.Copy(func(o *issue_indexer.SearchOptions) {
+		// If the doer is the same as the context user, which means the doer is viewing his own dashboard,
+		// it's not enough to show the repos that the doer owns or has been explicitly granted access to,
+		// because the doer may create issues or be mentioned in any public repo.
+		// So we need search issues in all public repos.
 		o.AllPublic = doerID == ctxUser.ID
 		o.AssigneeID = nil
 		o.PosterID = nil
