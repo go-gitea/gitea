@@ -24,8 +24,8 @@ import (
 )
 
 var (
-	classifier   *licenseclassifier.Classifier
-	sameLicenses map[string]string
+	classifier     *licenseclassifier.Classifier
+	licenseAliases map[string]string
 )
 
 // Copy paste from models/repo.go because we cannot import models package
@@ -194,11 +194,11 @@ func detectLicense(content string) []string {
 }
 
 func ConvertLicenseName(name string) string {
-	if sameLicenses == nil {
+	if licenseAliases == nil {
 		return name
 	}
 
-	v, ok := sameLicenses[name]
+	v, ok := licenseAliases[name]
 	if ok {
 		return v
 	}
@@ -206,11 +206,11 @@ func ConvertLicenseName(name string) string {
 }
 
 func initClassifier() error {
-	data, err := options.AssetFS().ReadFile("", "sameLicenses")
+	data, err := options.AssetFS().ReadFile("", "license-aliases.json")
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(data, &sameLicenses)
+	err = json.Unmarshal(data, &licenseAliases)
 	if err != nil {
 		return err
 	}

@@ -24,16 +24,16 @@ import (
 
 func main() {
 	var (
-		prefix                  = "gitea-licenses"
-		url                     = "https://api.github.com/repos/spdx/license-list-data/tarball"
-		githubApiToken          = ""
-		githubUsername          = ""
-		destination             = ""
-		sameLicensesDestination = ""
+		prefix                    = "gitea-licenses"
+		url                       = "https://api.github.com/repos/spdx/license-list-data/tarball"
+		githubApiToken            = ""
+		githubUsername            = ""
+		destination               = ""
+		licenseAliasesDestination = ""
 	)
 
 	flag.StringVar(&destination, "dest", "options/license/", "destination for the licenses")
-	flag.StringVar(&sameLicensesDestination, "samelicensesdest", "options/sameLicenses", "destination for same license json")
+	flag.StringVar(&licenseAliasesDestination, "aliasesdest", "options/license-aliases.json", "destination for same license json")
 	flag.StringVar(&githubUsername, "username", "", "github username")
 	flag.StringVar(&githubApiToken, "token", "", "github api token")
 	flag.Parse()
@@ -150,20 +150,20 @@ func main() {
 	}
 
 	// generate convert license name map
-	sameLicenses := make(map[string]string)
+	licenseAliases := make(map[string]string)
 	for _, fileNames := range sameFiles {
 		key := getLicenseKey(fileNames)
 		for _, fileName := range fileNames {
-			sameLicenses[fileName] = key
+			licenseAliases[fileName] = key
 		}
 	}
 	// save convert license name map to file
-	bytes, err := json.Marshal(sameLicenses)
+	bytes, err := json.Marshal(licenseAliases)
 	if err != nil {
 		log.Fatalf("Failed to create json bytes. %s", err)
 		return
 	}
-	out, err := os.Create(sameLicensesDestination)
+	out, err := os.Create(licenseAliasesDestination)
 	if err != nil {
 		log.Fatalf("Failed to create new file. %s", err)
 	}

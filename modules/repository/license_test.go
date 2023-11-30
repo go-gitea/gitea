@@ -203,7 +203,7 @@ func Test_detectLicense(t *testing.T) {
 	}
 
 	LoadRepoConfig()
-	err := loadSameLicenses()
+	err := loadLicenseAliases()
 	assert.NoError(t, err)
 	for _, licenseName := range Licenses {
 		license, err := GetLicense(licenseName, &LicenseValues{

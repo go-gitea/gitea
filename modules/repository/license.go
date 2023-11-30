@@ -23,20 +23,20 @@ import (
 )
 
 var (
-	classifier   *licenseclassifier.Classifier
-	sameLicenses map[string]string
+	classifier     *licenseclassifier.Classifier
+	licenseAliases map[string]string
 )
 
-func loadSameLicenses() error {
-	if sameLicenses != nil {
+func loadLicenseAliases() error {
+	if licenseAliases != nil {
 		return nil
 	}
 
-	data, err := options.AssetFS().ReadFile("", "sameLicenses")
+	data, err := options.AssetFS().ReadFile("", "license-aliases.json")
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(data, &sameLicenses)
+	err = json.Unmarshal(data, &licenseAliases)
 	if err != nil {
 		return err
 	}
@@ -44,11 +44,11 @@ func loadSameLicenses() error {
 }
 
 func ConvertLicenseName(name string) string {
-	if err := loadSameLicenses(); err != nil {
+	if err := loadLicenseAliases(); err != nil {
 		return name
 	}
 
-	v, ok := sameLicenses[name]
+	v, ok := licenseAliases[name]
 	if ok {
 		return v
 	}
