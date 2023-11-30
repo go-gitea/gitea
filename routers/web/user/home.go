@@ -475,6 +475,10 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			opts.RepoIDs = []int64{0}
 		}
 	}
+	if ctx.Doer.ID == ctxUser.ID && filterMode != issues_model.FilterModeYourRepositories {
+		// TODO: explain
+		opts.AllPublic = true
+	}
 
 	switch filterMode {
 	case issues_model.FilterModeAll:
@@ -501,11 +505,11 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Filter repos and count issues in them. Count will be used later.
 	// USING NON-FINAL STATE OF opts FOR A QUERY.
-	issueCountByRepo, err := issue_indexer.CountIssuesByRepo(ctx, issue_indexer.ToSearchOptions(keyword, opts))
-	if err != nil {
-		ctx.ServerError("CountIssuesByRepo", err)
-		return
-	}
+	//issueCountByRepo, err := issue_indexer.CountIssuesByRepo(ctx, issue_indexer.ToSearchOptions(keyword, opts))
+	//if err != nil {
+	//	ctx.ServerError("CountIssuesByRepo", err)
+	//	return
+	//}
 
 	// Make sure page number is at least 1. Will be posted to ctx.Data.
 	page := ctx.FormInt("page")
@@ -568,34 +572,34 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Remove repositories that should not be shown,
 	// which are repositories that have no issues and are not selected by the user.
-	selectedRepos := container.SetOf(selectedRepoIDs...)
-	for k, v := range issueCountByRepo {
-		if v == 0 && !selectedRepos.Contains(k) {
-			delete(issueCountByRepo, k)
-		}
-	}
+	//selectedRepos := container.SetOf(selectedRepoIDs...)
+	//for k, v := range issueCountByRepo {
+	//	if v == 0 && !selectedRepos.Contains(k) {
+	//		delete(issueCountByRepo, k)
+	//	}
+	//}
 
 	// showReposMap maps repository IDs to their Repository pointers.
-	showReposMap, err := loadRepoByIDs(ctx, ctxUser, issueCountByRepo, unitType)
-	if err != nil {
-		if repo_model.IsErrRepoNotExist(err) {
-			ctx.NotFound("GetRepositoryByID", err)
-			return
-		}
-		ctx.ServerError("loadRepoByIDs", err)
-		return
-	}
+	//showReposMap, err := loadRepoByIDs(ctx, ctxUser, issueCountByRepo, unitType)
+	//if err != nil {
+	//	if repo_model.IsErrRepoNotExist(err) {
+	//		ctx.NotFound("GetRepositoryByID", err)
+	//		return
+	//	}
+	//	ctx.ServerError("loadRepoByIDs", err)
+	//	return
+	//}
 
 	// a RepositoryList
-	showRepos := repo_model.RepositoryListOfMap(showReposMap)
-	sort.Sort(showRepos)
+	//showRepos := repo_model.RepositoryListOfMap(showReposMap)
+	//sort.Sort(showRepos)
 
 	// maps pull request IDs to their CommitStatus. Will be posted to ctx.Data.
-	for _, issue := range issues {
-		if issue.Repo == nil {
-			issue.Repo = showReposMap[issue.RepoID]
-		}
-	}
+	//for _, issue := range issues {
+	//	if issue.Repo == nil {
+	//		issue.Repo = showReposMap[issue.RepoID]
+	//	}
+	//}
 
 	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
 	if err != nil {
@@ -606,7 +610,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// -------------------------------
 	// Fill stats to post to ctx.Data.
 	// -------------------------------
-	issueStats, err := getUserIssueStats(ctx, filterMode, issue_indexer.ToSearchOptions(keyword, opts), ctx.Doer.ID)
+	issueStats, err := getUserIssueStats(ctx, ctxUser, filterMode, issue_indexer.ToSearchOptions(keyword, opts))
 	if err != nil {
 		ctx.ServerError("getUserIssueStats", err)
 		return
@@ -619,25 +623,25 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	} else {
 		shownIssues = int(issueStats.ClosedCount)
 	}
-	if len(opts.RepoIDs) != 0 {
-		shownIssues = 0
-		for _, repoID := range opts.RepoIDs {
-			shownIssues += int(issueCountByRepo[repoID])
-		}
-	}
+	//if len(opts.RepoIDs) != 0 {
+	//	shownIssues = 0
+	//	for _, repoID := range opts.RepoIDs {
+	//		shownIssues += int(issueCountByRepo[repoID])
+	//	}
+	//}
 
-	var allIssueCount int64
-	for _, issueCount := range issueCountByRepo {
-		allIssueCount += issueCount
-	}
-	ctx.Data["TotalIssueCount"] = allIssueCount
-
-	if len(opts.RepoIDs) == 1 {
-		repo := showReposMap[opts.RepoIDs[0]]
-		if repo != nil {
-			ctx.Data["SingleRepoLink"] = repo.Link()
-		}
-	}
+	//var allIssueCount int64
+	//for _, issueCount := range issueCountByRepo {
+	//	allIssueCount += issueCount
+	//}
+	//ctx.Data["TotalIssueCount"] = allIssueCount
+	//
+	//if len(opts.RepoIDs) == 1 {
+	//	repo := showReposMap[opts.RepoIDs[0]]
+	//	if repo != nil {
+	//		ctx.Data["SingleRepoLink"] = repo.Link()
+	//	}
+	//}
 
 	ctx.Data["IsShowClosed"] = isShowClosed
 
@@ -674,8 +678,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 	ctx.Data["CommitLastStatus"] = lastStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
-	ctx.Data["Repos"] = showRepos
-	ctx.Data["Counts"] = issueCountByRepo
+	//ctx.Data["Repos"] = showRepos
+	//ctx.Data["Counts"] = issueCountByRepo
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
@@ -870,8 +874,11 @@ func UsernameSubRoute(ctx *context.Context) {
 	}
 }
 
-func getUserIssueStats(ctx *context.Context, filterMode int, opts *issue_indexer.SearchOptions, doerID int64) (*issues_model.IssueStats, error) {
+func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMode int, opts *issue_indexer.SearchOptions) (*issues_model.IssueStats, error) {
+	doerID := ctx.Doer.ID
+
 	opts = opts.Copy(func(o *issue_indexer.SearchOptions) {
+		o.AllPublic = doerID == ctxUser.ID
 		o.AssigneeID = nil
 		o.PosterID = nil
 		o.MentionID = nil
@@ -887,7 +894,9 @@ func getUserIssueStats(ctx *context.Context, filterMode int, opts *issue_indexer
 	{
 		openClosedOpts := opts.Copy()
 		switch filterMode {
-		case issues_model.FilterModeAll, issues_model.FilterModeYourRepositories:
+		case issues_model.FilterModeAll:
+		case issues_model.FilterModeYourRepositories:
+			openClosedOpts.AllPublic = false
 		case issues_model.FilterModeAssign:
 			openClosedOpts.AssigneeID = &doerID
 		case issues_model.FilterModeCreate:
@@ -911,7 +920,7 @@ func getUserIssueStats(ctx *context.Context, filterMode int, opts *issue_indexer
 		}
 	}
 
-	ret.YourRepositoriesCount, err = issue_indexer.CountIssues(ctx, opts)
+	ret.YourRepositoriesCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.AllPublic = false }))
 	if err != nil {
 		return nil, err
 	}
