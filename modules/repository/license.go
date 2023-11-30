@@ -189,6 +189,7 @@ func UpdateRepoLicensesByGitRepo(ctx context.Context, repo *repo_model.Repositor
 	if gitRepo == nil {
 		var err error
 		gitRepo, err = git.OpenRepository(ctx, repo.RepoPath())
+		defer gitRepo.close()
 		if err != nil {
 			return fmt.Errorf("OpenRepository: %w", err)
 		}
