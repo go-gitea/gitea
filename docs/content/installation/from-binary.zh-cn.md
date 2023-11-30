@@ -117,7 +117,7 @@ chmod 770 /etc/gitea
 - 使用 `gitea generate secret` 创建 `SECRET_KEY` 和 `INTERNAL_TOKEN`
 - 提供所有必要的密钥
 
-详情参考 [命令行文档](/zh-cn/command-line/) 中有关 `gitea generate secret` 的内容。
+详情参考 [命令行文档](administration/command-line.md) 中有关 `gitea generate secret` 的内容。
 
 ### 配置 Gitea 工作路径
 
