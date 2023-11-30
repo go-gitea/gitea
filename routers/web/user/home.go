@@ -503,14 +503,6 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	isShowClosed := ctx.FormString("state") == "closed"
 	opts.IsClosed = util.OptionalBoolOf(isShowClosed)
 
-	// Filter repos and count issues in them. Count will be used later.
-	// USING NON-FINAL STATE OF opts FOR A QUERY.
-	//issueCountByRepo, err := issue_indexer.CountIssuesByRepo(ctx, issue_indexer.ToSearchOptions(keyword, opts))
-	//if err != nil {
-	//	ctx.ServerError("CountIssuesByRepo", err)
-	//	return
-	//}
-
 	// Make sure page number is at least 1. Will be posted to ctx.Data.
 	page := ctx.FormInt("page")
 	if page <= 1 {
@@ -535,17 +527,6 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 	opts.LabelIDs = labelIDs
 
-	// Parse ctx.FormString("repos") and remember matched repo IDs for later.
-	// Gets set when clicking filters on the issues overview page.
-	selectedRepoIDs := getRepoIDs(ctx.FormString("repos"))
-	// Remove repo IDs that are not accessible to the user.
-	selectedRepoIDs = slices.DeleteFunc(selectedRepoIDs, func(v int64) bool {
-		return !accessibleRepos.Contains(v)
-	})
-	if len(selectedRepoIDs) > 0 {
-		opts.RepoIDs = selectedRepoIDs
-	}
-
 	// ------------------------------
 	// Get issues as defined by opts.
 	// ------------------------------
@@ -565,41 +546,6 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			return
 		}
 	}
-
-	// ----------------------------------
-	// Add repository pointers to Issues.
-	// ----------------------------------
-
-	// Remove repositories that should not be shown,
-	// which are repositories that have no issues and are not selected by the user.
-	//selectedRepos := container.SetOf(selectedRepoIDs...)
-	//for k, v := range issueCountByRepo {
-	//	if v == 0 && !selectedRepos.Contains(k) {
-	//		delete(issueCountByRepo, k)
-	//	}
-	//}
-
-	// showReposMap maps repository IDs to their Repository pointers.
-	//showReposMap, err := loadRepoByIDs(ctx, ctxUser, issueCountByRepo, unitType)
-	//if err != nil {
-	//	if repo_model.IsErrRepoNotExist(err) {
-	//		ctx.NotFound("GetRepositoryByID", err)
-	//		return
-	//	}
-	//	ctx.ServerError("loadRepoByIDs", err)
-	//	return
-	//}
-
-	// a RepositoryList
-	//showRepos := repo_model.RepositoryListOfMap(showReposMap)
-	//sort.Sort(showRepos)
-
-	// maps pull request IDs to their CommitStatus. Will be posted to ctx.Data.
-	//for _, issue := range issues {
-	//	if issue.Repo == nil {
-	//		issue.Repo = showReposMap[issue.RepoID]
-	//	}
-	//}
 
 	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
 	if err != nil {
@@ -623,25 +569,6 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	} else {
 		shownIssues = int(issueStats.ClosedCount)
 	}
-	//if len(opts.RepoIDs) != 0 {
-	//	shownIssues = 0
-	//	for _, repoID := range opts.RepoIDs {
-	//		shownIssues += int(issueCountByRepo[repoID])
-	//	}
-	//}
-
-	//var allIssueCount int64
-	//for _, issueCount := range issueCountByRepo {
-	//	allIssueCount += issueCount
-	//}
-	//ctx.Data["TotalIssueCount"] = allIssueCount
-	//
-	//if len(opts.RepoIDs) == 1 {
-	//	repo := showReposMap[opts.RepoIDs[0]]
-	//	if repo != nil {
-	//		ctx.Data["SingleRepoLink"] = repo.Link()
-	//	}
-	//}
 
 	ctx.Data["IsShowClosed"] = isShowClosed
 
@@ -678,12 +605,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 	ctx.Data["CommitLastStatus"] = lastStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
-	//ctx.Data["Repos"] = showRepos
-	//ctx.Data["Counts"] = issueCountByRepo
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
-	ctx.Data["RepoIDs"] = selectedRepoIDs
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["SelectLabels"] = selectedLabels
 
@@ -710,55 +634,6 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplIssues)
-}
-
-func getRepoIDs(reposQuery string) []int64 {
-	if len(reposQuery) == 0 || reposQuery == "[]" {
-		return []int64{}
-	}
-	if !issueReposQueryPattern.MatchString(reposQuery) {
-		log.Warn("issueReposQueryPattern does not match query: %q", reposQuery)
-		return []int64{}
-	}
-
-	var repoIDs []int64
-	// remove "[" and "]" from string
-	reposQuery = reposQuery[1 : len(reposQuery)-1]
-	// for each ID (delimiter ",") add to int to repoIDs
-	for _, rID := range strings.Split(reposQuery, ",") {
-		// Ensure nonempty string entries
-		if rID != "" && rID != "0" {
-			rIDint64, err := strconv.ParseInt(rID, 10, 64)
-			if err == nil {
-				repoIDs = append(repoIDs, rIDint64)
-			}
-		}
-	}
-
-	return repoIDs
-}
-
-func loadRepoByIDs(ctx *context.Context, ctxUser *user_model.User, issueCountByRepo map[int64]int64, unitType unit.Type) (map[int64]*repo_model.Repository, error) {
-	totalRes := make(map[int64]*repo_model.Repository, len(issueCountByRepo))
-	repoIDs := make([]int64, 0, 500)
-	for id := range issueCountByRepo {
-		if id <= 0 {
-			continue
-		}
-		repoIDs = append(repoIDs, id)
-		if len(repoIDs) == 500 {
-			if err := repo_model.FindReposMapByIDs(ctx, repoIDs, totalRes); err != nil {
-				return nil, err
-			}
-			repoIDs = repoIDs[:0]
-		}
-	}
-	if len(repoIDs) > 0 {
-		if err := repo_model.FindReposMapByIDs(ctx, repoIDs, totalRes); err != nil {
-			return nil, err
-		}
-	}
-	return totalRes, nil
 }
 
 // ShowSSHKeys output all the ssh keys of user by uid
