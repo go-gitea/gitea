@@ -28,3 +28,16 @@ func TestSecToTime(t *testing.T) {
 	assert.Equal(t, "11 months", SecToTime(year-25*day))
 	assert.Equal(t, "1 year 5 months", SecToTime(year+163*day+10*hour+11*minute+5*second))
 }
+
+func TestSecToHours(t *testing.T) {
+	second := int64(1)
+	minute := 60 * second
+	hour := 60 * minute
+	day := 24 * hour
+
+	assert.Equal(t, "1 minute", SecToHours(minute+6*second))
+	assert.Equal(t, "1 hour", SecToHours(hour))
+	assert.Equal(t, "1 hour", SecToHours(hour+second))
+	assert.Equal(t, "14 hours 33 minutes", SecToHours(14*hour+33*minute+30*second))
+	assert.Equal(t, "156 hours 30 minutes", SecToHours(6*day+12*hour+30*minute+18*second))
+}

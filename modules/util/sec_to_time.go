@@ -66,6 +66,25 @@ func SecToTime(durationVal any) string {
 	return strings.TrimRight(formattedTime, " ")
 }
 
+// SecToHours converts an amount of seconds to a human-readable hours string.
+// This is sutable for planning and managing timesheets.
+func SecToHours(durationVal any) string {
+	duration, _ := ToInt64(durationVal)
+
+	formattedTime := ""
+
+	// The following three variables are calculated without depending
+	// on the previous calculated variables.
+	hours := (duration / 3600)
+	minutes := (duration / 60) % 60
+
+	formattedTime = formatTime(hours, "hour", formattedTime)
+	formattedTime = formatTime(minutes, "minute", formattedTime)
+
+	// The formatTime() function always appends a space at the end. This will be trimmed
+	return strings.TrimRight(formattedTime, " ")
+}
+
 // formatTime appends the given value to the existing forammattedTime. E.g:
 // formattedTime = "1 year"
 // input: value = 3, name = "month"

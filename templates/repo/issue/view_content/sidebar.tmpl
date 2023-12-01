@@ -342,7 +342,7 @@
 		{{if gt (len .WorkingUsers) 0}}
 			<div class="divider"></div>
 			<div class="ui comments">
-				<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.time_spent_from_all_authors" ($.Issue.TotalTrackedTime | Sec2Time) | Safe}}</strong></span>
+				<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.time_spent_from_all_authors" ($.Issue.TotalTrackedTime | Sec2Hours) | Safe}}</strong></span>
 				<div>
 					{{range $user, $trackedtime := .WorkingUsers}}
 						<div class="comment gt-mt-3">
@@ -352,7 +352,7 @@
 							<div class="content">
 								{{template "shared/user/authorlink" $user}}
 								<div class="text">
-									{{$trackedtime|Sec2Time}}
+									{{$trackedtime|Sec2Hours}}
 								</div>
 							</div>
 						</div>

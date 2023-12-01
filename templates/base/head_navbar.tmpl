@@ -88,7 +88,7 @@
 						{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
 						<span class="stopwatch-issue">{{.ActiveStopwatch.RepoSlug}}#{{.ActiveStopwatch.IssueIndex}}</span>
 						<span class="ui primary label stopwatch-time gt-my-0 gt-mx-4" data-seconds="{{.ActiveStopwatch.Seconds}}">
-							{{if .ActiveStopwatch}}{{Sec2Time .ActiveStopwatch.Seconds}}{{end}}
+							{{if .ActiveStopwatch}}{{Sec2Hours .ActiveStopwatch.Seconds}}{{end}}
 						</span>
 					</a>
 					<form class="stopwatch-commit" method="post" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/toggle">
