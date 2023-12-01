@@ -89,13 +89,7 @@ func UpdateRepoLicenses(ctx context.Context, repo *Repository, commitID string, 
 }
 
 // CopyLicense Copy originalRepo license information to destRepo (use for forked repo)
-func CopyLicense(originalRepo, destRepo *Repository) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
+func CopyLicense(ctx context.Context, originalRepo, destRepo *Repository) error {
 	repoLicenses, err := GetRepoLicenses(ctx, originalRepo)
 	if err != nil {
 		return err
@@ -118,5 +112,5 @@ func CopyLicense(originalRepo, destRepo *Repository) error {
 			return err
 		}
 	}
-	return committer.Commit()
+	return nil
 }
