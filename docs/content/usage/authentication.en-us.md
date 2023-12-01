@@ -350,7 +350,6 @@ You can also limit the reverse proxy's IP address range with `REVERSE_PROXY_TRUS
 
 Notice: Reverse Proxy Auth doesn't support the API. You still need an access token or basic auth to make API requests.
 
-
 ## SAML
 
 ### Configuring Gitea as a SAML 2.0 Service Provider
