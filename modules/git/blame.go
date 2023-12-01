@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -18,8 +19,10 @@ import (
 
 // BlamePart represents block of blame - continuous lines with one sha
 type BlamePart struct {
-	Sha   string
-	Lines []string
+	Sha          string
+	Lines        []string
+	PreviousSha  string
+	PreviousPath string
 }
 
 // BlameReader returns part of file blame one by one
@@ -43,30 +46,38 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 	var blamePart *BlamePart
 
 	if r.lastSha != nil {
-		blamePart = &BlamePart{*r.lastSha, make([]string, 0)}
+		blamePart = &BlamePart{
+			Sha:   *r.lastSha,
+			Lines: make([]string, 0),
+		}
 	}
 
-	var line []byte
+	var lineBytes []byte
 	var isPrefix bool
 	var err error
 
 	for err != io.EOF {
-		line, isPrefix, err = r.bufferedReader.ReadLine()
+		lineBytes, isPrefix, err = r.bufferedReader.ReadLine()
 		if err != nil && err != io.EOF {
 			return blamePart, err
 		}
 
-		if len(line) == 0 {
+		if len(lineBytes) == 0 {
 			// isPrefix will be false
 			continue
 		}
 
-		lines := shaLineRegex.FindSubmatch(line)
+		line := string(lineBytes)
+
+		lines := shaLineRegex.FindStringSubmatch(line)
 		if lines != nil {
-			sha1 := string(lines[1])
+			sha1 := lines[1]
 
 			if blamePart == nil {
-				blamePart = &BlamePart{sha1, make([]string, 0)}
+				blamePart = &BlamePart{
+					Sha:   sha1,
+					Lines: make([]string, 0),
+				}
 			}
 
 			if blamePart.Sha != sha1 {
@@ -81,9 +92,11 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 				return blamePart, nil
 			}
 		} else if line[0] == '\t' {
-			code := line[1:]
-
-			blamePart.Lines = append(blamePart.Lines, string(code))
+			blamePart.Lines = append(blamePart.Lines, line[1:])
+		} else if strings.HasPrefix(line, "previous ") {
+			parts := strings.SplitN(line[len("previous "):], " ", 2)
+			blamePart.PreviousSha = parts[0]
+			blamePart.PreviousPath = parts[1]
 		}
 
 		// need to munch to end of line...
