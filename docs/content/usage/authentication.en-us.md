@@ -349,3 +349,23 @@ If set `ENABLE_REVERSE_PROXY_FULL_NAME=true`, a user full name expected in `X-WE
 You can also limit the reverse proxy's IP address range with `REVERSE_PROXY_TRUSTED_PROXIES` which default value is `127.0.0.0/8,::1/128`. By `REVERSE_PROXY_LIMIT`, you can limit trusted proxies level.
 
 Notice: Reverse Proxy Auth doesn't support the API. You still need an access token or basic auth to make API requests.
+
+## SAML
+
+### Configuring Gitea as a SAML 2.0 Service Provider
+
+- Navigate to `Site Administration > Identity & Access > Authentication Sources`
+- Click the `Add Authentication Source` button
+- Select `SAML` as the authentication type and specify an authentication source name in `Authentication Name`.
+- The `SAML NameID Format` dropdown specifies how Identity Provider (IdP) users are mapped to Gitea users. This option will be provider specific.
+- The `[Insecure] Skip Assertion Signature Validation` option is not recommended and disables integrity verification of IdP SAML assertions.
+- Either `Identity Provider Metadata URL` or `Identity Provider Metadata XML` must be specified.
+  - Specifically, `Identity Provider Metadata XML` should be the XML metadata returned by the IdP metadata endpoint. This may be omitted if the endpoint url is recorded in `Identity Provider Metadata URL`.
+- You should generate an X.509-formatted certificate and DSA/RSA private key for signing SAML requests. These are specified in `Service Provider Certificate` and `Service Provider Private Key` respectively.
+- The checkbox `Sign SAML Requests` should be enabled if a certificate and private key are provided.
+- `Email Assertion Key` (email), `Name Assertion Key` (nickname), and `Username Assertion Key` (username) specify how IdP user attributes are mapped to Gitea user attributes. These will be provider specific (or configurable).
+
+### Configuring a SAML 2.0 Identity Provider to use Gitea
+
+- The service provider assertion consumer service url will look like: `http(s)://[mydomain]/user/saml/[Authentication Name]/acs`.
+- The service provider metadata url will look like: `http(s)://[mydomain]/user/saml/[Authentication Name]/metadata`.
