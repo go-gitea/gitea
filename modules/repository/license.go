@@ -67,17 +67,17 @@ func initClassifier() error {
 		return err
 	}
 
-	licenseNameCount := make(map[string]int)
+	existLicense := make(container.Set[string])
 	if len(licenseFiles) > 0 {
 		for _, licenseFile := range licenseFiles {
+			licenseName := ConvertLicenseName(licenseFile)
+			if existLicense.Contains(licenseName) {
+				continue
+			}
+			existLicense.Add(licenseName)
 			data, err := options.License(licenseFile)
 			if err != nil {
 				return err
-			}
-			licenseName := ConvertLicenseName(licenseFile)
-			licenseNameCount[licenseName]++
-			if licenseNameCount[licenseName] > 1 {
-				continue
 			}
 			classifier.AddContent("License", licenseFile, licenseName, data)
 		}
