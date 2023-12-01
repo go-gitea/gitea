@@ -77,6 +77,7 @@ func List(ctx *context.Context) {
 		// Get all runner labels
 		runners, err := db.Find[actions_model.ActionRunner](ctx, actions_model.FindRunnerOptions{
 			RepoID:        ctx.Repo.Repository.ID,
+			IsOnline:      true,
 			WithAvailable: true,
 		})
 		if err != nil {
@@ -85,9 +86,7 @@ func List(ctx *context.Context) {
 		}
 		allRunnerLabels := make(container.Set[string])
 		for _, r := range runners {
-			if r.IsOnline() {
-				allRunnerLabels.AddMultiple(r.AgentLabels...)
-			}
+			allRunnerLabels.AddMultiple(r.AgentLabels...)
 		}
 
 		workflows = make([]Workflow, 0, len(entries))
@@ -115,7 +114,7 @@ func List(ctx *context.Context) {
 						continue
 					}
 					if !allRunnerLabels.Contains(ro) {
-						workflow.ErrMsg = ctx.Locale.Tr("actions.runs.no_matching_runner_helper", ro)
+						workflow.ErrMsg = ctx.Locale.Tr("actions.runs.no_matching_online_runner_helper", ro)
 						break
 					}
 				}
