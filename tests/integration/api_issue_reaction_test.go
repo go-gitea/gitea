@@ -12,6 +12,7 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -106,6 +107,26 @@ func TestAPICommentReactions(t *testing.T) {
 		Reaction: "eyes",
 	})
 	MakeRequest(t, req, http.StatusOK)
+
+	t.Run("UnrelatedCommentID", func(t *testing.T) {
+		// Using the ID of a comment that does not belong to the repository must fail
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+		token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeWriteIssue)
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/reactions?token=%s",
+			repoOwner.Name, repo.Name, comment.ID, token)
+		req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
+			Reaction: "+1",
+		})
+		MakeRequest(t, req, http.StatusNotFound)
+		req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
+			Reaction: "+1",
+		})
+		MakeRequest(t, req, http.StatusNotFound)
+
+		req = NewRequestf(t, "GET", urlStr)
+		MakeRequest(t, req, http.StatusNotFound)
+	})
 
 	// Add allowed reaction
 	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
