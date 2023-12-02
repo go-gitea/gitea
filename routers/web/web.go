@@ -533,8 +533,10 @@ func registerRoutes(m *web.Route) {
 		m.Post("/authorize", web.Bind(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
 	}, ignSignInAndCsrf, reqSignIn)
 	m.Get("/login/oauth/userinfo", ignSignInAndCsrf, auth.InfoOAuth)
+	m.Options("/login/oauth/access_token", CorsHandler(), misc.DummyBadRequest)
 	m.Post("/login/oauth/access_token", CorsHandler(), web.Bind(forms.AccessTokenForm{}), ignSignInAndCsrf, auth.AccessTokenOAuth)
 	m.Get("/login/oauth/keys", ignSignInAndCsrf, auth.OIDCKeys)
+	m.Options("/login/oauth/introspect", CorsHandler(), misc.DummyBadRequest)
 	m.Post("/login/oauth/introspect", CorsHandler(), web.Bind(forms.IntrospectTokenForm{}), ignSignInAndCsrf, auth.IntrospectOAuth)
 
 	m.Group("/user/settings", func() {

@@ -37,6 +37,9 @@ const (
 	tplUserEdit base.TplName = "admin/user/edit"
 )
 
+// UserSearchDefaultAdminSort is the default sort type for admin view
+const UserSearchDefaultAdminSort = "alphabetically"
+
 // Users show all the users
 func Users(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users")
@@ -56,7 +59,7 @@ func Users(ctx *context.Context) {
 
 	sortType := ctx.FormString("sort")
 	if sortType == "" {
-		sortType = explore.UserSearchDefaultAdminSort
+		sortType = UserSearchDefaultAdminSort
 		ctx.SetFormString("sort", sortType)
 	}
 	ctx.PageData["adminUserListSearchForm"] = map[string]any{
@@ -90,7 +93,7 @@ func NewUser(ctx *context.Context) {
 
 	ctx.Data["login_type"] = "0-0"
 
-	sources, err := auth.FindSources(ctx, auth.FindSourcesOptions{
+	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
 		IsActive: util.OptionalBoolTrue,
 	})
 	if err != nil {
@@ -111,7 +114,7 @@ func NewUserPost(ctx *context.Context) {
 	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
-	sources, err := auth.FindSources(ctx, auth.FindSourcesOptions{
+	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
 		IsActive: util.OptionalBoolTrue,
 	})
 	if err != nil {
@@ -234,7 +237,7 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 		ctx.Data["LoginSource"] = &auth.Source{}
 	}
 
-	sources, err := auth.FindSources(ctx, auth.FindSourcesOptions{})
+	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{})
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
 		return nil
@@ -293,7 +296,7 @@ func ViewUser(ctx *context.Context) {
 	ctx.Data["Emails"] = emails
 	ctx.Data["EmailsTotal"] = len(emails)
 
-	orgs, err := org_model.FindOrgs(ctx, org_model.FindOrgOptions{
+	orgs, err := db.Find[org_model.Organization](ctx, org_model.FindOrgOptions{
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},
