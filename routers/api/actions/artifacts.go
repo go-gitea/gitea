@@ -70,6 +70,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -314,7 +315,7 @@ func (ar artifactRoutes) listArtifacts(ctx *ArtifactContext) {
 		return
 	}
 
-	artifacts, err := actions.ListArtifactsByRunID(ctx, runID)
+	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{RunID: runID})
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
@@ -376,7 +377,10 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
 		return
 	}
 
-	artifacts, err := actions.ListArtifactsByRunIDAndArtifactName(ctx, runID, itemPath)
+	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
+		RunID:        runID,
+		ArtifactName: itemPath,
+	})
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
