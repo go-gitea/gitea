@@ -6,12 +6,15 @@ package security
 
 import (
 	"net/http"
+	"sort"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 )
 
@@ -66,14 +69,17 @@ func loadSecurityData(ctx *context.Context) {
 	}
 	ctx.Data["WebAuthnCredentials"] = credentials
 
-	tokens, err := auth_model.ListAccessTokens(ctx, auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID})
+	tokens, err := db.Find[auth_model.AccessToken](ctx, auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID})
 	if err != nil {
 		ctx.ServerError("ListAccessTokens", err)
 		return
 	}
 	ctx.Data["Tokens"] = tokens
 
-	accountLinks, err := user_model.ListAccountLinks(ctx, ctx.Doer)
+	accountLinks, err := db.Find[user_model.ExternalLoginUser](ctx, user_model.FindExternalUserOptions{
+		UserID:  ctx.Doer.ID,
+		OrderBy: "login_source_id DESC",
+	})
 	if err != nil {
 		ctx.ServerError("ListAccountLinks", err)
 		return
@@ -82,7 +88,7 @@ func loadSecurityData(ctx *context.Context) {
 	// map the provider display name with the AuthSource
 	sources := make(map[*auth_model.Source]string)
 	for _, externalAccount := range accountLinks {
-		if authSource, err := auth_model.GetSourceByID(ctx, externalAccount.LoginSourceID); err == nil && authSource.IsActive {
+		if authSource, err := auth_model.GetSourceByID(ctx, externalAccount.LoginSourceID); err == nil {
 			var providerDisplayName string
 
 			type DisplayNamed interface {
@@ -105,11 +111,31 @@ func loadSecurityData(ctx *context.Context) {
 	}
 	ctx.Data["AccountLinks"] = sources
 
-	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers(ctx)
+	authSources, err := db.Find[auth_model.Source](ctx, auth_model.FindSourcesOptions{
+		IsActive:  util.OptionalBoolNone,
+		LoginType: auth_model.OAuth2,
+	})
 	if err != nil {
-		ctx.ServerError("GetActiveOAuth2Providers", err)
+		ctx.ServerError("FindSources", err)
 		return
 	}
+
+	var orderedOAuth2Names []string
+	oauth2Providers := make(map[string]oauth2.Provider)
+	for _, source := range authSources {
+		provider, err := oauth2.CreateProviderFromSource(source)
+		if err != nil {
+			ctx.ServerError("CreateProviderFromSource", err)
+			return
+		}
+		oauth2Providers[source.Name] = provider
+		if source.IsActive {
+			orderedOAuth2Names = append(orderedOAuth2Names, source.Name)
+		}
+	}
+
+	sort.Strings(orderedOAuth2Names)
+
 	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
 	ctx.Data["OAuth2Providers"] = oauth2Providers
 

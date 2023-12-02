@@ -392,39 +392,40 @@ func CreateWebhooks(ctx context.Context, ws []*Webhook) error {
 	return db.Insert(ctx, ws)
 }
 
-// getWebhook uses argument bean as query condition,
-// ID must be specified and do not assign unnecessary fields.
-func getWebhook(ctx context.Context, bean *Webhook) (*Webhook, error) {
-	has, err := db.GetEngine(ctx).Get(bean)
+// GetWebhookByID returns webhook of repository by given ID.
+func GetWebhookByID(ctx context.Context, id int64) (*Webhook, error) {
+	bean := new(Webhook)
+	has, err := db.GetEngine(ctx).ID(id).Get(bean)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrWebhookNotExist{ID: bean.ID}
+		return nil, ErrWebhookNotExist{ID: id}
 	}
 	return bean, nil
 }
 
-// GetWebhookByID returns webhook of repository by given ID.
-func GetWebhookByID(ctx context.Context, id int64) (*Webhook, error) {
-	return getWebhook(ctx, &Webhook{
-		ID: id,
-	})
-}
-
 // GetWebhookByRepoID returns webhook of repository by given ID.
 func GetWebhookByRepoID(ctx context.Context, repoID, id int64) (*Webhook, error) {
-	return getWebhook(ctx, &Webhook{
-		ID:     id,
-		RepoID: repoID,
-	})
+	webhook := new(Webhook)
+	has, err := db.GetEngine(ctx).Where("id=? AND repo_id=?", id, repoID).Get(webhook)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrWebhookNotExist{ID: id}
+	}
+	return webhook, nil
 }
 
 // GetWebhookByOwnerID returns webhook of a user or organization by given ID.
 func GetWebhookByOwnerID(ctx context.Context, ownerID, id int64) (*Webhook, error) {
-	return getWebhook(ctx, &Webhook{
-		ID:      id,
-		OwnerID: ownerID,
-	})
+	webhook := new(Webhook)
+	has, err := db.GetEngine(ctx).Where("id=? AND owner_id=?", id, ownerID).Get(webhook)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrWebhookNotExist{ID: id}
+	}
+	return webhook, nil
 }
 
 // ListWebhookOptions are options to filter webhooks on ListWebhooksByOpts
@@ -435,7 +436,7 @@ type ListWebhookOptions struct {
 	IsActive util.OptionalBool
 }
 
-func (opts *ListWebhookOptions) toCond() builder.Cond {
+func (opts ListWebhookOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID != 0 {
 		cond = cond.And(builder.Eq{"webhook.repo_id": opts.RepoID})
@@ -447,27 +448,6 @@ func (opts *ListWebhookOptions) toCond() builder.Cond {
 		cond = cond.And(builder.Eq{"webhook.is_active": opts.IsActive.IsTrue()})
 	}
 	return cond
-}
-
-// ListWebhooksByOpts return webhooks based on options
-func ListWebhooksByOpts(ctx context.Context, opts *ListWebhookOptions) ([]*Webhook, error) {
-	sess := db.GetEngine(ctx).Where(opts.toCond())
-
-	if opts.Page != 0 {
-		sess = db.SetSessionPagination(sess, opts)
-		webhooks := make([]*Webhook, 0, opts.PageSize)
-		err := sess.Find(&webhooks)
-		return webhooks, err
-	}
-
-	webhooks := make([]*Webhook, 0, 10)
-	err := sess.Find(&webhooks)
-	return webhooks, err
-}
-
-// CountWebhooksByOpts count webhooks based on options and ignore pagination
-func CountWebhooksByOpts(ctx context.Context, opts *ListWebhookOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toCond()).Count(&Webhook{})
 }
 
 // UpdateWebhook updates information of webhook.
@@ -482,20 +462,20 @@ func UpdateWebhookLastStatus(ctx context.Context, w *Webhook) error {
 	return err
 }
 
-// deleteWebhook uses argument bean as query condition,
+// DeleteWebhookByID uses argument bean as query condition,
 // ID must be specified and do not assign unnecessary fields.
-func deleteWebhook(ctx context.Context, bean *Webhook) (err error) {
+func DeleteWebhookByID(ctx context.Context, id int64) (err error) {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	if count, err := db.DeleteByBean(ctx, bean); err != nil {
+	if count, err := db.DeleteByID(ctx, id, new(Webhook)); err != nil {
 		return err
 	} else if count == 0 {
-		return ErrWebhookNotExist{ID: bean.ID}
-	} else if _, err = db.DeleteByBean(ctx, &HookTask{HookID: bean.ID}); err != nil {
+		return ErrWebhookNotExist{ID: id}
+	} else if _, err = db.DeleteByBean(ctx, &HookTask{HookID: id}); err != nil {
 		return err
 	}
 
@@ -504,16 +484,16 @@ func deleteWebhook(ctx context.Context, bean *Webhook) (err error) {
 
 // DeleteWebhookByRepoID deletes webhook of repository by given ID.
 func DeleteWebhookByRepoID(ctx context.Context, repoID, id int64) error {
-	return deleteWebhook(ctx, &Webhook{
-		ID:     id,
-		RepoID: repoID,
-	})
+	if _, err := GetWebhookByRepoID(ctx, repoID, id); err != nil {
+		return err
+	}
+	return DeleteWebhookByID(ctx, id)
 }
 
 // DeleteWebhookByOwnerID deletes webhook of a user or organization by given ID.
 func DeleteWebhookByOwnerID(ctx context.Context, ownerID, id int64) error {
-	return deleteWebhook(ctx, &Webhook{
-		ID:      id,
-		OwnerID: ownerID,
-	})
+	if _, err := GetWebhookByOwnerID(ctx, ownerID, id); err != nil {
+		return err
+	}
+	return DeleteWebhookByID(ctx, id)
 }
