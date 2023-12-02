@@ -263,7 +263,7 @@ func loadObjectsSizesViaCatFile(ctx *gitea_context.PrivateContext, opts *git.Run
 	var mu sync.Mutex
 
 	// Prepare numWorker slices to store the work
-	reducedObjectIDs := make([][]string, 0, numWorkers)
+	reducedObjectIDs := make([][]string, numWorkers)
 	for i := 0; i < numWorkers; i++ {
 		reducedObjectIDs[i] = make([]string, 0, len(objectIDs)/numWorkers+1)
 	}
