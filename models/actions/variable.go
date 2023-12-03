@@ -56,7 +56,7 @@ type FindVariablesOpts struct {
 	RepoID  int64
 }
 
-func (opts *FindVariablesOpts) toConds() builder.Cond {
+func (opts FindVariablesOpts) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.OwnerID > 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
@@ -65,15 +65,6 @@ func (opts *FindVariablesOpts) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}
 	return cond
-}
-
-func FindVariables(ctx context.Context, opts FindVariablesOpts) ([]*ActionVariable, error) {
-	var variables []*ActionVariable
-	sess := db.GetEngine(ctx)
-	if opts.PageSize != 0 {
-		sess = db.SetSessionPagination(sess, &opts.ListOptions)
-	}
-	return variables, sess.Where(opts.toConds()).Find(&variables)
 }
 
 func GetVariableByID(ctx context.Context, variableID int64) (*ActionVariable, error) {
