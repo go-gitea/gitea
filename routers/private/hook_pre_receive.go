@@ -146,7 +146,7 @@ func calculateSizeOfObjectsFromCache(newCommitObjects, oldCommitObjects, otherCo
 			// objectID is not referenced in the list of new commit objects so it was possibly removed
 			if _, exists := otherCommitObjects[objectID]; !exists {
 				// objectID is not referenced in rest of the objects of the repository so it was removed
-				// Calculate its size and add it to the addedSize
+				// Calculate its size and add it to the removedSize
 				removedSize += commitObjectsSizes[objectID]
 			}
 		}
@@ -283,17 +283,20 @@ func loadObjectsSizesViaCatFile(ctx *gitea_context.PrivateContext, opts *git.Run
 	// Start workers and determine size using `git cat-file -s` store in objectsSizes cache
 	for w := 1; w <= numWorkers; w++ {
 		wg.Add(1)
-		go func(reducedObjectIDs []string) {
+		go func(reducedObjectIDs *[]string) {
 			defer wg.Done()
-			for _, objectID := range reducedObjectIDs {
+			for _, objectID := range *reducedObjectIDs {
 				ctx := ctx
-				opts := opts
-				objectSize := calculateSizeOfObject(ctx, opts, objectID)
+				// Create a copy of opts to allow change of the Env property
+				tsopts := *opts
+				// Ensure that each worker has its own copy of the Env environment to prevent races
+				tsopts.Env = append([]string(nil), opts.Env...)
+				objectSize := calculateSizeOfObject(ctx, &tsopts, objectID)
 				mu.Lock() // Protecting shared resource
 				objectsSizes[objectID] = objectSize
 				mu.Unlock() // Releasing shared resource for other goroutines
 			}
-		}(reducedObjectIDs[(w-1)%numWorkers])
+		}(&reducedObjectIDs[(w-1)%numWorkers])
 	}
 
 	// Wait for all workers to finish processing.
@@ -554,12 +557,12 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 
 	if repo.IsRepoSizeLimitEnabled() {
 		duration = time.Since(startTime)
-		log.Warn("During size checking - Addition in size is: %d, removal in size is: %d, limit size: %d, push size: %d, repo size: %d. Took %s seconds.", addedSize, removedSize, repo.GetActualSizeLimit(), pushSize.Size+pushSize.SizePack, repo.Size, duration)
+		log.Warn("During size checking - Addition in size is: %d, removal in size is: %d, limit size: %d, push size: %d, repo size: %d. Took %s seconds.", addedSize, removedSize, repo.GetActualSizeLimit(), pushSize.Size+pushSize.SizePack, repo.GitSize, duration)
 	}
 
 	// If total of commits add more size then they remove and we are in a potential breach of size limit -- abort
 	if (addedSize > removedSize) && isRepoOversized {
-		log.Warn("Forbidden: new repo size %s would be over limitation of %s. Push size: %s. Took %s seconds. addedSize: %s. removedSize: %s", base.FileSize(repo.Size+addedSize-removedSize), base.FileSize(repo.GetActualSizeLimit()), base.FileSize(pushSize.Size+pushSize.SizePack), duration, base.FileSize(addedSize), base.FileSize(removedSize))
+		log.Warn("Forbidden: new repo size %s would be over limitation of %s. Push size: %s. Took %s seconds. addedSize: %s. removedSize: %s", base.FileSize(repo.GitSize+addedSize-removedSize), base.FileSize(repo.GetActualSizeLimit()), base.FileSize(pushSize.Size+pushSize.SizePack), duration, base.FileSize(addedSize), base.FileSize(removedSize))
 		ctx.JSON(http.StatusForbidden, private.Response{
 			UserMsg: fmt.Sprintf("New repository size is over limitation of %s", base.FileSize(repo.GetActualSizeLimit())),
 		})
