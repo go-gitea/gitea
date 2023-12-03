@@ -173,7 +173,7 @@ func Exec(ctx context.Context, sqlAndArgs ...any) (sql.Result, error) {
 	return GetEngine(ctx).Exec(sqlAndArgs...)
 }
 
-func Get[T any](ctx context.Context, cond builder.Cond) (*T, bool, error) {
+func Get[T any](ctx context.Context, cond builder.Cond) (object *T, exist bool, err error) {
 	if !cond.IsValid() {
 		return nil, false, ErrConditionRequired{}
 	}
@@ -188,7 +188,7 @@ func Get[T any](ctx context.Context, cond builder.Cond) (*T, bool, error) {
 	return &bean, true, nil
 }
 
-func GetByID[T any](ctx context.Context, id int64) (*T, bool, error) {
+func GetByID[T any](ctx context.Context, id int64) (object *T, exist bool, err error) {
 	var bean T
 	has, err := GetEngine(ctx).ID(id).NoAutoCondition().Get(&bean)
 	if err != nil {
