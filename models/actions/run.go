@@ -137,7 +137,6 @@ func FindWorkflowIDsByRepoID(ctx context.Context, repoID int64) ([]string, error
 
 	err := db.GetEngine(ctx).Table(new(ActionRun)).Where("repo_id = ?", repoID).
 		Select("workflow_id").Distinct("workflow_id").Find(&ids)
-
 	if err != nil {
 		return nil, err
 	}
