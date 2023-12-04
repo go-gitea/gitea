@@ -4,12 +4,13 @@
 <body>
 	<div>
 {{end}}
-
 	{{template "custom/body_inner_post" .}}
 
 	</div>
 
 	{{template "custom/body_outer_post" .}}
+
+	<noscript>{{template "base/footer_noscript" .}}</noscript>
 
 	{{template "base/footer_content" .}}
 

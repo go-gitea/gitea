@@ -34,14 +34,11 @@
 	{{template "custom/body_outer_pre" .}}
 
 	<div class="full height">
-		<noscript>{{ctx.Locale.Tr "enable_javascript"}}</noscript>
-
 		{{template "custom/body_inner_pre" .}}
 
 		{{if not .PageIsInstall}}
 			{{template "base/head_navbar" .}}
 		{{end}}
-
 {{if false}}
 	{{/* to make html structure "likely" complete to prevent IDE warnings */}}
 	</div>
