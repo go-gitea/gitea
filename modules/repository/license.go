@@ -196,6 +196,10 @@ func UpdateRepoLicensesByGitRepo(ctx context.Context, repo *repo_model.Repositor
 	}
 	commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
 	if err != nil {
+		if git.IsErrNotExist(err) {
+			// allow empty repo
+			return nil
+		}
 		return err
 	}
 	return UpdateRepoLicenses(ctx, repo, commit)

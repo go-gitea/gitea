@@ -171,6 +171,16 @@ func registerActionsCleanup() {
 	})
 }
 
+func registerSyncRepoLicenses() {
+	RegisterTaskFatal("sync_repo_licenses", &BaseConfig{
+		Enabled:    false,
+		RunAtStart: false,
+		Schedule:   "@annually",
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+		return repo_service.SyncRepoLicenses(ctx)
+	})
+}
+
 func initBasicTasks() {
 	if setting.Mirror.Enabled {
 		registerUpdateMirrorTask()
@@ -190,4 +200,5 @@ func initBasicTasks() {
 	if setting.Actions.Enabled {
 		registerActionsCleanup()
 	}
+	registerSyncRepoLicenses()
 }
