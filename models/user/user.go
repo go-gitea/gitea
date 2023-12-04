@@ -1191,6 +1191,11 @@ func GetAdminUser(ctx context.Context) (*User, error) {
 	return &admin, nil
 }
 
+// GetAdminUserCount returns the count of all administrator
+func GetAdminUserCount(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where("is_admin=?", true).Count(User{})
+}
+
 func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 	if viewer != nil && viewer.IsAdmin {
 		return builder.NewCond()

@@ -436,6 +436,19 @@ func EditUserPost(ctx *context.Context) {
 
 	}
 
+	// Check if user is the last admin
+	if u.IsAdmin && !form.Admin {
+		num, err := user_model.GetAdminUserCount(ctx)
+		if err != nil {
+			ctx.ServerError("GetAdminUserCount", err)
+			return
+		}
+		if num == 1 {
+			ctx.RenderWithErr(ctx.Tr("auth.last_admin"), tplUserEdit, &form)
+			return
+		}
+	}
+
 	u.LoginName = form.LoginName
 	u.FullName = form.FullName
 	emailChanged := !strings.EqualFold(u.Email, form.Email)
