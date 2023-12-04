@@ -436,7 +436,7 @@ func EditUserPost(ctx *context.Context) {
 
 	}
 
-	// Check if user is the last admin
+	// Check whether user is the last admin
 	if u.IsAdmin && !form.Admin {
 		num, err := user_model.GetAdminUserCount(ctx)
 		if err != nil {

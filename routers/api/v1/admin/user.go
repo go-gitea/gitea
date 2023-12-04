@@ -254,6 +254,18 @@ func EditUser(ctx *context.APIContext) {
 		ctx.ContextUser.Visibility = api.VisibilityModes[form.Visibility]
 	}
 	if form.Admin != nil {
+		// Check whether user is the last admin
+		if ctx.ContextUser.IsAdmin && !*form.Admin {
+			num, err := user_model.GetAdminUserCount(ctx)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetAdminUserCount", err)
+				return
+			}
+			if num == 1 {
+				ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("auth.last_admin"))
+				return
+			}
+		}
 		ctx.ContextUser.IsAdmin = *form.Admin
 	}
 	if form.AllowGitHook != nil {
