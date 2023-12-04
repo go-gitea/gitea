@@ -97,14 +97,11 @@ func CopyLicense(ctx context.Context, originalRepo, destRepo *Repository) error 
 	if len(repoLicenses) > 0 {
 		newRepoLicenses := make(RepoLicenseList, 0, len(repoLicenses))
 
-		time := timeutil.TimeStampNow()
 		for _, rl := range repoLicenses {
 			newRepoLicense := &RepoLicense{
 				RepoID:      destRepo.ID,
 				CommitID:    rl.CommitID,
 				License:     rl.License,
-				CreatedUnix: time,
-				UpdatedUnix: time,
 			}
 			newRepoLicenses = append(newRepoLicenses, newRepoLicense)
 		}
