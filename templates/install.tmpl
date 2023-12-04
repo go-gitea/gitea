@@ -8,6 +8,10 @@
 			<div class="ui attached segment">
 				{{template "base/alert" .}}
 
+				{{/* Drop-down menus do not currently work well without JavaScript, only there to prevent "bad first impressions". */}}
+				{{/* TODO: Remove this together with "enable_javascript" string when that is fixed. */}}
+				<noscript><b>{{ctx.Locale.Tr "enable_javascript"}}</b></noscript>
+
 				<p>{{ctx.Locale.Tr "install.docker_helper" "https://docs.gitea.com/installation/install-with-docker" | Safe}}</p>
 
 				<form class="ui form" action="{{AppSubUrl}}/" method="post">
