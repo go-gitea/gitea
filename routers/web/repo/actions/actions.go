@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/services/convert"
@@ -32,6 +33,7 @@ const (
 type Workflow struct {
 	Entry  git.TreeEntry
 	ErrMsg string
+	Name   string
 }
 
 // MustEnableActions check if actions are enabled in settings
@@ -90,7 +92,7 @@ func List(ctx *context.Context) {
 
 		workflows = make([]Workflow, 0, len(entries))
 		for _, entry := range entries {
-			workflow := Workflow{Entry: *entry}
+			workflow := Workflow{Entry: *entry, Name: entry.Name()}
 			content, err := actions.GetContentFromEntry(entry)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, err.Error())
@@ -124,6 +126,30 @@ func List(ctx *context.Context) {
 			workflows = append(workflows, workflow)
 		}
 	}
+
+	// recheck workflow ids by runs because not all workflows in default branch
+	ids, err := actions_model.FindWorkflowIDsByRepoID(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		log.Error("actions_model.FindWorkflowIDsByRepoID: %v", err)
+	}
+
+	for _, id := range ids {
+		found := false
+
+		for _, wf := range workflows {
+			if wf.Name == id {
+				found = true
+				break
+			}
+		}
+
+		if found {
+			continue
+		}
+
+		workflows = append(workflows, Workflow{Name: id})
+	}
+
 	ctx.Data["workflows"] = workflows
 	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
 
