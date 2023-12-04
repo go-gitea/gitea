@@ -715,8 +715,7 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 			// Read Citation file contents
 			ctx.PageData["citationFileContent"], err = entry.Blob().GetBlobContent(setting.UI.MaxDisplayFileSize)
 			if err != nil {
-				ctx.ServerError("GetBlobContent", err)
-				return
+				log.Error("checkCitationFile: GetBlobContent: %v", err)
 			}
 			break
 		}
