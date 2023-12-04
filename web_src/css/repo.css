@@ -416,7 +416,7 @@
 
 .pdf-content {
   width: 100%;
-  height: 600px;
+  height: 95vh;
   border: none !important;
   display: flex;
   align-items: center;
