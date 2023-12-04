@@ -17,6 +17,17 @@ import (
 
 type TeamList []*Team
 
+type RepoTeam struct {
+	Team                  `xorm:"extends"`
+	repo_model.Repository `xorm:"extends"`
+}
+
+func (RepoTeam) TableName() string {
+	return "team"
+}
+
+type RepoTeamList []*RepoTeam
+
 func (t TeamList) LoadUnits(ctx context.Context) error {
 	for _, team := range t {
 		if err := team.LoadUnits(ctx); err != nil {
@@ -125,4 +136,28 @@ func GetUserRepoTeams(ctx context.Context, orgID, userID, repoID int64) (teams T
 		And("team_user.uid=?", userID).
 		And("team_repo.repo_id=?", repoID).
 		Find(&teams)
+}
+
+// GetUserReposTeams return user repos' teams for all repos
+func GetUserReposTeams(ctx context.Context, userID int64, repoIDs []int64) (map[int64]TeamList, error) {
+	var queryResult RepoTeamList
+
+	err := db.GetEngine(ctx).
+		Select("team.*, repository.*").
+		Join("INNER", "repository", "team.org_id = repository.owner_id").
+		Join("INNER", "team_user", "team_user.team_id = team.id").
+		Join("INNER", "team_repo", "team_repo.team_id = team.id").
+		And("team_user.uid=?", userID).
+		In("repository.id", repoIDs).
+		Find(&queryResult)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[int64]TeamList)
+	for _, row := range queryResult {
+		result[row.Repository.ID] = append(result[row.Repository.ID], &row.Team)
+	}
+
+	return result, nil
 }

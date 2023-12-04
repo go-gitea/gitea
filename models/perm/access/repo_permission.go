@@ -126,138 +126,168 @@ func (p *Permission) LogString() string {
 	return fmt.Sprintf(format, args...)
 }
 
-// GetUserRepoPermission returns the user permissions to the repository
-func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (Permission, error) {
-	var perm Permission
+// GetUserRepoPermissions returns the user permissions to the repositories
+func GetUserRepoPermissions(ctx context.Context, repos repo_model.RepositoryList, user *user_model.User) (map[int64]*Permission, error) {
+	perms := make(map[int64]*Permission, len(repos))
+
 	if log.IsTrace() {
 		defer func() {
 			if user == nil {
-				log.Trace("Permission Loaded for anonymous user in %-v:\nPermissions: %-+v",
-					repo,
-					perm)
+				log.Trace("Permissions Loaded for anonymous user in %-v:\nPermissions: %-+v",
+					repos,
+					perms)
 				return
 			}
-			log.Trace("Permission Loaded for %-v in %-v:\nPermissions: %-+v",
+			log.Trace("Permissions Loaded for %-v in %-v:\nPermissions: %-+v",
 				user,
-				repo,
-				perm)
+				repos,
+				perms)
 		}()
 	}
 
-	// anonymous user visit private repo.
-	// TODO: anonymous user visit public unit of private repo???
-	if user == nil && repo.IsPrivate {
-		perm.AccessMode = perm_model.AccessModeNone
-		return perm, nil
+	for _, repo := range repos {
+		perms[repo.ID] = &Permission{
+			AccessMode: perm_model.AccessModeNone,
+		}
 	}
 
-	var isCollaborator bool
+	repoIDs := repos.GetRepoIDs()
+
 	var err error
+	collaborations := make(map[int64]bool)
 	if user != nil {
-		isCollaborator, err = repo_model.IsCollaborator(ctx, repo.ID, user.ID)
+		collaborations, err = repo_model.IsCollaboratorForRepos(ctx, repoIDs, user.ID)
 		if err != nil {
-			return perm, err
+			return nil, err
 		}
 	}
 
-	if err := repo.LoadOwner(ctx); err != nil {
-		return perm, err
+	if err = repos.LoadOwners(ctx); err != nil {
+		return nil, err
 	}
 
-	// Prevent strangers from checking out public repo of private organization/users
-	// Allow user if they are collaborator of a repo within a private user or a private organization but not a member of the organization itself
-	if !organization.HasOrgOrUserVisible(ctx, repo.Owner, user) && !isCollaborator {
-		perm.AccessMode = perm_model.AccessModeNone
-		return perm, nil
+	if err = repos.LoadUnits(ctx); err != nil {
+		return nil, err
 	}
 
-	if err := repo.LoadUnits(ctx); err != nil {
-		return perm, err
+	var repoTeams map[int64]organization.TeamList
+	if user != nil {
+		repoTeams, err = organization.GetUserReposTeams(ctx, user.ID, repoIDs)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	perm.Units = repo.Units
-
-	// anonymous visit public repo
-	if user == nil {
-		perm.AccessMode = perm_model.AccessModeRead
-		return perm, nil
-	}
-
-	// Admin or the owner has super access to the repository
-	if user.IsAdmin || user.ID == repo.OwnerID {
-		perm.AccessMode = perm_model.AccessModeOwner
-		return perm, nil
-	}
-
-	// plain user
-	perm.AccessMode, err = accessLevel(ctx, user, repo)
+	accessModes, err := accessLevels(ctx, user, repos)
 	if err != nil {
-		return perm, err
+		return nil, err
 	}
 
-	if err := repo.LoadOwner(ctx); err != nil {
-		return perm, err
-	}
-	if !repo.Owner.IsOrganization() {
-		return perm, nil
-	}
+	for _, repo := range repos {
 
-	perm.UnitsMode = make(map[unit.Type]perm_model.AccessMode)
-
-	// Collaborators on organization
-	if isCollaborator {
-		for _, u := range repo.Units {
-			perm.UnitsMode[u.Type] = perm.AccessMode
+		// anonymous user visit private repo.
+		// TODO: anonymous user visit public unit of private repo???
+		if user == nil && repo.IsPrivate {
+			continue
 		}
-	}
 
-	// get units mode from teams
-	teams, err := organization.GetUserRepoTeams(ctx, repo.OwnerID, user.ID, repo.ID)
-	if err != nil {
-		return perm, err
-	}
+		isCollaborator := user != nil && collaborations[repo.ID]
 
-	// if user in an owner team
-	for _, team := range teams {
-		if team.AccessMode >= perm_model.AccessModeAdmin {
-			perm.AccessMode = perm_model.AccessModeOwner
-			perm.UnitsMode = nil
-			return perm, nil
+		// TODO: This is a N+1 query
+		// Prevent strangers from checking out public repo of private organization/users
+		// Allow user if they are collaborator of a repo within a private user or a private organization but not a member of the organization itself
+		if !organization.HasOrgOrUserVisible(ctx, repo.Owner, user) && !isCollaborator {
+			perms[repo.ID].AccessMode = perm_model.AccessModeNone
+			continue
 		}
-	}
 
-	for _, u := range repo.Units {
-		var found bool
+		perms[repo.ID].Units = repo.Units
+
+		// anonymous visit public repo
+		if user == nil {
+			perms[repo.ID].AccessMode = perm_model.AccessModeRead
+			continue
+		}
+
+		// Admin or the owner has super access to the repository
+		if user.IsAdmin || user.ID == repo.OwnerID {
+			perms[repo.ID].AccessMode = perm_model.AccessModeOwner
+			continue
+		}
+
+		// plain user
+		perms[repo.ID].AccessMode = accessModes[repo.ID]
+
+		// Org stuff
+		if !repo.Owner.IsOrganization() {
+			continue
+		}
+
+		perms[repo.ID].UnitsMode = make(map[unit.Type]perm_model.AccessMode)
+
+		// Collaborators on organization
+		if isCollaborator {
+			for _, u := range repo.Units {
+				perms[repo.ID].UnitsMode[u.Type] = perms[repo.ID].AccessMode
+			}
+		}
+
+		teams := repoTeams[repo.ID]
+		highestTeamAccessMode := perm_model.AccessModeNone
 		for _, team := range teams {
-			teamMode := team.UnitAccessMode(ctx, u.Type)
-			if teamMode > perm_model.AccessModeNone {
-				m := perm.UnitsMode[u.Type]
-				if m < teamMode {
-					perm.UnitsMode[u.Type] = teamMode
-				}
-				found = true
+			if team.AccessMode > highestTeamAccessMode {
+				highestTeamAccessMode = team.AccessMode
 			}
 		}
 
-		// for a public repo on an organization, a non-restricted user has read permission on non-team defined units.
-		if !found && !repo.IsPrivate && !user.IsRestricted {
-			if _, ok := perm.UnitsMode[u.Type]; !ok {
-				perm.UnitsMode[u.Type] = perm_model.AccessModeRead
-			}
+		if highestTeamAccessMode > perm_model.AccessModeAdmin {
+			perms[repo.ID].AccessMode = perm_model.AccessModeOwner
+			perms[repo.ID].UnitsMode = nil
+			continue
 		}
-	}
 
-	// remove no permission units
-	perm.Units = make([]*repo_model.RepoUnit, 0, len(repo.Units))
-	for t := range perm.UnitsMode {
 		for _, u := range repo.Units {
-			if u.Type == t {
-				perm.Units = append(perm.Units, u)
+			var found bool
+			for _, team := range teams {
+				teamMode := team.UnitAccessMode(ctx, u.Type)
+				if teamMode > perm_model.AccessModeNone {
+					m := perms[repo.ID].UnitsMode[u.Type]
+					if m < teamMode {
+						perms[repo.ID].UnitsMode[u.Type] = teamMode
+					}
+					found = true
+				}
+			}
+
+			// for a public repo on an organization, a non-restricted user has read permission on non-team defined units.
+			if !found && !repo.IsPrivate && !user.IsRestricted {
+				if _, ok := perms[repo.ID].UnitsMode[u.Type]; !ok {
+					perms[repo.ID].UnitsMode[u.Type] = perm_model.AccessModeRead
+				}
+			}
+		}
+
+		// remove no permission units
+		perms[repo.ID].Units = make([]*repo_model.RepoUnit, 0, len(repo.Units))
+		for t := range perms[repo.ID].UnitsMode {
+			for _, u := range repo.Units {
+				if u.Type == t {
+					perms[repo.ID].Units = append(perms[repo.ID].Units, u)
+				}
 			}
 		}
 	}
 
-	return perm, err
+	return perms, nil
+}
+
+// GetUserRepoPermission returns the user permissions to the repository
+func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (Permission, error) {
+	perms, err := GetUserRepoPermissions(ctx, repo_model.RepositoryList{repo}, user)
+	if err != nil {
+		return Permission{}, err
+	}
+	return *perms[repo.ID], err
 }
 
 // IsUserRealRepoAdmin check if this user is real repo admin

@@ -203,23 +203,26 @@ func Search(ctx *context.APIContext) {
 		return
 	}
 
+	if err = repos.LoadOwners(ctx); err != nil {
+		ctx.JSON(http.StatusInternalServerError, api.SearchError{
+			OK:    false,
+			Error: err.Error(),
+		})
+		return
+	}
+
+	permissions, err := access_model.GetUserRepoPermissions(ctx, repos, ctx.Doer)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, api.SearchError{
+			OK:    false,
+			Error: err.Error(),
+		})
+		return
+	}
+
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
-		if err = repo.LoadOwner(ctx); err != nil {
-			ctx.JSON(http.StatusInternalServerError, api.SearchError{
-				OK:    false,
-				Error: err.Error(),
-			})
-			return
-		}
-		permission, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, api.SearchError{
-				OK:    false,
-				Error: err.Error(),
-			})
-		}
-		results[i] = convert.ToRepo(ctx, repo, permission)
+		results[i] = convert.ToRepo(ctx, repo, *permissions[repo.ID])
 	}
 	ctx.SetLinkHeader(int(count), opts.PageSize)
 	ctx.SetTotalCountHeader(count)

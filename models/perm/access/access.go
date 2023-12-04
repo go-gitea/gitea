@@ -30,7 +30,19 @@ func init() {
 }
 
 func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Repository) (perm.AccessMode, error) {
-	mode := perm.AccessModeNone
+	a, err := accessLevels(ctx, user, []*repo_model.Repository{repo})
+	if err != nil {
+		return perm.AccessModeNone, err
+	}
+	return a[repo.ID], nil
+}
+
+func accessLevels(ctx context.Context, user *user_model.User, repos repo_model.RepositoryList) (map[int64]perm.AccessMode, error) {
+	modes := make(map[int64]perm.AccessMode, len(repos))
+	for _, repo := range repos {
+		modes[repo.ID] = perm.AccessModeNone
+	}
+
 	var userID int64
 	restricted := false
 
@@ -39,23 +51,34 @@ func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Re
 		restricted = user.IsRestricted
 	}
 
-	if !restricted && !repo.IsPrivate {
-		mode = perm.AccessModeRead
+	for _, repo := range repos {
+		if !restricted && !repo.IsPrivate {
+			modes[repo.ID] = perm.AccessModeRead
+		}
 	}
 
 	if userID == 0 {
-		return mode, nil
+		return modes, nil
 	}
 
-	if userID == repo.OwnerID {
-		return perm.AccessModeOwner, nil
+	for _, repo := range repos {
+		if userID == repo.OwnerID {
+			modes[repo.ID] = perm.AccessModeOwner
+		}
 	}
 
-	a := &Access{UserID: userID, RepoID: repo.ID}
-	if has, err := db.GetByBean(ctx, a); !has || err != nil {
-		return mode, err
+	repoIDs := repos.GetRepoIDs()
+
+	var accesses []*Access
+	if err := db.GetEngine(ctx).Where("user_id = ?", userID).In("repo_id", repoIDs).Find(&accesses); err != nil {
+		return nil, err
 	}
-	return a.Mode, nil
+
+	for _, access := range accesses {
+		modes[access.RepoID] = access.Mode
+	}
+
+	return modes, nil
 }
 
 func maxAccessMode(modes ...perm.AccessMode) perm.AccessMode {

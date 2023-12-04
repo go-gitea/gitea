@@ -84,6 +84,25 @@ func IsCollaborator(ctx context.Context, repoID, userID int64) (bool, error) {
 	return db.GetEngine(ctx).Get(&Collaboration{RepoID: repoID, UserID: userID})
 }
 
+func IsCollaboratorForRepos(ctx context.Context, repoIDs []int64, userID int64) (map[int64]bool, error) {
+	collaborations := make(map[int64]bool, len(repoIDs))
+	for _, repoID := range repoIDs {
+		collaborations[repoID] = false
+	}
+
+	var results []Collaboration
+	err := db.GetEngine(ctx).Where("user_id = ?", userID).In("repo_id", repoIDs).Find(&results)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, result := range results {
+		collaborations[result.RepoID] = true
+	}
+
+	return collaborations, nil
+}
+
 func getCollaborations(ctx context.Context, repoID int64, listOptions db.ListOptions) ([]*Collaboration, error) {
 	if listOptions.Page == 0 {
 		collaborations := make([]*Collaboration, 0, 8)

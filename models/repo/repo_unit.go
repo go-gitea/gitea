@@ -264,18 +264,31 @@ func (r *RepoUnit) ActionsConfig() *ActionsConfig {
 }
 
 func getUnitsByRepoID(ctx context.Context, repoID int64) (units []*RepoUnit, err error) {
-	var tmpUnits []*RepoUnit
-	if err := db.GetEngine(ctx).Where("repo_id = ?", repoID).Find(&tmpUnits); err != nil {
+	result, err := getUnitsForRepoIDs(ctx, []int64{repoID})
+	if err != nil {
+		return nil, err
+	}
+	return result[repoID], nil
+}
+
+func getUnitsForRepoIDs(ctx context.Context, repoIDs []int64) (map[int64][]*RepoUnit, error) {
+	result := make(map[int64][]*RepoUnit)
+
+	for _, repoID := range repoIDs {
+		result[repoID] = []*RepoUnit{}
+	}
+	var units []*RepoUnit
+	if err := db.GetEngine(ctx).In("repo_id", repoIDs).Find(&units); err != nil {
 		return nil, err
 	}
 
-	for _, u := range tmpUnits {
+	for _, u := range units {
 		if !u.Type.UnitGlobalDisabled() {
-			units = append(units, u)
+			result[u.RepoID] = append(result[u.RepoID], u)
 		}
 	}
 
-	return units, nil
+	return result, nil
 }
 
 // UpdateRepoUnit updates the provided repo unit
