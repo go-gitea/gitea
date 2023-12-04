@@ -173,6 +173,8 @@ func EditUser(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/User"
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
@@ -262,7 +264,7 @@ func EditUser(ctx *context.APIContext) {
 				return
 			}
 			if num == 1 {
-				ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("auth.last_admin"))
+				ctx.Error(http.StatusBadRequest, "LastAdmin", ctx.Tr("auth.last_admin"))
 				return
 			}
 		}
