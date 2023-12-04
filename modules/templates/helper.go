@@ -163,10 +163,9 @@ func NewFuncMap() template.FuncMap {
 		"ReactionToEmoji":  ReactionToEmoji,
 		"RenderNote":       RenderNote,
 
-		"RenderMarkdownToHtml":         RenderMarkdownToHtml,
-		"RenderMarkdownDocumentToHTML": RenderMarkdownDocumentToHTML,
-		"RenderLabel":                  RenderLabel,
-		"RenderLabels":                 RenderLabels,
+		"RenderMarkdownToHtml": RenderMarkdownToHtml,
+		"RenderLabel":          RenderLabel,
+		"RenderLabels":         RenderLabels,
 
 		// -----------------------------------------------------------------
 		// misc
