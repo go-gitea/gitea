@@ -759,7 +759,9 @@ func loadRepoByIDs(ctx *context.Context, ctxUser *user_model.User, issueCountByR
 
 // ShowSSHKeys output all the ssh keys of user by uid
 func ShowSSHKeys(ctx *context.Context) {
-	keys, err := asymkey_model.ListPublicKeys(ctx, ctx.ContextUser.ID, db.ListOptions{})
+	keys, err := db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+		OwnerID: ctx.ContextUser.ID,
+	})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return
@@ -822,6 +824,11 @@ func UsernameSubRoute(ctx *context.Context) {
 	reloadParam := func(suffix string) (success bool) {
 		ctx.SetParams("username", strings.TrimSuffix(username, suffix))
 		context_service.UserAssignmentWeb()(ctx)
+		// check view permissions
+		if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
+			ctx.NotFound("user", fmt.Errorf(ctx.ContextUser.Name))
+			return false
+		}
 		return !ctx.Written()
 	}
 	switch {

@@ -1,0 +1,8 @@
+<div class="empty-placeholder">
+	{{svg "octicon-no-entry" 48}}
+	<h2>{{ctx.Locale.Tr "actions.runs.no_workflows"}}</h2>
+	{{if and .CanWriteCode .CanWriteActions}}
+		<p>{{ctx.Locale.Tr "actions.runs.no_workflows.quick_start" "https://docs.gitea.com/usage/actions/quickstart/" | Safe}}</p>
+	{{end}}
+	<p>{{ctx.Locale.Tr "actions.runs.no_workflows.documentation" "https://docs.gitea.com/usage/actions/overview/" | Safe}}</p>
+</div>
