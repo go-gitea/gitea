@@ -159,7 +159,7 @@ type FindRunnerOptions struct {
 	OwnerID       int64
 	Sort          string
 	Filter        string
-	IsOnline      bool
+	IsOnline      util.OptionalBool
 	WithAvailable bool // not only runners belong to, but also runners can be used
 }
 
@@ -186,8 +186,10 @@ func (opts FindRunnerOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Like{"name", opts.Filter})
 	}
 
-	if opts.IsOnline {
+	if opts.IsOnline.IsTrue() {
 		cond = cond.And(builder.Gt{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
+	} else if opts.IsOnline.IsFalse() {
+		cond = cond.And(builder.Lte{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
 	}
 	return cond
 }
