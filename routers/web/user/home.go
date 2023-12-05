@@ -768,6 +768,7 @@ func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMod
 		openClosedOpts := opts.Copy()
 		switch filterMode {
 		case issues_model.FilterModeAll:
+			// no-op
 		case issues_model.FilterModeYourRepositories:
 			openClosedOpts.AllPublic = false
 		case issues_model.FilterModeAssign:
