@@ -4,25 +4,19 @@
 package actions
 
 import (
-	"bytes"
 	"fmt"
 	"net/http"
-	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/services/convert"
-
-	"github.com/nektos/act/pkg/model"
 )
 
 const (
@@ -60,94 +54,41 @@ func List(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsActions"] = true
 
-	var workflows []Workflow
-	if empty, err := ctx.Repo.GitRepo.IsEmpty(); err != nil {
+	workflows, err := actions_model.ListWorkflowBranchs(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
-	} else if !empty {
-		commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
-			return
-		}
-		entries, err := actions.ListWorkflows(commit)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
-			return
-		}
+	}
 
-		// Get all runner labels
-		runners, err := db.Find[actions_model.ActionRunner](ctx, actions_model.FindRunnerOptions{
-			RepoID:        ctx.Repo.Repository.ID,
-			WithAvailable: true,
-		})
-		if err != nil {
-			ctx.ServerError("FindRunners", err)
-			return
-		}
-		allRunnerLabels := make(container.Set[string])
-		for _, r := range runners {
-			allRunnerLabels.AddMultiple(r.AgentLabels...)
-		}
+	// Get all runner labels
+	runners, err := db.Find[actions_model.ActionRunner](ctx, actions_model.FindRunnerOptions{
+		RepoID:        ctx.Repo.Repository.ID,
+		WithAvailable: true,
+	})
+	if err != nil {
+		ctx.ServerError("FindRunners", err)
+		return
+	}
+	allRunnerLabels := make(container.Set[string])
+	for _, r := range runners {
+		allRunnerLabels.AddMultiple(r.AgentLabels...)
+	}
 
-		workflows = make([]Workflow, 0, len(entries))
-		for _, entry := range entries {
-			workflow := Workflow{Entry: *entry, Name: entry.Name()}
-			content, err := actions.GetContentFromEntry(entry)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, err.Error())
-				return
+	for _, w := range workflows {
+		w.ErrMsg = ""
+
+		for _, b := range w.Branchs {
+			if len(b.ErrMsg) != 0 {
+				w.ErrMsg += ctx.Locale.Tr("actions.runs.invalid_workflow_helper_branch", b.Branch, b.ErrMsg) + "; "
 			}
-			wf, err := model.ReadWorkflow(bytes.NewReader(content))
-			if err != nil {
-				workflow.ErrMsg = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", err.Error())
-				workflows = append(workflows, workflow)
-				continue
-			}
-			// Check whether have matching runner
-			for _, j := range wf.Jobs {
-				runsOnList := j.RunsOn()
-				for _, ro := range runsOnList {
-					if strings.Contains(ro, "${{") {
-						// Skip if it contains expressions.
-						// The expressions could be very complex and could not be evaluated here,
-						// so just skip it, it's OK since it's just a tooltip message.
-						continue
-					}
-					if !allRunnerLabels.Contains(ro) {
-						workflow.ErrMsg = ctx.Locale.Tr("actions.runs.no_matching_runner_helper", ro)
-						break
-					}
-				}
-				if workflow.ErrMsg != "" {
+
+			for _, l := range b.Labels {
+				if !allRunnerLabels.Contains(l) {
+					w.ErrMsg += ctx.Locale.Tr("actions.runs.no_matching_runner_helper", b.Branch, l) + "; "
 					break
 				}
 			}
-			workflows = append(workflows, workflow)
 		}
-	}
-
-	// recheck workflow ids by runs because not all workflows in default branch
-	ids, err := actions_model.FindWorkflowIDsByRepoID(ctx, ctx.Repo.Repository.ID)
-	if err != nil {
-		log.Error("actions_model.FindWorkflowIDsByRepoID: %v", err)
-	}
-
-	for _, id := range ids {
-		found := false
-
-		for _, wf := range workflows {
-			if wf.Name == id {
-				found = true
-				break
-			}
-		}
-
-		if found {
-			continue
-		}
-
-		workflows = append(workflows, Workflow{Name: id})
 	}
 
 	ctx.Data["workflows"] = workflows

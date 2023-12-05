@@ -55,6 +55,7 @@ type ActionRun struct {
 func init() {
 	db.RegisterModel(new(ActionRun))
 	db.RegisterModel(new(ActionRunIndex))
+	db.RegisterModel(new(ActionWorkflow))
 }
 
 func (run *ActionRun) HTMLURL() string {

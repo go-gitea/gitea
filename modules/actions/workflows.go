@@ -5,9 +5,13 @@ package actions
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"strings"
 
+	actions_model "code.gitea.io/gitea/models/actions"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -653,4 +657,66 @@ func matchPackageEvent(commit *git.Commit, payload *api.PackagePayload, evt *job
 		}
 	}
 	return matchTimes == len(evt.Acts())
+}
+
+func UpdateWorkflowBranchLabelsForBranch(ctx context.Context, gitRepo *git.Repository, repo *repo_model.Repository, branch string) error {
+	commit, err := gitRepo.GetBranchCommit(branch)
+	if err != nil {
+		return err
+	}
+
+	entries, err := ListWorkflows(commit)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		content, err := GetContentFromEntry(entry)
+		if err != nil {
+			return err
+		}
+		wf, err := model.ReadWorkflow(bytes.NewReader(content))
+		if err != nil {
+			err = actions_model.UpdateWorkFlowErrMsg(ctx, repo.ID, entry.Name(), branch, err)
+			if err != nil {
+				log.Error("actions_model.UpdateWorkFlowErrMsg: %v", err)
+			}
+			continue
+		}
+
+		// Check whether have matching runner
+		labelsSet := make(container.Set[string])
+
+		for _, j := range wf.Jobs {
+			labelsSet.AddMultiple(j.RunsOn()...)
+		}
+
+		err = actions_model.UpdateWorkFlowLabels(ctx, repo.ID, entry.Name(), branch, labelsSet.Values())
+		if err != nil {
+			log.Error("actions_model.UpdateWorkFlowLabels: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func DeleteWorkflowBranchLabelsForBranch(ctx context.Context, gitRepo *git.Repository, repo *repo_model.Repository, oldCommitID, branch string) error {
+	oldCommit, err := gitRepo.GetCommit(oldCommitID)
+	if err != nil {
+		return err
+	}
+
+	entries, err := ListWorkflows(oldCommit)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		err = actions_model.DeleteWorkFlowBranch(ctx, repo.ID, entry.Name(), branch)
+		if err != nil {
+			log.Error("actions_model.UpdateWorkFlowLabels: %v", err)
+		}
+	}
+
+	return nil
 }

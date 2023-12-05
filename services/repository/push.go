@@ -14,6 +14,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
@@ -269,6 +270,12 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				if err := CacheRef(graceful.GetManager().HammerContext(), repo, gitRepo, opts.RefFullName); err != nil {
 					log.Error("repo_module.CacheRef %s/%s failed: %v", repo.ID, branch, err)
 				}
+
+				err = actions.UpdateWorkflowBranchLabelsForBranch(ctx, gitRepo, repo, branch)
+				if err != nil {
+					return err
+				}
+
 			} else {
 				notify_service.DeleteRef(ctx, pusher, repo, opts.RefFullName)
 				if err = pull_service.CloseBranchPulls(ctx, pusher, repo.ID, branch); err != nil {
@@ -278,6 +285,11 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 				if err := git_model.AddDeletedBranch(ctx, repo.ID, branch, pusher.ID); err != nil {
 					return fmt.Errorf("AddDeletedBranch %s:%s failed: %v", repo.FullName(), branch, err)
+				}
+
+				err = actions.DeleteWorkflowBranchLabelsForBranch(ctx, gitRepo, repo, opts.OldCommitID, branch)
+				if err != nil {
+					return err
 				}
 			}
 
