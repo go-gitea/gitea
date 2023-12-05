@@ -123,9 +123,11 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	loadOAuth2From(cfg)
 	loadSecurityFrom(cfg)
 	if err := loadAttachmentFrom(cfg); err != nil {
+		log.Error("load attachement")
 		return err
 	}
 	if err := loadLFSFrom(cfg); err != nil {
+		log.Error("load lfs")
 		return err
 	}
 	loadTimeFrom(cfg)
