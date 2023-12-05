@@ -717,8 +717,8 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 			} else {
 				ctx.Data["CitiationExist"] = true
 				ctx.PageData["citationFileContent"] = content
+				break
 			}
-			break
 		}
 	}
 }
