@@ -257,16 +257,10 @@ func EditUser(ctx *context.APIContext) {
 	}
 	if form.Admin != nil {
 		// Check whether user is the last admin
-		if ctx.ContextUser.IsAdmin && !*form.Admin {
-			num, err := user_model.GetAdminUserCount(ctx)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "GetAdminUserCount", err)
-				return
-			}
-			if num == 1 {
-				ctx.Error(http.StatusBadRequest, "LastAdmin", ctx.Tr("auth.last_admin"))
-				return
-			}
+		if ctx.ContextUser.IsAdmin && !*form.Admin &&
+			user_model.CountUsers(ctx, &user_model.CountUserFilter{IsAdmin: util.OptionalBoolTrue}) <= 1 {
+			ctx.Error(http.StatusBadRequest, "LastAdmin", ctx.Tr("auth.last_admin"))
+			return
 		}
 		ctx.ContextUser.IsAdmin = *form.Admin
 	}

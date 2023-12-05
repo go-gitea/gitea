@@ -708,6 +708,7 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 // CountUserFilter represent optional filters for CountUsers
 type CountUserFilter struct {
 	LastLoginSince *int64
+	IsAdmin        util.OptionalBool
 }
 
 // CountUsers returns number of users.
@@ -716,13 +717,25 @@ func CountUsers(ctx context.Context, opts *CountUserFilter) int64 {
 }
 
 func countUsers(ctx context.Context, opts *CountUserFilter) int64 {
-	sess := db.GetEngine(ctx).Where(builder.Eq{"type": "0"})
+	sess := db.GetEngine(ctx)
+	cond := builder.NewCond()
+	cond = cond.And(builder.Eq{"type": "0"})
 
-	if opts != nil && opts.LastLoginSince != nil {
-		sess = sess.Where(builder.Gte{"last_login_unix": *opts.LastLoginSince})
+	if opts != nil {
+		if opts.LastLoginSince != nil {
+			cond = cond.And(builder.Gte{"last_login_unix": *opts.LastLoginSince})
+		}
+
+		if !opts.IsAdmin.IsNone() {
+			cond = cond.And(builder.Eq{"is_admin": opts.IsAdmin})
+		}
 	}
 
-	count, _ := sess.Count(new(User))
+	count, err := sess.Where(cond).Count(new(User))
+	if err != nil {
+		log.Error("user.countUsers: %v", err)
+	}
+
 	return count
 }
 
@@ -1189,11 +1202,6 @@ func GetAdminUser(ctx context.Context) (*User, error) {
 	}
 
 	return &admin, nil
-}
-
-// GetAdminUserCount returns the count of all administrator
-func GetAdminUserCount(ctx context.Context) (int64, error) {
-	return db.GetEngine(ctx).Where("is_admin=?", true).Count(User{})
 }
 
 func isUserVisibleToViewerCond(viewer *User) builder.Cond {
