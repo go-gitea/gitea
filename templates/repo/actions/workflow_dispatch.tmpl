@@ -1,10 +1,18 @@
+<script type="module">
+	$('#runWorkflowDispatchForm').form({
+		fields: {
+			required_input : 'empty'
+		}
+	});
+</script>
+
 <div class="ui ignored info message">
 	This workflow has a workflow_dispatch event trigger.
 	<button class="ui right floated mini button" onclick="$('#runWorkflowDispatchModal').modal('show');">{{ctx.Locale.Tr "actions.workflow.run"}}{{svg "octicon-triangle-down" 14 "dropdown icon"}}</button>
 </div>
 <div id="runWorkflowDispatchModal" class="ui mini modal">
 	<div class="content">
-		<form class="ui form" action="{{$.Link}}/run?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}" method="post">
+		<form id="runWorkflowDispatchForm" class="ui form" action="{{$.Link}}/run?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="ui inline field required">
 				<label>{{ctx.Locale.Tr "actions.workflow.from_ref"}} :</label>
@@ -56,7 +64,7 @@
 					<label class="help">{{.Description}}</label>
 				</div>
 				{{else}}
-				<input name="{{$key}}" value="{{.Default}}">
+				<input name="{{$key}}" value="{{.Default}}" {{if .Required}}data-validate="required_input"{{end}}>
 				<span class="help">{{.Description}}</span>
 				{{end}}
 			</div>
