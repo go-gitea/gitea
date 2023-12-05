@@ -790,18 +790,6 @@ func Run(ctx *context_module.Context) {
 		return
 	}
 
-	for _, wf := range workflows {
-		if wf.Env == nil {
-			wf.Env = make(map[string]string)
-		}
-		for k, v := range ctx.Req.PostForm {
-			if k == "_csrf" || len(v) == 0 || v[0] == "" {
-				continue
-			}
-			wf.Env[k] = v[0]
-		}
-	}
-
 	// Insert the action run and its associated jobs into the database
 	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
 		ctx.ServerError("workflow", err)
