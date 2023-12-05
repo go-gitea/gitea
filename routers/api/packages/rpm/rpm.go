@@ -67,7 +67,7 @@ func CheckRepositoryFileExistence(ctx *context.Context) {
 		return
 	}
 
-	pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, ctx.Params("filename"), packages_model.EmptyFileKey)
+	pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, ctx.Params("filename"), ctx.Params("group"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.Status(http.StatusNotFound)
