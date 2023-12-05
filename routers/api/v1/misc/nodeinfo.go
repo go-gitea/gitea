@@ -34,15 +34,15 @@ func NodeInfo(ctx *context.APIContext) {
 			nodeInfoUsage, cached = ctx.Cache.Get(cacheKeyNodeInfoUsage).(structs.NodeInfoUsage)
 		}
 		if !cached {
-			usersTotal := int(user_model.CountUsers(nil))
+			usersTotal := int(user_model.CountUsers(ctx, nil))
 			now := time.Now()
 			timeOneMonthAgo := now.AddDate(0, -1, 0).Unix()
 			timeHaveYearAgo := now.AddDate(0, -6, 0).Unix()
-			usersActiveMonth := int(user_model.CountUsers(&user_model.CountUserFilter{LastLoginSince: &timeOneMonthAgo}))
-			usersActiveHalfyear := int(user_model.CountUsers(&user_model.CountUserFilter{LastLoginSince: &timeHaveYearAgo}))
+			usersActiveMonth := int(user_model.CountUsers(ctx, &user_model.CountUserFilter{LastLoginSince: &timeOneMonthAgo}))
+			usersActiveHalfyear := int(user_model.CountUsers(ctx, &user_model.CountUserFilter{LastLoginSince: &timeHaveYearAgo}))
 
 			allIssues, _ := issues_model.CountIssues(ctx, &issues_model.IssuesOptions{})
-			allComments, _ := issues_model.CountComments(&issues_model.FindCommentsOptions{})
+			allComments, _ := issues_model.CountComments(ctx, &issues_model.FindCommentsOptions{})
 
 			nodeInfoUsage = structs.NodeInfoUsage{
 				Users: structs.NodeInfoUsageUsers{

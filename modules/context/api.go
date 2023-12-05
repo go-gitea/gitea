@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -100,6 +99,12 @@ type APIRedirect struct{}
 // APIString is a string response
 // swagger:response string
 type APIString string
+
+// APIRepoArchivedError is an error that is raised when an archived repo should be modified
+// swagger:response repoArchivedError
+type APIRepoArchivedError struct {
+	APIError
+}
 
 // ServerError responds with error message, status is 500
 func (ctx *APIContext) ServerError(title string, err error) {
@@ -202,32 +207,6 @@ func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 	if len(links) > 0 {
 		ctx.RespHeader().Set("Link", strings.Join(links, ","))
 		ctx.AppendAccessControlExposeHeaders("Link")
-	}
-}
-
-// CheckForOTP validates OTP
-func (ctx *APIContext) CheckForOTP() {
-	if skip, ok := ctx.Data["SkipLocalTwoFA"]; ok && skip.(bool) {
-		return // Skip 2FA
-	}
-
-	otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
-	twofa, err := auth.GetTwoFactorByUID(ctx.Doer.ID)
-	if err != nil {
-		if auth.IsErrTwoFactorNotEnrolled(err) {
-			return // No 2FA enrollment for this user
-		}
-		ctx.Error(http.StatusInternalServerError, "GetTwoFactorByUID", err)
-		return
-	}
-	ok, err := twofa.ValidateTOTP(otpHeader)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ValidateTOTP", err)
-		return
-	}
-	if !ok {
-		ctx.Error(http.StatusUnauthorized, "", nil)
-		return
 	}
 }
 

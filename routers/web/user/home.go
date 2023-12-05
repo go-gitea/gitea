@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -58,7 +59,7 @@ func getDashboardContextUser(ctx *context.Context) *user_model.User {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	orgs, err := organization.GetUserOrgsList(ctx.Doer)
+	orgs, err := organization.GetUserOrgsList(ctx, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserOrgsList", err)
 		return nil
@@ -104,7 +105,7 @@ func Dashboard(ctx *context.Context) {
 	}
 
 	if setting.Service.EnableUserHeatmap {
-		data, err := activities_model.GetUserHeatmapDataByUserTeam(ctxUser, ctx.Org.Team, ctx.Doer)
+		data, err := activities_model.GetUserHeatmapDataByUserTeam(ctx, ctxUser, ctx.Org.Team, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserHeatmapDataByUserTeam", err)
 			return
@@ -212,13 +213,13 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 
-	counts, err := issues_model.CountMilestonesByRepoCondAndKw(userRepoCond, keyword, isShowClosed)
+	counts, err := issues_model.CountMilestonesByRepoCondAndKw(ctx, userRepoCond, keyword, isShowClosed)
 	if err != nil {
 		ctx.ServerError("CountMilestonesByRepoIDs", err)
 		return
 	}
 
-	milestones, err := issues_model.SearchMilestones(repoCond, page, isShowClosed, sortType, keyword)
+	milestones, err := issues_model.SearchMilestones(ctx, repoCond, page, isShowClosed, sortType, keyword)
 	if err != nil {
 		ctx.ServerError("SearchMilestones", err)
 		return
@@ -246,7 +247,7 @@ func Milestones(ctx *context.Context) {
 
 		milestones[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 			URLPrefix: milestones[i].Repo.Link(),
-			Metas:     milestones[i].Repo.ComposeMetas(),
+			Metas:     milestones[i].Repo.ComposeMetas(ctx),
 			Ctx:       ctx,
 		}, milestones[i].Content)
 		if err != nil {
@@ -255,7 +256,7 @@ func Milestones(ctx *context.Context) {
 		}
 
 		if milestones[i].Repo.IsTimetrackerEnabled(ctx) {
-			err := milestones[i].LoadTotalTrackedTime()
+			err := milestones[i].LoadTotalTrackedTime(ctx)
 			if err != nil {
 				ctx.ServerError("LoadTotalTrackedTime", err)
 				return
@@ -264,7 +265,7 @@ func Milestones(ctx *context.Context) {
 		i++
 	}
 
-	milestoneStats, err := issues_model.GetMilestonesStatsByRepoCondAndKw(repoCond, keyword)
+	milestoneStats, err := issues_model.GetMilestonesStatsByRepoCondAndKw(ctx, repoCond, keyword)
 	if err != nil {
 		ctx.ServerError("GetMilestoneStats", err)
 		return
@@ -274,7 +275,7 @@ func Milestones(ctx *context.Context) {
 	if len(repoIDs) == 0 {
 		totalMilestoneStats = milestoneStats
 	} else {
-		totalMilestoneStats, err = issues_model.GetMilestonesStatsByRepoCondAndKw(userRepoCond, keyword)
+		totalMilestoneStats, err = issues_model.GetMilestonesStatsByRepoCondAndKw(ctx, userRepoCond, keyword)
 		if err != nil {
 			ctx.ServerError("GetMilestoneStats", err)
 			return
@@ -290,7 +291,7 @@ func Milestones(ctx *context.Context) {
 	if len(repoIDs) == 0 {
 		repoIDs = showRepoIds.Values()
 	}
-	repoIDs = util.SliceRemoveAllFunc(repoIDs, func(v int64) bool {
+	repoIDs = slices.DeleteFunc(repoIDs, func(v int64) bool {
 		return !showRepoIds.Contains(v)
 	})
 
@@ -462,7 +463,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 	accessibleRepos := container.Set[int64]{}
 	{
-		ids, _, err := repo_model.SearchRepositoryIDs(repoOpts)
+		ids, _, err := repo_model.SearchRepositoryIDs(ctx, repoOpts)
 		if err != nil {
 			ctx.ServerError("SearchRepositoryIDs", err)
 			return
@@ -534,7 +535,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// Gets set when clicking filters on the issues overview page.
 	selectedRepoIDs := getRepoIDs(ctx.FormString("repos"))
 	// Remove repo IDs that are not accessible to the user.
-	selectedRepoIDs = util.SliceRemoveAllFunc(selectedRepoIDs, func(v int64) bool {
+	selectedRepoIDs = slices.DeleteFunc(selectedRepoIDs, func(v int64) bool {
 		return !accessibleRepos.Contains(v)
 	})
 	if len(selectedRepoIDs) > 0 {
@@ -575,7 +576,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 
 	// showReposMap maps repository IDs to their Repository pointers.
-	showReposMap, err := loadRepoByIDs(ctxUser, issueCountByRepo, unitType)
+	showReposMap, err := loadRepoByIDs(ctx, ctxUser, issueCountByRepo, unitType)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			ctx.NotFound("GetRepositoryByID", err)
@@ -733,7 +734,7 @@ func getRepoIDs(reposQuery string) []int64 {
 	return repoIDs
 }
 
-func loadRepoByIDs(ctxUser *user_model.User, issueCountByRepo map[int64]int64, unitType unit.Type) (map[int64]*repo_model.Repository, error) {
+func loadRepoByIDs(ctx *context.Context, ctxUser *user_model.User, issueCountByRepo map[int64]int64, unitType unit.Type) (map[int64]*repo_model.Repository, error) {
 	totalRes := make(map[int64]*repo_model.Repository, len(issueCountByRepo))
 	repoIDs := make([]int64, 0, 500)
 	for id := range issueCountByRepo {
@@ -742,14 +743,14 @@ func loadRepoByIDs(ctxUser *user_model.User, issueCountByRepo map[int64]int64, u
 		}
 		repoIDs = append(repoIDs, id)
 		if len(repoIDs) == 500 {
-			if err := repo_model.FindReposMapByIDs(repoIDs, totalRes); err != nil {
+			if err := repo_model.FindReposMapByIDs(ctx, repoIDs, totalRes); err != nil {
 				return nil, err
 			}
 			repoIDs = repoIDs[:0]
 		}
 	}
 	if len(repoIDs) > 0 {
-		if err := repo_model.FindReposMapByIDs(repoIDs, totalRes); err != nil {
+		if err := repo_model.FindReposMapByIDs(ctx, repoIDs, totalRes); err != nil {
 			return nil, err
 		}
 	}
@@ -758,7 +759,9 @@ func loadRepoByIDs(ctxUser *user_model.User, issueCountByRepo map[int64]int64, u
 
 // ShowSSHKeys output all the ssh keys of user by uid
 func ShowSSHKeys(ctx *context.Context) {
-	keys, err := asymkey_model.ListPublicKeys(ctx.ContextUser.ID, db.ListOptions{})
+	keys, err := db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+		OwnerID: ctx.ContextUser.ID,
+	})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return
@@ -783,7 +786,7 @@ func ShowGPGKeys(ctx *context.Context) {
 	entities := make([]*openpgp.Entity, 0)
 	failedEntitiesID := make([]string, 0)
 	for _, k := range keys {
-		e, err := asymkey_model.GPGKeyToEntity(k)
+		e, err := asymkey_model.GPGKeyToEntity(ctx, k)
 		if err != nil {
 			if asymkey_model.IsErrGPGKeyImportNotExist(err) {
 				failedEntitiesID = append(failedEntitiesID, k.KeyID)
@@ -821,6 +824,11 @@ func UsernameSubRoute(ctx *context.Context) {
 	reloadParam := func(suffix string) (success bool) {
 		ctx.SetParams("username", strings.TrimSuffix(username, suffix))
 		context_service.UserAssignmentWeb()(ctx)
+		// check view permissions
+		if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
+			ctx.NotFound("user", fmt.Errorf(ctx.ContextUser.Name))
+			return false
+		}
 		return !ctx.Written()
 	}
 	switch {

@@ -110,8 +110,8 @@ func ExecuteCleanupRules(outerCtx context.Context) error {
 					if err != nil {
 						return fmt.Errorf("GetUserByID failed: %w", err)
 					}
-					if err := cargo_service.AddOrUpdatePackageIndex(ctx, owner, owner, p.ID); err != nil {
-						return fmt.Errorf("CleanupRule [%d]: cargo.AddOrUpdatePackageIndex failed: %w", pcr.ID, err)
+					if err := cargo_service.UpdatePackageIndexIfExists(ctx, owner, owner, p.ID); err != nil {
+						return fmt.Errorf("CleanupRule [%d]: cargo.UpdatePackageIndexIfExists failed: %w", pcr.ID, err)
 					}
 				}
 			}

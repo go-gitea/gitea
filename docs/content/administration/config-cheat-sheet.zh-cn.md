@@ -102,7 +102,7 @@ menu:
 - `ENABLE_PUSH_CREATE_USER`:  **false**: 允许用户将本地存储库推送到Gitea，并为用户自动创建它们。
 - `ENABLE_PUSH_CREATE_ORG`:  **false**:  允许用户将本地存储库推送到Gitea，并为组织自动创建它们。
 - `DISABLED_REPO_UNITS`: **_empty_**: 逗号分隔的全局禁用的仓库单元列表。允许的值是：: \[repo.issues, repo.ext_issues, repo.pulls, repo.wiki, repo.ext_wiki, repo.projects, repo.packages, repo.actions\]
-- `DEFAULT_REPO_UNITS`: **repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki,repo.projects,repo.packages**: 逗号分隔的默认新仓库单元列表。允许的值是：: \[repo.code, repo.releases, repo.issues, repo.pulls, repo.wiki, repo.projects, repo.packages, repo.actions\]. 注意：目前无法停用代码和发布。如果您指定了默认的仓库单元，您仍应将它们列出以保持未来的兼容性。外部wiki和问题跟踪器不能默认启用，因为它需要额外的设置。禁用的仓库单元将不会添加到新的仓库中，无论它是否在默认列表中。
+- `DEFAULT_REPO_UNITS`: **repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki,repo.projects,repo.packages,repo.actions**: 逗号分隔的默认新仓库单元列表。允许的值是：: \[repo.code, repo.releases, repo.issues, repo.pulls, repo.wiki, repo.projects, repo.packages, repo.actions\]. 注意：目前无法停用代码和发布。如果您指定了默认的仓库单元，您仍应将它们列出以保持未来的兼容性。外部wiki和问题跟踪器不能默认启用，因为它需要额外的设置。禁用的仓库单元将不会添加到新的仓库中，无论它是否在默认列表中。
 - `DEFAULT_FORK_REPO_UNITS`: **repo.code,repo.pulls**: 逗号分隔的默认分叉仓库单元列表。允许的值和规则与`DEFAULT_REPO_UNITS`相同。
 - `PREFIX_ARCHIVE_FILES`: **true**: 通过将存档文件放置在以仓库命名的目录中来添加前缀。
 - `DISABLE_MIGRATIONS`: **false**: 禁用迁移功能。
@@ -145,7 +145,7 @@ menu:
 - `ENABLED`: **true**: 是否启用仓库文件上传。
 - `TEMP_PATH`: **data/tmp/uploads**: 文件上传的临时保存路径(在Gitea重启的时候该目录会被清空)。
 - `ALLOWED_TYPES`: **_empty_**: 以逗号分割的列表，代表支持上传的文件类型。(`.zip`), mime类型 (`text/plain`) or 通配符类型 (`image/*`, `audio/*`, `video/*`). 为空或者 `*/*`代表允许所有类型文件。
-- `FILE_MAX_SIZE`: **3**: 每个文件的最大大小(MB)。
+- `FILE_MAX_SIZE`: **50**: 每个文件的最大大小(MB)。
 - `MAX_FILES`: **5**: 每次上传的最大文件数。
 
 ### 仓库 - 版本发布 (`repository.release`)
@@ -214,9 +214,9 @@ menu:
 - `SITEMAP_PAGING_NUM`: **20**: 在单个子SiteMap中显示的项数。
 - `GRAPH_MAX_COMMIT_NUM`: **100**: 提交图中显示的最大commit数量。
 - `CODE_COMMENT_LINES`: **4**: 在代码评论中能够显示的最大代码行数。
-- `DEFAULT_THEME`: **auto**: \[auto, gitea, arc-green\]: 在Gitea安装时候设置的默认主题。
+- `DEFAULT_THEME`: **gitea-auto**: \[gitea-auto, gitea-light, gitea-dark\]: 在Gitea安装时候设置的默认主题。
 - `SHOW_USER_EMAIL`: **true**: 用户的电子邮件是否应该显示在`Explore Users`页面中。
-- `THEMES`:  **auto,gitea,arc-green**: 所有可用的主题。允许用户选择个性化的主题，
+- `THEMES`:  **gitea-auto,gitea-light,gitea-dark**: 所有可用的主题。允许用户选择个性化的主题，
   而不受DEFAULT_THEME 值的影响。
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: 能够显示文件的最大大小（默认为8MiB）。
 - `REACTIONS`: 用户可以在问题（Issue）、Pull Request（PR）以及评论中选择的所有可选的反应。
@@ -335,7 +335,7 @@ menu:
 - `SSH_AUTHORIZED_PRINCIPALS_ALLOW`: **off** 或 **username, email**：\[off, username, email, anything\]：指定允许用户用作 principal 的值。当设置为 `anything` 时，对 principal 字符串不执行任何检查。当设置为 `off` 时，不允许设置授权的 principal。
 - `SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE`: **false/true**：当 Gitea 不使用内置 SSH 服务器且 `SSH_AUTHORIZED_PRINCIPALS_ALLOW` 不为 `off` 时，默认情况下 Gitea 会创建一个 authorized_principals 文件。
 - `SSH_AUTHORIZED_PRINCIPALS_BACKUP`: **false/true**：在重写所有密钥时启用 SSH 授权 principal 备份，默认值为 true（如果 `SSH_AUTHORIZED_PRINCIPALS_ALLOW` 不为 `off`）。
-- `SSH_AUTHORIZED_KEYS_COMMAND_TEMPLATE`: **{{.AppPath}} --config={{.CustomConf}} serv key-{{.Key.ID}}**：设置用于传递授权密钥的命令模板。可能的密钥是：AppPath、AppWorkPath、CustomConf、CustomPath、Key，其中 Key 是 `models/asymkey.PublicKey`，其他是 shellquoted 字符串。
+- `SSH_AUTHORIZED_KEYS_COMMAND_TEMPLATE`: **`{{.AppPath}} --config={{.CustomConf}} serv key-{{.Key.ID}}`**：设置用于传递授权密钥的命令模板。可能的密钥是：AppPath、AppWorkPath、CustomConf、CustomPath、Key，其中 Key 是 `models/asymkey.PublicKey`，其他是 shellquoted 字符串。
 - `SSH_SERVER_CIPHERS`: **chacha20-poly1305@openssh.com, aes128-ctr, aes192-ctr, aes256-ctr, aes128-gcm@openssh.com, aes256-gcm@openssh.com**：对于内置的 SSH 服务器，选择支持的 SSH 连接的加密方法，对于系统 SSH，此设置无效。
 - `SSH_SERVER_KEY_EXCHANGES`: **curve25519-sha256, ecdh-sha2-nistp256, ecdh-sha2-nistp384, ecdh-sha2-nistp521, diffie-hellman-group14-sha256, diffie-hellman-group14-sha1**：对于内置 SSH 服务器，选择支持的 SSH 连接的密钥交换算法，对于系统 SSH，此设置无效。
 - `SSH_SERVER_MACS`: **hmac-sha2-256-etm@openssh.com, hmac-sha2-256, hmac-sha1**：对于内置 SSH 服务器，选择支持的 SSH 连接的 MAC 算法，对于系统 SSH，此设置无效。
@@ -436,7 +436,7 @@ menu:
 - `SQLITE_JOURNAL_MODE`：**""**：更改 SQlite3 的日志模式。可以用于在高负载导致写入拥塞时启用 [WAL 模式](https://www.sqlite.org/wal.html)。有关可能的值，请参阅 [SQlite3 文档](https://www.sqlite.org/pragma.html#pragma_journal_mode)。默认为数据库文件的默认值，通常为 DELETE。
 - `ITERATE_BUFFER_SIZE`：**50**：用于迭代的内部缓冲区大小。
 - `PATH`：**data/gitea.db**：仅适用于 SQLite3 的数据库文件路径。
-- `LOG_SQL`：**true**：记录已执行的 SQL。
+- `LOG_SQL`：**false**：记录已执行的 SQL。
 - `DB_RETRIES`：**10**：允许多少次 ORM 初始化 / DB 连接尝试。
 - `DB_RETRY_BACKOFF`：**3s**：如果发生故障，等待另一个 ORM 初始化 / DB 连接尝试的 time.Duration。
 - `MAX_OPEN_CONNS`：**0**：数据库最大打开连接数 - 默认为 0，表示没有限制。
@@ -472,7 +472,7 @@ menu:
 
 - `TYPE`：**level**：通用队列类型，当前支持：`level`（在内部使用 LevelDB）、`channel`、`redis`、`dummy`。无效的类型将视为 `level`。
 - `DATADIR`：**queues/common**：用于存储 level 队列的基本 DataDir。单独的队列的 `DATADIR` 可以在 `queue.name` 部分进行设置。相对路径将根据 `%(APP_DATA_PATH)s` 变为绝对路径。
-- `LENGTH`：**100**：通道队列阻塞之前的最大队列大小
+- `LENGTH`：**100000**：通道队列阻塞之前的最大队列大小
 - `BATCH_LENGTH`：**20**：在传递给处理程序之前批处理数据
 - `CONN_STR`：**redis://127.0.0.1:6379/0**：redis 队列类型的连接字符串。对于 `redis-cluster`，使用 `redis+cluster://127.0.0.1:6379/0`。可以使用查询参数来设置选项。类似地，LevelDB 选项也可以使用：**leveldb://relative/path?option=value** 或 **leveldb:///absolute/path?option=value** 进行设置，并将覆盖 `DATADIR`。
 - `QUEUE_NAME`：**_queue**：默认的 redis 和磁盘队列名称的后缀。单独的队列将默认为 **`name`**`QUEUE_NAME`，但可以在特定的 `queue.name` 部分中进行覆盖。
@@ -506,7 +506,6 @@ Gitea 创建以下非唯一队列：
 - `SECRET_KEY`: **\<每次安装时随机生成\>**：全局服务器安全密钥。这个密钥非常重要，如果丢失将无法解密加密的数据（例如 2FA）。
 - `SECRET_KEY_URI`: **_empty_**：与定义 `SECRET_KEY` 不同，此选项可用于使用存储在文件中的密钥（示例值：`file:/etc/gitea/secret_key`）。它不应该像 `SECRET_KEY` 一样容易丢失。
 - `LOGIN_REMEMBER_DAYS`: **7**：Cookie 保存时间，单位为天。
-- `COOKIE_USERNAME`: **gitea\_awesome**：保存用户名的 Cookie 名称。
 - `COOKIE_REMEMBER_NAME`: **gitea\_incredible**：保存自动登录信息的 Cookie 名称。
 - `REVERSE_PROXY_AUTHENTICATION_USER`: **X-WEBAUTH-USER**：反向代理认证的 HTTP 头部名称，用于提供用户信息。
 - `REVERSE_PROXY_AUTHENTICATION_EMAIL`: **X-WEBAUTH-EMAIL**：反向代理认证的 HTTP 头部名称，用于提供邮箱信息。
@@ -742,7 +741,7 @@ Gitea 创建以下非唯一队列：
 
 - `PROVIDER`: **memory**：会话存储引擎 \[memory, file, redis, redis-cluster, db, mysql, couchbase, memcache, postgres\]。设置为 `db` 将会重用 `[database]` 的配置信息。
 - `PROVIDER_CONFIG`: **data/sessions**：对于文件，为根路径；对于 db，为空（将使用数据库配置）；对于其他引擎，为连接字符串。相对路径将根据 _`AppWorkPath`_ 绝对化。
-- `COOKIE_SECURE`: **false**：启用此选项以强制在所有会话访问中使用 HTTPS。
+- `COOKIE_SECURE`: **_empty_**：`true` 或 `false`。启用此选项以强制在所有会话访问中使用 HTTPS。如果没有设置，当 ROOT_URL 是 https 链接的时候默认设置为 true。
 - `COOKIE_NAME`: **i\_like\_gitea**：用于会话 ID 的 cookie 名称。
 - `GC_INTERVAL_TIME`: **86400**：GC 间隔时间，以秒为单位。
 - `SESSION_LIFE_TIME`: **86400**：会话生命周期，以秒为单位，默认为 86400（1 天）。
@@ -784,7 +783,7 @@ Gitea 创建以下非唯一队列：
 
 - `ENABLED`: **true**: 是否允许用户上传附件。
 - `ALLOWED_TYPES`: **.csv,.docx,.fodg,.fodp,.fods,.fodt,.gif,.gz,.jpeg,.jpg,.log,.md,.mov,.mp4,.odf,.odg,.odp,.ods,.odt,.patch,.pdf,.png,.pptx,.svg,.tgz,.txt,.webm,.xls,.xlsx,.zip**: 允许的文件扩展名（`.zip`）、mime 类型（`text/plain`）或通配符类型（`image/*`、`audio/*`、`video/*`）的逗号分隔列表。空值或 `*/*` 允许所有类型。
-- `MAX_SIZE`: **4**: 附件的最大限制（MB）。
+- `MAX_SIZE`: **2048**: 附件的最大限制（MB）。
 - `MAX_FILES`: **5**: 一次最多上传的附件数量。
 - `STORAGE_TYPE`: **local**: 附件的存储类型，`local` 表示本地磁盘，`minio` 表示兼容 S3 的对象存储服务，如果未设置将使用默认值 `local` 或其他在 `[storage.xxx]` 中定义的名称。
 - `SERVE_DIRECT`: **false**: 允许存储驱动器重定向到经过身份验证的 URL 以直接提供文件。目前，只支持 Minio/S3 通过签名 URL 提供支持，local 不会执行任何操作。
@@ -1056,7 +1055,7 @@ Gitea 创建以下非唯一队列：
 - `JWT_SECRET_URI`：**_empty_**：可以使用此配置选项，而不是在配置中定义`JWT_SECRET`，以向Gitea提供包含密钥的文件的路径（示例值：`file:/etc/gitea/oauth2_jwt_secret`）。
 - `JWT_SIGNING_PRIVATE_KEY_FILE`：**jwt/private.pem**：用于签署OAuth2令牌的私钥文件路径。路径相对于`APP_DATA_PATH`。仅当`JWT_SIGNING_ALGORITHM`设置为`RS256`，`RS384`，`RS512`，`ES256`，`ES384`或`ES512`时才需要此设置。文件必须包含PKCS8格式的RSA或ECDSA私钥。如果不存在密钥，则将为您创建一个4096位密钥。
 - `MAX_TOKEN_LENGTH`：**32767**：从OAuth2提供者接受的令牌/cookie的最大长度。
-- `DEFAULT_APPLICATIONS`：**git-credential-oauth，git-credential-manager**：在启动时预注册用于某些服务的OAuth应用程序。有关可用选项列表，请参阅[OAuth2文档](/development/oauth2-provider.md)。
+- `DEFAULT_APPLICATIONS`：**git-credential-oauth，git-credential-manager, tea**：在启动时预注册用于某些服务的OAuth应用程序。有关可用选项列表，请参阅[OAuth2文档](/development/oauth2-provider.md)。
 
 ## i18n (`i18n`)
 
@@ -1331,7 +1330,7 @@ PROXY_HOSTS = *.github.com
 
 ## Actions (`actions`)
 
-- `ENABLED`: **false**：启用/禁用操作功能
+- `ENABLED`: **true**：启用/禁用操作功能
 - `DEFAULT_ACTIONS_URL`: **github**：获取操作插件的默认平台，`github`表示`https://github.com`，`self`表示当前的 Gitea 实例。
 - `STORAGE_TYPE`: **local**：用于操作日志的存储类型，`local`表示本地磁盘，`minio`表示与S3兼容的对象存储服务，默认为`local`，或者使用定义为`[storage.xxx]`的其他名称。
 - `MINIO_BASE_PATH`: **actions_log/**：Minio存储桶上的基本路径，仅在`STORAGE_TYPE`为`minio`时可用。
@@ -1344,7 +1343,7 @@ PROXY_HOSTS = *.github.com
 此外，它要求您将所有所需的操作镜像到您的 Gitea 实例，这可能不值得。
 因此，请仅在您了解自己在做什么的情况下使用 `self`。
 
-在早期版本（<= 1.19）中，`DEFAULT_ACTIONS_URL` 可以设置为任何自定义 URL，例如 `https://gitea.com` 或 `http://your-git-server,https://gitea.com`，默认值为 `https://gitea.com`。
+在早期版本（`<= 1.19`）中，`DEFAULT_ACTIONS_URL` 可以设置为任何自定义 URL，例如 `https://gitea.com` 或 `http://your-git-server,https://gitea.com`，默认值为 `https://gitea.com`。
 然而，后来的更新删除了这些选项，现在唯一的选项是 `github` 和 `self`，默认值为 `github`。
 但是，如果您想要使用其他 Git 服务器中的操作，您可以在 `uses` 字段中使用完整的 URL，Gitea 支持此功能（GitHub 不支持）。
 例如 `uses: https://gitea.com/actions/checkout@v3` 或 `uses: http://your-git-server/actions/checkout@v3`。

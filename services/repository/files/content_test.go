@@ -4,7 +4,6 @@
 package files
 
 import (
-	"path/filepath"
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -13,13 +12,13 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 
+	_ "code.gitea.io/gitea/models/actions"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", "..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func getExpectedReadmeContentsResponse() *api.ContentsResponse {

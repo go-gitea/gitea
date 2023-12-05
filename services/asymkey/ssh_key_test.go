@@ -8,6 +8,7 @@ import (
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -65,8 +66,11 @@ ssh-dss AAAAB3NzaC1kc3MAAACBAOChCC7lf6Uo9n7BmZ6M8St19PZf4Tn59NriyboW2x/DZuYAz3ib
 
 	for i, kase := range testCases {
 		s.ID = int64(i) + 20
-		asymkey_model.AddPublicKeysBySource(user, s, []string{kase.keyString})
-		keys, err := asymkey_model.ListPublicKeysBySource(user.ID, s.ID)
+		asymkey_model.AddPublicKeysBySource(db.DefaultContext, user, s, []string{kase.keyString})
+		keys, err := db.Find[asymkey_model.PublicKey](db.DefaultContext, asymkey_model.FindPublicKeyOptions{
+			OwnerID:       user.ID,
+			LoginSourceID: s.ID,
+		})
 		assert.NoError(t, err)
 		if err != nil {
 			continue
@@ -77,7 +81,7 @@ ssh-dss AAAAB3NzaC1kc3MAAACBAOChCC7lf6Uo9n7BmZ6M8St19PZf4Tn59NriyboW2x/DZuYAz3ib
 			assert.Contains(t, kase.keyContents, key.Content)
 		}
 		for _, key := range keys {
-			DeletePublicKey(user, key.ID)
+			DeletePublicKey(db.DefaultContext, user, key.ID)
 		}
 	}
 }

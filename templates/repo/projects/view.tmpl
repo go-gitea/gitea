@@ -4,8 +4,10 @@
 	<div class="ui container padded">
 		<div class="gt-df gt-sb gt-ac gt-mb-4">
 			{{template "repo/issue/navbar" .}}
-			<a class="ui small green button" href="{{.RepoLink}}/issues/new/choose?project={{.Project.ID}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
+			<a class="ui small primary button" href="{{.RepoLink}}/issues/new/choose?project={{.Project.ID}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
 		</div>
+	</div>
+	<div class="ui container fluid padded">
 		{{template "projects/view" .}}
 	</div>
 </div>

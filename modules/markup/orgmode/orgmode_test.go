@@ -34,15 +34,15 @@ func TestRender_StandardLinks(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
-	googleRendered := "<p><a href=\"https://google.com/\" title=\"https://google.com/\">https://google.com/</a></p>"
-	test("[[https://google.com/]]", googleRendered)
+	test("[[https://google.com/]]",
+		`<p><a href="https://google.com/">https://google.com/</a></p>`)
 
 	lnk := util.URLJoin(AppSubURL, "WikiPage")
 	test("[[WikiPage][WikiPage]]",
-		"<p><a href=\""+lnk+"\" title=\"WikiPage\">WikiPage</a></p>")
+		`<p><a href="`+lnk+`">WikiPage</a></p>`)
 }
 
-func TestRender_Images(t *testing.T) {
+func TestRender_Media(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
 
@@ -59,7 +59,23 @@ func TestRender_Images(t *testing.T) {
 	result := util.URLJoin(AppSubURL, url)
 
 	test("[[file:"+url+"]]",
-		"<p><img src=\""+result+"\" alt=\""+result+"\" title=\""+result+"\" /></p>")
+		`<p><img src="`+result+`" alt="`+result+`" /></p>`)
+
+	// With description.
+	test("[[https://example.com][https://example.com/example.svg]]",
+		`<p><a href="https://example.com"><img src="https://example.com/example.svg" alt="https://example.com/example.svg" /></a></p>`)
+	test("[[https://example.com][pre https://example.com/example.svg post]]",
+		`<p><a href="https://example.com">pre <img src="https://example.com/example.svg" alt="https://example.com/example.svg" /> post</a></p>`)
+	test("[[https://example.com][https://example.com/example.mp4]]",
+		`<p><a href="https://example.com"><video src="https://example.com/example.mp4">https://example.com/example.mp4</video></a></p>`)
+	test("[[https://example.com][pre https://example.com/example.mp4 post]]",
+		`<p><a href="https://example.com">pre <video src="https://example.com/example.mp4">https://example.com/example.mp4</video> post</a></p>`)
+
+	// Without description.
+	test("[[https://example.com/example.svg]]",
+		`<p><img src="https://example.com/example.svg" alt="https://example.com/example.svg" /></p>`)
+	test("[[https://example.com/example.mp4]]",
+		`<p><video src="https://example.com/example.mp4">https://example.com/example.mp4</video></p>`)
 }
 
 func TestRender_Source(t *testing.T) {

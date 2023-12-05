@@ -26,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	incoming_payload "code.gitea.io/gitea/services/mailer/incoming/payload"
@@ -68,15 +67,12 @@ func SendTestMail(email string) error {
 func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, subject, info string) {
 	locale := translation.NewLocale(language)
 	data := map[string]any{
+		"locale":            locale,
 		"DisplayName":       u.DisplayName(),
 		"ActiveCodeLives":   timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale),
 		"ResetPwdCodeLives": timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, locale),
 		"Code":              code,
 		"Language":          locale.Language(),
-		// helper
-		"locale":    locale,
-		"Str2html":  templates.Str2html,
-		"DotEscape": templates.DotEscape,
 	}
 
 	var content bytes.Buffer
@@ -119,15 +115,12 @@ func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
 	}
 	locale := translation.NewLocale(u.Language)
 	data := map[string]any{
+		"locale":          locale,
 		"DisplayName":     u.DisplayName(),
 		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale),
 		"Code":            u.GenerateEmailActivateCode(email.Email),
 		"Email":           email.Email,
 		"Language":        locale.Language(),
-		// helper
-		"locale":    locale,
-		"Str2html":  templates.Str2html,
-		"DotEscape": templates.DotEscape,
 	}
 
 	var content bytes.Buffer
@@ -152,13 +145,10 @@ func SendRegisterNotifyMail(u *user_model.User) {
 	locale := translation.NewLocale(u.Language)
 
 	data := map[string]any{
+		"locale":      locale,
 		"DisplayName": u.DisplayName(),
 		"Username":    u.Name,
 		"Language":    locale.Language(),
-		// helper
-		"locale":    locale,
-		"Str2html":  templates.Str2html,
-		"DotEscape": templates.DotEscape,
 	}
 
 	var content bytes.Buffer
@@ -185,14 +175,11 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 
 	subject := locale.Tr("mail.repo.collaborator.added.subject", doer.DisplayName(), repoName)
 	data := map[string]any{
+		"locale":   locale,
 		"Subject":  subject,
 		"RepoName": repoName,
 		"Link":     repo.HTMLURL(),
 		"Language": locale.Language(),
-		// helper
-		"locale":    locale,
-		"Str2html":  templates.Str2html,
-		"DotEscape": templates.DotEscape,
 	}
 
 	var content bytes.Buffer
@@ -235,7 +222,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	body, err := markdown.RenderString(&markup.RenderContext{
 		Ctx:       ctx,
 		URLPrefix: ctx.Issue.Repo.HTMLURL(),
-		Metas:     ctx.Issue.Repo.ComposeMetas(),
+		Metas:     ctx.Issue.Repo.ComposeMetas(ctx),
 	}, ctx.Content)
 	if err != nil {
 		return nil, err
@@ -259,6 +246,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	locale := translation.NewLocale(lang)
 
 	mailMeta := map[string]any{
+		"locale":          locale,
 		"FallbackSubject": fallback,
 		"Body":            body,
 		"Link":            link,
@@ -275,10 +263,6 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		"ReviewComments":  reviewComments,
 		"Language":        locale.Language(),
 		"CanReply":        setting.IncomingEmail.Enabled && commentType != issues_model.CommentTypePullRequestPush,
-		// helper
-		"locale":    locale,
-		"Str2html":  templates.Str2html,
-		"DotEscape": templates.DotEscape,
 	}
 
 	var mailSubject bytes.Buffer
@@ -306,8 +290,10 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	reference := createReference(ctx.Issue, nil, activities_model.ActionType(0))
 
 	var replyPayload []byte
-	if ctx.Comment != nil && ctx.Comment.Type == issues_model.CommentTypeCode {
-		replyPayload, err = incoming_payload.CreateReferencePayload(ctx.Comment)
+	if ctx.Comment != nil {
+		if ctx.Comment.Type.HasMailReplySupport() {
+			replyPayload, err = incoming_payload.CreateReferencePayload(ctx.Comment)
+		}
 	} else {
 		replyPayload, err = incoming_payload.CreateReferencePayload(ctx.Issue)
 	}
@@ -332,7 +318,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		listUnsubscribe := []string{"<" + ctx.Issue.HTMLURL() + ">"}
 
 		if setting.IncomingEmail.Enabled {
-			if ctx.Comment != nil {
+			if replyPayload != nil {
 				token, err := token.CreateToken(token.ReplyHandlerType, recipient, replyPayload)
 				if err != nil {
 					log.Error("CreateToken failed: %v", err)
@@ -469,7 +455,7 @@ func SendIssueAssignedMail(ctx context.Context, issue *issues_model.Issue, doer 
 		if err != nil {
 			return err
 		}
-		SendAsyncs(msgs)
+		SendAsync(msgs...)
 	}
 	return nil
 }

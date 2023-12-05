@@ -153,6 +153,8 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/error"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	issue := getIssueFromContext(ctx)
 	if issue == nil {
@@ -176,7 +178,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 		filename = query
 	}
 
-	attachment, err := attachment.UploadAttachment(file, setting.Attachment.AllowedTypes, header.Size, &repo_model.Attachment{
+	attachment, err := attachment.UploadAttachment(ctx, file, setting.Attachment.AllowedTypes, header.Size, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,
@@ -189,7 +191,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 
 	issue.Attachments = append(issue.Attachments, attachment)
 
-	if err := issue_service.ChangeContent(issue, ctx.Doer, issue.Content); err != nil {
+	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, issue.Content); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ChangeContent", err)
 		return
 	}
@@ -238,6 +240,8 @@ func EditIssueAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Attachment"
 	//   "404":
 	//     "$ref": "#/responses/error"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	attachment := getIssueAttachmentSafeWrite(ctx)
 	if attachment == nil {
@@ -292,13 +296,15 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/error"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	attachment := getIssueAttachmentSafeWrite(ctx)
 	if attachment == nil {
 		return
 	}
 
-	if err := repo_model.DeleteAttachment(attachment, true); err != nil {
+	if err := repo_model.DeleteAttachment(ctx, attachment, true); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteAttachment", err)
 		return
 	}

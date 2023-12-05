@@ -203,10 +203,20 @@ Some of the key points:
 
 In the PR title, describe the problem you are fixing, not how you are fixing it. \
 Use the first comment as a summary of your PR. \
-In the PR summary, you can describe exactly how you are fixing this problem. \
+In the PR summary, you can describe exactly how you are fixing this problem.
+
 Keep this summary up-to-date as the PR evolves. \
 If your PR changes the UI, you must add **after** screenshots in the PR summary. \
-If you are not implementing a new feature, you should also post **before** screenshots for comparison. \
+If you are not implementing a new feature, you should also post **before** screenshots for comparison.
+
+If you are implementing a new feature, your PR will only be merged if your screenshots are up to date.\
+Furthermore, feature PRs will only be merged if their summary contains a clear usage description (understandable for users) and testing description (understandable for reviewers).
+You should strive to combine both into a single description.
+
+Another requirement for merging PRs is that the PR is labeled correctly.\
+However, this is not your job as a contributor, but the job of the person merging your PR.\
+If you think that your PR was labeled incorrectly, or notice that it was merged without labels, please let us know.
+
 If your PR closes some issues, you must note that in a way that both GitHub and Gitea understand, i.e. by appending a paragraph like
 
 ```text
@@ -225,17 +235,20 @@ PRs without a milestone may not be merged.
 
 ### Labels
 
-Every PR should be labeled correctly with every label that applies. \
-This includes especially the distinction between `bug` (fixing existing functionality), `feature` (new functionality), `enhancement` (upgrades for existing functionality), and `refactoring` (improving the internal code structure without changing the output (much)). \
-Furthermore,
+Almost all labels used inside Gitea can be classified as one of the following:
+
+- `modifies/…`: Determines which parts of the codebase are affected. These labels will be set through the CI.
+- `topic/…`:  Determines the conceptual component of Gitea that is affected, i.e. issues, projects, or authentication. At best, PRs should only target one component but there might be overlap. Must be set manually.
+- `type/…`: Determines the type of an issue or PR (feature, refactoring, docs, bug, …). If GitHub supported scoped labels, these labels would be exclusive, so you should set **exactly** one, not more or less (every PR should fall into one of the provided categories, and only one).
+- `issue/…` / `pr/…`: Labels that are specific to issues or PRs respectively and that are only necessary in a given context, i.e. `issue/not-a-bug` or `pr/need-2-approvals`
+
+Every PR should be labeled correctly with every label that applies.
+
+There are also some labels that will be managed automatically.\
+In particular, these are
 
 - the amount of pending required approvals
-- whether this PR is `blocked`, a `backport` or `breaking`
-- if it targets the `ui` or `api`
-- if it increases the application `speed`
-- reduces `memory usage`
-
-are oftentimes notable labels.
+- has all `backport`s or needs a manual backport
 
 ### Breaking PRs
 
@@ -252,13 +265,16 @@ Changing the default value of a setting or replacing the setting with another on
 
 #### How to handle breaking PRs?
 
-If your PR has a breaking change, you must add a `BREAKING` section to your PR summary, e.g.
+If your PR has a breaking change, you must add two things to the summary of your PR:
 
-```
+1. A reasoning why this breaking change is necessary
+2. A `BREAKING` section explaining in simple terms (understandable for a typical user) how this PR affects users and how to mitigate these changes. This section can look for example like
+
+```md
 ## :warning: BREAKING :warning:
 ```
 
-To explain how this will affect users and how to mitigate these changes.
+Breaking PRs will not be merged as long as not both of these requirements are met.
 
 ### Maintaining open PRs
 

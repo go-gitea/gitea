@@ -83,7 +83,7 @@ func TestMetas(t *testing.T) {
 
 	repo.Units = nil
 
-	metas := repo.ComposeMetas()
+	metas := repo.ComposeMetas(db.DefaultContext)
 	assert.Equal(t, "testRepo", metas["repo"])
 	assert.Equal(t, "testOwner", metas["user"])
 
@@ -97,7 +97,7 @@ func TestMetas(t *testing.T) {
 	testSuccess := func(expectedStyle string) {
 		repo.Units = []*repo_model.RepoUnit{&externalTracker}
 		repo.RenderingMetas = nil
-		metas := repo.ComposeMetas()
+		metas := repo.ComposeMetas(db.DefaultContext)
 		assert.Equal(t, expectedStyle, metas["style"])
 		assert.Equal(t, "testRepo", metas["repo"])
 		assert.Equal(t, "testOwner", metas["user"])
@@ -118,10 +118,10 @@ func TestMetas(t *testing.T) {
 	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, 3)
 	assert.NoError(t, err)
 
-	metas = repo.ComposeMetas()
+	metas = repo.ComposeMetas(db.DefaultContext)
 	assert.Contains(t, metas, "org")
 	assert.Contains(t, metas, "teams")
-	assert.Equal(t, "user3", metas["org"])
+	assert.Equal(t, "org3", metas["org"])
 	assert.Equal(t, ",owners,team1,", metas["teams"])
 }
 
