@@ -130,7 +130,7 @@ func (milestones MilestoneList) LoadTotalTrackedTimes(ctx context.Context) error
 
 // CountMilestonesByRepoCondAndKw map from repo conditions and the keyword of milestones' name to number of milestones matching the options`
 func CountMilestonesMap(ctx context.Context, opts FindMilestoneOptions) (map[int64]int64, error) {
-	sess := db.GetEngine(ctx).Where(opts.ToConds)
+	sess := db.GetEngine(ctx).Where(opts.ToConds())
 
 	countsSlice := make([]*struct {
 		RepoID int64
