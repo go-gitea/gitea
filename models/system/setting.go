@@ -81,7 +81,7 @@ func SetSettings(ctx context.Context, settings map[string]string) error {
 			return err
 		}
 		for k, v := range settings {
-			res, err := e.Exec("UPDATE system_setting SET setting_value=? WHERE setting_key=?", v, k)
+			res, err := e.Exec("UPDATE system_setting SET version=version+1, setting_value=? WHERE setting_key=?", v, k)
 			if err != nil {
 				return err
 			}

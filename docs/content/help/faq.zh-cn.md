@@ -41,7 +41,6 @@ menu:
 
 要从Gogs迁移到Gitea：
 
-- [Gogs版本0.9.146或更低](installation/upgrade-from-gogs.md)
 - [Gogs版本0.11.46.0418](https://github.com/go-gitea/gitea/issues/4286)
 
 要从GitHub迁移到Gitea，您可以使用Gitea内置的迁移表单。

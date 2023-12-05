@@ -589,6 +589,7 @@ func RpmRoutes(r *web.Route) func() {
 	return func() {
 		r.Methods("HEAD,GET,POST,PUT,PATCH,DELETE", "*", func(ctx *context.Context) {
 			path := ctx.Params("*")
+			isHead := ctx.Req.Method == "HEAD"
 			isGetHead := ctx.Req.Method == "HEAD" || ctx.Req.Method == "GET"
 			isPut := ctx.Req.Method == "PUT"
 			isDelete := ctx.Req.Method == "DELETE"
@@ -610,7 +611,11 @@ func RpmRoutes(r *web.Route) func() {
 			if len(m) == 3 && isGetHead {
 				ctx.SetParams("group", strings.Trim(m[1], "/"))
 				ctx.SetParams("filename", m[2])
-				rpm.GetRepositoryFile(ctx)
+				if isHead {
+					rpm.CheckRepositoryFileExistence(ctx)
+				} else {
+					rpm.GetRepositoryFile(ctx)
+				}
 				return
 			}
 			// upload
