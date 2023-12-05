@@ -43,8 +43,9 @@ func (c *Commit) Message() string {
 }
 
 // Summary returns first line of commit message.
+// The string is forced to be valid UTF8
 func (c *Commit) Summary() string {
-	return strings.Split(strings.TrimSpace(c.CommitMessage), "\n")[0]
+	return strings.ToValidUTF8(strings.Split(strings.TrimSpace(c.CommitMessage), "\n")[0], "?")
 }
 
 // ParentID returns oid of n-th parent (0-based index).
