@@ -5,6 +5,7 @@ package actions
 
 import (
 	"archive/zip"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"compress/gzip"
 	"context"
@@ -689,6 +690,12 @@ func Run(ctx *context_module.Context) {
 		return
 	}
 
+	ref := ctx.FormString("ref")
+	if len(ref) == 0 {
+		ctx.ServerError("workflow", nil)
+		return
+	}
+
 	// can not rerun job when workflow is disabled
 	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
@@ -698,13 +705,32 @@ func Run(ctx *context_module.Context) {
 		return
 	}
 
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+	// get target commit of run from specified ref
+	refName := git.RefName(ref)
+	var runTargetCommit *git.Commit
+	var err error
+	if refName.IsTag() {
+		runTargetCommit, err = ctx.Repo.GitRepo.GetTagCommit(refName.TagName())
+	} else if refName.IsBranch() {
+		runTargetCommit, err = ctx.Repo.GitRepo.GetBranchCommit(refName.BranchName())
+	} else {
+		ctx.Flash.Error(ctx.Tr("form.git_ref_name_error", ref))
+		ctx.Redirect(redirectURL)
+		return
+	}
+	if err != nil {
+		ctx.Flash.Error(ctx.Tr("form.target_ref_not_exist", ref))
+		ctx.Redirect(redirectURL)
+		return
+	}
+
+	// get workflow entry from default branch commit
+	defaultBranchCommit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	entries, err := actions.ListWorkflows(commit)
+	entries, err := actions.ListWorkflows(defaultBranchCommit)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
@@ -734,13 +760,13 @@ func Run(ctx *context_module.Context) {
 	}
 
 	run := &actions_model.ActionRun{
-		Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
+		Title:             strings.SplitN(runTargetCommit.CommitMessage, "\n", 2)[0],
 		RepoID:            ctx.Repo.Repository.ID,
 		OwnerID:           ctx.Repo.Repository.OwnerID,
 		WorkflowID:        workflow,
 		TriggerUserID:     ctx.Doer.ID,
-		Ref:               ctx.Repo.Repository.DefaultBranch,
-		CommitSHA:         commit.ID.String(),
+		Ref:               ref,
+		CommitSHA:         runTargetCommit.ID.String(),
 		IsForkPullRequest: false,
 		Event:             webhook_module.HookEventWorkflowDispatch,
 		TriggerEvent:      webhook_module.HookEventWorkflowDispatch.Event(),

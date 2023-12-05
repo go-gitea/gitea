@@ -6,6 +6,39 @@
 	<div class="content">
 		<form class="ui form" action="{{$.Link}}/run?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}" method="post">
 			{{.CsrfTokenHtml}}
+			<div class="ui inline field required">
+				<label>{{ctx.Locale.Tr "actions.workflow.from_ref"}} :</label>
+				<div class="ui floating dropdown icon button">
+					<input type="hidden" name="ref" value="refs/heads/{{index .Branches 0}}">
+					<i>{{svg "octicon-git-branch"}}</i>
+					<span class="text">{{index .Branches 0}}</span>
+					<div class="menu">
+						<div class="ui icon search input">
+							<i class="search icon"></i>
+							<input type="text" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}">
+						</div>
+						<div class="scrolling menu">
+							<div class="header">
+								{{svg "octicon-git-branch"}}
+								Branches
+							</div>
+							{{range $key, $item := .Branches}}
+							<div class="item {{if eq $key 0}}active selected{{end}}" data-value="refs/heads/{{.}}">{{.}}</div>
+							{{end}}
+							<div class="divider"></div>
+							<div class="header">
+								{{svg "octicon-tag"}}
+								Tags
+							</div>
+							{{range $key, $item := .Tags}}
+							<div class="item" data-value="refs/tags/{{.}}">{{.}}</div>
+							{{end}}
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="divider"></div>
 			{{if .WorkflowDispatchConfig}}
 			{{range $key, $item := .WorkflowDispatchConfig.Inputs}}
 			<div class="ui field {{if .Required}}required{{end}}">
@@ -29,7 +62,7 @@
 			</div>
 			{{end}}
 			{{end}}
-			<button class="ui tiny blue button">Submit</button>
+			<button class="ui tiny blue button" type="submit">Submit</button>
 		</form>
 	</div>
 </div>
