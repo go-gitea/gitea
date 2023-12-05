@@ -293,6 +293,17 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 
 	sess := db.GetEngine(ctx)
 
+	var branch Branch
+	exist, err := db.GetEngine(ctx).Where("repo_id=? AND name=?", repo.ID, from).Get(&branch)
+	if err != nil {
+		return err
+	} else if !exist || branch.IsDeleted {
+		return ErrBranchNotExist{
+			RepoID:     repo.ID,
+			BranchName: from,
+		}
+	}
+
 	// 1. update branch in database
 	if n, err := sess.Where("repo_id=? AND name=?", repo.ID, from).Update(&Branch{
 		Name: to,

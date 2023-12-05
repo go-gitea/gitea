@@ -28,35 +28,13 @@ import (
 )
 
 // CreateNewBranch creates a new repository branch
-func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldBranchName, branchName string) (err error) {
-	err = repo.MustNotBeArchived()
+func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, oldBranchName, branchName string) (err error) {
+	branch, err := git_model.GetBranch(ctx, repo.ID, oldBranchName)
 	if err != nil {
 		return err
 	}
 
-	// Check if branch name can be used
-	if err := checkBranchName(ctx, repo, branchName); err != nil {
-		return err
-	}
-
-	if !git.IsBranchExist(ctx, repo.RepoPath(), oldBranchName) {
-		return git_model.ErrBranchNotExist{
-			BranchName: oldBranchName,
-		}
-	}
-
-	if err := git.Push(ctx, repo.RepoPath(), git.PushOptions{
-		Remote: repo.RepoPath(),
-		Branch: fmt.Sprintf("%s%s:%s%s", git.BranchPrefix, oldBranchName, git.BranchPrefix, branchName),
-		Env:    repo_module.PushingEnvironment(doer, repo),
-	}); err != nil {
-		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
-			return err
-		}
-		return fmt.Errorf("push: %w", err)
-	}
-
-	return nil
+	return CreateNewBranchFromCommit(ctx, doer, repo, gitRepo, branch.CommitID, branchName)
 }
 
 // Branch contains the branch information
@@ -250,7 +228,7 @@ func checkBranchName(ctx context.Context, repo *repo_model.Repository, name stri
 }
 
 // CreateNewBranchFromCommit creates a new repository branch
-func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commit, branchName string) (err error) {
+func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, commitID, branchName string) (err error) {
 	err = repo.MustNotBeArchived()
 	if err != nil {
 		return err
@@ -261,18 +239,27 @@ func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo 
 		return err
 	}
 
-	if err := git.Push(ctx, repo.RepoPath(), git.PushOptions{
-		Remote: repo.RepoPath(),
-		Branch: fmt.Sprintf("%s:%s%s", commit, git.BranchPrefix, branchName),
-		Env:    repo_module.PushingEnvironment(doer, repo),
-	}); err != nil {
-		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		commit, err := gitRepo.GetCommit(commitID)
+		if err != nil {
 			return err
 		}
-		return fmt.Errorf("push: %w", err)
-	}
+		if err := repo_module.UpdateBranch(ctx, repo.ID, doer.ID, branchName, commit); err != nil {
+			return err
+		}
 
-	return nil
+		if err := git.Push(ctx, repo.RepoPath(), git.PushOptions{
+			Remote: repo.RepoPath(),
+			Branch: fmt.Sprintf("%s:%s%s", commitID, git.BranchPrefix, branchName),
+			Env:    repo_module.PushingEnvironment(doer, repo),
+		}); err != nil {
+			if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
+				return err
+			}
+			return fmt.Errorf("push: %w", err)
+		}
+		return nil
+	})
 }
 
 // RenameBranch rename a branch
