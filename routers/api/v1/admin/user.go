@@ -255,13 +255,10 @@ func EditUser(ctx *context.APIContext) {
 	if len(form.Visibility) != 0 {
 		ctx.ContextUser.Visibility = api.VisibilityModes[form.Visibility]
 	}
-	if form.Admin != nil {
-		// Check whether user is the last admin
-		if ctx.ContextUser.IsAdmin && !*form.Admin &&
-			user_model.CountUsers(ctx, &user_model.CountUserFilter{IsAdmin: util.OptionalBoolTrue}) <= 1 {
-			ctx.Error(http.StatusBadRequest, "LastAdmin", ctx.Tr("auth.last_admin"))
-			return
-		}
+	if form.Admin != nil && !*form.Admin && user_model.IsLastAdminUser(ctx, ctx.ContextUser) {
+		ctx.Error(http.StatusBadRequest, "LastAdmin", ctx.Tr("auth.last_admin"))
+		return
+	} else {
 		ctx.ContextUser.IsAdmin = *form.Admin
 	}
 	if form.AllowGitHook != nil {
@@ -339,7 +336,8 @@ func DeleteUser(ctx *context.APIContext) {
 	if err := user_service.DeleteUser(ctx, ctx.ContextUser, ctx.FormBool("purge")); err != nil {
 		if models.IsErrUserOwnRepos(err) ||
 			models.IsErrUserHasOrgs(err) ||
-			models.IsErrUserOwnPackages(err) {
+			models.IsErrUserOwnPackages(err) ||
+			models.IsErrDeleteLastAdminUser(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteUser", err)

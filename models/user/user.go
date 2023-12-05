@@ -705,6 +705,14 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 	return committer.Commit()
 }
 
+// IsLastAdminUser check whether user is the last admin
+func IsLastAdminUser(ctx context.Context, user *User) bool {
+	if user.IsAdmin && CountUsers(ctx, &CountUserFilter{IsAdmin: util.OptionalBoolTrue}) <= 1 {
+		return true
+	}
+	return false
+}
+
 // CountUserFilter represent optional filters for CountUsers
 type CountUserFilter struct {
 	LastLoginSince *int64

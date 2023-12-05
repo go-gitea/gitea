@@ -437,8 +437,7 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	// Check whether user is the last admin
-	if u.IsAdmin && !form.Admin &&
-		user_model.CountUsers(ctx, &user_model.CountUserFilter{IsAdmin: util.OptionalBoolTrue}) <= 1 {
+	if !form.Admin && user_model.IsLastAdminUser(ctx, u) {
 		ctx.RenderWithErr(ctx.Tr("auth.last_admin"), tplUserEdit, &form)
 		return
 	}
@@ -510,7 +509,10 @@ func DeleteUser(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
 		case models.IsErrUserOwnPackages(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_packages"))
-			ctx.Redirect(setting.AppSubURL + "/admin/users/" + ctx.Params(":userid"))
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
+		case models.IsErrDeleteLastAdminUser(err):
+			ctx.Flash.Error(ctx.Tr("auth.last_admin"))
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
 		default:
 			ctx.ServerError("DeleteUser", err)
 		}
