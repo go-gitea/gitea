@@ -1,5 +1,5 @@
 <div class="flex-list">
-	{{if eq (len .Runs) 0}}
+	{{if not .Runs}}
 	<div class="empty-placeholder">
 		{{svg "octicon-no-entry" 48}}
 		<h2>{{if $.IsFiltered}}{{ctx.Locale.Tr "actions.runs.no_results"}}{{else}}{{ctx.Locale.Tr "actions.runs.no_runs"}}{{end}}</h2>
