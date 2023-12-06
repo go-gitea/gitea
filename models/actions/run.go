@@ -133,18 +133,6 @@ func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
 	return nil, fmt.Errorf("event %s is not a push event", run.Event)
 }
 
-func FindWorkflowIDsByRepoID(ctx context.Context, repoID int64) ([]string, error) {
-	ids := make([]string, 0, 10)
-
-	err := db.GetEngine(ctx).Table(new(ActionRun)).Where("repo_id = ?", repoID).
-		Select("workflow_id").Distinct("workflow_id").Find(&ids)
-	if err != nil {
-		return nil, err
-	}
-
-	return ids, nil
-}
-
 func (run *ActionRun) GetPullRequestEventPayload() (*api.PullRequestPayload, error) {
 	if run.Event == webhook_module.HookEventPullRequest || run.Event == webhook_module.HookEventPullRequestSync {
 		var payload api.PullRequestPayload

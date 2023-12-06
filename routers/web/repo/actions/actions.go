@@ -27,7 +27,6 @@ const (
 type Workflow struct {
 	Entry  git.TreeEntry
 	ErrMsg string
-	Name   string
 }
 
 // MustEnableActions check if actions are enabled in settings
@@ -90,7 +89,6 @@ func List(ctx *context.Context) {
 			}
 		}
 	}
-
 	ctx.Data["workflows"] = workflows
 	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
 
