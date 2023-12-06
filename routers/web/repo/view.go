@@ -711,21 +711,14 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 	}
 	for _, entry := range allEntries {
 		if entry.Name() == "CITATION.cff" || entry.Name() == "CITATION.bib" {
-			ctx.Data["CitiationExist"] = true
 			// Read Citation file contents
-			blob := entry.Blob()
-			dataRc, err := blob.DataAsync()
-			if err != nil {
-				ctx.ServerError("DataAsync", err)
-				return
+			if content, err := entry.Blob().GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+				log.Error("checkCitationFile: GetBlobContent: %v", err)
+			} else {
+				ctx.Data["CitiationExist"] = true
+				ctx.PageData["citationFileContent"] = content
+				break
 			}
-			defer dataRc.Close()
-			ctx.PageData["citationFileContent"], err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
-			if err != nil {
-				ctx.ServerError("GetBlobContent", err)
-				return
-			}
-			break
 		}
 	}
 }

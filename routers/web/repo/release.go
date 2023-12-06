@@ -174,6 +174,7 @@ func TagsList(ctx *context.Context) {
 	// Disable the showCreateNewBranch form in the dropdown on this page.
 	ctx.Data["CanCreateBranch"] = false
 	ctx.Data["HideBranchesInDropdown"] = true
+	ctx.Data["CanCreateRelease"] = ctx.Repo.CanWrite(unit.TypeReleases) && !ctx.Repo.Repository.IsArchived
 
 	listOptions := db.ListOptions{
 		Page:     ctx.FormInt("page"),
