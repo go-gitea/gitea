@@ -24,15 +24,17 @@ func TestReadingBlameOutput(t *testing.T) {
 
 		parts := []*BlamePart{
 			{
-				"72866af952e98d02a73003501836074b286a78f6",
-				[]string{
+				Sha: "72866af952e98d02a73003501836074b286a78f6",
+				Lines: []string{
 					"# test_repo",
 					"Test repository for testing migration from github to gitea",
 				},
 			},
 			{
-				"f32b0a9dfd09a60f616f29158f772cedd89942d2",
-				[]string{"", "Do not make any changes to this repo it is used for unit testing"},
+				Sha:          "f32b0a9dfd09a60f616f29158f772cedd89942d2",
+				Lines:        []string{"", "Do not make any changes to this repo it is used for unit testing"},
+				PreviousSha:  "72866af952e98d02a73003501836074b286a78f6",
+				PreviousPath: "README.md",
 			},
 		}
 
@@ -64,16 +66,18 @@ func TestReadingBlameOutput(t *testing.T) {
 
 		full := []*BlamePart{
 			{
-				"af7486bd54cfc39eea97207ca666aa69c9d6df93",
-				[]string{"line", "line"},
+				Sha:   "af7486bd54cfc39eea97207ca666aa69c9d6df93",
+				Lines: []string{"line", "line"},
 			},
 			{
-				"45fb6cbc12f970b04eacd5cd4165edd11c8d7376",
-				[]string{"changed line"},
+				Sha:          "45fb6cbc12f970b04eacd5cd4165edd11c8d7376",
+				Lines:        []string{"changed line"},
+				PreviousSha:  "af7486bd54cfc39eea97207ca666aa69c9d6df93",
+				PreviousPath: "blame.txt",
 			},
 			{
-				"af7486bd54cfc39eea97207ca666aa69c9d6df93",
-				[]string{"line", "line", ""},
+				Sha:   "af7486bd54cfc39eea97207ca666aa69c9d6df93",
+				Lines: []string{"line", "line", ""},
 			},
 		}
 
@@ -89,8 +93,8 @@ func TestReadingBlameOutput(t *testing.T) {
 				Bypass:         false,
 				Parts: []*BlamePart{
 					{
-						"af7486bd54cfc39eea97207ca666aa69c9d6df93",
-						[]string{"line", "line", "changed line", "line", "line", ""},
+						Sha:   "af7486bd54cfc39eea97207ca666aa69c9d6df93",
+						Lines: []string{"line", "line", "changed line", "line", "line", ""},
 					},
 				},
 			},

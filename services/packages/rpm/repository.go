@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
 
@@ -68,7 +67,7 @@ func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, err
 }
 
 func generateKeypair() (string, string, error) {
-	e, err := openpgp.NewEntity(setting.AppName, "RPM Registry", "", nil)
+	e, err := openpgp.NewEntity("", "RPM Registry", "", nil)
 	if err != nil {
 		return "", "", err
 	}
@@ -126,7 +125,7 @@ type packageData struct {
 
 type packageCache = map[*packages_model.PackageFile]*packageData
 
-// BuildSpecificRepositoryFiles builds metadata files for the repository
+// BuildRepositoryFiles builds metadata files for the repository
 func BuildRepositoryFiles(ctx context.Context, ownerID int64) error {
 	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
 	if err != nil {
