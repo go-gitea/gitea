@@ -604,6 +604,12 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	if ctx.IsSigned {
 		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, repo.ID)
 		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, repo.ID)
+
+		ctx.Data["RepoWatchData"], err = repo_model.GetWatch(ctx, ctx.Doer.ID, repo.ID)
+		if err != nil {
+			ctx.ServerError("getWatch", err)
+			return nil
+		}
 	}
 
 	if repo.IsFork {

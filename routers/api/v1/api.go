@@ -1115,10 +1115,12 @@ func Routes() *web.Route {
 				m.Post("/markdown/raw", reqToken(), misc.MarkdownRaw)
 				m.Get("/stargazers", repo.ListStargazers)
 				m.Get("/subscribers", repo.ListSubscribers)
+				m.Get("/subscribers/{event}", repo.ListSubscribersEvent)
 				m.Group("/subscription", func() {
 					m.Get("", user.IsWatching)
 					m.Put("", reqToken(), user.Watch)
 					m.Delete("", reqToken(), user.Unwatch)
+					m.Put("/custom", reqToken(), bind(api.RepoCustomWatchOptions{}), user.WatchCustom)
 				})
 				m.Group("/releases", func() {
 					m.Combo("").Get(repo.ListReleases).

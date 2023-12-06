@@ -903,3 +903,10 @@ func (f *DeadlineForm) Validate(req *http.Request, errs binding.Errors) binding.
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
+
+// RepoWatchCustomForm wtach options for a repo
+type RepoWatchCustomForm struct {
+	Issues       bool `binding:"Required"`
+	PullRequests bool `binding:"Required"`
+	Releases     bool `binding:"Required"`
+}

@@ -1218,6 +1218,9 @@ func registerRoutes(m *web.Route) {
 			m.Post("/delete", repo.DeleteBranchPost)
 			m.Post("/restore", repo.RestoreBranchPost)
 		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
+
+		m.Get("/watch_mode/{mode}", reqSignIn, repo.SetWatchMode)
+		m.Post("/watch_custom", reqSignIn, web.Bind(forms.RepoWatchCustomForm{}), repo.WatchCustomPost)
 	}, reqSignIn, context.RepoAssignment, context.UnitTypes())
 
 	// Tags

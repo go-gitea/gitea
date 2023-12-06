@@ -55,17 +55,54 @@
 							</div>
 						</form>
 					{{end}}
-					<form method="post" action="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
+					<form method="post" action="{{$.RepoLink}}/action/{{if $.RepoWatchData.IsWatching}}un{{end}}watch?redirect_to={{$.Link}}">
 						{{$.CsrfTokenHtml}}
 						<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.watch_guest_user"}}"{{end}}>
 							<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}}>
-								{{if $.IsWatchingRepo}}{{svg "octicon-eye-closed" 16}}{{ctx.Locale.Tr "repo.unwatch"}}{{else}}{{svg "octicon-eye"}}{{ctx.Locale.Tr "repo.watch"}}{{end}}
+								{{if $.RepoWatchData.IsWatching}}{{svg "octicon-eye-closed" 16}}{{ctx.Locale.Tr "repo.unwatch"}}{{else}}{{svg "octicon-eye"}}{{ctx.Locale.Tr "repo.watch"}}{{end}}
 							</button>
 							<a class="ui basic label" href="{{.Link}}/watchers">
 								{{CountFmt .NumWatches}}
 							</a>
 						</div>
 					</form>
+					{{if $.IsSigned}}
+						<div class="ui dropdown type jump item gt-mx-0">
+							{{svg "octicon-triangle-down"}}
+							<div class="menu short">
+								<a class="ui item" href="{{$.RepoLink}}/watch_mode/none">{{if $.RepoWatchData.Mode.IsWatchModeNone}}✓&nbsp;{{end}}Participating</a>
+								<a class="ui item" href="{{$.RepoLink}}/watch_mode/normal">{{if or $.RepoWatchData.Mode.IsWatchModeNormal $.RepoWatchData.Mode.IsWatchModeAuto}}✓&nbsp;{{end}}All</a>
+								<a class="ui item" href="{{$.RepoLink}}/watch_mode/dont">{{if $.RepoWatchData.Mode.IsWatchModeDont}}✓&nbsp;{{end}}None</a>
+								<div id="repo-watch-custom-button" class="ui">
+									{{if $.RepoWatchData.Mode.IsWatchModeCustom}}✓&nbsp;{{end}}Custom<br>
+									<form method="post" action="{{$.RepoLink}}/watch_custom">
+										<input type="hidden" name="redirect_url" value="{{$.Link}}">
+										{{$.CsrfTokenHtml}}
+
+										<div class="ui checkbox">
+											<input name="issues" type="checkbox" {{if $.RepoWatchData.CustomIssues}}checked{{end}}>
+											<label>Issues</label>
+										</div>
+
+										<div class="ui checkbox">
+											<input name="pull_requests" type="checkbox" {{if $.RepoWatchData.CustomPullRequests}}checked{{end}}>
+											<label>Pull Requests</label>
+										</div>
+
+										<div class="ui checkbox">
+											<input name="releases" type="checkbox" {{if $.RepoWatchData.CustomReleases}}checked{{end}}>
+											<label>Releases</label>
+										</div>
+
+										<br>
+
+										<input type="submit" class="ui button" value="Submit">
+									</form>
+								</div>
+							</div>
+						</div>
+					{{end}}
+
 					{{if not $.DisableStars}}
 						<form method="post" action="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}un{{end}}star?redirect_to={{$.Link}}">
 							{{$.CsrfTokenHtml}}

@@ -190,4 +190,7 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreateOrUpdateSecretOption api.CreateOrUpdateSecretOption
+
+	// in:body
+	RepoCustomWatchOptions api.RepoCustomWatchOptions
 }

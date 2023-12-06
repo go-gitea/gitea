@@ -700,3 +700,39 @@ func PrepareBranchList(ctx *context.Context) {
 	}
 	ctx.Data["Branches"] = brs
 }
+
+func SetWatchMode(ctx *context.Context) {
+	var mode repo_model.WatchMode
+
+	switch strings.ToLower(ctx.Params("mode")) {
+	case "none":
+		mode = repo_model.WatchModeNone
+	case "normal":
+		mode = repo_model.WatchModeNormal
+	case "dont":
+		mode = repo_model.WatchModeDont
+	default:
+		ctx.ServerError("InvalidMode", fmt.Errorf("%s is not a valid mode", ctx.Params("mode")))
+		return
+	}
+
+	err := repo_model.WatchRepoMode(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, mode)
+	if err != nil {
+		ctx.ServerError("WatchRepoMode", err)
+		return
+	}
+
+	ctx.Redirect(ctx.Repo.RepoLink)
+}
+
+func WatchCustomPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.RepoWatchCustomForm)
+
+	err := repo_model.WatchRepoCustom(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, api.RepoCustomWatchOptions{Issues: form.Issues, PullRequests: form.PullRequests, Releases: form.Releases})
+	if err != nil {
+		ctx.ServerError("WatchRepoCustom", err)
+		return
+	}
+
+	ctx.Redirect(ctx.Repo.RepoLink)
+}

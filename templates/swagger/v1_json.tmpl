@@ -12626,6 +12626,63 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/subscribers/{event}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List a repo's watchers for the given event",
+        "operationId": "repoListSubscribersEvent",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "issues",
+              "pullrequests",
+              "releases"
+            ],
+            "type": "string",
+            "description": "the event",
+            "name": "event",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserList"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/subscription": {
       "get": {
         "tags": [
@@ -12717,6 +12774,43 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/subscription/custom": {
+      "put": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Watch a repo",
+        "operationId": "userCurrentPutSubscriptionCustom",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/RepoCustomWatchOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WatchInfo"
           }
         }
       }
@@ -21877,6 +21971,25 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "RepoCustomWatchOptions": {
+      "description": "RepoCustomWatchOptions options when watching custom events of a repo",
+      "type": "object",
+      "properties": {
+        "issues": {
+          "type": "boolean",
+          "x-go-name": "Issues"
+        },
+        "pull_requests": {
+          "type": "boolean",
+          "x-go-name": "PullRequests"
+        },
+        "releases": {
+          "type": "boolean",
+          "x-go-name": "Releases"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "RepoTopicOptions": {
       "description": "RepoTopicOptions a collection of repo topic names",
       "type": "object",
@@ -22927,9 +23040,16 @@
           "format": "date-time",
           "x-go-name": "CreatedAt"
         },
+        "custom_watch_options": {
+          "$ref": "#/definitions/RepoCustomWatchOptions"
+        },
         "ignored": {
           "type": "boolean",
           "x-go-name": "Ignored"
+        },
+        "is_custom": {
+          "type": "boolean",
+          "x-go-name": "IsCustom"
         },
         "reason": {
           "x-go-name": "Reason"
@@ -24009,7 +24129,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/CreateOrUpdateSecretOption"
+        "$ref": "#/definitions/RepoCustomWatchOptions"
       }
     },
     "redirect": {
