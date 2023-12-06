@@ -99,9 +99,9 @@ func CopyLicense(ctx context.Context, originalRepo, destRepo *Repository) error 
 
 		for _, rl := range repoLicenses {
 			newRepoLicense := &RepoLicense{
-				RepoID:      destRepo.ID,
-				CommitID:    rl.CommitID,
-				License:     rl.License,
+				RepoID:   destRepo.ID,
+				CommitID: rl.CommitID,
+				License:  rl.License,
 			}
 			newRepoLicenses = append(newRepoLicenses, newRepoLicense)
 		}
