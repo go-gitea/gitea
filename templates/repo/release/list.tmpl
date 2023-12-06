@@ -86,13 +86,13 @@
 									{{if and (not $.DisableDownloadSourceArchives) (not .IsDraft) ($.Permission.CanRead $.UnitTypeCode)}}
 										<li>
 											<a class="archive-link" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.zip" rel="nofollow"><strong>{{svg "octicon-file-zip" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.release.source_code"}} (ZIP)</strong></a>
-										  <span class="ui middle aligned right" data-tooltip-content="{{$.locale.Tr "repo.release.download_count" ($.locale.PrettyNumber .ArchiveDownloadCount.Zip)}}">
+											<span class="ui middle aligned right" data-tooltip-content="{{$.locale.Tr "repo.release.download_count" ($.locale.PrettyNumber .ArchiveDownloadCount.Zip)}}">
 												{{svg "octicon-info"}}
 											</span>
-                    </li>
+										</li>
 										<li>
 											<a class="archive-link" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow"><strong>{{svg "octicon-file-zip" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.release.source_code"}} (TAR.GZ)</strong></a>
-                      <span class="ui middle aligned right" data-tooltip-content="{{$.locale.Tr "repo.release.download_count" ($.locale.PrettyNumber .ArchiveDownloadCount.TarGz)}}">
+											<span class="ui middle aligned right" data-tooltip-content="{{$.locale.Tr "repo.release.download_count" ($.locale.PrettyNumber .ArchiveDownloadCount.TarGz)}}">
 												{{svg "octicon-info"}}
 											</span>
 										</li>
