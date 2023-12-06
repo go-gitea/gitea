@@ -67,7 +67,7 @@ type FindScheduleOptions struct {
 	OwnerID int64
 }
 
-func (opts FindScheduleOptions) toConds() builder.Cond {
+func (opts FindScheduleOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
@@ -79,16 +79,6 @@ func (opts FindScheduleOptions) toConds() builder.Cond {
 	return cond
 }
 
-func FindSchedules(ctx context.Context, opts FindScheduleOptions) (ScheduleList, int64, error) {
-	e := db.GetEngine(ctx).Where(opts.toConds())
-	if !opts.ListAll && opts.PageSize > 0 && opts.Page >= 1 {
-		e.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-	}
-	var schedules ScheduleList
-	total, err := e.Desc("id").FindAndCount(&schedules)
-	return schedules, total, err
-}
-
-func CountSchedules(ctx context.Context, opts FindScheduleOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(ActionSchedule))
+func (opts FindScheduleOptions) ToOrders() string {
+	return "`id` DESC"
 }

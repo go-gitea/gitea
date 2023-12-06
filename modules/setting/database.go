@@ -9,7 +9,6 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -109,7 +108,7 @@ func DBConnStr() (string, error) {
 		connStr = fmt.Sprintf("%s:%s@%s(%s)/%s%scharset=%s&parseTime=true&tls=%s",
 			Database.User, Database.Passwd, connType, Database.Host, Database.Name, paramSep, Database.MysqlCharset, tls)
 	case "postgres":
-		connStr = getPostgreSQLConnectionString(Database.Host, Database.User, Database.Passwd, Database.Name, paramSep, Database.SSLMode)
+		connStr = getPostgreSQLConnectionString(Database.Host, Database.User, Database.Passwd, Database.Name, Database.SSLMode)
 	case "mssql":
 		host, port := ParseMSSQLHostPort(Database.Host)
 		connStr = fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;", host, port, Database.Name, Database.User, Database.Passwd)
@@ -117,7 +116,7 @@ func DBConnStr() (string, error) {
 		if !EnableSQLite3 {
 			return "", errors.New("this Gitea binary was not built with SQLite3 support")
 		}
-		if err := os.MkdirAll(path.Dir(Database.Path), os.ModePerm); err != nil {
+		if err := os.MkdirAll(filepath.Dir(Database.Path), os.ModePerm); err != nil {
 			return "", fmt.Errorf("Failed to create directories: %w", err)
 		}
 		journalMode := ""
@@ -157,7 +156,8 @@ func parsePostgreSQLHostPort(info string) (host, port string) {
 	return host, port
 }
 
-func getPostgreSQLConnectionString(dbHost, dbUser, dbPasswd, dbName, dbParam, dbsslMode string) (connStr string) {
+func getPostgreSQLConnectionString(dbHost, dbUser, dbPasswd, dbName, dbsslMode string) (connStr string) {
+	dbName, dbParam, _ := strings.Cut(dbName, "?")
 	host, port := parsePostgreSQLHostPort(dbHost)
 	connURL := url.URL{
 		Scheme:   "postgres",
