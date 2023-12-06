@@ -255,10 +255,11 @@ func EditUser(ctx *context.APIContext) {
 	if len(form.Visibility) != 0 {
 		ctx.ContextUser.Visibility = api.VisibilityModes[form.Visibility]
 	}
-	if form.Admin != nil && !*form.Admin && user_model.IsLastAdminUser(ctx, ctx.ContextUser) {
-		ctx.Error(http.StatusBadRequest, "LastAdmin", ctx.Tr("auth.last_admin"))
-		return
-	} else {
+	if form.Admin != nil {
+		if !*form.Admin && user_model.IsLastAdminUser(ctx, ctx.ContextUser) {
+			ctx.Error(http.StatusBadRequest, "LastAdmin", ctx.Tr("auth.last_admin"))
+			return
+		}
 		ctx.ContextUser.IsAdmin = *form.Admin
 	}
 	if form.AllowGitHook != nil {
