@@ -25,9 +25,6 @@
 							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.template"}}</span>
 						{{end}}
 					</div>
-					{{if $.EnableFeed}}
-						<a class="rss-icon gt-ml-3" href="{{$.RepoLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</a>
-					{{end}}
 				</div>
 				{{if $.PullMirror}}
 					<div class="fork-flag">{{ctx.Locale.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a></div>
@@ -55,6 +52,12 @@
 							</div>
 						</form>
 					{{end}}
+					{{if $.EnableFeed}}
+					{{/* An extra div-element is not necessary here, as this button does not secretly contain two buttons. */}}
+					<button class="ui compact small basic button" data-url="{{$.RepoLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
+						{{svg "octicon-rss" 16}}
+					</button>
+					{{end}}
 					<form method="post" action="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
 						{{$.CsrfTokenHtml}}
 						<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.watch_guest_user"}}"{{end}}>
@@ -81,12 +84,12 @@
 					{{end}}
 					{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
 						<div class="ui labeled button
-							{{if or (not $.IsSigned) (and (not $.CanSignedUserFork) (eq (len $.UserAndOrgForks) 0))}}
+							{{if or (not $.IsSigned) (and (not $.CanSignedUserFork) (not $.UserAndOrgForks))}}
 								disabled
 							{{end}}"
 							{{if not $.IsSigned}}
 								data-tooltip-content="{{ctx.Locale.Tr "repo.fork_guest_user"}}"
-							{{else if and (not $.CanSignedUserFork) (eq (len $.UserAndOrgForks) 0)}}
+							{{else if and (not $.CanSignedUserFork) (not $.UserAndOrgForks)}}
 								data-tooltip-content="{{ctx.Locale.Tr "repo.fork_from_self"}}"
 							{{end}}
 						>
@@ -98,7 +101,7 @@
 										href="{{AppSubUrl}}/{{(index $.UserAndOrgForks 0).FullName}}"
 									{{/*else is not required here, because the button shouldn't link to any site if you can't create a fork*/}}
 									{{end}}
-								{{else if eq (len $.UserAndOrgForks) 0}}
+								{{else if not $.UserAndOrgForks}}
 									href="{{AppSubUrl}}/repo/fork/{{.ID}}"
 								{{else}}
 									data-modal="#fork-repo-modal"
