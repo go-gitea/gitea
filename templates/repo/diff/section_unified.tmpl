@@ -60,7 +60,7 @@
 				*/}}</td>
 			{{end}}
 		</tr>
-		{{if gt (len $line.Comments) 0}}
+		{{if $line.Comments}}
 			<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
 				<td class="add-comment-left add-comment-right" colspan="5">
 					{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
