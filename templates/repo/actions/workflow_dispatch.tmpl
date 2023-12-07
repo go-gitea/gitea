@@ -1,7 +1,9 @@
 <script type="module">
 	$('#runWorkflowDispatchForm').form({
 		fields: {
-			required_input : 'empty'
+			required_input : 'empty',
+			number: 'number',
+			required_number: ['number', 'empty']
 		}
 	});
 </script>
@@ -63,6 +65,10 @@
 						<input type="checkbox" name="{{$key}}" {{if eq .Default "true"}}checked{{end}}>
 						<span class="help">{{.Description}}</span>
 					</div>
+				{{else if eq .Type "number"}}
+					<label>{{$key}} :</label>
+					<input name="{{$key}}" value="{{.Default}}" data-validate="{{if .Required}}required_{{end}}number">
+					<span class="help">{{.Description}}</span>
 				{{else}}
 					<label>{{$key}} :</label>
 					<input name="{{$key}}" value="{{.Default}}" {{if .Required}}data-validate="required_input"{{end}}>
