@@ -740,7 +740,8 @@ func Run(ctx *context_module.Context) {
 		return
 	}
 
-	var dwf *actions.DetectedWorkflow
+	// find workflow from commit
+	var workflows []*jobparser.SingleWorkflow
 	for _, entry := range entries {
 		if entry.Name() == workflowID {
 			content, err := actions.GetContentFromEntry(entry)
@@ -748,28 +749,22 @@ func Run(ctx *context_module.Context) {
 				ctx.Error(http.StatusInternalServerError, err.Error())
 				return
 			}
-			dwf = &actions.DetectedWorkflow{
-				EntryName:    entry.Name(),
-				TriggerEvent: "workflow_dispatch",
-				Content:      content,
+			workflows, err = jobparser.Parse(content)
+			if err != nil {
+				ctx.ServerError("workflow", err)
+				return
 			}
 			break
 		}
 	}
 
-	if dwf == nil {
+	if workflows == nil || len(workflows) == 0 {
 		ctx.Flash.Error(ctx.Tr("actions.workflow.not_found", workflowID))
 		ctx.Redirect(redirectURL)
 		return
 	}
 
-	workflows, err := jobparser.Parse(dwf.Content)
-	if err != nil || len(workflows) == 0 {
-		ctx.ServerError("workflow", err)
-		return
-	}
-
-	//all workflows have the same RawOn
+	// get inputs from post
 	workflow := &model.Workflow{
 		RawOn: workflows[0].RawOn,
 	}
@@ -792,6 +787,9 @@ func Run(ctx *context_module.Context) {
 		}
 	}
 
+	// ctx.Req.PostForm -> WorkflowDispatchPayload.Inputs -> ActionRun.EventPayload -> runner: ghc.Event
+	// https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
+	// https://docs.github.com/en/webhooks/webhook-events-and-payloads#workflow_dispatch
 	workflowDispatchPayload := &api.WorkflowDispatchPayload{
 		Workflow:   workflowID,
 		Ref:        ref,
