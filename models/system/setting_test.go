@@ -41,14 +41,11 @@ func TestSettings(t *testing.T) {
 	assert.EqualValues(t, "false", settings[keyName])
 
 	// setting the same value should not trigger DuplicateKey error, and the "version" should be increased
-	setting := &system.Setting{SettingKey: keyName}
-	_, err = db.GetByBean(db.DefaultContext, setting)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 2, setting.Version)
 	err = system.SetSettings(db.DefaultContext, map[string]string{keyName: "false"})
 	assert.NoError(t, err)
-	setting = &system.Setting{SettingKey: keyName}
-	_, err = db.GetByBean(db.DefaultContext, setting)
+
+	rev, settings, err = system.GetAllSettings(db.DefaultContext)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 3, setting.Version)
+	assert.Len(t, settings, 2)
+	assert.EqualValues(t, 4, rev)
 }

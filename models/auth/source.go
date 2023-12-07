@@ -265,10 +265,10 @@ func IsSSPIEnabled(ctx context.Context) bool {
 		return false
 	}
 
-	exist, err := db.Exists[Source](ctx, FindSourcesOptions{
+	exist, err := db.Exist[Source](ctx, FindSourcesOptions{
 		IsActive:  util.OptionalBoolTrue,
 		LoginType: SSPI,
-	})
+	}.ToConds())
 	if err != nil {
 		log.Error("Active SSPI Sources: %v", err)
 		return false
