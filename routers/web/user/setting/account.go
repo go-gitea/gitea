@@ -248,7 +248,7 @@ func DeleteAccount(ctx *context.Context) {
 
 	// admin should not delete themself
 	if ctx.Doer.IsAdmin {
-		ctx.Flash.Error(ctx.Tr("admin.users.cannot_delete_self"))
+		ctx.Flash.Error(ctx.Tr("form.admin_cannot_delete_self"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
 	}
