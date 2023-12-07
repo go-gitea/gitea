@@ -67,7 +67,7 @@ func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, err
 }
 
 func generateKeypair() (string, string, error) {
-	e, err := openpgp.NewEntity(setting.AppName, "Debian Registry", "", nil)
+	e, err := openpgp.NewEntity("", "Debian Registry", "", nil)
 	if err != nil {
 		return "", "", err
 	}
