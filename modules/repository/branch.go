@@ -30,14 +30,14 @@ func UpdateBranch(ctx context.Context, repoID, pusherID int64, branchName string
 
 	// if user haven't visit UI but directly push to a branch after upgrading from 1.20 -> 1.21,
 	// we cannot simply insert the branch but need to check we have branches or not
-	totalBranches, err := db.Count[git_model.Branch](ctx, &git_model.FindBranchOptions{
+	hasBranch, err := db.Exist[git_model.Branch](ctx, git_model.FindBranchOptions{
 		RepoID:          repoID,
 		IsDeletedBranch: util.OptionalBoolFalse,
-	})
+	}.ToConds())
 	if err != nil {
 		return err
 	}
-	if totalBranches == 0 {
+	if !hasBranch {
 		if _, err = SyncRepoBranches(ctx, repoID, pusherID); err != nil {
 			return fmt.Errorf("repo_module.SyncRepoBranches %d:%s failed: %v", repoID, branchName, err)
 		}
