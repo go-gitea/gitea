@@ -149,11 +149,17 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 
 		url := rootURL + "/repodata"
 
-		req := NewRequest(t, "GET", url+"/dummy.xml")
+		req := NewRequest(t, "HEAD", url+"/dummy.xml")
+		MakeRequest(t, req, http.StatusNotFound)
+
+		req = NewRequest(t, "GET", url+"/dummy.xml")
 		MakeRequest(t, req, http.StatusNotFound)
 
 		t.Run("repomd.xml", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
+
+			req = NewRequest(t, "HEAD", url+"/repomd.xml")
+			MakeRequest(t, req, http.StatusOK)
 
 			req = NewRequest(t, "GET", url+"/repomd.xml")
 			resp := MakeRequest(t, req, http.StatusOK)
