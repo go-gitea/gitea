@@ -45,9 +45,7 @@ func TestArchivedIssues(t *testing.T) {
 	// Assert: One Issue (ID 30) from one Repo (ID 50) is retrieved, while nothing from archived Repo 51 is retrieved
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 
-	assert.EqualValues(t, map[int64]int64{50: 1}, ctx.Data["Counts"])
 	assert.Len(t, ctx.Data["Issues"], 1)
-	assert.Len(t, ctx.Data["Repos"], 1)
 }
 
 func TestIssues(t *testing.T) {
@@ -60,10 +58,8 @@ func TestIssues(t *testing.T) {
 	Issues(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 
-	assert.EqualValues(t, map[int64]int64{1: 1, 2: 1}, ctx.Data["Counts"])
 	assert.EqualValues(t, true, ctx.Data["IsShowClosed"])
 	assert.Len(t, ctx.Data["Issues"], 1)
-	assert.Len(t, ctx.Data["Repos"], 2)
 }
 
 func TestPulls(t *testing.T) {
