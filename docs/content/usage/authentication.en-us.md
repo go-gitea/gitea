@@ -404,7 +404,6 @@ Notice: Reverse Proxy Auth doesn't support the API. You still need an access tok
 
   - The SAML assertion key used for the IdP user's username (depends on provider configuration).
 
-
 ### Configuring a SAML 2.0 Identity Provider to use Gitea
 
 - The service provider assertion consumer service url will look like: `http(s)://[mydomain]/user/saml/[Authentication Name]/acs`.
