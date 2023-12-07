@@ -700,7 +700,7 @@ func Run(ctx *context_module.Context) {
 	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
 	if cfg.IsWorkflowDisabled(workflow) {
-		ctx.Flash.Error(ctx.Tr("actions.workflow.disabled", workflow))
+		ctx.Flash.Error(ctx.Tr("actions.workflow.disabled"))
 		ctx.Redirect(redirectURL)
 		return
 	}
