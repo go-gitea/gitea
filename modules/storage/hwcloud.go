@@ -55,7 +55,7 @@ func (hwc *HWCloudStorage) URL(path, name string) (*url.URL, error) {
 	v, err := url.Parse(output.SignedUrl)
 	if err == nil {
 		v.Host = hwc.bucketDomain
-		v.Scheme = "http"
+		v.Scheme = "https"
 	}
 
 	return v, err
