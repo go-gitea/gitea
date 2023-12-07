@@ -20,50 +20,50 @@ import (
 	"strings"
 	"time"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // CmdCert represents the available cert sub-command.
-var CmdCert = cli.Command{
+var CmdCert = &cli.Command{
 	Name:  "cert",
 	Usage: "Generate self-signed certificate",
 	Description: `Generate a self-signed X.509 certificate for a TLS server.
 Outputs to 'cert.pem' and 'key.pem' and will overwrite existing files.`,
 	Action: runCert,
 	Flags: []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "host",
 			Value: "",
 			Usage: "Comma-separated hostnames and IPs to generate a certificate for",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "ecdsa-curve",
 			Value: "",
 			Usage: "ECDSA curve to use to generate a key. Valid values are P224, P256, P384, P521",
 		},
-		cli.IntFlag{
+		&cli.IntFlag{
 			Name:  "rsa-bits",
-			Value: 2048,
+			Value: 3072,
 			Usage: "Size of RSA key to generate. Ignored if --ecdsa-curve is set",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "start-date",
 			Value: "",
 			Usage: "Creation date formatted as Jan 1 15:04:05 2011",
 		},
-		cli.DurationFlag{
+		&cli.DurationFlag{
 			Name:  "duration",
 			Value: 365 * 24 * time.Hour,
 			Usage: "Duration that certificate is valid for",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "ca",
 			Usage: "whether this cert should be its own Certificate Authority",
 		},
 	},
 }
 
-func publicKey(priv interface{}) interface{} {
+func publicKey(priv any) any {
 	switch k := priv.(type) {
 	case *rsa.PrivateKey:
 		return &k.PublicKey
@@ -74,7 +74,7 @@ func publicKey(priv interface{}) interface{} {
 	}
 }
 
-func pemBlockForKey(priv interface{}) *pem.Block {
+func pemBlockForKey(priv any) *pem.Block {
 	switch k := priv.(type) {
 	case *rsa.PrivateKey:
 		return &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(k)}
@@ -94,7 +94,7 @@ func runCert(c *cli.Context) error {
 		return err
 	}
 
-	var priv interface{}
+	var priv any
 	var err error
 	switch c.String("ecdsa-curve") {
 	case "":

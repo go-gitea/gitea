@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -101,6 +100,12 @@ type APIRedirect struct{}
 // swagger:response string
 type APIString string
 
+// APIRepoArchivedError is an error that is raised when an archived repo should be modified
+// swagger:response repoArchivedError
+type APIRepoArchivedError struct {
+	APIError
+}
+
 // ServerError responds with error message, status is 500
 func (ctx *APIContext) ServerError(title string, err error) {
 	ctx.Error(http.StatusInternalServerError, title, err)
@@ -108,7 +113,7 @@ func (ctx *APIContext) ServerError(title string, err error) {
 
 // Error responds with an error message to client with given obj as the message.
 // If status is 500, also it prints error to log.
-func (ctx *APIContext) Error(status int, title string, obj interface{}) {
+func (ctx *APIContext) Error(status int, title string, obj any) {
 	var message string
 	if err, ok := obj.(error); ok {
 		message = err.Error()
@@ -205,32 +210,6 @@ func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 	}
 }
 
-// CheckForOTP validates OTP
-func (ctx *APIContext) CheckForOTP() {
-	if skip, ok := ctx.Data["SkipLocalTwoFA"]; ok && skip.(bool) {
-		return // Skip 2FA
-	}
-
-	otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
-	twofa, err := auth.GetTwoFactorByUID(ctx.Doer.ID)
-	if err != nil {
-		if auth.IsErrTwoFactorNotEnrolled(err) {
-			return // No 2FA enrollment for this user
-		}
-		ctx.Error(http.StatusInternalServerError, "GetTwoFactorByUID", err)
-		return
-	}
-	ok, err := twofa.ValidateTOTP(otpHeader)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ValidateTOTP", err)
-		return
-	}
-	if !ok {
-		ctx.Error(http.StatusUnauthorized, "", nil)
-		return
-	}
-}
-
 // APIContexter returns apicontext as middleware
 func APIContexter() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -265,7 +244,7 @@ func APIContexter() func(http.Handler) http.Handler {
 
 // NotFound handles 404s for APIContext
 // String will replace message, errors will be added to a slice
-func (ctx *APIContext) NotFound(objs ...interface{}) {
+func (ctx *APIContext) NotFound(objs ...any) {
 	message := ctx.Tr("error.not_found")
 	var errors []string
 	for _, obj := range objs {
@@ -281,7 +260,7 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 		}
 	}
 
-	ctx.JSON(http.StatusNotFound, map[string]interface{}{
+	ctx.JSON(http.StatusNotFound, map[string]any{
 		"message": message,
 		"url":     setting.API.SwaggerURL,
 		"errors":  errors,
@@ -294,7 +273,7 @@ func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) (cancel context
 	return func(ctx *APIContext) (cancel context.CancelFunc) {
 		// Empty repository does not have reference information.
 		if ctx.Repo.Repository.IsEmpty && !(len(allowEmpty) != 0 && allowEmpty[0]) {
-			return
+			return nil
 		}
 
 		// For API calls.
@@ -303,7 +282,7 @@ func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) (cancel context
 			gitRepo, err := git.OpenRepository(ctx, repoPath)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "RepoRef Invalid repo "+repoPath, err)
-				return
+				return cancel
 			}
 			ctx.Repo.GitRepo = gitRepo
 			// We opened it, we should close it
@@ -340,6 +319,7 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 				return
 			}
 			ctx.Repo.Commit = commit
+			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
 			ctx.Repo.TreePath = ctx.Params("*")
 			next.ServeHTTP(w, req)
 			return

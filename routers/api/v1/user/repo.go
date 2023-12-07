@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
@@ -20,7 +21,7 @@ import (
 func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 	opts := utils.GetListOptions(ctx)
 
-	repos, count, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
+	repos, count, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
 		Actor:       u,
 		Private:     private,
 		ListOptions: opts,
@@ -38,13 +39,13 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 
 	apiRepos := make([]*api.Repository, 0, len(repos))
 	for i := range repos {
-		access, err := access_model.AccessLevel(ctx, ctx.Doer, repos[i])
+		permission, err := access_model.GetUserRepoPermission(ctx, repos[i], ctx.Doer)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
 		}
-		if ctx.IsSigned && ctx.Doer.IsAdmin || access >= perm.AccessModeRead {
-			apiRepos = append(apiRepos, convert.ToRepo(ctx, repos[i], access))
+		if ctx.IsSigned && ctx.Doer.IsAdmin || permission.UnitAccessMode(unit_model.TypeCode) >= perm.AccessModeRead {
+			apiRepos = append(apiRepos, convert.ToRepo(ctx, repos[i], permission))
 		}
 	}
 
@@ -77,6 +78,8 @@ func ListUserRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	private := ctx.IsSigned
 	listUserRepos(ctx, ctx.ContextUser, private)
@@ -123,11 +126,11 @@ func ListMyRepos(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "LoadOwner", err)
 			return
 		}
-		accessMode, err := access_model.AccessLevel(ctx, ctx.Doer, repo)
+		permission, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 		}
-		results[i] = convert.ToRepo(ctx, repo, accessMode)
+		results[i] = convert.ToRepo(ctx, repo, permission)
 	}
 
 	ctx.SetLinkHeader(int(count), opts.ListOptions.PageSize)
@@ -159,6 +162,8 @@ func ListOrgRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listUserRepos(ctx, ctx.Org.Organization.AsUser(), ctx.IsSigned)
 }

@@ -1,9 +1,11 @@
 import $ from 'jquery';
 import {updateIssuesMeta} from './repo-issue.js';
-import {toggleElem} from '../utils/dom.js';
+import {toggleElem, hideElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
-import {Sortable} from 'sortablejs';
 import {confirmModal} from './comp/ConfirmModal.js';
+import {showErrorToast} from '../modules/toast.js';
+import {createSortable} from '../modules/sortable.js';
+import {DELETE, POST} from '../modules/fetch.js';
 
 function initRepoIssueListCheckboxes() {
   const $issueSelectAll = $('.issue-checkbox-all');
@@ -71,11 +73,11 @@ function initRepoIssueListCheckboxes() {
       url,
       action,
       issueIDs,
-      elementId
+      elementId,
     ).then(() => {
       window.location.reload();
     }).catch((reason) => {
-      window.alert(reason.responseJSON.error);
+      showErrorToast(reason.responseJSON.error);
     });
   });
 }
@@ -127,7 +129,7 @@ function initRepoIssueListAuthorDropdown() {
     if (newMenuHtml) {
       const $newMenuItems = $(newMenuHtml);
       $newMenuItems.addClass('dynamic-item');
-      $menu.append('<div class="ui divider dynamic-item"></div>', ...$newMenuItems);
+      $menu.append('<div class="divider dynamic-item"></div>', ...$newMenuItems);
     }
     $searchDropdown.dropdown('refresh');
     // defer our selection to the next tick, because dropdown will set the selection item after this `menu` function
@@ -139,24 +141,18 @@ function initRepoIssueListAuthorDropdown() {
 }
 
 function initPinRemoveButton() {
-  for (const button of document.getElementsByClassName('pinned-issue-unpin')) {
+  for (const button of document.getElementsByClassName('issue-card-unpin')) {
     button.addEventListener('click', async (event) => {
       const el = event.currentTarget;
       const id = Number(el.getAttribute('data-issue-id'));
 
       // Send the unpin request
-      const response = await fetch(el.getAttribute('data-unpin-url'), {
-        method: 'delete',
-        headers: {
-          'X-Csrf-Token': window.config.csrfToken,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await DELETE(el.getAttribute('data-unpin-url'));
       if (response.ok) {
         // Delete the tooltip
         el._tippy.destroy();
         // Remove the Card
-        el.closest(`div.pinned-issue-card[data-issue-id="${id}"]`).remove();
+        el.closest(`div.issue-card[data-issue-id="${id}"]`).remove();
       }
     });
   }
@@ -165,17 +161,10 @@ function initPinRemoveButton() {
 async function pinMoveEnd(e) {
   const url = e.item.getAttribute('data-move-url');
   const id = Number(e.item.getAttribute('data-issue-id'));
-  await fetch(url, {
-    method: 'post',
-    body: JSON.stringify({id, position: e.newIndex + 1}),
-    headers: {
-      'X-Csrf-Token': window.config.csrfToken,
-      'Content-Type': 'application/json',
-    },
-  });
+  await POST(url, {data: {id, position: e.newIndex + 1}});
 }
 
-function initIssuePinSort() {
+async function initIssuePinSort() {
   const pinDiv = document.getElementById('issue-pins');
 
   if (pinDiv === null) return;
@@ -188,11 +177,47 @@ function initIssuePinSort() {
   // If only one issue pinned, we don't need to make this Sortable
   if (pinDiv.children.length < 2) return;
 
-  new Sortable(pinDiv, {
+  createSortable(pinDiv, {
     group: 'shared',
     animation: 150,
     ghostClass: 'card-ghost',
     onEnd: pinMoveEnd,
+  });
+}
+
+function initArchivedLabelFilter() {
+  const archivedLabelEl = document.querySelector('#archived-filter-checkbox');
+  if (!archivedLabelEl) {
+    return;
+  }
+
+  const url = new URL(window.location.href);
+  const archivedLabels = document.querySelectorAll('[data-is-archived]');
+
+  if (!archivedLabels.length) {
+    hideElem('.archived-label-filter');
+    return;
+  }
+  const selectedLabels = (url.searchParams.get('labels') || '')
+    .split(',')
+    .map((id) => id < 0 ? `${~id + 1}` : id); // selectedLabels contains -ve ids, which are excluded so convert any -ve value id to +ve
+
+  const archivedElToggle = () => {
+    for (const label of archivedLabels) {
+      const id = label.getAttribute('data-label-id');
+      toggleElem(label, archivedLabelEl.checked || selectedLabels.includes(id));
+    }
+  };
+
+  archivedElToggle();
+  archivedLabelEl.addEventListener('change', () => {
+    archivedElToggle();
+    if (archivedLabelEl.checked) {
+      url.searchParams.set('archived', 'true');
+    } else {
+      url.searchParams.delete('archived');
+    }
+    window.location.href = url.href;
   });
 }
 
@@ -201,4 +226,5 @@ export function initRepoIssueList() {
   initRepoIssueListCheckboxes();
   initRepoIssueListAuthorDropdown();
   initIssuePinSort();
+  initArchivedLabelFilter();
 }

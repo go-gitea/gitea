@@ -2,7 +2,7 @@ import $ from 'jquery';
 import {checkAppUrl} from '../common-global.js';
 import {hideElem, showElem, toggleElem} from '../../utils/dom.js';
 
-const {csrfToken} = window.config;
+const {csrfToken, appSubUrl} = window.config;
 
 export function initAdminCommon() {
   if ($('.page-content.admin').length === 0) {
@@ -10,7 +10,6 @@ export function initAdminCommon() {
   }
 
   // check whether appUrl(ROOT_URL) is correct, if not, show an error message
-  // only admin pages need this check because most templates are using relative URLs now
   checkAppUrl();
 
   // New user
@@ -173,7 +172,8 @@ export function initAdminCommon() {
 
   if ($('.admin.authentication').length > 0) {
     $('#auth_name').on('input', function () {
-      $('#oauth2-callback-url').text(`${window.location.origin}/user/oauth2/${encodeURIComponent($(this).val())}/callback`);
+      // appSubUrl is either empty or is a path that starts with `/` and doesn't have a trailing slash.
+      $('#oauth2-callback-url').text(`${window.location.origin}${appSubUrl}/user/oauth2/${encodeURIComponent($(this).val())}/callback`);
     }).trigger('input');
   }
 

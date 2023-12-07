@@ -1,22 +1,22 @@
 {{if .EscapeStatus}}
 	{{if .EscapeStatus.HasInvisible}}
-		<div class="ui error message unicode-escape-prompt gt-tl">
+		<div class="ui warning message unicode-escape-prompt gt-text-left">
 			<button class="close icon hide-panel button" data-panel-closest=".message">{{svg "octicon-x" 16 "close inside"}}</button>
 			<div class="header">
-				{{$.root.locale.Tr "repo.invisible_runes_header"}}
+				{{ctx.Locale.Tr "repo.invisible_runes_header"}}
 			</div>
-			<p>{{$.root.locale.Tr "repo.invisible_runes_description" | Str2html}}</p>
+			<p>{{ctx.Locale.Tr "repo.invisible_runes_description" | Str2html}}</p>
 			{{if .EscapeStatus.HasAmbiguous}}
-				<p>{{$.root.locale.Tr "repo.ambiguous_runes_description" | Str2html}}</p>
+				<p>{{ctx.Locale.Tr "repo.ambiguous_runes_description" | Str2html}}</p>
 			{{end}}
 		</div>
 	{{else if .EscapeStatus.HasAmbiguous}}
-		<div class="ui warning message unicode-escape-prompt gt-tl">
+		<div class="ui warning message unicode-escape-prompt gt-text-left">
 			<button class="close icon hide-panel button" data-panel-closest=".message">{{svg "octicon-x" 16 "close inside"}}</button>
 			<div class="header">
-				{{$.root.locale.Tr "repo.ambiguous_runes_header"}}
+				{{ctx.Locale.Tr "repo.ambiguous_runes_header"}}
 			</div>
-			<p>{{$.root.locale.Tr "repo.ambiguous_runes_description" | Str2html}}</p>
+			<p>{{ctx.Locale.Tr "repo.ambiguous_runes_description" | Str2html}}</p>
 		</div>
 	{{end}}
 {{end}}

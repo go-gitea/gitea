@@ -121,7 +121,7 @@ description: ` + packageDescription
 		assert.NoError(t, err)
 		assert.Equal(t, int64(len(content)), pb.Size)
 
-		_ = uploadFile(t, result.URL, content, http.StatusBadRequest)
+		_ = uploadFile(t, result.URL, content, http.StatusConflict)
 	})
 
 	t.Run("Download", func(t *testing.T) {
@@ -131,10 +131,10 @@ description: ` + packageDescription
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		type VersionMetadata struct {
-			Version    string      `json:"version"`
-			ArchiveURL string      `json:"archive_url"`
-			Published  time.Time   `json:"published"`
-			Pubspec    interface{} `json:"pubspec,omitempty"`
+			Version    string    `json:"version"`
+			ArchiveURL string    `json:"archive_url"`
+			Published  time.Time `json:"published"`
+			Pubspec    any       `json:"pubspec,omitempty"`
 		}
 
 		var result VersionMetadata
@@ -156,10 +156,10 @@ description: ` + packageDescription
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		type VersionMetadata struct {
-			Version    string      `json:"version"`
-			ArchiveURL string      `json:"archive_url"`
-			Published  time.Time   `json:"published"`
-			Pubspec    interface{} `json:"pubspec,omitempty"`
+			Version    string    `json:"version"`
+			ArchiveURL string    `json:"archive_url"`
+			Published  time.Time `json:"published"`
+			Pubspec    any       `json:"pubspec,omitempty"`
 		}
 
 		type PackageVersions struct {

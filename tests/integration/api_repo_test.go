@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -18,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -41,6 +41,17 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 	}
 }
 
+func TestAPIUserReposWithWrongToken(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	wrongToken := fmt.Sprintf("Bearer %s", "wrong_token")
+	req := NewRequestf(t, "GET", "/api/v1/users/%s/repos", user.Name)
+	req = addTokenAuthHeader(req, wrongToken)
+	resp := MakeRequest(t, req, http.StatusUnauthorized)
+
+	assert.Contains(t, resp.Body.String(), "user does not exist")
+}
+
 func TestAPISearchRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	const keyword = "test"
@@ -58,7 +69,7 @@ func TestAPISearchRepo(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 16})
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 18})
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 18})
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 20})
 	orgUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 17})
 
@@ -82,9 +93,9 @@ func TestAPISearchRepo(t *testing.T) {
 	}{
 		{
 			name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50&private=false", expectedResults: expectedResults{
-				nil:   {count: 32},
-				user:  {count: 32},
-				user2: {count: 32},
+				nil:   {count: 33},
+				user:  {count: 33},
+				user2: {count: 33},
 			},
 		},
 		{
@@ -129,11 +140,11 @@ func TestAPISearchRepo(t *testing.T) {
 			},
 		},
 		{
-			name: "RepositoriesAccessibleAndRelatedToUser3", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user3.ID), expectedResults: expectedResults{
+			name: "RepositoriesAccessibleAndRelatedToUser3", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", org3.ID), expectedResults: expectedResults{
 				nil:   {count: 1},
 				user:  {count: 4, includesPrivate: true},
 				user2: {count: 3, includesPrivate: true},
-				user3: {count: 4, includesPrivate: true},
+				org3:  {count: 4, includesPrivate: true},
 			},
 		},
 		{
@@ -278,8 +289,8 @@ func TestAPIOrgRepos(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-	// User3 is an Org. Check their repos.
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	// org3 is an Org. Check their repos.
 	sourceOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 
 	expectedResults := map[*user_model.User]struct {
@@ -289,7 +300,7 @@ func TestAPIOrgRepos(t *testing.T) {
 		user:  {count: 1},
 		user:  {count: 3, includesPrivate: true},
 		user2: {count: 3, includesPrivate: true},
-		user3: {count: 1},
+		org3:  {count: 1},
 	}
 
 	for userToLogin, expected := range expectedResults {
@@ -357,7 +368,7 @@ func TestAPIRepoMigrate(t *testing.T) {
 			case "You can not import from disallowed hosts.":
 				assert.EqualValues(t, "private-ip", testCase.repoName)
 			default:
-				assert.Failf(t, "unexpected error '%v' on url '%s'", respJSON["message"], testCase.cloneURL)
+				assert.FailNow(t, "unexpected error '%v' on url '%s'", respJSON["message"], testCase.cloneURL)
 			}
 		} else {
 			assert.EqualValues(t, testCase.expectedStatus, resp.Code)
@@ -427,11 +438,11 @@ func TestAPIOrgRepoCreate(t *testing.T) {
 		orgName, repoName string
 		expectedStatus    int
 	}{
-		{ctxUserID: 1, orgName: "user3", repoName: "repo-admin", expectedStatus: http.StatusCreated},
-		{ctxUserID: 2, orgName: "user3", repoName: "repo-own", expectedStatus: http.StatusCreated},
-		{ctxUserID: 2, orgName: "user6", repoName: "repo-bad-org", expectedStatus: http.StatusForbidden},
-		{ctxUserID: 28, orgName: "user3", repoName: "repo-creator", expectedStatus: http.StatusCreated},
-		{ctxUserID: 28, orgName: "user6", repoName: "repo-not-creator", expectedStatus: http.StatusForbidden},
+		{ctxUserID: 1, orgName: "org3", repoName: "repo-admin", expectedStatus: http.StatusCreated},
+		{ctxUserID: 2, orgName: "org3", repoName: "repo-own", expectedStatus: http.StatusCreated},
+		{ctxUserID: 2, orgName: "org6", repoName: "repo-bad-org", expectedStatus: http.StatusForbidden},
+		{ctxUserID: 28, orgName: "org3", repoName: "repo-creator", expectedStatus: http.StatusCreated},
+		{ctxUserID: 28, orgName: "org6", repoName: "repo-not-creator", expectedStatus: http.StatusForbidden},
 	}
 
 	defer tests.PrepareTestEnv(t)()
@@ -480,21 +491,21 @@ func TestAPIRepoTransfer(t *testing.T) {
 		teams          *[]int64
 		expectedStatus int
 	}{
-		// Disclaimer for test story: "user1" is an admin, "user2" is normal user and part of in owner team of org "user3"
+		// Disclaimer for test story: "user1" is an admin, "user2" is normal user and part of in owner team of org "org3"
 		// Transfer to a user with teams in another org should fail
-		{ctxUserID: 1, newOwner: "user3", teams: &[]int64{5}, expectedStatus: http.StatusForbidden},
+		{ctxUserID: 1, newOwner: "org3", teams: &[]int64{5}, expectedStatus: http.StatusForbidden},
 		// Transfer to a user with non-existent team IDs should fail
 		{ctxUserID: 1, newOwner: "user2", teams: &[]int64{2}, expectedStatus: http.StatusUnprocessableEntity},
 		// Transfer should go through
-		{ctxUserID: 1, newOwner: "user3", teams: &[]int64{2}, expectedStatus: http.StatusAccepted},
+		{ctxUserID: 1, newOwner: "org3", teams: &[]int64{2}, expectedStatus: http.StatusAccepted},
 		// Let user transfer it back to himself
 		{ctxUserID: 2, newOwner: "user2", expectedStatus: http.StatusAccepted},
 		// And revert transfer
-		{ctxUserID: 2, newOwner: "user3", teams: &[]int64{2}, expectedStatus: http.StatusAccepted},
+		{ctxUserID: 2, newOwner: "org3", teams: &[]int64{2}, expectedStatus: http.StatusAccepted},
 		// Cannot start transfer to an existing repo
-		{ctxUserID: 2, newOwner: "user3", teams: nil, expectedStatus: http.StatusUnprocessableEntity},
+		{ctxUserID: 2, newOwner: "org3", teams: nil, expectedStatus: http.StatusUnprocessableEntity},
 		// Start transfer, repo is now in pending transfer mode
-		{ctxUserID: 2, newOwner: "user6", teams: nil, expectedStatus: http.StatusCreated},
+		{ctxUserID: 2, newOwner: "org6", teams: nil, expectedStatus: http.StatusCreated},
 	}
 
 	defer tests.PrepareTestEnv(t)()
@@ -530,7 +541,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 
 	// cleanup
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-	_ = models.DeleteRepository(user, repo.OwnerID, repo.ID)
+	_ = repo_service.DeleteRepositoryDirectly(db.DefaultContext, user, repo.ID)
 }
 
 func transfer(t *testing.T) *repo_model.Repository {
@@ -637,7 +648,7 @@ func TestAPIGenerateRepo(t *testing.T) {
 
 	// org
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/generate?token=%s", templateRepo.OwnerName, templateRepo.Name, token), &api.GenerateRepoOption{
-		Owner:       "user3",
+		Owner:       "org3",
 		Name:        "new-repo",
 		Description: "test generate repo",
 		Private:     false,

@@ -47,21 +47,21 @@ type ActivityStats struct {
 func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, releases, issues, prs, code bool) (*ActivityStats, error) {
 	stats := &ActivityStats{Code: &git.CodeActivityStats{}}
 	if releases {
-		if err := stats.FillReleases(repo.ID, timeFrom); err != nil {
+		if err := stats.FillReleases(ctx, repo.ID, timeFrom); err != nil {
 			return nil, fmt.Errorf("FillReleases: %w", err)
 		}
 	}
 	if prs {
-		if err := stats.FillPullRequests(repo.ID, timeFrom); err != nil {
+		if err := stats.FillPullRequests(ctx, repo.ID, timeFrom); err != nil {
 			return nil, fmt.Errorf("FillPullRequests: %w", err)
 		}
 	}
 	if issues {
-		if err := stats.FillIssues(repo.ID, timeFrom); err != nil {
+		if err := stats.FillIssues(ctx, repo.ID, timeFrom); err != nil {
 			return nil, fmt.Errorf("FillIssues: %w", err)
 		}
 	}
-	if err := stats.FillUnresolvedIssues(repo.ID, timeFrom, issues, prs); err != nil {
+	if err := stats.FillUnresolvedIssues(ctx, repo.ID, timeFrom, issues, prs); err != nil {
 		return nil, fmt.Errorf("FillUnresolvedIssues: %w", err)
 	}
 	if code {
@@ -205,41 +205,41 @@ func (stats *ActivityStats) PublishedReleaseCount() int {
 }
 
 // FillPullRequests returns pull request information for activity page
-func (stats *ActivityStats) FillPullRequests(repoID int64, fromTime time.Time) error {
+func (stats *ActivityStats) FillPullRequests(ctx context.Context, repoID int64, fromTime time.Time) error {
 	var err error
 	var count int64
 
 	// Merged pull requests
-	sess := pullRequestsForActivityStatement(repoID, fromTime, true)
+	sess := pullRequestsForActivityStatement(ctx, repoID, fromTime, true)
 	sess.OrderBy("pull_request.merged_unix DESC")
 	stats.MergedPRs = make(issues_model.PullRequestList, 0)
 	if err = sess.Find(&stats.MergedPRs); err != nil {
 		return err
 	}
-	if err = stats.MergedPRs.LoadAttributes(); err != nil {
+	if err = stats.MergedPRs.LoadAttributes(ctx); err != nil {
 		return err
 	}
 
 	// Merged pull request authors
-	sess = pullRequestsForActivityStatement(repoID, fromTime, true)
+	sess = pullRequestsForActivityStatement(ctx, repoID, fromTime, true)
 	if _, err = sess.Select("count(distinct issue.poster_id) as `count`").Table("pull_request").Get(&count); err != nil {
 		return err
 	}
 	stats.MergedPRAuthorCount = count
 
 	// Opened pull requests
-	sess = pullRequestsForActivityStatement(repoID, fromTime, false)
+	sess = pullRequestsForActivityStatement(ctx, repoID, fromTime, false)
 	sess.OrderBy("issue.created_unix ASC")
 	stats.OpenedPRs = make(issues_model.PullRequestList, 0)
 	if err = sess.Find(&stats.OpenedPRs); err != nil {
 		return err
 	}
-	if err = stats.OpenedPRs.LoadAttributes(); err != nil {
+	if err = stats.OpenedPRs.LoadAttributes(ctx); err != nil {
 		return err
 	}
 
 	// Opened pull request authors
-	sess = pullRequestsForActivityStatement(repoID, fromTime, false)
+	sess = pullRequestsForActivityStatement(ctx, repoID, fromTime, false)
 	if _, err = sess.Select("count(distinct issue.poster_id) as `count`").Table("pull_request").Get(&count); err != nil {
 		return err
 	}
@@ -248,8 +248,8 @@ func (stats *ActivityStats) FillPullRequests(repoID int64, fromTime time.Time) e
 	return nil
 }
 
-func pullRequestsForActivityStatement(repoID int64, fromTime time.Time, merged bool) *xorm.Session {
-	sess := db.GetEngine(db.DefaultContext).Where("pull_request.base_repo_id=?", repoID).
+func pullRequestsForActivityStatement(ctx context.Context, repoID int64, fromTime time.Time, merged bool) *xorm.Session {
+	sess := db.GetEngine(ctx).Where("pull_request.base_repo_id=?", repoID).
 		Join("INNER", "issue", "pull_request.issue_id = issue.id")
 
 	if merged {
@@ -264,12 +264,12 @@ func pullRequestsForActivityStatement(repoID int64, fromTime time.Time, merged b
 }
 
 // FillIssues returns issue information for activity page
-func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time) error {
+func (stats *ActivityStats) FillIssues(ctx context.Context, repoID int64, fromTime time.Time) error {
 	var err error
 	var count int64
 
 	// Closed issues
-	sess := issuesForActivityStatement(repoID, fromTime, true, false)
+	sess := issuesForActivityStatement(ctx, repoID, fromTime, true, false)
 	sess.OrderBy("issue.closed_unix DESC")
 	stats.ClosedIssues = make(issues_model.IssueList, 0)
 	if err = sess.Find(&stats.ClosedIssues); err != nil {
@@ -277,14 +277,14 @@ func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time) error {
 	}
 
 	// Closed issue authors
-	sess = issuesForActivityStatement(repoID, fromTime, true, false)
+	sess = issuesForActivityStatement(ctx, repoID, fromTime, true, false)
 	if _, err = sess.Select("count(distinct issue.poster_id) as `count`").Table("issue").Get(&count); err != nil {
 		return err
 	}
 	stats.ClosedIssueAuthorCount = count
 
 	// New issues
-	sess = issuesForActivityStatement(repoID, fromTime, false, false)
+	sess = issuesForActivityStatement(ctx, repoID, fromTime, false, false)
 	sess.OrderBy("issue.created_unix ASC")
 	stats.OpenedIssues = make(issues_model.IssueList, 0)
 	if err = sess.Find(&stats.OpenedIssues); err != nil {
@@ -292,7 +292,7 @@ func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time) error {
 	}
 
 	// Opened issue authors
-	sess = issuesForActivityStatement(repoID, fromTime, false, false)
+	sess = issuesForActivityStatement(ctx, repoID, fromTime, false, false)
 	if _, err = sess.Select("count(distinct issue.poster_id) as `count`").Table("issue").Get(&count); err != nil {
 		return err
 	}
@@ -302,12 +302,12 @@ func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time) error {
 }
 
 // FillUnresolvedIssues returns unresolved issue and pull request information for activity page
-func (stats *ActivityStats) FillUnresolvedIssues(repoID int64, fromTime time.Time, issues, prs bool) error {
+func (stats *ActivityStats) FillUnresolvedIssues(ctx context.Context, repoID int64, fromTime time.Time, issues, prs bool) error {
 	// Check if we need to select anything
 	if !issues && !prs {
 		return nil
 	}
-	sess := issuesForActivityStatement(repoID, fromTime, false, true)
+	sess := issuesForActivityStatement(ctx, repoID, fromTime, false, true)
 	if !issues || !prs {
 		sess.And("issue.is_pull = ?", prs)
 	}
@@ -316,8 +316,8 @@ func (stats *ActivityStats) FillUnresolvedIssues(repoID int64, fromTime time.Tim
 	return sess.Find(&stats.UnresolvedIssues)
 }
 
-func issuesForActivityStatement(repoID int64, fromTime time.Time, closed, unresolved bool) *xorm.Session {
-	sess := db.GetEngine(db.DefaultContext).Where("issue.repo_id = ?", repoID).
+func issuesForActivityStatement(ctx context.Context, repoID int64, fromTime time.Time, closed, unresolved bool) *xorm.Session {
+	sess := db.GetEngine(ctx).Where("issue.repo_id = ?", repoID).
 		And("issue.is_closed = ?", closed)
 
 	if !unresolved {
@@ -336,21 +336,21 @@ func issuesForActivityStatement(repoID int64, fromTime time.Time, closed, unreso
 }
 
 // FillReleases returns release information for activity page
-func (stats *ActivityStats) FillReleases(repoID int64, fromTime time.Time) error {
+func (stats *ActivityStats) FillReleases(ctx context.Context, repoID int64, fromTime time.Time) error {
 	var err error
 	var count int64
 
 	// Published releases list
-	sess := releasesForActivityStatement(repoID, fromTime)
-	sess.OrderBy("release.created_unix DESC")
+	sess := releasesForActivityStatement(ctx, repoID, fromTime)
+	sess.OrderBy("`release`.created_unix DESC")
 	stats.PublishedReleases = make([]*repo_model.Release, 0)
 	if err = sess.Find(&stats.PublishedReleases); err != nil {
 		return err
 	}
 
 	// Published releases authors
-	sess = releasesForActivityStatement(repoID, fromTime)
-	if _, err = sess.Select("count(distinct release.publisher_id) as `count`").Table("release").Get(&count); err != nil {
+	sess = releasesForActivityStatement(ctx, repoID, fromTime)
+	if _, err = sess.Select("count(distinct `release`.publisher_id) as `count`").Table("release").Get(&count); err != nil {
 		return err
 	}
 	stats.PublishedReleaseAuthorCount = count
@@ -358,8 +358,8 @@ func (stats *ActivityStats) FillReleases(repoID int64, fromTime time.Time) error
 	return nil
 }
 
-func releasesForActivityStatement(repoID int64, fromTime time.Time) *xorm.Session {
-	return db.GetEngine(db.DefaultContext).Where("release.repo_id = ?", repoID).
-		And("release.is_draft = ?", false).
-		And("release.created_unix >= ?", fromTime.Unix())
+func releasesForActivityStatement(ctx context.Context, repoID int64, fromTime time.Time) *xorm.Session {
+	return db.GetEngine(ctx).Where("`release`.repo_id = ?", repoID).
+		And("`release`.is_draft = ?", false).
+		And("`release`.created_unix >= ?", fromTime.Unix())
 }

@@ -93,7 +93,7 @@
   name: review_team
   authorize: 1 # read
   num_repos: 1
-  num_members: 2
+  num_members: 3
   includes_all_repositories: false
   can_create_org_repo: false
 
@@ -180,6 +180,39 @@
   lower_name: team14writeauth
   name: team14WriteAuth
   authorize: 2 # write
+  num_repos: 0
+  num_members: 1
+  includes_all_repositories: false
+  can_create_org_repo: true
+
+-
+  id: 18
+  org_id: 35
+  lower_name: owners
+  name: Owners
+  authorize: 4 # owner
+  num_repos: 0
+  num_members: 1
+  includes_all_repositories: false
+  can_create_org_repo: true
+
+-
+  id: 19
+  org_id: 36
+  lower_name: owners
+  name: Owners
+  authorize: 4 # owner
+  num_repos: 0
+  num_members: 1
+  includes_all_repositories: false
+  can_create_org_repo: true
+
+-
+  id: 20
+  org_id: 36
+  lower_name: team20writepackage
+  name: team20writepackage
+  authorize: 1
   num_repos: 0
   num_members: 1
   includes_all_repositories: false

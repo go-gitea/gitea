@@ -3,43 +3,41 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<div class="ui header">
-			{{.locale.Tr "repo.wiki.new_page"}}
+		<div class="ui header flex-text-block gt-sb">
+			{{ctx.Locale.Tr "repo.wiki.new_page"}}
 			{{if .PageIsWikiEdit}}
-				<div class="ui right">
-					<a class="ui green small button" href="{{.RepoLink}}/wiki?action=_new">{{.locale.Tr "repo.wiki.new_page_button"}}</a>
-				</div>
+				<a class="ui tiny primary button" href="{{.RepoLink}}/wiki?action=_new">{{ctx.Locale.Tr "repo.wiki.new_page_button"}}</a>
 			{{end}}
 		</div>
 		<form class="ui form" action="{{.Link}}?action={{if .PageIsWikiEdit}}_edit{{else}}_new{{end}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
-				<input name="title" value="{{.title}}" aria-label="{{.locale.Tr "repo.wiki.page_title"}}" placeholder="{{.locale.Tr "repo.wiki.page_title"}}" autofocus required>
+				<input name="title" value="{{.title}}" aria-label="{{ctx.Locale.Tr "repo.wiki.page_title"}}" placeholder="{{ctx.Locale.Tr "repo.wiki.page_title"}}" autofocus required>
 			</div>
 			<div class="help">
-				{{.locale.Tr "repo.wiki.page_name_desc"}}
+				{{ctx.Locale.Tr "repo.wiki.page_name_desc"}}
 			</div>
 
 			{{$content := .content}}
 			{{if not .PageIsWikiEdit}}
-				{{$content = .locale.Tr "repo.wiki.welcome"}}
+				{{$content = ctx.Locale.Tr "repo.wiki.welcome"}}
 			{{end}}
 			{{template "shared/combomarkdowneditor" (dict
-				"locale" $.locale
 				"MarkdownPreviewUrl" (print .Repository.Link "/markup")
 				"MarkdownPreviewContext" .RepoLink
 				"TextareaName" "content"
-				"TextareaPlaceholder" (.locale.Tr "repo.wiki.page_content")
-				"TextareaAriaLabel" (.locale.Tr "repo.wiki.page_content")
+				"TextareaPlaceholder" (ctx.Locale.Tr "repo.wiki.page_content")
+				"TextareaAriaLabel" (ctx.Locale.Tr "repo.wiki.page_content")
 				"TextareaContent" $content
 			)}}
 
 			<div class="field gt-mt-4">
-				<input name="message" aria-label="{{.locale.Tr "repo.wiki.default_commit_message"}}" placeholder="{{.locale.Tr "repo.wiki.default_commit_message"}}">
+				<input name="message" aria-label="{{ctx.Locale.Tr "repo.wiki.default_commit_message"}}" placeholder="{{ctx.Locale.Tr "repo.wiki.default_commit_message"}}">
 			</div>
+			<div class="divider"></div>
 			<div class="text right">
-				<button class="ui green button">
-					{{.locale.Tr "repo.wiki.save_page"}}
+				<button class="ui primary button">
+					{{ctx.Locale.Tr "repo.wiki.save_page"}}
 				</button>
 			</div>
 		</form>

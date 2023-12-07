@@ -35,6 +35,14 @@ func TestAPIGetCommentAttachment(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: comment.Issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
+	t.Run("UnrelatedCommentID", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+		token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeWriteIssue)
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets/%d?token=%s", repoOwner.Name, repo.Name, comment.ID, attachment.ID, token)
+		MakeRequest(t, req, http.StatusNotFound)
+	})
+
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets/%d?token=%s", repoOwner.Name, repo.Name, comment.ID, attachment.ID, token)
@@ -45,11 +53,12 @@ func TestAPIGetCommentAttachment(t *testing.T) {
 	var apiAttachment api.Attachment
 	DecodeJSON(t, resp, &apiAttachment)
 
-	expect := convert.ToAttachment(attachment)
+	expect := convert.ToAPIAttachment(repo, attachment)
 	assert.Equal(t, expect.ID, apiAttachment.ID)
 	assert.Equal(t, expect.Name, apiAttachment.Name)
 	assert.Equal(t, expect.UUID, apiAttachment.UUID)
 	assert.Equal(t, expect.Created.Unix(), apiAttachment.Created.Unix())
+	assert.Equal(t, expect.DownloadURL, apiAttachment.DownloadURL)
 }
 
 func TestAPIListCommentAttachments(t *testing.T) {

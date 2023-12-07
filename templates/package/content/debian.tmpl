@@ -1,40 +1,40 @@
 {{if eq .PackageDescriptor.Package.Type "debian"}}
-	<h4 class="ui top attached header">{{.locale.Tr "packages.installation"}}</h4>
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.debian.registry"}}</label>
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.debian.registry"}}</label>
 				<div class="markup"><pre class="code-block"><code>sudo curl <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/debian/repository.key"></gitea-origin-url> -o /etc/apt/trusted.gpg.d/gitea-{{$.PackageDescriptor.Owner.Name}}.asc
 echo "deb <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/debian"></gitea-origin-url> $distribution $component" | sudo tee -a /etc/apt/sources.list.d/gitea.list
 sudo apt update</code></pre></div>
-				<p>{{.locale.Tr "packages.debian.registry.info" | Safe}}</p>
+				<p>{{ctx.Locale.Tr "packages.debian.registry.info" | Safe}}</p>
 			</div>
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.debian.install"}}</label>
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.debian.install"}}</label>
 				<div class="markup">
 					<pre class="code-block"><code>sudo apt install {{$.PackageDescriptor.Package.Name}}={{$.PackageDescriptor.Version.Version}}</code></pre>
 				</div>
 			</div>
 			<div class="field">
-				<label>{{.locale.Tr "packages.debian.documentation" "https://docs.gitea.io/en-us/packages/debian/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Debian" "https://docs.gitea.com/usage/packages/debian/" | Safe}}</label>
 			</div>
 		</div>
 	</div>
 
-	<h4 class="ui top attached header">{{.locale.Tr "packages.debian.repository"}}</h4>
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.debian.repository"}}</h4>
 	<div class="ui attached segment">
 		<table class="ui single line very basic table">
 			<tbody>
 				<tr>
-					<td class="collapsing"><h5>{{.locale.Tr "packages.debian.repository.distributions"}}</h5></td>
+					<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.debian.repository.distributions"}}</h5></td>
 					<td>{{StringUtils.Join .Distributions ", "}}</td>
 				</tr>
 				<tr>
-					<td class="collapsing"><h5>{{.locale.Tr "packages.debian.repository.components"}}</h5></td>
+					<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.debian.repository.components"}}</h5></td>
 					<td>{{StringUtils.Join .Components ", "}}</td>
 				</tr>
 				<tr>
-					<td class="collapsing"><h5>{{.locale.Tr "packages.debian.repository.architectures"}}</h5></td>
+					<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.debian.repository.architectures"}}</h5></td>
 					<td>{{StringUtils.Join .Architectures ", "}}</td>
 				</tr>
 			</tbody>
@@ -42,14 +42,14 @@ sudo apt update</code></pre></div>
 	</div>
 
 	{{if .PackageDescriptor.Metadata.Description}}
-		<h4 class="ui top attached header">{{.locale.Tr "packages.about"}}</h4>
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
 		<div class="ui attached segment">
 			{{.PackageDescriptor.Metadata.Description}}
 		</div>
 	{{end}}
 
 	{{if .PackageDescriptor.Metadata.Dependencies}}
-		<h4 class="ui top attached header">{{.locale.Tr "packages.dependencies"}}</h4>
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.dependencies"}}</h4>
 		<div class="ui attached segment">
 			<table class="ui single line very basic table">
 				<tbody>

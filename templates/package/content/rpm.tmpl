@@ -1,25 +1,33 @@
 {{if eq .PackageDescriptor.Package.Type "rpm"}}
-	<h4 class="ui top attached header">{{.locale.Tr "packages.installation"}}</h4>
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.rpm.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code>dnf config-manager --add-repo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm.repo"></gitea-origin-url></code></pre></div>
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.rpm.registry"}}</label>
+				<div class="markup"><pre class="code-block"><code># {{ctx.Locale.Tr "packages.rpm.distro.redhat"}}
+dnf config-manager --add-repo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm.repo"></gitea-origin-url>
+
+# {{ctx.Locale.Tr "packages.rpm.distro.suse"}}
+zypper addrepo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm.repo"></gitea-origin-url></code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.rpm.install"}}</label>
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.rpm.install"}}</label>
 				<div class="markup">
-					<pre class="code-block"><code>dnf install {{$.PackageDescriptor.Package.Name}}</code></pre>
+					<pre class="code-block"><code># {{ctx.Locale.Tr "packages.rpm.distro.redhat"}}
+dnf install {{$.PackageDescriptor.Package.Name}}
+
+# {{ctx.Locale.Tr "packages.rpm.distro.suse"}}
+zypper install {{$.PackageDescriptor.Package.Name}}</code></pre>
 				</div>
 			</div>
 			<div class="field">
-				<label>{{.locale.Tr "packages.rpm.documentation" "https://docs.gitea.io/en-us/usage/packages/rpm/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "RPM" "https://docs.gitea.com/usage/packages/rpm/" | Safe}}</label>
 			</div>
 		</div>
 	</div>
 
 	{{if or .PackageDescriptor.Metadata.Summary .PackageDescriptor.Metadata.Description}}
-		<h4 class="ui top attached header">{{.locale.Tr "packages.about"}}</h4>
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
 		{{if .PackageDescriptor.Metadata.Summary}}<div class="ui attached segment">{{.PackageDescriptor.Metadata.Summary}}</div>{{end}}
 		{{if .PackageDescriptor.Metadata.Description}}<div class="ui attached segment">{{.PackageDescriptor.Metadata.Description}}</div>{{end}}
 	{{end}}

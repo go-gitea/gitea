@@ -46,12 +46,12 @@ CONN_STR = redis://
 	assert.Equal(t, "default", q.GetName())
 	assert.Equal(t, "level", q.GetType())
 	assert.Equal(t, filepath.Join(setting.AppDataPath, "queues/common"), q.baseConfig.DataFullDir)
-	assert.Equal(t, 100, q.baseConfig.Length)
+	assert.Equal(t, 100000, q.baseConfig.Length)
 	assert.Equal(t, 20, q.batchLength)
 	assert.Equal(t, "", q.baseConfig.ConnStr)
 	assert.Equal(t, "default_queue", q.baseConfig.QueueFullName)
 	assert.Equal(t, "default_queue_unique", q.baseConfig.SetFullName)
-	assert.Equal(t, 10, q.GetWorkerMaxNumber())
+	assert.NotZero(t, q.GetWorkerMaxNumber())
 	assert.Equal(t, 0, q.GetWorkerNumber())
 	assert.Equal(t, 0, q.GetWorkerActiveNumber())
 	assert.Equal(t, 0, q.GetQueueItemNumber())
@@ -75,7 +75,7 @@ BATCH_LENGTH = 22
 CONN_STR =
 QUEUE_NAME = _q2
 SET_NAME = _u2
-MAX_WORKERS = 2
+MAX_WORKERS = 123
 `)
 
 	assert.NoError(t, err)
@@ -89,7 +89,7 @@ MAX_WORKERS = 2
 	assert.Equal(t, "addrs=127.0.0.1:6379 db=0", q1.baseConfig.ConnStr)
 	assert.Equal(t, "no-such_queue1", q1.baseConfig.QueueFullName)
 	assert.Equal(t, "no-such_queue1_unique", q1.baseConfig.SetFullName)
-	assert.Equal(t, 10, q1.GetWorkerMaxNumber())
+	assert.NotZero(t, q1.GetWorkerMaxNumber())
 	assert.Equal(t, 0, q1.GetWorkerNumber())
 	assert.Equal(t, 0, q1.GetWorkerActiveNumber())
 	assert.Equal(t, 0, q1.GetQueueItemNumber())
@@ -105,7 +105,7 @@ MAX_WORKERS = 2
 	assert.Equal(t, "", q2.baseConfig.ConnStr)
 	assert.Equal(t, "sub_q2", q2.baseConfig.QueueFullName)
 	assert.Equal(t, "sub_q2_u2", q2.baseConfig.SetFullName)
-	assert.Equal(t, 2, q2.GetWorkerMaxNumber())
+	assert.Equal(t, 123, q2.GetWorkerMaxNumber())
 	assert.Equal(t, 0, q2.GetWorkerNumber())
 	assert.Equal(t, 0, q2.GetWorkerActiveNumber())
 	assert.Equal(t, 0, q2.GetQueueItemNumber())

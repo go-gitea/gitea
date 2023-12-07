@@ -6,28 +6,28 @@
 	<div class="singular-commit" id="{{$tag}}">
 		<span class="badge badge-commit">{{svg "octicon-git-commit"}}</span>
 		{{if .User}}
-			<a class="avatar" href="{{.User.HomeLink}}">{{avatar $.root.Context .User}}</a>
+			<a class="avatar" href="{{.User.HomeLink}}">{{ctx.AvatarUtils.Avatar .User}}</a>
 		{{else}}
-			{{avatarByEmail $.root.Context .Author.Email .Author.Name}}
+			{{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name}}
 		{{end}}
 
 		{{$commitLink:= printf "%s/commit/%s" $.comment.Issue.PullRequest.BaseRepo.Link (PathEscape .ID.String)}}
 
-		<span class="ui float right shabox gt-df gt-ac">
-			{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses "root" $.root}}
+		<span class="shabox gt-df gt-ac gt-float-right">
+			{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
 			{{$class := "ui sha label"}}
 			{{if .Signature}}
-				{{$class = (printf "%s%s" $class " isSigned")}}
+				{{$class = (print $class " isSigned")}}
 				{{if .Verification.Verified}}
 					{{if eq .Verification.TrustStatus "trusted"}}
-						{{$class = (printf "%s%s" $class " isVerified")}}
+						{{$class = (print $class " isVerified")}}
 					{{else if eq .Verification.TrustStatus "untrusted"}}
-						{{$class = (printf "%s%s" $class " isVerifiedUntrusted")}}
+						{{$class = (print $class " isVerifiedUntrusted")}}
 					{{else}}
-						{{$class = (printf "%s%s" $class " isVerifiedUnmatched")}}
+						{{$class = (print $class " isVerifiedUnmatched")}}
 					{{end}}
 				{{else if .Verification.Warning}}
-					{{$class = (printf "%s%s" $class " isWarning")}}
+					{{$class = (print $class " isWarning")}}
 				{{end}}
 			{{end}}
 			<a href="{{$commitLink}}" rel="nofollow" class="gt-ml-3 {{$class}}">
@@ -38,12 +38,12 @@
 			</a>
 		</span>
 
-		<span class="gt-mono commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.root.Context .Message ($.comment.Issue.PullRequest.BaseRepo.Link|Escape) $commitLink $.comment.Issue.PullRequest.BaseRepo.ComposeMetas}}</span>
+		<span class="gt-mono commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.root.Context .Message ($.comment.Issue.PullRequest.BaseRepo.Link|Escape) $commitLink ($.comment.Issue.PullRequest.BaseRepo.ComposeMetas ctx)}}</span>
 		{{if IsMultilineCommitMessage .Message}}
-			<button class="ui button ellipsis-button" aria-expanded="false">...</button>
+			<button class="ui button js-toggle-commit-body ellipsis-button" aria-expanded="false">...</button>
 		{{end}}
 		{{if IsMultilineCommitMessage .Message}}
-			<pre class="commit-body gt-hidden">{{RenderCommitBody $.root.Context .Message ($.comment.Issue.PullRequest.BaseRepo.Link|Escape) $.comment.Issue.PullRequest.BaseRepo.ComposeMetas}}</pre>
+			<pre class="commit-body gt-hidden">{{RenderCommitBody $.root.Context .Message ($.comment.Issue.PullRequest.BaseRepo.Link|Escape) ($.comment.Issue.PullRequest.BaseRepo.ComposeMetas ctx)}}</pre>
 		{{end}}
 	</div>
 {{end}}

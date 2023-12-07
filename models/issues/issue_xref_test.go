@@ -54,7 +54,7 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	itarget = testCreateIssue(t, 3, 3, "title4", "content4", false)
 
 	// Cross-reference to issue #4 by admin
-	content = fmt.Sprintf("content5, mentions user3/repo3#%d", itarget.Index)
+	content = fmt.Sprintf("content5, mentions org3/repo3#%d", itarget.Index)
 	i = testCreateIssue(t, 2, 1, "title5", content, false)
 	ref = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0})
 	assert.Equal(t, issues_model.CommentTypeIssueRef, ref.Type)
@@ -63,7 +63,7 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	assert.Equal(t, references.XRefActionNone, ref.RefAction)
 
 	// Cross-reference to issue #4 with no permission
-	content = fmt.Sprintf("content6, mentions user3/repo3#%d", itarget.Index)
+	content = fmt.Sprintf("content6, mentions org3/repo3#%d", itarget.Index)
 	i = testCreateIssue(t, 4, 5, "title6", content, false)
 	unittest.AssertNotExistsBean(t, &issues_model.Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0})
 }

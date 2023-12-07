@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -132,6 +133,11 @@ func (r *Release) HTMLURL() string {
 	return r.Repo.HTMLURL() + "/releases/tag/" + util.PathEscapeSegments(r.TagName)
 }
 
+// APIUploadURL the api url to upload assets to a release. release must have attributes loaded
+func (r *Release) APIUploadURL() string {
+	return r.APIURL() + "/assets"
+}
+
 // Link the relative url for a release on the web UI. release must have attributes loaded
 func (r *Release) Link() string {
 	return r.Repo.Link() + "/releases/tag/" + util.PathEscapeSegments(r.TagName)
@@ -175,9 +181,9 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 }
 
 // GetRelease returns release by given ID.
-func GetRelease(repoID int64, tagName string) (*Release, error) {
+func GetRelease(ctx context.Context, repoID int64, tagName string) (*Release, error) {
 	rel := &Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)}
-	has, err := db.GetEngine(db.DefaultContext).Get(rel)
+	has, err := db.GetEngine(ctx).Get(rel)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -191,6 +197,21 @@ func GetReleaseByID(ctx context.Context, id int64) (*Release, error) {
 	rel := new(Release)
 	has, err := db.GetEngine(ctx).
 		ID(id).
+		Get(rel)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrReleaseNotExist{id, ""}
+	}
+
+	return rel, nil
+}
+
+// GetReleaseForRepoByID returns release with given ID.
+func GetReleaseForRepoByID(ctx context.Context, repoID, id int64) (*Release, error) {
+	rel := new(Release)
+	has, err := db.GetEngine(ctx).
+		Where("id=? AND repo_id=?", id, repoID).
 		Get(rel)
 	if err != nil {
 		return nil, err
@@ -278,12 +299,12 @@ func GetTagNamesByRepoID(ctx context.Context, repoID int64) ([]string, error) {
 }
 
 // CountReleasesByRepoID returns a number of releases matching FindReleaseOptions and RepoID.
-func CountReleasesByRepoID(repoID int64, opts FindReleasesOptions) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(opts.toConds(repoID)).Count(new(Release))
+func CountReleasesByRepoID(ctx context.Context, repoID int64, opts FindReleasesOptions) (int64, error) {
+	return db.GetEngine(ctx).Where(opts.toConds(repoID)).Count(new(Release))
 }
 
 // GetLatestReleaseByRepoID returns the latest release for a repository
-func GetLatestReleaseByRepoID(repoID int64) (*Release, error) {
+func GetLatestReleaseByRepoID(ctx context.Context, repoID int64) (*Release, error) {
 	cond := builder.NewCond().
 		And(builder.Eq{"repo_id": repoID}).
 		And(builder.Eq{"is_draft": false}).
@@ -291,7 +312,7 @@ func GetLatestReleaseByRepoID(repoID int64) (*Release, error) {
 		And(builder.Eq{"is_tag": false})
 
 	rel := new(Release)
-	has, err := db.GetEngine(db.DefaultContext).
+	has, err := db.GetEngine(ctx).
 		Desc("created_unix", "id").
 		Where(cond).
 		Get(rel)
@@ -336,10 +357,21 @@ func (s releaseMetaSearch) Less(i, j int) bool {
 	return s.ID[i] < s.ID[j]
 }
 
+func hasDuplicateName(attaches []*Attachment) bool {
+	attachSet := container.Set[string]{}
+	for _, attachment := range attaches {
+		if attachSet.Contains(attachment.Name) {
+			return true
+		}
+		attachSet.Add(attachment.Name)
+	}
+	return false
+}
+
 // GetReleaseAttachments retrieves the attachments for releases
 func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 	if len(rels) == 0 {
-		return
+		return nil
 	}
 
 	// To keep this efficient as possible sort all releases by id,
@@ -360,7 +392,7 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 	err = db.GetEngine(ctx).
 		Asc("release_id", "name").
 		In("release_id", sortedRels.ID).
-		Find(&attachments, Attachment{})
+		Find(&attachments)
 	if err != nil {
 		return err
 	}
@@ -381,21 +413,8 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 			continue
 		}
 
-		// Check if there are two or more attachments with the same name
-		hasDuplicates := false
-		foundNames := make(map[string]bool)
-		for _, attachment := range release.Attachments {
-			_, found := foundNames[attachment.Name]
-			if found {
-				hasDuplicates = true
-				break
-			} else {
-				foundNames[attachment.Name] = true
-			}
-		}
-
 		// If the names unique, use the URL with the Name instead of the UUID
-		if !hasDuplicates {
+		if !hasDuplicateName(release.Attachments) {
 			for _, attachment := range release.Attachments {
 				attachment.CustomDownloadURL = release.Repo.HTMLURL() + "/releases/download/" + url.PathEscape(release.TagName) + "/" + url.PathEscape(attachment.Name)
 			}
@@ -438,11 +457,11 @@ func DeleteReleaseByID(ctx context.Context, id int64) error {
 }
 
 // UpdateReleasesMigrationsByType updates all migrated repositories' releases from gitServiceType to replace originalAuthorID to posterID
-func UpdateReleasesMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID string, posterID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).Table("release").
+func UpdateReleasesMigrationsByType(ctx context.Context, gitServiceType structs.GitServiceType, originalAuthorID string, posterID int64) error {
+	_, err := db.GetEngine(ctx).Table("release").
 		Where("repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
 		And("original_author_id = ?", originalAuthorID).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"publisher_id":       posterID,
 			"original_author":    "",
 			"original_author_id": 0,
@@ -481,8 +500,8 @@ func PushUpdateDeleteTagsContext(ctx context.Context, repo *Repository, tags []s
 }
 
 // PushUpdateDeleteTag must be called for any push actions to delete tag
-func PushUpdateDeleteTag(repo *Repository, tagName string) error {
-	rel, err := GetRelease(repo.ID, tagName)
+func PushUpdateDeleteTag(ctx context.Context, repo *Repository, tagName string) error {
+	rel, err := GetRelease(ctx, repo.ID, tagName)
 	if err != nil {
 		if IsErrReleaseNotExist(err) {
 			return nil
@@ -490,14 +509,14 @@ func PushUpdateDeleteTag(repo *Repository, tagName string) error {
 		return fmt.Errorf("GetRelease: %w", err)
 	}
 	if rel.IsTag {
-		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).Delete(new(Release)); err != nil {
+		if _, err = db.GetEngine(ctx).ID(rel.ID).Delete(new(Release)); err != nil {
 			return fmt.Errorf("Delete: %w", err)
 		}
 	} else {
 		rel.IsDraft = true
 		rel.NumCommits = 0
 		rel.Sha1 = ""
-		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).AllCols().Update(rel); err != nil {
+		if _, err = db.GetEngine(ctx).ID(rel.ID).AllCols().Update(rel); err != nil {
 			return fmt.Errorf("Update: %w", err)
 		}
 	}
@@ -506,15 +525,15 @@ func PushUpdateDeleteTag(repo *Repository, tagName string) error {
 }
 
 // SaveOrUpdateTag must be called for any push actions to add tag
-func SaveOrUpdateTag(repo *Repository, newRel *Release) error {
-	rel, err := GetRelease(repo.ID, newRel.TagName)
+func SaveOrUpdateTag(ctx context.Context, repo *Repository, newRel *Release) error {
+	rel, err := GetRelease(ctx, repo.ID, newRel.TagName)
 	if err != nil && !IsErrReleaseNotExist(err) {
 		return fmt.Errorf("GetRelease: %w", err)
 	}
 
 	if rel == nil {
 		rel = newRel
-		if _, err = db.GetEngine(db.DefaultContext).Insert(rel); err != nil {
+		if _, err = db.GetEngine(ctx).Insert(rel); err != nil {
 			return fmt.Errorf("InsertOne: %w", err)
 		}
 	} else {
@@ -525,7 +544,7 @@ func SaveOrUpdateTag(repo *Repository, newRel *Release) error {
 		if rel.IsTag && newRel.PublisherID > 0 {
 			rel.PublisherID = newRel.PublisherID
 		}
-		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).AllCols().Update(rel); err != nil {
+		if _, err = db.GetEngine(ctx).ID(rel.ID).AllCols().Update(rel); err != nil {
 			return fmt.Errorf("Update: %w", err)
 		}
 	}
@@ -548,3 +567,31 @@ func (r *Release) GetExternalName() string { return r.OriginalAuthor }
 
 // ExternalID ExternalUserRemappable interface
 func (r *Release) GetExternalID() int64 { return r.OriginalAuthorID }
+
+// InsertReleases migrates release
+func InsertReleases(ctx context.Context, rels ...*Release) error {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
+
+	for _, rel := range rels {
+		if _, err := sess.NoAutoTime().Insert(rel); err != nil {
+			return err
+		}
+
+		if len(rel.Attachments) > 0 {
+			for i := range rel.Attachments {
+				rel.Attachments[i].ReleaseID = rel.ID
+			}
+
+			if _, err := sess.NoAutoTime().Insert(rel.Attachments); err != nil {
+				return err
+			}
+		}
+	}
+
+	return committer.Commit()
+}

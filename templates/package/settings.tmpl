@@ -1,14 +1,15 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository settings options">
-	{{template "user/overview/header" .}}
+	{{template "shared/user/org_profile_avatar" .}}
 	<div class="ui container">
+		{{template "user/overview/header" .}}
 		{{template "base/alert" .}}
-		<p><a href="{{.PackageDescriptor.FullWebLink}}">{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</a> / <strong>{{.locale.Tr "repo.settings"}}</strong></p>
+		<p><a href="{{.PackageDescriptor.FullWebLink}}">{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</a> / <strong>{{ctx.Locale.Tr "repo.settings"}}</strong></p>
 		<h4 class="ui top attached header">
-			{{.locale.Tr "packages.settings.link"}}
+			{{ctx.Locale.Tr "packages.settings.link"}}
 		</h4>
 		<div class="ui attached segment">
-			<p>{{.locale.Tr "packages.settings.link.description"}}</p>
+			<p>{{ctx.Locale.Tr "packages.settings.link.description"}}</p>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
@@ -21,7 +22,7 @@
 						{{end}}
 						<input type="hidden" name="repo_id" value="{{$repoID}}">
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="default text">{{.locale.Tr "packages.settings.link.select"}}</div>
+						<div class="default text">{{ctx.Locale.Tr "packages.settings.link.select"}}</div>
 						<div class="menu">
 							{{range .Repos}}
 								<div class="item" data-value="{{.ID}}">{{.Name}}</div>
@@ -30,35 +31,37 @@
 					</div>
 				</div>
 				<div class="field">
-					<button class="ui green button">{{.locale.Tr "packages.settings.link.button"}}</button>
+					<button class="ui primary button">{{ctx.Locale.Tr "packages.settings.link.button"}}</button>
 				</div>
 			</form>
 		</div>
 		<h4 class="ui top attached error header">
-			{{.locale.Tr "repo.settings.danger_zone"}}
+			{{ctx.Locale.Tr "repo.settings.danger_zone"}}
 		</h4>
-		<div class="ui attached error table danger segment">
-			<div class="item">
-				<div class="ui right">
-					<button class="ui basic red show-modal button" data-modal="#delete-package-modal">{{.locale.Tr "packages.settings.delete"}}</button>
-				</div>
-				<div>
-					<h5>{{.locale.Tr "packages.settings.delete"}}</h5>
-					<p>{{.locale.Tr "packages.settings.delete.description"}}</p>
-				</div>
-				<div class="ui tiny modal" id="delete-package-modal">
-					<div class="header">
-						{{.locale.Tr "packages.settings.delete"}}
+		<div class="ui attached error danger segment">
+			<div class="flex-list">
+				<div class="flex-item">
+					<div class="flex-item-main">
+						<div class="flex-item-title">{{ctx.Locale.Tr "packages.settings.delete"}}</div>
+						<div class="flex-item-body">{{ctx.Locale.Tr "packages.settings.delete.description"}}</div>
 					</div>
-					<div class="content">
-						<div class="ui warning message gt-word-break">
-							{{.locale.Tr "packages.settings.delete.notice" .PackageDescriptor.Package.Name .PackageDescriptor.Version.Version}}
+					<div class="flex-item-trailing">
+						<button class="ui basic red show-modal button" data-modal="#delete-package-modal">{{ctx.Locale.Tr "packages.settings.delete"}}</button>
+					</div>
+					<div class="ui tiny modal" id="delete-package-modal">
+						<div class="header">
+							{{ctx.Locale.Tr "packages.settings.delete"}}
 						</div>
-						<form class="ui form" action="{{.Link}}" method="post">
-							{{.CsrfTokenHtml}}
-							<input type="hidden" name="action" value="delete">
-							{{template "base/modal_actions_confirm" .}}
-						</form>
+						<div class="content">
+							<div class="ui warning message gt-word-break">
+								{{ctx.Locale.Tr "packages.settings.delete.notice" .PackageDescriptor.Package.Name .PackageDescriptor.Version.Version}}
+							</div>
+							<form class="ui form" action="{{.Link}}" method="post">
+								{{.CsrfTokenHtml}}
+								<input type="hidden" name="action" value="delete">
+								{{template "base/modal_actions_confirm" .}}
+							</form>
+						</div>
 					</div>
 				</div>
 			</div>

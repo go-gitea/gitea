@@ -42,14 +42,17 @@ type CreateRepoForm struct {
 	Readme        string
 	Template      bool
 
-	RepoTemplate int64
-	GitContent   bool
-	Topics       bool
-	GitHooks     bool
-	Webhooks     bool
-	Avatar       bool
-	Labels       bool
-	TrustModel   string
+	RepoTemplate    int64
+	GitContent      bool
+	Topics          bool
+	GitHooks        bool
+	Webhooks        bool
+	Avatar          bool
+	Labels          bool
+	ProtectedBranch bool
+	TrustModel      string
+
+	ForkSingleBranch string
 }
 
 // Validate validates the fields
@@ -352,6 +355,7 @@ func (f *NewDingtalkHookForm) Validate(req *http.Request, errs binding.Errors) b
 type NewTelegramHookForm struct {
 	BotToken string `binding:"Required"`
 	ChatID   string `binding:"Required"`
+	ThreadID string
 	WebhookForm
 }
 
@@ -567,6 +571,7 @@ type CreateLabelForm struct {
 	ID          int64
 	Title       string `binding:"Required;MaxSize(50)" locale:"repo.issues.label_title"`
 	Exclusive   bool   `form:"exclusive"`
+	IsArchived  bool   `form:"is_archived"`
 	Description string `binding:"MaxSize(200)" locale:"repo.issues.label_description"`
 	Color       string `binding:"Required;MaxSize(7)" locale:"repo.issues.label_color"`
 }

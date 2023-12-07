@@ -1,9 +1,9 @@
 {{if eq .PackageDescriptor.Package.Type "composer"}}
-	<h4 class="ui top attached header">{{.locale.Tr "packages.installation"}}</h4>
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-code"}} {{.locale.Tr "packages.composer.registry" | Safe}}</label>
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.composer.registry" | Safe}}</label>
 				<div class="markup"><pre class="code-block"><code>{
 	"repositories": [{
 			"type": "composer",
@@ -13,34 +13,34 @@
 }</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.composer.install"}}</label>
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.composer.install"}}</label>
 				<div class="markup"><pre class="code-block"><code>composer require {{.PackageDescriptor.Package.Name}}:{{.PackageDescriptor.Version.Version}}</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{.locale.Tr "packages.composer.documentation" "https://docs.gitea.io/en-us/usage/packages/composer/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Composer" "https://docs.gitea.com/usage/packages/composer/" | Safe}}</label>
 			</div>
 		</div>
 	</div>
 
 	{{if .PackageDescriptor.Metadata.Description}}
-		<h4 class="ui top attached header">{{.locale.Tr "packages.about"}}</h4>
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
 		<div class="ui attached segment">
 			{{.PackageDescriptor.Metadata.Description}}
 		</div>
 	{{end}}
 
 	{{if or .PackageDescriptor.Metadata.Require .PackageDescriptor.Metadata.RequireDev}}
-		<h4 class="ui top attached header">{{.locale.Tr "packages.dependencies"}}</h4>
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.dependencies"}}</h4>
 		<div class="ui attached segment">
 			<div class="ui list">
-				{{template "package/content/composer_dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.Require "title" (.locale.Tr "packages.composer.dependencies")}}
-				{{template "package/content/composer_dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.RequireDev "title" (.locale.Tr "packages.composer.dependencies.development")}}
+				{{template "package/content/composer_dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.Require "title" (ctx.Locale.Tr "packages.composer.dependencies")}}
+				{{template "package/content/composer_dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.RequireDev "title" (ctx.Locale.Tr "packages.composer.dependencies.development")}}
 			</div>
 		</div>
 	{{end}}
 
 	{{if or .PackageDescriptor.Metadata.Keywords}}
-		<h4 class="ui top attached header">{{.locale.Tr "packages.keywords"}}</h4>
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.keywords"}}</h4>
 		<div class="ui attached segment">
 			{{range .PackageDescriptor.Metadata.Keywords}}
 				{{.}}

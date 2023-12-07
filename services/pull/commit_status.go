@@ -143,7 +143,7 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 		return "", errors.Wrap(err, "LoadBaseRepo")
 	}
 
-	commitStatuses, _, err := git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptions{})
+	commitStatuses, _, err := git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptions{ListAll: true})
 	if err != nil {
 		return "", errors.Wrap(err, "GetLatestCommitStatus")
 	}

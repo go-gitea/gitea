@@ -10,17 +10,14 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	authmodel "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
-	code_indexer "code.gitea.io/gitea/modules/indexer/code"
-	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
-	stats_indexer "code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
@@ -28,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/system"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	actions_router "code.gitea.io/gitea/routers/api/actions"
 	packages_router "code.gitea.io/gitea/routers/api/packages"
@@ -41,6 +37,8 @@ import (
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/cron"
+	feed_service "code.gitea.io/gitea/services/feed"
+	indexer_service "code.gitea.io/gitea/services/indexer"
 	"code.gitea.io/gitea/services/mailer"
 	mailer_incoming "code.gitea.io/gitea/services/mailer/incoming"
 	markup_service "code.gitea.io/gitea/services/markup"
@@ -50,6 +48,7 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/repository/archiver"
 	"code.gitea.io/gitea/services/task"
+	"code.gitea.io/gitea/services/uinotification"
 	"code.gitea.io/gitea/services/webhook"
 )
 
@@ -73,7 +72,7 @@ func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 
 func syncAppConfForGit(ctx context.Context) error {
 	runtimeState := new(system.RuntimeState)
-	if err := system.AppState.Get(runtimeState); err != nil {
+	if err := system.AppState.Get(ctx, runtimeState); err != nil {
 		return err
 	}
 
@@ -94,28 +93,23 @@ func syncAppConfForGit(ctx context.Context) error {
 		mustInitCtx(ctx, repo_service.SyncRepositoryHooks)
 
 		log.Info("re-write ssh public keys ...")
-		mustInit(asymkey_model.RewriteAllPublicKeys)
+		mustInitCtx(ctx, asymkey_model.RewriteAllPublicKeys)
 
-		return system.AppState.Set(runtimeState)
+		return system.AppState.Set(ctx, runtimeState)
 	}
 	return nil
 }
 
-// GlobalInitInstalled is for global installed configuration.
-func GlobalInitInstalled(ctx context.Context) {
-	if !setting.InstallLock {
-		log.Fatal("Gitea is not installed")
-	}
+func InitWebInstallPage(ctx context.Context) {
+	translation.InitLocales(ctx)
+	setting.LoadSettingsForInstall()
+	mustInit(svg.Init)
+}
 
+// InitWebInstalled is for global installed configuration.
+func InitWebInstalled(ctx context.Context) {
 	mustInitCtx(ctx, git.InitFull)
-	log.Info("Gitea Version: %s%s", setting.AppVer, setting.AppBuiltWith)
-	log.Info("Git Version: %s (home: %s)", git.VersionInfo(), git.HomeDir())
-	log.Info("AppPath: %s", setting.AppPath)
-	log.Info("AppWorkPath: %s", setting.AppWorkPath)
-	log.Info("Custom path: %s", setting.CustomPath)
-	log.Info("Log path: %s", setting.Log.RootPath)
-	log.Info("Configuration file: %s", setting.CustomConf)
-	log.Info("Run Mode: %s", util.ToTitleCase(setting.RunMode))
+	log.Info("Git version: %s (home: %s)", git.VersionInfo(), git.HomeDir())
 
 	// Setup i18n
 	translation.InitLocales(ctx)
@@ -125,8 +119,9 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	mailer.NewContext(ctx)
 	mustInit(cache.NewContext)
-	notification.NewContext()
-	mustInit(archiver.Init)
+	mustInit(feed_service.Init)
+	mustInit(uinotification.Init)
+	mustInitCtx(ctx, archiver.Init)
 
 	highlight.NewContext()
 	external.RegisterRenderers()
@@ -141,15 +136,14 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInitCtx(ctx, common.InitDBEngine)
 	log.Info("ORM engine initialization successful!")
 	mustInit(system.Init)
-	mustInit(oauth2.Init)
+	mustInitCtx(ctx, oauth2.Init)
 
 	mustInitCtx(ctx, models.Init)
-	mustInit(repo_service.Init)
+	mustInitCtx(ctx, authmodel.Init)
+	mustInitCtx(ctx, repo_service.Init)
 
 	// Booting long running goroutines.
-	issue_indexer.InitIssueIndexer(false)
-	code_indexer.Init()
-	mustInit(stats_indexer.Init)
+	mustInit(indexer_service.Init)
 
 	mirror_service.InitSyncMirrors()
 	mustInit(webhook.Init)

@@ -44,10 +44,6 @@
   gap: 8px;
 }
 
-.milestone-toolbar .group .overdue {
-  color: var(--color-red);
-}
-
 .milestone-toolbar .group > a {
   font-size: 15px;
   color: var(--color-text-light-2);

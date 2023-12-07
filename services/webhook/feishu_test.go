@@ -72,7 +72,7 @@ func TestFeishuPayload(t *testing.T) {
 		require.NotNil(t, pl)
 		require.IsType(t, &FeishuPayload{}, pl)
 
-		assert.Equal(t, "#2 crash\r\n[test/repo] Issue opened: #2 crash by user1\r\n\r\nissue body", pl.(*FeishuPayload).Content.Text)
+		assert.Equal(t, "[Issue-test/repo #2]: opened\ncrash\nhttp://localhost:3000/test/repo/issues/2\nIssue by user1\nOperator: user1\nAssignees: user1\n\nissue body", pl.(*FeishuPayload).Content.Text)
 
 		p.Action = api.HookIssueClosed
 		pl, err = d.Issue(p)
@@ -80,7 +80,7 @@ func TestFeishuPayload(t *testing.T) {
 		require.NotNil(t, pl)
 		require.IsType(t, &FeishuPayload{}, pl)
 
-		assert.Equal(t, "#2 crash\r\n[test/repo] Issue closed: #2 crash by user1", pl.(*FeishuPayload).Content.Text)
+		assert.Equal(t, "[Issue-test/repo #2]: closed\ncrash\nhttp://localhost:3000/test/repo/issues/2\nIssue by user1\nOperator: user1\nAssignees: user1\n\nissue body", pl.(*FeishuPayload).Content.Text)
 	})
 
 	t.Run("IssueComment", func(t *testing.T) {
@@ -92,7 +92,7 @@ func TestFeishuPayload(t *testing.T) {
 		require.NotNil(t, pl)
 		require.IsType(t, &FeishuPayload{}, pl)
 
-		assert.Equal(t, "#2 crash\r\n[test/repo] New comment on issue #2 crash by user1\r\n\r\nmore info needed", pl.(*FeishuPayload).Content.Text)
+		assert.Equal(t, "[Comment-test/repo #2]: created\ncrash\nhttp://localhost:3000/test/repo/issues/2\nIssue by user1\nOperator: user1\n\nmore info needed", pl.(*FeishuPayload).Content.Text)
 	})
 
 	t.Run("PullRequest", func(t *testing.T) {
@@ -104,7 +104,7 @@ func TestFeishuPayload(t *testing.T) {
 		require.NotNil(t, pl)
 		require.IsType(t, &FeishuPayload{}, pl)
 
-		assert.Equal(t, "#12 Fix bug\r\n[test/repo] Pull request opened: #12 Fix bug by user1\r\n\r\nfixes bug #2", pl.(*FeishuPayload).Content.Text)
+		assert.Equal(t, "[PullRequest-test/repo #12]: opened\nFix bug\nhttp://localhost:3000/test/repo/pulls/12\nPullRequest by user1\nOperator: user1\nAssignees: user1\n\nfixes bug #2", pl.(*FeishuPayload).Content.Text)
 	})
 
 	t.Run("PullRequestComment", func(t *testing.T) {
@@ -116,7 +116,7 @@ func TestFeishuPayload(t *testing.T) {
 		require.NotNil(t, pl)
 		require.IsType(t, &FeishuPayload{}, pl)
 
-		assert.Equal(t, "#12 Fix bug\r\n[test/repo] New comment on pull request #12 Fix bug by user1\r\n\r\nchanges requested", pl.(*FeishuPayload).Content.Text)
+		assert.Equal(t, "[Comment-test/repo #12]: created\nFix bug\nhttp://localhost:3000/test/repo/pulls/12\nPullRequest by user1\nOperator: user1\n\nchanges requested", pl.(*FeishuPayload).Content.Text)
 	})
 
 	t.Run("Review", func(t *testing.T) {
@@ -142,6 +142,18 @@ func TestFeishuPayload(t *testing.T) {
 		require.IsType(t, &FeishuPayload{}, pl)
 
 		assert.Equal(t, "[test/repo] Repository created", pl.(*FeishuPayload).Content.Text)
+	})
+
+	t.Run("Package", func(t *testing.T) {
+		p := packageTestPayload()
+
+		d := new(FeishuPayload)
+		pl, err := d.Package(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &FeishuPayload{}, pl)
+
+		assert.Equal(t, "Package created: GiteaContainer:latest by user1", pl.(*FeishuPayload).Content.Text)
 	})
 
 	t.Run("Wiki", func(t *testing.T) {

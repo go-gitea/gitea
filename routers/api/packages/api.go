@@ -520,7 +520,10 @@ func CommonRoutes() *web.Route {
 				r.Get("", rpm.DownloadPackageFile)
 				r.Delete("", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
 			})
-			r.Get("/repodata/{filename}", rpm.GetRepositoryFile)
+			r.Group("/repodata/{filename}", func() {
+				r.Head("", rpm.CheckRepositoryFileExistence)
+				r.Get("", rpm.GetRepositoryFile)
+			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/rubygems", func() {
 			r.Get("/specs.4.8.gz", rubygems.EnumeratePackages)
@@ -634,7 +637,7 @@ func ContainerRoutes() *web.Route {
 		)
 
 		// Manual mapping of routes because {image} can contain slashes which chi does not support
-		r.RouteMethods("/*", "HEAD,GET,POST,PUT,PATCH,DELETE", func(ctx *context.Context) {
+		r.Methods("HEAD,GET,POST,PUT,PATCH,DELETE", "/*", func(ctx *context.Context) {
 			path := ctx.Params("*")
 			isHead := ctx.Req.Method == "HEAD"
 			isGet := ctx.Req.Method == "GET"

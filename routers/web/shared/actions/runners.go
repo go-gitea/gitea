@@ -5,7 +5,6 @@ package actions
 
 import (
 	"errors"
-	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -18,33 +17,28 @@ import (
 
 // RunnersList prepares data for runners list
 func RunnersList(ctx *context.Context, opts actions_model.FindRunnerOptions) {
-	count, err := actions_model.CountRunners(ctx, opts)
+	runners, count, err := db.FindAndCount[actions_model.ActionRunner](ctx, opts)
 	if err != nil {
 		ctx.ServerError("CountRunners", err)
 		return
 	}
 
-	runners, err := actions_model.FindRunners(ctx, opts)
-	if err != nil {
-		ctx.ServerError("FindRunners", err)
-		return
-	}
-	if err := runners.LoadAttributes(ctx); err != nil {
+	if err := actions_model.RunnerList(runners).LoadAttributes(ctx); err != nil {
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
 
 	// ownid=0,repo_id=0,means this token is used for global
 	var token *actions_model.ActionRunnerToken
-	token, err = actions_model.GetUnactivatedRunnerToken(ctx, opts.OwnerID, opts.RepoID)
-	if errors.Is(err, util.ErrNotExist) {
+	token, err = actions_model.GetLatestRunnerToken(ctx, opts.OwnerID, opts.RepoID)
+	if errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
 		token, err = actions_model.NewRunnerToken(ctx, opts.OwnerID, opts.RepoID)
 		if err != nil {
 			ctx.ServerError("CreateRunnerToken", err)
 			return
 		}
 	} else if err != nil {
-		ctx.ServerError("GetUnactivatedRunnerToken", err)
+		ctx.ServerError("GetLatestRunnerToken", err)
 		return
 	}
 
@@ -52,8 +46,9 @@ func RunnersList(ctx *context.Context, opts actions_model.FindRunnerOptions) {
 	ctx.Data["Runners"] = runners
 	ctx.Data["Total"] = count
 	ctx.Data["RegistrationToken"] = token.Token
-	ctx.Data["RunnerOnwerID"] = opts.OwnerID
+	ctx.Data["RunnerOwnerID"] = opts.OwnerID
 	ctx.Data["RunnerRepoID"] = opts.RepoID
+	ctx.Data["SortType"] = opts.Sort
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 
@@ -89,18 +84,13 @@ func RunnerDetails(ctx *context.Context, page int, runnerID, ownerID, repoID int
 		RunnerID:    runner.ID,
 	}
 
-	count, err := actions_model.CountTasks(ctx, opts)
+	tasks, count, err := db.FindAndCount[actions_model.ActionTask](ctx, opts)
 	if err != nil {
 		ctx.ServerError("CountTasks", err)
 		return
 	}
 
-	tasks, err := actions_model.FindTasks(ctx, opts)
-	if err != nil {
-		ctx.ServerError("FindTasks", err)
-		return
-	}
-	if err = tasks.LoadAttributes(ctx); err != nil {
+	if err = actions_model.TaskList(tasks).LoadAttributes(ctx); err != nil {
 		ctx.ServerError("TasksLoadAttributes", err)
 		return
 	}
@@ -160,9 +150,7 @@ func RunnerDeletePost(ctx *context.Context, runnerID int64,
 		log.Warn("DeleteRunnerPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
 		ctx.Flash.Warning(ctx.Tr("actions.runners.delete_runner_failed"))
 
-		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"redirect": failedRedirectTo,
-		})
+		ctx.JSONRedirect(failedRedirectTo)
 		return
 	}
 
@@ -170,7 +158,5 @@ func RunnerDeletePost(ctx *context.Context, runnerID int64,
 
 	ctx.Flash.Success(ctx.Tr("actions.runners.delete_runner_success"))
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": successRedirectTo,
-	})
+	ctx.JSONRedirect(successRedirectTo)
 }

@@ -26,8 +26,7 @@ var tplWebAuthn base.TplName = "user/auth/webauthn"
 func WebAuthn(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("twofa")
 
-	// Check auto-login.
-	if checkAutoLogin(ctx) {
+	if CheckAutoLogin(ctx) {
 		return
 	}
 
@@ -36,6 +35,14 @@ func WebAuthn(ctx *context.Context) {
 		ctx.ServerError("UserSignIn", errors.New("not in WebAuthn session"))
 		return
 	}
+
+	hasTwoFactor, err := auth.HasTwoFactorByUID(ctx, ctx.Session.Get("twofaUid").(int64))
+	if err != nil {
+		ctx.ServerError("HasTwoFactorByUID", err)
+		return
+	}
+
+	ctx.Data["HasTwoFactor"] = hasTwoFactor
 
 	ctx.HTML(http.StatusOK, tplWebAuthn)
 }
@@ -55,7 +62,7 @@ func WebAuthnLoginAssertion(ctx *context.Context) {
 		return
 	}
 
-	exists, err := auth.ExistsWebAuthnCredentialsForUID(user.ID)
+	exists, err := auth.ExistsWebAuthnCredentialsForUID(ctx, user.ID)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -127,21 +134,21 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	}
 
 	// Success! Get the credential and update the sign count with the new value we received.
-	dbCred, err := auth.GetWebAuthnCredentialByCredID(user.ID, cred.ID)
+	dbCred, err := auth.GetWebAuthnCredentialByCredID(ctx, user.ID, cred.ID)
 	if err != nil {
 		ctx.ServerError("GetWebAuthnCredentialByCredID", err)
 		return
 	}
 
 	dbCred.SignCount = cred.Authenticator.SignCount
-	if err := dbCred.UpdateSignCount(); err != nil {
+	if err := dbCred.UpdateSignCount(ctx); err != nil {
 		ctx.ServerError("UpdateSignCount", err)
 		return
 	}
 
 	// Now handle account linking if that's requested
 	if ctx.Session.Get("linkAccount") != nil {
-		if err := externalaccount.LinkAccountFromStore(ctx.Session, user); err != nil {
+		if err := externalaccount.LinkAccountFromStore(ctx, ctx.Session, user); err != nil {
 			ctx.ServerError("LinkAccountFromStore", err)
 			return
 		}
@@ -154,5 +161,5 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	}
 	_ = ctx.Session.Delete("twofaUid")
 
-	ctx.JSON(http.StatusOK, map[string]string{"redirect": redirect})
+	ctx.JSONRedirect(redirect)
 }

@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 type (
@@ -93,7 +92,7 @@ type FindNotificationOptions struct {
 }
 
 // ToCond will convert each condition into a xorm-Cond
-func (opts *FindNotificationOptions) ToCond() builder.Cond {
+func (opts FindNotificationOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.UserID != 0 {
 		cond = cond.And(builder.Eq{"notification.user_id": opts.UserID})
@@ -105,7 +104,11 @@ func (opts *FindNotificationOptions) ToCond() builder.Cond {
 		cond = cond.And(builder.Eq{"notification.issue_id": opts.IssueID})
 	}
 	if len(opts.Status) > 0 {
-		cond = cond.And(builder.In("notification.status", opts.Status))
+		if len(opts.Status) == 1 {
+			cond = cond.And(builder.Eq{"notification.status": opts.Status[0]})
+		} else {
+			cond = cond.And(builder.In("notification.status", opts.Status))
+		}
 	}
 	if len(opts.Source) > 0 {
 		cond = cond.And(builder.In("notification.source", opts.Source))
@@ -119,24 +122,8 @@ func (opts *FindNotificationOptions) ToCond() builder.Cond {
 	return cond
 }
 
-// ToSession will convert the given options to a xorm Session by using the conditions from ToCond and joining with issue table if required
-func (opts *FindNotificationOptions) ToSession(ctx context.Context) *xorm.Session {
-	sess := db.GetEngine(ctx).Where(opts.ToCond())
-	if opts.Page != 0 {
-		sess = db.SetSessionPagination(sess, opts)
-	}
-	return sess
-}
-
-// GetNotifications returns all notifications that fit to the given options.
-func GetNotifications(ctx context.Context, options *FindNotificationOptions) (nl NotificationList, err error) {
-	err = options.ToSession(ctx).OrderBy("notification.updated_unix DESC").Find(&nl)
-	return nl, err
-}
-
-// CountNotifications count all notifications that fit to the given options and ignore pagination.
-func CountNotifications(ctx context.Context, opts *FindNotificationOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.ToCond()).Count(&Notification{})
+func (opts FindNotificationOptions) ToOrders() string {
+	return "notification.updated_unix DESC"
 }
 
 // CreateRepoTransferNotification creates  notification for the user a repository was transferred to
@@ -175,8 +162,8 @@ func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_mo
 // CreateOrUpdateIssueNotifications creates an issue notification
 // for each watcher, or updates it if already exists
 // receiverID > 0 just send to receiver, else send to all watcher
-func CreateOrUpdateIssueNotifications(issueID, commentID, notificationAuthorID, receiverID int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func CreateOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -192,7 +179,9 @@ func CreateOrUpdateIssueNotifications(issueID, commentID, notificationAuthorID, 
 func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) error {
 	// init
 	var toNotify container.Set[int64]
-	notifications, err := getNotificationsByIssueID(ctx, issueID)
+	notifications, err := db.Find[Notification](ctx, FindNotificationOptions{
+		IssueID: issueID,
+	})
 	if err != nil {
 		return err
 	}
@@ -273,23 +262,6 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 	return nil
 }
 
-func getNotificationsByIssueID(ctx context.Context, issueID int64) (notifications []*Notification, err error) {
-	err = db.GetEngine(ctx).
-		Where("issue_id = ?", issueID).
-		Find(&notifications)
-	return notifications, err
-}
-
-func notificationExists(notifications []*Notification, issueID, userID int64) bool {
-	for _, notification := range notifications {
-		if notification.IssueID == issueID && notification.UserID == userID {
-			return true
-		}
-	}
-
-	return false
-}
-
 func createIssueNotification(ctx context.Context, userID int64, issue *issues_model.Issue, commentID, updatedByID int64) error {
 	notification := &Notification{
 		UserID:    userID,
@@ -310,7 +282,7 @@ func createIssueNotification(ctx context.Context, userID int64, issue *issues_mo
 }
 
 func updateIssueNotification(ctx context.Context, userID, issueID, commentID, updatedByID int64) error {
-	notification, err := getIssueNotification(ctx, userID, issueID)
+	notification, err := GetIssueNotification(ctx, userID, issueID)
 	if err != nil {
 		return err
 	}
@@ -331,7 +303,8 @@ func updateIssueNotification(ctx context.Context, userID, issueID, commentID, up
 	return err
 }
 
-func getIssueNotification(ctx context.Context, userID, issueID int64) (*Notification, error) {
+// GetIssueNotification return the notification about an issue
+func GetIssueNotification(ctx context.Context, userID, issueID int64) (*Notification, error) {
 	notification := new(Notification)
 	_, err := db.GetEngine(ctx).
 		Where("user_id = ?", userID).
@@ -340,48 +313,19 @@ func getIssueNotification(ctx context.Context, userID, issueID int64) (*Notifica
 	return notification, err
 }
 
-// NotificationsForUser returns notifications for a given user and status
-func NotificationsForUser(ctx context.Context, user *user_model.User, statuses []NotificationStatus, page, perPage int) (notifications NotificationList, err error) {
-	if len(statuses) == 0 {
-		return
-	}
-
-	sess := db.GetEngine(ctx).
-		Where("user_id = ?", user.ID).
-		In("status", statuses).
-		OrderBy("updated_unix DESC")
-
-	if page > 0 && perPage > 0 {
-		sess.Limit(perPage, (page-1)*perPage)
-	}
-
-	err = sess.Find(&notifications)
-	return notifications, err
-}
-
-// CountUnread count unread notifications for a user
-func CountUnread(ctx context.Context, userID int64) int64 {
-	exist, err := db.GetEngine(ctx).Where("user_id = ?", userID).And("status = ?", NotificationStatusUnread).Count(new(Notification))
-	if err != nil {
-		log.Error("countUnread", err)
-		return 0
-	}
-	return exist
-}
-
 // LoadAttributes load Repo Issue User and Comment if not loaded
 func (n *Notification) LoadAttributes(ctx context.Context) (err error) {
 	if err = n.loadRepo(ctx); err != nil {
-		return
+		return err
 	}
 	if err = n.loadIssue(ctx); err != nil {
-		return
+		return err
 	}
 	if err = n.loadUser(ctx); err != nil {
-		return
+		return err
 	}
 	if err = n.loadComment(ctx); err != nil {
-		return
+		return err
 	}
 	return err
 }
@@ -434,21 +378,21 @@ func (n *Notification) loadUser(ctx context.Context) (err error) {
 }
 
 // GetRepo returns the repo of the notification
-func (n *Notification) GetRepo() (*repo_model.Repository, error) {
-	return n.Repository, n.loadRepo(db.DefaultContext)
+func (n *Notification) GetRepo(ctx context.Context) (*repo_model.Repository, error) {
+	return n.Repository, n.loadRepo(ctx)
 }
 
 // GetIssue returns the issue of the notification
-func (n *Notification) GetIssue() (*issues_model.Issue, error) {
-	return n.Issue, n.loadIssue(db.DefaultContext)
+func (n *Notification) GetIssue(ctx context.Context) (*issues_model.Issue, error) {
+	return n.Issue, n.loadIssue(ctx)
 }
 
 // HTMLURL formats a URL-string to the notification
-func (n *Notification) HTMLURL() string {
+func (n *Notification) HTMLURL(ctx context.Context) string {
 	switch n.Source {
 	case NotificationSourceIssue, NotificationSourcePullRequest:
 		if n.Comment != nil {
-			return n.Comment.HTMLURL()
+			return n.Comment.HTMLURL(ctx)
 		}
 		return n.Issue.HTMLURL()
 	case NotificationSourceCommit:
@@ -460,11 +404,11 @@ func (n *Notification) HTMLURL() string {
 }
 
 // Link formats a relative URL-string to the notification
-func (n *Notification) Link() string {
+func (n *Notification) Link(ctx context.Context) string {
 	switch n.Source {
 	case NotificationSourceIssue, NotificationSourcePullRequest:
 		if n.Comment != nil {
-			return n.Comment.Link()
+			return n.Comment.Link(ctx)
 		}
 		return n.Issue.Link()
 	case NotificationSourceCommit:
@@ -480,17 +424,47 @@ func (n *Notification) APIURL() string {
 	return setting.AppURL + "api/v1/notifications/threads/" + strconv.FormatInt(n.ID, 10)
 }
 
+func notificationExists(notifications []*Notification, issueID, userID int64) bool {
+	for _, notification := range notifications {
+		if notification.IssueID == issueID && notification.UserID == userID {
+			return true
+		}
+	}
+
+	return false
+}
+
+// UserIDCount is a simple coalition of UserID and Count
+type UserIDCount struct {
+	UserID int64
+	Count  int64
+}
+
+// GetUIDsAndNotificationCounts between the two provided times
+func GetUIDsAndNotificationCounts(ctx context.Context, since, until timeutil.TimeStamp) ([]UserIDCount, error) {
+	sql := `SELECT user_id, count(*) AS count FROM notification ` +
+		`WHERE user_id IN (SELECT user_id FROM notification WHERE updated_unix >= ? AND ` +
+		`updated_unix < ?) AND status = ? GROUP BY user_id`
+	var res []UserIDCount
+	return res, db.GetEngine(ctx).SQL(sql, since, until, NotificationStatusUnread).Find(&res)
+}
+
 // NotificationList contains a list of notifications
 type NotificationList []*Notification
 
 // LoadAttributes load Repo Issue User and Comment if not loaded
 func (nl NotificationList) LoadAttributes(ctx context.Context) error {
-	var err error
-	for i := 0; i < len(nl); i++ {
-		err = nl[i].LoadAttributes(ctx)
-		if err != nil && !issues_model.IsErrCommentNotExist(err) {
-			return err
-		}
+	if _, _, err := nl.LoadRepos(ctx); err != nil {
+		return err
+	}
+	if _, err := nl.LoadIssues(ctx); err != nil {
+		return err
+	}
+	if _, err := nl.LoadUsers(ctx); err != nil {
+		return err
+	}
+	if _, err := nl.LoadComments(ctx); err != nil {
+		return err
 	}
 	return nil
 }
@@ -664,6 +638,68 @@ func (nl NotificationList) getPendingCommentIDs() []int64 {
 	return ids.Values()
 }
 
+func (nl NotificationList) getUserIDs() []int64 {
+	ids := make(container.Set[int64], len(nl))
+	for _, notification := range nl {
+		if notification.UserID == 0 || notification.User != nil {
+			continue
+		}
+		ids.Add(notification.UserID)
+	}
+	return ids.Values()
+}
+
+// LoadUsers loads users from database
+func (nl NotificationList) LoadUsers(ctx context.Context) ([]int, error) {
+	if len(nl) == 0 {
+		return []int{}, nil
+	}
+
+	userIDs := nl.getUserIDs()
+	users := make(map[int64]*user_model.User, len(userIDs))
+	left := len(userIDs)
+	for left > 0 {
+		limit := db.DefaultMaxInSize
+		if left < limit {
+			limit = left
+		}
+		rows, err := db.GetEngine(ctx).
+			In("id", userIDs[:limit]).
+			Rows(new(user_model.User))
+		if err != nil {
+			return nil, err
+		}
+
+		for rows.Next() {
+			var user user_model.User
+			err = rows.Scan(&user)
+			if err != nil {
+				rows.Close()
+				return nil, err
+			}
+
+			users[user.ID] = &user
+		}
+		_ = rows.Close()
+
+		left -= limit
+		userIDs = userIDs[limit:]
+	}
+
+	failures := []int{}
+	for i, notification := range nl {
+		if notification.UserID > 0 && notification.User == nil && users[notification.UserID] != nil {
+			notification.User = users[notification.UserID]
+			if notification.User == nil {
+				log.Error("Notification[%d]: UserID[%d] failed to load", notification.ID, notification.UserID)
+				failures = append(failures, i)
+				continue
+			}
+		}
+	}
+	return failures, nil
+}
+
 // LoadComments loads comments from database
 func (nl NotificationList) LoadComments(ctx context.Context) ([]int, error) {
 	if len(nl) == 0 {
@@ -716,33 +752,9 @@ func (nl NotificationList) LoadComments(ctx context.Context) ([]int, error) {
 	return failures, nil
 }
 
-// GetNotificationCount returns the notification count for user
-func GetNotificationCount(ctx context.Context, user *user_model.User, status NotificationStatus) (count int64, err error) {
-	count, err = db.GetEngine(ctx).
-		Where("user_id = ?", user.ID).
-		And("status = ?", status).
-		Count(&Notification{})
-	return count, err
-}
-
-// UserIDCount is a simple coalition of UserID and Count
-type UserIDCount struct {
-	UserID int64
-	Count  int64
-}
-
-// GetUIDsAndNotificationCounts between the two provided times
-func GetUIDsAndNotificationCounts(since, until timeutil.TimeStamp) ([]UserIDCount, error) {
-	sql := `SELECT user_id, count(*) AS count FROM notification ` +
-		`WHERE user_id IN (SELECT user_id FROM notification WHERE updated_unix >= ? AND ` +
-		`updated_unix < ?) AND status = ? GROUP BY user_id`
-	var res []UserIDCount
-	return res, db.GetEngine(db.DefaultContext).SQL(sql, since, until, NotificationStatusUnread).Find(&res)
-}
-
 // SetIssueReadBy sets issue to be read by given user.
 func SetIssueReadBy(ctx context.Context, issueID, userID int64) error {
-	if err := issues_model.UpdateIssueUserByRead(userID, issueID); err != nil {
+	if err := issues_model.UpdateIssueUserByRead(ctx, userID, issueID); err != nil {
 		return err
 	}
 
@@ -750,7 +762,7 @@ func SetIssueReadBy(ctx context.Context, issueID, userID int64) error {
 }
 
 func setIssueNotificationStatusReadIfUnread(ctx context.Context, userID, issueID int64) error {
-	notification, err := getIssueNotification(ctx, userID, issueID)
+	notification, err := GetIssueNotification(ctx, userID, issueID)
 	// ignore if not exists
 	if err != nil {
 		return nil
@@ -762,7 +774,7 @@ func setIssueNotificationStatusReadIfUnread(ctx context.Context, userID, issueID
 
 	notification.Status = NotificationStatusRead
 
-	_, err = db.GetEngine(ctx).ID(notification.ID).Update(notification)
+	_, err = db.GetEngine(ctx).ID(notification.ID).Cols("status").Update(notification)
 	return err
 }
 

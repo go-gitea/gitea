@@ -6,6 +6,7 @@ package setting
 import (
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -24,7 +25,7 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["BaseLinkNew"] = setting.AppSubURL + "/user/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("settings.hooks.desc")
 
-	ws, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{OwnerID: ctx.Doer.ID})
+	ws, err := db.Find[webhook.Webhook](ctx, webhook.ListWebhookOptions{OwnerID: ctx.Doer.ID})
 	if err != nil {
 		ctx.ServerError("ListWebhooksByOpts", err)
 		return
@@ -36,13 +37,11 @@ func Webhooks(ctx *context.Context) {
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
-	if err := webhook.DeleteWebhookByOwnerID(ctx.Doer.ID, ctx.FormInt64("id")); err != nil {
+	if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Doer.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/hooks",
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/hooks")
 }

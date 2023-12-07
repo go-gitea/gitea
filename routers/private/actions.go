@@ -41,8 +41,8 @@ func GenerateActionsRunnerToken(ctx *context.PrivateContext) {
 		})
 	}
 
-	token, err := actions_model.GetUnactivatedRunnerToken(ctx, owner, repo)
-	if errors.Is(err, util.ErrNotExist) {
+	token, err := actions_model.GetLatestRunnerToken(ctx, owner, repo)
+	if errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
 		token, err = actions_model.NewRunnerToken(ctx, owner, repo)
 		if err != nil {
 			err := fmt.Sprintf("error while creating runner token: %v", err)
@@ -77,12 +77,13 @@ func parseScope(ctx *context.PrivateContext, scope string) (ownerID, repoID int6
 	if err != nil {
 		return ownerID, repoID, err
 	}
+	ownerID = u.ID
 
 	if !found {
-		return u.ID, repoID, nil
+		return ownerID, repoID, nil
 	}
 
-	r, err := repo_model.GetRepositoryByName(u.ID, repoName)
+	r, err := repo_model.GetRepositoryByName(ctx, u.ID, repoName)
 	if err != nil {
 		return ownerID, repoID, err
 	}

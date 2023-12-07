@@ -4,19 +4,54 @@
 package db
 
 import (
-	"code.gitea.io/gitea/models/db"
+	"context"
+	"fmt"
+
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
+// ErrUserPasswordNotSet represents a "ErrUserPasswordNotSet" kind of error.
+type ErrUserPasswordNotSet struct {
+	UID  int64
+	Name string
+}
+
+func (err ErrUserPasswordNotSet) Error() string {
+	return fmt.Sprintf("user's password isn't set [uid: %d, name: %s]", err.UID, err.Name)
+}
+
+// Unwrap unwraps this error as a ErrInvalidArgument error
+func (err ErrUserPasswordNotSet) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
+// ErrUserPasswordInvalid represents a "ErrUserPasswordInvalid" kind of error.
+type ErrUserPasswordInvalid struct {
+	UID  int64
+	Name string
+}
+
+func (err ErrUserPasswordInvalid) Error() string {
+	return fmt.Sprintf("user's password is invalid [uid: %d, name: %s]", err.UID, err.Name)
+}
+
+// Unwrap unwraps this error as a ErrInvalidArgument error
+func (err ErrUserPasswordInvalid) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
 // Authenticate authenticates the provided user against the DB
-func Authenticate(user *user_model.User, login, password string) (*user_model.User, error) {
+func Authenticate(ctx context.Context, user *user_model.User, login, password string) (*user_model.User, error) {
 	if user == nil {
 		return nil, user_model.ErrUserNotExist{Name: login}
 	}
 
-	if !user.IsPasswordSet() || !user.ValidatePassword(password) {
-		return nil, user_model.ErrUserNotExist{UID: user.ID, Name: user.Name}
+	if !user.IsPasswordSet() {
+		return nil, ErrUserPasswordNotSet{UID: user.ID, Name: user.Name}
+	} else if !user.ValidatePassword(password) {
+		return nil, ErrUserPasswordInvalid{UID: user.ID, Name: user.Name}
 	}
 
 	// Update password hash if server password hash algorithm have changed
@@ -26,7 +61,7 @@ func Authenticate(user *user_model.User, login, password string) (*user_model.Us
 		if err := user.SetPassword(password); err != nil {
 			return nil, err
 		}
-		if err := user_model.UpdateUserCols(db.DefaultContext, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
+		if err := user_model.UpdateUserCols(ctx, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
 			return nil, err
 		}
 	}

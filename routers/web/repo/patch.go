@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -94,19 +95,18 @@ func NewDiffPatchPost(ctx *context.Context) {
 		Content:      strings.ReplaceAll(form.Content, "\r", ""),
 	})
 	if err != nil {
-		if models.IsErrBranchAlreadyExists(err) {
+		if git_model.IsErrBranchAlreadyExists(err) {
 			// User has specified a branch that already exists
-			branchErr := err.(models.ErrBranchAlreadyExists)
+			branchErr := err.(git_model.ErrBranchAlreadyExists)
 			ctx.Data["Err_NewBranchName"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplEditFile, &form)
 			return
 		} else if models.IsErrCommitIDDoesNotMatch(err) {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+form.LastCommit+"..."+ctx.Repo.CommitID), tplPatchFile, &form)
 			return
-		} else {
-			ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_apply_patch", err), tplPatchFile, &form)
-			return
 		}
+		ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_apply_patch", err), tplPatchFile, &form)
+		return
 	}
 
 	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(ctx, unit.TypePullRequests) {

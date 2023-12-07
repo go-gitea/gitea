@@ -177,7 +177,7 @@ func uploadConanPackageV2(t *testing.T, baseURL, token, name, version, user, cha
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var list *struct {
-		Files map[string]interface{} `json:"files"`
+		Files map[string]any `json:"files"`
 	}
 	DecodeJSON(t, resp, &list)
 	assert.Len(t, list.Files, 1)
@@ -296,7 +296,7 @@ func TestPackageConan(t *testing.T) {
 
 						assert.Equal(t, int64(len(contentConaninfo)), pb.Size)
 					} else {
-						assert.Fail(t, "unknown file: %s", pf.Name)
+						assert.FailNow(t, "unknown file: %s", pf.Name)
 					}
 				}
 			})

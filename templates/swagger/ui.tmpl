@@ -5,7 +5,7 @@
 		<link href="{{AssetUrlPrefix}}/css/swagger.css?v={{AssetVersion}}" rel="stylesheet">
 	</head>
 	<body>
-		<a class="swagger-back-link" href="{{AppSubUrl}}/">{{svg "octicon-reply"}}{{.locale.Tr "return_to_gitea"}}</a>
+		<a class="swagger-back-link" href="{{AppSubUrl}}/">{{svg "octicon-reply"}}{{ctx.Locale.Tr "return_to_gitea"}}</a>
 		<div id="swagger-ui" data-source="{{AppSubUrl}}/swagger.{{.APIJSONVersion}}.json"></div>
 		<script src="{{AssetUrlPrefix}}/js/swagger.js?v={{AssetVersion}}"></script>
 	</body>

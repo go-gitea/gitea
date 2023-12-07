@@ -1,0 +1,21 @@
+.issue-card {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  border-radius: var(--border-radius);
+  padding: 8px 10px;
+  border: 1px solid var(--color-secondary);
+  background: var(--color-card);
+}
+
+.issue-card-icon,
+.issue-card-unpin {
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+.issue-card-title {
+  flex: 1;
+  font-size: 14px;
+  margin-left: 4px;
+}

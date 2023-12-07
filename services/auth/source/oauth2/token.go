@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // ___________     __
@@ -41,7 +41,7 @@ type Token struct {
 
 // ParseToken parses a signed jwt string
 func ParseToken(jwtToken string, signingKey JWTSigningKey) (*Token, error) {
-	parsedToken, err := jwt.ParseWithClaims(jwtToken, &Token{}, func(token *jwt.Token) (interface{}, error) {
+	parsedToken, err := jwt.ParseWithClaims(jwtToken, &Token{}, func(token *jwt.Token) (any, error) {
 		if token.Method == nil || token.Method.Alg() != signingKey.SigningMethod().Alg() {
 			return nil, fmt.Errorf("unexpected signing algo: %v", token.Header["alg"])
 		}
@@ -49,6 +49,9 @@ func ParseToken(jwtToken string, signingKey JWTSigningKey) (*Token, error) {
 	})
 	if err != nil {
 		return nil, err
+	}
+	if !parsedToken.Valid {
+		return nil, fmt.Errorf("invalid token")
 	}
 	var token *Token
 	var ok bool

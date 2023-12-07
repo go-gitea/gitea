@@ -96,7 +96,10 @@ func (l *LoggerImpl) removeWriterInternal(w EventWriter) {
 func (l *LoggerImpl) AddWriters(writer ...EventWriter) {
 	l.eventWriterMu.Lock()
 	defer l.eventWriterMu.Unlock()
+	l.addWritersInternal(writer...)
+}
 
+func (l *LoggerImpl) addWritersInternal(writer ...EventWriter) {
 	for _, w := range writer {
 		if old, ok := l.eventWriters[w.GetWriterName()]; ok {
 			l.removeWriterInternal(old)
@@ -126,8 +129,8 @@ func (l *LoggerImpl) RemoveWriter(modeName string) error {
 	return nil
 }
 
-// RemoveAllWriters removes all writers from the logger, non-shared writers are closed and flushed
-func (l *LoggerImpl) RemoveAllWriters() *LoggerImpl {
+// ReplaceAllWriters replaces all writers from the logger, non-shared writers are closed and flushed
+func (l *LoggerImpl) ReplaceAllWriters(writer ...EventWriter) {
 	l.eventWriterMu.Lock()
 	defer l.eventWriterMu.Unlock()
 
@@ -135,8 +138,7 @@ func (l *LoggerImpl) RemoveAllWriters() *LoggerImpl {
 		l.removeWriterInternal(w)
 	}
 	l.eventWriters = map[string]EventWriter{}
-	l.syncLevelInternal()
-	return l
+	l.addWritersInternal(writer...)
 }
 
 // DumpWriters dumps the writers as a JSON map, it's used for debugging and display purposes.
@@ -161,7 +163,7 @@ func (l *LoggerImpl) DumpWriters() map[string]any {
 
 // Close closes the logger, non-shared writers are closed and flushed
 func (l *LoggerImpl) Close() {
-	l.RemoveAllWriters()
+	l.ReplaceAllWriters()
 	l.ctxCancel()
 }
 
@@ -233,7 +235,6 @@ func NewLoggerWithWriters(ctx context.Context, name string, writer ...EventWrite
 	l.ctx, l.ctxCancel = newProcessTypedContext(ctx, "Logger: "+name)
 	l.LevelLogger = BaseLoggerToGeneralLogger(l)
 	l.eventWriters = map[string]EventWriter{}
-	l.syncLevelInternal()
 	l.AddWriters(writer...)
 	return l
 }

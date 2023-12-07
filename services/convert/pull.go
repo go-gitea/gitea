@@ -68,7 +68,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		PatchURL:  pr.Issue.PatchURL(),
 		HasMerged: pr.HasMerged,
 		MergeBase: pr.MergeBase,
-		Mergeable: pr.Mergeable(),
+		Mergeable: pr.Mergeable(ctx),
 		Deadline:  apiIssue.Deadline,
 		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
 		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
@@ -80,7 +80,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			Name:       pr.BaseBranch,
 			Ref:        pr.BaseBranch,
 			RepoID:     pr.BaseRepoID,
-			Repository: ToRepo(ctx, pr.BaseRepo, p.AccessMode),
+			Repository: ToRepo(ctx, pr.BaseRepo, p),
 		},
 		Head: &api.PRBranchInfo{
 			Name:   pr.HeadBranch,
@@ -152,7 +152,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		}
 
 		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
-		apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p.AccessMode)
+		apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
 
 		headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
 		if err != nil {

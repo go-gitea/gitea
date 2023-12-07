@@ -1,30 +1,30 @@
 {{if eq .PackageDescriptor.Package.Type "cran"}}
-	<h4 class="ui top attached header">{{.locale.Tr "packages.installation"}}</h4>
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-code"}} {{.locale.Tr "packages.cran.registry" | Safe}}</label>
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.cran.registry" | Safe}}</label>
 				<div class="markup"><pre class="code-block"><code>options("repos" = c(getOption("repos"), c(gitea="<gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/cran"></gitea-origin-url>")))</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.cran.install"}}</label>
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.cran.install"}}</label>
 				<div class="markup"><pre class="code-block"><code>install.packages("{{.PackageDescriptor.Package.Name}}")</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{.locale.Tr "packages.cran.documentation" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "CRAN" "https://docs.gitea.com/usage/packages/cran/" | Safe}}</label>
 			</div>
 		</div>
 	</div>
 
 	{{if or .PackageDescriptor.Metadata.Description .PackageDescriptor.Metadata.Title}}
-		<h4 class="ui top attached header">{{.locale.Tr "packages.about"}}</h4>
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
 		<div class="ui attached segment">
 			{{if .PackageDescriptor.Metadata.Description}}{{.PackageDescriptor.Metadata.Description}}{{.PackageDescriptor.Metadata.Title}}{{else}}{{end}}
 		</div>
 	{{end}}
 
 	{{if or .PackageDescriptor.Metadata.Imports .PackageDescriptor.Metadata.Depends .PackageDescriptor.Metadata.LinkingTo .PackageDescriptor.Metadata.Suggests}}
-		<h4 class="ui top attached header">{{.locale.Tr "packages.dependencies"}}</h4>
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.dependencies"}}</h4>
 		<div class="ui attached segment">
 			<table class="ui single line very basic table">
 				<tbody>

@@ -1,24 +1,24 @@
 <h4 class="ui top attached header">
-	{{.locale.Tr "packages.owner.settings.cargo.title"}}
+	{{ctx.Locale.Tr "packages.owner.settings.cargo.title"}}
 </h4>
 <div class="ui attached segment">
 	<div class="ui form">
 		<div class="field">
-			<label>{{$.locale.Tr "packages.owner.settings.cargo.initialize.description"}}</label>
+			<label>{{ctx.Locale.Tr "packages.owner.settings.cargo.initialize.description"}}</label>
 		</div>
 		<form class="field" action="{{.Link}}/cargo/initialize" method="post">
 			{{.CsrfTokenHtml}}
-			<button class="ui green button">{{$.locale.Tr "packages.owner.settings.cargo.initialize"}}</button>
+			<button class="ui primary button">{{ctx.Locale.Tr "packages.owner.settings.cargo.initialize"}}</button>
 		</form>
 		<div class="field">
-			<label>{{$.locale.Tr "packages.owner.settings.cargo.rebuild.description"}}</label>
+			<label>{{ctx.Locale.Tr "packages.owner.settings.cargo.rebuild.description"}}</label>
 		</div>
 		<form class="field" action="{{.Link}}/cargo/rebuild" method="post">
 			{{.CsrfTokenHtml}}
-			<button class="ui green button">{{$.locale.Tr "packages.owner.settings.cargo.rebuild"}}</button>
+			<button class="ui primary button">{{ctx.Locale.Tr "packages.owner.settings.cargo.rebuild"}}</button>
 		</form>
 		<div class="field">
-			<label>{{.locale.Tr "packages.cargo.documentation" "https://docs.gitea.io/en-us/usage/packages/cargo/" | Safe}}</label>
+			<label>{{ctx.Locale.Tr "packages.registry.documentation" "Cargo" "https://docs.gitea.com/usage/packages/cargo/" | Safe}}</label>
 		</div>
 	</div>
 </div>

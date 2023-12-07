@@ -68,7 +68,7 @@ func sessionHandler(session ssh.Session) {
 
 	log.Trace("SSH: Payload: %v", command)
 
-	args := []string{"serv", "key-" + keyID, "--config=" + setting.CustomConf}
+	args := []string{"--config=" + setting.CustomConf, "serv", "key-" + keyID}
 	log.Trace("SSH: Arguments: %v", args)
 
 	ctx, cancel := context.WithCancel(session.Context())
@@ -182,6 +182,12 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 
 		if len(setting.SSH.TrustedUserCAKeys) == 0 {
 			log.Warn("Certificate Rejected: No trusted certificate authorities for this server")
+			log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
+			return false
+		}
+
+		if cert.CertType != gossh.UserCert {
+			log.Warn("Certificate Rejected: Not a user certificate")
 			log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
 			return false
 		}

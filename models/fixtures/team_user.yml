@@ -105,3 +105,27 @@
   org_id: 23
   team_id: 17
   uid: 5
+
+-
+  id: 19
+  org_id: 35
+  team_id: 18
+  uid: 1
+
+-
+  id: 20
+  org_id: 36
+  team_id: 19
+  uid: 1
+
+-
+  id: 21
+  org_id: 36
+  team_id: 20
+  uid: 5
+
+-
+  id: 22
+  org_id: 17
+  team_id: 9
+  uid: 15

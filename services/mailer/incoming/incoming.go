@@ -205,7 +205,7 @@ loop:
 					if err := c.Store(
 						handledSet,
 						imap.FormatFlagsOp(imap.AddFlags, true),
-						[]interface{}{imap.DeletedFlag},
+						[]any{imap.DeletedFlag},
 						nil,
 					); err != nil {
 						return fmt.Errorf("imap store failed: %w", err)

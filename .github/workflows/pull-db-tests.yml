@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       pgsql:
-        image: postgres:15
+        image: postgres:12
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -31,17 +31,17 @@ jobs:
       minio:
         # as github actions doesn't support "entrypoint", we need to use a non-official image
         # that has a custom entrypoint set to "minio server /data"
-        image: bitnami/minio:2021.3.17
+        image: bitnami/minio:2023.8.31
         env:
-          MINIO_ACCESS_KEY: 123456
-          MINIO_SECRET_KEY: 12345678
+          MINIO_ROOT_USER: 123456
+          MINIO_ROOT_PASSWORD: 12345678
         ports:
           - "9000:9000"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: ">=1.20"
+          go-version-file: go.mod
           check-latest: true
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts'
@@ -63,10 +63,10 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: ">=1.20"
+          go-version-file: go.mod
           check-latest: true
       - run: make deps-backend
       - run: make backend
@@ -85,26 +85,18 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     services:
-      mysql:
-        image: mysql:5.7
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
-          MYSQL_DATABASE: test
-        ports:
-          - "3306:3306"
       elasticsearch:
         image: elasticsearch:7.5.0
         env:
           discovery.type: single-node
         ports:
           - "9200:9200"
-      smtpimap:
-        image: tabascoterrier/docker-imap-devel:latest
+      meilisearch:
+        image: getmeili/meilisearch:v1.2.0
+        env:
+          MEILI_ENV: development # disable auth
         ports:
-          - "25:25"
-          - "143:143"
-          - "587:587"
-          - "993:993"
+          - "7700:7700"
       redis:
         image: redis
         options: >- # wait until redis has started
@@ -122,13 +114,13 @@ jobs:
         ports:
           - "9000:9000"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: ">=1.20"
+          go-version-file: go.mod
           check-latest: true
       - name: Add hosts to /etc/hosts
-        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make backend
         env:
@@ -146,16 +138,16 @@ jobs:
           RACE_ENABLED: true
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
 
-  test-mysql5:
+  test-mysql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:
       mysql:
-        image: mysql:5.7
+        image: mysql:8.0
         env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
-          MYSQL_DATABASE: test
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_DATABASE: testgitea
         ports:
           - "3306:3306"
       elasticsearch:
@@ -172,10 +164,10 @@ jobs:
           - "587:587"
           - "993:993"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: ">=1.20"
+          go-version-file: go.mod
           check-latest: true
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
@@ -191,43 +183,13 @@ jobs:
           USE_REPO_TEST_DIR: 1
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
-  test-mysql8:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
-    needs: files-changed
-    runs-on: ubuntu-latest
-    services:
-      mysql8:
-        image: mysql:8
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
-          MYSQL_DATABASE: testgitea
-        ports:
-          - "3306:3306"
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
-        with:
-          go-version: ">=1.20"
-          check-latest: true
-      - name: Add hosts to /etc/hosts
-        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql8" | sudo tee -a /etc/hosts'
-      - run: make deps-backend
-      - run: make backend
-        env:
-          TAGS: bindata
-      - run: make test-mysql8-migration test-mysql8
-        timeout-minutes: 50
-        env:
-          TAGS: bindata
-          USE_REPO_TEST_DIR: 1
-
   test-mssql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:
       mssql:
-        image: mcr.microsoft.com/mssql/server:latest
+        image: mcr.microsoft.com/mssql/server:2017-latest
         env:
           ACCEPT_EULA: Y
           MSSQL_PID: Standard
@@ -235,10 +197,10 @@ jobs:
         ports:
           - "1433:1433"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: ">=1.20"
+          go-version-file: go.mod
           check-latest: true
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mssql" | sudo tee -a /etc/hosts'

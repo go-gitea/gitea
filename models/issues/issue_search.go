@@ -21,7 +21,7 @@ import (
 
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct { //nolint
-	db.ListOptions
+	db.Paginator
 	RepoIDs            []int64 // overwrites RepoCond if the length is not 0
 	RepoCond           builder.Cond
 	AssigneeID         int64
@@ -99,15 +99,28 @@ func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
 }
 
 func applyLimit(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
-	if opts.Page >= 0 && opts.PageSize > 0 {
-		var start int
-		if opts.Page == 0 {
-			start = 0
-		} else {
-			start = (opts.Page - 1) * opts.PageSize
-		}
-		sess.Limit(opts.PageSize, start)
+	if opts.Paginator == nil || opts.Paginator.IsListAll() {
+		return sess
 	}
+
+	// Warning: Do not use GetSkipTake() for *db.ListOptions
+	// Its implementation could reset the page size with setting.API.MaxResponseItems
+	if listOptions, ok := opts.Paginator.(*db.ListOptions); ok {
+		if listOptions.Page >= 0 && listOptions.PageSize > 0 {
+			var start int
+			if listOptions.Page == 0 {
+				start = 0
+			} else {
+				start = (listOptions.Page - 1) * listOptions.PageSize
+			}
+			sess.Limit(listOptions.PageSize, start)
+		}
+		return sess
+	}
+
+	start, limit := opts.Paginator.GetSkipTake()
+	sess.Limit(limit, start)
+
 	return sess
 }
 
@@ -152,6 +165,29 @@ func applyMilestoneCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Sess
 				Where(builder.In("name", opts.IncludeMilestones)))
 	}
 
+	return sess
+}
+
+func applyProjectCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
+	if opts.ProjectID > 0 { // specific project
+		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
+			And("project_issue.project_id=?", opts.ProjectID)
+	} else if opts.ProjectID == db.NoConditionID { // show those that are in no project
+		sess.And(builder.NotIn("issue.id", builder.Select("issue_id").From("project_issue").And(builder.Neq{"project_id": 0})))
+	}
+	// opts.ProjectID == 0 means all projects,
+	// do not need to apply any condition
+	return sess
+}
+
+func applyProjectBoardCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
+	// opts.ProjectBoardID == 0 means all project boards,
+	// do not need to apply any condition
+	if opts.ProjectBoardID > 0 {
+		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}))
+	} else if opts.ProjectBoardID == db.NoConditionID {
+		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}))
+	}
 	return sess
 }
 
@@ -213,20 +249,9 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 		sess.And(builder.Lte{"issue.updated_unix": opts.UpdatedBeforeUnix})
 	}
 
-	if opts.ProjectID > 0 {
-		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
-			And("project_issue.project_id=?", opts.ProjectID)
-	} else if opts.ProjectID == db.NoConditionID { // show those that are in no project
-		sess.And(builder.NotIn("issue.id", builder.Select("issue_id").From("project_issue")))
-	}
+	applyProjectCondition(sess, opts)
 
-	if opts.ProjectBoardID != 0 {
-		if opts.ProjectBoardID > 0 {
-			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}))
-		} else {
-			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}))
-		}
-	}
+	applyProjectBoardCondition(sess, opts)
 
 	switch opts.IsPull {
 	case util.OptionalBoolTrue:
@@ -338,12 +363,28 @@ func applyMentionedCondition(sess *xorm.Session, mentionedID int64) *xorm.Sessio
 }
 
 func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) *xorm.Session {
-	return sess.Join("INNER", []string{"review", "r"}, "issue.id = r.issue_id").
-		And("issue.poster_id <> ?", reviewRequestedID).
-		And("r.type = ?", ReviewTypeRequest).
-		And("r.reviewer_id = ? and r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))"+
-			" or r.reviewer_team_id in (select team_id from team_user where uid = ?)",
-			reviewRequestedID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, reviewRequestedID)
+	existInTeamQuery := builder.Select("team_user.team_id").
+		From("team_user").
+		Where(builder.Eq{"team_user.uid": reviewRequestedID})
+
+	// if the review is approved or rejected, it should not be shown in the review requested list
+	maxReview := builder.Select("MAX(r.id)").
+		From("review as r").
+		Where(builder.In("r.type", []ReviewType{ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest})).
+		GroupBy("r.issue_id, r.reviewer_id, r.reviewer_team_id")
+
+	subQuery := builder.Select("review.issue_id").
+		From("review").
+		Where(builder.And(
+			builder.Eq{"review.type": ReviewTypeRequest},
+			builder.Or(
+				builder.Eq{"review.reviewer_id": reviewRequestedID},
+				builder.In("review.reviewer_team_id", existInTeamQuery),
+			),
+			builder.In("review.id", maxReview),
+		))
+	return sess.Where("issue.poster_id <> ?", reviewRequestedID).
+		And(builder.In("issue.id", subQuery))
 }
 
 func applyReviewedCondition(sess *xorm.Session, reviewedID int64) *xorm.Session {
@@ -408,9 +449,9 @@ func applySubscribedCondition(sess *xorm.Session, subscriberID int64) *xorm.Sess
 }
 
 // GetRepoIDsForIssuesOptions find all repo ids for the given options
-func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *user_model.User) ([]int64, error) {
+func GetRepoIDsForIssuesOptions(ctx context.Context, opts *IssuesOptions, user *user_model.User) ([]int64, error) {
 	repoIDs := make([]int64, 0, 5)
-	e := db.GetEngine(db.DefaultContext)
+	e := db.GetEngine(ctx)
 
 	sess := e.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 
@@ -428,64 +469,42 @@ func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *user_model.User) ([]i
 }
 
 // Issues returns a list of issues by given conditions.
-func Issues(ctx context.Context, opts *IssuesOptions) ([]*Issue, error) {
+func Issues(ctx context.Context, opts *IssuesOptions) (IssueList, error) {
 	sess := db.GetEngine(ctx).
 		Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	applyLimit(sess, opts)
 	applyConditions(sess, opts)
 	applySorts(sess, opts.SortType, opts.PriorityRepoID)
 
-	issues := make(IssueList, 0, opts.ListOptions.PageSize)
+	issues := IssueList{}
 	if err := sess.Find(&issues); err != nil {
 		return nil, fmt.Errorf("unable to query Issues: %w", err)
 	}
 
-	if err := issues.LoadAttributes(); err != nil {
+	if err := issues.LoadAttributes(ctx); err != nil {
 		return nil, fmt.Errorf("unable to LoadAttributes for Issues: %w", err)
 	}
 
 	return issues, nil
 }
 
-// SearchIssueIDsByKeyword search issues on database
-func SearchIssueIDsByKeyword(ctx context.Context, kw string, repoIDs []int64, limit, start int) (int64, []int64, error) {
-	repoCond := builder.In("repo_id", repoIDs)
-	subQuery := builder.Select("id").From("issue").Where(repoCond)
-	cond := builder.And(
-		repoCond,
-		builder.Or(
-			db.BuildCaseInsensitiveLike("name", kw),
-			db.BuildCaseInsensitiveLike("content", kw),
-			builder.In("id", builder.Select("issue_id").
-				From("comment").
-				Where(builder.And(
-					builder.Eq{"type": CommentTypeComment},
-					builder.In("issue_id", subQuery),
-					db.BuildCaseInsensitiveLike("content", kw),
-				)),
-			),
-		),
-	)
+// IssueIDs returns a list of issue ids by given conditions.
+func IssueIDs(ctx context.Context, opts *IssuesOptions, otherConds ...builder.Cond) ([]int64, int64, error) {
+	sess := db.GetEngine(ctx).
+		Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
+	applyConditions(sess, opts)
+	for _, cond := range otherConds {
+		sess.And(cond)
+	}
 
-	ids := make([]int64, 0, limit)
-	res := make([]struct {
-		ID          int64
-		UpdatedUnix int64
-	}, 0, limit)
-	err := db.GetEngine(ctx).Distinct("id", "updated_unix").Table("issue").Where(cond).
-		OrderBy("`updated_unix` DESC").Limit(limit, start).
-		Find(&res)
+	applyLimit(sess, opts)
+	applySorts(sess, opts.SortType, opts.PriorityRepoID)
+
+	var res []int64
+	total, err := sess.Select("`issue`.id").Table(&Issue{}).FindAndCount(&res)
 	if err != nil {
-		return 0, nil, err
-	}
-	for _, r := range res {
-		ids = append(ids, r.ID)
+		return nil, 0, err
 	}
 
-	total, err := db.GetEngine(ctx).Distinct("id").Table("issue").Where(cond).Count()
-	if err != nil {
-		return 0, nil, err
-	}
-
-	return total, ids, nil
+	return res, total, nil
 }

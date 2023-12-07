@@ -13,5 +13,5 @@ func ChangeSomeColumnsLengthOfRepo(x *xorm.Engine) error {
 		OriginalURL string `xorm:"VARCHAR(2048)"`
 	}
 
-	return x.Sync2(new(Repository))
+	return x.Sync(new(Repository))
 }

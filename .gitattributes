@@ -1,7 +1,7 @@
 * text=auto eol=lf
 *.tmpl linguist-language=Handlebars
 /assets/*.json linguist-generated
-/public/img/svg/*.svg linguist-generated
+/public/assets/img/svg/*.svg linguist-generated
 /templates/swagger/v1_json.tmpl linguist-generated
 /vendor/** -text -eol linguist-vendored
 /web_src/fomantic/build/** linguist-generated

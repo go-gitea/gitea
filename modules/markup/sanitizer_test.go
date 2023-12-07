@@ -53,13 +53,45 @@ func Test_Sanitizer(t *testing.T) {
 		`<p style="bad-color: red">Hello World</p>`, `<p>Hello World</p>`,
 		`<code style="bad-color: red">Hello World</code>`, `<code>Hello World</code>`,
 
+		// Org mode status of list items.
+		`<li class="checked"></li>`, `<li class="checked"></li>`,
+		`<li class="unchecked"></li>`, `<li class="unchecked"></li>`,
+		`<li class="indeterminate"></li>`, `<li class="indeterminate"></li>`,
+
 		// URLs
-		`[my custom URL scheme](cbthunderlink://somebase64string)`, `[my custom URL scheme](cbthunderlink://somebase64string)`,
-		`[my custom URL scheme](matrix:roomid/psumPMeAfzgAeQpXMG:feneas.org?action=join)`, `[my custom URL scheme](matrix:roomid/psumPMeAfzgAeQpXMG:feneas.org?action=join)`,
+		`<a href="cbthunderlink://somebase64string)">my custom URL scheme</a>`, `<a href="cbthunderlink://somebase64string)" rel="nofollow">my custom URL scheme</a>`,
+		`<a href="matrix:roomid/psumPMeAfzgAeQpXMG:feneas.org?action=join">my custom URL scheme</a>`, `<a href="matrix:roomid/psumPMeAfzgAeQpXMG:feneas.org?action=join" rel="nofollow">my custom URL scheme</a>`,
+
+		// Disallow dangerous url schemes
+		`<a href="javascript:alert('xss')">bad</a>`, `bad`,
+		`<a href="vbscript:no">bad</a>`, `bad`,
+		`<a href="data:1234">bad</a>`, `bad`,
 	}
 
 	for i := 0; i < len(testCases); i += 2 {
 		assert.Equal(t, testCases[i+1], Sanitize(testCases[i]))
+	}
+}
+
+func TestDescriptionSanitizer(t *testing.T) {
+	NewSanitizer()
+
+	testCases := []string{
+		`<h1>Title</h1>`, `Title`,
+		`<img src='img.png' alt='image'>`, ``,
+		`<span class="emoji" aria-label="thumbs up">THUMBS UP</span>`, `<span class="emoji" aria-label="thumbs up">THUMBS UP</span>`,
+		`<span style="color: red">Hello World</span>`, `<span>Hello World</span>`,
+		`<br>`, ``,
+		`<a href="https://example.com" target="_blank" rel="noopener noreferrer">https://example.com</a>`, `<a href="https://example.com" target="_blank" rel="noopener noreferrer">https://example.com</a>`,
+		`<mark>Important!</mark>`, `Important!`,
+		`<details>Click me! <summary>Nothing to see here.</summary></details>`, `Click me! Nothing to see here.`,
+		`<input type="hidden">`, ``,
+		`<b>I</b> have a <i>strong</i> <strong>opinion</strong> about <em>this</em>.`, `<b>I</b> have a <i>strong</i> <strong>opinion</strong> about <em>this</em>.`,
+		`Provides alternative <code>wg(8)</code> tool`, `Provides alternative <code>wg(8)</code> tool`,
+	}
+
+	for i := 0; i < len(testCases); i += 2 {
+		assert.Equal(t, testCases[i+1], SanitizeDescription(testCases[i]))
 	}
 }
 

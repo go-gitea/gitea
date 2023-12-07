@@ -1,0 +1,17 @@
+{{template "code/searchform" .}}
+<div class="divider"></div>
+<div class="ui user list">
+	{{if .CodeIndexerUnavailable}}
+		<div class="ui error message">
+			<p>{{ctx.Locale.Tr "explore.code_search_unavailable"}}</p>
+		</div>
+	{{else if .SearchResults}}
+		<h3>
+			{{ctx.Locale.Tr "explore.code_search_results" (.Keyword|Escape) | Str2html}}
+		</h3>
+		{{template "code/searchresults" .}}
+	{{else if .Keyword}}
+		<div>{{ctx.Locale.Tr "explore.code_no_results"}}</div>
+	{{end}}
+</div>
+{{template "base/paginate" .}}

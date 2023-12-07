@@ -5,8 +5,8 @@ package secret
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -18,25 +18,6 @@ import (
 	"xorm.io/builder"
 )
 
-type ErrSecretInvalidValue struct {
-	Name *string
-	Data *string
-}
-
-func (err ErrSecretInvalidValue) Error() string {
-	if err.Name != nil {
-		return fmt.Sprintf("secret name %q is invalid", *err.Name)
-	}
-	if err.Data != nil {
-		return fmt.Sprintf("secret data %q is invalid", *err.Data)
-	}
-	return util.ErrInvalidArgument.Error()
-}
-
-func (err ErrSecretInvalidValue) Unwrap() error {
-	return util.ErrInvalidArgument
-}
-
 // Secret represents a secret
 type Secret struct {
 	ID          int64
@@ -47,14 +28,17 @@ type Secret struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
 }
 
-// newSecret Creates a new already encrypted secret
-func newSecret(ownerID, repoID int64, name, data string) *Secret {
-	return &Secret{
-		OwnerID: ownerID,
-		RepoID:  repoID,
-		Name:    strings.ToUpper(name),
-		Data:    data,
-	}
+// ErrSecretNotFound represents a "secret not found" error.
+type ErrSecretNotFound struct {
+	Name string
+}
+
+func (err ErrSecretNotFound) Error() string {
+	return fmt.Sprintf("secret was not found [name: %s]", err.Name)
+}
+
+func (err ErrSecretNotFound) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // InsertEncryptedSecret Creates, encrypts, and validates a new secret with yet unencrypted data and insert into database
@@ -63,7 +47,12 @@ func InsertEncryptedSecret(ctx context.Context, ownerID, repoID int64, name, dat
 	if err != nil {
 		return nil, err
 	}
-	secret := newSecret(ownerID, repoID, name, encrypted)
+	secret := &Secret{
+		OwnerID: ownerID,
+		RepoID:  repoID,
+		Name:    strings.ToUpper(name),
+		Data:    encrypted,
+	}
 	if err := secret.Validate(); err != nil {
 		return secret, err
 	}
@@ -74,33 +63,22 @@ func init() {
 	db.RegisterModel(new(Secret))
 }
 
-var (
-	secretNameReg            = regexp.MustCompile("^[A-Z_][A-Z0-9_]*$")
-	forbiddenSecretPrefixReg = regexp.MustCompile("^GIT(EA|HUB)_")
-)
-
-// Validate validates the required fields and formats.
 func (s *Secret) Validate() error {
-	switch {
-	case len(s.Name) == 0 || len(s.Name) > 50:
-		return ErrSecretInvalidValue{Name: &s.Name}
-	case len(s.Data) == 0:
-		return ErrSecretInvalidValue{Data: &s.Data}
-	case !secretNameReg.MatchString(s.Name) ||
-		forbiddenSecretPrefixReg.MatchString(s.Name):
-		return ErrSecretInvalidValue{Name: &s.Name}
-	default:
-		return nil
+	if s.OwnerID == 0 && s.RepoID == 0 {
+		return errors.New("the secret is not bound to any scope")
 	}
+	return nil
 }
 
 type FindSecretsOptions struct {
 	db.ListOptions
-	OwnerID int64
-	RepoID  int64
+	OwnerID  int64
+	RepoID   int64
+	SecretID int64
+	Name     string
 }
 
-func (opts *FindSecretsOptions) toConds() builder.Cond {
+func (opts FindSecretsOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.OwnerID > 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
@@ -108,17 +86,29 @@ func (opts *FindSecretsOptions) toConds() builder.Cond {
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}
+	if opts.SecretID != 0 {
+		cond = cond.And(builder.Eq{"id": opts.SecretID})
+	}
+	if opts.Name != "" {
+		cond = cond.And(builder.Eq{"name": strings.ToUpper(opts.Name)})
+	}
 
 	return cond
 }
 
-func FindSecrets(ctx context.Context, opts FindSecretsOptions) ([]*Secret, error) {
-	var secrets []*Secret
-	sess := db.GetEngine(ctx)
-	if opts.PageSize != 0 {
-		sess = db.SetSessionPagination(sess, &opts.ListOptions)
+// UpdateSecret changes org or user reop secret.
+func UpdateSecret(ctx context.Context, secretID int64, data string) error {
+	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, data)
+	if err != nil {
+		return err
 	}
-	return secrets, sess.
-		Where(opts.toConds()).
-		Find(&secrets)
+
+	s := &Secret{
+		Data: encrypted,
+	}
+	affected, err := db.GetEngine(ctx).ID(secretID).Cols("data").Update(s)
+	if affected != 1 {
+		return ErrSecretNotFound{}
+	}
+	return err
 }

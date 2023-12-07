@@ -1,11 +1,14 @@
 {
   "name": "Gitea DevContainer",
-  "image": "mcr.microsoft.com/devcontainers/go:1.20",
+  "image": "mcr.microsoft.com/devcontainers/go:1.21-bullseye",
   "features": {
     // installs nodejs into container
     "ghcr.io/devcontainers/features/node:1": {
       "version":"20"
-    }
+    },
+    "ghcr.io/devcontainers/features/git-lfs:1.1.0": {},
+    "ghcr.io/devcontainers-contrib/features/poetry:2": {},
+    "ghcr.io/devcontainers/features/python:1": {}
   },
   "customizations": {
     "vscode": {
@@ -20,7 +23,8 @@
         "Vue.volar",
         "ms-azuretools.vscode-docker",
         "zixuanchen.vitest-explorer",
-        "alexcvzz.vscode-sqlite"
+        "qwtel.sqlite-viewer",
+        "GitHub.vscode-pull-request-github"
       ]
     }
   },

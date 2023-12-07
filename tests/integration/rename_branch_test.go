@@ -7,13 +7,19 @@ import (
 	"net/http"
 	"testing"
 
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRenameBranch(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: 1, Name: "master"})
+
 	// get branch setting page
 	session := loginUser(t, "user2")
 	req := NewRequest(t, "GET", "/user2/repo1/settings/branches")

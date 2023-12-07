@@ -1,92 +1,72 @@
-<!-- TODO: make template org and user can share -->
-{{if or (.IsPackagesPage) (.PageIsViewProjects)}}
-	{{with .ContextUser}}
-		<div class="ui container">
-		<div class="ui vertically grid head">
-			<div class="column">
-				<div class="ui header">
-					{{avatar $.Context . 100}}
-					<span class="text thin grey"><a href="{{.HomeLink}}">{{.DisplayName}}</a></span>
-					<span class="org-visibility">
-						{{if .Visibility.IsLimited}}<div class="ui medium basic horizontal label">{{$.locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
-						{{if .Visibility.IsPrivate}}<div class="ui medium basic horizontal label">{{$.locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
-					</span>
-				</div>
-			</div>
-		</div>
-	</div>
+<div class="ui secondary stackable pointing menu">
+	{{if and .HasProfileReadme .ContextUser.IsIndividual}}
+	<a class="{{if eq .TabName "overview"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=overview">
+		{{svg "octicon-info"}} {{ctx.Locale.Tr "user.overview"}}
+	</a>
 	{{end}}
-{{end}}
+	<a class="{{if eq .TabName "repositories"}}active {{end}} item" href="{{.ContextUser.HomeLink}}?tab=repositories">
+		{{svg "octicon-repo"}} {{ctx.Locale.Tr "user.repositories"}}
+		{{if .RepoCount}}
+			<div class="ui small label">{{.RepoCount}}</div>
+		{{end}}
+	</a>
+	{{if or .ContextUser.IsIndividual (and .ContextUser.IsOrganization .CanReadProjects)}}
+	<a href="{{.ContextUser.HomeLink}}/-/projects" class="{{if .PageIsViewProjects}}active {{end}}item">
+		{{svg "octicon-project-symlink"}} {{ctx.Locale.Tr "user.projects"}}
+		{{if .ProjectCount}}
+			<div class="ui small label">{{.ProjectCount}}</div>
+		{{end}}
+	</a>
+	{{end}}
+	{{if and .IsPackageEnabled (or .ContextUser.IsIndividual (and .ContextUser.IsOrganization .CanReadPackages))}}
+		<a href="{{.ContextUser.HomeLink}}/-/packages" class="{{if .IsPackagesPage}}active {{end}}item">
+			{{svg "octicon-package"}} {{ctx.Locale.Tr "packages.title"}}
+		</a>
+	{{end}}
+	{{if and .IsRepoIndexerEnabled (or .ContextUser.IsIndividual (and .ContextUser.IsOrganization .CanReadCode))}}
+		<a href="{{.ContextUser.HomeLink}}/-/code" class="{{if .IsCodePage}}active {{end}}item">
+			{{svg "octicon-code"}} {{ctx.Locale.Tr "user.code"}}
+		</a>
+	{{end}}
 
-<div class="ui tabs container">
-	<div class="ui secondary stackable pointing menu">
-		{{if .ProfileReadme}}
-		<a class='{{if or (eq .TabName "overview") (and (eq .TabName "") (not .IsPackagesPage) (not .PageIsViewProjects))}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=overview">
-							{{svg "octicon-info"}} {{.locale.Tr "user.overview"}}
-						</a>
-		{{end}}
-		<a class="{{if or (eq .TabName "repositories") (and (eq .TabName "") (not .IsPackagesPage) (not .PageIsViewProjects) (not .ProfileReadme))}}active {{end}} item" href="{{.ContextUser.HomeLink}}?tab=repositories">
-			{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
-			{{if .ContextUser.NumRepos}}
-				<div class="ui small label">{{.ContextUser.NumRepos}}</div>
-			{{end}}
-		</a>
-		{{if and .IsProjectEnabled (or .ContextUser.IsIndividual (and .ContextUser.IsOrganization .CanReadProjects))}}
-		<a href="{{.ContextUser.HomeLink}}/-/projects" class="{{if .PageIsViewProjects}}active {{end}}item">
-			{{svg "octicon-project-symlink"}} {{.locale.Tr "user.projects"}}
-		</a>
-		{{end}}
-		{{if and .IsPackageEnabled (or .ContextUser.IsIndividual (and .ContextUser.IsOrganization .CanReadPackages))}}
-			<a href="{{.ContextUser.HomeLink}}/-/packages" class="{{if .IsPackagesPage}}active {{end}}item">
-				{{svg "octicon-package"}} {{.locale.Tr "packages.title"}}
+	{{if .ContextUser.IsOrganization}}
+		{{if .NumMembers}}
+			<a class="{{if $.PageIsOrgMembers}}active {{end}}item" href="{{$.OrgLink}}/members">
+				{{svg "octicon-person"}}&nbsp;{{ctx.Locale.Tr "org.members"}}
+				<div class="ui small label">{{.NumMembers}}</div>
 			</a>
 		{{end}}
-		{{if and .IsRepoIndexerEnabled (or .ContextUser.IsIndividual (and .ContextUser.IsOrganization .CanReadCode))}}
-			<a href="{{.ContextUser.HomeLink}}/-/code" class="{{if .IsCodePage}}active {{end}}item">
-				{{svg "octicon-code"}} {{.locale.Tr "user.code"}}
+		{{if .IsOrganizationMember}}
+			<a class="{{if $.PageIsOrgTeams}}active {{end}}item" href="{{$.OrgLink}}/teams">
+				{{svg "octicon-people"}}&nbsp;{{ctx.Locale.Tr "org.teams"}}
+				{{if .NumTeams}}
+					<div class="ui small label">{{.NumTeams}}</div>
+				{{end}}
 			</a>
 		{{end}}
 
-		{{if .ContextUser.IsOrganization}}
-			{{if .IsOrganizationMember}}
-				<a class="item" href="{{$.OrgLink}}/members">
-					{{svg "octicon-person"}}&nbsp;{{$.locale.Tr "org.members"}}
-					{{if .NumMembers}}
-						<div class="ui small label">{{.NumMembers}}</div>
-					{{end}}
+		{{if .IsOrganizationOwner}}
+			<div class="right menu">
+				<a class="item" href="{{.OrgLink}}/settings">
+				{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
 				</a>
-				<a class="item" href="{{$.OrgLink}}/teams">
-					{{svg "octicon-people"}}&nbsp;{{$.locale.Tr "org.teams"}}
-					{{if .NumTeams}}
-						<div class="ui small label">{{.NumTeams}}</div>
-					{{end}}
-				</a>
-			{{end}}
-
-			{{if .IsOrganizationOwner}}
-				<div class="right menu">
-					<a class="item" href="{{.OrgLink}}/settings">
-					{{svg "octicon-tools"}} {{.locale.Tr "repo.settings"}}
-					</a>
-				</div>
-			{{end}}
+			</div>
+		{{end}}
+	{{else}}
+		<a class="{{if eq .TabName "activity"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=activity">
+			{{svg "octicon-rss"}} {{ctx.Locale.Tr "user.activity"}}
+		</a>
+		{{if not .DisableStars}}
+			<a class="{{if eq .TabName "stars"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=stars">
+				{{svg "octicon-star"}} {{ctx.Locale.Tr "user.starred"}}
+				{{if .ContextUser.NumStars}}
+					<div class="ui small label">{{.ContextUser.NumStars}}</div>
+				{{end}}
+			</a>
 		{{else}}
-			<a class='{{if eq .TabName "activity"}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=activity">
-				{{svg "octicon-rss"}} {{.locale.Tr "user.activity"}}
+			<a class="{{if eq .TabName "watching"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=watching">
+				{{svg "octicon-eye"}} {{ctx.Locale.Tr "user.watched"}}
 			</a>
-			{{if not .DisableStars}}
-				<a class='{{if eq .TabName "stars"}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=stars">
-					{{svg "octicon-star"}} {{.locale.Tr "user.starred"}}
-					{{if .ContextUser.NumStars}}
-						<div class="ui small label">{{.ContextUser.NumStars}}</div>
-					{{end}}
-				</a>
-			{{else}}
-				<a class='{{if eq .TabName "watching"}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=watching">
-					{{svg "octicon-eye"}} {{.locale.Tr "user.watched"}}
-				</a>
-			{{end}}
 		{{end}}
-
-	</div>
+	{{end}}
 </div>

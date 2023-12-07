@@ -33,10 +33,17 @@ func DummyOK(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func DummyBadRequest(w http.ResponseWriter, req *http.Request) {
+	w.WriteHeader(http.StatusBadRequest)
+}
+
 func RobotsTxt(w http.ResponseWriter, req *http.Request) {
-	filePath := util.FilePathJoinAbs(setting.CustomPath, "robots.txt")
+	robotsTxt := util.FilePathJoinAbs(setting.CustomPath, "public/robots.txt")
+	if ok, _ := util.IsExist(robotsTxt); !ok {
+		robotsTxt = util.FilePathJoinAbs(setting.CustomPath, "robots.txt") // the legacy "robots.txt"
+	}
 	httpcache.SetCacheControlInHeader(w.Header(), setting.StaticCacheTime)
-	http.ServeFile(w, req, filePath)
+	http.ServeFile(w, req, robotsTxt)
 }
 
 func StaticRedirect(target string) func(w http.ResponseWriter, req *http.Request) {

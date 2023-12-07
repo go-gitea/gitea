@@ -1,55 +1,57 @@
-<div class="ui container">
-	{{template "base/alert" .}}
-	<form class="ui form ignore-dirty">
-		<div class="ui fluid action input">
-			<input name="q" value="{{.Query}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
-			<select class="ui dropdown" name="type">
-				<option value="">{{.locale.Tr "packages.filter.type"}}</option>
-				<option value="all">{{.locale.Tr "packages.filter.type.all"}}</option>
-				{{range $type := .AvailableTypes}}
-				<option{{if eq $.PackageType $type}} selected="selected"{{end}} value="{{$type}}">{{$type.Name}}</option>
-				{{end}}
-			</select>
-			<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
-		</div>
-	</form>
-	<div class="ui {{if .PackageDescriptors}}issue list{{end}}">
-		{{range .PackageDescriptors}}
-			<li class="item gt-df gt-py-3">
-				<div class="issue-item-main gt-f1 gt-fc gt-df">
-					<div class="issue-item-top-row">
-						<a class="title" href="{{.FullWebLink}}">{{.Package.Name}}</a>
-						<span class="ui label">{{svg .Package.Type.SVGName 16}} {{.Package.Type.Name}}</span>
-					</div>
-					<div class="desc issue-item-bottom-row gt-df gt-ac gt-fw gt-my-1">
-						{{$timeStr := TimeSinceUnix .Version.CreatedUnix $.locale}}
-						{{$hasRepositoryAccess := false}}
-						{{if .Repository}}
-							{{$hasRepositoryAccess = index $.RepositoryAccessMap .Repository.ID}}
-						{{end}}
-						{{if $hasRepositoryAccess}}
-							{{$.locale.Tr "packages.published_by_in" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape) .Repository.Link (.Repository.FullName | Escape) | Safe}}
-						{{else}}
-							{{$.locale.Tr "packages.published_by" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape) | Safe}}
-						{{end}}
-					</div>
-				</div>
-			</li>
-		{{else}}
-			{{if not .HasPackages}}
-				<div class="empty center">
-					{{svg "octicon-package" 32}}
-					<h2>{{.locale.Tr "packages.empty"}}</h2>
-					{{if and .Repository .CanWritePackages}}
-						{{$packagesUrl := URLJoin .Owner.HomeLink "-" "packages"}}
-						<p>{{.locale.Tr "packages.empty.repo" $packagesUrl | Safe}}</p>
-					{{end}}
-					<p>{{.locale.Tr "packages.empty.documentation" "https://docs.gitea.io/en-us/usage/packages/overview/" | Safe}}</p>
-				</div>
-			{{else}}
-				<p>{{.locale.Tr "packages.filter.no_result"}}</p>
+{{template "base/alert" .}}
+{{if .HasPackages}}
+<form class="ui form ignore-dirty">
+	<div class="ui fluid action input">
+		{{template "shared/searchinput" dict "Value" .Query}}
+		<select class="ui dropdown" name="type">
+			<option value="">{{ctx.Locale.Tr "packages.filter.type"}}</option>
+			<option value="all">{{ctx.Locale.Tr "packages.filter.type.all"}}</option>
+			{{range $type := .AvailableTypes}}
+			<option{{if eq $.PackageType $type}} selected="selected"{{end}} value="{{$type}}">{{$type.Name}}</option>
 			{{end}}
-		{{end}}
-		{{template "base/paginate" .}}
+		</select>
+		<button class="ui primary button">{{ctx.Locale.Tr "explore.search"}}</button>
 	</div>
+</form>
+{{end}}
+<div>
+	{{range .PackageDescriptors}}
+	<div class="flex-list">
+		<div class="flex-item">
+			<div class="flex-item-main">
+				<div class="flex-item-title">
+					<a href="{{.FullWebLink}}">{{.Package.Name}}</a>
+					<span class="ui label">{{svg .Package.Type.SVGName 16}} {{.Package.Type.Name}}</span>
+				</div>
+				<div class="flex-item-body">
+					{{$timeStr := TimeSinceUnix .Version.CreatedUnix ctx.Locale}}
+					{{$hasRepositoryAccess := false}}
+					{{if .Repository}}
+						{{$hasRepositoryAccess = index $.RepositoryAccessMap .Repository.ID}}
+					{{end}}
+					{{if $hasRepositoryAccess}}
+						{{ctx.Locale.Tr "packages.published_by_in" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape) .Repository.Link (.Repository.FullName | Escape) | Safe}}
+					{{else}}
+						{{ctx.Locale.Tr "packages.published_by" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape) | Safe}}
+					{{end}}
+				</div>
+			</div>
+		</div>
+	</div>
+	{{else}}
+		{{if not .HasPackages}}
+			<div class="empty-placeholder">
+				{{svg "octicon-package" 48}}
+				<h2>{{ctx.Locale.Tr "packages.empty"}}</h2>
+				{{if and .Repository .CanWritePackages}}
+					{{$packagesUrl := URLJoin .Owner.HomeLink "-" "packages"}}
+					<p>{{ctx.Locale.Tr "packages.empty.repo" $packagesUrl | Safe}}</p>
+				{{end}}
+				<p>{{ctx.Locale.Tr "packages.empty.documentation" "https://docs.gitea.com/usage/packages/overview/" | Safe}}</p>
+			</div>
+		{{else}}
+			<p class="gt-py-4">{{ctx.Locale.Tr "packages.filter.no_result"}}</p>
+		{{end}}
+	{{end}}
+	{{template "base/paginate" .}}
 </div>

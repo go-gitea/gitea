@@ -30,6 +30,16 @@ key = 123
 		secSub := cfg.Section("foo.bar.xxx")
 		assert.Equal(t, "123", secSub.Key("key").String())
 	})
+	t.Run("TrailingSlash", func(t *testing.T) {
+		cfg, _ := NewConfigProviderFromData(`
+[foo]
+key = E:\
+xxx = yyy
+`)
+		sec := cfg.Section("foo")
+		assert.Equal(t, "E:\\", sec.Key("key").String())
+		assert.Equal(t, "yyy", sec.Key("xxx").String())
+	})
 }
 
 func TestConfigProviderHelper(t *testing.T) {
@@ -67,13 +77,14 @@ key = 123
 }
 
 func TestNewConfigProviderFromFile(t *testing.T) {
-	_, err := NewConfigProviderFromFile(&Options{CustomConf: "no-such.ini", AllowEmpty: false})
-	assert.ErrorContains(t, err, "unable to find configuration file")
+	cfg, err := NewConfigProviderFromFile("no-such.ini")
+	assert.NoError(t, err)
+	assert.True(t, cfg.IsLoadedFromEmpty())
 
 	// load non-existing file and save
 	testFile := t.TempDir() + "/test.ini"
 	testFile1 := t.TempDir() + "/test1.ini"
-	cfg, err := NewConfigProviderFromFile(&Options{CustomConf: testFile, AllowEmpty: true})
+	cfg, err = NewConfigProviderFromFile(testFile)
 	assert.NoError(t, err)
 
 	sec, _ := cfg.NewSection("foo")
@@ -84,14 +95,14 @@ func TestNewConfigProviderFromFile(t *testing.T) {
 
 	bs, err := os.ReadFile(testFile)
 	assert.NoError(t, err)
-	assert.Equal(t, "[foo]\nk1=a\n", string(bs))
+	assert.Equal(t, "[foo]\nk1 = a\n", string(bs))
 
 	bs, err = os.ReadFile(testFile1)
 	assert.NoError(t, err)
-	assert.Equal(t, "[foo]\nk1=a\nk2=b\n", string(bs))
+	assert.Equal(t, "[foo]\nk1 = a\nk2 = b\n", string(bs))
 
 	// load existing file and save
-	cfg, err = NewConfigProviderFromFile(&Options{CustomConf: testFile, AllowEmpty: true})
+	cfg, err = NewConfigProviderFromFile(testFile)
 	assert.NoError(t, err)
 	assert.Equal(t, "a", cfg.Section("foo").Key("k1").String())
 	sec, _ = cfg.NewSection("bar")
@@ -99,7 +110,7 @@ func TestNewConfigProviderFromFile(t *testing.T) {
 	assert.NoError(t, cfg.Save())
 	bs, err = os.ReadFile(testFile)
 	assert.NoError(t, err)
-	assert.Equal(t, "[foo]\nk1=a\n\n[bar]\nk1=b\n", string(bs))
+	assert.Equal(t, "[foo]\nk1 = a\n\n[bar]\nk1 = b\n", string(bs))
 }
 
 func TestNewConfigProviderForLocale(t *testing.T) {
@@ -118,4 +129,28 @@ func TestNewConfigProviderForLocale(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "foo", cfg.Section("").Key("k1").String())
 	assert.Equal(t, "xxx", cfg.Section("").Key("k2").String())
+}
+
+func TestDisableSaving(t *testing.T) {
+	testFile := t.TempDir() + "/test.ini"
+	_ = os.WriteFile(testFile, []byte("k1=a\nk2=b"), 0o644)
+	cfg, err := NewConfigProviderFromFile(testFile)
+	assert.NoError(t, err)
+
+	cfg.DisableSaving()
+	err = cfg.Save()
+	assert.ErrorIs(t, err, errDisableSaving)
+
+	saveCfg, err := cfg.PrepareSaving()
+	assert.NoError(t, err)
+
+	saveCfg.Section("").Key("k1").MustString("x")
+	saveCfg.Section("").Key("k2").SetValue("y")
+	saveCfg.Section("").Key("k3").SetValue("z")
+	err = saveCfg.Save()
+	assert.NoError(t, err)
+
+	bs, err := os.ReadFile(testFile)
+	assert.NoError(t, err)
+	assert.Equal(t, "k1 = a\nk2 = y\nk3 = z\n", string(bs))
 }

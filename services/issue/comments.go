@@ -11,38 +11,18 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/timeutil"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
-// CreateComment creates comment of issue or commit.
-func CreateComment(ctx context.Context, opts *issues_model.CreateCommentOptions) (comment *issues_model.Comment, err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
-
-	comment, err = issues_model.CreateComment(ctx, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = committer.Commit(); err != nil {
-		return nil, err
-	}
-
-	return comment, nil
-}
-
 // CreateRefComment creates a commit reference comment to issue.
-func CreateRefComment(doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, commitSHA string) error {
+func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, commitSHA string) error {
 	if len(commitSHA) == 0 {
 		return fmt.Errorf("cannot create reference with empty commit SHA")
 	}
 
 	// Check if same reference from same commit has already existed.
-	has, err := db.GetEngine(db.DefaultContext).Get(&issues_model.Comment{
+	has, err := db.GetEngine(ctx).Get(&issues_model.Comment{
 		Type:      issues_model.CommentTypeCommitRef,
 		IssueID:   issue.ID,
 		CommitSHA: commitSHA,
@@ -53,7 +33,7 @@ func CreateRefComment(doer *user_model.User, repo *repo_model.Repository, issue 
 		return nil
 	}
 
-	_, err = CreateComment(db.DefaultContext, &issues_model.CreateCommentOptions{
+	_, err = issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
 		Type:      issues_model.CommentTypeCommitRef,
 		Doer:      doer,
 		Repo:      repo,
@@ -66,7 +46,7 @@ func CreateRefComment(doer *user_model.User, repo *repo_model.Repository, issue 
 
 // CreateIssueComment creates a plain issue comment.
 func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content string, attachments []string) (*issues_model.Comment, error) {
-	comment, err := CreateComment(ctx, &issues_model.CreateCommentOptions{
+	comment, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
 		Type:        issues_model.CommentTypeComment,
 		Doer:        doer,
 		Repo:        repo,
@@ -83,7 +63,7 @@ func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_m
 		return nil, err
 	}
 
-	notification.NotifyCreateIssueComment(ctx, doer, repo, issue, comment, mentions)
+	notify_service.CreateIssueComment(ctx, doer, repo, issue, comment, mentions)
 
 	return comment, nil
 }
@@ -104,7 +84,7 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, doer *user_mode
 		}
 	}
 
-	if err := issues_model.UpdateComment(c, doer); err != nil {
+	if err := issues_model.UpdateComment(ctx, c, doer); err != nil {
 		return err
 	}
 
@@ -115,7 +95,7 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, doer *user_mode
 		}
 	}
 
-	notification.NotifyUpdateComment(ctx, doer, c, oldContent)
+	notify_service.UpdateComment(ctx, doer, c, oldContent)
 
 	return nil
 }
@@ -129,7 +109,7 @@ func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_m
 		return err
 	}
 
-	notification.NotifyDeleteComment(ctx, doer, comment)
+	notify_service.DeleteComment(ctx, doer, comment)
 
 	return nil
 }

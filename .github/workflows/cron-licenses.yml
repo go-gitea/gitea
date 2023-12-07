@@ -10,15 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'go-gitea/gitea'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: ">=1.20"
+          go-version-file: go.mod
           check-latest: true
       - run: make generate-license generate-gitignore
         timeout-minutes: 40
       - name: push translations to repo
-        uses: appleboy/git-push-action@v0.0.2
+        uses: appleboy/git-push-action@v0.0.3
         with:
           author_email: "teabot@gitea.io"
           author_name: GiteaBot

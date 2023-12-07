@@ -5,12 +5,8 @@
 package setting
 
 import (
-	"errors"
 	"fmt"
 	"os"
-	"os/exec"
-	"path"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -28,19 +24,9 @@ var (
 	// AppStartTime store time gitea has started
 	AppStartTime time.Time
 
-	// AppPath represents the path to the gitea binary
-	AppPath string
-	// AppWorkPath is the "working directory" of Gitea. It maps to the environment variable GITEA_WORK_DIR.
-	// If that is not set it is the default set here by the linker or failing that the directory of AppPath.
-	//
-	// AppWorkPath is used as the base path for several other paths.
-	AppWorkPath string
-
 	// Other global setting objects
 
 	CfgProvider ConfigProvider
-	CustomPath  string // Custom directory path
-	CustomConf  string
 	RunMode     string
 	RunUser     string
 	IsProd      bool
@@ -51,62 +37,6 @@ var (
 	IsInTesting = false
 )
 
-func getAppPath() (string, error) {
-	var appPath string
-	var err error
-	if IsWindows && filepath.IsAbs(os.Args[0]) {
-		appPath = filepath.Clean(os.Args[0])
-	} else {
-		appPath, err = exec.LookPath(os.Args[0])
-	}
-
-	if err != nil {
-		if !errors.Is(err, exec.ErrDot) {
-			return "", err
-		}
-		appPath, err = filepath.Abs(os.Args[0])
-	}
-	if err != nil {
-		return "", err
-	}
-	appPath, err = filepath.Abs(appPath)
-	if err != nil {
-		return "", err
-	}
-	// Note: we don't use path.Dir here because it does not handle case
-	//	which path starts with two "/" in Windows: "//psf/Home/..."
-	return strings.ReplaceAll(appPath, "\\", "/"), err
-}
-
-func getWorkPath(appPath string) string {
-	workPath := AppWorkPath
-
-	if giteaWorkPath, ok := os.LookupEnv("GITEA_WORK_DIR"); ok {
-		workPath = giteaWorkPath
-	}
-	if len(workPath) == 0 {
-		i := strings.LastIndex(appPath, "/")
-		if i == -1 {
-			workPath = appPath
-		} else {
-			workPath = appPath[:i]
-		}
-	}
-	workPath = strings.ReplaceAll(workPath, "\\", "/")
-	if !filepath.IsAbs(workPath) {
-		log.Info("Provided work path %s is not absolute - will be made absolute against the current working directory", workPath)
-
-		absPath, err := filepath.Abs(workPath)
-		if err != nil {
-			log.Error("Unable to absolute %s against the current working directory %v. Will absolute against the AppPath %s", workPath, err, appPath)
-			workPath = filepath.Join(appPath, workPath)
-		} else {
-			workPath = absPath
-		}
-	}
-	return strings.ReplaceAll(workPath, "\\", "/")
-}
-
 func init() {
 	IsWindows = runtime.GOOS == "windows"
 	if AppVer == "" {
@@ -116,12 +46,6 @@ func init() {
 	// We can rely on log.CanColorStdout being set properly because modules/log/console_windows.go comes before modules/setting/setting.go lexicographically
 	// By default set this logger at Info - we'll change it later, but we need to start with something.
 	log.SetConsoleLogger(log.DEFAULT, "console", log.INFO)
-
-	var err error
-	if AppPath, err = getAppPath(); err != nil {
-		log.Fatal("Failed to get app path: %v", err)
-	}
-	AppWorkPath = getWorkPath(AppPath)
 }
 
 // IsRunUserMatchCurrentUser returns false if configured run user does not match
@@ -135,36 +59,6 @@ func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
 
 	currentUser := user.CurrentUsername()
 	return currentUser, runUser == currentUser
-}
-
-// SetCustomPathAndConf will set CustomPath and CustomConf with reference to the
-// GITEA_CUSTOM environment variable and with provided overrides before stepping
-// back to the default
-func SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath string) {
-	if len(providedWorkPath) != 0 {
-		AppWorkPath = filepath.ToSlash(providedWorkPath)
-	}
-	if giteaCustom, ok := os.LookupEnv("GITEA_CUSTOM"); ok {
-		CustomPath = giteaCustom
-	}
-	if len(providedCustom) != 0 {
-		CustomPath = providedCustom
-	}
-	if len(CustomPath) == 0 {
-		CustomPath = path.Join(AppWorkPath, "custom")
-	} else if !filepath.IsAbs(CustomPath) {
-		CustomPath = path.Join(AppWorkPath, CustomPath)
-	}
-
-	if len(providedConf) != 0 {
-		CustomConf = providedConf
-	}
-	if len(CustomConf) == 0 {
-		CustomConf = path.Join(CustomPath, "conf/app.ini")
-	} else if !filepath.IsAbs(CustomConf) {
-		CustomConf = path.Join(CustomPath, CustomConf)
-		log.Warn("Using 'custom' directory as relative origin for configuration file: '%s'", CustomConf)
-	}
 }
 
 // PrepareAppDataPath creates app data directory if necessary
@@ -196,25 +90,29 @@ func PrepareAppDataPath() error {
 	return nil
 }
 
-func Init(opts *Options) {
-	if opts.CustomConf == "" {
-		opts.CustomConf = CustomConf
-	}
+func InitCfgProvider(file string, extraConfigs ...string) {
 	var err error
-	CfgProvider, err = NewConfigProviderFromFile(opts)
-	if err != nil {
-		log.Fatal("newConfigProviderFromFile[%v]: %v", opts, err)
+	if CfgProvider, err = NewConfigProviderFromFile(file, extraConfigs...); err != nil {
+		log.Fatal("Unable to init config provider from %q: %v", file, err)
 	}
-	if !opts.DisableLoadCommonSettings {
-		if err := loadCommonSettingsFrom(CfgProvider); err != nil {
-			log.Fatal("loadCommonSettingsFrom[%v]: %v", opts, err)
-		}
+	CfgProvider.DisableSaving() // do not allow saving the CfgProvider into file, it will be polluted by the "MustXxx" calls
+}
+
+func MustInstalled() {
+	if !InstallLock {
+		log.Fatal(`Unable to load config file for a installed Gitea instance, you should either use "--config" to set your config file (app.ini), or run "gitea web" command to install Gitea.`)
+	}
+}
+
+func LoadCommonSettings() {
+	if err := loadCommonSettingsFrom(CfgProvider); err != nil {
+		log.Fatal("Unable to load settings from config: %v", err)
 	}
 }
 
 // loadCommonSettingsFrom loads common configurations from a configuration provider.
 func loadCommonSettingsFrom(cfg ConfigProvider) error {
-	// WARNNING: don't change the sequence except you know what you are doing.
+	// WARNING: don't change the sequence except you know what you are doing.
 	loadRunModeFrom(cfg)
 	loadLogGlobalFrom(cfg)
 	loadServerFrom(cfg)
@@ -285,10 +183,14 @@ func loadRunModeFrom(rootCfg ConfigProvider) {
 	}
 }
 
+// HasInstallLock checks the install-lock in ConfigProvider directly, because sometimes the config file is not loaded into setting variables yet.
+func HasInstallLock(rootCfg ConfigProvider) bool {
+	return rootCfg.Section("security").Key("INSTALL_LOCK").MustBool(false)
+}
+
 func mustCurrentRunUserMatch(rootCfg ConfigProvider) {
 	// Does not check run user when the "InstallLock" is off.
-	installLock := rootCfg.Section("security").Key("INSTALL_LOCK").MustBool(false)
-	if installLock {
+	if HasInstallLock(rootCfg) {
 		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
 		if !match {
 			log.Fatal("Expect user '%s' but current user is: %s", RunUser, currentUser)

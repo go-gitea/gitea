@@ -69,13 +69,13 @@ async function main() {
   const faviconSvg = await readFile(new URL('../assets/favicon.svg', import.meta.url), 'utf8');
 
   await Promise.all([
-    generate(logoSvg, '../public/img/logo.svg', {size: 32}),
-    generate(logoSvg, '../public/img/logo.png', {size: 512}),
-    generate(faviconSvg, '../public/img/favicon.svg', {size: 32}),
-    generate(faviconSvg, '../public/img/favicon.png', {size: 180}),
-    generate(logoSvg, '../public/img/avatar_default.png', {size: 200}),
-    generate(logoSvg, '../public/img/apple-touch-icon.png', {size: 180, bg: true}),
-    gitea && generate(logoSvg, '../public/img/gitea.svg', {size: 32}),
+    generate(logoSvg, '../public/assets/img/logo.svg', {size: 32}),
+    generate(logoSvg, '../public/assets/img/logo.png', {size: 512}),
+    generate(faviconSvg, '../public/assets/img/favicon.svg', {size: 32}),
+    generate(faviconSvg, '../public/assets/img/favicon.png', {size: 180}),
+    generate(logoSvg, '../public/assets/img/avatar_default.png', {size: 200}),
+    generate(logoSvg, '../public/assets/img/apple-touch-icon.png', {size: 180, bg: true}),
+    gitea && generate(logoSvg, '../public/assets/img/gitea.svg', {size: 32}),
   ]);
 }
 

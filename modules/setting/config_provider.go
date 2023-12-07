@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -51,12 +52,18 @@ type ConfigProvider interface {
 	GetSection(name string) (ConfigSection, error)
 	Save() error
 	SaveTo(filename string) error
+
+	DisableSaving()
+	PrepareSaving() (ConfigProvider, error)
+	IsLoadedFromEmpty() bool
 }
 
 type iniConfigProvider struct {
-	opts    *Options
-	ini     *ini.File
-	newFile bool // whether the file has not existed previously
+	file string
+	ini  *ini.File
+
+	disableSaving   bool // disable the "Save" method because the config options could be polluted
+	loadedFromEmpty bool // whether the file has not existed previously
 }
 
 type iniConfigSection struct {
@@ -167,61 +174,56 @@ func (s *iniConfigSection) ChildSections() (sections []ConfigSection) {
 	return sections
 }
 
+func configProviderLoadOptions() ini.LoadOptions {
+	return ini.LoadOptions{
+		KeyValueDelimiterOnWrite: " = ",
+		IgnoreContinuation:       true,
+	}
+}
+
 // NewConfigProviderFromData this function is mainly for testing purpose
 func NewConfigProviderFromData(configContent string) (ConfigProvider, error) {
-	cfg, err := ini.Load(strings.NewReader(configContent))
+	cfg, err := ini.LoadSources(configProviderLoadOptions(), strings.NewReader(configContent))
 	if err != nil {
 		return nil, err
 	}
 	cfg.NameMapper = ini.SnackCase
 	return &iniConfigProvider{
-		ini:     cfg,
-		newFile: true,
+		ini:             cfg,
+		loadedFromEmpty: true,
 	}, nil
-}
-
-type Options struct {
-	CustomConf  string // the ini file path
-	AllowEmpty  bool   // whether not finding configuration files is allowed
-	ExtraConfig string
-
-	DisableLoadCommonSettings bool // only used by "Init()", not used by "NewConfigProvider()"
 }
 
 // NewConfigProviderFromFile load configuration from file.
 // NOTE: do not print any log except error.
-func NewConfigProviderFromFile(opts *Options) (ConfigProvider, error) {
-	cfg := ini.Empty()
-	newFile := true
+func NewConfigProviderFromFile(file string, extraConfigs ...string) (ConfigProvider, error) {
+	cfg := ini.Empty(configProviderLoadOptions())
+	loadedFromEmpty := true
 
-	if opts.CustomConf != "" {
-		isFile, err := util.IsFile(opts.CustomConf)
+	if file != "" {
+		isFile, err := util.IsFile(file)
 		if err != nil {
-			return nil, fmt.Errorf("unable to check if %s is a file. Error: %v", opts.CustomConf, err)
+			return nil, fmt.Errorf("unable to check if %q is a file. Error: %v", file, err)
 		}
 		if isFile {
-			if err := cfg.Append(opts.CustomConf); err != nil {
-				return nil, fmt.Errorf("failed to load custom conf '%s': %v", opts.CustomConf, err)
+			if err = cfg.Append(file); err != nil {
+				return nil, fmt.Errorf("failed to load config file %q: %v", file, err)
 			}
-			newFile = false
+			loadedFromEmpty = false
 		}
 	}
 
-	if newFile && !opts.AllowEmpty {
-		return nil, fmt.Errorf("unable to find configuration file: %q, please ensure you are running in the correct environment or set the correct configuration file with -c", CustomConf)
-	}
-
-	if opts.ExtraConfig != "" {
-		if err := cfg.Append([]byte(opts.ExtraConfig)); err != nil {
+	for _, s := range extraConfigs {
+		if err := cfg.Append([]byte(s)); err != nil {
 			return nil, fmt.Errorf("unable to append more config: %v", err)
 		}
 	}
 
 	cfg.NameMapper = ini.SnackCase
 	return &iniConfigProvider{
-		opts:    opts,
-		ini:     cfg,
-		newFile: newFile,
+		file:            file,
+		ini:             cfg,
+		loadedFromEmpty: loadedFromEmpty,
 	}, nil
 }
 
@@ -252,22 +254,24 @@ func (p *iniConfigProvider) GetSection(name string) (ConfigSection, error) {
 	return &iniConfigSection{sec: sec}, nil
 }
 
+var errDisableSaving = errors.New("this config can't be saved, developers should prepare a new config to save")
+
 // Save saves the content into file
 func (p *iniConfigProvider) Save() error {
-	filename := p.opts.CustomConf
-	if filename == "" {
-		if !p.opts.AllowEmpty {
-			return fmt.Errorf("custom config path must not be empty")
-		}
-		return nil
+	if p.disableSaving {
+		return errDisableSaving
 	}
-	if p.newFile {
+	filename := p.file
+	if filename == "" {
+		return fmt.Errorf("config file path must not be empty")
+	}
+	if p.loadedFromEmpty {
 		if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
-			return fmt.Errorf("failed to create '%s': %v", filename, err)
+			return fmt.Errorf("failed to create %q: %v", filename, err)
 		}
 	}
 	if err := p.ini.SaveTo(filename); err != nil {
-		return fmt.Errorf("failed to save '%s': %v", filename, err)
+		return fmt.Errorf("failed to save %q: %v", filename, err)
 	}
 
 	// Change permissions to be more restrictive
@@ -285,7 +289,30 @@ func (p *iniConfigProvider) Save() error {
 }
 
 func (p *iniConfigProvider) SaveTo(filename string) error {
+	if p.disableSaving {
+		return errDisableSaving
+	}
 	return p.ini.SaveTo(filename)
+}
+
+// DisableSaving disables the saving function, use PrepareSaving to get clear config options.
+func (p *iniConfigProvider) DisableSaving() {
+	p.disableSaving = true
+}
+
+// PrepareSaving loads the ini from file again to get clear config options.
+// Otherwise, the "MustXxx" calls would have polluted the current config provider,
+// it makes the "Save" outputs a lot of garbage options
+// After the INI package gets refactored, no "MustXxx" pollution, this workaround can be dropped.
+func (p *iniConfigProvider) PrepareSaving() (ConfigProvider, error) {
+	if p.file == "" {
+		return nil, errors.New("no config file to save")
+	}
+	return NewConfigProviderFromFile(p.file)
+}
+
+func (p *iniConfigProvider) IsLoadedFromEmpty() bool {
+	return p.loadedFromEmpty
 }
 
 func mustMapSetting(rootCfg ConfigProvider, sectionName string, setting any) {
@@ -294,15 +321,14 @@ func mustMapSetting(rootCfg ConfigProvider, sectionName string, setting any) {
 	}
 }
 
+// DeprecatedWarnings contains the warning message for various deprecations, including: setting option, file/folder, etc
+var DeprecatedWarnings []string
+
 func deprecatedSetting(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		log.Error("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
-	}
-}
-
-func deprecatedSettingFatal(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
-	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		log.Fatal("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
+		msg := fmt.Sprintf("Deprecated config option `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
+		log.Error("%v", msg)
+		DeprecatedWarnings = append(DeprecatedWarnings, msg)
 	}
 }
 
@@ -318,14 +344,15 @@ func NewConfigProviderForLocale(source any, others ...any) (ConfigProvider, erro
 	iniFile, err := ini.LoadSources(ini.LoadOptions{
 		IgnoreInlineComment:         true,
 		UnescapeValueCommentSymbols: true,
+		IgnoreContinuation:          true,
 	}, source, others...)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load locale ini: %w", err)
 	}
 	iniFile.BlockMode = false
 	return &iniConfigProvider{
-		ini:     iniFile,
-		newFile: true,
+		ini:             iniFile,
+		loadedFromEmpty: true,
 	}, nil
 }
 

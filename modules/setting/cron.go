@@ -6,11 +6,11 @@ package setting
 import "reflect"
 
 // GetCronSettings maps the cron subsection to the provided config
-func GetCronSettings(name string, config interface{}) (interface{}, error) {
+func GetCronSettings(name string, config any) (any, error) {
 	return getCronSettings(CfgProvider, name, config)
 }
 
-func getCronSettings(rootCfg ConfigProvider, name string, config interface{}) (interface{}, error) {
+func getCronSettings(rootCfg ConfigProvider, name string, config any) (any, error) {
 	if err := rootCfg.Section("cron." + name).MapTo(config); err != nil {
 		return config, err
 	}

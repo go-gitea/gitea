@@ -15,14 +15,14 @@ import (
 // AddDependency adds new dependencies
 func AddDependency(ctx *context.Context) {
 	issueIndex := ctx.ParamsInt64("index")
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, issueIndex)
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
 		ctx.ServerError("GetIssueByIndex", err)
 		return
 	}
 
 	// Check if the Repo is allowed to have dependencies
-	if !ctx.Repo.CanCreateIssueDependencies(ctx.Doer, issue.IsPull) {
+	if !ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies")
 		return
 	}
@@ -72,7 +72,7 @@ func AddDependency(ctx *context.Context) {
 		return
 	}
 
-	err = issues_model.CreateIssueDependency(ctx.Doer, issue, dep)
+	err = issues_model.CreateIssueDependency(ctx, ctx.Doer, issue, dep)
 	if err != nil {
 		if issues_model.IsErrDependencyExists(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_exists"))
@@ -80,24 +80,23 @@ func AddDependency(ctx *context.Context) {
 		} else if issues_model.IsErrCircularDependency(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_cannot_create_circular"))
 			return
-		} else {
-			ctx.ServerError("CreateOrUpdateIssueDependency", err)
-			return
 		}
+		ctx.ServerError("CreateOrUpdateIssueDependency", err)
+		return
 	}
 }
 
 // RemoveDependency removes the dependency
 func RemoveDependency(ctx *context.Context) {
 	issueIndex := ctx.ParamsInt64("index")
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, issueIndex)
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
 		ctx.ServerError("GetIssueByIndex", err)
 		return
 	}
 
 	// Check if the Repo is allowed to have dependencies
-	if !ctx.Repo.CanCreateIssueDependencies(ctx.Doer, issue.IsPull) {
+	if !ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies")
 		return
 	}
@@ -131,7 +130,7 @@ func RemoveDependency(ctx *context.Context) {
 		return
 	}
 
-	if err = issues_model.RemoveIssueDependency(ctx.Doer, issue, dep, depType); err != nil {
+	if err = issues_model.RemoveIssueDependency(ctx, ctx.Doer, issue, dep, depType); err != nil {
 		if issues_model.IsErrDependencyNotExists(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_exist"))
 			return

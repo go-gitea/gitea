@@ -1,35 +1,38 @@
-<div class="ui tabs container">
+<div class="ui container">
 	<div class="ui secondary stackable pointing menu">
 		<a class="{{if .PageIsViewRepositories}}active {{end}}item" href="{{$.Org.HomeLink}}">
-			{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
-			{{if .ContextUser.NumRepos}}
-				<div class="ui small label">{{.ContextUser.NumRepos}}</div>
+			{{svg "octicon-repo"}} {{ctx.Locale.Tr "user.repositories"}}
+			{{if .RepoCount}}
+				<div class="ui small label">{{.RepoCount}}</div>
 			{{end}}
 		</a>
-		{{if and .IsProjectEnabled .CanReadProjects}}
+		{{if .CanReadProjects}}
 		<a class="{{if .PageIsViewProjects}}active {{end}}item" href="{{$.Org.HomeLink}}/-/projects">
-			{{svg "octicon-project-symlink"}} {{.locale.Tr "user.projects"}}
+			{{svg "octicon-project-symlink"}} {{ctx.Locale.Tr "user.projects"}}
+			{{if .ProjectCount}}
+				<div class="ui small label">{{.ProjectCount}}</div>
+			{{end}}
 		</a>
 		{{end}}
 		{{if and .IsPackageEnabled .CanReadPackages}}
 		<a class="item" href="{{$.Org.HomeLink}}/-/packages">
-			{{svg "octicon-package"}} {{.locale.Tr "packages.title"}}
+			{{svg "octicon-package"}} {{ctx.Locale.Tr "packages.title"}}
 		</a>
 		{{end}}
 		{{if and .IsRepoIndexerEnabled .CanReadCode}}
 		<a class="item" href="{{$.Org.HomeLink}}/-/code">
-			{{svg "octicon-code"}}&nbsp;{{$.locale.Tr "org.code"}}
+			{{svg "octicon-code"}}&nbsp;{{ctx.Locale.Tr "org.code"}}
 		</a>
 		{{end}}
-		{{if .IsOrganizationMember}}
+		{{if .NumMembers}}
 			<a class="{{if $.PageIsOrgMembers}}active {{end}}item" href="{{$.OrgLink}}/members">
-				{{svg "octicon-person"}}&nbsp;{{$.locale.Tr "org.members"}}
-				{{if .NumMembers}}
-					<div class="ui small label">{{.NumMembers}}</div>
-				{{end}}
+				{{svg "octicon-person"}}&nbsp;{{ctx.Locale.Tr "org.members"}}
+				<div class="ui small label">{{.NumMembers}}</div>
 			</a>
+		{{end}}
+		{{if .IsOrganizationMember}}
 			<a class="{{if $.PageIsOrgTeams}}active {{end}}item" href="{{$.OrgLink}}/teams">
-				{{svg "octicon-people"}}&nbsp;{{$.locale.Tr "org.teams"}}
+				{{svg "octicon-people"}}&nbsp;{{ctx.Locale.Tr "org.teams"}}
 				{{if .NumTeams}}
 					<div class="ui small label">{{.NumTeams}}</div>
 				{{end}}
@@ -39,7 +42,7 @@
 		{{if .IsOrganizationOwner}}
 			<div class="right menu">
 				<a class="{{if .PageIsOrgSettings}}active {{end}}item" href="{{.OrgLink}}/settings">
-				{{svg "octicon-tools"}} {{.locale.Tr "repo.settings"}}
+				{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
 				</a>
 			</div>
 		{{end}}

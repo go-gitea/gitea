@@ -11,22 +11,22 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/routers/web/org"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 )
 
-// Profile render user's profile page
-func Profile(ctx *context.Context) {
+// OwnerProfile render profile page for a user or a organization (aka, repo owner)
+func OwnerProfile(ctx *context.Context) {
 	if strings.Contains(ctx.Req.Header.Get("Accept"), "application/rss+xml") {
 		feed.ShowUserFeedRSS(ctx)
 		return
@@ -38,38 +38,24 @@ func Profile(ctx *context.Context) {
 
 	if ctx.ContextUser.IsOrganization() {
 		org.Home(ctx)
-		return
+	} else {
+		userProfile(ctx)
 	}
+}
 
+func userProfile(ctx *context.Context) {
 	// check view permissions
 	if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
 		ctx.NotFound("user", fmt.Errorf(ctx.ContextUser.Name))
 		return
 	}
 
-	// advertise feed via meta tag
-	ctx.Data["FeedURL"] = ctx.ContextUser.HomeLink()
-
-	// Show OpenID URIs
-	openIDs, err := user_model.GetUserOpenIDs(ctx.ContextUser.ID)
-	if err != nil {
-		ctx.ServerError("GetUserOpenIDs", err)
-		return
-	}
-
-	var isFollowing bool
-	if ctx.Doer != nil {
-		isFollowing = user_model.IsFollowing(ctx.Doer.ID, ctx.ContextUser.ID)
-	}
-
 	ctx.Data["Title"] = ctx.ContextUser.DisplayName()
 	ctx.Data["PageIsUserProfile"] = true
-	ctx.Data["ContextUser"] = ctx.ContextUser
-	ctx.Data["OpenIDs"] = openIDs
-	ctx.Data["IsFollowing"] = isFollowing
 
+	// prepare heatmap data
 	if setting.Service.EnableUserHeatmap {
-		data, err := activities_model.GetUserHeatmapDataByUser(ctx.ContextUser, ctx.Doer)
+		data, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserHeatmapDataByUser", err)
 			return
@@ -78,75 +64,29 @@ func Profile(ctx *context.Context) {
 		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
 	}
 
-	if len(ctx.ContextUser.Description) != 0 {
-		content, err := markdown.RenderString(&markup.RenderContext{
-			URLPrefix: ctx.Repo.RepoLink,
-			Metas:     map[string]string{"mode": "document"},
-			GitRepo:   ctx.Repo.GitRepo,
-			Ctx:       ctx,
-		}, ctx.ContextUser.Description)
-		if err != nil {
-			ctx.ServerError("RenderString", err)
-			return
-		}
-		ctx.Data["RenderedDescription"] = content
-	}
-
-	repo, err := repo_model.GetRepositoryByName(ctx.ContextUser.ID, ".profile")
-	if err == nil && !repo.IsEmpty {
-		gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
-		if err != nil {
-			ctx.ServerError("OpenRepository", err)
-			return
-		}
-		defer gitRepo.Close()
-		commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
-		if err != nil {
-			ctx.ServerError("GetBranchCommit", err)
-			return
-		}
-		blob, err := commit.GetBlobByPath("README.md")
-		if err == nil {
-			bytes, err := blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
-			if err != nil {
-				ctx.ServerError("GetBlobContent", err)
-				return
-			}
-			profileContent, err := markdown.RenderString(&markup.RenderContext{
-				Ctx:     ctx,
-				GitRepo: gitRepo,
-			}, bytes)
-			if err != nil {
-				ctx.ServerError("RenderString", err)
-				return
-			}
-			ctx.Data["ProfileReadme"] = profileContent
-		}
-	}
+	profileGitRepo, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
+	defer profileClose()
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
+	prepareUserProfileTabData(ctx, showPrivate, profileGitRepo, profileReadmeBlob)
+	// call PrepareContextForProfileBigAvatar later to avoid re-querying the NumFollowers & NumFollowing
+	shared_user.PrepareContextForProfileBigAvatar(ctx)
+	ctx.HTML(http.StatusOK, tplProfile)
+}
 
-	orgs, err := organization.FindOrgs(organization.FindOrgOptions{
-		UserID:         ctx.ContextUser.ID,
-		IncludePrivate: showPrivate,
-	})
-	if err != nil {
-		ctx.ServerError("FindOrgs", err)
-		return
-	}
-
-	ctx.Data["Orgs"] = orgs
-	ctx.Data["HasOrgsVisible"] = organization.HasOrgsVisible(orgs, ctx.Doer)
-
-	badges, _, err := user_model.GetUserBadges(ctx, ctx.ContextUser)
-	if err != nil {
-		ctx.ServerError("GetUserBadges", err)
-		return
-	}
-	ctx.Data["Badges"] = badges
-
+func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGitRepo *git.Repository, profileReadme *git.Blob) {
+	// if there is a profile readme, default to "overview" page, otherwise, default to "repositories" page
+	// if there is not a profile readme, the overview tab should be treated as the repositories tab
 	tab := ctx.FormString("tab")
+	if tab == "" || tab == "overview" {
+		if profileReadme != nil {
+			tab = "overview"
+		} else {
+			tab = "repositories"
+		}
+	}
 	ctx.Data["TabName"] = tab
+	ctx.Data["HasProfileReadme"] = profileReadme != nil
 
 	page := ctx.FormInt("page")
 	if page <= 0 {
@@ -154,12 +94,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	pagingNum := setting.UI.User.RepoPagingNum
-	if tab == "activity" {
-		pagingNum = setting.UI.FeedPagingNum
-	}
-
 	topicOnly := ctx.FormBool("topic")
-
 	var (
 		repos   []*repo_model.Repository
 		count   int64
@@ -222,12 +157,13 @@ func Profile(ctx *context.Context) {
 	switch tab {
 	case "followers":
 		ctx.Data["Cards"] = followers
-		total = int(count)
+		total = int(numFollowers)
 	case "following":
 		ctx.Data["Cards"] = following
-		total = int(count)
+		total = int(numFollowing)
 	case "activity":
 		date := ctx.FormString("date")
+		pagingNum = setting.UI.FeedPagingNum
 		items, count, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
@@ -271,16 +207,6 @@ func Profile(ctx *context.Context) {
 		}
 
 		total = int(count)
-	case "projects":
-		ctx.Data["OpenProjects"], _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
-			Page:     -1,
-			IsClosed: util.OptionalBoolFalse,
-			Type:     project_model.TypeIndividual,
-		})
-		if err != nil {
-			ctx.ServerError("GetProjects", err)
-			return
-		}
 	case "watching":
 		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
@@ -303,7 +229,21 @@ func Profile(ctx *context.Context) {
 		}
 
 		total = int(count)
-	default:
+	case "overview":
+		if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+			log.Error("failed to GetBlobContent: %v", err)
+		} else {
+			if profileContent, err := markdown.RenderString(&markup.RenderContext{
+				Ctx:     ctx,
+				GitRepo: profileGitRepo,
+				Metas:   map[string]string{"mode": "document"},
+			}, bytes); err != nil {
+				log.Error("failed to RenderString: %v", err)
+			} else {
+				ctx.Data["ProfileReadme"] = profileContent
+			}
+		}
+	default: // default to "repositories"
 		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: pagingNum,
@@ -329,6 +269,12 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = total
 
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	pager := context.NewPagination(total, pagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "tab", "TabName")
@@ -339,13 +285,6 @@ func Profile(ctx *context.Context) {
 		pager.AddParam(ctx, "date", "Date")
 	}
 	ctx.Data["Page"] = pager
-	ctx.Data["IsProjectEnabled"] = true
-	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
-	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-
-	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail && ctx.ContextUser.Email != "" && ctx.IsSigned && !ctx.ContextUser.KeepEmailPrivate
-
-	ctx.HTML(http.StatusOK, tplProfile)
 }
 
 // Action response for follow/unfollow user request
@@ -353,15 +292,15 @@ func Action(ctx *context.Context) {
 	var err error
 	switch ctx.FormString("action") {
 	case "follow":
-		err = user_model.FollowUser(ctx.Doer.ID, ctx.ContextUser.ID)
+		err = user_model.FollowUser(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	case "unfollow":
-		err = user_model.UnfollowUser(ctx.Doer.ID, ctx.ContextUser.ID)
+		err = user_model.UnfollowUser(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	}
 
 	if err != nil {
-		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.FormString("action")), err)
+		log.Error("Failed to apply action %q: %v", ctx.FormString("action"), err)
+		ctx.JSONError(fmt.Sprintf("Action %q failed", ctx.FormString("action")))
 		return
 	}
-	// FIXME: We should check this URL and make sure that it's a valid Gitea URL
-	ctx.RedirectToFirst(ctx.FormString("redirect_to"), ctx.ContextUser.HomeLink())
+	ctx.JSONOK()
 }

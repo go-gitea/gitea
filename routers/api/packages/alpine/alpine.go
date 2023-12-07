@@ -24,14 +24,14 @@ import (
 	alpine_service "code.gitea.io/gitea/services/packages/alpine"
 )
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
 }
 
 func GetRepositoryKey(ctx *context.Context) {
-	_, pub, err := alpine_service.GetOrCreateKeyPair(ctx.Package.Owner.ID)
+	_, pub, err := alpine_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -62,13 +62,13 @@ func GetRepositoryKey(ctx *context.Context) {
 }
 
 func GetRepositoryFile(ctx *context.Context) {
-	pv, err := alpine_service.GetOrCreateRepositoryVersion(ctx.Package.Owner.ID)
+	pv, err := alpine_service.GetOrCreateRepositoryVersion(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	s, pf, err := packages_service.GetFileStreamByPackageVersion(
+	s, u, pf, err := packages_service.GetFileStreamByPackageVersion(
 		ctx,
 		pv,
 		&packages_service.PackageFileInfo{
@@ -84,12 +84,8 @@ func GetRepositoryFile(ctx *context.Context) {
 		}
 		return
 	}
-	defer s.Close()
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }
 
 func UploadPackageFile(ctx *context.Context) {
@@ -138,6 +134,7 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
@@ -167,7 +164,7 @@ func UploadPackageFile(ctx *context.Context) {
 	if err != nil {
 		switch err {
 		case packages_model.ErrDuplicatePackageVersion, packages_model.ErrDuplicatePackageFile:
-			apiError(ctx, http.StatusBadRequest, err)
+			apiError(ctx, http.StatusConflict, err)
 		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
 			apiError(ctx, http.StatusForbidden, err)
 		default:
@@ -200,7 +197,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	s, pf, err := packages_service.GetPackageFileStream(ctx, pfs[0])
+	s, u, pf, err := packages_service.GetPackageFileStream(ctx, pfs[0])
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
@@ -209,12 +206,8 @@ func DownloadPackageFile(ctx *context.Context) {
 		}
 		return
 	}
-	defer s.Close()
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }
 
 func DeletePackageFile(ctx *context.Context) {
@@ -235,7 +228,7 @@ func DeletePackageFile(ctx *context.Context) {
 		return
 	}
 
-	if err := packages_service.RemovePackageFileAndVersionIfUnreferenced(ctx.Doer, pfs[0]); err != nil {
+	if err := packages_service.RemovePackageFileAndVersionIfUnreferenced(ctx, ctx.Doer, pfs[0]); err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {

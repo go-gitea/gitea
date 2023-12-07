@@ -52,20 +52,22 @@ func ListForks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	forks, err := repo_model.GetForks(ctx.Repo.Repository, utils.GetListOptions(ctx))
+	forks, err := repo_model.GetForks(ctx, ctx.Repo.Repository, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetForks", err)
 		return
 	}
 	apiForks := make([]*api.Repository, len(forks))
 	for i, fork := range forks {
-		access, err := access_model.AccessLevel(ctx, ctx.Doer, fork)
+		permission, err := access_model.GetUserRepoPermission(ctx, fork, ctx.Doer)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
 		}
-		apiForks[i] = convert.ToRepo(ctx, fork, access)
+		apiForks[i] = convert.ToRepo(ctx, fork, permission)
 	}
 
 	ctx.SetTotalCountHeader(int64(ctx.Repo.Repository.NumForks))
@@ -99,6 +101,8 @@ func CreateFork(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Repository"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     description: The repository with the same name already exists.
 	//   "422":
@@ -119,7 +123,7 @@ func CreateFork(ctx *context.APIContext) {
 			}
 			return
 		}
-		isMember, err := org.IsOrgMember(ctx.Doer.ID)
+		isMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 			return
@@ -152,5 +156,5 @@ func CreateFork(ctx *context.APIContext) {
 	}
 
 	// TODO change back to 201
-	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx, fork, perm.AccessModeOwner))
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx, fork, access_model.Permission{AccessMode: perm.AccessModeOwner}))
 }

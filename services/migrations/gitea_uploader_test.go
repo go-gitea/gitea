@@ -44,7 +44,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 		uploader   = NewGiteaLocalUploader(graceful.GetManager().HammerContext(), user, user.Name, repoName)
 	)
 
-	err := migrateRepository(user, downloader, uploader, base.MigrateOptions{
+	err := migrateRepository(db.DefaultContext, user, downloader, uploader, base.MigrateOptions{
 		CloneAddr:    "https://github.com/go-xorm/builder",
 		RepoName:     repoName,
 		AuthUsername: "",
@@ -65,14 +65,14 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.True(t, repo.HasWiki())
 	assert.EqualValues(t, repo_model.RepositoryReady, repo.Status)
 
-	milestones, _, err := issues_model.GetMilestones(issues_model.GetMilestonesOption{
+	milestones, _, err := issues_model.GetMilestones(db.DefaultContext, issues_model.GetMilestonesOption{
 		RepoID: repo.ID,
 		State:  structs.StateOpen,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, milestones, 1)
 
-	milestones, _, err = issues_model.GetMilestones(issues_model.GetMilestonesOption{
+	milestones, _, err = issues_model.GetMilestones(db.DefaultContext, issues_model.GetMilestonesOption{
 		RepoID: repo.ID,
 		State:  structs.StateClosed,
 	})
@@ -113,7 +113,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, issues[0].LoadDiscussComments(db.DefaultContext))
 	assert.Empty(t, issues[0].Comments)
 
-	pulls, _, err := issues_model.PullRequests(repo.ID, &issues_model.PullRequestsOptions{
+	pulls, _, err := issues_model.PullRequests(db.DefaultContext, repo.ID, &issues_model.PullRequestsOptions{
 		SortType: "oldest",
 	})
 	assert.NoError(t, err)
@@ -210,7 +210,7 @@ func TestGiteaUploadRemapExternalUser(t *testing.T) {
 		LoginSourceID: 0,
 		Provider:      structs.GiteaService.Name(),
 	}
-	err = user_model.LinkExternalToUser(linkedUser, externalLoginUser)
+	err = user_model.LinkExternalToUser(db.DefaultContext, linkedUser, externalLoginUser)
 	assert.NoError(t, err)
 
 	//

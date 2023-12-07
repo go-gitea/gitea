@@ -9,12 +9,12 @@ import (
 )
 
 // Format formats provided arguments for a given translated message
-func Format(format string, args ...interface{}) (msg string, err error) {
+func Format(format string, args ...any) (msg string, err error) {
 	if len(args) == 0 {
 		return format, nil
 	}
 
-	fmtArgs := make([]interface{}, 0, len(args))
+	fmtArgs := make([]any, 0, len(args))
 	for _, arg := range args {
 		val := reflect.ValueOf(arg)
 		if val.Kind() == reflect.Slice {

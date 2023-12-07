@@ -5,16 +5,12 @@ package main
 
 import (
 	"os"
-	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
-
-// EnvironmentPrefix environment variables prefixed with this represent ini values to write
-const EnvironmentPrefix = "GITEA"
 
 func main() {
 	app := cli.NewApp()
@@ -50,39 +46,32 @@ func main() {
 	and "GITEA__LOG_0x2E_CONSOLE__STDERR=false". Other examples can be found
 	on the configuration cheat sheet.`
 	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "custom-path, C",
-			Value: setting.CustomPath,
-			Usage: "Custom path file path",
+		&cli.StringFlag{
+			Name:    "custom-path",
+			Aliases: []string{"C"},
+			Value:   setting.CustomPath,
+			Usage:   "Custom path file path",
 		},
-		cli.StringFlag{
-			Name:  "config, c",
-			Value: setting.CustomConf,
-			Usage: "Custom configuration file path",
+		&cli.StringFlag{
+			Name:    "config",
+			Aliases: []string{"c"},
+			Value:   setting.CustomConf,
+			Usage:   "Custom configuration file path",
 		},
-		cli.StringFlag{
-			Name:  "work-path, w",
-			Value: setting.AppWorkPath,
-			Usage: "Set the gitea working path",
+		&cli.StringFlag{
+			Name:    "work-path",
+			Aliases: []string{"w"},
+			Value:   setting.AppWorkPath,
+			Usage:   "Set the gitea working path",
 		},
-		cli.StringFlag{
-			Name:  "out, o",
-			Value: "",
-			Usage: "Destination file to write to",
-		},
-		cli.BoolFlag{
-			Name:  "clear",
-			Usage: "Clears the matched variables from the environment",
-		},
-		cli.StringFlag{
-			Name:  "prefix, p",
-			Value: EnvironmentPrefix,
-			Usage: "Environment prefix to look for - will be suffixed by __ (2 underscores)",
+		&cli.StringFlag{
+			Name:    "out",
+			Aliases: []string{"o"},
+			Value:   "",
+			Usage:   "Destination file to write to",
 		},
 	}
 	app.Action = runEnvironmentToIni
-	setting.SetCustomPathAndConf("", "", "")
-
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal("Failed to run app with %s: %v", os.Args, err)
@@ -90,19 +79,20 @@ func main() {
 }
 
 func runEnvironmentToIni(c *cli.Context) error {
-	providedCustom := c.String("custom-path")
-	providedConf := c.String("config")
-	providedWorkPath := c.String("work-path")
-	setting.SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath)
+	// the config system may change the environment variables, so get a copy first, to be used later
+	env := append([]string{}, os.Environ()...)
+	setting.InitWorkPathAndCfgProvider(os.Getenv, setting.ArgWorkPathAndCustomConf{
+		WorkPath:   c.String("work-path"),
+		CustomPath: c.String("custom-path"),
+		CustomConf: c.String("config"),
+	})
 
-	cfg, err := setting.NewConfigProviderFromFile(&setting.Options{CustomConf: setting.CustomConf, AllowEmpty: true})
+	cfg, err := setting.NewConfigProviderFromFile(setting.CustomConf)
 	if err != nil {
 		log.Fatal("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 	}
 
-	prefixGitea := c.String("prefix") + "__"
-	suffixFile := "__FILE"
-	changed := setting.EnvironmentToConfig(cfg, prefixGitea, suffixFile, os.Environ())
+	changed := setting.EnvironmentToConfig(cfg, env)
 
 	// try to save the config file
 	destination := c.String("out")
@@ -114,20 +104,6 @@ func runEnvironmentToIni(c *cli.Context) error {
 		err = cfg.SaveTo(destination)
 		if err != nil {
 			return err
-		}
-	}
-
-	// clear Gitea's specific environment variables if requested
-	if c.Bool("clear") {
-		for _, kv := range os.Environ() {
-			idx := strings.IndexByte(kv, '=')
-			if idx < 0 {
-				continue
-			}
-			eKey := kv[:idx]
-			if strings.HasPrefix(eKey, prefixGitea) {
-				_ = os.Unsetenv(eKey)
-			}
 		}
 	}
 

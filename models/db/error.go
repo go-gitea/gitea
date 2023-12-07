@@ -25,7 +25,7 @@ func (err ErrCancelled) Error() string {
 }
 
 // ErrCancelledf returns an ErrCancelled for the provided format and args
-func ErrCancelledf(format string, args ...interface{}) error {
+func ErrCancelledf(format string, args ...any) error {
 	return ErrCancelled{
 		fmt.Sprintf(format, args...),
 	}

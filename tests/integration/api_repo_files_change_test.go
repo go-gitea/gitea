@@ -44,13 +44,13 @@ func getChangeFilesOptions() *api.ChangeFilesOptions {
 		},
 		Files: []*api.ChangeFileOperation{
 			{
-				Operation: "create",
-				Content:   newContentEncoded,
+				Operation:     "create",
+				ContentBase64: newContentEncoded,
 			},
 			{
-				Operation: "update",
-				Content:   updateContentEncoded,
-				SHA:       "103ff9234cefeee5ec5361d22b49fbb04d385885",
+				Operation:     "update",
+				ContentBase64: updateContentEncoded,
+				SHA:           "103ff9234cefeee5ec5361d22b49fbb04d385885",
 			},
 			{
 				Operation: "delete",
@@ -63,7 +63,7 @@ func getChangeFilesOptions() *api.ChangeFilesOptions {
 func TestAPIChangeFiles(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})         // owner of the repo1 & repo16
-		user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})         // owner of the repo3, is an org
+		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})          // owner of the repo3, is an org
 		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})         // owner of neither repos
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})   // public repo
 		repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})   // public repo
@@ -261,33 +261,33 @@ func TestAPIChangeFiles(t *testing.T) {
 		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions)
 		MakeRequest(t, req, http.StatusCreated)
 
-		// Test using org repo "user3/repo3" where user2 is a collaborator
+		// Test using org repo "org3/repo3" where user2 is a collaborator
 		fileID++
 		createTreePath = fmt.Sprintf("new/file%d.txt", fileID)
 		updateTreePath = fmt.Sprintf("update/file%d.txt", fileID)
 		deleteTreePath = fmt.Sprintf("delete/file%d.txt", fileID)
-		createFile(user3, repo3, updateTreePath)
-		createFile(user3, repo3, deleteTreePath)
+		createFile(org3, repo3, updateTreePath)
+		createFile(org3, repo3, deleteTreePath)
 		changeFilesOptions = getChangeFilesOptions()
 		changeFilesOptions.Files[0].Path = createTreePath
 		changeFilesOptions.Files[1].Path = updateTreePath
 		changeFilesOptions.Files[2].Path = deleteTreePath
-		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents?token=%s", user3.Name, repo3.Name, token2)
+		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents?token=%s", org3.Name, repo3.Name, token2)
 		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions)
 		MakeRequest(t, req, http.StatusCreated)
 
-		// Test using org repo "user3/repo3" with no user token
+		// Test using org repo "org3/repo3" with no user token
 		fileID++
 		createTreePath = fmt.Sprintf("new/file%d.txt", fileID)
 		updateTreePath = fmt.Sprintf("update/file%d.txt", fileID)
 		deleteTreePath = fmt.Sprintf("delete/file%d.txt", fileID)
-		createFile(user3, repo3, updateTreePath)
-		createFile(user3, repo3, deleteTreePath)
+		createFile(org3, repo3, updateTreePath)
+		createFile(org3, repo3, deleteTreePath)
 		changeFilesOptions = getChangeFilesOptions()
 		changeFilesOptions.Files[0].Path = createTreePath
 		changeFilesOptions.Files[1].Path = updateTreePath
 		changeFilesOptions.Files[2].Path = deleteTreePath
-		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents", user3.Name, repo3.Name)
+		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents", org3.Name, repo3.Name)
 		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions)
 		MakeRequest(t, req, http.StatusNotFound)
 

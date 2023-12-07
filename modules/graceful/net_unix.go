@@ -150,11 +150,9 @@ func CloseProvidedListeners() error {
 	return returnableError
 }
 
-// GetListener obtains a listener for the local network address. The network must be
-// a stream-oriented network: "tcp", "tcp4", "tcp6", "unix" or "unixpacket". It
-// returns an provided net.Listener for the matching network and address, or
-// creates a new one using net.Listen.
-func GetListener(network, address string) (net.Listener, error) {
+// DefaultGetListener obtains a listener for the stream-oriented local network address:
+// "tcp", "tcp4", "tcp6", "unix" or "unixpacket".
+func DefaultGetListener(network, address string) (net.Listener, error) {
 	// Add a deferral to say that we've tried to grab a listener
 	defer GetManager().InformCleanup()
 	switch network {

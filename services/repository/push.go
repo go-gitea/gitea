@@ -18,13 +18,13 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	issue_service "code.gitea.io/gitea/services/issue"
+	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -35,7 +35,9 @@ var pushQueue *queue.WorkerPoolQueue[[]*repo_module.PushUpdateOptions]
 func handler(items ...[]*repo_module.PushUpdateOptions) [][]*repo_module.PushUpdateOptions {
 	for _, opts := range items {
 		if err := pushUpdates(opts); err != nil {
-			log.Error("pushUpdate failed: %v", err)
+			// Username and repository stays the same between items in opts.
+			pushUpdate := opts[0]
+			log.Error("pushUpdate[%s/%s] failed: %v", pushUpdate.RepoUserName, pushUpdate.RepoName, err)
 		}
 	}
 	return nil
@@ -93,7 +95,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	defer gitRepo.Close()
 
 	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
-		log.Error("Failed to update size for repository: %v", err)
+		return fmt.Errorf("Failed to update size for repository: %v", err)
 	}
 
 	addTags := make([]string, 0, len(optsList))
@@ -119,7 +121,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			}
 			tagName := opts.RefFullName.TagName()
 			if opts.IsDelRef() {
-				notification.NotifyPushCommits(
+				notify_service.PushCommits(
 					ctx, pusher, repo,
 					&repo_module.PushUpdateOptions{
 						RefFullName: git.RefNameFromTag(tagName),
@@ -128,7 +130,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					}, repo_module.NewPushCommits())
 
 				delTags = append(delTags, tagName)
-				notification.NotifyDeleteRef(ctx, pusher, repo, opts.RefFullName)
+				notify_service.DeleteRef(ctx, pusher, repo, opts.RefFullName)
 			} else { // is new tag
 				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 				if err != nil {
@@ -139,7 +141,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
 				commits.CompareURL = repo.ComposeCompareURL(git.EmptySHA, opts.NewCommitID)
 
-				notification.NotifyPushCommits(
+				notify_service.PushCommits(
 					ctx, pusher, repo,
 					&repo_module.PushUpdateOptions{
 						RefFullName: opts.RefFullName,
@@ -148,7 +150,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					}, commits)
 
 				addTags = append(addTags, tagName)
-				notification.NotifyCreateRef(ctx, pusher, repo, opts.RefFullName, opts.NewCommitID)
+				notify_service.CreateRef(ctx, pusher, repo, opts.RefFullName, opts.NewCommitID)
 			}
 		} else if opts.RefFullName.IsBranch() {
 			if pusher == nil || pusher.ID != opts.PusherID {
@@ -197,7 +199,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					if err != nil {
 						return fmt.Errorf("newCommit.CommitsBeforeLimit: %w", err)
 					}
-					notification.NotifyCreateRef(ctx, pusher, repo, opts.RefFullName, opts.NewCommitID)
+					notify_service.CreateRef(ctx, pusher, repo, opts.RefFullName, opts.NewCommitID)
 				} else {
 					l, err = newCommit.CommitsBeforeUntil(opts.OldCommitID)
 					if err != nil {
@@ -222,7 +224,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				commits := repo_module.GitToPushCommits(l)
 				commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
 
-				if err := issue_service.UpdateIssuesCommit(pusher, repo, commits.Commits, refName); err != nil {
+				if err := issue_service.UpdateIssuesCommit(ctx, pusher, repo, commits.Commits, refName); err != nil {
 					log.Error("updateIssuesCommit: %v", err)
 				}
 
@@ -257,24 +259,25 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					commits.Commits = commits.Commits[:setting.UI.FeedMaxCommitNum]
 				}
 
-				notification.NotifyPushCommits(ctx, pusher, repo, opts, commits)
-
-				if err = git_model.RemoveDeletedBranchByName(ctx, repo.ID, branch); err != nil {
-					log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, branch, err)
+				if err = git_model.UpdateBranch(ctx, repo.ID, opts.PusherID, branch, newCommit); err != nil {
+					return fmt.Errorf("git_model.UpdateBranch %s:%s failed: %v", repo.FullName(), branch, err)
 				}
+
+				notify_service.PushCommits(ctx, pusher, repo, opts, commits)
 
 				// Cache for big repository
 				if err := CacheRef(graceful.GetManager().HammerContext(), repo, gitRepo, opts.RefFullName); err != nil {
 					log.Error("repo_module.CacheRef %s/%s failed: %v", repo.ID, branch, err)
 				}
 			} else {
-				notification.NotifyDeleteRef(ctx, pusher, repo, opts.RefFullName)
-				if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
+				notify_service.DeleteRef(ctx, pusher, repo, opts.RefFullName)
+				if err = pull_service.CloseBranchPulls(ctx, pusher, repo.ID, branch); err != nil {
 					// close all related pulls
 					log.Error("close related pull request failed: %v", err)
 				}
-				if err := git_model.AddDeletedBranch(db.DefaultContext, repo.ID, branch, opts.OldCommitID, pusher.ID); err != nil {
-					log.Warn("AddDeletedBranch: %v", err)
+
+				if err := git_model.AddDeletedBranch(ctx, repo.ID, branch, pusher.ID); err != nil {
+					return fmt.Errorf("AddDeletedBranch %s:%s failed: %v", repo.FullName(), branch, err)
 				}
 			}
 
@@ -291,7 +294,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 
 	// Change repository last updated time.
-	if err := repo_model.UpdateRepositoryUpdatedTime(repo.ID, time.Now()); err != nil {
+	if err := repo_model.UpdateRepositoryUpdatedTime(ctx, repo.ID, time.Now()); err != nil {
 		return fmt.Errorf("UpdateRepositoryUpdatedTime: %w", err)
 	}
 

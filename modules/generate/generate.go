@@ -12,7 +12,7 @@ import (
 
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // NewInternalToken generate a new value intended to be used by INTERNAL_TOKEN.
@@ -49,12 +49,12 @@ func NewJwtSecret() ([]byte, error) {
 }
 
 // NewJwtSecretBase64 generates a new base64 encoded value intended to be used for JWT secrets.
-func NewJwtSecretBase64() (string, error) {
+func NewJwtSecretBase64() ([]byte, string, error) {
 	bytes, err := NewJwtSecret()
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
-	return base64.RawURLEncoding.EncodeToString(bytes), nil
+	return bytes, base64.RawURLEncoding.EncodeToString(bytes), nil
 }
 
 // NewSecretKey generate a new value intended to be used by SECRET_KEY.

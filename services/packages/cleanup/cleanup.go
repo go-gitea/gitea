@@ -20,9 +20,17 @@ import (
 	debian_service "code.gitea.io/gitea/services/packages/debian"
 )
 
-// Cleanup removes expired package data
-func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
-	ctx, committer, err := db.TxContext(taskCtx)
+// Task method to execute cleanup rules and cleanup expired package data
+func CleanupTask(ctx context.Context, olderThan time.Duration) error {
+	if err := ExecuteCleanupRules(ctx); err != nil {
+		return err
+	}
+
+	return CleanupExpiredData(ctx, olderThan)
+}
+
+func ExecuteCleanupRules(outerCtx context.Context) error {
+	ctx, committer, err := db.TxContext(outerCtx)
 	if err != nil {
 		return err
 	}
@@ -30,7 +38,7 @@ func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 
 	err = packages_model.IterateEnabledCleanupRules(ctx, func(ctx context.Context, pcr *packages_model.PackageCleanupRule) error {
 		select {
-		case <-taskCtx.Done():
+		case <-outerCtx.Done():
 			return db.ErrCancelledf("While processing package cleanup rules")
 		default:
 		}
@@ -102,8 +110,8 @@ func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 					if err != nil {
 						return fmt.Errorf("GetUserByID failed: %w", err)
 					}
-					if err := cargo_service.AddOrUpdatePackageIndex(ctx, owner, owner, p.ID); err != nil {
-						return fmt.Errorf("CleanupRule [%d]: cargo.AddOrUpdatePackageIndex failed: %w", pcr.ID, err)
+					if err := cargo_service.UpdatePackageIndexIfExists(ctx, owner, owner, p.ID); err != nil {
+						return fmt.Errorf("CleanupRule [%d]: cargo.UpdatePackageIndexIfExists failed: %w", pcr.ID, err)
 					}
 				}
 			}
@@ -121,6 +129,16 @@ func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 	if err != nil {
 		return err
 	}
+
+	return committer.Commit()
+}
+
+func CleanupExpiredData(outerCtx context.Context, olderThan time.Duration) error {
+	ctx, committer, err := db.TxContext(outerCtx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
 
 	if err := container_service.Cleanup(ctx, olderThan); err != nil {
 		return err

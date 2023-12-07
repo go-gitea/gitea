@@ -61,6 +61,7 @@ var (
 	AssetVersion string
 
 	// Server settings
+
 	Protocol                   Scheme
 	UseProxyProtocol           bool // `ini:"USE_PROXY_PROTOCOL"`
 	ProxyProtocolTLSBridging   bool //`ini:"PROXY_PROTOCOL_TLS_BRIDGING"`
@@ -80,7 +81,6 @@ var (
 	StaticCacheTime            time.Duration
 	EnableGzip                 bool
 	LandingPageURL             LandingPage
-	LandingPageCustom          string
 	UnixSocketPermission       uint32
 	EnablePprof                bool
 	PprofDataPath              string
@@ -102,7 +102,6 @@ var (
 	StaticURLPrefix            string
 	AbsoluteAssetURL           string
 
-	HasRobotsTxt bool
 	ManifestData string
 )
 
@@ -324,7 +323,6 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	if !filepath.IsAbs(AppDataPath) {
-		log.Info("The provided APP_DATA_PATH: %s is not absolute - it will be made absolute against the work path: %s", AppDataPath, AppWorkPath)
 		AppDataPath = filepath.ToSlash(filepath.Join(AppWorkPath, AppDataPath))
 	}
 
@@ -348,10 +346,5 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		LandingPageURL = LandingPageHome
 	default:
 		LandingPageURL = LandingPage(landingPage)
-	}
-
-	HasRobotsTxt, err = util.IsFile(path.Join(CustomPath, "robots.txt"))
-	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", path.Join(CustomPath, "robots.txt"), err)
 	}
 }

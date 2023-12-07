@@ -33,7 +33,7 @@ type packageAssignmentCtx struct {
 // PackageAssignment returns a middleware to handle Context.Package assignment
 func PackageAssignment() func(ctx *Context) {
 	return func(ctx *Context) {
-		errorFn := func(status int, title string, obj interface{}) {
+		errorFn := func(status int, title string, obj any) {
 			err, ok := obj.(error)
 			if !ok {
 				err = fmt.Errorf("%s", obj)
@@ -57,7 +57,7 @@ func PackageAssignmentAPI() func(ctx *APIContext) {
 	}
 }
 
-func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string, interface{})) *Package {
+func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string, any)) *Package {
 	pkg := &Package{
 		Owner: ctx.ContextUser,
 	}
@@ -108,18 +108,28 @@ func determineAccessMode(ctx *Base, pkg *Package, doer *user_model.User) (perm.A
 
 		if doer != nil && !doer.IsGhost() {
 			// 1. If user is logged in, check all team packages permissions
-			teams, err := organization.GetUserOrgTeams(ctx, org.ID, doer.ID)
+			var err error
+			accessMode, err = org.GetOrgUserMaxAuthorizeLevel(ctx, doer.ID)
 			if err != nil {
 				return accessMode, err
 			}
-			for _, t := range teams {
-				perm := t.UnitAccessMode(ctx, unit.TypePackages)
-				if accessMode < perm {
-					accessMode = perm
+			// If access mode is less than write check every team for more permissions
+			// The minimum possible access mode is read for org members
+			if accessMode < perm.AccessModeWrite {
+				teams, err := organization.GetUserOrgTeams(ctx, org.ID, doer.ID)
+				if err != nil {
+					return accessMode, err
+				}
+				for _, t := range teams {
+					perm := t.UnitAccessMode(ctx, unit.TypePackages)
+					if accessMode < perm {
+						accessMode = perm
+					}
 				}
 			}
-		} else if organization.HasOrgOrUserVisible(ctx, pkg.Owner, doer) {
-			// 2. If user is non-login, check if org is visible to non-login user
+		}
+		if accessMode == perm.AccessModeNone && organization.HasOrgOrUserVisible(ctx, pkg.Owner, doer) {
+			// 2. If user is unauthorized or no org member, check if org is visible
 			accessMode = perm.AccessModeRead
 		}
 	} else {
@@ -144,12 +154,10 @@ func PackageContexter() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			base, baseCleanUp := NewBaseContext(resp, req)
-			ctx := &Context{
-				Base:   base,
-				Render: renderer, // it is still needed when rendering 500 page in a package handler
-			}
 			defer baseCleanUp()
 
+			// it is still needed when rendering 500 page in a package handler
+			ctx := NewWebContext(base, renderer, nil)
 			ctx.Base.AppendContextValue(WebContextKey, ctx)
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})

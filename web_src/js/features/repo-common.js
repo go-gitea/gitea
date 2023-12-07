@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import {hideElem, showElem, toggleElem} from '../utils/dom.js';
+import {hideElem, showElem} from '../utils/dom.js';
 
 const {csrfToken} = window.config;
 
@@ -52,12 +52,6 @@ export function initRepoCloneLink() {
   if ((!$repoCloneSsh.length && !$repoCloneHttps.length) || !$inputLink.length) {
     return;
   }
-
-  // restore animation after first init
-  setTimeout(() => {
-    $repoCloneSsh.removeClass('gt-no-transition');
-    $repoCloneHttps.removeClass('gt-no-transition');
-  }, 100);
 
   $repoCloneSsh.on('click', () => {
     localStorage.setItem('repo-clone-protocol', 'ssh');

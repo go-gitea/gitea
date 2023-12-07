@@ -1,0 +1,127 @@
+<div class="ui card">
+	<div id="profile-avatar" class="content gt-df">
+	{{if eq .SignedUserID .ContextUser.ID}}
+		<a class="image" href="{{AppSubUrl}}/user/settings" data-tooltip-content="{{ctx.Locale.Tr "user.change_avatar"}}">
+			{{/* the size doesn't take affect (and no need to take affect), image size(width) should be controlled by the parent container since this is not a flex layout*/}}
+			{{ctx.AvatarUtils.Avatar .ContextUser 256}}
+		</a>
+	{{else}}
+		<span class="image">
+			{{ctx.AvatarUtils.Avatar .ContextUser 256}}
+		</span>
+	{{end}}
+	</div>
+	<div class="content gt-word-break profile-avatar-name">
+		{{if .ContextUser.FullName}}<span class="header text center">{{.ContextUser.FullName}}</span>{{end}}
+		<span class="username text center">{{.ContextUser.Name}} {{if .IsAdmin}}
+					<a class="muted" href="{{AppSubUrl}}/admin/users/{{.ContextUser.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.users.details"}}">
+						{{svg "octicon-gear" 18}}
+					</a>
+				{{end}}</span>
+		<div class="gt-mt-3">
+			<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "gt-mr-2"}}{{.NumFollowers}} {{ctx.Locale.Tr "user.followers"}}</a> · <a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{.NumFollowing}} {{ctx.Locale.Tr "user.following"}}</a>
+			{{if .EnableFeed}}
+				<a href="{{.ContextUser.HomeLink}}.rss"><i class="ui text grey gt-ml-3" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
+			{{end}}
+		</div>
+	</div>
+	<div class="extra content gt-word-break">
+		<ul>
+			{{if .ContextUser.Location}}
+				<li>
+					{{svg "octicon-location"}}
+					<span class="gt-f1">{{.ContextUser.Location}}</span>
+					{{if .UserLocationMapURL}}
+						{{/* We presume that the UserLocationMapURL is safe, as it is provided by the site administrator. */}}
+						<a href="{{.UserLocationMapURL | Safe}}{{.ContextUser.Location | QueryEscape}}" rel="nofollow noreferrer" data-tooltip-content="{{ctx.Locale.Tr "user.show_on_map"}}">
+							{{svg "octicon-link-external"}}
+						</a>
+					{{end}}
+				</li>
+			{{end}}
+			{{if (eq .SignedUserID .ContextUser.ID)}}
+				<li>
+					{{svg "octicon-mail"}}
+					<a class="gt-f1" href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
+					<a href="{{AppSubUrl}}/user/settings#privacy-user-settings">
+						{{if .ShowUserEmail}}
+							<i data-tooltip-content="{{ctx.Locale.Tr "user.email_visibility.limited"}}">
+								{{svg "octicon-unlock"}}
+							</i>
+						{{else}}
+							<i data-tooltip-content="{{ctx.Locale.Tr "user.email_visibility.private"}}">
+								{{svg "octicon-lock"}}
+							</i>
+						{{end}}
+					</a>
+				</li>
+			{{else}}
+				{{if .ShowUserEmail}}
+					<li>
+						{{svg "octicon-mail"}}
+						<a href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
+					</li>
+				{{end}}
+			{{end}}
+			{{if .ContextUser.Website}}
+				<li>
+					{{svg "octicon-link"}}
+					<a target="_blank" rel="noopener noreferrer me" href="{{.ContextUser.Website}}">{{.ContextUser.Website}}</a>
+				</li>
+			{{end}}
+			{{if $.RenderedDescription}}
+				<li>
+					<div class="render-content markup">{{$.RenderedDescription|Str2html}}</div>
+				</li>
+			{{end}}
+			{{range .OpenIDs}}
+				{{if .Show}}
+					<li>
+						{{svg "fontawesome-openid"}}
+						<a target="_blank" rel="noopener noreferrer" href="{{.URI}}">{{.URI}}</a>
+					</li>
+				{{end}}
+			{{end}}
+			<li>{{svg "octicon-calendar"}} <span>{{ctx.Locale.Tr "user.joined_on" (DateTime "short" .ContextUser.CreatedUnix) | Safe}}</span></li>
+			{{if and .Orgs .HasOrgsVisible}}
+			<li>
+				<ul class="user-orgs">
+				{{range .Orgs}}
+					{{if (or .Visibility.IsPublic (and ($.SignedUser) (or .Visibility.IsLimited (and (.HasMemberWithUserID ctx $.SignedUserID) .Visibility.IsPrivate) ($.IsAdmin))))}}
+					<li>
+						<a href="{{.HomeLink}}" data-tooltip-content="{{.Name}}">
+							{{ctx.AvatarUtils.Avatar .}}
+						</a>
+					</li>
+					{{end}}
+				{{end}}
+				</ul>
+			</li>
+			{{end}}
+			{{if .Badges}}
+			<li>
+				<ul class="user-badges">
+				{{range .Badges}}
+					<li>
+						<img width="64" height="64" src="{{.ImageURL}}" alt="{{.Description}}" data-tooltip-content="{{.Description}}">
+					</li>
+				{{end}}
+				</ul>
+			</li>
+			{{end}}
+			{{if and .IsSigned (ne .SignedUserID .ContextUser.ID)}}
+			<li class="follow">
+				{{if $.IsFollowing}}
+					<button class="ui basic red button link-action" data-url="{{.ContextUser.HomeLink}}?action=unfollow">
+						{{svg "octicon-person"}} {{ctx.Locale.Tr "user.unfollow"}}
+					</button>
+				{{else}}
+					<button class="ui basic primary button link-action" data-url="{{.ContextUser.HomeLink}}?action=follow">
+						{{svg "octicon-person"}} {{ctx.Locale.Tr "user.follow"}}
+					</button>
+				{{end}}
+			</li>
+			{{end}}
+		</ul>
+	</div>
+</div>

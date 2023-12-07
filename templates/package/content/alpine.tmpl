@@ -1,42 +1,42 @@
 {{if eq .PackageDescriptor.Package.Type "alpine"}}
-	<h4 class="ui top attached header">{{.locale.Tr "packages.installation"}}</h4>
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-code"}} {{.locale.Tr "packages.alpine.registry" | Safe}}</label>
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.alpine.registry" | Safe}}</label>
 				<div class="markup"><pre class="code-block"><code><gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/alpine"></gitea-origin-url>/$branch/$repository</code></pre></div>
-				<p>{{.locale.Tr "packages.alpine.registry.info" | Safe}}</p>
+				<p>{{ctx.Locale.Tr "packages.alpine.registry.info" | Safe}}</p>
 			</div>
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.alpine.registry.key" | Safe}}</label>
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.alpine.registry.key" | Safe}}</label>
 				<div class="markup"><pre class="code-block"><code>curl -JO <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/alpine/key"></gitea-origin-url></code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.alpine.install"}}</label>
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.alpine.install"}}</label>
 				<div class="markup">
 					<pre class="code-block"><code>sudo apk add {{$.PackageDescriptor.Package.Name}}={{$.PackageDescriptor.Version.Version}}</code></pre>
 				</div>
 			</div>
 			<div class="field">
-				<label>{{.locale.Tr "packages.alpine.documentation" "https://docs.gitea.io/en-us/packages/alpine/" | Safe}}</label>
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Alpine" "https://docs.gitea.com/usage/packages/alpine/" | Safe}}</label>
 			</div>
 		</div>
 	</div>
 
-	<h4 class="ui top attached header">{{.locale.Tr "packages.alpine.repository"}}</h4>
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.alpine.repository"}}</h4>
 	<div class="ui attached segment">
 		<table class="ui single line very basic table">
 			<tbody>
 				<tr>
-					<td class="collapsing"><h5>{{.locale.Tr "packages.alpine.repository.branches"}}</h5></td>
+					<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.alpine.repository.branches"}}</h5></td>
 					<td>{{StringUtils.Join .Branches ", "}}</td>
 				</tr>
 				<tr>
-					<td class="collapsing"><h5>{{.locale.Tr "packages.alpine.repository.repositories"}}</h5></td>
+					<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.alpine.repository.repositories"}}</h5></td>
 					<td>{{StringUtils.Join .Repositories ", "}}</td>
 				</tr>
 				<tr>
-					<td class="collapsing"><h5>{{.locale.Tr "packages.alpine.repository.architectures"}}</h5></td>
+					<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.alpine.repository.architectures"}}</h5></td>
 					<td>{{StringUtils.Join .Architectures ", "}}</td>
 				</tr>
 			</tbody>
@@ -44,7 +44,7 @@
 	</div>
 
 	{{if .PackageDescriptor.Metadata.Description}}
-		<h4 class="ui top attached header">{{.locale.Tr "packages.about"}}</h4>
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
 		<div class="ui attached segment">
 			{{.PackageDescriptor.Metadata.Description}}
 		</div>

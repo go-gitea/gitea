@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -21,8 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/notification"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -30,6 +29,8 @@ import (
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/migrations"
+	notify_service "code.gitea.io/gitea/services/notify"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // Migrate migrate remote git repository to gitea
@@ -92,7 +93,7 @@ func Migrate(ctx *context.APIContext) {
 
 		if repoOwner.IsOrganization() {
 			// Check ownership of organization.
-			isOwner, err := organization.OrgFromUser(repoOwner).IsOwnedBy(ctx.Doer.ID)
+			isOwner, err := organization.OrgFromUser(repoOwner).IsOwnedBy(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
 				return
@@ -169,7 +170,7 @@ func Migrate(ctx *context.APIContext) {
 		opts.Releases = false
 	}
 
-	repo, err := repo_module.CreateRepository(ctx.Doer, repoOwner, repo_module.CreateRepoOptions{
+	repo, err := repo_service.CreateRepositoryDirectly(ctx, ctx.Doer, repoOwner, repo_service.CreateRepoOptions{
 		Name:           opts.RepoName,
 		Description:    opts.Description,
 		OriginalURL:    form.CloneAddr,
@@ -194,12 +195,12 @@ func Migrate(ctx *context.APIContext) {
 		}
 
 		if err == nil {
-			notification.NotifyMigrateRepository(ctx, ctx.Doer, repoOwner, repo)
+			notify_service.MigrateRepository(ctx, ctx.Doer, repoOwner, repo)
 			return
 		}
 
 		if repo != nil {
-			if errDelete := models.DeleteRepository(ctx.Doer, repoOwner.ID, repo.ID); errDelete != nil {
+			if errDelete := repo_service.DeleteRepositoryDirectly(ctx, ctx.Doer, repo.ID); errDelete != nil {
 				log.Error("DeleteRepository: %v", errDelete)
 			}
 		}
@@ -211,7 +212,7 @@ func Migrate(ctx *context.APIContext) {
 	}
 
 	log.Trace("Repository migrated: %s/%s", repoOwner.Name, form.RepoName)
-	ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, repo, perm.AccessModeAdmin))
+	ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeAdmin}))
 }
 
 func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, remoteAddr string, err error) {

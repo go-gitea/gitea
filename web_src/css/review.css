@@ -36,6 +36,10 @@
   opacity: 1;
 }
 
+.ui.button.add-code-comment:focus {
+  opacity: 1;
+}
+
 .repository .diff-file-box .code-diff .add-comment-left,
 .repository .diff-file-box .code-diff .add-comment-right,
 .repository .diff-file-box .code-diff .add-code-comment .add-comment-left,
@@ -128,7 +132,7 @@
 }
 
 .comment-code-cloud .attached.header {
-  padding: 0.1rem 1rem;
+  padding: 1px 8px 1px 12px;
 }
 
 .comment-code-cloud .attached.header .text {
@@ -269,7 +273,7 @@
   border: 1px solid transparent;
   padding: 4px 8px;
   margin: -8px 0; /* just like other buttons in the diff box header */
-  border-radius: 0.285rem; /* just like .ui.tiny.button */
+  border-radius: var(--border-radius);
   font-size: 0.857rem; /* just like .ui.tiny.button */
 }
 
@@ -283,6 +287,6 @@
 }
 
 #viewed-files-summary {
-  width: 72px;
-  height: 10px;
+  width: 100%;
+  height: 8px;
 }

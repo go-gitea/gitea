@@ -175,7 +175,7 @@ diff --git "\\a/README.md" "\\b/README.md"
 	}
 	for _, testcase := range tests {
 		t.Run(testcase.name, func(t *testing.T) {
-			got, err := ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), testcase.skipTo)
+			got, err := ParsePatch(db.DefaultContext, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), testcase.skipTo)
 			if (err != nil) != testcase.wantErr {
 				t.Errorf("ParsePatch(%q) error = %v, wantErr %v", testcase.name, err, testcase.wantErr)
 				return
@@ -400,7 +400,7 @@ index 6961180..9ba1a00 100644
 
 	for _, testcase := range tests {
 		t.Run(testcase.name, func(t *testing.T) {
-			got, err := ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), "")
+			got, err := ParsePatch(db.DefaultContext, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), "")
 			if (err != nil) != testcase.wantErr {
 				t.Errorf("ParsePatch(%q) error = %v, wantErr %v", testcase.name, err, testcase.wantErr)
 				return
@@ -449,21 +449,21 @@ index 0000000..6bb8f39
 		diffBuilder.WriteString("+line" + strconv.Itoa(i) + "\n")
 	}
 	diff = diffBuilder.String()
-	result, err := ParsePatch(20, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	result, err := ParsePatch(db.DefaultContext, 20, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("There should not be an error: %v", err)
 	}
 	if !result.Files[0].IsIncomplete {
 		t.Errorf("Files should be incomplete! %v", result.Files[0])
 	}
-	result, err = ParsePatch(40, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	result, err = ParsePatch(db.DefaultContext, 40, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("There should not be an error: %v", err)
 	}
 	if result.Files[0].IsIncomplete {
 		t.Errorf("Files should not be incomplete! %v", result.Files[0])
 	}
-	result, err = ParsePatch(40, 5, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	result, err = ParsePatch(db.DefaultContext, 40, 5, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("There should not be an error: %v", err)
 	}
@@ -494,14 +494,14 @@ index 0000000..6bb8f39
 	diffBuilder.WriteString("+line" + strconv.Itoa(35) + "\n")
 	diff = diffBuilder.String()
 
-	result, err = ParsePatch(20, 4096, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	result, err = ParsePatch(db.DefaultContext, 20, 4096, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("There should not be an error: %v", err)
 	}
 	if !result.Files[0].IsIncomplete {
 		t.Errorf("Files should be incomplete! %v", result.Files[0])
 	}
-	result, err = ParsePatch(40, 4096, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	result, err = ParsePatch(db.DefaultContext, 40, 4096, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("There should not be an error: %v", err)
 	}
@@ -520,7 +520,7 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	_, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	_, err = ParsePatch(db.DefaultContext, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
@@ -536,7 +536,7 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	_, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2), "")
+	_, err = ParsePatch(db.DefaultContext, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
@@ -552,7 +552,7 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	_, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2a), "")
+	_, err = ParsePatch(db.DefaultContext, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2a), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
@@ -568,7 +568,7 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	_, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff3), "")
+	_, err = ParsePatch(db.DefaultContext, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff3), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
@@ -594,14 +594,24 @@ func setupDefaultDiff() *Diff {
 	}
 }
 
-func TestDiff_LoadComments(t *testing.T) {
+func TestDiff_LoadCommentsNoOutdated(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	diff := setupDefaultDiff()
-	assert.NoError(t, diff.LoadComments(db.DefaultContext, issue, user))
+	assert.NoError(t, diff.LoadComments(db.DefaultContext, issue, user, false))
 	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 2)
+}
+
+func TestDiff_LoadCommentsWithOutdated(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	diff := setupDefaultDiff()
+	assert.NoError(t, diff.LoadComments(db.DefaultContext, issue, user, true))
+	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 3)
 }
 
 func TestDiffLine_CanComment(t *testing.T) {
@@ -624,7 +634,7 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 	}
 	defer gitRepo.Close()
 	for _, behavior := range []git.TrustedCmdArgs{{"-w"}, {"--ignore-space-at-eol"}, {"-b"}, nil} {
-		diffs, err := GetDiff(gitRepo,
+		diffs, err := GetDiff(db.DefaultContext, gitRepo,
 			&DiffOptions{
 				AfterCommitID:      "bd7063cc7c04689c4d082183d32a604ed27a24f9",
 				BeforeCommitID:     "559c156f8e0178b71cb44355428f24001b08fc68",
@@ -655,6 +665,6 @@ func TestNoCrashes(t *testing.T) {
 	}
 	for _, testcase := range tests {
 		// It shouldn't crash, so don't care about the output.
-		ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), "")
+		ParsePatch(db.DefaultContext, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), "")
 	}
 }

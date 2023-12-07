@@ -196,10 +196,11 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 		}
 
 		affectedFileList := make([]*api.CommitAffectedFiles, 0, len(fileStatus.Added)+len(fileStatus.Removed)+len(fileStatus.Modified))
-		for _, files := range [][]string{fileStatus.Added, fileStatus.Removed, fileStatus.Modified} {
+		for filestatus, files := range map[string][]string{"added": fileStatus.Added, "removed": fileStatus.Removed, "modified": fileStatus.Modified} {
 			for _, filename := range files {
 				affectedFileList = append(affectedFileList, &api.CommitAffectedFiles{
 					Filename: filename,
+					Status:   filestatus,
 				})
 			}
 		}
@@ -209,7 +210,7 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 
 	// Get diff stats for commit
 	if opts.Stat {
-		diff, err := gitdiff.GetDiff(gitRepo, &gitdiff.DiffOptions{
+		diff, err := gitdiff.GetDiff(ctx, gitRepo, &gitdiff.DiffOptions{
 			AfterCommitID: commit.ID.String(),
 		})
 		if err != nil {
