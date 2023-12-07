@@ -332,6 +332,10 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 
 		ctx.Data["FileContent"] = buf.String()
 	}
+
+	if !fInfo.isLFSFile && ctx.Repo.CanEnableEditor(ctx, ctx.Doer) {
+		ctx.Data["CanEditReadmeFile"] = true
+	}
 }
 
 func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink string) {
@@ -708,21 +712,14 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 	}
 	for _, entry := range allEntries {
 		if entry.Name() == "CITATION.cff" || entry.Name() == "CITATION.bib" {
-			ctx.Data["CitiationExist"] = true
 			// Read Citation file contents
-			blob := entry.Blob()
-			dataRc, err := blob.DataAsync()
-			if err != nil {
-				ctx.ServerError("DataAsync", err)
-				return
+			if content, err := entry.Blob().GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+				log.Error("checkCitationFile: GetBlobContent: %v", err)
+			} else {
+				ctx.Data["CitiationExist"] = true
+				ctx.PageData["citationFileContent"] = content
+				break
 			}
-			defer dataRc.Close()
-			ctx.PageData["citationFileContent"], err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
-			if err != nil {
-				ctx.ServerError("GetBlobContent", err)
-				return
-			}
-			break
 		}
 	}
 }

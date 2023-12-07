@@ -122,7 +122,7 @@ func GetContentHistoryDetail(ctx *context.Context) {
 	}
 
 	historyID := ctx.FormInt64("history_id")
-	history, prevHistory, err := issues_model.GetIssueContentHistoryAndPrev(ctx, historyID)
+	history, prevHistory, err := issues_model.GetIssueContentHistoryAndPrev(ctx, issue.ID, historyID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, map[string]any{
 			"message": "Can not find the content history",

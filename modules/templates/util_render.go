@@ -230,6 +230,7 @@ func RenderMarkdownToHtml(ctx context.Context, input string) template.HTML { //n
 	output, err := markdown.RenderString(&markup.RenderContext{
 		Ctx:       ctx,
 		URLPrefix: setting.AppSubURL,
+		Metas:     map[string]string{"mode": "document"},
 	}, input)
 	if err != nil {
 		log.Error("RenderString: %v", err)

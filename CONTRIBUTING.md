@@ -203,10 +203,20 @@ Some of the key points:
 
 In the PR title, describe the problem you are fixing, not how you are fixing it. \
 Use the first comment as a summary of your PR. \
-In the PR summary, you can describe exactly how you are fixing this problem. \
+In the PR summary, you can describe exactly how you are fixing this problem.
+
 Keep this summary up-to-date as the PR evolves. \
 If your PR changes the UI, you must add **after** screenshots in the PR summary. \
-If you are not implementing a new feature, you should also post **before** screenshots for comparison. \
+If you are not implementing a new feature, you should also post **before** screenshots for comparison.
+
+If you are implementing a new feature, your PR will only be merged if your screenshots are up to date.\
+Furthermore, feature PRs will only be merged if their summary contains a clear usage description (understandable for users) and testing description (understandable for reviewers).
+You should strive to combine both into a single description.
+
+Another requirement for merging PRs is that the PR is labeled correctly.\
+However, this is not your job as a contributor, but the job of the person merging your PR.\
+If you think that your PR was labeled incorrectly, or notice that it was merged without labels, please let us know.
+
 If your PR closes some issues, you must note that in a way that both GitHub and Gitea understand, i.e. by appending a paragraph like
 
 ```text
@@ -255,13 +265,16 @@ Changing the default value of a setting or replacing the setting with another on
 
 #### How to handle breaking PRs?
 
-If your PR has a breaking change, you must add a `BREAKING` section to your PR summary, e.g.
+If your PR has a breaking change, you must add two things to the summary of your PR:
 
-```
+1. A reasoning why this breaking change is necessary
+2. A `BREAKING` section explaining in simple terms (understandable for a typical user) how this PR affects users and how to mitigate these changes. This section can look for example like
+
+```md
 ## :warning: BREAKING :warning:
 ```
 
-To explain how this will affect users and how to mitigate these changes.
+Breaking PRs will not be merged as long as not both of these requirements are met.
 
 ### Maintaining open PRs
 

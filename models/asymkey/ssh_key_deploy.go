@@ -210,7 +210,7 @@ type ListDeployKeysOptions struct {
 	Fingerprint string
 }
 
-func (opt ListDeployKeysOptions) toCond() builder.Cond {
+func (opt ListDeployKeysOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opt.RepoID != 0 {
 		cond = cond.And(builder.Eq{"repo_id": opt.RepoID})
@@ -222,24 +222,4 @@ func (opt ListDeployKeysOptions) toCond() builder.Cond {
 		cond = cond.And(builder.Eq{"fingerprint": opt.Fingerprint})
 	}
 	return cond
-}
-
-// ListDeployKeys returns a list of deploy keys matching the provided arguments.
-func ListDeployKeys(ctx context.Context, opts *ListDeployKeysOptions) ([]*DeployKey, error) {
-	sess := db.GetEngine(ctx).Where(opts.toCond())
-
-	if opts.Page != 0 {
-		sess = db.SetSessionPagination(sess, opts)
-
-		keys := make([]*DeployKey, 0, opts.PageSize)
-		return keys, sess.Find(&keys)
-	}
-
-	keys := make([]*DeployKey, 0, 5)
-	return keys, sess.Find(&keys)
-}
-
-// CountDeployKeys returns count deploy keys matching the provided arguments.
-func CountDeployKeys(ctx context.Context, opts *ListDeployKeysOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toCond()).Count(&DeployKey{})
 }
