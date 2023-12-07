@@ -7,11 +7,8 @@ import (
 	"bytes"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"fmt"
-	"github.com/nektos/act/pkg/jobparser"
 	"net/http"
 	"slices"
 	"strings"
@@ -160,41 +157,33 @@ func List(ctx *context.Context) {
 		ctx.Data["CurWorkflowDisabled"] = isWorkflowDisabled
 
 		if !isWorkflowDisabled && curWorkflow != nil {
-			if events, err := jobparser.ParseRawOn(&curWorkflow.RawOn); err == nil {
+			workflowDispatchConfig := curWorkflow.WorkflowDispatchConfig()
+			if workflowDispatchConfig != nil {
+				ctx.Data["AllowTriggerWorkflowDispatchEvent"] = true
+				ctx.Data["WorkflowDispatchConfig"] = workflowDispatchConfig
+
+				branchOpts := git_model.FindBranchOptions{
+					RepoID:          ctx.Repo.Repository.ID,
+					IsDeletedBranch: util.OptionalBoolFalse,
+					ListOptions: db.ListOptions{
+						ListAll: true,
+					},
+				}
+				branches, err := git_model.FindBranchNames(ctx, branchOpts)
 				if err != nil {
-					log.Warn("ignore check invalid workflow events %q: %v", curWorkflow.Name, err)
-				} else {
-					for _, event := range events {
-						if event.Name == webhook_module.HookEventWorkflowDispatch.Event() {
-							ctx.Data["AllowTriggerWorkflowDispatchEvent"] = true
-							ctx.Data["WorkflowDispatchConfig"] = event.WorkflowDispatch()
+					ctx.JSON(http.StatusInternalServerError, err)
+					return
+				}
+				// always put default branch on the top if it exists
+				if slices.Contains(branches, ctx.Repo.Repository.DefaultBranch) {
+					branches = util.SliceRemoveAll(branches, ctx.Repo.Repository.DefaultBranch)
+					branches = append([]string{ctx.Repo.Repository.DefaultBranch}, branches...)
+				}
+				ctx.Data["Branches"] = branches
 
-							branchOpts := git_model.FindBranchOptions{
-								RepoID:          ctx.Repo.Repository.ID,
-								IsDeletedBranch: util.OptionalBoolFalse,
-								ListOptions: db.ListOptions{
-									ListAll: true,
-								},
-							}
-							branches, err := git_model.FindBranchNames(ctx, branchOpts)
-							if err != nil {
-								ctx.JSON(http.StatusInternalServerError, err)
-								return
-							}
-							// always put default branch on the top if it exists
-							if slices.Contains(branches, ctx.Repo.Repository.DefaultBranch) {
-								branches = util.SliceRemoveAll(branches, ctx.Repo.Repository.DefaultBranch)
-								branches = append([]string{ctx.Repo.Repository.DefaultBranch}, branches...)
-							}
-							ctx.Data["Branches"] = branches
-
-							tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
-							if err == nil {
-								ctx.Data["Tags"] = tags
-							}
-							break
-						}
-					}
+				tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
+				if err == nil {
+					ctx.Data["Tags"] = tags
 				}
 			}
 		}
