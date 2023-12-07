@@ -409,13 +409,6 @@
 						<textarea rows=2 id="service_provider_private_key" name="service_provider_private_key">{{$cfg.ServiceProviderPrivateKey}}</textarea>
 					</div>
 
-					<div class="inline field">
-						<div class="ui checkbox">
-							<label><strong>{{ctx.Locale.Tr "admin.auths.saml_sign_requests"}}</strong></label>
-							<input name="sign_requests" type="checkbox" {{if $cfg.SignRequests}}checked{{end}}>
-						</div>
-					</div>
-
 					<div class="field">
 						<label for="email_assertion_key">{{ctx.Locale.Tr "admin.auths.saml_identity_provider_email_assertion_key"}}</label>
 						<input id="email_assertion_key" name="email_assertion_key" value="{{if not $cfg.EmailAssertionKey}}http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress{{else}}{{$cfg.EmailAssertionKey}}{{end}}">
@@ -505,6 +498,9 @@
 		<div class="ui attached segment">
 			<h5>GMail Settings:</h5>
 			<p>Host: smtp.gmail.com, Port: 587, Enable TLS Encryption: true</p>
+
+			<h5>SAML Settings:</h5>
+			<p>{{ctx.Locale.Tr "admin.auths.tips.saml"}}</p>
 
 			<h5 class="oauth2">{{ctx.Locale.Tr "admin.auths.tips.oauth2.general"}}:</h5>
 			<p class="oauth2">{{ctx.Locale.Tr "admin.auths.tips.oauth2.general.tip"}} <b id="oauth2-callback-url"></b></p>

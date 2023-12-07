@@ -375,22 +375,22 @@ Notice: Reverse Proxy Auth doesn't support the API. You still need an access tok
 - `Identity Provider Metadata URL` (optional if XML set)
 
   - The URL of the IdP metadata endpoint.
+  - This field must be set if `Identity Provider Metadata XML` is left blank.
 
 - `Identity Provider Metadata XML` (optional if URL set)
 
   - The XML returned by the IdP metadata endpoint.
+  - This field must be set if `Identity Provider Metadata URL` is left blank.
 
 - `Service Provider Certificate` (optional)
 
   - X.509-formatted certificate (with `Service Provider Private Key`) used for signing SAML requests.
+  - A certificate will be generated if this field is left blank.
 
 - `Service Provider Private Key` (optional)
 
   - DSA/RSA private key (with `Service Provider Certificate`) used for signing SAML requests.
-
-- `Sign SAML Requests` (optional)
-
-  - Sign requests made to the SAML IdP
+  - A private key will be generated if this field is left blank.
 
 - `Email Assertion Key` (optional)
 

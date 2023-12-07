@@ -30,20 +30,13 @@
 		</div>
 	</div>
 
-	<div class=" field">
+	<div class="field">
 		<label for="service_provider_certificate">{{ctx.Locale.Tr "admin.auths.saml_service_provider_certificate"}}</label>
 		<textarea rows=2 id="service_provider_certificate" name="service_provider_certificate" value="{{.ServiceProviderCertificate}}"></textarea>
 	</div>
-	<div class=" field">
+	<div class="field">
 		<label for="service_provider_private_key">{{ctx.Locale.Tr "admin.auths.saml_service_provider_private_key"}}</label>
 		<textarea rows=2 id="service_provider_private_key" name="service_provider_private_key" value="{{.ServiceProviderPrivateKey}}"></textarea>
-	</div>
-
-	<div class="inline field">
-		<div class="ui checkbox">
-			<label><strong>{{ctx.Locale.Tr "admin.auths.saml_sign_requests"}}</strong></label>
-			<input name="sign_requests" type="checkbox" {{if .SignRequests}}checked{{end}}>
-		</div>
 	</div>
 
 	<div class="field">

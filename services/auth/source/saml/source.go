@@ -27,7 +27,7 @@ import (
 // /   _____/  /  _  \    /     \ |    |
 // \_____  \  /  /_\  \  /  \ /  \|    |
 // /        \/    |    \/    Y    \    |___
-///_______  /\____|__  /\____|__  /_______ \
+// /_______  /\____|__  /\____|__  /_______ \
 //        \/         \/         \/        \/
 
 // Source holds configuration for the SAML login source.
@@ -46,8 +46,6 @@ type Source struct {
 	ServiceProviderIssuer string
 	// ServiceProviderPrivateKey description: The SAML Service Provider private key in PKCS#8 encoding (begins with "-----BEGIN PRIVATE KEY-----"). This private key is used to sign AuthnRequests and LogoutRequests. It corresponds to the Service Provider's certificate (`serviceProviderCertificate`). To escape the value into a JSON string, you may want to use a tool like https://json-escape-text.now.sh.
 	ServiceProviderPrivateKey string
-	// SignRequests description: Sign AuthnRequests and LogoutRequests sent to the Identity Provider using the Service Provider's private key (`serviceProviderPrivateKey`). It defaults to true if the `serviceProviderPrivateKey` and `serviceProviderCertificate` are set, and false otherwise.
-	SignRequests bool
 
 	CallbackURL string
 
@@ -134,6 +132,7 @@ func (source *Source) initSAMLSp() error {
 		SkipSignatureValidation:     source.InsecureSkipAssertionSignatureValidation,
 		NameIdFormat:                source.NameIDFormat.String(),
 		IDPCertificateStore:         &certStore,
+		SignAuthnRequests:           true,
 		SPKeyStore:                  keyStore,
 		ServiceProviderIssuer:       setting.AppURL + "user/saml/" + url.PathEscape(source.authSource.Name) + "/metadata",
 	}
