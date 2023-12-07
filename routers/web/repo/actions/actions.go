@@ -71,6 +71,7 @@ func List(ctx *context.Context) {
 	ctx.Data["CurWorkflow"] = workflowID
 
 	var workflows []Workflow
+	var curWorkflow *model.Workflow
 	if empty, err := ctx.Repo.GitRepo.IsEmpty(); err != nil {
 		ctx.ServerError("IsEmpty", err)
 		return
@@ -136,10 +137,32 @@ func List(ctx *context.Context) {
 			}
 			workflows = append(workflows, workflow)
 
-			if len(workflowID) > 0 && ctx.Repo.IsAdmin() && workflow.Entry.Name() == workflowID {
-				events, err := jobparser.ParseRawOn(&wf.RawOn)
+			if workflow.Entry.Name() == workflowID {
+				curWorkflow = wf
+			}
+
+		}
+	}
+	ctx.Data["workflows"] = workflows
+	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
+
+	page := ctx.FormInt("page")
+	if page <= 0 {
+		page = 1
+	}
+
+	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
+	ctx.Data["ActionsConfig"] = actionsConfig
+
+	if len(workflowID) > 0 && ctx.Repo.IsAdmin() {
+		ctx.Data["AllowDisableOrEnableWorkflow"] = true
+		isWorkflowDisabled := actionsConfig.IsWorkflowDisabled(workflowID)
+		ctx.Data["CurWorkflowDisabled"] = isWorkflowDisabled
+
+		if !isWorkflowDisabled && curWorkflow != nil {
+			if events, err := jobparser.ParseRawOn(&curWorkflow.RawOn); err == nil {
 				if err != nil {
-					log.Warn("ignore check invalid workflow events %q: %v", workflow.Entry.Name(), err)
+					log.Warn("ignore check invalid workflow events %q: %v", curWorkflow.Name, err)
 				} else {
 					for _, event := range events {
 						if event.Name == webhook_module.HookEventWorkflowDispatch.Event() {
@@ -174,23 +197,7 @@ func List(ctx *context.Context) {
 					}
 				}
 			}
-
 		}
-	}
-	ctx.Data["workflows"] = workflows
-	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
-
-	page := ctx.FormInt("page")
-	if page <= 0 {
-		page = 1
-	}
-
-	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
-	ctx.Data["ActionsConfig"] = actionsConfig
-
-	if len(workflowID) > 0 && ctx.Repo.IsAdmin() {
-		ctx.Data["AllowDisableOrEnableWorkflow"] = true
-		ctx.Data["CurWorkflowDisabled"] = actionsConfig.IsWorkflowDisabled(workflowID)
 	}
 
 	// if status or actor query param is not given to frontend href, (href="/<repoLink>/actions")
