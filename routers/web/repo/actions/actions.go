@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"fmt"
+	"github.com/nektos/act/pkg/jobparser"
 	"net/http"
 	"slices"
 	"strings"
@@ -136,7 +137,7 @@ func List(ctx *context.Context) {
 			workflows = append(workflows, workflow)
 
 			if len(workflowID) > 0 && ctx.Repo.IsAdmin() && workflow.Entry.Name() == workflowID {
-				events, err := actions.GetEventsFromContent(content)
+				events, err := jobparser.ParseRawOn(&wf.RawOn)
 				if err != nil {
 					log.Warn("ignore check invalid workflow events %q: %v", workflow.Entry.Name(), err)
 				} else {
