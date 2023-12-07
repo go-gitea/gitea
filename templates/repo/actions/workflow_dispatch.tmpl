@@ -50,22 +50,24 @@
 			{{if .WorkflowDispatchConfig}}
 			{{range $key, $item := .WorkflowDispatchConfig.Inputs}}
 			<div class="ui field {{if .Required}}required{{end}}">
-				<label>{{$key}} :</label>
 				{{if eq .Type "choice"}}
-				<select class="ui fluid dropdown" name="{{$key}}">
-					{{range .Options}}
-					<option value="{{.}}" {{if eq $item.Default .}}selected{{end}} >{{.}}</option>
-					{{end}}
-				</select>
-				<span class="help">{{.Description}}</span>
+					<label>{{$key}} :</label>
+					<select class="ui fluid dropdown" name="{{$key}}">
+						{{range .Options}}
+						<option value="{{.}}" {{if eq $item.Default .}}selected{{end}} >{{.}}</option>
+						{{end}}
+					</select>
+					<span class="help">{{.Description}}</span>
 				{{else if eq .Type "boolean"}}
-				<div class="ui toggle checkbox">
-					<input type="checkbox" name="{{$key}}" {{if eq .Default "true"}}checked{{end}}>
-					<label class="help">{{.Description}}</label>
-				</div>
+					<div class="ui inline toggle checkbox">
+						<label>{{$key}}</label>
+						<input type="checkbox" name="{{$key}}" {{if eq .Default "true"}}checked{{end}}>
+						<span class="help">{{.Description}}</span>
+					</div>
 				{{else}}
-				<input name="{{$key}}" value="{{.Default}}" {{if .Required}}data-validate="required_input"{{end}}>
-				<span class="help">{{.Description}}</span>
+					<label>{{$key}} :</label>
+					<input name="{{$key}}" value="{{.Default}}" {{if .Required}}data-validate="required_input"{{end}}>
+					<span class="help">{{.Description}}</span>
 				{{end}}
 			</div>
 			{{end}}
