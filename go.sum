@@ -63,8 +63,8 @@ gitea.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96 h1:+wWBi6Qfr
 gitea.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96/go.mod h1:VyMQP6ue6MKHM8UsOXfNfuMKD0oSAWZdXVcpHIN2yaY=
 gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4 h1:IFT+hup2xejHqdhS7keYWioqfmxdnfblFDTGoOwcZ+o=
 gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4/go.mod h1:HBqmLbz56JWpfEGG0prskAV97ATNRoj5LDmPicD22hU=
-gitea.com/pangliang/act v0.251.2-0.20231207061303-82548746b6e4 h1:b5jCRaAnUbIrC8aZ8xawYT+ONlMEzZT4JGjQZOdyNjA=
-gitea.com/pangliang/act v0.251.2-0.20231207061303-82548746b6e4/go.mod h1:YthlRq0FUQIzgfJ3ZWvCvVq3I3VsC9s2NYQ9b2Uxccs=
+gitea.com/pangliang/act v0.251.2-0.20231207083920-176e5f65fa26 h1:TaGFTMmoWIBjQQmMy0nmX50ty/fajUMWFb18v0Eyi+s=
+gitea.com/pangliang/act v0.251.2-0.20231207083920-176e5f65fa26/go.mod h1:YthlRq0FUQIzgfJ3ZWvCvVq3I3VsC9s2NYQ9b2Uxccs=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:lSA0F4e9A2NcQSqGqTOXqu2aRi/XEQxDCBwM8yJtE6s=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a/go.mod h1:EXuID2Zs0pAQhH8yz+DNjUbjppKQzKFAn28TMYPB6IU=
 github.com/42wim/sshsig v0.0.0-20211121163825-841cf5bbc121 h1:r3qt8PCHnfjOv9PN3H+XXKmDA1dfFMIN1AislhlA/ps=

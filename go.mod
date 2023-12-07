@@ -302,7 +302,7 @@ replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
 
 replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
 
-replace github.com/nektos/act => gitea.com/pangliang/act v0.251.2-0.20231207061303-82548746b6e4
+replace github.com/nektos/act => gitea.com/pangliang/act v0.251.2-0.20231207083920-176e5f65fa26
 
 replace github.com/gorilla/feeds => github.com/yardenshoham/feeds v0.0.0-20240110072658-f3d0c21c0bd5
 
