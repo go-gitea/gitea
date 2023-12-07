@@ -354,16 +354,55 @@ Notice: Reverse Proxy Auth doesn't support the API. You still need an access tok
 
 ### Configuring Gitea as a SAML 2.0 Service Provider
 
-- Navigate to `Site Administration > Identity & Access > Authentication Sources`
-- Click the `Add Authentication Source` button
-- Select `SAML` as the authentication type and specify an authentication source name in `Authentication Name`.
-- The `SAML NameID Format` dropdown specifies how Identity Provider (IdP) users are mapped to Gitea users. This option will be provider specific.
-- The `[Insecure] Skip Assertion Signature Validation` option is not recommended and disables integrity verification of IdP SAML assertions.
-- Either `Identity Provider Metadata URL` or `Identity Provider Metadata XML` must be specified.
-  - Specifically, `Identity Provider Metadata XML` should be the XML metadata returned by the IdP metadata endpoint. This may be omitted if the endpoint url is recorded in `Identity Provider Metadata URL`.
-- You should generate an X.509-formatted certificate and DSA/RSA private key for signing SAML requests. These are specified in `Service Provider Certificate` and `Service Provider Private Key` respectively.
-- The checkbox `Sign SAML Requests` should be enabled if a certificate and private key are provided.
-- `Email Assertion Key` (email), `Name Assertion Key` (nickname), and `Username Assertion Key` (username) specify how IdP user attributes are mapped to Gitea user attributes. These will be provider specific (or configurable).
+- Navigate to `Site Administration > Identity & Access > Authentication Sources`.
+- Click the `Add Authentication Source` button.
+- Select `SAML` as the authentication type.
+
+#### Settings
+
+- `Authentication Name` **(required)**
+
+  - The name of this authentication source (appears in the Gitea ACS and metadata URLs)
+
+- `SAML NameID Format` **(required)**
+
+  - This specifies how Identity Provider (IdP) users are mapped to Gitea users. This option will be provider specific.
+
+- `[Insecure] Skip Assertion Signature Validation` (optional)
+
+  - This option is not recommended and disables integrity verification of IdP SAML assertions.
+
+- `Identity Provider Metadata URL` (optional if XML set)
+
+  - The URL of the IdP metadata endpoint.
+  - This field must be set if `Identity Provider Metadata XML` is left blank.
+
+- `Identity Provider Metadata XML` (optional if URL set)
+
+  - The XML returned by the IdP metadata endpoint.
+  - This field must be set if `Identity Provider Metadata URL` is left blank.
+
+- `Service Provider Certificate` (optional)
+
+  - X.509-formatted certificate (with `Service Provider Private Key`) used for signing SAML requests.
+  - A certificate will be generated if this field is left blank.
+
+- `Service Provider Private Key` (optional)
+
+  - DSA/RSA private key (with `Service Provider Certificate`) used for signing SAML requests.
+  - A private key will be generated if this field is left blank.
+
+- `Email Assertion Key` (optional)
+
+  - The SAML assertion key used for the IdP user's email (depends on provider configuration).
+
+- `Name Assertion Key` (optional)
+
+  - The SAML assertion key used for the IdP user's nickname (depends on provider configuration).
+
+- `Username Assertion Key` (optional)
+
+  - The SAML assertion key used for the IdP user's username (depends on provider configuration).
 
 ### Configuring a SAML 2.0 Identity Provider to use Gitea
 

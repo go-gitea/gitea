@@ -52,7 +52,6 @@ func TestSAMLRegistration(t *testing.T) {
 			NameIDFormat:                             4,
 			ServiceProviderCertificate:               "",
 			ServiceProviderPrivateKey:                "",
-			SignRequests:                             false,
 			EmailAssertionKey:                        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
 			NameAssertionKey:                         "http://schemas.xmlsoap.org/claims/CommonName",
 			UsernameAssertionKey:                     "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
