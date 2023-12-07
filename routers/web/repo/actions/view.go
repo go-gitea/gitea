@@ -5,13 +5,18 @@ package actions
 
 import (
 	"archive/zip"
+	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/convert"
 	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
 	"github.com/nektos/act/pkg/jobparser"
+	"github.com/nektos/act/pkg/model"
 	"io"
 	"net/http"
 	"net/url"
@@ -683,8 +688,8 @@ func Run(ctx *context_module.Context) {
 	redirectURL := fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s", ctx.Repo.RepoLink, url.QueryEscape(ctx.FormString("workflow")),
 		url.QueryEscape(ctx.FormString("actor")), url.QueryEscape(ctx.FormString("status")))
 
-	workflow := ctx.FormString("workflow")
-	if len(workflow) == 0 {
+	workflowID := ctx.FormString("workflow")
+	if len(workflowID) == 0 {
 		ctx.ServerError("workflow", nil)
 		return
 	}
@@ -698,7 +703,7 @@ func Run(ctx *context_module.Context) {
 	// can not rerun job when workflow is disabled
 	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
-	if cfg.IsWorkflowDisabled(workflow) {
+	if cfg.IsWorkflowDisabled(workflowID) {
 		ctx.Flash.Error(ctx.Tr("actions.workflow.disabled"))
 		ctx.Redirect(redirectURL)
 		return
@@ -737,7 +742,7 @@ func Run(ctx *context_module.Context) {
 
 	var dwf *actions.DetectedWorkflow
 	for _, entry := range entries {
-		if entry.Name() == workflow {
+		if entry.Name() == workflowID {
 			content, err := actions.GetContentFromEntry(entry)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, err.Error())
@@ -753,8 +758,50 @@ func Run(ctx *context_module.Context) {
 	}
 
 	if dwf == nil {
-		ctx.Flash.Error(ctx.Tr("actions.workflow.not_found", workflow))
+		ctx.Flash.Error(ctx.Tr("actions.workflow.not_found", workflowID))
 		ctx.Redirect(redirectURL)
+		return
+	}
+
+	workflows, err := jobparser.Parse(dwf.Content)
+	if err != nil || len(workflows) == 0 {
+		ctx.ServerError("workflow", err)
+		return
+	}
+
+	//all workflows have the same RawOn
+	workflow := &model.Workflow{
+		RawOn: workflows[0].RawOn,
+	}
+	inputs := make(map[string]interface{})
+	if workflowDispatch := workflow.WorkflowDispatchConfig(); workflowDispatch != nil {
+		for name, config := range workflowDispatch.Inputs {
+			value := ctx.Req.PostForm.Get(name)
+			if config.Type == "boolean" {
+				// https://www.w3.org/TR/html401/interact/forms.html
+				// https://stackoverflow.com/questions/11424037/do-checkbox-inputs-only-post-data-if-theyre-checked
+				// Checkboxes (and radio buttons) are on/off switches that may be toggled by the user.
+				// A switch is "on" when the control element's checked attribute is set.
+				// When a form is submitted, only "on" checkbox controls can become successful.
+				inputs[name] = strconv.FormatBool(value == "on")
+			} else if value != "" {
+				inputs[name] = value
+			} else {
+				inputs[name] = config.Default
+			}
+		}
+	}
+
+	workflowDispatchPayload := &api.WorkflowDispatchPayload{
+		Workflow:   workflowID,
+		Ref:        ref,
+		Repository: convert.ToRepo(ctx, ctx.Repo.Repository, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		Inputs:     inputs,
+		Sender:     convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone),
+	}
+	var eventPayload []byte
+	if eventPayload, err = workflowDispatchPayload.JSONPayload(); err != nil {
+		ctx.ServerError("JSONPayload", err)
 		return
 	}
 
@@ -762,13 +809,14 @@ func Run(ctx *context_module.Context) {
 		Title:             strings.SplitN(runTargetCommit.CommitMessage, "\n", 2)[0],
 		RepoID:            ctx.Repo.Repository.ID,
 		OwnerID:           ctx.Repo.Repository.OwnerID,
-		WorkflowID:        workflow,
+		WorkflowID:        workflowID,
 		TriggerUserID:     ctx.Doer.ID,
 		Ref:               ref,
 		CommitSHA:         runTargetCommit.ID.String(),
 		IsForkPullRequest: false,
 		Event:             "workflow_dispatch",
 		TriggerEvent:      "workflow_dispatch",
+		EventPayload:      string(eventPayload),
 		Status:            actions_model.StatusWaiting,
 	}
 
@@ -780,13 +828,6 @@ func Run(ctx *context_module.Context) {
 		run.WorkflowID,
 	); err != nil {
 		log.Error("CancelRunningJobs: %v", err)
-	}
-
-	// Parse the workflow specification from the cron schedule
-	workflows, err := jobparser.Parse(dwf.Content)
-	if err != nil {
-		ctx.ServerError("workflow", err)
-		return
 	}
 
 	// Insert the action run and its associated jobs into the database
@@ -801,6 +842,6 @@ func Run(ctx *context_module.Context) {
 	}
 	actions_service.CreateCommitStatus(ctx, alljobs...)
 
-	ctx.Flash.Success(ctx.Tr("actions.workflow.run_success", workflow))
+	ctx.Flash.Success(ctx.Tr("actions.workflow.run_success", workflowID))
 	ctx.Redirect(redirectURL)
 }
