@@ -35,7 +35,9 @@ var pushQueue *queue.WorkerPoolQueue[[]*repo_module.PushUpdateOptions]
 func handler(items ...[]*repo_module.PushUpdateOptions) [][]*repo_module.PushUpdateOptions {
 	for _, opts := range items {
 		if err := pushUpdates(opts); err != nil {
-			log.Error("pushUpdate failed: %v", err)
+			// Username and repository stays the same between items in opts.
+			pushUpdate := opts[0]
+			log.Error("pushUpdate[%s/%s] failed: %v", pushUpdate.RepoUserName, pushUpdate.RepoName, err)
 		}
 	}
 	return nil

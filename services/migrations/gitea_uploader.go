@@ -862,7 +862,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			line := comment.Line
 			if line != 0 {
 				comment.Position = 1
-			} else {
+			} else if comment.DiffHunk != "" {
 				_, _, line, _ = git.ParseDiffHunkString(comment.DiffHunk)
 			}
 
