@@ -77,7 +77,7 @@
 					{{end}}
 				</div>
 
-				{{if .AllowTriggerWorkflowDispatchEvent}}
+				{{if .WorkflowDispatchConfig}}
 					{{template "repo/actions/workflow_dispatch" .}}
 				{{end}}
 

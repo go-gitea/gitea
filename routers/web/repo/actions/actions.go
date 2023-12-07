@@ -159,7 +159,6 @@ func List(ctx *context.Context) {
 		if !isWorkflowDisabled && curWorkflow != nil {
 			workflowDispatchConfig := curWorkflow.WorkflowDispatchConfig()
 			if workflowDispatchConfig != nil {
-				ctx.Data["AllowTriggerWorkflowDispatchEvent"] = true
 				ctx.Data["WorkflowDispatchConfig"] = workflowDispatchConfig
 
 				branchOpts := git_model.FindBranchOptions{

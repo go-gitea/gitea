@@ -47,7 +47,6 @@
 			</div>
 
 			<div class="divider"></div>
-			{{if .WorkflowDispatchConfig}}
 			{{range $key, $item := .WorkflowDispatchConfig.Inputs}}
 			<div class="ui field {{if .Required}}required{{end}}">
 				{{if eq .Type "choice"}}
@@ -70,7 +69,6 @@
 					<span class="help">{{.Description}}</span>
 				{{end}}
 			</div>
-			{{end}}
 			{{end}}
 			<button class="ui tiny blue button" type="submit">Submit</button>
 		</form>
