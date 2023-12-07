@@ -72,7 +72,10 @@ func parseToken(req *http.Request) (string, bool) {
 		if token := req.Form.Get("access_token"); token != "" {
 			return token, true
 		}
+	} else if req.Form.Get("token") != "" || req.Form.Get("access_token") != "" {
+		log.Warn("API token sent in query string but DISABLE_QUERY_AUTH_TOKEN=true")
 	}
+
 	// check header token
 	if auHead := req.Header.Get("Authorization"); auHead != "" {
 		auths := strings.Fields(auHead)
