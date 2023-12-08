@@ -31,8 +31,8 @@ func VerifySSHKey(ctx context.Context, ownerID int64, fingerprint, token, signat
 	}
 
 	// edge case for Windows based shells that will add CR LF if piped to ssh-keygen command
-	errcrlf := sshsig.Verify(bytes.NewBuffer([]byte(token+"\r\n")), []byte(signature), []byte(key.Content), "gitea")
-	if err := sshsig.Verify(bytes.NewBuffer([]byte(token)), []byte(signature), []byte(key.Content), "gitea"); err != nil && errcrlf != nil {
+	if err := sshsig.Verify(bytes.NewBuffer([]byte(token)), []byte(signature), []byte(key.Content), "gitea"); err != nil &&
+		sshsig.Verify(bytes.NewBuffer([]byte(token+"\r\n")), []byte(signature), []byte(key.Content), "gitea") != nil {
 		log.Error("Unable to validate token signature. Error: %v", err)
 		return "", ErrSSHInvalidTokenSignature{
 			Fingerprint: key.Fingerprint,
