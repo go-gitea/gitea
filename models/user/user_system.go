@@ -36,6 +36,7 @@ func NewReplaceUser(name string) *User {
 }
 
 const (
+	GhostUserID     = -1
 	ActionsUserID   = -2
 	ActionsUserName = "gitea-actions"
 	ActionsFullName = "Gitea Actions"
