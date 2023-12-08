@@ -35,7 +35,7 @@
 			</div>
 			<div class="run-list-item-right">
 				<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{TimeSinceUnix .Updated ctx.Locale}}</div>
-				<div class="run-list-meta" data-tooltip-placement="top" data-tooltip-content="{{ctx.Locale.Tr "actions.runs.last_run_time" .Duration}}">{{svg "octicon-stopwatch" 16}}{{.DisplayDuration}}</div>
+				<div class="run-list-meta" data-tooltip-placement="top" data-tooltip-content="{{ctx.Locale.Tr "actions.runs.last_duration" .CurrentDuration}}">{{svg "octicon-stopwatch" 16}}{{.Duration}}</div>
 			</div>
 		</div>
 	{{end}}
