@@ -143,7 +143,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		if infos[i].lfsMetaObject == nil {
 			continue
 		}
-		infos[i].lfsMetaObject, err = git_model.NewLFSMetaObject(ctx, infos[i].lfsMetaObject)
+		infos[i].lfsMetaObject, err = git_model.NewLFSMetaObject(ctx, infos[i].lfsMetaObject.RepositoryID, infos[i].lfsMetaObject.Pointer)
 		if err != nil {
 			// OK Now we need to cleanup
 			return cleanUpAfterFailure(ctx, &infos, t, err)

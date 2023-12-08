@@ -23,6 +23,7 @@ import (
 type IssuesOptions struct { //nolint
 	db.Paginator
 	RepoIDs            []int64 // overwrites RepoCond if the length is not 0
+	AllPublic          bool    // include also all public repositories
 	RepoCond           builder.Cond
 	AssigneeID         int64
 	PosterID           int64
@@ -196,6 +197,12 @@ func applyRepoConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session 
 		opts.RepoCond = builder.Eq{"issue.repo_id": opts.RepoIDs[0]}
 	} else if len(opts.RepoIDs) > 1 {
 		opts.RepoCond = builder.In("issue.repo_id", opts.RepoIDs)
+	}
+	if opts.AllPublic {
+		if opts.RepoCond == nil {
+			opts.RepoCond = builder.NewCond()
+		}
+		opts.RepoCond = opts.RepoCond.Or(builder.In("issue.repo_id", builder.Select("id").From("repository").Where(builder.Eq{"is_private": false})))
 	}
 	if opts.RepoCond != nil {
 		sess.And(opts.RepoCond)

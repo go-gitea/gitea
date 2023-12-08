@@ -339,7 +339,7 @@
 				</div>
 			</div>
 		{{end}}
-		{{if gt (len .WorkingUsers) 0}}
+		{{if .WorkingUsers}}
 			<div class="divider"></div>
 			<div class="ui comments">
 				<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.time_spent_from_all_authors" ($.Issue.TotalTrackedTime | Sec2Time) | Safe}}</strong></span>
