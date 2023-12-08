@@ -21,31 +21,31 @@
 	{{end}}
 	<div class="ui segment choose branch">
 		{{if not $.CompareMode.IsAcrossService}}
-			<a href="{{if $.HeadInfoNotExist}}#{{else}}{{$.HeadRepo.Link}}/compare/{{PathEscapeSegments $.HeadBranch}}{{$.CompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.BaseName}}/{{PathEscape $.Repository.Name}}:{{end}}{{PathEscapeSegments $.BaseBranch}}{{end}}" title="{{.locale.Tr "repo.pulls.switch_head_and_base"}}">{{svg "octicon-git-compare"}}</a>
+			<a href="{{if $.HeadInfoNotExist}}#{{else}}{{$.HeadRepo.Link}}/compare/{{PathEscapeSegments $.HeadBranch}}{{$.CompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.BaseName}}/{{PathEscape $.Repository.Name}}:{{end}}{{PathEscapeSegments $.BaseBranch}}{{end}}" title="{{ctx.Locale.Tr "repo.pulls.switch_head_and_base"}}">{{svg "octicon-git-compare"}}</a>
 		{{end}}
 
 		<div class="ui floating dropdown">
 			<div class="ui basic small button">
-				{{.locale.Tr $.CompareMode.ToLocal}}
+				{{ctx.Locale.Tr $.CompareMode.ToLocal}}
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			</div>
 			<div class="menu">
-				<a class="item {{if $.CompareMode.IsInSameRepo}}selected{{end}}" href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.BaseBranch}}{{$.CompareSeparator}}{{if $.PullRequestCtx.SameRepo}}{{PathEscapeSegments $.HeadBranch}}{{else}}{{PathEscapeSegments $.BaseBranch}}{{end}}">{{.locale.Tr "repo.compare.mode.in_same_repo"}}</a>
-				<a class="item {{if $.CompareMode.IsAcrossRepos}}selected{{end}}" href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.BaseBranch}}{{$.CompareSeparator}}{{PathEscape $.HeadUserName}}/{{PathEscape $.HeadRepoName}}:{{PathEscapeSegments $.HeadBranch}}">{{.locale.Tr "repo.compare.mode.across_repos"}}</a>
-				<a class="item {{if $.CompareMode.IsAcrossService}}selected{{end}}" href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.BaseBranch}}{{$.CompareSeparator}}{{$.HeadBranch}}?head_repo_url={{QueryEscape $.ExternalRepoURL}}">{{.locale.Tr "repo.compare.mode.across_service"}}</a>
+				<a class="item {{if $.CompareMode.IsInSameRepo}}selected{{end}}" href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.BaseBranch}}{{$.CompareSeparator}}{{if $.PullRequestCtx.SameRepo}}{{PathEscapeSegments $.HeadBranch}}{{else}}{{PathEscapeSegments $.BaseBranch}}{{end}}">{{ctx.Locale.Tr "repo.compare.mode.in_same_repo"}}</a>
+				<a class="item {{if $.CompareMode.IsAcrossRepos}}selected{{end}}" href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.BaseBranch}}{{$.CompareSeparator}}{{PathEscape $.HeadUserName}}/{{PathEscape $.HeadRepoName}}:{{PathEscapeSegments $.HeadBranch}}">{{ctx.Locale.Tr "repo.compare.mode.across_repos"}}</a>
+				<a class="item {{if $.CompareMode.IsAcrossService}}selected{{end}}" href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.BaseBranch}}{{$.CompareSeparator}}{{$.HeadBranch}}?head_repo_url={{QueryEscape $.ExternalRepoURL}}">{{ctx.Locale.Tr "repo.compare.mode.across_service"}}</a>
 			</div>
 		</div>
 
 		{{if $.CompareMode.IsAcrossRepos}}
 			<div class="ui floating filter dropdown repo-search-box">
 				<div class="ui basic small button">
-					<span class="text">{{if $.PageIsComparePull}}{{.locale.Tr "repo.pulls.compare_base"}}{{else}}{{.locale.Tr "repo.compare.compare_base"}}{{end}}: {{$.BaseRepo.OwnerName}}/{{$.BaseRepo.Name}}</span>
+					<span class="text">{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_base"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_base"}}{{end}}: {{$.BaseRepo.OwnerName}}/{{$.BaseRepo.Name}}</span>
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</div>
 				<div class="menu">
 					<div class="ui icon search input">
 						<i class="icon gt-df gt-ac gt-jc gt-m-0">{{svg "octicon-filter" 16}}</i>
-						<input name="search" placeholder="{{.locale.Tr "repo.filter_repo"}}...">
+						<input name="search" placeholder="{{ctx.Locale.Tr "repo.filter_repo"}}...">
 					</div>
 
 					<div class="scrolling menu reference-list-menu" data-url-tmpl="{REPO_LINK}/compare/{{PathEscapeSegments $.BaseBranch}}{{$.CompareSeparator}}{{PathEscape $.HeadUserName}}/{{PathEscape $.HeadRepoName}}:{{PathEscapeSegments $.HeadBranch}}">
@@ -57,9 +57,9 @@
 			</div>
 		{{end}}
 
-		<div class="ui floating filter dropdown branch-search-box" data-no-results="{{.locale.Tr "repo.pulls.no_results"}}">
+		<div class="ui floating filter dropdown branch-search-box" data-no-results="{{ctx.Locale.Tr "repo.pulls.no_results"}}">
 			<div class="ui basic small button">
-				<span class="text">{{if not $.CompareMode.IsAcrossRepos}}{{if $.PageIsComparePull}}{{.locale.Tr "repo.pulls.compare_base"}}{{else}}{{.locale.Tr "repo.compare.compare_base"}}{{end}}: {{end}}{{$.BaseBranch}}</span>
+				<span class="text">{{if not $.CompareMode.IsAcrossRepos}}{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_base"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_base"}}{{end}}: {{end}}{{$.BaseBranch}}</span>
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			</div>
 			<div class="menu">
@@ -98,13 +98,13 @@
 
 		<div class="ui floating compare-switch-btn">
 			{{svg "octicon-arrow-left"}}
-			<a href="{{.RepoLink}}/compare/{{PathEscapeSegments .BaseBranch}}{{.OtherCompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUserName}}/{{PathEscape $.HeadRepoName}}:{{end}}{{PathEscapeSegments $.HeadBranch}}" title="{{.locale.Tr "repo.pulls.switch_comparison_type"}}">{{.CompareSeparator}}</a>
+			<a href="{{.RepoLink}}/compare/{{PathEscapeSegments .BaseBranch}}{{.OtherCompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUserName}}/{{PathEscape $.HeadRepoName}}:{{end}}{{PathEscapeSegments $.HeadBranch}}" title="{{ctx.Locale.Tr "repo.pulls.switch_comparison_type"}}">{{.CompareSeparator}}</a>
 		</div>
 
 		{{if $.CompareMode.IsAcrossService}}
 			<div class="ui action tiny input" id="clone-panel">
 				<button class="ui small compact button disabled">
-					{{if $.PageIsComparePull}}{{.locale.Tr "repo.pulls.compare_compare"}}{{else}}{{.locale.Tr "repo.compare.compare_head"}}{{end}}:
+					{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_compare"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_head"}}{{end}}:
 				</button>
 				<input id="ext_repo_url" size="40" class="js-clone-url gt-br-0 compare-across-server-input" value="{{$.ExternalRepoURL}}">
 			</div>
@@ -113,13 +113,13 @@
 		{{if $.CompareMode.IsAcrossRepos}}
 			<div class="ui floating filter dropdown repo-search-box">
 				<div class="ui basic small button {{if .HeadInfoNotExist}}yellow{{end}}">
-					<span class="text">{{if $.PageIsComparePull}}{{.locale.Tr "repo.pulls.compare_compare"}}{{else}}{{.locale.Tr "repo.compare.compare_head"}}{{end}}: {{$.HeadUserName}}/{{$.HeadRepoName}}</span>
+					<span class="text">{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_compare"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_head"}}{{end}}: {{$.HeadUserName}}/{{$.HeadRepoName}}</span>
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</div>
 				<div class="menu">
 					<div class="ui icon search input">
 						<i class="icon gt-df gt-ac gt-jc gt-m-0">{{svg "octicon-filter" 16}}</i>
-						<input name="search" placeholder="{{.locale.Tr "repo.filter_repo"}}...">
+						<input name="search" placeholder="{{ctx.Locale.Tr "repo.filter_repo"}}...">
 					</div>
 
 					<div class="scrolling menu reference-list-menu" data-url-tmpl="{{$.RepoLink}}/compare/{{PathEscapeSegments $.BaseBranch}}{{$.CompareSeparator}}{REOP_FULL_NAME}:{{PathEscapeSegments $.HeadBranch}}">
@@ -133,7 +133,7 @@
 
 		<div class="ui floating filter dropdown branch-search-box">
 			<div class="ui basic small button">
-				<span class="text">{{if $.CompareMode.IsInSameRepo}}{{if $.PageIsComparePull}}{{.locale.Tr "repo.pulls.compare_compare"}}{{else}}{{.locale.Tr "repo.compare.compare_head"}}{{end}}: {{end}}{{$.HeadBranch}}</span>
+				<span class="text">{{if $.CompareMode.IsInSameRepo}}{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_compare"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_head"}}{{end}}: {{end}}{{$.HeadBranch}}</span>
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			</div>
 			<div class="menu">
@@ -171,21 +171,19 @@
 		</div>
 
 		{{if $.CompareMode.IsAcrossService}}
-			<div class="ui action tiny input" id="clone-panel">
-				<button class="ui basic small compact button compare-across-server-btn" data-compare-url="{{$.RepoLink}}/compare/{{PathEscapeSegments $.BaseBranch}}{{$.CompareSeparator}}{{$.HeadBranch}}?head_repo_url=">
-					{{.locale.Tr "repo.compare.button_title"}}
-				</button>
-			</div>
+			<button class="ui basic small compact button compare-across-server-btn" data-compare-url="{{$.RepoLink}}/compare/{{PathEscapeSegments $.BaseBranch}}{{$.CompareSeparator}}{{$.HeadBranch}}?head_repo_url=">
+				{{ctx.Locale.Tr "repo.compare.button_title"}}
+			</button>
 		{{end}}
 	</div>
 
 	{{if .HeadInfoNotExist}}
-		<div class="ui segment">{{.locale.Tr "repo.compare.head_info_not_exist"}}</div>
+		<div class="ui segment">{{ctx.Locale.Tr "repo.compare.head_info_not_exist"}}</div>
 	{{else if .CompareRefsNotFound}}
-		<div class="ui segment">{{.locale.Tr "repo.compare.refs_not_exist"}}</div>
+		<div class="ui segment">{{ctx.Locale.Tr "repo.compare.refs_not_exist"}}</div>
 	{{else if .IsNothingToCompare}}
 		{{if and $.IsSigned $.AllowEmptyPr (not .Repository.IsArchived) (not $.CompareMode.IsAcrossService)}}
-			<div class="ui segment">{{.locale.Tr "repo.pulls.nothing_to_compare_and_allow_empty_pr"}}</div>
+			<div class="ui segment">{{ctx.Locale.Tr "repo.pulls.nothing_to_compare_and_allow_empty_pr"}}</div>
 			<div class="ui info message show-form-container {{if .Flash}}gt-hidden{{end}}">
 				<button class="ui button primary show-form">{{ctx.Locale.Tr "repo.pulls.new"}}</button>
 			</div>
@@ -209,9 +207,9 @@
 				{{- if .PullRequest.HasMerged -}}
 				<a href="{{Escape $.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button purple show-form">{{svg "octicon-git-merge" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
 				{{else if .Issue.IsClosed}}
-				<a href="{{Escape $.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button red show-form">{{svg "octicon-issue-closed" 16}} {{.locale.Tr "repo.pulls.view"}}</a>
+				<a href="{{Escape $.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button red show-form">{{svg "octicon-issue-closed" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
 				{{else if not $.CompareMode.IsAcrossService}}
-				<a href="{{Escape $.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button green show-form">{{svg "octicon-git-pull-request" 16}} {{.locale.Tr "repo.pulls.view"}}</a>
+				<a href="{{Escape $.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui button green show-form">{{svg "octicon-git-pull-request" 16}} {{ctx.Locale.Tr "repo.pulls.view"}}</a>
 				{{end}}
 				</div>
 			</div>

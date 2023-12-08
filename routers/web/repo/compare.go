@@ -539,12 +539,12 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 			)
 
 			if rootRepo == nil {
-				forks, err = repo_model.GetForks(baseRepo, db.ListOptions{
+				forks, err = repo_model.GetForks(ctx, baseRepo, db.ListOptions{
 					Page:     0,
 					PageSize: 20,
 				})
 			} else {
-				forks, err = repo_model.GetForks(rootRepo, db.ListOptions{
+				forks, err = repo_model.GetForks(ctx, rootRepo, db.ListOptions{
 					Page:     0,
 					PageSize: 20,
 				})
@@ -965,6 +965,13 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Tags"] = baseTags
+
+	branches, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 0)
+	if err != nil {
+		ctx.ServerError("GetBranches", err)
+		return
+	}
+	ctx.Data["Branches"] = branches
 
 	fileOnly := ctx.FormBool("file-only")
 	if fileOnly {

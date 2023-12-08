@@ -11,6 +11,7 @@ import {htmlEscape} from 'escape-goat';
 import {initRepoBranchTagSelector} from '../components/RepoBranchTagSelector.vue';
 import {
   initRepoCloneLink, initRepoCommonBranchOrTagDropdown, initRepoCommonFilterSearchDropdown,
+  initRepoCommonForksRepoSearchDropdown,
 } from './repo-common.js';
 import {initCitationFileCopyContent} from './citation.js';
 import {initCompLabelEdit} from './comp/LabelEdit.js';
