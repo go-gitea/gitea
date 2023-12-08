@@ -270,6 +270,14 @@ func parseSAMLConfig(ctx *context.Context, form forms.AuthenticationForm) (*saml
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		privateKey, cert, err := saml.GenerateSAMLSPKeypair()
+		if err != nil {
+			return nil, err
+		}
+
+		form.ServiceProviderPrivateKey = privateKey
+		form.ServiceProviderCertificate = cert
 	}
 
 	return &saml.Source{

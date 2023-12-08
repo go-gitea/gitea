@@ -4,6 +4,8 @@
 package integration
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"net/http"
@@ -40,6 +42,15 @@ func TestSAMLRegistration(t *testing.T) {
 		}
 	}
 
+	privateKey, cert, err := saml.GenerateSAMLSPKeypair()
+	assert.NoError(t, err)
+
+	// verify that the keypair can be parsed
+	keyPair, err := tls.X509KeyPair([]byte(cert), []byte(privateKey))
+	assert.NoError(t, err)
+	keyPair.Leaf, err = x509.ParseCertificate(keyPair.Certificate[0])
+	assert.NoError(t, err)
+
 	assert.NoError(t, auth.CreateSource(db.DefaultContext, &auth.Source{
 		Type:          auth.SAML,
 		Name:          "test-sp",
@@ -50,7 +61,7 @@ func TestSAMLRegistration(t *testing.T) {
 			IdentityProviderMetadataURL:              fmt.Sprintf("http://%s/simplesaml/saml2/idp/metadata.php", samlURL),
 			InsecureSkipAssertionSignatureValidation: false,
 			NameIDFormat:                             4,
-			ServiceProviderCertificate:               "",
+			ServiceProviderCertificate:               "", // SimpleSAMLPhp requires that the SP certificate be specified in the server configuration rather than SP metadata
 			ServiceProviderPrivateKey:                "",
 			EmailAssertionKey:                        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
 			NameAssertionKey:                         "http://schemas.xmlsoap.org/claims/CommonName",

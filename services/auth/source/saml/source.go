@@ -5,13 +5,18 @@ package saml
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/pem"
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"math/big"
 	"net/url"
+	"time"
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/json"
@@ -60,6 +65,47 @@ type Source struct {
 	authSource *auth.Source
 
 	samlSP *saml2.SAMLServiceProvider
+}
+
+func GenerateSAMLSPKeypair() (string, string, error) {
+	key, err := rsa.GenerateKey(rand.Reader, 1024)
+	if err != nil {
+		return "", "", err
+	}
+
+	keyBytes := x509.MarshalPKCS1PrivateKey(key)
+	keyPem := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: keyBytes,
+		},
+	)
+
+	now := time.Now()
+
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(0),
+		NotBefore:    now.Add(-5 * time.Minute),
+		NotAfter:     now.Add(365 * 24 * time.Hour),
+
+		KeyUsage:              x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{},
+		BasicConstraintsValid: true,
+	}
+
+	certificate, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
+	if err != nil {
+		return "", "", err
+	}
+
+	certPem := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: certificate,
+		},
+	)
+
+	return string(keyPem), string(certPem), nil
 }
 
 func (source *Source) initSAMLSp() error {
@@ -120,8 +166,6 @@ func (source *Source) initSAMLSp() error {
 			return err
 		}
 		keyStore = dsig.TLSCertKeyStore(keyPair)
-	} else {
-		keyStore = dsig.RandomKeyStoreForTest()
 	}
 
 	source.samlSP = &saml2.SAMLServiceProvider{
@@ -132,7 +176,7 @@ func (source *Source) initSAMLSp() error {
 		SkipSignatureValidation:     source.InsecureSkipAssertionSignatureValidation,
 		NameIdFormat:                source.NameIDFormat.String(),
 		IDPCertificateStore:         &certStore,
-		SignAuthnRequests:           true,
+		SignAuthnRequests:           source.ServiceProviderCertificate != "" && source.ServiceProviderPrivateKey != "",
 		SPKeyStore:                  keyStore,
 		ServiceProviderIssuer:       setting.AppURL + "user/saml/" + url.PathEscape(source.authSource.Name) + "/metadata",
 	}
