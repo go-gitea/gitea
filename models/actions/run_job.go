@@ -143,8 +143,9 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		}
 		if run.Stopped.IsZero() && run.Status.IsDone() {
 			run.Stopped = timeutil.TimeStampNow()
+			run.TotalDuration += run.Duration()
 		}
-		if err := UpdateRun(ctx, run, "status", "started", "stopped"); err != nil {
+		if err := UpdateRun(ctx, run, "status", "started", "stopped", "total_duration"); err != nil {
 			return 0, fmt.Errorf("update run %d: %w", run.ID, err)
 		}
 	}
