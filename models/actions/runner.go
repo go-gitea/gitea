@@ -156,7 +156,7 @@ type FindRunnerOptions struct {
 	WithAvailable bool // not only runners belong to, but also runners can be used
 }
 
-func (opts FindRunnerOptions) toCond() builder.Cond {
+func (opts FindRunnerOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 
 	if opts.RepoID > 0 {
@@ -181,7 +181,7 @@ func (opts FindRunnerOptions) toCond() builder.Cond {
 	return cond
 }
 
-func (opts FindRunnerOptions) toOrder() string {
+func (opts FindRunnerOptions) ToOrders() string {
 	switch opts.Sort {
 	case "online":
 		return "last_online DESC"
@@ -197,22 +197,6 @@ func (opts FindRunnerOptions) toOrder() string {
 		return "id ASC"
 	}
 	return "last_online DESC"
-}
-
-func CountRunners(ctx context.Context, opts FindRunnerOptions) (int64, error) {
-	return db.GetEngine(ctx).
-		Where(opts.toCond()).
-		Count(ActionRunner{})
-}
-
-func FindRunners(ctx context.Context, opts FindRunnerOptions) (runners RunnerList, err error) {
-	sess := db.GetEngine(ctx).
-		Where(opts.toCond()).
-		OrderBy(opts.toOrder())
-	if opts.Page > 0 {
-		sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-	}
-	return runners, sess.Find(&runners)
 }
 
 // GetRunnerByUUID returns a runner via uuid
@@ -263,8 +247,7 @@ func DeleteRunner(ctx context.Context, id int64) error {
 
 // CreateRunner creates new runner.
 func CreateRunner(ctx context.Context, t *ActionRunner) error {
-	_, err := db.GetEngine(ctx).Insert(t)
-	return err
+	return db.Insert(ctx, t)
 }
 
 func CountRunnersWithoutBelongingOwner(ctx context.Context) (int64, error) {

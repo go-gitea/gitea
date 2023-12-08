@@ -9,6 +9,8 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // Session represents a session compatible for go-chi session
@@ -33,34 +35,28 @@ func UpdateSession(ctx context.Context, key string, data []byte) error {
 
 // ReadSession reads the data for the provided session
 func ReadSession(ctx context.Context, key string) (*Session, error) {
-	session := Session{
-		Key: key,
-	}
-
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer committer.Close()
 
-	if has, err := db.GetByBean(ctx, &session); err != nil {
+	session, exist, err := db.Get[Session](ctx, builder.Eq{"key": key})
+	if err != nil {
 		return nil, err
-	} else if !has {
+	} else if !exist {
 		session.Expiry = timeutil.TimeStampNow()
 		if err := db.Insert(ctx, &session); err != nil {
 			return nil, err
 		}
 	}
 
-	return &session, committer.Commit()
+	return session, committer.Commit()
 }
 
 // ExistSession checks if a session exists
 func ExistSession(ctx context.Context, key string) (bool, error) {
-	session := Session{
-		Key: key,
-	}
-	return db.GetEngine(ctx).Get(&session)
+	return db.Exist[Session](ctx, builder.Eq{"key": key})
 }
 
 // DestroySession destroys a session
@@ -79,17 +75,13 @@ func RegenerateSession(ctx context.Context, oldKey, newKey string) (*Session, er
 	}
 	defer committer.Close()
 
-	if has, err := db.GetByBean(ctx, &Session{
-		Key: newKey,
-	}); err != nil {
+	if has, err := db.Exist[Session](ctx, builder.Eq{"key": newKey}); err != nil {
 		return nil, err
 	} else if has {
 		return nil, fmt.Errorf("session Key: %s already exists", newKey)
 	}
 
-	if has, err := db.GetByBean(ctx, &Session{
-		Key: oldKey,
-	}); err != nil {
+	if has, err := db.Exist[Session](ctx, builder.Eq{"key": oldKey}); err != nil {
 		return nil, err
 	} else if !has {
 		if err := db.Insert(ctx, &Session{
@@ -104,14 +96,13 @@ func RegenerateSession(ctx context.Context, oldKey, newKey string) (*Session, er
 		return nil, err
 	}
 
-	s := Session{
-		Key: newKey,
-	}
-	if _, err := db.GetByBean(ctx, &s); err != nil {
+	s, _, err := db.Get[Session](ctx, builder.Eq{"key": newKey})
+	if err != nil {
+		// is not exist, it should be impossible
 		return nil, err
 	}
 
-	return &s, committer.Commit()
+	return s, committer.Commit()
 }
 
 // CountSessions returns the number of sessions
