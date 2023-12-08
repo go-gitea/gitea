@@ -179,45 +179,33 @@ func SearchPublicKeyByContentExact(ctx context.Context, content string) (*Public
 	return key, nil
 }
 
-// SearchPublicKey returns a list of public keys matching the provided arguments.
-func SearchPublicKey(ctx context.Context, uid int64, fingerprint string) ([]*PublicKey, error) {
-	keys := make([]*PublicKey, 0, 5)
+type FindPublicKeyOptions struct {
+	db.ListOptions
+	OwnerID       int64
+	Fingerprint   string
+	KeyTypes      []KeyType
+	NotKeytype    KeyType
+	LoginSourceID int64
+}
+
+func (opts FindPublicKeyOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
-	if uid != 0 {
-		cond = cond.And(builder.Eq{"owner_id": uid})
+	if opts.OwnerID > 0 {
+		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
 	}
-	if fingerprint != "" {
-		cond = cond.And(builder.Eq{"fingerprint": fingerprint})
+	if opts.Fingerprint != "" {
+		cond = cond.And(builder.Eq{"fingerprint": opts.Fingerprint})
 	}
-	return keys, db.GetEngine(ctx).Where(cond).Find(&keys)
-}
-
-// ListPublicKeys returns a list of public keys belongs to given user.
-func ListPublicKeys(ctx context.Context, uid int64, listOptions db.ListOptions) ([]*PublicKey, error) {
-	sess := db.GetEngine(ctx).Where("owner_id = ? AND type != ?", uid, KeyTypePrincipal)
-	if listOptions.Page != 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
-
-		keys := make([]*PublicKey, 0, listOptions.PageSize)
-		return keys, sess.Find(&keys)
+	if len(opts.KeyTypes) > 0 {
+		cond = cond.And(builder.In("type", opts.KeyTypes))
 	}
-
-	keys := make([]*PublicKey, 0, 5)
-	return keys, sess.Find(&keys)
-}
-
-// CountPublicKeys count public keys a user has
-func CountPublicKeys(ctx context.Context, userID int64) (int64, error) {
-	sess := db.GetEngine(ctx).Where("owner_id = ? AND type != ?", userID, KeyTypePrincipal)
-	return sess.Count(&PublicKey{})
-}
-
-// ListPublicKeysBySource returns a list of synchronized public keys for a given user and login source.
-func ListPublicKeysBySource(ctx context.Context, uid, authSourceID int64) ([]*PublicKey, error) {
-	keys := make([]*PublicKey, 0, 5)
-	return keys, db.GetEngine(ctx).
-		Where("owner_id = ? AND login_source_id = ?", uid, authSourceID).
-		Find(&keys)
+	if opts.NotKeytype > 0 {
+		cond = cond.And(builder.Neq{"type": opts.NotKeytype})
+	}
+	if opts.LoginSourceID > 0 {
+		cond = cond.And(builder.Eq{"login_source_id": opts.LoginSourceID})
+	}
+	return cond
 }
 
 // UpdatePublicKeyUpdated updates public key use time.
@@ -394,7 +382,10 @@ func SynchronizePublicKeys(ctx context.Context, usr *user_model.User, s *auth.So
 
 	// Get Public Keys from DB with current LDAP source
 	var giteaKeys []string
-	keys, err := ListPublicKeysBySource(ctx, usr.ID, s.ID)
+	keys, err := db.Find[PublicKey](ctx, FindPublicKeyOptions{
+		OwnerID:       usr.ID,
+		LoginSourceID: s.ID,
+	})
 	if err != nil {
 		log.Error("synchronizePublicKeys[%s]: Error listing Public SSH Keys for user %s: %v", s.Name, usr.Name, err)
 	}

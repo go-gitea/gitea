@@ -660,13 +660,10 @@ func GetPullRequestByIssueIDWithNoAttributes(ctx context.Context, issueID int64)
 
 // GetPullRequestByIssueID returns pull request by given issue ID.
 func GetPullRequestByIssueID(ctx context.Context, issueID int64) (*PullRequest, error) {
-	pr := &PullRequest{
-		IssueID: issueID,
-	}
-	has, err := db.GetByBean(ctx, pr)
+	pr, exist, err := db.Get[PullRequest](ctx, builder.Eq{"issue_id": issueID})
 	if err != nil {
 		return nil, err
-	} else if !has {
+	} else if !exist {
 		return nil, ErrPullRequestNotExist{0, issueID, 0, 0, "", ""}
 	}
 	return pr, pr.LoadAttributes(ctx)

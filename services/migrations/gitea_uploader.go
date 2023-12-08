@@ -919,7 +919,7 @@ func (g *GiteaLocalUploader) prepareReviews(reviews ...*base.Review) ([]*issues_
 			line := comment.Line
 			if line != 0 {
 				comment.Position = 1
-			} else {
+			} else if comment.DiffHunk != "" {
 				_, _, line, _ = git.ParseDiffHunkString(comment.DiffHunk)
 			}
 

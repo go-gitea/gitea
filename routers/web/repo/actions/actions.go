@@ -75,11 +75,10 @@ func List(ctx *context.Context) {
 		}
 
 		// Get all runner labels
-		opts := actions_model.FindRunnerOptions{
+		runners, err := db.Find[actions_model.ActionRunner](ctx, actions_model.FindRunnerOptions{
 			RepoID:        ctx.Repo.Repository.ID,
 			WithAvailable: true,
-		}
-		runners, err := actions_model.FindRunners(ctx, opts)
+		})
 		if err != nil {
 			ctx.ServerError("FindRunners", err)
 			return
@@ -169,7 +168,7 @@ func List(ctx *context.Context) {
 		opts.Status = []actions_model.Status{actions_model.Status(status)}
 	}
 
-	runs, total, err := actions_model.FindRuns(ctx, opts)
+	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
@@ -179,7 +178,7 @@ func List(ctx *context.Context) {
 		run.Repo = ctx.Repo.Repository
 	}
 
-	if err := runs.LoadTriggerUser(ctx); err != nil {
+	if err := actions_model.RunList(runs).LoadTriggerUser(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -201,6 +200,7 @@ func List(ctx *context.Context) {
 	pager.AddParamString("actor", fmt.Sprint(actorID))
 	pager.AddParamString("status", fmt.Sprint(status))
 	ctx.Data["Page"] = pager
+	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
 
 	ctx.HTML(http.StatusOK, tplListActions)
 }
