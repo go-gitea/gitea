@@ -159,6 +159,6 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 		}
 	}
 
-	// TODO: default value should be true in future releases
+	// TODO: default value should be true immediately after 1.22.0 has been released, so that 1.23.0 ships with the change
 	DisableQueryAuthToken = sec.Key("DISABLE_QUERY_AUTH_TOKEN").MustBool(false)
 }
