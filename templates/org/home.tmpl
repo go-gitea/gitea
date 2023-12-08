@@ -21,9 +21,9 @@
 		</div>
 		<div class="right menu">
 			{{if .EnableFeed}}
-			<button class="link-action ui basic label button gt-mr-0" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}" data-url="{{$.Org.HomeLink}}.rss">
+			<a class="ui basic label button gt-mr-0" href="{{$.Org.HomeLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
 				{{svg "octicon-rss" 24}}
-			</button>
+			</a>
 			{{end}}
 			<button class="link-action ui basic button gt-mr-0" data-url="{{.Org.HomeLink}}?action={{if $.IsFollowing}}unfollow{{else}}follow{{end}}">
 				{{if $.IsFollowing}}
