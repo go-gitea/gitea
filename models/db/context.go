@@ -200,6 +200,10 @@ func GetByID[T any](ctx context.Context, id int64) (object *T, exist bool, err e
 }
 
 func Exist[T any](ctx context.Context, cond builder.Cond) (bool, error) {
+	if !cond.IsValid() {
+		return false, ErrConditionRequired{}
+	}
+
 	var bean T
 	return GetEngine(ctx).Where(cond).NoAutoCondition().Exist(&bean)
 }

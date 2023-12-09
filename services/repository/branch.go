@@ -228,14 +228,17 @@ func checkBranchName(ctx context.Context, repo *repo_model.Repository, name stri
 	return err
 }
 
-// updateBranch updates the branch information in the database. If the branch exist, it will update latest commit of this branch information
-// If it doest not exist, insert a new record into database
-func updateBranch(ctx context.Context, repoID, pusherID int64, branchName string, commit *git.Commit) error {
+// syncBranchToDB sync the branch information in the database. It will try to update the branch first,
+// if updated success with affect records > 0, then all are done. Because that means the branch has been in the database.
+// If no record is affected, that means the branch does not exist in database. So there are two possibilities.
+// One is this is a new branch, then we just need to insert the record. Another is the branches haven't been synced,
+// then we need to sync all the branches into database.
+func syncBranchToDB(ctx context.Context, repoID, pusherID int64, branchName string, commit *git.Commit) error {
 	cnt, err := git_model.UpdateBranch(ctx, repoID, pusherID, branchName, commit)
 	if err != nil {
 		return fmt.Errorf("git_model.UpdateBranch %d:%s failed: %v", repoID, branchName, err)
 	}
-	if cnt > 0 { // if branch does exist, so it's a normal update
+	if cnt > 0 { // This means branch does exist, so it's a normal update. It also means the branch has been synced.
 		return nil
 	}
 
@@ -254,6 +257,8 @@ func updateBranch(ctx context.Context, repoID, pusherID int64, branchName string
 		}
 		return nil
 	}
+
+	// if database have branches but not this branch, it means this is a new branch
 	return db.Insert(ctx, &git_model.Branch{
 		RepoID:        repoID,
 		Name:          branchName,
@@ -281,7 +286,8 @@ func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo 
 		if err != nil {
 			return err
 		}
-		if err := updateBranch(ctx, repo.ID, doer.ID, branchName, commit); err != nil {
+		// database operation should be done before git operation so that we can rollback if git operation failed
+		if err := syncBranchToDB(ctx, repo.ID, doer.ID, branchName, commit); err != nil {
 			return err
 		}
 
