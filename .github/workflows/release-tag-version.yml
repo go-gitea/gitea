@@ -86,7 +86,6 @@ jobs:
           # 1.2
           # 1.2.3
           tags: |
-            type=raw,value=latest
             type=semver,pattern={{major}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{version}}
@@ -118,14 +117,13 @@ jobs:
           images: gitea/gitea
           # each tag below will have the suffix of -rootless
           flavor: |
-            suffix=-rootless
+            suffix=-rootless,onlatest=true
           # this will generate tags in the following format (with -rootless suffix added):
           # latest
           # 1
           # 1.2
           # 1.2.3
           tags: |
-            type=raw,value=latest
             type=semver,pattern={{major}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{version}}
