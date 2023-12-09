@@ -1,6 +1,7 @@
 <h4 class="ui top attached header">{{ctx.Locale.Tr "settings.webauthn"}}</h4>
 <div class="ui attached segment">
 	<p>{{ctx.Locale.Tr "settings.webauthn_desc" | Str2html}}</p>
+	<p>{{ctx.Locale.Tr "settings.webauthn_key_loss_warning"}} {{ctx.Locale.Tr "settings.webauthn_alternative_tip"}}</p>
 	{{template "user/auth/webauthn_error" .}}
 	<div class="flex-list">
 		{{range .WebAuthnCredentials}}
