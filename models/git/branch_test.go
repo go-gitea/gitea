@@ -37,7 +37,7 @@ func TestAddDeletedBranch(t *testing.T) {
 		},
 	}
 
-	err := git_model.UpdateBranch(db.DefaultContext, repo.ID, secondBranch.PusherID, secondBranch.Name, commit)
+	_, err := git_model.UpdateBranch(db.DefaultContext, repo.ID, secondBranch.PusherID, secondBranch.Name, commit)
 	assert.NoError(t, err)
 }
 
