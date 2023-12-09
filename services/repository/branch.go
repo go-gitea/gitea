@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -227,6 +228,42 @@ func checkBranchName(ctx context.Context, repo *repo_model.Repository, name stri
 	return err
 }
 
+// updateBranch updates the branch information in the database. If the branch exist, it will update latest commit of this branch information
+// If it doest not exist, insert a new record into database
+func updateBranch(ctx context.Context, repoID, pusherID int64, branchName string, commit *git.Commit) error {
+	cnt, err := git_model.UpdateBranch(ctx, repoID, pusherID, branchName, commit)
+	if err != nil {
+		return fmt.Errorf("git_model.UpdateBranch %d:%s failed: %v", repoID, branchName, err)
+	}
+	if cnt > 0 { // if branch does exist, so it's a normal update
+		return nil
+	}
+
+	// if user haven't visit UI but directly push to a branch after upgrading from 1.20 -> 1.21,
+	// we cannot simply insert the branch but need to check we have branches or not
+	hasBranch, err := db.Exist[git_model.Branch](ctx, git_model.FindBranchOptions{
+		RepoID:          repoID,
+		IsDeletedBranch: util.OptionalBoolFalse,
+	}.ToConds())
+	if err != nil {
+		return err
+	}
+	if !hasBranch {
+		if _, err = repo_module.SyncRepoBranches(ctx, repoID, pusherID); err != nil {
+			return fmt.Errorf("repo_module.SyncRepoBranches %d:%s failed: %v", repoID, branchName, err)
+		}
+		return nil
+	}
+	return db.Insert(ctx, &git_model.Branch{
+		RepoID:        repoID,
+		Name:          branchName,
+		CommitID:      commit.ID.String(),
+		CommitMessage: commit.Summary(),
+		PusherID:      pusherID,
+		CommitTime:    timeutil.TimeStamp(commit.Committer.When.Unix()),
+	})
+}
+
 // CreateNewBranchFromCommit creates a new repository branch
 func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, commitID, branchName string) (err error) {
 	err = repo.MustNotBeArchived()
@@ -244,7 +281,7 @@ func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo 
 		if err != nil {
 			return err
 		}
-		if err := repo_module.UpdateBranch(ctx, repo.ID, doer.ID, branchName, commit); err != nil {
+		if err := updateBranch(ctx, repo.ID, doer.ID, branchName, commit); err != nil {
 			return err
 		}
 
