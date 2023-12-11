@@ -94,7 +94,7 @@ type FindTrackedTimesOptions struct {
 }
 
 // toCond will convert each condition into a xorm-Cond
-func (opts *FindTrackedTimesOptions) toCond() builder.Cond {
+func (opts *FindTrackedTimesOptions) ToConds() builder.Cond {
 	cond := builder.NewCond().And(builder.Eq{"tracked_time.deleted": false})
 	if opts.IssueID != 0 {
 		cond = cond.And(builder.Eq{"issue_id": opts.IssueID})
@@ -117,6 +117,18 @@ func (opts *FindTrackedTimesOptions) toCond() builder.Cond {
 	return cond
 }
 
+func (opts FindTrackedTimesOptions) ToJoins() []db.JoinFunc {
+	if opts.RepositoryID > 0 || opts.MilestoneID > 0 {
+		return []db.JoinFunc{
+			func(e db.Engine) error {
+				e.Join("INNER", "issue", "issue.id = tracked_time.issue_id")
+				return nil
+			},
+		}
+	}
+	return nil
+}
+
 // toSession will convert the given options to a xorm Session by using the conditions from toCond and joining with issue table if required
 func (opts *FindTrackedTimesOptions) toSession(e db.Engine) db.Engine {
 	sess := e
@@ -124,10 +136,10 @@ func (opts *FindTrackedTimesOptions) toSession(e db.Engine) db.Engine {
 		sess = e.Join("INNER", "issue", "issue.id = tracked_time.issue_id")
 	}
 
-	sess = sess.Where(opts.toCond())
+	sess = sess.Where(opts.ToConds())
 
 	if opts.Page != 0 {
-		sess = db.SetEnginePagination(sess, opts)
+		sess = db.SetSessionPagination(sess, opts)
 	}
 
 	return sess
@@ -141,7 +153,7 @@ func GetTrackedTimes(ctx context.Context, options *FindTrackedTimesOptions) (tra
 
 // CountTrackedTimes returns count of tracked times that fit to the given options.
 func CountTrackedTimes(ctx context.Context, opts *FindTrackedTimesOptions) (int64, error) {
-	sess := db.GetEngine(ctx).Where(opts.toCond())
+	sess := db.GetEngine(ctx).Where(opts.ToConds())
 	if opts.RepositoryID > 0 || opts.MilestoneID > 0 {
 		sess = sess.Join("INNER", "issue", "issue.id = tracked_time.issue_id")
 	}

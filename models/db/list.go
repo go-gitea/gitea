@@ -25,25 +25,11 @@ type Paginator interface {
 	IsListAll() bool
 }
 
-// GetPaginatedSession creates a paginated database session
-func GetPaginatedSession(p Paginator) *xorm.Session {
-	skip, take := p.GetSkipTake()
-
-	return x.Limit(take, skip)
-}
-
 // SetSessionPagination sets pagination for a database session
 func SetSessionPagination(sess Engine, p Paginator) *xorm.Session {
 	skip, take := p.GetSkipTake()
 
 	return sess.Limit(take, skip)
-}
-
-// SetEnginePagination sets pagination for a database engine
-func SetEnginePagination(e Engine, p Paginator) Engine {
-	skip, take := p.GetSkipTake()
-
-	return e.Limit(take, skip)
 }
 
 // ListOptions options to paginate results
@@ -148,13 +134,29 @@ type FindOptions interface {
 	ToConds() builder.Cond
 }
 
+type JoinFunc func(sess Engine) error
+
+type FindOptionsJoin interface {
+	ToJoins() []JoinFunc
+}
+
 type FindOptionsOrder interface {
 	ToOrders() string
 }
 
 // Find represents a common find function which accept an options interface
 func Find[T any](ctx context.Context, opts FindOptions) ([]*T, error) {
-	sess := GetEngine(ctx).Where(opts.ToConds())
+	sess := GetEngine(ctx)
+
+	if joinOpt, ok := opts.(FindOptionsJoin); ok && len(joinOpt.ToJoins()) > 0 {
+		for _, joinFunc := range joinOpt.ToJoins() {
+			if err := joinFunc(sess); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	sess = sess.Where(opts.ToConds())
 	page, pageSize := opts.GetPage(), opts.GetPageSize()
 	if !opts.IsListAll() && pageSize > 0 && page >= 1 {
 		sess.Limit(pageSize, (page-1)*pageSize)
@@ -176,8 +178,17 @@ func Find[T any](ctx context.Context, opts FindOptions) ([]*T, error) {
 
 // Count represents a common count function which accept an options interface
 func Count[T any](ctx context.Context, opts FindOptions) (int64, error) {
+	sess := GetEngine(ctx)
+	if joinOpt, ok := opts.(FindOptionsJoin); ok && len(joinOpt.ToJoins()) > 0 {
+		for _, joinFunc := range joinOpt.ToJoins() {
+			if err := joinFunc(sess); err != nil {
+				return 0, err
+			}
+		}
+	}
+
 	var object T
-	return GetEngine(ctx).Where(opts.ToConds()).Count(&object)
+	return sess.Where(opts.ToConds()).Count(&object)
 }
 
 // FindAndCount represents a common findandcount function which accept an options interface
