@@ -8,9 +8,11 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 )
 
@@ -34,12 +36,20 @@ func Applications(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsApplications"] = true
 
-	apps, err := auth.GetOAuth2ApplicationsByUserID(ctx, ctx.Org.Organization.ID)
+	apps, err := db.Find[auth.OAuth2Application](ctx, auth.FindOAuth2ApplicationsOptions{
+		OwnerID: ctx.Org.Organization.ID,
+	})
 	if err != nil {
 		ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
 		return
 	}
 	ctx.Data["Applications"] = apps
+
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
 
 	ctx.HTML(http.StatusOK, tplSettingsApplications)
 }

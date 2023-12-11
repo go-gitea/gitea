@@ -8,8 +8,9 @@ authors = []
 python = "^3.8"
 
 [tool.poetry.group.dev.dependencies]
-djlint = "1.32.1"
+djlint = "1.34.0"
+yamllint = "1.33.0"
 
 [tool.djlint]
 profile="golang"
-ignore="H005,H006,H008,H013,H016,H020,H021,H030,H031"
+ignore="H005,H006,H013,H016,H020,H021,H030,H031"

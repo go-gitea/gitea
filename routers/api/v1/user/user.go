@@ -54,19 +54,33 @@ func Search(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	users, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
-		Actor:       ctx.Doer,
-		Keyword:     ctx.FormTrim("q"),
-		UID:         ctx.FormInt64("uid"),
-		Type:        user_model.UserTypeIndividual,
-		ListOptions: listOptions,
-	})
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, map[string]any{
-			"ok":    false,
-			"error": err.Error(),
+	uid := ctx.FormInt64("uid")
+	var users []*user_model.User
+	var maxResults int64
+	var err error
+
+	switch uid {
+	case user_model.GhostUserID:
+		maxResults = 1
+		users = []*user_model.User{user_model.NewGhostUser()}
+	case user_model.ActionsUserID:
+		maxResults = 1
+		users = []*user_model.User{user_model.NewActionsUser()}
+	default:
+		users, maxResults, err = user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
+			Actor:       ctx.Doer,
+			Keyword:     ctx.FormTrim("q"),
+			UID:         uid,
+			Type:        user_model.UserTypeIndividual,
+			ListOptions: listOptions,
 		})
-		return
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, map[string]any{
+				"ok":    false,
+				"error": err.Error(),
+			})
+			return
+		}
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
@@ -138,7 +152,7 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	heatmap, err := activities_model.GetUserHeatmapDataByUser(ctx.ContextUser, ctx.Doer)
+	heatmap, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserHeatmapDataByUser", err)
 		return

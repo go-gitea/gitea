@@ -70,9 +70,10 @@ type FindBranchOptions struct {
 	ExcludeBranchNames []string
 	IsDeletedBranch    util.OptionalBool
 	OrderBy            string
+	Keyword            string
 }
 
-func (opts *FindBranchOptions) Cond() builder.Cond {
+func (opts FindBranchOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
@@ -84,11 +85,14 @@ func (opts *FindBranchOptions) Cond() builder.Cond {
 	if !opts.IsDeletedBranch.IsNone() {
 		cond = cond.And(builder.Eq{"is_deleted": opts.IsDeletedBranch.IsTrue()})
 	}
+	if opts.Keyword != "" {
+		cond = cond.And(builder.Like{"name", opts.Keyword})
+	}
 	return cond
 }
 
 func CountBranches(ctx context.Context, opts FindBranchOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.Cond()).Count(&Branch{})
+	return db.GetEngine(ctx).Where(opts.ToConds()).Count(&Branch{})
 }
 
 func orderByBranches(sess *xorm.Session, opts FindBranchOptions) *xorm.Session {
@@ -104,7 +108,7 @@ func orderByBranches(sess *xorm.Session, opts FindBranchOptions) *xorm.Session {
 }
 
 func FindBranches(ctx context.Context, opts FindBranchOptions) (BranchList, error) {
-	sess := db.GetEngine(ctx).Where(opts.Cond())
+	sess := db.GetEngine(ctx).Where(opts.ToConds())
 	if opts.PageSize > 0 && !opts.IsListAll() {
 		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 	}
@@ -115,7 +119,7 @@ func FindBranches(ctx context.Context, opts FindBranchOptions) (BranchList, erro
 }
 
 func FindBranchNames(ctx context.Context, opts FindBranchOptions) ([]string, error) {
-	sess := db.GetEngine(ctx).Select("name").Where(opts.Cond())
+	sess := db.GetEngine(ctx).Select("name").Where(opts.ToConds())
 	if opts.PageSize > 0 && !opts.IsListAll() {
 		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 	}

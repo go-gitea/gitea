@@ -65,6 +65,11 @@ type RepoFileOptions struct {
 
 // ChangeRepoFiles adds, updates or removes multiple files in the given repository
 func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, opts *ChangeRepoFilesOptions) (*structs.FilesResponse, error) {
+	err := repo.MustNotBeArchived()
+	if err != nil {
+		return nil, err
+	}
+
 	// If no branch name is set, assume default branch
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
@@ -433,7 +438,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 
 	if lfsMetaObject != nil {
 		// We have an LFS object - create it
-		lfsMetaObject, err = git_model.NewLFSMetaObject(ctx, lfsMetaObject)
+		lfsMetaObject, err = git_model.NewLFSMetaObject(ctx, lfsMetaObject.RepositoryID, lfsMetaObject.Pointer)
 		if err != nil {
 			return err
 		}

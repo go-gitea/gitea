@@ -24,13 +24,13 @@ func Notices(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.notices")
 	ctx.Data["PageIsAdminNotices"] = true
 
-	total := system_model.CountNotices()
+	total := system_model.CountNotices(ctx)
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}
 
-	notices, err := system_model.Notices(page, setting.UI.Admin.NoticePagingNum)
+	notices, err := system_model.Notices(ctx, page, setting.UI.Admin.NoticePagingNum)
 	if err != nil {
 		ctx.ServerError("Notices", err)
 		return
@@ -55,7 +55,7 @@ func DeleteNotices(ctx *context.Context) {
 		}
 	}
 
-	if err := system_model.DeleteNoticesByIDs(ids); err != nil {
+	if err := system_model.DeleteNoticesByIDs(ctx, ids); err != nil {
 		ctx.Flash.Error("DeleteNoticesByIDs: " + err.Error())
 		ctx.Status(http.StatusInternalServerError)
 	} else {
@@ -66,7 +66,7 @@ func DeleteNotices(ctx *context.Context) {
 
 // EmptyNotices delete all the notices
 func EmptyNotices(ctx *context.Context) {
-	if err := system_model.DeleteNotices(0, 0); err != nil {
+	if err := system_model.DeleteNotices(ctx, 0, 0); err != nil {
 		ctx.ServerError("DeleteNotices", err)
 		return
 	}

@@ -180,3 +180,6 @@ defaults:
 | pull_request_review_comment | `created`, `edited`                                                                                                      |
 | release                     | `published`, `edited`                                                                                                    |
 | registry_package            | `published`                                                                                                              |
+
+> 对于 `pull_request` 事件，在 [GitHub Actions](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request) 中 `ref` 是 `refs/pull/:prNumber/merge`，它指向这个拉取请求合并提交的一个预览。但是 Gitea 没有这种 reference。
+> 因此，Gitea Actions 中 `ref` 是 `refs/pull/:prNumber/head`，它指向这个拉取请求的头分支而不是合并提交的预览。

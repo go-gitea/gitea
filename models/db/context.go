@@ -173,9 +173,44 @@ func Exec(ctx context.Context, sqlAndArgs ...any) (sql.Result, error) {
 	return GetEngine(ctx).Exec(sqlAndArgs...)
 }
 
-// GetByBean filled empty fields of the bean according non-empty fields to query in database.
-func GetByBean(ctx context.Context, bean any) (bool, error) {
-	return GetEngine(ctx).Get(bean)
+func Get[T any](ctx context.Context, cond builder.Cond) (object *T, exist bool, err error) {
+	if !cond.IsValid() {
+		return nil, false, ErrConditionRequired{}
+	}
+
+	var bean T
+	has, err := GetEngine(ctx).Where(cond).NoAutoCondition().Get(&bean)
+	if err != nil {
+		return nil, false, err
+	} else if !has {
+		return nil, false, nil
+	}
+	return &bean, true, nil
+}
+
+func GetByID[T any](ctx context.Context, id int64) (object *T, exist bool, err error) {
+	var bean T
+	has, err := GetEngine(ctx).ID(id).NoAutoCondition().Get(&bean)
+	if err != nil {
+		return nil, false, err
+	} else if !has {
+		return nil, false, nil
+	}
+	return &bean, true, nil
+}
+
+func Exist[T any](ctx context.Context, cond builder.Cond) (bool, error) {
+	if !cond.IsValid() {
+		return false, ErrConditionRequired{}
+	}
+
+	var bean T
+	return GetEngine(ctx).Where(cond).NoAutoCondition().Exist(&bean)
+}
+
+func ExistByID[T any](ctx context.Context, id int64) (bool, error) {
+	var bean T
+	return GetEngine(ctx).ID(id).NoAutoCondition().Exist(&bean)
 }
 
 // DeleteByBean deletes all records according non-empty fields of the bean as conditions.
@@ -185,7 +220,7 @@ func DeleteByBean(ctx context.Context, bean any) (int64, error) {
 
 // DeleteByID deletes the given bean with the given ID
 func DeleteByID(ctx context.Context, id int64, bean any) (int64, error) {
-	return GetEngine(ctx).ID(id).NoAutoTime().Delete(bean)
+	return GetEngine(ctx).ID(id).NoAutoCondition().NoAutoTime().Delete(bean)
 }
 
 // FindIDs finds the IDs for the given table name satisfying the given condition

@@ -56,7 +56,7 @@ func TestAPIGetContentsList(t *testing.T) {
 func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	/*** SETUP ***/
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})         // owner of the repo1 & repo16
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})         // owner of the repo3, is an org
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})          // owner of the repo3, is an org
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})         // owner of neither repos
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})   // public repo
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})   // public repo
@@ -70,14 +70,15 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	session = loginUser(t, user4.Name)
 	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
-	// Make a new branch in repo1
-	newBranch := "test_branch"
-	err := repo_service.CreateNewBranch(git.DefaultContext, user2, repo1, repo1.DefaultBranch, newBranch)
-	assert.NoError(t, err)
 	// Get the commit ID of the default branch
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repo1.RepoPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
+
+	// Make a new branch in repo1
+	newBranch := "test_branch"
+	err = repo_service.CreateNewBranch(git.DefaultContext, user2, repo1, gitRepo, repo1.DefaultBranch, newBranch)
+	assert.NoError(t, err)
 
 	commitID, _ := gitRepo.GetBranchCommitID(repo1.DefaultBranch)
 	// Make a new tag in repo1
@@ -160,7 +161,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/readme.md?token=%s", user2.Name, repo16.Name, token2)
 	MakeRequest(t, req, http.StatusOK)
 
-	// Test access of org user3 private repo file by owner user2
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?token=%s", user3.Name, repo3.Name, treePath, token2)
+	// Test access of org org3 private repo file by owner user2
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?token=%s", org3.Name, repo3.Name, treePath, token2)
 	MakeRequest(t, req, http.StatusOK)
 }

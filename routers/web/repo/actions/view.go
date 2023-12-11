@@ -486,8 +486,9 @@ type ArtifactsViewResponse struct {
 }
 
 type ArtifactsViewItem struct {
-	Name string `json:"name"`
-	Size int64  `json:"size"`
+	Name   string `json:"name"`
+	Size   int64  `json:"size"`
+	Status string `json:"status"`
 }
 
 func ArtifactsView(ctx *context_module.Context) {
@@ -510,9 +511,14 @@ func ArtifactsView(ctx *context_module.Context) {
 		Artifacts: make([]*ArtifactsViewItem, 0, len(artifacts)),
 	}
 	for _, art := range artifacts {
+		status := "completed"
+		if art.Status == actions_model.ArtifactStatusExpired {
+			status = "expired"
+		}
 		artifactsResponse.Artifacts = append(artifactsResponse.Artifacts, &ArtifactsViewItem{
-			Name: art.ArtifactName,
-			Size: art.FileSize,
+			Name:   art.ArtifactName,
+			Size:   art.FileSize,
+			Status: status,
 		})
 	}
 	ctx.JSON(http.StatusOK, artifactsResponse)
@@ -532,7 +538,10 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		return
 	}
 
-	artifacts, err := actions_model.ListArtifactsByRunIDAndName(ctx, run.ID, artifactName)
+	artifacts, err := db.Find[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{
+		RunID:        run.ID,
+		ArtifactName: artifactName,
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
@@ -602,7 +611,7 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 		cfg.DisableWorkflow(workflow)
 	}
 
-	if err := repo_model.UpdateRepoUnit(cfgUnit); err != nil {
+	if err := repo_model.UpdateRepoUnit(ctx, cfgUnit); err != nil {
 		ctx.ServerError("UpdateRepoUnit", err)
 		return
 	}

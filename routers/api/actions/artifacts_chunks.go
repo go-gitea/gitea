@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 )
@@ -86,7 +87,10 @@ func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chun
 
 func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID int64, artifactName string) error {
 	// read all db artifacts by name
-	artifacts, err := actions.ListArtifactsByRunIDAndName(ctx, runID, artifactName)
+	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
+		RunID:        runID,
+		ArtifactName: artifactName,
+	})
 	if err != nil {
 		return err
 	}
@@ -179,7 +183,7 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 	// save storage path to artifact
 	log.Debug("[artifact] merge chunks to artifact: %d, %s", artifact.ID, storagePath)
 	artifact.StoragePath = storagePath
-	artifact.Status = actions.ArtifactStatusUploadConfirmed
+	artifact.Status = int64(actions.ArtifactStatusUploadConfirmed)
 	if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
 		return fmt.Errorf("update artifact error: %v", err)
 	}

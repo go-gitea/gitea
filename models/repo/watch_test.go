@@ -17,13 +17,13 @@ import (
 func TestIsWatching(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	assert.True(t, repo_model.IsWatching(1, 1))
-	assert.True(t, repo_model.IsWatching(4, 1))
-	assert.True(t, repo_model.IsWatching(11, 1))
+	assert.True(t, repo_model.IsWatching(db.DefaultContext, 1, 1))
+	assert.True(t, repo_model.IsWatching(db.DefaultContext, 4, 1))
+	assert.True(t, repo_model.IsWatching(db.DefaultContext, 11, 1))
 
-	assert.False(t, repo_model.IsWatching(1, 5))
-	assert.False(t, repo_model.IsWatching(8, 1))
-	assert.False(t, repo_model.IsWatching(unittest.NonexistentID, unittest.NonexistentID))
+	assert.False(t, repo_model.IsWatching(db.DefaultContext, 1, 5))
+	assert.False(t, repo_model.IsWatching(db.DefaultContext, 8, 1))
+	assert.False(t, repo_model.IsWatching(db.DefaultContext, unittest.NonexistentID, unittest.NonexistentID))
 }
 
 func TestGetWatchers(t *testing.T) {
@@ -47,7 +47,7 @@ func TestRepository_GetWatchers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	watchers, err := repo_model.GetRepoWatchers(repo.ID, db.ListOptions{Page: 1})
+	watchers, err := repo_model.GetRepoWatchers(db.DefaultContext, repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, repo.NumWatches)
 	for _, watcher := range watchers {
@@ -55,7 +55,7 @@ func TestRepository_GetWatchers(t *testing.T) {
 	}
 
 	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 9})
-	watchers, err = repo_model.GetRepoWatchers(repo.ID, db.ListOptions{Page: 1})
+	watchers, err = repo_model.GetRepoWatchers(db.DefaultContext, repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, 0)
 }
@@ -64,7 +64,7 @@ func TestWatchIfAuto(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	watchers, err := repo_model.GetRepoWatchers(repo.ID, db.ListOptions{Page: 1})
+	watchers, err := repo_model.GetRepoWatchers(db.DefaultContext, repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, repo.NumWatches)
 
@@ -74,13 +74,13 @@ func TestWatchIfAuto(t *testing.T) {
 
 	// Must not add watch
 	assert.NoError(t, repo_model.WatchIfAuto(db.DefaultContext, 8, 1, true))
-	watchers, err = repo_model.GetRepoWatchers(repo.ID, db.ListOptions{Page: 1})
+	watchers, err = repo_model.GetRepoWatchers(db.DefaultContext, repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount)
 
 	// Should not add watch
 	assert.NoError(t, repo_model.WatchIfAuto(db.DefaultContext, 10, 1, true))
-	watchers, err = repo_model.GetRepoWatchers(repo.ID, db.ListOptions{Page: 1})
+	watchers, err = repo_model.GetRepoWatchers(db.DefaultContext, repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount)
 
@@ -88,31 +88,31 @@ func TestWatchIfAuto(t *testing.T) {
 
 	// Must not add watch
 	assert.NoError(t, repo_model.WatchIfAuto(db.DefaultContext, 8, 1, true))
-	watchers, err = repo_model.GetRepoWatchers(repo.ID, db.ListOptions{Page: 1})
+	watchers, err = repo_model.GetRepoWatchers(db.DefaultContext, repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount)
 
 	// Should not add watch
 	assert.NoError(t, repo_model.WatchIfAuto(db.DefaultContext, 12, 1, false))
-	watchers, err = repo_model.GetRepoWatchers(repo.ID, db.ListOptions{Page: 1})
+	watchers, err = repo_model.GetRepoWatchers(db.DefaultContext, repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount)
 
 	// Should add watch
 	assert.NoError(t, repo_model.WatchIfAuto(db.DefaultContext, 12, 1, true))
-	watchers, err = repo_model.GetRepoWatchers(repo.ID, db.ListOptions{Page: 1})
+	watchers, err = repo_model.GetRepoWatchers(db.DefaultContext, repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount+1)
 
 	// Should remove watch, inhibit from adding auto
 	assert.NoError(t, repo_model.WatchRepo(db.DefaultContext, 12, 1, false))
-	watchers, err = repo_model.GetRepoWatchers(repo.ID, db.ListOptions{Page: 1})
+	watchers, err = repo_model.GetRepoWatchers(db.DefaultContext, repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount)
 
 	// Must not add watch
 	assert.NoError(t, repo_model.WatchIfAuto(db.DefaultContext, 12, 1, true))
-	watchers, err = repo_model.GetRepoWatchers(repo.ID, db.ListOptions{Page: 1})
+	watchers, err = repo_model.GetRepoWatchers(db.DefaultContext, repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount)
 }
@@ -122,18 +122,18 @@ func TestWatchRepoMode(t *testing.T) {
 
 	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1}, 0)
 
-	assert.NoError(t, repo_model.WatchRepoMode(12, 1, repo_model.WatchModeAuto))
+	assert.NoError(t, repo_model.WatchRepoMode(db.DefaultContext, 12, 1, repo_model.WatchModeAuto))
 	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1}, 1)
 	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1, Mode: repo_model.WatchModeAuto}, 1)
 
-	assert.NoError(t, repo_model.WatchRepoMode(12, 1, repo_model.WatchModeNormal))
+	assert.NoError(t, repo_model.WatchRepoMode(db.DefaultContext, 12, 1, repo_model.WatchModeNormal))
 	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1}, 1)
 	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1, Mode: repo_model.WatchModeNormal}, 1)
 
-	assert.NoError(t, repo_model.WatchRepoMode(12, 1, repo_model.WatchModeDont))
+	assert.NoError(t, repo_model.WatchRepoMode(db.DefaultContext, 12, 1, repo_model.WatchModeDont))
 	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1}, 1)
 	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1, Mode: repo_model.WatchModeDont}, 1)
 
-	assert.NoError(t, repo_model.WatchRepoMode(12, 1, repo_model.WatchModeNone))
+	assert.NoError(t, repo_model.WatchRepoMode(db.DefaultContext, 12, 1, repo_model.WatchModeNone))
 	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1}, 0)
 }

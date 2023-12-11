@@ -70,3 +70,30 @@ func TestAsCommentType(t *testing.T) {
 	assert.Equal(t, issues_model.CommentTypeComment, issues_model.AsCommentType("comment"))
 	assert.Equal(t, issues_model.CommentTypePRUnScheduledToAutoMerge, issues_model.AsCommentType("pull_cancel_scheduled_merge"))
 }
+
+func TestMigrate_InsertIssueComments(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	_ = issue.LoadRepo(db.DefaultContext)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID})
+	reaction := &issues_model.Reaction{
+		Type:   "heart",
+		UserID: owner.ID,
+	}
+
+	comment := &issues_model.Comment{
+		PosterID:  owner.ID,
+		Poster:    owner,
+		IssueID:   issue.ID,
+		Issue:     issue,
+		Reactions: []*issues_model.Reaction{reaction},
+	}
+
+	err := issues_model.InsertIssueComments(db.DefaultContext, []*issues_model.Comment{comment})
+	assert.NoError(t, err)
+
+	issueModified := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	assert.EqualValues(t, issue.NumComments+1, issueModified.NumComments)
+
+	unittest.CheckConsistencyFor(t, &issues_model.Issue{})
+}

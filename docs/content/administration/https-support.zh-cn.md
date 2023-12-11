@@ -33,7 +33,7 @@ CERT_FILE = cert.pem
 KEY_FILE  = key.pem
 ```
 
-请注意，如果您的证书由第三方证书颁发机构签名（即不是自签名的），则 cert.pem 应包含证书链。服务器证书必须是 cert.pem 中的第一个条目，后跟中介（如果有）。不必包含根证书，因为连接客户端必须已经拥有根证书才能建立信任关系。要了解有关配置值的更多信息，请查看 [配置备忘单](../config-cheat-sheet#server-server)。
+请注意，如果您的证书由第三方证书颁发机构签名（即不是自签名的），则 cert.pem 应包含证书链。服务器证书必须是 cert.pem 中的第一个条目，后跟中介（如果有）。不必包含根证书，因为连接客户端必须已经拥有根证书才能建立信任关系。要了解有关配置值的更多信息，请查看 [配置备忘单](administration/config-cheat-sheet#server-server)。
 
 对于“CERT_FILE”或“KEY_FILE”字段，当文件路径是相对路径时，文件路径相对于“GITEA_CUSTOM”环境变量。它也可以是绝对路径。
 
@@ -82,11 +82,11 @@ ACME_DIRECTORY=https
 ACME_EMAIL=email@example.com
 ```
 
-要了解关于配置, 请访问 [配置备忘单](../config-cheat-sheet#server-server)获取更多信息
+要了解关于配置, 请访问 [配置备忘单](administration/config-cheat-sheet.md#server-server)获取更多信息
 
 ## 使用反向代理服务器
 
-按照 [reverse proxy guide](../reverse-proxies) 的规则设置你的反向代理服务器
+按照 [reverse proxy guide](administration/reverse-proxies.md) 的规则设置你的反向代理服务器
 
 然后，按照下面的向导启用 HTTPS：
 

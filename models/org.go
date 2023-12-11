@@ -14,12 +14,11 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 )
 
-func removeOrgUser(ctx context.Context, orgID, userID int64) error {
+// RemoveOrgUser removes user from given organization.
+func RemoveOrgUser(ctx context.Context, orgID, userID int64) error {
 	ou := new(organization.OrgUser)
 
-	sess := db.GetEngine(ctx)
-
-	has, err := sess.
+	has, err := db.GetEngine(ctx).
 		Where("uid=?", userID).
 		And("org_id=?", orgID).
 		Get(ou)
@@ -52,7 +51,13 @@ func removeOrgUser(ctx context.Context, orgID, userID int64) error {
 		}
 	}
 
-	if _, err := sess.ID(ou.ID).Delete(ou); err != nil {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if _, err := db.GetEngine(ctx).ID(ou.ID).Delete(ou); err != nil {
 		return err
 	} else if _, err = db.Exec(ctx, "UPDATE `user` SET num_members=num_members-1 WHERE id=?", orgID); err != nil {
 		return err
@@ -74,7 +79,7 @@ func removeOrgUser(ctx context.Context, orgID, userID int64) error {
 	}
 
 	if len(repoIDs) > 0 {
-		if _, err = sess.
+		if _, err = db.GetEngine(ctx).
 			Where("user_id = ?", userID).
 			In("repo_id", repoIDs).
 			Delete(new(access_model.Access)); err != nil {
@@ -93,18 +98,5 @@ func removeOrgUser(ctx context.Context, orgID, userID int64) error {
 		}
 	}
 
-	return nil
-}
-
-// RemoveOrgUser removes user from given organization.
-func RemoveOrgUser(orgID, userID int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	if err := removeOrgUser(ctx, orgID, userID); err != nil {
-		return err
-	}
 	return committer.Commit()
 }

@@ -39,7 +39,7 @@ func TestGetUserEmailsByNames(t *testing.T) {
 	assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user9"}))
 	assert.ElementsMatch(t, []string{"user8@example.com", "user5@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user5"}))
 
-	assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user7"}))
+	assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "org7"}))
 }
 
 func TestCanCreateOrganization(t *testing.T) {
@@ -63,7 +63,7 @@ func TestCanCreateOrganization(t *testing.T) {
 func TestSearchUsers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	testSuccess := func(opts *user_model.SearchUserOptions, expectedUserOrOrgIDs []int64) {
-		users, _, err := user_model.SearchUsers(opts)
+		users, _, err := user_model.SearchUsers(db.DefaultContext, opts)
 		assert.NoError(t, err)
 		cassText := fmt.Sprintf("ids: %v, opts: %v", expectedUserOrOrgIDs, opts)
 		if assert.Len(t, users, len(expectedUserOrOrgIDs), "case: %s", cassText) {
@@ -150,16 +150,16 @@ func TestEmailNotificationPreferences(t *testing.T) {
 		assert.Equal(t, test.expected, user.EmailNotifications())
 
 		// Try all possible settings
-		assert.NoError(t, user_model.SetEmailNotifications(user, user_model.EmailNotificationsEnabled))
+		assert.NoError(t, user_model.SetEmailNotifications(db.DefaultContext, user, user_model.EmailNotificationsEnabled))
 		assert.Equal(t, user_model.EmailNotificationsEnabled, user.EmailNotifications())
 
-		assert.NoError(t, user_model.SetEmailNotifications(user, user_model.EmailNotificationsOnMention))
+		assert.NoError(t, user_model.SetEmailNotifications(db.DefaultContext, user, user_model.EmailNotificationsOnMention))
 		assert.Equal(t, user_model.EmailNotificationsOnMention, user.EmailNotifications())
 
-		assert.NoError(t, user_model.SetEmailNotifications(user, user_model.EmailNotificationsDisabled))
+		assert.NoError(t, user_model.SetEmailNotifications(db.DefaultContext, user, user_model.EmailNotificationsDisabled))
 		assert.Equal(t, user_model.EmailNotificationsDisabled, user.EmailNotifications())
 
-		assert.NoError(t, user_model.SetEmailNotifications(user, user_model.EmailNotificationsAndYourOwn))
+		assert.NoError(t, user_model.SetEmailNotifications(db.DefaultContext, user, user_model.EmailNotificationsAndYourOwn))
 		assert.Equal(t, user_model.EmailNotificationsAndYourOwn, user.EmailNotifications())
 	}
 }
@@ -239,7 +239,7 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 		MustChangePassword: false,
 	}
 
-	err := user_model.CreateUser(user)
+	err := user_model.CreateUser(db.DefaultContext, user)
 	assert.Error(t, err)
 	assert.True(t, user_model.IsErrEmailCharIsNotSupported(err))
 }
@@ -253,7 +253,7 @@ func TestCreateUserEmailAlreadyUsed(t *testing.T) {
 	user.Name = "testuser"
 	user.LowerName = strings.ToLower(user.Name)
 	user.ID = 0
-	err := user_model.CreateUser(user)
+	err := user_model.CreateUser(db.DefaultContext, user)
 	assert.Error(t, err)
 	assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
 }
@@ -270,7 +270,7 @@ func TestCreateUserCustomTimestamps(t *testing.T) {
 	user.ID = 0
 	user.Email = "unique@example.com"
 	user.CreatedUnix = creationTimestamp
-	err := user_model.CreateUser(user)
+	err := user_model.CreateUser(db.DefaultContext, user)
 	assert.NoError(t, err)
 
 	fetched, err := user_model.GetUserByID(context.Background(), user.ID)
@@ -295,7 +295,7 @@ func TestCreateUserWithoutCustomTimestamps(t *testing.T) {
 	user.Email = "unique@example.com"
 	user.CreatedUnix = 0
 	user.UpdatedUnix = 0
-	err := user_model.CreateUser(user)
+	err := user_model.CreateUser(db.DefaultContext, user)
 	assert.NoError(t, err)
 
 	timestampEnd := time.Now().Unix()
@@ -372,9 +372,9 @@ func TestUpdateUser(t *testing.T) {
 func TestUpdateUserEmailAlreadyUsed(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 
-	user2.Email = user3.Email
+	user2.Email = org3.Email
 	err := user_model.UpdateUser(db.DefaultContext, user2, true)
 	assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
 }
@@ -429,17 +429,17 @@ func TestNewUserRedirect3(t *testing.T) {
 func TestGetUserByOpenID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	_, err := user_model.GetUserByOpenID("https://unknown")
+	_, err := user_model.GetUserByOpenID(db.DefaultContext, "https://unknown")
 	if assert.Error(t, err) {
 		assert.True(t, user_model.IsErrUserNotExist(err))
 	}
 
-	user, err := user_model.GetUserByOpenID("https://user1.domain1.tld")
+	user, err := user_model.GetUserByOpenID(db.DefaultContext, "https://user1.domain1.tld")
 	if assert.NoError(t, err) {
 		assert.Equal(t, int64(1), user.ID)
 	}
 
-	user, err = user_model.GetUserByOpenID("https://domain1.tld/user2/")
+	user, err = user_model.GetUserByOpenID(db.DefaultContext, "https://domain1.tld/user2/")
 	if assert.NoError(t, err) {
 		assert.Equal(t, int64(2), user.ID)
 	}
@@ -449,13 +449,13 @@ func TestFollowUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(followerID, followedID int64) {
-		assert.NoError(t, user_model.FollowUser(followerID, followedID))
+		assert.NoError(t, user_model.FollowUser(db.DefaultContext, followerID, followedID))
 		unittest.AssertExistsAndLoadBean(t, &user_model.Follow{UserID: followerID, FollowID: followedID})
 	}
 	testSuccess(4, 2)
 	testSuccess(5, 2)
 
-	assert.NoError(t, user_model.FollowUser(2, 2))
+	assert.NoError(t, user_model.FollowUser(db.DefaultContext, 2, 2))
 
 	unittest.CheckConsistencyFor(t, &user_model.User{})
 }
@@ -464,7 +464,7 @@ func TestUnfollowUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(followerID, followedID int64) {
-		assert.NoError(t, user_model.UnfollowUser(followerID, followedID))
+		assert.NoError(t, user_model.UnfollowUser(db.DefaultContext, followerID, followedID))
 		unittest.AssertNotExistsBean(t, &user_model.Follow{UserID: followerID, FollowID: followedID})
 	}
 	testSuccess(4, 2)

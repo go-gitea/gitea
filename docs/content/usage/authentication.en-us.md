@@ -157,12 +157,13 @@ Uses the following fields:
 
 - User Attribute in Group (optional)
 
-  - Which user LDAP attribute is listed in the group.
-  - Example: `uid`
+  - The user attribute that is used to reference a user in the group object.
+  - Example: `uid` if the group objects contains a `member: bender` and the user object contains a `uid: bender`.
+  - Example: `dn` if the group object contains a `member: uid=bender,ou=users,dc=planetexpress,dc=com`.
 
 - Group Attribute for User (optional)
-  - Which group LDAP attribute contains an array above user attribute names.
-  - Example: `memberUid`
+  - The attribute of the group object that lists/contains the group members.
+  - Example: `memberUid` or `member`
 
 ## PAM (Pluggable Authentication Module)
 
@@ -197,7 +198,7 @@ administrative user.
     field is set to `mail.com`, then Gitea will expect the `user email` field
     for an authenticated GIT instance to be `gituser@mail.com`.[^2]
 
-**Note**: PAM support is added via [build-time flags](installation/install-from-source.md#build),
+**Note**: PAM support is added via [build-time flags](installation/from-source.md#build),
 and the official binaries provided do not have this enabled.  PAM requires that
 the necessary libpam dynamic library be available and the necessary PAM
 development headers be accessible to the compiler.

@@ -6,11 +6,11 @@
 <h1 align="center">Gitea - Git with a cup of tea</h1>
 
 <p align="center">
-  <a href="https://drone.gitea.io/go-gitea/gitea" title="Build Status">
-    <img src="https://drone.gitea.io/api/badges/go-gitea/gitea/status.svg?ref=refs/heads/main">
+  <a href="https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml?query=branch%3Amain" title="Release Nightly">
+    <img src="https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml/badge.svg?branch=main">
   </a>
   <a href="https://discord.gg/Gitea" title="Join the Discord chat at https://discord.gg/Gitea">
-    <img src="https://img.shields.io/discord/322538954119184384.svg">
+    <img src="https://img.shields.io/discord/322538954119184384.svg?logo=discord&logoColor=white&label=Discord&color=5865F2">
   </a>
   <a href="https://app.codecov.io/gh/go-gitea/gitea" title="Codecov">
     <img src="https://codecov.io/gh/go-gitea/gitea/branch/main/graph/badge.svg">
@@ -79,10 +79,10 @@ or if SQLite support is required:
 
 The `build` target is split into two sub-targets:
 
-- `make backend` which requires [Go Stable](https://go.dev/dl/), required version is defined in [go.mod](/go.mod).
-- `make frontend` which requires [Node.js LTS](https://nodejs.org/en/download/) or greater and Internet connectivity to download npm dependencies.
+- `make backend` which requires [Go Stable](https://go.dev/dl/), the required version is defined in [go.mod](/go.mod).
+- `make frontend` which requires [Node.js LTS](https://nodejs.org/en/download/) or greater.
 
-When building from the official source tarballs which include pre-built frontend files, the `frontend` target will not be triggered, making it possible to build without Node.js and Internet connectivity.
+Internet connectivity is required to download the go and npm modules. When building from the official source tarballs which include pre-built frontend files, the `frontend` target will not be triggered, making it possible to build without Node.js.
 
 Parallelism (`make -j <num>`) is not supported.
 
@@ -120,8 +120,6 @@ For more information and instructions about how to install Gitea, please look at
 If you have questions that are not covered by the documentation, you can get in contact with us on our [Discord server](https://discord.gg/Gitea) or create  a post in the [discourse forum](https://discourse.gitea.io/).
 
 We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea).
-
-The Hugo-based documentation theme is hosted at [gitea/theme](https://gitea.com/gitea/theme).
 
 The official Gitea CLI is developed at [gitea/tea](https://gitea.com/gitea/tea).
 

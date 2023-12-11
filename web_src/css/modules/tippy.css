@@ -6,7 +6,7 @@
 }
 
 [data-tippy-root] {
-  max-width: calc(100vw - 10px);
+  max-width: calc(100vw - 32px);
 }
 
 .tippy-box {
@@ -18,35 +18,58 @@
   font-size: 1rem;
 }
 
+.tippy-content {
+  position: relative;
+  padding: 1rem; /* if you need different padding, use different data-theme */
+  z-index: 1;
+}
+
+/* tooltip theme for text tooltips */
+
 .tippy-box[data-theme="tooltip"] {
   background-color: var(--color-tooltip-bg);
   color: var(--color-tooltip-text);
   border: none;
 }
 
+.tippy-box[data-theme="tooltip"] .tippy-content {
+  padding: 0.5rem 1rem;
+}
+
+.tippy-box[data-theme="tooltip"] .tippy-svg-arrow-inner,
+.tippy-box[data-theme="tooltip"] .tippy-svg-arrow-outer {
+  fill: var(--color-tooltip-bg);
+}
+
+/* menu theme for .ui.menu */
+
 .tippy-box[data-theme="menu"] {
   background-color: var(--color-menu);
   color: var(--color-text);
 }
 
-.tippy-box[data-theme="form-fetch-error"] {
-  border-color: var(--color-error-border);
-  background-color: var(--color-error-bg);
-  color: var(--color-error-text);
-}
-
-.tippy-content {
-  position: relative;
-  padding: 1rem;
-  z-index: 1;
-}
-
-.tippy-box[data-theme="tooltip"] .tippy-content {
-  padding: 0.5rem 1rem;
-}
-
 .tippy-box[data-theme="menu"] .tippy-content {
   padding: 0;
+}
+
+.tippy-box[data-theme="menu"] .tippy-svg-arrow-inner {
+  fill: var(--color-menu);
+}
+
+/* box-with-header theme to look like .ui.attached.segment. can contain .ui.attached.header */
+
+.tippy-box[data-theme="box-with-header"] .tippy-content {
+  background: var(--color-box-body);
+  border-radius: var(--border-radius);
+  padding: 0;
+}
+
+.tippy-box[data-theme="box-with-header"][data-placement^="top"] .tippy-svg-arrow-inner {
+  fill: var(--color-box-body);
+}
+
+.tippy-box[data-theme="box-with-header"][data-placement^="bottom"] .tippy-svg-arrow-inner {
+  fill: var(--color-box-header);
 }
 
 .tippy-box[data-placement^="top"] > .tippy-svg-arrow {
@@ -106,13 +129,4 @@
 
 .tippy-svg-arrow-inner {
   fill: var(--color-body);
-}
-
-.tippy-box[data-theme="tooltip"] .tippy-svg-arrow-inner,
-.tippy-box[data-theme="tooltip"] .tippy-svg-arrow-outer {
-  fill: var(--color-tooltip-bg);
-}
-
-.tippy-box[data-theme="menu"] .tippy-svg-arrow-inner {
-  fill: var(--color-menu);
 }

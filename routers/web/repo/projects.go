@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	project_model "code.gitea.io/gitea/models/project"
@@ -71,9 +72,12 @@ func Projects(ctx *context.Context) {
 		total = repo.NumClosedProjects
 	}
 
-	projects, count, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+	projects, count, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
+		ListOptions: db.ListOptions{
+			PageSize: setting.UI.IssuePagingNum,
+			Page:     page,
+		},
 		RepoID:   repo.ID,
-		Page:     page,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
 		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
 		Type:     project_model.TypeRepository,
@@ -87,7 +91,7 @@ func Projects(ctx *context.Context) {
 	for i := range projects {
 		projects[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 			URLPrefix: ctx.Repo.RepoLink,
-			Metas:     ctx.Repo.Repository.ComposeMetas(),
+			Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
 			GitRepo:   ctx.Repo.GitRepo,
 			Ctx:       ctx,
 		}, projects[i].Description)
@@ -142,7 +146,7 @@ func NewProjectPost(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.NewProject(&project_model.Project{
+	if err := project_model.NewProject(ctx, &project_model.Project{
 		RepoID:      ctx.Repo.Repository.ID,
 		Title:       form.Title,
 		Description: form.Content,
@@ -161,18 +165,19 @@ func NewProjectPost(ctx *context.Context) {
 
 // ChangeProjectStatus updates the status of a project between "open" and "close"
 func ChangeProjectStatus(ctx *context.Context) {
-	toClose := false
+	var toClose bool
 	switch ctx.Params(":action") {
 	case "open":
 		toClose = false
 	case "close":
 		toClose = true
 	default:
-		ctx.Redirect(ctx.Repo.RepoLink + "/projects")
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/projects")
+		return
 	}
 	id := ctx.ParamsInt64(":id")
 
-	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx.Repo.Repository.ID, id, toClose); err != nil {
+	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, ctx.Repo.Repository.ID, id, toClose); err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", err)
 		} else {
@@ -180,7 +185,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 		}
 		return
 	}
-	ctx.Redirect(ctx.Repo.RepoLink + "/projects?state=" + url.QueryEscape(ctx.Params(":action")))
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/projects?state=" + url.QueryEscape(ctx.Params(":action")))
 }
 
 // DeleteProject delete a project
@@ -279,7 +284,7 @@ func EditProjectPost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("repo.projects.edit_success", p.Title))
 	if ctx.FormString("redirect") == "project" {
-		ctx.Redirect(p.Link())
+		ctx.Redirect(p.Link(ctx))
 	} else {
 		ctx.Redirect(ctx.Repo.RepoLink + "/projects")
 	}
@@ -353,7 +358,7 @@ func ViewProject(ctx *context.Context) {
 
 	project.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.Repo.RepoLink,
-		Metas:     ctx.Repo.Repository.ComposeMetas(),
+		Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
 		GitRepo:   ctx.Repo.GitRepo,
 		Ctx:       ctx,
 	}, project.Description)
@@ -391,7 +396,7 @@ func UpdateIssueProject(ctx *context.Context) {
 			}
 		}
 
-		if err := issues_model.ChangeProjectAssign(issue, ctx.Doer, projectID); err != nil {
+		if err := issues_model.ChangeProjectAssign(ctx, issue, ctx.Doer, projectID); err != nil {
 			ctx.ServerError("ChangeProjectAssign", err)
 			return
 		}
@@ -445,7 +450,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.DeleteBoardByID(ctx.ParamsInt64(":boardID")); err != nil {
+	if err := project_model.DeleteBoardByID(ctx, ctx.ParamsInt64(":boardID")); err != nil {
 		ctx.ServerError("DeleteProjectBoardByID", err)
 		return
 	}
@@ -463,7 +468,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 		return
 	}
 
-	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
@@ -473,7 +478,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.NewBoard(&project_model.Board{
+	if err := project_model.NewBoard(ctx, &project_model.Board{
 		ProjectID: project.ID,
 		Title:     form.Title,
 		Color:     form.Color,
@@ -565,7 +570,7 @@ func SetDefaultProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.SetDefaultBoard(project.ID, board.ID); err != nil {
+	if err := project_model.SetDefaultBoard(ctx, project.ID, board.ID); err != nil {
 		ctx.ServerError("SetDefaultBoard", err)
 		return
 	}
@@ -580,7 +585,7 @@ func UnSetDefaultProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.SetDefaultBoard(project.ID, 0); err != nil {
+	if err := project_model.SetDefaultBoard(ctx, project.ID, 0); err != nil {
 		ctx.ServerError("SetDefaultBoard", err)
 		return
 	}
@@ -682,7 +687,7 @@ func MoveIssues(ctx *context.Context) {
 		}
 	}
 
-	if err = project_model.MoveIssuesOnProjectBoard(board, sortedIssueIDs); err != nil {
+	if err = project_model.MoveIssuesOnProjectBoard(ctx, board, sortedIssueIDs); err != nil {
 		ctx.ServerError("MoveIssuesOnProjectBoard", err)
 		return
 	}

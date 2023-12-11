@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 )
 
 // StorageType is a type of Storage
@@ -249,14 +250,24 @@ func getStorageForMinio(targetSec, overrideSec ConfigSection, tp targetSecType, 
 		return nil, fmt.Errorf("map minio config failed: %v", err)
 	}
 
-	if storage.MinioConfig.BasePath == "" {
-		storage.MinioConfig.BasePath = name + "/"
+	var defaultPath string
+	if storage.MinioConfig.BasePath != "" {
+		if tp == targetSecIsStorage || tp == targetSecIsDefault {
+			defaultPath = strings.TrimSuffix(storage.MinioConfig.BasePath, "/") + "/" + name + "/"
+		} else {
+			defaultPath = storage.MinioConfig.BasePath
+		}
+	}
+	if defaultPath == "" {
+		defaultPath = name + "/"
 	}
 
 	if overrideSec != nil {
 		storage.MinioConfig.ServeDirect = ConfigSectionKeyBool(overrideSec, "SERVE_DIRECT", storage.MinioConfig.ServeDirect)
-		storage.MinioConfig.BasePath = ConfigSectionKeyString(overrideSec, "MINIO_BASE_PATH", storage.MinioConfig.BasePath)
+		storage.MinioConfig.BasePath = ConfigSectionKeyString(overrideSec, "MINIO_BASE_PATH", defaultPath)
 		storage.MinioConfig.Bucket = ConfigSectionKeyString(overrideSec, "MINIO_BUCKET", storage.MinioConfig.Bucket)
+	} else {
+		storage.MinioConfig.BasePath = defaultPath
 	}
 	return &storage, nil
 }

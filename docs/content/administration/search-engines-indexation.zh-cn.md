@@ -22,7 +22,7 @@ menu:
 
 ## 使用 robots.txt 阻止搜索引擎索引
 
-为了使 Gitea 为顶级安装提供自定义的`robots.txt`（默认为空的 404），请在[`custom`文件夹或`CustomPath`]（administration/customizing-gitea.md）中创建一个名为 `robots.txt` 的文件。
+为了使 Gitea 为顶级安装提供自定义的`robots.txt`（默认为空的 404），请在 [`custom`文件夹或`CustomPath`]（administration/customizing-gitea.md）中创建一个名为 `public/robots.txt` 的文件。
 
 有关如何配置 `robots.txt` 的示例，请参考 [https://moz.com/learn/seo/robotstxt](https://moz.com/learn/seo/robotstxt)。
 

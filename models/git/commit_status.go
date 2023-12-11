@@ -514,7 +514,7 @@ func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo
 			user_model.ValidateCommitsWithEmails(ctx, commits),
 			repo.GetTrustModel(),
 			func(user *user_model.User) (bool, error) {
-				return repo_model.IsOwnerMemberCollaborator(repo, user.ID)
+				return repo_model.IsOwnerMemberCollaborator(ctx, repo, user.ID)
 			},
 		),
 		repo,
