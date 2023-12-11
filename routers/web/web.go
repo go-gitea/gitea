@@ -977,7 +977,9 @@ func registerRoutes(m *web.Route) {
 				}
 			})
 		}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), func(ctx *context.Context) {
-			if ctx.ContextUser.IsIndividual() && ctx.ContextUser.Visibility == structs.VisibleTypePrivate && (ctx.Doer == nil || ctx.ContextUser.ID != ctx.Doer.ID) {
+			// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
+			if ctx.ContextUser.IsIndividual() && ctx.ContextUser.Visibility == structs.VisibleTypePrivate &&
+				(ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin)) {
 				ctx.NotFound("Visit Project", nil)
 				return
 			}
