@@ -796,6 +796,15 @@ func registerRoutes(m *web.Route) {
 		}
 	}
 
+	individualPermsChecker := func(ctx *context.Context) {
+		// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
+		if ctx.ContextUser.IsIndividual() && ctx.ContextUser.Visibility == structs.VisibleTypePrivate &&
+			(ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin)) {
+			ctx.NotFound("Visit Project", nil)
+			return
+		}
+	}
+
 	// ***** START: Organization *****
 	m.Group("/org", func() {
 		m.Group("/{org}", func() {
@@ -976,14 +985,7 @@ func registerRoutes(m *web.Route) {
 					return
 				}
 			})
-		}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), func(ctx *context.Context) {
-			// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
-			if ctx.ContextUser.IsIndividual() && ctx.ContextUser.Visibility == structs.VisibleTypePrivate &&
-				(ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin)) {
-				ctx.NotFound("Visit Project", nil)
-				return
-			}
-		})
+		}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
 
 		m.Group("", func() {
 			m.Get("/code", user.CodeSearch)
