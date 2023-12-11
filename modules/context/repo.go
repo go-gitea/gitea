@@ -536,18 +536,20 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
 	}
 
-	ctx.Data["NumTags"], err = repo_model.GetReleaseCountByRepoID(ctx, ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{
+	ctx.Data["NumTags"], err = db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
 		IncludeDrafts: true,
 		IncludeTags:   true,
 		HasSha1:       util.OptionalBoolTrue, // only draft releases which are created with existing tags
+		RepoID:        ctx.Repo.Repository.ID,
 	})
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return nil
 	}
-	ctx.Data["NumReleases"], err = repo_model.GetReleaseCountByRepoID(ctx, ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{
+	ctx.Data["NumReleases"], err = db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
 		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
 		IncludeDrafts: ctx.Repo.CanWrite(unit_model.TypeReleases),
+		RepoID:        ctx.Repo.Repository.ID,
 	})
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
