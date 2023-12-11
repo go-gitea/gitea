@@ -4,12 +4,14 @@
 package context
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/structs"
 )
 
 // UserAssignmentWeb returns a middleware to handle context-user assignment for web routes
@@ -63,23 +65,35 @@ func userAssignment(ctx *context.Base, doer *user_model.User, errCb func(int, st
 	username := ctx.Params(":username")
 
 	if doer != nil && doer.LowerName == strings.ToLower(username) {
-		contextUser = doer
-	} else {
-		var err error
-		contextUser, err = user_model.GetUserByName(ctx, username)
-		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
-				if redirectUserID, err := user_model.LookupUserRedirect(ctx, username); err == nil {
-					context.RedirectToUser(ctx, username, redirectUserID)
-				} else if user_model.IsErrUserRedirectNotExist(err) {
-					errCb(http.StatusNotFound, "GetUserByName", err)
-				} else {
-					errCb(http.StatusInternalServerError, "LookupUserRedirect", err)
-				}
+		return doer
+	}
+
+	var err error
+	contextUser, err = user_model.GetUserByName(ctx, username)
+	if err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			if redirectUserID, err := user_model.LookupUserRedirect(ctx, username); err == nil {
+				context.RedirectToUser(ctx, username, redirectUserID)
+			} else if user_model.IsErrUserRedirectNotExist(err) {
+				errCb(http.StatusNotFound, "GetUserByName", err)
 			} else {
-				errCb(http.StatusInternalServerError, "GetUserByName", err)
+				errCb(http.StatusInternalServerError, "LookupUserRedirect", err)
+			}
+		} else {
+			errCb(http.StatusInternalServerError, "GetUserByName", err)
+		}
+	} else {
+		switch {
+		case contextUser.Visibility == structs.VisibleTypePrivate:
+			if doer == nil || (contextUser.ID != doer.ID && !doer.IsAdmin) {
+				errCb(http.StatusNotFound, "Visit Project", errors.New("no permission"))
+			}
+		case contextUser.Visibility == structs.VisibleTypeLimited:
+			if doer == nil {
+				errCb(http.StatusNotFound, "Visit Project", errors.New("no permission"))
 			}
 		}
 	}
+
 	return contextUser
 }
