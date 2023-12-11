@@ -103,6 +103,8 @@ func toIssue(ctx context.Context, issue *issues_model.Issue, getDownloadURL func
 			if issue.PullRequest.HasMerged {
 				apiIssue.PullRequest.Merged = issue.PullRequest.MergedUnix.AsTimePtr()
 			}
+			// Add pr's html url
+			apiIssue.PullRequest.HTMLURL = issue.HTMLURL()
 		}
 	}
 	if issue.DeadlineUnix != 0 {

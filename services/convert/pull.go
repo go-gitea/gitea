@@ -13,7 +13,9 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/gitdiff"
 )
 
 // ToAPIPullRequest assumes following fields have been assigned with valid values:
@@ -50,29 +52,31 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	}
 
 	apiPullRequest := &api.PullRequest{
-		ID:        pr.ID,
-		URL:       pr.Issue.HTMLURL(),
-		Index:     pr.Index,
-		Poster:    apiIssue.Poster,
-		Title:     apiIssue.Title,
-		Body:      apiIssue.Body,
-		Labels:    apiIssue.Labels,
-		Milestone: apiIssue.Milestone,
-		Assignee:  apiIssue.Assignee,
-		Assignees: apiIssue.Assignees,
-		State:     apiIssue.State,
-		IsLocked:  apiIssue.IsLocked,
-		Comments:  apiIssue.Comments,
-		HTMLURL:   pr.Issue.HTMLURL(),
-		DiffURL:   pr.Issue.DiffURL(),
-		PatchURL:  pr.Issue.PatchURL(),
-		HasMerged: pr.HasMerged,
-		MergeBase: pr.MergeBase,
-		Mergeable: pr.Mergeable(ctx),
-		Deadline:  apiIssue.Deadline,
-		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
-		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
-		PinOrder:  apiIssue.PinOrder,
+		ID:             pr.ID,
+		URL:            pr.Issue.HTMLURL(),
+		Index:          pr.Index,
+		Poster:         apiIssue.Poster,
+		Title:          apiIssue.Title,
+		Body:           apiIssue.Body,
+		Labels:         apiIssue.Labels,
+		Milestone:      apiIssue.Milestone,
+		Assignee:       apiIssue.Assignee,
+		Assignees:      apiIssue.Assignees,
+		State:          apiIssue.State,
+		Draft:          pr.IsWorkInProgress(ctx),
+		IsLocked:       apiIssue.IsLocked,
+		Comments:       apiIssue.Comments,
+		ReviewComments: pr.GetReviewCommentsCount(ctx),
+		HTMLURL:        pr.Issue.HTMLURL(),
+		DiffURL:        pr.Issue.DiffURL(),
+		PatchURL:       pr.Issue.PatchURL(),
+		HasMerged:      pr.HasMerged,
+		MergeBase:      pr.MergeBase,
+		Mergeable:      pr.Mergeable(ctx),
+		Deadline:       apiIssue.Deadline,
+		Created:        pr.Issue.CreatedUnix.AsTimePtr(),
+		Updated:        pr.Issue.UpdatedUnix.AsTimePtr(),
+		PinOrder:       apiIssue.PinOrder,
 
 		AllowMaintainerEdit: pr.AllowMaintainerEdit,
 
@@ -187,6 +191,34 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 				apiPullRequest.Head.Sha = commit.ID.String()
 			}
 		}
+
+		startCommitID := pr.MergeBase
+		endCommitID, err := headGitRepo.GetRefCommitID(apiPullRequest.Head.Ref)
+		if err != nil {
+			log.Error("GetRefCommitID[%s]: %v", apiPullRequest.Head.Ref, err)
+		}
+
+		maxLines := setting.Git.MaxGitDiffLines
+
+		// FIXME: If there are too many files in the repo, may cause some unpredictable issues.
+		diff, err := gitdiff.GetDiff(ctx, gitRepo,
+			&gitdiff.DiffOptions{
+				BeforeCommitID:     startCommitID,
+				AfterCommitID:      endCommitID,
+				SkipTo:             "", // ctx.FormString("skip-to"),
+				MaxLines:           maxLines,
+				MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
+				MaxFiles:           -1, // GetDiff() will return all files
+				WhitespaceBehavior: gitdiff.GetWhitespaceFlag("show-all"),
+			})
+		if err != nil {
+			log.Error("GetDiff: %v", err)
+			return nil
+		}
+
+		apiPullRequest.Additions = diff.TotalAddition
+		apiPullRequest.Deletions = diff.TotalDeletion
+		apiPullRequest.ChangedFiles = diff.NumFiles
 	}
 
 	if len(apiPullRequest.Head.Sha) == 0 && len(apiPullRequest.Head.Ref) != 0 {

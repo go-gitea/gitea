@@ -430,6 +430,24 @@ func (pr *PullRequest) GetGitHeadBranchRefName() string {
 	return fmt.Sprintf("%s%s", git.BranchPrefix, pr.HeadBranch)
 }
 
+func (pr *PullRequest) GetReviewCommentsCount(ctx context.Context) int {
+	opts := FindCommentsOptions{
+		Type:     CommentTypeReview,
+		IssueID:  pr.IssueID,
+		ReviewID: 0, // TODO: How to find the review ID?
+	}
+	conds := opts.ToConds()
+	if pr.ID == 0 {
+		conds = conds.And(builder.Eq{"invalidated": false})
+	}
+
+	count, err := db.GetEngine(ctx).Where(conds).Count(new(Comment))
+	if err != nil {
+		return 0
+	}
+	return int(count)
+}
+
 // IsChecking returns true if this pull request is still checking conflict.
 func (pr *PullRequest) IsChecking() bool {
 	return pr.Status == PullRequestStatusChecking
