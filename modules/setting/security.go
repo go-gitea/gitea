@@ -159,6 +159,10 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 		}
 	}
 
-	// TODO: default value should be true immediately after 1.22.0 has been released, so that 1.23.0 ships with the change
+	// TODO: default value should be true in future releases
 	DisableQueryAuthToken = sec.Key("DISABLE_QUERY_AUTH_TOKEN").MustBool(false)
+
+	if !DisableQueryAuthToken {
+		log.Warn("Enabling Query API Auth tokens is not recommended. DISABLE_QUERY_AUTH_TOKEN will default to true in gitea 1.23 and will be removed in gitea 1.24.")
+	}
 }
