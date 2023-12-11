@@ -136,6 +136,10 @@ func (r *Route) Get(pattern string, h ...any) {
 	r.Methods("GET", pattern, h...)
 }
 
+func (r *Route) Options(pattern string, h ...any) {
+	r.Methods("OPTIONS", pattern, h...)
+}
+
 // GetOptions delegate get and options method
 func (r *Route) GetOptions(pattern string, h ...any) {
 	r.Methods("GET,OPTIONS", pattern, h...)
