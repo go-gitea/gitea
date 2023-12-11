@@ -1,13 +1,3 @@
-<script type="module">
-	$('#runWorkflowDispatchForm').form({
-		fields: {
-			required_input : 'empty',
-			number: 'number',
-			required_number: ['number', 'empty']
-		}
-	});
-</script>
-
 <div class="ui ignored info message">
 	This workflow has a workflow_dispatch event trigger.
 	<button class="ui right floated mini button" onclick="$('#runWorkflowDispatchModal').modal('show');">{{ctx.Locale.Tr "actions.workflow.run"}}{{svg "octicon-triangle-down" 14 "dropdown icon"}}</button>
@@ -67,11 +57,11 @@
 					</div>
 				{{else if eq .Type "number"}}
 					<label>{{$key}} :</label>
-					<input name="{{$key}}" value="{{.Default}}" data-validate="{{if .Required}}required_{{end}}number">
+					<input name="{{$key}}" value="{{.Default}}" {{if .Required}}required{{end}}>
 					<span class="help">{{.Description}}</span>
 				{{else}}
 					<label>{{$key}} :</label>
-					<input name="{{$key}}" value="{{.Default}}" {{if .Required}}data-validate="required_input"{{end}}>
+					<input name="{{$key}}" value="{{.Default}}" {{if .Required}}required{{end}}>
 					<span class="help">{{.Description}}</span>
 				{{end}}
 			</div>
