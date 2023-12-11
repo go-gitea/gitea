@@ -178,6 +178,15 @@ func GetByBean(ctx context.Context, bean any) (bool, error) {
 	return GetEngine(ctx).Get(bean)
 }
 
+func Exist[T any](ctx context.Context, cond builder.Cond) (bool, error) {
+	if !cond.IsValid() {
+		return false, ErrConditionRequired{}
+	}
+
+	var bean T
+	return GetEngine(ctx).Where(cond).NoAutoCondition().Exist(&bean)
+}
+
 // DeleteByBean deletes all records according non-empty fields of the bean as conditions.
 func DeleteByBean(ctx context.Context, bean any) (int64, error) {
 	return GetEngine(ctx).Delete(bean)
