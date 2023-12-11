@@ -921,7 +921,7 @@ func Routes() *web.Route {
 				Post(bind(api.CreateEmailOption{}), user.AddEmail).
 				Delete(bind(api.DeleteEmailOption{}), user.DeleteEmail)
 
-			// create or update a user's actions secrets
+			// manage user-level actions features
 			m.Group("/actions", func() {
 				m.Group("/secrets", func() {
 					m.Combo("/{secretname}").
