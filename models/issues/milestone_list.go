@@ -8,8 +8,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -25,31 +24,31 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 	return ids
 }
 
-// GetMilestonesOption contain options to get milestones
-type GetMilestonesOption struct {
+// FindMilestoneOptions contain options to get milestones
+type FindMilestoneOptions struct {
 	db.ListOptions
 	RepoID   int64
-	State    api.StateType
+	IsClosed util.OptionalBool
 	Name     string
 	SortType string
+	RepoCond builder.Cond
+	RepoIDs  []int64
 }
 
-func (opts GetMilestonesOption) toCond() builder.Cond {
+func (opts FindMilestoneOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID != 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}
-
-	switch opts.State {
-	case api.StateClosed:
-		cond = cond.And(builder.Eq{"is_closed": true})
-	case api.StateAll:
-		break
-	// api.StateOpen:
-	default:
-		cond = cond.And(builder.Eq{"is_closed": false})
+	if opts.IsClosed != util.OptionalBoolNone {
+		cond = cond.And(builder.Eq{"is_closed": opts.IsClosed.IsTrue()})
 	}
-
+	if opts.RepoCond != nil && opts.RepoCond.IsValid() {
+		cond = cond.And(builder.In("repo_id", builder.Select("id").From("repository").Where(opts.RepoCond)))
+	}
+	if len(opts.RepoIDs) > 0 {
+		cond = cond.And(builder.In("repo_id", opts.RepoIDs))
+	}
 	if len(opts.Name) != 0 {
 		cond = cond.And(db.BuildCaseInsensitiveLike("name", opts.Name))
 	}
@@ -57,34 +56,23 @@ func (opts GetMilestonesOption) toCond() builder.Cond {
 	return cond
 }
 
-// GetMilestones returns milestones filtered by GetMilestonesOption's
-func GetMilestones(ctx context.Context, opts GetMilestonesOption) (MilestoneList, int64, error) {
-	sess := db.GetEngine(ctx).Where(opts.toCond())
-
-	if opts.Page != 0 {
-		sess = db.SetSessionPagination(sess, &opts)
-	}
-
+func (opts FindMilestoneOptions) ToOrders() string {
 	switch opts.SortType {
 	case "furthestduedate":
-		sess.Desc("deadline_unix")
+		return "deadline_unix DESC"
 	case "leastcomplete":
-		sess.Asc("completeness")
+		return "completeness ASC"
 	case "mostcomplete":
-		sess.Desc("completeness")
+		return "completeness DESC"
 	case "leastissues":
-		sess.Asc("num_issues")
+		return "num_issues ASC"
 	case "mostissues":
-		sess.Desc("num_issues")
+		return "num_issues DESC"
 	case "id":
-		sess.Asc("id")
+		return "id ASC"
 	default:
-		sess.Asc("deadline_unix").Asc("id")
+		return "deadline_unix ASC, id ASC"
 	}
-
-	miles := make([]*Milestone, 0, opts.PageSize)
-	total, err := sess.FindAndCount(&miles)
-	return miles, total, err
 }
 
 // GetMilestoneIDsByNames returns a list of milestone ids by given names.
@@ -97,49 +85,6 @@ func GetMilestoneIDsByNames(ctx context.Context, names []string) ([]int64, error
 		Where(db.BuildCaseInsensitiveIn("name", names)).
 		Cols("id").
 		Find(&ids)
-}
-
-// SearchMilestones search milestones
-func SearchMilestones(ctx context.Context, repoCond builder.Cond, page int, isClosed bool, sortType, keyword string) (MilestoneList, error) {
-	miles := make([]*Milestone, 0, setting.UI.IssuePagingNum)
-	sess := db.GetEngine(ctx).Where("is_closed = ?", isClosed)
-	if len(keyword) > 0 {
-		sess = sess.And(builder.Like{"UPPER(name)", strings.ToUpper(keyword)})
-	}
-	if repoCond.IsValid() {
-		sess.In("repo_id", builder.Select("id").From("repository").Where(repoCond))
-	}
-	if page > 0 {
-		sess = sess.Limit(setting.UI.IssuePagingNum, (page-1)*setting.UI.IssuePagingNum)
-	}
-
-	switch sortType {
-	case "furthestduedate":
-		sess.Desc("deadline_unix")
-	case "leastcomplete":
-		sess.Asc("completeness")
-	case "mostcomplete":
-		sess.Desc("completeness")
-	case "leastissues":
-		sess.Asc("num_issues")
-	case "mostissues":
-		sess.Desc("num_issues")
-	default:
-		sess.Asc("deadline_unix")
-	}
-	return miles, sess.Find(&miles)
-}
-
-// GetMilestonesByRepoIDs returns a list of milestones of given repositories and status.
-func GetMilestonesByRepoIDs(ctx context.Context, repoIDs []int64, page int, isClosed bool, sortType string) (MilestoneList, error) {
-	return SearchMilestones(
-		ctx,
-		builder.In("repo_id", repoIDs),
-		page,
-		isClosed,
-		sortType,
-		"",
-	)
 }
 
 // LoadTotalTrackedTimes loads for every milestone in the list the TotalTrackedTime by a batch request
@@ -183,47 +128,9 @@ func (milestones MilestoneList) LoadTotalTrackedTimes(ctx context.Context) error
 	return nil
 }
 
-// CountMilestones returns number of milestones in given repository with other options
-func CountMilestones(ctx context.Context, opts GetMilestonesOption) (int64, error) {
-	return db.GetEngine(ctx).
-		Where(opts.toCond()).
-		Count(new(Milestone))
-}
-
-// CountMilestonesByRepoCond map from repo conditions to number of milestones matching the options`
-func CountMilestonesByRepoCond(ctx context.Context, repoCond builder.Cond, isClosed bool) (map[int64]int64, error) {
-	sess := db.GetEngine(ctx).Where("is_closed = ?", isClosed)
-	if repoCond.IsValid() {
-		sess.In("repo_id", builder.Select("id").From("repository").Where(repoCond))
-	}
-
-	countsSlice := make([]*struct {
-		RepoID int64
-		Count  int64
-	}, 0, 10)
-	if err := sess.GroupBy("repo_id").
-		Select("repo_id AS repo_id, COUNT(*) AS count").
-		Table("milestone").
-		Find(&countsSlice); err != nil {
-		return nil, err
-	}
-
-	countMap := make(map[int64]int64, len(countsSlice))
-	for _, c := range countsSlice {
-		countMap[c.RepoID] = c.Count
-	}
-	return countMap, nil
-}
-
 // CountMilestonesByRepoCondAndKw map from repo conditions and the keyword of milestones' name to number of milestones matching the options`
-func CountMilestonesByRepoCondAndKw(ctx context.Context, repoCond builder.Cond, keyword string, isClosed bool) (map[int64]int64, error) {
-	sess := db.GetEngine(ctx).Where("is_closed = ?", isClosed)
-	if len(keyword) > 0 {
-		sess = sess.And(builder.Like{"UPPER(name)", strings.ToUpper(keyword)})
-	}
-	if repoCond.IsValid() {
-		sess.In("repo_id", builder.Select("id").From("repository").Where(repoCond))
-	}
+func CountMilestonesMap(ctx context.Context, opts FindMilestoneOptions) (map[int64]int64, error) {
+	sess := db.GetEngine(ctx).Where(opts.ToConds())
 
 	countsSlice := make([]*struct {
 		RepoID int64

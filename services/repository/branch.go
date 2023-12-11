@@ -66,22 +66,17 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		Keyword: keyword,
 	}
 
-	totalNumOfBranches, err := git_model.CountBranches(ctx, branchOpts)
+	dbBranches, totalNumOfBranches, err := db.FindAndCount[git_model.Branch](ctx, branchOpts)
 	if err != nil {
 		return nil, nil, 0, err
 	}
 
 	branchOpts.ExcludeBranchNames = []string{repo.DefaultBranch}
 
-	dbBranches, err := git_model.FindBranches(ctx, branchOpts)
-	if err != nil {
+	if err := git_model.BranchList(dbBranches).LoadDeletedBy(ctx); err != nil {
 		return nil, nil, 0, err
 	}
-
-	if err := dbBranches.LoadDeletedBy(ctx); err != nil {
-		return nil, nil, 0, err
-	}
-	if err := dbBranches.LoadPusher(ctx); err != nil {
+	if err := git_model.BranchList(dbBranches).LoadPusher(ctx); err != nil {
 		return nil, nil, 0, err
 	}
 
