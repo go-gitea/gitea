@@ -45,10 +45,8 @@ func TestGetDeletedBranches(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	branches, err := git_model.FindBranches(db.DefaultContext, git_model.FindBranchOptions{
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+	branches, err := db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
+		ListOptions:     db.ListOptionsAll,
 		RepoID:          repo.ID,
 		IsDeletedBranch: util.OptionalBoolTrue,
 	})
