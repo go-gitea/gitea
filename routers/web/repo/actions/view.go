@@ -758,7 +758,7 @@ func Run(ctx *context_module.Context) {
 		}
 	}
 
-	if workflows == nil || len(workflows) == 0 {
+	if len(workflows) == 0 {
 		ctx.Flash.Error(ctx.Tr("actions.workflow.not_found", workflowID))
 		ctx.Redirect(redirectURL)
 		return
