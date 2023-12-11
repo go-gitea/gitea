@@ -79,12 +79,6 @@ See [Workflow syntax for GitHub Actions](https://docs.github.com/en/actions/usin
 
 Gitea Actions only supports `runs-on: xyz` or `runs-on: [xyz]` now.
 
-### `workflow_dispatch`
-
-See [Workflow syntax for GitHub Actions](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#onworkflow_dispatch).
-
-It's ignored by Gitea Actions now.
-
 ### `hashFiles` expression
 
 See [Expressions](https://docs.github.com/en/actions/learn-github-actions/expressions#hashfiles)
