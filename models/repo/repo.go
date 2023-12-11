@@ -604,16 +604,8 @@ func ComposeSSHCloneURL(ownerName, repoName string) string {
 	sshUser := setting.SSH.User
 	sshDomain := setting.SSH.Domain
 
-	// if the domain already contains a port, just use it (many users already use it this way)
-	if _, _, err := net.SplitHostPort(sshDomain); err == nil {
-		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshDomain, url.PathEscape(ownerName), url.PathEscape(repoName))
-	}
-
 	// non-standard port, it must use full URI
 	if setting.SSH.Port != 22 {
-		if strings.HasPrefix(sshDomain, "[") && strings.HasSuffix(sshDomain, "]") {
-			sshDomain = sshDomain[1 : len(sshDomain)-1]
-		}
 		sshHost := net.JoinHostPort(sshDomain, strconv.Itoa(setting.SSH.Port))
 		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
 	}
