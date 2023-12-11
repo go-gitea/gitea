@@ -16,6 +16,7 @@ import (
 
 	"github.com/keybase/go-crypto/openpgp"
 	"github.com/keybase/go-crypto/openpgp/packet"
+	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
@@ -76,20 +77,17 @@ func PaddedKeyID(keyID string) string {
 	return zeros[0:16-len(keyID)] + keyID
 }
 
-// ListGPGKeys returns a list of public keys belongs to given user.
-func ListGPGKeys(ctx context.Context, uid int64, listOptions db.ListOptions) ([]*GPGKey, error) {
-	sess := db.GetEngine(ctx).Table(&GPGKey{}).Where("owner_id=? AND primary_key_id=''", uid)
-	if listOptions.Page != 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
-	}
-
-	keys := make([]*GPGKey, 0, 2)
-	return keys, sess.Find(&keys)
+type FindGPGKeyOptions struct {
+	db.ListOptions
+	OwnerID int64
 }
 
-// CountUserGPGKeys return number of gpg keys a user own
-func CountUserGPGKeys(ctx context.Context, userID int64) (int64, error) {
-	return db.GetEngine(ctx).Where("owner_id=? AND primary_key_id=''", userID).Count(&GPGKey{})
+func (opts FindGPGKeyOptions) ToConds() builder.Cond {
+	var cond builder.Cond = builder.Eq{"primary_key_id": ""}
+	if opts.OwnerID > 0 {
+		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+	}
+	return cond
 }
 
 func GetGPGKeyForUserByID(ctx context.Context, ownerID, keyID int64) (*GPGKey, error) {
