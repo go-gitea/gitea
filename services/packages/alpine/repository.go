@@ -157,12 +157,11 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 		pf, err := packages_model.GetFileForVersionByName(ctx, repoVersion.ID, IndexFilename, fmt.Sprintf("%s|%s|%s", branch, repository, architecture))
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			return err
+		} else if pf == nil {
+			return nil
 		}
 
-		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
-			return err
-		}
-		return packages_model.DeleteFileByID(ctx, pf.ID)
+		return packages_service.DeletePackageFile(ctx, pf)
 	}
 
 	// Cache data needed for all repository files
