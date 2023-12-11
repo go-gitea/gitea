@@ -606,7 +606,7 @@ func SearchRepo(ctx *context.Context) {
 	}
 
 	// call the database O(1) times to get the commit statuses for all repos
-	repoToItsLatestCommitStatuses, err := git_model.GetLatestCommitStatusForPairs(ctx, repoIDsToLatestCommitSHAs, db.ListOptions{})
+	repoToItsLatestCommitStatuses, err := git_model.GetLatestCommitStatusForPairs(ctx, repoIDsToLatestCommitSHAs, db.ListOptionsAll)
 	if err != nil {
 		log.Error("GetLatestCommitStatusForPairs: %v", err)
 		return
