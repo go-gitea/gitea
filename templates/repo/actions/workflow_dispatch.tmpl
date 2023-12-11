@@ -1,6 +1,6 @@
-<div class="ui ignored info message">
-	This workflow has a workflow_dispatch event trigger.
-	<button class="ui right floated mini button" onclick="$('#runWorkflowDispatchModal').modal('show');">{{ctx.Locale.Tr "actions.workflow.run"}}{{svg "octicon-triangle-down" 14 "dropdown icon"}}</button>
+<div class="ui ignored info message project-column-header" >
+  <span class="ui left floated text middle">This workflow has a workflow_dispatch event trigger.</span>
+  <button class="ui right floated mini button" onclick="$('#runWorkflowDispatchModal').modal('show');">{{ctx.Locale.Tr "actions.workflow.run"}}{{svg "octicon-triangle-down" 14 "dropdown icon"}}</button>
 </div>
 <div id="runWorkflowDispatchModal" class="ui mini modal">
 	<div class="content">
