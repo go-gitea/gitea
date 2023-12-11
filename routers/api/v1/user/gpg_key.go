@@ -203,7 +203,9 @@ func VerifyUserGPGKey(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "VerifyUserGPGKey", err)
 	}
 
-	key, err := asymkey_model.GetGPGKeysByKeyID(ctx, form.KeyID)
+	keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+		KeyID: form.KeyID,
+	})
 	if err != nil {
 		if asymkey_model.IsErrGPGKeyNotExist(err) {
 			ctx.NotFound()
@@ -212,7 +214,7 @@ func VerifyUserGPGKey(ctx *context.APIContext) {
 		}
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToGPGKey(key[0]))
+	ctx.JSON(http.StatusOK, convert.ToGPGKey(keys[0]))
 }
 
 // swagger:parameters userCurrentPostGPGKey

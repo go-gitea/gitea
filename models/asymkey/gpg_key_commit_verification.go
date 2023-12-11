@@ -395,7 +395,9 @@ func hashAndVerifyForKeyID(ctx context.Context, sig *packet.Signature, payload s
 	if keyID == "" {
 		return nil
 	}
-	keys, err := GetGPGKeysByKeyID(ctx, keyID)
+	keys, err := db.Find[GPGKey](ctx, FindGPGKeyOptions{
+		KeyID: keyID,
+	})
 	if err != nil {
 		log.Error("GetGPGKeysByKeyID: %v", err)
 		return &CommitVerification{
@@ -410,7 +412,9 @@ func hashAndVerifyForKeyID(ctx context.Context, sig *packet.Signature, payload s
 	for _, key := range keys {
 		var primaryKeys []*GPGKey
 		if key.PrimaryKeyID != "" {
-			primaryKeys, err = GetGPGKeysByKeyID(ctx, key.PrimaryKeyID)
+			primaryKeys, err = db.Find[GPGKey](ctx, FindGPGKeyOptions{
+				KeyID: key.PrimaryKeyID,
+			})
 			if err != nil {
 				log.Error("GetGPGKeysByKeyID: %v", err)
 				return &CommitVerification{

@@ -80,12 +80,16 @@ func PaddedKeyID(keyID string) string {
 type FindGPGKeyOptions struct {
 	db.ListOptions
 	OwnerID int64
+	KeyID   string
 }
 
 func (opts FindGPGKeyOptions) ToConds() builder.Cond {
 	var cond builder.Cond = builder.Eq{"primary_key_id": ""}
 	if opts.OwnerID > 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+	}
+	if opts.KeyID != "" {
+		cond = cond.And(builder.Eq{"key_id": opts.KeyID})
 	}
 	return cond
 }
@@ -99,12 +103,6 @@ func GetGPGKeyForUserByID(ctx context.Context, ownerID, keyID int64) (*GPGKey, e
 		return nil, ErrGPGKeyNotExist{keyID}
 	}
 	return key, nil
-}
-
-// GetGPGKeysByKeyID returns public key by given ID.
-func GetGPGKeysByKeyID(ctx context.Context, keyID string) ([]*GPGKey, error) {
-	keys := make([]*GPGKey, 0, 1)
-	return keys, db.GetEngine(ctx).Where("key_id=?", keyID).Find(&keys)
 }
 
 // GPGKeyToEntity retrieve the imported key and the traducted entity
