@@ -72,14 +72,15 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	session = loginUser(t, user4.Name)
 	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
-	// Make a new branch in repo1
-	newBranch := "test_branch"
-	err := repo_service.CreateNewBranch(git.DefaultContext, user2, repo1, repo1.DefaultBranch, newBranch)
-	assert.NoError(t, err)
 	// Get the commit ID of the default branch
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repo1.RepoPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
+
+	// Make a new branch in repo1
+	newBranch := "test_branch"
+	err = repo_service.CreateNewBranch(git.DefaultContext, user2, repo1, gitRepo, repo1.DefaultBranch, newBranch)
+	assert.NoError(t, err)
 
 	commitID, err := gitRepo.GetBranchCommitID(repo1.DefaultBranch)
 	assert.NoError(t, err)

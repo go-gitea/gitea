@@ -25,9 +25,6 @@
 							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.template"}}</span>
 						{{end}}
 					</div>
-					{{if $.EnableFeed}}
-						<a class="rss-icon gt-ml-3" href="{{$.RepoLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</a>
-					{{end}}
 				</div>
 				{{if $.PullMirror}}
 					<div class="fork-flag">{{ctx.Locale.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a></div>
@@ -54,6 +51,12 @@
 								</button>
 							</div>
 						</form>
+					{{end}}
+					{{if $.EnableFeed}}
+					{{/* An extra div-element is not necessary here, as this button does not secretly contain two buttons. */}}
+					<a class="ui compact small basic button" href="{{$.RepoLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
+						{{svg "octicon-rss" 16}}
+					</a>
 					{{end}}
 					<form method="post" action="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
 						{{$.CsrfTokenHtml}}
