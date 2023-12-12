@@ -110,10 +110,7 @@ func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
 	}
 
 	for _, pf := range pfs {
-		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
-			return err
-		}
-		if err := packages_model.DeleteFileByID(ctx, pf.ID); err != nil {
+		if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
 			return err
 		}
 	}
@@ -182,12 +179,11 @@ func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packa
 			pf, err := packages_model.GetFileForVersionByName(ctx, repoVersion.ID, filename, key)
 			if err != nil && !errors.Is(err, util.ErrNotExist) {
 				return err
+			} else if pf == nil {
+				continue
 			}
 
-			if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
-				return err
-			}
-			if err := packages_model.DeleteFileByID(ctx, pf.ID); err != nil {
+			if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
 				return err
 			}
 		}
@@ -285,12 +281,11 @@ func buildReleaseFiles(ctx context.Context, ownerID int64, repoVersion *packages
 			pf, err := packages_model.GetFileForVersionByName(ctx, repoVersion.ID, filename, distribution)
 			if err != nil && !errors.Is(err, util.ErrNotExist) {
 				return err
+			} else if pf == nil {
+				continue
 			}
 
-			if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
-				return err
-			}
-			if err := packages_model.DeleteFileByID(ctx, pf.ID); err != nil {
+			if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
 				return err
 			}
 		}
