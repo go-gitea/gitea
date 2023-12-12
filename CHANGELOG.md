@@ -4,6 +4,45 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.21.2](https://github.com/go-gitea/gitea/releases/tag/1.21.2) - 2023-12-12
+
+* SECURITY
+  * Rebuild with recently released golang version
+  * Fix missing check (#28406) (#28411)
+  * Do some missing checks (#28423) (#28432)
+* BUGFIXES
+  * Fix margin in server signed signature verification view (#28379) (#28381)
+  * Fix object does not exist error when checking citation file (#28314) (#28369)
+  * Use `filepath` instead of `path` to create SQLite3 database file (#28374) (#28378)
+  * Fix the runs will not be displayed bug when the main branch have no workflows but other branches have (#28359) (#28365)
+  * Handle repository.size column being NULL in migration v263 (#28336) (#28363)
+  * Convert git commit summary to valid UTF8. (#28356) (#28358)
+  * Fix migration panic due to an empty review comment diff (#28334) (#28362)
+  * Add `HEAD` support for rpm repo files (#28309) (#28360)
+  * Fix RPM/Debian signature key creation (#28352) (#28353)
+  * Keep profile tab when clicking on Language (#28320) (#28331)
+  * Fix missing issue search index update when changing status (#28325) (#28330)
+  * Fix wrong link in `protect_branch_name_pattern_desc` (#28313) (#28315)
+  * Read `previous` info from git blame (#28306) (#28310)
+  * Ignore "non-existing" errors when getDirectorySize calculates the size (#28276) (#28285)
+  * Use appSubUrl for OAuth2 callback URL tip (#28266) (#28275)
+  * Meilisearch: require all query terms to be matched (#28293) (#28296)
+  * Fix required error for token name (#28267) (#28284)
+  * Fix issue will be detected as pull request when checking `First-time contributor` (#28237) (#28271)
+  * Use full width for project boards (#28225) (#28245)
+  * Increase "version" when update the setting value to a same value as before (#28243) (#28244)
+  * Also sync DB branches on push if necessary (#28361) (#28403)
+  * Make gogit Repository.GetBranchNames consistent (#28348) (#28386)
+  * Recover from panic in cron task (#28409) (#28425)
+  * Deprecate query string auth tokens (#28390) (#28430)
+* ENHANCEMENTS
+  * Improve doctor cli behavior (#28422) (#28424)
+  * Fix margin in server signed signature verification view (#28379) (#28381)
+  * Refactor template empty checks (#28351) (#28354)
+  * Read `previous` info from git blame (#28306) (#28310)
+  * Use full width for project boards (#28225) (#28245)
+  * Enable system users search via the API (#28013) (#28018)
+
 ## [1.21.1](https://github.com/go-gitea/gitea/releases/tag/1.21.1) - 2023-11-26
 
 * SECURITY
