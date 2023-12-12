@@ -80,7 +80,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/activitypub"
@@ -793,12 +792,12 @@ func individualPermsChecker(ctx *context.Context) {
 	// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
 	if ctx.ContextUser.IsIndividual() {
 		switch {
-		case ctx.ContextUser.Visibility == structs.VisibleTypePrivate:
+		case ctx.ContextUser.Visibility == api.VisibleTypePrivate:
 			if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
 				ctx.NotFound("Visit Project", nil)
 				return
 			}
-		case ctx.ContextUser.Visibility == structs.VisibleTypeLimited:
+		case ctx.ContextUser.Visibility == api.VisibleTypeLimited:
 			if ctx.Doer == nil {
 				ctx.NotFound("Visit Project", nil)
 				return
