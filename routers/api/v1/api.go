@@ -787,6 +787,24 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIC
 	}
 }
 
+func individualPermsChecker(ctx *context.APIContext) {
+	// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
+	if ctx.ContextUser.IsIndividual() {
+		switch {
+		case ctx.ContextUser.Visibility == api.VisibleTypePrivate:
+			if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
+				ctx.NotFound("Visit Project", nil)
+				return
+			}
+		case ctx.ContextUser.Visibility == api.VisibleTypeLimited:
+			if ctx.Doer == nil {
+				ctx.NotFound("Visit Project", nil)
+				return
+			}
+		}
+	}
+}
+
 // Routes registers all v1 APIs routes to web application.
 func Routes() *web.Route {
 	m := web.NewRoute()
@@ -887,7 +905,7 @@ func Routes() *web.Route {
 				}, reqSelfOrAdmin(), reqBasicOrRevProxyAuth())
 
 				m.Get("/activities/feeds", user.ListUserActivityFeeds)
-			}, context_service.UserAssignmentAPI())
+			}, context_service.UserAssignmentAPI(), individualPermsChecker)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser))
 
 		// Users (requires user scope)
