@@ -196,14 +196,14 @@ export function loadElem(el, src) {
 }
 
 // some browsers like PaleMoon don't have "SubmitEvent" support, so we need to polyfill it (a tricky method): use the last clicked button as submitter
-const needSubmitEventSubmitterPolyfill = typeof SubmitEvent === 'undefined';
+const needSubmitEventPolyfill = typeof SubmitEvent === 'undefined';
 
-export function submitEventSubmitterGet(e) {
-  return needSubmitEventSubmitterPolyfill ? (e.target._submitter || null) : e.submitter;
+export function submitEventSubmitter(e) {
+  return needSubmitEventPolyfill ? (e.target._submitter || null) : e.submitter;
 }
 
-export function initSubmitEventSubmitterPolyfill() {
-  if (!needSubmitEventSubmitterPolyfill) return;
+export function initSubmitEventPolyfill() {
+  if (!needSubmitEventPolyfill) return;
   console.warn(`This browser doesn't have "SubmitEvent" support, use a tricky method to polyfill`);
   document.addEventListener('mousedown', (e) => {
     if (!e.target.form) return;

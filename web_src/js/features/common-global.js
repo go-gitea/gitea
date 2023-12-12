@@ -6,7 +6,7 @@ import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {svg} from '../svg.js';
-import {hideElem, showElem, toggleElem, initSubmitEventSubmitterPolyfill, submitEventSubmitterGet} from '../utils/dom.js';
+import {hideElem, showElem, toggleElem, initSubmitEventPolyfill, submitEventSubmitter} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
 import {showTemporaryTooltip} from '../modules/tippy.js';
 import {confirmModal} from './comp/ConfirmModal.js';
@@ -121,7 +121,7 @@ async function formFetchAction(e) {
   const formMethod = formEl.getAttribute('method') || 'get';
   const formActionUrl = formEl.getAttribute('action');
   const formData = new FormData(formEl);
-  const formSubmitter = submitEventSubmitterGet(e);
+  const formSubmitter = submitEventSubmitter(e);
   const [submitterName, submitterValue] = [formSubmitter?.getAttribute('name'), formSubmitter?.getAttribute('value')];
   if (submitterName) {
     formData.append(submitterName, submitterValue || '');
@@ -193,7 +193,7 @@ export function initGlobalCommon() {
 
   $('.tabular.menu .item').tab();
 
-  initSubmitEventSubmitterPolyfill();
+  initSubmitEventPolyfill();
   document.addEventListener('submit', formFetchAction);
   document.addEventListener('click', linkAction);
 }
