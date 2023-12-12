@@ -81,6 +81,5 @@ func userAssignment(ctx *context.Base, doer *user_model.User, errCb func(int, st
 			}
 		}
 	}
-
 	return contextUser
 }
