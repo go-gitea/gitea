@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/routers/utils"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/auth/source/saml"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
@@ -167,7 +168,7 @@ func SignIn(ctx *context.Context) {
 	}
 	ctx.Data["OAuth2Providers"] = oauth2Providers
 
-	samlProviders, err := auth.GetActiveAuthProviderSources(ctx, auth.SAML)
+	samlProviders, err := saml.GetSAMLProviders(ctx, util.OptionalBoolTrue)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -197,6 +198,14 @@ func SignInPost(ctx *context.Context) {
 		return
 	}
 	ctx.Data["OAuth2Providers"] = oauth2Providers
+
+	samlProviders, err := saml.GetSAMLProviders(ctx, util.OptionalBoolTrue)
+	if err != nil {
+		ctx.ServerError("UserSignIn", err)
+		return
+	}
+	ctx.Data["SAMLProviders"] = samlProviders
+
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
 	ctx.Data["PageIsSignIn"] = true

@@ -66,6 +66,7 @@ func TestSAMLRegistration(t *testing.T) {
 			EmailAssertionKey:                        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
 			NameAssertionKey:                         "http://schemas.xmlsoap.org/claims/CommonName",
 			UsernameAssertionKey:                     "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+			IconURL:                                  "",
 		},
 	}))
 

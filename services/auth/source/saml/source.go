@@ -53,6 +53,7 @@ type Source struct {
 	ServiceProviderPrivateKey string
 
 	CallbackURL string
+	IconURL     string
 
 	// EmailAssertionKey description: Assertion key for user.Email
 	EmailAssertionKey string

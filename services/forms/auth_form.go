@@ -94,6 +94,7 @@ type AuthenticationForm struct {
 	EmailAssertionKey                        string
 	NameAssertionKey                         string
 	UsernameAssertionKey                     string
+	SAMLIconURL                              string
 }
 
 // Validate validates fields
