@@ -788,7 +788,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIC
 	}
 }
 
-func individualPermsChecker(ctx *context.Context) {
+func individualPermsChecker(ctx *context.APIContext) {
 	// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
 	if ctx.ContextUser.IsIndividual() {
 		switch {
