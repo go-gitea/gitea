@@ -290,6 +290,7 @@ func parseSAMLConfig(ctx *context.Context, form forms.AuthenticationForm) (*saml
 		EmailAssertionKey:                        form.EmailAssertionKey,
 		NameAssertionKey:                         form.NameAssertionKey,
 		UsernameAssertionKey:                     form.UsernameAssertionKey,
+		IconURL:                                  form.SAMLIconURL,
 	}, nil
 }
 

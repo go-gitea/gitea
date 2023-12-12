@@ -368,6 +368,10 @@ Notice: Reverse Proxy Auth doesn't support the API. You still need an access tok
 
   - This specifies how Identity Provider (IdP) users are mapped to Gitea users. This option will be provider specific.
 
+- `Icon URL` (optional)
+
+  - URL of an icon to display on the Sign-In page for this authentication source.
+
 - `[Insecure] Skip Assertion Signature Validation` (optional)
 
   - This option is not recommended and disables integrity verification of IdP SAML assertions.

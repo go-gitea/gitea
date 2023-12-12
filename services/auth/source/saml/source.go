@@ -32,7 +32,7 @@ import (
 // /   _____/  /  _  \    /     \ |    |
 // \_____  \  /  /_\  \  /  \ /  \|    |
 // /        \/    |    \/    Y    \    |___
-///_______  /\____|__  /\____|__  /_______ \
+// /_______  /\____|__  /\____|__  /_______ \
 //        \/         \/         \/        \/
 
 // Source holds configuration for the SAML login source.
@@ -53,6 +53,7 @@ type Source struct {
 	ServiceProviderPrivateKey string
 
 	CallbackURL string
+	IconURL     string
 
 	// EmailAssertionKey description: Assertion key for user.Email
 	EmailAssertionKey string
