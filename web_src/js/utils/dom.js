@@ -205,7 +205,7 @@ export function submitEventSubmitter(e) {
 export function initSubmitEventPolyfill() {
   if (!needSubmitEventPolyfill) return;
   console.warn(`This browser doesn't have "SubmitEvent" support, use a tricky method to polyfill`);
-  document.addEventListener('mousedown', (e) => {
+  document.addEventListener('click', (e) => {
     if (!e.target.form) return;
     const isSubmitButton = ((e.target.nodeName === 'INPUT' || e.target.nodeName === 'BUTTON') && e.target.type === 'submit');
     e.target.form._submitter = isSubmitButton ? e.target : null;
