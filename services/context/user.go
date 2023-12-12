@@ -82,7 +82,7 @@ func userAssignment(ctx *context.Base, doer *user_model.User, errCb func(int, st
 		} else {
 			errCb(http.StatusInternalServerError, "GetUserByName", err)
 		}
-	} else {
+	} else if contextUser.IsIndividual() {
 		switch {
 		case contextUser.Visibility == structs.VisibleTypePrivate:
 			if doer == nil || (contextUser.ID != doer.ID && !doer.IsAdmin) {
