@@ -200,6 +200,7 @@ func List(ctx *context.Context) {
 	pager.AddParamString("actor", fmt.Sprint(actorID))
 	pager.AddParamString("status", fmt.Sprint(status))
 	ctx.Data["Page"] = pager
+	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
 
 	ctx.HTML(http.StatusOK, tplListActions)
 }
