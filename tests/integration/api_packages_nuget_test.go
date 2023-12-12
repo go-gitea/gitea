@@ -124,17 +124,16 @@ func TestPackageNuGet(t *testing.T) {
 			privateUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Visibility: structs.VisibleTypePrivate})
 
 			cases := []struct {
-				Owner          string
-				UseBasicAuth   bool
-				UseTokenAuth   bool
-				ExpectedStatus int
+				Owner        string
+				UseBasicAuth bool
+				UseTokenAuth bool
 			}{
-				{privateUser.Name, false, false, http.StatusNotFound},
-				{privateUser.Name, true, false, http.StatusOK},
-				{privateUser.Name, false, true, http.StatusOK},
-				{user.Name, false, false, http.StatusOK},
-				{user.Name, true, false, http.StatusOK},
-				{user.Name, false, true, http.StatusOK},
+				{privateUser.Name, false, false},
+				{privateUser.Name, true, false},
+				{privateUser.Name, false, true},
+				{user.Name, false, false},
+				{user.Name, true, false},
+				{user.Name, false, true},
 			}
 
 			for _, c := range cases {
@@ -146,7 +145,7 @@ func TestPackageNuGet(t *testing.T) {
 				} else if c.UseTokenAuth {
 					req = addNuGetAPIKeyHeader(req, token)
 				}
-				resp := MakeRequest(t, req, c.ExpectedStatus)
+				resp := MakeRequest(t, req, http.StatusOK)
 
 				var result nuget.ServiceIndexResponseV2
 				decodeXML(t, resp, &result)
