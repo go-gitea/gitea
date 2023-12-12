@@ -4,14 +4,12 @@
 package context
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/structs"
 )
 
 // UserAssignmentWeb returns a middleware to handle context-user assignment for web routes
@@ -81,17 +79,6 @@ func userAssignment(ctx *context.Base, doer *user_model.User, errCb func(int, st
 			}
 		} else {
 			errCb(http.StatusInternalServerError, "GetUserByName", err)
-		}
-	} else if contextUser.IsIndividual() {
-		switch {
-		case contextUser.Visibility == structs.VisibleTypePrivate:
-			if doer == nil || (contextUser.ID != doer.ID && !doer.IsAdmin) {
-				errCb(http.StatusNotFound, "Visit Project", errors.New("no permission"))
-			}
-		case contextUser.Visibility == structs.VisibleTypeLimited:
-			if doer == nil {
-				errCb(http.StatusNotFound, "Visit Project", errors.New("no permission"))
-			}
 		}
 	}
 
