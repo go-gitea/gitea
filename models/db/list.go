@@ -158,7 +158,10 @@ func Find[T any](ctx context.Context, opts FindOptions) ([]*T, error) {
 
 	sess = sess.Where(opts.ToConds())
 	page, pageSize := opts.GetPage(), opts.GetPageSize()
-	if !opts.IsListAll() && pageSize > 0 && page >= 1 {
+	if !opts.IsListAll() && pageSize > 0 {
+		if page == 0 {
+			page = 1
+		}
 		sess.Limit(pageSize, (page-1)*pageSize)
 	}
 	if newOpt, ok := opts.(FindOptionsOrder); ok && newOpt.ToOrders() != "" {
