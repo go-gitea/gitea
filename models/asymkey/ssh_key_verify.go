@@ -34,10 +34,7 @@ func VerifySSHKey(ctx context.Context, ownerID int64, fingerprint, token, signat
 	if err != nil {
 		// edge case for Windows based shells that will add CR LF if piped to ssh-keygen command
 		// see https://github.com/PowerShell/PowerShell/issues/5974
-		if sshsig.Verify(bytes.NewBuffer([]byte(token+"\r\n")), []byte(signature), []byte(key.Content), "gitea") == nil {
-			err = nil
-		}
-		if err != nil {
+		if sshsig.Verify(bytes.NewBuffer([]byte(token+"\r\n")), []byte(signature), []byte(key.Content), "gitea") != nil {
 			log.Error("Unable to validate token signature. Error: %v", err)
 			return "", ErrSSHInvalidTokenSignature{
 				Fingerprint: key.Fingerprint,
