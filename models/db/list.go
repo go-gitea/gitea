@@ -21,7 +21,6 @@ const (
 // Paginator is the base for different ListOptions types
 type Paginator interface {
 	GetSkipTake() (skip, take int)
-	GetStartEnd() (start, end int)
 	IsListAll() bool
 }
 
@@ -50,13 +49,6 @@ var (
 func (opts *ListOptions) GetSkipTake() (skip, take int) {
 	opts.SetDefaultValues()
 	return (opts.Page - 1) * opts.PageSize, opts.PageSize
-}
-
-// GetStartEnd returns the start and end of the ListOptions
-func (opts *ListOptions) GetStartEnd() (start, end int) {
-	start, take := opts.GetSkipTake()
-	end = start + take
-	return start, end
 }
 
 func (opts ListOptions) GetPage() int {
@@ -119,11 +111,6 @@ func (opts *AbsoluteListOptions) IsListAll() bool {
 // GetSkipTake returns the skip and take values
 func (opts *AbsoluteListOptions) GetSkipTake() (skip, take int) {
 	return opts.skip, opts.take
-}
-
-// GetStartEnd returns the start and end values
-func (opts *AbsoluteListOptions) GetStartEnd() (start, end int) {
-	return opts.skip, opts.skip + opts.take
 }
 
 // FindOptions represents a find options
