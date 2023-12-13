@@ -48,6 +48,14 @@
 					{{svg "octicon-x"}}
 				{{end}}
 			</div>
+			{{if .User.Language}}
+				<div class="flex-item-body">
+					<span class="flex-text-inline">
+						<b>{{ctx.Locale.Tr "settings.language"}}:</b>
+						{{range .AllLangs}}{{if eq $.User.Language .Lang}}{{.Name}}{{end}}{{end}}
+					</span>
+				</div>
+			{{end}}
 			{{if .User.Location}}
 				<div class="flex-item-body">
 					<span class="flex-text-inline">{{svg "octicon-location"}}{{.User.Location}}</span>
