@@ -63,7 +63,6 @@ package actions
 
 import (
 	"crypto/md5"
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -423,10 +422,10 @@ func (ar artifactRoutes) downloadArtifact(ctx *ArtifactContext) {
 	}
 
 	artifactID := ctx.ParamsInt64("artifact_id")
-	artifact, err := actions.GetArtifactByID(ctx, artifactID)
-	if errors.Is(err, util.ErrNotExist) {
-		log.Error("Error getting artifact: %v", err)
-		ctx.Error(http.StatusNotFound, err.Error())
+	artifact, exist, err := db.GetByID[actions.ActionArtifact](ctx, artifactID)
+	if !exist {
+		log.Error("artifact with %d does not exist", artifactID)
+		ctx.Error(http.StatusNotFound, fmt.Sprintf("artifact with %d does not exist", artifactID))
 		return
 	} else if err != nil {
 		log.Error("Error getting artifact: %v", err)

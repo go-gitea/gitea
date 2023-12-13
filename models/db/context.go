@@ -213,14 +213,34 @@ func ExistByID[T any](ctx context.Context, id int64) (bool, error) {
 	return GetEngine(ctx).ID(id).NoAutoCondition().Exist(&bean)
 }
 
+// DeleteByID deletes the given bean with the given ID
+func DeleteByID[T any](ctx context.Context, id int64) (int64, error) {
+	var bean T
+	return GetEngine(ctx).ID(id).NoAutoCondition().NoAutoTime().Delete(&bean)
+}
+
+func DeleteByIDs[T any](ctx context.Context, ids ...int64) error {
+	if len(ids) == 0 {
+		return nil
+	}
+
+	var bean T
+	_, err := GetEngine(ctx).In("id", ids).NoAutoCondition().NoAutoTime().Delete(&bean)
+	return err
+}
+
+func Delete[T any](ctx context.Context, opts FindOptions) (int64, error) {
+	if opts == nil {
+		return 0, ErrConditionRequired{}
+	}
+
+	var bean T
+	return GetEngine(ctx).Where(opts.ToConds()).NoAutoCondition().NoAutoTime().Delete(&bean)
+}
+
 // DeleteByBean deletes all records according non-empty fields of the bean as conditions.
 func DeleteByBean(ctx context.Context, bean any) (int64, error) {
 	return GetEngine(ctx).Delete(bean)
-}
-
-// DeleteByID deletes the given bean with the given ID
-func DeleteByID(ctx context.Context, id int64, bean any) (int64, error) {
-	return GetEngine(ctx).ID(id).NoAutoCondition().NoAutoTime().Delete(bean)
 }
 
 // FindIDs finds the IDs for the given table name satisfying the given condition
