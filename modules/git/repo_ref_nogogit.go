@@ -75,7 +75,7 @@ func (repo *Repository) GetRefsFiltered(pattern string) ([]*Reference, error) {
 		if pattern == "" || strings.HasPrefix(refName, pattern) {
 			r := &Reference{
 				Name:   refName,
-				Object: MustIDFromString(sha),
+				Object: repo.objectFormat.MustIDFromString(sha),
 				Type:   typ,
 				repo:   repo,
 			}

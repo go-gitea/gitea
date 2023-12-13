@@ -159,6 +159,7 @@ func Create(ctx *context.Context) {
 	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["default_branch"] = setting.Repository.DefaultBranch
+	ctx.Data["hash_type"] = "sha1"
 
 	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))
 	if ctx.Written() {
@@ -288,6 +289,7 @@ func CreatePost(ctx *context.Context) {
 			AutoInit:      form.AutoInit,
 			IsTemplate:    form.Template,
 			TrustModel:    repo_model.ToTrustModel(form.TrustModel),
+			ObjectFormat:  form.ObjectFormat,
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)

@@ -29,10 +29,15 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 	}
 	defer closer.Close()
 
-	if commit, err := gitRepo.GetCommit(sha); err != nil {
+	objectFormat, err := gitRepo.GetObjectFormat()
+	if err != nil {
+		return fmt.Errorf("GetObjectFormat[%s]: %w", repoPath, err)
+	}
+	commit, err := gitRepo.GetCommit(sha)
+	if err != nil {
 		gitRepo.Close()
 		return fmt.Errorf("GetCommit[%s]: %w", sha, err)
-	} else if len(sha) != git.SHAFullLength {
+	} else if len(sha) != objectFormat.FullLength() {
 		// use complete commit sha
 		sha = commit.ID.String()
 	}
@@ -41,7 +46,7 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 	if err := git_model.NewCommitStatus(ctx, git_model.NewCommitStatusOptions{
 		Repo:         repo,
 		Creator:      creator,
-		SHA:          sha,
+		SHA:          commit.ID,
 		CommitStatus: status,
 	}); err != nil {
 		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %w", repo.ID, creator.ID, sha, err)
