@@ -44,7 +44,7 @@ jobs:
       - name: Get cleaned branch name
         id: clean_name
         run: |
-          REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
+          REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\/v//' -e 's/release\/v//')
           echo "Cleaned name is ${REF_NAME}"
           echo "branch=${REF_NAME}" >> "$GITHUB_OUTPUT"
       - name: configure aws
@@ -78,6 +78,8 @@ jobs:
         id: meta
         with:
           images: gitea/gitea
+          flavor: |
+            latest=false
           # 1.2.3-rc0
           tags: |
             type=semver,pattern={{version}}
@@ -109,6 +111,7 @@ jobs:
           images: gitea/gitea
           # each tag below will have the suffix of -rootless
           flavor: |
+            latest=false
             suffix=-rootless
           # 1.2.3-rc0
           tags: |

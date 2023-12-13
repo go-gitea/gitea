@@ -323,7 +323,9 @@ func GetLatestCommitStatusForPairs(ctx context.Context, repoIDsToLatestCommitSHA
 		Select("max( id ) as id, repo_id").
 		GroupBy("context_hash, repo_id").OrderBy("max( id ) desc")
 
-	sess = db.SetSessionPagination(sess, &listOptions)
+	if !listOptions.IsListAll() {
+		sess = db.SetSessionPagination(sess, &listOptions)
+	}
 
 	err := sess.Find(&results)
 	if err != nil {
