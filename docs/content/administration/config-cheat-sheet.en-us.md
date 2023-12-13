@@ -220,6 +220,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `THEMES`:  **gitea-auto,gitea-light,gitea-dark**: All available themes. Allow users select personalized themes.
   regardless of the value of `DEFAULT_THEME`.
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: Max size of files to be displayed (default is 8MiB)
+- `AMBIGUOUS_UNICODE_DETECTION`: **true**: Detect ambiguous unicode characters in file contents and show warnings on the UI
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
     Values can be emoji alias (:smile:) or a unicode emoji.
     For custom reactions, add a tightly cropped square image to public/assets/img/emoji/reaction_name.png

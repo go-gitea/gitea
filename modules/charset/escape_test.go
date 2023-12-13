@@ -132,20 +132,6 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 	},
 }
 
-func TestEscapeControlString(t *testing.T) {
-	for _, tt := range escapeControlTests {
-		t.Run(tt.name, func(t *testing.T) {
-			status, result := EscapeControlString(tt.text, &translation.MockLocale{})
-			if !reflect.DeepEqual(*status, tt.status) {
-				t.Errorf("EscapeControlString() status = %v, wanted= %v", status, tt.status)
-			}
-			if result != tt.result {
-				t.Errorf("EscapeControlString()\nresult= %v,\nwanted= %v", result, tt.result)
-			}
-		})
-	}
-}
-
 func TestEscapeControlReader(t *testing.T) {
 	// lets add some control characters to the tests
 	tests := make([]escapeControlTest, 0, len(escapeControlTests)*3)
@@ -185,13 +171,4 @@ func TestEscapeControlReader(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestEscapeControlReader_panic(t *testing.T) {
-	bs := make([]byte, 0, 20479)
-	bs = append(bs, 'A')
-	for i := 0; i < 6826; i++ {
-		bs = append(bs, []byte("—")...)
-	}
-	_, _ = EscapeControlString(string(bs), &translation.MockLocale{})
 }
