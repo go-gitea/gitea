@@ -171,6 +171,12 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			return nil
 		}
 
+		// Outer scope variables to be used in diff calculation
+		var (
+			startCommitID string
+			endCommitID   string
+		)
+
 		if git.IsErrBranchNotExist(err) {
 			headCommitID, err := headGitRepo.GetRefCommitID(apiPullRequest.Head.Ref)
 			if err != nil && !git.IsErrNotExist(err) {
@@ -179,6 +185,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			}
 			if err == nil {
 				apiPullRequest.Head.Sha = headCommitID
+				endCommitID = headCommitID
 			}
 		} else {
 			commit, err := headBranch.GetCommit()
@@ -189,16 +196,12 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			if err == nil {
 				apiPullRequest.Head.Ref = pr.HeadBranch
 				apiPullRequest.Head.Sha = commit.ID.String()
+				endCommitID = commit.ID.String()
 			}
 		}
 
-		startCommitID := pr.MergeBase
-		endCommitID, err := headGitRepo.GetRefCommitID(apiPullRequest.Head.Ref)
-		if err != nil {
-			log.Error("GetRefCommitID[%s]: %v", apiPullRequest.Head.Ref, err)
-		}
-
-		maxLines := setting.Git.MaxGitDiffLines
+		// Calcuate diff
+		startCommitID = pr.MergeBase
 
 		// FIXME: If there are too many files in the repo, may cause some unpredictable issues.
 		diff, err := gitdiff.GetDiff(ctx, gitRepo,
@@ -206,7 +209,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 				BeforeCommitID:     startCommitID,
 				AfterCommitID:      endCommitID,
 				SkipTo:             "", // ctx.FormString("skip-to"),
-				MaxLines:           maxLines,
+				MaxLines:           setting.Git.MaxGitDiffLines,
 				MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
 				MaxFiles:           -1, // GetDiff() will return all files
 				WhitespaceBehavior: gitdiff.GetWhitespaceFlag("show-all"),
