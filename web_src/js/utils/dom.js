@@ -195,19 +195,23 @@ export function loadElem(el, src) {
   });
 }
 
-// some browsers like PaleMoon don't have "SubmitEvent" support, so we need to polyfill it (a tricky method): use the last clicked button as submitter
+// some browsers like PaleMoon don't have "SubmitEvent" support, so polyfill it by a tricky method: use the last clicked button as submitter
+// it can't use other transparent polyfill patches because PaleMoon also doesn't support "addEventListener(capture)"
 const needSubmitEventPolyfill = typeof SubmitEvent === 'undefined';
 
 export function submitEventSubmitter(e) {
   return needSubmitEventPolyfill ? (e.target._submitter || null) : e.submitter;
 }
 
+function submitEventPolyfillListener(e) {
+  const form = e.target.closest('form');
+  if (!form) return;
+  form._submitter = e.target.closest('button:not([type]), button[type="submit"], input[type="submit"]');
+}
+
 export function initSubmitEventPolyfill() {
   if (!needSubmitEventPolyfill) return;
   console.warn(`This browser doesn't have "SubmitEvent" support, use a tricky method to polyfill`);
-  document.addEventListener('click', (e) => {
-    if (!e.target.form) return;
-    const isSubmitButton = ((e.target.nodeName === 'INPUT' || e.target.nodeName === 'BUTTON') && e.target.type === 'submit');
-    e.target.form._submitter = isSubmitButton ? e.target : null;
-  });
+  document.body.addEventListener('click', submitEventPolyfillListener);
+  document.body.addEventListener('focus', submitEventPolyfillListener);
 }
