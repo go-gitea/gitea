@@ -277,6 +277,8 @@ func (repo *Repository) AfterLoad() {
 	repo.NumOpenProjects = repo.NumProjects - repo.NumClosedProjects
 	repo.NumOpenActionRuns = repo.NumActionRuns - repo.NumClosedActionRuns
 
+	// this is a temporary behaviour to support old repos, next step is to store the object format in the database
+	// and read from database so this line could be removed. To not depend on git module, we use a constant variable here
 	repo.ObjectFormatName = "sha1"
 }
 
