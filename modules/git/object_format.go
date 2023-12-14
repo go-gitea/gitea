@@ -76,7 +76,7 @@ func (h Sha1ObjectFormat) NewHasher() HasherInterface {
 
 func ObjectFormatFromName(name string) ObjectFormat {
 	switch name {
-	case "sha1":
+	case Sha1ObjectFormatName:
 		return Sha1ObjectFormat{}
 	default:
 		return nil

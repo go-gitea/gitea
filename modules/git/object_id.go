@@ -41,7 +41,7 @@ func NewSha1() *Sha1Hash {
 func NewHash(hash string) (ObjectID, error) {
 	hash = strings.ToLower(hash)
 	switch hash {
-	case "sha1":
+	case Sha1ObjectFormatName:
 		return &Sha1Hash{}, nil
 	}
 

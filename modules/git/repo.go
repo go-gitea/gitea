@@ -99,7 +99,7 @@ func InitRepository(ctx context.Context, repoPath string, bare bool, objectForma
 	cmd := NewCommand(ctx, "init")
 	if SupportHashSha256 {
 		if objectFormatName == "" {
-			objectFormatName = "sha1"
+			objectFormatName = Sha1ObjectFormatName
 		}
 		cmd.AddOptionValues("--object-format", objectFormatName)
 	}
