@@ -31,17 +31,47 @@ func (o ObjectType) Bytes() []byte {
 	return []byte(o)
 }
 
-// HashObject takes a reader and returns SHA1 hash for that reader
-func (repo *Repository) HashObject(reader io.Reader) (SHA1, error) {
-	idStr, err := repo.hashObject(reader)
-	if err != nil {
-		return SHA1{}, err
-	}
-	return NewIDFromString(idStr)
+type EmptyReader struct{}
+
+func (EmptyReader) Read(p []byte) (int, error) {
+	return 0, io.EOF
 }
 
-func (repo *Repository) hashObject(reader io.Reader) (string, error) {
-	cmd := NewCommand(repo.Ctx, "hash-object", "-w", "--stdin")
+func (repo *Repository) GetObjectFormat() (ObjectFormat, error) {
+	if repo != nil && repo.objectFormat != nil {
+		return repo.objectFormat, nil
+	}
+
+	str, err := repo.hashObject(EmptyReader{}, false)
+	if err != nil {
+		return nil, err
+	}
+	hash, err := IDFromString(str)
+	if err != nil {
+		return nil, err
+	}
+
+	repo.objectFormat = hash.Type()
+
+	return repo.objectFormat, nil
+}
+
+// HashObject takes a reader and returns hash for that reader
+func (repo *Repository) HashObject(reader io.Reader) (ObjectID, error) {
+	idStr, err := repo.hashObject(reader, true)
+	if err != nil {
+		return nil, err
+	}
+	return repo.objectFormat.NewIDFromString(idStr)
+}
+
+func (repo *Repository) hashObject(reader io.Reader, save bool) (string, error) {
+	var cmd *Command
+	if save {
+		cmd = NewCommand(repo.Ctx, "hash-object", "-w", "--stdin")
+	} else {
+		cmd = NewCommand(repo.Ctx, "hash-object", "--stdin")
+	}
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	err := cmd.Run(&RunOpts{

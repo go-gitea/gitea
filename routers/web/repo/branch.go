@@ -147,11 +147,18 @@ func RestoreBranchPost(ctx *context.Context) {
 		return
 	}
 
+	objectFormat, err := git.GetObjectFormatOfRepo(ctx, ctx.Repo.Repository.RepoPath())
+	if err != nil {
+		log.Error("RestoreBranch: CreateBranch: %w", err)
+		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", deletedBranch.Name))
+		return
+	}
+
 	// Don't return error below this
 	if err := repo_service.PushUpdate(
 		&repo_module.PushUpdateOptions{
 			RefFullName:  git.RefNameFromBranch(deletedBranch.Name),
-			OldCommitID:  git.EmptySHA,
+			OldCommitID:  objectFormat.Empty().String(),
 			NewCommitID:  deletedBranch.CommitID,
 			PusherID:     ctx.Doer.ID,
 			PusherName:   ctx.Doer.Name,
@@ -191,9 +198,9 @@ func CreateBranch(ctx *context.Context) {
 		}
 		err = release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, target, form.NewBranchName, "")
 	} else if ctx.Repo.IsViewBranch {
-		err = repo_service.CreateNewBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
+		err = repo_service.CreateNewBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.BranchName, form.NewBranchName)
 	} else {
-		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
+		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.CommitID, form.NewBranchName)
 	}
 	if err != nil {
 		if models.IsErrProtectedTagName(err) {

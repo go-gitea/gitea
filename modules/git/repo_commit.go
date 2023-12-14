@@ -6,8 +6,6 @@ package git
 
 import (
 	"bytes"
-	"encoding/hex"
-	"fmt"
 	"io"
 	"strconv"
 	"strings"
@@ -28,7 +26,7 @@ func (repo *Repository) GetTagCommitID(name string) (string, error) {
 
 // GetCommit returns commit object of by ID string.
 func (repo *Repository) GetCommit(commitID string) (*Commit, error) {
-	id, err := repo.ConvertToSHA1(commitID)
+	id, err := repo.ConvertToGitID(commitID)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +52,7 @@ func (repo *Repository) GetTagCommit(name string) (*Commit, error) {
 	return repo.GetCommit(commitID)
 }
 
-func (repo *Repository) getCommitByPathWithID(id SHA1, relpath string) (*Commit, error) {
+func (repo *Repository) getCommitByPathWithID(id ObjectID, relpath string) (*Commit, error) {
 	// File name starts with ':' must be escaped.
 	if relpath[0] == ':' {
 		relpath = `\` + relpath
@@ -65,7 +63,7 @@ func (repo *Repository) getCommitByPathWithID(id SHA1, relpath string) (*Commit,
 		return nil, runErr
 	}
 
-	id, err := NewIDFromString(stdout)
+	id, err := repo.objectFormat.NewIDFromString(stdout)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +88,7 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 	return commits[0], nil
 }
 
-func (repo *Repository) commitsByRange(id SHA1, page, pageSize int, not string) ([]*Commit, error) {
+func (repo *Repository) commitsByRange(id ObjectID, page, pageSize int, not string) ([]*Commit, error) {
 	cmd := NewCommand(repo.Ctx, "log").
 		AddOptionFormat("--skip=%d", (page-1)*pageSize).
 		AddOptionFormat("--max-count=%d", pageSize).
@@ -109,7 +107,7 @@ func (repo *Repository) commitsByRange(id SHA1, page, pageSize int, not string) 
 	return repo.parsePrettyFormatLogToList(stdout)
 }
 
-func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) ([]*Commit, error) {
+func (repo *Repository) searchCommits(id ObjectID, opts SearchCommitsOptions) ([]*Commit, error) {
 	// add common arguments to git command
 	addCommonSearchArgs := func(c *Command) {
 		// ignore case
@@ -164,7 +162,7 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) ([]*Co
 	// then let's iterate over them
 	for _, v := range opts.Keywords {
 		// ignore anything not matching a valid sha pattern
-		if IsValidSHAPattern(v) {
+		if id.Type().IsValid(v) {
 			// create new git log command with 1 commit limit
 			hashCmd := NewCommand(repo.Ctx, "log", "-1", prettyLogFormat)
 			// add previous arguments except for --grep and --all
@@ -245,25 +243,22 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 		}
 	}()
 
+	len := repo.objectFormat.FullLength()
 	commits := []*Commit{}
-	shaline := [41]byte{}
-	var sha1 SHA1
+	shaline := make([]byte, len+1)
 	for {
-		n, err := io.ReadFull(stdoutReader, shaline[:])
-		if err != nil || n < 40 {
+		n, err := io.ReadFull(stdoutReader, shaline)
+		if err != nil || n < len {
 			if err == io.EOF {
 				err = nil
 			}
 			return commits, err
 		}
-		n, err = hex.Decode(sha1[:], shaline[0:40])
-		if n != 20 {
-			err = fmt.Errorf("invalid sha %q", string(shaline[:40]))
-		}
+		objectID, err := repo.objectFormat.NewIDFromString(string(shaline[0:len]))
 		if err != nil {
 			return nil, err
 		}
-		commit, err := repo.getCommit(sha1)
+		commit, err := repo.getCommit(objectID)
 		if err != nil {
 			return nil, err
 		}
@@ -392,7 +387,7 @@ func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
 }
 
 // commitsBefore the limit is depth, not total number of returned commits.
-func (repo *Repository) commitsBefore(id SHA1, limit int) ([]*Commit, error) {
+func (repo *Repository) commitsBefore(id ObjectID, limit int) ([]*Commit, error) {
 	cmd := NewCommand(repo.Ctx, "log", prettyLogFormat)
 	if limit > 0 {
 		cmd.AddOptionFormat("-%d", limit)
@@ -426,11 +421,11 @@ func (repo *Repository) commitsBefore(id SHA1, limit int) ([]*Commit, error) {
 	return commits, nil
 }
 
-func (repo *Repository) getCommitsBefore(id SHA1) ([]*Commit, error) {
+func (repo *Repository) getCommitsBefore(id ObjectID) ([]*Commit, error) {
 	return repo.commitsBefore(id, 0)
 }
 
-func (repo *Repository) getCommitsBeforeLimit(id SHA1, num int) ([]*Commit, error) {
+func (repo *Repository) getCommitsBeforeLimit(id ObjectID, num int) ([]*Commit, error) {
 	return repo.commitsBefore(id, num)
 }
 
