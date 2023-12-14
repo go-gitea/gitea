@@ -29,7 +29,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 		defer commitGraphFile.Close()
 	}
 
-	c, err := commitNodeIndex.Get(commit.ID)
+	c, err := commitNodeIndex.Get(plumbing.Hash(commit.ID.RawValue()))
 	if err != nil {
 		return nil, nil, err
 	}
