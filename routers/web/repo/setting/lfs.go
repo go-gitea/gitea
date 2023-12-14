@@ -388,20 +388,21 @@ func LFSFileFind(ctx *context.Context) {
 	sha := ctx.FormString("sha")
 	ctx.Data["Title"] = oid
 	ctx.Data["PageIsSettingsLFS"] = true
-	var hash git.SHA1
+	objectFormat, _ := ctx.Repo.GitRepo.GetObjectFormat()
+	var objectID git.ObjectID
 	if len(sha) == 0 {
 		pointer := lfs.Pointer{Oid: oid, Size: size}
-		hash = git.ComputeBlobHash([]byte(pointer.StringContent()))
-		sha = hash.String()
+		objectID = git.ComputeBlobHash(objectFormat, []byte(pointer.StringContent()))
+		sha = objectID.String()
 	} else {
-		hash = git.MustIDFromString(sha)
+		objectID = objectFormat.MustIDFromString(sha)
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
 	ctx.Data["Oid"] = oid
 	ctx.Data["Size"] = size
 	ctx.Data["SHA"] = sha
 
-	results, err := pipeline.FindLFSFile(ctx.Repo.GitRepo, hash)
+	results, err := pipeline.FindLFSFile(ctx.Repo.GitRepo, objectID)
 	if err != nil && err != io.EOF {
 		log.Error("Failure in FindLFSFile: %v", err)
 		ctx.ServerError("LFSFind: FindLFSFile.", err)

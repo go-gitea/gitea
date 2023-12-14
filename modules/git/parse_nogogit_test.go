@@ -12,6 +12,8 @@ import (
 )
 
 func TestParseTreeEntriesLong(t *testing.T) {
+	objectFormat := ObjectFormatFromID(Sha1)
+
 	testCases := []struct {
 		Input    string
 		Expected []*TreeEntry
@@ -24,28 +26,28 @@ func TestParseTreeEntriesLong(t *testing.T) {
 `,
 			Expected: []*TreeEntry{
 				{
-					ID:        MustIDFromString("ea0d83c9081af9500ac9f804101b3fd0a5c293af"),
+					ID:        objectFormat.MustIDFromString("ea0d83c9081af9500ac9f804101b3fd0a5c293af"),
 					name:      "README.md",
 					entryMode: EntryModeBlob,
 					size:      8218,
 					sized:     true,
 				},
 				{
-					ID:        MustIDFromString("037f27dc9d353ae4fd50f0474b2194c593914e35"),
+					ID:        objectFormat.MustIDFromString("037f27dc9d353ae4fd50f0474b2194c593914e35"),
 					name:      "README_ZH.md",
 					entryMode: EntryModeBlob,
 					size:      4681,
 					sized:     true,
 				},
 				{
-					ID:        MustIDFromString("9846a94f7e8350a916632929d0fda38c90dd2ca8"),
+					ID:        objectFormat.MustIDFromString("9846a94f7e8350a916632929d0fda38c90dd2ca8"),
 					name:      "SECURITY.md",
 					entryMode: EntryModeBlob,
 					size:      429,
 					sized:     true,
 				},
 				{
-					ID:        MustIDFromString("84b90550547016f73c5dd3f50dea662389e67b6d"),
+					ID:        objectFormat.MustIDFromString("84b90550547016f73c5dd3f50dea662389e67b6d"),
 					name:      "assets",
 					entryMode: EntryModeTree,
 					sized:     true,
@@ -54,7 +56,7 @@ func TestParseTreeEntriesLong(t *testing.T) {
 		},
 	}
 	for _, testCase := range testCases {
-		entries, err := ParseTreeEntries([]byte(testCase.Input))
+		entries, err := ParseTreeEntries(objectFormat, []byte(testCase.Input))
 		assert.NoError(t, err)
 		assert.Len(t, entries, len(testCase.Expected))
 		for i, entry := range entries {
@@ -64,6 +66,8 @@ func TestParseTreeEntriesLong(t *testing.T) {
 }
 
 func TestParseTreeEntriesShort(t *testing.T) {
+	objectFormat := ObjectFormatFromID(Sha1)
+
 	testCases := []struct {
 		Input    string
 		Expected []*TreeEntry
@@ -74,12 +78,12 @@ func TestParseTreeEntriesShort(t *testing.T) {
 `,
 			Expected: []*TreeEntry{
 				{
-					ID:        MustIDFromString("ea0d83c9081af9500ac9f804101b3fd0a5c293af"),
+					ID:        objectFormat.MustIDFromString("ea0d83c9081af9500ac9f804101b3fd0a5c293af"),
 					name:      "README.md",
 					entryMode: EntryModeBlob,
 				},
 				{
-					ID:        MustIDFromString("84b90550547016f73c5dd3f50dea662389e67b6d"),
+					ID:        objectFormat.MustIDFromString("84b90550547016f73c5dd3f50dea662389e67b6d"),
 					name:      "assets",
 					entryMode: EntryModeTree,
 				},
@@ -87,7 +91,7 @@ func TestParseTreeEntriesShort(t *testing.T) {
 		},
 	}
 	for _, testCase := range testCases {
-		entries, err := ParseTreeEntries([]byte(testCase.Input))
+		entries, err := ParseTreeEntries(objectFormat, []byte(testCase.Input))
 		assert.NoError(t, err)
 		assert.Len(t, entries, len(testCase.Expected))
 		for i, entry := range entries {
@@ -98,7 +102,7 @@ func TestParseTreeEntriesShort(t *testing.T) {
 
 func TestParseTreeEntriesInvalid(t *testing.T) {
 	// there was a panic: "runtime error: slice bounds out of range" when the input was invalid: #20315
-	entries, err := ParseTreeEntries([]byte("100644 blob ea0d83c9081af9500ac9f804101b3fd0a5c293af"))
+	entries, err := ParseTreeEntries(ObjectFormatFromID(Sha1), []byte("100644 blob ea0d83c9081af9500ac9f804101b3fd0a5c293af"))
 	assert.Error(t, err)
 	assert.Len(t, entries, 0)
 }
