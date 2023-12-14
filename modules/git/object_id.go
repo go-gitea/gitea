@@ -20,7 +20,6 @@ type ObjectID interface {
 	Type() ObjectFormat
 }
 
-/* SHA1 */
 type Sha1Hash [20]byte
 
 func (h *Sha1Hash) String() string {
@@ -38,7 +37,7 @@ func NewSha1() *Sha1Hash {
 	return &Sha1Hash{}
 }
 
-// generic implementations
+// NewHash is for generic implementations
 func NewHash(hash string) (ObjectID, error) {
 	hash = strings.ToLower(hash)
 	switch hash {
@@ -73,7 +72,6 @@ func genericIDFromString(h ObjectFormat, s string) (ObjectID, error) {
 	return h.NewID(b)
 }
 
-// utils
 func IDFromString(hexHash string) (ObjectID, error) {
 	switch len(hexHash) {
 	case 40:
@@ -101,7 +99,7 @@ func IsEmptyCommitID(commitID string) bool {
 	return id.IsZero()
 }
 
-// HashInterface is a struct that will generate a Hash
+// HasherInterface is a struct that will generate a Hash
 type HasherInterface interface {
 	hash.Hash
 
@@ -127,7 +125,7 @@ func ComputeHash(hashType ObjectFormat, t ObjectType, content []byte) ObjectID {
 	return h.HashSum()
 }
 
-// Sum generates a SHA1 for the provided hash
+// HashSum generates a SHA1 for the provided hash
 func (h *Sha1Hasher) HashSum() ObjectID {
 	var sha1 Sha1Hash
 	copy(sha1[:], h.Hash.Sum(nil))
