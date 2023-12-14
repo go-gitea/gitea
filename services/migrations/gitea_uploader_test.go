@@ -232,7 +232,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	//
 	fromRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	baseRef := "master"
-	assert.NoError(t, git.InitRepository(git.DefaultContext, fromRepo.RepoPath(), false, fromRepo.ObjectFormat))
+	assert.NoError(t, git.InitRepository(git.DefaultContext, fromRepo.RepoPath(), false, fromRepo.ObjectFormatName))
 	err := git.NewCommand(git.DefaultContext, "symbolic-ref").AddDynamicArguments("HEAD", git.BranchPrefix+baseRef).Run(&git.RunOpts{Dir: fromRepo.RepoPath()})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s", fromRepo.RepoPath())), 0o644))

@@ -11,6 +11,8 @@ import (
 // sha1Pattern can be used to determine if a string is an valid sha
 var sha1Pattern = regexp.MustCompile(`^[0-9a-f]{4,40}$`)
 
+const Sha1ObjectFormatName = "sha1"
+
 type ObjectFormat interface {
 	String() string
 
@@ -33,7 +35,7 @@ type ObjectFormat interface {
 
 type Sha1ObjectFormat struct{}
 
-func (Sha1ObjectFormat) String() string  { return "sha1" }
+func (Sha1ObjectFormat) String() string  { return Sha1ObjectFormatName }
 func (Sha1ObjectFormat) Empty() ObjectID { return &Sha1Hash{} }
 func (Sha1ObjectFormat) EmptyTree() ObjectID {
 	return &Sha1Hash{
@@ -70,4 +72,13 @@ func (Sha1ObjectFormat) NewEmptyID() ObjectID {
 
 func (h Sha1ObjectFormat) NewHasher() HasherInterface {
 	return &Sha1Hasher{sha1.New()}
+}
+
+func ObjectFormatFromName(name string) ObjectFormat {
+	switch name {
+	case "sha1":
+		return Sha1ObjectFormat{}
+	default:
+		return nil
+	}
 }

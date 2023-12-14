@@ -180,7 +180,7 @@ type Repository struct {
 	IsFsckEnabled                   bool               `xorm:"NOT NULL DEFAULT true"`
 	CloseIssuesViaCommitInAnyBranch bool               `xorm:"NOT NULL DEFAULT false"`
 	Topics                          []string           `xorm:"TEXT JSON"`
-	ObjectFormat                    git.ObjectFormat   `xorm:"-"`
+	ObjectFormatName                string             `xorm:"-"`
 
 	TrustModel TrustModelType
 
@@ -277,7 +277,7 @@ func (repo *Repository) AfterLoad() {
 	repo.NumOpenProjects = repo.NumProjects - repo.NumClosedProjects
 	repo.NumOpenActionRuns = repo.NumActionRuns - repo.NumClosedActionRuns
 
-	repo.ObjectFormat = git.Sha1ObjectFormat{}
+	repo.ObjectFormatName = "sha1"
 }
 
 // LoadAttributes loads attributes of the repository.

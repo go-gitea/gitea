@@ -188,7 +188,7 @@ func InitRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 	return nil
 }
 
-func CheckInitRepository(ctx context.Context, owner, name string, objectFormat git.ObjectFormat) (err error) {
+func CheckInitRepository(ctx context.Context, owner, name, objectFormatName string) (err error) {
 	// Somehow the directory could exist.
 	repoPath := repo_model.RepoPath(owner, name)
 	isExist, err := util.IsExist(repoPath)
@@ -204,7 +204,7 @@ func CheckInitRepository(ctx context.Context, owner, name string, objectFormat g
 	}
 
 	// Init git bare new repository.
-	if err = git.InitRepository(ctx, repoPath, true, objectFormat); err != nil {
+	if err = git.InitRepository(ctx, repoPath, true, objectFormatName); err != nil {
 		return fmt.Errorf("git.InitRepository: %w", err)
 	} else if err = CreateDelegateHooks(repoPath); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
