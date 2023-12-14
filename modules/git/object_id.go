@@ -31,7 +31,7 @@ func (h *Sha1Hash) IsZero() bool {
 	return bytes.Equal(empty[:], h[:])
 }
 func (h *Sha1Hash) RawValue() []byte { return h[:] }
-func (*Sha1Hash) Type() ObjectFormat { return Sha1ObjectFormat{} }
+func (*Sha1Hash) Type() ObjectFormat { return Sha1ObjectFormat }
 
 func NewSha1() *Sha1Hash {
 	return &Sha1Hash{}
@@ -41,7 +41,7 @@ func NewSha1() *Sha1Hash {
 func NewHash(hash string) (ObjectID, error) {
 	hash = strings.ToLower(hash)
 	switch hash {
-	case Sha1ObjectFormatName:
+	case Sha1ObjectFormat.String():
 		return &Sha1Hash{}, nil
 	}
 
@@ -75,7 +75,7 @@ func genericIDFromString(h ObjectFormat, s string) (ObjectID, error) {
 func IDFromString(hexHash string) (ObjectID, error) {
 	switch len(hexHash) {
 	case 40:
-		hashType := Sha1ObjectFormat{}
+		hashType := Sha1ObjectFormat
 		h, err := hashType.NewIDFromString(hexHash)
 		if err != nil {
 			return nil, err

@@ -11,8 +11,6 @@ import (
 // sha1Pattern can be used to determine if a string is an valid sha
 var sha1Pattern = regexp.MustCompile(`^[0-9a-f]{4,40}$`)
 
-const Sha1ObjectFormatName = "sha1"
-
 type ObjectFormat interface {
 	String() string
 
@@ -33,51 +31,53 @@ type ObjectFormat interface {
 	NewHasher() HasherInterface
 }
 
-type Sha1ObjectFormat struct{}
+type Sha1ObjectFormatImpl struct{}
 
-func (Sha1ObjectFormat) String() string  { return Sha1ObjectFormatName }
-func (Sha1ObjectFormat) Empty() ObjectID { return &Sha1Hash{} }
-func (Sha1ObjectFormat) EmptyTree() ObjectID {
+func (Sha1ObjectFormatImpl) String() string  { return "sha1" }
+func (Sha1ObjectFormatImpl) Empty() ObjectID { return &Sha1Hash{} }
+func (Sha1ObjectFormatImpl) EmptyTree() ObjectID {
 	return &Sha1Hash{
 		0x4b, 0x82, 0x5d, 0xc6, 0x42, 0xcb, 0x6e, 0xb9, 0xa0, 0x60,
 		0xe5, 0x4b, 0xf8, 0xd6, 0x92, 0x88, 0xfb, 0xee, 0x49, 0x04,
 	}
 }
-func (Sha1ObjectFormat) FullLength() int { return 40 }
-func (Sha1ObjectFormat) IsValid(input string) bool {
+func (Sha1ObjectFormatImpl) FullLength() int { return 40 }
+func (Sha1ObjectFormatImpl) IsValid(input string) bool {
 	return sha1Pattern.MatchString(input)
 }
 
-func (Sha1ObjectFormat) MustID(b []byte) ObjectID {
+func (Sha1ObjectFormatImpl) MustID(b []byte) ObjectID {
 	var id Sha1Hash
 	copy(id[0:20], b)
 	return &id
 }
 
-func (h Sha1ObjectFormat) MustIDFromString(s string) ObjectID {
+func (h Sha1ObjectFormatImpl) MustIDFromString(s string) ObjectID {
 	return MustIDFromString(h, s)
 }
 
-func (h Sha1ObjectFormat) NewID(b []byte) (ObjectID, error) {
+func (h Sha1ObjectFormatImpl) NewID(b []byte) (ObjectID, error) {
 	return IDFromRaw(h, b)
 }
 
-func (h Sha1ObjectFormat) NewIDFromString(s string) (ObjectID, error) {
+func (h Sha1ObjectFormatImpl) NewIDFromString(s string) (ObjectID, error) {
 	return genericIDFromString(h, s)
 }
 
-func (Sha1ObjectFormat) NewEmptyID() ObjectID {
+func (Sha1ObjectFormatImpl) NewEmptyID() ObjectID {
 	return NewSha1()
 }
 
-func (h Sha1ObjectFormat) NewHasher() HasherInterface {
+func (h Sha1ObjectFormatImpl) NewHasher() HasherInterface {
 	return &Sha1Hasher{sha1.New()}
 }
 
+var Sha1ObjectFormat ObjectFormat = Sha1ObjectFormatImpl{}
+
 func ObjectFormatFromName(name string) ObjectFormat {
 	switch name {
-	case Sha1ObjectFormatName:
-		return Sha1ObjectFormat{}
+	case Sha1ObjectFormat.String():
+		return Sha1ObjectFormat
 	default:
 		return nil
 	}

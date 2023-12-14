@@ -19,7 +19,7 @@ import (
 func TestToCommitMeta(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	headRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	sha1 := git.Sha1ObjectFormat{}
+	sha1 := git.Sha1ObjectFormat
 	signature := &git.Signature{Name: "Test Signature", Email: "test@email.com", When: time.Unix(0, 0)}
 	tag := &git.Tag{
 		Name:    "Test Tag",
