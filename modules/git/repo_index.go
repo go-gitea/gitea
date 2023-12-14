@@ -101,7 +101,7 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 	for _, file := range filenames {
 		if file != "" {
 			buffer.WriteString("0 ")
-			buffer.WriteString(repo.objectFormat.Empty().String())
+			buffer.WriteString(repo.objectFormat.EmptyObjectID().String())
 			buffer.WriteByte('\t')
 			buffer.WriteString(file)
 			buffer.WriteByte('\000')

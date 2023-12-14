@@ -89,14 +89,14 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 			objectFormat, _ := gitRepo.GetObjectFormat()
 			commits := repository.NewPushCommits()
 			commits.HeadCommit = repository.CommitToPushCommit(commit)
-			commits.CompareURL = rel.Repo.ComposeCompareURL(objectFormat.Empty().String(), commit.ID.String())
+			commits.CompareURL = rel.Repo.ComposeCompareURL(objectFormat.EmptyObjectID().String(), commit.ID.String())
 
 			refFullName := git.RefNameFromTag(rel.TagName)
 			notify_service.PushCommits(
 				ctx, rel.Publisher, rel.Repo,
 				&repository.PushUpdateOptions{
 					RefFullName: refFullName,
-					OldCommitID: objectFormat.Empty().String(),
+					OldCommitID: objectFormat.EmptyObjectID().String(),
 					NewCommitID: commit.ID.String(),
 				}, commits)
 			notify_service.CreateRef(ctx, rel.Publisher, rel.Repo, refFullName, commit.ID.String())
@@ -335,7 +335,7 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 			&repository.PushUpdateOptions{
 				RefFullName: refName,
 				OldCommitID: rel.Sha1,
-				NewCommitID: objectFormat.Empty().String(),
+				NewCommitID: objectFormat.EmptyObjectID().String(),
 			}, repository.NewPushCommits())
 		notify_service.DeleteRef(ctx, doer, repo, refName)
 

@@ -81,7 +81,7 @@ func ConvertToObjectID(ctx gocontext.Context, repo *context.Repository, commitID
 
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.Repository.RepoPath())
 	if err != nil {
-		return objectFormat.Empty(), fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
+		return objectFormat.EmptyObjectID(), fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
 	}
 	defer closer.Close()
 

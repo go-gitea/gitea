@@ -1120,7 +1120,7 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 		return nil, err
 	}
 
-	if (len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == objectFormat.Empty().String()) && commit.ParentCount() == 0 {
+	if (len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == objectFormat.EmptyObjectID().String()) && commit.ParentCount() == 0 {
 		cmdDiff.AddArguments("diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M").
 			AddArguments(opts.WhitespaceBehavior...).
 			AddDynamicArguments(objectFormat.EmptyTree().String()).
@@ -1229,7 +1229,7 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	}
 
 	diffPaths := []string{opts.BeforeCommitID + separator + opts.AfterCommitID}
-	if len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == objectFormat.Empty().String() {
+	if len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == objectFormat.EmptyObjectID().String() {
 		diffPaths = []string{objectFormat.EmptyTree().String(), opts.AfterCommitID}
 	}
 	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, nil, diffPaths...)
@@ -1267,7 +1267,7 @@ func GetPullDiffStats(gitRepo *git.Repository, opts *DiffOptions) (*PullDiffStat
 	}
 
 	diffPaths := []string{opts.BeforeCommitID + separator + opts.AfterCommitID}
-	if len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == objectFormat.Empty().String() {
+	if len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == objectFormat.EmptyObjectID().String() {
 		diffPaths = []string{objectFormat.EmptyTree().String(), opts.AfterCommitID}
 	}
 

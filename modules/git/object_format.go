@@ -12,10 +12,10 @@ import (
 var sha1Pattern = regexp.MustCompile(`^[0-9a-f]{4,40}$`)
 
 type ObjectFormat interface {
-	String() string
-
-	// Empty is the hash of empty git
-	Empty() ObjectID
+	// Name returns the name of the object format
+	Name() string
+	// EmptyObjectID creates a new empty ObjectID from an object format hash name
+	EmptyObjectID() ObjectID
 	// EmptyTree is the hash of an empty tree
 	EmptyTree() ObjectID
 	// FullLength is the length of the hash's hex string
@@ -26,15 +26,17 @@ type ObjectFormat interface {
 	MustIDFromString(s string) ObjectID
 	NewID(b []byte) (ObjectID, error)
 	NewIDFromString(s string) (ObjectID, error)
-	NewEmptyID() ObjectID
 
 	NewHasher() HasherInterface
 }
 
 type Sha1ObjectFormatImpl struct{}
 
-func (Sha1ObjectFormatImpl) String() string  { return "sha1" }
-func (Sha1ObjectFormatImpl) Empty() ObjectID { return &Sha1Hash{} }
+func (Sha1ObjectFormatImpl) Name() string { return "sha1" }
+func (Sha1ObjectFormatImpl) EmptyObjectID() ObjectID {
+	return &Sha1Hash{}
+}
+
 func (Sha1ObjectFormatImpl) EmptyTree() ObjectID {
 	return &Sha1Hash{
 		0x4b, 0x82, 0x5d, 0xc6, 0x42, 0xcb, 0x6e, 0xb9, 0xa0, 0x60,
@@ -64,23 +66,23 @@ func (h Sha1ObjectFormatImpl) NewIDFromString(s string) (ObjectID, error) {
 	return genericIDFromString(h, s)
 }
 
-func (Sha1ObjectFormatImpl) NewEmptyID() ObjectID {
-	return NewSha1()
-}
-
 func (h Sha1ObjectFormatImpl) NewHasher() HasherInterface {
 	return &Sha1Hasher{sha1.New()}
 }
 
 var Sha1ObjectFormat ObjectFormat = Sha1ObjectFormatImpl{}
 
+var SupportedObjectFormats = []ObjectFormat{
+	Sha1ObjectFormat,
+}
+
 func ObjectFormatFromName(name string) ObjectFormat {
-	switch name {
-	case Sha1ObjectFormat.String():
-		return Sha1ObjectFormat
-	default:
-		return nil
+	for _, objectFormat := range SupportedObjectFormats {
+		if name == objectFormat.Name() {
+			return objectFormat
+		}
 	}
+	return nil
 }
 
 func IsValidObjectFormat(name string) bool {
