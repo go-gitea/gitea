@@ -4,11 +4,14 @@
 package charset
 
 import (
-	"reflect"
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type escapeControlTest struct {
@@ -133,7 +136,7 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 }
 
 func TestEscapeControlReader(t *testing.T) {
-	// lets add some control characters to the tests
+	// add some control characters to the tests
 	tests := make([]escapeControlTest, 0, len(escapeControlTests)*3)
 	copy(tests, escapeControlTests)
 
@@ -155,20 +158,20 @@ func TestEscapeControlReader(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			input := strings.NewReader(tt.text)
 			output := &strings.Builder{}
-			status, err := EscapeControlReader(input, output, &translation.MockLocale{})
-			result := output.String()
-			if err != nil {
-				t.Errorf("EscapeControlReader(): err = %v", err)
-			}
-
-			if !reflect.DeepEqual(*status, tt.status) {
-				t.Errorf("EscapeControlReader() status = %v, wanted= %v", status, tt.status)
-			}
-			if result != tt.result {
-				t.Errorf("EscapeControlReader()\nresult= %v,\nwanted= %v", result, tt.result)
-			}
+			status, err := EscapeControlReader(strings.NewReader(tt.text), output, &translation.MockLocale{})
+			assert.NoError(t, err)
+			assert.Equal(t, tt.status, *status)
+			assert.Equal(t, tt.result, output.String())
 		})
 	}
+}
+
+func TestSettingAmbiguousUnicodeDetection(t *testing.T) {
+	defer test.MockVariableValue(&setting.UI.AmbiguousUnicodeDetection, true)()
+	_, out := EscapeControlHTML("a test", &translation.MockLocale{})
+	assert.EqualValues(t, `a<span class="escaped-code-point" data-escaped="[U+00A0]"><span class="char"> </span></span>test`, out)
+	setting.UI.AmbiguousUnicodeDetection = false
+	_, out = EscapeControlHTML("a test", &translation.MockLocale{})
+	assert.EqualValues(t, `a test`, out)
 }
