@@ -13,14 +13,6 @@ var sha1Pattern = regexp.MustCompile(`^[0-9a-f]{4,40}$`)
 
 const Sha1ObjectFormatName = "sha1"
 
-func IsValidObjectFormat(name string) bool {
-	switch name {
-	case Sha1ObjectFormatName:
-		return true
-	}
-	return false
-}
-
 type ObjectFormat interface {
 	String() string
 
@@ -89,4 +81,8 @@ func ObjectFormatFromName(name string) ObjectFormat {
 	default:
 		return nil
 	}
+}
+
+func IsValidObjectFormat(name string) bool {
+	return ObjectFormatFromName(name) != nil
 }
