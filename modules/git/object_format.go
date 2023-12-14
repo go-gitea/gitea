@@ -83,6 +83,9 @@ var SupportedObjectFormats = []ObjectFormat{
 }
 
 func ObjectFormatFromName(name string) ObjectFormat {
+	if name == "" {
+		return Sha1ObjectFormat
+	}
 	for _, objectFormat := range SupportedObjectFormats {
 		if name == objectFormat.Name() {
 			return objectFormat

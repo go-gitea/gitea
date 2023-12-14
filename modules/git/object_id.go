@@ -36,10 +36,13 @@ func (*Sha1Hash) Type() ObjectFormat { return Sha1ObjectFormat }
 var _ ObjectID = &Sha1Hash{}
 
 // EmptyObjectID creates a new ObjectID from an object format hash name
-func EmptyObjectID(hash string) (ObjectID, error) {
-	hash = strings.ToLower(hash)
+func EmptyObjectID(objectFormatName string) (ObjectID, error) {
+	if objectFormatName == "" {
+		return Sha1ObjectFormat.EmptyObjectID(), nil
+	}
+	objectFormatName = strings.ToLower(objectFormatName)
 	for _, objectFormat := range SupportedObjectFormats {
-		if objectFormat.Name() == hash {
+		if objectFormat.Name() == objectFormatName {
 			return objectFormat.EmptyObjectID(), nil
 		}
 	}
