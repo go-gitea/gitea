@@ -655,8 +655,14 @@ func TestWebhook(ctx *context.Context) {
 	commit := ctx.Repo.Commit
 	if commit == nil {
 		ghost := user_model.NewGhostUser()
+		objectFormat, err := git.GetObjectFormatOfRepo(ctx, ctx.Repo.Repository.RepoPath())
+		if err != nil {
+			ctx.Flash.Error("GetObjectFormatOfRepo: " + err.Error())
+			ctx.Status(http.StatusInternalServerError)
+			return
+		}
 		commit = &git.Commit{
-			ID:            git.MustIDFromString(git.EmptySHA),
+			ID:            objectFormat.NewEmptyID(),
 			Author:        ghost.NewGitSig(),
 			Committer:     ghost.NewGitSig(),
 			CommitMessage: "This is a fake commit",

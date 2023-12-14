@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/pull"
@@ -48,7 +47,7 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 	if opts.LastCommitID == "" {
 		opts.LastCommitID = commit.ID.String()
 	} else {
-		lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
+		lastCommitID, err := t.gitRepo.ConvertToGitID(opts.LastCommitID)
 		if err != nil {
 			return nil, fmt.Errorf("CherryPick: Invalid last commit ID: %w", err)
 		}
@@ -67,7 +66,7 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 	}
 	parent, err := commit.ParentID(0)
 	if err != nil {
-		parent = git.MustIDFromString(git.EmptyTreeSHA)
+		parent = repo.ObjectFormat.EmptyTree()
 	}
 
 	base, right := parent.String(), commit.ID.String()

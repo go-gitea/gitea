@@ -310,13 +310,14 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	baseIsCommit := ctx.Repo.GitRepo.IsCommitExist(ci.BaseBranch)
 	baseIsBranch := ctx.Repo.GitRepo.IsBranchExist(ci.BaseBranch)
 	baseIsTag := ctx.Repo.GitRepo.IsTagExist(ci.BaseBranch)
+	objectFormat, _ := ctx.Repo.GitRepo.GetObjectFormat()
 	if !baseIsCommit && !baseIsBranch && !baseIsTag {
 		// Check if baseBranch is short sha commit hash
 		if baseCommit, _ := ctx.Repo.GitRepo.GetCommit(ci.BaseBranch); baseCommit != nil {
 			ci.BaseBranch = baseCommit.ID.String()
 			ctx.Data["BaseBranch"] = ci.BaseBranch
 			baseIsCommit = true
-		} else if ci.BaseBranch == git.EmptySHA {
+		} else if ci.BaseBranch == objectFormat.Empty().String() {
 			if isSameRepo {
 				ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ci.HeadBranch))
 			} else {

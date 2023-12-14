@@ -81,7 +81,7 @@ gpgsig -----BEGIN PGP SIGNATURE-----
 
 empty commit`
 
-	sha := SHA1{0xfe, 0xaf, 0x4b, 0xa6, 0xbc, 0x63, 0x5f, 0xec, 0x44, 0x2f, 0x46, 0xdd, 0xd4, 0x51, 0x24, 0x16, 0xec, 0x43, 0xc2, 0xc2}
+	sha := &Sha1Hash{0xfe, 0xaf, 0x4b, 0xa6, 0xbc, 0x63, 0x5f, 0xec, 0x44, 0x2f, 0x46, 0xdd, 0xd4, 0x51, 0x24, 0x16, 0xec, 0x43, 0xc2, 0xc2}
 	gitRepo, err := openRepositoryWithDefaultContext(filepath.Join(testReposDir, "repo1_bare"))
 	assert.NoError(t, err)
 	assert.NotNil(t, gitRepo)
@@ -135,8 +135,8 @@ func TestHasPreviousCommit(t *testing.T) {
 	commit, err := repo.GetCommit("8006ff9adbf0cb94da7dad9e537e53817f9fa5c0")
 	assert.NoError(t, err)
 
-	parentSHA := MustIDFromString("8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2")
-	notParentSHA := MustIDFromString("2839944139e0de9737a044f78b0e4b40d989a9e3")
+	parentSHA := repo.objectFormat.MustIDFromString("8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2")
+	notParentSHA := repo.objectFormat.MustIDFromString("2839944139e0de9737a044f78b0e4b40d989a9e3")
 
 	haz, err := commit.HasPreviousCommit(parentSHA)
 	assert.NoError(t, err)

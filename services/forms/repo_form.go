@@ -13,6 +13,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -53,6 +54,7 @@ type CreateRepoForm struct {
 	TrustModel      string
 
 	ForkSingleBranch string
+	ObjectFormat     git.ObjectFormat
 }
 
 // Validate validates the fields
