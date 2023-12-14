@@ -42,7 +42,8 @@
 			{{if (eq .SignedUserID .ContextUser.ID)}}
 				<li>
 					{{svg "octicon-mail"}}
-					<a class="gt-f1" href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
+					{{/* If the email is private, DisplayedEmail will be a noreply address instead. */}}
+					<a class="gt-f1" {{if not (.ShowUserNoreply)}}href="mailto:{{.DisplayedEmail}}" rel="nofollow"{{end}}>{{.DisplayedEmail}}</a>
 					<a href="{{AppSubUrl}}/user/settings#privacy-user-settings">
 						{{if .ShowUserEmail}}
 							<i data-tooltip-content="{{ctx.Locale.Tr "user.email_visibility.limited"}}">

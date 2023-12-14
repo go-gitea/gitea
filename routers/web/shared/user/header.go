@@ -32,10 +32,20 @@ func prepareContextForCommonProfile(ctx *context.Context) {
 // PrepareContextForProfileBigAvatar set the context for big avatar view on the profile page
 func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	prepareContextForCommonProfile(ctx)
+	// Used for private organization listings (and showing noreply address on profile if needed)
+	userViewsOwnProfile := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 
 	ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail && ctx.ContextUser.Email != "" && ctx.IsSigned && !ctx.ContextUser.KeepEmailPrivate
+	// We use this variable so that we can say whether we should show the noreply email address
+	// to the user's own profile, so as to remind them that Git web operations will be done using it
+	ctx.Data["ShowUserNoreply"] = ctx.ContextUser.KeepEmailPrivate && userViewsOwnProfile
 	ctx.Data["UserLocationMapURL"] = setting.Service.UserLocationMapURL
+	if userViewsOwnProfile && !ctx.ContextUser.KeepEmailPrivate {
+		ctx.Data["DisplayedEmail"] = ctx.ContextUser.Email
+	} else {
+		ctx.Data["DisplayedEmail"] = ctx.ContextUser.Name + "@" + setting.Service.NoReplyAddress
+	}
 
 	// Show OpenID URIs
 	openIDs, err := user_model.GetUserOpenIDs(ctx, ctx.ContextUser.ID)
@@ -59,10 +69,9 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 		ctx.Data["RenderedDescription"] = content
 	}
 
-	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 	orgs, err := db.Find[organization.Organization](ctx, organization.FindOrgOptions{
 		UserID:         ctx.ContextUser.ID,
-		IncludePrivate: showPrivate,
+		IncludePrivate: userViewsOwnProfile,
 	})
 	if err != nil {
 		ctx.ServerError("FindOrgs", err)

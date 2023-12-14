@@ -55,13 +55,15 @@ func TestSettingShowUserEmailProfile(t *testing.T) {
 	req := NewRequest(t, "GET", "/user1")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
+	assert.NotContains(t, htmlDoc.doc.Find(".user.profile").Text(), "user1@noreply.example.org")
 	assert.Contains(t, htmlDoc.doc.Find(".user.profile").Text(), "user1@example.com")
 
-	// user1 can not see user2's hidden email
+	// user1 can not see user2's hidden email (or their corresponding noreply email)
 	req = NewRequest(t, "GET", "/user2")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
 	// Should only contain if the user visits their own profile page
+	assert.NotContains(t, htmlDoc.doc.Find(".user.profile").Text(), "user2@noreply.example.org")
 	assert.NotContains(t, htmlDoc.doc.Find(".user.profile").Text(), "user2@example.com")
 
 	// user2 can see user1's visible email
@@ -69,22 +71,25 @@ func TestSettingShowUserEmailProfile(t *testing.T) {
 	req = NewRequest(t, "GET", "/user1")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
+	assert.NotContains(t, htmlDoc.doc.Find(".user.profile").Text(), "user1@noreply.example.org")
 	assert.Contains(t, htmlDoc.doc.Find(".user.profile").Text(), "user1@example.com")
 
-	// user2 can see own hidden email
+	// user2 cannot see own hidden email, but a noreply email
 	session = loginUser(t, "user2")
 	req = NewRequest(t, "GET", "/user2")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
-	assert.Contains(t, htmlDoc.doc.Find(".user.profile").Text(), "user2@example.com")
+	assert.Contains(t, htmlDoc.doc.Find(".user.profile").Text(), "user2@noreply.example.org")
+	assert.NotContains(t, htmlDoc.doc.Find(".user.profile").Text(), "user2@example.com")
 
 	setting.UI.ShowUserEmail = false
 
-	// user1 can see own (now hidden) email
+	// user1 can see own noreply email (email hidden)
 	session = loginUser(t, "user1")
 	req = NewRequest(t, "GET", "/user1")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
+	assert.NotContains(t, htmlDoc.doc.Find(".user.profile").Text(), "user2@noreply.example.org")
 	assert.Contains(t, htmlDoc.doc.Find(".user.profile").Text(), "user1@example.com")
 
 	setting.UI.ShowUserEmail = showUserEmail
