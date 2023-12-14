@@ -37,14 +37,9 @@ var _ ObjectID = &Sha1Hash{}
 
 // EmptyObjectID creates a new ObjectID from an object format hash name
 func EmptyObjectID(objectFormatName string) (ObjectID, error) {
-	if objectFormatName == "" {
-		return Sha1ObjectFormat.EmptyObjectID(), nil
-	}
-	objectFormatName = strings.ToLower(objectFormatName)
-	for _, objectFormat := range SupportedObjectFormats {
-		if objectFormat.Name() == objectFormatName {
-			return objectFormat.EmptyObjectID(), nil
-		}
+	objectFormat := ObjectFormatFromName(objectFormatName)
+	if objectFormat != nil {
+		return objectFormat.EmptyObjectID(), nil
 	}
 
 	return nil, errors.New("unsupported hash type")
