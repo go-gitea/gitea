@@ -77,6 +77,10 @@ func appGlobalFlags() []cli.Flag {
 			Aliases: []string{"w"},
 			Usage:   "Set Gitea's working path (defaults to the Gitea's binary directory)",
 		},
+		&cli.BoolFlag{
+			Name:  "output-json",
+			Usage: "Output in JSON format (not all commands are supported)",
+		},
 	}
 }
 
