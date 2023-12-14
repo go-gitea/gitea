@@ -32,7 +32,7 @@ func (h *Sha1Hash) IsZero() bool {
 	return bytes.Equal(empty[:], h[:])
 }
 func (h *Sha1Hash) RawValue() []byte { return h[:] }
-func (*Sha1Hash) Type() ObjectFormat { return &Sha1ObjectFormat{} }
+func (*Sha1Hash) Type() ObjectFormat { return Sha1ObjectFormat{} }
 
 func NewSha1() *Sha1Hash {
 	return &Sha1Hash{}

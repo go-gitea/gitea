@@ -211,7 +211,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 	}
 
 	if opts.ObjectFormat == nil {
-		opts.ObjectFormat = git.ObjectFormatFromID(git.Sha1)
+		opts.ObjectFormat = git.Sha1ObjectFormat{}
 	}
 
 	// Check if label template exist

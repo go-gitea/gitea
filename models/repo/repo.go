@@ -277,7 +277,7 @@ func (repo *Repository) AfterLoad() {
 	repo.NumOpenProjects = repo.NumProjects - repo.NumClosedProjects
 	repo.NumOpenActionRuns = repo.NumActionRuns - repo.NumClosedActionRuns
 
-	repo.ObjectFormat = git.ObjectFormatFromID(git.Sha1)
+	repo.ObjectFormat = git.Sha1ObjectFormat{}
 }
 
 // LoadAttributes loads attributes of the repository.
