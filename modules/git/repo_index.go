@@ -16,7 +16,12 @@ import (
 
 // ReadTreeToIndex reads a treeish to the index
 func (repo *Repository) ReadTreeToIndex(treeish string, indexFilename ...string) error {
-	if len(treeish) != SHAFullLength {
+	objectFormat, err := repo.GetObjectFormat()
+	if err != nil {
+		return err
+	}
+
+	if len(treeish) != objectFormat.FullLength() {
 		res, _, err := NewCommand(repo.Ctx, "rev-parse", "--verify").AddDynamicArguments(treeish).RunStdString(&RunOpts{Dir: repo.Path})
 		if err != nil {
 			return err
@@ -25,14 +30,14 @@ func (repo *Repository) ReadTreeToIndex(treeish string, indexFilename ...string)
 			treeish = res[:len(res)-1]
 		}
 	}
-	id, err := NewIDFromString(treeish)
+	id, err := objectFormat.NewIDFromString(treeish)
 	if err != nil {
 		return err
 	}
 	return repo.readTreeToIndex(id, indexFilename...)
 }
 
-func (repo *Repository) readTreeToIndex(id SHA1, indexFilename ...string) error {
+func (repo *Repository) readTreeToIndex(id ObjectID, indexFilename ...string) error {
 	var env []string
 	if len(indexFilename) > 0 {
 		env = append(os.Environ(), "GIT_INDEX_FILE="+indexFilename[0])
@@ -95,7 +100,9 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 	buffer := new(bytes.Buffer)
 	for _, file := range filenames {
 		if file != "" {
-			buffer.WriteString("0 0000000000000000000000000000000000000000\t")
+			buffer.WriteString("0 ")
+			buffer.WriteString(repo.objectFormat.Empty().String())
+			buffer.WriteByte('\t')
 			buffer.WriteString(file)
 			buffer.WriteByte('\000')
 		}
@@ -109,7 +116,7 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 }
 
 // AddObjectToIndex adds the provided object hash to the index at the provided filename
-func (repo *Repository) AddObjectToIndex(mode string, object SHA1, filename string) error {
+func (repo *Repository) AddObjectToIndex(mode string, object ObjectID, filename string) error {
 	cmd := NewCommand(repo.Ctx, "update-index", "--add", "--replace", "--cacheinfo").AddDynamicArguments(mode, object.String(), filename)
 	_, _, err := cmd.RunStdString(&RunOpts{Dir: repo.Path})
 	return err
@@ -121,7 +128,7 @@ func (repo *Repository) WriteTree() (*Tree, error) {
 	if runErr != nil {
 		return nil, runErr
 	}
-	id, err := NewIDFromString(strings.TrimSpace(stdout))
+	id, err := repo.objectFormat.NewIDFromString(strings.TrimSpace(stdout))
 	if err != nil {
 		return nil, err
 	}

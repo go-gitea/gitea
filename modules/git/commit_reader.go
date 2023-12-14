@@ -14,9 +14,9 @@ import (
 // We need this to interpret commits from cat-file or cat-file --batch
 //
 // If used as part of a cat-file --batch stream you need to limit the reader to the correct size
-func CommitFromReader(gitRepo *Repository, sha SHA1, reader io.Reader) (*Commit, error) {
+func CommitFromReader(gitRepo *Repository, objectID ObjectID, reader io.Reader) (*Commit, error) {
 	commit := &Commit{
-		ID:        sha,
+		ID:        objectID,
 		Author:    &Signature{},
 		Committer: &Signature{},
 	}
@@ -71,10 +71,10 @@ readLoop:
 
 			switch string(split[0]) {
 			case "tree":
-				commit.Tree = *NewTree(gitRepo, MustIDFromString(string(data)))
+				commit.Tree = *NewTree(gitRepo, objectID.Type().MustIDFromString(string(data)))
 				_, _ = payloadSB.Write(line)
 			case "parent":
-				commit.Parents = append(commit.Parents, MustIDFromString(string(data)))
+				commit.Parents = append(commit.Parents, objectID.Type().MustIDFromString(string(data)))
 				_, _ = payloadSB.Write(line)
 			case "author":
 				commit.Author = &Signature{}

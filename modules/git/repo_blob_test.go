@@ -61,7 +61,7 @@ func TestRepository_GetBlob_NoId(t *testing.T) {
 	defer r.Close()
 
 	testCase := ""
-	testError := fmt.Errorf("Length must be 40: %s", testCase)
+	testError := fmt.Errorf("length must be 40: %s", testCase)
 
 	blob, err := r.GetBlob(testCase)
 	assert.Nil(t, blob)
