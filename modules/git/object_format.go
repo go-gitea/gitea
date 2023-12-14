@@ -40,7 +40,6 @@ type ObjectFormat interface {
 	NewHasher() HasherInterface
 }
 
-/* SHA1 Type */
 type Sha1ObjectFormat struct{}
 
 func (*Sha1ObjectFormat) ID() ObjectFormatID { return Sha1 }
@@ -83,7 +82,6 @@ func (h *Sha1ObjectFormat) NewHasher() HasherInterface {
 	return &Sha1Hasher{sha1.New()}
 }
 
-// utils
 func ObjectFormatFromID(id ObjectFormatID) ObjectFormat {
 	switch id {
 	case Sha1:
