@@ -32,16 +32,21 @@ type ObjectFormat interface {
 
 type Sha1ObjectFormatImpl struct{}
 
-func (Sha1ObjectFormatImpl) Name() string { return "sha1" }
-func (Sha1ObjectFormatImpl) EmptyObjectID() ObjectID {
-	return &Sha1Hash{}
-}
-
-func (Sha1ObjectFormatImpl) EmptyTree() ObjectID {
-	return &Sha1Hash{
+var (
+	emptyObjectID = &Sha1Hash{}
+	emptyTree     = &Sha1Hash{
 		0x4b, 0x82, 0x5d, 0xc6, 0x42, 0xcb, 0x6e, 0xb9, 0xa0, 0x60,
 		0xe5, 0x4b, 0xf8, 0xd6, 0x92, 0x88, 0xfb, 0xee, 0x49, 0x04,
 	}
+)
+
+func (Sha1ObjectFormatImpl) Name() string { return "sha1" }
+func (Sha1ObjectFormatImpl) EmptyObjectID() ObjectID {
+	return emptyObjectID
+}
+
+func (Sha1ObjectFormatImpl) EmptyTree() ObjectID {
+	return emptyTree
 }
 func (Sha1ObjectFormatImpl) FullLength() int { return 40 }
 func (Sha1ObjectFormatImpl) IsValid(input string) bool {
@@ -74,6 +79,7 @@ var Sha1ObjectFormat ObjectFormat = Sha1ObjectFormatImpl{}
 
 var SupportedObjectFormats = []ObjectFormat{
 	Sha1ObjectFormat,
+	// TODO: add sha256
 }
 
 func ObjectFormatFromName(name string) ObjectFormat {
