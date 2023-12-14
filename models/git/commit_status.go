@@ -114,7 +114,8 @@ WHEN NOT MATCHED
 
 // GetNextCommitStatusIndex retried 3 times to generate a resource index
 func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
-	if !git.IsValidSHAPattern(sha) {
+	_, err := git.IDFromString(sha)
+	if err != nil {
 		return 0, git.ErrInvalidSHA{SHA: sha}
 	}
 
@@ -425,7 +426,7 @@ func FindRepoRecentCommitStatusContexts(ctx context.Context, repoID int64, befor
 type NewCommitStatusOptions struct {
 	Repo         *repo_model.Repository
 	Creator      *user_model.User
-	SHA          string
+	SHA          git.ObjectID
 	CommitStatus *CommitStatus
 }
 
@@ -440,10 +441,6 @@ func NewCommitStatus(ctx context.Context, opts NewCommitStatusOptions) error {
 		return fmt.Errorf("NewCommitStatus[%s, %s]: no user specified", repoPath, opts.SHA)
 	}
 
-	if _, err := git.NewIDFromString(opts.SHA); err != nil {
-		return fmt.Errorf("NewCommitStatus[%s, %s]: invalid sha: %w", repoPath, opts.SHA, err)
-	}
-
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %w", opts.Repo.ID, opts.Creator.ID, opts.SHA, err)
@@ -451,7 +448,7 @@ func NewCommitStatus(ctx context.Context, opts NewCommitStatusOptions) error {
 	defer committer.Close()
 
 	// Get the next Status Index
-	idx, err := GetNextCommitStatusIndex(ctx, opts.Repo.ID, opts.SHA)
+	idx, err := GetNextCommitStatusIndex(ctx, opts.Repo.ID, opts.SHA.String())
 	if err != nil {
 		return fmt.Errorf("generate commit status index failed: %w", err)
 	}
@@ -459,7 +456,7 @@ func NewCommitStatus(ctx context.Context, opts NewCommitStatusOptions) error {
 	opts.CommitStatus.Description = strings.TrimSpace(opts.CommitStatus.Description)
 	opts.CommitStatus.Context = strings.TrimSpace(opts.CommitStatus.Context)
 	opts.CommitStatus.TargetURL = strings.TrimSpace(opts.CommitStatus.TargetURL)
-	opts.CommitStatus.SHA = opts.SHA
+	opts.CommitStatus.SHA = opts.SHA.String()
 	opts.CommitStatus.CreatorID = opts.Creator.ID
 	opts.CommitStatus.RepoID = opts.Repo.ID
 	opts.CommitStatus.Index = idx

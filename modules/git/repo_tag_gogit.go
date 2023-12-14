@@ -55,9 +55,9 @@ func (repo *Repository) GetTags(skip, limit int) ([]string, error) {
 }
 
 // GetTagType gets the type of the tag, either commit (simple) or tag (annotated)
-func (repo *Repository) GetTagType(id SHA1) (string, error) {
+func (repo *Repository) GetTagType(id ObjectID) (string, error) {
 	// Get tag type
-	obj, err := repo.gogitRepo.Object(plumbing.AnyObject, id)
+	obj, err := repo.gogitRepo.Object(plumbing.AnyObject, plumbing.Hash(id.RawValue()))
 	if err != nil {
 		if err == plumbing.ErrReferenceNotFound {
 			return "", &ErrNotExist{ID: id.String()}
@@ -68,7 +68,7 @@ func (repo *Repository) GetTagType(id SHA1) (string, error) {
 	return obj.Type().String(), nil
 }
 
-func (repo *Repository) getTag(tagID SHA1, name string) (*Tag, error) {
+func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 	t, ok := repo.tagCache.Get(tagID.String())
 	if ok {
 		log.Debug("Hit cache: %s", tagID)
@@ -88,7 +88,7 @@ func (repo *Repository) getTag(tagID SHA1, name string) (*Tag, error) {
 		// every tag should have a commit ID so return all errors
 		return nil, err
 	}
-	commitID, err := NewIDFromString(commitIDStr)
+	commitID, err := IDFromString(commitIDStr)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func (repo *Repository) getTag(tagID SHA1, name string) (*Tag, error) {
 		return tag, nil
 	}
 
-	gogitTag, err := repo.gogitRepo.TagObject(tagID)
+	gogitTag, err := repo.gogitRepo.TagObject(plumbing.Hash(tagID.RawValue()))
 	if err != nil {
 		if err == plumbing.ErrReferenceNotFound {
 			return nil, &ErrNotExist{ID: tagID.String()}
@@ -124,7 +124,7 @@ func (repo *Repository) getTag(tagID SHA1, name string) (*Tag, error) {
 	tag := &Tag{
 		Name:    name,
 		ID:      tagID,
-		Object:  gogitTag.Target,
+		Object:  commitID.Type().MustID(gogitTag.Target[:]),
 		Type:    tp,
 		Tagger:  &gogitTag.Tagger,
 		Message: gogitTag.Message,

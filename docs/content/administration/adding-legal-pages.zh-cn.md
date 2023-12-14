@@ -19,10 +19,10 @@ menu:
 
 ## 获取页面
 
-Gitea 源代码附带了示例页面，位于 `contrib/legal` 目录中。将它们复制到 `custom/public/` 目录下。例如，如果要添加隐私政策：
+Gitea 源代码附带了示例页面，位于 `contrib/legal` 目录中。将它们复制到 `custom/public/assets/` 目录下。例如，如果要添加隐私政策：
 
 ```
-wget -O /path/to/custom/public/privacy.html https://raw.githubusercontent.com/go-gitea/gitea/main/contrib/legal/privacy.html.sample
+wget -O /path/to/custom/public/assets/privacy.html https://raw.githubusercontent.com/go-gitea/gitea/main/contrib/legal/privacy.html.sample
 ```
 
 现在，你需要编辑该页面以满足你的需求。特别是，你必须更改电子邮件地址、网址以及与 "Your Gitea Instance" 相关的引用，以匹配你的情况。
