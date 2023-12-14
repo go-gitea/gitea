@@ -63,7 +63,7 @@ func IsRepoURLAccessible(ctx context.Context, url string) bool {
 	return err == nil
 }
 
-// GetObjectFormatOfRepo returns the hash type of a repository at a given path
+// GetObjectFormatOfRepo returns the hash type of repository at a given path
 func GetObjectFormatOfRepo(ctx context.Context, repoPath string) (ObjectFormat, error) {
 	var stdout, stderr strings.Builder
 
@@ -96,7 +96,10 @@ func InitRepository(ctx context.Context, repoPath string, bare bool, objectForma
 		return err
 	}
 
-	cmd := NewCommand(ctx, "init", "--object-format").AddDynamicArguments(objectFormat.String())
+	cmd := NewCommand(ctx, "init")
+	if SupportHashSha256 {
+		cmd.AddOptionValues("--object-format", objectFormat.String())
+	}
 	if bare {
 		cmd.AddArguments("--bare")
 	}
