@@ -16,6 +16,7 @@ import (
 	"syscall"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -132,4 +133,8 @@ func PrepareConsoleLoggerLevel(defaultLevel log.Level) func(*cli.Context) error 
 		log.SetConsoleLogger(log.DEFAULT, "console-default", level)
 		return nil
 	}
+}
+
+func outputInJSON(data any) error {
+	return json.NewEncoder(os.Stdout).Encode(data)
 }
