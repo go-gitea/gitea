@@ -190,7 +190,7 @@ Gitea 目前支持三个官方主题，分别是 `gitea`（亮色）、`arc-gree
 
 假设我们的主题是 `arc-blue`（这是一个真实的主题，可以在[此问题](https://github.com/go-gitea/gitea/issues/6011)中找到）
 
-将`.css`文件命名为`theme-arc-blue.css`并将其添加到`custom/public/css`文件夹中
+将`.css`文件命名为`theme-arc-blue.css`并将其添加到`custom/public/assets/css`文件夹中
 
 通过将`arc-blue`添加到`app.ini`中的`THEMES`列表中，允许用户使用该主题
 
