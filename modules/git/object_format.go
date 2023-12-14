@@ -31,7 +31,6 @@ type ObjectFormat interface {
 	NewHasher() HasherInterface
 }
 
-/* SHA1 Type */
 type Sha1ObjectFormat struct{}
 
 func (Sha1ObjectFormat) String() string  { return "sha1" }
