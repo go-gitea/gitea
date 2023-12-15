@@ -148,10 +148,7 @@ func BuildRepositoryFiles(ctx context.Context, ownerID int64) error {
 			return err
 		}
 		for _, pf := range pfs {
-			if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
-				return err
-			}
-			if err := packages_model.DeleteFileByID(ctx, pf.ID); err != nil {
+			if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
 				return err
 			}
 		}

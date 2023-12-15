@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	user_model "code.gitea.io/gitea/models/user"
+	git "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
@@ -114,9 +115,13 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	}
 
 	creator := user_model.NewActionsUser()
+	commitID, err := git.IDFromString(sha)
+	if err != nil {
+		return fmt.Errorf("HashTypeInterfaceFromHashString: %w", err)
+	}
 	if err := git_model.NewCommitStatus(ctx, git_model.NewCommitStatusOptions{
 		Repo:    repo,
-		SHA:     sha,
+		SHA:     commitID,
 		Creator: creator,
 		CommitStatus: &git_model.CommitStatus{
 			SHA:         sha,

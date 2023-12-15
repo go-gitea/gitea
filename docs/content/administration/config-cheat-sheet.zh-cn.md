@@ -1039,10 +1039,11 @@ Gitea 创建以下非唯一队列：
 
 ## API (`api`)
 
-- `ENABLE_SWAGGER`: **true**: 是否启用swagger路由 (`/api/swagger`, `/api/v1/swagger`, …)。
-- `MAX_RESPONSE_ITEMS`: **50**: 单个页面的最大 Feed.
-- `ENABLE_OPENID_SIGNIN`: **false**: 允许使用OpenID登录，当设置为`true`时可以通过 `/user/login` 页面进行OpenID登录。
-- `DISABLE_REGISTRATION`: **false**: 关闭用户注册。
+- `ENABLE_SWAGGER`: **true**: 启用API文档接口 (`/api/swagger`, `/api/v1/swagger`, …). True or false。
+- `MAX_RESPONSE_ITEMS`: **50**: API分页的最大单页项目数。
+- `DEFAULT_PAGING_NUM`: **30**: API分页的默认分页数。
+- `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: Git trees API的默认单页项目数。
+- `DEFAULT_MAX_BLOB_SIZE`: **10485760** (10MiB): blobs API的默认最大文件大小。
 
 ## OAuth2 (`oauth2`)
 
