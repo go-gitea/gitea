@@ -44,7 +44,7 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	if userViewsOwnProfile && !ctx.ContextUser.KeepEmailPrivate {
 		ctx.Data["DisplayedEmail"] = ctx.ContextUser.Email
 	} else {
-		ctx.Data["DisplayedEmail"] = ctx.ContextUser.Name + "@" + setting.Service.NoReplyAddress
+		ctx.Data["DisplayedEmail"] = ctx.ContextUser.GetPlaceholderEmail()
 	}
 
 	// Show OpenID URIs
