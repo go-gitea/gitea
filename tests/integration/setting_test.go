@@ -89,7 +89,7 @@ func TestSettingShowUserEmailProfile(t *testing.T) {
 	req = NewRequest(t, "GET", "/user1")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
-	assert.NotContains(t, htmlDoc.doc.Find(".user.profile").Text(), "user2@noreply.example.org")
+	assert.NotContains(t, htmlDoc.doc.Find(".user.profile").Text(), "user1@noreply.example.org")
 	assert.Contains(t, htmlDoc.doc.Find(".user.profile").Text(), "user1@example.com")
 
 	setting.UI.ShowUserEmail = showUserEmail
