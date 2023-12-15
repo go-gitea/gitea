@@ -366,7 +366,7 @@ Gitea 提供了一个子命令`gitea migrate`来初始化数据库，然后您�
 
 > `ORM engine initialization failed: migrate: do migrate: Error: 1118: Row size too large...`
 
-请运行`gitea convert`或对数据库中的每个表运行`ALTER TABLE table_name ROW_FORMAT=dynamic;`。
+请运行 `gitea doctor convert` 或对数据库中的每个表运行 `ALTER TABLE table_name ROW_FORMAT=dynamic;`。
 
 潜在问题是默认行格式分配给每个表的索引空间
 太小。Gitea 要求其表的`ROWFORMAT`为`DYNAMIC`。
@@ -389,9 +389,8 @@ SET GLOBAL innodb_large_prefix=1;
 他们创建了一个名为 `utf8mb4`的字符集和校对规则，允许存储 Emoji，但使用
 utf8 字符集的表和连接将不会使用它。
 
-请运行 `gitea convert` 或对数据库运行`ALTER DATABASE database_name CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
-并对每个表运行
-`ALTER TABLE table_name CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`。
+请运行 `gitea doctor convert` 或对数据库运行 `ALTER DATABASE database_name CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
+并对每个表运行 `ALTER TABLE table_name CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`。
 
 您还需要将`app.ini`文件中的数据库字符集设置为`CHARSET=utf8mb4`。
 

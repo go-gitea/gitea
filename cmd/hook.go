@@ -31,8 +31,8 @@ var (
 	// CmdHook represents the available hooks sub-command.
 	CmdHook = &cli.Command{
 		Name:        "hook",
-		Usage:       "Delegate commands to corresponding Git hooks",
-		Description: "This should only be called by Git",
+		Usage:       "(internal) Should only be called by Git",
+		Description: "Delegate commands to corresponding Git hooks",
 		Before:      PrepareConsoleLoggerLevel(log.FATAL),
 		Subcommands: []*cli.Command{
 			subcmdHookPreReceive,
