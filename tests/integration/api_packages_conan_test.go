@@ -63,6 +63,9 @@ CC=gcc-10`
 )
 
 func addTokenAuthHeader(request *http.Request, token string) *http.Request {
+	if !strings.HasPrefix(token, "Bearer ") {
+		token = "Bearer " + token
+	}
 	request.Header.Set("Authorization", token)
 	return request
 }
@@ -239,10 +242,8 @@ func TestPackageConan(t *testing.T) {
 			req = AddBasicAuthHeader(req, user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			body := resp.Body.String()
-			assert.NotEmpty(t, body)
-
-			token = fmt.Sprintf("Bearer %s", body)
+			token = resp.Body.String()
+			assert.NotEmpty(t, token)
 		})
 
 		t.Run("CheckCredentials", func(t *testing.T) {

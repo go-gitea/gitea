@@ -192,7 +192,7 @@ func TestAPIGetLatestRelease(t *testing.T) {
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/latest",
 		owner.Name, repo.Name)
 
-	req := NewRequestf(t, "GET", urlStr)
+	req := NewRequest(t, "GET", urlStr)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var release *api.Release
@@ -212,7 +212,7 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s",
 		owner.Name, repo.Name, tag)
 
-	req := NewRequestf(t, "GET", urlStr)
+	req := NewRequest(t, "GET", urlStr)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var release *api.Release
@@ -225,7 +225,7 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s",
 		owner.Name, repo.Name, nonexistingtag)
 
-	req = NewRequestf(t, "GET", urlStr)
+	req = NewRequest(t, "GET", urlStr)
 	resp = MakeRequest(t, req, http.StatusNotFound)
 
 	var err *api.APIError

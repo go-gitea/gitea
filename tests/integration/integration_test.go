@@ -314,9 +314,9 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.
 	return token
 }
 
-func NewRequest(t testing.TB, method, urlStr string) *http.Request {
+func NewRequest(t testing.TB, method, urlStr string, token ...string) *http.Request {
 	t.Helper()
-	return NewRequestWithBody(t, method, urlStr, nil)
+	return NewRequestWithBody(t, method, urlStr, nil, token...)
 }
 
 func NewRequestf(t testing.TB, method, urlFormat string, args ...any) *http.Request {
@@ -324,33 +324,33 @@ func NewRequestf(t testing.TB, method, urlFormat string, args ...any) *http.Requ
 	return NewRequest(t, method, fmt.Sprintf(urlFormat, args...))
 }
 
-func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string]string) *http.Request {
+func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string]string, token ...string) *http.Request {
 	t.Helper()
 	urlValues := url.Values{}
 	for key, value := range values {
 		urlValues[key] = []string{value}
 	}
-	return NewRequestWithURLValues(t, method, urlStr, urlValues)
+	return NewRequestWithURLValues(t, method, urlStr, urlValues, token...)
 }
 
-func NewRequestWithURLValues(t testing.TB, method, urlStr string, urlValues url.Values) *http.Request {
+func NewRequestWithURLValues(t testing.TB, method, urlStr string, urlValues url.Values, token ...string) *http.Request {
 	t.Helper()
-	req := NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode()))
+	req := NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode()), token...)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	return req
 }
 
-func NewRequestWithJSON(t testing.TB, method, urlStr string, v any) *http.Request {
+func NewRequestWithJSON(t testing.TB, method, urlStr string, v any, token ...string) *http.Request {
 	t.Helper()
 
 	jsonBytes, err := json.Marshal(v)
 	assert.NoError(t, err)
-	req := NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes))
+	req := NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes), token...)
 	req.Header.Add("Content-Type", "application/json")
 	return req
 }
 
-func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *http.Request {
+func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader, token ...string) *http.Request {
 	t.Helper()
 	if !strings.HasPrefix(urlStr, "http") && !strings.HasPrefix(urlStr, "/") {
 		urlStr = "/" + urlStr
@@ -358,6 +358,15 @@ func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *ht
 	request, err := http.NewRequest(method, urlStr, body)
 	assert.NoError(t, err)
 	request.RequestURI = urlStr
+
+	if len(token) == 1 {
+		auth := token[0]
+		if !strings.HasPrefix(auth, "Bearer ") {
+			auth = "Bearer " + auth
+		}
+		request.Header.Set("Authorization", auth)
+	}
+
 	return request
 }
 

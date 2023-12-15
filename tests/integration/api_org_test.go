@@ -165,7 +165,7 @@ func TestAPIGetAll(t *testing.T) {
 	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrganization)
 
 	// accessing with a token will return all orgs
-	req := NewRequestf(t, "GET", "/api/v1/orgs?token=%s", token)
+	req := NewRequest(t, "GET", "/api/v1/orgs", token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var apiOrgList []*api.Organization
 
@@ -175,7 +175,7 @@ func TestAPIGetAll(t *testing.T) {
 	assert.Equal(t, "limited", apiOrgList[1].Visibility)
 
 	// accessing without a token will return only public orgs
-	req = NewRequestf(t, "GET", "/api/v1/orgs")
+	req = NewRequest(t, "GET", "/api/v1/orgs")
 	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &apiOrgList)

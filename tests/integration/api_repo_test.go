@@ -329,7 +329,7 @@ func TestAPIGetRepoByIDUnauthorized(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-	req := NewRequestf(t, "GET", "/api/v1/repositories/2?token="+token)
+	req := NewRequest(t, "GET", "/api/v1/repositories/2", token)
 	MakeRequest(t, req, http.StatusNotFound)
 }
 

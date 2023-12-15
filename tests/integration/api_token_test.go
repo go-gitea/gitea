@@ -46,19 +46,19 @@ func TestAPIGetTokensPermission(t *testing.T) {
 
 	// admin can get tokens for other users
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	req := NewRequestf(t, "GET", "/api/v1/users/user2/tokens")
+	req := NewRequest(t, "GET", "/api/v1/users/user2/tokens")
 	req = AddBasicAuthHeader(req, user.Name)
 	MakeRequest(t, req, http.StatusOK)
 
 	// non-admin can get tokens for himself
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	req = NewRequestf(t, "GET", "/api/v1/users/user2/tokens")
+	req = NewRequest(t, "GET", "/api/v1/users/user2/tokens")
 	req = AddBasicAuthHeader(req, user.Name)
 	MakeRequest(t, req, http.StatusOK)
 
 	// non-admin can't get tokens for other users
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
-	req = NewRequestf(t, "GET", "/api/v1/users/user2/tokens")
+	req = NewRequest(t, "GET", "/api/v1/users/user2/tokens")
 	req = AddBasicAuthHeader(req, user.Name)
 	MakeRequest(t, req, http.StatusForbidden)
 }
@@ -73,19 +73,19 @@ func TestAPIDeleteTokensPermission(t *testing.T) {
 
 	// admin can delete tokens for other users
 	createAPIAccessTokenWithoutCleanUp(t, "test-key-1", user2, nil)
-	req := NewRequestf(t, "DELETE", "/api/v1/users/"+user2.LoginName+"/tokens/test-key-1")
+	req := NewRequest(t, "DELETE", "/api/v1/users/"+user2.LoginName+"/tokens/test-key-1")
 	req = AddBasicAuthHeader(req, admin.Name)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// non-admin can delete tokens for himself
 	createAPIAccessTokenWithoutCleanUp(t, "test-key-2", user2, nil)
-	req = NewRequestf(t, "DELETE", "/api/v1/users/"+user2.LoginName+"/tokens/test-key-2")
+	req = NewRequest(t, "DELETE", "/api/v1/users/"+user2.LoginName+"/tokens/test-key-2")
 	req = AddBasicAuthHeader(req, user2.Name)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// non-admin can't delete tokens for other users
 	createAPIAccessTokenWithoutCleanUp(t, "test-key-3", user2, nil)
-	req = NewRequestf(t, "DELETE", "/api/v1/users/"+user2.LoginName+"/tokens/test-key-3")
+	req = NewRequest(t, "DELETE", "/api/v1/users/"+user2.LoginName+"/tokens/test-key-3")
 	req = AddBasicAuthHeader(req, user4.Name)
 	MakeRequest(t, req, http.StatusForbidden)
 }
@@ -530,7 +530,7 @@ func runTestCase(t *testing.T, testCase *requiredScopeTestCase, user *user_model
 		url := fmt.Sprintf("%s?token=%s", testCase.url, accessToken.Token)
 
 		// Request the endpoint.  Verify that permission is denied.
-		req := NewRequestf(t, testCase.method, url)
+		req := NewRequest(t, testCase.method, url)
 		MakeRequest(t, req, http.StatusForbidden)
 	})
 }
