@@ -194,6 +194,7 @@ func TestRepository_GetAnnotatedTag(t *testing.T) {
 }
 
 func TestRepository_parseTagRef(t *testing.T) {
+	sha1 := ObjectFormatFromID(Sha1)
 	tests := []struct {
 		name string
 
@@ -223,8 +224,8 @@ func TestRepository_parseTagRef(t *testing.T) {
 
 			want: &Tag{
 				Name:      "v1.9.1",
-				ID:        MustIDFromString("ab23e4b7f4cd0caafe0174c0e7ef6d651ba72889"),
-				Object:    MustIDFromString("ab23e4b7f4cd0caafe0174c0e7ef6d651ba72889"),
+				ID:        sha1.MustIDFromString("ab23e4b7f4cd0caafe0174c0e7ef6d651ba72889"),
+				Object:    sha1.MustIDFromString("ab23e4b7f4cd0caafe0174c0e7ef6d651ba72889"),
 				Type:      "commit",
 				Tagger:    parseAuthorLine(t, "Foo Bar <foo@bar.com> 1565789218 +0300"),
 				Message:   "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md\n",
@@ -252,8 +253,8 @@ func TestRepository_parseTagRef(t *testing.T) {
 
 			want: &Tag{
 				Name:      "v0.0.1",
-				ID:        MustIDFromString("8c68a1f06fc59c655b7e3905b159d761e91c53c9"),
-				Object:    MustIDFromString("3325fd8a973321fd59455492976c042dde3fd1ca"),
+				ID:        sha1.MustIDFromString("8c68a1f06fc59c655b7e3905b159d761e91c53c9"),
+				Object:    sha1.MustIDFromString("3325fd8a973321fd59455492976c042dde3fd1ca"),
 				Type:      "tag",
 				Tagger:    parseAuthorLine(t, "Foo Bar <foo@bar.com> 1565789218 +0300"),
 				Message:   "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md\n",
@@ -310,8 +311,8 @@ qbHDASXl
 
 			want: &Tag{
 				Name:    "v0.0.1",
-				ID:      MustIDFromString("8c68a1f06fc59c655b7e3905b159d761e91c53c9"),
-				Object:  MustIDFromString("3325fd8a973321fd59455492976c042dde3fd1ca"),
+				ID:      sha1.MustIDFromString("8c68a1f06fc59c655b7e3905b159d761e91c53c9"),
+				Object:  sha1.MustIDFromString("3325fd8a973321fd59455492976c042dde3fd1ca"),
 				Type:    "tag",
 				Tagger:  parseAuthorLine(t, "Foo Bar <foo@bar.com> 1565789218 +0300"),
 				Message: "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md",
@@ -350,7 +351,7 @@ Add changelog of v1.9.1 (#7859)
 	for _, test := range tests {
 		tc := test // don't close over loop variable
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := parseTagRef(tc.givenRef)
+			got, err := parseTagRef(sha1, tc.givenRef)
 
 			if tc.wantErr {
 				require.Error(t, err)

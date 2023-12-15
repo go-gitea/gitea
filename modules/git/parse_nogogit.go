@@ -17,13 +17,13 @@ import (
 )
 
 // ParseTreeEntries parses the output of a `git ls-tree -l` command.
-func ParseTreeEntries(data []byte) ([]*TreeEntry, error) {
-	return parseTreeEntries(data, nil)
+func ParseTreeEntries(objectFormat ObjectFormat, data []byte) ([]*TreeEntry, error) {
+	return parseTreeEntries(objectFormat, data, nil)
 }
 
 var sepSpace = []byte{' '}
 
-func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
+func parseTreeEntries(objectFormat ObjectFormat, data []byte, ptree *Tree) ([]*TreeEntry, error) {
 	var err error
 	entries := make([]*TreeEntry, 0, bytes.Count(data, []byte{'\n'})+1)
 	for pos := 0; pos < len(data); {
@@ -72,7 +72,7 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 			return nil, fmt.Errorf("unknown type: %v", string(entryMode))
 		}
 
-		entry.ID, err = NewIDFromString(string(entryObjectID))
+		entry.ID, err = objectFormat.NewIDFromString(string(entryObjectID))
 		if err != nil {
 			return nil, fmt.Errorf("invalid ls-tree output (invalid object id): %q, err: %w", line, err)
 		}
@@ -92,15 +92,15 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 	return entries, nil
 }
 
-func catBatchParseTreeEntries(ptree *Tree, rd *bufio.Reader, sz int64) ([]*TreeEntry, error) {
+func catBatchParseTreeEntries(objectFormat ObjectFormat, ptree *Tree, rd *bufio.Reader, sz int64) ([]*TreeEntry, error) {
 	fnameBuf := make([]byte, 4096)
 	modeBuf := make([]byte, 40)
-	shaBuf := make([]byte, 40)
+	shaBuf := make([]byte, objectFormat.FullLength())
 	entries := make([]*TreeEntry, 0, 10)
 
 loop:
 	for sz > 0 {
-		mode, fname, sha, count, err := ParseTreeLine(rd, modeBuf, fnameBuf, shaBuf)
+		mode, fname, sha, count, err := ParseTreeLine(objectFormat, rd, modeBuf, fnameBuf, shaBuf)
 		if err != nil {
 			if err == io.EOF {
 				break loop
@@ -127,7 +127,7 @@ loop:
 			return nil, fmt.Errorf("unknown mode: %v", string(mode))
 		}
 
-		entry.ID = MustID(sha)
+		entry.ID = objectFormat.MustID(sha)
 		entry.name = string(fname)
 		entries = append(entries, entry)
 	}

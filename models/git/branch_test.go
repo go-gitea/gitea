@@ -30,14 +30,14 @@ func TestAddDeletedBranch(t *testing.T) {
 	assert.True(t, secondBranch.IsDeleted)
 
 	commit := &git.Commit{
-		ID:            git.MustIDFromString(secondBranch.CommitID),
+		ID:            repo.ObjectFormat.MustIDFromString(secondBranch.CommitID),
 		CommitMessage: secondBranch.CommitMessage,
 		Committer: &git.Signature{
 			When: secondBranch.CommitTime.AsLocalTime(),
 		},
 	}
 
-	err := git_model.UpdateBranch(db.DefaultContext, repo.ID, secondBranch.PusherID, secondBranch.Name, commit)
+	_, err := git_model.UpdateBranch(db.DefaultContext, repo.ID, secondBranch.PusherID, secondBranch.Name, commit)
 	assert.NoError(t, err)
 }
 
@@ -45,10 +45,8 @@ func TestGetDeletedBranches(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	branches, err := git_model.FindBranches(db.DefaultContext, git_model.FindBranchOptions{
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+	branches, err := db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
+		ListOptions:     db.ListOptionsAll,
 		RepoID:          repo.ID,
 		IsDeletedBranch: util.OptionalBoolTrue,
 	})
