@@ -21,8 +21,11 @@ const (
 	OAuth2UsernameUserid OAuth2UsernameType = "userid"
 	// OAuth2UsernameNickname oauth2 nickname field will be used as gitea name
 	OAuth2UsernameNickname OAuth2UsernameType = "nickname"
-	// OAuth2UsernameEmail username of oauth2 email filed will be used as gitea name
+	// OAuth2UsernameEmail username of oauth2 email field will be used as gitea name
 	OAuth2UsernameEmail OAuth2UsernameType = "email"
+	// OAuth2UsernameEmail username of oauth2 email field will be used as gitea name, with
+	// non-supported username characters replaced with a `-` character
+	OAuth2UsernameEmailNormalized OAuth2UsernameType = "email-normalized"
 )
 
 func (username OAuth2UsernameType) isValid() bool {
