@@ -117,7 +117,7 @@ func NewMainApp(version, versionExtra string) *cli.App {
 	app.Name = "Gitea"
 	app.HelpName = "gitea"
 	app.Usage = "A painless self-hosted Git service"
-	app.Description = `Gitea program contains "web" and other subcommands. If no subcommand is given, it starts the web server by default. Use "web" subcommand for more web server arguments, use other subcommands for other features.`
+	app.Description = `Gitea program contains "web" and other subcommands. If no subcommand is given, it starts the web server by default. Use "web" subcommand for more web server arguments, use other subcommands for other purposes.`
 	app.Version = version + versionExtra
 	app.EnableBashCompletion = true
 
