@@ -93,6 +93,13 @@ func CreateUser(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
+
+	if u.LoginType == auth.Plain && len(form.Password) == 0 {
+		err := errors.New("PasswordIsRequired")
+		ctx.Error(http.StatusBadRequest, "PasswordIsRequired", err)
+		return
+	}
+
 	if !password.IsComplexEnough(form.Password) {
 		err := errors.New("PasswordComplexity")
 		ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
