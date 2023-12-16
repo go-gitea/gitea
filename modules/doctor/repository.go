@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/storage"
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	"xorm.io/builder"
@@ -31,6 +32,10 @@ func countOrphanedRepos(ctx context.Context) (int64, error) {
 
 // deleteOrphanedRepos delete repository where user of owner_id do not exist
 func deleteOrphanedRepos(ctx context.Context) (int64, error) {
+	if err := storage.Init(); err != nil {
+		return 0, err
+	}
+
 	batchSize := db.MaxBatchInsertSize("repository")
 	e := db.GetEngine(ctx)
 	var deleted int64
