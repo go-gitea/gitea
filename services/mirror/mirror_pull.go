@@ -484,7 +484,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 			}
 			notify_service.SyncPushCommits(ctx, m.Repo.MustOwner(ctx), m.Repo, &repo_module.PushUpdateOptions{
 				RefFullName: result.refName,
-				OldCommitID: objectFormat.Empty().String(),
+				OldCommitID: objectFormat.EmptyObjectID().String(),
 				NewCommitID: commitID,
 			}, repo_module.NewPushCommits())
 			notify_service.SyncCreateRef(ctx, m.Repo.MustOwner(ctx), m.Repo, result.refName, commitID)

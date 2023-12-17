@@ -28,9 +28,9 @@ func TestParseTreeEntries(t *testing.T) {
 			Input: "100644 blob 61ab7345a1a3bbc590068ccae37b8515cfc5843c    1022\texample/file2.txt\n",
 			Expected: []*TreeEntry{
 				{
-					ID: ObjectFormatFromID(Sha1).MustIDFromString("61ab7345a1a3bbc590068ccae37b8515cfc5843c"),
+					ID: Sha1ObjectFormat.MustIDFromString("61ab7345a1a3bbc590068ccae37b8515cfc5843c"),
 					gogitTreeEntry: &object.TreeEntry{
-						Hash: plumbing.Hash(ObjectFormatFromID(Sha1).MustIDFromString("61ab7345a1a3bbc590068ccae37b8515cfc5843c").RawValue()),
+						Hash: plumbing.Hash(Sha1ObjectFormat.MustIDFromString("61ab7345a1a3bbc590068ccae37b8515cfc5843c").RawValue()),
 						Name: "example/file2.txt",
 						Mode: filemode.Regular,
 					},
@@ -44,9 +44,9 @@ func TestParseTreeEntries(t *testing.T) {
 				"040000 tree 1d01fb729fb0db5881daaa6030f9f2d3cd3d5ae8       -\texample\n",
 			Expected: []*TreeEntry{
 				{
-					ID: ObjectFormatFromID(Sha1).MustIDFromString("61ab7345a1a3bbc590068ccae37b8515cfc5843c"),
+					ID: Sha1ObjectFormat.MustIDFromString("61ab7345a1a3bbc590068ccae37b8515cfc5843c"),
 					gogitTreeEntry: &object.TreeEntry{
-						Hash: plumbing.Hash(ObjectFormatFromID(Sha1).MustIDFromString("61ab7345a1a3bbc590068ccae37b8515cfc5843c").RawValue()),
+						Hash: plumbing.Hash(Sha1ObjectFormat.MustIDFromString("61ab7345a1a3bbc590068ccae37b8515cfc5843c").RawValue()),
 						Name: "example/\n.txt",
 						Mode: filemode.Symlink,
 					},
@@ -54,10 +54,10 @@ func TestParseTreeEntries(t *testing.T) {
 					sized: true,
 				},
 				{
-					ID:    ObjectFormatFromID(Sha1).MustIDFromString("1d01fb729fb0db5881daaa6030f9f2d3cd3d5ae8"),
+					ID:    Sha1ObjectFormat.MustIDFromString("1d01fb729fb0db5881daaa6030f9f2d3cd3d5ae8"),
 					sized: true,
 					gogitTreeEntry: &object.TreeEntry{
-						Hash: plumbing.Hash(ObjectFormatFromID(Sha1).MustIDFromString("1d01fb729fb0db5881daaa6030f9f2d3cd3d5ae8").RawValue()),
+						Hash: plumbing.Hash(Sha1ObjectFormat.MustIDFromString("1d01fb729fb0db5881daaa6030f9f2d3cd3d5ae8").RawValue()),
 						Name: "example",
 						Mode: filemode.Dir,
 					},
@@ -67,7 +67,7 @@ func TestParseTreeEntries(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		entries, err := ParseTreeEntries(ObjectFormatFromID(Sha1), []byte(testCase.Input))
+		entries, err := ParseTreeEntries(Sha1ObjectFormat, []byte(testCase.Input))
 		assert.NoError(t, err)
 		if len(entries) > 1 {
 			fmt.Println(testCase.Expected[0].ID)

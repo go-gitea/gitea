@@ -194,7 +194,7 @@ func TestRepository_GetAnnotatedTag(t *testing.T) {
 }
 
 func TestRepository_parseTagRef(t *testing.T) {
-	sha1 := ObjectFormatFromID(Sha1)
+	sha1 := Sha1ObjectFormat
 	tests := []struct {
 		name string
 

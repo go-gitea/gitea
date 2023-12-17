@@ -90,7 +90,7 @@ func GetObjectFormatOfRepo(ctx context.Context, repoPath string) (ObjectFormat, 
 }
 
 // InitRepository initializes a new Git repository.
-func InitRepository(ctx context.Context, repoPath string, bare bool, objectFormat ObjectFormat) error {
+func InitRepository(ctx context.Context, repoPath string, bare bool, objectFormatName string) error {
 	err := os.MkdirAll(repoPath, os.ModePerm)
 	if err != nil {
 		return err
@@ -98,7 +98,13 @@ func InitRepository(ctx context.Context, repoPath string, bare bool, objectForma
 
 	cmd := NewCommand(ctx, "init")
 	if SupportHashSha256 {
-		cmd.AddOptionValues("--object-format", objectFormat.String())
+		if objectFormatName == "" {
+			objectFormatName = Sha1ObjectFormat.Name()
+		}
+		if !IsValidObjectFormat(objectFormatName) {
+			return fmt.Errorf("invalid object format: %s", objectFormatName)
+		}
+		cmd.AddOptionValues("--object-format", objectFormatName)
 	}
 	if bare {
 		cmd.AddArguments("--bare")

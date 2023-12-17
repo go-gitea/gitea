@@ -31,18 +31,15 @@ func (h *Sha1Hash) IsZero() bool {
 	return bytes.Equal(empty[:], h[:])
 }
 func (h *Sha1Hash) RawValue() []byte { return h[:] }
-func (*Sha1Hash) Type() ObjectFormat { return &Sha1ObjectFormat{} }
+func (*Sha1Hash) Type() ObjectFormat { return Sha1ObjectFormat }
 
-func NewSha1() *Sha1Hash {
-	return &Sha1Hash{}
-}
+var _ ObjectID = &Sha1Hash{}
 
-// NewHash is for generic implementations
-func NewHash(hash string) (ObjectID, error) {
-	hash = strings.ToLower(hash)
-	switch hash {
-	case "sha1":
-		return &Sha1Hash{}, nil
+// EmptyObjectID creates a new ObjectID from an object format hash name
+func EmptyObjectID(objectFormatName string) (ObjectID, error) {
+	objectFormat := ObjectFormatFromName(objectFormatName)
+	if objectFormat != nil {
+		return objectFormat.EmptyObjectID(), nil
 	}
 
 	return nil, errors.New("unsupported hash type")
@@ -50,7 +47,7 @@ func NewHash(hash string) (ObjectID, error) {
 
 func IDFromRaw(h ObjectFormat, b []byte) (ObjectID, error) {
 	if len(b) != h.FullLength()/2 {
-		return h.Empty(), fmt.Errorf("length must be %d: %v", h.FullLength(), b)
+		return h.EmptyObjectID(), fmt.Errorf("length must be %d: %v", h.FullLength(), b)
 	}
 	return h.MustID(b), nil
 }
@@ -63,24 +60,20 @@ func MustIDFromString(h ObjectFormat, s string) ObjectID {
 func genericIDFromString(h ObjectFormat, s string) (ObjectID, error) {
 	s = strings.TrimSpace(s)
 	if len(s) != h.FullLength() {
-		return h.Empty(), fmt.Errorf("length must be %d: %s", h.FullLength(), s)
+		return h.EmptyObjectID(), fmt.Errorf("length must be %d: %s", h.FullLength(), s)
 	}
 	b, err := hex.DecodeString(s)
 	if err != nil {
-		return h.Empty(), err
+		return h.EmptyObjectID(), err
 	}
 	return h.NewID(b)
 }
 
 func IDFromString(hexHash string) (ObjectID, error) {
-	switch len(hexHash) {
-	case 40:
-		hashType := Sha1ObjectFormat{}
-		h, err := hashType.NewIDFromString(hexHash)
-		if err != nil {
-			return nil, err
+	for _, objectFormat := range SupportedObjectFormats {
+		if len(hexHash) == objectFormat.FullLength() {
+			return objectFormat.NewIDFromString(hexHash)
 		}
-		return h, nil
 	}
 
 	return nil, fmt.Errorf("invalid hash hex string: '%s' len: %d", hexHash, len(hexHash))

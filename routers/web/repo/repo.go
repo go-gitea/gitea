@@ -278,18 +278,18 @@ func CreatePost(ctx *context.Context) {
 		}
 	} else {
 		repo, err = repo_service.CreateRepository(ctx, ctx.Doer, ctxUser, repo_service.CreateRepoOptions{
-			Name:          form.RepoName,
-			Description:   form.Description,
-			Gitignores:    form.Gitignores,
-			IssueLabels:   form.IssueLabels,
-			License:       form.License,
-			Readme:        form.Readme,
-			IsPrivate:     form.Private || setting.Repository.ForcePrivate,
-			DefaultBranch: form.DefaultBranch,
-			AutoInit:      form.AutoInit,
-			IsTemplate:    form.Template,
-			TrustModel:    repo_model.ToTrustModel(form.TrustModel),
-			ObjectFormat:  form.ObjectFormat,
+			Name:             form.RepoName,
+			Description:      form.Description,
+			Gitignores:       form.Gitignores,
+			IssueLabels:      form.IssueLabels,
+			License:          form.License,
+			Readme:           form.Readme,
+			IsPrivate:        form.Private || setting.Repository.ForcePrivate,
+			DefaultBranch:    form.DefaultBranch,
+			AutoInit:         form.AutoInit,
+			IsTemplate:       form.Template,
+			TrustModel:       repo_model.ToTrustModel(form.TrustModel),
+			ObjectFormatName: form.ObjectFormatName,
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)

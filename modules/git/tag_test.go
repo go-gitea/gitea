@@ -22,7 +22,7 @@ tagger Lucas Michot <lucas@semalead.com> 1484491741 +0100
 
 `), tag: Tag{
 			Name:      "",
-			ID:        NewSha1(),
+			ID:        Sha1ObjectFormat.EmptyObjectID(),
 			Object:    &Sha1Hash{0x3b, 0x11, 0x4a, 0xb8, 0x0, 0xc6, 0x43, 0x2a, 0xd4, 0x23, 0x87, 0xcc, 0xf6, 0xbc, 0x8d, 0x43, 0x88, 0xa2, 0x88, 0x5a},
 			Type:      "commit",
 			Tagger:    &Signature{Name: "Lucas Michot", Email: "lucas@semalead.com", When: time.Unix(1484491741, 0)},
@@ -39,7 +39,7 @@ o
 
 ono`), tag: Tag{
 			Name:      "",
-			ID:        NewSha1(),
+			ID:        Sha1ObjectFormat.EmptyObjectID(),
 			Object:    &Sha1Hash{0x7c, 0xdf, 0x42, 0xc0, 0xb1, 0xcc, 0x76, 0x3a, 0xb7, 0xe4, 0xc3, 0x3c, 0x47, 0xa2, 0x4e, 0x27, 0xc6, 0x6b, 0xfc, 0xcc},
 			Type:      "commit",
 			Tagger:    &Signature{Name: "Lucas Michot", Email: "lucas@semalead.com", When: time.Unix(1484553735, 0)},
@@ -49,7 +49,7 @@ ono`), tag: Tag{
 	}
 
 	for _, test := range testData {
-		tag, err := parseTagData(ObjectFormatFromID(Sha1), test.data)
+		tag, err := parseTagData(Sha1ObjectFormat, test.data)
 		assert.NoError(t, err)
 		assert.EqualValues(t, test.tag.ID, tag.ID)
 		assert.EqualValues(t, test.tag.Object, tag.Object)

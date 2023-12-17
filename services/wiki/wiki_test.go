@@ -302,7 +302,7 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	// Now create a temporaryDirectory
 	tmpDir := t.TempDir()
 
-	err := git.InitRepository(git.DefaultContext, tmpDir, true, git.ObjectFormatFromID(git.Sha1))
+	err := git.InitRepository(git.DefaultContext, tmpDir, true, git.Sha1ObjectFormat.Name())
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, tmpDir)

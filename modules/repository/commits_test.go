@@ -169,7 +169,7 @@ func TestListToPushCommits(t *testing.T) {
 		When:  now,
 	}
 
-	hashType := git.ObjectFormatFromID(git.Sha1)
+	hashType := git.Sha1ObjectFormat
 	const hexString1 = "0123456789abcdef0123456789abcdef01234567"
 	hash1, err := hashType.NewIDFromString(hexString1)
 	assert.NoError(t, err)
