@@ -1160,22 +1160,36 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
 func UpdateCommentsMigrationsByType(ctx context.Context, tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
-	_, err := db.GetEngine(ctx).Table("comment").
-		Where(builder.In("issue_id",
-			builder.Select("issue.id").
-				From("issue").
-				InnerJoin("repository", "issue.repo_id = repository.id").
-				Where(builder.Eq{
-					"repository.original_service_type": tp,
-				}),
-		)).
-		And("comment.original_author_id = ?", originalAuthorID).
-		Update(map[string]any{
-			"poster_id":          posterID,
-			"original_author":    "",
-			"original_author_id": 0,
-		})
-	return err
+	const batchSize = 50
+	for {
+		commentIDs := make([]int64, 0, batchSize)
+		if err := db.GetEngine(ctx).
+			Table("comment").
+			Select("`comment`.id").
+			Join("INNER", "issue", "`comment`.issue_id = `issue`.id").
+			Join("INNER", "repository", "`repository`.id = `issue`.repo_id").
+			Where("`repository`.original_service_type = ? AND `comment`.original_author_id = ?", tp, originalAuthorID).
+			Limit(batchSize, 0).
+			Find(&commentIDs); err != nil {
+			return err
+		}
+
+		for _, commentID := range commentIDs {
+			if _, err := db.GetEngine(ctx).Table(&Comment{}).ID(commentID).Update(map[string]any{
+				"poster_id":          posterID,
+				"original_author":    "",
+				"original_author_id": 0,
+			}); err != nil {
+				return err
+			}
+		}
+
+		if len(commentIDs) < batchSize {
+			break
+		}
+	}
+
+	return nil
 }
 
 // CreateAutoMergeComment is a internal function, only use it for CommentTypePRScheduledToAutoMerge and CommentTypePRUnScheduledToAutoMerge CommentTypes
