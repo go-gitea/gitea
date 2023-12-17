@@ -114,7 +114,7 @@ WHEN NOT MATCHED
 
 // GetNextCommitStatusIndex retried 3 times to generate a resource index
 func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
-	_, err := git.IDFromString(sha)
+	_, err := git.NewIDFromString(sha)
 	if err != nil {
 		return 0, git.ErrInvalidSHA{SHA: sha}
 	}

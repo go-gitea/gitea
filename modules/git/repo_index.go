@@ -30,7 +30,7 @@ func (repo *Repository) ReadTreeToIndex(treeish string, indexFilename ...string)
 			treeish = res[:len(res)-1]
 		}
 	}
-	id, err := objectFormat.NewIDFromString(treeish)
+	id, err := NewIDFromString(treeish)
 	if err != nil {
 		return err
 	}
@@ -128,7 +128,7 @@ func (repo *Repository) WriteTree() (*Tree, error) {
 	if runErr != nil {
 		return nil, runErr
 	}
-	id, err := repo.objectFormat.NewIDFromString(strings.TrimSpace(stdout))
+	id, err := NewIDFromString(strings.TrimSpace(stdout))
 	if err != nil {
 		return nil, err
 	}

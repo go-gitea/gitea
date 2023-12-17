@@ -73,7 +73,7 @@ func searchRefCommitByType(ctx *context.APIContext, refType, filter string) (str
 func ConvertToObjectID(ctx gocontext.Context, repo *context.Repository, commitID string) (git.ObjectID, error) {
 	objectFormat, _ := repo.GitRepo.GetObjectFormat()
 	if len(commitID) == objectFormat.FullLength() && objectFormat.IsValid(commitID) {
-		sha, err := objectFormat.NewIDFromString(commitID)
+		sha, err := git.NewIDFromString(commitID)
 		if err == nil {
 			return sha, nil
 		}

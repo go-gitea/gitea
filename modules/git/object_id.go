@@ -6,9 +6,7 @@ package git
 import (
 	"bytes"
 	"encoding/hex"
-	"errors"
 	"fmt"
-	"strings"
 )
 
 type ObjectID interface {
@@ -33,48 +31,36 @@ func (*Sha1Hash) Type() ObjectFormat { return Sha1ObjectFormat }
 
 var _ ObjectID = &Sha1Hash{}
 
-// EmptyObjectID creates a new ObjectID from an object format hash name
-func EmptyObjectID(objectFormatName string) (ObjectID, error) {
-	objectFormat := ObjectFormatFromName(objectFormatName)
-	if objectFormat != nil {
-		return objectFormat.EmptyObjectID(), nil
-	}
-
-	return nil, errors.New("unsupported hash type")
-}
-
-func IDFromRaw(h ObjectFormat, b []byte) (ObjectID, error) {
-	if len(b) != h.FullLength()/2 {
-		return h.EmptyObjectID(), fmt.Errorf("length must be %d: %v", h.FullLength(), b)
-	}
-	return h.MustID(b), nil
-}
-
-func MustIDFromString(h ObjectFormat, s string) ObjectID {
-	b, _ := hex.DecodeString(s)
-	return h.MustID(b)
-}
-
-func genericIDFromString(h ObjectFormat, s string) (ObjectID, error) {
-	s = strings.TrimSpace(s)
-	if len(s) != h.FullLength() {
-		return h.EmptyObjectID(), fmt.Errorf("length must be %d: %s", h.FullLength(), s)
-	}
-	b, err := hex.DecodeString(s)
-	if err != nil {
-		return h.EmptyObjectID(), err
-	}
-	return h.NewID(b)
-}
-
-func IDFromString(hexHash string) (ObjectID, error) {
+func NewIDFromString(hexHash string) (ObjectID, error) {
+	var theObjectFormat ObjectFormat
 	for _, objectFormat := range SupportedObjectFormats {
 		if len(hexHash) == objectFormat.FullLength() {
-			return objectFormat.NewIDFromString(hexHash)
+			theObjectFormat = objectFormat
+			break
 		}
 	}
 
-	return nil, fmt.Errorf("invalid hash hex string: '%s' len: %d", hexHash, len(hexHash))
+	if theObjectFormat == nil {
+		return nil, fmt.Errorf("length %d has no matched object format", len(hexHash))
+	}
+
+	b, err := hex.DecodeString(hexHash)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(b) != theObjectFormat.FullLength()/2 {
+		return theObjectFormat.EmptyObjectID(), fmt.Errorf("length must be %d: %v", theObjectFormat.FullLength(), b)
+	}
+	return theObjectFormat.MustID(b), nil
+}
+
+func MustIDFromString(hexHash string) ObjectID {
+	id, err := NewIDFromString(hexHash)
+	if err != nil {
+		panic(err)
+	}
+	return id
 }
 
 func IsEmptyCommitID(commitID string) bool {
@@ -82,7 +68,7 @@ func IsEmptyCommitID(commitID string) bool {
 		return true
 	}
 
-	id, err := IDFromString(commitID)
+	id, err := NewIDFromString(commitID)
 	if err != nil {
 		return false
 	}

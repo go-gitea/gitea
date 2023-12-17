@@ -30,9 +30,8 @@ func TestAddDeletedBranch(t *testing.T) {
 	secondBranch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo.ID, Name: "branch2"})
 	assert.True(t, secondBranch.IsDeleted)
 
-	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 	commit := &git.Commit{
-		ID:            objectFormat.MustIDFromString(secondBranch.CommitID),
+		ID:            git.MustIDFromString(secondBranch.CommitID),
 		CommitMessage: secondBranch.CommitMessage,
 		Committer: &git.Signature{
 			When: secondBranch.CommitTime.AsLocalTime(),

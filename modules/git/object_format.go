@@ -21,12 +21,11 @@ type ObjectFormat interface {
 	EmptyTree() ObjectID
 	// FullLength is the length of the hash's hex string
 	FullLength() int
-
+	// IsValid returns true if the input is a valid hash
 	IsValid(input string) bool
+	// MustID creates a new ObjectID from a byte slice
 	MustID(b []byte) ObjectID
-	MustIDFromString(s string) ObjectID
-	NewID(b []byte) (ObjectID, error)
-	NewIDFromString(s string) (ObjectID, error)
+	// ComputeHash compute the hash for a given ObjectType and content
 	ComputeHash(t ObjectType, content []byte) ObjectID
 }
 
@@ -57,18 +56,6 @@ func (Sha1ObjectFormatImpl) MustID(b []byte) ObjectID {
 	var id Sha1Hash
 	copy(id[0:20], b)
 	return &id
-}
-
-func (h Sha1ObjectFormatImpl) MustIDFromString(s string) ObjectID {
-	return MustIDFromString(h, s)
-}
-
-func (h Sha1ObjectFormatImpl) NewID(b []byte) (ObjectID, error) {
-	return IDFromRaw(h, b)
-}
-
-func (h Sha1ObjectFormatImpl) NewIDFromString(s string) (ObjectID, error) {
-	return genericIDFromString(h, s)
 }
 
 // ComputeHash compute the hash for a given ObjectType and content
