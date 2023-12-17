@@ -8,8 +8,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"hash"
-	"strconv"
 	"strings"
 )
 
@@ -92,37 +90,9 @@ func IsEmptyCommitID(commitID string) bool {
 	return id.IsZero()
 }
 
-// HasherInterface is a struct that will generate a Hash
-type HasherInterface interface {
-	hash.Hash
-
-	HashSum() ObjectID
-}
-
-type Sha1Hasher struct {
-	hash.Hash
-}
-
 // ComputeBlobHash compute the hash for a given blob content
 func ComputeBlobHash(hashType ObjectFormat, content []byte) ObjectID {
-	return ComputeHash(hashType, ObjectBlob, content)
-}
-
-// ComputeHash compute the hash for a given ObjectType and content
-func ComputeHash(hashType ObjectFormat, t ObjectType, content []byte) ObjectID {
-	h := hashType.NewHasher()
-	_, _ = h.Write(t.Bytes())
-	_, _ = h.Write([]byte(" "))
-	_, _ = h.Write([]byte(strconv.FormatInt(int64(len(content)), 10)))
-	_, _ = h.Write([]byte{0})
-	return h.HashSum()
-}
-
-// HashSum generates a SHA1 for the provided hash
-func (h *Sha1Hasher) HashSum() ObjectID {
-	var sha1 Sha1Hash
-	copy(sha1[:], h.Hash.Sum(nil))
-	return &sha1
+	return hashType.ComputeHash(ObjectBlob, content)
 }
 
 type ErrInvalidSHA struct {
