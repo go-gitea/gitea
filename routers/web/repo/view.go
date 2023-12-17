@@ -18,7 +18,6 @@ import (
 	"slices"
 	"strings"
 	"time"
-	"unsafe"
 
 	_ "image/gif"  // for processing gif images
 	_ "image/jpeg" // for processing jpeg images
@@ -329,7 +328,7 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 		if err != nil {
 			log.Error("Read readme content failed: %v", err)
 		}
-		contentEscaped := template.HTMLEscapeString(unsafe.String(&content[0], len(content)))
+		contentEscaped := template.HTMLEscapeString(util.UnsafeBytesToString(content))
 		ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlHTML(template.HTML(contentEscaped), ctx.Locale)
 	}
 
