@@ -168,14 +168,14 @@ func (g *GithubDownloaderV3) waitAndPickClient() {
 
 		err := g.RefreshRate()
 		if err != nil {
-			log.Error("g.getClient().RateLimits: %s", err)
+			log.Error("g.getClient().RateLimit.Get: %s", err)
 		}
 	}
 }
 
 // RefreshRate update the current rate (doesn't count in rate limit)
 func (g *GithubDownloaderV3) RefreshRate() error {
-	rates, _, err := g.getClient().RateLimits(g.ctx)
+	rates, _, err := g.getClient().RateLimit.Get(g.ctx)
 	if err != nil {
 		// if rate limit is not enabled, ignore it
 		if strings.Contains(err.Error(), "404") {
