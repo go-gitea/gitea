@@ -33,8 +33,8 @@ var (
 	// DefaultContext is the default context to run git commands in, must be initialized by git.InitXxx
 	DefaultContext context.Context
 
-	// SupportProcReceive version >= 2.29.0
-	SupportProcReceive bool
+	SupportProcReceive bool // >= 2.29
+	SupportHashSha256  bool // >= 2.42, SHA-256 repositories no longer an ‘experimental curiosity’
 
 	gitVersion *version.Version
 )
@@ -189,7 +189,7 @@ func InitFull(ctx context.Context) (err error) {
 		globalCommandArgs = append(globalCommandArgs, "-c", "credential.helper=")
 	}
 	SupportProcReceive = CheckGitVersionAtLeast("2.29") == nil
-
+	SupportHashSha256 = CheckGitVersionAtLeast("2.42") == nil
 	if setting.LFS.StartServer {
 		if CheckGitVersionAtLeast("2.1.2") != nil {
 			return errors.New("LFS server support requires Git >= 2.1.2")

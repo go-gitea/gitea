@@ -84,7 +84,7 @@ func (repo *Repository) GetTag(name string) (*Tag, error) {
 		return nil, err
 	}
 
-	id, err := NewIDFromString(idStr)
+	id, err := repo.objectFormat.NewIDFromString(idStr)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func (repo *Repository) GetTag(name string) (*Tag, error) {
 
 // GetTagWithID returns a Git tag by given name and ID
 func (repo *Repository) GetTagWithID(idStr, name string) (*Tag, error) {
-	id, err := NewIDFromString(idStr)
+	id, err := repo.objectFormat.NewIDFromString(idStr)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 			break
 		}
 
-		tag, err := parseTagRef(ref)
+		tag, err := parseTagRef(repo.objectFormat, ref)
 		if err != nil {
 			return nil, 0, fmt.Errorf("GetTagInfos: parse tag: %w", err)
 		}
@@ -159,13 +159,13 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 }
 
 // parseTagRef parses a tag from a 'git for-each-ref'-produced reference.
-func parseTagRef(ref map[string]string) (tag *Tag, err error) {
+func parseTagRef(objectFormat ObjectFormat, ref map[string]string) (tag *Tag, err error) {
 	tag = &Tag{
 		Type: ref["objecttype"],
 		Name: ref["refname:short"],
 	}
 
-	tag.ID, err = NewIDFromString(ref["objectname"])
+	tag.ID, err = objectFormat.NewIDFromString(ref["objectname"])
 	if err != nil {
 		return nil, fmt.Errorf("parse objectname '%s': %w", ref["objectname"], err)
 	}
@@ -175,7 +175,7 @@ func parseTagRef(ref map[string]string) (tag *Tag, err error) {
 		tag.Object = tag.ID
 	} else {
 		// annotated tag
-		tag.Object, err = NewIDFromString(ref["object"])
+		tag.Object, err = objectFormat.NewIDFromString(ref["object"])
 		if err != nil {
 			return nil, fmt.Errorf("parse object '%s': %w", ref["object"], err)
 		}
@@ -208,7 +208,7 @@ func parseTagRef(ref map[string]string) (tag *Tag, err error) {
 
 // GetAnnotatedTag returns a Git tag by its SHA, must be an annotated tag
 func (repo *Repository) GetAnnotatedTag(sha string) (*Tag, error) {
-	id, err := NewIDFromString(sha)
+	id, err := repo.objectFormat.NewIDFromString(sha)
 	if err != nil {
 		return nil, err
 	}
