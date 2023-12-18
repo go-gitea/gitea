@@ -510,9 +510,8 @@ func Issues(ctx *context.Context) {
 
 func renderMilestones(ctx *context.Context) {
 	// Get milestones
-	milestones, _, err := issues_model.GetMilestones(ctx, issues_model.GetMilestonesOption{
+	milestones, err := db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
 		RepoID: ctx.Repo.Repository.ID,
-		State:  api.StateAll,
 	})
 	if err != nil {
 		ctx.ServerError("GetAllRepoMilestones", err)
@@ -534,17 +533,17 @@ func renderMilestones(ctx *context.Context) {
 // RetrieveRepoMilestonesAndAssignees find all the milestones and assignees of a repository
 func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.Repository) {
 	var err error
-	ctx.Data["OpenMilestones"], _, err = issues_model.GetMilestones(ctx, issues_model.GetMilestonesOption{
-		RepoID: repo.ID,
-		State:  api.StateOpen,
+	ctx.Data["OpenMilestones"], err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
+		RepoID:   repo.ID,
+		IsClosed: util.OptionalBoolFalse,
 	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)
 		return
 	}
-	ctx.Data["ClosedMilestones"], _, err = issues_model.GetMilestones(ctx, issues_model.GetMilestonesOption{
-		RepoID: repo.ID,
-		State:  api.StateClosed,
+	ctx.Data["ClosedMilestones"], err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
+		RepoID:   repo.ID,
+		IsClosed: util.OptionalBoolTrue,
 	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)
@@ -1319,7 +1318,7 @@ func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *use
 		return roleDescriptor, err
 	} else if hasMergedPR {
 		roleDescriptor.RoleInRepo = issues_model.RoleRepoContributor
-	} else {
+	} else if issue.IsPull {
 		// only display first time contributor in the first opening pull request
 		roleDescriptor.RoleInRepo = issues_model.RoleRepoFirstTimeContributor
 	}
