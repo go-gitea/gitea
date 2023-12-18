@@ -94,24 +94,27 @@ func CreateUser(ctx *context.APIContext) {
 		return
 	}
 
-	if u.LoginType == auth.Plain && len(form.Password) == 0 {
-		err := errors.New("PasswordIsRequired")
-		ctx.Error(http.StatusBadRequest, "PasswordIsRequired", err)
-		return
-	}
-
-	if !password.IsComplexEnough(form.Password) {
-		err := errors.New("PasswordComplexity")
-		ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
-		return
-	}
-	pwned, err := password.IsPwned(ctx, form.Password)
-	if pwned {
-		if err != nil {
-			log.Error(err.Error())
+	if u.LoginType == auth.Plain {
+		if len(form.Password) < setting.MinPasswordLength {
+			err := errors.New("PasswordIsRequired")
+			ctx.Error(http.StatusBadRequest, "PasswordIsRequired", err)
+			return
 		}
-		ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
-		return
+
+		if !password.IsComplexEnough(form.Password) {
+			err := errors.New("PasswordComplexity")
+			ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
+			return
+		}
+
+		pwned, err := password.IsPwned(ctx, form.Password)
+		if pwned {
+			if err != nil {
+				log.Error(err.Error())
+			}
+			ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
+			return
+		}
 	}
 
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
