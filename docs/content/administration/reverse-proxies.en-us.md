@@ -387,3 +387,27 @@ If you really need to do so, to make Gitea works with sub-path (eg: `http://exam
 The container registry uses a fixed sub-path `/v2` which can't be changed.
 Even if you deploy Gitea with a different sub-path, `/v2` will be used by the `docker` client.
 Therefore you may need to add an additional route to your reverse proxy configuration.
+
+## Additional configuration for Linux distros that run SELinux 
+
+When running SELinux you may get a **502 Bad Gateway Error**. By default SELinux prohibits http relay. To check if http relay is disabled, we can use the ```getsebool``` command:
+```console
+foo@bar:~$ getsebool httpd_can_network_relay
+httpd_can_network_relay --> off
+```
+
+To enable httpd relay we can issue the following command:
+```console
+foo@bar:~$ setsebool -P httpd_can_network_relay 1
+```
+
+By default, SELinux will allow a specific list of ports to be used for http. We can check the allowed ports with the following:
+```console
+foo@bar:~$ semanage port -l | grep ^http_port_t
+http_port_t                    tcp      80, 81, 443, 488, 8008, 8009, 8443, 9000
+```
+
+If the port used by Gitea is not listed, SELinux will cause proxy connections to that port to be rejected. We can add the desired port with the ```semanage``` command (e.g. port 3000:)
+```console
+foo@bar:~$ semanage port -a -t http_port_t -p tcp 3000
+```
