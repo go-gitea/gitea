@@ -41,7 +41,7 @@ func NewIDFromString(hexHash string) (ObjectID, error) {
 	}
 
 	if theObjectFormat == nil {
-		return nil, fmt.Errorf("length %d has no matched object format", len(hexHash))
+		return nil, fmt.Errorf("length %d has no matched object format: %s", len(hexHash), hexHash)
 	}
 
 	b, err := hex.DecodeString(hexHash)
