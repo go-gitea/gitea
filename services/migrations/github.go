@@ -135,7 +135,7 @@ func (g *GithubDownloaderV3) LogString() string {
 func (g *GithubDownloaderV3) addClient(client *http.Client, baseURL string) {
 	githubClient := github.NewClient(client)
 	if baseURL != "https://github.com" {
-		githubClient, _ = github.NewEnterpriseClient(baseURL, baseURL, client)
+		githubClient, _ = github.NewClient(client).WithEnterpriseURLs(baseURL, baseURL)
 	}
 	g.clients = append(g.clients, githubClient)
 	g.rates = append(g.rates, nil)
