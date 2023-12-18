@@ -1,9 +1,9 @@
 import $ from 'jquery';
-import { minimatch } from 'minimatch';
-import { createMonaco } from './codeeditor.js';
-import { onInputDebounce, toggleElem } from '../utils/dom.js';
+import {minimatch} from 'minimatch';
+import {createMonaco} from './codeeditor.js';
+import {onInputDebounce, toggleElem} from '../utils/dom.js';
 
-const { appSubUrl, csrfToken } = window.config;
+const {appSubUrl, csrfToken} = window.config;
 
 export function initRepoSettingsCollaboration() {
   // Change collaborator access mode
@@ -48,7 +48,7 @@ export function initRepoSettingSearchTeamBox() {
     minCharacters: 2,
     apiSettings: {
       url: `${appSubUrl}/org/${$searchTeamBox.attr('data-org-name')}/teams/-/search?q={query}`,
-      headers: { 'X-Csrf-Token': csrfToken },
+      headers: {'X-Csrf-Token': csrfToken},
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
@@ -58,7 +58,7 @@ export function initRepoSettingSearchTeamBox() {
           });
         });
 
-        return { results: items };
+        return {results: items};
       }
     },
     searchFields: ['name', 'description'],
@@ -69,7 +69,7 @@ export function initRepoSettingSearchTeamBox() {
 export function initRepoSettingGitHook() {
   if ($('.edit.githook').length === 0) return;
   const filename = document.querySelector('.hook-filename').textContent;
-  const _promise = createMonaco($('#content')[0], filename, { language: 'shell' });
+  const _promise = createMonaco($('#content')[0], filename, {language: 'shell'});
 }
 
 export function initRepoSettingBranches() {

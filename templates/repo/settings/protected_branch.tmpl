@@ -149,7 +149,7 @@
 						<p class="help">{{ctx.Locale.Tr "repo.settings.dismiss_stale_approvals_desc"}}</p>
 					</div>
 				</div>
-				<div class="field" id="ignore_stale_approvals_box" class="{{if .Rule.DismissStaleApprovals}}disabled{{end}}">
+				<div id="ignore_stale_approvals_box" class="field {{if .Rule.DismissStaleApprovals}}disabled{{end}}">
 					<div class="ui checkbox">
 						<input id="ignore_stale_approvals" name="ignore_stale_approvals" type="checkbox" {{if .Rule.IgnoreStaleApprovals}}checked{{end}}>
 						<label>{{ctx.Locale.Tr "repo.settings.ignore_stale_approvals"}}</label>
