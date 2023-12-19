@@ -16,10 +16,11 @@ import (
 
 // CmdKeys represents the available keys sub-command
 var CmdKeys = &cli.Command{
-	Name:   "keys",
-	Usage:  "This command queries the Gitea database to get the authorized command for a given ssh key fingerprint",
-	Before: PrepareConsoleLoggerLevel(log.FATAL),
-	Action: runKeys,
+	Name:        "keys",
+	Usage:       "(internal) Should only be called by SSH server",
+	Description: "Queries the Gitea database to get the authorized command for a given ssh key fingerprint",
+	Before:      PrepareConsoleLoggerLevel(log.FATAL),
+	Action:      runKeys,
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:    "expected",

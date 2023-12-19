@@ -721,7 +721,6 @@ Gitea 创建以下非唯一队列：
 
 ## 缓存 (`cache`)
 
-- `ENABLED`: **true**: 是否启用缓存。
 - `ADAPTER`: **memory**: 缓存引擎，可以为 `memory`, `redis`, `redis-cluster`, `twoqueue` 和 `memcache`. (`twoqueue` 代表缓冲区固定的LRU缓存)
 - `INTERVAL`: **60**: 垃圾回收间隔(秒)，只对`memory`和`towqueue`有效。
 - `HOST`: **_empty_**: 缓存配置。`redis`, `redis-cluster`，`memcache`配置连接字符串;`twoqueue` 设置队列参数
@@ -733,7 +732,6 @@ Gitea 创建以下非唯一队列：
 
 ### 缓存 - 最后提交缓存设置 (`cache.last_commit`)
 
-- `ENABLED`: **true**：是否启用缓存。
 - `ITEM_TTL`: **8760h**：如果未使用，保持缓存中的项目的时间，将其设置为 -1 会禁用缓存。
 - `COMMITS_COUNT`: **1000**：仅在存储库的提交计数大于时启用缓存。
 
@@ -1039,10 +1037,11 @@ Gitea 创建以下非唯一队列：
 
 ## API (`api`)
 
-- `ENABLE_SWAGGER`: **true**: 是否启用swagger路由 (`/api/swagger`, `/api/v1/swagger`, …)。
-- `MAX_RESPONSE_ITEMS`: **50**: 单个页面的最大 Feed.
-- `ENABLE_OPENID_SIGNIN`: **false**: 允许使用OpenID登录，当设置为`true`时可以通过 `/user/login` 页面进行OpenID登录。
-- `DISABLE_REGISTRATION`: **false**: 关闭用户注册。
+- `ENABLE_SWAGGER`: **true**: 启用API文档接口 (`/api/swagger`, `/api/v1/swagger`, …). True or false。
+- `MAX_RESPONSE_ITEMS`: **50**: API分页的最大单页项目数。
+- `DEFAULT_PAGING_NUM`: **30**: API分页的默认分页数。
+- `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: Git trees API的默认单页项目数。
+- `DEFAULT_MAX_BLOB_SIZE`: **10485760** (10MiB): blobs API的默认最大文件大小。
 
 ## OAuth2 (`oauth2`)
 
