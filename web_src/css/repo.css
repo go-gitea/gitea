@@ -1166,10 +1166,6 @@
   flex-wrap: wrap;
 }
 
-.repository .choose.branch .svg {
-  margin-right: 10px;
-}
-
 .repository.compare.pull .comment.form .content::before,
 .repository.compare.pull .comment.form .content::after {
   right: 100%;

@@ -158,6 +158,12 @@ Gitea's private styles use `g-` prefix.
 .gt-mt-4 { margin-top: 1rem !important; }
 .gt-mt-5 { margin-top: 2rem !important; }
 
+.-gt-mt-1 { margin-top: -.125rem !important; }
+.-gt-mt-2 { margin-top: -.25rem !important; }
+.-gt-mt-3 { margin-top: -.5rem !important; }
+.-gt-mt-4 { margin-top: -1rem !important; }
+.-gt-mt-5 { margin-top: -2rem !important; }
+
 .gt-mb-0 { margin-bottom: 0 !important; }
 .gt-mb-1 { margin-bottom: .125rem !important; }
 .gt-mb-2 { margin-bottom: .25rem !important; }
