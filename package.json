@@ -84,6 +84,9 @@
     "vite-string-plugin": "1.1.2",
     "vitest": "0.34.6"
   },
+  "overrides": {
+    "@github/combobox-nav": "2.2.0"
+  },
   "browserslist": [
     "defaults",
     "not ie > 0",
