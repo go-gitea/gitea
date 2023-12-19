@@ -1305,6 +1305,31 @@ func MergePullRequest(ctx *context.Context) {
 			return
 		}
 
+		pullRequestsToHead, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
+		if err != nil {
+			ctx.ServerError("GetUnmergedPullRequestsByBaseInfo", err)
+			return
+		}
+
+		for _, prToHead := range pullRequestsToHead {
+			if prToHead.BaseRepoID != pr.BaseRepoID {
+				continue
+			}
+
+			err = prToHead.LoadIssue(ctx)
+			if err != nil {
+				ctx.ServerError(fmt.Sprintf("LoadIssueForPullRequest[%d]", prToHead.ID), err)
+				return
+			}
+			prToHead.Issue.Repo = ctx.Repo.Repository
+
+			err = pull_service.ChangeTargetBranch(ctx, prToHead, ctx.Doer, pr.BaseBranch)
+			if err != nil {
+				ctx.ServerError(fmt.Sprintf("ChangeTargetBranch[%d]", prToHead.ID), err)
+				return
+			}
+		}
+
 		var headRepo *git.Repository
 		if ctx.Repo != nil && ctx.Repo.Repository != nil && pr.HeadRepoID == ctx.Repo.Repository.ID && ctx.Repo.GitRepo != nil {
 			headRepo = ctx.Repo.GitRepo
