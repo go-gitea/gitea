@@ -39,7 +39,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		return nil, ErrNotExist{commitID, ""}
 	}
 
-	sha, err := repo.objectFormat.NewIDFromString(string(shaBytes))
+	sha, err := NewIDFromString(string(shaBytes))
 	if err != nil {
 		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, ErrNotExist{commitID, ""}

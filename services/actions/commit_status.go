@@ -115,7 +115,7 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	}
 
 	creator := user_model.NewActionsUser()
-	commitID, err := git.IDFromString(sha)
+	commitID, err := git.NewIDFromString(sha)
 	if err != nil {
 		return fmt.Errorf("HashTypeInterfaceFromHashString: %w", err)
 	}
