@@ -103,11 +103,11 @@ func (rt ReviewType) Icon() string {
 
 // Review represents collection of code comments giving feedback for a PR
 type Review struct {
-	ID               int64 `xorm:"pk autoincr"`
-	Type             ReviewType
+	ID               int64              `xorm:"pk autoincr"`
+	Type             ReviewType         `xorm:"index"`
 	Reviewer         *user_model.User   `xorm:"-"`
 	ReviewerID       int64              `xorm:"index"`
-	ReviewerTeamID   int64              `xorm:"NOT NULL DEFAULT 0"`
+	ReviewerTeamID   int64              `xorm:"index NOT NULL DEFAULT 0"`
 	ReviewerTeam     *organization.Team `xorm:"-"`
 	OriginalAuthor   string
 	OriginalAuthorID int64
