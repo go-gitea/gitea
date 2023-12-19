@@ -135,8 +135,8 @@ func TestHasPreviousCommit(t *testing.T) {
 	commit, err := repo.GetCommit("8006ff9adbf0cb94da7dad9e537e53817f9fa5c0")
 	assert.NoError(t, err)
 
-	parentSHA := repo.objectFormat.MustIDFromString("8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2")
-	notParentSHA := repo.objectFormat.MustIDFromString("2839944139e0de9737a044f78b0e4b40d989a9e3")
+	parentSHA := MustIDFromString("8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2")
+	notParentSHA := MustIDFromString("2839944139e0de9737a044f78b0e4b40d989a9e3")
 
 	haz, err := commit.HasPreviousCommit(parentSHA)
 	assert.NoError(t, err)

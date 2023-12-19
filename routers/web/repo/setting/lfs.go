@@ -395,7 +395,7 @@ func LFSFileFind(ctx *context.Context) {
 		objectID = git.ComputeBlobHash(objectFormat, []byte(pointer.StringContent()))
 		sha = objectID.String()
 	} else {
-		objectID = objectFormat.MustIDFromString(sha)
+		objectID = git.MustIDFromString(sha)
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
 	ctx.Data["Oid"] = oid

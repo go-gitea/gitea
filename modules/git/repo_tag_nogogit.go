@@ -64,7 +64,7 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 		// every tag should have a commit ID so return all errors
 		return nil, err
 	}
-	commitID, err := repo.objectFormat.NewIDFromString(commitIDStr)
+	commitID, err := NewIDFromString(commitIDStr)
 	if err != nil {
 		return nil, err
 	}

@@ -50,7 +50,7 @@ l:
 			reftype := line[:spacepos]
 			switch string(reftype) {
 			case "object":
-				id, err := objectFormat.NewIDFromString(string(line[spacepos+1:]))
+				id, err := NewIDFromString(string(line[spacepos+1:]))
 				if err != nil {
 					return nil, err
 				}

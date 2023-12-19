@@ -81,7 +81,7 @@ func GetObjectFormatOfRepo(ctx context.Context, repoPath string) (ObjectFormat, 
 		return nil, errors.New(stderr.String())
 	}
 
-	h, err := IDFromString(strings.TrimRight(stdout.String(), "\n"))
+	h, err := NewIDFromString(strings.TrimRight(stdout.String(), "\n"))
 	if err != nil {
 		return nil, err
 	}

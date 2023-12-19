@@ -92,11 +92,7 @@ func (c *LastCommitCache) Get(ref, entryPath string) (*Commit, error) {
 
 // GetCommitByPath gets the last commit for the entry in the provided commit
 func (c *LastCommitCache) GetCommitByPath(commitID, entryPath string) (*Commit, error) {
-	objectFormat, err := c.repo.GetObjectFormat()
-	if err != nil {
-		return nil, err
-	}
-	sha, err := objectFormat.NewIDFromString(commitID)
+	sha, err := NewIDFromString(commitID)
 	if err != nil {
 		return nil, err
 	}
