@@ -41,8 +41,8 @@ func TestPackageAPI(t *testing.T) {
 	filename := "file.bin"
 
 	url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, packageName, packageVersion, filename)
-	req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{}))
-	AddBasicAuthHeader(req, user.Name)
+	req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{})).
+		AddBasicAuth(user.Name)
 	MakeRequest(t, req, http.StatusCreated)
 
 	t.Run("ListPackages", func(t *testing.T) {
@@ -170,7 +170,7 @@ func TestPackageAccess(t *testing.T) {
 		url := fmt.Sprintf("/api/packages/%s/generic/test-package/1.0/%s.bin", owner.Name, filename)
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
 		if doer != nil {
-			AddBasicAuthHeader(req, doer.Name)
+			req.AddBasicAuth(doer.Name)
 		}
 		MakeRequest(t, req, expectedStatus)
 	}
@@ -179,7 +179,7 @@ func TestPackageAccess(t *testing.T) {
 		url := fmt.Sprintf("/api/packages/%s/generic/test-package/1.0/admin.bin", owner.Name)
 		req := NewRequest(t, "GET", url)
 		if doer != nil {
-			AddBasicAuthHeader(req, doer.Name)
+			req.AddBasicAuth(doer.Name)
 		}
 		MakeRequest(t, req, expectedStatus)
 	}
@@ -396,8 +396,8 @@ func TestPackageQuota(t *testing.T) {
 
 		uploadPackage := func(doer *user_model.User, version string, expectedStatus int) {
 			url := fmt.Sprintf("/api/packages/%s/generic/test-package/%s/file.bin", user.Name, version)
-			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
-			AddBasicAuthHeader(req, doer.Name)
+			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1})).
+				AddBasicAuth(doer.Name)
 			MakeRequest(t, req, expectedStatus)
 		}
 
@@ -424,8 +424,8 @@ func TestPackageQuota(t *testing.T) {
 
 		uploadBlob := func(doer *user_model.User, data string, expectedStatus int) {
 			url := fmt.Sprintf("/v2/%s/quota-test/blobs/uploads?digest=sha256:%x", user.Name, sha256.Sum256([]byte(data)))
-			req := NewRequestWithBody(t, "POST", url, strings.NewReader(data))
-			AddBasicAuthHeader(req, doer.Name)
+			req := NewRequestWithBody(t, "POST", url, strings.NewReader(data)).
+				AddBasicAuth(doer.Name)
 			MakeRequest(t, req, expectedStatus)
 		}
 
@@ -454,18 +454,18 @@ func TestPackageCleanup(t *testing.T) {
 		// Upload and delete a generic package and upload a container blob
 		data, _ := util.CryptoRandomBytes(5)
 		url := fmt.Sprintf("/api/packages/%s/generic/cleanup-test/1.1.1/file.bin", user.Name)
-		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(data))
-		AddBasicAuthHeader(req, user.Name)
+		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(data)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
-		req = NewRequest(t, "DELETE", url)
-		AddBasicAuthHeader(req, user.Name)
+		req = NewRequest(t, "DELETE", url).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNoContent)
 
 		data, _ = util.CryptoRandomBytes(5)
 		url = fmt.Sprintf("/v2/%s/cleanup-test/blobs/uploads?digest=sha256:%x", user.Name, sha256.Sum256(data))
-		req = NewRequestWithBody(t, "POST", url, bytes.NewReader(data))
-		AddBasicAuthHeader(req, user.Name)
+		req = NewRequestWithBody(t, "POST", url, bytes.NewReader(data)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
 		pbs, err := packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, duration)
@@ -592,8 +592,8 @@ func TestPackageCleanup(t *testing.T) {
 
 				for _, v := range c.Versions {
 					url := fmt.Sprintf("/api/packages/%s/generic/package/%s/file.bin", user.Name, v.Version)
-					req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
-					AddBasicAuthHeader(req, user.Name)
+					req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1})).
+						AddBasicAuth(user.Name)
 					MakeRequest(t, req, http.StatusCreated)
 
 					if v.Created != 0 {

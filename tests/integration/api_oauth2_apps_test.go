@@ -36,8 +36,8 @@ func testAPICreateOAuth2Application(t *testing.T) {
 		ConfidentialClient: true,
 	}
 
-	req := NewRequestWithJSON(t, "POST", "/api/v1/user/applications/oauth2", &appBody)
-	req = AddBasicAuthHeader(req, user.Name)
+	req := NewRequestWithJSON(t, "POST", "/api/v1/user/applications/oauth2", &appBody).
+		AddBasicAuth(user.Name)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
 	var createdApp *api.OAuth2Application
@@ -157,8 +157,8 @@ func testAPIUpdateOAuth2Application(t *testing.T) {
 	}
 
 	urlStr := fmt.Sprintf("/api/v1/user/applications/oauth2/%d", existApp.ID)
-	req := NewRequestWithJSON(t, "PATCH", urlStr, &appBody)
-	req = AddBasicAuthHeader(req, user.Name)
+	req := NewRequestWithJSON(t, "PATCH", urlStr, &appBody).
+		AddBasicAuth(user.Name)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var app api.OAuth2Application

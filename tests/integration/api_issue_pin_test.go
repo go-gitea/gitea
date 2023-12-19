@@ -32,7 +32,8 @@ func TestAPIPinIssue(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	// Pin the Issue
-	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue.Index), token)
+	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue.Index)).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Check if the Issue is pinned
@@ -56,7 +57,8 @@ func TestAPIUnpinIssue(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	// Pin the Issue
-	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue.Index), token)
+	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue.Index)).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Check if the Issue is pinned
@@ -67,7 +69,8 @@ func TestAPIUnpinIssue(t *testing.T) {
 	assert.Equal(t, 1, issueAPI.PinOrder)
 
 	// Unpin the Issue
-	req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue.Index), token)
+	req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue.Index)).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Check if the Issue is no longer pinned
@@ -91,7 +94,8 @@ func TestAPIMoveIssuePin(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	// Pin the first Issue
-	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue.Index), token)
+	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue.Index)).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Check if the first Issue is pinned at position 1
@@ -102,11 +106,13 @@ func TestAPIMoveIssuePin(t *testing.T) {
 	assert.Equal(t, 1, issueAPI.PinOrder)
 
 	// Pin the second Issue
-	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue2.Index), token)
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue2.Index)).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Move the first Issue to position 2
-	req = NewRequest(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin/2", repo.OwnerName, repo.Name, issue.Index), token)
+	req = NewRequest(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin/2", repo.OwnerName, repo.Name, issue.Index)).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Check if the first Issue is pinned at position 2
@@ -137,7 +143,8 @@ func TestAPIListPinnedIssues(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	// Pin the Issue
-	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue.Index), token)
+	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin", repo.OwnerName, repo.Name, issue.Index)).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Check if the Issue is in the List

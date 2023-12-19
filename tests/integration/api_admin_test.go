@@ -31,7 +31,7 @@ func TestAPIAdminCreateAndDeleteSSHKey(t *testing.T) {
 	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		"key":   "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC4cn+iXnA4KvcQYSV88vGn0Yi91vG47t1P7okprVmhNTkipNRIHWr6WdCO4VDr/cvsRkuVJAsLO2enwjGWWueOO6BodiBgyAOZ/5t5nJNMCNuLGT5UIo/RI1b0WRQwxEZTRjt6mFNw6lH14wRd8ulsr9toSWBPMOGWoYs1PDeDL0JuTjL+tr1SZi/EyxCngpYszKdXllJEHyI79KQgeD0Vt3pTrkbNVTOEcCNqZePSVmUH8X8Vhugz3bnE0/iE9Pb5fkWO9c4AnM1FgI/8Bvp27Fw2ShryIXuR6kKvUqhVMTuOSDHwu6A8jLE5Owt3GAYugDpDYuwTVNGrHLXKpPzrGGPE/jPmaLCMZcsdkec95dYeU3zKODEm8UQZFhmJmDeWVJ36nGrGZHL4J5aTTaeFUJmmXDaJYiJ+K2/ioKgXqnXvltu0A9R8/LGy4nrTJRr4JMLuJFoUXvGm1gXQ70w2LSpk6yl71RNC0hCtsBe8BP8IhYCM0EP5jh7eCMQZNvM= nocomment\n",
 		"title": "test-key",
-	}, token)
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
 	var newPublicKey api.PublicKey
@@ -43,8 +43,8 @@ func TestAPIAdminCreateAndDeleteSSHKey(t *testing.T) {
 		OwnerID:     keyOwner.ID,
 	})
 
-	req = NewRequestf(t, "DELETE", "/api/v1/admin/users/%s/keys/%d", keyOwner.Name, newPublicKey.ID)
-	addTokenAuthHeader(req, token)
+	req = NewRequestf(t, "DELETE", "/api/v1/admin/users/%s/keys/%d", keyOwner.Name, newPublicKey.ID).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 	unittest.AssertNotExistsBean(t, &asymkey_model.PublicKey{ID: newPublicKey.ID})
 }
@@ -54,8 +54,8 @@ func TestAPIAdminDeleteMissingSSHKey(t *testing.T) {
 
 	// user1 is an admin user
 	token := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteAdmin)
-	req := NewRequestf(t, "DELETE", "/api/v1/admin/users/user1/keys/%d", unittest.NonexistentID)
-	addTokenAuthHeader(req, token)
+	req := NewRequestf(t, "DELETE", "/api/v1/admin/users/user1/keys/%d", unittest.NonexistentID).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
@@ -69,14 +69,14 @@ func TestAPIAdminDeleteUnauthorizedKey(t *testing.T) {
 	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		"key":   "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC4cn+iXnA4KvcQYSV88vGn0Yi91vG47t1P7okprVmhNTkipNRIHWr6WdCO4VDr/cvsRkuVJAsLO2enwjGWWueOO6BodiBgyAOZ/5t5nJNMCNuLGT5UIo/RI1b0WRQwxEZTRjt6mFNw6lH14wRd8ulsr9toSWBPMOGWoYs1PDeDL0JuTjL+tr1SZi/EyxCngpYszKdXllJEHyI79KQgeD0Vt3pTrkbNVTOEcCNqZePSVmUH8X8Vhugz3bnE0/iE9Pb5fkWO9c4AnM1FgI/8Bvp27Fw2ShryIXuR6kKvUqhVMTuOSDHwu6A8jLE5Owt3GAYugDpDYuwTVNGrHLXKpPzrGGPE/jPmaLCMZcsdkec95dYeU3zKODEm8UQZFhmJmDeWVJ36nGrGZHL4J5aTTaeFUJmmXDaJYiJ+K2/ioKgXqnXvltu0A9R8/LGy4nrTJRr4JMLuJFoUXvGm1gXQ70w2LSpk6yl71RNC0hCtsBe8BP8IhYCM0EP5jh7eCMQZNvM= nocomment\n",
 		"title": "test-key",
-	}, token)
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var newPublicKey api.PublicKey
 	DecodeJSON(t, resp, &newPublicKey)
 
 	token = getUserToken(t, normalUsername)
-	req = NewRequestf(t, "DELETE", "/api/v1/admin/users/%s/keys/%d", adminUsername, newPublicKey.ID)
-	addTokenAuthHeader(req, token)
+	req = NewRequestf(t, "DELETE", "/api/v1/admin/users/%s/keys/%d", adminUsername, newPublicKey.ID).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 }
 
@@ -86,7 +86,8 @@ func TestAPISudoUser(t *testing.T) {
 	normalUsername := "user2"
 	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeReadUser)
 
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user?sudo=%s", normalUsername), token)
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user?sudo=%s", normalUsername)).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var user api.User
 	DecodeJSON(t, resp, &user)
@@ -100,7 +101,8 @@ func TestAPISudoUserForbidden(t *testing.T) {
 	normalUsername := "user2"
 
 	token := getUserToken(t, normalUsername, auth_model.AccessTokenScopeReadAdmin)
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user?sudo=%s", adminUsername), token)
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user?sudo=%s", adminUsername)).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 }
 
@@ -109,7 +111,8 @@ func TestAPIListUsers(t *testing.T) {
 	adminUsername := "user1"
 	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeReadAdmin)
 
-	req := NewRequest(t, "GET", "/api/v1/admin/users", token)
+	req := NewRequest(t, "GET", "/api/v1/admin/users").
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var users []api.User
 	DecodeJSON(t, resp, &users)
@@ -135,7 +138,8 @@ func TestAPIListUsersNonAdmin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	nonAdminUsername := "user2"
 	token := getUserToken(t, nonAdminUsername)
-	req := NewRequest(t, "GET", "/api/v1/admin/users", token)
+	req := NewRequest(t, "GET", "/api/v1/admin/users").
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 }
 
@@ -152,7 +156,7 @@ func TestAPICreateUserInvalidEmail(t *testing.T) {
 		"send_notify":          "true",
 		"source_id":            "0",
 		"username":             "invalidUser",
-	}, token)
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 }
 
@@ -175,11 +179,11 @@ func TestAPICreateAndDeleteUser(t *testing.T) {
 			"source_id":            "0",
 			"username":             "deleteme",
 		},
-		token,
-	)
+	).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 
-	req = NewRequest(t, "DELETE", "/api/v1/admin/users/deleteme", token)
+	req = NewRequest(t, "DELETE", "/api/v1/admin/users/deleteme").
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 }
 
@@ -195,7 +199,7 @@ func TestAPIEditUser(t *testing.T) {
 		"source_id":  "0",
 		// to change
 		"full_name": "Full Name User 2",
-	}, token)
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 
 	empty := ""
@@ -203,7 +207,7 @@ func TestAPIEditUser(t *testing.T) {
 		LoginName: "user2",
 		SourceID:  0,
 		Email:     &empty,
-	}, token)
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	errMap := make(map[string]any)
@@ -219,7 +223,7 @@ func TestAPIEditUser(t *testing.T) {
 		SourceID:  0,
 		// to change
 		Restricted: &bTrue,
-	}, token)
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 	user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"})
 	assert.True(t, user2.IsRestricted)
@@ -237,8 +241,7 @@ func TestAPICreateRepoForUser(t *testing.T) {
 		&api.CreateRepoOption{
 			Name: "admincreatedrepo",
 		},
-		token,
-	)
+	).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 }
 
@@ -250,20 +253,20 @@ func TestAPIRenameUser(t *testing.T) {
 	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		// required
 		"new_name": "User2",
-	}, token)
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 
 	urlStr = fmt.Sprintf("/api/v1/admin/users/%s/rename", "User2")
 	req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		// required
 		"new_name": "User2-2-2",
-	}, token)
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 
 	req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		// required
 		"new_name": "user1",
-	}, token)
+	}).AddTokenAuth(token)
 	// the old user name still be used by with a redirect
 	MakeRequest(t, req, http.StatusTemporaryRedirect)
 
@@ -271,13 +274,13 @@ func TestAPIRenameUser(t *testing.T) {
 	req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		// required
 		"new_name": "user1",
-	}, token)
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		// required
 		"new_name": "user2",
-	}, token)
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 }
 
@@ -292,7 +295,8 @@ func TestAPICron(t *testing.T) {
 
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadAdmin)
 
-		req := NewRequest(t, "GET", "/api/v1/admin/cron", token)
+		req := NewRequest(t, "GET", "/api/v1/admin/cron").
+			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, "28", resp.Header().Get("X-Total-Count"))
@@ -310,11 +314,13 @@ func TestAPICron(t *testing.T) {
 		// Archive cleanup is harmless, because in the test environment there are none
 		// and is thus an NOOP operation and therefore doesn't interfere with any other
 		// tests.
-		req := NewRequest(t, "POST", "/api/v1/admin/cron/archive_cleanup", token)
+		req := NewRequest(t, "POST", "/api/v1/admin/cron/archive_cleanup").
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
 
 		// Check for the latest run time for this cron, to ensure it has been run.
-		req = NewRequest(t, "GET", "/api/v1/admin/cron", token)
+		req = NewRequest(t, "GET", "/api/v1/admin/cron").
+			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var crons []api.Cron

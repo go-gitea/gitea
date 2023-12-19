@@ -264,7 +264,7 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
 			owner, repo, index, ctx.Token)
 
-		var req *http.Request
+		var req *RequestWrapper
 		var resp *httptest.ResponseRecorder
 
 		for i := 0; i < 6; i++ {

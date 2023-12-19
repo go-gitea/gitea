@@ -27,7 +27,8 @@ func TestAPIListStopWatches(t *testing.T) {
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopeReadUser)
-	req := NewRequest(t, "GET", "/api/v1/user/stopwatches", token)
+	req := NewRequest(t, "GET", "/api/v1/user/stopwatches").
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var apiWatches []*api.StopWatch
 	DecodeJSON(t, resp, &apiWatches)

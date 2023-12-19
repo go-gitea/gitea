@@ -38,19 +38,19 @@ func TestAPIIssuesReactions(t *testing.T) {
 	// Try to add not allowed reaction
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "wrong",
-	}, token)
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 
 	// Delete not allowed reaction
 	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
 		Reaction: "zzz",
-	}, token)
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 
 	// Add allowed reaction
 	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "rocket",
-	}, token)
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiNewReaction api.Reaction
 	DecodeJSON(t, resp, &apiNewReaction)
@@ -59,7 +59,8 @@ func TestAPIIssuesReactions(t *testing.T) {
 	MakeRequest(t, req, http.StatusForbidden)
 
 	// Get end result of reaction list of issue #1
-	req = NewRequest(t, "GET", urlStr, token)
+	req = NewRequest(t, "GET", urlStr).
+		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	var apiReactions []*api.Reaction
 	DecodeJSON(t, resp, &apiReactions)
@@ -97,13 +98,13 @@ func TestAPICommentReactions(t *testing.T) {
 	// Try to add not allowed reaction
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "wrong",
-	}, token)
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 
 	// Delete none existing reaction
 	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
 		Reaction: "eyes",
-	}, token)
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 
 	t.Run("UnrelatedCommentID", func(t *testing.T) {
@@ -114,21 +115,22 @@ func TestAPICommentReactions(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/reactions", repoOwner.Name, repo.Name, comment.ID)
 		req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 			Reaction: "+1",
-		}, token)
+		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
 		req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
 			Reaction: "+1",
-		}, token)
+		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequest(t, "GET", urlStr, token)
+		req = NewRequest(t, "GET", urlStr).
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	// Add allowed reaction
 	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "+1",
-	}, token)
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiNewReaction api.Reaction
 	DecodeJSON(t, resp, &apiNewReaction)
@@ -137,7 +139,8 @@ func TestAPICommentReactions(t *testing.T) {
 	MakeRequest(t, req, http.StatusForbidden)
 
 	// Get end result of reaction list of issue #1
-	req = NewRequest(t, "GET", urlStr, token)
+	req = NewRequest(t, "GET", urlStr).
+		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	var apiReactions []*api.Reaction
 	DecodeJSON(t, resp, &apiReactions)

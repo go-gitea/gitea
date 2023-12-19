@@ -165,7 +165,8 @@ func TestAPIGetAll(t *testing.T) {
 	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrganization)
 
 	// accessing with a token will return all orgs
-	req := NewRequest(t, "GET", "/api/v1/orgs", token)
+	req := NewRequest(t, "GET", "/api/v1/orgs").
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var apiOrgList []*api.Organization
 

@@ -73,7 +73,8 @@ func TestHTTPSigPubKey(t *testing.T) {
 
 	// create the request
 	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadAdmin)
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/admin/users?token=%s", token))
+	req = NewRequest(t, "GET", "/api/v1/admin/users").
+		AddTokenAuth(token)
 
 	signer, _, err := httpsig.NewSSHSigner(sshSigner, httpsig.DigestSha512, []string{httpsig.RequestTarget, "(created)", "(expires)"}, httpsig.Signature, 10)
 	if err != nil {
@@ -81,7 +82,7 @@ func TestHTTPSigPubKey(t *testing.T) {
 	}
 
 	// sign the request
-	err = signer.SignRequest(keyID, req, nil)
+	err = signer.SignRequest(keyID, req.Request, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +125,7 @@ func TestHTTPSigCert(t *testing.T) {
 
 	// add our cert to the request
 	certString := base64.RawStdEncoding.EncodeToString(pkcert.(*ssh.Certificate).Marshal())
-	req.Header.Add("x-ssh-certificate", certString)
+	req.SetHeader("x-ssh-certificate", certString)
 
 	signer, _, err := httpsig.NewSSHSigner(certSigner, httpsig.DigestSha512, []string{httpsig.RequestTarget, "(created)", "(expires)", "x-ssh-certificate"}, httpsig.Signature, 10)
 	if err != nil {
@@ -132,7 +133,7 @@ func TestHTTPSigCert(t *testing.T) {
 	}
 
 	// sign the request
-	err = signer.SignRequest(keyID, req, nil)
+	err = signer.SignRequest(keyID, req.Request, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

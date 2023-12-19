@@ -100,8 +100,7 @@ func doAPICreateCommitStatus(ctx APITestContext, commitID string, data api.Creat
 			http.MethodPost,
 			fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s", ctx.Username, ctx.Reponame, commitID),
 			data,
-			ctx.Token,
-		)
+		).AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return
