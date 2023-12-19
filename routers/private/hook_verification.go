@@ -83,8 +83,8 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 		_ = stdoutReader.Close()
 		_ = stdoutWriter.Close()
 	}()
-	objectFormat, _ := repo.GetObjectFormat()
-	commitID := objectFormat.MustIDFromString(sha)
+
+	commitID := git.MustIDFromString(sha)
 
 	return git.NewCommand(repo.Ctx, "cat-file", "commit").AddDynamicArguments(sha).
 		Run(&git.RunOpts{

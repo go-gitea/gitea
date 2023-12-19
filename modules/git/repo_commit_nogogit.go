@@ -135,7 +135,7 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id ObjectID) 
 func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 	IDType := repo.objectFormat
 	if len(commitID) == IDType.FullLength() && IDType.IsValid(commitID) {
-		ID, err := repo.objectFormat.NewIDFromString(commitID)
+		ID, err := NewIDFromString(commitID)
 		if err == nil {
 			return ID, nil
 		}
@@ -155,5 +155,5 @@ func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 		return nil, err
 	}
 
-	return repo.objectFormat.MustIDFromString(string(sha)), nil
+	return MustIDFromString(string(sha)), nil
 }

@@ -622,10 +622,8 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 		ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)
 		ctx.HTML(http.StatusOK, TplActivate)
 
-		if setting.CacheService.Enabled {
-			if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-				log.Error("Set cache(MailResendLimit) fail: %v", err)
-			}
+		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
+			log.Error("Set cache(MailResendLimit) fail: %v", err)
 		}
 		return false
 	}
@@ -645,16 +643,14 @@ func Activate(ctx *context.Context) {
 		}
 		// Resend confirmation email.
 		if setting.Service.RegisterEmailConfirm {
-			if setting.CacheService.Enabled && ctx.Cache.IsExist("MailResendLimit_"+ctx.Doer.LowerName) {
+			if ctx.Cache.IsExist("MailResendLimit_" + ctx.Doer.LowerName) {
 				ctx.Data["ResendLimited"] = true
 			} else {
 				ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)
 				mailer.SendActivateAccountMail(ctx.Locale, ctx.Doer)
 
-				if setting.CacheService.Enabled {
-					if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
-						log.Error("Set cache(MailResendLimit) fail: %v", err)
-					}
+				if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
+					log.Error("Set cache(MailResendLimit) fail: %v", err)
 				}
 			}
 		} else {
@@ -789,7 +785,7 @@ func ActivateEmail(ctx *context.Context) {
 
 		if u, err := user_model.GetUserByID(ctx, email.UID); err != nil {
 			log.Warn("GetUserByID: %d", email.UID)
-		} else if setting.CacheService.Enabled {
+		} else {
 			// Allow user to validate more emails
 			_ = ctx.Cache.Delete("MailResendLimit_" + u.LowerName)
 		}

@@ -5,7 +5,7 @@ package git
 
 // GetBlob finds the blob object in the repository.
 func (repo *Repository) GetBlob(idStr string) (*Blob, error) {
-	id, err := repo.objectFormat.NewIDFromString(idStr)
+	id, err := NewIDFromString(idStr)
 	if err != nil {
 		return nil, err
 	}

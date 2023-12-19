@@ -46,7 +46,7 @@ func (repo *Repository) GetObjectFormat() (ObjectFormat, error) {
 	if err != nil {
 		return nil, err
 	}
-	hash, err := IDFromString(str)
+	hash, err := NewIDFromString(str)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (repo *Repository) HashObject(reader io.Reader) (ObjectID, error) {
 	if err != nil {
 		return nil, err
 	}
-	return repo.objectFormat.NewIDFromString(idStr)
+	return NewIDFromString(idStr)
 }
 
 func (repo *Repository) hashObject(reader io.Reader, save bool) (string, error) {

@@ -63,5 +63,5 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 	if err != nil {
 		return nil, ConcatenateError(err, stderr.String())
 	}
-	return repo.objectFormat.NewIDFromString(strings.TrimSpace(stdout.String()))
+	return NewIDFromString(strings.TrimSpace(stdout.String()))
 }

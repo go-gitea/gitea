@@ -57,7 +57,7 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 			return nil, fmt.Errorf("Invalid ls-tree output: %s", string(data))
 		}
 		var err error
-		entry.ID, err = IDFromString(string(data[pos : pos+hash.Size*2]))
+		entry.ID, err = NewIDFromString(string(data[pos : pos+hash.Size*2]))
 		if err != nil {
 			return nil, fmt.Errorf("invalid ls-tree output: %w", err)
 		}
