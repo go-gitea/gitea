@@ -311,11 +311,6 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 	cache := make(map[int64]*api.Organization)
 	apiTeams := make([]*api.Team, 0, len(teams))
 	for _, t := range teams {
-		if t == nil {
-			// Could be nil if teams was created with make([]*Team, x)
-			continue
-		}
-
 		if err := t.LoadUnits(ctx); err != nil {
 			return nil, err
 		}
