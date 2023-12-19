@@ -39,7 +39,7 @@ func NewLastCommitCache(count int64, repoPath string, gitRepo *Repository, cache
 	if cache == nil {
 		return nil
 	}
-	if !setting.CacheService.LastCommit.Enabled || count < setting.CacheService.LastCommit.CommitsCount {
+	if count < setting.CacheService.LastCommit.CommitsCount {
 		return nil
 	}
 
