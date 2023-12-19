@@ -329,14 +329,14 @@ func PullRequestCodeOwnersReview(ctx context.Context, pull *issues_model.Issue, 
 
 	for _, u := range uniqUsers {
 		if u.ID != pull.Poster.ID {
-			if _, err := issues_model.AddReviewRequest(ctx, pull, u, pull.Poster); err != nil {
+			if _, err := ReviewRequest(ctx, pull, pull.Poster, u, true); err != nil {
 				log.Warn("Failed add assignee user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
 				return err
 			}
 		}
 	}
 	for _, t := range uniqTeams {
-		if _, err := issues_model.AddTeamReviewRequest(ctx, pull, t, pull.Poster); err != nil {
+		if _, err := TeamReviewRequest(ctx, pull, pull.Poster, t, true); err != nil {
 			log.Warn("Failed add assignee team: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
 			return err
 		}
