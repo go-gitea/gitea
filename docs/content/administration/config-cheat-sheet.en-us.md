@@ -763,7 +763,6 @@ and
 
 ## Cache (`cache`)
 
-- `ENABLED`: **true**: Enable the cache.
 - `ADAPTER`: **memory**: Cache engine adapter, either `memory`, `redis`, `redis-cluster`, `twoqueue` or `memcache`. (`twoqueue` represents a size limited LRU cache.)
 - `INTERVAL`: **60**: Garbage Collection interval (sec), for memory and twoqueue cache only.
 - `HOST`: **_empty_**: Connection string for `redis`, `redis-cluster` and `memcache`. For `twoqueue` sets configuration for the queue.
@@ -775,7 +774,6 @@ and
 
 ## Cache - LastCommitCache settings (`cache.last_commit`)
 
-- `ENABLED`: **true**: Enable the cache.
 - `ITEM_TTL`: **8760h**: Time to keep items in cache if not used, Setting it to -1 disables caching.
 - `COMMITS_COUNT`: **1000**: Only enable the cache when repository's commits count great than.
 

@@ -6,6 +6,7 @@ package git
 import (
 	"crypto/sha1"
 	"regexp"
+	"strconv"
 )
 
 // sha1Pattern can be used to determine if a string is an valid sha
@@ -20,14 +21,12 @@ type ObjectFormat interface {
 	EmptyTree() ObjectID
 	// FullLength is the length of the hash's hex string
 	FullLength() int
-
+	// IsValid returns true if the input is a valid hash
 	IsValid(input string) bool
+	// MustID creates a new ObjectID from a byte slice
 	MustID(b []byte) ObjectID
-	MustIDFromString(s string) ObjectID
-	NewID(b []byte) (ObjectID, error)
-	NewIDFromString(s string) (ObjectID, error)
-
-	NewHasher() HasherInterface
+	// ComputeHash compute the hash for a given ObjectType and content
+	ComputeHash(t ObjectType, content []byte) ObjectID
 }
 
 type Sha1ObjectFormatImpl struct{}
@@ -59,20 +58,18 @@ func (Sha1ObjectFormatImpl) MustID(b []byte) ObjectID {
 	return &id
 }
 
-func (h Sha1ObjectFormatImpl) MustIDFromString(s string) ObjectID {
-	return MustIDFromString(h, s)
-}
+// ComputeHash compute the hash for a given ObjectType and content
+func (h Sha1ObjectFormatImpl) ComputeHash(t ObjectType, content []byte) ObjectID {
+	hasher := sha1.New()
+	_, _ = hasher.Write(t.Bytes())
+	_, _ = hasher.Write([]byte(" "))
+	_, _ = hasher.Write([]byte(strconv.FormatInt(int64(len(content)), 10)))
+	_, _ = hasher.Write([]byte{0})
 
-func (h Sha1ObjectFormatImpl) NewID(b []byte) (ObjectID, error) {
-	return IDFromRaw(h, b)
-}
-
-func (h Sha1ObjectFormatImpl) NewIDFromString(s string) (ObjectID, error) {
-	return genericIDFromString(h, s)
-}
-
-func (h Sha1ObjectFormatImpl) NewHasher() HasherInterface {
-	return &Sha1Hasher{sha1.New()}
+	// HashSum generates a SHA1 for the provided hash
+	var sha1 Sha1Hash
+	copy(sha1[:], hasher.Sum(nil))
+	return &sha1
 }
 
 var Sha1ObjectFormat ObjectFormat = Sha1ObjectFormatImpl{}

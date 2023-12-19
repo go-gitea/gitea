@@ -130,8 +130,6 @@ func (e *errMergeConflict) Error() string {
 func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, gitRepo *git.Repository) error {
 	log.Trace("Attempt to merge:\n%v", file)
 
-	objectFormat, _ := gitRepo.GetObjectFormat()
-
 	switch {
 	case file.stage1 != nil && (file.stage2 == nil || file.stage3 == nil):
 		// 1. Deleted in one or both:
@@ -148,7 +146,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		// 2. Added in ours but not in theirs or identical in both
 		//
 		// Not a genuine conflict just add to the index
-		if err := gitRepo.AddObjectToIndex(file.stage2.mode, objectFormat.MustIDFromString(file.stage2.sha), file.stage2.path); err != nil {
+		if err := gitRepo.AddObjectToIndex(file.stage2.mode, git.MustIDFromString(file.stage2.sha), file.stage2.path); err != nil {
 			return err
 		}
 		return nil
@@ -161,7 +159,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		// 4. Added in theirs but not ours:
 		//
 		// Not a genuine conflict just add to the index
-		return gitRepo.AddObjectToIndex(file.stage3.mode, objectFormat.MustIDFromString(file.stage3.sha), file.stage3.path)
+		return gitRepo.AddObjectToIndex(file.stage3.mode, git.MustIDFromString(file.stage3.sha), file.stage3.path)
 	case file.stage1 == nil:
 		// 5. Created by new in both
 		//
@@ -222,7 +220,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 			return err
 		}
 		hash = strings.TrimSpace(hash)
-		return gitRepo.AddObjectToIndex(file.stage2.mode, objectFormat.MustIDFromString(hash), file.stage2.path)
+		return gitRepo.AddObjectToIndex(file.stage2.mode, git.MustIDFromString(hash), file.stage2.path)
 	default:
 		if file.stage1 != nil {
 			return &errMergeConflict{file.stage1.path}
