@@ -315,8 +315,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				lexerName = lexerNameForLine
 			}
 
-			br.EscapeStatus, line = charset.EscapeControlHTML(line, ctx.Locale)
-			br.Code = gotemplate.HTML(line)
+			br.EscapeStatus, br.Code = charset.EscapeControlHTML(line, ctx.Locale)
 			rows = append(rows, br)
 			escapeStatus = escapeStatus.Or(br.EscapeStatus)
 		}

@@ -220,6 +220,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `THEMES`:  **gitea-auto,gitea-light,gitea-dark**: All available themes. Allow users select personalized themes.
   regardless of the value of `DEFAULT_THEME`.
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: Max size of files to be displayed (default is 8MiB)
+- `AMBIGUOUS_UNICODE_DETECTION`: **true**: Detect ambiguous unicode characters in file contents and show warnings on the UI
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
     Values can be emoji alias (:smile:) or a unicode emoji.
     For custom reactions, add a tightly cropped square image to public/assets/img/emoji/reaction_name.png
@@ -572,6 +573,7 @@ And the following unique queues:
   - off - do not check password complexity
 - `PASSWORD_CHECK_PWN`: **false**: Check [HaveIBeenPwned](https://haveibeenpwned.com/Passwords) to see if a password has been exposed.
 - `SUCCESSFUL_TOKENS_CACHE_SIZE`: **20**: Cache successful token hashes. API tokens are stored in the DB as pbkdf2 hashes however, this means that there is a potentially significant hashing load when there are multiple API operations. This cache will store the successfully hashed tokens in a LRU cache as a balance between performance and security.
+- `DISABLE_QUERY_AUTH_TOKEN`: **false**: Reject API tokens sent in URL query string (Accept Header-based API tokens only). This setting will default to `true` in Gitea 1.23 and be deprecated in Gitea 1.24.
 
 ## Camo (`camo`)
 
@@ -761,7 +763,6 @@ and
 
 ## Cache (`cache`)
 
-- `ENABLED`: **true**: Enable the cache.
 - `ADAPTER`: **memory**: Cache engine adapter, either `memory`, `redis`, `redis-cluster`, `twoqueue` or `memcache`. (`twoqueue` represents a size limited LRU cache.)
 - `INTERVAL`: **60**: Garbage Collection interval (sec), for memory and twoqueue cache only.
 - `HOST`: **_empty_**: Connection string for `redis`, `redis-cluster` and `memcache`. For `twoqueue` sets configuration for the queue.
@@ -773,7 +774,6 @@ and
 
 ## Cache - LastCommitCache settings (`cache.last_commit`)
 
-- `ENABLED`: **true**: Enable the cache.
 - `ITEM_TTL`: **8760h**: Time to keep items in cache if not used, Setting it to -1 disables caching.
 - `COMMITS_COUNT`: **1000**: Only enable the cache when repository's commits count great than.
 
