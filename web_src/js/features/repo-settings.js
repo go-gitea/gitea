@@ -85,9 +85,6 @@ export function initRepoSettingBranches() {
   $('#dismiss_stale_approvals').on('change', function () {
     const $target = $('#ignore_stale_approvals_box');
     $target.toggleClass('disabled', this.checked);
-    if (this.checked) {
-      $('#ignore_stale_approvals').prop('checked', false);
-    }
   });
 
   // show the `Matched` mark for the status checks that match the pattern
