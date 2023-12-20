@@ -595,7 +595,7 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 		}
 	}
 
-	review, err = CreateReview(ctx, CreateReviewOptions{
+	_, err = CreateReview(ctx, CreateReviewOptions{
 		Type:     ReviewTypeRequest,
 		Issue:    issue,
 		Reviewer: reviewer,
@@ -613,7 +613,6 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 		Issue:           issue,
 		RemovedAssignee: false,       // Use RemovedAssignee as !isRequest
 		AssigneeID:      reviewer.ID, // Use AssigneeID as reviewer ID
-		ReviewID:        review.ID,
 	})
 	if err != nil {
 		return nil, err

@@ -428,6 +428,9 @@ func (comments CommentList) loadReviews(ctx context.Context) error {
 	}
 
 	for _, comment := range comments {
+		if comment.Type == CommentTypeReviewRequest {
+			continue
+		}
 		comment.Review = reviews[comment.ReviewID]
 		if comment.Review == nil {
 			if comment.ReviewID > 0 {
