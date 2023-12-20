@@ -595,7 +595,7 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 		}
 	}
 
-	_, err = CreateReview(ctx, CreateReviewOptions{
+	review, err = CreateReview(ctx, CreateReviewOptions{
 		Type:     ReviewTypeRequest,
 		Issue:    issue,
 		Reviewer: reviewer,
@@ -617,6 +617,9 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 	if err != nil {
 		return nil, err
 	}
+
+	// func caller use the created comment to retrieve created review too.
+	comment.Review = review
 
 	return comment, committer.Commit()
 }

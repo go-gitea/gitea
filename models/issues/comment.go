@@ -696,6 +696,9 @@ func (c *Comment) LoadReactions(ctx context.Context, repo *repo_model.Repository
 }
 
 func (c *Comment) loadReview(ctx context.Context) (err error) {
+	if c.ReviewID == 0 {
+		return nil
+	}
 	if c.Review == nil {
 		if c.Review, err = GetReviewByID(ctx, c.ReviewID); err != nil {
 			return err
