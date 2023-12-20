@@ -460,8 +460,10 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 func GetReviewByIssueIDAndUserID(ctx context.Context, issueID, userID int64) (*Review, error) {
 	review := new(Review)
 
-	has, err := db.GetEngine(ctx).SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_id = ? AND original_author_id = 0 AND type in (?, ?, ?))",
-		issueID, userID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
+	has, err := db.GetEngine(ctx).Where(
+		builder.In("type", ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
+			And(builder.Eq{"issue_id": issueID, "reviewer_id": userID, "original_author_id": 0})).
+		Desc("id").
 		Get(review)
 	if err != nil {
 		return nil, err
@@ -475,13 +477,13 @@ func GetReviewByIssueIDAndUserID(ctx context.Context, issueID, userID int64) (*R
 }
 
 // GetTeamReviewerByIssueIDAndTeamID get the latest review request of reviewer team for a pull request
-func GetTeamReviewerByIssueIDAndTeamID(ctx context.Context, issueID, teamID int64) (review *Review, err error) {
-	review = new(Review)
+func GetTeamReviewerByIssueIDAndTeamID(ctx context.Context, issueID, teamID int64) (*Review, error) {
+	review := new(Review)
 
-	var has bool
-	if has, err = db.GetEngine(ctx).SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = ?)",
-		issueID, teamID).
-		Get(review); err != nil {
+	has, err := db.GetEngine(ctx).Where(builder.Eq{"issue_id": issueID, "reviewer_team_id": teamID}).
+		Desc("id").
+		Get(review)
+	if err != nil {
 		return nil, err
 	}
 
