@@ -284,8 +284,14 @@ func IsOfficialReviewerTeam(ctx context.Context, issue *Issue, team *organizatio
 
 // CreateReview creates a new review based on opts
 func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error) {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
+
 	review := &Review{
-		Type:         opts.Type,
 		Issue:        opts.Issue,
 		IssueID:      opts.Issue.ID,
 		Reviewer:     opts.Reviewer,
@@ -295,15 +301,37 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 		CommitID:     opts.CommitID,
 		Stale:        opts.Stale,
 	}
-	if opts.Reviewer != nil {
+
+	switch {
+	case opts.Reviewer != nil:
+		review.Type = opts.Type
 		review.ReviewerID = opts.Reviewer.ID
-	} else {
-		if review.Type != ReviewTypeRequest {
-			review.Type = ReviewTypeRequest
+
+		reviewCond := builder.Eq{"reviewer_id": opts.Reviewer.ID, "issue_id": opts.Issue.ID}
+		// make sure user review requests are cleared
+		if _, err := sess.Where(reviewCond.And(builder.Eq{"type": ReviewTypeRequest})).Delete(new(Review)); err != nil {
+			return nil, err
 		}
+		// make sure if the created review gets dismissed no old review surface
+		if opts.Type == ReviewTypeApprove || opts.Type == ReviewTypeReject {
+			if _, err := sess.Where(reviewCond.And(builder.In("type", ReviewTypeApprove, ReviewTypeReject))).
+				Cols("dismissed").Update(&Review{Dismissed: true}); err != nil {
+				return nil, err
+			}
+		}
+
+	case opts.ReviewerTeam != nil:
+		review.Type = ReviewTypeRequest
 		review.ReviewerTeamID = opts.ReviewerTeam.ID
+
+	default:
+		return nil, fmt.Errorf("provide either reviewer or reviewer team")
 	}
-	return review, db.Insert(ctx, review)
+
+	if _, err := sess.Insert(review); err != nil {
+		return nil, err
+	}
+	return review, committer.Commit()
 }
 
 // GetCurrentReview returns the current pending review of reviewer for given issue
