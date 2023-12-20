@@ -543,12 +543,21 @@ func GetReviewByOption(ctx context.Context, opt *GetReviewOption) (*Review, erro
 // GetReviewByIssueIDAndUserID get the latest review of reviewer for a pull request
 func GetReviewByIssueIDAndUserID(ctx context.Context, issueID, userID int64) (*Review, error) {
 	review := new(Review)
+<<<<<<< HEAD
 	opt := &GetReviewOption{
 		Types:      []ReviewType{ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest},
 		IssueID:    issueID,
 		ReviewerID: userID,
 	}
 	has, err := db.GetEngine(ctx).Where(opt.toCond()).Desc("review.id").Get(review)
+=======
+
+	has, err := db.GetEngine(ctx).Where(
+		builder.In("type", ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
+			And(builder.Eq{"issue_id": issueID, "reviewer_id": userID, "original_author_id": 0})).
+		Desc("id").
+		Get(review)
+>>>>>>> main
 	if err != nil {
 		return nil, err
 	}
@@ -563,11 +572,18 @@ func GetReviewByIssueIDAndUserID(ctx context.Context, issueID, userID int64) (*R
 // GetTeamReviewerByIssueIDAndTeamID get the latest review request of reviewer team for a pull request
 func GetTeamReviewerByIssueIDAndTeamID(ctx context.Context, issueID, teamID int64) (*Review, error) {
 	review := new(Review)
+<<<<<<< HEAD
 	opt := &GetReviewOption{
 		IssueID: issueID,
 		TeamID:  teamID,
 	}
 	has, err := db.GetEngine(ctx).Where(opt.toCond()).Desc("review.id").Get(review)
+=======
+
+	has, err := db.GetEngine(ctx).Where(builder.Eq{"issue_id": issueID, "reviewer_team_id": teamID}).
+		Desc("id").
+		Get(review)
+>>>>>>> main
 	if err != nil {
 		return nil, err
 	}
