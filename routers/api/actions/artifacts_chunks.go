@@ -10,11 +10,13 @@ import (
 	"io"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 )
 
@@ -26,6 +28,7 @@ func saveUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext,
 	contentRange := ctx.Req.Header.Get("Content-Range")
 	start, end, length := int64(0), int64(0), int64(0)
 	if _, err := fmt.Sscanf(contentRange, "bytes %d-%d/%d", &start, &end, &length); err != nil {
+		log.Warn("parse content range error: %v, content-range: %s", err, contentRange)
 		return -1, fmt.Errorf("parse content range error: %v", err)
 	}
 	// build chunk store path
@@ -64,10 +67,16 @@ type chunkFileItem struct {
 	Path       string
 }
 
-func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chunkFileItem, error) {
+func listChunksByRunID(st storage.ObjectStorage, runID int64, basepath string) (map[int64][]*chunkFileItem, error) {
 	storageDir := fmt.Sprintf("tmp%d", runID)
 	var chunks []*chunkFileItem
 	if err := st.IterateObjects(storageDir, func(path string, obj storage.Object) error {
+		// if basepath is settings.Actions.ArtifactStorage.MinioConfig.BasePath, it should trim it
+		if basepath != "" {
+			log.Debug("listChunksByRunID, trim basepath: %s, path: %s", basepath, path)
+			basepath = strings.TrimPrefix(basepath, "/")
+			path = strings.TrimPrefix(path, basepath+"/")
+		}
 		item := chunkFileItem{Path: path}
 		if _, err := fmt.Sscanf(path, filepath.Join(storageDir, "%d-%d-%d.chunk"), &item.ArtifactID, &item.Start, &item.End); err != nil {
 			return fmt.Errorf("parse content range error: %v", err)
@@ -94,8 +103,11 @@ func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID int
 	if err != nil {
 		return err
 	}
+	// if use minio, it should trim basepath when iterate objects for chunks
+	// if use local, basepath is empty
+	basepath := setting.Actions.ArtifactStorage.MinioConfig.BasePath
 	// read all uploading chunks from storage
-	chunksMap, err := listChunksByRunID(st, runID)
+	chunksMap, err := listChunksByRunID(st, runID, basepath)
 	if err != nil {
 		return err
 	}
