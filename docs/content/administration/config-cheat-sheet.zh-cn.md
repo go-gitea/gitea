@@ -346,7 +346,7 @@ menu:
 - `SSH_PER_WRITE_TIMEOUT`: **30s**：对 SSH 连接的任何写入设置超时。（将其设置为 -1 可以禁用所有超时。）
 - `SSH_PER_WRITE_PER_KB_TIMEOUT`: **10s**：对写入 SSH 连接的每 KB 设置超时。
 - `MINIMUM_KEY_SIZE_CHECK`: **true**：指示是否检查最小密钥大小与相应类型。
-- `OFFLINE_MODE`: **false**：禁用 CDN 用于静态文件和 Gravatar 用于个人资料图片。
+- `OFFLINE_MODE`: **true**：禁用 CDN 用于静态文件和 Gravatar 用于个人资料图片。
 - `CERT_FILE`: **https/cert.pem**：用于 HTTPS 的证书文件路径。在链接时，服务器证书必须首先出现，然后是中间 CA 证书（如果有）。如果 `ENABLE_ACME=true`，则此设置会被忽略。路径相对于 `CUSTOM_PATH`。
 - `KEY_FILE`: **https/key.pem**：用于 HTTPS 的密钥文件路径。如果 `ENABLE_ACME=true`，则此设置会被忽略。路径相对于 `CUSTOM_PATH`。
 - `STATIC_ROOT_PATH`: **_`StaticRootPath`_**：模板和静态文件路径的上一级。
