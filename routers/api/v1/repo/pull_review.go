@@ -879,7 +879,7 @@ func dismissReview(ctx *context.APIContext, msg string, isDismiss, dismissPriors
 		return
 	}
 
-	if review.Type != issues_model.ReviewTypeApprove && review.Type != issues_model.ReviewTypeReject {
+	if !review.Type.AffectReview() {
 		ctx.Error(http.StatusForbidden, "", "not need to dismiss this review because it's type is not Approve or change request")
 		return
 	}

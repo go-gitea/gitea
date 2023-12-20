@@ -85,6 +85,11 @@ const (
 	ReviewTypeRequest
 )
 
+// AffectReview indicate if this review type alter a pull state
+func (rt ReviewType) AffectReview() bool {
+	return rt == ReviewTypeApprove || rt == ReviewTypeReject
+}
+
 // Icon returns the corresponding icon for the review type
 func (rt ReviewType) Icon() string {
 	switch rt {
@@ -366,7 +371,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 			return nil, nil, ContentEmptyErr{}
 		}
 
-		if reviewType == ReviewTypeApprove || reviewType == ReviewTypeReject {
+		if reviewType.AffectReview() {
 			// Only reviewers latest review of type approve and reject shall count as "official", so existing reviews needs to be cleared
 			if _, err := db.Exec(ctx, "UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, doer.ID); err != nil {
 				return nil, nil, err
@@ -396,7 +401,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 			return nil, nil, ContentEmptyErr{}
 		}
 
-		if reviewType == ReviewTypeApprove || reviewType == ReviewTypeReject {
+		if reviewType.AffectReview() {
 			// Only reviewers latest review of type approve and reject shall count as "official", so existing reviews needs to be cleared
 			if _, err := db.Exec(ctx, "UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, doer.ID); err != nil {
 				return nil, nil, err
@@ -432,7 +437,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 	}
 
 	// try to remove team review request if need
-	if issue.Repo.Owner.IsOrganization() && (reviewType == ReviewTypeApprove || reviewType == ReviewTypeReject) {
+	if issue.Repo.Owner.IsOrganization() && reviewType.AffectReview() {
 		teamReviewRequests := make([]*Review, 0, 10)
 		if err := sess.SQL("SELECT * FROM review WHERE issue_id = ? AND reviewer_team_id > 0 AND type = ?", issue.ID, ReviewTypeRequest).Find(&teamReviewRequests); err != nil {
 			return nil, nil, err
@@ -510,7 +515,7 @@ func MarkReviewsAsNotStale(ctx context.Context, issueID int64, commitID string) 
 
 // DismissReview change the dismiss status of a review
 func DismissReview(ctx context.Context, review *Review, isDismiss bool) (err error) {
-	if review.Dismissed == isDismiss || (review.Type != ReviewTypeApprove && review.Type != ReviewTypeReject) {
+	if review.Dismissed == isDismiss || !review.Type.AffectReview() {
 		return nil
 	}
 
@@ -581,7 +586,7 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 		return nil, err
 	}
 
-	// skip it when reviewer hase been request to review
+	// skip it when reviewer has been request to review
 	if review != nil && review.Type == ReviewTypeRequest {
 		return nil, nil
 	}
