@@ -117,7 +117,7 @@ act runner 必须能够连接到Gitea以接收任务并发送执行结果回来�
 
 ### 连接 4，Job容器到互联网
 
-当使用诸如`actions/setup-go@v4`的Actions时，可能需要从互联网下载资源，以设置Job容器中的Go语言环境。
+当使用诸如`actions/setup-go@v5`的Actions时，可能需要从互联网下载资源，以设置Job容器中的Go语言环境。
 因此，成功完成这些Actions需要访问互联网。
 
 然而，这也是可选的。

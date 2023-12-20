@@ -116,7 +116,7 @@ And [Gitea Container Registry](usage/packages/container.md) can be used as a Doc
 
 ### Connection 4, job containers to internet
 
-When using actions such as `actions/setup-go@v4`, it may be necessary to download resources from the internet to set up the Go language environment in job containers.
+When using actions such as `actions/setup-go@v5`, it may be necessary to download resources from the internet to set up the Go language environment in job containers.
 Therefore, access to the internet is required for the successful completion of these actions.
 
 However, it is optional as well.
