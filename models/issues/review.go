@@ -143,6 +143,7 @@ func (r *Review) LoadCodeComments(ctx context.Context) (err error) {
 	if r.CodeComments != nil {
 		return err
 	}
+
 	if err = r.loadIssue(ctx); err != nil {
 		return err
 	}
@@ -289,8 +290,14 @@ func IsOfficialReviewerTeam(ctx context.Context, issue *Issue, team *organizatio
 
 // CreateReview creates a new review based on opts
 func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error) {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
+
 	review := &Review{
-		Type:         opts.Type,
 		Issue:        opts.Issue,
 		IssueID:      opts.Issue.ID,
 		Reviewer:     opts.Reviewer,
@@ -300,15 +307,38 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 		CommitID:     opts.CommitID,
 		Stale:        opts.Stale,
 	}
-	if opts.Reviewer != nil {
+
+	switch {
+	case opts.Reviewer != nil:
+		review.Type = opts.Type
 		review.ReviewerID = opts.Reviewer.ID
-	} else {
-		if review.Type != ReviewTypeRequest {
-			review.Type = ReviewTypeRequest
+
+		opt := &GetReviewOption{
+			ReviewerID: opts.Reviewer.ID,
+			IssueID:    opts.Issue.ID,
 		}
+		// make sure user review requests are cleared
+		sess.Where(opt.toCond().And(builder.Eq{"type": ReviewTypeRequest})).Delete(new(Review))
+		// make sure if the created review gets dismissed no old review surface
+		if opts.Type.AffectReview() {
+			if _, err := sess.Where(opt.toCond().And(builder.In("type", ReviewTypeApprove, ReviewTypeReject))).
+				Cols("dismissed").Update(&Review{Dismissed: true}); err != nil {
+				return nil, err
+			}
+		}
+
+	case opts.ReviewerTeam != nil:
+		review.Type = ReviewTypeRequest
 		review.ReviewerTeamID = opts.ReviewerTeam.ID
+
+	default:
+		return nil, fmt.Errorf("provide either reviewer or reviewer team")
 	}
-	return review, db.Insert(ctx, review)
+
+	if _, err := sess.Insert(review); err != nil {
+		return nil, err
+	}
+	return review, committer.Commit()
 }
 
 // GetCurrentPendingReview returns the current pending review of reviewer for given issue
