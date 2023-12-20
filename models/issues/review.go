@@ -143,7 +143,6 @@ func (r *Review) LoadCodeComments(ctx context.Context) (err error) {
 	if r.CodeComments != nil {
 		return err
 	}
-
 	if err = r.loadIssue(ctx); err != nil {
 		return err
 	}
