@@ -317,7 +317,9 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 			IssueID:    opts.Issue.ID,
 		}
 		// make sure user review requests are cleared
-		sess.Where(opt.toCond().And(builder.Eq{"type": ReviewTypeRequest})).Delete(new(Review))
+		if _, err := sess.Where(opt.toCond().And(builder.Eq{"type": ReviewTypeRequest})).Delete(new(Review)); err != nil {
+			return nil, err
+		}
 		// make sure if the created review gets dismissed no old review surface
 		if opts.Type.AffectReview() {
 			if _, err := sess.Where(opt.toCond().And(builder.In("type", ReviewTypeApprove, ReviewTypeReject))).
@@ -546,7 +548,7 @@ func GetReviewByIssueIDAndUserID(ctx context.Context, issueID, userID int64) (*R
 		IssueID:    issueID,
 		ReviewerID: userID,
 	}
-	has, err := db.GetEngine(ctx).Where(opt.toCond()).OrderBy("id").Desc().Get(review)
+	has, err := db.GetEngine(ctx).Where(opt.toCond()).Desc("review.id").Get(review)
 	if err != nil {
 		return nil, err
 	}
@@ -565,7 +567,7 @@ func GetTeamReviewerByIssueIDAndTeamID(ctx context.Context, issueID, teamID int6
 		IssueID: issueID,
 		TeamID:  teamID,
 	}
-	has, err := db.GetEngine(ctx).Where(opt.toCond()).OrderBy("id").Desc().Get(review)
+	has, err := db.GetEngine(ctx).Where(opt.toCond()).Desc("review.id").Get(review)
 	if err != nil {
 		return nil, err
 	}
