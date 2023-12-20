@@ -29,6 +29,10 @@ Gitea Actions支持通过URL绝对路径定义actions，这意味着您可以使
 Gitea Actions支持使用Go编写Actions。
 请参阅[创建Go Actions](https://blog.gitea.com/creating-go-actions/)。
 
+### 支持非标准的调度语法 @yearly, @monthly, @weekly, @daily, @hourly
+
+Github Actions 不支持这些语法，详见： https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule
+
 ## 不支持的工作流语法
 
 ### `concurrency`
@@ -115,6 +119,10 @@ Gitea Actions目前不支持此功能。
 ### 预处理和后处理步骤
 
 预处理和后处理步骤在Job日志用户界面中没有自己的用户界面。
+
+### 服务步骤
+
+服务步骤在Job日志用户界面中没有自己的用户界面。
 
 ## 不一样的行为
 
