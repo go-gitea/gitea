@@ -8,15 +8,14 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"path"
 	"path/filepath"
 	"sort"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 )
 
@@ -32,7 +31,7 @@ func saveUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext,
 		return -1, fmt.Errorf("parse content range error: %v", err)
 	}
 	// build chunk store path
-	storagePath := fmt.Sprintf("tmp%d/%d-%d-%d.chunk", runID, artifact.ID, start, end)
+	storagePath := fmt.Sprintf("tmp%d/%d-%d-%d-%d.chunk", runID, runID, artifact.ID, start, end)
 	// use io.TeeReader to avoid reading all body to md5 sum.
 	// it writes data to hasher after reading end
 	// if hash is not matched, delete the read-end result
@@ -61,24 +60,22 @@ func saveUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext,
 }
 
 type chunkFileItem struct {
+	RunID      int64
 	ArtifactID int64
 	Start      int64
 	End        int64
 	Path       string
 }
 
-func listChunksByRunID(st storage.ObjectStorage, runID int64, basepath string) (map[int64][]*chunkFileItem, error) {
+func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chunkFileItem, error) {
 	storageDir := fmt.Sprintf("tmp%d", runID)
 	var chunks []*chunkFileItem
-	if err := st.IterateObjects(storageDir, func(path string, obj storage.Object) error {
-		// if basepath is settings.Actions.ArtifactStorage.MinioConfig.BasePath, it should trim it
-		if basepath != "" {
-			log.Debug("listChunksByRunID, trim basepath: %s, path: %s", basepath, path)
-			basepath = strings.TrimPrefix(basepath, "/")
-			path = strings.TrimPrefix(path, basepath+"/")
-		}
-		item := chunkFileItem{Path: path}
-		if _, err := fmt.Sscanf(path, filepath.Join(storageDir, "%d-%d-%d.chunk"), &item.ArtifactID, &item.Start, &item.End); err != nil {
+	if err := st.IterateObjects(storageDir, func(fpath string, obj storage.Object) error {
+		baseName := filepath.Base(fpath)
+		// when read chunks from storage, it only contains storage dir and basename,
+		// no matter the subdirectory setting in storage config
+		item := chunkFileItem{Path: path.Join(storageDir, baseName)}
+		if _, err := fmt.Sscanf(baseName, "%d-%d-%d-%d.chunk", &item.RunID, &item.ArtifactID, &item.Start, &item.End); err != nil {
 			return fmt.Errorf("parse content range error: %v", err)
 		}
 		chunks = append(chunks, &item)
@@ -103,11 +100,8 @@ func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID int
 	if err != nil {
 		return err
 	}
-	// if use minio, it should trim basepath when iterate objects for chunks
-	// if use local, basepath is empty
-	basepath := setting.Actions.ArtifactStorage.MinioConfig.BasePath
 	// read all uploading chunks from storage
-	chunksMap, err := listChunksByRunID(st, runID, basepath)
+	chunksMap, err := listChunksByRunID(st, runID)
 	if err != nil {
 		return err
 	}
