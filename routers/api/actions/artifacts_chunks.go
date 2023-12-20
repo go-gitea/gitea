@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"path"
 	"path/filepath"
 	"sort"
 	"time"
@@ -74,7 +73,7 @@ func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chun
 		baseName := filepath.Base(fpath)
 		// when read chunks from storage, it only contains storage dir and basename,
 		// no matter the subdirectory setting in storage config
-		item := chunkFileItem{Path: path.Join(storageDir, baseName)}
+		item := chunkFileItem{Path: storageDir + "/" + baseName}
 		if _, err := fmt.Sscanf(baseName, "%d-%d-%d-%d.chunk", &item.RunID, &item.ArtifactID, &item.Start, &item.End); err != nil {
 			return fmt.Errorf("parse content range error: %v", err)
 		}
