@@ -461,15 +461,63 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 	return review, comm, committer.Commit()
 }
 
+type GetReviewOption struct {
+	Dismissed  util.OptionalBool
+	Official   util.OptionalBool
+	Stale      util.OptionalBool
+	Types      []ReviewType
+	IssueID    int64
+	ReviewerID int64
+	TeamID     int64
+}
+
+func (o *GetReviewOption) toCond() builder.Cond {
+	cond := builder.And(builder.Eq{"review.issue_id": o.IssueID})
+
+	if !o.Dismissed.IsNone() {
+		cond = cond.And(builder.Eq{"review.dismissed": o.Dismissed.IsTrue()})
+	}
+	if !o.Official.IsNone() {
+		cond = cond.And(builder.Eq{"review.official": o.Official.IsTrue()})
+	}
+	if !o.Stale.IsNone() {
+		cond = cond.And(builder.Eq{"review.stale": o.Stale.IsTrue()})
+	}
+	if len(o.Types) != 0 {
+		cond = cond.And(builder.In("review.type", o.Types))
+	}
+	if o.ReviewerID > 0 {
+		cond = cond.And(builder.Eq{"review.reviewer_id": o.ReviewerID, "original_author_id": 0})
+	}
+	if o.TeamID > 0 {
+		cond = cond.And(builder.Eq{"review.reviewer_team_id": o.TeamID})
+	}
+
+	return cond
+}
+
+// GetReviewByOption get the latest review for a pull request filtered by given option
+func GetReviewByOption(ctx context.Context, opt *GetReviewOption) (*Review, error) {
+	review := new(Review)
+	has, err := db.GetEngine(ctx).Where(opt.toCond()).OrderBy("id").Desc().Get(review)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrReviewNotExist{}
+	}
+	return review, nil
+}
+
 // GetReviewByIssueIDAndUserID get the latest review of reviewer for a pull request
 func GetReviewByIssueIDAndUserID(ctx context.Context, issueID, userID int64) (*Review, error) {
 	review := new(Review)
-
-	has, err := db.GetEngine(ctx).Where(
-		builder.In("type", ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
-			And(builder.Eq{"issue_id": issueID, "reviewer_id": userID, "original_author_id": 0})).
-		OrderBy("id").Desc().
-		Get(review)
+	opt := &GetReviewOption{
+		Types:      []ReviewType{ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest},
+		IssueID:    issueID,
+		ReviewerID: userID,
+	}
+	has, err := db.GetEngine(ctx).Where(opt.toCond()).OrderBy("id").Desc().Get(review)
 	if err != nil {
 		return nil, err
 	}
@@ -484,10 +532,11 @@ func GetReviewByIssueIDAndUserID(ctx context.Context, issueID, userID int64) (*R
 // GetTeamReviewerByIssueIDAndTeamID get the latest review request of reviewer team for a pull request
 func GetTeamReviewerByIssueIDAndTeamID(ctx context.Context, issueID, teamID int64) (*Review, error) {
 	review := new(Review)
-
-	has, err := db.GetEngine(ctx).Where(builder.Eq{"issue_id": issueID, "reviewer_team_id": teamID}).
-		OrderBy("id").Desc().
-		Get(review)
+	opt := &GetReviewOption{
+		IssueID: issueID,
+		TeamID:  teamID,
+	}
+	has, err := db.GetEngine(ctx).Where(opt.toCond()).OrderBy("id").Desc().Get(review)
 	if err != nil {
 		return nil, err
 	}
