@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/url"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -513,6 +514,15 @@ func GetUserSalt() (string, error) {
 	}
 	// Returns a 32 bytes long string.
 	return hex.EncodeToString(rBytes), nil
+}
+
+var normalizeRE = regexp.MustCompile(`[^\da-zA-Z-.\w]`)
+
+// normalizeUserName returns a string with single-quotes removed,
+// and any other non-supported username characters replaced with
+// a `-` character
+func NormalizeUserName(s string) string {
+	return normalizeRE.ReplaceAllString(strings.ReplaceAll(s, "'", ""), "-")
 }
 
 var (

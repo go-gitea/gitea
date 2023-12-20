@@ -24,13 +24,14 @@ const (
 	// OAuth2UsernameEmail username of oauth2 email field will be used as gitea name
 	OAuth2UsernameEmail OAuth2UsernameType = "email"
 	// OAuth2UsernameEmail username of oauth2 email field will be used as gitea name, with
-	// non-supported username characters replaced with a `-` character
+	// single-quotes removed, and any other non-supported username characters replaced with
+	// a `-` character
 	OAuth2UsernameEmailNormalized OAuth2UsernameType = "email-normalized"
 )
 
 func (username OAuth2UsernameType) isValid() bool {
 	switch username {
-	case OAuth2UsernameUserid, OAuth2UsernameNickname, OAuth2UsernameEmail:
+	case OAuth2UsernameUserid, OAuth2UsernameNickname, OAuth2UsernameEmail, OAuth2UsernameEmailNormalized:
 		return true
 	}
 	return false

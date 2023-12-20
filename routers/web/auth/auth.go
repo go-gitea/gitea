@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/user"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
@@ -372,6 +373,8 @@ func getUserName(gothUser *goth.User) string {
 	switch setting.OAuth2Client.Username {
 	case setting.OAuth2UsernameEmail:
 		return strings.Split(gothUser.Email, "@")[0]
+	case setting.OAuth2UsernameEmailNormalized:
+		return user.NormalizeUserName(strings.Split(gothUser.Email, "@")[0])
 	case setting.OAuth2UsernameNickname:
 		return gothUser.NickName
 	default: // OAuth2UsernameUserid
