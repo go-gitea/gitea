@@ -118,7 +118,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		return comment, nil
 	}
 
-	review, err := issues_model.GetCurrentReview(ctx, doer, issue)
+	review, err := issues_model.GetCurrentPendingReview(ctx, doer, issue)
 	if err != nil {
 		if !issues_model.IsErrReviewNotExist(err) {
 			return nil, err

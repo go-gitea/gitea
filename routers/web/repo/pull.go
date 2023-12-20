@@ -979,7 +979,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		return
 	}
 
-	currentReview, err := issues_model.GetCurrentReview(ctx, ctx.Doer, issue)
+	currentReview, err := issues_model.GetCurrentPendingReview(ctx, ctx.Doer, issue)
 	if err != nil && !issues_model.IsErrReviewNotExist(err) {
 		ctx.ServerError("GetCurrentReview", err)
 		return

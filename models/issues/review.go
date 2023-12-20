@@ -311,8 +311,8 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 	return review, db.Insert(ctx, review)
 }
 
-// GetCurrentReview returns the current pending review of reviewer for given issue
-func GetCurrentReview(ctx context.Context, reviewer *user_model.User, issue *Issue) (*Review, error) {
+// GetCurrentPendingReview returns the current pending review of reviewer for given issue
+func GetCurrentPendingReview(ctx context.Context, reviewer *user_model.User, issue *Issue) (*Review, error) {
 	if reviewer == nil {
 		return nil, nil
 	}
@@ -361,7 +361,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 
 	official := false
 
-	review, err := GetCurrentReview(ctx, doer, issue)
+	review, err := GetCurrentPendingReview(ctx, doer, issue)
 	if err != nil {
 		if !IsErrReviewNotExist(err) {
 			return nil, nil, err
