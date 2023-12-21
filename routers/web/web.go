@@ -533,8 +533,10 @@ func registerRoutes(m *web.Route) {
 		m.Post("/authorize", web.Bind(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
 	}, ignSignInAndCsrf, reqSignIn)
 	m.Get("/login/oauth/userinfo", ignSignInAndCsrf, auth.InfoOAuth)
+	m.Options("/login/oauth/access_token", CorsHandler(), misc.DummyBadRequest)
 	m.Post("/login/oauth/access_token", CorsHandler(), web.Bind(forms.AccessTokenForm{}), ignSignInAndCsrf, auth.AccessTokenOAuth)
 	m.Get("/login/oauth/keys", ignSignInAndCsrf, auth.OIDCKeys)
+	m.Options("/login/oauth/introspect", CorsHandler(), misc.DummyBadRequest)
 	m.Post("/login/oauth/introspect", CorsHandler(), web.Bind(forms.IntrospectTokenForm{}), ignSignInAndCsrf, auth.IntrospectOAuth)
 
 	m.Group("/user/settings", func() {
@@ -799,6 +801,24 @@ func registerRoutes(m *web.Route) {
 		}
 	}
 
+	individualPermsChecker := func(ctx *context.Context) {
+		// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
+		if ctx.ContextUser.IsIndividual() {
+			switch {
+			case ctx.ContextUser.Visibility == structs.VisibleTypePrivate:
+				if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
+					ctx.NotFound("Visit Project", nil)
+					return
+				}
+			case ctx.ContextUser.Visibility == structs.VisibleTypeLimited:
+				if ctx.Doer == nil {
+					ctx.NotFound("Visit Project", nil)
+					return
+				}
+			}
+		}
+	}
+
 	// ***** START: Organization *****
 	m.Group("/org", func() {
 		m.Group("/{org}", func() {
@@ -979,11 +999,11 @@ func registerRoutes(m *web.Route) {
 					return
 				}
 			})
-		})
+		}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
 
 		m.Group("", func() {
 			m.Get("/code", user.CodeSearch)
-		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead, false))
+		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead, false), individualPermsChecker)
 	}, ignSignIn, context_service.UserAssignmentWeb(), context.OrgAssignment()) // for "/{username}/-" (packages, projects, code)
 
 	m.Group("/{username}/{reponame}", func() {

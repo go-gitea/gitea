@@ -350,7 +350,7 @@ func (c *Comment) AfterLoad(session *xorm.Session) {
 
 // LoadPoster loads comment poster
 func (c *Comment) LoadPoster(ctx context.Context) (err error) {
-	if c.PosterID <= 0 || c.Poster != nil {
+	if c.Poster != nil {
 		return nil
 	}
 
@@ -1024,10 +1024,11 @@ type FindCommentsOptions struct {
 	Type        CommentType
 	IssueIDs    []int64
 	Invalidated util.OptionalBool
+	IsPull      util.OptionalBool
 }
 
 // ToConds implements FindOptions interface
-func (opts *FindCommentsOptions) ToConds() builder.Cond {
+func (opts FindCommentsOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
@@ -1058,6 +1059,9 @@ func (opts *FindCommentsOptions) ToConds() builder.Cond {
 	if !opts.Invalidated.IsNone() {
 		cond = cond.And(builder.Eq{"comment.invalidated": opts.Invalidated.IsTrue()})
 	}
+	if opts.IsPull != util.OptionalBoolNone {
+		cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull.IsTrue()})
+	}
 	return cond
 }
 
@@ -1065,7 +1069,7 @@ func (opts *FindCommentsOptions) ToConds() builder.Cond {
 func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, error) {
 	comments := make([]*Comment, 0, 10)
 	sess := db.GetEngine(ctx).Where(opts.ToConds())
-	if opts.RepoID > 0 {
+	if opts.RepoID > 0 || opts.IsPull != util.OptionalBoolNone {
 		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 	}
 

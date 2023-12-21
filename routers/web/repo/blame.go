@@ -114,12 +114,12 @@ func RefBlame(ctx *context.Context) {
 		return
 	}
 
-	commitNames, previousCommits := processBlameParts(ctx, result.Parts)
+	commitNames := processBlameParts(ctx, result.Parts)
 	if ctx.Written() {
 		return
 	}
 
-	renderBlame(ctx, result.Parts, commitNames, previousCommits)
+	renderBlame(ctx, result.Parts, commitNames)
 
 	ctx.HTML(http.StatusOK, tplRepoHome)
 }
@@ -131,7 +131,12 @@ type blameResult struct {
 }
 
 func performBlame(ctx *context.Context, repoPath string, commit *git.Commit, file string, bypassBlameIgnore bool) (*blameResult, error) {
-	blameReader, err := git.CreateBlameReader(ctx, repoPath, commit, file, bypassBlameIgnore)
+	objectFormat, err := ctx.Repo.GitRepo.GetObjectFormat()
+	if err != nil {
+		ctx.NotFound("CreateBlameReader", err)
+		return nil, err
+	}
+	blameReader, err := git.CreateBlameReader(ctx, objectFormat, repoPath, commit, file, bypassBlameIgnore)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +152,7 @@ func performBlame(ctx *context.Context, repoPath string, commit *git.Commit, fil
 		if len(r.Parts) == 0 && r.UsesIgnoreRevs {
 			// try again without ignored revs
 
-			blameReader, err = git.CreateBlameReader(ctx, repoPath, commit, file, true)
+			blameReader, err = git.CreateBlameReader(ctx, objectFormat, repoPath, commit, file, true)
 			if err != nil {
 				return nil, err
 			}
@@ -185,12 +190,9 @@ func fillBlameResult(br *git.BlameReader, r *blameResult) error {
 	return nil
 }
 
-func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[string]*user_model.UserCommit, map[string]string) {
+func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) map[string]*user_model.UserCommit {
 	// store commit data by SHA to look up avatar info etc
 	commitNames := make(map[string]*user_model.UserCommit)
-	// previousCommits contains links from SHA to parent SHA,
-	// if parent also contains the current TreePath.
-	previousCommits := make(map[string]string)
 	// and as blameParts can reference the same commits multiple
 	// times, we cache the lookup work locally
 	commits := make([]*git.Commit, 0, len(blameParts))
@@ -214,27 +216,9 @@ func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[st
 				} else {
 					ctx.ServerError("Repo.GitRepo.GetCommit", err)
 				}
-				return nil, nil
+				return nil
 			}
 			commitCache[sha] = commit
-		}
-
-		// find parent commit
-		if commit.ParentCount() > 0 {
-			psha := commit.Parents[0]
-			previousCommit, ok := commitCache[psha.String()]
-			if !ok {
-				previousCommit, _ = commit.Parent(0)
-				if previousCommit != nil {
-					commitCache[psha.String()] = previousCommit
-				}
-			}
-			// only store parent commit ONCE, if it has the file
-			if previousCommit != nil {
-				if haz1, _ := previousCommit.HasFile(ctx.Repo.TreePath); haz1 {
-					previousCommits[commit.ID.String()] = previousCommit.ID.String()
-				}
-			}
 		}
 
 		commits = append(commits, commit)
@@ -245,10 +229,10 @@ func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[st
 		commitNames[c.ID.String()] = c
 	}
 
-	return commitNames, previousCommits
+	return commitNames
 }
 
-func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames map[string]*user_model.UserCommit, previousCommits map[string]string) {
+func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames map[string]*user_model.UserCommit) {
 	repoLink := ctx.Repo.RepoLink
 
 	language := ""
@@ -295,7 +279,6 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 			}
 
 			commit := commitNames[part.Sha]
-			previousSha := previousCommits[part.Sha]
 			if index == 0 {
 				// Count commit number
 				commitCnt++
@@ -313,8 +296,8 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				br.Avatar = gotemplate.HTML(avatar)
 				br.RepoLink = repoLink
 				br.PartSha = part.Sha
-				br.PreviousSha = previousSha
-				br.PreviousShaURL = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, url.PathEscape(previousSha), util.PathEscapeSegments(ctx.Repo.TreePath))
+				br.PreviousSha = part.PreviousSha
+				br.PreviousShaURL = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, url.PathEscape(part.PreviousSha), util.PathEscapeSegments(part.PreviousPath))
 				br.CommitURL = fmt.Sprintf("%s/commit/%s", repoLink, url.PathEscape(part.Sha))
 				br.CommitMessage = commit.CommitMessage
 				br.CommitSince = commitSince
@@ -332,8 +315,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				lexerName = lexerNameForLine
 			}
 
-			br.EscapeStatus, line = charset.EscapeControlHTML(line, ctx.Locale)
-			br.Code = gotemplate.HTML(line)
+			br.EscapeStatus, br.Code = charset.EscapeControlHTML(line, ctx.Locale)
 			rows = append(rows, br)
 			escapeStatus = escapeStatus.Or(br.EscapeStatus)
 		}
