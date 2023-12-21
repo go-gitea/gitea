@@ -30,7 +30,7 @@ func (repo *Repository) ReadTreeToIndex(treeish string, indexFilename ...string)
 			treeish = res[:len(res)-1]
 		}
 	}
-	id, err := objectFormat.NewIDFromString(treeish)
+	id, err := NewIDFromString(treeish)
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 	for _, file := range filenames {
 		if file != "" {
 			buffer.WriteString("0 ")
-			buffer.WriteString(repo.objectFormat.Empty().String())
+			buffer.WriteString(repo.objectFormat.EmptyObjectID().String())
 			buffer.WriteByte('\t')
 			buffer.WriteString(file)
 			buffer.WriteByte('\000')
@@ -128,7 +128,7 @@ func (repo *Repository) WriteTree() (*Tree, error) {
 	if runErr != nil {
 		return nil, runErr
 	}
-	id, err := repo.objectFormat.NewIDFromString(strings.TrimSpace(stdout))
+	id, err := NewIDFromString(strings.TrimSpace(stdout))
 	if err != nil {
 		return nil, err
 	}

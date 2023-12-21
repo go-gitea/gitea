@@ -71,10 +71,10 @@ readLoop:
 
 			switch string(split[0]) {
 			case "tree":
-				commit.Tree = *NewTree(gitRepo, objectID.Type().MustIDFromString(string(data)))
+				commit.Tree = *NewTree(gitRepo, MustIDFromString(string(data)))
 				_, _ = payloadSB.Write(line)
 			case "parent":
-				commit.Parents = append(commit.Parents, objectID.Type().MustIDFromString(string(data)))
+				commit.Parents = append(commit.Parents, MustIDFromString(string(data)))
 				_, _ = payloadSB.Write(line)
 			case "author":
 				commit.Author = &Signature{}

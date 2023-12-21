@@ -236,7 +236,7 @@ func (c *Commit) IsForcePush(oldCommitID string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if oldCommitID == objectFormat.Empty().String() {
+	if oldCommitID == objectFormat.EmptyObjectID().String() {
 		return false, nil
 	}
 

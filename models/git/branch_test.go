@@ -20,6 +20,7 @@ import (
 func TestAddDeletedBranch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.EqualValues(t, git.Sha1ObjectFormat.Name(), repo.ObjectFormatName)
 	firstBranch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{ID: 1})
 
 	assert.True(t, firstBranch.IsDeleted)
@@ -30,7 +31,7 @@ func TestAddDeletedBranch(t *testing.T) {
 	assert.True(t, secondBranch.IsDeleted)
 
 	commit := &git.Commit{
-		ID:            repo.ObjectFormat.MustIDFromString(secondBranch.CommitID),
+		ID:            git.MustIDFromString(secondBranch.CommitID),
 		CommitMessage: secondBranch.CommitMessage,
 		Committer: &git.Signature{
 			When: secondBranch.CommitTime.AsLocalTime(),

@@ -147,7 +147,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	gitRepo := ctx.Repo.GitRepo
 	objectFormat, _ := gitRepo.GetObjectFormat()
 
-	if branchName == repo.DefaultBranch && newCommitID == objectFormat.Empty().String() {
+	if branchName == repo.DefaultBranch && newCommitID == objectFormat.EmptyObjectID().String() {
 		log.Warn("Forbidden: Branch: %s is the default branch in %-v and cannot be deleted", branchName, repo)
 		ctx.JSON(http.StatusForbidden, private.Response{
 			UserMsg: fmt.Sprintf("branch %s is the default branch and cannot be deleted", branchName),
@@ -175,7 +175,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	// First of all we need to enforce absolutely:
 	//
 	// 1. Detect and prevent deletion of the branch
-	if newCommitID == objectFormat.Empty().String() {
+	if newCommitID == objectFormat.EmptyObjectID().String() {
 		log.Warn("Forbidden: Branch: %s in %-v is protected from deletion", branchName, repo)
 		ctx.JSON(http.StatusForbidden, private.Response{
 			UserMsg: fmt.Sprintf("branch %s is protected from deletion", branchName),
@@ -184,7 +184,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	}
 
 	// 2. Disallow force pushes to protected branches
-	if oldCommitID != objectFormat.Empty().String() {
+	if oldCommitID != objectFormat.EmptyObjectID().String() {
 		output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1").AddDynamicArguments(oldCommitID, "^"+newCommitID).RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: ctx.env})
 		if err != nil {
 			log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)

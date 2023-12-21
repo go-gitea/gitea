@@ -224,7 +224,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 	}
 
 	// FIXME: fix the hash
-	if err := git.InitRepository(ctx, tmpDir, false, git.ObjectFormatFromID(git.Sha1)); err != nil {
+	if err := git.InitRepository(ctx, tmpDir, false, git.Sha1ObjectFormat.Name()); err != nil {
 		return err
 	}
 
@@ -358,7 +358,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	}
 
 	// FIXME - fix the hash
-	if err = CheckInitRepository(ctx, owner.Name, generateRepo.Name, git.ObjectFormatFromID(git.Sha1)); err != nil {
+	if err = CheckInitRepository(ctx, owner.Name, generateRepo.Name, git.Sha1ObjectFormat.Name()); err != nil {
 		return generateRepo, err
 	}
 

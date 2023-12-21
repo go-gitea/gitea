@@ -271,7 +271,7 @@ func alterRepositoryContent(ctx context.Context, doer *user_model.User, repo *re
 		if !git.IsErrBranchNotExist(err) || !repo.IsEmpty {
 			return err
 		}
-		if err := t.Init(repo.ObjectFormat); err != nil {
+		if err := t.Init(repo.ObjectFormatName); err != nil {
 			return err
 		}
 	} else {

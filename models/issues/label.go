@@ -424,22 +424,6 @@ func GetLabelInOrgByID(ctx context.Context, orgID, labelID int64) (*Label, error
 	return l, nil
 }
 
-// GetLabelIDsInOrgByNames returns a list of labelIDs by names in a given
-// organization.
-func GetLabelIDsInOrgByNames(ctx context.Context, orgID int64, labelNames []string) ([]int64, error) {
-	if orgID <= 0 {
-		return nil, ErrOrgLabelNotExist{0, orgID}
-	}
-	labelIDs := make([]int64, 0, len(labelNames))
-
-	return labelIDs, db.GetEngine(ctx).Table("label").
-		Where("org_id = ?", orgID).
-		In("name", labelNames).
-		Asc("name").
-		Cols("id").
-		Find(&labelIDs)
-}
-
 // GetLabelsInOrgByIDs returns a list of labels by IDs in given organization,
 // it silently ignores label IDs that do not belong to the organization.
 func GetLabelsInOrgByIDs(ctx context.Context, orgID int64, labelIDs []int64) ([]*Label, error) {

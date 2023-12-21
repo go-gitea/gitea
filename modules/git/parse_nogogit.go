@@ -72,7 +72,7 @@ func parseTreeEntries(objectFormat ObjectFormat, data []byte, ptree *Tree) ([]*T
 			return nil, fmt.Errorf("unknown type: %v", string(entryMode))
 		}
 
-		entry.ID, err = objectFormat.NewIDFromString(string(entryObjectID))
+		entry.ID, err = NewIDFromString(string(entryObjectID))
 		if err != nil {
 			return nil, fmt.Errorf("invalid ls-tree output (invalid object id): %q, err: %w", line, err)
 		}

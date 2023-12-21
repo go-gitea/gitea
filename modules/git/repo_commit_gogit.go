@@ -43,7 +43,7 @@ func (repo *Repository) RemoveReference(name string) error {
 func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 	objectFormat := repo.objectFormat
 	if len(commitID) == hash.HexSize && objectFormat.IsValid(commitID) {
-		ID, err := objectFormat.NewIDFromString(commitID)
+		ID, err := NewIDFromString(commitID)
 		if err == nil {
 			return ID, nil
 		}
@@ -54,12 +54,12 @@ func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 	if err != nil {
 		if strings.Contains(err.Error(), "unknown revision or path") ||
 			strings.Contains(err.Error(), "fatal: Needed a single revision") {
-			return objectFormat.Empty(), ErrNotExist{commitID, ""}
+			return objectFormat.EmptyObjectID(), ErrNotExist{commitID, ""}
 		}
-		return objectFormat.Empty(), err
+		return objectFormat.EmptyObjectID(), err
 	}
 
-	return objectFormat.NewIDFromString(actualCommitID)
+	return NewIDFromString(actualCommitID)
 }
 
 // IsCommitExist returns true if given commit exists in current repository.
