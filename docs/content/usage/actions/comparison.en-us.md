@@ -29,6 +29,10 @@ Like `uses: https://github.com/actions/checkout@v3` or `uses: http://your_gitea.
 Gitea Actions supports writing actions in Go.
 See [Creating Go Actions](https://blog.gitea.com/creating-go-actions/).
 
+### Support the non-standard syntax @yearly, @monthly, @weekly, @daily, @hourly on schedule
+
+Github Actions doesn't support that. https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule
+
 ## Unsupported workflows syntax
 
 ### `concurrency`
@@ -109,6 +113,10 @@ It's ignored by Gitea Actions now.
 ### Pre and Post steps
 
 Pre and Post steps don't have their own section in the job log user interface.
+
+### Services steps
+
+Services steps don't have their own section in the job log user interface.
 
 ## Different behavior
 
