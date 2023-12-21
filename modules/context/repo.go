@@ -825,7 +825,9 @@ func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 		}
 		// For legacy and API support only full commit sha
 		parts := strings.Split(path, "/")
-		if len(parts) > 0 && len(parts[0]) == git.SHAFullLength {
+		objectFormat, _ := repo.GitRepo.GetObjectFormat()
+
+		if len(parts) > 0 && len(parts[0]) == objectFormat.FullLength() {
 			repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
 		}
@@ -869,7 +871,9 @@ func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 		return getRefNameFromPath(ctx, repo, path, repo.GitRepo.IsTagExist)
 	case RepoRefCommit:
 		parts := strings.Split(path, "/")
-		if len(parts) > 0 && len(parts[0]) >= 7 && len(parts[0]) <= git.SHAFullLength {
+		objectFormat, _ := repo.GitRepo.GetObjectFormat()
+
+		if len(parts) > 0 && len(parts[0]) >= 7 && len(parts[0]) <= objectFormat.FullLength() {
 			repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
 		}
@@ -927,6 +931,12 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 					ctx.Repo.GitRepo.Close()
 				}
 			}
+		}
+
+		objectFormat, err := ctx.Repo.GitRepo.GetObjectFormat()
+		if err != nil {
+			log.Error("Cannot determine objectFormat for repository: %w", err)
+			ctx.Repo.Repository.MarkAsBrokenEmpty()
 		}
 
 		// Get default branch.
@@ -995,7 +1005,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 					return cancel
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			} else if len(refName) >= 7 && len(refName) <= git.SHAFullLength {
+			} else if len(refName) >= 7 && len(refName) <= objectFormat.FullLength() {
 				ctx.Repo.IsViewCommit = true
 				ctx.Repo.CommitID = refName
 
@@ -1005,7 +1015,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 					return cancel
 				}
 				// If short commit ID add canonical link header
-				if len(refName) < git.SHAFullLength {
+				if len(refName) < objectFormat.FullLength() {
 					ctx.RespHeader().Set("Link", fmt.Sprintf("<%s>; rel=\"canonical\"",
 						util.URLJoin(setting.AppURL, strings.Replace(ctx.Req.URL.RequestURI(), util.PathEscapeSegments(refName), url.PathEscape(ctx.Repo.Commit.ID.String()), 1))))
 				}
