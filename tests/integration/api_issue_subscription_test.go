@@ -70,13 +70,13 @@ func TestAPIIssueSubscriptions(t *testing.T) {
 
 	issue5Repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue5.RepoID})
 	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/subscriptions/%s", issue5Repo.OwnerName, issue5Repo.Name, issue5.Index, owner.Name)
-	req = NewRequest(t, "PUT", urlStr)
-	MakeRequest(t, req, http.StatusCreated).
+	req = NewRequest(t, "PUT", urlStr).
 		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusCreated)
 	testSubscription(issue5, true)
 
-	req = NewRequest(t, "PUT", urlStr)
-	MakeRequest(t, req, http.StatusOK).
+	req = NewRequest(t, "PUT", urlStr).
 		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
 	testSubscription(issue5, true)
 }

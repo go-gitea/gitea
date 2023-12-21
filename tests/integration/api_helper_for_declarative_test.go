@@ -118,7 +118,7 @@ func doAPIAddCollaborator(ctx APITestContext, username string, mode perm.AccessM
 func doAPIForkRepository(ctx APITestContext, username string, callback ...func(*testing.T, api.Repository)) func(*testing.T) {
 	return func(t *testing.T) {
 		createForkOption := &api.CreateForkOption{}
-		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", username, ctx.Reponame, ctx.Token), createForkOption).
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", username, ctx.Reponame), createForkOption).
 			AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)

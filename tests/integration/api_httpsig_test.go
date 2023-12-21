@@ -5,7 +5,6 @@ package integration
 
 import (
 	"encoding/base64"
-	"fmt"
 	"net/http"
 	"net/url"
 	"testing"

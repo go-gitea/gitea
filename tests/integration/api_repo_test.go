@@ -557,21 +557,21 @@ func transfer(t *testing.T) *repo_model.Repository {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	repoName := "moveME"
 	apiRepo := new(api.Repository)
-	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/user/repos?token=%s", token), &api.CreateRepoOption{
+	req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &api.CreateRepoOption{
 		Name:        repoName,
 		Description: "repo move around",
 		Private:     false,
 		Readme:      "Default",
 		AutoInit:    true,
-	})
+	}).AddTokenAuth(token)
 
 	resp := MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, apiRepo)
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer?token=%s", repo.OwnerName, repo.Name, token), &api.TransferRepoOption{
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer", repo.OwnerName, repo.Name), &api.TransferRepoOption{
 		NewOwner: "user4",
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 
 	return repo
@@ -585,18 +585,21 @@ func TestAPIAcceptTransfer(t *testing.T) {
 	// try to accept with not authorized user
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", repo.OwnerName, repo.Name, token))
+	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject", repo.OwnerName, repo.Name)).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 
 	// try to accept repo that's not marked as transferred
-	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/accept?token=%s", "user2", "repo1", token))
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/accept", "user2", "repo1")).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// accept transfer
 	session = loginUser(t, "user4")
 	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
-	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/accept?token=%s", repo.OwnerName, repo.Name, token))
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/accept", repo.OwnerName, repo.Name)).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusAccepted)
 	apiRepo := new(api.Repository)
 	DecodeJSON(t, resp, apiRepo)
@@ -611,18 +614,21 @@ func TestAPIRejectTransfer(t *testing.T) {
 	// try to reject with not authorized user
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", repo.OwnerName, repo.Name, token))
+	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject", repo.OwnerName, repo.Name)).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 
 	// try to reject repo that's not marked as transferred
-	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", "user2", "repo1", token))
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject", "user2", "repo1")).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// reject transfer
 	session = loginUser(t, "user4")
 	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", repo.OwnerName, repo.Name, token))
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject", repo.OwnerName, repo.Name)).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	apiRepo := new(api.Repository)
 	DecodeJSON(t, resp, apiRepo)
@@ -640,26 +646,26 @@ func TestAPIGenerateRepo(t *testing.T) {
 
 	// user
 	repo := new(api.Repository)
-	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/generate?token=%s", templateRepo.OwnerName, templateRepo.Name, token), &api.GenerateRepoOption{
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/generate", templateRepo.OwnerName, templateRepo.Name), &api.GenerateRepoOption{
 		Owner:       user.Name,
 		Name:        "new-repo",
 		Description: "test generate repo",
 		Private:     false,
 		GitContent:  true,
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, repo)
 
 	assert.Equal(t, "new-repo", repo.Name)
 
 	// org
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/generate?token=%s", templateRepo.OwnerName, templateRepo.Name, token), &api.GenerateRepoOption{
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/generate", templateRepo.OwnerName, templateRepo.Name), &api.GenerateRepoOption{
 		Owner:       "org3",
 		Name:        "new-repo",
 		Description: "test generate repo",
 		Private:     false,
 		GitContent:  true,
-	})
+	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, repo)
 
@@ -673,7 +679,8 @@ func TestAPIRepoGetReviewers(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/reviewers?token=%s", user.Name, repo.Name, token)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/reviewers", user.Name, repo.Name).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var reviewers []*api.User
 	DecodeJSON(t, resp, &reviewers)
@@ -687,7 +694,8 @@ func TestAPIRepoGetAssignees(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees?token=%s", user.Name, repo.Name, token)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees", user.Name, repo.Name).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var assignees []*api.User
 	DecodeJSON(t, resp, &assignees)

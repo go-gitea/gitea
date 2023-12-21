@@ -117,9 +117,6 @@ func TestAPIDeniesPermissionBasedOnTokenScope(t *testing.T) {
 	// from other endpoints and not updated.
 	//
 	// Test cases are in alphabetical order by URL.
-	//
-	// Note: query parameters are not currently supported since the token is
-	// appended with `?=token=<token>`.
 	testCases := []requiredScopeTestCase{
 		{
 			"/api/v1/admin/emails",
