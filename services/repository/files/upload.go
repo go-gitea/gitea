@@ -91,7 +91,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		if !git.IsErrBranchNotExist(err) || !repo.IsEmpty {
 			return err
 		}
-		if err = t.Init(repo.ObjectFormat); err != nil {
+		if err = t.Init(repo.ObjectFormatName); err != nil {
 			return err
 		}
 		hasOldBranch = false

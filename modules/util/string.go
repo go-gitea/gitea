@@ -3,7 +3,7 @@
 
 package util
 
-import "github.com/yuin/goldmark/util"
+import "unsafe"
 
 func isSnakeCaseUpper(c byte) bool {
 	return 'A' <= c && c <= 'Z'
@@ -83,5 +83,15 @@ func ToSnakeCase(input string) string {
 			}
 		}
 	}
-	return util.BytesToReadOnlyString(res)
+	return UnsafeBytesToString(res)
+}
+
+// UnsafeBytesToString uses Go's unsafe package to convert a byte slice to a string.
+// TODO: replace all "goldmark/util.BytesToReadOnlyString" with this official approach
+func UnsafeBytesToString(b []byte) string {
+	return unsafe.String(unsafe.SliceData(b), len(b))
+}
+
+func UnsafeStringToBytes(s string) []byte {
+	return unsafe.Slice(unsafe.StringData(s), len(s))
 }

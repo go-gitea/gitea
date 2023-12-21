@@ -6,11 +6,7 @@ package git
 import (
 	"bytes"
 	"encoding/hex"
-	"errors"
 	"fmt"
-	"hash"
-	"strconv"
-	"strings"
 )
 
 type ObjectID interface {
@@ -31,59 +27,40 @@ func (h *Sha1Hash) IsZero() bool {
 	return bytes.Equal(empty[:], h[:])
 }
 func (h *Sha1Hash) RawValue() []byte { return h[:] }
-func (*Sha1Hash) Type() ObjectFormat { return &Sha1ObjectFormat{} }
+func (*Sha1Hash) Type() ObjectFormat { return Sha1ObjectFormat }
 
-func NewSha1() *Sha1Hash {
-	return &Sha1Hash{}
-}
+var _ ObjectID = &Sha1Hash{}
 
-// NewHash is for generic implementations
-func NewHash(hash string) (ObjectID, error) {
-	hash = strings.ToLower(hash)
-	switch hash {
-	case "sha1":
-		return &Sha1Hash{}, nil
-	}
-
-	return nil, errors.New("unsupported hash type")
-}
-
-func IDFromRaw(h ObjectFormat, b []byte) (ObjectID, error) {
-	if len(b) != h.FullLength()/2 {
-		return h.Empty(), fmt.Errorf("length must be %d: %v", h.FullLength(), b)
-	}
-	return h.MustID(b), nil
-}
-
-func MustIDFromString(h ObjectFormat, s string) ObjectID {
-	b, _ := hex.DecodeString(s)
-	return h.MustID(b)
-}
-
-func genericIDFromString(h ObjectFormat, s string) (ObjectID, error) {
-	s = strings.TrimSpace(s)
-	if len(s) != h.FullLength() {
-		return h.Empty(), fmt.Errorf("length must be %d: %s", h.FullLength(), s)
-	}
-	b, err := hex.DecodeString(s)
+func MustIDFromString(hexHash string) ObjectID {
+	id, err := NewIDFromString(hexHash)
 	if err != nil {
-		return h.Empty(), err
+		panic(err)
 	}
-	return h.NewID(b)
+	return id
 }
 
-func IDFromString(hexHash string) (ObjectID, error) {
-	switch len(hexHash) {
-	case 40:
-		hashType := Sha1ObjectFormat{}
-		h, err := hashType.NewIDFromString(hexHash)
-		if err != nil {
-			return nil, err
+func NewIDFromString(hexHash string) (ObjectID, error) {
+	var theObjectFormat ObjectFormat
+	for _, objectFormat := range SupportedObjectFormats {
+		if len(hexHash) == objectFormat.FullLength() {
+			theObjectFormat = objectFormat
+			break
 		}
-		return h, nil
 	}
 
-	return nil, fmt.Errorf("invalid hash hex string: '%s' len: %d", hexHash, len(hexHash))
+	if theObjectFormat == nil {
+		return nil, fmt.Errorf("length %d has no matched object format: %s", len(hexHash), hexHash)
+	}
+
+	b, err := hex.DecodeString(hexHash)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(b) != theObjectFormat.FullLength()/2 {
+		return theObjectFormat.EmptyObjectID(), fmt.Errorf("length must be %d: %v", theObjectFormat.FullLength(), b)
+	}
+	return theObjectFormat.MustID(b), nil
 }
 
 func IsEmptyCommitID(commitID string) bool {
@@ -91,7 +68,7 @@ func IsEmptyCommitID(commitID string) bool {
 		return true
 	}
 
-	id, err := IDFromString(commitID)
+	id, err := NewIDFromString(commitID)
 	if err != nil {
 		return false
 	}
@@ -99,37 +76,9 @@ func IsEmptyCommitID(commitID string) bool {
 	return id.IsZero()
 }
 
-// HasherInterface is a struct that will generate a Hash
-type HasherInterface interface {
-	hash.Hash
-
-	HashSum() ObjectID
-}
-
-type Sha1Hasher struct {
-	hash.Hash
-}
-
 // ComputeBlobHash compute the hash for a given blob content
 func ComputeBlobHash(hashType ObjectFormat, content []byte) ObjectID {
-	return ComputeHash(hashType, ObjectBlob, content)
-}
-
-// ComputeHash compute the hash for a given ObjectType and content
-func ComputeHash(hashType ObjectFormat, t ObjectType, content []byte) ObjectID {
-	h := hashType.NewHasher()
-	_, _ = h.Write(t.Bytes())
-	_, _ = h.Write([]byte(" "))
-	_, _ = h.Write([]byte(strconv.FormatInt(int64(len(content)), 10)))
-	_, _ = h.Write([]byte{0})
-	return h.HashSum()
-}
-
-// HashSum generates a SHA1 for the provided hash
-func (h *Sha1Hasher) HashSum() ObjectID {
-	var sha1 Sha1Hash
-	copy(sha1[:], h.Hash.Sum(nil))
-	return &sha1
+	return hashType.ComputeHash(ObjectBlob, content)
 }
 
 type ErrInvalidSHA struct {

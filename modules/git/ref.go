@@ -205,7 +205,7 @@ func RefURL(repoURL, ref string) string {
 		return repoURL + "/src/branch/" + refName
 	case refFullName.IsTag():
 		return repoURL + "/src/tag/" + refName
-	case !ObjectFormatFromID(Sha1).IsValid(ref):
+	case !Sha1ObjectFormat.IsValid(ref):
 		// assume they mean a branch
 		return repoURL + "/src/branch/" + refName
 	default:

@@ -164,30 +164,6 @@ func TestGetLabelInOrgByName(t *testing.T) {
 	assert.True(t, issues_model.IsErrOrgLabelNotExist(err))
 }
 
-func TestGetLabelInOrgByNames(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	labelIDs, err := issues_model.GetLabelIDsInOrgByNames(db.DefaultContext, 3, []string{"orglabel3", "orglabel4"})
-	assert.NoError(t, err)
-
-	assert.Len(t, labelIDs, 2)
-
-	assert.Equal(t, int64(3), labelIDs[0])
-	assert.Equal(t, int64(4), labelIDs[1])
-}
-
-func TestGetLabelInOrgByNamesDiscardsNonExistentLabels(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	// orglabel99 doesn't exists.. See labels.yml
-	labelIDs, err := issues_model.GetLabelIDsInOrgByNames(db.DefaultContext, 3, []string{"orglabel3", "orglabel4", "orglabel99"})
-	assert.NoError(t, err)
-
-	assert.Len(t, labelIDs, 2)
-
-	assert.Equal(t, int64(3), labelIDs[0])
-	assert.Equal(t, int64(4), labelIDs[1])
-	assert.NoError(t, err)
-}
-
 func TestGetLabelInOrgByID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	label, err := issues_model.GetLabelInOrgByID(db.DefaultContext, 3, 3)

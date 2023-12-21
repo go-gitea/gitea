@@ -10,7 +10,7 @@ import (
 )
 
 func TestIsValidSHAPattern(t *testing.T) {
-	h := NewSha1().Type()
+	h := Sha1ObjectFormat
 	assert.True(t, h.IsValid("fee1"))
 	assert.True(t, h.IsValid("abc000"))
 	assert.True(t, h.IsValid("9023902390239023902390239023902390239023"))

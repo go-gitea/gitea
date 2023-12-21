@@ -35,8 +35,8 @@ func (tag *Tag) Commit(gitRepo *Repository) (*Commit, error) {
 // \n\n separate headers from message
 func parseTagData(objectFormat ObjectFormat, data []byte) (*Tag, error) {
 	tag := new(Tag)
-	tag.ID = objectFormat.NewEmptyID()
-	tag.Object = objectFormat.NewEmptyID()
+	tag.ID = objectFormat.EmptyObjectID()
+	tag.Object = objectFormat.EmptyObjectID()
 	tag.Tagger = &Signature{}
 	// we now have the contents of the commit object. Let's investigate...
 	nextline := 0
@@ -50,7 +50,7 @@ l:
 			reftype := line[:spacepos]
 			switch string(reftype) {
 			case "object":
-				id, err := objectFormat.NewIDFromString(string(line[spacepos+1:]))
+				id, err := NewIDFromString(string(line[spacepos+1:]))
 				if err != nil {
 					return nil, err
 				}

@@ -12,7 +12,7 @@ import (
 func ParseGogitHash(h plumbing.Hash) ObjectID {
 	switch hash.Size {
 	case 20:
-		return ObjectFormatFromID(Sha1).MustID(h[:])
+		return Sha1ObjectFormat.MustID(h[:])
 	}
 
 	return nil

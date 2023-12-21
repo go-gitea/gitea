@@ -43,10 +43,10 @@ Still, this is completely optional since both options have the same effect at th
 Not yet.
 It is technically possible to implement, but we need to discuss whether it is necessary.
 
-## Where will the runner download scripts when using actions such as `actions/checkout@v3`?
+## Where will the runner download scripts when using actions such as `actions/checkout@v4`?
 
 You may be aware that there are tens of thousands of [marketplace actions](https://github.com/marketplace?type=actions) in GitHub.
-However, when you write `uses: actions/checkout@v3`, it actually downloads the scripts from [gitea.com/actions/checkout](http://gitea.com/actions/checkout) by default (not GitHub).
+However, when you write `uses: actions/checkout@v4`, it actually downloads the scripts from [gitea.com/actions/checkout](http://gitea.com/actions/checkout) by default (not GitHub).
 This is a mirror of [github.com/actions/checkout](http://github.com/actions/checkout), but it's impossible to mirror all of them.
 That's why you may encounter failures when trying to use some actions that haven't been mirrored.
 

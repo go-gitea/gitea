@@ -317,7 +317,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 			ci.BaseBranch = baseCommit.ID.String()
 			ctx.Data["BaseBranch"] = ci.BaseBranch
 			baseIsCommit = true
-		} else if ci.BaseBranch == objectFormat.Empty().String() {
+		} else if ci.BaseBranch == objectFormat.EmptyObjectID().String() {
 			if isSameRepo {
 				ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ci.HeadBranch))
 			} else {
