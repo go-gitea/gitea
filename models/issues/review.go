@@ -302,8 +302,7 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 		Stale:        opts.Stale,
 	}
 
-	switch {
-	case opts.Reviewer != nil:
+	if opts.Reviewer != nil {
 		review.Type = opts.Type
 		review.ReviewerID = opts.Reviewer.ID
 
@@ -320,11 +319,11 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 			}
 		}
 
-	case opts.ReviewerTeam != nil:
+	} else if opts.ReviewerTeam != nil {
 		review.Type = ReviewTypeRequest
 		review.ReviewerTeamID = opts.ReviewerTeam.ID
 
-	default:
+	} else {
 		return nil, fmt.Errorf("provide either reviewer or reviewer team")
 	}
 
