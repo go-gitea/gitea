@@ -4,6 +4,34 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.21.3](https://github.com/go-gitea/gitea/releases/tag/1.21.3) - 2023-12-21
+
+* SECURITY
+  * Update golang.org/x/crypto (#28519)
+* API
+  * chore(api): support ignore password if login source type is LDAP for creating user API (#28491) (#28525)
+  * Add endpoint for not implemented Docker auth (#28457) (#28462)
+* ENHANCEMENTS
+  * Add option to disable ambiguous unicode characters detection (#28454) (#28499)
+  * Refactor SSH clone URL generation code (#28421) (#28480)
+  * Polyfill SubmitEvent for PaleMoon (#28441) (#28478)
+* BUGFIXES
+  * Fix the issue ref rendering for wiki (#28556) (#28559)
+  * Fix duplicate ID when deleting repo (#28520) (#28528)
+  * Only check online runner when detecting matching runners in workflows (#28286) (#28512)
+  * Initalize stroage for orphaned repository doctor (#28487) (#28490)
+  * Fix possible nil pointer access (#28428) (#28440)
+  * Don't show unnecessary citation JS error on UI (#28433) (#28437)
+* DOCS
+  * Update actions document about comparsion as Github Actions (#28560) (#28564)
+  * Fix documents for "custom/public/assets/" (#28465) (#28467)
+* MISC
+  * Fix inperformant query on retrifing review from database. (#28552) (#28562)
+  * Improve the prompt for "ssh-keygen sign" (#28509) (#28510)
+  * Update docs for DISABLE_QUERY_AUTH_TOKEN (#28485) (#28488)
+  * Fix Chinese translation of config cheat sheet[API] (#28472) (#28473)
+  * Retry SSH key verification with additional CRLF if it failed (#28392) (#28464)
+
 ## [1.21.2](https://github.com/go-gitea/gitea/releases/tag/1.21.2) - 2023-12-12
 
 * SECURITY
