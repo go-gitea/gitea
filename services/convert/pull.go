@@ -200,7 +200,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			}
 		}
 
-		// Calcuate diff
+		// Calculate diff
 		startCommitID = pr.MergeBase
 
 		// FIXME: If there are too many files in the repo, may cause some unpredictable issues.
@@ -208,7 +208,6 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			&gitdiff.DiffOptions{
 				BeforeCommitID:     startCommitID,
 				AfterCommitID:      endCommitID,
-				SkipTo:             "", // ctx.FormString("skip-to"),
 				MaxLines:           setting.Git.MaxGitDiffLines,
 				MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
 				MaxFiles:           -1, // GetDiff() will return all files
