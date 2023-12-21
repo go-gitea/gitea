@@ -22,7 +22,7 @@ menu:
 ### Action URL绝对路径
 
 Gitea Actions支持通过URL绝对路径定义actions，这意味着您可以使用来自任何Git存储库的Actions。
-例如，`uses: https://github.com/actions/checkout@v3`或`uses: http://your_gitea.com/owner/repo@branch`。
+例如，`uses: https://github.com/actions/checkout@v4`或`uses: http://your_gitea.com/owner/repo@branch`。
 
 ### 使用Go编写Actions
 
@@ -129,10 +129,10 @@ Gitea Actions目前不支持此功能。
 ### 下载Actions
 
 当 `[actions].DEFAULT_ACTIONS_URL` 保持默认值为 `github` 时，Gitea将会从 https://github.com 下载相对路径的actions。比如：
-如果你使用 `uses: actions/checkout@v3`，Gitea将会从 https://github.com/actions/checkout.git 下载这个 actions 项目。
-如果你想要从另外一个 Git服务下载actions，你只需要使用绝对URL `uses: https://gitea.com/actions/checkout@v3` 来下载。
+如果你使用 `uses: actions/checkout@v4`，Gitea将会从 https://github.com/actions/checkout.git 下载这个 actions 项目。
+如果你想要从另外一个 Git服务下载actions，你只需要使用绝对URL `uses: https://gitea.com/actions/checkout@v4` 来下载。
 
-如果你的 Gitea 实例是部署在一个互联网限制的网络中，有可以使用绝对地址来下载 actions。你也可以讲配置项修改为 `[actions].DEFAULT_ACTIONS_URL = self`。这样所有的相对路径的actions引用，将不再会从 github.com 去下载，而会从这个 Gitea 实例自己的仓库中去下载。例如： `uses: actions/checkout@v3` 将会从 `[server].ROOT_URL`/actions/checkout.git 这个地址去下载 actions。
+如果你的 Gitea 实例是部署在一个互联网限制的网络中，有可以使用绝对地址来下载 actions。你也可以讲配置项修改为 `[actions].DEFAULT_ACTIONS_URL = self`。这样所有的相对路径的actions引用，将不再会从 github.com 去下载，而会从这个 Gitea 实例自己的仓库中去下载。例如： `uses: actions/checkout@v4` 将会从 `[server].ROOT_URL`/actions/checkout.git 这个地址去下载 actions。
 
 设置`[actions].DEFAULT_ACTIONS_URL`进行配置。请参阅[配置备忘单](administration/config-cheat-sheet.md#actions-actions)。
 
