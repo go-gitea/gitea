@@ -1335,8 +1335,8 @@ PROXY_HOSTS = *.github.com
 - `MINIO_BASE_PATH`: **actions_log/**：Minio存储桶上的基本路径，仅在`STORAGE_TYPE`为`minio`时可用。
 
 `DEFAULT_ACTIONS_URL` 指示 Gitea 操作运行程序应该在哪里找到带有相对路径的操作。
-例如，`uses: actions/checkout@v3` 表示 `https://github.com/actions/checkout@v3`，因为 `DEFAULT_ACTIONS_URL` 的值为 `github`。
-它可以更改为 `self`，以使其成为 `root_url_of_your_gitea/actions/checkout@v3`。
+例如，`uses: actions/checkout@v4` 表示 `https://github.com/actions/checkout@v4`，因为 `DEFAULT_ACTIONS_URL` 的值为 `github`。
+它可以更改为 `self`，以使其成为 `root_url_of_your_gitea/actions/checkout@v4`。
 
 请注意，对于大多数情况，不建议使用 `self`，因为它可能使名称在全局范围内产生歧义。
 此外，它要求您将所有所需的操作镜像到您的 Gitea 实例，这可能不值得。
@@ -1345,7 +1345,7 @@ PROXY_HOSTS = *.github.com
 在早期版本（`<= 1.19`）中，`DEFAULT_ACTIONS_URL` 可以设置为任何自定义 URL，例如 `https://gitea.com` 或 `http://your-git-server,https://gitea.com`，默认值为 `https://gitea.com`。
 然而，后来的更新删除了这些选项，现在唯一的选项是 `github` 和 `self`，默认值为 `github`。
 但是，如果您想要使用其他 Git 服务器中的操作，您可以在 `uses` 字段中使用完整的 URL，Gitea 支持此功能（GitHub 不支持）。
-例如 `uses: https://gitea.com/actions/checkout@v3` 或 `uses: http://your-git-server/actions/checkout@v3`。
+例如 `uses: https://gitea.com/actions/checkout@v4` 或 `uses: http://your-git-server/actions/checkout@v4`。
 
 ## 其他 (`other`)
 
