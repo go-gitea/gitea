@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/util"
@@ -83,7 +84,7 @@ func createProviderFromSource(source *auth.Source) (Provider, error) {
 
 // GetSAMLProviders returns the list of configured SAML providers
 func GetSAMLProviders(ctx context.Context, isActive util.OptionalBool) ([]Provider, error) {
-	authSources, err := auth.FindSources(ctx, auth.FindSourcesOptions{
+	authSources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
 		IsActive:  isActive,
 		LoginType: auth.SAML,
 	})
