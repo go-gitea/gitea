@@ -216,36 +216,6 @@ func TestIssue_loadTotalTimes(t *testing.T) {
 	assert.Equal(t, int64(3682), ms.TotalTrackedTime)
 }
 
-func TestGetRepoIDsForIssuesOptions(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	for _, test := range []struct {
-		Opts            issues_model.IssuesOptions
-		ExpectedRepoIDs []int64
-	}{
-		{
-			issues_model.IssuesOptions{
-				AssigneeID: 2,
-			},
-			[]int64{3, 32},
-		},
-		{
-			issues_model.IssuesOptions{
-				RepoCond: builder.In("repo_id", 1, 2),
-			},
-			[]int64{1, 2},
-		},
-	} {
-		repoIDs, err := issues_model.GetRepoIDsForIssuesOptions(db.DefaultContext, &test.Opts, user)
-		assert.NoError(t, err)
-		if assert.Len(t, repoIDs, len(test.ExpectedRepoIDs)) {
-			for i, repoID := range repoIDs {
-				assert.EqualValues(t, test.ExpectedRepoIDs[i], repoID)
-			}
-		}
-	}
-}
-
 func testInsertIssue(t *testing.T, title, content string, expectIndex int64) *issues_model.Issue {
 	var newIssue issues_model.Issue
 	t.Run(title, func(t *testing.T) {

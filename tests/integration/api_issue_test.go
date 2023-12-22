@@ -84,12 +84,12 @@ func TestAPICreateIssue(t *testing.T) {
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all&token=%s", owner.Name, repoBefore.Name, token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all", owner.Name, repoBefore.Name)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
 		Body:     body,
 		Title:    title,
 		Assignee: owner.Name,
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiIssue api.Issue
 	DecodeJSON(t, resp, &apiIssue)
@@ -117,7 +117,7 @@ func TestAPICreateIssueParallel(t *testing.T) {
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all&token=%s", owner.Name, repoBefore.Name, token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all", owner.Name, repoBefore.Name)
 
 	var wg sync.WaitGroup
 	for i := 0; i < 10; i++ {
@@ -130,7 +130,7 @@ func TestAPICreateIssueParallel(t *testing.T) {
 					Body:     newBody,
 					Title:    newTitle,
 					Assignee: owner.Name,
-				})
+				}).AddTokenAuth(token)
 				resp := MakeRequest(t, req, http.StatusCreated)
 				var apiIssue api.Issue
 				DecodeJSON(t, resp, &apiIssue)
@@ -171,7 +171,7 @@ func TestAPIEditIssue(t *testing.T) {
 	body := "new content!"
 	title := "new title from api set"
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d?token=%s", owner.Name, repoBefore.Name, issueBefore.Index, token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", owner.Name, repoBefore.Name, issueBefore.Index)
 	req := NewRequestWithJSON(t, "PATCH", urlStr, api.EditIssueOption{
 		State:          &issueState,
 		RemoveDeadline: &removeDeadline,
@@ -180,7 +180,7 @@ func TestAPIEditIssue(t *testing.T) {
 		Title:          title,
 
 		// ToDo change more
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiIssue api.Issue
 	DecodeJSON(t, resp, &apiIssue)
