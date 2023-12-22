@@ -70,7 +70,7 @@ For online demonstrations, you can visit [try.gitea.io](https://try.gitea.io).
 
 For accessing free Gitea service (with a limited number of repositories), you can visit [gitea.com](https://gitea.com/user/login).
 
-To quickly deploy your own dedicated Gitea instance on Gitea Cloud, you can visit [cloud.gitea.com](https://cloud.gitea.com).
+To quickly deploy your own dedicated Gitea instance on Gitea Cloud, you can start a free trial at [cloud.gitea.com](https://cloud.gitea.com).
 
 ## Building
 
