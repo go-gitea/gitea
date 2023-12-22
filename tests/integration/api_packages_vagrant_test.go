@@ -64,8 +64,8 @@ func TestPackageVagrant(t *testing.T) {
 		req := NewRequest(t, "GET", authenticateURL)
 		MakeRequest(t, req, http.StatusUnauthorized)
 
-		req = NewRequest(t, "GET", authenticateURL)
-		addTokenAuthHeader(req, token)
+		req = NewRequest(t, "GET", authenticateURL).
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusOK)
 	})
 
@@ -82,8 +82,8 @@ func TestPackageVagrant(t *testing.T) {
 		req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(content))
 		MakeRequest(t, req, http.StatusUnauthorized)
 
-		req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(content))
-		addTokenAuthHeader(req, token)
+		req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(content)).
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 
 		req = NewRequest(t, "HEAD", boxURL)
@@ -111,8 +111,8 @@ func TestPackageVagrant(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, int64(len(content)), pb.Size)
 
-		req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(content))
-		addTokenAuthHeader(req, token)
+		req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(content)).
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusConflict)
 	})
 
