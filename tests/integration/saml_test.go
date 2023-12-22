@@ -108,7 +108,7 @@ func TestSAMLRegistration(t *testing.T) {
 
 	httpReq, err = http.NewRequest("POST", formRedirectURL.String(), strings.NewReader(form.Encode()))
 	assert.NoError(t, err)
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	httpReq.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	res, err = client.Do(httpReq)
 	assert.NoError(t, err)
