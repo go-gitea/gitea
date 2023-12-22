@@ -59,11 +59,12 @@ func TestAPIListReleases(t *testing.T) {
 
 	// test filter
 	testFilterByLen := func(auth bool, query url.Values, expectedLength int, msgAndArgs ...string) {
-		if auth {
-			query.Set("token", token)
-		}
 		link.RawQuery = query.Encode()
-		resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+		req := NewRequest(t, "GET", link.String())
+		if auth {
+			req.AddTokenAuth(token)
+		}
+		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &apiReleases)
 		assert.Len(t, apiReleases, expectedLength, msgAndArgs)
 	}
@@ -77,8 +78,7 @@ func TestAPIListReleases(t *testing.T) {
 }
 
 func createNewReleaseUsingAPI(t *testing.T, session *TestSession, token string, owner *user_model.User, repo *repo_model.Repository, name, target, title, desc string) *api.Release {
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases?token=%s",
-		owner.Name, repo.Name, token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases", owner.Name, repo.Name)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
 		TagName:      name,
 		Title:        title,
@@ -86,7 +86,7 @@ func createNewReleaseUsingAPI(t *testing.T, session *TestSession, token string, 
 		IsDraft:      false,
 		IsPrerelease: false,
 		Target:       target,
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
 	var newRelease api.Release
@@ -122,9 +122,9 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 
 	newRelease := createNewReleaseUsingAPI(t, session, token, owner, repo, "v0.0.1", target, "v0.0.1", "test")
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d?token=%s",
-		owner.Name, repo.Name, newRelease.ID, token)
-	req := NewRequest(t, "GET", urlStr)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d", owner.Name, repo.Name, newRelease.ID)
+	req := NewRequest(t, "GET", urlStr).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var release api.Release
@@ -141,7 +141,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 		IsDraft:      &release.IsDraft,
 		IsPrerelease: &release.IsPrerelease,
 		Target:       release.Target,
-	})
+	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &newRelease)
@@ -189,10 +189,7 @@ func TestAPIGetLatestRelease(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/latest",
-		owner.Name, repo.Name)
-
-	req := NewRequestf(t, "GET", urlStr)
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/latest", owner.Name, repo.Name))
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var release *api.Release
@@ -209,10 +206,7 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 
 	tag := "v1.1"
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s",
-		owner.Name, repo.Name, tag)
-
-	req := NewRequestf(t, "GET", urlStr)
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, tag))
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var release *api.Release
@@ -222,10 +216,7 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 
 	nonexistingtag := "nonexistingtag"
 
-	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s",
-		owner.Name, repo.Name, nonexistingtag)
-
-	req = NewRequestf(t, "GET", urlStr)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, nonexistingtag))
 	resp = MakeRequest(t, req, http.StatusNotFound)
 
 	var err *api.APIError
@@ -244,15 +235,18 @@ func TestAPIDeleteReleaseByTagName(t *testing.T) {
 	createNewReleaseUsingAPI(t, session, token, owner, repo, "release-tag", "", "Release Tag", "test")
 
 	// delete release
-	req := NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/release-tag?token=%s", owner.Name, repo.Name, token))
+	req := NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/release-tag", owner.Name, repo.Name)).
+		AddTokenAuth(token)
 	_ = MakeRequest(t, req, http.StatusNoContent)
 
 	// make sure release is deleted
-	req = NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/release-tag?token=%s", owner.Name, repo.Name, token))
+	req = NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/release-tag", owner.Name, repo.Name)).
+		AddTokenAuth(token)
 	_ = MakeRequest(t, req, http.StatusNotFound)
 
 	// delete release tag too
-	req = NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/tags/release-tag?token=%s", owner.Name, repo.Name, token))
+	req = NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/tags/release-tag", owner.Name, repo.Name)).
+		AddTokenAuth(token)
 	_ = MakeRequest(t, req, http.StatusNoContent)
 }
 
@@ -278,7 +272,8 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 	err = writer.Close()
 	assert.NoError(t, err)
 
-	req := NewRequestWithBody(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d/assets?name=test-asset&token=%s", owner.Name, repo.Name, r.ID, token), body)
+	req := NewRequestWithBody(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d/assets?name=test-asset", owner.Name, repo.Name, r.ID), body).
+		AddTokenAuth(token)
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 	resp := MakeRequest(t, req, http.StatusCreated)
 

@@ -218,11 +218,11 @@ func TestCantMergeConflict(t *testing.T) {
 
 		// Use API to create a conflicting pr
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", "user1", "repo1", token), &api.CreatePullRequestOption{
+		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", "user1", "repo1"), &api.CreatePullRequestOption{
 			Head:  "conflict",
 			Base:  "base",
 			Title: "create a conflicting pr",
-		})
+		}).AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusCreated)
 
 		// Now this PR will be marked conflict - or at least a race will do - so drop down to pure code at this point...
@@ -326,11 +326,11 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		// Use API to create a conflicting pr
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", "user1", "repo1", token), &api.CreatePullRequestOption{
+		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", "user1", "repo1"), &api.CreatePullRequestOption{
 			Head:  "unrelated",
 			Base:  "base",
 			Title: "create an unrelated pr",
-		})
+		}).AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusCreated)
 
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...

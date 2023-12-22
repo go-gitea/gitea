@@ -41,14 +41,15 @@ func TestPackageAPI(t *testing.T) {
 	filename := "file.bin"
 
 	url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, packageName, packageVersion, filename)
-	req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{}))
-	AddBasicAuthHeader(req, user.Name)
+	req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{})).
+		AddBasicAuth(user.Name)
 	MakeRequest(t, req, http.StatusCreated)
 
 	t.Run("ListPackages", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s?token=%s", user.Name, tokenReadPackage))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s", user.Name)).
+			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var apiPackages []*api.Package
@@ -65,10 +66,12 @@ func TestPackageAPI(t *testing.T) {
 	t.Run("GetPackage", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s?token=%s", user.Name, packageName, packageVersion, tokenReadPackage))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s", user.Name, packageName, packageVersion)).
+			AddTokenAuth(tokenReadPackage)
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, tokenReadPackage))
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
+			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var p *api.Package
@@ -87,7 +90,8 @@ func TestPackageAPI(t *testing.T) {
 			assert.NoError(t, err)
 
 			// no repository link
-			req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, tokenReadPackage))
+			req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
+				AddTokenAuth(tokenReadPackage)
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			var ap1 *api.Package
@@ -97,7 +101,8 @@ func TestPackageAPI(t *testing.T) {
 			// link to public repository
 			assert.NoError(t, packages_model.SetRepositoryLink(db.DefaultContext, p.ID, 1))
 
-			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, tokenReadPackage))
+			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
+				AddTokenAuth(tokenReadPackage)
 			resp = MakeRequest(t, req, http.StatusOK)
 
 			var ap2 *api.Package
@@ -108,7 +113,8 @@ func TestPackageAPI(t *testing.T) {
 			// link to private repository
 			assert.NoError(t, packages_model.SetRepositoryLink(db.DefaultContext, p.ID, 2))
 
-			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, tokenReadPackage))
+			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
+				AddTokenAuth(tokenReadPackage)
 			resp = MakeRequest(t, req, http.StatusOK)
 
 			var ap3 *api.Package
@@ -122,10 +128,12 @@ func TestPackageAPI(t *testing.T) {
 	t.Run("ListPackageFiles", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s/files?token=%s", user.Name, packageName, packageVersion, tokenReadPackage))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s/files", user.Name, packageName, packageVersion)).
+			AddTokenAuth(tokenReadPackage)
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s/files?token=%s", user.Name, packageName, packageVersion, tokenReadPackage))
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s/files", user.Name, packageName, packageVersion)).
+			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var files []*api.PackageFile
@@ -143,10 +151,12 @@ func TestPackageAPI(t *testing.T) {
 	t.Run("DeletePackage", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s?token=%s", user.Name, packageName, packageVersion, tokenDeletePackage))
+		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s", user.Name, packageName, packageVersion)).
+			AddTokenAuth(tokenDeletePackage)
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, tokenDeletePackage))
+		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
+			AddTokenAuth(tokenDeletePackage)
 		MakeRequest(t, req, http.StatusNoContent)
 	})
 }
@@ -170,7 +180,7 @@ func TestPackageAccess(t *testing.T) {
 		url := fmt.Sprintf("/api/packages/%s/generic/test-package/1.0/%s.bin", owner.Name, filename)
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
 		if doer != nil {
-			AddBasicAuthHeader(req, doer.Name)
+			req.AddBasicAuth(doer.Name)
 		}
 		MakeRequest(t, req, expectedStatus)
 	}
@@ -179,7 +189,7 @@ func TestPackageAccess(t *testing.T) {
 		url := fmt.Sprintf("/api/packages/%s/generic/test-package/1.0/admin.bin", owner.Name)
 		req := NewRequest(t, "GET", url)
 		if doer != nil {
-			AddBasicAuthHeader(req, doer.Name)
+			req.AddBasicAuth(doer.Name)
 		}
 		MakeRequest(t, req, expectedStatus)
 	}
@@ -374,7 +384,8 @@ func TestPackageAccess(t *testing.T) {
 			{limitedOrgNoMember, http.StatusOK},
 			{publicOrgNoMember, http.StatusOK},
 		} {
-			req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s?token=%s", target.Owner.Name, tokenReadPackage))
+			req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s", target.Owner.Name)).
+				AddTokenAuth(tokenReadPackage)
 			MakeRequest(t, req, target.ExpectedStatus)
 		}
 	})
@@ -396,8 +407,8 @@ func TestPackageQuota(t *testing.T) {
 
 		uploadPackage := func(doer *user_model.User, version string, expectedStatus int) {
 			url := fmt.Sprintf("/api/packages/%s/generic/test-package/%s/file.bin", user.Name, version)
-			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
-			AddBasicAuthHeader(req, doer.Name)
+			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1})).
+				AddBasicAuth(doer.Name)
 			MakeRequest(t, req, expectedStatus)
 		}
 
@@ -424,8 +435,8 @@ func TestPackageQuota(t *testing.T) {
 
 		uploadBlob := func(doer *user_model.User, data string, expectedStatus int) {
 			url := fmt.Sprintf("/v2/%s/quota-test/blobs/uploads?digest=sha256:%x", user.Name, sha256.Sum256([]byte(data)))
-			req := NewRequestWithBody(t, "POST", url, strings.NewReader(data))
-			AddBasicAuthHeader(req, doer.Name)
+			req := NewRequestWithBody(t, "POST", url, strings.NewReader(data)).
+				AddBasicAuth(doer.Name)
 			MakeRequest(t, req, expectedStatus)
 		}
 
@@ -454,18 +465,18 @@ func TestPackageCleanup(t *testing.T) {
 		// Upload and delete a generic package and upload a container blob
 		data, _ := util.CryptoRandomBytes(5)
 		url := fmt.Sprintf("/api/packages/%s/generic/cleanup-test/1.1.1/file.bin", user.Name)
-		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(data))
-		AddBasicAuthHeader(req, user.Name)
+		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(data)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
-		req = NewRequest(t, "DELETE", url)
-		AddBasicAuthHeader(req, user.Name)
+		req = NewRequest(t, "DELETE", url).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNoContent)
 
 		data, _ = util.CryptoRandomBytes(5)
 		url = fmt.Sprintf("/v2/%s/cleanup-test/blobs/uploads?digest=sha256:%x", user.Name, sha256.Sum256(data))
-		req = NewRequestWithBody(t, "POST", url, bytes.NewReader(data))
-		AddBasicAuthHeader(req, user.Name)
+		req = NewRequestWithBody(t, "POST", url, bytes.NewReader(data)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
 		pbs, err := packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, duration)
@@ -592,8 +603,8 @@ func TestPackageCleanup(t *testing.T) {
 
 				for _, v := range c.Versions {
 					url := fmt.Sprintf("/api/packages/%s/generic/package/%s/file.bin", user.Name, v.Version)
-					req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
-					AddBasicAuthHeader(req, user.Name)
+					req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1})).
+						AddBasicAuth(user.Name)
 					MakeRequest(t, req, http.StatusCreated)
 
 					if v.Created != 0 {
