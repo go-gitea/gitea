@@ -216,8 +216,6 @@ func TestAPIEditIssue(t *testing.T) {
 func TestAPISearchIssues(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadIssue)
-
 	// as this API was used in the frontend, it uses UI page size
 	expectedIssueCount := 18 // from the fixtures
 	if expectedIssueCount > setting.UI.IssuePagingNum {
@@ -225,7 +223,7 @@ func TestAPISearchIssues(t *testing.T) {
 	}
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
-	token = getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue)
+	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue)
 	query := url.Values{}
 	var apiIssues []*api.Issue
 
