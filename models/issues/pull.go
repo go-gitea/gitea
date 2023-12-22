@@ -434,7 +434,6 @@ func (pr *PullRequest) GetReviewCommentsCount(ctx context.Context) int {
 	opts := FindCommentsOptions{
 		Type:     CommentTypeReview,
 		IssueID:  pr.IssueID,
-		ReviewID: 0, // TODO: How to find the review ID?
 	}
 	conds := opts.ToConds()
 	if pr.ID == 0 {
