@@ -136,20 +136,6 @@ func (r *Route) Get(pattern string, h ...any) {
 	r.Methods("GET", pattern, h...)
 }
 
-func (r *Route) Options(pattern string, h ...any) {
-	r.Methods("OPTIONS", pattern, h...)
-}
-
-// GetOptions delegate get and options method
-func (r *Route) GetOptions(pattern string, h ...any) {
-	r.Methods("GET,OPTIONS", pattern, h...)
-}
-
-// PostOptions delegate post and options method
-func (r *Route) PostOptions(pattern string, h ...any) {
-	r.Methods("POST,OPTIONS", pattern, h...)
-}
-
 // Head delegate head method
 func (r *Route) Head(pattern string, h ...any) {
 	r.Methods("HEAD", pattern, h...)
