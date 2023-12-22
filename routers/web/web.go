@@ -780,7 +780,7 @@ func registerRoutes(m *web.Route) {
 
 	m.Group("", func() {
 		m.Get("/{username}", user.UsernameSubRoute)
-		m.Get("/attachments/{uuid}", repo.GetAttachment)
+		m.Methods("GET, OPTIONS", "/attachments/{uuid}", optionsCorsHandler(), repo.GetAttachment)
 	}, ignSignIn)
 
 	m.Post("/{username}", reqSignIn, context_service.UserAssignmentWeb(), user.Action)
