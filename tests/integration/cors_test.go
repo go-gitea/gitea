@@ -55,6 +55,7 @@ func TestCORS(t *testing.T) {
 			// OPTIONS userinfo for non-CORS
 			req = NewRequest(t, "OPTIONS", "/login/oauth/userinfo")
 			resp = MakeRequest(t, req, http.StatusMethodNotAllowed)
+			assert.NotContains(t, resp.Header().Values("Vary"), "Origin")
 		})
 	})
 

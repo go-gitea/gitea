@@ -79,11 +79,12 @@ func optionsCorsHandler() func(next http.Handler) http.Handler {
 				if corsHandler != nil && r.Header.Get("Access-Control-Request-Method") != "" {
 					corsHandler(next).ServeHTTP(w, r)
 				} else {
-					// it should explicitly deny OPTIONS requests if CORS is disabled, to avoid the following GET/POST handler to be called by the OPTIONS request
+					// it should explicitly deny OPTIONS requests if CORS handler is executed, to avoid the following GET/POST handler to be incorrectly called by the OPTIONS request
 					w.WriteHeader(http.StatusMethodNotAllowed)
 				}
 				return
 			}
+			// for non-OPTIONS requests, call the CORS handler to add some related headers like "Vary"
 			if corsHandler != nil {
 				corsHandler(next).ServeHTTP(w, r)
 			} else {
