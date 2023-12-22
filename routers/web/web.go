@@ -60,7 +60,7 @@ const (
 	GzipMinSize = 1400
 )
 
-// CorsHandler return a http handler who set CORS options if enabled by config
+// optionsCorsHandler return a http handler which sets CORS options if enabled by config, it blocks non-CORS OPTIONS requests.
 func optionsCorsHandler() func(next http.Handler) http.Handler {
 	var corsHandler func(next http.Handler) http.Handler
 	if setting.CORSConfig.Enabled {
@@ -79,7 +79,7 @@ func optionsCorsHandler() func(next http.Handler) http.Handler {
 				if corsHandler != nil && r.Header.Get("Access-Control-Request-Method") != "" {
 					corsHandler(next).ServeHTTP(w, r)
 				} else {
-					// it should explicitly deny OPTIONS requests if CORS handler is executed, to avoid the following GET/POST handler to be incorrectly called by the OPTIONS request
+					// it should explicitly deny OPTIONS requests if CORS handler is not executed, to avoid the next GET/POST handler being incorrectly called by the OPTIONS request
 					w.WriteHeader(http.StatusMethodNotAllowed)
 				}
 				return
