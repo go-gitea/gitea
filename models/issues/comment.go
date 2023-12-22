@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
@@ -1158,8 +1159,32 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 	return DeleteReaction(ctx, &ReactionOptions{CommentID: comment.ID})
 }
 
+// updateCommentsMigrationsByTypeSqlite3 sqlite3 doesn't support update join SQL syntax
+func updateCommentsMigrationsByTypeSqlite3(ctx context.Context, tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
+	_, err := db.GetEngine(ctx).Table("comment").
+		Where(builder.In("issue_id",
+			builder.Select("issue.id").
+				From("issue").
+				InnerJoin("repository", "issue.repo_id = repository.id").
+				Where(builder.Eq{
+					"repository.original_service_type": tp,
+				}),
+		)).
+		And("comment.original_author_id = ?", originalAuthorID).
+		Update(map[string]any{
+			"poster_id":          posterID,
+			"original_author":    "",
+			"original_author_id": 0,
+		})
+	return err
+}
+
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
 func UpdateCommentsMigrationsByType(ctx context.Context, tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
+	if setting.Database.Type.IsSQLite3() {
+		return updateCommentsMigrationsByTypeSqlite3(ctx, tp, originalAuthorID, posterID)
+	}
+
 	_, err := db.GetEngine(ctx).Table("comment").
 		Join("INNER", "issue", "issue.id = comment.issue_id").
 		Join("INNER", "repository", "issue.repo_id = repository.id").
