@@ -85,7 +85,7 @@ func TestSAMLRegistration(t *testing.T) {
 		Jar:     jar,
 	}
 
-	req, err = http.NewRequest("GET", test.RedirectURL(resp), nil)
+	httpReq, err := http.NewRequest("GET", test.RedirectURL(resp), nil)
 	assert.NoError(t, err)
 
 	var formRedirectURL *url.URL
@@ -95,7 +95,7 @@ func TestSAMLRegistration(t *testing.T) {
 		return nil
 	}
 
-	res, err := client.Do(req)
+	res, err := client.Do(httpReq)
 	client.CheckRedirect = nil
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
@@ -106,11 +106,11 @@ func TestSAMLRegistration(t *testing.T) {
 		"password": {"user1pass"},
 	}
 
-	req, err = http.NewRequest("POST", formRedirectURL.String(), strings.NewReader(form.Encode()))
+	httpReq, err = http.NewRequest("POST", formRedirectURL.String(), strings.NewReader(form.Encode()))
 	assert.NoError(t, err)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	res, err = client.Do(req)
+	res, err = client.Do(httpReq)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
