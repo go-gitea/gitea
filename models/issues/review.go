@@ -308,7 +308,7 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 
 		reviewCond := builder.Eq{"reviewer_id": opts.Reviewer.ID, "issue_id": opts.Issue.ID}
 		// make sure user review requests are cleared
-		if ots.Type != ReviewTypePending {
+		if opts.Type != ReviewTypePending {
 			if _, err := sess.Where(reviewCond.And(builder.Eq{"type": ReviewTypeRequest})).Delete(new(Review)); err != nil {
 				return nil, err
 			}
