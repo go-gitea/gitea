@@ -532,9 +532,11 @@ func registerRoutes(m *web.Route) {
 		// TODO manage redirection
 		m.Post("/authorize", web.Bind(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
 	}, ignSignInAndCsrf, reqSignIn)
+	m.Options("/login/oauth/userinfo", CorsHandler(), misc.DummyBadRequest)
 	m.Get("/login/oauth/userinfo", ignSignInAndCsrf, auth.InfoOAuth)
 	m.Options("/login/oauth/access_token", CorsHandler(), misc.DummyBadRequest)
 	m.Post("/login/oauth/access_token", CorsHandler(), web.Bind(forms.AccessTokenForm{}), ignSignInAndCsrf, auth.AccessTokenOAuth)
+	m.Options("/login/oauth/keys", CorsHandler(), misc.DummyBadRequest)
 	m.Get("/login/oauth/keys", ignSignInAndCsrf, auth.OIDCKeys)
 	m.Options("/login/oauth/introspect", CorsHandler(), misc.DummyBadRequest)
 	m.Post("/login/oauth/introspect", CorsHandler(), web.Bind(forms.IntrospectTokenForm{}), ignSignInAndCsrf, auth.IntrospectOAuth)
