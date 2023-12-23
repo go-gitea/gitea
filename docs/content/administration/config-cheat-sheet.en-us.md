@@ -357,7 +357,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SSH_PER_WRITE_PER_KB_TIMEOUT`: **10s**: Timeout per Kb written to SSH connections.
 - `MINIMUM_KEY_SIZE_CHECK`: **true**: Indicate whether to check minimum key size with corresponding type.
 
-- `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.
+- `OFFLINE_MODE`: **true**: Disables use of CDN for static files and Gravatar for profile pictures.
 - `CERT_FILE`: **https/cert.pem**: Cert file path used for HTTPS. When chaining, the server certificate must come first, then intermediate CA certificates (if any). This is ignored if `ENABLE_ACME=true`. Paths are relative to `CUSTOM_PATH`.
 - `KEY_FILE`: **https/key.pem**: Key file path used for HTTPS. This is ignored if `ENABLE_ACME=true`. Paths are relative to `CUSTOM_PATH`.
 - `STATIC_ROOT_PATH`: **_`StaticRootPath`_**: Upper level of template and static files path.
@@ -1399,8 +1399,8 @@ PROXY_HOSTS = *.github.com
 - `SKIP_WORKFLOW_STRINGS`: **[skip ci],[ci skip],[no ci],[skip actions],[actions skip]**: Strings committers can place inside a commit message to skip executing the corresponding actions workflow
 
 `DEFAULT_ACTIONS_URL` indicates where the Gitea Actions runners should find the actions with relative path.
-For example, `uses: actions/checkout@v3` means `https://github.com/actions/checkout@v3` since the value of `DEFAULT_ACTIONS_URL` is `github`.
-And it can be changed to `self` to make it `root_url_of_your_gitea/actions/checkout@v3`.
+For example, `uses: actions/checkout@v4` means `https://github.com/actions/checkout@v4` since the value of `DEFAULT_ACTIONS_URL` is `github`.
+And it can be changed to `self` to make it `root_url_of_your_gitea/actions/checkout@v4`.
 
 Please note that using `self` is not recommended for most cases, as it could make names globally ambiguous.
 Additionally, it requires you to mirror all the actions you need to your Gitea instance, which may not be worth it.
@@ -1409,7 +1409,7 @@ Therefore, please use `self` only if you understand what you are doing.
 In earlier versions (`<= 1.19`), `DEFAULT_ACTIONS_URL` could be set to any custom URLs like `https://gitea.com` or `http://your-git-server,https://gitea.com`, and the default value was `https://gitea.com`.
 However, later updates removed those options, and now the only options are `github` and `self`, with the default value being `github`.
 However, if you want to use actions from other git server, you can use a complete URL in `uses` field, it's supported by Gitea (but not GitHub).
-Like `uses: https://gitea.com/actions/checkout@v3` or `uses: http://your-git-server/actions/checkout@v3`.
+Like `uses: https://gitea.com/actions/checkout@v4` or `uses: http://your-git-server/actions/checkout@v4`.
 
 ## Other (`other`)
 
