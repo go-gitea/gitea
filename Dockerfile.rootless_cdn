@@ -21,8 +21,7 @@ ENV PATH=$PATH:/usr/local/lib/nodejs/node-v20.9.0-linux-x64/bin
 RUN wget -O /usr/local/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.5/dumb-init_1.2.5_x86_64
 RUN chmod +x /usr/local/bin/dumb-init
 
-ARG GOPROXY
-ENV GOPROXY ${GOPROXY:-direct}
+RUN go env -w GOPROXY=https://goproxy.cn,direct
 
 ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
