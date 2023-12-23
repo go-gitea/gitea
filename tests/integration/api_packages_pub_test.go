@@ -66,8 +66,8 @@ description: ` + packageDescription
 		req := NewRequest(t, "GET", uploadURL)
 		MakeRequest(t, req, http.StatusUnauthorized)
 
-		req = NewRequest(t, "GET", uploadURL)
-		addTokenAuthHeader(req, token)
+		req = NewRequest(t, "GET", uploadURL).
+			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		type UploadRequest struct {
@@ -88,16 +88,16 @@ description: ` + packageDescription
 
 			_ = writer.Close()
 
-			req := NewRequestWithBody(t, "POST", url, body)
-			req.Header.Add("Content-Type", writer.FormDataContentType())
-			addTokenAuthHeader(req, token)
+			req := NewRequestWithBody(t, "POST", url, body).
+				SetHeader("Content-Type", writer.FormDataContentType()).
+				AddTokenAuth(token)
 			return MakeRequest(t, req, expectedStatus)
 		}
 
 		resp = uploadFile(t, result.URL, content, http.StatusNoContent)
 
-		req = NewRequest(t, "GET", resp.Header().Get("Location"))
-		addTokenAuthHeader(req, token)
+		req = NewRequest(t, "GET", resp.Header().Get("Location")).
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusOK)
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypePub)
