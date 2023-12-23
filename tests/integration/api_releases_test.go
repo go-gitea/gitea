@@ -32,8 +32,7 @@ func TestAPIListReleases(t *testing.T) {
 	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeReadRepository)
 
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/releases", user2.Name, repo.Name))
-	link.RawQuery = url.Values{"token": {token}}.Encode()
-	resp := MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	resp := MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
 	var apiReleases []*api.Release
 	DecodeJSON(t, resp, &apiReleases)
 	if assert.Len(t, apiReleases, 3) {

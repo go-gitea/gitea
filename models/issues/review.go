@@ -307,8 +307,7 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 		Stale:        opts.Stale,
 	}
 
-	switch {
-	case opts.Reviewer != nil:
+	if opts.Reviewer != nil {
 		review.Type = opts.Type
 		review.ReviewerID = opts.Reviewer.ID
 
@@ -317,8 +316,10 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 			IssueID:    opts.Issue.ID,
 		}
 		// make sure user review requests are cleared
-		if _, err := sess.Where(opt.toCond().And(builder.Eq{"type": ReviewTypeRequest})).Delete(new(Review)); err != nil {
-			return nil, err
+		if opts.Type != ReviewTypePending {
+			if _, err := sess.Where(opt.toCond().And(builder.Eq{"type": ReviewTypeRequest})).Delete(new(Review)); err != nil {
+				return nil, err
+			}
 		}
 		// make sure if the created review gets dismissed no old review surface
 		if opts.Type.AffectReview() {
@@ -328,11 +329,11 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 			}
 		}
 
-	case opts.ReviewerTeam != nil:
+	} else if opts.ReviewerTeam != nil {
 		review.Type = ReviewTypeRequest
 		review.ReviewerTeamID = opts.ReviewerTeam.ID
 
-	default:
+	} else {
 		return nil, fmt.Errorf("provide either reviewer or reviewer team")
 	}
 
