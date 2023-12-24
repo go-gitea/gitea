@@ -175,7 +175,7 @@ func Exec(ctx context.Context, sqlAndArgs ...any) (sql.Result, error) {
 
 func Get[T any](ctx context.Context, cond builder.Cond) (object *T, exist bool, err error) {
 	if !cond.IsValid() {
-		return nil, false, ErrConditionRequired{}
+		panic("cond is invalid in db.Get(ctx, cond). This should not be possible.")
 	}
 
 	var bean T
@@ -201,7 +201,7 @@ func GetByID[T any](ctx context.Context, id int64) (object *T, exist bool, err e
 
 func Exist[T any](ctx context.Context, cond builder.Cond) (bool, error) {
 	if !cond.IsValid() {
-		return false, ErrConditionRequired{}
+		panic("cond is invalid in db.Exist(ctx, cond). This should not be possible.")
 	}
 
 	var bean T
@@ -231,7 +231,7 @@ func DeleteByIDs[T any](ctx context.Context, ids ...int64) error {
 
 func Delete[T any](ctx context.Context, opts FindOptions) (int64, error) {
 	if opts == nil {
-		return 0, ErrConditionRequired{}
+		panic("opts are empty in db.Delete(ctx, opts). This should not be possible.")
 	}
 
 	var bean T

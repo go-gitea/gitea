@@ -154,7 +154,7 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 
 	// ***** START: PublicKey *****
 	if _, err = db.DeleteByBean(ctx, &asymkey_model.PublicKey{OwnerID: u.ID}); err != nil {
-		return fmt.Errorf("DeleteByBean: %w", err)
+		return fmt.Errorf("deletePublicKeys: %w", err)
 	}
 	// ***** END: PublicKey *****
 

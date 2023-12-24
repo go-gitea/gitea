@@ -423,13 +423,13 @@ func (ar artifactRoutes) downloadArtifact(ctx *ArtifactContext) {
 
 	artifactID := ctx.ParamsInt64("artifact_id")
 	artifact, exist, err := db.GetByID[actions.ActionArtifact](ctx, artifactID)
-	if !exist {
-		log.Error("artifact with %d does not exist", artifactID)
-		ctx.Error(http.StatusNotFound, fmt.Sprintf("artifact with %d does not exist", artifactID))
-		return
-	} else if err != nil {
+	if err != nil {
 		log.Error("Error getting artifact: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	} else if !exist {
+		log.Error("artifact with ID %d does not exist", artifactID)
+		ctx.Error(http.StatusNotFound, fmt.Sprintf("artifact with ID %d does not exist", artifactID))
 		return
 	}
 	if artifact.RunID != runID {

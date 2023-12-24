@@ -69,15 +69,6 @@ func TestNotices(t *testing.T) {
 	}
 }
 
-func TestDeleteNotice(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	unittest.AssertExistsAndLoadBean(t, &system.Notice{ID: 3})
-	_, err := db.DeleteByID[system.Notice](db.DefaultContext, 3)
-	assert.NoError(t, err)
-	unittest.AssertNotExistsBean(t, &system.Notice{ID: 3})
-}
-
 func TestDeleteNotices(t *testing.T) {
 	// delete a non-empty range
 	assert.NoError(t, unittest.PrepareTestDatabase())

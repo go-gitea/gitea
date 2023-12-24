@@ -232,7 +232,7 @@ func GetPushMirrorByName(ctx *context.APIContext) {
 		RemoteName: mirrorName,
 	}.ToConds())
 	if err != nil {
-		ctx.Error(http.StatusNotFound, "GetPushMirrors", err)
+		ctx.Error(http.StatusInternalServerError, "GetPushMirrors", err)
 		return
 	} else if !exist {
 		ctx.Error(http.StatusNotFound, "GetPushMirrors", nil)

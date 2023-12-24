@@ -94,8 +94,9 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 		log.Error("PANIC whilst syncPushMirror[%d] Panic: %v\nStacktrace: %s", mirrorID, err, log.Stack(2))
 	}()
 
-	m, _, err := db.GetByID[repo_model.PushMirror](ctx, mirrorID)
-	if err != nil {
+	// TODO: Handle "!exist" better
+	m, exist, err := db.GetByID[repo_model.PushMirror](ctx, mirrorID)
+	if err != nil || !exist {
 		log.Error("GetPushMirrorByID [%d]: %v", mirrorID, err)
 		return false
 	}
