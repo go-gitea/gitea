@@ -12,7 +12,7 @@ import (
 // CORSConfig defines CORS settings
 var CORSConfig = struct {
 	Enabled          bool
-	AllowDomain      []string // this option is from legacy code, it should be called "AllowedOrigins" actually
+	AllowDomain      []string // FIXME: this option is from legacy code, it actually works as "AllowedOrigins". When refactoring in the future, the config option should also be renamed together.
 	Methods          []string
 	MaxAge           time.Duration
 	AllowCredentials bool
