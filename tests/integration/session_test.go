@@ -1,7 +1,7 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package auth_test
+package integration
 
 import (
 	"testing"
@@ -9,11 +9,14 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_RegenerateSession(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	exist, err := auth.ExistSession(db.DefaultContext, "new_key")
