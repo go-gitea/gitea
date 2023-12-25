@@ -1466,9 +1466,8 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	}
 
 	if projectID > 0 {
-		if !ctx.Repo.CanRead(unit.TypeProjects) {
-			// User must also be able to see the project.
-			ctx.Error(http.StatusBadRequest, "user hasn't permissions to read projects")
+		if !ctx.Repo.CanWrite(unit.TypeProjects) {
+			ctx.Error(http.StatusBadRequest, "user hasn't the permission to write to projects")
 			return
 		}
 		if err := issues_model.ChangeProjectAssign(ctx, pullIssue, ctx.Doer, projectID); err != nil {
