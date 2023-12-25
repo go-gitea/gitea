@@ -20,7 +20,7 @@
 							<div class="flex-text-block">
 								{{svg "octicon-shield-lock"}}
 								<div class="ui inline dropdown access-mode" data-url="{{$.Link}}/access_mode" data-uid="{{.ID}}" data-last-value="{{printf "%d" .Collaboration.Mode}}">
-									<div class="text">{{if eq .Collaboration.Mode 1}}{{ctx.Locale.Tr "repo.settings.collaboration.read"}}{{else if eq .Collaboration.Mode 2}}{{ctx.Locale.Tr "repo.settings.collaboration.write"}}{{else if eq .Collaboration.Mode 3}}{{$.locale.Tr "repo.settings.collaboration.admin"}}{{else}}{{$.locale.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>
+									<div class="text">{{if eq .Collaboration.Mode 1}}{{ctx.Locale.Tr "repo.settings.collaboration.read"}}{{else if eq .Collaboration.Mode 2}}{{ctx.Locale.Tr "repo.settings.collaboration.write"}}{{else if eq .Collaboration.Mode 3}}{{ctx.Locale.Tr "repo.settings.collaboration.admin"}}{{else}}{{ctx.Locale.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>
 									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 									<div class="menu">
 										<div class="item" data-text="{{ctx.Locale.Tr "repo.settings.collaboration.admin"}}" data-value="3">{{ctx.Locale.Tr "repo.settings.collaboration.admin"}}</div>
@@ -64,7 +64,7 @@
 							</a>
 							<div class="flex-item-body flex-text-block">
 								{{svg "octicon-shield-lock"}}
-								{{if eq .AccessMode 1}}{{ctx.Locale.Tr "repo.settings.collaboration.read"}}{{else if eq .AccessMode 2}}{{ctx.Locale.Tr "repo.settings.collaboration.write"}}{{else if eq .AccessMode 3}}{{$.locale.Tr "repo.settings.collaboration.admin"}}{{else if eq .AccessMode 4}}{{$.locale.Tr "repo.settings.collaboration.owner"}}{{else}}{{$.locale.Tr "repo.settings.collaboration.undefined"}}{{end}}
+								{{if eq .AccessMode 1}}{{ctx.Locale.Tr "repo.settings.collaboration.read"}}{{else if eq .AccessMode 2}}{{ctx.Locale.Tr "repo.settings.collaboration.write"}}{{else if eq .AccessMode 3}}{{ctx.Locale.Tr "repo.settings.collaboration.admin"}}{{else if eq .AccessMode 4}}{{ctx.Locale.Tr "repo.settings.collaboration.owner"}}{{else}}{{ctx.Locale.Tr "repo.settings.collaboration.undefined"}}{{end}}
 							</div>
 							{{if or (eq .AccessMode 1) (eq .AccessMode 2)}}
 								{{$first := true}}

@@ -2,7 +2,7 @@
 	<div class="user-main-content twelve wide column content repository file list">
 		<div class="tab-size-8 non-diff-file-content">
 			<h4 class="ui top attached header">
-				<a href="{{.LFSFilesLink}}">{{ctx.Locale.Tr "repo.settings.lfs"}}</a> / {{.locale.Tr "repo.settings.lfs_locks"}} ({{.locale.Tr "admin.total" .Total}})
+				<a href="{{.LFSFilesLink}}">{{ctx.Locale.Tr "repo.settings.lfs"}}</a> / {{ctx.Locale.Tr "repo.settings.lfs_locks"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 			</h4>
 			<div class="ui attached segment">
 				<form class="ui form ignore-dirty" method="post">
@@ -35,7 +35,7 @@
 									{{$.Owner.DisplayName}}
 								</a>
 							</td>
-							<td>{{TimeSince .Created $.locale}}</td>
+							<td>{{TimeSince .Created ctx.Locale}}</td>
 							<td class="right aligned">
 								<form action="{{$.LFSFilesLink}}/locks/{{$lock.ID}}/unlock" method="post">
 									{{$.CsrfTokenHtml}}

@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/auth/source/smtp"
 
@@ -56,7 +57,7 @@ func UserSignIn(ctx context.Context, username, password string) (*user_model.Use
 		}
 
 		if hasUser {
-			source, err := auth.GetSourceByID(user.LoginSource)
+			source, err := auth.GetSourceByID(ctx, user.LoginSource)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -85,7 +86,9 @@ func UserSignIn(ctx context.Context, username, password string) (*user_model.Use
 		}
 	}
 
-	sources, err := auth.AllActiveSources()
+	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
+		IsActive: util.OptionalBoolTrue,
+	})
 	if err != nil {
 		return nil, nil, err
 	}

@@ -30,14 +30,9 @@ func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 		UserID:         u.ID,
 		IncludePrivate: showPrivate,
 	}
-	orgs, err := organization.FindOrgs(opts)
+	orgs, maxResults, err := db.FindAndCount[organization.Organization](ctx, opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "FindOrgs", err)
-		return
-	}
-	maxResults, err := organization.CountOrgs(opts)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "CountOrgs", err)
+		ctx.Error(http.StatusInternalServerError, "db.FindAndCount[organization.Organization]", err)
 		return
 	}
 
@@ -145,7 +140,7 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	}
 
 	org := organization.OrgFromUser(o)
-	authorizeLevel, err := org.GetOrgUserMaxAuthorizeLevel(ctx.ContextUser.ID)
+	authorizeLevel, err := org.GetOrgUserMaxAuthorizeLevel(ctx, ctx.ContextUser.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetOrgUserAuthorizeLevel", err)
 		return
@@ -164,7 +159,7 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 		op.IsOwner = true
 	}
 
-	op.CanCreateRepository, err = org.CanCreateOrgRepo(ctx.ContextUser.ID)
+	op.CanCreateRepository, err = org.CanCreateOrgRepo(ctx, ctx.ContextUser.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CanCreateOrgRepo", err)
 		return
@@ -268,7 +263,7 @@ func Create(ctx *context.APIContext) {
 		Visibility:                visibility,
 		RepoAdminChangeTeamAccess: form.RepoAdminChangeTeamAccess,
 	}
-	if err := organization.CreateOrganization(org, ctx.Doer); err != nil {
+	if err := organization.CreateOrganization(ctx, org, ctx.Doer); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) ||
 			db.IsErrNameReserved(err) ||
 			db.IsErrNameCharsNotAllowed(err) ||
@@ -385,7 +380,7 @@ func Delete(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := org.DeleteOrganization(ctx.Org.Organization); err != nil {
+	if err := org.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteOrganization", err)
 		return
 	}
@@ -429,7 +424,7 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 			includePrivate = true
 		} else {
 			org := organization.OrgFromUser(ctx.ContextUser)
-			isMember, err := org.IsOrgMember(ctx.Doer.ID)
+			isMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 				return

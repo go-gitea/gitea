@@ -19,7 +19,7 @@
 		{{end}}
 		<div class="ui top attached header clearing segment gt-relative commit-header {{$class}}">
 			<div class="gt-df gt-mb-4 gt-fw">
-				<h3 class="gt-mb-0 gt-f1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses "root" $}}</h3>
+				<h3 class="gt-mb-0 gt-f1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message $.RepoLink ($.Repository.ComposeMetas ctx)}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses}}</h3>
 				{{if not $.PageIsWiki}}
 					<div>
 						<a class="ui primary tiny button" href="{{.SourcePath}}">
@@ -53,13 +53,13 @@
 										data-modal-cherry-pick-type="revert"
 										data-modal-cherry-pick-header="{{ctx.Locale.Tr "repo.commit.revert-header" (ShortSha .CommitID)}}"
 										data-modal-cherry-pick-content="{{ctx.Locale.Tr "repo.commit.revert-content"}}"
-										data-modal-cherry-pick-submit="{{ctx.Locale.Tr "repo.commit.revert"}}">{{.locale.Tr "repo.commit.revert"}}</div>
+										data-modal-cherry-pick-submit="{{ctx.Locale.Tr "repo.commit.revert"}}">{{ctx.Locale.Tr "repo.commit.revert"}}</div>
 									<div class="item cherry-pick-button show-modal"
 										data-modal="#cherry-pick-modal"
 										data-modal-cherry-pick-type="cherry-pick"
 										data-modal-cherry-pick-header="{{ctx.Locale.Tr "repo.commit.cherry-pick-header" (ShortSha .CommitID)}}"
 										data-modal-cherry-pick-content="{{ctx.Locale.Tr "repo.commit.cherry-pick-content"}}"
-										data-modal-cherry-pick-submit="{{ctx.Locale.Tr "repo.commit.cherry-pick"}}">{{.locale.Tr "repo.commit.cherry-pick"}}</div>
+										data-modal-cherry-pick-submit="{{ctx.Locale.Tr "repo.commit.cherry-pick"}}">{{ctx.Locale.Tr "repo.commit.cherry-pick"}}</div>
 									<div class="ui g-modal-confirm modal" id="cherry-pick-modal">
 										<div class="header">
 											<span id="cherry-pick-header"></span>
@@ -135,7 +135,7 @@
 				{{end}}
 			</div>
 			{{if IsMultilineCommitMessage .Commit.Message}}
-				<pre class="commit-body">{{RenderCommitBody $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+				<pre class="commit-body">{{RenderCommitBody $.Context .Commit.Message $.RepoLink ($.Repository.ComposeMetas ctx)}}</pre>
 			{{end}}
 			{{template "repo/commit_load_branches_and_tags" .}}
 		</div>
@@ -152,7 +152,7 @@
 						{{ctx.AvatarUtils.AvatarByEmail .Commit.Author.Email .Commit.Author.Email 28 "gt-mr-3"}}
 						<strong>{{.Commit.Author.Name}}</strong>
 					{{end}}
-					<span class="text grey gt-ml-3" id="authored-time">{{TimeSince .Commit.Author.When $.locale}}</span>
+					<span class="text grey gt-ml-3" id="authored-time">{{TimeSince .Commit.Author.When ctx.Locale}}</span>
 					{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
 						<span class="text grey gt-mx-3">{{ctx.Locale.Tr "repo.diff.committed_by"}}</span>
 						{{if ne .Verification.CommittingUser.ID 0}}
@@ -201,7 +201,7 @@
 						{{else}}
 							<span title="{{ctx.Locale.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog" 16 "gt-mr-3"}}</span>
 							<span class="ui text gt-mr-3">{{ctx.Locale.Tr "repo.commits.signed_by"}}:</span>
-							{{ctx.AvatarUtils.AvatarByEmail .Verification.SigningEmail "" 28}}
+							{{ctx.AvatarUtils.AvatarByEmail .Verification.SigningEmail "" 28 "gt-mr-3"}}
 							<strong>{{.Verification.SigningUser.GetDisplayName}}</strong>
 						{{end}}
 					{{else}}
@@ -223,10 +223,10 @@
 						{{else}}
 							{{svg "octicon-unverified" 16 "gt-mr-3"}}
 							{{if .Verification.SigningSSHKey}}
-								<span class="ui text gt-mr-3" data-tooltip-content="{{ctx.Locale.Tr "gpg.default_key"}}">{{.locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
+								<span class="ui text gt-mr-3" data-tooltip-content="{{ctx.Locale.Tr "gpg.default_key"}}">{{ctx.Locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
 								{{.Verification.SigningSSHKey.Fingerprint}}
 							{{else}}
-								<span class="ui text gt-mr-3" data-tooltip-content="{{ctx.Locale.Tr "gpg.default_key"}}">{{.locale.Tr "repo.commits.gpg_key_id"}}:</span>
+								<span class="ui text gt-mr-3" data-tooltip-content="{{ctx.Locale.Tr "gpg.default_key"}}">{{ctx.Locale.Tr "repo.commits.gpg_key_id"}}:</span>
 								{{.Verification.SigningKey.PaddedKeyID}}
 							{{end}}
 						{{end}}
@@ -273,10 +273,10 @@
 				{{else}}
 					<strong>{{.NoteCommit.Author.Name}}</strong>
 				{{end}}
-				<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When $.locale}}</span>
+				<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When ctx.Locale}}</span>
 			</div>
 			<div class="ui bottom attached info segment git-notes">
-				<pre class="commit-body">{{RenderNote $.Context .Note $.RepoLink $.Repository.ComposeMetas}}</pre>
+				<pre class="commit-body">{{RenderNote $.Context .Note $.RepoLink ($.Repository.ComposeMetas ctx)}}</pre>
 			</div>
 		{{end}}
 		{{template "repo/diff/box" .}}

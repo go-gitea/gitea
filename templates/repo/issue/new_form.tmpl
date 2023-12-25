@@ -111,7 +111,7 @@
 							{{ctx.Locale.Tr "repo.issues.new.open_projects"}}
 						</div>
 						{{range .OpenProjects}}
-							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
+							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link ctx}}">
 								{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
 							</a>
 						{{end}}
@@ -122,7 +122,7 @@
 							{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}
 						</div>
 						{{range .ClosedProjects}}
-							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
+							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link ctx}}">
 								{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
 							</a>
 						{{end}}
@@ -134,7 +134,7 @@
 			<span class="no-select item {{if .Project}}gt-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</span>
 			<div class="selected">
 				{{if .Project}}
-					<a class="item muted sidebar-item-link" href="{{.Project.Link}}">
+					<a class="item muted sidebar-item-link" href="{{.Project.Link ctx}}">
 						{{svg .Project.IconName 18 "gt-mr-3"}}{{.Project.Title}}
 					</a>
 				{{end}}
@@ -182,7 +182,7 @@
 			<div class="divider"></div>
 			<div class="inline field">
 				<div class="ui checkbox">
-					<label data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"><strong>{{.locale.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
+					<label data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"><strong>{{ctx.Locale.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
 					<input name="allow_maintainer_edit" type="checkbox" {{if .AllowMaintainerEdit}}checked{{end}}>
 				</div>
 			</div>

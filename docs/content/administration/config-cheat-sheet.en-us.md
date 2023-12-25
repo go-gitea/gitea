@@ -102,7 +102,7 @@ In addition, there is _`StaticRootPath`_ which can be set as a built-in at build
 - `ENABLE_PUSH_CREATE_USER`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for a user.
 - `ENABLE_PUSH_CREATE_ORG`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for an org.
 - `DISABLED_REPO_UNITS`: **_empty_**: Comma separated list of globally disabled repo units. Allowed values: \[repo.issues, repo.ext_issues, repo.pulls, repo.wiki, repo.ext_wiki, repo.projects, repo.packages, repo.actions\]
-- `DEFAULT_REPO_UNITS`: **repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki,repo.projects,repo.packages**: Comma separated list of default new repo units. Allowed values: \[repo.code, repo.releases, repo.issues, repo.pulls, repo.wiki, repo.projects, repo.packages, repo.actions\]. Note: Code and Releases can currently not be deactivated. If you specify default repo units you should still list them for future compatibility. External wiki and issue tracker can't be enabled by default as it requires additional settings. Disabled repo units will not be added to new repositories regardless if it is in the default list.
+- `DEFAULT_REPO_UNITS`: **repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki,repo.projects,repo.packages,repo.actions**: Comma separated list of default new repo units. Allowed values: \[repo.code, repo.releases, repo.issues, repo.pulls, repo.wiki, repo.projects, repo.packages, repo.actions\]. Note: Code and Releases can currently not be deactivated. If you specify default repo units you should still list them for future compatibility. External wiki and issue tracker can't be enabled by default as it requires additional settings. Disabled repo units will not be added to new repositories regardless if it is in the default list.
 - `DEFAULT_FORK_REPO_UNITS`: **repo.code,repo.pulls**: Comma separated list of default forked repo units. The set of allowed values and rules is the same as `DEFAULT_REPO_UNITS`.
 - `PREFIX_ARCHIVE_FILES`: **true**: Prefix archive files by placing them in a directory named after the repository.
 - `DISABLE_MIGRATIONS`: **false**: Disable migrating feature.
@@ -146,7 +146,7 @@ In addition, there is _`StaticRootPath`_ which can be set as a built-in at build
 - `ENABLED`: **true**: Whether repository file uploads are enabled
 - `TEMP_PATH`: **data/tmp/uploads**: Path for uploads (content gets deleted on Gitea restart)
 - `ALLOWED_TYPES`: **_empty_**: Comma-separated list of allowed file extensions (`.zip`), mime types (`text/plain`) or wildcard type (`image/*`, `audio/*`, `video/*`). Empty value or `*/*` allows all types.
-- `FILE_MAX_SIZE`: **3**: Max size of each file in megabytes.
+- `FILE_MAX_SIZE`: **50**: Max size of each file in megabytes.
 - `MAX_FILES`: **5**: Max number of files per upload
 
 ### Repository - Release (`repository.release`)
@@ -196,9 +196,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 ## CORS (`cors`)
 
 - `ENABLED`: **false**: enable cors headers (disabled by default)
-- `SCHEME`: **http**: scheme of allowed requests
-- `ALLOW_DOMAIN`: **\***: list of requesting domains that are allowed
-- `ALLOW_SUBDOMAIN`: **false**: allow subdomains of headers listed above to request
+- `ALLOW_DOMAIN`: **\***: list of requesting origins that are allowed, eg: "https://*.example.com"
 - `METHODS`: **GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS**: list of methods allowed to request
 - `MAX_AGE`: **10m**: max time to cache response
 - `ALLOW_CREDENTIALS`: **false**: allow request with credentials
@@ -215,21 +213,24 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SITEMAP_PAGING_NUM`: **20**: Number of items that are displayed in a single subsitemap.
 - `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
 - `CODE_COMMENT_LINES`: **4**: Number of line of codes shown for a code comment.
-- `DEFAULT_THEME`: **auto**: \[auto, gitea, arc-green\]: Set the default theme for the Gitea install.
+- `DEFAULT_THEME`: **gitea-auto**: \[gitea-auto, gitea-light, gitea-dark\]: Set the default theme for the Gitea installation.
 - `SHOW_USER_EMAIL`: **true**: Whether the email of the user should be shown in the Explore Users page.
-- `THEMES`:  **auto,gitea,arc-green**: All available themes. Allow users select personalized themes.
+- `THEMES`:  **gitea-auto,gitea-light,gitea-dark**: All available themes. Allow users select personalized themes.
   regardless of the value of `DEFAULT_THEME`.
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: Max size of files to be displayed (default is 8MiB)
+- `AMBIGUOUS_UNICODE_DETECTION`: **true**: Detect ambiguous unicode characters in file contents and show warnings on the UI
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
     Values can be emoji alias (:smile:) or a unicode emoji.
     For custom reactions, add a tightly cropped square image to public/assets/img/emoji/reaction_name.png
+- `REACTION_MAX_USER_NUM`: **10**: Change the number of users that are displayed in reactions tooltip (triggered by mouse hover).
 - `CUSTOM_EMOJIS`: **gitea, codeberg, gitlab, git, github, gogs**: Additional Emojis not defined in the utf8 standard.
     By default, we support Gitea (:gitea:), to add more copy them to public/assets/img/emoji/emoji_name.png and
     add it to this config.
 - `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 - `SEARCH_REPO_DESCRIPTION`: **true**: Whether to search within description at repository search on explore page.
-- `ONLY_SHOW_RELEVANT_REPOS`: **false** Whether to only show relevant repos on the explore page when no keyword is specified and default sorting is used.
+- `ONLY_SHOW_RELEVANT_REPOS`: **false**: Whether to only show relevant repos on the explore page when no keyword is specified and default sorting is used.
     A repo is considered irrelevant if it's a fork or if it has no metadata (no description, no icon, no topic).
+- `EXPLORE_PAGING_DEFAULT_SORT`: **recentupdate**: Change the sort type of the explore pages. Valid values are "recentupdate", "alphabetically", "reverselastlogin", "newest" and "oldest"
 
 ### UI - Admin (`ui.admin`)
 
@@ -281,6 +282,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 
 - `APP_DATA_PATH`: **_`AppWorkPath`_/data**: This is the default root path for storing data.
 - `PROTOCOL`: **http**: \[http, https, fcgi, http+unix, fcgi+unix\]
+  - Note: Value must be lowercase.
 - `USE_PROXY_PROTOCOL`: **false**: Expect PROXY protocol headers on connections
 - `PROXY_PROTOCOL_TLS_BRIDGING`: **false**: When protocol is https, expect PROXY protocol headers after TLS negotiation.
 - `PROXY_PROTOCOL_HEADER_TIMEOUT`: **5s**: Timeout to wait for PROXY protocol header (set to 0 to have no timeout)
@@ -340,7 +342,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SSH_AUTHORIZED_PRINCIPALS_ALLOW`: **off** or **username, email**: \[off, username, email, anything\]: Specify the principals values that users are allowed to use as principal. When set to `anything` no checks are done on the principal string. When set to `off` authorized principal are not allowed to be set.
 - `SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE`: **false/true**: Gitea will create a authorized_principals file by default when it is not using the internal ssh server and `SSH_AUTHORIZED_PRINCIPALS_ALLOW` is not `off`.
 - `SSH_AUTHORIZED_PRINCIPALS_BACKUP`: **false/true**: Enable SSH Authorized Principals Backup when rewriting all keys, default is true if `SSH_AUTHORIZED_PRINCIPALS_ALLOW` is not `off`.
-- `SSH_AUTHORIZED_KEYS_COMMAND_TEMPLATE`: **{{.AppPath}} --config={{.CustomConf}} serv key-{{.Key.ID}}**: Set the template for the command to passed on authorized keys. Possible keys are: AppPath, AppWorkPath, CustomConf, CustomPath, Key - where Key is a `models/asymkey.PublicKey` and the others are strings which are shellquoted.
+- `SSH_AUTHORIZED_KEYS_COMMAND_TEMPLATE`: **`{{.AppPath}} --config={{.CustomConf}} serv key-{{.Key.ID}}`**: Set the template for the command to passed on authorized keys. Possible keys are: AppPath, AppWorkPath, CustomConf, CustomPath, Key - where Key is a `models/asymkey.PublicKey` and the others are strings which are shellquoted.
 - `SSH_SERVER_CIPHERS`: **chacha20-poly1305@openssh.com, aes128-ctr, aes192-ctr, aes256-ctr, aes128-gcm@openssh.com, aes256-gcm@openssh.com**: For the built-in SSH server, choose the ciphers to support for SSH connections, for system SSH this setting has no effect.
 - `SSH_SERVER_KEY_EXCHANGES`: **curve25519-sha256, ecdh-sha2-nistp256, ecdh-sha2-nistp384, ecdh-sha2-nistp521, diffie-hellman-group14-sha256, diffie-hellman-group14-sha1**: For the built-in SSH server, choose the key exchange algorithms to support for SSH connections, for system SSH this setting has no effect.
 - `SSH_SERVER_MACS`: **hmac-sha2-256-etm@openssh.com, hmac-sha2-256, hmac-sha1**: For the built-in SSH server, choose the MACs to support for SSH connections, for system SSH this setting has no effect
@@ -353,7 +355,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SSH_PER_WRITE_PER_KB_TIMEOUT`: **10s**: Timeout per Kb written to SSH connections.
 - `MINIMUM_KEY_SIZE_CHECK`: **true**: Indicate whether to check minimum key size with corresponding type.
 
-- `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.
+- `OFFLINE_MODE`: **true**: Disables use of CDN for static files and Gravatar for profile pictures.
 - `CERT_FILE`: **https/cert.pem**: Cert file path used for HTTPS. When chaining, the server certificate must come first, then intermediate CA certificates (if any). This is ignored if `ENABLE_ACME=true`. Paths are relative to `CUSTOM_PATH`.
 - `KEY_FILE`: **https/key.pem**: Key file path used for HTTPS. This is ignored if `ENABLE_ACME=true`. Paths are relative to `CUSTOM_PATH`.
 - `STATIC_ROOT_PATH`: **_`StaticRootPath`_**: Upper level of template and static files path.
@@ -423,7 +425,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 ## Database (`database`)
 
 - `DB_TYPE`: **mysql**: The database type in use \[mysql, postgres, mssql, sqlite3\].
-- `HOST`: **127.0.0.1:3306**: Database host address and port or absolute path for unix socket \[mysql, postgres\] (ex: /var/run/mysqld/mysqld.sock).
+- `HOST`: **127.0.0.1:3306**: Database host address and port or absolute path for unix socket \[mysql, postgres[^1]\] (ex: /var/run/mysqld/mysqld.sock).
 - `NAME`: **gitea**: Database name.
 - `USER`: **root**: Database username.
 - `PASSWD`: **_empty_**: Database user password. Use \`your password\` or """your password""" for quoting if you use special characters in the password.
@@ -454,6 +456,8 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `CONN_MAX_LIFETIME` **0 or 3s**: Sets the maximum amount of time a DB connection may be reused - default is 0, meaning there is no limit (except on MySQL where it is 3s - see #6804 & #7071).
 - `AUTO_MIGRATION` **true**: Whether execute database models migrations automatically.
 
+[^1]: It may be necessary to specify a hostport even when listening on a unix socket, as the port is part of the socket name. see [#24552](https://github.com/go-gitea/gitea/issues/24552#issuecomment-1681649367) for additional details.
+
 Please see #8540 & #8273 for further discussion of the appropriate values for `MAX_OPEN_CONNS`, `MAX_IDLE_CONNS` & `CONN_MAX_LIFETIME` and their
 relation to port exhaustion.
 
@@ -483,7 +487,7 @@ Configuration at `[queue]` will set defaults for queues with overrides for indiv
 
 - `TYPE`: **level**: General queue type, currently support: `level` (uses a LevelDB internally), `channel`, `redis`, `dummy`. Invalid types are treated as `level`.
 - `DATADIR`: **queues/common**: Base DataDir for storing level queues. `DATADIR` for individual queues can be set in `queue.name` sections. Relative paths will be made absolute against `%(APP_DATA_PATH)s`.
-- `LENGTH`: **100**: Maximal queue size before channel queues block
+- `LENGTH`: **100000**: Maximal queue size before channel queues block
 - `BATCH_LENGTH`: **20**: Batch data before passing to the handler
 - `CONN_STR`: **redis://127.0.0.1:6379/0**: Connection string for the redis queue type. For `redis-cluster` use `redis+cluster://127.0.0.1:6379/0`. Options can be set using query params. Similarly, LevelDB options can also be set using: **leveldb://relative/path?option=value** or **leveldb:///absolute/path?option=value**, and will override `DATADIR`
 - `QUEUE_NAME`: **_queue**: The suffix for default redis and disk queue name. Individual queues will default to **`name`**`QUEUE_NAME` but can be overridden in the specific `queue.name` section.
@@ -517,7 +521,6 @@ And the following unique queues:
 - `SECRET_KEY`: **\<random at every install\>**: Global secret key. This key is VERY IMPORTANT, if you lost it, the data encrypted by it (like 2FA secret) can't be decrypted anymore.
 - `SECRET_KEY_URI`: **_empty_**: Instead of defining SECRET_KEY, this option can be used to use the key stored in a file (example value: `file:/etc/gitea/secret_key`). It shouldn't be lost like SECRET_KEY.
 - `LOGIN_REMEMBER_DAYS`: **7**: Cookie lifetime, in days.
-- `COOKIE_USERNAME`: **gitea\_awesome**: Name of the cookie used to store the current username.
 - `COOKIE_REMEMBER_NAME`: **gitea\_incredible**: Name of cookie used to store authentication
    information.
 - `REVERSE_PROXY_AUTHENTICATION_USER`: **X-WEBAUTH-USER**: Header name for reverse proxy
@@ -568,6 +571,7 @@ And the following unique queues:
   - off - do not check password complexity
 - `PASSWORD_CHECK_PWN`: **false**: Check [HaveIBeenPwned](https://haveibeenpwned.com/Passwords) to see if a password has been exposed.
 - `SUCCESSFUL_TOKENS_CACHE_SIZE`: **20**: Cache successful token hashes. API tokens are stored in the DB as pbkdf2 hashes however, this means that there is a potentially significant hashing load when there are multiple API operations. This cache will store the successfully hashed tokens in a LRU cache as a balance between performance and security.
+- `DISABLE_QUERY_AUTH_TOKEN`: **false**: Reject API tokens sent in URL query string (Accept Header-based API tokens only). This setting will default to `true` in Gitea 1.23 and be deprecated in Gitea 1.24.
 
 ## Camo (`camo`)
 
@@ -617,7 +621,7 @@ And the following unique queues:
 - `REQUIRE_SIGNIN_VIEW`: **false**: Enable this to force users to log in to view any page or to use API.
 - `ENABLE_NOTIFY_MAIL`: **false**: Enable this to send e-mail to watchers of a repository when
    something happens, like creating issues. Requires `Mailer` to be enabled.
-- `ENABLE_BASIC_AUTHENTICATION`: **true**: Disable this to disallow authenticaton using HTTP
+- `ENABLE_BASIC_AUTHENTICATION`: **true**: Disable this to disallow authentication using HTTP
    BASIC and the user's password. Please note if you disable this you will not be able to access the
    tokens API endpoints using a password. Further, this only disables BASIC authentication using the
    password - not tokens or OAuth Basic.
@@ -757,7 +761,6 @@ and
 
 ## Cache (`cache`)
 
-- `ENABLED`: **true**: Enable the cache.
 - `ADAPTER`: **memory**: Cache engine adapter, either `memory`, `redis`, `redis-cluster`, `twoqueue` or `memcache`. (`twoqueue` represents a size limited LRU cache.)
 - `INTERVAL`: **60**: Garbage Collection interval (sec), for memory and twoqueue cache only.
 - `HOST`: **_empty_**: Connection string for `redis`, `redis-cluster` and `memcache`. For `twoqueue` sets configuration for the queue.
@@ -769,7 +772,6 @@ and
 
 ## Cache - LastCommitCache settings (`cache.last_commit`)
 
-- `ENABLED`: **true**: Enable the cache.
 - `ITEM_TTL`: **8760h**: Time to keep items in cache if not used, Setting it to -1 disables caching.
 - `COMMITS_COUNT`: **1000**: Only enable the cache when repository's commits count great than.
 
@@ -819,7 +821,7 @@ Default templates for project boards:
 
 - `ENABLED`: **true**: Whether issue and pull request attachments are enabled.
 - `ALLOWED_TYPES`: **.csv,.docx,.fodg,.fodp,.fods,.fodt,.gif,.gz,.jpeg,.jpg,.log,.md,.mov,.mp4,.odf,.odg,.odp,.ods,.odt,.patch,.pdf,.png,.pptx,.svg,.tgz,.txt,.webm,.xls,.xlsx,.zip**: Comma-separated list of allowed file extensions (`.zip`), mime types (`text/plain`) or wildcard type (`image/*`, `audio/*`, `video/*`). Empty value or `*/*` allows all types.
-- `MAX_SIZE`: **4**: Maximum size (MB).
+- `MAX_SIZE`: **2048**: Maximum size (MB).
 - `MAX_FILES`: **5**: Maximum number of attachments that can be uploaded at once.
 - `STORAGE_TYPE`: **local**: Storage type for attachments, `local` for local disk or `minio` for s3 compatible object storage service, default is `local` or other name defined with `[storage.xxx]`
 - `SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
@@ -1107,7 +1109,7 @@ This section only does "set" config, a removed config key from this section won'
 - `JWT_SECRET_URI`: **_empty_**: Instead of defining JWT_SECRET in the configuration, this configuration option can be used to give Gitea a path to a file that contains the secret (example value: `file:/etc/gitea/oauth2_jwt_secret`)
 - `JWT_SIGNING_PRIVATE_KEY_FILE`: **jwt/private.pem**: Private key file path used to sign OAuth2 tokens. The path is relative to `APP_DATA_PATH`. This setting is only needed if `JWT_SIGNING_ALGORITHM` is set to `RS256`, `RS384`, `RS512`, `ES256`, `ES384` or `ES512`. The file must contain a RSA or ECDSA private key in the PKCS8 format. If no key exists a 4096 bit key will be created for you.
 - `MAX_TOKEN_LENGTH`: **32767**: Maximum length of token/cookie to accept from OAuth2 provider
-- `DEFAULT_APPLICATIONS`: **git-credential-oauth, git-credential-manager**: Pre-register OAuth applications for some services on startup. See the [OAuth2 documentation](/development/oauth2-provider.md) for the list of available options.
+- `DEFAULT_APPLICATIONS`: **git-credential-oauth, git-credential-manager, tea**: Pre-register OAuth applications for some services on startup. See the [OAuth2 documentation](/development/oauth2-provider.md) for the list of available options.
 
 ## i18n (`i18n`)
 
@@ -1277,7 +1279,7 @@ Default storage configuration for attachments, lfs, avatars, repo-avatars, repo-
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
 
-The recommanded storage configuration for minio like below:
+The recommended storage configuration for minio like below:
 
 ```ini
 [storage]
@@ -1389,19 +1391,23 @@ PROXY_HOSTS = *.github.com
 - `STORAGE_TYPE`: **local**: Storage type for actions logs, `local` for local disk or `minio` for s3 compatible object storage service, default is `local` or other name defined with `[storage.xxx]`
 - `MINIO_BASE_PATH`: **actions_log/**: Minio base path on the bucket only available when STORAGE_TYPE is `minio`
 - `ARTIFACT_RETENTION_DAYS`: **90**: Number of days to keep artifacts. Set to 0 to disable artifact retention. Default is 90 days if not set.
+- `ZOMBIE_TASK_TIMEOUT`: **10m**: Timeout to stop the task which have running status, but haven't been updated for a long time
+- `ENDLESS_TASK_TIMEOUT`: **3h**: Timeout to stop the tasks which have running status and continuous updates, but don't end for a long time
+- `ABANDONED_JOB_TIMEOUT`: **24h**: Timeout to cancel the jobs which have waiting status, but haven't been picked by a runner for a long time
+- `SKIP_WORKFLOW_STRINGS`: **[skip ci],[ci skip],[no ci],[skip actions],[actions skip]**: Strings committers can place inside a commit message to skip executing the corresponding actions workflow
 
 `DEFAULT_ACTIONS_URL` indicates where the Gitea Actions runners should find the actions with relative path.
-For example, `uses: actions/checkout@v3` means `https://github.com/actions/checkout@v3` since the value of `DEFAULT_ACTIONS_URL` is `github`.
-And it can be changed to `self` to make it `root_url_of_your_gitea/actions/checkout@v3`.
+For example, `uses: actions/checkout@v4` means `https://github.com/actions/checkout@v4` since the value of `DEFAULT_ACTIONS_URL` is `github`.
+And it can be changed to `self` to make it `root_url_of_your_gitea/actions/checkout@v4`.
 
 Please note that using `self` is not recommended for most cases, as it could make names globally ambiguous.
 Additionally, it requires you to mirror all the actions you need to your Gitea instance, which may not be worth it.
 Therefore, please use `self` only if you understand what you are doing.
 
-In earlier versions (<= 1.19), `DEFAULT_ACTIONS_URL` cound be set to any custom URLs like `https://gitea.com` or `http://your-git-server,https://gitea.com`, and the default value was `https://gitea.com`.
+In earlier versions (`<= 1.19`), `DEFAULT_ACTIONS_URL` could be set to any custom URLs like `https://gitea.com` or `http://your-git-server,https://gitea.com`, and the default value was `https://gitea.com`.
 However, later updates removed those options, and now the only options are `github` and `self`, with the default value being `github`.
 However, if you want to use actions from other git server, you can use a complete URL in `uses` field, it's supported by Gitea (but not GitHub).
-Like `uses: https://gitea.com/actions/checkout@v3` or `uses: http://your-git-server/actions/checkout@v3`.
+Like `uses: https://gitea.com/actions/checkout@v4` or `uses: http://your-git-server/actions/checkout@v4`.
 
 ## Other (`other`)
 

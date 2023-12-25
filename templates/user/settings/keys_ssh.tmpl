@@ -53,7 +53,7 @@
 								{{.Fingerprint}}
 						</div>
 						<div class="flex-item-body">
-								<i>{{ctx.Locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}} —	{{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
+								<i>{{ctx.Locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}} —	{{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
 						</div>
 				</div>
 				<div class="flex-item-trailing">
@@ -78,7 +78,7 @@
 							<input readonly="" value="{{$.TokenToSign}}">
 							<div class="help">
 								<p>{{ctx.Locale.Tr "settings.ssh_token_help"}}</p>
-								<p><code>{{printf "echo -n '%s' | ssh-keygen -Y sign -n gitea -f /path_to_your_privkey" $.TokenToSign}}</code></p>
+								<p><code>{{printf "echo -n '%s' | ssh-keygen -Y sign -n gitea -f /path_to_PrivateKey_or_RelatedPublicKey" $.TokenToSign}}</code></p>
 							</div>
 							<br>
 						</div>

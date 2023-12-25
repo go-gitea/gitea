@@ -5,7 +5,7 @@
 		{{template "base/alert" .}}
 		{{template "repo/code/recently_pushed_new_branches" .}}
 		{{if and (not .HideRepoInfo) (not .IsBlame)}}
-		<div class="ui repo-description">
+		<div class="ui repo-description gt-word-break">
 			<div id="repo-desc" class="gt-font-16">
 				{{$description := .Repository.DescriptionHTML $.Context}}
 				{{if $description}}<span class="description">{{$description | RenderCodeBlock}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{ctx.Locale.Tr "repo.no_desc"}}</span>{{end}}
@@ -35,9 +35,9 @@
 		</div>
 		{{end}}
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
-		<div class="ui form gt-hidden gt-df gt-mt-4" id="topic_edit">
-			<div class="field gt-f1 gt-mr-3">
-				<div class="ui fluid multiple search selection dropdown" data-text-count-prompt="{{ctx.Locale.Tr "repo.topic.count_prompt"}}" data-text-format-prompt="{{.locale.Tr "repo.topic.format_prompt"}}">
+		<div class="ui form gt-hidden gt-df gt-fc gt-mt-4" id="topic_edit">
+			<div class="field gt-f1 gt-mb-2">
+				<div class="ui fluid multiple search selection dropdown gt-fw" data-text-count-prompt="{{ctx.Locale.Tr "repo.topic.count_prompt"}}" data-text-format-prompt="{{ctx.Locale.Tr "repo.topic.format_prompt"}}">
 					<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.Topics)}},{{end}}{{end}}">
 					{{range .Topics}}
 						{{/* keey the same layout as Fomantic UI generated labels */}}
@@ -73,7 +73,7 @@
 					{{$cmpBranch = print $cmpBranch (.BranchName|PathEscapeSegments)}}
 					{{$compareLink := printf "%s/compare/%s...%s" .BaseRepo.Link (.BaseRepo.DefaultBranch|PathEscapeSegments) $cmpBranch}}
 					<a id="new-pull-request" role="button" class="ui compact basic button" href="{{$compareLink}}"
-						data-tooltip-content="{{if .PullRequestCtx.Allowed}}{{ctx.Locale.Tr "repo.pulls.compare_changes"}}{{else}}{{.locale.Tr "action.compare_branch"}}{{end}}">
+						data-tooltip-content="{{if .PullRequestCtx.Allowed}}{{ctx.Locale.Tr "repo.pulls.compare_changes"}}{{else}}{{ctx.Locale.Tr "action.compare_branch"}}{{end}}">
 						{{svg "octicon-git-pull-request"}}
 					</a>
 				{{end}}

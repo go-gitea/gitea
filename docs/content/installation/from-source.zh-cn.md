@@ -64,7 +64,7 @@ git checkout v@version@  # or git checkout pr-xyz
 
 - `go` @minGoVersion@ 或更高版本，请参阅 [这里](https://golang.org/dl/)
 - `node` @minNodeVersion@ 或更高版本，并且安装 `npm`, 请参阅 [这里](https://nodejs.org/zh-cn/download/)
-- `make`, 请参阅 [这里](/zh-cn/hacking-on-gitea/)
+- `make`, 请参阅 [这里](development/hacking-on-gitea.md)
 
 为了尽可能简化编译过程，提供了各种 [make任务](https://github.com/go-gitea/gitea/blob/main/Makefile)。
 
@@ -99,8 +99,6 @@ TAGS="bindata sqlite sqlite_unlock_notify" make build
 ```bash
 TAGS="bindata" make backend
 ```
-
-在开发构建中，默认启用 Webpack 源映射，在生产构建中禁用。可以通过设置`ENABLE_SOURCEMAP=true`环境变量来启用它们。
 
 ## 测试
 
@@ -221,3 +219,11 @@ GOARCH=amd64 \
 TAGS="bindata sqlite sqlite_unlock_notify" \
 make build
 ```
+
+## Source Map
+
+默认情况下，gitea 会为前端文件生成精简的 Source Map 以节省空间。 这可以通过“ENABLE_SOURCEMAP”环境变量进行控制：
+
+- `ENABLE_SOURCEMAP=true` 生成所有Source Map，这是开发版本的默认设置
+- `ENABLE_SOURCEMAP=reduced` 生成有限的Source Map，这是生产版本的默认设置
+- `ENABLE_SOURCEMAP=false` 不生成Source Map

@@ -68,7 +68,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 
 func TestPullMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(1, 1) // Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(db.DefaultContext, 1, 1) // Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -82,7 +82,7 @@ func TestPullMerge(t *testing.T) {
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge)
 
-		hookTasks, err = webhook.HookTasks(1, 1)
+		hookTasks, err = webhook.HookTasks(db.DefaultContext, 1, 1)
 		assert.NoError(t, err)
 		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
@@ -90,7 +90,7 @@ func TestPullMerge(t *testing.T) {
 
 func TestPullRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(1, 1) // Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(db.DefaultContext, 1, 1) // Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -104,7 +104,7 @@ func TestPullRebase(t *testing.T) {
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleRebase)
 
-		hookTasks, err = webhook.HookTasks(1, 1)
+		hookTasks, err = webhook.HookTasks(db.DefaultContext, 1, 1)
 		assert.NoError(t, err)
 		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
@@ -112,7 +112,7 @@ func TestPullRebase(t *testing.T) {
 
 func TestPullRebaseMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(1, 1) // Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(db.DefaultContext, 1, 1) // Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -126,7 +126,7 @@ func TestPullRebaseMerge(t *testing.T) {
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleRebaseMerge)
 
-		hookTasks, err = webhook.HookTasks(1, 1)
+		hookTasks, err = webhook.HookTasks(db.DefaultContext, 1, 1)
 		assert.NoError(t, err)
 		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
@@ -134,7 +134,7 @@ func TestPullRebaseMerge(t *testing.T) {
 
 func TestPullSquash(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(1, 1) // Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(db.DefaultContext, 1, 1) // Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -149,7 +149,7 @@ func TestPullSquash(t *testing.T) {
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleSquash)
 
-		hookTasks, err = webhook.HookTasks(1, 1)
+		hookTasks, err = webhook.HookTasks(db.DefaultContext, 1, 1)
 		assert.NoError(t, err)
 		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
@@ -218,11 +218,11 @@ func TestCantMergeConflict(t *testing.T) {
 
 		// Use API to create a conflicting pr
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", "user1", "repo1", token), &api.CreatePullRequestOption{
+		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", "user1", "repo1"), &api.CreatePullRequestOption{
 			Head:  "conflict",
 			Base:  "base",
 			Title: "create a conflicting pr",
-		})
+		}).AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusCreated)
 
 		// Now this PR will be marked conflict - or at least a race will do - so drop down to pure code at this point...
@@ -326,11 +326,11 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		// Use API to create a conflicting pr
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", "user1", "repo1", token), &api.CreatePullRequestOption{
+		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", "user1", "repo1"), &api.CreatePullRequestOption{
 			Head:  "unrelated",
 			Base:  "base",
 			Title: "create an unrelated pr",
-		})
+		}).AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusCreated)
 
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
@@ -425,6 +425,6 @@ func TestConflictChecking(t *testing.T) {
 		// Check if status is correct.
 		assert.Equal(t, issues_model.PullRequestStatusConflict, conflictingPR.Status)
 		// Ensure that mergeable returns false
-		assert.False(t, conflictingPR.Mergeable())
+		assert.False(t, conflictingPR.Mergeable(db.DefaultContext))
 	})
 }

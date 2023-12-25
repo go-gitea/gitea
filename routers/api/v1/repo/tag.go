@@ -257,7 +257,7 @@ func DeleteTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/repoArchivedError"
 	tagName := ctx.Params("*")
 
-	tag, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tagName)
+	tag, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound()
@@ -272,7 +272,7 @@ func DeleteTag(ctx *context.APIContext) {
 		return
 	}
 
-	if err = releaseservice.DeleteReleaseByID(ctx, tag.ID, ctx.Doer, true); err != nil {
+	if err = releaseservice.DeleteReleaseByID(ctx, ctx.Repo.Repository, tag, ctx.Doer, true); err != nil {
 		if models.IsErrProtectedTagName(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "delTag", "user not allowed to delete protected tag")
 			return

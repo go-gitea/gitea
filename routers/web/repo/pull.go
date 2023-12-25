@@ -180,6 +180,21 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 		return nil
 	}
 
+	branches, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+		RepoID: ctx.Repo.Repository.ID,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		IsDeletedBranch: util.OptionalBoolFalse,
+		// Add it as the first option
+		ExcludeBranchNames: []string{ctx.Repo.Repository.DefaultBranch},
+	})
+	if err != nil {
+		ctx.ServerError("FindBranchNames", err)
+		return nil
+	}
+	ctx.Data["Branches"] = append([]string{ctx.Repo.Repository.DefaultBranch}, branches...)
+
 	return forkRepo
 }
 
@@ -250,7 +265,7 @@ func ForkPost(ctx *context.Context) {
 
 	// Check if user is allowed to create repo's on the organization.
 	if ctxUser.IsOrganization() {
-		isAllowedToFork, err := organization.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx.Doer.ID)
+		isAllowedToFork, err := organization.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("CanCreateOrgRepo", err)
 			return
@@ -261,9 +276,10 @@ func ForkPost(ctx *context.Context) {
 	}
 
 	repo, err := repo_service.ForkRepository(ctx, ctx.Doer, ctxUser, repo_service.ForkRepoOptions{
-		BaseRepo:    forkRepo,
-		Name:        form.RepoName,
-		Description: form.Description,
+		BaseRepo:     forkRepo,
+		Name:         form.RepoName,
+		Description:  form.Description,
+		SingleBranch: form.ForkSingleBranch,
 	})
 	if err != nil {
 		ctx.Data["Err_RepoName"] = true
@@ -355,8 +371,8 @@ func setMergeTarget(ctx *context.Context, pull *issues_model.PullRequest) {
 		ctx.Data["HeadTarget"] = pull.MustHeadUserName(ctx) + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
 	}
 	ctx.Data["BaseTarget"] = pull.BaseBranch
-	ctx.Data["HeadBranchLink"] = pull.GetHeadBranchLink()
-	ctx.Data["BaseBranchLink"] = pull.GetBaseBranchLink()
+	ctx.Data["HeadBranchLink"] = pull.GetHeadBranchLink(ctx)
+	ctx.Data["BaseBranchLink"] = pull.GetBaseBranchLink(ctx)
 }
 
 // GetPullDiffStats get Pull Requests diff stats
@@ -637,7 +653,15 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	if pb != nil && pb.EnableStatusCheck {
 		ctx.Data["is_context_required"] = func(context string) bool {
 			for _, c := range pb.StatusCheckContexts {
-				if gp, err := glob.Compile(c); err == nil && gp.Match(context) {
+				if c == context {
+					return true
+				}
+				if gp, err := glob.Compile(c); err != nil {
+					// All newly created status_check_contexts are checked to ensure they are valid glob expressions before being stored in the database.
+					// But some old status_check_context created before glob was introduced may be invalid glob expressions.
+					// So log the error here for debugging.
+					log.Error("compile glob %q: %v", c, err)
+				} else if gp.Match(context) {
 					return true
 				}
 			}
@@ -680,7 +704,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 		ctx.Data["IsNothingToCompare"] = true
 	}
 
-	if pull.IsWorkInProgress() {
+	if pull.IsWorkInProgress(ctx) {
 		ctx.Data["IsPullWorkInProgress"] = true
 		ctx.Data["WorkInProgressPrefix"] = pull.GetWorkInProgressPrefix(ctx)
 	}
@@ -892,7 +916,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	// as the viewed information is designed to be loaded only on latest PR
 	// diff and if you're signed in.
 	if !ctx.IsSigned || willShowSpecifiedCommit || willShowSpecifiedCommitRange {
-		diff, err = gitdiff.GetDiff(gitRepo, diffOptions, files...)
+		diff, err = gitdiff.GetDiff(ctx, gitRepo, diffOptions, files...)
 		methodWithError = "GetDiff"
 	} else {
 		diff, err = gitdiff.SyncAndGetUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, diffOptions, files...)
@@ -943,7 +967,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	}
 
 	if ctx.IsSigned && ctx.Doer != nil {
-		if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(issue, ctx.Doer); err != nil {
+		if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
 			ctx.ServerError("CanMarkConversation", err)
 			return
 		}
@@ -970,7 +994,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	}
 	numPendingCodeComments := int64(0)
 	if currentReview != nil {
-		numPendingCodeComments, err = issues_model.CountComments(&issues_model.FindCommentsOptions{
+		numPendingCodeComments, err = issues_model.CountComments(ctx, &issues_model.FindCommentsOptions{
 			Type:     issues_model.CommentTypeCode,
 			ReviewID: currentReview.ID,
 			IssueID:  issue.ID,
@@ -1154,7 +1178,7 @@ func MergePullRequest(ctx *context.Context) {
 
 	// handle manually-merged mark
 	if manuallyMerged {
-		if err := pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
+		if err := pull_service.MergedManually(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			switch {
 
 			case models.IsErrInvalidMergeStyle(err):

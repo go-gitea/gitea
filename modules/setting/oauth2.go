@@ -110,7 +110,7 @@ var OAuth2 = struct {
 	JWTSigningAlgorithm:        "RS256",
 	JWTSigningPrivateKeyFile:   "jwt/private.pem",
 	MaxTokenLength:             math.MaxInt16,
-	DefaultApplications:        []string{"git-credential-oauth", "git-credential-manager"},
+	DefaultApplications:        []string{"git-credential-oauth", "git-credential-manager", "tea"},
 }
 
 func loadOAuth2From(rootCfg ConfigProvider) {

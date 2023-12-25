@@ -6,12 +6,12 @@ import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {svg} from '../svg.js';
-import {hideElem, showElem, toggleElem} from '../utils/dom.js';
+import {hideElem, showElem, toggleElem, initSubmitEventPolyfill, submitEventSubmitter} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
 import {showTemporaryTooltip} from '../modules/tippy.js';
 import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
-import {request} from '../modules/fetch.js';
+import {request, POST} from '../modules/fetch.js';
 
 const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
 
@@ -45,7 +45,6 @@ export function initFootLanguageMenu() {
 
   $('.language-menu a[lang]').on('click', linkLanguageAction);
 }
-
 
 export function initGlobalEnterQuickSubmit() {
   $(document).on('keydown', '.js-quick-submit', (e) => {
@@ -122,7 +121,8 @@ async function formFetchAction(e) {
   const formMethod = formEl.getAttribute('method') || 'get';
   const formActionUrl = formEl.getAttribute('action');
   const formData = new FormData(formEl);
-  const [submitterName, submitterValue] = [e.submitter?.getAttribute('name'), e.submitter?.getAttribute('value')];
+  const formSubmitter = submitEventSubmitter(e);
+  const [submitterName, submitterValue] = [formSubmitter?.getAttribute('name'), formSubmitter?.getAttribute('value')];
   if (submitterName) {
     formData.append(submitterName, submitterValue || '');
   }
@@ -193,6 +193,7 @@ export function initGlobalCommon() {
 
   $('.tabular.menu .item').tab();
 
+  initSubmitEventPolyfill();
   document.addEventListener('submit', formFetchAction);
   document.addEventListener('click', linkAction);
 }
@@ -243,11 +244,14 @@ export function initGlobalDropzone() {
         this.on('removedfile', (file) => {
           $(`#${file.uuid}`).remove();
           if ($dropzone.data('remove-url')) {
-            $.post($dropzone.data('remove-url'), {
-              file: file.uuid,
-              _csrf: csrfToken,
+            POST($dropzone.data('remove-url'), {
+              data: new URLSearchParams({file: file.uuid}),
             });
           }
+        });
+        this.on('error', function (file, message) {
+          showErrorToast(message);
+          this.removeFile(file);
         });
       },
     });

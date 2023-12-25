@@ -5,7 +5,6 @@ package wiki
 
 import (
 	"math/rand"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -20,9 +19,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func TestWebPathSegments(t *testing.T) {
@@ -305,7 +302,7 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	// Now create a temporaryDirectory
 	tmpDir := t.TempDir()
 
-	err := git.InitRepository(git.DefaultContext, tmpDir, true)
+	err := git.InitRepository(git.DefaultContext, tmpDir, true, git.Sha1ObjectFormat.Name())
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, tmpDir)

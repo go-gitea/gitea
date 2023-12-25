@@ -123,7 +123,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	if !isNewFile {
 		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 		if err != nil {
-			ctx.NotFoundOrServerError("GetTreeEntryByPath", git.IsErrNotExist, err)
+			HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 			return
 		}
 
@@ -287,7 +287,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 				Operation:     operation,
 				FromTreePath:  ctx.Repo.TreePath,
 				TreePath:      form.TreePath,
-				ContentReader: strings.NewReader(form.Content),
+				ContentReader: strings.NewReader(strings.ReplaceAll(form.Content, "\r", "")),
 			},
 		},
 		Signoff: form.Signoff,

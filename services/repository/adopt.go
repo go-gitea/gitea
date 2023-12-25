@@ -195,7 +195,7 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 		return fmt.Errorf("updateRepository: %w", err)
 	}
 
-	if err = repo_module.SyncReleasesWithTags(repo, gitRepo); err != nil {
+	if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
 		return fmt.Errorf("SyncReleasesWithTags: %w", err)
 	}
 
@@ -259,7 +259,7 @@ func checkUnadoptedRepositories(ctx context.Context, userName string, repoNamesT
 		}
 		return err
 	}
-	repos, _, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
+	repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
 		Actor:   ctxUser,
 		Private: true,
 		ListOptions: db.ListOptions{
