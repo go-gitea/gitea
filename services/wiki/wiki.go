@@ -36,7 +36,7 @@ func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 		return nil
 	}
 
-	if err := git.InitRepository(ctx, repo.WikiPath(), true); err != nil {
+	if err := git.InitRepository(ctx, repo.WikiPath(), true, repo.ObjectFormatName); err != nil {
 		return fmt.Errorf("InitRepository: %w", err)
 	} else if err = repo_module.CreateDelegateHooks(repo.WikiPath()); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
@@ -350,7 +350,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 // DeleteWiki removes the actual and local copy of repository wiki.
 func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
-	if err := repo_model.UpdateRepositoryUnits(repo, nil, []unit.Type{unit.TypeWiki}); err != nil {
+	if err := repo_model.UpdateRepositoryUnits(ctx, repo, nil, []unit.Type{unit.TypeWiki}); err != nil {
 		return err
 	}
 

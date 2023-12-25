@@ -142,22 +142,14 @@ type Issue struct {
 }
 
 var (
-	issueTasksPat     *regexp.Regexp
-	issueTasksDonePat *regexp.Regexp
-)
-
-const (
-	issueTasksRegexpStr     = `(^\s*[-*]\s\[[\sxX]\]\s.)|(\n\s*[-*]\s\[[\sxX]\]\s.)`
-	issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[xX]\]\s.)|(\n\s*[-*]\s\[[xX]\]\s.)`
+	issueTasksPat     = regexp.MustCompile(`(^\s*[-*]\s\[[\sxX]\]\s.)|(\n\s*[-*]\s\[[\sxX]\]\s.)`)
+	issueTasksDonePat = regexp.MustCompile(`(^\s*[-*]\s\[[xX]\]\s.)|(\n\s*[-*]\s\[[xX]\]\s.)`)
 )
 
 // IssueIndex represents the issue index table
 type IssueIndex db.ResourceIndex
 
 func init() {
-	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
-	issueTasksDonePat = regexp.MustCompile(issueTasksDoneRegexpStr)
-
 	db.RegisterModel(new(Issue))
 	db.RegisterModel(new(IssueIndex))
 }
@@ -201,12 +193,12 @@ func (issue *Issue) IsTimetrackerEnabled(ctx context.Context) bool {
 }
 
 // GetPullRequest returns the issue pull request
-func (issue *Issue) GetPullRequest() (pr *PullRequest, err error) {
+func (issue *Issue) GetPullRequest(ctx context.Context) (pr *PullRequest, err error) {
 	if !issue.IsPull {
 		return nil, fmt.Errorf("Issue is not a pull request")
 	}
 
-	pr, err = GetPullRequestByIssueID(db.DefaultContext, issue.ID)
+	pr, err = GetPullRequestByIssueID(ctx, issue.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +211,7 @@ func (issue *Issue) LoadPoster(ctx context.Context) (err error) {
 	if issue.Poster == nil && issue.PosterID != 0 {
 		issue.Poster, err = user_model.GetPossibleUserByID(ctx, issue.PosterID)
 		if err != nil {
-			issue.PosterID = -1
+			issue.PosterID = user_model.GhostUserID
 			issue.Poster = user_model.NewGhostUser()
 			if !user_model.IsErrUserNotExist(err) {
 				return fmt.Errorf("getUserByID.(poster) [%d]: %w", issue.PosterID, err)
@@ -369,9 +361,9 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 }
 
 // GetIsRead load the `IsRead` field of the issue
-func (issue *Issue) GetIsRead(userID int64) error {
+func (issue *Issue) GetIsRead(ctx context.Context, userID int64) error {
 	issueUser := &IssueUser{IssueID: issue.ID, UID: userID}
-	if has, err := db.GetEngine(db.DefaultContext).Get(issueUser); err != nil {
+	if has, err := db.GetEngine(ctx).Get(issueUser); err != nil {
 		return err
 	} else if !has {
 		issue.IsRead = false
@@ -382,9 +374,9 @@ func (issue *Issue) GetIsRead(userID int64) error {
 }
 
 // APIURL returns the absolute APIURL to this issue.
-func (issue *Issue) APIURL() string {
+func (issue *Issue) APIURL(ctx context.Context) string {
 	if issue.Repo == nil {
-		err := issue.LoadRepo(db.DefaultContext)
+		err := issue.LoadRepo(ctx)
 		if err != nil {
 			log.Error("Issue[%d].APIURL(): %v", issue.ID, err)
 			return ""
@@ -479,9 +471,9 @@ func (issue *Issue) GetLastEventLabel() string {
 }
 
 // GetLastComment return last comment for the current issue.
-func (issue *Issue) GetLastComment() (*Comment, error) {
+func (issue *Issue) GetLastComment(ctx context.Context) (*Comment, error) {
 	var c Comment
-	exist, err := db.GetEngine(db.DefaultContext).Where("type = ?", CommentTypeComment).
+	exist, err := db.GetEngine(ctx).Where("type = ?", CommentTypeComment).
 		And("issue_id = ?", issue.ID).Desc("created_unix").Get(&c)
 	if err != nil {
 		return nil, err
@@ -542,15 +534,6 @@ func GetIssueByID(ctx context.Context, id int64) (*Issue, error) {
 	return issue, nil
 }
 
-// GetIssueWithAttrsByID returns an issue with attributes by given ID.
-func GetIssueWithAttrsByID(id int64) (*Issue, error) {
-	issue, err := GetIssueByID(db.DefaultContext, id)
-	if err != nil {
-		return nil, err
-	}
-	return issue, issue.LoadAttributes(db.DefaultContext)
-}
-
 // GetIssuesByIDs return issues with the given IDs.
 // If keepOrder is true, the order of the returned issues will be the same as the given IDs.
 func GetIssuesByIDs(ctx context.Context, issueIDs []int64, keepOrder ...bool) (IssueList, error) {
@@ -600,8 +583,8 @@ func GetParticipantsIDsByIssueID(ctx context.Context, issueID int64) ([]int64, e
 }
 
 // IsUserParticipantsOfIssue return true if user is participants of an issue
-func IsUserParticipantsOfIssue(user *user_model.User, issue *Issue) bool {
-	userIDs, err := issue.GetParticipantIDsByIssue(db.DefaultContext)
+func IsUserParticipantsOfIssue(ctx context.Context, user *user_model.User, issue *Issue) bool {
+	userIDs, err := issue.GetParticipantIDsByIssue(ctx)
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -894,8 +877,8 @@ func IsErrIssueMaxPinReached(err error) bool {
 }
 
 // InsertIssues insert issues to database
-func InsertIssues(issues ...*Issue) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func InsertIssues(ctx context.Context, issues ...*Issue) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

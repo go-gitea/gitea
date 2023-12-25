@@ -7,6 +7,7 @@ package git
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -62,14 +63,49 @@ func IsRepoURLAccessible(ctx context.Context, url string) bool {
 	return err == nil
 }
 
+// GetObjectFormatOfRepo returns the hash type of repository at a given path
+func GetObjectFormatOfRepo(ctx context.Context, repoPath string) (ObjectFormat, error) {
+	var stdout, stderr strings.Builder
+
+	err := NewCommand(ctx, "hash-object", "--stdin").Run(&RunOpts{
+		Dir:    repoPath,
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Stdin:  &strings.Reader{},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if stderr.Len() > 0 {
+		return nil, errors.New(stderr.String())
+	}
+
+	h, err := NewIDFromString(strings.TrimRight(stdout.String(), "\n"))
+	if err != nil {
+		return nil, err
+	}
+
+	return h.Type(), nil
+}
+
 // InitRepository initializes a new Git repository.
-func InitRepository(ctx context.Context, repoPath string, bare bool) error {
+func InitRepository(ctx context.Context, repoPath string, bare bool, objectFormatName string) error {
 	err := os.MkdirAll(repoPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
 	cmd := NewCommand(ctx, "init")
+	if SupportHashSha256 {
+		if objectFormatName == "" {
+			objectFormatName = Sha1ObjectFormat.Name()
+		}
+		if !IsValidObjectFormat(objectFormatName) {
+			return fmt.Errorf("invalid object format: %s", objectFormatName)
+		}
+		cmd.AddOptionValues("--object-format", objectFormatName)
+	}
 	if bare {
 		cmd.AddArguments("--bare")
 	}
@@ -86,7 +122,8 @@ func (repo *Repository) IsEmpty() (bool, error) {
 			Stdout: &output,
 			Stderr: &errbuf,
 		}); err != nil {
-		if err.Error() == "exit status 1" && errbuf.String() == "" {
+		if (err.Error() == "exit status 1" && strings.TrimSpace(errbuf.String()) == "") || err.Error() == "exit status 129" {
+			// git 2.11 exits with 129 if the repo is empty
 			return true, nil
 		}
 		return true, fmt.Errorf("check empty: %w - %s", err, errbuf.String())

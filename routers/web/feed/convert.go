@@ -290,7 +290,7 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release, i
 		content, err = markdown.RenderString(&markup.RenderContext{
 			Ctx:       ctx,
 			URLPrefix: rel.Repo.Link(),
-			Metas:     rel.Repo.ComposeMetas(),
+			Metas:     rel.Repo.ComposeMetas(ctx),
 		}, rel.Note)
 
 		if err != nil {

@@ -176,7 +176,7 @@ func ListPushMirrors(ctx *context.APIContext) {
 
 	responsePushMirrors := make([]*api.PushMirror, 0, len(pushMirrors))
 	for _, mirror := range pushMirrors {
-		m, err := convert.ToPushMirror(mirror)
+		m, err := convert.ToPushMirror(ctx, mirror)
 		if err == nil {
 			responsePushMirrors = append(responsePushMirrors, m)
 		}
@@ -232,7 +232,7 @@ func GetPushMirrorByName(ctx *context.APIContext) {
 		ctx.Error(http.StatusNotFound, "GetPushMirrors", err)
 		return
 	}
-	m, err := convert.ToPushMirror(pushMirror)
+	m, err := convert.ToPushMirror(ctx, pushMirror)
 	if err != nil {
 		ctx.ServerError("GetPushMirrorByRemoteName", err)
 		return
@@ -381,7 +381,7 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 		ctx.ServerError("AddPushMirrorRemote", err)
 		return
 	}
-	m, err := convert.ToPushMirror(pushMirror)
+	m, err := convert.ToPushMirror(ctx, pushMirror)
 	if err != nil {
 		ctx.ServerError("ToPushMirror", err)
 		return

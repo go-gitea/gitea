@@ -42,7 +42,10 @@ func GetNotificationCount(ctx *context.Context) {
 	}
 
 	ctx.Data["NotificationUnreadCount"] = func() int64 {
-		count, err := activities_model.GetNotificationCount(ctx, ctx.Doer, activities_model.NotificationStatusUnread)
+		count, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
+			UserID: ctx.Doer.ID,
+			Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
+		})
 		if err != nil {
 			if err != goctx.Canceled {
 				log.Error("Unable to GetNotificationCount for user:%-v: %v", ctx.Doer, err)
@@ -89,7 +92,10 @@ func getNotifications(ctx *context.Context) {
 		status = activities_model.NotificationStatusUnread
 	}
 
-	total, err := activities_model.GetNotificationCount(ctx, ctx.Doer, status)
+	total, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
+		UserID: ctx.Doer.ID,
+		Status: []activities_model.NotificationStatus{status},
+	})
 	if err != nil {
 		ctx.ServerError("ErrGetNotificationCount", err)
 		return
@@ -103,11 +109,20 @@ func getNotifications(ctx *context.Context) {
 	}
 
 	statuses := []activities_model.NotificationStatus{status, activities_model.NotificationStatusPinned}
-	notifications, err := activities_model.NotificationsForUser(ctx, ctx.Doer, statuses, page, perPage)
+	nls, err := db.Find[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
+		ListOptions: db.ListOptions{
+			PageSize: perPage,
+			Page:     page,
+		},
+		UserID: ctx.Doer.ID,
+		Status: statuses,
+	})
 	if err != nil {
-		ctx.ServerError("ErrNotificationsForUser", err)
+		ctx.ServerError("db.Find[activities_model.Notification]", err)
 		return
 	}
+
+	notifications := activities_model.NotificationList(nls)
 
 	failCount := 0
 
@@ -409,5 +424,15 @@ func NotificationWatching(ctx *context.Context) {
 
 // NewAvailable returns the notification counts
 func NewAvailable(ctx *context.Context) {
-	ctx.JSON(http.StatusOK, structs.NotificationCount{New: activities_model.CountUnread(ctx, ctx.Doer.ID)})
+	total, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
+		UserID: ctx.Doer.ID,
+		Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
+	})
+	if err != nil {
+		log.Error("db.Count[activities_model.Notification]", err)
+		ctx.JSON(http.StatusOK, structs.NotificationCount{New: 0})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, structs.NotificationCount{New: total})
 }

@@ -183,6 +183,14 @@ func (t CommentType) HasAttachmentSupport() bool {
 	return false
 }
 
+func (t CommentType) HasMailReplySupport() bool {
+	switch t {
+	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview, CommentTypeReopen, CommentTypeClose, CommentTypeMergePull, CommentTypeAssignees:
+		return true
+	}
+	return false
+}
+
 // RoleInRepo presents the user's participation in the repo
 type RoleInRepo string
 
@@ -342,14 +350,14 @@ func (c *Comment) AfterLoad(session *xorm.Session) {
 
 // LoadPoster loads comment poster
 func (c *Comment) LoadPoster(ctx context.Context) (err error) {
-	if c.PosterID <= 0 || c.Poster != nil {
+	if c.Poster != nil {
 		return nil
 	}
 
 	c.Poster, err = user_model.GetPossibleUserByID(ctx, c.PosterID)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			c.PosterID = -1
+			c.PosterID = user_model.GhostUserID
 			c.Poster = user_model.NewGhostUser()
 		} else {
 			log.Error("getUserByID[%d]: %v", c.ID, err)
@@ -655,12 +663,12 @@ func (c *Comment) LoadDepIssueDetails(ctx context.Context) (err error) {
 }
 
 // LoadTime loads the associated time for a CommentTypeAddTimeManual
-func (c *Comment) LoadTime() error {
+func (c *Comment) LoadTime(ctx context.Context) error {
 	if c.Time != nil || c.TimeID == 0 {
 		return nil
 	}
 	var err error
-	c.Time, err = GetTrackedTimeByID(c.TimeID)
+	c.Time, err = GetTrackedTimeByID(ctx, c.TimeID)
 	return err
 }
 
@@ -1016,10 +1024,11 @@ type FindCommentsOptions struct {
 	Type        CommentType
 	IssueIDs    []int64
 	Invalidated util.OptionalBool
+	IsPull      util.OptionalBool
 }
 
 // ToConds implements FindOptions interface
-func (opts *FindCommentsOptions) ToConds() builder.Cond {
+func (opts FindCommentsOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
@@ -1050,6 +1059,9 @@ func (opts *FindCommentsOptions) ToConds() builder.Cond {
 	if !opts.Invalidated.IsNone() {
 		cond = cond.And(builder.Eq{"comment.invalidated": opts.Invalidated.IsTrue()})
 	}
+	if opts.IsPull != util.OptionalBoolNone {
+		cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull.IsTrue()})
+	}
 	return cond
 }
 
@@ -1057,7 +1069,7 @@ func (opts *FindCommentsOptions) ToConds() builder.Cond {
 func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, error) {
 	comments := make([]*Comment, 0, 10)
 	sess := db.GetEngine(ctx).Where(opts.ToConds())
-	if opts.RepoID > 0 {
+	if opts.RepoID > 0 || opts.IsPull != util.OptionalBoolNone {
 		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 	}
 

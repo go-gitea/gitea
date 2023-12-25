@@ -242,17 +242,18 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 	}
 
 	repo, err := repo_service.CreateRepository(ctx, ctx.Doer, owner, repo_service.CreateRepoOptions{
-		Name:          opt.Name,
-		Description:   opt.Description,
-		IssueLabels:   opt.IssueLabels,
-		Gitignores:    opt.Gitignores,
-		License:       opt.License,
-		Readme:        opt.Readme,
-		IsPrivate:     opt.Private,
-		AutoInit:      opt.AutoInit,
-		DefaultBranch: opt.DefaultBranch,
-		TrustModel:    repo_model.ToTrustModel(opt.TrustModel),
-		IsTemplate:    opt.Template,
+		Name:             opt.Name,
+		Description:      opt.Description,
+		IssueLabels:      opt.IssueLabels,
+		Gitignores:       opt.Gitignores,
+		License:          opt.License,
+		Readme:           opt.Readme,
+		IsPrivate:        opt.Private,
+		AutoInit:         opt.AutoInit,
+		DefaultBranch:    opt.DefaultBranch,
+		TrustModel:       repo_model.ToTrustModel(opt.TrustModel),
+		IsTemplate:       opt.Template,
+		ObjectFormatName: git.Sha1ObjectFormat.Name(),
 	})
 	if err != nil {
 		if repo_model.IsErrRepoAlreadyExist(err) {
@@ -396,7 +397,7 @@ func Generate(ctx *context.APIContext) {
 		}
 
 		if !ctx.Doer.IsAdmin {
-			canCreate, err := organization.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx.Doer.ID)
+			canCreate, err := organization.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("CanCreateOrgRepo", err)
 				return
@@ -502,7 +503,7 @@ func CreateOrgRepo(ctx *context.APIContext) {
 	}
 
 	if !ctx.Doer.IsAdmin {
-		canCreate, err := org.CanCreateOrgRepo(ctx.Doer.ID)
+		canCreate, err := org.CanCreateOrgRepo(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "CanCreateOrgRepo", err)
 			return
@@ -982,7 +983,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	}
 
 	if len(units)+len(deleteUnitTypes) > 0 {
-		if err := repo_model.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
+		if err := repo_model.UpdateRepositoryUnits(ctx, repo, units, deleteUnitTypes); err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateRepositoryUnits", err)
 			return err
 		}

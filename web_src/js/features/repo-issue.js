@@ -308,7 +308,6 @@ export function initRepoIssueReferenceRepositorySearch() {
     });
 }
 
-
 export function initRepoIssueWipTitle() {
   $('.title_wip_desc > a').on('click', (e) => {
     e.preventDefault();
@@ -552,7 +551,6 @@ export function initRepoIssueWipToggle() {
   });
 }
 
-
 export function initRepoIssueTitleEdit() {
   // Edit issue title
   const $issueTitle = $('#issue-title');
@@ -678,5 +676,18 @@ export function initIssueTemplateCommentEditors($commentForm) {
 
   for (const el of $comboFields) {
     initCombo($(el));
+  }
+}
+
+// This function used to show and hide archived label on issue/pr
+//  page in the sidebar where we select the labels
+//  If we have any archived label tagged to issue and pr. We will show that
+//  archived label with checked classed otherwise we will hide it
+//  with the help of this function.
+//  This function runs globally.
+export function initArchivedLabelHandler() {
+  if (!document.querySelector('.archived-label-hint')) return;
+  for (const label of document.querySelectorAll('[data-is-archived]')) {
+    toggleElem(label, label.classList.contains('checked'));
   }
 }

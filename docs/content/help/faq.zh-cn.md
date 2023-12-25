@@ -41,7 +41,6 @@ menu:
 
 要从Gogs迁移到Gitea：
 
-- [Gogs版本0.9.146或更低](installation/upgrade-from-gogs.md)
 - [Gogs版本0.11.46.0418](https://github.com/go-gitea/gitea/issues/4286)
 
 要从GitHub迁移到Gitea，您可以使用Gitea内置的迁移表单。
@@ -142,9 +141,9 @@ Gitea不提供内置的Pages服务器。您需要一个专用的域名来提供�
 但是，您可以在app.ini的api部分将ENABLE_SWAGGER设置为false，以禁用其文档显示。
 有关更多信息，请参阅Gitea的[API文档](development/api-usage.md)。
 
-您可以在上查看最新的API（例如）<https://try.gitea.io/api/swagger>。
+您可以在上查看最新的API（例如）https://try.gitea.io/api/swagger
 
-您还可以在上查看`swagger.json`文件的示例 <https://try.gitea.io/swagger.v1.json>。
+您还可以在上查看`swagger.json`文件的示例 https://try.gitea.io/swagger.v1.json
 
 ## 调整服务器用于公共/私有使用
 
@@ -185,12 +184,12 @@ Gitea不提供内置的Pages服务器。您需要一个专用的域名来提供�
 
 ## 如何添加/使用自定义主题
 
-Gitea 目前支持三个官方主题，分别是 `gitea`（亮色）、`arc-green`（暗色）和 `auto`（根据操作系统设置自动切换前两个主题）。
+Gitea 目前支持三个官方主题，分别是 `gitea-light`、`gitea-dark` 和 `gitea-auto`（根据操作系统设置自动切换前两个主题）。
 要添加自己的主题，目前唯一的方法是提供一个完整的主题（不仅仅是颜色覆盖）。
 
 假设我们的主题是 `arc-blue`（这是一个真实的主题，可以在[此问题](https://github.com/go-gitea/gitea/issues/6011)中找到）
 
-将`.css`文件命名为`theme-arc-blue.css`并将其添加到`custom/public/css`文件夹中
+将`.css`文件命名为`theme-arc-blue.css`并将其添加到`custom/public/assets/css`文件夹中
 
 通过将`arc-blue`添加到`app.ini`中的`THEMES`列表中，允许用户使用该主题
 
@@ -367,7 +366,7 @@ Gitea 提供了一个子命令`gitea migrate`来初始化数据库，然后您�
 
 > `ORM engine initialization failed: migrate: do migrate: Error: 1118: Row size too large...`
 
-请运行`gitea convert`或对数据库中的每个表运行`ALTER TABLE table_name ROW_FORMAT=dynamic;`。
+请运行 `gitea doctor convert` 或对数据库中的每个表运行 `ALTER TABLE table_name ROW_FORMAT=dynamic;`。
 
 潜在问题是默认行格式分配给每个表的索引空间
 太小。Gitea 要求其表的`ROWFORMAT`为`DYNAMIC`。
@@ -390,9 +389,8 @@ SET GLOBAL innodb_large_prefix=1;
 他们创建了一个名为 `utf8mb4`的字符集和校对规则，允许存储 Emoji，但使用
 utf8 字符集的表和连接将不会使用它。
 
-请运行 `gitea convert` 或对数据库运行`ALTER DATABASE database_name CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
-并对每个表运行
-`ALTER TABLE table_name CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`。
+请运行 `gitea doctor convert` 或对数据库运行 `ALTER DATABASE database_name CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
+并对每个表运行 `ALTER TABLE table_name CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`。
 
 您还需要将`app.ini`文件中的数据库字符集设置为`CHARSET=utf8mb4`。
 

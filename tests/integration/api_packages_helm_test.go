@@ -68,8 +68,8 @@ dependencies:
 
 		uploadURL := url + "/api/charts"
 
-		req := NewRequestWithBody(t, "POST", uploadURL, bytes.NewReader(content))
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequestWithBody(t, "POST", uploadURL, bytes.NewReader(content)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeHelm)
@@ -93,8 +93,8 @@ dependencies:
 		assert.NoError(t, err)
 		assert.Equal(t, int64(len(content)), pb.Size)
 
-		req = NewRequestWithBody(t, "POST", uploadURL, bytes.NewReader(content))
-		req = AddBasicAuthHeader(req, user.Name)
+		req = NewRequestWithBody(t, "POST", uploadURL, bytes.NewReader(content)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 	})
 
@@ -110,8 +110,8 @@ dependencies:
 
 		checkDownloadCount(0)
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/%s", url, filename))
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequest(t, "GET", fmt.Sprintf("%s/%s", url, filename)).
+			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, content, resp.Body.Bytes())
@@ -122,8 +122,8 @@ dependencies:
 	t.Run("Index", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/index.yaml", url))
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequest(t, "GET", fmt.Sprintf("%s/index.yaml", url)).
+			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		type ChartVersion struct {

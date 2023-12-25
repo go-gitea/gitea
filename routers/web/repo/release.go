@@ -136,7 +136,7 @@ func Releases(ctx *context.Context) {
 
 		r.Note, err = markdown.RenderString(&markup.RenderContext{
 			URLPrefix: ctx.Repo.RepoLink,
-			Metas:     ctx.Repo.Repository.ComposeMetas(),
+			Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
 			GitRepo:   ctx.Repo.GitRepo,
 			Ctx:       ctx,
 		}, r.Note)
@@ -174,6 +174,7 @@ func TagsList(ctx *context.Context) {
 	// Disable the showCreateNewBranch form in the dropdown on this page.
 	ctx.Data["CanCreateBranch"] = false
 	ctx.Data["HideBranchesInDropdown"] = true
+	ctx.Data["CanCreateRelease"] = ctx.Repo.CanWrite(unit.TypeReleases) && !ctx.Repo.Repository.IsArchived
 
 	listOptions := db.ListOptions{
 		Page:     ctx.FormInt("page"),
@@ -285,7 +286,7 @@ func SingleRelease(ctx *context.Context) {
 	}
 	release.Note, err = markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.Repo.RepoLink,
-		Metas:     ctx.Repo.Repository.ComposeMetas(),
+		Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
 		GitRepo:   ctx.Repo.GitRepo,
 		Ctx:       ctx,
 	}, release.Note)
@@ -616,7 +617,27 @@ func DeleteTag(ctx *context.Context) {
 }
 
 func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
-	if err := releaseservice.DeleteReleaseByID(ctx, ctx.FormInt64("id"), ctx.Doer, isDelTag); err != nil {
+	redirect := func() {
+		if isDelTag {
+			ctx.JSONRedirect(ctx.Repo.RepoLink + "/tags")
+			return
+		}
+
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/releases")
+	}
+
+	rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id"))
+	if err != nil {
+		if repo_model.IsErrReleaseNotExist(err) {
+			ctx.NotFound("GetReleaseForRepoByID", err)
+		} else {
+			ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
+			redirect()
+		}
+		return
+	}
+
+	if err := releaseservice.DeleteReleaseByID(ctx, ctx.Repo.Repository, rel, ctx.Doer, isDelTag); err != nil {
 		if models.IsErrProtectedTagName(err) {
 			ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))
 		} else {
@@ -630,10 +651,5 @@ func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 		}
 	}
 
-	if isDelTag {
-		ctx.JSONRedirect(ctx.Repo.RepoLink + "/tags")
-		return
-	}
-
-	ctx.JSONRedirect(ctx.Repo.RepoLink + "/releases")
+	redirect()
 }

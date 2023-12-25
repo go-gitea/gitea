@@ -294,7 +294,7 @@ func Diff(ctx *context.Context) {
 		}
 		return
 	}
-	if len(commitID) != git.SHAFullLength {
+	if len(commitID) != commit.ID.Type().FullLength() {
 		commitID = commit.ID.String()
 	}
 
@@ -305,7 +305,7 @@ func Diff(ctx *context.Context) {
 		maxLines, maxFiles = -1, -1
 	}
 
-	diff, err := gitdiff.GetDiff(gitRepo, &gitdiff.DiffOptions{
+	diff, err := gitdiff.GetDiff(ctx, gitRepo, &gitdiff.DiffOptions{
 		AfterCommitID:      commitID,
 		SkipTo:             ctx.FormString("skip-to"),
 		MaxLines:           maxLines,
