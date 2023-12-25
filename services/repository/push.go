@@ -111,7 +111,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		log.Trace("pushUpdates: %-v %s %s %s", repo, opts.OldCommitID, opts.NewCommitID, opts.RefFullName)
 
 		if opts.IsNewRef() && opts.IsDelRef() {
-			return fmt.Errorf("old and new revisions are both %s", objectFormat.Empty())
+			return fmt.Errorf("old and new revisions are both %s", objectFormat.EmptyObjectID())
 		}
 		if opts.RefFullName.IsTag() {
 			if pusher == nil || pusher.ID != opts.PusherID {
@@ -131,7 +131,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					&repo_module.PushUpdateOptions{
 						RefFullName: git.RefNameFromTag(tagName),
 						OldCommitID: opts.OldCommitID,
-						NewCommitID: objectFormat.Empty().String(),
+						NewCommitID: objectFormat.EmptyObjectID().String(),
 					}, repo_module.NewPushCommits())
 
 				delTags = append(delTags, tagName)
@@ -144,13 +144,13 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 				commits := repo_module.NewPushCommits()
 				commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
-				commits.CompareURL = repo.ComposeCompareURL(objectFormat.Empty().String(), opts.NewCommitID)
+				commits.CompareURL = repo.ComposeCompareURL(objectFormat.EmptyObjectID().String(), opts.NewCommitID)
 
 				notify_service.PushCommits(
 					ctx, pusher, repo,
 					&repo_module.PushUpdateOptions{
 						RefFullName: opts.RefFullName,
-						OldCommitID: objectFormat.Empty().String(),
+						OldCommitID: objectFormat.EmptyObjectID().String(),
 						NewCommitID: opts.NewCommitID,
 					}, commits)
 
@@ -234,7 +234,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				}
 
 				oldCommitID := opts.OldCommitID
-				if oldCommitID == objectFormat.Empty().String() && len(commits.Commits) > 0 {
+				if oldCommitID == objectFormat.EmptyObjectID().String() && len(commits.Commits) > 0 {
 					oldCommit, err := gitRepo.GetCommit(commits.Commits[len(commits.Commits)-1].Sha1)
 					if err != nil && !git.IsErrNotExist(err) {
 						log.Error("unable to GetCommit %s from %-v: %v", oldCommitID, repo, err)
@@ -250,11 +250,11 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					}
 				}
 
-				if oldCommitID == objectFormat.Empty().String() && repo.DefaultBranch != branch {
+				if oldCommitID == objectFormat.EmptyObjectID().String() && repo.DefaultBranch != branch {
 					oldCommitID = repo.DefaultBranch
 				}
 
-				if oldCommitID != objectFormat.Empty().String() {
+				if oldCommitID != objectFormat.EmptyObjectID().String() {
 					commits.CompareURL = repo.ComposeCompareURL(oldCommitID, opts.NewCommitID)
 				} else {
 					commits.CompareURL = ""

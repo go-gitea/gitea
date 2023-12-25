@@ -126,9 +126,10 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 	}
 
 	setting.GravatarSource = "https://secure.gravatar.com/avatar"
+	setting.OfflineMode = true
 
 	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f?d=identicon&s="+strconv.Itoa(28*setting.Avatar.RenderedSizeFactor),
+		"/avatars/avatar2?size="+strconv.Itoa(28*setting.Avatar.RenderedSizeFactor),
 		pushCommits.AvatarLink(db.DefaultContext, "user2@example.com"))
 
 	assert.Equal(t,
@@ -144,7 +145,7 @@ func TestCommitToPushCommit(t *testing.T) {
 		When:  now,
 	}
 	const hexString = "0123456789abcdef0123456789abcdef01234567"
-	sha1, err := git.IDFromString(hexString)
+	sha1, err := git.NewIDFromString(hexString)
 	assert.NoError(t, err)
 	pushCommit := CommitToPushCommit(&git.Commit{
 		ID:            sha1,
@@ -169,12 +170,11 @@ func TestListToPushCommits(t *testing.T) {
 		When:  now,
 	}
 
-	hashType := git.ObjectFormatFromID(git.Sha1)
 	const hexString1 = "0123456789abcdef0123456789abcdef01234567"
-	hash1, err := hashType.NewIDFromString(hexString1)
+	hash1, err := git.NewIDFromString(hexString1)
 	assert.NoError(t, err)
 	const hexString2 = "fedcba9876543210fedcba9876543210fedcba98"
-	hash2, err := hashType.NewIDFromString(hexString2)
+	hash2, err := git.NewIDFromString(hexString2)
 	assert.NoError(t, err)
 
 	l := []*git.Commit{

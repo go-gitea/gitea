@@ -30,7 +30,7 @@ func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 			idStr = res[:len(res)-1]
 		}
 	}
-	id, err := repo.objectFormat.NewIDFromString(idStr)
+	id, err := NewIDFromString(idStr)
 	if err != nil {
 		return nil, err
 	}

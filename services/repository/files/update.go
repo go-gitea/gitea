@@ -155,8 +155,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		if !git.IsErrBranchNotExist(err) || !repo.IsEmpty {
 			return nil, err
 		}
-		objectFormat, _ := gitRepo.GetObjectFormat()
-		if err := t.Init(objectFormat); err != nil {
+		if err := t.Init(repo.ObjectFormatName); err != nil {
 			return nil, err
 		}
 		hasOldBranch = false

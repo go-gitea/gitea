@@ -662,7 +662,7 @@ func TestWebhook(ctx *context.Context) {
 			return
 		}
 		commit = &git.Commit{
-			ID:            objectFormat.NewEmptyID(),
+			ID:            objectFormat.EmptyObjectID(),
 			Author:        ghost.NewGitSig(),
 			Committer:     ghost.NewGitSig(),
 			CommitMessage: "This is a fake commit",

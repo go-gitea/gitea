@@ -51,6 +51,11 @@ type ActionRunner struct {
 	Deleted timeutil.TimeStamp `xorm:"deleted"`
 }
 
+const (
+	RunnerOfflineTime = time.Minute
+	RunnerIdleTime    = 10 * time.Second
+)
+
 // BelongsToOwnerName before calling, should guarantee that all attributes are loaded
 func (r *ActionRunner) BelongsToOwnerName() string {
 	if r.RepoID != 0 {
@@ -76,11 +81,12 @@ func (r *ActionRunner) BelongsToOwnerType() types.OwnerType {
 	return types.OwnerTypeSystemGlobal
 }
 
+// if the logic here changed, you should also modify FindRunnerOptions.ToCond
 func (r *ActionRunner) Status() runnerv1.RunnerStatus {
-	if time.Since(r.LastOnline.AsTime()) > time.Minute {
+	if time.Since(r.LastOnline.AsTime()) > RunnerOfflineTime {
 		return runnerv1.RunnerStatus_RUNNER_STATUS_OFFLINE
 	}
-	if time.Since(r.LastActive.AsTime()) > 10*time.Second {
+	if time.Since(r.LastActive.AsTime()) > RunnerIdleTime {
 		return runnerv1.RunnerStatus_RUNNER_STATUS_IDLE
 	}
 	return runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE
@@ -153,6 +159,7 @@ type FindRunnerOptions struct {
 	OwnerID       int64
 	Sort          string
 	Filter        string
+	IsOnline      util.OptionalBool
 	WithAvailable bool // not only runners belong to, but also runners can be used
 }
 
@@ -177,6 +184,12 @@ func (opts FindRunnerOptions) ToConds() builder.Cond {
 
 	if opts.Filter != "" {
 		cond = cond.And(builder.Like{"name", opts.Filter})
+	}
+
+	if opts.IsOnline.IsTrue() {
+		cond = cond.And(builder.Gt{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
+	} else if opts.IsOnline.IsFalse() {
+		cond = cond.And(builder.Lte{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
 	}
 	return cond
 }

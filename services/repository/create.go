@@ -27,23 +27,23 @@ import (
 
 // CreateRepoOptions contains the create repository options
 type CreateRepoOptions struct {
-	Name           string
-	Description    string
-	OriginalURL    string
-	GitServiceType api.GitServiceType
-	Gitignores     string
-	IssueLabels    string
-	License        string
-	Readme         string
-	DefaultBranch  string
-	IsPrivate      bool
-	IsMirror       bool
-	IsTemplate     bool
-	AutoInit       bool
-	Status         repo_model.RepositoryStatus
-	TrustModel     repo_model.TrustModelType
-	MirrorInterval string
-	ObjectFormat   git.ObjectFormat
+	Name             string
+	Description      string
+	OriginalURL      string
+	GitServiceType   api.GitServiceType
+	Gitignores       string
+	IssueLabels      string
+	License          string
+	Readme           string
+	DefaultBranch    string
+	IsPrivate        bool
+	IsMirror         bool
+	IsTemplate       bool
+	AutoInit         bool
+	Status           repo_model.RepositoryStatus
+	TrustModel       repo_model.TrustModelType
+	MirrorInterval   string
+	ObjectFormatName string
 }
 
 func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {
@@ -135,7 +135,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 
 // InitRepository initializes README and .gitignore if needed.
 func initRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
-	if err = repo_module.CheckInitRepository(ctx, repo.OwnerName, repo.Name, opts.ObjectFormat); err != nil {
+	if err = repo_module.CheckInitRepository(ctx, repo.OwnerName, repo.Name, opts.ObjectFormatName); err != nil {
 		return err
 	}
 
@@ -210,10 +210,6 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		opts.DefaultBranch = setting.Repository.DefaultBranch
 	}
 
-	if opts.ObjectFormat == nil {
-		opts.ObjectFormat = git.ObjectFormatFromID(git.Sha1)
-	}
-
 	// Check if label template exist
 	if len(opts.IssueLabels) > 0 {
 		if _, err := repo_module.LoadTemplateLabelsByDisplayName(opts.IssueLabels); err != nil {
@@ -239,7 +235,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		TrustModel:                      opts.TrustModel,
 		IsMirror:                        opts.IsMirror,
 		DefaultBranch:                   opts.DefaultBranch,
-		ObjectFormat:                    opts.ObjectFormat,
+		ObjectFormatName:                opts.ObjectFormatName,
 	}
 
 	var rollbackRepo *repo_model.Repository

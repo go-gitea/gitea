@@ -63,7 +63,7 @@ func IsRepoURLAccessible(ctx context.Context, url string) bool {
 	return err == nil
 }
 
-// GetObjectFormatOfRepo returns the hash type of a repository at a given path
+// GetObjectFormatOfRepo returns the hash type of repository at a given path
 func GetObjectFormatOfRepo(ctx context.Context, repoPath string) (ObjectFormat, error) {
 	var stdout, stderr strings.Builder
 
@@ -81,7 +81,7 @@ func GetObjectFormatOfRepo(ctx context.Context, repoPath string) (ObjectFormat, 
 		return nil, errors.New(stderr.String())
 	}
 
-	h, err := IDFromString(strings.TrimRight(stdout.String(), "\n"))
+	h, err := NewIDFromString(strings.TrimRight(stdout.String(), "\n"))
 	if err != nil {
 		return nil, err
 	}
@@ -90,13 +90,22 @@ func GetObjectFormatOfRepo(ctx context.Context, repoPath string) (ObjectFormat, 
 }
 
 // InitRepository initializes a new Git repository.
-func InitRepository(ctx context.Context, repoPath string, bare bool, objectFormat ObjectFormat) error {
+func InitRepository(ctx context.Context, repoPath string, bare bool, objectFormatName string) error {
 	err := os.MkdirAll(repoPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	cmd := NewCommand(ctx, "init", "--object-format").AddDynamicArguments(objectFormat.String())
+	cmd := NewCommand(ctx, "init")
+	if SupportHashSha256 {
+		if objectFormatName == "" {
+			objectFormatName = Sha1ObjectFormat.Name()
+		}
+		if !IsValidObjectFormat(objectFormatName) {
+			return fmt.Errorf("invalid object format: %s", objectFormatName)
+		}
+		cmd.AddOptionValues("--object-format", objectFormatName)
+	}
 	if bare {
 		cmd.AddArguments("--bare")
 	}

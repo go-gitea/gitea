@@ -39,7 +39,7 @@ func TestReadingBlameOutput(t *testing.T) {
 		}
 
 		for _, bypass := range []bool{false, true} {
-			blameReader, err := CreateBlameReader(ctx, &Sha1ObjectFormat{}, "./tests/repos/repo5_pulls", commit, "README.md", bypass)
+			blameReader, err := CreateBlameReader(ctx, Sha1ObjectFormat, "./tests/repos/repo5_pulls", commit, "README.md", bypass)
 			assert.NoError(t, err)
 			assert.NotNil(t, blameReader)
 			defer blameReader.Close()
