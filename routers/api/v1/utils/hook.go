@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
@@ -26,13 +27,7 @@ func ListOwnerHooks(ctx *context.APIContext, owner *user_model.User) {
 		OwnerID:     owner.ID,
 	}
 
-	count, err := webhook.CountWebhooksByOpts(ctx, opts)
-	if err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
-
-	hooks, err := webhook.ListWebhooksByOpts(ctx, opts)
+	hooks, count, err := db.FindAndCount[webhook.Webhook](ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

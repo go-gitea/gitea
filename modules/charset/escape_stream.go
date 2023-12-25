@@ -64,7 +64,7 @@ func (e *escapeStreamer) Text(data string) error {
 			until, next = nextIdxs[0]+pos, nextIdxs[1]+pos
 		}
 
-		// from pos until until we know that the runes are not \r\t\n or even ' '
+		// from pos until we know that the runes are not \r\t\n or even ' '
 		runes := make([]rune, 0, next-until)
 		positions := make([]int, 0, next-until+1)
 
