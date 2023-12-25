@@ -60,13 +60,12 @@ const (
 	GzipMinSize = 1400
 )
 
-// CorsHandler return a http handler who set CORS options if enabled by config
-func CorsHandler() func(next http.Handler) http.Handler {
+// optionsCorsHandler return a http handler which sets CORS options if enabled by config, it blocks non-CORS OPTIONS requests.
+func optionsCorsHandler() func(next http.Handler) http.Handler {
+	var corsHandler func(next http.Handler) http.Handler
 	if setting.CORSConfig.Enabled {
-		return cors.Handler(cors.Options{
-			// Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
-			AllowedOrigins: setting.CORSConfig.AllowDomain,
-			// setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
+		corsHandler = cors.Handler(cors.Options{
+			AllowedOrigins:   setting.CORSConfig.AllowDomain,
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
 			AllowedHeaders:   setting.CORSConfig.Headers,
@@ -75,7 +74,23 @@ func CorsHandler() func(next http.Handler) http.Handler {
 	}
 
 	return func(next http.Handler) http.Handler {
-		return next
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodOptions {
+				if corsHandler != nil && r.Header.Get("Access-Control-Request-Method") != "" {
+					corsHandler(next).ServeHTTP(w, r)
+				} else {
+					// it should explicitly deny OPTIONS requests if CORS handler is not executed, to avoid the next GET/POST handler being incorrectly called by the OPTIONS request
+					w.WriteHeader(http.StatusMethodNotAllowed)
+				}
+				return
+			}
+			// for non-OPTIONS requests, call the CORS handler to add some related headers like "Vary"
+			if corsHandler != nil {
+				corsHandler(next).ServeHTTP(w, r)
+			} else {
+				next.ServeHTTP(w, r)
+			}
+		})
 	}
 }
 
@@ -218,7 +233,7 @@ func Routes() *web.Route {
 	routes := web.NewRoute()
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
-	routes.Methods("GET, HEAD", "/assets/*", CorsHandler(), public.FileHandlerFunc())
+	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", optionsCorsHandler(), public.FileHandlerFunc())
 	routes.Methods("GET, HEAD", "/avatars/*", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.Methods("GET, HEAD", "/repo-avatars/*", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 	routes.Methods("GET, HEAD", "/apple-touch-icon.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
@@ -458,8 +473,8 @@ func registerRoutes(m *web.Route) {
 		m.Get("/change-password", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		})
-		m.Any("/*", CorsHandler(), public.FileHandlerFunc())
-	}, CorsHandler())
+		m.Methods("GET, HEAD", "/*", public.FileHandlerFunc())
+	}, optionsCorsHandler())
 
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
@@ -532,14 +547,11 @@ func registerRoutes(m *web.Route) {
 		// TODO manage redirection
 		m.Post("/authorize", web.Bind(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
 	}, ignSignInAndCsrf, reqSignIn)
-	m.Options("/login/oauth/userinfo", CorsHandler(), misc.DummyBadRequest)
-	m.Get("/login/oauth/userinfo", ignSignInAndCsrf, auth.InfoOAuth)
-	m.Options("/login/oauth/access_token", CorsHandler(), misc.DummyBadRequest)
-	m.Post("/login/oauth/access_token", CorsHandler(), web.Bind(forms.AccessTokenForm{}), ignSignInAndCsrf, auth.AccessTokenOAuth)
-	m.Options("/login/oauth/keys", CorsHandler(), misc.DummyBadRequest)
-	m.Get("/login/oauth/keys", ignSignInAndCsrf, auth.OIDCKeys)
-	m.Options("/login/oauth/introspect", CorsHandler(), misc.DummyBadRequest)
-	m.Post("/login/oauth/introspect", CorsHandler(), web.Bind(forms.IntrospectTokenForm{}), ignSignInAndCsrf, auth.IntrospectOAuth)
+
+	m.Methods("GET, OPTIONS", "/login/oauth/userinfo", optionsCorsHandler(), ignSignInAndCsrf, auth.InfoOAuth)
+	m.Methods("POST, OPTIONS", "/login/oauth/access_token", optionsCorsHandler(), web.Bind(forms.AccessTokenForm{}), ignSignInAndCsrf, auth.AccessTokenOAuth)
+	m.Methods("GET, OPTIONS", "/login/oauth/keys", optionsCorsHandler(), ignSignInAndCsrf, auth.OIDCKeys)
+	m.Methods("POST, OPTIONS", "/login/oauth/introspect", optionsCorsHandler(), web.Bind(forms.IntrospectTokenForm{}), ignSignInAndCsrf, auth.IntrospectOAuth)
 
 	m.Group("/user/settings", func() {
 		m.Get("", user_setting.Profile)
@@ -770,7 +782,7 @@ func registerRoutes(m *web.Route) {
 
 	m.Group("", func() {
 		m.Get("/{username}", user.UsernameSubRoute)
-		m.Get("/attachments/{uuid}", repo.GetAttachment)
+		m.Methods("GET, OPTIONS", "/attachments/{uuid}", optionsCorsHandler(), repo.GetAttachment)
 	}, ignSignIn)
 
 	m.Post("/{username}", reqSignIn, context_service.UserAssignmentWeb(), user.Action)
