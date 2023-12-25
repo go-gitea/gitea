@@ -230,8 +230,8 @@ func DeleteByIDs[T any](ctx context.Context, ids ...int64) error {
 }
 
 func Delete[T any](ctx context.Context, opts FindOptions) (int64, error) {
-	if opts == nil {
-		panic("opts are empty in db.Delete(ctx, opts). This should not be possible.")
+	if opts == nil || !opts.ToConds().IsValid() {
+		panic("opts are empty or invalid in db.Delete(ctx, opts). This should not be possible.")
 	}
 
 	var bean T
