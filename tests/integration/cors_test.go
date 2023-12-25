@@ -29,9 +29,9 @@ func TestCORS(t *testing.T) {
 			assert.Contains(t, resp.Header().Values("Vary"), "Origin")
 
 			// OPTIONS api for CORS
-			req = NewRequest(t, "OPTIONS", "/api/v1/version").
-				SetHeader("Origin", "https://example.com").
-				SetHeader("Access-Control-Request-Method", "GET")
+			req = NewRequest(t, "OPTIONS", "/api/v1/version")
+			req.Header.Set("Origin", "https://example.com")
+			req.Header.Set("Access-Control-Request-Method", "GET")
 			resp = MakeRequest(t, req, http.StatusOK)
 			assert.NotEmpty(t, resp.Header().Get("Access-Control-Allow-Origin"))
 			assert.Contains(t, resp.Header().Values("Vary"), "Origin")
@@ -45,9 +45,9 @@ func TestCORS(t *testing.T) {
 			assert.Contains(t, resp.Header().Values("Vary"), "Origin")
 
 			// OPTIONS userinfo for CORS
-			req = NewRequest(t, "OPTIONS", "/login/oauth/userinfo").
-				SetHeader("Origin", "https://example.com").
-				SetHeader("Access-Control-Request-Method", "GET")
+			req = NewRequest(t, "OPTIONS", "/login/oauth/userinfo")
+			req.Header.Set("Origin", "https://example.com")
+			req.Header.Set("Access-Control-Request-Method", "GET")
 			resp = MakeRequest(t, req, http.StatusOK)
 			assert.NotEmpty(t, resp.Header().Get("Access-Control-Allow-Origin"))
 			assert.Contains(t, resp.Header().Values("Vary"), "Origin")
@@ -69,9 +69,9 @@ func TestCORS(t *testing.T) {
 			assert.Empty(t, resp.Header().Get("Access-Control-Allow-Origin"))
 			assert.Empty(t, resp.Header().Values("Vary"))
 
-			req = NewRequest(t, "OPTIONS", "/api/v1/version").
-				SetHeader("Origin", "https://example.com").
-				SetHeader("Access-Control-Request-Method", "GET")
+			req = NewRequest(t, "OPTIONS", "/api/v1/version")
+			req.Header.Set("Origin", "https://example.com")
+			req.Header.Set("Access-Control-Request-Method", "GET")
 			resp = MakeRequest(t, req, http.StatusMethodNotAllowed)
 			assert.Empty(t, resp.Header().Get("Access-Control-Allow-Origin"))
 			assert.Empty(t, resp.Header().Values("Vary"))
@@ -83,9 +83,9 @@ func TestCORS(t *testing.T) {
 			assert.Empty(t, resp.Header().Get("Access-Control-Allow-Origin"))
 			assert.NotContains(t, resp.Header().Values("Vary"), "Origin")
 
-			req = NewRequest(t, "OPTIONS", "/login/oauth/userinfo").
-				SetHeader("Origin", "https://example.com").
-				SetHeader("Access-Control-Request-Method", "GET")
+			req = NewRequest(t, "OPTIONS", "/login/oauth/userinfo")
+			req.Header.Set("Origin", "https://example.com")
+			req.Header.Set("Access-Control-Request-Method", "GET")
 			resp = MakeRequest(t, req, http.StatusMethodNotAllowed)
 			assert.Empty(t, resp.Header().Get("Access-Control-Allow-Origin"))
 			assert.NotContains(t, resp.Header().Values("Vary"), "Origin")
