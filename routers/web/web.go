@@ -432,7 +432,7 @@ func registerRoutes(m *web.Route) {
 		m.Post("/packagist/{id}", web.Bind(forms.NewPackagistHookForm{}), repo_setting.PackagistHooksEditPost)
 	}
 
-	addSettingVariablesRoutes := func() {
+	addSettingsVariablesRoutes := func() {
 		m.Group("/variables", func() {
 			m.Get("", repo_setting.Variables)
 			m.Post("/new", web.Bind(forms.EditVariableForm{}), repo_setting.VariableCreate)
@@ -630,7 +630,7 @@ func registerRoutes(m *web.Route) {
 			m.Get("", user_setting.RedirectToDefaultSetting)
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
-			addSettingVariablesRoutes()
+			addSettingsVariablesRoutes()
 		}, actions.MustEnableActions)
 
 		m.Get("/organization", user_setting.Organization)
@@ -775,6 +775,7 @@ func registerRoutes(m *web.Route) {
 		m.Group("/actions", func() {
 			m.Get("", admin.RedirectToDefaultSetting)
 			addSettingsRunnersRoutes()
+			addSettingsVariablesRoutes()
 		})
 	}, adminReq, ctxDataSet("EnableOAuth2", setting.OAuth2.Enable, "EnablePackages", setting.Packages.Enabled))
 	// ***** END: Admin *****
@@ -917,7 +918,7 @@ func registerRoutes(m *web.Route) {
 					m.Get("", org_setting.RedirectToDefaultSetting)
 					addSettingsRunnersRoutes()
 					addSettingsSecretsRoutes()
-					addSettingVariablesRoutes()
+					addSettingsVariablesRoutes()
 				}, actions.MustEnableActions)
 
 				m.Methods("GET,POST", "/delete", org.SettingsDelete)
@@ -1096,7 +1097,7 @@ func registerRoutes(m *web.Route) {
 				m.Get("", repo_setting.RedirectToDefaultSetting)
 				addSettingsRunnersRoutes()
 				addSettingsSecretsRoutes()
-				addSettingVariablesRoutes()
+				addSettingsVariablesRoutes()
 			}, actions.MustEnableActions)
 			// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
 			m.Group("/migrate", func() {

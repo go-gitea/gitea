@@ -216,8 +216,6 @@ func TestAPIEditIssue(t *testing.T) {
 func TestAPISearchIssues(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadIssue)
-
 	// as this API was used in the frontend, it uses UI page size
 	expectedIssueCount := 18 // from the fixtures
 	if expectedIssueCount > setting.UI.IssuePagingNum {
@@ -225,11 +223,12 @@ func TestAPISearchIssues(t *testing.T) {
 	}
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
-	query := url.Values{"token": {getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue)}}
+	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue)
+	query := url.Values{}
 	var apiIssues []*api.Issue
 
 	link.RawQuery = query.Encode()
-	req := NewRequest(t, "GET", link.String())
+	req := NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, expectedIssueCount)
@@ -238,9 +237,8 @@ func TestAPISearchIssues(t *testing.T) {
 	before := time.Unix(999307200, 0).Format(time.RFC3339)
 	query.Add("since", since)
 	query.Add("before", before)
-	query.Add("token", token)
 	link.RawQuery = query.Encode()
-	req = NewRequest(t, "GET", link.String())
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 11)
@@ -249,14 +247,14 @@ func TestAPISearchIssues(t *testing.T) {
 
 	query.Add("state", "closed")
 	link.RawQuery = query.Encode()
-	req = NewRequest(t, "GET", link.String())
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 
 	query.Set("state", "all")
 	link.RawQuery = query.Encode()
-	req = NewRequest(t, "GET", link.String())
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.EqualValues(t, "20", resp.Header().Get("X-Total-Count"))
@@ -264,50 +262,50 @@ func TestAPISearchIssues(t *testing.T) {
 
 	query.Add("limit", "10")
 	link.RawQuery = query.Encode()
-	req = NewRequest(t, "GET", link.String())
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.EqualValues(t, "20", resp.Header().Get("X-Total-Count"))
 	assert.Len(t, apiIssues, 10)
 
-	query = url.Values{"assigned": {"true"}, "state": {"all"}, "token": {token}}
+	query = url.Values{"assigned": {"true"}, "state": {"all"}}
 	link.RawQuery = query.Encode()
-	req = NewRequest(t, "GET", link.String())
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 
-	query = url.Values{"milestones": {"milestone1"}, "state": {"all"}, "token": {token}}
+	query = url.Values{"milestones": {"milestone1"}, "state": {"all"}}
 	link.RawQuery = query.Encode()
-	req = NewRequest(t, "GET", link.String())
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 1)
 
-	query = url.Values{"milestones": {"milestone1,milestone3"}, "state": {"all"}, "token": {token}}
+	query = url.Values{"milestones": {"milestone1,milestone3"}, "state": {"all"}}
 	link.RawQuery = query.Encode()
-	req = NewRequest(t, "GET", link.String())
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 
-	query = url.Values{"owner": {"user2"}, "token": {token}} // user
+	query = url.Values{"owner": {"user2"}} // user
 	link.RawQuery = query.Encode()
-	req = NewRequest(t, "GET", link.String())
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 8)
 
-	query = url.Values{"owner": {"org3"}, "token": {token}} // organization
+	query = url.Values{"owner": {"org3"}} // organization
 	link.RawQuery = query.Encode()
-	req = NewRequest(t, "GET", link.String())
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 5)
 
-	query = url.Values{"owner": {"org3"}, "team": {"team1"}, "token": {token}} // organization + team
+	query = url.Values{"owner": {"org3"}, "team": {"team1"}} // organization + team
 	link.RawQuery = query.Encode()
-	req = NewRequest(t, "GET", link.String())
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
@@ -323,18 +321,19 @@ func TestAPISearchIssuesWithLabels(t *testing.T) {
 	}
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
-	query := url.Values{"token": {getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue)}}
+	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue)
+	query := url.Values{}
 	var apiIssues []*api.Issue
 
 	link.RawQuery = query.Encode()
-	req := NewRequest(t, "GET", link.String())
+	req := NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, expectedIssueCount)
 
 	query.Add("labels", "label1")
 	link.RawQuery = query.Encode()
-	req = NewRequest(t, "GET", link.String())
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
@@ -342,7 +341,7 @@ func TestAPISearchIssuesWithLabels(t *testing.T) {
 	// multiple labels
 	query.Set("labels", "label1,label2")
 	link.RawQuery = query.Encode()
-	req = NewRequest(t, "GET", link.String())
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
@@ -350,7 +349,7 @@ func TestAPISearchIssuesWithLabels(t *testing.T) {
 	// an org label
 	query.Set("labels", "orglabel4")
 	link.RawQuery = query.Encode()
-	req = NewRequest(t, "GET", link.String())
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 1)
@@ -359,7 +358,7 @@ func TestAPISearchIssuesWithLabels(t *testing.T) {
 	query.Set("labels", "label2,orglabel4")
 	query.Add("state", "all")
 	link.RawQuery = query.Encode()
-	req = NewRequest(t, "GET", link.String())
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
@@ -367,7 +366,7 @@ func TestAPISearchIssuesWithLabels(t *testing.T) {
 	// org and repo label which share the same issue
 	query.Set("labels", "label1,orglabel4")
 	link.RawQuery = query.Encode()
-	req = NewRequest(t, "GET", link.String())
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
