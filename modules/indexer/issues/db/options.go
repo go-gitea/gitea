@@ -55,6 +55,7 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 	opts := &issue_model.IssuesOptions{
 		Paginator:          options.Paginator,
 		RepoIDs:            options.RepoIDs,
+		AllPublic:          options.AllPublic,
 		RepoCond:           nil,
 		AssigneeID:         convertID(options.AssigneeID),
 		PosterID:           convertID(options.PosterID),
@@ -96,7 +97,6 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		}
 
 		if len(options.IncludedLabelIDs) == 0 && len(options.IncludedAnyLabelIDs) > 0 {
-			_ = ctx // issue_model.GetLabelsByIDs should be called with ctx, this line can be removed when it's done.
 			labels, err := issue_model.GetLabelsByIDs(ctx, options.IncludedAnyLabelIDs, "name")
 			if err != nil {
 				return nil, fmt.Errorf("GetLabelsByIDs: %v", err)

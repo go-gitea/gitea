@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
@@ -59,13 +60,12 @@ const (
 	GzipMinSize = 1400
 )
 
-// CorsHandler return a http handler who set CORS options if enabled by config
-func CorsHandler() func(next http.Handler) http.Handler {
+// optionsCorsHandler return a http handler which sets CORS options if enabled by config, it blocks non-CORS OPTIONS requests.
+func optionsCorsHandler() func(next http.Handler) http.Handler {
+	var corsHandler func(next http.Handler) http.Handler
 	if setting.CORSConfig.Enabled {
-		return cors.Handler(cors.Options{
-			// Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
-			AllowedOrigins: setting.CORSConfig.AllowDomain,
-			// setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
+		corsHandler = cors.Handler(cors.Options{
+			AllowedOrigins:   setting.CORSConfig.AllowDomain,
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
 			AllowedHeaders:   setting.CORSConfig.Headers,
@@ -74,7 +74,23 @@ func CorsHandler() func(next http.Handler) http.Handler {
 	}
 
 	return func(next http.Handler) http.Handler {
-		return next
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodOptions {
+				if corsHandler != nil && r.Header.Get("Access-Control-Request-Method") != "" {
+					corsHandler(next).ServeHTTP(w, r)
+				} else {
+					// it should explicitly deny OPTIONS requests if CORS handler is not executed, to avoid the next GET/POST handler being incorrectly called by the OPTIONS request
+					w.WriteHeader(http.StatusMethodNotAllowed)
+				}
+				return
+			}
+			// for non-OPTIONS requests, call the CORS handler to add some related headers like "Vary"
+			if corsHandler != nil {
+				corsHandler(next).ServeHTTP(w, r)
+			} else {
+				next.ServeHTTP(w, r)
+			}
+		})
 	}
 }
 
@@ -94,7 +110,7 @@ func buildAuthGroup() *auth_service.Group {
 		group.Add(&auth_service.ReverseProxy{})
 	}
 
-	if setting.IsWindows && auth_model.IsSSPIEnabled() {
+	if setting.IsWindows && auth_model.IsSSPIEnabled(db.DefaultContext) {
 		group.Add(&auth_service.SSPI{}) // it MUST be the last, see the comment of SSPI
 	}
 
@@ -186,7 +202,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 
 		// Redirect to log in page if auto-signin info is provided and has not signed in.
 		if !options.SignOutRequired && !ctx.IsSigned &&
-			len(ctx.GetSiteCookie(setting.CookieUserName)) > 0 {
+			ctx.GetSiteCookie(setting.CookieRememberName) != "" {
 			if ctx.Req.URL.Path != "/user/events" {
 				middleware.SetRedirectToCookie(ctx.Resp, setting.AppSubURL+ctx.Req.URL.RequestURI())
 			}
@@ -217,7 +233,7 @@ func Routes() *web.Route {
 	routes := web.NewRoute()
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
-	routes.Methods("GET, HEAD", "/assets/*", CorsHandler(), public.FileHandlerFunc())
+	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", optionsCorsHandler(), public.FileHandlerFunc())
 	routes.Methods("GET, HEAD", "/avatars/*", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.Methods("GET, HEAD", "/repo-avatars/*", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 	routes.Methods("GET, HEAD", "/apple-touch-icon.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
@@ -275,6 +291,8 @@ func Routes() *web.Route {
 	return routes
 }
 
+var ignSignInAndCsrf = verifyAuthWithOptions(&common.VerifyOptions{DisableCSRF: true})
+
 // registerRoutes register routes
 func registerRoutes(m *web.Route) {
 	reqSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true})
@@ -282,7 +300,7 @@ func registerRoutes(m *web.Route) {
 	// TODO: rename them to "optSignIn", which means that the "sign-in" could be optional, depends on the VerifyOptions (RequireSignInView)
 	ignSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInView})
 	ignExploreSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView})
-	ignSignInAndCsrf := verifyAuthWithOptions(&common.VerifyOptions{DisableCSRF: true})
+
 	validation.AddBindingRules()
 
 	linkAccountEnabled := func(ctx *context.Context) {
@@ -414,7 +432,7 @@ func registerRoutes(m *web.Route) {
 		m.Post("/packagist/{id}", web.Bind(forms.NewPackagistHookForm{}), repo_setting.PackagistHooksEditPost)
 	}
 
-	addSettingVariablesRoutes := func() {
+	addSettingsVariablesRoutes := func() {
 		m.Group("/variables", func() {
 			m.Get("", repo_setting.Variables)
 			m.Post("/new", web.Bind(forms.EditVariableForm{}), repo_setting.VariableCreate)
@@ -455,8 +473,8 @@ func registerRoutes(m *web.Route) {
 		m.Get("/change-password", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		})
-		m.Any("/*", CorsHandler(), public.FileHandlerFunc())
-	}, CorsHandler())
+		m.Methods("GET, HEAD", "/*", public.FileHandlerFunc())
+	}, optionsCorsHandler())
 
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
@@ -529,10 +547,11 @@ func registerRoutes(m *web.Route) {
 		// TODO manage redirection
 		m.Post("/authorize", web.Bind(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
 	}, ignSignInAndCsrf, reqSignIn)
-	m.Get("/login/oauth/userinfo", ignSignInAndCsrf, auth.InfoOAuth)
-	m.Post("/login/oauth/access_token", CorsHandler(), web.Bind(forms.AccessTokenForm{}), ignSignInAndCsrf, auth.AccessTokenOAuth)
-	m.Get("/login/oauth/keys", ignSignInAndCsrf, auth.OIDCKeys)
-	m.Post("/login/oauth/introspect", CorsHandler(), web.Bind(forms.IntrospectTokenForm{}), ignSignInAndCsrf, auth.IntrospectOAuth)
+
+	m.Methods("GET, OPTIONS", "/login/oauth/userinfo", optionsCorsHandler(), ignSignInAndCsrf, auth.InfoOAuth)
+	m.Methods("POST, OPTIONS", "/login/oauth/access_token", optionsCorsHandler(), web.Bind(forms.AccessTokenForm{}), ignSignInAndCsrf, auth.AccessTokenOAuth)
+	m.Methods("GET, OPTIONS", "/login/oauth/keys", optionsCorsHandler(), ignSignInAndCsrf, auth.OIDCKeys)
+	m.Methods("POST, OPTIONS", "/login/oauth/introspect", optionsCorsHandler(), web.Bind(forms.IntrospectTokenForm{}), ignSignInAndCsrf, auth.IntrospectOAuth)
 
 	m.Group("/user/settings", func() {
 		m.Get("", user_setting.Profile)
@@ -611,7 +630,7 @@ func registerRoutes(m *web.Route) {
 			m.Get("", user_setting.RedirectToDefaultSetting)
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
-			addSettingVariablesRoutes()
+			addSettingsVariablesRoutes()
 		}, actions.MustEnableActions)
 
 		m.Get("/organization", user_setting.Organization)
@@ -756,6 +775,7 @@ func registerRoutes(m *web.Route) {
 		m.Group("/actions", func() {
 			m.Get("", admin.RedirectToDefaultSetting)
 			addSettingsRunnersRoutes()
+			addSettingsVariablesRoutes()
 		})
 	}, adminReq, ctxDataSet("EnableOAuth2", setting.OAuth2.Enable, "EnablePackages", setting.Packages.Enabled))
 	// ***** END: Admin *****
@@ -767,6 +787,8 @@ func registerRoutes(m *web.Route) {
 			m.Post("/-/starlist_edit", web.Bind(forms.EditStarListForm{}), user.EditStarListPost)
 		}, context_service.UserAssignmentWeb())
 		m.Get("/attachments/{uuid}", repo.GetAttachment)
+		m.Get("/{username}", user.UsernameSubRoute)
+		m.Methods("GET, OPTIONS", "/attachments/{uuid}", optionsCorsHandler(), repo.GetAttachment)
 	}, ignSignIn)
 
 	m.Post("/{username}", reqSignIn, context_service.UserAssignmentWeb(), user.Action)
@@ -791,6 +813,24 @@ func registerRoutes(m *web.Route) {
 		return func(ctx *context.Context) {
 			if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
 				ctx.NotFound("", nil)
+			}
+		}
+	}
+
+	individualPermsChecker := func(ctx *context.Context) {
+		// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
+		if ctx.ContextUser.IsIndividual() {
+			switch {
+			case ctx.ContextUser.Visibility == structs.VisibleTypePrivate:
+				if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
+					ctx.NotFound("Visit Project", nil)
+					return
+				}
+			case ctx.ContextUser.Visibility == structs.VisibleTypeLimited:
+				if ctx.Doer == nil {
+					ctx.NotFound("Visit Project", nil)
+					return
+				}
 			}
 		}
 	}
@@ -884,7 +924,7 @@ func registerRoutes(m *web.Route) {
 					m.Get("", org_setting.RedirectToDefaultSetting)
 					addSettingsRunnersRoutes()
 					addSettingsSecretsRoutes()
-					addSettingVariablesRoutes()
+					addSettingsVariablesRoutes()
 				}, actions.MustEnableActions)
 
 				m.Methods("GET,POST", "/delete", org.SettingsDelete)
@@ -975,15 +1015,12 @@ func registerRoutes(m *web.Route) {
 					return
 				}
 			})
-		})
+		}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
 
 		m.Group("", func() {
 			m.Get("/code", user.CodeSearch)
-		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead, false))
+		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead, false), individualPermsChecker)
 	}, ignSignIn, context_service.UserAssignmentWeb(), context.OrgAssignment()) // for "/{username}/-" (packages, projects, code)
-
-	// ***** Release Attachment Download without Signin
-	m.Get("/{username}/{reponame}/releases/download/{vTag}/{fileName}", ignSignIn, context.RepoAssignment, repo.MustBeNotEmpty, repo.RedirectDownload)
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/settings", func() {
@@ -1066,7 +1103,7 @@ func registerRoutes(m *web.Route) {
 				m.Get("", repo_setting.RedirectToDefaultSetting)
 				addSettingsRunnersRoutes()
 				addSettingsSecretsRoutes()
-				addSettingVariablesRoutes()
+				addSettingsVariablesRoutes()
 			}, actions.MustEnableActions)
 			// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
 			m.Group("/migrate", func() {
@@ -1245,8 +1282,9 @@ func registerRoutes(m *web.Route) {
 			m.Get(".rss", feedEnabled, repo.ReleasesFeedRSS)
 			m.Get(".atom", feedEnabled, repo.ReleasesFeedAtom)
 		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed),
-			repo.MustBeNotEmpty, reqRepoReleaseReader, context.RepoRefByType(context.RepoRefTag, true))
-		m.Get("/releases/attachments/{uuid}", repo.MustBeNotEmpty, reqRepoReleaseReader, repo.GetAttachment)
+			repo.MustBeNotEmpty, context.RepoRefByType(context.RepoRefTag, true))
+		m.Get("/releases/attachments/{uuid}", repo.MustBeNotEmpty, repo.GetAttachment)
+		m.Get("/releases/download/{vTag}/{fileName}", repo.MustBeNotEmpty, repo.RedirectDownload)
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", web.Bind(forms.NewReleaseForm{}), repo.NewReleasePost)
@@ -1518,19 +1556,7 @@ func registerRoutes(m *web.Route) {
 				})
 			}, ignSignInAndCsrf, lfsServerEnabled)
 
-			m.Group("", func() {
-				m.PostOptions("/git-upload-pack", repo.ServiceUploadPack)
-				m.PostOptions("/git-receive-pack", repo.ServiceReceivePack)
-				m.GetOptions("/info/refs", repo.GetInfoRefs)
-				m.GetOptions("/HEAD", repo.GetTextFile("HEAD"))
-				m.GetOptions("/objects/info/alternates", repo.GetTextFile("objects/info/alternates"))
-				m.GetOptions("/objects/info/http-alternates", repo.GetTextFile("objects/info/http-alternates"))
-				m.GetOptions("/objects/info/packs", repo.GetInfoPacks)
-				m.GetOptions("/objects/info/{file:[^/]*}", repo.GetTextFile(""))
-				m.GetOptions("/objects/{head:[0-9a-f]{2}}/{hash:[0-9a-f]{38}}", repo.GetLooseObject)
-				m.GetOptions("/objects/pack/pack-{file:[0-9a-f]{40}}.pack", repo.GetPackFile)
-				m.GetOptions("/objects/pack/pack-{file:[0-9a-f]{40}}.idx", repo.GetIdxFile)
-			}, ignSignInAndCsrf, repo.HTTPGitEnabledHandler, repo.CorsHandler(), context_service.UserAssignmentWeb())
+			gitHTTPRouters(m)
 		})
 	})
 	// ***** END: Repository *****

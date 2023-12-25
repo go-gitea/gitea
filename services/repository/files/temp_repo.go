@@ -65,9 +65,8 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 				OwnerName: t.repo.OwnerName,
 				Name:      t.repo.Name,
 			}
-		} else {
-			return fmt.Errorf("Clone: %w %s", err, stderr)
 		}
+		return fmt.Errorf("Clone: %w %s", err, stderr)
 	}
 	gitRepo, err := git.OpenRepository(t.ctx, t.basePath)
 	if err != nil {
@@ -78,8 +77,8 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 }
 
 // Init the repository
-func (t *TemporaryUploadRepository) Init() error {
-	if err := git.InitRepository(t.ctx, t.basePath, false); err != nil {
+func (t *TemporaryUploadRepository) Init(objectFormatName string) error {
+	if err := git.InitRepository(t.ctx, t.basePath, false, objectFormatName); err != nil {
 		return err
 	}
 	gitRepo, err := git.OpenRepository(t.ctx, t.basePath)
@@ -343,7 +342,7 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 			Stderr:  stderr,
 			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 				_ = stdoutWriter.Close()
-				diff, finalErr = gitdiff.ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdoutReader, "")
+				diff, finalErr = gitdiff.ParsePatch(t.ctx, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdoutReader, "")
 				if finalErr != nil {
 					log.Error("ParsePatch: %v", finalErr)
 					cancel()

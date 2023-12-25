@@ -188,7 +188,7 @@ func SearchIssues(ctx *context.APIContext) {
 			allPublic = true
 			opts.AllPublic = false // set it false to avoid returning too many repos, we could filter by indexer
 		}
-		repoIDs, _, err = repo_model.SearchRepositoryIDs(opts)
+		repoIDs, _, err = repo_model.SearchRepositoryIDs(ctx, opts)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchRepositoryIDs", err)
 			return
@@ -462,6 +462,24 @@ func ListIssues(ctx *context.APIContext) {
 		isPull = util.OptionalBoolNone
 	}
 
+	if isPull != util.OptionalBoolNone && !ctx.Repo.CanReadIssuesOrPulls(isPull.IsTrue()) {
+		ctx.NotFound()
+		return
+	}
+
+	if isPull == util.OptionalBoolNone {
+		canReadIssues := ctx.Repo.CanRead(unit.TypeIssues)
+		canReadPulls := ctx.Repo.CanRead(unit.TypePullRequests)
+		if !canReadIssues && !canReadPulls {
+			ctx.NotFound()
+			return
+		} else if !canReadIssues {
+			isPull = util.OptionalBoolTrue
+		} else if !canReadPulls {
+			isPull = util.OptionalBoolFalse
+		}
+	}
+
 	// FIXME: we should be more efficient here
 	createdByID := getUserIDForFilter(ctx, "created_by")
 	if ctx.Written() {
@@ -591,6 +609,10 @@ func GetIssue(ctx *context.APIContext) {
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
+		return
+	}
+	if !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull) {
+		ctx.NotFound()
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, issue))
@@ -837,14 +859,14 @@ func EditIssue(ctx *context.APIContext) {
 		issue.MilestoneID != *form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = *form.Milestone
-		if err = issue_service.ChangeMilestoneAssign(issue, ctx.Doer, oldMilestoneID); err != nil {
+		if err = issue_service.ChangeMilestoneAssign(ctx, issue, ctx.Doer, oldMilestoneID); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ChangeMilestoneAssign", err)
 			return
 		}
 	}
 	if form.State != nil {
 		if issue.IsPull {
-			if pr, err := issue.GetPullRequest(); err != nil {
+			if pr, err := issue.GetPullRequest(ctx); err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetPullRequest", err)
 				return
 			} else if pr.HasMerged {

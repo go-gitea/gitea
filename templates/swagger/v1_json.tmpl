@@ -14,7 +14,7 @@
   "swagger": "2.0",
   "info": {
     "description": "This documentation describes the Gitea API.",
-    "title": "Gitea API.",
+    "title": "Gitea API",
     "license": {
       "name": "MIT",
       "url": "http://opensource.org/licenses/MIT"
@@ -5239,6 +5239,18 @@
             "name": "sha",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "include verification for every commit (disable for speedup, default 'true')",
+            "name": "verification",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include a list of affected files for every commit (disable for speedup, default 'true')",
+            "name": "files",
+            "in": "query"
           }
         ],
         "responses": {
@@ -10521,6 +10533,18 @@
             "description": "page size of results",
             "name": "limit",
             "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include verification for every commit (disable for speedup, default 'true')",
+            "name": "verification",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include a list of affected files for every commit (disable for speedup, default 'true')",
+            "name": "files",
+            "in": "query"
           }
         ],
         "responses": {
@@ -11702,12 +11726,6 @@
             "type": "boolean",
             "description": "filter (exclude / include) pre-releases",
             "name": "pre-release",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, deprecated - use limit",
-            "name": "per_page",
             "in": "query"
           },
           {
@@ -18952,8 +18970,7 @@
       "type": "object",
       "required": [
         "username",
-        "email",
-        "password"
+        "email"
       ],
       "properties": {
         "created_at": {
@@ -21666,6 +21683,10 @@
         },
         "creator": {
           "$ref": "#/definitions/User"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
         },
         "id": {
           "type": "integer",
@@ -24684,6 +24705,7 @@
   },
   "securityDefinitions": {
     "AccessToken": {
+      "description": "This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.",
       "type": "apiKey",
       "name": "access_token",
       "in": "query"
@@ -24716,6 +24738,7 @@
       "in": "header"
     },
     "Token": {
+      "description": "This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.",
       "type": "apiKey",
       "name": "token",
       "in": "query"

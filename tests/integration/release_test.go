@@ -239,3 +239,20 @@ func TestViewTagsList(t *testing.T) {
 
 	assert.EqualValues(t, []string{"v1.0", "delete-tag", "v1.1"}, tagNames)
 }
+
+func TestDownloadReleaseAttachment(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	tests.PrepareAttachmentsStorage(t)
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+
+	url := repo.Link() + "/releases/download/v1.1/README.md"
+
+	req := NewRequest(t, "GET", url)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	req = NewRequest(t, "GET", url)
+	session := loginUser(t, "user2")
+	session.MakeRequest(t, req, http.StatusOK)
+}

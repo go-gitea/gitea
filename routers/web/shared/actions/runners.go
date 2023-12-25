@@ -17,25 +17,20 @@ import (
 
 // RunnersList prepares data for runners list
 func RunnersList(ctx *context.Context, opts actions_model.FindRunnerOptions) {
-	count, err := actions_model.CountRunners(ctx, opts)
+	runners, count, err := db.FindAndCount[actions_model.ActionRunner](ctx, opts)
 	if err != nil {
 		ctx.ServerError("CountRunners", err)
 		return
 	}
 
-	runners, err := actions_model.FindRunners(ctx, opts)
-	if err != nil {
-		ctx.ServerError("FindRunners", err)
-		return
-	}
-	if err := runners.LoadAttributes(ctx); err != nil {
+	if err := actions_model.RunnerList(runners).LoadAttributes(ctx); err != nil {
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
 
 	// ownid=0,repo_id=0,means this token is used for global
 	var token *actions_model.ActionRunnerToken
-	token, err = actions_model.GetLastestRunnerToken(ctx, opts.OwnerID, opts.RepoID)
+	token, err = actions_model.GetLatestRunnerToken(ctx, opts.OwnerID, opts.RepoID)
 	if errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
 		token, err = actions_model.NewRunnerToken(ctx, opts.OwnerID, opts.RepoID)
 		if err != nil {
@@ -43,7 +38,7 @@ func RunnersList(ctx *context.Context, opts actions_model.FindRunnerOptions) {
 			return
 		}
 	} else if err != nil {
-		ctx.ServerError("GetLastestRunnerToken", err)
+		ctx.ServerError("GetLatestRunnerToken", err)
 		return
 	}
 
@@ -89,18 +84,13 @@ func RunnerDetails(ctx *context.Context, page int, runnerID, ownerID, repoID int
 		RunnerID:    runner.ID,
 	}
 
-	count, err := actions_model.CountTasks(ctx, opts)
+	tasks, count, err := db.FindAndCount[actions_model.ActionTask](ctx, opts)
 	if err != nil {
 		ctx.ServerError("CountTasks", err)
 		return
 	}
 
-	tasks, err := actions_model.FindTasks(ctx, opts)
-	if err != nil {
-		ctx.ServerError("FindTasks", err)
-		return
-	}
-	if err = tasks.LoadAttributes(ctx); err != nil {
+	if err = actions_model.TaskList(tasks).LoadAttributes(ctx); err != nil {
 		ctx.ServerError("TasksLoadAttributes", err)
 		return
 	}

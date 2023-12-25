@@ -16,6 +16,7 @@ import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	gouuid "github.com/google/uuid"
+	"xorm.io/builder"
 )
 
 //   ___ ___                __   ___________              __
@@ -101,9 +102,9 @@ func (t *HookTask) simpleMarshalJSON(v any) string {
 }
 
 // HookTasks returns a list of hook tasks by given conditions.
-func HookTasks(hookID int64, page int) ([]*HookTask, error) {
+func HookTasks(ctx context.Context, hookID int64, page int) ([]*HookTask, error) {
 	tasks := make([]*HookTask, 0, setting.Webhook.PagingNum)
-	return tasks, db.GetEngine(db.DefaultContext).
+	return tasks, db.GetEngine(ctx).
 		Limit(setting.Webhook.PagingNum, (page-1)*setting.Webhook.PagingNum).
 		Where("hook_id=?", hookID).
 		Desc("id").
@@ -143,21 +144,17 @@ func GetHookTaskByID(ctx context.Context, id int64) (*HookTask, error) {
 }
 
 // UpdateHookTask updates information of hook task.
-func UpdateHookTask(t *HookTask) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(t.ID).AllCols().Update(t)
+func UpdateHookTask(ctx context.Context, t *HookTask) error {
+	_, err := db.GetEngine(ctx).ID(t.ID).AllCols().Update(t)
 	return err
 }
 
 // ReplayHookTask copies a hook task to get re-delivered
 func ReplayHookTask(ctx context.Context, hookID int64, uuid string) (*HookTask, error) {
-	task := &HookTask{
-		HookID: hookID,
-		UUID:   uuid,
-	}
-	has, err := db.GetByBean(ctx, task)
+	task, exist, err := db.Get[HookTask](ctx, builder.Eq{"hook_id": hookID, "uuid": uuid})
 	if err != nil {
 		return nil, err
-	} else if !has {
+	} else if !exist {
 		return nil, ErrHookTaskNotExist{
 			HookID: hookID,
 			UUID:   uuid,

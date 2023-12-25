@@ -9,6 +9,7 @@ import (
 	"text/tabwriter"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	auth_service "code.gitea.io/gitea/services/auth"
 
 	"github.com/urfave/cli/v2"
@@ -62,7 +63,7 @@ func runListAuth(c *cli.Context) error {
 		return err
 	}
 
-	authSources, err := auth_model.Sources()
+	authSources, err := db.Find[auth_model.Source](ctx, auth_model.FindSourcesOptions{})
 	if err != nil {
 		return err
 	}
@@ -100,10 +101,10 @@ func runDeleteAuth(c *cli.Context) error {
 		return err
 	}
 
-	source, err := auth_model.GetSourceByID(c.Int64("id"))
+	source, err := auth_model.GetSourceByID(ctx, c.Int64("id"))
 	if err != nil {
 		return err
 	}
 
-	return auth_service.DeleteSource(source)
+	return auth_service.DeleteSource(ctx, source)
 }

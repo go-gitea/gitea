@@ -49,16 +49,16 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 		return nil
 	}
 	issueIDs := prs.GetIssueIDs()
-	var codeComments []*issues_model.Comment
 
-	if err := db.Find(ctx, &issues_model.FindCommentsOptions{
+	codeComments, err := db.Find[issues_model.Comment](ctx, issues_model.FindCommentsOptions{
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},
 		Type:        issues_model.CommentTypeCode,
 		Invalidated: util.OptionalBoolFalse,
 		IssueIDs:    issueIDs,
-	}, &codeComments); err != nil {
+	})
+	if err != nil {
 		return fmt.Errorf("find code comments: %v", err)
 	}
 	for _, comment := range codeComments {
@@ -264,7 +264,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
 func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, reviewType issues_model.ReviewType, content, commitID string, attachmentUUIDs []string) (*issues_model.Review, *issues_model.Comment, error) {
-	pr, err := issue.GetPullRequest()
+	pr, err := issue.GetPullRequest(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
