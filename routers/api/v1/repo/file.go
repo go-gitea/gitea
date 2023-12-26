@@ -975,9 +975,9 @@ func GetContentsList(ctx *context.APIContext) {
 	GetContents(ctx)
 }
 
-// GetCommitsContentsList Get the metadata (include commit information) of all the entries of the root dir
-func GetCommitsContentsList(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/contents/commits repository repoGetContentsList
+// GetCommitsContents Get the metadata and commit and contents (if a file) of an entry in a repository, or a list of entries if a dir
+func GetCommitsContents(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/commit_contents/commits repository repoGetContentsList
 	// ---
 	// summary: Gets the metadata of all the entries of the root dir
 	// produces:
@@ -1025,4 +1025,39 @@ func GetCommitsContentsList(ctx *context.APIContext) {
 	} else {
 		ctx.JSON(http.StatusOK, fileList)
 	}
+
+}
+
+// GetCommitsContentsList Get the metadata (include commit information) of all the entries of the root dir
+func GetCommitsContentsList(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/commit_contents repository repoGetContentsList
+	// ---
+	// summary: Gets the metadata of all the entries of the root dir
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: ref
+	//   in: query
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   type: string
+	//   required: false
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ContentsListResponse"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	// same as GetContents(), this function is here because swagger fails if path is empty in GetContents() interface
+	GetCommitsContents(ctx)
+
 }

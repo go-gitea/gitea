@@ -1211,8 +1211,11 @@ func Routes() *web.Route {
 					m.Get("/notes/{sha}", repo.GetNote)
 				}, context.ReferencesGitRepo(true), reqRepoReader(unit.TypeCode))
 				m.Post("/diffpatch", reqRepoWriter(unit.TypeCode), reqToken(), bind(api.ApplyDiffPatchFileOptions{}), mustNotBeArchived, repo.ApplyDiffPatch)
+				m.Group("/commit_contents", func() {
+					m.Get("", repo.GetCommitsContentsList)
+					m.Get("/*", repo.GetCommitsContents)
+				}, reqRepoReader(unit.TypeCode))
 				m.Group("/contents", func() {
-					m.Get("/commits", repo.GetCommitsContentsList)
 					m.Get("", repo.GetContentsList)
 					m.Post("", reqToken(), bind(api.ChangeFilesOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.ChangeFiles)
 					m.Get("/*", repo.GetContents)
