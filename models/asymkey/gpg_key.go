@@ -85,7 +85,7 @@ type FindGPGKeyOptions struct {
 }
 
 func (opts FindGPGKeyOptions) ToConds() builder.Cond {
-	var cond builder.Cond = builder.NewCond()
+	cond := builder.NewCond()
 	if opts.IsPrimaryKeyIDEmpty {
 		cond = cond.And(builder.Eq{"primary_key_id": ""})
 	}
