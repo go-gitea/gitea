@@ -36,9 +36,10 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 
 	topicBranch = opts.GitPushOptions["topic"]
 	_, forcePush = opts.GitPushOptions["force-push"]
+	objectFormat, _ := gitRepo.GetObjectFormat()
 
 	for i := range opts.OldCommitIDs {
-		if opts.NewCommitIDs[i] == git.EmptySHA {
+		if opts.NewCommitIDs[i] == objectFormat.EmptyObjectID().String() {
 			results = append(results, private.HookProcReceiveRefResult{
 				OriginalRef: opts.RefFullNames[i],
 				OldOID:      opts.OldCommitIDs[i],
@@ -148,10 +149,11 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 
 			log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
 
+			objectFormat, _ := gitRepo.GetObjectFormat()
 			results = append(results, private.HookProcReceiveRefResult{
 				Ref:         pr.GetGitRefName(),
 				OriginalRef: opts.RefFullNames[i],
-				OldOID:      git.EmptySHA,
+				OldOID:      objectFormat.EmptyObjectID().String(),
 				NewOID:      opts.NewCommitIDs[i],
 			})
 			continue
@@ -237,7 +239,7 @@ func UserNameChanged(ctx context.Context, user *user_model.User, newName string)
 	for _, pull := range pulls {
 		pull.HeadBranch = strings.TrimPrefix(pull.HeadBranch, user.LowerName+"/")
 		pull.HeadBranch = newName + "/" + pull.HeadBranch
-		if err = pull.UpdateCols("head_branch"); err != nil {
+		if err = pull.UpdateCols(ctx, "head_branch"); err != nil {
 			return err
 		}
 	}

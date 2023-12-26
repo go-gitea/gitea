@@ -430,7 +430,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 	}
 
 	if len(iss) > 0 {
-		if err := issues_model.InsertIssues(iss...); err != nil {
+		if err := issues_model.InsertIssues(g.ctx, iss...); err != nil {
 			return err
 		}
 
@@ -840,7 +840,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		pr, ok := g.prCache[issue.ID]
 		if !ok {
 			var err error
-			pr, err = issues_model.GetPullRequestByIssueIDWithNoAttributes(issue.ID)
+			pr, err = issues_model.GetPullRequestByIssueIDWithNoAttributes(g.ctx, issue.ID)
 			if err != nil {
 				return err
 			}
@@ -862,7 +862,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			line := comment.Line
 			if line != 0 {
 				comment.Position = 1
-			} else {
+			} else if comment.DiffHunk != "" {
 				_, _, line, _ = git.ParseDiffHunkString(comment.DiffHunk)
 			}
 
@@ -892,7 +892,8 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 				comment.UpdatedAt = comment.CreatedAt
 			}
 
-			if !git.IsValidSHAPattern(comment.CommitID) {
+			objectFormat, _ := g.gitRepo.GetObjectFormat()
+			if !objectFormat.IsValid(comment.CommitID) {
 				log.Warn("Invalid comment CommitID[%s] on comment[%d] in PR #%d of %s/%s replaced with %s", comment.CommitID, pr.Index, g.repoOwner, g.repoName, headCommitID)
 				comment.CommitID = headCommitID
 			}
@@ -989,7 +990,7 @@ func (g *GiteaLocalUploader) remapLocalUser(source user_model.ExternalUserMigrat
 func (g *GiteaLocalUploader) remapExternalUser(source user_model.ExternalUserMigrated, target user_model.ExternalUserRemappable) (userid int64, err error) {
 	userid, ok := g.userMap[source.GetExternalID()]
 	if !ok {
-		userid, err = user_model.GetUserIDByExternalUserID(g.gitServiceType.Name(), fmt.Sprintf("%d", source.GetExternalID()))
+		userid, err = user_model.GetUserIDByExternalUserID(g.ctx, g.gitServiceType.Name(), fmt.Sprintf("%d", source.GetExternalID()))
 		if err != nil {
 			log.Error("GetUserIDByExternalUserID: %v", err)
 			return 0, err

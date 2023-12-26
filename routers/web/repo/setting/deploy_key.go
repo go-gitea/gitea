@@ -22,7 +22,7 @@ func DeployKeys(ctx *context.Context) {
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
-	keys, err := asymkey_model.ListDeployKeys(ctx, &asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
+	keys, err := db.Find[asymkey_model.DeployKey](ctx, asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
 		ctx.ServerError("ListDeployKeys", err)
 		return
@@ -39,7 +39,7 @@ func DeployKeysPost(ctx *context.Context) {
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
-	keys, err := asymkey_model.ListDeployKeys(ctx, &asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
+	keys, err := db.Find[asymkey_model.DeployKey](ctx, asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
 		ctx.ServerError("ListDeployKeys", err)
 		return
@@ -70,7 +70,7 @@ func DeployKeysPost(ctx *context.Context) {
 		return
 	}
 
-	key, err := asymkey_model.AddDeployKey(ctx.Repo.Repository.ID, form.Title, content, !form.IsWritable)
+	key, err := asymkey_model.AddDeployKey(ctx, ctx.Repo.Repository.ID, form.Title, content, !form.IsWritable)
 	if err != nil {
 		ctx.Data["HasError"] = true
 		switch {

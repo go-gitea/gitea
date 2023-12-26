@@ -21,7 +21,7 @@ import (
 func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 	opts := utils.GetListOptions(ctx)
 
-	repos, count, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
+	repos, count, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
 		Actor:       u,
 		Private:     private,
 		ListOptions: opts,

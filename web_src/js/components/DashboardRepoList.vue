@@ -12,6 +12,7 @@ const commitStatus = {
   success: {name: 'octicon-check', color: 'green'},
   error: {name: 'gitea-exclamation', color: 'red'},
   failure: {name: 'octicon-x', color: 'red'},
+  warning: {name: 'gitea-exclamation', color: 'yellow'},
 };
 
 const sfc = {
@@ -208,7 +209,6 @@ const sfc = {
       this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
       this.searchRepos();
     },
-
 
     changePage(page) {
       this.page = page;

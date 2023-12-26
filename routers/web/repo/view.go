@@ -9,6 +9,7 @@ import (
 	gocontext "context"
 	"encoding/base64"
 	"fmt"
+	"html/template"
 	"image"
 	"io"
 	"net/http"
@@ -312,24 +313,27 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 			Ctx:          ctx,
 			RelativePath: path.Join(ctx.Repo.TreePath, readmeFile.Name()), // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
 			URLPrefix:    path.Join(readmeTreelink, subfolder),
-			Metas:        ctx.Repo.Repository.ComposeDocumentMetas(),
+			Metas:        ctx.Repo.Repository.ComposeDocumentMetas(ctx),
 			GitRepo:      ctx.Repo.GitRepo,
 		}, rd)
 		if err != nil {
 			log.Error("Render failed for %s in %-v: %v Falling back to rendering source", readmeFile.Name(), ctx.Repo.Repository, err)
-			buf := &bytes.Buffer{}
-			ctx.Data["EscapeStatus"], _ = charset.EscapeControlStringReader(rd, buf, ctx.Locale)
-			ctx.Data["FileContent"] = buf.String()
+			delete(ctx.Data, "IsMarkup")
 		}
-	} else {
-		ctx.Data["IsPlainText"] = true
-		buf := &bytes.Buffer{}
-		ctx.Data["EscapeStatus"], err = charset.EscapeControlStringReader(rd, buf, ctx.Locale)
-		if err != nil {
-			log.Error("Read failed: %v", err)
-		}
+	}
 
-		ctx.Data["FileContent"] = buf.String()
+	if ctx.Data["IsMarkup"] != true {
+		ctx.Data["IsPlainText"] = true
+		content, err := io.ReadAll(rd)
+		if err != nil {
+			log.Error("Read readme content failed: %v", err)
+		}
+		contentEscaped := template.HTMLEscapeString(util.UnsafeBytesToString(content))
+		ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlHTML(template.HTML(contentEscaped), ctx.Locale)
+	}
+
+	if !fInfo.isLFSFile && ctx.Repo.CanEnableEditor(ctx, ctx.Doer) {
+		ctx.Data["CanEditReadmeFile"] = true
 	}
 }
 
@@ -469,7 +473,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			if !detected {
 				markupType = ""
 			}
-			metas := ctx.Repo.Repository.ComposeDocumentMetas()
+			metas := ctx.Repo.Repository.ComposeDocumentMetas(ctx)
 			metas["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
 			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 				Ctx:          ctx,
@@ -489,7 +493,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			buf, _ := io.ReadAll(rd)
 
 			// The Open Group Base Specification: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html
-			//   empty: 0 lines; "a": 1 line, 1 incomplete-line; "a\n": 1 line; "a\nb": 1 line, 1 incomplete-line;
+			//   empty: 0 lines; "a": 1 incomplete-line; "a\n": 1 line; "a\nb": 1 line, 1 incomplete-line;
 			// Gitea uses the definition (like most modern editors):
 			//   empty: 0 lines; "a": 1 line; "a\n": 2 lines; "a\nb": 2 lines;
 			//   When rendering, the last empty line is not rendered in UI, while the line-number is still counted, to tell users that the file contains a trailing EOL.
@@ -582,7 +586,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				Ctx:          ctx,
 				RelativePath: ctx.Repo.TreePath,
 				URLPrefix:    path.Dir(treeLink),
-				Metas:        ctx.Repo.Repository.ComposeDocumentMetas(),
+				Metas:        ctx.Repo.Repository.ComposeDocumentMetas(ctx),
 				GitRepo:      ctx.Repo.GitRepo,
 			}, rd)
 			if err != nil {
@@ -616,7 +620,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 }
 
-func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input io.Reader) (escaped *charset.EscapeStatus, output string, err error) {
+func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input io.Reader) (escaped *charset.EscapeStatus, output template.HTML, err error) {
 	markupRd, markupWr := io.Pipe()
 	defer markupWr.Close()
 	done := make(chan struct{})
@@ -624,7 +628,7 @@ func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input i
 		sb := &strings.Builder{}
 		// We allow NBSP here this is rendered
 		escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.RuneNBSP)
-		output = sb.String()
+		output = template.HTML(sb.String())
 		close(done)
 	}()
 	err = markup.Render(renderCtx, input, markupWr)
@@ -707,24 +711,14 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 	}
 	for _, entry := range allEntries {
 		if entry.Name() == "CITATION.cff" || entry.Name() == "CITATION.bib" {
-			ctx.Data["CitiationExist"] = true
 			// Read Citation file contents
-			blob := entry.Blob()
-			dataRc, err := blob.DataAsync()
-			if err != nil {
-				ctx.ServerError("DataAsync", err)
-				return
+			if content, err := entry.Blob().GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+				log.Error("checkCitationFile: GetBlobContent: %v", err)
+			} else {
+				ctx.Data["CitiationExist"] = true
+				ctx.PageData["citationFileContent"] = content
+				break
 			}
-			defer dataRc.Close()
-			buf := make([]byte, 1024)
-			n, err := util.ReadAtMost(dataRc, buf)
-			if err != nil {
-				ctx.ServerError("ReadAtMost", err)
-				return
-			}
-			buf = buf[:n]
-			ctx.PageData["citationFileContent"] = string(buf)
-			break
 		}
 	}
 }
@@ -879,7 +873,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 }
 
 func renderLanguageStats(ctx *context.Context) {
-	langs, err := repo_model.GetTopLanguageStats(ctx.Repo.Repository, 5)
+	langs, err := repo_model.GetTopLanguageStats(ctx, ctx.Repo.Repository, 5)
 	if err != nil {
 		ctx.ServerError("Repo.GetTopLanguageStats", err)
 		return

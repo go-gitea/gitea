@@ -34,12 +34,13 @@ type PushMirror struct {
 }
 
 type PushMirrorOptions struct {
+	db.ListOptions
 	ID         int64
 	RepoID     int64
 	RemoteName string
 }
 
-func (opts *PushMirrorOptions) toConds() builder.Cond {
+func (opts PushMirrorOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
@@ -58,12 +59,12 @@ func init() {
 }
 
 // GetRepository returns the path of the repository.
-func (m *PushMirror) GetRepository() *Repository {
+func (m *PushMirror) GetRepository(ctx context.Context) *Repository {
 	if m.Repo != nil {
 		return m.Repo
 	}
 	var err error
-	m.Repo, err = GetRepositoryByID(db.DefaultContext, m.RepoID)
+	m.Repo, err = GetRepositoryByID(ctx, m.RepoID)
 	if err != nil {
 		log.Error("getRepositoryByID[%d]: %v", m.ID, err)
 	}
@@ -73,12 +74,6 @@ func (m *PushMirror) GetRepository() *Repository {
 // GetRemoteName returns the name of the remote.
 func (m *PushMirror) GetRemoteName() string {
 	return m.RemoteName
-}
-
-// InsertPushMirror inserts a push-mirror to database
-func InsertPushMirror(ctx context.Context, m *PushMirror) error {
-	_, err := db.GetEngine(ctx).Insert(m)
-	return err
 }
 
 // UpdatePushMirror updates the push-mirror
@@ -95,21 +90,10 @@ func UpdatePushMirrorInterval(ctx context.Context, m *PushMirror) error {
 
 func DeletePushMirrors(ctx context.Context, opts PushMirrorOptions) error {
 	if opts.RepoID > 0 {
-		_, err := db.GetEngine(ctx).Where(opts.toConds()).Delete(&PushMirror{})
+		_, err := db.Delete[PushMirror](ctx, opts)
 		return err
 	}
 	return util.NewInvalidArgumentErrorf("repoID required and must be set")
-}
-
-func GetPushMirror(ctx context.Context, opts PushMirrorOptions) (*PushMirror, error) {
-	mirror := &PushMirror{}
-	exist, err := db.GetEngine(ctx).Where(opts.toConds()).Get(mirror)
-	if err != nil {
-		return nil, err
-	} else if !exist {
-		return nil, ErrPushMirrorNotExist
-	}
-	return mirror, nil
 }
 
 // GetPushMirrorsByRepoID returns push-mirror information of a repository.

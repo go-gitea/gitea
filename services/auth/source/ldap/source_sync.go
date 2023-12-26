@@ -135,17 +135,17 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 			if err == nil && isAttributeSSHPublicKeySet {
 				log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", source.authSource.Name, usr.Name)
-				if asymkey_model.AddPublicKeysBySource(usr, source.authSource, su.SSHPublicKey) {
+				if asymkey_model.AddPublicKeysBySource(ctx, usr, source.authSource, su.SSHPublicKey) {
 					sshKeysNeedUpdate = true
 				}
 			}
 
 			if err == nil && len(source.AttributeAvatar) > 0 {
-				_ = user_service.UploadAvatar(usr, su.Avatar)
+				_ = user_service.UploadAvatar(ctx, usr, su.Avatar)
 			}
 		} else if updateExisting {
 			// Synchronize SSH Public Key if that attribute is set
-			if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(usr, source.authSource, su.SSHPublicKey) {
+			if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(ctx, usr, source.authSource, su.SSHPublicKey) {
 				sshKeysNeedUpdate = true
 			}
 
@@ -179,7 +179,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 			if usr.IsUploadAvatarChanged(su.Avatar) {
 				if err == nil && len(source.AttributeAvatar) > 0 {
-					_ = user_service.UploadAvatar(usr, su.Avatar)
+					_ = user_service.UploadAvatar(ctx, usr, su.Avatar)
 				}
 			}
 		}

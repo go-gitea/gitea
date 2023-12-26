@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -56,25 +57,26 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 	username := ctx.Params("username")
 
 	if fingerprint != "" {
+		var userID int64 // Unrestricted
 		// Querying not just listing
 		if username != "" {
 			// Restrict to provided uid
-			keys, err = asymkey_model.SearchPublicKey(user.ID, fingerprint)
-		} else {
-			// Unrestricted
-			keys, err = asymkey_model.SearchPublicKey(0, fingerprint)
+			userID = user.ID
 		}
+		keys, err = db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+			OwnerID:     userID,
+			Fingerprint: fingerprint,
+		})
 		count = len(keys)
 	} else {
-		total, err2 := asymkey_model.CountPublicKeys(user.ID)
-		if err2 != nil {
-			ctx.InternalServerError(err)
-			return
-		}
-		count = int(total)
-
+		var total int64
 		// Use ListPublicKeys
-		keys, err = asymkey_model.ListPublicKeys(user.ID, utils.GetListOptions(ctx))
+		keys, total, err = db.FindAndCount[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+			ListOptions: utils.GetListOptions(ctx),
+			OwnerID:     user.ID,
+			NotKeytype:  asymkey_model.KeyTypePrincipal,
+		})
+		count = int(total)
 	}
 
 	if err != nil {
@@ -176,7 +178,7 @@ func GetPublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	key, err := asymkey_model.GetPublicKeyByID(ctx.ParamsInt64(":id"))
+	key, err := asymkey_model.GetPublicKeyByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.NotFound()
@@ -202,7 +204,7 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 		return
 	}
 
-	key, err := asymkey_model.AddPublicKey(uid, form.Title, content, 0)
+	key, err := asymkey_model.AddPublicKey(ctx, uid, form.Title, content, 0)
 	if err != nil {
 		repo.HandleAddKeyError(ctx, err)
 		return
@@ -262,7 +264,7 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	id := ctx.ParamsInt64(":id")
-	externallyManaged, err := asymkey_model.PublicKeyIsExternallyManaged(id)
+	externallyManaged, err := asymkey_model.PublicKeyIsExternallyManaged(ctx, id)
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.NotFound()

@@ -182,7 +182,7 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 		filename = query
 	}
 
-	attachment, err := attachment.UploadAttachment(file, setting.Attachment.AllowedTypes, header.Size, &repo_model.Attachment{
+	attachment, err := attachment.UploadAttachment(ctx, file, setting.Attachment.AllowedTypes, header.Size, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,
@@ -326,6 +326,10 @@ func getIssueCommentSafe(ctx *context.APIContext) *issues_model.Comment {
 	}
 	if comment.Issue == nil || comment.Issue.RepoID != ctx.Repo.Repository.ID {
 		ctx.Error(http.StatusNotFound, "", "no matching issue comment found")
+		return nil
+	}
+
+	if !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull) {
 		return nil
 	}
 
