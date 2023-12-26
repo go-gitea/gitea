@@ -313,7 +313,12 @@ func runDump(ctx *cli.Context) error {
 	if err := addFile(w, "gitea-db.sql", dbDump.Name(), verbose); err != nil {
 		fatal("Failed to include gitea-db.sql: %v", err)
 	}
-
+	
+	log.Info("Adding gitea binary file from %s", setting.AppPath)
+	if err := addFile(w, "gitea", setting.AppPath, verbose); err != nil {
+		fatal("Failed to include gitea binary file:", err)
+	}
+	
 	if len(setting.CustomConf) > 0 {
 		log.Info("Adding custom configuration file from %s", setting.CustomConf)
 		if err := addFile(w, "app.ini", setting.CustomConf, verbose); err != nil {
