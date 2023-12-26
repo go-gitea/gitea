@@ -446,7 +446,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 				continue
 			}
 
-			if _, err := sess.ID(teamReviewRequest.ID).NoAutoCondition().Delete(teamReviewRequest); err != nil {
+			if _, err := db.DeleteByID[Review](ctx, teamReviewRequest.ID); err != nil {
 				return nil, nil, err
 			}
 		}
@@ -869,7 +869,6 @@ func DeleteReview(ctx context.Context, r *Review) error {
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
 	if r.ID == 0 {
 		return fmt.Errorf("review is not allowed to be 0")
@@ -885,7 +884,7 @@ func DeleteReview(ctx context.Context, r *Review) error {
 		ReviewID: r.ID,
 	}
 
-	if _, err := sess.Where(opts.ToConds()).Delete(new(Comment)); err != nil {
+	if _, err := db.Delete[Comment](ctx, opts); err != nil {
 		return err
 	}
 
@@ -895,7 +894,7 @@ func DeleteReview(ctx context.Context, r *Review) error {
 		ReviewID: r.ID,
 	}
 
-	if _, err := sess.Where(opts.ToConds()).Delete(new(Comment)); err != nil {
+	if _, err := db.Delete[Comment](ctx, opts); err != nil {
 		return err
 	}
 
@@ -905,11 +904,11 @@ func DeleteReview(ctx context.Context, r *Review) error {
 		ReviewID: r.ID,
 	}
 
-	if _, err := sess.Where(opts.ToConds()).Delete(new(Comment)); err != nil {
+	if _, err := db.Delete[Comment](ctx, opts); err != nil {
 		return err
 	}
 
-	if _, err := sess.ID(r.ID).Delete(new(Review)); err != nil {
+	if _, err := db.DeleteByID[Review](ctx, r.ID); err != nil {
 		return err
 	}
 
