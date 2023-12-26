@@ -19,15 +19,17 @@ func Test_RegenerateSession(t *testing.T) {
 
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	exist, err := auth.ExistSession(db.DefaultContext, "new_key")
+	key := "new_key890123456"  // it must be 16 characters long
+	key2 := "new_key890123457" // it must be 16 characters
+	exist, err := auth.ExistSession(db.DefaultContext, key)
 	assert.NoError(t, err)
 	assert.False(t, exist)
 
-	sess, err := auth.RegenerateSession(db.DefaultContext, "", "new_key")
+	sess, err := auth.RegenerateSession(db.DefaultContext, "", key)
 	assert.NoError(t, err)
-	assert.EqualValues(t, "new_key", sess.Key)
+	assert.EqualValues(t, key, sess.Key)
 
-	sess, err = auth.ReadSession(db.DefaultContext, "new_key2")
+	sess, err = auth.ReadSession(db.DefaultContext, key2)
 	assert.NoError(t, err)
-	assert.EqualValues(t, "new_key2", sess.Key)
+	assert.EqualValues(t, key2, sess.Key)
 }
