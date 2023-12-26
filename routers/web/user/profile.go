@@ -7,6 +7,7 @@ package user
 import (
 	"fmt"
 	"net/http"
+	"path"
 	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -233,10 +234,20 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGi
 		if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
 			log.Error("failed to GetBlobContent: %v", err)
 		} else {
+			// When user opens someone's profile page, the router doesn't give the repo context, which makes it difficult to
+			// render the full link of media elements.
+			// the media link should be in the format of /[user]/[repoName]/src/branch/[branchName],
+			// 	Eg. /Tom/.profile/src/branch/main
+			// The branch shown on the profile page should be the 'main' branch, this need to be in sync with doc, see:
+			//	https://docs.gitea.com/usage/profile-readme
+			const profileBranch = "main"
+			repoName := strings.TrimSuffix(path.Base(profileGitRepo.Path), ".git")
+			prefix := fmt.Sprintf("/%s/%s/src/branch/%s", ctx.ContextUser.Name, repoName, profileBranch)
 			if profileContent, err := markdown.RenderString(&markup.RenderContext{
-				Ctx:     ctx,
-				GitRepo: profileGitRepo,
-				Metas:   map[string]string{"mode": "document"},
+				Ctx:       ctx,
+				GitRepo:   profileGitRepo,
+				URLPrefix: prefix,
+				Metas:     map[string]string{"mode": "document"},
 			}, bytes); err != nil {
 				log.Error("failed to RenderString: %v", err)
 			} else {
