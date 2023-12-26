@@ -1212,6 +1212,7 @@ func Routes() *web.Route {
 				}, context.ReferencesGitRepo(true), reqRepoReader(unit.TypeCode))
 				m.Post("/diffpatch", reqRepoWriter(unit.TypeCode), reqToken(), bind(api.ApplyDiffPatchFileOptions{}), mustNotBeArchived, repo.ApplyDiffPatch)
 				m.Group("/contents", func() {
+					m.Get("/commits", repo.GetCommitsContentsList)
 					m.Get("", repo.GetContentsList)
 					m.Post("", reqToken(), bind(api.ChangeFilesOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.ChangeFiles)
 					m.Get("/*", repo.GetContents)
