@@ -144,8 +144,8 @@ Loop:
 			break Loop
 		case pubkey:
 			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				ListOptions: db.ListOptionsAll,
-				OwnerID:     u.ID,
+				OwnerID:             u.ID,
+				IsPrimaryKeyIDEmpty: true,
 			})
 			if err != nil {
 				return false, "", nil, err
@@ -183,8 +183,8 @@ Loop:
 			break Loop
 		case pubkey:
 			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				ListOptions: db.ListOptionsAll,
-				OwnerID:     u.ID,
+				OwnerID:             u.ID,
+				IsPrimaryKeyIDEmpty: true,
 			})
 			if err != nil {
 				return false, "", nil, err
@@ -239,8 +239,8 @@ Loop:
 			break Loop
 		case pubkey:
 			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				ListOptions: db.ListOptionsAll,
-				OwnerID:     u.ID,
+				OwnerID:             u.ID,
+				IsPrimaryKeyIDEmpty: true,
 			})
 			if err != nil {
 				return false, "", nil, err
@@ -304,8 +304,8 @@ Loop:
 			break Loop
 		case pubkey:
 			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				ListOptions: db.ListOptionsAll,
-				OwnerID:     u.ID,
+				OwnerID:             u.ID,
+				IsPrimaryKeyIDEmpty: true,
 			})
 			if err != nil {
 				return false, "", nil, err

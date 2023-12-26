@@ -18,10 +18,12 @@ import (
 )
 
 func listGPGKeys(ctx *context.APIContext, uid int64, listOptions db.ListOptions) {
-	keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-		ListOptions: listOptions,
-		OwnerID:     uid,
-	})
+	opts := asymkey_model.FindGPGKeyOptions{
+		ListOptions:         listOptions,
+		OwnerID:             uid,
+		IsPrimaryKeyIDEmpty: true,
+	}
+	keys, total, err := db.FindAndCount[asymkey_model.GPGKey](ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListGPGKeys", err)
 		return
@@ -30,14 +32,6 @@ func listGPGKeys(ctx *context.APIContext, uid int64, listOptions db.ListOptions)
 	apiKeys := make([]*api.GPGKey, len(keys))
 	for i := range keys {
 		apiKeys[i] = convert.ToGPGKey(keys[i])
-	}
-
-	total, err := db.Count[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-		OwnerID: uid,
-	})
-	if err != nil {
-		ctx.InternalServerError(err)
-		return
 	}
 
 	ctx.SetTotalCountHeader(total)

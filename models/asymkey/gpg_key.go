@@ -79,12 +79,16 @@ func PaddedKeyID(keyID string) string {
 
 type FindGPGKeyOptions struct {
 	db.ListOptions
-	OwnerID int64
-	KeyID   string
+	OwnerID             int64
+	KeyID               string
+	IsPrimaryKeyIDEmpty bool
 }
 
 func (opts FindGPGKeyOptions) ToConds() builder.Cond {
-	var cond builder.Cond = builder.Eq{"primary_key_id": ""}
+	var cond builder.Cond = builder.NewCond()
+	if opts.IsPrimaryKeyIDEmpty {
+		cond = cond.And(builder.Eq{"primary_key_id": ""})
+	}
 	if opts.OwnerID > 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
 	}

@@ -664,8 +664,9 @@ func ShowSSHKeys(ctx *context.Context) {
 // ShowGPGKeys output all the public GPG keys of user by uid
 func ShowGPGKeys(ctx *context.Context) {
 	keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-		ListOptions: db.ListOptionsAll,
-		OwnerID:     ctx.ContextUser.ID,
+		ListOptions:         db.ListOptionsAll,
+		OwnerID:             ctx.ContextUser.ID,
+		IsPrimaryKeyIDEmpty: true,
 	})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)
