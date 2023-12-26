@@ -4,6 +4,7 @@
 package storage
 
 import (
+	"code.gitea.io/gitea/modules/structs"
 	"fmt"
 	"io"
 	"net/url"
@@ -13,6 +14,14 @@ import (
 var uninitializedStorage = discardStorage("uninitialized storage")
 
 type discardStorage string
+
+func (s discardStorage) GenerateMultipartParts(path string, size int64) (parts []*structs.MultipartObjectPart, abort *structs.MultipartEndpoint, verify *structs.MultipartEndpoint, err error) {
+	return nil, nil, nil, fmt.Errorf("%s", s)
+}
+
+func (s discardStorage) CommitUpload(path, additionalParameter string) error {
+	return fmt.Errorf("%s", s)
+}
 
 func (s discardStorage) Open(_ string) (Object, error) {
 	return nil, fmt.Errorf("%s", s)

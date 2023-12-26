@@ -4,6 +4,7 @@
 package storage
 
 import (
+	"code.gitea.io/gitea/modules/structs"
 	"context"
 	"errors"
 	"fmt"
@@ -65,6 +66,10 @@ type ObjectStorage interface {
 	Delete(path string) error
 	URL(path, name string) (*url.URL, error)
 	IterateObjects(path string, iterator func(path string, obj Object) error) error
+	// GenerateMultipartParts Generate object upload endpoints and pos/index information
+	GenerateMultipartParts(path string, size int64) (parts []*structs.MultipartObjectPart, abort *structs.MultipartEndpoint, verify *structs.MultipartEndpoint, err error)
+	// CommitUpload used for merged multipart upload actions, used for multipart cases
+	CommitUpload(path, additionalParameter string) error
 }
 
 // Copy copies a file from source ObjectStorage to dest ObjectStorage

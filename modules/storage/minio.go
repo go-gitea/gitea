@@ -4,6 +4,7 @@
 package storage
 
 import (
+	"code.gitea.io/gitea/modules/structs"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -142,6 +143,14 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 		bucket:   config.Bucket,
 		basePath: config.BasePath,
 	}, nil
+}
+
+func (m *MinioStorage) GenerateMultipartParts(path string, size int64) (parts []*structs.MultipartObjectPart, abort *structs.MultipartEndpoint, verify *structs.MultipartEndpoint, err error) {
+	panic("not implemented")
+}
+
+func (m *MinioStorage) CommitUpload(path, additionalParameter string) error {
+	panic("not implemented")
 }
 
 func (m *MinioStorage) buildMinioPath(p string) string {

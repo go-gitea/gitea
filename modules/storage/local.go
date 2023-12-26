@@ -4,6 +4,7 @@
 package storage
 
 import (
+	"code.gitea.io/gitea/modules/structs"
 	"context"
 	"fmt"
 	"io"
@@ -23,6 +24,14 @@ type LocalStorage struct {
 	ctx    context.Context
 	dir    string
 	tmpdir string
+}
+
+func (l *LocalStorage) GenerateMultipartParts(path string, size int64) (parts []*structs.MultipartObjectPart, abort *structs.MultipartEndpoint, verify *structs.MultipartEndpoint, err error) {
+	panic("not implemented")
+}
+
+func (l *LocalStorage) CommitUpload(path, additionalParameter string) error {
+	panic("not implemented")
 }
 
 // NewLocalStorage returns a local files

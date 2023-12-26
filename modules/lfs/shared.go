@@ -4,6 +4,7 @@
 package lfs
 
 import (
+	"code.gitea.io/gitea/modules/structs"
 	"time"
 )
 
@@ -72,4 +73,23 @@ type ErrorResponse struct {
 	Message          string
 	DocumentationURL string `json:"documentation_url,omitempty"`
 	RequestID        string `json:"request_id,omitempty"`
+}
+
+type BatchResponseWithMultiPart struct {
+	Transfer string                         `json:"transfer,omitempty"`
+	Objects  []*ObjectResponseWithMultipart `json:"objects"`
+}
+
+type ObjectResponseWithMultipart struct {
+	Pointer
+	Actions ObjectResponseActionWithMultipart `json:"actions,omitempty"`
+	Error   *ObjectError                      `json:"error,omitempty"`
+}
+
+type ObjectResponseActionWithMultipart struct {
+	Parts    []*structs.MultipartObjectPart `json:"parts,omitempty"`
+	Download *structs.MultipartEndpoint     `json:"download,omitempty"`
+	Verify   *structs.MultipartEndpoint     `json:"verify,omitempty"`
+	Abort    *structs.MultipartEndpoint     `json:"abort,omitempty"`
+	Error    *ObjectError                   `json:"error,omitempty"`
 }
