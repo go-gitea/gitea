@@ -221,13 +221,14 @@ func (hwc *HWCloudStorage) CommitUpload(path, additionalParameter string) error 
 
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
 func (hwc *HWCloudStorage) URL(path, name string) (*url.URL, error) {
+	queryParameter := map[string]string{"response-content-disposition": "attachment; filename=\"" + quoteEscaper.Replace(name) + "\""}
 	input := &obs.CreateSignedUrlInput{}
 
 	input.Method = obs.HttpMethodGet
 	input.Bucket = hwc.bucket
 	input.Key = hwc.buildMinioPath(path)
 	input.Expires = default_expire
-
+	input.QueryParams = queryParameter
 	output, err := hwc.hwclient.CreateSignedUrl(input)
 	if err != nil {
 		return nil, err
