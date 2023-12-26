@@ -115,8 +115,8 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`)
 	root := fmt.Sprintf("/api/packages/%s/rubygems", user.Name)
 
 	uploadFile := func(t *testing.T, expectedStatus int) {
-		req := NewRequestWithBody(t, "POST", fmt.Sprintf("%s/api/v1/gems", root), bytes.NewReader(gemContent))
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequestWithBody(t, "POST", fmt.Sprintf("%s/api/v1/gems", root), bytes.NewReader(gemContent)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, expectedStatus)
 	}
 
@@ -156,8 +156,8 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`)
 	t.Run("Download", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/gems/%s", root, packageFilename))
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequest(t, "GET", fmt.Sprintf("%s/gems/%s", root, packageFilename)).
+			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, gemContent, resp.Body.Bytes())
@@ -171,8 +171,8 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`)
 	t.Run("DownloadGemspec", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/quick/Marshal.4.8/%sspec.rz", root, packageFilename))
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequest(t, "GET", fmt.Sprintf("%s/quick/Marshal.4.8/%sspec.rz", root, packageFilename)).
+			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		b, _ := base64.StdEncoding.DecodeString(`eJxi4Si1EndPzbWyCi5ITc5My0xOLMnMz2M8zMIRLeGpxGWsZ6RnzGbF5hqSyempxJWeWZKayGbN
@@ -191,8 +191,8 @@ gAAAAP//MS06Gw==`)
 		defer tests.PrintCurrentTest(t)()
 
 		enumeratePackages := func(t *testing.T, endpoint string, expectedContent []byte) {
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/%s", root, endpoint))
-			req = AddBasicAuthHeader(req, user.Name)
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/%s", root, endpoint)).
+				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			assert.Equal(t, expectedContent, resp.Body.Bytes())
@@ -215,9 +215,9 @@ gAAAAP//MS06Gw==`)
 		writer.WriteField("version", packageVersion)
 		writer.Close()
 
-		req := NewRequestWithBody(t, "DELETE", fmt.Sprintf("%s/api/v1/gems/yank", root), &body)
-		req.Header.Add("Content-Type", writer.FormDataContentType())
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequestWithBody(t, "DELETE", fmt.Sprintf("%s/api/v1/gems/yank", root), &body).
+			SetHeader("Content-Type", writer.FormDataContentType()).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusOK)
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeRubyGems)

@@ -156,6 +156,17 @@ func Authenticate(ctx *context.Context) {
 	})
 }
 
+// https://distribution.github.io/distribution/spec/auth/oauth/
+func AuthenticateNotImplemented(ctx *context.Context) {
+	// This optional endpoint can be used to authenticate a client.
+	// It must implement the specification described in:
+	// https://datatracker.ietf.org/doc/html/rfc6749
+	// https://distribution.github.io/distribution/spec/auth/oauth/
+	// Purpose of this stub is to respond with 404 Not Found instead of 405 Method Not Allowed.
+
+	ctx.Status(http.StatusNotFound)
+}
+
 // https://docs.docker.com/registry/spec/api/#listing-repositories
 func GetRepositoryList(ctx *context.Context) {
 	n := ctx.FormInt("n")

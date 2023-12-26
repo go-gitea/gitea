@@ -7,6 +7,7 @@ import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.js';
 import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles, initExpandAndCollapseFilesButton} from './pull-view-file.js';
 import {initImageDiff} from './imagediff.js';
 import {showErrorToast} from '../modules/toast.js';
+import {submitEventSubmitter} from '../utils/dom.js';
 
 const {csrfToken, pageData, i18n} = window.config;
 
@@ -57,7 +58,7 @@ function initRepoDiffConversationForm() {
       const formData = new FormData($form[0]);
 
       // if the form is submitted by a button, append the button's name and value to the form data
-      const submitter = e.originalEvent?.submitter;
+      const submitter = submitEventSubmitter(e.originalEvent);
       const isSubmittedByButton = (submitter?.nodeName === 'BUTTON') || (submitter?.nodeName === 'INPUT' && submitter.type === 'submit');
       if (isSubmittedByButton && submitter.name) {
         formData.append(submitter.name, submitter.value);
