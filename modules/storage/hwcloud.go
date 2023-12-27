@@ -16,7 +16,7 @@ import (
 )
 
 const multipart_chunk_size int64 = 20000000
-const default_expire int = 1800
+const default_expire int = 7200
 
 type MultipartPartID struct {
 	Etag  string `json:"etag"`
