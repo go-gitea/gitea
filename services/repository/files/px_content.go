@@ -53,7 +53,7 @@ func GetCommitContentsOrList(ctx context.Context, repo *repo_model.Repository, t
 	}
 
 	if entry.Type() != "tree" {
-		return GetContents(ctx, repo, treePath, origRef, false)
+		return GetCommitContents(ctx, repo, treePath, origRef, false)
 	}
 
 	// We are in a directory, so we return a list of FileContentResponse objects
