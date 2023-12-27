@@ -78,7 +78,7 @@ type FindSecretsOptions struct {
 	Name     string
 }
 
-func (opts *FindSecretsOptions) toConds() builder.Cond {
+func (opts FindSecretsOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.OwnerID > 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
@@ -94,22 +94,6 @@ func (opts *FindSecretsOptions) toConds() builder.Cond {
 	}
 
 	return cond
-}
-
-func FindSecrets(ctx context.Context, opts FindSecretsOptions) ([]*Secret, error) {
-	var secrets []*Secret
-	sess := db.GetEngine(ctx)
-	if opts.PageSize != 0 {
-		sess = db.SetSessionPagination(sess, &opts.ListOptions)
-	}
-	return secrets, sess.
-		Where(opts.toConds()).
-		Find(&secrets)
-}
-
-// CountSecrets counts the secrets
-func CountSecrets(ctx context.Context, opts *FindSecretsOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(Secret))
 }
 
 // UpdateSecret changes org or user reop secret.

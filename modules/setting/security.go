@@ -34,6 +34,7 @@ var (
 	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
 	SuccessfulTokensCacheSize          int
+	DisableQueryAuthToken              bool
 	CSRFCookieName                     = "_csrf"
 	CSRFCookieHTTPOnly                 = true
 )
@@ -156,5 +157,12 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 		if name != "" {
 			PasswordComplexity = append(PasswordComplexity, name)
 		}
+	}
+
+	// TODO: default value should be true in future releases
+	DisableQueryAuthToken = sec.Key("DISABLE_QUERY_AUTH_TOKEN").MustBool(false)
+
+	if !DisableQueryAuthToken {
+		log.Warn("Enabling Query API Auth tokens is not recommended. DISABLE_QUERY_AUTH_TOKEN will default to true in gitea 1.23 and will be removed in gitea 1.24.")
 	}
 }

@@ -59,8 +59,8 @@ func TestPackageComposer(t *testing.T) {
 	t.Run("ServiceIndex", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/packages.json", url))
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequest(t, "GET", fmt.Sprintf("%s/packages.json", url)).
+			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var result composer.ServiceIndexResponse
@@ -75,8 +75,8 @@ func TestPackageComposer(t *testing.T) {
 		t.Run("MissingVersion", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
-			req = AddBasicAuthHeader(req, user.Name)
+			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 		})
 
@@ -85,8 +85,8 @@ func TestPackageComposer(t *testing.T) {
 
 			uploadURL := url + "?version=" + packageVersion
 
-			req := NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(content))
-			req = AddBasicAuthHeader(req, user.Name)
+			req := NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(content)).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
 			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeComposer)
@@ -110,8 +110,8 @@ func TestPackageComposer(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, int64(len(content)), pb.Size)
 
-			req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(content))
-			req = AddBasicAuthHeader(req, user.Name)
+			req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(content)).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusConflict)
 		})
 	})
@@ -128,8 +128,8 @@ func TestPackageComposer(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, pfs, 1)
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/files/%s/%s/%s", url, neturl.PathEscape(packageName), neturl.PathEscape(pvs[0].LowerVersion), neturl.PathEscape(pfs[0].LowerName)))
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequest(t, "GET", fmt.Sprintf("%s/files/%s/%s/%s", url, neturl.PathEscape(packageName), neturl.PathEscape(pvs[0].LowerVersion), neturl.PathEscape(pfs[0].LowerName))).
+			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, content, resp.Body.Bytes())
@@ -162,8 +162,8 @@ func TestPackageComposer(t *testing.T) {
 		}
 
 		for i, c := range cases {
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/search.json?q=%s&type=%s&page=%d&per_page=%d", url, c.Query, c.Type, c.Page, c.PerPage))
-			req = AddBasicAuthHeader(req, user.Name)
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/search.json?q=%s&type=%s&page=%d&per_page=%d", url, c.Query, c.Type, c.Page, c.PerPage)).
+				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			var result composer.SearchResultResponse
@@ -177,8 +177,8 @@ func TestPackageComposer(t *testing.T) {
 	t.Run("EnumeratePackages", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", url+"/list.json")
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequest(t, "GET", url+"/list.json").
+			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var result map[string][]string
@@ -193,8 +193,8 @@ func TestPackageComposer(t *testing.T) {
 	t.Run("PackageMetadata", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/p2/%s/%s.json", url, vendorName, projectName))
-		req = AddBasicAuthHeader(req, user.Name)
+		req := NewRequest(t, "GET", fmt.Sprintf("%s/p2/%s/%s.json", url, vendorName, projectName)).
+			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var result composer.PackageMetadataResponse

@@ -17,6 +17,23 @@ import (
 	"code.gitea.io/gitea/services/convert"
 )
 
+func checkReleaseMatchRepo(ctx *context.APIContext, releaseID int64) bool {
+	release, err := repo_model.GetReleaseByID(ctx, releaseID)
+	if err != nil {
+		if repo_model.IsErrReleaseNotExist(err) {
+			ctx.NotFound()
+			return false
+		}
+		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
+		return false
+	}
+	if release.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound()
+		return false
+	}
+	return true
+}
+
 // GetReleaseAttachment gets a single attachment of the release
 func GetReleaseAttachment(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id} repository repoGetReleaseAttachment
@@ -54,6 +71,10 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	releaseID := ctx.ParamsInt64(":id")
+	if !checkReleaseMatchRepo(ctx, releaseID) {
+		return
+	}
+
 	attachID := ctx.ParamsInt64(":attachment_id")
 	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {
@@ -176,13 +197,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
-	release, err := repo_model.GetReleaseByID(ctx, releaseID)
-	if err != nil {
-		if repo_model.IsErrReleaseNotExist(err) {
-			ctx.NotFound()
-			return
-		}
-		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
+	if !checkReleaseMatchRepo(ctx, releaseID) {
 		return
 	}
 
@@ -203,7 +218,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	attach, err := attachment.UploadAttachment(ctx, file, setting.Repository.Release.AllowedTypes, header.Size, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
-		RepoID:     release.RepoID,
+		RepoID:     ctx.Repo.Repository.ID,
 		ReleaseID:  releaseID,
 	})
 	if err != nil {
@@ -264,6 +279,10 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
+	if !checkReleaseMatchRepo(ctx, releaseID) {
+		return
+	}
+
 	attachID := ctx.ParamsInt64(":attachment_id")
 	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {
@@ -328,6 +347,10 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
+	if !checkReleaseMatchRepo(ctx, releaseID) {
+		return
+	}
+
 	attachID := ctx.ParamsInt64(":attachment_id")
 	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {

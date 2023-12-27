@@ -214,16 +214,12 @@ func Organization(ctx *context.Context) {
 		opts.Page = 1
 	}
 
-	orgs, err := organization.FindOrgs(ctx, opts)
+	orgs, total, err := db.FindAndCount[organization.Organization](ctx, opts)
 	if err != nil {
 		ctx.ServerError("FindOrgs", err)
 		return
 	}
-	total, err := organization.CountOrgs(ctx, opts)
-	if err != nil {
-		ctx.ServerError("CountOrgs", err)
-		return
-	}
+
 	ctx.Data["Orgs"] = orgs
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
