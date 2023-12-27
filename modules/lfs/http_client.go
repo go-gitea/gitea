@@ -79,7 +79,10 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 		return nil, err
 	}
 
-	req, err := createRequest(ctx, http.MethodPost, url, map[string]string{"Content-Type": MediaType}, payload)
+	req, err := createRequest(ctx, http.MethodPost, url, map[string]string{
+		"Content-Type": MediaType,
+		"Accept":       MediaType,
+	}, payload)
 	if err != nil {
 		return nil, err
 	}
