@@ -13,10 +13,12 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm/schemas"
 )
 
 // ErrBranchNotExist represents an error that branch with such name does not exist.
@@ -103,7 +105,7 @@ func (err ErrBranchesEqual) Unwrap() error {
 type Branch struct {
 	ID            int64
 	RepoID        int64  `xorm:"UNIQUE(s)"`
-	Name          string `xorm:"UNIQUE(s) NOT NULL"` // git's ref-name is case-sensitive internally, however, in some databases (mssql, mysql, by default), it's case-insensitive at the moment
+	Name          string `xorm:"UNIQUE(s) NOT NULL"`
 	CommitID      string
 	CommitMessage string `xorm:"TEXT"` // it only stores the message summary (the first line)
 	PusherID      int64
@@ -115,6 +117,20 @@ type Branch struct {
 	CommitTime    timeutil.TimeStamp // The commit
 	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
+}
+
+// TableCollations is to make the "name" column case-sensitve for MySQL/MSSQL
+func (b *Branch) TableCollations() []*schemas.Collation {
+	if setting.Database.Type.IsMySQL() {
+		return []*schemas.Collation{
+			{Column: "name", Name: "utf8mb4_bin"},
+		}
+	} else if setting.Database.Type.IsMSSQL() {
+		return []*schemas.Collation{
+			{Column: "name", Name: "Latin1_General_CS_AS"},
+		}
+	}
+	return nil
 }
 
 func (b *Branch) LoadDeletedBy(ctx context.Context) (err error) {
@@ -380,7 +396,11 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 // except the indicate branch
 func FindRecentlyPushedNewBranches(ctx context.Context, repoID, userID int64, excludeBranchName string) (BranchList, error) {
 	branches := make(BranchList, 0, 2)
-	subQuery := builder.Select("head_branch").From("pull_request").
+	sqlHeadBranch := "head_branch"
+	if setting.Database.Type.IsMSSQL() {
+		sqlHeadBranch = "CAST(head_branch AS nvarchar(255)) COLLATE Latin1_General_CS_AS" // FIXME: a dirty hack for MSSQL collation
+	}
+	subQuery := builder.Select(sqlHeadBranch).From("pull_request").
 		InnerJoin("issue", "issue.id = pull_request.issue_id").
 		Where(builder.Eq{
 			"pull_request.head_repo_id": repoID,
