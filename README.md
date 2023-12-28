@@ -62,10 +62,15 @@ painless way of setting up a self-hosted Git service.
 As Gitea is written in Go, it works across **all** the platforms and
 architectures that are supported by Go, including Linux, macOS, and
 Windows on x86, amd64, ARM and PowerPC architectures.
-You can try it out using [the online demo](https://try.gitea.io/).
 This project has been
 [forked](https://blog.gitea.com/welcome-to-gitea/) from
 [Gogs](https://gogs.io) since November of 2016, but a lot has changed.
+
+For online demonstrations, you can visit [try.gitea.io](https://try.gitea.io).
+
+For accessing free Gitea service (with a limited number of repositories), you can visit [gitea.com](https://gitea.com/user/login).
+
+To quickly deploy your own dedicated Gitea instance on Gitea Cloud, you can start a free trial at [cloud.gitea.com](https://cloud.gitea.com).
 
 ## Building
 

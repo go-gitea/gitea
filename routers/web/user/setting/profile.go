@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	audit_model "code.gitea.io/gitea/models/audit"
+	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -141,7 +142,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 	ctxUser.UseCustomAvatar = form.Source == forms.AvatarLocal
 	if len(form.Gravatar) > 0 {
 		if form.Avatar != nil {
-			ctxUser.Avatar = base.EncodeMD5(form.Gravatar)
+			ctxUser.Avatar = avatars.HashEmail(form.Gravatar)
 		} else {
 			ctxUser.Avatar = ""
 		}

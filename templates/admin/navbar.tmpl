@@ -60,11 +60,14 @@
 			{{end}}
 		{{end}}
 		{{if .EnableActions}}
-		<details class="item toggleable-item" {{if .PageIsSharedSettingsRunners}}open{{end}}>
+		<details class="item toggleable-item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsVariables}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "actions.actions"}}</summary>
 			<div class="menu">
 				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{AppSubUrl}}/admin/actions/runners">
 					{{ctx.Locale.Tr "actions.runners"}}
+				</a>
+				<a class="{{if .PageIsSharedSettingsVariables}}active {{end}}item" href="{{AppSubUrl}}/admin/actions/variables">
+					{{ctx.Locale.Tr "actions.variables"}}
 				</a>
 			</div>
 		</details>

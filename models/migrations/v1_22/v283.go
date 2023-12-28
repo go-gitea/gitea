@@ -4,24 +4,31 @@
 package v1_22 //nolint
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
-func AddAuditEventTable(x *xorm.Engine) error {
-	type AuditEvent struct {
-		ID         int64  `xorm:"pk autoincr"`
-		Action     string `xorm:"INDEX NOT NULL"`
-		ActorID    int64  `xorm:"INDEX NOT NULL"`
-		ScopeType  string `xorm:"INDEX(scope) NOT NULL"`
-		ScopeID    int64  `xorm:"INDEX(scope) NOT NULL"`
-		TargetType string `xorm:"NOT NULL"`
-		TargetID   int64  `xorm:"NOT NULL"`
-		Message    string
-		IPAddress  string
-		Timestamp  timeutil.TimeStamp `xorm:"INDEX NOT NULL"`
+func AddCombinedIndexToIssueUser(x *xorm.Engine) error {
+	type OldIssueUser struct {
+		IssueID int64
+		UID     int64
+		Cnt     int64
 	}
 
-	return x.Sync(&AuditEvent{})
+	var duplicatedIssueUsers []OldIssueUser
+	if err := x.SQL("select * from (select issue_id, uid, count(1) as cnt from issue_user group by issue_id, uid) a where a.cnt > 1").
+		Find(&duplicatedIssueUsers); err != nil {
+		return err
+	}
+	for _, issueUser := range duplicatedIssueUsers {
+		if _, err := x.Exec("delete from issue_user where id in (SELECT id FROM issue_user WHERE issue_id = ? and uid = ? limit ?)", issueUser.IssueID, issueUser.UID, issueUser.Cnt-1); err != nil {
+			return err
+		}
+	}
+
+	type IssueUser struct {
+		UID     int64 `xorm:"INDEX unique(uid_to_issue)"` // User ID.
+		IssueID int64 `xorm:"INDEX unique(uid_to_issue)"`
+	}
+
+	return x.Sync(&IssueUser{})
 }
