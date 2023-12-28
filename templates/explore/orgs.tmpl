@@ -1,0 +1,12 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content explore users">
+	{{template "explore/navbar" .}}
+	<div class="ui container">
+		{{template "explore/search" .}}
+
+		{{template "explore/org_list" .}}
+
+		{{template "base/paginate" .}}
+	</div>
+</div>
+{{template "base/footer" .}}

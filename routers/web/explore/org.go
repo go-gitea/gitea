@@ -6,9 +6,15 @@ package explore
 import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+)
+
+const (
+	// tplExploreUsers explore org page template
+	tplExploreOrgs base.TplName = "explore/orgs"
 )
 
 // Organizations render explore organizations page
@@ -33,5 +39,5 @@ func Organizations(ctx *context.Context) {
 		Type:        user_model.UserTypeOrganization,
 		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
 		Visible:     visibleTypes,
-	}, tplExploreUsers)
+	}, tplExploreOrgs)
 }
