@@ -5,6 +5,8 @@ package avatars
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"net/url"
 	"path"
@@ -13,7 +15,6 @@ import (
 	"sync/atomic"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -90,7 +91,9 @@ func DefaultAvatarLink() string {
 
 // HashEmail hashes email address to MD5 string. https://en.gravatar.com/site/implement/hash/
 func HashEmail(email string) string {
-	return base.EncodeMD5(strings.ToLower(strings.TrimSpace(email)))
+	m := md5.New()
+	_, _ = m.Write([]byte(strings.ToLower(strings.TrimSpace(email))))
+	return hex.EncodeToString(m.Sum(nil))
 }
 
 // GetEmailForHash converts a provided md5sum to the email

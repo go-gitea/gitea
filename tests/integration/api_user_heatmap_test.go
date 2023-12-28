@@ -24,8 +24,8 @@ func TestUserHeatmap(t *testing.T) {
 	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeReadUser)
 
 	fakeNow := time.Date(2011, 10, 20, 0, 0, 0, 0, time.Local)
-	timeutil.Set(fakeNow)
-	defer timeutil.Unset()
+	timeutil.MockSet(fakeNow)
+	defer timeutil.MockUnset()
 
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/heatmap", normalUsername)).
 		AddTokenAuth(token)
