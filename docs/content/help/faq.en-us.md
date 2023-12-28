@@ -385,8 +385,8 @@ Unfortunately MySQL's `utf8` charset does not completely allow all possible UTF-
 They created a new charset and collation called `utf8mb4` that allows for emoji to be stored but tables which use
 the `utf8` charset, and connections which use the `utf8` charset will not use this.
 
-Please run `gitea doctor convert`, or run `ALTER DATABASE database_name CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
-for the database_name and run `ALTER TABLE table_name CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
+Please run `gitea doctor convert`, or run `ALTER DATABASE database_name CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;`
+for the database_name and run `ALTER TABLE table_name CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;`
 for each table in the database.
 
 ## Why are Emoji displaying only as placeholders or in monochrome
