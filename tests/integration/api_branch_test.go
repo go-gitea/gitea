@@ -218,7 +218,7 @@ func TestAPIBranchProtection(t *testing.T) {
 func TestAPICreateBranchWithSyncBranches(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	branches, err := db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
+	branches, err := git_model.FindBranches(db.DefaultContext, git_model.FindBranchOptions{
 		RepoID: 1,
 	})
 	assert.NoError(t, err)
@@ -235,13 +235,13 @@ func TestAPICreateBranchWithSyncBranches(t *testing.T) {
 		testAPICreateBranch(t, ctx.Session, "user2", "repo1", "", "new_branch", http.StatusCreated)
 	})
 
-	branches, err = db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
+	branches, err = git_model.FindBranches(db.DefaultContext, git_model.FindBranchOptions{
 		RepoID: 1,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, branches, 5)
 
-	branches, err = db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
+	branches, err = git_model.FindBranches(db.DefaultContext, git_model.FindBranchOptions{
 		RepoID:  1,
 		Keyword: "new_branch",
 	})
