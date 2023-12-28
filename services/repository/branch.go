@@ -276,28 +276,17 @@ func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo 
 		return err
 	}
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		commit, err := gitRepo.GetCommit(commitID)
-		if err != nil {
+	if err := git.Push(ctx, repo.RepoPath(), git.PushOptions{
+		Remote: repo.RepoPath(),
+		Branch: fmt.Sprintf("%s:%s%s", commitID, git.BranchPrefix, branchName),
+		Env:    repo_module.PushingEnvironment(doer, repo),
+	}); err != nil {
+		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
 			return err
 		}
-		// database operation should be done before git operation so that we can rollback if git operation failed
-		if err := syncBranchToDB(ctx, repo.ID, doer.ID, branchName, commit); err != nil {
-			return err
-		}
-
-		if err := git.Push(ctx, repo.RepoPath(), git.PushOptions{
-			Remote: repo.RepoPath(),
-			Branch: fmt.Sprintf("%s:%s%s", commitID, git.BranchPrefix, branchName),
-			Env:    repo_module.PushingEnvironment(doer, repo),
-		}); err != nil {
-			if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
-				return err
-			}
-			return fmt.Errorf("push: %w", err)
-		}
-		return nil
-	})
+		return fmt.Errorf("push: %w", err)
+	}
+	return nil
 }
 
 // RenameBranch rename a branch
