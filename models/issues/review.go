@@ -6,6 +6,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -15,7 +16,6 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -279,7 +279,7 @@ func IsOfficialReviewerTeam(ctx context.Context, issue *Issue, team *organizatio
 		return team.UnitAccessMode(ctx, unit.TypeCode) >= perm.AccessModeWrite, nil
 	}
 
-	return base.Int64sContains(pb.ApprovalsWhitelistTeamIDs, team.ID), nil
+	return slices.Contains(pb.ApprovalsWhitelistTeamIDs, team.ID), nil
 }
 
 // CreateReview creates a new review based on opts
