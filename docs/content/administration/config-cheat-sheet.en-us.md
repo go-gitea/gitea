@@ -1390,7 +1390,7 @@ PROXY_HOSTS = *.github.com
 - `DEFAULT_ACTIONS_URL`: **github**: Default platform to get action plugins, `github` for `https://github.com`, `self` for the current Gitea instance.
 - `STORAGE_TYPE`: **local**: Storage type for actions logs, `local` for local disk or `minio` for s3 compatible object storage service, default is `local` or other name defined with `[storage.xxx]`
 - `MINIO_BASE_PATH`: **actions_log/**: Minio base path on the bucket only available when STORAGE_TYPE is `minio`
-- `ARTIFACT_RETENTION_DAYS`: **90**: Number of days to keep artifacts. Set to 0 to disable artifact retention. Default is 90 days if not set.
+- `ARTIFACT_RETENTION_DAYS`: **90**: Default number of days to keep artifacts. This can be overridden in `actions/upload_artifact`. Set to 0 to disable artifact retention. Default is 90 days if not set. Each artifact can have it's own number of retention days.
 - `ZOMBIE_TASK_TIMEOUT`: **10m**: Timeout to stop the task which have running status, but haven't been updated for a long time
 - `ENDLESS_TASK_TIMEOUT`: **3h**: Timeout to stop the tasks which have running status and continuous updates, but don't end for a long time
 - `ABANDONED_JOB_TIMEOUT`: **24h**: Timeout to cancel the jobs which have waiting status, but haven't been picked by a runner for a long time
