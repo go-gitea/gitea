@@ -196,9 +196,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 ## CORS (`cors`)
 
 - `ENABLED`: **false**: enable cors headers (disabled by default)
-- `SCHEME`: **http**: scheme of allowed requests
-- `ALLOW_DOMAIN`: **\***: list of requesting domains that are allowed
-- `ALLOW_SUBDOMAIN`: **false**: allow subdomains of headers listed above to request
+- `ALLOW_DOMAIN`: **\***: list of requesting origins that are allowed, eg: "https://*.example.com"
 - `METHODS`: **GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS**: list of methods allowed to request
 - `MAX_AGE`: **10m**: max time to cache response
 - `ALLOW_CREDENTIALS`: **false**: allow request with credentials
