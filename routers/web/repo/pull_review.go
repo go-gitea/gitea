@@ -21,8 +21,9 @@ import (
 )
 
 const (
-	tplConversation base.TplName = "repo/diff/conversation"
-	tplNewComment   base.TplName = "repo/diff/new_comment"
+	tplDiffConversation     base.TplName = "repo/diff/conversation"
+	tplTimelineConversation base.TplName = "repo/issue/view_content/conversation"
+	tplNewComment           base.TplName = "repo/diff/new_comment"
 )
 
 // RenderNewCodeCommentForm will render the form for creating a new review comment
@@ -97,11 +98,7 @@ func CreateCodeComment(ctx *context.Context) {
 
 	log.Trace("Comment created: %-v #%d[%d] Comment[%d]", ctx.Repo.Repository, issue.Index, issue.ID, comment.ID)
 
-	if form.Origin == "diff" {
-		renderConversation(ctx, comment)
-		return
-	}
-	ctx.Redirect(comment.Link(ctx))
+	renderConversation(ctx, comment, form.Origin)
 }
 
 // UpdateResolveConversation add or remove an Conversation resolved mark
@@ -152,22 +149,21 @@ func UpdateResolveConversation(ctx *context.Context) {
 		return
 	}
 
-	if origin == "diff" {
-		renderConversation(ctx, comment)
-		return
-	}
-	ctx.JSONOK()
+	renderConversation(ctx, comment, origin)
 }
 
-func renderConversation(ctx *context.Context, comment *issues_model.Comment) {
+func renderConversation(ctx *context.Context, comment *issues_model.Comment, origin string) {
 	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, ctx.Data["ShowOutdatedComments"].(bool))
 	if err != nil {
 		ctx.ServerError("FetchCodeCommentsByLine", err)
 		return
 	}
-	ctx.Data["PageIsPullFiles"] = true
+	ctx.Data["PageIsPullFiles"] = (origin == "diff")
 	ctx.Data["comments"] = comments
-	ctx.Data["CanMarkConversation"] = true
+	if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer); err != nil {
+		ctx.ServerError("CanMarkConversation", err)
+		return
+	}
 	ctx.Data["Issue"] = comment.Issue
 	if err = comment.Issue.LoadPullRequest(ctx); err != nil {
 		ctx.ServerError("comment.Issue.LoadPullRequest", err)
@@ -179,7 +175,11 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment) {
 		return
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
-	ctx.HTML(http.StatusOK, tplConversation)
+	if origin == "diff" {
+		ctx.HTML(http.StatusOK, tplDiffConversation)
+	} else if origin == "timeline" {
+		ctx.HTML(http.StatusOK, tplTimelineConversation)
+	}
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
