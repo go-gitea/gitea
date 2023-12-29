@@ -61,13 +61,13 @@ Note: All steps below requires that the database engine of your choice is instal
 
     Replace username and password above as appropriate.
 
-4. Create database with UTF-8 charset and collation. Make sure to use `utf8mb4` charset instead of `utf8` as the former supports all Unicode characters (including emojis) beyond _Basic Multilingual Plane_. Also, collation chosen depending on your expected content. When in doubt, use either `unicode_ci` or `general_ci`.
+4. Create database with UTF-8 charset and collation. Make sure to use `utf8mb4` charset instead of `utf8` as the former supports all Unicode characters (including emojis) beyond _Basic Multilingual Plane_. Also, collation chosen depending on your expected content (such as `utf8mb4_0900_as_cs` for MySQL, or `uca1400_as_cs` for MariaDB, or `utf8mb4_bin` that works for both). When in doubt, leave it unset, and Gitea will adjust the database to use the most fitting one.
 
     ```sql
-    CREATE DATABASE giteadb CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci';
+    CREATE DATABASE giteadb CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_bin';
     ```
 
-    Replace database name as appropriate.
+    Replace database name and the collate function as appropriate.
 
 5. Grant all privileges on the database to database user created above.
 
