@@ -33,7 +33,7 @@ func FileHandlerFunc() http.HandlerFunc {
 	assetFS := AssetFS()
 	return func(resp http.ResponseWriter, req *http.Request) {
 		if req.Method != "GET" && req.Method != "HEAD" {
-			resp.WriteHeader(http.StatusNotFound)
+			resp.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
 		handleRequest(resp, req, assetFS, req.URL.Path)
