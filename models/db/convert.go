@@ -6,6 +6,7 @@ package db
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -34,6 +35,10 @@ func ConvertUtf8ToUtf8mb4() error {
 			return err
 		}
 
+		if strings.HasPrefix(table.Collation, "utf8mb4") {
+			fmt.Printf("skip table %q because it is already using utf8mb4\n", table.Name)
+			continue
+		}
 		if _, err := x.Exec(fmt.Sprintf("ALTER TABLE `%s` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;", table.Name)); err != nil {
 			return err
 		}

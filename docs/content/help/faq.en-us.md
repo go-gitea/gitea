@@ -387,7 +387,7 @@ the `utf8` charset, and connections which use the `utf8` charset will not use th
 
 Please run `gitea doctor convert`, or run `ALTER DATABASE database_name CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
 for the database_name and run `ALTER TABLE table_name CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
-for each table in the database.
+for tables which are not using `utf8mb4` in the database.
 
 ## Why are Emoji displaying only as placeholders or in monochrome
 

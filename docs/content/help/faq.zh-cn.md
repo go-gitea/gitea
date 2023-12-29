@@ -390,9 +390,7 @@ SET GLOBAL innodb_large_prefix=1;
 utf8 字符集的表和连接将不会使用它。
 
 请运行 `gitea doctor convert` 或对数据库运行 `ALTER DATABASE database_name CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
-并对每个表运行 `ALTER TABLE table_name CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`。
-
-您还需要将`app.ini`文件中的数据库字符集设置为`CHARSET=utf8mb4`。
+并对不是 `utf8mb4` 的表运行 `ALTER TABLE table_name CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`。
 
 ## 为什么 Emoji 只显示占位符或单色图像
 
