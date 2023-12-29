@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -216,4 +218,38 @@ func TestAPIBranchProtection(t *testing.T) {
 	// Test branch deletion
 	testAPIDeleteBranch(t, "master", http.StatusForbidden)
 	testAPIDeleteBranch(t, "branch2", http.StatusNoContent)
+}
+
+func TestAPICreateBranchWithSyncBranches(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	branches, err := db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
+		RepoID: 1,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, branches, 4)
+
+	// make a broke repository with no branch on database
+	_, err = db.DeleteByBean(db.DefaultContext, git_model.Branch{RepoID: 1})
+	assert.NoError(t, err)
+
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+		giteaURL.Path = ctx.GitPath()
+
+		testAPICreateBranch(t, ctx.Session, "user2", "repo1", "", "new_branch", http.StatusCreated)
+	})
+
+	branches, err = db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
+		RepoID: 1,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, branches, 5)
+
+	branches, err = db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
+		RepoID:  1,
+		Keyword: "new_branch",
+	})
+	assert.NoError(t, err)
+	assert.Len(t, branches, 1)
 }

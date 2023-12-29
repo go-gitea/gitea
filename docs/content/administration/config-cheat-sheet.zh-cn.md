@@ -195,9 +195,7 @@ menu:
 ## 跨域 (`cors`)
 
 - `ENABLED`: **false**: 启用 CORS 头部（默认禁用）
-- `SCHEME`: **http**: 允许请求的协议
 - `ALLOW_DOMAIN`: **\***: 允许请求的域名列表
-- `ALLOW_SUBDOMAIN`: **false**: 允许上述列出的头部的子域名发出请求。
 - `METHODS`: **GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS**: 允许发起的请求方式列表
 - `MAX_AGE`: **10m**: 缓存响应的最大时间
 - `ALLOW_CREDENTIALS`: **false**: 允许带有凭据的请求
