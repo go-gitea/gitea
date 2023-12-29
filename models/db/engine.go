@@ -195,6 +195,69 @@ func GetDesiredCharsetAndCollation() (string, string, error) {
 	return charset, collation, nil
 }
 
+func SanityCheck() error {
+	// We do not have any sanity checks for engines other than MySQL
+	if !setting.Database.Type.IsMySQL() {
+		return nil
+	}
+
+	expectedCharset, expectedCollation, err := GetDesiredCharsetAndCollation()
+	if err != nil {
+		return err
+	}
+
+	// check that the database collation is set to a case sensitive one.
+	var collation []string
+	_, err = x.SQL("SELECT default_collation_name FROM information_schema.schemata WHERE schema_name = ?",
+		setting.Database.Name).Get(&collation)
+	if err != nil {
+		return err
+	}
+	// For mariadb, when we set the collation to uca1400_as_cs, that is
+	// translated to utf8mb4_uca1400_as_cs, hence the suffix check.
+	if !strings.HasSuffix(collation[0], expectedCollation) {
+		return fmt.Errorf(`database collation ("%s") is not %s. Consider running "gitea doctor convert"`, collation[0], expectedCollation)
+	}
+
+	// check the database character set
+	var charset []string
+	_, err = x.SQL("SELECT default_character_set_name FROM information_schema.schemata WHERE schema_name = ?", setting.Database.Name).Get(&charset)
+	if err != nil {
+		return err
+	}
+	if charset[0] != expectedCharset {
+		return fmt.Errorf(`database charset ("%s") is not %s. Consider running "gitea doctor convert"`, charset[0], expectedCharset)
+	}
+
+	// check table collations and character sets
+	tables, err := x.DBMetas()
+	if err != nil {
+		return err
+	}
+	for _, table := range tables {
+		_, err := x.SQL("SELECT CCSA.character_set_name FROM information_schema.tables T, information_schema.collation_character_set_applicability CCSA WHERE CCSA.collation_name = T.table_collation AND T.table_schema = ? AND T.table_name = ?",
+			setting.Database.Name, table.Name).Get(&charset)
+		if err != nil {
+			return err
+		}
+		if charset[0] != expectedCharset {
+			return fmt.Errorf(`table charset for '%s' (%s) is not %s. Consider running "gitea doctor convert"`, table.Name, charset[0], expectedCharset)
+		}
+
+		_, err = x.SQL("SELECT CCSA.collation_name FROM information_schema.tables T, information_schema.collation_character_set_applicability CCSA WHERE CCSA.collation_name = T.table_collation AND T.table_schema = ? AND T.table_name = ?",
+			setting.Database.Name, table.Name).Get(&collation)
+		if err != nil {
+			return err
+		}
+		if !strings.HasSuffix(collation[0], expectedCollation) {
+			return fmt.Errorf(`table collation for '%s' (%s) is not %s. Consider running "gitea doctor convert"`, table.Name, collation[0], expectedCollation)
+		}
+	}
+
+	// if all is well, return without an error
+	return nil
+}
+
 // SetDefaultEngine sets the default engine for db
 func SetDefaultEngine(ctx context.Context, eng *xorm.Engine) {
 	x = eng

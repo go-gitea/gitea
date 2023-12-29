@@ -15,6 +15,7 @@ import (
 
 	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -192,6 +193,10 @@ func serveInstalled(ctx *cli.Context) error {
 	}
 
 	routers.InitWebInstalled(graceful.GetManager().HammerContext())
+
+	if err := db.SanityCheck(); err != nil {
+		log.Warn("database sanity check warning: %s", err)
+	}
 
 	// We check that AppDataPath exists here (it should have been created during installation)
 	// We can't check it in `InitWebInstalled`, because some integration tests
