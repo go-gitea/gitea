@@ -241,21 +241,26 @@ func DeleteKey(ctx *context.Context) {
 	case "gpg":
 		key, err := asymkey_model.GetGPGKeyForUserByID(ctx, ctx.Doer.ID, ctx.FormInt64("id"))
 		if err != nil && !asymkey_model.IsErrGPGKeyNotExist(err) {
-			ctx.Flash.Error("GetGPGKeyForUserByID: " + err.Error())
-		} else {
+			ctx.ServerError("GetGPGKeyForUserByID", err)
+			return
+		}
+		if key != nil {
 			if err := asymkey_model.DeleteGPGKey(ctx, ctx.Doer, key.ID); err != nil {
-				ctx.Flash.Error("DeleteGPGKey: " + err.Error())
-			} else {
-				audit.Record(ctx, audit_model.UserKeyGPGRemove, ctx.Doer, ctx.Doer, key, "Removed GPG key %s.", key.KeyID)
-
-				ctx.Flash.Success(ctx.Tr("settings.gpg_key_deletion_success"))
+				ctx.ServerError("DeleteGPGKey", err)
+				return
 			}
+
+			audit.Record(ctx, audit_model.UserKeyGPGRemove, ctx.Doer, ctx.Doer, key, "Removed GPG key %s.", key.KeyID)
+
+			ctx.Flash.Success(ctx.Tr("settings.gpg_key_deletion_success"))
+		} else {
+			ctx.Flash.Error(ctx.Tr("error.occurred"))
 		}
 	case "ssh":
 		keyID := ctx.FormInt64("id")
 		external, err := asymkey_model.PublicKeyIsExternallyManaged(ctx, keyID)
 		if err != nil {
-			ctx.ServerError("sshKeysExternalManaged", err)
+			ctx.ServerError("PublicKeyIsExternallyManaged", err)
 			return
 		}
 		if external {

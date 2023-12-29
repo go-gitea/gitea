@@ -191,8 +191,8 @@ func DeleteAccessToken(ctx *context.APIContext) {
 			return
 		}
 	} else {
-		t = &auth_model.AccessToken{}
-		_, err := db.GetByID(ctx, tokenID, t)
+		var err error
+		t, _, err = db.GetByID[auth_model.AccessToken](ctx, tokenID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetByID", err)
 			return

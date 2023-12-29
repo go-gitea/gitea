@@ -51,6 +51,7 @@ Audit events are grouped by `user`, `organization`, `repository` and `system`.
 | `user:password` | Changed password of user |
 | `user:password:reset` | Requested a password reset |
 | `user:visibility` | Changed visibility of user |
+| `user:email:primary` | Changed primary email of user |
 | `user:email:add` | Added email to user |
 | `user:email:activate` | Activated email of user |
 | `user:email:remove` | Removed email from user |

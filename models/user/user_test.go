@@ -348,35 +348,40 @@ func TestUpdateUser(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	user.KeepActivityPrivate = true
-	assert.NoError(t, user_model.UpdateUser(db.DefaultContext, user, false))
+	assert.NoError(t, user_model.UpdateUser(db.DefaultContext, user))
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	assert.True(t, user.KeepActivityPrivate)
 
 	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, false, false}
 	user.KeepActivityPrivate = false
 	user.Visibility = structs.VisibleTypePrivate
-	assert.Error(t, user_model.UpdateUser(db.DefaultContext, user, false))
+	assert.Error(t, user_model.UpdateUser(db.DefaultContext, user))
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	assert.True(t, user.KeepActivityPrivate)
-
-	newEmail := "new_" + user.Email
-	user.Email = newEmail
-	assert.NoError(t, user_model.UpdateUser(db.DefaultContext, user, true))
-	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	assert.Equal(t, newEmail, user.Email)
-
-	user.Email = "no mail@mail.org"
-	assert.Error(t, user_model.UpdateUser(db.DefaultContext, user, true))
 }
 
-func TestUpdateUserEmailAlreadyUsed(t *testing.T) {
+func TestUpdateOrSetPrimaryEmail(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 
+	newEmail := "new_" + user2.Email
+	user2.Email = newEmail
+	obj, err := user_model.UpdateOrSetPrimaryEmail(db.DefaultContext, user2, true)
+	assert.NoError(t, err)
+	assert.NotNil(t, obj)
+	user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assert.Equal(t, newEmail, user2.Email)
+
+	user2.Email = "no mail@mail.org"
+	obj, err = user_model.UpdateOrSetPrimaryEmail(db.DefaultContext, user2, true)
+	assert.Error(t, err)
+	assert.NotNil(t, obj)
+
 	user2.Email = org3.Email
-	err := user_model.UpdateUser(db.DefaultContext, user2, true)
+	obj, err = user_model.UpdateOrSetPrimaryEmail(db.DefaultContext, user2, true)
 	assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
+	assert.Nil(t, obj)
 }
 
 func TestNewUserRedirect(t *testing.T) {

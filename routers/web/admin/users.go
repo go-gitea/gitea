@@ -485,7 +485,8 @@ func EditUserPost(ctx *context.Context) {
 		u.ProhibitLogin = form.ProhibitLogin
 	}
 
-	if err := user_model.UpdateUser(ctx, u, emailChanged); err != nil {
+	emailAddress, err := user_model.UpdateOrSetPrimaryEmail(ctx, u, emailChanged)
+	if err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserEdit, &form)
@@ -499,8 +500,16 @@ func EditUserPost(ctx *context.Context) {
 		return
 	}
 
+	if err := user_model.UpdateUser(ctx, u); err != nil {
+		ctx.ServerError("UpdateUser", err)
+		return
+	}
+
 	if passwordChanged {
 		audit.Record(ctx, audit_model.UserPassword, ctx.Doer, u, u, "Changed password of user %s.", u.Name)
+	}
+	if emailChanged {
+		audit.Record(ctx, audit_model.UserEmailPrimaryChange, ctx.Doer, u, emailAddress, "Changed primary email of user %s to %s.", u.Name, emailAddress.Email)
 	}
 	if auditFields.LoginSource != u.LoginSource {
 		audit.Record(ctx, audit_model.UserAuthenticationSource, ctx.Doer, u, u, "Changed authentication source of user %s.", u.Name)

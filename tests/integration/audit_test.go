@@ -31,38 +31,38 @@ func TestAuditLogging(t *testing.T) {
 	actor := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	token := getUserToken(t, actor.Name, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
-	req := NewRequestWithJSON(t, "POST", "/api/v1/orgs?token="+token, &api.CreateOrgOption{
+	req := NewRequestWithJSON(t, "POST", "/api/v1/orgs", &api.CreateOrgOption{
 		UserName:    "user1_audit_org",
 		FullName:    "User1's organization",
 		Description: "This organization created by user1",
 		Website:     "https://try.gitea.io",
 		Location:    "Universe",
 		Visibility:  "limited",
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 
-	req = NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/user1_audit_org?token="+token, &api.EditOrgOption{
+	req = NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/user1_audit_org", &api.EditOrgOption{
 		Description: "A new description",
 		Website:     "https://try.gitea.io/new",
 		Location:    "Earth",
 		Visibility:  "private",
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 
-	req = NewRequestWithJSON(t, "POST", "/api/v1/user/repos?token="+token, &api.CreateRepoOption{
+	req = NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &api.CreateRepoOption{
 		Name: "audit_repo",
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 
-	req = NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user1/audit_repo?token="+token, &api.EditRepoOption{
+	req = NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user1/audit_repo", &api.EditRepoOption{
 		Description: util.ToPointer("A new description"),
 		Private:     util.ToPointer(true),
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 
-	req = NewRequestWithJSON(t, "PUT", "/api/v1/repos/user1/audit_repo/actions/secrets/audit_secret?token="+token, &api.CreateOrUpdateSecretOption{
+	req = NewRequestWithJSON(t, "PUT", "/api/v1/repos/user1/audit_repo/actions/secrets/audit_secret", &api.CreateOrUpdateSecretOption{
 		Data: "my secret",
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 
 	type TestTypeDescriptor struct {
@@ -147,10 +147,12 @@ func TestAuditLogging(t *testing.T) {
 
 	assert.NoError(t, db.TruncateBeans(db.DefaultContext, &audit_model.Event{}))
 
-	req = NewRequest(t, "DELETE", "/api/v1/orgs/user1_audit_org?token="+token)
+	req = NewRequest(t, "DELETE", "/api/v1/orgs/user1_audit_org").
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
-	req = NewRequest(t, "DELETE", "/api/v1/repos/user1/audit_repo?token="+token)
+	req = NewRequest(t, "DELETE", "/api/v1/repos/user1/audit_repo").
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	cases = []struct {

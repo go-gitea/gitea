@@ -193,11 +193,19 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				isActiveChanged := !usr.IsActive
 				usr.IsActive = true
 
-				err = user_model.UpdateUser(ctx, usr, emailChanged, "full_name", "email", "is_admin", "is_restricted", "is_active")
+				emailAddress, err := user_model.UpdateOrSetPrimaryEmail(ctx, usr, emailChanged)
+				if err != nil {
+					log.Error("SyncExternalUsers[%s]: Error updating user primary email %s: %v", source.authSource.Name, usr.Name, err)
+				}
+
+				err = user_model.UpdateUser(ctx, usr, "full_name", "email", "is_admin", "is_restricted", "is_active")
 				if err != nil {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", source.authSource.Name, usr.Name, err)
 				}
 
+				if emailChanged {
+					audit.Record(ctx, audit_model.UserEmailPrimaryChange, audit.NewAuthenticationSourceUser(), usr, emailAddress, "Changed primary email of user %s to %s.", usr.Name, emailAddress.Email)
+				}
 				if isActiveChanged {
 					audit.Record(ctx, audit_model.UserActive, audit.NewAuthenticationSourceUser(), usr, usr, "Changed activation status of user %s to %s.", usr.Name, audit.UserActiveString(usr.IsActive))
 				}

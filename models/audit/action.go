@@ -19,6 +19,7 @@ const (
 	UserPassword                    Action = "user:password"
 	UserPasswordReset               Action = "user:password:reset"
 	UserVisibility                  Action = "user:visibility"
+	UserEmailPrimaryChange          Action = "user:email:primary"
 	UserEmailAdd                    Action = "user:email:add"
 	UserEmailActivate               Action = "user:email:activate"
 	UserEmailRemove                 Action = "user:email:remove"

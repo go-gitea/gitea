@@ -244,6 +244,8 @@ func EditUser(ctx *context.APIContext) {
 			ctx.InternalServerError(err)
 			return
 		}
+
+		passwordChanged = true
 	}
 
 	if form.MustChangePassword != nil {
@@ -308,19 +310,28 @@ func EditUser(ctx *context.APIContext) {
 		ctx.ContextUser.IsRestricted = *form.Restricted
 	}
 
-	if err := user_model.UpdateUser(ctx, ctx.ContextUser, emailChanged); err != nil {
+	emailAddress, err := user_model.UpdateOrSetPrimaryEmail(ctx, ctx.ContextUser, emailChanged)
+	if err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) ||
 			user_model.IsErrEmailCharIsNotSupported(err) ||
 			user_model.IsErrEmailInvalid(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
+			ctx.Error(http.StatusInternalServerError, "UpdateOrSetPrimaryEmail", err)
 		}
+		return
+	}
+
+	if err := user_model.UpdateUser(ctx, ctx.ContextUser); err != nil {
+		ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
 		return
 	}
 
 	if passwordChanged {
 		audit.Record(ctx, audit_model.UserPassword, ctx.Doer, ctx.ContextUser, ctx.ContextUser, "Changed password of user %s.", ctx.ContextUser.Name)
+	}
+	if emailChanged {
+		audit.Record(ctx, audit_model.UserEmailPrimaryChange, ctx.Doer, ctx.Doer, emailAddress, "Changed primary email of user %s to %s.", ctx.ContextUser.Name, emailAddress.Email)
 	}
 	if auditFields.LoginSource != ctx.ContextUser.LoginSource {
 		audit.Record(ctx, audit_model.UserAuthenticationSource, ctx.Doer, ctx.ContextUser, ctx.ContextUser, "Changed authentication source of user %s.", ctx.ContextUser.Name)

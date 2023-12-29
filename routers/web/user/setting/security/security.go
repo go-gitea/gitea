@@ -42,21 +42,21 @@ func Security(ctx *context.Context) {
 
 // DeleteAccountLink delete a single account link
 func DeleteAccountLink(ctx *context.Context) {
-	elu := &user_model.ExternalLoginUser{UserID: ctx.Doer.ID, LoginSourceID: ctx.FormInt64("id")}
-	if has, err := user_model.GetExternalLogin(ctx, elu); err != nil || !has {
+	user := &user_model.ExternalLoginUser{UserID: ctx.Doer.ID, LoginSourceID: ctx.FormInt64("id")}
+	if has, err := user_model.GetExternalLogin(ctx, user); err != nil || !has {
 		if !has {
-			err = user_model.ErrExternalLoginUserNotExist{UserID: elu.UserID, LoginSourceID: elu.LoginSourceID}
+			err = user_model.ErrExternalLoginUserNotExist{UserID: user.UserID, LoginSourceID: user.LoginSourceID}
 		}
 		ctx.ServerError("RemoveAccountLink", err)
 		return
 	}
 
-	if _, err := user_model.RemoveAccountLink(ctx, ctx.Doer, elu.LoginSourceID); err != nil {
+	if _, err := user_model.RemoveAccountLink(ctx, ctx.Doer, user.LoginSourceID); err != nil {
 		ctx.ServerError("RemoveAccountLink", err)
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserExternalLoginRemove, ctx.Doer, ctx.Doer, ctx.Doer, "Removed external login %s for user %s.", elu.ExternalID, ctx.Doer.Name)
+	audit.Record(ctx, audit_model.UserExternalLoginRemove, ctx.Doer, ctx.Doer, ctx.Doer, "Removed external login %s for user %s.", user.ExternalID, ctx.Doer.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
 

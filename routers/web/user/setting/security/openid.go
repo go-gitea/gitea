@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	audit_model "code.gitea.io/gitea/models/audit"
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/context"
@@ -111,10 +110,9 @@ func settingsOpenIDVerify(ctx *context.Context) {
 
 // DeleteOpenID response for delete user's openid
 func DeleteOpenID(ctx *context.Context) {
-	oid := &user_model.UserOpenID{UID: ctx.Doer.ID}
-	_, err := db.GetByID(ctx, ctx.FormInt64("id"), oid)
+	oid, err := user_model.GetUserOpenID(ctx, ctx.FormInt64("id"), ctx.Doer.ID)
 	if err != nil {
-		ctx.ServerError("GetByID", err)
+		ctx.ServerError("GetUserOpenID", err)
 		return
 	}
 

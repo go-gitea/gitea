@@ -367,8 +367,8 @@ func AddPublicKeysBySource(ctx context.Context, usr *user_model.User, s *auth.So
 	return addedKeys
 }
 
-// SynchronizePublicKeys updates a users public keys. Returns true if there are changes.
-func SynchronizePublicKeys(ctx context.Context, usr *user_model.User, s *auth.Source, sshPublicKeys []string) ([]*PublicKey, []*PublicKey) {
+// SynchronizePublicKeys updates a users public keys. Returns the updated keys.
+func SynchronizePublicKeys(ctx context.Context, usr *user_model.User, s *auth.Source, sshPublicKeys []string) (addedKeys, deletedKeys []*PublicKey) {
 	log.Trace("synchronizePublicKeys[%s]: Handling Public SSH Key synchronization for user %s", s.Name, usr.Name)
 
 	// Get Public Keys from DB with current LDAP source
@@ -412,7 +412,7 @@ func SynchronizePublicKeys(ctx context.Context, usr *user_model.User, s *auth.So
 		}
 	}
 
-	addedKeys := AddPublicKeysBySource(ctx, usr, s, newKeys)
+	addedKeys = AddPublicKeysBySource(ctx, usr, s, newKeys)
 
 	// Mark keys from DB that no longer exist in the source for deletion
 	var giteaKeysToDelete []string
@@ -424,7 +424,7 @@ func SynchronizePublicKeys(ctx context.Context, usr *user_model.User, s *auth.So
 	}
 
 	// Delete keys from DB that no longer exist in the source
-	deletedKeys, err := deleteKeysMarkedForDeletion(ctx, giteaKeysToDelete)
+	deletedKeys, err = deleteKeysMarkedForDeletion(ctx, giteaKeysToDelete)
 	if err != nil {
 		log.Error("synchronizePublicKeys[%s]: Error deleting Public Keys marked for deletion for user %s: %v", s.Name, usr.Name, err)
 	}

@@ -790,12 +790,8 @@ func ActivateEmail(ctx *context.Context) {
 		log.Trace("Email activated: %s", email.Email)
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
 
-		if u, err := user_model.GetUserByID(ctx, email.UID); err != nil {
-			log.Warn("GetUserByID: %d", email.UID)
-		} else {
-			// Allow user to validate more emails
-			_ = ctx.Cache.Delete("MailResendLimit_" + user.LowerName)
-		}
+		// Allow user to validate more emails
+		_ = ctx.Cache.Delete("MailResendLimit_" + user.LowerName)
 
 		audit.Record(ctx, audit_model.UserEmailActivate, user, user, email, "Activated email %s of user %s.", email.Email, user.Name)
 	}

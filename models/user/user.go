@@ -796,7 +796,7 @@ func ValidateUser(u *User, cols ...string) error {
 }
 
 // UpdateUser updates user's information.
-func UpdateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...string) error {
+func UpdateUser(ctx context.Context, u *User, cols ...string) error {
 	err := ValidateUser(u, cols...)
 	if err != nil {
 		return err
@@ -804,14 +804,31 @@ func UpdateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...s
 
 	e := db.GetEngine(ctx)
 
+	if len(cols) == 0 {
+		_, err = e.ID(u.ID).AllCols().Update(u)
+	} else {
+		_, err = e.ID(u.ID).Cols(cols...).Update(u)
+	}
+	return err
+}
+
+func UpdateOrSetPrimaryEmail(ctx context.Context, u *User, changePrimaryEmail bool) (*EmailAddress, error) {
+	u.Email = strings.ToLower(u.Email)
+	if err := ValidateEmail(u.Email); err != nil {
+		return nil, err
+	}
+
+	var emailAddress *EmailAddress
+
+	e := db.GetEngine(ctx)
+
 	if changePrimaryEmail {
-		var emailAddress EmailAddress
-		has, err := e.Where("lower_email=?", strings.ToLower(u.Email)).Get(&emailAddress)
+		has, err := e.Where("lower_email=?", strings.ToLower(u.Email)).Get(emailAddress)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if has && emailAddress.UID != u.ID {
-			return ErrEmailAlreadyUsed{
+			return nil, ErrEmailAlreadyUsed{
 				Email: u.Email,
 			}
 		}
@@ -819,7 +836,7 @@ func UpdateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...s
 		if _, err = e.Where("uid=? AND is_primary=?", u.ID, true).Cols("is_primary").Update(&EmailAddress{
 			IsPrimary: false,
 		}); err != nil {
-			return err
+			return nil, err
 		}
 
 		if !has {
@@ -827,38 +844,35 @@ func UpdateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...s
 			emailAddress.UID = u.ID
 			emailAddress.IsActivated = true
 			emailAddress.IsPrimary = true
-			if _, err := e.Insert(&emailAddress); err != nil {
-				return err
+			if _, err := e.Insert(emailAddress); err != nil {
+				return nil, err
 			}
 		} else if _, err := e.ID(emailAddress.ID).Cols("is_primary").Update(&EmailAddress{
 			IsPrimary: true,
 		}); err != nil {
-			return err
+			return nil, err
 		}
 	} else if !u.IsOrganization() { // check if primary email in email_address table
 		primaryEmailExist, err := e.Where("uid=? AND is_primary=?", u.ID, true).Exist(&EmailAddress{})
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if !primaryEmailExist {
-			if _, err := e.Insert(&EmailAddress{
+			emailAddress = &EmailAddress{
 				Email:       u.Email,
 				UID:         u.ID,
 				IsActivated: true,
 				IsPrimary:   true,
-			}); err != nil {
-				return err
+			}
+			if _, err := e.Insert(emailAddress); err != nil {
+				return nil, err
 			}
 		}
 	}
 
-	if len(cols) == 0 {
-		_, err = e.ID(u.ID).AllCols().Update(u)
-	} else {
-		_, err = e.ID(u.ID).Cols(cols...).Update(u)
-	}
-	return err
+	_, err := e.ID(u.ID).Cols("email").Update(u)
+	return emailAddress, err
 }
 
 // UpdateUserCols update user according special columns
@@ -884,7 +898,7 @@ func UpdateUserSetting(ctx context.Context, u *User) (err error) {
 			return err
 		}
 	}
-	if err = UpdateUser(ctx, u, false); err != nil {
+	if err = UpdateUser(ctx, u); err != nil {
 		return err
 	}
 	return committer.Commit()

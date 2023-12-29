@@ -64,54 +64,58 @@ func resolveType(ctx context.Context, t audit_model.ObjectType, id int64, c cach
 		return td
 	}
 
-	var bean any
-
 	switch t {
 	case audit_model.TypeRepository:
-		bean = &repository_model.Repository{}
+		td, has = getTypeDescriptorByID[repository_model.Repository](ctx, id)
 	case audit_model.TypeUser:
-		bean = &user_model.User{}
+		td, has = getTypeDescriptorByID[user_model.User](ctx, id)
 	case audit_model.TypeOrganization:
-		bean = &organization_model.Organization{}
+		td, has = getTypeDescriptorByID[organization_model.Organization](ctx, id)
 	case audit_model.TypeEmailAddress:
-		bean = &user_model.EmailAddress{}
+		td, has = getTypeDescriptorByID[user_model.EmailAddress](ctx, id)
 	case audit_model.TypeTeam:
-		bean = &organization_model.Team{}
+		td, has = getTypeDescriptorByID[organization_model.Team](ctx, id)
 	case audit_model.TypeWebAuthnCredential:
-		bean = &auth_model.WebAuthnCredential{}
+		td, has = getTypeDescriptorByID[auth_model.WebAuthnCredential](ctx, id)
 	case audit_model.TypeOpenID:
-		bean = &user_model.UserOpenID{}
+		td, has = getTypeDescriptorByID[user_model.UserOpenID](ctx, id)
 	case audit_model.TypeAccessToken:
-		bean = &auth_model.AccessToken{}
+		td, has = getTypeDescriptorByID[auth_model.AccessToken](ctx, id)
 	case audit_model.TypeOAuth2Application:
-		bean = &auth_model.OAuth2Application{}
+		td, has = getTypeDescriptorByID[auth_model.OAuth2Application](ctx, id)
 	case audit_model.TypeAuthenticationSource:
-		bean = &auth_model.Source{}
+		td, has = getTypeDescriptorByID[auth_model.Source](ctx, id)
 	case audit_model.TypePublicKey:
-		bean = &asymkey_model.PublicKey{}
+		td, has = getTypeDescriptorByID[asymkey_model.PublicKey](ctx, id)
 	case audit_model.TypeGPGKey:
-		bean = &asymkey_model.GPGKey{}
+		td, has = getTypeDescriptorByID[asymkey_model.GPGKey](ctx, id)
 	case audit_model.TypeSecret:
-		bean = &secret_model.Secret{}
+		td, has = getTypeDescriptorByID[secret_model.Secret](ctx, id)
 	case audit_model.TypeWebhook:
-		bean = &webhook_model.Webhook{}
+		td, has = getTypeDescriptorByID[webhook_model.Webhook](ctx, id)
 	case audit_model.TypeProtectedTag:
-		bean = &git_model.ProtectedTag{}
+		td, has = getTypeDescriptorByID[git_model.ProtectedTag](ctx, id)
 	case audit_model.TypeProtectedBranch:
-		bean = &git_model.ProtectedBranch{}
+		td, has = getTypeDescriptorByID[git_model.ProtectedBranch](ctx, id)
 	case audit_model.TypePushMirror:
-		bean = &repository_model.PushMirror{}
+		td, has = getTypeDescriptorByID[repository_model.PushMirror](ctx, id)
 	default:
 		panic(fmt.Sprintf("unsupported type: %v", t))
 	}
 
-	if has, _ = db.GetByID(ctx, id, bean); !has {
+	if !has {
 		td = TypeDescriptor{t, id, nil}
-	} else {
-		td = typeToDescription(bean)
 	}
 
 	oc[id] = td
 
 	return td
+}
+
+func getTypeDescriptorByID[T any](ctx context.Context, id int64) (TypeDescriptor, bool) {
+	if bean, has, _ := db.GetByID[T](ctx, id); has {
+		return typeToDescription(bean), true
+	}
+
+	return TypeDescriptor{}, false
 }

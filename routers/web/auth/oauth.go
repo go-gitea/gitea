@@ -1065,7 +1065,7 @@ func getClaimedGroups(source *oauth2.Source, gothUser *goth.User) container.Set[
 	return claimValueToStringSet(groupClaims)
 }
 
-func setUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, u *user_model.User, gothUser *goth.User) (bool, bool) {
+func setUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, u *user_model.User, gothUser *goth.User) (adminChanged, restrictedChanged bool) {
 	groups := getClaimedGroups(source, gothUser)
 
 	wasAdmin, wasRestricted := u.IsAdmin, u.IsRestricted

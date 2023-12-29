@@ -238,11 +238,6 @@ func Delete[T any](ctx context.Context, opts FindOptions) (int64, error) {
 	return GetEngine(ctx).Where(opts.ToConds()).NoAutoCondition().NoAutoTime().Delete(&bean)
 }
 
-// GetByID retrieves the bean with the given ID (given that all non-empty fields match)
-func GetByID(ctx context.Context, id, bean any) (bool, error) {
-	return GetEngine(ctx).ID(id).Get(bean)
-}
-
 // DeleteByBean deletes all records according non-empty fields of the bean as conditions.
 func DeleteByBean(ctx context.Context, bean any) (int64, error) {
 	return GetEngine(ctx).Delete(bean)
