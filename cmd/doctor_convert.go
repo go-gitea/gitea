@@ -37,11 +37,16 @@ func runDoctorConvert(ctx *cli.Context) error {
 
 	switch {
 	case setting.Database.Type.IsMySQL():
-		if err := db.ConvertUtf8ToUtf8mb4(); err != nil {
-			log.Fatal("Failed to convert database from utf8 to utf8mb4: %v", err)
+		charset, collation, err := db.GetDesiredCharsetAndCollation()
+		if err != nil {
+			log.Fatal("Failed to determine the desired database charset or collation: %v", err)
 			return err
 		}
-		fmt.Println("Converted successfully, please confirm your database's character set is now utf8mb4")
+		if err := db.ConvertCharsetAndCollation(charset, collation); err != nil {
+			log.Fatal("Failed to convert database from utf8 to %s: %v", charset, err)
+			return err
+		}
+		fmt.Printf("Converted successfully, please confirm your database's character set is now %s, and collation is set to %s\n", charset, collation)
 	case setting.Database.Type.IsMSSQL():
 		if err := db.ConvertVarcharToNVarchar(); err != nil {
 			log.Fatal("Failed to convert database from varchar to nvarchar: %v", err)

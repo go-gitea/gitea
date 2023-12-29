@@ -150,6 +150,51 @@ func InitEngine(ctx context.Context) error {
 	return nil
 }
 
+func findCaseSensitiveCollation() (string, error) {
+	if x.Dialect().URI().DBType != schemas.MYSQL {
+		return "", nil
+	}
+
+	v, err := x.DBVersion()
+	if err != nil {
+		return "", nil
+	}
+
+	var collation string
+	switch v.Edition {
+	case "MariaDB":
+		collation = "uca1400_as_cs"
+	default:
+		collation = "utf8mb4_0900_as_cs"
+	}
+
+	return collation, nil
+}
+
+func GetDesiredCharsetAndCollation() (string, string, error) {
+	if x.Dialect().URI().DBType != schemas.MYSQL {
+		return "", "", nil
+	}
+
+	var charset string
+	var collation string
+	var err error
+	if setting.Database.DefaultCharset == "" {
+		charset = "utf8mb4"
+	} else {
+		charset = setting.Database.DefaultCharset
+	}
+	if setting.Database.DefaultCollation == "" {
+		collation, err = findCaseSensitiveCollation()
+		if err != nil {
+			return "", "", err
+		}
+	} else {
+		collation = setting.Database.DefaultCollation
+	}
+	return charset, collation, nil
+}
+
 // SetDefaultEngine sets the default engine for db
 func SetDefaultEngine(ctx context.Context, eng *xorm.Engine) {
 	x = eng
