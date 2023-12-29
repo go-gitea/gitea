@@ -293,6 +293,29 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine)
 		return err
 	}
 
+	// If we're using MySQL, and there are no tables, set the database charaset
+	// and collation to the desired ones. This will help cases where the
+	// database is created automatically, and with the wrong settings (such as
+	// when using the official mysql/mariadb container images).
+	if x.Dialect().URI().DBType == schemas.MYSQL {
+		tables, err := x.DBMetas()
+		if err != nil {
+			return err
+		}
+
+		if len(tables) == 0 {
+			charset, collation, err := GetDesiredCharsetAndCollation()
+			if err != nil {
+				return err
+			}
+
+			_, err = x.Exec(fmt.Sprintf("ALTER DATABASE `%s` DEFAULT CHARACTER SET `%s` COLLATE `%s`", setting.Database.Name, charset, collation))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	// We have to run migrateFunc here in case the user is re-running installation on a previously created DB.
 	// If we do not then table schemas will be changed and there will be conflicts when the migrations run properly.
 	//
