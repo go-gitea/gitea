@@ -188,7 +188,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		}
 	}
 
-	if err := handleSchedules(ctx, schedules, commit, input); err != nil {
+	if err := handleSchedules(ctx, schedules, commit, input, ref); err != nil {
 		return err
 	}
 
@@ -373,6 +373,7 @@ func handleSchedules(
 	detectedWorkflows []*actions_module.DetectedWorkflow,
 	commit *git.Commit,
 	input *notifyInput,
+	ref string,
 ) error {
 	branch, err := commit.GetBranchName()
 	if err != nil {
@@ -422,7 +423,7 @@ func handleSchedules(
 			OwnerID:       input.Repo.OwnerID,
 			WorkflowID:    dwf.EntryName,
 			TriggerUserID: input.Doer.ID,
-			Ref:           input.Ref,
+			Ref:           ref,
 			CommitSHA:     commit.ID.String(),
 			Event:         input.Event,
 			EventPayload:  string(p),
