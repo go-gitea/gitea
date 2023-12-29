@@ -193,6 +193,11 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 .apk=application/vnd.android.package-archive
 ```
 
+## Badges (`badges`)
+
+- `ENABLED`: **true**: Whether repository badges (via a generator like `shields.io`) are enabled.
+- `GENERATOR_URL_TEMPLATE`: **https://img.shields.io/badge/{{.label}}-{{.text}}-{{.color}}**: The URL template used for the badge generator service.
+
 ## CORS (`cors`)
 
 - `ENABLED`: **false**: enable cors headers (disabled by default)
