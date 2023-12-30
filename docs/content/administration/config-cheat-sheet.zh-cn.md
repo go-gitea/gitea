@@ -195,9 +195,7 @@ menu:
 ## 跨域 (`cors`)
 
 - `ENABLED`: **false**: 启用 CORS 头部（默认禁用）
-- `SCHEME`: **http**: 允许请求的协议
 - `ALLOW_DOMAIN`: **\***: 允许请求的域名列表
-- `ALLOW_SUBDOMAIN`: **false**: 允许上述列出的头部的子域名发出请求。
 - `METHODS`: **GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS**: 允许发起的请求方式列表
 - `MAX_AGE`: **10m**: 缓存响应的最大时间
 - `ALLOW_CREDENTIALS`: **false**: 允许带有凭据的请求
@@ -346,7 +344,7 @@ menu:
 - `SSH_PER_WRITE_TIMEOUT`: **30s**：对 SSH 连接的任何写入设置超时。（将其设置为 -1 可以禁用所有超时。）
 - `SSH_PER_WRITE_PER_KB_TIMEOUT`: **10s**：对写入 SSH 连接的每 KB 设置超时。
 - `MINIMUM_KEY_SIZE_CHECK`: **true**：指示是否检查最小密钥大小与相应类型。
-- `OFFLINE_MODE`: **false**：禁用 CDN 用于静态文件和 Gravatar 用于个人资料图片。
+- `OFFLINE_MODE`: **true**：禁用 CDN 用于静态文件和 Gravatar 用于个人资料图片。
 - `CERT_FILE`: **https/cert.pem**：用于 HTTPS 的证书文件路径。在链接时，服务器证书必须首先出现，然后是中间 CA 证书（如果有）。如果 `ENABLE_ACME=true`，则此设置会被忽略。路径相对于 `CUSTOM_PATH`。
 - `KEY_FILE`: **https/key.pem**：用于 HTTPS 的密钥文件路径。如果 `ENABLE_ACME=true`，则此设置会被忽略。路径相对于 `CUSTOM_PATH`。
 - `STATIC_ROOT_PATH`: **_`StaticRootPath`_**：模板和静态文件路径的上一级。
@@ -989,7 +987,7 @@ Gitea 创建以下非唯一队列：
 - `LAST_UPDATED_MORE_THAN_AGO`: **72h**: 只会尝试回收超过此时间（默认3天）没有尝试过回收的 LFSMetaObject。
 - `NUMBER_TO_CHECK_PER_REPO`: **100**: 每个仓库要检查的过期 LFSMetaObject 的最小数量。设置为 `0` 以始终检查所有。
 
-# Git (`git`)
+## Git (`git`)
 
 - `PATH`: **""**: Git可执行文件的路径。如果为空，Gitea将在PATH环境中搜索。
 - `HOME_PATH`: **%(APP_DATA_PATH)s/home**: Git的HOME目录。
