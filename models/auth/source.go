@@ -275,9 +275,6 @@ func ActiveSources(tp Type) ([]*Source, error) {
 // IsSSPIEnabled returns true if there is at least one activated login
 // source of type LoginSSPI
 func IsSSPIEnabled() bool {
-	if !db.HasEngine {
-		return false
-	}
 	sources, err := ActiveSources(SSPI)
 	if err != nil {
 		log.Error("ActiveSources: %v", err)
