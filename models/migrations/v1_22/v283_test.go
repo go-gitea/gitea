@@ -7,22 +7,22 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/migrations/base"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_AddCombinedIndexToIssueUser(t *testing.T) {
-	type IssueUser struct {
-		UID     int64 `xorm:"INDEX unique(uid_to_issue)"` // User ID.
-		IssueID int64 `xorm:"INDEX unique(uid_to_issue)"`
+	type IssueUser struct { // old struct
+		ID          int64 `xorm:"pk autoincr"`
+		UID         int64 `xorm:"INDEX"` // User ID.
+		IssueID     int64 `xorm:"INDEX"`
+		IsRead      bool
+		IsMentioned bool
 	}
 
 	// Prepare and load the testing database
 	x, deferable := base.PrepareTestEnv(t, 0, new(IssueUser))
 	defer deferable()
-	if x == nil || t.Failed() {
-		return
-	}
 
-	if err := AddCombinedIndexToIssueUser(x); err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, AddCombinedIndexToIssueUser(x))
 }
