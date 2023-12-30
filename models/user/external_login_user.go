@@ -61,7 +61,7 @@ type ExternalLoginUser struct {
 	UserID            int64          `xorm:"INDEX NOT NULL"`
 	LoginSourceID     int64          `xorm:"pk NOT NULL"`
 	RawData           map[string]any `xorm:"TEXT JSON"`
-	Provider          string         `xorm:"index VARCHAR(25)"`
+	Provider          string         `xorm:"index VARCHAR(255)"`
 	Email             string
 	Name              string
 	FirstName         string

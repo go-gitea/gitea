@@ -552,6 +552,8 @@ var migrations = []Migration{
 	NewMigration("Add Index to pull_auto_merge.doer_id", v1_22.AddIndexToPullAutoMergeDoerID),
 	// v283 -> v284
 	NewMigration("Add combined Index to issue_user.uid and issue_id", v1_22.AddCombinedIndexToIssueUser),
+	// v284 -> v285
+	NewMigration("Incrase external_login_user.provider size to 255", v1_22.UpdateExternalLoginUserProvider),
 }
 
 // GetCurrentDBVersion returns the current db version
