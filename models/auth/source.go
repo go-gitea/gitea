@@ -261,16 +261,12 @@ func (opts FindSourcesOptions) ToConds() builder.Cond {
 // IsSSPIEnabled returns true if there is at least one activated login
 // source of type LoginSSPI
 func IsSSPIEnabled(ctx context.Context) bool {
-	if !db.HasEngine {
-		return false
-	}
-
 	exist, err := db.Exist[Source](ctx, FindSourcesOptions{
 		IsActive:  util.OptionalBoolTrue,
 		LoginType: SSPI,
 	}.ToConds())
 	if err != nil {
-		log.Error("Active SSPI Sources: %v", err)
+		log.Error("IsSSPIEnabled: failed to query active SSPI sources: %v", err)
 		return false
 	}
 	return exist
