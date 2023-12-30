@@ -1,7 +1,7 @@
 # Build stage
 FROM openeuler/openeuler:22.03 AS build-env
 
-RUN dnf -y update && dnf install -y wget make xz git && \
+RUN dnf -y update --repo OS --repo update && dnf install -y wget make xz git --repo OS --repo update && \
     dnf clean all
 
 # install go
@@ -46,7 +46,7 @@ FROM openeuler/openeuler:22.03
 
 EXPOSE 2222 3000
 
-RUN dnf in -y \
+RUN dnf in -y --repo OS --repo update \
     bash \
     ca-certificates \
     gettext \
