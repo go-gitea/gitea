@@ -11,29 +11,30 @@ import (
 
 // UI settings
 var UI = struct {
-	ExplorePagingNum      int
-	SitemapPagingNum      int
-	IssuePagingNum        int
-	RepoSearchPagingNum   int
-	MembersPagingNum      int
-	FeedMaxCommitNum      int
-	FeedPagingNum         int
-	PackagesPagingNum     int
-	GraphMaxCommitNum     int
-	CodeCommentLines      int
-	ReactionMaxUserNum    int
-	MaxDisplayFileSize    int64
-	ShowUserEmail         bool
-	DefaultShowFullName   bool
-	DefaultTheme          string
-	Themes                []string
-	Reactions             []string
-	ReactionsLookup       container.Set[string] `ini:"-"`
-	CustomEmojis          []string
-	CustomEmojisMap       map[string]string `ini:"-"`
-	SearchRepoDescription bool
-	OnlyShowRelevantRepos bool
-	ExploreDefaultSort    string `ini:"EXPLORE_PAGING_DEFAULT_SORT"`
+	ExplorePagingNum         int
+	SitemapPagingNum         int
+	IssuePagingNum           int
+	RepoSearchPagingNum      int
+	MembersPagingNum         int
+	FeedMaxCommitNum         int
+	FeedPagingNum            int
+	PackagesPagingNum        int
+	GraphMaxCommitNum        int
+	CodeCommentLines         int
+	ReactionMaxUserNum       int
+	MaxDisplayFileSize       int64
+	ShowUserEmail            bool
+	DefaultShowFullName      bool
+	DefaultTheme             string
+	Themes                   []string
+	Reactions                []string
+	ReactionsLookup          container.Set[string] `ini:"-"`
+	CustomEmojis             []string
+	CustomEmojisMap          map[string]string `ini:"-"`
+	SearchRepoDescription    bool
+	OnlyShowRelevantRepos    bool
+	ExploreDefaultSort       string `ini:"EXPLORE_PAGING_DEFAULT_SORT"`
+	PreferAbsoluteTimestamps bool
 
 	AmbiguousUnicodeDetection bool
 
