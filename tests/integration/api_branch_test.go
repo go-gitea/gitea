@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -17,7 +19,8 @@ import (
 
 func testAPIGetBranch(t *testing.T, branchName string, exists bool) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
-	req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/branches/%s?token=%s", branchName, token)
+	req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/branches/%s", branchName).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, NoExpectedStatus)
 	if !exists {
 		assert.EqualValues(t, http.StatusNotFound, resp.Code)
@@ -33,7 +36,8 @@ func testAPIGetBranch(t *testing.T, branchName string, exists bool) {
 
 func testAPIGetBranchProtection(t *testing.T, branchName string, expectedHTTPStatus int) *api.BranchProtection {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
-	req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/branch_protections/%s?token=%s", branchName, token)
+	req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/branch_protections/%s", branchName).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, expectedHTTPStatus)
 
 	if resp.Code == http.StatusOK {
@@ -47,9 +51,9 @@ func testAPIGetBranchProtection(t *testing.T, branchName string, expectedHTTPSta
 
 func testAPICreateBranchProtection(t *testing.T, branchName string, expectedHTTPStatus int) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections?token="+token, &api.BranchProtection{
+	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.BranchProtection{
 		RuleName: branchName,
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, expectedHTTPStatus)
 
 	if resp.Code == http.StatusCreated {
@@ -61,7 +65,8 @@ func testAPICreateBranchProtection(t *testing.T, branchName string, expectedHTTP
 
 func testAPIEditBranchProtection(t *testing.T, branchName string, body *api.BranchProtection, expectedHTTPStatus int) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/repo1/branch_protections/"+branchName+"?token="+token, body)
+	req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/repo1/branch_protections/"+branchName, body).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, expectedHTTPStatus)
 
 	if resp.Code == http.StatusOK {
@@ -73,13 +78,15 @@ func testAPIEditBranchProtection(t *testing.T, branchName string, body *api.Bran
 
 func testAPIDeleteBranchProtection(t *testing.T, branchName string, expectedHTTPStatus int) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestf(t, "DELETE", "/api/v1/repos/user2/repo1/branch_protections/%s?token=%s", branchName, token)
+	req := NewRequestf(t, "DELETE", "/api/v1/repos/user2/repo1/branch_protections/%s", branchName).
+		AddTokenAuth(token)
 	MakeRequest(t, req, expectedHTTPStatus)
 }
 
 func testAPIDeleteBranch(t *testing.T, branchName string, expectedHTTPStatus int) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestf(t, "DELETE", "/api/v1/repos/user2/repo1/branches/%s?token=%s", branchName, token)
+	req := NewRequestf(t, "DELETE", "/api/v1/repos/user2/repo1/branches/%s", branchName).
+		AddTokenAuth(token)
 	MakeRequest(t, req, expectedHTTPStatus)
 }
 
@@ -152,10 +159,10 @@ func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 
 func testAPICreateBranch(t testing.TB, session *TestSession, user, repo, oldBranch, newBranch string, status int) bool {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/"+user+"/"+repo+"/branches?token="+token, &api.CreateBranchRepoOption{
+	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/"+user+"/"+repo+"/branches", &api.CreateBranchRepoOption{
 		BranchName:    newBranch,
 		OldBranchName: oldBranch,
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, status)
 
 	var branch api.Branch
@@ -211,4 +218,38 @@ func TestAPIBranchProtection(t *testing.T) {
 	// Test branch deletion
 	testAPIDeleteBranch(t, "master", http.StatusForbidden)
 	testAPIDeleteBranch(t, "branch2", http.StatusNoContent)
+}
+
+func TestAPICreateBranchWithSyncBranches(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	branches, err := db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
+		RepoID: 1,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, branches, 4)
+
+	// make a broke repository with no branch on database
+	_, err = db.DeleteByBean(db.DefaultContext, git_model.Branch{RepoID: 1})
+	assert.NoError(t, err)
+
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+		giteaURL.Path = ctx.GitPath()
+
+		testAPICreateBranch(t, ctx.Session, "user2", "repo1", "", "new_branch", http.StatusCreated)
+	})
+
+	branches, err = db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
+		RepoID: 1,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, branches, 5)
+
+	branches, err = db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
+		RepoID:  1,
+		Keyword: "new_branch",
+	})
+	assert.NoError(t, err)
+	assert.Len(t, branches, 1)
 }

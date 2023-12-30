@@ -76,7 +76,7 @@ func DeleteSecretByName(ctx context.Context, ownerID, repoID int64, name string)
 }
 
 func deleteSecret(ctx context.Context, s *secret_model.Secret) error {
-	if _, err := db.DeleteByID(ctx, s.ID, s); err != nil {
+	if _, err := db.DeleteByID[secret_model.Secret](ctx, s.ID); err != nil {
 		return err
 	}
 	return nil

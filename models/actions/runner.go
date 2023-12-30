@@ -254,7 +254,7 @@ func DeleteRunner(ctx context.Context, id int64) error {
 		return err
 	}
 
-	_, err := db.GetEngine(ctx).Delete(&ActionRunner{ID: id})
+	_, err := db.DeleteByID[ActionRunner](ctx, id)
 	return err
 }
 
