@@ -93,14 +93,8 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 
 	baseRepoPath := pr.BaseRepo.RepoPath()
 	headRepoPath := pr.HeadRepo.RepoPath()
-	objectFormat, err := git.GetObjectFormatOfRepo(ctx, baseRepoPath)
-	if err != nil {
-		log.Error("Unable to fetch ObjectFormat of repository %s: %v", baseRepoPath, err)
-		cancel()
-		return nil, nil, err
-	}
 
-	if err := git.InitRepository(ctx, tmpBasePath, false, objectFormat); err != nil {
+	if err := git.InitRepository(ctx, tmpBasePath, false, pr.BaseRepo.ObjectFormatName); err != nil {
 		log.Error("Unable to init tmpBasePath for %-v: %v", pr, err)
 		cancel()
 		return nil, nil, err
@@ -174,6 +168,7 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 	}
 
 	trackingBranch := "tracking"
+	objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
 	// Fetch head branch
 	var headBranch string
 	if pr.Flow == issues_model.PullRequestFlowGithub {

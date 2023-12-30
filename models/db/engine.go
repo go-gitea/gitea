@@ -27,9 +27,6 @@ var (
 	x         *xorm.Engine
 	tables    []any
 	initFuncs []func() error
-
-	// HasEngine specifies if we have a xorm.Engine
-	HasEngine bool
 )
 
 // Engine represents a xorm engine or session.

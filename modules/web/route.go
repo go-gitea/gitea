@@ -101,16 +101,18 @@ func (r *Route) wrapMiddlewareAndHandler(h []any) ([]func(http.Handler) http.Han
 	return middlewares, handlerFunc
 }
 
-func (r *Route) Methods(method, pattern string, h ...any) {
+// Methods adds the same handlers for multiple http "methods" (separated by ",").
+// If any method is invalid, the lower level router will panic.
+func (r *Route) Methods(methods, pattern string, h ...any) {
 	middlewares, handlerFunc := r.wrapMiddlewareAndHandler(h)
 	fullPattern := r.getPattern(pattern)
-	if strings.Contains(method, ",") {
-		methods := strings.Split(method, ",")
+	if strings.Contains(methods, ",") {
+		methods := strings.Split(methods, ",")
 		for _, method := range methods {
 			r.R.With(middlewares...).Method(strings.TrimSpace(method), fullPattern, handlerFunc)
 		}
 	} else {
-		r.R.With(middlewares...).Method(method, fullPattern, handlerFunc)
+		r.R.With(middlewares...).Method(methods, fullPattern, handlerFunc)
 	}
 }
 
@@ -134,20 +136,6 @@ func (r *Route) Delete(pattern string, h ...any) {
 // Get delegate get method
 func (r *Route) Get(pattern string, h ...any) {
 	r.Methods("GET", pattern, h...)
-}
-
-func (r *Route) Options(pattern string, h ...any) {
-	r.Methods("OPTIONS", pattern, h...)
-}
-
-// GetOptions delegate get and options method
-func (r *Route) GetOptions(pattern string, h ...any) {
-	r.Methods("GET,OPTIONS", pattern, h...)
-}
-
-// PostOptions delegate post and options method
-func (r *Route) PostOptions(pattern string, h ...any) {
-	r.Methods("POST,OPTIONS", pattern, h...)
 }
 
 // Head delegate head method
