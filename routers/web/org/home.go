@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 )
 
@@ -157,14 +158,14 @@ func Home(ctx *context.Context) {
 
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
-	profileGitRepo, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
+	profileDbRepo, profileGitRepo, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
 	defer profileClose()
-	prepareOrgProfileReadme(ctx, profileGitRepo, profileReadmeBlob)
+	prepareOrgProfileReadme(ctx, profileGitRepo, profileDbRepo, profileReadmeBlob)
 
 	ctx.HTML(http.StatusOK, tplOrgHome)
 }
 
-func prepareOrgProfileReadme(ctx *context.Context, profileGitRepo *git.Repository, profileReadme *git.Blob) {
+func prepareOrgProfileReadme(ctx *context.Context, profileGitRepo *git.Repository, profileDbRepo *repo_model.Repository, profileReadme *git.Blob) {
 	if profileGitRepo == nil || profileReadme == nil {
 		return
 	}
@@ -172,10 +173,14 @@ func prepareOrgProfileReadme(ctx *context.Context, profileGitRepo *git.Repositor
 	if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
 		log.Error("failed to GetBlobContent: %v", err)
 	} else {
+		// Pass URLPrefix to markdown render for the full link of media elements.
+		// The profile of default branch would be shown.
+		prefix := profileDbRepo.Link() + "/src/branch/" + util.PathEscapeSegments(profileDbRepo.DefaultBranch)
 		if profileContent, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:     ctx,
-			GitRepo: profileGitRepo,
-			Metas:   map[string]string{"mode": "document"},
+			Ctx:       ctx,
+			GitRepo:   profileGitRepo,
+			URLPrefix: prefix,
+			Metas:     map[string]string{"mode": "document"},
 		}, bytes); err != nil {
 			log.Error("failed to RenderString: %v", err)
 		} else {

@@ -227,16 +227,6 @@ func UpdatePublicKeyUpdated(ctx context.Context, id int64) error {
 	return nil
 }
 
-// DeletePublicKeys does the actual key deletion but does not update authorized_keys file.
-func DeletePublicKeys(ctx context.Context, keyIDs ...int64) error {
-	if len(keyIDs) == 0 {
-		return nil
-	}
-
-	_, err := db.GetEngine(ctx).In("id", keyIDs).Delete(new(PublicKey))
-	return err
-}
-
 // PublicKeysAreExternallyManaged returns whether the provided KeyID represents an externally managed Key
 func PublicKeysAreExternallyManaged(ctx context.Context, keys []*PublicKey) ([]bool, error) {
 	sources := make([]*auth.Source, 0, 5)
@@ -322,8 +312,8 @@ func deleteKeysMarkedForDeletion(ctx context.Context, keys []string) (bool, erro
 			log.Error("SearchPublicKeyByContent: %v", err)
 			continue
 		}
-		if err = DeletePublicKeys(ctx, key.ID); err != nil {
-			log.Error("deletePublicKeys: %v", err)
+		if _, err = db.DeleteByID[PublicKey](ctx, key.ID); err != nil {
+			log.Error("DeleteByID[PublicKey]: %v", err)
 			continue
 		}
 		sshKeysNeedUpdate = true
