@@ -60,7 +60,7 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	}
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
-	orgs, err := organization.FindOrgs(ctx, organization.FindOrgOptions{
+	orgs, err := db.Find[organization.Organization](ctx, organization.FindOrgOptions{
 		UserID:         ctx.ContextUser.ID,
 		IncludePrivate: showPrivate,
 	})
@@ -87,7 +87,7 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	}
 }
 
-func FindUserProfileReadme(ctx *context.Context, doer *user_model.User) (profileGitRepo *git.Repository, profileReadmeBlob *git.Blob, profileClose func()) {
+func FindUserProfileReadme(ctx *context.Context, doer *user_model.User) (profileDbRepo *repo_model.Repository, profileGitRepo *git.Repository, profileReadmeBlob *git.Blob, profileClose func()) {
 	profileDbRepo, err := repo_model.GetRepositoryByName(ctx, ctx.ContextUser.ID, ".profile")
 	if err == nil {
 		perm, err := access_model.GetUserRepoPermission(ctx, profileDbRepo, doer)
@@ -105,7 +105,7 @@ func FindUserProfileReadme(ctx *context.Context, doer *user_model.User) (profile
 	} else if !repo_model.IsErrRepoNotExist(err) {
 		log.Error("FindUserProfileReadme failed to GetRepositoryByName: %v", err)
 	}
-	return profileGitRepo, profileReadmeBlob, func() {
+	return profileDbRepo, profileGitRepo, profileReadmeBlob, func() {
 		if profileGitRepo != nil {
 			_ = profileGitRepo.Close()
 		}
@@ -115,7 +115,7 @@ func FindUserProfileReadme(ctx *context.Context, doer *user_model.User) (profile
 func RenderUserHeader(ctx *context.Context) {
 	prepareContextForCommonProfile(ctx)
 
-	_, profileReadmeBlob, profileClose := FindUserProfileReadme(ctx, ctx.Doer)
+	_, _, profileReadmeBlob, profileClose := FindUserProfileReadme(ctx, ctx.Doer)
 	defer profileClose()
 	ctx.Data["HasProfileReadme"] = profileReadmeBlob != nil
 }
@@ -141,7 +141,7 @@ func LoadHeaderCount(ctx *context.Context) error {
 	} else {
 		projectType = project_model.TypeIndividual
 	}
-	projectCount, err := project_model.CountProjects(ctx, project_model.SearchOptions{
+	projectCount, err := db.Count[project_model.Project](ctx, project_model.SearchOptions{
 		OwnerID:  ctx.ContextUser.ID,
 		IsClosed: util.OptionalBoolOf(false),
 		Type:     projectType,

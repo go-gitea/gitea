@@ -43,7 +43,9 @@
 				<a download href="{{$.RawFileLink}}"><span class="btn-octicon" data-tooltip-content="{{ctx.Locale.Tr "repo.download_file"}}">{{svg "octicon-download"}}</span></a>
 				<a id="copy-content" class="btn-octicon {{if not .CanCopyContent}} disabled{{end}}"{{if or .IsImageFile (and .HasSourceRenderedToggle (not .IsDisplayingSource))}} data-link="{{$.RawFileLink}}"{{end}} data-tooltip-content="{{if .CanCopyContent}}{{ctx.Locale.Tr "copy_content"}}{{else}}{{ctx.Locale.Tr "copy_type_unsupported"}}{{end}}">{{svg "octicon-copy" 14}}</a>
 				{{if .EnableFeed}}
-				<a class="btn-octicon" href="{{$.FeedURL}}/rss/{{$.BranchNameSubURL}}/{{PathEscapeSegments .TreePath}}">{{svg "octicon-rss" 14}}</a>
+				<a class="btn-octicon" href="{{$.FeedURL}}/rss/{{$.BranchNameSubURL}}/{{PathEscapeSegments .TreePath}}" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
+					{{svg "octicon-rss" 14}}
+				</a>
 				{{end}}
 				{{if .Repository.CanEnableEditor}}
 					{{if .CanEditFile}}
@@ -61,6 +63,9 @@
 				<button class="ui mini basic button unescape-button gt-mr-2 gt-hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
 				<button class="ui mini basic button escape-button gt-mr-2">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 			{{end}}
+			{{if and .ReadmeInList .CanEditReadmeFile}}
+				<a class="btn-octicon" data-tooltip-content="{{ctx.Locale.Tr "repo.editor.edit_this_file"}}" href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}/{{PathEscapeSegments .FileName}}">{{svg "octicon-pencil"}}</a>
+			{{end}}
 		</div>
 	</h4>
 	<div class="ui attached table unstackable segment">
@@ -69,9 +74,9 @@
 		{{end}}
 		<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsPlainText}} plain-text{{else if .IsTextSource}} code-view{{end}}">
 			{{if .IsMarkup}}
-				{{if .FileContent}}{{.FileContent | Safe}}{{end}}
+				{{if .FileContent}}{{.FileContent}}{{end}}
 			{{else if .IsPlainText}}
-				<pre>{{if .FileContent}}{{.FileContent | Safe}}{{end}}</pre>
+				<pre>{{if .FileContent}}{{.FileContent}}{{end}}</pre>
 			{{else if not .IsTextSource}}
 				<div class="view-raw">
 					{{if .IsImageFile}}
@@ -109,7 +114,7 @@
 							{{if $.EscapeStatus.Escaped}}
 								<td class="lines-escape">{{if (index $.LineEscapeStatus $idx).Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{if (index $.LineEscapeStatus $idx).HasInvisible}}{{ctx.Locale.Tr "repo.invisible_runes_line"}} {{end}}{{if (index $.LineEscapeStatus $idx).HasAmbiguous}}{{ctx.Locale.Tr "repo.ambiguous_runes_line"}}{{end}}"></button>{{end}}</td>
 							{{end}}
-							<td rel="L{{$line}}" class="lines-code chroma"><code class="code-inner">{{$code | Safe}}</code></td>
+							<td rel="L{{$line}}" class="lines-code chroma"><code class="code-inner">{{$code}}</code></td>
 						</tr>
 						{{end}}
 					</tbody>
