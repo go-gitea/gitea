@@ -4,7 +4,6 @@
 package base
 
 import (
-	"crypto/md5"
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
@@ -16,7 +15,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/git"
@@ -26,13 +24,6 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/minio/sha256-simd"
 )
-
-// EncodeMD5 encodes string to md5 hex value.
-func EncodeMD5(str string) string {
-	m := md5.New()
-	_, _ = m.Write([]byte(str))
-	return hex.EncodeToString(m.Sum(nil))
-}
 
 // EncodeSha1 string to sha1 hex value.
 func EncodeSha1(str string) string {
@@ -68,11 +59,6 @@ func BasicAuthDecode(encoded string) (string, string, error) {
 	}
 
 	return auth[0], auth[1], nil
-}
-
-// BasicAuthEncode encode basic auth string
-func BasicAuthEncode(username, password string) string {
-	return base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
 }
 
 // VerifyTimeLimitCode verify time limit code
@@ -182,22 +168,6 @@ func Int64sToStrings(ints []int64) []string {
 		strs[i] = strconv.FormatInt(ints[i], 10)
 	}
 	return strs
-}
-
-// Int64sContains returns if a int64 in a slice of int64
-func Int64sContains(intsSlice []int64, a int64) bool {
-	for _, c := range intsSlice {
-		if c == a {
-			return true
-		}
-	}
-	return false
-}
-
-// IsLetter reports whether the rune is a letter (category L).
-// https://github.com/golang/go/blob/c3b4918/src/go/scanner/scanner.go#L342
-func IsLetter(ch rune) bool {
-	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' || ch >= 0x80 && unicode.IsLetter(ch)
 }
 
 // EntryIcon returns the octicon class for displaying files/directories
