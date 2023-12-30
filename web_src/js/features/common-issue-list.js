@@ -1,7 +1,8 @@
 import $ from 'jquery';
-import {isElemHidden, onInputDebounce, toggleElem} from '../utils/dom.js';
-const {appSubUrl} = window.config;
+import {isElemHidden, onInputDebounce, submitEventSubmitter, toggleElem} from '../utils/dom.js';
+import {GET} from '../modules/fetch.js';
 
+const {appSubUrl} = window.config;
 const reIssueIndex = /^(\d+)$/; // eg: "123"
 const reIssueSharpIndex = /^#(\d+)$/; // eg: "#123"
 const reIssueOwnerRepoIndex = /^([-.\w]+)\/([-.\w]+)#(\d+)$/;  // eg: "{owner}/{repo}#{index}"
@@ -39,7 +40,7 @@ export function initCommonIssueListQuickGoto() {
   $form.on('submit', (e) => {
     // if there is no goto button, or the form is submitted by non-quick-goto elements, submit the form directly
     let doQuickGoto = !isElemHidden($goto);
-    const submitter = e.originalEvent.submitter;
+    const submitter = submitEventSubmitter(e.originalEvent);
     if (submitter !== $form[0] && submitter !== $input[0] && submitter !== $goto[0]) doQuickGoto = false;
     if (!doQuickGoto) return;
 
@@ -54,7 +55,7 @@ export function initCommonIssueListQuickGoto() {
     // try to check whether the parsed goto link is valid
     let targetUrl = parseIssueListQuickGotoLink(repoLink, searchText);
     if (targetUrl) {
-      const res = await fetch(`${targetUrl}/info`);
+      const res = await GET(`${targetUrl}/info`);
       if (res.status !== 200) targetUrl = '';
     }
 

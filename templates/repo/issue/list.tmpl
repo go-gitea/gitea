@@ -18,13 +18,13 @@
 			{{template "repo/issue/search" .}}
 			{{if not .Repository.IsArchived}}
 				{{if .PageIsIssueList}}
-					<a class="ui small green button issue-list-new" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{.locale.Tr "repo.issues.new"}}</a>
+					<a class="ui small primary button issue-list-new" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
 				{{else}}
-					<a class="ui small green button new-pr-button issue-list-new{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.Repository.Link}}/compare/{{.Repository.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{.locale.Tr "repo.pulls.new"}}</a>
+					<a class="ui small primary button new-pr-button issue-list-new{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.Repository.Link}}/compare/{{.Repository.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{ctx.Locale.Tr "repo.pulls.new"}}</a>
 				{{end}}
 			{{else}}
 				{{if not .PageIsIssueList}}
-					<a class="ui small green small button issue-list-new{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{$.locale.Tr "action.compare_commits_general"}}</a>
+					<a class="ui small primary small button issue-list-new{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{ctx.Locale.Tr "action.compare_commits_general"}}</a>
 				{{end}}
 			{{end}}
 		</div>
@@ -34,134 +34,18 @@
 		<div id="issue-actions" class="issue-list-toolbar gt-hidden">
 			<div class="issue-list-toolbar-left">
 				{{template "repo/issue/openclose" .}}
+				<!-- Total Tracked Time -->
+				{{if .TotalTrackedTime}}
+					<div class="ui compact tiny secondary menu">
+						<span class="item" data-tooltip-content='{{ctx.Locale.Tr "tracked_time_summary"}}'>
+							{{svg "octicon-clock"}}
+							{{.TotalTrackedTime | Sec2Time}}
+						</span>
+					</div>
+				{{end}}
 			</div>
 			<div class="issue-list-toolbar-right">
-				<div class="ui secondary filter menu">
-					{{if not .Repository.IsArchived}}
-					<!-- Action Button -->
-					{{if .IsShowClosed}}
-						<button class="ui green basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_open"}}</button>
-					{{else}}
-						<button class="ui red basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_close"}}</button>
-					{{end}}
-					{{if $.IsRepoAdmin}}
-						<button class="ui red button issue-action"
-							data-action="delete" data-url="{{$.RepoLink}}/issues/delete"
-							data-action-delete-confirm="{{.locale.Tr "confirm_delete_selected"}}"
-						>{{.locale.Tr "repo.issues.delete"}}</button>
-					{{end}}
-					<!-- Labels -->
-					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item">
-						<span class="text">
-							{{.locale.Tr "repo.issues.action_label"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</span>
-						<div class="menu">
-							<div class="item issue-action" data-action="clear" data-url="{{$.RepoLink}}/issues/labels">
-								{{.locale.Tr "repo.issues.new.clear_labels"}}
-							</div>
-							{{$previousExclusiveScope := "_no_scope"}}
-							{{range .Labels}}
-								{{$exclusiveScope := .ExclusiveScope}}
-								{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
-									<div class="divider"></div>
-								{{end}}
-								{{$previousExclusiveScope = $exclusiveScope}}
-								<div class="item issue-action" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
-									{{if SliceUtils.Contains $.SelLabelIDs .ID}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel $.Context .}}
-								</div>
-							{{end}}
-						</div>
-					</div>
-
-					<!-- Milestone -->
-					<div class="ui {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}} dropdown jump item">
-						<span class="text">
-							{{.locale.Tr "repo.issues.action_milestone"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</span>
-						<div class="menu">
-							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/milestone">
-							{{.locale.Tr "repo.issues.action_milestone_no_select"}}
-							</div>
-							{{if .OpenMilestones}}
-								<div class="divider"></div>
-								<div class="header">{{.locale.Tr "repo.issues.filter_milestone_open"}}</div>
-								{{range .OpenMilestones}}
-									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
-										{{.Name}}
-									</div>
-								{{end}}
-							{{end}}
-							{{if .ClosedMilestones}}
-								<div class="divider"></div>
-								<div class="header">{{.locale.Tr "repo.issues.filter_milestone_open"}}</div>
-								{{range .ClosedMilestones}}
-									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
-										{{.Name}}
-									</div>
-								{{end}}
-							{{end}}
-						</div>
-					</div>
-
-					<!-- Projects -->
-					<div class="ui{{if not (or .OpenProjects .ClosedProjects)}} disabled{{end}} dropdown jump item">
-						<span class="text">
-							{{.locale.Tr "repo.project_board"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</span>
-						<div class="menu">
-							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/projects">
-							{{.locale.Tr "repo.issues.new.clear_projects"}}
-							</div>
-							{{if .OpenProjects}}
-								<div class="divider"></div>
-								<div class="header">
-									{{.locale.Tr "repo.issues.new.open_projects"}}
-								</div>
-								{{range .OpenProjects}}
-									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
-										{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
-									</div>
-								{{end}}
-							{{end}}
-							{{if .ClosedProjects}}
-								<div class="divider"></div>
-								<div class="header">
-									{{.locale.Tr "repo.issues.new.closed_projects"}}
-								</div>
-								{{range .ClosedProjects}}
-									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
-										{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
-									</div>
-								{{end}}
-							{{end}}
-						</div>
-					</div>
-
-					<!-- Assignees -->
-					<div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
-						<span class="text">
-							{{.locale.Tr "repo.issues.action_assignee"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</span>
-						<div class="menu">
-							<div class="item issue-action" data-action="clear" data-url="{{$.Link}}/assignee">
-								{{.locale.Tr "repo.issues.new.clear_assignees"}}
-							</div>
-							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/assignee">
-								{{.locale.Tr "repo.issues.action_assignee_no_select"}}
-							</div>
-							{{range .Assignees}}
-								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/assignee">
-									{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}
-								</div>
-							{{end}}
-						</div>
-					</div>
-					{{end}}
-				</div>
+				{{template "repo/issue/filter_actions" .}}
 			</div>
 		</div>
 		{{template "shared/issuelist" dict "." . "listType" "repo"}}

@@ -11,12 +11,14 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	shared "code.gitea.io/gitea/routers/web/shared/actions"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 )
 
 const (
-	tplRepoVariables base.TplName = "repo/settings/actions"
-	tplOrgVariables  base.TplName = "org/settings/actions"
-	tplUserVariables base.TplName = "user/settings/actions"
+	tplRepoVariables  base.TplName = "repo/settings/actions"
+	tplOrgVariables   base.TplName = "org/settings/actions"
+	tplUserVariables  base.TplName = "user/settings/actions"
+	tplAdminVariables base.TplName = "admin/actions"
 )
 
 type variablesCtx struct {
@@ -25,6 +27,7 @@ type variablesCtx struct {
 	IsRepo            bool
 	IsOrg             bool
 	IsUser            bool
+	IsGlobal          bool
 	VariablesTemplate base.TplName
 	RedirectLink      string
 }
@@ -32,6 +35,7 @@ type variablesCtx struct {
 func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
 	if ctx.Data["PageIsRepoSettings"] == true {
 		return &variablesCtx{
+			OwnerID:           0,
 			RepoID:            ctx.Repo.Repository.ID,
 			IsRepo:            true,
 			VariablesTemplate: tplRepoVariables,
@@ -40,8 +44,14 @@ func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
 	}
 
 	if ctx.Data["PageIsOrgSettings"] == true {
+		err := shared_user.LoadHeaderCount(ctx)
+		if err != nil {
+			ctx.ServerError("LoadHeaderCount", err)
+			return nil, nil
+		}
 		return &variablesCtx{
 			OwnerID:           ctx.ContextUser.ID,
+			RepoID:            0,
 			IsOrg:             true,
 			VariablesTemplate: tplOrgVariables,
 			RedirectLink:      ctx.Org.OrgLink + "/settings/actions/variables",
@@ -51,9 +61,20 @@ func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
 	if ctx.Data["PageIsUserSettings"] == true {
 		return &variablesCtx{
 			OwnerID:           ctx.Doer.ID,
+			RepoID:            0,
 			IsUser:            true,
 			VariablesTemplate: tplUserVariables,
 			RedirectLink:      setting.AppSubURL + "/user/settings/actions/variables",
+		}, nil
+	}
+
+	if ctx.Data["PageIsAdmin"] == true {
+		return &variablesCtx{
+			OwnerID:           0,
+			RepoID:            0,
+			IsGlobal:          true,
+			VariablesTemplate: tplAdminVariables,
+			RedirectLink:      setting.AppSubURL + "/admin/actions/variables",
 		}, nil
 	}
 

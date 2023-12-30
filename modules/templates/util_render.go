@@ -179,7 +179,7 @@ func RenderLabel(ctx context.Context, label *issues_model.Label) template.HTML {
 
 	s := fmt.Sprintf("<span class='ui label scope-parent' title='%s'>"+
 		"<div class='ui label scope-left' style='color: %s !important; background-color: %s !important'>%s</div>"+
-		"<div class='ui label scope-right' style='color: %s !important; background-color: %s !important''>%s</div>"+
+		"<div class='ui label scope-right' style='color: %s !important; background-color: %s !important'>%s</div>"+
 		"</span>",
 		description,
 		textColor, scopeColor, scopeText,
@@ -230,6 +230,7 @@ func RenderMarkdownToHtml(ctx context.Context, input string) template.HTML { //n
 	output, err := markdown.RenderString(&markup.RenderContext{
 		Ctx:       ctx,
 		URLPrefix: setting.AppSubURL,
+		Metas:     map[string]string{"mode": "document"},
 	}, input)
 	if err != nil {
 		log.Error("RenderString: %v", err)

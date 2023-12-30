@@ -79,7 +79,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 		return
 	}
 
-	if setting.CacheService.Enabled && ctx.Cache.IsExist("MailResendLimit_"+u.LowerName) {
+	if ctx.Cache.IsExist("MailResendLimit_" + u.LowerName) {
 		ctx.Data["ResendLimited"] = true
 		ctx.HTML(http.StatusOK, tplForgotPassword)
 		return
@@ -87,10 +87,8 @@ func ForgotPasswdPost(ctx *context.Context) {
 
 	mailer.SendResetPasswordMail(u)
 
-	if setting.CacheService.Enabled {
-		if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-			log.Error("Set cache(MailResendLimit) fail: %v", err)
-		}
+	if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
+		log.Error("Set cache(MailResendLimit) fail: %v", err)
 	}
 
 	ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale)
@@ -114,13 +112,13 @@ func commonResetPassword(ctx *context.Context) (*user_model.User, *auth.TwoFacto
 	}
 
 	// Fail early, don't frustrate the user
-	u := user_model.VerifyUserActiveCode(code)
+	u := user_model.VerifyUserActiveCode(ctx, code)
 	if u == nil {
 		ctx.Flash.Error(ctx.Tr("auth.invalid_code_forgot_password", fmt.Sprintf("%s/user/forgot_password", setting.AppSubURL)), true)
 		return nil, nil
 	}
 
-	twofa, err := auth.GetTwoFactorByUID(u.ID)
+	twofa, err := auth.GetTwoFactorByUID(ctx, u.ID)
 	if err != nil {
 		if !auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.Error(http.StatusInternalServerError, "CommonResetPassword", err.Error())
@@ -217,7 +215,7 @@ func ResetPasswdPost(ctx *context.Context) {
 			}
 
 			twofa.LastUsedPasscode = passcode
-			if err = auth.UpdateTwoFactor(twofa); err != nil {
+			if err = auth.UpdateTwoFactor(ctx, twofa); err != nil {
 				ctx.ServerError("ResetPasswdPost: UpdateTwoFactor", err)
 				return
 			}
@@ -249,7 +247,7 @@ func ResetPasswdPost(ctx *context.Context) {
 			ctx.ServerError("UserSignIn", err)
 			return
 		}
-		if err = auth.UpdateTwoFactor(twofa); err != nil {
+		if err = auth.UpdateTwoFactor(ctx, twofa); err != nil {
 			ctx.ServerError("UserSignIn", err)
 			return
 		}

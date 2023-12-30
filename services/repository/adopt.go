@@ -27,7 +27,7 @@ import (
 )
 
 // AdoptRepository adopts pre-existing repository files for the user/organization.
-func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts repo_module.CreateRepoOptions) (*repo_model.Repository, error) {
+func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateRepoOptions) (*repo_model.Repository, error) {
 	if !doer.IsAdmin && !u.CanCreateRepo() {
 		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: u.MaxRepoCreation,
@@ -195,7 +195,7 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 		return fmt.Errorf("updateRepository: %w", err)
 	}
 
-	if err = repo_module.SyncReleasesWithTags(repo, gitRepo); err != nil {
+	if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
 		return fmt.Errorf("SyncReleasesWithTags: %w", err)
 	}
 
@@ -259,7 +259,7 @@ func checkUnadoptedRepositories(ctx context.Context, userName string, repoNamesT
 		}
 		return err
 	}
-	repos, _, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
+	repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
 		Actor:   ctxUser,
 		Private: true,
 		ListOptions: db.ListOptions{

@@ -65,6 +65,11 @@ type RepoFileOptions struct {
 
 // ChangeRepoFiles adds, updates or removes multiple files in the given repository
 func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, opts *ChangeRepoFilesOptions) (*structs.FilesResponse, error) {
+	err := repo.MustNotBeArchived()
+	if err != nil {
+		return nil, err
+	}
+
 	// If no branch name is set, assume default branch
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
@@ -150,7 +155,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		if !git.IsErrBranchNotExist(err) || !repo.IsEmpty {
 			return nil, err
 		}
-		if err := t.Init(); err != nil {
+		if err := t.Init(repo.ObjectFormatName); err != nil {
 			return nil, err
 		}
 		hasOldBranch = false
@@ -197,7 +202,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		if opts.LastCommitID == "" {
 			opts.LastCommitID = commit.ID.String()
 		} else {
-			lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
+			lastCommitID, err := t.gitRepo.ConvertToGitID(opts.LastCommitID)
 			if err != nil {
 				return nil, fmt.Errorf("ConvertToSHA1: Invalid last commit ID: %w", err)
 			}
@@ -433,7 +438,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 
 	if lfsMetaObject != nil {
 		// We have an LFS object - create it
-		lfsMetaObject, err = git_model.NewLFSMetaObject(ctx, lfsMetaObject)
+		lfsMetaObject, err = git_model.NewLFSMetaObject(ctx, lfsMetaObject.RepositoryID, lfsMetaObject.Pointer)
 		if err != nil {
 			return err
 		}

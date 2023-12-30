@@ -87,7 +87,7 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 			}
 			lexer = chroma.Coalesce(lexer)
 
-			if _, err := w.WriteString(highlight.CodeFromLexer(lexer, source)); err != nil {
+			if _, err := w.WriteString(string(highlight.CodeFromLexer(lexer, source))); err != nil {
 				return ""
 			}
 		}
@@ -153,19 +153,32 @@ func (r *Writer) WriteRegularLink(l org.RegularLink) {
 		link = []byte(util.URLJoin(r.URLPrefix, lnk))
 	}
 
-	description := string(link)
-	if l.Description != nil {
-		description = r.WriteNodesAsString(l.Description...)
-	}
+	// Inspired by https://github.com/niklasfasching/go-org/blob/6eb20dbda93cb88c3503f7508dc78cbbc639378f/org/html_writer.go#L406-L427
 	switch l.Kind() {
 	case "image":
-		imageSrc := getMediaURL(link)
-		fmt.Fprintf(r, `<img src="%s" alt="%s" title="%s" />`, imageSrc, description, description)
+		if l.Description == nil {
+			imageSrc := getMediaURL(link)
+			fmt.Fprintf(r, `<img src="%s" alt="%s" />`, imageSrc, link)
+		} else {
+			description := strings.TrimPrefix(org.String(l.Description...), "file:")
+			imageSrc := getMediaURL([]byte(description))
+			fmt.Fprintf(r, `<a href="%s"><img src="%s" alt="%s" /></a>`, link, imageSrc, imageSrc)
+		}
 	case "video":
-		videoSrc := getMediaURL(link)
-		fmt.Fprintf(r, `<video src="%s" title="%s">%s</video>`, videoSrc, description, description)
+		if l.Description == nil {
+			imageSrc := getMediaURL(link)
+			fmt.Fprintf(r, `<video src="%s">%s</video>`, imageSrc, link)
+		} else {
+			description := strings.TrimPrefix(org.String(l.Description...), "file:")
+			videoSrc := getMediaURL([]byte(description))
+			fmt.Fprintf(r, `<a href="%s"><video src="%s">%s</video></a>`, link, videoSrc, videoSrc)
+		}
 	default:
-		fmt.Fprintf(r, `<a href="%s" title="%s">%s</a>`, link, description, description)
+		description := string(link)
+		if l.Description != nil {
+			description = r.WriteNodesAsString(l.Description...)
+		}
+		fmt.Fprintf(r, `<a href="%s">%s</a>`, link, description)
 	}
 }
 

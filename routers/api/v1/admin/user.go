@@ -36,7 +36,7 @@ func parseAuthSource(ctx *context.APIContext, u *user_model.User, sourceID int64
 		return
 	}
 
-	source, err := auth.GetSourceByID(sourceID)
+	source, err := auth.GetSourceByID(ctx, sourceID)
 	if err != nil {
 		if auth.IsErrSourceNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -93,18 +93,28 @@ func CreateUser(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if !password.IsComplexEnough(form.Password) {
-		err := errors.New("PasswordComplexity")
-		ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
-		return
-	}
-	pwned, err := password.IsPwned(ctx, form.Password)
-	if pwned {
-		if err != nil {
-			log.Error(err.Error())
+
+	if u.LoginType == auth.Plain {
+		if len(form.Password) < setting.MinPasswordLength {
+			err := errors.New("PasswordIsRequired")
+			ctx.Error(http.StatusBadRequest, "PasswordIsRequired", err)
+			return
 		}
-		ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
-		return
+
+		if !password.IsComplexEnough(form.Password) {
+			err := errors.New("PasswordComplexity")
+			ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
+			return
+		}
+
+		pwned, err := password.IsPwned(ctx, form.Password)
+		if pwned {
+			if err != nil {
+				log.Error(err.Error())
+			}
+			ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
+			return
+		}
 	}
 
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
@@ -128,7 +138,7 @@ func CreateUser(ctx *context.APIContext) {
 		u.UpdatedUnix = u.CreatedUnix
 	}
 
-	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, u, overwriteDefault); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) ||
 			user_model.IsErrEmailAlreadyUsed(err) ||
 			db.IsErrNameReserved(err) ||
@@ -402,7 +412,7 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := asymkey_service.DeletePublicKey(ctx.ContextUser, ctx.ParamsInt64(":id")); err != nil {
+	if err := asymkey_service.DeletePublicKey(ctx, ctx.ContextUser, ctx.ParamsInt64(":id")); err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.NotFound()
 		} else if asymkey_model.IsErrKeyAccessDenied(err) {
@@ -450,7 +460,7 @@ func SearchUsers(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	users, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
+	users, maxResults, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		Type:        user_model.UserTypeIndividual,
 		LoginName:   ctx.FormTrim("login_name"),

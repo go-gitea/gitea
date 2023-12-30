@@ -179,6 +179,12 @@ func (f *WechatworkPayload) Release(p *api.ReleasePayload) (api.Payloader, error
 	return newWechatworkMarkdownPayload(text), nil
 }
 
+func (f *WechatworkPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+	text, _ := getPackagePayloadInfo(p, noneLinkFormatter, true)
+
+	return newWechatworkMarkdownPayload(text), nil
+}
+
 // GetWechatworkPayload GetWechatworkPayload converts a ding talk webhook into a WechatworkPayload
 func GetWechatworkPayload(p api.Payloader, event webhook_module.HookEventType, _ string) (api.Payloader, error) {
 	return convertPayloader(new(WechatworkPayload), p, event)

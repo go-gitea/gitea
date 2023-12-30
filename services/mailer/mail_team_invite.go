@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 )
 
@@ -46,23 +45,20 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 	inviteRedirect := url.QueryEscape(fmt.Sprintf("/org/invite/%s", invite.Token))
 	inviteURL := fmt.Sprintf("%suser/sign_up?redirect_to=%s", setting.AppURL, inviteRedirect)
 
-	if err == nil && user != nil {
-		// user account exists
+	if (err == nil && user != nil) || setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration {
+		// user account exists or registration disabled
 		inviteURL = fmt.Sprintf("%suser/login?redirect_to=%s", setting.AppURL, inviteRedirect)
 	}
 
 	subject := locale.Tr("mail.team_invite.subject", inviter.DisplayName(), org.DisplayName())
 	mailMeta := map[string]any{
+		"locale":       locale,
 		"Inviter":      inviter,
 		"Organization": org,
 		"Team":         team,
 		"Invite":       invite,
 		"Subject":      subject,
 		"InviteURL":    inviteURL,
-		// helper
-		"locale":    locale,
-		"Str2html":  templates.Str2html,
-		"DotEscape": templates.DotEscape,
 	}
 
 	var mailBody bytes.Buffer

@@ -4,7 +4,6 @@
 package feed
 
 import (
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -14,13 +13,13 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
+	_ "code.gitea.io/gitea/models/actions"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func TestRenameRepoAction(t *testing.T) {

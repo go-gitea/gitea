@@ -30,7 +30,14 @@ func getRepoChanges(ctx context.Context, repo *repo_model.Repository, revision s
 		return nil, err
 	}
 
-	if len(status.CommitSha) == 0 {
+	needGenesis := len(status.CommitSha) == 0
+	if !needGenesis {
+		hasAncestorCmd := git.NewCommand(ctx, "merge-base").AddDynamicArguments(repo.CodeIndexerStatus.CommitSha, revision)
+		stdout, _, _ := hasAncestorCmd.RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
+		needGenesis = len(stdout) == 0
+	}
+
+	if needGenesis {
 		return genesisChanges(ctx, repo, revision)
 	}
 	return nonGenesisChanges(ctx, repo, revision)
@@ -55,8 +62,8 @@ func isIndexable(entry *git.TreeEntry) bool {
 }
 
 // parseGitLsTreeOutput parses the output of a `git ls-tree -r --full-name` command
-func parseGitLsTreeOutput(stdout []byte) ([]internal.FileUpdate, error) {
-	entries, err := git.ParseTreeEntries(stdout)
+func parseGitLsTreeOutput(objectFormat git.ObjectFormat, stdout []byte) ([]internal.FileUpdate, error) {
+	entries, err := git.ParseTreeEntries(objectFormat, stdout)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +92,11 @@ func genesisChanges(ctx context.Context, repo *repo_model.Repository, revision s
 	}
 
 	var err error
-	changes.Updates, err = parseGitLsTreeOutput(stdout)
+	objectFormat, err := git.GetObjectFormatOfRepo(ctx, repo.RepoPath())
+	if err != nil {
+		return nil, err
+	}
+	changes.Updates, err = parseGitLsTreeOutput(objectFormat, stdout)
 	return &changes, err
 }
 
@@ -162,6 +173,11 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 	if err != nil {
 		return nil, err
 	}
-	changes.Updates, err = parseGitLsTreeOutput(lsTreeStdout)
+
+	objectFormat, err := git.GetObjectFormatOfRepo(ctx, repo.RepoPath())
+	if err != nil {
+		return nil, err
+	}
+	changes.Updates, err = parseGitLsTreeOutput(objectFormat, lsTreeStdout)
 	return &changes, err
 }

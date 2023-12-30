@@ -16,7 +16,7 @@ import (
 type (
 	// FeishuPayload represents
 	FeishuPayload struct {
-		MsgType string `json:"msg_type"` // text / post / image / share_chat / interactive
+		MsgType string `json:"msg_type"` // text / post / image / share_chat / interactive / file /audio / media
 		Content struct {
 			Text string `json:"text"`
 		} `json:"content"`
@@ -171,6 +171,12 @@ func (f *FeishuPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
 // Release implements PayloadConvertor Release method
 func (f *FeishuPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, _ := getReleasePayloadInfo(p, noneLinkFormatter, true)
+
+	return newFeishuTextPayload(text), nil
+}
+
+func (f *FeishuPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+	text, _ := getPackagePayloadInfo(p, noneLinkFormatter, true)
 
 	return newFeishuTextPayload(text), nil
 }

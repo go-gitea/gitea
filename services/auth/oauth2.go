@@ -5,15 +5,16 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
@@ -25,7 +26,7 @@ var (
 )
 
 // CheckOAuthAccessToken returns uid of user from oauth token
-func CheckOAuthAccessToken(accessToken string) int64 {
+func CheckOAuthAccessToken(ctx context.Context, accessToken string) int64 {
 	// JWT tokens require a "."
 	if !strings.Contains(accessToken, ".") {
 		return 0
@@ -36,7 +37,7 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 		return 0
 	}
 	var grant *auth_model.OAuth2Grant
-	if grant, err = auth_model.GetOAuth2GrantByID(db.DefaultContext, token.GrantID); err != nil || grant == nil {
+	if grant, err = auth_model.GetOAuth2GrantByID(ctx, token.GrantID); err != nil || grant == nil {
 		return 0
 	}
 	if token.Type != oauth2.TypeAccessToken {
@@ -62,14 +63,19 @@ func (o *OAuth2) Name() string {
 // representing whether the token exists or not
 func parseToken(req *http.Request) (string, bool) {
 	_ = req.ParseForm()
-	// Check token.
-	if token := req.Form.Get("token"); token != "" {
-		return token, true
+	if !setting.DisableQueryAuthToken {
+		// Check token.
+		if token := req.Form.Get("token"); token != "" {
+			return token, true
+		}
+		// Check access token.
+		if token := req.Form.Get("access_token"); token != "" {
+			return token, true
+		}
+	} else if req.Form.Get("token") != "" || req.Form.Get("access_token") != "" {
+		log.Warn("API token sent in query string but DISABLE_QUERY_AUTH_TOKEN=true")
 	}
-	// Check access token.
-	if token := req.Form.Get("access_token"); token != "" {
-		return token, true
-	}
+
 	// check header token
 	if auHead := req.Header.Get("Authorization"); auHead != "" {
 		auths := strings.Fields(auHead)
@@ -83,21 +89,21 @@ func parseToken(req *http.Request) (string, bool) {
 // userIDFromToken returns the user id corresponding to the OAuth token.
 // It will set 'IsApiToken' to true if the token is an API token and
 // set 'ApiTokenScope' to the scope of the access token
-func (o *OAuth2) userIDFromToken(tokenSHA string, store DataStore) int64 {
+func (o *OAuth2) userIDFromToken(ctx context.Context, tokenSHA string, store DataStore) int64 {
 	// Let's see if token is valid.
 	if strings.Contains(tokenSHA, ".") {
-		uid := CheckOAuthAccessToken(tokenSHA)
+		uid := CheckOAuthAccessToken(ctx, tokenSHA)
 		if uid != 0 {
 			store.GetData()["IsApiToken"] = true
 			store.GetData()["ApiTokenScope"] = auth_model.AccessTokenScopeAll // fallback to all
 		}
 		return uid
 	}
-	t, err := auth_model.GetAccessTokenBySHA(tokenSHA)
+	t, err := auth_model.GetAccessTokenBySHA(ctx, tokenSHA)
 	if err != nil {
 		if auth_model.IsErrAccessTokenNotExist(err) {
 			// check task token
-			task, err := actions_model.GetRunningTaskByToken(db.DefaultContext, tokenSHA)
+			task, err := actions_model.GetRunningTaskByToken(ctx, tokenSHA)
 			if err == nil && task != nil {
 				log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
 
@@ -112,7 +118,7 @@ func (o *OAuth2) userIDFromToken(tokenSHA string, store DataStore) int64 {
 		return 0
 	}
 	t.UpdatedUnix = timeutil.TimeStampNow()
-	if err = auth_model.UpdateAccessToken(t); err != nil {
+	if err = auth_model.UpdateAccessToken(ctx, t); err != nil {
 		log.Error("UpdateAccessToken: %v", err)
 	}
 	store.GetData()["IsApiToken"] = true
@@ -125,7 +131,9 @@ func (o *OAuth2) userIDFromToken(tokenSHA string, store DataStore) int64 {
 // If verification is successful returns an existing user object.
 // Returns nil if verification fails.
 func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
-	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isAuthenticatedTokenRequest(req) {
+	// These paths are not API paths, but we still want to check for tokens because they maybe in the API returned URLs
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isAuthenticatedTokenRequest(req) &&
+		!isGitRawOrAttachPath(req) {
 		return nil, nil
 	}
 
@@ -134,7 +142,7 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 		return nil, nil
 	}
 
-	id := o.userIDFromToken(token, store)
+	id := o.userIDFromToken(req.Context(), token, store)
 
 	if id <= 0 && id != -2 { // -2 means actions, so we need to allow it.
 		return nil, user_model.ErrUserNotExist{}

@@ -37,11 +37,11 @@ const (
 func Branches(ctx *context.Context) {
 	ctx.Data["Title"] = "Branches"
 	ctx.Data["IsRepoToolbarBranches"] = true
-	ctx.Data["AllowsPulls"] = ctx.Repo.Repository.AllowsPulls()
+	ctx.Data["AllowsPulls"] = ctx.Repo.Repository.AllowsPulls(ctx)
 	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(unit.TypeCode)
 	ctx.Data["IsMirror"] = ctx.Repo.Repository.IsMirror
 	ctx.Data["CanPull"] = ctx.Repo.CanWrite(unit.TypeCode) ||
-		(ctx.IsSigned && repo_model.HasForkedRepo(ctx.Doer.ID, ctx.Repo.Repository.ID))
+		(ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID))
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
 
@@ -51,7 +51,9 @@ func Branches(ctx *context.Context) {
 	}
 	pageSize := setting.Git.BranchesRangeSize
 
-	defaultBranch, branches, branchesCount, err := repo_service.LoadBranches(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, util.OptionalBoolNone, page, pageSize)
+	kw := ctx.FormString("q")
+
+	defaultBranch, branches, branchesCount, err := repo_service.LoadBranches(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, util.OptionalBoolNone, kw, page, pageSize)
 	if err != nil {
 		ctx.ServerError("LoadBranches", err)
 		return
@@ -73,6 +75,7 @@ func Branches(ctx *context.Context) {
 		commitStatus[commitID] = git_model.CalcCommitStatus(cs)
 	}
 
+	ctx.Data["Keyword"] = kw
 	ctx.Data["Branches"] = branches
 	ctx.Data["CommitStatus"] = commitStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
@@ -144,11 +147,18 @@ func RestoreBranchPost(ctx *context.Context) {
 		return
 	}
 
+	objectFormat, err := git.GetObjectFormatOfRepo(ctx, ctx.Repo.Repository.RepoPath())
+	if err != nil {
+		log.Error("RestoreBranch: CreateBranch: %w", err)
+		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", deletedBranch.Name))
+		return
+	}
+
 	// Don't return error below this
 	if err := repo_service.PushUpdate(
 		&repo_module.PushUpdateOptions{
 			RefFullName:  git.RefNameFromBranch(deletedBranch.Name),
-			OldCommitID:  git.EmptySHA,
+			OldCommitID:  objectFormat.EmptyObjectID().String(),
 			NewCommitID:  deletedBranch.CommitID,
 			PusherID:     ctx.Doer.ID,
 			PusherName:   ctx.Doer.Name,
@@ -188,9 +198,9 @@ func CreateBranch(ctx *context.Context) {
 		}
 		err = release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, target, form.NewBranchName, "")
 	} else if ctx.Repo.IsViewBranch {
-		err = repo_service.CreateNewBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
+		err = repo_service.CreateNewBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.BranchName, form.NewBranchName)
 	} else {
-		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
+		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.CommitID, form.NewBranchName)
 	}
 	if err != nil {
 		if models.IsErrProtectedTagName(err) {

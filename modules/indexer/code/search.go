@@ -6,6 +6,7 @@ package code
 import (
 	"bytes"
 	"context"
+	"html/template"
 	"strings"
 
 	"code.gitea.io/gitea/modules/highlight"
@@ -22,8 +23,8 @@ type Result struct {
 	Language       string
 	Color          string
 	LineNumbers    []int
-	FormattedLines string
-	ContentLines   []string
+	FormattedLines template.HTML
+  ContentLines   []string
 }
 
 type SearchResultLanguages = internal.SearchResultLanguages

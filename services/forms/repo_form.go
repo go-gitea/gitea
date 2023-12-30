@@ -51,6 +51,9 @@ type CreateRepoForm struct {
 	Labels          bool
 	ProtectedBranch bool
 	TrustModel      string
+
+	ForkSingleBranch string
+	ObjectFormatName string
 }
 
 // Validate validates the fields

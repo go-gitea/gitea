@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'go-gitea/gitea'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: download from crowdin
         uses: docker://jonasfranz/crowdin
         env:
@@ -22,7 +22,7 @@ jobs:
       - name: update locales
         run: ./build/update-locales.sh
       - name: push translations to repo
-        uses: appleboy/git-push-action@v0.0.2
+        uses: appleboy/git-push-action@v0.0.3
         with:
           author_email: "teabot@gitea.io"
           author_name: GiteaBot
@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'go-gitea/gitea'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: push translations to crowdin
         uses: docker://jonasfranz/crowdin
         env:

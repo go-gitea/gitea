@@ -188,6 +188,21 @@ func TestDingTalkPayload(t *testing.T) {
 		assert.Equal(t, "http://localhost:3000/test/repo", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
 	})
 
+	t.Run("Package", func(t *testing.T) {
+		p := packageTestPayload()
+
+		d := new(DingtalkPayload)
+		pl, err := d.Package(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &DingtalkPayload{}, pl)
+
+		assert.Equal(t, "Package created: GiteaContainer:latest by user1", pl.(*DingtalkPayload).ActionCard.Text)
+		assert.Equal(t, "Package created: GiteaContainer:latest by user1", pl.(*DingtalkPayload).ActionCard.Title)
+		assert.Equal(t, "view package", pl.(*DingtalkPayload).ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/user1/-/packages/container/GiteaContainer/latest", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+	})
+
 	t.Run("Wiki", func(t *testing.T) {
 		p := wikiTestPayload()
 
@@ -238,7 +253,7 @@ func TestDingTalkPayload(t *testing.T) {
 		assert.Equal(t, "[test/repo] Release created: v1.0 by user1", pl.(*DingtalkPayload).ActionCard.Text)
 		assert.Equal(t, "[test/repo] Release created: v1.0 by user1", pl.(*DingtalkPayload).ActionCard.Title)
 		assert.Equal(t, "view release", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/api/v1/repos/test/repo/releases/2", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+		assert.Equal(t, "http://localhost:3000/test/repo/releases/tag/v1.0", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
 	})
 }
 

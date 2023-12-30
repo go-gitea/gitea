@@ -223,7 +223,8 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		}
 	}
 
-	if err := git.InitRepository(ctx, tmpDir, false); err != nil {
+	// FIXME: fix the hash
+	if err := git.InitRepository(ctx, tmpDir, false, git.Sha1ObjectFormat.Name()); err != nil {
 		return err
 	}
 
@@ -241,7 +242,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		defaultBranch = templateRepo.DefaultBranch
 	}
 
-	return initRepoCommit(ctx, tmpDir, repo, repo.Owner, defaultBranch)
+	return InitRepoCommit(ctx, tmpDir, repo, repo.Owner, defaultBranch)
 }
 
 func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository) (err error) {
@@ -356,7 +357,8 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		}
 	}
 
-	if err = checkInitRepository(ctx, owner.Name, generateRepo.Name); err != nil {
+	// FIXME - fix the hash
+	if err = CheckInitRepository(ctx, owner.Name, generateRepo.Name, git.Sha1ObjectFormat.Name()); err != nil {
 		return generateRepo, err
 	}
 

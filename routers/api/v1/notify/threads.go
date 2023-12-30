@@ -46,7 +46,7 @@ func GetThread(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToNotificationThread(n))
+	ctx.JSON(http.StatusOK, convert.ToNotificationThread(ctx, n))
 }
 
 // ReadThread mark notification as read by ID
@@ -97,7 +97,7 @@ func ReadThread(ctx *context.APIContext) {
 		ctx.InternalServerError(err)
 		return
 	}
-	ctx.JSON(http.StatusResetContent, convert.ToNotificationThread(notif))
+	ctx.JSON(http.StatusResetContent, convert.ToNotificationThread(ctx, notif))
 }
 
 func getThread(ctx *context.APIContext) *activities_model.Notification {

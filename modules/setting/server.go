@@ -81,7 +81,6 @@ var (
 	StaticCacheTime            time.Duration
 	EnableGzip                 bool
 	LandingPageURL             LandingPage
-	LandingPageCustom          string
 	UnixSocketPermission       uint32
 	EnablePprof                bool
 	PprofDataPath              string
@@ -103,7 +102,6 @@ var (
 	StaticURLPrefix            string
 	AbsoluteAssetURL           string
 
-	HasRobotsTxt bool
 	ManifestData string
 )
 
@@ -317,7 +315,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	RedirectorUseProxyProtocol = sec.Key("REDIRECTOR_USE_PROXY_PROTOCOL").MustBool(UseProxyProtocol)
-	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
+	OfflineMode = sec.Key("OFFLINE_MODE").MustBool(true)
 	if len(StaticRootPath) == 0 {
 		StaticRootPath = AppWorkPath
 	}
@@ -343,8 +341,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		LandingPageURL = LandingPageOrganizations
 	case "login":
 		LandingPageURL = LandingPageLogin
-	case "":
-	case "home":
+	case "", "home":
 		LandingPageURL = LandingPageHome
 	default:
 		LandingPageURL = LandingPage(landingPage)

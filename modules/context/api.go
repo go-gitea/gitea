@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -100,6 +99,12 @@ type APIRedirect struct{}
 // APIString is a string response
 // swagger:response string
 type APIString string
+
+// APIRepoArchivedError is an error that is raised when an archived repo should be modified
+// swagger:response repoArchivedError
+type APIRepoArchivedError struct {
+	APIError
+}
 
 // ServerError responds with error message, status is 500
 func (ctx *APIContext) ServerError(title string, err error) {
@@ -205,32 +210,6 @@ func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 	}
 }
 
-// CheckForOTP validates OTP
-func (ctx *APIContext) CheckForOTP() {
-	if skip, ok := ctx.Data["SkipLocalTwoFA"]; ok && skip.(bool) {
-		return // Skip 2FA
-	}
-
-	otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
-	twofa, err := auth.GetTwoFactorByUID(ctx.Doer.ID)
-	if err != nil {
-		if auth.IsErrTwoFactorNotEnrolled(err) {
-			return // No 2FA enrollment for this user
-		}
-		ctx.Error(http.StatusInternalServerError, "GetTwoFactorByUID", err)
-		return
-	}
-	ok, err := twofa.ValidateTOTP(otpHeader)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ValidateTOTP", err)
-		return
-	}
-	if !ok {
-		ctx.Error(http.StatusUnauthorized, "", nil)
-		return
-	}
-}
-
 // APIContexter returns apicontext as middleware
 func APIContexter() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -329,6 +308,12 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 			return
 		}
 
+		objectFormat, err := ctx.Repo.GitRepo.GetObjectFormat()
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+			return
+		}
+
 		if ref := ctx.FormTrim("ref"); len(ref) > 0 {
 			commit, err := ctx.Repo.GitRepo.GetCommit(ref)
 			if err != nil {
@@ -346,7 +331,6 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 			return
 		}
 
-		var err error
 		refName := getRefName(ctx.Base, ctx.Repo, RepoRefAny)
 
 		if ctx.Repo.GitRepo.IsBranchExist(refName) {
@@ -363,7 +347,7 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 				return
 			}
 			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-		} else if len(refName) == git.SHAFullLength {
+		} else if len(refName) == objectFormat.FullLength() {
 			ctx.Repo.CommitID = refName
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
 			if err != nil {

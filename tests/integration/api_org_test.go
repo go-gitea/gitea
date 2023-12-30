@@ -36,7 +36,8 @@ func TestAPIOrgCreate(t *testing.T) {
 			Location:    "Shanghai",
 			Visibility:  "limited",
 		}
-		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs?token="+token, &org)
+		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs", &org).
+			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusCreated)
 
 		var apiOrg api.Organization
@@ -71,12 +72,14 @@ func TestAPIOrgCreate(t *testing.T) {
 			})
 		}
 
-		req = NewRequestf(t, "GET", "/api/v1/orgs/%s?token=%s", org.UserName, token)
+		req = NewRequestf(t, "GET", "/api/v1/orgs/%s", org.UserName).
+			AddTokenAuth(token)
 		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &apiOrg)
 		assert.EqualValues(t, org.UserName, apiOrg.Name)
 
-		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/repos?token=%s", org.UserName, token)
+		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", org.UserName).
+			AddTokenAuth(token)
 		resp = MakeRequest(t, req, http.StatusOK)
 
 		var repos []*api.Repository
@@ -85,7 +88,8 @@ func TestAPIOrgCreate(t *testing.T) {
 			assert.False(t, repo.Private)
 		}
 
-		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/members?token=%s", org.UserName, token)
+		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/members", org.UserName).
+			AddTokenAuth(token)
 		resp = MakeRequest(t, req, http.StatusOK)
 
 		// user1 on this org is public
@@ -102,19 +106,20 @@ func TestAPIOrgEdit(t *testing.T) {
 
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
 		org := api.EditOrgOption{
-			FullName:    "User3 organization new full name",
+			FullName:    "Org3 organization new full name",
 			Description: "A new description",
 			Website:     "https://try.gitea.io/new",
 			Location:    "Beijing",
 			Visibility:  "private",
 		}
-		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/user3?token="+token, &org)
+		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &org).
+			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var apiOrg api.Organization
 		DecodeJSON(t, resp, &apiOrg)
 
-		assert.Equal(t, "user3", apiOrg.Name)
+		assert.Equal(t, "org3", apiOrg.Name)
 		assert.Equal(t, org.FullName, apiOrg.FullName)
 		assert.Equal(t, org.Description, apiOrg.Description)
 		assert.Equal(t, org.Website, apiOrg.Website)
@@ -129,13 +134,14 @@ func TestAPIOrgEditBadVisibility(t *testing.T) {
 
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
 		org := api.EditOrgOption{
-			FullName:    "User3 organization new full name",
+			FullName:    "Org3 organization new full name",
 			Description: "A new description",
 			Website:     "https://try.gitea.io/new",
 			Location:    "Beijing",
 			Visibility:  "badvisibility",
 		}
-		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/user3?token="+token, &org)
+		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &org).
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusUnprocessableEntity)
 	})
 }
@@ -165,7 +171,8 @@ func TestAPIGetAll(t *testing.T) {
 	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrganization)
 
 	// accessing with a token will return all orgs
-	req := NewRequestf(t, "GET", "/api/v1/orgs?token=%s", token)
+	req := NewRequest(t, "GET", "/api/v1/orgs").
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var apiOrgList []*api.Organization
 
@@ -175,12 +182,12 @@ func TestAPIGetAll(t *testing.T) {
 	assert.Equal(t, "limited", apiOrgList[1].Visibility)
 
 	// accessing without a token will return only public orgs
-	req = NewRequestf(t, "GET", "/api/v1/orgs")
+	req = NewRequest(t, "GET", "/api/v1/orgs")
 	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &apiOrgList)
 	assert.Len(t, apiOrgList, 7)
-	assert.Equal(t, "org25", apiOrgList[0].FullName)
+	assert.Equal(t, "org 17", apiOrgList[0].FullName)
 	assert.Equal(t, "public", apiOrgList[0].Visibility)
 }
 
@@ -190,22 +197,23 @@ func TestAPIOrgSearchEmptyTeam(t *testing.T) {
 		orgName := "org_with_empty_team"
 
 		// create org
-		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs?token="+token, &api.CreateOrgOption{
+		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs", &api.CreateOrgOption{
 			UserName: orgName,
-		})
+		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 
 		// create team with no member
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams?token=%s", orgName, token), &api.CreateTeamOption{
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", orgName), &api.CreateTeamOption{
 			Name:                    "Empty",
 			IncludesAllRepositories: true,
 			Permission:              "read",
 			Units:                   []string{"repo.code", "repo.issues", "repo.ext_issues", "repo.wiki", "repo.pulls"},
-		})
+		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 
 		// case-insensitive search for teams that have no members
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/%s/teams/search?q=%s&token=%s", orgName, "empty", token))
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/%s/teams/search?q=%s", orgName, "empty")).
+			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 		data := struct {
 			Ok   bool

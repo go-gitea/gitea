@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -34,7 +35,8 @@ type ActionRun struct {
 	Index             int64                  `xorm:"index unique(repo_index)"` // a unique number for each run of a repository
 	TriggerUserID     int64                  `xorm:"index"`
 	TriggerUser       *user_model.User       `xorm:"-"`
-	Ref               string                 `xorm:"index"` // the commit/tag/… that caused the run
+	ScheduleID        int64
+	Ref               string `xorm:"index"` // the commit/tag/… that caused the run
 	CommitSHA         string
 	IsForkPullRequest bool                         // If this is triggered by a PR from a forked repository or an untrusted user, we need to check if it is approved and limit permissions when running the workflow.
 	NeedApproval      bool                         // may need approval if it's a fork pull request
@@ -168,7 +170,7 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 // CancelRunningJobs cancels all running and waiting jobs associated with a specific workflow.
 func CancelRunningJobs(ctx context.Context, repoID int64, ref, workflowID string) error {
 	// Find all runs in the specified repository, reference, and workflow with statuses 'Running' or 'Waiting'.
-	runs, total, err := FindRuns(ctx, FindRunOptions{
+	runs, total, err := db.FindAndCount[ActionRun](ctx, FindRunOptions{
 		RepoID:     repoID,
 		Ref:        ref,
 		WorkflowID: workflowID,
@@ -186,7 +188,7 @@ func CancelRunningJobs(ctx context.Context, repoID int64, ref, workflowID string
 	// Iterate over each found run and cancel its associated jobs.
 	for _, run := range runs {
 		// Find all jobs associated with the current run.
-		jobs, _, err := FindRunJobs(ctx, FindRunJobOptions{
+		jobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{
 			RunID: run.ID,
 		})
 		if err != nil {
@@ -350,7 +352,7 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 		// It's impossible that the run is not found, since Gitea never deletes runs.
 	}
 
-	if run.Status != 0 || util.SliceContains(cols, "status") {
+	if run.Status != 0 || slices.Contains(cols, "status") {
 		if run.RepoID == 0 {
 			run, err = GetRunByID(ctx, run.ID)
 			if err != nil {

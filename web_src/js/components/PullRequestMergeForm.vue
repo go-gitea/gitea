@@ -1,5 +1,6 @@
 <script>
 import {SvgIcon} from '../svg.js';
+import {toggleElem} from '../utils/dom.js';
 
 const {csrfToken, pageData} = window.config;
 
@@ -29,8 +30,8 @@ export default {
   }),
   computed: {
     mergeButtonStyleClass() {
-      if (this.mergeForm.allOverridableChecksOk) return 'green';
-      return this.autoMergeWhenSucceed ? 'blue' : 'red';
+      if (this.mergeForm.allOverridableChecksOk) return 'primary';
+      return this.autoMergeWhenSucceed ? 'primary' : 'red';
     },
     forceMerge() {
       return this.mergeForm.canMergeNow && !this.mergeForm.allOverridableChecksOk;
@@ -39,6 +40,9 @@ export default {
   watch: {
     mergeStyle(val) {
       this.mergeStyleDetail = this.mergeForm.mergeStyles.find((e) => e.name === val);
+      for (const elem of document.querySelectorAll('[data-pull-merge-style]')) {
+        toggleElem(elem, elem.getAttribute('data-pull-merge-style') === val);
+      }
     }
   },
   created() {
@@ -135,7 +139,7 @@ export default {
 
     <div v-if="!showActionForm" class="gt-df">
       <!-- the merge button -->
-      <div class="ui buttons merge-button" :class="[mergeForm.emptyCommit ? 'grey' : mergeForm.allOverridableChecksOk ? 'green' : 'red']" @click="toggleActionForm(true)">
+      <div class="ui buttons merge-button" :class="[mergeForm.emptyCommit ? 'grey' : mergeForm.allOverridableChecksOk ? 'primary' : 'red']" @click="toggleActionForm(true)">
         <button class="ui button">
           <svg-icon name="octicon-git-merge"/>
           <span class="button-text">

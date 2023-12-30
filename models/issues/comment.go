@@ -17,6 +17,7 @@ import (
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -182,6 +183,14 @@ func (t CommentType) HasAttachmentSupport() bool {
 	return false
 }
 
+func (t CommentType) HasMailReplySupport() bool {
+	switch t {
+	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview, CommentTypeReopen, CommentTypeClose, CommentTypeMergePull, CommentTypeAssignees:
+		return true
+	}
+	return false
+}
+
 // RoleInRepo presents the user's participation in the repo
 type RoleInRepo string
 
@@ -245,7 +254,7 @@ type Comment struct {
 	NewTitle         string
 	OldRef           string
 	NewRef           string
-	DependentIssueID int64
+	DependentIssueID int64  `xorm:"index"` // This is used by issue_service.deleteIssue
 	DependentIssue   *Issue `xorm:"-"`
 
 	CommitID        int64
@@ -341,14 +350,14 @@ func (c *Comment) AfterLoad(session *xorm.Session) {
 
 // LoadPoster loads comment poster
 func (c *Comment) LoadPoster(ctx context.Context) (err error) {
-	if c.PosterID <= 0 || c.Poster != nil {
+	if c.Poster != nil {
 		return nil
 	}
 
 	c.Poster, err = user_model.GetPossibleUserByID(ctx, c.PosterID)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			c.PosterID = -1
+			c.PosterID = user_model.GhostUserID
 			c.Poster = user_model.NewGhostUser()
 		} else {
 			log.Error("getUserByID[%d]: %v", c.ID, err)
@@ -358,54 +367,54 @@ func (c *Comment) LoadPoster(ctx context.Context) (err error) {
 }
 
 // AfterDelete is invoked from XORM after the object is deleted.
-func (c *Comment) AfterDelete() {
+func (c *Comment) AfterDelete(ctx context.Context) {
 	if c.ID <= 0 {
 		return
 	}
 
-	_, err := repo_model.DeleteAttachmentsByComment(c.ID, true)
+	_, err := repo_model.DeleteAttachmentsByComment(ctx, c.ID, true)
 	if err != nil {
 		log.Info("Could not delete files for comment %d on issue #%d: %s", c.ID, c.IssueID, err)
 	}
 }
 
 // HTMLURL formats a URL-string to the issue-comment
-func (c *Comment) HTMLURL() string {
-	err := c.LoadIssue(db.DefaultContext)
+func (c *Comment) HTMLURL(ctx context.Context) string {
+	err := c.LoadIssue(ctx)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
-	err = c.Issue.LoadRepo(db.DefaultContext)
+	err = c.Issue.LoadRepo(ctx)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
-	return c.Issue.HTMLURL() + c.hashLink()
+	return c.Issue.HTMLURL() + c.hashLink(ctx)
 }
 
 // Link formats a relative URL-string to the issue-comment
-func (c *Comment) Link() string {
-	err := c.LoadIssue(db.DefaultContext)
+func (c *Comment) Link(ctx context.Context) string {
+	err := c.LoadIssue(ctx)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
-	err = c.Issue.LoadRepo(db.DefaultContext)
+	err = c.Issue.LoadRepo(ctx)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
-	return c.Issue.Link() + c.hashLink()
+	return c.Issue.Link() + c.hashLink(ctx)
 }
 
-func (c *Comment) hashLink() string {
+func (c *Comment) hashLink(ctx context.Context) string {
 	if c.Type == CommentTypeCode {
 		if c.ReviewID == 0 {
 			return "/files#" + c.HashTag()
 		}
 		if c.Review == nil {
-			if err := c.LoadReview(); err != nil {
+			if err := c.LoadReview(ctx); err != nil {
 				log.Warn("LoadReview(%d): %v", c.ReviewID, err)
 				return "/files#" + c.HashTag()
 			}
@@ -418,13 +427,13 @@ func (c *Comment) hashLink() string {
 }
 
 // APIURL formats a API-string to the issue-comment
-func (c *Comment) APIURL() string {
-	err := c.LoadIssue(db.DefaultContext)
+func (c *Comment) APIURL(ctx context.Context) string {
+	err := c.LoadIssue(ctx)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
-	err = c.Issue.LoadRepo(db.DefaultContext)
+	err = c.Issue.LoadRepo(ctx)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -434,8 +443,8 @@ func (c *Comment) APIURL() string {
 }
 
 // IssueURL formats a URL-string to the issue
-func (c *Comment) IssueURL() string {
-	err := c.LoadIssue(db.DefaultContext)
+func (c *Comment) IssueURL(ctx context.Context) string {
+	err := c.LoadIssue(ctx)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
@@ -445,7 +454,7 @@ func (c *Comment) IssueURL() string {
 		return ""
 	}
 
-	err = c.Issue.LoadRepo(db.DefaultContext)
+	err = c.Issue.LoadRepo(ctx)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -454,14 +463,14 @@ func (c *Comment) IssueURL() string {
 }
 
 // PRURL formats a URL-string to the pull-request
-func (c *Comment) PRURL() string {
-	err := c.LoadIssue(db.DefaultContext)
+func (c *Comment) PRURL(ctx context.Context) string {
+	err := c.LoadIssue(ctx)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
 
-	err = c.Issue.LoadRepo(db.DefaultContext)
+	err = c.Issue.LoadRepo(ctx)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -489,9 +498,9 @@ func (c *Comment) EventTag() string {
 }
 
 // LoadLabel if comment.Type is CommentTypeLabel, then load Label
-func (c *Comment) LoadLabel() error {
+func (c *Comment) LoadLabel(ctx context.Context) error {
 	var label Label
-	has, err := db.GetEngine(db.DefaultContext).ID(c.LabelID).Get(&label)
+	has, err := db.GetEngine(ctx).ID(c.LabelID).Get(&label)
 	if err != nil {
 		return err
 	} else if has {
@@ -505,10 +514,10 @@ func (c *Comment) LoadLabel() error {
 }
 
 // LoadProject if comment.Type is CommentTypeProject, then load project.
-func (c *Comment) LoadProject() error {
+func (c *Comment) LoadProject(ctx context.Context) error {
 	if c.OldProjectID > 0 {
 		var oldProject project_model.Project
-		has, err := db.GetEngine(db.DefaultContext).ID(c.OldProjectID).Get(&oldProject)
+		has, err := db.GetEngine(ctx).ID(c.OldProjectID).Get(&oldProject)
 		if err != nil {
 			return err
 		} else if has {
@@ -518,7 +527,7 @@ func (c *Comment) LoadProject() error {
 
 	if c.ProjectID > 0 {
 		var project project_model.Project
-		has, err := db.GetEngine(db.DefaultContext).ID(c.ProjectID).Get(&project)
+		has, err := db.GetEngine(ctx).ID(c.ProjectID).Get(&project)
 		if err != nil {
 			return err
 		} else if has {
@@ -568,8 +577,8 @@ func (c *Comment) LoadAttachments(ctx context.Context) error {
 }
 
 // UpdateAttachments update attachments by UUIDs for the comment
-func (c *Comment) UpdateAttachments(uuids []string) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func (c *Comment) UpdateAttachments(ctx context.Context, uuids []string) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -590,11 +599,11 @@ func (c *Comment) UpdateAttachments(uuids []string) error {
 }
 
 // LoadAssigneeUserAndTeam if comment.Type is CommentTypeAssignees, then load assignees
-func (c *Comment) LoadAssigneeUserAndTeam() error {
+func (c *Comment) LoadAssigneeUserAndTeam(ctx context.Context) error {
 	var err error
 
 	if c.AssigneeID > 0 && c.Assignee == nil {
-		c.Assignee, err = user_model.GetUserByID(db.DefaultContext, c.AssigneeID)
+		c.Assignee, err = user_model.GetUserByID(ctx, c.AssigneeID)
 		if err != nil {
 			if !user_model.IsErrUserNotExist(err) {
 				return err
@@ -602,20 +611,20 @@ func (c *Comment) LoadAssigneeUserAndTeam() error {
 			c.Assignee = user_model.NewGhostUser()
 		}
 	} else if c.AssigneeTeamID > 0 && c.AssigneeTeam == nil {
-		if err = c.LoadIssue(db.DefaultContext); err != nil {
+		if err = c.LoadIssue(ctx); err != nil {
 			return err
 		}
 
-		if err = c.Issue.LoadRepo(db.DefaultContext); err != nil {
+		if err = c.Issue.LoadRepo(ctx); err != nil {
 			return err
 		}
 
-		if err = c.Issue.Repo.LoadOwner(db.DefaultContext); err != nil {
+		if err = c.Issue.Repo.LoadOwner(ctx); err != nil {
 			return err
 		}
 
 		if c.Issue.Repo.Owner.IsOrganization() {
-			c.AssigneeTeam, err = organization.GetTeamByID(db.DefaultContext, c.AssigneeTeamID)
+			c.AssigneeTeam, err = organization.GetTeamByID(ctx, c.AssigneeTeamID)
 			if err != nil && !organization.IsErrTeamNotExist(err) {
 				return err
 			}
@@ -625,11 +634,11 @@ func (c *Comment) LoadAssigneeUserAndTeam() error {
 }
 
 // LoadResolveDoer if comment.Type is CommentTypeCode and ResolveDoerID not zero, then load resolveDoer
-func (c *Comment) LoadResolveDoer() (err error) {
+func (c *Comment) LoadResolveDoer(ctx context.Context) (err error) {
 	if c.ResolveDoerID == 0 || c.Type != CommentTypeCode {
 		return nil
 	}
-	c.ResolveDoer, err = user_model.GetUserByID(db.DefaultContext, c.ResolveDoerID)
+	c.ResolveDoer, err = user_model.GetUserByID(ctx, c.ResolveDoerID)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			c.ResolveDoer = user_model.NewGhostUser()
@@ -645,21 +654,21 @@ func (c *Comment) IsResolved() bool {
 }
 
 // LoadDepIssueDetails loads Dependent Issue Details
-func (c *Comment) LoadDepIssueDetails() (err error) {
+func (c *Comment) LoadDepIssueDetails(ctx context.Context) (err error) {
 	if c.DependentIssueID <= 0 || c.DependentIssue != nil {
 		return nil
 	}
-	c.DependentIssue, err = GetIssueByID(db.DefaultContext, c.DependentIssueID)
+	c.DependentIssue, err = GetIssueByID(ctx, c.DependentIssueID)
 	return err
 }
 
 // LoadTime loads the associated time for a CommentTypeAddTimeManual
-func (c *Comment) LoadTime() error {
+func (c *Comment) LoadTime(ctx context.Context) error {
 	if c.Time != nil || c.TimeID == 0 {
 		return nil
 	}
 	var err error
-	c.Time, err = GetTrackedTimeByID(c.TimeID)
+	c.Time, err = GetTrackedTimeByID(ctx, c.TimeID)
 	return err
 }
 
@@ -682,8 +691,8 @@ func (c *Comment) loadReactions(ctx context.Context, repo *repo_model.Repository
 }
 
 // LoadReactions loads comment reactions
-func (c *Comment) LoadReactions(repo *repo_model.Repository) error {
-	return c.loadReactions(db.DefaultContext, repo)
+func (c *Comment) LoadReactions(ctx context.Context, repo *repo_model.Repository) error {
+	return c.loadReactions(ctx, repo)
 }
 
 func (c *Comment) loadReview(ctx context.Context) (err error) {
@@ -697,8 +706,8 @@ func (c *Comment) loadReview(ctx context.Context) (err error) {
 }
 
 // LoadReview loads the associated review
-func (c *Comment) LoadReview() error {
-	return c.loadReview(db.DefaultContext)
+func (c *Comment) LoadReview(ctx context.Context) error {
+	return c.loadReview(ctx)
 }
 
 // DiffSide returns "previous" if Comment.Line is a LOC of the previous changes and "proposed" if it is a LOC of the proposed changes.
@@ -718,13 +727,13 @@ func (c *Comment) UnsignedLine() uint64 {
 }
 
 // CodeCommentLink returns the url to a comment in code
-func (c *Comment) CodeCommentLink() string {
-	err := c.LoadIssue(db.DefaultContext)
+func (c *Comment) CodeCommentLink(ctx context.Context) string {
+	err := c.LoadIssue(ctx)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
-	err = c.Issue.LoadRepo(db.DefaultContext)
+	err = c.Issue.LoadRepo(ctx)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -890,15 +899,15 @@ func createDeadlineComment(ctx context.Context, doer *user_model.User, issue *Is
 	// newDeadline = 0 means deleting
 	if newDeadlineUnix == 0 {
 		commentType = CommentTypeRemovedDeadline
-		content = issue.DeadlineUnix.Format("2006-01-02")
+		content = issue.DeadlineUnix.FormatDate()
 	} else if issue.DeadlineUnix == 0 {
 		// Check if the new date was added or modified
 		// If the actual deadline is 0 => deadline added
 		commentType = CommentTypeAddedDeadline
-		content = newDeadlineUnix.Format("2006-01-02")
+		content = newDeadlineUnix.FormatDate()
 	} else { // Otherwise modified
 		commentType = CommentTypeModifiedDeadline
-		content = newDeadlineUnix.Format("2006-01-02") + "|" + issue.DeadlineUnix.Format("2006-01-02")
+		content = newDeadlineUnix.FormatDate() + "|" + issue.DeadlineUnix.FormatDate()
 	}
 
 	if err := issue.LoadRepo(ctx); err != nil {
@@ -1015,10 +1024,11 @@ type FindCommentsOptions struct {
 	Type        CommentType
 	IssueIDs    []int64
 	Invalidated util.OptionalBool
+	IsPull      util.OptionalBool
 }
 
 // ToConds implements FindOptions interface
-func (opts *FindCommentsOptions) ToConds() builder.Cond {
+func (opts FindCommentsOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
@@ -1049,6 +1059,9 @@ func (opts *FindCommentsOptions) ToConds() builder.Cond {
 	if !opts.Invalidated.IsNone() {
 		cond = cond.And(builder.Eq{"comment.invalidated": opts.Invalidated.IsTrue()})
 	}
+	if opts.IsPull != util.OptionalBoolNone {
+		cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull.IsTrue()})
+	}
 	return cond
 }
 
@@ -1056,7 +1069,7 @@ func (opts *FindCommentsOptions) ToConds() builder.Cond {
 func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, error) {
 	comments := make([]*Comment, 0, 10)
 	sess := db.GetEngine(ctx).Where(opts.ToConds())
-	if opts.RepoID > 0 {
+	if opts.RepoID > 0 || opts.IsPull != util.OptionalBoolNone {
 		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 	}
 
@@ -1073,8 +1086,8 @@ func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, 
 }
 
 // CountComments count all comments according options by ignoring pagination
-func CountComments(opts *FindCommentsOptions) (int64, error) {
-	sess := db.GetEngine(db.DefaultContext).Where(opts.ToConds())
+func CountComments(ctx context.Context, opts *FindCommentsOptions) (int64, error) {
+	sess := db.GetEngine(ctx).Where(opts.ToConds())
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 	}
@@ -1088,8 +1101,8 @@ func UpdateCommentInvalidate(ctx context.Context, c *Comment) error {
 }
 
 // UpdateComment updates information of comment.
-func UpdateComment(c *Comment, doer *user_model.User) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func UpdateComment(ctx context.Context, c *Comment, doer *user_model.User) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -1146,8 +1159,8 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 }
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
-func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).Table("comment").
+func UpdateCommentsMigrationsByType(ctx context.Context, tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
+	_, err := db.GetEngine(ctx).Table("comment").
 		Where(builder.In("issue_id",
 			builder.Select("issue.id").
 				From("issue").
@@ -1246,4 +1259,45 @@ func FixCommentTypeLabelWithOutsideLabels(ctx context.Context) (int64, error) {
 // HasOriginalAuthor returns if a comment was migrated and has an original author.
 func (c *Comment) HasOriginalAuthor() bool {
 	return c.OriginalAuthor != "" && c.OriginalAuthorID != 0
+}
+
+// InsertIssueComments inserts many comments of issues.
+func InsertIssueComments(ctx context.Context, comments []*Comment) error {
+	if len(comments) == 0 {
+		return nil
+	}
+
+	issueIDs := make(container.Set[int64])
+	for _, comment := range comments {
+		issueIDs.Add(comment.IssueID)
+	}
+
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	for _, comment := range comments {
+		if _, err := db.GetEngine(ctx).NoAutoTime().Insert(comment); err != nil {
+			return err
+		}
+
+		for _, reaction := range comment.Reactions {
+			reaction.IssueID = comment.IssueID
+			reaction.CommentID = comment.ID
+		}
+		if len(comment.Reactions) > 0 {
+			if err := db.Insert(ctx, comment.Reactions); err != nil {
+				return err
+			}
+		}
+	}
+
+	for issueID := range issueIDs {
+		if _, err := db.Exec(ctx, "UPDATE issue set num_comments = (SELECT count(*) FROM comment WHERE issue_id = ? AND `type`=?) WHERE id = ?",
+			issueID, CommentTypeComment, issueID); err != nil {
+			return err
+		}
+	}
+	return committer.Commit()
 }
