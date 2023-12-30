@@ -35,6 +35,7 @@ var (
 		Path              string
 		LogSQL            bool
 		MysqlCharset      string
+		CharsetCollation  string
 		Timeout           int // seconds
 		SQLiteJournalMode string
 		DBConnectRetries  int
@@ -67,7 +68,7 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	}
 	Database.Schema = sec.Key("SCHEMA").String()
 	Database.SSLMode = sec.Key("SSL_MODE").MustString("disable")
-	Database.MysqlCharset = sec.Key("MYSQL_CHARSET").MustString("utf8mb4") // do not document it, end users won't need it.
+	Database.CharsetCollation = sec.Key("CHARSET_COLLATION").String()
 
 	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
 	Database.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
@@ -105,8 +106,8 @@ func DBConnStr() (string, error) {
 		if tls == "disable" { // allow (Postgres-inspired) default value to work in MySQL
 			tls = "false"
 		}
-		connStr = fmt.Sprintf("%s:%s@%s(%s)/%s%scharset=%s&parseTime=true&tls=%s",
-			Database.User, Database.Passwd, connType, Database.Host, Database.Name, paramSep, Database.MysqlCharset, tls)
+		connStr = fmt.Sprintf("%s:%s@%s(%s)/%s%sparseTime=true&tls=%s",
+			Database.User, Database.Passwd, connType, Database.Host, Database.Name, paramSep, tls)
 	case "postgres":
 		connStr = getPostgreSQLConnectionString(Database.Host, Database.User, Database.Passwd, Database.Name, Database.SSLMode)
 	case "mssql":
