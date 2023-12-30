@@ -1,7 +1,7 @@
 -
   id: 1
   repo_id: 1
-  branch_name: master
+  branch_name: branch2 # master will be conflicted with TestRenameBranch test
   can_push: true
   enable_whitelist: false
   whitelist_user_i_ds: '[]'
