@@ -343,8 +343,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		LandingPageURL = LandingPageOrganizations
 	case "login":
 		LandingPageURL = LandingPageLogin
-	case "":
-	case "home":
+	case "", "home":
 		LandingPageURL = LandingPageHome
 	default:
 		LandingPageURL = LandingPage(landingPage)
