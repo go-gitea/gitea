@@ -15,13 +15,13 @@
 			<div>
 				{{template "repo/latest_commit" .}}
 			</div>
-			<div class="ui text grey right age">
-				{{if .LatestCommit}}
-					{{if .LatestCommit.Committer}}
+			{{if .LatestCommit}}
+				{{if .LatestCommit.Committer}}
+					<div class="ui text grey right age">
 						{{TimeSince .LatestCommit.Committer.When ctx.Locale}}
-					{{end}}
+					</div>
 				{{end}}
-			</div>
+			{{end}}
 		</div>
 	{{end}}
 

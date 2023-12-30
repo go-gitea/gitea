@@ -17,7 +17,7 @@
 	<a rel="nofollow" class="ui sha label {{if .LatestCommit.Signature}} isSigned {{if .LatestCommitVerification.Verified}} isVerified{{if eq .LatestCommitVerification.TrustStatus "trusted"}}{{else if eq .LatestCommitVerification.TrustStatus "untrusted"}}Untrusted{{else}}Unmatched{{end}}{{else if .LatestCommitVerification.Warning}} isWarning{{end}}{{end}}" href="{{.RepoLink}}/commit/{{PathEscape .LatestCommit.ID.String}}">
 		<span class="shortsha">{{ShortSha .LatestCommit.ID.String}}</span>
 		{{if .LatestCommit.Signature}}
-				{{template "repo/shabox_badge" dict "root" $ "verification" .LatestCommitVerification}}
+			{{template "repo/shabox_badge" dict "root" $ "verification" .LatestCommitVerification}}
 		{{end}}
 	</a>
 	{{template "repo/commit_statuses" dict "Status" .LatestCommitStatus "Statuses" .LatestCommitStatuses}}
