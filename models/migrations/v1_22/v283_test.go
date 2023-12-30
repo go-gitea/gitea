@@ -12,10 +12,10 @@ import (
 )
 
 func Test_AddCombinedIndexToIssueUser(t *testing.T) {
-	type IssueUser struct {
+	type IssueUser struct { // old struct
 		ID          int64 `xorm:"pk autoincr"`
-		UID         int64 `xorm:"INDEX unique(uid_to_issue)"` // User ID.
-		IssueID     int64 `xorm:"INDEX unique(uid_to_issue)"`
+		UID         int64 `xorm:"INDEX"` // User ID.
+		IssueID     int64 `xorm:"INDEX"`
 		IsRead      bool
 		IsMentioned bool
 	}
