@@ -77,7 +77,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 				Context:     "testci",
 			}))
 
-			req = NewRequestf(t, "GET", "/user1/repo1/pulls/1/commits")
+			req = NewRequest(t, "GET", "/user1/repo1/pulls/1/commits")
 			resp = session.MakeRequest(t, req, http.StatusOK)
 			doc = NewHTMLParser(t, resp.Body)
 
@@ -98,9 +98,9 @@ func doAPICreateCommitStatus(ctx APITestContext, commitID string, data api.Creat
 		req := NewRequestWithJSON(
 			t,
 			http.MethodPost,
-			fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s?token=%s", ctx.Username, ctx.Reponame, commitID, ctx.Token),
+			fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s", ctx.Username, ctx.Reponame, commitID),
 			data,
-		)
+		).AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode != 0 {
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return

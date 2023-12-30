@@ -72,21 +72,3 @@ func (err ErrNotExist) Error() string {
 func (err ErrNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
-
-// ErrConditionRequired represents an error which require condition.
-type ErrConditionRequired struct{}
-
-// IsErrConditionRequired checks if an error is an ErrConditionRequired
-func IsErrConditionRequired(err error) bool {
-	_, ok := err.(ErrConditionRequired)
-	return ok
-}
-
-func (err ErrConditionRequired) Error() string {
-	return "condition is required"
-}
-
-// Unwrap unwraps this as a ErrNotExist err
-func (err ErrConditionRequired) Unwrap() error {
-	return util.ErrInvalidArgument
-}
