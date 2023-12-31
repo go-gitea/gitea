@@ -231,7 +231,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `ONLY_SHOW_RELEVANT_REPOS`: **false**: Whether to only show relevant repos on the explore page when no keyword is specified and default sorting is used.
     A repo is considered irrelevant if it's a fork or if it has no metadata (no description, no icon, no topic).
 - `EXPLORE_PAGING_DEFAULT_SORT`: **recentupdate**: Change the sort type of the explore pages. Valid values are "recentupdate", "alphabetically", "reverselastlogin", "newest" and "oldest"
-- `PREFER_ABSOLUTE_TIMESTAMPS`: **false**: Whether all timestamps should be rendered as absolute time (i.e. 1970-01-01, 11:59). Setting this to false means some timestamps would render as relative (i.e. 2 days ago).
+- `PREFERRED_TIMESTAMP_TENSE`: **mixed**: The tense all timestamps should be rendered as. Possible values are `absolute` time (i.e. 1970-01-01, 11:59) or `mixed` which means some timestamps would render as relative (i.e. 2 days ago).
 
 ### UI - Admin (`ui.admin`)
 
