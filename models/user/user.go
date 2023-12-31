@@ -520,6 +520,8 @@ func GetUserSalt() (string, error) {
 	return hex.EncodeToString(rBytes), nil
 }
 
+// Developer warning: The set of characters here can safely expand without a breaking change,
+// but characters removed from this set can cause user account linking to break
 var invalidUsernameCharsRE = regexp.MustCompile(`[^\w-.]`)
 var removeDiacriticsTransform = transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
 var removeChars = strings.NewReplacer("'", "")
