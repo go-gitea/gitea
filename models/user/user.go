@@ -520,12 +520,12 @@ func GetUserSalt() (string, error) {
 	return hex.EncodeToString(rBytes), nil
 }
 
-// Developer warning: The set of characters here can safely expand without a breaking change,
+// Note: The set of characters here can safely expand without a breaking change,
 // but characters removed from this set can cause user account linking to break
 var (
-	invalidUsernameCharsRE    = regexp.MustCompile(`[^\w-.]`)
+	removeCharsRE             = regexp.MustCompile(`['\x60]`)
 	removeDiacriticsTransform = transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
-	removeChars               = strings.NewReplacer("'", "", "`", "")
+	replaceCharsRE            = regexp.MustCompile(`[\s,]`)
 )
 
 // normalizeUserName returns a string with single-quotes and diacritics
@@ -536,7 +536,7 @@ func NormalizeUserName(s string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("Failed to normalize character `%v` in provided username `%v`", s[n], s)
 	}
-	return invalidUsernameCharsRE.ReplaceAllString(removeChars.Replace(strDiacriticsRemoved), "-"), nil
+	return replaceCharsRE.ReplaceAllLiteralString(removeCharsRE.ReplaceAllLiteralString(strDiacriticsRemoved, ""), "-"), nil
 }
 
 var (

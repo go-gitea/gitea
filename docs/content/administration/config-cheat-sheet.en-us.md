@@ -598,7 +598,7 @@ And the following unique queues:
   - userid - use the userid / sub attribute
   - nickname - use the nickname attribute
   - email - use the username part of the email attribute
-  - email-normalized - use the username part of the email attribute with diacritics and single-quotes removed, and any other non-supported username characters replaced with a `-` character
+  - email-normalized - use the username part of the email attribute with diacritics and single-quotes removed, and `\s,` replaced with `-`
 - `UPDATE_AVATAR`: **false**: Update avatar if available from oauth2 provider. Update will be performed on each login.
 - `ACCOUNT_LINKING`: **login**: How to handle if an account / email already exists:
   - disabled - show an error
