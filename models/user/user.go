@@ -30,10 +30,10 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
+
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
-
 	"xorm.io/builder"
 )
 
@@ -522,9 +522,11 @@ func GetUserSalt() (string, error) {
 
 // Developer warning: The set of characters here can safely expand without a breaking change,
 // but characters removed from this set can cause user account linking to break
-var invalidUsernameCharsRE = regexp.MustCompile(`[^\w-.]`)
-var removeDiacriticsTransform = transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
-var removeChars = strings.NewReplacer("'", "")
+var (
+	invalidUsernameCharsRE    = regexp.MustCompile(`[^\w-.]`)
+	removeDiacriticsTransform = transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
+	removeChars               = strings.NewReplacer("'", "", "`", "")
+)
 
 // normalizeUserName returns a string with single-quotes and diacritics
 // removed, and any other non-supported username characters replaced with
