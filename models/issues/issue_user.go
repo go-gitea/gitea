@@ -14,8 +14,8 @@ import (
 // IssueUser represents an issue-user relation.
 type IssueUser struct {
 	ID          int64 `xorm:"pk autoincr"`
-	UID         int64 `xorm:"INDEX"` // User ID.
-	IssueID     int64 `xorm:"INDEX"`
+	UID         int64 `xorm:"INDEX unique(uid_to_issue)"` // User ID.
+	IssueID     int64 `xorm:"INDEX unique(uid_to_issue)"`
 	IsRead      bool
 	IsMentioned bool
 }

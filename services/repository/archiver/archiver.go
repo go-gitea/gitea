@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
@@ -36,10 +35,6 @@ type ArchiveRequest struct {
 	CommitID string
 	TagName  string
 }
-
-// SHA1 hashes will only go up to 40 characters, but SHA256 hashes will go all
-// the way to 64.
-var shaRegex = regexp.MustCompile(`^[0-9a-f]{4,64}$`)
 
 // ErrUnknownArchiveFormat request archive format is not supported
 type ErrUnknownArchiveFormat struct {
@@ -97,31 +92,14 @@ func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest
 
 	r.refName = strings.TrimSuffix(uri, ext)
 
-	var err error
 	// Get corresponding commit.
-	if repo.IsBranchExist(r.refName) {
-		r.CommitID, err = repo.GetBranchCommitID(r.refName)
-		if err != nil {
-			return nil, err
-		}
-	} else if repo.IsTagExist(r.refName) {
-		r.CommitID, err = repo.GetTagCommitID(r.refName)
-		r.TagName = r.refName
-		if err != nil {
-			return nil, err
-		}
-	} else if shaRegex.MatchString(r.refName) {
-		if repo.IsCommitExist(r.refName) {
-			r.CommitID = r.refName
-		} else {
-			return nil, git.ErrNotExist{
-				ID: r.refName,
-			}
-		}
-	} else {
+	commitID, err := repo.ConvertToGitID(r.refName)
+	if err != nil {
 		return nil, RepoRefNotFoundError{RefName: r.refName}
 	}
 
+	r.CommitID = commitID.String()
+  r.TagName = r.refName
 	return r, nil
 }
 
@@ -206,7 +184,7 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 			CommitID: r.CommitID,
 			Status:   repo_model.ArchiverGenerating,
 		}
-		if err := repo_model.AddRepoArchiver(ctx, archiver); err != nil {
+		if err := db.Insert(ctx, archiver); err != nil {
 			return nil, err
 		}
 	}
@@ -338,7 +316,7 @@ func StartArchive(request *ArchiveRequest) error {
 }
 
 func deleteOldRepoArchiver(ctx context.Context, archiver *repo_model.RepoArchiver) error {
-	if err := repo_model.DeleteRepoArchiver(ctx, archiver); err != nil {
+	if _, err := db.DeleteByID[repo_model.RepoArchiver](ctx, archiver.ID); err != nil {
 		return err
 	}
 	p := archiver.RelativePath()
