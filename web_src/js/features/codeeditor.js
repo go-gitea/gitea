@@ -11,7 +11,7 @@ const baseOptions = {
   guides: {bracketPairs: false, indentation: false},
   links: false,
   minimap: {enabled: false},
-  occurrencesHighlight: false,
+  occurrencesHighlight: 'off',
   overviewRulerLanes: 0,
   renderLineHighlight: 'all',
   renderLineHighlightOnlyWhenFocus: true,
