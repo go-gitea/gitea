@@ -11,21 +11,12 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/keybase/go-crypto/openpgp"
 	"github.com/keybase/go-crypto/openpgp/packet"
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
-
-//   __________________  ________   ____  __.
-//  /  _____/\______   \/  _____/  |    |/ _|____ ___.__.
-// /   \  ___ |     ___/   \  ___  |      <_/ __ <   |  |
-// \    \_\  \|    |   \    \_\  \ |    |  \  ___/\___  |
-//	\______  /|____|    \______  / |____|__ \___  > ____|
-//				 \/                  \/          \/   \/\/
 
 // GPGKey represents a GPG key.
 type GPGKey struct {
@@ -55,12 +46,11 @@ func (key *GPGKey) BeforeInsert() {
 	key.AddedUnix = timeutil.TimeStampNow()
 }
 
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (key *GPGKey) AfterLoad(session *xorm.Session) {
-	err := session.Where("primary_key_id=?", key.KeyID).Find(&key.SubsKey)
-	if err != nil {
-		log.Error("Find Sub GPGkeys[%s]: %v", key.KeyID, err)
+func (key *GPGKey) LoadSubKeys(ctx context.Context) error {
+	if err := db.GetEngine(ctx).Where("primary_key_id=?", key.KeyID).Find(&key.SubsKey); err != nil {
+		return fmt.Errorf("find Sub GPGkeys[%s]: %v", key.KeyID, err)
 	}
+	return nil
 }
 
 // PaddedKeyID show KeyID padded to 16 characters

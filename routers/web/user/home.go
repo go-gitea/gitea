@@ -673,6 +673,11 @@ func ShowGPGKeys(ctx *context.Context) {
 		return
 	}
 
+	if err := asymkey_model.GPGKeyList(keys).LoadSubKeys(ctx); err != nil {
+		ctx.ServerError("LoadSubKeys", err)
+		return
+	}
+
 	entities := make([]*openpgp.Entity, 0)
 	failedEntitiesID := make([]string, 0)
 	for _, k := range keys {

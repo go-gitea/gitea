@@ -179,6 +179,15 @@ func ParseCommitWithSignature(ctx context.Context, c *git.Commit) *CommitVerific
 			}
 		}
 
+		if err := GPGKeyList(keys).LoadSubKeys(ctx); err != nil {
+			log.Error("LoadSubKeys: %v", err)
+			return &CommitVerification{
+				CommittingUser: committer,
+				Verified:       false,
+				Reason:         "gpg.error.failed_retrieval_gpg_keys",
+			}
+		}
+
 		committerEmailAddresses, _ := user_model.GetEmailAddresses(ctx, committer.ID)
 		activated := false
 		for _, e := range committerEmailAddresses {

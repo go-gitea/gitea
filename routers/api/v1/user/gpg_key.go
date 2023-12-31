@@ -29,6 +29,11 @@ func listGPGKeys(ctx *context.APIContext, uid int64, listOptions db.ListOptions)
 		return
 	}
 
+	if err := asymkey_model.GPGKeyList(keys).LoadSubKeys(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "ListGPGKeys", err)
+		return
+	}
+
 	apiKeys := make([]*api.GPGKey, len(keys))
 	for i := range keys {
 		apiKeys[i] = convert.ToGPGKey(keys[i])
@@ -118,6 +123,10 @@ func GetGPGKey(ctx *context.APIContext) {
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetGPGKeyByID", err)
 		}
+		return
+	}
+	if err := key.LoadSubKeys(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadSubKeys", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToGPGKey(key))

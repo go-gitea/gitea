@@ -286,6 +286,10 @@ func loadKeysData(ctx *context.Context) {
 		ctx.ServerError("ListGPGKeys", err)
 		return
 	}
+	if err := asymkey_model.GPGKeyList(gpgkeys).LoadSubKeys(ctx); err != nil {
+		ctx.ServerError("LoadSubKeys", err)
+		return
+	}
 	ctx.Data["GPGKeys"] = gpgkeys
 	tokenToSign := asymkey_model.VerificationToken(ctx.Doer, 1)
 
