@@ -185,6 +185,6 @@ func preprocessDatabaseCollation(x *xorm.Engine) {
 	}
 
 	if len(r.InconsistentCollationColumns) > 0 {
-		log.Error("There are %d table columns have inconsistent collation, they should use %q. Please go to admin panel Self Check page or refer to Gitea document", len(r.InconsistentCollationColumns), r.DatabaseCollation)
+		log.Error("There are %d table columns using inconsistent collation, they should use %q. Please go to admin panel Self Check page", len(r.InconsistentCollationColumns), r.DatabaseCollation)
 	}
 }

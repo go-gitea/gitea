@@ -22,29 +22,28 @@ type TestCollationTbl struct {
 func TestDatabaseCollation(t *testing.T) {
 	x := db.GetEngine(db.DefaultContext).(*xorm.Engine)
 
-	// all created tables should use case-sensitive collation by default
-	if !setting.Database.Type.IsMSSQL() {
-		_, _ = x.Exec("DROP TABLE IF EXISTS test_collation_tbl")
-		err := x.Sync(&TestCollationTbl{})
-		assert.NoError(t, err)
-		_, _ = x.Exec("INSERT INTO test_collation_tbl (txt) VALUES ('main')")
-		_, _ = x.Exec("INSERT INTO test_collation_tbl (txt) VALUES ('Main')")
-		_, _ = x.Exec("INSERT INTO test_collation_tbl (txt) VALUES ('main')")
-		cnt, err := x.Count(&TestCollationTbl{})
-		assert.NoError(t, err)
-		assert.EqualValues(t, 2, cnt)
-		_, _ = x.Exec("DROP TABLE IF EXISTS test_collation_tbl")
-	}
-
-	// by default, SQLite3 and PostgreSQL are using case-sensitive collations, but MySQL and MSSQL are not
-	if !setting.Database.Type.IsMySQL() && !setting.Database.Type.IsMSSQL() {
-		t.Skip("only MySQL and MSSQL requires the case-sensitive collation check at the moment")
+	// there are blockers for MSSQL to use case-sensitive collation, see the comments in db/collation.go
+	if setting.Database.Type.IsMSSQL() {
+		t.Skip("there are blockers for MSSQL to use case-sensitive collation")
 		return
 	}
 
-	// but there are blockers for MSSQL to use case-sensitive collation, see the comments in db/collation.go
-	if !setting.Database.Type.IsMySQL() {
-		t.Skip("there are blockers for MSSQL to use case-sensitive collation")
+	// all created tables should use case-sensitive collation by default
+	_, _ = x.Exec("DROP TABLE IF EXISTS test_collation_tbl")
+	err := x.Sync(&TestCollationTbl{})
+	assert.NoError(t, err)
+	_, _ = x.Exec("INSERT INTO test_collation_tbl (txt) VALUES ('main')")
+	_, _ = x.Exec("INSERT INTO test_collation_tbl (txt) VALUES ('Main')")
+	_, _ = x.Exec("INSERT INTO test_collation_tbl (txt) VALUES ('main')")
+	cnt, err := x.Count(&TestCollationTbl{})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, cnt)
+	_, _ = x.Exec("DROP TABLE IF EXISTS test_collation_tbl")
+
+	// by default, SQLite3 and PostgreSQL are using case-sensitive collations, but MySQL and MSSQL are not
+	// the following tests are only for MySQL and MSSQL
+	if !setting.Database.Type.IsMySQL() && !setting.Database.Type.IsMSSQL() {
+		t.Skip("only MySQL and MSSQL requires the case-sensitive collation check at the moment")
 		return
 	}
 
