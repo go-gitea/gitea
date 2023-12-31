@@ -552,17 +552,18 @@ func Test_NormalizeUserFromEmail(t *testing.T) {
 		IsNormalizedValid bool
 	}{
 		{"test", "test", true},
-		{"Sinéad.O'Connor", "Sin-ad.OConnor", true},
-		{"Æsir", "-sir", false},
+		{"Sinéad.O'Connor", "Sinead.OConnor", true},
+		{"Æsir", "-sir", false}, // Currently unsupported
 		// \u00e9\u0065\u0301
-		{"éé", "-e-", false},
+		{"éé", "ee", true},
 		{"Awareness Hub", "Awareness-Hub", true},
 		{"double__underscore", "double__underscore", false}, // We should consider squashing double non-alpha characters
 		{".bad.", ".bad.", false},
 		{"new😀user", "new-user", true},
 	}
 	for _, testCase := range testCases {
-		normalizedName := user_model.NormalizeUserName(testCase.Input)
+		normalizedName, err := user_model.NormalizeUserName(testCase.Input)
+		assert.NoError(t, err)
 		assert.EqualValues(t, testCase.Expected, normalizedName)
 		if testCase.IsNormalizedValid {
 			assert.NoError(t, user_model.IsUsableUsername(normalizedName))
