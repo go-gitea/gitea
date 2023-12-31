@@ -546,19 +546,25 @@ func Test_ValidateUser(t *testing.T) {
 }
 
 func Test_NormalizeUserFromEmail(t *testing.T) {
-	testCases := [][]interface{}{
-		// input name, expected normalized name, is normalized name valid
+	testCases := []struct {
+		Input             string
+		Expected          string
+		IsNormalizedValid bool
+	}{
 		{"test", "test", true},
-		{"Sinéad.O'Connor", "Sin-ad.OConnor", true}, // We should consider allowing custom replacement characters (eg. é -> e)
+		{"Sinéad.O'Connor", "Sin-ad.OConnor", true},
+		{"Æsir", "-sir", false},
+		// \u00e9\u0065\u0301
+		{"éé", "-e-", false},
 		{"Awareness Hub", "Awareness-Hub", true},
 		{"double__underscore", "double__underscore", false}, // We should consider squashing double non-alpha characters
 		{".bad.", ".bad.", false},
+		{"new😀user", "new-user", true},
 	}
 	for _, testCase := range testCases {
-		fmt.Println(testCase...)
-		normalizedName := user_model.NormalizeUserName(testCase[0].(string))
-		assert.EqualValues(t, testCase[1].(string), normalizedName)
-		if testCase[2].(bool) {
+		normalizedName := user_model.NormalizeUserName(testCase.Input)
+		assert.EqualValues(t, testCase.Expected, normalizedName)
+		if testCase.IsNormalizedValid {
 			assert.NoError(t, user_model.IsUsableUsername(normalizedName))
 		} else {
 			assert.Error(t, user_model.IsUsableUsername(normalizedName))

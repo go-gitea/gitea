@@ -516,13 +516,13 @@ func GetUserSalt() (string, error) {
 	return hex.EncodeToString(rBytes), nil
 }
 
-var normalizeRE = regexp.MustCompile(`[^\da-zA-Z-.\w]`)
+var validUsernameRE = regexp.MustCompile(`[^\w-.]`)
 
 // normalizeUserName returns a string with single-quotes removed,
 // and any other non-supported username characters replaced with
 // a `-` character
 func NormalizeUserName(s string) string {
-	return normalizeRE.ReplaceAllString(strings.ReplaceAll(s, "'", ""), "-")
+	return validUsernameRE.ReplaceAllString(strings.ReplaceAll(s, "'", ""), "-")
 }
 
 var (
