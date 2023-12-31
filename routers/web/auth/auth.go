@@ -371,11 +371,9 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 func getUserName(gothUser *goth.User) (string, error) {
 	switch setting.OAuth2Client.Username {
 	case setting.OAuth2UsernameEmail:
-		return strings.Split(gothUser.Email, "@")[0], nil
-	case setting.OAuth2UsernameEmailNormalized:
 		return user_model.NormalizeUserName(strings.Split(gothUser.Email, "@")[0])
 	case setting.OAuth2UsernameNickname:
-		return gothUser.NickName, nil
+		return user_model.NormalizeUserName(gothUser.NickName)
 	default: // OAuth2UsernameUserid
 		return gothUser.UserID, nil
 	}

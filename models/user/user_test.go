@@ -553,13 +553,13 @@ func Test_NormalizeUserFromEmail(t *testing.T) {
 	}{
 		{"test", "test", true},
 		{"Sinéad.O'Connor", "Sinead.OConnor", true},
-		{"Æsir", "-sir", false}, // Currently unsupported
+		{"Æsir", "Æsir", false}, // Currently unsupported
 		// \u00e9\u0065\u0301
 		{"éé", "ee", true},
 		{"Awareness Hub", "Awareness-Hub", true},
 		{"double__underscore", "double__underscore", false}, // We should consider squashing double non-alpha characters
 		{".bad.", ".bad.", false},
-		{"new😀user", "new-user", true},
+		{"new😀user", "new😀user", false},
 	}
 	for _, testCase := range testCases {
 		normalizedName, err := user_model.NormalizeUserName(testCase.Input)
