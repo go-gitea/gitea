@@ -22,6 +22,12 @@ type TestCollationTbl struct {
 func TestDatabaseCollation(t *testing.T) {
 	x := db.GetEngine(db.DefaultContext).(*xorm.Engine)
 
+	// there are blockers for MSSQL to use case-sensitive collation, see the comments in db/collation.go
+	if setting.Database.Type.IsMSSQL() {
+		t.Skip("there are blockers for MSSQL to use case-sensitive collation")
+		return
+	}
+
 	// all created tables should use case-sensitive collation by default
 	_, _ = x.Exec("DROP TABLE IF EXISTS test_collation_tbl")
 	err := x.Sync(&TestCollationTbl{})
@@ -66,8 +72,7 @@ func TestDatabaseCollation(t *testing.T) {
 	})
 
 	if setting.Database.Type.IsMSSQL() {
-		t.Skip("skip table converting tests because MSSQL doesn't have a simple solution at the moment")
-		return
+		return // skip table converting tests because MSSQL doesn't have a simple solution at the moment
 	}
 
 	t.Run("Convert tables to utf8mb4_bin", func(t *testing.T) {
