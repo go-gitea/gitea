@@ -165,15 +165,14 @@ func preprocessDatabaseCollation(x *xorm.Engine) {
 	}
 
 	// try to alter database collation to expected if the database is empty, it might fail in some cases (and it isn't necessary to succeed)
-	// at the moment, there is no "altering" solution for MSSQL, site admin should manually change the database collation
-	// and there is a bug in XORM: https://github.com/go-gitea/gitea/issues/13615 mssql: Invalid object name 'SYS.INDEXES'. So literally it's impossible to use _CS_AS collation in MSSQL at the moment
-	if !r.CollationEquals(r.DatabaseCollation, r.ExpectedCollation) && r.ExistingTableNumber == 0 && x.Dialect().URI().DBType == schemas.MYSQL {
+	if !r.CollationEquals(r.DatabaseCollation, r.ExpectedCollation) && r.ExistingTableNumber == 0 {
 		if err = alterDatabaseCollation(x, r.ExpectedCollation); err != nil {
 			log.Error("Failed to change database collation to %q: %v", r.ExpectedCollation, err)
 		} else {
 			_, _ = x.Exec("SELECT 1") // after "altering", MSSQL's session becomes invalid, so make a simple query to "refresh" the session
 			if r, err = CheckCollations(x); err != nil {
-				log.Fatal("Failed to check database collation again after altering: %v", err) // impossible case
+				log.Error("Failed to check database collation again after altering: %v", err) // impossible case
+				return
 			}
 			log.Warn("Current database has been altered to use collation %q", r.DatabaseCollation)
 		}
