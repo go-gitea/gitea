@@ -33,8 +33,8 @@ func TestDatabaseCollation(t *testing.T) {
 	err := x.Sync(&TestCollationTbl{})
 	assert.NoError(t, err)
 	_, _ = x.Exec("INSERT INTO test_collation_tbl (txt) VALUES ('main')")
-	_, _ = x.Exec("INSERT INTO test_collation_tbl (txt) VALUES ('Main')")
-	_, _ = x.Exec("INSERT INTO test_collation_tbl (txt) VALUES ('main')")
+	_, _ = x.Exec("INSERT INTO test_collation_tbl (txt) VALUES ('Main')") // case-sensitive, so it inserts a new row
+	_, _ = x.Exec("INSERT INTO test_collation_tbl (txt) VALUES ('main')") // duplicate, so it doesn't insert
 	cnt, err := x.Count(&TestCollationTbl{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, cnt)
@@ -61,11 +61,13 @@ func TestDatabaseCollation(t *testing.T) {
 			assert.True(t, r.IsCollationCaseSensitive("utf8mb4_xxx_as_cs"))
 			assert.False(t, r.IsCollationCaseSensitive("utf8mb4_general_ci"))
 			assert.True(t, r.CollationEquals("abc", "abc"))
-			assert.True(t, r.CollationEquals("utf8mb4_abc", "utf8mb4_abc"))
+			assert.True(t, r.CollationEquals("abc", "utf8mb4_abc"))
+			assert.False(t, r.CollationEquals("utf8mb4_general_ci", "utf8mb4_unicode_ci"))
 		} else if setting.Database.Type.IsMSSQL() {
 			assert.True(t, r.IsCollationCaseSensitive("Latin1_General_CS_AS"))
 			assert.False(t, r.IsCollationCaseSensitive("Latin1_General_CI_AS"))
 			assert.True(t, r.CollationEquals("abc", "abc"))
+			assert.False(t, r.CollationEquals("Latin1_General_CS_AS", "SQL_Latin1_General_CP1_CS_AS"))
 		} else {
 			assert.Fail(t, "unexpected database type")
 		}
