@@ -1331,12 +1331,8 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 
 	start, limit := listOptions.GetSkipTake()
 
-	if start+limit > totalNumberOfCommits {
-		limit = totalNumberOfCommits - start
-	}
-	if limit < 0 {
-		limit = 0
-	}
+	limit = min(limit, totalNumberOfCommits-start)
+	limit = max(limit, 0)
 
 	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
 	files := ctx.FormString("files") == "" || ctx.FormBool("files")
@@ -1482,13 +1478,9 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	start, limit := listOptions.GetSkipTake()
 
-	if start+limit > totalNumberOfFiles {
-		limit = totalNumberOfFiles - start
-	}
+	limit = min(limit, totalNumberOfFiles - start)
 
-	if limit < 0 {
-		limit = 0
-	}
+	limit = max(limit, 0)
 
 	apiFiles := make([]*api.ChangedFile, 0, limit)
 	for i := start; i < start+limit; i++ {
