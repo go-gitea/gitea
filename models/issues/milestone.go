@@ -86,7 +86,7 @@ func (m *Milestone) AfterLoad() {
 		return
 	}
 
-	m.DeadlineString = m.DeadlineUnix.Format("2006-01-02")
+	m.DeadlineString = m.DeadlineUnix.FormatDate()
 	if m.IsClosed {
 		m.IsOverdue = m.ClosedDateUnix >= m.DeadlineUnix
 	} else {
