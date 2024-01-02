@@ -1324,8 +1324,7 @@ func MergePullRequest(ctx *context.Context) {
 				continue
 			}
 
-			err = prToHead.LoadIssue(ctx)
-			if err != nil {
+			if err := prToHead.LoadIssue(ctx); err != nil {
 				ctx.ServerError(fmt.Sprintf("LoadIssueForPullRequest[%d]", prToHead.ID), err)
 				return
 			}
