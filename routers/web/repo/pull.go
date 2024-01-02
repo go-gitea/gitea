@@ -1328,7 +1328,15 @@ func MergePullRequest(ctx *context.Context) {
 				ctx.ServerError(fmt.Sprintf("LoadIssueForPullRequest[%d]", prToHead.ID), err)
 				return
 			}
-			prToHead.Issue.Repo = ctx.Repo.Repository
+
+			if prToHead.Issue.RepoID == pr.Issue.RepoID {
+				prToHead.Issue.Repo = pr.Issue.Repo
+			} else {
+				if err := prToHead.Issue.LoadRepo(ctx); err != nil {
+					ctx.ServerError(fmt.Sprintf("LoadRepoForIssue[%d]", prToHead.IssueID), err)
+					return
+				}
+			}
 
 			if err := pull_service.ChangeTargetBranch(ctx, prToHead, ctx.Doer, pr.BaseBranch); err != nil {
 				ctx.ServerError(fmt.Sprintf("ChangeTargetBranch[%d]", prToHead.ID), err)
