@@ -1478,7 +1478,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	start, limit := listOptions.GetSkipTake()
 
-	limit = min(limit, totalNumberOfFiles - start)
+	limit = min(limit, totalNumberOfFiles-start)
 
 	limit = max(limit, 0)
 
