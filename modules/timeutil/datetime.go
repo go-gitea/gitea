@@ -7,11 +7,12 @@ import (
 	"fmt"
 	"html"
 	"html/template"
+	"strings"
 	"time"
 )
 
 // DateTime renders an absolute time HTML element by datetime.
-func DateTime(format string, datetime any) template.HTML {
+func DateTime(format string, datetime any, attrs ...string) template.HTML {
 	if p, ok := datetime.(*time.Time); ok {
 		datetime = *p
 	}
@@ -48,13 +49,15 @@ func DateTime(format string, datetime any) template.HTML {
 		panic(fmt.Sprintf("Unsupported time type %T", datetime))
 	}
 
+	extraAttrs := strings.Join(attrs, " ")
+
 	switch format {
 	case "short":
-		return template.HTML(fmt.Sprintf(`<relative-time format="datetime" year="numeric" month="short" day="numeric" weekday="" datetime="%s">%s</relative-time>`, datetimeEscaped, textEscaped))
+		return template.HTML(fmt.Sprintf(`<relative-time %s format="datetime" year="numeric" month="short" day="numeric" weekday="" datetime="%s">%s</relative-time>`, extraAttrs, datetimeEscaped, textEscaped))
 	case "long":
-		return template.HTML(fmt.Sprintf(`<relative-time format="datetime" year="numeric" month="long" day="numeric" weekday="" datetime="%s">%s</relative-time>`, datetimeEscaped, textEscaped))
+		return template.HTML(fmt.Sprintf(`<relative-time %s format="datetime" year="numeric" month="long" day="numeric" weekday="" datetime="%s">%s</relative-time>`, extraAttrs, datetimeEscaped, textEscaped))
 	case "full":
-		return template.HTML(fmt.Sprintf(`<relative-time format="datetime" weekday="" year="numeric" month="short" day="numeric" hour="numeric" minute="numeric" second="numeric" datetime="%s">%s</relative-time>`, datetimeEscaped, textEscaped))
+		return template.HTML(fmt.Sprintf(`<relative-time %s format="datetime" weekday="" year="numeric" month="short" day="numeric" hour="numeric" minute="numeric" second="numeric" datetime="%s">%s</relative-time>`, extraAttrs, datetimeEscaped, textEscaped))
 	}
 	panic(fmt.Sprintf("Unsupported format %s", format))
 }
