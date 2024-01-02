@@ -1330,8 +1330,7 @@ func MergePullRequest(ctx *context.Context) {
 			}
 			prToHead.Issue.Repo = ctx.Repo.Repository
 
-			err = pull_service.ChangeTargetBranch(ctx, prToHead, ctx.Doer, pr.BaseBranch)
-			if err != nil {
+			if err := pull_service.ChangeTargetBranch(ctx, prToHead, ctx.Doer, pr.BaseBranch); err != nil {
 				ctx.ServerError(fmt.Sprintf("ChangeTargetBranch[%d]", prToHead.ID), err)
 				return
 			}
