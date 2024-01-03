@@ -39,7 +39,6 @@ If a bug fix is targeted on 1.20.1 but 1.20.1 is not released yet, you can get t
 
 To migrate from Gogs to Gitea:
 
-- [Gogs version 0.9.146 or less](installation/upgrade-from-gogs.md)
 - [Gogs version 0.11.46.0418](https://github.com/go-gitea/gitea/issues/4286)
 
 To migrate from GitHub to Gitea, you can use Gitea's built-in migration form.
@@ -363,7 +362,7 @@ If you are receiving errors on upgrade of Gitea using MySQL that read:
 
 > `ORM engine initialization failed: migrate: do migrate: Error: 1118: Row size too large...`
 
-Please run `gitea convert` or run `ALTER TABLE table_name ROW_FORMAT=dynamic;` for each table in the database.
+Please run `gitea doctor convert` or run `ALTER TABLE table_name ROW_FORMAT=dynamic;` for each table in the database.
 
 The underlying problem is that the space allocated for indices by the default row format
 is too small. Gitea requires that the `ROWFORMAT` for its tables is `DYNAMIC`.
@@ -386,7 +385,7 @@ Unfortunately MySQL's `utf8` charset does not completely allow all possible UTF-
 They created a new charset and collation called `utf8mb4` that allows for emoji to be stored but tables which use
 the `utf8` charset, and connections which use the `utf8` charset will not use this.
 
-Please run `gitea convert`, or run `ALTER DATABASE database_name CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
+Please run `gitea doctor convert`, or run `ALTER DATABASE database_name CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
 for the database_name and run `ALTER TABLE table_name CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
 for each table in the database.
 

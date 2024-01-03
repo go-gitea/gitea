@@ -170,7 +170,7 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 // CancelRunningJobs cancels all running and waiting jobs associated with a specific workflow.
 func CancelRunningJobs(ctx context.Context, repoID int64, ref, workflowID string) error {
 	// Find all runs in the specified repository, reference, and workflow with statuses 'Running' or 'Waiting'.
-	runs, total, err := FindRuns(ctx, FindRunOptions{
+	runs, total, err := db.FindAndCount[ActionRun](ctx, FindRunOptions{
 		RepoID:     repoID,
 		Ref:        ref,
 		WorkflowID: workflowID,
@@ -188,7 +188,7 @@ func CancelRunningJobs(ctx context.Context, repoID int64, ref, workflowID string
 	// Iterate over each found run and cancel its associated jobs.
 	for _, run := range runs {
 		// Find all jobs associated with the current run.
-		jobs, _, err := FindRunJobs(ctx, FindRunJobOptions{
+		jobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{
 			RunID: run.ID,
 		})
 		if err != nil {

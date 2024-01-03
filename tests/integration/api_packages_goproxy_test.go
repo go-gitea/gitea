@@ -51,16 +51,16 @@ func TestPackageGo(t *testing.T) {
 		req := NewRequestWithBody(t, "PUT", url+"/upload", bytes.NewReader(content))
 		MakeRequest(t, req, http.StatusUnauthorized)
 
-		req = NewRequestWithBody(t, "PUT", url+"/upload", bytes.NewReader(content))
-		AddBasicAuthHeader(req, user.Name)
+		req = NewRequestWithBody(t, "PUT", url+"/upload", bytes.NewReader(content)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusBadRequest)
 
 		content = createArchive(map[string][]byte{
 			packageName + "@" + packageVersion + "/go.mod": []byte(goModContent),
 		})
 
-		req = NewRequestWithBody(t, "PUT", url+"/upload", bytes.NewReader(content))
-		AddBasicAuthHeader(req, user.Name)
+		req = NewRequestWithBody(t, "PUT", url+"/upload", bytes.NewReader(content)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGo)
@@ -83,8 +83,8 @@ func TestPackageGo(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, int64(len(content)), pb.Size)
 
-		req = NewRequestWithBody(t, "PUT", url+"/upload", bytes.NewReader(content))
-		AddBasicAuthHeader(req, user.Name)
+		req = NewRequestWithBody(t, "PUT", url+"/upload", bytes.NewReader(content)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusConflict)
 
 		time.Sleep(time.Second)
@@ -93,8 +93,8 @@ func TestPackageGo(t *testing.T) {
 			packageName + "@" + packageVersion2 + "/go.mod": []byte(goModContent),
 		})
 
-		req = NewRequestWithBody(t, "PUT", url+"/upload", bytes.NewReader(content))
-		AddBasicAuthHeader(req, user.Name)
+		req = NewRequestWithBody(t, "PUT", url+"/upload", bytes.NewReader(content)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 	})
 
