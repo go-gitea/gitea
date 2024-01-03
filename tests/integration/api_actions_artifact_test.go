@@ -30,8 +30,7 @@ func TestActionsArtifactUploadSingleFile(t *testing.T) {
 	req := NewRequestWithJSON(t, "POST", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts", getUploadArtifactRequest{
 		Type: "actions_storage",
 		Name: "artifact",
-	})
-	req = addTokenAuthHeader(req, "Bearer 8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+	}).AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp := MakeRequest(t, req, http.StatusOK)
 	var uploadResp uploadArtifactResponse
 	DecodeJSON(t, resp, &uploadResp)
@@ -43,18 +42,18 @@ func TestActionsArtifactUploadSingleFile(t *testing.T) {
 
 	// upload artifact chunk
 	body := strings.Repeat("A", 1024)
-	req = NewRequestWithBody(t, "PUT", url, strings.NewReader(body))
-	req = addTokenAuthHeader(req, "Bearer 8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
-	req.Header.Add("Content-Range", "bytes 0-1023/1024")
-	req.Header.Add("x-tfs-filelength", "1024")
-	req.Header.Add("x-actions-results-md5", "1HsSe8LeLWh93ILaw1TEFQ==") // base64(md5(body))
+	req = NewRequestWithBody(t, "PUT", url, strings.NewReader(body)).
+		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
+		SetHeader("Content-Range", "bytes 0-1023/1024").
+		SetHeader("x-tfs-filelength", "1024").
+		SetHeader("x-actions-results-md5", "1HsSe8LeLWh93ILaw1TEFQ==") // base64(md5(body))
 	MakeRequest(t, req, http.StatusOK)
 
 	t.Logf("Create artifact confirm")
 
 	// confirm artifact upload
-	req = NewRequest(t, "PATCH", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts?artifactName=artifact")
-	req = addTokenAuthHeader(req, "Bearer 8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+	req = NewRequest(t, "PATCH", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts?artifactName=artifact").
+		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	MakeRequest(t, req, http.StatusOK)
 }
 
@@ -64,11 +63,11 @@ func TestActionsArtifactUploadInvalidHash(t *testing.T) {
 	// artifact id 54321 not exist
 	url := "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts/8e5b948a454515dbabfc7eb718ddddddd/upload?itemPath=artifact/abc.txt"
 	body := strings.Repeat("A", 1024)
-	req := NewRequestWithBody(t, "PUT", url, strings.NewReader(body))
-	req = addTokenAuthHeader(req, "Bearer 8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
-	req.Header.Add("Content-Range", "bytes 0-1023/1024")
-	req.Header.Add("x-tfs-filelength", "1024")
-	req.Header.Add("x-actions-results-md5", "1HsSe8LeLWh93ILaw1TEFQ==") // base64(md5(body))
+	req := NewRequestWithBody(t, "PUT", url, strings.NewReader(body)).
+		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
+		SetHeader("Content-Range", "bytes 0-1023/1024").
+		SetHeader("x-tfs-filelength", "1024").
+		SetHeader("x-actions-results-md5", "1HsSe8LeLWh93ILaw1TEFQ==") // base64(md5(body))
 	resp := MakeRequest(t, req, http.StatusBadRequest)
 	assert.Contains(t, resp.Body.String(), "Invalid artifact hash")
 }
@@ -76,8 +75,8 @@ func TestActionsArtifactUploadInvalidHash(t *testing.T) {
 func TestActionsArtifactConfirmUploadWithoutName(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "PATCH", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
-	req = addTokenAuthHeader(req, "Bearer 8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+	req := NewRequest(t, "PATCH", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts").
+		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp := MakeRequest(t, req, http.StatusBadRequest)
 	assert.Contains(t, resp.Body.String(), "artifact name is empty")
 }
@@ -111,8 +110,8 @@ type (
 func TestActionsArtifactDownload(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "GET", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
-	req = addTokenAuthHeader(req, "Bearer 8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+	req := NewRequest(t, "GET", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts").
+		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp := MakeRequest(t, req, http.StatusOK)
 	var listResp listArtifactsResponse
 	DecodeJSON(t, resp, &listResp)
@@ -122,8 +121,8 @@ func TestActionsArtifactDownload(t *testing.T) {
 
 	idx := strings.Index(listResp.Value[0].FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
 	url := listResp.Value[0].FileContainerResourceURL[idx+1:] + "?itemPath=artifact"
-	req = NewRequest(t, "GET", url)
-	req = addTokenAuthHeader(req, "Bearer 8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+	req = NewRequest(t, "GET", url).
+		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp = MakeRequest(t, req, http.StatusOK)
 	var downloadResp downloadArtifactResponse
 	DecodeJSON(t, resp, &downloadResp)
@@ -134,8 +133,8 @@ func TestActionsArtifactDownload(t *testing.T) {
 
 	idx = strings.Index(downloadResp.Value[0].ContentLocation, "/api/actions_pipeline/_apis/pipelines/")
 	url = downloadResp.Value[0].ContentLocation[idx:]
-	req = NewRequest(t, "GET", url)
-	req = addTokenAuthHeader(req, "Bearer 8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+	req = NewRequest(t, "GET", url).
+		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp = MakeRequest(t, req, http.StatusOK)
 	body := strings.Repeat("A", 1024)
 	assert.Equal(t, resp.Body.String(), body)
@@ -150,8 +149,7 @@ func TestActionsArtifactUploadMultipleFile(t *testing.T) {
 	req := NewRequestWithJSON(t, "POST", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts", getUploadArtifactRequest{
 		Type: "actions_storage",
 		Name: testArtifactName,
-	})
-	req = addTokenAuthHeader(req, "Bearer 8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+	}).AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp := MakeRequest(t, req, http.StatusOK)
 	var uploadResp uploadArtifactResponse
 	DecodeJSON(t, resp, &uploadResp)
@@ -182,19 +180,19 @@ func TestActionsArtifactUploadMultipleFile(t *testing.T) {
 		url := uploadResp.FileContainerResourceURL[idx:] + "?itemPath=" + testArtifactName + "/" + f.Path
 
 		// upload artifact chunk
-		req = NewRequestWithBody(t, "PUT", url, strings.NewReader(f.Content))
-		req = addTokenAuthHeader(req, "Bearer 8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
-		req.Header.Add("Content-Range", "bytes 0-1023/1024")
-		req.Header.Add("x-tfs-filelength", "1024")
-		req.Header.Add("x-actions-results-md5", f.MD5) // base64(md5(body))
+		req = NewRequestWithBody(t, "PUT", url, strings.NewReader(f.Content)).
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
+			SetHeader("Content-Range", "bytes 0-1023/1024").
+			SetHeader("x-tfs-filelength", "1024").
+			SetHeader("x-actions-results-md5", f.MD5) // base64(md5(body))
 		MakeRequest(t, req, http.StatusOK)
 	}
 
 	t.Logf("Create artifact confirm")
 
 	// confirm artifact upload
-	req = NewRequest(t, "PATCH", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts?artifactName="+testArtifactName)
-	req = addTokenAuthHeader(req, "Bearer 8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+	req = NewRequest(t, "PATCH", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts?artifactName="+testArtifactName).
+		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	MakeRequest(t, req, http.StatusOK)
 }
 
@@ -203,8 +201,8 @@ func TestActionsArtifactDownloadMultiFiles(t *testing.T) {
 
 	const testArtifactName = "multi-files"
 
-	req := NewRequest(t, "GET", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
-	req = addTokenAuthHeader(req, "Bearer 8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+	req := NewRequest(t, "GET", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts").
+		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp := MakeRequest(t, req, http.StatusOK)
 	var listResp listArtifactsResponse
 	DecodeJSON(t, resp, &listResp)
@@ -221,8 +219,8 @@ func TestActionsArtifactDownloadMultiFiles(t *testing.T) {
 
 	idx := strings.Index(fileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
 	url := fileContainerResourceURL[idx+1:] + "?itemPath=" + testArtifactName
-	req = NewRequest(t, "GET", url)
-	req = addTokenAuthHeader(req, "Bearer 8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+	req = NewRequest(t, "GET", url).
+		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp = MakeRequest(t, req, http.StatusOK)
 	var downloadResp downloadArtifactResponse
 	DecodeJSON(t, resp, &downloadResp)
@@ -246,8 +244,8 @@ func TestActionsArtifactDownloadMultiFiles(t *testing.T) {
 
 		idx = strings.Index(value.ContentLocation, "/api/actions_pipeline/_apis/pipelines/")
 		url = value.ContentLocation[idx:]
-		req = NewRequest(t, "GET", url)
-		req = addTokenAuthHeader(req, "Bearer 8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+		req = NewRequest(t, "GET", url).
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 		resp = MakeRequest(t, req, http.StatusOK)
 		body := strings.Repeat(bodyChar, 1024)
 		assert.Equal(t, resp.Body.String(), body)
@@ -262,8 +260,7 @@ func TestActionsArtifactUploadWithRetentionDays(t *testing.T) {
 		Type:          "actions_storage",
 		Name:          "artifact-retention-days",
 		RetentionDays: 9,
-	})
-	req = addTokenAuthHeader(req, "Bearer 8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+	}).AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp := MakeRequest(t, req, http.StatusOK)
 	var uploadResp uploadArtifactResponse
 	DecodeJSON(t, resp, &uploadResp)
@@ -276,17 +273,17 @@ func TestActionsArtifactUploadWithRetentionDays(t *testing.T) {
 
 	// upload artifact chunk
 	body := strings.Repeat("A", 1024)
-	req = NewRequestWithBody(t, "PUT", url, strings.NewReader(body))
-	req = addTokenAuthHeader(req, "Bearer 8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
-	req.Header.Add("Content-Range", "bytes 0-1023/1024")
-	req.Header.Add("x-tfs-filelength", "1024")
-	req.Header.Add("x-actions-results-md5", "1HsSe8LeLWh93ILaw1TEFQ==") // base64(md5(body))
+	req = NewRequestWithBody(t, "PUT", url, strings.NewReader(body)).
+		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
+		SetHeader("Content-Range", "bytes 0-1023/1024").
+		SetHeader("x-tfs-filelength", "1024").
+		SetHeader("x-actions-results-md5", "1HsSe8LeLWh93ILaw1TEFQ==") // base64(md5(body))
 	MakeRequest(t, req, http.StatusOK)
 
 	t.Logf("Create artifact confirm")
 
 	// confirm artifact upload
-	req = NewRequest(t, "PATCH", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts?artifactName=artifact-retention-days")
-	req = addTokenAuthHeader(req, "Bearer 8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+	req = NewRequest(t, "PATCH", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts?artifactName=artifact-retention-days").
+		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	MakeRequest(t, req, http.StatusOK)
 }

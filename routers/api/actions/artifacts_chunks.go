@@ -26,10 +26,11 @@ func saveUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext,
 	contentRange := ctx.Req.Header.Get("Content-Range")
 	start, end, length := int64(0), int64(0), int64(0)
 	if _, err := fmt.Sscanf(contentRange, "bytes %d-%d/%d", &start, &end, &length); err != nil {
+		log.Warn("parse content range error: %v, content-range: %s", err, contentRange)
 		return -1, fmt.Errorf("parse content range error: %v", err)
 	}
 	// build chunk store path
-	storagePath := fmt.Sprintf("tmp%d/%d-%d-%d.chunk", runID, artifact.ID, start, end)
+	storagePath := fmt.Sprintf("tmp%d/%d-%d-%d-%d.chunk", runID, runID, artifact.ID, start, end)
 	// use io.TeeReader to avoid reading all body to md5 sum.
 	// it writes data to hasher after reading end
 	// if hash is not matched, delete the read-end result
@@ -58,6 +59,7 @@ func saveUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext,
 }
 
 type chunkFileItem struct {
+	RunID      int64
 	ArtifactID int64
 	Start      int64
 	End        int64
@@ -67,9 +69,12 @@ type chunkFileItem struct {
 func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chunkFileItem, error) {
 	storageDir := fmt.Sprintf("tmp%d", runID)
 	var chunks []*chunkFileItem
-	if err := st.IterateObjects(storageDir, func(path string, obj storage.Object) error {
-		item := chunkFileItem{Path: path}
-		if _, err := fmt.Sscanf(path, filepath.Join(storageDir, "%d-%d-%d.chunk"), &item.ArtifactID, &item.Start, &item.End); err != nil {
+	if err := st.IterateObjects(storageDir, func(fpath string, obj storage.Object) error {
+		baseName := filepath.Base(fpath)
+		// when read chunks from storage, it only contains storage dir and basename,
+		// no matter the subdirectory setting in storage config
+		item := chunkFileItem{Path: storageDir + "/" + baseName}
+		if _, err := fmt.Sscanf(baseName, "%d-%d-%d-%d.chunk", &item.RunID, &item.ArtifactID, &item.Start, &item.End); err != nil {
 			return fmt.Errorf("parse content range error: %v", err)
 		}
 		chunks = append(chunks, &item)

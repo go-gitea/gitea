@@ -603,7 +603,10 @@ func ContainerRoutes() *web.Route {
 	})
 
 	r.Get("", container.ReqContainerAccess, container.DetermineSupport)
-	r.Get("/token", container.Authenticate)
+	r.Group("/token", func() {
+		r.Get("", container.Authenticate)
+		r.Post("", container.AuthenticateNotImplemented)
+	})
 	r.Get("/_catalog", container.ReqContainerAccess, container.GetRepositoryList)
 	r.Group("/{username}", func() {
 		r.Group("/{image}", func() {

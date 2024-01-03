@@ -21,7 +21,7 @@ var (
 	// CmdAdmin represents the available admin sub-command.
 	CmdAdmin = &cli.Command{
 		Name:  "admin",
-		Usage: "Command line interface to perform common administrative operations",
+		Usage: "Perform common administrative operations",
 		Subcommands: []*cli.Command{
 			subcmdUser,
 			subcmdRepoSyncReleases,

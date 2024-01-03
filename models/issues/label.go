@@ -235,41 +235,43 @@ func UpdateLabel(ctx context.Context, l *Label) error {
 
 // DeleteLabel delete a label
 func DeleteLabel(ctx context.Context, id, labelID int64) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		l, err := GetLabelByID(ctx, labelID)
-		if err != nil {
-			if IsErrLabelNotExist(err) {
-				return nil
-			}
-			return err
-		}
-
-		sess := db.GetEngine(ctx)
-
-		if l.BelongsToOrg() && l.OrgID != id {
+	l, err := GetLabelByID(ctx, labelID)
+	if err != nil {
+		if IsErrLabelNotExist(err) {
 			return nil
 		}
-		if l.BelongsToRepo() && l.RepoID != id {
-			return nil
-		}
+		return err
+	}
 
-		if _, err = sess.ID(labelID).Delete(new(Label)); err != nil {
-			return err
-		}
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
 
-		if _, err = sess.
-			Where("label_id = ?", labelID).
-			Delete(new(IssueLabel)); err != nil {
-			return err
-		}
+	sess := db.GetEngine(ctx)
 
-		// delete comments about now deleted label_id
-		if _, err = sess.Where("label_id = ?", labelID).Cols("label_id").Delete(&Comment{}); err != nil {
-			return err
-		}
-
+	if l.BelongsToOrg() && l.OrgID != id {
 		return nil
-	})
+	}
+	if l.BelongsToRepo() && l.RepoID != id {
+		return nil
+	}
+
+	if _, err = db.DeleteByID[Label](ctx, labelID); err != nil {
+		return err
+	} else if _, err = sess.
+		Where("label_id = ?", labelID).
+		Delete(new(IssueLabel)); err != nil {
+		return err
+	}
+
+	// delete comments about now deleted label_id
+	if _, err = sess.Where("label_id = ?", labelID).Cols("label_id").Delete(&Comment{}); err != nil {
+		return err
+	}
+
+	return committer.Commit()
 }
 
 // GetLabelByID returns a label by given ID.
@@ -485,22 +487,6 @@ func GetLabelInOrgByID(ctx context.Context, orgID, labelID int64) (*Label, error
 		return nil, ErrOrgLabelNotExist{labelID, orgID}
 	}
 	return l, nil
-}
-
-// GetLabelIDsInOrgByNames returns a list of labelIDs by names in a given
-// organization.
-func GetLabelIDsInOrgByNames(ctx context.Context, orgID int64, labelNames []string) ([]int64, error) {
-	if orgID <= 0 {
-		return nil, ErrOrgLabelNotExist{0, orgID}
-	}
-	labelIDs := make([]int64, 0, len(labelNames))
-
-	return labelIDs, db.GetEngine(ctx).Table("label").
-		Where("org_id = ?", orgID).
-		In("name", labelNames).
-		Asc("name").
-		Cols("id").
-		Find(&labelIDs)
 }
 
 // GetLabelsInOrgByIDs returns a list of labels by IDs in given organization,

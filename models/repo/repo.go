@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
@@ -179,6 +180,7 @@ type Repository struct {
 	IsFsckEnabled                   bool               `xorm:"NOT NULL DEFAULT true"`
 	CloseIssuesViaCommitInAnyBranch bool               `xorm:"NOT NULL DEFAULT false"`
 	Topics                          []string           `xorm:"TEXT JSON"`
+	ObjectFormatName                string             `xorm:"-"`
 
 	TrustModel TrustModelType
 
@@ -274,6 +276,10 @@ func (repo *Repository) AfterLoad() {
 	repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
 	repo.NumOpenProjects = repo.NumProjects - repo.NumClosedProjects
 	repo.NumOpenActionRuns = repo.NumActionRuns - repo.NumClosedActionRuns
+
+	// this is a temporary behaviour to support old repos, next step is to store the object format in the database
+	// and read from database so this line could be removed. To not depend on git module, we use a constant variable here
+	repo.ObjectFormatName = "sha1"
 }
 
 // LoadAttributes loads attributes of the repository.
@@ -313,7 +319,7 @@ func (repo *Repository) HTMLURL() string {
 // CommitLink make link to by commit full ID
 // note: won't check whether it's an right id
 func (repo *Repository) CommitLink(commitID string) (result string) {
-	if commitID == "" || commitID == "0000000000000000000000000000000000000000" {
+	if git.IsEmptyCommitID(commitID) {
 		result = ""
 	} else {
 		result = repo.Link() + "/commit/" + url.PathEscape(commitID)
@@ -608,25 +614,23 @@ func ComposeHTTPSCloneURL(owner, repo string) string {
 
 func ComposeSSHCloneURL(ownerName, repoName string) string {
 	sshUser := setting.SSH.User
-
-	// if we have a ipv6 literal we need to put brackets around it
-	// for the git cloning to work.
 	sshDomain := setting.SSH.Domain
-	ip := net.ParseIP(setting.SSH.Domain)
-	if ip != nil && ip.To4() == nil {
-		sshDomain = "[" + setting.SSH.Domain + "]"
+
+	// non-standard port, it must use full URI
+	if setting.SSH.Port != 22 {
+		sshHost := net.JoinHostPort(sshDomain, strconv.Itoa(setting.SSH.Port))
+		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
 	}
 
-	if setting.SSH.Port != 22 {
-		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser,
-			net.JoinHostPort(setting.SSH.Domain, strconv.Itoa(setting.SSH.Port)),
-			url.PathEscape(ownerName),
-			url.PathEscape(repoName))
+	// for standard port, it can use a shorter URI (without the port)
+	sshHost := sshDomain
+	if ip := net.ParseIP(sshHost); ip != nil && ip.To4() == nil {
+		sshHost = "[" + sshHost + "]" // for IPv6 address, wrap it with brackets
 	}
 	if setting.Repository.UseCompatSSHURI {
-		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshDomain, url.PathEscape(ownerName), url.PathEscape(repoName))
+		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
 	}
-	return fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshDomain, url.PathEscape(ownerName), url.PathEscape(repoName))
+	return fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
 }
 
 func (repo *Repository) cloneLink(isWiki bool) *CloneLink {

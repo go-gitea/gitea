@@ -74,9 +74,9 @@
 		{{end}}
 		<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsPlainText}} plain-text{{else if .IsTextSource}} code-view{{end}}">
 			{{if .IsMarkup}}
-				{{if .FileContent}}{{.FileContent | Safe}}{{end}}
+				{{if .FileContent}}{{.FileContent}}{{end}}
 			{{else if .IsPlainText}}
-				<pre>{{if .FileContent}}{{.FileContent | Safe}}{{end}}</pre>
+				<pre>{{if .FileContent}}{{.FileContent}}{{end}}</pre>
 			{{else if not .IsTextSource}}
 				<div class="view-raw">
 					{{if .IsImageFile}}
@@ -114,7 +114,7 @@
 							{{if $.EscapeStatus.Escaped}}
 								<td class="lines-escape">{{if (index $.LineEscapeStatus $idx).Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{if (index $.LineEscapeStatus $idx).HasInvisible}}{{ctx.Locale.Tr "repo.invisible_runes_line"}} {{end}}{{if (index $.LineEscapeStatus $idx).HasAmbiguous}}{{ctx.Locale.Tr "repo.ambiguous_runes_line"}}{{end}}"></button>{{end}}</td>
 							{{end}}
-							<td rel="L{{$line}}" class="lines-code chroma"><code class="code-inner">{{$code | Safe}}</code></td>
+							<td rel="L{{$line}}" class="lines-code chroma"><code class="code-inner">{{$code}}</code></td>
 						</tr>
 						{{end}}
 					</tbody>
