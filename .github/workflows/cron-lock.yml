@@ -1,8 +1,9 @@
 name: cron-lock
 
 on:
-  schedule:
-    - cron: "0 0 * * *" # every day at 00:00 UTC
+  # Automated releases explicitly disabled for this fork.
+  # schedule:
+  #   - cron: "0 0 * * *" # every day at 00:00 UTC
   workflow_dispatch:
 
 permissions:

@@ -1,8 +1,10 @@
 name: release-nightly
 
 on:
-  push:
-    branches: [main, release/v*]
+  workflow_dispatch:
+  # Automated releases explicitly disabled for this fork.
+  # push:
+  #  branches: [main, release/v*]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

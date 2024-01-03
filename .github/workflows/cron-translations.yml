@@ -1,8 +1,9 @@
 name: cron-translations
 
 on:
-  schedule:
-    - cron: "7 0 * * *" # every day at 00:07 UTC
+  # @kaiwalyajoshi: Automated releases explicitly disabled for this fork.
+  # schedule:
+  #   - cron: "7 0 * * *" # every day at 00:07 UTC
   workflow_dispatch:
 
 jobs:

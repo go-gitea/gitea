@@ -1,11 +1,13 @@
 name: release-tag-version
 
 on:
-  push:
-    tags:
-      - "v1.*"
-      - "!v1*-rc*"
-      - "!v1*-dev"
+  workflow_dispatch:
+  # Automated releases explicitly disabled for this fork.
+  # push:
+  #   tags:
+  #     - "v1.*"
+  #     - "!v1*-rc*"
+  #     - "!v1*-dev"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

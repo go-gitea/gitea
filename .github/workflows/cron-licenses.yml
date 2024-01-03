@@ -1,8 +1,9 @@
 name: cron-licenses
 
 on:
-  schedule:
-    - cron: "7 0 * * 1" # every Monday at 00:07 UTC
+  # Automated releases explicitly disabled for this fork.
+  # schedule:
+  #   - cron: "7 0 * * 1" # every Monday at 00:07 UTC
   workflow_dispatch:
 
 jobs:
