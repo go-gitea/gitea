@@ -552,18 +552,18 @@ func RetargetChildrenOnMerge(ctx context.Context, doer *user_model.User, pr *iss
 
 // RetargetBranchPulls change target branch for all pull requests who's base branch is the branch
 func RetargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch, targetBranch string) error {
-	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(repoID, branch)
+	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repoID, branch)
 	if err != nil {
 		return err
 	}
 
-	if err := issues_model.PullRequestList(prs).LoadAttributes(); err != nil {
+	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
 		return err
 	}
 
 	var errs errlist
 	for _, pr := range prs {
-		if err = pr.Issue.LoadAttributes(ctx); err != nil {
+		if err = pr.Issue.LoadRepo(ctx); err != nil {
 			errs = append(errs, err)
 		} else if err = ChangeTargetBranch(ctx, pr, doer, targetBranch); err != nil &&
 			!issues_model.IsErrIssueIsClosed(err) && !models.IsErrPullRequestHasMerged(err) &&
