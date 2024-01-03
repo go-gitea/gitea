@@ -11,7 +11,9 @@
 				</div>
 				<div class="flex-item-main">
 					<div class="flex-item-title">{{.Name}}</div>
-					<span class="flex-item-body time">{{TimeSinceUnix .CreatedUnix ctx.Locale}}</span>
+					<div class="flex-item-body">
+						<i>{{ctx.Locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}}</i>
+					</div>
 				</div>
 				<div class="flex-item-trailing">
 					<button class="ui red tiny button delete-button" data-modal-id="delete-registration" data-url="{{$.Link}}/webauthn/delete" data-id="{{.ID}}">

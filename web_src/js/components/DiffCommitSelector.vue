@@ -247,6 +247,7 @@ export default {
             <div class="gt-ellipsis text light-2">
               {{ commit.committer_or_author_name }}
               <span class="text right">
+                <!-- TODO: make this respect the PreferredTimestampTense setting -->
                 <relative-time class="time-since" prefix="" :datetime="commit.time" data-tooltip-content data-tooltip-interactive="true">{{ commit.time }}</relative-time>
               </span>
             </div>
