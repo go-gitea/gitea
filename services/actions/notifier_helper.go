@@ -434,7 +434,7 @@ func handleSchedules(
 			input.Repo.ID,
 			input.Ref,
 			"",
-			webhook_module.HookEventScheduleCreated,
+			webhook_module.HookEventSchedule,
 		); err != nil {
 			log.Error("CancelRunningJobs: %v", err)
 		}

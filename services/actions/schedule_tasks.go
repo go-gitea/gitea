@@ -59,7 +59,7 @@ func startTasks(ctx context.Context) error {
 					row.RepoID,
 					row.Schedule.Ref,
 					row.Schedule.WorkflowID,
-					webhook_module.HookEventScheduleCreated,
+					webhook_module.HookEventSchedule,
 				); err != nil {
 					log.Error("CancelRunningJobs: %v", err)
 				}
@@ -112,8 +112,9 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 		TriggerUserID: cron.TriggerUserID,
 		Ref:           cron.Ref,
 		CommitSHA:     cron.CommitSHA,
-		Event:         webhook_module.HookEventScheduleCreated,
+		Event:         cron.Event,
 		EventPayload:  cron.EventPayload,
+		TriggerEvent:  string(webhook_module.HookEventSchedule),
 		ScheduleID:    cron.ID,
 		Status:        actions_model.StatusWaiting,
 	}

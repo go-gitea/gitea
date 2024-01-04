@@ -156,7 +156,8 @@ func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggedEvent web
 		webhook_module.HookEventCreate,
 		webhook_module.HookEventDelete,
 		webhook_module.HookEventFork,
-		webhook_module.HookEventWiki:
+		webhook_module.HookEventWiki,
+		webhook_module.HookEventSchedule:
 		if len(evt.Acts()) != 0 {
 			log.Warn("Ignore unsupported %s event arguments %v", triggedEvent, evt.Acts())
 		}

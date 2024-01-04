@@ -31,7 +31,7 @@ const (
 	HookEventRepository                HookEventType = "repository"
 	HookEventRelease                   HookEventType = "release"
 	HookEventPackage                   HookEventType = "package"
-	HookEventScheduleCreated           HookEventType = "schedule"
+	HookEventSchedule                  HookEventType = "schedule"
 )
 
 // Event returns the HookEventType as an event string

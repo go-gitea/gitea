@@ -328,7 +328,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 				repo.ID,
 				from,
 				"",
-				webhook_module.HookEventScheduleCreated,
+				webhook_module.HookEventSchedule,
 			); err != nil {
 				log.Error("CancelRunningJobs: %v", err)
 			}
@@ -498,7 +498,7 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 			repo.ID,
 			oldDefaultBranchName,
 			"",
-			webhook_module.HookEventScheduleCreated,
+			webhook_module.HookEventSchedule,
 		); err != nil {
 			log.Error("CancelRunningJobs: %v", err)
 		}
