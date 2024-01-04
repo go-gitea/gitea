@@ -596,9 +596,13 @@ And the following unique queues:
 - `OPENID_CONNECT_SCOPES`: **_empty_**: List of additional openid connect scopes. (`openid` is implicitly added)
 - `ENABLE_AUTO_REGISTRATION`: **false**: Automatically create user accounts for new oauth2 users.
 - `USERNAME`: **nickname**: The source of the username for new oauth2 accounts:
-  - userid - use the userid / sub attribute
-  - nickname - use the nickname attribute
-  - email - use the username part of the email attribute
+  - `userid` - use the userid / sub attribute
+  - `nickname` - use the nickname attribute
+  - `email` - use the username part of the email attribute
+  - Note: `nickname` and `email` options will normalize input strings using the following criteria:
+    - diacritics are removed
+    - the characters in the set `['´\x60]` are removed
+    - the characters in the set `[\s~+]` are replaced with `-`
 - `UPDATE_AVATAR`: **false**: Update avatar if available from oauth2 provider. Update will be performed on each login.
 - `ACCOUNT_LINKING`: **login**: How to handle if an account / email already exists:
   - disabled - show an error
