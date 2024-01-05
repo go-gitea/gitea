@@ -55,7 +55,11 @@ func LinkAccount(ctx *context.Context) {
 	}
 
 	gu, _ := gothUser.(goth.User)
-	uname := getUserName(&gu)
+	uname, err := getUserName(&gu)
+	if err != nil {
+		ctx.ServerError("UserSignIn", err)
+		return
+	}
 	email := gu.Email
 	ctx.Data["user_name"] = uname
 	ctx.Data["email"] = email
