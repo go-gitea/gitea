@@ -520,7 +520,10 @@ func CommonRoutes() *web.Route {
 				r.Get("", rpm.DownloadPackageFile)
 				r.Delete("", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
 			})
-			r.Get("/repodata/{filename}", rpm.GetRepositoryFile)
+			r.Group("/repodata/{filename}", func() {
+				r.Head("", rpm.CheckRepositoryFileExistence)
+				r.Get("", rpm.GetRepositoryFile)
+			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/rubygems", func() {
 			r.Get("/specs.4.8.gz", rubygems.EnumeratePackages)
@@ -600,7 +603,10 @@ func ContainerRoutes() *web.Route {
 	})
 
 	r.Get("", container.ReqContainerAccess, container.DetermineSupport)
-	r.Get("/token", container.Authenticate)
+	r.Group("/token", func() {
+		r.Get("", container.Authenticate)
+		r.Post("", container.AuthenticateNotImplemented)
+	})
 	r.Get("/_catalog", container.ReqContainerAccess, container.GetRepositoryList)
 	r.Group("/{username}", func() {
 		r.Group("/{image}", func() {

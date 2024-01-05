@@ -471,7 +471,7 @@ func DeleteWebhookByID(ctx context.Context, id int64) (err error) {
 	}
 	defer committer.Close()
 
-	if count, err := db.DeleteByID(ctx, id, new(Webhook)); err != nil {
+	if count, err := db.DeleteByID[Webhook](ctx, id); err != nil {
 		return err
 	} else if count == 0 {
 		return ErrWebhookNotExist{ID: id}

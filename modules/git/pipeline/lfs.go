@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
@@ -26,7 +27,7 @@ type LFSResult struct {
 	SHA            string
 	Summary        string
 	When           time.Time
-	ParentHashes   []git.SHA1
+	ParentHashes   []git.ObjectID
 	BranchName     string
 	FullCommitName string
 }
@@ -38,7 +39,7 @@ func (a lfsResultSlice) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a lfsResultSlice) Less(i, j int) bool { return a[j].When.After(a[i].When) }
 
 // FindLFSFile finds commits that contain a provided pointer file hash
-func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
+func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, error) {
 	resultsMap := map[string]*LFSResult{}
 	results := make([]*LFSResult, 0)
 
@@ -65,13 +66,18 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 			if err == io.EOF {
 				break
 			}
-			if entry.Hash == hash {
+			if entry.Hash == plumbing.Hash(objectID.RawValue()) {
+				parents := make([]git.ObjectID, len(gitCommit.ParentHashes))
+				for i, parentCommitID := range gitCommit.ParentHashes {
+					parents[i] = git.ParseGogitHash(parentCommitID)
+				}
+
 				result := LFSResult{
 					Name:         name,
 					SHA:          gitCommit.Hash.String(),
 					Summary:      strings.Split(strings.TrimSpace(gitCommit.Message), "\n")[0],
 					When:         gitCommit.Author.When,
-					ParentHashes: gitCommit.ParentHashes,
+					ParentHashes: parents,
 				}
 				resultsMap[gitCommit.Hash.String()+":"+name] = &result
 			}
