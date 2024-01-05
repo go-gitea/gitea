@@ -13,9 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/gitdiff"
 )
 
 // ToAPIPullRequest assumes following fields have been assigned with valid values:
@@ -203,24 +201,11 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		// Calculate diff
 		startCommitID = pr.MergeBase
 
-		// FIXME: If there are too many files in the repo, may cause some unpredictable issues.
-		diff, err := gitdiff.GetDiff(ctx, gitRepo,
-			&gitdiff.DiffOptions{
-				BeforeCommitID:     startCommitID,
-				AfterCommitID:      endCommitID,
-				MaxLines:           setting.Git.MaxGitDiffLines,
-				MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
-				MaxFiles:           -1, // GetDiff() will return all files
-				WhitespaceBehavior: gitdiff.GetWhitespaceFlag("show-all"),
-			})
+		apiPullRequest.ChangedFiles, apiPullRequest.Additions, apiPullRequest.Deletions, err = gitRepo.GetDiffShortStat(startCommitID, endCommitID)
 		if err != nil {
-			log.Error("GetDiff: %v", err)
+			log.Error("GetDiffShortStat: %v", err)
 			return nil
 		}
-
-		apiPullRequest.Additions = diff.TotalAddition
-		apiPullRequest.Deletions = diff.TotalDeletion
-		apiPullRequest.ChangedFiles = diff.NumFiles
 	}
 
 	if len(apiPullRequest.Head.Sha) == 0 && len(apiPullRequest.Head.Ref) != 0 {

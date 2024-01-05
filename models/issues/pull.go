@@ -430,10 +430,11 @@ func (pr *PullRequest) GetGitHeadBranchRefName() string {
 	return fmt.Sprintf("%s%s", git.BranchPrefix, pr.HeadBranch)
 }
 
+// GetReviewCommentsCount returns the number of review comments made on the diff of a PR review (not including comments on commits or issues in a PR)
 func (pr *PullRequest) GetReviewCommentsCount(ctx context.Context) int {
 	opts := FindCommentsOptions{
-		Type:     CommentTypeReview,
-		IssueID:  pr.IssueID,
+		Type:    CommentTypeReview,
+		IssueID: pr.IssueID,
 	}
 	conds := opts.ToConds()
 	if pr.ID == 0 {
