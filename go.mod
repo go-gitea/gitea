@@ -113,6 +113,7 @@ require (
 	golang.org/x/sys v0.15.0
 	golang.org/x/text v0.14.0
 	golang.org/x/tools v0.16.1
+	google.golang.org/api v0.153.0
 	google.golang.org/grpc v1.60.0
 	google.golang.org/protobuf v1.31.0
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
@@ -125,8 +126,21 @@ require (
 )
 
 require (
+	cloud.google.com/go v0.110.10 // indirect
 	cloud.google.com/go/compute v1.23.3 // indirect
+	github.com/google/s2a-go v0.1.7 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
+	github.com/googleapis/gax-go/v2 v2.12.0 // indirect
+	go.opencensus.io v0.24.0 // indirect
+	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
+	google.golang.org/genproto v0.0.0-20231106174013-bbf56f31fb17 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20231106174013-bbf56f31fb17 // indirect
+)
+
+require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
+	cloud.google.com/go/iam v1.1.5 // indirect
+	cloud.google.com/go/storage v1.35.1
 	dario.cat/mergo v1.0.0 // indirect
 	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 // indirect
 	github.com/ClickHouse/ch-go v0.61.0 // indirect
@@ -207,9 +221,9 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/go-tpm v0.9.0 // indirect
-	github.com/gorilla/css v1.0.1 // indirect
-	github.com/gorilla/handlers v1.5.2 // indirect
-	github.com/gorilla/mux v1.8.1 // indirect
+	github.com/gorilla/css v1.0.0 // indirect
+	github.com/gorilla/handlers v1.5.1 // indirect
+	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.5 // indirect
@@ -282,19 +296,19 @@ require (
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/xrash/smetrics v0.0.0-20231213231151-1d8dd44e695e // indirect
 	github.com/zeebo/blake3 v0.2.3 // indirect
-	go.etcd.io/bbolt v1.3.8 // indirect
+	go.etcd.io/bbolt v1.3.7 // indirect
 	go.mongodb.org/mongo-driver v1.13.1 // indirect
 	go.opentelemetry.io/otel v1.21.0 // indirect
 	go.opentelemetry.io/otel/trace v1.21.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/exp v0.0.0-20231214170342-aacd6d4b4611 // indirect
+	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20231212172506-995d672761c0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231120223509-83a465c0220f // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
