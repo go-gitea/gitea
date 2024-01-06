@@ -168,7 +168,7 @@ func getPostgreSQLConnectionString(dbHost, dbUser, dbPasswd, dbName, dbsslMode s
 		RawQuery: dbParam,
 	}
 	query := connURL.Query()
-	if dbHost[0] == '/' { // looks like a unix socket
+	if strings.HasPrefix(dbHost, "/") { // looks like a unix socket
 		query.Add("host", dbHost)
 		connURL.Host = ":" + port
 	}
