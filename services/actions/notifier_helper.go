@@ -117,10 +117,8 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return nil
 	}
 	if unit_model.TypeActions.UnitGlobalDisabled() {
-		// If actions disabled when there is schedule task, this will remove the outdated schedule tasks
-		// There is no other place we can do this because the app.ini will be changed manually
-		if err := actions_model.DeleteScheduleTaskByRepo(ctx, input.Repo.ID); err != nil {
-			log.Error("DeleteCronTaskByRepo: %v", err)
+		if err := actions_model.CleanRepoScheduleTasks(ctx, input.Repo); err != nil {
+			log.Error("CleanRepoScheduleTasks: %v", err)
 		}
 		return nil
 	}
@@ -427,7 +425,6 @@ func handleSchedules(
 		if err := actions_model.DeleteScheduleTaskByRepo(ctx, input.Repo.ID); err != nil {
 			log.Error("DeleteCronTaskByRepo: %v", err)
 		}
-
 		// cancel running cron jobs of this repository and delete old schedules
 		if err := actions_model.CancelRunningJobs(
 			ctx,

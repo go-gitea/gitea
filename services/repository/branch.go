@@ -321,7 +321,6 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 			if err := actions_model.DeleteScheduleTaskByRepo(ctx, repo.ID); err != nil {
 				log.Error("DeleteCronTaskByRepo: %v", err)
 			}
-
 			// cancel running cron jobs of this repository and delete old schedules
 			if err := actions_model.CancelRunningJobs(
 				ctx,
@@ -490,8 +489,6 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 		if err := actions_model.DeleteScheduleTaskByRepo(ctx, repo.ID); err != nil {
 			log.Error("DeleteCronTaskByRepo: %v", err)
 		}
-
-		// delete actions
 		// cancel running cron jobs of this repository and delete old schedules
 		if err := actions_model.CancelRunningJobs(
 			ctx,

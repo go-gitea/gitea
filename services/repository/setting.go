@@ -12,6 +12,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
 // UpdateRepositoryUnits updates a repository's units
@@ -31,6 +32,16 @@ func UpdateRepositoryUnits(ctx context.Context, repo *repo_model.Repository, uni
 		// if actions is disabled, delete all cron tasks
 		if err := actions_model.DeleteScheduleTaskByRepo(ctx, repo.ID); err != nil {
 			log.Error("DeleteCronTaskByRepo: %v", err)
+		}
+		// cancel running cron jobs of this repository and delete old schedules
+		if err := actions_model.CancelRunningJobs(
+			ctx,
+			repo.ID,
+			repo.DefaultBranch,
+			"",
+			webhook_module.HookEventSchedule,
+		); err != nil {
+			log.Error("CancelRunningJobs: %v", err)
 		}
 	}
 
