@@ -152,8 +152,9 @@ func runCreateUser(c *cli.Context) error {
 
 	if c.Bool("access-token") {
 		t := &auth_model.AccessToken{
-			Name: "gitea-admin",
-			UID:  u.ID,
+			Name:  "gitea-admin",
+			UID:   u.ID,
+			Scope: auth_model.AccessTokenScopeAll,
 		}
 
 		if err := auth_model.NewAccessToken(ctx, t); err != nil {
