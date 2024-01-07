@@ -17,7 +17,7 @@
 	{{else if or .PageIsDiff .IsViewFile}}
 		<meta property="og:title" content="{{.Title}}">
 		<meta property="og:url" content="{{AppUrl}}{{.Link}}">
-		{{if .PageIsDiff}}
+		{{if and .PageIsDiff .Commit}}
 			{{- $commitMessageParts := StringUtils.Cut .Commit.Message "\n" -}}
 			{{- $commitMessageBody := index $commitMessageParts 1 -}}
 			{{- if $commitMessageBody -}}
