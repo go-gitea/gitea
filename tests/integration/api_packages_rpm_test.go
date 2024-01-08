@@ -404,14 +404,14 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 		req := NewRequest(t, "DELETE", fmt.Sprintf("%s/el9/stable/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture))
 		MakeRequest(t, req, http.StatusUnauthorized)
 
-		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/el9/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture)).
+		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/el9/stable/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture)).
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNoContent)
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeRpm)
 		assert.NoError(t, err)
 		assert.Empty(t, pvs)
-		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/el9/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture)).
+		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/el9/stable/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture)).
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
