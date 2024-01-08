@@ -366,5 +366,4 @@ func TestActionsArtifactOverwrite(t *testing.T) {
 		body := strings.Repeat("B", 4096)
 		assert.Equal(t, resp.Body.String(), body)
 	}
-
 }
