@@ -422,19 +422,8 @@ func handleSchedules(
 		log.Error("CountSchedules: %v", err)
 		return err
 	} else if count > 0 {
-		actions_model.CleanRepoScheduleTasks(ctx, input.Repo)
-		if err := actions_model.DeleteScheduleTaskByRepo(ctx, input.Repo.ID); err != nil {
-			log.Error("DeleteCronTaskByRepo: %v", err)
-		}
-		// cancel running cron jobs of this repository and delete old schedules
-		if err := actions_model.CancelRunningJobs(
-			ctx,
-			input.Repo.ID,
-			input.Ref,
-			"",
-			webhook_module.HookEventSchedule,
-		); err != nil {
-			log.Error("CancelRunningJobs: %v", err)
+		if err := actions_model.CleanRepoScheduleTasks(ctx, input.Repo); err != nil {
+			log.Error("CleanRepoScheduleTasks: %v", err)
 		}
 	}
 
