@@ -16,7 +16,7 @@ import (
 
 // Blob represents a Git object.
 type Blob struct {
-	ID SHA1
+	ID ObjectID
 
 	gotSize bool
 	size    int64

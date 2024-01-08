@@ -35,6 +35,7 @@
 
 #issue-list .flex-item-title .labels-list {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.25em;
 }
 
