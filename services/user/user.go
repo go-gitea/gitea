@@ -41,10 +41,7 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string) err
 	}
 
 	if newUserName == u.Name {
-		return user_model.ErrUsernameNotChanged{
-			UID:  u.ID,
-			Name: u.Name,
-		}
+		return nil
 	}
 
 	if err := user_model.IsUsableUsername(newUserName); err != nil {

@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
@@ -21,6 +22,7 @@ import (
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 var (
@@ -165,30 +167,6 @@ func ResetPasswdPost(ctx *context.Context) {
 		return
 	}
 
-	// Validate password length.
-	passwd := ctx.FormString("password")
-	if len(passwd) < setting.MinPasswordLength {
-		ctx.Data["IsResetForm"] = true
-		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplResetPassword, nil)
-		return
-	} else if !password.IsComplexEnough(passwd) {
-		ctx.Data["IsResetForm"] = true
-		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplResetPassword, nil)
-		return
-	} else if pwned, err := password.IsPwned(ctx, passwd); pwned || err != nil {
-		errMsg := ctx.Tr("auth.password_pwned")
-		if err != nil {
-			log.Error(err.Error())
-			errMsg = ctx.Tr("auth.password_pwned_err")
-		}
-		ctx.Data["IsResetForm"] = true
-		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(errMsg, tplResetPassword, nil)
-		return
-	}
-
 	// Handle two-factor
 	regenerateScratchToken := false
 	if twofa != nil {
@@ -221,18 +199,27 @@ func ResetPasswdPost(ctx *context.Context) {
 			}
 		}
 	}
-	var err error
-	if u.Rands, err = user_model.GetUserSalt(); err != nil {
-		ctx.ServerError("UpdateUser", err)
-		return
+
+	opts := &user_service.UpdateAuthOptions{
+		Password:           optional.Some(ctx.FormString("password")),
+		MustChangePassword: optional.Some(false),
 	}
-	if err = u.SetPassword(passwd); err != nil {
-		ctx.ServerError("UpdateUser", err)
-		return
-	}
-	u.MustChangePassword = false
-	if err := user_model.UpdateUserCols(ctx, u, "must_change_password", "passwd", "passwd_hash_algo", "rands", "salt"); err != nil {
-		ctx.ServerError("UpdateUser", err)
+	if err := user_service.UpdateAuth(ctx, ctx.Doer, opts); err != nil {
+		ctx.Data["IsResetForm"] = true
+		ctx.Data["Err_Password"] = true
+		switch {
+		case errors.Is(err, password.ErrMinLength):
+			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplResetPassword, nil)
+		case errors.Is(err, password.ErrComplexity):
+			ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplResetPassword, nil)
+		case errors.Is(err, password.ErrIsPwned):
+			ctx.RenderWithErr(ctx.Tr("auth.password_pwned"), tplResetPassword, nil)
+		case password.IsErrIsPwnedRequest(err):
+			log.Error("%s", err.Error())
+			ctx.RenderWithErr(ctx.Tr("auth.password_pwned_err"), tplResetPassword, nil)
+		default:
+			ctx.ServerError("UpdateAuth", err)
+		}
 		return
 	}
 
@@ -242,7 +229,7 @@ func ResetPasswdPost(ctx *context.Context) {
 
 	if regenerateScratchToken {
 		// Invalidate the scratch token.
-		_, err = twofa.GenerateScratchToken()
+		_, err := twofa.GenerateScratchToken()
 		if err != nil {
 			ctx.ServerError("UserSignIn", err)
 			return
@@ -282,11 +269,11 @@ func MustChangePasswordPost(ctx *context.Context) {
 		ctx.HTML(http.StatusOK, tplMustChangePassword)
 		return
 	}
-	u := ctx.Doer
+
 	// Make sure only requests for users who are eligible to change their password via
 	// this method passes through
-	if !u.MustChangePassword {
-		ctx.ServerError("MustUpdatePassword", errors.New("cannot update password.. Please visit the settings page"))
+	if !ctx.Doer.MustChangePassword {
+		ctx.ServerError("MustUpdatePassword", errors.New("cannot update password. Please visit the settings page"))
 		return
 	}
 
@@ -296,44 +283,34 @@ func MustChangePasswordPost(ctx *context.Context) {
 		return
 	}
 
-	if len(form.Password) < setting.MinPasswordLength {
-		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplMustChangePassword, &form)
-		return
+	opts := &user_service.UpdateAuthOptions{
+		Password:           optional.Some(form.Password),
+		MustChangePassword: optional.Some(false),
 	}
-
-	if !password.IsComplexEnough(form.Password) {
-		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplMustChangePassword, &form)
-		return
-	}
-	pwned, err := password.IsPwned(ctx, form.Password)
-	if pwned {
-		ctx.Data["Err_Password"] = true
-		errMsg := ctx.Tr("auth.password_pwned")
-		if err != nil {
-			log.Error(err.Error())
-			errMsg = ctx.Tr("auth.password_pwned_err")
+	if err := user_service.UpdateAuth(ctx, ctx.Doer, opts); err != nil {
+		switch {
+		case errors.Is(err, password.ErrMinLength):
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplMustChangePassword, &form)
+		case errors.Is(err, password.ErrComplexity):
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplMustChangePassword, &form)
+		case errors.Is(err, password.ErrIsPwned):
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(ctx.Tr("auth.password_pwned"), tplMustChangePassword, &form)
+		case password.IsErrIsPwnedRequest(err):
+			log.Error("%s", err.Error())
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(ctx.Tr("auth.password_pwned_err"), tplMustChangePassword, &form)
+		default:
+			ctx.ServerError("UpdateAuth", err)
 		}
-		ctx.RenderWithErr(errMsg, tplMustChangePassword, &form)
-		return
-	}
-
-	if err = u.SetPassword(form.Password); err != nil {
-		ctx.ServerError("UpdateUser", err)
-		return
-	}
-
-	u.MustChangePassword = false
-
-	if err := user_model.UpdateUserCols(ctx, u, "must_change_password", "passwd", "passwd_hash_algo", "salt"); err != nil {
-		ctx.ServerError("UpdateUser", err)
 		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("settings.change_password_success"))
 
-	log.Trace("User updated password: %s", u.Name)
+	log.Trace("User updated password: %s", ctx.Doer.Name)
 
 	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
 		middleware.DeleteRedirectToCookie(ctx.Resp)

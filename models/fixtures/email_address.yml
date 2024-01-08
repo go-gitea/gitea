@@ -285,3 +285,11 @@
   lower_email: abcde@gitea.com
   is_activated: true
   is_primary: false
+
+-
+  id: 37
+  uid: 37
+  email: user37@example.com
+  lower_email: user37@example.com
+  is_activated: true
+  is_primary: true

@@ -107,7 +107,7 @@ func TestRenameUser(t *testing.T) {
 	})
 
 	t.Run("Same username", func(t *testing.T) {
-		assert.ErrorIs(t, RenameUser(db.DefaultContext, user, user.Name), user_model.ErrUsernameNotChanged{UID: user.ID, Name: user.Name})
+		assert.NoError(t, RenameUser(db.DefaultContext, user, user.Name))
 	})
 
 	t.Run("Non usable username", func(t *testing.T) {

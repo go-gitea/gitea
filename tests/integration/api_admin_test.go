@@ -208,11 +208,11 @@ func TestAPIEditUser(t *testing.T) {
 		SourceID:  0,
 		Email:     &empty,
 	}).AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusUnprocessableEntity)
+	resp := MakeRequest(t, req, http.StatusBadRequest)
 
 	errMap := make(map[string]any)
 	json.Unmarshal(resp.Body.Bytes(), &errMap)
-	assert.EqualValues(t, "email is not allowed to be empty string", errMap["message"].(string))
+	assert.EqualValues(t, "e-mail invalid [email: ]", errMap["message"].(string))
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"})
 	assert.False(t, user2.IsRestricted)

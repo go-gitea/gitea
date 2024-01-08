@@ -5,14 +5,20 @@ package password
 
 import (
 	"bytes"
-	goContext "context"
+	"context"
 	"crypto/rand"
+	"errors"
 	"math/big"
 	"strings"
 	"sync"
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
+)
+
+var (
+	ErrComplexity = errors.New("password not complex enough")
+	ErrMinLength  = errors.New("password not long enough")
 )
 
 // complexity contains information about a particular kind of password complexity
@@ -101,11 +107,14 @@ func Generate(n int) (string, error) {
 			}
 			buffer[j] = validChars[rnd.Int64()]
 		}
-		pwned, err := IsPwned(goContext.Background(), string(buffer))
-		if err != nil {
+
+		if err := IsPwned(context.Background(), string(buffer)); err != nil {
+			if errors.Is(err, ErrIsPwned) {
+				continue
+			}
 			return "", err
 		}
-		if IsComplexEnough(string(buffer)) && !pwned && string(buffer[0]) != " " && string(buffer[n-1]) != " " {
+		if IsComplexEnough(string(buffer)) && string(buffer[0]) != " " && string(buffer[n-1]) != " " {
 			return string(buffer), nil
 		}
 	}

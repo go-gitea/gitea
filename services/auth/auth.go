@@ -14,9 +14,11 @@ import (
 	"code.gitea.io/gitea/modules/auth/webauthn"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 // Init should be called exactly once when the application starts to allow plugins
@@ -85,8 +87,10 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	// If the user does not have a locale set, we save the current one.
 	if len(user.Language) == 0 {
 		lc := middleware.Locale(resp, req)
-		user.Language = lc.Language()
-		if err := user_model.UpdateUserCols(req.Context(), user, "language"); err != nil {
+		opts := &user_service.UpdateOptions{
+			Language: optional.Some(lc.Language()),
+		}
+		if err := user_service.UpdateUser(req.Context(), user, opts); err != nil {
 			log.Error(fmt.Sprintf("Error updating user language [user: %d, locale: %s]", user.ID, user.Language))
 			return
 		}

@@ -108,18 +108,3 @@ func IsErrUserIsNotLocal(err error) bool {
 	_, ok := err.(ErrUserIsNotLocal)
 	return ok
 }
-
-type ErrUsernameNotChanged struct {
-	UID  int64
-	Name string
-}
-
-func (err ErrUsernameNotChanged) Error() string {
-	return fmt.Sprintf("username hasn't been changed[uid: %d, name: %s]", err.UID, err.Name)
-}
-
-// IsErrUsernameNotChanged
-func IsErrUsernameNotChanged(err error) bool {
-	_, ok := err.(ErrUsernameNotChanged)
-	return ok
-}
