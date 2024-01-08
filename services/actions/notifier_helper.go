@@ -422,6 +422,7 @@ func handleSchedules(
 		log.Error("CountSchedules: %v", err)
 		return err
 	} else if count > 0 {
+		actions_model.CleanRepoScheduleTasks(ctx, input.Repo)
 		if err := actions_model.DeleteScheduleTaskByRepo(ctx, input.Repo.ID); err != nil {
 			log.Error("DeleteCronTaskByRepo: %v", err)
 		}
