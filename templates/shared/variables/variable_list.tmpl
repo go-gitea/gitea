@@ -33,7 +33,7 @@
 					{{ctx.Locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}}
 				</span>
 				<button class="btn interact-bg gt-p-3 show-modal"
-					data-tooltip-content="{{ctx.Locale.Tr "variables.edit"}}"
+					data-tooltip-content="{{ctx.Locale.Tr "actions.variables.edit"}}"
 					data-modal="#edit-variable-modal"
 					data-modal-form.action="{{$.Link}}/{{.ID}}/edit"
 					data-modal-header="{{ctx.Locale.Tr "actions.variables.edit"}}"
