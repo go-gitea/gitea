@@ -231,6 +231,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `ONLY_SHOW_RELEVANT_REPOS`: **false**: Whether to only show relevant repos on the explore page when no keyword is specified and default sorting is used.
     A repo is considered irrelevant if it's a fork or if it has no metadata (no description, no icon, no topic).
 - `EXPLORE_PAGING_DEFAULT_SORT`: **recentupdate**: Change the sort type of the explore pages. Valid values are "recentupdate", "alphabetically", "reverselastlogin", "newest" and "oldest"
+- `PREFERRED_TIMESTAMP_TENSE`: **mixed**: The tense all timestamps should be rendered in. Possible values are `absolute` time (i.e. 1970-01-01, 11:59) and `mixed`. `mixed` means most timestamps are rendered in relative time (i.e. 2 days ago).
 
 ### UI - Admin (`ui.admin`)
 
@@ -595,9 +596,13 @@ And the following unique queues:
 - `OPENID_CONNECT_SCOPES`: **_empty_**: List of additional openid connect scopes. (`openid` is implicitly added)
 - `ENABLE_AUTO_REGISTRATION`: **false**: Automatically create user accounts for new oauth2 users.
 - `USERNAME`: **nickname**: The source of the username for new oauth2 accounts:
-  - userid - use the userid / sub attribute
-  - nickname - use the nickname attribute
-  - email - use the username part of the email attribute
+  - `userid` - use the userid / sub attribute
+  - `nickname` - use the nickname attribute
+  - `email` - use the username part of the email attribute
+  - Note: `nickname` and `email` options will normalize input strings using the following criteria:
+    - diacritics are removed
+    - the characters in the set `['´\x60]` are removed
+    - the characters in the set `[\s~+]` are replaced with `-`
 - `UPDATE_AVATAR`: **false**: Update avatar if available from oauth2 provider. Update will be performed on each login.
 - `ACCOUNT_LINKING`: **login**: How to handle if an account / email already exists:
   - disabled - show an error

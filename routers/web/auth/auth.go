@@ -47,10 +47,6 @@ const (
 
 // autoSignIn reads cookie and try to auto-login.
 func autoSignIn(ctx *context.Context) (bool, error) {
-	if !db.HasEngine {
-		return false, nil
-	}
-
 	isSucceed := false
 	defer func() {
 		if !isSucceed {
@@ -149,7 +145,11 @@ func CheckAutoLogin(ctx *context.Context) bool {
 
 	if isSucceed {
 		middleware.DeleteRedirectToCookie(ctx.Resp)
-		ctx.RedirectToFirst(redirectTo, setting.AppSubURL+string(setting.LandingPageURL))
+		nextRedirectTo := setting.AppSubURL + string(setting.LandingPageURL)
+		if setting.LandingPageURL == setting.LandingPageLogin {
+			nextRedirectTo = setting.AppSubURL + "/" // do not cycle-redirect to the login page
+		}
+		ctx.RedirectToFirst(redirectTo, nextRedirectTo)
 		return true
 	}
 
@@ -373,14 +373,14 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 	return setting.AppSubURL + "/"
 }
 
-func getUserName(gothUser *goth.User) string {
+func getUserName(gothUser *goth.User) (string, error) {
 	switch setting.OAuth2Client.Username {
 	case setting.OAuth2UsernameEmail:
-		return strings.Split(gothUser.Email, "@")[0]
+		return user_model.NormalizeUserName(strings.Split(gothUser.Email, "@")[0])
 	case setting.OAuth2UsernameNickname:
-		return gothUser.NickName
+		return user_model.NormalizeUserName(gothUser.NickName)
 	default: // OAuth2UsernameUserid
-		return gothUser.UserID
+		return gothUser.UserID, nil
 	}
 }
 
