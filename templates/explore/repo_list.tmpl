@@ -7,9 +7,10 @@
 			<div class="flex-item-main">
 				<div class="flex-item-header">
 					<div class="flex-item-title">
-						<a class="text primary name" href="{{.Link}}">
-							{{if or $.PageIsExplore $.PageIsProfileStarList}}{{if .Owner}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}
-						</a>
+						{{if and (or $.PageIsExplore $.PageIsProfileStarList) .Owner}}
+						<a class="text primary name" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/
+						{{end}}
+						<a class="text primary name" href="{{.Link}}">{{.Name}}</a>
 						<span class="label-list">
 							{{if .IsArchived}}
 								<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
