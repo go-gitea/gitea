@@ -195,9 +195,7 @@ menu:
 ## 跨域 (`cors`)
 
 - `ENABLED`: **false**: 启用 CORS 头部（默认禁用）
-- `SCHEME`: **http**: 允许请求的协议
 - `ALLOW_DOMAIN`: **\***: 允许请求的域名列表
-- `ALLOW_SUBDOMAIN`: **false**: 允许上述列出的头部的子域名发出请求。
 - `METHODS`: **GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS**: 允许发起的请求方式列表
 - `MAX_AGE`: **10m**: 缓存响应的最大时间
 - `ALLOW_CREDENTIALS`: **false**: 允许带有凭据的请求
@@ -989,7 +987,7 @@ Gitea 创建以下非唯一队列：
 - `LAST_UPDATED_MORE_THAN_AGO`: **72h**: 只会尝试回收超过此时间（默认3天）没有尝试过回收的 LFSMetaObject。
 - `NUMBER_TO_CHECK_PER_REPO`: **100**: 每个仓库要检查的过期 LFSMetaObject 的最小数量。设置为 `0` 以始终检查所有。
 
-# Git (`git`)
+## Git (`git`)
 
 - `PATH`: **""**: Git可执行文件的路径。如果为空，Gitea将在PATH环境中搜索。
 - `HOME_PATH`: **%(APP_DATA_PATH)s/home**: Git的HOME目录。
