@@ -453,6 +453,8 @@ func RenameUser(ctx *context.APIContext) {
 	//   schema:
 	//     "$ref": "#/definitions/RenameUserOption"
 	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
@@ -484,5 +486,5 @@ func RenameUser(ctx *context.APIContext) {
 	}
 
 	log.Trace("User name changed: %s -> %s", oldName, newName)
-	ctx.Status(http.StatusOK)
+	ctx.Status(http.StatusNoContent)
 }
