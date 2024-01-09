@@ -8,6 +8,7 @@ import (
 	"errors"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -93,7 +94,7 @@ func ReplacePrimaryEmailAddress(ctx context.Context, u *user_model.User, emailSt
 		if err != nil {
 			return err
 		}
-		if err := user_model.DeleteEmailAddressByID(ctx, primary.ID); err != nil {
+		if _, err := db.DeleteByID[user_model.EmailAddress](ctx, primary.ID); err != nil {
 			return err
 		}
 
@@ -156,7 +157,7 @@ func DeleteEmailAddresses(ctx context.Context, u *user_model.User, emails []stri
 		}
 
 		// Remove address
-		if err := user_model.DeleteEmailAddressByID(ctx, email.ID); err != nil {
+		if _, err := db.DeleteByID[user_model.EmailAddress](ctx, email.ID); err != nil {
 			return err
 		}
 	}

@@ -154,11 +154,6 @@ func UpdateEmailAddress(ctx context.Context, email *EmailAddress) error {
 	return err
 }
 
-func DeleteEmailAddressByID(ctx context.Context, id int64) error {
-	_, err := db.DeleteByID[EmailAddress](ctx, id)
-	return err
-}
-
 var emailRegexp = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 // ValidateEmail check if email is a allowed address
