@@ -354,10 +354,8 @@ func Edit(ctx *context.APIContext) {
 		Description:               optional.Some(form.Description),
 		Website:                   optional.Some(form.Website),
 		Location:                  optional.Some(form.Location),
+		Visibility:                optional.FromNonDefault(api.VisibilityModes[form.Visibility]),
 		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
-	}
-	if form.Visibility != "" {
-		opts.Visibility = optional.Some(api.VisibilityModes[form.Visibility])
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Org.Organization.AsUser(), opts); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateUser", err)

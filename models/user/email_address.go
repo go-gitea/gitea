@@ -143,7 +143,7 @@ func (email *EmailAddress) BeforeInsert() {
 }
 
 func InsertEmailAddress(ctx context.Context, email *EmailAddress) (*EmailAddress, error) {
-	if _, err := db.GetEngine(ctx).Insert(email); err != nil {
+	if _, err := db.Insert(ctx, email); err != nil {
 		return nil, err
 	}
 	return email, nil
@@ -155,7 +155,7 @@ func UpdateEmailAddress(ctx context.Context, email *EmailAddress) error {
 }
 
 func DeleteEmailAddressByID(ctx context.Context, id int64) error {
-	_, err := db.GetEngine(ctx).ID(id).Delete(&EmailAddress{})
+	_, err := db.DeleteByID[EmailAddress](ctx, id)
 	return err
 }
 

@@ -24,7 +24,7 @@ func IsErrIsPwnedRequest(err error) bool {
 }
 
 func (err ErrIsPwnedRequest) Error() string {
-	return fmt.Sprintf("using HIBP service failed: %v", err.err)
+	return fmt.Sprintf("using Have-I-Been-Pwned service failed: %v", err.err)
 }
 
 func (err ErrIsPwnedRequest) Unwrap() error {
@@ -32,8 +32,7 @@ func (err ErrIsPwnedRequest) Unwrap() error {
 }
 
 // IsPwned checks whether a password has been pwned
-// NOTE: This func returns true if it encounters an error under the assumption that you ALWAYS want to check against
-// HIBP, so not getting a response should block a password until it can be verified.
+// If a password has not been pwned, no error is returned.
 func IsPwned(ctx context.Context, password string) error {
 	if !setting.PasswordCheckPwn {
 		return nil
