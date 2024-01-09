@@ -22,6 +22,9 @@ type ProjectIssue struct { //revive:disable-line:exported
 
 	// the sorting order on the board
 	Sorting int64 `xorm:"NOT NULL DEFAULT 0"`
+
+	// label that is added when a issue is moved to this column
+	LabelID int64 `xorm:"DEFAULT 0"`
 }
 
 func init() {
