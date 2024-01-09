@@ -1166,8 +1166,10 @@
   flex-wrap: wrap;
 }
 
-.repository .choose.branch .svg {
-  margin-right: 10px;
+.repository .choose .compare-separator {
+  width: 100%;
+  margin-top: -1rem;
+  text-align: center;
 }
 
 .repository.compare.pull .comment.form .content::before,
