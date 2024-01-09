@@ -40,3 +40,8 @@ func License(name string) ([]byte, error) {
 func Labels(name string) ([]byte, error) {
 	return AssetFS().ReadFile("label", name)
 }
+
+// GitAttributes reads the content of a specific labels from static/bindata or custom path.
+func GitAttributes(name string) ([]byte, error) {
+	return AssetFS().ReadFile("gitattributes", name)
+}

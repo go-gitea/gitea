@@ -129,6 +129,18 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 		}
 	}
 
+	// default to set Gitattributes
+	defaultGitAttributes := "default"
+	data, err = repo_module.GetGitAttributes(defaultGitAttributes)
+	if err != nil {
+		return fmt.Errorf("getGitAttributes[%s]: %w", defaultGitAttributes, err)
+	}
+
+	if data != nil {
+		if err = os.WriteFile(filepath.Join(tmpDir, `.gitattributes`), data, 0o644); err != nil {
+			return fmt.Errorf("write GitAttributes: %w", err)
+		}
+	}
 	return nil
 }
 

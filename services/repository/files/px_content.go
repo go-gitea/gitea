@@ -12,8 +12,11 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 )
+
+type checkOption func(*api.CommitContentsResponse, *git.TreeEntry) error
 
 // GetCommitContentsOrList gets the meta data of a file's contents (*ContentsResponse) if treePath not a tree
 // directory, otherwise a listing of file contents ([]*ContentsResponse). Ref can be a branch, commit or tag
@@ -53,7 +56,7 @@ func GetCommitContentsOrList(ctx context.Context, repo *repo_model.Repository, t
 	}
 
 	if entry.Type() != "tree" {
-		return GetCommitContents(ctx, repo, treePath, origRef, false)
+		return GetCommitContents(ctx, repo, treePath, origRef, false, checkIsNonText)
 	}
 
 	// We are in a directory, so we return a list of FileContentResponse objects
@@ -78,8 +81,15 @@ func GetCommitContentsOrList(ctx context.Context, repo *repo_model.Repository, t
 	return fileList, nil
 }
 
-// GetCommitContents gets the meta data on a file's contents. Ref can be a branch, commit or tag
-func GetCommitContents(ctx context.Context, repo *repo_model.Repository, treePath, ref string, forList bool) (*api.CommitContentsResponse, error) {
+// GetCommitContents gets the meta data on a directory's or a file's contents. Ref can be a branch, commit or tag
+func GetCommitContents(
+	ctx context.Context,
+	repo *repo_model.Repository,
+	treePath,
+	ref string,
+	forList bool,
+	options ...checkOption,
+) (*api.CommitContentsResponse, error) {
 	if ref == "" {
 		ref = repo.DefaultBranch
 	}
@@ -151,6 +161,12 @@ func GetCommitContents(ctx context.Context, repo *repo_model.Repository, treePat
 		},
 	}
 
+	for _, option := range options {
+		if err = option(contentsResponse, entry); err != nil {
+			return nil, err
+		}
+	}
+
 	if p, b := isLFS(entry); b {
 		contentsResponse.Size = p.Size
 		contentsResponse.IsLFS = true
@@ -216,6 +232,18 @@ func GetCommitContents(ctx context.Context, repo *repo_model.Repository, treePat
 	return contentsResponse, nil
 }
 
+func checkIsNonText(response *api.CommitContentsResponse, entry *git.TreeEntry) error {
+	isNonText, err := isNonText(entry)
+
+	if err != nil {
+		return err
+	}
+
+	response.IsNonText = &isNonText
+
+	return nil
+}
+
 func isLFS(entry *git.TreeEntry) (lfs.Pointer, bool) {
 	if !entry.IsRegular() || entry.Size() > 512 {
 		return lfs.Pointer{}, false
@@ -230,4 +258,25 @@ func isLFS(entry *git.TreeEntry) (lfs.Pointer, bool) {
 	p, err := lfs.ReadPointer(reader)
 
 	return p, err == nil
+}
+
+func isNonText(entry *git.TreeEntry) (bool, error) {
+	if !entry.IsRegular() {
+		return false, nil
+	}
+
+	dataRc, err := entry.Blob().DataAsync()
+	if err != nil {
+		return false, err
+	}
+
+	defer dataRc.Close()
+
+	buf := make([]byte, 1024)
+	n, _ := util.ReadAtMost(dataRc, buf)
+	buf = buf[:n]
+
+	st := typesniffer.DetectContentType(buf)
+
+	return !st.IsText(), nil
 }
