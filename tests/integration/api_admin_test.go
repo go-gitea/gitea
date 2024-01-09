@@ -254,14 +254,14 @@ func TestAPIRenameUser(t *testing.T) {
 		// required
 		"new_name": "User2",
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusNoContent)
 
 	urlStr = fmt.Sprintf("/api/v1/admin/users/%s/rename", "User2")
 	req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		// required
 		"new_name": "User2-2-2",
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusNoContent)
 
 	req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		// required
@@ -281,7 +281,7 @@ func TestAPIRenameUser(t *testing.T) {
 		// required
 		"new_name": "user2",
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusNoContent)
 }
 
 func TestAPICron(t *testing.T) {
