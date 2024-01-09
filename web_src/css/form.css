@@ -243,7 +243,6 @@ textarea:focus,
 .user.forgot.password form,
 .user.reset.password form,
 .user.link-account form,
-.user.signin form,
 .user.signup form {
   margin: auto;
   width: 700px !important;
@@ -263,7 +262,6 @@ textarea:focus,
   .user.forgot.password form,
   .user.reset.password form,
   .user.link-account form,
-  .user.signin form,
   .user.signup form {
     width: 800px !important;
   }
@@ -279,7 +277,6 @@ textarea:focus,
   .user.forgot.password form .inline.field > label,
   .user.reset.password form .inline.field > label,
   .user.link-account form .inline.field > label,
-  .user.signin form .inline.field > label,
   .user.signup form .inline.field > label {
     text-align: right;
     width: 250px !important;
@@ -305,7 +302,6 @@ textarea:focus,
   .user.forgot.password form .inline.field > input,
   .user.reset.password form .inline.field > input,
   .user.link-account form .inline.field > input,
-  .user.signin form .inline.field > input,
   .user.signup form .inline.field > input,
   .user.activate form .inline.field > textarea,
   .user.forgot.password form .inline.field > textarea,
@@ -315,6 +311,9 @@ textarea:focus,
   .user.signup form .inline.field > textarea,
   .oauth-login-link {
     width: 50%;
+  }
+  .user.signin form .inline.field > input {
+    width: 100%;
   }
 }
 
