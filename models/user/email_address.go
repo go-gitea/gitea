@@ -143,7 +143,7 @@ func (email *EmailAddress) BeforeInsert() {
 }
 
 func InsertEmailAddress(ctx context.Context, email *EmailAddress) (*EmailAddress, error) {
-	if _, err := db.Insert(ctx, email); err != nil {
+	if err := db.Insert(ctx, email); err != nil {
 		return nil, err
 	}
 	return email, nil
