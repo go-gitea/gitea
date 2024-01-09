@@ -9,7 +9,7 @@
 				OpenID
 			</h4>
 			<div class="ui attached segment">
-				<form class="ui form gt-max-width-36rem gt-width-full gt-m-auto" action="{{.Link}}" method="post">
+				<form class="ui form gt-max-width-36rem gt-w-100 gt-m-auto" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 					<div class="inline field">
 						{{ctx.Locale.Tr "auth.openid_signin_desc"}}
@@ -19,7 +19,7 @@
 					{{svg "fontawesome-openid"}}
 					OpenID URI
 					</label>
-					<input id="openid" name="openid" value="{{.openid}}" autofocus required>
+					<input id="openid" class="gt-w-100" name="openid" value="{{.openid}}" autofocus required>
 					</div>
 					<div class="inline field">
 						<div class="ui checkbox">
