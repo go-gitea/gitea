@@ -4,6 +4,7 @@
 package pull
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -423,9 +424,11 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 		return false, fmt.Errorf("unable to open pipe for to run diff: %w", err)
 	}
 
+	stderr := new(bytes.Buffer)
 	if err := cmd.Run(&git.RunOpts{
 		Dir:    prCtx.tmpBasePath,
 		Stdout: stdoutWriter,
+		Stderr: stderr,
 		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			defer func() {
@@ -437,6 +440,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 		if err == util.ErrNotEmpty {
 			return true, nil
 		}
+		err = git.ConcatenateError(err, stderr.String())
 
 		log.Error("Unable to run diff on %s %s %s in tempRepo for PR[%d]%s/%s...%s/%s: Error: %v",
 			newCommitID, oldCommitID, base,
