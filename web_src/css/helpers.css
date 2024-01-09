@@ -270,34 +270,6 @@ Gitea's private styles use `g-` prefix.
 .gt-font-17 { font-size: 17px !important }
 .gt-font-18 { font-size: 18px !important }
 
-.gt-sticky-top-0 {
-  position: sticky !important;
-  top: 0;
-  align-self: flex-start;
-}
-
-.gt-sticky-top-1 {
-  position: sticky !important;
-  top: 1em;
-}
-
-.gt-desktop-only {
-  display: none;
-}
-
-.gt-mobile-only {
-  display: revert;
-}
-
-@media (min-width: 767.98px) {
-  .gt-desktop-only {
-    display: revert;
-  }
-  .gt-mobile-only {
-    display: none;
-  }
-}
-
 /*
 gt-hidden must be placed after all other "display: xxx !important" classes to win the chance
 do not use:

@@ -26,28 +26,15 @@
   font-size: 1em;
 }
 
-.repository.wiki .wiki-content-parts.has-sidebar {
-  grid-column-gap: 1em;
-  display: grid;
-  grid-template-areas:
-    "content toc"
-    "content sidebar";
-  grid-template-rows: auto 1fr;
-  grid-template-columns: 1fr minmax(200px, 20%);
-}
-
-.repository.wiki .wiki-content-sidebar.wiki-content-toc {
-  grid-area: toc;
-  align-self: flex-start;
-}
-
-.repository.wiki .wiki-content-main {
-  grid-area: content;
+.repository.wiki .wiki-content-main.with-sidebar {
+  float: left;
+  width: 80%;
+  max-width: calc(100% - 150px - 1em); /* match the min-width of .wiki-content-sidebar */
 }
 
 .repository.wiki .wiki-content-sidebar {
-  grid-area: sidebar;
-  align-self: flex-start;
+  float: right;
+  width: calc(20% - 1em);
   min-width: 150px;
 }
 
@@ -66,7 +53,7 @@
 }
 
 .repository.wiki .wiki-content-toc ul ul {
-  border-left: 1px var(--color-secondary);
+  border-left:  1px var(--color-secondary);
   border-left-style: dashed;
 }
 
@@ -74,18 +61,9 @@
   .repository.wiki #clone-panel #repo-clone-url {
     width: 160px;
   }
-
-  .repository.wiki .wiki-content-parts.has-sidebar {
-    display: grid;
-    grid-template-areas:
-      "toc"
-      "content"
-      "sidebar";
-    grid-template-columns: 1fr;
-  }
-
   .repository.wiki .wiki-content-main.with-sidebar,
   .repository.wiki .wiki-content-sidebar {
+    float: none;
     width: 100%;
     min-width: unset;
     max-width: unset;
