@@ -350,13 +350,14 @@ func TestActionsArtifactOverwrite(t *testing.T) {
 		var listResp listArtifactsResponse
 		DecodeJSON(t, resp, &listResp)
 
-		var uploadedItem *listArtifactsResponseItem
+		var uploadedItem listArtifactsResponseItem
 		for _, item := range listResp.Value {
 			if item.Name == "artifact" {
-				uploadedItem = &item
+				uploadedItem = item
+				break
 			}
 		}
-		assert.NotNil(t, uploadedItem)
+		assert.Equal(t, uploadedItem.Name, "artifact")
 
 		idx := strings.Index(uploadedItem.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
 		url := uploadedItem.FileContainerResourceURL[idx+1:] + "?itemPath=artifact"
