@@ -1313,35 +1313,9 @@ func MergePullRequest(ctx *context.Context) {
 			return
 		}
 
-		pullRequestsToHead, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
-		if err != nil {
-			ctx.ServerError("GetUnmergedPullRequestsByBaseInfo", err)
+		if err := pull_service.RedirectOpenPullsToBaseBranch(ctx, pr, ctx.Doer); err != nil {
+			ctx.ServerError("RedirectOpenPulls", err)
 			return
-		}
-
-		for _, prToHead := range pullRequestsToHead {
-			if prToHead.BaseRepoID != pr.BaseRepoID {
-				continue
-			}
-
-			if err := prToHead.LoadIssue(ctx); err != nil {
-				ctx.ServerError(fmt.Sprintf("LoadIssueForPullRequest[%d]", prToHead.ID), err)
-				return
-			}
-
-			if prToHead.Issue.RepoID == pr.Issue.RepoID {
-				prToHead.Issue.Repo = pr.Issue.Repo
-			} else {
-				if err := prToHead.Issue.LoadRepo(ctx); err != nil {
-					ctx.ServerError(fmt.Sprintf("LoadRepoForIssue[%d]", prToHead.IssueID), err)
-					return
-				}
-			}
-
-			if err := pull_service.ChangeTargetBranch(ctx, prToHead, ctx.Doer, pr.BaseBranch); err != nil {
-				ctx.ServerError(fmt.Sprintf("ChangeTargetBranch[%d]", prToHead.ID), err)
-				return
-			}
 		}
 
 		var headRepo *git.Repository

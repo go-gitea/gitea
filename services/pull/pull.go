@@ -953,3 +953,36 @@ func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]Co
 
 	return commits, lastReviewCommitID, nil
 }
+
+// RedirectOpenPullsToBaseBranch redirects open pull requests to base branch of specified PR
+func RedirectOpenPullsToBaseBranch(ctx context.Context, basePR *issues_model.PullRequest, doer *user_model.User) error {
+	pullRequestsToHead, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, basePR.HeadRepoID, basePR.HeadBranch)
+	if err != nil {
+		return fmt.Errorf("failed to get unmerged pull requests: %w", err)
+	}
+
+	if err := issues_model.PullRequestList(pullRequestsToHead).LoadAttributes(ctx); err != nil {
+		return fmt.Errorf("failed to load attributes for pull requests: %w", err)
+	}
+
+	for _, prToHead := range pullRequestsToHead {
+		if prToHead.BaseRepoID != basePR.BaseRepoID {
+			continue
+		}
+
+		if prToHead.Issue.RepoID == basePR.Issue.RepoID {
+			prToHead.Issue.Repo = basePR.Issue.Repo
+		} else {
+			if err := prToHead.Issue.LoadRepo(ctx); err != nil {
+				return fmt.Errorf("failed to load repo for issue [%d]: %w", prToHead.IssueID, err)
+			}
+		}
+
+		if err := ChangeTargetBranch(ctx, prToHead, doer, basePR.BaseBranch); err != nil &&
+			!issues_model.IsErrPullRequestAlreadyExists(err) {
+			return fmt.Errorf("failed to change target branch for PR [%d]: %w", prToHead.ID, err)
+		}
+	}
+
+	return nil
+}

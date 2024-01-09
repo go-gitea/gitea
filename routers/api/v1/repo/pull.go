@@ -902,6 +902,11 @@ func MergePullRequest(ctx *context.APIContext) {
 			return
 		}
 
+		if err := pull_service.RedirectOpenPullsToBaseBranch(ctx, pr, ctx.Doer); err != nil {
+			ctx.ServerError("RedirectOpenPulls", err)
+			return
+		}
+
 		var headRepo *git.Repository
 		if ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == pr.HeadRepoID && ctx.Repo.GitRepo != nil {
 			headRepo = ctx.Repo.GitRepo
