@@ -1,37 +1,37 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content user signin openid">
 	{{template "user/auth/signin_navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
-		<h4 class="ui top attached header center">
-			{{svg "fontawesome-openid"}}
-			OpenID
-		</h4>
-		<div class="ui attached segment">
-			<form class="ui form" action="{{.Link}}" method="post">
-			{{.CsrfTokenHtml}}
-			<div class="inline field">
-				{{ctx.Locale.Tr "auth.openid_signin_desc"}}
-			</div>
-			<div class="required inline field {{if .Err_OpenID}}error{{end}}">
-				<label for="openid">
+	<div class="ui middle very relaxed page grid">
+		<div class="ui container column fluid">
+			{{template "base/alert" .}}
+			<h4 class="ui top attached header center">
 				{{svg "fontawesome-openid"}}
-				OpenID URI
-				</label>
-				<input id="openid" name="openid" value="{{.openid}}" autofocus required>
+				OpenID
+			</h4>
+			<div class="ui attached segment">
+				<form class="ui form gt-max-width-36rem gt-w-100 gt-m-auto" action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+					<div class="inline field">
+						{{ctx.Locale.Tr "auth.openid_signin_desc"}}
+					</div>
+					<div class="required inline field {{if .Err_OpenID}}error{{end}}">
+					<label for="openid">
+					{{svg "fontawesome-openid"}}
+					OpenID URI
+					</label>
+					<input id="openid" class="gt-w-100" name="openid" value="{{.openid}}" autofocus required>
+					</div>
+					<div class="inline field">
+						<div class="ui checkbox">
+							<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
+							<input name="remember" type="checkbox">
+						</div>
+					</div>
+					<div class="inline field">
+						<button class="ui primary button">{{ctx.Locale.Tr "sign_in"}}</button>
+					</div>
+				</form>
 			</div>
-			<div class="inline field">
-				<label></label>
-				<div class="ui checkbox">
-					<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
-					<input name="remember" type="checkbox">
-				</div>
-			</div>
-			<div class="inline field">
-				<label></label>
-				<button class="ui primary button">{{ctx.Locale.Tr "sign_in"}}</button>
-			</div>
-			</form>
 		</div>
 	</div>
 </div>

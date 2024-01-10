@@ -7,7 +7,26 @@
 		{{end}}
 	</h4>
 	<div class="ui attached segment">
-		<form class="ui form" action="{{.SignUpLink}}" method="post">
+		<form class="ui form gt-max-width-48rem gt-w-100 gt-m-auto" action="{{.SignUpLink}}" method="post">
+			{{if .OAuth2Providers}}
+			<div id="oauth2-login-navigator" class="gt-py-2">
+				<div class="gt-df gt-fc gt-jc">
+					<div id="oauth2-login-navigator-inner" class="gt-df gt-fc gt-fw gt-ac gt-gap-3">
+						{{range $provider := .OAuth2Providers}}
+							<a class="{{$provider.Name}} ui button gt-df gt-ac gt-jc gt-py-3 gt-max-width-36rem gt-w-100 oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$provider.DisplayName}}">
+								{{$provider.IconHTML 28}}
+								{{ctx.Locale.Tr "sign_in_with_provider" $provider.DisplayName}}
+							</a>
+						{{end}}
+					</div>
+				</div>
+			</div>
+
+			<div class="divider divider-text gt-mb-5 gt-mt-5">
+				{{ctx.Locale.Tr "sign_in_or"}}
+			</div>
+			{{end}}
+			<div class="gt-max-width-36rem gt-m-auto">
 			{{.CsrfTokenHtml}}
 			{{if or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister)}}
 			{{template "base/alert" .}}
@@ -17,28 +36,27 @@
 			{{else}}
 				<div class="required inline field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
 					<label for="user_name">{{ctx.Locale.Tr "username"}}</label>
-					<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
+					<input id="user_name" class="gt-w-100" type="text" name="user_name" value="{{.user_name}}" autofocus required>
 				</div>
 				<div class="required inline field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{ctx.Locale.Tr "email"}}</label>
-					<input id="email" name="email" type="email" value="{{.email}}" required>
+					<input id="email" class="gt-w-100" name="email" type="email" value="{{.email}}" required>
 				</div>
 
 				{{if not .DisablePassword}}
-					<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
-						<label for="password">{{ctx.Locale.Tr "password"}}</label>
-						<input id="password" name="password" type="password" value="{{.password}}" autocomplete="new-password" required>
-					</div>
-					<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
-						<label for="retype">{{ctx.Locale.Tr "re_type"}}</label>
-						<input id="retype" name="retype" type="password" value="{{.retype}}" autocomplete="new-password" required>
-					</div>
+				<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+					<label for="password">{{ctx.Locale.Tr "password"}}</label>
+					<input id="password" class="gt-w-100" name="password" type="password" value="{{.password}}" autocomplete="new-password" required>
+				</div>
+				<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+					<label for="retype">{{ctx.Locale.Tr "re_type"}}</label>
+					<input id="retype" class="gt-w-100" name="retype" type="password" value="{{.retype}}" autocomplete="new-password" required>
+				</div>
 				{{end}}
 
 				{{template "user/auth/captcha" .}}
 
 				<div class="inline field">
-					<label></label>
 					<button class="ui primary button">
 						{{if .LinkAccountMode}}
 							{{ctx.Locale.Tr "auth.oauth_signup_submit"}}
@@ -50,29 +68,11 @@
 
 				{{if not .LinkAccountMode}}
 				<div class="inline field">
-					<label></label>
 					<a href="{{AppSubUrl}}/user/login">{{ctx.Locale.Tr "auth.register_helper_msg"}}</a>
 				</div>
 				{{end}}
 			{{end}}
-
-			{{if .OAuth2Providers}}
-			<div class="divider divider-text">
-				{{ctx.Locale.Tr "sign_in_or"}}
 			</div>
-			<div id="oauth2-login-navigator" class="gt-py-2">
-				<div class="gt-df gt-fc gt-jc">
-					<div id="oauth2-login-navigator-inner" class="gt-df gt-fc gt-fw gt-ac gt-gap-3">
-						{{range $provider := .OAuth2Providers}}
-							<a class="{{$provider.Name}} ui button gt-df gt-ac gt-jc gt-py-3 oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$provider.DisplayName}}">
-								{{$provider.IconHTML 28}}
-								{{ctx.Locale.Tr "sign_in_with_provider" $provider.DisplayName}}
-							</a>
-						{{end}}
-					</div>
-				</div>
-			</div>
-			{{end}}
 		</form>
 	</div>
 </div>
