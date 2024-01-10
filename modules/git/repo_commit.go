@@ -148,6 +148,9 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) ([]*Co
 		cmd.AddArguments("--all")
 	}
 
+	// interpret search string keywords as string instead of regex
+	cmd.AddArguments("-F")
+
 	// add remaining keywords from search string
 	// note this is done only for command created above
 	if len(opts.Keywords) > 0 {
