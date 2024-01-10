@@ -231,6 +231,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `ONLY_SHOW_RELEVANT_REPOS`: **false**: Whether to only show relevant repos on the explore page when no keyword is specified and default sorting is used.
     A repo is considered irrelevant if it's a fork or if it has no metadata (no description, no icon, no topic).
 - `EXPLORE_PAGING_DEFAULT_SORT`: **recentupdate**: Change the sort type of the explore pages. Valid values are "recentupdate", "alphabetically", "reverselastlogin", "newest" and "oldest"
+- `PREFERRED_TIMESTAMP_TENSE`: **mixed**: The tense all timestamps should be rendered in. Possible values are `absolute` time (i.e. 1970-01-01, 11:59) and `mixed`. `mixed` means most timestamps are rendered in relative time (i.e. 2 days ago).
 
 ### UI - Admin (`ui.admin`)
 
@@ -429,6 +430,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `NAME`: **gitea**: Database name.
 - `USER`: **root**: Database username.
 - `PASSWD`: **_empty_**: Database user password. Use \`your password\` or """your password""" for quoting if you use special characters in the password.
+- `CHARSET_COLLATION`: **_empty_**: (MySQL/MSSQL only) Gitea expects to use a case-sensitive collation for database. Leave it empty to use the default collation decided by the Gitea. Don't change it unless you clearly know what you need.
 - `SCHEMA`: **_empty_**: For PostgreSQL only, schema to use if different from "public". The schema must exist beforehand,
   the user must have creation privileges on it, and the user search path must be set to the look into the schema first
   (e.g. `ALTER USER user SET SEARCH_PATH = schema_name,"$user",public;`).
@@ -595,9 +597,13 @@ And the following unique queues:
 - `OPENID_CONNECT_SCOPES`: **_empty_**: List of additional openid connect scopes. (`openid` is implicitly added)
 - `ENABLE_AUTO_REGISTRATION`: **false**: Automatically create user accounts for new oauth2 users.
 - `USERNAME`: **nickname**: The source of the username for new oauth2 accounts:
-  - userid - use the userid / sub attribute
-  - nickname - use the nickname attribute
-  - email - use the username part of the email attribute
+  - `userid` - use the userid / sub attribute
+  - `nickname` - use the nickname attribute
+  - `email` - use the username part of the email attribute
+  - Note: `nickname` and `email` options will normalize input strings using the following criteria:
+    - diacritics are removed
+    - the characters in the set `['´\x60]` are removed
+    - the characters in the set `[\s~+]` are replaced with `-`
 - `UPDATE_AVATAR`: **false**: Update avatar if available from oauth2 provider. Update will be performed on each login.
 - `ACCOUNT_LINKING`: **login**: How to handle if an account / email already exists:
   - disabled - show an error
@@ -1390,7 +1396,7 @@ PROXY_HOSTS = *.github.com
 - `DEFAULT_ACTIONS_URL`: **github**: Default platform to get action plugins, `github` for `https://github.com`, `self` for the current Gitea instance.
 - `STORAGE_TYPE`: **local**: Storage type for actions logs, `local` for local disk or `minio` for s3 compatible object storage service, default is `local` or other name defined with `[storage.xxx]`
 - `MINIO_BASE_PATH`: **actions_log/**: Minio base path on the bucket only available when STORAGE_TYPE is `minio`
-- `ARTIFACT_RETENTION_DAYS`: **90**: Default number of days to keep artifacts. This can be overridden in `actions/upload_artifact`. Set to 0 to disable artifact retention. Default is 90 days if not set. Each artifact can have it's own number of retention days.
+- `ARTIFACT_RETENTION_DAYS`: **90**: Default number of days to keep artifacts. Artifacts could have their own retention periods by setting the `retention-days` option in `actions/upload-artifact` step.
 - `ZOMBIE_TASK_TIMEOUT`: **10m**: Timeout to stop the task which have running status, but haven't been updated for a long time
 - `ENDLESS_TASK_TIMEOUT`: **3h**: Timeout to stop the tasks which have running status and continuous updates, but don't end for a long time
 - `ABANDONED_JOB_TIMEOUT`: **24h**: Timeout to cancel the jobs which have waiting status, but haven't been picked by a runner for a long time
