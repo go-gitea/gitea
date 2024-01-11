@@ -195,9 +195,7 @@ menu:
 ## 跨域 (`cors`)
 
 - `ENABLED`: **false**: 启用 CORS 头部（默认禁用）
-- `SCHEME`: **http**: 允许请求的协议
 - `ALLOW_DOMAIN`: **\***: 允许请求的域名列表
-- `ALLOW_SUBDOMAIN`: **false**: 允许上述列出的头部的子域名发出请求。
 - `METHODS`: **GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS**: 允许发起的请求方式列表
 - `MAX_AGE`: **10m**: 缓存响应的最大时间
 - `ALLOW_CREDENTIALS`: **false**: 允许带有凭据的请求
@@ -346,7 +344,7 @@ menu:
 - `SSH_PER_WRITE_TIMEOUT`: **30s**：对 SSH 连接的任何写入设置超时。（将其设置为 -1 可以禁用所有超时。）
 - `SSH_PER_WRITE_PER_KB_TIMEOUT`: **10s**：对写入 SSH 连接的每 KB 设置超时。
 - `MINIMUM_KEY_SIZE_CHECK`: **true**：指示是否检查最小密钥大小与相应类型。
-- `OFFLINE_MODE`: **false**：禁用 CDN 用于静态文件和 Gravatar 用于个人资料图片。
+- `OFFLINE_MODE`: **true**：禁用 CDN 用于静态文件和 Gravatar 用于个人资料图片。
 - `CERT_FILE`: **https/cert.pem**：用于 HTTPS 的证书文件路径。在链接时，服务器证书必须首先出现，然后是中间 CA 证书（如果有）。如果 `ENABLE_ACME=true`，则此设置会被忽略。路径相对于 `CUSTOM_PATH`。
 - `KEY_FILE`: **https/key.pem**：用于 HTTPS 的密钥文件路径。如果 `ENABLE_ACME=true`，则此设置会被忽略。路径相对于 `CUSTOM_PATH`。
 - `STATIC_ROOT_PATH`: **_`StaticRootPath`_**：模板和静态文件路径的上一级。
@@ -989,7 +987,7 @@ Gitea 创建以下非唯一队列：
 - `LAST_UPDATED_MORE_THAN_AGO`: **72h**: 只会尝试回收超过此时间（默认3天）没有尝试过回收的 LFSMetaObject。
 - `NUMBER_TO_CHECK_PER_REPO`: **100**: 每个仓库要检查的过期 LFSMetaObject 的最小数量。设置为 `0` 以始终检查所有。
 
-# Git (`git`)
+## Git (`git`)
 
 - `PATH`: **""**: Git可执行文件的路径。如果为空，Gitea将在PATH环境中搜索。
 - `HOME_PATH`: **%(APP_DATA_PATH)s/home**: Git的HOME目录。
@@ -1335,8 +1333,8 @@ PROXY_HOSTS = *.github.com
 - `MINIO_BASE_PATH`: **actions_log/**：Minio存储桶上的基本路径，仅在`STORAGE_TYPE`为`minio`时可用。
 
 `DEFAULT_ACTIONS_URL` 指示 Gitea 操作运行程序应该在哪里找到带有相对路径的操作。
-例如，`uses: actions/checkout@v3` 表示 `https://github.com/actions/checkout@v3`，因为 `DEFAULT_ACTIONS_URL` 的值为 `github`。
-它可以更改为 `self`，以使其成为 `root_url_of_your_gitea/actions/checkout@v3`。
+例如，`uses: actions/checkout@v4` 表示 `https://github.com/actions/checkout@v4`，因为 `DEFAULT_ACTIONS_URL` 的值为 `github`。
+它可以更改为 `self`，以使其成为 `root_url_of_your_gitea/actions/checkout@v4`。
 
 请注意，对于大多数情况，不建议使用 `self`，因为它可能使名称在全局范围内产生歧义。
 此外，它要求您将所有所需的操作镜像到您的 Gitea 实例，这可能不值得。
@@ -1345,7 +1343,7 @@ PROXY_HOSTS = *.github.com
 在早期版本（`<= 1.19`）中，`DEFAULT_ACTIONS_URL` 可以设置为任何自定义 URL，例如 `https://gitea.com` 或 `http://your-git-server,https://gitea.com`，默认值为 `https://gitea.com`。
 然而，后来的更新删除了这些选项，现在唯一的选项是 `github` 和 `self`，默认值为 `github`。
 但是，如果您想要使用其他 Git 服务器中的操作，您可以在 `uses` 字段中使用完整的 URL，Gitea 支持此功能（GitHub 不支持）。
-例如 `uses: https://gitea.com/actions/checkout@v3` 或 `uses: http://your-git-server/actions/checkout@v3`。
+例如 `uses: https://gitea.com/actions/checkout@v4` 或 `uses: http://your-git-server/actions/checkout@v4`。
 
 ## 其他 (`other`)
 

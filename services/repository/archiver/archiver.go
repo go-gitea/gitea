@@ -177,7 +177,7 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 			CommitID: r.CommitID,
 			Status:   repo_model.ArchiverGenerating,
 		}
-		if err := repo_model.AddRepoArchiver(ctx, archiver); err != nil {
+		if err := db.Insert(ctx, archiver); err != nil {
 			return nil, err
 		}
 	}
@@ -309,7 +309,7 @@ func StartArchive(request *ArchiveRequest) error {
 }
 
 func deleteOldRepoArchiver(ctx context.Context, archiver *repo_model.RepoArchiver) error {
-	if err := repo_model.DeleteRepoArchiver(ctx, archiver); err != nil {
+	if _, err := db.DeleteByID[repo_model.RepoArchiver](ctx, archiver.ID); err != nil {
 		return err
 	}
 	p := archiver.RelativePath()

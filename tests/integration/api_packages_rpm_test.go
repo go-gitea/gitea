@@ -105,8 +105,8 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
 		MakeRequest(t, req, http.StatusUnauthorized)
 
-		req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
-		req = AddBasicAuthHeader(req, user.Name)
+		req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeRpm)
@@ -130,8 +130,8 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 		assert.NoError(t, err)
 		assert.Equal(t, int64(len(content)), pb.Size)
 
-		req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
-		req = AddBasicAuthHeader(req, user.Name)
+		req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusConflict)
 	})
 
@@ -404,16 +404,16 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 		req := NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture))
 		MakeRequest(t, req, http.StatusUnauthorized)
 
-		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture))
-		req = AddBasicAuthHeader(req, user.Name)
+		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNoContent)
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeRpm)
 		assert.NoError(t, err)
 		assert.Empty(t, pvs)
 
-		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture))
-		req = AddBasicAuthHeader(req, user.Name)
+		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture)).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 }

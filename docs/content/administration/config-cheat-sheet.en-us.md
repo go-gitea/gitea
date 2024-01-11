@@ -196,9 +196,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 ## CORS (`cors`)
 
 - `ENABLED`: **false**: enable cors headers (disabled by default)
-- `SCHEME`: **http**: scheme of allowed requests
-- `ALLOW_DOMAIN`: **\***: list of requesting domains that are allowed
-- `ALLOW_SUBDOMAIN`: **false**: allow subdomains of headers listed above to request
+- `ALLOW_DOMAIN`: **\***: list of requesting origins that are allowed, eg: "https://*.example.com"
 - `METHODS`: **GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS**: list of methods allowed to request
 - `MAX_AGE`: **10m**: max time to cache response
 - `ALLOW_CREDENTIALS`: **false**: allow request with credentials
@@ -233,6 +231,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `ONLY_SHOW_RELEVANT_REPOS`: **false**: Whether to only show relevant repos on the explore page when no keyword is specified and default sorting is used.
     A repo is considered irrelevant if it's a fork or if it has no metadata (no description, no icon, no topic).
 - `EXPLORE_PAGING_DEFAULT_SORT`: **recentupdate**: Change the sort type of the explore pages. Valid values are "recentupdate", "alphabetically", "reverselastlogin", "newest" and "oldest"
+- `PREFERRED_TIMESTAMP_TENSE`: **mixed**: The tense all timestamps should be rendered in. Possible values are `absolute` time (i.e. 1970-01-01, 11:59) and `mixed`. `mixed` means most timestamps are rendered in relative time (i.e. 2 days ago).
 
 ### UI - Admin (`ui.admin`)
 
@@ -357,7 +356,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SSH_PER_WRITE_PER_KB_TIMEOUT`: **10s**: Timeout per Kb written to SSH connections.
 - `MINIMUM_KEY_SIZE_CHECK`: **true**: Indicate whether to check minimum key size with corresponding type.
 
-- `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.
+- `OFFLINE_MODE`: **true**: Disables use of CDN for static files and Gravatar for profile pictures.
 - `CERT_FILE`: **https/cert.pem**: Cert file path used for HTTPS. When chaining, the server certificate must come first, then intermediate CA certificates (if any). This is ignored if `ENABLE_ACME=true`. Paths are relative to `CUSTOM_PATH`.
 - `KEY_FILE`: **https/key.pem**: Key file path used for HTTPS. This is ignored if `ENABLE_ACME=true`. Paths are relative to `CUSTOM_PATH`.
 - `STATIC_ROOT_PATH`: **_`StaticRootPath`_**: Upper level of template and static files path.
@@ -431,6 +430,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `NAME`: **gitea**: Database name.
 - `USER`: **root**: Database username.
 - `PASSWD`: **_empty_**: Database user password. Use \`your password\` or """your password""" for quoting if you use special characters in the password.
+- `CHARSET_COLLATION`: **_empty_**: (MySQL/MSSQL only) Gitea expects to use a case-sensitive collation for database. Leave it empty to use the default collation decided by the Gitea. Don't change it unless you clearly know what you need.
 - `SCHEMA`: **_empty_**: For PostgreSQL only, schema to use if different from "public". The schema must exist beforehand,
   the user must have creation privileges on it, and the user search path must be set to the look into the schema first
   (e.g. `ALTER USER user SET SEARCH_PATH = schema_name,"$user",public;`).
@@ -597,9 +597,13 @@ And the following unique queues:
 - `OPENID_CONNECT_SCOPES`: **_empty_**: List of additional openid connect scopes. (`openid` is implicitly added)
 - `ENABLE_AUTO_REGISTRATION`: **false**: Automatically create user accounts for new oauth2 users.
 - `USERNAME`: **nickname**: The source of the username for new oauth2 accounts:
-  - userid - use the userid / sub attribute
-  - nickname - use the nickname attribute
-  - email - use the username part of the email attribute
+  - `userid` - use the userid / sub attribute
+  - `nickname` - use the nickname attribute
+  - `email` - use the username part of the email attribute
+  - Note: `nickname` and `email` options will normalize input strings using the following criteria:
+    - diacritics are removed
+    - the characters in the set `['´\x60]` are removed
+    - the characters in the set `[\s~+]` are replaced with `-`
 - `UPDATE_AVATAR`: **false**: Update avatar if available from oauth2 provider. Update will be performed on each login.
 - `ACCOUNT_LINKING`: **login**: How to handle if an account / email already exists:
   - disabled - show an error
@@ -1392,15 +1396,15 @@ PROXY_HOSTS = *.github.com
 - `DEFAULT_ACTIONS_URL`: **github**: Default platform to get action plugins, `github` for `https://github.com`, `self` for the current Gitea instance.
 - `STORAGE_TYPE`: **local**: Storage type for actions logs, `local` for local disk or `minio` for s3 compatible object storage service, default is `local` or other name defined with `[storage.xxx]`
 - `MINIO_BASE_PATH`: **actions_log/**: Minio base path on the bucket only available when STORAGE_TYPE is `minio`
-- `ARTIFACT_RETENTION_DAYS`: **90**: Number of days to keep artifacts. Set to 0 to disable artifact retention. Default is 90 days if not set.
+- `ARTIFACT_RETENTION_DAYS`: **90**: Default number of days to keep artifacts. Artifacts could have their own retention periods by setting the `retention-days` option in `actions/upload-artifact` step.
 - `ZOMBIE_TASK_TIMEOUT`: **10m**: Timeout to stop the task which have running status, but haven't been updated for a long time
 - `ENDLESS_TASK_TIMEOUT`: **3h**: Timeout to stop the tasks which have running status and continuous updates, but don't end for a long time
 - `ABANDONED_JOB_TIMEOUT`: **24h**: Timeout to cancel the jobs which have waiting status, but haven't been picked by a runner for a long time
 - `SKIP_WORKFLOW_STRINGS`: **[skip ci],[ci skip],[no ci],[skip actions],[actions skip]**: Strings committers can place inside a commit message to skip executing the corresponding actions workflow
 
 `DEFAULT_ACTIONS_URL` indicates where the Gitea Actions runners should find the actions with relative path.
-For example, `uses: actions/checkout@v3` means `https://github.com/actions/checkout@v3` since the value of `DEFAULT_ACTIONS_URL` is `github`.
-And it can be changed to `self` to make it `root_url_of_your_gitea/actions/checkout@v3`.
+For example, `uses: actions/checkout@v4` means `https://github.com/actions/checkout@v4` since the value of `DEFAULT_ACTIONS_URL` is `github`.
+And it can be changed to `self` to make it `root_url_of_your_gitea/actions/checkout@v4`.
 
 Please note that using `self` is not recommended for most cases, as it could make names globally ambiguous.
 Additionally, it requires you to mirror all the actions you need to your Gitea instance, which may not be worth it.
@@ -1409,7 +1413,7 @@ Therefore, please use `self` only if you understand what you are doing.
 In earlier versions (`<= 1.19`), `DEFAULT_ACTIONS_URL` could be set to any custom URLs like `https://gitea.com` or `http://your-git-server,https://gitea.com`, and the default value was `https://gitea.com`.
 However, later updates removed those options, and now the only options are `github` and `self`, with the default value being `github`.
 However, if you want to use actions from other git server, you can use a complete URL in `uses` field, it's supported by Gitea (but not GitHub).
-Like `uses: https://gitea.com/actions/checkout@v3` or `uses: http://your-git-server/actions/checkout@v3`.
+Like `uses: https://gitea.com/actions/checkout@v4` or `uses: http://your-git-server/actions/checkout@v4`.
 
 ## Other (`other`)
 
