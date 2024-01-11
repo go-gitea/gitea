@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -25,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
+	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 const (
@@ -479,10 +481,11 @@ func AddBoardToProjectPost(ctx *context.Context) {
 	}
 
 	if err := project_model.NewBoard(ctx, &project_model.Board{
-		ProjectID: project.ID,
-		Title:     form.Title,
-		Color:     form.Color,
-		CreatorID: ctx.Doer.ID,
+		ProjectID:        project.ID,
+		Title:            form.Title,
+		Color:            form.Color,
+		CreatorID:        ctx.Doer.ID,
+		CloseIssueOnMove: form.Close,
 	}); err != nil {
 		ctx.ServerError("NewProjectBoard", err)
 		return
@@ -690,6 +693,20 @@ func MoveIssues(ctx *context.Context) {
 	if err = project_model.MoveIssuesOnProjectBoard(ctx, board, sortedIssueIDs); err != nil {
 		ctx.ServerError("MoveIssuesOnProjectBoard", err)
 		return
+	}
+
+	if board.CloseIssueOnMove {
+		issueID, err := strconv.ParseInt(ctx.FormString("issueID"), 10, 64)
+		if err != nil {
+			ctx.ServerError("moved issueID is required", err)
+			return
+		}
+
+		err = issue_service.CloseIssue(ctx, issueID)
+		if err != nil {
+			ctx.ServerError("MoveIssuesOnProjectBoard unable to close issue", err)
+			return
+		}
 	}
 
 	ctx.JSONOK()

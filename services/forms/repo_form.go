@@ -538,6 +538,7 @@ type EditProjectBoardForm struct {
 	Title   string `binding:"Required;MaxSize(100)"`
 	Sorting int8
 	Color   string `binding:"MaxSize(7)"`
+	Close   bool
 }
 
 //    _____  .__.__                   __

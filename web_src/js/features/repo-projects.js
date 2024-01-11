@@ -11,10 +11,10 @@ function updateIssueCount(cards) {
   parent.getElementsByClassName('project-column-issue-count')[0].textContent = cnt;
 }
 
-function createNewColumn(url, columnTitle, projectColorInput) {
+function createNewColumn(url, columnTitle, projectColorInput, closeOnIssueMove) {
   $.ajax({
     url,
-    data: JSON.stringify({title: columnTitle.val(), color: projectColorInput.val()}),
+    data: JSON.stringify({title: columnTitle.val(), color: projectColorInput.val(),close: closeOnIssueMove.prop('checked')}),
     headers: {
       'X-Csrf-Token': csrfToken,
     },
@@ -39,7 +39,7 @@ function moveIssue({item, from, to, oldIndex}) {
   };
 
   $.ajax({
-    url: `${to.getAttribute('data-url')}/move`,
+    url: `${to.getAttribute('data-url')}/move?issueID=${item.getAttribute('data-issue')}`,
     data: JSON.stringify(columnSorting),
     headers: {
       'X-Csrf-Token': csrfToken,
@@ -187,11 +187,12 @@ export function initRepoProject() {
     e.preventDefault();
     const columnTitle = $('#new_project_column');
     const projectColorInput = $('#new_project_column_color_picker');
+    const closeOnIssueMove = $('#new_project_column_project_close_on_move');
     if (!columnTitle.val()) {
       return;
     }
     const url = $(this).data('url');
-    createNewColumn(url, columnTitle, projectColorInput);
+    createNewColumn(url, columnTitle, projectColorInput, closeOnIssueMove);
   });
 }
 

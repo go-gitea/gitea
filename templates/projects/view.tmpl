@@ -48,6 +48,15 @@
 							</div>
 						</div>
 
+						<div class="field">
+							<label for="new_project_column_project_close_on_move">Close Issue on Move</label>
+							<div>
+								<input  
+								type="checkbox" name="new_project_column_project_close_on_move" id="new_project_column_project_close_on_move" class="gt-mb-4"
+								>
+							</div>
+						</div>
+
 						<div class="text right actions">
 							<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
 							<button data-url="{{$.Link}}" class="ui primary button" id="new_project_column_submit">{{ctx.Locale.Tr "repo.projects.column.new_submit"}}</button>
@@ -128,7 +137,7 @@
 													{{template "repo/issue/label_precolors"}}
 												</div>
 											</div>
-
+											
 											<div class="text right actions">
 												<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
 												<button data-url="{{$.Link}}/{{.ID}}" class="ui primary button edit-project-column-button">{{ctx.Locale.Tr "repo.projects.column.edit"}}</button>
