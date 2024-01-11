@@ -66,6 +66,10 @@ func Test_getPostgreSQLConnectionString(t *testing.T) {
 		Output  string
 	}{
 		{
+			Host:   "", // empty means default
+			Output: "postgres://:@127.0.0.1:5432?sslmode=",
+		},
+		{
 			Host:    "/tmp/pg.sock",
 			User:    "testuser",
 			Passwd:  "space space !#$%^^%^```-=?=",
