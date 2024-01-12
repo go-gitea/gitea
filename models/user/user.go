@@ -10,8 +10,10 @@ import (
 	"fmt"
 	"net/url"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
+	"unicode"
 
 	_ "image/jpeg" // Needed for jpeg support
 
@@ -29,6 +31,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
+	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 	"xorm.io/builder"
 )
 
@@ -515,6 +520,26 @@ func GetUserSalt() (string, error) {
 	return hex.EncodeToString(rBytes), nil
 }
 
+// Note: The set of characters here can safely expand without a breaking change,
+// but characters removed from this set can cause user account linking to break
+var (
+	customCharsReplacement    = strings.NewReplacer("Æ", "AE")
+	removeCharsRE             = regexp.MustCompile(`['´\x60]`)
+	removeDiacriticsTransform = transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
+	replaceCharsHyphenRE      = regexp.MustCompile(`[\s~+]`)
+)
+
+// normalizeUserName returns a string with single-quotes and diacritics
+// removed, and any other non-supported username characters replaced with
+// a `-` character
+func NormalizeUserName(s string) (string, error) {
+	strDiacriticsRemoved, n, err := transform.String(removeDiacriticsTransform, customCharsReplacement.Replace(s))
+	if err != nil {
+		return "", fmt.Errorf("Failed to normalize character `%v` in provided username `%v`", s[n], s)
+	}
+	return replaceCharsHyphenRE.ReplaceAllLiteralString(removeCharsRE.ReplaceAllLiteralString(strDiacriticsRemoved, ""), "-"), nil
+}
+
 var (
 	reservedUsernames = []string{
 		".",
@@ -933,7 +958,7 @@ func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 // GetPossibleUserByID returns the user if id > 0 or return system usrs if id < 0
 func GetPossibleUserByID(ctx context.Context, id int64) (*User, error) {
 	switch id {
-	case -1:
+	case GhostUserID:
 		return NewGhostUser(), nil
 	case ActionsUserID:
 		return NewActionsUser(), nil
@@ -949,7 +974,7 @@ func GetPossibleUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	uniqueIDs := container.SetOf(ids...)
 	users := make([]*User, 0, len(ids))
 	_ = uniqueIDs.Remove(0)
-	if uniqueIDs.Remove(-1) {
+	if uniqueIDs.Remove(GhostUserID) {
 		users = append(users, NewGhostUser())
 	}
 	if uniqueIDs.Remove(ActionsUserID) {

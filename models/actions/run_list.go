@@ -75,7 +75,7 @@ type FindRunOptions struct {
 	Status        []Status
 }
 
-func (opts FindRunOptions) toConds() builder.Cond {
+func (opts FindRunOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
@@ -101,18 +101,8 @@ func (opts FindRunOptions) toConds() builder.Cond {
 	return cond
 }
 
-func FindRuns(ctx context.Context, opts FindRunOptions) (RunList, int64, error) {
-	e := db.GetEngine(ctx).Where(opts.toConds())
-	if opts.PageSize > 0 && opts.Page >= 1 {
-		e.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-	}
-	var runs RunList
-	total, err := e.Desc("id").FindAndCount(&runs)
-	return runs, total, err
-}
-
-func CountRuns(ctx context.Context, opts FindRunOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(ActionRun))
+func (opts FindRunOptions) ToOrders() string {
+	return "`id` DESC"
 }
 
 type StatusInfo struct {

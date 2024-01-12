@@ -1358,23 +1358,6 @@ img.ui.avatar,
   padding-right: 4.5px;
 }
 
-.repo-title {
-  font-size: 1.5rem;
-  display: flex;
-  align-items: center;
-  flex: 1;
-  word-break: break-all;
-  color: var(--color-text-light);
-}
-
-.repo-title .labels {
-  margin-left: 0.5rem;
-}
-
-.repo-title .labels > * + * {
-  margin-left: 0.5rem;
-}
-
 .activity-bar-graph {
   background-color: var(--color-primary);
   color: var(--color-primary-contrast);
@@ -1411,6 +1394,7 @@ img.ui.avatar,
 .ui.label {
   padding: 0.3em 0.5em;
   transition: none;
+  white-space: nowrap;
 }
 
 .ui.label,
@@ -1952,7 +1936,7 @@ table th[data-sortt-desc] .svg {
   height: 15px;
 }
 
-.ui.dropdown {
+.ui.dropdown:not(.button) {
   line-height: var(--line-height-default); /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
 }
 

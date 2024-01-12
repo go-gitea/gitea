@@ -75,7 +75,7 @@ func SettingsPost(ctx *context.Context) {
 
 	// Check if organization name has been changed.
 	if nameChanged {
-		err := org_service.RenameOrganization(ctx, org, form.Name)
+		err := user_service.RenameUser(ctx, org.AsUser(), form.Name)
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["OrgName"] = true
@@ -124,7 +124,7 @@ func SettingsPost(ctx *context.Context) {
 
 	// update forks visibility
 	if visibilityChanged {
-		repos, _, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
+		repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
 			Actor: org.AsUser(), Private: true, ListOptions: db.ListOptions{Page: 1, PageSize: org.NumRepos},
 		})
 		if err != nil {
@@ -180,7 +180,7 @@ func SettingsDelete(ctx *context.Context) {
 			return
 		}
 
-		if err := org_service.DeleteOrganization(ctx.Org.Organization); err != nil {
+		if err := org_service.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
 			if models.IsErrUserOwnRepos(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
@@ -215,7 +215,7 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["BaseLinkNew"] = ctx.Org.OrgLink + "/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("org.settings.hooks_desc")
 
-	ws, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{OwnerID: ctx.Org.Organization.ID})
+	ws, err := db.Find[webhook.Webhook](ctx, webhook.ListWebhookOptions{OwnerID: ctx.Org.Organization.ID})
 	if err != nil {
 		ctx.ServerError("ListWebhooksByOpts", err)
 		return

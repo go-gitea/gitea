@@ -6,9 +6,9 @@ package setting
 import (
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -35,6 +35,7 @@ var (
 		Path              string
 		LogSQL            bool
 		MysqlCharset      string
+		CharsetCollation  string
 		Timeout           int // seconds
 		SQLiteJournalMode string
 		DBConnectRetries  int
@@ -67,7 +68,7 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	}
 	Database.Schema = sec.Key("SCHEMA").String()
 	Database.SSLMode = sec.Key("SSL_MODE").MustString("disable")
-	Database.MysqlCharset = sec.Key("MYSQL_CHARSET").MustString("utf8mb4") // do not document it, end users won't need it.
+	Database.CharsetCollation = sec.Key("CHARSET_COLLATION").String()
 
 	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
 	Database.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
@@ -105,10 +106,10 @@ func DBConnStr() (string, error) {
 		if tls == "disable" { // allow (Postgres-inspired) default value to work in MySQL
 			tls = "false"
 		}
-		connStr = fmt.Sprintf("%s:%s@%s(%s)/%s%scharset=%s&parseTime=true&tls=%s",
-			Database.User, Database.Passwd, connType, Database.Host, Database.Name, paramSep, Database.MysqlCharset, tls)
+		connStr = fmt.Sprintf("%s:%s@%s(%s)/%s%sparseTime=true&tls=%s",
+			Database.User, Database.Passwd, connType, Database.Host, Database.Name, paramSep, tls)
 	case "postgres":
-		connStr = getPostgreSQLConnectionString(Database.Host, Database.User, Database.Passwd, Database.Name, paramSep, Database.SSLMode)
+		connStr = getPostgreSQLConnectionString(Database.Host, Database.User, Database.Passwd, Database.Name, Database.SSLMode)
 	case "mssql":
 		host, port := ParseMSSQLHostPort(Database.Host)
 		connStr = fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;", host, port, Database.Name, Database.User, Database.Passwd)
@@ -116,7 +117,7 @@ func DBConnStr() (string, error) {
 		if !EnableSQLite3 {
 			return "", errors.New("this Gitea binary was not built with SQLite3 support")
 		}
-		if err := os.MkdirAll(path.Dir(Database.Path), os.ModePerm); err != nil {
+		if err := os.MkdirAll(filepath.Dir(Database.Path), os.ModePerm); err != nil {
 			return "", fmt.Errorf("Failed to create directories: %w", err)
 		}
 		journalMode := ""
@@ -135,15 +136,18 @@ func DBConnStr() (string, error) {
 // parsePostgreSQLHostPort parses given input in various forms defined in
 // https://www.postgresql.org/docs/current/static/libpq-connect.html#LIBPQ-CONNSTRING
 // and returns proper host and port number.
-func parsePostgreSQLHostPort(info string) (string, string) {
-	host, port := "127.0.0.1", "5432"
-	if strings.Contains(info, ":") && !strings.HasSuffix(info, "]") {
-		idx := strings.LastIndex(info, ":")
-		host = info[:idx]
-		port = info[idx+1:]
-	} else if len(info) > 0 {
+func parsePostgreSQLHostPort(info string) (host, port string) {
+	if h, p, err := net.SplitHostPort(info); err == nil {
+		host, port = h, p
+	} else {
+		// treat the "info" as "host", if it's an IPv6 address, remove the wrapper
 		host = info
+		if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
+			host = host[1 : len(host)-1]
+		}
 	}
+
+	// set fallback values
 	if host == "" {
 		host = "127.0.0.1"
 	}
@@ -153,16 +157,25 @@ func parsePostgreSQLHostPort(info string) (string, string) {
 	return host, port
 }
 
-func getPostgreSQLConnectionString(dbHost, dbUser, dbPasswd, dbName, dbParam, dbsslMode string) (connStr string) {
+func getPostgreSQLConnectionString(dbHost, dbUser, dbPasswd, dbName, dbsslMode string) (connStr string) {
+	dbName, dbParam, _ := strings.Cut(dbName, "?")
 	host, port := parsePostgreSQLHostPort(dbHost)
-	if host[0] == '/' { // looks like a unix socket
-		connStr = fmt.Sprintf("postgres://%s:%s@:%s/%s%ssslmode=%s&host=%s",
-			url.PathEscape(dbUser), url.PathEscape(dbPasswd), port, dbName, dbParam, dbsslMode, host)
-	} else {
-		connStr = fmt.Sprintf("postgres://%s:%s@%s:%s/%s%ssslmode=%s",
-			url.PathEscape(dbUser), url.PathEscape(dbPasswd), host, port, dbName, dbParam, dbsslMode)
+	connURL := url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword(dbUser, dbPasswd),
+		Host:     net.JoinHostPort(host, port),
+		Path:     dbName,
+		OmitHost: false,
+		RawQuery: dbParam,
 	}
-	return connStr
+	query := connURL.Query()
+	if strings.HasPrefix(dbHost, "/") { // looks like a unix socket
+		query.Add("host", dbHost)
+		connURL.Host = ":" + port
+	}
+	query.Set("sslmode", dbsslMode)
+	connURL.RawQuery = query.Encode()
+	return connURL.String()
 }
 
 // ParseMSSQLHostPort splits the host into host and port

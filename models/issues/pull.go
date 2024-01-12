@@ -78,24 +78,6 @@ func (err ErrPullRequestAlreadyExists) Unwrap() error {
 	return util.ErrAlreadyExist
 }
 
-// ErrPullRequestHeadRepoMissing represents a "ErrPullRequestHeadRepoMissing" error
-type ErrPullRequestHeadRepoMissing struct {
-	ID         int64
-	HeadRepoID int64
-}
-
-// IsErrErrPullRequestHeadRepoMissing checks if an error is a ErrPullRequestHeadRepoMissing.
-func IsErrErrPullRequestHeadRepoMissing(err error) bool {
-	_, ok := err.(ErrPullRequestHeadRepoMissing)
-	return ok
-}
-
-// Error does pretty-printing :D
-func (err ErrPullRequestHeadRepoMissing) Error() string {
-	return fmt.Sprintf("pull request head repo missing [id: %d, head_repo_id: %d]",
-		err.ID, err.HeadRepoID)
-}
-
 // ErrPullWasClosed is used close a closed pull request
 type ErrPullWasClosed struct {
 	ID    int64
@@ -272,7 +254,7 @@ func (pr *PullRequest) LoadAttributes(ctx context.Context) (err error) {
 	if pr.HasMerged && pr.Merger == nil {
 		pr.Merger, err = user_model.GetUserByID(ctx, pr.MergerID)
 		if user_model.IsErrUserNotExist(err) {
-			pr.MergerID = -1
+			pr.MergerID = user_model.GhostUserID
 			pr.Merger = user_model.NewGhostUser()
 		} else if err != nil {
 			return fmt.Errorf("getUserByID [%d]: %w", pr.MergerID, err)
@@ -660,13 +642,10 @@ func GetPullRequestByIssueIDWithNoAttributes(ctx context.Context, issueID int64)
 
 // GetPullRequestByIssueID returns pull request by given issue ID.
 func GetPullRequestByIssueID(ctx context.Context, issueID int64) (*PullRequest, error) {
-	pr := &PullRequest{
-		IssueID: issueID,
-	}
-	has, err := db.GetByBean(ctx, pr)
+	pr, exist, err := db.Get[PullRequest](ctx, builder.Eq{"issue_id": issueID})
 	if err != nil {
 		return nil, err
-	} else if !has {
+	} else if !exist {
 		return nil, ErrPullRequestNotExist{0, issueID, 0, 0, "", ""}
 	}
 	return pr, pr.LoadAttributes(ctx)
@@ -759,18 +738,6 @@ func (pr *PullRequest) UpdateCommitDivergence(ctx context.Context, ahead, behind
 // IsSameRepo returns true if base repo and head repo is the same
 func (pr *PullRequest) IsSameRepo() bool {
 	return pr.BaseRepoID == pr.HeadRepoID
-}
-
-// GetPullRequestsByHeadBranch returns all prs by head branch
-// Since there could be multiple prs with the same head branch, this function returns a slice of prs
-func GetPullRequestsByHeadBranch(ctx context.Context, headBranch string, headRepoID int64) ([]*PullRequest, error) {
-	log.Trace("GetPullRequestsByHeadBranch: headBranch: '%s', headRepoID: '%d'", headBranch, headRepoID)
-	prs := make([]*PullRequest, 0, 2)
-	if err := db.GetEngine(ctx).Where(builder.Eq{"head_branch": headBranch, "head_repo_id": headRepoID}).
-		Find(&prs); err != nil {
-		return nil, err
-	}
-	return prs, nil
 }
 
 // GetBaseBranchLink returns the relative URL of the base branch

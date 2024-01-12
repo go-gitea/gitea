@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -130,7 +131,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 	ctxUser.UseCustomAvatar = form.Source == forms.AvatarLocal
 	if len(form.Gravatar) > 0 {
 		if form.Avatar != nil {
-			ctxUser.Avatar = base.EncodeMD5(form.Gravatar)
+			ctxUser.Avatar = avatars.HashEmail(form.Gravatar)
 		} else {
 			ctxUser.Avatar = ""
 		}
@@ -214,16 +215,12 @@ func Organization(ctx *context.Context) {
 		opts.Page = 1
 	}
 
-	orgs, err := organization.FindOrgs(ctx, opts)
+	orgs, total, err := db.FindAndCount[organization.Organization](ctx, opts)
 	if err != nil {
 		ctx.ServerError("FindOrgs", err)
 		return
 	}
-	total, err := organization.CountOrgs(ctx, opts)
-	if err != nil {
-		ctx.ServerError("CountOrgs", err)
-		return
-	}
+
 	ctx.Data["Orgs"] = orgs
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
@@ -287,7 +284,7 @@ func Repos(ctx *context.Context) {
 			return
 		}
 
-		userRepos, _, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
+		userRepos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
 			Actor:   ctxUser,
 			Private: true,
 			ListOptions: db.ListOptions{
@@ -312,7 +309,7 @@ func Repos(ctx *context.Context) {
 		ctx.Data["Dirs"] = repoNames
 		ctx.Data["ReposMap"] = repos
 	} else {
-		repos, count64, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: opts})
+		repos, count64, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: opts})
 		if err != nil {
 			ctx.ServerError("GetUserRepositories", err)
 			return

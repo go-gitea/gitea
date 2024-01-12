@@ -527,12 +527,13 @@ func ActivateUserEmail(ctx context.Context, userID int64, email string, activate
 
 	// Activate/deactivate a user's secondary email address
 	// First check if there's another user active with the same address
-	addr := EmailAddress{UID: userID, LowerEmail: strings.ToLower(email)}
-	if has, err := db.GetByBean(ctx, &addr); err != nil {
+	addr, exist, err := db.Get[EmailAddress](ctx, builder.Eq{"uid": userID, "lower_email": strings.ToLower(email)})
+	if err != nil {
 		return err
-	} else if !has {
+	} else if !exist {
 		return fmt.Errorf("no such email: %d (%s)", userID, email)
 	}
+
 	if addr.IsActivated == activate {
 		// Already in the desired state; no action
 		return nil
@@ -544,25 +545,26 @@ func ActivateUserEmail(ctx context.Context, userID int64, email string, activate
 			return ErrEmailAlreadyUsed{Email: email}
 		}
 	}
-	if err = updateActivation(ctx, &addr, activate); err != nil {
+	if err = updateActivation(ctx, addr, activate); err != nil {
 		return fmt.Errorf("unable to updateActivation() for %d:%s: %w", addr.ID, addr.Email, err)
 	}
 
 	// Activate/deactivate a user's primary email address and account
 	if addr.IsPrimary {
-		user := User{ID: userID, Email: email}
-		if has, err := db.GetByBean(ctx, &user); err != nil {
+		user, exist, err := db.Get[User](ctx, builder.Eq{"id": userID, "email": email})
+		if err != nil {
 			return err
-		} else if !has {
+		} else if !exist {
 			return fmt.Errorf("no user with ID: %d and Email: %s", userID, email)
 		}
+
 		// The user's activation state should be synchronized with the primary email
 		if user.IsActive != activate {
 			user.IsActive = activate
 			if user.Rands, err = GetUserSalt(); err != nil {
 				return fmt.Errorf("unable to generate salt: %w", err)
 			}
-			if err = UpdateUserCols(ctx, &user, "is_active", "rands"); err != nil {
+			if err = UpdateUserCols(ctx, user, "is_active", "rands"); err != nil {
 				return fmt.Errorf("unable to updateUserCols() for user ID: %d: %w", userID, err)
 			}
 		}

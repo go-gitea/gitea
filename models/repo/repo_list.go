@@ -652,12 +652,12 @@ func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) bu
 				userOrgTeamUnitRepoCond("`repository`.id", user.ID, unitType),
 			)
 		}
-		cond = cond.Or(
-			// 4. Repositories that we directly own
-			builder.Eq{"`repository`.owner_id": user.ID},
+		// 4. Repositories that we directly own
+		cond = cond.Or(builder.Eq{"`repository`.owner_id": user.ID})
+		if !user.IsRestricted {
 			// 5. Be able to see all public repos in private organizations that we are an org_user of
-			userOrgPublicRepoCond(user.ID),
-		)
+			cond = cond.Or(userOrgPublicRepoCond(user.ID))
+		}
 	}
 
 	return cond
@@ -716,7 +716,7 @@ func FindUserCodeAccessibleOwnerRepoIDs(ctx context.Context, ownerID int64, user
 }
 
 // GetUserRepositories returns a list of repositories of given user.
-func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error) {
+func GetUserRepositories(ctx context.Context, opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = "updated_unix DESC"
 	}
@@ -734,7 +734,7 @@ func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error)
 		cond = cond.And(builder.In("lower_name", opts.LowerNames))
 	}
 
-	sess := db.GetEngine(db.DefaultContext)
+	sess := db.GetEngine(ctx)
 
 	count, err := sess.Where(cond).Count(new(Repository))
 	if err != nil {

@@ -30,14 +30,9 @@ func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 		UserID:         u.ID,
 		IncludePrivate: showPrivate,
 	}
-	orgs, err := organization.FindOrgs(ctx, opts)
+	orgs, maxResults, err := db.FindAndCount[organization.Organization](ctx, opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "FindOrgs", err)
-		return
-	}
-	maxResults, err := organization.CountOrgs(ctx, opts)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "CountOrgs", err)
+		ctx.Error(http.StatusInternalServerError, "db.FindAndCount[organization.Organization]", err)
 		return
 	}
 
@@ -385,7 +380,7 @@ func Delete(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := org.DeleteOrganization(ctx.Org.Organization); err != nil {
+	if err := org.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteOrganization", err)
 		return
 	}
