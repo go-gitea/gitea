@@ -7,33 +7,35 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // UI settings
 var UI = struct {
-	ExplorePagingNum      int
-	SitemapPagingNum      int
-	IssuePagingNum        int
-	RepoSearchPagingNum   int
-	MembersPagingNum      int
-	FeedMaxCommitNum      int
-	FeedPagingNum         int
-	PackagesPagingNum     int
-	GraphMaxCommitNum     int
-	CodeCommentLines      int
-	ReactionMaxUserNum    int
-	MaxDisplayFileSize    int64
-	ShowUserEmail         bool
-	DefaultShowFullName   bool
-	DefaultTheme          string
-	Themes                []string
-	Reactions             []string
-	ReactionsLookup       container.Set[string] `ini:"-"`
-	CustomEmojis          []string
-	CustomEmojisMap       map[string]string `ini:"-"`
-	SearchRepoDescription bool
-	OnlyShowRelevantRepos bool
-	ExploreDefaultSort    string `ini:"EXPLORE_PAGING_DEFAULT_SORT"`
+	ExplorePagingNum        int
+	SitemapPagingNum        int
+	IssuePagingNum          int
+	RepoSearchPagingNum     int
+	MembersPagingNum        int
+	FeedMaxCommitNum        int
+	FeedPagingNum           int
+	PackagesPagingNum       int
+	GraphMaxCommitNum       int
+	CodeCommentLines        int
+	ReactionMaxUserNum      int
+	MaxDisplayFileSize      int64
+	ShowUserEmail           bool
+	DefaultShowFullName     bool
+	DefaultTheme            string
+	Themes                  []string
+	Reactions               []string
+	ReactionsLookup         container.Set[string] `ini:"-"`
+	CustomEmojis            []string
+	CustomEmojisMap         map[string]string `ini:"-"`
+	SearchRepoDescription   bool
+	OnlyShowRelevantRepos   bool
+	ExploreDefaultSort      string `ini:"EXPLORE_PAGING_DEFAULT_SORT"`
+	PreferredTimestampTense string
 
 	AmbiguousUnicodeDetection bool
 
@@ -67,23 +69,24 @@ var UI = struct {
 		Keywords    string
 	} `ini:"ui.meta"`
 }{
-	ExplorePagingNum:    20,
-	SitemapPagingNum:    20,
-	IssuePagingNum:      20,
-	RepoSearchPagingNum: 20,
-	MembersPagingNum:    20,
-	FeedMaxCommitNum:    5,
-	FeedPagingNum:       20,
-	PackagesPagingNum:   20,
-	GraphMaxCommitNum:   100,
-	CodeCommentLines:    4,
-	ReactionMaxUserNum:  10,
-	MaxDisplayFileSize:  8388608,
-	DefaultTheme:        `gitea-auto`,
-	Themes:              []string{`gitea-auto`, `gitea-light`, `gitea-dark`},
-	Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
-	CustomEmojis:        []string{`git`, `gitea`, `codeberg`, `gitlab`, `github`, `gogs`},
-	CustomEmojisMap:     map[string]string{"git": ":git:", "gitea": ":gitea:", "codeberg": ":codeberg:", "gitlab": ":gitlab:", "github": ":github:", "gogs": ":gogs:"},
+	ExplorePagingNum:        20,
+	SitemapPagingNum:        20,
+	IssuePagingNum:          20,
+	RepoSearchPagingNum:     20,
+	MembersPagingNum:        20,
+	FeedMaxCommitNum:        5,
+	FeedPagingNum:           20,
+	PackagesPagingNum:       20,
+	GraphMaxCommitNum:       100,
+	CodeCommentLines:        4,
+	ReactionMaxUserNum:      10,
+	MaxDisplayFileSize:      8388608,
+	DefaultTheme:            `gitea-auto`,
+	Themes:                  []string{`gitea-auto`, `gitea-light`, `gitea-dark`},
+	Reactions:               []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
+	CustomEmojis:            []string{`git`, `gitea`, `codeberg`, `gitlab`, `github`, `gogs`},
+	CustomEmojisMap:         map[string]string{"git": ":git:", "gitea": ":gitea:", "codeberg": ":codeberg:", "gitlab": ":gitlab:", "github": ":github:", "gogs": ":gogs:"},
+	PreferredTimestampTense: "mixed",
 
 	AmbiguousUnicodeDetection: true,
 
@@ -141,6 +144,10 @@ func loadUIFrom(rootCfg ConfigProvider) {
 	UI.ShowUserEmail = sec.Key("SHOW_USER_EMAIL").MustBool(true)
 	UI.DefaultShowFullName = sec.Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
 	UI.SearchRepoDescription = sec.Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
+
+	if UI.PreferredTimestampTense != "mixed" && UI.PreferredTimestampTense != "absolute" {
+		log.Fatal("ui.PREFERRED_TIMESTAMP_TENSE must be either 'mixed' or 'absolute'")
+	}
 
 	// OnlyShowRelevantRepos=false is important for many private/enterprise instances,
 	// because many private repositories do not have "description/topic", users just want to search by their names.

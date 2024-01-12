@@ -344,9 +344,7 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 		}
 	}
 
-	if _, err := db.DeleteByBean(ctx, &asymkey_model.DeployKey{
-		ID: key.ID,
-	}); err != nil {
+	if _, err := db.DeleteByID[asymkey_model.DeployKey](ctx, key.ID); err != nil {
 		return fmt.Errorf("delete deploy key [%d]: %w", key.ID, err)
 	}
 
@@ -355,7 +353,7 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 	if err != nil {
 		return err
 	} else if !has {
-		if err = asymkey_model.DeletePublicKeys(ctx, key.KeyID); err != nil {
+		if _, err = db.DeleteByID[asymkey_model.PublicKey](ctx, key.KeyID); err != nil {
 			return err
 		}
 	}
