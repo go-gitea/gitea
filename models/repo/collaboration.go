@@ -58,8 +58,12 @@ func GetCollaborators(ctx context.Context, repoID int64, listOptions db.ListOpti
 	}
 
 	for _, c := range collaborations {
+		u := usersMap[c.UserID]
+		if u == nil {
+			u = user_model.NewGhostUser()
+		}
 		collaborators = append(collaborators, &Collaborator{
-			User:          usersMap[c.UserID],
+			User:          u,
 			Collaboration: c,
 		})
 	}

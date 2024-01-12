@@ -278,9 +278,8 @@ func loadKeysData(ctx *context.Context) {
 	ctx.Data["ExternalKeys"] = externalKeys
 
 	gpgkeys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-		ListOptions:         db.ListOptionsAll,
-		OwnerID:             ctx.Doer.ID,
-		IsPrimaryKeyIDEmpty: true,
+		ListOptions: db.ListOptionsAll,
+		OwnerID:     ctx.Doer.ID,
 	})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)

@@ -117,7 +117,7 @@ func (opts *FindTrackedTimesOptions) ToConds() builder.Cond {
 	return cond
 }
 
-func (opts FindTrackedTimesOptions) ToJoins() []db.JoinFunc {
+func (opts *FindTrackedTimesOptions) ToJoins() []db.JoinFunc {
 	if opts.RepositoryID > 0 || opts.MilestoneID > 0 {
 		return []db.JoinFunc{
 			func(e db.Engine) error {

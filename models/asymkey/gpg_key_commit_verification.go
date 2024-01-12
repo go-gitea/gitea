@@ -167,8 +167,7 @@ func ParseCommitWithSignature(ctx context.Context, c *git.Commit) *CommitVerific
 	// Now try to associate the signature with the committer, if present
 	if committer.ID != 0 {
 		keys, err := db.Find[GPGKey](ctx, FindGPGKeyOptions{
-			OwnerID:             committer.ID,
-			IsPrimaryKeyIDEmpty: true,
+			OwnerID: committer.ID,
 		})
 		if err != nil { // Skipping failed to get gpg keys of user
 			log.Error("ListGPGKeys: %v", err)
@@ -405,7 +404,8 @@ func hashAndVerifyForKeyID(ctx context.Context, sig *packet.Signature, payload s
 		return nil
 	}
 	keys, err := db.Find[GPGKey](ctx, FindGPGKeyOptions{
-		KeyID: keyID,
+		KeyID:          keyID,
+		IncludeSubKeys: true,
 	})
 	if err != nil {
 		log.Error("GetGPGKeysByKeyID: %v", err)
@@ -422,7 +422,8 @@ func hashAndVerifyForKeyID(ctx context.Context, sig *packet.Signature, payload s
 		var primaryKeys []*GPGKey
 		if key.PrimaryKeyID != "" {
 			primaryKeys, err = db.Find[GPGKey](ctx, FindGPGKeyOptions{
-				KeyID: key.PrimaryKeyID,
+				KeyID:          key.PrimaryKeyID,
+				IncludeSubKeys: true,
 			})
 			if err != nil {
 				log.Error("GetGPGKeysByKeyID: %v", err)

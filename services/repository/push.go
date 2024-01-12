@@ -332,7 +332,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		TagNames: lowerTags,
 	})
 	if err != nil {
-		return fmt.Errorf("GetReleasesByRepoIDAndNames: %w", err)
+		return fmt.Errorf("db.Find[repo_model.Release]: %w", err)
 	}
 	relMap := make(map[string]*repo_model.Release)
 	for _, rel := range releases {

@@ -19,9 +19,8 @@ import (
 
 func listGPGKeys(ctx *context.APIContext, uid int64, listOptions db.ListOptions) {
 	opts := asymkey_model.FindGPGKeyOptions{
-		ListOptions:         listOptions,
-		OwnerID:             uid,
-		IsPrimaryKeyIDEmpty: true,
+		ListOptions: listOptions,
+		OwnerID:     uid,
 	}
 	keys, total, err := db.FindAndCount[asymkey_model.GPGKey](ctx, opts)
 	if err != nil {
@@ -207,7 +206,8 @@ func VerifyUserGPGKey(ctx *context.APIContext) {
 	}
 
 	keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-		KeyID: form.KeyID,
+		KeyID:          form.KeyID,
+		IncludeSubKeys: true,
 	})
 	if err != nil {
 		if asymkey_model.IsErrGPGKeyNotExist(err) {
