@@ -37,8 +37,8 @@ func runDoctorConvert(ctx *cli.Context) error {
 
 	switch {
 	case setting.Database.Type.IsMySQL():
-		if err := db.ConvertUtf8ToUtf8mb4(); err != nil {
-			log.Fatal("Failed to convert database from utf8 to utf8mb4: %v", err)
+		if err := db.ConvertDatabaseTable(); err != nil {
+			log.Fatal("Failed to convert database & table: %v", err)
 			return err
 		}
 		fmt.Println("Converted successfully, please confirm your database's character set is now utf8mb4")
