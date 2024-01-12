@@ -309,7 +309,7 @@ func (ns *notificationService) NewRelease(ctx context.Context, rel *repo_model.R
 		if watcher != rel.PublisherID {
 			err = ns.notificationQueue.Push(notificationOpts{QueueType: NotificationQueueRelease, ReleaseID: rel.ID, ReceiverID: watcher})
 			if err != nil {
-				log.Error("NotificationQueuePushRelease %v", err)
+				log.Error("NotificationQueuePushRelease: %v", err)
 			}
 		}
 	}
