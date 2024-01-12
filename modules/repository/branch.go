@@ -49,11 +49,9 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 
 	dbBranches := make(map[string]*git_model.Branch)
 	{
-		branches, err := git_model.FindBranches(ctx, git_model.FindBranchOptions{
-			ListOptions: db.ListOptions{
-				ListAll: true,
-			},
-			RepoID: repo.ID,
+		branches, err := db.Find[git_model.Branch](ctx, git_model.FindBranchOptions{
+			ListOptions: db.ListOptionsAll,
+			RepoID:      repo.ID,
 		})
 		if err != nil {
 			return 0, err

@@ -14,7 +14,8 @@ import (
 
 const (
 	// DefaultMaxInSize represents default variables number on IN () in SQL
-	DefaultMaxInSize = 50
+	DefaultMaxInSize     = 50
+	defaultFindSliceSize = 10
 )
 
 // Paginator is the base for different ListOptions types
@@ -52,7 +53,12 @@ type ListOptions struct {
 	ListAll  bool // if true, then PageSize and Page will not be taken
 }
 
-var _ Paginator = &ListOptions{}
+var ListOptionsAll = ListOptions{ListAll: true}
+
+var (
+	_ Paginator   = &ListOptions{}
+	_ FindOptions = ListOptions{}
+)
 
 // GetSkipTake returns the skip and take values
 func (opts *ListOptions) GetSkipTake() (skip, take int) {
@@ -67,8 +73,16 @@ func (opts *ListOptions) GetStartEnd() (start, end int) {
 	return start, end
 }
 
+func (opts ListOptions) GetPage() int {
+	return opts.Page
+}
+
+func (opts ListOptions) GetPageSize() int {
+	return opts.PageSize
+}
+
 // IsListAll indicates PageSize and Page will be ignored
-func (opts *ListOptions) IsListAll() bool {
+func (opts ListOptions) IsListAll() bool {
 	return opts.ListAll
 }
 
@@ -83,6 +97,10 @@ func (opts *ListOptions) SetDefaultValues() {
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
+}
+
+func (opts ListOptions) ToConds() builder.Cond {
+	return builder.NewCond()
 }
 
 // AbsoluteListOptions absolute options to paginate results
@@ -124,29 +142,63 @@ func (opts *AbsoluteListOptions) GetStartEnd() (start, end int) {
 
 // FindOptions represents a find options
 type FindOptions interface {
-	Paginator
+	GetPage() int
+	GetPageSize() int
+	IsListAll() bool
 	ToConds() builder.Cond
 }
 
+type FindOptionsOrder interface {
+	ToOrders() string
+}
+
 // Find represents a common find function which accept an options interface
-func Find[T any](ctx context.Context, opts FindOptions, objects *[]T) error {
+func Find[T any](ctx context.Context, opts FindOptions) ([]*T, error) {
 	sess := GetEngine(ctx).Where(opts.ToConds())
-	if !opts.IsListAll() {
-		sess.Limit(opts.GetSkipTake())
+	page, pageSize := opts.GetPage(), opts.GetPageSize()
+	if !opts.IsListAll() && pageSize > 0 && page >= 1 {
+		sess.Limit(pageSize, (page-1)*pageSize)
 	}
-	return sess.Find(objects)
+	if newOpt, ok := opts.(FindOptionsOrder); ok && newOpt.ToOrders() != "" {
+		sess.OrderBy(newOpt.ToOrders())
+	}
+
+	findPageSize := defaultFindSliceSize
+	if pageSize > 0 {
+		findPageSize = pageSize
+	}
+	objects := make([]*T, 0, findPageSize)
+	if err := sess.Find(&objects); err != nil {
+		return nil, err
+	}
+	return objects, nil
 }
 
 // Count represents a common count function which accept an options interface
-func Count[T any](ctx context.Context, opts FindOptions, object T) (int64, error) {
-	return GetEngine(ctx).Where(opts.ToConds()).Count(object)
+func Count[T any](ctx context.Context, opts FindOptions) (int64, error) {
+	var object T
+	return GetEngine(ctx).Where(opts.ToConds()).Count(&object)
 }
 
 // FindAndCount represents a common findandcount function which accept an options interface
-func FindAndCount[T any](ctx context.Context, opts FindOptions, objects *[]T) (int64, error) {
+func FindAndCount[T any](ctx context.Context, opts FindOptions) ([]*T, int64, error) {
 	sess := GetEngine(ctx).Where(opts.ToConds())
-	if !opts.IsListAll() {
-		sess.Limit(opts.GetSkipTake())
+	page, pageSize := opts.GetPage(), opts.GetPageSize()
+	if !opts.IsListAll() && pageSize > 0 && page >= 1 {
+		sess.Limit(pageSize, (page-1)*pageSize)
 	}
-	return sess.FindAndCount(objects)
+	if newOpt, ok := opts.(FindOptionsOrder); ok && newOpt.ToOrders() != "" {
+		sess.OrderBy(newOpt.ToOrders())
+	}
+
+	findPageSize := defaultFindSliceSize
+	if pageSize > 0 {
+		findPageSize = pageSize
+	}
+	objects := make([]*T, 0, findPageSize)
+	cnt, err := sess.FindAndCount(&objects)
+	if err != nil {
+		return nil, 0, err
+	}
+	return objects, cnt, nil
 }

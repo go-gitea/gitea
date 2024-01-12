@@ -144,6 +144,18 @@ func TestFeishuPayload(t *testing.T) {
 		assert.Equal(t, "[test/repo] Repository created", pl.(*FeishuPayload).Content.Text)
 	})
 
+	t.Run("Package", func(t *testing.T) {
+		p := packageTestPayload()
+
+		d := new(FeishuPayload)
+		pl, err := d.Package(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &FeishuPayload{}, pl)
+
+		assert.Equal(t, "Package created: GiteaContainer:latest by user1", pl.(*FeishuPayload).Content.Text)
+	})
+
 	t.Run("Wiki", func(t *testing.T) {
 		p := wikiTestPayload()
 

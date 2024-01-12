@@ -23,6 +23,7 @@ import (
 type IssuesOptions struct { //nolint
 	db.Paginator
 	RepoIDs            []int64 // overwrites RepoCond if the length is not 0
+	AllPublic          bool    // include also all public repositories
 	RepoCond           builder.Cond
 	AssigneeID         int64
 	PosterID           int64
@@ -186,7 +187,7 @@ func applyProjectBoardCondition(sess *xorm.Session, opts *IssuesOptions) *xorm.S
 	if opts.ProjectBoardID > 0 {
 		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}))
 	} else if opts.ProjectBoardID == db.NoConditionID {
-		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Neq{"project_board_id": 0}))
+		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}))
 	}
 	return sess
 }
@@ -196,6 +197,12 @@ func applyRepoConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session 
 		opts.RepoCond = builder.Eq{"issue.repo_id": opts.RepoIDs[0]}
 	} else if len(opts.RepoIDs) > 1 {
 		opts.RepoCond = builder.In("issue.repo_id", opts.RepoIDs)
+	}
+	if opts.AllPublic {
+		if opts.RepoCond == nil {
+			opts.RepoCond = builder.NewCond()
+		}
+		opts.RepoCond = opts.RepoCond.Or(builder.In("issue.repo_id", builder.Select("id").From("repository").Where(builder.Eq{"is_private": false})))
 	}
 	if opts.RepoCond != nil {
 		sess.And(opts.RepoCond)
@@ -446,26 +453,6 @@ func applySubscribedCondition(sess *xorm.Session, subscriberID int64) *xorm.Sess
 			),
 		),
 	)
-}
-
-// GetRepoIDsForIssuesOptions find all repo ids for the given options
-func GetRepoIDsForIssuesOptions(ctx context.Context, opts *IssuesOptions, user *user_model.User) ([]int64, error) {
-	repoIDs := make([]int64, 0, 5)
-	e := db.GetEngine(ctx)
-
-	sess := e.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
-
-	applyConditions(sess, opts)
-
-	accessCond := repo_model.AccessibleRepositoryCondition(user, unit.TypeInvalid)
-	if err := sess.Where(accessCond).
-		Distinct("issue.repo_id").
-		Table("issue").
-		Find(&repoIDs); err != nil {
-		return nil, fmt.Errorf("unable to GetRepoIDsForIssuesOptions: %w", err)
-	}
-
-	return repoIDs, nil
 }
 
 // Issues returns a list of issues by given conditions.

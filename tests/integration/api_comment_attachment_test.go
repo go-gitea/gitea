@@ -35,11 +35,22 @@ func TestAPIGetCommentAttachment(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: comment.Issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
+	t.Run("UnrelatedCommentID", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+		token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeWriteIssue)
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets/%d", repoOwner.Name, repo.Name, comment.ID, attachment.ID).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNotFound)
+	})
+
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets/%d?token=%s", repoOwner.Name, repo.Name, comment.ID, attachment.ID, token)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets/%d", repoOwner.Name, repo.Name, comment.ID, attachment.ID).
+		AddTokenAuth(token)
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets/%d?token=%s", repoOwner.Name, repo.Name, comment.ID, attachment.ID, token)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets/%d", repoOwner.Name, repo.Name, comment.ID, attachment.ID).
+		AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var apiAttachment api.Attachment
@@ -63,8 +74,8 @@ func TestAPIListCommentAttachments(t *testing.T) {
 
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets?token=%s",
-		repoOwner.Name, repo.Name, comment.ID, token)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets", repoOwner.Name, repo.Name, comment.ID).
+		AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var apiAttachments []*api.Attachment
@@ -85,8 +96,6 @@ func TestAPICreateCommentAttachment(t *testing.T) {
 
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/assets?token=%s",
-		repoOwner.Name, repo.Name, comment.ID, token)
 
 	filename := "image.png"
 	buff := generateImg()
@@ -101,8 +110,9 @@ func TestAPICreateCommentAttachment(t *testing.T) {
 	err = writer.Close()
 	assert.NoError(t, err)
 
-	req := NewRequestWithBody(t, "POST", urlStr, body)
-	req.Header.Add("Content-Type", writer.FormDataContentType())
+	req := NewRequestWithBody(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/assets", repoOwner.Name, repo.Name, comment.ID), body).
+		AddTokenAuth(token).
+		SetHeader("Content-Type", writer.FormDataContentType())
 	resp := session.MakeRequest(t, req, http.StatusCreated)
 
 	apiAttachment := new(api.Attachment)
@@ -124,11 +134,11 @@ func TestAPIEditCommentAttachment(t *testing.T) {
 
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/assets/%d?token=%s",
-		repoOwner.Name, repo.Name, comment.ID, attachment.ID, token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/assets/%d",
+		repoOwner.Name, repo.Name, comment.ID, attachment.ID)
 	req := NewRequestWithValues(t, "PATCH", urlStr, map[string]string{
 		"name": newAttachmentName,
-	})
+	}).AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusCreated)
 	apiAttachment := new(api.Attachment)
 	DecodeJSON(t, resp, &apiAttachment)
@@ -147,10 +157,9 @@ func TestAPIDeleteCommentAttachment(t *testing.T) {
 
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/assets/%d?token=%s",
-		repoOwner.Name, repo.Name, comment.ID, attachment.ID, token)
 
-	req := NewRequestf(t, "DELETE", urlStr)
+	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/assets/%d", repoOwner.Name, repo.Name, comment.ID, attachment.ID)).
+		AddTokenAuth(token)
 	session.MakeRequest(t, req, http.StatusNoContent)
 
 	unittest.AssertNotExistsBean(t, &repo_model.Attachment{ID: attachment.ID, CommentID: comment.ID})

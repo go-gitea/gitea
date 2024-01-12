@@ -162,7 +162,7 @@ PAM提供了一种机制，通过对用户进行PAM认证来自动将其添加�
     - PAM电子邮件域:用户认证时要附加的电子邮件后缀。例如，如果登录系统期望一个名为gituse的用户，
   并且将此字段设置为mail.com，那么Gitea在验证一个GIT实例的用户时将期望user emai字段为gituser@mail.com[^2]。
 
-**Note**: PAM 支持通过[build-time flags](installation/install-from-source.md#build)添加,
+**Note**: PAM 支持通过[build-time flags](installation/from-source.md#build)添加,
 而官方提供的二进制文件通常不会默认启用此功能。PAM需要确保系统上有必要的libpam动态库，并且编译器可以访问必要的PAM开发头文件。
 
 [^1]: 例如，在Debian "Bullseye"上使用标准Linux登录，可以使用`common-session-noninteractive`。这个值对于其他版本的Debian，
