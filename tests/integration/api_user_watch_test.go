@@ -26,25 +26,17 @@ func TestAPIWatch(t *testing.T) {
 	tokenWithReadRepoScope := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 	tokenWithRepoScope := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeReadUser)
 
-	t.Run("RepoSubscriptionUnauth", func(t *testing.T) {
+	t.Run("Watch", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/subscription", repo))
 		MakeRequest(t, req, http.StatusUnauthorized)
-	})
 
-	t.Run("RepoSubscriptions", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/subscription", repo)).
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/subscription", repo)).
 			AddTokenAuth(tokenWithReadRepoScope)
 		MakeRequest(t, req, http.StatusOK)
-	})
 
-	t.Run("Watch", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/subscription", repo)).
+		req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/subscription", repo)).
 			AddTokenAuth(tokenWithRepoScope)
 		MakeRequest(t, req, http.StatusOK)
 	})
