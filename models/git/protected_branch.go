@@ -17,13 +17,13 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
 	"github.com/gobwas/glob/syntax"
+	"xorm.io/builder"
 )
 
 var ErrBranchIsProtected = errors.New("branch is protected")
@@ -126,7 +126,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, user *use
 		return writeAccess
 	}
 
-	if base.Int64sContains(protectBranch.WhitelistUserIDs, user.ID) {
+	if slices.Contains(protectBranch.WhitelistUserIDs, user.ID) {
 		return true
 	}
 
@@ -149,7 +149,7 @@ func IsUserMergeWhitelisted(ctx context.Context, protectBranch *ProtectedBranch,
 		return permissionInRepo.CanWrite(unit.TypeCode)
 	}
 
-	if base.Int64sContains(protectBranch.MergeWhitelistUserIDs, userID) {
+	if slices.Contains(protectBranch.MergeWhitelistUserIDs, userID) {
 		return true
 	}
 
@@ -181,7 +181,7 @@ func IsUserOfficialReviewer(ctx context.Context, protectBranch *ProtectedBranch,
 		return writeAccess, nil
 	}
 
-	if base.Int64sContains(protectBranch.ApprovalsWhitelistUserIDs, user.ID) {
+	if slices.Contains(protectBranch.ApprovalsWhitelistUserIDs, user.ID) {
 		return true, nil
 	}
 
@@ -274,12 +274,11 @@ func (protectBranch *ProtectedBranch) IsUnprotectedFile(patterns []glob.Glob, pa
 
 // GetProtectedBranchRuleByName getting protected branch rule by name
 func GetProtectedBranchRuleByName(ctx context.Context, repoID int64, ruleName string) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{RepoID: repoID, RuleName: ruleName}
-	has, err := db.GetByBean(ctx, rel)
+	// branch_name is legacy name, it actually is rule name
+	rel, exist, err := db.Get[ProtectedBranch](ctx, builder.Eq{"repo_id": repoID, "branch_name": ruleName})
 	if err != nil {
 		return nil, err
-	}
-	if !has {
+	} else if !exist {
 		return nil, nil
 	}
 	return rel, nil
@@ -287,12 +286,10 @@ func GetProtectedBranchRuleByName(ctx context.Context, repoID int64, ruleName st
 
 // GetProtectedBranchRuleByID getting protected branch rule by rule ID
 func GetProtectedBranchRuleByID(ctx context.Context, repoID, ruleID int64) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{ID: ruleID, RepoID: repoID}
-	has, err := db.GetByBean(ctx, rel)
+	rel, exist, err := db.Get[ProtectedBranch](ctx, builder.Eq{"repo_id": repoID, "id": ruleID})
 	if err != nil {
 		return nil, err
-	}
-	if !has {
+	} else if !exist {
 		return nil, nil
 	}
 	return rel, nil

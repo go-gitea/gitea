@@ -155,6 +155,19 @@ func TestMatrixPayload(t *testing.T) {
 		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Repository created by <a href="https://try.gitea.io/user1">user1</a>`, pl.(*MatrixPayload).FormattedBody)
 	})
 
+	t.Run("Package", func(t *testing.T) {
+		p := packageTestPayload()
+
+		d := new(MatrixPayload)
+		pl, err := d.Package(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &MatrixPayload{}, pl)
+
+		assert.Equal(t, `[[GiteaContainer](http://localhost:3000/user1/-/packages/container/GiteaContainer/latest)] Package published by [user1](https://try.gitea.io/user1)`, pl.(*MatrixPayload).Body)
+		assert.Equal(t, `[<a href="http://localhost:3000/user1/-/packages/container/GiteaContainer/latest">GiteaContainer</a>] Package published by <a href="https://try.gitea.io/user1">user1</a>`, pl.(*MatrixPayload).FormattedBody)
+	})
+
 	t.Run("Wiki", func(t *testing.T) {
 		p := wikiTestPayload()
 

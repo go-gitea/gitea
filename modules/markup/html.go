@@ -66,7 +66,7 @@ var (
 	// well as the HTML5 spec:
 	//   http://spec.commonmark.org/0.28/#email-address
 	//   https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type%3Demail)
-	emailRegex = regexp.MustCompile("(?:\\s|^|\\(|\\[)([a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]{2,}(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+)(?:\\s|$|\\)|\\]|\\.(\\s|$))")
+	emailRegex = regexp.MustCompile("(?:\\s|^|\\(|\\[)([a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]{2,}(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+)(?:\\s|$|\\)|\\]|;|,|\\?|!|\\.(\\s|$))")
 
 	// blackfriday extensions create IDs like fn:user-content-footnote
 	blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
@@ -852,9 +852,14 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 }
 
 func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
-	if ctx.Metas == nil || ctx.Metas["mode"] == "document" {
+	if ctx.Metas == nil {
 		return
 	}
+
+	// FIXME: the use of "mode" is quite dirty and hacky, for example: what is a "document"? how should it be rendered?
+	// The "mode" approach should be refactored to some other more clear&reliable way.
+	crossLinkOnly := (ctx.Metas["mode"] == "document" && !ctx.IsWiki)
+
 	var (
 		found bool
 		ref   *references.RenderizableReference
@@ -868,7 +873,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 		// Repos with external issue trackers might still need to reference local PRs
 		// We need to concern with the first one that shows up in the text, whichever it is
 		isNumericStyle := ctx.Metas["style"] == "" || ctx.Metas["style"] == IssueNameStyleNumeric
-		foundNumeric, refNumeric := references.FindRenderizableReferenceNumeric(node.Data, hasExtTrackFormat && !isNumericStyle)
+		foundNumeric, refNumeric := references.FindRenderizableReferenceNumeric(node.Data, hasExtTrackFormat && !isNumericStyle, crossLinkOnly)
 
 		switch ctx.Metas["style"] {
 		case "", IssueNameStyleNumeric:

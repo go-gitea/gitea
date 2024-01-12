@@ -86,7 +86,7 @@ func (m *Milestone) AfterLoad() {
 		return
 	}
 
-	m.DeadlineString = m.DeadlineUnix.Format("2006-01-02")
+	m.DeadlineString = m.DeadlineUnix.FormatDate()
 	if m.IsClosed {
 		m.IsOverdue = m.ClosedDateUnix >= m.DeadlineUnix
 	} else {
@@ -289,22 +289,19 @@ func DeleteMilestoneByRepoID(ctx context.Context, repoID, id int64) error {
 	}
 	defer committer.Close()
 
-	sess := db.GetEngine(ctx)
-
-	if _, err = sess.ID(m.ID).Delete(new(Milestone)); err != nil {
+	if _, err = db.DeleteByID[Milestone](ctx, m.ID); err != nil {
 		return err
 	}
 
-	numMilestones, err := CountMilestones(ctx, GetMilestonesOption{
+	numMilestones, err := db.Count[Milestone](ctx, FindMilestoneOptions{
 		RepoID: repo.ID,
-		State:  api.StateAll,
 	})
 	if err != nil {
 		return err
 	}
-	numClosedMilestones, err := CountMilestones(ctx, GetMilestonesOption{
-		RepoID: repo.ID,
-		State:  api.StateClosed,
+	numClosedMilestones, err := db.Count[Milestone](ctx, FindMilestoneOptions{
+		RepoID:   repo.ID,
+		IsClosed: util.OptionalBoolTrue,
 	})
 	if err != nil {
 		return err
@@ -312,7 +309,7 @@ func DeleteMilestoneByRepoID(ctx context.Context, repoID, id int64) error {
 	repo.NumMilestones = int(numMilestones)
 	repo.NumClosedMilestones = int(numClosedMilestones)
 
-	if _, err = sess.ID(repo.ID).Cols("num_milestones, num_closed_milestones").Update(repo); err != nil {
+	if _, err = db.GetEngine(ctx).ID(repo.ID).Cols("num_milestones, num_closed_milestones").Update(repo); err != nil {
 		return err
 	}
 

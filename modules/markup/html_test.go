@@ -264,6 +264,18 @@ func TestRender_email(t *testing.T) {
 		"send email to info@gitea.co.uk.",
 		`<p>send email to <a href="mailto:info@gitea.co.uk" rel="nofollow">info@gitea.co.uk</a>.</p>`)
 
+	test(
+		`j.doe@example.com,
+	j.doe@example.com.
+	j.doe@example.com;
+	j.doe@example.com?
+	j.doe@example.com!`,
+		`<p><a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>,<br/>
+<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>.<br/>
+<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>;<br/>
+<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>?<br/>
+<a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>!</p>`)
+
 	// Test that should *not* be turned into email links
 	test(
 		"\"info@gitea.com\"",
@@ -549,10 +561,15 @@ func TestPostProcess_RenderDocument(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res.String()))
 	}
 
-	// Issue index shouldn't be post processing in an document.
+	// Issue index shouldn't be post processing in a document.
 	test(
 		"#1",
 		"#1")
+
+	// But cross-referenced issue index should work.
+	test(
+		"go-gitea/gitea#12345",
+		`<a href="`+util.URLJoin(markup.TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue">go-gitea/gitea#12345</a>`)
 
 	// Test that other post processing still works.
 	test(

@@ -34,7 +34,7 @@ export function createTippy(target, opts = {}) {
     },
     arrow: `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`,
     role: 'menu', // HTML role attribute, only tooltips should use "tooltip"
-    theme: other.role || 'menu', // CSS theme, we support either "tooltip" or "menu"
+    theme: other.role || 'menu', // CSS theme, either "tooltip", "menu" or "box-with-header"
     plugins: [followCursor],
     ...other,
   });
@@ -106,7 +106,7 @@ function switchTitleToTooltip(target) {
 /**
  * Creating tooltip tippy instance is expensive, so we only create it when the user hovers over the element
  * According to https://www.w3.org/TR/DOM-Level-3-Events/#events-mouseevent-event-order , mouseover event is fired before mouseenter event
- * Some old browsers like Pale Moon doesn't support "mouseenter(capture)"
+ * Some browsers like PaleMoon don't support "addEventListener('mouseenter', capture)"
  * The tippy by default uses "mouseenter" event to show, so we use "mouseover" event to switch to tippy
  * @param e {Event}
  */
