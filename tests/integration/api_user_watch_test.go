@@ -63,7 +63,10 @@ func TestAPIWatch(t *testing.T) {
 	t.Run("IsWatching", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo, tokenWithRepoScope))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/subscription", repo))
+		MakeRequest(t, req, http.StatusUnauthorized)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo, tokenWithRepoScope))
 		MakeRequest(t, req, http.StatusOK)
 
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo+"notexisting", tokenWithRepoScope))
