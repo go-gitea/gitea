@@ -428,6 +428,9 @@ func (comments CommentList) loadReviews(ctx context.Context) error {
 	}
 
 	for _, comment := range comments {
+		// skip review request as the comment struct already has all the info needed to display the infos.
+		// also it would throw errors for all review requests who has been replaced by actual reviews
+		// as they do not exist in database anymore.
 		if comment.Type == CommentTypeReviewRequest {
 			continue
 		}
