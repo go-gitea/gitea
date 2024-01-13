@@ -1371,7 +1371,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		return
 	}
 
-	labelIDs, assigneeIDs, milestoneID, _ := ValidateRepoMetas(ctx, *form, true)
+	labelIDs, assigneeIDs, milestoneID, projectID := ValidateRepoMetas(ctx, *form, true)
 	if ctx.Written() {
 		return
 	}
@@ -1447,6 +1447,17 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		}
 		ctx.ServerError("NewPullRequest", err)
 		return
+	}
+
+	if projectID > 0 {
+		if !ctx.Repo.CanWrite(unit.TypeProjects) {
+			ctx.Error(http.StatusBadRequest, "user hasn't the permission to write to projects")
+			return
+		}
+		if err := issues_model.ChangeProjectAssign(pullIssue, ctx.Doer, projectID); err != nil {
+			ctx.ServerError("ChangeProjectAssign", err)
+			return
+		}
 	}
 
 	log.Trace("Pull request created: %d/%d", repo.ID, pullIssue.ID)
