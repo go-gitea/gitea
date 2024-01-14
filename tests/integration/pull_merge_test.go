@@ -45,7 +45,14 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum strin
 		"_csrf": htmlDoc.GetCSRF(),
 		"do":    string(mergeStyle),
 	})
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	respJSON := struct {
+		Redirect string
+	}{}
+	DecodeJSON(t, resp, &respJSON)
+
+	assert.EqualValues(t, fmt.Sprintf("/%s/%s/pulls/%s", user, repo, pullnum), respJSON.Redirect)
 
 	return resp
 }
