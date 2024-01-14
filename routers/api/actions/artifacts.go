@@ -63,13 +63,13 @@ package actions
 
 import (
 	"crypto/md5"
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -314,7 +314,7 @@ func (ar artifactRoutes) listArtifacts(ctx *ArtifactContext) {
 		return
 	}
 
-	artifacts, err := actions.ListArtifactsByRunID(ctx, runID)
+	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{RunID: runID})
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
@@ -376,7 +376,10 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
 		return
 	}
 
-	artifacts, err := actions.ListArtifactsByRunIDAndArtifactName(ctx, runID, itemPath)
+	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
+		RunID:        runID,
+		ArtifactName: itemPath,
+	})
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
@@ -419,14 +422,14 @@ func (ar artifactRoutes) downloadArtifact(ctx *ArtifactContext) {
 	}
 
 	artifactID := ctx.ParamsInt64("artifact_id")
-	artifact, err := actions.GetArtifactByID(ctx, artifactID)
-	if errors.Is(err, util.ErrNotExist) {
-		log.Error("Error getting artifact: %v", err)
-		ctx.Error(http.StatusNotFound, err.Error())
-		return
-	} else if err != nil {
+	artifact, exist, err := db.GetByID[actions.ActionArtifact](ctx, artifactID)
+	if err != nil {
 		log.Error("Error getting artifact: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	} else if !exist {
+		log.Error("artifact with ID %d does not exist", artifactID)
+		ctx.Error(http.StatusNotFound, fmt.Sprintf("artifact with ID %d does not exist", artifactID))
 		return
 	}
 	if artifact.RunID != runID {

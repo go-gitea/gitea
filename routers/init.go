@@ -118,7 +118,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(storage.Init)
 
 	mailer.NewContext(ctx)
-	mustInit(cache.NewContext)
+	mustInit(cache.Init)
 	mustInit(feed_service.Init)
 	mustInit(uinotification.Init)
 	mustInitCtx(ctx, archiver.Init)

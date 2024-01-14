@@ -30,14 +30,16 @@ func TestAPIFollow(t *testing.T) {
 	t.Run("Follow", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/following/%s?token=%s", user1, token2))
+		req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/following/%s", user1)).
+			AddTokenAuth(token2)
 		MakeRequest(t, req, http.StatusNoContent)
 	})
 
 	t.Run("ListFollowing", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/following?token=%s", user2, token2))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/following", user2)).
+			AddTokenAuth(token2)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var users []api.User
@@ -49,7 +51,8 @@ func TestAPIFollow(t *testing.T) {
 	t.Run("ListMyFollowing", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/following?token=%s", token2))
+		req := NewRequest(t, "GET", "/api/v1/user/following").
+			AddTokenAuth(token2)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var users []api.User
@@ -61,7 +64,8 @@ func TestAPIFollow(t *testing.T) {
 	t.Run("ListFollowers", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/followers?token=%s", user1, token1))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/followers", user1)).
+			AddTokenAuth(token1)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var users []api.User
@@ -73,7 +77,8 @@ func TestAPIFollow(t *testing.T) {
 	t.Run("ListMyFollowers", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/followers?token=%s", token1))
+		req := NewRequest(t, "GET", "/api/v1/user/followers").
+			AddTokenAuth(token1)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var users []api.User
@@ -85,27 +90,32 @@ func TestAPIFollow(t *testing.T) {
 	t.Run("CheckFollowing", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/following/%s?token=%s", user2, user1, token2))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/following/%s", user2, user1)).
+			AddTokenAuth(token2)
 		MakeRequest(t, req, http.StatusNoContent)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/following/%s?token=%s", user1, user2, token2))
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/following/%s", user1, user2)).
+			AddTokenAuth(token2)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("CheckMyFollowing", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/following/%s?token=%s", user1, token2))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/following/%s", user1)).
+			AddTokenAuth(token2)
 		MakeRequest(t, req, http.StatusNoContent)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/following/%s?token=%s", user2, token1))
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/following/%s", user2)).
+			AddTokenAuth(token1)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("Unfollow", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/following/%s?token=%s", user1, token2))
+		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/following/%s", user1)).
+			AddTokenAuth(token2)
 		MakeRequest(t, req, http.StatusNoContent)
 	})
 }
