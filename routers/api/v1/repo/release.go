@@ -49,13 +49,12 @@ func GetRelease(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	id := ctx.ParamsInt64(":id")
-	release, err := repo_model.GetReleaseByID(ctx, id)
+	release, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, id)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
-		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
+		ctx.Error(http.StatusInternalServerError, "GetReleaseForRepoByID", err)
 		return
 	}
-	if err != nil && repo_model.IsErrReleaseNotExist(err) ||
-		release.IsTag || release.RepoID != ctx.Repo.Repository.ID {
+	if err != nil && repo_model.IsErrReleaseNotExist(err) || release.IsTag {
 		ctx.NotFound()
 		return
 	}
@@ -134,11 +133,6 @@ func ListReleases(ctx *context.APIContext) {
 	//   in: query
 	//   description: filter (exclude / include) pre-releases
 	//   type: boolean
-	// - name: per_page
-	//   in: query
-	//   description: page size of results, deprecated - use limit
-	//   type: integer
-	//   deprecated: true
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -153,9 +147,6 @@ func ListReleases(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	listOptions := utils.GetListOptions(ctx)
-	if listOptions.PageSize == 0 && ctx.FormInt("per_page") != 0 {
-		listOptions.PageSize = ctx.FormInt("per_page")
-	}
 
 	opts := repo_model.FindReleasesOptions{
 		ListOptions:   listOptions,
@@ -315,13 +306,12 @@ func EditRelease(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.EditReleaseOption)
 	id := ctx.ParamsInt64(":id")
-	rel, err := repo_model.GetReleaseByID(ctx, id)
+	rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, id)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
-		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
+		ctx.Error(http.StatusInternalServerError, "GetReleaseForRepoByID", err)
 		return
 	}
-	if err != nil && repo_model.IsErrReleaseNotExist(err) ||
-		rel.IsTag || rel.RepoID != ctx.Repo.Repository.ID {
+	if err != nil && repo_model.IsErrReleaseNotExist(err) || rel.IsTag {
 		ctx.NotFound()
 		return
 	}
@@ -393,17 +383,16 @@ func DeleteRelease(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 
 	id := ctx.ParamsInt64(":id")
-	rel, err := repo_model.GetReleaseByID(ctx, id)
+	rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, id)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
-		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
+		ctx.Error(http.StatusInternalServerError, "GetReleaseForRepoByID", err)
 		return
 	}
-	if err != nil && repo_model.IsErrReleaseNotExist(err) ||
-		rel.IsTag || rel.RepoID != ctx.Repo.Repository.ID {
+	if err != nil && repo_model.IsErrReleaseNotExist(err) || rel.IsTag {
 		ctx.NotFound()
 		return
 	}
-	if err := release_service.DeleteReleaseByID(ctx, id, ctx.Doer, false); err != nil {
+	if err := release_service.DeleteReleaseByID(ctx, ctx.Repo.Repository, rel, ctx.Doer, false); err != nil {
 		if models.IsErrProtectedTagName(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "delTag", "user not allowed to delete protected tag")
 			return

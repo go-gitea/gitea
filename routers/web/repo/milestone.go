@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -46,18 +45,13 @@ func Milestones(ctx *context.Context) {
 		page = 1
 	}
 
-	state := structs.StateOpen
-	if isShowClosed {
-		state = structs.StateClosed
-	}
-
-	miles, total, err := issues_model.GetMilestones(ctx, issues_model.GetMilestonesOption{
+	miles, total, err := db.FindAndCount[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: setting.UI.IssuePagingNum,
 		},
 		RepoID:   ctx.Repo.Repository.ID,
-		State:    state,
+		IsClosed: util.OptionalBoolOf(isShowClosed),
 		SortType: sortType,
 		Name:     keyword,
 	})
@@ -80,7 +74,7 @@ func Milestones(ctx *context.Context) {
 		url.QueryEscape(keyword), url.QueryEscape(sortType))
 
 	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
-		if err := miles.LoadTotalTrackedTimes(ctx); err != nil {
+		if err := issues_model.MilestoneList(miles).LoadTotalTrackedTimes(ctx); err != nil {
 			ctx.ServerError("LoadTotalTrackedTimes", err)
 			return
 		}

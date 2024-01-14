@@ -12,8 +12,6 @@ Gitea's private styles use `g-` prefix.
 .gt-f1 { flex: 1 !important; }
 .gt-fw { flex-wrap: wrap !important; }
 .gt-vm { vertical-align: middle !important; }
-.gt-w-100 { width: 100% !important; }
-.gt-h-100 { height: 100% !important; }
 
 .gt-mono {
   font-family: var(--fonts-monospace) !important;
@@ -69,15 +67,17 @@ Gitea's private styles use `g-` prefix.
 .gt-self-start { align-self: flex-start !important; }
 .gt-self-end { align-self: flex-end !important; }
 .gt-no-underline { text-decoration-line: none !important; }
-.gt-w-auto { width: auto !important; }
 .gt-normal-case { text-transform: none !important; }
 .gt-italic { font-style: italic !important; }
 .gt-overflow-x-auto { overflow-x: auto !important; }
 .gt-overflow-x-scroll { overflow-x: scroll !important; }
 .gt-overflow-y-hidden { overflow-y: hidden !important; }
 
-.gt-w-screen { width: 100vw !important; }
 .gt-h-screen { height: 100vh !important; }
+.gt-h-full { height: 100% !important; }
+.gt-w-auto { width: auto !important; }
+.gt-w-screen { width: 100vw !important; }
+.gt-w-full { width: 100% !important; }
 
 .gt-float-left { float: left !important; }
 .gt-float-right { float: right !important; }
@@ -268,7 +268,7 @@ Gitea's private styles use `g-` prefix.
 .gt-font-18 { font-size: 18px !important }
 
 /*
-gt-hidden must be placed after all other "display: xxx !important" classes to win the chance
+gt-hidden must win all other "display: xxx !important" classes to get the chance to "hide" an element.
 do not use:
 * "[hidden]" attribute: it's too weak, can not be applied to an element with "display: flex"
 * ".hidden" class: it has been polluted by Fomantic UI in many cases
@@ -278,4 +278,4 @@ only use:
 * this ".gt-hidden" class
 * showElem/hideElem/toggleElem functions in "utils/dom.js"
 */
-.gt-hidden { display: none !important; }
+.gt-hidden.gt-hidden { display: none !important; }

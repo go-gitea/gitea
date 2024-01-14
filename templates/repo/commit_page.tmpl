@@ -201,7 +201,7 @@
 						{{else}}
 							<span title="{{ctx.Locale.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog" 16 "gt-mr-3"}}</span>
 							<span class="ui text gt-mr-3">{{ctx.Locale.Tr "repo.commits.signed_by"}}:</span>
-							{{ctx.AvatarUtils.AvatarByEmail .Verification.SigningEmail "" 28}}
+							{{ctx.AvatarUtils.AvatarByEmail .Verification.SigningEmail "" 28 "gt-mr-3"}}
 							<strong>{{.Verification.SigningUser.GetDisplayName}}</strong>
 						{{end}}
 					{{else}}

@@ -163,24 +163,24 @@ mail@domain.com
 
 func TestRenderMarkdownToHtml(t *testing.T) {
 	expected := `<p>space <a href="http://localhost:3000/mention-user" rel="nofollow">@mention-user</a><br/>
-/just/a/path.bin<br/>
-<a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
-<a href="/file.bin" rel="nofollow">local link</a><br/>
-<a href="https://example.com" rel="nofollow">remote link</a><br/>
-<a href="/src/file.bin" rel="nofollow">local link</a><br/>
-<a href="https://example.com" rel="nofollow">remote link</a><br/>
-<a href="/image.jpg" target="_blank" rel="nofollow noopener"><img src="/image.jpg" alt="local image"/></a><br/>
-<a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
-<a href="/image.jpg" rel="nofollow"><img src="/image.jpg" title="local image" alt="local image"/></a><br/>
-<a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
-<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
-com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
-<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
-com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
-<span class="emoji" aria-label="thumbs up">👍</span><br/>
-<a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
-<a href="http://localhost:3000/mention-user" rel="nofollow">@mention-user</a> test<br/>
-#123<br/>
+/just/a/path.bin
+<a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a>
+<a href="/file.bin" rel="nofollow">local link</a>
+<a href="https://example.com" rel="nofollow">remote link</a>
+<a href="/src/file.bin" rel="nofollow">local link</a>
+<a href="https://example.com" rel="nofollow">remote link</a>
+<a href="/image.jpg" target="_blank" rel="nofollow noopener"><img src="/image.jpg" alt="local image"/></a>
+<a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a>
+<a href="/image.jpg" rel="nofollow"><img src="/image.jpg" title="local image" alt="local image"/></a>
+<a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
+<span class="emoji" aria-label="thumbs up">👍</span>
+<a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a>
+<a href="http://localhost:3000/mention-user" rel="nofollow">@mention-user</a> test
+#123
 space</p>
 `
 	assert.EqualValues(t, expected, RenderMarkdownToHtml(context.Background(), testInput))

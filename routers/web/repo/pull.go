@@ -653,7 +653,15 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	if pb != nil && pb.EnableStatusCheck {
 		ctx.Data["is_context_required"] = func(context string) bool {
 			for _, c := range pb.StatusCheckContexts {
-				if gp, err := glob.Compile(c); err == nil && gp.Match(context) {
+				if c == context {
+					return true
+				}
+				if gp, err := glob.Compile(c); err != nil {
+					// All newly created status_check_contexts are checked to ensure they are valid glob expressions before being stored in the database.
+					// But some old status_check_context created before glob was introduced may be invalid glob expressions.
+					// So log the error here for debugging.
+					log.Error("compile glob %q: %v", c, err)
+				} else if gp.Match(context) {
 					return true
 				}
 			}
@@ -1379,7 +1387,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		return
 	}
 
-	labelIDs, assigneeIDs, milestoneID, _ := ValidateRepoMetas(ctx, *form, true)
+	labelIDs, assigneeIDs, milestoneID, projectID := ValidateRepoMetas(ctx, *form, true)
 	if ctx.Written() {
 		return
 	}
@@ -1455,6 +1463,17 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		}
 		ctx.ServerError("NewPullRequest", err)
 		return
+	}
+
+	if projectID > 0 {
+		if !ctx.Repo.CanWrite(unit.TypeProjects) {
+			ctx.Error(http.StatusBadRequest, "user hasn't the permission to write to projects")
+			return
+		}
+		if err := issues_model.ChangeProjectAssign(ctx, pullIssue, ctx.Doer, projectID); err != nil {
+			ctx.ServerError("ChangeProjectAssign", err)
+			return
+		}
 	}
 
 	log.Trace("Pull request created: %d/%d", repo.ID, pullIssue.ID)
