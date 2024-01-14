@@ -430,6 +430,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `NAME`: **gitea**: Database name.
 - `USER`: **root**: Database username.
 - `PASSWD`: **_empty_**: Database user password. Use \`your password\` or """your password""" for quoting if you use special characters in the password.
+- `CHARSET_COLLATION`: **_empty_**: (MySQL/MSSQL only) Gitea expects to use a case-sensitive collation for database. Leave it empty to use the default collation decided by the Gitea. Don't change it unless you clearly know what you need.
 - `SCHEMA`: **_empty_**: For PostgreSQL only, schema to use if different from "public". The schema must exist beforehand,
   the user must have creation privileges on it, and the user search path must be set to the look into the schema first
   (e.g. `ALTER USER user SET SEARCH_PATH = schema_name,"$user",public;`).
@@ -596,9 +597,13 @@ And the following unique queues:
 - `OPENID_CONNECT_SCOPES`: **_empty_**: List of additional openid connect scopes. (`openid` is implicitly added)
 - `ENABLE_AUTO_REGISTRATION`: **false**: Automatically create user accounts for new oauth2 users.
 - `USERNAME`: **nickname**: The source of the username for new oauth2 accounts:
-  - userid - use the userid / sub attribute
-  - nickname - use the nickname attribute
-  - email - use the username part of the email attribute
+  - `userid` - use the userid / sub attribute
+  - `nickname` - use the nickname attribute
+  - `email` - use the username part of the email attribute
+  - Note: `nickname` and `email` options will normalize input strings using the following criteria:
+    - diacritics are removed
+    - the characters in the set `['´\x60]` are removed
+    - the characters in the set `[\s~+]` are replaced with `-`
 - `UPDATE_AVATAR`: **false**: Update avatar if available from oauth2 provider. Update will be performed on each login.
 - `ACCOUNT_LINKING`: **login**: How to handle if an account / email already exists:
   - disabled - show an error
