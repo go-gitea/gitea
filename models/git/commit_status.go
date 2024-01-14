@@ -25,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/translation"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // CommitStatus holds a single Status of a single Commit
@@ -221,58 +220,56 @@ func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
 // CommitStatusOptions holds the options for query commit statuses
 type CommitStatusOptions struct {
 	db.ListOptions
+	RepoID   int64
+	SHA      string
 	State    string
 	SortType string
 }
 
-// GetCommitStatuses returns all statuses for a given commit.
-func GetCommitStatuses(ctx context.Context, repo *repo_model.Repository, sha string, opts *CommitStatusOptions) ([]*CommitStatus, int64, error) {
-	if opts.Page <= 0 {
-		opts.Page = 1
-	}
-	if opts.PageSize <= 0 {
-		opts.Page = setting.ItemsPerPage
+func (opts *CommitStatusOptions) ToConds() builder.Cond {
+	var cond builder.Cond = builder.Eq{
+		"repo_id": opts.RepoID,
+		"sha":     opts.SHA,
 	}
 
-	countSession := listCommitStatusesStatement(ctx, repo, sha, opts)
-	countSession = db.SetSessionPagination(countSession, opts)
-	maxResults, err := countSession.Count(new(CommitStatus))
-	if err != nil {
-		log.Error("Count PRs: %v", err)
-		return nil, maxResults, err
-	}
-
-	statuses := make([]*CommitStatus, 0, opts.PageSize)
-	findSession := listCommitStatusesStatement(ctx, repo, sha, opts)
-	findSession = db.SetSessionPagination(findSession, opts)
-	sortCommitStatusesSession(findSession, opts.SortType)
-	return statuses, maxResults, findSession.Find(&statuses)
-}
-
-func listCommitStatusesStatement(ctx context.Context, repo *repo_model.Repository, sha string, opts *CommitStatusOptions) *xorm.Session {
-	sess := db.GetEngine(ctx).Where("repo_id = ?", repo.ID).And("sha = ?", sha)
 	switch opts.State {
 	case "pending", "success", "error", "failure", "warning":
-		sess.And("state = ?", opts.State)
+		cond = cond.And(builder.Eq{
+			"state": opts.State,
+		})
 	}
-	return sess
+
+	return cond
 }
 
-func sortCommitStatusesSession(sess *xorm.Session, sortType string) {
-	switch sortType {
+func (opts *CommitStatusOptions) configureOrderBy(e db.Engine) {
+	switch opts.SortType {
 	case "oldest":
-		sess.Asc("created_unix")
+		e.Asc("created_unix")
 	case "recentupdate":
-		sess.Desc("updated_unix")
+		e.Desc("updated_unix")
 	case "leastupdate":
-		sess.Asc("updated_unix")
+		e.Asc("updated_unix")
 	case "leastindex":
-		sess.Desc("index")
+		e.Desc("`index`")
 	case "highestindex":
-		sess.Asc("index")
+		e.Asc("`index`")
 	default:
-		sess.Desc("created_unix")
+		e.Desc("created_unix")
 	}
+}
+
+// GetCommitStatuses returns all statuses for a given commit.
+func GetCommitStatuses(ctx context.Context, opts *CommitStatusOptions) ([]*CommitStatus, int64, error) {
+	sess := db.GetEngine(ctx).
+		Where(opts.ToConds())
+
+	opts.configureOrderBy(sess)
+	db.SetSessionPagination(sess, opts)
+
+	statuses := make([]*CommitStatus, 0, opts.PageSize)
+	count, err := sess.FindAndCount(&statuses)
+	return statuses, count, err
 }
 
 // CommitStatusIndex represents a table for commit status index
