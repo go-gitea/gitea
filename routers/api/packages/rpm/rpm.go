@@ -34,13 +34,17 @@ func apiError(ctx *context.Context, status int, obj any) {
 // https://dnf.readthedocs.io/en/latest/conf_ref.html
 func GetRepositoryConfig(ctx *context.Context) {
 	group := ctx.Params("group")
+
+	var groupParts []string
 	if group != "" {
-		group = fmt.Sprintf("/%s", group)
+		groupParts = strings.Split(group, "/")
 	}
+
 	url := fmt.Sprintf("%sapi/packages/%s/rpm", setting.AppURL, ctx.Package.Owner.Name)
-	ctx.PlainText(http.StatusOK, `[gitea-`+ctx.Package.Owner.LowerName+strings.ReplaceAll(group, "/", "-")+`]
-name=`+ctx.Package.Owner.Name+` - `+setting.AppName+strings.ReplaceAll(group, "/", " - ")+`
-baseurl=`+url+group+`/
+
+	ctx.PlainText(http.StatusOK, `[gitea-`+strings.Join(append([]string{ctx.Package.Owner.LowerName}, groupParts...), "-")+`]
+name=`+strings.Join(append([]string{ctx.Package.Owner.Name, setting.AppName}, groupParts...), " - ")+`
+baseurl=`+strings.Join(append([]string{url}, groupParts...), "/")+`
 enabled=1
 gpgcheck=1
 gpgkey=`+url+`/repository.key`)
@@ -157,7 +161,7 @@ func UploadPackageFile(ctx *context.Context) {
 				Owner:       ctx.Package.Owner,
 				PackageType: packages_model.TypeRpm,
 				Name:        pck.Name,
-				Version:     strings.Trim(fmt.Sprintf("%s/%s", group, pck.Version), "/"),
+				Version:     pck.Version,
 			},
 			Creator:  ctx.Doer,
 			Metadata: pck.VersionMetadata,
@@ -171,7 +175,9 @@ func UploadPackageFile(ctx *context.Context) {
 			Data:    buf,
 			IsLead:  true,
 			Properties: map[string]string{
-				rpm_module.PropertyMetadata: string(fileMetadataRaw),
+				rpm_module.PropertyGroup:        group,
+				rpm_module.PropertyArchitecture: pck.FileMetadata.Architecture,
+				rpm_module.PropertyMetadata:     string(fileMetadataRaw),
 			},
 		},
 	)
@@ -187,7 +193,7 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	if err := rpm_service.BuildRepositoryFiles(ctx, ctx.Package.Owner.ID, group); err != nil {
+	if err := rpm_service.BuildSpecificRepositoryFiles(ctx, ctx.Package.Owner.ID, group); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -196,20 +202,20 @@ func UploadPackageFile(ctx *context.Context) {
 }
 
 func DownloadPackageFile(ctx *context.Context) {
-	group := ctx.Params("group")
 	name := ctx.Params("name")
 	version := ctx.Params("version")
+
 	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages_model.TypeRpm,
 			Name:        name,
-			Version:     strings.Trim(fmt.Sprintf("%s/%s", group, version), "/"),
+			Version:     version,
 		},
 		&packages_service.PackageFileInfo{
 			Filename:     fmt.Sprintf("%s-%s.%s.rpm", name, version, ctx.Params("architecture")),
-			CompositeKey: group,
+			CompositeKey: ctx.Params("group"),
 		},
 	)
 	if err != nil {
@@ -229,6 +235,7 @@ func DeletePackageFile(webctx *context.Context) {
 	name := webctx.Params("name")
 	version := webctx.Params("version")
 	architecture := webctx.Params("architecture")
+
 	var pd *packages_model.PackageDescriptor
 
 	err := db.WithTx(webctx, func(ctx stdctx.Context) error {
@@ -236,7 +243,7 @@ func DeletePackageFile(webctx *context.Context) {
 			webctx.Package.Owner.ID,
 			packages_model.TypeRpm,
 			name,
-			strings.Trim(fmt.Sprintf("%s/%s", group, version), "/"),
+			version,
 		)
 		if err != nil {
 			return err
@@ -286,7 +293,7 @@ func DeletePackageFile(webctx *context.Context) {
 		notify_service.PackageDelete(webctx, webctx.Doer, pd)
 	}
 
-	if err := rpm_service.BuildRepositoryFiles(webctx, webctx.Package.Owner.ID, group); err != nil {
+	if err := rpm_service.BuildSpecificRepositoryFiles(webctx, webctx.Package.Owner.ID, group); err != nil {
 		apiError(webctx, http.StatusInternalServerError, err)
 		return
 	}

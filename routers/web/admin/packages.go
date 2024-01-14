@@ -108,6 +108,6 @@ func CleanupExpiredData(ctx *context.Context) {
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("packages.cleanup.success"))
+	ctx.Flash.Success(ctx.Tr("admin.packages.cleanup.success"))
 	ctx.Redirect(setting.AppSubURL + "/admin/packages")
 }

@@ -191,18 +191,18 @@ type Package struct {
 func TryInsertPackage(ctx context.Context, p *Package) (*Package, error) {
 	e := db.GetEngine(ctx)
 
-	key := &Package{
-		OwnerID:   p.OwnerID,
-		Type:      p.Type,
-		LowerName: p.LowerName,
-	}
+	existing := &Package{}
 
-	has, err := e.Get(key)
+	has, err := e.Where(builder.Eq{
+		"owner_id":   p.OwnerID,
+		"type":       p.Type,
+		"lower_name": p.LowerName,
+	}).Get(existing)
 	if err != nil {
 		return nil, err
 	}
 	if has {
-		return key, ErrDuplicatePackage
+		return existing, ErrDuplicatePackage
 	}
 	if _, err = e.Insert(p); err != nil {
 		return nil, err
