@@ -4,23 +4,6 @@
   user-select: none;
 }
 
-.repository .repo-header .ui.compact.menu {
-  margin-left: 1rem;
-}
-
-.repository .repo-header .ui.header {
-  margin-top: 0;
-}
-
-.repository .repo-header .fork-flag {
-  font-size: 12px;
-  margin-top: 2px;
-}
-
-.repository .tabs .navbar {
-  justify-content: initial;
-}
-
 .repository .navbar {
   display: flex;
   justify-content: space-between;
@@ -104,14 +87,6 @@
   border-radius: var(--border-radius) 0 0 var(--border-radius);
   border-right: 0;
   white-space: nowrap;
-}
-
-.repository .header-wrapper {
-  background-color: var(--color-header-wrapper);
-}
-
-.repository .header-wrapper .ui.tabular .svg {
-  margin-right: 5px;
 }
 
 .repository .filter.menu.labels .label-filter .menu .info {
@@ -2609,74 +2584,6 @@ tbody.commit-list {
 #new-dependency-drop-list .text {
   width: 100%;
   overflow: hidden;
-}
-
-.repo-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  word-break: break-word;
-  gap: 0.5rem;
-}
-
-@media (max-width: 767.98px) {
-  .repo-header + .container {
-    margin-top: 7px;
-  }
-}
-
-.repo-buttons {
-  align-items: center;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  word-break: keep-all;
-  gap: 0.25em;
-}
-
-@media (max-width: 767.98px) {
-  .repo-buttons {
-    margin-top: 1em;
-  }
-}
-
-.repo-buttons .ui.labeled.button > .label:hover {
-  color: var(--color-primary-light-2);
-  background: var(--color-light);
-}
-
-.repo-buttons button[disabled] ~ .label {
-  opacity: var(--opacity-disabled);
-  color: var(--color-text-dark);
-  background: var(--color-light-mimic-enabled) !important;
-}
-
-.repo-buttons button[disabled] ~ .label:hover {
-  color: var(--color-primary-dark-1);
-}
-
-.repo-buttons .ui.labeled.button.disabled {
-  pointer-events: inherit !important;
-}
-
-.repo-buttons .ui.labeled.button.disabled > .label {
-  color: var(--color-text-dark);
-  background: var(--color-light-mimic-enabled) !important;
-}
-
-.repo-buttons .ui.labeled.button.disabled > .label:hover {
-  color: var(--color-primary-dark-1);
-}
-
-.repo-buttons .ui.labeled.button.disabled > .button {
-  pointer-events: none !important;
-}
-
-@media (max-width: 767.98px) {
-  .repo-buttons .ui.labeled.button .svg {
-    display: none;
-  }
 }
 
 .tag-code {
