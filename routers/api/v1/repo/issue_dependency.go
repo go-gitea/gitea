@@ -102,23 +102,24 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		return
 	}
 
-	var lastRepoID int64
-	var lastPerm access_model.Permission
+	repoPerms := make(map[int64]access_model.Permission)
+	repoPerms[ctx.Repo.Repository.ID] = ctx.Repo.Permission
 	for _, blocker := range blockersInfo {
 		// Get the permissions for this repository
-		perm := lastPerm
-		if lastRepoID != blocker.Repository.ID {
-			if blocker.Repository.ID == ctx.Repo.Repository.ID {
-				perm = ctx.Repo.Permission
-			} else {
-				var err error
-				perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
-				if err != nil {
-					ctx.ServerError("GetUserRepoPermission", err)
-					return
-				}
+		// If the repo ID exists in the map, return the exist permissions
+		// else get the permission and add it to the map
+		var perm access_model.Permission
+		existPerm, ok := repoPerms[blocker.RepoID]
+		if ok {
+			perm = existPerm
+		} else {
+			var err error
+			perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return
 			}
-			lastRepoID = blocker.Repository.ID
+			repoPerms[blocker.RepoID] = perm
 		}
 
 		// check permission
@@ -345,29 +346,31 @@ func GetIssueBlocks(ctx *context.APIContext) {
 		return
 	}
 
-	var lastRepoID int64
-	var lastPerm access_model.Permission
-
 	var issues []*issues_model.Issue
+
+	repoPerms := make(map[int64]access_model.Permission)
+	repoPerms[ctx.Repo.Repository.ID] = ctx.Repo.Permission
+
 	for i, depMeta := range deps {
 		if i < skip || i >= max {
 			continue
 		}
 
 		// Get the permissions for this repository
-		perm := lastPerm
-		if lastRepoID != depMeta.Repository.ID {
-			if depMeta.Repository.ID == ctx.Repo.Repository.ID {
-				perm = ctx.Repo.Permission
-			} else {
-				var err error
-				perm, err = access_model.GetUserRepoPermission(ctx, &depMeta.Repository, ctx.Doer)
-				if err != nil {
-					ctx.ServerError("GetUserRepoPermission", err)
-					return
-				}
+		// If the repo ID exists in the map, return the exist permissions
+		// else get the permission and add it to the map
+		var perm access_model.Permission
+		existPerm, ok := repoPerms[depMeta.RepoID]
+		if ok {
+			perm = existPerm
+		} else {
+			var err error
+			perm, err = access_model.GetUserRepoPermission(ctx, &depMeta.Repository, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return
 			}
-			lastRepoID = depMeta.Repository.ID
+			repoPerms[depMeta.RepoID] = perm
 		}
 
 		if !perm.CanReadIssuesOrPulls(depMeta.Issue.IsPull) {

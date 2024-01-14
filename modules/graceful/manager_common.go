@@ -10,6 +10,9 @@ import (
 	"time"
 )
 
+// FIXME: it seems that there is a bug when using systemd Type=notify: the "Install Page" (INSTALL_LOCK=false) doesn't notify properly.
+// At the moment, no idea whether it also affects Windows Service, or whether it's a regression bug. It needs to be investigated later.
+
 type systemdNotifyMsg string
 
 const (

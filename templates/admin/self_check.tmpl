@@ -1,0 +1,36 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin config")}}
+
+<div class="admin-setting-content">
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "admin.self_check"}}
+	</h4>
+	<div class="ui attached segment">
+		{{if .DatabaseCheckHasProblems}}
+			{{if .DatabaseType.IsMySQL}}
+				<div class="gt-p-3">{{ctx.Locale.Tr "admin.self_check.database_fix_mysql"}}</div>
+			{{else if .DatabaseType.IsMSSQL}}
+				<div class="gt-p-3">{{ctx.Locale.Tr "admin.self_check.database_fix_mssql"}}</div>
+			{{end}}
+			{{if .DatabaseCheckCollationMismatch}}
+				<div class="ui red message">{{ctx.Locale.Tr "admin.self_check.database_collation_mismatch" .DatabaseCheckResult.ExpectedCollation}}</div>
+			{{end}}
+			{{if .DatabaseCheckCollationCaseInsensitive}}
+				<div class="ui warning message">{{ctx.Locale.Tr "admin.self_check.database_collation_case_insensitive" .DatabaseCheckResult.DatabaseCollation}}</div>
+			{{end}}
+			{{if .DatabaseCheckInconsistentCollationColumns}}
+				<div class="ui red message">
+					{{ctx.Locale.Tr "admin.self_check.database_inconsistent_collation_columns" .DatabaseCheckResult.DatabaseCollation}}
+					<ul class="gt-w-full">
+					{{range .DatabaseCheckInconsistentCollationColumns}}
+						<li>{{.}}</li>
+					{{end}}
+					</ul>
+				</div>
+			{{end}}
+		{{else}}
+			<div class="gt-p-3">{{ctx.Locale.Tr "admin.self_check.no_problem_found"}}</div>
+		{{end}}
+	</div>
+</div>
+
+{{template "admin/layout_footer" .}}
