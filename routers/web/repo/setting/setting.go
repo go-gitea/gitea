@@ -418,7 +418,7 @@ func SettingsPost(ctx *context.Context) {
 			Interval:      interval,
 			RemoteAddress: remoteAddress,
 		}
-		if err := repo_model.InsertPushMirror(ctx, m); err != nil {
+		if err := db.Insert(ctx, m); err != nil {
 			ctx.ServerError("InsertPushMirror", err)
 			return
 		}
@@ -594,7 +594,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repo_model.UpdateRepositoryUnits(ctx, repo, units, deleteUnitTypes); err != nil {
+		if err := repo_service.UpdateRepositoryUnits(ctx, repo, units, deleteUnitTypes); err != nil {
 			ctx.ServerError("UpdateRepositoryUnits", err)
 			return
 		}

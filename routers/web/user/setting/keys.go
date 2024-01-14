@@ -260,7 +260,10 @@ func DeleteKey(ctx *context.Context) {
 }
 
 func loadKeysData(ctx *context.Context) {
-	keys, err := asymkey_model.ListPublicKeys(ctx, ctx.Doer.ID, db.ListOptions{})
+	keys, err := db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+		OwnerID:    ctx.Doer.ID,
+		NotKeytype: asymkey_model.KeyTypePrincipal,
+	})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return
