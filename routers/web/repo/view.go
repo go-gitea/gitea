@@ -341,6 +341,35 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 	}
 }
 
+func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
+	// Show latest commit info of repository in table header,
+	// or of directory if not in root directory.
+	ctx.Data["LatestCommit"] = latestCommit
+	if latestCommit != nil {
+
+		verification := asymkey_model.ParseCommitWithSignature(ctx, latestCommit)
+
+		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
+			return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
+		}, nil); err != nil {
+			ctx.ServerError("CalculateTrustStatus", err)
+			return false
+		}
+		ctx.Data["LatestCommitVerification"] = verification
+		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(ctx, latestCommit)
+
+		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptions{ListAll: true})
+		if err != nil {
+			log.Error("GetLatestCommitStatus: %v", err)
+		}
+
+		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
+		ctx.Data["LatestCommitStatuses"] = statuses
+	}
+
+	return true
+}
+
 func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 	ctx.Data["IsViewFile"] = true
 	ctx.Data["HideRepoInfo"] = true
@@ -356,6 +385,16 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
 	ctx.Data["FileName"] = blob.Name()
 	ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+
+	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx.Repo.TreePath)
+	if err != nil {
+		ctx.ServerError("GetCommitByPath", err)
+		return
+	}
+
+	if !loadLatestCommitData(ctx, commit) {
+		return
+	}
 
 	if ctx.Repo.TreePath == ".editorconfig" {
 		_, editorconfigWarning, editorconfigErr := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
@@ -846,29 +885,8 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		return nil
 	}
 
-	// Show latest commit info of repository in table header,
-	// or of directory if not in root directory.
-	ctx.Data["LatestCommit"] = latestCommit
-	if latestCommit != nil {
-
-		verification := asymkey_model.ParseCommitWithSignature(ctx, latestCommit)
-
-		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-			return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
-		}, nil); err != nil {
-			ctx.ServerError("CalculateTrustStatus", err)
-			return nil
-		}
-		ctx.Data["LatestCommitVerification"] = verification
-		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(ctx, latestCommit)
-
-		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptions{ListAll: true})
-		if err != nil {
-			log.Error("GetLatestCommitStatus: %v", err)
-		}
-
-		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
-		ctx.Data["LatestCommitStatuses"] = statuses
+	if !loadLatestCommitData(ctx, latestCommit) {
+		return nil
 	}
 
 	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
