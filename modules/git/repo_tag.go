@@ -112,7 +112,7 @@ func (repo *Repository) GetTagWithID(idStr, name string) (*Tag, error) {
 
 // GetTagInfos returns all tag infos of the repository.
 func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
-	forEachRefFmt := foreachref.NewFormat("objecttype", "refname:short", "object", "objectname", "creator", "contents", "contents:signature")
+	forEachRefFmt := foreachref.NewFormat("objecttype", "refname:strip=2", "object", "objectname", "creator", "contents", "contents:signature")
 
 	stdoutReader, stdoutWriter := io.Pipe()
 	defer stdoutReader.Close()
