@@ -37,6 +37,7 @@ import (
 	org_setting "code.gitea.io/gitea/routers/web/org/setting"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/repo/actions"
+	"code.gitea.io/gitea/routers/web/repo/badges"
 	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
@@ -1320,6 +1321,24 @@ func registerRoutes(m *web.Route) {
 			m.Get("/packages", repo.Packages)
 		}
 
+		if setting.Badges.Enabled {
+			m.Group("/badges", func() {
+				m.Get("/workflows/{workflow_name}/badge.svg", badges.GetWorkflowBadge)
+				m.Group("/issues", func() {
+					m.Get(".svg", badges.GetTotalIssuesBadge)
+					m.Get("/open.svg", badges.GetOpenIssuesBadge)
+					m.Get("/closed.svg", badges.GetClosedIssuesBadge)
+				})
+				m.Group("/pulls", func() {
+					m.Get(".svg", badges.GetTotalPullsBadge)
+					m.Get("/open.svg", badges.GetOpenPullsBadge)
+					m.Get("/closed.svg", badges.GetClosedPullsBadge)
+				})
+				m.Get("/stars.svg", badges.GetStarsBadge)
+				m.Get("/release.svg", badges.GetLatestReleaseBadge)
+			})
+		}
+
 		m.Group("/projects", func() {
 			m.Get("", repo.Projects)
 			m.Get("/{id}", repo.ViewProject)
@@ -1368,6 +1387,8 @@ func registerRoutes(m *web.Route) {
 				m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
 				m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 			})
+
+			m.Get("/workflows/{workflow_name}/badge.svg", badges.GetWorkflowBadge)
 		}, reqRepoActionsReader, actions.MustEnableActions)
 
 		m.Group("/wiki", func() {

@@ -309,6 +309,21 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 	return commiter.Commit()
 }
 
+func GetLatestRunForBranchAndWorkflow(ctx context.Context, repoID int64, branch, workflowFile, event string) (*ActionRun, error) {
+	var run ActionRun
+	q := db.GetEngine(ctx).Where("repo_id=?", repoID).And("ref=?", branch).And("workflow_id=?", workflowFile)
+	if event != "" {
+		q = q.And("event=?", event)
+	}
+	has, err := q.Desc("id").Get(&run)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, util.NewNotExistErrorf("run with repo_id %d, ref %s, workflow_id %s", repoID, branch, workflowFile)
+	}
+	return &run, nil
+}
+
 func GetRunByID(ctx context.Context, id int64) (*ActionRun, error) {
 	var run ActionRun
 	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&run)
