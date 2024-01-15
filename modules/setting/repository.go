@@ -225,7 +225,7 @@ var (
 			DefaultMergeMessageOfficialApproversOnly: true,
 			PopulateSquashCommentWithCommitMessages:  false,
 			AddCoCommitterTrailers:                   true,
-			RetargetChildrenOnMerge:                  false,
+			RetargetChildrenOnMerge:                  true,
 		},
 
 		// Issue settings
