@@ -19236,6 +19236,16 @@
           "type": "string",
           "x-go-name": "Description"
         },
+        "disable_owner_projects": {
+          "description": "either `true` to enable owner projects, or `false` to disable them.",
+          "type": "boolean",
+          "x-go-name": "DisableOwnerProjects"
+        },
+        "disable_repo_projects": {
+          "description": "either `true` to enable repo projects, or `false` to disable them.",
+          "type": "boolean",
+          "x-go-name": "DisableRepoProjects"
+        },
         "enable_prune": {
           "description": "enable prune - remove obsolete remote-tracking references",
           "type": "boolean",
@@ -22069,6 +22079,14 @@
         "description": {
           "type": "string",
           "x-go-name": "Description"
+        },
+        "disable_owner_projects": {
+          "type": "boolean",
+          "x-go-name": "DisableOwnerProjects"
+        },
+        "disable_repo_projects": {
+          "type": "boolean",
+          "x-go-name": "DisableRepoProjects"
         },
         "empty": {
           "type": "boolean",

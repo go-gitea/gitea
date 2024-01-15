@@ -200,6 +200,22 @@ func (cfg *ActionsConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
 
+// ProjectsConfig describes projects config
+type ProjectsConfig struct {
+	DisableRepoProjects  bool
+	DisableOwnerProjects bool
+}
+
+// FromDB fills up a ProjectsConfig from serialized format.
+func (cfg *ProjectsConfig) FromDB(bs []byte) error {
+	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
+}
+
+// ToDB exports a ProjectsConfig to a serialized format.
+func (cfg *ProjectsConfig) ToDB() ([]byte, error) {
+	return json.Marshal(cfg)
+}
+
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
@@ -215,7 +231,9 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 			r.Config = new(IssuesConfig)
 		case unit.TypeActions:
 			r.Config = new(ActionsConfig)
-		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects, unit.TypePackages:
+		case unit.TypeProjects:
+			r.Config = new(ProjectsConfig)
+		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypePackages:
 			fallthrough
 		default:
 			r.Config = new(UnitConfig)
@@ -261,6 +279,11 @@ func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 // ActionsConfig returns config for unit.ActionsConfig
 func (r *RepoUnit) ActionsConfig() *ActionsConfig {
 	return r.Config.(*ActionsConfig)
+}
+
+// ProjectsConfig returns config for unit.ProjectsConfig
+func (r *RepoUnit) ProjectsConfig() *ProjectsConfig {
+	return r.Config.(*ProjectsConfig)
 }
 
 func getUnitsByRepoID(ctx context.Context, repoID int64) (units []*RepoUnit, err error) {

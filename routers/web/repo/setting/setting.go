@@ -534,6 +534,10 @@ func SettingsPost(ctx *context.Context) {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   unit_model.TypeProjects,
+				Config: &repo_model.ProjectsConfig{
+					DisableRepoProjects:  form.ProjectsDisableRepo,
+					DisableOwnerProjects: form.ProjectsDisableOwner,
+				},
 			})
 		} else if !unit_model.TypeProjects.UnitGlobalDisabled() {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeProjects)

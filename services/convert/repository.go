@@ -110,8 +110,13 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		defaultAllowMaintainerEdit = config.DefaultAllowMaintainerEdit
 	}
 	hasProjects := false
-	if _, err := repo.GetUnit(ctx, unit_model.TypeProjects); err == nil {
+	disableRepoProjects := false
+	disableOwnerProjects := false
+	if unit, err := repo.GetUnit(ctx, unit_model.TypeProjects); err == nil {
 		hasProjects = true
+		config := unit.ProjectsConfig()
+		disableRepoProjects = config.DisableRepoProjects
+		disableOwnerProjects = config.DisableOwnerProjects
 	}
 
 	hasReleases := false
@@ -204,6 +209,8 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		InternalTracker:               internalTracker,
 		HasWiki:                       hasWiki,
 		HasProjects:                   hasProjects,
+		DisableRepoProjects:           disableRepoProjects,
+		DisableOwnerProjects:          disableOwnerProjects,
 		HasReleases:                   hasReleases,
 		HasPackages:                   hasPackages,
 		HasActions:                    hasActions,

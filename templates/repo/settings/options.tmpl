@@ -429,13 +429,30 @@
 
 				{{$isProjectsEnabled := .Repository.UnitEnabled $.Context $.UnitTypeProjects}}
 				{{$isProjectsGlobalDisabled := .UnitTypeProjects.UnitGlobalDisabled}}
+				{{$projectsUnit := .Repository.MustGetUnit $.Context $.UnitTypeProjects}}
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.project_board"}}</label>
 					<div class="ui checkbox{{if $isProjectsGlobalDisabled}} disabled{{end}}"{{if $isProjectsGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
-						<input class="enable-system" name="enable_projects" type="checkbox" {{if $isProjectsEnabled}}checked{{end}}>
+						<input class="enable-system" name="enable_projects" type="checkbox" data-target="#projects_box" {{if $isProjectsEnabled}}checked{{end}}>
 						<label>{{ctx.Locale.Tr "repo.settings.projects_desc"}}</label>
 					</div>
 				</div>
+				<div class="field{{if not $isProjectsEnabled}} disabled{{end}} gt-pl-4" id="projects_box">
+						<div class="field">
+						<div class="ui checkbox">
+							<input name="projects_disable_repo" type="checkbox" {{if and $isProjectsEnabled $projectsUnit.ProjectsConfig.DisableRepoProjects}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.settings.projects_disable_repo"}}</label>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui checkbox">
+							<input name="projects_disable_owner" type="checkbox" {{if and $isProjectsEnabled $projectsUnit.ProjectsConfig.DisableOwnerProjects}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.settings.projects_disable_owner"}}</label>
+						</div>
+					</div>
+				</div>
+
+				<div class="divider"></div>
 
 				{{$isReleasesEnabled := .Repository.UnitEnabled $.Context $.UnitTypeReleases}}
 				{{$isReleasesGlobalDisabled := .UnitTypeReleases.UnitGlobalDisabled}}

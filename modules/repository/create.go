@@ -89,6 +89,12 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 				Type:   tp,
 				Config: &repo_model.PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, DefaultMergeStyle: repo_model.MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle), AllowRebaseUpdate: true},
 			})
+		} else if tp == unit.TypeProjects {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+				Config: &repo_model.ProjectsConfig{DisableRepoProjects: false, DisableOwnerProjects: false},
+			})
 		} else {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
