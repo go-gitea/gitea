@@ -242,34 +242,21 @@ func (opts *CommitStatusOptions) ToConds() builder.Cond {
 	return cond
 }
 
-func (opts *CommitStatusOptions) configureOrderBy(e db.Engine) {
+func (opts *CommitStatusOptions) ToOrders() string {
 	switch opts.SortType {
 	case "oldest":
-		e.Asc("created_unix")
+		return "created_unix ASC"
 	case "recentupdate":
-		e.Desc("updated_unix")
+		return "updated_unix DESC"
 	case "leastupdate":
-		e.Asc("updated_unix")
+		return "updated_unix ASC"
 	case "leastindex":
-		e.Desc("`index`")
+		return "`index` DESC"
 	case "highestindex":
-		e.Asc("`index`")
+		return "`index` ASC"
 	default:
-		e.Desc("created_unix")
+		return "created_unix DESC"
 	}
-}
-
-// GetCommitStatuses returns all statuses for a given commit.
-func GetCommitStatuses(ctx context.Context, opts *CommitStatusOptions) ([]*CommitStatus, int64, error) {
-	sess := db.GetEngine(ctx).
-		Where(opts.ToConds())
-
-	opts.configureOrderBy(sess)
-	db.SetSessionPagination(sess, opts)
-
-	statuses := make([]*CommitStatus, 0, opts.PageSize)
-	count, err := sess.FindAndCount(&statuses)
-	return statuses, count, err
 }
 
 // CommitStatusIndex represents a table for commit status index
