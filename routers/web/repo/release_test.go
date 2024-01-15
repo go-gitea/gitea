@@ -6,6 +6,7 @@ package repo
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
@@ -74,8 +75,9 @@ func TestCalReleaseNumCommitsBehind(t *testing.T) {
 	contexttest.LoadGitRepo(t, ctx)
 	t.Cleanup(func() { ctx.Repo.GitRepo.Close() })
 
-	releases, err := repo_model.GetReleasesByRepoID(ctx, ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{
+	releases, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
 		IncludeDrafts: ctx.Repo.CanWrite(unit.TypeReleases),
+		RepoID:        ctx.Repo.Repository.ID,
 	})
 	assert.NoError(t, err)
 

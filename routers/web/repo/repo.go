@@ -379,7 +379,10 @@ func RedirectDownload(ctx *context.Context) {
 	)
 	tagNames := []string{vTag}
 	curRepo := ctx.Repo.Repository
-	releases, err := repo_model.GetReleasesByRepoIDAndNames(ctx, curRepo.ID, tagNames)
+	releases, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
+		RepoID:   curRepo.ID,
+		TagNames: tagNames,
+	})
 	if err != nil {
 		ctx.ServerError("RedirectDownload", err)
 		return

@@ -678,6 +678,8 @@ func registerRoutes(m *web.Route) {
 		m.Get("", admin.Dashboard)
 		m.Post("", web.Bind(forms.AdminDashboardForm{}), admin.DashboardPost)
 
+		m.Get("/self_check", admin.SelfCheck)
+
 		m.Group("/config", func() {
 			m.Get("", admin.Config)
 			m.Post("", admin.ChangeConfig)

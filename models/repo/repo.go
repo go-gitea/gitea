@@ -584,8 +584,7 @@ func (repo *Repository) CanEnableEditor() bool {
 // DescriptionHTML does special handles to description and return HTML string.
 func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 	desc, err := markup.RenderDescriptionHTML(&markup.RenderContext{
-		Ctx:       ctx,
-		URLPrefix: repo.HTMLURL(),
+		Ctx: ctx,
 		// Don't use Metas to speedup requests
 	}, repo.Description)
 	if err != nil {

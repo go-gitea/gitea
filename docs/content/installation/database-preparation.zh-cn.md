@@ -59,10 +59,12 @@ menu:
 
     根据需要替换上述用户名和密码。
 
-4. 使用 UTF-8 字符集和排序规则创建数据库。确保使用 `**utf8mb4**` 字符集，而不是 `utf8`，因为前者支持 _Basic Multilingual Plane_ 之外的所有 Unicode 字符（包括表情符号）。排序规则根据您预期的内容选择。如果不确定，可以使用 `unicode_ci` 或 `general_ci`。
+4. 使用 UTF-8 字符集和大小写敏感的排序规则创建数据库。
+
+    Gitea 启动后会尝试把数据库修改为更合适的字符集，如果你想指定自己的字符集规则，可以在 app.ini 中设置 `[database].CHARSET_COLLATION`。
 
     ```sql
-    CREATE DATABASE giteadb CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci';
+    CREATE DATABASE giteadb CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_bin';
     ```
 
     根据需要替换数据库名称。
