@@ -845,6 +845,7 @@ func CompareDiff(ctx *context.Context) {
 		}
 	}
 
+	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanWrite(unit.TypeProjects)
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
