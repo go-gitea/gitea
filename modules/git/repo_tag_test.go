@@ -351,7 +351,7 @@ Add changelog of v1.9.1 (#7859)
 	for _, test := range tests {
 		tc := test // don't close over loop variable
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := parseTagRef(sha1, tc.givenRef)
+			got, err := parseTagRef(sha1, tc.givenRef, "refname:short")
 
 			if tc.wantErr {
 				require.Error(t, err)

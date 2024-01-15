@@ -112,7 +112,7 @@ func (repo *Repository) GetTagWithID(idStr, name string) (*Tag, error) {
 
 // GetTagInfos returns all tag infos of the repository.
 func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
-	forEachRefFmt := foreachref.NewFormat("objecttype", "refname:strip=2", "object", "objectname", "creator", "contents", "contents:signature")
+	forEachRefFmt := foreachref.NewFormat("objecttype", "refname:lstrip=2", "object", "objectname", "creator", "contents", "contents:signature")
 
 	stdoutReader, stdoutWriter := io.Pipe()
 	defer stdoutReader.Close()
@@ -139,7 +139,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 			break
 		}
 
-		tag, err := parseTagRef(repo.objectFormat, ref)
+		tag, err := parseTagRef(repo.objectFormat, ref, "refname:lstrip=2")
 		if err != nil {
 			return nil, 0, fmt.Errorf("GetTagInfos: parse tag: %w", err)
 		}
@@ -159,10 +159,10 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 }
 
 // parseTagRef parses a tag from a 'git for-each-ref'-produced reference.
-func parseTagRef(objectFormat ObjectFormat, ref map[string]string) (tag *Tag, err error) {
+func parseTagRef(objectFormat ObjectFormat, ref map[string]string, tagNameKey string) (tag *Tag, err error) {
 	tag = &Tag{
 		Type: ref["objecttype"],
-		Name: ref["refname:short"],
+		Name: ref[tagNameKey],
 	}
 
 	tag.ID, err = NewIDFromString(ref["objectname"])
