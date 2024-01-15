@@ -1,5 +1,5 @@
 <div class="small-menu-items ui compact tiny menu">
-	<a class="{{if not .IsShowClosed}}active {{end}}item" href="{{.OpenLink}}">
+	<a class="{{if eq .State "open"}}active {{end}}item" href="{{if eq .State "open"}}{{.AllStatesLink}}{{else}}{{.OpenLink}}{{end}}">
 		{{if .PageIsMilestones}}
 			{{svg "octicon-milestone" 16 "gt-mr-3"}}
 		{{else if .PageIsPullList}}
@@ -9,7 +9,7 @@
 		{{end}}
 		{{ctx.Locale.PrettyNumber .OpenCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 	</a>
-	<a class="{{if .IsShowClosed}}active {{end}}item" href="{{.ClosedLink}}">
+	<a class="{{if eq .State "closed"}}active {{end}}item" href="{{if eq .State "closed"}}{{.AllStatesLink}}{{else}}{{.ClosedLink}}{{end}}">
 		{{svg "octicon-check" 16 "gt-mr-3"}}
 		{{ctx.Locale.PrettyNumber .ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 	</a>

@@ -1149,30 +1149,28 @@ func MergePullRequest(ctx *context.Context) {
 		switch {
 		case errors.Is(err, pull_service.ErrIsClosed):
 			if issue.IsPull {
-				ctx.Flash.Error(ctx.Tr("repo.pulls.is_closed"))
+				ctx.JSONError(ctx.Tr("repo.pulls.is_closed"))
 			} else {
-				ctx.Flash.Error(ctx.Tr("repo.issues.closed_title"))
+				ctx.JSONError(ctx.Tr("repo.issues.closed_title"))
 			}
 		case errors.Is(err, pull_service.ErrUserNotAllowedToMerge):
-			ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
+			ctx.JSONError(ctx.Tr("repo.pulls.update_not_allowed"))
 		case errors.Is(err, pull_service.ErrHasMerged):
-			ctx.Flash.Error(ctx.Tr("repo.pulls.has_merged"))
+			ctx.JSONError(ctx.Tr("repo.pulls.has_merged"))
 		case errors.Is(err, pull_service.ErrIsWorkInProgress):
-			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_wip"))
+			ctx.JSONError(ctx.Tr("repo.pulls.no_merge_wip"))
 		case errors.Is(err, pull_service.ErrNotMergableState):
-			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
+			ctx.JSONError(ctx.Tr("repo.pulls.no_merge_not_ready"))
 		case models.IsErrDisallowedToMerge(err):
-			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
+			ctx.JSONError(ctx.Tr("repo.pulls.no_merge_not_ready"))
 		case asymkey_service.IsErrWontSign(err):
-			ctx.Flash.Error(err.Error()) // has no translation ...
+			ctx.JSONError(err.Error()) // has no translation ...
 		case errors.Is(err, pull_service.ErrDependenciesLeft):
-			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
+			ctx.JSONError(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
 		default:
 			ctx.ServerError("WebCheck", err)
-			return
 		}
 
-		ctx.Redirect(issue.Link())
 		return
 	}
 
@@ -1180,18 +1178,18 @@ func MergePullRequest(ctx *context.Context) {
 	if manuallyMerged {
 		if err := pull_service.MergedManually(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			switch {
-
 			case models.IsErrInvalidMergeStyle(err):
-				ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
+				ctx.JSONError(ctx.Tr("repo.pulls.invalid_merge_option"))
 			case strings.Contains(err.Error(), "Wrong commit ID"):
-				ctx.Flash.Error(ctx.Tr("repo.pulls.wrong_commit_id"))
+				ctx.JSONError(ctx.Tr("repo.pulls.wrong_commit_id"))
 			default:
 				ctx.ServerError("MergedManually", err)
-				return
 			}
+
+			return
 		}
 
-		ctx.Redirect(issue.Link())
+		ctx.JSONRedirect(issue.Link())
 		return
 	}
 
@@ -1221,15 +1219,14 @@ func MergePullRequest(ctx *context.Context) {
 		} else if scheduled {
 			// nothing more to do ...
 			ctx.Flash.Success(ctx.Tr("repo.pulls.auto_merge_newly_scheduled"))
-			ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pr.Index))
+			ctx.JSONRedirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pr.Index))
 			return
 		}
 	}
 
 	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
-			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
-			ctx.Redirect(issue.Link())
+			ctx.JSONError(ctx.Tr("repo.pulls.invalid_merge_option"))
 		} else if models.IsErrMergeConflicts(err) {
 			conflictError := err.(models.ErrMergeConflicts)
 			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]any{
@@ -1242,7 +1239,7 @@ func MergePullRequest(ctx *context.Context) {
 				return
 			}
 			ctx.Flash.Error(flashError)
-			ctx.Redirect(issue.Link())
+			ctx.JSONRedirect(issue.Link())
 		} else if models.IsErrRebaseConflicts(err) {
 			conflictError := err.(models.ErrRebaseConflicts)
 			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]any{
@@ -1286,7 +1283,7 @@ func MergePullRequest(ctx *context.Context) {
 				}
 				ctx.Flash.Error(flashError)
 			}
-			ctx.Redirect(issue.Link())
+			ctx.JSONRedirect(issue.Link())
 		} else {
 			ctx.ServerError("Merge", err)
 		}
@@ -1295,7 +1292,7 @@ func MergePullRequest(ctx *context.Context) {
 	log.Trace("Pull request merged: %d", pr.ID)
 
 	if err := stopTimerIfAvailable(ctx, ctx.Doer, issue); err != nil {
-		ctx.ServerError("CreateOrStopIssueStopwatch", err)
+		ctx.ServerError("stopTimerIfAvailable", err)
 		return
 	}
 
@@ -1309,7 +1306,7 @@ func MergePullRequest(ctx *context.Context) {
 			return
 		}
 		if exist {
-			ctx.Redirect(issue.Link())
+			ctx.JSONRedirect(issue.Link())
 			return
 		}
 
@@ -1327,7 +1324,7 @@ func MergePullRequest(ctx *context.Context) {
 		deleteBranch(ctx, pr, headRepo)
 	}
 
-	ctx.Redirect(issue.Link())
+	ctx.JSONRedirect(issue.Link())
 }
 
 // CancelAutoMergePullRequest cancels a scheduled pr
@@ -1387,7 +1384,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		return
 	}
 
-	labelIDs, assigneeIDs, milestoneID, _ := ValidateRepoMetas(ctx, *form, true)
+	labelIDs, assigneeIDs, milestoneID, projectID := ValidateRepoMetas(ctx, *form, true)
 	if ctx.Written() {
 		return
 	}
@@ -1463,6 +1460,17 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		}
 		ctx.ServerError("NewPullRequest", err)
 		return
+	}
+
+	if projectID > 0 {
+		if !ctx.Repo.CanWrite(unit.TypeProjects) {
+			ctx.Error(http.StatusBadRequest, "user hasn't the permission to write to projects")
+			return
+		}
+		if err := issues_model.ChangeProjectAssign(ctx, pullIssue, ctx.Doer, projectID); err != nil {
+			ctx.ServerError("ChangeProjectAssign", err)
+			return
+		}
 	}
 
 	log.Trace("Pull request created: %d/%d", repo.ID, pullIssue.ID)
