@@ -370,7 +370,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 	return true
 }
 
-func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink string) {
+func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 	ctx.Data["IsViewFile"] = true
 	ctx.Data["HideRepoInfo"] = true
 	blob := entry.Blob()
