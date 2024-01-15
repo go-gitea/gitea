@@ -237,10 +237,18 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
-	isShowClosed := ctx.FormString("state") == "closed"
-	// if open issues are zero and close don't, use closed as default
+	var isShowClosed util.OptionalBool
+	switch ctx.FormString("state") {
+	case "closed":
+		isShowClosed = util.OptionalBoolTrue
+	case "all":
+		isShowClosed = util.OptionalBoolNone
+	default:
+		isShowClosed = util.OptionalBoolFalse
+	}
+	// if there are closed issues and no open issues, default to showing all issues
 	if len(ctx.FormString("state")) == 0 && issueStats.OpenCount == 0 && issueStats.ClosedCount != 0 {
-		isShowClosed = true
+		isShowClosed = util.OptionalBoolNone
 	}
 
 	if repo.IsTimetrackerEnabled(ctx) {
@@ -260,10 +268,13 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	var total int
-	if !isShowClosed {
-		total = int(issueStats.OpenCount)
-	} else {
+	switch isShowClosed {
+	case util.OptionalBoolTrue:
 		total = int(issueStats.ClosedCount)
+	case util.OptionalBoolNone:
+		total = int(issueStats.OpenCount + issueStats.ClosedCount)
+	default:
+		total = int(issueStats.OpenCount)
 	}
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 
@@ -282,7 +293,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			ReviewedID:        reviewedID,
 			MilestoneIDs:      mileIDs,
 			ProjectID:         projectID,
-			IsClosed:          util.OptionalBoolOf(isShowClosed),
+			IsClosed:          isShowClosed,
 			IsPull:            isPullOption,
 			LabelIDs:          labelIDs,
 			SortType:          sortType,
@@ -428,6 +439,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["OpenCount"] = issueStats.OpenCount
 	ctx.Data["ClosedCount"] = issueStats.ClosedCount
 	linkStr := "%s?q=%s&type=%s&sort=%s&state=%s&labels=%s&milestone=%d&project=%d&assignee=%d&poster=%d&archived=%t"
+	ctx.Data["AllStatesLink"] = fmt.Sprintf(linkStr, ctx.Link,
+		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "all", url.QueryEscape(selectLabels),
+		mentionedID, projectID, assigneeID, posterID, archived)
 	ctx.Data["OpenLink"] = fmt.Sprintf(linkStr, ctx.Link,
 		url.QueryEscape(keyword), url.QueryEscape(viewType), url.QueryEscape(sortType), "open", url.QueryEscape(selectLabels),
 		mentionedID, projectID, assigneeID, posterID, archived)
@@ -442,11 +456,13 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["ProjectID"] = projectID
 	ctx.Data["AssigneeID"] = assigneeID
 	ctx.Data["PosterID"] = posterID
-	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["Keyword"] = keyword
-	if isShowClosed {
+	switch isShowClosed {
+	case util.OptionalBoolTrue:
 		ctx.Data["State"] = "closed"
-	} else {
+	case util.OptionalBoolNone:
+		ctx.Data["State"] = "all"
+	default:
 		ctx.Data["State"] = "open"
 	}
 	ctx.Data["ShowArchivedLabels"] = archived
@@ -1465,12 +1481,13 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 	ctx.Data["IssueWatch"] = iw
-
 	issue.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-		URLPrefix: ctx.Repo.RepoLink,
-		Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo:   ctx.Repo.GitRepo,
-		Ctx:       ctx,
+		Links: markup.Links{
+			Base: ctx.Repo.RepoLink,
+		},
+		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+		GitRepo: ctx.Repo.GitRepo,
+		Ctx:     ctx,
 	}, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -1639,10 +1656,12 @@ func ViewIssue(ctx *context.Context) {
 			}
 
 			comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-				URLPrefix: ctx.Repo.RepoLink,
-				Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
-				GitRepo:   ctx.Repo.GitRepo,
-				Ctx:       ctx,
+				Links: markup.Links{
+					Base: ctx.Repo.RepoLink,
+				},
+				Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+				GitRepo: ctx.Repo.GitRepo,
+				Ctx:     ctx,
 			}, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
@@ -1716,10 +1735,12 @@ func ViewIssue(ctx *context.Context) {
 			}
 		} else if comment.Type.HasContentSupport() {
 			comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-				URLPrefix: ctx.Repo.RepoLink,
-				Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
-				GitRepo:   ctx.Repo.GitRepo,
-				Ctx:       ctx,
+				Links: markup.Links{
+					Base: ctx.Repo.RepoLink,
+				},
+				Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+				GitRepo: ctx.Repo.GitRepo,
+				Ctx:     ctx,
 			}, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
@@ -2272,10 +2293,12 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	content, err := markdown.RenderString(&markup.RenderContext{
-		URLPrefix: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
-		Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo:   ctx.Repo.GitRepo,
-		Ctx:       ctx,
+		Links: markup.Links{
+			Base: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
+		},
+		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+		GitRepo: ctx.Repo.GitRepo,
+		Ctx:     ctx,
 	}, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -3181,10 +3204,12 @@ func UpdateCommentContent(ctx *context.Context) {
 	}
 
 	content, err := markdown.RenderString(&markup.RenderContext{
-		URLPrefix: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
-		Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo:   ctx.Repo.GitRepo,
-		Ctx:       ctx,
+		Links: markup.Links{
+			Base: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
+		},
+		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+		GitRepo: ctx.Repo.GitRepo,
+		Ctx:     ctx,
 	}, comment.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)

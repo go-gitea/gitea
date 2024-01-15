@@ -81,10 +81,12 @@ func Milestones(ctx *context.Context) {
 	}
 	for _, m := range miles {
 		m.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			URLPrefix: ctx.Repo.RepoLink,
-			Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
-			GitRepo:   ctx.Repo.GitRepo,
-			Ctx:       ctx,
+			Links: markup.Links{
+				Base: ctx.Repo.RepoLink,
+			},
+			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+			GitRepo: ctx.Repo.GitRepo,
+			Ctx:     ctx,
 		}, m.Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -275,10 +277,12 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	}
 
 	milestone.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-		URLPrefix: ctx.Repo.RepoLink,
-		Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo:   ctx.Repo.GitRepo,
-		Ctx:       ctx,
+		Links: markup.Links{
+			Base: ctx.Repo.RepoLink,
+		},
+		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+		GitRepo: ctx.Repo.GitRepo,
+		Ctx:     ctx,
 	}, milestone.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
