@@ -247,6 +247,13 @@ func DeleteAccount(ctx *context.Context) {
 		return
 	}
 
+	// admin should not delete themself
+	if ctx.Doer.IsAdmin {
+		ctx.Flash.Error(ctx.Tr("form.admin_cannot_delete_self"))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		return
+	}
+
 	if err := user.DeleteUser(ctx, ctx.Doer, false); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
@@ -257,6 +264,9 @@ func DeleteAccount(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		case models.IsErrUserOwnPackages(err):
 			ctx.Flash.Error(ctx.Tr("form.still_own_packages"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		case models.IsErrDeleteLastAdminUser(err):
+			ctx.Flash.Error(ctx.Tr("auth.last_admin"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		default:
 			ctx.ServerError("DeleteUser", err)

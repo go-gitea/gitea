@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"code.gitea.io/gitea/models"
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	password_module "code.gitea.io/gitea/modules/auth/password"
@@ -111,6 +112,10 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		cols = append(cols, "is_restricted")
 	}
 	if opts.IsAdmin.Has() {
+		if !opts.IsAdmin.Value() && user_model.IsLastAdminUser(ctx, u) {
+			return models.ErrDeleteLastAdminUser{UID: u.ID}
+		}
+
 		u.IsAdmin = opts.IsAdmin.Value()
 
 		cols = append(cols, "is_admin")

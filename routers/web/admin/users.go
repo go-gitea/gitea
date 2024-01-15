@@ -442,7 +442,11 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if err := user_service.UpdateUser(ctx, u, opts); err != nil {
-		ctx.ServerError("UpdateUser", err)
+		if models.IsErrDeleteLastAdminUser(err) {
+			ctx.RenderWithErr(ctx.Tr("auth.last_admin"), tplUserEdit, &form)
+		} else {
+			ctx.ServerError("UpdateUser", err)
+		}
 		return
 	}
 	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, u.Name)
@@ -501,7 +505,10 @@ func DeleteUser(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
 		case models.IsErrUserOwnPackages(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_packages"))
-			ctx.Redirect(setting.AppSubURL + "/admin/users/" + ctx.Params(":userid"))
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
+		case models.IsErrDeleteLastAdminUser(err):
+			ctx.Flash.Error(ctx.Tr("auth.last_admin"))
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
 		default:
 			ctx.ServerError("DeleteUser", err)
 		}

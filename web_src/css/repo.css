@@ -4,23 +4,6 @@
   user-select: none;
 }
 
-.repository .repo-header .ui.compact.menu {
-  margin-left: 1rem;
-}
-
-.repository .repo-header .ui.header {
-  margin-top: 0;
-}
-
-.repository .repo-header .fork-flag {
-  font-size: 12px;
-  margin-top: 2px;
-}
-
-.repository .tabs .navbar {
-  justify-content: initial;
-}
-
 .repository .navbar {
   display: flex;
   justify-content: space-between;
@@ -104,14 +87,6 @@
   border-radius: var(--border-radius) 0 0 var(--border-radius);
   border-right: 0;
   white-space: nowrap;
-}
-
-.repository .header-wrapper {
-  background-color: var(--color-header-wrapper);
-}
-
-.repository .header-wrapper .ui.tabular .svg {
-  margin-right: 5px;
 }
 
 .repository .filter.menu.labels .label-filter .menu .info {
@@ -1285,6 +1260,7 @@
 
 .repository #commits-table td.sha .sha.label,
 .repository #repo-files-table .sha.label,
+.repository #repo-file-commit-box .sha.label,
 .repository #rev-list .sha.label,
 .repository .timeline-item.commits-list .singular-commit .sha.label {
   border: 1px solid var(--color-light-border);
@@ -1292,6 +1268,7 @@
 
 .repository #commits-table td.sha .sha.label .ui.signature.avatar,
 .repository #repo-files-table .sha.label .ui.signature.avatar,
+.repository #repo-file-commit-box .sha.label .ui.signature.avatar,
 .repository #rev-list .sha.label .ui.signature.avatar,
 .repository .timeline-item.commits-list .singular-commit .sha.label .ui.signature.avatar {
   height: 16px;
@@ -1301,6 +1278,7 @@
 
 .repository #commits-table td.sha .sha.label .detail.icon,
 .repository #repo-files-table .sha.label .detail.icon,
+.repository #repo-file-commit-box .sha.label .detail.icon,
 .repository #rev-list .sha.label .detail.icon,
 .repository .timeline-item.commits-list .singular-commit .sha.label .detail.icon {
   background: var(--color-light);
@@ -1316,6 +1294,7 @@
 
 .repository #commits-table td.sha .sha.label .detail.icon img,
 .repository #repo-files-table .sha.label .detail.icon img,
+.repository #repo-file-commit-box .sha.label .detail.icon img,
 .repository #rev-list .sha.label .detail.icon img,
 .repository .timeline-item.commits-list .singular-commit .sha.label .detail.icon img {
   margin-right: 0;
@@ -1323,6 +1302,7 @@
 
 .repository #commits-table td.sha .sha.label .detail.icon .svg,
 .repository #repo-files-table .sha.label .detail.icon .svg,
+.repository #repo-file-commit-box .sha.label .detail.icon .svg,
 .repository #rev-list .sha.label .detail.icon .svg,
 .repository .timeline-item.commits-list .singular-commit .sha.label .detail.icon .svg {
   margin: 0 0.25em 0 0;
@@ -1330,6 +1310,7 @@
 
 .repository #commits-table td.sha .sha.label .detail.icon > div,
 .repository #repo-files-table .sha.label .detail.icon > div,
+.repository #repo-file-commit-box .sha.label .detail.icon > div,
 .repository #rev-list .sha.label .detail.icon > div,
 .repository .timeline-item.commits-list .singular-commit .sha.label .detail.icon > div {
   display: flex;
@@ -1338,6 +1319,7 @@
 
 .repository #commits-table td.sha .sha.label.isSigned.isWarning,
 .repository #repo-files-table .sha.label.isSigned.isWarning,
+.repository #repo-file-commit-box .sha.label.isSigned.isWarning,
 .repository #rev-list .sha.label.isSigned.isWarning,
 .repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isWarning {
   border: 1px solid var(--color-red-badge);
@@ -1346,6 +1328,7 @@
 
 .repository #commits-table td.sha .sha.label.isSigned.isWarning .detail.icon,
 .repository #repo-files-table .sha.label.isSigned.isWarning .detail.icon,
+.repository #repo-file-commit-box .sha.label.isSigned.isWarning .detail.icon,
 .repository #rev-list .sha.label.isSigned.isWarning .detail.icon,
 .repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isWarning .detail.icon {
   border-left: 1px solid var(--color-red-badge);
@@ -1354,6 +1337,7 @@
 
 .repository #commits-table td.sha .sha.label.isSigned.isWarning:hover,
 .repository #repo-files-table .sha.label.isSigned.isWarning:hover,
+.repository #repo-file-commit-box .sha.label.isSigned.isWarning:hover,
 .repository #rev-list .sha.label.isSigned.isWarning:hover,
 .repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isWarning:hover {
   background: var(--color-red-badge-hover-bg) !important;
@@ -1361,6 +1345,7 @@
 
 .repository #commits-table td.sha .sha.label.isSigned.isVerified,
 .repository #repo-files-table .sha.label.isSigned.isVerified,
+.repository #repo-file-commit-box .sha.label.isSigned.isVerified,
 .repository #rev-list .sha.label.isSigned.isVerified,
 .repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerified {
   border: 1px solid var(--color-green-badge);
@@ -1369,6 +1354,7 @@
 
 .repository #commits-table td.sha .sha.label.isSigned.isVerified .detail.icon,
 .repository #repo-files-table .sha.label.isSigned.isVerified .detail.icon,
+.repository #repo-file-commit-box .sha.label.isSigned.isVerified .detail.icon,
 .repository #rev-list .sha.label.isSigned.isVerified .detail.icon,
 .repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerified .detail.icon {
   border-left: 1px solid var(--color-green-badge);
@@ -1377,6 +1363,7 @@
 
 .repository #commits-table td.sha .sha.label.isSigned.isVerified:hover,
 .repository #repo-files-table .sha.label.isSigned.isVerified:hover,
+.repository #repo-file-commit-box .sha.label.isSigned.isVerified:hover,
 .repository #rev-list .sha.label.isSigned.isVerified:hover,
 .repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerified:hover {
   background: var(--color-green-badge-hover-bg) !important;
@@ -1384,6 +1371,7 @@
 
 .repository #commits-table td.sha .sha.label.isSigned.isVerifiedUntrusted,
 .repository #repo-files-table .sha.label.isSigned.isVerifiedUntrusted,
+.repository #repo-file-commit-box .sha.label.isSigned.isVerifiedUntrusted,
 .repository #rev-list .sha.label.isSigned.isVerifiedUntrusted,
 .repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerifiedUntrusted {
   border: 1px solid var(--color-yellow-badge);
@@ -1392,6 +1380,7 @@
 
 .repository #commits-table td.sha .sha.label.isSigned.isVerifiedUntrusted .detail.icon,
 .repository #repo-files-table .sha.label.isSigned.isVerifiedUntrusted .detail.icon,
+.repository #repo-file-commit-box .sha.label.isSigned.isVerifiedUntrusted .detail.icon,
 .repository #rev-list .sha.label.isSigned.isVerifiedUntrusted .detail.icon,
 .repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerifiedUntrusted .detail.icon {
   border-left: 1px solid var(--color-yellow-badge);
@@ -1400,6 +1389,7 @@
 
 .repository #commits-table td.sha .sha.label.isSigned.isVerifiedUntrusted:hover,
 .repository #repo-files-table .sha.label.isSigned.isVerifiedUntrusted:hover,
+.repository #repo-file-commit-box .sha.label.isSigned.isVerifiedUntrusted:hover,
 .repository #rev-list .sha.label.isSigned.isVerifiedUntrusted:hover,
 .repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerifiedUntrusted:hover {
   background: var(--color-yellow-badge-hover-bg) !important;
@@ -1407,6 +1397,7 @@
 
 .repository #commits-table td.sha .sha.label.isSigned.isVerifiedUnmatched,
 .repository #repo-files-table .sha.label.isSigned.isVerifiedUnmatched,
+.repository #repo-file-commit-box .sha.label.isSigned.isVerifiedUnmatched,
 .repository #rev-list .sha.label.isSigned.isVerifiedUnmatched,
 .repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerifiedUnmatched {
   border: 1px solid var(--color-orange-badge);
@@ -1415,6 +1406,7 @@
 
 .repository #commits-table td.sha .sha.label.isSigned.isVerifiedUnmatched .detail.icon,
 .repository #repo-files-table .sha.label.isSigned.isVerifiedUnmatched .detail.icon,
+.repository #repo-file-commit-box .sha.label.isSigned.isVerifiedUnmatched .detail.icon,
 .repository #rev-list .sha.label.isSigned.isVerifiedUnmatched .detail.icon,
 .repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerifiedUnmatched .detail.icon {
   border-left: 1px solid var(--color-orange-badge);
@@ -1423,6 +1415,7 @@
 
 .repository #commits-table td.sha .sha.label.isSigned.isVerifiedUnmatched:hover,
 .repository #repo-files-table .sha.label.isSigned.isVerifiedUnmatched:hover,
+.repository #repo-file-commit-box .sha.label.isSigned.isVerifiedUnmatched:hover,
 .repository #rev-list .sha.label.isSigned.isVerifiedUnmatched:hover,
 .repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerifiedUnmatched:hover {
   background: var(--color-orange-badge-hover-bg) !important;
@@ -2591,74 +2584,6 @@ tbody.commit-list {
 #new-dependency-drop-list .text {
   width: 100%;
   overflow: hidden;
-}
-
-.repo-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  word-break: break-word;
-  gap: 0.5rem;
-}
-
-@media (max-width: 767.98px) {
-  .repo-header + .container {
-    margin-top: 7px;
-  }
-}
-
-.repo-buttons {
-  align-items: center;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  word-break: keep-all;
-  gap: 0.25em;
-}
-
-@media (max-width: 767.98px) {
-  .repo-buttons {
-    margin-top: 1em;
-  }
-}
-
-.repo-buttons .ui.labeled.button > .label:hover {
-  color: var(--color-primary-light-2);
-  background: var(--color-light);
-}
-
-.repo-buttons button[disabled] ~ .label {
-  opacity: var(--opacity-disabled);
-  color: var(--color-text-dark);
-  background: var(--color-light-mimic-enabled) !important;
-}
-
-.repo-buttons button[disabled] ~ .label:hover {
-  color: var(--color-primary-dark-1);
-}
-
-.repo-buttons .ui.labeled.button.disabled {
-  pointer-events: inherit !important;
-}
-
-.repo-buttons .ui.labeled.button.disabled > .label {
-  color: var(--color-text-dark);
-  background: var(--color-light-mimic-enabled) !important;
-}
-
-.repo-buttons .ui.labeled.button.disabled > .label:hover {
-  color: var(--color-primary-dark-1);
-}
-
-.repo-buttons .ui.labeled.button.disabled > .button {
-  pointer-events: none !important;
-}
-
-@media (max-width: 767.98px) {
-  .repo-buttons .ui.labeled.button .svg {
-    display: none;
-  }
 }
 
 .tag-code {

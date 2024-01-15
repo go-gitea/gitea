@@ -19,6 +19,12 @@ import (
 func TestUpdateUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	assert.Error(t, UpdateUser(db.DefaultContext, admin, &UpdateOptions{
+		IsAdmin: optional.Some(false),
+	}))
+
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
 
 	opts := &UpdateOptions{

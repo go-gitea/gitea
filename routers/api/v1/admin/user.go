@@ -182,6 +182,8 @@ func EditUser(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/User"
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
@@ -240,7 +242,11 @@ func EditUser(ctx *context.APIContext) {
 	}
 
 	if err := user_service.UpdateUser(ctx, ctx.ContextUser, opts); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
+		if models.IsErrDeleteLastAdminUser(err) {
+			ctx.Error(http.StatusBadRequest, "LastAdmin", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
+		}
 		return
 	}
 
@@ -290,7 +296,8 @@ func DeleteUser(ctx *context.APIContext) {
 	if err := user_service.DeleteUser(ctx, ctx.ContextUser, ctx.FormBool("purge")); err != nil {
 		if models.IsErrUserOwnRepos(err) ||
 			models.IsErrUserHasOrgs(err) ||
-			models.IsErrUserOwnPackages(err) {
+			models.IsErrUserOwnPackages(err) ||
+			models.IsErrDeleteLastAdminUser(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteUser", err)
