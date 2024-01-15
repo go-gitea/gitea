@@ -735,7 +735,7 @@ func countUsers(ctx context.Context, opts *CountUserFilter) int64 {
 		}
 
 		if !opts.IsAdmin.IsNone() {
-			cond = cond.And(builder.Eq{"is_admin": opts.IsAdmin})
+			cond = cond.And(builder.Eq{"is_admin": opts.IsAdmin.IsTrue()})
 		}
 	}
 
