@@ -287,8 +287,8 @@ func TestRender_IssueIndexPattern_Document(t *testing.T) {
 }
 
 func testRenderIssueIndexPattern(t *testing.T, input, expected string, ctx *RenderContext) {
-	if ctx.URLPrefix == "" {
-		ctx.URLPrefix = TestAppURL
+	if ctx.Links.Base == "" {
+		ctx.Links.Base = TestRepoURL
 	}
 
 	var buf strings.Builder
@@ -303,19 +303,23 @@ func TestRender_AutoLink(t *testing.T) {
 	test := func(input, expected string) {
 		var buffer strings.Builder
 		err := PostProcess(&RenderContext{
-			Ctx:       git.DefaultContext,
-			URLPrefix: TestRepoURL,
-			Metas:     localMetas,
+			Ctx: git.DefaultContext,
+			Links: Links{
+				Base: TestRepoURL,
+			},
+			Metas: localMetas,
 		}, strings.NewReader(input), &buffer)
 		assert.Equal(t, err, nil)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer.String()))
 
 		buffer.Reset()
 		err = PostProcess(&RenderContext{
-			Ctx:       git.DefaultContext,
-			URLPrefix: TestRepoURL,
-			Metas:     localMetas,
-			IsWiki:    true,
+			Ctx: git.DefaultContext,
+			Links: Links{
+				Base: TestRepoURL,
+			},
+			Metas:  localMetas,
+			IsWiki: true,
 		}, strings.NewReader(input), &buffer)
 		assert.Equal(t, err, nil)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer.String()))
@@ -342,9 +346,11 @@ func TestRender_FullIssueURLs(t *testing.T) {
 	test := func(input, expected string) {
 		var result strings.Builder
 		err := postProcess(&RenderContext{
-			Ctx:       git.DefaultContext,
-			URLPrefix: TestRepoURL,
-			Metas:     localMetas,
+			Ctx: git.DefaultContext,
+			Links: Links{
+				Base: TestRepoURL,
+			},
+			Metas: localMetas,
 		}, []processor{fullIssuePatternProcessor}, strings.NewReader(input), &result)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, result.String())
