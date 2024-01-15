@@ -258,6 +258,19 @@ func (opts *CommitStatusOptions) ToOrders() string {
 	}
 }
 
+// GetCommitStatuses returns all statuses for a given commit.
+func GetCommitStatuses(ctx context.Context, opts *CommitStatusOptions) ([]*CommitStatus, int64, error) {
+	sess := db.GetEngine(ctx).
+		Where(opts.ToConds()).
+		OrderBy(opts.ToOrders())
+
+	db.SetSessionPagination(sess, opts)
+
+	statuses := make([]*CommitStatus, 0, opts.PageSize)
+	count, err := sess.FindAndCount(&statuses)
+	return statuses, count, err
+}
+
 // CommitStatusIndex represents a table for commit status index
 type CommitStatusIndex struct {
 	ID       int64
