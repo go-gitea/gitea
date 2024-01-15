@@ -111,7 +111,7 @@ type FindRepoArchiversOption struct {
 	OlderThan time.Duration
 }
 
-func (opts FindRepoArchiversOption) toConds() builder.Cond {
+func (opts FindRepoArchiversOption) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.OlderThan > 0 {
 		cond = cond.And(builder.Lt{"created_unix": time.Now().Add(-opts.OlderThan).Unix()})
@@ -119,15 +119,8 @@ func (opts FindRepoArchiversOption) toConds() builder.Cond {
 	return cond
 }
 
-// FindRepoArchives find repo archivers
-func FindRepoArchives(ctx context.Context, opts FindRepoArchiversOption) ([]*RepoArchiver, error) {
-	archivers := make([]*RepoArchiver, 0, opts.PageSize)
-	start, limit := opts.GetSkipTake()
-	err := db.GetEngine(ctx).Where(opts.toConds()).
-		Asc("created_unix").
-		Limit(limit, start).
-		Find(&archivers)
-	return archivers, err
+func (opts FindRepoArchiversOption) ToOrders() string {
+	return "created_unix ASC"
 }
 
 // SetArchiveRepoState sets if a repo is archived
