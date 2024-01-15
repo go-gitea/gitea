@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -15,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -45,18 +45,13 @@ func Milestones(ctx *context.Context) {
 		page = 1
 	}
 
-	state := structs.StateOpen
-	if isShowClosed {
-		state = structs.StateClosed
-	}
-
-	miles, total, err := issues_model.GetMilestones(ctx, issues_model.GetMilestonesOption{
+	miles, total, err := db.FindAndCount[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: setting.UI.IssuePagingNum,
 		},
 		RepoID:   ctx.Repo.Repository.ID,
-		State:    state,
+		IsClosed: util.OptionalBoolOf(isShowClosed),
 		SortType: sortType,
 		Name:     keyword,
 	})
@@ -72,19 +67,26 @@ func Milestones(ctx *context.Context) {
 	}
 	ctx.Data["OpenCount"] = stats.OpenCount
 	ctx.Data["ClosedCount"] = stats.ClosedCount
+	linkStr := "%s/milestones?state=%s&q=%s&sort=%s"
+	ctx.Data["OpenLink"] = fmt.Sprintf(linkStr, ctx.Repo.RepoLink, "open",
+		url.QueryEscape(keyword), url.QueryEscape(sortType))
+	ctx.Data["ClosedLink"] = fmt.Sprintf(linkStr, ctx.Repo.RepoLink, "closed",
+		url.QueryEscape(keyword), url.QueryEscape(sortType))
 
 	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
-		if err := miles.LoadTotalTrackedTimes(ctx); err != nil {
+		if err := issues_model.MilestoneList(miles).LoadTotalTrackedTimes(ctx); err != nil {
 			ctx.ServerError("LoadTotalTrackedTimes", err)
 			return
 		}
 	}
 	for _, m := range miles {
 		m.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			URLPrefix: ctx.Repo.RepoLink,
-			Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
-			GitRepo:   ctx.Repo.GitRepo,
-			Ctx:       ctx,
+			Links: markup.Links{
+				Base: ctx.Repo.RepoLink,
+			},
+			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+			GitRepo: ctx.Repo.GitRepo,
+			Ctx:     ctx,
 		}, m.Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -225,14 +227,15 @@ func EditMilestonePost(ctx *context.Context) {
 
 // ChangeMilestoneStatus response for change a milestone's status
 func ChangeMilestoneStatus(ctx *context.Context) {
-	toClose := false
+	var toClose bool
 	switch ctx.Params(":action") {
 	case "open":
 		toClose = false
 	case "close":
 		toClose = true
 	default:
-		ctx.Redirect(ctx.Repo.RepoLink + "/milestones")
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones")
+		return
 	}
 	id := ctx.ParamsInt64(":id")
 
@@ -244,7 +247,7 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 		}
 		return
 	}
-	ctx.Redirect(ctx.Repo.RepoLink + "/milestones?state=" + url.QueryEscape(ctx.Params(":action")))
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones?state=" + url.QueryEscape(ctx.Params(":action")))
 }
 
 // DeleteMilestone delete a milestone
@@ -274,10 +277,12 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	}
 
 	milestone.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-		URLPrefix: ctx.Repo.RepoLink,
-		Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo:   ctx.Repo.GitRepo,
-		Ctx:       ctx,
+		Links: markup.Links{
+			Base: ctx.Repo.RepoLink,
+		},
+		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+		GitRepo: ctx.Repo.GitRepo,
+		Ctx:     ctx,
 	}, milestone.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)

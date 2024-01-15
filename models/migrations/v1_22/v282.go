@@ -7,10 +7,10 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddTimeEstimateColumnToIssueTable(x *xorm.Engine) error {
-	type Issue struct {
-		TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
+func AddIndexToPullAutoMergeDoerID(x *xorm.Engine) error {
+	type PullAutoMerge struct {
+		DoerID int64 `xorm:"INDEX NOT NULL"`
 	}
 
-	return x.Sync(new(Issue))
+	return x.Sync(&PullAutoMerge{})
 }

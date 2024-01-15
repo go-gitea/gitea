@@ -27,19 +27,21 @@ func TestRender_StandardLinks(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&markup.RenderContext{
-			Ctx:       git.DefaultContext,
-			URLPrefix: setting.AppSubURL,
+			Ctx: git.DefaultContext,
+			Links: markup.Links{
+				Base: setting.AppSubURL,
+			},
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
-	googleRendered := "<p><a href=\"https://google.com/\" title=\"https://google.com/\">https://google.com/</a></p>"
-	test("[[https://google.com/]]", googleRendered)
+	test("[[https://google.com/]]",
+		`<p><a href="https://google.com/">https://google.com/</a></p>`)
 
 	lnk := util.URLJoin(AppSubURL, "WikiPage")
 	test("[[WikiPage][WikiPage]]",
-		"<p><a href=\""+lnk+"\" title=\"WikiPage\">WikiPage</a></p>")
+		`<p><a href="`+lnk+`">WikiPage</a></p>`)
 }
 
 func TestRender_Media(t *testing.T) {
@@ -48,8 +50,10 @@ func TestRender_Media(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&markup.RenderContext{
-			Ctx:       git.DefaultContext,
-			URLPrefix: setting.AppSubURL,
+			Ctx: git.DefaultContext,
+			Links: markup.Links{
+				Base: setting.AppSubURL,
+			},
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -59,19 +63,23 @@ func TestRender_Media(t *testing.T) {
 	result := util.URLJoin(AppSubURL, url)
 
 	test("[[file:"+url+"]]",
-		"<p><img src=\""+result+"\" alt=\""+result+"\" title=\""+result+"\" /></p>")
+		`<p><img src="`+result+`" alt="`+result+`" /></p>`)
 
 	// With description.
 	test("[[https://example.com][https://example.com/example.svg]]",
 		`<p><a href="https://example.com"><img src="https://example.com/example.svg" alt="https://example.com/example.svg" /></a></p>`)
+	test("[[https://example.com][pre https://example.com/example.svg post]]",
+		`<p><a href="https://example.com">pre <img src="https://example.com/example.svg" alt="https://example.com/example.svg" /> post</a></p>`)
 	test("[[https://example.com][https://example.com/example.mp4]]",
-		`<p><a href="https://example.com"><video src="https://example.com/example.mp4" title="https://example.com/example.mp4"></video></a></p>`)
+		`<p><a href="https://example.com"><video src="https://example.com/example.mp4">https://example.com/example.mp4</video></a></p>`)
+	test("[[https://example.com][pre https://example.com/example.mp4 post]]",
+		`<p><a href="https://example.com">pre <video src="https://example.com/example.mp4">https://example.com/example.mp4</video> post</a></p>`)
 
 	// Without description.
 	test("[[https://example.com/example.svg]]",
-		`<p><img src="https://example.com/example.svg" alt="https://example.com/example.svg" title="https://example.com/example.svg" /></p>`)
+		`<p><img src="https://example.com/example.svg" alt="https://example.com/example.svg" /></p>`)
 	test("[[https://example.com/example.mp4]]",
-		`<p><video src="https://example.com/example.mp4" title="https://example.com/example.mp4">https://example.com/example.mp4</video></p>`)
+		`<p><video src="https://example.com/example.mp4">https://example.com/example.mp4</video></p>`)
 }
 
 func TestRender_Source(t *testing.T) {
@@ -80,8 +88,7 @@ func TestRender_Source(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&markup.RenderContext{
-			Ctx:       git.DefaultContext,
-			URLPrefix: setting.AppSubURL,
+			Ctx: git.DefaultContext,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))

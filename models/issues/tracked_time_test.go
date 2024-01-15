@@ -115,3 +115,15 @@ func TestTotalTimesForEachUser(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, total, 2)
 }
+
+func TestGetIssueTotalTrackedTime(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	ttt, err := issues_model.GetIssueTotalTrackedTime(db.DefaultContext, &issues_model.IssuesOptions{MilestoneIDs: []int64{1}}, false)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3682, ttt)
+
+	ttt, err = issues_model.GetIssueTotalTrackedTime(db.DefaultContext, &issues_model.IssuesOptions{MilestoneIDs: []int64{1}}, true)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, ttt)
+}

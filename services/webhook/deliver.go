@@ -239,7 +239,7 @@ var (
 	hostMatchers      []glob.Glob
 )
 
-func webhookProxy() func(req *http.Request) (*url.URL, error) {
+func webhookProxy(allowList *hostmatcher.HostMatchList) func(req *http.Request) (*url.URL, error) {
 	if setting.Webhook.ProxyURL == "" {
 		return proxy.Proxy()
 	}
@@ -257,6 +257,9 @@ func webhookProxy() func(req *http.Request) (*url.URL, error) {
 	return func(req *http.Request) (*url.URL, error) {
 		for _, v := range hostMatchers {
 			if v.Match(req.URL.Host) {
+				if !allowList.MatchHostName(req.URL.Host) {
+					return nil, fmt.Errorf("webhook can only call allowed HTTP servers (check your %s setting), deny '%s'", allowList.SettingKeyHint, req.URL.Host)
+				}
 				return http.ProxyURL(setting.Webhook.ProxyURLFixed)(req)
 			}
 		}
@@ -278,8 +281,8 @@ func Init() error {
 		Timeout: timeout,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify},
-			Proxy:           webhookProxy(),
-			DialContext:     hostmatcher.NewDialContext("webhook", allowedHostMatcher, nil),
+			Proxy:           webhookProxy(allowedHostMatcher),
+			DialContext:     hostmatcher.NewDialContextWithProxy("webhook", allowedHostMatcher, nil, setting.Webhook.ProxyURLFixed),
 		},
 	}
 

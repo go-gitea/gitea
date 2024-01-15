@@ -8,6 +8,7 @@ package git
 
 import (
 	"context"
+	"sort"
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing"
@@ -52,32 +53,46 @@ func (repo *Repository) IsBranchExist(name string) bool {
 
 // GetBranches returns branches from the repository, skipping "skip" initial branches and
 // returning at most "limit" branches, or all branches if "limit" is 0.
+// Branches are returned with sort of `-commiterdate` as the nogogit
+// implementation. This requires full fetch, sort and then the
+// skip/limit applies later as gogit returns in undefined order.
 func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
-	var branchNames []string
+	type BranchData struct {
+		name          string
+		committerDate int64
+	}
+	var branchData []BranchData
 
-	branches, err := repo.gogitRepo.Branches()
+	branchIter, err := repo.gogitRepo.Branches()
 	if err != nil {
 		return nil, 0, err
 	}
 
-	i := 0
-	count := 0
-	_ = branches.ForEach(func(branch *plumbing.Reference) error {
-		count++
-		if i < skip {
-			i++
-			return nil
-		} else if limit != 0 && count > skip+limit {
+	_ = branchIter.ForEach(func(branch *plumbing.Reference) error {
+		obj, err := repo.gogitRepo.CommitObject(branch.Hash())
+		if err != nil {
+			// skip branch if can't find commit
 			return nil
 		}
 
-		branchNames = append(branchNames, strings.TrimPrefix(branch.Name().String(), BranchPrefix))
+		branchData = append(branchData, BranchData{strings.TrimPrefix(branch.Name().String(), BranchPrefix), obj.Committer.When.Unix()})
 		return nil
 	})
 
-	// TODO: Sort?
+	sort.Slice(branchData, func(i, j int) bool {
+		return !(branchData[i].committerDate < branchData[j].committerDate)
+	})
 
-	return branchNames, count, nil
+	var branchNames []string
+	maxPos := len(branchData)
+	if limit > 0 {
+		maxPos = min(skip+limit, maxPos)
+	}
+	for i := skip; i < maxPos; i++ {
+		branchNames = append(branchNames, branchData[i].name)
+	}
+
+	return branchNames, len(branchData), nil
 }
 
 // WalkReferences walks all the references from the repository

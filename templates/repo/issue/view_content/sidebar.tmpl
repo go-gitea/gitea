@@ -290,15 +290,15 @@
 		{{if and .CanUseTimetracker (not .Repository.IsArchived)}}
 			<div class="ui divider"></div>
 			<div>
-					<span class="text"><strong>{{.locale.Tr "repo.issues.time_estimate"}}</strong></span>
+					<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.time_estimate"}}</strong></span>
 
 					<form method="POST" id="set_time_estimate_form" class="gt-mt-3" action="{{.Issue.Link}}/time_estimate">
 						{{$.CsrfTokenHtml}}
 							<div class="ui input fluid">
-								<input name="time_estimate" placeholder='{{.locale.Tr "repo.issues.add_time_estimate"}}' value="{{TimeEstimateToStr .Issue.TimeEstimate}}" data-value="{{$.Issue.TimeEstimate}}" type="text" >
+								<input name="time_estimate" placeholder='{{ctx.Locale.Tr "repo.issues.add_time_estimate"}}' value="{{TimeEstimateToStr .Issue.TimeEstimate}}" data-value="{{$.Issue.TimeEstimate}}" type="text" >
 							</div>
 							<button class="ui fluid button green tooltip gt-mt-3">
-								{{.locale.Tr "repo.issues.save"}}
+								{{ctx.Locale.Tr "repo.issues.save"}}
 							</button>
 					</form>
 				</div>
@@ -336,7 +336,7 @@
 							<div class="content">
 								<form method="post" id="add_time_manual_form" action="{{.Issue.Link}}/times/add" class="ui input fluid gt-gap-3">
 										{{$.CsrfTokenHtml}}
-										<input placeholder='{{ctx.locale.Tr "repo.issues.add_time_estimate"}}' type="text" name="time_string">
+										<input placeholder='{{ctx.Locale.Tr "repo.issues.add_time_estimate"}}' type="text" name="time_string">
 								</form>
 							</div>
 							<div class="actions">
@@ -352,7 +352,7 @@
 				</div>
 			</div>
 		{{end}}
-		{{if gt (len .WorkingUsers) 0}}
+		{{if .WorkingUsers}}
 			<div class="divider"></div>
 			<div class="ui comments">
 				<div class="text"><strong>{{ctx.Locale.Tr "repo.issues.time_spent_from_all_authors" | Safe}}</strong></div>
@@ -406,7 +406,7 @@
 			<div {{if ne .Issue.DeadlineUnix 0}} class="gt-hidden"{{end}} id="deadlineForm">
 				<form class="ui fluid action input issue-due-form" action="{{AppSubUrl}}/{{PathEscape .Repository.Owner.Name}}/{{PathEscape .Repository.Name}}/issues/{{.Issue.Index}}/deadline" method="post" id="update-issue-deadline-form">
 					{{$.CsrfTokenHtml}}
-					<input required placeholder="{{ctx.Locale.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.Format "2006-01-02"}}"{{end}} type="date" name="deadlineDate" id="deadlineDate">
+					<input required placeholder="{{ctx.Locale.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.FormatDate}}"{{end}} type="date" name="deadlineDate" id="deadlineDate">
 					<button class="ui icon button">
 						{{if ne .Issue.DeadlineUnix 0}}
 							{{svg "octicon-pencil"}}

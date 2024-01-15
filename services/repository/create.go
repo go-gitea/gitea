@@ -27,22 +27,23 @@ import (
 
 // CreateRepoOptions contains the create repository options
 type CreateRepoOptions struct {
-	Name           string
-	Description    string
-	OriginalURL    string
-	GitServiceType api.GitServiceType
-	Gitignores     string
-	IssueLabels    string
-	License        string
-	Readme         string
-	DefaultBranch  string
-	IsPrivate      bool
-	IsMirror       bool
-	IsTemplate     bool
-	AutoInit       bool
-	Status         repo_model.RepositoryStatus
-	TrustModel     repo_model.TrustModelType
-	MirrorInterval string
+	Name             string
+	Description      string
+	OriginalURL      string
+	GitServiceType   api.GitServiceType
+	Gitignores       string
+	IssueLabels      string
+	License          string
+	Readme           string
+	DefaultBranch    string
+	IsPrivate        bool
+	IsMirror         bool
+	IsTemplate       bool
+	AutoInit         bool
+	Status           repo_model.RepositoryStatus
+	TrustModel       repo_model.TrustModelType
+	MirrorInterval   string
+	ObjectFormatName string
 }
 
 func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {
@@ -134,7 +135,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 
 // InitRepository initializes README and .gitignore if needed.
 func initRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
-	if err = repo_module.CheckInitRepository(ctx, repo.OwnerName, repo.Name); err != nil {
+	if err = repo_module.CheckInitRepository(ctx, repo.OwnerName, repo.Name, opts.ObjectFormatName); err != nil {
 		return err
 	}
 
@@ -234,6 +235,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		TrustModel:                      opts.TrustModel,
 		IsMirror:                        opts.IsMirror,
 		DefaultBranch:                   opts.DefaultBranch,
+		ObjectFormatName:                opts.ObjectFormatName,
 	}
 
 	var rollbackRepo *repo_model.Repository
@@ -302,7 +304,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		return nil
 	}); err != nil {
 		if rollbackRepo != nil {
-			if errDelete := DeleteRepositoryDirectly(ctx, doer, rollbackRepo.OwnerID, rollbackRepo.ID); errDelete != nil {
+			if errDelete := DeleteRepositoryDirectly(ctx, doer, rollbackRepo.ID); errDelete != nil {
 				log.Error("Rollback deleteRepository: %v", errDelete)
 			}
 		}
