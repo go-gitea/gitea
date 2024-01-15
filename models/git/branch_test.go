@@ -4,6 +4,7 @@
 package git_test
 
 import (
+	"context"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -132,7 +133,7 @@ func TestRenameBranch(t *testing.T) {
 	}, git_model.WhitelistOptions{}))
 	assert.NoError(t, committer.Commit())
 
-	assert.NoError(t, git_model.RenameBranch(db.DefaultContext, repo1, "master", "main", func(isDefault bool) error {
+	assert.NoError(t, git_model.RenameBranch(db.DefaultContext, repo1, "master", "main", func(ctx context.Context, isDefault bool) error {
 		_isDefault = isDefault
 		return nil
 	}))

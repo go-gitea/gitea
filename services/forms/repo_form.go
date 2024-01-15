@@ -216,6 +216,7 @@ type ProtectBranchForm struct {
 	BlockOnOfficialReviewRequests bool
 	BlockOnOutdatedBranch         bool
 	DismissStaleApprovals         bool
+	IgnoreStaleApprovals          bool
 	RequireSignedCommits          bool
 	ProtectedFilePatterns         string
 	UnprotectedFilePatterns       string

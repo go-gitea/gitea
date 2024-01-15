@@ -677,6 +677,9 @@
           "200": {
             "$ref": "#/responses/User"
           },
+          "400": {
+            "$ref": "#/responses/error"
+          },
           "403": {
             "$ref": "#/responses/forbidden"
           },
@@ -17043,6 +17046,10 @@
           },
           "x-go-name": "ForcePushWhitelistUsernames"
         },
+        "ignore_stale_approvals": {
+          "type": "boolean",
+          "x-go-name": "IgnoreStaleApprovals"
+        },
         "merge_whitelist_teams": {
           "type": "array",
           "items": {
@@ -17709,6 +17716,10 @@
             "type": "string"
           },
           "x-go-name": "ForcePushWhitelistUsernames"
+        },
+        "ignore_stale_approvals": {
+          "type": "boolean",
+          "x-go-name": "IgnoreStaleApprovals"
         },
         "merge_whitelist_teams": {
           "type": "array",
@@ -18866,6 +18877,10 @@
             "type": "string"
           },
           "x-go-name": "ForcePushWhitelistUsernames"
+        },
+        "ignore_stale_approvals": {
+          "type": "boolean",
+          "x-go-name": "IgnoreStaleApprovals"
         },
         "merge_whitelist_teams": {
           "type": "array",
