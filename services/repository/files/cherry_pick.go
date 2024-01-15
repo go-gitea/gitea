@@ -37,6 +37,9 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 	if err := t.SetDefaultIndex(); err != nil {
 		return nil, err
 	}
+	if err := t.RefreshIndex(); err != nil {
+		return nil, err
+	}
 
 	// Get the commit of the original branch
 	commit, err := t.GetBranchCommit(opts.OldBranch)

@@ -102,6 +102,14 @@ func (t *TemporaryUploadRepository) SetDefaultIndex() error {
 	return nil
 }
 
+// RefreshIndex looks at the current index and checks to see if merges or updates are needed by checking stat() information.
+func (t *TemporaryUploadRepository) RefreshIndex() error {
+	if _, _, err := git.NewCommand(t.ctx, "update-index", "--refresh").RunStdString(&git.RunOpts{Dir: t.basePath}); err != nil {
+		return fmt.Errorf("RefreshIndex: %w", err)
+	}
+	return nil
+}
+
 // LsFiles checks if the given filename arguments are in the index
 func (t *TemporaryUploadRepository) LsFiles(filenames ...string) ([]string, error) {
 	stdOut := new(bytes.Buffer)
