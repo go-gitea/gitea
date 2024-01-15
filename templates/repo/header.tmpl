@@ -2,35 +2,39 @@
 {{with .Repository}}
 	<div class="ui container">
 		<div class="repo-header">
-			<div class="repo-title-wrap gt-df gt-fc">
-				<div class="repo-title" role="heading" aria-level="1">
-					<div class="gt-mr-3">
-						{{template "repo/icon" .}}
-					</div>
-					<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
-					<div class="gt-mx-2">/</div>
-					<a href="{{$.RepoLink}}">{{.Name}}</a>
-					<div class="labels gt-df gt-ac gt-fw">
-						{{if .IsArchived}}
-							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
+			<div class="flex-item gt-ac">
+				<div class="flex-item-leading">{{template "repo/icon" .}}</div>
+				<div class="flex-item-main">
+					<div class="flex-item-title">
+						<a class="text light thin" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/
+						<a class="text primary" href="{{$.RepoLink}}">{{.Name}}</a></div>
+				</div>
+				<div class="flex-item-trailing">
+					{{if .IsArchived}}
+						<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
+						<div class="repo-icon" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.archived"}}">{{svg "octicon-archive" 18}}</div>
+					{{end}}
+					{{if .IsPrivate}}
+						<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
+						<div class="repo-icon" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.private"}}">{{svg "octicon-lock" 18}}</div>
+					{{else}}
+						{{if .Owner.Visibility.IsPrivate}}
+							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal"}}</span>
+							<div class="repo-icon" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.internal"}}">{{svg "octicon-shield-lock" 18}}</div>
 						{{end}}
-						{{if .IsPrivate}}
-							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
-						{{else}}
-							{{if .Owner.Visibility.IsPrivate}}
-								<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal"}}</span>
-							{{end}}
-						{{end}}
-						{{if .IsTemplate}}
-							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.template"}}</span>
-						{{end}}
-					</div>
+					{{end}}
+					{{if .IsTemplate}}
+						<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.template"}}</span>
+						<div class="repo-icon" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.template"}}">{{svg "octicon-repo-template" 18}}</div>
+					{{end}}
 				</div>
 				{{if $.PullMirror}}
-					<div class="fork-flag">{{ctx.Locale.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a></div>
+					<div class="fork-flag">
+						{{ctx.Locale.Tr "repo.mirror_from"}}
+						<a target="_blank" rel="noopener noreferrer" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a>
+						{{if $.PullMirror.UpdatedUnix}}{{ctx.Locale.Tr "repo.mirror_sync"}} {{TimeSinceUnix $.PullMirror.UpdatedUnix ctx.Locale}}{{end}}
+					</div>
 				{{end}}
-				{{if .IsFork}}<div class="fork-flag">{{ctx.Locale.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{.BaseRepo.FullName}}</a></div>{{end}}
-				{{if .IsGenerated}}<div class="fork-flag">{{ctx.Locale.Tr "repo.generated_from"}} <a href="{{(.TemplateRepo ctx).Link}}">{{(.TemplateRepo ctx).FullName}}</a></div>{{end}}
 			</div>
 			{{if not (or .IsBeingCreated .IsBroken)}}
 				<div class="repo-buttons">
@@ -62,7 +66,11 @@
 						{{$.CsrfTokenHtml}}
 						<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.watch_guest_user"}}"{{end}}>
 							<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}}>
-								{{if $.IsWatchingRepo}}{{svg "octicon-eye-closed" 16}}{{ctx.Locale.Tr "repo.unwatch"}}{{else}}{{svg "octicon-eye"}}{{ctx.Locale.Tr "repo.watch"}}{{end}}
+								{{if $.IsWatchingRepo}}
+									{{svg "octicon-eye-closed" 16}}<span class="text">{{ctx.Locale.Tr "repo.unwatch"}}</span>
+								{{else}}
+									{{svg "octicon-eye"}}<span class="text">{{ctx.Locale.Tr "repo.watch"}}</span>
+								{{end}}
 							</button>
 							<a class="ui basic label" href="{{.Link}}/watchers">
 								{{CountFmt .NumWatches}}
@@ -74,7 +82,11 @@
 							{{$.CsrfTokenHtml}}
 							<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.star_guest_user"}}"{{end}}>
 								<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}}>
-									{{if $.IsStaringRepo}}{{svg "octicon-star-fill"}}{{ctx.Locale.Tr "repo.unstar"}}{{else}}{{svg "octicon-star"}}{{ctx.Locale.Tr "repo.star"}}{{end}}
+									{{if $.IsStaringRepo}}
+										{{svg "octicon-star-fill"}}<span class="text">{{ctx.Locale.Tr "repo.unstar"}}</span>
+									{{else}}
+										{{svg "octicon-star"}}<span class="text">{{ctx.Locale.Tr "repo.star"}}</span>
+									{{end}}
 								</button>
 								<a class="ui basic label" href="{{.Link}}/stars">
 									{{CountFmt .NumStars}}
@@ -107,7 +119,7 @@
 									data-modal="#fork-repo-modal"
 								{{end}}
 							>
-								{{svg "octicon-repo-forked"}}{{ctx.Locale.Tr "repo.fork"}}
+								{{svg "octicon-repo-forked"}}<span class="text">{{ctx.Locale.Tr "repo.fork"}}</span>
 							</a>
 							<div class="ui small modal" id="fork-repo-modal">
 								<div class="header">
@@ -117,17 +129,13 @@
 									<div class="ui list">
 										{{range $.UserAndOrgForks}}
 											<div class="ui item gt-py-3">
-												<a href="{{.Link}}">
-													{{svg "octicon-repo-forked" 16 "gt-mr-3"}}{{.FullName}}
-												</a>
+												<a href="{{.Link}}">{{svg "octicon-repo-forked" 16 "gt-mr-3"}}{{.FullName}}</a>
 											</div>
 										{{end}}
 									</div>
 									{{if $.CanSignedUserFork}}
 									<div class="divider"></div>
-									<a href="{{AppSubUrl}}/repo/fork/{{.ID}}">
-										{{ctx.Locale.Tr "repo.fork_to_different_account"}}
-									</a>
+									<a href="{{AppSubUrl}}/repo/fork/{{.ID}}">{{ctx.Locale.Tr "repo.fork_to_different_account"}}</a>
 									{{end}}
 								</div>
 							</div>
@@ -138,12 +146,15 @@
 					{{end}}
 				</div>
 			{{end}}
-		</div><!-- end grid -->
-	</div><!-- end container -->
+		</div>
+		{{if $.PullMirror}}<div class="fork-flag">{{ctx.Locale.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a></div>{{end}}
+		{{if .IsFork}}<div class="fork-flag">{{ctx.Locale.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{.BaseRepo.FullName}}</a></div>{{end}}
+		{{if .IsGenerated}}<div class="fork-flag">{{ctx.Locale.Tr "repo.generated_from"}} <a href="{{(.TemplateRepo ctx).Link}}">{{(.TemplateRepo ctx).FullName}}</a></div>{{end}}
+	</div>
 {{end}}
-	<div class="ui tabs container">
+	<div class="ui container secondary pointing tabular top attached borderless menu new-menu navbar">
 		{{if not (or .Repository.IsBeingCreated .Repository.IsBroken)}}
-			<div class="ui tabular menu navbar gt-overflow-x-auto gt-overflow-y-hidden">
+			<div class="new-menu-inner">
 				{{if .Permission.CanRead $.UnitTypeCode}}
 				<a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if and (ne .BranchName .Repository.DefaultBranch) (not $.PageIsWiki)}}/src/{{.BranchNameSubURL}}{{end}}">
 					{{svg "octicon-code"}} {{ctx.Locale.Tr "repo.code"}}
@@ -228,14 +239,14 @@
 				{{template "custom/extra_tabs" .}}
 
 				{{if .Permission.IsAdmin}}
-					<a class="{{if .PageIsRepoSettings}}active {{end}}right item" href="{{.RepoLink}}/settings">
+					<a class="{{if .PageIsRepoSettings}}active {{end}} item" href="{{.RepoLink}}/settings">
 						{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
 					</a>
 				{{end}}
 			</div>
 		{{else if .Permission.IsAdmin}}
-			<div class="ui tabular menu navbar gt-overflow-x-auto gt-overflow-y-hidden">
-				<a class="{{if .PageIsRepoSettings}}active {{end}}right item" href="{{.RepoLink}}/settings">
+			<div class="new-menu-inner">
+				<a class="{{if .PageIsRepoSettings}}active {{end}} item" href="{{.RepoLink}}/settings">
 					{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
 				</a>
 			</div>

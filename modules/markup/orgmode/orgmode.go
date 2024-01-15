@@ -4,7 +4,6 @@
 package markup
 
 import (
-	"bytes"
 	"fmt"
 	"html"
 	"io"
@@ -101,8 +100,7 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 
 	w := &Writer{
 		HTMLWriter: htmlWriter,
-		URLPrefix:  ctx.URLPrefix,
-		IsWiki:     ctx.IsWiki,
+		Ctx:        ctx,
 	}
 
 	htmlWriter.ExtendingWriter = w
@@ -132,63 +130,53 @@ func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 // Writer implements org.Writer
 type Writer struct {
 	*org.HTMLWriter
-	URLPrefix string
-	IsWiki    bool
+	Ctx *markup.RenderContext
 }
 
-var byteMailto = []byte("mailto:")
+const mailto = "mailto:"
 
-// WriteRegularLink renders images, links or videos
-func (r *Writer) WriteRegularLink(l org.RegularLink) {
-	link := []byte(html.EscapeString(l.URL))
+func (r *Writer) resolveLink(l org.RegularLink) string {
+	link := html.EscapeString(l.URL)
 	if l.Protocol == "file" {
 		link = link[len("file:"):]
 	}
-	if len(link) > 0 && !markup.IsLink(link) &&
-		link[0] != '#' && !bytes.HasPrefix(link, byteMailto) {
-		lnk := string(link)
-		if r.IsWiki {
-			lnk = util.URLJoin("wiki", lnk)
+	if len(link) > 0 && !markup.IsLinkStr(link) &&
+		link[0] != '#' && !strings.HasPrefix(link, mailto) {
+		base := r.Ctx.Links.Base
+		switch l.Kind() {
+		case "image", "video":
+			base = r.Ctx.Links.ResolveMediaLink(r.Ctx.IsWiki)
 		}
-		link = []byte(util.URLJoin(r.URLPrefix, lnk))
+		link = util.URLJoin(base, link)
 	}
+	return link
+}
+
+// WriteRegularLink renders images, links or videos
+func (r *Writer) WriteRegularLink(l org.RegularLink) {
+	link := r.resolveLink(l)
 
 	// Inspired by https://github.com/niklasfasching/go-org/blob/6eb20dbda93cb88c3503f7508dc78cbbc639378f/org/html_writer.go#L406-L427
 	switch l.Kind() {
 	case "image":
 		if l.Description == nil {
-			imageSrc := getMediaURL(link)
-			fmt.Fprintf(r, `<img src="%s" alt="%s" />`, imageSrc, link)
+			fmt.Fprintf(r, `<img src="%s" alt="%s" />`, link, link)
 		} else {
-			description := strings.TrimPrefix(org.String(l.Description...), "file:")
-			imageSrc := getMediaURL([]byte(description))
+			imageSrc := r.resolveLink(l.Description[0].(org.RegularLink))
 			fmt.Fprintf(r, `<a href="%s"><img src="%s" alt="%s" /></a>`, link, imageSrc, imageSrc)
 		}
 	case "video":
 		if l.Description == nil {
-			imageSrc := getMediaURL(link)
-			fmt.Fprintf(r, `<video src="%s">%s</video>`, imageSrc, link)
+			fmt.Fprintf(r, `<video src="%s">%s</video>`, link, link)
 		} else {
-			description := strings.TrimPrefix(org.String(l.Description...), "file:")
-			videoSrc := getMediaURL([]byte(description))
+			videoSrc := r.resolveLink(l.Description[0].(org.RegularLink))
 			fmt.Fprintf(r, `<a href="%s"><video src="%s">%s</video></a>`, link, videoSrc, videoSrc)
 		}
 	default:
-		description := string(link)
+		description := link
 		if l.Description != nil {
 			description = r.WriteNodesAsString(l.Description...)
 		}
 		fmt.Fprintf(r, `<a href="%s">%s</a>`, link, description)
 	}
-}
-
-func getMediaURL(l []byte) string {
-	srcURL := string(l)
-
-	// Check if link is valid
-	if len(srcURL) > 0 && !markup.IsLink(l) {
-		srcURL = strings.Replace(srcURL, "/src/", "/media/", 1)
-	}
-
-	return srcURL
 }

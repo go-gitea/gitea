@@ -76,12 +76,12 @@ Mu0UFYgZ/bYnuvn/vz4wtCz8qMwsHUvP0PX3tbYFUctAPdrY6tiiDtcCddDECahx7SuVNP5dpmb5
 	t.Run("RepositoryConfig", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", rootURL+".repo")
+		req := NewRequest(t, "GET", rootURL+"/el9/stable.repo")
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		expected := fmt.Sprintf(`[gitea-%s]
-name=%s - %s
-baseurl=%sapi/packages/%s/rpm
+		expected := fmt.Sprintf(`[gitea-%s-el9-stable]
+name=%s - %s - el9 - stable
+baseurl=%sapi/packages/%s/rpm/el9/stable/
 enabled=1
 gpgcheck=1
 gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppName, setting.AppURL, user.Name, setting.AppURL, user.Name)
@@ -100,7 +100,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 	})
 
 	t.Run("Upload", func(t *testing.T) {
-		url := rootURL + "/upload"
+		url := rootURL + "/el9/stable/upload"
 
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
 		MakeRequest(t, req, http.StatusUnauthorized)
@@ -118,7 +118,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 		assert.Nil(t, pd.SemVer)
 		assert.IsType(t, &rpm_module.VersionMetadata{}, pd.Metadata)
 		assert.Equal(t, packageName, pd.Package.Name)
-		assert.Equal(t, packageVersion, pd.Version.Version)
+		assert.Equal(t, fmt.Sprintf("el9/stable/%s", packageVersion), pd.Version.Version)
 
 		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
 		assert.NoError(t, err)
@@ -138,7 +138,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 	t.Run("Download", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture))
+		req := NewRequest(t, "GET", fmt.Sprintf("%s/el9/stable/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture))
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, content, resp.Body.Bytes())
@@ -147,7 +147,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 	t.Run("Repository", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		url := rootURL + "/repodata"
+		url := rootURL + "/el9/stable/repodata"
 
 		req := NewRequest(t, "HEAD", url+"/dummy.xml")
 		MakeRequest(t, req, http.StatusNotFound)
@@ -201,8 +201,8 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 
 				switch d.Type {
 				case "primary":
-					assert.EqualValues(t, 718, d.Size)
-					assert.EqualValues(t, 1729, d.OpenSize)
+					assert.EqualValues(t, 722, d.Size)
+					assert.EqualValues(t, 1759, d.OpenSize)
 					assert.Equal(t, "repodata/primary.xml.gz", d.Location.Href)
 				case "filelists":
 					assert.EqualValues(t, 257, d.Size)
@@ -311,7 +311,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 			assert.EqualValues(t, len(content), p.Size.Package)
 			assert.EqualValues(t, 13, p.Size.Installed)
 			assert.EqualValues(t, 272, p.Size.Archive)
-			assert.Equal(t, fmt.Sprintf("package/%s/%s/%s", packageName, packageVersion, packageArchitecture), p.Location.Href)
+			assert.Equal(t, fmt.Sprintf("package/%s/%s/%s/%s", packageName, packageVersion, packageArchitecture, fmt.Sprintf("%s-%s.%s.rpm", packageName, packageVersion, packageArchitecture)), p.Location.Href)
 			f := p.Format
 			assert.Equal(t, "MIT", f.License)
 			assert.Len(t, f.Provides.Entries, 2)
@@ -401,18 +401,17 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 	t.Run("Delete", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture))
+		req := NewRequest(t, "DELETE", fmt.Sprintf("%s/el9/stable/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture))
 		MakeRequest(t, req, http.StatusUnauthorized)
 
-		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture)).
+		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/el9/stable/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture)).
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNoContent)
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeRpm)
 		assert.NoError(t, err)
 		assert.Empty(t, pvs)
-
-		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture)).
+		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/el9/stable/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture)).
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
