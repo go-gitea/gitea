@@ -30,7 +30,7 @@
 					<div class="fork-flag">
 						{{ctx.Locale.Tr "repo.mirror_from"}}
 						<a target="_blank" rel="noopener noreferrer" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a>
-						{{ctx.Locale.Tr "repo.mirror_sync"}} {{TimeSinceUnix $.PullMirror.UpdatedUnix ctx.Locale}}
+						{{if $.PullMirror.UpdatedUnix}}{{ctx.Locale.Tr "repo.mirror_sync"}} {{TimeSinceUnix $.PullMirror.UpdatedUnix ctx.Locale}}{{end}}
 					</div>
 				{{end}}
 				{{if .IsFork}}<div class="fork-flag">{{ctx.Locale.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{.BaseRepo.FullName}}</a></div>{{end}}
