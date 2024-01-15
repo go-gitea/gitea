@@ -277,9 +277,16 @@ func loadKeysData(ctx *context.Context) {
 	}
 	ctx.Data["ExternalKeys"] = externalKeys
 
-	gpgkeys, err := asymkey_model.ListGPGKeys(ctx, ctx.Doer.ID, db.ListOptions{})
+	gpgkeys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+		ListOptions: db.ListOptionsAll,
+		OwnerID:     ctx.Doer.ID,
+	})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)
+		return
+	}
+	if err := asymkey_model.GPGKeyList(gpgkeys).LoadSubKeys(ctx); err != nil {
+		ctx.ServerError("LoadSubKeys", err)
 		return
 	}
 	ctx.Data["GPGKeys"] = gpgkeys
@@ -288,7 +295,11 @@ func loadKeysData(ctx *context.Context) {
 	// generate a new aes cipher using the csrfToken
 	ctx.Data["TokenToSign"] = tokenToSign
 
-	principals, err := asymkey_model.ListPrincipalKeys(ctx, ctx.Doer.ID, db.ListOptions{})
+	principals, err := db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+		ListOptions: db.ListOptionsAll,
+		OwnerID:     ctx.Doer.ID,
+		KeyTypes:    []asymkey_model.KeyType{asymkey_model.KeyTypePrincipal},
+	})
 	if err != nil {
 		ctx.ServerError("ListPrincipalKeys", err)
 		return
