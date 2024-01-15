@@ -53,7 +53,7 @@
 					<span class="truncate">
 						{{if $commit}}
 							{{$commitLink := printf "%s/commit/%s" $.RepoLink (PathEscape $commit.ID.String)}}
-							{{RenderCommitMessageLinkSubject $.Context $commit.Message $.RepoLink $commitLink ($.Repository.ComposeMetas ctx)}}
+							{{RenderCommitMessageLinkSubject $.Context $commit.Message $commitLink ($.Repository.ComposeMetas ctx)}}
 						{{else}}
 							<div class="ui active tiny slow centered inline">…</div>
 						{{end}}

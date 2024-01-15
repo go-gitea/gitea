@@ -158,7 +158,7 @@ func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry, try
 	return "", readmeFile, nil
 }
 
-func renderDirectory(ctx *context.Context, treeLink string) {
+func renderDirectory(ctx *context.Context) {
 	entries := renderDirectoryFiles(ctx, 1*time.Second)
 	if ctx.Written() {
 		return
@@ -175,7 +175,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		return
 	}
 
-	renderReadmeFile(ctx, subfolder, readmeFile, treeLink)
+	renderReadmeFile(ctx, subfolder, readmeFile)
 }
 
 // localizedExtensions prepends the provided language code with and without a
@@ -259,7 +259,7 @@ func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) ([]byte,
 	return buf, dataRc, &fileInfo{st.IsText(), true, meta.Size, &meta.Pointer, st}, nil
 }
 
-func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.TreeEntry, readmeTreelink string) {
+func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.TreeEntry) {
 	target := readmeFile
 	if readmeFile != nil && readmeFile.IsLink() {
 		target, _ = readmeFile.FollowLinks()
@@ -312,9 +312,13 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 			Ctx:          ctx,
 			RelativePath: path.Join(ctx.Repo.TreePath, readmeFile.Name()), // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
-			URLPrefix:    path.Join(readmeTreelink, subfolder),
-			Metas:        ctx.Repo.Repository.ComposeDocumentMetas(ctx),
-			GitRepo:      ctx.Repo.GitRepo,
+			Links: markup.Links{
+				Base:       ctx.Repo.RepoLink,
+				BranchPath: ctx.Repo.BranchNameSubURL(),
+				TreePath:   path.Join(ctx.Repo.TreePath, subfolder),
+			},
+			Metas:   ctx.Repo.Repository.ComposeDocumentMetas(ctx),
+			GitRepo: ctx.Repo.GitRepo,
 		}, rd)
 		if err != nil {
 			log.Error("Render failed for %s in %-v: %v Falling back to rendering source", readmeFile.Name(), ctx.Repo.Repository, err)
@@ -380,7 +384,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
 	ctx.Data["FileName"] = blob.Name()
-	ctx.Data["RawFileLink"] = rawLink + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+	ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
 	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx.Repo.TreePath)
 	if err != nil {
@@ -518,9 +522,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				Ctx:          ctx,
 				Type:         markupType,
 				RelativePath: ctx.Repo.TreePath,
-				URLPrefix:    path.Dir(treeLink),
-				Metas:        metas,
-				GitRepo:      ctx.Repo.GitRepo,
+				Links: markup.Links{
+					Base:       ctx.Repo.RepoLink,
+					BranchPath: ctx.Repo.BranchNameSubURL(),
+					TreePath:   path.Dir(ctx.Repo.TreePath),
+				},
+				Metas:   metas,
+				GitRepo: ctx.Repo.GitRepo,
 			}, rd)
 			if err != nil {
 				ctx.ServerError("Render", err)
@@ -624,9 +632,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 				Ctx:          ctx,
 				RelativePath: ctx.Repo.TreePath,
-				URLPrefix:    path.Dir(treeLink),
-				Metas:        ctx.Repo.Repository.ComposeDocumentMetas(ctx),
-				GitRepo:      ctx.Repo.GitRepo,
+				Links: markup.Links{
+					Base:       ctx.Repo.RepoLink,
+					BranchPath: ctx.Repo.BranchNameSubURL(),
+					TreePath:   path.Dir(ctx.Repo.TreePath),
+				},
+				Metas:   ctx.Repo.Repository.ComposeDocumentMetas(ctx),
+				GitRepo: ctx.Repo.GitRepo,
 			}, rd)
 			if err != nil {
 				ctx.ServerError("Render", err)
@@ -963,14 +975,6 @@ func renderCode(ctx *context.Context) {
 	}
 	ctx.Data["Title"] = title
 
-	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
-	treeLink := branchLink
-	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL()
-
-	if len(ctx.Repo.TreePath) > 0 {
-		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
-	}
-
 	// Get Topics of this repo
 	renderRepoTopics(ctx)
 	if ctx.Written() {
@@ -995,9 +999,9 @@ func renderCode(ctx *context.Context) {
 	}
 
 	if entry.IsDir() {
-		renderDirectory(ctx, treeLink)
+		renderDirectory(ctx)
 	} else {
-		renderFile(ctx, entry, treeLink, rawLink)
+		renderFile(ctx, entry)
 	}
 	if ctx.Written() {
 		return
@@ -1038,6 +1042,12 @@ func renderCode(ctx *context.Context) {
 	}
 
 	ctx.Data["Paths"] = paths
+
+	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
+	treeLink := branchLink
+	if len(ctx.Repo.TreePath) > 0 {
+		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+	}
 	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
