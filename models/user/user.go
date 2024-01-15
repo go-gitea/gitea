@@ -727,7 +727,7 @@ func CountUsers(ctx context.Context, opts *CountUserFilter) int64 {
 func countUsers(ctx context.Context, opts *CountUserFilter) int64 {
 	sess := db.GetEngine(ctx)
 	cond := builder.NewCond()
-	cond = cond.And(builder.Eq{"type": "0"})
+	cond = cond.And(builder.Eq{"type": UserTypeIndividual})
 
 	if opts != nil {
 		if opts.LastLoginSince != nil {
