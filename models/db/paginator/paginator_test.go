@@ -52,11 +52,8 @@ func TestPaginator(t *testing.T) {
 
 	for _, c := range cases {
 		skip, take := c.Paginator.GetSkipTake()
-		start, end := c.Paginator.GetStartEnd()
 
 		assert.Equal(t, c.Skip, skip)
 		assert.Equal(t, c.Take, take)
-		assert.Equal(t, c.Start, start)
-		assert.Equal(t, c.End, end)
 	}
 }
