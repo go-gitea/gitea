@@ -347,6 +347,7 @@ func GetIssueNotification(ctx context.Context, userID, issueID int64) (*Notifica
 
 // CreateOrUpdateIssueNotifications creates an release notification
 // for each watcher, or updates it if already exists
+// this function called from a queue, so we can't pass a context
 func CreateOrUpdateReleaseNotifications(releaseID, receiverID int64) error {
 	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
