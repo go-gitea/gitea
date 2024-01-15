@@ -258,9 +258,11 @@ func Milestones(ctx *context.Context) {
 		}
 
 		milestones[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			URLPrefix: milestones[i].Repo.Link(),
-			Metas:     milestones[i].Repo.ComposeMetas(ctx),
-			Ctx:       ctx,
+			Links: markup.Links{
+				Base: milestones[i].Repo.Link(),
+			},
+			Metas: milestones[i].Repo.ComposeMetas(ctx),
+			Ctx:   ctx,
 		}, milestones[i].Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
