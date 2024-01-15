@@ -41,12 +41,13 @@ func openRepositoryWithDefaultContext(repoPath string) (*Repository, error) {
 	return OpenRepository(DefaultContext, repoPath)
 }
 
-// OpenRepository opens the repository at the given path within the context.Context
+// OpenRepository opens the repository at the given path within the context.Context.
 func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 	return OpenRepositoryWithAlternates(ctx, repoPath, "")
 }
 
-// OpenRepository opens the repository at the given path within the context.Context
+// OpenRepositoryWithAlternates opens the repository at the given path within the context.Context, with a provided alternate path.
+// altPath is ignored if empty.
 func OpenRepositoryWithAlternates(ctx context.Context, repoPath string, altPath string) (*Repository, error) {
 	repoPath, err := filepath.Abs(repoPath)
 	if err != nil {
