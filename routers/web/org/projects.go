@@ -107,9 +107,11 @@ func Projects(ctx *context.Context) {
 
 	for _, project := range projects {
 		project.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			Ctx:       ctx,
-			URLPrefix: ctx.ContextUser.HomeLink(),
-			Metas:     map[string]string{"mode": "document"},
+			Ctx: ctx,
+			Links: markup.Links{
+				Base: ctx.ContextUser.HomeLink(),
+			},
+			Metas: map[string]string{"mode": "document"},
 		}, project.Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -414,9 +416,11 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	project.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-		Ctx:       ctx,
-		URLPrefix: ctx.ContextUser.HomeLink(),
-		Metas:     map[string]string{"mode": "document"},
+		Ctx: ctx,
+		Links: markup.Links{
+			Base: ctx.ContextUser.HomeLink(),
+		},
+		Metas: map[string]string{"mode": "document"},
 	}, project.Description)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
