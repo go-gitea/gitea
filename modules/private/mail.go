@@ -30,7 +30,7 @@ func SendEmail(ctx context.Context, subject, message string, to []string) (strin
 	})
 
 	resp, extra := requestJSONResp(req, &responseText{})
-	if resp == nil {
+	if extra.HasError() {
 		return "", extra
 	}
 	return resp.Text, extra
