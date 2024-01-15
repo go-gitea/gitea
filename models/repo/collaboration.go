@@ -43,7 +43,7 @@ func GetCollaborators(ctx context.Context, repoID int64, listOptions db.ListOpti
 		RepoID:      repoID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("getCollaborations: %w", err)
+		return nil, fmt.Errorf("db.Find[Collaboration]: %w", err)
 	}
 
 	collaborators := make([]*Collaborator, 0, len(collaborations))
@@ -54,7 +54,7 @@ func GetCollaborators(ctx context.Context, repoID int64, listOptions db.ListOpti
 
 	usersMap := make(map[int64]*user_model.User)
 	if err := db.GetEngine(ctx).In("id", userIDs).Find(&usersMap); err != nil {
-		return nil, fmt.Errorf("getCollaborations: %w", err)
+		return nil, fmt.Errorf("Find users map by user ids: %w", err)
 	}
 
 	for _, c := range collaborations {
