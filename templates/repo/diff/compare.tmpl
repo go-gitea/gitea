@@ -2,7 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository diff {{if .PageIsComparePull}}compare pull{{end}}">
 	{{template "repo/header" .}}
 	{{$showDiffBox := false}}
-	<div class="ui container">
+	<div class="ui container fluid padded">
 	<h2 class="ui header">
 		{{if and $.PageIsComparePull $.IsSigned (not .Repository.IsArchived)}}
 			{{ctx.Locale.Tr "repo.pulls.compare_changes"}}
@@ -235,7 +235,7 @@
 	</div>
 
 	{{if $showDiffBox}}
-	<div class="ui container">
+	<div class="ui container fluid padded">
 		{{template "repo/commits_table" .}}
 		{{template "repo/diff/box" .}}
 	</div>

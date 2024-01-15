@@ -143,7 +143,7 @@ func RenderLabel(ctx context.Context, label *issues_model.Label) template.HTML {
 
 	if labelScope == "" {
 		// Regular label
-		s := fmt.Sprintf("<div class='ui label' style='color: %s !important; background-color: %s !important' title='%s'>%s</div>",
+		s := fmt.Sprintf("<div class='ui label' style='color: %s !important; background-color: %s !important' data-tooltip-content title='%s'>%s</div>",
 			textColor, label.Color, description, RenderEmoji(ctx, label.Name))
 		return template.HTML(s)
 	}
@@ -177,9 +177,9 @@ func RenderLabel(ctx context.Context, label *issues_model.Label) template.HTML {
 	itemColor := "#" + hex.EncodeToString(itemBytes)
 	scopeColor := "#" + hex.EncodeToString(scopeBytes)
 
-	s := fmt.Sprintf("<span class='ui label scope-parent' title='%s'>"+
+	s := fmt.Sprintf("<span class='ui label scope-parent' data-tooltip-content title='%s'>"+
 		"<div class='ui label scope-left' style='color: %s !important; background-color: %s !important'>%s</div>"+
-		"<div class='ui label scope-right' style='color: %s !important; background-color: %s !important''>%s</div>"+
+		"<div class='ui label scope-right' style='color: %s !important; background-color: %s !important'>%s</div>"+
 		"</span>",
 		description,
 		textColor, scopeColor, scopeText,

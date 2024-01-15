@@ -47,6 +47,14 @@ func (err ErrUserDoesNotHaveAccessToRepo) Unwrap() error {
 	return util.ErrPermissionDenied
 }
 
+type ErrRepoIsArchived struct {
+	Repo *Repository
+}
+
+func (err ErrRepoIsArchived) Error() string {
+	return fmt.Sprintf("%s is archived", err.Repo.LogString())
+}
+
 var (
 	reservedRepoNames    = []string{".", "..", "-"}
 	reservedRepoPatterns = []string{"*.git", "*.wiki", "*.rss", "*.atom"}
@@ -594,25 +602,23 @@ func ComposeHTTPSCloneURL(owner, repo string) string {
 
 func ComposeSSHCloneURL(ownerName, repoName string) string {
 	sshUser := setting.SSH.User
-
-	// if we have a ipv6 literal we need to put brackets around it
-	// for the git cloning to work.
 	sshDomain := setting.SSH.Domain
-	ip := net.ParseIP(setting.SSH.Domain)
-	if ip != nil && ip.To4() == nil {
-		sshDomain = "[" + setting.SSH.Domain + "]"
+
+	// non-standard port, it must use full URI
+	if setting.SSH.Port != 22 {
+		sshHost := net.JoinHostPort(sshDomain, strconv.Itoa(setting.SSH.Port))
+		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
 	}
 
-	if setting.SSH.Port != 22 {
-		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser,
-			net.JoinHostPort(setting.SSH.Domain, strconv.Itoa(setting.SSH.Port)),
-			url.PathEscape(ownerName),
-			url.PathEscape(repoName))
+	// for standard port, it can use a shorter URI (without the port)
+	sshHost := sshDomain
+	if ip := net.ParseIP(sshHost); ip != nil && ip.To4() == nil {
+		sshHost = "[" + sshHost + "]" // for IPv6 address, wrap it with brackets
 	}
 	if setting.Repository.UseCompatSSHURI {
-		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshDomain, url.PathEscape(ownerName), url.PathEscape(repoName))
+		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
 	}
-	return fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshDomain, url.PathEscape(ownerName), url.PathEscape(repoName))
+	return fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
 }
 
 func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
@@ -652,6 +658,14 @@ func (repo *Repository) GetTrustModel() TrustModelType {
 		}
 	}
 	return trustModel
+}
+
+// MustNotBeArchived returns ErrRepoIsArchived if the repo is archived
+func (repo *Repository) MustNotBeArchived() error {
+	if repo.IsArchived {
+		return ErrRepoIsArchived{Repo: repo}
+	}
+	return nil
 }
 
 // __________                           .__  __

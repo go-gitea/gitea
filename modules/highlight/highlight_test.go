@@ -4,21 +4,36 @@
 package highlight
 
 import (
+	"html/template"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func lines(s string) []string {
-	return strings.Split(strings.ReplaceAll(strings.TrimSpace(s), `\n`, "\n"), "\n")
+func lines(s string) (out []template.HTML) {
+	// "" => [], "a" => ["a"], "a\n" => ["a\n"], "a\nb" => ["a\n", "b"] (each line always includes EOL "\n" if it exists)
+	out = make([]template.HTML, 0)
+	s = strings.ReplaceAll(strings.ReplaceAll(strings.TrimSpace(s), "\n", ""), `\n`, "\n")
+	for {
+		if p := strings.IndexByte(s, '\n'); p != -1 {
+			out = append(out, template.HTML(s[:p+1]))
+			s = s[p+1:]
+		} else {
+			break
+		}
+	}
+	if s != "" {
+		out = append(out, template.HTML(s))
+	}
+	return out
 }
 
 func TestFile(t *testing.T) {
 	tests := []struct {
 		name      string
 		code      string
-		want      []string
+		want      []template.HTML
 		lexerName string
 	}{
 		{
@@ -99,10 +114,7 @@ c=2
 		t.Run(tt.name, func(t *testing.T) {
 			out, lexerName, err := File(tt.name, "", []byte(tt.code))
 			assert.NoError(t, err)
-			expected := strings.Join(tt.want, "\n")
-			actual := strings.Join(out, "\n")
-			assert.Equal(t, strings.Count(actual, "<span"), strings.Count(actual, "</span>"))
-			assert.EqualValues(t, expected, actual)
+			assert.EqualValues(t, tt.want, out)
 			assert.Equal(t, tt.lexerName, lexerName)
 		})
 	}
@@ -112,7 +124,7 @@ func TestPlainText(t *testing.T) {
 	tests := []struct {
 		name string
 		code string
-		want []string
+		want []template.HTML
 	}{
 		{
 			name: "empty.py",
@@ -165,9 +177,7 @@ c=2`),
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			out := PlainText([]byte(tt.code))
-			expected := strings.Join(tt.want, "\n")
-			actual := strings.Join(out, "\n")
-			assert.EqualValues(t, expected, actual)
+			assert.EqualValues(t, tt.want, out)
 		})
 	}
 }

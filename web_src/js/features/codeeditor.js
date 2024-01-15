@@ -62,7 +62,7 @@ export async function createMonaco(textarea, filename, editorOpts) {
   const monaco = await import(/* webpackChunkName: "monaco" */'monaco-editor');
 
   initLanguages(monaco);
-  let {language, eol, ...other} = editorOpts;
+  let {language, ...other} = editorOpts;
   if (!language) language = getLanguage(filename);
 
   const container = document.createElement('div');
@@ -105,28 +105,14 @@ export async function createMonaco(textarea, filename, editorOpts) {
   monaco.languages.register({id: 'vs.editor.nullLanguage'});
   monaco.languages.setLanguageConfiguration('vs.editor.nullLanguage', {});
 
-  // We encode the initial value in JSON on the backend to prevent browsers from
-  // discarding the \r during HTML parsing:
-  // https://html.spec.whatwg.org/multipage/parsing.html#preprocessing-the-input-stream
-  const value = JSON.parse(textarea.getAttribute('data-initial-value') || '""');
-  textarea.value = value;
-  textarea.removeAttribute('data-initial-value');
-
   const editor = monaco.editor.create(container, {
-    value,
+    value: textarea.value,
     theme: 'gitea',
     language,
     ...other,
   });
 
   const model = editor.getModel();
-
-  // Monaco performs auto-detection of dominant EOL in the file, biased towards LF for
-  // empty files. If there is an editorconfig value, override this detected value.
-  if (eol in monaco.editor.EndOfLineSequence) {
-    model.setEOL(monaco.editor.EndOfLineSequence[eol]);
-  }
-
   model.onDidChangeContent(() => {
     textarea.value = editor.getValue();
     textarea.dispatchEvent(new Event('change')); // seems to be needed for jquery-are-you-sure
@@ -201,6 +187,5 @@ function getEditorConfigOptions(ec) {
   opts.trimAutoWhitespace = ec.trim_trailing_whitespace === true;
   opts.insertSpaces = ec.indent_style === 'space';
   opts.useTabStops = ec.indent_style === 'tab';
-  opts.eol = ec.end_of_line?.toUpperCase();
   return opts;
 }

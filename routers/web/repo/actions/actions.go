@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/services/convert"
 
@@ -77,6 +78,7 @@ func List(ctx *context.Context) {
 		// Get all runner labels
 		opts := actions_model.FindRunnerOptions{
 			RepoID:        ctx.Repo.Repository.ID,
+			IsOnline:      util.OptionalBoolTrue,
 			WithAvailable: true,
 		}
 		runners, err := actions_model.FindRunners(ctx, opts)
@@ -114,7 +116,7 @@ func List(ctx *context.Context) {
 						continue
 					}
 					if !allRunnerLabels.Contains(ro) {
-						workflow.ErrMsg = ctx.Locale.Tr("actions.runs.no_matching_runner_helper", ro)
+						workflow.ErrMsg = ctx.Locale.Tr("actions.runs.no_matching_online_runner_helper", ro)
 						break
 					}
 				}
@@ -201,6 +203,7 @@ func List(ctx *context.Context) {
 	pager.AddParamString("actor", fmt.Sprint(actorID))
 	pager.AddParamString("status", fmt.Sprint(status))
 	ctx.Data["Page"] = pager
+	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
 
 	ctx.HTML(http.StatusOK, tplListActions)
 }

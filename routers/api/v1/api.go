@@ -2,7 +2,7 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-// Package v1 Gitea API.
+// Package v1 Gitea API
 //
 // This documentation describes the Gitea API.
 //
@@ -35,10 +35,12 @@
 //	     type: apiKey
 //	     name: token
 //	     in: query
+//	     description: This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.
 //	AccessToken:
 //	     type: apiKey
 //	     name: access_token
 //	     in: query
+//	     description: This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.
 //	AuthorizationHeaderToken:
 //	     type: apiKey
 //	     name: Authorization
@@ -315,10 +317,6 @@ func reqToken() func(ctx *context.APIContext) {
 			return
 		}
 
-		if ctx.IsBasicAuth {
-			ctx.CheckForOTP()
-			return
-		}
 		if ctx.IsSigned {
 			return
 		}
@@ -343,7 +341,6 @@ func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
 			ctx.Error(http.StatusUnauthorized, "reqBasicAuth", "auth required")
 			return
 		}
-		ctx.CheckForOTP()
 	}
 }
 
@@ -700,12 +697,6 @@ func bind[T any](_ T) any {
 	}
 }
 
-// The OAuth2 plugin is expected to be executed first, as it must ignore the user id stored
-// in the session (if there is a user id stored in session other plugins might return the user
-// object for that id).
-//
-// The Session plugin is expected to be executed second, in order to skip authentication
-// for users that have already signed in.
 func buildAuthGroup() *auth.Group {
 	group := auth.NewGroup(
 		&auth.OAuth2{},
@@ -785,31 +776,6 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIC
 				})
 				return
 			}
-			if ctx.IsSigned && ctx.IsBasicAuth {
-				if skip, ok := ctx.Data["SkipLocalTwoFA"]; ok && skip.(bool) {
-					return // Skip 2FA
-				}
-				twofa, err := auth_model.GetTwoFactorByUID(ctx, ctx.Doer.ID)
-				if err != nil {
-					if auth_model.IsErrTwoFactorNotEnrolled(err) {
-						return // No 2FA enrollment for this user
-					}
-					ctx.InternalServerError(err)
-					return
-				}
-				otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
-				ok, err := twofa.ValidateTOTP(otpHeader)
-				if err != nil {
-					ctx.InternalServerError(err)
-					return
-				}
-				if !ok {
-					ctx.JSON(http.StatusForbidden, map[string]string{
-						"message": "Only signed in user is allowed to call APIs.",
-					})
-					return
-				}
-			}
 		}
 
 		if options.AdminRequired {
@@ -823,6 +789,31 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIC
 	}
 }
 
+func individualPermsChecker(ctx *context.APIContext) {
+	// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
+	if ctx.ContextUser.IsIndividual() {
+		switch {
+		case ctx.ContextUser.Visibility == api.VisibleTypePrivate:
+			if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
+				ctx.NotFound("Visit Project", nil)
+				return
+			}
+		case ctx.ContextUser.Visibility == api.VisibleTypeLimited:
+			if ctx.Doer == nil {
+				ctx.NotFound("Visit Project", nil)
+				return
+			}
+		}
+	}
+}
+
+// check for and warn against deprecated authentication options
+func checkDeprecatedAuthMethods(ctx *context.APIContext) {
+	if ctx.FormString("token") != "" || ctx.FormString("access_token") != "" {
+		ctx.Resp.Header().Set("Warning", "token and access_token API authentication is deprecated and will be removed in gitea 1.23. Please use AuthorizationHeaderToken instead. Existing queries will continue to work but without authorization.")
+	}
+}
+
 // Routes registers all v1 APIs routes to web application.
 func Routes() *web.Route {
 	m := web.NewRoute()
@@ -830,9 +821,7 @@ func Routes() *web.Route {
 	m.Use(securityHeaders())
 	if setting.CORSConfig.Enabled {
 		m.Use(cors.Handler(cors.Options{
-			// Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
-			AllowedOrigins: setting.CORSConfig.AllowDomain,
-			// setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
+			AllowedOrigins:   setting.CORSConfig.AllowDomain,
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
 			AllowedHeaders:   append([]string{"Authorization", "X-Gitea-OTP"}, setting.CORSConfig.Headers...),
@@ -840,6 +829,8 @@ func Routes() *web.Route {
 		}))
 	}
 	m.Use(context.APIContexter())
+
+	m.Use(checkDeprecatedAuthMethods)
 
 	// Get user from session if logged in.
 	m.Use(apiAuth(buildAuthGroup()))
@@ -923,7 +914,7 @@ func Routes() *web.Route {
 				}, reqSelfOrAdmin(), reqBasicOrRevProxyAuth())
 
 				m.Get("/activities/feeds", user.ListUserActivityFeeds)
-			}, context_service.UserAssignmentAPI())
+			}, context_service.UserAssignmentAPI(), individualPermsChecker)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser))
 
 		// Users (requires user scope)
@@ -960,7 +951,7 @@ func Routes() *web.Route {
 			m.Group("/actions/secrets", func() {
 				m.Combo("/{secretname}").
 					Put(bind(api.CreateOrUpdateSecretOption{}), user.CreateOrUpdateSecret).
-					Delete(repo.DeleteSecret)
+					Delete(user.DeleteSecret)
 			})
 
 			m.Get("/followers", user.ListMyFollowers)
@@ -1152,9 +1143,9 @@ func Routes() *web.Route {
 				m.Get("/subscribers", repo.ListSubscribers)
 				m.Group("/subscription", func() {
 					m.Get("", user.IsWatching)
-					m.Put("", reqToken(), user.Watch)
-					m.Delete("", reqToken(), user.Unwatch)
-				})
+					m.Put("", user.Watch)
+					m.Delete("", user.Unwatch)
+				}, reqToken())
 				m.Group("/releases", func() {
 					m.Combo("").Get(repo.ListReleases).
 						Post(reqToken(), reqRepoWriter(unit.TypeReleases), context.ReferencesGitRepo(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
@@ -1294,8 +1285,8 @@ func Routes() *web.Route {
 			m.Group("/{username}/{reponame}", func() {
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
-						Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueOption{}), repo.CreateIssue)
-					m.Get("/pinned", repo.ListPinnedIssues)
+						Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueOption{}), reqRepoReader(unit.TypeIssues), repo.CreateIssue)
+					m.Get("/pinned", reqRepoReader(unit.TypeIssues), repo.ListPinnedIssues)
 					m.Group("/comments", func() {
 						m.Get("", repo.ListRepoIssueComments)
 						m.Group("/{id}", func() {
@@ -1443,10 +1434,10 @@ func Routes() *web.Route {
 					Delete(reqToken(), reqOrgMembership(), org.ConcealMember)
 			})
 			m.Group("/teams", func() {
-				m.Get("", reqToken(), org.ListTeams)
-				m.Post("", reqToken(), reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
-				m.Get("/search", reqToken(), org.SearchTeam)
-			}, reqOrgMembership())
+				m.Get("", org.ListTeams)
+				m.Post("", reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
+				m.Get("/search", org.SearchTeam)
+			}, reqToken(), reqOrgMembership())
 			m.Group("/labels", func() {
 				m.Get("", org.ListLabels)
 				m.Post("", reqToken(), reqOrgOwnership(), bind(api.CreateLabelOption{}), org.CreateLabel)

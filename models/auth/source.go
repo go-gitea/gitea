@@ -232,7 +232,7 @@ func CreateSource(source *Source) error {
 	err = registerableSource.RegisterSource()
 	if err != nil {
 		// remove the AuthSource in case of errors while registering configuration
-		if _, err := db.GetEngine(db.DefaultContext).Delete(source); err != nil {
+		if _, err := db.GetEngine(db.DefaultContext).ID(source.ID).Delete(new(Source)); err != nil {
 			log.Error("CreateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
 		}
 	}
@@ -275,9 +275,6 @@ func ActiveSources(tp Type) ([]*Source, error) {
 // IsSSPIEnabled returns true if there is at least one activated login
 // source of type LoginSSPI
 func IsSSPIEnabled() bool {
-	if !db.HasEngine {
-		return false
-	}
 	sources, err := ActiveSources(SSPI)
 	if err != nil {
 		log.Error("ActiveSources: %v", err)

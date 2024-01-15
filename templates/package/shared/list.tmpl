@@ -1,4 +1,5 @@
 {{template "base/alert" .}}
+{{if .HasPackages}}
 <form class="ui form ignore-dirty">
 	<div class="ui fluid action input">
 		{{template "shared/searchinput" dict "Value" .Query "AutoFocus" true}}
@@ -12,6 +13,7 @@
 		<button class="ui primary button">{{ctx.Locale.Tr "explore.search"}}</button>
 	</div>
 </form>
+{{end}}
 <div>
 	{{range .PackageDescriptors}}
 	<div class="flex-list">
@@ -38,7 +40,7 @@
 	</div>
 	{{else}}
 		{{if not .HasPackages}}
-			<div class="empty center">
+			<div class="empty-placeholder">
 				{{svg "octicon-package" 48}}
 				<h2>{{ctx.Locale.Tr "packages.empty"}}</h2>
 				{{if and .Repository .CanWritePackages}}

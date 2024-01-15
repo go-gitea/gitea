@@ -211,14 +211,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 5px;
   margin-bottom: 5px;
 }
 
-@media (max-width: 767.68px) {
+@media (max-width: 767.98px) {
   .repository.file.list .repo-description {
     flex-direction: column;
-    gap: 8px;
-    align-items: normal;
+    align-items: stretch;
   }
 }
 
@@ -1497,7 +1497,8 @@
   position: sticky;
   top: 0;
   z-index: 8;
-  padding: 7px 0;
+  padding: 7px 5px;
+  margin: 0 -5px; /* negative margin so it covers active file shadow */
   height: 44px; /* this height should match sticky-2nd-row */
   background: var(--color-body);
 }
@@ -1797,10 +1798,12 @@
   flex: 1
 }
 
-.repository.packages .empty,
-.repository.actions .empty {
-  padding-top: 70px;
-  padding-bottom: 100px;
+.empty-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 40px;
+  padding-bottom: 40px;
 }
 
 .repository.packages .file-size {
@@ -2050,6 +2053,7 @@
 
 .repository .repository-summary .segment.language-stats {
   display: flex;
+  gap: 2px;
   padding: 0;
   height: 10px;
   white-space: nowrap;
@@ -2732,6 +2736,9 @@ tbody.commit-list {
 #diff-file-boxes {
   flex: 1;
   max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 #diff-file-tree {

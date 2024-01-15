@@ -6,6 +6,7 @@ package utils
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	user_model "code.gitea.io/gitea/models/user"
@@ -53,7 +54,7 @@ func ListOwnerHooks(ctx *context.APIContext, owner *user_model.User) {
 
 // GetOwnerHook gets an user or organization webhook. Errors are written to ctx.
 func GetOwnerHook(ctx *context.APIContext, ownerID, hookID int64) (*webhook.Webhook, error) {
-	w, err := webhook.GetWebhookByOwnerID(ownerID, hookID)
+	w, err := webhook.GetWebhookByOwnerID(ctx, ownerID, hookID)
 	if err != nil {
 		if webhook.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
@@ -68,7 +69,7 @@ func GetOwnerHook(ctx *context.APIContext, ownerID, hookID int64) (*webhook.Webh
 // GetRepoHook get a repo's webhook. If there is an error, write to `ctx`
 // accordingly and return the error
 func GetRepoHook(ctx *context.APIContext, repoID, hookID int64) (*webhook.Webhook, error) {
-	w, err := webhook.GetWebhookByRepoID(repoID, hookID)
+	w, err := webhook.GetWebhookByRepoID(ctx, repoID, hookID)
 	if err != nil {
 		if webhook.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
@@ -162,6 +163,7 @@ func pullHook(events []string, event string) bool {
 // addHook add the hook specified by `form`, `ownerID` and `repoID`. If there is
 // an error, write to `ctx` accordingly. Return (webhook, ok)
 func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoID int64) (*webhook.Webhook, bool) {
+	var isSystemWebhook bool
 	if !checkCreateHookOption(ctx, form) {
 		return nil, false
 	}
@@ -169,13 +171,22 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 	if len(form.Events) == 0 {
 		form.Events = []string{"push"}
 	}
+	if form.Config["is_system_webhook"] != "" {
+		sw, err := strconv.ParseBool(form.Config["is_system_webhook"])
+		if err != nil {
+			ctx.Error(http.StatusUnprocessableEntity, "", "Invalid is_system_webhook value")
+			return nil, false
+		}
+		isSystemWebhook = sw
+	}
 	w := &webhook.Webhook{
-		OwnerID:     ownerID,
-		RepoID:      repoID,
-		URL:         form.Config["url"],
-		ContentType: webhook.ToHookContentType(form.Config["content_type"]),
-		Secret:      form.Config["secret"],
-		HTTPMethod:  "POST",
+		OwnerID:         ownerID,
+		RepoID:          repoID,
+		URL:             form.Config["url"],
+		ContentType:     webhook.ToHookContentType(form.Config["content_type"]),
+		Secret:          form.Config["secret"],
+		HTTPMethod:      "POST",
+		IsSystemWebhook: isSystemWebhook,
 		HookEvent: &webhook_module.HookEvent{
 			ChooseEvents: true,
 			HookEvents: webhook_module.HookEvents{
@@ -401,7 +412,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 
 // DeleteOwnerHook deletes the hook owned by the owner.
 func DeleteOwnerHook(ctx *context.APIContext, owner *user_model.User, hookID int64) {
-	if err := webhook.DeleteWebhookByOwnerID(owner.ID, hookID); err != nil {
+	if err := webhook.DeleteWebhookByOwnerID(ctx, owner.ID, hookID); err != nil {
 		if webhook.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {

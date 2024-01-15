@@ -193,7 +193,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		return
 	}
 
-	if err := auth_model.DeleteAccessTokenByID(ctx, tokenID, ctx.Doer.ID); err != nil {
+	if err := auth_model.DeleteAccessTokenByID(ctx, tokenID, ctx.ContextUser.ID); err != nil {
 		if auth_model.IsErrAccessTokenNotExist(err) {
 			ctx.NotFound()
 		} else {
@@ -341,6 +341,10 @@ func GetOauth2Application(ctx *context.APIContext) {
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetOauth2ApplicationByID", err)
 		}
+		return
+	}
+	if app.UID != ctx.Doer.ID {
+		ctx.NotFound()
 		return
 	}
 

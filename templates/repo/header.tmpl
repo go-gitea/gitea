@@ -11,25 +11,18 @@
 					<div class="gt-mx-2">/</div>
 					<a href="{{$.RepoLink}}">{{.Name}}</a>
 					<div class="labels gt-df gt-ac gt-fw">
-						{{if .IsTemplate}}
-							{{if .IsPrivate}}
-								<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private_template"}}</span>
-							{{else}}
-								{{if .Owner.Visibility.IsPrivate}}
-									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal_template"}}</span>
-								{{end}}
-							{{end}}
-						{{else}}
-							{{if .IsPrivate}}
-								<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
-							{{else}}
-								{{if .Owner.Visibility.IsPrivate}}
-									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal"}}</span>
-								{{end}}
-							{{end}}
-						{{end}}
 						{{if .IsArchived}}
 							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
+						{{end}}
+						{{if .IsPrivate}}
+							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
+						{{else}}
+							{{if .Owner.Visibility.IsPrivate}}
+								<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal"}}</span>
+							{{end}}
+						{{end}}
+						{{if .IsTemplate}}
+							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.template"}}</span>
 						{{end}}
 					</div>
 					{{if $.EnableFeed}}
@@ -88,12 +81,12 @@
 					{{end}}
 					{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
 						<div class="ui labeled button
-							{{if or (not $.IsSigned) (and (not $.CanSignedUserFork) (eq (len $.UserAndOrgForks) 0))}}
+							{{if or (not $.IsSigned) (and (not $.CanSignedUserFork) (not $.UserAndOrgForks))}}
 								disabled
 							{{end}}"
 							{{if not $.IsSigned}}
 								data-tooltip-content="{{ctx.Locale.Tr "repo.fork_guest_user"}}"
-							{{else if and (not $.CanSignedUserFork) (eq (len $.UserAndOrgForks) 0)}}
+							{{else if and (not $.CanSignedUserFork) (not $.UserAndOrgForks)}}
 								data-tooltip-content="{{ctx.Locale.Tr "repo.fork_from_self"}}"
 							{{end}}
 						>
@@ -105,7 +98,7 @@
 										href="{{AppSubUrl}}/{{(index $.UserAndOrgForks 0).FullName}}"
 									{{/*else is not required here, because the button shouldn't link to any site if you can't create a fork*/}}
 									{{end}}
-								{{else if eq (len $.UserAndOrgForks) 0}}
+								{{else if not $.UserAndOrgForks}}
 									href="{{AppSubUrl}}/repo/fork/{{.ID}}"
 								{{else}}
 									data-modal="#fork-repo-modal"

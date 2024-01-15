@@ -78,20 +78,23 @@
 						{{$reviewer := index .GetIssueInfos 1}}
 						{{ctx.Locale.Tr "action.review_dismissed" ((printf "%s/pulls/%s" (.GetRepoLink ctx) $index) |Escape) $index ((.ShortRepoPath ctx)|Escape) $reviewer | Str2html}}
 					{{end}}
+					{{TimeSince .GetCreate ctx.Locale}}
 				</div>
 				{{if .GetOpType.InActions "commit_repo" "mirror_sync_push"}}
 					{{$push := ActionContent2Commits .}}
 					{{$repoLink := (.GetRepoLink ctx)}}
-					{{range $push.Commits}}
-						{{$commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
-						<div class="flex-text-block">
-							<img class="ui avatar" src="{{$push.AvatarLink $.Context .AuthorEmail}}" title="{{.AuthorName}}" width="16" height="16">
-							<a class="gt-mono" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
-							<span class="text truncate light grey">
-								{{RenderCommitMessage $.Context .Message $repoLink $.ComposeMetas}}
-							</span>
-						</div>
-					{{end}}
+					<div class="gt-df gt-fc gt-gap-2">
+						{{range $push.Commits}}
+							{{$commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
+							<div class="flex-text-block">
+								<img class="ui avatar" src="{{$push.AvatarLink $.Context .AuthorEmail}}" title="{{.AuthorName}}" width="16" height="16">
+								<a class="ui sha label" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
+								<span class="text truncate">
+									{{RenderCommitMessage $.Context .Message $repoLink $.ComposeMetas}}
+								</span>
+							</div>
+						{{end}}
+					</div>
 					{{if and (gt $push.Len 1) $push.CompareURL}}
 						<a href="{{AppSubUrl}}/{{$push.CompareURL}}">{{ctx.Locale.Tr "action.compare_commits" $push.Len}} »</a>
 					{{end}}
@@ -102,18 +105,17 @@
 				{{else if .GetOpType.InActions "comment_issue" "approve_pull_request" "reject_pull_request" "comment_pull"}}
 					<a href="{{.GetCommentLink ctx}}" class="text truncate issue title">{{(.GetIssueTitle ctx) | RenderEmoji $.Context | RenderCodeBlock}}</a>
 					{{$comment := index .GetIssueInfos 1}}
-					{{if gt (len $comment) 0}}
-						<div class="flex-item-body">{{$comment | RenderEmoji $.Context | RenderCodeBlock}}</div>
+					{{if $comment}}
+						<div class="markup gt-font-14">{{RenderMarkdownToHtml ctx $comment}}</div>
 					{{end}}
 				{{else if .GetOpType.InActions "merge_pull_request"}}
-					<div class="flex-item-body">{{index .GetIssueInfos 1}}</div>
+					<div class="flex-item-body text black">{{index .GetIssueInfos 1}}</div>
 				{{else if .GetOpType.InActions "close_issue" "reopen_issue" "close_pull_request" "reopen_pull_request"}}
 					<span class="text truncate issue title">{{(.GetIssueTitle ctx) | RenderEmoji $.Context | RenderCodeBlock}}</span>
 				{{else if .GetOpType.InActions "pull_review_dismissed"}}
-				<div class="flex-item-body">{{ctx.Locale.Tr "action.review_dismissed_reason"}}</div>
-				<div class="flex-item-body">{{index .GetIssueInfos 2 | RenderEmoji $.Context}}</div>
+				<div class="flex-item-body text black">{{ctx.Locale.Tr "action.review_dismissed_reason"}}</div>
+				<div class="flex-item-body text black">{{index .GetIssueInfos 2 | RenderEmoji $.Context}}</div>
 				{{end}}
-				<div class="flex-item-body">{{TimeSince .GetCreate ctx.Locale}}</div>
 			</div>
 			<div class="flex-item-trailing">
 				{{svg (printf "octicon-%s" (ActionIcon .GetOpType)) 32 "text grey gt-mr-2"}}
