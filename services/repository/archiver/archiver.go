@@ -99,7 +99,7 @@ func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest
 	}
 
 	r.CommitID = commitID.String()
-  r.TagName = r.refName
+	r.TagName = r.refName
 	return r, nil
 }
 
