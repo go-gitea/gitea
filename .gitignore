@@ -11,6 +11,7 @@ _test
 .idea
 # Goland's output filename can not be set manually
 /go_build_*
+/gitea_*
 
 # MS VSCode
 .vscode

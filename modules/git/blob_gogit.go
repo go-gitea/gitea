@@ -14,7 +14,7 @@ import (
 
 // Blob represents a Git object.
 type Blob struct {
-	ID SHA1
+	ID ObjectID
 
 	gogitEncodedObj plumbing.EncodedObject
 	name            string

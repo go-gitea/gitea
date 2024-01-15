@@ -93,18 +93,28 @@ func CreateUser(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if !password.IsComplexEnough(form.Password) {
-		err := errors.New("PasswordComplexity")
-		ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
-		return
-	}
-	pwned, err := password.IsPwned(ctx, form.Password)
-	if pwned {
-		if err != nil {
-			log.Error(err.Error())
+
+	if u.LoginType == auth.Plain {
+		if len(form.Password) < setting.MinPasswordLength {
+			err := errors.New("PasswordIsRequired")
+			ctx.Error(http.StatusBadRequest, "PasswordIsRequired", err)
+			return
 		}
-		ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
-		return
+
+		if !password.IsComplexEnough(form.Password) {
+			err := errors.New("PasswordComplexity")
+			ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
+			return
+		}
+
+		pwned, err := password.IsPwned(ctx, form.Password)
+		if pwned {
+			if err != nil {
+				log.Error(err.Error())
+			}
+			ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
+			return
+		}
 	}
 
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
@@ -173,6 +183,8 @@ func EditUser(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/User"
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
@@ -254,6 +266,10 @@ func EditUser(ctx *context.APIContext) {
 		ctx.ContextUser.Visibility = api.VisibilityModes[form.Visibility]
 	}
 	if form.Admin != nil {
+		if !*form.Admin && user_model.IsLastAdminUser(ctx, ctx.ContextUser) {
+			ctx.Error(http.StatusBadRequest, "LastAdmin", ctx.Tr("auth.last_admin"))
+			return
+		}
 		ctx.ContextUser.IsAdmin = *form.Admin
 	}
 	if form.AllowGitHook != nil {
@@ -331,7 +347,8 @@ func DeleteUser(ctx *context.APIContext) {
 	if err := user_service.DeleteUser(ctx, ctx.ContextUser, ctx.FormBool("purge")); err != nil {
 		if models.IsErrUserOwnRepos(err) ||
 			models.IsErrUserHasOrgs(err) ||
-			models.IsErrUserOwnPackages(err) {
+			models.IsErrUserOwnPackages(err) ||
+			models.IsErrDeleteLastAdminUser(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteUser", err)

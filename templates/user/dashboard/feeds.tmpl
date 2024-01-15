@@ -91,7 +91,7 @@
 								<img class="ui avatar" src="{{$push.AvatarLink $.Context .AuthorEmail}}" title="{{.AuthorName}}" width="16" height="16">
 								<a class="ui sha label" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
 								<span class="text truncate">
-									{{RenderCommitMessage $.Context .Message $repoLink ($repo.ComposeMetas ctx)}}
+									{{RenderCommitMessage $.Context .Message ($repo.ComposeMetas ctx)}}
 								</span>
 							</div>
 						{{end}}
@@ -106,7 +106,7 @@
 				{{else if .GetOpType.InActions "comment_issue" "approve_pull_request" "reject_pull_request" "comment_pull"}}
 					<a href="{{.GetCommentLink ctx}}" class="text truncate issue title">{{(.GetIssueTitle ctx) | RenderEmoji $.Context | RenderCodeBlock}}</a>
 					{{$comment := index .GetIssueInfos 1}}
-					{{if gt (len $comment) 0}}
+					{{if $comment}}
 						<div class="markup gt-font-14">{{RenderMarkdownToHtml ctx $comment}}</div>
 					{{end}}
 				{{else if .GetOpType.InActions "merge_pull_request"}}

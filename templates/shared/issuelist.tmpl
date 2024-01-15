@@ -16,7 +16,7 @@
 						<a class="gt-no-underline issue-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji $.Context .Title | RenderCodeBlock}}</a>
 						{{if .IsPull}}
 							{{if (index $.CommitStatuses .PullRequest.ID)}}
-								{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID) "root" $}}
+								{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID)}}
 							{{end}}
 						{{end}}
 						<span class="labels-list gt-ml-2">
@@ -114,7 +114,7 @@
 						<span class="due-date flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date"}}">
 							<span{{if .IsOverdue}} class="text red"{{end}}>
 								{{svg "octicon-calendar" 14}}
-								{{DateTime "short" .DeadlineUnix}}
+								{{DateTime "short" (.DeadlineUnix.FormatDate)}}
 							</span>
 						</span>
 					{{end}}
@@ -140,7 +140,7 @@
 								{{ctx.Locale.TrN $waitingOfficial "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n" $waitingOfficial}}
 							</span>
 						{{end}}
-						{{if and (not .PullRequest.HasMerged) (gt (len .PullRequest.ConflictedFiles) 0)}}
+						{{if and (not .PullRequest.HasMerged) .PullRequest.ConflictedFiles}}
 							<span class="conflicting flex-text-inline">
 								{{svg "octicon-x" 14}}
 								{{ctx.Locale.TrN (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n" (len .PullRequest.ConflictedFiles)}}

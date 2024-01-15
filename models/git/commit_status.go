@@ -114,7 +114,8 @@ WHEN NOT MATCHED
 
 // GetNextCommitStatusIndex retried 3 times to generate a resource index
 func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
-	if !git.IsValidSHAPattern(sha) {
+	_, err := git.NewIDFromString(sha)
+	if err != nil {
 		return 0, git.ErrInvalidSHA{SHA: sha}
 	}
 
@@ -235,7 +236,7 @@ func GetCommitStatuses(ctx context.Context, repo *repo_model.Repository, sha str
 
 	countSession := listCommitStatusesStatement(ctx, repo, sha, opts)
 	countSession = db.SetSessionPagination(countSession, opts)
-	maxResults, err := countSession.OrderBy("1").Count(new(CommitStatus))
+	maxResults, err := countSession.Count(new(CommitStatus))
 	if err != nil {
 		log.Error("Count PRs: %v", err)
 		return nil, maxResults, err
@@ -323,7 +324,9 @@ func GetLatestCommitStatusForPairs(ctx context.Context, repoIDsToLatestCommitSHA
 		Select("max( id ) as id, repo_id").
 		GroupBy("context_hash, repo_id").OrderBy("max( id ) desc")
 
-	sess = db.SetSessionPagination(sess, &listOptions)
+	if !listOptions.IsListAll() {
+		sess = db.SetSessionPagination(sess, &listOptions)
+	}
 
 	err := sess.Find(&results)
 	if err != nil {
@@ -423,7 +426,7 @@ func FindRepoRecentCommitStatusContexts(ctx context.Context, repoID int64, befor
 type NewCommitStatusOptions struct {
 	Repo         *repo_model.Repository
 	Creator      *user_model.User
-	SHA          string
+	SHA          git.ObjectID
 	CommitStatus *CommitStatus
 }
 
@@ -438,10 +441,6 @@ func NewCommitStatus(ctx context.Context, opts NewCommitStatusOptions) error {
 		return fmt.Errorf("NewCommitStatus[%s, %s]: no user specified", repoPath, opts.SHA)
 	}
 
-	if _, err := git.NewIDFromString(opts.SHA); err != nil {
-		return fmt.Errorf("NewCommitStatus[%s, %s]: invalid sha: %w", repoPath, opts.SHA, err)
-	}
-
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %w", opts.Repo.ID, opts.Creator.ID, opts.SHA, err)
@@ -449,7 +448,7 @@ func NewCommitStatus(ctx context.Context, opts NewCommitStatusOptions) error {
 	defer committer.Close()
 
 	// Get the next Status Index
-	idx, err := GetNextCommitStatusIndex(ctx, opts.Repo.ID, opts.SHA)
+	idx, err := GetNextCommitStatusIndex(ctx, opts.Repo.ID, opts.SHA.String())
 	if err != nil {
 		return fmt.Errorf("generate commit status index failed: %w", err)
 	}
@@ -457,7 +456,7 @@ func NewCommitStatus(ctx context.Context, opts NewCommitStatusOptions) error {
 	opts.CommitStatus.Description = strings.TrimSpace(opts.CommitStatus.Description)
 	opts.CommitStatus.Context = strings.TrimSpace(opts.CommitStatus.Context)
 	opts.CommitStatus.TargetURL = strings.TrimSpace(opts.CommitStatus.TargetURL)
-	opts.CommitStatus.SHA = opts.SHA
+	opts.CommitStatus.SHA = opts.SHA.String()
 	opts.CommitStatus.CreatorID = opts.Creator.ID
 	opts.CommitStatus.RepoID = opts.Repo.ID
 	opts.CommitStatus.Index = idx

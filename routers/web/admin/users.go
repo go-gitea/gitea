@@ -37,6 +37,9 @@ const (
 	tplUserEdit base.TplName = "admin/user/edit"
 )
 
+// UserSearchDefaultAdminSort is the default sort type for admin view
+const UserSearchDefaultAdminSort = "alphabetically"
+
 // Users show all the users
 func Users(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users")
@@ -56,7 +59,7 @@ func Users(ctx *context.Context) {
 
 	sortType := ctx.FormString("sort")
 	if sortType == "" {
-		sortType = explore.UserSearchDefaultAdminSort
+		sortType = UserSearchDefaultAdminSort
 		ctx.SetFormString("sort", sortType)
 	}
 	ctx.PageData["adminUserListSearchForm"] = map[string]any{
@@ -90,7 +93,9 @@ func NewUser(ctx *context.Context) {
 
 	ctx.Data["login_type"] = "0-0"
 
-	sources, err := auth.Sources(ctx)
+	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
+		IsActive: util.OptionalBoolTrue,
+	})
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
 		return
@@ -109,7 +114,9 @@ func NewUserPost(ctx *context.Context) {
 	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
-	sources, err := auth.Sources(ctx)
+	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
+		IsActive: util.OptionalBoolTrue,
+	})
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
 		return
@@ -230,7 +237,7 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 		ctx.Data["LoginSource"] = &auth.Source{}
 	}
 
-	sources, err := auth.Sources(ctx)
+	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{})
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
 		return nil
@@ -289,7 +296,7 @@ func ViewUser(ctx *context.Context) {
 	ctx.Data["Emails"] = emails
 	ctx.Data["EmailsTotal"] = len(emails)
 
-	orgs, err := org_model.FindOrgs(ctx, org_model.FindOrgOptions{
+	orgs, err := db.Find[org_model.Organization](ctx, org_model.FindOrgOptions{
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},
@@ -429,6 +436,12 @@ func EditUserPost(ctx *context.Context) {
 
 	}
 
+	// Check whether user is the last admin
+	if !form.Admin && user_model.IsLastAdminUser(ctx, u) {
+		ctx.RenderWithErr(ctx.Tr("auth.last_admin"), tplUserEdit, &form)
+		return
+	}
+
 	u.LoginName = form.LoginName
 	u.FullName = form.FullName
 	emailChanged := !strings.EqualFold(u.Email, form.Email)
@@ -496,7 +509,10 @@ func DeleteUser(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
 		case models.IsErrUserOwnPackages(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_packages"))
-			ctx.Redirect(setting.AppSubURL + "/admin/users/" + ctx.Params(":userid"))
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
+		case models.IsErrDeleteLastAdminUser(err):
+			ctx.Flash.Error(ctx.Tr("auth.last_admin"))
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
 		default:
 			ctx.ServerError("DeleteUser", err)
 		}
