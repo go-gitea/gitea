@@ -112,6 +112,8 @@ func (repo *Repository) GetTagWithID(idStr, name string) (*Tag, error) {
 
 // GetTagInfos returns all tag infos of the repository.
 func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
+	// Generally, refname:short should be equal to refname:lstrip=2 except core.warnAmbiguousRefs is used to select the strict abbreviation mode.
+	// https://git-scm.com/docs/git-for-each-ref#Documentation/git-for-each-ref.txt-refname
 	forEachRefFmt := foreachref.NewFormat("objecttype", "refname:lstrip=2", "object", "objectname", "creator", "contents", "contents:signature")
 
 	stdoutReader, stdoutWriter := io.Pipe()
