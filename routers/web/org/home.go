@@ -5,6 +5,7 @@ package org
 
 import (
 	"net/http"
+	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -47,10 +48,8 @@ func Home(ctx *context.Context) {
 	ctx.Data["Title"] = org.DisplayName()
 	if len(org.Description) != 0 {
 		desc, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:       ctx,
-			URLPrefix: ctx.Repo.RepoLink,
-			Metas:     map[string]string{"mode": "document"},
-			GitRepo:   ctx.Repo.GitRepo,
+			Ctx:   ctx,
+			Metas: map[string]string{"mode": "document"},
 		}, org.Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -173,14 +172,16 @@ func prepareOrgProfileReadme(ctx *context.Context, profileGitRepo *git.Repositor
 	if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
 		log.Error("failed to GetBlobContent: %v", err)
 	} else {
-		// Pass URLPrefix to markdown render for the full link of media elements.
-		// The profile of default branch would be shown.
-		prefix := profileDbRepo.Link() + "/src/branch/" + util.PathEscapeSegments(profileDbRepo.DefaultBranch)
 		if profileContent, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:       ctx,
-			GitRepo:   profileGitRepo,
-			URLPrefix: prefix,
-			Metas:     map[string]string{"mode": "document"},
+			Ctx:     ctx,
+			GitRepo: profileGitRepo,
+			Links: markup.Links{
+				// Pass repo link to markdown render for the full link of media elements.
+				// The profile of default branch would be shown.
+				Base:       profileDbRepo.Link(),
+				BranchPath: path.Join("branch", util.PathEscapeSegments(profileDbRepo.DefaultBranch)),
+			},
+			Metas: map[string]string{"mode": "document"},
 		}, bytes); err != nil {
 			log.Error("failed to RenderString: %v", err)
 		} else {
