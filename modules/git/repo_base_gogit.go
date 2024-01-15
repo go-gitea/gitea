@@ -16,6 +16,7 @@ import (
 
 	"github.com/go-git/go-billy/v5/osfs"
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/cache"
 	"github.com/go-git/go-git/v5/storage/filesystem"
 )
@@ -32,6 +33,7 @@ type Repository struct {
 
 	Ctx             context.Context
 	LastCommitCache *LastCommitCache
+	objectFormat    ObjectFormat
 }
 
 // openRepositoryWithDefaultContext opens the repository at the given path with DefaultContext.
@@ -68,6 +70,7 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 		gogitStorage: storage,
 		tagCache:     newObjectCache(),
 		Ctx:          ctx,
+		objectFormat: ParseGogitHash(plumbing.ZeroHash).Type(),
 	}, nil
 }
 
