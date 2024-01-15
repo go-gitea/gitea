@@ -2,37 +2,7 @@
 	<thead>
 		<tr class="commit-list">
 			<th colspan="2" {{if not .LatestCommit}}class="notready"{{end}}>
-				{{if not .LatestCommit}}
-					<div class="ui active tiny slow centered inline">…</div>
-				{{else}}
-					{{if .LatestCommitUser}}
-						{{ctx.AvatarUtils.Avatar .LatestCommitUser 24 "gt-mr-2"}}
-						{{if .LatestCommitUser.FullName}}
-							<a class="muted author-wrapper" title="{{.LatestCommitUser.FullName}}" href="{{.LatestCommitUser.HomeLink}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
-						{{else}}
-							<a class="muted author-wrapper" title="{{if .LatestCommit.Author}}{{.LatestCommit.Author.Name}}{{else}}{{.LatestCommitUser.Name}}{{end}}" href="{{.LatestCommitUser.HomeLink}}"><strong>{{if .LatestCommit.Author}}{{.LatestCommit.Author.Name}}{{else}}{{.LatestCommitUser.Name}}{{end}}</strong></a>
-						{{end}}
-					{{else}}
-						{{if .LatestCommit.Author}}
-							{{ctx.AvatarUtils.AvatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 24 "gt-mr-2"}}
-							<span class="author-wrapper" title="{{.LatestCommit.Author.Name}}"><strong>{{.LatestCommit.Author.Name}}</strong></span>
-						{{end}}
-					{{end}}
-					<a rel="nofollow" class="ui sha label {{if .LatestCommit.Signature}} isSigned {{if .LatestCommitVerification.Verified}} isVerified{{if eq .LatestCommitVerification.TrustStatus "trusted"}}{{else if eq .LatestCommitVerification.TrustStatus "untrusted"}}Untrusted{{else}}Unmatched{{end}}{{else if .LatestCommitVerification.Warning}} isWarning{{end}}{{end}}" href="{{.RepoLink}}/commit/{{PathEscape .LatestCommit.ID.String}}">
-						<span class="shortsha">{{ShortSha .LatestCommit.ID.String}}</span>
-						{{if .LatestCommit.Signature}}
-							{{template "repo/shabox_badge" dict "root" $ "verification" .LatestCommitVerification}}
-						{{end}}
-					</a>
-					{{template "repo/commit_statuses" dict "Status" .LatestCommitStatus "Statuses" .LatestCommitStatuses}}
-					{{$commitLink:= printf "%s/commit/%s" .RepoLink (PathEscape .LatestCommit.ID.String)}}
-					<span class="grey commit-summary" title="{{.LatestCommit.Summary}}"><span class="message-wrapper">{{RenderCommitMessageLinkSubject $.Context .LatestCommit.Message $.RepoLink $commitLink ($.Repository.ComposeMetas ctx)}}</span>
-						{{if IsMultilineCommitMessage .LatestCommit.Message}}
-							<button class="ui button js-toggle-commit-body ellipsis-button" aria-expanded="false">...</button>
-							<pre class="commit-body gt-hidden">{{RenderCommitBody $.Context .LatestCommit.Message $.RepoLink ($.Repository.ComposeMetas ctx)}}</pre>
-						{{end}}
-					</span>
-				{{end}}
+				{{template "repo/latest_commit" .}}
 			</th>
 			<th class="text grey right age">{{if .LatestCommit}}{{if .LatestCommit.Committer}}{{TimeSince .LatestCommit.Committer.When ctx.Locale}}{{end}}{{end}}</th>
 		</tr>
@@ -83,7 +53,7 @@
 					<span class="truncate">
 						{{if $commit}}
 							{{$commitLink := printf "%s/commit/%s" $.RepoLink (PathEscape $commit.ID.String)}}
-							{{RenderCommitMessageLinkSubject $.Context $commit.Message $.RepoLink $commitLink ($.Repository.ComposeMetas ctx)}}
+							{{RenderCommitMessageLinkSubject $.Context $commit.Message $commitLink ($.Repository.ComposeMetas ctx)}}
 						{{else}}
 							<div class="ui active tiny slow centered inline">…</div>
 						{{end}}
