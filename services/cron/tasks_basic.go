@@ -171,6 +171,20 @@ func registerActionsCleanup() {
 	})
 }
 
+func registerProjectsIssuesCleanup() {
+	RegisterTaskFatal("project_board_actions", &OlderThanConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    true,
+			RunAtStart: true,
+			Schedule:   "@weekly",
+		},
+		OlderThan: 24 * time.Hour,
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+		realConfig := config.(*OlderThanConfig)
+		return actions.CleanupProjectIssues(ctx, realConfig.OlderThan)
+	})
+}
+
 func initBasicTasks() {
 	if setting.Mirror.Enabled {
 		registerUpdateMirrorTask()
@@ -190,4 +204,5 @@ func initBasicTasks() {
 	if setting.Actions.Enabled {
 		registerActionsCleanup()
 	}
+	registerProjectsIssuesCleanup()
 }
