@@ -194,8 +194,10 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	statuses, maxResults, err := git_model.GetCommitStatuses(ctx, repo, sha, &git_model.CommitStatusOptions{
+	statuses, maxResults, err := git_model.GetCommitStatuses(ctx, &git_model.CommitStatusOptions{
 		ListOptions: listOptions,
+		RepoID:      repo.ID,
+		SHA:         sha,
 		SortType:    ctx.FormTrim("sort"),
 		State:       ctx.FormTrim("state"),
 	})
