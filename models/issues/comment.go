@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // ErrCommentNotExist represents a "CommentNotExist" kind of error.
@@ -338,7 +337,7 @@ func (c *Comment) BeforeUpdate() {
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (c *Comment) AfterLoad(session *xorm.Session) {
+func (c *Comment) AfterLoad() {
 	c.Patch = c.PatchQuoted
 	if len(c.PatchQuoted) > 0 && c.PatchQuoted[0] == '"' {
 		unquoted, err := strconv.Unquote(c.PatchQuoted)
@@ -899,15 +898,15 @@ func createDeadlineComment(ctx context.Context, doer *user_model.User, issue *Is
 	// newDeadline = 0 means deleting
 	if newDeadlineUnix == 0 {
 		commentType = CommentTypeRemovedDeadline
-		content = issue.DeadlineUnix.Format("2006-01-02")
+		content = issue.DeadlineUnix.FormatDate()
 	} else if issue.DeadlineUnix == 0 {
 		// Check if the new date was added or modified
 		// If the actual deadline is 0 => deadline added
 		commentType = CommentTypeAddedDeadline
-		content = newDeadlineUnix.Format("2006-01-02")
+		content = newDeadlineUnix.FormatDate()
 	} else { // Otherwise modified
 		commentType = CommentTypeModifiedDeadline
-		content = newDeadlineUnix.Format("2006-01-02") + "|" + issue.DeadlineUnix.Format("2006-01-02")
+		content = newDeadlineUnix.FormatDate() + "|" + issue.DeadlineUnix.FormatDate()
 	}
 
 	if err := issue.LoadRepo(ctx); err != nil {
@@ -1161,14 +1160,9 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
 func UpdateCommentsMigrationsByType(ctx context.Context, tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
 	_, err := db.GetEngine(ctx).Table("comment").
-		Where(builder.In("issue_id",
-			builder.Select("issue.id").
-				From("issue").
-				InnerJoin("repository", "issue.repo_id = repository.id").
-				Where(builder.Eq{
-					"repository.original_service_type": tp,
-				}),
-		)).
+		Join("INNER", "issue", "issue.id = comment.issue_id").
+		Join("INNER", "repository", "issue.repo_id = repository.id").
+		Where("repository.original_service_type = ?", tp).
 		And("comment.original_author_id = ?", originalAuthorID).
 		Update(map[string]any{
 			"poster_id":          posterID,

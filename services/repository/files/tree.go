@@ -37,19 +37,21 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	}
 	apiURL := repo.APIURL()
 	apiURLLen := len(apiURL)
+	objectFormat, _ := gitRepo.GetObjectFormat()
+	hashLen := objectFormat.FullLength()
 
-	// 51 is len(sha1) + len("/git/blobs/"). 40 + 11.
-	blobURL := make([]byte, apiURLLen+51)
+	const gitBlobsPath = "/git/blobs/"
+	blobURL := make([]byte, apiURLLen+hashLen+len(gitBlobsPath))
 	copy(blobURL, apiURL)
-	copy(blobURL[apiURLLen:], "/git/blobs/")
+	copy(blobURL[apiURLLen:], []byte(gitBlobsPath))
 
-	// 51 is len(sha1) + len("/git/trees/"). 40 + 11.
-	treeURL := make([]byte, apiURLLen+51)
+	const gitTreePath = "/git/trees/"
+	treeURL := make([]byte, apiURLLen+hashLen+len(gitTreePath))
 	copy(treeURL, apiURL)
-	copy(treeURL[apiURLLen:], "/git/trees/")
+	copy(treeURL[apiURLLen:], []byte(gitTreePath))
 
-	// 40 is the size of the sha1 hash in hexadecimal format.
-	copyPos := len(treeURL) - git.SHAFullLength
+	// copyPos is at the start of the hash
+	copyPos := len(treeURL) - hashLen
 
 	if perPage <= 0 || perPage > setting.API.DefaultGitTreesPerPage {
 		perPage = setting.API.DefaultGitTreesPerPage

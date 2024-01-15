@@ -551,6 +551,8 @@ var migrations = []Migration{
 	// v282 -> v283
 	NewMigration("Add Index to pull_auto_merge.doer_id", v1_22.AddIndexToPullAutoMergeDoerID),
 	// v283 -> v284
+	NewMigration("Add combined Index to issue_user.uid and issue_id", v1_22.AddCombinedIndexToIssueUser),
+	// v284 -> v285
 	NewMigration("Add PreviousDuration to ActionRun", v1_22.AddPreviousDurationToActionRun),
 }
 

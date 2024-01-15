@@ -212,13 +212,26 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 
-	counts, err := issues_model.CountMilestonesByRepoCondAndKw(ctx, userRepoCond, keyword, isShowClosed)
+	counts, err := issues_model.CountMilestonesMap(ctx, issues_model.FindMilestoneOptions{
+		RepoCond: userRepoCond,
+		Name:     keyword,
+		IsClosed: util.OptionalBoolOf(isShowClosed),
+	})
 	if err != nil {
 		ctx.ServerError("CountMilestonesByRepoIDs", err)
 		return
 	}
 
-	milestones, err := issues_model.SearchMilestones(ctx, repoCond, page, isShowClosed, sortType, keyword)
+	milestones, err := db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: setting.UI.IssuePagingNum,
+		},
+		RepoCond: repoCond,
+		IsClosed: util.OptionalBoolOf(isShowClosed),
+		SortType: sortType,
+		Name:     keyword,
+	})
 	if err != nil {
 		ctx.ServerError("SearchMilestones", err)
 		return
@@ -650,7 +663,10 @@ func ShowSSHKeys(ctx *context.Context) {
 
 // ShowGPGKeys output all the public GPG keys of user by uid
 func ShowGPGKeys(ctx *context.Context) {
-	keys, err := asymkey_model.ListGPGKeys(ctx, ctx.ContextUser.ID, db.ListOptions{})
+	keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+		ListOptions: db.ListOptionsAll,
+		OwnerID:     ctx.ContextUser.ID,
+	})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)
 		return

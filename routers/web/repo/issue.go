@@ -510,9 +510,8 @@ func Issues(ctx *context.Context) {
 
 func renderMilestones(ctx *context.Context) {
 	// Get milestones
-	milestones, _, err := issues_model.GetMilestones(ctx, issues_model.GetMilestonesOption{
+	milestones, err := db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
 		RepoID: ctx.Repo.Repository.ID,
-		State:  api.StateAll,
 	})
 	if err != nil {
 		ctx.ServerError("GetAllRepoMilestones", err)
@@ -534,17 +533,17 @@ func renderMilestones(ctx *context.Context) {
 // RetrieveRepoMilestonesAndAssignees find all the milestones and assignees of a repository
 func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.Repository) {
 	var err error
-	ctx.Data["OpenMilestones"], _, err = issues_model.GetMilestones(ctx, issues_model.GetMilestonesOption{
-		RepoID: repo.ID,
-		State:  api.StateOpen,
+	ctx.Data["OpenMilestones"], err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
+		RepoID:   repo.ID,
+		IsClosed: util.OptionalBoolFalse,
 	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)
 		return
 	}
-	ctx.Data["ClosedMilestones"], _, err = issues_model.GetMilestones(ctx, issues_model.GetMilestonesOption{
-		RepoID: repo.ID,
-		State:  api.StateClosed,
+	ctx.Data["ClosedMilestones"], err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
+		RepoID:   repo.ID,
+		IsClosed: util.OptionalBoolTrue,
 	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)
@@ -1963,7 +1962,7 @@ func ViewIssue(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["BlockingDependencies"], ctx.Data["BlockingByDependenciesNotPermitted"] = checkBlockedByIssues(ctx, blocking)
+	ctx.Data["BlockingDependencies"], ctx.Data["BlockingDependenciesNotPermitted"] = checkBlockedByIssues(ctx, blocking)
 	if ctx.Written() {
 		return
 	}
@@ -2024,38 +2023,34 @@ func ViewIssue(ctx *context.Context) {
 
 // checkBlockedByIssues return canRead and notPermitted
 func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.DependencyInfo) (canRead, notPermitted []*issues_model.DependencyInfo) {
-	var (
-		lastRepoID int64
-		lastPerm   access_model.Permission
-	)
-	for i, blocker := range blockers {
+	repoPerms := make(map[int64]access_model.Permission)
+	repoPerms[ctx.Repo.Repository.ID] = ctx.Repo.Permission
+	for _, blocker := range blockers {
 		// Get the permissions for this repository
-		perm := lastPerm
-		if lastRepoID != blocker.Repository.ID {
-			if blocker.Repository.ID == ctx.Repo.Repository.ID {
-				perm = ctx.Repo.Permission
-			} else {
-				var err error
-				perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
-				if err != nil {
-					ctx.ServerError("GetUserRepoPermission", err)
-					return nil, nil
-				}
+		// If the repo ID exists in the map, return the exist permissions
+		// else get the permission and add it to the map
+		var perm access_model.Permission
+		existPerm, ok := repoPerms[blocker.RepoID]
+		if ok {
+			perm = existPerm
+		} else {
+			var err error
+			perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return nil, nil
 			}
-			lastRepoID = blocker.Repository.ID
+			repoPerms[blocker.RepoID] = perm
 		}
-
-		// check permission
-		if !perm.CanReadIssuesOrPulls(blocker.Issue.IsPull) {
-			blockers[len(notPermitted)], blockers[i] = blocker, blockers[len(notPermitted)]
-			notPermitted = blockers[:len(notPermitted)+1]
+		if perm.CanReadIssuesOrPulls(blocker.Issue.IsPull) {
+			canRead = append(canRead, blocker)
+		} else {
+			notPermitted = append(notPermitted, blocker)
 		}
 	}
-	blockers = blockers[len(notPermitted):]
-	sortDependencyInfo(blockers)
+	sortDependencyInfo(canRead)
 	sortDependencyInfo(notPermitted)
-
-	return blockers, notPermitted
+	return canRead, notPermitted
 }
 
 func sortDependencyInfo(blockers []*issues_model.DependencyInfo) {
