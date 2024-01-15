@@ -9,9 +9,6 @@
 					{{if .Org.Visibility.IsLimited}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</span>{{end}}
 					{{if .Org.Visibility.IsPrivate}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</span>{{end}}
 				</span>
-				{{if .EnableFeed}}
-					<a class="rss-icon gt-mx-3" href="{{.Org.HomeLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss" 24}}</a>
-				{{end}}
 			</div>
 			{{if $.RenderedDescription}}<div class="render-content markup">{{$.RenderedDescription|Str2html}}</div>{{end}}
 			<div class="text grey meta">
@@ -23,6 +20,11 @@
 			</div>
 		</div>
 		<div class="right menu">
+			{{if .EnableFeed}}
+			<a class="ui basic label button gt-mr-0" href="{{$.Org.HomeLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
+				{{svg "octicon-rss" 24}}
+			</a>
+			{{end}}
 			<button class="link-action ui basic button gt-mr-0" data-url="{{.Org.HomeLink}}?action={{if $.IsFollowing}}unfollow{{else}}follow{{end}}">
 				{{if $.IsFollowing}}
 					{{ctx.Locale.Tr "user.unfollow"}}

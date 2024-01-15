@@ -130,7 +130,7 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	if opts.LastCommitID == "" {
 		opts.LastCommitID = commit.ID.String()
 	} else {
-		lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
+		lastCommitID, err := t.gitRepo.ConvertToGitID(opts.LastCommitID)
 		if err != nil {
 			return nil, fmt.Errorf("ApplyPatch: Invalid last commit ID: %w", err)
 		}

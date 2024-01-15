@@ -365,7 +365,7 @@ func (f *EditVariableForm) Validate(req *http.Request, errs binding.Errors) bind
 
 // NewAccessTokenForm form for creating access token
 type NewAccessTokenForm struct {
-	Name  string `binding:"Required;MaxSize(255)"`
+	Name  string `binding:"Required;MaxSize(255)" locale:"settings.token_name"`
 	Scope []string
 }
 

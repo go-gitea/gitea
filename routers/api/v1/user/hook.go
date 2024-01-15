@@ -62,6 +62,11 @@ func GetHook(ctx *context.APIContext) {
 		return
 	}
 
+	if !ctx.Doer.IsAdmin && hook.OwnerID != ctx.Doer.ID {
+		ctx.NotFound()
+		return
+	}
+
 	apiHook, err := webhook_service.ToHook(ctx.Doer.HomeLink(), hook)
 	if err != nil {
 		ctx.InternalServerError(err)

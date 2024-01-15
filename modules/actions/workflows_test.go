@@ -118,6 +118,13 @@ func TestDetectMatched(t *testing.T) {
 			yamlOn:       "on: gollum",
 			expected:     true,
 		},
+		{
+			desc:         "HookEventSchedue(schedule) matches GithubEventSchedule(schedule)",
+			triggedEvent: webhook_module.HookEventSchedule,
+			payload:      nil,
+			yamlOn:       "on: schedule",
+			expected:     true,
+		},
 	}
 
 	for _, tc := range testCases {
