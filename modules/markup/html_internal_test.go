@@ -390,10 +390,10 @@ func TestRegExp_sha1CurrentPattern(t *testing.T) {
 	}
 
 	for _, testCase := range trueTestCases {
-		assert.True(t, sha1CurrentPattern.MatchString(testCase))
+		assert.True(t, hashCurrentPattern.MatchString(testCase))
 	}
 	for _, testCase := range falseTestCases {
-		assert.False(t, sha1CurrentPattern.MatchString(testCase))
+		assert.False(t, hashCurrentPattern.MatchString(testCase))
 	}
 }
 
@@ -427,7 +427,7 @@ func TestRegExp_anySHA1Pattern(t *testing.T) {
 	}
 
 	for k, v := range testCases {
-		assert.Equal(t, anySHA1Pattern.FindStringSubmatch(k)[1:], v)
+		assert.Equal(t, anyHashPattern.FindStringSubmatch(k)[1:], v)
 	}
 }
 
