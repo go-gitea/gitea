@@ -146,7 +146,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	}
 	defer t.Close()
 	hasOldBranch := true
-	if err := t.Clone(opts.OldBranch); err != nil {
+	if err := t.Clone(opts.OldBranch, true); err != nil {
 		for _, file := range opts.Files {
 			if file.Operation == "delete" {
 				return nil, err
