@@ -348,7 +348,7 @@ func calcSync(destTags []*git.Tag, dbTags []*repo_model.Release) ([]*git.Tag, []
 	updated := make([]*git.Tag, 0, 10)
 	for _, tag := range destTags {
 		rel := dbTagMap[tag.Name]
-		if rel != nil {
+		if rel == nil {
 			inserted = append(inserted, tag)
 		} else if rel.Sha1 != tag.Object.String() {
 			updated = append(updated, tag)
