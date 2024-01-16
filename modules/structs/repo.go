@@ -142,7 +142,7 @@ type CreateRepoOption struct {
 	TrustModel string `json:"trust_model"`
 	// ObjectFormatName of the underlying git repository
 	// enum: sha1,sha256
-	ObjectFormatName string `json:"hash_type" binding:"MaxSize(6)"`
+	ObjectFormatName string `json:"object_format_name" binding:"MaxSize(6)"`
 }
 
 // EditRepoOption options when editing a repository's properties
