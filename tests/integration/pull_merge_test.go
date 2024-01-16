@@ -90,7 +90,7 @@ func TestPullMerge(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
@@ -112,7 +112,7 @@ func TestPullRebase(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
@@ -134,7 +134,7 @@ func TestPullRebaseMerge(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
@@ -157,7 +157,7 @@ func TestPullSquash(t *testing.T) {
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited!)\n")
 
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
@@ -175,7 +175,7 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feature/test", "README.md", "Hello, World (Edited - TestPullCleanUpAfterMerge)\n")
 
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "feature/test", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "feature/test", "This is a pull title")
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
@@ -210,7 +210,7 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "master", "[wip] This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "[wip] This is a pull title")
 
 		req := NewRequest(t, "GET", test.RedirectURL(resp))
 		resp = session.MakeRequest(t, req, http.StatusOK)
@@ -450,11 +450,11 @@ func TestPullRetargetChildOnBranchDelete(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "base-pr", "child-pr", "README.md", "Hello, World\n(Edited - TestPullRetargetOnCleanup - base PR)\n(Edited - TestPullRetargetOnCleanup - child PR)")
 
-		respBasePR := testPullCreate(t, session, "user2", "repo1", "master", "base-pr", "Base Pull Request")
+		respBasePR := testPullCreate(t, session, "user2", "repo1", true, "master", "base-pr", "Base Pull Request")
 		elemBasePR := strings.Split(test.RedirectURL(respBasePR), "/")
 		assert.EqualValues(t, "pulls", elemBasePR[3])
 
-		respChildPR := testPullCreate(t, session, "user1", "repo1", "base-pr", "child-pr", "Child Pull Request")
+		respChildPR := testPullCreate(t, session, "user1", "repo1", false, "base-pr", "child-pr", "Child Pull Request")
 		elemChildPR := strings.Split(test.RedirectURL(respChildPR), "/")
 		assert.EqualValues(t, "pulls", elemChildPR[3])
 
@@ -470,5 +470,35 @@ func TestPullRetargetChildOnBranchDelete(t *testing.T) {
 
 		assert.EqualValues(t, "master", targetBranch)
 		assert.EqualValues(t, "Open", prStatus)
+	})
+}
+
+func TestPullDontRetargetChildOnWrongRepo(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "base-pr", "README.md", "Hello, World\n(Edited - TestPullDontRetargetChildOnWrongRepo - base PR)\n")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "base-pr", "child-pr", "README.md", "Hello, World\n(Edited - TestPullDontRetargetChildOnWrongRepo - base PR)\n(Edited - TestPullDontRetargetChildOnWrongRepo - child PR)")
+
+		respBasePR := testPullCreate(t, session, "user1", "repo1", false, "master", "base-pr", "Base Pull Request")
+		elemBasePR := strings.Split(test.RedirectURL(respBasePR), "/")
+		assert.EqualValues(t, "pulls", elemBasePR[3])
+
+		respChildPR := testPullCreate(t, session, "user1", "repo1", true, "base-pr", "child-pr", "Child Pull Request")
+		elemChildPR := strings.Split(test.RedirectURL(respChildPR), "/")
+		assert.EqualValues(t, "pulls", elemChildPR[3])
+
+		testPullMerge(t, session, elemBasePR[1], elemBasePR[2], elemBasePR[4], repo_model.MergeStyleMerge, true)
+
+		// Check child PR
+		req := NewRequest(t, "GET", test.RedirectURL(respChildPR))
+		resp := session.MakeRequest(t, req, http.StatusOK)
+
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		targetBranch := htmlDoc.doc.Find("#branch_target>a").Text()
+		prStatus := strings.TrimSpace(htmlDoc.doc.Find(".issue-title-meta>.issue-state-label").Text())
+
+		assert.EqualValues(t, "base-pr", targetBranch)
+		assert.EqualValues(t, "Closed", prStatus)
 	})
 }
