@@ -68,7 +68,7 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 		}
 		return fmt.Errorf("Clone: %w %s", err, stderr)
 	}
-	gitRepo, err := git.OpenRepositoryWithAlternates(t.ctx, t.basePath, t.repo.RepoPath())
+	gitRepo, err := git.OpenRepository(t.ctx, t.basePath)
 	if err != nil {
 		return err
 	}
