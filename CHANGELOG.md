@@ -9,13 +9,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 * SECURITY
   * Update github.com/cloudflare/circl (#28789) (#28790)
   * Require token for GET subscription endpoint (#28765) (#28768)
-* API
-  * Fix `GetCommitStatuses` (#28787) (#28804)
-  * Forbid removing the last admin user (#28337) (#28793)
-  * Fix schedule tasks bugs (#28691) (#28780)
-  * Fix issue dependencies (#27736) (#28776)
-  * Fix: system webhooks API bug (#28531) (#28666)
-  * Refactor CORS handler (#28587) (#28611)
 * BUGFIXES
   * Use refname:strip-2 instead of refname:short when syncing tags (#28797) (#28811)
   * Fix links in issue card (#28806) (#28807)
@@ -39,6 +32,13 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix 500 error of searching commits (#28576) (#28579)
   * Use information from previous blame parts (#28572) (#28577)
   * Update mermaid for 1.21 (#28571)
+  * Fix 405 method not allowed CORS / OIDC (#28583) (#28586) (#28587) (#28611)
+  * Fix `GetCommitStatuses` (#28787) (#28804)
+  * Forbid removing the last admin user (#28337) (#28793)
+  * Fix schedule tasks bugs (#28691) (#28780)
+  * Fix issue dependencies (#27736) (#28776)
+  * Fix system webhooks API bug (#28531) (#28666)
+  * Fix when private user following user, private user will not be counted in his own view (#28037) (#28792)
 * ENHANCEMENTS
   * Rework markup link rendering (#26745) (#28803)
   * Modernize merge button (#28140) (#28786)
@@ -52,12 +52,10 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Suggest to use Type=simple for systemd service (#28717) (#28722)
   * Extend description for ARTIFACT_RETENTION_DAYS (#28626) (#28630)
 * MISC
-  * Fix when private user following user, private user will not be counted in his own view (#28037) (#28792)
   * Add -F to commit search to treat keywords as strings (#28744) (#28748)
   * Add download attribute to release attachments (#28739) (#28740)
   * Concatenate error in `checkIfPRContentChanged` (#28731) (#28737)
   * Improve 1.21 document for Database Preparation (#28643) (#28644)
-  * Fix 405 method not allowed CORS / OIDC (#28583) (#28586)
 
 ## [1.21.3](https://github.com/go-gitea/gitea/releases/tag/1.21.3) - 2023-12-21
 
