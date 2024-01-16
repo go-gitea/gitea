@@ -18354,15 +18354,6 @@
           "type": "string",
           "x-go-name": "Gitignores"
         },
-        "hash_type": {
-          "description": "ObjectFormatName of the underlying git repository",
-          "type": "string",
-          "enum": [
-            "sha1",
-            "sha256"
-          ],
-          "x-go-name": "ObjectFormatName"
-        },
         "issue_labels": {
           "description": "Label-Set to use",
           "type": "string",
@@ -18378,6 +18369,15 @@
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "Name"
+        },
+        "object_format_name": {
+          "description": "ObjectFormatName of the underlying git repository",
+          "type": "string",
+          "enum": [
+            "sha1",
+            "sha256"
+          ],
+          "x-go-name": "ObjectFormatName"
         },
         "private": {
           "description": "Whether the repository is private",
