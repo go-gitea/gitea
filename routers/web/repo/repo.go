@@ -179,6 +179,8 @@ func Create(ctx *context.Context) {
 
 	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
 	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
+	ctx.Data["SupportedObjectFormats"] = git.SupportedObjectFormats
+	ctx.Data["DefaultObjectFormat"] = git.Sha1ObjectFormat
 
 	ctx.HTML(http.StatusOK, tplCreate)
 }

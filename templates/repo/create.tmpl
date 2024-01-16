@@ -188,11 +188,12 @@
 						<div class="inline field">
 							<label>{{ctx.Locale.Tr "repo.hash_type"}}</label>
 							<div class="ui selection owner dropdown">
-								<input type="hidden" id="hash_type" name="hash_type" value="sha1" required>
-								<div class="default text">SHA1</div>
+								<input type="hidden" id="object_format_name" name="object_format_name" value="{{.DefaultObjectFormat.Name}}" required>
+								<div class="default text">{{.DefaultObjectFormat.Name}}</div>
 								<div class="menu">
-									<div class="item" data-value="sha1">SHA1</div>
-									<div class="item" data-value="sha256">SHA256</div>
+									{{range .SupportedObjectFormats}}
+										<div class="item" data-value="{{.Name}}">{{.Name}}</div>
+									{{end}}
 								</div>
 							</div>
 							<span class="help">{{ctx.Locale.Tr "repo.hash_type_helper"}}</span>
