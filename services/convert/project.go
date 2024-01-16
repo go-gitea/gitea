@@ -54,10 +54,7 @@ func ToAPIProject(ctx context.Context, project *project_model.Project) *api.Proj
 	return apiProject
 }
 
-func ToAPIProjectList(
-	ctx context.Context,
-	projects []*project_model.Project,
-) ([]*api.Project, error) {
+func ToAPIProjectList(ctx context.Context, projects []*project_model.Project) ([]*api.Project, error) {
 	result := make([]*api.Project, len(projects))
 	for i := range projects {
 		result[i] = ToAPIProject(ctx, projects[i])
