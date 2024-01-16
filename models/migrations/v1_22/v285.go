@@ -63,12 +63,12 @@ func ExpandHashReferencesToSha256(x *xorm.Engine) error {
 		}
 
 		if setting.Database.Type.IsMSSQL() {
-			droppedIndexes := []string{
+			recreateIndexes := []string{
 				"CREATE INDEX IDX_commit_status_context_hash ON commit_status(context_hash)",
 				"CREATE UNIQUE INDEX UQE_review_state_pull_commit_user ON review_state(user_id, pull_id, commit_sha)",
 				"CREATE UNIQUE INDEX UQE_repo_archiver_s ON repo_archiver(repo_id, type, commit_id)",
 			}
-			for _, s := range droppedIndexes {
+			for _, s := range recreateIndexes {
 				_, err := db.Exec(s)
 				if err != nil {
 					return errors.New(s + " " + err.Error())
