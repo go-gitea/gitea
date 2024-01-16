@@ -276,6 +276,10 @@ func (repo *Repository) AfterLoad() {
 	repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
 	repo.NumOpenProjects = repo.NumProjects - repo.NumClosedProjects
 	repo.NumOpenActionRuns = repo.NumActionRuns - repo.NumClosedActionRuns
+
+	if repo.ObjectFormatName == "" {
+		repo.ObjectFormatName = "sha1"
+	}
 }
 
 // LoadAttributes loads attributes of the repository.
