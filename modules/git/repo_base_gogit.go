@@ -41,8 +41,14 @@ func openRepositoryWithDefaultContext(repoPath string) (*Repository, error) {
 	return OpenRepository(DefaultContext, repoPath)
 }
 
-// OpenRepository opens the repository at the given path within the context.Context
+// OpenRepository opens the repository at the given path within the context.Context.
 func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
+	return OpenRepositoryWithAlternates(ctx, repoPath, "")
+}
+
+// OpenRepositoryWithAlternates opens the repository at the given path within the context.Context, with a provided alternate path.
+// altPath is ignored if empty.
+func OpenRepositoryWithAlternates(ctx context.Context, repoPath string, altPath string) (*Repository, error) {
 	repoPath, err := filepath.Abs(repoPath)
 	if err != nil {
 		return nil, err
@@ -58,7 +64,14 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 			return nil, err
 		}
 	}
-	storage := filesystem.NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), filesystem.Options{KeepDescriptors: true, LargeObjectThreshold: setting.Git.LargeObjectThreshold})
+	options := filesystem.Options{
+		KeepDescriptors:      true,
+		LargeObjectThreshold: setting.Git.LargeObjectThreshold,
+	}
+	if altPath != "" {
+		options.AlternatesFS = osfs.New(altPath)
+	}
+	storage := filesystem.NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), options)
 	gogitRepo, err := gogit.Open(storage, fs)
 	if err != nil {
 		return nil, err
