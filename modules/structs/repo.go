@@ -105,7 +105,7 @@ type Repository struct {
 	AvatarURL                     string           `json:"avatar_url"`
 	Internal                      bool             `json:"internal"`
 	MirrorInterval                string           `json:"mirror_interval"`
-	HashType                      string           `json:"hash_type"`
+	ObjectFormatName              string           `json:"object_format_name"`
 	// swagger:strfmt date-time
 	MirrorUpdated time.Time     `json:"mirror_updated,omitempty"`
 	RepoTransfer  *RepoTransfer `json:"repo_transfer"`
@@ -140,9 +140,9 @@ type CreateRepoOption struct {
 	// TrustModel of the repository
 	// enum: default,collaborator,committer,collaboratorcommitter
 	TrustModel string `json:"trust_model"`
-	// ObjectFormat of the underlying git repository
+	// ObjectFormatName of the underlying git repository
 	// enum: sha1,sha256
-	ObjectFormat string `json:"hash_type" binding:"MaxSize(10)"`
+	ObjectFormatName string `json:"hash_type" binding:"MaxSize(6)"`
 }
 
 // EditRepoOption options when editing a repository's properties

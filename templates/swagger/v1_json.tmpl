@@ -18355,13 +18355,13 @@
           "x-go-name": "Gitignores"
         },
         "hash_type": {
-          "description": "HashType of the underlying git repository",
+          "description": "ObjectFormatName of the underlying git repository",
           "type": "string",
           "enum": [
             "sha1",
             "sha256"
           ],
-          "x-go-name": "HashType"
+          "x-go-name": "ObjectFormatName"
         },
         "issue_labels": {
           "description": "Label-Set to use",
@@ -22145,10 +22145,6 @@
           "type": "boolean",
           "x-go-name": "HasWiki"
         },
-        "hash_type": {
-          "type": "string",
-          "x-go-name": "HashType"
-        },
         "html_url": {
           "type": "string",
           "x-go-name": "HTMLURL"
@@ -22197,6 +22193,10 @@
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        },
+        "object_format_name": {
+          "type": "string",
+          "x-go-name": "ObjectFormatName"
         },
         "open_issues_count": {
           "type": "integer",
