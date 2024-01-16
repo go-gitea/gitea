@@ -21,12 +21,7 @@ func TestAPICreateUserProject(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	const title, description, board_type = "project_name", "project_description", uint8(project_model.BoardTypeBasicKanban)
 
-	token := getUserToken(
-		t,
-		"user2",
-		auth_model.AccessTokenScopeWriteIssue,
-		auth_model.AccessTokenScopeWriteUser,
-	)
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteUser)
 	urlStr := fmt.Sprintf("/api/v1/user/projects?token=%s", token)
 
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.NewProjectPayload{
@@ -48,12 +43,7 @@ func TestAPICreateOrgProject(t *testing.T) {
 	const title, description, board_type = "project_name", "project_description", uint8(project_model.BoardTypeBasicKanban)
 
 	orgName := "org17"
-	token := getUserToken(
-		t,
-		"user2",
-		auth_model.AccessTokenScopeWriteIssue,
-		auth_model.AccessTokenScopeWriteOrganization,
-	)
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteOrganization)
 	urlStr := fmt.Sprintf("/api/v1/orgs/%s/projects?token=%s", orgName, token)
 
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.NewProjectPayload{
@@ -77,12 +67,7 @@ func TestAPICreateRepoProject(t *testing.T) {
 
 	ownerName := "user2"
 	repoName := "repo1"
-	token := getUserToken(
-		t,
-		ownerName,
-		auth_model.AccessTokenScopeWriteIssue,
-		auth_model.AccessTokenScopeWriteOrganization,
-	)
+	token := getUserToken(t, ownerName, auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteOrganization)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/projects?token=%s", ownerName, repoName, token)
 
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.NewProjectPayload{
@@ -102,12 +87,7 @@ func TestAPICreateRepoProject(t *testing.T) {
 func TestAPIListUserProjects(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	token := getUserToken(
-		t,
-		"user2",
-		auth_model.AccessTokenScopeReadUser,
-		auth_model.AccessTokenScopeReadIssue,
-	)
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadIssue)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/user/projects"))
 
 	link.RawQuery = url.Values{"token": {token}}.Encode()
@@ -124,12 +104,7 @@ func TestAPIListOrgProjects(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	orgName := "org17"
-	token := getUserToken(
-		t,
-		"user2",
-		auth_model.AccessTokenScopeReadOrganization,
-		auth_model.AccessTokenScopeReadIssue,
-	)
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadIssue)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/orgs/%s/projects", orgName))
 
 	link.RawQuery = url.Values{"token": {token}}.Encode()
@@ -147,12 +122,7 @@ func TestAPIListRepoProjects(t *testing.T) {
 
 	ownerName := "user2"
 	repoName := "repo1"
-	token := getUserToken(
-		t,
-		"user2",
-		auth_model.AccessTokenScopeReadRepository,
-		auth_model.AccessTokenScopeReadIssue,
-	)
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopeReadIssue)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/projects", ownerName, repoName))
 
 	link.RawQuery = url.Values{"token": {token}}.Encode()
@@ -167,12 +137,7 @@ func TestAPIListRepoProjects(t *testing.T) {
 
 func TestAPIGetProject(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	token := getUserToken(
-		t,
-		"user2",
-		auth_model.AccessTokenScopeReadUser,
-		auth_model.AccessTokenScopeReadIssue,
-	)
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadIssue)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/%d", 1))
 
 	link.RawQuery = url.Values{"token": {token}}.Encode()
@@ -189,12 +154,7 @@ func TestAPIGetProject(t *testing.T) {
 
 func TestAPIUpdateProject(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	token := getUserToken(
-		t,
-		"user2",
-		auth_model.AccessTokenScopeWriteUser,
-		auth_model.AccessTokenScopeWriteIssue,
-	)
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteIssue)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/%d", 1))
 
 	link.RawQuery = url.Values{"token": {token}}.Encode()
@@ -212,12 +172,7 @@ func TestAPIUpdateProject(t *testing.T) {
 
 func TestAPIDeleteProject(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	token := getUserToken(
-		t,
-		"user2",
-		auth_model.AccessTokenScopeWriteUser,
-		auth_model.AccessTokenScopeWriteIssue,
-	)
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteIssue)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/%d", 1))
 
 	link.RawQuery = url.Values{"token": {token}}.Encode()
