@@ -68,9 +68,11 @@ func OpenRepositoryWithAlternates(ctx context.Context, repoPath string, altPath 
 		KeepDescriptors:      true,
 		LargeObjectThreshold: setting.Git.LargeObjectThreshold,
 	}
-	if altPath != "" {
-		options.AlternatesFS = osfs.New(altPath)
+	if altPath == "" {
+		altPath = repoPath
 	}
+	options.AlternatesFS = osfs.New(altPath)
+
 	storage := filesystem.NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), options)
 	gogitRepo, err := gogit.Open(storage, fs)
 	if err != nil {
