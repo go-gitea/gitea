@@ -141,7 +141,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 			break
 		}
 
-		tag, err := parseTagRef(repo.objectFormat, ref, "refname:lstrip=2")
+		tag, err := parseTagRef(repo.objectFormat, ref)
 		if err != nil {
 			return nil, 0, fmt.Errorf("GetTagInfos: parse tag: %w", err)
 		}
@@ -161,10 +161,10 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 }
 
 // parseTagRef parses a tag from a 'git for-each-ref'-produced reference.
-func parseTagRef(objectFormat ObjectFormat, ref map[string]string, tagNameKey string) (tag *Tag, err error) {
+func parseTagRef(objectFormat ObjectFormat, ref map[string]string) (tag *Tag, err error) {
 	tag = &Tag{
 		Type: ref["objecttype"],
-		Name: ref[tagNameKey],
+		Name: ref["refname:lstrip=2"],
 	}
 
 	tag.ID, err = NewIDFromString(ref["objectname"])
