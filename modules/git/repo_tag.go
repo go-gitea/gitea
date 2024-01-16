@@ -164,7 +164,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 func parseTagRef(objectFormat ObjectFormat, ref map[string]string) (tag *Tag, err error) {
 	tag = &Tag{
 		Type: ref["objecttype"],
-		Name: ref["refname:lstrip-2"],
+		Name: ref["refname:lstrip=2"],
 	}
 
 	tag.ID, err = NewIDFromString(ref["objectname"])
