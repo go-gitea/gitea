@@ -15,15 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// __________       .__              .__             .__
-// \______   _______|__| ____   ____ |_____________  |  |   ______
-//  |     ___\_  __ |  |/    \_/ ___\|  \____ \__  \ |  |  /  ___/
-//  |    |    |  | \|  |   |  \  \___|  |  |_> / __ \|  |__\___ \
-//  |____|    |__|  |__|___|  /\___  |__|   __(____  |____/____  >
-//                          \/     \/   |__|       \/          \/
-//
-// This file contains functions related to principals
-
 // AddPrincipalKey adds new principal to database and authorized_principals file.
 func AddPrincipalKey(ctx context.Context, ownerID int64, content string, authSourceID int64) (*PublicKey, error) {
 	dbCtx, committer, err := db.TxContext(ctx)
@@ -102,18 +93,4 @@ func CheckPrincipalKeyString(ctx context.Context, user *user_model.User, content
 	}
 
 	return "", fmt.Errorf("didn't match allowed principals: %s", setting.SSH.AuthorizedPrincipalsAllow)
-}
-
-// ListPrincipalKeys returns a list of principals belongs to given user.
-func ListPrincipalKeys(ctx context.Context, uid int64, listOptions db.ListOptions) ([]*PublicKey, error) {
-	sess := db.GetEngine(ctx).Where("owner_id = ? AND type = ?", uid, KeyTypePrincipal)
-	if listOptions.Page != 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
-
-		keys := make([]*PublicKey, 0, listOptions.PageSize)
-		return keys, sess.Find(&keys)
-	}
-
-	keys := make([]*PublicKey, 0, 5)
-	return keys, sess.Find(&keys)
 }
