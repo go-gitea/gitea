@@ -21,13 +21,6 @@ import (
 	"gitea.com/go-chi/binding"
 )
 
-// _______________________________________    _________.______________________ _______________.___.
-// \______   \_   _____/\______   \_____  \  /   _____/|   \__    ___/\_____  \\______   \__  |   |
-//  |       _/|    __)_  |     ___//   |   \ \_____  \ |   | |    |    /   |   \|       _//   |   |
-//  |    |   \|        \ |    |   /    |    \/        \|   | |    |   /    |    \    |   \\____   |
-//  |____|_  /_______  / |____|   \_______  /_______  /|___| |____|   \_______  /____|_  // ______|
-//         \/        \/                   \/        \/                        \/       \/ \/
-
 // CreateRepoForm form for creating repository
 type CreateRepoForm struct {
 	UID           int64  `binding:"Required"`
@@ -50,7 +43,6 @@ type CreateRepoForm struct {
 	Avatar          bool
 	Labels          bool
 	ProtectedBranch bool
-	TrustModel      string
 
 	ForkSingleBranch string
 	ObjectFormatName string
