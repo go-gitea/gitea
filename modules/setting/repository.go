@@ -51,7 +51,6 @@ var (
 		AllowDeleteOfUnadoptedRepositories      bool
 		DisableDownloadSourceArchives           bool
 		AllowForkWithoutMaximumLimit            bool
-		HashType                                string
 
 		// Repository editor settings
 		Editor struct {
@@ -167,7 +166,6 @@ var (
 		DisableStars:                            false,
 		DefaultBranch:                           "main",
 		AllowForkWithoutMaximumLimit:            true,
-		HashType:                                "sha1",
 
 		// Repository editor settings
 		Editor: struct {
