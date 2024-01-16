@@ -1,11 +1,13 @@
 package integration
 
 import (
-	"code.gitea.io/gitea/tests"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
+
+	"code.gitea.io/gitea/tests"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRepoMergeCommitRevert(t *testing.T) {
