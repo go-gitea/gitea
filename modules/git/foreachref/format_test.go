@@ -51,7 +51,7 @@ func TestFormat_Flag(t *testing.T) {
 
 			givenFormat: foreachref.NewFormat("refname:lstrip-2", "objecttype", "objectname"),
 
-			wantFlag: "refname:lstrip-2 %(refname:short)%00objecttype %(objecttype)%00objectname %(objectname)%00%00",
+			wantFlag: "refname:lstrip-2 %(refname:lstrip-2)%00objecttype %(objecttype)%00objectname %(objectname)%00%00",
 		},
 	}
 
