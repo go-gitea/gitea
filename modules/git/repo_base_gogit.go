@@ -13,6 +13,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 
 	gitealog "code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -77,6 +78,9 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 		for scanner.Scan() {
 			// FIXME: we just use the first alternate because it seems go-git don't support multiple alternates yet
 			altPath := scanner.Text()
+			if strings.HasSuffix(altPath, "objects") {
+				altPath = filepath.Dir(altPath)
+			}
 			options.AlternatesFS = osfs.New(altPath)
 			break
 		}
