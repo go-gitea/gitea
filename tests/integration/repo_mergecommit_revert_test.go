@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -14,16 +13,13 @@ func TestRepoMergeCommitRevert(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
 
-	commitToRevert := "deebcbc752e540bab4ce3ee713d3fc8fdc35b2f7"
-	repoName := "test_commit_revert"
-
 	req := NewRequest(t, "GET", "/user2/test_commit_revert/_cherrypick/deebcbc752e540bab4ce3ee713d3fc8fdc35b2f7/main?ref=main&refType=branch&cherry-pick-type=revert")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	req = NewRequestWithValues(t, "POST", fmt.Sprintf("/user2/test_commit_revert/_cherrypick/deebcbc752e540bab4ce3ee713d3fc8fdc35b2f7/main", repoName, commitToRevert), map[string]string{
+	req = NewRequestWithValues(t, "POST", "/user2/test_commit_revert/_cherrypick/deebcbc752e540bab4ce3ee713d3fc8fdc35b2f7/main", map[string]string{
 		"_csrf":           htmlDoc.GetCSRF(),
-		"last_commit":     commitToRevert,
+		"last_commit":     "deebcbc752e540bab4ce3ee713d3fc8fdc35b2f7",
 		"page_has_posted": "true",
 		"revert":          "true",
 		"commit_summary":  "reverting test commit",
