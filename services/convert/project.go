@@ -10,8 +10,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-func ToAPIProject(ctx context.Context, project *project_model.Project) *api.Project {
-
+func ToAPIProject(ctx context.Context, project *project_model.Project) (*api.Project, error) {
 	apiProject := &api.Project{
 		Title:       project.Title,
 		Description: project.Description,
@@ -23,7 +22,10 @@ func ToAPIProject(ctx context.Context, project *project_model.Project) *api.Proj
 	}
 
 	// try to laod the repo
-	project.LoadRepo(ctx)
+	err := project.LoadRepo(ctx)
+	if err != nil {
+		return nil, err
+	}
 	if project.Repo != nil {
 		apiProject.Repo = &api.RepositoryMeta{
 			ID:       project.RepoID,
@@ -33,7 +35,10 @@ func ToAPIProject(ctx context.Context, project *project_model.Project) *api.Proj
 		}
 	}
 
-	project.LoadCreator(ctx)
+	err = project.LoadCreator(ctx)
+	if err != nil {
+		return nil, err
+	}
 	if project.Creator != nil {
 		apiProject.Creator = &api.User{
 			ID:       project.Creator.ID,
@@ -42,7 +47,10 @@ func ToAPIProject(ctx context.Context, project *project_model.Project) *api.Proj
 		}
 	}
 
-	project.LoadOwner(ctx)
+	err = project.LoadOwner(ctx)
+	if err != nil {
+		return nil, err
+	}
 	if project.Owner != nil {
 		apiProject.Owner = &api.User{
 			ID:       project.Owner.ID,
@@ -51,13 +59,20 @@ func ToAPIProject(ctx context.Context, project *project_model.Project) *api.Proj
 		}
 	}
 
-	return apiProject
+	return apiProject, nil
 }
 
 func ToAPIProjectList(ctx context.Context, projects []*project_model.Project) ([]*api.Project, error) {
 	result := make([]*api.Project, len(projects))
+	var err error
 	for i := range projects {
-		result[i] = ToAPIProject(ctx, projects[i])
+		result[i], err = ToAPIProject(ctx, projects[i])
+		if err != nil {
+			break
+		}
+	}
+	if err != nil {
+		return nil, err
 	}
 	return result, nil
 }

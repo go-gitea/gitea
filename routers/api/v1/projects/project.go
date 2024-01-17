@@ -17,7 +17,7 @@ import (
 
 func innerCreateProject(
 	ctx *context.APIContext,
-	project_type project_model.Type,
+	projectType project_model.Type,
 ) {
 	form := web.GetForm(ctx).(*api.NewProjectPayload)
 	project := &project_model.Project{
@@ -27,14 +27,14 @@ func innerCreateProject(
 		Description: form.Description,
 		CreatorID:   ctx.Doer.ID,
 		BoardType:   project_model.BoardType(form.BoardType),
-		Type:        project_type,
+		Type:        projectType,
 	}
 
 	if ctx.ContextUser != nil {
 		project.OwnerID = ctx.ContextUser.ID
 	}
 
-	if project_type == project_model.TypeRepository {
+	if projectType == project_model.TypeRepository {
 		project.RepoID = ctx.Repo.Repository.ID
 	}
 
@@ -49,7 +49,13 @@ func innerCreateProject(
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIProject(ctx, project))
+	projectResponse, err := convert.ToAPIProject(ctx, project)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "NewProject", err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, projectResponse)
 }
 
 func CreateUserProject(ctx *context.APIContext) {
@@ -165,7 +171,12 @@ func GetProject(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIProject(ctx, project))
+	projectResponse, err := convert.ToAPIProject(ctx, project)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetProjectByID", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, projectResponse)
 }
 
 func UpdateProject(ctx *context.APIContext) {
@@ -215,7 +226,12 @@ func UpdateProject(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "UpdateProject", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToAPIProject(ctx, project))
+	projectResponse, err := convert.ToAPIProject(ctx, project)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "UpdateProject", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, projectResponse)
 }
 
 func DeleteProject(ctx *context.APIContext) {
@@ -242,7 +258,6 @@ func DeleteProject(ctx *context.APIContext) {
 	}
 
 	ctx.Status(http.StatusNoContent)
-
 }
 
 func ListUserProjects(ctx *context.APIContext) {
