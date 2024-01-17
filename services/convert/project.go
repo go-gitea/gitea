@@ -46,7 +46,7 @@ func ToAPIProject(ctx context.Context, project *project_model.Project) *api.Proj
 	}
 
 	// try to laod the repo
-	project.LoadRepo(ctx)
+	_ = project.LoadRepo(ctx)
 	if project.Repo != nil {
 		apiProject.Repo = &api.RepositoryMeta{
 			ID:       project.RepoID,
@@ -56,7 +56,7 @@ func ToAPIProject(ctx context.Context, project *project_model.Project) *api.Proj
 		}
 	}
 
-	project.LoadCreator(ctx)
+	_ = project.LoadCreator(ctx)
 	if project.Creator != nil {
 		apiProject.Creator = &api.User{
 			ID:       project.Creator.ID,
@@ -65,7 +65,7 @@ func ToAPIProject(ctx context.Context, project *project_model.Project) *api.Proj
 		}
 	}
 
-	project.LoadOwner(ctx)
+	_ = project.LoadOwner(ctx)
 	if project.Owner != nil {
 		apiProject.Owner = &api.User{
 			ID:       project.Owner.ID,
