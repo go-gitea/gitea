@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -118,4 +119,18 @@ func TestXSSWikiLastCommitInfo(t *testing.T) {
 			assert.EqualValues(t, `Gusted <script class="evil">alert('Oh no!');</script> edited this page 2024-01-31 00:00:00 +00:00`, strings.TrimSpace(htmlDoc.Find(".ui.sub.header").Text()))
 		})
 	})
+}
+
+func TestXSSReviewDismissed(t *testing.T) {
+	defer tests.AddFixtures("tests/integration/fixtures/TestXSSReviewDismissed/")()
+	defer tests.PrepareTestEnv(t)()
+
+	review := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 1000})
+
+	req := NewRequest(t, http.MethodGet, fmt.Sprintf("/user2/repo1/pulls/%d", +review.IssueID))
+	resp := MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+
+	htmlDoc.AssertElement(t, "script.evil", false)
+	assert.Contains(t, htmlDoc.Find("#issuecomment-1000 .dismissed-message").Text(), `dismissed Otto <script class='evil'>alert('Oh no!')</script>’s review 2023-11-14 23:13:20 +01:00`)
 }

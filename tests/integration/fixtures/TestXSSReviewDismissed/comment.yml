@@ -1,0 +1,9 @@
+-
+  id: 1000
+  type: 32 # dismiss review
+  poster_id: 2
+  issue_id: 2 # in repo_id 1
+  content: "XSS time!"
+  review_id: 1000
+  created_unix: 1700000000
+  updated_unix: 1700000000
