@@ -22,10 +22,7 @@ func ToAPIProject(ctx context.Context, project *project_model.Project) (*api.Pro
 	}
 
 	// try to laod the repo
-	err := project.LoadRepo(ctx)
-	if err != nil {
-		return nil, err
-	}
+	_ = project.LoadRepo(ctx)
 	if project.Repo != nil {
 		apiProject.Repo = &api.RepositoryMeta{
 			ID:       project.RepoID,
@@ -35,10 +32,7 @@ func ToAPIProject(ctx context.Context, project *project_model.Project) (*api.Pro
 		}
 	}
 
-	err = project.LoadCreator(ctx)
-	if err != nil {
-		return nil, err
-	}
+	_ = project.LoadCreator(ctx)
 	if project.Creator != nil {
 		apiProject.Creator = &api.User{
 			ID:       project.Creator.ID,
@@ -47,10 +41,7 @@ func ToAPIProject(ctx context.Context, project *project_model.Project) (*api.Pro
 		}
 	}
 
-	err = project.LoadOwner(ctx)
-	if err != nil {
-		return nil, err
-	}
+	_ = project.LoadOwner(ctx)
 	if project.Owner != nil {
 		apiProject.Owner = &api.User{
 			ID:       project.Owner.ID,
