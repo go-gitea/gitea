@@ -518,7 +518,9 @@ func pullMirrorReleaseSync(ctx context.Context, repo *repo_model.Repository, git
 	}
 	err = db.WithTx(ctx, func(ctx context.Context) error {
 		dbReleases, err := db.Find[shortRelease](ctx, repo_model.FindReleasesOptions{
-			RepoID: repo.ID,
+			RepoID:        repo.ID,
+			IncludeDrafts: true,
+			IncludeTags:   true,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to FindReleases in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
