@@ -39,6 +39,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix issue dependencies (#27736) (#28776)
   * Fix system webhooks API bug (#28531) (#28666)
   * Fix when private user following user, private user will not be counted in his own view (#28037) (#28792)
+  * Render code block in activity tab (#28816) (#28818)
 * ENHANCEMENTS
   * Rework markup link rendering (#26745) (#28803)
   * Modernize merge button (#28140) (#28786)
