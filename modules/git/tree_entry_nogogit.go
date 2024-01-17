@@ -23,9 +23,6 @@ type TreeEntry struct {
 
 // Name returns the name of the entry
 func (te *TreeEntry) Name() string {
-	if te.fullName != "" {
-		return te.fullName
-	}
 	return te.name
 }
 
@@ -57,6 +54,12 @@ func (te *TreeEntry) Size() int64 {
 
 	te.sized = true
 	return te.size
+}
+func (te *TreeEntry) FullPath() string {
+	if te.fullName == "" {
+		return te.Name()
+	}
+	return te.fullName
 }
 
 // IsSubModule if the entry is a sub module

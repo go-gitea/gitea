@@ -103,7 +103,7 @@ func (te *TreeEntry) FollowLinks() (*TreeEntry, error) {
 
 // TryFollowingLinks attempts to follow the symlinks of this entry to the origin
 // If that fails, it defaults to the entry itself
-func (te *TreeEntry) TryFollowingLinks() (*TreeEntry) {
+func (te *TreeEntry) TryFollowingLinks() *TreeEntry {
 	newEntry, err := te.FollowLinks()
 	if err != nil {
 		return te

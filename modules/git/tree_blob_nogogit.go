@@ -26,23 +26,24 @@ func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 	relpath = path.Clean(relpath)
 	parts := strings.Split(relpath, "/")
 	var err error
+
 	tree := t
-	for i, name := range parts {
-		if i == len(parts)-1 {
-			entries, err := tree.ListEntries()
-			if err != nil {
-				return nil, err
-			}
-			for _, v := range entries {
-				if v.Name() == name {
-					return v, nil
-				}
-			}
-		} else {
-			tree, err = tree.SubTree(name)
-			if err != nil {
-				return nil, err
-			}
+	for _, name := range parts[:len(parts)-1] {
+		tree, err = tree.SubTree(name)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	name := parts[len(parts)-1]
+	entries, err := tree.ListEntries()
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range entries {
+		if v.Name() == name {
+			v.fullName = relpath
+			return v, nil
 		}
 	}
 	return nil, ErrNotExist{"", relpath}

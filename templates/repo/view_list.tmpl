@@ -76,7 +76,7 @@
 								{{svg (printf "octicon-%s" (EntryIcon $entry))}}
 								{{$symLinkEntry := $entry}}
 								{{if $entry.IsLink}}{{$symLinkEntry = $entry.TryFollowingLinks}}{{end}}
-								<a class="muted" href="{{$.TreeLink}}/{{$symLinkEntry.Name}}" data-tooltip-content title="{{$entry.Name}}">{{$entry.Name}}</a>
+								<a class="muted" href="{{$.TreeLink}}/{{$symLinkEntry.FullPath}}" data-tooltip-content title="{{$symLinkEntry.FullPath}}">{{$entry.Name}}</a>
 							{{end}}
 						{{end}}
 					</span>
