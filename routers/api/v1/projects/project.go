@@ -6,6 +6,7 @@ package projects
 import (
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -270,11 +271,13 @@ func ListUserProjects(ctx *context.APIContext) {
 	//	  "$ref": "#/responses/forbidden"
 	//	"404":
 	//	  "$ref": "#/responses/notFound"
-	projects, count, err := project_model.FindProjects(ctx, project_model.SearchOptions{
-		OwnerID:  ctx.Doer.ID,
-		Page:     ctx.FormInt("page"),
-		IsClosed: ctx.FormOptionalBool("closed"),
+	projects, count, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
 		Type:     project_model.TypeIndividual,
+		IsClosed: ctx.FormOptionalBool("closed"),
+		OwnerID:  ctx.Doer.ID,
+		ListOptions: db.ListOptions{
+			Page: ctx.FormInt("page"),
+		},
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Projects", err)
@@ -324,9 +327,11 @@ func ListOrgProjects(ctx *context.APIContext) {
 	//	  "$ref": "#/responses/forbidden"
 	//	"404":
 	//	  "$ref": "#/responses/notFound"
-	projects, count, err := project_model.FindProjects(ctx, project_model.SearchOptions{
-		OwnerID:  ctx.Org.Organization.AsUser().ID,
-		Page:     ctx.FormInt("page"),
+	projects, count, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
+		OwnerID: ctx.Org.Organization.AsUser().ID,
+		ListOptions: db.ListOptions{
+			Page: ctx.FormInt("page"),
+		},
 		IsClosed: ctx.FormOptionalBool("closed"),
 		Type:     project_model.TypeOrganization,
 	})
@@ -383,11 +388,13 @@ func ListRepoProjects(ctx *context.APIContext) {
 	//	  "$ref": "#/responses/forbidden"
 	//	"404":
 	//	  "$ref": "#/responses/notFound"
-	projects, count, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+	projects, count, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
 		RepoID:   ctx.Repo.Repository.ID,
-		Page:     ctx.FormInt("page"),
 		IsClosed: ctx.FormOptionalBool("closed"),
 		Type:     project_model.TypeRepository,
+		ListOptions: db.ListOptions{
+			Page: ctx.FormInt("page"),
+		},
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Projects", err)
