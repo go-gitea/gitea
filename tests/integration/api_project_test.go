@@ -89,9 +89,7 @@ func TestAPIListUserProjects(t *testing.T) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadIssue)
 	link, _ := url.Parse("/api/v1/user/projects")
 
-	link.RawQuery = url.Values{"token": {token}}.Encode()
-
-	req := NewRequest(t, "GET", link.String())
+	req := NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	var apiProjects []*api.Project
 
 	resp := MakeRequest(t, req, http.StatusOK)
