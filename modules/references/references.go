@@ -331,8 +331,11 @@ func FindAllIssueReferences(content string) []IssueReference {
 }
 
 // FindRenderizableReferenceNumeric returns the first unvalidated reference found in a string.
-func FindRenderizableReferenceNumeric(content string, prOnly bool) (bool, *RenderizableReference) {
-	match := issueNumericPattern.FindStringSubmatchIndex(content)
+func FindRenderizableReferenceNumeric(content string, prOnly, crossLinkOnly bool) (bool, *RenderizableReference) {
+	var match []int
+	if !crossLinkOnly {
+		match = issueNumericPattern.FindStringSubmatchIndex(content)
+	}
 	if match == nil {
 		if match = crossReferenceIssueNumericPattern.FindStringSubmatchIndex(content); match == nil {
 			return false, nil

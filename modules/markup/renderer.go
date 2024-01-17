@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/yuin/goldmark/ast"
 )
@@ -69,7 +70,7 @@ type RenderContext struct {
 	RelativePath     string // relative path from tree root of the branch
 	Type             string
 	IsWiki           bool
-	URLPrefix        string
+	Links            Links
 	Metas            map[string]string
 	DefaultLink      string
 	GitRepo          *git.Repository
@@ -78,6 +79,45 @@ type RenderContext struct {
 	SidebarTocNode   ast.Node
 	RenderMetaAs     RenderMetaMode
 	InStandalonePage bool // used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
+}
+
+type Links struct {
+	Base       string
+	BranchPath string
+	TreePath   string
+}
+
+func (l *Links) HasBranchInfo() bool {
+	return l.BranchPath != ""
+}
+
+func (l *Links) SrcLink() string {
+	return util.URLJoin(l.Base, "src", l.BranchPath, l.TreePath)
+}
+
+func (l *Links) MediaLink() string {
+	return util.URLJoin(l.Base, "media", l.BranchPath, l.TreePath)
+}
+
+func (l *Links) RawLink() string {
+	return util.URLJoin(l.Base, "raw", l.BranchPath, l.TreePath)
+}
+
+func (l *Links) WikiLink() string {
+	return util.URLJoin(l.Base, "wiki")
+}
+
+func (l *Links) WikiRawLink() string {
+	return util.URLJoin(l.Base, "wiki/raw")
+}
+
+func (l *Links) ResolveMediaLink(isWiki bool) string {
+	if isWiki {
+		return l.WikiRawLink()
+	} else if l.HasBranchInfo() {
+		return l.MediaLink()
+	}
+	return l.Base
 }
 
 // Cancel runs any cleanup functions that have been registered for this Ctx
