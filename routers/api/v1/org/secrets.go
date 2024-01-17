@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
@@ -48,13 +49,7 @@ func ListActionsSecrets(ctx *context.APIContext) {
 		ListOptions: utils.GetListOptions(ctx),
 	}
 
-	count, err := secret_model.CountSecrets(ctx, opts)
-	if err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
-
-	secrets, err := secret_model.FindSecrets(ctx, *opts)
+	secrets, count, err := db.FindAndCount[secret_model.Secret](ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

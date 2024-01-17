@@ -207,9 +207,25 @@ func GetReleaseByID(ctx context.Context, id int64) (*Release, error) {
 	return rel, nil
 }
 
+// GetReleaseForRepoByID returns release with given ID.
+func GetReleaseForRepoByID(ctx context.Context, repoID, id int64) (*Release, error) {
+	rel := new(Release)
+	has, err := db.GetEngine(ctx).
+		Where("id=? AND repo_id=?", id, repoID).
+		Get(rel)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrReleaseNotExist{id, ""}
+	}
+
+	return rel, nil
+}
+
 // FindReleasesOptions describes the conditions to Find releases
 type FindReleasesOptions struct {
 	db.ListOptions
+	RepoID        int64
 	IncludeDrafts bool
 	IncludeTags   bool
 	IsPreRelease  util.OptionalBool
@@ -218,9 +234,8 @@ type FindReleasesOptions struct {
 	HasSha1       util.OptionalBool // useful to find draft releases which are created with existing tags
 }
 
-func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
-	cond := builder.NewCond()
-	cond = cond.And(builder.Eq{"repo_id": repoID})
+func (opts FindReleasesOptions) ToConds() builder.Cond {
+	var cond builder.Cond = builder.Eq{"repo_id": opts.RepoID}
 
 	if !opts.IncludeDrafts {
 		cond = cond.And(builder.Eq{"is_draft": false})
@@ -247,18 +262,8 @@ func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
 	return cond
 }
 
-// GetReleasesByRepoID returns a list of releases of repository.
-func GetReleasesByRepoID(ctx context.Context, repoID int64, opts FindReleasesOptions) ([]*Release, error) {
-	sess := db.GetEngine(ctx).
-		Desc("created_unix", "id").
-		Where(opts.toConds(repoID))
-
-	if opts.PageSize != 0 {
-		sess = db.SetSessionPagination(sess, &opts.ListOptions)
-	}
-
-	rels := make([]*Release, 0, opts.PageSize)
-	return rels, sess.Find(&rels)
+func (opts FindReleasesOptions) ToOrders() string {
+	return "created_unix DESC, id DESC"
 }
 
 // GetTagNamesByRepoID returns a list of release tag names of repository.
@@ -271,21 +276,17 @@ func GetTagNamesByRepoID(ctx context.Context, repoID int64) ([]string, error) {
 		IncludeDrafts: true,
 		IncludeTags:   true,
 		HasSha1:       util.OptionalBoolTrue,
+		RepoID:        repoID,
 	}
 
 	tags := make([]string, 0)
 	sess := db.GetEngine(ctx).
 		Table("release").
 		Desc("created_unix", "id").
-		Where(opts.toConds(repoID)).
+		Where(opts.ToConds()).
 		Cols("tag_name")
 
 	return tags, sess.Find(&tags)
-}
-
-// CountReleasesByRepoID returns a number of releases matching FindReleaseOptions and RepoID.
-func CountReleasesByRepoID(ctx context.Context, repoID int64, opts FindReleasesOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toConds(repoID)).Count(new(Release))
 }
 
 // GetLatestReleaseByRepoID returns the latest release for a repository
@@ -308,20 +309,6 @@ func GetLatestReleaseByRepoID(ctx context.Context, repoID int64) (*Release, erro
 	}
 
 	return rel, nil
-}
-
-// GetReleasesByRepoIDAndNames returns a list of releases of repository according repoID and tagNames.
-func GetReleasesByRepoIDAndNames(ctx context.Context, repoID int64, tagNames []string) (rels []*Release, err error) {
-	err = db.GetEngine(ctx).
-		In("tag_name", tagNames).
-		Desc("created_unix").
-		Find(&rels, Release{RepoID: repoID})
-	return rels, err
-}
-
-// GetReleaseCountByRepoID returns the count of releases of repository
-func GetReleaseCountByRepoID(ctx context.Context, repoID int64, opts FindReleasesOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toConds(repoID)).Count(&Release{})
 }
 
 type releaseMetaSearch struct {
@@ -435,12 +422,6 @@ func SortReleases(rels []*Release) {
 	sort.Sort(sorter)
 }
 
-// DeleteReleaseByID deletes a release from database by given ID.
-func DeleteReleaseByID(ctx context.Context, id int64) error {
-	_, err := db.GetEngine(ctx).ID(id).Delete(new(Release))
-	return err
-}
-
 // UpdateReleasesMigrationsByType updates all migrated repositories' releases from gitServiceType to replace originalAuthorID to posterID
 func UpdateReleasesMigrationsByType(ctx context.Context, gitServiceType structs.GitServiceType, originalAuthorID string, posterID int64) error {
 	_, err := db.GetEngine(ctx).Table("release").
@@ -494,7 +475,7 @@ func PushUpdateDeleteTag(ctx context.Context, repo *Repository, tagName string) 
 		return fmt.Errorf("GetRelease: %w", err)
 	}
 	if rel.IsTag {
-		if _, err = db.GetEngine(ctx).ID(rel.ID).Delete(new(Release)); err != nil {
+		if _, err = db.DeleteByID[Release](ctx, rel.ID); err != nil {
 			return fmt.Errorf("Delete: %w", err)
 		}
 	} else {

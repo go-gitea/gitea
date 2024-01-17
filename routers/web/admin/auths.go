@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -48,13 +49,12 @@ func Authentications(ctx *context.Context) {
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	var err error
-	ctx.Data["Sources"], err = auth.FindSources(ctx, auth.FindSourcesOptions{})
+	ctx.Data["Sources"], ctx.Data["Total"], err = db.FindAndCount[auth.Source](ctx, auth.FindSourcesOptions{})
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
 		return
 	}
 
-	ctx.Data["Total"] = auth.CountSources(ctx, auth.FindSourcesOptions{})
 	ctx.HTML(http.StatusOK, tplAuths)
 }
 
@@ -284,7 +284,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 			ctx.RenderWithErr(err.Error(), tplAuthNew, form)
 			return
 		}
-		existing, err := auth.FindSources(ctx, auth.FindSourcesOptions{LoginType: auth.SSPI})
+		existing, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{LoginType: auth.SSPI})
 		if err != nil || len(existing) > 0 {
 			ctx.Data["Err_Type"] = true
 			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_of_type_exist"), tplAuthNew, form)

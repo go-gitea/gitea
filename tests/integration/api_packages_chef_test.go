@@ -93,7 +93,7 @@ nwIDAQAB
 			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "POST", "/dummy")
-			u, err := auth.Verify(req, nil, nil, nil)
+			u, err := auth.Verify(req.Request, nil, nil, nil)
 			assert.Nil(t, u)
 			assert.NoError(t, err)
 		})
@@ -101,9 +101,9 @@ nwIDAQAB
 		t.Run("NotExistingUser", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "POST", "/dummy")
-			req.Header.Set("X-Ops-Userid", "not-existing-user")
-			u, err := auth.Verify(req, nil, nil, nil)
+			req := NewRequest(t, "POST", "/dummy").
+				SetHeader("X-Ops-Userid", "not-existing-user")
+			u, err := auth.Verify(req.Request, nil, nil, nil)
 			assert.Nil(t, u)
 			assert.Error(t, err)
 		})
@@ -111,14 +111,14 @@ nwIDAQAB
 		t.Run("Timestamp", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "POST", "/dummy")
-			req.Header.Set("X-Ops-Userid", user.Name)
-			u, err := auth.Verify(req, nil, nil, nil)
+			req := NewRequest(t, "POST", "/dummy").
+				SetHeader("X-Ops-Userid", user.Name)
+			u, err := auth.Verify(req.Request, nil, nil, nil)
 			assert.Nil(t, u)
 			assert.Error(t, err)
 
-			req.Header.Set("X-Ops-Timestamp", "2023-01-01T00:00:00Z")
-			u, err = auth.Verify(req, nil, nil, nil)
+			req.SetHeader("X-Ops-Timestamp", "2023-01-01T00:00:00Z")
+			u, err = auth.Verify(req.Request, nil, nil, nil)
 			assert.Nil(t, u)
 			assert.Error(t, err)
 		})
@@ -126,30 +126,30 @@ nwIDAQAB
 		t.Run("SigningVersion", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "POST", "/dummy")
-			req.Header.Set("X-Ops-Userid", user.Name)
-			req.Header.Set("X-Ops-Timestamp", time.Now().UTC().Format(time.RFC3339))
-			u, err := auth.Verify(req, nil, nil, nil)
+			req := NewRequest(t, "POST", "/dummy").
+				SetHeader("X-Ops-Userid", user.Name).
+				SetHeader("X-Ops-Timestamp", time.Now().UTC().Format(time.RFC3339))
+			u, err := auth.Verify(req.Request, nil, nil, nil)
 			assert.Nil(t, u)
 			assert.Error(t, err)
 
-			req.Header.Set("X-Ops-Sign", "version=none")
-			u, err = auth.Verify(req, nil, nil, nil)
+			req.SetHeader("X-Ops-Sign", "version=none")
+			u, err = auth.Verify(req.Request, nil, nil, nil)
 			assert.Nil(t, u)
 			assert.Error(t, err)
 
-			req.Header.Set("X-Ops-Sign", "version=1.4")
-			u, err = auth.Verify(req, nil, nil, nil)
+			req.SetHeader("X-Ops-Sign", "version=1.4")
+			u, err = auth.Verify(req.Request, nil, nil, nil)
 			assert.Nil(t, u)
 			assert.Error(t, err)
 
-			req.Header.Set("X-Ops-Sign", "version=1.0;algorithm=sha2")
-			u, err = auth.Verify(req, nil, nil, nil)
+			req.SetHeader("X-Ops-Sign", "version=1.0;algorithm=sha2")
+			u, err = auth.Verify(req.Request, nil, nil, nil)
 			assert.Nil(t, u)
 			assert.Error(t, err)
 
-			req.Header.Set("X-Ops-Sign", "version=1.0;algorithm=sha256")
-			u, err = auth.Verify(req, nil, nil, nil)
+			req.SetHeader("X-Ops-Sign", "version=1.0;algorithm=sha256")
+			u, err = auth.Verify(req.Request, nil, nil, nil)
 			assert.Nil(t, u)
 			assert.Error(t, err)
 		})
@@ -159,17 +159,18 @@ nwIDAQAB
 
 			ts := time.Now().UTC().Format(time.RFC3339)
 
-			req := NewRequest(t, "POST", "/dummy")
-			req.Header.Set("X-Ops-Userid", user.Name)
-			req.Header.Set("X-Ops-Timestamp", ts)
-			req.Header.Set("X-Ops-Sign", "version=1.0;algorithm=sha1")
-			req.Header.Set("X-Ops-Content-Hash", "unused")
-			req.Header.Set("X-Ops-Authorization-4", "dummy")
-			u, err := auth.Verify(req, nil, nil, nil)
+			req := NewRequest(t, "POST", "/dummy").
+				SetHeader("X-Ops-Userid", user.Name).
+				SetHeader("X-Ops-Timestamp", ts).
+				SetHeader("X-Ops-Sign", "version=1.0;algorithm=sha1").
+				SetHeader("X-Ops-Content-Hash", "unused").
+				SetHeader("X-Ops-Authorization-4", "dummy")
+			u, err := auth.Verify(req.Request, nil, nil, nil)
 			assert.Nil(t, u)
 			assert.Error(t, err)
 
-			signRequest := func(t *testing.T, req *http.Request, version string) {
+			signRequest := func(t *testing.T, rw *RequestWrapper, version string) {
+				req := rw.Request
 				username := req.Header.Get("X-Ops-Userid")
 				if version != "1.0" && version != "1.3" {
 					sum := sha1.Sum([]byte(username))
@@ -255,7 +256,7 @@ nwIDAQAB
 					defer tests.PrintCurrentTest(t)()
 
 					signRequest(t, req, v)
-					u, err = auth.Verify(req, nil, nil, nil)
+					u, err = auth.Verify(req.Request, nil, nil, nil)
 					assert.NotNil(t, u)
 					assert.NoError(t, err)
 				})
@@ -291,9 +292,9 @@ nwIDAQAB
 		zw.Close()
 		mpw.Close()
 
-		req := NewRequestWithBody(t, "POST", root+"/cookbooks", &body)
-		req.Header.Add("Content-Type", mpw.FormDataContentType())
-		AddBasicAuthHeader(req, user.Name)
+		req := NewRequestWithBody(t, "POST", root+"/cookbooks", &body).
+			SetHeader("Content-Type", mpw.FormDataContentType()).
+			AddBasicAuth(user.Name)
 		MakeRequest(t, req, expectedStatus)
 	}
 
@@ -394,8 +395,8 @@ nwIDAQAB
 		}
 
 		for i, c := range cases {
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/search?q=%s&start=%d&items=%d", root, c.Query, c.Start, c.Items))
-			req = AddBasicAuthHeader(req, user.Name)
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/search?q=%s&start=%d&items=%d", root, c.Query, c.Start, c.Items)).
+				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			var result Result
@@ -445,8 +446,8 @@ nwIDAQAB
 		}
 
 		for i, c := range cases {
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/cookbooks?start=%d&items=%d&sort=%s", root, c.Start, c.Items, c.Sort))
-			req = AddBasicAuthHeader(req, user.Name)
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/cookbooks?start=%d&items=%d&sort=%s", root, c.Start, c.Items, c.Sort)).
+				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			var result Result
@@ -533,8 +534,8 @@ nwIDAQAB
 			req := NewRequest(t, "DELETE", fmt.Sprintf("%s/cookbooks/%s/versions/%s", root, packageName, "1.0.2"))
 			MakeRequest(t, req, http.StatusUnauthorized)
 
-			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/cookbooks/%s/versions/%s", root, packageName, "1.0.2"))
-			AddBasicAuthHeader(req, user.Name)
+			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/cookbooks/%s/versions/%s", root, packageName, "1.0.2")).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusOK)
 
 			pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages.TypeChef, packageName, "1.0.2")
@@ -548,8 +549,8 @@ nwIDAQAB
 			req := NewRequest(t, "DELETE", fmt.Sprintf("%s/cookbooks/%s", root, packageName))
 			MakeRequest(t, req, http.StatusUnauthorized)
 
-			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/cookbooks/%s", root, packageName))
-			AddBasicAuthHeader(req, user.Name)
+			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/cookbooks/%s", root, packageName)).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusOK)
 
 			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeChef)

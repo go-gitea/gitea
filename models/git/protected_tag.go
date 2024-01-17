@@ -6,11 +6,11 @@ package git
 import (
 	"context"
 	"regexp"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/gobwas/glob"
@@ -76,7 +76,7 @@ func DeleteProtectedTag(ctx context.Context, pt *ProtectedTag) error {
 
 // IsUserAllowedModifyTag returns true if the user is allowed to modify the tag
 func IsUserAllowedModifyTag(ctx context.Context, pt *ProtectedTag, userID int64) (bool, error) {
-	if base.Int64sContains(pt.AllowlistUserIDs, userID) {
+	if slices.Contains(pt.AllowlistUserIDs, userID) {
 		return true, nil
 	}
 

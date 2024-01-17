@@ -452,7 +452,7 @@ func addRecursiveExclude(w archiver.Writer, insidePath, absPath string, excludeA
 		return err
 	}
 	for _, file := range files {
-		currentAbsPath := path.Join(absPath, file.Name())
+		currentAbsPath := filepath.Join(absPath, file.Name())
 		currentInsidePath := path.Join(insidePath, file.Name())
 		if file.IsDir() {
 			if !util.SliceContainsString(excludeAbsPath, currentAbsPath) {

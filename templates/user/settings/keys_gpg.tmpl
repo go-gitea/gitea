@@ -55,7 +55,7 @@
 					{{if .Verified}}
 						<span class="flex-text-block" data-tooltip-content="{{ctx.Locale.Tr "settings.gpg_key_verified_long"}}">{{svg "octicon-verified"}} <strong>{{ctx.Locale.Tr "settings.gpg_key_verified"}}</strong></span>
 					{{end}}
-					{{if gt (len .Emails) 0}}
+					{{if .Emails}}
 						<span class="flex-text-block" data-tooltip-content="{{ctx.Locale.Tr "settings.gpg_key_matched_identities_long"}}">{{svg "octicon-mail"}} {{ctx.Locale.Tr "settings.gpg_key_matched_identities"}} {{range .Emails}}<strong>{{.Email}} </strong>{{end}}</span>
 					{{end}}
 					<div class="flex-item-body">

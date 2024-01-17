@@ -107,8 +107,9 @@ func VerifyGPGKey(ctx context.Context, ownerID int64, keyID, token, signature st
 // VerificationToken returns token for the user that will be valid in minutes (time)
 func VerificationToken(user *user_model.User, minutes int) string {
 	return base.EncodeSha256(
-		time.Now().Truncate(1*time.Minute).Add(time.Duration(minutes)*time.Minute).Format(time.RFC1123Z) + ":" +
-			user.CreatedUnix.FormatLong() + ":" +
+		time.Now().Truncate(1*time.Minute).Add(time.Duration(minutes)*time.Minute).Format(
+			time.RFC1123Z) + ":" +
+			user.CreatedUnix.Format(time.RFC1123Z) + ":" +
 			user.Name + ":" +
 			user.Email + ":" +
 			strconv.FormatInt(user.ID, 10))

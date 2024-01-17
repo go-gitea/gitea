@@ -60,6 +60,7 @@
 
 .tippy-box[data-theme="box-with-header"] .tippy-content {
   background: var(--color-box-body);
+  border-radius: var(--border-radius);
   padding: 0;
 }
 

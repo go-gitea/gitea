@@ -61,7 +61,7 @@
   priority: 0
   is_closed: true
   is_pull: false
-  num_comments: 0
+  num_comments: 1
   created_unix: 946684830
   updated_unix: 978307200
   is_locked: false

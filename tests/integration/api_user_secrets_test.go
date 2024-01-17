@@ -55,44 +55,47 @@ func TestAPIUserSecrets(t *testing.T) {
 		}
 
 		for _, c := range cases {
-			req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/user/actions/secrets/%s?token=%s", c.Name, token), api.CreateOrUpdateSecretOption{
+			req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/user/actions/secrets/%s", c.Name), api.CreateOrUpdateSecretOption{
 				Data: "data",
-			})
+			}).AddTokenAuth(token)
 			MakeRequest(t, req, c.ExpectedStatus)
 		}
 	})
 
 	t.Run("Update", func(t *testing.T) {
 		name := "update_secret"
-		url := fmt.Sprintf("/api/v1/user/actions/secrets/%s?token=%s", name, token)
+		url := fmt.Sprintf("/api/v1/user/actions/secrets/%s", name)
 
 		req := NewRequestWithJSON(t, "PUT", url, api.CreateOrUpdateSecretOption{
 			Data: "initial",
-		})
+		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 
 		req = NewRequestWithJSON(t, "PUT", url, api.CreateOrUpdateSecretOption{
 			Data: "changed",
-		})
+		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
 	})
 
 	t.Run("Delete", func(t *testing.T) {
 		name := "delete_secret"
-		url := fmt.Sprintf("/api/v1/user/actions/secrets/%s?token=%s", name, token)
+		url := fmt.Sprintf("/api/v1/user/actions/secrets/%s", name)
 
 		req := NewRequestWithJSON(t, "PUT", url, api.CreateOrUpdateSecretOption{
 			Data: "initial",
-		})
+		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 
-		req = NewRequest(t, "DELETE", url)
+		req = NewRequest(t, "DELETE", url).
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
 
-		req = NewRequest(t, "DELETE", url)
+		req = NewRequest(t, "DELETE", url).
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/actions/secrets/000?token=%s", token))
+		req = NewRequest(t, "DELETE", "/api/v1/user/actions/secrets/000").
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusBadRequest)
 	})
 }

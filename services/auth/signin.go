@@ -86,7 +86,7 @@ func UserSignIn(ctx context.Context, username, password string) (*user_model.Use
 		}
 	}
 
-	sources, err := auth.FindSources(ctx, auth.FindSourcesOptions{
+	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
 		IsActive: util.OptionalBoolTrue,
 	})
 	if err != nil {

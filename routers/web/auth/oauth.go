@@ -970,8 +970,13 @@ func SignInOAuthCallback(ctx *context.Context) {
 				ctx.ServerError("CreateUser", err)
 				return
 			}
+			uname, err := getUserName(&gothUser)
+			if err != nil {
+				ctx.ServerError("UserSignIn", err)
+				return
+			}
 			u = &user_model.User{
-				Name:        getUserName(&gothUser),
+				Name:        uname,
 				FullName:    gothUser.Name,
 				Email:       gothUser.Email,
 				LoginType:   auth.OAuth2,

@@ -13,18 +13,6 @@
 
 	{{template "base/footer_content" .}}
 
-<!-- Third-party libraries -->
-{{if .EnableCaptcha}}
-	{{if eq .CaptchaType "recaptcha"}}
-		<script src='{{URLJoin .RecaptchaURL "api.js"}}'></script>
-	{{end}}
-	{{if eq .CaptchaType "hcaptcha"}}
-		<script src='https://hcaptcha.com/1/api.js'></script>
-	{{end}}
-	{{if eq .CaptchaType "cfturnstile"}}
-		<script src='https://challenges.cloudflare.com/turnstile/v0/api.js'></script>
-	{{end}}
-{{end}}
 	<script src="{{AssetUrlPrefix}}/js/index.js?v={{AssetVersion}}" onerror="alert('Failed to load asset files from ' + this.src + '. Please make sure the asset files can be accessed.')"></script>
 
 	{{template "custom/footer" .}}

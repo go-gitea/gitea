@@ -32,7 +32,12 @@ func AddGitSizeAndLFSSizeToRepositoryTable(x *xorm.Engine) error {
 		return err
 	}
 
-	_, err = sess.Exec(`UPDATE repository SET git_size = size - lfs_size`)
+	_, err = sess.Exec(`UPDATE repository SET size = 0 WHERE size IS NULL`)
+	if err != nil {
+		return err
+	}
+
+	_, err = sess.Exec(`UPDATE repository SET git_size = size - lfs_size WHERE size > lfs_size`)
 	if err != nil {
 		return err
 	}

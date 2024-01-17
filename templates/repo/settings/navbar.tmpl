@@ -7,31 +7,31 @@
 		<a class="{{if .PageIsSettingsCollaboration}}active {{end}}item" href="{{.RepoLink}}/settings/collaboration">
 			{{ctx.Locale.Tr "repo.settings.collaboration"}}
 		</a>
-		{{if not .Repository.IsEmpty}}
-			<a class="{{if .PageIsSettingsBranches}}active {{end}}item" href="{{.RepoLink}}/settings/branches">
-				{{ctx.Locale.Tr "repo.settings.branches"}}
-			</a>
-		{{end}}
-		<a class="{{if .PageIsSettingsTags}}active {{end}}item" href="{{.RepoLink}}/settings/tags">
-			{{ctx.Locale.Tr "repo.settings.tags"}}
-		</a>
 		{{if not DisableWebhooks}}
 			<a class="{{if .PageIsSettingsHooks}}active {{end}}item" href="{{.RepoLink}}/settings/hooks">
 				{{ctx.Locale.Tr "repo.settings.hooks"}}
 			</a>
 		{{end}}
-		{{if .SignedUser.CanEditGitHook}}
-			<a class="{{if .PageIsSettingsGitHooks}}active {{end}}item" href="{{.RepoLink}}/settings/hooks/git">
-				{{ctx.Locale.Tr "repo.settings.githooks"}}
+		{{if and (.Repository.UnitEnabled $.Context $.UnitTypeCode) (not .Repository.IsEmpty)}}
+			<a class="{{if .PageIsSettingsBranches}}active {{end}}item" href="{{.RepoLink}}/settings/branches">
+				{{ctx.Locale.Tr "repo.settings.branches"}}
 			</a>
-		{{end}}
-		<a class="{{if .PageIsSettingsKeys}}active {{end}}item" href="{{.RepoLink}}/settings/keys">
-			{{ctx.Locale.Tr "repo.settings.deploy_keys"}}
-		</a>
-		{{if .LFSStartServer}}
-			<a class="{{if .PageIsSettingsLFS}}active {{end}}item" href="{{.RepoLink}}/settings/lfs">
-				{{ctx.Locale.Tr "repo.settings.lfs"}}
+			<a class="{{if .PageIsSettingsTags}}active {{end}}item" href="{{.RepoLink}}/settings/tags">
+				{{ctx.Locale.Tr "repo.settings.tags"}}
 			</a>
+			{{if .SignedUser.CanEditGitHook}}
+				<a class="{{if .PageIsSettingsGitHooks}}active {{end}}item" href="{{.RepoLink}}/settings/hooks/git">
+					{{ctx.Locale.Tr "repo.settings.githooks"}}
+				</a>
+			{{end}}
+			<a class="{{if .PageIsSettingsKeys}}active {{end}}item" href="{{.RepoLink}}/settings/keys">
+				{{ctx.Locale.Tr "repo.settings.deploy_keys"}}
+			</a>
+			{{if .LFSStartServer}}
+				<a class="{{if .PageIsSettingsLFS}}active {{end}}item" href="{{.RepoLink}}/settings/lfs">
+					{{ctx.Locale.Tr "repo.settings.lfs"}}
+				</a>
+			{{end}}
 		{{end}}
 		{{if and .EnableActions (not .UnitActionsGlobalDisabled) (.Permission.CanRead $.UnitTypeActions)}}
 		<details class="item toggleable-item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets .PageIsSharedSettingsVariables}}open{{end}}>

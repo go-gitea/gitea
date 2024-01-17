@@ -544,3 +544,31 @@ func Test_ValidateUser(t *testing.T) {
 		assert.EqualValues(t, expected, err == nil, fmt.Sprintf("case: %+v", kase))
 	}
 }
+
+func Test_NormalizeUserFromEmail(t *testing.T) {
+	testCases := []struct {
+		Input             string
+		Expected          string
+		IsNormalizedValid bool
+	}{
+		{"test", "test", true},
+		{"Sinéad.O'Connor", "Sinead.OConnor", true},
+		{"Æsir", "AEsir", true},
+		// \u00e9\u0065\u0301
+		{"éé", "ee", true},
+		{"Awareness Hub", "Awareness-Hub", true},
+		{"double__underscore", "double__underscore", false}, // We should consider squashing double non-alpha characters
+		{".bad.", ".bad.", false},
+		{"new😀user", "new😀user", false}, // No plans to support
+	}
+	for _, testCase := range testCases {
+		normalizedName, err := user_model.NormalizeUserName(testCase.Input)
+		assert.NoError(t, err)
+		assert.EqualValues(t, testCase.Expected, normalizedName)
+		if testCase.IsNormalizedValid {
+			assert.NoError(t, user_model.IsUsableUsername(normalizedName))
+		} else {
+			assert.Error(t, user_model.IsUsableUsername(normalizedName))
+		}
+	}
+}

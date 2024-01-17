@@ -534,15 +534,6 @@ func GetIssueByID(ctx context.Context, id int64) (*Issue, error) {
 	return issue, nil
 }
 
-// GetIssueWithAttrsByID returns an issue with attributes by given ID.
-func GetIssueWithAttrsByID(ctx context.Context, id int64) (*Issue, error) {
-	issue, err := GetIssueByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	return issue, issue.LoadAttributes(ctx)
-}
-
 // GetIssuesByIDs return issues with the given IDs.
 // If keepOrder is true, the order of the returned issues will be the same as the given IDs.
 func GetIssuesByIDs(ctx context.Context, issueIDs []int64, keepOrder ...bool) (IssueList, error) {

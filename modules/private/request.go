@@ -47,6 +47,7 @@ func (re responseError) Error() string {
 // requestJSONResp sends a request to the gitea server and then parses the response.
 // If the status code is not 2xx, or any error occurs, the ResponseExtra.Error field is guaranteed to be non-nil,
 // and the ResponseExtra.UserMsg field will be set to a message for the end user.
+// Caller should check the ResponseExtra.HasError() first to see whether the request fails.
 //
 // * If the "res" is a struct pointer, the response will be parsed as JSON
 // * If the "res" is responseText pointer, the response will be stored as text in it

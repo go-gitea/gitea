@@ -129,6 +129,7 @@ func (e *errMergeConflict) Error() string {
 
 func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, gitRepo *git.Repository) error {
 	log.Trace("Attempt to merge:\n%v", file)
+
 	switch {
 	case file.stage1 != nil && (file.stage2 == nil || file.stage3 == nil):
 		// 1. Deleted in one or both:

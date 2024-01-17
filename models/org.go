@@ -57,7 +57,7 @@ func RemoveOrgUser(ctx context.Context, orgID, userID int64) error {
 	}
 	defer committer.Close()
 
-	if _, err := db.GetEngine(ctx).ID(ou.ID).Delete(ou); err != nil {
+	if _, err := db.DeleteByID[organization.OrgUser](ctx, ou.ID); err != nil {
 		return err
 	} else if _, err = db.Exec(ctx, "UPDATE `user` SET num_members=num_members-1 WHERE id=?", orgID); err != nil {
 		return err

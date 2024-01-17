@@ -7,6 +7,7 @@ package repo
 import (
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/webhook"
@@ -58,13 +59,7 @@ func ListHooks(ctx *context.APIContext) {
 		RepoID:      ctx.Repo.Repository.ID,
 	}
 
-	count, err := webhook.CountWebhooksByOpts(ctx, opts)
-	if err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
-
-	hooks, err := webhook.ListWebhooksByOpts(ctx, opts)
+	hooks, count, err := db.FindAndCount[webhook.Webhook](ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

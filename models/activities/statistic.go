@@ -52,7 +52,7 @@ type IssueByRepositoryCount struct {
 func GetStatistic(ctx context.Context) (stats Statistic) {
 	e := db.GetEngine(ctx)
 	stats.Counter.User = user_model.CountUsers(ctx, nil)
-	stats.Counter.Org, _ = organization.CountOrgs(ctx, organization.FindOrgOptions{IncludePrivate: true})
+	stats.Counter.Org, _ = db.Count[organization.Organization](ctx, organization.FindOrgOptions{IncludePrivate: true})
 	stats.Counter.PublicKey, _ = e.Count(new(asymkey_model.PublicKey))
 	stats.Counter.Repo, _ = repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{})
 	stats.Counter.Watch, _ = e.Count(new(repo_model.Watch))
@@ -102,7 +102,7 @@ func GetStatistic(ctx context.Context) (stats Statistic) {
 	stats.Counter.Follow, _ = e.Count(new(user_model.Follow))
 	stats.Counter.Mirror, _ = e.Count(new(repo_model.Mirror))
 	stats.Counter.Release, _ = e.Count(new(repo_model.Release))
-	stats.Counter.AuthSource = auth.CountSources(ctx, auth.FindSourcesOptions{})
+	stats.Counter.AuthSource, _ = db.Count[auth.Source](ctx, auth.FindSourcesOptions{})
 	stats.Counter.Webhook, _ = e.Count(new(webhook.Webhook))
 	stats.Counter.Milestone, _ = e.Count(new(issues_model.Milestone))
 	stats.Counter.Label, _ = e.Count(new(issues_model.Label))

@@ -456,7 +456,7 @@ func queryUserOrgIDs(userID int64, includePrivate bool) *builder.Builder {
 	return builder.Select("org_id").From("org_user").Where(cond)
 }
 
-func (opts FindOrgOptions) toConds() builder.Cond {
+func (opts FindOrgOptions) ToConds() builder.Cond {
 	var cond builder.Cond = builder.Eq{"`user`.`type`": user_model.UserTypeOrganization}
 	if opts.UserID > 0 {
 		cond = cond.And(builder.In("`user`.`id`", queryUserOrgIDs(opts.UserID, opts.IncludePrivate)))
@@ -467,23 +467,8 @@ func (opts FindOrgOptions) toConds() builder.Cond {
 	return cond
 }
 
-// FindOrgs returns a list of organizations according given conditions
-func FindOrgs(ctx context.Context, opts FindOrgOptions) ([]*Organization, error) {
-	orgs := make([]*Organization, 0, 10)
-	sess := db.GetEngine(ctx).
-		Where(opts.toConds()).
-		Asc("`user`.name")
-	if opts.Page > 0 && opts.PageSize > 0 {
-		sess.Limit(opts.PageSize, opts.PageSize*(opts.Page-1))
-	}
-	return orgs, sess.Find(&orgs)
-}
-
-// CountOrgs returns total count organizations according options
-func CountOrgs(ctx context.Context, opts FindOrgOptions) (int64, error) {
-	return db.GetEngine(ctx).
-		Where(opts.toConds()).
-		Count(new(Organization))
+func (opts FindOrgOptions) ToOrders() string {
+	return "`user`.name ASC"
 }
 
 // HasOrgOrUserVisible tells if the given user can see the given org or user

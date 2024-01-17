@@ -22,7 +22,11 @@ func TestGetCommitStatuses(t *testing.T) {
 
 	sha1 := "1234123412341234123412341234123412341234"
 
-	statuses, maxResults, err := git_model.GetCommitStatuses(db.DefaultContext, repo1, sha1, &git_model.CommitStatusOptions{ListOptions: db.ListOptions{Page: 1, PageSize: 50}})
+	statuses, maxResults, err := db.FindAndCount[git_model.CommitStatus](db.DefaultContext, &git_model.CommitStatusOptions{
+		ListOptions: db.ListOptions{Page: 1, PageSize: 50},
+		RepoID:      repo1.ID,
+		SHA:         sha1,
+	})
 	assert.NoError(t, err)
 	assert.Equal(t, int(maxResults), 5)
 	assert.Len(t, statuses, 5)
@@ -46,4 +50,13 @@ func TestGetCommitStatuses(t *testing.T) {
 	assert.Equal(t, "deploy/awesomeness", statuses[4].Context)
 	assert.Equal(t, structs.CommitStatusError, statuses[4].State)
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[4].APIURL(db.DefaultContext))
+
+	statuses, maxResults, err = db.FindAndCount[git_model.CommitStatus](db.DefaultContext, &git_model.CommitStatusOptions{
+		ListOptions: db.ListOptions{Page: 2, PageSize: 50},
+		RepoID:      repo1.ID,
+		SHA:         sha1,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, int(maxResults), 5)
+	assert.Empty(t, statuses)
 }

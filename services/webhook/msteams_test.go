@@ -329,6 +329,33 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Equal(t, "http://localhost:3000/test/repo", pl.(*MSTeamsPayload).PotentialAction[0].Targets[0].URI)
 	})
 
+	t.Run("Package", func(t *testing.T) {
+		p := packageTestPayload()
+
+		d := new(MSTeamsPayload)
+		pl, err := d.Package(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &MSTeamsPayload{}, pl)
+
+		assert.Equal(t, "Package created: GiteaContainer:latest", pl.(*MSTeamsPayload).Title)
+		assert.Equal(t, "Package created: GiteaContainer:latest", pl.(*MSTeamsPayload).Summary)
+		assert.Len(t, pl.(*MSTeamsPayload).Sections, 1)
+		assert.Equal(t, "user1", pl.(*MSTeamsPayload).Sections[0].ActivitySubtitle)
+		assert.Empty(t, pl.(*MSTeamsPayload).Sections[0].Text)
+		assert.Len(t, pl.(*MSTeamsPayload).Sections[0].Facts, 1)
+		for _, fact := range pl.(*MSTeamsPayload).Sections[0].Facts {
+			if fact.Name == "Package:" {
+				assert.Equal(t, p.Package.Name, fact.Value)
+			} else {
+				t.Fail()
+			}
+		}
+		assert.Len(t, pl.(*MSTeamsPayload).PotentialAction, 1)
+		assert.Len(t, pl.(*MSTeamsPayload).PotentialAction[0].Targets, 1)
+		assert.Equal(t, "http://localhost:3000/user1/-/packages/container/GiteaContainer/latest", pl.(*MSTeamsPayload).PotentialAction[0].Targets[0].URI)
+	})
+
 	t.Run("Wiki", func(t *testing.T) {
 		p := wikiTestPayload()
 

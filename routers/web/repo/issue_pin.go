@@ -90,6 +90,12 @@ func IssuePinMove(ctx *context.Context) {
 		return
 	}
 
+	if issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.Status(http.StatusNotFound)
+		log.Error("Issue does not belong to this repository")
+		return
+	}
+
 	err = issue.MovePin(ctx, form.Position)
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)

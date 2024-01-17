@@ -44,7 +44,7 @@ func jobEmitterQueueHandler(items ...*jobUpdate) []*jobUpdate {
 }
 
 func checkJobsOfRun(ctx context.Context, runID int64) error {
-	jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: runID})
+	jobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: runID})
 	if err != nil {
 		return err
 	}

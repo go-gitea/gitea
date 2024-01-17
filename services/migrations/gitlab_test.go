@@ -516,3 +516,20 @@ func TestAwardsToReactions(t *testing.T) {
 		},
 	}, reactions)
 }
+
+func TestGitlabIIDResolver(t *testing.T) {
+	r := gitlabIIDResolver{}
+	r.recordIssueIID(1)
+	r.recordIssueIID(2)
+	r.recordIssueIID(3)
+	r.recordIssueIID(2)
+	assert.EqualValues(t, 4, r.generatePullRequestNumber(1))
+	assert.EqualValues(t, 13, r.generatePullRequestNumber(10))
+
+	assert.Panics(t, func() {
+		r := gitlabIIDResolver{}
+		r.recordIssueIID(1)
+		assert.EqualValues(t, 2, r.generatePullRequestNumber(1))
+		r.recordIssueIID(3) // the generation procedure has been started, it shouldn't accept any new issue IID, so it panics
+	})
+}

@@ -6,7 +6,7 @@
 			{{end}}
 		</div>
 	{{end}}
-	<div class="content gt-p-0 gt-w-100">
+	<div class="content gt-p-0 gt-w-full">
 		<div class="gt-df gt-items-start">
 			<div class="issue-card-icon">
 				{{template "shared/issueicon" .}}
@@ -33,7 +33,7 @@
 		</div>
 		{{if .MilestoneID}}
 		<div class="meta gt-my-2">
-			<a class="milestone" href="{{$.Page.RepoLink}}/milestone/{{.MilestoneID}}">
+			<a class="milestone" href="{{.Repo.Link}}/milestone/{{.MilestoneID}}">
 				{{svg "octicon-milestone" 16 "gt-mr-2 gt-vm"}}
 				<span class="gt-vm">{{.Milestone.Name}}</span>
 			</a>
@@ -42,7 +42,7 @@
 		{{if $.Page.LinkedPRs}}
 		{{range index $.Page.LinkedPRs .ID}}
 		<div class="meta gt-my-2">
-			<a href="{{$.Page.RepoLink}}/pulls/{{.Index}}">
+			<a href="{{$.Issue.Repo.Link}}/pulls/{{.Index}}">
 				<span class="gt-m-0 text {{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge" 16 "gt-mr-2 gt-vm"}}</span>
 				<span class="gt-vm">{{.Title}} <span class="text light grey">#{{.Index}}</span></span>
 			</a>
@@ -61,7 +61,7 @@
 	{{if or .Labels .Assignees}}
 	<div class="extra content labels-list gt-p-0 gt-pt-2">
 		{{range .Labels}}
-			<a target="_blank" href="{{$.Page.RepoLink}}/issues?labels={{.ID}}">{{RenderLabel ctx .}}</a>
+			<a target="_blank" href="{{$.Issue.Repo.Link}}/issues?labels={{.ID}}">{{RenderLabel ctx .}}</a>
 		{{end}}
 		<div class="right floated">
 			{{range .Assignees}}

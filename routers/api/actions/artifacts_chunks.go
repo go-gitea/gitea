@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 )
@@ -25,10 +26,11 @@ func saveUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext,
 	contentRange := ctx.Req.Header.Get("Content-Range")
 	start, end, length := int64(0), int64(0), int64(0)
 	if _, err := fmt.Sscanf(contentRange, "bytes %d-%d/%d", &start, &end, &length); err != nil {
+		log.Warn("parse content range error: %v, content-range: %s", err, contentRange)
 		return -1, fmt.Errorf("parse content range error: %v", err)
 	}
 	// build chunk store path
-	storagePath := fmt.Sprintf("tmp%d/%d-%d-%d.chunk", runID, artifact.ID, start, end)
+	storagePath := fmt.Sprintf("tmp%d/%d-%d-%d-%d.chunk", runID, runID, artifact.ID, start, end)
 	// use io.TeeReader to avoid reading all body to md5 sum.
 	// it writes data to hasher after reading end
 	// if hash is not matched, delete the read-end result
@@ -57,6 +59,7 @@ func saveUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext,
 }
 
 type chunkFileItem struct {
+	RunID      int64
 	ArtifactID int64
 	Start      int64
 	End        int64
@@ -66,9 +69,12 @@ type chunkFileItem struct {
 func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chunkFileItem, error) {
 	storageDir := fmt.Sprintf("tmp%d", runID)
 	var chunks []*chunkFileItem
-	if err := st.IterateObjects(storageDir, func(path string, obj storage.Object) error {
-		item := chunkFileItem{Path: path}
-		if _, err := fmt.Sscanf(path, filepath.Join(storageDir, "%d-%d-%d.chunk"), &item.ArtifactID, &item.Start, &item.End); err != nil {
+	if err := st.IterateObjects(storageDir, func(fpath string, obj storage.Object) error {
+		baseName := filepath.Base(fpath)
+		// when read chunks from storage, it only contains storage dir and basename,
+		// no matter the subdirectory setting in storage config
+		item := chunkFileItem{Path: storageDir + "/" + baseName}
+		if _, err := fmt.Sscanf(baseName, "%d-%d-%d-%d.chunk", &item.RunID, &item.ArtifactID, &item.Start, &item.End); err != nil {
 			return fmt.Errorf("parse content range error: %v", err)
 		}
 		chunks = append(chunks, &item)
@@ -86,7 +92,10 @@ func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chun
 
 func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID int64, artifactName string) error {
 	// read all db artifacts by name
-	artifacts, err := actions.ListArtifactsByRunIDAndName(ctx, runID, artifactName)
+	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
+		RunID:        runID,
+		ArtifactName: artifactName,
+	})
 	if err != nil {
 		return err
 	}
@@ -177,7 +186,14 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 	}()
 
 	// save storage path to artifact
-	log.Debug("[artifact] merge chunks to artifact: %d, %s", artifact.ID, storagePath)
+	log.Debug("[artifact] merge chunks to artifact: %d, %s, old:%s", artifact.ID, storagePath, artifact.StoragePath)
+	// if artifact is already uploaded, delete the old file
+	if artifact.StoragePath != "" {
+		if err := st.Delete(artifact.StoragePath); err != nil {
+			log.Warn("Error deleting old artifact: %s, %v", artifact.StoragePath, err)
+		}
+	}
+
 	artifact.StoragePath = storagePath
 	artifact.Status = int64(actions.ArtifactStatusUploadConfirmed)
 	if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {

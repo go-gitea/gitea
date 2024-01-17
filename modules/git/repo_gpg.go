@@ -17,7 +17,7 @@ func (gpgSettings *GPGSettings) LoadPublicKeyContent() error {
 		"gpg -a --export",
 		"gpg", "-a", "--export", gpgSettings.KeyID)
 	if err != nil {
-		return fmt.Errorf("Unable to get default signing key: %s, %s, %w", gpgSettings.KeyID, stderr, err)
+		return fmt.Errorf("unable to get default signing key: %s, %s, %w", gpgSettings.KeyID, stderr, err)
 	}
 	gpgSettings.PublicKeyContent = content
 	return nil

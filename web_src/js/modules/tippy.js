@@ -106,7 +106,7 @@ function switchTitleToTooltip(target) {
 /**
  * Creating tooltip tippy instance is expensive, so we only create it when the user hovers over the element
  * According to https://www.w3.org/TR/DOM-Level-3-Events/#events-mouseevent-event-order , mouseover event is fired before mouseenter event
- * Some old browsers like Pale Moon doesn't support "mouseenter(capture)"
+ * Some browsers like PaleMoon don't support "addEventListener('mouseenter', capture)"
  * The tippy by default uses "mouseenter" event to show, so we use "mouseover" event to switch to tippy
  * @param e {Event}
  */

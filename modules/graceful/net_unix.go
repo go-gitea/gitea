@@ -150,12 +150,8 @@ func CloseProvidedListeners() error {
 	return returnableError
 }
 
-// DefaultGetListener obtains a listener for the local network address. The network must be
-// a stream-oriented network: "tcp", "tcp4", "tcp6", "unix" or "unixpacket". It
-// returns an provided net.Listener for the matching network and address, or
-// creates a new one using net.Listen. This function can be replaced by changing the
-// GetListener variable at the top of this file, for example to listen on an onion service using
-// github.com/cretz/bine
+// DefaultGetListener obtains a listener for the stream-oriented local network address:
+// "tcp", "tcp4", "tcp6", "unix" or "unixpacket".
 func DefaultGetListener(network, address string) (net.Listener, error) {
 	// Add a deferral to say that we've tried to grab a listener
 	defer GetManager().InformCleanup()

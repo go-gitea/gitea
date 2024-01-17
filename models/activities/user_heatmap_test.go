@@ -59,8 +59,8 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// Mock time
-	timeutil.Set(time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC))
-	defer timeutil.Unset()
+	timeutil.MockSet(time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC))
+	defer timeutil.MockUnset()
 
 	for _, tc := range testCases {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: tc.userID})

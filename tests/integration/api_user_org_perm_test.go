@@ -35,7 +35,8 @@ func sampleTest(t *testing.T, auoptc apiUserOrgPermTestCase) {
 	session := loginUser(t, auoptc.LoginUser)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser)
 
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/orgs/%s/permissions?token=%s", auoptc.User, auoptc.Organization, token))
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/orgs/%s/permissions", auoptc.User, auoptc.Organization)).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var apiOP api.OrganizationPermissions
@@ -128,7 +129,8 @@ func TestUnknowUser(t *testing.T) {
 	session := loginUser(t, "user1")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadOrganization)
 
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/unknow/orgs/org25/permissions?token=%s", token))
+	req := NewRequest(t, "GET", "/api/v1/users/unknow/orgs/org25/permissions").
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusNotFound)
 
 	var apiError api.APIError
@@ -142,7 +144,8 @@ func TestUnknowOrganization(t *testing.T) {
 	session := loginUser(t, "user1")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadOrganization)
 
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/user1/orgs/unknow/permissions?token=%s", token))
+	req := NewRequest(t, "GET", "/api/v1/users/user1/orgs/unknow/permissions").
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusNotFound)
 	var apiError api.APIError
 	DecodeJSON(t, resp, &apiError)

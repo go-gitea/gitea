@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 )
 
@@ -132,6 +133,9 @@ func timeSinceUnix(then, now time.Time, lang translation.Locale) template.HTML {
 
 // TimeSince renders relative time HTML given a time.Time
 func TimeSince(then time.Time, lang translation.Locale) template.HTML {
+	if setting.UI.PreferredTimestampTense == "absolute" {
+		return DateTime("full", then, `class="time-since"`)
+	}
 	return timeSinceUnix(then, time.Now(), lang)
 }
 

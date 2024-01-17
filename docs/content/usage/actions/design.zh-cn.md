@@ -96,7 +96,7 @@ act runner 必须能够连接到Gitea以接收任务并发送执行结果回来�
 ### 连接 2，Job容器到Gitea实例
 
 即使Job容器位于同一台机器上，它们的网络命名空间与Runner不同。
-举个例子，如果工作流中包含 `actions/checkout@v3`，Job容器需要连接到Gitea来获取代码。
+举个例子，如果工作流中包含 `actions/checkout@v4`，Job容器需要连接到Gitea来获取代码。
 获取代码并不总是运行某些Job所必需的，但在大多数情况下是必需的。
 
 如果您使用回环地址注册Runner，当Runner与Gitea在同一台机器上时，Runner可以连接到Gitea。
@@ -104,7 +104,7 @@ act runner 必须能够连接到Gitea以接收任务并发送执行结果回来�
 
 ### 连接 3，act runner到互联网
 
-当您使用诸如 `actions/checkout@v3` 的一些Actions时，act runner下载的是脚本，而不是Job容器。
+当您使用诸如 `actions/checkout@v4` 的一些Actions时，act runner下载的是脚本，而不是Job容器。
 默认情况下，它从[gitea.com](http://gitea.com/)下载，因此需要访问互联网。
 它还默认从Docker Hub下载一些Docker镜像，这也需要互联网访问。
 
@@ -117,7 +117,7 @@ act runner 必须能够连接到Gitea以接收任务并发送执行结果回来�
 
 ### 连接 4，Job容器到互联网
 
-当使用诸如`actions/setup-go@v4`的Actions时，可能需要从互联网下载资源，以设置Job容器中的Go语言环境。
+当使用诸如`actions/setup-go@v5`的Actions时，可能需要从互联网下载资源，以设置Job容器中的Go语言环境。
 因此，成功完成这些Actions需要访问互联网。
 
 然而，这也是可选的。

@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	lru "github.com/hashicorp/golang-lru/v2"
+	"xorm.io/builder"
 )
 
 // ErrAccessTokenNotExist represents a "AccessTokenNotExist" kind of error.
@@ -201,40 +202,24 @@ type ListAccessTokensOptions struct {
 	UserID int64
 }
 
-// ListAccessTokens returns a list of access tokens belongs to given user.
-func ListAccessTokens(ctx context.Context, opts ListAccessTokensOptions) ([]*AccessToken, error) {
-	sess := db.GetEngine(ctx).Where("uid=?", opts.UserID)
-
-	if len(opts.Name) != 0 {
-		sess = sess.Where("name=?", opts.Name)
+func (opts ListAccessTokensOptions) ToConds() builder.Cond {
+	cond := builder.NewCond()
+	// user id is required, otherwise it will return all result which maybe a possible bug
+	cond = cond.And(builder.Eq{"uid": opts.UserID})
+	if len(opts.Name) > 0 {
+		cond = cond.And(builder.Eq{"name": opts.Name})
 	}
+	return cond
+}
 
-	sess = sess.Desc("created_unix")
-
-	if opts.Page != 0 {
-		sess = db.SetSessionPagination(sess, &opts)
-
-		tokens := make([]*AccessToken, 0, opts.PageSize)
-		return tokens, sess.Find(&tokens)
-	}
-
-	tokens := make([]*AccessToken, 0, 5)
-	return tokens, sess.Find(&tokens)
+func (opts ListAccessTokensOptions) ToOrders() string {
+	return "created_unix DESC"
 }
 
 // UpdateAccessToken updates information of access token.
 func UpdateAccessToken(ctx context.Context, t *AccessToken) error {
 	_, err := db.GetEngine(ctx).ID(t.ID).AllCols().Update(t)
 	return err
-}
-
-// CountAccessTokens count access tokens belongs to given user by options
-func CountAccessTokens(ctx context.Context, opts ListAccessTokensOptions) (int64, error) {
-	sess := db.GetEngine(ctx).Where("uid=?", opts.UserID)
-	if len(opts.Name) != 0 {
-		sess = sess.Where("name=?", opts.Name)
-	}
-	return sess.Count(&AccessToken{})
 }
 
 // DeleteAccessTokenByID deletes access token by given ID.

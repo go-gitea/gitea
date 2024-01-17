@@ -227,11 +227,18 @@ func GetPushMirrorByName(ctx *context.APIContext) {
 
 	mirrorName := ctx.Params(":name")
 	// Get push mirror of a specific repo by remoteName
-	pushMirror, err := repo_model.GetPushMirror(ctx, repo_model.PushMirrorOptions{RepoID: ctx.Repo.Repository.ID, RemoteName: mirrorName})
+	pushMirror, exist, err := db.Get[repo_model.PushMirror](ctx, repo_model.PushMirrorOptions{
+		RepoID:     ctx.Repo.Repository.ID,
+		RemoteName: mirrorName,
+	}.ToConds())
 	if err != nil {
-		ctx.Error(http.StatusNotFound, "GetPushMirrors", err)
+		ctx.Error(http.StatusInternalServerError, "GetPushMirrors", err)
+		return
+	} else if !exist {
+		ctx.Error(http.StatusNotFound, "GetPushMirrors", nil)
 		return
 	}
+
 	m, err := convert.ToPushMirror(ctx, pushMirror)
 	if err != nil {
 		ctx.ServerError("GetPushMirrorByRemoteName", err)
@@ -368,7 +375,7 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 		RemoteAddress: remoteAddress,
 	}
 
-	if err = repo_model.InsertPushMirror(ctx, pushMirror); err != nil {
+	if err = db.Insert(ctx, pushMirror); err != nil {
 		ctx.ServerError("InsertPushMirror", err)
 		return
 	}

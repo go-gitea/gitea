@@ -53,7 +53,7 @@
 														<a href="{{$.SourcePath}}/src/commit/{{PathEscape $result.CommitID}}/{{PathEscapeSegments $result.Filename}}#L{{.}}"><span>{{.}}</span></a>
 													{{end}}
 												</td>
-												<td class="lines-code chroma"><code class="code-inner">{{.FormattedLines | Safe}}</code></td>
+												<td class="lines-code chroma"><code class="code-inner">{{.FormattedLines}}</code></td>
 											</tr>
 										</tbody>
 									</table>

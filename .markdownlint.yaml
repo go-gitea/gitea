@@ -1,12 +1,12 @@
 commands-show-output: false
 fenced-code-language: false
 first-line-h1: false
-header-increment: false
+heading-increment: false
 line-length: {code_blocks: false, tables: false, stern: true, line_length: -1}
 no-alt-text: false
 no-bare-urls: false
 no-blanks-blockquote: false
-no-emphasis-as-header: false
+no-emphasis-as-heading: false
 no-empty-links: false
 no-hard-tabs: {code_blocks: false}
 no-inline-html: false

@@ -9,6 +9,9 @@
 		{{if .CanReadProjects}}
 		<a class="{{if .PageIsViewProjects}}active {{end}}item" href="{{$.Org.HomeLink}}/-/projects">
 			{{svg "octicon-project-symlink"}} {{ctx.Locale.Tr "user.projects"}}
+			{{if .ProjectCount}}
+				<div class="ui small label">{{.ProjectCount}}</div>
+			{{end}}
 		</a>
 		{{end}}
 		{{if and .IsPackageEnabled .CanReadPackages}}

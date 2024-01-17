@@ -1358,23 +1358,6 @@ img.ui.avatar,
   padding-right: 4.5px;
 }
 
-.repo-title {
-  font-size: 1.5rem;
-  display: flex;
-  align-items: center;
-  flex: 1;
-  word-break: break-all;
-  color: var(--color-text-light);
-}
-
-.repo-title .labels {
-  margin-left: 0.5rem;
-}
-
-.repo-title .labels > * + * {
-  margin-left: 0.5rem;
-}
-
 .activity-bar-graph {
   background-color: var(--color-primary);
   color: var(--color-primary-contrast);
@@ -1781,11 +1764,12 @@ a.ui.basic.label:hover {
   bottom: 0;
   display: flex;
   align-items: center;
+  gap: 0.25em;
 }
 
-.ui.attached.header > .ui.right > .button,
-.ui.attached.header > .ui.right > .dropdown > .button {
-  padding: 8px 10px;
+/* the default ".ui.attached.header > .ui.right" is only able to contain "tiny" buttons, other buttons are too large */
+.ui.attached.header > .ui.right .ui.tiny.button {
+  padding: 6px 10px;
   font-weight: var(--font-weight-normal);
 }
 

@@ -18,8 +18,12 @@ func TestDeleteNotPassedAssignee(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// Fake issue with assignees
-	issue, err := issues_model.GetIssueWithAttrsByID(db.DefaultContext, 1)
+	issue, err := issues_model.GetIssueByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
+
+	err = issue.LoadAttributes(db.DefaultContext)
+	assert.NoError(t, err)
+
 	assert.Len(t, issue.Assignees, 1)
 
 	user1, err := user_model.GetUserByID(db.DefaultContext, 1) // This user is already assigned (see the definition in fixtures), so running  UpdateAssignee should unassign him

@@ -112,7 +112,7 @@ func DeleteReleaseByTag(ctx *context.APIContext) {
 		return
 	}
 
-	if err = releaseservice.DeleteReleaseByID(ctx, release.ID, ctx.Doer, false); err != nil {
+	if err = releaseservice.DeleteReleaseByID(ctx, ctx.Repo.Repository, release, ctx.Doer, false); err != nil {
 		if models.IsErrProtectedTagName(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "delTag", "user not allowed to delete protected tag")
 			return

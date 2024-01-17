@@ -29,10 +29,9 @@ func NodeInfo(ctx *context.APIContext) {
 
 	nodeInfoUsage := structs.NodeInfoUsage{}
 	if setting.Federation.ShareUserStatistics {
-		cached := false
-		if setting.CacheService.Enabled {
-			nodeInfoUsage, cached = ctx.Cache.Get(cacheKeyNodeInfoUsage).(structs.NodeInfoUsage)
-		}
+		var cached bool
+		nodeInfoUsage, cached = ctx.Cache.Get(cacheKeyNodeInfoUsage).(structs.NodeInfoUsage)
+
 		if !cached {
 			usersTotal := int(user_model.CountUsers(ctx, nil))
 			now := time.Now()
@@ -53,11 +52,10 @@ func NodeInfo(ctx *context.APIContext) {
 				LocalPosts:    int(allIssues),
 				LocalComments: int(allComments),
 			}
-			if setting.CacheService.Enabled {
-				if err := ctx.Cache.Put(cacheKeyNodeInfoUsage, nodeInfoUsage, 180); err != nil {
-					ctx.InternalServerError(err)
-					return
-				}
+
+			if err := ctx.Cache.Put(cacheKeyNodeInfoUsage, nodeInfoUsage, 180); err != nil {
+				ctx.InternalServerError(err)
+				return
 			}
 		}
 	}

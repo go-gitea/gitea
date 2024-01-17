@@ -2,7 +2,7 @@ import $ from 'jquery';
 
 const {pageData} = window.config;
 
-const initInputCitationValue = async ($citationCopyApa, $citationCopyBibtex) => {
+async function initInputCitationValue($citationCopyApa, $citationCopyBibtex) {
   const [{Cite, plugins}] = await Promise.all([
     import(/* webpackChunkName: "citation-js-core" */'@citation-js/core'),
     import(/* webpackChunkName: "citation-js-formats" */'@citation-js/plugin-software-formats'),
@@ -19,9 +19,9 @@ const initInputCitationValue = async ($citationCopyApa, $citationCopyBibtex) => 
   const bibtexOutput = citationFormatter.format('bibtex', {lang});
   $citationCopyBibtex.attr('data-text', bibtexOutput);
   $citationCopyApa.attr('data-text', apaOutput);
-};
+}
 
-export function initCitationFileCopyContent() {
+export async function initCitationFileCopyContent() {
   const defaultCitationFormat = 'apa'; // apa or bibtex
 
   if (!pageData.citationFileContent) return;
@@ -39,7 +39,14 @@ export function initCitationFileCopyContent() {
     $citationCopyBibtex.toggleClass('primary', isBibtex);
     $citationCopyApa.toggleClass('primary', !isBibtex);
   };
-  initInputCitationValue($citationCopyApa, $citationCopyBibtex).then(updateUi);
+
+  try {
+    await initInputCitationValue($citationCopyApa, $citationCopyBibtex);
+  } catch (e) {
+    console.error(`initCitationFileCopyContent error: ${e}`, e);
+    return;
+  }
+  updateUi();
 
   $citationCopyApa.on('click', () => {
     localStorage.setItem('citation-copy-format', 'apa');

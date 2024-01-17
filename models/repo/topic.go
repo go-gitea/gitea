@@ -377,3 +377,13 @@ func syncTopicsInRepository(sess db.Engine, repoID int64) error {
 	}
 	return nil
 }
+
+// CountOrphanedAttachments returns the number of topics that don't belong to any repository.
+func CountOrphanedTopics(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where("repo_count = 0").Count(new(Topic))
+}
+
+// DeleteOrphanedAttachments delete all topics that don't belong to any repository.
+func DeleteOrphanedTopics(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where("repo_count = 0").Delete(new(Topic))
+}

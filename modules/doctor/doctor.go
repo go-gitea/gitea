@@ -79,6 +79,7 @@ var Checks []*Check
 
 // RunChecks runs the doctor checks for the provided list
 func RunChecks(ctx context.Context, colorize, autofix bool, checks []*Check) error {
+	SortChecks(checks)
 	// the checks output logs by a special logger, they do not use the default logger
 	logger := log.BaseLoggerToGeneralLogger(&doctorCheckLogger{colorize: colorize})
 	loggerStep := log.BaseLoggerToGeneralLogger(&doctorCheckStepLogger{colorize: colorize})
@@ -104,20 +105,23 @@ func RunChecks(ctx context.Context, colorize, autofix bool, checks []*Check) err
 			logger.Info("OK")
 		}
 	}
-	logger.Info("\nAll done.")
+	logger.Info("\nAll done (checks: %d).", len(checks))
 	return nil
 }
 
 // Register registers a command with the list
 func Register(command *Check) {
 	Checks = append(Checks, command)
-	sort.SliceStable(Checks, func(i, j int) bool {
-		if Checks[i].Priority == Checks[j].Priority {
-			return Checks[i].Name < Checks[j].Name
+}
+
+func SortChecks(checks []*Check) {
+	sort.SliceStable(checks, func(i, j int) bool {
+		if checks[i].Priority == checks[j].Priority {
+			return checks[i].Name < checks[j].Name
 		}
-		if Checks[i].Priority == 0 {
+		if checks[i].Priority == 0 {
 			return false
 		}
-		return Checks[i].Priority < Checks[j].Priority
+		return checks[i].Priority < checks[j].Priority
 	})
 }

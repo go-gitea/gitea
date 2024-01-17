@@ -49,16 +49,16 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 		return nil
 	}
 	issueIDs := prs.GetIssueIDs()
-	var codeComments []*issues_model.Comment
 
-	if err := db.Find(ctx, &issues_model.FindCommentsOptions{
+	codeComments, err := db.Find[issues_model.Comment](ctx, issues_model.FindCommentsOptions{
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},
 		Type:        issues_model.CommentTypeCode,
 		Invalidated: util.OptionalBoolFalse,
 		IssueIDs:    issueIDs,
-	}, &codeComments); err != nil {
+	})
+	if err != nil {
 		return fmt.Errorf("find code comments: %v", err)
 	}
 	for _, comment := range codeComments {

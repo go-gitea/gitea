@@ -89,17 +89,23 @@ func TestRepository_CountCollaborators(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	count, err := repo_model.CountCollaborators(db.DefaultContext, repo1.ID)
+	count, err := db.Count[repo_model.Collaboration](db.DefaultContext, repo_model.FindCollaborationOptions{
+		RepoID: repo1.ID,
+	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, count)
 
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 22})
-	count, err = repo_model.CountCollaborators(db.DefaultContext, repo2.ID)
+	count, err = db.Count[repo_model.Collaboration](db.DefaultContext, repo_model.FindCollaborationOptions{
+		RepoID: repo2.ID,
+	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, count)
 
 	// Non-existent repository.
-	count, err = repo_model.CountCollaborators(db.DefaultContext, unittest.NonexistentID)
+	count, err = db.Count[repo_model.Collaboration](db.DefaultContext, repo_model.FindCollaborationOptions{
+		RepoID: unittest.NonexistentID,
+	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
 }

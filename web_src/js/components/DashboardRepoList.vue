@@ -210,7 +210,6 @@ const sfc = {
       this.searchRepos();
     },
 
-
     changePage(page) {
       this.page = page;
       if (this.page > this.finalPage) {

@@ -108,25 +108,27 @@
 			</tr>
 			{{if and (eq .GetType 3) $hasmatch}}
 				{{$match := index $section.Lines $line.Match}}
-				{{if or (gt (len $line.Comments) 0) (gt (len $match.Comments) 0)}}
+				{{if or $line.Comments $match.Comments}}
 					<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
 						<td class="add-comment-left" colspan="4">
-							{{if gt (len $line.Comments) 0}}
+							{{if $line.Comments}}
 								{{if eq $line.GetCommentSide "previous"}}
 									{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
 								{{end}}
 							{{end}}
-							{{if gt (len $match.Comments) 0}}
+							{{if $match.Comments}}
 								{{if eq $match.GetCommentSide "previous"}}
 									{{template "repo/diff/conversation" dict "." $.root "comments" $match.Comments}}
 								{{end}}
 							{{end}}
 						</td>
 						<td class="add-comment-right" colspan="4">
-							{{if eq $line.GetCommentSide "proposed"}}
-								{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
+							{{if $line.Comments}}
+								{{if eq $line.GetCommentSide "proposed"}}
+									{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
+								{{end}}
 							{{end}}
-							{{if gt (len $match.Comments) 0}}
+							{{if $match.Comments}}
 								{{if eq $match.GetCommentSide "proposed"}}
 									{{template "repo/diff/conversation" dict "." $.root "comments" $match.Comments}}
 								{{end}}
@@ -134,13 +136,11 @@
 						</td>
 					</tr>
 				{{end}}
-			{{else if gt (len $line.Comments) 0}}
+			{{else if $line.Comments}}
 				<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
 					<td class="add-comment-left" colspan="4">
-						{{if gt (len $line.Comments) 0}}
-							{{if eq $line.GetCommentSide "previous"}}
-								{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
-							{{end}}
+						{{if eq $line.GetCommentSide "previous"}}
+							{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
 						{{end}}
 					</td>
 					<td class="add-comment-right" colspan="4">

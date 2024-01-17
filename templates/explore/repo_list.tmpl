@@ -7,9 +7,10 @@
 			<div class="flex-item-main">
 				<div class="flex-item-header">
 					<div class="flex-item-title">
-						<a class="text primary name" href="{{.Link}}">
-							{{if or $.PageIsExplore $.PageIsProfileStarList}}{{if .Owner}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}
-						</a>
+						{{if and (or $.PageIsExplore $.PageIsProfileStarList) .Owner}}
+						<a class="text primary name" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/
+						{{end}}
+						<a class="text primary name" href="{{.Link}}">{{.Name}}</a>
 						<span class="label-list">
 							{{if .IsArchived}}
 								<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
@@ -28,7 +29,7 @@
 					</div>
 					<div class="flex-item-trailing">
 						{{if .PrimaryLanguage}}
-							<a class="muted" href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}&language={{.PrimaryLanguage.Language}}">
+							<a class="muted" href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}&language={{.PrimaryLanguage.Language}}{{if $.TabName}}&tab={{$.TabName}}{{end}}">
 								<span class="flex-text-inline"><i class="color-icon gt-mr-3" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{.PrimaryLanguage.Language}}</span>
 							</a>
 						{{end}}

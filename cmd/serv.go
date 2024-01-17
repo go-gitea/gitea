@@ -42,7 +42,7 @@ const (
 // CmdServ represents the available serv sub-command.
 var CmdServ = &cli.Command{
 	Name:        "serv",
-	Usage:       "This command should only be called by SSH shell",
+	Usage:       "(internal) Should only be called by SSH shell",
 	Description: "Serv provides access auth for repositories",
 	Before:      PrepareConsoleLoggerLevel(log.FATAL),
 	Action:      runServ,

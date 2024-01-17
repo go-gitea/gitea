@@ -58,4 +58,11 @@ func MonitorDiagnosis(ctx *context.Context) {
 		return
 	}
 	_ = pprof.Lookup("goroutine").WriteTo(f, 1)
+
+	f, err = zipWriter.CreateHeader(&zip.FileHeader{Name: "heap.dat", Method: zip.Deflate, Modified: time.Now()})
+	if err != nil {
+		ctx.ServerError("Failed to create zip file", err)
+		return
+	}
+	_ = pprof.Lookup("heap").WriteTo(f, 0)
 }

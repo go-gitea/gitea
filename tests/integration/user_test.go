@@ -262,7 +262,7 @@ func TestListStopWatches(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	req := NewRequestf(t, "GET", "/user/stopwatches")
+	req := NewRequest(t, "GET", "/user/stopwatches")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiWatches []*api.StopWatch
 	DecodeJSON(t, resp, &apiWatches)

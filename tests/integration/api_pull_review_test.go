@@ -29,7 +29,8 @@ func TestAPIPullReview(t *testing.T) {
 	// test ListPullReviews
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token)
+	req := NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var reviews []*api.PullReview
@@ -54,20 +55,23 @@ func TestAPIPullReview(t *testing.T) {
 	assert.True(t, reviews[5].Official)
 
 	// test GetPullReview
-	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, reviews[3].ID, token)
+	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d", repo.OwnerName, repo.Name, pullIssue.Index, reviews[3].ID).
+		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	var review api.PullReview
 	DecodeJSON(t, resp, &review)
 	assert.EqualValues(t, *reviews[3], review)
 
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/%d/reviews/%d?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, reviews[5].ID, token)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/%d/reviews/%d", repo.OwnerName, repo.Name, pullIssue.Index, reviews[5].ID).
+		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &review)
 	assert.EqualValues(t, *reviews[5], review)
 
 	// test GetPullReviewComments
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 7})
-	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d/comments?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, 10, token)
+	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d/comments", repo.OwnerName, repo.Name, pullIssue.Index, 10).
+		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	var reviewComments []*api.PullReviewComment
 	DecodeJSON(t, resp, &reviewComments)
@@ -79,7 +83,7 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, comment.HTMLURL(db.DefaultContext), reviewComments[0].HTMLURL)
 
 	// test CreatePullReview
-	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
 		Body: "body1",
 		// Event: "" # will result in PENDING
 		Comments: []api.CreatePullReviewComment{
@@ -100,7 +104,7 @@ func TestAPIPullReview(t *testing.T) {
 				NewLineNum: 1,
 			},
 		},
-	})
+	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &review)
 	assert.EqualValues(t, 6, review.ID)
@@ -108,10 +112,10 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, 3, review.CodeCommentsCount)
 
 	// test SubmitPullReview
-	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, review.ID, token), &api.SubmitPullReviewOptions{
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d", repo.OwnerName, repo.Name, pullIssue.Index, review.ID), &api.SubmitPullReviewOptions{
 		Event: "APPROVED",
 		Body:  "just two nits",
-	})
+	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &review)
 	assert.EqualValues(t, 6, review.ID)
@@ -119,35 +123,37 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, 3, review.CodeCommentsCount)
 
 	// test dismiss review
-	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d/dismissals?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, review.ID, token), &api.DismissPullReviewOptions{
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d/dismissals", repo.OwnerName, repo.Name, pullIssue.Index, review.ID), &api.DismissPullReviewOptions{
 		Message: "test",
-	})
+	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &review)
 	assert.EqualValues(t, 6, review.ID)
 	assert.True(t, review.Dismissed)
 
 	// test dismiss review
-	req = NewRequest(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d/undismissals?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, review.ID, token))
+	req = NewRequest(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d/undismissals", repo.OwnerName, repo.Name, pullIssue.Index, review.ID)).
+		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &review)
 	assert.EqualValues(t, 6, review.ID)
 	assert.False(t, review.Dismissed)
 
 	// test DeletePullReview
-	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
 		Body:  "just a comment",
 		Event: "COMMENT",
-	})
+	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &review)
 	assert.EqualValues(t, "COMMENT", review.State)
 	assert.EqualValues(t, 0, review.CodeCommentsCount)
-	req = NewRequestf(t, http.MethodDelete, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, review.ID, token)
+	req = NewRequestf(t, http.MethodDelete, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d", repo.OwnerName, repo.Name, pullIssue.Index, review.ID).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// test CreatePullReview Comment without body but with comments
-	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
 		// Body:  "",
 		Event: "COMMENT",
 		Comments: []api.CreatePullReviewComment{
@@ -163,7 +169,7 @@ func TestAPIPullReview(t *testing.T) {
 				NewLineNum: 0,
 			},
 		},
-	})
+	}).AddTokenAuth(token)
 	var commentReview api.PullReview
 
 	resp = MakeRequest(t, req, http.StatusOK)
@@ -175,11 +181,11 @@ func TestAPIPullReview(t *testing.T) {
 
 	// test CreatePullReview Comment with body but without comments
 	commentBody := "This is a body of the comment."
-	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
 		Body:     commentBody,
 		Event:    "COMMENT",
 		Comments: []api.CreatePullReviewComment{},
-	})
+	}).AddTokenAuth(token)
 
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &commentReview)
@@ -189,11 +195,11 @@ func TestAPIPullReview(t *testing.T) {
 	assert.False(t, commentReview.Dismissed)
 
 	// test CreatePullReview Comment without body and no comments
-	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
 		Body:     "",
 		Event:    "COMMENT",
 		Comments: []api.CreatePullReviewComment{},
-	})
+	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusUnprocessableEntity)
 	errMap := make(map[string]any)
 	json.Unmarshal(resp.Body.Bytes(), &errMap)
@@ -205,7 +211,8 @@ func TestAPIPullReview(t *testing.T) {
 	assert.NoError(t, pullIssue12.LoadAttributes(db.DefaultContext))
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue12.RepoID})
 
-	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token)
+	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews", repo3.OwnerName, repo3.Name, pullIssue12.Index).
+		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &reviews)
 	assert.EqualValues(t, 11, reviews[0].ID)
@@ -232,41 +239,41 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	// Test add Review Request
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
 		Reviewers: []string{"user4@example.com", "user8"},
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 
 	// poster of pr can't be reviewer
-	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
 		Reviewers: []string{"user1"},
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	// test user not exist
-	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
 		Reviewers: []string{"testOther"},
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// Test Remove Review Request
 	session2 := loginUser(t, "user4")
 	token2 := getTokenForLoggedInUser(t, session2, auth_model.AccessTokenScopeWriteRepository)
 
-	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token2), &api.PullReviewRequestOptions{
+	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
 		Reviewers: []string{"user4"},
-	})
+	}).AddTokenAuth(token2)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// doer is not admin
-	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token2), &api.PullReviewRequestOptions{
+	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
 		Reviewers: []string{"user8"},
-	})
+	}).AddTokenAuth(token2)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 
-	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
+	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
 		Reviewers: []string{"user8"},
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Test team review request
@@ -275,33 +282,35 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue12.RepoID})
 
 	// Test add Team Review Request
-	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo3.OwnerName, repo3.Name, pullIssue12.Index), &api.PullReviewRequestOptions{
 		TeamReviewers: []string{"team1", "owners"},
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 
 	// Test add Team Review Request to not allowned
-	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo3.OwnerName, repo3.Name, pullIssue12.Index), &api.PullReviewRequestOptions{
 		TeamReviewers: []string{"test_team"},
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	// Test add Team Review Request to not exist
-	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo3.OwnerName, repo3.Name, pullIssue12.Index), &api.PullReviewRequestOptions{
 		TeamReviewers: []string{"not_exist_team"},
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// Test Remove team Review Request
-	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{
+	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo3.OwnerName, repo3.Name, pullIssue12.Index), &api.PullReviewRequestOptions{
 		TeamReviewers: []string{"team1"},
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// empty request test
-	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{})
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo3.OwnerName, repo3.Name, pullIssue12.Index), &api.PullReviewRequestOptions{}).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 
-	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{})
+	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo3.OwnerName, repo3.Name, pullIssue12.Index), &api.PullReviewRequestOptions{}).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 }

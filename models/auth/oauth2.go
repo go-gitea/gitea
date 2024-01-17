@@ -5,6 +5,7 @@ package auth
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base32"
 	"encoding/base64"
 	"fmt"
@@ -19,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	uuid "github.com/google/uuid"
-	"github.com/minio/sha256-simd"
 	"golang.org/x/crypto/bcrypt"
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -243,13 +243,6 @@ func GetOAuth2ApplicationByID(ctx context.Context, id int64) (app *OAuth2Applica
 	return app, nil
 }
 
-// GetOAuth2ApplicationsByUserID returns all oauth2 applications owned by the user
-func GetOAuth2ApplicationsByUserID(ctx context.Context, userID int64) (apps []*OAuth2Application, err error) {
-	apps = make([]*OAuth2Application, 0)
-	err = db.GetEngine(ctx).Where("uid = ?", userID).Find(&apps)
-	return apps, err
-}
-
 // CreateOAuth2ApplicationOptions holds options to create an oauth2 application
 type CreateOAuth2ApplicationOptions struct {
 	Name               string
@@ -370,25 +363,6 @@ func DeleteOAuth2Application(ctx context.Context, id, userid int64) error {
 		return err
 	}
 	return committer.Commit()
-}
-
-// ListOAuth2Applications returns a list of oauth2 applications belongs to given user.
-func ListOAuth2Applications(ctx context.Context, uid int64, listOptions db.ListOptions) ([]*OAuth2Application, int64, error) {
-	sess := db.GetEngine(ctx).
-		Where("uid=?", uid).
-		Desc("id")
-
-	if listOptions.Page != 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
-
-		apps := make([]*OAuth2Application, 0, listOptions.PageSize)
-		total, err := sess.FindAndCount(&apps)
-		return apps, total, err
-	}
-
-	apps := make([]*OAuth2Application, 0, 5)
-	total, err := sess.FindAndCount(&apps)
-	return apps, total, err
 }
 
 //////////////////////////////////////////////////////

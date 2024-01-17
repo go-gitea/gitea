@@ -131,7 +131,7 @@ func TestCountOrganizations(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	expected, err := db.GetEngine(db.DefaultContext).Where("type=?", user_model.UserTypeOrganization).Count(&organization.Organization{})
 	assert.NoError(t, err)
-	cnt, err := organization.CountOrgs(db.DefaultContext, organization.FindOrgOptions{IncludePrivate: true})
+	cnt, err := db.Count[organization.Organization](db.DefaultContext, organization.FindOrgOptions{IncludePrivate: true})
 	assert.NoError(t, err)
 	assert.Equal(t, expected, cnt)
 }
@@ -183,7 +183,7 @@ func TestIsPublicMembership(t *testing.T) {
 func TestFindOrgs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	orgs, err := organization.FindOrgs(db.DefaultContext, organization.FindOrgOptions{
+	orgs, err := db.Find[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
 		UserID:         4,
 		IncludePrivate: true,
 	})
@@ -192,14 +192,14 @@ func TestFindOrgs(t *testing.T) {
 		assert.EqualValues(t, 3, orgs[0].ID)
 	}
 
-	orgs, err = organization.FindOrgs(db.DefaultContext, organization.FindOrgOptions{
+	orgs, err = db.Find[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
 		UserID:         4,
 		IncludePrivate: false,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, orgs, 0)
 
-	total, err := organization.CountOrgs(db.DefaultContext, organization.FindOrgOptions{
+	total, err := db.Count[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
 		UserID:         4,
 		IncludePrivate: true,
 	})

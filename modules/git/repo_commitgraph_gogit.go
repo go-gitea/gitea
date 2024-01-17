@@ -22,7 +22,7 @@ func (r *Repository) CommitNodeIndex() (cgobject.CommitNodeIndex, *os.File) {
 
 	file, err := os.Open(indexPath)
 	if err == nil {
-		var index commitgraph.Index
+		var index commitgraph.Index // TODO: in newer go-git, it might need to use "github.com/go-git/go-git/v5/plumbing/format/commitgraph/v2" package to compile
 		index, err = commitgraph.OpenFileIndex(file)
 		if err == nil {
 			return cgobject.NewGraphCommitNodeIndex(index, r.gogitRepo.Storer), file

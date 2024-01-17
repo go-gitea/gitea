@@ -12,7 +12,7 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 	searchOpt := &SearchOptions{
 		Keyword:   keyword,
 		RepoIDs:   opts.RepoIDs,
-		AllPublic: false,
+		AllPublic: opts.AllPublic,
 		IsPull:    opts.IsPull,
 		IsClosed:  opts.IsClosed,
 	}

@@ -25,7 +25,7 @@ To avoid confusion, we have clarified the spelling here:
 - "Gitea Actions" (with an "s", both words capitalized) is the name of the Gitea feature.
 - "GitHub Actions" is the name of the GitHub feature.
 - "Actions" could refer to either of the above, depending on the context. So it refers to "Gitea Actions" in this document.
-- "action" or "actions" refer to some scripts/plugins to be used, like "actions/checkout@v3" or "actions/cache@v3".
+- "action" or "actions" refer to some scripts/plugins to be used, like "actions/checkout@v4" or "actions/cache@v3".
 
 ## Runners
 

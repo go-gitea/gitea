@@ -4,6 +4,7 @@
 package templates
 
 import (
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
@@ -23,6 +24,10 @@ func (su *StringUtils) HasPrefix(s, prefix string) bool {
 
 func (su *StringUtils) Contains(s, substr string) bool {
 	return strings.Contains(s, substr)
+}
+
+func (su *StringUtils) ReplaceAllStringRegex(s, regex, new string) string {
+	return regexp.MustCompile(regex).ReplaceAllString(s, new)
 }
 
 func (su *StringUtils) Split(s, sep string) []string {

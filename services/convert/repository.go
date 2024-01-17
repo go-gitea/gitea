@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -133,7 +134,11 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		return nil
 	}
 
-	numReleases, _ := repo_model.GetReleaseCountByRepoID(ctx, repo.ID, repo_model.FindReleasesOptions{IncludeDrafts: false, IncludeTags: false})
+	numReleases, _ := db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
+		IncludeDrafts: false,
+		IncludeTags:   false,
+		RepoID:        repo.ID,
+	})
 
 	mirrorInterval := ""
 	var mirrorUpdated time.Time

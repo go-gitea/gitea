@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -18,8 +17,10 @@ import (
 
 // BlamePart represents block of blame - continuous lines with one sha
 type BlamePart struct {
-	Sha   string
-	Lines []string
+	Sha          string
+	Lines        []string
+	PreviousSha  string
+	PreviousPath string
 }
 
 // BlameReader returns part of file blame one by one
@@ -30,47 +31,56 @@ type BlameReader struct {
 	done           chan error
 	lastSha        *string
 	ignoreRevsFile *string
+	objectFormat   ObjectFormat
 }
 
 func (r *BlameReader) UsesIgnoreRevs() bool {
 	return r.ignoreRevsFile != nil
 }
 
-var shaLineRegex = regexp.MustCompile("^([a-z0-9]{40})")
-
 // NextPart returns next part of blame (sequential code lines with the same commit)
 func (r *BlameReader) NextPart() (*BlamePart, error) {
 	var blamePart *BlamePart
 
 	if r.lastSha != nil {
-		blamePart = &BlamePart{*r.lastSha, make([]string, 0)}
+		blamePart = &BlamePart{
+			Sha:   *r.lastSha,
+			Lines: make([]string, 0),
+		}
 	}
 
-	var line []byte
+	const previousHeader = "previous "
+	var lineBytes []byte
 	var isPrefix bool
 	var err error
 
 	for err != io.EOF {
-		line, isPrefix, err = r.bufferedReader.ReadLine()
+		lineBytes, isPrefix, err = r.bufferedReader.ReadLine()
 		if err != nil && err != io.EOF {
 			return blamePart, err
 		}
 
-		if len(line) == 0 {
+		if len(lineBytes) == 0 {
 			// isPrefix will be false
 			continue
 		}
 
-		lines := shaLineRegex.FindSubmatch(line)
-		if lines != nil {
-			sha1 := string(lines[1])
+		var objectID string
+		objectFormatLength := r.objectFormat.FullLength()
 
+		if len(lineBytes) > objectFormatLength && lineBytes[objectFormatLength] == ' ' && r.objectFormat.IsValid(string(lineBytes[0:objectFormatLength])) {
+			objectID = string(lineBytes[0:objectFormatLength])
+		}
+		if len(objectID) > 0 {
 			if blamePart == nil {
-				blamePart = &BlamePart{sha1, make([]string, 0)}
+				blamePart = &BlamePart{
+					Sha:   objectID,
+					Lines: make([]string, 0),
+				}
 			}
 
-			if blamePart.Sha != sha1 {
-				r.lastSha = &sha1
+			if blamePart.Sha != objectID {
+				r.lastSha = &objectID
 				// need to munch to end of line...
 				for isPrefix {
 					_, isPrefix, err = r.bufferedReader.ReadLine()
@@ -80,10 +90,13 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 				}
 				return blamePart, nil
 			}
-		} else if line[0] == '\t' {
-			code := line[1:]
-
-			blamePart.Lines = append(blamePart.Lines, string(code))
+		} else if lineBytes[0] == '\t' {
+			blamePart.Lines = append(blamePart.Lines, string(lineBytes[1:]))
+		} else if bytes.HasPrefix(lineBytes, []byte(previousHeader)) {
+			offset := len(previousHeader) // already includes a space
+			blamePart.PreviousSha = string(lineBytes[offset : offset+objectFormatLength])
+			offset += objectFormatLength + 1 // +1 for space
+			blamePart.PreviousPath = string(lineBytes[offset:])
 		}
 
 		// need to munch to end of line...
@@ -113,7 +126,7 @@ func (r *BlameReader) Close() error {
 }
 
 // CreateBlameReader creates reader for given repository, commit and file
-func CreateBlameReader(ctx context.Context, repoPath string, commit *Commit, file string, bypassBlameIgnore bool) (*BlameReader, error) {
+func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath string, commit *Commit, file string, bypassBlameIgnore bool) (*BlameReader, error) {
 	var ignoreRevsFile *string
 	if CheckGitVersionAtLeast("2.23") == nil && !bypassBlameIgnore {
 		ignoreRevsFile = tryCreateBlameIgnoreRevsFile(commit)
@@ -162,6 +175,7 @@ func CreateBlameReader(ctx context.Context, repoPath string, commit *Commit, fil
 		bufferedReader: bufferedReader,
 		done:           done,
 		ignoreRevsFile: ignoreRevsFile,
+		objectFormat:   objectFormat,
 	}, nil
 }
 

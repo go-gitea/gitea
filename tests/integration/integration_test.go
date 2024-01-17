@@ -163,14 +163,15 @@ func (s *TestSession) GetCookie(name string) *http.Cookie {
 	return nil
 }
 
-func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
+func (s *TestSession) MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
+	req := rw.Request
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
 	for _, c := range s.jar.Cookies(baseURL) {
 		req.AddCookie(c)
 	}
-	resp := MakeRequest(t, req, expectedStatus)
+	resp := MakeRequest(t, rw, expectedStatus)
 
 	ch := http.Header{}
 	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
@@ -180,14 +181,15 @@ func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatu
 	return resp
 }
 
-func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
+func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, rw *RequestWrapper, expectedStatus int) *NilResponseRecorder {
 	t.Helper()
+	req := rw.Request
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
 	for _, c := range s.jar.Cookies(baseURL) {
 		req.AddCookie(c)
 	}
-	resp := MakeRequestNilResponseRecorder(t, req, expectedStatus)
+	resp := MakeRequestNilResponseRecorder(t, rw, expectedStatus)
 
 	ch := http.Header{}
 	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
@@ -197,14 +199,15 @@ func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, req *http.Req
 	return resp
 }
 
-func (s *TestSession) MakeRequestNilResponseHashSumRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseHashSumRecorder {
+func (s *TestSession) MakeRequestNilResponseHashSumRecorder(t testing.TB, rw *RequestWrapper, expectedStatus int) *NilResponseHashSumRecorder {
 	t.Helper()
+	req := rw.Request
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
 	for _, c := range s.jar.Cookies(baseURL) {
 		req.AddCookie(c)
 	}
-	resp := MakeRequestNilResponseHashSumRecorder(t, req, expectedStatus)
+	resp := MakeRequestNilResponseHashSumRecorder(t, rw, expectedStatus)
 
 	ch := http.Header{}
 	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
@@ -314,17 +317,42 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.
 	return token
 }
 
-func NewRequest(t testing.TB, method, urlStr string) *http.Request {
+type RequestWrapper struct {
+	*http.Request
+}
+
+func (req *RequestWrapper) AddBasicAuth(username string) *RequestWrapper {
+	req.Request.SetBasicAuth(username, userPassword)
+	return req
+}
+
+func (req *RequestWrapper) AddTokenAuth(token string) *RequestWrapper {
+	if token == "" {
+		return req
+	}
+	if !strings.HasPrefix(token, "Bearer ") {
+		token = "Bearer " + token
+	}
+	req.Request.Header.Set("Authorization", token)
+	return req
+}
+
+func (req *RequestWrapper) SetHeader(name, value string) *RequestWrapper {
+	req.Request.Header.Set(name, value)
+	return req
+}
+
+func NewRequest(t testing.TB, method, urlStr string) *RequestWrapper {
 	t.Helper()
 	return NewRequestWithBody(t, method, urlStr, nil)
 }
 
-func NewRequestf(t testing.TB, method, urlFormat string, args ...any) *http.Request {
+func NewRequestf(t testing.TB, method, urlFormat string, args ...any) *RequestWrapper {
 	t.Helper()
 	return NewRequest(t, method, fmt.Sprintf(urlFormat, args...))
 }
 
-func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string]string) *http.Request {
+func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string]string) *RequestWrapper {
 	t.Helper()
 	urlValues := url.Values{}
 	for key, value := range values {
@@ -333,43 +361,38 @@ func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string
 	return NewRequestWithURLValues(t, method, urlStr, urlValues)
 }
 
-func NewRequestWithURLValues(t testing.TB, method, urlStr string, urlValues url.Values) *http.Request {
+func NewRequestWithURLValues(t testing.TB, method, urlStr string, urlValues url.Values) *RequestWrapper {
 	t.Helper()
-	req := NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode()))
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	return req
+	return NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode())).
+		SetHeader("Content-Type", "application/x-www-form-urlencoded")
 }
 
-func NewRequestWithJSON(t testing.TB, method, urlStr string, v any) *http.Request {
+func NewRequestWithJSON(t testing.TB, method, urlStr string, v any) *RequestWrapper {
 	t.Helper()
 
 	jsonBytes, err := json.Marshal(v)
 	assert.NoError(t, err)
-	req := NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes))
-	req.Header.Add("Content-Type", "application/json")
-	return req
+	return NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes)).
+		SetHeader("Content-Type", "application/json")
 }
 
-func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *http.Request {
+func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *RequestWrapper {
 	t.Helper()
 	if !strings.HasPrefix(urlStr, "http") && !strings.HasPrefix(urlStr, "/") {
 		urlStr = "/" + urlStr
 	}
-	request, err := http.NewRequest(method, urlStr, body)
+	req, err := http.NewRequest(method, urlStr, body)
 	assert.NoError(t, err)
-	request.RequestURI = urlStr
-	return request
-}
+	req.RequestURI = urlStr
 
-func AddBasicAuthHeader(request *http.Request, username string) *http.Request {
-	request.SetBasicAuth(username, userPassword)
-	return request
+	return &RequestWrapper{req}
 }
 
 const NoExpectedStatus = -1
 
-func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
+func MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
+	req := rw.Request
 	recorder := httptest.NewRecorder()
 	if req.RemoteAddr == "" {
 		req.RemoteAddr = "test-mock:12345"
@@ -383,8 +406,9 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.
 	return recorder
 }
 
-func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
+func MakeRequestNilResponseRecorder(t testing.TB, rw *RequestWrapper, expectedStatus int) *NilResponseRecorder {
 	t.Helper()
+	req := rw.Request
 	recorder := NewNilResponseRecorder()
 	testWebRoutes.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
@@ -396,8 +420,9 @@ func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedSta
 	return recorder
 }
 
-func MakeRequestNilResponseHashSumRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseHashSumRecorder {
+func MakeRequestNilResponseHashSumRecorder(t testing.TB, rw *RequestWrapper, expectedStatus int) *NilResponseHashSumRecorder {
 	t.Helper()
+	req := rw.Request
 	recorder := NewNilResponseHashSumRecorder()
 	testWebRoutes.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {

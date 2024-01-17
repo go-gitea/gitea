@@ -25,7 +25,7 @@ Gitea Actions与[GitHub Actions](https://github.com/features/actions)相似且�
 - "Gitea Actions"（两个单词都大写且带有"s"）是Gitea功能的名称。
 - "GitHub Actions"是GitHub功能的名称。
 - "Actions"根据上下文的不同可以指代以上任意一个。在本文档中指代的是"Gitea Actions"。
-- "action"或"actions"指代一些要使用的脚本/插件，比如"actions/checkout@v3"或"actions/cache@v3"。
+- "action"或"actions"指代一些要使用的脚本/插件，比如"actions/checkout@v4"或"actions/cache@v3"。
 
 ## Runner
 

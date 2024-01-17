@@ -117,7 +117,7 @@ chmod 770 /etc/gitea
 - 使用 `gitea generate secret` 创建 `SECRET_KEY` 和 `INTERNAL_TOKEN`
 - 提供所有必要的密钥
 
-详情参考 [命令行文档](/zh-cn/command-line/) 中有关 `gitea generate secret` 的内容。
+详情参考 [命令行文档](administration/command-line.md) 中有关 `gitea generate secret` 的内容。
 
 ### 配置 Gitea 工作路径
 
@@ -209,6 +209,6 @@ remote: ./hooks/pre-receive.d/gitea: line 2: [...]: No such file or directory
 
 如果您没有使用 Gitea 内置的 SSH 服务器，您还需要通过在管理选项中运行任务 `Update the '.ssh/authorized_keys' file with Gitea SSH keys.` 来重新编写授权密钥文件。
 
-> 更多经验总结，请参考英文版 [Troubleshooting](/en-us/install-from-binary/#troubleshooting)
+> 更多经验总结，请参考英文版 [Troubleshooting](https://docs.gitea.com/installation/install-from-binary#troubleshooting)
 
 如果从本页中没有找到你需要的内容，请访问 [帮助页面](help/support.md)

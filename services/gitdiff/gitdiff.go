@@ -285,15 +285,15 @@ type DiffInline struct {
 
 // DiffInlineWithUnicodeEscape makes a DiffInline with hidden unicode characters escaped
 func DiffInlineWithUnicodeEscape(s template.HTML, locale translation.Locale) DiffInline {
-	status, content := charset.EscapeControlHTML(string(s), locale)
-	return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
+	status, content := charset.EscapeControlHTML(s, locale)
+	return DiffInline{EscapeStatus: status, Content: content}
 }
 
 // DiffInlineWithHighlightCode makes a DiffInline with code highlight and hidden unicode characters escaped
 func DiffInlineWithHighlightCode(fileName, language, code string, locale translation.Locale) DiffInline {
 	highlighted, _ := highlight.Code(fileName, language, code)
 	status, content := charset.EscapeControlHTML(highlighted, locale)
-	return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
+	return DiffInline{EscapeStatus: status, Content: content}
 }
 
 // GetComputedInlineDiffFor computes inline diff for the given line.
@@ -1115,10 +1115,15 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	}
 
 	cmdDiff := git.NewCommand(gitRepo.Ctx)
-	if (len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == git.EmptySHA) && commit.ParentCount() == 0 {
+	objectFormat, err := gitRepo.GetObjectFormat()
+	if err != nil {
+		return nil, err
+	}
+
+	if (len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == objectFormat.EmptyObjectID().String()) && commit.ParentCount() == 0 {
 		cmdDiff.AddArguments("diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M").
 			AddArguments(opts.WhitespaceBehavior...).
-			AddArguments("4b825dc642cb6eb9a060e54bf8d69288fbee4904"). // append empty tree ref
+			AddDynamicArguments(objectFormat.EmptyTree().String()).
 			AddDynamicArguments(opts.AfterCommitID)
 	} else {
 		actualBeforeCommitID := opts.BeforeCommitID
@@ -1224,8 +1229,8 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	}
 
 	diffPaths := []string{opts.BeforeCommitID + separator + opts.AfterCommitID}
-	if len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == git.EmptySHA {
-		diffPaths = []string{git.EmptyTreeSHA, opts.AfterCommitID}
+	if len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == objectFormat.EmptyObjectID().String() {
+		diffPaths = []string{objectFormat.EmptyTree().String(), opts.AfterCommitID}
 	}
 	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, nil, diffPaths...)
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
@@ -1256,12 +1261,15 @@ func GetPullDiffStats(gitRepo *git.Repository, opts *DiffOptions) (*PullDiffStat
 		separator = ".."
 	}
 
-	diffPaths := []string{opts.BeforeCommitID + separator + opts.AfterCommitID}
-	if len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == git.EmptySHA {
-		diffPaths = []string{git.EmptyTreeSHA, opts.AfterCommitID}
+	objectFormat, err := gitRepo.GetObjectFormat()
+	if err != nil {
+		return nil, err
 	}
 
-	var err error
+	diffPaths := []string{opts.BeforeCommitID + separator + opts.AfterCommitID}
+	if len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == objectFormat.EmptyObjectID().String() {
+		diffPaths = []string{objectFormat.EmptyTree().String(), opts.AfterCommitID}
+	}
 
 	_, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, nil, diffPaths...)
 	if err != nil && strings.Contains(err.Error(), "no merge base") {

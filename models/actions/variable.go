@@ -31,8 +31,8 @@ func init() {
 }
 
 func (v *ActionVariable) Validate() error {
-	if v.OwnerID == 0 && v.RepoID == 0 {
-		return errors.New("the variable is not bound to any scope")
+	if v.OwnerID != 0 && v.RepoID != 0 {
+		return errors.New("a variable should not be bound to an owner and a repository at the same time")
 	}
 	return nil
 }
@@ -56,24 +56,11 @@ type FindVariablesOpts struct {
 	RepoID  int64
 }
 
-func (opts *FindVariablesOpts) toConds() builder.Cond {
+func (opts FindVariablesOpts) ToConds() builder.Cond {
 	cond := builder.NewCond()
-	if opts.OwnerID > 0 {
-		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
-	}
-	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
-	}
+	cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+	cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	return cond
-}
-
-func FindVariables(ctx context.Context, opts FindVariablesOpts) ([]*ActionVariable, error) {
-	var variables []*ActionVariable
-	sess := db.GetEngine(ctx)
-	if opts.PageSize != 0 {
-		sess = db.SetSessionPagination(sess, &opts.ListOptions)
-	}
-	return variables, sess.Where(opts.toConds()).Find(&variables)
 }
 
 func GetVariableByID(ctx context.Context, variableID int64) (*ActionVariable, error) {

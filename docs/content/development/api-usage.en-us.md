@@ -19,10 +19,7 @@ menu:
 
 ## Enabling/configuring API access
 
-By default, `ENABLE_SWAGGER` is true, and
-`MAX_RESPONSE_ITEMS` is set to 50. See [Config Cheat
-Sheet](administration/config-cheat-sheet.md) for more
-information.
+By default, `ENABLE_SWAGGER` is true, and `MAX_RESPONSE_ITEMS` is set to 50. See [Config Cheat Sheet](administration/config-cheat-sheet.md) for more information.
 
 ## Authentication
 

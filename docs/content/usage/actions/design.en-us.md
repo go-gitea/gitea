@@ -95,7 +95,7 @@ The act runner must be able to connect to Gitea to receive tasks and send back t
 ### Connection 2, job containers to Gitea instance
 
 The job containers have different network namespaces than the runner, even if they are on the same machine.
-They need to connect to Gitea to fetch codes if there is `actions/checkout@v3` in the workflow, for example.
+They need to connect to Gitea to fetch codes if there is `actions/checkout@v4` in the workflow, for example.
 Fetching code is not always necessary to run some jobs, but it is required in most cases.
 
 If you use a loopback address to register a runner, the runner can connect to Gitea when it is on the same machine.
@@ -103,7 +103,7 @@ However, if a job container tries to fetch code from localhost, it will fail bec
 
 ### Connection 3, act runner to internet
 
-When you use some actions like `actions/checkout@v3`, the act runner downloads the scripts, not the job containers.
+When you use some actions like `actions/checkout@v4`, the act runner downloads the scripts, not the job containers.
 By default, it downloads from [gitea.com](http://gitea.com/), so it requires access to the internet.
 It also downloads some docker images from Docker Hub by default, which also requires internet access.
 
@@ -116,7 +116,7 @@ And [Gitea Container Registry](usage/packages/container.md) can be used as a Doc
 
 ### Connection 4, job containers to internet
 
-When using actions such as `actions/setup-go@v4`, it may be necessary to download resources from the internet to set up the Go language environment in job containers.
+When using actions such as `actions/setup-go@v5`, it may be necessary to download resources from the internet to set up the Go language environment in job containers.
 Therefore, access to the internet is required for the successful completion of these actions.
 
 However, it is optional as well.

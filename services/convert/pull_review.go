@@ -21,15 +21,9 @@ func ToPullReview(ctx context.Context, r *issues_model.Review, doer *user_model.
 		r.Reviewer = user_model.NewGhostUser()
 	}
 
-	apiTeam, err := ToTeam(ctx, r.ReviewerTeam)
-	if err != nil {
-		return nil, err
-	}
-
 	result := &api.PullReview{
 		ID:                r.ID,
 		Reviewer:          ToUser(ctx, r.Reviewer, doer),
-		ReviewerTeam:      apiTeam,
 		State:             api.ReviewStateUnknown,
 		Body:              r.Content,
 		CommitID:          r.CommitID,
@@ -41,6 +35,14 @@ func ToPullReview(ctx context.Context, r *issues_model.Review, doer *user_model.
 		Updated:           r.UpdatedUnix.AsTime(),
 		HTMLURL:           r.HTMLURL(ctx),
 		HTMLPullURL:       r.Issue.HTMLURL(),
+	}
+
+	if r.ReviewerTeam != nil {
+		var err error
+		result.ReviewerTeam, err = ToTeam(ctx, r.ReviewerTeam)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	switch r.Type {
