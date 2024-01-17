@@ -56,7 +56,6 @@ func SetDefaultBranchPost(ctx *context.Context) {
 				ctx.ServerError("UpdateRepoLicenses", err)
 				return
 			}
-			// TODO: add notify_service.ChangeRepoLicenses
 		}
 
 		log.Trace("Repository basic settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
