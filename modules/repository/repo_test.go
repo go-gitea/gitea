@@ -6,7 +6,6 @@ package repository
 import (
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 
 	"github.com/stretchr/testify/assert"
@@ -37,7 +36,7 @@ func Test_calcSync(t *testing.T) {
 		},
 	}
 
-	dbReleases := []*repo_model.Release{
+	dbReleases := []*shortRelease{
 		{
 			ID:      1,
 			TagName: "v0.1.0-beta",

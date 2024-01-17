@@ -492,6 +492,18 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 	return nil
 }
 
+// shortRelease to reduce load memory, this struct can replace repo_model.Release
+type shortRelease struct {
+	ID      int64
+	TagName string
+	Sha1    string
+	IsTag   bool
+}
+
+func (shortRelease) TableName() string {
+	return "release"
+}
+
 // pullMirrorReleaseSync is a pull-mirror specific tag<->release table
 // synchronization which overwrites all Releases from the repository tags. This
 // can be relied on since a pull-mirror is always identical to its
@@ -505,7 +517,7 @@ func pullMirrorReleaseSync(ctx context.Context, repo *repo_model.Repository, git
 		return fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 	}
 	err = db.WithTx(ctx, func(ctx context.Context) error {
-		dbReleases, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
+		dbReleases, err := db.Find[shortRelease](ctx, repo_model.FindReleasesOptions{
 			RepoID: repo.ID,
 		})
 		if err != nil {
@@ -562,12 +574,12 @@ func pullMirrorReleaseSync(ctx context.Context, repo *repo_model.Repository, git
 	return nil
 }
 
-func calcSync(destTags []*git.Tag, dbTags []*repo_model.Release) ([]*git.Tag, []int64, []*git.Tag) {
+func calcSync(destTags []*git.Tag, dbTags []*shortRelease) ([]*git.Tag, []int64, []*git.Tag) {
 	destTagMap := make(map[string]*git.Tag)
 	for _, tag := range destTags {
 		destTagMap[tag.Name] = tag
 	}
-	dbTagMap := make(map[string]*repo_model.Release)
+	dbTagMap := make(map[string]*shortRelease)
 	for _, rel := range dbTags {
 		dbTagMap[rel.TagName] = rel
 	}
