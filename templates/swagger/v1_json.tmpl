@@ -2393,7 +2393,18 @@
             "name": "limit",
             "in": "query"
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
       },
       "post": {
         "consumes": [
@@ -2423,7 +2434,15 @@
               "$ref": "#/definitions/NewProjectPayload"
             }
           }
-        ]
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Project"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
       }
     },
     "/orgs/{org}/public_members": {
@@ -3045,7 +3064,18 @@
             "in": "path",
             "required": true
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Project"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
       },
       "delete": {
         "tags": [
@@ -3061,7 +3091,18 @@
             "in": "path",
             "required": true
           }
-        ]
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted the project"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
       },
       "patch": {
         "consumes": [
@@ -3091,7 +3132,18 @@
               "$ref": "#/definitions/UpdateProjectPayload"
             }
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Project"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
       }
     },
     "/repos/issues/search": {
@@ -10365,7 +10417,18 @@
             "name": "limit",
             "in": "query"
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
       },
       "post": {
         "consumes": [
@@ -10402,7 +10465,18 @@
               "$ref": "#/definitions/NewProjectPayload"
             }
           }
-        ]
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Project"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
       }
     },
     "/repos/{owner}/{repo}/pulls": {
@@ -15819,7 +15893,18 @@
             "name": "limit",
             "in": "query"
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
       },
       "post": {
         "consumes": [
@@ -15842,7 +15927,18 @@
               "$ref": "#/definitions/NewProjectPayload"
             }
           }
-        ]
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Project"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
       }
     },
     "/user/repos": {

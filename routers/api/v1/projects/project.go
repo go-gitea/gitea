@@ -72,12 +72,12 @@ func CreateUserProject(ctx *context.APIContext) {
 	//     required: true
 	//     schema: { "$ref": "#/definitions/NewProjectPayload" }
 	// responses:
-	//	"201":
-	//	  "$ref": "#/responses/Project"
-	//	"403":
-	//	  "$ref": "#/responses/forbidden"
-	//	"404":
-	//	  "$ref": "#/responses/notFound"
+	//  "201":
+	//    "$ref": "#/responses/Project"
+	//  "403":
+	//    "$ref": "#/responses/forbidden"
+	//  "404":
+	//    "$ref": "#/responses/notFound"
 	innerCreateProject(ctx, project_model.TypeIndividual)
 }
 
@@ -100,12 +100,12 @@ func CreateOrgProject(ctx *context.APIContext) {
 	//     required: true
 	//     schema: { "$ref": "#/definitions/NewProjectPayload" }
 	// responses:
-	//	"201":
-	//	  "$ref": "#/responses/Project"
-	//	"403":
-	//	  "$ref": "#/responses/forbidden"
-	//	"404":
-	//	  "$ref": "#/responses/notFound"
+	//  "201":
+	//    "$ref": "#/responses/Project"
+	//  "403":
+	//    "$ref": "#/responses/forbidden"
+	// "404":
+	//    "$ref": "#/responses/notFound"
 	innerCreateProject(ctx, project_model.TypeOrganization)
 }
 
@@ -133,12 +133,12 @@ func CreateRepoProject(ctx *context.APIContext) {
 	//     required: true
 	//     schema: { "$ref": "#/definitions/NewProjectPayload" }
 	// responses:
-	//	"201":
-	//	  "$ref": "#/responses/Project"
-	//	"403":
-	//	  "$ref": "#/responses/forbidden"
-	//	"404":
-	//	  "$ref": "#/responses/notFound"
+	//  "201":
+	//    "$ref": "#/responses/Project"
+	//  "403":
+	//    "$ref": "#/responses/forbidden"
+	//  "404":
+	//    "$ref": "#/responses/notFound"
 	innerCreateProject(ctx, project_model.TypeRepository)
 }
 
@@ -155,12 +155,12 @@ func GetProject(ctx *context.APIContext) {
 	//     type: string
 	//     required: true
 	// responses:
-	//	"200":
-	//	  "$ref": "#/responses/Project"
-	//	"403":
-	//	  "$ref": "#/responses/forbidden"
-	//	"404":
-	//	  "$ref": "#/responses/notFound"
+	//  "200":
+	//    "$ref": "#/responses/Project"
+	//  "403":
+	//    "$ref": "#/responses/forbidden"
+	//  "404":
+	//    "$ref": "#/responses/notFound"
 	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
@@ -198,12 +198,12 @@ func UpdateProject(ctx *context.APIContext) {
 	//     required: true
 	//     schema: { "$ref": "#/definitions/UpdateProjectPayload" }
 	// responses:
-	//	"200":
-	//	  "$ref": "#/responses/Project"
-	//	"403":
-	//	  "$ref": "#/responses/forbidden"
-	//	"404":
-	//	  "$ref": "#/responses/notFound"
+	//  "200":
+	//    "$ref": "#/responses/Project"
+	//  "403":
+	//    "$ref": "#/responses/forbidden"
+	//  "404":
+	//    "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.UpdateProjectPayload)
 	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64("id"))
 	if err != nil {
@@ -245,12 +245,12 @@ func DeleteProject(ctx *context.APIContext) {
 	//     type: string
 	//     required: true
 	// responses:
-	//	"204":
-	//	  "description": "Deleted the project"
-	//	"403":
-	//	  "$ref": "#/responses/forbidden"
-	//	"404":
-	//	  "$ref": "#/responses/notFound"
+	//  "204":
+	//    "description": "Deleted the project"
+	//  "403":
+	//    "$ref": "#/responses/forbidden"
+	//  "404":
+	//    "$ref": "#/responses/notFound"
 
 	if err := project_model.DeleteProjectByID(ctx, ctx.ParamsInt64(":id")); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteProjectByID", err)
@@ -280,12 +280,12 @@ func ListUserProjects(ctx *context.APIContext) {
 	//     description: page size of results
 	//     type: integer
 	// responses:
-	//	"200":
-	//	  "$ref": "#/responses/ProjectList"
-	//	"403":
-	//	  "$ref": "#/responses/forbidden"
-	//	"404":
-	//	  "$ref": "#/responses/notFound"
+	//  "200":
+	//    "$ref": "#/responses/ProjectList"
+	//  "403":
+	//    "$ref": "#/responses/forbidden"
+	//  "404":
+	//    "$ref": "#/responses/notFound"
 	projects, count, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
 		Type:     project_model.TypeIndividual,
 		IsClosed: ctx.FormOptionalBool("closed"),
@@ -336,12 +336,12 @@ func ListOrgProjects(ctx *context.APIContext) {
 	//     description: page size of results
 	//     type: integer
 	// responses:
-	//	"200":
-	//	  "$ref": "#/responses/ProjectList"
-	//	"403":
-	//	  "$ref": "#/responses/forbidden"
-	//	"404":
-	//	  "$ref": "#/responses/notFound"
+	//  "200":
+	//    "$ref": "#/responses/ProjectList"
+	//  "403":
+	//    "$ref": "#/responses/forbidden"
+	//  "404":
+	//    "$ref": "#/responses/notFound"
 	projects, count, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
 		OwnerID: ctx.Org.Organization.AsUser().ID,
 		ListOptions: db.ListOptions{
@@ -397,12 +397,12 @@ func ListRepoProjects(ctx *context.APIContext) {
 	//     description: page size of results
 	//     type: integer
 	// responses:
-	//	"200":
-	//	  "$ref": "#/responses/ProjectList"
-	//	"403":
-	//	  "$ref": "#/responses/forbidden"
-	//	"404":
-	//	  "$ref": "#/responses/notFound"
+	//  "200":
+	//    "$ref": "#/responses/ProjectList"
+	//  "403":
+	//    "$ref": "#/responses/forbidden"
+	//  "404":
+	//    "$ref": "#/responses/notFound"
 	projects, count, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
 		RepoID:   ctx.Repo.Repository.ID,
 		IsClosed: ctx.FormOptionalBool("closed"),
