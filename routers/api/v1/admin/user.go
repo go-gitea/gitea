@@ -229,7 +229,9 @@ func EditUser(ctx *context.APIContext) {
 		ctx.ContextUser.MustChangePassword = *form.MustChangePassword
 	}
 
-	ctx.ContextUser.LoginName = form.LoginName
+	if len(form.LoginName) != 0 {
+		ctx.ContextUser.LoginName = form.LoginName
+	}
 
 	if form.FullName != nil {
 		ctx.ContextUser.FullName = *form.FullName

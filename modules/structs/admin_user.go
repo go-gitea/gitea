@@ -31,9 +31,8 @@ type CreateUserOption struct {
 // EditUserOption edit user options
 type EditUserOption struct {
 	// required: true
-	SourceID int64 `json:"source_id"`
-	// required: true
-	LoginName string `json:"login_name" binding:"Required"`
+	SourceID  int64  `json:"source_id"`
+	LoginName string `json:"login_name"`
 	// swagger:strfmt email
 	Email                   *string `json:"email" binding:"MaxSize(254)"`
 	FullName                *string `json:"full_name" binding:"MaxSize(100)"`
