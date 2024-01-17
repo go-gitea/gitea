@@ -121,11 +121,7 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 }
 
 func (run *ActionRun) Duration() time.Duration {
-	return run.CurrentDuration() + run.PreviousDuration
-}
-
-func (run *ActionRun) CurrentDuration() time.Duration {
-	return calculateDuration(run.Started, run.Stopped, run.Status)
+	return calculateDuration(run.Started, run.Stopped, run.Status) + run.PreviousDuration
 }
 
 func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
