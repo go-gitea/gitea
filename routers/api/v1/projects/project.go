@@ -143,7 +143,7 @@ func GetProject(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	//   - name: id
+	//   - name: projectId
 	//     in: path
 	//     description: id of the project
 	//     type: string
@@ -177,7 +177,7 @@ func UpdateProject(ctx *context.APIContext) {
 	// consumes:
 	// - application/json
 	// parameters:
-	//   - name: id
+	//   - name: projectId
 	//     in: path
 	//     description: id of the project
 	//     type: string
@@ -223,7 +223,7 @@ func DeleteProject(ctx *context.APIContext) {
 	// ---
 	// summary: Delete project
 	// parameters:
-	//   - name: id
+	//   - name: projectId
 	//     in: path
 	//     description: id of the project
 	//     type: string

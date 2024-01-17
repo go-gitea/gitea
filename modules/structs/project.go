@@ -5,6 +5,7 @@ package structs
 
 import "time"
 
+// swagger:model
 type NewProjectPayload struct {
 	// required:true
 	Title string `json:"title"       binding:"Required"`
@@ -15,6 +16,7 @@ type NewProjectPayload struct {
 	Description string `json:"description"`
 }
 
+// swagger:model
 type UpdateProjectPayload struct {
 	// required:true
 	Title       string `json:"title"       binding:"Required"`

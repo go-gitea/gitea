@@ -21,7 +21,7 @@ func ListProjectBoards(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	//   - name: id
+	//   - name: projectId
 	//     in: path
 	//     description: id of the project
 	//     type: string
@@ -78,7 +78,7 @@ func CreateProjectBoard(ctx *context.APIContext) {
 	// consumes:
 	// - application/json
 	// parameters:
-	//   - name: id
+	//   - name: projectId
 	//     in: path
 	//     description: id of the project
 	//     type: string
@@ -128,7 +128,7 @@ func GetProjectBoard(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	//   - name: id
+	//   - name: boardId
 	//     in: path
 	//     description: id of the board
 	//     type: string
@@ -164,7 +164,7 @@ func UpdateProjectBoard(ctx *context.APIContext) {
 	// consumes:
 	// - application/json
 	// parameters:
-	//   - name: id
+	//   - name: boardId
 	//     in: path
 	//     description: id of the project board
 	//     type: string
@@ -219,7 +219,7 @@ func DeleteProjectBoard(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	//   - name: id
+	//   - name: boardId
 	//     in: path
 	//     description: id of the project board
 	//     type: string
