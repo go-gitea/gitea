@@ -21119,6 +21119,35 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "NewProjectPayload": {
+      "type": "object",
+      "required": [
+        "title",
+        "board_type",
+        "card_type"
+      ],
+      "properties": {
+        "board_type": {
+          "type": "integer",
+          "format": "uint8",
+          "x-go-name": "BoardType"
+        },
+        "card_type": {
+          "type": "integer",
+          "format": "uint8",
+          "x-go-name": "CardType"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "NodeInfo": {
       "description": "NodeInfo contains standardized way of exposing metadata about a server running one of the distributed social networks",
       "type": "object",
@@ -21718,6 +21747,9 @@
         "is_closed": {
           "type": "boolean",
           "x-go-name": "IsClosed"
+        },
+        "owner": {
+          "$ref": "#/definitions/User"
         },
         "repository": {
           "$ref": "#/definitions/RepositoryMeta"
@@ -23111,6 +23143,23 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "UpdateProjectPayload": {
+      "type": "object",
+      "required": [
+        "title"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "UpdateRepoAvatarOption": {
       "description": "UpdateRepoAvatarUserOption options when updating the repo avatar",
       "type": "object",
@@ -24462,7 +24511,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/CreateOrUpdateSecretOption"
+        "$ref": "#/definitions/UpdateProjectPayload"
       }
     },
     "redirect": {
