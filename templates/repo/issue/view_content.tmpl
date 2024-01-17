@@ -92,7 +92,7 @@
 								<div class="text right">
 									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 										{{if .Issue.IsClosed}}
-											<button id="status-button" class="ui primary basic button" tabindex="6" data-status="{{ctx.Locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.reopen_comment_issue"}}" name="status" value="reopen">
+											<button id="status-button" class="ui primary basic button" data-status="{{ctx.Locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.reopen_comment_issue"}}" name="status" value="reopen">
 												{{ctx.Locale.Tr "repo.issues.reopen_issue"}}
 											</button>
 										{{else}}
@@ -100,12 +100,12 @@
 											{{if .Issue.IsPull}}
 												{{$closeTranslationKey = "repo.pulls.close"}}
 											{{end}}
-											<button id="status-button" class="ui red basic button" tabindex="6" data-status="{{ctx.Locale.Tr $closeTranslationKey}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.close_comment_issue"}}" name="status" value="close">
+											<button id="status-button" class="ui red basic button" data-status="{{ctx.Locale.Tr $closeTranslationKey}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.close_comment_issue"}}" name="status" value="close">
 												{{ctx.Locale.Tr $closeTranslationKey}}
 											</button>
 										{{end}}
 									{{end}}
-									<button class="ui primary button" tabindex="5">
+									<button class="ui primary button">
 										{{ctx.Locale.Tr "repo.issues.create_comment"}}
 									</button>
 								</div>
@@ -162,8 +162,8 @@
 
 		<div class="field">
 			<div class="text right edit">
-				<button class="ui basic cancel button" tabindex="3">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
-				<button class="ui primary save button" tabindex="2">{{ctx.Locale.Tr "repo.issues.save"}}</button>
+				<button class="ui basic cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
+				<button class="ui primary save button">{{ctx.Locale.Tr "repo.issues.save"}}</button>
 			</div>
 		</div>
 	</div>

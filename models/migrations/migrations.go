@@ -548,6 +548,12 @@ var migrations = []Migration{
 	NewMigration("Rename user themes", v1_22.RenameUserThemes),
 	// v281 -> v282
 	NewMigration("Add auth_token table", v1_22.CreateAuthTokenTable),
+	// v282 -> v283
+	NewMigration("Add Index to pull_auto_merge.doer_id", v1_22.AddIndexToPullAutoMergeDoerID),
+	// v283 -> v284
+	NewMigration("Add combined Index to issue_user.uid and issue_id", v1_22.AddCombinedIndexToIssueUser),
+	// v284 -> v285
+	NewMigration("Add ignore stale approval column on branch table", v1_22.AddIgnoreStaleApprovalsColumnToProtectedBranchTable),
 }
 
 // GetCurrentDBVersion returns the current db version

@@ -33,7 +33,7 @@ func StopEndlessTasks(ctx context.Context) error {
 }
 
 func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
-	tasks, err := actions_model.FindTasks(ctx, opts)
+	tasks, err := db.Find[actions_model.ActionTask](ctx, opts)
 	if err != nil {
 		return fmt.Errorf("find tasks: %w", err)
 	}
@@ -74,7 +74,7 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 
 // CancelAbandonedJobs cancels the jobs which have waiting status, but haven't been picked by a runner for a long time
 func CancelAbandonedJobs(ctx context.Context) error {
-	jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{
+	jobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
 		Statuses:      []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked},
 		UpdatedBefore: timeutil.TimeStamp(time.Now().Add(-setting.Actions.AbandonedJobTimeout).Unix()),
 	})

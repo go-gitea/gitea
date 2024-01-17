@@ -129,6 +129,10 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		return fmt.Errorf("%s is an organization not a user", u.Name)
 	}
 
+	if user_model.IsLastAdminUser(ctx, u) {
+		return models.ErrDeleteLastAdminUser{UID: u.ID}
+	}
+
 	if purge {
 		// Disable the user first
 		// NOTE: This is deliberately not within a transaction as it must disable the user immediately to prevent any further action by the user to be purged.
@@ -172,7 +176,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		// An alternative option here would be write a function which would delete all organizations but it seems
 		// but such a function would likely get out of date
 		for {
-			orgs, err := organization.FindOrgs(ctx, organization.FindOrgOptions{
+			orgs, err := db.Find[organization.Organization](ctx, organization.FindOrgOptions{
 				ListOptions: db.ListOptions{
 					PageSize: repo_model.RepositoryListDefaultPageSize,
 					Page:     1,
@@ -295,7 +299,8 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 		}
 		if err := DeleteUser(ctx, u, false); err != nil {
 			// Ignore users that were set inactive by admin.
-			if models.IsErrUserOwnRepos(err) || models.IsErrUserHasOrgs(err) || models.IsErrUserOwnPackages(err) {
+			if models.IsErrUserOwnRepos(err) || models.IsErrUserHasOrgs(err) ||
+				models.IsErrUserOwnPackages(err) || models.IsErrDeleteLastAdminUser(err) {
 				continue
 			}
 			return err
