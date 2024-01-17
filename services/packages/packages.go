@@ -667,22 +667,16 @@ func LinkPackageToRepository(ctx context.Context, doer *user_model.User, p *pack
 			return fmt.Errorf("Error getting repository %d: %w", repoID, err)
 		}
 
-		canWrite := repo.OwnerID == doer.ID
-
-		if !canWrite {
-			perms, err := access_model.GetUserRepoPermission(ctx, repo, doer)
-			if err != nil {
-				return fmt.Errorf("Error getting repository permissions for %d on %d: %w", doer.ID, repo.ID, err)
-			}
-
-			canWrite = perms.CanWrite(unit.TypePackages)
+		perms, err := access_model.GetUserRepoPermission(ctx, repo, doer)
+		if err != nil {
+			return fmt.Errorf("Error getting permissions for user %d on repository %d: %w", doer.ID, repo.ID, err)
 		}
 
-		if !canWrite {
-			return fmt.Errorf("No permissions to link this package and repository")
-		}
+		canWrite := perms.CanWrite(unit.TypePackages)
 
-		repoID = repo.ID
+		if !canWrite {
+			return fmt.Errorf("No permission to link this package and repository, or packages are disabled")
+		}
 	}
 
 	if err := packages_model.SetRepositoryLink(ctx, p.ID, repoID); err != nil {
