@@ -9,6 +9,7 @@ import (
 	gocontext "context"
 	"encoding/base64"
 	"fmt"
+	"html/template"
 	"image"
 	"io"
 	"net/http"
@@ -64,7 +65,7 @@ const (
 	tplMigrating    base.TplName = "repo/migrate/migrating"
 )
 
-func renderDirectory(ctx *context.Context, treeLink string) {
+func renderDirectory(ctx *context.Context) {
 	entries := renderDirectoryFiles(ctx, 1*time.Second)
 	if ctx.Written() {
 		return
@@ -80,7 +81,8 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		ctx.ServerError("findFileInEntries", err)
 		return
 	}
-	renderReadmeFile(ctx, subfolder, readmeFile, treeLink)
+
+	renderReadmeFile(ctx, subfolder, readmeFile)
 }
 
 type fileInfo struct {
@@ -142,7 +144,7 @@ func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) ([]byte,
 	return buf, dataRc, &fileInfo{st.IsText(), true, meta.Size, &meta.Pointer, st}, nil
 }
 
-func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.TreeEntry, readmeTreelink string) {
+func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.TreeEntry) {
 	target := readmeFile
 	if readmeFile != nil && readmeFile.IsLink() {
 		target, _ = readmeFile.FollowLinks()
@@ -195,25 +197,28 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 			Ctx:          ctx,
 			RelativePath: path.Join(ctx.Repo.TreePath, readmeFile.Name()), // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
-			URLPrefix:    path.Join(readmeTreelink, subfolder),
-			Metas:        ctx.Repo.Repository.ComposeDocumentMetas(ctx),
-			GitRepo:      ctx.Repo.GitRepo,
+			Links: markup.Links{
+				Base:       ctx.Repo.RepoLink,
+				BranchPath: ctx.Repo.BranchNameSubURL(),
+				TreePath:   path.Join(ctx.Repo.TreePath, subfolder),
+			},
+			Metas:   ctx.Repo.Repository.ComposeDocumentMetas(ctx),
+			GitRepo: ctx.Repo.GitRepo,
 		}, rd)
 		if err != nil {
 			log.Error("Render failed for %s in %-v: %v Falling back to rendering source", readmeFile.Name(), ctx.Repo.Repository, err)
-			buf := &bytes.Buffer{}
-			ctx.Data["EscapeStatus"], _ = charset.EscapeControlStringReader(rd, buf, ctx.Locale)
-			ctx.Data["FileContent"] = buf.String()
+			delete(ctx.Data, "IsMarkup")
 		}
-	} else {
-		ctx.Data["IsPlainText"] = true
-		buf := &bytes.Buffer{}
-		ctx.Data["EscapeStatus"], err = charset.EscapeControlStringReader(rd, buf, ctx.Locale)
-		if err != nil {
-			log.Error("Read failed: %v", err)
-		}
+	}
 
-		ctx.Data["FileContent"] = buf.String()
+	if ctx.Data["IsMarkup"] != true {
+		ctx.Data["IsPlainText"] = true
+		content, err := io.ReadAll(rd)
+		if err != nil {
+			log.Error("Read readme content failed: %v", err)
+		}
+		contentEscaped := template.HTMLEscapeString(util.UnsafeBytesToString(content))
+		ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlHTML(template.HTML(contentEscaped), ctx.Locale)
 	}
 
 	if !fInfo.isLFSFile && ctx.Repo.CanEnableEditor(ctx, ctx.Doer) {
@@ -221,7 +226,36 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 	}
 }
 
-func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink string) {
+func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
+	// Show latest commit info of repository in table header,
+	// or of directory if not in root directory.
+	ctx.Data["LatestCommit"] = latestCommit
+	if latestCommit != nil {
+
+		verification := asymkey_model.ParseCommitWithSignature(ctx, latestCommit)
+
+		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
+			return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
+		}, nil); err != nil {
+			ctx.ServerError("CalculateTrustStatus", err)
+			return false
+		}
+		ctx.Data["LatestCommitVerification"] = verification
+		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(ctx, latestCommit)
+
+		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptions{ListAll: true})
+		if err != nil {
+			log.Error("GetLatestCommitStatus: %v", err)
+		}
+
+		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
+		ctx.Data["LatestCommitStatuses"] = statuses
+	}
+
+	return true
+}
+
+func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 	ctx.Data["IsViewFile"] = true
 	ctx.Data["HideRepoInfo"] = true
 	blob := entry.Blob()
@@ -235,7 +269,17 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
 	ctx.Data["FileName"] = blob.Name()
-	ctx.Data["RawFileLink"] = rawLink + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+	ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+
+	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx.Repo.TreePath)
+	if err != nil {
+		ctx.ServerError("GetCommitByPath", err)
+		return
+	}
+
+	if !loadLatestCommitData(ctx, commit) {
+		return
+	}
 
 	if ctx.Repo.TreePath == ".editorconfig" {
 		_, editorconfigWarning, editorconfigErr := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
@@ -363,9 +407,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				Ctx:          ctx,
 				Type:         markupType,
 				RelativePath: ctx.Repo.TreePath,
-				URLPrefix:    path.Dir(treeLink),
-				Metas:        metas,
-				GitRepo:      ctx.Repo.GitRepo,
+				Links: markup.Links{
+					Base:       ctx.Repo.RepoLink,
+					BranchPath: ctx.Repo.BranchNameSubURL(),
+					TreePath:   path.Dir(ctx.Repo.TreePath),
+				},
+				Metas:   metas,
+				GitRepo: ctx.Repo.GitRepo,
 			}, rd)
 			if err != nil {
 				ctx.ServerError("Render", err)
@@ -377,7 +425,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			buf, _ := io.ReadAll(rd)
 
 			// The Open Group Base Specification: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html
-			//   empty: 0 lines; "a": 1 line, 1 incomplete-line; "a\n": 1 line; "a\nb": 1 line, 1 incomplete-line;
+			//   empty: 0 lines; "a": 1 incomplete-line; "a\n": 1 line; "a\nb": 1 line, 1 incomplete-line;
 			// Gitea uses the definition (like most modern editors):
 			//   empty: 0 lines; "a": 1 line; "a\n": 2 lines; "a\nb": 2 lines;
 			//   When rendering, the last empty line is not rendered in UI, while the line-number is still counted, to tell users that the file contains a trailing EOL.
@@ -469,9 +517,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 				Ctx:          ctx,
 				RelativePath: ctx.Repo.TreePath,
-				URLPrefix:    path.Dir(treeLink),
-				Metas:        ctx.Repo.Repository.ComposeDocumentMetas(ctx),
-				GitRepo:      ctx.Repo.GitRepo,
+				Links: markup.Links{
+					Base:       ctx.Repo.RepoLink,
+					BranchPath: ctx.Repo.BranchNameSubURL(),
+					TreePath:   path.Dir(ctx.Repo.TreePath),
+				},
+				Metas:   ctx.Repo.Repository.ComposeDocumentMetas(ctx),
+				GitRepo: ctx.Repo.GitRepo,
 			}, rd)
 			if err != nil {
 				ctx.ServerError("Render", err)
@@ -504,7 +556,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 }
 
-func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input io.Reader) (escaped *charset.EscapeStatus, output string, err error) {
+func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input io.Reader) (escaped *charset.EscapeStatus, output template.HTML, err error) {
 	markupRd, markupWr := io.Pipe()
 	defer markupWr.Close()
 	done := make(chan struct{})
@@ -512,7 +564,7 @@ func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input i
 		sb := &strings.Builder{}
 		// We allow NBSP here this is rendered
 		escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.RuneNBSP)
-		output = sb.String()
+		output = template.HTML(sb.String())
 		close(done)
 	}()
 	err = markup.Render(renderCtx, input, markupWr)
@@ -595,21 +647,14 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 	}
 	for _, entry := range allEntries {
 		if entry.Name() == "CITATION.cff" || entry.Name() == "CITATION.bib" {
-			ctx.Data["CitiationExist"] = true
 			// Read Citation file contents
-			blob := entry.Blob()
-			dataRc, err := blob.DataAsync()
-			if err != nil {
-				ctx.ServerError("DataAsync", err)
-				return
+			if content, err := entry.Blob().GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+				log.Error("checkCitationFile: GetBlobContent: %v", err)
+			} else {
+				ctx.Data["CitiationExist"] = true
+				ctx.PageData["citationFileContent"] = content
+				break
 			}
-			defer dataRc.Close()
-			ctx.PageData["citationFileContent"], err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
-			if err != nil {
-				ctx.ServerError("GetBlobContent", err)
-				return
-			}
-			break
 		}
 	}
 }
@@ -725,29 +770,8 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		return nil
 	}
 
-	// Show latest commit info of repository in table header,
-	// or of directory if not in root directory.
-	ctx.Data["LatestCommit"] = latestCommit
-	if latestCommit != nil {
-
-		verification := asymkey_model.ParseCommitWithSignature(ctx, latestCommit)
-
-		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-			return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
-		}, nil); err != nil {
-			ctx.ServerError("CalculateTrustStatus", err)
-			return nil
-		}
-		ctx.Data["LatestCommitVerification"] = verification
-		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(ctx, latestCommit)
-
-		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptions{ListAll: true})
-		if err != nil {
-			log.Error("GetLatestCommitStatus: %v", err)
-		}
-
-		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
-		ctx.Data["LatestCommitStatuses"] = statuses
+	if !loadLatestCommitData(ctx, latestCommit) {
+		return nil
 	}
 
 	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
@@ -836,14 +860,6 @@ func renderCode(ctx *context.Context) {
 	}
 	ctx.Data["Title"] = title
 
-	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
-	treeLink := branchLink
-	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL()
-
-	if len(ctx.Repo.TreePath) > 0 {
-		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
-	}
-
 	// Get Topics of this repo
 	renderRepoTopics(ctx)
 	if ctx.Written() {
@@ -868,9 +884,9 @@ func renderCode(ctx *context.Context) {
 	}
 
 	if entry.IsDir() {
-		renderDirectory(ctx, treeLink)
+		renderDirectory(ctx)
 	} else {
-		renderFile(ctx, entry, treeLink, rawLink)
+		renderFile(ctx, entry)
 	}
 	if ctx.Written() {
 		return
@@ -911,6 +927,12 @@ func renderCode(ctx *context.Context) {
 	}
 
 	ctx.Data["Paths"] = paths
+
+	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
+	treeLink := branchLink
+	if len(ctx.Repo.TreePath) > 0 {
+		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+	}
 	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink

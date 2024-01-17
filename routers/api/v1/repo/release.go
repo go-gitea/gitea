@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -133,11 +134,6 @@ func ListReleases(ctx *context.APIContext) {
 	//   in: query
 	//   description: filter (exclude / include) pre-releases
 	//   type: boolean
-	// - name: per_page
-	//   in: query
-	//   description: page size of results, deprecated - use limit
-	//   type: integer
-	//   deprecated: true
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -152,9 +148,6 @@ func ListReleases(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	listOptions := utils.GetListOptions(ctx)
-	if listOptions.PageSize == 0 && ctx.FormInt("per_page") != 0 {
-		listOptions.PageSize = ctx.FormInt("per_page")
-	}
 
 	opts := repo_model.FindReleasesOptions{
 		ListOptions:   listOptions,
@@ -162,9 +155,10 @@ func ListReleases(ctx *context.APIContext) {
 		IncludeTags:   false,
 		IsDraft:       ctx.FormOptionalBool("draft"),
 		IsPreRelease:  ctx.FormOptionalBool("pre-release"),
+		RepoID:        ctx.Repo.Repository.ID,
 	}
 
-	releases, err := repo_model.GetReleasesByRepoID(ctx, ctx.Repo.Repository.ID, opts)
+	releases, err := db.Find[repo_model.Release](ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetReleasesByRepoID", err)
 		return
@@ -178,7 +172,7 @@ func ListReleases(ctx *context.APIContext) {
 		rels[i] = convert.ToAPIRelease(ctx, ctx.Repo.Repository, release)
 	}
 
-	filteredCount, err := repo_model.CountReleasesByRepoID(ctx, ctx.Repo.Repository.ID, opts)
+	filteredCount, err := db.Count[repo_model.Release](ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

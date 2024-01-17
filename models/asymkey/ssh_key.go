@@ -197,10 +197,10 @@ func (opts FindPublicKeyOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Eq{"fingerprint": opts.Fingerprint})
 	}
 	if len(opts.KeyTypes) > 0 {
-		cond = cond.And(builder.In("type", opts.KeyTypes))
+		cond = cond.And(builder.In("`type`", opts.KeyTypes))
 	}
 	if opts.NotKeytype > 0 {
-		cond = cond.And(builder.Neq{"type": opts.NotKeytype})
+		cond = cond.And(builder.Neq{"`type`": opts.NotKeytype})
 	}
 	if opts.LoginSourceID > 0 {
 		cond = cond.And(builder.Eq{"login_source_id": opts.LoginSourceID})
@@ -225,16 +225,6 @@ func UpdatePublicKeyUpdated(ctx context.Context, id int64) error {
 		return err
 	}
 	return nil
-}
-
-// DeletePublicKeys does the actual key deletion but does not update authorized_keys file.
-func DeletePublicKeys(ctx context.Context, keyIDs ...int64) error {
-	if len(keyIDs) == 0 {
-		return nil
-	}
-
-	_, err := db.GetEngine(ctx).In("id", keyIDs).Delete(new(PublicKey))
-	return err
 }
 
 // PublicKeysAreExternallyManaged returns whether the provided KeyID represents an externally managed Key
@@ -322,8 +312,8 @@ func deleteKeysMarkedForDeletion(ctx context.Context, keys []string) (bool, erro
 			log.Error("SearchPublicKeyByContent: %v", err)
 			continue
 		}
-		if err = DeletePublicKeys(ctx, key.ID); err != nil {
-			log.Error("deletePublicKeys: %v", err)
+		if _, err = db.DeleteByID[PublicKey](ctx, key.ID); err != nil {
+			log.Error("DeleteByID[PublicKey]: %v", err)
 			continue
 		}
 		sshKeysNeedUpdate = true

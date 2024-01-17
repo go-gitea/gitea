@@ -32,8 +32,8 @@ func TestAPIListGitHooks(t *testing.T) {
 	// user1 is an admin user
 	session := loginUser(t, "user1")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git?token=%s",
-		owner.Name, repo.Name, token)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git", owner.Name, repo.Name).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var apiGitHooks []*api.GitHook
 	DecodeJSON(t, resp, &apiGitHooks)
@@ -58,8 +58,8 @@ func TestAPIListGitHooksNoHooks(t *testing.T) {
 	// user1 is an admin user
 	session := loginUser(t, "user1")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git?token=%s",
-		owner.Name, repo.Name, token)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git", owner.Name, repo.Name).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var apiGitHooks []*api.GitHook
 	DecodeJSON(t, resp, &apiGitHooks)
@@ -78,8 +78,8 @@ func TestAPIListGitHooksNoAccess(t *testing.T) {
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git?token=%s",
-		owner.Name, repo.Name, token)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git", owner.Name, repo.Name).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 }
 
@@ -92,8 +92,8 @@ func TestAPIGetGitHook(t *testing.T) {
 	// user1 is an admin user
 	session := loginUser(t, "user1")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive?token=%s",
-		owner.Name, repo.Name, token)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var apiGitHook *api.GitHook
 	DecodeJSON(t, resp, &apiGitHook)
@@ -109,8 +109,8 @@ func TestAPIGetGitHookNoAccess(t *testing.T) {
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive?token=%s",
-		owner.Name, repo.Name, token)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 }
 
@@ -124,19 +124,19 @@ func TestAPIEditGitHook(t *testing.T) {
 	session := loginUser(t, "user1")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/hooks/git/pre-receive?token=%s",
-		owner.Name, repo.Name, token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/hooks/git/pre-receive",
+		owner.Name, repo.Name)
 	req := NewRequestWithJSON(t, "PATCH", urlStr, &api.EditGitHookOption{
 		Content: testHookContent,
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var apiGitHook *api.GitHook
 	DecodeJSON(t, resp, &apiGitHook)
 	assert.True(t, apiGitHook.IsActive)
 	assert.Equal(t, testHookContent, apiGitHook.Content)
 
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive?token=%s",
-		owner.Name, repo.Name, token)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
+		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	var apiGitHook2 *api.GitHook
 	DecodeJSON(t, resp, &apiGitHook2)
@@ -152,11 +152,10 @@ func TestAPIEditGitHookNoAccess(t *testing.T) {
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/hooks/git/pre-receive?token=%s",
-		owner.Name, repo.Name, token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name)
 	req := NewRequestWithJSON(t, "PATCH", urlStr, &api.EditGitHookOption{
 		Content: testHookContent,
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 }
 
@@ -170,12 +169,12 @@ func TestAPIDeleteGitHook(t *testing.T) {
 	session := loginUser(t, "user1")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/hooks/git/pre-receive?token=%s",
-		owner.Name, repo.Name, token)
+	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive?token=%s",
-		owner.Name, repo.Name, token)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
+		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var apiGitHook2 *api.GitHook
 	DecodeJSON(t, resp, &apiGitHook2)
@@ -191,7 +190,7 @@ func TestAPIDeleteGitHookNoAccess(t *testing.T) {
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/hooks/git/pre-receive?token=%s",
-		owner.Name, repo.Name, token)
+	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 }

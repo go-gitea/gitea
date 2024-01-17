@@ -65,7 +65,7 @@ func PushUpdates(opts []*repo_module.PushUpdateOptions) error {
 
 	for _, opt := range opts {
 		if opt.IsNewRef() && opt.IsDelRef() {
-			return fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
+			return fmt.Errorf("Old and new revisions are both NULL")
 		}
 	}
 
@@ -94,6 +94,11 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 	defer gitRepo.Close()
 
+	objectFormat, err := gitRepo.GetObjectFormat()
+	if err != nil {
+		return fmt.Errorf("unknown repository ObjectFormat [%s]: %w", repoPath, err)
+	}
+
 	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
 		return fmt.Errorf("Failed to update size for repository: %v", err)
 	}
@@ -106,7 +111,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		log.Trace("pushUpdates: %-v %s %s %s", repo, opts.OldCommitID, opts.NewCommitID, opts.RefFullName)
 
 		if opts.IsNewRef() && opts.IsDelRef() {
-			return fmt.Errorf("old and new revisions are both %s", git.EmptySHA)
+			return fmt.Errorf("old and new revisions are both %s", objectFormat.EmptyObjectID())
 		}
 		if opts.RefFullName.IsTag() {
 			if pusher == nil || pusher.ID != opts.PusherID {
@@ -126,7 +131,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					&repo_module.PushUpdateOptions{
 						RefFullName: git.RefNameFromTag(tagName),
 						OldCommitID: opts.OldCommitID,
-						NewCommitID: git.EmptySHA,
+						NewCommitID: objectFormat.EmptyObjectID().String(),
 					}, repo_module.NewPushCommits())
 
 				delTags = append(delTags, tagName)
@@ -139,13 +144,13 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 				commits := repo_module.NewPushCommits()
 				commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
-				commits.CompareURL = repo.ComposeCompareURL(git.EmptySHA, opts.NewCommitID)
+				commits.CompareURL = repo.ComposeCompareURL(objectFormat.EmptyObjectID().String(), opts.NewCommitID)
 
 				notify_service.PushCommits(
 					ctx, pusher, repo,
 					&repo_module.PushUpdateOptions{
 						RefFullName: opts.RefFullName,
-						OldCommitID: git.EmptySHA,
+						OldCommitID: objectFormat.EmptyObjectID().String(),
 						NewCommitID: opts.NewCommitID,
 					}, commits)
 
@@ -229,7 +234,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				}
 
 				oldCommitID := opts.OldCommitID
-				if oldCommitID == git.EmptySHA && len(commits.Commits) > 0 {
+				if oldCommitID == objectFormat.EmptyObjectID().String() && len(commits.Commits) > 0 {
 					oldCommit, err := gitRepo.GetCommit(commits.Commits[len(commits.Commits)-1].Sha1)
 					if err != nil && !git.IsErrNotExist(err) {
 						log.Error("unable to GetCommit %s from %-v: %v", oldCommitID, repo, err)
@@ -245,11 +250,11 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					}
 				}
 
-				if oldCommitID == git.EmptySHA && repo.DefaultBranch != branch {
+				if oldCommitID == objectFormat.EmptyObjectID().String() && repo.DefaultBranch != branch {
 					oldCommitID = repo.DefaultBranch
 				}
 
-				if oldCommitID != git.EmptySHA {
+				if oldCommitID != objectFormat.EmptyObjectID().String() {
 					commits.CompareURL = repo.ComposeCompareURL(oldCommitID, opts.NewCommitID)
 				} else {
 					commits.CompareURL = ""
@@ -259,7 +264,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					commits.Commits = commits.Commits[:setting.UI.FeedMaxCommitNum]
 				}
 
-				if err = git_model.UpdateBranch(ctx, repo.ID, opts.PusherID, branch, newCommit); err != nil {
+				if err = syncBranchToDB(ctx, repo.ID, opts.PusherID, branch, newCommit); err != nil {
 					return fmt.Errorf("git_model.UpdateBranch %s:%s failed: %v", repo.FullName(), branch, err)
 				}
 
@@ -322,9 +327,12 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		lowerTags = append(lowerTags, strings.ToLower(tag))
 	}
 
-	releases, err := repo_model.GetReleasesByRepoIDAndNames(ctx, repo.ID, lowerTags)
+	releases, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
+		RepoID:   repo.ID,
+		TagNames: lowerTags,
+	})
 	if err != nil {
-		return fmt.Errorf("GetReleasesByRepoIDAndNames: %w", err)
+		return fmt.Errorf("db.Find[repo_model.Release]: %w", err)
 	}
 	relMap := make(map[string]*repo_model.Release)
 	for _, rel := range releases {

@@ -392,6 +392,23 @@
         }
       }
     },
+    "/admin/runners/registration-token": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get an global actions runner registration token",
+        "operationId": "adminGetRunnerRegistrationToken",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RegistrationToken"
+          }
+        }
+      }
+    },
     "/admin/unadopted": {
       "get": {
         "produces": [
@@ -659,6 +676,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/User"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -1558,6 +1578,32 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/actions/runners/registration-token": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Get an organization's actions runner registration token",
+        "operationId": "orgGetRunnerRegistrationToken",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RegistrationToken"
           }
         }
       }
@@ -11730,12 +11776,6 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, deprecated - use limit",
-            "name": "per_page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
             "in": "query"
@@ -12361,6 +12401,39 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/runners/registration-token": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a repository's actions runner registration token",
+        "operationId": "repoGetRunnerRegistrationToken",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RegistrationToken"
           }
         }
       }
@@ -14519,6 +14592,23 @@
         "responses": {
           "200": {
             "$ref": "#/responses/User"
+          }
+        }
+      }
+    },
+    "/user/actions/runners/registration-token": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get an user's actions runner registration token",
+        "operationId": "userGetRunnerRegistrationToken",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RegistrationToken"
           }
         }
       }
@@ -16930,6 +17020,10 @@
           "type": "boolean",
           "x-go-name": "EnableStatusCheck"
         },
+        "ignore_stale_approvals": {
+          "type": "boolean",
+          "x-go-name": "IgnoreStaleApprovals"
+        },
         "merge_whitelist_teams": {
           "type": "array",
           "items": {
@@ -17570,6 +17664,10 @@
         "enable_status_check": {
           "type": "boolean",
           "x-go-name": "EnableStatusCheck"
+        },
+        "ignore_stale_approvals": {
+          "type": "boolean",
+          "x-go-name": "IgnoreStaleApprovals"
         },
         "merge_whitelist_teams": {
           "type": "array",
@@ -18412,8 +18510,7 @@
       "type": "object",
       "required": [
         "username",
-        "email",
-        "password"
+        "email"
       ],
       "properties": {
         "created_at": {
@@ -18702,6 +18799,10 @@
         "enable_status_check": {
           "type": "boolean",
           "x-go-name": "EnableStatusCheck"
+        },
+        "ignore_stale_approvals": {
+          "type": "boolean",
+          "x-go-name": "IgnoreStaleApprovals"
         },
         "merge_whitelist_teams": {
           "type": "array",
@@ -23740,6 +23841,14 @@
         }
       }
     },
+    "RegistrationToken": {
+      "description": "RegistrationToken is response related to registeration token",
+      "headers": {
+        "token": {
+          "type": "string"
+        }
+      }
+    },
     "Release": {
       "description": "Release",
       "schema": {
@@ -24059,6 +24168,7 @@
   },
   "securityDefinitions": {
     "AccessToken": {
+      "description": "This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.",
       "type": "apiKey",
       "name": "access_token",
       "in": "query"
@@ -24091,6 +24201,7 @@
       "in": "header"
     },
     "Token": {
+      "description": "This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.",
       "type": "apiKey",
       "name": "token",
       "in": "query"

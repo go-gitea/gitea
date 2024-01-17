@@ -105,7 +105,7 @@ func EmailPost(ctx *context.Context) {
 	// Send activation Email
 	if ctx.FormString("_method") == "SENDACTIVATION" {
 		var address string
-		if setting.CacheService.Enabled && ctx.Cache.IsExist("MailResendLimit_"+ctx.Doer.LowerName) {
+		if ctx.Cache.IsExist("MailResendLimit_" + ctx.Doer.LowerName) {
 			log.Error("Send activation: activation still pending")
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 			return
@@ -141,11 +141,10 @@ func EmailPost(ctx *context.Context) {
 		}
 		address = email.Email
 
-		if setting.CacheService.Enabled {
-			if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
-				log.Error("Set cache(MailResendLimit) fail: %v", err)
-			}
+		if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
+			log.Error("Set cache(MailResendLimit) fail: %v", err)
 		}
+
 		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", address, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
@@ -204,11 +203,10 @@ func EmailPost(ctx *context.Context) {
 	// Send confirmation email
 	if setting.Service.RegisterEmailConfirm {
 		mailer.SendActivateEmailMail(ctx.Doer, email)
-		if setting.CacheService.Enabled {
-			if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
-				log.Error("Set cache(MailResendLimit) fail: %v", err)
-			}
+		if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
+			log.Error("Set cache(MailResendLimit) fail: %v", err)
 		}
+
 		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", email.Email, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)))
 	} else {
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
@@ -246,6 +244,13 @@ func DeleteAccount(ctx *context.Context) {
 		return
 	}
 
+	// admin should not delete themself
+	if ctx.Doer.IsAdmin {
+		ctx.Flash.Error(ctx.Tr("form.admin_cannot_delete_self"))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		return
+	}
+
 	if err := user.DeleteUser(ctx, ctx.Doer, false); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
@@ -256,6 +261,9 @@ func DeleteAccount(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		case models.IsErrUserOwnPackages(err):
 			ctx.Flash.Error(ctx.Tr("form.still_own_packages"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		case models.IsErrDeleteLastAdminUser(err):
+			ctx.Flash.Error(ctx.Tr("auth.last_admin"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		default:
 			ctx.ServerError("DeleteUser", err)
@@ -276,7 +284,7 @@ func loadAccountData(ctx *context.Context) {
 		user_model.EmailAddress
 		CanBePrimary bool
 	}
-	pendingActivation := setting.CacheService.Enabled && ctx.Cache.IsExist("MailResendLimit_"+ctx.Doer.LowerName)
+	pendingActivation := ctx.Cache.IsExist("MailResendLimit_" + ctx.Doer.LowerName)
 	emails := make([]*UserEmail, len(emlist))
 	for i, em := range emlist {
 		var email UserEmail
