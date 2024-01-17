@@ -193,7 +193,7 @@ func InitFull(ctx context.Context) (err error) {
 	if SupportHashSha256 {
 		SupportedObjectFormats = append(SupportedObjectFormats, Sha256ObjectFormat)
 	} else {
-		log.Warn("sha256 hash support requires Git >= 2.42 and NonGogit, disabled")
+		log.Warn("sha256 hash support is disabled - requires Git >= 2.42. Gogit is currently unsupported")
 	}
 
 	if setting.LFS.StartServer {
