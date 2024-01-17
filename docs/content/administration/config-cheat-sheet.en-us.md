@@ -135,6 +135,7 @@ In addition, there is _`StaticRootPath`_ which can be set as a built-in at build
 - `POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES`: **false**: In default squash-merge messages include the commit message of all commits comprising the pull request.
 - `ADD_CO_COMMITTER_TRAILERS`: **true**: Add co-authored-by and co-committed-by trailers to merge commit messages if committer does not match author.
 - `TEST_CONFLICTING_PATCHES_WITH_GIT_APPLY`: **false**: PR patches are tested using a three-way merge method to discover if there are conflicts. If this setting is set to **true**, conflicting patches will be retested using `git apply` - This was the previous behaviour in 1.18 (and earlier) but is somewhat inefficient. Please report if you find that this setting is required.
+- `RETARGET_CHILDREN_ON_MERGE`: **true**: Retarget child pull requests to the parent pull request branch target on merge of parent pull request. It only works on merged PRs where the head and base branch target the same repo.
 
 ### Repository - Issue (`repository.issue`)
 
