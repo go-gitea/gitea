@@ -78,5 +78,19 @@ func ExpandHashReferencesToSha256(x *xorm.Engine) error {
 	}
 	log.Debug("Updated database tables to hold SHA256 git hash references")
 
-	return db.Commit()
+	if err := db.Commit(); err != nil {
+		return err
+	}
+	db.Close()
+
+	type Repository struct {
+		ObjectFormatName string `xorm:"VARCHAR(6) NOT NULL DEFAULT 'sha1'"`
+	}
+
+	if err := x.Sync(new(Repository)); err != nil {
+		return err
+	}
+
+	_, err := x.Exec("UPDATE repository set object_format_name = 'sha1' WHERE object_format_name = '' or object_format_name IS NULL")
+	return err
 }
