@@ -186,7 +186,14 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 	}()
 
 	// save storage path to artifact
-	log.Debug("[artifact] merge chunks to artifact: %d, %s", artifact.ID, storagePath)
+	log.Debug("[artifact] merge chunks to artifact: %d, %s, old:%s", artifact.ID, storagePath, artifact.StoragePath)
+	// if artifact is already uploaded, delete the old file
+	if artifact.StoragePath != "" {
+		if err := st.Delete(artifact.StoragePath); err != nil {
+			log.Warn("Error deleting old artifact: %s, %v", artifact.StoragePath, err)
+		}
+	}
+
 	artifact.StoragePath = storagePath
 	artifact.Status = int64(actions.ArtifactStatusUploadConfirmed)
 	if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
