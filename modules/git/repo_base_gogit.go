@@ -81,7 +81,7 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 			if strings.HasSuffix(altPath, "objects") {
 				altPath = filepath.Dir(altPath)
 			}
-			options.AlternatesFS = osfs.New(altPath)
+			options.AlternatesFS = osfs.New(altPath, osfs.WithBoundOS())
 			break
 		}
 	}
