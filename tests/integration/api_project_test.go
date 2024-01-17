@@ -23,13 +23,12 @@ func TestAPICreateUserProject(t *testing.T) {
 	const title, description, boardType = "project_name", "project_description", uint8(project_model.BoardTypeBasicKanban)
 
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteUser)
-	urlStr := fmt.Sprintf("/api/v1/user/projects?token=%s", token)
 
-	req := NewRequestWithJSON(t, "POST", urlStr, &api.NewProjectPayload{
+	req := NewRequestWithJSON(t, "POST", "/api/v1/user/projects", &api.NewProjectPayload{
 		Title:       title,
 		Description: description,
 		BoardType:   boardType,
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiProject api.Project
 	DecodeJSON(t, resp, &apiProject)
@@ -45,13 +44,13 @@ func TestAPICreateOrgProject(t *testing.T) {
 
 	orgName := "org17"
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteOrganization)
-	urlStr := fmt.Sprintf("/api/v1/orgs/%s/projects?token=%s", orgName, token)
+	urlStr := fmt.Sprintf("/api/v1/orgs/%s/projects", orgName)
 
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.NewProjectPayload{
 		Title:       title,
 		Description: description,
 		BoardType:   boardType,
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiProject api.Project
 	DecodeJSON(t, resp, &apiProject)
@@ -68,13 +67,13 @@ func TestAPICreateRepoProject(t *testing.T) {
 	ownerName := "user2"
 	repoName := "repo1"
 	token := getUserToken(t, ownerName, auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteOrganization)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/projects?token=%s", ownerName, repoName, token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/projects", ownerName, repoName)
 
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.NewProjectPayload{
 		Title:       title,
 		Description: description,
 		BoardType:   boardType,
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiProject api.Project
 	DecodeJSON(t, resp, &apiProject)
@@ -107,9 +106,7 @@ func TestAPIListOrgProjects(t *testing.T) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadIssue)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/orgs/%s/projects", orgName))
 
-	link.RawQuery = url.Values{"token": {token}}.Encode()
-
-	req := NewRequest(t, "GET", link.String())
+	req := NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	var apiProjects []*api.Project
 
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -125,9 +122,7 @@ func TestAPIListRepoProjects(t *testing.T) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopeReadIssue)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/projects", ownerName, repoName))
 
-	link.RawQuery = url.Values{"token": {token}}.Encode()
-
-	req := NewRequest(t, "GET", link.String())
+	req := NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	var apiProjects []*api.Project
 
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -140,9 +135,7 @@ func TestAPIGetProject(t *testing.T) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadIssue)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/%d", 1))
 
-	link.RawQuery = url.Values{"token": {token}}.Encode()
-
-	req := NewRequest(t, "GET", link.String())
+	req := NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	var apiProject *api.Project
 
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -157,11 +150,9 @@ func TestAPIUpdateProject(t *testing.T) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteIssue)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/%d", 1))
 
-	link.RawQuery = url.Values{"token": {token}}.Encode()
-
 	req := NewRequestWithJSON(t, "PATCH", link.String(), &api.UpdateProjectPayload{
 		Title: "First project updated",
-	})
+	}).AddTokenAuth(token)
 
 	var apiProject *api.Project
 
@@ -175,9 +166,7 @@ func TestAPIDeleteProject(t *testing.T) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteIssue)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/%d", 1))
 
-	link.RawQuery = url.Values{"token": {token}}.Encode()
-
-	req := NewRequest(t, "DELETE", link.String())
+	req := NewRequest(t, "DELETE", link.String()).AddTokenAuth(token)
 
 	MakeRequest(t, req, http.StatusNoContent)
 	unittest.AssertNotExistsBean(t, &project_model.Project{ID: 1})
