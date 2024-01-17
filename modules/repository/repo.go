@@ -5,16 +5,26 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
+	"time"
 
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 /*
@@ -34,6 +44,204 @@ func WikiRemoteURL(ctx context.Context, remote string) string {
 		}
 	}
 	return ""
+}
+
+// MigrateRepositoryGitData starts migrating git related data after created migrating repository
+func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
+	repo *repo_model.Repository, opts migration.MigrateOptions,
+	httpTransport *http.Transport,
+) (*repo_model.Repository, error) {
+	repoPath := repo_model.RepoPath(u.Name, opts.RepoName)
+
+	if u.IsOrganization() {
+		t, err := organization.OrgFromUser(u).GetOwnerTeam(ctx)
+		if err != nil {
+			return nil, err
+		}
+		repo.NumWatches = t.NumMembers
+	} else {
+		repo.NumWatches = 1
+	}
+
+	migrateTimeout := time.Duration(setting.Git.Timeout.Migrate) * time.Second
+
+	var err error
+	if err = util.RemoveAll(repoPath); err != nil {
+		return repo, fmt.Errorf("Failed to remove %s: %w", repoPath, err)
+	}
+
+	if err = git.Clone(ctx, opts.CloneAddr, repoPath, git.CloneRepoOptions{
+		Mirror:        true,
+		Quiet:         true,
+		Timeout:       migrateTimeout,
+		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
+	}); err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return repo, fmt.Errorf("Clone timed out. Consider increasing [git.timeout] MIGRATE in app.ini. Underlying Error: %w", err)
+		}
+		return repo, fmt.Errorf("Clone: %w", err)
+	}
+
+	if err := git.WriteCommitGraph(ctx, repoPath); err != nil {
+		return repo, err
+	}
+
+	if opts.Wiki {
+		wikiPath := repo_model.WikiPath(u.Name, opts.RepoName)
+		wikiRemotePath := WikiRemoteURL(ctx, opts.CloneAddr)
+		if len(wikiRemotePath) > 0 {
+			if err := util.RemoveAll(wikiPath); err != nil {
+				return repo, fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
+			}
+
+			if err := git.Clone(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
+				Mirror:        true,
+				Quiet:         true,
+				Timeout:       migrateTimeout,
+				Branch:        "master",
+				SkipTLSVerify: setting.Migrations.SkipTLSVerify,
+			}); err != nil {
+				log.Warn("Clone wiki: %v", err)
+				if err := util.RemoveAll(wikiPath); err != nil {
+					return repo, fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
+				}
+			} else {
+				if err := git.WriteCommitGraph(ctx, wikiPath); err != nil {
+					return repo, err
+				}
+			}
+		}
+	}
+
+	if repo.OwnerID == u.ID {
+		repo.Owner = u
+	}
+
+	if err = CheckDaemonExportOK(ctx, repo); err != nil {
+		return repo, fmt.Errorf("checkDaemonExportOK: %w", err)
+	}
+
+	if stdout, _, err := git.NewCommand(ctx, "update-server-info").
+		SetDescription(fmt.Sprintf("MigrateRepositoryGitData(git update-server-info): %s", repoPath)).
+		RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+		log.Error("MigrateRepositoryGitData(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %w", err)
+	}
+
+	gitRepo, err := git.OpenRepository(ctx, repoPath)
+	if err != nil {
+		return repo, fmt.Errorf("OpenRepository: %w", err)
+	}
+	defer gitRepo.Close()
+
+	repo.IsEmpty, err = gitRepo.IsEmpty()
+	if err != nil {
+		return repo, fmt.Errorf("git.IsEmpty: %w", err)
+	}
+
+	if !repo.IsEmpty {
+		if len(repo.DefaultBranch) == 0 {
+			// Try to get HEAD branch and set it as default branch.
+			headBranch, err := gitRepo.GetHEADBranch()
+			if err != nil {
+				return repo, fmt.Errorf("GetHEADBranch: %w", err)
+			}
+			if headBranch != nil {
+				repo.DefaultBranch = headBranch.Name
+			}
+		}
+
+		if _, err := SyncRepoBranchesWithRepo(ctx, repo, gitRepo, u.ID); err != nil {
+			return repo, fmt.Errorf("SyncRepoBranchesWithRepo: %v", err)
+		}
+
+		if !opts.Releases {
+			// note: this will greatly improve release (tag) sync
+			// for pull-mirrors with many tags
+			repo.IsMirror = opts.Mirror
+			if err = SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
+				log.Error("Failed to synchronize tags to releases for repository: %v", err)
+			}
+		}
+
+		if opts.LFS {
+			endpoint := lfs.DetermineEndpoint(opts.CloneAddr, opts.LFSEndpoint)
+			lfsClient := lfs.NewClient(endpoint, httpTransport)
+			if err = StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, lfsClient); err != nil {
+				log.Error("Failed to store missing LFS objects for repository: %v", err)
+			}
+		}
+	}
+
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer committer.Close()
+
+	if opts.Mirror {
+		remoteAddress, err := util.SanitizeURL(opts.CloneAddr)
+		if err != nil {
+			return repo, err
+		}
+		mirrorModel := repo_model.Mirror{
+			RepoID:         repo.ID,
+			Interval:       setting.Mirror.DefaultInterval,
+			EnablePrune:    true,
+			NextUpdateUnix: timeutil.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
+			LFS:            opts.LFS,
+			RemoteAddress:  remoteAddress,
+		}
+		if opts.LFS {
+			mirrorModel.LFSEndpoint = opts.LFSEndpoint
+		}
+
+		if opts.MirrorInterval != "" {
+			parsedInterval, err := time.ParseDuration(opts.MirrorInterval)
+			if err != nil {
+				log.Error("Failed to set Interval: %v", err)
+				return repo, err
+			}
+			if parsedInterval == 0 {
+				mirrorModel.Interval = 0
+				mirrorModel.NextUpdateUnix = 0
+			} else if parsedInterval < setting.Mirror.MinInterval {
+				err := fmt.Errorf("interval %s is set below Minimum Interval of %s", parsedInterval, setting.Mirror.MinInterval)
+				log.Error("Interval: %s is too frequent", opts.MirrorInterval)
+				return repo, err
+			} else {
+				mirrorModel.Interval = parsedInterval
+				mirrorModel.NextUpdateUnix = timeutil.TimeStampNow().AddDuration(parsedInterval)
+			}
+		}
+
+		if err = repo_model.InsertMirror(ctx, &mirrorModel); err != nil {
+			return repo, fmt.Errorf("InsertOne: %w", err)
+		}
+
+		repo.IsMirror = true
+		if err = UpdateRepository(ctx, repo, false); err != nil {
+			return nil, err
+		}
+
+		// this is necessary for sync local tags from remote
+		configName := fmt.Sprintf("remote.%s.fetch", mirrorModel.GetRemoteName())
+		if stdout, _, err := git.NewCommand(ctx, "config").
+			AddOptionValues("--add", configName, `+refs/tags/*:refs/tags/*`).
+			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+			log.Error("MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+			return repo, fmt.Errorf("error in MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*): %w", err)
+		}
+	} else {
+		if err = UpdateRepoSize(ctx, repo); err != nil {
+			log.Error("Failed to update size for repository: %v", err)
+		}
+		if repo, err = CleanUpMigrateInfo(ctx, repo); err != nil {
+			return nil, err
+		}
+	}
+
+	return repo, committer.Commit()
 }
 
 // cleanUpMigrateGitConfig removes mirror info which prevents "push --all".
@@ -74,6 +282,116 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 	}
 
 	return repo, UpdateRepository(ctx, repo, false)
+}
+
+// SyncReleasesWithTags synchronizes release table with repository tags
+func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
+	log.Debug("SyncReleasesWithTags: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
+
+	// optimized procedure for pull-mirrors which saves a lot of time (in
+	// particular for repos with many tags).
+	if repo.IsMirror {
+		return pullMirrorReleaseSync(ctx, repo, gitRepo)
+	}
+
+	existingRelTags := make(container.Set[string])
+	opts := repo_model.FindReleasesOptions{
+		IncludeDrafts: true,
+		IncludeTags:   true,
+		ListOptions:   db.ListOptions{PageSize: 50},
+		RepoID:        repo.ID,
+	}
+	for page := 1; ; page++ {
+		opts.Page = page
+		rels, err := db.Find[repo_model.Release](gitRepo.Ctx, opts)
+		if err != nil {
+			return fmt.Errorf("unable to GetReleasesByRepoID in Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
+		}
+		if len(rels) == 0 {
+			break
+		}
+		for _, rel := range rels {
+			if rel.IsDraft {
+				continue
+			}
+			commitID, err := gitRepo.GetTagCommitID(rel.TagName)
+			if err != nil && !git.IsErrNotExist(err) {
+				return fmt.Errorf("unable to GetTagCommitID for %q in Repo[%d:%s/%s]: %w", rel.TagName, repo.ID, repo.OwnerName, repo.Name, err)
+			}
+			if git.IsErrNotExist(err) || commitID != rel.Sha1 {
+				if err := repo_model.PushUpdateDeleteTag(ctx, repo, rel.TagName); err != nil {
+					return fmt.Errorf("unable to PushUpdateDeleteTag: %q in Repo[%d:%s/%s]: %w", rel.TagName, repo.ID, repo.OwnerName, repo.Name, err)
+				}
+			} else {
+				existingRelTags.Add(strings.ToLower(rel.TagName))
+			}
+		}
+	}
+
+	_, err := gitRepo.WalkReferences(git.ObjectTag, 0, 0, func(sha1, refname string) error {
+		tagName := strings.TrimPrefix(refname, git.TagPrefix)
+		if existingRelTags.Contains(strings.ToLower(tagName)) {
+			return nil
+		}
+
+		if err := PushUpdateAddTag(ctx, repo, gitRepo, tagName, sha1, refname); err != nil {
+			return fmt.Errorf("unable to PushUpdateAddTag: %q to Repo[%d:%s/%s]: %w", tagName, repo.ID, repo.OwnerName, repo.Name, err)
+		}
+
+		return nil
+	})
+	return err
+}
+
+// PushUpdateAddTag must be called for any push actions to add tag
+func PushUpdateAddTag(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, tagName, sha1, refname string) error {
+	tag, err := gitRepo.GetTagWithID(sha1, tagName)
+	if err != nil {
+		return fmt.Errorf("unable to GetTag: %w", err)
+	}
+	commit, err := tag.Commit(gitRepo)
+	if err != nil {
+		return fmt.Errorf("unable to get tag Commit: %w", err)
+	}
+
+	sig := tag.Tagger
+	if sig == nil {
+		sig = commit.Author
+	}
+	if sig == nil {
+		sig = commit.Committer
+	}
+
+	var author *user_model.User
+	createdAt := time.Unix(1, 0)
+
+	if sig != nil {
+		author, err = user_model.GetUserByEmail(ctx, sig.Email)
+		if err != nil && !user_model.IsErrUserNotExist(err) {
+			return fmt.Errorf("unable to GetUserByEmail for %q: %w", sig.Email, err)
+		}
+		createdAt = sig.When
+	}
+
+	commitsCount, err := commit.CommitsCount()
+	if err != nil {
+		return fmt.Errorf("unable to get CommitsCount: %w", err)
+	}
+
+	rel := repo_model.Release{
+		RepoID:       repo.ID,
+		TagName:      tagName,
+		LowerTagName: strings.ToLower(tagName),
+		Sha1:         commit.ID.String(),
+		NumCommits:   commitsCount,
+		CreatedUnix:  timeutil.TimeStamp(createdAt.Unix()),
+		IsTag:        true,
+	}
+	if author != nil {
+		rel.PublisherID = author.ID
+	}
+
+	return repo_model.SaveOrUpdateTag(ctx, repo, &rel)
 }
 
 // StoreMissingLfsObjectsInRepository downloads missing LFS objects
@@ -172,4 +490,103 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 	}
 
 	return nil
+}
+
+// pullMirrorReleaseSync is a pull-mirror specific tag<->release table
+// synchronization which overwrites all Releases from the repository tags. This
+// can be relied on since a pull-mirror is always identical to its
+// upstream. Hence, after each sync we want the pull-mirror release set to be
+// identical to the upstream tag set. This is much more efficient for
+// repositories like https://github.com/vim/vim (with over 13000 tags).
+func pullMirrorReleaseSync(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
+	log.Trace("pullMirrorReleaseSync: rebuilding releases for pull-mirror Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
+	tags, numTags, err := gitRepo.GetTagInfos(0, 0)
+	if err != nil {
+		return fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
+	}
+	err = db.WithTx(ctx, func(ctx context.Context) error {
+		dbReleases, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
+			RepoID: repo.ID,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to FindReleases in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
+		}
+
+		inserts, deletes, updates := calcSync(tags, dbReleases)
+		//
+		// make release set identical to upstream tags
+		//
+		for _, tag := range inserts {
+			release := repo_model.Release{
+				RepoID:       repo.ID,
+				TagName:      tag.Name,
+				LowerTagName: strings.ToLower(tag.Name),
+				Sha1:         tag.Object.String(),
+				// NOTE: ignored, since NumCommits are unused
+				// for pull-mirrors (only relevant when
+				// displaying releases, IsTag: false)
+				NumCommits:  -1,
+				CreatedUnix: timeutil.TimeStamp(tag.Tagger.When.Unix()),
+				IsTag:       true,
+			}
+			if err := db.Insert(ctx, release); err != nil {
+				return fmt.Errorf("unable insert tag %s for pull-mirror Repo[%d:%s/%s]: %w", tag.Name, repo.ID, repo.OwnerName, repo.Name, err)
+			}
+		}
+
+		// only delete tags releases
+		if len(deletes) > 0 {
+			if _, err := db.GetEngine(ctx).Where("repo_id=?", repo.ID).
+				In("id", deletes).
+				Delete(&repo_model.Release{}); err != nil {
+				return fmt.Errorf("unable to delete tags for pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
+			}
+		}
+
+		for _, tag := range updates {
+			if _, err := db.GetEngine(ctx).Where("repo_id = ? AND lower_tag_name = ?", repo.ID, strings.ToLower(tag.Name)).
+				Cols("sha1").
+				Update(&repo_model.Release{
+					Sha1: tag.Object.String(),
+				}); err != nil {
+				return fmt.Errorf("unable to update tag %s for pull-mirror Repo[%d:%s/%s]: %w", tag.Name, repo.ID, repo.OwnerName, repo.Name, err)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("unable to rebuild release table for pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
+	}
+
+	log.Trace("pullMirrorReleaseSync: done rebuilding %d releases", numTags)
+	return nil
+}
+
+func calcSync(destTags []*git.Tag, dbTags []*repo_model.Release) ([]*git.Tag, []int64, []*git.Tag) {
+	destTagMap := make(map[string]*git.Tag)
+	for _, tag := range destTags {
+		destTagMap[tag.Name] = tag
+	}
+	dbTagMap := make(map[string]*repo_model.Release)
+	for _, rel := range dbTags {
+		dbTagMap[rel.TagName] = rel
+	}
+
+	inserted := make([]*git.Tag, 0, 10)
+	updated := make([]*git.Tag, 0, 10)
+	for _, tag := range destTags {
+		rel := dbTagMap[tag.Name]
+		if rel == nil {
+			inserted = append(inserted, tag)
+		} else if rel.Sha1 != tag.Object.String() {
+			updated = append(updated, tag)
+		}
+	}
+	deleted := make([]int64, 0, 10)
+	for _, tag := range dbTags {
+		if destTagMap[tag.TagName] == nil && tag.IsTag {
+			deleted = append(deleted, tag.ID)
+		}
+	}
+	return inserted, deleted, updated
 }
