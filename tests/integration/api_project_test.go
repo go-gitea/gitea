@@ -14,12 +14,13 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPICreateUserProject(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	const title, description, board_type = "project_name", "project_description", uint8(project_model.BoardTypeBasicKanban)
+	const title, description, boardType = "project_name", "project_description", uint8(project_model.BoardTypeBasicKanban)
 
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteUser)
 	urlStr := fmt.Sprintf("/api/v1/user/projects?token=%s", token)
@@ -27,20 +28,20 @@ func TestAPICreateUserProject(t *testing.T) {
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.NewProjectPayload{
 		Title:       title,
 		Description: description,
-		BoardType:   board_type,
+		BoardType:   boardType,
 	})
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiProject api.Project
 	DecodeJSON(t, resp, &apiProject)
 	assert.Equal(t, title, apiProject.Title)
 	assert.Equal(t, description, apiProject.Description)
-	assert.Equal(t, board_type, apiProject.BoardType)
+	assert.Equal(t, boardType, apiProject.BoardType)
 	assert.Equal(t, "user2", apiProject.Creator.UserName)
 }
 
 func TestAPICreateOrgProject(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	const title, description, board_type = "project_name", "project_description", uint8(project_model.BoardTypeBasicKanban)
+	const title, description, boardType = "project_name", "project_description", uint8(project_model.BoardTypeBasicKanban)
 
 	orgName := "org17"
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteOrganization)
@@ -49,20 +50,20 @@ func TestAPICreateOrgProject(t *testing.T) {
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.NewProjectPayload{
 		Title:       title,
 		Description: description,
-		BoardType:   board_type,
+		BoardType:   boardType,
 	})
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiProject api.Project
 	DecodeJSON(t, resp, &apiProject)
 	assert.Equal(t, title, apiProject.Title)
 	assert.Equal(t, description, apiProject.Description)
-	assert.Equal(t, board_type, apiProject.BoardType)
+	assert.Equal(t, boardType, apiProject.BoardType)
 	assert.Equal(t, "org17", apiProject.Creator.UserName)
 }
 
 func TestAPICreateRepoProject(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	const title, description, board_type = "project_name", "project_description", uint8(project_model.BoardTypeBasicKanban)
+	const title, description, boardType = "project_name", "project_description", uint8(project_model.BoardTypeBasicKanban)
 
 	ownerName := "user2"
 	repoName := "repo1"
@@ -72,14 +73,14 @@ func TestAPICreateRepoProject(t *testing.T) {
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.NewProjectPayload{
 		Title:       title,
 		Description: description,
-		BoardType:   board_type,
+		BoardType:   boardType,
 	})
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiProject api.Project
 	DecodeJSON(t, resp, &apiProject)
 	assert.Equal(t, title, apiProject.Title)
 	assert.Equal(t, description, apiProject.Description)
-	assert.Equal(t, board_type, apiProject.BoardType)
+	assert.Equal(t, boardType, apiProject.BoardType)
 	assert.Equal(t, "repo1", apiProject.Repo.Name)
 }
 
@@ -87,7 +88,7 @@ func TestAPIListUserProjects(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadIssue)
-	link, _ := url.Parse(fmt.Sprintf("/api/v1/user/projects"))
+	link, _ := url.Parse("/api/v1/user/projects")
 
 	link.RawQuery = url.Values{"token": {token}}.Encode()
 
