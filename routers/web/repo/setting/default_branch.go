@@ -9,7 +9,6 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/web/repo"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -35,7 +34,7 @@ func SetDefaultBranchPost(ctx *context.Context) {
 		}
 
 		branch := ctx.FormString("branch")
-		if err := repo_service.SetRepoDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, branch); err != nil {
+		if err := repo_service.SetRepoDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.Commit, branch); err != nil {
 			switch {
 			case git_model.IsErrBranchNotExist(err):
 				ctx.Status(http.StatusNotFound)

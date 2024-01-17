@@ -468,7 +468,7 @@ func AddAllRepoBranchesToSyncQueue(ctx context.Context, doerID int64) error {
 	return nil
 }
 
-func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, newBranchName string) error {
+func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, newBranchName string) error {
 	if repo.DefaultBranch == newBranchName {
 		return nil
 	}
@@ -504,6 +504,9 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 			if !git.IsErrUnsupportedVersion(err) {
 				return err
 			}
+		}
+		if err := repo_module.UpdateRepoLicenses(ctx, repo, commit); err != nil {
+			log.Error("UpdateRepoLicenses: %v", err)
 		}
 		return nil
 	}); err != nil {
