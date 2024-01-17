@@ -287,3 +287,92 @@ func TestActionsArtifactUploadWithRetentionDays(t *testing.T) {
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	MakeRequest(t, req, http.StatusOK)
 }
+
+func TestActionsArtifactOverwrite(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	{
+		// download old artifact uploaded by tests above, it should 1024 A
+		req := NewRequest(t, "GET", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts").
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+		resp := MakeRequest(t, req, http.StatusOK)
+		var listResp listArtifactsResponse
+		DecodeJSON(t, resp, &listResp)
+
+		idx := strings.Index(listResp.Value[0].FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
+		url := listResp.Value[0].FileContainerResourceURL[idx+1:] + "?itemPath=artifact"
+		req = NewRequest(t, "GET", url).
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+		resp = MakeRequest(t, req, http.StatusOK)
+		var downloadResp downloadArtifactResponse
+		DecodeJSON(t, resp, &downloadResp)
+
+		idx = strings.Index(downloadResp.Value[0].ContentLocation, "/api/actions_pipeline/_apis/pipelines/")
+		url = downloadResp.Value[0].ContentLocation[idx:]
+		req = NewRequest(t, "GET", url).
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+		resp = MakeRequest(t, req, http.StatusOK)
+		body := strings.Repeat("A", 1024)
+		assert.Equal(t, resp.Body.String(), body)
+	}
+
+	{
+		// upload same artifact, it uses 4096 B
+		req := NewRequestWithJSON(t, "POST", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts", getUploadArtifactRequest{
+			Type: "actions_storage",
+			Name: "artifact",
+		}).AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+		resp := MakeRequest(t, req, http.StatusOK)
+		var uploadResp uploadArtifactResponse
+		DecodeJSON(t, resp, &uploadResp)
+
+		idx := strings.Index(uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
+		url := uploadResp.FileContainerResourceURL[idx:] + "?itemPath=artifact/abc.txt"
+		body := strings.Repeat("B", 4096)
+		req = NewRequestWithBody(t, "PUT", url, strings.NewReader(body)).
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
+			SetHeader("Content-Range", "bytes 0-4095/4096").
+			SetHeader("x-tfs-filelength", "4096").
+			SetHeader("x-actions-results-md5", "wUypcJFeZCK5T6r4lfqzqg==") // base64(md5(body))
+		MakeRequest(t, req, http.StatusOK)
+
+		// confirm artifact upload
+		req = NewRequest(t, "PATCH", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts?artifactName=artifact").
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+		MakeRequest(t, req, http.StatusOK)
+	}
+
+	{
+		// download artifact again, it should 4096 B
+		req := NewRequest(t, "GET", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts").
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+		resp := MakeRequest(t, req, http.StatusOK)
+		var listResp listArtifactsResponse
+		DecodeJSON(t, resp, &listResp)
+
+		var uploadedItem listArtifactsResponseItem
+		for _, item := range listResp.Value {
+			if item.Name == "artifact" {
+				uploadedItem = item
+				break
+			}
+		}
+		assert.Equal(t, uploadedItem.Name, "artifact")
+
+		idx := strings.Index(uploadedItem.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
+		url := uploadedItem.FileContainerResourceURL[idx+1:] + "?itemPath=artifact"
+		req = NewRequest(t, "GET", url).
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+		resp = MakeRequest(t, req, http.StatusOK)
+		var downloadResp downloadArtifactResponse
+		DecodeJSON(t, resp, &downloadResp)
+
+		idx = strings.Index(downloadResp.Value[0].ContentLocation, "/api/actions_pipeline/_apis/pipelines/")
+		url = downloadResp.Value[0].ContentLocation[idx:]
+		req = NewRequest(t, "GET", url).
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+		resp = MakeRequest(t, req, http.StatusOK)
+		body := strings.Repeat("B", 4096)
+		assert.Equal(t, resp.Body.String(), body)
+	}
+}
