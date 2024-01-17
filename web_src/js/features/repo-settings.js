@@ -82,6 +82,10 @@ export function initRepoSettingBranches() {
     const $target = $($(this).attr('data-target'));
     if (this.checked) $target.addClass('disabled'); // only disable, do not auto enable
   });
+  $('#dismiss_stale_approvals').on('change', function () {
+    const $target = $('#ignore_stale_approvals_box');
+    $target.toggleClass('disabled', this.checked);
+  });
 
   // show the `Matched` mark for the status checks that match the pattern
   const markMatchedStatusChecks = () => {
