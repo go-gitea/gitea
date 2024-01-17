@@ -218,9 +218,9 @@ func GetIssueContentHistoryByID(dbCtx context.Context, id int64) (*ContentHistor
 }
 
 // GetIssueContentHistoryAndPrev get a history and the previous non-deleted history (to compare)
-func GetIssueContentHistoryAndPrev(dbCtx context.Context, id int64) (history, prevHistory *ContentHistory, err error) {
+func GetIssueContentHistoryAndPrev(dbCtx context.Context, issueID, id int64) (history, prevHistory *ContentHistory, err error) {
 	history = &ContentHistory{}
-	has, err := db.GetEngine(dbCtx).ID(id).Get(history)
+	has, err := db.GetEngine(dbCtx).Where("id=? AND issue_id=?", id, issueID).Get(history)
 	if err != nil {
 		log.Error("failed to get issue content history %v. err=%v", id, err)
 		return nil, nil, err

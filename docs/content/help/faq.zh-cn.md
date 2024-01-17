@@ -189,7 +189,7 @@ Gitea 目前支持三个官方主题，分别是 `gitea-light`、`gitea-dark` �
 
 假设我们的主题是 `arc-blue`（这是一个真实的主题，可以在[此问题](https://github.com/go-gitea/gitea/issues/6011)中找到）
 
-将`.css`文件命名为`theme-arc-blue.css`并将其添加到`custom/public/css`文件夹中
+将`.css`文件命名为`theme-arc-blue.css`并将其添加到`custom/public/assets/css`文件夹中
 
 通过将`arc-blue`添加到`app.ini`中的`THEMES`列表中，允许用户使用该主题
 
@@ -366,7 +366,7 @@ Gitea 提供了一个子命令`gitea migrate`来初始化数据库，然后您�
 
 > `ORM engine initialization failed: migrate: do migrate: Error: 1118: Row size too large...`
 
-请运行`gitea convert`或对数据库中的每个表运行`ALTER TABLE table_name ROW_FORMAT=dynamic;`。
+请运行 `gitea doctor convert` 或对数据库中的每个表运行 `ALTER TABLE table_name ROW_FORMAT=dynamic;`。
 
 潜在问题是默认行格式分配给每个表的索引空间
 太小。Gitea 要求其表的`ROWFORMAT`为`DYNAMIC`。
@@ -374,26 +374,6 @@ Gitea 提供了一个子命令`gitea migrate`来初始化数据库，然后您�
 如果收到包含`Error 1071: Specified key was too long; max key length is 1000 bytes...`
 的错误行，则表示您正在尝试在使用 ISAM 引擎的表上运行 Gitea。尽管在先前版本的 Gitea 中可能是凑巧能够工作的，但它从未得到官方支持，
 您必须使用 InnoDB。您应该对数据库中的每个表运行`ALTER TABLE table_name ENGINE=InnoDB;`。
-
-如果您使用的是 MySQL 5，另一个可能的修复方法是：
-
-```mysql
-SET GLOBAL innodb_file_format=Barracuda;
-SET GLOBAL innodb_file_per_table=1;
-SET GLOBAL innodb_large_prefix=1;
-```
-
-## 为什么 MySQL 上的 Emoji 显示错误
-
-不幸的是，MySQL 的`utf8`字符集不完全允许所有可能的 UTF-8 字符，特别是 Emoji。
-他们创建了一个名为 `utf8mb4`的字符集和校对规则，允许存储 Emoji，但使用
-utf8 字符集的表和连接将不会使用它。
-
-请运行 `gitea convert` 或对数据库运行`ALTER DATABASE database_name CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
-并对每个表运行
-`ALTER TABLE table_name CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`。
-
-您还需要将`app.ini`文件中的数据库字符集设置为`CHARSET=utf8mb4`。
 
 ## 为什么 Emoji 只显示占位符或单色图像
 

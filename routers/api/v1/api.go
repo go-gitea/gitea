@@ -35,10 +35,12 @@
 //	     type: apiKey
 //	     name: token
 //	     in: query
+//	     description: This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.
 //	AccessToken:
 //	     type: apiKey
 //	     name: access_token
 //	     in: query
+//	     description: This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.
 //	AuthorizationHeaderToken:
 //	     type: apiKey
 //	     name: Authorization
@@ -867,6 +869,31 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIC
 	}
 }
 
+func individualPermsChecker(ctx *context.APIContext) {
+	// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
+	if ctx.ContextUser.IsIndividual() {
+		switch {
+		case ctx.ContextUser.Visibility == api.VisibleTypePrivate:
+			if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
+				ctx.NotFound("Visit Project", nil)
+				return
+			}
+		case ctx.ContextUser.Visibility == api.VisibleTypeLimited:
+			if ctx.Doer == nil {
+				ctx.NotFound("Visit Project", nil)
+				return
+			}
+		}
+	}
+}
+
+// check for and warn against deprecated authentication options
+func checkDeprecatedAuthMethods(ctx *context.APIContext) {
+	if ctx.FormString("token") != "" || ctx.FormString("access_token") != "" {
+		ctx.Resp.Header().Set("Warning", "token and access_token API authentication is deprecated and will be removed in gitea 1.23. Please use AuthorizationHeaderToken instead. Existing queries will continue to work but without authorization.")
+	}
+}
+
 // Routes registers all v1 APIs routes to web application.
 func Routes() *web.Route {
 	m := web.NewRoute()
@@ -874,9 +901,7 @@ func Routes() *web.Route {
 	m.Use(securityHeaders())
 	if setting.CORSConfig.Enabled {
 		m.Use(cors.Handler(cors.Options{
-			// Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
-			AllowedOrigins: setting.CORSConfig.AllowDomain,
-			// setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
+			AllowedOrigins:   setting.CORSConfig.AllowDomain,
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
 			AllowedHeaders: append(
@@ -886,6 +911,8 @@ func Routes() *web.Route {
 		}))
 	}
 	m.Use(context.APIContexter())
+
+	m.Use(checkDeprecatedAuthMethods)
 
 	// Get user from session if logged in.
 	m.Use(apiAuth(buildAuthGroup()))
@@ -974,7 +1001,7 @@ func Routes() *web.Route {
 				}, reqSelfOrAdmin(), reqBasicOrRevProxyAuth())
 
 				m.Get("/activities/feeds", user.ListUserActivityFeeds)
-			}, context_service.UserAssignmentAPI())
+			}, context_service.UserAssignmentAPI(), individualPermsChecker)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser))
 
 		// Users (requires user scope)
@@ -1007,11 +1034,17 @@ func Routes() *web.Route {
 				Post(bind(api.CreateEmailOption{}), user.AddEmail).
 				Delete(bind(api.DeleteEmailOption{}), user.DeleteEmail)
 
-			// create or update a user's actions secrets
-			m.Group("/actions/secrets", func() {
-				m.Combo("/{secretname}").
-					Put(bind(api.CreateOrUpdateSecretOption{}), user.CreateOrUpdateSecret).
-					Delete(user.DeleteSecret)
+			// manage user-level actions features
+			m.Group("/actions", func() {
+				m.Group("/secrets", func() {
+					m.Combo("/{secretname}").
+						Put(bind(api.CreateOrUpdateSecretOption{}), user.CreateOrUpdateSecret).
+						Delete(user.DeleteSecret)
+				})
+
+				m.Group("/runners", func() {
+					m.Get("/registration-token", reqToken(), user.GetRegistrationToken)
+				})
 			})
 
 			m.Get("/followers", user.ListMyFollowers)
@@ -1128,10 +1161,16 @@ func Routes() *web.Route {
 					m.Post("/accept", repo.AcceptTransfer)
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
-				m.Group("/actions/secrets", func() {
-					m.Combo("/{secretname}").
-						Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateSecret).
-						Delete(reqToken(), reqOwner(), repo.DeleteSecret)
+				m.Group("/actions", func() {
+					m.Group("/secrets", func() {
+						m.Combo("/{secretname}").
+							Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateSecret).
+							Delete(reqToken(), reqOwner(), repo.DeleteSecret)
+					})
+
+					m.Group("/runners", func() {
+						m.Get("/registration-token", reqToken(), reqOwner(), repo.GetRegistrationToken)
+					})
 				})
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(repo.ListGitHooks)
@@ -1280,9 +1319,9 @@ func Routes() *web.Route {
 				m.Get("/subscribers", repo.ListSubscribers)
 				m.Group("/subscription", func() {
 					m.Get("", user.IsWatching)
-					m.Put("", reqToken(), user.Watch)
-					m.Delete("", reqToken(), user.Unwatch)
-				})
+					m.Put("", user.Watch)
+					m.Delete("", user.Unwatch)
+				}, reqToken())
 				m.Group("/releases", func() {
 					m.Combo("").Get(repo.ListReleases).
 						Post(reqToken(), reqRepoWriter(unit.TypeReleases), context.ReferencesGitRepo(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
@@ -1469,8 +1508,8 @@ func Routes() *web.Route {
 			m.Group("/{username}/{reponame}", func() {
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
-						Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueOption{}), repo.CreateIssue)
-					m.Get("/pinned", repo.ListPinnedIssues)
+						Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueOption{}), reqRepoReader(unit.TypeIssues), repo.CreateIssue)
+					m.Get("/pinned", reqRepoReader(unit.TypeIssues), repo.ListPinnedIssues)
 					m.Group("/comments", func() {
 						m.Get("", repo.ListRepoIssueComments)
 						m.Group("/{id}", func() {
@@ -1636,11 +1675,17 @@ func Routes() *web.Route {
 				m.Combo("/{username}").Get(reqToken(), org.IsMember).
 					Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
 			})
-			m.Group("/actions/secrets", func() {
-				m.Get("", reqToken(), reqOrgOwnership(), org.ListActionsSecrets)
-				m.Combo("/{secretname}").
-					Put(reqToken(), reqOrgOwnership(), bind(api.CreateOrUpdateSecretOption{}), org.CreateOrUpdateSecret).
-					Delete(reqToken(), reqOrgOwnership(), org.DeleteSecret)
+			m.Group("/actions", func() {
+				m.Group("/secrets", func() {
+					m.Get("", reqToken(), reqOrgOwnership(), org.ListActionsSecrets)
+					m.Combo("/{secretname}").
+						Put(reqToken(), reqOrgOwnership(), bind(api.CreateOrUpdateSecretOption{}), org.CreateOrUpdateSecret).
+						Delete(reqToken(), reqOrgOwnership(), org.DeleteSecret)
+				})
+
+				m.Group("/runners", func() {
+					m.Get("/registration-token", reqToken(), reqOrgOwnership(), org.GetRegistrationToken)
+				})
 			})
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)
@@ -1743,6 +1788,9 @@ func Routes() *web.Route {
 				m.Combo("/{id}").Get(admin.GetHook).
 					Patch(bind(api.EditHookOption{}), admin.EditHook).
 					Delete(admin.DeleteHook)
+			})
+			m.Group("/runners", func() {
+				m.Get("/registration-token", admin.GetRegistrationToken)
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryAdmin), reqToken(), reqSiteAdmin())
 

@@ -16,6 +16,8 @@
 		<button class="ui red button delete-button" data-modal-id="disable-twofa" data-type="form" data-form="#disable-form">{{ctx.Locale.Tr "settings.twofa_disable"}}</button>
 	</form>
 	{{else}}
+	{{/* The recovery tip is there as a means of encouraging a user to enroll */}}
+	<p>{{ctx.Locale.Tr "settings.twofa_recovery_tip"}}</p>
 	<p>{{ctx.Locale.Tr "settings.twofa_not_enrolled"}}</p>
 	<div class="inline field">
 		<a class="ui primary button" href="{{AppSubUrl}}/user/settings/security/two_factor/enroll">{{ctx.Locale.Tr "settings.twofa_enroll"}}</a>

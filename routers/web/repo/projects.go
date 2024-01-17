@@ -90,10 +90,12 @@ func Projects(ctx *context.Context) {
 
 	for i := range projects {
 		projects[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			URLPrefix: ctx.Repo.RepoLink,
-			Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
-			GitRepo:   ctx.Repo.GitRepo,
-			Ctx:       ctx,
+			Links: markup.Links{
+				Base: ctx.Repo.RepoLink,
+			},
+			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+			GitRepo: ctx.Repo.GitRepo,
+			Ctx:     ctx,
 		}, projects[i].Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -357,10 +359,12 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["LinkedPRs"] = linkedPrsMap
 
 	project.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-		URLPrefix: ctx.Repo.RepoLink,
-		Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo:   ctx.Repo.GitRepo,
-		Ctx:       ctx,
+		Links: markup.Links{
+			Base: ctx.Repo.RepoLink,
+		},
+		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+		GitRepo: ctx.Repo.GitRepo,
+		Ctx:     ctx,
 	}, project.Description)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -468,7 +472,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 		return
 	}
 
-	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)

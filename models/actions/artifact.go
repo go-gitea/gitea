@@ -90,19 +90,6 @@ func getArtifactByNameAndPath(ctx context.Context, runID int64, name, fpath stri
 	return &art, nil
 }
 
-// GetArtifactByID returns an artifact by id
-func GetArtifactByID(ctx context.Context, id int64) (*ActionArtifact, error) {
-	var art ActionArtifact
-	has, err := db.GetEngine(ctx).ID(id).Get(&art)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, util.ErrNotExist
-	}
-
-	return &art, nil
-}
-
 // UpdateArtifactByID updates an artifact by id
 func UpdateArtifactByID(ctx context.Context, id int64, art *ActionArtifact) error {
 	art.ID = id
