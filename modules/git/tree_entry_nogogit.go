@@ -55,6 +55,7 @@ func (te *TreeEntry) Size() int64 {
 	te.sized = true
 	return te.size
 }
+
 func (te *TreeEntry) FullPath() string {
 	if te.fullName == "" {
 		return te.Name()
