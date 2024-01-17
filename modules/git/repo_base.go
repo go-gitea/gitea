@@ -8,6 +8,8 @@ import (
 	"io"
 )
 
+var isGogit bool
+
 // contextKey is a value for use with context.WithValue.
 type contextKey struct {
 	name string

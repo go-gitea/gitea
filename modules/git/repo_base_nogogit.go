@@ -15,6 +15,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+func init() {
+	isGogit = false
+}
+
 // Repository represents a Git repository.
 type Repository struct {
 	Path string
