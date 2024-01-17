@@ -190,6 +190,12 @@ func InitFull(ctx context.Context) (err error) {
 	}
 	SupportProcReceive = CheckGitVersionAtLeast("2.29") == nil
 	SupportHashSha256 = CheckGitVersionAtLeast("2.42") == nil
+	if SupportHashSha256 {
+		SupportedObjectFormats = append(SupportedObjectFormats, Sha256ObjectFormat)
+	} else {
+		log.Warn("sha256 hash support requires Git >= 2.42, disabled")
+	}
+
 	if setting.LFS.StartServer {
 		if CheckGitVersionAtLeast("2.1.2") != nil {
 			return errors.New("LFS server support requires Git >= 2.1.2")

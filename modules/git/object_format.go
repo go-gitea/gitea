@@ -130,7 +130,6 @@ var (
 
 var SupportedObjectFormats = []ObjectFormat{
 	Sha1ObjectFormat,
-	Sha256ObjectFormat,
 }
 
 func ObjectFormatFromName(name string) ObjectFormat {
