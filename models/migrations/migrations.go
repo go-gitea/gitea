@@ -553,6 +553,8 @@ var migrations = []Migration{
 	// v283 -> v284
 	NewMigration("Add combined Index to issue_user.uid and issue_id", v1_22.AddCombinedIndexToIssueUser),
 	// v284 -> v285
+	NewMigration("Add ignore stale approval column on branch table", v1_22.AddIgnoreStaleApprovalsColumnToProtectedBranchTable),
+	// v285 -> v286
 	NewMigration("Add Repository Licenses", v1_22.AddRepositoryLicenses),
 }
 
