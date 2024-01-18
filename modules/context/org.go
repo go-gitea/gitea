@@ -17,10 +17,11 @@ import (
 
 // Organization contains organization context
 type Organization struct {
-	IsOwner          bool
-	IsMember         bool
-	IsTeamMember     bool // Is member of team.
-	IsTeamAdmin      bool // In owner team or team that has admin permission level.
+	IsOwner          bool // Is owner of the org
+	IsMember         bool // Is member of the org
+	IsAdmin          bool // Is admin of the org
+	IsTeamMember     bool // Is member of team, only used in urls which has team param
+	IsTeamAdmin      bool // Is in owner team or team that has admin permission level, only used in urls which has team param
 	Organization     *organization.Organization
 	OrgLink          string
 	CanCreateOrgRepo bool
@@ -124,6 +125,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	if ctx.IsSigned && ctx.Doer.IsAdmin {
 		ctx.Org.IsOwner = true
 		ctx.Org.IsMember = true
+		ctx.Org.IsAdmin = true
 		ctx.Org.IsTeamMember = true
 		ctx.Org.IsTeamAdmin = true
 		ctx.Org.CanCreateOrgRepo = true
@@ -136,6 +138,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 
 		if ctx.Org.IsOwner {
 			ctx.Org.IsMember = true
+			ctx.Org.IsAdmin = true
 			ctx.Org.IsTeamMember = true
 			ctx.Org.IsTeamAdmin = true
 			ctx.Org.CanCreateOrgRepo = true
@@ -143,6 +146,11 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			ctx.Org.IsMember, err = org.IsOrgMember(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("IsOrgMember", err)
+				return
+			}
+			ctx.Org.IsAdmin, err = org.IsOrgAdmin(ctx, ctx.Doer.ID)
+			if err != nil {
+				ctx.ServerError("IsOrgAdmin", err)
 				return
 			}
 			ctx.Org.CanCreateOrgRepo, err = org.CanCreateOrgRepo(ctx, ctx.Doer.ID)
@@ -187,23 +195,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 
 	// Team.
 	if ctx.Org.IsMember {
-		shouldSeeAllTeams := false
-		if ctx.Org.IsOwner {
-			shouldSeeAllTeams = true
-		} else {
-			teams, err := org.GetUserTeams(ctx, ctx.Doer.ID)
-			if err != nil {
-				ctx.ServerError("GetUserTeams", err)
-				return
-			}
-			for _, team := range teams {
-				if team.IncludesAllRepositories && team.AccessMode >= perm.AccessModeAdmin {
-					shouldSeeAllTeams = true
-					break
-				}
-			}
-		}
-		if shouldSeeAllTeams {
+		if ctx.Org.IsOwner || ctx.Org.IsAdmin {
 			ctx.Org.Teams, err = org.LoadTeams(ctx)
 			if err != nil {
 				ctx.ServerError("LoadTeams", err)
