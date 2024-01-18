@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/migrations/base"
-	"xorm.io/xorm"
 
 	"github.com/stretchr/testify/assert"
+	"xorm.io/xorm"
 )
 
 func PrepareOldRepository(t *testing.T) (*xorm.Engine, func()) {

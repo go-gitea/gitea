@@ -78,11 +78,7 @@ func ExpandHashReferencesToSha256(x *xorm.Engine) error {
 	}
 	log.Debug("Updated database tables to hold SHA256 git hash references")
 
-	if err := db.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+	return db.Commit()
 }
 
 func AddObjectFormatNameToRepository(x *xorm.Engine) error {

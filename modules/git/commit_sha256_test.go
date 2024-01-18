@@ -14,7 +14,6 @@ import (
 )
 
 func TestCommitsCountSha256(t *testing.T) {
-
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare_sha256")
 
 	commitsCount, err := CommitsCount(DefaultContext,
