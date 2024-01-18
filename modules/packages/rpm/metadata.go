@@ -15,8 +15,7 @@ import (
 )
 
 const (
-	PropertyMetadata = "rpm.metadata"
-
+	PropertyMetadata  = "rpm.metadata"
 	SettingKeyPrivate = "rpm.key.private"
 	SettingKeyPublic  = "rpm.key.public"
 

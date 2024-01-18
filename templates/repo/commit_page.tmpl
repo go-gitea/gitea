@@ -19,7 +19,7 @@
 		{{end}}
 		<div class="ui top attached header clearing segment gt-relative commit-header {{$class}}">
 			<div class="gt-df gt-mb-4 gt-fw">
-				<h3 class="gt-mb-0 gt-f1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message $.RepoLink ($.Repository.ComposeMetas ctx)}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses}}</h3>
+				<h3 class="gt-mb-0 gt-f1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message ($.Repository.ComposeMetas ctx)}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses}}</h3>
 				{{if not $.PageIsWiki}}
 					<div>
 						<a class="ui primary tiny button" href="{{.SourcePath}}">
@@ -135,7 +135,7 @@
 				{{end}}
 			</div>
 			{{if IsMultilineCommitMessage .Commit.Message}}
-				<pre class="commit-body">{{RenderCommitBody $.Context .Commit.Message $.RepoLink ($.Repository.ComposeMetas ctx)}}</pre>
+				<pre class="commit-body">{{RenderCommitBody $.Context .Commit.Message ($.Repository.ComposeMetas ctx)}}</pre>
 			{{end}}
 			{{template "repo/commit_load_branches_and_tags" .}}
 		</div>
@@ -258,7 +258,7 @@
 				</div>
 			</div>
 		{{end}}
-		{{if .Note}}
+		{{if .NoteRendered}}
 			<div class="ui top attached header segment git-notes">
 				{{svg "octicon-note" 16 "gt-mr-3"}}
 				{{ctx.Locale.Tr "repo.diff.git-notes"}}:
@@ -276,7 +276,7 @@
 				<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When ctx.Locale}}</span>
 			</div>
 			<div class="ui bottom attached info segment git-notes">
-				<pre class="commit-body">{{RenderNote $.Context .Note $.RepoLink ($.Repository.ComposeMetas ctx)}}</pre>
+				<pre class="commit-body">{{.NoteRendered | Str2html}}</pre>
 			</div>
 		{{end}}
 		{{template "repo/diff/box" .}}

@@ -51,9 +51,11 @@ func toReleaseLink(ctx *context.Context, act *activities_model.Action) string {
 // If rendering fails, the original markdown text is returned
 func renderMarkdown(ctx *context.Context, act *activities_model.Action, content string) string {
 	markdownCtx := &markup.RenderContext{
-		Ctx:       ctx,
-		URLPrefix: act.GetRepoLink(ctx),
-		Type:      markdown.MarkupName,
+		Ctx: ctx,
+		Links: markup.Links{
+			Base: act.GetRepoLink(ctx),
+		},
+		Type: markdown.MarkupName,
 		Metas: map[string]string{
 			"user": act.GetRepoUserName(ctx),
 			"repo": act.GetRepoName(ctx),
@@ -199,7 +201,6 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 			switch act.OpType {
 			case activities_model.ActionCommitRepo, activities_model.ActionMirrorSyncPush:
 				push := templates.ActionContent2Commits(act)
-				repoLink := act.GetRepoAbsoluteLink(ctx)
 
 				for _, commit := range push.Commits {
 					if len(desc) != 0 {
@@ -208,7 +209,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 					desc += fmt.Sprintf("<a href=\"%s\">%s</a>\n%s",
 						html.EscapeString(fmt.Sprintf("%s/commit/%s", act.GetRepoAbsoluteLink(ctx), commit.Sha1)),
 						commit.Sha1,
-						templates.RenderCommitMessage(ctx, commit.Message, repoLink, nil),
+						templates.RenderCommitMessage(ctx, commit.Message, nil),
 					)
 				}
 
@@ -288,9 +289,11 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release, i
 
 		link := &feeds.Link{Href: rel.HTMLURL()}
 		content, err = markdown.RenderString(&markup.RenderContext{
-			Ctx:       ctx,
-			URLPrefix: rel.Repo.Link(),
-			Metas:     rel.Repo.ComposeMetas(ctx),
+			Ctx: ctx,
+			Links: markup.Links{
+				Base: rel.Repo.Link(),
+			},
+			Metas: rel.Repo.ComposeMetas(ctx),
 		}, rel.Note)
 
 		if err != nil {

@@ -983,7 +983,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	}
 
 	if len(units)+len(deleteUnitTypes) > 0 {
-		if err := repo_model.UpdateRepositoryUnits(ctx, repo, units, deleteUnitTypes); err != nil {
+		if err := repo_service.UpdateRepositoryUnits(ctx, repo, units, deleteUnitTypes); err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateRepositoryUnits", err)
 			return err
 		}
