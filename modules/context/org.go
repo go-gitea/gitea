@@ -143,20 +143,25 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			ctx.Org.IsTeamAdmin = true
 			ctx.Org.CanCreateOrgRepo = true
 		} else {
-			ctx.Org.IsMember, err = org.IsOrgMember(ctx, ctx.Doer.ID)
-			if err != nil {
-				ctx.ServerError("IsOrgMember", err)
-				return
-			}
 			ctx.Org.IsAdmin, err = org.IsOrgAdmin(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("IsOrgAdmin", err)
 				return
 			}
-			ctx.Org.CanCreateOrgRepo, err = org.CanCreateOrgRepo(ctx, ctx.Doer.ID)
-			if err != nil {
-				ctx.ServerError("CanCreateOrgRepo", err)
-				return
+			if ctx.Org.IsAdmin {
+				ctx.Org.IsMember = true
+				ctx.Org.CanCreateOrgRepo = true
+			} else {
+				ctx.Org.IsMember, err = org.IsOrgMember(ctx, ctx.Doer.ID)
+				if err != nil {
+					ctx.ServerError("IsOrgMember", err)
+					return
+				}
+				ctx.Org.CanCreateOrgRepo, err = org.CanCreateOrgRepo(ctx, ctx.Doer.ID)
+				if err != nil {
+					ctx.ServerError("CanCreateOrgRepo", err)
+					return
+				}
 			}
 		}
 	} else {
