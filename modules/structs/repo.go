@@ -107,7 +107,7 @@ type Repository struct {
 	MirrorInterval                string           `json:"mirror_interval"`
 	// ObjectFormatName of the underlying git repository
 	// enum: sha1,sha256
-	ObjectFormatName              string           `json:"object_format_name"`
+	ObjectFormatName string `json:"object_format_name"`
 	// swagger:strfmt date-time
 	MirrorUpdated time.Time     `json:"mirror_updated,omitempty"`
 	RepoTransfer  *RepoTransfer `json:"repo_transfer"`
