@@ -4,9 +4,9 @@ package main
 
 import (
 	"archive/tar"
-	"bytes"
 	"compress/gzip"
 	"crypto/md5"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"io"
@@ -15,7 +15,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/json"
@@ -83,9 +82,7 @@ func main() {
 	}
 
 	tr := tar.NewReader(gz)
-	var preFile *os.File
-	var preLicenseName string
-	sameFiles := make(map[string][]string)
+	aliasesFiles := make(map[string][]string)
 	for {
 		hdr, err := tr.Next()
 
@@ -122,121 +119,54 @@ func main() {
 
 		defer out.Close()
 
-		if _, err := io.Copy(out, tr); err != nil {
+		// some license files have same content, so we need to detect these files and create a convert map into a json file
+		// In functuion initClassifier, we use this convert map to avoid adding same license content with different license name
+		h := md5.New()
+		// calculate md5 and write file in the same time
+		r := io.TeeReader(tr, h)
+		if _, err := io.Copy(out, r); err != nil {
 			log.Fatalf("Failed to write new file. %s", err)
 		} else {
 			fmt.Printf("Written %s\n", out.Name())
 
-			// some license files have same content, so we need to detect these files and create a convert map into a file
-			// In InitClassifier, we will use this convert map to avoid adding same license content with different license name
-			md5, err := getSameFileMD5(preFile, out)
-			if err != nil {
-				log.Fatalf("Failed to get same file md5. %s", err)
-				continue
+			md5 := hex.EncodeToString(h.Sum(nil))
+			if _, ok := aliasesFiles[md5]; ok {
+				aliasesFiles[md5] = append(aliasesFiles[md5], licenseName)
+			} else {
+				aliasesFiles[md5] = []string{licenseName}
 			}
-			if md5 != "" {
-				_, ok := sameFiles[md5]
-				if !ok {
-					sameFiles[md5] = make([]string, 0)
-				}
-				if !slices.Contains(sameFiles[md5], preLicenseName) {
-					sameFiles[md5] = append(sameFiles[md5], preLicenseName)
-				}
-				sameFiles[md5] = append(sameFiles[md5], licenseName)
-			}
-			preFile = out
-			preLicenseName = licenseName
 		}
 	}
 
 	// generate convert license name map
 	licenseAliases := make(map[string]string)
-	for _, fileNames := range sameFiles {
-		key := getLicenseKey(fileNames)
-		for _, fileName := range fileNames {
-			licenseAliases[fileName] = key
+	for _, fileNames := range aliasesFiles {
+		if len(fileNames) > 1 {
+			licenseName := getLicenseNameFromAliases(fileNames)
+			for _, fileName := range fileNames {
+				licenseAliases[fileName] = licenseName
+			}
 		}
 	}
 	// save convert license name map to file
-	bytes, err := json.Marshal(licenseAliases)
+	b, err := json.Marshal(licenseAliases)
 	if err != nil {
 		log.Fatalf("Failed to create json bytes. %s", err)
 		return
 	}
-	out, err := os.Create(licenseAliasesDestination)
+	f, err := os.Create(licenseAliasesDestination)
 	if err != nil {
-		log.Fatalf("Failed to create new file. %s", err)
+		log.Fatalf("Failed to create license aliases json file. %s", err)
 	}
-	defer out.Close()
-	_, err = out.Write(bytes)
-	if err != nil {
-		log.Fatalf("Failed to write same licenses json file. %s", err)
+	defer f.Close()
+	if _, err = f.Write(b); err != nil {
+		log.Fatalf("Failed to write license aliases json file. %s", err)
 	}
 
 	fmt.Println("Done")
 }
 
-// getSameFileMD5 returns md5 of the input file, if the content of input files are same
-func getSameFileMD5(f1, f2 *os.File) (string, error) {
-	if f1 == nil || f2 == nil {
-		return "", nil
-	}
-
-	// check file size
-	fs1, err := f1.Stat()
-	if err != nil {
-		return "", err
-	}
-	fs2, err := f2.Stat()
-	if err != nil {
-		return "", err
-	}
-
-	if fs1.Size() != fs2.Size() {
-		return "", nil
-	}
-
-	// check content
-	chunkSize := 1024
-	_, err = f1.Seek(0, 0)
-	if err != nil {
-		return "", err
-	}
-	_, err = f2.Seek(0, 0)
-	if err != nil {
-		return "", err
-	}
-
-	var totalBytes []byte
-	for {
-		b1 := make([]byte, chunkSize)
-		_, err1 := f1.Read(b1)
-
-		b2 := make([]byte, chunkSize)
-		_, err2 := f2.Read(b2)
-
-		totalBytes = append(totalBytes, b1...)
-
-		if err1 != nil || err2 != nil {
-			if err1 == io.EOF && err2 == io.EOF {
-				md5 := md5.Sum(totalBytes)
-				return string(md5[:]), nil
-			} else if err1 == io.EOF || err2 == io.EOF {
-				return "", nil
-			} else if err1 != nil {
-				return "", err1
-			} else if err2 != nil {
-				return "", err2
-			}
-		}
-
-		if !bytes.Equal(b1, b2) {
-			return "", nil
-		}
-	}
-}
-
-func getLicenseKey(fnl []string) string {
+func getLicenseNameFromAliases(fnl []string) string {
 	if len(fnl) == 0 {
 		return ""
 	}
