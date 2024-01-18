@@ -5,6 +5,7 @@ package v1_22 //nolint
 
 import (
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
 )
@@ -67,45 +68,67 @@ func FixMissingAdminTeamUnitRecords(x *xorm.Engine) error {
 		return err
 	}
 
-	// find all admin teams
-	teams := make([]*Team, 0)
-	err := sess.Where("team.authorize = ?", AccessModeAdmin).Find(&teams)
-	if err != nil {
-		return err
+	limit := setting.Database.IterateBufferSize
+	if limit <= 0 {
+		limit = 50
 	}
 
-	for _, team := range teams {
-		// find all existing records
-		teamunits := make([]*TeamUnit, 0, len(AllRepoUnitTypes))
-		err := sess.Where("`team_unit`.team_id = ?", team.ID).Find(&teamunits)
+	start := 0
+
+	for {
+		var teams []*Team
+		err := sess.Where("team.authorize = ?", AccessModeAdmin).Limit(limit, start).Find(&teams)
 		if err != nil {
 			return err
 		}
-		existingUnitTypes := make(container.Set[UnitType], 0)
-		for _, tu := range teamunits {
-			if tu.Type > 0 {
-				existingUnitTypes.Add(tu.Type)
+
+		if len(teams) == 0 {
+			break
+		}
+		start += len(teams)
+
+		for _, team := range teams {
+			// find all existing records
+			teamunits := make([]*TeamUnit, 0, len(AllRepoUnitTypes))
+			err := sess.Where("`team_unit`.team_id = ?", team.ID).Find(&teamunits)
+			if err != nil {
+				return err
+			}
+			existingUnitTypes := make(container.Set[UnitType], 0)
+			for _, tu := range teamunits {
+				if tu.Type > 0 {
+					existingUnitTypes.Add(tu.Type)
+				}
+			}
+
+			// insert or update records
+			for _, u := range AllRepoUnitTypes {
+				newTeamUnit := &TeamUnit{
+					OrgID:  team.OrgID,
+					TeamID: team.ID,
+					Type:   u,
+				}
+				// external unit should be read
+				if u == TypeExternalWiki || u == TypeExternalTracker {
+					newTeamUnit.AccessMode = AccessModeRead
+				} else {
+					newTeamUnit.AccessMode = AccessModeAdmin
+				}
+
+				if existingUnitTypes.Contains(u) {
+					sess.Cols("access_mode").Update(newTeamUnit)
+				} else {
+					sess.Insert(newTeamUnit)
+				}
 			}
 		}
 
-		// insert or update records
-		for _, u := range AllRepoUnitTypes {
-			newTeamUnit := &TeamUnit{
-				OrgID:  team.OrgID,
-				TeamID: team.ID,
-				Type:   u,
+		if start%1000 == 0 { // avoid a too big transaction
+			if err := sess.Commit(); err != nil {
+				return err
 			}
-			// external unit should be read
-			if u == TypeExternalWiki || u == TypeExternalTracker {
-				newTeamUnit.AccessMode = AccessModeRead
-			} else {
-				newTeamUnit.AccessMode = AccessModeAdmin
-			}
-
-			if existingUnitTypes.Contains(u) {
-				sess.Cols("access_mode").Update(newTeamUnit)
-			} else {
-				sess.Insert(newTeamUnit)
+			if err := sess.Begin(); err != nil {
+				return err
 			}
 		}
 	}
