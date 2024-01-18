@@ -60,3 +60,118 @@ func TestGetCommitStatuses(t *testing.T) {
 	assert.Equal(t, int(maxResults), 5)
 	assert.Empty(t, statuses)
 }
+
+func Test_CalcCommitStatus(t *testing.T) {
+	kases := []struct {
+		statuses []*git_model.CommitStatus
+		expected *git_model.CommitStatus
+	}{
+		{
+			statuses: []*git_model.CommitStatus{
+				{
+					State: structs.CommitStatusPending,
+				},
+			},
+			expected: &git_model.CommitStatus{
+				State: structs.CommitStatusPending,
+			},
+		},
+		{
+			statuses: []*git_model.CommitStatus{
+				{
+					State: structs.CommitStatusSuccess,
+				},
+				{
+					State: structs.CommitStatusPending,
+				},
+			},
+			expected: &git_model.CommitStatus{
+				State: structs.CommitStatusPending,
+			},
+		},
+		{
+			statuses: []*git_model.CommitStatus{
+				{
+					State: structs.CommitStatusSuccess,
+				},
+				{
+					State: structs.CommitStatusPending,
+				},
+				{
+					State: structs.CommitStatusSuccess,
+				},
+			},
+			expected: &git_model.CommitStatus{
+				State: structs.CommitStatusPending,
+			},
+		},
+		{
+			statuses: []*git_model.CommitStatus{
+				{
+					State: structs.CommitStatusError,
+				},
+				{
+					State: structs.CommitStatusPending,
+				},
+				{
+					State: structs.CommitStatusSuccess,
+				},
+			},
+			expected: &git_model.CommitStatus{
+				State: structs.CommitStatusError,
+			},
+		},
+		{
+			statuses: []*git_model.CommitStatus{
+				{
+					State: structs.CommitStatusWarning,
+				},
+				{
+					State: structs.CommitStatusPending,
+				},
+				{
+					State: structs.CommitStatusSuccess,
+				},
+			},
+			expected: &git_model.CommitStatus{
+				State: structs.CommitStatusWarning,
+			},
+		},
+		{
+			statuses: []*git_model.CommitStatus{
+				{
+					State: structs.CommitStatusSuccess,
+				},
+				{
+					State: structs.CommitStatusSuccess,
+				},
+				{
+					State: structs.CommitStatusSuccess,
+				},
+			},
+			expected: &git_model.CommitStatus{
+				State: structs.CommitStatusSuccess,
+			},
+		},
+		{
+			statuses: []*git_model.CommitStatus{
+				{
+					State: structs.CommitStatusFailure,
+				},
+				{
+					State: structs.CommitStatusError,
+				},
+				{
+					State: structs.CommitStatusWarning,
+				},
+			},
+			expected: &git_model.CommitStatus{
+				State: structs.CommitStatusError,
+			},
+		},
+	}
+
+	for _, kase := range kases {
+		assert.Equal(t, kase.expected, git_model.CalcCommitStatus(kase.statuses))
+	}
+}
