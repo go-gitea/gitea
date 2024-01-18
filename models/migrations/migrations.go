@@ -554,6 +554,7 @@ var migrations = []Migration{
 	NewMigration("Add combined Index to issue_user.uid and issue_id", v1_22.AddCombinedIndexToIssueUser),
 	// v284 -> v285
 	NewMigration("Add support for SHA256 git hash references", v1_22.ExpandHashReferencesToSha256),
+	NewMigration("Add ObjectFormatName to Repository table", v1_22.AddObjectFormatNameToRepository),
 }
 
 // GetCurrentDBVersion returns the current db version

@@ -81,8 +81,11 @@ func ExpandHashReferencesToSha256(x *xorm.Engine) error {
 	if err := db.Commit(); err != nil {
 		return err
 	}
-	db.Close()
 
+	return nil
+}
+
+func AddObjectFormatNameToRepository(x *xorm.Engine) error {
 	type Repository struct {
 		ObjectFormatName string `xorm:"VARCHAR(6) NOT NULL DEFAULT 'sha1'"`
 	}
@@ -91,6 +94,6 @@ func ExpandHashReferencesToSha256(x *xorm.Engine) error {
 		return err
 	}
 
-	_, err := x.Exec("UPDATE repository set object_format_name = 'sha1' WHERE object_format_name = '' or object_format_name IS NULL")
+	_, err := x.Exec("UPDATE repository SET object_format_name = 'sha1' WHERE object_format_name = '' OR object_format_name IS NULL")
 	return err
 }
