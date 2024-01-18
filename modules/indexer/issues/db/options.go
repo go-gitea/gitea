@@ -55,6 +55,7 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 	opts := &issue_model.IssuesOptions{
 		Paginator:          options.Paginator,
 		RepoIDs:            options.RepoIDs,
+		AllPublic:          options.AllPublic,
 		RepoCond:           nil,
 		AssigneeID:         convertID(options.AssigneeID),
 		PosterID:           convertID(options.PosterID),

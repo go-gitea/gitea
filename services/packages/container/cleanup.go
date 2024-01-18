@@ -11,6 +11,7 @@ import (
 	container_model "code.gitea.io/gitea/models/packages/container"
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/util"
+	packages_service "code.gitea.io/gitea/services/packages"
 
 	digest "github.com/opencontainers/go-digest"
 )
@@ -47,10 +48,7 @@ func cleanupExpiredUploadedBlobs(ctx context.Context, olderThan time.Duration) e
 	}
 
 	for _, pf := range pfs {
-		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
-			return err
-		}
-		if err := packages_model.DeleteFileByID(ctx, pf.ID); err != nil {
+		if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
 			return err
 		}
 	}

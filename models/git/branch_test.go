@@ -4,6 +4,7 @@
 package git_test
 
 import (
+	"context"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -20,6 +21,7 @@ import (
 func TestAddDeletedBranch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.EqualValues(t, git.Sha1ObjectFormat.Name(), repo.ObjectFormatName)
 	firstBranch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{ID: 1})
 
 	assert.True(t, firstBranch.IsDeleted)
@@ -37,7 +39,7 @@ func TestAddDeletedBranch(t *testing.T) {
 		},
 	}
 
-	err := git_model.UpdateBranch(db.DefaultContext, repo.ID, secondBranch.PusherID, secondBranch.Name, commit)
+	_, err := git_model.UpdateBranch(db.DefaultContext, repo.ID, secondBranch.PusherID, secondBranch.Name, commit)
 	assert.NoError(t, err)
 }
 
@@ -45,10 +47,8 @@ func TestGetDeletedBranches(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	branches, err := git_model.FindBranches(db.DefaultContext, git_model.FindBranchOptions{
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+	branches, err := db.Find[git_model.Branch](db.DefaultContext, git_model.FindBranchOptions{
+		ListOptions:     db.ListOptionsAll,
 		RepoID:          repo.ID,
 		IsDeletedBranch: util.OptionalBoolTrue,
 	})
@@ -133,7 +133,7 @@ func TestRenameBranch(t *testing.T) {
 	}, git_model.WhitelistOptions{}))
 	assert.NoError(t, committer.Commit())
 
-	assert.NoError(t, git_model.RenameBranch(db.DefaultContext, repo1, "master", "main", func(isDefault bool) error {
+	assert.NoError(t, git_model.RenameBranch(db.DefaultContext, repo1, "master", "main", func(ctx context.Context, isDefault bool) error {
 		_isDefault = isDefault
 		return nil
 	}))

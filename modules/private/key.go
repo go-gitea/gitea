@@ -27,5 +27,8 @@ func AuthorizedPublicKeyByContent(ctx context.Context, content string) (string, 
 	req := newInternalRequest(ctx, reqURL, "POST")
 	req.Param("content", content)
 	resp, extra := requestJSONResp(req, &responseText{})
+	if extra.HasError() {
+		return "", extra
+	}
 	return resp.Text, extra
 }

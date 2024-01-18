@@ -61,7 +61,7 @@
 					</div>
 					<div class="inline field {{if .Err_Description}}error{{end}}">
 						<label for="description">{{ctx.Locale.Tr "repo.repo_desc"}}</label>
-						<textarea id="description" name="description" placeholder="{{ctx.Locale.Tr "repo.repo_desc_helper"}}" maxlength="2048">{{.description}}</textarea>
+						<textarea id="description" rows="2" name="description" placeholder="{{ctx.Locale.Tr "repo.repo_desc_helper"}}" maxlength="2048">{{.description}}</textarea>
 					</div>
 					<div class="inline field">
 						<label>{{ctx.Locale.Tr "repo.template"}}</label>
@@ -186,29 +186,6 @@
 							<span class="help">{{ctx.Locale.Tr "repo.default_branch_helper"}}</span>
 						</div>
 						<div class="inline field">
-							<label>{{ctx.Locale.Tr "repo.settings.trust_model"}}</label>
-							<div class="ui selection owner dropdown">
-								<input type="hidden" id="trust_model" name="trust_model" value="default" required>
-								<div class="default text">{{ctx.Locale.Tr "repo.settings.trust_model"}}</div>
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-								<div class="menu">
-									<div class="item" data-value="default">{{ctx.Locale.Tr "repo.settings.trust_model.default"}}</div>
-									<div class="item" data-value="collaborator">{{ctx.Locale.Tr "repo.settings.trust_model.collaborator"}}</div>
-									<div class="item" data-value="committer">{{ctx.Locale.Tr "repo.settings.trust_model.committer"}}</div>
-									<div class="item" data-value="collaboratorcommitter">{{ctx.Locale.Tr "repo.settings.trust_model.collaboratorcommitter"}}</div>
-								</div>
-							</div>
-							<div class="help">
-								{{ctx.Locale.Tr "repo.trust_model_helper"}}
-								<ul>
-									<li>{{ctx.Locale.Tr "repo.trust_model_helper_collaborator"}}</li>
-									<li>{{ctx.Locale.Tr "repo.trust_model_helper_committer"}}</li>
-									<li>{{ctx.Locale.Tr "repo.trust_model_helper_collaborator_committer"}}</li>
-									<li>{{ctx.Locale.Tr "repo.trust_model_helper_default"}}</li>
-								</ul>
-							</div>
-						</div>
-						<div class="inline field">
 							<label>{{ctx.Locale.Tr "repo.template"}}</label>
 							<div class="ui checkbox">
 								<input name="template" type="checkbox">
@@ -216,7 +193,6 @@
 							</div>
 						</div>
 					</div>
-
 					<br>
 					<div class="inline field">
 						<label></label>

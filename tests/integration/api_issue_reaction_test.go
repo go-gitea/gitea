@@ -12,6 +12,7 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -32,25 +33,24 @@ func TestAPIIssuesReactions(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/reactions?token=%s",
-		owner.Name, issue.Repo.Name, issue.Index, token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/reactions", owner.Name, issue.Repo.Name, issue.Index)
 
 	// Try to add not allowed reaction
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "wrong",
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 
 	// Delete not allowed reaction
 	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
 		Reaction: "zzz",
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 
 	// Add allowed reaction
 	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "rocket",
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiNewReaction api.Reaction
 	DecodeJSON(t, resp, &apiNewReaction)
@@ -59,7 +59,8 @@ func TestAPIIssuesReactions(t *testing.T) {
 	MakeRequest(t, req, http.StatusForbidden)
 
 	// Get end result of reaction list of issue #1
-	req = NewRequestf(t, "GET", urlStr)
+	req = NewRequest(t, "GET", urlStr).
+		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	var apiReactions []*api.Reaction
 	DecodeJSON(t, resp, &apiReactions)
@@ -92,25 +93,44 @@ func TestAPICommentReactions(t *testing.T) {
 
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/reactions?token=%s",
-		owner.Name, issue.Repo.Name, comment.ID, token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/reactions", owner.Name, issue.Repo.Name, comment.ID)
 
 	// Try to add not allowed reaction
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "wrong",
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 
 	// Delete none existing reaction
 	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
 		Reaction: "eyes",
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
+
+	t.Run("UnrelatedCommentID", func(t *testing.T) {
+		// Using the ID of a comment that does not belong to the repository must fail
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+		token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeWriteIssue)
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/reactions", repoOwner.Name, repo.Name, comment.ID)
+		req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
+			Reaction: "+1",
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNotFound)
+		req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
+			Reaction: "+1",
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNotFound)
+
+		req = NewRequest(t, "GET", urlStr).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNotFound)
+	})
 
 	// Add allowed reaction
 	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "+1",
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiNewReaction api.Reaction
 	DecodeJSON(t, resp, &apiNewReaction)
@@ -119,7 +139,8 @@ func TestAPICommentReactions(t *testing.T) {
 	MakeRequest(t, req, http.StatusForbidden)
 
 	// Get end result of reaction list of issue #1
-	req = NewRequestf(t, "GET", urlStr)
+	req = NewRequest(t, "GET", urlStr).
+		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	var apiReactions []*api.Reaction
 	DecodeJSON(t, resp, &apiReactions)

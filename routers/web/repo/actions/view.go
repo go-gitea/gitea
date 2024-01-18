@@ -512,7 +512,7 @@ func ArtifactsView(ctx *context_module.Context) {
 	}
 	for _, art := range artifacts {
 		status := "completed"
-		if art.Status == int64(actions_model.ArtifactStatusExpired) {
+		if art.Status == actions_model.ArtifactStatusExpired {
 			status = "expired"
 		}
 		artifactsResponse.Artifacts = append(artifactsResponse.Artifacts, &ArtifactsViewItem{
@@ -538,7 +538,10 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		return
 	}
 
-	artifacts, err := actions_model.ListArtifactsByRunIDAndName(ctx, run.ID, artifactName)
+	artifacts, err := db.Find[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{
+		RunID:        run.ID,
+		ArtifactName: artifactName,
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return

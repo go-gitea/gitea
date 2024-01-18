@@ -52,16 +52,20 @@ func TestRender_StandardLinks(t *testing.T) {
 
 	test := func(input, expected, expectedWiki string) {
 		buffer, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:       git.DefaultContext,
-			URLPrefix: setting.AppSubURL,
+			Ctx: git.DefaultContext,
+			Links: markup.Links{
+				Base: setting.AppSubURL,
+			},
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 
 		buffer, err = markdown.RenderString(&markup.RenderContext{
-			Ctx:       git.DefaultContext,
-			URLPrefix: setting.AppSubURL,
-			IsWiki:    true,
+			Ctx: git.DefaultContext,
+			Links: markup.Links{
+				Base: setting.AppSubURL,
+			},
+			IsWiki: true,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
@@ -83,8 +87,10 @@ func TestRender_Images(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:       git.DefaultContext,
-			URLPrefix: setting.AppSubURL,
+			Ctx: git.DefaultContext,
+			Links: markup.Links{
+				Base: setting.AppSubURL,
+			},
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -107,7 +113,6 @@ func TestRender_Images(t *testing.T) {
 		"[!["+title+"]("+url+")]("+href+")",
 		`<p><a href="`+href+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
 
-	url = "/../../.images/src/02/train.jpg"
 	test(
 		"!["+title+"]("+url+")",
 		`<p><a href="`+result+`" target="_blank" rel="nofollow noopener"><img src="`+result+`" alt="`+title+`"/></a></p>`)
@@ -286,14 +291,16 @@ func TestTotal_RenderWiki(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
 
-	answers := testAnswers(util.URLJoin(AppSubURL, "wiki/"), util.URLJoin(AppSubURL, "wiki", "raw/"))
+	answers := testAnswers(util.URLJoin(AppSubURL, "wiki"), util.URLJoin(AppSubURL, "wiki", "raw"))
 
 	for i := 0; i < len(sameCases); i++ {
 		line, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:       git.DefaultContext,
-			URLPrefix: AppSubURL,
-			Metas:     localMetas,
-			IsWiki:    true,
+			Ctx: git.DefaultContext,
+			Links: markup.Links{
+				Base: setting.AppSubURL,
+			},
+			Metas:  localMetas,
+			IsWiki: true,
 		}, sameCases[i])
 		assert.NoError(t, err)
 		assert.Equal(t, answers[i], line)
@@ -314,9 +321,11 @@ func TestTotal_RenderWiki(t *testing.T) {
 
 	for i := 0; i < len(testCases); i += 2 {
 		line, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:       git.DefaultContext,
-			URLPrefix: AppSubURL,
-			IsWiki:    true,
+			Ctx: git.DefaultContext,
+			Links: markup.Links{
+				Base: setting.AppSubURL,
+			},
+			IsWiki: true,
 		}, testCases[i])
 		assert.NoError(t, err)
 		assert.Equal(t, testCases[i+1], line)
@@ -327,13 +336,16 @@ func TestTotal_RenderString(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
 
-	answers := testAnswers(util.URLJoin(AppSubURL, "src", "master/"), util.URLJoin(AppSubURL, "raw", "master/"))
+	answers := testAnswers(util.URLJoin(AppSubURL, "src", "master"), util.URLJoin(AppSubURL, "media", "master"))
 
 	for i := 0; i < len(sameCases); i++ {
 		line, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:       git.DefaultContext,
-			URLPrefix: util.URLJoin(AppSubURL, "src", "master/"),
-			Metas:     localMetas,
+			Ctx: git.DefaultContext,
+			Links: markup.Links{
+				Base:       AppSubURL,
+				BranchPath: "master",
+			},
+			Metas: localMetas,
 		}, sameCases[i])
 		assert.NoError(t, err)
 		assert.Equal(t, answers[i], line)
@@ -343,8 +355,10 @@ func TestTotal_RenderString(t *testing.T) {
 
 	for i := 0; i < len(testCases); i += 2 {
 		line, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:       git.DefaultContext,
-			URLPrefix: AppSubURL,
+			Ctx: git.DefaultContext,
+			Links: markup.Links{
+				Base: AppSubURL,
+			},
 		}, testCases[i])
 		assert.NoError(t, err)
 		assert.Equal(t, testCases[i+1], line)
@@ -554,5 +568,369 @@ foo: bar
 		res, err := markdown.RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, test.testcase)
 		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
 		assert.Equal(t, test.expected, res, "Unexpected result in testcase %q", test.testcase)
+	}
+}
+
+func TestRenderLinks(t *testing.T) {
+	input := `  space @mention-user  
+/just/a/path.bin
+https://example.com/file.bin
+[local link](file.bin)
+[remote link](https://example.com)
+[[local link|file.bin]]
+[[remote link|https://example.com]]
+![local image](image.jpg)
+![remote image](https://example.com/image.jpg)
+[[local image|image.jpg]]
+[[remote link|https://example.com/image.jpg]]
+https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare
+https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
+:+1:
+mail@domain.com
+@mention-user test
+#123
+  space  
+`
+	cases := []struct {
+		Links    markup.Links
+		IsWiki   bool
+		Expected string
+	}{
+		{ // 0
+			Links:  markup.Links{},
+			IsWiki: false,
+			Expected: `<p>space @mention-user<br/>
+/just/a/path.bin<br/>
+<a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
+<a href="/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="/src/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="/image.jpg" target="_blank" rel="nofollow noopener"><img src="/image.jpg" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
+<a href="/image.jpg" rel="nofollow"><img src="/image.jpg" title="local image" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
+<span class="emoji" aria-label="thumbs up">👍</span><br/>
+<a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
+@mention-user test<br/>
+#123<br/>
+space</p>
+`,
+		},
+		{ // 1
+			Links:  markup.Links{},
+			IsWiki: true,
+			Expected: `<p>space @mention-user<br/>
+/just/a/path.bin<br/>
+<a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
+<a href="/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="/wiki/raw/image.jpg" target="_blank" rel="nofollow noopener"><img src="/wiki/raw/image.jpg" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
+<a href="/wiki/raw/image.jpg" rel="nofollow"><img src="/wiki/raw/image.jpg" title="local image" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
+<span class="emoji" aria-label="thumbs up">👍</span><br/>
+<a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
+@mention-user test<br/>
+#123<br/>
+space</p>
+`,
+		},
+		{ // 2
+			Links: markup.Links{
+				Base: "https://gitea.io/",
+			},
+			IsWiki: false,
+			Expected: `<p>space @mention-user<br/>
+/just/a/path.bin<br/>
+<a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
+<a href="https://gitea.io/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="https://gitea.io/src/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="https://gitea.io/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://gitea.io/image.jpg" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
+<a href="https://gitea.io/image.jpg" rel="nofollow"><img src="https://gitea.io/image.jpg" title="local image" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
+<span class="emoji" aria-label="thumbs up">👍</span><br/>
+<a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
+@mention-user test<br/>
+#123<br/>
+space</p>
+`,
+		},
+		{ // 3
+			Links: markup.Links{
+				Base: "https://gitea.io/",
+			},
+			IsWiki: true,
+			Expected: `<p>space @mention-user<br/>
+/just/a/path.bin<br/>
+<a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
+<a href="https://gitea.io/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="https://gitea.io/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="https://gitea.io/wiki/raw/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://gitea.io/wiki/raw/image.jpg" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
+<a href="https://gitea.io/wiki/raw/image.jpg" rel="nofollow"><img src="https://gitea.io/wiki/raw/image.jpg" title="local image" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
+<span class="emoji" aria-label="thumbs up">👍</span><br/>
+<a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
+@mention-user test<br/>
+#123<br/>
+space</p>
+`,
+		},
+		{ // 4
+			Links: markup.Links{
+				Base: "/relative/path",
+			},
+			IsWiki: false,
+			Expected: `<p>space @mention-user<br/>
+/just/a/path.bin<br/>
+<a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
+<a href="/relative/path/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="/relative/path/src/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="/relative/path/image.jpg" target="_blank" rel="nofollow noopener"><img src="/relative/path/image.jpg" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
+<a href="/relative/path/image.jpg" rel="nofollow"><img src="/relative/path/image.jpg" title="local image" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
+<span class="emoji" aria-label="thumbs up">👍</span><br/>
+<a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
+@mention-user test<br/>
+#123<br/>
+space</p>
+`,
+		},
+		{ // 5
+			Links: markup.Links{
+				Base: "/relative/path",
+			},
+			IsWiki: true,
+			Expected: `<p>space @mention-user<br/>
+/just/a/path.bin<br/>
+<a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
+<a href="/relative/path/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="/relative/path/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="/relative/path/wiki/raw/image.jpg" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/image.jpg" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
+<a href="/relative/path/wiki/raw/image.jpg" rel="nofollow"><img src="/relative/path/wiki/raw/image.jpg" title="local image" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
+<span class="emoji" aria-label="thumbs up">👍</span><br/>
+<a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
+@mention-user test<br/>
+#123<br/>
+space</p>
+`,
+		},
+		{ // 6
+			Links: markup.Links{
+				Base:       "/user/repo",
+				BranchPath: "branch/main",
+			},
+			IsWiki: false,
+			Expected: `<p>space @mention-user<br/>
+/just/a/path.bin<br/>
+<a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
+<a href="/user/repo/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="/user/repo/src/branch/main/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="/user/repo/media/branch/main/image.jpg" target="_blank" rel="nofollow noopener"><img src="/user/repo/media/branch/main/image.jpg" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
+<a href="/user/repo/media/branch/main/image.jpg" rel="nofollow"><img src="/user/repo/media/branch/main/image.jpg" title="local image" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
+<span class="emoji" aria-label="thumbs up">👍</span><br/>
+<a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
+@mention-user test<br/>
+#123<br/>
+space</p>
+`,
+		},
+		{ // 7
+			Links: markup.Links{
+				Base:       "/relative/path",
+				BranchPath: "branch/main",
+			},
+			IsWiki: true,
+			Expected: `<p>space @mention-user<br/>
+/just/a/path.bin<br/>
+<a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
+<a href="/relative/path/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="/relative/path/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="/relative/path/wiki/raw/image.jpg" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/image.jpg" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
+<a href="/relative/path/wiki/raw/image.jpg" rel="nofollow"><img src="/relative/path/wiki/raw/image.jpg" title="local image" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
+<span class="emoji" aria-label="thumbs up">👍</span><br/>
+<a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
+@mention-user test<br/>
+#123<br/>
+space</p>
+`,
+		},
+		{ // 8
+			Links: markup.Links{
+				Base:     "/user/repo",
+				TreePath: "sub/folder",
+			},
+			IsWiki: false,
+			Expected: `<p>space @mention-user<br/>
+/just/a/path.bin<br/>
+<a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
+<a href="/user/repo/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="/user/repo/src/sub/folder/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="/user/repo/image.jpg" target="_blank" rel="nofollow noopener"><img src="/user/repo/image.jpg" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
+<a href="/user/repo/image.jpg" rel="nofollow"><img src="/user/repo/image.jpg" title="local image" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
+<span class="emoji" aria-label="thumbs up">👍</span><br/>
+<a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
+@mention-user test<br/>
+#123<br/>
+space</p>
+`,
+		},
+		{ // 9
+			Links: markup.Links{
+				Base:     "/relative/path",
+				TreePath: "sub/folder",
+			},
+			IsWiki: true,
+			Expected: `<p>space @mention-user<br/>
+/just/a/path.bin<br/>
+<a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
+<a href="/relative/path/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="/relative/path/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="/relative/path/wiki/raw/image.jpg" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/image.jpg" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
+<a href="/relative/path/wiki/raw/image.jpg" rel="nofollow"><img src="/relative/path/wiki/raw/image.jpg" title="local image" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
+<span class="emoji" aria-label="thumbs up">👍</span><br/>
+<a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
+@mention-user test<br/>
+#123<br/>
+space</p>
+`,
+		},
+		{ // 10
+			Links: markup.Links{
+				Base:       "/user/repo",
+				BranchPath: "branch/main",
+				TreePath:   "sub/folder",
+			},
+			IsWiki: false,
+			Expected: `<p>space @mention-user<br/>
+/just/a/path.bin<br/>
+<a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
+<a href="/user/repo/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="/user/repo/src/branch/main/sub/folder/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="/user/repo/media/branch/main/sub/folder/image.jpg" target="_blank" rel="nofollow noopener"><img src="/user/repo/media/branch/main/sub/folder/image.jpg" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
+<a href="/user/repo/media/branch/main/sub/folder/image.jpg" rel="nofollow"><img src="/user/repo/media/branch/main/sub/folder/image.jpg" title="local image" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
+<span class="emoji" aria-label="thumbs up">👍</span><br/>
+<a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
+@mention-user test<br/>
+#123<br/>
+space</p>
+`,
+		},
+		{ // 11
+			Links: markup.Links{
+				Base:       "/relative/path",
+				BranchPath: "branch/main",
+				TreePath:   "sub/folder",
+			},
+			IsWiki: true,
+			Expected: `<p>space @mention-user<br/>
+/just/a/path.bin<br/>
+<a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
+<a href="/relative/path/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="/relative/path/wiki/file.bin" rel="nofollow">local link</a><br/>
+<a href="https://example.com" rel="nofollow">remote link</a><br/>
+<a href="/relative/path/wiki/raw/image.jpg" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/image.jpg" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
+<a href="/relative/path/wiki/raw/image.jpg" rel="nofollow"><img src="/relative/path/wiki/raw/image.jpg" title="local image" alt="local image"/></a><br/>
+<a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare<br/>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a><br/>
+com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit<br/>
+<span class="emoji" aria-label="thumbs up">👍</span><br/>
+<a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a><br/>
+@mention-user test<br/>
+#123<br/>
+space</p>
+`,
+		},
+	}
+
+	for i, c := range cases {
+		result, err := markdown.RenderString(&markup.RenderContext{Ctx: context.Background(), Links: c.Links, IsWiki: c.IsWiki}, input)
+		assert.NoError(t, err, "Unexpected error in testcase: %v", i)
+		assert.Equal(t, c.Expected, result, "Unexpected result in testcase %v", i)
 	}
 }
