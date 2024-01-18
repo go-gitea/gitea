@@ -22,7 +22,7 @@ func GenerateActionsRunnerToken(ctx context.Context, scope string) (string, Resp
 	})
 
 	resp, extra := requestJSONResp(req, &responseText{})
-	if resp == nil {
+	if extra.HasError() {
 		return "", extra
 	}
 	return resp.Text, extra

@@ -288,7 +288,7 @@ func CreatePost(ctx *context.Context) {
 			DefaultBranch:    form.DefaultBranch,
 			AutoInit:         form.AutoInit,
 			IsTemplate:       form.Template,
-			TrustModel:       repo_model.ToTrustModel(form.TrustModel),
+			TrustModel:       repo_model.DefaultTrustModel,
 			ObjectFormatName: form.ObjectFormatName,
 		})
 		if err == nil {
