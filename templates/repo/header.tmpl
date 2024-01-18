@@ -28,13 +28,6 @@
 						<div class="repo-icon" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.template"}}">{{svg "octicon-repo-template" 18}}</div>
 					{{end}}
 				</div>
-				{{if $.PullMirror}}
-					<div class="fork-flag">
-						{{ctx.Locale.Tr "repo.mirror_from"}}
-						<a target="_blank" rel="noopener noreferrer" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a>
-						{{if $.PullMirror.UpdatedUnix}}{{ctx.Locale.Tr "repo.mirror_sync"}} {{TimeSinceUnix $.PullMirror.UpdatedUnix ctx.Locale}}{{end}}
-					</div>
-				{{end}}
 			</div>
 			{{if not (or .IsBeingCreated .IsBroken)}}
 				<div class="repo-buttons">
@@ -147,7 +140,13 @@
 				</div>
 			{{end}}
 		</div>
-		{{if $.PullMirror}}<div class="fork-flag">{{ctx.Locale.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a></div>{{end}}
+		{{if $.PullMirror}}
+			<div class="fork-flag">
+				{{ctx.Locale.Tr "repo.mirror_from"}}
+				<a target="_blank" rel="noopener noreferrer" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a>
+				{{if $.PullMirror.UpdatedUnix}}{{ctx.Locale.Tr "repo.mirror_sync"}} {{TimeSinceUnix $.PullMirror.UpdatedUnix ctx.Locale}}{{end}}
+			</div>
+		{{end}}
 		{{if .IsFork}}<div class="fork-flag">{{ctx.Locale.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{.BaseRepo.FullName}}</a></div>{{end}}
 		{{if .IsGenerated}}<div class="fork-flag">{{ctx.Locale.Tr "repo.generated_from"}} <a href="{{(.TemplateRepo ctx).Link}}">{{(.TemplateRepo ctx).FullName}}</a></div>{{end}}
 	</div>
