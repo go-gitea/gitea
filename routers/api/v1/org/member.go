@@ -21,8 +21,24 @@ import (
 func listMembers(ctx *context.APIContext, publicOnly bool) {
 	opts := &organization.FindOrgMembersOpts{
 		OrgID:       ctx.Org.Organization.ID,
-		PublicOnly:  publicOnly,
 		ListOptions: utils.GetListOptions(ctx),
+	}
+
+	if ctx.Doer != nil {
+		opts.DoerID = ctx.Doer.ID
+
+		var err error
+		opts.IsOrgMember, err = ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
+		if err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
+		opts.IsOrgAdmin, err = ctx.Org.Organization.IsOrgAdmin(ctx, ctx.Doer.ID)
+		if err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
+
 	}
 
 	count, err := organization.CountOrgMembers(ctx, opts)

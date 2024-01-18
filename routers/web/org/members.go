@@ -33,19 +33,24 @@ func Members(ctx *context.Context) {
 	}
 
 	opts := &organization.FindOrgMembersOpts{
-		OrgID:      org.ID,
-		PublicOnly: true,
+		OrgID: org.ID,
 	}
 
 	if ctx.Doer != nil {
-		isMember, err := ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
+		opts.DoerID = ctx.Doer.ID
+
+		var err error
+		opts.IsOrgMember, err = ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember")
 			return
 		}
-		opts.PublicOnly = !isMember && !ctx.Doer.IsAdmin
+		opts.IsOrgAdmin, err = ctx.Org.Organization.IsOrgAdmin(ctx, ctx.Doer.ID)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "IsOrgAdmin")
+			return
+		}
 	}
-	ctx.Data["PublicOnly"] = opts.PublicOnly
 
 	total, err := organization.CountOrgMembers(ctx, opts)
 	if err != nil {

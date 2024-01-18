@@ -210,13 +210,39 @@ func TestFindOrgs(t *testing.T) {
 func TestGetOrgUsersByOrgID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
+	// no-login user can see public user with public visibility
 	orgUsers, err := organization.GetOrgUsersByOrgID(db.DefaultContext, &organization.FindOrgMembersOpts{
 		ListOptions: db.ListOptions{},
 		OrgID:       3,
-		PublicOnly:  false,
 	})
 	assert.NoError(t, err)
-	if assert.Len(t, orgUsers, 3) {
+	if assert.Len(t, orgUsers, 2) {
+		assert.Equal(t, organization.OrgUser{
+			ID:       orgUsers[0].ID,
+			OrgID:    3,
+			UID:      2,
+			IsPublic: true,
+		}, *orgUsers[0])
+		assert.Equal(t, organization.OrgUser{
+			ID:       orgUsers[1].ID,
+			OrgID:    3,
+			UID:      28,
+			IsPublic: true,
+		}, *orgUsers[1])
+	}
+
+	// org member can see private users with public and limited visibility and self
+	// user 31 has private user visibility
+	orgUsers, err = organization.GetOrgUsersByOrgID(db.DefaultContext, &organization.FindOrgMembersOpts{
+		ListOptions: db.ListOptions{},
+		OrgID:       3,
+		DoerID:      31,
+		IsAdmin:     false,
+		IsOrgMember: true,
+		IsOrgAdmin:  false,
+	})
+	assert.NoError(t, err)
+	if assert.Len(t, orgUsers, 5) {
 		assert.Equal(t, organization.OrgUser{
 			ID:       orgUsers[0].ID,
 			OrgID:    3,
@@ -235,12 +261,109 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 			UID:      28,
 			IsPublic: true,
 		}, *orgUsers[2])
+		assert.Equal(t, organization.OrgUser{
+			ID:       orgUsers[3].ID,
+			OrgID:    3,
+			UID:      31,
+			IsPublic: false,
+		}, *orgUsers[3])
+		assert.Equal(t, organization.OrgUser{
+			ID:       orgUsers[4].ID,
+			OrgID:    3,
+			UID:      33,
+			IsPublic: false,
+		}, *orgUsers[4])
+	}
+
+	// org admin can see user all users
+	orgUsers, err = organization.GetOrgUsersByOrgID(db.DefaultContext, &organization.FindOrgMembersOpts{
+		ListOptions: db.ListOptions{},
+		OrgID:       3,
+		DoerID:      28,
+		IsAdmin:     false,
+		IsOrgMember: true,
+		IsOrgAdmin:  true,
+	})
+	assert.NoError(t, err)
+	if assert.Len(t, orgUsers, 5) {
+		assert.Equal(t, organization.OrgUser{
+			ID:       orgUsers[0].ID,
+			OrgID:    3,
+			UID:      2,
+			IsPublic: true,
+		}, *orgUsers[0])
+		assert.Equal(t, organization.OrgUser{
+			ID:       orgUsers[1].ID,
+			OrgID:    3,
+			UID:      4,
+			IsPublic: false,
+		}, *orgUsers[1])
+		assert.Equal(t, organization.OrgUser{
+			ID:       orgUsers[2].ID,
+			OrgID:    3,
+			UID:      28,
+			IsPublic: true,
+		}, *orgUsers[2])
+		assert.Equal(t, organization.OrgUser{
+			ID:       orgUsers[3].ID,
+			OrgID:    3,
+			UID:      31,
+			IsPublic: false,
+		}, *orgUsers[3])
+		assert.Equal(t, organization.OrgUser{
+			ID:       orgUsers[4].ID,
+			OrgID:    3,
+			UID:      33,
+			IsPublic: false,
+		}, *orgUsers[4])
+	}
+
+	// admin can see user all users
+	orgUsers, err = organization.GetOrgUsersByOrgID(db.DefaultContext, &organization.FindOrgMembersOpts{
+		ListOptions: db.ListOptions{},
+		OrgID:       3,
+		DoerID:      1,
+		IsAdmin:     true,
+		IsOrgMember: false,
+		IsOrgAdmin:  false,
+	})
+	assert.NoError(t, err)
+	if assert.Len(t, orgUsers, 5) {
+		assert.Equal(t, organization.OrgUser{
+			ID:       orgUsers[0].ID,
+			OrgID:    3,
+			UID:      2,
+			IsPublic: true,
+		}, *orgUsers[0])
+		assert.Equal(t, organization.OrgUser{
+			ID:       orgUsers[1].ID,
+			OrgID:    3,
+			UID:      4,
+			IsPublic: false,
+		}, *orgUsers[1])
+		assert.Equal(t, organization.OrgUser{
+			ID:       orgUsers[2].ID,
+			OrgID:    3,
+			UID:      28,
+			IsPublic: true,
+		}, *orgUsers[2])
+		assert.Equal(t, organization.OrgUser{
+			ID:       orgUsers[3].ID,
+			OrgID:    3,
+			UID:      31,
+			IsPublic: false,
+		}, *orgUsers[3])
+		assert.Equal(t, organization.OrgUser{
+			ID:       orgUsers[4].ID,
+			OrgID:    3,
+			UID:      33,
+			IsPublic: false,
+		}, *orgUsers[4])
 	}
 
 	orgUsers, err = organization.GetOrgUsersByOrgID(db.DefaultContext, &organization.FindOrgMembersOpts{
 		ListOptions: db.ListOptions{},
 		OrgID:       unittest.NonexistentID,
-		PublicOnly:  false,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, orgUsers, 0)

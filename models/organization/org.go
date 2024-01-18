@@ -194,17 +194,54 @@ func (org *Organization) CanCreateRepo() bool {
 // FindOrgMembersOpts represensts find org members conditions
 type FindOrgMembersOpts struct {
 	db.ListOptions
-	OrgID      int64
-	PublicOnly bool
+	OrgID       int64
+	DoerID      int64
+	IsAdmin     bool
+	IsOrgMember bool
+	IsOrgAdmin  bool
+}
+
+// FindOrgMembersOptsCondition creates a query condition according find org members options
+func FindOrgMembersOptsCondition(ctx context.Context, opts *FindOrgMembersOpts) (builder.Cond, error) {
+	cond := builder.And(builder.Eq{"`org_user`.org_id": opts.OrgID})
+
+	// for no-login user, they can only see public users with public visibility
+	isPublic := true
+	userVisibility := structs.VisibleTypePublic
+
+	if opts.DoerID != 0 {
+		userVisibility = structs.VisibleTypeLimited
+
+		// only org members and site admins can see private users in the org
+		// users with private visibility can not be seen in this case
+		isPublic = !opts.IsOrgMember && !opts.IsAdmin
+
+		// only site admin or org admin can see private users with private visibility
+		if opts.IsAdmin || opts.IsOrgAdmin {
+			userVisibility = structs.VisibleTypePrivate
+		}
+	}
+	visibilityCond := builder.And(builder.Lte{"`user`.visibility": userVisibility})
+	if isPublic {
+		visibilityCond = visibilityCond.And(builder.Eq{"`org_user`.is_public": isPublic})
+	}
+
+	cond = cond.And(builder.Or(
+		// doers can see themselves
+		builder.Eq{"`user`.id": opts.DoerID},
+		visibilityCond,
+	))
+	return cond, nil
 }
 
 // CountOrgMembers counts the organization's members
 func CountOrgMembers(ctx context.Context, opts *FindOrgMembersOpts) (int64, error) {
-	sess := db.GetEngine(ctx).Where("org_id=?", opts.OrgID)
-	if opts.PublicOnly {
-		sess.And("is_public = ?", true)
+	sess := db.GetEngine(ctx).Join("INNER", "`user`", "`user`.id == `org_user`.uid")
+	cond, err := FindOrgMembersOptsCondition(ctx, opts)
+	if err != nil {
+		return 0, err
 	}
-	return sess.Count(new(OrgUser))
+	return sess.Where(cond).Count(new(OrgUser))
 }
 
 // FindOrgMembers loads organization members according conditions
@@ -519,10 +556,12 @@ func GetOrgsCanCreateRepoByUserID(ctx context.Context, userID int64) ([]*Organiz
 
 // GetOrgUsersByOrgID returns all organization-user relations by organization ID.
 func GetOrgUsersByOrgID(ctx context.Context, opts *FindOrgMembersOpts) ([]*OrgUser, error) {
-	sess := db.GetEngine(ctx).Where("org_id=?", opts.OrgID)
-	if opts.PublicOnly {
-		sess.And("is_public = ?", true)
+	sess := db.GetEngine(ctx).Join("INNER", "`user`", "`user`.id == `org_user`.uid")
+	cond, err := FindOrgMembersOptsCondition(ctx, opts)
+	if err != nil {
+		return nil, err
 	}
+	sess = sess.Where(cond)
 	if opts.ListOptions.PageSize > 0 {
 		sess = db.SetSessionPagination(sess, opts)
 

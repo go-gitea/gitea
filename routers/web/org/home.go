@@ -122,8 +122,13 @@ func Home(ctx *context.Context) {
 
 	opts := &organization.FindOrgMembersOpts{
 		OrgID:       org.ID,
-		PublicOnly:  ctx.Org.PublicMemberOnly,
 		ListOptions: db.ListOptions{Page: 1, PageSize: 25},
+	}
+	if ctx.Doer != nil {
+		opts.DoerID = ctx.Doer.ID
+		opts.IsAdmin = ctx.Doer.IsAdmin
+		opts.IsOrgMember = ctx.Org.IsMember
+		opts.IsOrgAdmin = ctx.Org.IsTeamAdmin
 	}
 	members, _, err := organization.FindOrgMembers(ctx, opts)
 	if err != nil {

@@ -71,7 +71,7 @@
   name: test_team
   authorize: 2 # write
   num_repos: 1
-  num_members: 1
+  num_members: 3
   includes_all_repositories: false
   can_create_org_repo: false
 
