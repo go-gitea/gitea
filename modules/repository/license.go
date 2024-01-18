@@ -95,7 +95,7 @@ type LicenseValues struct {
 func GetLicense(name string, values *LicenseValues) ([]byte, error) {
 	data, err := options.License(name)
 	if err != nil {
-		return nil, fmt.Errorf("GetRepoInitFile[%s]: %w", name, err)
+		return nil, fmt.Errorf("GetLicense[%s]: %w", name, err)
 	}
 	return fillLicensePlaceholder(name, values, data), nil
 }
@@ -227,7 +227,7 @@ func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, commit
 			return fmt.Errorf("detectLicense: %w", err)
 		}
 		if err := repo_model.UpdateRepoLicenses(ctx, repo, commit.ID.String(), licenses); err != nil {
-			return fmt.Errorf("UpdateRepositoryCols: %v", err)
+			return fmt.Errorf("UpdateRepoLicenses: %v", err)
 		}
 	}
 	return nil
