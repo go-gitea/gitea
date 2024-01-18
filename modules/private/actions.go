@@ -14,12 +14,12 @@ type GenerateTokenRequest struct {
 }
 
 // GenerateActionsRunnerToken calls the internal GenerateActionsRunnerToken function
-func GenerateActionsRunnerToken(ctx context.Context, scope string) (*responseText, ResponseExtra) {
+func GenerateActionsRunnerToken(ctx context.Context, scope string) (*ResponseText, ResponseExtra) {
 	reqURL := setting.LocalURL + "api/internal/actions/generate_actions_runner_token"
 
 	req := newInternalRequest(ctx, reqURL, "POST", GenerateTokenRequest{
 		Scope: scope,
 	})
 
-	return requestJSONResp(req, &responseText{})
+	return requestJSONResp(req, &ResponseText{})
 }
