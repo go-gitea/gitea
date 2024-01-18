@@ -184,7 +184,7 @@ func getLicensePlaceholder(name string) *licensePlaceholder {
 	return ret
 }
 
-// UpdateRepoLicenses will update repository licenses col if license file exists
+// UpdateRepoLicensesByGitRepo will update repository licenses col if license file exists
 func UpdateRepoLicensesByGitRepo(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
 	if gitRepo == nil {
 		var err error
