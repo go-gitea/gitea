@@ -554,6 +554,8 @@ var migrations = []Migration{
 	NewMigration("Add combined Index to issue_user.uid and issue_id", v1_22.AddCombinedIndexToIssueUser),
 	// v284 -> v285
 	NewMigration("Add ignore stale approval column on branch table", v1_22.AddIgnoreStaleApprovalsColumnToProtectedBranchTable),
+	// v285 -> v286
+	NewMigration("Add PreviousDuration to ActionRun", v1_22.AddPreviousDurationToActionRun),
 }
 
 // GetCurrentDBVersion returns the current db version
