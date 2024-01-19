@@ -803,7 +803,7 @@ func GetGrantedApprovalsCount(ctx context.Context, protectBranch *git_model.Prot
 		Types:     []ReviewType{ReviewTypeApprove},
 		IssueID:   pr.IssueID,
 	}
-	if protectBranch.DismissStaleApprovals {
+	if protectBranch.IgnoreStaleApprovals {
 		opt.Stale = util.OptionalBoolFalse
 	}
 	approvals, err := db.GetEngine(ctx).Where(opt.toCond()).Count(new(Review))
