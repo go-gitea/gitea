@@ -4,15 +4,21 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.rpm.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code># {{ctx.Locale.Tr "packages.rpm.distros.redhat"}}
-{{$group_name:= StringUtils.ReplaceAllStringRegex .PackageDescriptor.Version.Version "(/[^/]+|[^/]*)\\z" "" -}}
-{{- if $group_name -}}
-{{- $group_name = (print "/" $group_name) -}}
-{{- end -}}
-dnf config-manager --add-repo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm{{$group_name}}.repo"></gitea-origin-url>
+				<div class="markup"><pre class="code-block"><code>{{- if gt (len .Groups) 1 -}}
+# {{ctx.Locale.Tr "packages.rpm.repository.multiple_groups"}}
+
+{{end -}}
+# {{ctx.Locale.Tr "packages.rpm.distros.redhat"}}
+{{- range $group := .Groups}}
+	{{- if $group}}{{$group = print "/" $group}}{{end}}
+dnf config-manager --add-repo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm{{$group}}.repo"></gitea-origin-url>
+{{- end}}
 
 # {{ctx.Locale.Tr "packages.rpm.distros.suse"}}
-zypper addrepo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm{{$group_name}}.repo"></gitea-origin-url></code></pre></div>
+{{- range $group := .Groups}}
+	{{- if $group}}{{$group = print "/" $group}}{{end}}
+zypper addrepo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm{{$group}}.repo"></gitea-origin-url>
+{{- end}}</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.rpm.install"}}</label>
@@ -28,6 +34,18 @@ zypper install {{$.PackageDescriptor.Package.Name}}</code></pre>
 				<label>{{ctx.Locale.Tr "packages.registry.documentation" "RPM" "https://docs.gitea.com/usage/packages/rpm/" | Safe}}</label>
 			</div>
 		</div>
+	</div>
+
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.rpm.repository"}}</h4>
+	<div class="ui attached segment">
+		<table class="ui single line very basic table">
+			<tbody>
+				<tr>
+					<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.rpm.repository.architectures"}}</h5></td>
+					<td>{{StringUtils.Join .Architectures ", "}}</td>
+				</tr>
+			</tbody>
+		</table>
 	</div>
 
 	{{if or .PackageDescriptor.Metadata.Summary .PackageDescriptor.Metadata.Description}}
