@@ -47,10 +47,8 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 
 	if len(ctx.ContextUser.Description) != 0 {
 		content, err := markdown.RenderString(&markup.RenderContext{
-			URLPrefix: ctx.Repo.RepoLink,
-			Metas:     map[string]string{"mode": "document"},
-			GitRepo:   ctx.Repo.GitRepo,
-			Ctx:       ctx,
+			Metas: map[string]string{"mode": "document"},
+			Ctx:   ctx,
 		}, ctx.ContextUser.Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
