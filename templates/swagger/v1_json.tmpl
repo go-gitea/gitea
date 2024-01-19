@@ -22195,7 +22195,12 @@
           "x-go-name": "Name"
         },
         "object_format_name": {
+          "description": "ObjectFormatName of the underlying git repository",
           "type": "string",
+          "enum": [
+            "sha1",
+            "sha256"
+          ],
           "x-go-name": "ObjectFormatName"
         },
         "open_issues_count": {
