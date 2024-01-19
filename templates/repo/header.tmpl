@@ -27,6 +27,9 @@
 						<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.template"}}</span>
 						<div class="repo-icon" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.template"}}">{{svg "octicon-repo-template" 18}}</div>
 					{{end}}
+					{{if eq .ObjectFormatName "sha256"}}
+						<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.sha256"}}</span>
+					{{end}}
 				</div>
 			</div>
 			{{if not (or .IsBeingCreated .IsBroken)}}
