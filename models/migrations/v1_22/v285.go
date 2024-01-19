@@ -93,3 +93,10 @@ func AddObjectFormatNameToRepository(x *xorm.Engine) error {
 	_, err := x.Exec("UPDATE repository SET object_format_name = 'sha1' WHERE object_format_name = '' OR object_format_name IS NULL")
 	return err
 }
+
+func AdjustDBForSha256(x *xorm.Engine) error {
+	if err := ExpandHashReferencesToSha256(x); err != nil {
+		return err
+	}
+	return AddObjectFormatNameToRepository(x)
+}

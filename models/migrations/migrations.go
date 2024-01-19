@@ -555,8 +555,7 @@ var migrations = []Migration{
 	// v284 -> v285
 	NewMigration("Add ignore stale approval column on branch table", v1_22.AddIgnoreStaleApprovalsColumnToProtectedBranchTable),
 	// v285 -> v286
-	NewMigration("Add support for SHA256 git hash references", v1_22.ExpandHashReferencesToSha256),
-	NewMigration("Add ObjectFormatName to Repository table", v1_22.AddObjectFormatNameToRepository),
+	NewMigration("Add support for SHA256 git repositories", v1_22.AdjustDBForSha256),
 }
 
 // GetCurrentDBVersion returns the current db version
