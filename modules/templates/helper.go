@@ -161,7 +161,6 @@ func NewFuncMap() template.FuncMap {
 		"RenderEmoji":      RenderEmoji,
 		"RenderEmojiPlain": emoji.ReplaceAliases,
 		"ReactionToEmoji":  ReactionToEmoji,
-		"RenderNote":       RenderNote,
 
 		"RenderMarkdownToHtml": RenderMarkdownToHtml,
 		"RenderLabel":          RenderLabel,

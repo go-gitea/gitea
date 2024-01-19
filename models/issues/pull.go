@@ -801,7 +801,7 @@ func GetGrantedApprovalsCount(ctx context.Context, protectBranch *git_model.Prot
 		And("type = ?", ReviewTypeApprove).
 		And("official = ?", true).
 		And("dismissed = ?", false)
-	if protectBranch.DismissStaleApprovals {
+	if protectBranch.IgnoreStaleApprovals {
 		sess = sess.And("stale = ?", false)
 	}
 	approvals, err := sess.Count(new(Review))
