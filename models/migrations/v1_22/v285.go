@@ -12,7 +12,7 @@ import (
 	"xorm.io/xorm"
 )
 
-func ExpandHashReferencesToSha256(x *xorm.Engine) error {
+func expandHashReferencesToSha256(x *xorm.Engine) error {
 	alteredTables := [][2]string{
 		{"commit_status", "context_hash"},
 		{"comment", "commit_sha"},
@@ -81,7 +81,7 @@ func ExpandHashReferencesToSha256(x *xorm.Engine) error {
 	return db.Commit()
 }
 
-func AddObjectFormatNameToRepository(x *xorm.Engine) error {
+func addObjectFormatNameToRepository(x *xorm.Engine) error {
 	type Repository struct {
 		ObjectFormatName string `xorm:"VARCHAR(6) NOT NULL DEFAULT 'sha1'"`
 	}
@@ -94,8 +94,8 @@ func AddObjectFormatNameToRepository(x *xorm.Engine) error {
 }
 
 func AdjustDBForSha256(x *xorm.Engine) error {
-	if err := ExpandHashReferencesToSha256(x); err != nil {
+	if err := expandHashReferencesToSha256(x); err != nil {
 		return err
 	}
-	return AddObjectFormatNameToRepository(x)
+	return addObjectFormatNameToRepository(x)
 }
