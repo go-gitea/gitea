@@ -9,6 +9,22 @@
 			<div class="text left gt-whitespace-pre">{{.FileWarning}}</div>
 		</div>
 	{{end}}
+
+	{{if not .ReadmeInList}}
+		<div id="repo-file-commit-box" class="ui top attached header list-header gt-mb-4">
+			<div>
+				{{template "repo/latest_commit" .}}
+			</div>
+			{{if .LatestCommit}}
+				{{if .LatestCommit.Committer}}
+					<div class="ui text grey right age">
+						{{TimeSince .LatestCommit.Committer.When ctx.Locale}}
+					</div>
+				{{end}}
+			{{end}}
+		</div>
+	{{end}}
+
 	<h4 class="file-header ui top attached header gt-df gt-ac gt-sb gt-fw">
 		<div class="file-header-left gt-df gt-ac gt-py-3 gt-pr-4">
 			{{if .ReadmeInList}}
