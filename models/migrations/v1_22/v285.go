@@ -49,16 +49,16 @@ func ExpandHashReferencesToSha256(x *xorm.Engine) error {
 		}
 
 		for _, alts := range alteredTables {
-			s := fmt.Sprintf("ALTER TABLE `%s` ALTER COLUMN `%s` TYPE VARCHAR(64)", alts[0], alts[1])
-
+			var err error
 			if setting.Database.Type.IsMySQL() {
-				s = fmt.Sprintf("ALTER TABLE `%s` MODIFY COLUMN `%s` VARCHAR(64)", alts[0], alts[1])
+				_, err = db.Exec(fmt.Sprintf("ALTER TABLE `%s` MODIFY COLUMN `%s` VARCHAR(64)", alts[0], alts[1]))
 			} else if setting.Database.Type.IsMSSQL() {
-				s = fmt.Sprintf("ALTER TABLE `%s` ALTER COLUMN `%s` VARCHAR(64)", alts[0], alts[1])
+				_, err = db.Exec(fmt.Sprintf("ALTER TABLE `%s` ALTER COLUMN `%s` VARCHAR(64)", alts[0], alts[1]))
+			} else {
+				_, err = db.Exec(fmt.Sprintf("ALTER TABLE `%s` ALTER COLUMN `%s` TYPE VARCHAR(64)", alts[0], alts[1]))
 			}
-			_, err := db.Exec(s)
 			if err != nil {
-				return errors.New(s + " " + err.Error())
+				return fmt.Errorf("alter column '%s' of table '%s' failed: %w", alts[1], alts[0], err)
 			}
 		}
 
