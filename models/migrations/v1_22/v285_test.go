@@ -32,10 +32,10 @@ func Test_RepositoryFormat(t *testing.T) {
 
 	repo := new(Repository)
 
-	_, err := x.Insert(&Repository{ID: 1})
+	// check we have some records to migrate
+	count, err := x.Count(new(Repository))
 	assert.NoError(t, err)
-	_, err = x.Insert(&Repository{ID: 2})
-	assert.NoError(t, err)
+	assert.EqualValues(t, 4, count)
 
 	assert.NoError(t, AdjustDBForSha256(x))
 
@@ -43,6 +43,10 @@ func Test_RepositoryFormat(t *testing.T) {
 	repo.ObjectFormatName = "sha256"
 	_, err = x.Insert(repo)
 	assert.NoError(t, err)
+
+	count, err = x.Count(new(Repository))
+	assert.NoError(t, err)
+	assert.EqualValues(t, 5, count)
 
 	repo = new(Repository)
 	ok, err := x.ID(2).Get(repo)
