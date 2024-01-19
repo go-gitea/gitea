@@ -30,10 +30,14 @@ type Signature = object.Signature
 func newSignatureFromCommitline(line []byte) (_ *Signature, err error) {
 	sig := new(Signature)
 	emailStart := bytes.IndexByte(line, '<')
+	emailEnd := bytes.IndexByte(line, '>')
+	if emailStart == -1 || emailEnd == -1 || emailEnd < emailStart {
+		return sig, err
+	}
+
 	if emailStart > 0 { // Empty name has already occurred, even if it shouldn't
 		sig.Name = strings.TrimSpace(string(line[:emailStart-1]))
 	}
-	emailEnd := bytes.IndexByte(line, '>')
 	sig.Email = string(line[emailStart+1 : emailEnd])
 
 	// Check date format.
