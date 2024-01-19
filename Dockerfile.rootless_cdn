@@ -33,6 +33,7 @@ COPY . /go/src/code.gitea.io/gitea
 WORKDIR /go/src/code.gitea.io/gitea
 
 RUN make clean-all build
+RUN npm config set registry https://registry.npm.taobao.org
 
 # Copy local files
 COPY docker/rootless /tmp/local
