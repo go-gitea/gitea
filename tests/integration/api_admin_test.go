@@ -196,7 +196,6 @@ func TestAPIEditUser(t *testing.T) {
 	urlStr := fmt.Sprintf("/api/v1/admin/users/%s", editedUsername)
 
 	req := NewRequestWithValues(t, "PATCH", urlStr, map[string]string{
-		"source_id": "0",
 		// to change
 		"full_name": "Full Name User 2",
 	}).AddTokenAuth(token)
@@ -204,8 +203,7 @@ func TestAPIEditUser(t *testing.T) {
 
 	empty := ""
 	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{
-		SourceID: 0,
-		Email:    &empty,
+		Email: &empty,
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusUnprocessableEntity)
 
@@ -218,7 +216,6 @@ func TestAPIEditUser(t *testing.T) {
 	assert.False(t, user2.IsRestricted)
 	bTrue := true
 	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{
-		SourceID: 0,
 		// to change
 		Restricted: &bTrue,
 		LoginName:  "user2_updated_loginName",

@@ -30,7 +30,6 @@ type CreateUserOption struct {
 
 // EditUserOption edit user options
 type EditUserOption struct {
-	// required: true
 	SourceID  int64  `json:"source_id"`
 	LoginName string `json:"login_name"`
 	// swagger:strfmt email
