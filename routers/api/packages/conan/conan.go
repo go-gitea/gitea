@@ -329,6 +329,12 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 	isConanfileFile := filename == conanfileFile
 	isConaninfoFile := filename == conaninfoFile
 
+	repo, err := helper.GetConnectionRepository(ctx)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
 	pci := &packages_service.PackageCreationInfo{
 		PackageInfo: packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -336,7 +342,8 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 			Name:        rref.Name,
 			Version:     rref.Version,
 		},
-		Creator: ctx.Doer,
+		Creator:    ctx.Doer,
+		Repository: repo,
 	}
 	pfci := &packages_service.PackageFileCreationInfo{
 		PackageFileInfo: packages_service.PackageFileInfo{
@@ -367,7 +374,6 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 				apiError(ctx, http.StatusInternalServerError, err)
 				return
 			}
-			pci.RepositoryURL = metadata.RepositoryURL
 
 			pv, err := packages_model.GetVersionByNameAndVersion(ctx, pci.Owner.ID, pci.PackageType, pci.Name, pci.Version)
 			if err != nil && err != packages_model.ErrPackageNotExist {

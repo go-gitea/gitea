@@ -4,6 +4,7 @@
 package vagrant
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	vagrant_module "code.gitea.io/gitea/modules/packages/vagrant"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 
@@ -176,6 +178,19 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
+	repo, err := helper.GetConnectionRepository(ctx)
+	if err != nil {
+		switch {
+		case errors.Is(err, util.ErrPermissionDenied):
+			apiError(ctx, http.StatusForbidden, err)
+		case errors.Is(err, util.ErrNotExist):
+			apiError(ctx, http.StatusNotFound, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
@@ -188,7 +203,7 @@ func UploadPackageFile(ctx *context.Context) {
 			SemverCompatible: true,
 			Creator:          ctx.Doer,
 			Metadata:         metadata,
-			RepositoryURL:    metadata.ProjectURL,
+			Repository:       repo,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{

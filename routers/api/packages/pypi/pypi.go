@@ -5,6 +5,7 @@ package pypi
 
 import (
 	"encoding/hex"
+	"errors"
 	"io"
 	"net/http"
 	"regexp"
@@ -16,6 +17,7 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	pypi_module "code.gitea.io/gitea/modules/packages/pypi"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -144,6 +146,19 @@ func UploadPackageFile(ctx *context.Context) {
 		projectURL = ""
 	}
 
+	repo, err := helper.GetConnectionRepository(ctx)
+	if err != nil {
+		switch {
+		case errors.Is(err, util.ErrPermissionDenied):
+			apiError(ctx, http.StatusForbidden, err)
+		case errors.Is(err, util.ErrNotExist):
+			apiError(ctx, http.StatusNotFound, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
@@ -164,6 +179,7 @@ func UploadPackageFile(ctx *context.Context) {
 				License:         ctx.Req.FormValue("license"),
 				RequiresPython:  ctx.Req.FormValue("requires_python"),
 			},
+			Repository: repo,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{

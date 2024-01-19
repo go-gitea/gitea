@@ -158,6 +158,19 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
+	repo, err := helper.GetConnectionRepository(ctx)
+	if err != nil {
+		switch {
+		case errors.Is(err, util.ErrPermissionDenied):
+			apiError(ctx, http.StatusForbidden, err)
+		case errors.Is(err, util.ErrNotExist):
+			apiError(ctx, http.StatusNotFound, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
@@ -167,8 +180,9 @@ func UploadPackageFile(ctx *context.Context) {
 				Name:        pck.Name,
 				Version:     pck.Version,
 			},
-			Creator:  ctx.Doer,
-			Metadata: pck.Metadata,
+			Creator:    ctx.Doer,
+			Metadata:   pck.Metadata,
+			Repository: repo,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{

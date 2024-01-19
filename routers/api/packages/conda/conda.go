@@ -228,6 +228,12 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
+	repo, err := helper.GetConnectionRepository(ctx)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
@@ -244,6 +250,7 @@ func UploadPackageFile(ctx *context.Context) {
 				conda_module.PropertyName:    pck.Name,
 				conda_module.PropertyChannel: channel,
 			},
+			Repository: repo,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{

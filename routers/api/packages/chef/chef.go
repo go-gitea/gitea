@@ -285,6 +285,12 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
+	repo, err := helper.GetConnectionRepository(ctx)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
 	_, _, err = packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
@@ -297,7 +303,7 @@ func UploadPackage(ctx *context.Context) {
 			Creator:          ctx.Doer,
 			SemverCompatible: true,
 			Metadata:         pck.Metadata,
-			RepositoryURL:    pck.Metadata.RepositoryURL,
+			Repository:       repo,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{

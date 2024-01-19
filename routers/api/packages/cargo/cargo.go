@@ -213,6 +213,12 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
+	repo, err := helper.GetConnectionRepository(ctx)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
 	pv, _, err := packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
@@ -228,7 +234,7 @@ func UploadPackage(ctx *context.Context) {
 			VersionProperties: map[string]string{
 				cargo_module.PropertyYanked: strconv.FormatBool(false),
 			},
-			RepositoryURL: cp.Metadata.RepositoryURL,
+			Repository: repo,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{

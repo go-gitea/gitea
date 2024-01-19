@@ -14,9 +14,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -151,30 +148,6 @@ func processImageManifest(ctx context.Context, mci *manifestCreationInfo, buf *p
 		pv, err := createPackageAndVersion(ctx, mci, metadata)
 		if err != nil {
 			return err
-		}
-
-		if metadata.RepositoryURL != "" {
-			repo, err := repo_model.GetRepositoryByURL(ctx, metadata.RepositoryURL)
-			if err == nil {
-				canWrite := repo.OwnerID == mci.Creator.ID
-
-				if !canWrite {
-					perms, err := access_model.GetUserRepoPermission(ctx, repo, mci.Creator)
-					if err != nil {
-						return err
-					}
-
-					canWrite = perms.CanWrite(unit.TypePackages)
-				}
-
-				if !canWrite {
-					return util.NewPermissionDeniedErrorf("no permission to connect this container to repository: %s", metadata.RepositoryURL)
-				}
-
-				if err := packages_model.SetRepositoryLink(ctx, pv.PackageID, repo.ID); err != nil {
-					return err
-				}
-			}
 		}
 
 		uploadVersion, err := packages_model.GetInternalVersionByNameAndVersion(ctx, mci.Owner.ID, packages_model.TypeContainer, mci.Image, container_model.UploadVersion)

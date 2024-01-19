@@ -430,7 +430,20 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
-	_, _, err := packages_service.CreatePackageAndAddFile(
+	repo, err := helper.GetConnectionRepository(ctx)
+	if err != nil {
+		switch {
+		case errors.Is(err, util.ErrPermissionDenied):
+			apiError(ctx, http.StatusForbidden, err)
+		case errors.Is(err, util.ErrNotExist):
+			apiError(ctx, http.StatusNotFound, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	_, _, err = packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
@@ -442,7 +455,7 @@ func UploadPackage(ctx *context.Context) {
 			SemverCompatible: true,
 			Creator:          ctx.Doer,
 			Metadata:         np.Metadata,
-			RepositoryURL:    np.Metadata.RepositoryURL,
+			Repository:       repo,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{

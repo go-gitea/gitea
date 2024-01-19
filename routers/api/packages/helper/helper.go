@@ -10,9 +10,13 @@ import (
 	"net/url"
 
 	packages_model "code.gitea.io/gitea/models/packages"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // LogAndProcessError logs an error and calls a custom callback with the processed error message.
@@ -60,4 +64,32 @@ func ServePackageFile(ctx *context.Context, s io.ReadSeekCloser, u *url.URL, pf 
 	}
 
 	ctx.ServeContent(s, opts)
+}
+
+func GetConnectionRepository(ctx *context.Context) (*repo_model.Repository, error) {
+	headers := ctx.Req.Header["Package-Connection-Repository"]
+
+	if len(headers) == 0 {
+		return nil, nil
+	}
+
+	if len(headers) != 1 {
+		return nil, util.NewInvalidArgumentErrorf("too many package repository connection headers")
+	}
+
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ctx.Package.Owner.FullName, headers[0])
+	if err != nil {
+		return nil, err
+	}
+
+	perms, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+	if err != nil {
+		return nil, err
+	}
+
+	if !perms.CanWrite(unit.TypePackages) {
+		return nil, util.NewPermissionDeniedErrorf("no permission to connect this package to repository: %s", headers[0])
+	}
+
+	return repo, nil
 }

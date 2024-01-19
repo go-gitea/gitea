@@ -182,6 +182,12 @@ func uploadPackageFile(ctx *context.Context, compositeKey string, properties map
 		return
 	}
 
+	repo, err := helper.GetConnectionRepository(ctx)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
@@ -194,6 +200,7 @@ func uploadPackageFile(ctx *context.Context, compositeKey string, properties map
 			SemverCompatible: false,
 			Creator:          ctx.Doer,
 			Metadata:         pck.Metadata,
+			Repository:       repo,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{

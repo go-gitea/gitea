@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
@@ -88,6 +89,19 @@ func UploadPackage(ctx *context.Context) {
 	}
 	defer buf.Close()
 
+	repo, err := helper.GetConnectionRepository(ctx)
+	if err != nil {
+		switch {
+		case errors.Is(err, util.ErrPermissionDenied):
+			apiError(ctx, http.StatusForbidden, err)
+		case errors.Is(err, util.ErrNotExist):
+			apiError(ctx, http.StatusNotFound, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
@@ -97,7 +111,8 @@ func UploadPackage(ctx *context.Context) {
 				Name:        packageName,
 				Version:     packageVersion,
 			},
-			Creator: ctx.Doer,
+			Creator:    ctx.Doer,
+			Repository: repo,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{

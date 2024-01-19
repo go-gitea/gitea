@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	maven_module "code.gitea.io/gitea/modules/packages/maven"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 
@@ -251,6 +252,19 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer buf.Close()
 
+	repo, err := helper.GetConnectionRepository(ctx)
+	if err != nil {
+		switch {
+		case errors.Is(err, util.ErrPermissionDenied):
+			apiError(ctx, http.StatusForbidden, err)
+		case errors.Is(err, util.ErrNotExist):
+			apiError(ctx, http.StatusNotFound, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
 	pvci := &packages_service.PackageCreationInfo{
 		PackageInfo: packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -260,6 +274,7 @@ func UploadPackageFile(ctx *context.Context) {
 		},
 		SemverCompatible: false,
 		Creator:          ctx.Doer,
+		Repository:       repo,
 	}
 
 	ext := filepath.Ext(params.Filename)
