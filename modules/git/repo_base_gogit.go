@@ -21,6 +21,10 @@ import (
 	"github.com/go-git/go-git/v5/storage/filesystem"
 )
 
+func init() {
+	isGogit = true
+}
+
 // Repository represents a Git repository.
 type Repository struct {
 	Path string
