@@ -48,7 +48,9 @@ func parseAuthSource(ctx *context.APIContext, u *user_model.User, sourceID int64
 
 	u.LoginType = source.Type
 	u.LoginSource = source.ID
-	u.LoginName = loginName
+	if len(loginName) > 0 {
+		u.LoginName = loginName
+	}
 }
 
 // CreateUser create a user
@@ -227,10 +229,6 @@ func EditUser(ctx *context.APIContext) {
 
 	if form.MustChangePassword != nil {
 		ctx.ContextUser.MustChangePassword = *form.MustChangePassword
-	}
-
-	if len(form.LoginName) != 0 {
-		ctx.ContextUser.LoginName = form.LoginName
 	}
 
 	if form.FullName != nil {
