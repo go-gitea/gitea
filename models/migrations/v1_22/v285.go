@@ -86,10 +86,6 @@ func addObjectFormatNameToRepository(x *xorm.Engine) error {
 		ObjectFormatName string `xorm:"VARCHAR(6) NOT NULL DEFAULT 'sha1'"`
 	}
 
-	if _, err := x.Exec("UPDATE repository SET object_format_name = 'sha1' WHERE object_format_name = '' OR object_format_name IS NULL"); err != nil {
-		return err
-	}
-
 	return x.Sync(new(Repository))
 }
 
