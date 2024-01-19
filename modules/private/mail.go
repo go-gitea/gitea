@@ -20,7 +20,7 @@ type Email struct {
 // It accepts a list of usernames.
 // If DB contains these users it will send the email to them.
 // If to list == nil, it's supposed to send emails to every user present in DB
-func SendEmail(ctx context.Context, subject, message string, to []string) (string, ResponseExtra) {
+func SendEmail(ctx context.Context, subject, message string, to []string) (*ResponseText, ResponseExtra) {
 	reqURL := setting.LocalURL + "api/internal/mail/send"
 
 	req := newInternalRequest(ctx, reqURL, "POST", Email{
@@ -29,9 +29,5 @@ func SendEmail(ctx context.Context, subject, message string, to []string) (strin
 		To:      to,
 	})
 
-	resp, extra := requestJSONResp(req, &responseText{})
-	if extra.HasError() {
-		return "", extra
-	}
-	return resp.Text, extra
+	return requestJSONResp(req, &ResponseText{})
 }
