@@ -125,17 +125,18 @@ type packageData struct {
 
 type packageCache = map[*packages_model.PackageFile]*packageData
 
-// BuildRepositoryFiles builds metadata files for the repository
-func BuildRepositoryFiles(ctx context.Context, ownerID int64) error {
+// BuildSpecificRepositoryFiles builds metadata files for the repository
+func BuildRepositoryFiles(ctx context.Context, ownerID int64, compositeKey string) error {
 	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
 	if err != nil {
 		return err
 	}
 
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
-		OwnerID:     ownerID,
-		PackageType: packages_model.TypeRpm,
-		Query:       "%.rpm",
+		OwnerID:      ownerID,
+		PackageType:  packages_model.TypeRpm,
+		Query:        "%.rpm",
+		CompositeKey: compositeKey,
 	})
 	if err != nil {
 		return err
@@ -194,15 +195,15 @@ func BuildRepositoryFiles(ctx context.Context, ownerID int64) error {
 		cache[pf] = pd
 	}
 
-	primary, err := buildPrimary(ctx, pv, pfs, cache)
+	primary, err := buildPrimary(ctx, pv, pfs, cache, compositeKey)
 	if err != nil {
 		return err
 	}
-	filelists, err := buildFilelists(ctx, pv, pfs, cache)
+	filelists, err := buildFilelists(ctx, pv, pfs, cache, compositeKey)
 	if err != nil {
 		return err
 	}
-	other, err := buildOther(ctx, pv, pfs, cache)
+	other, err := buildOther(ctx, pv, pfs, cache, compositeKey)
 	if err != nil {
 		return err
 	}
@@ -216,11 +217,12 @@ func BuildRepositoryFiles(ctx context.Context, ownerID int64) error {
 			filelists,
 			other,
 		},
+		compositeKey,
 	)
 }
 
 // https://docs.pulpproject.org/en/2.19/plugins/pulp_rpm/tech-reference/rpm.html#repomd-xml
-func buildRepomd(ctx context.Context, pv *packages_model.PackageVersion, ownerID int64, data []*repoData) error {
+func buildRepomd(ctx context.Context, pv *packages_model.PackageVersion, ownerID int64, data []*repoData, compositeKey string) error {
 	type Repomd struct {
 		XMLName  xml.Name    `xml:"repomd"`
 		Xmlns    string      `xml:"xmlns,attr"`
@@ -275,7 +277,8 @@ func buildRepomd(ctx context.Context, pv *packages_model.PackageVersion, ownerID
 			pv,
 			&packages_service.PackageFileCreationInfo{
 				PackageFileInfo: packages_service.PackageFileInfo{
-					Filename: file.Name,
+					Filename:     file.Name,
+					CompositeKey: compositeKey,
 				},
 				Creator:           user_model.NewGhostUser(),
 				Data:              file.Data,
@@ -292,7 +295,7 @@ func buildRepomd(ctx context.Context, pv *packages_model.PackageVersion, ownerID
 }
 
 // https://docs.pulpproject.org/en/2.19/plugins/pulp_rpm/tech-reference/rpm.html#primary-xml
-func buildPrimary(ctx context.Context, pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache) (*repoData, error) {
+func buildPrimary(ctx context.Context, pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache, compositeKey string) (*repoData, error) {
 	type Version struct {
 		Epoch   string `xml:"epoch,attr"`
 		Version string `xml:"ver,attr"`
@@ -372,7 +375,7 @@ func buildPrimary(ctx context.Context, pv *packages_model.PackageVersion, pfs []
 				files = append(files, f)
 			}
 		}
-
+		packageVersion := fmt.Sprintf("%s-%s", pd.FileMetadata.Version, pd.FileMetadata.Release)
 		packages = append(packages, &Package{
 			Type:         "rpm",
 			Name:         pd.Package.Name,
@@ -401,7 +404,7 @@ func buildPrimary(ctx context.Context, pv *packages_model.PackageVersion, pfs []
 				Archive:   pd.FileMetadata.ArchiveSize,
 			},
 			Location: Location{
-				Href: fmt.Sprintf("package/%s/%s/%s", url.PathEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.FileMetadata.Architecture)),
+				Href: fmt.Sprintf("package/%s/%s/%s/%s", url.PathEscape(pd.Package.Name), url.PathEscape(packageVersion), url.PathEscape(pd.FileMetadata.Architecture), url.PathEscape(fmt.Sprintf("%s-%s.%s.rpm", pd.Package.Name, packageVersion, pd.FileMetadata.Architecture))),
 			},
 			Format: Format{
 				License:   pd.VersionMetadata.License,
@@ -431,11 +434,11 @@ func buildPrimary(ctx context.Context, pv *packages_model.PackageVersion, pfs []
 		XmlnsRpm:     "http://linux.duke.edu/metadata/rpm",
 		PackageCount: len(pfs),
 		Packages:     packages,
-	})
+	}, compositeKey)
 }
 
 // https://docs.pulpproject.org/en/2.19/plugins/pulp_rpm/tech-reference/rpm.html#filelists-xml
-func buildFilelists(ctx context.Context, pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache) (*repoData, error) { //nolint:dupl
+func buildFilelists(ctx context.Context, pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache, compositeKey string) (*repoData, error) { //nolint:dupl
 	type Version struct {
 		Epoch   string `xml:"epoch,attr"`
 		Version string `xml:"ver,attr"`
@@ -478,11 +481,12 @@ func buildFilelists(ctx context.Context, pv *packages_model.PackageVersion, pfs 
 		Xmlns:        "http://linux.duke.edu/metadata/other",
 		PackageCount: len(pfs),
 		Packages:     packages,
-	})
+	},
+		compositeKey)
 }
 
 // https://docs.pulpproject.org/en/2.19/plugins/pulp_rpm/tech-reference/rpm.html#other-xml
-func buildOther(ctx context.Context, pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache) (*repoData, error) { //nolint:dupl
+func buildOther(ctx context.Context, pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache, compositeKey string) (*repoData, error) { //nolint:dupl
 	type Version struct {
 		Epoch   string `xml:"epoch,attr"`
 		Version string `xml:"ver,attr"`
@@ -525,7 +529,7 @@ func buildOther(ctx context.Context, pv *packages_model.PackageVersion, pfs []*p
 		Xmlns:        "http://linux.duke.edu/metadata/other",
 		PackageCount: len(pfs),
 		Packages:     packages,
-	})
+	}, compositeKey)
 }
 
 // writtenCounter counts all written bytes
@@ -545,10 +549,8 @@ func (wc *writtenCounter) Written() int64 {
 	return wc.written
 }
 
-func addDataAsFileToRepo(ctx context.Context, pv *packages_model.PackageVersion, filetype string, obj any) (*repoData, error) {
+func addDataAsFileToRepo(ctx context.Context, pv *packages_model.PackageVersion, filetype string, obj any, compositeKey string) (*repoData, error) {
 	content, _ := packages_module.NewHashedBuffer()
-	defer content.Close()
-
 	gzw := gzip.NewWriter(content)
 	wc := &writtenCounter{}
 	h := sha256.New()
@@ -571,7 +573,8 @@ func addDataAsFileToRepo(ctx context.Context, pv *packages_model.PackageVersion,
 		pv,
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: filename,
+				Filename:     filename,
+				CompositeKey: compositeKey,
 			},
 			Creator:           user_model.NewGhostUser(),
 			Data:              content,

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -22,6 +23,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 	notify_service "code.gitea.io/gitea/services/notify"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
@@ -276,28 +278,17 @@ func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo 
 		return err
 	}
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		commit, err := gitRepo.GetCommit(commitID)
-		if err != nil {
+	if err := git.Push(ctx, repo.RepoPath(), git.PushOptions{
+		Remote: repo.RepoPath(),
+		Branch: fmt.Sprintf("%s:%s%s", commitID, git.BranchPrefix, branchName),
+		Env:    repo_module.PushingEnvironment(doer, repo),
+	}); err != nil {
+		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
 			return err
 		}
-		// database operation should be done before git operation so that we can rollback if git operation failed
-		if err := syncBranchToDB(ctx, repo.ID, doer.ID, branchName, commit); err != nil {
-			return err
-		}
-
-		if err := git.Push(ctx, repo.RepoPath(), git.PushOptions{
-			Remote: repo.RepoPath(),
-			Branch: fmt.Sprintf("%s:%s%s", commitID, git.BranchPrefix, branchName),
-			Env:    repo_module.PushingEnvironment(doer, repo),
-		}); err != nil {
-			if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
-				return err
-			}
-			return fmt.Errorf("push: %w", err)
-		}
-		return nil
-	})
+		return fmt.Errorf("push: %w", err)
+	}
+	return nil
 }
 
 // RenameBranch rename a branch
@@ -319,13 +310,28 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		return "from_not_exist", nil
 	}
 
-	if err := git_model.RenameBranch(ctx, repo, from, to, func(isDefault bool) error {
+	if err := git_model.RenameBranch(ctx, repo, from, to, func(ctx context.Context, isDefault bool) error {
 		err2 := gitRepo.RenameBranch(from, to)
 		if err2 != nil {
 			return err2
 		}
 
 		if isDefault {
+			// if default branch changed, we need to delete all schedules and cron jobs
+			if err := actions_model.DeleteScheduleTaskByRepo(ctx, repo.ID); err != nil {
+				log.Error("DeleteCronTaskByRepo: %v", err)
+			}
+			// cancel running cron jobs of this repository and delete old schedules
+			if err := actions_model.CancelRunningJobs(
+				ctx,
+				repo.ID,
+				from,
+				"",
+				webhook_module.HookEventSchedule,
+			); err != nil {
+				log.Error("CancelRunningJobs: %v", err)
+			}
+
 			err2 = gitRepo.SetDefaultBranch(to)
 			if err2 != nil {
 				return err2
@@ -459,5 +465,52 @@ func AddAllRepoBranchesToSyncQueue(ctx context.Context, doerID int64) error {
 	}); err != nil {
 		return fmt.Errorf("run sync all branches failed: %v", err)
 	}
+	return nil
+}
+
+func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, newBranchName string) error {
+	if repo.DefaultBranch == newBranchName {
+		return nil
+	}
+
+	if !gitRepo.IsBranchExist(newBranchName) {
+		return git_model.ErrBranchNotExist{
+			BranchName: newBranchName,
+		}
+	}
+
+	oldDefaultBranchName := repo.DefaultBranch
+	repo.DefaultBranch = newBranchName
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		if err := repo_model.UpdateDefaultBranch(ctx, repo); err != nil {
+			return err
+		}
+
+		if err := actions_model.DeleteScheduleTaskByRepo(ctx, repo.ID); err != nil {
+			log.Error("DeleteCronTaskByRepo: %v", err)
+		}
+		// cancel running cron jobs of this repository and delete old schedules
+		if err := actions_model.CancelRunningJobs(
+			ctx,
+			repo.ID,
+			oldDefaultBranchName,
+			"",
+			webhook_module.HookEventSchedule,
+		); err != nil {
+			log.Error("CancelRunningJobs: %v", err)
+		}
+
+		if err := gitRepo.SetDefaultBranch(newBranchName); err != nil {
+			if !git.IsErrUnsupportedVersion(err) {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	notify_service.ChangeDefaultBranch(ctx, repo)
+
 	return nil
 }

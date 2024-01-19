@@ -27,9 +27,6 @@ var (
 	x         *xorm.Engine
 	tables    []any
 	initFuncs []func() error
-
-	// HasEngine specifies if we have a xorm.Engine
-	HasEngine bool
 )
 
 // Engine represents a xorm engine or session.
@@ -184,6 +181,8 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine)
 	if err = x.Ping(); err != nil {
 		return err
 	}
+
+	preprocessDatabaseCollation(x)
 
 	// We have to run migrateFunc here in case the user is re-running installation on a previously created DB.
 	// If we do not then table schemas will be changed and there will be conflicts when the migrations run properly.
