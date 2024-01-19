@@ -68,14 +68,6 @@ func repoArchiverForRelativePath(relativePath string) (*RepoArchiver, error) {
 	}, nil
 }
 
-var delRepoArchiver = new(RepoArchiver)
-
-// DeleteRepoArchiver delete archiver
-func DeleteRepoArchiver(ctx context.Context, archiver *RepoArchiver) error {
-	_, err := db.GetEngine(ctx).ID(archiver.ID).Delete(delRepoArchiver)
-	return err
-}
-
 // GetRepoArchiver get an archiver
 func GetRepoArchiver(ctx context.Context, repoID int64, tp git.ArchiveType, commitID string) (*RepoArchiver, error) {
 	var archiver RepoArchiver
@@ -100,12 +92,6 @@ func ExistsRepoArchiverWithStoragePath(ctx context.Context, storagePath string) 
 	return db.GetEngine(ctx).Exist(archiver)
 }
 
-// AddRepoArchiver adds an archiver
-func AddRepoArchiver(ctx context.Context, archiver *RepoArchiver) error {
-	_, err := db.GetEngine(ctx).Insert(archiver)
-	return err
-}
-
 // UpdateRepoArchiverStatus updates archiver's status
 func UpdateRepoArchiverStatus(ctx context.Context, archiver *RepoArchiver) error {
 	_, err := db.GetEngine(ctx).ID(archiver.ID).Cols("status").Update(archiver)
@@ -114,6 +100,7 @@ func UpdateRepoArchiverStatus(ctx context.Context, archiver *RepoArchiver) error
 
 // DeleteAllRepoArchives deletes all repo archives records
 func DeleteAllRepoArchives(ctx context.Context) error {
+	// 1=1 to enforce delete all data, otherwise it will delete nothing
 	_, err := db.GetEngine(ctx).Where("1=1").Delete(new(RepoArchiver))
 	return err
 }

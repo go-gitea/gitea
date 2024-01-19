@@ -561,10 +561,15 @@ func TestPostProcess_RenderDocument(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res.String()))
 	}
 
-	// Issue index shouldn't be post processing in an document.
+	// Issue index shouldn't be post processing in a document.
 	test(
 		"#1",
 		"#1")
+
+	// But cross-referenced issue index should work.
+	test(
+		"go-gitea/gitea#12345",
+		`<a href="`+util.URLJoin(markup.TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue">go-gitea/gitea#12345</a>`)
 
 	// Test that other post processing still works.
 	test(

@@ -17,7 +17,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -127,7 +126,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, user *use
 		return writeAccess
 	}
 
-	if base.Int64sContains(protectBranch.WhitelistUserIDs, user.ID) {
+	if slices.Contains(protectBranch.WhitelistUserIDs, user.ID) {
 		return true
 	}
 
@@ -150,7 +149,7 @@ func IsUserMergeWhitelisted(ctx context.Context, protectBranch *ProtectedBranch,
 		return permissionInRepo.CanWrite(unit.TypeCode)
 	}
 
-	if base.Int64sContains(protectBranch.MergeWhitelistUserIDs, userID) {
+	if slices.Contains(protectBranch.MergeWhitelistUserIDs, userID) {
 		return true
 	}
 
@@ -182,7 +181,7 @@ func IsUserOfficialReviewer(ctx context.Context, protectBranch *ProtectedBranch,
 		return writeAccess, nil
 	}
 
-	if base.Int64sContains(protectBranch.ApprovalsWhitelistUserIDs, user.ID) {
+	if slices.Contains(protectBranch.ApprovalsWhitelistUserIDs, user.ID) {
 		return true, nil
 	}
 

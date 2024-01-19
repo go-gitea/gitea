@@ -33,10 +33,6 @@ func DummyOK(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func DummyBadRequest(w http.ResponseWriter, req *http.Request) {
-	w.WriteHeader(http.StatusBadRequest)
-}
-
 func RobotsTxt(w http.ResponseWriter, req *http.Request) {
 	robotsTxt := util.FilePathJoinAbs(setting.CustomPath, "public/robots.txt")
 	if ok, _ := util.IsExist(robotsTxt); !ok {

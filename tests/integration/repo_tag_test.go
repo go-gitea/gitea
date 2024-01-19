@@ -81,7 +81,7 @@ func TestCreateNewTagProtected(t *testing.T) {
 	assert.NoError(t, err)
 
 	for _, release := range releases {
-		err = repo_model.DeleteReleaseByID(db.DefaultContext, release.ID)
+		_, err = db.DeleteByID[repo_model.Release](db.DefaultContext, release.ID)
 		assert.NoError(t, err)
 	}
 

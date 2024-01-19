@@ -10,8 +10,10 @@ import (
 	"fmt"
 	"net/url"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
+	"unicode"
 
 	_ "image/jpeg" // Needed for jpeg support
 
@@ -29,6 +31,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
+	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 	"xorm.io/builder"
 )
 
@@ -513,6 +518,26 @@ func GetUserSalt() (string, error) {
 	}
 	// Returns a 32 bytes long string.
 	return hex.EncodeToString(rBytes), nil
+}
+
+// Note: The set of characters here can safely expand without a breaking change,
+// but characters removed from this set can cause user account linking to break
+var (
+	customCharsReplacement    = strings.NewReplacer("Æ", "AE")
+	removeCharsRE             = regexp.MustCompile(`['´\x60]`)
+	removeDiacriticsTransform = transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
+	replaceCharsHyphenRE      = regexp.MustCompile(`[\s~+]`)
+)
+
+// normalizeUserName returns a string with single-quotes and diacritics
+// removed, and any other non-supported username characters replaced with
+// a `-` character
+func NormalizeUserName(s string) (string, error) {
+	strDiacriticsRemoved, n, err := transform.String(removeDiacriticsTransform, customCharsReplacement.Replace(s))
+	if err != nil {
+		return "", fmt.Errorf("Failed to normalize character `%v` in provided username `%v`", s[n], s)
+	}
+	return replaceCharsHyphenRE.ReplaceAllLiteralString(removeCharsRE.ReplaceAllLiteralString(strDiacriticsRemoved, ""), "-"), nil
 }
 
 var (

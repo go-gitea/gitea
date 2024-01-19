@@ -450,12 +450,6 @@ func SortReleases(rels []*Release) {
 	sort.Sort(sorter)
 }
 
-// DeleteReleaseByID deletes a release from database by given ID.
-func DeleteReleaseByID(ctx context.Context, id int64) error {
-	_, err := db.GetEngine(ctx).ID(id).Delete(new(Release))
-	return err
-}
-
 // UpdateReleasesMigrationsByType updates all migrated repositories' releases from gitServiceType to replace originalAuthorID to posterID
 func UpdateReleasesMigrationsByType(ctx context.Context, gitServiceType structs.GitServiceType, originalAuthorID string, posterID int64) error {
 	_, err := db.GetEngine(ctx).Table("release").
@@ -509,7 +503,7 @@ func PushUpdateDeleteTag(ctx context.Context, repo *Repository, tagName string) 
 		return fmt.Errorf("GetRelease: %w", err)
 	}
 	if rel.IsTag {
-		if _, err = db.GetEngine(ctx).ID(rel.ID).Delete(new(Release)); err != nil {
+		if _, err = db.DeleteByID[Release](ctx, rel.ID); err != nil {
 			return fmt.Errorf("Delete: %w", err)
 		}
 	} else {
