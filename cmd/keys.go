@@ -78,6 +78,6 @@ func runKeys(c *cli.Context) error {
 	if extra.Error != nil {
 		return extra.Error
 	}
-	_, _ = fmt.Fprintln(c.App.Writer, strings.TrimSpace(authorizedString))
+	_, _ = fmt.Fprintln(c.App.Writer, strings.TrimSpace(authorizedString.Text))
 	return nil
 }
