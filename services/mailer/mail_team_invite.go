@@ -61,6 +61,13 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 		"InviteURL":    inviteURL,
 	}
 
+	subjectFromTemplate := subjectFromTemplate(string(tplTeamInviteMail), mailMeta)
+	if subjectFromTemplate != "" {
+		subject = subjectFromTemplate
+	}
+
+	mailMeta["Subject"] = subject
+
 	var mailBody bytes.Buffer
 	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplTeamInviteMail), mailMeta); err != nil {
 		log.Error("ExecuteTemplate [%s]: %v", string(tplTeamInviteMail)+"/body", err)
