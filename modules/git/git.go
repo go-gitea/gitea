@@ -185,7 +185,13 @@ func InitFull(ctx context.Context) (err error) {
 		globalCommandArgs = append(globalCommandArgs, "-c", "credential.helper=")
 	}
 	SupportProcReceive = CheckGitVersionAtLeast("2.29") == nil
-	SupportHashSha256 = CheckGitVersionAtLeast("2.42") == nil
+	SupportHashSha256 = CheckGitVersionAtLeast("2.42") == nil && !isGogit
+	if SupportHashSha256 {
+		SupportedObjectFormats = append(SupportedObjectFormats, Sha256ObjectFormat)
+	} else {
+		log.Warn("sha256 hash support is disabled - requires Git >= 2.42. Gogit is currently unsupported")
+	}
+
 	if setting.LFS.StartServer {
 		if CheckGitVersionAtLeast("2.1.2") != nil {
 			return errors.New("LFS server support requires Git >= 2.1.2")
