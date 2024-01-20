@@ -60,44 +60,47 @@ func TestAPIRepoSecrets(t *testing.T) {
 		}
 
 		for _, c := range cases {
-			req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/actions/secrets/%s?token=%s", repo.FullName(), c.Name, token), api.CreateOrUpdateSecretOption{
+			req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/actions/secrets/%s", repo.FullName(), c.Name), api.CreateOrUpdateSecretOption{
 				Data: "data",
-			})
+			}).AddTokenAuth(token)
 			MakeRequest(t, req, c.ExpectedStatus)
 		}
 	})
 
 	t.Run("Update", func(t *testing.T) {
 		name := "update_secret"
-		url := fmt.Sprintf("/api/v1/repos/%s/actions/secrets/%s?token=%s", repo.FullName(), name, token)
+		url := fmt.Sprintf("/api/v1/repos/%s/actions/secrets/%s", repo.FullName(), name)
 
 		req := NewRequestWithJSON(t, "PUT", url, api.CreateOrUpdateSecretOption{
 			Data: "initial",
-		})
+		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 
 		req = NewRequestWithJSON(t, "PUT", url, api.CreateOrUpdateSecretOption{
 			Data: "changed",
-		})
+		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
 	})
 
 	t.Run("Delete", func(t *testing.T) {
 		name := "delete_secret"
-		url := fmt.Sprintf("/api/v1/repos/%s/actions/secrets/%s?token=%s", repo.FullName(), name, token)
+		url := fmt.Sprintf("/api/v1/repos/%s/actions/secrets/%s", repo.FullName(), name)
 
 		req := NewRequestWithJSON(t, "PUT", url, api.CreateOrUpdateSecretOption{
 			Data: "initial",
-		})
+		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 
-		req = NewRequest(t, "DELETE", url)
+		req = NewRequest(t, "DELETE", url).
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
 
-		req = NewRequest(t, "DELETE", url)
+		req = NewRequest(t, "DELETE", url).
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/actions/secrets/000?token=%s", repo.FullName(), token))
+		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/actions/secrets/000", repo.FullName())).
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusBadRequest)
 	})
 }

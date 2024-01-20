@@ -4,6 +4,7 @@
 package pull
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -327,7 +328,8 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 			}
 			if err == nil {
 				for _, pr := range prs {
-					if newCommitID != "" && newCommitID != git.EmptySHA {
+					objectFormat, _ := git.GetObjectFormatOfRepo(ctx, pr.BaseRepo.RepoPath())
+					if newCommitID != "" && newCommitID != objectFormat.EmptyObjectID().String() {
 						changed, err := checkIfPRContentChanged(ctx, pr, oldCommitID, newCommitID)
 						if err != nil {
 							log.Error("checkIfPRContentChanged: %v", err)
@@ -421,9 +423,11 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 		return false, fmt.Errorf("unable to open pipe for to run diff: %w", err)
 	}
 
+	stderr := new(bytes.Buffer)
 	if err := cmd.Run(&git.RunOpts{
 		Dir:    prCtx.tmpBasePath,
 		Stdout: stdoutWriter,
+		Stderr: stderr,
 		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			defer func() {
@@ -435,6 +439,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 		if err == util.ErrNotEmpty {
 			return true, nil
 		}
+		err = git.ConcatenateError(err, stderr.String())
 
 		log.Error("Unable to run diff on %s %s %s in tempRepo for PR[%d]%s/%s...%s/%s: Error: %v",
 			newCommitID, oldCommitID, base,
@@ -539,6 +544,43 @@ func (errs errlist) Error() string {
 		return buf.String()
 	}
 	return ""
+}
+
+// RetargetChildrenOnMerge retarget children pull requests on merge if possible
+func RetargetChildrenOnMerge(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) error {
+	if setting.Repository.PullRequest.RetargetChildrenOnMerge && pr.BaseRepoID == pr.HeadRepoID {
+		return RetargetBranchPulls(ctx, doer, pr.HeadRepoID, pr.HeadBranch, pr.BaseBranch)
+	}
+	return nil
+}
+
+// RetargetBranchPulls change target branch for all pull requests whose base branch is the branch
+// Both branch and targetBranch must be in the same repo (for security reasons)
+func RetargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch, targetBranch string) error {
+	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repoID, branch)
+	if err != nil {
+		return err
+	}
+
+	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
+		return err
+	}
+
+	var errs errlist
+	for _, pr := range prs {
+		if err = pr.Issue.LoadRepo(ctx); err != nil {
+			errs = append(errs, err)
+		} else if err = ChangeTargetBranch(ctx, pr, doer, targetBranch); err != nil &&
+			!issues_model.IsErrIssueIsClosed(err) && !models.IsErrPullRequestHasMerged(err) &&
+			!issues_model.IsErrPullRequestAlreadyExists(err) {
+			errs = append(errs, err)
+		}
+	}
+
+	if len(errs) > 0 {
+		return errs
+	}
+	return nil
 }
 
 // CloseBranchPulls close all the pull requests who's head branch is the branch

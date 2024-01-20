@@ -455,26 +455,6 @@ func applySubscribedCondition(sess *xorm.Session, subscriberID int64) *xorm.Sess
 	)
 }
 
-// GetRepoIDsForIssuesOptions find all repo ids for the given options
-func GetRepoIDsForIssuesOptions(ctx context.Context, opts *IssuesOptions, user *user_model.User) ([]int64, error) {
-	repoIDs := make([]int64, 0, 5)
-	e := db.GetEngine(ctx)
-
-	sess := e.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
-
-	applyConditions(sess, opts)
-
-	accessCond := repo_model.AccessibleRepositoryCondition(user, unit.TypeInvalid)
-	if err := sess.Where(accessCond).
-		Distinct("issue.repo_id").
-		Table("issue").
-		Find(&repoIDs); err != nil {
-		return nil, fmt.Errorf("unable to GetRepoIDsForIssuesOptions: %w", err)
-	}
-
-	return repoIDs, nil
-}
-
 // Issues returns a list of issues by given conditions.
 func Issues(ctx context.Context, opts *IssuesOptions) (IssueList, error) {
 	sess := db.GetEngine(ctx).

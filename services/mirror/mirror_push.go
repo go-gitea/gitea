@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
@@ -93,8 +94,9 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 		log.Error("PANIC whilst syncPushMirror[%d] Panic: %v\nStacktrace: %s", mirrorID, err, log.Stack(2))
 	}()
 
-	m, err := repo_model.GetPushMirror(ctx, repo_model.PushMirrorOptions{ID: mirrorID})
-	if err != nil {
+	// TODO: Handle "!exist" better
+	m, exist, err := db.GetByID[repo_model.PushMirror](ctx, mirrorID)
+	if err != nil || !exist {
 		log.Error("GetPushMirrorByID [%d]: %v", mirrorID, err)
 		return false
 	}

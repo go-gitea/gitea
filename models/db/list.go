@@ -21,15 +21,7 @@ const (
 // Paginator is the base for different ListOptions types
 type Paginator interface {
 	GetSkipTake() (skip, take int)
-	GetStartEnd() (start, end int)
 	IsListAll() bool
-}
-
-// GetPaginatedSession creates a paginated database session
-func GetPaginatedSession(p Paginator) *xorm.Session {
-	skip, take := p.GetSkipTake()
-
-	return x.Limit(take, skip)
 }
 
 // SetSessionPagination sets pagination for a database session
@@ -37,13 +29,6 @@ func SetSessionPagination(sess Engine, p Paginator) *xorm.Session {
 	skip, take := p.GetSkipTake()
 
 	return sess.Limit(take, skip)
-}
-
-// SetEnginePagination sets pagination for a database engine
-func SetEnginePagination(e Engine, p Paginator) Engine {
-	skip, take := p.GetSkipTake()
-
-	return e.Limit(take, skip)
 }
 
 // ListOptions options to paginate results
@@ -64,13 +49,6 @@ var (
 func (opts *ListOptions) GetSkipTake() (skip, take int) {
 	opts.SetDefaultValues()
 	return (opts.Page - 1) * opts.PageSize, opts.PageSize
-}
-
-// GetStartEnd returns the start and end of the ListOptions
-func (opts *ListOptions) GetStartEnd() (start, end int) {
-	start, take := opts.GetSkipTake()
-	end = start + take
-	return start, end
 }
 
 func (opts ListOptions) GetPage() int {
@@ -135,11 +113,6 @@ func (opts *AbsoluteListOptions) GetSkipTake() (skip, take int) {
 	return opts.skip, opts.take
 }
 
-// GetStartEnd returns the start and end values
-func (opts *AbsoluteListOptions) GetStartEnd() (start, end int) {
-	return opts.skip, opts.skip + opts.take
-}
-
 // FindOptions represents a find options
 type FindOptions interface {
 	GetPage() int
@@ -148,15 +121,34 @@ type FindOptions interface {
 	ToConds() builder.Cond
 }
 
+type JoinFunc func(sess Engine) error
+
+type FindOptionsJoin interface {
+	ToJoins() []JoinFunc
+}
+
 type FindOptionsOrder interface {
 	ToOrders() string
 }
 
 // Find represents a common find function which accept an options interface
 func Find[T any](ctx context.Context, opts FindOptions) ([]*T, error) {
-	sess := GetEngine(ctx).Where(opts.ToConds())
+	sess := GetEngine(ctx)
+
+	if joinOpt, ok := opts.(FindOptionsJoin); ok && len(joinOpt.ToJoins()) > 0 {
+		for _, joinFunc := range joinOpt.ToJoins() {
+			if err := joinFunc(sess); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	sess = sess.Where(opts.ToConds())
 	page, pageSize := opts.GetPage(), opts.GetPageSize()
-	if !opts.IsListAll() && pageSize > 0 && page >= 1 {
+	if !opts.IsListAll() && pageSize > 0 {
+		if page == 0 {
+			page = 1
+		}
 		sess.Limit(pageSize, (page-1)*pageSize)
 	}
 	if newOpt, ok := opts.(FindOptionsOrder); ok && newOpt.ToOrders() != "" {
@@ -176,8 +168,17 @@ func Find[T any](ctx context.Context, opts FindOptions) ([]*T, error) {
 
 // Count represents a common count function which accept an options interface
 func Count[T any](ctx context.Context, opts FindOptions) (int64, error) {
+	sess := GetEngine(ctx)
+	if joinOpt, ok := opts.(FindOptionsJoin); ok && len(joinOpt.ToJoins()) > 0 {
+		for _, joinFunc := range joinOpt.ToJoins() {
+			if err := joinFunc(sess); err != nil {
+				return 0, err
+			}
+		}
+	}
+
 	var object T
-	return GetEngine(ctx).Where(opts.ToConds()).Count(&object)
+	return sess.Where(opts.ToConds()).Count(&object)
 }
 
 // FindAndCount represents a common findandcount function which accept an options interface

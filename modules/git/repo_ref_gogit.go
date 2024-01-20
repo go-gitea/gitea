@@ -30,13 +30,13 @@ func (repo *Repository) GetRefsFiltered(pattern string) ([]*Reference, error) {
 			refType := string(ObjectCommit)
 			if ref.Name().IsTag() {
 				// tags can be of type `commit` (lightweight) or `tag` (annotated)
-				if tagType, _ := repo.GetTagType(ref.Hash()); err == nil {
+				if tagType, _ := repo.GetTagType(ParseGogitHash(ref.Hash())); err == nil {
 					refType = tagType
 				}
 			}
 			r := &Reference{
 				Name:   ref.Name().String(),
-				Object: ref.Hash(),
+				Object: ParseGogitHash(ref.Hash()),
 				Type:   refType,
 				repo:   repo,
 			}
