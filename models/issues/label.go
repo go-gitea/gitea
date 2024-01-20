@@ -256,7 +256,7 @@ func DeleteLabel(ctx context.Context, id, labelID int64) error {
 		return nil
 	}
 
-	if _, err = sess.ID(labelID).Delete(new(Label)); err != nil {
+	if _, err = db.DeleteByID[Label](ctx, labelID); err != nil {
 		return err
 	} else if _, err = sess.
 		Where("label_id = ?", labelID).

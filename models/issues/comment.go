@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // ErrCommentNotExist represents a "CommentNotExist" kind of error.
@@ -271,7 +270,7 @@ type Comment struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 
 	// Reference issue in commit message
-	CommitSHA string `xorm:"VARCHAR(40)"`
+	CommitSHA string `xorm:"VARCHAR(64)"`
 
 	Attachments []*repo_model.Attachment `xorm:"-"`
 	Reactions   ReactionList             `xorm:"-"`
@@ -338,7 +337,7 @@ func (c *Comment) BeforeUpdate() {
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (c *Comment) AfterLoad(session *xorm.Session) {
+func (c *Comment) AfterLoad() {
 	c.Patch = c.PatchQuoted
 	if len(c.PatchQuoted) > 0 && c.PatchQuoted[0] == '"' {
 		unquoted, err := strconv.Unquote(c.PatchQuoted)
@@ -899,15 +898,15 @@ func createDeadlineComment(ctx context.Context, doer *user_model.User, issue *Is
 	// newDeadline = 0 means deleting
 	if newDeadlineUnix == 0 {
 		commentType = CommentTypeRemovedDeadline
-		content = issue.DeadlineUnix.Format("2006-01-02")
+		content = issue.DeadlineUnix.FormatDate()
 	} else if issue.DeadlineUnix == 0 {
 		// Check if the new date was added or modified
 		// If the actual deadline is 0 => deadline added
 		commentType = CommentTypeAddedDeadline
-		content = newDeadlineUnix.Format("2006-01-02")
+		content = newDeadlineUnix.FormatDate()
 	} else { // Otherwise modified
 		commentType = CommentTypeModifiedDeadline
-		content = newDeadlineUnix.Format("2006-01-02") + "|" + issue.DeadlineUnix.Format("2006-01-02")
+		content = newDeadlineUnix.FormatDate() + "|" + issue.DeadlineUnix.FormatDate()
 	}
 
 	if err := issue.LoadRepo(ctx); err != nil {

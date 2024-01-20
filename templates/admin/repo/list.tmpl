@@ -67,6 +67,9 @@
 								{{if .IsTemplate}}
 									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.template"}}</span>
 								{{end}}
+								{{if eq .ObjectFormatName "sha256"}}
+									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.sha256"}}</span>
+								{{end}}
 								{{if .IsMirror}}
 									{{svg "octicon-mirror"}}
 								{{else if .IsFork}}

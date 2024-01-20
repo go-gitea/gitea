@@ -143,7 +143,10 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := asymkey_model.ListGPGKeys(ctx, u.ID, db.ListOptions{})
+			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+				OwnerID:        u.ID,
+				IncludeSubKeys: true,
+			})
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -179,7 +182,10 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := asymkey_model.ListGPGKeys(ctx, u.ID, db.ListOptions{})
+			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+				OwnerID:        u.ID,
+				IncludeSubKeys: true,
+			})
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -232,7 +238,10 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := asymkey_model.ListGPGKeys(ctx, u.ID, db.ListOptions{})
+			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+				OwnerID:        u.ID,
+				IncludeSubKeys: true,
+			})
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -294,7 +303,10 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := asymkey_model.ListGPGKeys(ctx, u.ID, db.ListOptions{})
+			keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+				OwnerID:        u.ID,
+				IncludeSubKeys: true,
+			})
 			if err != nil {
 				return false, "", nil, err
 			}

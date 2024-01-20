@@ -123,7 +123,7 @@ require (
 	mvdan.cc/xurls/v2 v2.5.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.13
-	xorm.io/xorm v1.3.4
+	xorm.io/xorm v1.3.7-0.20240101024435-4992cba040fe
 )
 
 require (
@@ -168,7 +168,7 @@ require (
 	github.com/bradfitz/gomemcache v0.0.0-20230905024940-24af94b03874 // indirect
 	github.com/cention-sany/utf7 v0.0.0-20170124080048-26cad61bd60a // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/cloudflare/circl v1.3.6 // indirect
+	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/couchbase/go-couchbase v0.1.1 // indirect
 	github.com/couchbase/gomemcached v0.3.0 // indirect
 	github.com/couchbase/goutils v0.1.2 // indirect
@@ -310,6 +310,8 @@ replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
 replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
 
 replace github.com/nektos/act => gitea.com/gitea/act v0.2.51
+
+replace github.com/gorilla/feeds => github.com/yardenshoham/feeds v0.0.0-20240110072658-f3d0c21c0bd5
 
 exclude github.com/gofrs/uuid v3.2.0+incompatible
 
