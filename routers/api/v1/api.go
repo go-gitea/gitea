@@ -1037,7 +1037,8 @@ func Routes() *web.Route {
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Repositories (requires repo scope, org scope)
-		m.Post("/org/{org}/repos", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization, auth_model.AccessTokenScopeCategoryRepository),
+		m.Post("/org/{org}/repos",
+			tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization, auth_model.AccessTokenScopeCategoryRepository),
 			reqToken(),
 			bind(api.CreateRepoOption{}),
 			repo.CreateOrgRepoDeprecated)
@@ -1552,6 +1553,7 @@ func Routes() *web.Route {
 				m.Get("/registration-token", admin.GetRegistrationToken)
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryAdmin), reqToken(), reqSiteAdmin())
+
 		m.Group("/projects", func() {
 			m.Combo("/{id}").Get(projects.GetProject).
 				Patch(bind(api.UpdateProjectPayload{}), projects.UpdateProject).
