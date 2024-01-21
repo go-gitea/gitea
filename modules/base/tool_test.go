@@ -11,13 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEncodeMD5(t *testing.T) {
-	assert.Equal(t,
-		"3858f62230ac3c915f300c664312c63f",
-		EncodeMD5("foobar"),
-	)
-}
-
 func TestEncodeSha1(t *testing.T) {
 	assert.Equal(t,
 		"8843d7f92416211de9ebb963ff4ce28125932878",
@@ -50,11 +43,6 @@ func TestBasicAuthDecode(t *testing.T) {
 
 	_, _, err = BasicAuthDecode("invalid")
 	assert.Error(t, err)
-}
-
-func TestBasicAuthEncode(t *testing.T) {
-	assert.Equal(t, "Zm9vOmJhcg==", BasicAuthEncode("foo", "bar"))
-	assert.Equal(t, "MjM6IjotLS0t", BasicAuthEncode("23:\"", "----"))
 }
 
 func TestVerifyTimeLimitCode(t *testing.T) {
@@ -165,29 +153,6 @@ func TestInt64sToStrings(t *testing.T) {
 		[]string{"1", "4", "16", "64", "256"},
 		Int64sToStrings([]int64{1, 4, 16, 64, 256}),
 	)
-}
-
-func TestInt64sContains(t *testing.T) {
-	assert.True(t, Int64sContains([]int64{6, 44324, 4324, 32, 1, 2323}, 1))
-	assert.True(t, Int64sContains([]int64{2323}, 2323))
-	assert.False(t, Int64sContains([]int64{6, 44324, 4324, 32, 1, 2323}, 232))
-}
-
-func TestIsLetter(t *testing.T) {
-	assert.True(t, IsLetter('a'))
-	assert.True(t, IsLetter('e'))
-	assert.True(t, IsLetter('q'))
-	assert.True(t, IsLetter('z'))
-	assert.True(t, IsLetter('A'))
-	assert.True(t, IsLetter('E'))
-	assert.True(t, IsLetter('Q'))
-	assert.True(t, IsLetter('Z'))
-	assert.True(t, IsLetter('_'))
-	assert.False(t, IsLetter('-'))
-	assert.False(t, IsLetter('1'))
-	assert.False(t, IsLetter('$'))
-	assert.False(t, IsLetter(0x00))
-	assert.False(t, IsLetter(0x93))
 }
 
 // TODO: Test EntryIcon

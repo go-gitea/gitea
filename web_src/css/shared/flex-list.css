@@ -6,7 +6,7 @@
   display: flex;
   gap: 8px;
   align-items: flex-start;
-  padding: 1em 0;
+  padding: 10px 0;
 }
 
 .flex-item .flex-item-leading {

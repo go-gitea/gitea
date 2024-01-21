@@ -2,53 +2,17 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository milestones">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<div class="navbar gt-mb-4">
+		{{template "base/alert" .}}
+
+		<div class="list-header">
 			{{template "repo/issue/navbar" .}}
+			{{template "repo/issue/search" .}}
 			{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
 				<a class="ui small primary button" href="{{$.Link}}/new">{{ctx.Locale.Tr "repo.milestones.new"}}</a>
 			{{end}}
 		</div>
-		{{template "base/alert" .}}
 
-		<div class="list-header">
-			<div class="small-menu-items ui compact tiny menu list-header-toggle">
-				<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=open&q={{$.Keyword}}">
-					{{svg "octicon-milestone" 16 "gt-mr-3"}}
-					{{ctx.Locale.PrettyNumber .OpenCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
-				</a>
-				<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=closed&q={{$.Keyword}}">
-					{{svg "octicon-check" 16 "gt-mr-3"}}
-					{{ctx.Locale.PrettyNumber .ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
-				</a>
-			</div>
-
-			<!-- Search -->
-			<form class="list-header-search ui form ignore-dirty">
-				<div class="ui small search fluid action input">
-					<input type="hidden" name="state" value="{{$.State}}">
-					{{template "shared/searchinput" dict "Value" .Keyword}}
-					<button class="ui small icon button" type="submit" aria-label="{{ctx.Locale.Tr "explore.search"}}">
-						{{svg "octicon-search"}}
-					</button>
-				</div>
-			</form>
-
-			<!-- Sort -->
-			<div class="list-header-sort ui small dropdown type jump item">
-				<span class="text">
-					{{ctx.Locale.Tr "repo.issues.filter_sort"}}
-				</span>
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				<div class="menu">
-					<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active {{end}}item" href="{{$.Link}}?sort=closestduedate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.earliest_due_data"}}</a>
-					<a class="{{if eq .SortType "furthestduedate"}}active {{end}}item" href="{{$.Link}}?sort=furthestduedate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.latest_due_date"}}</a>
-					<a class="{{if eq .SortType "leastcomplete"}}active {{end}}item" href="{{$.Link}}?sort=leastcomplete&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.least_complete"}}</a>
-					<a class="{{if eq .SortType "mostcomplete"}}active {{end}}item" href="{{$.Link}}?sort=mostcomplete&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.most_complete"}}</a>
-					<a class="{{if eq .SortType "mostissues"}}active {{end}}item" href="{{$.Link}}?sort=mostissues&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.most_issues"}}</a>
-					<a class="{{if eq .SortType "leastissues"}}active {{end}}item" href="{{$.Link}}?sort=leastissues&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.least_issues"}}</a>
-				</div>
-			</div>
-		</div>
+		{{template "repo/issue/filters" .}}
 
 		<!-- milestone list -->
 		<div class="milestone-list">

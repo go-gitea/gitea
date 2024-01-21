@@ -343,7 +343,7 @@ func TestFindRenderizableCommitCrossReference(t *testing.T) {
 			},
 		},
 		{
-			Input:    "go-gitea/gitea@abcd1234abcd1234abcd1234abcd1234abcd12340", // longer than 40 characters
+			Input:    "go-gitea/gitea@abcd1234abcd1234abcd1234abcd1234abcd12341234512345123451234512345", // longer than 64 characters
 			Expected: nil,
 		},
 		{

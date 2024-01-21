@@ -19,8 +19,7 @@ menu:
 
 ## 开启/配置 API 访问
 
-通常情况下， `ENABLE_SWAGGER` 默认开启并且参数 `MAX_RESPONSE_ITEMS` 默认为 50。您可以从 [Config Cheat
-Sheet](administration/config-cheat-sheet.md) 中获取更多配置相关信息。
+通常情况下， `ENABLE_SWAGGER` 默认开启并且参数 `MAX_RESPONSE_ITEMS` 默认为 50。您可以从 [Config Cheat Sheet](administration/config-cheat-sheet.md) 中获取更多配置相关信息。
 
 ## 通过 API 认证
 

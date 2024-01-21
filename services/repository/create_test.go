@@ -129,7 +129,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	}
 
 	// Remove repo and check teams repositories.
-	assert.NoError(t, DeleteRepositoryDirectly(db.DefaultContext, user, org.ID, repoIds[0]), "DeleteRepository")
+	assert.NoError(t, DeleteRepositoryDirectly(db.DefaultContext, user, repoIds[0]), "DeleteRepository")
 	teamRepos[0] = repoIds[1:]
 	teamRepos[1] = repoIds[1:]
 	teamRepos[3] = repoIds[1:3]
@@ -141,7 +141,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	// Wipe created items.
 	for i, rid := range repoIds {
 		if i > 0 { // first repo already deleted.
-			assert.NoError(t, DeleteRepositoryDirectly(db.DefaultContext, user, org.ID, rid), "DeleteRepository %d", i)
+			assert.NoError(t, DeleteRepositoryDirectly(db.DefaultContext, user, rid), "DeleteRepository %d", i)
 		}
 	}
 	assert.NoError(t, organization.DeleteOrganization(db.DefaultContext, org), "DeleteOrganization")

@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 )
 
@@ -131,11 +132,30 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		return nil, err
 	}
 
-	if skipper, ok := source.Cfg.(LocalTwoFASkipper); ok && skipper.IsSkipLocalTwoFA() {
-		store.GetData()["SkipLocalTwoFA"] = true
+	if skipper, ok := source.Cfg.(LocalTwoFASkipper); !ok || !skipper.IsSkipLocalTwoFA() {
+		if err := validateTOTP(req, u); err != nil {
+			return nil, err
+		}
 	}
 
 	log.Trace("Basic Authorization: Logged in user %-v", u)
 
 	return u, nil
+}
+
+func validateTOTP(req *http.Request, u *user_model.User) error {
+	twofa, err := auth_model.GetTwoFactorByUID(req.Context(), u.ID)
+	if err != nil {
+		if auth_model.IsErrTwoFactorNotEnrolled(err) {
+			// No 2FA enrollment for this user
+			return nil
+		}
+		return err
+	}
+	if ok, err := twofa.ValidateTOTP(req.Header.Get("X-Gitea-OTP")); err != nil {
+		return err
+	} else if !ok {
+		return util.NewInvalidArgumentErrorf("invalid provided OTP")
+	}
+	return nil
 }

@@ -95,9 +95,10 @@ func Releases(ctx *context.Context) {
 		ListOptions: listOptions,
 		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
 		IncludeDrafts: writeAccess,
+		RepoID:        ctx.Repo.Repository.ID,
 	}
 
-	releases, err := repo_model.GetReleasesByRepoID(ctx, ctx.Repo.Repository.ID, opts)
+	releases, err := db.Find[repo_model.Release](ctx, opts)
 	if err != nil {
 		ctx.ServerError("GetReleasesByRepoID", err)
 		return
@@ -135,10 +136,12 @@ func Releases(ctx *context.Context) {
 		}
 
 		r.Note, err = markdown.RenderString(&markup.RenderContext{
-			URLPrefix: ctx.Repo.RepoLink,
-			Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
-			GitRepo:   ctx.Repo.GitRepo,
-			Ctx:       ctx,
+			Links: markup.Links{
+				Base: ctx.Repo.RepoLink,
+			},
+			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+			GitRepo: ctx.Repo.GitRepo,
+			Ctx:     ctx,
 		}, r.Note)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -174,6 +177,7 @@ func TagsList(ctx *context.Context) {
 	// Disable the showCreateNewBranch form in the dropdown on this page.
 	ctx.Data["CanCreateBranch"] = false
 	ctx.Data["HideBranchesInDropdown"] = true
+	ctx.Data["CanCreateRelease"] = ctx.Repo.CanWrite(unit.TypeReleases) && !ctx.Repo.Repository.IsArchived
 
 	listOptions := db.ListOptions{
 		Page:     ctx.FormInt("page"),
@@ -193,9 +197,10 @@ func TagsList(ctx *context.Context) {
 		IncludeDrafts: true,
 		IncludeTags:   true,
 		HasSha1:       util.OptionalBoolTrue,
+		RepoID:        ctx.Repo.Repository.ID,
 	}
 
-	releases, err := repo_model.GetReleasesByRepoID(ctx, ctx.Repo.Repository.ID, opts)
+	releases, err := db.Find[repo_model.Release](ctx, opts)
 	if err != nil {
 		ctx.ServerError("GetReleasesByRepoID", err)
 		return
@@ -284,10 +289,12 @@ func SingleRelease(ctx *context.Context) {
 		}
 	}
 	release.Note, err = markdown.RenderString(&markup.RenderContext{
-		URLPrefix: ctx.Repo.RepoLink,
-		Metas:     ctx.Repo.Repository.ComposeMetas(ctx),
-		GitRepo:   ctx.Repo.GitRepo,
-		Ctx:       ctx,
+		Links: markup.Links{
+			Base: ctx.Repo.RepoLink,
+		},
+		Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+		GitRepo: ctx.Repo.GitRepo,
+		Ctx:     ctx,
 	}, release.Note)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -616,7 +623,27 @@ func DeleteTag(ctx *context.Context) {
 }
 
 func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
-	if err := releaseservice.DeleteReleaseByID(ctx, ctx.FormInt64("id"), ctx.Doer, isDelTag); err != nil {
+	redirect := func() {
+		if isDelTag {
+			ctx.JSONRedirect(ctx.Repo.RepoLink + "/tags")
+			return
+		}
+
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/releases")
+	}
+
+	rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id"))
+	if err != nil {
+		if repo_model.IsErrReleaseNotExist(err) {
+			ctx.NotFound("GetReleaseForRepoByID", err)
+		} else {
+			ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
+			redirect()
+		}
+		return
+	}
+
+	if err := releaseservice.DeleteReleaseByID(ctx, ctx.Repo.Repository, rel, ctx.Doer, isDelTag); err != nil {
 		if models.IsErrProtectedTagName(err) {
 			ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))
 		} else {
@@ -630,10 +657,5 @@ func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 		}
 	}
 
-	if isDelTag {
-		ctx.JSONRedirect(ctx.Repo.RepoLink + "/tags")
-		return
-	}
-
-	ctx.JSONRedirect(ctx.Repo.RepoLink + "/releases")
+	redirect()
 }

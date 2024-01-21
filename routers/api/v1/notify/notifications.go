@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -21,7 +22,17 @@ func NewAvailable(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/NotificationCount"
-	ctx.JSON(http.StatusOK, api.NotificationCount{New: activities_model.CountUnread(ctx, ctx.Doer.ID)})
+
+	total, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
+		UserID: ctx.Doer.ID,
+		Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
+	})
+	if err != nil {
+		ctx.Error(http.StatusUnprocessableEntity, "db.Count[activities_model.Notification]", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, api.NotificationCount{New: total})
 }
 
 func getFindNotificationOptions(ctx *context.APIContext) *activities_model.FindNotificationOptions {

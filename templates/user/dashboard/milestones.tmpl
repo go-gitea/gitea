@@ -2,8 +2,8 @@
 <div role="main" aria-label="{{.Title}}" class="page-content dashboard issues repository milestones">
 	{{template "user/dashboard/navbar" .}}
 	<div class="ui container">
-		<div class="ui stackable grid">
-			<div class="four wide column">
+		<div class="flex-container">
+			<div class="flex-container-nav">
 				<div class="ui secondary vertical filter menu gt-bg-transparent">
 					<div class="item">
 						{{ctx.Locale.Tr "home.issues.in_your_repos"}}
@@ -33,7 +33,7 @@
 					{{end}}
 				</div>
 			</div>
-			<div class="twelve wide column content">
+			<div class="flex-container-main content">
 				<div class="list-header">
 					<div class="small-menu-items ui compact tiny menu list-header-toggle">
 						<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
