@@ -114,11 +114,15 @@ func apiErrorDefined(ctx *context.Context, err *namedError) {
 	})
 }
 
-// ReqContainerAccess is a middleware which checks the current user valid (real user or ghost for anonymous access)
+func apiUnauthorizedError(ctx *context.Context) {
+	ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+setting.AppURL+`v2/token",service="container_registry",scope="*"`)
+	apiErrorDefined(ctx, errUnauthorized)
+}
+
+// ReqContainerAccess is a middleware which checks the current user valid (real user or ghost if anonymous access is enabled)
 func ReqContainerAccess(ctx *context.Context) {
-	if ctx.Doer == nil {
-		ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+setting.AppURL+`v2/token",service="container_registry",scope="*"`)
-		apiErrorDefined(ctx, errUnauthorized)
+	if ctx.Doer == nil || (setting.Service.RequireSignInView && ctx.Doer.IsGhost()) {
+		apiUnauthorizedError(ctx)
 	}
 }
 
@@ -138,11 +142,16 @@ func DetermineSupport(ctx *context.Context) {
 }
 
 // Authenticate creates a token for the current user
-// If the current user is anonymous, the ghost user is used
+// If the current user is anonymous, the ghost user is used expect RequireSignInView is enabled.
 func Authenticate(ctx *context.Context) {
 	u := ctx.Doer
 	if u == nil {
-		u = user_model.NewGhostUser()
+		if setting.Service.RequireSignInView {
+			apiUnauthorizedError(ctx)
+			return
+		} else {
+			u = user_model.NewGhostUser()
+		}
 	}
 
 	token, err := packages_service.CreateAuthorizationToken(u)
