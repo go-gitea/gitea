@@ -244,6 +244,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 			Title:       title,
 			Link:        link,
 			Description: desc,
+			IsPermaLink: "false",
 			Author: &feeds.Author{
 				Name:  act.ActUser.DisplayName(),
 				Email: act.ActUser.GetEmail(),
