@@ -8,13 +8,8 @@ import (
 	"strconv"
 
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-)
-
-const (
-	tplWatching base.TplName = "repo/issue/view_content/watching"
 )
 
 // IssueWatch sets issue watching
@@ -57,7 +52,5 @@ func IssueWatch(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Issue"] = issue
-	ctx.Data["IssueWatch"] = &issues_model.IssueWatch{IsWatching: watch}
-	ctx.HTML(http.StatusOK, tplWatching)
+	ctx.Redirect(issue.Link())
 }

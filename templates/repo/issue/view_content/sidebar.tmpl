@@ -270,7 +270,19 @@
 		<div class="ui watching">
 			<span class="text"><strong>{{ctx.Locale.Tr "notification.notifications"}}</strong></span>
 			<div class="gt-mt-3">
-				{{template "repo/issue/view_content/watching" .}}
+				<form method="post" action="{{.Issue.Link}}/watch">
+					<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}">
+					{{$.CsrfTokenHtml}}
+					<button class="fluid ui button">
+						{{if $.IssueWatch.IsWatching}}
+							{{svg "octicon-mute" 16 "gt-mr-3"}}
+							{{ctx.Locale.Tr "repo.issues.unsubscribe"}}
+						{{else}}
+							{{svg "octicon-unmute" 16 "gt-mr-3"}}
+							{{ctx.Locale.Tr "repo.issues.subscribe"}}
+						{{end}}
+					</button>
+				</form>
 			</div>
 		</div>
 	{{end}}
