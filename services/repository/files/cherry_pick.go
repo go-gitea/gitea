@@ -31,10 +31,13 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 		log.Error("%v", err)
 	}
 	defer t.Close()
-	if err := t.Clone(opts.OldBranch); err != nil {
+	if err := t.Clone(opts.OldBranch, false); err != nil {
 		return nil, err
 	}
 	if err := t.SetDefaultIndex(); err != nil {
+		return nil, err
+	}
+	if err := t.RefreshIndex(); err != nil {
 		return nil, err
 	}
 
