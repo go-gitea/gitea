@@ -149,9 +149,9 @@ func Authenticate(ctx *context.Context) {
 		if setting.Service.RequireSignInView {
 			apiUnauthorizedError(ctx)
 			return
-		} else {
-			u = user_model.NewGhostUser()
 		}
+
+		u = user_model.NewGhostUser()
 	}
 
 	token, err := packages_service.CreateAuthorizationToken(u)
