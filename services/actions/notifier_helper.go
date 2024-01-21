@@ -159,7 +159,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	workflows, schedules, err := actions_module.DetectWorkflows(gitRepo, commit,
 		input.Event,
 		input.Payload,
-		input.Event == webhook_module.HookEventPush && input.Ref == input.Repo.DefaultBranch,
+		input.Event == webhook_module.HookEventPush && git.RefName(input.Ref).BranchName() == input.Repo.DefaultBranch,
 	)
 	if err != nil {
 		return fmt.Errorf("DetectWorkflows: %w", err)
