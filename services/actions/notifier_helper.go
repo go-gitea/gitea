@@ -165,18 +165,22 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("DetectWorkflows: %w", err)
 	}
 
-	if len(workflows) == 0 {
-		log.Trace("repo %s with commit %s couldn't find workflows", input.Repo.RepoPath(), commit.ID)
-	} else {
-		for _, wf := range workflows {
-			if actionsConfig.IsWorkflowDisabled(wf.EntryName) {
-				log.Trace("repo %s has disable workflows %s", input.Repo.RepoPath(), wf.EntryName)
-				continue
-			}
+	log.Trace("repo %s with commit %s event %s find %d workflows and %d schedules",
+		input.Repo.RepoPath(),
+		commit.ID,
+		input.Event,
+		len(workflows),
+		len(schedules),
+	)
 
-			if wf.TriggerEvent.Name != actions_module.GithubEventPullRequestTarget {
-				detectedWorkflows = append(detectedWorkflows, wf)
-			}
+	for _, wf := range workflows {
+		if actionsConfig.IsWorkflowDisabled(wf.EntryName) {
+			log.Trace("repo %s has disable workflows %s", input.Repo.RepoPath(), wf.EntryName)
+			continue
+		}
+
+		if wf.TriggerEvent.Name != actions_module.GithubEventPullRequestTarget {
+			detectedWorkflows = append(detectedWorkflows, wf)
 		}
 	}
 
