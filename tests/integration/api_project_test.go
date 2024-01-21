@@ -157,11 +157,7 @@ func TestAPIUpdateProject(t *testing.T) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteIssue)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/%d", 1))
 
-	link.RawQuery = url.Values{"token": {token}}.Encode()
-
-	req := NewRequestWithJSON(t, "PATCH", link.String(), &api.UpdateProjectPayload{
-		Title: "First project updated",
-	})
+	req := NewRequestWithJSON(t, "PATCH", link.String(), &api.UpdateProjectPayload{Title: "First project updated"}).AddTokenAuth(token)
 
 	var apiProject *api.Project
 
