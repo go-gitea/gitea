@@ -142,7 +142,7 @@ func DetermineSupport(ctx *context.Context) {
 }
 
 // Authenticate creates a token for the current user
-// If the current user is anonymous, the ghost user is used expect RequireSignInView is enabled.
+// If the current user is anonymous, the ghost user is used unless RequireSignInView is enabled.
 func Authenticate(ctx *context.Context) {
 	u := ctx.Doer
 	if u == nil {
