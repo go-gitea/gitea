@@ -177,7 +177,7 @@
 	</div>
 
 	{{if .IsNothingToCompare}}
-		{{if and $.IsSigned $.AllowEmptyPr (not .Repository.IsArchived)}}
+		{{if and $.IsSigned $.AllowEmptyPr (not .Repository.IsArchived) .PageIsComparePull}}
 			<div class="ui segment">{{ctx.Locale.Tr "repo.pulls.nothing_to_compare_and_allow_empty_pr"}}</div>
 			<div class="ui info message show-form-container {{if .Flash}}gt-hidden{{end}}">
 				<button class="ui button primary show-form">{{ctx.Locale.Tr "repo.pulls.new"}}</button>
@@ -185,8 +185,10 @@
 			<div class="pullrequest-form {{if not .Flash}}gt-hidden{{end}}">
 				{{template "repo/issue/new_form" .}}
 			</div>
-		{{else}}
+		{{else if and .HeadIsBranch .BaseIsBranch}}
 			<div class="ui segment">{{ctx.Locale.Tr "repo.pulls.nothing_to_compare"}}</div>
+		{{else}}
+			<div class="ui segment">{{ctx.Locale.Tr "repo.pulls.nothing_to_compare_have_tag"}}</div>
 		{{end}}
 	{{else if and .PageIsComparePull (gt .CommitCount 0)}}
 		{{if .HasPullRequest}}
@@ -229,7 +231,7 @@
 			{{end}}
 			{{$showDiffBox = true}}
 		{{end}}
-	{{else}}
+	{{else if not .IsNothingToCompare}}
 		{{$showDiffBox = true}}
 	{{end}}
 	</div>
