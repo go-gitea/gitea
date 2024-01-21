@@ -649,3 +649,10 @@
   repo_id: 49
   type: 2
   created_unix: 946684810
+
+-
+  id: 98
+  repo_id: 59
+  type: 1
+  config: "{}"
+  created_unix: 946684810
