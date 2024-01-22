@@ -845,7 +845,7 @@ func CompareDiff(ctx *context.Context) {
 		}
 	}
 
-	if ctx.Repo.CanRead(unit.TypeProjects) {
+	if ctx.Repo.CanWrite(unit.TypeProjects) {
 		projectsUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeProjects)
 		if err != nil {
 			ctx.ServerError("GetUnit", err)
