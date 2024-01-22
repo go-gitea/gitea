@@ -28,13 +28,6 @@ import (
 	dsig "github.com/russellhaering/goxmldsig"
 )
 
-//  _________   _____      _____  .____
-// /   _____/  /  _  \    /     \ |    |
-// \_____  \  /  /_\  \  /  \ /  \|    |
-// /        \/    |    \/    Y    \    |___
-///_______  /\____|__  /\____|__  /_______ \
-//        \/         \/         \/        \/
-
 // Source holds configuration for the SAML login source.
 type Source struct {
 	// IdentityProviderMetadata description: The SAML Identity Provider metadata XML contents (for static configuration of the SAML Service Provider). The value of this field should be an XML document whose root element is `<EntityDescriptor>` or `<EntityDescriptors>`. To escape the value into a JSON string, you may want to use a tool like https://json-escape-text.now.sh.

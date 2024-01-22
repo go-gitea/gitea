@@ -6,7 +6,7 @@ package saml
 type NameIDFormat int
 
 const (
-	SAML11Email NameIDFormat = iota
+	SAML11Email NameIDFormat = iota + 1
 	SAML11Persistent
 	SAML11Unspecified
 	SAML20Email

@@ -57,15 +57,10 @@ func (source *Source) Callback(request *http.Request, response http.ResponseWrit
 		return user, fmt.Errorf("SAML response contains invalid time warning")
 	}
 
-	samlMap := make(map[string]string) // Global.
+	samlMap := make(map[string]string)
 	for key, value := range assertions.Values {
-		var (
-			keyParsed   string
-			valueParsed string
-		)
-
-		keyParsed = strings.ToLower(key[strings.LastIndex(key, "/")+1:]) // Uses the trailing slug as the key name.
-		valueParsed = value.Values[0].Value
+		keyParsed := strings.ToLower(key[strings.LastIndex(key, "/")+1:]) // Uses the trailing slug as the key name.
+		valueParsed := value.Values[0].Value
 		samlMap[keyParsed] = valueParsed
 
 	}
