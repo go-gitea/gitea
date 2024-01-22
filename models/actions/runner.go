@@ -129,35 +129,27 @@ func (r *ActionRunner) Editable(ctx context.Context, doer, owner *user_model.Use
 		return false, nil
 	}
 
-	// global runner in admin settings
+	// admin can edit all runners
 	if doer.IsAdmin {
 		return true, nil
 	}
 
-	if repo != nil {
-		// repo runner in repo runners list
-		if r.BelongsToOwnerType() == types.OwnerTypeRepository && r.RepoID == repo.ID {
-			return true, nil
-		}
-
-		if err := repo.LoadOwner(ctx); err != nil {
-			return false, err
-		}
-		// org runner in repo runners list
-		if r.BelongsToOwnerType() == types.OwnerTypeOrganization && repo.Owner.IsOrganization() {
-			isOrgOwner, err := (*organization.Organization)(repo.Owner).IsOwnedBy(doer.ID)
+	switch r.BelongsToOwnerType() {
+	case types.OwnerTypeIndividual:
+		return owner != nil && r.Owner.ID == doer.ID, nil
+	case types.OwnerTypeRepository:
+		return repo != nil && r.RepoID == repo.ID, nil
+	case types.OwnerTypeOrganization:
+		if (repo != nil && r.OwnerID == repo.OwnerID) || (owner != nil && r.OwnerID == owner.ID) {
+			isOrgAdmin, err := organization.IsOrganizationAdmin(ctx, r.OwnerID, doer.ID)
 			if err != nil {
 				return false, err
 			}
-			return repo.OwnerID == r.OwnerID && isOrgOwner, nil
+			return isOrgAdmin, nil
 		}
 	}
 
-	if owner == nil {
-		return false, nil
-	}
-	// org runner in org runners list
-	return r.BelongsToOwnerType() == types.OwnerTypeOrganization && r.OwnerID == owner.ID && owner.IsOrganization(), nil
+	return false, nil
 }
 
 // LoadAttributes loads the attributes of the runner
