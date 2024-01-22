@@ -112,7 +112,9 @@ func (repo *Repository) GetTagWithID(idStr, name string) (*Tag, error) {
 
 // GetTagInfos returns all tag infos of the repository.
 func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
-	forEachRefFmt := foreachref.NewFormat("objecttype", "refname:short", "object", "objectname", "creator", "contents", "contents:signature")
+	// Generally, refname:short should be equal to refname:lstrip=2 except core.warnAmbiguousRefs is used to select the strict abbreviation mode.
+	// https://git-scm.com/docs/git-for-each-ref#Documentation/git-for-each-ref.txt-refname
+	forEachRefFmt := foreachref.NewFormat("objecttype", "refname:lstrip=2", "object", "objectname", "creator", "contents", "contents:signature")
 
 	stdoutReader, stdoutWriter := io.Pipe()
 	defer stdoutReader.Close()
@@ -162,7 +164,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 func parseTagRef(objectFormat ObjectFormat, ref map[string]string) (tag *Tag, err error) {
 	tag = &Tag{
 		Type: ref["objecttype"],
-		Name: ref["refname:short"],
+		Name: ref["refname:lstrip=2"],
 	}
 
 	tag.ID, err = NewIDFromString(ref["objectname"])

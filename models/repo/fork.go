@@ -56,13 +56,16 @@ func GetUserFork(ctx context.Context, repoID, userID int64) (*Repository, error)
 
 // GetForks returns all the forks of the repository
 func GetForks(ctx context.Context, repo *Repository, listOptions db.ListOptions) ([]*Repository, error) {
+	sess := db.GetEngine(ctx)
+
+	var forks []*Repository
 	if listOptions.Page == 0 {
-		forks := make([]*Repository, 0, repo.NumForks)
-		return forks, db.GetEngine(ctx).Find(&forks, &Repository{ForkID: repo.ID})
+		forks = make([]*Repository, 0, repo.NumForks)
+	} else {
+		forks = make([]*Repository, 0, listOptions.PageSize)
+		sess = db.SetSessionPagination(sess, &listOptions)
 	}
 
-	sess := db.GetPaginatedSession(&listOptions)
-	forks := make([]*Repository, 0, listOptions.PageSize)
 	return forks, sess.Find(&forks, &Repository{ForkID: repo.ID})
 }
 
