@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"code.gitea.io/gitea/modules/util"
 	"fmt"
 	"net/http"
 	"strings"
@@ -215,15 +216,16 @@ func TestAPIEditUser(t *testing.T) {
 	assert.Equal(t, "user2", user2.LoginName)
 	assert.False(t, user2.IsRestricted)
 	bTrue := true
+	updatedLoginNameOfEditedUser := "user2_updated_loginName"
 	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{
 		// to change
 		Restricted: &bTrue,
-		LoginName:  "user2_updated_loginName",
+		LoginName:  util.ToPointer(updatedLoginNameOfEditedUser),
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 	user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: strings.ToLower(editedUsername)})
 	assert.True(t, user2.IsRestricted)
-	assert.Equal(t, "user2_updated_loginName", user2.LoginName)
+	assert.Equal(t, updatedLoginNameOfEditedUser, user2.LoginName)
 }
 
 func TestAPICreateRepoForUser(t *testing.T) {
