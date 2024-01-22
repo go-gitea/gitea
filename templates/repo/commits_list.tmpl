@@ -3,7 +3,7 @@
 			<thead>
 				<tr>
 					<th class="three wide">{{ctx.Locale.Tr "repo.commits.author"}}</th>
-					<th class="two wide sha">SHA1</th>
+					<th class="two wide sha">{{StringUtils.ToUpper $.Repository.ObjectFormatName}}</th>
 					<th class="eight wide message">{{ctx.Locale.Tr "repo.commits.message"}}</th>
 					<th class="two wide right aligned">{{ctx.Locale.Tr "repo.commits.date"}}</th>
 					<th class="one wide"></th>

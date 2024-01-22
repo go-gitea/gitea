@@ -45,19 +45,19 @@ var (
 
 	// valid chars in encoded path and parameter: [-+~_%.a-zA-Z0-9/]
 
-	// sha1CurrentPattern matches string that represents a commit SHA, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
-	// Although SHA1 hashes are 40 chars long, the regex matches the hash from 7 to 40 chars in length
+	// hashCurrentPattern matches string that represents a commit SHA, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
+	// Although SHA1 hashes are 40 chars long, SHA256 are 64, the regex matches the hash from 7 to 64 chars in length
 	// so that abbreviated hash links can be used as well. This matches git and GitHub usability.
-	sha1CurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,40})(?:\s|$|\)|\]|[.,](\s|$))`)
+	hashCurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,64})(?:\s|$|\)|\]|[.,](\s|$))`)
 
 	// shortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
 	shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
 
 	// anySHA1Pattern splits url containing SHA into parts
-	anySHA1Pattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40})(/[-+~_%.a-zA-Z0-9/]+)?(#[-+~_%.a-zA-Z0-9]+)?`)
+	anyHashPattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40,64})(/[-+~_%.a-zA-Z0-9/]+)?(#[-+~_%.a-zA-Z0-9]+)?`)
 
 	// comparePattern matches "http://domain/org/repo/compare/COMMIT1...COMMIT2#hash"
-	comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{7,40})(\.\.\.?)([0-9a-f]{7,40})?(#[-+~_%.a-zA-Z0-9]+)?`)
+	comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{7,64})(\.\.\.?)([0-9a-f]{7,64})?(#[-+~_%.a-zA-Z0-9]+)?`)
 
 	validLinksPattern = regexp.MustCompile(`^[a-z][\w-]+://`)
 
@@ -171,13 +171,13 @@ type processor func(ctx *RenderContext, node *html.Node)
 var defaultProcessors = []processor{
 	fullIssuePatternProcessor,
 	comparePatternProcessor,
-	fullSha1PatternProcessor,
+	fullHashPatternProcessor,
 	shortLinkProcessor,
 	linkProcessor,
 	mentionProcessor,
 	issueIndexPatternProcessor,
 	commitCrossReferencePatternProcessor,
-	sha1CurrentPatternProcessor,
+	hashCurrentPatternProcessor,
 	emailAddressProcessor,
 	emojiProcessor,
 	emojiShortCodeProcessor,
@@ -199,12 +199,12 @@ func PostProcess(
 var commitMessageProcessors = []processor{
 	fullIssuePatternProcessor,
 	comparePatternProcessor,
-	fullSha1PatternProcessor,
+	fullHashPatternProcessor,
 	linkProcessor,
 	mentionProcessor,
 	issueIndexPatternProcessor,
 	commitCrossReferencePatternProcessor,
-	sha1CurrentPatternProcessor,
+	hashCurrentPatternProcessor,
 	emailAddressProcessor,
 	emojiProcessor,
 	emojiShortCodeProcessor,
@@ -231,12 +231,12 @@ func RenderCommitMessage(
 var commitMessageSubjectProcessors = []processor{
 	fullIssuePatternProcessor,
 	comparePatternProcessor,
-	fullSha1PatternProcessor,
+	fullHashPatternProcessor,
 	linkProcessor,
 	mentionProcessor,
 	issueIndexPatternProcessor,
 	commitCrossReferencePatternProcessor,
-	sha1CurrentPatternProcessor,
+	hashCurrentPatternProcessor,
 	emojiShortCodeProcessor,
 	emojiProcessor,
 }
@@ -273,7 +273,7 @@ func RenderIssueTitle(
 	return renderProcessString(ctx, []processor{
 		issueIndexPatternProcessor,
 		commitCrossReferencePatternProcessor,
-		sha1CurrentPatternProcessor,
+		hashCurrentPatternProcessor,
 		emojiShortCodeProcessor,
 		emojiProcessor,
 	}, title)
@@ -946,15 +946,15 @@ func commitCrossReferencePatternProcessor(ctx *RenderContext, node *html.Node) {
 	}
 }
 
-// fullSha1PatternProcessor renders SHA containing URLs
-func fullSha1PatternProcessor(ctx *RenderContext, node *html.Node) {
+// fullHashPatternProcessor renders SHA containing URLs
+func fullHashPatternProcessor(ctx *RenderContext, node *html.Node) {
 	if ctx.Metas == nil {
 		return
 	}
 
 	next := node.NextSibling
 	for node != nil && node != next {
-		m := anySHA1Pattern.FindStringSubmatchIndex(node.Data)
+		m := anyHashPattern.FindStringSubmatchIndex(node.Data)
 		if m == nil {
 			return
 		}
@@ -1111,9 +1111,9 @@ func emojiProcessor(ctx *RenderContext, node *html.Node) {
 	}
 }
 
-// sha1CurrentPatternProcessor renders SHA1 strings to corresponding links that
+// hashCurrentPatternProcessor renders SHA1 strings to corresponding links that
 // are assumed to be in the same repository.
-func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
+func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 	if ctx.Metas == nil || ctx.Metas["user"] == "" || ctx.Metas["repo"] == "" || ctx.Metas["repoPath"] == "" {
 		return
 	}
@@ -1124,7 +1124,7 @@ func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 		ctx.ShaExistCache = make(map[string]bool)
 	}
 	for node != nil && node != next && start < len(node.Data) {
-		m := sha1CurrentPattern.FindStringSubmatchIndex(node.Data[start:])
+		m := hashCurrentPattern.FindStringSubmatchIndex(node.Data[start:])
 		if m == nil {
 			return
 		}

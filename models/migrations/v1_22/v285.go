@@ -4,13 +4,15 @@
 package v1_22 //nolint
 
 import (
+	"time"
+
 	"xorm.io/xorm"
 )
 
-func AddTimeEstimateColumnToIssueTable(x *xorm.Engine) error {
-	type Issue struct {
-		TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
+func AddPreviousDurationToActionRun(x *xorm.Engine) error {
+	type ActionRun struct {
+		PreviousDuration time.Duration
 	}
 
-	return x.Sync(new(Issue))
+	return x.Sync(&ActionRun{})
 }

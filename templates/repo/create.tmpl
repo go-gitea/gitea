@@ -186,6 +186,19 @@
 							<span class="help">{{ctx.Locale.Tr "repo.default_branch_helper"}}</span>
 						</div>
 						<div class="inline field">
+							<label>{{ctx.Locale.Tr "repo.object_format"}}</label>
+							<div class="ui selection owner dropdown">
+								<input type="hidden" id="object_format_name" name="object_format_name" value="{{.DefaultObjectFormat.Name}}" required>
+								<div class="default text">{{.DefaultObjectFormat.Name}}</div>
+								<div class="menu">
+									{{range .SupportedObjectFormats}}
+										<div class="item" data-value="{{.Name}}">{{.Name}}</div>
+									{{end}}
+								</div>
+							</div>
+							<span class="help">{{ctx.Locale.Tr "repo.object_format_helper"}}</span>
+						</div>
+						<div class="inline field">
 							<label>{{ctx.Locale.Tr "repo.template"}}</label>
 							<div class="ui checkbox">
 								<input name="template" type="checkbox">
