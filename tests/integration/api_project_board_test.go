@@ -19,11 +19,7 @@ import (
 
 func TestAPICreateProjectBoard(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	token := getUserToken(
-		t,
-		"user2",
-		auth_model.AccessTokenScopeWriteIssue,
-	)
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue)
 
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/%d/boards?token=%s", 1, token))
 
@@ -42,11 +38,7 @@ func TestAPICreateProjectBoard(t *testing.T) {
 func TestAPIListProjectBoards(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	token := getUserToken(
-		t,
-		"user2",
-		auth_model.AccessTokenScopeWriteIssue,
-	)
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue)
 
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/%d/boards?token=%s", 1, token))
 
@@ -62,11 +54,7 @@ func TestAPIListProjectBoards(t *testing.T) {
 func TestAPIGetProjectBoard(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	token := getUserToken(
-		t,
-		"user2",
-		auth_model.AccessTokenScopeReadIssue,
-	)
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadIssue)
 
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/boards/%d?token=%s", 1, token))
 
@@ -81,11 +69,7 @@ func TestAPIGetProjectBoard(t *testing.T) {
 
 func TestAPIUpdateProjectBoard(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	token := getUserToken(
-		t,
-		"user2",
-		auth_model.AccessTokenScopeWriteIssue,
-	)
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue)
 
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/boards/%d?token=%s", 1, token))
 
@@ -106,11 +90,7 @@ func TestAPIUpdateProjectBoard(t *testing.T) {
 func TestAPIDeleteProjectBoard(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	token := getUserToken(
-		t,
-		"user2",
-		auth_model.AccessTokenScopeWriteIssue,
-	)
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue)
 
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/boards/%d?token=%s", 1, token))
 
