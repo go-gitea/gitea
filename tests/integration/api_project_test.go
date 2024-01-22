@@ -19,7 +19,7 @@ import (
 
 func TestAPICreateUserProject(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	const title, description, board_type = "project_name", "project_description", uint8(project_model.BoardTypeBasicKanban)
+	const title, description, boardType = "project_name", "project_description", uint8(project_model.BoardTypeBasicKanban)
 
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteUser)
 
@@ -33,13 +33,13 @@ func TestAPICreateUserProject(t *testing.T) {
 	DecodeJSON(t, resp, &apiProject)
 	assert.Equal(t, title, apiProject.Title)
 	assert.Equal(t, description, apiProject.Description)
-	assert.Equal(t, board_type, apiProject.BoardType)
+	assert.Equal(t, boardType, apiProject.BoardType)
 	assert.Equal(t, "user2", apiProject.Creator.UserName)
 }
 
 func TestAPICreateOrgProject(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	const title, description, board_type = "project_name", "project_description", uint8(project_model.BoardTypeBasicKanban)
+	const title, description, boardType = "project_name", "project_description", uint8(project_model.BoardTypeBasicKanban)
 
 	orgName := "org17"
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteOrganization)
@@ -55,14 +55,14 @@ func TestAPICreateOrgProject(t *testing.T) {
 	DecodeJSON(t, resp, &apiProject)
 	assert.Equal(t, title, apiProject.Title)
 	assert.Equal(t, description, apiProject.Description)
-	assert.Equal(t, board_type, apiProject.BoardType)
+	assert.Equal(t, boardType, apiProject.BoardType)
 	assert.Equal(t, "org17", apiProject.Owner.UserName)
 	assert.Equal(t, "user2", apiProject.Creator.UserName)
 }
 
 func TestAPICreateRepoProject(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	const title, description, board_type = "project_name", "project_description", uint8(project_model.BoardTypeBasicKanban)
+	const title, description, boardType = "project_name", "project_description", uint8(project_model.BoardTypeBasicKanban)
 
 	ownerName := "user2"
 	repoName := "repo1"
@@ -79,7 +79,7 @@ func TestAPICreateRepoProject(t *testing.T) {
 	DecodeJSON(t, resp, &apiProject)
 	assert.Equal(t, title, apiProject.Title)
 	assert.Equal(t, description, apiProject.Description)
-	assert.Equal(t, board_type, apiProject.BoardType)
+	assert.Equal(t, boardType, apiProject.BoardType)
 	assert.Equal(t, "repo1", apiProject.Repo.Name)
 }
 
