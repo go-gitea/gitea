@@ -24,14 +24,14 @@ func innerCreateProject(ctx *context.APIContext, projectType project_model.Type)
 		Description: form.Description,
 		CreatorID:   ctx.Doer.ID,
 		BoardType:   project_model.BoardType(form.BoardType),
-		Type:        project_type,
+		Type:        projectType,
 	}
 
 	if ctx.ContextUser != nil {
 		project.OwnerID = ctx.ContextUser.ID
 	}
 
-	if project_type == project_model.TypeRepository {
+	if projectType == project_model.TypeRepository {
 		project.RepoID = ctx.Repo.Repository.ID
 	}
 
@@ -239,7 +239,6 @@ func DeleteProject(ctx *context.APIContext) {
 	}
 
 	ctx.Status(http.StatusNoContent)
-
 }
 
 func ListUserProjects(ctx *context.APIContext) {
