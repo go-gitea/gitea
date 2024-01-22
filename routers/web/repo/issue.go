@@ -978,7 +978,7 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["BodyQuery"] = body
 
 	isProjectsEnabled := false
-	if ctx.Repo.CanRead(unit.TypeProjects) {
+	if ctx.Repo.CanWrite(unit.TypeProjects) {
 		projectsUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeProjects)
 		if err != nil {
 			ctx.ServerError("GetUnit", err)
