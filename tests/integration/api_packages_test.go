@@ -430,9 +430,9 @@ func TestPackageRepoConnection(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 
-		url := fmt.Sprintf("/api/packages/%s/generic/%s/4/file.bin", user.Name, packageName)
+		url := fmt.Sprintf("/api/packages/%s/generic/%s/4/file.bin", repo.OwnerName, packageName)
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
 		req.Header["Package-Connection-Repository"] = []string{repo.Name}
 		AddBasicAuthHeader(req, user.Name)

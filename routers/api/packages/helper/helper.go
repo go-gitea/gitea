@@ -77,7 +77,7 @@ func TryConnectRepository(ctx *context.Context, packageID int64) error {
 		return util.NewInvalidArgumentErrorf("too many package repository connection headers")
 	}
 
-	repo, err := repo_model.GetRepositoryByName(ctx, 0, headers[0])
+	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Package.Owner.ID, headers[0])
 	if err != nil {
 		return err
 	}
@@ -91,10 +91,5 @@ func TryConnectRepository(ctx *context.Context, packageID int64) error {
 		return util.NewPermissionDeniedErrorf("no permission to link package to repository: %s, or packages are disabled", repo.Name)
 	}
 
-	err = packages_model.SetRepositoryLink(ctx, packageID, repo.ID)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return packages_model.SetRepositoryLink(ctx, packageID, repo.ID)
 }
