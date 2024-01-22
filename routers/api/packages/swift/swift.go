@@ -328,19 +328,6 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	repo, err := helper.GetConnectionRepository(ctx)
-	if err != nil {
-		switch {
-		case errors.Is(err, util.ErrPermissionDenied):
-			apiError(ctx, http.StatusForbidden, err)
-		case errors.Is(err, util.ErrNotExist):
-			apiError(ctx, http.StatusNotFound, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
-		return
-	}
-
 	pv, _, err := packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
@@ -357,7 +344,6 @@ func UploadPackageFile(ctx *context.Context) {
 				swift_module.PropertyScope: packageScope,
 				swift_module.PropertyName:  packageName,
 			},
-			Repository: repo,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
@@ -385,6 +371,20 @@ func UploadPackageFile(ctx *context.Context) {
 		if err != nil {
 			log.Error("InsertProperty failed: %v", err)
 		}
+	}
+
+	if err = helper.TryConnectRepository(ctx, pv.PackageID); err != nil {
+		switch {
+		case errors.Is(err, util.ErrPermissionDenied):
+			apiError(ctx, http.StatusForbidden, err)
+		case errors.Is(err, util.ErrNotExist):
+			apiError(ctx, http.StatusNotFound, err)
+		case errors.Is(err, util.ErrInvalidArgument):
+			apiError(ctx, http.StatusBadRequest, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
 	}
 
 	setResponseHeaders(ctx.Resp, &headers{})

@@ -47,7 +47,6 @@ type PackageCreationInfo struct {
 	Metadata          any
 	PackageProperties map[string]string
 	VersionProperties map[string]string
-	Repository        *repo_model.Repository
 }
 
 // PackageFileInfo describes a package file
@@ -86,12 +85,6 @@ func createPackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfc
 	pv, created, err := createPackageAndVersion(dbCtx, pvci, allowDuplicate)
 	if err != nil {
 		return nil, nil, err
-	}
-
-	if pvci.Repository != nil {
-		if err := packages_model.SetRepositoryLink(ctx, pv.PackageID, pvci.Repository.ID); err != nil {
-			return nil, nil, err
-		}
 	}
 
 	pf, pb, blobCreated, err := addFileToPackageVersion(dbCtx, pv, &pvci.PackageInfo, pfci)

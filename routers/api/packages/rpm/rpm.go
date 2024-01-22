@@ -122,20 +122,7 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	repo, err := helper.GetConnectionRepository(ctx)
-	if err != nil {
-		switch {
-		case errors.Is(err, util.ErrPermissionDenied):
-			apiError(ctx, http.StatusForbidden, err)
-		case errors.Is(err, util.ErrNotExist):
-			apiError(ctx, http.StatusNotFound, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
-		return
-	}
-
-	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+	pv, _, err := packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
@@ -144,9 +131,8 @@ func UploadPackageFile(ctx *context.Context) {
 				Name:        pck.Name,
 				Version:     pck.Version,
 			},
-			Creator:    ctx.Doer,
-			Metadata:   pck.VersionMetadata,
-			Repository: repo,
+			Creator:  ctx.Doer,
+			Metadata: pck.VersionMetadata,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
@@ -174,6 +160,20 @@ func UploadPackageFile(ctx *context.Context) {
 
 	if err := rpm_service.BuildRepositoryFiles(ctx, ctx.Package.Owner.ID); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	if err = helper.TryConnectRepository(ctx, pv.PackageID); err != nil {
+		switch {
+		case errors.Is(err, util.ErrPermissionDenied):
+			apiError(ctx, http.StatusForbidden, err)
+		case errors.Is(err, util.ErrNotExist):
+			apiError(ctx, http.StatusNotFound, err)
+		case errors.Is(err, util.ErrInvalidArgument):
+			apiError(ctx, http.StatusBadRequest, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 

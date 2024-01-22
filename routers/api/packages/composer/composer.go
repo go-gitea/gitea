@@ -219,13 +219,7 @@ func UploadPackage(ctx *context.Context) {
 		cp.Version = v.String()
 	}
 
-	repo, err := helper.GetConnectionRepository(ctx)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	_, _, err = packages_service.CreatePackageAndAddFile(
+	pv, _, err := packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
@@ -240,7 +234,6 @@ func UploadPackage(ctx *context.Context) {
 			VersionProperties: map[string]string{
 				composer_module.TypeProperty: cp.Type,
 			},
-			Repository: repo,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
@@ -257,6 +250,20 @@ func UploadPackage(ctx *context.Context) {
 			apiError(ctx, http.StatusConflict, err)
 		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
 			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	if err = helper.TryConnectRepository(ctx, pv.PackageID); err != nil {
+		switch {
+		case errors.Is(err, util.ErrPermissionDenied):
+			apiError(ctx, http.StatusForbidden, err)
+		case errors.Is(err, util.ErrNotExist):
+			apiError(ctx, http.StatusNotFound, err)
+		case errors.Is(err, util.ErrInvalidArgument):
+			apiError(ctx, http.StatusBadRequest, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
 		}

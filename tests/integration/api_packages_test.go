@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -377,6 +378,66 @@ func TestPackageAccess(t *testing.T) {
 			req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s?token=%s", target.Owner.Name, tokenReadPackage))
 			MakeRequest(t, req, target.ExpectedStatus)
 		}
+	})
+}
+
+func TestPackageRepoConnection(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	packageName := "pkg-repo-conn-test"
+
+	t.Run("ValidConnection", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		url := fmt.Sprintf("/api/packages/%s/generic/%s/1/file.bin", user.Name, packageName)
+		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
+		req.Header["Package-Connection-Repository"] = []string{repo.Name}
+		AddBasicAuthHeader(req, user.Name)
+
+		MakeRequest(t, req, http.StatusCreated)
+
+		pkg, err := packages_model.GetPackageByName(db.DefaultContext, user.ID, packages_model.TypeGeneric, packageName)
+		assert.NoError(t, err)
+		assert.Equal(t, repo.ID, pkg.RepoID)
+	})
+
+	t.Run("TooManyRepositories", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		url := fmt.Sprintf("/api/packages/%s/generic/%s/2/file.bin", user.Name, packageName)
+		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
+		req.Header["Package-Connection-Repository"] = []string{"1", "2"}
+		AddBasicAuthHeader(req, user.Name)
+
+		MakeRequest(t, req, http.StatusBadRequest)
+	})
+
+	t.Run("RepositoryNotExist", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		url := fmt.Sprintf("/api/packages/%s/generic/%s/3/file.bin", user.Name, packageName)
+		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
+		req.Header["Package-Connection-Repository"] = []string{"unknown-repository"}
+		AddBasicAuthHeader(req, user.Name)
+
+		MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("NoAccessToRepository", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+
+		url := fmt.Sprintf("/api/packages/%s/generic/%s/4/file.bin", user.Name, packageName)
+		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
+		req.Header["Package-Connection-Repository"] = []string{repo.Name}
+		AddBasicAuthHeader(req, user.Name)
+
+		MakeRequest(t, req, http.StatusForbidden)
 	})
 }
 

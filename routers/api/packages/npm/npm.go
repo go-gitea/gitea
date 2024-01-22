@@ -166,19 +166,6 @@ func UploadPackage(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	repo, err := helper.GetConnectionRepository(ctx)
-	if err != nil {
-		switch {
-		case errors.Is(err, util.ErrPermissionDenied):
-			apiError(ctx, http.StatusForbidden, err)
-		case errors.Is(err, util.ErrNotExist):
-			apiError(ctx, http.StatusNotFound, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
-		return
-	}
-
 	pv, _, err := packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
@@ -191,7 +178,6 @@ func UploadPackage(ctx *context.Context) {
 			SemverCompatible: true,
 			Creator:          ctx.Doer,
 			Metadata:         npmPackage.Metadata,
-			Repository:       repo,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
@@ -223,6 +209,20 @@ func UploadPackage(ctx *context.Context) {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}
+	}
+
+	if err = helper.TryConnectRepository(ctx, pv.PackageID); err != nil {
+		switch {
+		case errors.Is(err, util.ErrPermissionDenied):
+			apiError(ctx, http.StatusForbidden, err)
+		case errors.Is(err, util.ErrNotExist):
+			apiError(ctx, http.StatusNotFound, err)
+		case errors.Is(err, util.ErrInvalidArgument):
+			apiError(ctx, http.StatusBadRequest, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
 	}
 
 	ctx.Status(http.StatusCreated)

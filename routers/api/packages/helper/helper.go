@@ -66,30 +66,35 @@ func ServePackageFile(ctx *context.Context, s io.ReadSeekCloser, u *url.URL, pf 
 	ctx.ServeContent(s, opts)
 }
 
-func GetConnectionRepository(ctx *context.Context) (*repo_model.Repository, error) {
+func TryConnectRepository(ctx *context.Context, packageID int64) error {
 	headers := ctx.Req.Header["Package-Connection-Repository"]
 
 	if len(headers) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	if len(headers) != 1 {
-		return nil, util.NewInvalidArgumentErrorf("too many package repository connection headers")
+		return util.NewInvalidArgumentErrorf("too many package repository connection headers")
 	}
 
-	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ctx.Package.Owner.FullName, headers[0])
+	repo, err := repo_model.GetRepositoryByName(ctx, 0, headers[0])
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	perms, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if !perms.CanWrite(unit.TypePackages) {
-		return nil, util.NewPermissionDeniedErrorf("no permission to connect this package to repository: %s", headers[0])
+		return util.NewPermissionDeniedErrorf("no permission to link package to repository: %s, or packages are disabled", repo.Name)
 	}
 
-	return repo, nil
+	err = packages_model.SetRepositoryLink(ctx, packageID, repo.ID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -5,6 +5,7 @@ package conan
 
 import (
 	std_ctx "context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -21,6 +22,7 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	conan_module "code.gitea.io/gitea/modules/packages/conan"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -329,12 +331,6 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 	isConanfileFile := filename == conanfileFile
 	isConaninfoFile := filename == conaninfoFile
 
-	repo, err := helper.GetConnectionRepository(ctx)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
 	pci := &packages_service.PackageCreationInfo{
 		PackageInfo: packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -342,8 +338,7 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 			Name:        rref.Name,
 			Version:     rref.Version,
 		},
-		Creator:    ctx.Doer,
-		Repository: repo,
+		Creator: ctx.Doer,
 	}
 	pfci := &packages_service.PackageFileCreationInfo{
 		PackageFileInfo: packages_service.PackageFileInfo{
@@ -415,7 +410,7 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 		}
 	}
 
-	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+	pv, _, err := packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		pci,
 		pfci,
@@ -426,6 +421,20 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 			apiError(ctx, http.StatusConflict, err)
 		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
 			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	if err = helper.TryConnectRepository(ctx, pv.PackageID); err != nil {
+		switch {
+		case errors.Is(err, util.ErrPermissionDenied):
+			apiError(ctx, http.StatusForbidden, err)
+		case errors.Is(err, util.ErrNotExist):
+			apiError(ctx, http.StatusNotFound, err)
+		case errors.Is(err, util.ErrInvalidArgument):
+			apiError(ctx, http.StatusBadRequest, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
