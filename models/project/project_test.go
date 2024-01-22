@@ -92,7 +92,7 @@ func TestProjectsSort(t *testing.T) {
 	}{
 		{
 			sortType: "default",
-			wants:    []int64{1, 3, 2, 4, 5, 6},
+			wants:    []int64{1, 3, 2, 6, 5, 4},
 		},
 		{
 			sortType: "oldest",
@@ -100,7 +100,7 @@ func TestProjectsSort(t *testing.T) {
 		},
 		{
 			sortType: "recentupdate",
-			wants:    []int64{1, 3, 2, 4, 5, 6},
+			wants:    []int64{1, 3, 2, 6, 5, 4},
 		},
 		{
 			sortType: "leastupdate",
