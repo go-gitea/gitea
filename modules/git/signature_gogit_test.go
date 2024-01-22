@@ -16,17 +16,17 @@ func TestNewNewSignatureFromCommitline(t *testing.T) {
 	tz := time.FixedZone("", 2*60*60)
 
 	kases := map[string]Signature{
-		"": Signature{},
-		"author gitea test <test@gitea.com>": Signature{
+		"": {},
+		"author gitea test <test@gitea.com>": {
 			Name:  "author gitea test",
 			Email: "test@gitea.com",
 		},
-		"author gitea test <test@gitea.com> 1705912028 +0200": Signature{
+		"author gitea test <test@gitea.com> 1705912028 +0200": {
 			Name:  "author gitea test",
 			Email: "test@gitea.com",
 			When:  time.Unix(1705912028, 0).In(tz),
 		},
-		"author gitea test <test@gitea.com> Mon Jan 22 10:27:08 2024 +0200": Signature{
+		"author gitea test <test@gitea.com> Mon Jan 22 10:27:08 2024 +0200": {
 			Name:  "author gitea test",
 			Email: "test@gitea.com",
 			When:  time.Unix(1705912028, 0).In(tz),
