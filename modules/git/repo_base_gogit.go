@@ -62,7 +62,10 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 			return nil, err
 		}
 	}
-	storage := filesystem.NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), filesystem.Options{KeepDescriptors: true, LargeObjectThreshold: setting.Git.LargeObjectThreshold})
+	// the "clone --shared" repo has alternative paths like "../../../../../../../../gitea-repositories/user2/repo-pull-request-target.git/objects", such relative path doesn't work well with go-git's AlternatesFS at the moment.
+	// so use "/" for AlternatesFS, I guess it is the same behavior as current nogogit (no limitation or check for the "objects/info/alternates" paths), trust the "clone" command executed by the server.
+	altFs := osfs.New("/") // TODO: does it really work for Windows? Need some time to check.
+	storage := filesystem.NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), filesystem.Options{KeepDescriptors: true, LargeObjectThreshold: setting.Git.LargeObjectThreshold, AlternatesFS: altFs})
 	gogitRepo, err := gogit.Open(storage, fs)
 	if err != nil {
 		return nil, err
