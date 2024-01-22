@@ -10,7 +10,7 @@
     "@citation-js/plugin-software-formats": "0.6.1",
     "@claviska/jquery-minicolors": "2.3.6",
     "@github/markdown-toolbar-element": "2.2.1",
-    "@github/relative-time-element": "4.3.0",
+    "@github/relative-time-element": "4.3.1",
     "@github/text-expander-element": "2.6.1",
     "@mcaptcha/vanilla-glue": "0.1.0-alpha-3",
     "@primer/octicons": "19.8.0",
