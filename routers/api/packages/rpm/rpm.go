@@ -154,7 +154,7 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-  group := ctx.Params("group")
+	group := ctx.Params("group")
 	pv, _, err := packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{

@@ -404,9 +404,9 @@ func TestPackageRepoConnection(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		url := fmt.Sprintf("/api/packages/%s/generic/%s/1/file.bin", user.Name, packageName)
-		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
-		req.Header["Package-Connection-Repository"] = []string{repo.Name}
-		AddBasicAuthHeader(req, user.Name)
+		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1})).
+			SetHeader("Package-Connection-Repository", repo.Name).
+			AddBasicAuth(user.Name)
 
 		MakeRequest(t, req, http.StatusCreated)
 
@@ -419,9 +419,9 @@ func TestPackageRepoConnection(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		url := fmt.Sprintf("/api/packages/%s/generic/%s/2/file.bin", user.Name, packageName)
-		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
+		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1})).
+			AddBasicAuth(user.Name)
 		req.Header["Package-Connection-Repository"] = []string{"1", "2"}
-		AddBasicAuthHeader(req, user.Name)
 
 		MakeRequest(t, req, http.StatusBadRequest)
 	})
@@ -430,9 +430,9 @@ func TestPackageRepoConnection(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		url := fmt.Sprintf("/api/packages/%s/generic/%s/3/file.bin", user.Name, packageName)
-		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
-		req.Header["Package-Connection-Repository"] = []string{"unknown-repository"}
-		AddBasicAuthHeader(req, user.Name)
+		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1})).
+			SetHeader("Package-Connection-Repository", "unknown-repository").
+			AddBasicAuth(user.Name)
 
 		MakeRequest(t, req, http.StatusNotFound)
 	})
@@ -444,9 +444,9 @@ func TestPackageRepoConnection(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 
 		url := fmt.Sprintf("/api/packages/%s/generic/%s/4/file.bin", repo.OwnerName, packageName)
-		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
-		req.Header["Package-Connection-Repository"] = []string{repo.Name}
-		AddBasicAuthHeader(req, user.Name)
+		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1})).
+			SetHeader("Package-Connection-Repository", repo.Name).
+			AddBasicAuth(user.Name)
 
 		MakeRequest(t, req, http.StatusForbidden)
 	})
