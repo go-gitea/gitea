@@ -21,11 +21,11 @@ func TestAPICreateProjectBoard(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue)
 
-	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/%d/boards?token=%s", 1, token))
+	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/%d/boards", 1))
 
 	req := NewRequestWithJSON(t, "POST", link.String(), &api.NewProjectBoardPayload{
 		Title: "Unused",
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
 	var apiProjectBoard *api.ProjectBoard
@@ -40,9 +40,9 @@ func TestAPIListProjectBoards(t *testing.T) {
 
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue)
 
-	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/%d/boards?token=%s", 1, token))
+	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/%d/boards", 1))
 
-	req := NewRequest(t, "GET", link.String())
+	req := NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var apiProjectBoards []*api.ProjectBoard
@@ -56,9 +56,9 @@ func TestAPIGetProjectBoard(t *testing.T) {
 
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadIssue)
 
-	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/boards/%d?token=%s", 1, token))
+	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/boards/%d", 1))
 
-	req := NewRequest(t, "GET", link.String())
+	req := NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var apiProjectBoard *api.ProjectBoard
@@ -71,11 +71,11 @@ func TestAPIUpdateProjectBoard(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue)
 
-	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/boards/%d?token=%s", 1, token))
+	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/boards/%d", 1))
 
 	req := NewRequestWithJSON(t, "PATCH", link.String(), &api.UpdateProjectBoardPayload{
 		Title: "Unused",
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var apiProjectBoard *api.ProjectBoard
@@ -92,9 +92,9 @@ func TestAPIDeleteProjectBoard(t *testing.T) {
 
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue)
 
-	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/boards/%d?token=%s", 1, token))
+	link, _ := url.Parse(fmt.Sprintf("/api/v1/projects/boards/%d", 1))
 
-	req := NewRequest(t, "DELETE", link.String())
+	req := NewRequest(t, "DELETE", link.String()).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	unittest.AssertNotExistsBean(t, &project_model.Board{ID: 1})
