@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
 	attachment_model "code.gitea.io/gitea/models/repo"
@@ -59,9 +60,12 @@ func Projects(ctx *context.Context) {
 	} else {
 		projectType = project_model.TypeIndividual
 	}
-	projects, total, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+	projects, total, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: setting.UI.IssuePagingNum,
+		},
 		OwnerID:  ctx.ContextUser.ID,
-		Page:     page,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
 		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
 		Type:     projectType,
@@ -72,7 +76,7 @@ func Projects(ctx *context.Context) {
 		return
 	}
 
-	opTotal, err := project_model.CountProjects(ctx, project_model.SearchOptions{
+	opTotal, err := db.Count[project_model.Project](ctx, project_model.SearchOptions{
 		OwnerID:  ctx.ContextUser.ID,
 		IsClosed: util.OptionalBoolOf(!isShowClosed),
 		Type:     projectType,

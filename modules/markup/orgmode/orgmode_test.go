@@ -27,8 +27,10 @@ func TestRender_StandardLinks(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&markup.RenderContext{
-			Ctx:       git.DefaultContext,
-			URLPrefix: setting.AppSubURL,
+			Ctx: git.DefaultContext,
+			Links: markup.Links{
+				Base: setting.AppSubURL,
+			},
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -48,8 +50,10 @@ func TestRender_Media(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&markup.RenderContext{
-			Ctx:       git.DefaultContext,
-			URLPrefix: setting.AppSubURL,
+			Ctx: git.DefaultContext,
+			Links: markup.Links{
+				Base: setting.AppSubURL,
+			},
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -84,8 +88,7 @@ func TestRender_Source(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&markup.RenderContext{
-			Ctx:       git.DefaultContext,
-			URLPrefix: setting.AppSubURL,
+			Ctx: git.DefaultContext,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))

@@ -60,7 +60,7 @@
 		<div class="gt-df gt-fc gt-jc">
 			<div id="oauth2-login-navigator-inner" class="gt-df gt-fc gt-fw gt-ac gt-gap-3">
 				{{range $provider := .OAuth2Providers}}
-					<a class="{{$provider.Name}} ui button gt-df gt-ac gt-jc gt-py-3 oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$provider.Name}}">
+					<a class="{{$provider.Name}} ui button gt-df gt-ac gt-jc gt-py-3 oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$provider.DisplayName}}">
 						{{$provider.IconHTML 28}}
 						{{ctx.Locale.Tr "sign_in_with_provider" $provider.DisplayName}}
 					</a>

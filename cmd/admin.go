@@ -21,7 +21,7 @@ var (
 	// CmdAdmin represents the available admin sub-command.
 	CmdAdmin = &cli.Command{
 		Name:  "admin",
-		Usage: "Command line interface to perform common administrative operations",
+		Usage: "Perform common administrative operations",
 		Subcommands: []*cli.Command{
 			subcmdUser,
 			subcmdRepoSyncReleases,
@@ -157,10 +157,10 @@ func runRepoSyncReleases(_ *cli.Context) error {
 }
 
 func getReleaseCount(ctx context.Context, id int64) (int64, error) {
-	return repo_model.GetReleaseCountByRepoID(
+	return db.Count[repo_model.Release](
 		ctx,
-		id,
 		repo_model.FindReleasesOptions{
+			RepoID:      id,
 			IncludeTags: true,
 		},
 	)

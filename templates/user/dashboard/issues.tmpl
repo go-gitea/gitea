@@ -5,68 +5,42 @@
 		<div class="flex-container">
 			<div class="flex-container-nav">
 				<div class="ui secondary vertical filter menu gt-bg-transparent">
-					<a class="{{if eq .ViewType "your_repositories"}}active{{end}} item" href="{{.Link}}?type=your_repositories&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
+					<a class="{{if eq .ViewType "your_repositories"}}active{{end}} item" href="{{.Link}}?type=your_repositories&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 						{{ctx.Locale.Tr "home.issues.in_your_repos"}}
 						<strong>{{CountFmt .IssueStats.YourRepositoriesCount}}</strong>
 					</a>
-					<a class="{{if eq .ViewType "assigned"}}active{{end}} item" href="{{.Link}}?type=assigned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
+					<a class="{{if eq .ViewType "assigned"}}active{{end}} item" href="{{.Link}}?type=assigned&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 						{{ctx.Locale.Tr "repo.issues.filter_type.assigned_to_you"}}
 						<strong>{{CountFmt .IssueStats.AssignCount}}</strong>
 					</a>
-					<a class="{{if eq .ViewType "created_by"}}active{{end}} item" href="{{.Link}}?type=created_by&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
+					<a class="{{if eq .ViewType "created_by"}}active{{end}} item" href="{{.Link}}?type=created_by&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 						{{ctx.Locale.Tr "repo.issues.filter_type.created_by_you"}}
 						<strong>{{CountFmt .IssueStats.CreateCount}}</strong>
 					</a>
 					{{if .PageIsPulls}}
-						<a class="{{if eq .ViewType "review_requested"}}active{{end}} item" href="{{.Link}}?type=review_requested&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
+						<a class="{{if eq .ViewType "review_requested"}}active{{end}} item" href="{{.Link}}?type=review_requested&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 							{{ctx.Locale.Tr "repo.issues.filter_type.review_requested"}}
 							<strong>{{CountFmt .IssueStats.ReviewRequestedCount}}</strong>
 						</a>
-						<a class="{{if eq .ViewType "reviewed_by"}}active{{end}} item" href="{{.Link}}?type=reviewed_by&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
+						<a class="{{if eq .ViewType "reviewed_by"}}active{{end}} item" href="{{.Link}}?type=reviewed_by&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 							{{ctx.Locale.Tr "repo.issues.filter_type.reviewed_by_you"}}
 							<strong>{{CountFmt .IssueStats.ReviewedCount}}</strong>
 						</a>
 					{{end}}
-					<a class="{{if eq .ViewType "mentioned"}}active{{end}} item" href="{{.Link}}?type=mentioned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
+					<a class="{{if eq .ViewType "mentioned"}}active{{end}} item" href="{{.Link}}?type=mentioned&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 						{{ctx.Locale.Tr "repo.issues.filter_type.mentioning_you"}}
 						<strong>{{CountFmt .IssueStats.MentionCount}}</strong>
 					</a>
-					<div class="divider"></div>
-					<a class="{{if not $.RepoIDs}}active{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}">
-						<span class="text truncate">{{ctx.Locale.Tr "all"}}</span>
-						<span>{{CountFmt .TotalIssueCount}}</span>
-					</a>
-					{{range .Repos}}
-						{{with $Repo := .}}
-							<a class="{{range $.RepoIDs}}{{if eq . $Repo.ID}}active{{end}}{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&repos=[
-									{{- with $include := true -}}
-										{{- range $.RepoIDs -}}
-											{{- if eq . $Repo.ID -}}
-												{{$include = false}}
-											{{- else -}}
-												{{.}}%2C
-											{{- end -}}
-										{{- end -}}
-										{{- if eq $include true -}}
-											{{$Repo.ID}}%2C
-										{{- end -}}
-									{{- end -}}
-									]&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}" title="{{.FullName}}">
-								<span class="text truncate">{{$Repo.FullName}}</span>
-								<span>{{CountFmt (index $.Counts $Repo.ID)}}</span>
-							</a>
-						{{end}}
-					{{end}}
 				</div>
 			</div>
 			<div class="flex-container-main content">
 				<div class="list-header">
 					<div class="small-menu-items ui compact tiny menu list-header-toggle">
-						<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
+						<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
 							{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
 							{{ctx.Locale.PrettyNumber .IssueStats.OpenCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 						</a>
-						<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
+						<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
 							{{svg "octicon-issue-closed" 16 "gt-mr-3"}}
 							{{ctx.Locale.PrettyNumber .IssueStats.ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 						</a>
@@ -74,7 +48,6 @@
 					<form class="list-header-search ui form ignore-dirty">
 						<div class="ui small search fluid action input">
 							<input type="hidden" name="type" value="{{$.ViewType}}">
-							<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}},{{end}}]">
 							<input type="hidden" name="sort" value="{{$.SortType}}">
 							<input type="hidden" name="state" value="{{$.State}}">
 							{{template "shared/searchinput" dict "Value" $.Keyword}}
@@ -89,23 +62,16 @@
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
 						<div class="menu">
-							<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=recentupdate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
-							<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastupdate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
-							<a class="{{if or (eq .SortType "latest") (not .SortType)}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=latest&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
-							<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=oldest&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
-							<a class="{{if eq .SortType "mostcomment"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostcomment&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.mostcomment"}}</a>
-							<a class="{{if eq .SortType "leastcomment"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastcomment&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
-							<a class="{{if eq .SortType "nearduedate"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=nearduedate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
-							<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=farduedate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
+							<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort=recentupdate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+							<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort=leastupdate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+							<a class="{{if or (eq .SortType "latest") (not .SortType)}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort=latest&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
+							<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort=oldest&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
+							<a class="{{if eq .SortType "mostcomment"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort=mostcomment&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.mostcomment"}}</a>
+							<a class="{{if eq .SortType "leastcomment"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort=leastcomment&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
+							<a class="{{if eq .SortType "nearduedate"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort=nearduedate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
+							<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort=farduedate&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
 						</div>
 					</div>
-					{{if .SingleRepoLink}}
-						{{if eq .SingleRepoAction "issue"}}
-							<a class="ui primary button gt-ml-4" href="{{.SingleRepoLink}}/issues/new/choose">{{ctx.Locale.Tr "repo.issues.new"}}</a>
-						{{else if eq .SingleRepoAction "pull"}}
-							<a class="ui primary button gt-ml-4" href="{{.SingleRepoLink}}/compare">{{ctx.Locale.Tr "repo.pulls.new"}}</a>
-						{{end}}
-					{{end}}
 				</div>
 				{{template "shared/issuelist" dict "." . "listType" "dashboard"}}
 			</div>

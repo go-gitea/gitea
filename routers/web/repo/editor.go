@@ -287,7 +287,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 				Operation:     operation,
 				FromTreePath:  ctx.Repo.TreePath,
 				TreePath:      form.TreePath,
-				ContentReader: strings.NewReader(form.Content),
+				ContentReader: strings.NewReader(strings.ReplaceAll(form.Content, "\r", "")),
 			},
 		},
 		Signoff: form.Signoff,

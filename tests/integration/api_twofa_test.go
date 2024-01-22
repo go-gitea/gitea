@@ -23,8 +23,8 @@ func TestAPITwoFactor(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 16})
 
-	req := NewRequestf(t, "GET", "/api/v1/user")
-	req = AddBasicAuthHeader(req, user.Name)
+	req := NewRequest(t, "GET", "/api/v1/user").
+		AddBasicAuth(user.Name)
 	MakeRequest(t, req, http.StatusOK)
 
 	otpKey, err := totp.Generate(totp.GenerateOpts{
@@ -41,15 +41,15 @@ func TestAPITwoFactor(t *testing.T) {
 
 	assert.NoError(t, auth_model.NewTwoFactor(db.DefaultContext, tfa))
 
-	req = NewRequestf(t, "GET", "/api/v1/user")
-	req = AddBasicAuthHeader(req, user.Name)
+	req = NewRequest(t, "GET", "/api/v1/user").
+		AddBasicAuth(user.Name)
 	MakeRequest(t, req, http.StatusUnauthorized)
 
 	passcode, err := totp.GenerateCode(otpKey.Secret(), time.Now())
 	assert.NoError(t, err)
 
-	req = NewRequestf(t, "GET", "/api/v1/user")
-	req = AddBasicAuthHeader(req, user.Name)
+	req = NewRequest(t, "GET", "/api/v1/user").
+		AddBasicAuth(user.Name)
 	req.Header.Set("X-Gitea-OTP", passcode)
 	MakeRequest(t, req, http.StatusOK)
 }

@@ -220,9 +220,11 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 
 	// This is the body of the new issue or comment, not the mail body
 	body, err := markdown.RenderString(&markup.RenderContext{
-		Ctx:       ctx,
-		URLPrefix: ctx.Issue.Repo.HTMLURL(),
-		Metas:     ctx.Issue.Repo.ComposeMetas(ctx),
+		Ctx: ctx,
+		Links: markup.Links{
+			Base: ctx.Issue.Repo.HTMLURL(),
+		},
+		Metas: ctx.Issue.Repo.ComposeMetas(ctx),
 	}, ctx.Content)
 	if err != nil {
 		return nil, err
@@ -290,8 +292,10 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	reference := createReference(ctx.Issue, nil, activities_model.ActionType(0))
 
 	var replyPayload []byte
-	if ctx.Comment != nil && ctx.Comment.Type == issues_model.CommentTypeCode {
-		replyPayload, err = incoming_payload.CreateReferencePayload(ctx.Comment)
+	if ctx.Comment != nil {
+		if ctx.Comment.Type.HasMailReplySupport() {
+			replyPayload, err = incoming_payload.CreateReferencePayload(ctx.Comment)
+		}
 	} else {
 		replyPayload, err = incoming_payload.CreateReferencePayload(ctx.Issue)
 	}
@@ -316,7 +320,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		listUnsubscribe := []string{"<" + ctx.Issue.HTMLURL() + ">"}
 
 		if setting.IncomingEmail.Enabled {
-			if ctx.Comment != nil {
+			if replyPayload != nil {
 				token, err := token.CreateToken(token.ReplyHandlerType, recipient, replyPayload)
 				if err != nil {
 					log.Error("CreateToken failed: %v", err)

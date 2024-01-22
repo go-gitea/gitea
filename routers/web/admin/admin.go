@@ -12,6 +12,7 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
@@ -27,6 +28,7 @@ import (
 
 const (
 	tplDashboard   base.TplName = "admin/dashboard"
+	tplSelfCheck   base.TplName = "admin/self_check"
 	tplCron        base.TplName = "admin/cron"
 	tplQueue       base.TplName = "admin/queue"
 	tplStacktrace  base.TplName = "admin/stacktrace"
@@ -170,6 +172,33 @@ func DashboardPost(ctx *context.Context) {
 	} else {
 		ctx.Redirect(setting.AppSubURL + "/admin")
 	}
+}
+
+func SelfCheck(ctx *context.Context) {
+	ctx.Data["PageIsAdminSelfCheck"] = true
+	r, err := db.CheckCollationsDefaultEngine()
+	if err != nil {
+		ctx.Flash.Error(fmt.Sprintf("CheckCollationsDefaultEngine: %v", err), true)
+	}
+
+	if r != nil {
+		ctx.Data["DatabaseType"] = setting.Database.Type
+		ctx.Data["DatabaseCheckResult"] = r
+		hasProblem := false
+		if !r.CollationEquals(r.DatabaseCollation, r.ExpectedCollation) {
+			ctx.Data["DatabaseCheckCollationMismatch"] = true
+			hasProblem = true
+		}
+		if !r.IsCollationCaseSensitive(r.DatabaseCollation) {
+			ctx.Data["DatabaseCheckCollationCaseInsensitive"] = true
+			hasProblem = true
+		}
+		ctx.Data["DatabaseCheckInconsistentCollationColumns"] = r.InconsistentCollationColumns
+		hasProblem = hasProblem || len(r.InconsistentCollationColumns) > 0
+
+		ctx.Data["DatabaseCheckHasProblems"] = hasProblem
+	}
+	ctx.HTML(http.StatusOK, tplSelfCheck)
 }
 
 func CronTasks(ctx *context.Context) {
