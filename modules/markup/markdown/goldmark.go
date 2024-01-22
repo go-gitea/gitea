@@ -87,18 +87,8 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			// Check if the destination is a real link
 			link := v.Destination
 			if len(link) > 0 && !markup.IsLink(link) {
-				prefix := pc.Get(urlPrefixKey).(string)
-				if pc.Get(isWikiKey).(bool) {
-					prefix = giteautil.URLJoin(prefix, "wiki", "raw")
-				}
-				prefix = strings.Replace(prefix, "/src/", "/media/", 1)
-
-				lnk := strings.TrimLeft(string(link), "/")
-
-				lnk = giteautil.URLJoin(prefix, lnk)
-				link = []byte(lnk)
+				v.Destination = []byte(giteautil.URLJoin(ctx.Links.ResolveMediaLink(ctx.IsWiki), string(link)))
 			}
-			v.Destination = link
 
 			parent := n.Parent()
 			// Create a link around image only if parent is not already a link
@@ -107,7 +97,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 
 				// Create a link wrapper
 				wrap := ast.NewLink()
-				wrap.Destination = link
+				wrap.Destination = v.Destination
 				wrap.Title = v.Title
 				wrap.SetAttributeString("target", []byte("_blank"))
 
@@ -143,11 +133,15 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 				link[0] != '#' && !bytes.HasPrefix(link, byteMailto) {
 				// special case: this is not a link, a hash link or a mailto:, so it's a
 				// relative URL
-				lnk := string(link)
-				if pc.Get(isWikiKey).(bool) {
-					lnk = giteautil.URLJoin("wiki", lnk)
+
+				var base string
+				if ctx.IsWiki {
+					base = ctx.Links.WikiLink()
+				} else {
+					base = ctx.Links.Base
 				}
-				link = []byte(giteautil.URLJoin(pc.Get(urlPrefixKey).(string), lnk))
+
+				link = []byte(giteautil.URLJoin(base, string(link)))
 			}
 			if len(link) > 0 && link[0] == '#' {
 				link = []byte("#user-content-" + string(link)[1:])
@@ -188,9 +182,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			applyElementDir(v)
 		case *ast.Text:
 			if v.SoftLineBreak() && !v.HardLineBreak() {
-				renderMetas := pc.Get(renderMetasKey).(map[string]string)
-				mode := renderMetas["mode"]
-				if mode != "document" {
+				if ctx.Metas["mode"] != "document" {
 					v.SetHardLineBreak(setting.Markdown.EnableHardLineBreakInComments)
 				} else {
 					v.SetHardLineBreak(setting.Markdown.EnableHardLineBreakInDocuments)

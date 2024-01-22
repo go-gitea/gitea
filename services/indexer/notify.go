@@ -130,3 +130,25 @@ func (r *indexerNotifier) IssueChangeTitle(ctx context.Context, doer *user_model
 func (r *indexerNotifier) IssueChangeRef(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldRef string) {
 	issue_indexer.UpdateIssueIndexer(ctx, issue.ID)
 }
+
+func (r *indexerNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, closeOrReopen bool) {
+	issue_indexer.UpdateIssueIndexer(ctx, issue.ID)
+}
+
+func (r *indexerNotifier) IssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
+	issue_indexer.UpdateIssueIndexer(ctx, issue.ID)
+}
+
+func (r *indexerNotifier) IssueChangeMilestone(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64) {
+	issue_indexer.UpdateIssueIndexer(ctx, issue.ID)
+}
+
+func (r *indexerNotifier) IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
+	addedLabels, removedLabels []*issues_model.Label,
+) {
+	issue_indexer.UpdateIssueIndexer(ctx, issue.ID)
+}
+
+func (r *indexerNotifier) IssueClearLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
+	issue_indexer.UpdateIssueIndexer(ctx, issue.ID)
+}

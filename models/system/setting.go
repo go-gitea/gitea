@@ -13,6 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 type Setting struct {
@@ -36,16 +38,17 @@ func init() {
 const keyRevision = "revision"
 
 func GetRevision(ctx context.Context) int {
-	revision := &Setting{SettingKey: keyRevision}
-	if has, err := db.GetByBean(ctx, revision); err != nil {
+	revision, exist, err := db.Get[Setting](ctx, builder.Eq{"setting_key": keyRevision})
+	if err != nil {
 		return 0
-	} else if !has {
+	} else if !exist {
 		err = db.Insert(ctx, &Setting{SettingKey: keyRevision, Version: 1})
 		if err != nil {
 			return 0
 		}
 		return 1
-	} else if revision.Version <= 0 || revision.Version >= math.MaxInt-1 {
+	}
+	if revision.Version <= 0 || revision.Version >= math.MaxInt-1 {
 		_, err = db.Exec(ctx, "UPDATE system_setting SET version=1 WHERE setting_key=?", keyRevision)
 		if err != nil {
 			return 0
@@ -81,7 +84,7 @@ func SetSettings(ctx context.Context, settings map[string]string) error {
 			return err
 		}
 		for k, v := range settings {
-			res, err := e.Exec("UPDATE system_setting SET setting_value=? WHERE setting_key=?", v, k)
+			res, err := e.Exec("UPDATE system_setting SET version=version+1, setting_value=? WHERE setting_key=?", v, k)
 			if err != nil {
 				return err
 			}
