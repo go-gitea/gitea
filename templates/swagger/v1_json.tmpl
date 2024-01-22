@@ -2844,10 +2844,15 @@
           },
           {
             "type": "integer",
-            "description": "ID of the repository to link",
-            "name": "repo",
-            "in": "query",
-            "required": true
+            "description": "ID of the repository to link. Pass `0` to unlink",
+            "name": "repo_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "name of the repository to link, format `{owner}/{name}`",
+            "name": "repo_name",
+            "in": "query"
           }
         ],
         "responses": {

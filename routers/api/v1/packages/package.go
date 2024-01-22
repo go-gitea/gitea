@@ -5,9 +5,13 @@ package packages
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"code.gitea.io/gitea/models/packages"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -236,11 +240,16 @@ func LinkPackage(ctx *context.APIContext) {
 	//   description: name of the package
 	//   type: string
 	//   required: true
-	// - name: repo
+	// - name: repo_id
 	//   in: query
-	//   description: ID of the repository to link
+	//   description: ID of the repository to link. Pass `0` to unlink
 	//   type: integer
-	//   required: true
+	//   required: false
+	// - name: repo_name
+	//   in: query
+	//   description: name of the repository to link, format `{owner}/{name}`
+	//   type: string
+	//   required: false
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/empty"
@@ -257,7 +266,44 @@ func LinkPackage(ctx *context.APIContext) {
 		return
 	}
 
-	err = packages_service.LinkPackageToRepository(ctx, ctx.Doer, pkg, ctx.FormInt64("repo"))
+	var repoID int64
+
+	formRepoID := ctx.FormString("repo_id")
+	repoName := ctx.FormString("repo_name")
+
+	if len(formRepoID) == 0 && len(repoName) == 0 {
+		ctx.Error(http.StatusBadRequest, "Missing parameter", fmt.Errorf("Either `repo_id` or `repo_name` must be given"))
+		return
+	}
+
+	if len(formRepoID) > 0 {
+		repoID, err = strconv.ParseInt(ctx.FormString("repo_id"), 10, 64)
+		if err != nil {
+			ctx.Error(http.StatusBadRequest, "Invalid parameter", fmt.Errorf("`repo_id` must be a valid integer, if given"))
+			return
+		}
+	} else {
+		nameParts := strings.Split(repoName, "/")
+		if len(nameParts) != 2 {
+			ctx.Error(http.StatusBadRequest, "Invalid parameter", fmt.Errorf("`repo_name` must be of format `{owner}/{name}`, if given"))
+			return
+		}
+
+		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, nameParts[0], nameParts[1])
+		if err != nil {
+			if errors.Is(err, util.ErrNotExist) {
+				ctx.Error(http.StatusNotFound, "GetRepositoryByOwnerAndName", err)
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetRepositoryByOwnerAndName", err)
+			}
+
+			return
+		}
+
+		repoID = repo.ID
+	}
+
+	err = packages_service.LinkPackageToRepository(ctx, ctx.Doer, pkg, repoID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "LinkPackageToRepository", err)
 		return

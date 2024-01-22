@@ -108,7 +108,7 @@ func TestPackageAPI(t *testing.T) {
 			assert.Nil(t, ap1.Repository)
 
 			// link to public repository
-			req = NewRequestf(t, "POST", fmt.Sprintf("/api/v1/packages/%s/generic/%s/link?repo=%d", user.Name, packageName, repo.ID)).AddTokenAuth(tokenWritePackage)
+			req = NewRequestf(t, "POST", fmt.Sprintf("/api/v1/packages/%s/generic/%s/link?repo_name=%s/%s", user.Name, packageName, repo.OwnerName, repo.Name)).AddTokenAuth(tokenWritePackage)
 			MakeRequest(t, req, http.StatusNoContent)
 
 			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
@@ -121,11 +121,11 @@ func TestPackageAPI(t *testing.T) {
 			assert.EqualValues(t, repo.ID, ap2.Repository.ID)
 
 			// link to repository without write access, should fail
-			req = NewRequestf(t, "POST", fmt.Sprintf("/api/v1/packages/%s/generic/%s/link?repo=%d", user.Name, packageName, 3)).AddTokenAuth(tokenWritePackage)
+			req = NewRequestf(t, "POST", fmt.Sprintf("/api/v1/packages/%s/generic/%s/link?repo_id=%d", user.Name, packageName, 3)).AddTokenAuth(tokenWritePackage)
 			MakeRequest(t, req, http.StatusInternalServerError)
 
 			// remove link
-			req = NewRequestf(t, "POST", fmt.Sprintf("/api/v1/packages/%s/generic/%s/link?repo=%d", user.Name, packageName, 0)).AddTokenAuth(tokenWritePackage)
+			req = NewRequestf(t, "POST", fmt.Sprintf("/api/v1/packages/%s/generic/%s/link?repo_id=%d", user.Name, packageName, 0)).AddTokenAuth(tokenWritePackage)
 			MakeRequest(t, req, http.StatusNoContent)
 
 			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
