@@ -49,4 +49,5 @@ func TestToSnakeCase(t *testing.T) {
 func TestGetFirstCharacters(t *testing.T) {
 	assert.Equal(t, "Test123", GetFirstCharacters("Test123", 10))
 	assert.Equal(t, "Test", GetFirstCharacters("Test123", 4))
+	assert.Equal(t, "こん", GetFirstCharacters("こんにちは", 2))
 }

@@ -98,8 +98,9 @@ func UnsafeStringToBytes(s string) []byte {
 
 // GetFirstCharacters returns the first n characters of a string
 func GetFirstCharacters(s string, n int) string {
+	r := []rune(s)
 	if len(s) <= n {
-		return s
+		return string(r[:n])
 	}
 	return s[:n]
 }
