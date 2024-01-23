@@ -304,7 +304,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 			return
 		}
 	}
-	// TODO groups for SAML?
+	// TODO we will support some form of group mapping for SAML
 
 	handleSignIn(ctx, u, false)
 }

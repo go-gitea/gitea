@@ -57,8 +57,7 @@ func SignInSAMLCallback(ctx *context.Context) {
 
 	u, gothUser, err := samlUserLoginCallback(*ctx, loginSource, ctx.Req, ctx.Resp)
 	if err != nil {
-		// TODO: improve error display
-		ctx.ServerError("SignIn", err)
+		ctx.ServerError("SignInSAMLCallback", err)
 		return
 	}
 
@@ -67,7 +66,7 @@ func SignInSAMLCallback(ctx *context.Context) {
 			// attach user to already logged in user
 			err = externalaccount.LinkAccountToUser(ctx, ctx.Doer, gothUser, auth.SAML)
 			if err != nil {
-				ctx.ServerError("UserLinkAccount", err)
+				ctx.ServerError("LinkAccountToUser", err)
 				return
 			}
 

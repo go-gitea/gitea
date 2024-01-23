@@ -667,8 +667,8 @@ func registerRoutes(m *web.Route) {
 			m.Get("/{provider}/callback", auth.SignInOAuthCallback)
 		})
 		m.Group("/saml", func() {
-			m.Get("/{provider}", auth.SignInSAML)              // redir to SAML IDP
-			m.Post("/{provider}/acs", auth.SignInSAMLCallback) // TODO: Confirm if POST/GET
+			m.Get("/{provider}", auth.SignInSAML) // redir to SAML IDP
+			m.Post("/{provider}/acs", auth.SignInSAMLCallback)
 			m.Get("/{provider}/metadata", auth.SAMLMetadata)
 		})
 	})
