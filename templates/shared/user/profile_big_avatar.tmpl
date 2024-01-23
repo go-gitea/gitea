@@ -110,7 +110,7 @@
 			</li>
 			{{end}}
 			{{if and .IsSigned (ne .SignedUserID .ContextUser.ID)}}
-			<li class="follow" hx-target="#profile-avatar-card" hx-swap="outerHTML">
+			<li class="follow" hx-target="#profile-avatar-card">
 				{{if $.IsFollowing}}
 					<button hx-post="{{.ContextUser.HomeLink}}?action=unfollow" class="ui basic red button">
 						{{svg "octicon-person"}} {{ctx.Locale.Tr "user.unfollow"}}

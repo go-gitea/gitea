@@ -1,4 +1,4 @@
-<form hx-boost="true" hx-sync="this:replace" hx-target="this" hx-push-url="false" method="post" action="{{.Issue.Link}}/watch">
+<form hx-boost="true" hx-sync="this:replace" hx-target="this" method="post" action="{{.Issue.Link}}/watch">
 	<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}">
 	<button class="fluid ui button">
 		{{if $.IssueWatch.IsWatching}}
