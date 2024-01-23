@@ -407,7 +407,7 @@ func (err ErrSourceInUse) Error() string {
 	return fmt.Sprintf("login source is still used by some users [id: %d]", err.ID)
 }
 
-// GetActiveAuthProviderSources returns all actived LoginOAuth2 sources
+// GetActiveAuthProviderSources returns all activated sources
 func GetActiveAuthProviderSources(ctx context.Context, authType Type) ([]*Source, error) {
 	sources := make([]*Source, 0, 1)
 	if err := db.GetEngine(ctx).Where("is_active = ? and type = ?", true, authType).Find(&sources); err != nil {
@@ -416,7 +416,7 @@ func GetActiveAuthProviderSources(ctx context.Context, authType Type) ([]*Source
 	return sources, nil
 }
 
-// GetActiveAuthSourceByName returns a OAuth2 AuthSource based on the given name
+// GetActiveAuthSourceByName returns an AuthSource based on the given name and type
 func GetActiveAuthSourceByName(ctx context.Context, name string, authType Type) (*Source, error) {
 	authSource := new(Source)
 	has, err := db.GetEngine(ctx).Where("name = ? and type = ? and is_active = ?", name, authType, true).Get(authSource)
