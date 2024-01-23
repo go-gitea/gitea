@@ -83,8 +83,7 @@ func LoadRepo(t *testing.T, ctx gocontext.Context, repoID int64) {
 		ctx.Repo = repo
 		doer = ctx.Doer
 	default:
-		assert.Fail(t, "context is not *context.Context or *context.APIContext")
-		return
+		assert.FailNow(t, "context is not *context.Context or *context.APIContext")
 	}
 
 	repo.Repository = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
@@ -105,8 +104,7 @@ func LoadRepoCommit(t *testing.T, ctx gocontext.Context) {
 	case *context.APIContext:
 		repo = ctx.Repo
 	default:
-		assert.Fail(t, "context is not *context.Context or *context.APIContext")
-		return
+		assert.FailNow(t, "context is not *context.Context or *context.APIContext")
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, repo.Repository.RepoPath())
@@ -130,8 +128,7 @@ func LoadUser(t *testing.T, ctx gocontext.Context, userID int64) {
 	case *context.APIContext:
 		ctx.Doer = doer
 	default:
-		assert.Fail(t, "context is not *context.Context or *context.APIContext")
-		return
+		assert.FailNow(t, "context is not *context.Context or *context.APIContext")
 	}
 }
 

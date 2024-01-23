@@ -4,7 +4,6 @@
 package webhook
 
 import (
-	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
@@ -19,7 +18,6 @@ func TestMain(m *testing.M) {
 	// for tests, allow only loopback IPs
 	setting.Webhook.AllowedHostList = hostmatcher.MatchBuiltinLoopback
 	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", ".."),
 		SetUp: func() error {
 			setting.LoadQueueSettings()
 			return Init()

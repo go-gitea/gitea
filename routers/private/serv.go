@@ -33,7 +33,7 @@ func ServNoCommand(ctx *context.PrivateContext) {
 	}
 	results := private.KeyAndOwner{}
 
-	key, err := asymkey_model.GetPublicKeyByID(keyID)
+	key, err := asymkey_model.GetPublicKeyByID(ctx, keyID)
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.JSON(http.StatusUnauthorized, private.Response{
@@ -132,7 +132,7 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	// Now get the Repository and set the results section
 	repoExist := true
-	repo, err := repo_model.GetRepositoryByName(owner.ID, results.RepoName)
+	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, results.RepoName)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			repoExist = false
@@ -184,7 +184,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	}
 
 	// Get the Public Key represented by the keyID
-	key, err := asymkey_model.GetPublicKeyByID(keyID)
+	key, err := asymkey_model.GetPublicKeyByID(ctx, keyID)
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.JSON(http.StatusNotFound, private.Response{

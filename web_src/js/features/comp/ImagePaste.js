@@ -90,7 +90,6 @@ class CodeMirrorEditor {
   }
 }
 
-
 const uploadClipboardImage = async (editor, dropzone, e) => {
   const $dropzone = $(dropzone);
   const uploadUrl = $dropzone.attr('data-upload-url');

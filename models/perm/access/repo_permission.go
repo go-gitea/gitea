@@ -261,16 +261,16 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 }
 
 // IsUserRealRepoAdmin check if this user is real repo admin
-func IsUserRealRepoAdmin(repo *repo_model.Repository, user *user_model.User) (bool, error) {
+func IsUserRealRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (bool, error) {
 	if repo.OwnerID == user.ID {
 		return true, nil
 	}
 
-	if err := repo.LoadOwner(db.DefaultContext); err != nil {
+	if err := repo.LoadOwner(ctx); err != nil {
 		return false, err
 	}
 
-	accessMode, err := accessLevel(db.DefaultContext, user, repo)
+	accessMode, err := accessLevel(ctx, user, repo)
 	if err != nil {
 		return false, err
 	}
@@ -394,13 +394,13 @@ func getUsersWithAccessMode(ctx context.Context, repo *repo_model.Repository, mo
 }
 
 // GetRepoReaders returns all users that have explicit read access or higher to the repository.
-func GetRepoReaders(repo *repo_model.Repository) (_ []*user_model.User, err error) {
-	return getUsersWithAccessMode(db.DefaultContext, repo, perm_model.AccessModeRead)
+func GetRepoReaders(ctx context.Context, repo *repo_model.Repository) (_ []*user_model.User, err error) {
+	return getUsersWithAccessMode(ctx, repo, perm_model.AccessModeRead)
 }
 
 // GetRepoWriters returns all users that have write access to the repository.
-func GetRepoWriters(repo *repo_model.Repository) (_ []*user_model.User, err error) {
-	return getUsersWithAccessMode(db.DefaultContext, repo, perm_model.AccessModeWrite)
+func GetRepoWriters(ctx context.Context, repo *repo_model.Repository) (_ []*user_model.User, err error) {
+	return getUsersWithAccessMode(ctx, repo, perm_model.AccessModeWrite)
 }
 
 // IsRepoReader returns true if user has explicit read access or higher to the repository.

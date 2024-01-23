@@ -101,7 +101,7 @@ func CreateCodeComment(ctx *context.Context) {
 		renderConversation(ctx, comment)
 		return
 	}
-	ctx.Redirect(comment.Link())
+	ctx.Redirect(comment.Link(ctx))
 }
 
 // UpdateResolveConversation add or remove an Conversation resolved mark
@@ -127,7 +127,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 	}
 
 	var permResult bool
-	if permResult, err = issues_model.CanMarkConversation(comment.Issue, ctx.Doer); err != nil {
+	if permResult, err = issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer); err != nil {
 		ctx.ServerError("CanMarkConversation", err)
 		return
 	}
@@ -142,7 +142,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 	}
 
 	if action == "Resolve" || action == "UnResolve" {
-		err = issues_model.MarkConversation(comment, ctx.Doer, action == "Resolve")
+		err = issues_model.MarkConversation(ctx, comment, ctx.Doer, action == "Resolve")
 		if err != nil {
 			ctx.ServerError("MarkConversation", err)
 			return

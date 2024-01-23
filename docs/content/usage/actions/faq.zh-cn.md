@@ -43,10 +43,10 @@ DEFAULT_REPO_UNITS = ...,repo.actions
 目前还不可以。
 从技术上讲是可以实现的，但我们需要讨论是否有必要。
 
-## 使用`actions/checkout@v3`等Actions时，Job容器会从何处下载脚本？
+## 使用`actions/checkout@v4`等Actions时，Job容器会从何处下载脚本？
 
 您可能知道GitHub上有成千上万个[Actions市场](https://github.com/marketplace?type=actions)。
-然而，当您编写`uses: actions/checkout@v3`时，它实际上默认从[gitea.com/actions/checkout](http://gitea.com/actions/checkout)下载脚本（而不是从GitHub下载）。
+然而，当您编写`uses: actions/checkout@v4`时，它实际上默认从[gitea.com/actions/checkout](http://gitea.com/actions/checkout)下载脚本（而不是从GitHub下载）。
 这是[github.com/actions/checkout](http://github.com/actions/checkout)的镜像，但无法将它们全部镜像。
 这就是为什么在尝试使用尚未镜像的某些Actions时可能会遇到失败的原因。
 
@@ -180,3 +180,6 @@ defaults:
 | pull_request_review_comment | `created`, `edited`                                                                                                      |
 | release                     | `published`, `edited`                                                                                                    |
 | registry_package            | `published`                                                                                                              |
+
+> 对于 `pull_request` 事件，在 [GitHub Actions](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request) 中 `ref` 是 `refs/pull/:prNumber/merge`，它指向这个拉取请求合并提交的一个预览。但是 Gitea 没有这种 reference。
+> 因此，Gitea Actions 中 `ref` 是 `refs/pull/:prNumber/head`，它指向这个拉取请求的头分支而不是合并提交的预览。

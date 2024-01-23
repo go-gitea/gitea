@@ -45,7 +45,7 @@ func startTasks(ctx context.Context) error {
 			return fmt.Errorf("find specs: %w", err)
 		}
 
-		if err := specs.LoadRepos(); err != nil {
+		if err := specs.LoadRepos(ctx); err != nil {
 			return fmt.Errorf("LoadRepos: %w", err)
 		}
 
@@ -59,6 +59,7 @@ func startTasks(ctx context.Context) error {
 					row.RepoID,
 					row.Schedule.Ref,
 					row.Schedule.WorkflowID,
+					webhook_module.HookEventSchedule,
 				); err != nil {
 					log.Error("CancelRunningJobs: %v", err)
 				}
@@ -113,6 +114,7 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 		CommitSHA:     cron.CommitSHA,
 		Event:         cron.Event,
 		EventPayload:  cron.EventPayload,
+		TriggerEvent:  string(webhook_module.HookEventSchedule),
 		ScheduleID:    cron.ID,
 		Status:        actions_model.StatusWaiting,
 	}

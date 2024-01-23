@@ -317,7 +317,7 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		return nil, nil, err
 	}
 
-	labels, err := issues_model.GetLabelsByIDs(ctx, form.Labels, "id", "repo_id", "org_id")
+	labels, err := issues_model.GetLabelsByIDs(ctx, form.Labels, "id", "repo_id", "org_id", "name", "exclusive")
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLabelsByIDs", err)
 		return nil, nil, err

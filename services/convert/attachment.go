@@ -4,10 +4,7 @@
 package convert
 
 import (
-	"strconv"
-
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -16,12 +13,7 @@ func WebAssetDownloadURL(repo *repo_model.Repository, attach *repo_model.Attachm
 }
 
 func APIAssetDownloadURL(repo *repo_model.Repository, attach *repo_model.Attachment) string {
-	if attach.CustomDownloadURL != "" {
-		return attach.CustomDownloadURL
-	}
-
-	// /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id}
-	return setting.AppURL + "api/repos/" + repo.FullName() + "/releases/" + strconv.FormatInt(attach.ReleaseID, 10) + "/assets/" + strconv.FormatInt(attach.ID, 10)
+	return attach.DownloadURL()
 }
 
 // ToAttachment converts models.Attachment to api.Attachment for API usage

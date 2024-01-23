@@ -34,7 +34,7 @@ import (
 
 // Deliver deliver hook task
 func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
-	w, err := webhook_model.GetWebhookByID(t.HookID)
+	w, err := webhook_model.GetWebhookByID(ctx, t.HookID)
 	if err != nil {
 		return err
 	}
@@ -185,7 +185,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 			log.Trace("Hook delivery failed: %s", t.UUID)
 		}
 
-		if err := webhook_model.UpdateHookTask(t); err != nil {
+		if err := webhook_model.UpdateHookTask(ctx, t); err != nil {
 			log.Error("UpdateHookTask [%d]: %v", t.ID, err)
 		}
 
@@ -195,7 +195,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 		} else {
 			w.LastStatus = webhook_module.HookStatusFail
 		}
-		if err = webhook_model.UpdateWebhookLastStatus(w); err != nil {
+		if err = webhook_model.UpdateWebhookLastStatus(ctx, w); err != nil {
 			log.Error("UpdateWebhookLastStatus: %v", err)
 			return
 		}
@@ -239,7 +239,7 @@ var (
 	hostMatchers      []glob.Glob
 )
 
-func webhookProxy() func(req *http.Request) (*url.URL, error) {
+func webhookProxy(allowList *hostmatcher.HostMatchList) func(req *http.Request) (*url.URL, error) {
 	if setting.Webhook.ProxyURL == "" {
 		return proxy.Proxy()
 	}
@@ -257,6 +257,9 @@ func webhookProxy() func(req *http.Request) (*url.URL, error) {
 	return func(req *http.Request) (*url.URL, error) {
 		for _, v := range hostMatchers {
 			if v.Match(req.URL.Host) {
+				if !allowList.MatchHostName(req.URL.Host) {
+					return nil, fmt.Errorf("webhook can only call allowed HTTP servers (check your %s setting), deny '%s'", allowList.SettingKeyHint, req.URL.Host)
+				}
 				return http.ProxyURL(setting.Webhook.ProxyURLFixed)(req)
 			}
 		}
@@ -278,8 +281,8 @@ func Init() error {
 		Timeout: timeout,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify},
-			Proxy:           webhookProxy(),
-			DialContext:     hostmatcher.NewDialContext("webhook", allowedHostMatcher, nil),
+			Proxy:           webhookProxy(allowedHostMatcher),
+			DialContext:     hostmatcher.NewDialContextWithProxy("webhook", allowedHostMatcher, nil, setting.Webhook.ProxyURLFixed),
 		},
 	}
 

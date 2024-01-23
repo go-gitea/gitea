@@ -16,7 +16,6 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -24,10 +23,7 @@ import (
 
 // Init initialize model
 func Init(ctx context.Context) error {
-	if err := unit.LoadUnitConfig(); err != nil {
-		return err
-	}
-	return system_model.Init(ctx)
+	return unit.LoadUnitConfig()
 }
 
 type repoChecker struct {
@@ -281,8 +277,8 @@ func UpdateRepoStats(ctx context.Context, id int64) error {
 	return nil
 }
 
-func updateUserStarNumbers(users []user_model.User) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func updateUserStarNumbers(ctx context.Context, users []user_model.User) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -298,19 +294,19 @@ func updateUserStarNumbers(users []user_model.User) error {
 }
 
 // DoctorUserStarNum recalculate Stars number for all user
-func DoctorUserStarNum() (err error) {
+func DoctorUserStarNum(ctx context.Context) (err error) {
 	const batchSize = 100
 
 	for start := 0; ; start += batchSize {
 		users := make([]user_model.User, 0, batchSize)
-		if err = db.GetEngine(db.DefaultContext).Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&users); err != nil {
+		if err = db.GetEngine(ctx).Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&users); err != nil {
 			return err
 		}
 		if len(users) == 0 {
 			break
 		}
 
-		if err = updateUserStarNumbers(users); err != nil {
+		if err = updateUserStarNumbers(ctx, users); err != nil {
 			return err
 		}
 	}
@@ -348,9 +344,7 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 		}
 	}
 
-	if _, err := db.DeleteByBean(ctx, &asymkey_model.DeployKey{
-		ID: key.ID,
-	}); err != nil {
+	if _, err := db.DeleteByID[asymkey_model.DeployKey](ctx, key.ID); err != nil {
 		return fmt.Errorf("delete deploy key [%d]: %w", key.ID, err)
 	}
 
@@ -359,7 +353,7 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 	if err != nil {
 		return err
 	} else if !has {
-		if err = asymkey_model.DeletePublicKeys(ctx, key.KeyID); err != nil {
+		if _, err = db.DeleteByID[asymkey_model.PublicKey](ctx, key.KeyID); err != nil {
 			return err
 		}
 	}

@@ -68,7 +68,7 @@ func (db *DBIndexer) Index(id int64) error {
 		}
 		return err
 	}
-	err = repo_model.UpdateLanguageStats(repo, commitID, stats)
+	err = repo_model.UpdateLanguageStats(ctx, repo, commitID, stats)
 	if err != nil {
 		log.Error("Unable to update language stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
 		return err

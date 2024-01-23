@@ -3,11 +3,16 @@
   width: fit-content;
 }
 
-.ui.modal.g-modal-confirm > .inside.close {
+.ui.modal.g-modal-confirm > .inside.close.icon {
   padding: 0;
   width: 1em;
   height: 1em;
   top: 1.2em;
+}
+
+.ui.modal > .close.icon[height="16"] {
+  top: 0.7em; /* fomantic uses absolute layout, so if we have special icon size, it needs this trick to align vertically */
+  color: var(--color-text-dark);
 }
 
 .ui.modal > .header {

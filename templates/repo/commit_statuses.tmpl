@@ -8,15 +8,7 @@
 			{{template "repo/commit_status" .Status}}
 		</span>
 	{{end}}
-	<div class="tippy-target ui relaxed list divided">
-		{{range .Statuses}}
-			<div class="ui item singular-status gt-df">
-				{{template "repo/commit_status" .}}
-				<span class="ui gt-ml-3 gt-f1">{{.Context}} <span class="text grey">{{.Description}}</span></span>
-				{{if .TargetURL}}
-					<a class="gt-ml-3" href="{{.TargetURL}}" target="_blank" rel="noopener noreferrer">{{$.root.locale.Tr "repo.pulls.status_checks_details"}}</a>
-				{{end}}
-			</div>
-		{{end}}
+	<div class="tippy-target">
+		{{template "repo/pulls/status" (dict "CommitStatuses" .Statuses "CommitStatus" .Status)}}
 	</div>
 {{end}}

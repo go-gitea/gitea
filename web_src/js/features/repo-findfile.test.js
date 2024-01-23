@@ -1,4 +1,3 @@
-import {describe, expect, test} from 'vitest';
 import {strSubMatch, calcMatchedWeight, filterRepoFilesWeighted} from './repo-findfile.js';
 
 describe('Repo Find Files', () => {

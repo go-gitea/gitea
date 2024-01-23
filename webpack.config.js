@@ -28,11 +28,15 @@ for (const path of glob('web_src/css/themes/*.css')) {
 
 const isProduction = env.NODE_ENV !== 'development';
 
-let sourceMapEnabled;
+// ENABLE_SOURCEMAP accepts the following values:
+// true - all enabled, the default in development
+// reduced - minimal sourcemaps, the default in production
+// false - all disabled
+let sourceMaps;
 if ('ENABLE_SOURCEMAP' in env) {
-  sourceMapEnabled = env.ENABLE_SOURCEMAP === 'true';
+  sourceMaps = ['true', 'false'].includes(env.ENABLE_SOURCEMAP) ? env.ENABLE_SOURCEMAP : 'reduced';
 } else {
-  sourceMapEnabled = !isProduction;
+  sourceMaps = isProduction ? 'reduced' : 'true';
 }
 
 const filterCssImport = (url, ...args) => {
@@ -105,7 +109,9 @@ export default {
         css: !LightningCssMinifyPlugin,
         legalComments: 'none',
       }),
-      LightningCssMinifyPlugin && new LightningCssMinifyPlugin(),
+      LightningCssMinifyPlugin && new LightningCssMinifyPlugin({
+        sourceMap: sourceMaps === 'true',
+      }),
     ],
     splitChunks: {
       chunks: 'async',
@@ -143,7 +149,7 @@ export default {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: sourceMapEnabled,
+              sourceMap: sourceMaps === 'true',
               url: {filter: filterCssImport},
               import: {filter: filterCssImport},
             },
@@ -181,9 +187,10 @@ export default {
       filename: 'css/[name].css',
       chunkFilename: 'css/[name].[contenthash:8].css',
     }),
-    sourceMapEnabled && (new SourceMapDevToolPlugin({
+    sourceMaps !== 'false' && new SourceMapDevToolPlugin({
       filename: '[file].[contenthash:8].map',
-    })),
+      ...(sourceMaps === 'reduced' && {include: /^js\/index\.js$/}),
+    }),
     new MonacoWebpackPlugin({
       filename: 'js/monaco-[name].[contenthash:8].worker.js',
     }),

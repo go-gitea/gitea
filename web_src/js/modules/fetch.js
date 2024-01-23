@@ -11,9 +11,7 @@ const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
 export function request(url, {method = 'GET', headers = {}, data, body, ...other} = {}) {
   let contentType;
   if (!body) {
-    if (data instanceof FormData) {
-      body = data;
-    } else if (data instanceof URLSearchParams) {
+    if (data instanceof FormData || data instanceof URLSearchParams) {
       body = data;
     } else if (isObject(data) || Array.isArray(data)) {
       contentType = 'application/json';

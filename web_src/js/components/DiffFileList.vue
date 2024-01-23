@@ -36,7 +36,7 @@ export default {
 };
 </script>
 <template>
-  <ol class="diff-detail-box diff-stats gt-m-0" ref="root" v-if="store.fileListIsVisible">
+  <ol class="diff-stats gt-m-0" ref="root" v-if="store.fileListIsVisible">
     <li v-for="file in store.files" :key="file.NameHash">
       <div class="gt-font-semibold gt-df gt-ac pull-right">
         <span v-if="file.IsBin" class="gt-ml-1 gt-mr-3">{{ store.binaryFileMessage }}</span>

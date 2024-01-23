@@ -6,6 +6,7 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -20,7 +21,7 @@ func TestUser_RemoveMember(t *testing.T) {
 	// remove a user that is a member
 	unittest.AssertExistsAndLoadBean(t, &organization.OrgUser{UID: 4, OrgID: 3})
 	prevNumMembers := org.NumMembers
-	assert.NoError(t, RemoveOrgUser(org.ID, 4))
+	assert.NoError(t, RemoveOrgUser(db.DefaultContext, org.ID, 4))
 	unittest.AssertNotExistsBean(t, &organization.OrgUser{UID: 4, OrgID: 3})
 	org = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
 	assert.Equal(t, prevNumMembers-1, org.NumMembers)
@@ -28,7 +29,7 @@ func TestUser_RemoveMember(t *testing.T) {
 	// remove a user that is not a member
 	unittest.AssertNotExistsBean(t, &organization.OrgUser{UID: 5, OrgID: 3})
 	prevNumMembers = org.NumMembers
-	assert.NoError(t, RemoveOrgUser(org.ID, 5))
+	assert.NoError(t, RemoveOrgUser(db.DefaultContext, org.ID, 5))
 	unittest.AssertNotExistsBean(t, &organization.OrgUser{UID: 5, OrgID: 3})
 	org = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
 	assert.Equal(t, prevNumMembers, org.NumMembers)
@@ -44,7 +45,7 @@ func TestRemoveOrgUser(t *testing.T) {
 		if unittest.BeanExists(t, &organization.OrgUser{OrgID: orgID, UID: userID}) {
 			expectedNumMembers--
 		}
-		assert.NoError(t, RemoveOrgUser(orgID, userID))
+		assert.NoError(t, RemoveOrgUser(db.DefaultContext, orgID, userID))
 		unittest.AssertNotExistsBean(t, &organization.OrgUser{OrgID: orgID, UID: userID})
 		org = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: orgID})
 		assert.EqualValues(t, expectedNumMembers, org.NumMembers)
@@ -52,7 +53,7 @@ func TestRemoveOrgUser(t *testing.T) {
 	testSuccess(3, 4)
 	testSuccess(3, 4)
 
-	err := RemoveOrgUser(7, 5)
+	err := RemoveOrgUser(db.DefaultContext, 7, 5)
 	assert.Error(t, err)
 	assert.True(t, organization.IsErrLastOrgOwner(err))
 	unittest.AssertExistsAndLoadBean(t, &organization.OrgUser{OrgID: 7, UID: 5})

@@ -60,7 +60,6 @@ function initEditorForm() {
   initEditDiffTab($('.repository .edit.form'));
 }
 
-
 function getCursorPosition($e) {
   const el = $e.get(0);
   let pos = 0;

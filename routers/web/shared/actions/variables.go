@@ -18,7 +18,7 @@ import (
 )
 
 func SetVariablesContext(ctx *context.Context, ownerID, repoID int64) {
-	variables, err := actions_model.FindVariables(ctx, actions_model.FindVariablesOpts{
+	variables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{
 		OwnerID: ownerID,
 		RepoID:  repoID,
 	})

@@ -128,8 +128,6 @@ If pre-built frontend files are present it is possible to only build the backend
 TAGS="bindata" make backend
 ```
 
-Webpack source maps are by default enabled in development builds and disabled in production builds. They can be enabled by setting the `ENABLE_SOURCEMAP=true` environment variable.
-
 ## Test
 
 After following the steps above, a `gitea` binary will be available in the working directory.
@@ -260,3 +258,11 @@ GOARCH=amd64 \
 TAGS="bindata sqlite sqlite_unlock_notify" \
 make build
 ```
+
+## Source Maps
+
+By default, gitea generates reduced source maps for frontend files to conserve space. This can be controlled with the `ENABLE_SOURCEMAP` environment variable:
+
+- `ENABLE_SOURCEMAP=true` generates all source maps, the default for development builds
+- `ENABLE_SOURCEMAP=reduced` generates limited source maps, the default for production builds
+- `ENABLE_SOURCEMAP=false` generates no source maps

@@ -21,23 +21,23 @@
 				{{end}}
 				</div>
 			</td>
-			<td colspan="7" class="lines-code lines-code-old ">{{$inlineDiff := $.section.GetComputedInlineDiffFor $line $.locale}}{{/*
-				*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff "locale" $.locale}}</td>
+			<td colspan="7" class="lines-code lines-code-old ">{{$inlineDiff := $.section.GetComputedInlineDiffFor $line ctx.Locale}}{{/*
+				*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff}}</td>
 		{{else}}
-			{{$inlineDiff := $.section.GetComputedInlineDiffFor $line $.locale}}
+			{{$inlineDiff := $.section.GetComputedInlineDiffFor $line ctx.Locale}}
 			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{$.FileNameHash}}L{{$line.LeftIdx}}{{end}}"></span></td>
-			<td class="blob-excerpt lines-escape lines-escape-old">{{if and $line.LeftIdx $inlineDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff "locale" $.locale}}"></button>{{end}}</td>
+			<td class="blob-excerpt lines-escape lines-escape-old">{{if and $line.LeftIdx $inlineDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"></button>{{end}}</td>
 			<td class="blob-excerpt lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="gt-mono" data-type-marker=""></span>{{end}}</td>
 			<td class="blob-excerpt lines-code lines-code-old">{{/*
-				*/}}{{if $line.LeftIdx}}{{template "repo/diff/section_code" dict "diff" $inlineDiff "locale" $.locale}}{{else}}{{/*
+				*/}}{{if $line.LeftIdx}}{{template "repo/diff/section_code" dict "diff" $inlineDiff}}{{else}}{{/*
 					*/}}<code class="code-inner"></code>{{/*
 				*/}}{{end}}{{/*
 			*/}}</td>
 			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{$.FileNameHash}}R{{$line.RightIdx}}{{end}}"></span></td>
-			<td class="blob-excerpt lines-escape lines-escape-new">{{if and $line.RightIdx $inlineDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff "locale" $.locale}}"></button>{{end}}</td>
+			<td class="blob-excerpt lines-escape lines-escape-new">{{if and $line.RightIdx $inlineDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"></button>{{end}}</td>
 			<td class="blob-excerpt lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="gt-mono" data-type-marker=""></span>{{end}}</td>
 			<td class="blob-excerpt lines-code lines-code-new">{{/*
-				*/}}{{if $line.RightIdx}}{{template "repo/diff/section_code" dict "diff" $inlineDiff "locale" $.locale}}{{else}}{{/*
+				*/}}{{if $line.RightIdx}}{{template "repo/diff/section_code" dict "diff" $inlineDiff}}{{else}}{{/*
 					*/}}<code class="code-inner"></code>{{/*
 				*/}}{{end}}{{/*
 			*/}}</td>
@@ -71,10 +71,10 @@
 			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{$.FileNameHash}}L{{$line.LeftIdx}}{{end}}"></span></td>
 			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{$.FileNameHash}}R{{$line.RightIdx}}{{end}}"></span></td>
 		{{end}}
-		{{$inlineDiff := $.section.GetComputedInlineDiffFor $line $.locale}}
-		<td class="blob-excerpt lines-escape">{{if $inlineDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff "locale" $.locale}}"></button>{{end}}</td>
+		{{$inlineDiff := $.section.GetComputedInlineDiffFor $line ctx.Locale}}
+		<td class="blob-excerpt lines-escape">{{if $inlineDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"></button>{{end}}</td>
 		<td class="blob-excerpt lines-type-marker"><span class="gt-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
-		<td class="blob-excerpt lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}"><code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff "locale" $.locale}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code></td>
+		<td class="blob-excerpt lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}"><code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code></td>
 	</tr>
 	{{end}}
 {{end}}
