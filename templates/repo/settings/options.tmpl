@@ -81,7 +81,7 @@
 			<div class="ui attached segment">
 				{{if .Repository.IsArchived}}
 					<div class="ui warning message gt-text-center">
-						{{.locale.Tr "repo.settings.archive.mirrors_unavailable"}}
+						{{ctx.Locale.Tr "repo.settings.archive.mirrors_unavailable"}}
 					</div>
 				{{else}}
 					{{if $newMirrorsEntirelyEnabled}}
