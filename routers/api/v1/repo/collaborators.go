@@ -390,7 +390,6 @@ func GetAllContributorsStats(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ContributorDataMap"
 	//   "202":
-	//     description: request later as stats are still generated
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
