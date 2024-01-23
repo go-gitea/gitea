@@ -14,6 +14,7 @@ import (
 	gitealog "code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
+	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/osfs"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -62,7 +63,15 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 			return nil, err
 		}
 	}
-	storage := filesystem.NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), filesystem.Options{KeepDescriptors: true, LargeObjectThreshold: setting.Git.LargeObjectThreshold})
+	// the "clone --shared" repo doesn't work well with go-git AlternativeFS, https://github.com/go-git/go-git/issues/1006
+	// so use "/" for AlternatesFS, I guess it is the same behavior as current nogogit (no limitation or check for the "objects/info/alternates" paths), trust the "clone" command executed by the server.
+	var altFs billy.Filesystem
+	if setting.IsWindows {
+		altFs = osfs.New(filepath.VolumeName(setting.RepoRootPath) + "\\") // TODO: does it really work for Windows? Need some time to check.
+	} else {
+		altFs = osfs.New("/")
+	}
+	storage := filesystem.NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), filesystem.Options{KeepDescriptors: true, LargeObjectThreshold: setting.Git.LargeObjectThreshold, AlternatesFS: altFs})
 	gogitRepo, err := gogit.Open(storage, fs)
 	if err != nil {
 		return nil, err
