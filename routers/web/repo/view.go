@@ -602,17 +602,11 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			defer deferable()
 			attrs, err := checker.CheckPath(ctx.Repo.TreePath)
 			if err == nil {
-				if vendored, has := attrs["linguist-vendored"]; has {
-					if vendored == "set" || vendored == "true" {
-						ctx.Data["IsVendored"] = true
-					}
-				}
-
-				if generated, has := attrs["linguist-generated"]; has {
-					if generated == "set" || generated == "true" {
-						ctx.Data["IsGenerated"] = true
-					}
-				}
+				vendored, has := attrs["linguist-vendored"]
+				ctx.Data["IsVendored"] = has && (vendored == "set" || vendored == "true")
+				
+				generated, has := attrs["linguist-generated"]
+				ctx.Data["IsGenerated"] = has && (generated == "set" || generated == "true")
 			}
 		}
 	}
