@@ -83,7 +83,7 @@ func (source *Source) Callback(request *http.Request, response http.ResponseWrit
 		user.Name = samlMap[source.UsernameAssertionKey]
 	}
 
-	// TODO: utilize groups later on
+	// TODO: utilize groups once mapping is supported
 
 	return user, nil
 }

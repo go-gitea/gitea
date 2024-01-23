@@ -358,6 +358,12 @@ Notice: Reverse Proxy Auth doesn't support the API. You still need an access tok
 - Click the `Add Authentication Source` button.
 - Select `SAML` as the authentication type.
 
+#### Features Not Yet Supported
+
+Currently, auto-registration is not supported for SAML. During the external account linking process the user will be prompted to set a username and email address or link to an existing account.
+
+SAML group mapping is not supported.
+
 #### Settings
 
 - `Authentication Name` **(required)**
