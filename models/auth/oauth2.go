@@ -368,7 +368,7 @@ func DeleteOAuth2Application(ctx context.Context, id, userid int64) error {
 	return committer.Commit()
 }
 
-// ////////////////////////////////////////////////////
+//////////////////////////////////////////////////////
 
 // OAuth2AuthorizationCode is a code to obtain an access token in combination with the client secret once. It has a limited lifetime.
 type OAuth2AuthorizationCode struct {
@@ -443,7 +443,7 @@ func GetOAuth2AuthorizationByCode(ctx context.Context, code string) (auth *OAuth
 	return auth, nil
 }
 
-// ////////////////////////////////////////////////////
+//////////////////////////////////////////////////////
 
 // OAuth2Grant represents the permission of an user for a specific application to access resources
 type OAuth2Grant struct {
