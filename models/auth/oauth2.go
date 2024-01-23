@@ -368,7 +368,7 @@ func DeleteOAuth2Application(ctx context.Context, id, userid int64) error {
 	return committer.Commit()
 }
 
-//////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////
 
 // OAuth2AuthorizationCode is a code to obtain an access token in combination with the client secret once. It has a limited lifetime.
 type OAuth2AuthorizationCode struct {
@@ -443,7 +443,7 @@ func GetOAuth2AuthorizationByCode(ctx context.Context, code string) (auth *OAuth
 	return auth, nil
 }
 
-//////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////
 
 // OAuth2Grant represents the permission of an user for a specific application to access resources
 type OAuth2Grant struct {
@@ -606,30 +606,6 @@ func (err ErrOAuthApplicationNotFound) Error() string {
 // Unwrap unwraps this as a ErrNotExist err
 func (err ErrOAuthApplicationNotFound) Unwrap() error {
 	return util.ErrNotExist
-}
-
-// GetActiveAuthProviderSources returns all actived LoginOAuth2 sources
-func GetActiveAuthProviderSources(ctx context.Context, authType Type) ([]*Source, error) {
-	sources := make([]*Source, 0, 1)
-	if err := db.GetEngine(ctx).Where("is_active = ? and type = ?", true, authType).Find(&sources); err != nil {
-		return nil, err
-	}
-	return sources, nil
-}
-
-// GetActiveAuthSourceByName returns a OAuth2 AuthSource based on the given name
-func GetActiveAuthSourceByName(ctx context.Context, name string, authType Type) (*Source, error) {
-	authSource := new(Source)
-	has, err := db.GetEngine(ctx).Where("name = ? and type = ? and is_active = ?", name, authType, true).Get(authSource)
-	if err != nil {
-		return nil, err
-	}
-
-	if !has {
-		return nil, fmt.Errorf("auth source not found, name: %q", name)
-	}
-
-	return authSource, nil
 }
 
 func DeleteOAuth2RelictsByUserID(ctx context.Context, userID int64) error {

@@ -62,7 +62,7 @@ type Source struct {
 }
 
 func GenerateSAMLSPKeypair() (string, string, error) {
-	key, err := rsa.GenerateKey(rand.Reader, 1024)
+	key, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		return "", "", err
 	}

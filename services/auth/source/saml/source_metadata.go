@@ -21,7 +21,7 @@ func (source *Source) Metadata(request *http.Request, response http.ResponseWrit
 	if err != nil {
 		return err
 	}
-	buf, err := xml.MarshalIndent(metadata, "", "  ")
+	buf, err := xml.Marshal(metadata)
 	if err != nil {
 		return err
 	}
