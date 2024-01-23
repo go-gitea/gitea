@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -25,10 +24,6 @@ import (
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/routers/web/org"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-)
-
-const (
-	tplProfileBigAvatar base.TplName = "shared/user/profile_big_avatar"
 )
 
 // OwnerProfile render profile page for a user or a organization (aka, repo owner)
@@ -314,10 +309,8 @@ func Action(ctx *context.Context) {
 
 	if err != nil {
 		log.Error("Failed to apply action %q: %v", ctx.FormString("action"), err)
-		ctx.Error(http.StatusBadRequest, fmt.Sprintf("Action %q failed", ctx.FormString("action")))
+		ctx.JSONError(fmt.Sprintf("Action %q failed", ctx.FormString("action")))
 		return
 	}
-
-	shared_user.PrepareContextForProfileBigAvatar(ctx)
-	ctx.HTML(http.StatusOK, tplProfileBigAvatar)
+	ctx.JSONOK()
 }
