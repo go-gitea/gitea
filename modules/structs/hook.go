@@ -351,13 +351,15 @@ const (
 
 // IssuePayload represents the payload information that is sent along with an issue event.
 type IssuePayload struct {
-	Action     HookIssueAction `json:"action"`
-	Index      int64           `json:"number"`
-	Changes    *ChangesPayload `json:"changes,omitempty"`
-	Issue      *Issue          `json:"issue"`
-	Repository *Repository     `json:"repository"`
-	Sender     *User           `json:"sender"`
-	CommitID   string          `json:"commit_id"`
+	Action        HookIssueAction `json:"action"`
+	Index         int64           `json:"number"`
+	Changes       *ChangesPayload `json:"changes,omitempty"`
+	Issue         *Issue          `json:"issue"`
+	Repository    *Repository     `json:"repository"`
+	Sender        *User           `json:"sender"`
+	CommitID      string          `json:"commit_id"`
+	AddedLabels   []*Label        `json:"added_labels"`
+	RemovedLabels []*Label        `json:"removed_labels"`
 }
 
 // JSONPayload encodes the IssuePayload to JSON, with an indentation of two spaces.

@@ -5,12 +5,14 @@ package repo
 
 import (
 	"net/http"
+	"strconv"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -224,6 +226,93 @@ func UpdateIssueLabel(ctx *context.Context) {
 	default:
 		log.Warn("Unrecognized action: %s", action)
 		ctx.Error(http.StatusInternalServerError)
+		return
+	}
+
+	ctx.JSONOK()
+}
+
+// UpdateIssueLabelBatched change issue's labels
+func UpdateIssueLabelBatched(ctx *context.Context) {
+	if ctx.Written() {
+		return
+	}
+
+	issueID, err := strconv.Atoi(ctx.Req.Form.Get("issueID"))
+	if err != nil {
+		ctx.ServerError("Req.Form", err)
+		return
+	}
+
+	issues, err := issues_model.GetIssuesByIDs(ctx, []int64{int64(issueID)})
+	if err != nil {
+		ctx.ServerError("GetIssuesByIDs", err)
+		return
+	}
+
+	currentIssue := issues[0]
+
+	err = ctx.Req.ParseForm()
+	if err != nil {
+		ctx.ServerError("ParseForm", err)
+		return
+	}
+
+	isClear := false
+
+	err = json.Unmarshal([]byte(ctx.Req.PostForm.Get("isClear")), &isClear)
+	if err != nil {
+		ctx.ServerError("PostForm", err)
+		return
+	}
+
+	if isClear {
+		if err := issue_service.ClearLabels(ctx, currentIssue, ctx.Doer); err != nil {
+			ctx.ServerError("ClearLabels", err)
+			return
+		}
+		ctx.JSONOK()
+		return
+	}
+
+	type LabelsInfo struct {
+		Action  string `json:"action"`
+		LabelID int64  `json:"labelId"`
+	}
+
+	var labelsInfo []LabelsInfo
+
+	err = json.Unmarshal([]byte(ctx.Req.PostForm.Get("labelsInfo")), &labelsInfo)
+	if err != nil {
+		ctx.ServerError("PostForm", err)
+		return
+	}
+
+	var addedLabels, removedLabels []*issues_model.Label
+
+	for _, labelInfo := range labelsInfo {
+		label, err := issues_model.GetLabelByID(ctx, labelInfo.LabelID)
+		if err != nil {
+			ctx.ServerError("GetLabelByID", err)
+			return
+		}
+		switch labelInfo.Action {
+		case "attach":
+			addedLabels = append(addedLabels, label)
+		case "detach":
+			removedLabels = append(removedLabels, label)
+		default:
+			log.Warn("Unrecognized action: %s", labelInfo.Action)
+			ctx.Error(http.StatusInternalServerError)
+			return
+		}
+
+	}
+
+	err = issue_service.AddAndOrRemoveLabel(ctx, currentIssue, ctx.Doer, addedLabels, removedLabels)
+
+	if err != nil {
+		ctx.ServerError("AddAndOrRemoveLabel", err)
 		return
 	}
 

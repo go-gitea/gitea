@@ -531,11 +531,13 @@ func (m *webhookNotifier) IssueChangeLabels(ctx context.Context, doer *user_mode
 		})
 	} else {
 		err = PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventIssueLabel, &api.IssuePayload{
-			Action:     api.HookIssueLabelUpdated,
-			Index:      issue.Index,
-			Issue:      convert.ToAPIIssue(ctx, issue),
-			Repository: convert.ToRepo(ctx, issue.Repo, permission),
-			Sender:     convert.ToUser(ctx, doer, nil),
+			Action:        api.HookIssueLabelUpdated,
+			Index:         issue.Index,
+			Issue:         convert.ToAPIIssue(ctx, issue),
+			Repository:    convert.ToRepo(ctx, issue.Repo, permission),
+			Sender:        convert.ToUser(ctx, doer, nil),
+			AddedLabels:   convert.ToLabelList(addedLabels, issue.Repo, doer),
+			RemovedLabels: convert.ToLabelList(removedLabels, issue.Repo, doer),
 		})
 	}
 	if err != nil {

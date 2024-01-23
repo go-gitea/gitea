@@ -3,7 +3,7 @@ import {
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
   initRepoIssueComments, initRepoIssueDependencyDelete, initRepoIssueReferenceIssue,
   initRepoIssueTitleEdit, initRepoIssueWipToggle,
-  initRepoPullRequestUpdate, updateIssuesMeta, handleReply, initIssueTemplateCommentEditors, initSingleCommentEditor,
+  initRepoPullRequestUpdate, updateIssuesMeta, handleReply, initIssueTemplateCommentEditors, initSingleCommentEditor, updateIssuesLabelBatched, updateIssuesLabelClear,
 } from './repo-issue.js';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
 import {svg} from '../svg.js';
@@ -45,6 +45,34 @@ function reloadConfirmDraftComment() {
     }
   }
   window.location.reload();
+}
+
+  // handleBatchedLabelUpdate updates issue label change in one request
+async function handleBatchedLabelUpdate(items) {
+  if (!items) return;
+  const itemEntries = Object.entries(items);
+  if (!itemEntries) return;
+  if (itemEntries.length < 1) return;
+  if (!itemEntries[0] || !itemEntries[0][1]) return;
+
+  const url = itemEntries[0][1]['update-url'];
+  const issueId = itemEntries[0][1]['issue-id'];
+
+  if (!url || !issueId) return;
+
+  const labelsInfo = [];
+  for (const [labelId, values] of itemEntries) {
+    labelsInfo.push({
+      labelId: parseInt(labelId),
+      action: values['action']
+    });
+  }
+
+  await updateIssuesLabelBatched(url, issueId, labelsInfo);
+
+  if (itemEntries.length) {
+    reloadConfirmDraftComment();
+  }
 }
 
 export function initRepoCommentForm() {
@@ -107,6 +135,9 @@ export function initRepoCommentForm() {
         hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
         if (hasUpdateAction) {
           // TODO: Add batch functionality and make this 1 network request.
+          if (outerSelector === 'labels') {
+            return await handleBatchedLabelUpdate(items);
+          }
           const itemEntries = Object.entries(items);
           for (const [elementId, item] of itemEntries) {
             await updateIssuesMeta(
@@ -205,12 +236,16 @@ export function initRepoCommentForm() {
     $listMenu.find('.no-select.item').on('click', function (e) {
       e.preventDefault();
       if (hasUpdateAction) {
-        updateIssuesMeta(
-          $listMenu.data('update-url'),
-          'clear',
-          $listMenu.data('issue-id'),
-          '',
-        ).then(reloadConfirmDraftComment);
+        if (outerSelector === 'labels') {
+          updateIssuesLabelClear($listMenu.data('update-url'), parseInt($listMenu.data('issue-id'))).then(reloadConfirmDraftComment);
+        } else {
+          updateIssuesMeta(
+            $listMenu.data('update-url'),
+            'clear',
+            $listMenu.data('issue-id'),
+            '',
+          ).then(reloadConfirmDraftComment);
+        }
       }
 
       $(this).parent().find('.item').each(function () {

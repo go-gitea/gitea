@@ -5,6 +5,7 @@ package issue
 
 import (
 	"context"
+	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -91,5 +92,25 @@ func ReplaceLabels(ctx context.Context, issue *issues_model.Issue, doer *user_mo
 	}
 
 	notify_service.IssueChangeLabels(ctx, doer, issue, labels, old)
+	return nil
+}
+
+// AddAndOrRemoveLabel removes and/or adds labels to the issue.
+func AddAndOrRemoveLabel(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, addedLabels, removedLabels []*issues_model.Label) error {
+	if len(addedLabels) > 0 {
+		if err := issues_model.AddIssueLabels(ctx, issue, addedLabels, doer); err != nil {
+			return fmt.Errorf("addLabels: %w", err)
+		}
+	}
+
+	if len(removedLabels) > 0 {
+		for _, l := range removedLabels {
+			if err := issues_model.DeleteIssueLabel(ctx, issue, l, doer); err != nil {
+				return fmt.Errorf("removeLabel: %w", err)
+			}
+		}
+	}
+
+	notify_service.IssueChangeLabels(ctx, doer, issue, addedLabels, removedLabels)
 	return nil
 }
