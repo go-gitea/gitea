@@ -115,6 +115,8 @@ func (r *ActionRunner) EditLink() string {
 	switch r.BelongsToOwnerType() {
 	case types.OwnerTypeSystemGlobal:
 		return fmt.Sprintf("/admin/actions/runners/%d", r.ID)
+	case types.OwnerTypeIndividual:
+		return fmt.Sprintf("/user/settings/actions/runners/%d", r.ID)
 	case types.OwnerTypeRepository:
 		return fmt.Sprintf("%s/settings/actions/runners/%d", r.Repo.Link(), r.ID)
 	case types.OwnerTypeOrganization:
