@@ -1,5 +1,11 @@
-import 'htmx.org';
+import * as htmx from 'htmx.org';
 import {showErrorToast} from './modules/toast.js';
+
+window.htmx = htmx;
+
+// https://htmx.org/reference/#config
+htmx.config.requestClass = 'is-loading';
+htmx.config.scrollIntoViewOnBoost = false;
 
 // https://htmx.org/events/#htmx:sendError
 document.body.addEventListener('htmx:sendError', (event) => {

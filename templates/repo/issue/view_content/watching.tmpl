@@ -1,6 +1,5 @@
-<form hx-boost="true" hx-sync="this:replace" hx-target="this" hx-push-url="false" hx-swap="show:no-scroll" method="post" action="{{.Issue.Link}}/watch">
+<form hx-boost="true" hx-sync="this:replace" hx-target="this" hx-push-url="false" method="post" action="{{.Issue.Link}}/watch">
 	<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}">
-	<span class="htmx-indicator is-loading"></span>
 	<button class="fluid ui button">
 		{{if $.IssueWatch.IsWatching}}
 			{{svg "octicon-mute" 16 "gt-mr-3"}}
