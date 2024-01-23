@@ -166,10 +166,6 @@ func InitSimple(ctx context.Context) error {
 // InitFull initializes git module with version check and change global variables, sync gitconfig.
 // It should only be called once at the beginning of the program initialization (TestMain/GlobalInitInstalled) as this code makes unsynchronized changes to variables.
 func InitFull(ctx context.Context) (err error) {
-	if err = checkInit(); err != nil {
-		return err
-	}
-
 	if err = InitSimple(ctx); err != nil {
 		return err
 	}
@@ -189,7 +185,13 @@ func InitFull(ctx context.Context) (err error) {
 		globalCommandArgs = append(globalCommandArgs, "-c", "credential.helper=")
 	}
 	SupportProcReceive = CheckGitVersionAtLeast("2.29") == nil
-	SupportHashSha256 = CheckGitVersionAtLeast("2.42") == nil
+	SupportHashSha256 = CheckGitVersionAtLeast("2.42") == nil && !isGogit
+	if SupportHashSha256 {
+		SupportedObjectFormats = append(SupportedObjectFormats, Sha256ObjectFormat)
+	} else {
+		log.Warn("sha256 hash support is disabled - requires Git >= 2.42. Gogit is currently unsupported")
+	}
+
 	if setting.LFS.StartServer {
 		if CheckGitVersionAtLeast("2.1.2") != nil {
 			return errors.New("LFS server support requires Git >= 2.1.2")
