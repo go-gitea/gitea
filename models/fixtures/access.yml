@@ -1,7 +1,7 @@
 -
   id: 1
   user_id: 1
-  repo_id: 60
+  repo_id: 61
   mode: 4
 
 -
@@ -49,7 +49,7 @@
 -
   id: 9
   user_id: 12
-  repo_id: 59
+  repo_id: 60
   mode: 4
 
 -
