@@ -19,6 +19,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	base_module "code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
@@ -397,7 +398,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			RepoID:      g.repo.ID,
 			Repo:        g.repo,
 			Index:       issue.Number,
-			Title:       issue.Title,
+			Title:       base_module.TruncateString(issue.Title, 255),
 			Content:     issue.Content,
 			Ref:         issue.Ref,
 			IsClosed:    issue.State == "closed",
