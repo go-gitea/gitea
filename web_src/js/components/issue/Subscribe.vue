@@ -15,7 +15,7 @@ const sfc = {
     },
     watchLink: {
       type: String,
-      default: false,
+      required: true,
     }
   },
   data() {
