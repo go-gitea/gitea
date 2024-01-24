@@ -448,7 +448,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 		opts.ListOptions.Page = 1
 	}
 
-	findBranchOpts := FindBranchOptions{
+	branches, err := db.Find[Branch](ctx, FindBranchOptions{
 		RepoCond:        builder.In("branch.repo_id", repoIDs),
 		CommitCond:      builder.Neq{"branch.commit_id": baseBranch.CommitID}, // newly created branch have no changes, so skip them,
 		PusherID:        opts.Actor.ID,
@@ -459,13 +459,11 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 		// we can not detect them correctly
 		PullRequestCond: builder.NotIn("branch.id", prBranchIds),
 		ListOptions:     opts.ListOptions,
-	}
-
-	branches, err := FindBranches(ctx, findBranchOpts)
+	})
 	if err != nil {
 		return nil, err
 	}
-	if err := branches.LoadRepo(ctx); err != nil {
+	if err := BranchList(branches).LoadRepo(ctx); err != nil {
 		return nil, err
 	}
 
