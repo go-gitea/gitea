@@ -31,8 +31,8 @@ func init() {
 }
 
 func (v *ActionVariable) Validate() error {
-	if v.OwnerID == 0 && v.RepoID == 0 {
-		return errors.New("the variable is not bound to any scope")
+	if v.OwnerID != 0 && v.RepoID != 0 {
+		return errors.New("a variable should not be bound to an owner and a repository at the same time")
 	}
 	return nil
 }
@@ -58,12 +58,8 @@ type FindVariablesOpts struct {
 
 func (opts FindVariablesOpts) ToConds() builder.Cond {
 	cond := builder.NewCond()
-	if opts.OwnerID > 0 {
-		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
-	}
-	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
-	}
+	cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+	cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	return cond
 }
 

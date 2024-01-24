@@ -203,7 +203,7 @@
 							{{if $showFileViewToggle}}
 								{{/* for image or CSV, it can have a horizontal scroll bar, there won't be review comment context menu (position absolute) which would be clipped by "overflow" */}}
 								<div id="diff-rendered-{{$file.NameHash}}" class="file-body file-code {{if $.IsSplitStyle}}code-diff-split{{else}}code-diff-unified{{end}} gt-overflow-x-scroll">
-									<table class="chroma gt-w-100">
+									<table class="chroma gt-w-full">
 										{{if $isImage}}
 											{{template "repo/diff/image_diff" dict "file" . "root" $ "blobBase" $blobBase "blobHead" $blobHead "sniffedTypeBase" $sniffedTypeBase "sniffedTypeHead" $sniffedTypeHead}}
 										{{else}}

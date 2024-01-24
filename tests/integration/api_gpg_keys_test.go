@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type makeRequestFunc func(testing.TB, *http.Request, int) *httptest.ResponseRecorder
+type makeRequestFunc func(testing.TB, *RequestWrapper, int) *httptest.ResponseRecorder
 
 func TestGPGKeys(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
@@ -79,7 +79,8 @@ func TestGPGKeys(t *testing.T) {
 	t.Run("CheckState", func(t *testing.T) {
 		var keys []*api.GPGKey
 
-		req := NewRequest(t, "GET", "/api/v1/user/gpg_keys?token="+tokenWithGPGKeyScope) // GET all keys
+		req := NewRequest(t, "GET", "/api/v1/user/gpg_keys"). // GET all keys
+									AddTokenAuth(tokenWithGPGKeyScope)
 		resp := MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &keys)
 		assert.Len(t, keys, 1)
@@ -95,7 +96,8 @@ func TestGPGKeys(t *testing.T) {
 		assert.Empty(t, subKey.Emails)
 
 		var key api.GPGKey
-		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(primaryKey1.ID, 10)+"?token="+tokenWithGPGKeyScope) // Primary key 1
+		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(primaryKey1.ID, 10)). // Primary key 1
+														AddTokenAuth(tokenWithGPGKeyScope)
 		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &key)
 		assert.EqualValues(t, "38EA3BCED732982C", key.KeyID)
@@ -103,7 +105,8 @@ func TestGPGKeys(t *testing.T) {
 		assert.EqualValues(t, "user2@example.com", key.Emails[0].Email)
 		assert.True(t, key.Emails[0].Verified)
 
-		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(subKey.ID, 10)+"?token="+tokenWithGPGKeyScope) // Subkey of 38EA3BCED732982C
+		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(subKey.ID, 10)). // Subkey of 38EA3BCED732982C
+													AddTokenAuth(tokenWithGPGKeyScope)
 		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &key)
 		assert.EqualValues(t, "70D7C694D17D03AD", key.KeyID)
@@ -114,7 +117,8 @@ func TestGPGKeys(t *testing.T) {
 	t.Run("CheckCommits", func(t *testing.T) {
 		t.Run("NotSigned", func(t *testing.T) {
 			var branch api.Branch
-			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/not-signed?token="+token)
+			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/not-signed").
+				AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 			DecodeJSON(t, resp, &branch)
 			assert.False(t, branch.Commit.Verification.Verified)
@@ -122,7 +126,8 @@ func TestGPGKeys(t *testing.T) {
 
 		t.Run("SignedWithNotValidatedEmail", func(t *testing.T) {
 			var branch api.Branch
-			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/good-sign-not-yet-validated?token="+token)
+			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/good-sign-not-yet-validated").
+				AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 			DecodeJSON(t, resp, &branch)
 			assert.False(t, branch.Commit.Verification.Verified)
@@ -130,7 +135,8 @@ func TestGPGKeys(t *testing.T) {
 
 		t.Run("SignedWithValidEmail", func(t *testing.T) {
 			var branch api.Branch
-			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/good-sign?token="+token)
+			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/good-sign").
+				AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 			DecodeJSON(t, resp, &branch)
 			assert.True(t, branch.Commit.Verification.Verified)
@@ -139,29 +145,33 @@ func TestGPGKeys(t *testing.T) {
 }
 
 func testViewOwnGPGKeys(t *testing.T, makeRequest makeRequestFunc, token string, expected int) {
-	req := NewRequest(t, "GET", "/api/v1/user/gpg_keys?token="+token)
+	req := NewRequest(t, "GET", "/api/v1/user/gpg_keys").
+		AddTokenAuth(token)
 	makeRequest(t, req, expected)
 }
 
 func testViewGPGKeys(t *testing.T, makeRequest makeRequestFunc, token string, expected int) {
-	req := NewRequest(t, "GET", "/api/v1/users/user2/gpg_keys?token="+token)
+	req := NewRequest(t, "GET", "/api/v1/users/user2/gpg_keys").
+		AddTokenAuth(token)
 	makeRequest(t, req, expected)
 }
 
 func testGetGPGKey(t *testing.T, makeRequest makeRequestFunc, token string, expected int) {
-	req := NewRequest(t, "GET", "/api/v1/user/gpg_keys/1?token="+token)
+	req := NewRequest(t, "GET", "/api/v1/user/gpg_keys/1").
+		AddTokenAuth(token)
 	makeRequest(t, req, expected)
 }
 
 func testDeleteGPGKey(t *testing.T, makeRequest makeRequestFunc, token string, expected int) {
-	req := NewRequest(t, "DELETE", "/api/v1/user/gpg_keys/1?token="+token)
+	req := NewRequest(t, "DELETE", "/api/v1/user/gpg_keys/1").
+		AddTokenAuth(token)
 	makeRequest(t, req, expected)
 }
 
 func testCreateGPGKey(t *testing.T, makeRequest makeRequestFunc, token string, expected int, publicKey string) {
-	req := NewRequestWithJSON(t, "POST", "/api/v1/user/gpg_keys?token="+token, api.CreateGPGKeyOption{
+	req := NewRequestWithJSON(t, "POST", "/api/v1/user/gpg_keys", api.CreateGPGKeyOption{
 		ArmoredKey: publicKey,
-	})
+	}).AddTokenAuth(token)
 	makeRequest(t, req, expected)
 }
 

@@ -193,15 +193,29 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 	var comment *issues_model.Comment
 	var history *issues_model.ContentHistory
 	var err error
+
+	if history, err = issues_model.GetIssueContentHistoryByID(ctx, historyID); err != nil {
+		log.Error("can not get issue content history %v. err=%v", historyID, err)
+		return
+	}
+	if history.IssueID != issue.ID {
+		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
+		return
+	}
 	if commentID != 0 {
+		if history.CommentID != commentID {
+			ctx.NotFound("CompareCommentID", issues_model.ErrCommentNotExist{})
+			return
+		}
+
 		if comment, err = issues_model.GetCommentByID(ctx, commentID); err != nil {
 			log.Error("can not get comment for issue content history %v. err=%v", historyID, err)
 			return
 		}
-	}
-	if history, err = issues_model.GetIssueContentHistoryByID(ctx, historyID); err != nil {
-		log.Error("can not get issue content history %v. err=%v", historyID, err)
-		return
+		if comment.IssueID != issue.ID {
+			ctx.NotFound("CompareIssueID", issues_model.ErrCommentNotExist{})
+			return
+		}
 	}
 
 	canSoftDelete := canSoftDeleteContentHistory(ctx, issue, comment, history)

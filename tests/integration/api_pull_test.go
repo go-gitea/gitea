@@ -31,7 +31,8 @@ func TestAPIViewPulls(t *testing.T) {
 
 	ctx := NewAPITestContext(t, "user2", repo.Name, auth_model.AccessTokenScopeReadRepository)
 
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls?state=all&token="+ctx.Token, owner.Name, repo.Name)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls?state=all", owner.Name, repo.Name).
+		AddTokenAuth(ctx.Token)
 	resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
 
 	var pulls []*api.PullRequest
@@ -76,10 +77,10 @@ func TestAPIMergePullWIP(t *testing.T) {
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s", owner.Name, repo.Name, pr.Index, token), &forms.MergePullRequestForm{
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner.Name, repo.Name, pr.Index), &forms.MergePullRequestForm{
 		MergeMessageField: pr.Issue.Title,
 		Do:                string(repo_model.MergeStyleMerge),
-	})
+	}).AddTokenAuth(token)
 
 	MakeRequest(t, req, http.StatusMethodNotAllowed)
 }
@@ -95,11 +96,11 @@ func TestAPICreatePullSuccess(t *testing.T) {
 
 	session := loginUser(t, owner11.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", owner10.Name, repo10.Name, token), &api.CreatePullRequestOption{
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &api.CreatePullRequestOption{
 		Head:  fmt.Sprintf("%s:master", owner11.Name),
 		Base:  "master",
 		Title: "create a failure pr",
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 	MakeRequest(t, req, http.StatusUnprocessableEntity) // second request should fail
 }
@@ -126,7 +127,8 @@ func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 		Labels:    []int64{5},
 	}
 
-	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", owner10.Name, repo10.Name, token), opts)
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), opts).
+		AddTokenAuth(token)
 
 	res := MakeRequest(t, req, http.StatusCreated)
 	pull := new(api.PullRequest)
@@ -158,7 +160,8 @@ func TestAPICreatePullWithFieldsFailure(t *testing.T) {
 		Base: "master",
 	}
 
-	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", owner10.Name, repo10.Name, token), opts)
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), opts).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 	opts.Title = "is required"
 
@@ -182,35 +185,34 @@ func TestAPIEditPull(t *testing.T) {
 
 	session := loginUser(t, owner10.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", owner10.Name, repo10.Name, token), &api.CreatePullRequestOption{
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &api.CreatePullRequestOption{
 		Head:  "develop",
 		Base:  "master",
 		Title: "create a success pr",
-	})
+	}).AddTokenAuth(token)
 	pull := new(api.PullRequest)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, pull)
 	assert.EqualValues(t, "master", pull.Base.Name)
 
-	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d?token=%s", owner10.Name, repo10.Name, pull.Index, token), &api.EditPullRequestOption{
+	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, pull.Index), &api.EditPullRequestOption{
 		Base:  "feature/1",
 		Title: "edit a this pr",
-	})
+	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, pull)
 	assert.EqualValues(t, "feature/1", pull.Base.Name)
 
-	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d?token=%s", owner10.Name, repo10.Name, pull.Index, token), &api.EditPullRequestOption{
+	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, pull.Index), &api.EditPullRequestOption{
 		Base: "not-exist",
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func doAPIGetPullFiles(ctx APITestContext, pr *api.PullRequest, callback func(*testing.T, []*api.ChangedFile)) func(*testing.T) {
 	return func(t *testing.T) {
-		url := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/files?token=%s", ctx.Username, ctx.Reponame, pr.Index, ctx.Token)
-
-		req := NewRequest(t, http.MethodGet, url)
+		req := NewRequest(t, http.MethodGet, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/files", ctx.Username, ctx.Reponame, pr.Index)).
+			AddTokenAuth(ctx.Token)
 		if ctx.ExpectedCode == 0 {
 			ctx.ExpectedCode = http.StatusOK
 		}
