@@ -14,6 +14,9 @@ import (
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -287,6 +290,27 @@ func processImageManifestIndex(ctx context.Context, mci *manifestCreationInfo, b
 
 		if err := notifyPackageCreate(ctx, mci.Creator, pv); err != nil {
 			return err
+		}
+
+		if metadata.RepositoryURL != "" {
+			repo, err := repo_model.GetRepositoryByURL(ctx, metadata.RepositoryURL)
+			if err != nil {
+				return err
+			}
+
+			perms, err := access_model.GetUserRepoPermission(ctx, repo, mci.Creator)
+			if err != nil {
+				return err
+			}
+
+			if !perms.CanWrite(unit.TypePackages) {
+				return util.NewPermissionDeniedErrorf("no permission to link package to repository: %s, or packages are disabled", repo.Name)
+			}
+
+			err = packages_model.SetRepositoryLink(ctx, pv.PackageID, repo.ID)
+			if err != nil {
+				return err
+			}
 		}
 
 		manifestDigest = digest

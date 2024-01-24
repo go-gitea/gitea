@@ -42,6 +42,7 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 	packageAuthor := "KN4CK3R"
 	packageHomepage := "https://gitea.io/"
 	packageLicense := "MIT"
+	repository := setting.AppURL + user.Name + "/repo1"
 
 	createPackage := func(name, version string) io.Reader {
 		metadata := `{
@@ -59,7 +60,8 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
       }
    ],
    "homepage":"` + packageHomepage + `",
-   "license":"` + packageLicense + `"
+   "license":"` + packageLicense + `",
+   "repository":"` + repository + `"
 }`
 
 		var buf bytes.Buffer
@@ -200,6 +202,12 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 			pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
 			assert.NoError(t, err)
 			assert.EqualValues(t, 4, pb.Size)
+
+			p, err := packages.GetPackageByName(db.DefaultContext, user.ID, packages.TypeCargo, "cargo-package")
+			assert.NoError(t, err)
+			assert.Equal(t, p.RepoID, int64(1))
+
+			assert.Equal(t, pd.Repository.Name, "repo1")
 
 			req = NewRequestWithBody(t, "PUT", url+"/new", createPackage(packageName, packageVersion)).
 				AddBasicAuth(user.Name)

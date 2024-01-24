@@ -361,6 +361,8 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 		pfci.Properties[conan_module.PropertyPackageRevision] = pref.RevisionOrDefault()
 	}
 
+	var repo string
+
 	if isConanfileFile || isConaninfoFile {
 		if isConanfileFile {
 			metadata, err := conan_module.ParseConanfile(buf)
@@ -369,6 +371,8 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 				apiError(ctx, http.StatusInternalServerError, err)
 				return
 			}
+
+			repo = metadata.RepositoryURL
 
 			pv, err := packages_model.GetVersionByNameAndVersion(ctx, pci.Owner.ID, pci.PackageType, pci.Name, pci.Version)
 			if err != nil && err != packages_model.ErrPackageNotExist {
@@ -427,7 +431,7 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 		return
 	}
 
-	if err = helper.TryConnectRepository(ctx, pv.PackageID); err != nil {
+	if err = helper.TryConnectRepository(ctx, pv.PackageID, repo); err != nil {
 		switch {
 		case errors.Is(err, util.ErrPermissionDenied):
 			apiError(ctx, http.StatusForbidden, err)

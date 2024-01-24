@@ -215,7 +215,7 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	if err = helper.TryConnectRepository(ctx, pv.PackageID); err != nil {
+	if err = helper.TryConnectRepository(ctx, pv.PackageID, metadata.RepositoryURL); err != nil {
 		switch {
 		case errors.Is(err, util.ErrPermissionDenied):
 			apiError(ctx, http.StatusForbidden, err)
