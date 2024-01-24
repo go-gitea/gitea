@@ -1,7 +1,7 @@
 import {createApp} from 'vue';
 
 // convertName convert the html tag a-b to aB
-function convertName(o) {
+export function convertName(o) {
   return o.replace(/-(\w)/g, (_, c) => {
     return c ? c.toUpperCase() : '';
   });
