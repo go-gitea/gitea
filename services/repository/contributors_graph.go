@@ -4,9 +4,13 @@
 package repository
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -85,6 +89,98 @@ func GetContributorStats(ctx context.Context, cache cache.Cache, repo *repo_mode
 	}
 }
 
+// ExtendedCommitStats return the list of *api.ExtendedCommitStats for the given revision
+func ExtendedCommitStats(repo *git.Repository, revision string /*, limit int */) ([]*api.ExtendedCommitStats, error) {
+	baseCommit, err := repo.GetCommit(revision)
+	if err != nil {
+		return nil, err
+	}
+	stdoutReader, stdoutWriter, err := os.Pipe()
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = stdoutReader.Close()
+		_ = stdoutWriter.Close()
+	}()
+
+	gitCmd := git.NewCommand(repo.Ctx, "log", "--shortstat", "--no-merges", "--pretty=format:---%n%aN%n%aE%n%as", "--reverse")
+	// AddOptionFormat("--max-count=%d", limit)
+	gitCmd.AddDynamicArguments(baseCommit.ID.String())
+
+	var extendedCommitStats []*api.ExtendedCommitStats
+	stderr := new(strings.Builder)
+	err = gitCmd.Run(&git.RunOpts{
+		Dir:    repo.Path,
+		Stdout: stdoutWriter,
+		Stderr: stderr,
+		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
+			_ = stdoutWriter.Close()
+			scanner := bufio.NewScanner(stdoutReader)
+			scanner.Split(bufio.ScanLines)
+
+			for scanner.Scan() {
+				line := strings.TrimSpace(scanner.Text())
+				if line != "---" {
+					continue
+				}
+				scanner.Scan()
+				authorName := strings.TrimSpace(scanner.Text())
+				scanner.Scan()
+				authorEmail := strings.TrimSpace(scanner.Text())
+				scanner.Scan()
+				date := strings.TrimSpace(scanner.Text())
+				scanner.Scan()
+				stats := strings.TrimSpace(scanner.Text())
+				if authorName == "" || authorEmail == "" || date == "" || stats == "" {
+					// FIXME: find a better way to parse the output so that we will handle this properly
+					log.Warn("Something is wrong with git log output, skipping...")
+					log.Warn("authorName: %s,  authorEmail: %s,  date: %s,  stats: %s", authorName, authorEmail, date, stats)
+					continue
+				}
+				//  1 file changed, 1 insertion(+), 1 deletion(-)
+				fields := strings.Split(stats, ",")
+
+				commitStats := api.CommitStats{}
+				for _, field := range fields[1:] {
+					parts := strings.Split(strings.TrimSpace(field), " ")
+					value, contributionType := parts[0], parts[1]
+					amount, _ := strconv.Atoi(value)
+
+					if strings.HasPrefix(contributionType, "insertion") {
+						commitStats.Additions = amount
+					} else {
+						commitStats.Deletions = amount
+					}
+				}
+				commitStats.Total = commitStats.Additions + commitStats.Deletions
+				scanner.Scan()
+				scanner.Text() // empty line at the end
+
+				res := &api.ExtendedCommitStats{
+					Author: &api.CommitUser{
+						Identity: api.Identity{
+							Name:  authorName,
+							Email: authorEmail,
+						},
+						Date: date,
+					},
+					Stats: &commitStats,
+				}
+				extendedCommitStats = append(extendedCommitStats, res)
+
+			}
+			_ = stdoutReader.Close()
+			return nil
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get ContributorsCommitStats for repository.\nError: %w\nStderr: %s", err, stderr)
+	}
+
+	return extendedCommitStats, nil
+}
+
 func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey string, repo *repo_model.Repository, revision string) {
 	ctx := graceful.GetManager().HammerContext()
 
@@ -98,7 +194,7 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 	if len(revision) == 0 {
 		revision = repo.DefaultBranch
 	}
-	extendedCommitStats, err := gitRepo.ExtendedCommitStats(revision)
+	extendedCommitStats, err := ExtendedCommitStats(gitRepo, revision)
 	if err != nil {
 		err := fmt.Errorf("ExtendedCommitStats: %w", err)
 		_ = cache.Put(cacheKey, err, contributorStatsCacheTimeout)
