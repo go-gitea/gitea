@@ -36,7 +36,6 @@ const sfc = {
       this.isLoading = true;
       try {
         const resp = await POST(`${this.watchLink}?watch=${!this.isWatching}`);
-        console.info(resp.status, resp.status === 200);
         if (resp.status !== 200) {
           showErrorToast(`Update watching status return: ${resp.status}`);
           return;
