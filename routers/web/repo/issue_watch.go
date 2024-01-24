@@ -41,7 +41,7 @@ func IssueWatch(ctx *context.Context) {
 		return
 	}
 
-	watch, err := strconv.ParseBool(ctx.Req.PostForm.Get("watch"))
+	watch, err := strconv.ParseBool(ctx.FormString("watch"))
 	if err != nil {
 		ctx.ServerError("watch is not bool", err)
 		return
@@ -52,5 +52,5 @@ func IssueWatch(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(issue.Link())
+	ctx.JSONOK()
 }

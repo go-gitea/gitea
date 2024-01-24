@@ -267,23 +267,13 @@
 	{{if and $.IssueWatch (not .Repository.IsArchived)}}
 		<div class="divider"></div>
 
-		<div class="ui watching">
-			<span class="text"><strong>{{ctx.Locale.Tr "notification.notifications"}}</strong></span>
-			<div class="gt-mt-3">
-				<form method="post" action="{{.Issue.Link}}/watch">
-					<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}">
-					{{$.CsrfTokenHtml}}
-					<button class="fluid ui button">
-						{{if $.IssueWatch.IsWatching}}
-							{{svg "octicon-mute" 16 "gt-mr-3"}}
-							{{ctx.Locale.Tr "repo.issues.unsubscribe"}}
-						{{else}}
-							{{svg "octicon-unmute" 16 "gt-mr-3"}}
-							{{ctx.Locale.Tr "repo.issues.subscribe"}}
-						{{end}}
-					</button>
-				</form>
-			</div>
+		<div id="issue-subscribe"
+			data-locale-notifications="{{ctx.Locale.Tr "notification.notifications"}}"
+			data-locale-unsubscribe="{{ctx.Locale.Tr "repo.issues.unsubscribe"}}"
+			data-locale-subscribe="{{ctx.Locale.Tr "repo.issues.subscribe"}}"
+			data-is-watching="{{$.IssueWatch.IsWatching}}"
+			data-watch-link="{{.Issue.Link}}/watch"
+		>
 		</div>
 	{{end}}
 	{{if .Repository.IsTimetrackerEnabled $.Context}}
