@@ -353,7 +353,7 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	if boards[0].ID == 0 {
-		boards[0].Title = ctx.Tr("repo.projects.type.uncategorized")
+		boards[0].Title = ctx.Locale.TrString("repo.projects.type.uncategorized")
 	}
 
 	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards)
@@ -679,7 +679,7 @@ func MoveIssues(ctx *context.Context) {
 		board = &project_model.Board{
 			ID:        0,
 			ProjectID: project.ID,
-			Title:     ctx.Tr("repo.projects.type.uncategorized"),
+			Title:     ctx.Locale.TrString("repo.projects.type.uncategorized"),
 		}
 	} else {
 		board, err = project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
