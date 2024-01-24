@@ -76,17 +76,18 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		defaultBranch = opts.SingleBranch
 	}
 	repo := &repo_model.Repository{
-		OwnerID:       owner.ID,
-		Owner:         owner,
-		OwnerName:     owner.Name,
-		Name:          opts.Name,
-		LowerName:     strings.ToLower(opts.Name),
-		Description:   opts.Description,
-		DefaultBranch: defaultBranch,
-		IsPrivate:     opts.BaseRepo.IsPrivate || opts.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate,
-		IsEmpty:       opts.BaseRepo.IsEmpty,
-		IsFork:        true,
-		ForkID:        opts.BaseRepo.ID,
+		OwnerID:          owner.ID,
+		Owner:            owner,
+		OwnerName:        owner.Name,
+		Name:             opts.Name,
+		LowerName:        strings.ToLower(opts.Name),
+		Description:      opts.Description,
+		DefaultBranch:    defaultBranch,
+		IsPrivate:        opts.BaseRepo.IsPrivate || opts.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate,
+		IsEmpty:          opts.BaseRepo.IsEmpty,
+		IsFork:           true,
+		ForkID:           opts.BaseRepo.ID,
+		ObjectFormatName: opts.BaseRepo.ObjectFormatName,
 	}
 
 	oldRepoPath := opts.BaseRepo.RepoPath()
