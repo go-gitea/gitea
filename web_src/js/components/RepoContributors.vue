@@ -91,7 +91,7 @@ export default {
   mounted() {
     this.fetchGraphData();
 
-    $('.ui.dropdown').dropdown({
+    $('#repo-contributors').dropdown({
       onChange: (val) => {
         this.xAxisMin = this.xAxisStart;
         this.xAxisMax = this.xAxisEnd;
@@ -340,7 +340,7 @@ export default {
       </div>
       <div>
         <!-- Contribution type -->
-        <div class="ui dropdown jump" id="dropdown">
+        <div class="ui dropdown jump" id="repo-contributors">
           <div class="ui basic compact button">
             <span class="text">
               {{ locale.filterLabel }} <strong>{{ locale.contributionType[type] }}</strong>
