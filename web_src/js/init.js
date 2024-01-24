@@ -1,11 +1,15 @@
 import {createApp} from 'vue';
 
+// convertName convert the html tag a-b to aB
 function convertName(o) {
   return o.replace(/-(\w)/g, (_, c) => {
     return c ? c.toUpperCase() : '';
   });
 }
 
+// initComponent will mount the component with tag id named id and vue sfc
+// it will also assign all attributes of the tag with the prefix data-locale- and data-
+// to the component as props
 export function initComponent(id, sfc) {
   const el = document.getElementById(id);
   if (!el) return;

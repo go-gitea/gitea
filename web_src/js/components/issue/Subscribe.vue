@@ -3,7 +3,7 @@ import {initComponent} from '../../init.js';
 import {SvgIcon} from '../../svg.js';
 import {POST} from '../../modules/fetch.js';
 import {showErrorToast} from '../../modules/toast.js';
-import { ref } from 'vue';
+import {ref} from 'vue';
 
 const sfc = {
   name: 'IssueSubscribe',
