@@ -16,16 +16,11 @@ const sfc = {
     watchLink: {
       type: String,
       default: false,
-    },
-    locale: {
-      type: Object,
-      default: () => {},
     }
   },
   data() {
     return {
       isLoading: false,
-      isWatching: false,
     };
   },
   setup(props) {

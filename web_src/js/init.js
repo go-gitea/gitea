@@ -25,6 +25,13 @@ export function initComponent(id, sfc) {
     }
   }
 
+  if (!sfc.props.locale) {
+    sfc.props.locale = {
+      type: Object,
+      default: () => {},
+    };
+  }
+
   const view = createApp(sfc, data);
   view.mount(el);
 }
