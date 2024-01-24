@@ -655,7 +655,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			if err == nil {
 				vendored, has := attrs["linguist-vendored"]
 				ctx.Data["IsVendored"] = has && (vendored == "set" || vendored == "true")
-				
+
 				generated, has := attrs["linguist-generated"]
 				ctx.Data["IsGenerated"] = has && (generated == "set" || generated == "true")
 			}
