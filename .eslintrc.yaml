@@ -128,7 +128,7 @@ rules:
   "@stylistic/js/computed-property-spacing": [2, never]
   "@stylistic/js/dot-location": [2, property]
   "@stylistic/js/eol-last": [2]
-  "@stylistic/js/func-call-spacing": [2, never]
+  "@stylistic/js/function-call-spacing": [2, never]
   "@stylistic/js/function-call-argument-newline": [0]
   "@stylistic/js/function-paren-newline": [0]
   "@stylistic/js/generator-star-spacing": [0]

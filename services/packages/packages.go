@@ -401,7 +401,9 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 	}
 
 	if setting.Packages.LimitTotalOwnerSize > -1 {
-		totalSize, err := packages_model.CalculateCreatorPackageQuota(ctx, doer.ID)
+		totalSize, err := packages_model.CalculateFileSize(ctx, &packages_model.PackageFileSearchOptions{
+			OwnerID: owner.ID,
+		})
 		if err != nil {
 			log.Error("CalculateFileSize failed: %v", err)
 			return err

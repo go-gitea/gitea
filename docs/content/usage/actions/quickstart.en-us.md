@@ -23,7 +23,7 @@ First of all, you need a Gitea instance.
 You can follow the [documentation](installation/from-package.md) to set up a new instance or upgrade your existing one.
 It doesn't matter how you install or run Gitea, as long as its version is 1.19.0 or higher.
 
-Actions are disabled by default, so you need to add the following to the configuration file to enable it:
+Since 1.21.0, Actions are enabled by default. If you are using versions before 1.21.0, you need to add the following to the configuration file to enable it:
 
 ```ini
 [actions]
@@ -113,7 +113,7 @@ jobs:
       - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by Gitea!"
       - run: echo "🔎 The name of your branch is ${{ gitea.ref }} and your repository is ${{ gitea.repository }}."
       - name: Check out repository code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - run: echo "💡 The ${{ gitea.repository }} repository has been cloned to the runner."
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
       - name: List files in the repository

@@ -64,7 +64,7 @@ git checkout v@version@  # or git checkout pr-xyz
 
 - `go` @minGoVersion@ 或更高版本，请参阅 [这里](https://golang.org/dl/)
 - `node` @minNodeVersion@ 或更高版本，并且安装 `npm`, 请参阅 [这里](https://nodejs.org/zh-cn/download/)
-- `make`, 请参阅 [这里](/zh-cn/hacking-on-gitea/)
+- `make`, 请参阅 [这里](development/hacking-on-gitea.md)
 
 为了尽可能简化编译过程，提供了各种 [make任务](https://github.com/go-gitea/gitea/blob/main/Makefile)。
 

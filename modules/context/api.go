@@ -308,6 +308,12 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 			return
 		}
 
+		objectFormat, err := ctx.Repo.GitRepo.GetObjectFormat()
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+			return
+		}
+
 		if ref := ctx.FormTrim("ref"); len(ref) > 0 {
 			commit, err := ctx.Repo.GitRepo.GetCommit(ref)
 			if err != nil {
@@ -325,7 +331,6 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 			return
 		}
 
-		var err error
 		refName := getRefName(ctx.Base, ctx.Repo, RepoRefAny)
 
 		if ctx.Repo.GitRepo.IsBranchExist(refName) {
@@ -342,7 +347,7 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 				return
 			}
 			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-		} else if len(refName) == git.SHAFullLength {
+		} else if len(refName) == objectFormat.FullLength() {
 			ctx.Repo.CommitID = refName
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
 			if err != nil {

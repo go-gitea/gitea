@@ -24,7 +24,7 @@
 		</div>
 		<div class="gt-p-0">
 			<div id="notification_table">
-				{{if eq (len .Notifications) 0}}
+				{{if not .Notifications}}
 					<div class="gt-df gt-ac gt-fc gt-p-4">
 						{{svg "octicon-inbox" 56 "gt-mb-4"}}
 						{{if eq .Status 1}}

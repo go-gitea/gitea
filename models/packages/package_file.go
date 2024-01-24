@@ -46,18 +46,18 @@ type PackageFile struct {
 func TryInsertFile(ctx context.Context, pf *PackageFile) (*PackageFile, error) {
 	e := db.GetEngine(ctx)
 
-	key := &PackageFile{
-		VersionID:    pf.VersionID,
-		LowerName:    pf.LowerName,
-		CompositeKey: pf.CompositeKey,
-	}
+	existing := &PackageFile{}
 
-	has, err := e.Get(key)
+	has, err := e.Where(builder.Eq{
+		"version_id":    pf.VersionID,
+		"lower_name":    pf.LowerName,
+		"composite_key": pf.CompositeKey,
+	}).Get(existing)
 	if err != nil {
 		return nil, err
 	}
 	if has {
-		return pf, ErrDuplicatePackageFile
+		return existing, ErrDuplicatePackageFile
 	}
 	if _, err = e.Insert(pf); err != nil {
 		return nil, err
@@ -93,13 +93,13 @@ func GetFileForVersionByName(ctx context.Context, versionID int64, name, key str
 		return nil, ErrPackageFileNotExist
 	}
 
-	pf := &PackageFile{
-		VersionID:    versionID,
-		LowerName:    strings.ToLower(name),
-		CompositeKey: key,
-	}
+	pf := &PackageFile{}
 
-	has, err := db.GetEngine(ctx).Get(pf)
+	has, err := db.GetEngine(ctx).Where(builder.Eq{
+		"version_id":    versionID,
+		"lower_name":    strings.ToLower(name),
+		"composite_key": key,
+	}).Get(pf)
 	if err != nil {
 		return nil, err
 	}
@@ -227,18 +227,6 @@ func CalculateFileSize(ctx context.Context, opts *PackageFileSearchOptions) (int
 	return db.GetEngine(ctx).
 		Table("package_file").
 		Where(opts.toConds()).
-		Join("INNER", "package_blob", "package_blob.id = package_file.blob_id").
-		SumInt(new(PackageBlob), "size")
-}
-
-// CalculateCreatorPackageQuota sums up all blob sizes related to package
-// version creator id.
-// It does NOT respect the deduplication of blobs.
-func CalculateCreatorPackageQuota(ctx context.Context, creatorID int64) (int64, error) {
-	return db.GetEngine(ctx).
-		Table("package_version").
-		Where(builder.Eq{"creator_id": creatorID}).
-		Join("INNER", "package_file", "package_version.id = package_file.version_id").
 		Join("INNER", "package_blob", "package_blob.id = package_file.blob_id").
 		SumInt(new(PackageBlob), "size")
 }
