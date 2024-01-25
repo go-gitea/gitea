@@ -12,8 +12,8 @@ import (
 )
 
 // AddAndOrRemoveLabelFromIssue updates issue label according to board LabelID
-func AddAndOrRemoveLabelFromIssue(ctx *context.Context, currentIssueId int64, fromColumnLabelID int64, board *project_model.Board) error {
-	issue, err := issues_model.GetIssueByID(ctx, currentIssueId)
+func AddAndOrRemoveLabelFromIssue(ctx *context.Context, currentIssueID, fromColumnLabelID int64, board *project_model.Board) error {
+	issue, err := issues_model.GetIssueByID(ctx, currentIssueID)
 	if err != nil {
 		return errors.New("failed getting issue")
 	}
