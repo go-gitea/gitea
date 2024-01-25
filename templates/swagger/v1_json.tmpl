@@ -17585,41 +17585,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "ContributorData": {
-      "description": "ContributorData represents statistical git commit count data",
-      "type": "object",
-      "properties": {
-        "avatar_link": {
-          "type": "string",
-          "x-go-name": "AvatarLink"
-        },
-        "home_link": {
-          "type": "string",
-          "x-go-name": "HomeLink"
-        },
-        "login": {
-          "type": "string",
-          "x-go-name": "Login"
-        },
-        "name": {
-          "type": "string",
-          "x-go-name": "Name"
-        },
-        "total_commits": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "TotalCommits"
-        },
-        "weeks": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/WeekData"
-          },
-          "x-go-name": "Weeks"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "CreateAccessTokenOption": {
       "description": "CreateAccessTokenOption options when create access token",
       "type": "object",
@@ -23109,32 +23074,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "WeekData": {
-      "type": "object",
-      "properties": {
-        "additions": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Additions"
-        },
-        "commits": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Commits"
-        },
-        "deletions": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Deletions"
-        },
-        "week": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Week"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "WikiCommit": {
       "description": "WikiCommit page commit/revision",
       "type": "object",
@@ -23445,15 +23384,6 @@
       "description": "ContentsResponse",
       "schema": {
         "$ref": "#/definitions/ContentsResponse"
-      }
-    },
-    "ContributorDataMap": {
-      "description": "ContributorDataMap",
-      "schema": {
-        "type": "object",
-        "additionalProperties": {
-          "$ref": "#/definitions/ContributorData"
-        }
       }
     },
     "CronList": {

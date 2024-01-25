@@ -37,11 +37,34 @@ var (
 	generateLock        = sync.Map{}
 )
 
+type WeekData struct {
+	Week      int64 `json:"week"`      // Starting day of the week as Unix timestamp
+	Additions int   `json:"additions"` // Number of additions in that week
+	Deletions int   `json:"deletions"` // Number of deletions in that week
+	Commits   int   `json:"commits"`   // Number of commits in that week
+}
+
+// ContributorData represents statistical git commit count data
+type ContributorData struct {
+	Name         string      `json:"name"`  // Display name of the contributor
+	Login        string      `json:"login"` // Login name of the contributor in case it exists
+	AvatarLink   string      `json:"avatar_link"`
+	HomeLink     string      `json:"home_link"`
+	TotalCommits int64       `json:"total_commits"`
+	Weeks        []*WeekData `json:"weeks"`
+}
+
+// ExtendedCommitStats contains information for commit stats with author data
+type ExtendedCommitStats struct {
+	Author *api.CommitUser  `json:"author"`
+	Stats  *api.CommitStats `json:"stats"`
+}
+
 // CreateWeeks converts list of sundays to list of *api.WeekData
-func CreateWeeks(sundays []int64) []*api.WeekData {
-	var weeks []*api.WeekData
+func CreateWeeks(sundays []int64) []*WeekData {
+	var weeks []*WeekData
 	for _, week := range sundays {
-		weeks = append(weeks, &api.WeekData{
+		weeks = append(weeks, &WeekData{
 			Week:      week,
 			Additions: 0,
 			Deletions: 0,
@@ -53,7 +76,7 @@ func CreateWeeks(sundays []int64) []*api.WeekData {
 }
 
 // GetContributorStats returns contributors stats for git commits for given revision or default branch
-func GetContributorStats(ctx context.Context, cache cache.Cache, repo *repo_model.Repository, revision string) (map[string]*api.ContributorData, error) {
+func GetContributorStats(ctx context.Context, cache cache.Cache, repo *repo_model.Repository, revision string) (map[string]*ContributorData, error) {
 	// as GetContributorStats is resource intensive we cache the result
 	cacheKey := fmt.Sprintf(contributorStatsCacheKey, repo.FullName(), revision)
 	if !cache.IsExist(cacheKey) {
@@ -82,15 +105,15 @@ func GetContributorStats(ctx context.Context, cache cache.Cache, repo *repo_mode
 	switch v := cache.Get(cacheKey).(type) {
 	case error:
 		return nil, v
-	case map[string]*api.ContributorData:
+	case map[string]*ContributorData:
 		return v, nil
 	default:
 		return nil, fmt.Errorf("unexpected type in cache detected")
 	}
 }
 
-// ExtendedCommitStats return the list of *api.ExtendedCommitStats for the given revision
-func ExtendedCommitStats(repo *git.Repository, revision string /*, limit int */) ([]*api.ExtendedCommitStats, error) {
+// GetExtendedCommitStats return the list of *ExtendedCommitStats for the given revision
+func GetExtendedCommitStats(repo *git.Repository, revision string /*, limit int */) ([]*ExtendedCommitStats, error) {
 	baseCommit, err := repo.GetCommit(revision)
 	if err != nil {
 		return nil, err
@@ -108,7 +131,7 @@ func ExtendedCommitStats(repo *git.Repository, revision string /*, limit int */)
 	// AddOptionFormat("--max-count=%d", limit)
 	gitCmd.AddDynamicArguments(baseCommit.ID.String())
 
-	var extendedCommitStats []*api.ExtendedCommitStats
+	var extendedCommitStats []*ExtendedCommitStats
 	stderr := new(strings.Builder)
 	err = gitCmd.Run(&git.RunOpts{
 		Dir:    repo.Path,
@@ -157,7 +180,7 @@ func ExtendedCommitStats(repo *git.Repository, revision string /*, limit int */)
 				scanner.Scan()
 				scanner.Text() // empty line at the end
 
-				res := &api.ExtendedCommitStats{
+				res := &ExtendedCommitStats{
 					Author: &api.CommitUser{
 						Identity: api.Identity{
 							Name:  authorName,
@@ -194,7 +217,7 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 	if len(revision) == 0 {
 		revision = repo.DefaultBranch
 	}
-	extendedCommitStats, err := ExtendedCommitStats(gitRepo, revision)
+	extendedCommitStats, err := GetExtendedCommitStats(gitRepo, revision)
 	if err != nil {
 		err := fmt.Errorf("ExtendedCommitStats: %w", err)
 		_ = cache.Put(cacheKey, err, contributorStatsCacheTimeout)
@@ -209,8 +232,8 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 	sundays, _ := util.ListSundaysBetween(startingSunday, endingSunday)
 
 	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink(ctx)
-	contributorsCommitStats := make(map[string]*api.ContributorData)
-	contributorsCommitStats["total"] = &api.ContributorData{
+	contributorsCommitStats := make(map[string]*ContributorData)
+	contributorsCommitStats["total"] = &ContributorData{
 		Name:       "Total",
 		AvatarLink: unknownUserAvatarLink,
 		Weeks:      CreateWeeks(sundays),
@@ -234,13 +257,13 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 				if avatarLink == "" {
 					avatarLink = unknownUserAvatarLink
 				}
-				contributorsCommitStats[userEmail] = &api.ContributorData{
+				contributorsCommitStats[userEmail] = &ContributorData{
 					Name:       v.Author.Name,
 					AvatarLink: avatarLink,
 					Weeks:      CreateWeeks(sundays),
 				}
 			} else {
-				contributorsCommitStats[userEmail] = &api.ContributorData{
+				contributorsCommitStats[userEmail] = &ContributorData{
 					Name:       u.DisplayName(),
 					Login:      u.LowerName,
 					AvatarLink: u.AvatarLink(ctx),
