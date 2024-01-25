@@ -1,3 +1,6 @@
+// Copyright 2024 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package issue
 
 import (
@@ -9,7 +12,6 @@ import (
 )
 
 func CloseIssue(ctx *context.Context, issueID int64) error {
-
 	issue, err := issues_model.GetIssueByID(ctx, issueID)
 	if err != nil {
 		return errors.New("failed getting issue")

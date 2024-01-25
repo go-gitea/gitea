@@ -5,7 +5,6 @@ package actions
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -20,7 +19,6 @@ func CleanupProjectIssues(taskCtx context.Context, olderThan time.Duration) erro
 	log.Info("CRON:  remove closed issues from boards with close on move flag set to  true starting...")
 
 	projects, err := getAllProjects(taskCtx)
-
 	if err != nil {
 		return err
 	}
@@ -61,12 +59,11 @@ func CleanupProjectIssues(taskCtx context.Context, olderThan time.Duration) erro
 }
 
 func getAllProjects(ctx context.Context) ([]project_model.Project, error) {
-
 	var projects []project_model.Project
 
 	err := db.GetEngine(ctx).Table("project").Select("*").Find(&projects)
 	if err != nil {
-		fmt.Println(err)
+		log.Error("unable to read project db %v", err)
 		return projects, err
 	}
 	return projects, nil
@@ -77,7 +74,7 @@ func getAllProjectBoardWithCloseOnMove(ctx context.Context, project project_mode
 
 	err := db.GetEngine(ctx).Table("project_board").Select("*").Where(builder.Eq{"project_id": project.ID}).Find(&boards)
 	if err != nil {
-		fmt.Println(err)
+		log.Error("unable to read project_board db %v", err)
 		return boards, err
 	}
 	return boards, nil
@@ -88,19 +85,18 @@ func getAllIssuesOfBoard(ctx context.Context, board project_model.Board) ([]int6
 
 	err := db.GetEngine(ctx).Table("project_issue").Select("issue_id").Where(builder.Eq{"project_id": board.ProjectID, "project_board_id": board.ID}).Find(&issueIDs)
 	if err != nil {
-		fmt.Println(err)
+		log.Error("unable to read project_issue db %v", err)
 		return issueIDs, err
 	}
 	return issueIDs, nil
 }
 
 func getAllIssuesToBeRemoved(ctx context.Context, issueIDs []int64) ([]issues_model.Issue, error) {
-
 	var issues []issues_model.Issue
 
 	err := db.GetEngine(ctx).Table("issue").Select("*").Where(builder.Eq{"is_closed": 1}).Where(builder.In("id", issueIDs)).Find(&issues)
 	if err != nil {
-		fmt.Println(err)
+		log.Error("unable to read issue db %v", err)
 		return issues, err
 	}
 
@@ -108,18 +104,16 @@ func getAllIssuesToBeRemoved(ctx context.Context, issueIDs []int64) ([]issues_mo
 }
 
 func removeIssueFromProject(ctx context.Context, issue issues_model.Issue, project project_model.Project) error {
-
-	project_issue := &project_model.ProjectIssue{
+	projectIssue := &project_model.ProjectIssue{
 		IssueID:   issue.ID,
 		ProjectID: project.ID,
 	}
 
-	_, err := db.GetEngine(ctx).Table("project_issue").Delete(&project_issue)
+	_, err := db.GetEngine(ctx).Table("project_issue").Delete(&projectIssue)
 	if err != nil {
-		fmt.Println(err)
+		log.Error("unable to delete project_issue db %v", err)
 		return err
 	}
 
 	return nil
-
 }

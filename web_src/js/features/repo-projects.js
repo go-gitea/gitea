@@ -14,7 +14,7 @@ function updateIssueCount(cards) {
 function createNewColumn(url, columnTitle, projectColorInput, closeOnIssueMove) {
   $.ajax({
     url,
-    data: JSON.stringify({title: columnTitle.val(), color: projectColorInput.val(),close: closeOnIssueMove.prop('checked')}),
+    data: JSON.stringify({title: columnTitle.val(), color: projectColorInput.val(), close: closeOnIssueMove.prop('checked')}),
     headers: {
       'X-Csrf-Token': csrfToken,
     },
