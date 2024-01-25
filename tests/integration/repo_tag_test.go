@@ -74,9 +74,10 @@ func TestCreateNewTagProtected(t *testing.T) {
 	})
 
 	// Cleanup
-	releases, err := repo_model.GetReleasesByRepoID(db.DefaultContext, repo.ID, repo_model.FindReleasesOptions{
+	releases, err := db.Find[repo_model.Release](db.DefaultContext, repo_model.FindReleasesOptions{
 		IncludeTags: true,
 		TagNames:    []string{"v-1", "v-1.1"},
+		RepoID:      repo.ID,
 	})
 	assert.NoError(t, err)
 

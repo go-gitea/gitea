@@ -159,7 +159,9 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 	// ***** END: PublicKey *****
 
 	// ***** START: GPGPublicKey *****
-	keys, err := asymkey_model.ListGPGKeys(ctx, u.ID, db.ListOptions{})
+	keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+		OwnerID: u.ID,
+	})
 	if err != nil {
 		return fmt.Errorf("ListGPGKeys: %w", err)
 	}

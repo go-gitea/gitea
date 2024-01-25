@@ -182,6 +182,8 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine)
 		return err
 	}
 
+	preprocessDatabaseCollation(x)
+
 	// We have to run migrateFunc here in case the user is re-running installation on a previously created DB.
 	// If we do not then table schemas will be changed and there will be conflicts when the migrations run properly.
 	//
