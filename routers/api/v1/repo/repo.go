@@ -637,7 +637,7 @@ func Edit(ctx *context.APIContext) {
 		}
 	}
 
-	if opts.MirrorInterval != nil {
+	if opts.MirrorInterval != nil || opts.EnablePrune != nil {
 		if err := updateMirror(ctx, opts); err != nil {
 			return
 		}
