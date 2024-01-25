@@ -4893,54 +4893,6 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/contributors": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Get a map of all contributors along with their weekly commit statistics from a repository",
-        "operationId": "repoGetAllContributorsStats",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "SHA or branch to start listing commits from (usually 'master')",
-            "name": "sha",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/ContributorDataMap"
-          },
-          "202": {
-            "$ref": "#/responses/empty"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "$ref": "#/responses/EmptyRepository"
-          }
-        }
-      }
-    },
     "/repos/{owner}/{repo}/diffpatch": {
       "post": {
         "consumes": [
