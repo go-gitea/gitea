@@ -159,7 +159,6 @@ func Create(ctx *context.Context) {
 	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["default_branch"] = setting.Repository.DefaultBranch
-	ctx.Data["hash_type"] = "sha1"
 
 	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))
 	if ctx.Written() {
@@ -179,6 +178,8 @@ func Create(ctx *context.Context) {
 
 	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
 	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
+	ctx.Data["SupportedObjectFormats"] = git.SupportedObjectFormats
+	ctx.Data["DefaultObjectFormat"] = git.Sha1ObjectFormat
 
 	ctx.HTML(http.StatusOK, tplCreate)
 }
@@ -288,7 +289,7 @@ func CreatePost(ctx *context.Context) {
 			DefaultBranch:    form.DefaultBranch,
 			AutoInit:         form.AutoInit,
 			IsTemplate:       form.Template,
-			TrustModel:       repo_model.ToTrustModel(form.TrustModel),
+			TrustModel:       repo_model.DefaultTrustModel,
 			ObjectFormatName: form.ObjectFormatName,
 		})
 		if err == nil {
@@ -379,7 +380,10 @@ func RedirectDownload(ctx *context.Context) {
 	)
 	tagNames := []string{vTag}
 	curRepo := ctx.Repo.Repository
-	releases, err := repo_model.GetReleasesByRepoIDAndNames(ctx, curRepo.ID, tagNames)
+	releases, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
+		RepoID:   curRepo.ID,
+		TagNames: tagNames,
+	})
 	if err != nil {
 		ctx.ServerError("RedirectDownload", err)
 		return

@@ -197,10 +197,10 @@ func (opts FindPublicKeyOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Eq{"fingerprint": opts.Fingerprint})
 	}
 	if len(opts.KeyTypes) > 0 {
-		cond = cond.And(builder.In("type", opts.KeyTypes))
+		cond = cond.And(builder.In("`type`", opts.KeyTypes))
 	}
 	if opts.NotKeytype > 0 {
-		cond = cond.And(builder.Neq{"type": opts.NotKeytype})
+		cond = cond.And(builder.Neq{"`type`": opts.NotKeytype})
 	}
 	if opts.LoginSourceID > 0 {
 		cond = cond.And(builder.Eq{"login_source_id": opts.LoginSourceID})
