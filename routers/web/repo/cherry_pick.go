@@ -171,10 +171,9 @@ func CherryPickPost(ctx *context.Context) {
 			} else if models.IsErrCommitIDDoesNotMatch(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+form.LastCommit+"..."+ctx.Repo.CommitID), tplPatchFile, &form)
 				return
-			} else {
-				ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_apply_patch", err), tplPatchFile, &form)
-				return
 			}
+			ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_apply_patch", err), tplPatchFile, &form)
+			return
 		}
 	}
 

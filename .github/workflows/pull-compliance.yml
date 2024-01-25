@@ -17,9 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: "~1.21"
+          go-version-file: go.mod
           check-latest: true
       - run: make deps-backend deps-tools
       - run: make lint-backend
@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: make deps-frontend
@@ -70,9 +70,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: "~1.21"
+          go-version-file: go.mod
           check-latest: true
       - run: make deps-backend deps-tools
       - run: make lint-go-windows lint-go-vet
@@ -87,9 +87,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: "~1.21"
+          go-version-file: go.mod
           check-latest: true
       - run: make deps-backend deps-tools
       - run: make lint-go
@@ -102,9 +102,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: "~1.21"
+          go-version-file: go.mod
           check-latest: true
       - run: make deps-backend deps-tools
       - run: make --always-make checks-backend # ensure the "go-licenses" make target runs
@@ -115,7 +115,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: make deps-frontend
@@ -130,9 +130,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: "~1.21"
+          go-version-file: go.mod
           check-latest: true
       # no frontend build here as backend should be able to build
       # even without any frontend files
@@ -162,7 +162,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: make deps-frontend
@@ -175,5 +175,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
       - run: make lint-actions

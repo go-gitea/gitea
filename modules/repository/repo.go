@@ -284,6 +284,22 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 	return repo, UpdateRepository(ctx, repo, false)
 }
 
+// SyncRepoTags synchronizes releases table with repository tags
+func SyncRepoTags(ctx context.Context, repoID int64) error {
+	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+	if err != nil {
+		return err
+	}
+
+	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	if err != nil {
+		return err
+	}
+	defer gitRepo.Close()
+
+	return SyncReleasesWithTags(ctx, repo, gitRepo)
+}
+
 // SyncReleasesWithTags synchronizes release table with repository tags
 func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
 	log.Debug("SyncReleasesWithTags: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
@@ -299,10 +315,11 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 		IncludeDrafts: true,
 		IncludeTags:   true,
 		ListOptions:   db.ListOptions{PageSize: 50},
+		RepoID:        repo.ID,
 	}
 	for page := 1; ; page++ {
 		opts.Page = page
-		rels, err := repo_model.GetReleasesByRepoID(gitRepo.Ctx, repo.ID, opts)
+		rels, err := db.Find[repo_model.Release](gitRepo.Ctx, opts)
 		if err != nil {
 			return fmt.Errorf("unable to GetReleasesByRepoID in Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 		}
@@ -409,7 +426,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 			defer content.Close()
 
-			_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: p, RepositoryID: repo.ID})
+			_, err := git_model.NewLFSMetaObject(ctx, repo.ID, p)
 			if err != nil {
 				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, p, err)
 				return err
@@ -456,7 +473,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 		if exist {
 			log.Trace("Repo[%-v]: LFS object %-v already present; creating meta object", repo, pointerBlob.Pointer)
-			_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: pointerBlob.Pointer, RepositoryID: repo.ID})
+			_, err := git_model.NewLFSMetaObject(ctx, repo.ID, pointerBlob.Pointer)
 			if err != nil {
 				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, pointerBlob.Pointer, err)
 				return err

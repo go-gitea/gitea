@@ -3,7 +3,7 @@ name: release-tag-rc
 on:
   push:
     tags:
-      - 'v1*-rc*'
+      - "v1*-rc*"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -17,11 +17,11 @@ jobs:
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: "~1.21"
+          go-version-file: go.mod
           check-latest: true
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: make deps-frontend deps-backend
@@ -31,7 +31,7 @@ jobs:
           TAGS: bindata sqlite sqlite_unlock_notify
       - name: import gpg key
         id: import_gpg
-        uses: crazy-max/ghaction-import-gpg@v5
+        uses: crazy-max/ghaction-import-gpg@v6
         with:
           gpg_private_key: ${{ secrets.GPGSIGN_KEY }}
           passphrase: ${{ secrets.GPGSIGN_PASSPHRASE }}
@@ -44,7 +44,7 @@ jobs:
       - name: Get cleaned branch name
         id: clean_name
         run: |
-          REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
+          REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\/v//' -e 's/release\/v//')
           echo "Cleaned name is ${REF_NAME}"
           echo "branch=${REF_NAME}" >> "$GITHUB_OUTPUT"
       - name: configure aws
@@ -56,6 +56,10 @@ jobs:
       - name: upload binaries to s3
         run: |
           aws s3 sync dist/release s3://${{ secrets.AWS_S3_BUCKET }}/gitea/${{ steps.clean_name.outputs.branch }} --no-progress
+      - name: Install GH CLI
+        uses: dev-hanz-ops/install-gh-cli-action@v0.1.0
+        with:
+          gh-cli-version: 2.39.1
       - name: create github release
         run: |
           gh release create ${{ github.ref_name }} --title ${{ github.ref_name }} --draft --notes-from-tag dist/release/*
@@ -68,22 +72,24 @@ jobs:
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
-      - uses: docker/setup-qemu-action@v2
-      - uses: docker/setup-buildx-action@v2
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
       - uses: docker/metadata-action@v5
         id: meta
         with:
           images: gitea/gitea
+          flavor: |
+            latest=false
           # 1.2.3-rc0
           tags: |
             type=semver,pattern={{version}}
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: build rootful docker image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           platforms: linux/amd64,linux/arm64
@@ -97,25 +103,26 @@ jobs:
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
-      - uses: docker/setup-qemu-action@v2
-      - uses: docker/setup-buildx-action@v2
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
       - uses: docker/metadata-action@v5
         id: meta
         with:
           images: gitea/gitea
           # each tag below will have the suffix of -rootless
           flavor: |
+            latest=false
             suffix=-rootless
           # 1.2.3-rc0
           tags: |
             type=semver,pattern={{version}}
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: build rootless docker image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           platforms: linux/amd64,linux/arm64

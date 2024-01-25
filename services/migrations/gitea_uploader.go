@@ -19,6 +19,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	base_module "code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
@@ -397,7 +398,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			RepoID:      g.repo.ID,
 			Repo:        g.repo,
 			Index:       issue.Number,
-			Title:       issue.Title,
+			Title:       base_module.TruncateString(issue.Title, 255),
 			Content:     issue.Content,
 			Ref:         issue.Ref,
 			IsClosed:    issue.State == "closed",
@@ -862,7 +863,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			line := comment.Line
 			if line != 0 {
 				comment.Position = 1
-			} else {
+			} else if comment.DiffHunk != "" {
 				_, _, line, _ = git.ParseDiffHunkString(comment.DiffHunk)
 			}
 
@@ -892,7 +893,8 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 				comment.UpdatedAt = comment.CreatedAt
 			}
 
-			if !git.IsValidSHAPattern(comment.CommitID) {
+			objectFormat, _ := g.gitRepo.GetObjectFormat()
+			if !objectFormat.IsValid(comment.CommitID) {
 				log.Warn("Invalid comment CommitID[%s] on comment[%d] in PR #%d of %s/%s replaced with %s", comment.CommitID, pr.Index, g.repoOwner, g.repoName, headCommitID)
 				comment.CommitID = headCommitID
 			}

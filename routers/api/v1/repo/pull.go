@@ -625,9 +625,8 @@ func EditPullRequest(ctx *context.APIContext) {
 			} else if models.IsErrPullRequestHasMerged(err) {
 				ctx.Error(http.StatusConflict, "IsErrPullRequestHasMerged", err)
 				return
-			} else {
-				ctx.InternalServerError(err)
 			}
+			ctx.InternalServerError(err)
 			return
 		}
 		notify_service.PullRequestChangeTargetBranch(ctx, ctx.Doer, pr, form.Base)
@@ -913,6 +912,10 @@ func MergePullRequest(ctx *context.APIContext) {
 				return
 			}
 			defer headRepo.Close()
+		}
+		if err := pull_service.RetargetChildrenOnMerge(ctx, ctx.Doer, pr); err != nil {
+			ctx.Error(http.StatusInternalServerError, "RetargetChildrenOnMerge", err)
+			return
 		}
 		if err := repo_service.DeleteBranch(ctx, ctx.Doer, pr.HeadRepo, headRepo, pr.HeadBranch); err != nil {
 			switch {
@@ -1330,17 +1333,16 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 
 	userCache := make(map[string]*user_model.User)
 
-	start, end := listOptions.GetStartEnd()
+	start, limit := listOptions.GetSkipTake()
 
-	if end > totalNumberOfCommits {
-		end = totalNumberOfCommits
-	}
+	limit = min(limit, totalNumberOfCommits-start)
+	limit = max(limit, 0)
 
 	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
 	files := ctx.FormString("files") == "" || ctx.FormBool("files")
 
-	apiCommits := make([]*api.Commit, 0, end-start)
-	for i := start; i < end; i++ {
+	apiCommits := make([]*api.Commit, 0, limit)
+	for i := start; i < start+limit; i++ {
 		apiCommit, err := convert.ToCommit(ctx, ctx.Repo.Repository, baseGitRepo, commits[i], userCache,
 			convert.ToCommitOptions{
 				Stat:         true,
@@ -1478,19 +1480,14 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	totalNumberOfFiles := diff.NumFiles
 	totalNumberOfPages := int(math.Ceil(float64(totalNumberOfFiles) / float64(listOptions.PageSize)))
 
-	start, end := listOptions.GetStartEnd()
+	start, limit := listOptions.GetSkipTake()
 
-	if end > totalNumberOfFiles {
-		end = totalNumberOfFiles
-	}
+	limit = min(limit, totalNumberOfFiles-start)
 
-	lenFiles := end - start
-	if lenFiles < 0 {
-		lenFiles = 0
-	}
+	limit = max(limit, 0)
 
-	apiFiles := make([]*api.ChangedFile, 0, lenFiles)
-	for i := start; i < end; i++ {
+	apiFiles := make([]*api.ChangedFile, 0, limit)
+	for i := start; i < start+limit; i++ {
 		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], pr.HeadRepo, endCommitID))
 	}
 

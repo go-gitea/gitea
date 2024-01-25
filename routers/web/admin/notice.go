@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"code.gitea.io/gitea/models/db"
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -55,7 +56,7 @@ func DeleteNotices(ctx *context.Context) {
 		}
 	}
 
-	if err := system_model.DeleteNoticesByIDs(ctx, ids); err != nil {
+	if err := db.DeleteByIDs[system_model.Notice](ctx, ids...); err != nil {
 		ctx.Flash.Error("DeleteNoticesByIDs: " + err.Error())
 		ctx.Status(http.StatusInternalServerError)
 	} else {
