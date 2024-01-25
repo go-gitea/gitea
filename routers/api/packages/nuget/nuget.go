@@ -387,34 +387,56 @@ func EnumeratePackageVersionsV3(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// https://docs.microsoft.com/en-us/nuget/api/package-base-address-resource#download-package-content-nupkg
+// https://learn.microsoft.com/en-us/nuget/api/package-base-address-resource#download-package-manifest-nuspec
+// https://learn.microsoft.com/en-us/nuget/api/package-base-address-resource#download-package-content-nupkg
 func DownloadPackageFile(ctx *context.Context) {
 	packageName := ctx.Params("id")
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")
 
-	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
-		ctx,
-		&packages_service.PackageInfo{
-			Owner:       ctx.Package.Owner,
-			PackageType: packages_model.TypeNuGet,
-			Name:        packageName,
-			Version:     packageVersion,
-		},
-		&packages_service.PackageFileInfo{
-			Filename: filename,
-		},
-	)
-	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
+	if filename == fmt.Sprintf("%s.nuspec", packageName) {
+		pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName, packageVersion)
+		if err != nil {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
 
-	helper.ServePackageFile(ctx, s, u, pf)
+		pd, err := packages_model.GetPackageDescriptor(ctx, pv)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		pkg := &nuget_module.Package{
+			ID:       pd.Package.Name,
+			Version:  packageVersion,
+			Metadata: pd.Metadata.(*nuget_module.Metadata),
+		}
+
+		xmlResponse(ctx, http.StatusOK, nuget_module.GenerateNuspec(pkg))
+	} else {
+		s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+			ctx,
+			&packages_service.PackageInfo{
+				Owner:       ctx.Package.Owner,
+				PackageType: packages_model.TypeNuGet,
+				Name:        packageName,
+				Version:     packageVersion,
+			},
+			&packages_service.PackageFileInfo{
+				Filename: filename,
+			},
+		)
+		if err != nil {
+			if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
+				apiError(ctx, http.StatusNotFound, err)
+				return
+			}
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
+		helper.ServePackageFile(ctx, s, u, pf)
+	}
 }
 
 // UploadPackage creates a new package with the metadata contained in the uploaded nupgk file

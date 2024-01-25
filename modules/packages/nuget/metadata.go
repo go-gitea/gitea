@@ -71,34 +71,50 @@ type Dependency struct {
 	Version string `json:"version"`
 }
 
+type nuspecPackageType struct {
+	Name string `xml:"name,attr"`
+}
+
+type nuspecPackageTypes struct {
+	PackageType []nuspecPackageType `xml:"packageType"`
+}
+
+type nuspecRepository struct {
+	URL  string `xml:"url,attr,omitempty"`
+	Type string `xml:"type,attr,omitempty"`
+}
+type nuspecDependency struct {
+	ID      string `xml:"id,attr"`
+	Version string `xml:"version,attr"`
+	Exclude string `xml:"exclude,attr,omitempty"`
+}
+
+type nuspecGroup struct {
+	TargetFramework string             `xml:"targetFramework,attr"`
+	Dependency      []nuspecDependency `xml:"dependency"`
+}
+
+type nuspecDependencies struct {
+	Group []nuspecGroup `xml:"group"`
+}
+
+type nuspeceMetadata struct {
+	ID                       string              `xml:"id"`
+	Version                  string              `xml:"version"`
+	Authors                  string              `xml:"authors"`
+	RequireLicenseAcceptance bool                `xml:"requireLicenseAcceptance,omitempty"`
+	ProjectURL               string              `xml:"projectUrl,omitempty"`
+	Description              string              `xml:"description"`
+	ReleaseNotes             string              `xml:"releaseNotes,omitempty"`
+	PackageTypes             *nuspecPackageTypes `xml:"packageTypes,omitempty"`
+	Repository               *nuspecRepository   `xml:"repository,omitempty"`
+	Dependencies             *nuspecDependencies `xml:"dependencies,omitempty"`
+}
+
 type nuspecPackage struct {
-	Metadata struct {
-		ID                       string `xml:"id"`
-		Version                  string `xml:"version"`
-		Authors                  string `xml:"authors"`
-		RequireLicenseAcceptance bool   `xml:"requireLicenseAcceptance"`
-		ProjectURL               string `xml:"projectUrl"`
-		Description              string `xml:"description"`
-		ReleaseNotes             string `xml:"releaseNotes"`
-		PackageTypes             struct {
-			PackageType []struct {
-				Name string `xml:"name,attr"`
-			} `xml:"packageType"`
-		} `xml:"packageTypes"`
-		Repository struct {
-			URL string `xml:"url,attr"`
-		} `xml:"repository"`
-		Dependencies struct {
-			Group []struct {
-				TargetFramework string `xml:"targetFramework,attr"`
-				Dependency      []struct {
-					ID      string `xml:"id,attr"`
-					Version string `xml:"version,attr"`
-					Exclude string `xml:"exclude,attr"`
-				} `xml:"dependency"`
-			} `xml:"group"`
-		} `xml:"dependencies"`
-	} `xml:"metadata"`
+	XMLName  xml.Name        `xml:"package"`
+	Xmlns    string          `xml:"xmlns,attr"`
+	Metadata nuspeceMetadata `xml:"metadata"`
 }
 
 // ParsePackageMetaData parses the metadata of a Nuget package file
@@ -149,10 +165,12 @@ func ParseNuspecMetaData(r io.Reader) (*Package, error) {
 	}
 
 	packageType := DependencyPackage
-	for _, pt := range p.Metadata.PackageTypes.PackageType {
-		if pt.Name == "SymbolsPackage" {
-			packageType = SymbolsPackage
-			break
+	if p.Metadata.PackageTypes != nil {
+		for _, pt := range p.Metadata.PackageTypes.PackageType {
+			if pt.Name == "SymbolsPackage" {
+				packageType = SymbolsPackage
+				break
+			}
 		}
 	}
 
@@ -161,24 +179,27 @@ func ParseNuspecMetaData(r io.Reader) (*Package, error) {
 		ReleaseNotes:             p.Metadata.ReleaseNotes,
 		Authors:                  p.Metadata.Authors,
 		ProjectURL:               p.Metadata.ProjectURL,
-		RepositoryURL:            p.Metadata.Repository.URL,
 		RequireLicenseAcceptance: p.Metadata.RequireLicenseAcceptance,
 		Dependencies:             make(map[string][]Dependency),
 	}
-
-	for _, group := range p.Metadata.Dependencies.Group {
-		deps := make([]Dependency, 0, len(group.Dependency))
-		for _, dep := range group.Dependency {
-			if dep.ID == "" || dep.Version == "" {
-				continue
+	if p.Metadata.Repository != nil {
+		m.RepositoryURL = p.Metadata.Repository.URL
+	}
+	if p.Metadata.Dependencies != nil {
+		for _, group := range p.Metadata.Dependencies.Group {
+			deps := make([]Dependency, 0, len(group.Dependency))
+			for _, dep := range group.Dependency {
+				if dep.ID == "" || dep.Version == "" {
+					continue
+				}
+				deps = append(deps, Dependency{
+					ID:      dep.ID,
+					Version: dep.Version,
+				})
 			}
-			deps = append(deps, Dependency{
-				ID:      dep.ID,
-				Version: dep.Version,
-			})
-		}
-		if len(deps) > 0 {
-			m.Dependencies[group.TargetFramework] = deps
+			if len(deps) > 0 {
+				m.Dependencies[group.TargetFramework] = deps
+			}
 		}
 	}
 	return &Package{
@@ -203,4 +224,52 @@ func toNormalizedVersion(v *version.Version) string {
 		fmt.Fprint(&buf, "-", pre)
 	}
 	return buf.String()
+}
+
+// returning any here because we use a private type and we don't need the type for xml marshalling
+func GenerateNuspec(pd *Package) any {
+	m := nuspeceMetadata{
+		ID:                       pd.ID,
+		Version:                  pd.Version,
+		Authors:                  pd.Metadata.Authors,
+		Description:              pd.Metadata.Description,
+		ProjectURL:               pd.Metadata.ProjectURL,
+		RequireLicenseAcceptance: pd.Metadata.RequireLicenseAcceptance,
+	}
+
+	if pd.Metadata.RepositoryURL != "" {
+		m.Repository = &nuspecRepository{
+			URL: pd.Metadata.RepositoryURL,
+		}
+	}
+
+	groups := len(pd.Metadata.Dependencies)
+	if groups > 0 {
+		m.Dependencies = &nuspecDependencies{
+			Group: make([]nuspecGroup, 0, groups),
+		}
+
+		for tgf, deps := range pd.Metadata.Dependencies {
+			if len(deps) == 0 {
+				continue
+			}
+			gDeps := make([]nuspecDependency, 0, len(deps))
+			for _, dep := range deps {
+				gDeps = append(gDeps, nuspecDependency{
+					ID:      dep.ID,
+					Version: dep.Version,
+				})
+			}
+
+			m.Dependencies.Group = append(m.Dependencies.Group, nuspecGroup{
+				TargetFramework: tgf,
+				Dependency:      gDeps,
+			})
+		}
+	}
+
+	return &nuspecPackage{
+		Xmlns:    "http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd",
+		Metadata: m,
+	}
 }
