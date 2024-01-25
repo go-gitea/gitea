@@ -67,7 +67,7 @@
   position: relative;
 }
 
-.conversation-holder .comment-code-cloud {
+.code-diff .conversation-holder .comment-code-cloud {
   max-width: 820px;
 }
 

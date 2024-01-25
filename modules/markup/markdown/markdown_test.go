@@ -765,7 +765,7 @@ space</p>
 			Expected: `<p>space @mention-user<br/>
 /just/a/path.bin<br/>
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
-<a href="/user/repo/file.bin" rel="nofollow">local link</a><br/>
+<a href="/user/repo/src/branch/main/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/user/repo/src/branch/main/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
@@ -878,7 +878,7 @@ space</p>
 			Expected: `<p>space @mention-user<br/>
 /just/a/path.bin<br/>
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
-<a href="/user/repo/file.bin" rel="nofollow">local link</a><br/>
+<a href="/user/repo/src/branch/main/sub/folder/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/user/repo/src/branch/main/sub/folder/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
