@@ -1,4 +1,4 @@
-// Copyright 2023 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package auth
@@ -22,7 +22,6 @@ import (
 	"github.com/markbates/goth"
 )
 
-// SignInSAML
 func SignInSAML(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 
@@ -41,7 +40,6 @@ func SignInSAML(ctx *context.Context) {
 	}
 }
 
-// SignInSAMLCallback
 func SignInSAMLCallback(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 	loginSource, err := auth.GetActiveAuthSourceByName(ctx, provider, auth.SAML)
@@ -161,7 +159,6 @@ func samlUserLoginCallback(ctx context.Context, authSource *auth.Source, request
 	return nil, gothUser, nil
 }
 
-// SAMLMetadata
 func SAMLMetadata(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 	loginSource, err := auth.GetActiveAuthSourceByName(ctx, provider, auth.SAML)
