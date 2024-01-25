@@ -137,6 +137,8 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 				var base string
 				if ctx.IsWiki {
 					base = ctx.Links.WikiLink()
+				} else if ctx.Links.HasBranchInfo() {
+					base = ctx.Links.SrcLink()
 				} else {
 					base = ctx.Links.Base
 				}
