@@ -79,206 +79,212 @@
 				{{ctx.Locale.Tr "repo.settings.mirror_settings"}}
 			</h4>
 			<div class="ui attached segment">
-				{{if $newMirrorsEntirelyEnabled}}
-					{{ctx.Locale.Tr "repo.settings.mirror_settings.docs"}}
-					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/usage/repo-mirror#pushing-to-a-remote-repository">{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
-					{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.pull_mirror_instructions"}}
-					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/usage/repo-mirror#pulling-from-a-remote-repository">{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.doc_link_pull_section"}}</a><br>
-				{{else if $onlyNewPushMirrorsEnabled}}
-					{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.disabled_pull_mirror.instructions"}}
-					{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.more_information_if_disabled"}}
-					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/usage/repo-mirror#pulling-from-a-remote-repository">{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br>
-				{{else if $onlyNewPullMirrorsEnabled}}
-					{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.instructions"}}
-					{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.pull_mirror_warning"}}
-					{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.more_information_if_disabled"}}
-					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/usage/repo-mirror#pulling-from-a-remote-repository">{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
-					{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.info"}}
-					{{if $existingPushMirror}}
-						{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.can_still_use"}}
-					{{end}}
+				{{if .Repository.IsArchived}}
+					<div class="ui warning message gt-text-center">
+						{{ctx.Locale.Tr "repo.settings.archive.mirrors_unavailable"}}
+					</div>
 				{{else}}
-					{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.no_new_mirrors"}} {{ctx.Locale.Tr "repo.settings.mirror_settings.docs.can_still_use"}}<br>
-				{{end}}
-				<table class="ui table">
-					{{if $existingPushMirror}}
-					<thead>
-						<tr>
-							<th style="width:40%">{{ctx.Locale.Tr "repo.settings.mirror_settings.mirrored_repository"}}</th>
-							<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction"}}</th>
-							<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.last_update"}}</th>
-							<th></th>
-						</tr>
-					</thead>
+					{{if $newMirrorsEntirelyEnabled}}
+						{{ctx.Locale.Tr "repo.settings.mirror_settings.docs"}}
+						<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/usage/repo-mirror#pushing-to-a-remote-repository">{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
+						{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.pull_mirror_instructions"}}
+						<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/usage/repo-mirror#pulling-from-a-remote-repository">{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.doc_link_pull_section"}}</a><br>
+					{{else if $onlyNewPushMirrorsEnabled}}
+						{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.disabled_pull_mirror.instructions"}}
+						{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.more_information_if_disabled"}}
+						<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/usage/repo-mirror#pulling-from-a-remote-repository">{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br>
+					{{else if $onlyNewPullMirrorsEnabled}}
+						{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.instructions"}}
+						{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.pull_mirror_warning"}}
+						{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.more_information_if_disabled"}}
+						<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/usage/repo-mirror#pulling-from-a-remote-repository">{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
+						{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.info"}}
+						{{if $existingPushMirror}}
+							{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.can_still_use"}}
+						{{end}}
+					{{else}}
+						{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.no_new_mirrors"}} {{ctx.Locale.Tr "repo.settings.mirror_settings.docs.can_still_use"}}<br>
 					{{end}}
-					{{if $modifyBrokenPullMirror}}
-						{{/* even if a repo is a pull mirror (IsMirror=true), the PullMirror might still be nil if the mirror migration is broken */}}
+					<table class="ui table">
+						{{if $existingPushMirror}}
+						<thead>
+							<tr>
+								<th style="width:40%">{{ctx.Locale.Tr "repo.settings.mirror_settings.mirrored_repository"}}</th>
+								<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction"}}</th>
+								<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.last_update"}}</th>
+								<th></th>
+							</tr>
+						</thead>
+						{{end}}
+						{{if $modifyBrokenPullMirror}}
+							{{/* even if a repo is a pull mirror (IsMirror=true), the PullMirror might still be nil if the mirror migration is broken */}}
+							<tbody>
+								<tr>
+									<td colspan="4">
+										<div class="text red gt-py-4 gt-border-secondary-bottom">{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}: {{ctx.Locale.Tr "error.occurred"}}</div>
+									</td>
+								</tr>
+							</tbody>
+						{{else if $isWorkingPullMirror}}
 						<tbody>
 							<tr>
-								<td colspan="4">
-									<div class="text red gt-py-4 gt-border-secondary-bottom">{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}: {{ctx.Locale.Tr "error.occurred"}}</div>
+								<td>{{.PullMirror.RemoteAddress}}</td>
+								<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
+								<td>{{DateTime "full" .PullMirror.UpdatedUnix}}</td>
+								<td class="right aligned">
+									<form method="post" class="gt-dib">
+										{{.CsrfTokenHtml}}
+										<input type="hidden" name="action" value="mirror-sync">
+										<button class="ui primary tiny button inline text-thin">{{ctx.Locale.Tr "repo.settings.sync_mirror"}}</button>
+									</form>
 								</td>
 							</tr>
-						</tbody>
-					{{else if $isWorkingPullMirror}}
-					<tbody>
-						<tr>
-							<td>{{.PullMirror.RemoteAddress}}</td>
-							<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
-							<td>{{DateTime "full" .PullMirror.UpdatedUnix}}</td>
-							<td class="right aligned">
-								<form method="post" class="gt-dib">
-									{{.CsrfTokenHtml}}
-									<input type="hidden" name="action" value="mirror-sync">
-									<button class="ui primary tiny button inline text-thin">{{ctx.Locale.Tr "repo.settings.sync_mirror"}}</button>
-								</form>
-							</td>
-						</tr>
-						<tr>
-							<td colspan="4">
-								<form class="ui form" method="post">
-									{{template "base/disable_form_autofill"}}
-									{{.CsrfTokenHtml}}
-									<input type="hidden" name="action" value="mirror">
-									<div class="inline field {{if .Err_EnablePrune}}error{{end}}">
-										<label>{{ctx.Locale.Tr "repo.mirror_prune"}}</label>
-										<div class="ui checkbox">
-									<input id="enable_prune" name="enable_prune" type="checkbox" {{if .PullMirror.EnablePrune}}checked{{end}}>
-									<label>{{ctx.Locale.Tr "repo.mirror_prune_desc"}}</label>
-										</div>
-									</div>
-									<div class="inline field {{if .Err_Interval}}error{{end}}">
-										<label for="interval">{{ctx.Locale.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
-										<input id="interval" name="interval" value="{{.PullMirror.Interval}}">
-									</div>
-									{{$address := MirrorRemoteAddress $.Context .Repository .PullMirror.GetRemoteName false}}
-									<div class="field {{if .Err_MirrorAddress}}error{{end}}">
-										<label for="mirror_address">{{ctx.Locale.Tr "repo.mirror_address"}}</label>
-										<input id="mirror_address" name="mirror_address" value="{{$address.Address}}" required>
-										<p class="help">{{ctx.Locale.Tr "repo.mirror_address_desc"}}</p>
-									</div>
-									<details class="ui optional field" {{if or .Err_Auth $address.Username}}open{{end}}>
-										<summary class="gt-p-2">
-											{{ctx.Locale.Tr "repo.need_auth"}}
-										</summary>
-										<div class="gt-p-2">
-											<div class="inline field {{if .Err_Auth}}error{{end}}">
-												<label for="mirror_username">{{ctx.Locale.Tr "username"}}</label>
-												<input id="mirror_username" name="mirror_username" value="{{$address.Username}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
-											</div>
-											<div class="inline field {{if .Err_Auth}}error{{end}}">
-												<label for="mirror_password">{{ctx.Locale.Tr "password"}}</label>
-												<input id="mirror_password" name="mirror_password" type="password" placeholder="{{if $address.Password}}{{ctx.Locale.Tr "repo.mirror_password_placeholder"}}{{else}}{{ctx.Locale.Tr "repo.mirror_password_blank_placeholder"}}{{end}}" value="" {{if not .mirror_password}}data-need-clear="true"{{end}} autocomplete="off">
-											</div>
-											<p class="help">{{ctx.Locale.Tr "repo.mirror_password_help"}}</p>
-										</div>
-									</details>
-
-									{{if .LFSStartServer}}
-									<div class="inline field">
-										<label>{{ctx.Locale.Tr "repo.mirror_lfs"}}</label>
-										<div class="ui checkbox">
-											<input id="mirror_lfs" name="mirror_lfs" type="checkbox" {{if .PullMirror.LFS}}checked{{end}}>
-											<label>{{ctx.Locale.Tr "repo.mirror_lfs_desc"}}</label>
-										</div>
-									</div>
-									<div class="field {{if .Err_LFSEndpoint}}error{{end}}">
-										<label for="mirror_lfs_endpoint">{{ctx.Locale.Tr "repo.mirror_lfs_endpoint"}}</label>
-										<input id="mirror_lfs_endpoint" name="mirror_lfs_endpoint" value="{{.PullMirror.LFSEndpoint}}" placeholder="{{ctx.Locale.Tr "repo.migrate_options_lfs_endpoint.placeholder"}}">
-										<p class="help">{{ctx.Locale.Tr "repo.mirror_lfs_endpoint_desc" "https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#server-discovery" | Str2html}}</p>
-									</div>
-									{{end}}
-									<div class="field">
-										<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_mirror_settings"}}</button>
-									</div>
-								</form>
-							</td>
-						</tr>
-					</tbody>
-					<thead><tr><th colspan="4"></th></tr></thead>
-					{{end}}{{/* end if: IsMirror */}}
-					<tbody>
-						{{range .PushMirrors}}
-						<tr>
-							<td class="gt-word-break">{{.RemoteAddress}}</td>
-							<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
-							<td>{{if .LastUpdateUnix}}{{DateTime "full" .LastUpdateUnix}}{{else}}{{ctx.Locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{ctx.Locale.Tr "error"}}</div>{{end}}</td>
-							<td class="right aligned">
-								<button
-									class="ui tiny button show-modal"
-									data-modal="#push-mirror-edit-modal"
-									data-tooltip-content="{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.edit_sync_time"}}"
-									data-modal-push-mirror-edit-id="{{.ID}}"
-									data-modal-push-mirror-edit-interval="{{.Interval}}"
-									data-modal-push-mirror-edit-address="{{.RemoteAddress}}"
-								>
-									{{svg "octicon-pencil" 14}}
-								</button>
-								<form method="post" class="gt-dib">
-									{{$.CsrfTokenHtml}}
-									<input type="hidden" name="action" value="push-mirror-sync">
-									<input type="hidden" name="push_mirror_id" value="{{.ID}}">
-									<button class="ui primary tiny button" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.sync_mirror"}}">{{svg "octicon-sync" 14}}</button>
-								</form>
-								<form method="post" class="gt-dib">
-									{{$.CsrfTokenHtml}}
-									<input type="hidden" name="action" value="push-mirror-remove">
-									<input type="hidden" name="push_mirror_id" value="{{.ID}}">
-									<button class="ui basic red tiny button" data-tooltip-content="{{ctx.Locale.Tr "remove"}}">{{svg "octicon-trash" 14}}</button>
-								</form>
-							</td>
-						</tr>
-						{{else}}
-						<tr>
-							<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.none"}}</td>
-						</tr>
-						{{end}}
-						{{if (not .DisableNewPushMirrors)}}
 							<tr>
 								<td colspan="4">
 									<form class="ui form" method="post">
 										{{template "base/disable_form_autofill"}}
 										{{.CsrfTokenHtml}}
-										<input type="hidden" name="action" value="push-mirror-add">
-										<div class="field {{if .Err_PushMirrorAddress}}error{{end}}">
-											<label for="push_mirror_address">{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.remote_url"}}</label>
-											<input id="push_mirror_address" name="push_mirror_address" value="{{.push_mirror_address}}" required>
+										<input type="hidden" name="action" value="mirror">
+										<div class="inline field {{if .Err_EnablePrune}}error{{end}}">
+											<label>{{ctx.Locale.Tr "repo.mirror_prune"}}</label>
+											<div class="ui checkbox">
+										<input id="enable_prune" name="enable_prune" type="checkbox" {{if .PullMirror.EnablePrune}}checked{{end}}>
+										<label>{{ctx.Locale.Tr "repo.mirror_prune_desc"}}</label>
+											</div>
+										</div>
+										<div class="inline field {{if .Err_Interval}}error{{end}}">
+											<label for="interval">{{ctx.Locale.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
+											<input id="interval" name="interval" value="{{.PullMirror.Interval}}">
+										</div>
+										{{$address := MirrorRemoteAddress $.Context .Repository .PullMirror.GetRemoteName false}}
+										<div class="field {{if .Err_MirrorAddress}}error{{end}}">
+											<label for="mirror_address">{{ctx.Locale.Tr "repo.mirror_address"}}</label>
+											<input id="mirror_address" name="mirror_address" value="{{$address.Address}}" required>
 											<p class="help">{{ctx.Locale.Tr "repo.mirror_address_desc"}}</p>
 										</div>
-										<details class="ui optional field" {{if or .Err_PushMirrorAuth .push_mirror_username}}open{{end}}>
+										<details class="ui optional field" {{if or .Err_Auth $address.Username}}open{{end}}>
 											<summary class="gt-p-2">
 												{{ctx.Locale.Tr "repo.need_auth"}}
 											</summary>
 											<div class="gt-p-2">
-												<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
-													<label for="push_mirror_username">{{ctx.Locale.Tr "username"}}</label>
-													<input id="push_mirror_username" name="push_mirror_username" value="{{.push_mirror_username}}">
+												<div class="inline field {{if .Err_Auth}}error{{end}}">
+													<label for="mirror_username">{{ctx.Locale.Tr "username"}}</label>
+													<input id="mirror_username" name="mirror_username" value="{{$address.Username}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
 												</div>
-												<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
-													<label for="push_mirror_password">{{ctx.Locale.Tr "password"}}</label>
-													<input id="push_mirror_password" name="push_mirror_password" type="password" value="{{.push_mirror_password}}" autocomplete="off">
+												<div class="inline field {{if .Err_Auth}}error{{end}}">
+													<label for="mirror_password">{{ctx.Locale.Tr "password"}}</label>
+													<input id="mirror_password" name="mirror_password" type="password" placeholder="{{if $address.Password}}{{ctx.Locale.Tr "repo.mirror_password_placeholder"}}{{else}}{{ctx.Locale.Tr "repo.mirror_password_blank_placeholder"}}{{end}}" value="" {{if not .mirror_password}}data-need-clear="true"{{end}} autocomplete="off">
 												</div>
+												<p class="help">{{ctx.Locale.Tr "repo.mirror_password_help"}}</p>
 											</div>
 										</details>
-										<div class="field">
+
+										{{if .LFSStartServer}}
+										<div class="inline field">
+											<label>{{ctx.Locale.Tr "repo.mirror_lfs"}}</label>
 											<div class="ui checkbox">
-												<input id="push_mirror_sync_on_commit" name="push_mirror_sync_on_commit" type="checkbox" {{if .push_mirror_sync_on_commit}}checked{{end}}>
-												<label for="push_mirror_sync_on_commit">{{ctx.Locale.Tr "repo.mirror_sync_on_commit"}}</label>
+												<input id="mirror_lfs" name="mirror_lfs" type="checkbox" {{if .PullMirror.LFS}}checked{{end}}>
+												<label>{{ctx.Locale.Tr "repo.mirror_lfs_desc"}}</label>
 											</div>
 										</div>
-										<div class="inline field {{if .Err_PushMirrorInterval}}error{{end}}">
-											<label for="push_mirror_interval">{{ctx.Locale.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
-											<input id="push_mirror_interval" name="push_mirror_interval" value="{{if .push_mirror_interval}}{{.push_mirror_interval}}{{else}}{{.DefaultMirrorInterval}}{{end}}">
+										<div class="field {{if .Err_LFSEndpoint}}error{{end}}">
+											<label for="mirror_lfs_endpoint">{{ctx.Locale.Tr "repo.mirror_lfs_endpoint"}}</label>
+											<input id="mirror_lfs_endpoint" name="mirror_lfs_endpoint" value="{{.PullMirror.LFSEndpoint}}" placeholder="{{ctx.Locale.Tr "repo.migrate_options_lfs_endpoint.placeholder"}}">
+											<p class="help">{{ctx.Locale.Tr "repo.mirror_lfs_endpoint_desc" "https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#server-discovery" | Str2html}}</p>
 										</div>
+										{{end}}
 										<div class="field">
-											<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.add"}}</button>
+											<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_mirror_settings"}}</button>
 										</div>
 									</form>
 								</td>
 							</tr>
-						{{end}}
-					</tbody>
-				</table>
+						</tbody>
+						<thead><tr><th colspan="4"></th></tr></thead>
+						{{end}}{{/* end if: IsMirror */}}
+						<tbody>
+							{{range .PushMirrors}}
+							<tr>
+								<td class="gt-word-break">{{.RemoteAddress}}</td>
+								<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
+								<td>{{if .LastUpdateUnix}}{{DateTime "full" .LastUpdateUnix}}{{else}}{{ctx.Locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{ctx.Locale.Tr "error"}}</div>{{end}}</td>
+								<td class="right aligned">
+									<button
+										class="ui tiny button show-modal"
+										data-modal="#push-mirror-edit-modal"
+										data-tooltip-content="{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.edit_sync_time"}}"
+										data-modal-push-mirror-edit-id="{{.ID}}"
+										data-modal-push-mirror-edit-interval="{{.Interval}}"
+										data-modal-push-mirror-edit-address="{{.RemoteAddress}}"
+									>
+										{{svg "octicon-pencil" 14}}
+									</button>
+									<form method="post" class="gt-dib">
+										{{$.CsrfTokenHtml}}
+										<input type="hidden" name="action" value="push-mirror-sync">
+										<input type="hidden" name="push_mirror_id" value="{{.ID}}">
+										<button class="ui primary tiny button" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.sync_mirror"}}">{{svg "octicon-sync" 14}}</button>
+									</form>
+									<form method="post" class="gt-dib">
+										{{$.CsrfTokenHtml}}
+										<input type="hidden" name="action" value="push-mirror-remove">
+										<input type="hidden" name="push_mirror_id" value="{{.ID}}">
+										<button class="ui basic red tiny button" data-tooltip-content="{{ctx.Locale.Tr "remove"}}">{{svg "octicon-trash" 14}}</button>
+									</form>
+								</td>
+							</tr>
+							{{else}}
+							<tr>
+								<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.none"}}</td>
+							</tr>
+							{{end}}
+							{{if (not .DisableNewPushMirrors)}}
+								<tr>
+									<td colspan="4">
+										<form class="ui form" method="post">
+											{{template "base/disable_form_autofill"}}
+											{{.CsrfTokenHtml}}
+											<input type="hidden" name="action" value="push-mirror-add">
+											<div class="field {{if .Err_PushMirrorAddress}}error{{end}}">
+												<label for="push_mirror_address">{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.remote_url"}}</label>
+												<input id="push_mirror_address" name="push_mirror_address" value="{{.push_mirror_address}}" required>
+												<p class="help">{{ctx.Locale.Tr "repo.mirror_address_desc"}}</p>
+											</div>
+											<details class="ui optional field" {{if or .Err_PushMirrorAuth .push_mirror_username}}open{{end}}>
+												<summary class="gt-p-2">
+													{{ctx.Locale.Tr "repo.need_auth"}}
+												</summary>
+												<div class="gt-p-2">
+													<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
+														<label for="push_mirror_username">{{ctx.Locale.Tr "username"}}</label>
+														<input id="push_mirror_username" name="push_mirror_username" value="{{.push_mirror_username}}">
+													</div>
+													<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
+														<label for="push_mirror_password">{{ctx.Locale.Tr "password"}}</label>
+														<input id="push_mirror_password" name="push_mirror_password" type="password" value="{{.push_mirror_password}}" autocomplete="off">
+													</div>
+												</div>
+											</details>
+											<div class="field">
+												<div class="ui checkbox">
+													<input id="push_mirror_sync_on_commit" name="push_mirror_sync_on_commit" type="checkbox" {{if .push_mirror_sync_on_commit}}checked{{end}}>
+													<label for="push_mirror_sync_on_commit">{{ctx.Locale.Tr "repo.mirror_sync_on_commit"}}</label>
+												</div>
+											</div>
+											<div class="inline field {{if .Err_PushMirrorInterval}}error{{end}}">
+												<label for="push_mirror_interval">{{ctx.Locale.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
+												<input id="push_mirror_interval" name="push_mirror_interval" value="{{if .push_mirror_interval}}{{.push_mirror_interval}}{{else}}{{.DefaultMirrorInterval}}{{end}}">
+											</div>
+											<div class="field">
+												<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.add"}}</button>
+											</div>
+										</form>
+									</td>
+								</tr>
+							{{end}}
+						</tbody>
+					</table>
+				{{end}}
 			</div>
 		{{end}}
 

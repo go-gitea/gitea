@@ -16,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/storage"
@@ -369,4 +370,9 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 	notify_service.DeleteRelease(ctx, doer, rel)
 
 	return nil
+}
+
+// Init start release service
+func Init() error {
+	return initTagSyncQueue(graceful.GetManager().ShutdownContext())
 }
