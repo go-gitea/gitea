@@ -272,7 +272,7 @@ func checkForInvalidation(ctx context.Context, requests issues_model.PullRequest
 	}
 	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
-		return fmt.Errorf("git.OpenRepository: %w", err)
+		return fmt.Errorf("gitrepo.OpenRepository: %w", err)
 	}
 	go func() {
 		// FIXME: graceful: We need to tell the manager we're doing something...

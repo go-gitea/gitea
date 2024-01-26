@@ -16,12 +16,12 @@ import (
 type Repository = git.Repository
 
 // OpenRepository opens the repository at the given relative path with the provided context.
-func OpenRepository(ctx context.Context, repoPath *repo_model.Repository) (*Repository, error) {
-	return git.OpenRepository(ctx, repoPath.RepoPath())
+func OpenRepository(ctx context.Context, repo *repo_model.Repository) (*Repository, error) {
+	return git.OpenRepository(ctx, repo.RepoPath())
 }
 
-func OpenWikiRepository(ctx context.Context, repoPath *repo_model.Repository) (*Repository, error) {
-	return git.OpenRepository(ctx, repoPath.WikiPath())
+func OpenWikiRepository(ctx context.Context, repo *repo_model.Repository) (*Repository, error) {
+	return git.OpenRepository(ctx, repo.WikiPath())
 }
 
 // DeleteRepository deletes the repository at the given relative path with the provided context.
