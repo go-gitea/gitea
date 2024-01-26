@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -522,7 +523,8 @@ func UpdateRef(ctx context.Context, pr *issues_model.PullRequest) (err error) {
 		return err
 	}
 
-	_, _, err = git.NewCommand(ctx, "update-ref").AddDynamicArguments(pr.GetGitRefName(), pr.HeadCommitID).RunStdString(&git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
+	cmd := git.NewCommand(ctx, "update-ref").AddDynamicArguments(pr.GetGitRefName(), pr.HeadCommitID)
+	_, _, err = gitrepo.RunGitCmdStdString(pr.BaseRepo, cmd, &git.RunOpts{})
 	if err != nil {
 		log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
 	}

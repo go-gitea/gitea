@@ -25,6 +25,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
@@ -284,15 +285,15 @@ func TestCantMergeUnrelated(t *testing.T) {
 			OwnerID: user1.ID,
 			Name:    "repo1",
 		})
-		path := repo_model.RepoPath(user1.Name, repo1.Name)
 
-		err := git.NewCommand(git.DefaultContext, "read-tree", "--empty").Run(&git.RunOpts{Dir: path})
+		cmd := git.NewCommand(git.DefaultContext, "read-tree", "--empty")
+		err := gitrepo.RunGitCmd(repo1, cmd, &git.RunOpts{})
 		assert.NoError(t, err)
 
 		stdin := bytes.NewBufferString("Unrelated File")
 		var stdout strings.Builder
-		err = git.NewCommand(git.DefaultContext, "hash-object", "-w", "--stdin").Run(&git.RunOpts{
-			Dir:    path,
+		cmd = git.NewCommand(git.DefaultContext, "hash-object", "-w", "--stdin")
+		err = gitrepo.RunGitCmd(repo1, cmd, &git.RunOpts{
 			Stdin:  stdin,
 			Stdout: &stdout,
 		})
@@ -300,10 +301,13 @@ func TestCantMergeUnrelated(t *testing.T) {
 		assert.NoError(t, err)
 		sha := strings.TrimSpace(stdout.String())
 
-		_, _, err = git.NewCommand(git.DefaultContext, "update-index", "--add", "--replace", "--cacheinfo").AddDynamicArguments("100644", sha, "somewher-over-the-rainbow").RunStdString(&git.RunOpts{Dir: path})
+		cmd = git.NewCommand(git.DefaultContext, "update-index", "--add", "--replace", "--cacheinfo").AddDynamicArguments("100644", sha, "somewher-over-the-rainbow")
+		_, _, err = gitrepo.RunGitCmdStdString(repo1, cmd, &git.RunOpts{})
 		assert.NoError(t, err)
 
-		treeSha, _, err := git.NewCommand(git.DefaultContext, "write-tree").RunStdString(&git.RunOpts{Dir: path})
+		cmd = git.NewCommand(git.DefaultContext, "write-tree")
+		treeSha, _, err := gitrepo.RunGitCmdStdString(repo1, cmd, &git.RunOpts{})
+
 		assert.NoError(t, err)
 		treeSha = strings.TrimSpace(treeSha)
 
@@ -323,17 +327,17 @@ func TestCantMergeUnrelated(t *testing.T) {
 		_, _ = messageBytes.WriteString("\n")
 
 		stdout.Reset()
-		err = git.NewCommand(git.DefaultContext, "commit-tree").AddDynamicArguments(treeSha).
-			Run(&git.RunOpts{
-				Env:    env,
-				Dir:    path,
-				Stdin:  messageBytes,
-				Stdout: &stdout,
-			})
+		cmd = git.NewCommand(git.DefaultContext, "commit-tree").AddDynamicArguments(treeSha)
+		err = gitrepo.RunGitCmd(repo1, cmd, &git.RunOpts{
+			Env:    env,
+			Stdin:  messageBytes,
+			Stdout: &stdout,
+		})
 		assert.NoError(t, err)
 		commitSha := strings.TrimSpace(stdout.String())
 
-		_, _, err = git.NewCommand(git.DefaultContext, "branch", "unrelated").AddDynamicArguments(commitSha).RunStdString(&git.RunOpts{Dir: path})
+		cmd = git.NewCommand(git.DefaultContext, "branch", "unrelated").AddDynamicArguments(commitSha)
+		_, _, err = gitrepo.RunGitCmdStdString(repo1, cmd, &git.RunOpts{})
 		assert.NoError(t, err)
 
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
@@ -348,7 +352,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusCreated)
 
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
-		gitRepo, err := git.OpenRepository(git.DefaultContext, path)
+		gitRepo, err := git.OpenRepository(git.DefaultContext, repo1.RepoPath())
 		assert.NoError(t, err)
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
 			HeadRepoID: repo1.ID,

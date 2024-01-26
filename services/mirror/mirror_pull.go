@@ -13,6 +13,7 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -30,29 +31,32 @@ const gitShortEmptySha = "0000000"
 // UpdateAddress writes new address to Git repository and database
 func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error {
 	remoteName := m.GetRemoteName()
-	repoPath := m.GetRepository(ctx).RepoPath()
+	repo := m.GetRepository(ctx)
+
 	// Remove old remote
-	_, _, err := git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(remoteName).RunStdString(&git.RunOpts{Dir: repoPath})
+	cmd := git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(remoteName)
+	_, _, err := gitrepo.RunGitCmdStdString(repo, cmd, &git.RunOpts{})
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return err
 	}
 
-	cmd := git.NewCommand(ctx, "remote", "add").AddDynamicArguments(remoteName).AddArguments("--mirror=fetch").AddDynamicArguments(addr)
+	cmd = git.NewCommand(ctx, "remote", "add").AddDynamicArguments(remoteName).AddArguments("--mirror=fetch").AddDynamicArguments(addr)
 	if strings.Contains(addr, "://") && strings.Contains(addr, "@") {
-		cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, util.SanitizeCredentialURLs(addr), repoPath))
+		cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, util.SanitizeCredentialURLs(addr), repo.FullName()))
 	} else {
-		cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, addr, repoPath))
+		cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, addr, repo.FullName()))
 	}
-	_, _, err = cmd.RunStdString(&git.RunOpts{Dir: repoPath})
+	_, _, err = gitrepo.RunGitCmdStdString(repo, cmd, &git.RunOpts{})
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return err
 	}
 
 	if m.Repo.HasWiki() {
-		wikiPath := m.Repo.WikiPath()
+		wikiPath := m.Repo.FullName() + ".wiki.git"
 		wikiRemotePath := repo_module.WikiRemoteURL(ctx, addr)
 		// Remove old remote of wiki
-		_, _, err = git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(remoteName).RunStdString(&git.RunOpts{Dir: wikiPath})
+		cmd = git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(remoteName)
+		_, _, err = gitrepo.RunGitCmdStdStringWiki(repo, cmd, &git.RunOpts{})
 		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 			return err
 		}
@@ -63,7 +67,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		} else {
 			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, wikiRemotePath, wikiPath))
 		}
-		_, _, err = cmd.RunStdString(&git.RunOpts{Dir: wikiPath})
+		_, _, err = gitrepo.RunGitCmdStdStringWiki(repo, cmd, &git.RunOpts{})
 		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 			return err
 		}
@@ -238,15 +242,13 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 
 	stdoutBuilder := strings.Builder{}
 	stderrBuilder := strings.Builder{}
-	if err := cmd.
-		SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName())).
-		Run(&git.RunOpts{
-			Timeout: timeout,
-			Dir:     repoPath,
-			Env:     envs,
-			Stdout:  &stdoutBuilder,
-			Stderr:  &stderrBuilder,
-		}); err != nil {
+	cmd.SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName()))
+	if err := gitrepo.RunGitCmd(m.Repo, cmd, &git.RunOpts{
+		Timeout: timeout,
+		Env:     envs,
+		Stdout:  &stdoutBuilder,
+		Stderr:  &stderrBuilder,
+	}); err != nil {
 		stdout := stdoutBuilder.String()
 		stderr := stderrBuilder.String()
 
@@ -265,14 +267,12 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 				// Successful prune - reattempt mirror
 				stderrBuilder.Reset()
 				stdoutBuilder.Reset()
-				if err = cmd.
-					SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName())).
-					Run(&git.RunOpts{
-						Timeout: timeout,
-						Dir:     repoPath,
-						Stdout:  &stdoutBuilder,
-						Stderr:  &stderrBuilder,
-					}); err != nil {
+				cmd.SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName()))
+				if err = gitrepo.RunGitCmd(m.Repo, cmd, &git.RunOpts{
+					Timeout: timeout,
+					Stdout:  &stdoutBuilder,
+					Stderr:  &stderrBuilder,
+				}); err != nil {
 					stdout := stdoutBuilder.String()
 					stderr := stderrBuilder.String()
 
@@ -335,14 +335,13 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		log.Trace("SyncMirrors [repo: %-v Wiki]: running git remote update...", m.Repo)
 		stderrBuilder.Reset()
 		stdoutBuilder.Reset()
-		if err := git.NewCommand(ctx, "remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).
-			SetDescription(fmt.Sprintf("Mirror.runSync Wiki: %s ", m.Repo.FullName())).
-			Run(&git.RunOpts{
-				Timeout: timeout,
-				Dir:     wikiPath,
-				Stdout:  &stdoutBuilder,
-				Stderr:  &stderrBuilder,
-			}); err != nil {
+		cmd := git.NewCommand(ctx, "remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).
+			SetDescription(fmt.Sprintf("Mirror.runSync Wiki: %s ", m.Repo.FullName()))
+		if err := gitrepo.RunGitCmdWiki(m.Repo, cmd, &git.RunOpts{
+			Timeout: timeout,
+			Stdout:  &stdoutBuilder,
+			Stderr:  &stderrBuilder,
+		}); err != nil {
 			stdout := stdoutBuilder.String()
 			stderr := stderrBuilder.String()
 
@@ -362,14 +361,13 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 					stderrBuilder.Reset()
 					stdoutBuilder.Reset()
 
-					if err = git.NewCommand(ctx, "remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).
-						SetDescription(fmt.Sprintf("Mirror.runSync Wiki: %s ", m.Repo.FullName())).
-						Run(&git.RunOpts{
-							Timeout: timeout,
-							Dir:     wikiPath,
-							Stdout:  &stdoutBuilder,
-							Stderr:  &stderrBuilder,
-						}); err != nil {
+					git.NewCommand(ctx, "remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).
+						SetDescription(fmt.Sprintf("Mirror.runSync Wiki: %s ", m.Repo.FullName()))
+					if err = gitrepo.RunGitCmdWiki(m.Repo, cmd, &git.RunOpts{
+						Timeout: timeout,
+						Stdout:  &stdoutBuilder,
+						Stderr:  &stderrBuilder,
+					}); err != nil {
 						stdout := stdoutBuilder.String()
 						stderr := stderrBuilder.String()
 						stderrMessage = util.SanitizeCredentialURLs(stderr)

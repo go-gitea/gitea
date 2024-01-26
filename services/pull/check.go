@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -196,9 +197,8 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	prHeadRef := pr.GetGitRefName()
 
 	// Check if the pull request is merged into BaseBranch
-	if _, _, err := git.NewCommand(ctx, "merge-base", "--is-ancestor").
-		AddDynamicArguments(prHeadRef, pr.BaseBranch).
-		RunStdString(&git.RunOpts{Dir: pr.BaseRepo.RepoPath()}); err != nil {
+	cmd := git.NewCommand(ctx, "merge-base", "--is-ancestor").AddDynamicArguments(prHeadRef, pr.BaseBranch)
+	if _, _, err := gitrepo.RunGitCmdStdString(pr.BaseRepo, cmd, &git.RunOpts{}); err != nil {
 		if strings.Contains(err.Error(), "exit status 1") {
 			// prHeadRef is not an ancestor of the base branch
 			return nil, nil
@@ -227,9 +227,9 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	}
 
 	// Get the commit from BaseBranch where the pull request got merged
-	mergeCommit, _, err := git.NewCommand(ctx, "rev-list", "--ancestry-path", "--merges", "--reverse").
-		AddDynamicArguments(prHeadCommitID + ".." + pr.BaseBranch).
-		RunStdString(&git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
+	cmd = git.NewCommand(ctx, "rev-list", "--ancestry-path", "--merges", "--reverse").
+		AddDynamicArguments(prHeadCommitID + ".." + pr.BaseBranch)
+	mergeCommit, _, err := gitrepo.RunGitCmdStdString(pr.BaseRepo, cmd, &git.RunOpts{})
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %w", err)
 	} else if len(mergeCommit) < objectFormat.FullLength() {
