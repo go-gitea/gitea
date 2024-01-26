@@ -396,18 +396,20 @@ func ListRepoProjects(ctx *context.APIContext) {
 	//    "$ref": "#/responses/forbidden"
 	//  "404":
 	//    "$ref": "#/responses/notFound"
+
+	page := ctx.FormInt("page")
 	projects, count, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
 		RepoID:      ctx.Repo.Repository.ID,
 		IsClosed:    ctx.FormOptionalBool("closed"),
 		Type:        project_model.TypeRepository,
-		ListOptions: db.ListOptions{Page: ctx.FormInt("page")},
+		ListOptions: db.ListOptions{Page: page},
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListRepoProjects", err)
 		return
 	}
 
-	ctx.SetLinkHeader(int(count), setting.UI.IssuePagingNum)
+	ctx.SetLinkHeader(int(count), page)
 	ctx.SetTotalCountHeader(count)
 
 	apiProjects, err := convert.ToAPIProjectList(ctx, projects)
