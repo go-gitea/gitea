@@ -217,6 +217,10 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		}
 	}
 
+	if opts.ObjectFormatName == "" {
+		opts.ObjectFormatName = git.Sha1ObjectFormat.Name()
+	}
+
 	repo := &repo_model.Repository{
 		OwnerID:                         u.ID,
 		Owner:                           u,

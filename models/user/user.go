@@ -660,8 +660,13 @@ func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOve
 	if u.Rands, err = GetUserSalt(); err != nil {
 		return err
 	}
-	if err = u.SetPassword(u.Passwd); err != nil {
-		return err
+	if u.Passwd != "" {
+		if err = u.SetPassword(u.Passwd); err != nil {
+			return err
+		}
+	} else {
+		u.Salt = ""
+		u.PasswdHashAlgo = ""
 	}
 
 	// save changes to database

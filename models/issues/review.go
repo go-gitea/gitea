@@ -116,7 +116,7 @@ type Review struct {
 	Content          string `xorm:"TEXT"`
 	// Official is a review made by an assigned approver (counts towards approval)
 	Official  bool   `xorm:"NOT NULL DEFAULT false"`
-	CommitID  string `xorm:"VARCHAR(40)"`
+	CommitID  string `xorm:"VARCHAR(64)"`
 	Stale     bool   `xorm:"NOT NULL DEFAULT false"`
 	Dismissed bool   `xorm:"NOT NULL DEFAULT false"`
 
