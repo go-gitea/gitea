@@ -14,6 +14,7 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
@@ -90,7 +91,7 @@ func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Du
 		SetDescription(fmt.Sprintf("Repository Garbage Collection: %s", repo.FullName()))
 	var stdout string
 	var err error
-	stdout, _, err = command.RunStdString(&git.RunOpts{Timeout: timeout, Dir: repo.RepoPath()})
+	stdout, _, err = gitrepo.RunGitCmdStdString(repo, command, &git.RunOpts{Timeout: timeout})
 
 	if err != nil {
 		log.Error("Repository garbage collection failed for %-v. Stdout: %s\nError: %v", repo, stdout, err)

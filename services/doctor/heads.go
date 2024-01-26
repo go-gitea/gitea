@@ -8,6 +8,7 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -18,9 +19,11 @@ func synchronizeRepoHeads(ctx context.Context, logger log.Logger, autofix bool) 
 	numReposUpdated := 0
 	err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
 		numRepos++
-		_, _, defaultBranchErr := git.NewCommand(ctx, "rev-parse").AddDashesAndList(repo.DefaultBranch).RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
+		cmd := git.NewCommand(ctx, "rev-parse").AddDashesAndList(repo.DefaultBranch)
+		_, _, defaultBranchErr := gitrepo.RunGitCmdStdString(repo, cmd, &git.RunOpts{})
 
-		head, _, headErr := git.NewCommand(ctx, "symbolic-ref", "--short", "HEAD").RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
+		cmd = git.NewCommand(ctx, "symbolic-ref", "--short", "HEAD")
+		head, _, headErr := gitrepo.RunGitCmdStdString(repo, cmd, &git.RunOpts{})
 
 		// what we expect: default branch is valid, and HEAD points to it
 		if headErr == nil && defaultBranchErr == nil && head == repo.DefaultBranch {
@@ -46,7 +49,8 @@ func synchronizeRepoHeads(ctx context.Context, logger log.Logger, autofix bool) 
 		}
 
 		// otherwise, let's try fixing HEAD
-		err := git.NewCommand(ctx, "symbolic-ref").AddDashesAndList("HEAD", git.BranchPrefix+repo.DefaultBranch).Run(&git.RunOpts{Dir: repo.RepoPath()})
+		cmd = git.NewCommand(ctx, "symbolic-ref").AddDashesAndList("HEAD", git.BranchPrefix+repo.DefaultBranch)
+		err := gitrepo.RunGitCmd(repo, cmd, &git.RunOpts{})
 		if err != nil {
 			logger.Warn("Failed to fix HEAD for %s/%s: %v", repo.OwnerName, repo.Name, err)
 			return nil
