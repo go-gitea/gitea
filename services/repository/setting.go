@@ -5,13 +5,14 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"slices"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/log"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
 // UpdateRepositoryUnits updates a repository's units
@@ -28,8 +29,14 @@ func UpdateRepositoryUnits(ctx context.Context, repo *repo_model.Repository, uni
 	}
 
 	if slices.Contains(deleteUnitTypes, unit.TypeActions) {
-		if err := actions_model.CleanRepoScheduleTasks(ctx, repo); err != nil {
-			log.Error("CleanRepoScheduleTasks: %v", err)
+		if err := actions_model.CancelRunningJobs(
+			ctx,
+			repo.ID,
+			repo.DefaultBranch,
+			"",
+			webhook_module.HookEventSchedule,
+		); err != nil {
+			return fmt.Errorf("CancelRunningJobs: %v", err)
 		}
 	}
 
