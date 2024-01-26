@@ -388,7 +388,8 @@ export default {
             <img class="ui avatar gt-vm" height="40" width="40" :src="contributor.avatar_link">
           </a>
           <div class="gt-ml-3">
-            <a :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
+            <a v-if="contributor.home_link !== ''" :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
+            <p v-else class='contributor-name'><h4>{{ contributor.name }}</h4></p>
             <p class="gt-font-12 gt-df gt-gap-2">
               <strong v-if="contributor.total_commits">{{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}</strong>
               <strong v-if="contributor.total_additions" class="text green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
@@ -418,4 +419,9 @@ export default {
   grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
 }
+
+.contributor-name {
+  margin-bottom: 0;
+}
+
 </style>
