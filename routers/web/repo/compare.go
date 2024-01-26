@@ -142,7 +142,7 @@ func setCsvCompareContext(ctx *context.Context) {
 				return nil, nil, err
 			}
 
-			csvReader, err := csv_module.CreateReaderAndDetermineDelimiter(ctx, charset.ToUTF8WithFallbackReader(reader))
+			csvReader, err := csv_module.CreateReaderAndDetermineDelimiter(ctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}))
 			return csvReader, reader, err
 		}
 
