@@ -389,7 +389,9 @@ export default {
           </a>
           <div class="gt-ml-3">
             <a v-if="contributor.home_link !== ''" :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
-            <p v-else class='contributor-name'><h4>{{ contributor.name }}</h4></p>
+            <h4 v-else class="contributor-name">
+              {{ contributor.name }}
+            </h4>
             <p class="gt-font-12 gt-df gt-gap-2">
               <strong v-if="contributor.total_commits">{{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}</strong>
               <strong v-if="contributor.total_additions" class="text green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
