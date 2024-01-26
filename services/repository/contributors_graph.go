@@ -231,7 +231,7 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 
 	sundays, _ := util.ListSundaysBetween(startingSunday, endingSunday)
 
-	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink(ctx)
+	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLinkWithSize(ctx, 0)
 	contributorsCommitStats := make(map[string]*ContributorData)
 	contributorsCommitStats["total"] = &ContributorData{
 		Name:       "Total",
@@ -266,7 +266,7 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 				contributorsCommitStats[userEmail] = &ContributorData{
 					Name:       u.DisplayName(),
 					Login:      u.LowerName,
-					AvatarLink: u.AvatarLink(ctx),
+					AvatarLink: u.AvatarLinkWithSize(ctx, 0),
 					HomeLink:   u.HomeLink(),
 					Weeks:      CreateWeeks(sundays),
 				}
