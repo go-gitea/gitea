@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -69,7 +70,7 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 		}
 	}()
 
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := repo_module.OpenRepository(ctx, repo)
 	if err != nil {
 		log.Error("Unable to open git repository %-v: %v", repo, err)
 		return err

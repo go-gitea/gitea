@@ -62,7 +62,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 	assigneeCommentMap := make(map[int64]*issues_model.Comment)
 
 	// add first push codes comment
-	baseGitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
+	baseGitRepo, err := repo_module.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
 		return err
 	}
@@ -127,7 +127,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 		}
 
 		if !pr.IsWorkInProgress(ctx) {
-			if err := issues_model.PullRequestCodeOwnersReview(ctx, issue, pr); err != nil {
+			if err := issue_service.PullRequestCodeOwnersReview(ctx, issue, pr); err != nil {
 				return err
 			}
 		}
@@ -269,7 +269,7 @@ func checkForInvalidation(ctx context.Context, requests issues_model.PullRequest
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByIDCtx: %w", err)
 	}
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := repo_module.OpenRepository(ctx, repo)
 	if err != nil {
 		return fmt.Errorf("git.OpenRepository: %w", err)
 	}
@@ -845,7 +845,7 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 		}
 		gitRepo, ok := gitRepos[issue.RepoID]
 		if !ok {
-			gitRepo, err = git.OpenRepository(ctx, issue.Repo.RepoPath())
+			gitRepo, err = repo_module.OpenRepository(ctx, issue.Repo)
 			if err != nil {
 				log.Error("Cannot open git repository %-v for issue #%d[%d]. Error: %v", issue.Repo, issue.Index, issue.ID, err)
 				continue

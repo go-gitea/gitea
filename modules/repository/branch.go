@@ -24,9 +24,9 @@ func SyncRepoBranches(ctx context.Context, repoID, doerID int64) (int64, error) 
 
 	log.Debug("SyncRepoBranches: in Repo[%d:%s]", repo.ID, repo.FullName())
 
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := OpenRepository(ctx, repo)
 	if err != nil {
-		log.Error("OpenRepository[%s]: %w", repo.RepoPath(), err)
+		log.Error("OpenRepository[%s]: %w", repo.FullName(), err)
 		return 0, err
 	}
 	defer gitRepo.Close()

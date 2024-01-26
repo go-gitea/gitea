@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -90,7 +91,7 @@ func FindUserProfileReadme(ctx *context.Context, doer *user_model.User) (profile
 	if err == nil {
 		perm, err := access_model.GetUserRepoPermission(ctx, profileDbRepo, doer)
 		if err == nil && !profileDbRepo.IsEmpty && perm.CanRead(unit.TypeCode) {
-			if profileGitRepo, err = git.OpenRepository(ctx, profileDbRepo.RepoPath()); err != nil {
+			if profileGitRepo, err = repo_module.OpenRepository(ctx, profileDbRepo); err != nil {
 				log.Error("FindUserProfileReadme failed to OpenRepository: %v", err)
 			} else {
 				if commit, err := profileGitRepo.GetBranchCommit(profileDbRepo.DefaultBranch); err != nil {

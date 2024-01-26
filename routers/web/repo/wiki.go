@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -92,7 +93,7 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 }
 
 func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, error) {
-	wikiRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.WikiPath())
+	wikiRepo, err := repo_module.OpenWikiRepository(ctx, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("OpenRepository", err)
 		return nil, nil, err

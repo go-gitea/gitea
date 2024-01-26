@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
@@ -128,7 +129,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return nil
 	}
 
-	gitRepo, err := git.OpenRepository(context.Background(), input.Repo.RepoPath())
+	gitRepo, err := repo_module.OpenRepository(context.Background(), input.Repo)
 	if err != nil {
 		return fmt.Errorf("git.OpenRepository: %w", err)
 	}

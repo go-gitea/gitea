@@ -300,7 +300,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		log.Error("SyncMirrors [repo: %-v]: %v", m.Repo, err)
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, repoPath)
+	gitRepo, err := repo_module.OpenRepository(ctx, m.Repo)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to OpenRepository: %v", m.Repo, err)
 		return nil, false
@@ -453,7 +453,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		log.Trace("SyncMirrors [repo: %-v]: no branches updated", m.Repo)
 	} else {
 		log.Trace("SyncMirrors [repo: %-v]: %d branches updated", m.Repo, len(results))
-		gitRepo, err = git.OpenRepository(ctx, m.Repo.RepoPath())
+		gitRepo, err = repo_module.OpenRepository(ctx, m.Repo)
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: unable to OpenRepository: %v", m.Repo, err)
 			return false

@@ -126,7 +126,7 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 	repo.IsEmpty = false
 
 	// Don't bother looking this repo in the context it won't be there
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := repo_module.OpenRepository(ctx, repo)
 	if err != nil {
 		return fmt.Errorf("openRepository: %w", err)
 	}

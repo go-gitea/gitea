@@ -160,7 +160,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 		if pr.HasMerged {
 			baseGitRepo, ok := repoIDToGitRepo[pr.BaseRepoID]
 			if !ok {
-				baseGitRepo, err = git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
+				baseGitRepo, err = repo_module.OpenRepository(ctx, pr.BaseRepo)
 				if err != nil {
 					return nil, fmt.Errorf("OpenRepository: %v", err)
 				}

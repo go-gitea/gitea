@@ -10,6 +10,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 )
 
 // getRebaseAmendMessage composes the message to amend commits in rebase merge of a pull request.
@@ -57,7 +58,7 @@ func doMergeRebaseFastForward(ctx *mergeContext) error {
 	}
 
 	// Original repo to read template from.
-	baseGitRepo, err := git.OpenRepository(ctx, ctx.pr.BaseRepo.RepoPath())
+	baseGitRepo, err := repo_module.OpenRepository(ctx, ctx.pr.BaseRepo)
 	if err != nil {
 		log.Error("Unable to get Git repo for rebase: %v", err)
 		return err

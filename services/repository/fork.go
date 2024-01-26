@@ -167,7 +167,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 			return fmt.Errorf("createDelegateHooks: %w", err)
 		}
 
-		gitRepo, err := git.OpenRepository(txCtx, repo.RepoPath())
+		gitRepo, err := repo_module.OpenRepository(txCtx, repo)
 		if err != nil {
 			return fmt.Errorf("OpenRepository: %w", err)
 		}
@@ -190,7 +190,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		log.Error("Copy language stat from oldRepo failed: %v", err)
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := repo_module.OpenRepository(ctx, repo)
 	if err != nil {
 		log.Error("Open created git repository failed: %v", err)
 	} else {

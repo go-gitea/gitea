@@ -271,7 +271,7 @@ func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *r
 		repo.DefaultBranch = templateRepo.DefaultBranch
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := OpenRepository(ctx, repo)
 	if err != nil {
 		return fmt.Errorf("openRepository: %w", err)
 	}

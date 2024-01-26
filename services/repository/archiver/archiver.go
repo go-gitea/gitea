@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 )
@@ -209,7 +210,7 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 		return nil, fmt.Errorf("archiver.LoadRepo failed: %w", err)
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := repo_module.OpenRepository(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
