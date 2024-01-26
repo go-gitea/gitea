@@ -27,7 +27,7 @@ func WalkReferences(ctx context.Context, repo *repo_model.Repository, walkfn fun
 	}
 
 	i := 0
-	iter, err := gitRepo.gogitRepo.References()
+	iter, err := gitRepo.GoGitRepo().References()
 	if err != nil {
 		return i, err
 	}
