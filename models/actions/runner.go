@@ -111,7 +111,11 @@ func (r *ActionRunner) IsOnline() bool {
 
 // EditLink returns edit runner link
 // Should ensure attributes are loaded before call this function
-func (r *ActionRunner) EditLink() string {
+func (r *ActionRunner) EditLink(admin bool) string {
+	if admin {
+		return fmt.Sprintf("/admin/actions/runners/%d", r.ID)
+	}
+
 	switch r.BelongsToOwnerType() {
 	case types.OwnerTypeSystemGlobal:
 		return fmt.Sprintf("/admin/actions/runners/%d", r.ID)

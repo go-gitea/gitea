@@ -80,7 +80,11 @@
 						<td>{{if .LastOnline}}{{TimeSinceUnix .LastOnline ctx.Locale}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>
 						<td class="runner-ops">
 							{{if .Editable $.Context $.Context.Doer $.RunnerOwner $.RunnerRepo}}
-								<a href="{{.EditLink}}">{{svg "octicon-pencil"}}</a>
+								{{if $.PageIsAdmin}}
+									<a href="{{.EditLink true}}">{{svg "octicon-pencil"}}</a>
+								{{else}}
+									<a href="{{.EditLink false}}">{{svg "octicon-pencil"}}</a>
+								{{end}}
 							{{else}}
 								<div class="gt-ml-3" data-tooltip-content="{{ctx.Locale.Tr "actions.runners.no_permission_to_edit"}}">{{svg "octicon-x"}}</div>
 							{{end}}
