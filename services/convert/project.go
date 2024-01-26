@@ -21,7 +21,6 @@ func ToAPIProject(ctx context.Context, project *project_model.Project) (*api.Pro
 		Closed:      project.ClosedDateUnix.AsTime(),
 	}
 
-	// try to laod the repo
 	_ = project.LoadRepo(ctx)
 	if project.Repo != nil {
 		apiProject.Repo = &api.RepositoryMeta{
