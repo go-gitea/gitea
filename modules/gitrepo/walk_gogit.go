@@ -9,7 +9,7 @@ import (
 	"context"
 
 	repo_model "code.gitea.io/gitea/models/repo"
-	"github.com/go-git/go-git/plumbing"
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
 // WalkReferences walks all the references from the repository
