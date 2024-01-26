@@ -8,3 +8,7 @@ import repo_model "code.gitea.io/gitea/models/repo"
 func RepoGitURL(repo *repo_model.Repository) string {
 	return repo.RepoPath()
 }
+
+func WikiRepoGitURL(repo *repo_model.Repository) string {
+	return repo.WikiPath()
+}
