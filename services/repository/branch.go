@@ -191,10 +191,6 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 	}, nil
 }
 
-func GetBranchCommitID(ctx context.Context, repo *repo_model.Repository, branch string) (string, error) {
-	return git.GetBranchCommitID(ctx, repo.RepoPath(), branch)
-}
-
 // checkBranchName validates branch name with existing repository branches
 func checkBranchName(ctx context.Context, repo *repo_model.Repository, name string) error {
 	_, err := git.WalkReferences(ctx, repo.RepoPath(), func(_, refName string) error {
