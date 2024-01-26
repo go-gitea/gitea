@@ -241,10 +241,6 @@ func stringMustEndWith(t *testing.T, expected, value string) {
 	assert.Equal(t, expected, value[len(value)-len(expected):])
 }
 
-func bytesMustStartWith(t *testing.T, expected, value []byte) {
-	assert.Equal(t, expected, value[:len(expected)])
-}
-
 func TestToUTF8WithFallbackReader(t *testing.T) {
 	resetDefaultCharsetsOrder()
 
