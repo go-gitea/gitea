@@ -260,13 +260,13 @@ func DeleteProject(ctx *context.APIContext) {
 func ListUserProjects(ctx *context.APIContext) {
 	// swagger:operation GET /user/projects project projectListUserProjects
 	// ---
-	// summary: List repository projects
+	// summary: List user projects
 	// produces:
 	// - application/json
 	// parameters:
 	//   - name: closed
 	//     in: query
-	//     description: include closed issues or not
+	//     description: include closed projects or not
 	//     type: boolean
 	//   - name: page
 	//     in: query
@@ -290,7 +290,7 @@ func ListUserProjects(ctx *context.APIContext) {
 		ListOptions: db.ListOptions{Page: ctx.FormInt("page")},
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Projects", err)
+		ctx.Error(http.StatusInternalServerError, "ListUserProjets", err)
 		return
 	}
 
@@ -299,7 +299,7 @@ func ListUserProjects(ctx *context.APIContext) {
 
 	apiProjects, err := convert.ToAPIProjectList(ctx, projects)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Projects", err)
+		ctx.Error(http.StatusInternalServerError, "ListUserProjects", err)
 		return
 	}
 
@@ -309,7 +309,7 @@ func ListUserProjects(ctx *context.APIContext) {
 func ListOrgProjects(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/projects project projectListOrgProjects
 	// ---
-	// summary: List repository projects
+	// summary: List org projects
 	// produces:
 	// - application/json
 	// parameters:
@@ -320,7 +320,7 @@ func ListOrgProjects(ctx *context.APIContext) {
 	//     required: true
 	//   - name: closed
 	//     in: query
-	//     description: include closed issues or not
+	//     description: include closed projects or not
 	//     type: boolean
 	//   - name: page
 	//     in: query
@@ -344,7 +344,7 @@ func ListOrgProjects(ctx *context.APIContext) {
 		Type:        project_model.TypeOrganization,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Projects", err)
+		ctx.Error(http.StatusInternalServerError, "ListOrgProjects", err)
 		return
 	}
 
@@ -353,7 +353,7 @@ func ListOrgProjects(ctx *context.APIContext) {
 
 	apiProjects, err := convert.ToAPIProjectList(ctx, projects)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Projects", err)
+		ctx.Error(http.StatusInternalServerError, "ListOrgProjects", err)
 		return
 	}
 
@@ -379,7 +379,7 @@ func ListRepoProjects(ctx *context.APIContext) {
 	//     required: true
 	//   - name: closed
 	//     in: query
-	//     description: include closed issues or not
+	//     description: include closed projects or not
 	//     type: boolean
 	//   - name: page
 	//     in: query
@@ -403,7 +403,7 @@ func ListRepoProjects(ctx *context.APIContext) {
 		ListOptions: db.ListOptions{Page: ctx.FormInt("page")},
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Projects", err)
+		ctx.Error(http.StatusInternalServerError, "ListRepoProjects", err)
 		return
 	}
 
@@ -412,7 +412,7 @@ func ListRepoProjects(ctx *context.APIContext) {
 
 	apiProjects, err := convert.ToAPIProjectList(ctx, projects)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Projects", err)
+		ctx.Error(http.StatusInternalServerError, "ListRepoProjects", err)
 		return
 	}
 
