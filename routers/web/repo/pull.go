@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	issue_template "code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -438,7 +439,8 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 		}
 		if commitSHA != "" {
 			// Get immediate parent of the first commit in the patch, grab history back
-			parentCommit, _, err = git.NewCommand(ctx, "rev-list", "-1", "--skip=1").AddDynamicArguments(commitSHA).RunStdString(&git.RunOpts{Dir: ctx.Repo.GitRepo.Path})
+			cmd := git.NewCommand(ctx, "rev-list", "-1", "--skip=1").AddDynamicArguments(commitSHA)
+			parentCommit, _, err = gitrepo.RunGitCmdStdString(ctx.Repo.Repository, cmd, &git.RunOpts{})
 			if err == nil {
 				parentCommit = strings.TrimSpace(parentCommit)
 			}
