@@ -15,18 +15,18 @@ import (
 // WalkReferences walks all the references from the repository
 // refType should be empty, ObjectTag or ObjectBranch. All other values are equivalent to empty.
 func WalkReferences(ctx context.Context, repo *repo_model.Repository, walkfn func(sha1, refname string) error) (int, error) {
-	repo := RepositoryFromContext(ctx, repo)
-	if repo == nil {
+	gitRepo := RepositoryFromContext(ctx, repo)
+	if gitRepo == nil {
 		var err error
-		repo, err = OpenRepository(ctx, repo)
+		gitRepo, err = OpenRepository(ctx, repo)
 		if err != nil {
 			return 0, err
 		}
-		defer repo.Close()
+		defer gitRepo.Close()
 	}
 
 	i := 0
-	iter, err := repo.gogitRepo.References()
+	iter, err := gitRepo.gogitRepo.References()
 	if err != nil {
 		return i, err
 	}
