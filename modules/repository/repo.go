@@ -516,11 +516,13 @@ func pullMirrorReleaseSync(ctx context.Context, repo *repo_model.Repository, git
 		return fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 	}
 	err = db.WithTx(ctx, func(ctx context.Context) error {
-		dbReleases, err := db.Find[shortRelease](ctx, repo_model.FindReleasesOptions{
+		dbReleases := make([]*shortRelease, 0, len(tags))
+		err := db.Find(ctx, &repo_model.FindReleasesOptions{
+			ListOptions:   db.ListOptions{ListAll: true},
 			RepoID:        repo.ID,
 			IncludeDrafts: true,
 			IncludeTags:   true,
-		})
+		}, &dbReleases)
 		if err != nil {
 			return fmt.Errorf("unable to FindReleases in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 		}
