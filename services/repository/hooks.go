@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 
@@ -51,13 +52,13 @@ func SyncRepositoryHooks(ctx context.Context) error {
 
 // GenerateGitHooks generates git hooks from a template repository
 func GenerateGitHooks(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
-	generateGitRepo, err := repo_module.OpenRepository(ctx, generateRepo)
+	generateGitRepo, err := gitrepo.OpenRepository(ctx, generateRepo)
 	if err != nil {
 		return err
 	}
 	defer generateGitRepo.Close()
 
-	templateGitRepo, err := repo_module.OpenRepository(ctx, templateRepo)
+	templateGitRepo, err := gitrepo.OpenRepository(ctx, templateRepo)
 	if err != nil {
 		return err
 	}

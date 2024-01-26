@@ -9,7 +9,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/modules/git"
-	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/gitrepo"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -67,7 +67,7 @@ func TestGetClosestParentWithFiles(t *testing.T) {
 
 	repo := ctx.Repo.Repository
 	branch := repo.DefaultBranch
-	gitRepo, _ := repo_module.OpenRepository(git.DefaultContext, repo)
+	gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
 	defer gitRepo.Close()
 	commit, _ := gitRepo.GetBranchCommit(branch)
 	var expectedTreePath string // Should return the root dir, empty string, since there are no subdirs in this repo

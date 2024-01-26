@@ -13,6 +13,7 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -300,7 +301,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		log.Error("SyncMirrors [repo: %-v]: %v", m.Repo, err)
 	}
 
-	gitRepo, err := repo_module.OpenRepository(ctx, m.Repo)
+	gitRepo, err := gitrepo.OpenRepository(ctx, m.Repo)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to OpenRepository: %v", m.Repo, err)
 		return nil, false
@@ -453,7 +454,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		log.Trace("SyncMirrors [repo: %-v]: no branches updated", m.Repo)
 	} else {
 		log.Trace("SyncMirrors [repo: %-v]: %d branches updated", m.Repo, len(results))
-		gitRepo, err = repo_module.OpenRepository(ctx, m.Repo)
+		gitRepo, err = gitrepo.OpenRepository(ctx, m.Repo)
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: unable to OpenRepository: %v", m.Repo, err)
 			return false

@@ -29,9 +29,9 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	issue_template "code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/upload"
@@ -531,7 +531,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	if pull.BaseRepoID == ctx.Repo.Repository.ID && ctx.Repo.GitRepo != nil {
 		baseGitRepo = ctx.Repo.GitRepo
 	} else {
-		baseGitRepo, err := repo_module.OpenRepository(ctx, pull.BaseRepo)
+		baseGitRepo, err := gitrepo.OpenRepository(ctx, pull.BaseRepo)
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return nil
@@ -583,7 +583,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	var headBranchSha string
 	// HeadRepo may be missing
 	if pull.HeadRepo != nil {
-		headGitRepo, err := repo_module.OpenRepository(ctx, pull.HeadRepo)
+		headGitRepo, err := gitrepo.OpenRepository(ctx, pull.HeadRepo)
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return nil
@@ -1315,7 +1315,7 @@ func MergePullRequest(ctx *context.Context) {
 		if ctx.Repo != nil && ctx.Repo.Repository != nil && pr.HeadRepoID == ctx.Repo.Repository.ID && ctx.Repo.GitRepo != nil {
 			headRepo = ctx.Repo.GitRepo
 		} else {
-			headRepo, err = repo_module.OpenRepository(ctx, pr.HeadRepo)
+			headRepo, err = gitrepo.OpenRepository(ctx, pr.HeadRepo)
 			if err != nil {
 				ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.FullName()), err)
 				return
@@ -1538,7 +1538,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		gitBaseRepo = ctx.Repo.GitRepo
 	} else {
 		// If not just open it
-		gitBaseRepo, err = repo_module.OpenRepository(ctx, pr.BaseRepo)
+		gitBaseRepo, err = gitrepo.OpenRepository(ctx, pr.BaseRepo)
 		if err != nil {
 			ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.BaseRepo.FullName()), err)
 			return
@@ -1553,7 +1553,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		gitRepo = ctx.Repo.GitRepo
 	} else if pr.BaseRepoID != pr.HeadRepoID {
 		// Otherwise just load it up
-		gitRepo, err = repo_module.OpenRepository(ctx, pr.HeadRepo)
+		gitRepo, err = gitrepo.OpenRepository(ctx, pr.HeadRepo)
 		if err != nil {
 			ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.FullName()), err)
 			return

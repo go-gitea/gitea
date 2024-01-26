@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/gitrepo"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
@@ -33,7 +33,7 @@ func TestAPIGitTags(t *testing.T) {
 	_ = git.NewCommand(git.DefaultContext, "config", "user.name").AddDynamicArguments(user.Name).Run(&git.RunOpts{Dir: repo.RepoPath()})
 	_ = git.NewCommand(git.DefaultContext, "config", "user.email").AddDynamicArguments(user.Email).Run(&git.RunOpts{Dir: repo.RepoPath()})
 
-	gitRepo, _ := repo_module.OpenRepository(git.DefaultContext, repo)
+	gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
 	defer gitRepo.Close()
 
 	commit, _ := gitRepo.GetBranchCommit("master")

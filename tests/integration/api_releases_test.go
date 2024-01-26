@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/gitrepo"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -110,7 +110,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	gitRepo, err := repo_module.OpenRepository(git.DefaultContext, repo)
+	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -173,7 +173,7 @@ func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	gitRepo, err := repo_module.OpenRepository(git.DefaultContext, repo)
+	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 

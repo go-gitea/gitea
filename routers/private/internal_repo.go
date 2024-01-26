@@ -10,9 +10,9 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	gitea_context "code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
-	repo_module "code.gitea.io/gitea/modules/repository"
 )
 
 // This file contains common functions relating to setting the Repository for the internal routes
@@ -28,7 +28,7 @@ func RepoAssignment(ctx *gitea_context.PrivateContext) context.CancelFunc {
 		return nil
 	}
 
-	gitRepo, err := repo_module.OpenRepository(ctx, repo)
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{

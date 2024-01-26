@@ -15,9 +15,9 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	web_types "code.gitea.io/gitea/modules/web/types"
@@ -278,7 +278,7 @@ func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) (cancel context
 
 		// For API calls.
 		if ctx.Repo.GitRepo == nil {
-			gitRepo, err := repo_module.OpenRepository(ctx, ctx.Repo.Repository)
+			gitRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, fmt.Sprintf("Open Repository %v failed", ctx.Repo.Repository.FullName()), err)
 				return cancel

@@ -16,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -86,7 +87,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		return fmt.Errorf("GetRepositoryByOwnerAndName failed: %w", err)
 	}
 
-	gitRepo, err := repo_module.OpenRepository(ctx, repo)
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		return fmt.Errorf("OpenRepository[%s]: %w", repo.FullName(), err)
 	}

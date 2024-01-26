@@ -17,8 +17,8 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -63,7 +63,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pull *issues_model.Issue, 
 		return err
 	}
 
-	repo, err := repo_module.OpenRepository(ctx, pr.BaseRepo)
+	repo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
 		return err
 	}

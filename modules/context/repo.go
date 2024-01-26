@@ -23,6 +23,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -633,7 +634,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		return nil
 	}
 
-	gitRepo, err := repo_module.OpenRepository(ctx, repo)
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		if strings.Contains(err.Error(), "repository does not exist") || strings.Contains(err.Error(), "no such file or directory") {
 			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
@@ -920,7 +921,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 		)
 
 		if ctx.Repo.GitRepo == nil {
-			ctx.Repo.GitRepo, err = repo_module.OpenRepository(ctx, ctx.Repo.Repository)
+			ctx.Repo.GitRepo, err = gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
 			if err != nil {
 				ctx.ServerError(fmt.Sprintf("Open Repository %v failed", ctx.Repo.Repository.FullName()), err)
 				return nil

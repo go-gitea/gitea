@@ -22,9 +22,9 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitgraph"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -280,7 +280,7 @@ func Diff(ctx *context.Context) {
 	)
 
 	if ctx.Data["PageIsWiki"] != nil {
-		gitRepo, err = repo_module.OpenWikiRepository(ctx, ctx.Repo.Repository)
+		gitRepo, err = gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
 		if err != nil {
 			ctx.ServerError("Repo.GitRepo.GetCommit", err)
 			return
@@ -405,7 +405,7 @@ func Diff(ctx *context.Context) {
 func RawDiff(ctx *context.Context) {
 	var gitRepo *git.Repository
 	if ctx.Data["PageIsWiki"] != nil {
-		wikiRepo, err := repo_module.OpenWikiRepository(ctx, ctx.Repo.Repository)
+		wikiRepo, err := gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return

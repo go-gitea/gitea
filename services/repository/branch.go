@@ -17,6 +17,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
@@ -160,7 +161,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 		if pr.HasMerged {
 			baseGitRepo, ok := repoIDToGitRepo[pr.BaseRepoID]
 			if !ok {
-				baseGitRepo, err = repo_module.OpenRepository(ctx, pr.BaseRepo)
+				baseGitRepo, err = gitrepo.OpenRepository(ctx, pr.BaseRepo)
 				if err != nil {
 					return nil, fmt.Errorf("OpenRepository: %v", err)
 				}

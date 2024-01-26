@@ -23,8 +23,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -907,7 +907,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		if ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == pr.HeadRepoID && ctx.Repo.GitRepo != nil {
 			headRepo = ctx.Repo.GitRepo
 		} else {
-			headRepo, err = repo_module.OpenRepository(ctx, pr.HeadRepo)
+			headRepo, err = gitrepo.OpenRepository(ctx, pr.HeadRepo)
 			if err != nil {
 				ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.FullName()), err)
 				return
@@ -1005,7 +1005,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		headRepo = ctx.Repo.Repository
 		headGitRepo = ctx.Repo.GitRepo
 	} else {
-		headGitRepo, err = repo_module.OpenRepository(ctx, headRepo)
+		headGitRepo, err = gitrepo.OpenRepository(ctx, headRepo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 			return nil, nil, nil, nil, "", ""

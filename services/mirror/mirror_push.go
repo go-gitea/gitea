@@ -15,11 +15,11 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/repository"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -146,7 +146,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		if setting.LFS.StartServer {
 			log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 
-			gitRepo, err := repo_module.OpenRepository(ctx, repo)
+			gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 			if err != nil {
 				log.Error("OpenRepository: %v", err)
 				return errors.New("Unexpected error")

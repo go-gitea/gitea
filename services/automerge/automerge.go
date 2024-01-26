@@ -17,11 +17,11 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -112,7 +112,7 @@ func MergeScheduledPullRequest(ctx context.Context, sha string, repo *repo_model
 }
 
 func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.Repository, filter func(*issues_model.PullRequest) bool) (map[int64]*issues_model.PullRequest, error) {
-	gitRepo, err := repo_module.OpenRepository(ctx, repo)
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +191,7 @@ func handlePull(pullID int64, sha string) {
 		return
 	}
 
-	headGitRepo, err := repo_module.OpenRepository(ctx, pr.HeadRepo)
+	headGitRepo, err := gitrepo.OpenRepository(ctx, pr.HeadRepo)
 	if err != nil {
 		log.Error("OpenRepository %-v: %v", pr.HeadRepo, err)
 		return
@@ -247,7 +247,7 @@ func handlePull(pullID int64, sha string) {
 			return
 		}
 
-		baseGitRepo, err = repo_module.OpenRepository(ctx, pr.BaseRepo)
+		baseGitRepo, err = gitrepo.OpenRepository(ctx, pr.BaseRepo)
 		if err != nil {
 			log.Error("OpenRepository %-v: %v", pr.BaseRepo, err)
 			return

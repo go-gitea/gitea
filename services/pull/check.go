@@ -20,11 +20,11 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/timeutil"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -216,7 +216,7 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 		return nil, fmt.Errorf("GetFullCommitID(%s) in %s: %w", prHeadRef, pr.BaseRepo.FullName(), err)
 	}
 
-	gitRepo, err := repo_module.OpenRepository(ctx, pr.BaseRepo)
+	gitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
 		return nil, fmt.Errorf("%-v OpenRepository: %w", pr.BaseRepo, err)
 	}

@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -62,7 +63,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 	assigneeCommentMap := make(map[int64]*issues_model.Comment)
 
 	// add first push codes comment
-	baseGitRepo, err := repo_module.OpenRepository(ctx, pr.BaseRepo)
+	baseGitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
 		return err
 	}
@@ -269,7 +270,7 @@ func checkForInvalidation(ctx context.Context, requests issues_model.PullRequest
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByIDCtx: %w", err)
 	}
-	gitRepo, err := repo_module.OpenRepository(ctx, repo)
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		return fmt.Errorf("git.OpenRepository: %w", err)
 	}
@@ -845,7 +846,7 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 		}
 		gitRepo, ok := gitRepos[issue.RepoID]
 		if !ok {
-			gitRepo, err = repo_module.OpenRepository(ctx, issue.Repo)
+			gitRepo, err = gitrepo.OpenRepository(ctx, issue.Repo)
 			if err != nil {
 				log.Error("Cannot open git repository %-v for issue #%d[%d]. Error: %v", issue.Repo, issue.Index, issue.ID, err)
 				continue
