@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/forms"
+	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -157,6 +158,13 @@ func DashboardPost(ctx *context.Context) {
 				}
 			}()
 			ctx.Flash.Success(ctx.Tr("admin.dashboard.sync_branch.started"))
+		case "sync_repo_tags":
+			go func() {
+				if err := release_service.AddAllRepoTagsToSyncQueue(graceful.GetManager().ShutdownContext()); err != nil {
+					log.Error("AddAllRepoTagsToSyncQueue: %v: %v", ctx.Doer.ID, err)
+				}
+			}()
+			ctx.Flash.Success(ctx.Tr("admin.dashboard.sync_tag.started"))
 		default:
 			task := cron.GetTask(form.Op)
 			if task != nil {
