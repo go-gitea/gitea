@@ -36,7 +36,7 @@ func UpdateRepositoryUnits(ctx context.Context, repo *repo_model.Repository, uni
 			"",
 			webhook_module.HookEventSchedule,
 		); err != nil {
-			return fmt.Errorf("CancelRunningJobs: %v", err)
+			return fmt.Errorf("CancelRunningJobs: %w", err)
 		}
 	}
 

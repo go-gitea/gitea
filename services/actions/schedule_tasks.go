@@ -72,7 +72,7 @@ func startTasks(ctx context.Context) error {
 					// Skip the actions unit of this repo is disabled.
 					continue
 				}
-				return err
+				return fmt.Errorf("GetUnit: %w", err)
 			}
 			if cfg.ActionsConfig().IsWorkflowDisabled(row.Schedule.WorkflowID) {
 				continue
