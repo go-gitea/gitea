@@ -50,6 +50,7 @@
     "vue-loader": "17.3.1",
     "vue3-calendar-heatmap": "2.0.5",
     "webpack": "5.89.0",
+    "webpack-cli": "5.1.4",
     "wrap-ansi": "9.0.0"
   },
   "devDependencies": {
@@ -82,8 +83,7 @@
     "svgo": "3.1.0",
     "updates": "15.0.4",
     "vite-string-plugin": "1.1.2",
-    "vitest": "1.1.0",
-    "webpack-cli": "5.1.4"
+    "vitest": "1.1.0"
   },
   "browserslist": [
     "defaults",
