@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 )
 
-// GetBranchesByPath returns a branch by it's path
+// GetBranchesByPath returns a branch by its path
 // if limit = 0 it will not limit
 func GetBranchesByPath(ctx context.Context, repo *repo_model.Repository, skip, limit int) ([]*git.Branch, int, error) {
 	gitRepo, err := OpenRepository(ctx, repo)

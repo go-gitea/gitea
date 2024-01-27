@@ -47,7 +47,7 @@ func RepositoryFromContext(ctx context.Context, repo *repo_model.Repository) *Re
 		return nil
 	}
 
-	if gitRepo, ok := value.(*Repository); ok && gitRepo != nil {
+	if gitRepo, ok := value.(*Repository); ok {
 		if gitRepo.Path == repo.RepoPath() {
 			return gitRepo
 		}
@@ -78,7 +78,7 @@ func repositoryFromContext(ctx context.Context, path string) *git.Repository {
 		return nil
 	}
 
-	if repo, ok := value.(*git.Repository); ok && repo != nil {
+	if repo, ok := value.(*git.Repository); ok {
 		if repo.Path == path {
 			return repo
 		}

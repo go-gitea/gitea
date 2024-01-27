@@ -14,7 +14,7 @@ import (
 )
 
 // WalkReferences walks all the references from the repository
-// refType should be empty, ObjectTag or ObjectBranch. All other values are equivalent to empty.
+// refname is empty, ObjectTag or ObjectBranch. All other values should be treated as equivalent to empty.
 func WalkReferences(ctx context.Context, repo *repo_model.Repository, walkfn func(sha1, refname string) error) (int, error) {
 	gitRepo := RepositoryFromContext(ctx, repo)
 	if gitRepo == nil {
