@@ -8,14 +8,12 @@ package gitrepo
 import (
 	"context"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
 // WalkReferences walks all the references from the repository
 // refname is empty, ObjectTag or ObjectBranch. All other values should be treated as equivalent to empty.
-func WalkReferences(ctx context.Context, repo *repo_model.Repository, walkfn func(sha1, refname string) error) (int, error) {
+func WalkReferences(ctx context.Context, repo Repository, walkfn func(sha1, refname string) error) (int, error) {
 	gitRepo := repositoryFromContext(ctx, repo)
 	if gitRepo == nil {
 		var err error

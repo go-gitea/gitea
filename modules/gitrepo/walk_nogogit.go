@@ -8,11 +8,10 @@ package gitrepo
 import (
 	"context"
 
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 )
 
 // WalkReferences walks all the references from the repository
-func WalkReferences(ctx context.Context, repo *repo_model.Repository, walkfn func(sha1, refname string) error) (int, error) {
-	return git.WalkShowRef(ctx, repo.RepoPath(), nil, 0, 0, walkfn)
+func WalkReferences(ctx context.Context, repo Repository, walkfn func(sha1, refname string) error) (int, error) {
+	return git.WalkShowRef(ctx, repoPath(repo.FullName()), nil, 0, 0, walkfn)
 }

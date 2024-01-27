@@ -6,13 +6,12 @@ package gitrepo
 import (
 	"context"
 
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 )
 
 // GetBranchesByPath returns a branch by its path
 // if limit = 0 it will not limit
-func GetBranchesByPath(ctx context.Context, repo *repo_model.Repository, skip, limit int) ([]*git.Branch, int, error) {
+func GetBranchesByPath(ctx context.Context, repo Repository, skip, limit int) ([]*git.Branch, int, error) {
 	gitRepo, err := OpenRepository(ctx, repo)
 	if err != nil {
 		return nil, 0, err
@@ -22,7 +21,7 @@ func GetBranchesByPath(ctx context.Context, repo *repo_model.Repository, skip, l
 	return gitRepo.GetBranches(skip, limit)
 }
 
-func GetBranchCommitID(ctx context.Context, repo *repo_model.Repository, branch string) (string, error) {
+func GetBranchCommitID(ctx context.Context, repo Repository, branch string) (string, error) {
 	gitRepo, err := OpenRepository(ctx, repo)
 	if err != nil {
 		return "", err
