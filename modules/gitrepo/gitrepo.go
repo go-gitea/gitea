@@ -6,6 +6,7 @@ package gitrepo
 import (
 	"context"
 	"io"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -14,15 +15,17 @@ import (
 )
 
 type Repository interface {
-	FullName() string
+	FullName() string // should return "<user>/<repo>"
 }
 
 func repoPath(fullName string) string {
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(fullName)+".git")
+	ownerName, repoName := path.Split(fullName)
+	return filepath.Join(setting.RepoRootPath, strings.ToLower(ownerName), strings.ToLower(repoName)+".git")
 }
 
 func wikiPath(fullName string) string {
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(fullName)+".wiki.git")
+	ownerName, repoName := path.Split(fullName)
+	return filepath.Join(setting.RepoRootPath, strings.ToLower(ownerName), strings.ToLower(repoName)+".wiki.git")
 }
 
 // OpenRepository opens the repository at the given relative path with the provided context.
