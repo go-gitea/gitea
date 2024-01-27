@@ -85,9 +85,11 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			// 2. If they're not wrapped with a link they need a link wrapper
 
 			// Check if the destination is a real link
-			link := v.Destination
-			if len(link) > 0 && !markup.IsLink(link) {
-				v.Destination = []byte(giteautil.URLJoin(ctx.Links.ResolveMediaLink(ctx.IsWiki), string(link)))
+			if len(v.Destination) > 0 && !markup.IsLink(v.Destination) {
+				v.Destination = []byte(giteautil.URLJoin(
+					ctx.Links.ResolveMediaLink(ctx.IsWiki),
+					strings.TrimLeft(string(v.Destination), "/"),
+				))
 			}
 
 			parent := n.Parent()
@@ -103,7 +105,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 
 				// Duplicate the current image node
 				image := ast.NewImage(ast.NewLink())
-				image.Destination = link
+				image.Destination = v.Destination
 				image.Title = v.Title
 				for _, attr := range v.Attributes() {
 					image.SetAttribute(attr.Name, attr.Value)
@@ -137,6 +139,8 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 				var base string
 				if ctx.IsWiki {
 					base = ctx.Links.WikiLink()
+				} else if ctx.Links.HasBranchInfo() {
+					base = ctx.Links.SrcLink()
 				} else {
 					base = ctx.Links.Base
 				}
