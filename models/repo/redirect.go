@@ -50,10 +50,10 @@ func init() {
 }
 
 // LookupRedirect look up if a repository has a redirect name
-func LookupRedirect(ownerID int64, repoName string) (int64, error) {
+func LookupRedirect(ctx context.Context, ownerID int64, repoName string) (int64, error) {
 	repoName = strings.ToLower(repoName)
 	redirect := &Redirect{OwnerID: ownerID, LowerName: repoName}
-	if has, err := db.GetEngine(db.DefaultContext).Get(redirect); err != nil {
+	if has, err := db.GetEngine(ctx).Get(redirect); err != nil {
 		return 0, err
 	} else if !has {
 		return 0, ErrRedirectNotExist{OwnerID: ownerID, RepoName: repoName}

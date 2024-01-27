@@ -1,6 +1,6 @@
 name: Feature Request
 description: Got an idea for a feature that Gitea doesn't have currently?  Submit your idea here!
-labels: ["kind/proposal"]
+labels: ["type/proposal"]
 body:
   - type: markdown
     attributes:

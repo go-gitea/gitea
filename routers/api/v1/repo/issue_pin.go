@@ -241,7 +241,7 @@ func ListPinnedPullRequests(ctx *context.APIContext) {
 
 	apiPrs := make([]*api.PullRequest, len(issues))
 	for i, currentIssue := range issues {
-		pr, err := currentIssue.GetPullRequest()
+		pr, err := currentIssue.GetPullRequest(ctx)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetPullRequest", err)
 			return

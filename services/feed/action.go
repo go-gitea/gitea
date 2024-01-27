@@ -265,7 +265,7 @@ func (a *actionNotifier) PullRequestReview(ctx context.Context, pr *issues_model
 		actions = append(actions, action)
 	}
 
-	if err := activities_model.NotifyWatchersActions(actions); err != nil {
+	if err := activities_model.NotifyWatchersActions(ctx, actions); err != nil {
 		log.Error("notify watchers '%d/%d': %v", review.Reviewer.ID, review.Issue.RepoID, err)
 	}
 }

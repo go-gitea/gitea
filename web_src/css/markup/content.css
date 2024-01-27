@@ -155,23 +155,29 @@
 
 .markup .task-list-item {
   list-style-type: none;
-  position: relative;
-  line-height: 1.5rem;
-  min-height: 1.5rem; /* // to render a checkbox list without content `- [ ]`, we need this min-height to make sure the <li> can be visible */
+}
+
+.markup .task-list-item p + ul {
+  margin-top: 16px;
 }
 
 .markup .task-list-item input[type="checkbox"] {
-  position: absolute;
-  top: 0.25em;
-  left: -1.6em;
+  margin: 0 .3em .25em -1.4em;
+  vertical-align: middle;
+  padding: 0;
 }
 
-.markup .task-list-item p {
-  line-height: 1.5rem;
+.markup .task-list-item input[type="checkbox"] + p {
+  margin-left: -0.2em;
+  display: inline;
+}
+
+.markup .task-list-item > p {
+  margin-inline: 16px;
 }
 
 .markup .task-list-item + .task-list-item {
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
 .markup input[type="checkbox"] {
@@ -327,7 +333,7 @@
 
 .markup img[align="left"],
 .markup video[align="left"] {
-  padding-right: 20px;
+  padding-right: 28px;
 }
 
 .markup .emoji {

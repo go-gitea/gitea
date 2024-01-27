@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/webauthn"
 	gitea_context "code.gitea.io/gitea/modules/context"
@@ -37,12 +36,16 @@ func isContainerPath(req *http.Request) bool {
 }
 
 var (
-	gitRawReleasePathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/)|(?:raw/)|(?:releases/download/))`)
-	lfsPathRe           = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/info/lfs/`)
+	gitRawOrAttachPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/)|(?:raw/)|(?:releases/download/)|(?:attachments/))`)
+	lfsPathRe            = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/info/lfs/`)
 )
 
-func isGitRawReleaseOrLFSPath(req *http.Request) bool {
-	if gitRawReleasePathRe.MatchString(req.URL.Path) {
+func isGitRawOrAttachPath(req *http.Request) bool {
+	return gitRawOrAttachPathRe.MatchString(req.URL.Path)
+}
+
+func isGitRawOrAttachOrLFSPath(req *http.Request) bool {
+	if isGitRawOrAttachPath(req) {
 		return true
 	}
 	if setting.LFS.StartServer {
@@ -83,7 +86,7 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	if len(user.Language) == 0 {
 		lc := middleware.Locale(resp, req)
 		user.Language = lc.Language()
-		if err := user_model.UpdateUserCols(db.DefaultContext, user, "language"); err != nil {
+		if err := user_model.UpdateUserCols(req.Context(), user, "language"); err != nil {
 			log.Error(fmt.Sprintf("Error updating user language [user: %d, locale: %s]", user.ID, user.Language))
 			return
 		}

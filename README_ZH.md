@@ -6,8 +6,8 @@
 <h1 align="center">Gitea - Git with a cup of tea</h1>
 
 <p align="center">
-  <a href="https://drone.gitea.io/go-gitea/gitea" title="Build Status">
-    <img src="https://drone.gitea.io/api/badges/go-gitea/gitea/status.svg?ref=refs/heads/main">
+  <a href="https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml?query=branch%3Amain" title="Release Nightly">
+    <img src="https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml/badge.svg?branch=main">
   </a>
   <a href="https://discord.gg/Gitea" title="Join the Discord chat at https://discord.gg/Gitea">
     <img src="https://img.shields.io/discord/322538954119184384.svg">
@@ -58,7 +58,11 @@
 
 Gitea 的首要目标是创建一个极易安装，运行非常快速，安装和使用体验良好的自建 Git 服务。我们采用 Go 作为后端语言，这使我们只要生成一个可执行程序即可。并且他还支持跨平台，支持 Linux, macOS 和 Windows 以及各种架构，除了 x86，amd64，还包括 ARM 和 PowerPC。
 
-如果您想试用一下，请访问 [在线Demo](https://try.gitea.io/)！
+如果你想试用在线演示，请访问 [try.gitea.io](https://try.gitea.io/)。
+
+如果你想使用免费的 Gitea 服务（有仓库数量限制），请访问 [gitea.com](https://gitea.com/user/login)。
+
+如果你想在 Gitea Cloud 上快速部署你自己独享的 Gitea 实例，请访问 [cloud.gitea.com](https://cloud.gitea.com) 开始免费试用。
 
 ## 提示
 

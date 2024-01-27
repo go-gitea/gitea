@@ -4,6 +4,7 @@
 package user
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -15,13 +16,13 @@ import (
 )
 
 // UploadAvatar saves custom avatar for user.
-func UploadAvatar(u *user_model.User, data []byte) error {
+func UploadAvatar(ctx context.Context, u *user_model.User, data []byte) error {
 	avatarData, err := avatar.ProcessAvatarImage(data)
 	if err != nil {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -44,7 +45,7 @@ func UploadAvatar(u *user_model.User, data []byte) error {
 }
 
 // DeleteAvatar deletes the user's custom avatar.
-func DeleteAvatar(u *user_model.User) error {
+func DeleteAvatar(ctx context.Context, u *user_model.User) error {
 	aPath := u.CustomAvatarRelativePath()
 	log.Trace("DeleteAvatar[%d]: %s", u.ID, aPath)
 	if len(u.Avatar) > 0 {
@@ -55,7 +56,7 @@ func DeleteAvatar(u *user_model.User) error {
 
 	u.UseCustomAvatar = false
 	u.Avatar = ""
-	if _, err := db.GetEngine(db.DefaultContext).ID(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
+	if _, err := db.GetEngine(ctx).ID(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
 		return fmt.Errorf("UpdateUser: %w", err)
 	}
 	return nil

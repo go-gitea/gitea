@@ -2,17 +2,17 @@
 	<h4 class="ui top attached header">
 		<strong>{{.Team.Name}}</strong>
 		<div class="ui right">
-			{{if .Team.IsMember $.SignedUser.ID}}
+			{{if .Team.IsMember ctx $.SignedUser.ID}}
 				<form>
 					<button class="ui red tiny button delete-button" data-modal-id="leave-team-sidebar"
 						data-url="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/action/leave" data-datauid="{{$.SignedUser.ID}}"
-						data-name="{{.Team.Name}}">{{$.locale.Tr "org.teams.leave"}}</button>
+						data-name="{{.Team.Name}}">{{ctx.Locale.Tr "org.teams.leave"}}</button>
 				</form>
 			{{else if .IsOrganizationOwner}}
 				<form method="post" action="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/action/join">
 					{{$.CsrfTokenHtml}}
 					<input type="hidden" name="page" value="team">
-					<button type="submit" class="ui primary tiny button" name="uid" value="{{$.SignedUser.ID}}">{{$.locale.Tr "org.teams.join"}}</button>
+					<button type="submit" class="ui primary tiny button" name="uid" value="{{$.SignedUser.ID}}">{{ctx.Locale.Tr "org.teams.join"}}</button>
 				</form>
 			{{end}}
 		</div>
@@ -22,51 +22,51 @@
 			{{if .Team.Description}}
 				{{.Team.Description}}
 			{{else}}
-				<span class="text grey italic">{{.locale.Tr "org.teams.no_desc"}}</span>
+				<span class="text grey italic">{{ctx.Locale.Tr "org.teams.no_desc"}}</span>
 			{{end}}
 		</div>
 		{{if eq .Team.LowerName "owners"}}
 			<div class="item">
-				{{.locale.Tr "org.teams.owners_permission_desc" | Str2html}}
+				{{ctx.Locale.Tr "org.teams.owners_permission_desc" | Str2html}}
 			</div>
 		{{else}}
 			<div class="item">
-				<h3>{{.locale.Tr "org.team_access_desc"}}</h3>
+				<h3>{{ctx.Locale.Tr "org.team_access_desc"}}</h3>
 				<ul>
 					{{if .Team.IncludesAllRepositories}}
-						<li>{{.locale.Tr "org.teams.all_repositories" | Str2html}}</li>
+						<li>{{ctx.Locale.Tr "org.teams.all_repositories" | Str2html}}</li>
 					{{else}}
-						<li>{{.locale.Tr "org.teams.specific_repositories" | Str2html}}</li>
+						<li>{{ctx.Locale.Tr "org.teams.specific_repositories" | Str2html}}</li>
 					{{end}}
 					{{if .Team.CanCreateOrgRepo}}
-						<li>{{.locale.Tr "org.teams.can_create_org_repo"}}</li>
+						<li>{{ctx.Locale.Tr "org.teams.can_create_org_repo"}}</li>
 					{{end}}
 				</ul>
 				{{if (eq .Team.AccessMode 2)}}
-					<h3>{{.locale.Tr "org.settings.permission"}}</h3>
-					{{.locale.Tr "org.teams.write_permission_desc" | Str2html}}
+					<h3>{{ctx.Locale.Tr "org.settings.permission"}}</h3>
+					{{ctx.Locale.Tr "org.teams.write_permission_desc" | Str2html}}
 				{{else if (eq .Team.AccessMode 3)}}
-					<h3>{{.locale.Tr "org.settings.permission"}}</h3>
-					{{.locale.Tr "org.teams.admin_permission_desc" | Str2html}}
+					<h3>{{ctx.Locale.Tr "org.settings.permission"}}</h3>
+					{{ctx.Locale.Tr "org.teams.admin_permission_desc" | Str2html}}
 				{{else}}
 					<table class="ui table">
 						<thead>
 							<tr>
-								<th>{{.locale.Tr "units.unit"}}</th>
-								<th>{{.locale.Tr "org.team_permission_desc"}}</th>
+								<th>{{ctx.Locale.Tr "units.unit"}}</th>
+								<th>{{ctx.Locale.Tr "org.team_permission_desc"}}</th>
 							</tr>
 						</thead>
 						<tbody>
 							{{range $t, $unit := $.Units}}
 								{{if (not $unit.Type.UnitGlobalDisabled)}}
 									<tr>
-										<td><strong>{{$.locale.Tr $unit.NameKey}}</strong></td>
+										<td><strong>{{ctx.Locale.Tr $unit.NameKey}}</strong></td>
 										<td>{{if eq ($.Team.UnitAccessMode $.Context $unit.Type) 0 -}}
-										{{$.locale.Tr "org.teams.none_access"}}
+										{{ctx.Locale.Tr "org.teams.none_access"}}
 										{{- else if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1) -}}
-										{{$.locale.Tr "org.teams.read_access"}}
+										{{ctx.Locale.Tr "org.teams.read_access"}}
 										{{- else if eq ($.Team.UnitAccessMode $.Context $unit.Type) 2 -}}
-										{{$.locale.Tr "org.teams.write_access"}}
+										{{ctx.Locale.Tr "org.teams.write_access"}}
 										{{- end}}</td>
 									</tr>
 								{{end}}
@@ -79,16 +79,16 @@
 	</div>
 	{{if .IsOrganizationOwner}}
 		<div class="ui bottom attached segment">
-			<a class="ui teal small button" href="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/edit">{{svg "octicon-gear"}} {{$.locale.Tr "org.teams.settings"}}</a>
+			<a class="ui teal small button" href="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/edit">{{svg "octicon-gear"}} {{ctx.Locale.Tr "org.teams.settings"}}</a>
 		</div>
 	{{end}}
 </div>
 <div class="ui g-modal-confirm delete modal" id="leave-team-sidebar">
 	<div class="header">
-		{{$.locale.Tr "org.teams.leave"}}
+		{{ctx.Locale.Tr "org.teams.leave"}}
 	</div>
 	<div class="content">
-		<p>{{$.locale.Tr "org.teams.leave.detail" `<span class="name"></span>` | Safe}}</p>
+		<p>{{ctx.Locale.Tr "org.teams.leave.detail" `<span class="name"></span>` | Safe}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

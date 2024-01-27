@@ -48,10 +48,10 @@ func init() {
 }
 
 // LookupUserRedirect look up userID if a user has a redirect name
-func LookupUserRedirect(userName string) (int64, error) {
+func LookupUserRedirect(ctx context.Context, userName string) (int64, error) {
 	userName = strings.ToLower(userName)
 	redirect := &Redirect{LowerName: userName}
-	if has, err := db.GetEngine(db.DefaultContext).Get(redirect); err != nil {
+	if has, err := db.GetEngine(ctx).Get(redirect); err != nil {
 		return 0, err
 	} else if !has {
 		return 0, ErrUserRedirectNotExist{Name: userName}

@@ -17,13 +17,13 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
 	"github.com/gobwas/glob/syntax"
+	"xorm.io/builder"
 )
 
 var ErrBranchIsProtected = errors.New("branch is protected")
@@ -54,6 +54,7 @@ type ProtectedBranch struct {
 	BlockOnOfficialReviewRequests bool     `xorm:"NOT NULL DEFAULT false"`
 	BlockOnOutdatedBranch         bool     `xorm:"NOT NULL DEFAULT false"`
 	DismissStaleApprovals         bool     `xorm:"NOT NULL DEFAULT false"`
+	IgnoreStaleApprovals          bool     `xorm:"NOT NULL DEFAULT false"`
 	RequireSignedCommits          bool     `xorm:"NOT NULL DEFAULT false"`
 	ProtectedFilePatterns         string   `xorm:"TEXT"`
 	UnprotectedFilePatterns       string   `xorm:"TEXT"`
@@ -126,7 +127,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, user *use
 		return writeAccess
 	}
 
-	if base.Int64sContains(protectBranch.WhitelistUserIDs, user.ID) {
+	if slices.Contains(protectBranch.WhitelistUserIDs, user.ID) {
 		return true
 	}
 
@@ -149,7 +150,7 @@ func IsUserMergeWhitelisted(ctx context.Context, protectBranch *ProtectedBranch,
 		return permissionInRepo.CanWrite(unit.TypeCode)
 	}
 
-	if base.Int64sContains(protectBranch.MergeWhitelistUserIDs, userID) {
+	if slices.Contains(protectBranch.MergeWhitelistUserIDs, userID) {
 		return true
 	}
 
@@ -181,7 +182,7 @@ func IsUserOfficialReviewer(ctx context.Context, protectBranch *ProtectedBranch,
 		return writeAccess, nil
 	}
 
-	if base.Int64sContains(protectBranch.ApprovalsWhitelistUserIDs, user.ID) {
+	if slices.Contains(protectBranch.ApprovalsWhitelistUserIDs, user.ID) {
 		return true, nil
 	}
 
@@ -274,12 +275,11 @@ func (protectBranch *ProtectedBranch) IsUnprotectedFile(patterns []glob.Glob, pa
 
 // GetProtectedBranchRuleByName getting protected branch rule by name
 func GetProtectedBranchRuleByName(ctx context.Context, repoID int64, ruleName string) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{RepoID: repoID, RuleName: ruleName}
-	has, err := db.GetByBean(ctx, rel)
+	// branch_name is legacy name, it actually is rule name
+	rel, exist, err := db.Get[ProtectedBranch](ctx, builder.Eq{"repo_id": repoID, "branch_name": ruleName})
 	if err != nil {
 		return nil, err
-	}
-	if !has {
+	} else if !exist {
 		return nil, nil
 	}
 	return rel, nil
@@ -287,12 +287,10 @@ func GetProtectedBranchRuleByName(ctx context.Context, repoID int64, ruleName st
 
 // GetProtectedBranchRuleByID getting protected branch rule by rule ID
 func GetProtectedBranchRuleByID(ctx context.Context, repoID, ruleID int64) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{ID: ruleID, RepoID: repoID}
-	has, err := db.GetByBean(ctx, rel)
+	rel, exist, err := db.Get[ProtectedBranch](ctx, builder.Eq{"repo_id": repoID, "id": ruleID})
 	if err != nil {
 		return nil, err
-	}
-	if !has {
+	} else if !exist {
 		return nil, nil
 	}
 	return rel, nil
@@ -315,6 +313,11 @@ type WhitelistOptions struct {
 // This function also performs check if whitelist user and team's IDs have been changed
 // to avoid unnecessary whitelist delete and regenerate.
 func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, protectBranch *ProtectedBranch, opts WhitelistOptions) (err error) {
+	err = repo.MustNotBeArchived()
+	if err != nil {
+		return err
+	}
+
 	if err = repo.LoadOwner(ctx); err != nil {
 		return fmt.Errorf("LoadOwner: %v", err)
 	}
@@ -445,9 +448,14 @@ func updateTeamWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 }
 
 // DeleteProtectedBranch removes ProtectedBranch relation between the user and repository.
-func DeleteProtectedBranch(ctx context.Context, repoID, id int64) (err error) {
+func DeleteProtectedBranch(ctx context.Context, repo *repo_model.Repository, id int64) (err error) {
+	err = repo.MustNotBeArchived()
+	if err != nil {
+		return err
+	}
+
 	protectedBranch := &ProtectedBranch{
-		RepoID: repoID,
+		RepoID: repo.ID,
 		ID:     id,
 	}
 

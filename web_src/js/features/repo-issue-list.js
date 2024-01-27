@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {updateIssuesMeta} from './repo-issue.js';
-import {toggleElem} from '../utils/dom.js';
+import {toggleElem, hideElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
 import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
@@ -73,7 +73,7 @@ function initRepoIssueListCheckboxes() {
       url,
       action,
       issueIDs,
-      elementId
+      elementId,
     ).then(() => {
       window.location.reload();
     }).catch((reason) => {
@@ -185,9 +185,46 @@ async function initIssuePinSort() {
   });
 }
 
+function initArchivedLabelFilter() {
+  const archivedLabelEl = document.querySelector('#archived-filter-checkbox');
+  if (!archivedLabelEl) {
+    return;
+  }
+
+  const url = new URL(window.location.href);
+  const archivedLabels = document.querySelectorAll('[data-is-archived]');
+
+  if (!archivedLabels.length) {
+    hideElem('.archived-label-filter');
+    return;
+  }
+  const selectedLabels = (url.searchParams.get('labels') || '')
+    .split(',')
+    .map((id) => id < 0 ? `${~id + 1}` : id); // selectedLabels contains -ve ids, which are excluded so convert any -ve value id to +ve
+
+  const archivedElToggle = () => {
+    for (const label of archivedLabels) {
+      const id = label.getAttribute('data-label-id');
+      toggleElem(label, archivedLabelEl.checked || selectedLabels.includes(id));
+    }
+  };
+
+  archivedElToggle();
+  archivedLabelEl.addEventListener('change', () => {
+    archivedElToggle();
+    if (archivedLabelEl.checked) {
+      url.searchParams.set('archived', 'true');
+    } else {
+      url.searchParams.delete('archived');
+    }
+    window.location.href = url.href;
+  });
+}
+
 export function initRepoIssueList() {
   if (!document.querySelectorAll('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list').length) return;
   initRepoIssueListCheckboxes();
   initRepoIssueListAuthorDropdown();
   initIssuePinSort();
+  initArchivedLabelFilter();
 }

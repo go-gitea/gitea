@@ -14,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/structs"
@@ -44,9 +45,10 @@ func (err ErrForkAlreadyExist) Unwrap() error {
 
 // ForkRepoOptions contains the fork repository options
 type ForkRepoOptions struct {
-	BaseRepo    *repo_model.Repository
-	Name        string
-	Description string
+	BaseRepo     *repo_model.Repository
+	Name         string
+	Description  string
+	SingleBranch string
 }
 
 // ForkRepository forks a repository
@@ -70,18 +72,23 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		}
 	}
 
+	defaultBranch := opts.BaseRepo.DefaultBranch
+	if opts.SingleBranch != "" {
+		defaultBranch = opts.SingleBranch
+	}
 	repo := &repo_model.Repository{
-		OwnerID:       owner.ID,
-		Owner:         owner,
-		OwnerName:     owner.Name,
-		Name:          opts.Name,
-		LowerName:     strings.ToLower(opts.Name),
-		Description:   opts.Description,
-		DefaultBranch: opts.BaseRepo.DefaultBranch,
-		IsPrivate:     opts.BaseRepo.IsPrivate || opts.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate,
-		IsEmpty:       opts.BaseRepo.IsEmpty,
-		IsFork:        true,
-		ForkID:        opts.BaseRepo.ID,
+		OwnerID:          owner.ID,
+		Owner:            owner,
+		OwnerName:        owner.Name,
+		Name:             opts.Name,
+		LowerName:        strings.ToLower(opts.Name),
+		Description:      opts.Description,
+		DefaultBranch:    defaultBranch,
+		IsPrivate:        opts.BaseRepo.IsPrivate || opts.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate,
+		IsEmpty:          opts.BaseRepo.IsEmpty,
+		IsFork:           true,
+		ForkID:           opts.BaseRepo.ID,
+		ObjectFormatName: opts.BaseRepo.ObjectFormatName,
 	}
 
 	oldRepoPath := opts.BaseRepo.RepoPath()
@@ -134,9 +141,12 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 		needsRollback = true
 
+		cloneCmd := git.NewCommand(txCtx, "clone", "--bare")
+		if opts.SingleBranch != "" {
+			cloneCmd.AddArguments("--single-branch", "--branch").AddDynamicArguments(opts.SingleBranch)
+		}
 		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
-		if stdout, _, err := git.NewCommand(txCtx,
-			"clone", "--bare").AddDynamicArguments(oldRepoPath, repoPath).
+		if stdout, _, err := cloneCmd.AddDynamicArguments(oldRepoPath, repoPath).
 			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", opts.BaseRepo.FullName(), repo.FullName())).
 			RunStdBytes(&git.RunOpts{Timeout: 10 * time.Minute}); err != nil {
 			log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, opts.BaseRepo, stdout, err)
@@ -158,7 +168,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 			return fmt.Errorf("createDelegateHooks: %w", err)
 		}
 
-		gitRepo, err := git.OpenRepository(txCtx, repo.RepoPath())
+		gitRepo, err := gitrepo.OpenRepository(txCtx, repo)
 		if err != nil {
 			return fmt.Errorf("OpenRepository: %w", err)
 		}
@@ -177,16 +187,16 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	if err := repo_module.UpdateRepoSize(ctx, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
-	if err := repo_model.CopyLanguageStat(opts.BaseRepo, repo); err != nil {
+	if err := repo_model.CopyLanguageStat(ctx, opts.BaseRepo, repo); err != nil {
 		log.Error("Copy language stat from oldRepo failed: %v", err)
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		log.Error("Open created git repository failed: %v", err)
 	} else {
 		defer gitRepo.Close()
-		if err := repo_module.SyncReleasesWithTags(repo, gitRepo); err != nil {
+		if err := repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
 			log.Error("Sync releases from git tags failed: %v", err)
 		}
 	}

@@ -15,11 +15,11 @@
 				<span class="file gt-f1">
 					<a rel="nofollow" href="{{$repo.Link}}">{{$repo.FullName}}</a>
 						{{if $repo.IsArchived}}
-							<span class="ui basic label">{{$.locale.Tr "repo.desc.archived"}}</span>
+							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
 						{{end}}
 					- {{.Filename}}
 				</span>
-				<a role="button" class="ui basic tiny button" rel="nofollow" href="{{$repo.Link}}/src/commit/{{$result.CommitID | PathEscape}}/{{.Filename | PathEscapeSegments}}">{{$.locale.Tr "repo.diff.view_file"}}</a>
+				<a role="button" class="ui basic tiny button" rel="nofollow" href="{{$repo.Link}}/src/commit/{{$result.CommitID | PathEscape}}/{{.Filename | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
 			</h4>
 			<div class="ui attached table segment">
 				<div class="file-body file-code code-view">
@@ -31,7 +31,7 @@
 										<a href="{{$repo.Link}}/src/commit/{{$result.CommitID | PathEscape}}/{{$result.Filename | PathEscapeSegments}}#L{{.}}"><span>{{.}}</span></a>
 									{{end}}
 								</td>
-								<td class="lines-code chroma"><code class="code-inner">{{.FormattedLines | Safe}}</code></td>
+								<td class="lines-code chroma"><code class="code-inner">{{.FormattedLines}}</code></td>
 							</tr>
 						</tbody>
 					</table>

@@ -206,7 +206,7 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 		Ignored:       !watching,
 		Reason:        nil,
 		CreatedAt:     issue.CreatedUnix.AsTime(),
-		URL:           issue.APIURL() + "/subscriptions",
+		URL:           issue.APIURL(ctx) + "/subscriptions",
 		RepositoryURL: ctx.Repo.Repository.APIURL(),
 	})
 }

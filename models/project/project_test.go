@@ -34,13 +34,13 @@ func TestIsProjectTypeValid(t *testing.T) {
 func TestGetProjects(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	projects, _, err := FindProjects(db.DefaultContext, SearchOptions{RepoID: 1})
+	projects, err := db.Find[Project](db.DefaultContext, SearchOptions{RepoID: 1})
 	assert.NoError(t, err)
 
 	// 1 value for this repo exists in the fixtures
 	assert.Len(t, projects, 1)
 
-	projects, _, err = FindProjects(db.DefaultContext, SearchOptions{RepoID: 3})
+	projects, err = db.Find[Project](db.DefaultContext, SearchOptions{RepoID: 3})
 	assert.NoError(t, err)
 
 	// 1 value for this repo exists in the fixtures
@@ -60,7 +60,7 @@ func TestProject(t *testing.T) {
 		CreatorID:   2,
 	}
 
-	assert.NoError(t, NewProject(project))
+	assert.NoError(t, NewProject(db.DefaultContext, project))
 
 	_, err := GetProjectByID(db.DefaultContext, project.ID)
 	assert.NoError(t, err)
@@ -74,7 +74,7 @@ func TestProject(t *testing.T) {
 
 	assert.Equal(t, project.Title, projectFromDB.Title)
 
-	assert.NoError(t, ChangeProjectStatus(project, true))
+	assert.NoError(t, ChangeProjectStatus(db.DefaultContext, project, true))
 
 	// Retrieve from DB afresh to check if it is truly closed
 	projectFromDB, err = GetProjectByID(db.DefaultContext, project.ID)
@@ -109,7 +109,7 @@ func TestProjectsSort(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		projects, count, err := FindProjects(db.DefaultContext, SearchOptions{
+		projects, count, err := db.FindAndCount[Project](db.DefaultContext, SearchOptions{
 			OrderBy: GetSearchOrderByBySortType(tt.sortType),
 		})
 		assert.NoError(t, err)

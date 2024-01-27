@@ -2,17 +2,17 @@
 	<div class="ui top attached pull tabular menu">
 		<a class="item {{if .PageIsPullConversation}}active{{end}}" href="{{.Issue.Link}}">
 			{{svg "octicon-comment-discussion"}}
-			{{$.locale.Tr "repo.pulls.tab_conversation"}}
+			{{ctx.Locale.Tr "repo.pulls.tab_conversation"}}
 			<span class="ui small label">{{.Issue.NumComments}}</span>
 		</a>
 		<a class="item {{if .PageIsPullCommits}}active{{end}}" {{if .NumCommits}}href="{{.Issue.Link}}/commits"{{end}}>
 			{{svg "octicon-git-commit"}}
-			{{$.locale.Tr "repo.pulls.tab_commits"}}
+			{{ctx.Locale.Tr "repo.pulls.tab_commits"}}
 			<span class="ui small label">{{if .NumCommits}}{{.NumCommits}}{{else}}-{{end}}</span>
 		</a>
 		<a class="item {{if .PageIsPullFiles}}active{{end}}" href="{{.Issue.Link}}/files">
 			{{svg "octicon-diff"}}
-			{{$.locale.Tr "repo.pulls.tab_files"}}
+			{{ctx.Locale.Tr "repo.pulls.tab_files"}}
 			<span class="ui small label">{{if .NumFiles}}{{.NumFiles}}{{else}}-{{end}}</span>
 		</a>
 		<span class="item gt-ml-auto gt-pr-0 gt-font-bold gt-df gt-ac gt-gap-3">

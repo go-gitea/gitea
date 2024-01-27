@@ -115,9 +115,9 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 }
 
 // RewriteAllPublicKeys removes any authorized key and rewrite all keys from database again.
-// Note: db.GetEngine(db.DefaultContext).Iterate does not get latest data after insert/delete, so we have to call this function
+// Note: db.GetEngine(ctx).Iterate does not get latest data after insert/delete, so we have to call this function
 // outside any session scope independently.
-func RewriteAllPublicKeys() error {
+func RewriteAllPublicKeys(ctx context.Context) error {
 	// Don't rewrite key if internal server
 	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil
@@ -165,7 +165,7 @@ func RewriteAllPublicKeys() error {
 		}
 	}
 
-	if err := RegeneratePublicKeys(db.DefaultContext, t); err != nil {
+	if err := RegeneratePublicKeys(ctx, t); err != nil {
 		return err
 	}
 

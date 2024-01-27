@@ -211,6 +211,24 @@ func TestDiscordPayload(t *testing.T) {
 		assert.Equal(t, p.Sender.AvatarURL, pl.(*DiscordPayload).Embeds[0].Author.IconURL)
 	})
 
+	t.Run("Package", func(t *testing.T) {
+		p := packageTestPayload()
+
+		d := new(DiscordPayload)
+		pl, err := d.Package(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &DiscordPayload{}, pl)
+
+		assert.Len(t, pl.(*DiscordPayload).Embeds, 1)
+		assert.Equal(t, "Package created: GiteaContainer:latest", pl.(*DiscordPayload).Embeds[0].Title)
+		assert.Empty(t, pl.(*DiscordPayload).Embeds[0].Description)
+		assert.Equal(t, "http://localhost:3000/user1/-/packages/container/GiteaContainer/latest", pl.(*DiscordPayload).Embeds[0].URL)
+		assert.Equal(t, p.Sender.UserName, pl.(*DiscordPayload).Embeds[0].Author.Name)
+		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.(*DiscordPayload).Embeds[0].Author.URL)
+		assert.Equal(t, p.Sender.AvatarURL, pl.(*DiscordPayload).Embeds[0].Author.IconURL)
+	})
+
 	t.Run("Wiki", func(t *testing.T) {
 		p := wikiTestPayload()
 
@@ -270,7 +288,7 @@ func TestDiscordPayload(t *testing.T) {
 		assert.Len(t, pl.(*DiscordPayload).Embeds, 1)
 		assert.Equal(t, "[test/repo] Release created: v1.0", pl.(*DiscordPayload).Embeds[0].Title)
 		assert.Equal(t, "Note of first stable release", pl.(*DiscordPayload).Embeds[0].Description)
-		assert.Equal(t, "http://localhost:3000/api/v1/repos/test/repo/releases/2", pl.(*DiscordPayload).Embeds[0].URL)
+		assert.Equal(t, "http://localhost:3000/test/repo/releases/tag/v1.0", pl.(*DiscordPayload).Embeds[0].URL)
 		assert.Equal(t, p.Sender.UserName, pl.(*DiscordPayload).Embeds[0].Author.Name)
 		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.(*DiscordPayload).Embeds[0].Author.URL)
 		assert.Equal(t, p.Sender.AvatarURL, pl.(*DiscordPayload).Embeds[0].Author.IconURL)

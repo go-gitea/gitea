@@ -2,7 +2,7 @@
 	<div class="user-main-content twelve wide column content repository file list">
 		<div class="tab-size-8 non-diff-file-content">
 			<h4 class="ui top attached header">
-				<a href="{{.LFSFilesLink}}">{{.locale.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.Oid}}</span>
+				<a href="{{.LFSFilesLink}}">{{ctx.Locale.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.Oid}}</span>
 			</h4>
 			<table id="lfs-files-find-table" class="ui attached segment single line table">
 				<tbody>
@@ -24,19 +24,19 @@
 							</td>
 							<td>
 								{{if .ParentHashes}}
-									{{$.locale.Tr "repo.diff.parent"}}
+									{{ctx.Locale.Tr "repo.diff.parent"}}
 									{{range .ParentHashes}}
 										<a class="ui primary sha label" href="{{$.RepoLink}}/commit/{{.String}}">{{ShortSha .String}}</a>
 									{{end}}
 								{{end}}
-								{{$.locale.Tr "repo.diff.commit"}}
+								{{ctx.Locale.Tr "repo.diff.commit"}}
 								<a class="ui primary sha label" href="{{$.RepoLink}}/commit/{{.SHA}}">{{ShortSha .SHA}}</a>
 							</td>
-							<td>{{TimeSince .When $.locale}}</td>
+							<td>{{TimeSince .When ctx.Locale}}</td>
 						</tr>
 					{{else}}
 						<tr>
-							<td colspan="5">{{.locale.Tr "repo.settings.lfs_lfs_file_no_commits"}}</td>
+							<td colspan="5">{{ctx.Locale.Tr "repo.settings.lfs_lfs_file_no_commits"}}</td>
 						</tr>
 					{{end}}
 				</tbody>

@@ -13,7 +13,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -92,7 +92,7 @@ func ListPullReviews(ctx *context.APIContext) {
 		return
 	}
 
-	count, err := issues_model.CountReviews(opts)
+	count, err := issues_model.CountReviews(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -260,7 +260,7 @@ func DeletePullReview(ctx *context.APIContext) {
 		return
 	}
 
-	if err := issues_model.DeleteReview(review); err != nil {
+	if err := issues_model.DeleteReview(ctx, review); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteReview", fmt.Errorf("can not delete ReviewID: %d", review.ID))
 		return
 	}
@@ -329,8 +329,7 @@ func CreatePullReview(ctx *context.APIContext) {
 
 	// if CommitID is empty, set it as lastCommitID
 	if opts.CommitID == "" {
-
-		gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.Issue.Repo.RepoPath())
+		gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.Issue.Repo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "git.OpenRepository", err)
 			return
@@ -713,7 +712,7 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 		}
 
 		if comment != nil && isAdd {
-			if err = comment.LoadReview(); err != nil {
+			if err = comment.LoadReview(ctx); err != nil {
 				ctx.ServerError("ReviewRequest", err)
 				return
 			}
@@ -757,7 +756,7 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 			}
 
 			if comment != nil && isAdd {
-				if err = comment.LoadReview(); err != nil {
+				if err = comment.LoadReview(ctx); err != nil {
 					ctx.ServerError("ReviewRequest", err)
 					return
 				}

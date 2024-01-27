@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_19"
 	"code.gitea.io/gitea/models/migrations/v1_20"
 	"code.gitea.io/gitea/models/migrations/v1_21"
+	"code.gitea.io/gitea/models/migrations/v1_22"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -536,6 +537,27 @@ var migrations = []Migration{
 	NewMigration("Add RemoteAddress to mirrors", v1_21.AddRemoteAddressToMirrors),
 	// v277 -> v278
 	NewMigration("Add Index to issue_user.issue_id", v1_21.AddIndexToIssueUserIssueID),
+	// v278 -> v279
+	NewMigration("Add Index to comment.dependent_issue_id", v1_21.AddIndexToCommentDependentIssueID),
+	// v279 -> v280
+	NewMigration("Add Index to action.user_id", v1_21.AddIndexToActionUserID),
+
+	// Gitea 1.21.0 ends at 280
+
+	// v280 -> v281
+	NewMigration("Rename user themes", v1_22.RenameUserThemes),
+	// v281 -> v282
+	NewMigration("Add auth_token table", v1_22.CreateAuthTokenTable),
+	// v282 -> v283
+	NewMigration("Add Index to pull_auto_merge.doer_id", v1_22.AddIndexToPullAutoMergeDoerID),
+	// v283 -> v284
+	NewMigration("Add combined Index to issue_user.uid and issue_id", v1_22.AddCombinedIndexToIssueUser),
+	// v284 -> v285
+	NewMigration("Add ignore stale approval column on branch table", v1_22.AddIgnoreStaleApprovalsColumnToProtectedBranchTable),
+	// v285 -> v286
+	NewMigration("Add PreviousDuration to ActionRun", v1_22.AddPreviousDurationToActionRun),
+	// v286 -> v287
+	NewMigration("Add support for SHA256 git repositories", v1_22.AdjustDBForSha256),
 }
 
 // GetCurrentDBVersion returns the current db version

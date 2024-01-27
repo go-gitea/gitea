@@ -183,3 +183,35 @@ export function autosize(textarea, {viewportMarginBottom = 0} = {}) {
 export function onInputDebounce(fn) {
   return debounce(300, fn);
 }
+
+// Set the `src` attribute on an element and returns a promise that resolves once the element
+// has loaded or errored. Suitable for all elements mention in:
+// https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/load_event
+export function loadElem(el, src) {
+  return new Promise((resolve) => {
+    el.addEventListener('load', () => resolve(true), {once: true});
+    el.addEventListener('error', () => resolve(false), {once: true});
+    el.src = src;
+  });
+}
+
+// some browsers like PaleMoon don't have "SubmitEvent" support, so polyfill it by a tricky method: use the last clicked button as submitter
+// it can't use other transparent polyfill patches because PaleMoon also doesn't support "addEventListener(capture)"
+const needSubmitEventPolyfill = typeof SubmitEvent === 'undefined';
+
+export function submitEventSubmitter(e) {
+  return needSubmitEventPolyfill ? (e.target._submitter || null) : e.submitter;
+}
+
+function submitEventPolyfillListener(e) {
+  const form = e.target.closest('form');
+  if (!form) return;
+  form._submitter = e.target.closest('button:not([type]), button[type="submit"], input[type="submit"]');
+}
+
+export function initSubmitEventPolyfill() {
+  if (!needSubmitEventPolyfill) return;
+  console.warn(`This browser doesn't have "SubmitEvent" support, use a tricky method to polyfill`);
+  document.body.addEventListener('click', submitEventPolyfillListener);
+  document.body.addEventListener('focus', submitEventPolyfillListener);
+}

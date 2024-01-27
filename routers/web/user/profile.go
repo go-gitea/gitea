@@ -7,6 +7,7 @@ package user
 import (
 	"fmt"
 	"net/http"
+	"path"
 	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -52,11 +53,10 @@ func userProfile(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.ContextUser.DisplayName()
 	ctx.Data["PageIsUserProfile"] = true
-	ctx.Data["UserLocationMapURL"] = setting.Service.UserLocationMapURL
 
 	// prepare heatmap data
 	if setting.Service.EnableUserHeatmap {
-		data, err := activities_model.GetUserHeatmapDataByUser(ctx.ContextUser, ctx.Doer)
+		data, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserHeatmapDataByUser", err)
 			return
@@ -65,22 +65,26 @@ func userProfile(ctx *context.Context) {
 		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
 	}
 
-	profileGitRepo, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx)
+	profileDbRepo, profileGitRepo, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
 	defer profileClose()
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
-	prepareUserProfileTabData(ctx, showPrivate, profileGitRepo, profileReadmeBlob)
+	prepareUserProfileTabData(ctx, showPrivate, profileDbRepo, profileGitRepo, profileReadmeBlob)
 	// call PrepareContextForProfileBigAvatar later to avoid re-querying the NumFollowers & NumFollowing
 	shared_user.PrepareContextForProfileBigAvatar(ctx)
 	ctx.HTML(http.StatusOK, tplProfile)
 }
 
-func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGitRepo *git.Repository, profileReadme *git.Blob) {
+func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDbRepo *repo_model.Repository, profileGitRepo *git.Repository, profileReadme *git.Blob) {
 	// if there is a profile readme, default to "overview" page, otherwise, default to "repositories" page
 	// if there is not a profile readme, the overview tab should be treated as the repositories tab
 	tab := ctx.FormString("tab")
-	if tab == "" {
-		tab = "overview"
+	if tab == "" || tab == "overview" {
+		if profileReadme != nil {
+			tab = "overview"
+		} else {
+			tab = "repositories"
+		}
 	}
 	ctx.Data["TabName"] = tab
 	ctx.Data["HasProfileReadme"] = profileReadme != nil
@@ -227,61 +231,27 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGi
 
 		total = int(count)
 	case "overview":
-		date := ""
-		items, _, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
-			ListOptions: db.ListOptions{
-				PageSize: pagingNum,
-				Page:     page,
-			},
-			Actor:           ctx.Doer,
-			RequestedUser:   ctx.ContextUser,
-			IncludePrivate:  showPrivate,
-			OnlyPerformedBy: true,
-			IncludeDeleted:  false,
-			Date:            date,
-		})
-		if err != nil {
-			ctx.ServerError("GetFeeds", err)
-			return
-		}
-		ctx.Data["Feeds"] = items
-		ctx.Data["Date"] = date
-		repos, _, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
-			ListOptions: db.ListOptions{
-				PageSize: 6,
-				Page:     0,
-			},
-			Actor:              ctx.Doer,
-			Keyword:            "",
-			OwnerID:            ctx.ContextUser.ID,
-			OrderBy:            db.SearchOrderByStarsReverse,
-			Private:            ctx.IsSigned,
-			Collaborate:        util.OptionalBoolFalse,
-			TopicOnly:          topicOnly,
-			Language:           language,
-			IncludeDescription: setting.UI.SearchRepoDescription,
-		})
-		if err != nil {
-			ctx.ServerError("SearchRepository", err)
-			return
-		}
-		if profileReadme != nil {
-			ctx.Data["HasProfileReadme"] = true
-			if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
-				log.Error("failed to GetBlobContent: %v", err)
-			} else {
-				if profileContent, err := markdown.RenderString(&markup.RenderContext{
-					Ctx:     ctx,
-					GitRepo: profileGitRepo,
-					Metas:   map[string]string{"mode": "document"},
-				}, bytes); err != nil {
-					log.Error("failed to RenderString: %v", err)
-				} else {
-					ctx.Data["ProfileReadme"] = profileContent
-				}
-			}
+		if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+			log.Error("failed to GetBlobContent: %v", err)
 		} else {
-			ctx.Data["HasProfileReadme"] = false
+			if profileContent, err := markdown.RenderString(&markup.RenderContext{
+				Ctx:     ctx,
+				GitRepo: profileGitRepo,
+				Links: markup.Links{
+					// Give the repo link to the markdown render for the full link of media element.
+					// the media link usually be like /[user]/[repoName]/media/branch/[branchName],
+					// 	Eg. /Tom/.profile/media/branch/main
+					// The branch shown on the profile page is the default branch, this need to be in sync with doc, see:
+					//	https://docs.gitea.com/usage/profile-readme
+					Base:       profileDbRepo.Link(),
+					BranchPath: path.Join("branch", util.PathEscapeSegments(profileDbRepo.DefaultBranch)),
+				},
+				Metas: map[string]string{"mode": "document"},
+			}, bytes); err != nil {
+				log.Error("failed to RenderString: %v", err)
+			} else {
+				ctx.Data["ProfileReadme"] = profileContent
+			}
 		}
 	default: // default to "repositories"
 		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{

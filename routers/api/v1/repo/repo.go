@@ -21,6 +21,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -242,17 +243,18 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 	}
 
 	repo, err := repo_service.CreateRepository(ctx, ctx.Doer, owner, repo_service.CreateRepoOptions{
-		Name:          opt.Name,
-		Description:   opt.Description,
-		IssueLabels:   opt.IssueLabels,
-		Gitignores:    opt.Gitignores,
-		License:       opt.License,
-		Readme:        opt.Readme,
-		IsPrivate:     opt.Private,
-		AutoInit:      opt.AutoInit,
-		DefaultBranch: opt.DefaultBranch,
-		TrustModel:    repo_model.ToTrustModel(opt.TrustModel),
-		IsTemplate:    opt.Template,
+		Name:             opt.Name,
+		Description:      opt.Description,
+		IssueLabels:      opt.IssueLabels,
+		Gitignores:       opt.Gitignores,
+		License:          opt.License,
+		Readme:           opt.Readme,
+		IsPrivate:        opt.Private,
+		AutoInit:         opt.AutoInit,
+		DefaultBranch:    opt.DefaultBranch,
+		TrustModel:       repo_model.ToTrustModel(opt.TrustModel),
+		IsTemplate:       opt.Template,
+		ObjectFormatName: opt.ObjectFormatName,
 	})
 	if err != nil {
 		if repo_model.IsErrRepoAlreadyExist(err) {
@@ -396,7 +398,7 @@ func Generate(ctx *context.APIContext) {
 		}
 
 		if !ctx.Doer.IsAdmin {
-			canCreate, err := organization.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx.Doer.ID)
+			canCreate, err := organization.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("CanCreateOrgRepo", err)
 				return
@@ -502,7 +504,7 @@ func CreateOrgRepo(ctx *context.APIContext) {
 	}
 
 	if !ctx.Doer.IsAdmin {
-		canCreate, err := org.CanCreateOrgRepo(ctx.Doer.ID)
+		canCreate, err := org.CanCreateOrgRepo(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "CanCreateOrgRepo", err)
 			return
@@ -636,7 +638,7 @@ func Edit(ctx *context.APIContext) {
 		}
 	}
 
-	if opts.MirrorInterval != nil {
+	if opts.MirrorInterval != nil || opts.EnablePrune != nil {
 		if err := updateMirror(ctx, opts); err != nil {
 			return
 		}
@@ -717,7 +719,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 	if ctx.Repo.GitRepo == nil && !repo.IsEmpty {
 		var err error
-		ctx.Repo.GitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
+		ctx.Repo.GitRepo, err = gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "Unable to OpenRepository", err)
 			return err
@@ -982,7 +984,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	}
 
 	if len(units)+len(deleteUnitTypes) > 0 {
-		if err := repo_model.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
+		if err := repo_service.UpdateRepositoryUnits(ctx, repo, units, deleteUnitTypes); err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateRepositoryUnits", err)
 			return err
 		}
@@ -1114,7 +1116,7 @@ func Delete(ctx *context.APIContext) {
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
-	canDelete, err := repo_module.CanUserDelete(repo, ctx.Doer)
+	canDelete, err := repo_module.CanUserDelete(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CanUserDelete", err)
 		return

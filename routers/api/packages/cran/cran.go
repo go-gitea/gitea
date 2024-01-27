@@ -183,6 +183,7 @@ func uploadPackageFile(ctx *context.Context, compositeKey string, properties map
 	}
 
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,

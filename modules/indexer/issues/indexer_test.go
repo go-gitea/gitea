@@ -5,7 +5,6 @@ package issues
 
 import (
 	"context"
-	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -22,9 +21,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", "..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func TestDBSearchIssues(t *testing.T) {
@@ -384,6 +381,12 @@ func searchIssueInProject(t *testing.T) {
 				ProjectBoardID: int64Pointer(1),
 			},
 			[]int64{1},
+		},
+		{
+			SearchOptions{
+				ProjectBoardID: int64Pointer(0), // issue with in default board
+			},
+			[]int64{2},
 		},
 	}
 	for _, test := range tests {

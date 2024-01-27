@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -83,8 +83,7 @@ func LoadRepo(t *testing.T, ctx gocontext.Context, repoID int64) {
 		ctx.Repo = repo
 		doer = ctx.Doer
 	default:
-		assert.Fail(t, "context is not *context.Context or *context.APIContext")
-		return
+		assert.FailNow(t, "context is not *context.Context or *context.APIContext")
 	}
 
 	repo.Repository = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
@@ -105,11 +104,10 @@ func LoadRepoCommit(t *testing.T, ctx gocontext.Context) {
 	case *context.APIContext:
 		repo = ctx.Repo
 	default:
-		assert.Fail(t, "context is not *context.Context or *context.APIContext")
-		return
+		assert.FailNow(t, "context is not *context.Context or *context.APIContext")
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, repo.Repository.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo.Repository)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 	branch, err := gitRepo.GetHEADBranch()
@@ -130,8 +128,7 @@ func LoadUser(t *testing.T, ctx gocontext.Context, userID int64) {
 	case *context.APIContext:
 		ctx.Doer = doer
 	default:
-		assert.Fail(t, "context is not *context.Context or *context.APIContext")
-		return
+		assert.FailNow(t, "context is not *context.Context or *context.APIContext")
 	}
 }
 
@@ -140,7 +137,7 @@ func LoadUser(t *testing.T, ctx gocontext.Context, userID int64) {
 func LoadGitRepo(t *testing.T, ctx *context.Context) {
 	assert.NoError(t, ctx.Repo.Repository.LoadOwner(ctx))
 	var err error
-	ctx.Repo.GitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
+	ctx.Repo.GitRepo, err = gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
 	assert.NoError(t, err)
 }
 

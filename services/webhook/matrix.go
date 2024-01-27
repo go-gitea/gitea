@@ -177,7 +177,7 @@ func (m *MatrixPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, e
 func (m *MatrixPayload) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (api.Payloader, error) {
 	senderLink := MatrixLinkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
 	title := fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title)
-	titleLink := MatrixLinkFormatter(p.PullRequest.URL, title)
+	titleLink := MatrixLinkFormatter(p.PullRequest.HTMLURL, title)
 	repoLink := MatrixLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	var text string
 
@@ -205,6 +205,21 @@ func (m *MatrixPayload) Repository(p *api.RepositoryPayload) (api.Payloader, err
 		text = fmt.Sprintf("[%s] Repository created by %s", repoLink, senderLink)
 	case api.HookRepoDeleted:
 		text = fmt.Sprintf("[%s] Repository deleted by %s", repoLink, senderLink)
+	}
+
+	return getMatrixPayload(text, nil, m.MsgType), nil
+}
+
+func (m *MatrixPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+	senderLink := MatrixLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
+	packageLink := MatrixLinkFormatter(p.Package.HTMLURL, p.Package.Name)
+	var text string
+
+	switch p.Action {
+	case api.HookPackageCreated:
+		text = fmt.Sprintf("[%s] Package published by %s", packageLink, senderLink)
+	case api.HookPackageDeleted:
+		text = fmt.Sprintf("[%s] Package deleted by %s", packageLink, senderLink)
 	}
 
 	return getMatrixPayload(text, nil, m.MsgType), nil

@@ -84,7 +84,7 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, doer *user_mode
 		}
 	}
 
-	if err := issues_model.UpdateComment(c, doer); err != nil {
+	if err := issues_model.UpdateComment(ctx, c, doer); err != nil {
 		return err
 	}
 

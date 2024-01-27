@@ -2,20 +2,20 @@
 
 			<div class="org-setting-content">
 				<h4 class="ui top attached error header">
-					{{.locale.Tr "org.settings.delete_account"}}
+					{{ctx.Locale.Tr "org.settings.delete_account"}}
 				</h4>
 				<div class="ui attached error segment">
 					<div class="ui red message">
-						<p class="text left">{{svg "octicon-alert"}} {{.locale.Tr "org.settings.delete_prompt" | Str2html}}</p>
+						<p class="text left">{{svg "octicon-alert"}} {{ctx.Locale.Tr "org.settings.delete_prompt" | Str2html}}</p>
 					</div>
 					<form class="ui form ignore-dirty" id="delete-form" action="{{.Link}}" method="post">
 						{{.CsrfTokenHtml}}
 						<div class="inline required field {{if .Err_OrgName}}error{{end}}">
-							<label for="org_name">{{.locale.Tr "org.org_name_holder"}}</label>
+							<label for="org_name">{{ctx.Locale.Tr "org.org_name_holder"}}</label>
 							<input id="org_name" name="org_name" value="" autocomplete="off" autofocus required>
 						</div>
 						<button class="ui red button delete-button" data-type="form" data-form="#delete-form">
-							{{.locale.Tr "org.settings.confirm_delete_account"}}
+							{{ctx.Locale.Tr "org.settings.confirm_delete_account"}}
 						</button>
 					</form>
 				</div>
@@ -24,10 +24,10 @@
 <div class="ui g-modal-confirm delete modal">
 	<div class="header">
 		{{svg "octicon-trash"}}
-		{{.locale.Tr "org.settings.delete_org_title"}}
+		{{ctx.Locale.Tr "org.settings.delete_org_title"}}
 	</div>
 	<div class="content">
-		<p>{{.locale.Tr "org.settings.delete_org_desc"}}</p>
+		<p>{{ctx.Locale.Tr "org.settings.delete_org_desc"}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

@@ -71,7 +71,7 @@ loop:
 
 			now := timeutil.TimeStampNow().Add(-2)
 
-			uidCounts, err := activities_model.GetUIDsAndNotificationCounts(then, now)
+			uidCounts, err := activities_model.GetUIDsAndNotificationCounts(ctx, then, now)
 			if err != nil {
 				log.Error("Unable to get UIDcounts: %v", err)
 			}
@@ -91,7 +91,7 @@ loop:
 				}
 
 				for _, userStopwatches := range usersStopwatches {
-					apiSWs, err := convert.ToStopWatches(userStopwatches.StopWatches)
+					apiSWs, err := convert.ToStopWatches(ctx, userStopwatches.StopWatches)
 					if err != nil {
 						if !issues_model.IsErrIssueNotExist(err) {
 							log.Error("Unable to APIFormat stopwatches: %v", err)

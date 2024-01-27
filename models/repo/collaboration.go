@@ -11,8 +11,9 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // Collaboration represent the relation between an individual and a repository.
@@ -37,33 +38,36 @@ type Collaborator struct {
 
 // GetCollaborators returns the collaborators for a repository
 func GetCollaborators(ctx context.Context, repoID int64, listOptions db.ListOptions) ([]*Collaborator, error) {
-	collaborations, err := getCollaborations(ctx, repoID, listOptions)
+	collaborations, err := db.Find[Collaboration](ctx, FindCollaborationOptions{
+		ListOptions: listOptions,
+		RepoID:      repoID,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("getCollaborations: %w", err)
+		return nil, fmt.Errorf("db.Find[Collaboration]: %w", err)
 	}
 
 	collaborators := make([]*Collaborator, 0, len(collaborations))
+	userIDs := make([]int64, 0, len(collaborations))
 	for _, c := range collaborations {
-		user, err := user_model.GetUserByID(ctx, c.UserID)
-		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
-				log.Warn("Inconsistent DB: User: %d is listed as collaborator of %-v but does not exist", c.UserID, repoID)
-				user = user_model.NewGhostUser()
-			} else {
-				return nil, err
-			}
+		userIDs = append(userIDs, c.UserID)
+	}
+
+	usersMap := make(map[int64]*user_model.User)
+	if err := db.GetEngine(ctx).In("id", userIDs).Find(&usersMap); err != nil {
+		return nil, fmt.Errorf("Find users map by user ids: %w", err)
+	}
+
+	for _, c := range collaborations {
+		u := usersMap[c.UserID]
+		if u == nil {
+			u = user_model.NewGhostUser()
 		}
 		collaborators = append(collaborators, &Collaborator{
-			User:          user,
+			User:          u,
 			Collaboration: c,
 		})
 	}
 	return collaborators, nil
-}
-
-// CountCollaborators returns total number of collaborators for a repository
-func CountCollaborators(repoID int64) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where("repo_id = ? ", repoID).Count(&Collaboration{})
 }
 
 // GetCollaboration get collaboration for a repository id with a user id
@@ -84,18 +88,13 @@ func IsCollaborator(ctx context.Context, repoID, userID int64) (bool, error) {
 	return db.GetEngine(ctx).Get(&Collaboration{RepoID: repoID, UserID: userID})
 }
 
-func getCollaborations(ctx context.Context, repoID int64, listOptions db.ListOptions) ([]*Collaboration, error) {
-	if listOptions.Page == 0 {
-		collaborations := make([]*Collaboration, 0, 8)
-		return collaborations, db.GetEngine(ctx).Find(&collaborations, &Collaboration{RepoID: repoID})
-	}
+type FindCollaborationOptions struct {
+	db.ListOptions
+	RepoID int64
+}
 
-	e := db.GetEngine(ctx)
-
-	e = db.SetEnginePagination(e, &listOptions)
-
-	collaborations := make([]*Collaboration, 0, listOptions.PageSize)
-	return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repoID})
+func (opts FindCollaborationOptions) ToConds() builder.Cond {
+	return builder.And(builder.Eq{"repo_id": opts.RepoID})
 }
 
 // ChangeCollaborationAccessMode sets new access mode for the collaboration.
@@ -138,11 +137,11 @@ func ChangeCollaborationAccessMode(ctx context.Context, repo *Repository, uid in
 }
 
 // IsOwnerMemberCollaborator checks if a provided user is the owner, a collaborator or a member of a team in a repository
-func IsOwnerMemberCollaborator(repo *Repository, userID int64) (bool, error) {
+func IsOwnerMemberCollaborator(ctx context.Context, repo *Repository, userID int64) (bool, error) {
 	if repo.OwnerID == userID {
 		return true, nil
 	}
-	teamMember, err := db.GetEngine(db.DefaultContext).Join("INNER", "team_repo", "team_repo.team_id = team_user.team_id").
+	teamMember, err := db.GetEngine(ctx).Join("INNER", "team_repo", "team_repo.team_id = team_user.team_id").
 		Join("INNER", "team_unit", "team_unit.team_id = team_user.team_id").
 		Where("team_repo.repo_id = ?", repo.ID).
 		And("team_unit.`type` = ?", unit.TypeCode).
@@ -154,5 +153,5 @@ func IsOwnerMemberCollaborator(repo *Repository, userID int64) (bool, error) {
 		return true, nil
 	}
 
-	return db.GetEngine(db.DefaultContext).Get(&Collaboration{RepoID: repo.ID, UserID: userID})
+	return db.GetEngine(ctx).Get(&Collaboration{RepoID: repo.ID, UserID: userID})
 }

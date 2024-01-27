@@ -1,17 +1,17 @@
 {{if eq .HookType "matrix"}}
-	<p>{{.locale.Tr "repo.settings.add_web_hook_desc" "https://matrix.org/" (.locale.Tr "repo.settings.web_hook_name_matrix") | Str2html}}</p>
+	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://matrix.org/" (ctx.Locale.Tr "repo.settings.web_hook_name_matrix") | Str2html}}</p>
 	<form class="ui form" action="{{.BaseLink}}/matrix/{{or .Webhook.ID "new"}}" method="post">
 		{{.CsrfTokenHtml}}
 		<div class="required field {{if .Err_HomeserverURL}}error{{end}}">
-			<label for="homeserver_url">{{.locale.Tr "repo.settings.matrix.homeserver_url"}}</label>
+			<label for="homeserver_url">{{ctx.Locale.Tr "repo.settings.matrix.homeserver_url"}}</label>
 			<input id="homeserver_url" name="homeserver_url" type="url" value="{{.MatrixHook.HomeserverURL}}" autofocus required>
 		</div>
 		<div class="required field {{if .Err_Room}}error{{end}}">
-			<label for="room_id">{{.locale.Tr "repo.settings.matrix.room_id"}}</label>
+			<label for="room_id">{{ctx.Locale.Tr "repo.settings.matrix.room_id"}}</label>
 			<input id="room_id" name="room_id" type="text" value="{{.MatrixHook.Room}}" required>
 		</div>
 		<div class="field">
-			<label>{{.locale.Tr "repo.settings.matrix.message_type"}}</label>
+			<label>{{ctx.Locale.Tr "repo.settings.matrix.message_type"}}</label>
 				<div class="ui selection dropdown">
 				<input type="hidden" id="message_type" name="message_type" value="{{if .MatrixHook.MessageType}}{{.MatrixHook.MessageType}}{{else}}1{{end}}">
 				<div class="default text"></div>

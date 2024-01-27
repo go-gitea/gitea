@@ -112,24 +112,24 @@
 
 	<div>
 		<h1>LocaleNumber</h1>
-		<div>{{.locale.PrettyNumber 1}}</div>
-		<div>{{.locale.PrettyNumber 12}}</div>
-		<div>{{.locale.PrettyNumber 123}}</div>
-		<div>{{.locale.PrettyNumber 1234}}</div>
-		<div>{{.locale.PrettyNumber 12345}}</div>
-		<div>{{.locale.PrettyNumber 123456}}</div>
-		<div>{{.locale.PrettyNumber 1234567}}</div>
+		<div>{{ctx.Locale.PrettyNumber 1}}</div>
+		<div>{{ctx.Locale.PrettyNumber 12}}</div>
+		<div>{{ctx.Locale.PrettyNumber 123}}</div>
+		<div>{{ctx.Locale.PrettyNumber 1234}}</div>
+		<div>{{ctx.Locale.PrettyNumber 12345}}</div>
+		<div>{{ctx.Locale.PrettyNumber 123456}}</div>
+		<div>{{ctx.Locale.PrettyNumber 1234567}}</div>
 	</div>
 
 	<div>
 		<h1>TimeSince</h1>
-		<div>Now: {{TimeSince .TimeNow $.locale}}</div>
-		<div>5s past: {{TimeSince .TimePast5s $.locale}}</div>
-		<div>5s future: {{TimeSince .TimeFuture5s $.locale}}</div>
-		<div>2m past: {{TimeSince .TimePast2m $.locale}}</div>
-		<div>2m future: {{TimeSince .TimeFuture2m $.locale}}</div>
-		<div>1y past: {{TimeSince .TimePast1y $.locale}}</div>
-		<div>1y future: {{TimeSince .TimeFuture1y $.locale}}</div>
+		<div>Now: {{TimeSince .TimeNow ctx.Locale}}</div>
+		<div>5s past: {{TimeSince .TimePast5s ctx.Locale}}</div>
+		<div>5s future: {{TimeSince .TimeFuture5s ctx.Locale}}</div>
+		<div>2m past: {{TimeSince .TimePast2m ctx.Locale}}</div>
+		<div>2m future: {{TimeSince .TimeFuture2m ctx.Locale}}</div>
+		<div>1y past: {{TimeSince .TimePast1y ctx.Locale}}</div>
+		<div>1y future: {{TimeSince .TimeFuture1y ctx.Locale}}</div>
 	</div>
 
 	<div>
@@ -171,6 +171,7 @@
 				<span class="text">simple</span>
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				<div class="menu">
+					<div class="ui icon search input"><i class="icon">{{svg "octicon-search"}}</i><input type="text" value="search input in menu"></div>
 					<div class="item">item</div>
 				</div>
 			</div>
@@ -246,6 +247,15 @@
 			</div>
 			<div class="ui dropdown large compact button">
 				<span class="text">large compact</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			</div>
+		</div>
+
+		<div>
+			<hr>
+			<div class="ui tiny button">Button align with ...</div>
+			<div class="ui dropdown tiny button">
+				<span class="text">... Dropdown Button</span>
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			</div>
 		</div>

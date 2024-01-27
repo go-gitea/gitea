@@ -5,6 +5,7 @@ package org
 
 import (
 	"net/http"
+	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -18,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 )
 
@@ -46,10 +48,8 @@ func Home(ctx *context.Context) {
 	ctx.Data["Title"] = org.DisplayName()
 	if len(org.Description) != 0 {
 		desc, err := markdown.RenderString(&markup.RenderContext{
-			Ctx:       ctx,
-			URLPrefix: ctx.Repo.RepoLink,
-			Metas:     map[string]string{"mode": "document"},
-			GitRepo:   ctx.Repo.GitRepo,
+			Ctx:   ctx,
+			Metas: map[string]string{"mode": "document"},
 		}, org.Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -58,126 +58,66 @@ func Home(ctx *context.Context) {
 		ctx.Data["RenderedDescription"] = desc
 	}
 
-	profileGitRepo, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx)
-	defer profileClose()
-	ctx.Data["HasProfileReadme"] = profileReadmeBlob != nil
-
-	PrepareOrgProfileTabData(ctx, profileGitRepo, profileReadmeBlob)
-
-	ctx.HTML(http.StatusOK, tplOrgHome)
-}
-
-func PrepareOrgProfileTabData(ctx *context.Context, profileGitRepo *git.Repository, profileReadme *git.Blob) {
-	org := ctx.Org.Organization
-
-	tab := ctx.FormString("tab")
-	if tab == "" {
-		tab = "overview"
+	var orderBy db.SearchOrderBy
+	ctx.Data["SortType"] = ctx.FormString("sort")
+	switch ctx.FormString("sort") {
+	case "newest":
+		orderBy = db.SearchOrderByNewest
+	case "oldest":
+		orderBy = db.SearchOrderByOldest
+	case "recentupdate":
+		orderBy = db.SearchOrderByRecentUpdated
+	case "leastupdate":
+		orderBy = db.SearchOrderByLeastUpdated
+	case "reversealphabetically":
+		orderBy = db.SearchOrderByAlphabeticallyReverse
+	case "alphabetically":
+		orderBy = db.SearchOrderByAlphabetically
+	case "moststars":
+		orderBy = db.SearchOrderByStarsReverse
+	case "feweststars":
+		orderBy = db.SearchOrderByStars
+	case "mostforks":
+		orderBy = db.SearchOrderByForksReverse
+	case "fewestforks":
+		orderBy = db.SearchOrderByForks
+	default:
+		ctx.Data["SortType"] = "recentupdate"
+		orderBy = db.SearchOrderByRecentUpdated
 	}
-	ctx.Data["TabName"] = tab
 
-	var (
-		page  int
-		count int64
-	)
+	keyword := ctx.FormTrim("q")
+	ctx.Data["Keyword"] = keyword
 
 	language := ctx.FormTrim("language")
 	ctx.Data["Language"] = language
 
-	switch tab {
-	case "overview":
-		if profileReadme != nil {
-			if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
-				log.Error("failed to GetBlobContent: %v", err)
-			} else {
-				if profileContent, err := markdown.RenderString(&markup.RenderContext{
-					Ctx:     ctx,
-					GitRepo: profileGitRepo,
-					Metas:   map[string]string{"mode": "document"},
-				}, bytes); err != nil {
-					log.Error("failed to RenderString: %v", err)
-				} else {
-					ctx.Data["ProfileReadme"] = profileContent
-				}
-			}
-		}
-		repos, _, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
-			ListOptions: db.ListOptions{
-				PageSize: 6,
-				Page:     0,
-			},
-			Keyword:            "",
-			OwnerID:            org.ID,
-			OrderBy:            db.SearchOrderByStarsReverse,
-			Private:            ctx.IsSigned,
-			Actor:              ctx.Doer,
-			Language:           language,
-			IncludeDescription: setting.UI.SearchRepoDescription,
-		})
-		if err != nil {
-			ctx.ServerError("SearchRepository", err)
-			return
-		}
-		ctx.Data["Repos"] = repos
-	case "repositories":
-		var orderBy db.SearchOrderBy
-		ctx.Data["SortType"] = ctx.FormString("sort")
-		switch ctx.FormString("sort") {
-		case "newest":
-			orderBy = db.SearchOrderByNewest
-		case "oldest":
-			orderBy = db.SearchOrderByOldest
-		case "recentupdate":
-			orderBy = db.SearchOrderByRecentUpdated
-		case "leastupdate":
-			orderBy = db.SearchOrderByLeastUpdated
-		case "reversealphabetically":
-			orderBy = db.SearchOrderByAlphabeticallyReverse
-		case "alphabetically":
-			orderBy = db.SearchOrderByAlphabetically
-		case "moststars":
-			orderBy = db.SearchOrderByStarsReverse
-		case "feweststars":
-			orderBy = db.SearchOrderByStars
-		case "mostforks":
-			orderBy = db.SearchOrderByForksReverse
-		case "fewestforks":
-			orderBy = db.SearchOrderByForks
-		default:
-			ctx.Data["SortType"] = "recentupdate"
-			orderBy = db.SearchOrderByRecentUpdated
-		}
+	page := ctx.FormInt("page")
+	if page <= 0 {
+		page = 1
+	}
 
-		keyword := ctx.FormTrim("q")
-		ctx.Data["Keyword"] = keyword
-
-		page := ctx.FormInt("page")
-		if page <= 0 {
-			page = 1
-		}
-		var (
-			repos []*repo_model.Repository
-			err   error
-		)
-		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
-			ListOptions: db.ListOptions{
-				PageSize: setting.UI.User.RepoPagingNum,
-				Page:     page,
-			},
-			Keyword:            keyword,
-			OwnerID:            org.ID,
-			OrderBy:            orderBy,
-			Private:            ctx.IsSigned,
-			Actor:              ctx.Doer,
-			Language:           language,
-			IncludeDescription: setting.UI.SearchRepoDescription,
-		})
-		if err != nil {
-			ctx.ServerError("SearchRepository", err)
-			return
-		}
-		ctx.Data["Repos"] = repos
-		ctx.Data["Total"] = count
+	var (
+		repos []*repo_model.Repository
+		count int64
+		err   error
+	)
+	repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+		ListOptions: db.ListOptions{
+			PageSize: setting.UI.User.RepoPagingNum,
+			Page:     page,
+		},
+		Keyword:            keyword,
+		OwnerID:            org.ID,
+		OrderBy:            orderBy,
+		Private:            ctx.IsSigned,
+		Actor:              ctx.Doer,
+		Language:           language,
+		IncludeDescription: setting.UI.SearchRepoDescription,
+	})
+	if err != nil {
+		ctx.ServerError("SearchRepository", err)
+		return
 	}
 
 	opts := &organization.FindOrgMembersOpts{
@@ -195,6 +135,9 @@ func PrepareOrgProfileTabData(ctx *context.Context, profileGitRepo *git.Reposito
 	if ctx.Doer != nil {
 		isFollowing = user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	}
+
+	ctx.Data["Repos"] = repos
+	ctx.Data["Total"] = count
 	ctx.Data["Members"] = members
 	ctx.Data["Teams"] = ctx.Org.Teams
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
@@ -210,8 +153,39 @@ func PrepareOrgProfileTabData(ctx *context.Context, profileGitRepo *git.Reposito
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "language", "Language")
-	pager.AddParam(ctx, "tab", "TabName")
 	ctx.Data["Page"] = pager
 
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
+
+	profileDbRepo, profileGitRepo, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
+	defer profileClose()
+	prepareOrgProfileReadme(ctx, profileGitRepo, profileDbRepo, profileReadmeBlob)
+
+	ctx.HTML(http.StatusOK, tplOrgHome)
+}
+
+func prepareOrgProfileReadme(ctx *context.Context, profileGitRepo *git.Repository, profileDbRepo *repo_model.Repository, profileReadme *git.Blob) {
+	if profileGitRepo == nil || profileReadme == nil {
+		return
+	}
+
+	if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+		log.Error("failed to GetBlobContent: %v", err)
+	} else {
+		if profileContent, err := markdown.RenderString(&markup.RenderContext{
+			Ctx:     ctx,
+			GitRepo: profileGitRepo,
+			Links: markup.Links{
+				// Pass repo link to markdown render for the full link of media elements.
+				// The profile of default branch would be shown.
+				Base:       profileDbRepo.Link(),
+				BranchPath: path.Join("branch", util.PathEscapeSegments(profileDbRepo.DefaultBranch)),
+			},
+			Metas: map[string]string{"mode": "document"},
+		}, bytes); err != nil {
+			log.Error("failed to RenderString: %v", err)
+		} else {
+			ctx.Data["ProfileReadme"] = profileContent
+		}
+	}
 }

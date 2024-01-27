@@ -21,7 +21,7 @@ const (
 	OAuth2UsernameUserid OAuth2UsernameType = "userid"
 	// OAuth2UsernameNickname oauth2 nickname field will be used as gitea name
 	OAuth2UsernameNickname OAuth2UsernameType = "nickname"
-	// OAuth2UsernameEmail username of oauth2 email filed will be used as gitea name
+	// OAuth2UsernameEmail username of oauth2 email field will be used as gitea name
 	OAuth2UsernameEmail OAuth2UsernameType = "email"
 )
 
@@ -110,7 +110,7 @@ var OAuth2 = struct {
 	JWTSigningAlgorithm:        "RS256",
 	JWTSigningPrivateKeyFile:   "jwt/private.pem",
 	MaxTokenLength:             math.MaxInt16,
-	DefaultApplications:        []string{"git-credential-oauth", "git-credential-manager"},
+	DefaultApplications:        []string{"git-credential-oauth", "git-credential-manager", "tea"},
 }
 
 func loadOAuth2From(rootCfg ConfigProvider) {

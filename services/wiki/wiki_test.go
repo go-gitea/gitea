@@ -5,7 +5,6 @@ package wiki
 
 import (
 	"math/rand"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -13,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 
 	_ "code.gitea.io/gitea/models/actions"
 
@@ -20,9 +20,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func TestWebPathSegments(t *testing.T) {
@@ -167,7 +165,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 			webPath := UserTitleToWebPath("", userTitle)
 			assert.NoError(t, AddWikiPage(git.DefaultContext, doer, repo, webPath, wikiContent, commitMsg))
 			// Now need to show that the page has been added:
-			gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
+			gitRepo, err := gitrepo.OpenWikiRepository(git.DefaultContext, repo)
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -215,7 +213,7 @@ func TestRepository_EditWikiPage(t *testing.T) {
 		assert.NoError(t, EditWikiPage(git.DefaultContext, doer, repo, "Home", webPath, newWikiContent, commitMsg))
 
 		// Now need to show that the page has been added:
-		gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
+		gitRepo, err := gitrepo.OpenWikiRepository(git.DefaultContext, repo)
 		assert.NoError(t, err)
 		masterTree, err := gitRepo.GetTree(DefaultBranch)
 		assert.NoError(t, err)
@@ -239,7 +237,7 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 	assert.NoError(t, DeleteWikiPage(git.DefaultContext, doer, repo, "Home"))
 
 	// Now need to show that the page has been added:
-	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
+	gitRepo, err := gitrepo.OpenWikiRepository(git.DefaultContext, repo)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -254,7 +252,7 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 func TestPrepareWikiFileName(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
+	gitRepo, err := gitrepo.OpenWikiRepository(git.DefaultContext, repo)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -305,7 +303,7 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	// Now create a temporaryDirectory
 	tmpDir := t.TempDir()
 
-	err := git.InitRepository(git.DefaultContext, tmpDir, true)
+	err := git.InitRepository(git.DefaultContext, tmpDir, true, git.Sha1ObjectFormat.Name())
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, tmpDir)
