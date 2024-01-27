@@ -11,7 +11,6 @@ import (
 	"sync"
 
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -167,12 +166,9 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 func (s *SSPI) newUser(ctx context.Context, username string, cfg *sspi.Source) (*user_model.User, error) {
 	email := gouuid.New().String() + "@localhost.localdomain"
 	user := &user_model.User{
-		Name:            username,
-		Email:           email,
-		Passwd:          gouuid.New().String(),
-		Language:        cfg.DefaultLanguage,
-		UseCustomAvatar: true,
-		Avatar:          avatars.DefaultAvatarLink(),
+		Name:     username,
+		Email:    email,
+		Language: cfg.DefaultLanguage,
 	}
 	emailNotificationPreference := user_model.EmailNotificationsDisabled
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
