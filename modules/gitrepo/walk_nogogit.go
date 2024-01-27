@@ -13,5 +13,5 @@ import (
 
 // WalkReferences walks all the references from the repository
 func WalkReferences(ctx context.Context, repo Repository, walkfn func(sha1, refname string) error) (int, error) {
-	return git.WalkShowRef(ctx, repoPath(repo.FullName()), nil, 0, 0, walkfn)
+	return git.WalkShowRef(ctx, repoPath(repo), nil, 0, 0, walkfn)
 }

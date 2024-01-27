@@ -6,7 +6,6 @@ package gitrepo
 import (
 	"context"
 	"io"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -15,26 +14,25 @@ import (
 )
 
 type Repository interface {
-	FullName() string // should return "<user>/<repo>"
+	GetName() string
+	GetOwnerName() string
 }
 
-func repoPath(fullName string) string {
-	ownerName, repoName := path.Split(fullName)
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(ownerName), strings.ToLower(repoName)+".git")
+func repoPath(repo Repository) string {
+	return filepath.Join(setting.RepoRootPath, strings.ToLower(repo.GetOwnerName()), strings.ToLower(repo.GetName())+".git")
 }
 
-func wikiPath(fullName string) string {
-	ownerName, repoName := path.Split(fullName)
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(ownerName), strings.ToLower(repoName)+".wiki.git")
+func wikiPath(repo Repository) string {
+	return filepath.Join(setting.RepoRootPath, strings.ToLower(repo.GetOwnerName()), strings.ToLower(repo.GetName())+".wiki.git")
 }
 
 // OpenRepository opens the repository at the given relative path with the provided context.
 func OpenRepository(ctx context.Context, repo Repository) (*git.Repository, error) {
-	return git.OpenRepository(ctx, repoPath(repo.FullName()))
+	return git.OpenRepository(ctx, repoPath(repo))
 }
 
 func OpenWikiRepository(ctx context.Context, repo Repository) (*git.Repository, error) {
-	return git.OpenRepository(ctx, wikiPath(repo.FullName()))
+	return git.OpenRepository(ctx, wikiPath(repo))
 }
 
 // contextKey is a value for use with context.WithValue.
@@ -53,7 +51,7 @@ func repositoryFromContext(ctx context.Context, repo Repository) *git.Repository
 	}
 
 	if gitRepo, ok := value.(*git.Repository); ok && gitRepo != nil {
-		if gitRepo.Path == repoPath(repo.FullName()) {
+		if gitRepo.Path == repoPath(repo) {
 			return gitRepo
 		}
 	}
