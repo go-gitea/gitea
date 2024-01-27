@@ -60,7 +60,7 @@ export function initIssueSubsribe() {
 <template>
   <div class="ui watching">
     <span class="text"><strong>{{ locale.notifications }}</strong></span>
-    <div class="gt-mt-3">
+    <div class="gt-mt-3" :class="isLoading?'is-loading':''">
       <button class="fluid ui button" @click="toggleSubscribe">
         <SvgIcon :name="isWatching?'octicon-mute':'octicon-unmute'" class="text white" :size="16" class-name="gt-mr-3"/>
         {{ isWatching?locale.unsubscribe:locale.subscribe }}
