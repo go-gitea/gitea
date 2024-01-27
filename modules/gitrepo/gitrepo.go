@@ -41,13 +41,13 @@ type contextKey struct {
 var RepositoryContextKey = &contextKey{"repository"}
 
 // RepositoryFromContext attempts to get the repository from the context
-func RepositoryFromContext(ctx context.Context, repo *repo_model.Repository) *Repository {
+func repositoryFromContext(ctx context.Context, repo *repo_model.Repository) *Repository {
 	value := ctx.Value(RepositoryContextKey)
 	if value == nil {
 		return nil
 	}
 
-	if gitRepo, ok := value.(*Repository); ok {
+	if gitRepo, ok := value.(*Repository); ok && gitRepo != nil {
 		if gitRepo.Path == repo.RepoPath() {
 			return gitRepo
 		}
@@ -62,7 +62,7 @@ func (nopCloser) Close() error { return nil }
 
 // RepositoryFromContextOrOpen attempts to get the repository from the context or just opens it
 func RepositoryFromContextOrOpen(ctx context.Context, repo *repo_model.Repository) (*Repository, io.Closer, error) {
-	gitRepo := RepositoryFromContext(ctx, repo)
+	gitRepo := repositoryFromContext(ctx, repo)
 	if gitRepo != nil {
 		return gitRepo, nopCloser(nil), nil
 	}
@@ -71,14 +71,14 @@ func RepositoryFromContextOrOpen(ctx context.Context, repo *repo_model.Repositor
 	return gitRepo, gitRepo, err
 }
 
-// RepositoryFromContext attempts to get the repository from the context
-func repositoryFromContext(ctx context.Context, path string) *git.Repository {
+// repositoryFromContextPath attempts to get the repository from the context
+func repositoryFromContextPath(ctx context.Context, path string) *git.Repository {
 	value := ctx.Value(RepositoryContextKey)
 	if value == nil {
 		return nil
 	}
 
-	if repo, ok := value.(*git.Repository); ok {
+	if repo, ok := value.(*git.Repository); ok && repo != nil {
 		if repo.Path == path {
 			return repo
 		}
@@ -90,7 +90,7 @@ func repositoryFromContext(ctx context.Context, path string) *git.Repository {
 // RepositoryFromContextOrOpenPath attempts to get the repository from the context or just opens it
 // Deprecated: Use RepositoryFromContextOrOpen instead
 func RepositoryFromContextOrOpenPath(ctx context.Context, path string) (*git.Repository, io.Closer, error) {
-	gitRepo := repositoryFromContext(ctx, path)
+	gitRepo := repositoryFromContextPath(ctx, path)
 	if gitRepo != nil {
 		return gitRepo, nopCloser(nil), nil
 	}
