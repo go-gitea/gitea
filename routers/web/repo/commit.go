@@ -384,7 +384,7 @@ func Diff(ctx *context.Context) {
 			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
 			GitRepo: ctx.Repo.GitRepo,
 			Ctx:     ctx,
-		}, template.HTMLEscapeString(string(charset.ToUTF8WithFallback(note.Message))))
+		}, template.HTMLEscapeString(string(charset.ToUTF8WithFallback(note.Message, charset.ConvertOpts{}))))
 		if err != nil {
 			ctx.ServerError("RenderCommitMessage", err)
 			return
