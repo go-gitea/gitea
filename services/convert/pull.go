@@ -12,6 +12,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -101,7 +102,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		apiPullRequest.Closed = pr.Issue.ClosedUnix.AsTimePtr()
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
 		log.Error("OpenRepository[%s]: %v", pr.BaseRepo.RepoPath(), err)
 		return nil
@@ -127,7 +128,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	}
 
 	if pr.Flow == issues_model.PullRequestFlowAGit {
-		gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
+		gitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
 		if err != nil {
 			log.Error("OpenRepository[%s]: %v", pr.GetGitRefName(), err)
 			return nil
@@ -154,7 +155,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
 		apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
 
-		headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
+		headGitRepo, err := gitrepo.OpenRepository(ctx, pr.HeadRepo)
 		if err != nil {
 			log.Error("OpenRepository[%s]: %v", pr.HeadRepo.RepoPath(), err)
 			return nil
@@ -190,7 +191,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	}
 
 	if len(apiPullRequest.Head.Sha) == 0 && len(apiPullRequest.Head.Ref) != 0 {
-		baseGitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
+		baseGitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
 		if err != nil {
 			log.Error("OpenRepository[%s]: %v", pr.BaseRepo.RepoPath(), err)
 			return nil
