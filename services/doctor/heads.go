@@ -20,10 +20,10 @@ func synchronizeRepoHeads(ctx context.Context, logger log.Logger, autofix bool) 
 	err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
 		numRepos++
 		cmd := git.NewCommand(ctx, "rev-parse").AddDashesAndList(repo.DefaultBranch)
-		_, _, defaultBranchErr := gitrepo.RunGitCmdStdString(repo, cmd, &git.RunOpts{})
+		_, _, defaultBranchErr := gitrepo.RunGitCmdStdString(repo, cmd, &gitrepo.RunOpts{})
 
 		cmd = git.NewCommand(ctx, "symbolic-ref", "--short", "HEAD")
-		head, _, headErr := gitrepo.RunGitCmdStdString(repo, cmd, &git.RunOpts{})
+		head, _, headErr := gitrepo.RunGitCmdStdString(repo, cmd, &gitrepo.RunOpts{})
 
 		// what we expect: default branch is valid, and HEAD points to it
 		if headErr == nil && defaultBranchErr == nil && head == repo.DefaultBranch {
@@ -50,7 +50,7 @@ func synchronizeRepoHeads(ctx context.Context, logger log.Logger, autofix bool) 
 
 		// otherwise, let's try fixing HEAD
 		cmd = git.NewCommand(ctx, "symbolic-ref").AddDashesAndList("HEAD", git.BranchPrefix+repo.DefaultBranch)
-		err := gitrepo.RunGitCmd(repo, cmd, &git.RunOpts{})
+		err := gitrepo.RunGitCmd(repo, cmd, &gitrepo.RunOpts{})
 		if err != nil {
 			logger.Warn("Failed to fix HEAD for %s/%s: %v", repo.OwnerName, repo.Name, err)
 			return nil

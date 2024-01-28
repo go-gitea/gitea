@@ -524,7 +524,7 @@ func UpdateRef(ctx context.Context, pr *issues_model.PullRequest) (err error) {
 	}
 
 	cmd := git.NewCommand(ctx, "update-ref").AddDynamicArguments(pr.GetGitRefName(), pr.HeadCommitID)
-	_, _, err = gitrepo.RunGitCmdStdString(pr.BaseRepo, cmd, &git.RunOpts{})
+	_, _, err = gitrepo.RunGitCmdStdString(pr.BaseRepo, cmd, &gitrepo.RunOpts{})
 	if err != nil {
 		log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
 	}

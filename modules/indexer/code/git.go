@@ -18,7 +18,7 @@ import (
 
 func getDefaultBranchSha(ctx context.Context, repo *repo_model.Repository) (string, error) {
 	cmd := git.NewCommand(ctx, "show-ref", "-s").AddDynamicArguments(git.BranchPrefix + repo.DefaultBranch)
-	stdout, _, err := gitrepo.RunGitCmdStdString(repo, cmd, &git.RunOpts{})
+	stdout, _, err := gitrepo.RunGitCmdStdString(repo, cmd, &gitrepo.RunOpts{})
 	if err != nil {
 		return "", err
 	}
@@ -35,7 +35,7 @@ func getRepoChanges(ctx context.Context, repo *repo_model.Repository, revision s
 	needGenesis := len(status.CommitSha) == 0
 	if !needGenesis {
 		hasAncestorCmd := git.NewCommand(ctx, "merge-base").AddDynamicArguments(repo.CodeIndexerStatus.CommitSha, revision)
-		stdout, _, _ := gitrepo.RunGitCmdStdString(repo, hasAncestorCmd, &git.RunOpts{})
+		stdout, _, _ := gitrepo.RunGitCmdStdString(repo, hasAncestorCmd, &gitrepo.RunOpts{})
 		needGenesis = len(stdout) == 0
 	}
 
@@ -89,7 +89,7 @@ func parseGitLsTreeOutput(objectFormat git.ObjectFormat, stdout []byte) ([]inter
 func genesisChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*internal.RepoChanges, error) {
 	var changes internal.RepoChanges
 	cmd := git.NewCommand(ctx, "ls-tree", "--full-tree", "-l", "-r").AddDynamicArguments(revision)
-	stdout, _, runErr := gitrepo.RunGitCmdStdBytes(repo, cmd, &git.RunOpts{})
+	stdout, _, runErr := gitrepo.RunGitCmdStdBytes(repo, cmd, &gitrepo.RunOpts{})
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -106,7 +106,7 @@ func genesisChanges(ctx context.Context, repo *repo_model.Repository, revision s
 // nonGenesisChanges get changes since the previous indexer update
 func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*internal.RepoChanges, error) {
 	diffCmd := git.NewCommand(ctx, "diff", "--name-status").AddDynamicArguments(repo.CodeIndexerStatus.CommitSha, revision)
-	stdout, _, runErr := gitrepo.RunGitCmdStdString(repo, diffCmd, &git.RunOpts{})
+	stdout, _, runErr := gitrepo.RunGitCmdStdString(repo, diffCmd, &gitrepo.RunOpts{})
 	if runErr != nil {
 		// previous commit sha may have been removed by a force push, so
 		// try rebuilding from scratch
@@ -172,7 +172,7 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 
 	cmd := git.NewCommand(ctx, "ls-tree", "--full-tree", "-l").AddDynamicArguments(revision).
 		AddDashesAndList(updatedFilenames...)
-	lsTreeStdout, _, err := gitrepo.RunGitCmdStdBytes(repo, cmd, &git.RunOpts{})
+	lsTreeStdout, _, err := gitrepo.RunGitCmdStdBytes(repo, cmd, &gitrepo.RunOpts{})
 	if err != nil {
 		return nil, err
 	}

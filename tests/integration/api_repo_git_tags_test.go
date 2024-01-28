@@ -31,9 +31,9 @@ func TestAPIGitTags(t *testing.T) {
 
 	// Set up git config for the tagger
 	cmd := git.NewCommand(git.DefaultContext, "config", "user.name").AddDynamicArguments(user.Name)
-	_ = gitrepo.RunGitCmd(repo, cmd, &git.RunOpts{})
+	_ = gitrepo.RunGitCmd(repo, cmd, &gitrepo.RunOpts{})
 	cmd = git.NewCommand(git.DefaultContext, "config", "user.email").AddDynamicArguments(user.Email)
-	_ = gitrepo.RunGitCmd(repo, cmd, &git.RunOpts{})
+	_ = gitrepo.RunGitCmd(repo, cmd, &gitrepo.RunOpts{})
 
 	gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
 	defer gitRepo.Close()

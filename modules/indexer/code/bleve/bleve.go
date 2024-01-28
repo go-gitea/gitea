@@ -139,7 +139,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 	if !update.Sized {
 		var stdout string
 		cmd := git.NewCommand(ctx, "cat-file", "-s").AddDynamicArguments(update.BlobSha)
-		stdout, _, err = gitrepo.RunGitCmdStdString(repo, cmd, &git.RunOpts{})
+		stdout, _, err = gitrepo.RunGitCmdStdString(repo, cmd, &gitrepo.RunOpts{})
 		if err != nil {
 			return err
 		}

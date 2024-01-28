@@ -287,26 +287,28 @@ func TestCantMergeUnrelated(t *testing.T) {
 		})
 
 		cmd := git.NewCommand(git.DefaultContext, "read-tree", "--empty")
-		err := gitrepo.RunGitCmd(repo1, cmd, &git.RunOpts{})
+		err := gitrepo.RunGitCmd(repo1, cmd, &gitrepo.RunOpts{})
 		assert.NoError(t, err)
 
 		stdin := bytes.NewBufferString("Unrelated File")
 		var stdout strings.Builder
 		cmd = git.NewCommand(git.DefaultContext, "hash-object", "-w", "--stdin")
-		err = gitrepo.RunGitCmd(repo1, cmd, &git.RunOpts{
-			Stdin:  stdin,
-			Stdout: &stdout,
+		err = gitrepo.RunGitCmd(repo1, cmd, &gitrepo.RunOpts{
+			RunOpts: git.RunOpts{
+				Stdin:  stdin,
+				Stdout: &stdout,
+			},
 		})
 
 		assert.NoError(t, err)
 		sha := strings.TrimSpace(stdout.String())
 
 		cmd = git.NewCommand(git.DefaultContext, "update-index", "--add", "--replace", "--cacheinfo").AddDynamicArguments("100644", sha, "somewher-over-the-rainbow")
-		_, _, err = gitrepo.RunGitCmdStdString(repo1, cmd, &git.RunOpts{})
+		_, _, err = gitrepo.RunGitCmdStdString(repo1, cmd, &gitrepo.RunOpts{})
 		assert.NoError(t, err)
 
 		cmd = git.NewCommand(git.DefaultContext, "write-tree")
-		treeSha, _, err := gitrepo.RunGitCmdStdString(repo1, cmd, &git.RunOpts{})
+		treeSha, _, err := gitrepo.RunGitCmdStdString(repo1, cmd, &gitrepo.RunOpts{})
 
 		assert.NoError(t, err)
 		treeSha = strings.TrimSpace(treeSha)
@@ -328,16 +330,18 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		stdout.Reset()
 		cmd = git.NewCommand(git.DefaultContext, "commit-tree").AddDynamicArguments(treeSha)
-		err = gitrepo.RunGitCmd(repo1, cmd, &git.RunOpts{
-			Env:    env,
-			Stdin:  messageBytes,
-			Stdout: &stdout,
+		err = gitrepo.RunGitCmd(repo1, cmd, &gitrepo.RunOpts{
+			RunOpts: git.RunOpts{
+				Env:    env,
+				Stdin:  messageBytes,
+				Stdout: &stdout,
+			},
 		})
 		assert.NoError(t, err)
 		commitSha := strings.TrimSpace(stdout.String())
 
 		cmd = git.NewCommand(git.DefaultContext, "branch", "unrelated").AddDynamicArguments(commitSha)
-		_, _, err = gitrepo.RunGitCmdStdString(repo1, cmd, &git.RunOpts{})
+		_, _, err = gitrepo.RunGitCmdStdString(repo1, cmd, &gitrepo.RunOpts{})
 		assert.NoError(t, err)
 
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")

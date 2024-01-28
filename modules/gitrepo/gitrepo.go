@@ -26,6 +26,13 @@ func wikiPath(repo Repository) string {
 	return filepath.Join(setting.RepoRootPath, strings.ToLower(repo.GetOwnerName()), strings.ToLower(repo.GetName())+".wiki.git")
 }
 
+func getPath(repo Repository, isWiki bool) string {
+	if isWiki {
+		return wikiPath(repo)
+	}
+	return repoPath(repo)
+}
+
 // OpenRepository opens the repository at the given relative path with the provided context.
 func OpenRepository(ctx context.Context, repo Repository) (*git.Repository, error) {
 	return git.OpenRepository(ctx, repoPath(repo))

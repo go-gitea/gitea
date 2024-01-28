@@ -198,7 +198,7 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 
 	// Check if the pull request is merged into BaseBranch
 	cmd := git.NewCommand(ctx, "merge-base", "--is-ancestor").AddDynamicArguments(prHeadRef, pr.BaseBranch)
-	if _, _, err := gitrepo.RunGitCmdStdString(pr.BaseRepo, cmd, &git.RunOpts{}); err != nil {
+	if _, _, err := gitrepo.RunGitCmdStdString(pr.BaseRepo, cmd, &gitrepo.RunOpts{}); err != nil {
 		if strings.Contains(err.Error(), "exit status 1") {
 			// prHeadRef is not an ancestor of the base branch
 			return nil, nil
@@ -229,7 +229,7 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	// Get the commit from BaseBranch where the pull request got merged
 	cmd = git.NewCommand(ctx, "rev-list", "--ancestry-path", "--merges", "--reverse").
 		AddDynamicArguments(prHeadCommitID + ".." + pr.BaseBranch)
-	mergeCommit, _, err := gitrepo.RunGitCmdStdString(pr.BaseRepo, cmd, &git.RunOpts{})
+	mergeCommit, _, err := gitrepo.RunGitCmdStdString(pr.BaseRepo, cmd, &gitrepo.RunOpts{})
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %w", err)
 	} else if len(mergeCommit) < objectFormat.FullLength() {

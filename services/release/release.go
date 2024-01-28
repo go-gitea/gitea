@@ -322,7 +322,7 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 
 		cmd := git.NewCommand(ctx, "tag", "-d").AddDashesAndList(rel.TagName).
 			SetDescription(fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID))
-		if stdout, _, err := gitrepo.RunGitCmdStdString(repo, cmd, &git.RunOpts{}); err != nil && !strings.Contains(err.Error(), "not found") {
+		if stdout, _, err := gitrepo.RunGitCmdStdString(repo, cmd, &gitrepo.RunOpts{}); err != nil && !strings.Contains(err.Error(), "not found") {
 			log.Error("DeleteReleaseByID (git tag -d): %d in %v Failed:\nStdout: %s\nError: %v", rel.ID, repo, stdout, err)
 			return fmt.Errorf("git tag -d: %w", err)
 		}

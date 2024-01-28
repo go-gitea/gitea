@@ -237,7 +237,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	baseRef := "master"
 	assert.NoError(t, git.InitRepository(git.DefaultContext, fromRepo.RepoPath(), false, fromRepo.ObjectFormatName))
 	cmd := git.NewCommand(git.DefaultContext, "symbolic-ref").AddDynamicArguments("HEAD", git.BranchPrefix+baseRef)
-	err := gitrepo.RunGitCmd(fromRepo, cmd, &git.RunOpts{})
+	err := gitrepo.RunGitCmd(fromRepo, cmd, &gitrepo.RunOpts{})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s", fromRepo.RepoPath())), 0o644))
 	assert.NoError(t, git.AddChanges(fromRepo.RepoPath(), true))
@@ -262,7 +262,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	//
 	headRef := "branch1"
 	cmd = git.NewCommand(git.DefaultContext, "checkout", "-b").AddDynamicArguments(headRef)
-	_, _, err = gitrepo.RunGitCmdStdString(fromRepo, cmd, &git.RunOpts{})
+	_, _, err = gitrepo.RunGitCmdStdString(fromRepo, cmd, &gitrepo.RunOpts{})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte("SOMETHING"), 0o644))
 	assert.NoError(t, git.AddChanges(fromRepo.RepoPath(), true))
@@ -287,7 +287,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 		Branch: headRef,
 	}))
 	cmd = git.NewCommand(git.DefaultContext, "checkout", "-b").AddDynamicArguments(forkHeadRef)
-	_, _, err = gitrepo.RunGitCmdStdString(forkRepo, cmd, &git.RunOpts{})
+	_, _, err = gitrepo.RunGitCmdStdString(forkRepo, cmd, &gitrepo.RunOpts{})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(forkRepo.RepoPath(), "README.md"), []byte(fmt.Sprintf("# branch2 %s", forkRepo.RepoPath())), 0o644))
 	assert.NoError(t, git.AddChanges(forkRepo.RepoPath(), true))
