@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -91,23 +90,19 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		ObjectFormatName: opts.BaseRepo.ObjectFormatName,
 	}
 
-	oldRepoPath := opts.BaseRepo.RepoPath()
-
 	needsRollback := false
 	rollbackFn := func() {
 		if !needsRollback {
 			return
 		}
 
-		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
-
-		if exists, _ := util.IsExist(repoPath); !exists {
+		if exists, _ := gitrepo.IsRepositoryExist(ctx, repo); !exists {
 			return
 		}
 
 		// As the transaction will be failed and hence database changes will be destroyed we only need
 		// to delete the related repository on the filesystem
-		if errDelete := util.RemoveAll(repoPath); errDelete != nil {
+		if errDelete := gitrepo.DeleteRepository(ctx, repo); errDelete != nil {
 			log.Error("Failed to remove fork repo")
 		}
 	}
@@ -141,16 +136,8 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 		needsRollback = true
 
-		cloneCmd := git.NewCommand(txCtx, "clone", "--bare")
-		if opts.SingleBranch != "" {
-			cloneCmd.AddArguments("--single-branch", "--branch").AddDynamicArguments(opts.SingleBranch)
-		}
-		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
-		if stdout, _, err := cloneCmd.AddDynamicArguments(oldRepoPath, repoPath).
-			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", opts.BaseRepo.FullName(), repo.FullName())).
-			RunStdBytes(&git.RunOpts{Timeout: 10 * time.Minute}); err != nil {
-			log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, opts.BaseRepo, stdout, err)
-			return fmt.Errorf("git clone: %w", err)
+		if err := gitrepo.ForkRepository(txCtx, opts.BaseRepo, repo, opts.SingleBranch); err != nil {
+			return err
 		}
 
 		if err := repo_module.CheckDaemonExportOK(txCtx, repo); err != nil {
@@ -159,7 +146,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 		if stdout, _, err := git.NewCommand(txCtx, "update-server-info").
 			SetDescription(fmt.Sprintf("ForkRepository(git update-server-info): %s", repo.FullName())).
-			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+			RunStdString(&git.RunOpts{Dir: repo.RepoPath()}); err != nil {
 			log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, stdout, err)
 			return fmt.Errorf("git update-server-info: %w", err)
 		}

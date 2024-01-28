@@ -135,7 +135,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 }
 
 // InitRepository initializes README and .gitignore if needed.
-func initRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
+func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
 	if err = repo_module.CheckInitRepository(ctx, repo, opts.ObjectFormatName); err != nil {
 		return err
 	}
@@ -144,7 +144,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 	if opts.AutoInit {
 		tmpDir, err := os.MkdirTemp(os.TempDir(), "gitea-"+repo.Name)
 		if err != nil {
-			return fmt.Errorf("Failed to create temp dir for repository %s: %w", repo.RepoPath(), err)
+			return fmt.Errorf("Failed to create temp dir for repository %s: %w", gitrepo.RepoGitURL(repo), err)
 		}
 		defer func() {
 			if err := util.RemoveAll(tmpDir); err != nil {
@@ -152,7 +152,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 			}
 		}()
 
-		if err = prepareRepoCommit(ctx, repo, tmpDir, repoPath, opts); err != nil {
+		if err = prepareRepoCommit(ctx, repo, tmpDir, repo.RepoPath(), opts); err != nil {
 			return fmt.Errorf("prepareRepoCommit: %w", err)
 		}
 
@@ -255,10 +255,9 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 			return nil
 		}
 
-		repoPath := repo_model.RepoPath(u.Name, repo.Name)
-		isExist, err := util.IsExist(repoPath)
+		isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
 		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+			log.Error("Unable to check if %s exists. Error: %v", gitrepo.RepoGitURL(repo), err)
 			return err
 		}
 		if isExist {
@@ -269,15 +268,15 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 			//
 			// Previously Gitea would just delete and start afresh - this was naughty.
 			// So we will now fail and delegate to other functionality to adopt or delete
-			log.Error("Files already exist in %s and we are not going to adopt or delete.", repoPath)
+			log.Error("Files already exist in %s and we are not going to adopt or delete.", gitrepo.RepoGitURL(repo))
 			return repo_model.ErrRepoFilesAlreadyExist{
 				Uname: u.Name,
 				Name:  repo.Name,
 			}
 		}
 
-		if err = initRepository(ctx, repoPath, doer, repo, opts); err != nil {
-			if err2 := util.RemoveAll(repoPath); err2 != nil {
+		if err = initRepository(ctx, doer, repo, opts); err != nil {
+			if err2 := gitrepo.DeleteRepository(ctx, repo); err2 != nil {
 				log.Error("initRepository: %v", err)
 				return fmt.Errorf(
 					"delete repo directory %s/%s failed(2): %v", u.Name, repo.Name, err2)
@@ -299,8 +298,8 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		}
 
 		if stdout, _, err := git.NewCommand(ctx, "update-server-info").
-			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
-			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", gitrepo.RepoGitURL(repo))).
+			RunStdString(&git.RunOpts{Dir: repo.RepoPath()}); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			rollbackRepo = repo
 			rollbackRepo.OwnerID = u.ID

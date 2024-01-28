@@ -60,15 +60,6 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 	return nil
 }
 
-// CountDivergingCommits determines how many commits a branch is ahead or behind the repository's base branch
-func CountDivergingCommits(ctx context.Context, repo *repo_model.Repository, branch string) (*git.DivergeObject, error) {
-	divergence, err := git.GetDivergingCommits(ctx, repo.RepoPath(), repo.DefaultBranch, branch)
-	if err != nil {
-		return nil, err
-	}
-	return &divergence, nil
-}
-
 // GetPayloadCommitVerification returns the verification information of a commit
 func GetPayloadCommitVerification(ctx context.Context, commit *git.Commit) *structs.PayloadCommitVerification {
 	verification := &structs.PayloadCommitVerification{}
