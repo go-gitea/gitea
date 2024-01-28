@@ -1,14 +1,8 @@
 import * as htmx from "htmx.org";
 import { showErrorToast } from "./modules/toast.js";
-import { ws } from "./ws.js";
+import "htmx.org/dist/ext/ws.js";
 
 window.htmx = htmx;
-
-// TODO: https://github.com/bigskysoftware/htmx/issues/1690
-ws();
-// import("htmx.org/dist/ext/ws.js");
-
-console.log("htmx.js loaded", htmx.version, htmx);
 
 // https://htmx.org/reference/#config
 htmx.config.requestClass = "is-loading";
