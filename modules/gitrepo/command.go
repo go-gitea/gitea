@@ -28,7 +28,7 @@ func RunGitCmdStdBytes(repo Repository, c *git.Command, opts *RunOpts) (stdout, 
 		// we must panic here, otherwise there would be bugs if developers set Dir by mistake, and it would be very difficult to debug
 		panic("dir field must be empty when using RunStdBytes")
 	}
-	opts.Dir = repoPath(repo)
+	opts.Dir = getPath(repo, opts.IsWiki)
 	return c.RunStdBytes(&opts.RunOpts)
 }
 

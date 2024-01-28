@@ -245,13 +245,13 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	return repo, committer.Commit()
 }
 
-// cleanUpMigrateGitConfig removes mirror info which prevents "push --all".
+// cleanUpMigrateGitConfigWiki removes mirror info which prevents "push --all".
 // This also removes possible user credentials.
-func cleanUpMigrateGitConfig(ctx context.Context, repoPath string) error {
+func cleanUpMigrateGitConfigWiki(ctx context.Context, repo *repo_model.Repository) error {
 	cmd := git.NewCommand(ctx, "remote", "rm", "origin")
 	// if the origin does not exist
-	_, stderr, err := cmd.RunStdString(&git.RunOpts{
-		Dir: repoPath,
+	_, stderr, err := gitrepo.RunGitCmdStdString(repo, cmd, &gitrepo.RunOpts{
+		IsWiki: true,
 	})
 	if err != nil && !strings.HasPrefix(stderr, "fatal: No such remote") {
 		return err
@@ -278,7 +278,7 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 	}
 
 	if repo.HasWiki() {
-		if err := cleanUpMigrateGitConfig(ctx, repo.WikiPath()); err != nil {
+		if err := cleanUpMigrateGitConfigWiki(ctx, repo); err != nil {
 			return repo, fmt.Errorf("cleanUpMigrateGitConfig (wiki): %w", err)
 		}
 	}
