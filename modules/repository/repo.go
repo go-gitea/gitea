@@ -271,7 +271,8 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 		}
 	}
 
-	_, _, err := git.NewCommand(ctx, "remote", "rm", "origin").RunStdString(&git.RunOpts{Dir: repoPath})
+	cmd := git.NewCommand(ctx, "remote", "rm", "origin")
+	_, _, err := gitrepo.RunGitCmdStdString(repo, cmd, &gitrepo.RunOpts{})
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return repo, fmt.Errorf("CleanUpMigrateInfo: %w", err)
 	}
