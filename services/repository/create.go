@@ -47,7 +47,7 @@ type CreateRepoOptions struct {
 	ObjectFormatName string
 }
 
-func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {
+func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir string, opts CreateRepoOptions) error {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 	authorSig := repo.Owner.NewGitSig()
 
@@ -61,6 +61,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
 
+	repoPath := repo.RepoPath()
 	// Clone to temporary path and do the init commit.
 	if stdout, _, err := git.NewCommand(ctx, "clone").AddDynamicArguments(repoPath, tmpDir).
 		SetDescription(fmt.Sprintf("prepareRepoCommit (git clone): %s to %s", repoPath, tmpDir)).
@@ -152,7 +153,7 @@ func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Re
 			}
 		}()
 
-		if err = prepareRepoCommit(ctx, repo, tmpDir, repo.RepoPath(), opts); err != nil {
+		if err = prepareRepoCommit(ctx, repo, tmpDir, opts); err != nil {
 			return fmt.Errorf("prepareRepoCommit: %w", err)
 		}
 

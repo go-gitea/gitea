@@ -328,7 +328,7 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 		}
 
 		refName := git.RefNameFromTag(rel.TagName)
-		objectFormat, err := git.GetObjectFormatOfRepo(ctx, repo.RepoPath())
+		objectFormat, err := gitrepo.GetObjectFormatOfRepo(ctx, repo)
 		if err != nil {
 			return err
 		}
