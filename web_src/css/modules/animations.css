@@ -22,7 +22,7 @@
   height: min(4em, 66.6%);
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
-  animation: isloadingspin 500ms infinite linear;
+  animation: isloadingspin 1000ms infinite linear;
   border-width: 4px;
   border-style: solid;
   border-color: var(--color-secondary) var(--color-secondary) var(--color-secondary-dark-8) var(--color-secondary-dark-8);

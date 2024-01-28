@@ -303,7 +303,7 @@ func LFSFileGet(ctx *context.Context) {
 			break
 		}
 
-		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
+		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
 
 		// Building code view blocks with line number on server side.
 		escapedContent := &bytes.Buffer{}

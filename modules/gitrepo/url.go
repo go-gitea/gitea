@@ -3,12 +3,10 @@
 
 package gitrepo
 
-import repo_model "code.gitea.io/gitea/models/repo"
-
-func RepoGitURL(repo *repo_model.Repository) string {
-	return repo.RepoPath()
+func RepoGitURL(repo Repository) string {
+	return repoPath(repo)
 }
 
-func WikiRepoGitURL(repo *repo_model.Repository) string {
-	return repo.WikiPath()
+func WikiRepoGitURL(repo Repository) string {
+	return repoPath(repo)
 }

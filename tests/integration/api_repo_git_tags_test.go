@@ -35,7 +35,7 @@ func TestAPIGitTags(t *testing.T) {
 	cmd = git.NewCommand(git.DefaultContext, "config", "user.email").AddDynamicArguments(user.Email)
 	_ = gitrepo.RunGitCmd(repo, cmd, &git.RunOpts{})
 
-	gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
+	gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
 	defer gitRepo.Close()
 
 	commit, _ := gitRepo.GetBranchCommit("master")
