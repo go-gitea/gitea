@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/sync"
@@ -39,7 +40,7 @@ func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 
 	if err := git.InitRepository(ctx, repo.WikiPath(), true, repo.ObjectFormatName); err != nil {
 		return fmt.Errorf("InitRepository: %w", err)
-	} else if err = repo_module.CreateDelegateHooks(repo.WikiPath()); err != nil {
+	} else if err = gitrepo.CreateDelegateHooks(ctx, repo, true); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
 	} else if _, _, err = git.NewCommand(ctx, "symbolic-ref", "HEAD", git.BranchPrefix+DefaultBranch).RunStdString(&git.RunOpts{Dir: repo.WikiPath()}); err != nil {
 		return fmt.Errorf("unable to set default wiki branch to master: %w", err)

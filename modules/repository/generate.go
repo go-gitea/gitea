@@ -359,7 +359,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	}
 
 	// FIXME - fix the hash
-	if err = CheckInitRepository(ctx, owner.Name, generateRepo.Name, git.Sha1ObjectFormat.Name()); err != nil {
+	if err = CheckInitRepository(ctx, generateRepo, git.Sha1ObjectFormat.Name()); err != nil {
 		return generateRepo, err
 	}
 

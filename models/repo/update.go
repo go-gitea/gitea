@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -154,19 +155,12 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *Repo
 		return ErrRepoAlreadyExist{repo.Owner.Name, newRepoName}
 	}
 
-	newRepoPath := RepoPath(repo.Owner.Name, newRepoName)
-	if err = util.Rename(repo.RepoPath(), newRepoPath); err != nil {
-		return fmt.Errorf("rename repository directory: %w", err)
-	}
-
-	wikiPath := repo.WikiPath()
-	isExist, err := util.IsExist(wikiPath)
-	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", wikiPath, err)
+	if err := gitrepo.RenameRepository(ctx, repo, newRepoName); err != nil {
 		return err
 	}
-	if isExist {
-		if err = util.Rename(wikiPath, WikiPath(repo.Owner.Name, newRepoName)); err != nil {
+
+	if repo.HasWiki() {
+		if err = gitrepo.RenameWikiRepository(ctx, repo, newRepoName); err != nil {
 			return fmt.Errorf("rename repository wiki: %w", err)
 		}
 	}

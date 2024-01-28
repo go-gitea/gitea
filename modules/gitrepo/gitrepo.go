@@ -5,12 +5,14 @@ package gitrepo
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 type Repository interface {
@@ -100,4 +102,24 @@ func RepositoryFromContextOrOpenPath(ctx context.Context, path string) (*git.Rep
 
 	gitRepo, err := git.OpenRepository(ctx, path)
 	return gitRepo, gitRepo, err
+}
+
+func IsRepositoryExist(ctx context.Context, repo Repository) (bool, error) {
+	return util.IsExist(repoPath(repo))
+}
+
+func RenameRepository(ctx context.Context, repo Repository, newName string) error {
+	newRepoPath := filepath.Join(setting.RepoRootPath, strings.ToLower(repo.GetOwnerName()), strings.ToLower(newName)+".git")
+	if err := util.Rename(repoPath(repo), newRepoPath); err != nil {
+		return fmt.Errorf("rename repository directory: %w", err)
+	}
+	return nil
+}
+
+func RenameWikiRepository(ctx context.Context, repo Repository, newName string) error {
+	newWikiRepoPath := filepath.Join(setting.RepoRootPath, strings.ToLower(repo.GetOwnerName()), strings.ToLower(newName)+".wiki.git")
+	if err := util.Rename(wikiPath(repo), newWikiRepoPath); err != nil {
+		return fmt.Errorf("rename repository wiki directory: %w", err)
+	}
+	return nil
 }
