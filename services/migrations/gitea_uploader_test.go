@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
@@ -249,7 +250,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 		Author:    &signature,
 		Message:   "Initial Commit",
 	}))
-	fromGitRepo, err := git.OpenRepository(git.DefaultContext, fromRepo.RepoPath())
+	fromGitRepo, err := gitrepo.OpenRepository(git.DefaultContext, fromRepo)
 	assert.NoError(t, err)
 	defer fromGitRepo.Close()
 	baseSHA, err := fromGitRepo.GetBranchCommitID(baseRef)
@@ -292,7 +293,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 		Author:    &signature,
 		Message:   "branch2 commit",
 	}))
-	forkGitRepo, err := git.OpenRepository(git.DefaultContext, forkRepo.RepoPath())
+	forkGitRepo, err := gitrepo.OpenRepository(git.DefaultContext, forkRepo)
 	assert.NoError(t, err)
 	defer forkGitRepo.Close()
 	forkHeadSHA, err := forkGitRepo.GetBranchCommitID(forkHeadRef)
