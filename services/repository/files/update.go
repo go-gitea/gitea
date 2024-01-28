@@ -488,7 +488,7 @@ func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, do
 			}
 		}
 		if protectedBranch.RequireSignedCommits {
-			_, _, _, err := asymkey_service.SignCRUDAction(ctx, repo.RepoPath(), doer, repo.RepoPath(), branchName)
+			_, _, _, err := asymkey_service.SignCRUDAction(ctx, repo, doer, repo.RepoPath(), branchName)
 			if err != nil {
 				if !asymkey_service.IsErrWontSign(err) {
 					return err

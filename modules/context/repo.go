@@ -117,7 +117,7 @@ func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.Use
 		requireSigned = protectedBranch.RequireSignedCommits
 	}
 
-	sign, keyID, _, err := asymkey_service.SignCRUDAction(ctx, r.Repository.RepoPath(), doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
+	sign, keyID, _, err := asymkey_service.SignCRUDAction(ctx, r.Repository, doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
 
 	canCommit := r.CanEnableEditor(ctx, doer) && userCanPush
 	if requireSigned {

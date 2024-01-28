@@ -114,7 +114,8 @@ func SigningKey(ctx context.Context, repoPath string) (string, *git.Signature) {
 }
 
 // PublicSigningKey gets the public signing key within a provided repository directory
-func PublicSigningKey(ctx context.Context, repoPath string) (string, error) {
+func PublicSigningKey(ctx context.Context, repo *repo_model.Repository) (string, error) {
+	repoPath := repo.RepoPath()
 	signingKey, _ := SigningKey(ctx, repoPath)
 	if signingKey == "" {
 		return "", nil
@@ -226,9 +227,9 @@ Loop:
 }
 
 // SignCRUDAction determines if we should sign a CRUD commit to this repository
-func SignCRUDAction(ctx context.Context, repoPath string, u *user_model.User, tmpBasePath, parentCommit string) (bool, string, *git.Signature, error) {
+func SignCRUDAction(ctx context.Context, repo *repo_model.Repository, u *user_model.User, tmpBasePath, parentCommit string) (bool, string, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.CRUDActions)
-	signingKey, sig := SigningKey(ctx, repoPath)
+	signingKey, sig := SigningKey(ctx, repo.RepoPath())
 	if signingKey == "" {
 		return false, "", nil, &ErrWontSign{noKey}
 	}

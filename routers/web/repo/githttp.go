@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -90,11 +91,9 @@ func httpBase(ctx *context.Context) *serviceHandler {
 
 	isWiki := false
 	unitType := unit.TypeCode
-	var wikiRepoName string
 	if strings.HasSuffix(reponame, ".wiki") {
 		isWiki = true
 		unitType = unit.TypeWiki
-		wikiRepoName = reponame
 		reponame = reponame[:len(reponame)-5]
 	}
 
@@ -302,12 +301,7 @@ func httpBase(ctx *context.Context) *serviceHandler {
 
 	r.URL.Path = strings.ToLower(r.URL.Path) // blue: In case some repo name has upper case name
 
-	dir := repo_model.RepoPath(username, reponame)
-	if isWiki {
-		dir = repo_model.RepoPath(username, wikiRepoName)
-	}
-
-	return &serviceHandler{cfg, w, r, dir, cfg.Env}
+	return &serviceHandler{cfg, w, r, repo, isWiki, cfg.Env}
 }
 
 var (
@@ -362,7 +356,8 @@ type serviceHandler struct {
 	cfg     *serviceConfig
 	w       http.ResponseWriter
 	r       *http.Request
-	dir     string
+	repo    *repo_model.Repository
+	isWiki  bool
 	environ []string
 }
 
@@ -400,7 +395,7 @@ func (h *serviceHandler) sendFile(contentType, file string) {
 		h.w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	reqFile := path.Join(h.dir, file)
+	reqFile := filepath.Join(h.repo.RepoPath(), file)
 
 	fi, err := os.Stat(reqFile)
 	if os.IsNotExist(err) {
@@ -471,18 +466,19 @@ func serviceRPC(h *serviceHandler, service string) {
 	}
 
 	var stderr bytes.Buffer
-	cmd.AddArguments("--stateless-rpc").AddDynamicArguments(h.dir)
-	cmd.SetDescription(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir))
-	if err := cmd.Run(&git.RunOpts{
-		Dir:               h.dir,
-		Env:               append(os.Environ(), h.environ...),
-		Stdout:            h.w,
-		Stdin:             reqBody,
-		Stderr:            &stderr,
-		UseContextTimeout: true,
+	cmd.AddArguments("--stateless-rpc").AddDynamicArguments(h.repo.RepoPath())
+	cmd.SetDescription(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.repo.RepoPath()))
+	if err := gitrepo.RunGitCmd(h.repo, cmd, &gitrepo.RunOpts{
+		RunOpts: git.RunOpts{
+			Env:               append(os.Environ(), h.environ...),
+			Stdout:            h.w,
+			Stdin:             reqBody,
+			Stderr:            &stderr,
+			UseContextTimeout: true,
+		},
 	}); err != nil {
 		if err.Error() != "signal: killed" {
-			log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.dir, err, stderr.String())
+			log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, gitrepo.RepoGitURL(h.repo), err, stderr.String())
 		}
 		return
 	}
@@ -512,8 +508,9 @@ func getServiceType(r *http.Request) string {
 	return strings.TrimPrefix(serviceType, "git-")
 }
 
-func updateServerInfo(ctx gocontext.Context, dir string) []byte {
-	out, _, err := git.NewCommand(ctx, "update-server-info").RunStdBytes(&git.RunOpts{Dir: dir})
+func updateServerInfo(ctx gocontext.Context, repo *repo_model.Repository) []byte {
+	cmd := git.NewCommand(ctx, "update-server-info")
+	out, _, err := gitrepo.RunGitCmdStdBytes(repo, cmd, &gitrepo.RunOpts{})
 	if err != nil {
 		log.Error(fmt.Sprintf("%v - %s", err, string(out)))
 	}
@@ -543,7 +540,10 @@ func GetInfoRefs(ctx *context.Context) {
 		}
 		h.environ = append(os.Environ(), h.environ...)
 
-		refs, _, err := cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").RunStdBytes(&git.RunOpts{Env: h.environ, Dir: h.dir})
+		cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".")
+		refs, _, err := gitrepo.RunGitCmdStdBytes(h.repo, cmd, &gitrepo.RunOpts{
+			RunOpts: git.RunOpts{Env: h.environ},
+		})
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
@@ -554,7 +554,7 @@ func GetInfoRefs(ctx *context.Context) {
 		_, _ = h.w.Write([]byte("0000"))
 		_, _ = h.w.Write(refs)
 	} else {
-		updateServerInfo(ctx, h.dir)
+		updateServerInfo(ctx, h.repo)
 		h.sendFile("text/plain; charset=utf-8", "info/refs")
 	}
 }
