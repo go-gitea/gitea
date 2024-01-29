@@ -241,7 +241,7 @@
 				{{template "custom/extra_tabs" .}}
 
 				{{if .Permission.IsAdmin}}
-					<a class="{{if .PageIsRepoSettings}}active {{end}} item" href="{{.RepoLink}}/settings">
+					<a class="{{if .PageIsRepoSettings}}active {{end}}item right" href="{{.RepoLink}}/settings">
 						{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
 					</a>
 				{{end}}
