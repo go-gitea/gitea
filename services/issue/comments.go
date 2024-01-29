@@ -21,6 +21,10 @@ func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_mod
 		return fmt.Errorf("cannot create reference with empty commit SHA")
 	}
 
+	if user_model.IsUserBlockedBy(ctx, doer, issue.PosterID, repo.OwnerID) {
+		return user_model.ErrBlockedUser
+	}
+
 	// Check if same reference from same commit has already existed.
 	has, err := db.GetEngine(ctx).Get(&issues_model.Comment{
 		Type:      issues_model.CommentTypeCommitRef,
@@ -46,6 +50,10 @@ func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_mod
 
 // CreateIssueComment creates a plain issue comment.
 func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content string, attachments []string) (*issues_model.Comment, error) {
+	if user_model.IsUserBlockedBy(ctx, doer, issue.PosterID, repo.OwnerID) {
+		return nil, user_model.ErrBlockedUser
+	}
+
 	comment, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
 		Type:        issues_model.CommentTypeComment,
 		Doer:        doer,
@@ -70,6 +78,17 @@ func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_m
 
 // UpdateComment updates information of comment.
 func UpdateComment(ctx context.Context, c *issues_model.Comment, doer *user_model.User, oldContent string) error {
+	if err := c.LoadIssue(ctx); err != nil {
+		return err
+	}
+	if err := c.Issue.LoadRepo(ctx); err != nil {
+		return err
+	}
+
+	if user_model.IsUserBlockedBy(ctx, doer, c.Issue.PosterID, c.Issue.Repo.OwnerID) {
+		return user_model.ErrBlockedUser
+	}
+
 	needsContentHistory := c.Content != oldContent && c.Type.HasContentSupport()
 	if needsContentHistory {
 		hasContentHistory, err := issues_model.HasIssueContentHistory(ctx, c.IssueID, c.ID)

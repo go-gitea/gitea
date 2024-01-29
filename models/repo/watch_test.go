@@ -116,24 +116,3 @@ func TestWatchIfAuto(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount)
 }
-
-func TestWatchRepoMode(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1}, 0)
-
-	assert.NoError(t, repo_model.WatchRepoMode(db.DefaultContext, 12, 1, repo_model.WatchModeAuto))
-	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1}, 1)
-	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1, Mode: repo_model.WatchModeAuto}, 1)
-
-	assert.NoError(t, repo_model.WatchRepoMode(db.DefaultContext, 12, 1, repo_model.WatchModeNormal))
-	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1}, 1)
-	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1, Mode: repo_model.WatchModeNormal}, 1)
-
-	assert.NoError(t, repo_model.WatchRepoMode(db.DefaultContext, 12, 1, repo_model.WatchModeDont))
-	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1}, 1)
-	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1, Mode: repo_model.WatchModeDont}, 1)
-
-	assert.NoError(t, repo_model.WatchRepoMode(db.DefaultContext, 12, 1, repo_model.WatchModeNone))
-	unittest.AssertCount(t, &repo_model.Watch{UserID: 12, RepoID: 1}, 0)
-}

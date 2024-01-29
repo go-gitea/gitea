@@ -1028,7 +1028,16 @@ func Routes() *web.Route {
 			m.Group("/avatar", func() {
 				m.Post("", bind(api.UpdateUserAvatarOption{}), user.UpdateAvatar)
 				m.Delete("", user.DeleteAvatar)
-			}, reqToken())
+			})
+
+			m.Group("/blocks", func() {
+				m.Get("", user.ListBlocks)
+				m.Group("/{username}", func() {
+					m.Get("", user.CheckUserBlock)
+					m.Put("", user.BlockUser)
+					m.Delete("", user.UnblockUser)
+				}, context_service.UserAssignmentAPI())
+			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Repositories (requires repo scope, org scope)
@@ -1476,6 +1485,15 @@ func Routes() *web.Route {
 				m.Delete("", org.DeleteAvatar)
 			}, reqToken(), reqOrgOwnership())
 			m.Get("/activities/feeds", org.ListOrgActivityFeeds)
+
+			m.Group("/blocks", func() {
+				m.Get("", org.ListBlocks)
+				m.Group("/{username}", func() {
+					m.Get("", org.CheckUserBlock)
+					m.Put("", org.BlockUser)
+					m.Delete("", org.UnblockUser)
+				})
+			}, reqToken(), reqOrgOwnership())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true))
 		m.Group("/teams/{teamid}", func() {
 			m.Combo("").Get(reqToken(), org.GetTeam).

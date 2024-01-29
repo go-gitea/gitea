@@ -15,6 +15,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/storage"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -22,6 +23,14 @@ import (
 
 // NewIssue creates new issue with labels for repository.
 func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64) error {
+	if err := issue.LoadPoster(ctx); err != nil {
+		return err
+	}
+
+	if user_model.IsUserBlockedBy(ctx, issue.Poster, repo.OwnerID) || user_model.IsUserBlockedBy(ctx, issue.Poster, assigneeIDs...) {
+		return user_model.ErrBlockedUser
+	}
+
 	if err := issues_model.NewIssue(ctx, repo, issue, labelIDs, uuids); err != nil {
 		return err
 	}
@@ -50,6 +59,8 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 
 // ChangeTitle changes the title of this issue, as the given user.
 func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, title string) error {
+	// TODO ?
+
 	oldTitle := issue.Title
 	issue.Title = title
 
@@ -93,29 +104,23 @@ func ChangeIssueRef(ctx context.Context, issue *issues_model.Issue, doer *user_m
 // Pass one or more user logins to replace the set of assignees on this Issue.
 // Send an empty array ([]) to clear all assignees from the Issue.
 func UpdateAssignees(ctx context.Context, issue *issues_model.Issue, oneAssignee string, multipleAssignees []string, doer *user_model.User) (err error) {
-	var allNewAssignees []*user_model.User
+	uniqueAssignees := container.SetOf(multipleAssignees...)
 
 	// Keep the old assignee thingy for compatibility reasons
 	if oneAssignee != "" {
-		// Prevent double adding assignees
-		var isDouble bool
-		for _, assignee := range multipleAssignees {
-			if assignee == oneAssignee {
-				isDouble = true
-				break
-			}
-		}
-
-		if !isDouble {
-			multipleAssignees = append(multipleAssignees, oneAssignee)
-		}
+		uniqueAssignees.Add(oneAssignee)
 	}
 
 	// Loop through all assignees to add them
-	for _, assigneeName := range multipleAssignees {
+	allNewAssignees := make([]*user_model.User, 0, len(uniqueAssignees))
+	for _, assigneeName := range uniqueAssignees.Values() {
 		assignee, err := user_model.GetUserByName(ctx, assigneeName)
 		if err != nil {
 			return err
+		}
+
+		if user_model.IsUserBlockedBy(ctx, doer, assignee.ID) {
+			return user_model.ErrBlockedUser
 		}
 
 		allNewAssignees = append(allNewAssignees, assignee)

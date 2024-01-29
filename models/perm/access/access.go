@@ -128,9 +128,9 @@ func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap
 
 // refreshCollaboratorAccesses retrieves repository collaborations with their access modes.
 func refreshCollaboratorAccesses(ctx context.Context, repoID int64, accessMap map[int64]*userAccess) error {
-	collaborators, err := repo_model.GetCollaborators(ctx, repoID, db.ListOptions{})
+	collaborators, _, err := repo_model.GetCollaborators(ctx, &repo_model.FindCollaborationOptions{RepoID: repoID})
 	if err != nil {
-		return fmt.Errorf("getCollaborations: %w", err)
+		return fmt.Errorf("GetCollaborators: %w", err)
 	}
 	for _, c := range collaborators {
 		if c.User.IsGhost() {

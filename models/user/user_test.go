@@ -448,12 +448,17 @@ func TestGetUserByOpenID(t *testing.T) {
 func TestFollowUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	testSuccess := func(followerID, followedID int64) {
+	testSuccess := func(follower, followed *user_model.User) {
 		assert.NoError(t, user_model.FollowUser(db.DefaultContext, followerID, followedID))
 		unittest.AssertExistsAndLoadBean(t, &user_model.Follow{UserID: followerID, FollowID: followedID})
 	}
-	testSuccess(4, 2)
-	testSuccess(5, 2)
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+
+	testSuccess(user4, user2)
+	testSuccess(user5, user2)
 
 	assert.NoError(t, user_model.FollowUser(db.DefaultContext, 2, 2))
 

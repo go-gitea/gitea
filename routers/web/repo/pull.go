@@ -305,6 +305,8 @@ func ForkPost(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplFork, &form)
 		case db.IsErrNamePatternNotAllowed(err):
 			ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplFork, &form)
+		case errors.Is(err, user_model.ErrBlockedUser):
+			ctx.RenderWithErr(ctx.Tr("TODO"), tplFork, form)
 		default:
 			ctx.ServerError("ForkPost", err)
 		}
@@ -1437,7 +1439,6 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	if err := pull_service.NewPullRequest(ctx, repo, pullIssue, labelIDs, attachments, pullRequest, assigneeIDs); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
-			return
 		} else if git.IsErrPushRejected(err) {
 			pushrejErr := err.(*git.ErrPushRejected)
 			message := pushrejErr.Message
@@ -1456,9 +1457,11 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			}
 			ctx.Flash.Error(flashError)
 			ctx.JSONRedirect(pullIssue.Link()) // FIXME: it's unfriendly, and will make the content lost
-			return
+		} else if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.JSONError(ctx.Tr("TODO"))
+		} else {
+			ctx.ServerError("NewPullRequest", err)
 		}
-		ctx.ServerError("NewPullRequest", err)
 		return
 	}
 

@@ -94,6 +94,10 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		return TransferOwnership(ctx, doer, newOwner, repo, teams)
 	}
 
+	if user_model.IsUserBlockedBy(ctx, doer, newOwner.ID) {
+		return user_model.ErrBlockedUser
+	}
+
 	// If new owner is an org and user can create repos he can transfer directly too
 	if newOwner.IsOrganization() {
 		allowed, err := organization.CanCreateOrgRepo(ctx, newOwner.ID, doer.ID)

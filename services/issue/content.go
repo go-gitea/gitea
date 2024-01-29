@@ -12,7 +12,11 @@ import (
 )
 
 // ChangeContent changes issue content, as the given user.
-func ChangeContent(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, content string) (err error) {
+func ChangeContent(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, content string) error {
+	if user_model.IsUserBlockedBy(ctx, doer, issue.PosterID) {
+		return user_model.ErrBlockedUser
+	}
+
 	oldContent := issue.Content
 
 	if err := issues_model.ChangeIssueContent(ctx, issue, doer, content); err != nil {

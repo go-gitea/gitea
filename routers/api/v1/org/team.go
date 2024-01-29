@@ -493,7 +493,7 @@ func AddTeamMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if err := models.AddTeamMember(ctx, ctx.Org.Team, u.ID); err != nil {
+	if err := models.AddTeamMember(ctx, ctx.Org.Team, u); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AddMember", err)
 		return
 	}
@@ -530,7 +530,7 @@ func RemoveTeamMember(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.RemoveTeamMember(ctx, ctx.Org.Team, u.ID); err != nil {
+	if err := models.RemoveTeamMember(ctx, ctx.Org.Team, u); err != nil {
 		ctx.Error(http.StatusInternalServerError, "RemoveTeamMember", err)
 		return
 	}

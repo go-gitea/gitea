@@ -5,10 +5,9 @@
 package user
 
 import (
-	std_context "context"
+	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -20,8 +19,12 @@ import (
 
 // getStarredRepos returns the repos that the user with the specified userID has
 // starred
-func getStarredRepos(ctx std_context.Context, user *user_model.User, private bool, listOptions db.ListOptions) ([]*api.Repository, error) {
-	starredRepos, err := repo_model.GetStarredRepos(ctx, user.ID, private, listOptions)
+func getStarredRepos(ctx *context.APIContext, user *user_model.User, private bool) ([]*api.Repository, error) {
+	starredRepos, err := repo_model.GetStarredRepos(ctx, &repo_model.StarredReposOptions{
+		ListOptions:    utils.GetListOptions(ctx),
+		StarrerID:      user.ID,
+		IncludePrivate: private,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +68,7 @@ func GetStarredRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	private := ctx.ContextUser.ID == ctx.Doer.ID
-	repos, err := getStarredRepos(ctx, ctx.ContextUser, private, utils.GetListOptions(ctx))
+	repos, err := getStarredRepos(ctx, ctx.ContextUser, private)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getStarredRepos", err)
 		return
@@ -95,7 +98,7 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	repos, err := getStarredRepos(ctx, ctx.Doer, true, utils.GetListOptions(ctx))
+	repos, err := getStarredRepos(ctx, ctx.Doer, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getStarredRepos", err)
 	}
@@ -152,12 +155,18 @@ func Star(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := repo_model.StarRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, true)
+	err := repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "StarRepo", err)
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Error(http.StatusForbidden, "BlockedUser", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "StarRepo", err)
+		}
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -185,7 +194,7 @@ func Unstar(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := repo_model.StarRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, false)
+	err := repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "StarRepo", err)
 		return

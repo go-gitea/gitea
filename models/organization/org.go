@@ -400,6 +400,7 @@ func DeleteOrganization(ctx context.Context, org *Organization) error {
 		&TeamUnit{OrgID: org.ID},
 		&TeamInvite{OrgID: org.ID},
 		&secret_model.Secret{OwnerID: org.ID},
+		&user_model.UserBlock{BlockerID: org.ID},
 	); err != nil {
 		return fmt.Errorf("DeleteBeans: %w", err)
 	}

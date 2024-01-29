@@ -307,13 +307,13 @@ func Action(ctx *context.Context) {
 	var err error
 	switch ctx.Params(":action") {
 	case "watch":
-		err = repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, true)
+		err = repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
 	case "unwatch":
-		err = repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, false)
+		err = repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
 	case "star":
-		err = repo_model.StarRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, true)
+		err = repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
 	case "unstar":
-		err = repo_model.StarRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, false)
+		err = repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
 	case "accept_transfer":
 		err = acceptOrRejectRepoTransfer(ctx, true)
 	case "reject_transfer":

@@ -224,7 +224,7 @@ func Follow(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := user_model.FollowUser(ctx, ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
+	if err := user_model.FollowUser(ctx, ctx.Doer, ctx.ContextUser); err != nil {
 		ctx.Error(http.StatusInternalServerError, "FollowUser", err)
 		return
 	}

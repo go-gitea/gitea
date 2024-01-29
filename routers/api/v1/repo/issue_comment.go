@@ -382,6 +382,7 @@ func CreateIssueComment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
+
 	form := web.GetForm(ctx).(*api.CreateIssueCommentOption)
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
@@ -401,7 +402,11 @@ func CreateIssueComment(ctx *context.APIContext) {
 
 	comment, err := issue_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Body, nil)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "CreateIssueComment", err)
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Error(http.StatusForbidden, "CreateIssueComment", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "CreateIssueComment", err)
+		}
 		return
 	}
 
@@ -522,6 +527,7 @@ func EditIssueComment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
+
 	form := web.GetForm(ctx).(*api.EditIssueCommentOption)
 	editIssueComment(ctx, *form)
 }
@@ -610,7 +616,11 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 	oldContent := comment.Content
 	comment.Content = form.Body
 	if err := issue_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateComment", err)
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Error(http.StatusForbidden, "UpdateComment", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "UpdateComment", err)
+		}
 		return
 	}
 

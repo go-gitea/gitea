@@ -17,6 +17,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/builder"
 )
 
 // RepoTransfer is used to manage repository transfers
@@ -98,21 +100,46 @@ func (r *RepoTransfer) CanUserAcceptTransfer(ctx context.Context, u *user_model.
 	return allowed
 }
 
+type PendingRepositoryTransferOptions struct {
+	RepoID      int64
+	SenderID    int64
+	RecipientID int64
+}
+
+func (opts *PendingRepositoryTransferOptions) ToConds() builder.Cond {
+	cond := builder.NewCond()
+	if opts.RepoID != 0 {
+		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+	if opts.SenderID != 0 {
+		cond = cond.And(builder.Eq{"doer_id": opts.SenderID})
+	}
+	if opts.RecipientID != 0 {
+		cond = cond.And(builder.Eq{"recipient_id": opts.RecipientID})
+	}
+	return cond
+}
+
+func GetPendingRepositoryTransfers(ctx context.Context, opts *PendingRepositoryTransferOptions) ([]*RepoTransfer, error) {
+	transfers := make([]*RepoTransfer, 0, 10)
+	return transfers, db.GetEngine(ctx).
+		Where(opts.ToConds()).
+		Find(&transfers)
+}
+
 // GetPendingRepositoryTransfer fetches the most recent and ongoing transfer
 // process for the repository
 func GetPendingRepositoryTransfer(ctx context.Context, repo *repo_model.Repository) (*RepoTransfer, error) {
-	transfer := new(RepoTransfer)
-
-	has, err := db.GetEngine(ctx).Where("repo_id = ? ", repo.ID).Get(transfer)
+	transfers, err := GetPendingRepositoryTransfers(ctx, &PendingRepositoryTransferOptions{RepoID: repo.ID})
 	if err != nil {
 		return nil, err
 	}
 
-	if !has {
+	if len(transfers) != 1 {
 		return nil, ErrNoPendingRepoTransfer{RepoID: repo.ID}
 	}
 
-	return transfer, nil
+	return transfers[0], nil
 }
 
 func deleteRepositoryTransfer(ctx context.Context, repoID int64) error {
@@ -273,9 +300,9 @@ func TransferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	}
 
 	// Remove redundant collaborators.
-	collaborators, err := repo_model.GetCollaborators(ctx, repo.ID, db.ListOptions{})
+	collaborators, _, err := repo_model.GetCollaborators(ctx, &repo_model.FindCollaborationOptions{RepoID: repo.ID})
 	if err != nil {
-		return fmt.Errorf("getCollaborators: %w", err)
+		return fmt.Errorf("GetCollaborators: %w", err)
 	}
 
 	// Dummy object.
@@ -335,13 +362,13 @@ func TransferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		return fmt.Errorf("decrease old owner repository count: %w", err)
 	}
 
-	if err := repo_model.WatchRepo(ctx, doer.ID, repo.ID, true); err != nil {
+	if err := repo_model.WatchRepo(ctx, doer, repo, true); err != nil {
 		return fmt.Errorf("watchRepo: %w", err)
 	}
 
 	// Remove watch for organization.
 	if oldOwner.IsOrganization() {
-		if err := repo_model.WatchRepo(ctx, oldOwner.ID, repo.ID, false); err != nil {
+		if err := repo_model.WatchRepo(ctx, oldOwner, repo, false); err != nil {
 			return fmt.Errorf("watchRepo [false]: %w", err)
 		}
 	}
