@@ -474,3 +474,8 @@ func handleSchedules(
 
 	return actions_model.CreateScheduleTask(ctx, crons)
 }
+
+func DetactAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) error {
+	// TODO
+	return nil
+}
