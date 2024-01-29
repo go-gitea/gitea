@@ -565,3 +565,15 @@ func (n *actionsNotifier) DeleteWikiPage(ctx context.Context, doer *user_model.U
 		Page:       page,
 	}).Notify(ctx)
 }
+
+// MigrateRepository is used to detect workflows after a repository has been migrated
+func (n *actionsNotifier) MigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
+	ctx = withMethod(ctx, "MigrateRepository")
+
+	newNotifyInput(repo, doer, webhook_module.HookEventRepository).WithPayload(&api.RepositoryPayload{
+		Action:       api.HookRepoCreated,
+		Repository:   convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm_model.AccessModeOwner}),
+		Organization: convert.ToUser(ctx, u, nil),
+		Sender:       convert.ToUser(ctx, doer, nil),
+	}).Notify(ctx)
+}

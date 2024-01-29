@@ -3,11 +3,11 @@
 		<input type="hidden" name="sort" value="{{$.SortType}}">
 		<input type="hidden" name="language" value="{{$.Language}}">
 		<div class="ui fluid action input">
-			{{template "shared/searchinput" dict "Value" .Keyword "AutoFocus" true}}
+			{{template "shared/searchinput" dict "Value" .Keyword}}
 			{{if .PageIsExploreRepositories}}
 				<input type="hidden" name="only_show_relevant" value="{{.OnlyShowRelevant}}">
-			{{else}}
-				<input type="hidden" name="tab" value="repositories">
+			{{else if .TabName}}
+				<input type="hidden" name="tab" value="{{.TabName}}">
 			{{end}}
 			<button class="ui primary button">{{ctx.Locale.Tr "explore.search"}}</button>
 		</div>

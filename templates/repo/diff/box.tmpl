@@ -1,8 +1,9 @@
+{{$showFileTree := (and (not .DiffNotAvailable) (gt .Diff.NumFiles 1))}}
 <div>
 	<div class="diff-detail-box diff-box">
 		<div class="gt-df gt-ac gt-fw">
-			{{if not .DiffNotAvailable}}
-				<button class="diff-toggle-file-tree-button gt-df gt-ac not-mobile" data-show-text="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
+			{{if $showFileTree}}
+				<button class="diff-toggle-file-tree-button not-mobile btn interact-fg" data-show-text="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
 					{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}
 					{{svg "octicon-sidebar-collapse" 20 "icon gt-hidden"}}
 					{{svg "octicon-sidebar-expand" 20 "icon gt-hidden"}}
@@ -15,6 +16,8 @@
 					diffTreeBtn.querySelector(diffTreeIcon).classList.remove('gt-hidden');
 					diffTreeBtn.setAttribute('data-tooltip-content', diffTreeBtn.getAttribute(diffTreeVisible ? 'data-hide-text' : 'data-show-text'));
 				</script>
+			{{end}}
+			{{if not .DiffNotAvailable}}
 				<div class="diff-detail-stats gt-df gt-ac gt-fw">
 					{{svg "octicon-diff" 16 "gt-mr-2"}}{{ctx.Locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
 				</div>
@@ -22,7 +25,7 @@
 		</div>
 		<div class="diff-detail-actions">
 			{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived) (not .DiffNotAvailable)}}
-				<div class="gt-df gt-ac gt-fc gt-whitespace-nowrap gt-mr-2">
+				<div class="not-mobile gt-df gt-ac gt-fc gt-whitespace-nowrap gt-mr-2">
 					<label for="viewed-files-summary" id="viewed-files-summary-label" data-text-changed-template="{{ctx.Locale.Tr "repo.pulls.viewed_files_label"}}">
 						{{ctx.Locale.Tr "repo.pulls.viewed_files_label" .Diff.NumViewedFiles .Diff.NumFiles}}
 					</label>
@@ -50,7 +53,7 @@
 	{{if not .DiffNotAvailable}}
 		{{if and .IsShowingOnlySingleCommit .PageIsPullFiles}}
 			<div class="ui info message">
-				<div>{{ctx.Locale.Tr "repo.pulls.showing_only_single_commit" (ShortSha .BeforeCommitID)}} - <a href="{{$.Issue.Link}}/files?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">{{ctx.Locale.Tr "repo.pulls.show_all_commits"}}</a></div>
+				<div>{{ctx.Locale.Tr "repo.pulls.showing_only_single_commit" (ShortSha .AfterCommitID)}} - <a href="{{$.Issue.Link}}/files?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">{{ctx.Locale.Tr "repo.pulls.show_all_commits"}}</a></div>
 			</div>
 		{{else if and (not .IsShowingAllCommits) .PageIsPullFiles}}
 			<div class="ui info message">
@@ -85,13 +88,15 @@
 		<div id="diff-file-list"></div>
 	{{end}}
 	<div id="diff-container">
-		{{if .DiffNotAvailable}}
-			<h4>{{ctx.Locale.Tr "repo.diff.data_not_available"}}</h4>
-		{{else}}
-			<div id="diff-file-tree" class="gt-hidden"></div>
+		{{if $showFileTree}}
+			<div id="diff-file-tree" class="gt-hidden not-mobile"></div>
 			<script>
 				if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('gt-hidden');
 			</script>
+		{{end}}
+		{{if .DiffNotAvailable}}
+			<h4>{{ctx.Locale.Tr "repo.diff.data_not_available"}}</h4>
+		{{else}}
 			<div id="diff-file-boxes" class="sixteen wide column">
 				{{range $i, $file := .Diff.Files}}
 					{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
@@ -198,7 +203,7 @@
 							{{if $showFileViewToggle}}
 								{{/* for image or CSV, it can have a horizontal scroll bar, there won't be review comment context menu (position absolute) which would be clipped by "overflow" */}}
 								<div id="diff-rendered-{{$file.NameHash}}" class="file-body file-code {{if $.IsSplitStyle}}code-diff-split{{else}}code-diff-unified{{end}} gt-overflow-x-scroll">
-									<table class="chroma gt-w-100">
+									<table class="chroma gt-w-full">
 										{{if $isImage}}
 											{{template "repo/diff/image_diff" dict "file" . "root" $ "blobBase" $blobBase "blobHead" $blobHead "sniffedTypeBase" $sniffedTypeBase "sniffedTypeHead" $sniffedTypeHead}}
 										{{else}}
@@ -233,8 +238,8 @@
 					"DropzoneParentContainer" ".ui.form"
 				)}}
 				<div class="text right edit buttons">
-					<button class="ui cancel button" tabindex="3">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
-					<button class="ui primary save button" tabindex="2">{{ctx.Locale.Tr "repo.issues.save"}}</button>
+					<button class="ui cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
+					<button class="ui primary save button">{{ctx.Locale.Tr "repo.issues.save"}}</button>
 				</div>
 			</div>
 		</template>

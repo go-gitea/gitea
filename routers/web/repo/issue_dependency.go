@@ -80,10 +80,9 @@ func AddDependency(ctx *context.Context) {
 		} else if issues_model.IsErrCircularDependency(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_cannot_create_circular"))
 			return
-		} else {
-			ctx.ServerError("CreateOrUpdateIssueDependency", err)
-			return
 		}
+		ctx.ServerError("CreateOrUpdateIssueDependency", err)
+		return
 	}
 }
 

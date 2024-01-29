@@ -186,6 +186,12 @@ func (t *TelegramPayload) Release(p *api.ReleasePayload) (api.Payloader, error) 
 	return createTelegramPayload(text), nil
 }
 
+func (t *TelegramPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+	text, _ := getPackagePayloadInfo(p, htmlLinkFormatter, true)
+
+	return createTelegramPayload(text), nil
+}
+
 // GetTelegramPayload converts a telegram webhook into a TelegramPayload
 func GetTelegramPayload(p api.Payloader, event webhook_module.HookEventType, _ string) (api.Payloader, error) {
 	return convertPayloader(new(TelegramPayload), p, event)

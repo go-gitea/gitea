@@ -24,7 +24,7 @@ func Organizations(ctx *context.Context) {
 	ctx.Data["PageIsAdminOrganizations"] = true
 
 	if ctx.FormString("sort") == "" {
-		ctx.SetFormString("sort", explore.UserSearchDefaultAdminSort)
+		ctx.SetFormString("sort", UserSearchDefaultAdminSort)
 	}
 
 	explore.RenderUserSearch(ctx, &user_model.SearchUserOptions{

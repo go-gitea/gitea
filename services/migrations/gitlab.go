@@ -55,19 +55,36 @@ func (f *GitlabDownloaderFactory) GitServiceType() structs.GitServiceType {
 	return structs.GitlabService
 }
 
+type gitlabIIDResolver struct {
+	maxIssueIID int64
+	frozen      bool
+}
+
+func (r *gitlabIIDResolver) recordIssueIID(issueIID int) {
+	if r.frozen {
+		panic("cannot record issue IID after pull request IID generation has started")
+	}
+	r.maxIssueIID = max(r.maxIssueIID, int64(issueIID))
+}
+
+func (r *gitlabIIDResolver) generatePullRequestNumber(mrIID int) int64 {
+	r.frozen = true
+	return r.maxIssueIID + int64(mrIID)
+}
+
 // GitlabDownloader implements a Downloader interface to get repository information
 // from gitlab via go-gitlab
 // - issueCount is incremented in GetIssues() to ensure PR and Issue numbers do not overlap,
 // because Gitlab has individual Issue and Pull Request numbers.
 type GitlabDownloader struct {
 	base.NullDownloader
-	ctx        context.Context
-	client     *gitlab.Client
-	baseURL    string
-	repoID     int
-	repoName   string
-	issueCount int64
-	maxPerPage int
+	ctx         context.Context
+	client      *gitlab.Client
+	baseURL     string
+	repoID      int
+	repoName    string
+	iidResolver gitlabIIDResolver
+	maxPerPage  int
 }
 
 // NewGitlabDownloader creates a gitlab Downloader via gitlab API
@@ -310,6 +327,7 @@ func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Relea
 	httpClient := NewMigrationHTTPClient()
 
 	for k, asset := range rel.Assets.Links {
+		assetID := asset.ID // Don't optimize this, for closure we need a local variable
 		r.Assets = append(r.Assets, &base.ReleaseAsset{
 			ID:            int64(asset.ID),
 			Name:          asset.Name,
@@ -317,13 +335,13 @@ func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Relea
 			Size:          &zero,
 			DownloadCount: &zero,
 			DownloadFunc: func() (io.ReadCloser, error) {
-				link, _, err := g.client.ReleaseLinks.GetReleaseLink(g.repoID, rel.TagName, asset.ID, gitlab.WithContext(g.ctx))
+				link, _, err := g.client.ReleaseLinks.GetReleaseLink(g.repoID, rel.TagName, assetID, gitlab.WithContext(g.ctx))
 				if err != nil {
 					return nil, err
 				}
 
 				if !hasBaseURL(link.URL, g.baseURL) {
-					WarnAndNotice("Unexpected AssetURL for assetID[%d] in %s: %s", asset.ID, g, link.URL)
+					WarnAndNotice("Unexpected AssetURL for assetID[%d] in %s: %s", assetID, g, link.URL)
 					return io.NopCloser(strings.NewReader(link.URL)), nil
 				}
 
@@ -449,8 +467,8 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 			Context:      gitlabIssueContext{IsMergeRequest: false},
 		})
 
-		// increment issueCount, to be used in GetPullRequests()
-		g.issueCount++
+		// record the issue IID, to be used in GetPullRequests()
+		g.iidResolver.recordIssueIID(issue.IID)
 	}
 
 	return allIssues, len(issues) < perPage, nil
@@ -528,11 +546,13 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 		perPage = g.maxPerPage
 	}
 
+	view := "simple"
 	opt := &gitlab.ListProjectMergeRequestsOptions{
 		ListOptions: gitlab.ListOptions{
 			PerPage: perPage,
 			Page:    page,
 		},
+		View: &view,
 	}
 
 	allPRs := make([]*base.PullRequest, 0, perPage)
@@ -541,7 +561,13 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing merge requests: %w", err)
 	}
-	for _, pr := range prs {
+	for _, simplePR := range prs {
+		// Load merge request again by itself, as not all fields are populated in the ListProjectMergeRequests endpoint.
+		// See https://gitlab.com/gitlab-org/gitlab/-/issues/29620
+		pr, _, err := g.client.MergeRequests.GetMergeRequest(g.repoID, simplePR.IID, nil)
+		if err != nil {
+			return nil, false, fmt.Errorf("error while loading merge request: %w", err)
+		}
 
 		labels := make([]*base.Label, 0, len(pr.Labels))
 		for _, l := range pr.Labels {
@@ -564,6 +590,11 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 		closeTime := pr.ClosedAt
 		if merged && pr.ClosedAt == nil {
 			closeTime = pr.UpdatedAt
+		}
+
+		mergeCommitSHA := pr.MergeCommitSHA
+		if mergeCommitSHA == "" {
+			mergeCommitSHA = pr.SquashCommitSHA
 		}
 
 		var locked bool
@@ -593,8 +624,8 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			awardPage++
 		}
 
-		// Add the PR ID to the Issue Count because PR and Issues share ID space in Gitea
-		newPRNumber := g.issueCount + int64(pr.IID)
+		// Generate new PR Numbers by the known Issue Numbers, because they share the same number space in Gitea, but they are independent in Gitlab
+		newPRNumber := g.iidResolver.generatePullRequestNumber(pr.IID)
 
 		allPRs = append(allPRs, &base.PullRequest{
 			Title:          pr.Title,
@@ -608,7 +639,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			Closed:         closeTime,
 			Labels:         labels,
 			Merged:         merged,
-			MergeCommitSHA: pr.MergeCommitSHA,
+			MergeCommitSHA: mergeCommitSHA,
 			MergedTime:     mergeTime,
 			IsLocked:       locked,
 			Reactions:      g.awardsToReactions(reactions),

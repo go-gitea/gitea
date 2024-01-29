@@ -142,22 +142,14 @@ type Issue struct {
 }
 
 var (
-	issueTasksPat     *regexp.Regexp
-	issueTasksDonePat *regexp.Regexp
-)
-
-const (
-	issueTasksRegexpStr     = `(^\s*[-*]\s\[[\sxX]\]\s.)|(\n\s*[-*]\s\[[\sxX]\]\s.)`
-	issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[xX]\]\s.)|(\n\s*[-*]\s\[[xX]\]\s.)`
+	issueTasksPat     = regexp.MustCompile(`(^\s*[-*]\s\[[\sxX]\]\s.)|(\n\s*[-*]\s\[[\sxX]\]\s.)`)
+	issueTasksDonePat = regexp.MustCompile(`(^\s*[-*]\s\[[xX]\]\s.)|(\n\s*[-*]\s\[[xX]\]\s.)`)
 )
 
 // IssueIndex represents the issue index table
 type IssueIndex db.ResourceIndex
 
 func init() {
-	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
-	issueTasksDonePat = regexp.MustCompile(issueTasksDoneRegexpStr)
-
 	db.RegisterModel(new(Issue))
 	db.RegisterModel(new(IssueIndex))
 }
@@ -219,7 +211,7 @@ func (issue *Issue) LoadPoster(ctx context.Context) (err error) {
 	if issue.Poster == nil && issue.PosterID != 0 {
 		issue.Poster, err = user_model.GetPossibleUserByID(ctx, issue.PosterID)
 		if err != nil {
-			issue.PosterID = -1
+			issue.PosterID = user_model.GhostUserID
 			issue.Poster = user_model.NewGhostUser()
 			if !user_model.IsErrUserNotExist(err) {
 				return fmt.Errorf("getUserByID.(poster) [%d]: %w", issue.PosterID, err)
@@ -540,15 +532,6 @@ func GetIssueByID(ctx context.Context, id int64) (*Issue, error) {
 		return nil, ErrIssueNotExist{id, 0, 0}
 	}
 	return issue, nil
-}
-
-// GetIssueWithAttrsByID returns an issue with attributes by given ID.
-func GetIssueWithAttrsByID(ctx context.Context, id int64) (*Issue, error) {
-	issue, err := GetIssueByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	return issue, issue.LoadAttributes(ctx)
 }
 
 // GetIssuesByIDs return issues with the given IDs.

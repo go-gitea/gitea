@@ -46,6 +46,12 @@
 					{{end}}
 				</div>
 				<div class="gt-mr-3">{{ctx.Locale.Tr "repo.milestones.completeness" .Milestone.Completeness | Safe}}</div>
+				{{if .TotalTrackedTime}}
+					<div data-tooltip-content='{{ctx.Locale.Tr "tracked_time_summary"}}'>
+						{{svg "octicon-clock"}}
+						{{.TotalTrackedTime | Sec2Time}}
+					</div>
+				{{end}}
 			</div>
 		</div>
 		<div class="divider"></div>
