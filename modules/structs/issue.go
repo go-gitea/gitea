@@ -26,9 +26,9 @@ const (
 
 // PullRequestMeta PR info if an issue is a PR
 type PullRequestMeta struct {
-	HasMerged bool       `json:"merged"`
-	Merged    *time.Time `json:"merged_at"`
-	IsDraft   bool       `json:"draft"`
+	HasMerged        bool       `json:"merged"`
+	Merged           *time.Time `json:"merged_at"`
+	IsWorkInProgress bool       `json:"wip"`
 }
 
 // RepositoryMeta basic repository information
