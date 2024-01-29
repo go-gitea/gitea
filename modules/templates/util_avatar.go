@@ -79,3 +79,9 @@ func (au *AvatarUtils) AvatarByEmail(email, name string, others ...any) template
 
 	return ""
 }
+
+// AvatarDefault renders default avatars.
+func (au *AvatarUtils) AvatarDefault(others ...any) template.HTML {
+	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
+	return AvatarHTML(avatars.DefaultAvatarLink(), size, class, "")
+}
