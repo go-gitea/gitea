@@ -520,7 +520,7 @@
 						<div class="field">
 							<div class="ui checkbox">
 								<input name="pulls_allow_fast_forward_only" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowFastForwardOnly)}}checked{{end}}>
-								<label>{{ctx.locale.Tr "repo.pulls.fast_forward_only_merge_pull_request"}}</label>
+								<label>{{ctx.Locale.Tr "repo.pulls.fast_forward_only_merge_pull_request"}}</label>
 							</div>
 						</div>
 						<div class="field">
@@ -556,7 +556,7 @@
 										{{ctx.Locale.Tr "repo.pulls.squash_merge_pull_request"}}
 									{{end}}
 									{{if (eq $prUnit.PullRequestsConfig.DefaultMergeStyle "fast-forward-only")}}
-										{{ctx.locale.Tr "repo.pulls.fast_forward_only_merge_pull_request"}}
+										{{ctx.Locale.Tr "repo.pulls.fast_forward_only_merge_pull_request"}}
 									{{end}}
 								</div>
 								<div class="menu">
