@@ -25,6 +25,7 @@
     "esbuild-loader": "4.0.2",
     "escape-goat": "4.0.0",
     "fast-glob": "3.3.2",
+    "htmx.org": "1.9.10",
     "jquery": "3.7.1",
     "katex": "0.16.9",
     "license-checker-webpack-plugin": "0.2.1",
