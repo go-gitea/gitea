@@ -381,6 +381,13 @@ func runMergeCommand(ctx *mergeContext, mergeStyle repo_model.MergeStyle, cmd *g
 				StdErr: ctx.errbuf.String(),
 				Err:    err,
 			}
+		} else if mergeStyle == repo_model.MergeStyleFastForwardOnly && strings.Contains(ctx.errbuf.String(), "Not possible to fast-forward, aborting") {
+			log.Debug("MergeDivergingFastForwardOnly %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
+			return models.ErrMergeDivergingFastForwardOnly{
+				StdOut: ctx.outbuf.String(),
+				StdErr: ctx.errbuf.String(),
+				Err:    err,
+			}
 		}
 		log.Error("git merge %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 		return fmt.Errorf("git merge %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
