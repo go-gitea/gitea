@@ -1,8 +1,6 @@
 import * as htmx from 'htmx.org';
 import {showErrorToast} from './modules/toast.js';
 
-window.htmx = htmx;
-
 // https://htmx.org/reference/#config
 htmx.config.requestClass = 'is-loading';
 htmx.config.scrollIntoViewOnBoost = false;
