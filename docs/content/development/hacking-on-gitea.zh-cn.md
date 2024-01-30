@@ -25,7 +25,7 @@ menu:
 
 ## 安装 Golang
 
-您需要 [安装 go]( https://golang.org/doc/install ) 并设置您的 go 环境。
+您需要 [安装 go]( https://go.dev/doc/install ) 并设置您的 go 环境。
 
 接下来，[使用 npm 安装 Node.js](https://nodejs.org/en/download/) ，这是构建
 JavaScript 和 CSS 文件的必要工具。最低支持的 Node.js 版本是 @minNodeVersion@
