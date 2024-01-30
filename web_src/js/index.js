@@ -24,14 +24,14 @@ import {initCommentContent, initMarkupContent} from './markup/content.js';
 import {initPdfViewer} from './render/pdf.js';
 
 import {initUserAuthLinkAccountView, initUserAuthOauth2} from './features/user-auth.js';
+import {initIssueView} from './pages/issue/view.js';
+import {initIssueNew} from './pages/issue/new.js';
 import {
-  initRepoIssueDue,
   initRepoIssueReferenceRepositorySearch,
-  initRepoIssueTimeTracking,
   initRepoIssueWipTitle,
   initRepoPullRequestMergeInstruction,
   initRepoPullRequestAllowMaintainerEdit,
-  initRepoPullRequestReview, initRepoIssueSidebarList, initArchivedLabelHandler,
+  initRepoPullRequestReview, initArchivedLabelHandler,
 } from './features/repo-issue.js';
 import {
   initRepoEllipsisButton,
@@ -148,13 +148,13 @@ onDomReady(() => {
   initRepoCommitLastCommitLoader();
   initRepoEditor();
   initRepoGraphGit();
+
+  initIssueView();
+  initIssueNew();
   initRepoIssueContentHistory();
-  initRepoIssueDue();
   initRepoIssueList();
-  initRepoIssueSidebarList();
   initArchivedLabelHandler();
   initRepoIssueReferenceRepositorySearch();
-  initRepoIssueTimeTracking();
   initRepoIssueWipTitle();
   initRepoMigration();
   initRepoMigrationStatusChecker();

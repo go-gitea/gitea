@@ -71,6 +71,7 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 	if !setting.IsProd {
 		ctx.Data["TemplateName"] = name
 	}
+	ctx.Data["PageID"] = strings.Replace(string(name), "/", "-", -1)
 	ctx.Data["TemplateLoadTimes"] = func() string {
 		return strconv.FormatInt(time.Since(tmplStartTime).Nanoseconds()/1e6, 10) + "ms"
 	}

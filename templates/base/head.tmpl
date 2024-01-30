@@ -29,7 +29,7 @@
 	{{template "base/head_style" .}}
 	{{template "custom/header" .}}
 </head>
-<body>
+<body{{if .PageID}} id="{{.PageID}}"{{end}}>
 	{{ctx.DataRaceCheck $.Context}}
 	{{template "custom/body_outer_pre" .}}
 
