@@ -57,6 +57,8 @@ func (au *AvatarUtils) Avatar(item any, others ...any) template.HTML {
 		if src != "" {
 			return AvatarHTML(src, size, class, t.AsUser().DisplayName())
 		}
+	default:
+		return AvatarHTML(avatars.DefaultAvatarLink(), size, class, "")
 	}
 
 	return ""
@@ -78,10 +80,4 @@ func (au *AvatarUtils) AvatarByEmail(email, name string, others ...any) template
 	}
 
 	return ""
-}
-
-// AvatarDefault renders default avatars.
-func (au *AvatarUtils) AvatarDefault(others ...any) template.HTML {
-	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
-	return AvatarHTML(avatars.DefaultAvatarLink(), size, class, "")
 }
