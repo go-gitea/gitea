@@ -17,7 +17,7 @@
 			<div class="timeline-item comment" id="{{.HashTag}}">
 			{{if .OriginalAuthor}}
 				<span class="timeline-avatar">
-					<img src="{{AppSubUrl}}/assets/img/avatar_default.png" width="40" height="40">
+					{{ctx.AvatarUtils.Avatar nil 40}}
 				</span>
 			{{else}}
 				<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
