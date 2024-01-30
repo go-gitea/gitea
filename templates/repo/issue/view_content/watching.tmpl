@@ -1,0 +1,12 @@
+<form hx-boost="true" hx-sync="this:replace" hx-target="this" method="post" action="{{.Issue.Link}}/watch">
+	<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}">
+	<button class="fluid ui button">
+		{{if $.IssueWatch.IsWatching}}
+			{{svg "octicon-mute" 16 "gt-mr-3"}}
+			{{ctx.Locale.Tr "repo.issues.unsubscribe"}}
+		{{else}}
+			{{svg "octicon-unmute" 16 "gt-mr-3"}}
+			{{ctx.Locale.Tr "repo.issues.subscribe"}}
+		{{end}}
+	</button>
+</form>

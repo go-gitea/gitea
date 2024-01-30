@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -79,7 +80,7 @@ func ConvertToObjectID(ctx gocontext.Context, repo *context.Repository, commitID
 		}
 	}
 
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.Repository.RepoPath())
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo.Repository)
 	if err != nil {
 		return objectFormat.EmptyObjectID(), fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
 	}

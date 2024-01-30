@@ -21,6 +21,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	base_module "code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
@@ -139,7 +140,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	if err != nil {
 		return err
 	}
-	g.gitRepo, err = git.OpenRepository(g.ctx, r.RepoPath())
+	g.gitRepo, err = gitrepo.OpenRepository(g.ctx, r)
 	return err
 }
 
