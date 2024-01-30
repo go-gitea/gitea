@@ -28,7 +28,6 @@ import {initIssueView} from './pages/issue/view.js';
 import {initIssueNew} from './pages/issue/new.js';
 import {
   initRepoIssueReferenceRepositorySearch,
-  initRepoIssueWipTitle,
   initRepoPullRequestMergeInstruction,
   initRepoPullRequestAllowMaintainerEdit,
   initRepoPullRequestReview, initArchivedLabelHandler,
@@ -155,7 +154,6 @@ onDomReady(() => {
   initRepoIssueList();
   initArchivedLabelHandler();
   initRepoIssueReferenceRepositorySearch();
-  initRepoIssueWipTitle();
   initRepoMigration();
   initRepoMigrationStatusChecker();
   initRepoProject();
