@@ -156,7 +156,7 @@
 {{end}}
 	<div class="ui container secondary pointing tabular top attached borderless menu new-menu navbar">
 		{{if not (or .Repository.IsBeingCreated .Repository.IsBroken)}}
-			<div class="new-menu-inner">
+			<div hx-boost="true" hx-push-url="true" class="new-menu-inner">
 				{{if .Permission.CanRead $.UnitTypeCode}}
 				<a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if and (ne .BranchName .Repository.DefaultBranch) (not $.PageIsWiki)}}/src/{{.BranchNameSubURL}}{{end}}">
 					{{svg "octicon-code"}} {{ctx.Locale.Tr "repo.code"}}

@@ -13,7 +13,9 @@
 
 	{{template "base/footer_content" .}}
 
+	{{if not (index $.Context.Base.Req.Header "Hx-Boosted")}}
 	<script src="{{AssetUrlPrefix}}/js/index.js?v={{AssetVersion}}" onerror="alert('Failed to load asset files from ' + this.src + '. Please make sure the asset files can be accessed.')"></script>
+	{{end}}
 
 	{{template "custom/footer" .}}
 	{{ctx.DataRaceCheck $.Context}}
