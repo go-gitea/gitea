@@ -243,7 +243,6 @@ textarea:focus,
 .user.forgot.password form,
 .user.reset.password form,
 .user.link-account form,
-.user.signin form,
 .user.signup form {
   margin: auto;
   width: 700px !important;
