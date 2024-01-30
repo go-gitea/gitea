@@ -279,7 +279,6 @@ textarea:focus,
   .user.forgot.password form .inline.field > label,
   .user.reset.password form .inline.field > label,
   .user.link-account form .inline.field > label,
-  .user.signin form .inline.field > label,
   .user.signup form .inline.field > label {
     text-align: right;
     width: 250px !important;
