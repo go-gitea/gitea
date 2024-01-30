@@ -48,7 +48,7 @@
 				<div class="field {{if .Err_Title}}error{{end}}">
 					<input name="title" aria-label="{{ctx.Locale.Tr "repo.release.title"}}" placeholder="{{ctx.Locale.Tr "repo.release.title"}}" value="{{.title}}" autofocus maxlength="255">
 				</div>
-				<div class="field">
+				<div class="field combo-markdown-editor-init">
 					{{template "shared/combomarkdowneditor" (dict
 						"MarkdownPreviewUrl" (print .Repository.Link "/markup")
 						"MarkdownPreviewContext" .RepoLink

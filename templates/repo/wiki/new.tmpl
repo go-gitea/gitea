@@ -25,6 +25,7 @@
 			{{template "shared/combomarkdowneditor" (dict
 				"MarkdownPreviewUrl" (print .Repository.Link "/markup")
 				"MarkdownPreviewContext" .RepoLink
+				"MarkdownPreviewMode" "gfm"
 				"TextareaName" "content"
 				"TextareaPlaceholder" (ctx.Locale.Tr "repo.wiki.page_content")
 				"TextareaAriaLabel" (ctx.Locale.Tr "repo.wiki.page_content")

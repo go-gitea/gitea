@@ -16,9 +16,17 @@
 			<label>{{ctx.Locale.Tr "repo.projects.title"}}</label>
 			<input name="title" placeholder="{{ctx.Locale.Tr "repo.projects.title"}}" value="{{.title}}" autofocus required>
 		</div>
-		<div class="field">
+		<div class="field combo-markdown-editor-init">
 			<label>{{ctx.Locale.Tr "repo.projects.description"}}</label>
-			<textarea name="content" placeholder="{{ctx.Locale.Tr "repo.projects.description_placeholder"}}">{{.content}}</textarea>
+			{{template "shared/combomarkdowneditor" (dict
+				"MarkdownPreviewUrl" $.ProjectMarkdownPreviewURL
+				"MarkdownPreviewContext" $.ProjectMarkdownPreviewContext
+				"MarkdownPreviewMode"  $.ProjectMarkdownPreviewMode
+				"TextareaName" "content"
+				"TextareaContent" .content
+				"TextareaPlaceholder" (ctx.Locale.Tr "repo.projects.description_placeholder")
+				"HideRepoButtons" $.ProjectMarkdownHideRepoButtons
+			)}}
 		</div>
 
 		{{if not .PageIsEditProjects}}
