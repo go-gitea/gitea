@@ -5,7 +5,6 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"slices"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -38,7 +37,7 @@ func UpdateRepositoryUnits(ctx context.Context, repo *repo_model.Repository, uni
 	for _, u := range units {
 		if u.Type == unit.TypeActions {
 			if err := actions_service.DetectAndHandleSchedules(ctx, repo); err != nil {
-				return fmt.Errorf("detect and handle schedule workflows: %w", err)
+				log.Error("DetectAndHandleSchedules: %v", err)
 			}
 			break
 		}
