@@ -304,7 +304,7 @@ func registerRoutes(m *web.Route) {
 	validation.AddBindingRules()
 
 	linkAccountEnabled := func(ctx *context.Context) {
-		if !setting.Service.EnableOpenIDSignIn && !setting.Service.EnableOpenIDSignUp && !setting.OAuth2.Enable {
+		if !setting.Service.EnableOpenIDSignIn && !setting.Service.EnableOpenIDSignUp && !setting.OAuth2.Enabled {
 			ctx.Error(http.StatusForbidden)
 			return
 		}
@@ -773,7 +773,7 @@ func registerRoutes(m *web.Route) {
 				m.Post("/delete", admin.DeleteApplication)
 			})
 		}, func(ctx *context.Context) {
-			if !setting.OAuth2.Enable {
+			if !setting.OAuth2.Enabled {
 				ctx.Error(http.StatusForbidden)
 				return
 			}
@@ -784,7 +784,7 @@ func registerRoutes(m *web.Route) {
 			addSettingsRunnersRoutes()
 			addSettingsVariablesRoutes()
 		})
-	}, adminReq, ctxDataSet("EnableOAuth2", setting.OAuth2.Enable, "EnablePackages", setting.Packages.Enabled))
+	}, adminReq, ctxDataSet("EnableOAuth2", setting.OAuth2.Enabled, "EnablePackages", setting.Packages.Enabled))
 	// ***** END: Admin *****
 
 	m.Group("", func() {
@@ -896,7 +896,7 @@ func registerRoutes(m *web.Route) {
 						m.Post("/delete", org.DeleteOAuth2Application)
 					})
 				}, func(ctx *context.Context) {
-					if !setting.OAuth2.Enable {
+					if !setting.OAuth2.Enabled {
 						ctx.Error(http.StatusForbidden)
 						return
 					}
@@ -948,7 +948,7 @@ func registerRoutes(m *web.Route) {
 						m.Post("/rebuild", org.RebuildCargoIndex)
 					})
 				}, packagesEnabled)
-			}, ctxDataSet("EnableOAuth2", setting.OAuth2.Enable, "EnablePackages", setting.Packages.Enabled, "PageIsOrgSettings", true))
+			}, ctxDataSet("EnableOAuth2", setting.OAuth2.Enabled, "EnablePackages", setting.Packages.Enabled, "PageIsOrgSettings", true))
 		}, context.OrgAssignment(true, true))
 	}, reqSignIn)
 	// ***** END: Organization *****
