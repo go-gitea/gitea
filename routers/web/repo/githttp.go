@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -90,11 +90,10 @@ func httpBase(ctx *context.Context) *serviceHandler {
 
 	isWiki := false
 	unitType := unit.TypeCode
-	var wikiRepoName string
+
 	if strings.HasSuffix(reponame, ".wiki") {
 		isWiki = true
 		unitType = unit.TypeWiki
-		wikiRepoName = reponame
 		reponame = reponame[:len(reponame)-5]
 	}
 
@@ -107,16 +106,16 @@ func httpBase(ctx *context.Context) *serviceHandler {
 	repoExist := true
 	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, reponame)
 	if err != nil {
-		if repo_model.IsErrRepoNotExist(err) {
-			if redirectRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, reponame); err == nil {
-				context.RedirectToRepo(ctx.Base, redirectRepoID)
-				return nil
-			}
-			repoExist = false
-		} else {
+		if !repo_model.IsErrRepoNotExist(err) {
 			ctx.ServerError("GetRepositoryByName", err)
 			return nil
 		}
+
+		if redirectRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, reponame); err == nil {
+			context.RedirectToRepo(ctx.Base, redirectRepoID)
+			return nil
+		}
+		repoExist = false
 	}
 
 	// Don't allow pushing if the repo is archived
@@ -292,22 +291,9 @@ func httpBase(ctx *context.Context) *serviceHandler {
 
 	environ = append(environ, repo_module.EnvRepoID+fmt.Sprintf("=%d", repo.ID))
 
-	w := ctx.Resp
-	r := ctx.Req
-	cfg := &serviceConfig{
-		UploadPack:  true,
-		ReceivePack: true,
-		Env:         environ,
-	}
+	ctx.Req.URL.Path = strings.ToLower(ctx.Req.URL.Path) // blue: In case some repo name has upper case name
 
-	r.URL.Path = strings.ToLower(r.URL.Path) // blue: In case some repo name has upper case name
-
-	dir := repo_model.RepoPath(username, reponame)
-	if isWiki {
-		dir = repo_model.RepoPath(username, wikiRepoName)
-	}
-
-	return &serviceHandler{cfg, w, r, dir, cfg.Env}
+	return &serviceHandler{repo, isWiki, environ}
 }
 
 var (
@@ -352,32 +338,31 @@ func dummyInfoRefs(ctx *context.Context) {
 	_, _ = ctx.Write(infoRefsCache)
 }
 
-type serviceConfig struct {
-	UploadPack  bool
-	ReceivePack bool
-	Env         []string
-}
-
 type serviceHandler struct {
-	cfg     *serviceConfig
-	w       http.ResponseWriter
-	r       *http.Request
-	dir     string
+	repo    *repo_model.Repository
+	isWiki  bool
 	environ []string
 }
 
-func (h *serviceHandler) setHeaderNoCache() {
-	h.w.Header().Set("Expires", "Fri, 01 Jan 1980 00:00:00 GMT")
-	h.w.Header().Set("Pragma", "no-cache")
-	h.w.Header().Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
+func (h *serviceHandler) getRepoDir() string {
+	if h.isWiki {
+		return h.repo.WikiPath()
+	}
+	return h.repo.RepoPath()
 }
 
-func (h *serviceHandler) setHeaderCacheForever() {
+func setHeaderNoCache(ctx *context.Context) {
+	ctx.Resp.Header().Set("Expires", "Fri, 01 Jan 1980 00:00:00 GMT")
+	ctx.Resp.Header().Set("Pragma", "no-cache")
+	ctx.Resp.Header().Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
+}
+
+func setHeaderCacheForever(ctx *context.Context) {
 	now := time.Now().Unix()
 	expires := now + 31536000
-	h.w.Header().Set("Date", fmt.Sprintf("%d", now))
-	h.w.Header().Set("Expires", fmt.Sprintf("%d", expires))
-	h.w.Header().Set("Cache-Control", "public, max-age=31536000")
+	ctx.Resp.Header().Set("Date", fmt.Sprintf("%d", now))
+	ctx.Resp.Header().Set("Expires", fmt.Sprintf("%d", expires))
+	ctx.Resp.Header().Set("Cache-Control", "public, max-age=31536000")
 }
 
 func containsParentDirectorySeparator(v string) bool {
@@ -394,71 +379,71 @@ func containsParentDirectorySeparator(v string) bool {
 
 func isSlashRune(r rune) bool { return r == '/' || r == '\\' }
 
-func (h *serviceHandler) sendFile(contentType, file string) {
+func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string) {
 	if containsParentDirectorySeparator(file) {
 		log.Error("request file path contains invalid path: %v", file)
-		h.w.WriteHeader(http.StatusBadRequest)
+		ctx.Resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	reqFile := path.Join(h.dir, file)
+	reqFile := filepath.Join(h.getRepoDir(), file)
 
 	fi, err := os.Stat(reqFile)
 	if os.IsNotExist(err) {
-		h.w.WriteHeader(http.StatusNotFound)
+		ctx.Resp.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	h.w.Header().Set("Content-Type", contentType)
-	h.w.Header().Set("Content-Length", fmt.Sprintf("%d", fi.Size()))
-	h.w.Header().Set("Last-Modified", fi.ModTime().Format(http.TimeFormat))
-	http.ServeFile(h.w, h.r, reqFile)
+	ctx.Resp.Header().Set("Content-Type", contentType)
+	ctx.Resp.Header().Set("Content-Length", fmt.Sprintf("%d", fi.Size()))
+	ctx.Resp.Header().Set("Last-Modified", fi.ModTime().Format(http.TimeFormat))
+	http.ServeFile(ctx.Resp, ctx.Req, reqFile)
 }
 
 // one or more key=value pairs separated by colons
 var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
 
-func prepareGitCmdWithAllowedService(service string, h *serviceHandler) (*git.Command, error) {
-	if service == "receive-pack" && h.cfg.ReceivePack {
-		return git.NewCommand(h.r.Context(), "receive-pack"), nil
+func prepareGitCmdWithAllowedService(ctx *context.Context, service string) (*git.Command, error) {
+	if service == "receive-pack" {
+		return git.NewCommand(ctx, "receive-pack"), nil
 	}
-	if service == "upload-pack" && h.cfg.UploadPack {
-		return git.NewCommand(h.r.Context(), "upload-pack"), nil
+	if service == "upload-pack" {
+		return git.NewCommand(ctx, "upload-pack"), nil
 	}
 
 	return nil, fmt.Errorf("service %q is not allowed", service)
 }
 
-func serviceRPC(h *serviceHandler, service string) {
+func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 	defer func() {
-		if err := h.r.Body.Close(); err != nil {
+		if err := ctx.Req.Body.Close(); err != nil {
 			log.Error("serviceRPC: Close: %v", err)
 		}
 	}()
 
 	expectedContentType := fmt.Sprintf("application/x-git-%s-request", service)
-	if h.r.Header.Get("Content-Type") != expectedContentType {
-		log.Error("Content-Type (%q) doesn't match expected: %q", h.r.Header.Get("Content-Type"), expectedContentType)
-		h.w.WriteHeader(http.StatusUnauthorized)
+	if ctx.Req.Header.Get("Content-Type") != expectedContentType {
+		log.Error("Content-Type (%q) doesn't match expected: %q", ctx.Req.Header.Get("Content-Type"), expectedContentType)
+		ctx.Resp.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	cmd, err := prepareGitCmdWithAllowedService(service, h)
+	cmd, err := prepareGitCmdWithAllowedService(ctx, service)
 	if err != nil {
 		log.Error("Failed to prepareGitCmdWithService: %v", err)
-		h.w.WriteHeader(http.StatusUnauthorized)
+		ctx.Resp.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	h.w.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-result", service))
+	ctx.Resp.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-result", service))
 
-	reqBody := h.r.Body
+	reqBody := ctx.Req.Body
 
 	// Handle GZIP.
-	if h.r.Header.Get("Content-Encoding") == "gzip" {
+	if ctx.Req.Header.Get("Content-Encoding") == "gzip" {
 		reqBody, err = gzip.NewReader(reqBody)
 		if err != nil {
 			log.Error("Fail to create gzip reader: %v", err)
-			h.w.WriteHeader(http.StatusInternalServerError)
+			ctx.Resp.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 	}
@@ -466,23 +451,23 @@ func serviceRPC(h *serviceHandler, service string) {
 	// set this for allow pre-receive and post-receive execute
 	h.environ = append(h.environ, "SSH_ORIGINAL_COMMAND="+service)
 
-	if protocol := h.r.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader.MatchString(protocol) {
+	if protocol := ctx.Req.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader.MatchString(protocol) {
 		h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 	}
 
 	var stderr bytes.Buffer
-	cmd.AddArguments("--stateless-rpc").AddDynamicArguments(h.dir)
-	cmd.SetDescription(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir))
+	cmd.AddArguments("--stateless-rpc").AddDynamicArguments(h.getRepoDir())
+	cmd.SetDescription(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.getRepoDir()))
 	if err := cmd.Run(&git.RunOpts{
-		Dir:               h.dir,
+		Dir:               h.getRepoDir(),
 		Env:               append(os.Environ(), h.environ...),
-		Stdout:            h.w,
+		Stdout:            ctx.Resp,
 		Stdin:             reqBody,
 		Stderr:            &stderr,
 		UseContextTimeout: true,
 	}); err != nil {
 		if err.Error() != "signal: killed" {
-			log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.dir, err, stderr.String())
+			log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.getRepoDir(), err, stderr.String())
 		}
 		return
 	}
@@ -492,7 +477,7 @@ func serviceRPC(h *serviceHandler, service string) {
 func ServiceUploadPack(ctx *context.Context) {
 	h := httpBase(ctx)
 	if h != nil {
-		serviceRPC(h, "upload-pack")
+		serviceRPC(ctx, h, "upload-pack")
 	}
 }
 
@@ -500,12 +485,12 @@ func ServiceUploadPack(ctx *context.Context) {
 func ServiceReceivePack(ctx *context.Context) {
 	h := httpBase(ctx)
 	if h != nil {
-		serviceRPC(h, "receive-pack")
+		serviceRPC(ctx, h, "receive-pack")
 	}
 }
 
-func getServiceType(r *http.Request) string {
-	serviceType := r.FormValue("service")
+func getServiceType(ctx *context.Context) string {
+	serviceType := ctx.Req.FormValue("service")
 	if !strings.HasPrefix(serviceType, "git-") {
 		return ""
 	}
@@ -534,28 +519,28 @@ func GetInfoRefs(ctx *context.Context) {
 	if h == nil {
 		return
 	}
-	h.setHeaderNoCache()
-	service := getServiceType(h.r)
-	cmd, err := prepareGitCmdWithAllowedService(service, h)
+	setHeaderNoCache(ctx)
+	service := getServiceType(ctx)
+	cmd, err := prepareGitCmdWithAllowedService(ctx, service)
 	if err == nil {
-		if protocol := h.r.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader.MatchString(protocol) {
+		if protocol := ctx.Req.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader.MatchString(protocol) {
 			h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 		}
 		h.environ = append(os.Environ(), h.environ...)
 
-		refs, _, err := cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").RunStdBytes(&git.RunOpts{Env: h.environ, Dir: h.dir})
+		refs, _, err := cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").RunStdBytes(&git.RunOpts{Env: h.environ, Dir: h.getRepoDir()})
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
 
-		h.w.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-advertisement", service))
-		h.w.WriteHeader(http.StatusOK)
-		_, _ = h.w.Write(packetWrite("# service=git-" + service + "\n"))
-		_, _ = h.w.Write([]byte("0000"))
-		_, _ = h.w.Write(refs)
+		ctx.Resp.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-advertisement", service))
+		ctx.Resp.WriteHeader(http.StatusOK)
+		_, _ = ctx.Resp.Write(packetWrite("# service=git-" + service + "\n"))
+		_, _ = ctx.Resp.Write([]byte("0000"))
+		_, _ = ctx.Resp.Write(refs)
 	} else {
-		updateServerInfo(ctx, h.dir)
-		h.sendFile("text/plain; charset=utf-8", "info/refs")
+		updateServerInfo(ctx, h.getRepoDir())
+		h.sendFile(ctx, "text/plain; charset=utf-8", "info/refs")
 	}
 }
 
@@ -564,12 +549,12 @@ func GetTextFile(p string) func(*context.Context) {
 	return func(ctx *context.Context) {
 		h := httpBase(ctx)
 		if h != nil {
-			h.setHeaderNoCache()
+			setHeaderNoCache(ctx)
 			file := ctx.Params("file")
 			if file != "" {
-				h.sendFile("text/plain", "objects/info/"+file)
+				h.sendFile(ctx, "text/plain", "objects/info/"+file)
 			} else {
-				h.sendFile("text/plain", p)
+				h.sendFile(ctx, "text/plain", p)
 			}
 		}
 	}
@@ -579,8 +564,8 @@ func GetTextFile(p string) func(*context.Context) {
 func GetInfoPacks(ctx *context.Context) {
 	h := httpBase(ctx)
 	if h != nil {
-		h.setHeaderCacheForever()
-		h.sendFile("text/plain; charset=utf-8", "objects/info/packs")
+		setHeaderCacheForever(ctx)
+		h.sendFile(ctx, "text/plain; charset=utf-8", "objects/info/packs")
 	}
 }
 
@@ -588,8 +573,8 @@ func GetInfoPacks(ctx *context.Context) {
 func GetLooseObject(ctx *context.Context) {
 	h := httpBase(ctx)
 	if h != nil {
-		h.setHeaderCacheForever()
-		h.sendFile("application/x-git-loose-object", fmt.Sprintf("objects/%s/%s",
+		setHeaderCacheForever(ctx)
+		h.sendFile(ctx, "application/x-git-loose-object", fmt.Sprintf("objects/%s/%s",
 			ctx.Params("head"), ctx.Params("hash")))
 	}
 }
@@ -598,8 +583,8 @@ func GetLooseObject(ctx *context.Context) {
 func GetPackFile(ctx *context.Context) {
 	h := httpBase(ctx)
 	if h != nil {
-		h.setHeaderCacheForever()
-		h.sendFile("application/x-git-packed-objects", "objects/pack/pack-"+ctx.Params("file")+".pack")
+		setHeaderCacheForever(ctx)
+		h.sendFile(ctx, "application/x-git-packed-objects", "objects/pack/pack-"+ctx.Params("file")+".pack")
 	}
 }
 
@@ -607,7 +592,7 @@ func GetPackFile(ctx *context.Context) {
 func GetIdxFile(ctx *context.Context) {
 	h := httpBase(ctx)
 	if h != nil {
-		h.setHeaderCacheForever()
-		h.sendFile("application/x-git-packed-objects-toc", "objects/pack/pack-"+ctx.Params("file")+".idx")
+		setHeaderCacheForever(ctx)
+		h.sendFile(ctx, "application/x-git-packed-objects-toc", "objects/pack/pack-"+ctx.Params("file")+".idx")
 	}
 }
