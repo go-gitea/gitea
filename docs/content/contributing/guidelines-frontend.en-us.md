@@ -65,7 +65,7 @@ Recommended implementations:
 
 * Vue + Vanilla JS
 * Fomantic-UI (jQuery)
-* htmx
+* htmx (partial reloading)
 * Vanilla JS
 
 Discouraged implementations:
