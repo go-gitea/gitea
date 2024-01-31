@@ -16,6 +16,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -175,7 +176,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 
 	if len(opts.DefaultBranch) > 0 {
 		repo.DefaultBranch = opts.DefaultBranch
-		gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+		gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 		if err != nil {
 			return fmt.Errorf("openRepository: %w", err)
 		}

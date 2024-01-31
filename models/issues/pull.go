@@ -19,6 +19,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -865,7 +866,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pull *Issue, pr *PullReque
 		return err
 	}
 
-	repo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
+	repo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
 		return err
 	}
