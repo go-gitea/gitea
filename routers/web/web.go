@@ -4,7 +4,6 @@
 package web
 
 import (
-	stat_middleware "code.gitea.io/gitea/routers/web/statmiddleware"
 	gocontext "context"
 	"net/http"
 	"strings"
@@ -39,6 +38,7 @@ import (
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/repo/actions"
 	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
+	"code.gitea.io/gitea/routers/web/statmiddleware"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/routers/web/user/setting/security"
@@ -1422,7 +1422,7 @@ func registerRoutes(m *web.Route) {
 		}, repo.MustAllowPulls)
 
 		m.Group("/media", func() {
-			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), stat_middleware.WebDownloadMiddleware, repo.SingleDownloadOrLFS)
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), statmiddleware.WebDownloadMiddleware, repo.SingleDownloadOrLFS)
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.SingleDownloadOrLFS)
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.SingleDownloadOrLFS)
 			m.Get("/blob/{sha}", context.RepoRefByType(context.RepoRefBlob), repo.DownloadByIDOrLFS)
