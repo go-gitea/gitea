@@ -444,9 +444,14 @@ func (u *User) GetDisplayName() string {
 }
 
 // GetCompleteName returns the the full name and username in the form of
-// "Full Name (@username)"
+// "Full Name (@username)" if full name is not empty, otherwise it returns
+// "@username".
 func (u *User) GetCompleteName() string {
-	return fmt.Sprintf("%s (@%s)", u.DisplayName(), u.Name)
+	trimmedFullName := strings.TrimSpace(u.FullName)
+	if len(trimmedFullName) > 0 {
+		return fmt.Sprintf("%s (@%s)", trimmedFullName, u.Name)
+	}
+	return fmt.Sprintf("@%s", u.Name)
 }
 
 func gitSafeName(name string) string {
