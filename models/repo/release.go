@@ -230,12 +230,18 @@ type FindReleasesOptions struct {
 	IsPreRelease  util.OptionalBool
 	IsDraft       util.OptionalBool
 	TagNames      []string
+	RepoID        int64
 	HasSha1       util.OptionalBool // useful to find draft releases which are created with existing tags
 }
 
 func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
+	opts.RepoID = repoID
+	return opts.ToConds()
+}
+
+func (opts *FindReleasesOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
-	cond = cond.And(builder.Eq{"repo_id": repoID})
+	cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 
 	if !opts.IncludeDrafts {
 		cond = cond.And(builder.Eq{"is_draft": false})
