@@ -344,7 +344,7 @@ export async function updateIssuesMeta(url, action, issueIds, elementId) {
 export async function updateIssuesLabelClear(url, issueId) {
   return $.ajax({
     type: 'POST',
-    url: `${url}2?issueID=${issueId}`,
+    url: `${url}?issueID=${issueId}`,
     data: {
       _csrf: csrfToken,
       isClear: true
@@ -360,7 +360,7 @@ export async function updateIssuesLabelBatched(url, issueId, labelsInfo) {
 
   return $.ajax({
     type: 'POST',
-    url: `${url}2?issueID=${issueId}`,
+    url: `${url}?issueID=${issueId}`,
     data: {
       _csrf: csrfToken,
       labelsInfo: JSON.stringify(labelsInfo),
