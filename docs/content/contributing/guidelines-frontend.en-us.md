@@ -72,7 +72,7 @@ Discouraged implementations:
 
 * Vue + Fomantic-UI (jQuery)
 * jQuery + Vanilla JS
-* htmx + anything else
+* htmx + any other framework which requires heavy JS code, or unnecessary features like htmx scripting (`hx-on`)
 
 To make UI consistent, Vue components can use Fomantic-UI CSS classes.
 We use htmx for simple interactions. You can see an example for simple interactions where htmx should be used in this [PR](https://github.com/go-gitea/gitea/pull/28908). Do not use htmx if you require more advanced reactivity, use another framework (Vue/Vanilla JS).
