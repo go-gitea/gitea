@@ -54,7 +54,8 @@ export function initRepoSettingSearchTeamBox() {
         $.each(response.data, (_i, item) => {
           const title = `${item.name} (${item.permission} access)`;
           items.push({
-            title,
+            title: item.name,
+            description: `${item.permission} access`
           });
         });
 
