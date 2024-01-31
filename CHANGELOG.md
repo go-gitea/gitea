@@ -4,6 +4,37 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.21.5](https://github.com/go-gitea/gitea/releases/tag/1.21.5) - 2024-01-31
+
+* SECURITY
+  * Prevent anonymous container access if `RequireSignInView` is enabled (#28877) (#28882)
+* BUGFIXES
+  * Fix update enable_prune even if mirror_interval is not provided (#28905) (#28929)
+  * Fix uploaded artifacts should be overwritten (#28726) backport v1.21 (#28832)
+  * Preserve BOM in web editor (#28935) (#28959)
+  * Strip `/` from relative links (#28932) (#28952)
+  * Don't remove all mirror repository's releases when mirroring (#28817) (#28939)
+  * Implement `MigrateRepository` for the actions notifier (#28920) (#28923)
+  * Respect branch info for relative links (#28909) (#28922)
+  * Don't reload timeline page when (un)resolving or replying conversation (#28654) (#28917)
+  * Only migrate the first 255 chars of a Github issue title (#28902) (#28912)
+  * Fix sort bug on repository issues list (#28897) (#28901)
+  * Fix `DeleteCollaboration` transaction behaviour (#28886) (#28889)
+  * Fix schedule not trigger bug because matching full ref name with short ref name (#28874) (#28888)
+  * Fix migrate storage bug (#28830) (#28867)
+  * Fix archive creating LFS hooks and breaking pull requests (#28848) (#28851)
+  * Fix reverting a merge commit failing (#28794) (#28825)
+* ENHANCEMENTS
+  * Make loading animation less aggressive (#28955) (#28956)
+  * Avoid duplicate JS error messages on UI (#28873) (#28881)
+  * Bump `@github/relative-time-element` to 4.3.1 (#28819) (#28826)
+* MISC
+  * Update go dependencies and fix go-git (#28893) (#28934)
+  * Upgrade xorm to v1.3.7 to fix a resource leak problem caused by Iterate (#28891) (#28895)
+  * Fix incorrect PostgreSQL connection string for Unix sockets (#28865) (#28870)
+  * Warn that `DISABLE_QUERY_AUTH_TOKEN` is false only if it's explicitly defined (#28783) (#28868)
+  * Remove duplicated checkinit on git module (#28824) (#28831)
+
 ## [1.21.4](https://github.com/go-gitea/gitea/releases/tag/1.21.4) - 2024-01-16
 
 * SECURITY
