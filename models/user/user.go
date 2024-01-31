@@ -443,6 +443,12 @@ func (u *User) GetDisplayName() string {
 	return u.Name
 }
 
+// GetCompleteName returns the the full name and username in the form of
+// "Full Name (@username)"
+func (u *User) GetCompleteName() string {
+	return fmt.Sprintf("%s (@%s)", u.DisplayName(), u.Name)
+}
+
 func gitSafeName(name string) string {
 	return strings.TrimSpace(strings.NewReplacer("\n", "", "<", "", ">", "").Replace(name))
 }
