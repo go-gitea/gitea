@@ -91,6 +91,17 @@ func getIssuesCommentInfo(p *api.IssueCommentPayload) (title, link, by, operator
 	return title, link, by, operator
 }
 
+func convertLabelToCSVString(labels []*api.Label) string {
+	labelString := ""
+	for index, label := range labels {
+		labelString += " " + label.Name
+		if index+1 != len(labels) {
+			labelString += ","
+		}
+	}
+	return labelString
+}
+
 func getIssuesPayloadInfo(p *api.IssuePayload, linkFormatter linkFormatter, withSender bool) (string, string, string, int) {
 	repoLink := linkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	issueTitle := fmt.Sprintf("#%d %s", p.Index, p.Issue.Title)
@@ -119,7 +130,16 @@ func getIssuesPayloadInfo(p *api.IssuePayload, linkFormatter linkFormatter, with
 	case api.HookIssueUnassigned:
 		text = fmt.Sprintf("[%s] Issue unassigned: %s", repoLink, titleLink)
 	case api.HookIssueLabelUpdated:
-		text = fmt.Sprintf("[%s] Issue labels updated: %s", repoLink, titleLink)
+		labelText := ""
+		if len(p.AddedLabels) > 0 {
+			addedLabels := convertLabelToCSVString(p.AddedLabels)
+			labelText += "Labels Added:" + addedLabels + "\u000a"
+		}
+		if len(p.RemovedLabels) > 0 {
+			removedLabels := convertLabelToCSVString(p.RemovedLabels)
+			labelText += "Labels Removed:" + removedLabels + "\u000a"
+		}
+		text = fmt.Sprintf("[%s] Issue labels updated: %s, \u000a%s", repoLink, titleLink, labelText)
 	case api.HookIssueLabelCleared:
 		text = fmt.Sprintf("[%s] Issue labels cleared: %s", repoLink, titleLink)
 	case api.HookIssueSynchronized:
