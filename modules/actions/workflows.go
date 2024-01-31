@@ -166,8 +166,8 @@ func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*D
 			continue
 		}
 		for _, evt := range events {
-			log.Trace("detect scheduled workflow: %q", entry.Name())
 			if evt.IsSchedule() {
+				log.Trace("detect scheduled workflow: %q", entry.Name())
 				dwf := &DetectedWorkflow{
 					EntryName:    entry.Name(),
 					TriggerEvent: evt,
