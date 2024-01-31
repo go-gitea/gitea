@@ -130,6 +130,10 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 		log.Error("load lfs")
 		return err
 	}
+	if err := loadMQFrom(cfg); err != nil {
+		log.Error("load message queen")
+		return err
+	}
 	loadTimeFrom(cfg)
 	loadRepositoryFrom(cfg)
 	if err := loadAvatarsFrom(cfg); err != nil {

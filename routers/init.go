@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
+	"code.gitea.io/gitea/modules/messagequeen"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
@@ -116,6 +117,7 @@ func InitWebInstalled(ctx context.Context) {
 
 	setting.LoadSettings()
 	mustInit(storage.Init)
+	mustInit(messagequeen.Init)
 
 	mailer.NewContext(ctx)
 	mustInit(cache.NewContext)
