@@ -159,7 +159,7 @@ func (protectBranch *ProtectedBranch) CanUserForcePush(ctx context.Context, user
 		return protectBranch.CanUserPush(ctx, user)
 	}
 
-	if base.Int64sContains(protectBranch.ForcePushWhitelistUserIDs, user.ID) {
+	if slices.Contains(protectBranch.ForcePushWhitelistUserIDs, user.ID) {
 		return protectBranch.CanUserPush(ctx, user)
 	}
 
