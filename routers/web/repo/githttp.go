@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -385,7 +385,7 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 		ctx.Resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	reqFile := path.Join(h.getRepoDir(), file)
+	reqFile := filepath.Join(h.getRepoDir(), file)
 
 	fi, err := os.Stat(reqFile)
 	if os.IsNotExist(err) {
