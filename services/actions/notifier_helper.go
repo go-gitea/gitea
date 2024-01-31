@@ -450,7 +450,7 @@ func handleSchedules(
 
 // DetectAndHandleSchedules detects the schedule workflows on the default branch and create schedule tasks
 func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) error {
-	gitRepo, err := gitrepo.OpenRepository(context.Background(), repo)
+	gitRepo, err := git.OpenRepository(context.Background(), repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("git.OpenRepository: %w", err)
 	}
