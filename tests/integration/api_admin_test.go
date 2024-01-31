@@ -6,6 +6,7 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -190,13 +192,11 @@ func TestAPICreateAndDeleteUser(t *testing.T) {
 func TestAPIEditUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
+	editedUsername := "user2"
 	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeWriteAdmin)
-	urlStr := fmt.Sprintf("/api/v1/admin/users/%s", "user2")
+	urlStr := fmt.Sprintf("/api/v1/admin/users/%s", editedUsername)
 
 	req := NewRequestWithValues(t, "PATCH", urlStr, map[string]string{
-		// required
-		"login_name": "user2",
-		"source_id":  "0",
 		// to change
 		"full_name": "Full Name User 2",
 	}).AddTokenAuth(token)
@@ -204,9 +204,7 @@ func TestAPIEditUser(t *testing.T) {
 
 	empty := ""
 	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{
-		LoginName: "user2",
-		SourceID:  0,
-		Email:     &empty,
+		Email: &empty,
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusUnprocessableEntity)
 
@@ -214,19 +212,20 @@ func TestAPIEditUser(t *testing.T) {
 	json.Unmarshal(resp.Body.Bytes(), &errMap)
 	assert.EqualValues(t, "email is not allowed to be empty string", errMap["message"].(string))
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: strings.ToLower(editedUsername)})
+	assert.Equal(t, "user2", user2.LoginName)
 	assert.False(t, user2.IsRestricted)
 	bTrue := true
+	updatedLoginNameOfEditedUser := "user2_updated_loginName"
 	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{
-		// required
-		LoginName: "user2",
-		SourceID:  0,
 		// to change
 		Restricted: &bTrue,
+		LoginName:  util.ToPointer(updatedLoginNameOfEditedUser),
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
-	user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"})
+	user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: strings.ToLower(editedUsername)})
 	assert.True(t, user2.IsRestricted)
+	assert.Equal(t, updatedLoginNameOfEditedUser, user2.LoginName)
 }
 
 func TestAPICreateRepoForUser(t *testing.T) {

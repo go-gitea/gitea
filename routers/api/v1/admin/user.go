@@ -31,7 +31,7 @@ import (
 	user_service "code.gitea.io/gitea/services/user"
 )
 
-func parseAuthSource(ctx *context.APIContext, u *user_model.User, sourceID int64, loginName string) {
+func parseAuthSource(ctx *context.APIContext, u *user_model.User, sourceID int64, loginName *string) {
 	if sourceID == 0 {
 		return
 	}
@@ -48,7 +48,9 @@ func parseAuthSource(ctx *context.APIContext, u *user_model.User, sourceID int64
 
 	u.LoginType = source.Type
 	u.LoginSource = source.ID
-	u.LoginName = loginName
+	if loginName != nil {
+		u.LoginName = *loginName
+	}
 }
 
 // CreateUser create a user
@@ -89,7 +91,7 @@ func CreateUser(ctx *context.APIContext) {
 		u.MustChangePassword = *form.MustChangePassword
 	}
 
-	parseAuthSource(ctx, u, form.SourceID, form.LoginName)
+	parseAuthSource(ctx, u, form.SourceID, &form.LoginName)
 	if ctx.Written() {
 		return
 	}
@@ -192,7 +194,9 @@ func EditUser(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.EditUserOption)
 
-	parseAuthSource(ctx, ctx.ContextUser, form.SourceID, form.LoginName)
+	if form.SourceID != nil {
+		parseAuthSource(ctx, ctx.ContextUser, *form.SourceID, form.LoginName)
+	}
 	if ctx.Written() {
 		return
 	}
@@ -229,8 +233,9 @@ func EditUser(ctx *context.APIContext) {
 		ctx.ContextUser.MustChangePassword = *form.MustChangePassword
 	}
 
-	ctx.ContextUser.LoginName = form.LoginName
-
+	if form.LoginName != nil {
+		ctx.ContextUser.LoginName = *form.LoginName
+	}
 	if form.FullName != nil {
 		ctx.ContextUser.FullName = *form.FullName
 	}
