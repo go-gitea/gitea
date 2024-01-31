@@ -8,6 +8,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 
 * SECURITY
   * Prevent anonymous container access if `RequireSignInView` is enabled (#28877) (#28882)
+  * Update go dependencies and fix go-git (#28893) (#28934)
 * BUGFIXES
   * Fix update enable_prune even if mirror_interval is not provided (#28905) (#28929)
   * Fix uploaded artifacts should be overwritten (#28726) backport v1.21 (#28832)
@@ -24,14 +25,13 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix migrate storage bug (#28830) (#28867)
   * Fix archive creating LFS hooks and breaking pull requests (#28848) (#28851)
   * Fix reverting a merge commit failing (#28794) (#28825)
+  * Upgrade xorm to v1.3.7 to fix a resource leak problem caused by Iterate (#28891) (#28895)
+  * Fix incorrect PostgreSQL connection string for Unix sockets (#28865) (#28870)
 * ENHANCEMENTS
   * Make loading animation less aggressive (#28955) (#28956)
   * Avoid duplicate JS error messages on UI (#28873) (#28881)
   * Bump `@github/relative-time-element` to 4.3.1 (#28819) (#28826)
 * MISC
-  * Update go dependencies and fix go-git (#28893) (#28934)
-  * Upgrade xorm to v1.3.7 to fix a resource leak problem caused by Iterate (#28891) (#28895)
-  * Fix incorrect PostgreSQL connection string for Unix sockets (#28865) (#28870)
   * Warn that `DISABLE_QUERY_AUTH_TOKEN` is false only if it's explicitly defined (#28783) (#28868)
   * Remove duplicated checkinit on git module (#28824) (#28831)
 
