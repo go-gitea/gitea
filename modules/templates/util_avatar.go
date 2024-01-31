@@ -57,11 +57,9 @@ func (au *AvatarUtils) Avatar(item any, others ...any) template.HTML {
 		if src != "" {
 			return AvatarHTML(src, size, class, t.AsUser().DisplayName())
 		}
-	default:
-		return AvatarHTML(avatars.DefaultAvatarLink(), size, class, "")
 	}
 
-	return ""
+	return AvatarHTML(avatars.DefaultAvatarLink(), size, class, "")
 }
 
 // AvatarByAction renders user avatars from action. args: action, size (int), class (string)
