@@ -101,7 +101,7 @@ func HookPreReceive(ctx context.Context, ownerName, repoName string, opts HookOp
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/pre-receive/%s/%s", url.PathEscape(ownerName), url.PathEscape(repoName))
 	req := newInternalRequest(ctx, reqURL, "POST", opts)
 	req.SetReadWriteTimeout(time.Duration(60+len(opts.OldCommitIDs)) * time.Second)
-	_, extra := requestJSONResp(req, &responseText{})
+	_, extra := requestJSONResp(req, &ResponseText{})
 	return extra
 }
 
@@ -130,7 +130,7 @@ func SetDefaultBranch(ctx context.Context, ownerName, repoName, branch string) R
 		url.PathEscape(branch),
 	)
 	req := newInternalRequest(ctx, reqURL, "POST")
-	_, extra := requestJSONResp(req, &responseText{})
+	_, extra := requestJSONResp(req, &ResponseText{})
 	return extra
 }
 
@@ -138,6 +138,6 @@ func SetDefaultBranch(ctx context.Context, ownerName, repoName, branch string) R
 func SSHLog(ctx context.Context, isErr bool, msg string) error {
 	reqURL := setting.LocalURL + "api/internal/ssh/log"
 	req := newInternalRequest(ctx, reqURL, "POST", &SSHLogOption{IsError: isErr, Message: msg})
-	_, extra := requestJSONResp(req, &responseText{})
+	_, extra := requestJSONResp(req, &ResponseText{})
 	return extra.Error
 }

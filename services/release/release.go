@@ -16,6 +16,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/storage"
@@ -167,7 +169,7 @@ func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		}
 	}
 
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		return err
 	}
@@ -369,4 +371,9 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 	notify_service.DeleteRelease(ctx, doer, rel)
 
 	return nil
+}
+
+// Init start release service
+func Init() error {
+	return initTagSyncQueue(graceful.GetManager().ShutdownContext())
 }

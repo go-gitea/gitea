@@ -14,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/structs"
@@ -76,17 +77,18 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		defaultBranch = opts.SingleBranch
 	}
 	repo := &repo_model.Repository{
-		OwnerID:       owner.ID,
-		Owner:         owner,
-		OwnerName:     owner.Name,
-		Name:          opts.Name,
-		LowerName:     strings.ToLower(opts.Name),
-		Description:   opts.Description,
-		DefaultBranch: defaultBranch,
-		IsPrivate:     opts.BaseRepo.IsPrivate || opts.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate,
-		IsEmpty:       opts.BaseRepo.IsEmpty,
-		IsFork:        true,
-		ForkID:        opts.BaseRepo.ID,
+		OwnerID:          owner.ID,
+		Owner:            owner,
+		OwnerName:        owner.Name,
+		Name:             opts.Name,
+		LowerName:        strings.ToLower(opts.Name),
+		Description:      opts.Description,
+		DefaultBranch:    defaultBranch,
+		IsPrivate:        opts.BaseRepo.IsPrivate || opts.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate,
+		IsEmpty:          opts.BaseRepo.IsEmpty,
+		IsFork:           true,
+		ForkID:           opts.BaseRepo.ID,
+		ObjectFormatName: opts.BaseRepo.ObjectFormatName,
 	}
 
 	oldRepoPath := opts.BaseRepo.RepoPath()
@@ -166,7 +168,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 			return fmt.Errorf("createDelegateHooks: %w", err)
 		}
 
-		gitRepo, err := git.OpenRepository(txCtx, repo.RepoPath())
+		gitRepo, err := gitrepo.OpenRepository(txCtx, repo)
 		if err != nil {
 			return fmt.Errorf("OpenRepository: %w", err)
 		}
@@ -189,7 +191,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		log.Error("Copy language stat from oldRepo failed: %v", err)
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		log.Error("Open created git repository failed: %v", err)
 	} else {

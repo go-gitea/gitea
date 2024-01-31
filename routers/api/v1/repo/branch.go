@@ -16,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -666,7 +667,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	} else {
 		if !isPlainRule {
 			if ctx.Repo.GitRepo == nil {
-				ctx.Repo.GitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
+				ctx.Repo.GitRepo, err = gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
 				if err != nil {
 					ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 					return
@@ -990,7 +991,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	} else {
 		if !isPlainRule {
 			if ctx.Repo.GitRepo == nil {
-				ctx.Repo.GitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
+				ctx.Repo.GitRepo, err = gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
 				if err != nil {
 					ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 					return

@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -47,10 +48,8 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 
 	if len(ctx.ContextUser.Description) != 0 {
 		content, err := markdown.RenderString(&markup.RenderContext{
-			URLPrefix: ctx.Repo.RepoLink,
-			Metas:     map[string]string{"mode": "document"},
-			GitRepo:   ctx.Repo.GitRepo,
-			Ctx:       ctx,
+			Metas: map[string]string{"mode": "document"},
+			Ctx:   ctx,
 		}, ctx.ContextUser.Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -92,7 +91,7 @@ func FindUserProfileReadme(ctx *context.Context, doer *user_model.User) (profile
 	if err == nil {
 		perm, err := access_model.GetUserRepoPermission(ctx, profileDbRepo, doer)
 		if err == nil && !profileDbRepo.IsEmpty && perm.CanRead(unit.TypeCode) {
-			if profileGitRepo, err = git.OpenRepository(ctx, profileDbRepo.RepoPath()); err != nil {
+			if profileGitRepo, err = gitrepo.OpenRepository(ctx, profileDbRepo); err != nil {
 				log.Error("FindUserProfileReadme failed to OpenRepository: %v", err)
 			} else {
 				if commit, err := profileGitRepo.GetBranchCommit(profileDbRepo.DefaultBranch); err != nil {

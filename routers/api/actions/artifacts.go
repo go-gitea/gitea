@@ -257,8 +257,11 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	// update artifact size if zero
-	if artifact.FileSize == 0 || artifact.FileCompressedSize == 0 {
+	// update artifact size if zero or not match, over write artifact size
+	if artifact.FileSize == 0 ||
+		artifact.FileCompressedSize == 0 ||
+		artifact.FileSize != fileRealTotalSize ||
+		artifact.FileCompressedSize != chunksTotalSize {
 		artifact.FileSize = fileRealTotalSize
 		artifact.FileCompressedSize = chunksTotalSize
 		artifact.ContentEncoding = ctx.Req.Header.Get("Content-Encoding")
@@ -267,6 +270,8 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 			ctx.Error(http.StatusInternalServerError, "Error update artifact")
 			return
 		}
+		log.Debug("[artifact] update artifact size, artifact_id: %d, size: %d, compressed size: %d",
+			artifact.ID, artifact.FileSize, artifact.FileCompressedSize)
 	}
 
 	ctx.JSON(http.StatusOK, map[string]string{

@@ -20,6 +20,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -128,7 +129,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return nil
 	}
 
-	gitRepo, err := git.OpenRepository(context.Background(), input.Repo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(context.Background(), input.Repo)
 	if err != nil {
 		return fmt.Errorf("git.OpenRepository: %w", err)
 	}
@@ -159,24 +160,28 @@ func notify(ctx context.Context, input *notifyInput) error {
 	workflows, schedules, err := actions_module.DetectWorkflows(gitRepo, commit,
 		input.Event,
 		input.Payload,
-		input.Event == webhook_module.HookEventPush && input.Ref == input.Repo.DefaultBranch,
+		input.Event == webhook_module.HookEventPush && git.RefName(input.Ref).BranchName() == input.Repo.DefaultBranch,
 	)
 	if err != nil {
 		return fmt.Errorf("DetectWorkflows: %w", err)
 	}
 
-	if len(workflows) == 0 {
-		log.Trace("repo %s with commit %s couldn't find workflows", input.Repo.RepoPath(), commit.ID)
-	} else {
-		for _, wf := range workflows {
-			if actionsConfig.IsWorkflowDisabled(wf.EntryName) {
-				log.Trace("repo %s has disable workflows %s", input.Repo.RepoPath(), wf.EntryName)
-				continue
-			}
+	log.Trace("repo %s with commit %s event %s find %d workflows and %d schedules",
+		input.Repo.RepoPath(),
+		commit.ID,
+		input.Event,
+		len(workflows),
+		len(schedules),
+	)
 
-			if wf.TriggerEvent.Name != actions_module.GithubEventPullRequestTarget {
-				detectedWorkflows = append(detectedWorkflows, wf)
-			}
+	for _, wf := range workflows {
+		if actionsConfig.IsWorkflowDisabled(wf.EntryName) {
+			log.Trace("repo %s has disable workflows %s", input.Repo.RepoPath(), wf.EntryName)
+			continue
+		}
+
+		if wf.TriggerEvent.Name != actions_module.GithubEventPullRequestTarget {
+			detectedWorkflows = append(detectedWorkflows, wf)
 		}
 	}
 

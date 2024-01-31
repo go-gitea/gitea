@@ -1043,7 +1043,7 @@ Gitea 创建以下非唯一队列：
 
 ## OAuth2 (`oauth2`)
 
-- `ENABLE`: **true**：启用OAuth2提供者。
+- `ENABLED`: **true**：启用OAuth2提供者。
 - `ACCESS_TOKEN_EXPIRATION_TIME`：**3600**：OAuth2访问令牌的生命周期，以秒为单位。
 - `REFRESH_TOKEN_EXPIRATION_TIME`：**730**：OAuth2刷新令牌的生命周期，以小时为单位。
 - `INVALIDATE_REFRESH_TOKENS`：**false**：检查刷新令牌是否已被使用。
