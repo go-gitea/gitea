@@ -2137,7 +2137,7 @@
 }
 
 #search-user-box .results .result .content {
-  margin: 6px 0;
+  margin: 0; /* remove margin reserved for avatar becaue we move it to left via `order: 0` */
 }
 
 .ui.menu .item > img:not(.ui) {
