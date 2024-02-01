@@ -9,7 +9,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -237,7 +236,16 @@ func PublicizeMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if userToPublicize.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin && !organization.IsUserOrgOwner(ctx, []*user_model.User{ctx.Doer}, ctx.Org.Organization.ID)[ctx.Doer.ID] {
+	allowed := userToPublicize.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin
+	if !allowed {
+		isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "ChangeOrgUserStatus", err)
+			return
+		}
+		allowed = isOwner
+	}
+	if !allowed {
 		ctx.Error(http.StatusForbidden, "", "Cannot publicize another member")
 		return
 	}
@@ -279,7 +287,16 @@ func ConcealMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if userToConceal.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin && !organization.IsUserOrgOwner(ctx, []*user_model.User{ctx.Doer}, ctx.Org.Organization.ID)[ctx.Doer.ID] {
+	allowed := userToConceal.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin
+	if !allowed {
+		isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "ChangeOrgUserStatus", err)
+			return
+		}
+		allowed = isOwner
+	}
+	if !allowed {
 		ctx.Error(http.StatusForbidden, "", "Cannot conceal another member")
 		return
 	}
