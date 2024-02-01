@@ -21,12 +21,12 @@
 					<div class="ui stackable middle very relaxed page grid">
 						<div class="sixteen wide center aligned centered column">
 							<div id="repo_migrating_progress">
-								<p>{{ctx.Locale.Tr "repo.migrate.migrating" .CloneAddr | Safe}}</p>
+								<p>{{ctx.Locale.Tr "repo.migrate.migrating" (.CloneAddr | Escape) | Safe}}</p>
 								<p id="repo_migrating_progress_message"></p>
 							</div>
 							<div id="repo_migrating_failed" class="gt-hidden">
 								{{if .CloneAddr}}
-									<p>{{ctx.Locale.Tr "repo.migrate.migrating_failed" .CloneAddr | Safe}}</p>
+									<p>{{ctx.Locale.Tr "repo.migrate.migrating_failed" (.CloneAddr | Escape) | Safe}}</p>
 								{{else}}
 									<p>{{ctx.Locale.Tr "repo.migrate.migrating_failed_no_addr" | Safe}}</p>
 								{{end}}
@@ -58,7 +58,7 @@
 	<div class="content">
 		<div class="ui warning message">
 			{{ctx.Locale.Tr "repo.settings.delete_notices_1" | Safe}}<br>
-			{{ctx.Locale.Tr "repo.settings.delete_notices_2" .Repository.FullName | Safe}}
+			{{ctx.Locale.Tr "repo.settings.delete_notices_2" (.Repository.FullName | Escape) | Safe}}
 			{{if .Repository.NumForks}}<br>
 			{{ctx.Locale.Tr "repo.settings.delete_notices_fork_1"}}
 			{{end}}
