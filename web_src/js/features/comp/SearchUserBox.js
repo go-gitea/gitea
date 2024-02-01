@@ -21,7 +21,7 @@ export function initCompSearchUserBox() {
             title: item.login,
             image: item.avatar_url
           };
-          if (item.full_name && item.full_name.length > 0) {
+          if (item.full_name) {
             resultItem.description = htmlEscape(item.full_name);
           }
           if (searchQueryUppercase === item.login.toUpperCase()) {
