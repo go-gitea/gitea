@@ -16,7 +16,7 @@ import (
 )
 
 const multipart_chunk_size int64 = 20000000
-const default_expire int = 7200
+const default_expire int = 10800
 
 type MultipartPartID struct {
 	Etag  string `json:"etag"`
@@ -221,7 +221,8 @@ func (hwc *HWCloudStorage) CommitUpload(path, additionalParameter string) error 
 
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
 func (hwc *HWCloudStorage) URL(path, name string) (*url.URL, error) {
-	queryParameter := map[string]string{"response-content-disposition": "attachment; filename=\"" + url.QueryEscape(quoteEscaper.Replace(name)) + "\""}
+	//NOTE: we url.PathEscape instead of url.QueryEscape is used here due to we need to convert space to %20 rather than +
+	queryParameter := map[string]string{"response-content-disposition": "attachment; filename=\"" + url.PathEscape(name) + "\""}
 	input := &obs.CreateSignedUrlInput{}
 
 	input.Method = obs.HttpMethodGet
