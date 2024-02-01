@@ -13,7 +13,8 @@ export function renderCodeCopy() {
 
   for (const el of els) {
     const btn = makeCodeCopyButton();
-    btn.setAttribute('data-clipboard-text', el.textContent);
+    // remove final trailing newline introduced during HTML rendering
+    btn.setAttribute('data-clipboard-text', el.textContent.replace(/\r?\n$/, ''));
     el.after(btn);
   }
 }
