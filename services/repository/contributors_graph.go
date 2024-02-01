@@ -18,6 +18,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -207,7 +208,7 @@ func GetExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey string, repo *repo_model.Repository, revision string) {
 	ctx := graceful.GetManager().HammerContext()
 
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		err := fmt.Errorf("OpenRepository: %w", err)
 		_ = cache.Put(cacheKey, err, contributorStatsCacheTimeout)
