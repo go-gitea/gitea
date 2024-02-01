@@ -110,7 +110,7 @@ See the [development setup instructions](https://docs.gitea.com/development/hack
 
 ### Backend
 
-Go dependencies are managed using [Go Modules](https://golang.org/cmd/go/#hdr-Module_maintenance). \
+Go dependencies are managed using [Go Modules](https://go.dev/cmd/go/#hdr-Module_maintenance). \
 You can find more details in the [go mod documentation](https://go.dev/ref/mod) and the [Go Modules Wiki](https://github.com/golang/go/wiki/Modules).
 
 Pull requests should only modify `go.mod` and `go.sum` where it is related to your change, be it a bugfix or a new feature. \
