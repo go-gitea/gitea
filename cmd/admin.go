@@ -122,7 +122,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 		}
 		log.Trace("Processing next %d repos of %d", len(repos), count)
 		for _, repo := range repos {
-			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RepoPath())
+			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), gitrepo.RepoGitURL(repo))
 			gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 			if err != nil {
 				log.Warn("OpenRepository: %v", err)
