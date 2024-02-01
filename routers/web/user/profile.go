@@ -28,7 +28,8 @@ import (
 )
 
 const (
-	tplProfileBigAvatar base.TplName = "shared/user/profile_big_avatar"
+	tplProfileBigAvatar    base.TplName = "shared/user/profile_big_avatar"
+	tplOrgProfileBigAvatar base.TplName = "shared/user/org_profile_big_avatar"
 )
 
 // OwnerProfile render profile page for a user or a organization (aka, repo owner)
@@ -318,6 +319,15 @@ func Action(ctx *context.Context) {
 		return
 	}
 
-	shared_user.PrepareContextForProfileBigAvatar(ctx)
-	ctx.HTML(http.StatusOK, tplProfileBigAvatar)
+	if ctx.ContextUser.IsIndividual() {
+		shared_user.PrepareContextForProfileBigAvatar(ctx)
+		ctx.HTML(http.StatusOK, tplProfileBigAvatar)
+		return
+	} else if ctx.ContextUser.IsOrganization() {
+		shared_user.PrepareContextForOrgProfileBigAvatar(ctx)
+		ctx.HTML(http.StatusOK, tplOrgProfileBigAvatar)
+		return
+	}
+	log.Error("Failed to apply action %q: unsupport context user type: %s", ctx.FormString("action"), ctx.ContextUser.Type)
+	ctx.Error(http.StatusBadRequest, fmt.Sprintf("Action %q failed", ctx.FormString("action")))
 }

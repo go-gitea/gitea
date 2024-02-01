@@ -30,6 +30,13 @@ func prepareContextForCommonProfile(ctx *context.Context) {
 	ctx.Data["FeedURL"] = ctx.ContextUser.HomeLink()
 }
 
+// PrepareContextForProfileBigAvatar set the context for big avatar view on the org profile page
+func PrepareContextForOrgProfileBigAvatar(ctx *context.Context) {
+	prepareContextForCommonProfile(ctx)
+
+	ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
+}
+
 // PrepareContextForProfileBigAvatar set the context for big avatar view on the profile page
 func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	prepareContextForCommonProfile(ctx)

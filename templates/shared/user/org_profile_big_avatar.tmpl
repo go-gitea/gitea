@@ -1,0 +1,36 @@
+<div class="ui container gt-df" id="org-profile-avatar-container">
+	{{ctx.AvatarUtils.Avatar .ContextUser 140 "org-avatar"}}
+	<div id="org-info">
+		<div class="ui header">
+			{{.ContextUser.DisplayName}}
+			<span class="org-visibility">
+				{{if .ContextUser.Visibility.IsLimited}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</span>{{end}}
+				{{if .ContextUser.Visibility.IsPrivate}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</span>{{end}}
+			</span>
+		</div>
+		{{if $.RenderedDescription}}<div class="render-content markup">{{$.RenderedDescription|Str2html}}</div>{{end}}
+		<div class="text grey meta">
+			{{if .ContextUser.Location}}<div class="flex-text-block">{{svg "octicon-location"}} <span>{{.ContextUser.Location}}</span></div>{{end}}
+			{{if .ContextUser.Website}}<div class="flex-text-block">{{svg "octicon-link"}} <a target="_blank" rel="noopener noreferrer me" href="{{.ContextUser.Website}}">{{.ContextUser.Website}}</a></div>{{end}}
+			{{if $.IsSigned}}
+				{{if .ContextUser.Email}}<div class="flex-text-block">{{svg "octicon-mail"}} <a class="muted" href="mailto:{{.ContextUser.Email}}">{{.ContextUser.Email}}</a></div>{{end}}
+			{{end}}
+		</div>
+	</div>
+	<div class="right menu">
+		{{if .EnableFeed}}
+		<a class="ui basic label button gt-mr-0" href="{{$.ContextUser.HomeLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
+			{{svg "octicon-rss" 24}}
+		</a>
+		{{end}}
+		{{if .IsSigned}}
+		<button class="ui basic button gt-mr-0" hx-post="{{.ContextUser.HomeLink}}?action={{if $.IsFollowing}}unfollow{{else}}follow{{end}}" hx-target="#org-profile-avatar-container" hx-indicator="#org-profile-avatar-container">
+			{{if $.IsFollowing}}
+				{{ctx.Locale.Tr "user.unfollow"}}
+			{{else}}
+				{{ctx.Locale.Tr "user.follow"}}
+			{{end}}
+		</button>
+		{{end}}
+	</div>
+</div>
