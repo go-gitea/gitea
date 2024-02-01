@@ -28,8 +28,8 @@ import (
 )
 
 const (
-	tplProfileBigAvatar    base.TplName = "shared/user/profile_big_avatar"
-	tplOrgProfileBigAvatar base.TplName = "shared/user/org_profile_big_avatar"
+	tplProfileBigAvatar base.TplName = "shared/user/profile_big_avatar"
+	tplFollowUnfollow   base.TplName = "shared/user/follow_unfollow"
 )
 
 // OwnerProfile render profile page for a user or a organization (aka, repo owner)
@@ -324,8 +324,8 @@ func Action(ctx *context.Context) {
 		ctx.HTML(http.StatusOK, tplProfileBigAvatar)
 		return
 	} else if ctx.ContextUser.IsOrganization() {
-		shared_user.PrepareContextForOrgProfileBigAvatar(ctx)
-		ctx.HTML(http.StatusOK, tplOrgProfileBigAvatar)
+		ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
+		ctx.HTML(http.StatusOK, tplFollowUnfollow)
 		return
 	}
 	log.Error("Failed to apply action %q: unsupport context user type: %s", ctx.FormString("action"), ctx.ContextUser.Type)

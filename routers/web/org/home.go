@@ -41,11 +41,22 @@ func Home(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	shared_user.PrepareContextForOrgProfileBigAvatar(ctx)
+
 	org := ctx.Org.Organization
 
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Title"] = org.DisplayName()
+	if len(org.Description) != 0 {
+		desc, err := markdown.RenderString(&markup.RenderContext{
+			Ctx:   ctx,
+			Metas: map[string]string{"mode": "document"},
+		}, org.Description)
+		if err != nil {
+			ctx.ServerError("RenderString", err)
+			return
+		}
+		ctx.Data["RenderedDescription"] = desc
+	}
 
 	var orderBy db.SearchOrderBy
 	ctx.Data["SortType"] = ctx.FormString("sort")
