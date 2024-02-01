@@ -343,7 +343,7 @@ func Action(ctx *context.Context) {
 	case "watch", "unwatch":
 		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
 	case "star", "unstar":
-		ctx.Data["IsStarringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
+		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
 	}
 
 	switch ctx.Params(":action") {
