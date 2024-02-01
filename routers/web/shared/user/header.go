@@ -35,6 +35,18 @@ func PrepareContextForOrgProfileBigAvatar(ctx *context.Context) {
 	prepareContextForCommonProfile(ctx)
 
 	ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
+
+	if len(ctx.ContextUser.Description) != 0 {
+		desc, err := markdown.RenderString(&markup.RenderContext{
+			Ctx:   ctx,
+			Metas: map[string]string{"mode": "document"},
+		}, ctx.ContextUser.Description)
+		if err != nil {
+			ctx.ServerError("RenderString", err)
+			return
+		}
+		ctx.Data["RenderedDescription"] = desc
+	}
 }
 
 // PrepareContextForProfileBigAvatar set the context for big avatar view on the profile page
