@@ -30,7 +30,7 @@ export default {
     icon() {
       if (this.issue.pull_request !== null) {
         if (this.issue.state === 'open') {
-          if (this.issue.pull_request.wip === true) {
+          if (this.issue.pull_request.draft === true) {
             return 'octicon-git-pull-request-draft'; // WIP PR
           }
           return 'octicon-git-pull-request'; // Open PR
@@ -46,7 +46,7 @@ export default {
 
     color() {
       if (this.issue.pull_request !== null) {
-        if (this.issue.pull_request.wip === true) {
+        if (this.issue.pull_request.draft === true) {
           return 'grey'; // WIP PR
         } else if (this.issue.pull_request.merged === true) {
           return 'purple'; // Merged PR

@@ -28,7 +28,7 @@ const (
 type PullRequestMeta struct {
 	HasMerged        bool       `json:"merged"`
 	Merged           *time.Time `json:"merged_at"`
-	IsWorkInProgress bool       `json:"wip"`
+	IsWorkInProgress bool       `json:"draft"`
 }
 
 // RepositoryMeta basic repository information
