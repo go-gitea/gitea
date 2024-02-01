@@ -446,12 +446,9 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 		return nil, 0, err
 	}
 
-	sess := db.GetEngine(ctx).Where(cond)
-	if setting.Database.Type.IsMySQL() {
-		sess = sess.IndexHint("USE", "JOIN", "IDX_action_c_u_d")
-	}
-	sess = sess.Select("`action`.*"). // this line will avoid select other joined table's columns
-						Join("INNER", "repository", "`repository`.id = `action`.repo_id")
+	sess := db.GetEngine(ctx).Where(cond).
+		Select("`action`.*"). // this line will avoid select other joined table's columns
+		Join("INNER", "repository", "`repository`.id = `action`.repo_id")
 
 	opts.SetDefaultValues()
 	sess = db.SetSessionPagination(sess, &opts)
