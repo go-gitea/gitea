@@ -200,6 +200,9 @@ a.label,
 
 .ui.search > .results .result {
   background: var(--color-body);
+  border-color: var(--color-secondary);
+  display: flex;
+  align-items: center;
 }
 
 .ui.search > .results .result .title {
