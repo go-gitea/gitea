@@ -74,7 +74,7 @@ rules:
   keyframe-declaration-no-important: true
   keyframe-selector-notation: null
   keyframes-name-pattern: null
-  length-zero-no-unit: true
+  length-zero-no-unit: [true, ignore: [custom-properties], ignoreFunctions: [var]]
   max-nesting-depth: null
   media-feature-name-allowed-list: null
   media-feature-name-disallowed-list: null

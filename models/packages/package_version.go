@@ -39,17 +39,17 @@ type PackageVersion struct {
 func GetOrInsertVersion(ctx context.Context, pv *PackageVersion) (*PackageVersion, error) {
 	e := db.GetEngine(ctx)
 
-	key := &PackageVersion{
-		PackageID:    pv.PackageID,
-		LowerVersion: pv.LowerVersion,
-	}
+	existing := &PackageVersion{}
 
-	has, err := e.Get(key)
+	has, err := e.Where(builder.Eq{
+		"package_id":    pv.PackageID,
+		"lower_version": pv.LowerVersion,
+	}).Get(existing)
 	if err != nil {
 		return nil, err
 	}
 	if has {
-		return key, ErrDuplicatePackageVersion
+		return existing, ErrDuplicatePackageVersion
 	}
 	if _, err = e.Insert(pv); err != nil {
 		return nil, err
@@ -278,6 +278,9 @@ func (opts *PackageSearchOptions) configureOrderBy(e db.Engine) {
 	default:
 		e.Desc("package_version.created_unix")
 	}
+
+	// Sort by id for stable order with duplicates in the other field
+	e.Asc("package_version.id")
 }
 
 // SearchVersions gets all versions of packages matching the search options

@@ -85,12 +85,12 @@ Djfa/2q5bH4699v++uMAAAAAAAAAAAAAAAAAAAAAAHbgA/eXQh8AKAAA`
 					req := NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader([]byte{}))
 					MakeRequest(t, req, http.StatusUnauthorized)
 
-					req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader([]byte{}))
-					AddBasicAuthHeader(req, user.Name)
+					req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader([]byte{})).
+						AddBasicAuth(user.Name)
 					MakeRequest(t, req, http.StatusBadRequest)
 
-					req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(content))
-					AddBasicAuthHeader(req, user.Name)
+					req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(content)).
+						AddBasicAuth(user.Name)
 					MakeRequest(t, req, http.StatusCreated)
 
 					pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeAlpine)
@@ -216,8 +216,8 @@ Djfa/2q5bH4699v++uMAAAAAAAAAAAAAAAAAAAAAAHbgA/eXQh8AKAAA`
 				req := NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s/x86_64/%s-%s.apk", rootURL, branch, repository, packageName, packageVersion))
 				MakeRequest(t, req, http.StatusUnauthorized)
 
-				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s/x86_64/%s-%s.apk", rootURL, branch, repository, packageName, packageVersion))
-				AddBasicAuthHeader(req, user.Name)
+				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s/x86_64/%s-%s.apk", rootURL, branch, repository, packageName, packageVersion)).
+					AddBasicAuth(user.Name)
 				MakeRequest(t, req, http.StatusNoContent)
 
 				// Deleting the last file of an architecture should remove that index

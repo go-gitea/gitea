@@ -33,7 +33,7 @@
 		</div>
 		{{if .MilestoneID}}
 		<div class="gt-df gt-my-2">
-			<a class="sidebar-item-link muted" href="{{$.Page.RepoLink}}/milestone/{{.MilestoneID}}">
+			<a class="sidebar-item-link muted" href="{{.Repo.Link}}/milestone/{{.MilestoneID}}">
 				{{svg "octicon-milestone" 16 "gt-mr-2 gt-vm"}}
 				{{.Milestone.Name}}
 			</a>
@@ -42,26 +42,33 @@
 		{{if $.Page.LinkedPRs}}
 		{{range index $.Page.LinkedPRs .ID}}
 		<div class="gt-my-2">
-			<a href="{{$.Page.RepoLink}}/pulls/{{.Index}}">
+			<a href="{{$.Issue.Repo.Link}}/pulls/{{.Index}}">
 				<span class="gt-m-0 text {{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge" 16 "gt-mr-2 gt-vm"}}</span>
 				<span class="gt-vm">{{.Title}} <span class="text light grey">#{{.Index}}</span></span>
 			</a>
 		</div>
 		{{end}}
 		{{end}}
+		{{$tasks := .GetTasks}}
+		{{if gt $tasks 0}}
+			<div class="meta gt-my-2">
+				{{svg "octicon-checklist" 16 "gt-mr-2 gt-vm"}}
+				<span class="gt-vm">{{.GetTasksDone}} / {{$tasks}}</span>
+			</div>
+		{{end}}
 	</div>
 
 	{{if .Labels}}
 	<div class="issue-card-content labels-list">
-		{{range .Labels}}
-			<a {{if $.Page.PageIsProjects}}target="_blank"{{end}} href="{{$.Page.RepoLink}}/issues?labels={{.ID}}">{{RenderLabel ctx .}}</a>
+		{{range .Labels}}0
+			<a {{if $.PageIsProjects}}target="_blank"{{end}} href="{{$.Issue.Repo.Link}}/issues?labels={{.ID}}">{{RenderLabel ctx .}}</a>
 		{{end}}
 	</div>
 	{{end}}
 	{{if .Assignees}}
 	<div class="issue-card-content gt-df">
 		{{range .Assignees}}
-			<a class="flex-text-inline" {{if $.Page.PageIsProjects}}target="_blank"{{end}} href="{{.HomeLink}}" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{ctx.AvatarUtils.Avatar . 28 "mini gt-mr-3"}}</a>
+			<a class="flex-text-inline" {{if $.PageIsProjects}}target="_blank"{{end}} href="{{.HomeLink}}" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{ctx.AvatarUtils.Avatar . 28 "mini gt-mr-3"}}</a>
 		{{end}}
 	</div>
 	{{end}}

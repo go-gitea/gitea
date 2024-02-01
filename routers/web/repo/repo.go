@@ -178,6 +178,8 @@ func Create(ctx *context.Context) {
 
 	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
 	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
+	ctx.Data["SupportedObjectFormats"] = git.SupportedObjectFormats
+	ctx.Data["DefaultObjectFormat"] = git.Sha1ObjectFormat
 
 	ctx.HTML(http.StatusOK, tplCreate)
 }
@@ -277,17 +279,18 @@ func CreatePost(ctx *context.Context) {
 		}
 	} else {
 		repo, err = repo_service.CreateRepository(ctx, ctx.Doer, ctxUser, repo_service.CreateRepoOptions{
-			Name:          form.RepoName,
-			Description:   form.Description,
-			Gitignores:    form.Gitignores,
-			IssueLabels:   form.IssueLabels,
-			License:       form.License,
-			Readme:        form.Readme,
-			IsPrivate:     form.Private || setting.Repository.ForcePrivate,
-			DefaultBranch: form.DefaultBranch,
-			AutoInit:      form.AutoInit,
-			IsTemplate:    form.Template,
-			TrustModel:    repo_model.ToTrustModel(form.TrustModel),
+			Name:             form.RepoName,
+			Description:      form.Description,
+			Gitignores:       form.Gitignores,
+			IssueLabels:      form.IssueLabels,
+			License:          form.License,
+			Readme:           form.Readme,
+			IsPrivate:        form.Private || setting.Repository.ForcePrivate,
+			DefaultBranch:    form.DefaultBranch,
+			AutoInit:         form.AutoInit,
+			IsTemplate:       form.Template,
+			TrustModel:       repo_model.DefaultTrustModel,
+			ObjectFormatName: form.ObjectFormatName,
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
@@ -377,7 +380,10 @@ func RedirectDownload(ctx *context.Context) {
 	)
 	tagNames := []string{vTag}
 	curRepo := ctx.Repo.Repository
-	releases, err := repo_model.GetReleasesByRepoIDAndNames(ctx, curRepo.ID, tagNames)
+	releases, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
+		RepoID:   curRepo.ID,
+		TagNames: tagNames,
+	})
 	if err != nil {
 		ctx.ServerError("RedirectDownload", err)
 		return
@@ -606,7 +612,7 @@ func SearchRepo(ctx *context.Context) {
 	}
 
 	// call the database O(1) times to get the commit statuses for all repos
-	repoToItsLatestCommitStatuses, err := git_model.GetLatestCommitStatusForPairs(ctx, repoIDsToLatestCommitSHAs, db.ListOptions{})
+	repoToItsLatestCommitStatuses, err := git_model.GetLatestCommitStatusForPairs(ctx, repoIDsToLatestCommitSHAs, db.ListOptionsAll)
 	if err != nil {
 		log.Error("GetLatestCommitStatusForPairs: %v", err)
 		return

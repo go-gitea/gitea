@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/avatars"
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	gitea_context "code.gitea.io/gitea/modules/context"
@@ -130,7 +130,10 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 
 // getConfig retrieves the SSPI configuration from login sources
 func (s *SSPI) getConfig(ctx context.Context) (*sspi.Source, error) {
-	sources, err := auth.ActiveSources(ctx, auth.SSPI)
+	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
+		IsActive:  util.OptionalBoolTrue,
+		LoginType: auth.SSPI,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -163,12 +166,9 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 func (s *SSPI) newUser(ctx context.Context, username string, cfg *sspi.Source) (*user_model.User, error) {
 	email := gouuid.New().String() + "@localhost.localdomain"
 	user := &user_model.User{
-		Name:            username,
-		Email:           email,
-		Passwd:          gouuid.New().String(),
-		Language:        cfg.DefaultLanguage,
-		UseCustomAvatar: true,
-		Avatar:          avatars.DefaultAvatarLink(),
+		Name:     username,
+		Email:    email,
+		Language: cfg.DefaultLanguage,
 	}
 	emailNotificationPreference := user_model.EmailNotificationsDisabled
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{

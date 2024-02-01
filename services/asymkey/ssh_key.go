@@ -33,7 +33,7 @@ func DeletePublicKey(ctx context.Context, doer *user_model.User, id int64) (err 
 	}
 	defer committer.Close()
 
-	if err = asymkey_model.DeletePublicKeys(dbCtx, id); err != nil {
+	if _, err = db.DeleteByID[asymkey_model.PublicKey](dbCtx, id); err != nil {
 		return err
 	}
 

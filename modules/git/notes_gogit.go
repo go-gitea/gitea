@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
@@ -72,7 +73,7 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 		defer commitGraphFile.Close()
 	}
 
-	commitNode, err := commitNodeIndex.Get(notes.ID)
+	commitNode, err := commitNodeIndex.Get(plumbing.Hash(notes.ID.RawValue()))
 	if err != nil {
 		return err
 	}

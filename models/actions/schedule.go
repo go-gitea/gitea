@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -117,4 +118,23 @@ func DeleteScheduleTaskByRepo(ctx context.Context, id int64) error {
 	}
 
 	return committer.Commit()
+}
+
+func CleanRepoScheduleTasks(ctx context.Context, repo *repo_model.Repository) error {
+	// If actions disabled when there is schedule task, this will remove the outdated schedule tasks
+	// There is no other place we can do this because the app.ini will be changed manually
+	if err := DeleteScheduleTaskByRepo(ctx, repo.ID); err != nil {
+		return fmt.Errorf("DeleteCronTaskByRepo: %v", err)
+	}
+	// cancel running cron jobs of this repository and delete old schedules
+	if err := CancelRunningJobs(
+		ctx,
+		repo.ID,
+		repo.DefaultBranch,
+		"",
+		webhook_module.HookEventSchedule,
+	); err != nil {
+		return fmt.Errorf("CancelRunningJobs: %v", err)
+	}
+	return nil
 }
