@@ -53,6 +53,7 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -1248,7 +1249,7 @@ func NewIssuePost(ctx *context.Context) {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.JSONError(ctx.Tr("TODO"))
+			ctx.JSONError(ctx.Tr("repo.issues.new.blocked_user"))
 		} else {
 			ctx.ServerError("NewIssue", err)
 		}
@@ -2040,6 +2041,10 @@ func ViewIssue(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Tags"] = tags
+
+	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
+		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
+	}
 
 	ctx.HTML(http.StatusOK, tplIssueView)
 }
@@ -3111,7 +3116,7 @@ func NewComment(ctx *context.Context) {
 	comment, err := issue_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Content, attachments)
 	if err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.Flash.Error(ctx.Tr("TODO"))
+			ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
 		} else {
 			ctx.ServerError("CreateIssueComment", err)
 		}

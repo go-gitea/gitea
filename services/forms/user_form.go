@@ -449,3 +449,14 @@ func (f *PackageSettingForm) Validate(req *http.Request, errs binding.Errors) bi
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
+
+type BlockUserForm struct {
+	Action  string `binding:"Required;In(block,unblock,note)"`
+	Blockee string `binding:"Required"`
+	Note    string
+}
+
+func (f *BlockUserForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}

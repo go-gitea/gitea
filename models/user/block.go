@@ -27,12 +27,17 @@ type UserBlock struct {
 	Blocker     *User `xorm:"-"`
 	BlockeeID   int64 `xorm:"UNIQUE(block)"`
 	Blockee     *User `xorm:"-"`
-	Reason      string
+	Note        string
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
 func init() {
 	db.RegisterModel(new(UserBlock))
+}
+
+func UpdateUserBlock(ctx context.Context, block *UserBlock) error {
+	_, err := db.GetEngine(ctx).ID(block.ID).Update(block)
+	return err
 }
 
 func IsUserBlockedBy(ctx context.Context, blockee *User, blockerIDs ...int64) bool {
@@ -70,6 +75,20 @@ func (opts *FindUserBlockOptions) ToConds() builder.Cond {
 
 func FindUserBlocks(ctx context.Context, opts *FindUserBlockOptions) ([]*UserBlock, int64, error) {
 	return db.FindAndCount[UserBlock](ctx, opts)
+}
+
+func GetUserBlock(ctx context.Context, blockerID, blockeeID int64) (*UserBlock, error) {
+	blocks, _, err := FindUserBlocks(ctx, &FindUserBlockOptions{
+		BlockerID: blockerID,
+		BlockeeID: blockeeID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(blocks) == 0 {
+		return nil, nil
+	}
+	return blocks[0], nil
 }
 
 type UserBlockList []*UserBlock

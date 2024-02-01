@@ -45,6 +45,7 @@ import (
 	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
+	user_service "code.gitea.io/gitea/services/user"
 
 	"github.com/gobwas/glob"
 )
@@ -307,7 +308,7 @@ func ForkPost(ctx *context.Context) {
 		case db.IsErrNamePatternNotAllowed(err):
 			ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplFork, &form)
 		case errors.Is(err, user_model.ErrBlockedUser):
-			ctx.RenderWithErr(ctx.Tr("TODO"), tplFork, form)
+			ctx.RenderWithErr(ctx.Tr("repo.fork.blocked_user"), tplFork, form)
 		default:
 			ctx.ServerError("ForkPost", err)
 		}
@@ -1022,6 +1023,10 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	}
 	upload.AddUploadContext(ctx, "comment")
 
+	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
+		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
+	}
+
 	ctx.HTML(http.StatusOK, tplPullFiles)
 }
 
@@ -1459,7 +1464,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			ctx.Flash.Error(flashError)
 			ctx.JSONRedirect(pullIssue.Link()) // FIXME: it's unfriendly, and will make the content lost
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.JSONError(ctx.Tr("TODO"))
+			ctx.JSONError(ctx.Tr("repo.pulls.new.blocked_user"))
 		} else {
 			ctx.ServerError("NewPullRequest", err)
 		}

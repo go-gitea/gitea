@@ -61,7 +61,7 @@ func BlockUser(ctx *context.APIContext, blocker *user_model.User) {
 		return
 	}
 
-	if err := user_service.BlockUser(ctx, ctx.Doer, blocker, blockee, ctx.FormString("reason")); err != nil {
+	if err := user_service.BlockUser(ctx, ctx.Doer, blocker, blockee, ctx.FormString("note")); err != nil {
 		if errors.Is(err, user_model.ErrCanNotBlock) || errors.Is(err, user_model.ErrBlockOrganization) {
 			ctx.Error(http.StatusBadRequest, "BlockUser", err)
 		} else {

@@ -781,7 +781,7 @@ func SettingsPost(ctx *context.Context) {
 			} else if models.IsErrRepoTransferInProgress(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.transfer_in_progress"), tplSettingsOptions, nil)
 			} else if errors.Is(err, user_model.ErrBlockedUser) {
-				ctx.RenderWithErr(ctx.Tr("TODO"), tplSettingsOptions, nil)
+				ctx.RenderWithErr(ctx.Tr("repo.settings.transfer.blocked_user"), tplSettingsOptions, nil)
 			} else {
 				ctx.ServerError("TransferOwnership", err)
 			}

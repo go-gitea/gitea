@@ -59,9 +59,9 @@ func BlockUser(ctx *context.APIContext) {
 	//   description: user to block
 	//   type: string
 	//   required: true
-	// - name: reason
+	// - name: note
 	//   in: query
-	//   description: optional reason for the block
+	//   description: optional note for the block
 	//   type: string
 	// responses:
 	//   "204":

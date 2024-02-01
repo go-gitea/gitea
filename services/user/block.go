@@ -67,7 +67,7 @@ func CanUnblockUser(ctx context.Context, doer, blocker, blockee *user_model.User
 	return true
 }
 
-func BlockUser(ctx context.Context, doer, blocker, blockee *user_model.User, reason string) error {
+func BlockUser(ctx context.Context, doer, blocker, blockee *user_model.User, note string) error {
 	if blockee.IsOrganization() {
 		return user_model.ErrBlockOrganization
 	}
@@ -128,7 +128,7 @@ func BlockUser(ctx context.Context, doer, blocker, blockee *user_model.User, rea
 		return db.Insert(ctx, &user_model.UserBlock{
 			BlockerID: blocker.ID,
 			BlockeeID: blockee.ID,
-			Reason:    reason,
+			Note:      note,
 		})
 	})
 }

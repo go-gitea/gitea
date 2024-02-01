@@ -27,6 +27,12 @@
 	</div>
 	<div class="extra content gt-word-break">
 		<ul>
+			{{if .UserBlock}}
+				<li class="text red">{{svg "octicon-circle-slash"}} {{ctx.Locale.Tr "user.block.blocked"}}</li>
+				{{if .UserBlock.Note}}
+					<li class="text small red">{{ctx.Locale.Tr "user.block.note"}}: {{.UserBlock.Note}}</li>
+				{{end}}
+			{{end}}
 			{{if .ContextUser.Location}}
 				<li>
 					{{svg "octicon-location"}}
@@ -110,18 +116,29 @@
 			</li>
 			{{end}}
 			{{if and .IsSigned (ne .SignedUserID .ContextUser.ID)}}
-			<li class="follow">
-				{{if $.IsFollowing}}
-					<button class="ui basic red button link-action" data-url="{{.ContextUser.HomeLink}}?action=unfollow">
-						{{svg "octicon-person"}} {{ctx.Locale.Tr "user.unfollow"}}
-					</button>
-				{{else}}
-					<button class="ui basic primary button link-action" data-url="{{.ContextUser.HomeLink}}?action=follow">
-						{{svg "octicon-person"}} {{ctx.Locale.Tr "user.follow"}}
-					</button>
+				{{if not .UserBlock}}
+				<li class="follow">
+					{{if $.IsFollowing}}
+						<button class="ui basic red button link-action" data-url="{{.ContextUser.HomeLink}}?action=unfollow">
+							{{svg "octicon-person"}} {{ctx.Locale.Tr "user.unfollow"}}
+						</button>
+					{{else}}
+						<button class="ui basic primary button link-action" data-url="{{.ContextUser.HomeLink}}?action=follow">
+							{{svg "octicon-person"}} {{ctx.Locale.Tr "user.follow"}}
+						</button>
+					{{end}}
+				</li>
 				{{end}}
-			</li>
+				<li>
+					{{if not .UserBlock}}
+						<a class="muted block-user-action" href="#" data-modal="#block-user-modal" data-blockee="{{.ContextUser.Name}}" data-blockee-name="{{.ContextUser.GetDisplayName}}" data-action="{{AppSubUrl}}/user/settings/blocked_users">{{ctx.Locale.Tr "user.block.block.user"}}</a>
+					{{else}}
+						<a class="muted" href="{{AppSubUrl}}/user/settings/blocked_users">{{ctx.Locale.Tr "user.block.unblock"}}</a>
+					{{end}}
+				</li>
 			{{end}}
 		</ul>
 	</div>
 </div>
+
+{{template "shared/user/block_user_dialog" .}}

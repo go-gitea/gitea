@@ -330,8 +330,12 @@ func Action(ctx *context.Context) {
 	}
 
 	if err != nil {
-		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
-		return
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Flash.Error(ctx.Tr("repo.action.blocked_user"))
+		} else {
+			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+			return
+		}
 	}
 
 	ctx.RedirectToFirst(ctx.FormString("redirect_to"), ctx.Repo.RepoLink)
