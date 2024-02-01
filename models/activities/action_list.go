@@ -77,12 +77,14 @@ func (actions ActionList) loadRepoOwner(ctx context.Context, userMap map[int64]*
 	}
 
 	userIDs := make([]int64, 0, len(actions))
+	userSet := make(container.Set[int64], len(actions))
 	for _, action := range actions {
 		if action.Repo == nil {
 			continue
 		}
-		if _, ok := userMap[action.Repo.OwnerID]; !ok {
+		if _, ok := userMap[action.Repo.OwnerID]; !ok && !userSet.Contains(action.Repo.OwnerID) {
 			userIDs = append(userIDs, action.Repo.OwnerID)
+			userSet.Add(action.Repo.OwnerID)
 		}
 	}
 
