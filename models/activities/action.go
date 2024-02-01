@@ -325,6 +325,7 @@ func (a *Action) getCommentHTMLURL(ctx context.Context) string {
 	if err != nil {
 		return "#"
 	}
+	issue.Repo = a.Repo
 
 	if err = issue.LoadRepo(ctx); err != nil {
 		return "#"
