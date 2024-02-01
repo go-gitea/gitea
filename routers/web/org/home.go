@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/web/shared/user"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 )
 
@@ -42,7 +41,7 @@ func Home(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	user.PrepareContextForOrgProfileBigAvatar(ctx)
+	shared_user.PrepareContextForOrgProfileBigAvatar(ctx)
 	org := ctx.Org.Organization
 
 	ctx.Data["PageIsUserProfile"] = true
