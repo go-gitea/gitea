@@ -76,20 +76,18 @@ func (actions ActionList) loadRepoOwner(ctx context.Context, userMap map[int64]*
 		userMap = make(map[int64]*user_model.User)
 	}
 
-	userIDs := make([]int64, 0, len(actions))
 	userSet := make(container.Set[int64], len(actions))
 	for _, action := range actions {
 		if action.Repo == nil {
 			continue
 		}
-		if _, ok := userMap[action.Repo.OwnerID]; !ok && !userSet.Contains(action.Repo.OwnerID) {
-			userIDs = append(userIDs, action.Repo.OwnerID)
+		if _, ok := userMap[action.Repo.OwnerID]; !ok {
 			userSet.Add(action.Repo.OwnerID)
 		}
 	}
 
 	if err := db.GetEngine(ctx).
-		In("id", userIDs).
+		In("id", userSet.Values()).
 		Find(&userMap); err != nil {
 		return fmt.Errorf("find user: %w", err)
 	}
