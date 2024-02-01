@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {htmlEscape} from 'escape-goat';
 
 const {appSubUrl} = window.config;
 const looksLikeEmailAddressCheck = /^\S+@\S+$/;
@@ -21,7 +22,7 @@ export function initCompSearchUserBox() {
             image: item.avatar_url
           };
           if (item.full_name && item.full_name.length > 0) {
-            resultItem.description = item.full_name;
+            resultItem.description = htmlEscape(item.full_name);
           }
           if (searchQueryUppercase === item.login.toUpperCase()) {
             items.unshift(resultItem);
