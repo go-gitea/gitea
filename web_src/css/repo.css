@@ -2138,7 +2138,6 @@
 
 #search-user-box .results .result .content {
   margin: 6px 0; /* this trick is used to align with the sibling avatar image */
-  overflow-wrap: anywhere;
 }
 
 .ui.menu .item > img:not(.ui) {

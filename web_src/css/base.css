@@ -196,6 +196,7 @@ a.label,
 .ui.search > .results {
   background: var(--color-body);
   border-color: var(--color-secondary);
+  overflow-wrap: anywhere; /* allow text to wrap as fomantic limits this to 18em width */
 }
 
 .ui.search > .results .result {
