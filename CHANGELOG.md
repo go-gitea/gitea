@@ -10,6 +10,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Prevent anonymous container access if `RequireSignInView` is enabled (#28877) (#28882)
   * Update go dependencies and fix go-git (#28893) (#28934)
 * BUGFIXES
+  * Revert "Speed up loading the dashboard on mysql/mariadb (#28546)" (#29006) (#29007)
+  * Fix an actions schedule bug (#28942) (#28999)
   * Fix update enable_prune even if mirror_interval is not provided (#28905) (#28929)
   * Fix uploaded artifacts should be overwritten (#28726) backport v1.21 (#28832)
   * Preserve BOM in web editor (#28935) (#28959)
