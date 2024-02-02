@@ -13,6 +13,11 @@ func ListBlocks(ctx *context.APIContext) {
 	// ---
 	// summary: List users blocked by the organization
 	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -35,6 +40,11 @@ func CheckUserBlock(ctx *context.APIContext) {
 	// ---
 	// summary: Check if a user is blocked by the organization
 	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
 	// - name: username
 	//   in: path
 	//   description: user to check
@@ -54,6 +64,11 @@ func BlockUser(ctx *context.APIContext) {
 	// ---
 	// summary: Block a user
 	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
 	// - name: username
 	//   in: path
 	//   description: user to block
@@ -79,6 +94,11 @@ func UnblockUser(ctx *context.APIContext) {
 	// ---
 	// summary: Unblock a user
 	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
 	// - name: username
 	//   in: path
 	//   description: user to unblock

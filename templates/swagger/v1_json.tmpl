@@ -1864,6 +1864,13 @@
         "operationId": "organizationListBlocks",
         "parameters": [
           {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -1893,6 +1900,13 @@
         "parameters": [
           {
             "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
             "description": "user to check",
             "name": "username",
             "in": "path",
@@ -1915,6 +1929,13 @@
         "summary": "Block a user",
         "operationId": "organizationBlockUser",
         "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "string",
             "description": "user to block",
@@ -1948,6 +1969,13 @@
         "summary": "Unblock a user",
         "operationId": "organizationUnblockUser",
         "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "string",
             "description": "user to unblock",

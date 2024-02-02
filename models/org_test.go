@@ -62,6 +62,8 @@ func TestRemoveOrgUser(t *testing.T) {
 	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 
 	testSuccess(org3, user4)
+
+	org3 = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
 	testSuccess(org3, user4)
 
 	err := RemoveOrgUser(db.DefaultContext, org7, user5)
