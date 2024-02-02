@@ -33,10 +33,10 @@
 					<div class="divider"></div>
 				{{end}}
 				{{if $canUserBlock}}
-				<div class="item context js-aria-clickable block-user-action" data-modal="#block-user-modal" data-blockee="{{.item.Poster.Name}}" data-blockee-name="{{.item.Poster.GetDisplayName}}" data-action="{{AppSubUrl}}/user/settings/blocked_users">{{ctx.Locale.Tr "user.block.block.user"}}</div>
+				<div class="item context js-aria-clickable show-modal" data-modal="#block-user-modal" data-modal-modal-blockee="{{.item.Poster.Name}}" data-modal-modal-blockee-name="{{.item.Poster.GetDisplayName}}" data-modal-modal-form.action="{{AppSubUrl}}/user/settings/blocked_users">{{ctx.Locale.Tr "user.block.block.user"}}</div>
 				{{end}}
 				{{if $canOrgBlock}}
-				<div class="item context js-aria-clickable block-user-action" data-modal="#block-user-modal" data-blockee="{{.item.Poster.Name}}" data-blockee-name="{{.item.Poster.GetDisplayName}}" data-action="{{.ctxData.Repository.Owner.OrganisationLink}}/settings/blocked_users">{{ctx.Locale.Tr "user.block.block.org"}}</div>
+				<div class="item context js-aria-clickable show-modal" data-modal="#block-user-modal" data-modal-modal-blockee="{{.item.Poster.Name}}" data-modal-modal-blockee-name="{{.item.Poster.GetDisplayName}}" data-modal-modal-form.action="{{.ctxData.Repository.Owner.OrganisationLink}}/settings/blocked_users">{{ctx.Locale.Tr "user.block.block.org"}}</div>
 				{{end}}
 			{{end}}
 		{{end}}

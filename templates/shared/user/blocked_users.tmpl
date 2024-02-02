@@ -48,7 +48,7 @@
 					{{end}}
 				</div>
 				<div class="flex-item-trailing">
-					<button class="ui compact mini button block-user-note-action" data-modal="#block-user-note-modal" data-blockee="{{.Blockee.Name}}" data-note="{{.Note}}">{{ctx.Locale.Tr "user.block.note.edit"}}</button>
+					<button class="ui compact mini button show-modal" data-modal="#block-user-note-modal" data-modal-modal-blockee="{{.Blockee.Name}}" data-modal-modal-note="{{.Note}}">{{ctx.Locale.Tr "user.block.note.edit"}}</button>
 					<form action="{{$.Link}}" method="post">
 						{{$.CsrfTokenHtml}}
 						<input type="hidden" name="action" value="unblock" />
@@ -65,13 +65,13 @@
 <div class="ui small modal" id="block-user-note-modal">
 	<div class="header">{{ctx.Locale.Tr "user.block.note.edit"}}</div>
 	<div class="content">
-		<form class="ui form" action="" method="post">
+		<form class="ui form" action="{{$.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<input type="hidden" name="action" value="note" />
-			<input type="hidden" name="blockee" />
+			<input type="hidden" name="blockee" class="modal-blockee" />
 			<div class="field">
 				<label>{{ctx.Locale.Tr "user.block.note.title"}}</label>
-				<input name="note" />
+				<input name="note" class="modal-note" />
 				<p class="help">{{ctx.Locale.Tr "user.block.note.info"}}</p>
 			</div>
 			<div class="text right actions">

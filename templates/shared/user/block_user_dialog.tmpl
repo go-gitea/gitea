@@ -2,12 +2,12 @@
 	<div class="header">{{ctx.Locale.Tr "user.block.title"}}</div>
 	<div class="content">
 		<div class="ui warning message">{{ctx.Locale.Tr "user.block.info"}}</div>
-		<form class="ui form" action="" method="post">
+		<form class="ui form modal-form" method="post">
 			{{.CsrfTokenHtml}}
 			<input type="hidden" name="action" value="block" />
-			<input type="hidden" name="blockee" />
+			<input type="hidden" name="blockee" class="modal-blockee" />
 			<div class="field">
-				<label>{{ctx.Locale.Tr "user.block.user_to_block"}}: <span class="text red" name="blockee-name"></span></label>
+				<label>{{ctx.Locale.Tr "user.block.user_to_block"}}: <span class="text red modal-blockee-name"></span></label>
 			</div>
 			<div class="field">
 				<label for="block-note">{{ctx.Locale.Tr "user.block.note.title"}}</label>
