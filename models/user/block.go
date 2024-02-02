@@ -21,7 +21,7 @@ var (
 	ErrBlockedUser       = util.NewPermissionDeniedErrorf("user is blocked")
 )
 
-type UserBlock struct {
+type Blocking struct {
 	ID          int64 `xorm:"pk autoincr"`
 	BlockerID   int64 `xorm:"UNIQUE(block)"`
 	Blocker     *User `xorm:"-"`
@@ -31,11 +31,15 @@ type UserBlock struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
-func init() {
-	db.RegisterModel(new(UserBlock))
+func (*Blocking) TableName() string {
+	return "user_blocking"
 }
 
-func UpdateUserBlock(ctx context.Context, block *UserBlock) error {
+func init() {
+	db.RegisterModel(new(Blocking))
+}
+
+func UpdateUserBlock(ctx context.Context, block *Blocking) error {
 	_, err := db.GetEngine(ctx).ID(block.ID).Update(block)
 	return err
 }
@@ -49,36 +53,36 @@ func IsUserBlockedBy(ctx context.Context, blockee *User, blockerIDs ...int64) bo
 		return false
 	}
 
-	cond := builder.Eq{"user_block.blockee_id": blockee.ID}.
-		And(builder.In("user_block.blocker_id", blockerIDs))
+	cond := builder.Eq{"user_blocking.blockee_id": blockee.ID}.
+		And(builder.In("user_blocking.blocker_id", blockerIDs))
 
-	has, _ := db.GetEngine(ctx).Where(cond).Exist(&UserBlock{})
+	has, _ := db.GetEngine(ctx).Where(cond).Exist(&Blocking{})
 	return has
 }
 
-type FindUserBlockOptions struct {
+type FindBlockingOptions struct {
 	db.ListOptions
 	BlockerID int64
 	BlockeeID int64
 }
 
-func (opts *FindUserBlockOptions) ToConds() builder.Cond {
+func (opts *FindBlockingOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.BlockerID != 0 {
-		cond = cond.And(builder.Eq{"user_block.blocker_id": opts.BlockerID})
+		cond = cond.And(builder.Eq{"user_blocking.blocker_id": opts.BlockerID})
 	}
 	if opts.BlockeeID != 0 {
-		cond = cond.And(builder.Eq{"user_block.blockee_id": opts.BlockeeID})
+		cond = cond.And(builder.Eq{"user_blocking.blockee_id": opts.BlockeeID})
 	}
 	return cond
 }
 
-func FindUserBlocks(ctx context.Context, opts *FindUserBlockOptions) ([]*UserBlock, int64, error) {
-	return db.FindAndCount[UserBlock](ctx, opts)
+func FindBlockings(ctx context.Context, opts *FindBlockingOptions) ([]*Blocking, int64, error) {
+	return db.FindAndCount[Blocking](ctx, opts)
 }
 
-func GetUserBlock(ctx context.Context, blockerID, blockeeID int64) (*UserBlock, error) {
-	blocks, _, err := FindUserBlocks(ctx, &FindUserBlockOptions{
+func GetBlocking(ctx context.Context, blockerID, blockeeID int64) (*Blocking, error) {
+	blocks, _, err := FindBlockings(ctx, &FindBlockingOptions{
 		BlockerID: blockerID,
 		BlockeeID: blockeeID,
 	})
@@ -91,9 +95,9 @@ func GetUserBlock(ctx context.Context, blockerID, blockeeID int64) (*UserBlock, 
 	return blocks[0], nil
 }
 
-type UserBlockList []*UserBlock
+type BlockingList []*Blocking
 
-func (blocks UserBlockList) LoadAttributes(ctx context.Context) error {
+func (blocks BlockingList) LoadAttributes(ctx context.Context) error {
 	ids := make(container.Set[int64], len(blocks)*2)
 	for _, b := range blocks {
 		ids.Add(b.BlockerID)

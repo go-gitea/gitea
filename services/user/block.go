@@ -109,14 +109,6 @@ func BlockUser(ctx context.Context, doer, blocker, blockee *user_model.User, not
 			return err
 		}
 
-		// cancel each other repository transfers
-		if err := cancelRepositoryTransfers(ctx, blocker, blockee); err != nil {
-			return err
-		}
-		if err := cancelRepositoryTransfers(ctx, blockee, blocker); err != nil {
-			return err
-		}
-
 		// remove each other from repository collaborations
 		if err := removeCollaborations(ctx, blocker, blockee); err != nil {
 			return err
@@ -125,7 +117,15 @@ func BlockUser(ctx context.Context, doer, blocker, blockee *user_model.User, not
 			return err
 		}
 
-		return db.Insert(ctx, &user_model.UserBlock{
+		// cancel each other repository transfers
+		if err := cancelRepositoryTransfers(ctx, blocker, blockee); err != nil {
+			return err
+		}
+		if err := cancelRepositoryTransfers(ctx, blockee, blocker); err != nil {
+			return err
+		}
+
+		return db.Insert(ctx, &user_model.Blocking{
 			BlockerID: blocker.ID,
 			BlockeeID: blockee.ID,
 			Note:      note,
@@ -295,18 +295,14 @@ func UnblockUser(ctx context.Context, doer, blocker, blockee *user_model.User) e
 	}
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		blocks, _, err := user_model.FindUserBlocks(ctx, &user_model.FindUserBlockOptions{
-			BlockerID: blocker.ID,
-			BlockeeID: blockee.ID,
-		})
+		block, err := user_model.GetBlocking(ctx, blocker.ID, blockee.ID)
 		if err != nil {
 			return err
 		}
-		if len(blocks) == 0 {
-			return user_model.ErrCanNotUnblock
+		if block != nil {
+			_, err = db.DeleteByID[user_model.Blocking](ctx, block.ID)
+			return err
 		}
-
-		_, err = db.DeleteByID[user_model.UserBlock](ctx, blocks[0].ID)
-		return err
+		return nil
 	})
 }

@@ -64,16 +64,17 @@ func TestRepoAPIURL(t *testing.T) {
 
 func TestWatchRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	const repoID = 3
-	const userID = 2
 
-	assert.NoError(t, repo_model.WatchRepo(db.DefaultContext, userID, repoID, true))
-	unittest.AssertExistsAndLoadBean(t, &repo_model.Watch{RepoID: repoID, UserID: userID})
-	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repoID})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	assert.NoError(t, repo_model.WatchRepo(db.DefaultContext, userID, repoID, false))
-	unittest.AssertNotExistsBean(t, &repo_model.Watch{RepoID: repoID, UserID: userID})
-	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repoID})
+	assert.NoError(t, repo_model.WatchRepo(db.DefaultContext, user, repo, true))
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Watch{RepoID: repo.ID, UserID: user.ID})
+	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repo.ID})
+
+	assert.NoError(t, repo_model.WatchRepo(db.DefaultContext, user, repo, false))
+	unittest.AssertNotExistsBean(t, &repo_model.Watch{RepoID: repo.ID, UserID: user.ID})
+	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repo.ID})
 }
 
 func TestMetas(t *testing.T) {

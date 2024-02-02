@@ -11,7 +11,7 @@ import (
 func ListBlocks(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/blocks organization organizationListBlocks
 	// ---
-	// summary: List users blocked by the authenticated user
+	// summary: List users blocked by the organization
 	// parameters:
 	// - name: page
 	//   in: query
@@ -33,7 +33,7 @@ func ListBlocks(ctx *context.APIContext) {
 func CheckUserBlock(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/blocks/{username} organization organizationCheckUserBlock
 	// ---
-	// summary: Check if a user is blocked by the authenticated user
+	// summary: Check if a user is blocked by the organization
 	// parameters:
 	// - name: username
 	//   in: path

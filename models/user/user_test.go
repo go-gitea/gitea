@@ -449,8 +449,8 @@ func TestFollowUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(follower, followed *user_model.User) {
-		assert.NoError(t, user_model.FollowUser(db.DefaultContext, followerID, followedID))
-		unittest.AssertExistsAndLoadBean(t, &user_model.Follow{UserID: followerID, FollowID: followedID})
+		assert.NoError(t, user_model.FollowUser(db.DefaultContext, follower, followed))
+		unittest.AssertExistsAndLoadBean(t, &user_model.Follow{UserID: follower.ID, FollowID: followed.ID})
 	}
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -460,7 +460,7 @@ func TestFollowUser(t *testing.T) {
 	testSuccess(user4, user2)
 	testSuccess(user5, user2)
 
-	assert.NoError(t, user_model.FollowUser(db.DefaultContext, 2, 2))
+	assert.NoError(t, user_model.FollowUser(db.DefaultContext, user2, user2))
 
 	unittest.CheckConsistencyFor(t, &user_model.User{})
 }

@@ -15,6 +15,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -486,6 +487,8 @@ func AddTeamMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
@@ -494,7 +497,11 @@ func AddTeamMember(ctx *context.APIContext) {
 		return
 	}
 	if err := models.AddTeamMember(ctx, ctx.Org.Team, u); err != nil {
-		ctx.Error(http.StatusInternalServerError, "AddMember", err)
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Error(http.StatusForbidden, "AddTeamMember", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "AddTeamMember", err)
+		}
 		return
 	}
 	ctx.Status(http.StatusNoContent)

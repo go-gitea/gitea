@@ -357,6 +357,10 @@ func DeleteTeam(ctx context.Context, t *organization.Team) error {
 // AddTeamMember adds new membership of given team to given organization,
 // the user will have membership to given organization automatically when needed.
 func AddTeamMember(ctx context.Context, team *organization.Team, user *user_model.User) error {
+	if user_model.IsUserBlockedBy(ctx, user, team.OrgID) {
+		return user_model.ErrBlockedUser
+	}
+
 	isAlreadyMember, err := organization.IsTeamMember(ctx, team.OrgID, team.ID, user.ID)
 	if err != nil || isAlreadyMember {
 		return err

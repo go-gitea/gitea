@@ -31,7 +31,7 @@ func TestUser_RemoveMember(t *testing.T) {
 	assert.Equal(t, prevNumMembers-1, org.NumMembers)
 
 	// remove a user that is not a member
-	unittest.AssertNotExistsBean(t, &organization.OrgUser{UID: user5.ID, OrgID: org.ID3})
+	unittest.AssertNotExistsBean(t, &organization.OrgUser{UID: user5.ID, OrgID: org.ID})
 	prevNumMembers = org.NumMembers
 	assert.NoError(t, RemoveOrgUser(db.DefaultContext, org, user5))
 	unittest.AssertNotExistsBean(t, &organization.OrgUser{UID: user5.ID, OrgID: org.ID})
@@ -45,14 +45,14 @@ func TestUser_RemoveMember(t *testing.T) {
 func TestRemoveOrgUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	testSuccess := func(org, user *user_model.User) {
+	testSuccess := func(org *organization.Organization, user *user_model.User) {
 		expectedNumMembers := org.NumMembers
 		if unittest.BeanExists(t, &organization.OrgUser{OrgID: org.ID, UID: user.ID}) {
 			expectedNumMembers--
 		}
 		assert.NoError(t, RemoveOrgUser(db.DefaultContext, org, user))
 		unittest.AssertNotExistsBean(t, &organization.OrgUser{OrgID: org.ID, UID: user.ID})
-		org = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: org.ID})
+		org = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: org.ID})
 		assert.EqualValues(t, expectedNumMembers, org.NumMembers)
 	}
 

@@ -16,16 +16,16 @@ import (
 )
 
 func ListBlocks(ctx *context.APIContext, blocker *user_model.User) {
-	blocks, total, err := user_model.FindUserBlocks(ctx, &user_model.FindUserBlockOptions{
+	blocks, total, err := user_model.FindBlockings(ctx, &user_model.FindBlockingOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		BlockerID:   blocker.ID,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "FindUserBlocks", err)
+		ctx.Error(http.StatusInternalServerError, "FindBlockings", err)
 		return
 	}
 
-	if err := user_model.UserBlockList(blocks).LoadAttributes(ctx); err != nil {
+	if err := user_model.BlockingList(blocks).LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}

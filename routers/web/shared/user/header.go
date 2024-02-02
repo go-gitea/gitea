@@ -86,11 +86,10 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	}
 
 	if ctx.Doer != nil {
-		if block, err := user_model.GetUserBlock(ctx, ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
-			ctx.ServerError("GetUserBlock", err)
-			return
+		if block, err := user_model.GetBlocking(ctx, ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
+			ctx.ServerError("GetBlocking", err)
 		} else {
-			ctx.Data["UserBlock"] = block
+			ctx.Data["UserBlocking"] = block
 		}
 	}
 }

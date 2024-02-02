@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func addReaction(t *testing.T, doer *user_model.User, comment *issues_model.Comment, content string) {
+func addReaction(t *testing.T, doer *user_model.User, issue *issues_model.Issue, comment *issues_model.Comment, content string) {
 	var reaction *issues_model.Reaction
 	var err error
 	if comment == nil {
@@ -63,10 +63,10 @@ func TestIssueDeleteReaction(t *testing.T) {
 
 	addReaction(t, user1, issue, nil, "heart")
 
-	err := issues_model.DeleteIssueReaction(db.DefaultContext, user1.ID, issue1.ID, "heart")
+	err := issues_model.DeleteIssueReaction(db.DefaultContext, user1.ID, issue.ID, "heart")
 	assert.NoError(t, err)
 
-	unittest.AssertNotExistsBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: issue1.ID})
+	unittest.AssertNotExistsBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: issue.ID})
 }
 
 func TestIssueReactionCount(t *testing.T) {

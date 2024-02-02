@@ -14,14 +14,14 @@ import (
 )
 
 func BlockedUsers(ctx *context.Context, blocker *user_model.User) {
-	blocks, _, err := user_model.FindUserBlocks(ctx, &user_model.FindUserBlockOptions{
+	blocks, _, err := user_model.FindBlockings(ctx, &user_model.FindBlockingOptions{
 		BlockerID: blocker.ID,
 	})
 	if err != nil {
-		ctx.ServerError("FindUserBlocks", err)
+		ctx.ServerError("FindBlockings", err)
 		return
 	}
-	if err := user_model.UserBlockList(blocks).LoadAttributes(ctx); err != nil {
+	if err := user_model.BlockingList(blocks).LoadAttributes(ctx); err != nil {
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
@@ -61,9 +61,9 @@ func BlockedUsersPost(ctx *context.Context, blocker *user_model.User) {
 			}
 		}
 	case "note":
-		block, err := user_model.GetUserBlock(ctx, blocker.ID, blockee.ID)
+		block, err := user_model.GetBlocking(ctx, blocker.ID, blockee.ID)
 		if err != nil {
-			ctx.ServerError("GetUserBlock", err)
+			ctx.ServerError("GetBlocking", err)
 			return
 		}
 		if block != nil {

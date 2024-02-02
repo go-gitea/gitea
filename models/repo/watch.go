@@ -106,10 +106,6 @@ func watchRepoMode(ctx context.Context, watch Watch, mode WatchMode) (err error)
 
 // WatchRepo watch or unwatch repository.
 func WatchRepo(ctx context.Context, doer *user_model.User, repo *Repository, doWatch bool) error {
-	if user_model.IsUserBlockedBy(ctx, doer, repo.OwnerID) {
-		return user_model.ErrBlockedUser
-	}
-
 	watch, err := GetWatch(ctx, doer.ID, repo.ID)
 	if err != nil {
 		return err
@@ -119,6 +115,11 @@ func WatchRepo(ctx context.Context, doer *user_model.User, repo *Repository, doW
 	} else if !doWatch {
 		return watchRepoMode(ctx, watch, WatchModeNone)
 	}
+
+	if user_model.IsUserBlockedBy(ctx, doer, repo.OwnerID) {
+		return user_model.ErrBlockedUser
+	}
+
 	return watchRepoMode(ctx, watch, WatchModeNormal)
 }
 

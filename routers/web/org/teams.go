@@ -5,6 +5,7 @@
 package org
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -190,6 +191,8 @@ func TeamsAction(ctx *context.Context) {
 	if err != nil {
 		if org_model.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
+		} else if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Flash.Error(ctx.Tr("org.teams.members.blocked_user"))
 		} else {
 			log.Error("Action(%s): %v", ctx.Params(":action"), err)
 			ctx.JSON(http.StatusOK, map[string]any{

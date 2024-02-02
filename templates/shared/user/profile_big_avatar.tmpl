@@ -27,10 +27,10 @@
 	</div>
 	<div class="extra content gt-word-break">
 		<ul>
-			{{if .UserBlock}}
+			{{if .UserBlocking}}
 				<li class="text red">{{svg "octicon-circle-slash"}} {{ctx.Locale.Tr "user.block.blocked"}}</li>
-				{{if .UserBlock.Note}}
-					<li class="text small red">{{ctx.Locale.Tr "user.block.note"}}: {{.UserBlock.Note}}</li>
+				{{if .UserBlocking.Note}}
+					<li class="text small red">{{ctx.Locale.Tr "user.block.note"}}: {{.UserBlocking.Note}}</li>
 				{{end}}
 			{{end}}
 			{{if .ContextUser.Location}}
@@ -116,7 +116,7 @@
 			</li>
 			{{end}}
 			{{if and .IsSigned (ne .SignedUserID .ContextUser.ID)}}
-				{{if not .UserBlock}}
+				{{if not .UserBlocking}}
 				<li class="follow">
 					{{if $.IsFollowing}}
 						<button class="ui basic red button link-action" data-url="{{.ContextUser.HomeLink}}?action=unfollow">
@@ -130,7 +130,7 @@
 				</li>
 				{{end}}
 				<li>
-					{{if not .UserBlock}}
+					{{if not .UserBlocking}}
 						<a class="muted block-user-action" href="#" data-modal="#block-user-modal" data-blockee="{{.ContextUser.Name}}" data-blockee-name="{{.ContextUser.GetDisplayName}}" data-action="{{AppSubUrl}}/user/settings/blocked_users">{{ctx.Locale.Tr "user.block.block.user"}}</a>
 					{{else}}
 						<a class="muted" href="{{AppSubUrl}}/user/settings/blocked_users">{{ctx.Locale.Tr "user.block.unblock"}}</a>
