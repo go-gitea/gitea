@@ -12,7 +12,7 @@
 			<div id="{{.Issue.HashTag}}" class="timeline-item comment first">
 				{{if .Issue.OriginalAuthor}}
 				<span class="timeline-avatar">
-					<img src="{{AppSubUrl}}/assets/img/avatar_default.png" width="40" height="40">
+					{{ctx.AvatarUtils.Avatar nil 40}}
 				</span>
 				{{else}}
 				<a class="timeline-avatar" {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>

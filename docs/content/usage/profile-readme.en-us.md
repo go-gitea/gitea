@@ -22,4 +22,4 @@ Making the `.profile` repository private will hide the Profile README.
 
 Example of user with `.profile/README.md`:
 
-![profile readme screenshot](./profile-readme.png)
+![profile readme screenshot](/images/usage/profile-readme.png)

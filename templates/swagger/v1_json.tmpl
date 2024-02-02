@@ -1860,7 +1860,7 @@
         "tags": [
           "organization"
         ],
-        "summary": "List users blocked by the authenticated user",
+        "summary": "List users blocked by the organization",
         "operationId": "organizationListBlocks",
         "parameters": [
           {
@@ -1888,7 +1888,7 @@
         "tags": [
           "organization"
         ],
-        "summary": "Check if a user is blocked by the authenticated user",
+        "summary": "Check if a user is blocked by the organization",
         "operationId": "organizationCheckUserBlock",
         "parameters": [
           {
@@ -14445,6 +14445,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           },
           "404": {
             "$ref": "#/responses/notFound"
