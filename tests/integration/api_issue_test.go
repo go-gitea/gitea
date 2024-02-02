@@ -84,7 +84,7 @@ func TestAPICreateIssue(t *testing.T) {
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all", owner.Name, repoBefore.Name)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues", owner.Name, repoBefore.Name)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
 		Body:     body,
 		Title:    title,
@@ -106,6 +106,12 @@ func TestAPICreateIssue(t *testing.T) {
 	repoAfter := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.Equal(t, repoBefore.NumIssues+1, repoAfter.NumIssues)
 	assert.Equal(t, repoBefore.NumClosedIssues, repoAfter.NumClosedIssues)
+
+	user34 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 34})
+	req = NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
+		Title: title,
+	}).AddTokenAuth(getUserToken(t, user34.Name, auth_model.AccessTokenScopeWriteIssue))
+	MakeRequest(t, req, http.StatusForbidden)
 }
 
 func TestAPICreateIssueParallel(t *testing.T) {
@@ -117,7 +123,7 @@ func TestAPICreateIssueParallel(t *testing.T) {
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all", owner.Name, repoBefore.Name)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues", owner.Name, repoBefore.Name)
 
 	var wg sync.WaitGroup
 	for i := 0; i < 10; i++ {

@@ -7,3 +7,13 @@
   id: 2
   blocker_id: 17
   blockee_id: 28
+
+-
+  id: 3
+  blocker_id: 2
+  blockee_id: 34
+
+-
+  id: 4
+  blocker_id: 3
+  blockee_id: 34
