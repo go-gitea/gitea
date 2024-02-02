@@ -723,6 +723,7 @@ rules:
   unicorn/no-this-assignment: [2]
   unicorn/no-typeof-undefined: [2]
   unicorn/no-unnecessary-await: [2]
+  unicorn/no-unnecessary-polyfills: [2]
   unicorn/no-unreadable-array-destructuring: [0]
   unicorn/no-unreadable-iife: [2]
   unicorn/no-unused-properties: [2]

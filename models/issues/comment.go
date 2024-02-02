@@ -18,7 +18,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
@@ -762,8 +762,7 @@ func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
 		c.OldCommit = data.CommitIDs[0]
 		c.NewCommit = data.CommitIDs[1]
 	} else {
-		repoPath := c.Issue.Repo.RepoPath()
-		gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repoPath)
+		gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, c.Issue.Repo)
 		if err != nil {
 			return err
 		}
