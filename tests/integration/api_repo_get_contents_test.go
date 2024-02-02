@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -73,7 +74,7 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// Get the commit ID of the default branch
-	gitRepo, err := git.OpenRepository(git.DefaultContext, repo1.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo1)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -151,15 +152,18 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// Test accessing private ref with user token that does not have access - should fail
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo16.Name, treePath, token4)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s", user2.Name, repo16.Name, treePath).
+		AddTokenAuth(token4)
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// Test access private ref of owner of token
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/readme.md?token=%s", user2.Name, repo16.Name, token2)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/readme.md", user2.Name, repo16.Name).
+		AddTokenAuth(token2)
 	MakeRequest(t, req, http.StatusOK)
 
 	// Test access of org org3 private repo file by owner user2
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?token=%s", org3.Name, repo3.Name, treePath, token2)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s", org3.Name, repo3.Name, treePath).
+		AddTokenAuth(token2)
 	MakeRequest(t, req, http.StatusOK)
 }
 

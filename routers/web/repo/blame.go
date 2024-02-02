@@ -125,7 +125,7 @@ func RefBlame(ctx *context.Context) {
 }
 
 type blameResult struct {
-	Parts                []git.BlamePart
+	Parts                []*git.BlamePart
 	UsesIgnoreRevs       bool
 	FaultyIgnoreRevsFile bool
 }
@@ -175,7 +175,9 @@ func performBlame(ctx *context.Context, repoPath string, commit *git.Commit, fil
 func fillBlameResult(br *git.BlameReader, r *blameResult) error {
 	r.UsesIgnoreRevs = br.UsesIgnoreRevs()
 
-	r.Parts = make([]git.BlamePart, 0, 5)
+	previousHelper := make(map[string]*git.BlamePart)
+
+	r.Parts = make([]*git.BlamePart, 0, 5)
 	for {
 		blamePart, err := br.NextPart()
 		if err != nil {
@@ -184,13 +186,23 @@ func fillBlameResult(br *git.BlameReader, r *blameResult) error {
 		if blamePart == nil {
 			break
 		}
-		r.Parts = append(r.Parts, *blamePart)
+
+		if prev, ok := previousHelper[blamePart.Sha]; ok {
+			if blamePart.PreviousSha == "" {
+				blamePart.PreviousSha = prev.PreviousSha
+				blamePart.PreviousPath = prev.PreviousPath
+			}
+		} else {
+			previousHelper[blamePart.Sha] = blamePart
+		}
+
+		r.Parts = append(r.Parts, blamePart)
 	}
 
 	return nil
 }
 
-func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) map[string]*user_model.UserCommit {
+func processBlameParts(ctx *context.Context, blameParts []*git.BlamePart) map[string]*user_model.UserCommit {
 	// store commit data by SHA to look up avatar info etc
 	commitNames := make(map[string]*user_model.UserCommit)
 	// and as blameParts can reference the same commits multiple
@@ -232,7 +244,7 @@ func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) map[str
 	return commitNames
 }
 
-func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames map[string]*user_model.UserCommit) {
+func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames map[string]*user_model.UserCommit) {
 	repoLink := ctx.Repo.RepoLink
 
 	language := ""

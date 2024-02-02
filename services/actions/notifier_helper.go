@@ -20,6 +20,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -117,6 +118,9 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return nil
 	}
 	if unit_model.TypeActions.UnitGlobalDisabled() {
+		if err := actions_model.CleanRepoScheduleTasks(ctx, input.Repo); err != nil {
+			log.Error("CleanRepoScheduleTasks: %v", err)
+		}
 		return nil
 	}
 	if err := input.Repo.LoadUnits(ctx); err != nil {
@@ -125,7 +129,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return nil
 	}
 
-	gitRepo, err := git.OpenRepository(context.Background(), input.Repo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(context.Background(), input.Repo)
 	if err != nil {
 		return fmt.Errorf("git.OpenRepository: %w", err)
 	}
@@ -153,23 +157,31 @@ func notify(ctx context.Context, input *notifyInput) error {
 
 	var detectedWorkflows []*actions_module.DetectedWorkflow
 	actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
-	workflows, schedules, err := actions_module.DetectWorkflows(gitRepo, commit, input.Event, input.Payload)
+	workflows, schedules, err := actions_module.DetectWorkflows(gitRepo, commit,
+		input.Event,
+		input.Payload,
+		input.Event == webhook_module.HookEventPush && git.RefName(input.Ref).BranchName() == input.Repo.DefaultBranch,
+	)
 	if err != nil {
 		return fmt.Errorf("DetectWorkflows: %w", err)
 	}
 
-	if len(workflows) == 0 {
-		log.Trace("repo %s with commit %s couldn't find workflows", input.Repo.RepoPath(), commit.ID)
-	} else {
-		for _, wf := range workflows {
-			if actionsConfig.IsWorkflowDisabled(wf.EntryName) {
-				log.Trace("repo %s has disable workflows %s", input.Repo.RepoPath(), wf.EntryName)
-				continue
-			}
+	log.Trace("repo %s with commit %s event %s find %d workflows and %d schedules",
+		input.Repo.RepoPath(),
+		commit.ID,
+		input.Event,
+		len(workflows),
+		len(schedules),
+	)
 
-			if wf.TriggerEvent != actions_module.GithubEventPullRequestTarget {
-				detectedWorkflows = append(detectedWorkflows, wf)
-			}
+	for _, wf := range workflows {
+		if actionsConfig.IsWorkflowDisabled(wf.EntryName) {
+			log.Trace("repo %s has disable workflows %s", input.Repo.RepoPath(), wf.EntryName)
+			continue
+		}
+
+		if wf.TriggerEvent.Name != actions_module.GithubEventPullRequestTarget {
+			detectedWorkflows = append(detectedWorkflows, wf)
 		}
 	}
 
@@ -180,7 +192,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		if err != nil {
 			return fmt.Errorf("gitRepo.GetCommit: %w", err)
 		}
-		baseWorkflows, _, err := actions_module.DetectWorkflows(gitRepo, baseCommit, input.Event, input.Payload)
+		baseWorkflows, _, err := actions_module.DetectWorkflows(gitRepo, baseCommit, input.Event, input.Payload, false)
 		if err != nil {
 			return fmt.Errorf("DetectWorkflows: %w", err)
 		}
@@ -188,14 +200,14 @@ func notify(ctx context.Context, input *notifyInput) error {
 			log.Trace("repo %s with commit %s couldn't find pull_request_target workflows", input.Repo.RepoPath(), baseCommit.ID)
 		} else {
 			for _, wf := range baseWorkflows {
-				if wf.TriggerEvent == actions_module.GithubEventPullRequestTarget {
+				if wf.TriggerEvent.Name == actions_module.GithubEventPullRequestTarget {
 					detectedWorkflows = append(detectedWorkflows, wf)
 				}
 			}
 		}
 	}
 
-	if err := handleSchedules(ctx, schedules, commit, input); err != nil {
+	if err := handleSchedules(ctx, schedules, commit, input, ref); err != nil {
 		return err
 	}
 
@@ -265,7 +277,7 @@ func handleWorkflows(
 			IsForkPullRequest: isForkPullRequest,
 			Event:             input.Event,
 			EventPayload:      string(p),
-			TriggerEvent:      dwf.TriggerEvent,
+			TriggerEvent:      dwf.TriggerEvent.Name,
 			Status:            actions_model.StatusWaiting,
 		}
 		if need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer); err != nil {
@@ -289,6 +301,7 @@ func handleWorkflows(
 				run.RepoID,
 				run.Ref,
 				run.WorkflowID,
+				run.Event,
 			); err != nil {
 				log.Error("CancelRunningJobs: %v", err)
 			}
@@ -399,6 +412,7 @@ func handleSchedules(
 	detectedWorkflows []*actions_module.DetectedWorkflow,
 	commit *git.Commit,
 	input *notifyInput,
+	ref string,
 ) error {
 	branch, err := commit.GetBranchName()
 	if err != nil {
@@ -413,8 +427,8 @@ func handleSchedules(
 		log.Error("CountSchedules: %v", err)
 		return err
 	} else if count > 0 {
-		if err := actions_model.DeleteScheduleTaskByRepo(ctx, input.Repo.ID); err != nil {
-			log.Error("DeleteCronTaskByRepo: %v", err)
+		if err := actions_model.CleanRepoScheduleTasks(ctx, input.Repo); err != nil {
+			log.Error("CleanRepoScheduleTasks: %v", err)
 		}
 	}
 
@@ -448,28 +462,47 @@ func handleSchedules(
 			OwnerID:       input.Repo.OwnerID,
 			WorkflowID:    dwf.EntryName,
 			TriggerUserID: input.Doer.ID,
-			Ref:           input.Ref,
+			Ref:           ref,
 			CommitSHA:     commit.ID.String(),
 			Event:         input.Event,
 			EventPayload:  string(p),
 			Specs:         schedules,
 			Content:       dwf.Content,
 		}
-
-		// cancel running jobs if the event is push
-		if run.Event == webhook_module.HookEventPush {
-			// cancel running jobs of the same workflow
-			if err := actions_model.CancelRunningJobs(
-				ctx,
-				run.RepoID,
-				run.Ref,
-				run.WorkflowID,
-			); err != nil {
-				log.Error("CancelRunningJobs: %v", err)
-			}
-		}
 		crons = append(crons, run)
 	}
 
 	return actions_model.CreateScheduleTask(ctx, crons)
+}
+
+// DetectAndHandleSchedules detects the schedule workflows on the default branch and create schedule tasks
+func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) error {
+	gitRepo, err := gitrepo.OpenRepository(context.Background(), repo)
+	if err != nil {
+		return fmt.Errorf("git.OpenRepository: %w", err)
+	}
+	defer gitRepo.Close()
+
+	// Only detect schedule workflows on the default branch
+	commit, err := gitRepo.GetCommit(repo.DefaultBranch)
+	if err != nil {
+		return fmt.Errorf("gitRepo.GetCommit: %w", err)
+	}
+	scheduleWorkflows, err := actions_module.DetectScheduledWorkflows(gitRepo, commit)
+	if err != nil {
+		return fmt.Errorf("detect schedule workflows: %w", err)
+	}
+	if len(scheduleWorkflows) == 0 {
+		return nil
+	}
+
+	// We need a notifyInput to call handleSchedules
+	// Here we use the commit author as the Doer of the notifyInput
+	commitUser, err := user_model.GetUserByEmail(ctx, commit.Author.Email)
+	if err != nil {
+		return fmt.Errorf("get user by email: %w", err)
+	}
+	notifyInput := newNotifyInput(repo, commitUser, webhook_module.HookEventSchedule)
+
+	return handleSchedules(ctx, scheduleWorkflows, commit, notifyInput, repo.DefaultBranch)
 }

@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
-	"xorm.io/builder"
 )
 
 func TestMilestone_State(t *testing.T) {
@@ -283,34 +282,6 @@ func TestGetMilestonesByRepoIDs(t *testing.T) {
 	test("soonestduedate", func(milestone *issues_model.Milestone) int {
 		return int(milestone.DeadlineUnix)
 	})
-}
-
-func TestGetMilestonesStats(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	test := func(repoID int64) {
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
-		stats, err := issues_model.GetMilestonesStatsByRepoCond(db.DefaultContext, builder.And(builder.Eq{"repo_id": repoID}))
-		assert.NoError(t, err)
-		assert.EqualValues(t, repo.NumMilestones-repo.NumClosedMilestones, stats.OpenCount)
-		assert.EqualValues(t, repo.NumClosedMilestones, stats.ClosedCount)
-	}
-	test(1)
-	test(2)
-	test(3)
-
-	stats, err := issues_model.GetMilestonesStatsByRepoCond(db.DefaultContext, builder.And(builder.Eq{"repo_id": unittest.NonexistentID}))
-	assert.NoError(t, err)
-	assert.EqualValues(t, 0, stats.OpenCount)
-	assert.EqualValues(t, 0, stats.ClosedCount)
-
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-
-	milestoneStats, err := issues_model.GetMilestonesStatsByRepoCond(db.DefaultContext, builder.In("repo_id", []int64{repo1.ID, repo2.ID}))
-	assert.NoError(t, err)
-	assert.EqualValues(t, repo1.NumOpenMilestones+repo2.NumOpenMilestones, milestoneStats.OpenCount)
-	assert.EqualValues(t, repo1.NumClosedMilestones+repo2.NumClosedMilestones, milestoneStats.ClosedCount)
 }
 
 func TestNewMilestone(t *testing.T) {

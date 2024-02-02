@@ -160,32 +160,6 @@ func (m MilestonesStats) Total() int64 {
 	return m.OpenCount + m.ClosedCount
 }
 
-// GetMilestonesStatsByRepoCond returns milestone statistic information for dashboard by given conditions.
-func GetMilestonesStatsByRepoCond(ctx context.Context, repoCond builder.Cond) (*MilestonesStats, error) {
-	var err error
-	stats := &MilestonesStats{}
-
-	sess := db.GetEngine(ctx).Where("is_closed = ?", false)
-	if repoCond.IsValid() {
-		sess.And(builder.In("repo_id", builder.Select("id").From("repository").Where(repoCond)))
-	}
-	stats.OpenCount, err = sess.Count(new(Milestone))
-	if err != nil {
-		return nil, err
-	}
-
-	sess = db.GetEngine(ctx).Where("is_closed = ?", true)
-	if repoCond.IsValid() {
-		sess.And(builder.In("repo_id", builder.Select("id").From("repository").Where(repoCond)))
-	}
-	stats.ClosedCount, err = sess.Count(new(Milestone))
-	if err != nil {
-		return nil, err
-	}
-
-	return stats, nil
-}
-
 // GetMilestonesStatsByRepoCondAndKw returns milestone statistic information for dashboard by given repo conditions and name keyword.
 func GetMilestonesStatsByRepoCondAndKw(ctx context.Context, repoCond builder.Cond, keyword string) (*MilestonesStats, error) {
 	var err error

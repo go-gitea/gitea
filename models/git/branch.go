@@ -283,7 +283,7 @@ func FindRenamedBranch(ctx context.Context, repoID int64, from string) (branch *
 }
 
 // RenameBranch rename a branch
-func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to string, gitAction func(isDefault bool) error) (err error) {
+func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to string, gitAction func(ctx context.Context, isDefault bool) error) (err error) {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -358,7 +358,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 	}
 
 	// 5. do git action
-	if err = gitAction(isDefault); err != nil {
+	if err = gitAction(ctx, isDefault); err != nil {
 		return err
 	}
 
