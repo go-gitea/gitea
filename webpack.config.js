@@ -135,7 +135,7 @@ export default {
             loader: 'esbuild-loader',
             options: {
               loader: 'js',
-              target: 'es2015',
+              target: 'es2020',
             },
           },
         ],
