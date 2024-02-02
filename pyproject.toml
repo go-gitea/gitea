@@ -8,7 +8,7 @@ authors = []
 python = "^3.8"
 
 [tool.poetry.group.dev.dependencies]
-djlint = "1.34.0"
+djlint = "1.34.1"
 yamllint = "1.33.0"
 
 [tool.djlint]
