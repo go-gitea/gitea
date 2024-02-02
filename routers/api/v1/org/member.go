@@ -239,7 +239,7 @@ func PublicizeMember(ctx *context.APIContext) {
 	if userToPublicize.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
 		isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "ChangeOrgUserStatus", err)
+			ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
 			return
 		}
 		if !isOwner {
@@ -288,7 +288,7 @@ func ConcealMember(ctx *context.APIContext) {
 	if userToConceal.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
 		isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "ChangeOrgUserStatus", err)
+			ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
 			return
 		}
 		if !isOwner {
