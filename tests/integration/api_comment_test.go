@@ -126,7 +126,7 @@ func TestAPICreateComment(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		user34 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 34})
-		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12})
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 13})
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/comments", repo.OwnerName, repo.Name, issue.Index), map[string]string{
