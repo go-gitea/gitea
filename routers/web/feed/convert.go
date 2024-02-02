@@ -296,7 +296,6 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release, i
 			},
 			Metas: rel.Repo.ComposeMetas(ctx),
 		}, rel.Note)
-
 		if err != nil {
 			return nil, err
 		}
