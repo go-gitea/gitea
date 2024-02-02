@@ -80,6 +80,14 @@ func TestRender_Media(t *testing.T) {
 		`<p><img src="https://example.com/example.svg" alt="https://example.com/example.svg" /></p>`)
 	test("[[https://example.com/example.mp4]]",
 		`<p><video src="https://example.com/example.mp4">https://example.com/example.mp4</video></p>`)
+
+	// test [[LINK][DESCRIPTION]] syntax with "file:" prefix
+	test(`[[file:https://example.com/foo%20bar.svg][Goto Image]]`,
+		`<p><a href="https://example.com/foo%20bar.svg">Goto Image</a></p>`)
+	test(`[[file:https://example.com/link][https://example.com/image.jpg]]`,
+		`<p><a href="https://example.com/link"><img src="https://example.com/image.jpg" alt="https://example.com/image.jpg" /></a></p>`)
+	test(`[[file:https://example.com/link][file:https://example.com/image.jpg]]`,
+		`<p><a href="https://example.com/link"><img src="https://example.com/image.jpg" alt="https://example.com/image.jpg" /></a></p>`)
 }
 
 func TestRender_Source(t *testing.T) {
