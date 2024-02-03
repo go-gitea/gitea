@@ -8,13 +8,11 @@ import (
 
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/convert"
-	packages_service "code.gitea.io/gitea/services/packages"
-	cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
+	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
 )
 
 // ListPackages gets all packages of an owner
@@ -166,14 +164,10 @@ func DeletePackage(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
+	err := packages_cleanup_service.RemovePackageVersionOutOfContext(ctx, ctx.Doer, ctx.Package.Descriptor)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "RemovePackageVersion", err)
+		ctx.Error(http.StatusInternalServerError, "RemovePackageVersionOutOfContext", err)
 		return
-	}
-
-	if err := cleanup_service.PostPackageRemoval(ctx, ctx.Package.Descriptor); err != nil {
-		log.Error("PostPackageRemoval failed: %v", err)
 	}
 
 	ctx.Status(http.StatusNoContent)

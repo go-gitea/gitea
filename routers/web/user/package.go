@@ -27,7 +27,7 @@ import (
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/forms"
 	packages_service "code.gitea.io/gitea/services/packages"
-	cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
+	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
 )
 
 const (
@@ -458,16 +458,12 @@ func PackageSettingsPost(ctx *context.Context) {
 		ctx.Redirect(ctx.Link)
 		return
 	case "delete":
-		err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
+		err := packages_cleanup_service.RemovePackageVersionOutOfContext(ctx, ctx.Doer, ctx.Package.Descriptor)
 		if err != nil {
 			log.Error("Error deleting package: %v", err)
 			ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
 		} else {
 			ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
-		}
-
-		if err := cleanup_service.PostPackageRemoval(ctx, ctx.Package.Descriptor); err != nil {
-			log.Error("PostPackageRemoval failed: %v", err)
 		}
 
 		redirectURL := ctx.Package.Owner.HomeLink() + "/-/packages"
