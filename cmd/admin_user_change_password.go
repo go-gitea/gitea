@@ -32,6 +32,10 @@ var microcmdUserChangePassword = &cli.Command{
 			Value:   "",
 			Usage:   "New password to set for user",
 		},
+		&cli.BoolFlag{
+			Name:  "must-change-password",
+			Usage: "User must change password",
+		},
 	},
 }
 
@@ -69,7 +73,11 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 
-	if err = user_model.UpdateUserCols(ctx, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
+	if c.IsSet("must-change-password") {
+		user.MustChangePassword = c.Bool("must-change-password")
+	}
+
+	if err = user_model.UpdateUserCols(ctx, user, "must_change_password", "passwd", "passwd_hash_algo", "salt"); err != nil {
 		return err
 	}
 
