@@ -10,19 +10,43 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	notify_service "code.gitea.io/gitea/services/notify"
+	"github.com/olahol/melody"
 )
 
 type webhookNotifier struct {
 	notify_service.NullNotifier
+	m *melody.Melody
 }
 
 var _ notify_service.Notifier = &webhookNotifier{}
 
 // NewNotifier create a new webhooksNotifier notifier
-func NewNotifier() notify_service.Notifier {
-	return &webhookNotifier{}
+func NewNotifier(m *melody.Melody) notify_service.Notifier {
+	return &webhookNotifier{
+		m: m,
+	}
 }
 
 func (n *webhookNotifier) CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User) {
-	// TODO
+	// TODO: use proper message
+	msg := []byte("<div hx-swap-oob=\"beforebegin:.timeline-item.comment.form\"><div class=\"hello\">hello world!</div></div>")
+
+	n.m.BroadcastFilter(msg, func(s *melody.Session) bool {
+		sessionData, err := getSessionData(s)
+		if err != nil {
+			return false
+		}
+
+		if sessionData.uid == doer.ID {
+			return true
+		}
+
+		for _, mention := range mentions {
+			if mention.ID == sessionData.uid {
+				return true
+			}
+		}
+
+		return false
+	})
 }

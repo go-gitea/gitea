@@ -4,7 +4,6 @@
 package websocket
 
 import (
-	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/modules/context"
@@ -14,10 +13,6 @@ import (
 	"code.gitea.io/gitea/routers/web/auth"
 	"github.com/olahol/melody"
 )
-
-type SessionData struct {
-	unregister func()
-}
 
 func HandleConnect(s *melody.Session) {
 	ctx := context.GetWebContext(s.Request)
@@ -43,7 +38,7 @@ func HandleConnect(s *melody.Session) {
 
 	messageChan := eventsource.GetManager().Register(uid)
 
-	sessionData := &SessionData{
+	sessionData := &sessionData{
 		unregister: func() {
 			eventsource.GetManager().Unregister(uid, messageChan)
 			// ensure the messageChan is closed
@@ -107,20 +102,6 @@ loop:
 
 func HandleMessage(s *melody.Session, msg []byte) {
 	// TODO: Handle incoming messages
-}
-
-func getSessionData(s *melody.Session) (*SessionData, error) {
-	_data, ok := s.Get("data")
-	if !ok {
-		return nil, fmt.Errorf("no session data")
-	}
-
-	data, ok := _data.(*SessionData)
-	if !ok {
-		return nil, fmt.Errorf("invalid session data")
-	}
-
-	return data, nil
 }
 
 func HandleDisconnect(s *melody.Session) {
