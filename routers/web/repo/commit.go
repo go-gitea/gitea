@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitgraph"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
@@ -279,7 +280,7 @@ func Diff(ctx *context.Context) {
 	)
 
 	if ctx.Data["PageIsWiki"] != nil {
-		gitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.WikiPath())
+		gitRepo, err = gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
 		if err != nil {
 			ctx.ServerError("Repo.GitRepo.GetCommit", err)
 			return
@@ -384,7 +385,7 @@ func Diff(ctx *context.Context) {
 			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
 			GitRepo: ctx.Repo.GitRepo,
 			Ctx:     ctx,
-		}, template.HTMLEscapeString(string(charset.ToUTF8WithFallback(note.Message))))
+		}, template.HTMLEscapeString(string(charset.ToUTF8WithFallback(note.Message, charset.ConvertOpts{}))))
 		if err != nil {
 			ctx.ServerError("RenderCommitMessage", err)
 			return
@@ -404,7 +405,7 @@ func Diff(ctx *context.Context) {
 func RawDiff(ctx *context.Context) {
 	var gitRepo *git.Repository
 	if ctx.Data["PageIsWiki"] != nil {
-		wikiRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.WikiPath())
+		wikiRepo, err := gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return

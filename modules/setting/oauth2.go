@@ -93,7 +93,7 @@ func parseScopes(sec ConfigSection, name string) []string {
 }
 
 var OAuth2 = struct {
-	Enable                     bool
+	Enabled                    bool
 	AccessTokenExpirationTime  int64
 	RefreshTokenExpirationTime int64
 	InvalidateRefreshTokens    bool
@@ -103,7 +103,7 @@ var OAuth2 = struct {
 	MaxTokenLength             int
 	DefaultApplications        []string
 }{
-	Enable:                     true,
+	Enabled:                    true,
 	AccessTokenExpirationTime:  3600,
 	RefreshTokenExpirationTime: 730,
 	InvalidateRefreshTokens:    false,
@@ -114,16 +114,23 @@ var OAuth2 = struct {
 }
 
 func loadOAuth2From(rootCfg ConfigProvider) {
-	if err := rootCfg.Section("oauth2").MapTo(&OAuth2); err != nil {
-		log.Fatal("Failed to OAuth2 settings: %v", err)
+	sec := rootCfg.Section("oauth2")
+	if err := sec.MapTo(&OAuth2); err != nil {
+		log.Fatal("Failed to map OAuth2 settings: %v", err)
 		return
 	}
 
-	if !OAuth2.Enable {
+	// Handle the rename of ENABLE to ENABLED
+	deprecatedSetting(rootCfg, "oauth2", "ENABLE", "oauth2", "ENABLED", "v1.23.0")
+	if sec.HasKey("ENABLE") && !sec.HasKey("ENABLED") {
+		OAuth2.Enabled = sec.Key("ENABLE").MustBool(OAuth2.Enabled)
+	}
+
+	if !OAuth2.Enabled {
 		return
 	}
 
-	OAuth2.JWTSecretBase64 = loadSecret(rootCfg.Section("oauth2"), "JWT_SECRET_URI", "JWT_SECRET")
+	OAuth2.JWTSecretBase64 = loadSecret(sec, "JWT_SECRET_URI", "JWT_SECRET")
 
 	if !filepath.IsAbs(OAuth2.JWTSigningPrivateKeyFile) {
 		OAuth2.JWTSigningPrivateKeyFile = filepath.Join(AppDataPath, OAuth2.JWTSigningPrivateKeyFile)

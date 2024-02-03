@@ -108,7 +108,7 @@
 					{{else if .IsPDFFile}}
 						<div class="pdf-content is-loading" data-src="{{$.RawFileLink}}" data-fallback-button-text="{{ctx.Locale.Tr "repo.diff.view_file"}}"></div>
 					{{else}}
-						<a href="{{$.RawFileLink}}" rel="nofollow" class="btn btn-gray btn-radius">{{ctx.Locale.Tr "repo.file_view_raw"}}</a>
+						<a href="{{$.RawFileLink}}" rel="nofollow">{{ctx.Locale.Tr "repo.file_view_raw"}}</a>
 					{{end}}
 				</div>
 			{{else if .FileSize}}

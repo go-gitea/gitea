@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	csv_module "code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
@@ -142,7 +143,7 @@ func setCsvCompareContext(ctx *context.Context) {
 				return nil, nil, err
 			}
 
-			csvReader, err := csv_module.CreateReaderAndDetermineDelimiter(ctx, charset.ToUTF8WithFallbackReader(reader))
+			csvReader, err := csv_module.CreateReaderAndDetermineDelimiter(ctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}))
 			return csvReader, reader, err
 		}
 
@@ -408,7 +409,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ci.HeadRepo = ctx.Repo.Repository
 		ci.HeadGitRepo = ctx.Repo.GitRepo
 	} else if has {
-		ci.HeadGitRepo, err = git.OpenRepository(ctx, ci.HeadRepo.RepoPath())
+		ci.HeadGitRepo, err = gitrepo.OpenRepository(ctx, ci.HeadRepo)
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return nil
@@ -688,7 +689,7 @@ func PrepareCompareDiff(
 }
 
 func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repository) (branches, tags []string, err error) {
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -876,7 +877,7 @@ func ExcerptBlob(ctx *context.Context) {
 	gitRepo := ctx.Repo.GitRepo
 	if ctx.FormBool("wiki") {
 		var err error
-		gitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.WikiPath())
+		gitRepo, err = gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return

@@ -310,7 +310,13 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 
 	msgs := make([]*Message, 0, len(recipients))
 	for _, recipient := range recipients {
-		msg := NewMessageFrom(recipient.Email, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
+		msg := NewMessageFrom(
+			recipient.Email,
+			ctx.Doer.GetCompleteName(),
+			setting.MailService.FromEmail,
+			subject,
+			mailBody.String(),
+		)
 		msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
 		msg.SetHeader("Message-ID", msgID)
@@ -394,8 +400,8 @@ func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient
 
 		"X-Mailer":                  "Gitea",
 		"X-Gitea-Reason":            reason,
-		"X-Gitea-Sender":            ctx.Doer.DisplayName(),
-		"X-Gitea-Recipient":         recipient.DisplayName(),
+		"X-Gitea-Sender":            ctx.Doer.Name,
+		"X-Gitea-Recipient":         recipient.Name,
 		"X-Gitea-Recipient-Address": recipient.Email,
 		"X-Gitea-Repository":        repo.Name,
 		"X-Gitea-Repository-Path":   repo.FullName(),
@@ -404,8 +410,8 @@ func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient
 		"X-Gitea-Issue-Link":        ctx.Issue.HTMLURL(),
 
 		"X-GitHub-Reason":            reason,
-		"X-GitHub-Sender":            ctx.Doer.DisplayName(),
-		"X-GitHub-Recipient":         recipient.DisplayName(),
+		"X-GitHub-Sender":            ctx.Doer.Name,
+		"X-GitHub-Recipient":         recipient.Name,
 		"X-GitHub-Recipient-Address": recipient.Email,
 
 		"X-GitLab-NotificationReason": reason,
