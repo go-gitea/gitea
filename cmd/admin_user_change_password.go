@@ -73,7 +73,9 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 
-	user.MustChangePassword = c.IsSet("must-change-password")
+	if c.IsSet("must-change-password") {
+		user.MustChangePassword = c.Bool("must-change-password")
+	}
 
 	if err = user_model.UpdateUserCols(ctx, user, "must_change_password", "passwd", "passwd_hash_algo", "salt"); err != nil {
 		return err
