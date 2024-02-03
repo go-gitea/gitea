@@ -23,7 +23,8 @@ func TestRender_StandardLinks(t *testing.T) {
 		buffer, err := RenderString(&markup.RenderContext{
 			Ctx: git.DefaultContext,
 			Links: markup.Links{
-				Base: "/relative-path",
+				Base:       "/relative-path",
+				BranchPath: "branch/main",
 			},
 		}, input)
 		assert.NoError(t, err)
@@ -32,9 +33,10 @@ func TestRender_StandardLinks(t *testing.T) {
 
 	test("[[https://google.com/]]",
 		`<p><a href="https://google.com/">https://google.com/</a></p>`)
-
-	test("[[WikiPage][The WikiPage Name]]",
-		`<p><a href="/relative-path/WikiPage">The WikiPage Name</a></p>`)
+	test("[[WikiPage][The WikiPage Desc]]",
+		`<p><a href="/relative-path/WikiPage">The WikiPage Desc</a></p>`)
+	test("[[ImageLink.svg][The Image Desc]]",
+		`<p><a href="/relative-path/media/branch/main/ImageLink.svg">The Image Desc</a></p>`)
 }
 
 func TestRender_Media(t *testing.T) {
