@@ -133,7 +133,7 @@ type Writer struct {
 	Ctx *markup.RenderContext
 }
 
-func (r *Writer) resolveLink(kind string, link string) string {
+func (r *Writer) resolveLink(kind, link string) string {
 	link = strings.TrimPrefix(link, "file:")
 	if !strings.HasPrefix(link, "#") && // not a URL fragment
 		!markup.IsLinkStr(link) && // not an absolute URL
