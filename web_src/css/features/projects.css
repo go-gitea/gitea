@@ -59,6 +59,7 @@
   margin: 0 !important;
   flex-direction: column;
   gap: .25rem;
+  max-width: 100%;
 }
 
 .cards-wrapper > .note-cards {
@@ -93,6 +94,7 @@
 
 .card-attachment-images {
   display: inline-block;
+  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-align: center;
@@ -101,6 +103,7 @@
 .card-attachment-images img {
   display: inline-block;
   max-height: 50px;
+  max-width: 100%;
   border-radius: var(--border-radius);
   margin-right: 2px;
 }
