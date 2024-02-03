@@ -102,6 +102,7 @@
 .organization.profile #org-info {
   overflow-wrap: anywhere;
   flex: 1;
+  word-break: break-all;
 }
 
 .organization.profile #org-info .ui.header {

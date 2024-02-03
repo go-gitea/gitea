@@ -14,35 +14,72 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	webhook_model "code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWebhookProxy(t *testing.T) {
+	oldWebhook := setting.Webhook
+	t.Cleanup(func() {
+		setting.Webhook = oldWebhook
+	})
+
 	setting.Webhook.ProxyURL = "http://localhost:8080"
 	setting.Webhook.ProxyURLFixed, _ = url.Parse(setting.Webhook.ProxyURL)
 	setting.Webhook.ProxyHosts = []string{"*.discordapp.com", "discordapp.com"}
 
-	kases := map[string]string{
-		"https://discordapp.com/api/webhooks/xxxxxxxxx/xxxxxxxxxxxxxxxxxxx": "http://localhost:8080",
-		"http://s.discordapp.com/assets/xxxxxx":                             "http://localhost:8080",
-		"http://github.com/a/b":                                             "",
+	allowedHostMatcher := hostmatcher.ParseHostMatchList("webhook.ALLOWED_HOST_LIST", "discordapp.com,s.discordapp.com")
+
+	tests := []struct {
+		req     string
+		want    string
+		wantErr bool
+	}{
+		{
+			req:     "https://discordapp.com/api/webhooks/xxxxxxxxx/xxxxxxxxxxxxxxxxxxx",
+			want:    "http://localhost:8080",
+			wantErr: false,
+		},
+		{
+			req:     "http://s.discordapp.com/assets/xxxxxx",
+			want:    "http://localhost:8080",
+			wantErr: false,
+		},
+		{
+			req:     "http://github.com/a/b",
+			want:    "",
+			wantErr: false,
+		},
+		{
+			req:     "http://www.discordapp.com/assets/xxxxxx",
+			want:    "",
+			wantErr: true,
+		},
 	}
+	for _, tt := range tests {
+		t.Run(tt.req, func(t *testing.T) {
+			req, err := http.NewRequest("POST", tt.req, nil)
+			require.NoError(t, err)
 
-	for reqURL, proxyURL := range kases {
-		req, err := http.NewRequest("POST", reqURL, nil)
-		assert.NoError(t, err)
+			u, err := webhookProxy(allowedHostMatcher)(req)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
 
-		u, err := webhookProxy()(req)
-		assert.NoError(t, err)
-		if proxyURL == "" {
-			assert.Nil(t, u)
-		} else {
-			assert.EqualValues(t, proxyURL, u.String())
-		}
+			assert.NoError(t, err)
+
+			got := ""
+			if u != nil {
+				got = u.String()
+			}
+			assert.Equal(t, tt.want, got)
+		})
 	}
 }
 

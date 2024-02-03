@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import {isElemHidden, onInputDebounce, toggleElem} from '../utils/dom.js';
+import {isElemHidden, onInputDebounce, submitEventSubmitter, toggleElem} from '../utils/dom.js';
 import {GET} from '../modules/fetch.js';
 
 const {appSubUrl} = window.config;
@@ -40,7 +40,7 @@ export function initCommonIssueListQuickGoto() {
   $form.on('submit', (e) => {
     // if there is no goto button, or the form is submitted by non-quick-goto elements, submit the form directly
     let doQuickGoto = !isElemHidden($goto);
-    const submitter = e.originalEvent.submitter;
+    const submitter = submitEventSubmitter(e.originalEvent);
     if (submitter !== $form[0] && submitter !== $input[0] && submitter !== $goto[0]) doQuickGoto = false;
     if (!doQuickGoto) return;
 

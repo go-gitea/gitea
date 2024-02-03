@@ -92,6 +92,7 @@ func SlackLinkFormatter(url, text string) string {
 
 // SlackLinkToRef slack-formatter link to a repo ref
 func SlackLinkToRef(repoURL, ref string) string {
+	// FIXME: SHA1 hardcoded here
 	url := git.RefURL(repoURL, ref)
 	refName := git.RefName(ref).ShortName()
 	return SlackLinkFormatter(url, refName)
@@ -167,6 +168,12 @@ func (s *SlackPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
 // Release implements PayloadConvertor Release method
 func (s *SlackPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, _ := getReleasePayloadInfo(p, SlackLinkFormatter, true)
+
+	return s.createPayload(text, nil), nil
+}
+
+func (s *SlackPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+	text, _ := getPackagePayloadInfo(p, SlackLinkFormatter, true)
 
 	return s.createPayload(text, nil), nil
 }

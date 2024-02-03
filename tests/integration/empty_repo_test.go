@@ -6,7 +6,6 @@ package integration
 import (
 	"bytes"
 	"encoding/base64"
-	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -119,14 +118,13 @@ func TestEmptyRepoAddFileByAPI(t *testing.T) {
 	session := loginUser(t, "user30")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	url := fmt.Sprintf("/api/v1/repos/user30/empty/contents/new-file.txt?token=%s", token)
-	req := NewRequestWithJSON(t, "POST", url, &api.CreateFileOptions{
+	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user30/empty/contents/new-file.txt", &api.CreateFileOptions{
 		FileOptions: api.FileOptions{
 			NewBranchName: "new_branch",
 			Message:       "init",
 		},
 		ContentBase64: base64.StdEncoding.EncodeToString([]byte("newly-added-api-file")),
-	})
+	}).AddTokenAuth(token)
 
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var fileResponse api.FileResponse
@@ -138,7 +136,8 @@ func TestEmptyRepoAddFileByAPI(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.Contains(t, resp.Body.String(), "newly-added-api-file")
 
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user30/empty?token=%s", token))
+	req = NewRequest(t, "GET", "/api/v1/repos/user30/empty").
+		AddTokenAuth(token)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	var apiRepo api.Repository
 	DecodeJSON(t, resp, &apiRepo)

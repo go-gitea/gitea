@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 type BranchList []*Branch
@@ -73,7 +72,7 @@ type FindBranchOptions struct {
 	Keyword            string
 }
 
-func (opts *FindBranchOptions) Cond() builder.Cond {
+func (opts FindBranchOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
@@ -91,41 +90,30 @@ func (opts *FindBranchOptions) Cond() builder.Cond {
 	return cond
 }
 
-func CountBranches(ctx context.Context, opts FindBranchOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.Cond()).Count(&Branch{})
-}
-
-func orderByBranches(sess *xorm.Session, opts FindBranchOptions) *xorm.Session {
+func (opts FindBranchOptions) ToOrders() string {
+	orderBy := opts.OrderBy
 	if !opts.IsDeletedBranch.IsFalse() { // if deleted branch included, put them at the end
-		sess = sess.OrderBy("is_deleted ASC")
+		if orderBy != "" {
+			orderBy += ", "
+		}
+		orderBy += "is_deleted ASC"
 	}
-
-	if opts.OrderBy == "" {
+	if orderBy == "" {
 		// the commit_time might be the same, so add the "name" to make sure the order is stable
-		opts.OrderBy = "commit_time DESC, name ASC"
+		return "commit_time DESC, name ASC"
 	}
-	return sess.OrderBy(opts.OrderBy)
-}
 
-func FindBranches(ctx context.Context, opts FindBranchOptions) (BranchList, error) {
-	sess := db.GetEngine(ctx).Where(opts.Cond())
-	if opts.PageSize > 0 && !opts.IsListAll() {
-		sess = db.SetSessionPagination(sess, &opts.ListOptions)
-	}
-	sess = orderByBranches(sess, opts)
-
-	var branches []*Branch
-	return branches, sess.Find(&branches)
+	return orderBy
 }
 
 func FindBranchNames(ctx context.Context, opts FindBranchOptions) ([]string, error) {
-	sess := db.GetEngine(ctx).Select("name").Where(opts.Cond())
+	sess := db.GetEngine(ctx).Select("name").Where(opts.ToConds())
 	if opts.PageSize > 0 && !opts.IsListAll() {
 		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 	}
-	sess = orderByBranches(sess, opts)
+
 	var branches []string
-	if err := sess.Table("branch").Find(&branches); err != nil {
+	if err := sess.Table("branch").OrderBy(opts.ToOrders()).Find(&branches); err != nil {
 		return nil, err
 	}
 	return branches, nil
