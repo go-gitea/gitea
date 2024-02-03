@@ -1,3 +1,6 @@
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package websocket
 
 import (
@@ -7,8 +10,7 @@ import (
 )
 
 type sessionData struct {
-	uid        int64
-	unregister func()
+	uid int64
 }
 
 func getSessionData(s *melody.Session) (*sessionData, error) {
