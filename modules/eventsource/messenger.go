@@ -8,12 +8,14 @@ import "sync"
 // Messenger is a per uid message store
 type Messenger struct {
 	mutex    sync.Mutex
+	uid      int64
 	channels []chan *Event
 }
 
 // NewMessenger creates a messenger for a particular uid
-func NewMessenger() *Messenger {
+func NewMessenger(uid int64) *Messenger {
 	return &Messenger{
+		uid:      uid,
 		channels: [](chan *Event){},
 	}
 }
