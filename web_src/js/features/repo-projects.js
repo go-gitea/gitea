@@ -199,22 +199,25 @@ export function initRepoProject() {
   });
 
   $('.show-delete-project-column-modal').each(function () {
-    const deleteColumnModal = $(`${$(this).attr('data-modal')}`);
-    const deleteColumnButton = deleteColumnModal.find('.actions > .ok.button');
-    const deleteUrl = $(this).attr('data-url');
+    const deleteColumnModalId = $(this).data('modal');
+    const deleteColumnUrl = $(this).data('url');
 
+    const columnToDelete = $(this).closest('.project-column');
+    const deleteColumnModal = $(deleteColumnModalId);
+
+    const deleteColumnButton = deleteColumnModal.find('.actions > .ok.button');
     deleteColumnButton.on('click', (e) => {
       e.preventDefault();
 
       $.ajax({
-        url: deleteUrl,
+        url: deleteColumnUrl,
         headers: {
           'X-Csrf-Token': csrfToken,
         },
         contentType: 'application/json',
         method: 'DELETE',
       }).done(() => {
-        window.location.reload();
+        columnToDelete.remove();
       });
     });
   });
@@ -285,9 +288,10 @@ export function initRepoProject() {
   $('.show-delete-project-column-note-modal').each(function () {
     const deleteNoteUrl = $(this).data('url');
     const modalId = $(this).data('modal');
-    const deletModal = $(modalId);
+    const deleteModal = $(modalId);
+    const noteCard = deleteModal.closest('.note-card');
 
-    const confirmDeleteButton = deletModal.find('.actions > .ok.button');
+    const confirmDeleteButton = deleteModal.find('.actions > .ok.button');
     confirmDeleteButton.on('click', (e) => {
       e.preventDefault();
 
@@ -299,7 +303,9 @@ export function initRepoProject() {
         contentType: 'application/json',
         method: 'DELETE',
       }).done(() => {
-        window.location.reload();
+        const noteCards = noteCard.parent();
+        noteCard.remove();
+        updateIssueAndNoteCount(noteCards);
       });
     });
   });
