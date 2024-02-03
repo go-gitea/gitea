@@ -14,7 +14,6 @@
   width: 320px;
   height: calc(100vh - 450px);
   min-height: 60vh;
-  overflow-y: scroll;
   flex: 0 0 auto;
   overflow: visible;
   display: flex;
@@ -48,29 +47,35 @@
   line-height: 1.25 !important;
 }
 
-.project-column > .cards {
+.cards-wrapper {
   flex: 1;
   display: flex;
-  align-content: baseline;
-  margin: 0 !important;
-  padding: 0 !important;
-  flex-wrap: nowrap !important;
   flex-direction: column;
   overflow-x: auto;
+}
+
+.cards-wrapper > .cards {
+  flex-grow: 1;
+  margin: 0 !important;
+  flex-direction: column;
   gap: .25rem;
 }
 
-.project-column > .note-cards {
-  flex: unset;
+.cards-wrapper > .note-cards {
+  flex-grow: unset;
 }
 
 /* don't show divider, if currently no note-cards are draged and note-cards are empty */
-#project-board:not(:has(.note-cards > .card-ghost)) .project-column > .note-cards:not(:has(> *)) + .divider {
+#project-board:not(:has(.note-cards > .card-ghost)) .cards-wrapper > .note-cards:not(:has(> *)) + .divider,
+/* don't show divider, if there are no childs in issue-cards */
+.project-column:not(:has(.issue-cards > *)) .note-cards + .divider {
   display: none;
 }
 
-/* give empty note-cards a min-height, if there is currently a note-card been draged */
-#project-board:has(.note-cards > .card-ghost) .project-column > .note-cards:not(:has(> *)) {
+/* give empty cards a min-height, if there is currently a child-card been draged */
+#project-board:has(.note-cards > .card-ghost) .cards-wrapper > .note-cards:not(:has(> *)),
+/* set min-height if issue-cards, this helps when note-cards are heigher then 100% */
+#project-board:has(.card-ghost) .cards-wrapper > .issue-cards:not(:has(> *)) {
   min-height: 5%;
 }
 

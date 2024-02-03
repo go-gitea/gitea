@@ -6,9 +6,9 @@ import {createSortable} from '../modules/sortable.js';
 const {csrfToken} = window.config;
 
 function updateIssueAndNoteCount(cards) {
-  const parent = cards.parentElement;
-  const cnt = parent.querySelectorAll('.issue-card, .note-card').length;
-  parent.querySelector('.project-column-issue-note-count').textContent = cnt;
+  const cardsWrapper = $(cards).closest('.cards-wrapper');
+  const cnt = cardsWrapper.find('.issue-card, .note-card').length;
+  cardsWrapper.find('.project-column-issue-note-count').text(cnt);
 }
 
 function sendPostRequestAndUnsetDirty(url, form, data) {
