@@ -33,6 +33,10 @@ var microcmdUserChangePassword = &cli.Command{
 			Value:   "",
 			Usage:   "New password to set for user",
 		},
+		&cli.BoolFlag{
+			Name:  "must-change-password",
+			Usage: "User must change password",
+		},
 	},
 }
 
@@ -53,9 +57,14 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 
+	var mustChangePassword optional.Option[bool]
+	if c.IsSet("must-change-password") {
+		mustChangePassword = optional.Some(c.Bool("must-change-password"))
+	}
+
 	opts := &user_service.UpdateAuthOptions{
 		Password:           optional.Some(c.String("password")),
-		MustChangePassword: optional.Some(false),
+		MustChangePassword: mustChangePassword,
 	}
 	if err := user_service.UpdateAuth(ctx, user, opts); err != nil {
 		switch {

@@ -789,7 +789,7 @@ func VerifyUserActiveCode(ctx context.Context, code string) (user *User) {
 }
 
 // ValidateUser check if user is valid to insert / update into database
-func ValidateUser(u *User, cols ...string) error { // TODO delete
+func ValidateUser(u *User, cols ...string) error {
 	if len(cols) == 0 || util.SliceContainsString(cols, "visibility", true) {
 		if !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(u.Visibility) && !u.IsOrganization() {
 			return fmt.Errorf("visibility Mode not allowed: %s", u.Visibility.String())
