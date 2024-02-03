@@ -52,7 +52,7 @@ function moveIssue({item, from, to, oldIndex}) {
   });
 }
 
-function moveNote({from, to}) {
+function moveNote({item, from, to, oldIndex}) {
   const columnCards = to.getElementsByClassName('note-card');
   updateIssueAndNoteCount(from);
   updateIssueAndNoteCount(to);
@@ -72,9 +72,9 @@ function moveNote({from, to}) {
     },
     contentType: 'application/json',
     type: 'POST',
-  }).done(() => {
-    // reload, because the relative-time changes from `created` to `updated`
-    window.location.reload();
+    error: () => {
+      from.insertBefore(item, from.children[oldIndex]);
+    },
   });
 }
 
