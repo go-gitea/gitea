@@ -167,7 +167,7 @@ Here's how to run the test suite:
 
 |  Command                               | Action                                           |              |
 | :------------------------------------- | :----------------------------------------------- | ------------ |
-|``make test[\#SpecificTestName]``       |  run unit test(s)  |
+|``make test[\#SpecificTestName]``       |  run unit test(s)  | |
 |``make test-sqlite[\#SpecificTestName]``|  run [integration](tests/integration) test(s) for SQLite |[More details](tests/integration/README.md)  |
 |``make test-e2e-sqlite[\#SpecificTestName]``|  run [end-to-end](tests/e2e) test(s) for SQLite |[More details](tests/e2e/README.md)  |
 
