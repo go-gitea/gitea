@@ -5,6 +5,7 @@ package websocket
 
 import (
 	"code.gitea.io/gitea/modules/context"
+
 	"github.com/olahol/melody"
 )
 

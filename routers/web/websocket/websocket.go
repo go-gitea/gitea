@@ -4,12 +4,12 @@
 package websocket
 
 import (
-	"github.com/olahol/melody"
-
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web"
 	notify_service "code.gitea.io/gitea/services/notify"
 	"code.gitea.io/gitea/services/websocket"
+
+	"github.com/olahol/melody"
 )
 
 var m *melody.Melody
