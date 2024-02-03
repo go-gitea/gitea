@@ -8,6 +8,6 @@
 			{{end}}
 		{{end}}
 
-		{{template "repo/issue/view_content/comment" .}}
+		{{template "repo/issue/view_content/comment" dict "ctxData" $ "Comment" .}}
 	{{end}}
 {{end}}
