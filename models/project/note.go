@@ -164,3 +164,9 @@ func DeleteBoardNote(ctx context.Context, boardNote *BoardNote) error {
 	}
 	return nil
 }
+
+// removeBoardNotes sets the boardID to 0 for the board
+func (board *Board) removeBoardNotes(ctx context.Context) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `board_note` SET board_id = 0 WHERE board_id = ?", board.ID)
+	return err
+}

@@ -200,6 +200,10 @@ func deleteBoardByID(ctx context.Context, boardID int64) error {
 		return err
 	}
 
+	if err = board.removeBoardNotes(ctx); err != nil {
+		return err
+	}
+
 	if _, err := db.GetEngine(ctx).ID(board.ID).NoAutoCondition().Delete(board); err != nil {
 		return err
 	}
