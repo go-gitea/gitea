@@ -34,8 +34,7 @@ func (m *Manager) Register(uid int64) <-chan *Event {
 	m.mutex.Lock()
 	messenger, ok := m.messengers[uid]
 	if !ok {
-		messenger = NewMessenger(uid)
-		m.messengers[uid] = messenger
+		m.messengers[uid] = NewMessenger()
 	}
 	select {
 	case m.connection <- struct{}{}:
