@@ -1,12 +1,13 @@
 {{template "base/alert"}}
 {{range .Issue.Comments}}
-	{{if and (eq .Type 29) (or (gt .CommitsNum 0) .IsForcePush)}}
-		{{- /* If PR is closed, the comments whose type is CommentTypePullRequestPush(29) after latestCloseCommentID won't be rendered. */ -}}
-		{{if and .Issue.IsClosed (gt .ID $.LatestCloseCommentID)}}
-			{{continue}}
-		{{end}}
-	{{end}}
 	{{if call $.ShouldShowCommentType .Type}}
+		{{if and (eq .Type 29) (or (gt .CommitsNum 0) .IsForcePush)}}
+			<!-- If PR is closed, the comments whose type is CommentTypePullRequestPush(29) after latestCloseCommentID won't be rendered. //-->
+			{{if and .Issue.IsClosed (gt .ID $.LatestCloseCommentID)}}
+				{{continue}}
+			{{end}}
+		{{end}}
+
 		{{template "repo/issue/view_content/comment" .}}
 	{{end}}
 {{end}}
