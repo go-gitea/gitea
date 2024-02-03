@@ -85,6 +85,7 @@ func (b *Board) NumIssues(ctx context.Context) int {
 // NumNotes return counter of all notes assigned to the board
 func (b *Board) NumNotes(ctx context.Context) int {
 	c, err := db.GetEngine(ctx).Table("board_note").
+		Where("project_id=?", b.ProjectID).
 		And("board_id=?", b.ID).
 		GroupBy("id").
 		Cols("id").

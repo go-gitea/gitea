@@ -324,7 +324,7 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	notesMap, err := project.LoadNotesFromBoardList(ctx, boards)
+	notesMap, err := project.LoadBoardNotesFromBoardList(ctx, boards)
 	if err != nil {
 		ctx.ServerError("LoadNotesOfBoards", err)
 		return
@@ -740,10 +740,9 @@ func checkProjectBoardNoteChangePermissions(ctx *context.Context) (*project_mode
 		}
 		return nil, nil
 	}
-	boardID := ctx.ParamsInt64(":boardID")
-	if note.BoardID != boardID {
+	if note.ProjectID != project.ID {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
-			"message": fmt.Sprintf("ProjectBoardNote[%d] is not in Board[%d] as expected", note.ID, boardID),
+			"message": fmt.Sprintf("ProjectBoardNote[%d] is not in Project[%d] as expected", note.ID, project.ID),
 		})
 		return nil, nil
 	}
@@ -770,10 +769,11 @@ func AddNoteToBoard(ctx *context.Context) {
 		Title:   form.Title,
 		Content: form.Content,
 
+		ProjectID: ctx.ParamsInt64(":id"),
 		BoardID:   ctx.ParamsInt64(":boardID"),
 		CreatorID: ctx.Doer.ID,
 	}); err != nil {
-		ctx.ServerError("NewProjectBoard", err)
+		ctx.ServerError("NewProjectBoardNote", err)
 		return
 	}
 
@@ -782,20 +782,15 @@ func AddNoteToBoard(ctx *context.Context) {
 
 func EditBoardNote(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.BoardNoteForm)
-	_, note := checkProjectBoardNoteChangePermissions(ctx)
+	_, boardNote := checkProjectBoardNoteChangePermissions(ctx)
 	if ctx.Written() {
 		return
 	}
 
-	if form.Title != "" {
-		note.Title = form.Title
-	}
+	boardNote.Title = form.Title
+	boardNote.Content = form.Content
 
-	if form.Content != "" {
-		note.Content = form.Content
-	}
-
-	if err := project_model.UpdateBoardNote(ctx, note); err != nil {
+	if err := project_model.UpdateBoardNote(ctx, boardNote); err != nil {
 		ctx.ServerError("UpdateProjectBoardNote", err)
 		return
 	}

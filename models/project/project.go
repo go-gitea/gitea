@@ -430,6 +430,10 @@ func DeleteProjectByID(ctx context.Context, id int64) error {
 			return err
 		}
 
+		if err := deleteBoardNoteByProjectID(ctx, id); err != nil {
+			return err
+		}
+
 		if err := deleteBoardByProjectID(ctx, id); err != nil {
 			return err
 		}
