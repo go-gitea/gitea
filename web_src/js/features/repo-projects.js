@@ -5,10 +5,10 @@ import {createSortable} from '../modules/sortable.js';
 
 const {csrfToken} = window.config;
 
-function updateIssueCount(cards) {
+function updateIssueAndNoteCount(cards) {
   const parent = cards.parentElement;
-  const cnt = parent.getElementsByClassName('issue-card').length;
-  parent.getElementsByClassName('project-column-issue-count')[0].textContent = cnt;
+  const cnt = parent.querySelectorAll('.issue-card, .note-card').length;
+  parent.querySelector('.project-column-issue-note-count').textContent = cnt;
 }
 
 function sendPostRequestAndUnsetDirty(url, form, data) {
@@ -28,8 +28,8 @@ function sendPostRequestAndUnsetDirty(url, form, data) {
 
 function moveIssue({item, from, to, oldIndex}) {
   const columnCards = to.getElementsByClassName('issue-card');
-  updateIssueCount(from);
-  updateIssueCount(to);
+  updateIssueAndNoteCount(from);
+  updateIssueAndNoteCount(to);
 
   const columnSorting = {
     issues: Array.from(columnCards, (card, i) => ({
@@ -48,6 +48,33 @@ function moveIssue({item, from, to, oldIndex}) {
     type: 'POST',
     error: () => {
       from.insertBefore(item, from.children[oldIndex]);
+    },
+  });
+}
+
+function moveNote({from, to}) {
+  const columnCards = to.getElementsByClassName('note-card');
+  updateIssueAndNoteCount(from);
+  updateIssueAndNoteCount(to);
+
+  const columnSorting = {
+    boardNotes: Array.from(columnCards, (card, i) => ({
+      boardNoteID: parseInt($(card).data('note')),
+      sorting: i,
+    })),
+  };
+
+  $.ajax({
+    url: `${to.getAttribute('data-url')}/move`,
+    data: JSON.stringify(columnSorting),
+    headers: {
+      'X-Csrf-Token': csrfToken,
+    },
+    contentType: 'application/json',
+    type: 'POST',
+    success: () => {
+      // reload, because the relative-time changes from `created` to `updated`
+      window.location.reload();
     },
   });
 }
@@ -102,8 +129,8 @@ async function initRepoProjectSortable() {
       group: 'note-shared',
       animation: 150,
       ghostClass: 'card-ghost',
-      onAdd: () => { console.error('@TODO') },
-      onUpdate: () => { console.error('@TODO') },
+      onAdd: moveNote,
+      onUpdate: moveNote,
       delayOnTouchOnly: true,
       delay: 500
     });

@@ -19,6 +19,7 @@ type BoardNote struct {
 	ID      int64  `xorm:"pk autoincr"`
 	Title   string `xorm:"TEXT NOT NULL"`
 	Content string `xorm:"LONGTEXT"`
+	Sorting int64  `xorm:"NOT NULL DEFAULT 0"`
 
 	BoardID   int64            `xorm:"INDEX NOT NULL"`
 	CreatorID int64            `xorm:"NOT NULL"`
@@ -54,6 +55,17 @@ func GetBoardNoteById(ctx context.Context, noteID int64) (*BoardNote, error) {
 	return note, nil
 }
 
+// GetBoardNoteByIds return notes with the given IDs.
+func GetBoardNoteByIds(ctx context.Context, noteIDs []int64) (BoardNoteList, error) {
+	notes := make(BoardNoteList, 0, len(noteIDs))
+
+	if err := db.GetEngine(ctx).In("id", noteIDs).Find(&notes); err != nil {
+		return nil, err
+	}
+
+	return notes, nil
+}
+
 // LoadNotesFromBoardList load notes assigned to the boards
 func (p *Project) LoadNotesFromBoardList(ctx context.Context, bs BoardList) (map[int64]BoardNoteList, error) {
 	notesMap := make(map[int64]BoardNoteList, len(bs))
@@ -69,35 +81,24 @@ func (p *Project) LoadNotesFromBoardList(ctx context.Context, bs BoardList) (map
 
 // LoadNotesFromBoard load notes assigned to this board
 func LoadNotesFromBoard(ctx context.Context, board *Board) (BoardNoteList, error) {
-	noteList := make(BoardNoteList, 0, 5)
-
-	if board.ID != 0 {
-		notes, err := BoardNotes(ctx, &NotesOptions{
-			BoardID: board.ID,
-		})
-		if err != nil {
-			return nil, err
-		}
-		noteList = notes
+	notes, err := BoardNotes(ctx, &NotesOptions{
+		BoardID: board.ID,
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	return noteList, nil
+	return notes, nil
 }
 
 // BoardNotes returns a list of notes by given conditions.
 func BoardNotes(ctx context.Context, opts *NotesOptions) (BoardNoteList, error) {
 	sess := db.GetEngine(ctx)
 
-	if opts.BoardID != 0 {
-		if opts.BoardID > 0 {
-			sess.Where(builder.Eq{"board_id": opts.BoardID})
-		} else {
-			sess.Where(builder.Eq{"board_id": 0})
-		}
-	}
+	sess.Where(builder.Eq{"board_id": max(opts.BoardID, 0)})
 
 	notes := BoardNoteList{}
-	if err := sess.Find(&notes); err != nil {
+	if err := sess.OrderBy("Sorting").Find(&notes); err != nil {
 		return nil, fmt.Errorf("unable to query Notes: %w", err)
 	}
 
@@ -130,24 +131,30 @@ func (note *BoardNote) GetLastEventTimestamp() timeutil.TimeStamp {
 // GetLastEventLabel returns the localization label for the current note.
 func (note *BoardNote) GetLastEventLabel() string {
 	if note.UpdatedUnix > note.CreatedUnix {
-		return "repo.projects.note.edited_by"
+		return "repo.projects.note.updated_by"
 	}
 	return "repo.projects.note.created_by"
 }
 
 // UpdateBoardNote changes a BoardNote
 func UpdateBoardNote(ctx context.Context, note *BoardNote) error {
-	var fieldToUpdate []string
-
-	if note.Title != "" {
-		fieldToUpdate = append(fieldToUpdate, "title")
-	}
-
-	fieldToUpdate = append(fieldToUpdate, "content")
-
-	_, err := db.GetEngine(ctx).ID(note.ID).Cols(fieldToUpdate...).Update(note)
-
+	_, err := db.GetEngine(ctx).ID(note.ID).Update(note)
 	return err
+}
+
+// MoveBoardNoteOnProjectBoard moves or keeps notes in a column and sorts them inside that column
+func MoveBoardNoteOnProjectBoard(ctx context.Context, board *Board, sortedNoteIDs map[int64]int64) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		sess := db.GetEngine(ctx)
+
+		for sorting, issueID := range sortedNoteIDs {
+			_, err := sess.Exec("UPDATE `board_note` SET board_id=?, sorting=? WHERE id=?", board.ID, sorting, issueID)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 // DeleteBoardNote removes the BoardNote from the project board.

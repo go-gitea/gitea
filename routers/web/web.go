@@ -1344,12 +1344,11 @@ func registerRoutes(m *web.Route) {
 
 						m.Group("/note", func() {
 							m.Post("", web.Bind(forms.BoardNoteForm{}), repo.AddNoteToBoard)
+							m.Post("/move", repo.MoveBoardNote)
 
 							m.Group("/{noteID}", func() {
 								m.Put("", web.Bind(forms.BoardNoteForm{}), repo.EditBoardNote)
 								m.Delete("", repo.DeleteBoardNote)
-
-								m.Post("/move", repo.MoveBoardNote)
 							})
 						})
 					})

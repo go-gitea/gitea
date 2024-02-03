@@ -64,6 +64,16 @@
   flex: unset;
 }
 
+/* don't show divider, if currently no note-cards are draged and note-cards are empty */
+#project-board:not(:has(.note-cards > .card-ghost)) .project-column > .note-cards:not(:has(> *)) + .divider {
+  display: none;
+}
+
+/* give empty note-cards a min-height, if there is currently a note-card been draged */
+#project-board:has(.note-cards > .card-ghost) .project-column > .note-cards:not(:has(> *)) {
+  min-height: 5%;
+}
+
 .project-column > .divider {
   margin: 5px 0;
 }

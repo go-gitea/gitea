@@ -724,7 +724,7 @@ func checkProjectBoardNoteChangePermissions(ctx *context.Context) (*project_mode
 	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound("", nil)
+			ctx.NotFound("ProjectNotFound", err)
 		} else {
 			ctx.ServerError("GetProjectByID", err)
 		}
@@ -734,7 +734,7 @@ func checkProjectBoardNoteChangePermissions(ctx *context.Context) (*project_mode
 	note, err := project_model.GetBoardNoteById(ctx, ctx.ParamsInt64(":noteID"))
 	if err != nil {
 		if project_model.IsErrProjectBoardNoteNotExist(err) {
-			ctx.NotFound("", nil)
+			ctx.NotFound("ProjectBoardNoteNotFound", err)
 		} else {
 			ctx.ServerError("GetBoardNoteById", err)
 		}
@@ -805,6 +805,9 @@ func EditBoardNote(ctx *context.Context) {
 
 func DeleteBoardNote(ctx *context.Context) {
 	_, boardNote := checkProjectBoardNoteChangePermissions(ctx)
+	if ctx.Written() {
+		return
+	}
 
 	if err := project_model.DeleteBoardNote(ctx, boardNote); err != nil {
 		ctx.ServerError("DeleteBoardNote", err)
@@ -815,6 +818,91 @@ func DeleteBoardNote(ctx *context.Context) {
 }
 
 func MoveBoardNote(ctx *context.Context) {
+	if ctx.Doer == nil {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only signed in users are allowed to perform this action.",
+		})
+		return
+	}
+
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only authorized users are allowed to perform this action.",
+		})
+		return
+	}
+
+	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	if err != nil {
+		if project_model.IsErrProjectNotExist(err) {
+			ctx.NotFound("ProjectNotFound", err)
+		} else {
+			ctx.ServerError("GetProjectByID", err)
+		}
+		return
+	}
+
+	var board *project_model.Board
+
+	if ctx.ParamsInt64(":boardID") == 0 {
+		board = &project_model.Board{
+			ID:        0,
+			ProjectID: project.ID,
+			Title:     ctx.Tr("repo.projects.type.uncategorized"),
+		}
+	} else {
+		board, err = project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
+		if err != nil {
+			if project_model.IsErrProjectBoardNotExist(err) {
+				ctx.NotFound("ProjectBoardNotExist", nil)
+			} else {
+				ctx.ServerError("GetProjectBoard", err)
+			}
+			return
+		}
+		if board.ProjectID != project.ID {
+			ctx.NotFound("BoardNotInProject", nil)
+			return
+		}
+	}
+
+	type MovedBoardNotesForm struct {
+		BoardNotes []struct {
+			BoardNoteID int64 `json:"boardNoteID"`
+			Sorting     int64 `json:"sorting"`
+		} `json:"boardNotes"`
+	}
+
+	form := &MovedBoardNotesForm{}
+	if err = json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
+		ctx.ServerError("DecodeMovedBoardNotesForm", err)
+	}
+
+	boardNoteIDs := make([]int64, 0, len(form.BoardNotes))
+	sortedBoardNoteIDs := make(map[int64]int64)
+	for _, boardNote := range form.BoardNotes {
+		boardNoteIDs = append(boardNoteIDs, boardNote.BoardNoteID)
+		sortedBoardNoteIDs[boardNote.Sorting] = boardNote.BoardNoteID
+	}
+	movedBoardNotes, err := project_model.GetBoardNoteByIds(ctx, boardNoteIDs)
+	if err != nil {
+		if project_model.IsErrProjectBoardNoteNotExist(err) {
+			ctx.NotFound("BoardNoteNotExisting", nil)
+		} else {
+			ctx.ServerError("GetBoardNoteByIds", err)
+		}
+		return
+	}
+
+	if len(movedBoardNotes) != len(form.BoardNotes) {
+		ctx.ServerError("some board-notes do not exist", errors.New("some board-notes do not exist"))
+		return
+	}
+
+	if err = project_model.MoveBoardNoteOnProjectBoard(ctx, board, sortedBoardNoteIDs); err != nil {
+		ctx.ServerError("MoveBoardNoteOnProjectBoard", err)
+		return
+	}
 
 	ctx.JSONOK()
 }
