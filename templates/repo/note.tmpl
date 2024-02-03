@@ -1,0 +1,71 @@
+{{with .BoardNote}}
+<div class="content gt-p-0 gt-w-100">
+	<div class="gt-df gt-items-start">
+		<div class="project-column-note-card-icon">
+			{{svg "octicon-note"}}
+		</div>
+		<span class="note-card-title muted project-column-note-title">{{.Title}}</span>
+		{{ if $.CanWriteProjects }}
+			<div class="ui dropdown jump item">
+				<div class="gt-px-3">
+					{{svg "octicon-kebab-horizontal"}}
+				</div>
+				<div class="menu user-menu left">
+					<a class="item show-modal button show-edit-project-column-note-modal"
+						data-modal="#edit-project-column-note-modal-{{.ID}}"
+						data-url="{{$.Link}}/note/{{.ID}}">
+							{{svg "octicon-pencil"}}
+							{{ctx.Locale.Tr "repo.projects.note.edit"}}
+					</a>
+					<a class="item show-modal button show-delete-project-column-note-modal"
+						data-modal="#delete-project-column-note-modal-{{.ID}}"
+						data-url="{{$.Link}}/note/{{.ID}}">
+							{{svg "octicon-trash"}}
+							{{ctx.Locale.Tr "repo.projects.note.delete"}}
+					</a>
+
+					<div class="ui small modal" id="edit-project-column-note-modal-{{.ID}}">
+						<div class="header">
+							{{ctx.Locale.Tr "repo.projects.note.edit"}}
+						</div>
+						<div class="content">
+							<div class="required field">
+								<label for="edit-project-column-note-title-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.edit_title"}}</label>
+								<input id="edit-project-column-note-title-{{.ID}}" name="title" value="{{.Title}}" maxlength="255" required>
+							</div>
+
+							<div class="field content-field">
+								<label for="edit-project-column-note-content-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.content"}}</label>
+								<textarea id="edit-project-column-note-content-{{.ID}}" name="content">{{.Content}}</textarea>
+							</div>
+						</div>
+
+						{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm" "ModalButtonOkText" (ctx.Locale.Tr "repo.projects.note.edit"))}}
+					</div>
+
+					<div class="ui g-modal-confirm modal" id="delete-project-column-note-modal-{{.ID}}">
+						<div class="header">
+							{{ctx.Locale.Tr "repo.projects.note.delete"}}
+						</div>
+						<div class="content">
+							<label>
+								{{ctx.Locale.Tr "repo.projects.note.deletion_desc"}}
+							</label>
+						</div>
+						{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+					</div>
+				</div>
+			</div>
+		{{end}}
+	</div>
+	<div class="project-column-note-content">
+		{{.Content}}
+	</div>
+	<div class="meta gt-my-2">
+		<span class="text light grey muted-links">
+			{{$timeStr := TimeSinceUnix .GetLastEventTimestamp ctx.Locale}}
+			{{ctx.Locale.Tr .GetLastEventLabel $timeStr (.Creator.HomeLink | Escape) (.Creator.GetDisplayName | Escape) | Safe}}
+		</span>
+	</div>
+</div>
+{{end}}

@@ -324,6 +324,12 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
+	notesMap, err := project.LoadNotesFromBoardList(ctx, boards)
+	if err != nil {
+		ctx.ServerError("LoadNotesOfBoards", err)
+		return
+	}
+
 	if project.CardType != project_model.CardTypeTextOnly {
 		issuesAttachmentMap := make(map[int64][]*attachment_model.Attachment)
 		for _, issuesList := range issuesMap {
@@ -376,6 +382,7 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap
 	ctx.Data["Columns"] = boards // TODO: rename boards to columns in backend
+	ctx.Data["NotesMap"] = notesMap
 
 	ctx.HTML(http.StatusOK, tplProjectsView)
 }
@@ -695,6 +702,119 @@ func MoveIssues(ctx *context.Context) {
 		ctx.ServerError("MoveIssuesOnProjectBoard", err)
 		return
 	}
+
+	ctx.JSONOK()
+}
+
+func checkProjectBoardNoteChangePermissions(ctx *context.Context) (*project_model.Project, *project_model.BoardNote) {
+	if ctx.Doer == nil {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only signed in users are allowed to perform this action.",
+		})
+		return nil, nil
+	}
+
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only authorized users are allowed to perform this action.",
+		})
+		return nil, nil
+	}
+
+	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	if err != nil {
+		if project_model.IsErrProjectNotExist(err) {
+			ctx.NotFound("", nil)
+		} else {
+			ctx.ServerError("GetProjectByID", err)
+		}
+		return nil, nil
+	}
+
+	note, err := project_model.GetBoardNoteById(ctx, ctx.ParamsInt64(":noteID"))
+	if err != nil {
+		if project_model.IsErrProjectBoardNoteNotExist(err) {
+			ctx.NotFound("", nil)
+		} else {
+			ctx.ServerError("GetBoardNoteById", err)
+		}
+		return nil, nil
+	}
+	boardID := ctx.ParamsInt64(":boardID")
+	if note.BoardID != boardID {
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
+			"message": fmt.Sprintf("ProjectBoardNote[%d] is not in Board[%d] as expected", note.ID, boardID),
+		})
+		return nil, nil
+	}
+
+	if project.RepoID != ctx.Repo.Repository.ID {
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
+			"message": fmt.Sprintf("ProjectBoard[%d] is not in Repository[%d] as expected", note.ID, ctx.Repo.Repository.ID),
+		})
+		return nil, nil
+	}
+	return project, note
+}
+
+func AddNoteToBoard(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.BoardNoteForm)
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only authorized users are allowed to perform this action.",
+		})
+		return
+	}
+
+	if err := project_model.NewBoardNote(ctx, &project_model.BoardNote{
+		Title:   form.Title,
+		Content: form.Content,
+
+		BoardID:   ctx.ParamsInt64(":boardID"),
+		CreatorID: ctx.Doer.ID,
+	}); err != nil {
+		ctx.ServerError("NewProjectBoard", err)
+		return
+	}
+
+	ctx.JSONOK()
+}
+
+func EditBoardNote(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.BoardNoteForm)
+	_, note := checkProjectBoardNoteChangePermissions(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if form.Title != "" {
+		note.Title = form.Title
+	}
+
+	if form.Content != "" {
+		note.Content = form.Content
+	}
+
+	if err := project_model.UpdateBoardNote(ctx, note); err != nil {
+		ctx.ServerError("UpdateProjectBoardNote", err)
+		return
+	}
+
+	ctx.JSONOK()
+}
+
+func DeleteBoardNote(ctx *context.Context) {
+	_, boardNote := checkProjectBoardNoteChangePermissions(ctx)
+
+	if err := project_model.DeleteBoardNote(ctx, boardNote); err != nil {
+		ctx.ServerError("DeleteBoardNote", err)
+		return
+	}
+
+	ctx.JSONOK()
+}
+
+func MoveBoardNote(ctx *context.Context) {
 
 	ctx.JSONOK()
 }

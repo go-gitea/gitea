@@ -11,17 +11,17 @@ function updateIssueCount(cards) {
   parent.getElementsByClassName('project-column-issue-count')[0].textContent = cnt;
 }
 
-function createNewColumn(url, columnTitle, projectColorInput) {
+function sendPostRequestAndUnsetDirty(url, form, data) {
   $.ajax({
     url,
-    data: JSON.stringify({title: columnTitle.val(), color: projectColorInput.val()}),
+    data: JSON.stringify(data),
     headers: {
       'X-Csrf-Token': csrfToken,
     },
     contentType: 'application/json',
     method: 'POST',
   }).done(() => {
-    columnTitle.closest('form').removeClass('dirty');
+    form.removeClass('dirty');
     window.location.reload();
   });
 }
@@ -87,15 +87,25 @@ async function initRepoProjectSortable() {
   });
 
   for (const boardColumn of boardColumns) {
-    const boardCardList = boardColumn.getElementsByClassName('cards')[0];
-    createSortable(boardCardList, {
-      group: 'shared',
+    const boardIssueCardList = boardColumn.getElementsByClassName('issue-cards')[0];
+    const boardNoteCardList = boardColumn.getElementsByClassName('note-cards')[0];
+    createSortable(boardIssueCardList, {
+      group: 'issue-shared',
       animation: 150,
       ghostClass: 'card-ghost',
       onAdd: moveIssue,
       onUpdate: moveIssue,
       delayOnTouchOnly: true,
-      delay: 500,
+      delay: 500
+    });
+    createSortable(boardNoteCardList, {
+      group: 'note-shared',
+      animation: 150,
+      ghostClass: 'card-ghost',
+      onAdd: () => { console.error('@TODO') },
+      onUpdate: () => { console.error('@TODO') },
+      delayOnTouchOnly: true,
+      delay: 500
     });
   }
 }
@@ -183,7 +193,7 @@ export function initRepoProject() {
     });
   });
 
-  $('#new_project_column_submit').on('click', (e) => {
+  $('#new_project_column_submit').on('click', function (e) {
     e.preventDefault();
     const columnTitle = $('#new_project_column');
     const projectColorInput = $('#new_project_column_color_picker');
@@ -191,7 +201,79 @@ export function initRepoProject() {
       return;
     }
     const url = $(this).data('url');
-    createNewColumn(url, columnTitle, projectColorInput);
+    const form = columnTitle.closest('form');
+    sendPostRequestAndUnsetDirty(url, form, {title: columnTitle.val(), color: projectColorInput.val()});
+  });
+
+  $('.show-add-project-column-note-modal').each(function () {
+    const addNoteUrl = $(this).data('url');
+    const modalId = $(this).data('modal');
+    const addModal = $(modalId);
+
+    const confirmAddButton = addModal.find('.actions > .ok.button');
+    confirmAddButton.on('click', (e) => {
+      e.preventDefault();
+      const noteTitleInput = addModal.find('[name="title"]');
+      const contentTextarea = addModal.find('[name="content"]');
+      if (!noteTitleInput.val()) {
+        return;
+      }
+      const form = noteTitleInput.closest('form');
+      sendPostRequestAndUnsetDirty(addNoteUrl, form, {title: noteTitleInput.val(), content: contentTextarea.val()});
+    });
+  });
+  $('.show-edit-project-column-note-modal').each(function () {
+    const editNoteUrl = $(this).data('url');
+    const modalId = $(this).data('modal');
+    const wrapperCard = $(this).closest('.note-card');
+
+    const noteTitle = wrapperCard.find('.project-column-note-title');
+    const noteContent = wrapperCard.find('.project-column-note-content');
+
+    const editModal = wrapperCard.find(modalId);
+    const noteTitleInput = editModal.find('[name="title"]');
+    const noteContentTextarea = editModal.find('[name="content"]');
+
+    const confirmEditButton = editModal.find('.actions > .ok.button');
+    confirmEditButton.on('click', (e) => {
+      e.preventDefault();
+
+      $.ajax({
+        url: editNoteUrl,
+        data: JSON.stringify({title: noteTitleInput.val(), content: noteContentTextarea.val()}),
+        headers: {
+          'X-Csrf-Token': csrfToken,
+        },
+        contentType: 'application/json',
+        method: 'PUT',
+      }).done(() => {
+        noteTitle.text(noteTitleInput.val());
+        noteContent.text(noteContentTextarea.val());
+        editModal.removeClass('dirty');
+        $('.ui.modal').modal('hide');
+      });
+    });
+  });
+  $('.show-delete-project-column-note-modal').each(function () {
+    const deleteNoteUrl = $(this).data('url');
+    const modalId = $(this).data('modal');
+    const deletModal = $(modalId);
+
+    const confirmDeleteButton = deletModal.find('.actions > .ok.button');
+    confirmDeleteButton.on('click', (e) => {
+      e.preventDefault();
+
+      $.ajax({
+        url: deleteNoteUrl,
+        headers: {
+          'X-Csrf-Token': csrfToken,
+        },
+        contentType: 'application/json',
+        method: 'DELETE',
+      }).done(() => {
+        window.location.reload();
+      });
+    });
   });
 }
 

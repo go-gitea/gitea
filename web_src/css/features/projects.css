@@ -60,6 +60,10 @@
   gap: .25rem;
 }
 
+.project-column > .note-cards {
+  flex: unset;
+}
+
 .project-column > .divider {
   margin: 5px 0;
 }

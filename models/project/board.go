@@ -82,6 +82,26 @@ func (b *Board) NumIssues(ctx context.Context) int {
 	return int(c)
 }
 
+// NumNotes return counter of all notes assigned to the board
+func (b *Board) NumNotes(ctx context.Context) int {
+	c, err := db.GetEngine(ctx).Table("board_note").
+		And("board_id=?", b.ID).
+		GroupBy("id").
+		Cols("id").
+		Count()
+	if err != nil {
+		return 0
+	}
+	return int(c)
+}
+
+// NumIssuesAndNotes return counter of all issues and notes assigned to the board
+func (b *Board) NumIssuesAndNotes(ctx context.Context) int {
+	numIssues := b.NumIssues(ctx)
+	numNotes := b.NumNotes(ctx)
+	return numIssues + numNotes
+}
+
 func init() {
 	db.RegisterModel(new(Board))
 }

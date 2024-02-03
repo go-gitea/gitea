@@ -533,6 +533,12 @@ type EditProjectBoardForm struct {
 	Color   string `binding:"MaxSize(7)"`
 }
 
+// BoardNoteForm is a form for editing/creating a note to a board
+type BoardNoteForm struct {
+	Title   string `binding:"Required;MaxSize(255)"`
+	Content string
+}
+
 //    _____  .__.__                   __
 //   /     \ |__|  |   ____   _______/  |_  ____   ____   ____
 //  /  \ /  \|  |  | _/ __ \ /  ___/\   __\/  _ \ /    \_/ __ \

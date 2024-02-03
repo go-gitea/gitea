@@ -70,7 +70,7 @@
 				<div class="project-column-header">
 					<div class="ui large label project-column-title gt-py-2">
 						<div class="ui small circular grey label project-column-issue-count">
-							{{.NumIssues ctx}}
+							{{.NumIssuesAndNotes ctx}}
 						</div>
 						{{.Title}}
 					</div>
@@ -80,6 +80,12 @@
 								{{svg "octicon-kebab-horizontal"}}
 							</div>
 							<div class="menu user-menu">
+								<a class="item show-modal button show-add-project-column-note-modal"
+									data-modal="#add-project-column-note-modal-{{.ID}}"
+									data-url="{{$.Link}}/{{.ID}}/note">
+										{{svg "octicon-note"}}
+										{{ctx.Locale.Tr "repo.projects.note.add"}}
+								</a>
 								<a class="item show-modal button" data-modal="#edit-project-column-modal-{{.ID}}">
 									{{svg "octicon-pencil"}}
 									{{ctx.Locale.Tr "repo.projects.column.edit"}}
@@ -109,6 +115,25 @@
 									{{svg "octicon-trash"}}
 									{{ctx.Locale.Tr "repo.projects.column.delete"}}
 								</a>
+
+								<div class="ui small modal" id="add-project-column-note-modal-{{.ID}}">
+									<div class="header">
+										{{ctx.Locale.Tr "repo.projects.note.add"}}
+									</div>
+									<div class="content">
+										<div class="required field">
+											<label for="new-project-column-note-title-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.edit_title"}}</label>
+											<input id="new-project-column-note-title-{{.ID}}" name="title" maxlength="255" required>
+										</div>
+
+										<div class="field content-field">
+											<label for="new-project-column-note-content-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.content"}}</label>
+											<textarea id="new-project-column-note-content-{{.ID}}" name="content"></textarea>
+										</div>
+									</div>
+
+									{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm" "ModalButtonOkText" (ctx.Locale.Tr "repo.projects.note.add"))}}
+								</div>
 
 								<div class="ui small modal edit-project-column-modal" id="edit-project-column-modal-{{.ID}}">
 									<div class="header">
@@ -165,8 +190,23 @@
 
 				<div class="divider"></div>
 
-				<div class="ui cards {{if and $canWriteProject (ne .ID 0)}}{{/* ID 0 is default column which cannot be moved */}}gt-cursor-grab{{end}}" data-url="{{$.Link}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
-					{{range (index $.IssuesMap .ID)}}
+				{{ $columnID := .ID }}
+				{{if or $canWriteProject (index $.NotesMap $columnID)}}
+					<div class="ui cards note-cards {{if and $canWriteProject (ne .ID 0)}}{{/* ID 0 is default column which cannot be moved */}}gt-cursor-grab{{end}}" data-url="{{$.Link}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="note-board-{{.ID}}">
+						{{range (index $.NotesMap $columnID)}}
+							<div class="note-card gt-word-break {{if $canWriteProject}}gt-cursor-grab{{end}}" data-note="{{.ID}}">
+								{{template "repo/note" (dict "BoardNote" . "CanWriteProjects" $canWriteProject "Link" (print $.Link "/" $columnID))}}
+							</div>
+						{{end}}
+					</div>
+
+					{{if or $canWriteProject (index $.IssuesMap $columnID)}}
+						<div class="divider"></div>
+					{{end}}
+				{{end}}
+
+				<div class="ui cards issue-cards {{if and $canWriteProject (ne .ID 0)}}{{/* ID 0 is default column which cannot be moved */}}gt-cursor-grab{{end}}" data-url="{{$.Link}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="issue-board-{{.ID}}">
+					{{range (index $.IssuesMap $columnID)}}
 						<div class="issue-card gt-word-break {{if $canWriteProject}}gt-cursor-grab{{end}}" data-issue="{{.ID}}">
 							{{template "repo/issue/card" (dict "Issue" . "Page" $)}}
 						</div>

@@ -85,6 +85,25 @@ func (err ErrProjectBoardNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
+// ErrProjectBoardNoteNotExist represents a "ProjectBoardNotExist" kind of error.
+type ErrProjectBoardNoteNotExist struct {
+	BoardNoteID int64
+}
+
+// IsErrProjectBoardNoteNotExist checks if an error is a ErrProjectBoardNoteNotExist
+func IsErrProjectBoardNoteNotExist(err error) bool {
+	_, ok := err.(ErrProjectBoardNoteNotExist)
+	return ok
+}
+
+func (err ErrProjectBoardNoteNotExist) Error() string {
+	return fmt.Sprintf("project board-note does not exist [id: %d]", err.BoardNoteID)
+}
+
+func (err ErrProjectBoardNoteNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // Project represents a project board
 type Project struct {
 	ID          int64                  `xorm:"pk autoincr"`
