@@ -21,7 +21,7 @@ Gitea supports blocking of users to restrict how they can interact with you and 
 
 You can block a user in your account settings, from the user's profile or from comments created by the user.
 The user is not directly notified about the block.
-Organization owners can block can block anyone who is not a member of the organization too.
+Organization owners can block anyone who is not a member of the organization too.
 
 ### When you block a user
 
