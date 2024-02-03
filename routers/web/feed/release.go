@@ -6,6 +6,7 @@ package feed
 import (
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 
@@ -14,8 +15,9 @@ import (
 
 // shows tags and/or releases on the repo as RSS / Atom feed
 func ShowReleaseFeed(ctx *context.Context, repo *repo_model.Repository, isReleasesOnly bool, formatType string) {
-	releases, err := repo_model.GetReleasesByRepoID(ctx, ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{
+	releases, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
 		IncludeTags: !isReleasesOnly,
+		RepoID:      ctx.Repo.Repository.ID,
 	})
 	if err != nil {
 		ctx.ServerError("GetReleasesByRepoID", err)

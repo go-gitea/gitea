@@ -258,9 +258,11 @@ func Milestones(ctx *context.Context) {
 		}
 
 		milestones[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			URLPrefix: milestones[i].Repo.Link(),
-			Metas:     milestones[i].Repo.ComposeMetas(ctx),
-			Ctx:       ctx,
+			Links: markup.Links{
+				Base: milestones[i].Repo.Link(),
+			},
+			Metas: milestones[i].Repo.ComposeMetas(ctx),
+			Ctx:   ctx,
 		}, milestones[i].Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -663,7 +665,10 @@ func ShowSSHKeys(ctx *context.Context) {
 
 // ShowGPGKeys output all the public GPG keys of user by uid
 func ShowGPGKeys(ctx *context.Context) {
-	keys, err := asymkey_model.ListGPGKeys(ctx, ctx.ContextUser.ID, db.ListOptions{})
+	keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+		ListOptions: db.ListOptionsAll,
+		OwnerID:     ctx.ContextUser.ID,
+	})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)
 		return

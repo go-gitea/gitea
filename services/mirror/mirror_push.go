@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -131,7 +132,11 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
-	performPush := func(path string) error {
+	performPush := func(repo *repo_model.Repository, isWiki bool) error {
+		path := repo.RepoPath()
+		if isWiki {
+			path = repo.WikiPath()
+		}
 		remoteURL, err := git.GetRemoteURL(ctx, path, m.RemoteName)
 		if err != nil {
 			log.Error("GetRemoteAddress(%s) Error %v", path, err)
@@ -141,7 +146,12 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		if setting.LFS.StartServer {
 			log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 
-			gitRepo, err := git.OpenRepository(ctx, path)
+			var gitRepo *git.Repository
+			if isWiki {
+				gitRepo, err = gitrepo.OpenWikiRepository(ctx, repo)
+			} else {
+				gitRepo, err = gitrepo.OpenRepository(ctx, repo)
+			}
 			if err != nil {
 				log.Error("OpenRepository: %v", err)
 				return errors.New("Unexpected error")
@@ -171,16 +181,15 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		return nil
 	}
 
-	err := performPush(m.Repo.RepoPath())
+	err := performPush(m.Repo, false)
 	if err != nil {
 		return err
 	}
 
 	if m.Repo.HasWiki() {
-		wikiPath := m.Repo.WikiPath()
-		_, err := git.GetRemoteAddress(ctx, wikiPath, m.RemoteName)
+		_, err := git.GetRemoteAddress(ctx, m.Repo.WikiPath(), m.RemoteName)
 		if err == nil {
-			err := performPush(wikiPath)
+			err := performPush(m.Repo, true)
 			if err != nil {
 				return err
 			}

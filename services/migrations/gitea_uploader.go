@@ -19,7 +19,9 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	base_module "code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
@@ -138,7 +140,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	if err != nil {
 		return err
 	}
-	g.gitRepo, err = git.OpenRepository(g.ctx, r.RepoPath())
+	g.gitRepo, err = gitrepo.OpenRepository(g.ctx, r)
 	return err
 }
 
@@ -397,7 +399,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			RepoID:      g.repo.ID,
 			Repo:        g.repo,
 			Index:       issue.Number,
-			Title:       issue.Title,
+			Title:       base_module.TruncateString(issue.Title, 255),
 			Content:     issue.Content,
 			Ref:         issue.Ref,
 			IsClosed:    issue.State == "closed",

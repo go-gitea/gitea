@@ -7,12 +7,14 @@ package user
 import (
 	"fmt"
 	"net/http"
+	"path"
 	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -23,6 +25,10 @@ import (
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/routers/web/org"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+)
+
+const (
+	tplProfileBigAvatar base.TplName = "shared/user/profile_big_avatar"
 )
 
 // OwnerProfile render profile page for a user or a organization (aka, repo owner)
@@ -233,18 +239,19 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
 			log.Error("failed to GetBlobContent: %v", err)
 		} else {
-			// Give the URLPrefix to the markdown render for the full link of media element.
-			// the media link usually be like /[user]/[repoName]/media/branch/[branchName],
-			// 	Eg. /Tom/.profile/media/branch/main
-			// The branch shown on the profile page is the default branch, this need to be in sync with doc, see:
-			//	https://docs.gitea.com/usage/profile-readme
-
-			prefix := profileDbRepo.Link() + "/src/branch/" + util.PathEscapeSegments(profileDbRepo.DefaultBranch)
 			if profileContent, err := markdown.RenderString(&markup.RenderContext{
-				Ctx:       ctx,
-				GitRepo:   profileGitRepo,
-				URLPrefix: prefix,
-				Metas:     map[string]string{"mode": "document"},
+				Ctx:     ctx,
+				GitRepo: profileGitRepo,
+				Links: markup.Links{
+					// Give the repo link to the markdown render for the full link of media element.
+					// the media link usually be like /[user]/[repoName]/media/branch/[branchName],
+					// 	Eg. /Tom/.profile/media/branch/main
+					// The branch shown on the profile page is the default branch, this need to be in sync with doc, see:
+					//	https://docs.gitea.com/usage/profile-readme
+					Base:       profileDbRepo.Link(),
+					BranchPath: path.Join("branch", util.PathEscapeSegments(profileDbRepo.DefaultBranch)),
+				},
+				Metas: map[string]string{"mode": "document"},
 			}, bytes); err != nil {
 				log.Error("failed to RenderString: %v", err)
 			} else {
@@ -307,8 +314,10 @@ func Action(ctx *context.Context) {
 
 	if err != nil {
 		log.Error("Failed to apply action %q: %v", ctx.FormString("action"), err)
-		ctx.JSONError(fmt.Sprintf("Action %q failed", ctx.FormString("action")))
+		ctx.Error(http.StatusBadRequest, fmt.Sprintf("Action %q failed", ctx.FormString("action")))
 		return
 	}
-	ctx.JSONOK()
+
+	shared_user.PrepareContextForProfileBigAvatar(ctx)
+	ctx.HTML(http.StatusOK, tplProfileBigAvatar)
 }
