@@ -29,14 +29,16 @@
 							{{ctx.Locale.Tr "repo.projects.note.edit"}}
 						</div>
 						<div class="content">
-							<div class="required field">
-								<label for="edit-project-column-note-title-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.edit_title"}}</label>
-								<input id="edit-project-column-note-title-{{.ID}}" name="title" value="{{.Title}}" maxlength="255" required>
-							</div>
-
-							<div class="field content-field">
-								<label for="edit-project-column-note-content-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.content"}}</label>
-								<textarea id="edit-project-column-note-content-{{.ID}}" name="content">{{.Content}}</textarea>
+							<div class="ui form">
+								<div class="required field">
+									<label for="edit-project-column-note-title-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.edit_title"}}</label>
+									<input id="edit-project-column-note-title-{{.ID}}" name="title" value="{{.Title}}" maxlength="255" required>
+								</div>
+	
+								<div class="field content-field">
+									<label for="edit-project-column-note-content-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.content"}}</label>
+									<textarea id="edit-project-column-note-content-{{.ID}}" name="content">{{.Content}}</textarea>
+								</div>
 							</div>
 						</div>
 
@@ -58,10 +60,12 @@
 			</div>
 		{{end}}
 	</div>
-	<div class="project-column-note-content">
-		{{.Content}}
-	</div>
-	<div class="meta gt-my-2">
+	{{if and .Content (gt (len .Content) 0)}}
+		<div class="project-column-note-content">
+			{{.Content}}
+		</div>
+	{{end}}
+	<div class="meta">
 		<span class="text light grey muted-links">
 			{{$timeStr := TimeSinceUnix .GetLastEventTimestamp ctx.Locale}}
 			{{ctx.Locale.Tr .GetLastEventLabel $timeStr (.Creator.HomeLink | Escape) (.Creator.GetDisplayName | Escape) | Safe}}

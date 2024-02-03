@@ -8,6 +8,12 @@
   background: var(--color-card);
 }
 
+.note-card > .content {
+  display: flex;
+  flex-direction: column;
+  row-gap: 0.5rem;
+}
+
 .note-card-icon,
 .note-card-unpin {
   margin-top: 1px;

@@ -121,14 +121,16 @@
 										{{ctx.Locale.Tr "repo.projects.note.add"}}
 									</div>
 									<div class="content">
-										<div class="required field">
-											<label for="new-project-column-note-title-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.edit_title"}}</label>
-											<input id="new-project-column-note-title-{{.ID}}" name="title" maxlength="255" required>
-										</div>
+										<div class="ui form">
+											<div class="required field">
+												<label for="new-project-column-note-title-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.edit_title"}}</label>
+												<input id="new-project-column-note-title-{{.ID}}" name="title" maxlength="255" required>
+											</div>
 
-										<div class="field content-field">
-											<label for="new-project-column-note-content-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.content"}}</label>
-											<textarea id="new-project-column-note-content-{{.ID}}" name="content"></textarea>
+											<div class="field content-field">
+												<label for="new-project-column-note-content-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.content"}}</label>
+												<textarea id="new-project-column-note-content-{{.ID}}" name="content"></textarea>
+											</div>
 										</div>
 									</div>
 
