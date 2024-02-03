@@ -28,6 +28,7 @@ const (
 type PullRequestMeta struct {
 	HasMerged bool       `json:"merged"`
 	Merged    *time.Time `json:"merged_at"`
+	HTMLURL   string     `json:"html_url"`
 }
 
 // RepositoryMeta basic repository information
