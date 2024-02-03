@@ -60,11 +60,9 @@
 			</div>
 		{{end}}
 	</div>
-	{{if and .Content (gt (len .Content) 0)}}
-		<div class="project-column-note-content">
-			{{.Content}}
-		</div>
-	{{end}}
+	<div class="project-column-note-content">
+		{{.Content}}
+	</div>
 	<div class="meta">
 		<span class="text light grey muted-links">
 			{{$timeStr := TimeSinceUnix .GetLastEventTimestamp ctx.Locale}}

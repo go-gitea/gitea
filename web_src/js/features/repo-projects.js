@@ -6,9 +6,9 @@ import {createSortable} from '../modules/sortable.js';
 const {csrfToken} = window.config;
 
 function updateIssueAndNoteCount(cards) {
-  const cardsWrapper = $(cards).closest('.cards-wrapper');
-  const cnt = cardsWrapper.find('.issue-card, .note-card').length;
-  cardsWrapper.find('.project-column-issue-note-count').text(cnt);
+  const column = $(cards).closest('.project-column');
+  const cnt = column.find('.issue-card, .note-card').length;
+  column.find('.project-column-issue-note-count').text(cnt);
 }
 
 function sendPostRequestAndUnsetDirty(url, form, data) {
@@ -72,10 +72,9 @@ function moveNote({from, to}) {
     },
     contentType: 'application/json',
     type: 'POST',
-    success: () => {
-      // reload, because the relative-time changes from `created` to `updated`
-      window.location.reload();
-    },
+  }).done(() => {
+    // reload, because the relative-time changes from `created` to `updated`
+    window.location.reload();
   });
 }
 
@@ -278,6 +277,8 @@ export function initRepoProject() {
         noteContent.text(noteContentTextarea.val());
         editModal.removeClass('dirty');
         $('.ui.modal').modal('hide');
+        // reload, because the relative-time changes from `created` to `updated`
+        window.location.reload();
       });
     });
   });

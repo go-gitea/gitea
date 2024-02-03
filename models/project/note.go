@@ -141,7 +141,12 @@ func (note *BoardNote) GetLastEventLabel() string {
 
 // UpdateBoardNote changes a BoardNote
 func UpdateBoardNote(ctx context.Context, note *BoardNote) error {
-	_, err := db.GetEngine(ctx).ID(note.ID).Update(note)
+	var fieldToUpdate []string
+
+	fieldToUpdate = append(fieldToUpdate, "title")
+	fieldToUpdate = append(fieldToUpdate, "content")
+
+	_, err := db.GetEngine(ctx).ID(note.ID).Cols(fieldToUpdate...).Update(note)
 	return err
 }
 
