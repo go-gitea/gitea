@@ -66,7 +66,6 @@ type FileMetadata struct {
 	Provides         []string `json:"provides,omitempty"`
 	Dependencies     []string `json:"dependencies,omitempty"`
 	ProviderPriority int64    `json:"provider_priority,omitempty"`
-	ReplacesPriority int64    `json:"replaces_priority,omitempty"`
 }
 
 // ParsePackage parses the Alpine package file
@@ -194,11 +193,6 @@ func ParsePackageInfo(r io.Reader) (*Package, error) {
 			n, err := strconv.ParseInt(value, 10, 64)
 			if err == nil {
 				p.FileMetadata.ProviderPriority = n
-			}
-		case "replaces_priority":
-			n, err := strconv.ParseInt(value, 10, 64)
-			if err == nil {
-				p.FileMetadata.ReplacesPriority = n
 			}
 		}
 	}
