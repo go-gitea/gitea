@@ -21,6 +21,8 @@ func HandleConnect(s *melody.Session) {
 		uid: uid,
 	}
 	s.Set("data", sessionData)
+
+	// TODO: handle logouts
 }
 
 func HandleMessage(s *melody.Session, msg []byte) {
