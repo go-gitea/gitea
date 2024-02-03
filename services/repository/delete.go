@@ -33,7 +33,7 @@ import (
 
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
-func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, repoID int64) error {
+func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID int64, ignoreOrgTeams ...bool) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -41,39 +41,41 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, r
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
 
-	// Query the action tasks of this repo, they will be needed after they have been deleted to remove the logs
-	tasks, err := actions_model.FindTasks(ctx, actions_model.FindTaskOptions{RepoID: repoID})
-	if err != nil {
-		return fmt.Errorf("find actions tasks of repo %v: %w", repoID, err)
-	}
-
-	// Query the artifacts of this repo, they will be needed after they have been deleted to remove artifacts files in ObjectStorage
-	artifacts, err := actions_model.ListArtifactsByRepoID(ctx, repoID)
-	if err != nil {
-		return fmt.Errorf("list actions artifacts of repo %v: %w", repoID, err)
-	}
-
-	// In case is a organization.
-	org, err := user_model.GetUserByID(ctx, uid)
-	if err != nil {
-		return err
-	}
-
-	repo := &repo_model.Repository{OwnerID: uid}
+	repo := &repo_model.Repository{}
 	has, err := sess.ID(repoID).Get(repo)
 	if err != nil {
 		return err
 	} else if !has {
 		return repo_model.ErrRepoNotExist{
 			ID:        repoID,
-			UID:       uid,
 			OwnerName: "",
 			Name:      "",
 		}
 	}
 
+	// Query the action tasks of this repo, they will be needed after they have been deleted to remove the logs
+	tasks, err := db.Find[actions_model.ActionTask](ctx, actions_model.FindTaskOptions{RepoID: repoID})
+	if err != nil {
+		return fmt.Errorf("find actions tasks of repo %v: %w", repoID, err)
+	}
+
+	// Query the artifacts of this repo, they will be needed after they have been deleted to remove artifacts files in ObjectStorage
+	artifacts, err := db.Find[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{RepoID: repoID})
+	if err != nil {
+		return fmt.Errorf("list actions artifacts of repo %v: %w", repoID, err)
+	}
+
+	// In case owner is a organization, we have to change repo specific teams
+	// if ignoreOrgTeams is not true
+	var org *user_model.User
+	if len(ignoreOrgTeams) == 0 || !ignoreOrgTeams[0] {
+		if org, err = user_model.GetUserByID(ctx, repo.OwnerID); err != nil {
+			return err
+		}
+	}
+
 	// Delete Deploy Keys
-	deployKeys, err := asymkey_model.ListDeployKeys(ctx, &asymkey_model.ListDeployKeysOptions{RepoID: repoID})
+	deployKeys, err := db.Find[asymkey_model.DeployKey](ctx, asymkey_model.ListDeployKeysOptions{RepoID: repoID})
 	if err != nil {
 		return fmt.Errorf("listDeployKeys: %w", err)
 	}
@@ -89,13 +91,12 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, r
 	} else if cnt != 1 {
 		return repo_model.ErrRepoNotExist{
 			ID:        repoID,
-			UID:       uid,
 			OwnerName: "",
 			Name:      "",
 		}
 	}
 
-	if org.IsOrganization() {
+	if org != nil && org.IsOrganization() {
 		teams, err := organization.FindOrgTeams(ctx, org.ID)
 		if err != nil {
 			return err
@@ -192,7 +193,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, r
 		}
 	}
 
-	if _, err := db.Exec(ctx, "UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
+	if _, err := db.Exec(ctx, "UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", repo.OwnerID); err != nil {
 		return err
 	}
 
@@ -421,4 +422,31 @@ func RemoveRepositoryFromTeam(ctx context.Context, t *organization.Team, repoID 
 	}
 
 	return committer.Commit()
+}
+
+// DeleteOwnerRepositoriesDirectly calls DeleteRepositoryDirectly for all repos of the given owner
+func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User) error {
+	for {
+		repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
+			ListOptions: db.ListOptions{
+				PageSize: repo_model.RepositoryListDefaultPageSize,
+				Page:     1,
+			},
+			Private: true,
+			OwnerID: owner.ID,
+			Actor:   owner,
+		})
+		if err != nil {
+			return fmt.Errorf("GetUserRepositories: %w", err)
+		}
+		if len(repos) == 0 {
+			break
+		}
+		for _, repo := range repos {
+			if err := DeleteRepositoryDirectly(ctx, owner, repo.ID); err != nil {
+				return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %w", repo.Name, owner.Name, owner.ID, err)
+			}
+		}
+	}
+	return nil
 }

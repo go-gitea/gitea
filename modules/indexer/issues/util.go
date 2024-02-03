@@ -127,15 +127,15 @@ func updateRepoIndexer(ctx context.Context, repoID int64) error {
 		return fmt.Errorf("issue_model.GetIssueIDsByRepoID: %w", err)
 	}
 	for _, id := range ids {
-		if err := updateIssueIndexer(id); err != nil {
+		if err := updateIssueIndexer(ctx, id); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func updateIssueIndexer(issueID int64) error {
-	return pushIssueIndexerQueue(&IndexerMetadata{ID: issueID})
+func updateIssueIndexer(ctx context.Context, issueID int64) error {
+	return pushIssueIndexerQueue(ctx, &IndexerMetadata{ID: issueID})
 }
 
 func deleteRepoIssueIndexer(ctx context.Context, repoID int64) error {
@@ -148,13 +148,21 @@ func deleteRepoIssueIndexer(ctx context.Context, repoID int64) error {
 	if len(ids) == 0 {
 		return nil
 	}
-	return pushIssueIndexerQueue(&IndexerMetadata{
+	return pushIssueIndexerQueue(ctx, &IndexerMetadata{
 		IDs:      ids,
 		IsDelete: true,
 	})
 }
 
-func pushIssueIndexerQueue(data *IndexerMetadata) error {
+type keepRetryKey struct{}
+
+// contextWithKeepRetry returns a context with a key indicating that the indexer should keep retrying.
+// Please note that it's for background tasks only, and it should not be used for user requests, or it may cause blocking.
+func contextWithKeepRetry(ctx context.Context) context.Context {
+	return context.WithValue(ctx, keepRetryKey{}, true)
+}
+
+func pushIssueIndexerQueue(ctx context.Context, data *IndexerMetadata) error {
 	if issueIndexerQueue == nil {
 		// Some unit tests will trigger indexing, but the queue is not initialized.
 		// It's OK to ignore it, but log a warning message in case it's not a unit test.
@@ -162,12 +170,26 @@ func pushIssueIndexerQueue(data *IndexerMetadata) error {
 		return nil
 	}
 
-	err := issueIndexerQueue.Push(data)
-	if errors.Is(err, queue.ErrAlreadyInQueue) {
-		return nil
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+		err := issueIndexerQueue.Push(data)
+		if errors.Is(err, queue.ErrAlreadyInQueue) {
+			return nil
+		}
+		if errors.Is(err, context.DeadlineExceeded) { // the queue is full
+			log.Warn("It seems that issue indexer is slow and the queue is full. Please check the issue indexer or increase the queue size.")
+			if ctx.Value(keepRetryKey{}) == nil {
+				return err
+			}
+			// It will be better to increase the queue size instead of retrying, but users may ignore the previous warning message.
+			// However, even it retries, it may still cause index loss when there's a deadline in the context.
+			log.Debug("Retry to push %+v to issue indexer queue", data)
+			continue
+		}
+		return err
 	}
-	if errors.Is(err, context.DeadlineExceeded) {
-		log.Warn("It seems that issue indexer is slow and the queue is full. Please check the issue indexer or increase the queue size.")
-	}
-	return err
 }

@@ -43,7 +43,7 @@ func RenderFile(ctx *context.Context) {
 	st := typesniffer.DetectContentType(buf)
 	isTextFile := st.IsText()
 
-	rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
+	rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
 
 	if markupType := markup.Type(blob.Name()); markupType == "" {
 		if isTextFile {
@@ -57,16 +57,15 @@ func RenderFile(ctx *context.Context) {
 		return
 	}
 
-	treeLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
-	if ctx.Repo.TreePath != "" {
-		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
-	}
-
 	ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'; sandbox allow-scripts")
 	err = markup.Render(&markup.RenderContext{
-		Ctx:              ctx,
-		RelativePath:     ctx.Repo.TreePath,
-		URLPrefix:        path.Dir(treeLink),
+		Ctx:          ctx,
+		RelativePath: ctx.Repo.TreePath,
+		Links: markup.Links{
+			Base:       ctx.Repo.RepoLink,
+			BranchPath: ctx.Repo.BranchNameSubURL(),
+			TreePath:   path.Dir(ctx.Repo.TreePath),
+		},
 		Metas:            ctx.Repo.Repository.ComposeDocumentMetas(ctx),
 		GitRepo:          ctx.Repo.GitRepo,
 		InStandalonePage: true,

@@ -128,11 +128,13 @@ It needs some tricks to tweak the left/right borders with active state */
 .ui.primary.button:focus,
 .ui.primary.buttons .button:focus {
   background: var(--color-primary);
+  color: var(--color-primary-contrast);
 }
 
 .ui.primary.button:hover,
 .ui.primary.buttons .button:hover {
   background: var(--color-primary-hover);
+  color: var(--color-primary-contrast);
 }
 
 .ui.primary.button:active,

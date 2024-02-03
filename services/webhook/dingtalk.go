@@ -173,6 +173,12 @@ func (d *DingtalkPayload) Release(p *api.ReleasePayload) (api.Payloader, error) 
 	return createDingtalkPayload(text, text, "view release", p.Release.HTMLURL), nil
 }
 
+func (d *DingtalkPayload) Package(p *api.PackagePayload) (api.Payloader, error) {
+	text, _ := getPackagePayloadInfo(p, noneLinkFormatter, true)
+
+	return createDingtalkPayload(text, text, "view package", p.Package.HTMLURL), nil
+}
+
 func createDingtalkPayload(title, text, singleTitle, singleURL string) *DingtalkPayload {
 	return &DingtalkPayload{
 		MsgType: "actionCard",

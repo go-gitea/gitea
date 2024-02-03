@@ -67,7 +67,7 @@ func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, err
 }
 
 func generateKeypair() (string, string, error) {
-	e, err := openpgp.NewEntity(setting.AppName, "Debian Registry", "", nil)
+	e, err := openpgp.NewEntity("", "Debian Registry", "", nil)
 	if err != nil {
 		return "", "", err
 	}
@@ -110,10 +110,7 @@ func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
 	}
 
 	for _, pf := range pfs {
-		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
-			return err
-		}
-		if err := packages_model.DeleteFileByID(ctx, pf.ID); err != nil {
+		if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
 			return err
 		}
 	}
@@ -165,29 +162,27 @@ func buildRepositoryFiles(ctx context.Context, ownerID int64, repoVersion *packa
 
 // https://wiki.debian.org/DebianRepository/Format#A.22Packages.22_Indices
 func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packages_model.PackageVersion, distribution, component, architecture string) error {
-	pfds, err := debian_model.SearchLatestPackages(ctx, &debian_model.PackageSearchOptions{
+	opts := &debian_model.PackageSearchOptions{
 		OwnerID:      ownerID,
 		Distribution: distribution,
 		Component:    component,
 		Architecture: architecture,
-	})
-	if err != nil {
-		return err
 	}
 
 	// Delete the package indices if there are no packages
-	if len(pfds) == 0 {
+	if has, err := debian_model.ExistPackages(ctx, opts); err != nil {
+		return err
+	} else if !has {
 		key := fmt.Sprintf("%s|%s|%s", distribution, component, architecture)
 		for _, filename := range []string{"Packages", "Packages.gz", "Packages.xz"} {
 			pf, err := packages_model.GetFileForVersionByName(ctx, repoVersion.ID, filename, key)
 			if err != nil && !errors.Is(err, util.ErrNotExist) {
 				return err
+			} else if pf == nil {
+				continue
 			}
 
-			if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
-				return err
-			}
-			if err := packages_model.DeleteFileByID(ctx, pf.ID); err != nil {
+			if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
 				return err
 			}
 		}
@@ -196,17 +191,22 @@ func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packa
 	}
 
 	packagesContent, _ := packages_module.NewHashedBuffer()
+	defer packagesContent.Close()
 
 	packagesGzipContent, _ := packages_module.NewHashedBuffer()
+	defer packagesGzipContent.Close()
+
 	gzw := gzip.NewWriter(packagesGzipContent)
 
 	packagesXzContent, _ := packages_module.NewHashedBuffer()
+	defer packagesXzContent.Close()
+
 	xzw, _ := xz.NewWriter(packagesXzContent)
 
 	w := io.MultiWriter(packagesContent, gzw, xzw)
 
 	addSeparator := false
-	for _, pfd := range pfds {
+	if err := debian_model.SearchPackages(ctx, opts, func(pfd *packages_model.PackageFileDescriptor) {
 		if addSeparator {
 			fmt.Fprintln(w)
 		}
@@ -220,6 +220,8 @@ func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packa
 		fmt.Fprintf(w, "SHA1: %s\n", pfd.Blob.HashSHA1)
 		fmt.Fprintf(w, "SHA256: %s\n", pfd.Blob.HashSHA256)
 		fmt.Fprintf(w, "SHA512: %s\n", pfd.Blob.HashSHA512)
+	}); err != nil {
+		return err
 	}
 
 	gzw.Close()
@@ -233,7 +235,7 @@ func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packa
 		{"Packages.gz", packagesGzipContent},
 		{"Packages.xz", packagesXzContent},
 	} {
-		_, err = packages_service.AddFileToPackageVersionInternal(
+		_, err := packages_service.AddFileToPackageVersionInternal(
 			ctx,
 			repoVersion,
 			&packages_service.PackageFileCreationInfo{
@@ -280,12 +282,11 @@ func buildReleaseFiles(ctx context.Context, ownerID int64, repoVersion *packages
 			pf, err := packages_model.GetFileForVersionByName(ctx, repoVersion.ID, filename, distribution)
 			if err != nil && !errors.Is(err, util.ErrNotExist) {
 				return err
+			} else if pf == nil {
+				continue
 			}
 
-			if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
-				return err
-			}
-			if err := packages_model.DeleteFileByID(ctx, pf.ID); err != nil {
+			if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
 				return err
 			}
 		}
@@ -323,6 +324,8 @@ func buildReleaseFiles(ctx context.Context, ownerID int64, repoVersion *packages
 	}
 
 	inReleaseContent, _ := packages_module.NewHashedBuffer()
+	defer inReleaseContent.Close()
+
 	sw, err := clearsign.Encode(inReleaseContent, e.PrivateKey, nil)
 	if err != nil {
 		return err
@@ -367,11 +370,14 @@ func buildReleaseFiles(ctx context.Context, ownerID int64, repoVersion *packages
 	sw.Close()
 
 	releaseGpgContent, _ := packages_module.NewHashedBuffer()
+	defer releaseGpgContent.Close()
+
 	if err := openpgp.ArmoredDetachSign(releaseGpgContent, e, bytes.NewReader(buf.Bytes()), nil); err != nil {
 		return err
 	}
 
 	releaseContent, _ := packages_module.CreateHashedBufferFromReader(&buf)
+	defer releaseContent.Close()
 
 	for _, file := range []struct {
 		Name string

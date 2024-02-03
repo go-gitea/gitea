@@ -382,6 +382,12 @@ func searchIssueInProject(t *testing.T) {
 			},
 			[]int64{1},
 		},
+		{
+			SearchOptions{
+				ProjectBoardID: int64Pointer(0), // issue with in default board
+			},
+			[]int64{2},
+		},
 	}
 	for _, test := range tests {
 		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)

@@ -16,6 +16,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -49,16 +50,16 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 		return nil
 	}
 	issueIDs := prs.GetIssueIDs()
-	var codeComments []*issues_model.Comment
 
-	if err := db.Find(ctx, &issues_model.FindCommentsOptions{
+	codeComments, err := db.Find[issues_model.Comment](ctx, issues_model.FindCommentsOptions{
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},
 		Type:        issues_model.CommentTypeCode,
 		Invalidated: util.OptionalBoolFalse,
 		IssueIDs:    issueIDs,
-	}, &codeComments); err != nil {
+	})
+	if err != nil {
 		return fmt.Errorf("find code comments: %v", err)
 	}
 	for _, comment := range codeComments {
@@ -170,7 +171,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, fmt.Errorf("LoadBaseRepo: %w", err)
 	}
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		return nil, fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
 	}

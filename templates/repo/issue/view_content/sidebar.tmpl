@@ -270,19 +270,7 @@
 		<div class="ui watching">
 			<span class="text"><strong>{{ctx.Locale.Tr "notification.notifications"}}</strong></span>
 			<div class="gt-mt-3">
-				<form method="post" action="{{.Issue.Link}}/watch">
-					<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}">
-					{{$.CsrfTokenHtml}}
-					<button class="fluid ui button">
-						{{if $.IssueWatch.IsWatching}}
-							{{svg "octicon-mute" 16 "gt-mr-3"}}
-							{{ctx.Locale.Tr "repo.issues.unsubscribe"}}
-						{{else}}
-							{{svg "octicon-unmute" 16 "gt-mr-3"}}
-							{{ctx.Locale.Tr "repo.issues.subscribe"}}
-						{{end}}
-					</button>
-				</form>
+				{{template "repo/issue/view_content/watching" .}}
 			</div>
 		</div>
 	{{end}}
@@ -339,7 +327,7 @@
 				</div>
 			</div>
 		{{end}}
-		{{if gt (len .WorkingUsers) 0}}
+		{{if .WorkingUsers}}
 			<div class="divider"></div>
 			<div class="ui comments">
 				<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.time_spent_from_all_authors" ($.Issue.TotalTrackedTime | Sec2Time) | Safe}}</strong></span>
@@ -392,7 +380,7 @@
 			<div {{if ne .Issue.DeadlineUnix 0}} class="gt-hidden"{{end}} id="deadlineForm">
 				<form class="ui fluid action input issue-due-form" action="{{AppSubUrl}}/{{PathEscape .Repository.Owner.Name}}/{{PathEscape .Repository.Name}}/issues/{{.Issue.Index}}/deadline" method="post" id="update-issue-deadline-form">
 					{{$.CsrfTokenHtml}}
-					<input required placeholder="{{ctx.Locale.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.Format "2006-01-02"}}"{{end}} type="date" name="deadlineDate" id="deadlineDate">
+					<input required placeholder="{{ctx.Locale.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.FormatDate}}"{{end}} type="date" name="deadlineDate" id="deadlineDate">
 					<button class="ui icon button">
 						{{if ne .Issue.DeadlineUnix 0}}
 							{{svg "octicon-pencil"}}

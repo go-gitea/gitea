@@ -93,7 +93,7 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string, any)) 
 }
 
 func determineAccessMode(ctx *Base, pkg *Package, doer *user_model.User) (perm.AccessMode, error) {
-	if setting.Service.RequireSignInView && doer == nil {
+	if setting.Service.RequireSignInView && (doer == nil || doer.IsGhost()) {
 		return perm.AccessModeNone, nil
 	}
 
