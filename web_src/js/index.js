@@ -18,6 +18,7 @@ import {initAdminConfigs} from './features/admin/config.js';
 import {initMarkupAnchors} from './markup/anchors.js';
 import {initNotificationCount, initNotificationsTable} from './features/notification.js';
 import {initRepoIssueContentHistory} from './features/repo-issue-content.js';
+import {initRepoIssueNew} from './features/repo-issue-new.js';
 import {initStopwatch} from './features/stopwatch.js';
 import {initFindFileInRepo} from './features/repo-findfile.js';
 import {initCommentContent, initMarkupContent} from './markup/content.js';
@@ -149,6 +150,7 @@ onDomReady(() => {
   initRepoEditor();
   initRepoGraphGit();
   initRepoIssueContentHistory();
+  initRepoIssueNew();
   initRepoIssueDue();
   initRepoIssueList();
   initRepoIssueSidebarList();

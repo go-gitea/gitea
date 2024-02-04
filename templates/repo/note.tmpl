@@ -23,6 +23,10 @@
 								{{svg "octicon-pencil"}}
 								{{ctx.Locale.Tr "repo.projects.note.edit"}}
 						</button>
+						<a class="ui item button create-project-issue-from-note" href="{{$.RepoLink}}/issues/new/choose?project={{$.ProjectID}}">
+							{{svg "octicon-issue-opened"}}
+							{{ctx.Locale.Tr "repo.issues.new"}}
+						</a>
 						<button class="ui item show-modal button"
 							data-modal="#delete-project-column-note-modal-{{.ID}}"
 							data-modal-form.action="{{$.Link}}/{{$.columnID}}/note/{{.ID}}">

@@ -158,6 +158,18 @@ export function initRepoProject() {
 
   const _promise = initRepoProjectSortable();
 
+  $('.create-project-issue-from-note').each(function () {
+    const anchorLink = $(this);
+    const wrapperCard = anchorLink.closest('.note-card');
+    const titleInput = wrapperCard.find('[name="title"]');
+    const contentTextarea = wrapperCard.find('.markdown-text-editor');
+
+    anchorLink.on('click', () => {
+      sessionStorage.setItem('board-note-title', titleInput.val());
+      sessionStorage.setItem('board-note-content', contentTextarea.val());
+    });
+  });
+
   $('.edit-project-column-modal').each(function () {
     const projectHeader = $(this).closest('.project-column-header');
     const projectTitleLabel = projectHeader.find('.project-column-title');
