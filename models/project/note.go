@@ -34,7 +34,7 @@ type BoardNote struct {
 type BoardNoteList = []*BoardNote
 
 // NotesOptions represents options of an note.
-type NotesOptions struct { //nolint
+type NotesOptions struct {
 	db.Paginator
 	ProjectID int64
 	BoardID   int64
@@ -44,8 +44,8 @@ func init() {
 	db.RegisterModel(new(BoardNote))
 }
 
-// GetBoardNoteById load notes assigned to the boards
-func GetBoardNoteById(ctx context.Context, noteID int64) (*BoardNote, error) {
+// GetBoardNoteByID load notes assigned to the boards
+func GetBoardNoteByID(ctx context.Context, noteID int64) (*BoardNote, error) {
 	note := new(BoardNote)
 
 	has, err := db.GetEngine(ctx).ID(noteID).Get(note)
@@ -180,7 +180,7 @@ func DeleteBoardNote(ctx context.Context, boardNote *BoardNote) error {
 }
 
 // removeBoardNotes sets the boardID to 0 for the board
-func (board *Board) removeBoardNotes(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `board_note` SET board_id = 0 WHERE board_id = ?", board.ID)
+func (b *Board) removeBoardNotes(ctx context.Context) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `board_note` SET board_id = 0 WHERE board_id = ?", b.ID)
 	return err
 }

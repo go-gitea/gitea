@@ -340,6 +340,10 @@ func ViewProject(ctx *context.Context) {
 				GitRepo: ctx.Repo.GitRepo,
 				Ctx:     ctx,
 			}, note.Content)
+			if err != nil {
+				ctx.ServerError("RenderString", err)
+				return
+			}
 		}
 	}
 
@@ -744,7 +748,7 @@ func checkProjectBoardNoteChangePermissions(ctx *context.Context) (*project_mode
 		return nil, nil
 	}
 
-	note, err := project_model.GetBoardNoteById(ctx, ctx.ParamsInt64(":noteID"))
+	note, err := project_model.GetBoardNoteByID(ctx, ctx.ParamsInt64(":noteID"))
 	if err != nil {
 		if project_model.IsErrProjectBoardNoteNotExist(err) {
 			ctx.NotFound("ProjectBoardNoteNotFound", err)
