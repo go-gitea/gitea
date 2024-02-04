@@ -330,6 +330,19 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
+	for _, noteList := range notesMap {
+		for _, note := range noteList {
+			note.Content, err = markdown.RenderString(&markup.RenderContext{
+				Links: markup.Links{
+					Base: ctx.Repo.RepoLink,
+				},
+				Metas:   ctx.Repo.Repository.ComposeMetas(),
+				GitRepo: ctx.Repo.GitRepo,
+				Ctx:     ctx,
+			}, note.Content)
+		}
+	}
+
 	if project.CardType != project_model.CardTypeTextOnly {
 		issuesAttachmentMap := make(map[int64][]*attachment_model.Attachment)
 		for _, issuesList := range issuesMap {

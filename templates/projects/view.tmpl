@@ -126,13 +126,17 @@
 										<div class="content">
 											{{$.CsrfTokenHtml}}
 											<div class="required field">
-												<label for="new-project-column-note-title-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.edit_title"}}</label>
-												<input id="new-project-column-note-title-{{.ID}}" name="title" maxlength="255" required>
+												<label for="new-project-column-note-title-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.new_title"}}</label>
+												<input id="new-project-column-note-title-{{.ID}}" name="title" maxlength="255" autofocus required>
 											</div>
 
 											<div class="field">
-												<label for="new-project-column-note-content-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.content"}}</label>
-												<textarea id="new-project-column-note-content-{{.ID}}" name="content"></textarea>
+												{{template "shared/combomarkdowneditor" (dict
+													"MarkdownPreviewUrl" (print $.RepoLink "/markup")
+													"MarkdownPreviewContext" $.RepoLink
+													"TextareaName" "content"
+													"TextareaPlaceholder" (ctx.Locale.Tr "repo.projects.note.content")
+												)}}
 											</div>
 										</div>
 
@@ -203,7 +207,14 @@
 						<div class="ui cards note-cards {{if and $canWriteProject (ne .ID 0)}}{{/* ID 0 is default column which cannot be moved */}}gt-cursor-grab{{end}}" data-url="{{$.Link}}/{{.ID}}/note" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="note-board-{{.ID}}">
 							{{range (index $.NotesMap $columnID)}}
 								<div class="note-card gt-word-break {{if $canWriteProject}}gt-cursor-grab{{end}}" data-note="{{.ID}}">
-									{{template "repo/note" (dict "BoardNote" . "CanWriteProjects" $canWriteProject "Link" (print $.Link "/" $columnID) "CsrfTokenHtml" $.CsrfTokenHtml)}}
+									{{template "repo/note" (dict
+										"BoardNote" .
+										"CanWriteProjects" $canWriteProject
+										"Link" $.Link
+										"RepoLink" $.RepoLink
+										"columnID" $columnID
+										"CsrfTokenHtml" $.CsrfTokenHtml)
+									}}
 								</div>
 							{{end}}
 						</div>

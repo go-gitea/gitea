@@ -13,18 +13,18 @@
 				<div class="menu user-menu left">
 					<button class="ui item show-modal button"
 						data-modal="#edit-project-column-note-modal-{{.ID}}"
-						data-modal-form.action="{{$.Link}}/note/{{.ID}}">
+						data-modal-form.action="{{$.Link}}/{{$.columnID}}/note/{{.ID}}">
 							{{svg "octicon-pencil"}}
 							{{ctx.Locale.Tr "repo.projects.note.edit"}}
 					</button>
 					<button class="ui item show-modal button"
 						data-modal="#delete-project-column-note-modal-{{.ID}}"
-						data-modal-form.action="{{$.Link}}/note/{{.ID}}">
+						data-modal-form.action="{{$.Link}}/{{$.columnID}}/note/{{.ID}}">
 							{{svg "octicon-trash"}}
 							{{ctx.Locale.Tr "repo.projects.note.delete"}}
 					</button>
 
-					<div class="ui small modal" id="edit-project-column-note-modal-{{.ID}}">
+					<div class="ui modal" id="edit-project-column-note-modal-{{.ID}}">
 						<div class="header">
 							{{ctx.Locale.Tr "repo.projects.note.edit"}}
 						</div>
@@ -33,12 +33,17 @@
 								{{$.CsrfTokenHtml}}
 								<div class="required field">
 									<label for="edit-project-column-note-title-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.edit_title"}}</label>
-									<input id="edit-project-column-note-title-{{.ID}}" name="title" value="{{.Title}}" maxlength="255" required>
+									<input id="edit-project-column-note-title-{{.ID}}" name="title" value="{{.Title}}" maxlength="255" autofocus required>
 								</div>
-	
+
 								<div class="field">
-									<label for="edit-project-column-note-content-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.content"}}</label>
-									<textarea id="edit-project-column-note-content-{{.ID}}" name="content">{{.Content}}</textarea>
+									{{template "shared/combomarkdowneditor" (dict
+										"MarkdownPreviewUrl" (print $.RepoLink "/markup")
+										"MarkdownPreviewContext" $.RepoLink
+										"TextareaName" "content"
+										"TextareaContent" .Content
+										"TextareaPlaceholder" (ctx.Locale.Tr "repo.projects.note.content")
+									)}}
 								</div>
 							</div>
 
@@ -65,7 +70,7 @@
 		{{end}}
 	</div>
 	<div class="project-column-note-content">
-		{{.Content}}
+		{{Str2html .Content}}
 	</div>
 	<div class="meta">
 		<span class="text light grey muted-links">

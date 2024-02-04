@@ -66,6 +66,10 @@
   flex-grow: unset;
 }
 
+.cards-wrapper > .cards * {
+  max-width: 100%;
+}
+
 /* don't show divider, if currently no note-cards are draged and note-cards are empty */
 #project-board:not(:has(.note-cards > .card-ghost)) .cards-wrapper > .note-cards:not(:has(> *)) + .divider,
 /* don't show divider, if there are no childs in issue-cards */
@@ -94,7 +98,6 @@
 
 .card-attachment-images {
   display: inline-block;
-  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-align: center;
@@ -103,7 +106,6 @@
 .card-attachment-images img {
   display: inline-block;
   max-height: 50px;
-  max-width: 100%;
   border-radius: var(--border-radius);
   margin-right: 2px;
 }

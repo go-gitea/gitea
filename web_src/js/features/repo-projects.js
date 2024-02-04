@@ -2,6 +2,7 @@ import $ from 'jquery';
 import {useLightTextOnBackground} from '../utils/color.js';
 import tinycolor from 'tinycolor2';
 import {createSortable} from '../modules/sortable.js';
+import {initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 
 const {csrfToken} = window.config;
 
@@ -137,9 +138,23 @@ async function initRepoProjectSortable() {
 }
 
 export function initRepoProject() {
-  if (!$('.repository.projects').length) {
+  const mainContent = $('.repository.projects');
+  if (!mainContent.length) {
     return;
   }
+
+  const modalButtons = mainContent.find('.project-column button[data-modal]');
+  modalButtons.each(function() {
+    const modalButton = $(this);
+    const modalId = modalButton.data('modal');
+
+    const markdownEditor = $(`${modalId} .combo-markdown-editor`);
+    if (!markdownEditor.length) return;
+
+    modalButton.one('click', () => {
+      initComboMarkdownEditor(markdownEditor);
+    });
+  });
 
   const _promise = initRepoProjectSortable();
 
