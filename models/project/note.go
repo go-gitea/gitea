@@ -101,7 +101,7 @@ func BoardNotes(ctx context.Context, opts *NotesOptions) (BoardNoteList, error) 
 	sess.Where(builder.Eq{"board_id": opts.BoardID}).And(builder.Eq{"project_id": opts.ProjectID})
 
 	notes := BoardNoteList{}
-	if err := sess.OrderBy("sorting").Find(&notes); err != nil {
+	if err := sess.Asc("sorting").Desc("updated_unix").Desc("id").Find(&notes); err != nil {
 		return nil, fmt.Errorf("unable to query Notes: %w", err)
 	}
 
