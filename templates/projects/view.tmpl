@@ -202,7 +202,7 @@
 				<div class="divider"></div>
 
 				<div class="cards-wrapper">
-					{{ $columnID := .ID }}
+					{{$columnID := .ID}}
 					{{if or $canWriteProject (index $.NotesMap $columnID)}}
 						<div class="ui cards note-cards {{if and $canWriteProject (ne .ID 0)}}{{/* ID 0 is default column which cannot be moved */}}gt-cursor-grab{{end}}" data-url="{{$.Link}}/{{.ID}}/note" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="note-board-{{.ID}}">
 							{{range (index $.NotesMap $columnID)}}

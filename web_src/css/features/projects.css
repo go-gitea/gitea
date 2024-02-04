@@ -50,6 +50,7 @@
 }
 
 .project-column-title {
+  white-space: unset !important;
   background: none !important;
   line-height: 1.25 !important;
 }

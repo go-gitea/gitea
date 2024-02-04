@@ -336,7 +336,7 @@ func ViewProject(ctx *context.Context) {
 				Links: markup.Links{
 					Base: ctx.Repo.RepoLink,
 				},
-				Metas:   ctx.Repo.Repository.ComposeMetas(),
+				Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
 				GitRepo: ctx.Repo.GitRepo,
 				Ctx:     ctx,
 			}, note.Content)
