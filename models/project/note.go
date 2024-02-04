@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -138,6 +139,16 @@ func (note *BoardNote) GetLastEventLabel() string {
 		return "repo.projects.note.updated_by"
 	}
 	return "repo.projects.note.created_by"
+}
+
+// GetTasks returns the amount of tasks in the board-notes content
+func (note *BoardNote) GetTasks() int {
+	return len(markdown.MarkdownTasksRegex.FindAllStringIndex(note.Content, -1))
+}
+
+// GetTasksDone returns the amount of completed tasks in the board-notes content
+func (note *BoardNote) GetTasksDone() int {
+	return len(markdown.MarkdownTasksDoneRegex.FindAllStringIndex(note.Content, -1))
 }
 
 // UpdateBoardNote changes a BoardNote

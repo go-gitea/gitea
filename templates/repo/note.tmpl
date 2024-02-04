@@ -103,5 +103,12 @@
 			{{ctx.Locale.Tr .GetLastEventLabel $timeStr (.Creator.HomeLink | Escape) (.Creator.GetDisplayName | Escape) | Safe}}
 		</span>
 	</div>
+	{{$tasks := .GetTasks}}
+	{{if gt $tasks 0}}
+		<div class="meta">
+			{{svg "octicon-checklist" 16 "gt-mr-2 gt-vm"}}
+			<span class="gt-vm">{{.GetTasksDone}} / {{$tasks}}</span>
+		</div>
+	{{end}}
 </div>
 {{end}}

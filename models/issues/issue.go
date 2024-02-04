@@ -7,7 +7,6 @@ package issues
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"slices"
 
 	"code.gitea.io/gitea/models/db"
@@ -16,6 +15,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -140,11 +140,6 @@ type Issue struct {
 	// For view issue page.
 	ShowRole RoleDescriptor `xorm:"-"`
 }
-
-var (
-	issueTasksPat     = regexp.MustCompile(`(^\s*[-*]\s\[[\sxX]\]\s.)|(\n\s*[-*]\s\[[\sxX]\]\s.)`)
-	issueTasksDonePat = regexp.MustCompile(`(^\s*[-*]\s\[[xX]\]\s.)|(\n\s*[-*]\s\[[xX]\]\s.)`)
-)
 
 // IssueIndex represents the issue index table
 type IssueIndex db.ResourceIndex
@@ -443,12 +438,12 @@ func (issue *Issue) IsPoster(uid int64) bool {
 
 // GetTasks returns the amount of tasks in the issues content
 func (issue *Issue) GetTasks() int {
-	return len(issueTasksPat.FindAllStringIndex(issue.Content, -1))
+	return len(markdown.MarkdownTasksRegex.FindAllStringIndex(issue.Content, -1))
 }
 
 // GetTasksDone returns the amount of completed tasks in the issues content
 func (issue *Issue) GetTasksDone() int {
-	return len(issueTasksDonePat.FindAllStringIndex(issue.Content, -1))
+	return len(markdown.MarkdownTasksDoneRegex.FindAllStringIndex(issue.Content, -1))
 }
 
 // GetLastEventTimestamp returns the last user visible event timestamp, either the creation of this issue or the close.
