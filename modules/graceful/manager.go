@@ -39,10 +39,10 @@ type RunCanceler interface {
 // and add a function to call manager.InformCleanup if it's not going to be used
 const numberOfServersToCreate = 4
 
-// Manager represents the graceful server manager interface
-var manager *Manager
-
-var initOnce = sync.Once{}
+var (
+	manager  *Manager
+	initOnce sync.Once
+)
 
 // GetManager returns the Manager
 func GetManager() *Manager {
@@ -147,12 +147,12 @@ func (g *Manager) doShutdown() {
 		go g.doHammerTime(setting.GracefulHammerTime)
 	}
 	go func() {
-		g.WaitForServers()
+		g.runningServerWaitGroup.Wait()
 		// Mop up any remaining unclosed events.
 		g.doHammerTime(0)
 		<-time.After(1 * time.Second)
 		g.doTerminate()
-		g.WaitForTerminate()
+		g.terminateWaitGroup.Wait()
 		g.lock.Lock()
 		g.managerCtxCancel()
 		g.lock.Unlock()
@@ -199,24 +199,16 @@ func (g *Manager) IsChild() bool {
 }
 
 // IsShutdown returns a channel which will be closed at shutdown.
-// The order of closure is IsShutdown, IsHammer (potentially), IsTerminate
+// The order of closure is shutdown, hammer (potentially), terminate
 func (g *Manager) IsShutdown() <-chan struct{} {
 	return g.shutdownCtx.Done()
 }
 
-// IsHammer returns a channel which will be closed at hammer
-// The order of closure is IsShutdown, IsHammer (potentially), IsTerminate
+// IsHammer returns a channel which will be closed at hammer.
 // Servers running within the running server wait group should respond to IsHammer
 // if not shutdown already
 func (g *Manager) IsHammer() <-chan struct{} {
 	return g.hammerCtx.Done()
-}
-
-// IsTerminate returns a channel which will be closed at terminate
-// The order of closure is IsShutdown, IsHammer (potentially), IsTerminate
-// IsTerminate will only close once all running servers have stopped
-func (g *Manager) IsTerminate() <-chan struct{} {
-	return g.terminateCtx.Done()
 }
 
 // ServerDone declares a running server done and subtracts one from the
@@ -226,28 +218,7 @@ func (g *Manager) ServerDone() {
 	g.runningServerWaitGroup.Done()
 }
 
-// WaitForServers waits for all running servers to finish. Users should probably
-// instead use AtTerminate or IsTerminate
-func (g *Manager) WaitForServers() {
-	g.runningServerWaitGroup.Wait()
-}
-
-// WaitForTerminate waits for all terminating actions to finish.
-// Only the main go-routine should use this
-func (g *Manager) WaitForTerminate() {
-	g.terminateWaitGroup.Wait()
-}
-
-func (g *Manager) getState() state {
-	g.lock.RLock()
-	defer g.lock.RUnlock()
-	return g.state
-}
-
 func (g *Manager) setStateTransition(old, new state) bool {
-	if old != g.getState() {
-		return false
-	}
 	g.lock.Lock()
 	if g.state != old {
 		g.lock.Unlock()
@@ -256,13 +227,6 @@ func (g *Manager) setStateTransition(old, new state) bool {
 	g.state = new
 	g.lock.Unlock()
 	return true
-}
-
-func (g *Manager) setState(st state) {
-	g.lock.Lock()
-	defer g.lock.Unlock()
-
-	g.state = st
 }
 
 // InformCleanup tells the cleanup wait group that we have either taken a listener or will not be taking a listener.

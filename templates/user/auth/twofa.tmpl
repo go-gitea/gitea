@@ -5,19 +5,19 @@
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<h3 class="ui top attached header">
-					{{.locale.Tr "twofa"}}
+					{{ctx.Locale.Tr "twofa"}}
 				</h3>
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
 					<div class="required inline field">
-						<label for="passcode">{{.locale.Tr "passcode"}}</label>
+						<label for="passcode">{{ctx.Locale.Tr "passcode"}}</label>
 						<input id="passcode" name="passcode" type="text" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" autofocus required>
 					</div>
 
 					<div class="inline field">
 						<label></label>
-						<button class="ui green button">{{.locale.Tr "auth.verify"}}</button>
-						<a href="{{AppSubUrl}}/user/two_factor/scratch">{{.locale.Tr "auth.use_scratch_code" | Str2html}}</a>
+						<button class="ui primary button">{{ctx.Locale.Tr "auth.verify"}}</button>
+						<a href="{{AppSubUrl}}/user/two_factor/scratch">{{ctx.Locale.Tr "auth.use_scratch_code" | Str2html}}</a>
 					</div>
 				</div>
 			</form>

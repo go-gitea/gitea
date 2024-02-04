@@ -149,8 +149,9 @@ func EnvironmentToConfig(cfg ConfigProvider, envs []string) (changed bool) {
 				continue
 			}
 		}
-		key := section.Key(keyName)
+		key := ConfigSectionKey(section, keyName)
 		if key == nil {
+			changed = true
 			key, err = section.NewKey(keyName, keyValue)
 			if err != nil {
 				log.Error("Error creating key: %s in section: %s with value: %s : %v", keyName, sectionName, keyValue, err)

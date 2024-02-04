@@ -51,6 +51,11 @@ type ActionRunner struct {
 	Deleted timeutil.TimeStamp `xorm:"deleted"`
 }
 
+const (
+	RunnerOfflineTime = time.Minute
+	RunnerIdleTime    = 10 * time.Second
+)
+
 // BelongsToOwnerName before calling, should guarantee that all attributes are loaded
 func (r *ActionRunner) BelongsToOwnerName() string {
 	if r.RepoID != 0 {
@@ -76,11 +81,12 @@ func (r *ActionRunner) BelongsToOwnerType() types.OwnerType {
 	return types.OwnerTypeSystemGlobal
 }
 
+// if the logic here changed, you should also modify FindRunnerOptions.ToCond
 func (r *ActionRunner) Status() runnerv1.RunnerStatus {
-	if time.Since(r.LastOnline.AsTime()) > time.Minute {
+	if time.Since(r.LastOnline.AsTime()) > RunnerOfflineTime {
 		return runnerv1.RunnerStatus_RUNNER_STATUS_OFFLINE
 	}
-	if time.Since(r.LastActive.AsTime()) > 10*time.Second {
+	if time.Since(r.LastActive.AsTime()) > RunnerIdleTime {
 		return runnerv1.RunnerStatus_RUNNER_STATUS_IDLE
 	}
 	return runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE
@@ -153,10 +159,11 @@ type FindRunnerOptions struct {
 	OwnerID       int64
 	Sort          string
 	Filter        string
+	IsOnline      util.OptionalBool
 	WithAvailable bool // not only runners belong to, but also runners can be used
 }
 
-func (opts FindRunnerOptions) toCond() builder.Cond {
+func (opts FindRunnerOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 
 	if opts.RepoID > 0 {
@@ -178,10 +185,16 @@ func (opts FindRunnerOptions) toCond() builder.Cond {
 	if opts.Filter != "" {
 		cond = cond.And(builder.Like{"name", opts.Filter})
 	}
+
+	if opts.IsOnline.IsTrue() {
+		cond = cond.And(builder.Gt{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
+	} else if opts.IsOnline.IsFalse() {
+		cond = cond.And(builder.Lte{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
+	}
 	return cond
 }
 
-func (opts FindRunnerOptions) toOrder() string {
+func (opts FindRunnerOptions) ToOrders() string {
 	switch opts.Sort {
 	case "online":
 		return "last_online DESC"
@@ -189,24 +202,14 @@ func (opts FindRunnerOptions) toOrder() string {
 		return "last_online ASC"
 	case "alphabetically":
 		return "name ASC"
+	case "reversealphabetically":
+		return "name DESC"
+	case "newest":
+		return "id DESC"
+	case "oldest":
+		return "id ASC"
 	}
 	return "last_online DESC"
-}
-
-func CountRunners(ctx context.Context, opts FindRunnerOptions) (int64, error) {
-	return db.GetEngine(ctx).
-		Where(opts.toCond()).
-		Count(ActionRunner{})
-}
-
-func FindRunners(ctx context.Context, opts FindRunnerOptions) (runners RunnerList, err error) {
-	sess := db.GetEngine(ctx).
-		Where(opts.toCond()).
-		OrderBy(opts.toOrder())
-	if opts.Page > 0 {
-		sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-	}
-	return runners, sess.Find(&runners)
 }
 
 // GetRunnerByUUID returns a runner via uuid
@@ -251,12 +254,35 @@ func DeleteRunner(ctx context.Context, id int64) error {
 		return err
 	}
 
-	_, err := db.GetEngine(ctx).Delete(&ActionRunner{ID: id})
+	_, err := db.DeleteByID[ActionRunner](ctx, id)
 	return err
 }
 
 // CreateRunner creates new runner.
 func CreateRunner(ctx context.Context, t *ActionRunner) error {
-	_, err := db.GetEngine(ctx).Insert(t)
-	return err
+	return db.Insert(ctx, t)
+}
+
+func CountRunnersWithoutBelongingOwner(ctx context.Context) (int64, error) {
+	// Only affect action runners were a owner ID is set, as actions runners
+	// could also be created on a repository.
+	return db.GetEngine(ctx).Table("action_runner").
+		Join("LEFT", "user", "`action_runner`.owner_id = `user`.id").
+		Where("`action_runner`.owner_id != ?", 0).
+		And(builder.IsNull{"`user`.id"}).
+		Count(new(ActionRunner))
+}
+
+func FixRunnersWithoutBelongingOwner(ctx context.Context) (int64, error) {
+	subQuery := builder.Select("`action_runner`.id").
+		From("`action_runner`").
+		Join("LEFT", "user", "`action_runner`.owner_id = `user`.id").
+		Where(builder.Neq{"`action_runner`.owner_id": 0}).
+		And(builder.IsNull{"`user`.id"})
+	b := builder.Delete(builder.In("id", subQuery)).From("`action_runner`")
+	res, err := db.GetEngine(ctx).Exec(b)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }

@@ -8,15 +8,15 @@
 				<div class="text right gt-f1">
 					{{if or .CanWriteIssues .CanWritePulls}}
 						{{if .Milestone.IsClosed}}
-							<a class="ui green basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.MilestoneID}}/open">{{$.locale.Tr "repo.milestones.open"}}
+							<a class="ui primary basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.MilestoneID}}/open">{{ctx.Locale.Tr "repo.milestones.open"}}
 							</a>
 						{{else}}
-							<a class="ui red basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.MilestoneID}}/close">{{$.locale.Tr "repo.milestones.close"}}
+							<a class="ui red basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.MilestoneID}}/close">{{ctx.Locale.Tr "repo.milestones.close"}}
 							</a>
 						{{end}}
-						<a class="ui button" href="{{.RepoLink}}/milestones/{{.MilestoneID}}/edit">{{.locale.Tr "repo.milestones.edit"}}</a>
+						<a class="ui button" href="{{.RepoLink}}/milestones/{{.MilestoneID}}/edit">{{ctx.Locale.Tr "repo.milestones.edit"}}</a>
 					{{end}}
-					<a class="ui primary button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}?milestone={{.MilestoneID}}">{{.locale.Tr "repo.issues.new"}}</a>
+					<a class="ui primary button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}?milestone={{.MilestoneID}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
 				</div>
 			{{end}}
 		</div>
@@ -29,9 +29,9 @@
 			<progress class="milestone-progress-big" value="{{.Milestone.Completeness}}" max="100"></progress>
 			<div class="gt-df gt-gap-4">
 				<div classs="gt-df gt-ac">
-					{{$closedDate:= TimeSinceUnix .Milestone.ClosedDateUnix $.locale}}
+					{{$closedDate:= TimeSinceUnix .Milestone.ClosedDateUnix ctx.Locale}}
 					{{if .IsClosed}}
-						{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate | Safe}}
+						{{svg "octicon-clock"}} {{ctx.Locale.Tr "repo.milestones.closed" $closedDate | Safe}}
 					{{else}}
 
 						{{if .Milestone.DeadlineString}}
@@ -41,11 +41,17 @@
 							</span>
 						{{else}}
 							{{svg "octicon-calendar"}}
-							{{$.locale.Tr "repo.milestones.no_due_date"}}
+							{{ctx.Locale.Tr "repo.milestones.no_due_date"}}
 						{{end}}
 					{{end}}
 				</div>
-				<div class="gt-mr-3">{{.locale.Tr "repo.milestones.completeness" .Milestone.Completeness | Safe}}</div>
+				<div class="gt-mr-3">{{ctx.Locale.Tr "repo.milestones.completeness" .Milestone.Completeness | Safe}}</div>
+				{{if .TotalTrackedTime}}
+					<div data-tooltip-content='{{ctx.Locale.Tr "tracked_time_summary"}}'>
+						{{svg "octicon-clock"}}
+						{{.TotalTrackedTime | Sec2Time}}
+					</div>
+				{{end}}
 			</div>
 		</div>
 		<div class="divider"></div>

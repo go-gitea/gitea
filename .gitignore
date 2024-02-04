@@ -11,6 +11,7 @@ _test
 .idea
 # Goland's output filename can not be set manually
 /go_build_*
+/gitea_*
 
 # MS VSCode
 .vscode
@@ -75,6 +76,7 @@ cpu.out
 /public/assets/js
 /public/assets/css
 /public/assets/fonts
+/public/assets/licenses.txt
 /public/assets/img/webpack
 /vendor
 /web_src/fomantic/node_modules
@@ -94,6 +96,7 @@ cpu.out
 /.go-licenses
 
 # Snapcraft
+/gitea_a*.txt
 snap/.snapcraft/
 parts/
 stage/

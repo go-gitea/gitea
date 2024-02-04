@@ -6,12 +6,12 @@ package code
 import (
 	"bytes"
 	"context"
+	"html/template"
 	"strings"
 
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // Result a search result to display
@@ -23,7 +23,7 @@ type Result struct {
 	Language       string
 	Color          string
 	LineNumbers    []int
-	FormattedLines string
+	FormattedLines template.HTML
 }
 
 type SearchResultLanguages = internal.SearchResultLanguages
@@ -77,8 +77,8 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 		if index < result.EndIndex &&
 			result.StartIndex < index+len(line) &&
 			result.StartIndex < result.EndIndex {
-			openActiveIndex := util.Max(result.StartIndex-index, 0)
-			closeActiveIndex := util.Min(result.EndIndex-index, len(line))
+			openActiveIndex := max(result.StartIndex-index, 0)
+			closeActiveIndex := min(result.EndIndex-index, len(line))
 			err = writeStrings(&formattedLinesBuffer,
 				line[:openActiveIndex],
 				line[openActiveIndex:closeActiveIndex],

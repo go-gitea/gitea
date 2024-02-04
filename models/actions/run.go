@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -34,7 +35,8 @@ type ActionRun struct {
 	Index             int64                  `xorm:"index unique(repo_index)"` // a unique number for each run of a repository
 	TriggerUserID     int64                  `xorm:"index"`
 	TriggerUser       *user_model.User       `xorm:"-"`
-	Ref               string                 `xorm:"index"` // the commit/tag/… that caused the run
+	ScheduleID        int64
+	Ref               string `xorm:"index"` // the commit/tag/… that caused the run
 	CommitSHA         string
 	IsForkPullRequest bool                         // If this is triggered by a PR from a forked repository or an untrusted user, we need to check if it is approved and limit permissions when running the workflow.
 	NeedApproval      bool                         // may need approval if it's a fork pull request
@@ -44,10 +46,13 @@ type ActionRun struct {
 	TriggerEvent      string                       // the trigger event defined in the `on` configuration of the triggered workflow
 	Status            Status                       `xorm:"index"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
-	Started           timeutil.TimeStamp
-	Stopped           timeutil.TimeStamp
-	Created           timeutil.TimeStamp `xorm:"created"`
-	Updated           timeutil.TimeStamp `xorm:"updated"`
+	// Started and Stopped is used for recording last run time, if rerun happened, they will be reset to 0
+	Started timeutil.TimeStamp
+	Stopped timeutil.TimeStamp
+	// PreviousDuration is used for recording previous duration
+	PreviousDuration time.Duration
+	Created          timeutil.TimeStamp `xorm:"created"`
+	Updated          timeutil.TimeStamp `xorm:"updated"`
 }
 
 func init() {
@@ -116,7 +121,7 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 }
 
 func (run *ActionRun) Duration() time.Duration {
-	return calculateDuration(run.Started, run.Stopped, run.Status)
+	return calculateDuration(run.Started, run.Stopped, run.Status) + run.PreviousDuration
 }
 
 func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
@@ -166,13 +171,14 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 }
 
 // CancelRunningJobs cancels all running and waiting jobs associated with a specific workflow.
-func CancelRunningJobs(ctx context.Context, repoID int64, ref, workflowID string) error {
+func CancelRunningJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) error {
 	// Find all runs in the specified repository, reference, and workflow with statuses 'Running' or 'Waiting'.
-	runs, total, err := FindRuns(ctx, FindRunOptions{
-		RepoID:     repoID,
-		Ref:        ref,
-		WorkflowID: workflowID,
-		Status:     []Status{StatusRunning, StatusWaiting},
+	runs, total, err := db.FindAndCount[ActionRun](ctx, FindRunOptions{
+		RepoID:       repoID,
+		Ref:          ref,
+		WorkflowID:   workflowID,
+		TriggerEvent: event,
+		Status:       []Status{StatusRunning, StatusWaiting},
 	})
 	if err != nil {
 		return err
@@ -186,7 +192,7 @@ func CancelRunningJobs(ctx context.Context, repoID int64, ref, workflowID string
 	// Iterate over each found run and cancel its associated jobs.
 	for _, run := range runs {
 		// Find all jobs associated with the current run.
-		jobs, _, err := FindRunJobs(ctx, FindRunJobOptions{
+		jobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{
 			RunID: run.ID,
 		})
 		if err != nil {
@@ -350,7 +356,7 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 		// It's impossible that the run is not found, since Gitea never deletes runs.
 	}
 
-	if run.Status != 0 || util.SliceContains(cols, "status") {
+	if run.Status != 0 || slices.Contains(cols, "status") {
 		if run.RepoID == 0 {
 			run, err = GetRunByID(ctx, run.ID)
 			if err != nil {

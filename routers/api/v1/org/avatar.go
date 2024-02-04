@@ -33,6 +33,8 @@ func UpdateAvatar(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.UpdateUserAvatarOption)
 
 	content, err := base64.StdEncoding.DecodeString(form.Image)
@@ -41,7 +43,7 @@ func UpdateAvatar(ctx *context.APIContext) {
 		return
 	}
 
-	err = user_service.UploadAvatar(ctx.Org.Organization.AsUser(), content)
+	err = user_service.UploadAvatar(ctx, ctx.Org.Organization.AsUser(), content)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "UploadAvatar", err)
 	}
@@ -65,7 +67,9 @@ func DeleteAvatar(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	err := user_service.DeleteAvatar(ctx.Org.Organization.AsUser())
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	err := user_service.DeleteAvatar(ctx, ctx.Org.Organization.AsUser())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteAvatar", err)
 	}

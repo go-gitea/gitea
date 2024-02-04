@@ -1,0 +1,20 @@
+<h4 class="ui top attached header">
+	{{.CustomHeaderTitle}}
+	<div class="ui right">
+		{{template "shared/webhook/icon" .ctxData}}
+	</div>
+</h4>
+<div class="ui attached segment">
+	{{template "repo/settings/webhook/gitea" .ctxData}}
+	{{template "repo/settings/webhook/gogs" .ctxData}}
+	{{template "repo/settings/webhook/slack" .ctxData}}
+	{{template "repo/settings/webhook/discord" .ctxData}}
+	{{template "repo/settings/webhook/dingtalk" .ctxData}}
+	{{template "repo/settings/webhook/telegram" .ctxData}}
+	{{template "repo/settings/webhook/msteams" .ctxData}}
+	{{template "repo/settings/webhook/feishu" .ctxData}}
+	{{template "repo/settings/webhook/matrix" .ctxData}}
+	{{template "repo/settings/webhook/wechatwork" .ctxData}}
+	{{template "repo/settings/webhook/packagist" .ctxData}}
+</div>
+{{template "repo/settings/webhook/history" .ctxData}}

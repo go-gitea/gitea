@@ -5,32 +5,32 @@
 			<form class="ui form ignore-dirty" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<h2 class="ui top attached header">
-					{{.locale.Tr "auth.forgot_password_title"}}
+					{{ctx.Locale.Tr "auth.forgot_password_title"}}
 				</h2>
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
 					{{if .IsResetSent}}
-						<p>{{.locale.Tr "auth.reset_password_mail_sent_prompt" (Escape .Email) .ResetPwdCodeLives | Str2html}}</p>
+						<p>{{ctx.Locale.Tr "auth.reset_password_mail_sent_prompt" (Escape .Email) .ResetPwdCodeLives | Str2html}}</p>
 					{{else if .IsResetRequest}}
 						<div class="required inline field {{if .Err_Email}}error{{end}}">
-							<label for="email">{{.locale.Tr "email"}}</label>
+							<label for="email">{{ctx.Locale.Tr "email"}}</label>
 							<input id="email" name="email" type="email"  value="{{.Email}}" autofocus required>
 						</div>
 						<div class="divider"></div>
 						<div class="inline field">
 							<label></label>
-							<button class="ui primary button">{{.locale.Tr "auth.send_reset_mail"}}</button>
+							<button class="ui primary button">{{ctx.Locale.Tr "auth.send_reset_mail"}}</button>
 						</div>
 					{{else if .IsResetDisable}}
 						<p class="center">
 							{{if $.IsAdmin}}
-								{{.locale.Tr "auth.disable_forgot_password_mail_admin"}}
+								{{ctx.Locale.Tr "auth.disable_forgot_password_mail_admin"}}
 							{{else}}
-								{{.locale.Tr "auth.disable_forgot_password_mail"}}
+								{{ctx.Locale.Tr "auth.disable_forgot_password_mail"}}
 							{{end}}
 						</p>
 					{{else if .ResendLimited}}
-						<p class="center">{{.locale.Tr "auth.resent_limit_prompt"}}</p>
+						<p class="center">{{ctx.Locale.Tr "auth.resent_limit_prompt"}}</p>
 					{{end}}
 				</div>
 			</form>

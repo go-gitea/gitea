@@ -5,18 +5,18 @@
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<h3 class="ui top attached header">
-					{{.locale.Tr "twofa_scratch"}}
+					{{ctx.Locale.Tr "twofa_scratch"}}
 				</h3>
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
 					<div class="required inline field">
-						<label for="token">{{.locale.Tr "auth.scratch_code"}}</label>
+						<label for="token">{{ctx.Locale.Tr "auth.scratch_code"}}</label>
 						<input id="token" name="token" type="text" autocomplete="off" autofocus required>
 					</div>
 
 					<div class="inline field">
 						<label></label>
-						<button class="ui green button">{{.locale.Tr "auth.verify"}}</button>
+						<button class="ui primary button">{{ctx.Locale.Tr "auth.verify"}}</button>
 					</div>
 				</div>
 			</form>

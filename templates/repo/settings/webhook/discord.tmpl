@@ -1,17 +1,17 @@
 {{if eq .HookType "discord"}}
-	<p>{{.locale.Tr "repo.settings.add_web_hook_desc" "https://discord.com" (.locale.Tr "repo.settings.web_hook_name_discord") | Str2html}}</p>
+	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://discord.com" (ctx.Locale.Tr "repo.settings.web_hook_name_discord") | Str2html}}</p>
 	<form class="ui form" action="{{.BaseLink}}/discord/{{or .Webhook.ID "new"}}" method="post">
 		{{.CsrfTokenHtml}}
 		<div class="required field {{if .Err_PayloadURL}}error{{end}}">
-			<label for="payload_url">{{.locale.Tr "repo.settings.payload_url"}}</label>
+			<label for="payload_url">{{ctx.Locale.Tr "repo.settings.payload_url"}}</label>
 			<input id="payload_url" name="payload_url" type="url" value="{{.Webhook.URL}}" autofocus required>
 		</div>
 		<div class="field">
-			<label for="username">{{.locale.Tr "repo.settings.discord_username"}}</label>
+			<label for="username">{{ctx.Locale.Tr "repo.settings.discord_username"}}</label>
 			<input id="username" name="username" value="{{.DiscordHook.Username}}" placeholder="Gitea">
 		</div>
 		<div class="field">
-			<label for="icon_url">{{.locale.Tr "repo.settings.discord_icon_url"}}</label>
+			<label for="icon_url">{{ctx.Locale.Tr "repo.settings.discord_icon_url"}}</label>
 			<input id="icon_url" name="icon_url" value="{{.DiscordHook.IconURL}}" placeholder="https://example.com/assets/img/logo.svg">
 		</div>
 		{{template "repo/settings/webhook/settings" .}}

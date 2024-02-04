@@ -42,3 +42,10 @@
 .admin .table th {
   white-space: nowrap;
 }
+
+.admin-responsive-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}

@@ -93,7 +93,7 @@
   name: review_team
   authorize: 1 # read
   num_repos: 1
-  num_members: 2
+  num_members: 3
   includes_all_repositories: false
   can_create_org_repo: false
 

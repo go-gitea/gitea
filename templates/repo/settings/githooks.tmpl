@@ -1,18 +1,18 @@
 {{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings githooks")}}
 	<div class="repo-setting-content">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "repo.settings.githooks"}}
+			{{ctx.Locale.Tr "repo.settings.githooks"}}
 		</h4>
 		<div class="ui attached segment">
 			<div class="ui list">
 				<div class="item">
-					{{.locale.Tr "repo.settings.githooks_desc" | Str2html}}
+					{{ctx.Locale.Tr "repo.settings.githooks_desc" | Str2html}}
 				</div>
 				{{range .Hooks}}
 					<div class="item truncated-item-container">
 						<span class="text {{if .IsActive}}green{{else}}grey{{end}} gt-mr-3">{{svg "octicon-dot-fill" 22}}</span>
 						<span class="text truncate gt-f1 gt-mr-3">{{.Name}}</span>
-						<a class="muted ui right gt-p-3" href="{{$.RepoLink}}/settings/hooks/git/{{.Name|PathEscape}}">
+						<a class="muted gt-float-right gt-p-3" href="{{$.RepoLink}}/settings/hooks/git/{{.Name|PathEscape}}">
 							{{svg "octicon-pencil"}}
 						</a>
 					</div>

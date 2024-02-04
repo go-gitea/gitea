@@ -32,8 +32,10 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPr
 	case "markdown":
 		// Raw markdown
 		if err := markdown.RenderRaw(&markup.RenderContext{
-			Ctx:       ctx,
-			URLPrefix: urlPrefix,
+			Ctx: ctx,
+			Links: markup.Links{
+				Base: urlPrefix,
+			},
 		}, strings.NewReader(text), ctx.Resp); err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 		}
@@ -65,9 +67,9 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPr
 	meta := map[string]string{}
 	if repo != nil && repo.Repository != nil {
 		if mode == "comment" {
-			meta = repo.Repository.ComposeMetas()
+			meta = repo.Repository.ComposeMetas(ctx)
 		} else {
-			meta = repo.Repository.ComposeDocumentMetas()
+			meta = repo.Repository.ComposeDocumentMetas(ctx)
 		}
 	}
 	if mode != "comment" {
@@ -75,8 +77,10 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPr
 	}
 
 	if err := markup.Render(&markup.RenderContext{
-		Ctx:          ctx,
-		URLPrefix:    urlPrefix,
+		Ctx: ctx,
+		Links: markup.Links{
+			Base: urlPrefix,
+		},
 		Metas:        meta,
 		IsWiki:       wiki,
 		Type:         markupType,

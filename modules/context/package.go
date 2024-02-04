@@ -93,7 +93,7 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string, any)) 
 }
 
 func determineAccessMode(ctx *Base, pkg *Package, doer *user_model.User) (perm.AccessMode, error) {
-	if setting.Service.RequireSignInView && doer == nil {
+	if setting.Service.RequireSignInView && (doer == nil || doer.IsGhost()) {
 		return perm.AccessModeNone, nil
 	}
 
@@ -109,7 +109,7 @@ func determineAccessMode(ctx *Base, pkg *Package, doer *user_model.User) (perm.A
 		if doer != nil && !doer.IsGhost() {
 			// 1. If user is logged in, check all team packages permissions
 			var err error
-			accessMode, err = org.GetOrgUserMaxAuthorizeLevel(doer.ID)
+			accessMode, err = org.GetOrgUserMaxAuthorizeLevel(ctx, doer.ID)
 			if err != nil {
 				return accessMode, err
 			}

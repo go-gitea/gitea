@@ -62,9 +62,9 @@ git checkout v@version@  # or git checkout pr-xyz
 
 要从源代码进行构建，系统必须预先安装以下程序：
 
-- `go` @minGoVersion@ 或更高版本，请参阅 [这里](https://golang.org/dl/)
+- `go` @minGoVersion@ 或更高版本，请参阅 [这里](https://go.dev/dl/)
 - `node` @minNodeVersion@ 或更高版本，并且安装 `npm`, 请参阅 [这里](https://nodejs.org/zh-cn/download/)
-- `make`, 请参阅 [这里](/zh-cn/hacking-on-gitea/)
+- `make`, 请参阅 [这里](development/hacking-on-gitea.md)
 
 为了尽可能简化编译过程，提供了各种 [make任务](https://github.com/go-gitea/gitea/blob/main/Makefile)。
 
@@ -100,8 +100,6 @@ TAGS="bindata sqlite sqlite_unlock_notify" make build
 TAGS="bindata" make backend
 ```
 
-在开发构建中，默认启用 Webpack 源映射，在生产构建中禁用。可以通过设置`ENABLE_SOURCEMAP=true`环境变量来启用它们。
-
 ## 测试
 
 按照上述步骤完成后，工作目录中将会有一个`gitea`二进制文件。可以从该目录进行测试，或将其移动到带有测试数据的目录中。当手动从命令行启动 Gitea 时，可以通过按下`Ctrl + C`来停止程序。
@@ -130,7 +128,7 @@ Gitea 将从`CustomPath`中查找许多信息。默认的，这会在运行 Gite
 
 ## 交叉编译
 
-`go`编译器工具链支持将代码交叉编译到不同的目标架构上。请参考[`GOOS`和`GOARCH`环境变量](https://golang.org/doc/install/source#environment) 以获取支持的目标列表。如果您想为性能较弱的系统（如树莓派）构建 Gitea，交叉编译非常有用。
+`go`编译器工具链支持将代码交叉编译到不同的目标架构上。请参考[`GOOS`和`GOARCH`环境变量](https://go.dev/doc/install/source#environment) 以获取支持的目标列表。如果您想为性能较弱的系统（如树莓派）构建 Gitea，交叉编译非常有用。
 
 要使用构建标签（`TAGS`）进行交叉编译Gitea，您还需要一个 C 交叉编译器，该编译器的目标架构与`GOOS`和`GOARCH`变量选择的架构相同。例如，要为 Linux ARM64（`GOOS=linux`和`GOARCH=arm64`）进行交叉编译，您需要`aarch64-unknown-linux-gnu-gcc`交叉编译器。这是因为 Gitea 构建标签使用了`cgo`的外部函数接口（FFI）。
 
@@ -221,3 +219,11 @@ GOARCH=amd64 \
 TAGS="bindata sqlite sqlite_unlock_notify" \
 make build
 ```
+
+## Source Map
+
+默认情况下，gitea 会为前端文件生成精简的 Source Map 以节省空间。 这可以通过“ENABLE_SOURCEMAP”环境变量进行控制：
+
+- `ENABLE_SOURCEMAP=true` 生成所有Source Map，这是开发版本的默认设置
+- `ENABLE_SOURCEMAP=reduced` 生成有限的Source Map，这是生产版本的默认设置
+- `ENABLE_SOURCEMAP=false` 不生成Source Map

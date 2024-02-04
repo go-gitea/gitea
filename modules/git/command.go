@@ -14,7 +14,6 @@ import (
 	"os/exec"
 	"strings"
 	"time"
-	"unsafe"
 
 	"code.gitea.io/gitea/modules/git/internal" //nolint:depguard // only this file can use the internal type CmdArg, other files and packages should use AddXxx functions
 	"code.gitea.io/gitea/modules/log"
@@ -221,8 +220,18 @@ type RunOpts struct {
 	Dir string
 
 	Stdout, Stderr io.Writer
-	Stdin          io.Reader
-	PipelineFunc   func(context.Context, context.CancelFunc) error
+
+	// Stdin is used for passing input to the command
+	// The caller must make sure the Stdin writer is closed properly to finish the Run function.
+	// Otherwise, the Run function may hang for long time or forever, especially when the Git's context deadline is not the same as the caller's.
+	// Some common mistakes:
+	// * `defer stdinWriter.Close()` then call `cmd.Run()`: the Run() would never return if the command is killed by timeout
+	// * `go { case <- parentContext.Done(): stdinWriter.Close() }` with `cmd.Run(DefaultTimeout)`: the command would have been killed by timeout but the Run doesn't return until stdinWriter.Close()
+	// * `go { if stdoutReader.Read() err != nil: stdinWriter.Close() }` with `cmd.Run()`: the stdoutReader may never return error if the command is killed by timeout
+	// In the future, ideally the git module itself should have full control of the stdin, to avoid such problems and make it easier to refactor to a better architecture.
+	Stdin io.Reader
+
+	PipelineFunc func(context.Context, context.CancelFunc) error
 }
 
 func commonBaseEnvs() []string {
@@ -379,15 +388,11 @@ func (r *runStdError) IsExitCode(code int) bool {
 	return false
 }
 
-func bytesToString(b []byte) string {
-	return *(*string)(unsafe.Pointer(&b)) // that's what Golang's strings.Builder.String() does (go/src/strings/builder.go)
-}
-
 // RunStdString runs the command with options and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
 func (c *Command) RunStdString(opts *RunOpts) (stdout, stderr string, runErr RunStdError) {
 	stdoutBytes, stderrBytes, err := c.RunStdBytes(opts)
-	stdout = bytesToString(stdoutBytes)
-	stderr = bytesToString(stderrBytes)
+	stdout = util.UnsafeBytesToString(stdoutBytes)
+	stderr = util.UnsafeBytesToString(stderrBytes)
 	if err != nil {
 		return stdout, stderr, &runStdError{err: err, stderr: stderr}
 	}
@@ -422,7 +427,7 @@ func (c *Command) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunS
 	err := c.Run(newOpts)
 	stderr = stderrBuf.Bytes()
 	if err != nil {
-		return nil, stderr, &runStdError{err: err, stderr: bytesToString(stderr)}
+		return nil, stderr, &runStdError{err: err, stderr: util.UnsafeBytesToString(stderr)}
 	}
 	// even if there is no err, there could still be some stderr output
 	return stdoutBuf.Bytes(), stderr, nil

@@ -32,11 +32,7 @@
 @import "./markup/asciicast.css";
 
 @import "./chroma/base.css";
-@import "./chroma/light.css";
-
 @import "./codemirror/base.css";
-@import "./codemirror/light.css";
-
 @import "./font_i18n.css";
 @import "./base.css";
 @import "./home.css";
@@ -51,6 +47,7 @@
 @import "./repo/list-header.css";
 @import "./repo/linebutton.css";
 @import "./repo/wiki.css";
+@import "./repo/header.css";
 
 @import "./editor/fileeditor.css";
 @import "./editor/combomarkdowneditor.css";

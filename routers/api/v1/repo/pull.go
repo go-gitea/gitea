@@ -23,8 +23,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -36,6 +36,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/gitdiff"
 	issue_service "code.gitea.io/gitea/services/issue"
+	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -92,10 +93,12 @@ func ListPullRequests(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullRequestList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listOptions := utils.GetListOptions(ctx)
 
-	prs, maxResults, err := issues_model.PullRequests(ctx.Repo.Repository.ID, &issues_model.PullRequestsOptions{
+	prs, maxResults, err := issues_model.PullRequests(ctx, ctx.Repo.Repository.ID, &issues_model.PullRequestsOptions{
 		ListOptions: listOptions,
 		State:       ctx.FormTrim("state"),
 		SortType:    ctx.FormTrim("sort"),
@@ -274,10 +277,14 @@ func CreatePullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/PullRequest"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	form := *web.GetForm(ctx).(*api.CreatePullRequestOption)
 	if form.Head == form.Base {
@@ -326,11 +333,9 @@ func CreatePullRequest(ctx *context.APIContext) {
 			return
 		}
 
-		labelIDs = make([]int64, len(form.Labels))
-		orgLabelIDs := make([]int64, len(form.Labels))
-
-		for i := range labels {
-			labelIDs[i] = labels[i].ID
+		labelIDs = make([]int64, 0, len(labels))
+		for _, label := range labels {
+			labelIDs = append(labelIDs, label.ID)
 		}
 
 		if ctx.Repo.Owner.IsOrganization() {
@@ -340,12 +345,12 @@ func CreatePullRequest(ctx *context.APIContext) {
 				return
 			}
 
-			for i := range orgLabels {
-				orgLabelIDs[i] = orgLabels[i].ID
+			orgLabelIDs := make([]int64, 0, len(orgLabels))
+			for _, orgLabel := range orgLabels {
+				orgLabelIDs = append(orgLabelIDs, orgLabel.ID)
 			}
+			labelIDs = append(labelIDs, orgLabelIDs...)
 		}
-
-		labelIDs = append(labelIDs, orgLabelIDs...)
 	}
 
 	if form.Milestone > 0 {
@@ -465,6 +470,8 @@ func EditPullRequest(ctx *context.APIContext) {
 	//     "$ref": "#/responses/PullRequest"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     "$ref": "#/responses/error"
 	//   "412":
@@ -518,7 +525,7 @@ func EditPullRequest(ctx *context.APIContext) {
 			deadlineUnix = timeutil.TimeStamp(deadline.Unix())
 		}
 
-		if err := issues_model.UpdateIssueDeadline(issue, deadlineUnix, ctx.Doer); err != nil {
+		if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateIssueDeadline", err)
 			return
 		}
@@ -549,7 +556,7 @@ func EditPullRequest(ctx *context.APIContext) {
 		issue.MilestoneID != form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = form.Milestone
-		if err = issue_service.ChangeMilestoneAssign(issue, ctx.Doer, oldMilestoneID); err != nil {
+		if err = issue_service.ChangeMilestoneAssign(ctx, issue, ctx.Doer, oldMilestoneID); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ChangeMilestoneAssign", err)
 			return
 		}
@@ -572,7 +579,7 @@ func EditPullRequest(ctx *context.APIContext) {
 			labels = append(labels, orgLabels...)
 		}
 
-		if err = issues_model.ReplaceIssueLabels(issue, labels, ctx.Doer); err != nil {
+		if err = issues_model.ReplaceIssueLabels(ctx, issue, labels, ctx.Doer); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ReplaceLabelsError", err)
 			return
 		}
@@ -585,7 +592,7 @@ func EditPullRequest(ctx *context.APIContext) {
 		}
 		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
 	}
-	statusChangeComment, titleChanged, err := issues_model.UpdateIssueByAPI(issue, ctx.Doer)
+	statusChangeComment, titleChanged, err := issues_model.UpdateIssueByAPI(ctx, issue, ctx.Doer)
 	if err != nil {
 		if issues_model.IsErrDependenciesLeft(err) {
 			ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
@@ -596,11 +603,11 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	if titleChanged {
-		notification.NotifyIssueChangeTitle(ctx, ctx.Doer, issue, oldTitle)
+		notify_service.IssueChangeTitle(ctx, ctx.Doer, issue, oldTitle)
 	}
 
 	if statusChangeComment != nil {
-		notification.NotifyIssueChangeStatus(ctx, ctx.Doer, "", issue, statusChangeComment, issue.IsClosed)
+		notify_service.IssueChangeStatus(ctx, ctx.Doer, "", issue, statusChangeComment, issue.IsClosed)
 	}
 
 	// change pull target branch
@@ -619,12 +626,11 @@ func EditPullRequest(ctx *context.APIContext) {
 			} else if models.IsErrPullRequestHasMerged(err) {
 				ctx.Error(http.StatusConflict, "IsErrPullRequestHasMerged", err)
 				return
-			} else {
-				ctx.InternalServerError(err)
 			}
+			ctx.InternalServerError(err)
 			return
 		}
-		notification.NotifyPullRequestChangeTargetBranch(ctx, ctx.Doer, pr, form.Base)
+		notify_service.PullRequestChangeTargetBranch(ctx, ctx.Doer, pr, form.Base)
 	}
 
 	// update allow edits
@@ -731,10 +737,14 @@ func MergePullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "405":
 	//     "$ref": "#/responses/empty"
 	//   "409":
 	//     "$ref": "#/responses/error"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm(ctx).(*forms.MergePullRequestForm)
 
@@ -801,7 +811,7 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	// handle manually-merged mark
 	if manuallyMerged {
-		if err := pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
+		if err := pull_service.MergedManually(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			if models.IsErrInvalidMergeStyle(err) {
 				ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 				return
@@ -897,12 +907,16 @@ func MergePullRequest(ctx *context.APIContext) {
 		if ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == pr.HeadRepoID && ctx.Repo.GitRepo != nil {
 			headRepo = ctx.Repo.GitRepo
 		} else {
-			headRepo, err = git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
+			headRepo, err = gitrepo.OpenRepository(ctx, pr.HeadRepo)
 			if err != nil {
-				ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
+				ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.FullName()), err)
 				return
 			}
 			defer headRepo.Close()
+		}
+		if err := pull_service.RetargetChildrenOnMerge(ctx, ctx.Doer, pr); err != nil {
+			ctx.Error(http.StatusInternalServerError, "RetargetChildrenOnMerge", err)
+			return
 		}
 		if err := repo_service.DeleteBranch(ctx, ctx.Doer, pr.HeadRepo, headRepo, pr.HeadBranch); err != nil {
 			switch {
@@ -979,7 +993,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	}
 
 	// Check if current user has fork of repository or in the same repository.
-	headRepo := repo_model.GetForkedRepo(headUser.ID, baseRepo.ID)
+	headRepo := repo_model.GetForkedRepo(ctx, headUser.ID, baseRepo.ID)
 	if headRepo == nil && !isSameRepo {
 		log.Trace("parseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
 		ctx.NotFound("GetForkedRepo")
@@ -991,7 +1005,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		headRepo = ctx.Repo.Repository
 		headGitRepo = ctx.Repo.GitRepo
 	} else {
-		headGitRepo, err = git.OpenRepository(ctx, repo_model.RepoPath(headUser.Name, headRepo.Name))
+		headGitRepo, err = gitrepo.OpenRepository(ctx, headRepo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 			return nil, nil, nil, nil, "", ""
@@ -1190,6 +1204,8 @@ func CancelScheduledAutoMerge(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	pullIndex := ctx.ParamsInt64(":index")
 	pull, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, pullIndex)
@@ -1263,6 +1279,14 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results
 	//   type: integer
+	// - name: verification
+	//   in: query
+	//   description: include verification for every commit (disable for speedup, default 'true')
+	//   type: boolean
+	// - name: files
+	//   in: query
+	//   description: include a list of affected files for every commit (disable for speedup, default 'true')
+	//   type: boolean
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommitList"
@@ -1285,7 +1309,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	}
 
 	var prInfo *git.CompareInfo
-	baseGitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
+	baseGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		ctx.ServerError("OpenRepository", err)
 		return
@@ -1310,15 +1334,22 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 
 	userCache := make(map[string]*user_model.User)
 
-	start, end := listOptions.GetStartEnd()
+	start, limit := listOptions.GetSkipTake()
 
-	if end > totalNumberOfCommits {
-		end = totalNumberOfCommits
-	}
+	limit = min(limit, totalNumberOfCommits-start)
+	limit = max(limit, 0)
 
-	apiCommits := make([]*api.Commit, 0, end-start)
-	for i := start; i < end; i++ {
-		apiCommit, err := convert.ToCommit(ctx, ctx.Repo.Repository, baseGitRepo, commits[i], userCache, convert.ToCommitOptions{Stat: true})
+	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
+	files := ctx.FormString("files") == "" || ctx.FormBool("files")
+
+	apiCommits := make([]*api.Commit, 0, limit)
+	for i := start; i < start+limit; i++ {
+		apiCommit, err := convert.ToCommit(ctx, ctx.Repo.Repository, baseGitRepo, commits[i], userCache,
+			convert.ToCommitOptions{
+				Stat:         true,
+				Verification: verification,
+				Files:        files,
+			})
 		if err != nil {
 			ctx.ServerError("toCommit", err)
 			return
@@ -1430,7 +1461,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	maxLines := setting.Git.MaxGitDiffLines
 
 	// FIXME: If there are too many files in the repo, may cause some unpredictable issues.
-	diff, err := gitdiff.GetDiff(baseGitRepo,
+	diff, err := gitdiff.GetDiff(ctx, baseGitRepo,
 		&gitdiff.DiffOptions{
 			BeforeCommitID:     startCommitID,
 			AfterCommitID:      endCommitID,
@@ -1450,19 +1481,14 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	totalNumberOfFiles := diff.NumFiles
 	totalNumberOfPages := int(math.Ceil(float64(totalNumberOfFiles) / float64(listOptions.PageSize)))
 
-	start, end := listOptions.GetStartEnd()
+	start, limit := listOptions.GetSkipTake()
 
-	if end > totalNumberOfFiles {
-		end = totalNumberOfFiles
-	}
+	limit = min(limit, totalNumberOfFiles-start)
 
-	lenFiles := end - start
-	if lenFiles < 0 {
-		lenFiles = 0
-	}
+	limit = max(limit, 0)
 
-	apiFiles := make([]*api.ChangedFile, 0, lenFiles)
-	for i := start; i < end; i++ {
+	apiFiles := make([]*api.ChangedFile, 0, limit)
+	for i := start; i < start+limit; i++ {
 		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], pr.HeadRepo, endCommitID))
 	}
 

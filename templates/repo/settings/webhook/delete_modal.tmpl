@@ -1,10 +1,10 @@
 <div class="ui g-modal-confirm delete modal">
 	<div class="header">
 		{{svg "octicon-trash"}}
-		{{.locale.Tr "repo.settings.webhook_deletion"}}
+		{{ctx.Locale.Tr "repo.settings.webhook_deletion"}}
 	</div>
 	<div class="content">
-		<p>{{.locale.Tr "repo.settings.webhook_deletion_desc"}}</p>
+		<p>{{ctx.Locale.Tr "repo.settings.webhook_deletion_desc"}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

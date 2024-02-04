@@ -18,9 +18,9 @@ const (
 	packageName      = "gitea"
 	packageVersion   = "1.0.1"
 	description      = "Package Description"
-	projectURL       = "https://gitea.io"
-	repositoryURL    = "https://gitea.io/gitea/gitea"
-	documentationURL = "https://docs.gitea.io"
+	projectURL       = "https://gitea.com"
+	repositoryURL    = "https://gitea.com/gitea/gitea"
+	documentationURL = "https://docs.gitea.com"
 )
 
 const pubspecContent = `name: ` + packageName + `

@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	ntlmssp "github.com/Azure/go-ntlmssp"
 	"github.com/jaytaylor/html2text"
@@ -360,9 +361,8 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 		return err
 	} else if closeError != nil {
 		return closeError
-	} else {
-		return waitError
 	}
+	return waitError
 }
 
 // Sender sendmail mail sender
@@ -390,6 +390,10 @@ func NewContext(ctx context.Context) {
 	// while mail queue is already processing tasks, and produces a race condition.
 	if setting.MailService == nil || mailQueue != nil {
 		return
+	}
+
+	if setting.Service.EnableNotifyMail {
+		notify_service.RegisterNotifier(NewNotifier())
 	}
 
 	switch setting.MailService.Protocol {
@@ -421,15 +425,12 @@ func NewContext(ctx context.Context) {
 	go graceful.GetManager().RunWithCancel(mailQueue)
 }
 
-// SendAsync send mail asynchronously
-func SendAsync(msg *Message) {
-	SendAsyncs([]*Message{msg})
-}
+// SendAsync send emails asynchronously (make it mockable)
+var SendAsync = sendAsync
 
-// SendAsyncs send mails asynchronously
-func SendAsyncs(msgs []*Message) {
+func sendAsync(msgs ...*Message) {
 	if setting.MailService == nil {
-		log.Error("Mailer: SendAsyncs is being invoked but mail service hasn't been initialized")
+		log.Error("Mailer: SendAsync is being invoked but mail service hasn't been initialized")
 		return
 	}
 

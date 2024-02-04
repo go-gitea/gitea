@@ -93,7 +93,7 @@ func DeletePackageVersion(ctx *context.Context) {
 		return
 	}
 
-	if err := packages_service.RemovePackageVersion(ctx.Doer, pv); err != nil {
+	if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pv); err != nil {
 		ctx.ServerError("RemovePackageVersion", err)
 		return
 	}
@@ -108,6 +108,6 @@ func CleanupExpiredData(ctx *context.Context) {
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("packages.cleanup.success"))
+	ctx.Flash.Success(ctx.Tr("admin.packages.cleanup.success"))
 	ctx.Redirect(setting.AppSubURL + "/admin/packages")
 }

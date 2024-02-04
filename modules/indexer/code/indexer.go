@@ -7,6 +7,7 @@ import (
 	"context"
 	"os"
 	"runtime/pprof"
+	"slices"
 	"sync/atomic"
 	"time"
 
@@ -20,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -54,22 +54,22 @@ func index(ctx context.Context, indexer internal.Indexer, repoID int64) error {
 	}
 
 	// skip forks from being indexed if unit is not present
-	if !util.SliceContains(repoTypes, "forks") && repo.IsFork {
+	if !slices.Contains(repoTypes, "forks") && repo.IsFork {
 		return nil
 	}
 
 	// skip mirrors from being indexed if unit is not present
-	if !util.SliceContains(repoTypes, "mirrors") && repo.IsMirror {
+	if !slices.Contains(repoTypes, "mirrors") && repo.IsMirror {
 		return nil
 	}
 
 	// skip templates from being indexed if unit is not present
-	if !util.SliceContains(repoTypes, "templates") && repo.IsTemplate {
+	if !slices.Contains(repoTypes, "templates") && repo.IsTemplate {
 		return nil
 	}
 
 	// skip regular repos from being indexed if unit is not present
-	if !util.SliceContains(repoTypes, "sources") && !repo.IsFork && !repo.IsMirror && !repo.IsTemplate {
+	if !slices.Contains(repoTypes, "sources") && !repo.IsFork && !repo.IsMirror && !repo.IsTemplate {
 		return nil
 	}
 
@@ -122,21 +122,6 @@ func Init() {
 			indexer := *globalIndexer.Load()
 			for _, indexerData := range items {
 				log.Trace("IndexerData Process Repo: %d", indexerData.RepoID)
-
-				// FIXME: it seems there is a bug in `CatFileBatch` or `nio.Pipe`, which will cause the process to hang forever in rare cases
-				/*
-					sync.(*Cond).Wait(cond.go:70)
-					github.com/djherbis/nio/v3.(*PipeReader).Read(sync.go:106)
-					bufio.(*Reader).fill(bufio.go:106)
-					bufio.(*Reader).ReadSlice(bufio.go:372)
-					bufio.(*Reader).collectFragments(bufio.go:447)
-					bufio.(*Reader).ReadString(bufio.go:494)
-					code.gitea.io/gitea/modules/git.ReadBatchLine(batch_reader.go:149)
-					code.gitea.io/gitea/modules/indexer/code.(*BleveIndexer).addUpdate(bleve.go:214)
-					code.gitea.io/gitea/modules/indexer/code.(*BleveIndexer).Index(bleve.go:296)
-					code.gitea.io/gitea/modules/indexer/code.(*wrappedIndexer).Index(wrapped.go:74)
-					code.gitea.io/gitea/modules/indexer/code.index(indexer.go:105)
-				*/
 				if err := index(ctx, indexer, indexerData.RepoID); err != nil {
 					unhandled = append(unhandled, indexerData)
 					if !setting.IsInTesting {
@@ -303,7 +288,7 @@ func populateRepoIndexer(ctx context.Context) {
 			return
 		default:
 		}
-		ids, err := repo_model.GetUnindexedRepos(repo_model.RepoIndexerTypeCode, maxRepoID, 0, 50)
+		ids, err := repo_model.GetUnindexedRepos(ctx, repo_model.RepoIndexerTypeCode, maxRepoID, 0, 50)
 		if err != nil {
 			log.Error("populateRepoIndexer: %v", err)
 			return

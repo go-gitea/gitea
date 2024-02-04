@@ -11,7 +11,6 @@ import {htmlEscape} from 'escape-goat';
 import {initRepoBranchTagSelector} from '../components/RepoBranchTagSelector.vue';
 import {
   initRepoCloneLink, initRepoCommonBranchOrTagDropdown, initRepoCommonFilterSearchDropdown,
-  initRepoCommonLanguageStats,
 } from './repo-common.js';
 import {initCitationFileCopyContent} from './citation.js';
 import {initCompLabelEdit} from './comp/LabelEdit.js';
@@ -21,6 +20,7 @@ import {initCommentContent, initMarkupContent} from '../markup/content.js';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoSettingBranches} from './repo-settings.js';
 import {initRepoPullRequestMergeForm} from './repo-issue-pr-form.js';
+import {initRepoPullRequestCommitStatus} from './repo-issue-pr-status.js';
 import {hideElem, showElem} from '../utils/dom.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 import {attachRefIssueContextPopup} from './contextpopup.js';
@@ -150,7 +150,7 @@ export function initRepoCommentForm() {
 
         if ($(this).hasClass('checked')) {
           $(this).removeClass('checked');
-          $(this).find('.octicon-check').addClass('invisible');
+          $(this).find('.octicon-check').addClass('gt-invisible');
           if (hasUpdateAction) {
             if (!($(this).data('id') in items)) {
               items[$(this).data('id')] = {
@@ -164,7 +164,7 @@ export function initRepoCommentForm() {
           }
         } else {
           $(this).addClass('checked');
-          $(this).find('.octicon-check').removeClass('invisible');
+          $(this).find('.octicon-check').removeClass('gt-invisible');
           if (hasUpdateAction) {
             if (!($(this).data('id') in items)) {
               items[$(this).data('id')] = {
@@ -215,7 +215,7 @@ export function initRepoCommentForm() {
 
       $(this).parent().find('.item').each(function () {
         $(this).removeClass('checked');
-        $(this).find('.octicon-check').addClass('invisible');
+        $(this).find('.octicon-check').addClass('gt-invisible');
       });
 
       if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify') {
@@ -300,7 +300,6 @@ export function initRepoCommentForm() {
   selectItem('.select-milestone', '#milestone_id');
   selectItem('.select-assignee', '#assignee_id');
 }
-
 
 async function onEditContent(event) {
   event.preventDefault();
@@ -525,7 +524,6 @@ export function initRepository() {
 
   initRepoCloneLink();
   initCitationFileCopyContent();
-  initRepoCommonLanguageStats();
   initRepoSettingBranches();
 
   // Issues
@@ -540,7 +538,6 @@ export function initRepository() {
     initRepoDiffConversationNav();
     initRepoIssueReferenceIssue();
 
-
     initRepoIssueCommentDelete();
     initRepoIssueDependencyDelete();
     initRepoIssueCodeCommentCancel();
@@ -548,6 +545,7 @@ export function initRepository() {
     initCompReactionSelector($(document));
 
     initRepoPullRequestMergeForm();
+    initRepoPullRequestCommitStatus();
   }
 
   // Pull request

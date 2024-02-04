@@ -4,6 +4,7 @@ import {showTemporaryTooltip, createTippy} from '../modules/tippy.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {setFileFolding} from './file-fold.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
+import {toAbsoluteUrl} from '../utils.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -110,7 +111,7 @@ export function initRepoIssueSidebarList() {
             }
             filteredResponse.results.push({
               name: `#${issue.number} ${htmlEscape(issue.title)
-              }<div class="text small dont-break-out">${htmlEscape(issue.repository.full_name)}</div>`,
+              }<div class="text small gt-word-break">${htmlEscape(issue.repository.full_name)}</div>`,
               value: issue.id,
             });
           });
@@ -178,9 +179,9 @@ export function initRepoIssueCommentDelete() {
           const idx = $conversationHolder.data('idx');
           const lineType = $conversationHolder.closest('tr').data('line-type');
           if (lineType === 'same') {
-            $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).removeClass('gt-invisible');
           } else {
-            $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('gt-invisible');
           }
           $conversationHolder.remove();
         }
@@ -307,7 +308,6 @@ export function initRepoIssueReferenceRepositorySearch() {
       fullTextSearch: true
     });
 }
-
 
 export function initRepoIssueWipTitle() {
   $('.title_wip_desc > a').on('click', (e) => {
@@ -527,7 +527,7 @@ export function initRepoIssueReferenceIssue() {
     const $this = $(this);
     const content = $(`#${$this.data('target')}`).text();
     const poster = $this.data('poster-username');
-    const reference = $this.data('reference');
+    const reference = toAbsoluteUrl($this.data('reference'));
     const $modal = $($this.data('modal'));
     $modal.find('textarea[name="content"]').val(`${content}\n\n_Originally posted by @${poster} in ${reference}_`);
     $modal.modal('show');
@@ -551,7 +551,6 @@ export function initRepoIssueWipToggle() {
     window.location.reload();
   });
 }
-
 
 export function initRepoIssueTitleEdit() {
   // Edit issue title
@@ -678,5 +677,18 @@ export function initIssueTemplateCommentEditors($commentForm) {
 
   for (const el of $comboFields) {
     initCombo($(el));
+  }
+}
+
+// This function used to show and hide archived label on issue/pr
+//  page in the sidebar where we select the labels
+//  If we have any archived label tagged to issue and pr. We will show that
+//  archived label with checked classed otherwise we will hide it
+//  with the help of this function.
+//  This function runs globally.
+export function initArchivedLabelHandler() {
+  if (!document.querySelector('.archived-label-hint')) return;
+  for (const label of document.querySelectorAll('[data-is-archived]')) {
+    toggleElem(label, label.classList.contains('checked'));
   }
 }

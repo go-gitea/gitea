@@ -7,82 +7,82 @@
 				<form class="ui form" action="{{if .PageIsOrgTeamsNew}}{{.OrgLink}}/teams/new{{else}}{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/edit{{end}}" data-delete-url="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/delete" method="post">
 					{{.CsrfTokenHtml}}
 					<h3 class="ui top attached header">
-						{{if .PageIsOrgTeamsNew}}{{.locale.Tr "org.create_new_team"}}{{else}}{{.locale.Tr "org.teams.settings"}}{{end}}
+						{{if .PageIsOrgTeamsNew}}{{ctx.Locale.Tr "org.create_new_team"}}{{else}}{{ctx.Locale.Tr "org.teams.settings"}}{{end}}
 					</h3>
 					<div class="ui attached segment">
 						{{template "base/alert" .}}
 						<div class="required field {{if .Err_TeamName}}error{{end}}">
-							<label for="team_name">{{.locale.Tr "org.team_name"}}</label>
+							<label for="team_name">{{ctx.Locale.Tr "org.team_name"}}</label>
 							{{if eq .Team.LowerName "owners"}}
 								<input type="hidden" name="team_name" value="{{.Team.Name}}">
 							{{end}}
 							<input id="team_name" name="team_name" value="{{.Team.Name}}" required {{if eq .Team.LowerName "owners"}}disabled{{end}} autofocus>
-							<span class="help">{{.locale.Tr "org.team_name_helper"}}</span>
+							<span class="help">{{ctx.Locale.Tr "org.team_name_helper"}}</span>
 						</div>
 						<div class="field {{if .Err_Description}}error{{end}}">
-							<label for="description">{{.locale.Tr "org.team_desc"}}</label>
+							<label for="description">{{ctx.Locale.Tr "org.team_desc"}}</label>
 							<input id="description" name="description" value="{{.Team.Description}}">
-							<span class="help">{{.locale.Tr "org.team_desc_helper"}}</span>
+							<span class="help">{{ctx.Locale.Tr "org.team_desc_helper"}}</span>
 						</div>
 						{{if not (eq .Team.LowerName "owners")}}
 							<div class="grouped field">
-								<label>{{.locale.Tr "org.team_access_desc"}}</label>
+								<label>{{ctx.Locale.Tr "org.team_access_desc"}}</label>
 								<br>
 								<div class="field">
 									<div class="ui radio checkbox">
 										<input type="radio" name="repo_access" value="specific" {{if not .Team.IncludesAllRepositories}}checked{{end}}>
-										<label>{{.locale.Tr "org.teams.specific_repositories"}}</label>
-										<span class="help">{{.locale.Tr "org.teams.specific_repositories_helper" | Str2html}}</span>
+										<label>{{ctx.Locale.Tr "org.teams.specific_repositories"}}</label>
+										<span class="help">{{ctx.Locale.Tr "org.teams.specific_repositories_helper" | Str2html}}</span>
 									</div>
 								</div>
 								<div class="field">
 									<div class="ui radio checkbox">
 										<input type="radio" name="repo_access" value="all" {{if .Team.IncludesAllRepositories}}checked{{end}}>
-										<label>{{.locale.Tr "org.teams.all_repositories"}}</label>
-										<span class="help">{{.locale.Tr "org.teams.all_repositories_helper" | Str2html}}</span>
+										<label>{{ctx.Locale.Tr "org.teams.all_repositories"}}</label>
+										<span class="help">{{ctx.Locale.Tr "org.teams.all_repositories_helper" | Str2html}}</span>
 									</div>
 								</div>
 
 								<div class="field">
 									<div class="ui checkbox">
-										<label for="can_create_org_repo">{{.locale.Tr "org.teams.can_create_org_repo"}}</label>
+										<label for="can_create_org_repo">{{ctx.Locale.Tr "org.teams.can_create_org_repo"}}</label>
 										<input id="can_create_org_repo" name="can_create_org_repo" type="checkbox" {{if .Team.CanCreateOrgRepo}}checked{{end}}>
-										<span class="help">{{.locale.Tr "org.teams.can_create_org_repo_helper"}}</span>
+										<span class="help">{{ctx.Locale.Tr "org.teams.can_create_org_repo_helper"}}</span>
 									</div>
 								</div>
 							</div>
 							<div class="grouped field">
-								<label>{{.locale.Tr "org.team_permission_desc"}}</label>
+								<label>{{ctx.Locale.Tr "org.team_permission_desc"}}</label>
 								<br>
 								<div class="field">
 									<div class="ui radio checkbox">
 										<input type="radio" name="permission" value="read" {{if or .PageIsOrgTeamsNew (eq .Team.AccessMode 1) (eq .Team.AccessMode 2)}}checked{{end}}>
-										<label>{{.locale.Tr "org.teams.general_access"}}</label>
-										<span class="help">{{.locale.Tr "org.teams.general_access_helper"}}</span>
+										<label>{{ctx.Locale.Tr "org.teams.general_access"}}</label>
+										<span class="help">{{ctx.Locale.Tr "org.teams.general_access_helper"}}</span>
 									</div>
 								</div>
 								<div class="field">
 									<div class="ui radio checkbox">
 										<input type="radio" name="permission" value="admin" {{if eq .Team.AccessMode 3}}checked{{end}}>
-										<label>{{.locale.Tr "org.teams.admin_access"}}</label>
-										<span class="help">{{.locale.Tr "org.teams.admin_access_helper"}}</span>
+										<label>{{ctx.Locale.Tr "org.teams.admin_access"}}</label>
+										<span class="help">{{ctx.Locale.Tr "org.teams.admin_access_helper"}}</span>
 									</div>
 								</div>
 							</div>
 							<div class="divider"></div>
 
 							<div class="team-units required grouped field {{if eq .Team.AccessMode 3}}gt-hidden{{end}}">
-								<label>{{.locale.Tr "org.team_unit_desc"}}</label>
+								<label>{{ctx.Locale.Tr "org.team_unit_desc"}}</label>
 								<table class="ui celled table">
 									<thead>
 										<tr>
-											<th>{{.locale.Tr "units.unit"}}</th>
-											<th class="center aligned">{{.locale.Tr "org.teams.none_access"}}
-											<span class="gt-vm" data-tooltip-content="{{.locale.Tr "org.teams.none_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
-											<th class="center aligned">{{.locale.Tr "org.teams.read_access"}}
-											<span class="gt-vm" data-tooltip-content="{{.locale.Tr "org.teams.read_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
-											<th class="center aligned">{{.locale.Tr "org.teams.write_access"}}
-											<span class="gt-vm" data-tooltip-content="{{.locale.Tr "org.teams.write_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
+											<th>{{ctx.Locale.Tr "units.unit"}}</th>
+											<th class="center aligned">{{ctx.Locale.Tr "org.teams.none_access"}}
+											<span class="gt-vm" data-tooltip-content="{{ctx.Locale.Tr "org.teams.none_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
+											<th class="center aligned">{{ctx.Locale.Tr "org.teams.read_access"}}
+											<span class="gt-vm" data-tooltip-content="{{ctx.Locale.Tr "org.teams.read_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
+											<th class="center aligned">{{ctx.Locale.Tr "org.teams.write_access"}}
+											<span class="gt-vm" data-tooltip-content="{{ctx.Locale.Tr "org.teams.write_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
 										</tr>
 									</thead>
 									<tbody>
@@ -90,26 +90,26 @@
 											{{if ge $unit.MaxPerm 2}}
 												<tr>
 													<td>
-														<div {{if $unit.Type.UnitGlobalDisabled}}class="field" data-tooltip-content="{{$.locale.Tr "repo.unit_disabled"}}"{{- else -}}class="field"{{end}}>
+														<div {{if $unit.Type.UnitGlobalDisabled}}class="field" data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{- else -}}class="field"{{end}}>
 															<div>
-																<label>{{$.locale.Tr $unit.NameKey}}{{if $unit.Type.UnitGlobalDisabled}} {{$.locale.Tr "org.team_unit_disabled"}}{{end}}</label>
-																<span class="help">{{$.locale.Tr $unit.DescKey}}</span>
+																<label>{{ctx.Locale.Tr $unit.NameKey}}{{if $unit.Type.UnitGlobalDisabled}} {{ctx.Locale.Tr "org.team_unit_disabled"}}{{end}}</label>
+																<span class="help">{{ctx.Locale.Tr $unit.DescKey}}</span>
 															</div>
 														</div>
 													</td>
 													<td class="center aligned">
 														<div class="ui radio checkbox">
-															<input type="radio" name="unit_{{$unit.Type.Value}}" value="0"{{if or ($unit.Type.UnitGlobalDisabled) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 0)}} checked{{end}} title="{{$.locale.Tr "org.teams.none_access"}}">
+															<input type="radio" name="unit_{{$unit.Type.Value}}" value="0"{{if or ($unit.Type.UnitGlobalDisabled) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 0)}} checked{{end}} title="{{ctx.Locale.Tr "org.teams.none_access"}}">
 														</div>
 													</td>
 													<td class="center aligned">
 														<div class="ui radio checkbox">
-															<input type="radio" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}} title="{{$.locale.Tr "org.teams.read_access"}}">
+															<input type="radio" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}} title="{{ctx.Locale.Tr "org.teams.read_access"}}">
 														</div>
 													</td>
 													<td class="center aligned">
 														<div class="ui radio checkbox">
-															<input type="radio" name="unit_{{$unit.Type.Value}}" value="2"{{if (ge ($.Team.UnitAccessMode $.Context $unit.Type) 2)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}} title="{{$.locale.Tr "org.teams.write_access"}}">
+															<input type="radio" name="unit_{{$unit.Type.Value}}" value="2"{{if (ge ($.Team.UnitAccessMode $.Context $unit.Type) 2)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}} title="{{ctx.Locale.Tr "org.teams.write_access"}}">
 														</div>
 													</td>
 												</tr>
@@ -119,11 +119,11 @@
 								</table>
 								{{range $t, $unit := $.Units}}
 									{{if lt $unit.MaxPerm 2}}
-										<div {{if $unit.Type.UnitGlobalDisabled}}class="field" data-tooltip-content="{{$.locale.Tr "repo.unit_disabled"}}"{{else}}class="field"{{end}}>
+										<div {{if $unit.Type.UnitGlobalDisabled}}class="field" data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{else}}class="field"{{end}}>
 											<div class="ui checkbox">
 												<input type="checkbox" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}}>
-												<label>{{$.locale.Tr $unit.NameKey}}{{if $unit.Type.UnitGlobalDisabled}} {{$.locale.Tr "org.team_unit_disabled"}}{{end}}</label>
-												<span class="help">{{$.locale.Tr $unit.DescKey}}</span>
+												<label>{{ctx.Locale.Tr $unit.NameKey}}{{if $unit.Type.UnitGlobalDisabled}} {{ctx.Locale.Tr "org.team_unit_disabled"}}{{end}}</label>
+												<span class="help">{{ctx.Locale.Tr $unit.DescKey}}</span>
 											</div>
 										</div>
 									{{end}}
@@ -133,11 +133,11 @@
 
 						<div class="field">
 							{{if .PageIsOrgTeamsNew}}
-								<button class="ui green button">{{.locale.Tr "org.create_team"}}</button>
+								<button class="ui primary button">{{ctx.Locale.Tr "org.create_team"}}</button>
 							{{else}}
-								<button class="ui green button">{{.locale.Tr "org.teams.update_settings"}}</button>
+								<button class="ui primary button">{{ctx.Locale.Tr "org.teams.update_settings"}}</button>
 								{{if not (eq .Team.LowerName "owners")}}
-									<button class="ui red button delete-button" data-url="{{.OrgLink}}/teams/{{.Team.Name | PathEscape}}/delete">{{.locale.Tr "org.teams.delete_team"}}</button>
+									<button class="ui red button delete-button" data-url="{{.OrgLink}}/teams/{{.Team.Name | PathEscape}}/delete">{{ctx.Locale.Tr "org.teams.delete_team"}}</button>
 								{{end}}
 							{{end}}
 						</div>
@@ -151,10 +151,10 @@
 <div class="ui g-modal-confirm delete modal">
 	<div class="header">
 		{{svg "octicon-trash"}}
-		{{.locale.Tr "org.teams.delete_team_title"}}
+		{{ctx.Locale.Tr "org.teams.delete_team_title"}}
 	</div>
 	<div class="content">
-		<p>{{.locale.Tr "org.teams.delete_team_desc"}}</p>
+		<p>{{ctx.Locale.Tr "org.teams.delete_team_desc"}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

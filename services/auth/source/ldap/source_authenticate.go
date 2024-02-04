@@ -4,12 +4,12 @@
 package ldap
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/util"
@@ -19,7 +19,7 @@ import (
 
 // Authenticate queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
-func (source *Source) Authenticate(user *user_model.User, userName, password string) (*user_model.User, error) {
+func (source *Source) Authenticate(ctx context.Context, user *user_model.User, userName, password string) (*user_model.User, error) {
 	loginName := userName
 	if user != nil {
 		loginName = user.LoginName
@@ -29,15 +29,21 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 		// User not in LDAP, do nothing
 		return nil, user_model.ErrUserNotExist{Name: loginName}
 	}
-
+	// Fallback.
+	if len(sr.Username) == 0 {
+		sr.Username = userName
+	}
+	if len(sr.Mail) == 0 {
+		sr.Mail = fmt.Sprintf("%s@localhost.local", sr.Username)
+	}
 	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
 
 	// Update User admin flag if exist
-	if isExist, err := user_model.IsUserExist(db.DefaultContext, 0, sr.Username); err != nil {
+	if isExist, err := user_model.IsUserExist(ctx, 0, sr.Username); err != nil {
 		return nil, err
 	} else if isExist {
 		if user == nil {
-			user, err = user_model.GetUserByName(db.DefaultContext, sr.Username)
+			user, err = user_model.GetUserByName(ctx, sr.Username)
 			if err != nil {
 				return nil, err
 			}
@@ -55,7 +61,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 				cols = append(cols, "is_restricted")
 			}
 			if len(cols) > 0 {
-				err = user_model.UpdateUserCols(db.DefaultContext, user, cols...)
+				err = user_model.UpdateUserCols(ctx, user, cols...)
 				if err != nil {
 					return nil, err
 				}
@@ -64,21 +70,12 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	}
 
 	if user != nil {
-		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(user, source.authSource, sr.SSHPublicKey) {
-			if err := asymkey_model.RewriteAllPublicKeys(); err != nil {
+		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(ctx, user, source.authSource, sr.SSHPublicKey) {
+			if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
 				return user, err
 			}
 		}
 	} else {
-		// Fallback.
-		if len(sr.Username) == 0 {
-			sr.Username = userName
-		}
-
-		if len(sr.Mail) == 0 {
-			sr.Mail = fmt.Sprintf("%s@localhost.local", sr.Username)
-		}
-
 		user = &user_model.User{
 			LowerName:   strings.ToLower(sr.Username),
 			Name:        sr.Username,
@@ -94,18 +91,18 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 			IsActive:     util.OptionalBoolTrue,
 		}
 
-		err := user_model.CreateUser(user, overwriteDefault)
+		err := user_model.CreateUser(ctx, user, overwriteDefault)
 		if err != nil {
 			return user, err
 		}
 
-		if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(user, source.authSource, sr.SSHPublicKey) {
-			if err := asymkey_model.RewriteAllPublicKeys(); err != nil {
+		if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(ctx, user, source.authSource, sr.SSHPublicKey) {
+			if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
 				return user, err
 			}
 		}
 		if len(source.AttributeAvatar) > 0 {
-			if err := user_service.UploadAvatar(user, sr.Avatar); err != nil {
+			if err := user_service.UploadAvatar(ctx, user, sr.Avatar); err != nil {
 				return user, err
 			}
 		}
@@ -116,7 +113,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 		if err != nil {
 			return user, err
 		}
-		if err := source_service.SyncGroupsToTeams(db.DefaultContext, user, sr.Groups, groupTeamMapping, source.GroupTeamMapRemoval); err != nil {
+		if err := source_service.SyncGroupsToTeams(ctx, user, sr.Groups, groupTeamMapping, source.GroupTeamMapRemoval); err != nil {
 			return user, err
 		}
 	}

@@ -5,7 +5,7 @@
     2. Please ask questions or configuration/deploy problems on our Discord
        server (https://discord.gg/gitea) or forum (https://discourse.gitea.io).
     3. Please take a moment to check that your issue doesn't already exist.
-    4. Make sure it's not mentioned in the FAQ (https://docs.gitea.io/en-us/faq)
+    4. Make sure it's not mentioned in the FAQ (https://docs.gitea.com/help/faq)
     5. Please give all relevant information below for bug reports, because
        incomplete details will be handled as an invalid report.
 -->
@@ -26,7 +26,7 @@
   - [ ] No
 - Log gist:
 <!-- It really is important to provide pertinent logs -->
-<!-- Please read https://docs.gitea.io/en-us/logging-configuration/#debugging-problems -->
+<!-- Please read https://docs.gitea.com/administration/logging-config#collecting-logs-for-help -->
 <!-- In addition, if your problem relates to git commands set `RUN_MODE=dev` at the top of app.ini -->
 
 ## Description

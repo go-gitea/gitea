@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -107,11 +108,11 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		return 0, err
 	}
 
-	if affected == 0 || (!util.SliceContains(cols, "status") && job.Status == 0) {
+	if affected == 0 || (!slices.Contains(cols, "status") && job.Status == 0) {
 		return affected, nil
 	}
 
-	if affected != 0 && util.SliceContains(cols, "status") && job.Status.IsWaiting() {
+	if affected != 0 && slices.Contains(cols, "status") && job.Status.IsWaiting() {
 		// if the status of job changes to waiting again, increase tasks version.
 		if err := IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
 			return 0, err

@@ -17,9 +17,9 @@ func TestParseImageConfig(t *testing.T) {
 	description := "Image Description"
 	author := "Gitea"
 	license := "MIT"
-	projectURL := "https://gitea.io"
+	projectURL := "https://gitea.com"
 	repositoryURL := "https://gitea.com/gitea"
-	documentationURL := "https://docs.gitea.io"
+	documentationURL := "https://docs.gitea.com"
 
 	configOCI := `{"config": {"labels": {"` + labelAuthors + `": "` + author + `", "` + labelLicenses + `": "` + license + `", "` + labelURL + `": "` + projectURL + `", "` + labelSource + `": "` + repositoryURL + `", "` + labelDocumentation + `": "` + documentationURL + `", "` + labelDescription + `": "` + description + `"}}, "history": [{"created_by": "do it 1"}, {"created_by": "dummy #(nop) do it 2"}]}`
 

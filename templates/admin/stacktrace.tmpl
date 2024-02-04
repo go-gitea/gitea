@@ -4,14 +4,14 @@
 	<div class="gt-df gt-ac">
 		<div class="gt-f1">
 			<div class="ui compact small menu">
-				<a class="{{if eq .ShowGoroutineList "process"}}active {{end}}item" href="{{.Link}}?show=process">{{.locale.Tr "admin.monitor.process"}}</a>
-				<a class="{{if eq .ShowGoroutineList "stacktrace"}}active {{end}}item" href="{{.Link}}?show=stacktrace">{{.locale.Tr "admin.monitor.stacktrace"}}</a>
+				<a class="{{if eq .ShowGoroutineList "process"}}active {{end}}item" href="{{.Link}}?show=process">{{ctx.Locale.Tr "admin.monitor.process"}}</a>
+				<a class="{{if eq .ShowGoroutineList "stacktrace"}}active {{end}}item" href="{{.Link}}?show=stacktrace">{{ctx.Locale.Tr "admin.monitor.stacktrace"}}</a>
 			</div>
 		</div>
 		<form target="_blank" action="{{AppSubUrl}}/admin/monitor/diagnosis" class="ui form">
 			<div class="ui inline field">
-				<button class="ui primary small button">{{.locale.Tr "admin.monitor.download_diagnosis_report"}}</button>
-				<input name="seconds" size="3" maxlength="3" value="10"> {{.locale.Tr "tool.raw_seconds"}}
+				<button class="ui primary small button">{{ctx.Locale.Tr "admin.monitor.download_diagnosis_report"}}</button>
+				<input name="seconds" size="3" maxlength="3" value="10"> {{ctx.Locale.Tr "tool.raw_seconds"}}
 			</div>
 		</form>
 	</div>
@@ -20,7 +20,7 @@
 
 	<h4 class="ui top attached header">
 		{{printf "%d Goroutines" .GoroutineCount}}{{/* Goroutine is non-translatable*/}}
-		{{- if .ProcessCount -}}, {{.locale.Tr "admin.monitor.processes_count" .ProcessCount}}{{- end -}}
+		{{- if .ProcessCount -}}, {{ctx.Locale.Tr "admin.monitor.processes_count" .ProcessCount}}{{- end -}}
 	</h4>
 
 	{{if .ProcessStacks}}
@@ -36,11 +36,11 @@
 
 <div class="ui g-modal-confirm delete modal">
 	<div class="header">
-		{{.locale.Tr "admin.monitor.process.cancel"}}
+		{{ctx.Locale.Tr "admin.monitor.process.cancel"}}
 	</div>
 	<div class="content">
-		<p>{{$.locale.Tr "admin.monitor.process.cancel_notices" `<span class="name"></span>` | Safe}}</p>
-		<p>{{$.locale.Tr "admin.monitor.process.cancel_desc"}}</p>
+		<p>{{ctx.Locale.Tr "admin.monitor.process.cancel_notices" `<span class="name"></span>` | Safe}}</p>
+		<p>{{ctx.Locale.Tr "admin.monitor.process.cancel_desc"}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

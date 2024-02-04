@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {hideElem, showElem} from '../utils/dom.js';
+import {GET} from '../modules/fetch.js';
 
 export function initInstall() {
   const $page = $('.page-content.install');
@@ -111,7 +112,7 @@ function initPostInstall() {
   const targetUrl = el.getAttribute('href');
   let tid = setInterval(async () => {
     try {
-      const resp = await fetch(targetUrl);
+      const resp = await GET(targetUrl);
       if (tid && resp.status === 200) {
         clearInterval(tid);
         tid = null;

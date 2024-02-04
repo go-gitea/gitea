@@ -221,7 +221,7 @@ textarea:focus,
   }
   .g-recaptcha-style iframe,
   .h-captcha-style iframe {
-    border-radius: 5px !important;
+    border-radius: var(--border-radius) !important;
     width: 302px !important;
     height: 76px !important;
   }

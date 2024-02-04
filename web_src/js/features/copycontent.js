@@ -1,6 +1,7 @@
 import {clippie} from 'clippie';
 import {showTemporaryTooltip} from '../modules/tippy.js';
 import {convertImage} from '../utils.js';
+import {GET} from '../modules/fetch.js';
 
 const {i18n} = window.config;
 
@@ -20,7 +21,7 @@ export function initCopyContent() {
     if (link) {
       btn.classList.add('is-loading', 'small-loading-icon');
       try {
-        const res = await fetch(link, {credentials: 'include', redirect: 'follow'});
+        const res = await GET(link, {credentials: 'include', redirect: 'follow'});
         const contentType = res.headers.get('content-type');
 
         if (contentType.startsWith('image/') && !contentType.startsWith('image/svg')) {

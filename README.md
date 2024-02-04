@@ -6,11 +6,11 @@
 <h1 align="center">Gitea - Git with a cup of tea</h1>
 
 <p align="center">
-  <a href="https://drone.gitea.io/go-gitea/gitea" title="Build Status">
-    <img src="https://drone.gitea.io/api/badges/go-gitea/gitea/status.svg?ref=refs/heads/main">
+  <a href="https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml?query=branch%3Amain" title="Release Nightly">
+    <img src="https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml/badge.svg?branch=main">
   </a>
   <a href="https://discord.gg/Gitea" title="Join the Discord chat at https://discord.gg/Gitea">
-    <img src="https://img.shields.io/discord/322538954119184384.svg">
+    <img src="https://img.shields.io/discord/322538954119184384.svg?logo=discord&logoColor=white&label=Discord&color=5865F2">
   </a>
   <a href="https://app.codecov.io/gh/go-gitea/gitea" title="Codecov">
     <img src="https://codecov.io/gh/go-gitea/gitea/branch/main/graph/badge.svg">
@@ -62,10 +62,15 @@ painless way of setting up a self-hosted Git service.
 As Gitea is written in Go, it works across **all** the platforms and
 architectures that are supported by Go, including Linux, macOS, and
 Windows on x86, amd64, ARM and PowerPC architectures.
-You can try it out using [the online demo](https://try.gitea.io/).
 This project has been
 [forked](https://blog.gitea.com/welcome-to-gitea/) from
 [Gogs](https://gogs.io) since November of 2016, but a lot has changed.
+
+For online demonstrations, you can visit [try.gitea.io](https://try.gitea.io).
+
+For accessing free Gitea service (with a limited number of repositories), you can visit [gitea.com](https://gitea.com/user/login).
+
+To quickly deploy your own dedicated Gitea instance on Gitea Cloud, you can start a free trial at [cloud.gitea.com](https://cloud.gitea.com).
 
 ## Building
 
@@ -79,14 +84,14 @@ or if SQLite support is required:
 
 The `build` target is split into two sub-targets:
 
-- `make backend` which requires [Go Stable](https://go.dev/dl/), required version is defined in [go.mod](/go.mod).
-- `make frontend` which requires [Node.js LTS](https://nodejs.org/en/download/) or greater and Internet connectivity to download npm dependencies.
+- `make backend` which requires [Go Stable](https://go.dev/dl/), the required version is defined in [go.mod](/go.mod).
+- `make frontend` which requires [Node.js LTS](https://nodejs.org/en/download/) or greater.
 
-When building from the official source tarballs which include pre-built frontend files, the `frontend` target will not be triggered, making it possible to build without Node.js and Internet connectivity.
+Internet connectivity is required to download the go and npm modules. When building from the official source tarballs which include pre-built frontend files, the `frontend` target will not be triggered, making it possible to build without Node.js.
 
 Parallelism (`make -j <num>`) is not supported.
 
-More info: https://docs.gitea.io/en-us/install-from-source/
+More info: https://docs.gitea.com/installation/install-from-source
 
 ## Using
 
@@ -120,8 +125,6 @@ For more information and instructions about how to install Gitea, please look at
 If you have questions that are not covered by the documentation, you can get in contact with us on our [Discord server](https://discord.gg/Gitea) or create  a post in the [discourse forum](https://discourse.gitea.io/).
 
 We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea).
-
-The Hugo-based documentation theme is hosted at [gitea/theme](https://gitea.com/gitea/theme).
 
 The official Gitea CLI is developed at [gitea/tea](https://gitea.com/gitea/tea).
 
@@ -175,5 +178,5 @@ Looking for an overview of the interface? Check it out!
 |![Dashboard](https://dl.gitea.com/screenshots/home_timeline.png)|![User Profile](https://dl.gitea.com/screenshots/user_profile.png)|![Global Issues](https://dl.gitea.com/screenshots/global_issues.png)|
 |:---:|:---:|:---:|
 |![Branches](https://dl.gitea.com/screenshots/branches.png)|![Web Editor](https://dl.gitea.com/screenshots/web_editor.png)|![Activity](https://dl.gitea.com/screenshots/activity.png)|
-|![New Migration](https://dl.gitea.com/screenshots/migration.png)|![Migrating](https://dl.gitea.com/screenshots/migration.gif)|![Pull Request View](https://image.ibb.co/e02dSb/6.png)
-![Pull Request Dark](https://dl.gitea.com/screenshots/pull_requests_dark.png)|![Diff Review Dark](https://dl.gitea.com/screenshots/review_dark.png)|![Diff Dark](https://dl.gitea.com/screenshots/diff_dark.png)|
+|![New Migration](https://dl.gitea.com/screenshots/migration.png)|![Migrating](https://dl.gitea.com/screenshots/migration.gif)|![Pull Request View](https://image.ibb.co/e02dSb/6.png)|
+|![Pull Request Dark](https://dl.gitea.com/screenshots/pull_requests_dark.png)|![Diff Review Dark](https://dl.gitea.com/screenshots/review_dark.png)|![Diff Dark](https://dl.gitea.com/screenshots/diff_dark.png)|

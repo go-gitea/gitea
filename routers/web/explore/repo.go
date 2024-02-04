@@ -57,8 +57,13 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy db.SearchOrderBy
 	)
 
-	ctx.Data["SortType"] = ctx.FormString("sort")
-	switch ctx.FormString("sort") {
+	sortOrder := ctx.FormString("sort")
+	if sortOrder == "" {
+		sortOrder = setting.UI.ExploreDefaultSort
+	}
+	ctx.Data["SortType"] = sortOrder
+
+	switch sortOrder {
 	case "newest":
 		orderBy = db.SearchOrderByNewest
 	case "oldest":

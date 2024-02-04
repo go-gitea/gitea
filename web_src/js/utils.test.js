@@ -1,6 +1,5 @@
-import {expect, test} from 'vitest';
 import {
-  basename, extname, isObject, stripTags, joinPaths, parseIssueHref,
+  basename, extname, isObject, stripTags, parseIssueHref,
   parseUrl, translateMonth, translateDay, blobToDataURI,
   toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64,
 } from './utils.js';
@@ -16,45 +15,6 @@ test('extname', () => {
   expect(extname('/path/')).toEqual('');
   expect(extname('/path')).toEqual('');
   expect(extname('file.js')).toEqual('.js');
-});
-
-test('joinPaths', () => {
-  expect(joinPaths('', '')).toEqual('');
-  expect(joinPaths('', 'b')).toEqual('b');
-  expect(joinPaths('', '/b')).toEqual('/b');
-  expect(joinPaths('', '/b/')).toEqual('/b/');
-  expect(joinPaths('a', '')).toEqual('a');
-  expect(joinPaths('/a', '')).toEqual('/a');
-  expect(joinPaths('/a/', '')).toEqual('/a/');
-  expect(joinPaths('a', 'b')).toEqual('a/b');
-  expect(joinPaths('a', '/b')).toEqual('a/b');
-  expect(joinPaths('/a', '/b')).toEqual('/a/b');
-  expect(joinPaths('/a', '/b')).toEqual('/a/b');
-  expect(joinPaths('/a/', '/b')).toEqual('/a/b');
-  expect(joinPaths('/a', '/b/')).toEqual('/a/b/');
-  expect(joinPaths('/a/', '/b/')).toEqual('/a/b/');
-
-  expect(joinPaths('', '', '')).toEqual('');
-  expect(joinPaths('', 'b', '')).toEqual('b');
-  expect(joinPaths('', 'b', 'c')).toEqual('b/c');
-  expect(joinPaths('', '', 'c')).toEqual('c');
-  expect(joinPaths('', '/b', '/c')).toEqual('/b/c');
-  expect(joinPaths('/a', '', '/c')).toEqual('/a/c');
-  expect(joinPaths('/a', '/b', '')).toEqual('/a/b');
-
-  expect(joinPaths('', '/')).toEqual('/');
-  expect(joinPaths('a', '/')).toEqual('a/');
-  expect(joinPaths('', '/', '/')).toEqual('/');
-  expect(joinPaths('/', '/')).toEqual('/');
-  expect(joinPaths('/', '')).toEqual('/');
-  expect(joinPaths('/', 'b')).toEqual('/b');
-  expect(joinPaths('/', 'b/')).toEqual('/b/');
-  expect(joinPaths('/', '', '/')).toEqual('/');
-  expect(joinPaths('/', 'b', '/')).toEqual('/b/');
-  expect(joinPaths('/', 'b/', '/')).toEqual('/b/');
-  expect(joinPaths('a', '/', '/')).toEqual('a/');
-  expect(joinPaths('/', '/', 'c')).toEqual('/c');
-  expect(joinPaths('/', '/', 'c/')).toEqual('/c/');
 });
 
 test('isObject', () => {
@@ -133,17 +93,22 @@ test('toAbsoluteUrl', () => {
   expect(() => toAbsoluteUrl('path')).toThrowError('unsupported');
 });
 
-const uint8array = (s) => new TextEncoder().encode(s);
 test('encodeURLEncodedBase64, decodeURLEncodedBase64', () => {
+  // TextEncoder is Node.js API while Uint8Array is jsdom API and their outputs are not
+  // structurally comparable, so we convert to array to compare. The conversion can be
+  // removed once https://github.com/jsdom/jsdom/issues/2524 is resolved.
+  const encoder = new TextEncoder();
+  const uint8array = encoder.encode.bind(encoder);
+
   expect(encodeURLEncodedBase64(uint8array('AA?'))).toEqual('QUE_'); // standard base64: "QUE/"
   expect(encodeURLEncodedBase64(uint8array('AA~'))).toEqual('QUF-'); // standard base64: "QUF+"
 
-  expect(decodeURLEncodedBase64('QUE/')).toEqual(uint8array('AA?'));
-  expect(decodeURLEncodedBase64('QUF+')).toEqual(uint8array('AA~'));
-  expect(decodeURLEncodedBase64('QUE_')).toEqual(uint8array('AA?'));
-  expect(decodeURLEncodedBase64('QUF-')).toEqual(uint8array('AA~'));
+  expect(Array.from(decodeURLEncodedBase64('QUE/'))).toEqual(Array.from(uint8array('AA?')));
+  expect(Array.from(decodeURLEncodedBase64('QUF+'))).toEqual(Array.from(uint8array('AA~')));
+  expect(Array.from(decodeURLEncodedBase64('QUE_'))).toEqual(Array.from(uint8array('AA?')));
+  expect(Array.from(decodeURLEncodedBase64('QUF-'))).toEqual(Array.from(uint8array('AA~')));
 
   expect(encodeURLEncodedBase64(uint8array('a'))).toEqual('YQ'); // standard base64: "YQ=="
-  expect(decodeURLEncodedBase64('YQ')).toEqual(uint8array('a'));
-  expect(decodeURLEncodedBase64('YQ==')).toEqual(uint8array('a'));
+  expect(Array.from(decodeURLEncodedBase64('YQ'))).toEqual(Array.from(uint8array('a')));
+  expect(Array.from(decodeURLEncodedBase64('YQ=='))).toEqual(Array.from(uint8array('a')));
 });

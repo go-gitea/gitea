@@ -89,6 +89,7 @@ func UploadPackage(ctx *context.Context) {
 	defer buf.Close()
 
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
@@ -125,6 +126,7 @@ func UploadPackage(ctx *context.Context) {
 // DeletePackage deletes the specific generic package.
 func DeletePackage(ctx *context.Context) {
 	err := packages_service.RemovePackageVersionByNameAndVersion(
+		ctx,
 		ctx.Doer,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -176,7 +178,7 @@ func DeletePackageFile(ctx *context.Context) {
 	}
 
 	if len(pfs) == 1 {
-		if err := packages_service.RemovePackageVersion(ctx.Doer, pv); err != nil {
+		if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pv); err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}

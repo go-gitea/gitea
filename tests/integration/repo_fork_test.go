@@ -63,10 +63,10 @@ func TestRepoFork(t *testing.T) {
 func TestRepoForkToOrg(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	testRepoFork(t, session, "user2", "repo1", "user3", "repo1")
+	testRepoFork(t, session, "user2", "repo1", "org3", "repo1")
 
 	// Check that no more forking is allowed as user2 owns repository
-	//  and user3 organization that owner user2 is also now has forked this repository
+	//  and org3 organization that owner user2 is also now has forked this repository
 	req := NewRequest(t, "GET", "/user2/repo1")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)

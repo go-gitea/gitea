@@ -10,6 +10,7 @@ package tests
 import (
 	"context"
 	"fmt"
+	"slices"
 	"testing"
 	"time"
 
@@ -457,7 +458,7 @@ var cases = []*testIndexerCase{
 				assert.Contains(t, data[v.ID].MentionIDs, int64(1))
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return util.SliceContains(v.MentionIDs, 1)
+				return slices.Contains(v.MentionIDs, 1)
 			}), result.Total)
 		},
 	},
@@ -478,7 +479,7 @@ var cases = []*testIndexerCase{
 				assert.Contains(t, data[v.ID].ReviewedIDs, int64(1))
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return util.SliceContains(v.ReviewedIDs, 1)
+				return slices.Contains(v.ReviewedIDs, 1)
 			}), result.Total)
 		},
 	},
@@ -499,7 +500,7 @@ var cases = []*testIndexerCase{
 				assert.Contains(t, data[v.ID].ReviewRequestedIDs, int64(1))
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return util.SliceContains(v.ReviewRequestedIDs, 1)
+				return slices.Contains(v.ReviewRequestedIDs, 1)
 			}), result.Total)
 		},
 	},
@@ -520,7 +521,7 @@ var cases = []*testIndexerCase{
 				assert.Contains(t, data[v.ID].SubscriberIDs, int64(1))
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return util.SliceContains(v.SubscriberIDs, 1)
+				return slices.Contains(v.SubscriberIDs, 1)
 			}), result.Total)
 		},
 	},

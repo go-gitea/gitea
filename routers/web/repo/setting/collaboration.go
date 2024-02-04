@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -18,9 +17,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/mailer"
 	org_service "code.gitea.io/gitea/services/org"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // Collaboration render a repository's collaboration page
@@ -52,7 +51,7 @@ func Collaboration(ctx *context.Context) {
 
 // CollaborationPost response for actions for a collaboration of a repository
 func CollaborationPost(ctx *context.Context) {
-	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("collaborator")))
+	name := strings.ToLower(ctx.FormString("collaborator"))
 	if len(name) == 0 || ctx.Repo.Owner.LowerName == name {
 		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 		return
@@ -127,7 +126,7 @@ func ChangeCollaborationAccessMode(ctx *context.Context) {
 
 // DeleteCollaboration delete a collaboration for a repository
 func DeleteCollaboration(ctx *context.Context) {
-	if err := models.DeleteCollaboration(ctx.Repo.Repository, ctx.FormInt64("id")); err != nil {
+	if err := repo_service.DeleteCollaboration(ctx, ctx.Repo.Repository, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteCollaboration: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.remove_collaborator_success"))
@@ -144,7 +143,7 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("team")))
+	name := strings.ToLower(ctx.FormString("team"))
 	if len(name) == 0 {
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		return
@@ -173,7 +172,7 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if err = org_service.TeamAddRepository(team, ctx.Repo.Repository); err != nil {
+	if err = org_service.TeamAddRepository(ctx, team, ctx.Repo.Repository); err != nil {
 		ctx.ServerError("TeamAddRepository", err)
 		return
 	}
@@ -196,7 +195,7 @@ func DeleteTeam(ctx *context.Context) {
 		return
 	}
 
-	if err = models.RemoveRepository(team, ctx.Repo.Repository.ID); err != nil {
+	if err = repo_service.RemoveRepositoryFromTeam(ctx, team, ctx.Repo.Repository.ID); err != nil {
 		ctx.ServerError("team.RemoveRepositorys", err)
 		return
 	}

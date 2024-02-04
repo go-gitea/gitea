@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
 )
@@ -36,23 +35,7 @@ func SignInOpenID(ctx *context.Context) {
 		return
 	}
 
-	// Check auto-login.
-	isSucceed, err := AutoSignIn(ctx)
-	if err != nil {
-		ctx.ServerError("AutoSignIn", err)
-		return
-	}
-
-	redirectTo := ctx.FormString("redirect_to")
-	if len(redirectTo) > 0 {
-		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
-	} else {
-		redirectTo = ctx.GetSiteCookie("redirect_to")
-	}
-
-	if isSucceed {
-		middleware.DeleteRedirectToCookie(ctx.Resp)
-		ctx.RedirectToFirst(redirectTo)
+	if CheckAutoLogin(ctx) {
 		return
 	}
 
@@ -157,7 +140,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 	/* Now we should seek for the user and log him in, or prompt
 	 * to register if not found */
 
-	u, err := user_model.GetUserByOpenID(id)
+	u, err := user_model.GetUserByOpenID(ctx, id)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
@@ -280,7 +263,7 @@ func ConnectOpenIDPost(ctx *context.Context) {
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["OpenID"] = oid
 
-	u, _, err := auth.UserSignIn(form.UserName, form.Password)
+	u, _, err := auth.UserSignIn(ctx, form.UserName, form.Password)
 	if err != nil {
 		handleSignInError(ctx, form.UserName, &form, tplConnectOID, "ConnectOpenIDPost", err)
 		return

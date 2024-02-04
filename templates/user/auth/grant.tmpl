@@ -3,17 +3,17 @@
 	<div class="column seven wide">
 		<div class="ui middle centered raised segments">
 			<h3 class="ui top attached header">
-				{{.locale.Tr "auth.authorize_title" .Application.Name}}
+				{{ctx.Locale.Tr "auth.authorize_title" .Application.Name}}
 			</h3>
 			<div class="ui attached segment">
 				{{template "base/alert" .}}
 				<p>
-					<b>{{.locale.Tr "auth.authorize_application_description"}}</b><br>
-					{{.locale.Tr "auth.authorize_application_created_by" .ApplicationCreatorLinkHTML | Str2html}}
+					<b>{{ctx.Locale.Tr "auth.authorize_application_description"}}</b><br>
+					{{ctx.Locale.Tr "auth.authorize_application_created_by" .ApplicationCreatorLinkHTML | Str2html}}
 				</p>
 			</div>
 			<div class="ui attached segment">
-				<p>{{.locale.Tr "auth.authorize_redirect_notice" .ApplicationRedirectDomainHTML | Str2html}}</p>
+				<p>{{ctx.Locale.Tr "auth.authorize_redirect_notice" .ApplicationRedirectDomainHTML | Str2html}}</p>
 			</div>
 			<div class="ui attached segment">
 				<form method="post" action="{{AppSubUrl}}/login/oauth/grant">
@@ -23,7 +23,7 @@
 					<input type="hidden" name="scope" value="{{.Scope}}">
 					<input type="hidden" name="nonce" value="{{.Nonce}}">
 					<input type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
-					<button type="submit" id="authorize-app" value="{{.locale.Tr "auth.authorize_application"}}" class="ui red inline button">{{.locale.Tr "auth.authorize_application"}}</button>
+					<button type="submit" id="authorize-app" value="{{ctx.Locale.Tr "auth.authorize_application"}}" class="ui red inline button">{{ctx.Locale.Tr "auth.authorize_application"}}</button>
 					<a href="{{.RedirectURI}}" class="ui basic primary inline button">Cancel</a>
 				</form>
 			</div>

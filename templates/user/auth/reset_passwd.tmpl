@@ -6,44 +6,44 @@
 				{{.CsrfTokenHtml}}
 				<input name="code" type="hidden" value="{{.Code}}">
 				<h2 class="ui top attached header">
-					{{.locale.Tr "auth.reset_password"}}
+					{{ctx.Locale.Tr "auth.reset_password"}}
 				</h2>
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
 					{{if .user_email}}
 						<div class="inline field">
-							<label for="user_name">{{.locale.Tr "email"}}</label>
+							<label for="user_name">{{ctx.Locale.Tr "email"}}</label>
 							<input id="user_name" type="text" value="{{.user_email}}" disabled>
 						</div>
 					{{end}}
 					{{if .IsResetForm}}
 						<div class="required inline field {{if .Err_Password}}error{{end}}">
-							<label for="password">{{.locale.Tr "settings.new_password"}}</label>
+							<label for="password">{{ctx.Locale.Tr "settings.new_password"}}</label>
 							<input id="password" name="password" type="password"  value="{{.password}}" autocomplete="new-password" autofocus required>
 						</div>
 						{{if not .user_signed_in}}
 						<div class="inline field">
 							<label></label>
 							<div class="ui checkbox">
-								<label>{{.locale.Tr "auth.remember_me"}}</label>
+								<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
 								<input name="remember" type="checkbox">
 							</div>
 						</div>
 						{{end}}
 						{{if .has_two_factor}}
 						<h4 class="ui dividing header">
-							{{.locale.Tr "twofa"}}
+							{{ctx.Locale.Tr "twofa"}}
 						</h4>
-						<div class="ui warning visible message">{{.locale.Tr "settings.twofa_is_enrolled" | Str2html}}</div>
+						<div class="ui warning visible message">{{ctx.Locale.Tr "settings.twofa_is_enrolled" | Str2html}}</div>
 						{{if .scratch_code}}
 						<div class="required inline field {{if .Err_Token}}error{{end}}">
-							<label for="token">{{.locale.Tr "auth.scratch_code"}}</label>
+							<label for="token">{{ctx.Locale.Tr "auth.scratch_code"}}</label>
 							<input id="token" name="token" type="text" autocomplete="off" autofocus required>
 						</div>
 						<input type="hidden" name="scratch_code" value="true">
 						{{else}}
 						<div class="required inline field {{if .Err_Passcode}}error{{end}}">
-							<label for="passcode">{{.locale.Tr "passcode"}}</label>
+							<label for="passcode">{{ctx.Locale.Tr "passcode"}}</label>
 							<input id="passcode" name="passcode" type="number" autocomplete="off" autofocus required>
 						</div>
 						{{end}}
@@ -51,13 +51,13 @@
 						<div class="divider"></div>
 						<div class="inline field">
 							<label></label>
-							<button class="ui primary button">{{.locale.Tr "auth.reset_password_helper"}}</button>
+							<button class="ui primary button">{{ctx.Locale.Tr "auth.reset_password_helper"}}</button>
 							{{if and .has_two_factor (not .scratch_code)}}
-								<a href="{{.Link}}?code={{.Code}}&amp;scratch_code=true">{{.locale.Tr "auth.use_scratch_code" | Str2html}}</a>
+								<a href="{{.Link}}?code={{.Code}}&amp;scratch_code=true">{{ctx.Locale.Tr "auth.use_scratch_code" | Str2html}}</a>
 							{{end}}
 						</div>
 					{{else}}
-						<p class="center">{{.locale.Tr "auth.invalid_code"}}</p>
+						<p class="center">{{ctx.Locale.Tr "auth.invalid_code_forgot_password" (printf "%s/user/forgot_password" AppSubUrl) | Str2html}}</p>
 					{{end}}
 				</div>
 			</form>

@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/structs"
 
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v57/github"
 	"golang.org/x/oauth2"
 )
 
@@ -135,7 +135,7 @@ func (g *GithubDownloaderV3) LogString() string {
 func (g *GithubDownloaderV3) addClient(client *http.Client, baseURL string) {
 	githubClient := github.NewClient(client)
 	if baseURL != "https://github.com" {
-		githubClient, _ = github.NewEnterpriseClient(baseURL, baseURL, client)
+		githubClient, _ = github.NewClient(client).WithEnterpriseURLs(baseURL, baseURL)
 	}
 	g.clients = append(g.clients, githubClient)
 	g.rates = append(g.rates, nil)
@@ -168,14 +168,14 @@ func (g *GithubDownloaderV3) waitAndPickClient() {
 
 		err := g.RefreshRate()
 		if err != nil {
-			log.Error("g.getClient().RateLimits: %s", err)
+			log.Error("g.getClient().RateLimit.Get: %s", err)
 		}
 	}
 }
 
 // RefreshRate update the current rate (doesn't count in rate limit)
 func (g *GithubDownloaderV3) RefreshRate() error {
-	rates, _, err := g.getClient().RateLimits(g.ctx)
+	rates, _, err := g.getClient().RateLimit.Get(g.ctx)
 	if err != nil {
 		// if rate limit is not enabled, ignore it
 		if strings.Contains(err.Error(), "404") {

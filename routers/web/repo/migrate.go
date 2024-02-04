@@ -232,13 +232,13 @@ func MigratePost(ctx *context.Context) {
 		opts.Releases = false
 	}
 
-	err = repo_model.CheckCreateRepository(ctx.Doer, ctxUser, opts.RepoName, false)
+	err = repo_model.CheckCreateRepository(ctx, ctx.Doer, ctxUser, opts.RepoName, false)
 	if err != nil {
 		handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, form)
 		return
 	}
 
-	err = task.MigrateRepository(ctx.Doer, ctxUser, opts)
+	err = task.MigrateRepository(ctx, ctx.Doer, ctxUser, opts)
 	if err == nil {
 		ctx.Redirect(ctxUser.HomeLink() + "/" + url.PathEscape(opts.RepoName))
 		return
@@ -260,7 +260,7 @@ func setMigrationContextData(ctx *context.Context, serviceType structs.GitServic
 }
 
 func MigrateRetryPost(ctx *context.Context) {
-	if err := task.RetryMigrateTask(ctx.Repo.Repository.ID); err != nil {
+	if err := task.RetryMigrateTask(ctx, ctx.Repo.Repository.ID); err != nil {
 		log.Error("Retry task failed: %v", err)
 		ctx.ServerError("task.RetryMigrateTask", err)
 		return
@@ -269,7 +269,7 @@ func MigrateRetryPost(ctx *context.Context) {
 }
 
 func MigrateCancelPost(ctx *context.Context) {
-	migratingTask, err := admin_model.GetMigratingTask(ctx.Repo.Repository.ID)
+	migratingTask, err := admin_model.GetMigratingTask(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		log.Error("GetMigratingTask: %v", err)
 		ctx.Redirect(ctx.Repo.Repository.Link())
@@ -277,7 +277,7 @@ func MigrateCancelPost(ctx *context.Context) {
 	}
 	if migratingTask.Status == structs.TaskStatusRunning {
 		taskUpdate := &admin_model.Task{ID: migratingTask.ID, Status: structs.TaskStatusFailed, Message: "canceled"}
-		if err = taskUpdate.UpdateCols("status", "message"); err != nil {
+		if err = taskUpdate.UpdateCols(ctx, "status", "message"); err != nil {
 			ctx.ServerError("task.UpdateCols", err)
 			return
 		}

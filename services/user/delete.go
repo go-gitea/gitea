@@ -10,6 +10,7 @@ import (
 
 	_ "image/jpeg" // Needed for jpeg support
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	activities_model "code.gitea.io/gitea/models/activities"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -90,6 +91,7 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 		&pull_model.AutoMerge{DoerID: u.ID},
 		&pull_model.ReviewState{UserID: u.ID},
 		&user_model.Redirect{RedirectUserID: u.ID},
+		&actions_model.ActionRunner{OwnerID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %w", err)
 	}
@@ -157,7 +159,9 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 	// ***** END: PublicKey *****
 
 	// ***** START: GPGPublicKey *****
-	keys, err := asymkey_model.ListGPGKeys(ctx, u.ID, db.ListOptions{})
+	keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+		OwnerID: u.ID,
+	})
 	if err != nil {
 		return fmt.Errorf("ListGPGKeys: %w", err)
 	}
@@ -183,7 +187,7 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 	}
 	// ***** END: ExternalLoginUser *****
 
-	if _, err = db.DeleteByID(ctx, u.ID, new(user_model.User)); err != nil {
+	if _, err = db.DeleteByID[user_model.User](ctx, u.ID); err != nil {
 		return fmt.Errorf("delete: %w", err)
 	}
 

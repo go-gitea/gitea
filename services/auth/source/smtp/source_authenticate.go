@@ -4,6 +4,7 @@
 package smtp
 
 import (
+	"context"
 	"errors"
 	"net/smtp"
 	"net/textproto"
@@ -16,7 +17,7 @@ import (
 
 // Authenticate queries if the provided login/password is authenticates against the SMTP server
 // Users will be autoregistered as required
-func (source *Source) Authenticate(user *user_model.User, userName, password string) (*user_model.User, error) {
+func (source *Source) Authenticate(ctx context.Context, user *user_model.User, userName, password string) (*user_model.User, error) {
 	// Verify allowed domains.
 	if len(source.AllowedDomains) > 0 {
 		idx := strings.Index(userName, "@")
@@ -77,7 +78,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 		IsActive: util.OptionalBoolTrue,
 	}
 
-	if err := user_model.CreateUser(user, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, user, overwriteDefault); err != nil {
 		return user, err
 	}
 

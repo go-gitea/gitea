@@ -27,6 +27,7 @@ func UserAssignmentWeb() func(ctx *context.Context) {
 			}
 		}
 		ctx.ContextUser = userAssignment(ctx.Base, ctx.Doer, errorFn)
+		ctx.Data["ContextUser"] = ctx.ContextUser
 	}
 }
 
@@ -68,7 +69,7 @@ func userAssignment(ctx *context.Base, doer *user_model.User, errCb func(int, st
 		contextUser, err = user_model.GetUserByName(ctx, username)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				if redirectUserID, err := user_model.LookupUserRedirect(username); err == nil {
+				if redirectUserID, err := user_model.LookupUserRedirect(ctx, username); err == nil {
 					context.RedirectToUser(ctx, username, redirectUserID)
 				} else if user_model.IsErrUserRedirectNotExist(err) {
 					errCb(http.StatusNotFound, "GetUserByName", err)

@@ -10,8 +10,10 @@ import (
 	"fmt"
 	"net/url"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
+	"unicode"
 
 	_ "image/jpeg" // Needed for jpeg support
 
@@ -29,6 +31,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
+	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 	"xorm.io/builder"
 )
 
@@ -42,7 +47,7 @@ const (
 	// UserTypeOrganization defines an organization
 	UserTypeOrganization
 
-	// UserTypeReserved reserves a (non-existing) user, i.e. to prevent a spam user from re-registering after being deleted, or to reserve the name until the user is actually created later on
+	// UserTypeUserReserved reserves a (non-existing) user, i.e. to prevent a spam user from re-registering after being deleted, or to reserve the name until the user is actually created later on
 	UserTypeUserReserved
 
 	// UserTypeOrganizationReserved reserves a (non-existing) organization, to be used in combination with UserTypeUserReserved
@@ -192,15 +197,15 @@ func (u *User) SetLastLogin() {
 }
 
 // UpdateUserDiffViewStyle updates the users diff view style
-func UpdateUserDiffViewStyle(u *User, style string) error {
+func UpdateUserDiffViewStyle(ctx context.Context, u *User, style string) error {
 	u.DiffViewStyle = style
-	return UpdateUserCols(db.DefaultContext, u, "diff_view_style")
+	return UpdateUserCols(ctx, u, "diff_view_style")
 }
 
 // UpdateUserTheme updates a users' theme irrespective of the site wide theme
-func UpdateUserTheme(u *User, themeName string) error {
+func UpdateUserTheme(ctx context.Context, u *User, themeName string) error {
 	u.Theme = themeName
-	return UpdateUserCols(db.DefaultContext, u, "theme")
+	return UpdateUserCols(ctx, u, "theme")
 }
 
 // GetPlaceholderEmail returns an noreply email
@@ -218,9 +223,9 @@ func (u *User) GetEmail() string {
 }
 
 // GetAllUsers returns a slice of all individual users found in DB.
-func GetAllUsers() ([]*User, error) {
+func GetAllUsers(ctx context.Context) ([]*User, error) {
 	users := make([]*User, 0)
-	return users, db.GetEngine(db.DefaultContext).OrderBy("id").Where("type = ?", UserTypeIndividual).Find(&users)
+	return users, db.GetEngine(ctx).OrderBy("id").Where("type = ?", UserTypeIndividual).Find(&users)
 }
 
 // IsLocal returns true if user login type is LoginPlain.
@@ -438,6 +443,17 @@ func (u *User) GetDisplayName() string {
 	return u.Name
 }
 
+// GetCompleteName returns the the full name and username in the form of
+// "Full Name (@username)" if full name is not empty, otherwise it returns
+// "@username".
+func (u *User) GetCompleteName() string {
+	trimmedFullName := strings.TrimSpace(u.FullName)
+	if len(trimmedFullName) > 0 {
+		return fmt.Sprintf("%s (@%s)", trimmedFullName, u.Name)
+	}
+	return fmt.Sprintf("@%s", u.Name)
+}
+
 func gitSafeName(name string) string {
 	return strings.TrimSpace(strings.NewReplacer("\n", "", "<", "", ">", "").Replace(name))
 }
@@ -478,9 +494,9 @@ func (u *User) EmailNotifications() string {
 }
 
 // SetEmailNotifications sets the user's email notification preference
-func SetEmailNotifications(u *User, set string) error {
+func SetEmailNotifications(ctx context.Context, u *User, set string) error {
 	u.EmailNotificationsPreference = set
-	if err := UpdateUserCols(db.DefaultContext, u, "email_notifications_preference"); err != nil {
+	if err := UpdateUserCols(ctx, u, "email_notifications_preference"); err != nil {
 		log.Error("SetEmailNotifications: %v", err)
 		return err
 	}
@@ -513,6 +529,26 @@ func GetUserSalt() (string, error) {
 	}
 	// Returns a 32 bytes long string.
 	return hex.EncodeToString(rBytes), nil
+}
+
+// Note: The set of characters here can safely expand without a breaking change,
+// but characters removed from this set can cause user account linking to break
+var (
+	customCharsReplacement    = strings.NewReplacer("Æ", "AE")
+	removeCharsRE             = regexp.MustCompile(`['´\x60]`)
+	removeDiacriticsTransform = transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
+	replaceCharsHyphenRE      = regexp.MustCompile(`[\s~+]`)
+)
+
+// normalizeUserName returns a string with single-quotes and diacritics
+// removed, and any other non-supported username characters replaced with
+// a `-` character
+func NormalizeUserName(s string) (string, error) {
+	strDiacriticsRemoved, n, err := transform.String(removeDiacriticsTransform, customCharsReplacement.Replace(s))
+	if err != nil {
+		return "", fmt.Errorf("Failed to normalize character `%v` in provided username `%v`", s[n], s)
+	}
+	return replaceCharsHyphenRE.ReplaceAllLiteralString(removeCharsRE.ReplaceAllLiteralString(strDiacriticsRemoved, ""), "-"), nil
 }
 
 var (
@@ -582,7 +618,7 @@ type CreateUserOverwriteOptions struct {
 }
 
 // CreateUser creates record of a new user.
-func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
+func CreateUser(ctx context.Context, u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
 	if err = IsUsableUsername(u.Name); err != nil {
 		return err
 	}
@@ -640,7 +676,7 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -705,29 +741,50 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 	return committer.Commit()
 }
 
+// IsLastAdminUser check whether user is the last admin
+func IsLastAdminUser(ctx context.Context, user *User) bool {
+	if user.IsAdmin && CountUsers(ctx, &CountUserFilter{IsAdmin: util.OptionalBoolTrue}) <= 1 {
+		return true
+	}
+	return false
+}
+
 // CountUserFilter represent optional filters for CountUsers
 type CountUserFilter struct {
 	LastLoginSince *int64
+	IsAdmin        util.OptionalBool
 }
 
 // CountUsers returns number of users.
-func CountUsers(opts *CountUserFilter) int64 {
-	return countUsers(db.DefaultContext, opts)
+func CountUsers(ctx context.Context, opts *CountUserFilter) int64 {
+	return countUsers(ctx, opts)
 }
 
 func countUsers(ctx context.Context, opts *CountUserFilter) int64 {
-	sess := db.GetEngine(ctx).Where(builder.Eq{"type": "0"})
+	sess := db.GetEngine(ctx)
+	cond := builder.NewCond()
+	cond = cond.And(builder.Eq{"type": UserTypeIndividual})
 
-	if opts != nil && opts.LastLoginSince != nil {
-		sess = sess.Where(builder.Gte{"last_login_unix": *opts.LastLoginSince})
+	if opts != nil {
+		if opts.LastLoginSince != nil {
+			cond = cond.And(builder.Gte{"last_login_unix": *opts.LastLoginSince})
+		}
+
+		if !opts.IsAdmin.IsNone() {
+			cond = cond.And(builder.Eq{"is_admin": opts.IsAdmin.IsTrue()})
+		}
 	}
 
-	count, _ := sess.Count(new(User))
+	count, err := sess.Where(cond).Count(new(User))
+	if err != nil {
+		log.Error("user.countUsers: %v", err)
+	}
+
 	return count
 }
 
 // GetVerifyUser get user by verify code
-func GetVerifyUser(code string) (user *User) {
+func GetVerifyUser(ctx context.Context, code string) (user *User) {
 	if len(code) <= base.TimeLimitCodeLength {
 		return nil
 	}
@@ -735,7 +792,7 @@ func GetVerifyUser(code string) (user *User) {
 	// use tail hex username query user
 	hexStr := code[base.TimeLimitCodeLength:]
 	if b, err := hex.DecodeString(hexStr); err == nil {
-		if user, err = GetUserByName(db.DefaultContext, string(b)); user != nil {
+		if user, err = GetUserByName(ctx, string(b)); user != nil {
 			return user
 		}
 		log.Error("user.getVerifyUser: %v", err)
@@ -745,10 +802,10 @@ func GetVerifyUser(code string) (user *User) {
 }
 
 // VerifyUserActiveCode verifies active code when active account
-func VerifyUserActiveCode(code string) (user *User) {
+func VerifyUserActiveCode(ctx context.Context, code string) (user *User) {
 	minutes := setting.Service.ActiveCodeLives
 
-	if user = GetVerifyUser(code); user != nil {
+	if user = GetVerifyUser(ctx, code); user != nil {
 		// time limit code
 		prefix := code[:base.TimeLimitCodeLength]
 		data := fmt.Sprintf("%d%s%s%s%s", user.ID, user.Email, user.LowerName, user.Passwd, user.Rands)
@@ -872,8 +929,8 @@ func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
 }
 
 // UpdateUserSetting updates user's settings.
-func UpdateUserSetting(u *User) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func UpdateUserSetting(ctx context.Context, u *User) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -933,7 +990,7 @@ func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 // GetPossibleUserByID returns the user if id > 0 or return system usrs if id < 0
 func GetPossibleUserByID(ctx context.Context, id int64) (*User, error) {
 	switch id {
-	case -1:
+	case GhostUserID:
 		return NewGhostUser(), nil
 	case ActionsUserID:
 		return NewActionsUser(), nil
@@ -949,7 +1006,7 @@ func GetPossibleUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	uniqueIDs := container.SetOf(ids...)
 	users := make([]*User, 0, len(ids))
 	_ = uniqueIDs.Remove(0)
-	if uniqueIDs.Remove(-1) {
+	if uniqueIDs.Remove(GhostUserID) {
 		users = append(users, NewGhostUser())
 	}
 	if uniqueIDs.Remove(ActionsUserID) {
@@ -1021,9 +1078,9 @@ func GetMaileableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([
 }
 
 // GetUserNamesByIDs returns usernames for all resolved users from a list of Ids.
-func GetUserNamesByIDs(ids []int64) ([]string, error) {
+func GetUserNamesByIDs(ctx context.Context, ids []int64) ([]string, error) {
 	unames := make([]string, 0, len(ids))
-	err := db.GetEngine(db.DefaultContext).In("id", ids).
+	err := db.GetEngine(ctx).In("id", ids).
 		Table("user").
 		Asc("name").
 		Cols("name").
@@ -1062,9 +1119,9 @@ func GetUserIDsByNames(ctx context.Context, names []string, ignoreNonExistent bo
 }
 
 // GetUsersBySource returns a list of Users for a login source
-func GetUsersBySource(s *auth.Source) ([]*User, error) {
+func GetUsersBySource(ctx context.Context, s *auth.Source) ([]*User, error) {
 	var users []*User
-	err := db.GetEngine(db.DefaultContext).Where("login_type = ? AND login_source = ?", s.Type, s.ID).Find(&users)
+	err := db.GetEngine(ctx).Where("login_type = ? AND login_source = ?", s.Type, s.ID).Find(&users)
 	return users, err
 }
 
@@ -1145,12 +1202,12 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 }
 
 // GetUser checks if a user already exists
-func GetUser(user *User) (bool, error) {
-	return db.GetEngine(db.DefaultContext).Get(user)
+func GetUser(ctx context.Context, user *User) (bool, error) {
+	return db.GetEngine(ctx).Get(user)
 }
 
 // GetUserByOpenID returns the user object by given OpenID if exists.
-func GetUserByOpenID(uri string) (*User, error) {
+func GetUserByOpenID(ctx context.Context, uri string) (*User, error) {
 	if len(uri) == 0 {
 		return nil, ErrUserNotExist{0, uri, 0}
 	}
@@ -1164,12 +1221,12 @@ func GetUserByOpenID(uri string) (*User, error) {
 
 	// Otherwise, check in openid table
 	oid := &UserOpenID{}
-	has, err := db.GetEngine(db.DefaultContext).Where("uri=?", uri).Get(oid)
+	has, err := db.GetEngine(ctx).Where("uri=?", uri).Get(oid)
 	if err != nil {
 		return nil, err
 	}
 	if has {
-		return GetUserByID(db.DefaultContext, oid.UID)
+		return GetUserByID(ctx, oid.UID)
 	}
 
 	return nil, ErrUserNotExist{0, uri, 0}
@@ -1205,6 +1262,8 @@ func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 	return builder.Neq{
 		"`user`.visibility": structs.VisibleTypePrivate,
 	}.Or(
+		// viewer self
+		builder.Eq{"`user`.id": viewer.ID},
 		// viewer's following
 		builder.In("`user`.id",
 			builder.
@@ -1246,7 +1305,7 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 		}
 
 		// If they follow - they see each over
-		follower := IsFollowing(u.ID, viewer.ID)
+		follower := IsFollowing(ctx, u.ID, viewer.ID)
 		if follower {
 			return true
 		}
@@ -1279,13 +1338,13 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 }
 
 // CountWrongUserType count OrgUser who have wrong type
-func CountWrongUserType() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Count(new(User))
+func CountWrongUserType(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Count(new(User))
 }
 
 // FixWrongUserType fix OrgUser who have wrong type
-func FixWrongUserType() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").NoAutoTime().Update(&User{Type: 1})
+func FixWrongUserType(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").NoAutoTime().Update(&User{Type: 1})
 }
 
 func GetOrderByName() string {

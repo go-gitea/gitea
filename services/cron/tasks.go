@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	system_model "code.gitea.io/gitea/models/system"
@@ -37,6 +38,8 @@ type Task struct {
 	LastMessage string
 	LastDoer    string
 	ExecTimes   int64
+	// This stores the time of the last manual run of this task.
+	LastRun time.Time
 }
 
 // DoRunAtStart returns if this task should run at the start
@@ -81,13 +84,21 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 	t.lock.Unlock()
 	defer func() {
 		taskStatusTable.Stop(t.Name)
-		if err := recover(); err != nil {
-			// Recover a panic within the
-			combinedErr := fmt.Errorf("%s\n%s", err, log.Stack(2))
-			log.Error("PANIC whilst running task: %s Value: %v", t.Name, combinedErr)
-		}
 	}()
 	graceful.GetManager().RunWithShutdownContext(func(baseCtx context.Context) {
+		defer func() {
+			if err := recover(); err != nil {
+				// Recover a panic within the execution of the task.
+				combinedErr := fmt.Errorf("%s\n%s", err, log.Stack(2))
+				log.Error("PANIC whilst running task: %s Value: %v", t.Name, combinedErr)
+			}
+		}()
+		// Store the time of this run, before the function is executed, so it
+		// matches the behavior of what the cron library does.
+		t.lock.Lock()
+		t.LastRun = time.Now()
+		t.lock.Unlock()
+
 		pm := process.GetManager()
 		doerName := ""
 		if doer != nil && doer.ID != -1 {

@@ -62,7 +62,7 @@ func CreateOrg(ctx *context.APIContext) {
 		Visibility:  visibility,
 	}
 
-	if err := organization.CreateOrganization(org, ctx.ContextUser); err != nil {
+	if err := organization.CreateOrganization(ctx, org, ctx.ContextUser); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) ||
 			db.IsErrNameReserved(err) ||
 			db.IsErrNameCharsNotAllowed(err) ||
@@ -101,7 +101,7 @@ func GetAllOrgs(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	users, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
+	users, maxResults, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		Type:        user_model.UserTypeOrganization,
 		OrderBy:     db.SearchOrderByAlphabetically,

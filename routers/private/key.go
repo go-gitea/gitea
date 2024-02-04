@@ -16,7 +16,7 @@ import (
 func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 	keyID := ctx.ParamsInt64(":id")
 	repoID := ctx.ParamsInt64(":repoid")
-	if err := asymkey_model.UpdatePublicKeyUpdated(keyID); err != nil {
+	if err := asymkey_model.UpdatePublicKeyUpdated(ctx, keyID); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),
 		})
@@ -35,7 +35,7 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 		return
 	}
 	deployKey.UpdatedUnix = timeutil.TimeStampNow()
-	if err = asymkey_model.UpdateDeployKeyCols(deployKey, "updated_unix"); err != nil {
+	if err = asymkey_model.UpdateDeployKeyCols(ctx, deployKey, "updated_unix"); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),
 		})
