@@ -84,7 +84,7 @@
 									data-modal="#add-project-column-note-modal-{{.ID}}"
 									data-modal-form.action="{{$.Link}}/{{.ID}}/note">
 										{{svg "octicon-note"}}
-										{{ctx.Locale.Tr "repo.projects.note.add"}}
+										{{ctx.Locale.Tr "repo.projects.note.new"}}
 								</button>
 								{{if (ne .ID 0)}}
 									<button class="ui item show-modal button" data-modal="#edit-project-column-modal-{{.ID}}">
@@ -120,7 +120,7 @@
 
 								<div class="ui modal" id="add-project-column-note-modal-{{.ID}}">
 									<div class="header">
-										{{ctx.Locale.Tr "repo.projects.note.add"}}
+										{{ctx.Locale.Tr "repo.projects.note.new"}}
 									</div>
 									<form class="ui form form-fetch-action" method="post">
 										<div class="content">
@@ -140,7 +140,7 @@
 											</div>
 										</div>
 
-										{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm" "ModalButtonOkText" (ctx.Locale.Tr "repo.projects.note.add"))}}
+										{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm" "ModalButtonOkText" (ctx.Locale.Tr "repo.projects.note.new"))}}
 									</form>
 								</div>
 
