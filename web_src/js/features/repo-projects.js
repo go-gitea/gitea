@@ -152,7 +152,7 @@ export function initRepoProject() {
     if (!markdownEditor.length) return;
 
     modalButton.one('click', () => {
-      initComboMarkdownEditor(markdownEditor);
+      initComboMarkdownEditor(markdownEditor, {easyMDEOptions: {maxHeight: '50vh', minHeight: '50vh'}});
     });
   });
 

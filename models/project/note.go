@@ -16,10 +16,11 @@ import (
 
 // BoardNote is used to represent a note on a boards
 type BoardNote struct {
-	ID      int64  `xorm:"pk autoincr"`
-	Title   string `xorm:"TEXT NOT NULL"`
-	Content string `xorm:"LONGTEXT"`
-	Sorting int64  `xorm:"NOT NULL DEFAULT 0"`
+	ID              int64  `xorm:"pk autoincr"`
+	Title           string `xorm:"TEXT NOT NULL"`
+	Content         string `xorm:"LONGTEXT"`
+	RenderedContent string `xorm:"-"`
+	Sorting         int64  `xorm:"NOT NULL DEFAULT 0"`
 
 	ProjectID int64            `xorm:"INDEX NOT NULL"`
 	BoardID   int64            `xorm:"INDEX NOT NULL"`

@@ -5,72 +5,93 @@
 			{{svg "octicon-note"}}
 		</div>
 		<span class="note-card-title muted project-column-note-title">{{.Title}}</span>
-		{{ if $.CanWriteProjects }}
+		{{if or $.CanWriteProjects (gt (len .RenderedContent) 0)}}
 			<div class="ui dropdown jump item">
 				<div class="gt-px-3">
 					{{svg "octicon-kebab-horizontal"}}
 				</div>
 				<div class="menu user-menu left">
 					<button class="ui item show-modal button"
-						data-modal="#edit-project-column-note-modal-{{.ID}}"
-						data-modal-form.action="{{$.Link}}/{{$.columnID}}/note/{{.ID}}">
-							{{svg "octicon-pencil"}}
-							{{ctx.Locale.Tr "repo.projects.note.edit"}}
+						data-modal="#view-project-column-note-modal-{{.ID}}">
+							{{svg "octicon-eye"}}
+							{{ctx.Locale.Tr "repo.projects.note.view"}}
 					</button>
-					<button class="ui item show-modal button"
-						data-modal="#delete-project-column-note-modal-{{.ID}}"
-						data-modal-form.action="{{$.Link}}/{{$.columnID}}/note/{{.ID}}">
-							{{svg "octicon-trash"}}
-							{{ctx.Locale.Tr "repo.projects.note.delete"}}
-					</button>
+					{{if $.CanWriteProjects}}
+						<button class="ui item show-modal button"
+							data-modal="#edit-project-column-note-modal-{{.ID}}"
+							data-modal-form.action="{{$.Link}}/{{$.columnID}}/note/{{.ID}}">
+								{{svg "octicon-pencil"}}
+								{{ctx.Locale.Tr "repo.projects.note.edit"}}
+						</button>
+						<button class="ui item show-modal button"
+							data-modal="#delete-project-column-note-modal-{{.ID}}"
+							data-modal-form.action="{{$.Link}}/{{$.columnID}}/note/{{.ID}}">
+								{{svg "octicon-trash"}}
+								{{ctx.Locale.Tr "repo.projects.note.delete"}}
+						</button>
+					{{end}}
 
-					<div class="ui modal" id="edit-project-column-note-modal-{{.ID}}">
+					<div class="ui modal" id="view-project-column-note-modal-{{.ID}}">
 						<div class="header">
-							{{ctx.Locale.Tr "repo.projects.note.edit"}}
+							{{ctx.Locale.Tr "repo.projects.note.view"}}
 						</div>
-						<form class="ui form form-fetch-action" method="put">
-							<div class="content">
+						<div class="content">
+							{{Str2html .RenderedContent}}
+						</div>
+						<div class="actions">
+							<button class="ui cancel button">{{ctx.Locale.Tr "repo.projects.close"}}</button>
+						</div>
+					</div>
+
+					{{if $.CanWriteProjects}}
+						<div class="ui modal" id="edit-project-column-note-modal-{{.ID}}">
+							<div class="header">
+								{{ctx.Locale.Tr "repo.projects.note.edit"}}
+							</div>
+							<form class="ui form form-fetch-action" method="put">
+								<div class="content">
+									{{$.CsrfTokenHtml}}
+									<div class="required field">
+										<label for="edit-project-column-note-title-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.edit_title"}}</label>
+										<input id="edit-project-column-note-title-{{.ID}}" name="title" value="{{.Title}}" maxlength="255" autofocus required>
+									</div>
+
+									<div class="field">
+										{{template "shared/combomarkdowneditor" (dict
+											"MarkdownPreviewUrl" (print $.RepoLink "/markup")
+											"MarkdownPreviewContext" $.RepoLink
+											"TextareaName" "content"
+											"TextareaContent" .Content
+											"TextareaPlaceholder" (ctx.Locale.Tr "repo.projects.note.content")
+										)}}
+									</div>
+								</div>
+
+								{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm" "ModalButtonOkText" (ctx.Locale.Tr "repo.projects.note.edit"))}}
+							</form>
+						</div>
+
+						<div class="ui g-modal-confirm modal" id="delete-project-column-note-modal-{{.ID}}">
+							<div class="header">
+								{{ctx.Locale.Tr "repo.projects.note.delete"}}
+							</div>
+							<form class="ui form form-fetch-action" action="delete">
 								{{$.CsrfTokenHtml}}
-								<div class="required field">
-									<label for="edit-project-column-note-title-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.edit_title"}}</label>
-									<input id="edit-project-column-note-title-{{.ID}}" name="title" value="{{.Title}}" maxlength="255" autofocus required>
+								<div class="content">
+									<label>
+										{{ctx.Locale.Tr "repo.projects.note.deletion_desc"}}
+									</label>
 								</div>
-
-								<div class="field">
-									{{template "shared/combomarkdowneditor" (dict
-										"MarkdownPreviewUrl" (print $.RepoLink "/markup")
-										"MarkdownPreviewContext" $.RepoLink
-										"TextareaName" "content"
-										"TextareaContent" .Content
-										"TextareaPlaceholder" (ctx.Locale.Tr "repo.projects.note.content")
-									)}}
-								</div>
-							</div>
-
-							{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm" "ModalButtonOkText" (ctx.Locale.Tr "repo.projects.note.edit"))}}
-						</form>
-					</div>
-
-					<div class="ui g-modal-confirm modal" id="delete-project-column-note-modal-{{.ID}}">
-						<div class="header">
-							{{ctx.Locale.Tr "repo.projects.note.delete"}}
+								{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+							</form>
 						</div>
-						<form class="ui form form-fetch-action" action="delete">
-							{{$.CsrfTokenHtml}}
-							<div class="content">
-								<label>
-									{{ctx.Locale.Tr "repo.projects.note.deletion_desc"}}
-								</label>
-							</div>
-							{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
-						</form>
-					</div>
+					{{end}}
 				</div>
 			</div>
 		{{end}}
 	</div>
 	<div class="project-column-note-content">
-		{{Str2html .Content}}
+		{{Str2html .RenderedContent}}
 	</div>
 	<div class="meta">
 		<span class="text light grey muted-links">

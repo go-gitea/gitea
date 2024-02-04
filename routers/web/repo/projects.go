@@ -332,7 +332,7 @@ func ViewProject(ctx *context.Context) {
 
 	for _, noteList := range notesMap {
 		for _, note := range noteList {
-			note.Content, err = markdown.RenderString(&markup.RenderContext{
+			note.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 				Links: markup.Links{
 					Base: ctx.Repo.RepoLink,
 				},

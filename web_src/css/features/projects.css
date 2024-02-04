@@ -1,3 +1,8 @@
+.ui.modal .content {
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
 .board {
   display: flex;
   flex-direction: row;
@@ -96,6 +101,11 @@
 
 .project-column:last-child {
   margin-right: auto !important;
+}
+
+.project-column-note-content {
+  max-height: 250px;
+  overflow-y: hidden;
 }
 
 .card-attachment-images {
