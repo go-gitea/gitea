@@ -51,6 +51,12 @@ For example, these are all valid image names for the owner `testuser`:
 
 ## Push an image
 
+Before pushing an image it needs to be taged with the following command:
+
+```shell
+docker tag {image}:{tag} gitea.example.com/{owner}/{image}:{tag}
+```
+
 Push an image by executing the following command:
 
 ```shell
