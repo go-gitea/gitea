@@ -69,7 +69,7 @@ For example:
 docker push gitea.example.com/testuser/myimage:latest
 ```
 
-If you run into the error "An image does not exist locally with the tag" simply run the following command:
+If you run into the error "An image does not exist locally with the tag" simply run the following command and retry the push afterwards:
 
 ```shell
 docker tag {image}:{tag} gitea.example.com/{owner}/{image}:{tag}
