@@ -183,6 +183,7 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 		u.LoginName = opts.LoginName.Value()
 	}
 
+	deleteAuthTokens := false
 	if opts.Password.Has() && (u.IsLocal() || u.IsOAuth2()) {
 		password := opts.Password.Value()
 
@@ -199,6 +200,8 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 		if err := u.SetPassword(password); err != nil {
 			return err
 		}
+
+		deleteAuthTokens = true
 	}
 
 	if opts.MustChangePassword.Has() {
@@ -208,5 +211,12 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 		u.ProhibitLogin = opts.ProhibitLogin.Value()
 	}
 
-	return user_model.UpdateUserCols(ctx, u, "login_type", "login_source", "login_name", "passwd", "passwd_hash_algo", "salt", "must_change_password", "prohibit_login")
+	if err := user_model.UpdateUserCols(ctx, u, "login_type", "login_source", "login_name", "passwd", "passwd_hash_algo", "salt", "must_change_password", "prohibit_login"); err != nil {
+		return err
+	}
+
+	if deleteAuthTokens {
+		return auth_model.DeleteAuthTokensByUserID(ctx, u.ID)
+	}
+	return nil
 }
