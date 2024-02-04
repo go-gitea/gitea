@@ -11,50 +11,54 @@
 					{{svg "octicon-kebab-horizontal"}}
 				</div>
 				<div class="menu user-menu left">
-					<a class="item show-modal button show-edit-project-column-note-modal"
+					<button class="ui item show-modal button"
 						data-modal="#edit-project-column-note-modal-{{.ID}}"
-						data-url="{{$.Link}}/note/{{.ID}}">
+						data-modal-form.action="{{$.Link}}/note/{{.ID}}">
 							{{svg "octicon-pencil"}}
 							{{ctx.Locale.Tr "repo.projects.note.edit"}}
-					</a>
-					<a class="item show-modal button show-delete-project-column-note-modal"
+					</button>
+					<button class="ui item show-modal button"
 						data-modal="#delete-project-column-note-modal-{{.ID}}"
-						data-url="{{$.Link}}/note/{{.ID}}">
+						data-modal-form.action="{{$.Link}}/note/{{.ID}}">
 							{{svg "octicon-trash"}}
 							{{ctx.Locale.Tr "repo.projects.note.delete"}}
-					</a>
+					</button>
 
 					<div class="ui small modal" id="edit-project-column-note-modal-{{.ID}}">
 						<div class="header">
 							{{ctx.Locale.Tr "repo.projects.note.edit"}}
 						</div>
-						<div class="content">
-							<div class="ui form">
+						<form class="ui form form-fetch-action" method="put">
+							<div class="content">
+								{{$.CsrfTokenHtml}}
 								<div class="required field">
 									<label for="edit-project-column-note-title-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.edit_title"}}</label>
 									<input id="edit-project-column-note-title-{{.ID}}" name="title" value="{{.Title}}" maxlength="255" required>
 								</div>
 	
-								<div class="field content-field">
+								<div class="field">
 									<label for="edit-project-column-note-content-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.content"}}</label>
 									<textarea id="edit-project-column-note-content-{{.ID}}" name="content">{{.Content}}</textarea>
 								</div>
 							</div>
-						</div>
 
-						{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm" "ModalButtonOkText" (ctx.Locale.Tr "repo.projects.note.edit"))}}
+							{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm" "ModalButtonOkText" (ctx.Locale.Tr "repo.projects.note.edit"))}}
+						</form>
 					</div>
 
 					<div class="ui g-modal-confirm modal" id="delete-project-column-note-modal-{{.ID}}">
 						<div class="header">
 							{{ctx.Locale.Tr "repo.projects.note.delete"}}
 						</div>
-						<div class="content">
-							<label>
-								{{ctx.Locale.Tr "repo.projects.note.deletion_desc"}}
-							</label>
-						</div>
-						{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+						<form class="ui form form-fetch-action" action="delete">
+							{{$.CsrfTokenHtml}}
+							<div class="content">
+								<label>
+									{{ctx.Locale.Tr "repo.projects.note.deletion_desc"}}
+								</label>
+							</div>
+							{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+						</form>
 					</div>
 				</div>
 			</div>

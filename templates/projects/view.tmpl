@@ -80,63 +80,64 @@
 								{{svg "octicon-kebab-horizontal"}}
 							</div>
 							<div class="menu user-menu">
-								<a class="item show-modal button show-add-project-column-note-modal"
+								<button class="ui item show-modal button"
 									data-modal="#add-project-column-note-modal-{{.ID}}"
-									data-url="{{$.Link}}/{{.ID}}/note">
+									data-modal-form.action="{{$.Link}}/{{.ID}}/note">
 										{{svg "octicon-note"}}
 										{{ctx.Locale.Tr "repo.projects.note.add"}}
-								</a>
+								</button>
 								{{if (ne .ID 0)}}
-									<a class="item show-modal button" data-modal="#edit-project-column-modal-{{.ID}}">
+									<button class="ui item show-modal button" data-modal="#edit-project-column-modal-{{.ID}}">
 										{{svg "octicon-pencil"}}
 										{{ctx.Locale.Tr "repo.projects.column.edit"}}
-									</a>
+									</button>
 									{{if not .Default}}
-										<a class="item show-modal button default-project-column-show"
+										<button class="ui item show-modal button default-project-column-show"
 										data-modal="#default-project-column-modal-{{.ID}}"
 										data-modal-default-project-column-header="{{ctx.Locale.Tr "repo.projects.column.set_default"}}"
 										data-modal-default-project-column-content="{{ctx.Locale.Tr "repo.projects.column.set_default_desc"}}"
 										data-url="{{$.Link}}/{{.ID}}/default">
 											{{svg "octicon-pin"}}
 											{{ctx.Locale.Tr "repo.projects.column.set_default"}}
-										</a>
+										</button>
 									{{else}}
-										<a class="item show-modal button default-project-column-show"
+										<button class="ui item show-modal button default-project-column-show"
 										data-modal="#default-project-column-modal-{{.ID}}"
 										data-modal-default-project-column-header="{{ctx.Locale.Tr "repo.projects.column.unset_default"}}"
 										data-modal-default-project-column-content="{{ctx.Locale.Tr "repo.projects.column.unset_default_desc"}}"
 										data-url="{{$.Link}}/{{.ID}}/unsetdefault">
 											{{svg "octicon-pin-slash"}}
 											{{ctx.Locale.Tr "repo.projects.column.unset_default"}}
-										</a>
+										</button>
 									{{end}}
-									<a class="item show-modal button show-delete-project-column-modal"
+									<button class="ui item show-modal button show-delete-project-column-modal"
 										data-modal="#delete-project-column-modal-{{.ID}}"
 										data-url="{{$.Link}}/{{.ID}}">
 										{{svg "octicon-trash"}}
 										{{ctx.Locale.Tr "repo.projects.column.delete"}}
-									</a>
+									</button>
 								{{end}}
 
 								<div class="ui small modal" id="add-project-column-note-modal-{{.ID}}">
 									<div class="header">
 										{{ctx.Locale.Tr "repo.projects.note.add"}}
 									</div>
-									<div class="content">
-										<div class="ui form">
+									<form class="ui form form-fetch-action" method="post">
+										<div class="content">
+											{{$.CsrfTokenHtml}}
 											<div class="required field">
 												<label for="new-project-column-note-title-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.edit_title"}}</label>
 												<input id="new-project-column-note-title-{{.ID}}" name="title" maxlength="255" required>
 											</div>
 
-											<div class="field content-field">
+											<div class="field">
 												<label for="new-project-column-note-content-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.content"}}</label>
 												<textarea id="new-project-column-note-content-{{.ID}}" name="content"></textarea>
 											</div>
 										</div>
-									</div>
 
-									{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm" "ModalButtonOkText" (ctx.Locale.Tr "repo.projects.note.add"))}}
+										{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm" "ModalButtonOkText" (ctx.Locale.Tr "repo.projects.note.add"))}}
+									</form>
 								</div>
 
 								{{if (ne .ID 0)}}
@@ -202,7 +203,7 @@
 						<div class="ui cards note-cards {{if and $canWriteProject (ne .ID 0)}}{{/* ID 0 is default column which cannot be moved */}}gt-cursor-grab{{end}}" data-url="{{$.Link}}/{{.ID}}/note" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="note-board-{{.ID}}">
 							{{range (index $.NotesMap $columnID)}}
 								<div class="note-card gt-word-break {{if $canWriteProject}}gt-cursor-grab{{end}}" data-note="{{.ID}}">
-									{{template "repo/note" (dict "BoardNote" . "CanWriteProjects" $canWriteProject "Link" (print $.Link "/" $columnID))}}
+									{{template "repo/note" (dict "BoardNote" . "CanWriteProjects" $canWriteProject "Link" (print $.Link "/" $columnID) "CsrfTokenHtml" $.CsrfTokenHtml)}}
 								</div>
 							{{end}}
 						</div>

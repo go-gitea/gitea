@@ -11,7 +11,7 @@ function updateIssueAndNoteCount(cards) {
   column.find('.project-column-issue-note-count').text(cnt);
 }
 
-function sendPostRequestAndUnsetDirty(url, form, data) {
+function createNewColumn(url, form, data) {
   $.ajax({
     url,
     data: JSON.stringify(data),
@@ -231,83 +231,7 @@ export function initRepoProject() {
     }
     const url = $(this).data('url');
     const form = columnTitle.closest('form');
-    sendPostRequestAndUnsetDirty(url, form, {title: columnTitle.val(), color: projectColorInput.val()});
-  });
-
-  $('.show-add-project-column-note-modal').each(function () {
-    const addNoteUrl = $(this).data('url');
-    const modalId = $(this).data('modal');
-    const addModal = $(modalId);
-
-    const confirmAddButton = addModal.find('.actions > .ok.button');
-    confirmAddButton.on('click', (e) => {
-      e.preventDefault();
-      const noteTitleInput = addModal.find('[name="title"]');
-      const contentTextarea = addModal.find('[name="content"]');
-      if (!noteTitleInput.val()) {
-        return;
-      }
-      const form = noteTitleInput.closest('form');
-      sendPostRequestAndUnsetDirty(addNoteUrl, form, {title: noteTitleInput.val(), content: contentTextarea.val()});
-    });
-  });
-  $('.show-edit-project-column-note-modal').each(function () {
-    const editNoteUrl = $(this).data('url');
-    const modalId = $(this).data('modal');
-    const wrapperCard = $(this).closest('.note-card');
-
-    const noteTitle = wrapperCard.find('.project-column-note-title');
-    const noteContent = wrapperCard.find('.project-column-note-content');
-
-    const editModal = wrapperCard.find(modalId);
-    const noteTitleInput = editModal.find('[name="title"]');
-    const noteContentTextarea = editModal.find('[name="content"]');
-
-    const confirmEditButton = editModal.find('.actions > .ok.button');
-    confirmEditButton.on('click', (e) => {
-      e.preventDefault();
-
-      $.ajax({
-        url: editNoteUrl,
-        data: JSON.stringify({title: noteTitleInput.val(), content: noteContentTextarea.val()}),
-        headers: {
-          'X-Csrf-Token': csrfToken,
-        },
-        contentType: 'application/json',
-        method: 'PUT',
-      }).done(() => {
-        noteTitle.text(noteTitleInput.val());
-        noteContent.text(noteContentTextarea.val());
-        editModal.removeClass('dirty');
-        $('.ui.modal').modal('hide');
-        // reload, because the relative-time changes from `created` to `updated`
-        window.location.reload();
-      });
-    });
-  });
-  $('.show-delete-project-column-note-modal').each(function () {
-    const deleteNoteUrl = $(this).data('url');
-    const modalId = $(this).data('modal');
-    const deleteModal = $(modalId);
-    const noteCard = deleteModal.closest('.note-card');
-
-    const confirmDeleteButton = deleteModal.find('.actions > .ok.button');
-    confirmDeleteButton.on('click', (e) => {
-      e.preventDefault();
-
-      $.ajax({
-        url: deleteNoteUrl,
-        headers: {
-          'X-Csrf-Token': csrfToken,
-        },
-        contentType: 'application/json',
-        method: 'DELETE',
-      }).done(() => {
-        const noteCards = noteCard.parent();
-        noteCard.remove();
-        updateIssueAndNoteCount(noteCards);
-      });
-    });
+    createNewColumn(url, form, {title: columnTitle.val(), color: projectColorInput.val()});
   });
 }
 
