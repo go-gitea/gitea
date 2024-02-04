@@ -105,8 +105,9 @@
 					{{else}}
 						{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.no_new_mirrors"}} {{ctx.Locale.Tr "repo.settings.mirror_settings.docs.can_still_use"}}<br>
 					{{end}}
+
+					{{if .Repository.IsMirror}}
 					<table class="ui table">
-						{{if $existingPushMirror}}
 						<thead>
 							<tr>
 								<th style="width:40%">{{ctx.Locale.Tr "repo.settings.mirror_settings.mirrored_repository"}}</th>
@@ -200,8 +201,18 @@
 								</td>
 							</tr>
 						</tbody>
-						<thead><tr><th colspan="4"></th></tr></thead>
-						{{end}}{{/* end if: IsMirror */}}
+					</table>
+					{{end}}{{/* end if: IsMirror */}}
+
+					<table class="ui table">
+						<thead>
+							<tr>
+								<th style="width:40%">{{ctx.Locale.Tr "repo.settings.mirror_settings.pushed_repository"}}</th>
+								<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction"}}</th>
+								<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.last_update"}}</th>
+								<th></th>
+							</tr>
+						</thead>
 						<tbody>
 							{{range .PushMirrors}}
 							<tr>
