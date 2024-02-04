@@ -2,7 +2,7 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package repo
+package issue
 
 import (
 	"bytes"
@@ -46,7 +46,8 @@ import (
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/utils"
+	base_router "code.gitea.io/gitea/routers/web/repo/base"
+	router_base "code.gitea.io/gitea/routers/web/repo/base"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
@@ -65,8 +66,7 @@ const (
 
 	tplReactions base.TplName = "repo/issue/view_content/reactions"
 
-	issueTemplateKey      = "IssueTemplate"
-	issueTemplateTitleKey = "IssueTemplateTitle"
+	issueTemplateKey = "IssueTemplate"
 )
 
 // IssueTemplateCandidates issue templates
@@ -351,9 +351,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
+	ctx.Data["Assignees"] = base_router.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
-	handleTeamMentions(ctx)
+	base_router.HandleTeamMentions(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -422,7 +422,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return 0
 	}
 
-	retrieveProjects(ctx, repo)
+	base_router.RetrieveProjects(ctx, repo)
 	if ctx.Written() {
 		return
 	}
@@ -544,91 +544,6 @@ func renderMilestones(ctx *context.Context) {
 	}
 	ctx.Data["OpenMilestones"] = openMilestones
 	ctx.Data["ClosedMilestones"] = closedMilestones
-}
-
-// RetrieveRepoMilestonesAndAssignees find all the milestones and assignees of a repository
-func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.Repository) {
-	var err error
-	ctx.Data["OpenMilestones"], err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
-		RepoID:   repo.ID,
-		IsClosed: util.OptionalBoolFalse,
-	})
-	if err != nil {
-		ctx.ServerError("GetMilestones", err)
-		return
-	}
-	ctx.Data["ClosedMilestones"], err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
-		RepoID:   repo.ID,
-		IsClosed: util.OptionalBoolTrue,
-	})
-	if err != nil {
-		ctx.ServerError("GetMilestones", err)
-		return
-	}
-
-	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, repo)
-	if err != nil {
-		ctx.ServerError("GetRepoAssignees", err)
-		return
-	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
-
-	handleTeamMentions(ctx)
-}
-
-func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
-	// Distinguish whether the owner of the repository
-	// is an individual or an organization
-	repoOwnerType := project_model.TypeIndividual
-	if repo.Owner.IsOrganization() {
-		repoOwnerType = project_model.TypeOrganization
-	}
-	var err error
-	projects, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
-		ListOptions: db.ListOptionsAll,
-		RepoID:      repo.ID,
-		IsClosed:    util.OptionalBoolFalse,
-		Type:        project_model.TypeRepository,
-	})
-	if err != nil {
-		ctx.ServerError("GetProjects", err)
-		return
-	}
-	projects2, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
-		ListOptions: db.ListOptionsAll,
-		OwnerID:     repo.OwnerID,
-		IsClosed:    util.OptionalBoolFalse,
-		Type:        repoOwnerType,
-	})
-	if err != nil {
-		ctx.ServerError("GetProjects", err)
-		return
-	}
-
-	ctx.Data["OpenProjects"] = append(projects, projects2...)
-
-	projects, err = db.Find[project_model.Project](ctx, project_model.SearchOptions{
-		ListOptions: db.ListOptionsAll,
-		RepoID:      repo.ID,
-		IsClosed:    util.OptionalBoolTrue,
-		Type:        project_model.TypeRepository,
-	})
-	if err != nil {
-		ctx.ServerError("GetProjects", err)
-		return
-	}
-	projects2, err = db.Find[project_model.Project](ctx, project_model.SearchOptions{
-		ListOptions: db.ListOptionsAll,
-		OwnerID:     repo.OwnerID,
-		IsClosed:    util.OptionalBoolTrue,
-		Type:        repoOwnerType,
-	})
-	if err != nil {
-		ctx.ServerError("GetProjects", err)
-		return
-	}
-
-	ctx.Data["ClosedProjects"] = append(projects, projects2...)
 }
 
 // repoReviewerSelection items to bee shown
@@ -822,121 +737,6 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 	}
 }
 
-// RetrieveRepoMetas find all the meta information of a repository
-func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull bool) []*issues_model.Label {
-	if !ctx.Repo.CanWriteIssuesOrPulls(isPull) {
-		return nil
-	}
-
-	labels, err := issues_model.GetLabelsByRepoID(ctx, repo.ID, "", db.ListOptions{})
-	if err != nil {
-		ctx.ServerError("GetLabelsByRepoID", err)
-		return nil
-	}
-	ctx.Data["Labels"] = labels
-	if repo.Owner.IsOrganization() {
-		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
-		if err != nil {
-			return nil
-		}
-
-		ctx.Data["OrgLabels"] = orgLabels
-		labels = append(labels, orgLabels...)
-	}
-
-	RetrieveRepoMilestonesAndAssignees(ctx, repo)
-	if ctx.Written() {
-		return nil
-	}
-
-	retrieveProjects(ctx, repo)
-	if ctx.Written() {
-		return nil
-	}
-
-	PrepareBranchList(ctx)
-	if ctx.Written() {
-		return nil
-	}
-
-	// Contains true if the user can create issue dependencies
-	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, isPull)
-
-	return labels
-}
-
-// Tries to load and set an issue template. The first return value indicates if a template was loaded.
-func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles []string) (bool, map[string]error) {
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
-	if err != nil {
-		return false, nil
-	}
-
-	templateCandidates := make([]string, 0, 1+len(possibleFiles))
-	if t := ctx.FormString("template"); t != "" {
-		templateCandidates = append(templateCandidates, t)
-	}
-	templateCandidates = append(templateCandidates, possibleFiles...) // Append files to the end because they should be fallback
-
-	templateErrs := map[string]error{}
-	for _, filename := range templateCandidates {
-		if ok, _ := commit.HasFile(filename); !ok {
-			continue
-		}
-		template, err := issue_template.UnmarshalFromCommit(commit, filename)
-		if err != nil {
-			templateErrs[filename] = err
-			continue
-		}
-		ctx.Data[issueTemplateTitleKey] = template.Title
-		ctx.Data[ctxDataKey] = template.Content
-
-		if template.Type() == api.IssueTemplateTypeYaml {
-			// Replace field default values by values from query
-			for _, field := range template.Fields {
-				fieldValue := ctx.FormString("field:" + field.ID)
-				if fieldValue != "" {
-					field.Attributes["value"] = fieldValue
-				}
-			}
-
-			ctx.Data["Fields"] = template.Fields
-			ctx.Data["TemplateFile"] = template.FileName
-		}
-		labelIDs := make([]string, 0, len(template.Labels))
-		if repoLabels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{}); err == nil {
-			ctx.Data["Labels"] = repoLabels
-			if ctx.Repo.Owner.IsOrganization() {
-				if orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{}); err == nil {
-					ctx.Data["OrgLabels"] = orgLabels
-					repoLabels = append(repoLabels, orgLabels...)
-				}
-			}
-
-			for _, metaLabel := range template.Labels {
-				for _, repoLabel := range repoLabels {
-					if strings.EqualFold(repoLabel.Name, metaLabel) {
-						repoLabel.IsChecked = true
-						labelIDs = append(labelIDs, strconv.FormatInt(repoLabel.ID, 10))
-						break
-					}
-				}
-			}
-
-		}
-
-		if template.Ref != "" && !strings.HasPrefix(template.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
-			template.Ref = git.BranchPrefix + template.Ref
-		}
-		ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
-		ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
-		ctx.Data["Reference"] = template.Ref
-		ctx.Data["RefEndName"] = git.RefName(template.Ref).ShortName()
-		return true, templateErrs
-	}
-	return false, templateErrs
-}
-
 // NewIssue render creating issue page
 func NewIssue(ctx *context.Context) {
 	issueConfig, _ := issue_service.GetTemplateConfigFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
@@ -984,7 +784,7 @@ func NewIssue(ctx *context.Context) {
 		}
 	}
 
-	RetrieveRepoMetas(ctx, ctx.Repo.Repository, false)
+	base_router.RetrieveRepoMetas(ctx, ctx.Repo.Repository, false)
 
 	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
@@ -994,7 +794,7 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["Tags"] = tags
 
 	_, templateErrs := issue_service.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
-	templateLoaded, errs := setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
+	templateLoaded, errs := router_base.SetTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
 	for k, v := range errs {
 		templateErrs[k] = v
 	}
@@ -1003,7 +803,7 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	if len(templateErrs) > 0 {
-		ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
+		ctx.Flash.Warning(router_base.RenderErrorOfTemplates(ctx, templateErrs), true)
 	}
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypeIssues)
@@ -1017,30 +817,6 @@ func NewIssue(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplIssueNew)
 }
 
-func renderErrorOfTemplates(ctx *context.Context, errs map[string]error) string {
-	var files []string
-	for k := range errs {
-		files = append(files, k)
-	}
-	sort.Strings(files) // keep the output stable
-
-	var lines []string
-	for _, file := range files {
-		lines = append(lines, fmt.Sprintf("%s: %v", file, errs[file]))
-	}
-
-	flashError, err := ctx.RenderToString(tplAlertDetails, map[string]any{
-		"Message": ctx.Tr("repo.issues.choose.ignore_invalid_templates"),
-		"Summary": ctx.Tr("repo.issues.choose.invalid_templates", len(errs)),
-		"Details": utils.SanitizeFlashErrorString(strings.Join(lines, "\n")),
-	})
-	if err != nil {
-		log.Debug("render flash error: %v", err)
-		flashError = ctx.Tr("repo.issues.choose.ignore_invalid_templates")
-	}
-	return flashError
-}
-
 // NewIssueChooseTemplate render creating issue from template page
 func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
@@ -1050,7 +826,7 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.Data["IssueTemplates"] = issueTemplates
 
 	if len(errs) > 0 {
-		ctx.Flash.Warning(renderErrorOfTemplates(ctx, errs), true)
+		ctx.Flash.Warning(router_base.RenderErrorOfTemplates(ctx, errs), true)
 	}
 
 	if !issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo) {
@@ -1096,7 +872,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 		err  error
 	)
 
-	labels := RetrieveRepoMetas(ctx, ctx.Repo.Repository, isPull)
+	labels := base_router.RetrieveRepoMetas(ctx, ctx.Repo.Repository, isPull)
 	if ctx.Written() {
 		return nil, nil, 0, 0
 	}
@@ -1516,8 +1292,8 @@ func ViewIssue(ctx *context.Context) {
 
 	// Check milestone and assignee.
 	if ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
-		RetrieveRepoMilestonesAndAssignees(ctx, repo)
-		retrieveProjects(ctx, repo)
+		base_router.RetrieveRepoMilestonesAndAssignees(ctx, repo)
+		base_router.RetrieveProjects(ctx, repo)
 
 		if ctx.Written() {
 			return
@@ -2026,7 +1802,7 @@ func ViewIssue(ctx *context.Context) {
 		return hiddenCommentTypes == nil || hiddenCommentTypes.Bit(int(commentType)) == 0
 	}
 	// For sidebar
-	PrepareBranchList(ctx)
+	base_router.PrepareBranchList(ctx)
 
 	if ctx.Written() {
 		return
@@ -3630,46 +3406,6 @@ func combineLabelComments(issue *issues_model.Issue) {
 	}
 }
 
-// get all teams that current user can mention
-func handleTeamMentions(ctx *context.Context) {
-	if ctx.Doer == nil || !ctx.Repo.Owner.IsOrganization() {
-		return
-	}
-
-	var isAdmin bool
-	var err error
-	var teams []*organization.Team
-	org := organization.OrgFromUser(ctx.Repo.Owner)
-	// Admin has super access.
-	if ctx.Doer.IsAdmin {
-		isAdmin = true
-	} else {
-		isAdmin, err = org.IsOwnedBy(ctx, ctx.Doer.ID)
-		if err != nil {
-			ctx.ServerError("IsOwnedBy", err)
-			return
-		}
-	}
-
-	if isAdmin {
-		teams, err = org.LoadTeams(ctx)
-		if err != nil {
-			ctx.ServerError("LoadTeams", err)
-			return
-		}
-	} else {
-		teams, err = org.GetUserTeams(ctx, ctx.Doer.ID)
-		if err != nil {
-			ctx.ServerError("GetUserTeams", err)
-			return
-		}
-	}
-
-	ctx.Data["MentionableTeams"] = teams
-	ctx.Data["MentionableTeamsOrg"] = ctx.Repo.Owner.Name
-	ctx.Data["MentionableTeamsOrgAvatar"] = ctx.Repo.Owner.AvatarLink(ctx)
-}
-
 type userSearchInfo struct {
 	UserID     int64  `json:"user_id"`
 	UserName   string `json:"username"`
@@ -3707,7 +3443,7 @@ func issuePosters(ctx *context.Context, isPullList bool) {
 		}
 	}
 
-	posters = MakeSelfOnTop(ctx.Doer, posters)
+	posters = base_router.MakeSelfOnTop(ctx.Doer, posters)
 
 	resp := &userSearchResponse{}
 	resp.Results = make([]*userSearchInfo, len(posters))

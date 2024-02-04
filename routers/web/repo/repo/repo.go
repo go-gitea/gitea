@@ -37,8 +37,7 @@ import (
 )
 
 const (
-	tplCreate       base.TplName = "repo/create"
-	tplAlertDetails base.TplName = "base/alert_details"
+	tplCreate base.TplName = "repo/create"
 )
 
 // MustBeNotEmpty render when a repo is a empty git dir
@@ -684,25 +683,4 @@ func GetTagList(ctx *context.Context) {
 	resp := &branchTagSearchResponse{}
 	resp.Results = tags
 	ctx.JSON(http.StatusOK, resp)
-}
-
-func PrepareBranchList(ctx *context.Context) {
-	branchOpts := git_model.FindBranchOptions{
-		RepoID:          ctx.Repo.Repository.ID,
-		IsDeletedBranch: util.OptionalBoolFalse,
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
-	}
-	brs, err := git_model.FindBranchNames(ctx, branchOpts)
-	if err != nil {
-		ctx.ServerError("GetBranches", err)
-		return
-	}
-	// always put default branch on the top if it exists
-	if slices.Contains(brs, ctx.Repo.Repository.DefaultBranch) {
-		brs = util.SliceRemoveAll(brs, ctx.Repo.Repository.DefaultBranch)
-		brs = append([]string{ctx.Repo.Repository.DefaultBranch}, brs...)
-	}
-	ctx.Data["Branches"] = brs
 }

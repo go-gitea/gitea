@@ -36,17 +36,40 @@ import (
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
+	base_router "code.gitea.io/gitea/routers/web/repo/base"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
 const (
-	tplCompare     base.TplName = "repo/diff/compare"
-	tplBlobExcerpt base.TplName = "repo/diff/blob_excerpt"
-	tplDiffBox     base.TplName = "repo/diff/box"
+	tplCompare             base.TplName = "repo/diff/compare"
+	tplBlobExcerpt         base.TplName = "repo/diff/blob_excerpt"
+	tplDiffBox             base.TplName = "repo/diff/box"
+	pullRequestTemplateKey              = "PullRequestTemplate"
 )
 
-// setCompareContext sets context data.
-func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner, headName string) {
+var pullRequestTemplateCandidates = []string{
+	"PULL_REQUEST_TEMPLATE.md",
+	"PULL_REQUEST_TEMPLATE.yaml",
+	"PULL_REQUEST_TEMPLATE.yml",
+	"pull_request_template.md",
+	"pull_request_template.yaml",
+	"pull_request_template.yml",
+	".gitea/PULL_REQUEST_TEMPLATE.md",
+	".gitea/PULL_REQUEST_TEMPLATE.yaml",
+	".gitea/PULL_REQUEST_TEMPLATE.yml",
+	".gitea/pull_request_template.md",
+	".gitea/pull_request_template.yaml",
+	".gitea/pull_request_template.yml",
+	".github/PULL_REQUEST_TEMPLATE.md",
+	".github/PULL_REQUEST_TEMPLATE.yaml",
+	".github/PULL_REQUEST_TEMPLATE.yml",
+	".github/pull_request_template.md",
+	".github/pull_request_template.yaml",
+	".github/pull_request_template.yml",
+}
+
+// SetCompareContext sets context data.
+func SetCompareContext(ctx *context.Context, before, head *git.Commit, headOwner, headName string) {
 	ctx.Data["BeforeCommit"] = before
 	ctx.Data["HeadCommit"] = head
 
@@ -683,7 +706,7 @@ func PrepareCompareDiff(
 	ctx.Data["Username"] = ci.HeadUser.Name
 	ctx.Data["Reponame"] = ci.HeadRepo.Name
 
-	setCompareContext(ctx, beforeCommit, headCommit, ci.HeadUser.Name, repo.Name)
+	SetCompareContext(ctx, beforeCommit, headCommit, ci.HeadUser.Name, repo.Name)
 
 	return false
 }
@@ -766,7 +789,7 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["HeadBranches"] = headBranches
 
 	// For compare repo branches
-	PrepareBranchList(ctx)
+	base_router.PrepareBranchList(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -792,13 +815,13 @@ func CompareDiff(ctx *context.Context) {
 				return
 			}
 			ctx.Data["PullRequest"] = pr
-			ctx.HTML(http.StatusOK, tplCompareDiff)
+			ctx.HTML(http.StatusOK, tplCompare)
 			return
 		}
 
 		if !nothingToCompare {
 			// Setup information for new form.
-			RetrieveRepoMetas(ctx, ctx.Repo.Repository, true)
+			base_router.RetrieveRepoMetas(ctx, ctx.Repo.Repository, true)
 			if ctx.Written() {
 				return
 			}
@@ -815,10 +838,10 @@ func CompareDiff(ctx *context.Context) {
 
 	ctx.Data["IsRepoToolbarCommits"] = true
 	ctx.Data["IsDiffCompare"] = true
-	_, templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
+	_, templateErrs := base_router.SetTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
 
 	if len(templateErrs) > 0 {
-		ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
+		ctx.Flash.Warning(base_router.RenderErrorOfTemplates(ctx, templateErrs), true)
 	}
 
 	if content, ok := ctx.Data["content"].(string); ok && content != "" {

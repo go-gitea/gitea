@@ -35,8 +35,9 @@ import (
 	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"
 	org_setting "code.gitea.io/gitea/routers/web/org/setting"
-	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/repo/actions"
+	"code.gitea.io/gitea/routers/web/repo/issue"
+	"code.gitea.io/gitea/routers/web/repo/repo"
 	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
@@ -281,7 +282,7 @@ func Routes() *web.Route {
 
 	// TODO: These really seem like things that could be folded into Contexter or as helper functions
 	mid = append(mid, user.GetNotificationCount)
-	mid = append(mid, repo.GetActiveStopwatch)
+	mid = append(mid, issue.GetActiveStopwatch)
 	mid = append(mid, goGet)
 
 	others := web.NewRoute()
@@ -495,7 +496,7 @@ func registerRoutes(m *web.Route) {
 	}, ignExploreSignIn)
 	m.Group("/issues", func() {
 		m.Get("", user.Issues)
-		m.Get("/search", repo.SearchIssues)
+		m.Get("/search", issue.SearchIssues)
 	}, reqSignIn)
 
 	m.Get("/pulls", reqSignIn, user.Pulls)
@@ -1114,7 +1115,7 @@ func registerRoutes(m *web.Route) {
 	// Grouping for those endpoints not requiring authentication (but should respect ignSignIn)
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/milestone", func() {
-			m.Get("/{id}", repo.MilestoneIssuesAndPulls)
+			m.Get("/{id}", issue.MilestoneIssuesAndPulls)
 		}, reqRepoIssuesOrPullsReader, context.RepoRef())
 		m.Get("/find/*", repo.FindFiles)
 		m.Group("/tree-list", func() {
@@ -1125,10 +1126,10 @@ func registerRoutes(m *web.Route) {
 		m.Get("/compare", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists, ignSignIn, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
 		m.Combo("/compare/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists).
 			Get(repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
-			Post(reqSignIn, context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, web.Bind(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
+			Post(reqSignIn, context.RepoMustNotBeArchived(), reqRepoPullsReader, issue.MustAllowPulls, web.Bind(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, issue.CompareAndPullRequestPost)
 		m.Group("/{type:issues|pulls}", func() {
 			m.Group("/{index}", func() {
-				m.Get("/info", repo.GetIssueInfo)
+				m.Get("/info", issue.GetIssueInfo)
 			})
 		})
 	}, ignSignIn, context.RepoAssignment, context.UnitTypes()) // for "/{username}/{reponame}" which doesn't require authentication
@@ -1137,88 +1138,88 @@ func registerRoutes(m *web.Route) {
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/issues", func() {
 			m.Group("/new", func() {
-				m.Combo("").Get(context.RepoRef(), repo.NewIssue).
-					Post(web.Bind(forms.CreateIssueForm{}), repo.NewIssuePost)
-				m.Get("/choose", context.RepoRef(), repo.NewIssueChooseTemplate)
+				m.Combo("").Get(context.RepoRef(), issue.NewIssue).
+					Post(web.Bind(forms.CreateIssueForm{}), issue.NewIssuePost)
+				m.Get("/choose", context.RepoRef(), issue.NewIssueChooseTemplate)
 			})
-			m.Get("/search", repo.ListIssues)
+			m.Get("/search", issue.ListIssues)
 		}, context.RepoMustNotBeArchived(), reqRepoIssueReader)
 		// FIXME: should use different URLs but mostly same logic for comments of issue and pull request.
 		// So they can apply their own enable/disable logic on routers.
 		m.Group("/{type:issues|pulls}", func() {
 			m.Group("/{index}", func() {
-				m.Post("/title", repo.UpdateIssueTitle)
-				m.Post("/content", repo.UpdateIssueContent)
-				m.Post("/deadline", web.Bind(structs.EditDeadlineOption{}), repo.UpdateIssueDeadline)
-				m.Post("/watch", repo.IssueWatch)
-				m.Post("/ref", repo.UpdateIssueRef)
-				m.Post("/pin", reqRepoAdmin, repo.IssuePinOrUnpin)
-				m.Post("/viewed-files", repo.UpdateViewedFiles)
+				m.Post("/title", issue.UpdateIssueTitle)
+				m.Post("/content", issue.UpdateIssueContent)
+				m.Post("/deadline", web.Bind(structs.EditDeadlineOption{}), issue.UpdateIssueDeadline)
+				m.Post("/watch", issue.IssueWatch)
+				m.Post("/ref", issue.UpdateIssueRef)
+				m.Post("/pin", reqRepoAdmin, issue.IssuePinOrUnpin)
+				m.Post("/viewed-files", issue.UpdateViewedFiles)
 				m.Group("/dependency", func() {
-					m.Post("/add", repo.AddDependency)
-					m.Post("/delete", repo.RemoveDependency)
+					m.Post("/add", issue.AddDependency)
+					m.Post("/delete", issue.RemoveDependency)
 				})
-				m.Combo("/comments").Post(repo.MustAllowUserComment, web.Bind(forms.CreateCommentForm{}), repo.NewComment)
+				m.Combo("/comments").Post(issue.MustAllowUserComment, web.Bind(forms.CreateCommentForm{}), issue.NewComment)
 				m.Group("/times", func() {
-					m.Post("/add", web.Bind(forms.AddTimeManuallyForm{}), repo.AddTimeManually)
-					m.Post("/{timeid}/delete", repo.DeleteTime)
+					m.Post("/add", web.Bind(forms.AddTimeManuallyForm{}), issue.AddTimeManually)
+					m.Post("/{timeid}/delete", issue.DeleteTime)
 					m.Group("/stopwatch", func() {
-						m.Post("/toggle", repo.IssueStopwatch)
-						m.Post("/cancel", repo.CancelStopwatch)
+						m.Post("/toggle", issue.IssueStopwatch)
+						m.Post("/cancel", issue.CancelStopwatch)
 					})
 				})
-				m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeIssueReaction)
-				m.Post("/lock", reqRepoIssuesOrPullsWriter, web.Bind(forms.IssueLockForm{}), repo.LockIssue)
-				m.Post("/unlock", reqRepoIssuesOrPullsWriter, repo.UnlockIssue)
-				m.Post("/delete", reqRepoAdmin, repo.DeleteIssue)
+				m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), issue.ChangeIssueReaction)
+				m.Post("/lock", reqRepoIssuesOrPullsWriter, web.Bind(forms.IssueLockForm{}), issue.LockIssue)
+				m.Post("/unlock", reqRepoIssuesOrPullsWriter, issue.UnlockIssue)
+				m.Post("/delete", reqRepoAdmin, issue.DeleteIssue)
 			}, context.RepoMustNotBeArchived())
 			m.Group("/{index}", func() {
-				m.Get("/attachments", repo.GetIssueAttachments)
+				m.Get("/attachments", issue.GetIssueAttachments)
 				m.Get("/attachments/{uuid}", repo.GetAttachment)
 			})
 			m.Group("/{index}", func() {
-				m.Post("/content-history/soft-delete", repo.SoftDeleteContentHistory)
+				m.Post("/content-history/soft-delete", issue.SoftDeleteContentHistory)
 			})
 
-			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
-			m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)
-			m.Post("/projects", reqRepoIssuesOrPullsWriter, reqRepoProjectsReader, repo.UpdateIssueProject)
-			m.Post("/assignee", reqRepoIssuesOrPullsWriter, repo.UpdateIssueAssignee)
-			m.Post("/request_review", reqRepoIssuesOrPullsReader, repo.UpdatePullReviewRequest)
-			m.Post("/dismiss_review", reqRepoAdmin, web.Bind(forms.DismissReviewForm{}), repo.DismissReview)
-			m.Post("/status", reqRepoIssuesOrPullsWriter, repo.UpdateIssueStatus)
-			m.Post("/delete", reqRepoAdmin, repo.BatchDeleteIssues)
-			m.Post("/resolve_conversation", reqRepoIssuesOrPullsReader, repo.SetShowOutdatedComments, repo.UpdateResolveConversation)
+			m.Post("/labels", reqRepoIssuesOrPullsWriter, issue.UpdateIssueLabel)
+			m.Post("/milestone", reqRepoIssuesOrPullsWriter, issue.UpdateIssueMilestone)
+			m.Post("/projects", reqRepoIssuesOrPullsWriter, reqRepoProjectsReader, issue.UpdateIssueProject)
+			m.Post("/assignee", reqRepoIssuesOrPullsWriter, issue.UpdateIssueAssignee)
+			m.Post("/request_review", reqRepoIssuesOrPullsReader, issue.UpdatePullReviewRequest)
+			m.Post("/dismiss_review", reqRepoAdmin, web.Bind(forms.DismissReviewForm{}), issue.DismissReview)
+			m.Post("/status", reqRepoIssuesOrPullsWriter, issue.UpdateIssueStatus)
+			m.Post("/delete", reqRepoAdmin, issue.BatchDeleteIssues)
+			m.Post("/resolve_conversation", reqRepoIssuesOrPullsReader, repo.SetShowOutdatedComments, issue.UpdateResolveConversation)
 			m.Post("/attachments", repo.UploadIssueAttachment)
 			m.Post("/attachments/remove", repo.DeleteAttachment)
-			m.Delete("/unpin/{index}", reqRepoAdmin, repo.IssueUnpin)
-			m.Post("/move_pin", reqRepoAdmin, repo.IssuePinMove)
+			m.Delete("/unpin/{index}", reqRepoAdmin, issue.IssueUnpin)
+			m.Post("/move_pin", reqRepoAdmin, issue.IssuePinMove)
 		}, context.RepoMustNotBeArchived())
 		m.Group("/comments/{id}", func() {
-			m.Post("", repo.UpdateCommentContent)
-			m.Post("/delete", repo.DeleteComment)
-			m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeCommentReaction)
+			m.Post("", issue.UpdateCommentContent)
+			m.Post("/delete", issue.DeleteComment)
+			m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), issue.ChangeCommentReaction)
 		}, context.RepoMustNotBeArchived())
 		m.Group("/comments/{id}", func() {
-			m.Get("/attachments", repo.GetCommentAttachments)
+			m.Get("/attachments", issue.GetCommentAttachments)
 		})
 		m.Post("/markup", web.Bind(structs.MarkupOption{}), misc.Markup)
 		m.Group("/labels", func() {
-			m.Post("/new", web.Bind(forms.CreateLabelForm{}), repo.NewLabel)
-			m.Post("/edit", web.Bind(forms.CreateLabelForm{}), repo.UpdateLabel)
-			m.Post("/delete", repo.DeleteLabel)
-			m.Post("/initialize", web.Bind(forms.InitializeLabelsForm{}), repo.InitializeLabels)
+			m.Post("/new", web.Bind(forms.CreateLabelForm{}), issue.NewLabel)
+			m.Post("/edit", web.Bind(forms.CreateLabelForm{}), issue.UpdateLabel)
+			m.Post("/delete", issue.DeleteLabel)
+			m.Post("/initialize", web.Bind(forms.InitializeLabelsForm{}), issue.InitializeLabels)
 		}, context.RepoMustNotBeArchived(), reqRepoIssuesOrPullsWriter, context.RepoRef())
 		m.Group("/milestones", func() {
-			m.Combo("/new").Get(repo.NewMilestone).
-				Post(web.Bind(forms.CreateMilestoneForm{}), repo.NewMilestonePost)
-			m.Get("/{id}/edit", repo.EditMilestone)
-			m.Post("/{id}/edit", web.Bind(forms.CreateMilestoneForm{}), repo.EditMilestonePost)
-			m.Post("/{id}/{action}", repo.ChangeMilestoneStatus)
-			m.Post("/delete", repo.DeleteMilestone)
+			m.Combo("/new").Get(issue.NewMilestone).
+				Post(web.Bind(forms.CreateMilestoneForm{}), issue.NewMilestonePost)
+			m.Get("/{id}/edit", issue.EditMilestone)
+			m.Post("/{id}/edit", web.Bind(forms.CreateMilestoneForm{}), issue.EditMilestonePost)
+			m.Post("/{id}/{action}", issue.ChangeMilestoneStatus)
+			m.Post("/delete", issue.DeleteMilestone)
 		}, context.RepoMustNotBeArchived(), reqRepoIssuesOrPullsWriter, context.RepoRef())
 		m.Group("/pull", func() {
-			m.Post("/{index}/target_branch", repo.UpdatePullRequestTarget)
+			m.Post("/{index}/target_branch", issue.UpdatePullRequestTarget)
 		}, context.RepoMustNotBeArchived())
 
 		m.Group("", func() {
@@ -1304,16 +1305,16 @@ func registerRoutes(m *web.Route) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("", func() {
-			m.Get("/issues/posters", repo.IssuePosters) // it can't use {type:issues|pulls} because other routes like "/pulls/{index}" has higher priority
-			m.Get("/{type:issues|pulls}", repo.Issues)
-			m.Get("/{type:issues|pulls}/{index}", repo.ViewIssue)
+			m.Get("/issues/posters", issue.IssuePosters) // it can't use {type:issues|pulls} because other routes like "/pulls/{index}" has higher priority
+			m.Get("/{type:issues|pulls}", issue.Issues)
+			m.Get("/{type:issues|pulls}/{index}", issue.ViewIssue)
 			m.Group("/{type:issues|pulls}/{index}/content-history", func() {
-				m.Get("/overview", repo.GetContentHistoryOverview)
-				m.Get("/list", repo.GetContentHistoryList)
-				m.Get("/detail", repo.GetContentHistoryDetail)
+				m.Get("/overview", issue.GetContentHistoryOverview)
+				m.Get("/list", issue.GetContentHistoryList)
+				m.Get("/detail", issue.GetContentHistoryDetail)
 			})
-			m.Get("/labels", reqRepoIssuesOrPullsReader, repo.RetrieveLabels, repo.Labels)
-			m.Get("/milestones", reqRepoIssuesOrPullsReader, repo.Milestones)
+			m.Get("/labels", reqRepoIssuesOrPullsReader, issue.RetrieveLabels, issue.Labels)
+			m.Get("/milestones", reqRepoIssuesOrPullsReader, issue.Milestones)
 		}, context.RepoRef())
 
 		if setting.Packages.Enabled {
@@ -1321,30 +1322,30 @@ func registerRoutes(m *web.Route) {
 		}
 
 		m.Group("/projects", func() {
-			m.Get("", repo.Projects)
-			m.Get("/{id}", repo.ViewProject)
+			m.Get("", issue.Projects)
+			m.Get("/{id}", issue.ViewProject)
 			m.Group("", func() { //nolint:dupl
-				m.Get("/new", repo.RenderNewProject)
-				m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
+				m.Get("/new", issue.RenderNewProject)
+				m.Post("/new", web.Bind(forms.CreateProjectForm{}), issue.NewProjectPost)
 				m.Group("/{id}", func() {
-					m.Post("", web.Bind(forms.EditProjectBoardForm{}), repo.AddBoardToProjectPost)
-					m.Post("/delete", repo.DeleteProject)
+					m.Post("", web.Bind(forms.EditProjectBoardForm{}), issue.AddBoardToProjectPost)
+					m.Post("/delete", issue.DeleteProject)
 
-					m.Get("/edit", repo.RenderEditProject)
-					m.Post("/edit", web.Bind(forms.CreateProjectForm{}), repo.EditProjectPost)
-					m.Post("/{action:open|close}", repo.ChangeProjectStatus)
+					m.Get("/edit", issue.RenderEditProject)
+					m.Post("/edit", web.Bind(forms.CreateProjectForm{}), issue.EditProjectPost)
+					m.Post("/{action:open|close}", issue.ChangeProjectStatus)
 
 					m.Group("/{boardID}", func() {
-						m.Put("", web.Bind(forms.EditProjectBoardForm{}), repo.EditProjectBoard)
-						m.Delete("", repo.DeleteProjectBoard)
-						m.Post("/default", repo.SetDefaultProjectBoard)
-						m.Post("/unsetdefault", repo.UnSetDefaultProjectBoard)
+						m.Put("", web.Bind(forms.EditProjectBoardForm{}), issue.EditProjectBoard)
+						m.Delete("", issue.DeleteProjectBoard)
+						m.Post("/default", issue.SetDefaultProjectBoard)
+						m.Post("/unsetdefault", issue.UnSetDefaultProjectBoard)
 
-						m.Post("/move", repo.MoveIssues)
+						m.Post("/move", issue.MoveIssues)
 					})
 				})
 			}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
-		}, reqRepoProjectsReader, repo.MustEnableProjects)
+		}, reqRepoProjectsReader, issue.MustEnableProjects)
 
 		m.Group("/actions", func() {
 			m.Get("", actions.List)
@@ -1430,32 +1431,32 @@ func registerRoutes(m *web.Route) {
 			return cancel
 		})
 
-		m.Get("/pulls/posters", repo.PullPosters)
+		m.Get("/pulls/posters", issue.PullPosters)
 		m.Group("/pulls/{index}", func() {
-			m.Get("", repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewIssue)
-			m.Get(".diff", repo.DownloadPullDiff)
-			m.Get(".patch", repo.DownloadPullPatch)
+			m.Get("", repo.SetWhitespaceBehavior, issue.GetPullDiffStats, issue.ViewIssue)
+			m.Get(".diff", issue.DownloadPullDiff)
+			m.Get(".patch", issue.DownloadPullPatch)
 			m.Group("/commits", func() {
-				m.Get("", context.RepoRef(), repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewPullCommits)
-				m.Get("/list", context.RepoRef(), repo.GetPullCommits)
-				m.Get("/{sha:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForSingleCommit)
+				m.Get("", context.RepoRef(), repo.SetWhitespaceBehavior, issue.GetPullDiffStats, issue.ViewPullCommits)
+				m.Get("/list", context.RepoRef(), issue.GetPullCommits)
+				m.Get("/{sha:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, issue.ViewPullFilesForSingleCommit)
 			})
-			m.Post("/merge", context.RepoMustNotBeArchived(), web.Bind(forms.MergePullRequestForm{}), repo.MergePullRequest)
-			m.Post("/cancel_auto_merge", context.RepoMustNotBeArchived(), repo.CancelAutoMergePullRequest)
-			m.Post("/update", repo.UpdatePullRequest)
-			m.Post("/set_allow_maintainer_edit", web.Bind(forms.UpdateAllowEditsForm{}), repo.SetAllowEdits)
-			m.Post("/cleanup", context.RepoMustNotBeArchived(), context.RepoRef(), repo.CleanUpPullRequest)
+			m.Post("/merge", context.RepoMustNotBeArchived(), web.Bind(forms.MergePullRequestForm{}), issue.MergePullRequest)
+			m.Post("/cancel_auto_merge", context.RepoMustNotBeArchived(), issue.CancelAutoMergePullRequest)
+			m.Post("/update", issue.UpdatePullRequest)
+			m.Post("/set_allow_maintainer_edit", web.Bind(forms.UpdateAllowEditsForm{}), issue.SetAllowEdits)
+			m.Post("/cleanup", context.RepoMustNotBeArchived(), context.RepoRef(), issue.CleanUpPullRequest)
 			m.Group("/files", func() {
-				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForAllCommitsOfPr)
-				m.Get("/{sha:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesStartingFromCommit)
-				m.Get("/{shaFrom:[a-f0-9]{7,40}}..{shaTo:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForRange)
+				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, issue.ViewPullFilesForAllCommitsOfPr)
+				m.Get("/{sha:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, issue.ViewPullFilesStartingFromCommit)
+				m.Get("/{shaFrom:[a-f0-9]{7,40}}..{shaTo:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, issue.ViewPullFilesForRange)
 				m.Group("/reviews", func() {
-					m.Get("/new_comment", repo.RenderNewCodeCommentForm)
-					m.Post("/comments", web.Bind(forms.CodeCommentForm{}), repo.SetShowOutdatedComments, repo.CreateCodeComment)
-					m.Post("/submit", web.Bind(forms.SubmitReviewForm{}), repo.SubmitReview)
+					m.Get("/new_comment", issue.RenderNewCodeCommentForm)
+					m.Post("/comments", web.Bind(forms.CodeCommentForm{}), repo.SetShowOutdatedComments, issue.CreateCodeComment)
+					m.Post("/submit", web.Bind(forms.SubmitReviewForm{}), issue.SubmitReview)
 				}, context.RepoMustNotBeArchived())
 			})
-		}, repo.MustAllowPulls)
+		}, issue.MustAllowPulls)
 
 		m.Group("/media", func() {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.SingleDownloadOrLFS)

@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/web/repo"
+	base_router "code.gitea.io/gitea/routers/web/repo/base"
 	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
@@ -41,7 +41,7 @@ func ProtectedBranchRules(ctx *context.Context) {
 	}
 	ctx.Data["ProtectedBranches"] = rules
 
-	repo.PrepareBranchList(ctx)
+	base_router.PrepareBranchList(ctx)
 	if ctx.Written() {
 		return
 	}

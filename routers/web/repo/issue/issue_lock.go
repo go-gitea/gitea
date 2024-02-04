@@ -1,7 +1,7 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package repo
+package issue
 
 import (
 	issues_model "code.gitea.io/gitea/models/issues"

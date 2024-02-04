@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/web/repo"
+	base_router "code.gitea.io/gitea/routers/web/repo/base"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -19,7 +19,7 @@ func SetDefaultBranchPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.branches.update_default_branch")
 	ctx.Data["PageIsSettingsBranches"] = true
 
-	repo.PrepareBranchList(ctx)
+	base_router.PrepareBranchList(ctx)
 	if ctx.Written() {
 		return
 	}
