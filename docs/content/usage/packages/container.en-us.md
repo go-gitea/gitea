@@ -51,12 +51,6 @@ For example, these are all valid image names for the owner `testuser`:
 
 ## Push an image
 
-Before pushing an image it needs to be taged with the following command:
-
-```shell
-docker tag {image}:{tag} gitea.example.com/{owner}/{image}:{tag}
-```
-
 Push an image by executing the following command:
 
 ```shell
@@ -73,6 +67,12 @@ For example:
 
 ```shell
 docker push gitea.example.com/testuser/myimage:latest
+```
+
+If you run into the error "An image does not exist locally with the tag" simply run the following command:
+
+```shell
+docker tag {image}:{tag} gitea.example.com/{owner}/{image}:{tag}
 ```
 
 ## Pull an image
