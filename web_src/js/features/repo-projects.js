@@ -193,7 +193,7 @@ export function initRepoProject() {
         contentType: 'application/json',
         method: 'PUT',
       }).done(() => {
-        projectTitleLabel.text(projectTitleInput.val());
+        projectTitleLabel.contents().last().replaceWith(projectTitleInput.val());
         projectTitleInput.closest('form').removeClass('dirty');
         if (projectColorInput.val()) {
           setLabelColor(projectHeader, projectColorInput.val());
