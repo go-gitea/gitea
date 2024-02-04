@@ -18,6 +18,8 @@
   overflow: visible;
   display: flex;
   flex-direction: column;
+
+  cursor: grab;
 }
 
 .project-column-header {
