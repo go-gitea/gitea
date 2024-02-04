@@ -87,7 +87,7 @@
 
 /* give empty cards a min-height, if there is currently a child-card been draged */
 #project-board:has(.note-cards > .card-ghost) .cards-wrapper > .note-cards:not(:has(> *)),
-/* set min-height if issue-cards, this helps when note-cards are heigher then 100% */
+/* set min-height if issue-cards, this helps when note-cards are higher then 100% */
 #project-board:has(.card-ghost) .cards-wrapper > .issue-cards:not(:has(> *)) {
   min-height: 5%;
 }
