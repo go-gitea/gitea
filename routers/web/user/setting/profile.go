@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/typesniffer"
@@ -49,40 +50,8 @@ func Profile(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplSettingsProfile)
 }
 
-// HandleUsernameChange handle username changes from user settings and admin interface
-func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName string) error {
-	oldName := user.Name
-	// rename user
-	if err := user_service.RenameUser(ctx, user, newName); err != nil {
-		switch {
-		// Noop as username is not changed
-		case user_model.IsErrUsernameNotChanged(err):
-			ctx.Flash.Error(ctx.Tr("form.username_has_not_been_changed"))
-		// Non-local users are not allowed to change their username.
-		case user_model.IsErrUserIsNotLocal(err):
-			ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
-		case user_model.IsErrUserAlreadyExist(err):
-			ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
-		case user_model.IsErrEmailAlreadyUsed(err):
-			ctx.Flash.Error(ctx.Tr("form.email_been_used"))
-		case db.IsErrNameReserved(err):
-			ctx.Flash.Error(ctx.Tr("user.form.name_reserved", newName))
-		case db.IsErrNamePatternNotAllowed(err):
-			ctx.Flash.Error(ctx.Tr("user.form.name_pattern_not_allowed", newName))
-		case db.IsErrNameCharsNotAllowed(err):
-			ctx.Flash.Error(ctx.Tr("user.form.name_chars_not_allowed", newName))
-		default:
-			ctx.ServerError("ChangeUserName", err)
-		}
-		return err
-	}
-	log.Trace("User name changed: %s -> %s", oldName, newName)
-	return nil
-}
-
 // ProfilePost response for change user's profile
 func ProfilePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.UpdateProfileForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
@@ -93,29 +62,40 @@ func ProfilePost(ctx *context.Context) {
 		return
 	}
 
-	if len(form.Name) != 0 && ctx.Doer.Name != form.Name {
-		log.Debug("Changing name for %s to %s", ctx.Doer.Name, form.Name)
-		if err := HandleUsernameChange(ctx, ctx.Doer, form.Name); err != nil {
+	form := web.GetForm(ctx).(*forms.UpdateProfileForm)
+
+	if form.Name != "" {
+		if err := user_service.RenameUser(ctx, ctx.Doer, form.Name); err != nil {
+			switch {
+			case user_model.IsErrUserIsNotLocal(err):
+				ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
+			case user_model.IsErrUserAlreadyExist(err):
+				ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
+			case db.IsErrNameReserved(err):
+				ctx.Flash.Error(ctx.Tr("user.form.name_reserved", form.Name))
+			case db.IsErrNamePatternNotAllowed(err):
+				ctx.Flash.Error(ctx.Tr("user.form.name_pattern_not_allowed", form.Name))
+			case db.IsErrNameCharsNotAllowed(err):
+				ctx.Flash.Error(ctx.Tr("user.form.name_chars_not_allowed", form.Name))
+			default:
+				ctx.ServerError("RenameUser", err)
+				return
+			}
 			ctx.Redirect(setting.AppSubURL + "/user/settings")
 			return
 		}
-		ctx.Doer.Name = form.Name
-		ctx.Doer.LowerName = strings.ToLower(form.Name)
 	}
 
-	ctx.Doer.FullName = form.FullName
-	ctx.Doer.KeepEmailPrivate = form.KeepEmailPrivate
-	ctx.Doer.Website = form.Website
-	ctx.Doer.Location = form.Location
-	ctx.Doer.Description = form.Description
-	ctx.Doer.KeepActivityPrivate = form.KeepActivityPrivate
-	ctx.Doer.Visibility = form.Visibility
-	if err := user_model.UpdateUserSetting(ctx, ctx.Doer); err != nil {
-		if _, ok := err.(user_model.ErrEmailAlreadyUsed); ok {
-			ctx.Flash.Error(ctx.Tr("form.email_been_used"))
-			ctx.Redirect(setting.AppSubURL + "/user/settings")
-			return
-		}
+	opts := &user_service.UpdateOptions{
+		FullName:            optional.Some(form.FullName),
+		KeepEmailPrivate:    optional.Some(form.KeepEmailPrivate),
+		Description:         optional.Some(form.Description),
+		Website:             optional.Some(form.Website),
+		Location:            optional.Some(form.Location),
+		Visibility:          optional.Some(form.Visibility),
+		KeepActivityPrivate: optional.Some(form.KeepActivityPrivate),
+	}
+	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
@@ -170,7 +150,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 	}
 
 	if err := user_model.UpdateUserCols(ctx, ctxUser, "avatar", "avatar_email", "use_custom_avatar"); err != nil {
-		return fmt.Errorf("UpdateUser: %w", err)
+		return fmt.Errorf("UpdateUserCols: %w", err)
 	}
 
 	return nil
@@ -371,14 +351,15 @@ func UpdateUIThemePost(ctx *context.Context) {
 		return
 	}
 
-	if err := user_model.UpdateUserTheme(ctx, ctx.Doer, form.Theme); err != nil {
+	opts := &user_service.UpdateOptions{
+		Theme: optional.Some(form.Theme),
+	}
+	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
 		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
-		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
-		return
+	} else {
+		ctx.Flash.Success(ctx.Tr("settings.theme_update_success"))
 	}
 
-	log.Trace("Update user theme: %s", ctx.Doer.Name)
-	ctx.Flash.Success(ctx.Tr("settings.theme_update_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 }
 
@@ -388,17 +369,19 @@ func UpdateUserLang(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
-	if len(form.Language) != 0 {
+	if form.Language != "" {
 		if !util.SliceContainsString(setting.Langs, form.Language) {
 			ctx.Flash.Error(ctx.Tr("settings.update_language_not_found", form.Language))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 			return
 		}
-		ctx.Doer.Language = form.Language
 	}
 
-	if err := user_model.UpdateUserSetting(ctx, ctx.Doer); err != nil {
-		ctx.ServerError("UpdateUserSetting", err)
+	opts := &user_service.UpdateOptions{
+		Language: optional.Some(form.Language),
+	}
+	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
+		ctx.ServerError("UpdateUser", err)
 		return
 	}
 
