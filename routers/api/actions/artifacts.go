@@ -78,6 +78,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	web_types "code.gitea.io/gitea/modules/web/types"
+	actions_service "code.gitea.io/gitea/services/actions"
 )
 
 const artifactRouteBase = "/_apis/pipelines/workflows/{run_id}/artifacts"
@@ -137,12 +138,33 @@ func ArtifactContexter() func(next http.Handler) http.Handler {
 				return
 			}
 
-			authToken := strings.TrimPrefix(authHeader, "Bearer ")
-			task, err := actions.GetRunningTaskByToken(req.Context(), authToken)
-			if err != nil {
-				log.Error("Error runner api getting task: %v", err)
-				ctx.Error(http.StatusInternalServerError, "Error runner api getting task")
-				return
+			// New act_runner uses jwt to authenticate
+			tID, err := actions_service.ParseAuthorizationToken(req)
+
+			var task *actions.ActionTask
+			if err == nil {
+
+				task, err = actions.GetTaskByID(req.Context(), tID)
+				if err != nil {
+					log.Error("Error runner api getting task by ID: %v", err)
+					ctx.Error(http.StatusInternalServerError, "Error runner api getting task by ID")
+					return
+				}
+				if task.Status != actions.StatusRunning {
+					log.Error("Error runner api getting task: task is not running")
+					ctx.Error(http.StatusInternalServerError, "Error runner api getting task: task is not running")
+					return
+				}
+			} else {
+				// Old act_runner uses GITEA_TOKEN to authenticate
+				authToken := strings.TrimPrefix(authHeader, "Bearer ")
+
+				task, err = actions.GetRunningTaskByToken(req.Context(), authToken)
+				if err != nil {
+					log.Error("Error runner api getting task: %v", err)
+					ctx.Error(http.StatusInternalServerError, "Error runner api getting task")
+					return
+				}
 			}
 
 			if err := task.LoadJob(req.Context()); err != nil {
