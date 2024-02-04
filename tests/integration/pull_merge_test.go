@@ -368,7 +368,8 @@ func TestCantMergeUnrelated(t *testing.T) {
 func TestFastForwardOnlyMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		session := loginUser(t, "user1")
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "update", "README.md", "Hello, World\n")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "update", "README.md", "Hello, World 2\n")
 
 		// Use API to create a pr from update to master
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
@@ -408,14 +409,15 @@ func TestFastForwardOnlyMerge(t *testing.T) {
 func TestCantFastForwardOnlyMergeDiverging(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		session := loginUser(t, "user1")
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "update", "README.md", "Hello, World\n")
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "diverging", "hello.txt", "Hello, World\n")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "diverging", "README.md", "Hello, World diverged\n")
+		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World 2\n")
 
 		// Use API to create a pr from diverging to update
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", "user1", "repo1"), &api.CreatePullRequestOption{
 			Head:  "diverging",
-			Base:  "update",
+			Base:  "master",
 			Title: "create a pr from a diverging branch",
 		}).AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusCreated)
@@ -432,7 +434,7 @@ func TestCantFastForwardOnlyMergeDiverging(t *testing.T) {
 			HeadRepoID: repo1.ID,
 			BaseRepoID: repo1.ID,
 			HeadBranch: "diverging",
-			BaseBranch: "update",
+			BaseBranch: "master",
 		})
 
 		gitRepo, err := git.OpenRepository(git.DefaultContext, repo_model.RepoPath(user1.Name, repo1.Name))
