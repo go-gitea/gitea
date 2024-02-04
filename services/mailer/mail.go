@@ -108,7 +108,7 @@ func SendResetPasswordMail(u *user_model.User) {
 }
 
 // SendActivateEmailMail sends confirmation email to confirm new email address
-func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
+func SendActivateEmailMail(u *user_model.User, email string) {
 	if setting.MailService == nil {
 		// No mail service configured
 		return
@@ -118,8 +118,8 @@ func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
 		"locale":          locale,
 		"DisplayName":     u.DisplayName(),
 		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale),
-		"Code":            u.GenerateEmailActivateCode(email.Email),
-		"Email":           email.Email,
+		"Code":            u.GenerateEmailActivateCode(email),
+		"Email":           email,
 		"Language":        locale.Language(),
 	}
 
@@ -130,7 +130,7 @@ func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
 		return
 	}
 
-	msg := NewMessage(email.Email, locale.Tr("mail.activate_email"), content.String())
+	msg := NewMessage(email, locale.Tr("mail.activate_email"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, activate email", u.ID)
 
 	SendAsync(msg)
