@@ -3,6 +3,13 @@
   overflow-y: auto;
 }
 
+#pinned-notes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 .board {
   display: flex;
   flex-direction: row;
@@ -23,8 +30,6 @@
   overflow: visible;
   display: flex;
   flex-direction: column;
-
-  cursor: grab;
 }
 
 .project-column-header {

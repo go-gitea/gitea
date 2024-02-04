@@ -1349,6 +1349,12 @@ func registerRoutes(m *web.Route) {
 							m.Group("/{noteID}", func() {
 								m.Put("", web.Bind(forms.BoardNoteForm{}), repo.EditBoardNote)
 								m.Delete("", repo.DeleteBoardNote)
+
+								m.Group("/pin", func() {
+									m.Post("", web.Bind(forms.BoardNoteForm{}), repo.PinBoardNote)
+									m.Delete("", repo.UnPinBoardNote)
+									m.Post("/move", repo.PinMoveBoardNote)
+								})
 							})
 						})
 					})

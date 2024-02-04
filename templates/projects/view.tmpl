@@ -1,5 +1,22 @@
 {{$canWriteProject := and .CanWriteProjects (or (not .Repository) (not .Repository.IsArchived))}}
 
+{{if gt (len .PinnedNotes) 0}}
+<div id="pinned-notes">
+	{{range .PinnedNotes}}
+		<div class="note-card pinned-card {{if $canWriteProject}}gt-cursor-grab{{end}}" data-url="{{$.Link}}/{{.ID}}/note" data-note="{{.ID}}">
+			{{template "repo/note" (dict
+				"BoardNote" .
+				"CanWriteProjects" $canWriteProject
+				"Link" $.Link
+				"RepoLink" $.RepoLink
+				"ProjectID" $.Project.ID
+				"CsrfTokenHtml" $.CsrfTokenHtml)
+			}}
+		</div>
+	{{end}}
+</div>
+{{end}}
+
 <div class="ui container">
 	<div class="gt-df gt-sb gt-ac gt-mb-4">
 		<h2 class="gt-mb-0">{{.Project.Title}}</h2>
@@ -66,7 +83,7 @@
 <div id="project-board">
 	<div class="board {{if .CanWriteProjects}}sortable{{end}}">
 		{{range .Columns}}
-			<div class="ui segment project-column" style="background: {{.Color}} !important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
+			<div class="ui segment project-column {{if $canWriteProject}}gt-cursor-grab{{end}}" style="background: {{.Color}} !important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
 				<div class="project-column-header">
 					<div class="ui large label project-column-title gt-py-2">
 						<div class="ui small circular grey label project-column-issue-note-count">
@@ -202,30 +219,28 @@
 				<div class="divider"></div>
 
 				<div class="cards-wrapper">
-					{{$columnID := .ID}}
-					{{if or $canWriteProject (index $.NotesMap $columnID)}}
+					{{if or $canWriteProject (index $.NotesMap .ID)}}
 						<div class="ui cards note-cards {{if and $canWriteProject (ne .ID 0)}}{{/* ID 0 is default column which cannot be moved */}}gt-cursor-grab{{end}}" data-url="{{$.Link}}/{{.ID}}/note" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="note-board-{{.ID}}">
-							{{range (index $.NotesMap $columnID)}}
-								<div class="note-card gt-word-break {{if $canWriteProject}}gt-cursor-grab{{end}}" data-note="{{.ID}}">
+							{{range (index $.NotesMap .ID)}}
+								<div class="note-card" data-note="{{.ID}}">
 									{{template "repo/note" (dict
 										"BoardNote" .
 										"CanWriteProjects" $canWriteProject
 										"Link" $.Link
 										"RepoLink" $.RepoLink
-										"columnID" $columnID
 										"ProjectID" $.Project.ID
 										"CsrfTokenHtml" $.CsrfTokenHtml)
 									}}
 								</div>
 							{{end}}
 						</div>
-						{{if or $canWriteProject (index $.IssuesMap $columnID)}}
+						{{if or $canWriteProject (index $.IssuesMap .ID)}}
 							<div class="divider"></div>
 						{{end}}
 					{{end}}
 					<div class="ui cards issue-cards {{if and $canWriteProject (ne .ID 0)}}{{/* ID 0 is default column which cannot be moved */}}gt-cursor-grab{{end}}" data-url="{{$.Link}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="issue-board-{{.ID}}">
-						{{range (index $.IssuesMap $columnID)}}
-							<div class="issue-card gt-word-break {{if $canWriteProject}}gt-cursor-grab{{end}}" data-issue="{{.ID}}">
+						{{range (index $.IssuesMap .ID)}}
+							<div class="issue-card" data-issue="{{.ID}}">
 								{{template "repo/issue/card" (dict "Issue" . "Page" $)}}
 							</div>
 						{{end}}

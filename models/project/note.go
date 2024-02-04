@@ -10,7 +10,9 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -22,6 +24,7 @@ type BoardNote struct {
 	Content         string `xorm:"LONGTEXT"`
 	RenderedContent string `xorm:"-"`
 	Sorting         int64  `xorm:"NOT NULL DEFAULT 0"`
+	PinOrder        int64  `xorm:"NOT NULL DEFAULT 0"`
 
 	ProjectID int64            `xorm:"INDEX NOT NULL"`
 	BoardID   int64            `xorm:"INDEX NOT NULL"`
@@ -107,6 +110,7 @@ func BoardNotes(ctx context.Context, opts *NotesOptions) (BoardNoteList, error) 
 		return nil, fmt.Errorf("unable to query Notes: %w", err)
 	}
 
+	// @TODO: same code in `GetPinnedBoardNotes()` and should be used with `LoadAttributes()`
 	for _, note := range notes {
 		creator := new(user_model.User)
 		has, err := db.GetEngine(ctx).ID(note.CreatorID).Get(creator)
@@ -128,7 +132,176 @@ func NewBoardNote(ctx context.Context, note *BoardNote) error {
 	return err
 }
 
-// GetLastEventTimestamp returns the last user visible event timestamp, either the creation of this issue or the close.
+/* @TODO: make it work - markdown.RenderString should also be at this function
+// IsPinned returns if a BoardNote is pinned
+func (notes BoardNoteList) LoadAttributes() error {
+	return nil
+} */
+
+var ErrBoardNoteMaxPinReached = util.NewInvalidArgumentErrorf("the max number of pinned board-notes has been readched")
+
+// IsPinned returns if a BoardNote is pinned
+func (note *BoardNote) IsPinned() bool {
+	return note.PinOrder != 0
+}
+
+// IsPinned returns if a BoardNote is pinned
+func (note *BoardNote) GetMaxPinOrder(ctx context.Context) (int64, error) {
+	var maxPin int64
+	_, err := db.GetEngine(ctx).SQL("SELECT MAX(pin_order) FROM board_note WHERE project_id = ?", note.ProjectID).Get(&maxPin)
+	if err != nil {
+		return -1, err
+	}
+	return maxPin, nil
+}
+
+// IsPinned returns if a BoardNote is pinned
+func (note *BoardNote) IsNewPinAllowed(ctx context.Context) bool {
+	maxPin, err := note.GetMaxPinOrder(ctx)
+	if err != nil {
+		return false
+	}
+
+	// Check if the maximum allowed Pins reached
+	return maxPin < setting.Repository.Project.MaxPinned
+}
+
+// Pin pins a BoardNote
+func (note *BoardNote) Pin(ctx context.Context) error {
+	// If the BoardNote is already pinned, we don't need to pin it twice
+	if note.IsPinned() {
+		return nil
+	}
+
+	maxPin, err := note.GetMaxPinOrder(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Check if the maximum allowed Pins reached
+	if maxPin >= setting.Repository.Project.MaxPinned {
+		return ErrBoardNoteMaxPinReached
+	}
+
+	_, err = db.GetEngine(ctx).Table("board_note").
+		Where("id = ?", note.ID).
+		Update(map[string]any{
+			"pin_order": maxPin + 1,
+		})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Unpin unpins a BoardNote
+func (note *BoardNote) Unpin(ctx context.Context) error {
+	// If the BoardNote is not pinned, we don't need to unpin it
+	if !note.IsPinned() {
+		return nil
+	}
+
+	// This sets the Pin for all BoardNotes that come after the unpined BoardNote to the correct value
+	_, err := db.GetEngine(ctx).Exec("UPDATE board_note SET pin_order = pin_order - 1 WHERE project_id = ? AND pin_order > ?", note.ProjectID, note.PinOrder)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.GetEngine(ctx).Table("board_note").
+		Where("id = ?", note.ID).
+		Update(map[string]any{
+			"pin_order": 0,
+		})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// MovePin moves a Pinned BoardNote to a new Position
+func (note *BoardNote) MovePin(ctx context.Context, newPosition int64) error {
+	// If the BoardNote is not pinned, we can't move them
+	if !note.IsPinned() {
+		return nil
+	}
+
+	if newPosition < 1 {
+		return fmt.Errorf("The Position can't be lower than 1")
+	}
+
+	dbctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	maxPin, err := note.GetMaxPinOrder(ctx)
+	if err != nil {
+		return err
+	}
+
+	// If the new Position bigger than the current Maximum, set it to the Maximum
+	if newPosition > maxPin+1 {
+		newPosition = maxPin + 1
+	}
+
+	// Lower the Position of all Pinned BoardNotes that came after the current Position
+	_, err = db.GetEngine(dbctx).Exec("UPDATE board_note SET pin_order = pin_order - 1 WHERE project_id = ? AND pin_order > ?", note.ProjectID, note.PinOrder)
+	if err != nil {
+		return err
+	}
+
+	// Higher the Position of all Pinned BoardNotes that comes after the new Position
+	_, err = db.GetEngine(dbctx).Exec("UPDATE board_note SET pin_order = pin_order + 1 WHERE project_id = ? AND pin_order >= ?", note.ProjectID, newPosition)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.GetEngine(dbctx).Table("board_note").
+		Where("id = ?", note.ID).
+		Update(map[string]any{
+			"pin_order": newPosition,
+		})
+	if err != nil {
+		return err
+	}
+
+	return committer.Commit()
+}
+
+// GetPinnedBoardNotes returns the pinned BaordNotes for the given Project
+func GetPinnedBoardNotes(ctx context.Context, projectID int64) (BoardNoteList, error) {
+	notes := make(BoardNoteList, 0)
+
+	err := db.GetEngine(ctx).
+		Table("board_note").
+		Where("project_id = ?", projectID).
+		And("pin_order > 0").
+		OrderBy("pin_order").
+		Find(&notes)
+	if err != nil {
+		return nil, err
+	}
+
+	// @TODO: same code in `BoardNotes()` and should be used with `LoadAttributes()`
+	for _, note := range notes {
+		creator := new(user_model.User)
+		has, err := db.GetEngine(ctx).ID(note.CreatorID).Get(creator)
+		if err != nil {
+			return nil, err
+		}
+		if !has {
+			return nil, user_model.ErrUserNotExist{UID: note.CreatorID}
+		}
+		note.Creator = creator
+	}
+
+	return notes, nil
+}
+
+// GetLastEventTimestamp returns the last user visible event timestamp, either the creation or the update.
 func (note *BoardNote) GetLastEventTimestamp() timeutil.TimeStamp {
 	return max(note.CreatedUnix, note.UpdatedUnix)
 }

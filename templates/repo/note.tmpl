@@ -19,7 +19,7 @@
 					{{if $.CanWriteProjects}}
 						<button class="ui item show-modal button"
 							data-modal="#edit-project-column-note-modal-{{.ID}}"
-							data-modal-form.action="{{$.Link}}/{{$.columnID}}/note/{{.ID}}">
+							data-modal-form.action="{{$.Link}}/{{.BoardID}}/note/{{.ID}}">
 								{{svg "octicon-pencil"}}
 								{{ctx.Locale.Tr "repo.projects.note.edit"}}
 						</button>
@@ -27,9 +27,23 @@
 							{{svg "octicon-issue-opened"}}
 							{{ctx.Locale.Tr "repo.issues.new"}}
 						</a>
+						{{$notPinnedAndNotAllowedToPin := and (not .IsPinned) (not (.IsNewPinAllowed ctx))}}
+						<button class="ui item button {{if $notPinnedAndNotAllowedToPin}}disabled{{end}} pin-project-column-note"
+							{{if $notPinnedAndNotAllowedToPin}}style="pointer-events: unset !important"{{end}}
+							data-method="{{if .IsPinned}}delete{{else}}post{{end}}"
+							data-url="{{$.Link}}/{{.BoardID}}/note/{{.ID}}/pin"
+							{{if $notPinnedAndNotAllowedToPin}}data-tooltip-content="{{ctx.Locale.Tr "repo.projects.note.max_pinned"}}"{{end}}>
+								{{if .IsPinned}}
+									{{svg "octicon-pin-slash"}}
+									{{ctx.Locale.Tr "unpin"}}
+								{{else}}
+									{{svg "octicon-pin"}}
+									{{ctx.Locale.Tr "pin"}}
+								{{end}}
+						</button>
 						<button class="ui item show-modal button"
 							data-modal="#delete-project-column-note-modal-{{.ID}}"
-							data-modal-form.action="{{$.Link}}/{{$.columnID}}/note/{{.ID}}">
+							data-modal-form.action="{{$.Link}}/{{.BoardID}}/note/{{.ID}}">
 								{{svg "octicon-trash"}}
 								{{ctx.Locale.Tr "repo.projects.note.delete"}}
 						</button>

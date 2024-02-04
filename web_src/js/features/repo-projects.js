@@ -79,7 +79,36 @@ function moveNote({item, from, to, oldIndex}) {
   });
 }
 
+function movePinned({newIndex, item}) {
+  const newPosition = newIndex + 1;
+  const id = $(item).data('note');
+  const url = `${$(item).data('url')}/${id}/pin/move`;
+
+  $.ajax({
+    url,
+    data: JSON.stringify({position: newPosition}),
+    headers: {
+      'X-Csrf-Token': csrfToken,
+    },
+    contentType: 'application/json',
+    type: 'POST',
+  });
+}
+
 async function initRepoProjectSortable() {
+  const pinnedNotesCards = document.querySelector('#pinned-notes');
+  if (pinnedNotesCards) {
+    createSortable(pinnedNotesCards, {
+      group: 'pinned-shared',
+      animation: 150,
+      ghostClass: 'card-ghost',
+      onAdd: movePinned,
+      onUpdate: movePinned,
+      delayOnTouchOnly: true,
+      delay: 500
+    });
+  }
+
   const els = document.querySelectorAll('#project-board > .board.sortable');
   if (!els.length) return;
 
@@ -259,6 +288,29 @@ export function initRepoProject() {
     const url = $(this).data('url');
     const form = columnTitle.closest('form');
     createNewColumn(url, form, {title: columnTitle.val(), color: projectColorInput.val()});
+  });
+
+  $('.pin-project-column-note').each(function () {
+    const pinButton = $(this);
+    const pinUrl = pinButton.data('url');
+    const ajaxMethod = pinButton.data('method');
+
+    pinButton.on('click', (e) => {
+      e.preventDefault();
+
+      if (pinButton.hasClass('disabled')) return;
+
+      $.ajax({
+        url: pinUrl,
+        headers: {
+          'X-Csrf-Token': csrfToken,
+        },
+        contentType: 'application/json',
+        method: ajaxMethod,
+      }).done(() => {
+        window.location.reload();
+      });
+    });
   });
 }
 

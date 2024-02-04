@@ -330,6 +330,7 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
+	// @TODO: maybe should be in BoardNote
 	for _, noteList := range notesMap {
 		for _, note := range noteList {
 			note.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
@@ -394,11 +395,34 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
+	pinnedBoardNotes, err := project_model.GetPinnedBoardNotes(ctx, project.ID)
+	if err != nil {
+		ctx.ServerError("GetPinnedBoardNotes", err)
+		return
+	}
+
+	// @TODO: maybe should be in BoardNote
+	for _, note := range pinnedBoardNotes {
+		note.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+			Links: markup.Links{
+				Base: ctx.Repo.RepoLink,
+			},
+			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+			GitRepo: ctx.Repo.GitRepo,
+			Ctx:     ctx,
+		}, note.Content)
+		if err != nil {
+			ctx.ServerError("RenderString", err)
+			return
+		}
+	}
+
 	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap
 	ctx.Data["Columns"] = boards // TODO: rename boards to columns in backend
+	ctx.Data["PinnedNotes"] = pinnedBoardNotes
 	ctx.Data["NotesMap"] = notesMap
 
 	ctx.HTML(http.StatusOK, tplProjectsView)
@@ -913,6 +937,72 @@ func MoveBoardNote(ctx *context.Context) {
 
 	if err = project_model.MoveBoardNoteOnProjectBoard(ctx, board, sortedBoardNoteIDs); err != nil {
 		ctx.ServerError("MoveBoardNoteOnProjectBoard", err)
+		return
+	}
+
+	ctx.JSONOK()
+}
+
+// PinBoardNote pins the BoardNote
+func PinBoardNote(ctx *context.Context) {
+	note, err := project_model.GetBoardNoteByID(ctx, ctx.ParamsInt64(":noteID"))
+	if err != nil {
+		ctx.ServerError("GetBoardNoteByID", err)
+		return
+	}
+
+	err = note.Pin(ctx)
+	if err != nil {
+		ctx.ServerError("Pin", err)
+		return
+	}
+
+	ctx.JSONOK()
+}
+
+// PinBoardNote unpins the BoardNote
+func UnPinBoardNote(ctx *context.Context) {
+	note, err := project_model.GetBoardNoteByID(ctx, ctx.ParamsInt64(":noteID"))
+	if err != nil {
+		ctx.ServerError("GetBoardNoteByID", err)
+		return
+	}
+
+	err = note.Unpin(ctx)
+	if err != nil {
+		ctx.ServerError("Unpin", err)
+		return
+	}
+
+	ctx.JSONOK()
+}
+
+// PinBoardNote moves a pined the BoardNote
+func PinMoveBoardNote(ctx *context.Context) {
+	if ctx.Doer == nil {
+		ctx.JSON(http.StatusForbidden, "Only signed in users are allowed to perform this action.")
+		return
+	}
+
+	type movePinBoardNoteForm struct {
+		Position int64 `json:"position"`
+	}
+
+	form := &movePinBoardNoteForm{}
+	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
+		ctx.ServerError("Decode movePinBoardNoteForm", err)
+		return
+	}
+
+	note, err := project_model.GetBoardNoteByID(ctx, ctx.ParamsInt64(":noteID"))
+	if err != nil {
+		ctx.ServerError("GetIssueByID", err)
+		return
+	}
+
+	err = note.MovePin(ctx, form.Position)
+	if err != nil {
+		ctx.ServerError("MovePin", err)
 		return
 	}
 
