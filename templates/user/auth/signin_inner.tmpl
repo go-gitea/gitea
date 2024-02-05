@@ -13,12 +13,12 @@
 	{{.CsrfTokenHtml}}
 	<div class="required inline field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
 		<label for="user_name">{{ctx.Locale.Tr "home.uname_holder"}}</label>
-		<input id="user_name" class="gt-w-100" type="text" name="user_name" value="{{.user_name}}" autofocus required>
+		<input id="user_name" class="gt-w-full" type="text" name="user_name" value="{{.user_name}}" autofocus required>
 	</div>
 	{{if or (not .DisablePassword) .LinkAccountMode}}
 	<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
 		<label for="password">{{ctx.Locale.Tr "password"}}</label>
-		<input id="password" class="gt-w-100" name="password" type="password" value="{{.password}}" autocomplete="current-password" required>
+		<input id="password" class="gt-w-full" name="password" type="password" value="{{.password}}" autocomplete="current-password" required>
 	</div>
 	{{end}}
 	{{if not .LinkAccountMode}}
@@ -57,7 +57,7 @@
 		<div class="gt-df gt-fc gt-jc">
 			<div id="oauth2-login-navigator-inner" class="gt-df gt-fc gt-fw gt-ac gt-gap-3">
 				{{range $provider := .OAuth2Providers}}
-					<a class="{{$provider.Name}} ui button gt-df gt-ac gt-jc gt-py-3 gt-w-100 oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$provider.DisplayName}}">
+					<a class="{{$provider.Name}} ui button gt-df gt-ac gt-jc gt-py-3 gt-w-full oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$provider.DisplayName}}">
 						{{$provider.IconHTML 28}}
 						{{ctx.Locale.Tr "sign_in_with_provider" $provider.DisplayName}}
 					</a>
