@@ -280,9 +280,29 @@ func CanDoerChangeReviewRequests(ctx context.Context, doer *user_model.User, rep
 	isCollaborator, err := repo_model.IsCollaborator(ctx, repo.ID, doer.ID)
 	if err != nil {
 		log.Error("IsCollaborator: %v", err)
+		return false
 	}
 	if isCollaborator {
 		return true
+	}
+
+	if repo.Owner.IsOrganization() {
+		// If the repo's owner is an organization, members of teams with read permission can change reviewers
+		teams, err := organization.GetTeamsWithAccessToRepo(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead)
+		if err != nil {
+			log.Error("GetTeamsWithAccessToRepo: %v", err)
+			return false
+		}
+		for _, team := range teams {
+			isMember, err := organization.IsTeamMember(ctx, repo.OwnerID, team.ID, doer.ID)
+			if err != nil {
+				log.Error("IsTeamMember: %v", err)
+				continue
+			}
+			if isMember {
+				return true
+			}
+		}
 	}
 
 	return false

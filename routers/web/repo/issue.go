@@ -1539,7 +1539,7 @@ func ViewIssue(ctx *context.Context) {
 		canChooseReviewer := ctx.Repo.CanWrite(unit.TypePullRequests)
 		if ctx.Doer != nil && ctx.IsSigned {
 			if !canChooseReviewer {
-				canChooseReviewer = ctx.Doer.ID == issue.PosterID
+				canChooseReviewer = issue_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, repo, issue)
 			}
 			if !canChooseReviewer {
 				canChooseReviewer, err = issues_model.IsOfficialReviewer(ctx, issue, ctx.Doer)
