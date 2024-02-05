@@ -1455,8 +1455,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 				ctx.ServerError("CompareAndPullRequest.HTMLString", err)
 				return
 			}
-			ctx.Flash.Error(flashError)
-			ctx.JSONRedirect(pullIssue.Link()) // FIXME: it's unfriendly, and will make the content lost
+			ctx.JSONError(flashError)
 			return
 		}
 		ctx.ServerError("NewPullRequest", err)
