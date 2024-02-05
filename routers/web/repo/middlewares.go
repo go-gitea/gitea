@@ -11,6 +11,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/optional"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 // SetEditorconfigIfExists set editor config as render variable
@@ -55,8 +57,12 @@ func SetDiffViewStyle(ctx *context.Context) {
 	}
 
 	ctx.Data["IsSplitStyle"] = style == "split"
-	if err := user_model.UpdateUserDiffViewStyle(ctx, ctx.Doer, style); err != nil {
-		ctx.ServerError("ErrUpdateDiffViewStyle", err)
+
+	opts := &user_service.UpdateOptions{
+		DiffViewStyle: optional.Some(style),
+	}
+	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
+		ctx.ServerError("UpdateUser", err)
 	}
 }
 

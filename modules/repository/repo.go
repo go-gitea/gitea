@@ -19,6 +19,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migration"
@@ -291,7 +292,7 @@ func SyncRepoTags(ctx context.Context, repoID int64) error {
 		return err
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		return err
 	}
@@ -508,6 +509,18 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 	return nil
 }
 
+// shortRelease to reduce load memory, this struct can replace repo_model.Release
+type shortRelease struct {
+	ID      int64
+	TagName string
+	Sha1    string
+	IsTag   bool
+}
+
+func (shortRelease) TableName() string {
+	return "release"
+}
+
 // pullMirrorReleaseSync is a pull-mirror specific tag<->release table
 // synchronization which overwrites all Releases from the repository tags. This
 // can be relied on since a pull-mirror is always identical to its
@@ -521,16 +534,20 @@ func pullMirrorReleaseSync(ctx context.Context, repo *repo_model.Repository, git
 		return fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 	}
 	err = db.WithTx(ctx, func(ctx context.Context) error {
-		//
-		// clear out existing releases
-		//
-		if _, err := db.DeleteByBean(ctx, &repo_model.Release{RepoID: repo.ID}); err != nil {
-			return fmt.Errorf("unable to clear releases for pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
+		dbReleases, err := db.Find[shortRelease](ctx, repo_model.FindReleasesOptions{
+			RepoID:        repo.ID,
+			IncludeDrafts: true,
+			IncludeTags:   true,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to FindReleases in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 		}
+
+		inserts, deletes, updates := calcSync(tags, dbReleases)
 		//
 		// make release set identical to upstream tags
 		//
-		for _, tag := range tags {
+		for _, tag := range inserts {
 			release := repo_model.Release{
 				RepoID:       repo.ID,
 				TagName:      tag.Name,
@@ -547,6 +564,25 @@ func pullMirrorReleaseSync(ctx context.Context, repo *repo_model.Repository, git
 				return fmt.Errorf("unable insert tag %s for pull-mirror Repo[%d:%s/%s]: %w", tag.Name, repo.ID, repo.OwnerName, repo.Name, err)
 			}
 		}
+
+		// only delete tags releases
+		if len(deletes) > 0 {
+			if _, err := db.GetEngine(ctx).Where("repo_id=?", repo.ID).
+				In("id", deletes).
+				Delete(&repo_model.Release{}); err != nil {
+				return fmt.Errorf("unable to delete tags for pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
+			}
+		}
+
+		for _, tag := range updates {
+			if _, err := db.GetEngine(ctx).Where("repo_id = ? AND lower_tag_name = ?", repo.ID, strings.ToLower(tag.Name)).
+				Cols("sha1").
+				Update(&repo_model.Release{
+					Sha1: tag.Object.String(),
+				}); err != nil {
+				return fmt.Errorf("unable to update tag %s for pull-mirror Repo[%d:%s/%s]: %w", tag.Name, repo.ID, repo.OwnerName, repo.Name, err)
+			}
+		}
 		return nil
 	})
 	if err != nil {
@@ -555,4 +591,33 @@ func pullMirrorReleaseSync(ctx context.Context, repo *repo_model.Repository, git
 
 	log.Trace("pullMirrorReleaseSync: done rebuilding %d releases", numTags)
 	return nil
+}
+
+func calcSync(destTags []*git.Tag, dbTags []*shortRelease) ([]*git.Tag, []int64, []*git.Tag) {
+	destTagMap := make(map[string]*git.Tag)
+	for _, tag := range destTags {
+		destTagMap[tag.Name] = tag
+	}
+	dbTagMap := make(map[string]*shortRelease)
+	for _, rel := range dbTags {
+		dbTagMap[rel.TagName] = rel
+	}
+
+	inserted := make([]*git.Tag, 0, 10)
+	updated := make([]*git.Tag, 0, 10)
+	for _, tag := range destTags {
+		rel := dbTagMap[tag.Name]
+		if rel == nil {
+			inserted = append(inserted, tag)
+		} else if rel.Sha1 != tag.Object.String() {
+			updated = append(updated, tag)
+		}
+	}
+	deleted := make([]int64, 0, 10)
+	for _, tag := range dbTags {
+		if destTagMap[tag.TagName] == nil && tag.IsTag {
+			deleted = append(deleted, tag.ID)
+		}
+	}
+	return inserted, deleted, updated
 }

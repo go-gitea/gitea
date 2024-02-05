@@ -11,11 +11,11 @@ import (
 	"net/url"
 	"strings"
 
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -224,7 +224,7 @@ func APIContexter() func(http.Handler) http.Handler {
 			defer baseCleanUp()
 
 			ctx.Base.AppendContextValue(apiContextKey, ctx)
-			ctx.Base.AppendContextValueFunc(git.RepositoryContextKey, func() any { return ctx.Repo.GitRepo })
+			ctx.Base.AppendContextValueFunc(gitrepo.RepositoryContextKey, func() any { return ctx.Repo.GitRepo })
 
 			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
 			if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
@@ -278,10 +278,9 @@ func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) (cancel context
 
 		// For API calls.
 		if ctx.Repo.GitRepo == nil {
-			repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-			gitRepo, err := git.OpenRepository(ctx, repoPath)
+			gitRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "RepoRef Invalid repo "+repoPath, err)
+				ctx.Error(http.StatusInternalServerError, fmt.Sprintf("Open Repository %v failed", ctx.Repo.Repository.FullName()), err)
 				return cancel
 			}
 			ctx.Repo.GitRepo = gitRepo
