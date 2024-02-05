@@ -348,6 +348,7 @@ func Action(ctx *context.Context) {
 
 	switch ctx.Params(":action") {
 	case "watch", "unwatch", "star", "unstar":
+		// we have to reload the repository because NumStars or NumWatching (used in the templates) has just changed
 		ctx.Data["Repository"], err = repo_model.GetRepositoryByName(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.Name)
 		if err != nil {
 			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
