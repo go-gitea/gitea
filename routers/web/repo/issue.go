@@ -765,6 +765,11 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 		ctx.Data["PullReviewers"] = currentPullReviewers
 	}
 
+	canDoerChangeReviewRequests := false
+	if ctx.Doer != nil {
+		canDoerChangeReviewRequests = issue_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, repo, issue)
+	}
+
 	if canChooseReviewer && reviewersResult != nil {
 		preadded := len(reviewersResult)
 		for _, reviewer := range reviewers {
@@ -788,6 +793,12 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 				User:      reviewer,
 				ItemID:    reviewer.ID,
 			})
+		}
+
+		if canDoerChangeReviewRequests {
+			for _, item := range reviewersResult {
+				item.CanChange = true
+			}
 		}
 
 		ctx.Data["Reviewers"] = reviewersResult

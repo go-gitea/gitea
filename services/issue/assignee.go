@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -154,6 +155,9 @@ func IsValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 			}
 		}
 	} else {
+		if CanDoerChangeReviewRequests(ctx, doer, issue.Repo, issue) {
+			return nil
+		}
 		if lastreview != nil && lastreview.Type == issues_model.ReviewTypeRequest && lastreview.ReviewerID == doer.ID {
 			return nil
 		}
@@ -263,4 +267,23 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 	}
 
 	return comment, err
+}
+
+// CanDoerChangeReviewRequests returns if the doer can change all review requests of a PR
+func CanDoerChangeReviewRequests(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue) bool {
+	if doer != nil && doer.ID == issue.PosterID {
+		// The poster of the PR can change the reviewers
+		return true
+	}
+
+	// Collaborators of the repo can change the reviewers
+	isCollaborator, err := repo_model.IsCollaborator(ctx, repo.ID, doer.ID)
+	if err != nil {
+		log.Error("IsCollaborator: %v", err)
+	}
+	if isCollaborator {
+		return true
+	}
+
+	return false
 }
