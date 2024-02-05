@@ -179,7 +179,7 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 		reqs = append(reqs, b.addDelete(filename, repo))
 	}
 
-	queue_settings, err := setting.GetQueueSettings(setting.CfgProvider, "code_indexer")
+	queueSettings, err := setting.GetQueueSettings(setting.CfgProvider, "code_indexer")
 	if err != nil {
 		log.Error("Could not fetch queue code_indexer")
 		return err
@@ -194,22 +194,22 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 	}
 
 	if len(reqs) > 0 {
-		var batch_head int
-		max_per_batch_req_count := len(reqs)/queue_settings.BatchLength + (len(reqs) % queue_settings.BatchLength)
+		var batchHead int
+		maxPerBatchReqCount := len(reqs)/queueSettings.BatchLength + (len(reqs) % queueSettings.BatchLength)
 
-		for i := 0; i < queue_settings.BatchLength; i++ {
+		for i := 0; i < queueSettings.BatchLength; i++ {
 
 			// Taking in another variable because (*elastic.BulkService).Do(ctx context.Context) clears out the requests slice upon successful batch
-			bulk_req := reqs[batch_head:min(batch_head+max_per_batch_req_count, len(reqs))]
+			bulkReq := reqs[batchHead:min(batchHead+maxPerBatchReqCount, len(reqs))]
 
-			if len(bulk_req) > 0 {
-				bulk_service := b.inner.Client.Bulk().
+			if len(bulkReq) > 0 {
+				bulkService := b.inner.Client.Bulk().
 					Index(b.inner.VersionedIndexName()).
-					Add(bulk_req...)
+					Add(bulkReq...)
 
-				_, err := bulk_service.Do(ctx)
+				_, err := bulkService.Do(ctx)
 
-				batch_head += max_per_batch_req_count
+				batchHead += maxPerBatchReqCount
 
 				if err != nil {
 					return err
