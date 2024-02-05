@@ -104,7 +104,7 @@ export default {
     minimize: isProduction,
     minimizer: [
       new EsbuildPlugin({
-        target: 'es2015',
+        target: 'es2020',
         minify: true,
         css: !LightningCssMinifyPlugin,
         legalComments: 'none',
@@ -135,7 +135,7 @@ export default {
             loader: 'esbuild-loader',
             options: {
               loader: 'js',
-              target: 'es2015',
+              target: 'es2020',
             },
           },
         ],
