@@ -362,6 +362,7 @@ func Action(ctx *context.Context) {
 		return
 	case "star", "unstar":
 		ctx.HTML(http.StatusOK, tplStarUnstar)
+		return
 	}
 
 	ctx.RedirectToFirst(ctx.FormString("redirect_to"), ctx.Repo.RepoLink)
