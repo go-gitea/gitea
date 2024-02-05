@@ -59,8 +59,6 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 
 // ChangeTitle changes the title of this issue, as the given user.
 func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, title string) error {
-	// TODO ?
-
 	oldTitle := issue.Title
 	issue.Title = title
 
