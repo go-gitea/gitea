@@ -6,11 +6,12 @@ package user
 import (
 	"net/http"
 
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/convert"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 // GetUserSettings returns user settings
@@ -44,36 +45,18 @@ func UpdateUserSettings(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.UserSettingsOptions)
 
-	if form.FullName != nil {
-		ctx.Doer.FullName = *form.FullName
+	opts := &user_service.UpdateOptions{
+		FullName:            optional.FromPtr(form.FullName),
+		Description:         optional.FromPtr(form.Description),
+		Website:             optional.FromPtr(form.Website),
+		Location:            optional.FromPtr(form.Location),
+		Language:            optional.FromPtr(form.Language),
+		Theme:               optional.FromPtr(form.Theme),
+		DiffViewStyle:       optional.FromPtr(form.DiffViewStyle),
+		KeepEmailPrivate:    optional.FromPtr(form.HideEmail),
+		KeepActivityPrivate: optional.FromPtr(form.HideActivity),
 	}
-	if form.Description != nil {
-		ctx.Doer.Description = *form.Description
-	}
-	if form.Website != nil {
-		ctx.Doer.Website = *form.Website
-	}
-	if form.Location != nil {
-		ctx.Doer.Location = *form.Location
-	}
-	if form.Language != nil {
-		ctx.Doer.Language = *form.Language
-	}
-	if form.Theme != nil {
-		ctx.Doer.Theme = *form.Theme
-	}
-	if form.DiffViewStyle != nil {
-		ctx.Doer.DiffViewStyle = *form.DiffViewStyle
-	}
-
-	if form.HideEmail != nil {
-		ctx.Doer.KeepEmailPrivate = *form.HideEmail
-	}
-	if form.HideActivity != nil {
-		ctx.Doer.KeepActivityPrivate = *form.HideActivity
-	}
-
-	if err := user_model.UpdateUser(ctx, ctx.Doer, false); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}

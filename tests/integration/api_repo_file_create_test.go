@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -167,7 +167,7 @@ func TestAPICreateFile(t *testing.T) {
 			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &createFileOptions).
 				AddTokenAuth(token2)
 			resp := MakeRequest(t, req, http.StatusCreated)
-			gitRepo, _ := git.OpenRepository(stdCtx.Background(), repo1.RepoPath())
+			gitRepo, _ := gitrepo.OpenRepository(stdCtx.Background(), repo1)
 			commitID, _ := gitRepo.GetBranchCommitID(createFileOptions.NewBranchName)
 			latestCommit, _ := gitRepo.GetCommitByPath(treePath)
 			expectedFileResponse := getExpectedFileResponseForCreate("user2/repo1", commitID, treePath, latestCommit.ID.String())
@@ -285,7 +285,7 @@ func TestAPICreateFile(t *testing.T) {
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusCreated)
 		emptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "empty-repo"}) // public repo
-		gitRepo, _ := git.OpenRepository(stdCtx.Background(), emptyRepo.RepoPath())
+		gitRepo, _ := gitrepo.OpenRepository(stdCtx.Background(), emptyRepo)
 		commitID, _ := gitRepo.GetBranchCommitID(createFileOptions.NewBranchName)
 		latestCommit, _ := gitRepo.GetCommitByPath(treePath)
 		expectedFileResponse := getExpectedFileResponseForCreate("user2/empty-repo", commitID, treePath, latestCommit.ID.String())

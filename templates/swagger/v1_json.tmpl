@@ -18370,6 +18370,15 @@
           "uniqueItems": true,
           "x-go-name": "Name"
         },
+        "object_format_name": {
+          "description": "ObjectFormatName of the underlying git repository",
+          "type": "string",
+          "enum": [
+            "sha1",
+            "sha256"
+          ],
+          "x-go-name": "ObjectFormatName"
+        },
         "private": {
           "description": "Whether the repository is private",
           "type": "boolean",
@@ -21601,6 +21610,10 @@
       "description": "PullRequestMeta PR info if an issue is a PR",
       "type": "object",
       "properties": {
+        "draft": {
+          "type": "boolean",
+          "x-go-name": "IsWorkInProgress"
+        },
         "merged": {
           "type": "boolean",
           "x-go-name": "HasMerged"
@@ -22184,6 +22197,15 @@
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        },
+        "object_format_name": {
+          "description": "ObjectFormatName of the underlying git repository",
+          "type": "string",
+          "enum": [
+            "sha1",
+            "sha256"
+          ],
+          "x-go-name": "ObjectFormatName"
         },
         "open_issues_count": {
           "type": "integer",

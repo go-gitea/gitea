@@ -239,7 +239,7 @@ func TestGenerateAdditionalHeaders(t *testing.T) {
 	doer, _, issue, _ := prepareMailerTest(t)
 
 	ctx := &mailCommentContext{Context: context.TODO() /* TODO: use a correct context */, Issue: issue, Doer: doer}
-	recipient := &user_model.User{Name: "Test", Email: "test@gitea.com"}
+	recipient := &user_model.User{Name: "test", Email: "test@gitea.com"}
 
 	headers := generateAdditionalHeaders(ctx, "dummy-reason", recipient)
 
@@ -247,8 +247,8 @@ func TestGenerateAdditionalHeaders(t *testing.T) {
 		"List-ID":                   "user2/repo1 <repo1.user2.localhost>",
 		"List-Archive":              "<https://try.gitea.io/user2/repo1>",
 		"X-Gitea-Reason":            "dummy-reason",
-		"X-Gitea-Sender":            "< U<se>r Tw<o > ><",
-		"X-Gitea-Recipient":         "Test",
+		"X-Gitea-Sender":            "user2",
+		"X-Gitea-Recipient":         "test",
 		"X-Gitea-Recipient-Address": "test@gitea.com",
 		"X-Gitea-Repository":        "repo1",
 		"X-Gitea-Repository-Path":   "user2/repo1",
