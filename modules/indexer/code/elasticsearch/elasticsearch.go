@@ -135,7 +135,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 			Id(id).
 			Doc(map[string]any{
 				"repo_id":    repo.ID,
-				"content":    string(charset.ToUTF8DropErrors(fileContents)),
+				"content":    string(charset.ToUTF8DropErrors(fileContents, charset.ConvertOpts{})),
 				"commit_id":  sha,
 				"language":   analyze.GetCodeLanguage(update.Filename, fileContents),
 				"updated_at": timeutil.TimeStampNow(),

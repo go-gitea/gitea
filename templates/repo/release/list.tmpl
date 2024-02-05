@@ -55,7 +55,7 @@
 							<p class="text grey">
 								<span class="author">
 								{{if .OriginalAuthor}}
-									{{svg "octicon-mark-github" 20 "gt-mr-2"}}{{.OriginalAuthor}}
+									{{svg (MigrationIcon .Repo.GetOriginalURLHostname) 20 "gt-mr-2"}}{{.OriginalAuthor}}
 								{{else if .Publisher}}
 									{{ctx.AvatarUtils.Avatar .Publisher 20 "gt-mr-2"}}
 									<a href="{{.Publisher.HomeLink}}">{{.Publisher.GetDisplayName}}</a>

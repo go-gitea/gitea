@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -262,7 +263,7 @@ func TestChangeRepoFilesForCreate(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
+		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
 		defer gitRepo.Close()
 
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
@@ -299,7 +300,7 @@ func TestChangeRepoFilesForUpdate(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
+		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
@@ -335,7 +336,7 @@ func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
+		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
@@ -386,7 +387,7 @@ func TestChangeRepoFilesWithoutBranchNames(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
+		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(repo.DefaultBranch)

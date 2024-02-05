@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -62,7 +63,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 	assigneeCommentMap := make(map[int64]*issues_model.Comment)
 
 	// add first push codes comment
-	baseGitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
+	baseGitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
 		return err
 	}
@@ -269,9 +270,9 @@ func checkForInvalidation(ctx context.Context, requests issues_model.PullRequest
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByIDCtx: %w", err)
 	}
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
-		return fmt.Errorf("git.OpenRepository: %w", err)
+		return fmt.Errorf("gitrepo.OpenRepository: %w", err)
 	}
 	go func() {
 		// FIXME: graceful: We need to tell the manager we're doing something...
@@ -614,7 +615,7 @@ func CloseBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, 
 
 // CloseRepoBranchesPulls close all pull requests which head branches are in the given repository, but only whose base repo is not in the given repository
 func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) error {
-	branches, _, err := git.GetBranchesByPath(ctx, repo.RepoPath(), 0, 0)
+	branches, _, err := gitrepo.GetBranchesByPath(ctx, repo, 0, 0)
 	if err != nil {
 		return err
 	}
@@ -671,7 +672,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		}
 	}
 
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.HeadRepo.RepoPath())
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.HeadRepo)
 	if err != nil {
 		log.Error("Unable to open head repository: Error: %v", err)
 		return ""
@@ -845,7 +846,7 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 		}
 		gitRepo, ok := gitRepos[issue.RepoID]
 		if !ok {
-			gitRepo, err = git.OpenRepository(ctx, issue.Repo.RepoPath())
+			gitRepo, err = gitrepo.OpenRepository(ctx, issue.Repo)
 			if err != nil {
 				log.Error("Cannot open git repository %-v for issue #%d[%d]. Error: %v", issue.Repo, issue.Index, issue.ID, err)
 				continue
@@ -882,7 +883,7 @@ func IsHeadEqualWithBranch(ctx context.Context, pr *issues_model.PullRequest, br
 	if err = pr.LoadBaseRepo(ctx); err != nil {
 		return false, err
 	}
-	baseGitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
+	baseGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		return false, err
 	}
@@ -902,7 +903,7 @@ func IsHeadEqualWithBranch(ctx context.Context, pr *issues_model.PullRequest, br
 	} else {
 		var closer io.Closer
 
-		headGitRepo, closer, err = git.RepositoryFromContextOrOpen(ctx, pr.HeadRepo.RepoPath())
+		headGitRepo, closer, err = gitrepo.RepositoryFromContextOrOpen(ctx, pr.HeadRepo)
 		if err != nil {
 			return false, err
 		}
