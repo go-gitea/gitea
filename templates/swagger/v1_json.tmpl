@@ -677,6 +677,9 @@
           "200": {
             "$ref": "#/responses/User"
           },
+          "400": {
+            "$ref": "#/responses/error"
+          },
           "403": {
             "$ref": "#/responses/forbidden"
           },
@@ -17017,6 +17020,10 @@
           "type": "boolean",
           "x-go-name": "EnableStatusCheck"
         },
+        "ignore_stale_approvals": {
+          "type": "boolean",
+          "x-go-name": "IgnoreStaleApprovals"
+        },
         "merge_whitelist_teams": {
           "type": "array",
           "items": {
@@ -17657,6 +17664,10 @@
         "enable_status_check": {
           "type": "boolean",
           "x-go-name": "EnableStatusCheck"
+        },
+        "ignore_stale_approvals": {
+          "type": "boolean",
+          "x-go-name": "IgnoreStaleApprovals"
         },
         "merge_whitelist_teams": {
           "type": "array",
@@ -18788,6 +18799,10 @@
         "enable_status_check": {
           "type": "boolean",
           "x-go-name": "EnableStatusCheck"
+        },
+        "ignore_stale_approvals": {
+          "type": "boolean",
+          "x-go-name": "IgnoreStaleApprovals"
         },
         "merge_whitelist_teams": {
           "type": "array",

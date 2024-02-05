@@ -57,6 +57,21 @@ func (err ErrUserOwnPackages) Error() string {
 	return fmt.Sprintf("user still has ownership of packages [uid: %d]", err.UID)
 }
 
+// ErrDeleteLastAdminUser represents a "DeleteLastAdminUser" kind of error.
+type ErrDeleteLastAdminUser struct {
+	UID int64
+}
+
+// IsErrDeleteLastAdminUser checks if an error is a ErrDeleteLastAdminUser.
+func IsErrDeleteLastAdminUser(err error) bool {
+	_, ok := err.(ErrDeleteLastAdminUser)
+	return ok
+}
+
+func (err ErrDeleteLastAdminUser) Error() string {
+	return fmt.Sprintf("can not delete the last admin user [uid: %d]", err.UID)
+}
+
 // ErrNoPendingRepoTransfer is an error type for repositories without a pending
 // transfer request
 type ErrNoPendingRepoTransfer struct {

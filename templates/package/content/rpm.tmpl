@@ -4,19 +4,23 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.rpm.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code># {{ctx.Locale.Tr "packages.rpm.distro.redhat"}}
-dnf config-manager --add-repo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm.repo"></gitea-origin-url>
+				<div class="markup"><pre class="code-block"><code># {{ctx.Locale.Tr "packages.rpm.distros.redhat"}}
+{{$group_name:= StringUtils.ReplaceAllStringRegex .PackageDescriptor.Version.Version "(/[^/]+|[^/]*)\\z" "" -}}
+{{- if $group_name -}}
+{{- $group_name = (print "/" $group_name) -}}
+{{- end -}}
+dnf config-manager --add-repo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm{{$group_name}}.repo"></gitea-origin-url>
 
-# {{ctx.Locale.Tr "packages.rpm.distro.suse"}}
-zypper addrepo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm.repo"></gitea-origin-url></code></pre></div>
+# {{ctx.Locale.Tr "packages.rpm.distros.suse"}}
+zypper addrepo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm{{$group_name}}.repo"></gitea-origin-url></code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.rpm.install"}}</label>
 				<div class="markup">
-					<pre class="code-block"><code># {{ctx.Locale.Tr "packages.rpm.distro.redhat"}}
+					<pre class="code-block"><code># {{ctx.Locale.Tr "packages.rpm.distros.redhat"}}
 dnf install {{$.PackageDescriptor.Package.Name}}
 
-# {{ctx.Locale.Tr "packages.rpm.distro.suse"}}
+# {{ctx.Locale.Tr "packages.rpm.distros.suse"}}
 zypper install {{$.PackageDescriptor.Package.Name}}</code></pre>
 				</div>
 			</div>

@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // ErrCommentNotExist represents a "CommentNotExist" kind of error.
@@ -338,7 +337,7 @@ func (c *Comment) BeforeUpdate() {
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (c *Comment) AfterLoad(session *xorm.Session) {
+func (c *Comment) AfterLoad() {
 	c.Patch = c.PatchQuoted
 	if len(c.PatchQuoted) > 0 && c.PatchQuoted[0] == '"' {
 		unquoted, err := strconv.Unquote(c.PatchQuoted)

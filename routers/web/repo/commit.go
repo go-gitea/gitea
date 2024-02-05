@@ -7,7 +7,9 @@ package repo
 import (
 	"errors"
 	"fmt"
+	"html/template"
 	"net/http"
+	"path"
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -21,7 +23,9 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitgraph"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
 	git_service "code.gitea.io/gitea/services/repository"
 )
@@ -370,9 +374,21 @@ func Diff(ctx *context.Context) {
 	note := &git.Note{}
 	err = git.GetNote(ctx, ctx.Repo.GitRepo, commitID, note)
 	if err == nil {
-		ctx.Data["Note"] = string(charset.ToUTF8WithFallback(note.Message))
 		ctx.Data["NoteCommit"] = note.Commit
 		ctx.Data["NoteAuthor"] = user_model.ValidateCommitWithEmail(ctx, note.Commit)
+		ctx.Data["NoteRendered"], err = markup.RenderCommitMessage(&markup.RenderContext{
+			Links: markup.Links{
+				Base:       ctx.Repo.RepoLink,
+				BranchPath: path.Join("commit", util.PathEscapeSegments(commitID)),
+			},
+			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+			GitRepo: ctx.Repo.GitRepo,
+			Ctx:     ctx,
+		}, template.HTMLEscapeString(string(charset.ToUTF8WithFallback(note.Message))))
+		if err != nil {
+			ctx.ServerError("RenderCommitMessage", err)
+			return
+		}
 	}
 
 	ctx.Data["BranchName"], err = commit.GetBranchName()

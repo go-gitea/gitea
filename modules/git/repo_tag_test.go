@@ -208,8 +208,8 @@ func TestRepository_parseTagRef(t *testing.T) {
 			name: "lightweight tag",
 
 			givenRef: map[string]string{
-				"objecttype":    "commit",
-				"refname:short": "v1.9.1",
+				"objecttype":       "commit",
+				"refname:lstrip=2": "v1.9.1",
 				// object will be empty for lightweight tags
 				"object":     "",
 				"objectname": "ab23e4b7f4cd0caafe0174c0e7ef6d651ba72889",
@@ -237,8 +237,8 @@ func TestRepository_parseTagRef(t *testing.T) {
 			name: "annotated tag",
 
 			givenRef: map[string]string{
-				"objecttype":    "tag",
-				"refname:short": "v0.0.1",
+				"objecttype":       "tag",
+				"refname:lstrip=2": "v0.0.1",
 				// object will refer to commit hash for annotated tag
 				"object":     "3325fd8a973321fd59455492976c042dde3fd1ca",
 				"objectname": "8c68a1f06fc59c655b7e3905b159d761e91c53c9",
@@ -266,11 +266,11 @@ func TestRepository_parseTagRef(t *testing.T) {
 			name: "annotated tag with signature",
 
 			givenRef: map[string]string{
-				"objecttype":    "tag",
-				"refname:short": "v0.0.1",
-				"object":        "3325fd8a973321fd59455492976c042dde3fd1ca",
-				"objectname":    "8c68a1f06fc59c655b7e3905b159d761e91c53c9",
-				"creator":       "Foo Bar <foo@bar.com> 1565789218 +0300",
+				"objecttype":       "tag",
+				"refname:lstrip=2": "v0.0.1",
+				"object":           "3325fd8a973321fd59455492976c042dde3fd1ca",
+				"objectname":       "8c68a1f06fc59c655b7e3905b159d761e91c53c9",
+				"creator":          "Foo Bar <foo@bar.com> 1565789218 +0300",
 				"contents": `Add changelog of v1.9.1 (#7859)
 
 * add changelog of v1.9.1

@@ -109,9 +109,11 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 
 		var err error
 		if comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			Ctx:       ctx,
-			URLPrefix: issue.Repo.Link(),
-			Metas:     issue.Repo.ComposeMetas(ctx),
+			Ctx: ctx,
+			Links: markup.Links{
+				Base: issue.Repo.Link(),
+			},
+			Metas: issue.Repo.ComposeMetas(ctx),
 		}, comment.Content); err != nil {
 			return nil, err
 		}
