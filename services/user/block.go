@@ -208,7 +208,7 @@ func cancelRepositoryTransfers(ctx context.Context, sender, recipient *user_mode
 			return err
 		}
 
-		if err := models.CancelRepositoryTransfer(ctx, repo); err != nil {
+		if err := repo_service.CancelRepositoryTransfer(ctx, repo); err != nil {
 			return err
 		}
 	}
