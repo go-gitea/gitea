@@ -4,13 +4,14 @@
 package pwn
 
 import (
-	"errors"
 	"math/rand"
 	"net/http"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var client = New(WithHTTP(&http.Client{
@@ -25,78 +26,44 @@ func TestMain(m *testing.M) {
 func TestPassword(t *testing.T) {
 	// Check input error
 	_, err := client.CheckPassword("", false)
-	if err == nil {
-		t.Log("blank input should return an error")
-		t.Fail()
-	}
-	if !errors.Is(err, ErrEmptyPassword) {
-		t.Log("blank input should return ErrEmptyPassword")
-		t.Fail()
-	}
+	assert.ErrorIs(t, err, ErrEmptyPassword, "blank input should return ErrEmptyPassword")
 
 	// Should fail
 	fail := "password1234"
 	count, err := client.CheckPassword(fail, false)
-	if err != nil {
-		t.Log(err)
-		t.Fail()
-	}
-	if count == 0 {
-		t.Logf("%s should fail as a password\n", fail)
-		t.Fail()
-	}
+	assert.NotEmpty(t, count, "%s should fail as a password", fail)
+	assert.NoError(t, err)
 
 	// Should fail (with padding)
 	failPad := "administrator"
 	count, err = client.CheckPassword(failPad, true)
-	if err != nil {
-		t.Log(err)
-		t.Fail()
-	}
-	if count == 0 {
-		t.Logf("%s should fail as a password\n", failPad)
-		t.Fail()
-	}
+	assert.NotEmpty(t, count, "%s should fail as a password", failPad)
+	assert.NoError(t, err)
 
 	// Checking for a "good" password isn't going to be perfect, but we can give it a good try
 	// with hopefully minimal error. Try five times?
-	var good bool
-	var pw string
-	for idx := 0; idx <= 5; idx++ {
-		pw = testPassword()
-		count, err = client.CheckPassword(pw, false)
-		if err != nil {
-			t.Log(err)
-			t.Fail()
+	assert.Condition(t, func() bool {
+		for i := 0; i <= 5; i++ {
+			count, err = client.CheckPassword(testPassword(), false)
+			assert.NoError(t, err)
+			if count == 0 {
+				return true
+			}
 		}
-		if count == 0 {
-			good = true
-			break
-		}
-	}
-	if !good {
-		t.Log("no generated passwords passed. there is a chance this is a fluke")
-		t.Fail()
-	}
+		return false
+	}, "no generated passwords passed. there is a chance this is a fluke")
 
 	// Again, but with padded responses
-	good = false
-	for idx := 0; idx <= 5; idx++ {
-		pw = testPassword()
-		count, err = client.CheckPassword(pw, true)
-		if err != nil {
-			t.Log(err)
-			t.Fail()
+	assert.Condition(t, func() bool {
+		for i := 0; i <= 5; i++ {
+			count, err = client.CheckPassword(testPassword(), true)
+			assert.NoError(t, err)
+			if count == 0 {
+				return true
+			}
 		}
-		if count == 0 {
-			good = true
-			break
-		}
-	}
-	if !good {
-		t.Log("no generated passwords passed. there is a chance this is a fluke")
-		t.Fail()
-	}
+		return false
+	}, "no generated passwords passed. there is a chance this is a fluke")
 }
 
 // Credit to https://golangbyexample.com/generate-random-password-golang/
