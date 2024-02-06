@@ -257,10 +257,10 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 	return comment, err
 }
 
-// CanDoerChangeReviewRequests returns if the doer can change all review requests of a PR
+// CanDoerChangeReviewRequests returns if the doer can add/remove review requests of a PR
 func CanDoerChangeReviewRequests(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue) bool {
-	if doer != nil && doer.ID == issue.PosterID {
-		// The poster of the PR can change the reviewers
+	// The poster of the PR can change the reviewers
+	if doer.ID == issue.PosterID {
 		return true
 	}
 
@@ -274,8 +274,8 @@ func CanDoerChangeReviewRequests(ctx context.Context, doer *user_model.User, rep
 		return true
 	}
 
+	// If the repo's owner is an organization, members of teams with read permission on pull requests can change reviewers
 	if repo.Owner.IsOrganization() {
-		// If the repo's owner is an organization, members of teams with read permission on pull requests can change reviewers
 		teams, err := organization.GetTeamsWithAccessToRepo(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead)
 		if err != nil {
 			log.Error("GetTeamsWithAccessToRepo: %v", err)
