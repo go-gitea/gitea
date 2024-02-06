@@ -712,10 +712,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 		}
 
 		if canChooseReviewer {
-			// Users who can choose reviewers can also change reviewers
-			tmp.CanChange = true
-		} else if ctx.Repo.IsAdmin() {
-			// Admin can dismiss or re-request any review requests
+			// Users who can choose reviewers can also remove review requests
 			tmp.CanChange = true
 		} else if ctx.Doer != nil && ctx.Doer.ID == review.ReviewerID && review.Type == issues_model.ReviewTypeRequest {
 			// A user can refuse review requests
