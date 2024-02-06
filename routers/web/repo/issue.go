@@ -1524,11 +1524,9 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	if issue.IsPull {
-		canChooseReviewer := ctx.Repo.CanWrite(unit.TypePullRequests)
+		canChooseReviewer := false
 		if ctx.Doer != nil && ctx.IsSigned {
-			if !canChooseReviewer {
-				canChooseReviewer = issue_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, repo, issue)
-			}
+			canChooseReviewer = issue_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, repo, issue)
 		}
 
 		RetrieveRepoReviewers(ctx, repo, issue, canChooseReviewer)
