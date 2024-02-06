@@ -2128,14 +2128,16 @@
 }
 
 #search-user-box .results .result .image {
-  float: left;
-  margin-right: 8px;
+  order: 0;
+  margin-right: 12px;
   width: 2em;
   height: 2em;
+  min-width: 2em;
+  min-height: 2em;
 }
 
 #search-user-box .results .result .content {
-  margin: 6px 0; /* this trick is used to align with the sibling avatar image */
+  margin: 0; /* remove margin reserved for avatar because we move it to left via `order: 0` */
 }
 
 .ui.menu .item > img:not(.ui) {

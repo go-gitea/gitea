@@ -58,37 +58,9 @@
 						{{svg "octicon-rss" 16}}
 					</a>
 					{{end}}
-					<form method="post" action="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
-						{{$.CsrfTokenHtml}}
-						<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.watch_guest_user"}}"{{end}}>
-							<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}}>
-								{{if $.IsWatchingRepo}}
-									{{svg "octicon-eye-closed" 16}}<span class="text">{{ctx.Locale.Tr "repo.unwatch"}}</span>
-								{{else}}
-									{{svg "octicon-eye"}}<span class="text">{{ctx.Locale.Tr "repo.watch"}}</span>
-								{{end}}
-							</button>
-							<a class="ui basic label" href="{{.Link}}/watchers">
-								{{CountFmt .NumWatches}}
-							</a>
-						</div>
-					</form>
+					{{template "repo/watch_unwatch" $}}
 					{{if not $.DisableStars}}
-						<form method="post" action="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}un{{end}}star?redirect_to={{$.Link}}">
-							{{$.CsrfTokenHtml}}
-							<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.star_guest_user"}}"{{end}}>
-								<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}}>
-									{{if $.IsStaringRepo}}
-										{{svg "octicon-star-fill"}}<span class="text">{{ctx.Locale.Tr "repo.unstar"}}</span>
-									{{else}}
-										{{svg "octicon-star"}}<span class="text">{{ctx.Locale.Tr "repo.star"}}</span>
-									{{end}}
-								</button>
-								<a class="ui basic label" href="{{.Link}}/stars">
-									{{CountFmt .NumStars}}
-								</a>
-							</div>
-						</form>
+					{{template "repo/star_unstar" $}}
 					{{end}}
 					{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
 						<div class="ui labeled button
