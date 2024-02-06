@@ -39,6 +39,12 @@ Images must follow this naming convention:
 
 `{registry}/{owner}/{image}`
 
+Name your image according to the convetion with the following command:
+
+```shell
+docker tag {image}:{tag} gitea.example.com/{owner}/{image}:{tag}
+```
+
 For example, these are all valid image names for the owner `testuser`:
 
 `gitea.example.com/testuser/myimage`
@@ -67,12 +73,6 @@ For example:
 
 ```shell
 docker push gitea.example.com/testuser/myimage:latest
-```
-
-If you run into the error "An image does not exist locally with the tag" simply run the following command and retry the push afterwards:
-
-```shell
-docker tag {image}:{tag} gitea.example.com/{owner}/{image}:{tag}
 ```
 
 ## Pull an image
