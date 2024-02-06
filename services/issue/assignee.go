@@ -114,36 +114,14 @@ func IsValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 		return err
 	}
 
-	var pemResult bool
+	canDoerChangeReviewRequests := CanDoerChangeReviewRequests(ctx, doer, issue.Repo, issue)
+
 	if isAdd {
-		pemResult = permReviewer.CanAccessAny(perm.AccessModeRead, unit.TypePullRequests)
-		if !pemResult {
+		if !permReviewer.CanAccessAny(perm.AccessModeRead, unit.TypePullRequests) {
 			return issues_model.ErrNotValidReviewRequest{
 				Reason: "Reviewer can't read",
 				UserID: doer.ID,
 				RepoID: issue.Repo.ID,
-			}
-		}
-
-		if doer.ID == issue.PosterID && issue.OriginalAuthorID == 0 && lastreview != nil && lastreview.Type != issues_model.ReviewTypeRequest {
-			return nil
-		}
-
-		pemResult = doer.ID == issue.PosterID
-		if !pemResult {
-			pemResult = permDoer.CanAccessAny(perm.AccessModeWrite, unit.TypePullRequests)
-		}
-		if !pemResult {
-			pemResult, err = issues_model.IsOfficialReviewer(ctx, issue, doer)
-			if err != nil {
-				return err
-			}
-			if !pemResult {
-				return issues_model.ErrNotValidReviewRequest{
-					Reason: "Doer can't choose reviewer",
-					UserID: doer.ID,
-					RepoID: issue.Repo.ID,
-				}
 			}
 		}
 
@@ -154,25 +132,35 @@ func IsValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 				RepoID: issue.Repo.ID,
 			}
 		}
-	} else {
-		if CanDoerChangeReviewRequests(ctx, doer, issue.Repo, issue) {
+
+		if canDoerChangeReviewRequests {
 			return nil
 		}
+
+		if doer.ID == issue.PosterID && issue.OriginalAuthorID == 0 && lastreview != nil && lastreview.Type != issues_model.ReviewTypeRequest {
+			return nil
+		}
+
+		return issues_model.ErrNotValidReviewRequest{
+			Reason: "Doer can't choose reviewer",
+			UserID: doer.ID,
+			RepoID: issue.Repo.ID,
+		}
+	} else {
+		if canDoerChangeReviewRequests {
+			return nil
+		}
+
 		if lastreview != nil && lastreview.Type == issues_model.ReviewTypeRequest && lastreview.ReviewerID == doer.ID {
 			return nil
 		}
 
-		pemResult = permDoer.IsAdmin()
-		if !pemResult {
-			return issues_model.ErrNotValidReviewRequest{
-				Reason: "Doer is not admin",
-				UserID: doer.ID,
-				RepoID: issue.Repo.ID,
-			}
+		return issues_model.ErrNotValidReviewRequest{
+			Reason: "Doer can't remove reviewer",
+			UserID: doer.ID,
+			RepoID: issue.Repo.ID,
 		}
 	}
-
-	return nil
 }
 
 // IsValidTeamReviewRequest Check permission for ReviewRequest Team
@@ -287,13 +275,16 @@ func CanDoerChangeReviewRequests(ctx context.Context, doer *user_model.User, rep
 	}
 
 	if repo.Owner.IsOrganization() {
-		// If the repo's owner is an organization, members of teams with read permission can change reviewers
+		// If the repo's owner is an organization, members of teams with read permission on pull requests can change reviewers
 		teams, err := organization.GetTeamsWithAccessToRepo(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead)
 		if err != nil {
 			log.Error("GetTeamsWithAccessToRepo: %v", err)
 			return false
 		}
 		for _, team := range teams {
+			if !team.UnitEnabled(ctx, unit.TypePullRequests) {
+				continue
+			}
 			isMember, err := organization.IsTeamMember(ctx, repo.OwnerID, team.ID, doer.ID)
 			if err != nil {
 				log.Error("IsTeamMember: %v", err)
