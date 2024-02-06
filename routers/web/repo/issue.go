@@ -2250,7 +2250,7 @@ func UpdateIssueContent(ctx *context.Context) {
 
 	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, ctx.Req.FormValue("content")); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.Error(http.StatusForbidden)
+			ctx.JSONError(ctx.Tr("repo.issues.edit.blocked_user"))
 		} else {
 			ctx.ServerError("ChangeContent", err)
 		}
@@ -3163,7 +3163,11 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 	if err = issue_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
-		ctx.ServerError("UpdateComment", err)
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
+		} else {
+			ctx.ServerError("UpdateComment", err)
+		}
 		return
 	}
 

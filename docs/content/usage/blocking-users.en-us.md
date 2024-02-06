@@ -20,8 +20,9 @@ menu:
 Gitea supports blocking of users to restrict how they can interact with you and your content.
 
 You can block a user in your account settings, from the user's profile or from comments created by the user.
-The user is not directly notified about the block.
+The user is not directly notified about the block, but they can notice they are blocked when they attempt to interact with you.
 Organization owners can block anyone who is not a member of the organization too.
+If a blocked user has admin permissions, they can still perform all actions even if blocked.
 
 ### When you block a user
 
@@ -31,7 +32,7 @@ Organization owners can block anyone who is not a member of the organization too
 - your stars are removed from their repositories
 - the user stops watching your repositories
 - you stop watching their repositories
-- the issue assignments are removed from your repositories
+- the user's issue assignments are removed from your repositories
 - your issue assignments are removed from their repositories
 - the user is removed as a collaborator on your repositories
 - you are removed as a collaborator on their repositories
