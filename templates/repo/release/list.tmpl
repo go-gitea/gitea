@@ -22,36 +22,18 @@
 										<span class="ui yellow label">{{ctx.Locale.Tr "repo.release.draft"}}</span>
 									{{else if .IsPrerelease}}
 										<span class="ui orange label">{{ctx.Locale.Tr "repo.release.prerelease"}}</span>
-									{{else if not .IsTag}}
+									{{else}}
 										<span class="ui green label">{{ctx.Locale.Tr "repo.release.stable"}}</span>
 									{{end}}
 								</h4>
 								<div>
-									{{if and $.CanCreateRelease (not .IsTag)}}
+									{{if $.CanCreateRelease}}
 										<a class="muted" data-tooltip-content="{{ctx.Locale.Tr "repo.release.edit"}}" href="{{$.RepoLink}}/releases/edit/{{.TagName | PathEscapeSegments}}" rel="nofollow">
 											{{svg "octicon-pencil"}}
 										</a>
 									{{end}}
 								</div>
 							</div>
-						{{if .IsTag}}
-							<p class="text grey">
-								{{if gt .Publisher.ID 0}}
-								<span class="author">
-									{{ctx.AvatarUtils.Avatar .Publisher 20 "gt-mr-2"}}
-									<a href="{{.Publisher.HomeLink}}">{{.Publisher.Name}}</a>
-								</span>
-								<span class="released">
-									{{ctx.Locale.Tr "repo.tagged_this"}}
-								</span>
-								{{if .CreatedUnix}}
-									<span class="time">{{TimeSinceUnix .CreatedUnix ctx.Locale}}</span>
-								{{end}}
-								|
-								{{end}}
-								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}...{{.TargetBehind | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{ctx.Locale.Tr "repo.tag.ahead.target" .TargetBehind}}</span>
-							</p>
-						{{else}}
 							<p class="text grey">
 								<span class="author">
 								{{if .OriginalAuthor}}
@@ -73,7 +55,6 @@
 									| <span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}...{{.TargetBehind | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{ctx.Locale.Tr "repo.release.ahead.target" .TargetBehind}}</span>
 								{{end}}
 							</p>
-						{{end}}
 							<div class="markup desc">
 								{{Str2html .Note}}
 							</div>
