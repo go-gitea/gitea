@@ -97,7 +97,7 @@ func IsErrProjectBoardNoteNotExist(err error) bool {
 }
 
 func (err ErrProjectBoardNoteNotExist) Error() string {
-	return fmt.Sprintf("project board-note does not exist [id: %d]", err.BoardNoteID)
+	return fmt.Sprintf("project-board-note does not exist [id: %d]", err.BoardNoteID)
 }
 
 func (err ErrProjectBoardNoteNotExist) Unwrap() error {
@@ -430,7 +430,7 @@ func DeleteProjectByID(ctx context.Context, id int64) error {
 			return err
 		}
 
-		if err := deleteBoardNoteByProjectID(ctx, id); err != nil {
+		if err := deleteProjectBoardNoteByProjectID(ctx, id); err != nil {
 			return err
 		}
 

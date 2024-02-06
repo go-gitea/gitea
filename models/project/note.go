@@ -17,8 +17,8 @@ import (
 	"xorm.io/builder"
 )
 
-// BoardNote is used to represent a note on a boards
-type BoardNote struct {
+// ProjectBoardNote is used to represent a note on a boards
+type ProjectBoardNote struct {
 	ID              int64  `xorm:"pk autoincr"`
 	Title           string `xorm:"TEXT NOT NULL"`
 	Content         string `xorm:"LONGTEXT"`
@@ -35,60 +35,60 @@ type BoardNote struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
-type BoardNoteList = []*BoardNote
+type ProjectBoardNoteList []*ProjectBoardNote
 
-// NotesOptions represents options of an note.
-type NotesOptions struct {
+// ProjectBoardNotesOptions represents options of an note.
+type ProjectBoardNotesOptions struct {
 	db.Paginator
 	ProjectID int64
 	BoardID   int64
 }
 
 func init() {
-	db.RegisterModel(new(BoardNote))
+	db.RegisterModel(new(ProjectBoardNote))
 }
 
-// GetBoardNoteByID load notes assigned to the boards
-func GetBoardNoteByID(ctx context.Context, noteID int64) (*BoardNote, error) {
-	note := new(BoardNote)
+// GetProjectBoardNoteByID load notes assigned to the boards
+func GetProjectBoardNoteByID(ctx context.Context, projectBoardNoteID int64) (*ProjectBoardNote, error) {
+	projectBoardNote := new(ProjectBoardNote)
 
-	has, err := db.GetEngine(ctx).ID(noteID).Get(note)
+	has, err := db.GetEngine(ctx).ID(projectBoardNoteID).Get(projectBoardNote)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrProjectBoardNoteNotExist{BoardNoteID: noteID}
+		return nil, ErrProjectBoardNoteNotExist{BoardNoteID: projectBoardNoteID}
 	}
 
-	return note, nil
+	return projectBoardNote, nil
 }
 
-// GetBoardNoteByIds return notes with the given IDs.
-func GetBoardNoteByIds(ctx context.Context, noteIDs []int64) (BoardNoteList, error) {
-	notes := make(BoardNoteList, 0, len(noteIDs))
+// GetProjectBoardNotesByIds return notes with the given IDs.
+func GetProjectBoardNotesByIds(ctx context.Context, projectBoardNoteIDs []int64) (ProjectBoardNoteList, error) {
+	projectBoardNoteList := make(ProjectBoardNoteList, 0, len(projectBoardNoteIDs))
 
-	if err := db.GetEngine(ctx).In("id", noteIDs).Find(&notes); err != nil {
+	if err := db.GetEngine(ctx).In("id", projectBoardNoteIDs).Find(&projectBoardNoteList); err != nil {
 		return nil, err
 	}
 
-	return notes, nil
+	return projectBoardNoteList, nil
 }
 
-// LoadBoardNotesFromBoardList load notes assigned to the boards
-func (p *Project) LoadBoardNotesFromBoardList(ctx context.Context, bs BoardList) (map[int64]BoardNoteList, error) {
-	notesMap := make(map[int64]BoardNoteList, len(bs))
-	for i := range bs {
-		il, err := LoadBoardNotesFromBoard(ctx, bs[i])
+// LoadProjectBoardNotesFromBoardList load notes assigned to the boards
+func (p *Project) LoadProjectBoardNotesFromBoardList(ctx context.Context, boardList BoardList) (map[int64]ProjectBoardNoteList, error) {
+	projectBoardNoteListMap := make(map[int64]ProjectBoardNoteList, len(boardList))
+	for i := range boardList {
+		il, err := LoadProjectBoardNotesFromBoard(ctx, boardList[i])
 		if err != nil {
 			return nil, err
 		}
-		notesMap[bs[i].ID] = il
+		projectBoardNoteListMap[boardList[i].ID] = il
 	}
-	return notesMap, nil
+	return projectBoardNoteListMap, nil
 }
 
-// LoadBoardNotesFromBoard load notes assigned to this board
-func LoadBoardNotesFromBoard(ctx context.Context, board *Board) (BoardNoteList, error) {
-	notes, err := BoardNotes(ctx, &NotesOptions{
+// LoadProjectBoardNotesFromBoard load notes assigned to this board
+func LoadProjectBoardNotesFromBoard(ctx context.Context, board *Board) (ProjectBoardNoteList, error) {
+	projectBoardNoteList, err := ProjectBoardNotes(ctx, &ProjectBoardNotesOptions{
 		ProjectID: board.ProjectID,
 		BoardID:   board.ID,
 	})
@@ -96,22 +96,22 @@ func LoadBoardNotesFromBoard(ctx context.Context, board *Board) (BoardNoteList, 
 		return nil, err
 	}
 
-	return notes, nil
+	return projectBoardNoteList, nil
 }
 
-// BoardNotes returns a list of notes by given conditions.
-func BoardNotes(ctx context.Context, opts *NotesOptions) (BoardNoteList, error) {
+// ProjectBoardNotes returns a list of notes by given conditions.
+func ProjectBoardNotes(ctx context.Context, opts *ProjectBoardNotesOptions) (ProjectBoardNoteList, error) {
 	sess := db.GetEngine(ctx)
 
 	sess.Where(builder.Eq{"board_id": opts.BoardID}).And(builder.Eq{"project_id": opts.ProjectID})
 
-	notes := BoardNoteList{}
-	if err := sess.Asc("sorting").Desc("updated_unix").Desc("id").Find(&notes); err != nil {
-		return nil, fmt.Errorf("unable to query Notes: %w", err)
+	projectBoardNoteList := ProjectBoardNoteList{}
+	if err := sess.Asc("sorting").Desc("updated_unix").Desc("id").Find(&projectBoardNoteList); err != nil {
+		return nil, fmt.Errorf("unable to query project-board-notes: %w", err)
 	}
 
 	// @TODO: same code in `GetPinnedBoardNotes()` and should be used with `LoadAttributes()`
-	for _, note := range notes {
+	for _, note := range projectBoardNoteList {
 		creator := new(user_model.User)
 		has, err := db.GetEngine(ctx).ID(note.CreatorID).Get(creator)
 		if err != nil {
@@ -123,12 +123,12 @@ func BoardNotes(ctx context.Context, opts *NotesOptions) (BoardNoteList, error) 
 		note.Creator = creator
 	}
 
-	return notes, nil
+	return projectBoardNoteList, nil
 }
 
-// NewBoardNote adds a new note to a given board
-func NewBoardNote(ctx context.Context, note *BoardNote) error {
-	_, err := db.GetEngine(ctx).Insert(note)
+// NewProjectBoardNote adds a new note to a given board
+func NewProjectBoardNote(ctx context.Context, projectBoardNote *ProjectBoardNote) error {
+	_, err := db.GetEngine(ctx).Insert(projectBoardNote)
 	return err
 }
 
@@ -138,17 +138,17 @@ func (notes BoardNoteList) LoadAttributes() error {
 	return nil
 } */
 
-var ErrBoardNoteMaxPinReached = util.NewInvalidArgumentErrorf("the max number of pinned board-notes has been readched")
+var ErrBoardNoteMaxPinReached = util.NewInvalidArgumentErrorf("the max number of pinned project-board-notes has been readched")
 
 // IsPinned returns if a BoardNote is pinned
-func (note *BoardNote) IsPinned() bool {
-	return note.PinOrder != 0
+func (projectBoardNote *ProjectBoardNote) IsPinned() bool {
+	return projectBoardNote.PinOrder != 0
 }
 
 // IsPinned returns if a BoardNote is pinned
-func (note *BoardNote) GetMaxPinOrder(ctx context.Context) (int64, error) {
+func (projectBoardNote *ProjectBoardNote) GetMaxPinOrder(ctx context.Context) (int64, error) {
 	var maxPin int64
-	_, err := db.GetEngine(ctx).SQL("SELECT MAX(pin_order) FROM board_note WHERE project_id = ?", note.ProjectID).Get(&maxPin)
+	_, err := db.GetEngine(ctx).SQL("SELECT MAX(pin_order) FROM project_board_note WHERE project_id = ?", projectBoardNote.ProjectID).Get(&maxPin)
 	if err != nil {
 		return -1, err
 	}
@@ -156,8 +156,8 @@ func (note *BoardNote) GetMaxPinOrder(ctx context.Context) (int64, error) {
 }
 
 // IsPinned returns if a BoardNote is pinned
-func (note *BoardNote) IsNewPinAllowed(ctx context.Context) bool {
-	maxPin, err := note.GetMaxPinOrder(ctx)
+func (projectBoardNote *ProjectBoardNote) IsNewPinAllowed(ctx context.Context) bool {
+	maxPin, err := projectBoardNote.GetMaxPinOrder(ctx)
 	if err != nil {
 		return false
 	}
@@ -167,13 +167,13 @@ func (note *BoardNote) IsNewPinAllowed(ctx context.Context) bool {
 }
 
 // Pin pins a BoardNote
-func (note *BoardNote) Pin(ctx context.Context) error {
+func (projectBoardNote *ProjectBoardNote) Pin(ctx context.Context) error {
 	// If the BoardNote is already pinned, we don't need to pin it twice
-	if note.IsPinned() {
+	if projectBoardNote.IsPinned() {
 		return nil
 	}
 
-	maxPin, err := note.GetMaxPinOrder(ctx)
+	maxPin, err := projectBoardNote.GetMaxPinOrder(ctx)
 	if err != nil {
 		return err
 	}
@@ -183,8 +183,8 @@ func (note *BoardNote) Pin(ctx context.Context) error {
 		return ErrBoardNoteMaxPinReached
 	}
 
-	_, err = db.GetEngine(ctx).Table("board_note").
-		Where("id = ?", note.ID).
+	_, err = db.GetEngine(ctx).Table("project_board_note").
+		Where("id = ?", projectBoardNote.ID).
 		Update(map[string]any{
 			"pin_order": maxPin + 1,
 		})
@@ -196,20 +196,20 @@ func (note *BoardNote) Pin(ctx context.Context) error {
 }
 
 // Unpin unpins a BoardNote
-func (note *BoardNote) Unpin(ctx context.Context) error {
+func (projectBoardNote *ProjectBoardNote) Unpin(ctx context.Context) error {
 	// If the BoardNote is not pinned, we don't need to unpin it
-	if !note.IsPinned() {
+	if !projectBoardNote.IsPinned() {
 		return nil
 	}
 
 	// This sets the Pin for all BoardNotes that come after the unpined BoardNote to the correct value
-	_, err := db.GetEngine(ctx).Exec("UPDATE board_note SET pin_order = pin_order - 1 WHERE project_id = ? AND pin_order > ?", note.ProjectID, note.PinOrder)
+	_, err := db.GetEngine(ctx).Exec("UPDATE project_board_note SET pin_order = pin_order - 1 WHERE project_id = ? AND pin_order > ?", projectBoardNote.ProjectID, projectBoardNote.PinOrder)
 	if err != nil {
 		return err
 	}
 
-	_, err = db.GetEngine(ctx).Table("board_note").
-		Where("id = ?", note.ID).
+	_, err = db.GetEngine(ctx).Table("project_board_note").
+		Where("id = ?", projectBoardNote.ID).
 		Update(map[string]any{
 			"pin_order": 0,
 		})
@@ -221,9 +221,9 @@ func (note *BoardNote) Unpin(ctx context.Context) error {
 }
 
 // MovePin moves a Pinned BoardNote to a new Position
-func (note *BoardNote) MovePin(ctx context.Context, newPosition int64) error {
+func (projectBoardNote *ProjectBoardNote) MovePin(ctx context.Context, newPosition int64) error {
 	// If the BoardNote is not pinned, we can't move them
-	if !note.IsPinned() {
+	if !projectBoardNote.IsPinned() {
 		return nil
 	}
 
@@ -237,7 +237,7 @@ func (note *BoardNote) MovePin(ctx context.Context, newPosition int64) error {
 	}
 	defer committer.Close()
 
-	maxPin, err := note.GetMaxPinOrder(ctx)
+	maxPin, err := projectBoardNote.GetMaxPinOrder(ctx)
 	if err != nil {
 		return err
 	}
@@ -248,19 +248,19 @@ func (note *BoardNote) MovePin(ctx context.Context, newPosition int64) error {
 	}
 
 	// Lower the Position of all Pinned BoardNotes that came after the current Position
-	_, err = db.GetEngine(dbctx).Exec("UPDATE board_note SET pin_order = pin_order - 1 WHERE project_id = ? AND pin_order > ?", note.ProjectID, note.PinOrder)
+	_, err = db.GetEngine(dbctx).Exec("UPDATE project_board_note SET pin_order = pin_order - 1 WHERE project_id = ? AND pin_order > ?", projectBoardNote.ProjectID, projectBoardNote.PinOrder)
 	if err != nil {
 		return err
 	}
 
 	// Higher the Position of all Pinned BoardNotes that comes after the new Position
-	_, err = db.GetEngine(dbctx).Exec("UPDATE board_note SET pin_order = pin_order + 1 WHERE project_id = ? AND pin_order >= ?", note.ProjectID, newPosition)
+	_, err = db.GetEngine(dbctx).Exec("UPDATE project_board_note SET pin_order = pin_order + 1 WHERE project_id = ? AND pin_order >= ?", projectBoardNote.ProjectID, newPosition)
 	if err != nil {
 		return err
 	}
 
-	_, err = db.GetEngine(dbctx).Table("board_note").
-		Where("id = ?", note.ID).
+	_, err = db.GetEngine(dbctx).Table("project_board_note").
+		Where("id = ?", projectBoardNote.ID).
 		Update(map[string]any{
 			"pin_order": newPosition,
 		})
@@ -271,12 +271,12 @@ func (note *BoardNote) MovePin(ctx context.Context, newPosition int64) error {
 	return committer.Commit()
 }
 
-// GetPinnedBoardNotes returns the pinned BaordNotes for the given Project
-func GetPinnedBoardNotes(ctx context.Context, projectID int64) (BoardNoteList, error) {
-	notes := make(BoardNoteList, 0)
+// GetPinnedProjectBoardNotes returns the pinned BaordNotes for the given Project
+func GetPinnedProjectBoardNotes(ctx context.Context, projectID int64) (ProjectBoardNoteList, error) {
+	notes := make(ProjectBoardNoteList, 0)
 
 	err := db.GetEngine(ctx).
-		Table("board_note").
+		Table("project_board_note").
 		Where("project_id = ?", projectID).
 		And("pin_order > 0").
 		OrderBy("pin_order").
@@ -302,46 +302,46 @@ func GetPinnedBoardNotes(ctx context.Context, projectID int64) (BoardNoteList, e
 }
 
 // GetLastEventTimestamp returns the last user visible event timestamp, either the creation or the update.
-func (note *BoardNote) GetLastEventTimestamp() timeutil.TimeStamp {
-	return max(note.CreatedUnix, note.UpdatedUnix)
+func (projectBoardNote *ProjectBoardNote) GetLastEventTimestamp() timeutil.TimeStamp {
+	return max(projectBoardNote.CreatedUnix, projectBoardNote.UpdatedUnix)
 }
 
 // GetLastEventLabel returns the localization label for the current note.
-func (note *BoardNote) GetLastEventLabel() string {
-	if note.UpdatedUnix > note.CreatedUnix {
+func (projectBoardNote *ProjectBoardNote) GetLastEventLabel() string {
+	if projectBoardNote.UpdatedUnix > projectBoardNote.CreatedUnix {
 		return "repo.projects.note.updated_by"
 	}
 	return "repo.projects.note.created_by"
 }
 
-// GetTasks returns the amount of tasks in the board-notes content
-func (note *BoardNote) GetTasks() int {
-	return len(markdown.MarkdownTasksRegex.FindAllStringIndex(note.Content, -1))
+// GetTasks returns the amount of tasks in the project-board-notes content
+func (projectBoardNote *ProjectBoardNote) GetTasks() int {
+	return len(markdown.MarkdownTasksRegex.FindAllStringIndex(projectBoardNote.Content, -1))
 }
 
-// GetTasksDone returns the amount of completed tasks in the board-notes content
-func (note *BoardNote) GetTasksDone() int {
-	return len(markdown.MarkdownTasksDoneRegex.FindAllStringIndex(note.Content, -1))
+// GetTasksDone returns the amount of completed tasks in the project-board-notes content
+func (projectBoardNote *ProjectBoardNote) GetTasksDone() int {
+	return len(markdown.MarkdownTasksDoneRegex.FindAllStringIndex(projectBoardNote.Content, -1))
 }
 
-// UpdateBoardNote changes a BoardNote
-func UpdateBoardNote(ctx context.Context, note *BoardNote) error {
+// UpdateProjectBoardNote changes a BoardNote
+func UpdateProjectBoardNote(ctx context.Context, projectBoardNote *ProjectBoardNote) error {
 	var fieldToUpdate []string
 
 	fieldToUpdate = append(fieldToUpdate, "title")
 	fieldToUpdate = append(fieldToUpdate, "content")
 
-	_, err := db.GetEngine(ctx).ID(note.ID).Cols(fieldToUpdate...).Update(note)
+	_, err := db.GetEngine(ctx).ID(projectBoardNote.ID).Cols(fieldToUpdate...).Update(projectBoardNote)
 	return err
 }
 
-// MoveBoardNoteOnProjectBoard moves or keeps notes in a column and sorts them inside that column
-func MoveBoardNoteOnProjectBoard(ctx context.Context, board *Board, sortedNoteIDs map[int64]int64) error {
+// MoveProjectBoardNoteOnProjectBoard moves or keeps notes in a column and sorts them inside that column
+func MoveProjectBoardNoteOnProjectBoard(ctx context.Context, board *Board, sortedProjectBoardNoteIDs map[int64]int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
 
-		for sorting, issueID := range sortedNoteIDs {
-			_, err := sess.Exec("UPDATE `board_note` SET board_id=?, sorting=? WHERE id=?", board.ID, sorting, issueID)
+		for sorting, issueID := range sortedProjectBoardNoteIDs {
+			_, err := sess.Exec("UPDATE `project_board_note` SET board_id=?, sorting=? WHERE id=?", board.ID, sorting, issueID)
 			if err != nil {
 				return err
 			}
@@ -350,21 +350,21 @@ func MoveBoardNoteOnProjectBoard(ctx context.Context, board *Board, sortedNoteID
 	})
 }
 
-func deleteBoardNoteByProjectID(ctx context.Context, projectID int64) error {
-	_, err := db.GetEngine(ctx).Where("project_id=?", projectID).Delete(&BoardNote{})
+func deleteProjectBoardNoteByProjectID(ctx context.Context, projectID int64) error {
+	_, err := db.GetEngine(ctx).Where("project_id=?", projectID).Delete(&ProjectBoardNote{})
 	return err
 }
 
-// DeleteBoardNote removes the BoardNote from the project board.
-func DeleteBoardNote(ctx context.Context, boardNote *BoardNote) error {
+// DeleteProjectBoardNote removes the BoardNote from the project board.
+func DeleteProjectBoardNote(ctx context.Context, boardNote *ProjectBoardNote) error {
 	if _, err := db.GetEngine(ctx).Delete(boardNote); err != nil {
 		return err
 	}
 	return nil
 }
 
-// removeBoardNotes sets the boardID to 0 for the board
-func (b *Board) removeBoardNotes(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `board_note` SET board_id = 0 WHERE board_id = ?", b.ID)
+// removeProjectBoardNotes sets the boardID to 0 for the board
+func (b *Board) removeProjectBoardNotes(ctx context.Context) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `project_board_note` SET board_id = 0 WHERE board_id = ?", b.ID)
 	return err
 }

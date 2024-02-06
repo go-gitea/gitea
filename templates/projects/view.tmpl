@@ -1,8 +1,8 @@
 {{$canWriteProject := and .CanWriteProjects (or (not .Repository) (not .Repository.IsArchived))}}
 
-{{if gt (len .PinnedNotes) 0}}
+{{if gt (len .PinnedProjectBoardNotes) 0}}
 <div id="pinned-notes">
-	{{range .PinnedNotes}}
+	{{range .PinnedProjectBoardNotes}}
 		<div class="note-card pinned-card {{if $canWriteProject}}gt-cursor-grab{{end}}" data-url="{{$.Link}}/{{.ID}}/note" data-note="{{.ID}}">
 			{{template "repo/note" (dict
 				"BoardNote" .
@@ -87,7 +87,7 @@
 				<div class="project-column-header">
 					<div class="ui large label project-column-title gt-py-2">
 						<div class="ui small circular grey label project-column-issue-note-count">
-							{{.NumIssuesAndNotes ctx}}
+							{{.NumIssuesAndProjectBoardNotes ctx}}
 						</div>
 						{{.Title}}
 					</div>
@@ -219,9 +219,9 @@
 				<div class="divider"></div>
 
 				<div class="cards-wrapper">
-					{{if or $canWriteProject (index $.NotesMap .ID)}}
+					{{if or $canWriteProject (index $.ProjectBoardNotesMap .ID)}}
 						<div class="ui cards note-cards {{if and $canWriteProject (ne .ID 0)}}{{/* ID 0 is default column which cannot be moved */}}gt-cursor-grab{{end}}" data-url="{{$.Link}}/{{.ID}}/note" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="note-board-{{.ID}}">
-							{{range (index $.NotesMap .ID)}}
+							{{range (index $.ProjectBoardNotesMap .ID)}}
 								<div class="note-card" data-note="{{.ID}}">
 									{{template "repo/note" (dict
 										"BoardNote" .

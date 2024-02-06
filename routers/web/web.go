@@ -1343,17 +1343,17 @@ func registerRoutes(m *web.Route) {
 						m.Post("/move", repo.MoveIssues)
 
 						m.Group("/note", func() {
-							m.Post("", web.Bind(forms.BoardNoteForm{}), repo.AddNoteToBoard)
-							m.Post("/move", repo.MoveBoardNote)
+							m.Post("", web.Bind(forms.ProjectBoardNoteForm{}), repo.AddProjectBoardNoteToBoard)
+							m.Post("/move", repo.MoveProjectBoardNote)
 
 							m.Group("/{noteID}", func() {
-								m.Put("", web.Bind(forms.BoardNoteForm{}), repo.EditBoardNote)
-								m.Delete("", repo.DeleteBoardNote)
+								m.Put("", web.Bind(forms.ProjectBoardNoteForm{}), repo.EditProjectBoardNote)
+								m.Delete("", repo.DeleteProjectBoardNote)
 
 								m.Group("/pin", func() {
-									m.Post("", web.Bind(forms.BoardNoteForm{}), repo.PinBoardNote)
-									m.Delete("", repo.UnPinBoardNote)
-									m.Post("/move", repo.PinMoveBoardNote)
+									m.Post("", web.Bind(forms.ProjectBoardNoteForm{}), repo.PinProjectBoardNote)
+									m.Delete("", repo.UnPinProjectBoardNote)
+									m.Post("/move", repo.PinMoveProjectBoardNote)
 								})
 							})
 						})
