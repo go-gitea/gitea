@@ -204,7 +204,6 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 
 				_, err := bulkService.
 					Do(ctx)
-
 				if err != nil {
 					return err
 				}
