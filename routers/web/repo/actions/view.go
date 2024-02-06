@@ -279,6 +279,17 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
+	// reset run's start and stop time when it is done
+	if run.Status.IsDone() {
+		run.PreviousDuration = run.Duration()
+		run.Started = 0
+		run.Stopped = 0
+		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration"); err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
 	job, jobs := getRunJobs(ctx, runIndex, jobIndex)
 	if ctx.Written() {
 		return

@@ -174,7 +174,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 	return batch.Index(id, &RepoIndexerData{
 		RepoID:    repo.ID,
 		CommitID:  commitSha,
-		Content:   string(charset.ToUTF8DropErrors(fileContents)),
+		Content:   string(charset.ToUTF8DropErrors(fileContents, charset.ConvertOpts{})),
 		Language:  analyze.GetCodeLanguage(update.Filename, fileContents),
 		UpdatedAt: time.Now().UTC(),
 	})

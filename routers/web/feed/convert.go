@@ -244,6 +244,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 			Title:       title,
 			Link:        link,
 			Description: desc,
+			IsPermaLink: "false",
 			Author: &feeds.Author{
 				Name:  act.ActUser.DisplayName(),
 				Email: act.ActUser.GetEmail(),
@@ -295,7 +296,6 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release, i
 			},
 			Metas: rel.Repo.ComposeMetas(ctx),
 		}, rel.Note)
-
 		if err != nil {
 			return nil, err
 		}

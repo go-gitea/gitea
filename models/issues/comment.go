@@ -18,7 +18,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
@@ -271,7 +271,7 @@ type Comment struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 
 	// Reference issue in commit message
-	CommitSHA string `xorm:"VARCHAR(40)"`
+	CommitSHA string `xorm:"VARCHAR(64)"`
 
 	Attachments []*repo_model.Attachment `xorm:"-"`
 	Reactions   ReactionList             `xorm:"-"`
@@ -763,8 +763,7 @@ func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
 		c.OldCommit = data.CommitIDs[0]
 		c.NewCommit = data.CommitIDs[1]
 	} else {
-		repoPath := c.Issue.Repo.RepoPath()
-		gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repoPath)
+		gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, c.Issue.Repo)
 		if err != nil {
 			return err
 		}
