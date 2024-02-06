@@ -24,7 +24,10 @@ func retriveConfig(cfg setting.MQConfig) kfklib.Config {
 	return kfklib.Config{
 		Address:        cfg.ServerAddr,
 		Version:        cfg.ServerVersion,
-		SkipCertVerify: true,
+		SkipCertVerify: cfg.SkipCertVerify,
+		Username:       cfg.Username,
+		Password:       cfg.Password,
+		MQCert:         cfg.Certificate,
 	}
 }
 

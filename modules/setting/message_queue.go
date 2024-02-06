@@ -9,10 +9,15 @@ var MQ MQConfig
 
 // MQConfig represents the configuration for a message queue
 type MQConfig struct {
-	TopicName     string `ini:"TOPIC_NAME"     json:",omitempty"`
-	ServerAddr    string `ini:"SERVER_ADDR"    json:",omitempty"`
-	MessageType   string `ini:"MESSAGE_TYPE"   json:",omitempty"`
-	ServerVersion string `ini:"SERVER_VERSION" json:",omitempty"`
+	TopicName      string `ini:"TOPIC_NAME"          json:",omitempty"`
+	ServerAddr     string `ini:"SERVER_ADDR"         json:",omitempty"`
+	MessageType    string `ini:"MESSAGE_TYPE"        json:",omitempty"`
+	ServerVersion  string `ini:"SERVER_VERSION"      json:",omitempty"`
+	Certificate    string `ini:"CERTIFICATE"         json:",omitempty"`
+	Username       string `ini:"USERNAME"            json:",omitempty"`
+	Password       string `ini:"PASSWORD"            json:",omitempty"`
+	Algorithm      string `ini:"ALGORITHM"           json:",omitempty"`
+	SkipCertVerify bool   `ini:"SKIP_CERT_VERIFY"    json:",omitempty"`
 }
 
 // loadMQFrom loads message queue configuration from the given root configuration provider
