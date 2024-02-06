@@ -305,7 +305,7 @@ func SyncRepoTags(ctx context.Context, repoID int64) error {
 	}
 	defer gitRepo.Close()
 
-	return SyncReleasesWithTags(ctx, repo, gitRepo)
+	return SyncReleasesWithTags(ctx, repo, gitRepo, false)
 }
 
 // SyncReleasesWithTags synchronizes release table with repository tags for each of the releases.
@@ -530,14 +530,14 @@ func (shortRelease) TableName() string {
 	return "release"
 }
 
-// pullMirrorReleaseSync is a pull-mirror specific tag<->release table
+// recreateMirrorReleaseFromTags is a pull-mirror specific tag<->release table
 // synchronization which overwrites all Releases from the repository tags. This
 // can be relied on since a pull-mirror is always identical to its
 // upstream. Hence, after each sync we want the pull-mirror release set to be
 // identical to the upstream tag set. This is much more efficient for
 // repositories like https://github.com/vim/vim (with over 13000 tags).
-func pullMirrorReleaseSync(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
-	log.Trace("pullMirrorReleaseSync: rebuilding releases for pull-mirror Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
+func recreateMirrorReleaseFromTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
+	log.Trace("recreateMirrorReleaseFromTags: rebuilding releases for pull-mirror Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
 	tags, numTags, err := gitRepo.GetTagInfos(0, 0)
 	if err != nil {
 		return fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
