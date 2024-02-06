@@ -146,20 +146,20 @@ func IsValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 			UserID: doer.ID,
 			RepoID: issue.Repo.ID,
 		}
-	} else {
-		if canDoerChangeReviewRequests {
-			return nil
-		}
+	}
 
-		if lastreview != nil && lastreview.Type == issues_model.ReviewTypeRequest && lastreview.ReviewerID == doer.ID {
-			return nil
-		}
+	if canDoerChangeReviewRequests {
+		return nil
+	}
 
-		return issues_model.ErrNotValidReviewRequest{
-			Reason: "Doer can't remove reviewer",
-			UserID: doer.ID,
-			RepoID: issue.Repo.ID,
-		}
+	if lastreview != nil && lastreview.Type == issues_model.ReviewTypeRequest && lastreview.ReviewerID == doer.ID {
+		return nil
+	}
+
+	return issues_model.ErrNotValidReviewRequest{
+		Reason: "Doer can't remove reviewer",
+		UserID: doer.ID,
+		RepoID: issue.Repo.ID,
 	}
 }
 
