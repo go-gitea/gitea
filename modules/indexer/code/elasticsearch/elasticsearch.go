@@ -202,7 +202,8 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 					Index(b.inner.VersionedIndexName()).
 					Add(bulkReq...)
 
-				_, err := bulkService.Do(ctx)
+				_, err := bulkService.
+					Do(ctx)
 
 				if err != nil {
 					return err
