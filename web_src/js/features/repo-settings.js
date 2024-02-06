@@ -52,9 +52,9 @@ export function initRepoSettingSearchTeamBox() {
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
-          const title = `${item.name} (${item.permission} access)`;
           items.push({
-            title,
+            title: item.name,
+            description: `${item.permission} access` // TODO: translate this string
           });
         });
 
@@ -81,6 +81,10 @@ export function initRepoSettingBranches() {
   $('.toggle-target-disabled').on('change', function () {
     const $target = $($(this).attr('data-target'));
     if (this.checked) $target.addClass('disabled'); // only disable, do not auto enable
+  });
+  $('#dismiss_stale_approvals').on('change', function () {
+    const $target = $('#ignore_stale_approvals_box');
+    $target.toggleClass('disabled', this.checked);
   });
 
   // show the `Matched` mark for the status checks that match the pattern

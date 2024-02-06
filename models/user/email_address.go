@@ -142,12 +142,24 @@ func (email *EmailAddress) BeforeInsert() {
 	}
 }
 
+func InsertEmailAddress(ctx context.Context, email *EmailAddress) (*EmailAddress, error) {
+	if err := db.Insert(ctx, email); err != nil {
+		return nil, err
+	}
+	return email, nil
+}
+
+func UpdateEmailAddress(ctx context.Context, email *EmailAddress) error {
+	_, err := db.GetEngine(ctx).ID(email.ID).AllCols().Update(email)
+	return err
+}
+
 var emailRegexp = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 // ValidateEmail check if email is a allowed address
 func ValidateEmail(email string) error {
 	if len(email) == 0 {
-		return nil
+		return ErrEmailInvalid{email}
 	}
 
 	if !emailRegexp.MatchString(email) {
@@ -175,6 +187,36 @@ func ValidateEmail(email string) error {
 	}
 
 	return nil
+}
+
+func GetEmailAddressByEmail(ctx context.Context, email string) (*EmailAddress, error) {
+	ea := &EmailAddress{}
+	if has, err := db.GetEngine(ctx).Where("lower_email=?", strings.ToLower(email)).Get(ea); err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrEmailAddressNotExist{email}
+	}
+	return ea, nil
+}
+
+func GetEmailAddressOfUser(ctx context.Context, email string, uid int64) (*EmailAddress, error) {
+	ea := &EmailAddress{}
+	if has, err := db.GetEngine(ctx).Where("lower_email=? AND uid=?", strings.ToLower(email), uid).Get(ea); err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrEmailAddressNotExist{email}
+	}
+	return ea, nil
+}
+
+func GetPrimaryEmailAddressOfUser(ctx context.Context, uid int64) (*EmailAddress, error) {
+	ea := &EmailAddress{}
+	if has, err := db.GetEngine(ctx).Where("uid=? AND is_primary=?", uid, true).Get(ea); err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrEmailAddressNotExist{}
+	}
+	return ea, nil
 }
 
 // GetEmailAddresses returns all email addresses belongs to given user.
@@ -233,91 +275,6 @@ func IsEmailUsed(ctx context.Context, email string) (bool, error) {
 	}
 
 	return db.GetEngine(ctx).Where("lower_email=?", strings.ToLower(email)).Get(&EmailAddress{})
-}
-
-// AddEmailAddress adds an email address to given user.
-func AddEmailAddress(ctx context.Context, email *EmailAddress) error {
-	email.Email = strings.TrimSpace(email.Email)
-	used, err := IsEmailUsed(ctx, email.Email)
-	if err != nil {
-		return err
-	} else if used {
-		return ErrEmailAlreadyUsed{email.Email}
-	}
-
-	if err = ValidateEmail(email.Email); err != nil {
-		return err
-	}
-
-	return db.Insert(ctx, email)
-}
-
-// AddEmailAddresses adds an email address to given user.
-func AddEmailAddresses(ctx context.Context, emails []*EmailAddress) error {
-	if len(emails) == 0 {
-		return nil
-	}
-
-	// Check if any of them has been used
-	for i := range emails {
-		emails[i].Email = strings.TrimSpace(emails[i].Email)
-		used, err := IsEmailUsed(ctx, emails[i].Email)
-		if err != nil {
-			return err
-		} else if used {
-			return ErrEmailAlreadyUsed{emails[i].Email}
-		}
-		if err = ValidateEmail(emails[i].Email); err != nil {
-			return err
-		}
-	}
-
-	if err := db.Insert(ctx, emails); err != nil {
-		return fmt.Errorf("Insert: %w", err)
-	}
-
-	return nil
-}
-
-// DeleteEmailAddress deletes an email address of given user.
-func DeleteEmailAddress(ctx context.Context, email *EmailAddress) (err error) {
-	if email.IsPrimary {
-		return ErrPrimaryEmailCannotDelete{Email: email.Email}
-	}
-
-	var deleted int64
-	// ask to check UID
-	address := EmailAddress{
-		UID: email.UID,
-	}
-	if email.ID > 0 {
-		deleted, err = db.GetEngine(ctx).ID(email.ID).Delete(&address)
-	} else {
-		if email.Email != "" && email.LowerEmail == "" {
-			email.LowerEmail = strings.ToLower(email.Email)
-		}
-		deleted, err = db.GetEngine(ctx).
-			Where("lower_email=?", email.LowerEmail).
-			Delete(&address)
-	}
-
-	if err != nil {
-		return err
-	} else if deleted != 1 {
-		return ErrEmailAddressNotExist{Email: email.Email}
-	}
-	return nil
-}
-
-// DeleteEmailAddresses deletes multiple email addresses
-func DeleteEmailAddresses(ctx context.Context, emails []*EmailAddress) (err error) {
-	for i := range emails {
-		if err = DeleteEmailAddress(ctx, emails[i]); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // DeleteInactiveEmailAddresses deletes inactive email addresses

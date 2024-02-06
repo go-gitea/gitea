@@ -5,6 +5,7 @@
 package admin
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -21,8 +22,8 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/explore"
@@ -165,11 +166,10 @@ func NewUserPost(ctx *context.Context) {
 			ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplUserNew, &form)
 			return
 		}
-		pwned, err := password.IsPwned(ctx, form.Password)
-		if pwned {
+		if err := password.IsPwned(ctx, form.Password); err != nil {
 			ctx.Data["Err_Password"] = true
 			errMsg := ctx.Tr("auth.password_pwned")
-			if err != nil {
+			if password.IsErrIsPwnedRequest(err) {
 				log.Error(err.Error())
 				errMsg = ctx.Tr("auth.password_pwned_err")
 			}
@@ -187,10 +187,7 @@ func NewUserPost(ctx *context.Context) {
 		case user_model.IsErrEmailAlreadyUsed(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserNew, &form)
-		case user_model.IsErrEmailCharIsNotSupported(err):
-			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserNew, &form)
-		case user_model.IsErrEmailInvalid(err):
+		case user_model.IsErrEmailInvalid(err), user_model.IsErrEmailCharIsNotSupported(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserNew, &form)
 		case db.IsErrNameReserved(err):
@@ -354,87 +351,110 @@ func EditUserPost(ctx *context.Context) {
 		return
 	}
 
-	auditFields := struct {
-		LoginSource int64
-		// Password
-		Email        string
-		IsActive     bool
-		IsAdmin      bool
-		IsRestricted bool
-		Visibility   structs.VisibleType
-	}{
-		LoginSource:  u.LoginSource,
-		Email:        u.Email,
-		IsActive:     u.IsActive,
-		IsAdmin:      u.IsAdmin,
-		IsRestricted: u.IsRestricted,
-		Visibility:   u.Visibility,
+	if form.UserName != "" {
+		if err := user_service.RenameUser(ctx, ctx.Doer, u, form.UserName); err != nil {
+			switch {
+			case user_model.IsErrUserIsNotLocal(err):
+				ctx.Data["Err_UserName"] = true
+				ctx.RenderWithErr(ctx.Tr("form.username_change_not_local_user"), tplUserEdit, &form)
+			case user_model.IsErrUserAlreadyExist(err):
+				ctx.Data["Err_UserName"] = true
+				ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplUserEdit, &form)
+			case db.IsErrNameReserved(err):
+				ctx.Data["Err_UserName"] = true
+				ctx.RenderWithErr(ctx.Tr("user.form.name_reserved", form.UserName), tplUserEdit, &form)
+			case db.IsErrNamePatternNotAllowed(err):
+				ctx.Data["Err_UserName"] = true
+				ctx.RenderWithErr(ctx.Tr("user.form.name_pattern_not_allowed", form.UserName), tplUserEdit, &form)
+			case db.IsErrNameCharsNotAllowed(err):
+				ctx.Data["Err_UserName"] = true
+				ctx.RenderWithErr(ctx.Tr("user.form.name_chars_not_allowed", form.UserName), tplUserEdit, &form)
+			default:
+				ctx.ServerError("RenameUser", err)
+			}
+			return
+		}
+	}
+
+	authOpts := &user_service.UpdateAuthOptions{
+		Password:  optional.FromNonDefault(form.Password),
+		LoginName: optional.Some(form.LoginName),
+	}
+
+	// skip self Prohibit Login
+	if ctx.Doer.ID == u.ID {
+		authOpts.ProhibitLogin = optional.Some(false)
+	} else {
+		authOpts.ProhibitLogin = optional.Some(form.ProhibitLogin)
 	}
 
 	fields := strings.Split(form.LoginType, "-")
 	if len(fields) == 2 {
-		loginType, _ := strconv.ParseInt(fields[0], 10, 0)
 		authSource, _ := strconv.ParseInt(fields[1], 10, 64)
 
-		if u.LoginSource != authSource {
-			u.LoginSource = authSource
-			u.LoginType = auth.Type(loginType)
-		}
+		authOpts.LoginSource = optional.Some(authSource)
 	}
 
-	passwordChanged := false
-	if len(form.Password) > 0 && (u.IsLocal() || u.IsOAuth2()) {
-		var err error
-		if len(form.Password) < setting.MinPasswordLength {
+	if err := user_service.UpdateAuth(ctx, ctx.Doer, u, authOpts); err != nil {
+		switch {
+		case errors.Is(err, password.ErrMinLength):
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserEdit, &form)
-			return
-		}
-		if !password.IsComplexEnough(form.Password) {
-			ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplUserEdit, &form)
-			return
-		}
-		pwned, err := password.IsPwned(ctx, form.Password)
-		if pwned {
+		case errors.Is(err, password.ErrComplexity):
 			ctx.Data["Err_Password"] = true
-			errMsg := ctx.Tr("auth.password_pwned")
-			if err != nil {
-				log.Error(err.Error())
-				errMsg = ctx.Tr("auth.password_pwned_err")
+			ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplUserEdit, &form)
+		case errors.Is(err, password.ErrIsPwned):
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(ctx.Tr("auth.password_pwned"), tplUserEdit, &form)
+		case password.IsErrIsPwnedRequest(err):
+			log.Error("%s", err.Error())
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(ctx.Tr("auth.password_pwned_err"), tplUserEdit, &form)
+		default:
+			ctx.ServerError("UpdateAuth", err)
+		}
+		return
+	}
+
+	if form.Email != "" {
+		if err := user_service.AddOrSetPrimaryEmailAddress(ctx, ctx.Doer, u, form.Email); err != nil {
+			switch {
+			case user_model.IsErrEmailCharIsNotSupported(err), user_model.IsErrEmailInvalid(err):
+				ctx.Data["Err_Email"] = true
+				ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserEdit, &form)
+			case user_model.IsErrEmailAlreadyUsed(err):
+				ctx.Data["Err_Email"] = true
+				ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserEdit, &form)
+			default:
+				ctx.ServerError("AddOrSetPrimaryEmailAddress", err)
 			}
-			ctx.RenderWithErr(errMsg, tplUserEdit, &form)
 			return
 		}
+	}
 
-		if err := user_model.ValidateEmail(form.Email); err != nil {
-			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_error"), tplUserEdit, &form)
-			return
-		}
+	opts := &user_service.UpdateOptions{
+		FullName:                optional.Some(form.FullName),
+		Website:                 optional.Some(form.Website),
+		Location:                optional.Some(form.Location),
+		IsActive:                optional.Some(form.Active),
+		IsAdmin:                 optional.Some(form.Admin),
+		AllowGitHook:            optional.Some(form.AllowGitHook),
+		AllowImportLocal:        optional.Some(form.AllowImportLocal),
+		MaxRepoCreation:         optional.Some(form.MaxRepoCreation),
+		AllowCreateOrganization: optional.Some(form.AllowCreateOrganization),
+		IsRestricted:            optional.Some(form.Restricted),
+		Visibility:              optional.Some(form.Visibility),
+	}
 
-		if u.Salt, err = user_model.GetUserSalt(); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.Doer, u, opts); err != nil {
+		if models.IsErrDeleteLastAdminUser(err) {
+			ctx.RenderWithErr(ctx.Tr("auth.last_admin"), tplUserEdit, &form)
+		} else {
 			ctx.ServerError("UpdateUser", err)
-			return
 		}
-		if err = u.SetPassword(form.Password); err != nil {
-			ctx.ServerError("SetPassword", err)
-			return
-		}
-
-		passwordChanged = true
+		return
 	}
-
-	if len(form.UserName) != 0 && u.Name != form.UserName {
-		if err := user_setting.HandleUsernameChange(ctx, ctx.Doer, u, form.UserName); err != nil {
-			if ctx.Written() {
-				return
-			}
-			ctx.RenderWithErr(ctx.Flash.ErrorMsg, tplUserEdit, &form)
-			return
-		}
-		u.Name = form.UserName
-		u.LowerName = strings.ToLower(form.UserName)
-	}
+	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	if form.Reset2FA {
 		tf, err := auth.GetTwoFactorByUID(ctx, u.ID)
@@ -459,75 +479,7 @@ func EditUserPost(ctx *context.Context) {
 				return
 			}
 		}
-
 	}
-
-	u.LoginName = form.LoginName
-	u.FullName = form.FullName
-	emailChanged := !strings.EqualFold(u.Email, form.Email)
-	u.Email = form.Email
-	u.Website = form.Website
-	u.Location = form.Location
-	u.MaxRepoCreation = form.MaxRepoCreation
-	u.IsActive = form.Active
-	u.IsAdmin = form.Admin
-	u.IsRestricted = form.Restricted
-	u.AllowGitHook = form.AllowGitHook
-	u.AllowImportLocal = form.AllowImportLocal
-	u.AllowCreateOrganization = form.AllowCreateOrganization
-
-	u.Visibility = form.Visibility
-
-	// skip self Prohibit Login
-	if ctx.Doer.ID == u.ID {
-		u.ProhibitLogin = false
-	} else {
-		u.ProhibitLogin = form.ProhibitLogin
-	}
-
-	emailAddress, err := user_model.UpdateOrSetPrimaryEmail(ctx, u, emailChanged)
-	if err != nil {
-		if user_model.IsErrEmailAlreadyUsed(err) {
-			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserEdit, &form)
-		} else if user_model.IsErrEmailCharIsNotSupported(err) ||
-			user_model.IsErrEmailInvalid(err) {
-			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserEdit, &form)
-		} else {
-			ctx.ServerError("UpdateUser", err)
-		}
-		return
-	}
-
-	if err := user_model.UpdateUser(ctx, u); err != nil {
-		ctx.ServerError("UpdateUser", err)
-		return
-	}
-
-	if passwordChanged {
-		audit.Record(ctx, audit_model.UserPassword, ctx.Doer, u, u, "Changed password of user %s.", u.Name)
-	}
-	if emailChanged {
-		audit.Record(ctx, audit_model.UserEmailPrimaryChange, ctx.Doer, u, emailAddress, "Changed primary email of user %s to %s.", u.Name, emailAddress.Email)
-	}
-	if auditFields.LoginSource != u.LoginSource {
-		audit.Record(ctx, audit_model.UserAuthenticationSource, ctx.Doer, u, u, "Changed authentication source of user %s.", u.Name)
-	}
-	if auditFields.Visibility != u.Visibility {
-		audit.Record(ctx, audit_model.UserVisibility, ctx.Doer, u, u, "Changed visibility of user %s from %s to %s.", u.Name, auditFields.Visibility.String(), u.Visibility.String())
-	}
-	if auditFields.IsActive != u.IsActive {
-		audit.Record(ctx, audit_model.UserActive, ctx.Doer, u, u, "Changed activation status of user %s to %s.", u.Name, audit.UserActiveString(u.IsActive))
-	}
-	if auditFields.IsAdmin != u.IsAdmin {
-		audit.Record(ctx, audit_model.UserAdmin, ctx.Doer, u, u, "Changed admin status of user %s to %s.", u.Name, audit.UserAdminString(u.IsAdmin))
-	}
-	if auditFields.IsRestricted != u.IsRestricted {
-		audit.Record(ctx, audit_model.UserRestricted, ctx.Doer, u, u, "Changed restricted status of user %s to %s.", u.Name, audit.UserRestrictedString(u.IsRestricted))
-	}
-
-	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
 	ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
@@ -558,7 +510,10 @@ func DeleteUser(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
 		case models.IsErrUserOwnPackages(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_packages"))
-			ctx.Redirect(setting.AppSubURL + "/admin/users/" + ctx.Params(":userid"))
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
+		case models.IsErrDeleteLastAdminUser(err):
+			ctx.Flash.Error(ctx.Tr("auth.last_admin"))
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
 		default:
 			ctx.ServerError("DeleteUser", err)
 		}

@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -986,8 +987,13 @@ func SignInOAuthCallback(ctx *context.Context) {
 				ctx.ServerError("CreateUser", err)
 				return
 			}
+			uname, err := getUserName(&gothUser)
+			if err != nil {
+				ctx.ServerError("UserSignIn", err)
+				return
+			}
 			u = &user_model.User{
-				Name:        getUserName(&gothUser),
+				Name:        uname,
 				FullName:    gothUser.Name,
 				Email:       gothUser.Email,
 				LoginType:   auth.OAuth2,
@@ -1001,7 +1007,9 @@ func SignInOAuthCallback(ctx *context.Context) {
 
 			source := authSource.Cfg.(*oauth2.Source)
 
-			setUserAdminAndRestrictedFromGroupClaims(source, u, &gothUser)
+			isAdmin, isRestricted := getUserAdminAndRestrictedFromGroupClaims(source, &gothUser)
+			u.IsAdmin = isAdmin.ValueOrDefault(false)
+			u.IsRestricted = isRestricted.ValueOrDefault(false)
 
 			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, overwriteDefault, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled) {
 				// error already handled
@@ -1065,19 +1073,17 @@ func getClaimedGroups(source *oauth2.Source, gothUser *goth.User) container.Set[
 	return claimValueToStringSet(groupClaims)
 }
 
-func setUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, u *user_model.User, gothUser *goth.User) (adminChanged, restrictedChanged bool) {
+func getUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, gothUser *goth.User) (isAdmin, isRestricted optional.Option[bool]) {
 	groups := getClaimedGroups(source, gothUser)
 
-	wasAdmin, wasRestricted := u.IsAdmin, u.IsRestricted
-
 	if source.AdminGroup != "" {
-		u.IsAdmin = groups.Contains(source.AdminGroup)
+		isAdmin = optional.Some(groups.Contains(source.AdminGroup))
 	}
 	if source.RestrictedGroup != "" {
-		u.IsRestricted = groups.Contains(source.RestrictedGroup)
+		isRestricted = optional.Some(groups.Contains(source.RestrictedGroup))
 	}
 
-	return wasAdmin != u.IsAdmin, wasRestricted != u.IsRestricted
+	return isAdmin, isRestricted
 }
 
 func showLinkingLogin(ctx *context.Context, gothUser goth.User) {
@@ -1144,26 +1150,13 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		// Clear whatever CSRF cookie has right now, force to generate a new one
 		ctx.Csrf.DeleteCookie(ctx)
 
-		// Register last login
-		u.SetLastLogin()
-
-		// Update GroupClaims
-		changedIsAdmin, changedIsRestricted := setUserAdminAndRestrictedFromGroupClaims(oauth2Source, u, &gothUser)
-		cols := []string{"last_login_unix"}
-		if changedIsAdmin || changedIsRestricted {
-			cols = append(cols, "is_admin", "is_restricted")
+		opts := &user_service.UpdateOptions{
+			SetLastLogin: true,
 		}
-
-		if err := user_model.UpdateUserCols(ctx, u, cols...); err != nil {
-			ctx.ServerError("UpdateUserCols", err)
+		opts.IsAdmin, opts.IsRestricted = getUserAdminAndRestrictedFromGroupClaims(oauth2Source, &gothUser)
+		if err := user_service.UpdateUser(ctx, audit.NewAuthenticationSourceUser(), u, opts); err != nil {
+			ctx.ServerError("UpdateUser", err)
 			return
-		}
-
-		if changedIsAdmin {
-			audit.Record(ctx, audit_model.UserAdmin, audit.NewAuthenticationSourceUser(), u, u, "Changed admin status of user %s to %s.", u.Name, audit.UserAdminString(u.IsAdmin))
-		}
-		if changedIsRestricted {
-			audit.Record(ctx, audit_model.UserRestricted, audit.NewAuthenticationSourceUser(), u, u, "Changed restricted status of user %s to %s.", u.Name, audit.UserRestrictedString(u.IsRestricted))
 		}
 
 		if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {
@@ -1195,19 +1188,13 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		return
 	}
 
-	changedIsAdmin, changedIsRestricted := setUserAdminAndRestrictedFromGroupClaims(oauth2Source, u, &gothUser)
-	if changedIsAdmin || changedIsRestricted {
-		if err := user_model.UpdateUserCols(ctx, u, "is_admin", "is_restricted"); err != nil {
-			ctx.ServerError("UpdateUserCols", err)
+	opts := &user_service.UpdateOptions{}
+	opts.IsAdmin, opts.IsRestricted = getUserAdminAndRestrictedFromGroupClaims(oauth2Source, &gothUser)
+	if opts.IsAdmin.Has() || opts.IsRestricted.Has() {
+		if err := user_service.UpdateUser(ctx, audit.NewAuthenticationSourceUser(), u, opts); err != nil {
+			ctx.ServerError("UpdateUser", err)
 			return
 		}
-	}
-
-	if changedIsAdmin {
-		audit.Record(ctx, audit_model.UserAdmin, audit.NewAuthenticationSourceUser(), u, u, "Changed admin status of user %s to %s.", u.Name, audit.UserAdminString(u.IsAdmin))
-	}
-	if changedIsRestricted {
-		audit.Record(ctx, audit_model.UserRestricted, audit.NewAuthenticationSourceUser(), u, u, "Changed restricted status of user %s to %s.", u.Name, audit.UserRestrictedString(u.IsRestricted))
 	}
 
 	if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {

@@ -10,16 +10,15 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	audit_model "code.gitea.io/gitea/models/audit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
@@ -55,36 +54,33 @@ func AccountPost(ctx *context.Context) {
 		return
 	}
 
-	if len(form.Password) < setting.MinPasswordLength {
-		ctx.Flash.Error(ctx.Tr("auth.password_too_short", setting.MinPasswordLength))
-	} else if ctx.Doer.IsPasswordSet() && !ctx.Doer.ValidatePassword(form.OldPassword) {
+	if ctx.Doer.IsPasswordSet() && !ctx.Doer.ValidatePassword(form.OldPassword) {
 		ctx.Flash.Error(ctx.Tr("settings.password_incorrect"))
 	} else if form.Password != form.Retype {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
-	} else if !password.IsComplexEnough(form.Password) {
-		ctx.Flash.Error(password.BuildComplexityError(ctx.Locale))
-	} else if pwned, err := password.IsPwned(ctx, form.Password); pwned || err != nil {
-		errMsg := ctx.Tr("auth.password_pwned")
-		if err != nil {
-			log.Error(err.Error())
-			errMsg = ctx.Tr("auth.password_pwned_err")
-		}
-		ctx.Flash.Error(errMsg)
 	} else {
-		var err error
-		if err = ctx.Doer.SetPassword(form.Password); err != nil {
-			ctx.ServerError("UpdateUser", err)
-			return
+		opts := &user.UpdateAuthOptions{
+			Password:           optional.Some(form.Password),
+			MustChangePassword: optional.Some(false),
 		}
-		if err := user_model.UpdateUserCols(ctx, ctx.Doer, "salt", "passwd_hash_algo", "passwd"); err != nil {
-			ctx.ServerError("UpdateUser", err)
-			return
+		if err := user.UpdateAuth(ctx, ctx.Doer, ctx.Doer, opts); err != nil {
+			switch {
+			case errors.Is(err, password.ErrMinLength):
+				ctx.Flash.Error(ctx.Tr("auth.password_too_short", setting.MinPasswordLength))
+			case errors.Is(err, password.ErrComplexity):
+				ctx.Flash.Error(password.BuildComplexityError(ctx.Locale))
+			case errors.Is(err, password.ErrIsPwned):
+				ctx.Flash.Error(ctx.Tr("auth.password_pwned"))
+			case password.IsErrIsPwnedRequest(err):
+				log.Error("%s", err.Error())
+				ctx.Flash.Error(ctx.Tr("auth.password_pwned_err"))
+			default:
+				ctx.ServerError("UpdateAuth", err)
+				return
+			}
+		} else {
+			ctx.Flash.Success(ctx.Tr("settings.change_password_success"))
 		}
-
-		audit.Record(ctx, audit_model.UserPassword, ctx.Doer, ctx.Doer, ctx.Doer, "Changed password of user %s.", ctx.Doer.Name)
-
-		log.Trace("User password updated: %s", ctx.Doer.Name)
-		ctx.Flash.Success(ctx.Tr("settings.change_password_success"))
 	}
 
 	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
@@ -142,7 +138,7 @@ func EmailPost(ctx *context.Context) {
 			// Only fired when the primary email is inactive (Wrong state)
 			mailer.SendActivateAccountMail(ctx.Locale, ctx.Doer)
 		} else {
-			mailer.SendActivateEmailMail(ctx.Doer, email)
+			mailer.SendActivateEmailMail(ctx.Doer, email.Email)
 		}
 		address = email.Email
 
@@ -165,9 +161,12 @@ func EmailPost(ctx *context.Context) {
 			ctx.ServerError("SetEmailPreference", errors.New("option unrecognized"))
 			return
 		}
-		if err := user_model.SetEmailNotifications(ctx, ctx.Doer, preference); err != nil {
+		opts := &user.UpdateOptions{
+			EmailNotificationsPreference: optional.Some(preference),
+		}
+		if err := user.UpdateUser(ctx, ctx.Doer, ctx.Doer, opts); err != nil {
 			log.Error("Set Email Notifications failed: %v", err)
-			ctx.ServerError("SetEmailNotifications", err)
+			ctx.ServerError("UpdateUser", err)
 			return
 		}
 		log.Trace("Email notifications preference made %s: %s", preference, ctx.Doer.Name)
@@ -183,62 +182,48 @@ func EmailPost(ctx *context.Context) {
 		return
 	}
 
-	email := &user_model.EmailAddress{
-		UID:         ctx.Doer.ID,
-		Email:       form.Email,
-		IsActivated: !setting.Service.RegisterEmailConfirm,
-	}
-	if err := user_model.AddEmailAddress(ctx, email); err != nil {
+	if err := user.AddEmailAddresses(ctx, ctx.Doer, ctx.Doer, []string{form.Email}); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			loadAccountData(ctx)
 
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSettingsAccount, &form)
-			return
-		} else if user_model.IsErrEmailCharIsNotSupported(err) ||
-			user_model.IsErrEmailInvalid(err) {
+		} else if user_model.IsErrEmailCharIsNotSupported(err) || user_model.IsErrEmailInvalid(err) {
 			loadAccountData(ctx)
 
 			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplSettingsAccount, &form)
-			return
+		} else {
+			ctx.ServerError("AddEmailAddresses", err)
 		}
-		ctx.ServerError("AddEmailAddress", err)
 		return
 	}
 
 	// Send confirmation email
 	if setting.Service.RegisterEmailConfirm {
-		mailer.SendActivateEmailMail(ctx.Doer, email)
+		mailer.SendActivateEmailMail(ctx.Doer, form.Email)
 		if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
 			log.Error("Set cache(MailResendLimit) fail: %v", err)
 		}
 
-		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", email.Email, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)))
+		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", form.Email, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)))
 	} else {
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
 	}
 
-	audit.Record(ctx, audit_model.UserEmailAdd, ctx.Doer, ctx.Doer, email, "Added email %s to user %s.", email.Email, ctx.Doer.Name)
-
-	log.Trace("Email address added: %s", email.Email)
 	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 }
 
 // DeleteEmail response for delete user's email
 func DeleteEmail(ctx *context.Context) {
 	email, err := user_model.GetEmailAddressByID(ctx, ctx.Doer.ID, ctx.FormInt64("id"))
-	if err != nil {
+	if err != nil || email == nil {
 		ctx.ServerError("GetEmailAddressByID", err)
 		return
 	}
 
-	if err := user_model.DeleteEmailAddress(ctx, email); err != nil {
-		ctx.ServerError("DeleteEmail", err)
+	if err := user.DeleteEmailAddresses(ctx, ctx.Doer, ctx.Doer, []string{email.Email}); err != nil {
+		ctx.ServerError("DeleteEmailAddresses", err)
 		return
 	}
-
-	audit.Record(ctx, audit_model.UserEmailRemove, ctx.Doer, ctx.Doer, email, "Removed email %s from user %s.", email.Email, ctx.Doer.Name)
-
-	log.Trace("Email address deleted: %s", ctx.Doer.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.email_deletion_success"))
 	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/account")
@@ -260,6 +245,13 @@ func DeleteAccount(ctx *context.Context) {
 		return
 	}
 
+	// admin should not delete themself
+	if ctx.Doer.IsAdmin {
+		ctx.Flash.Error(ctx.Tr("form.admin_cannot_delete_self"))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		return
+	}
+
 	if err := user.DeleteUser(ctx, ctx.Doer, ctx.Doer, false); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
@@ -270,6 +262,9 @@ func DeleteAccount(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		case models.IsErrUserOwnPackages(err):
 			ctx.Flash.Error(ctx.Tr("form.still_own_packages"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		case models.IsErrDeleteLastAdminUser(err):
+			ctx.Flash.Error(ctx.Tr("auth.last_admin"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		default:
 			ctx.ServerError("DeleteUser", err)
@@ -299,7 +294,7 @@ func loadAccountData(ctx *context.Context) {
 		emails[i] = &email
 	}
 	ctx.Data["Emails"] = emails
-	ctx.Data["EmailNotificationsPreference"] = ctx.Doer.EmailNotifications()
+	ctx.Data["EmailNotificationsPreference"] = ctx.Doer.EmailNotificationsPreference
 	ctx.Data["ActivationsPending"] = pendingActivation
 	ctx.Data["CanAddEmails"] = !pendingActivation || !setting.Service.RegisterEmailConfirm
 

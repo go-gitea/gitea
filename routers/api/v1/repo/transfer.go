@@ -232,7 +232,7 @@ func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
 		return repo_service.TransferOwnership(ctx, repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams)
 	}
 
-	if err := models.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
+	if err := repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
 		return err
 	}
 

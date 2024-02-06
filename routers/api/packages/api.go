@@ -513,16 +513,74 @@ func CommonRoutes() *web.Route {
 			r.Get("/simple/{id}", pypi.PackageMetadata)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/rpm", func() {
-			r.Get(".repo", rpm.GetRepositoryConfig)
-			r.Get("/repository.key", rpm.GetRepositoryKey)
-			r.Put("/upload", reqPackageAccess(perm.AccessModeWrite), rpm.UploadPackageFile)
-			r.Group("/package/{name}/{version}/{architecture}", func() {
-				r.Get("", rpm.DownloadPackageFile)
-				r.Delete("", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
+			r.Group("/repository.key", func() {
+				r.Head("", rpm.GetRepositoryKey)
+				r.Get("", rpm.GetRepositoryKey)
 			})
-			r.Group("/repodata/{filename}", func() {
-				r.Head("", rpm.CheckRepositoryFileExistence)
-				r.Get("", rpm.GetRepositoryFile)
+
+			var (
+				repoPattern     = regexp.MustCompile(`\A(.*?)\.repo\z`)
+				uploadPattern   = regexp.MustCompile(`\A(.*?)/upload\z`)
+				filePattern     = regexp.MustCompile(`\A(.*?)/package/([^/]+)/([^/]+)/([^/]+)(?:/([^/]+\.rpm)|)\z`)
+				repoFilePattern = regexp.MustCompile(`\A(.*?)/repodata/([^/]+)\z`)
+			)
+
+			r.Methods("HEAD,GET,PUT,DELETE", "*", func(ctx *context.Context) {
+				path := ctx.Params("*")
+				isHead := ctx.Req.Method == "HEAD"
+				isGetHead := ctx.Req.Method == "HEAD" || ctx.Req.Method == "GET"
+				isPut := ctx.Req.Method == "PUT"
+				isDelete := ctx.Req.Method == "DELETE"
+
+				m := repoPattern.FindStringSubmatch(path)
+				if len(m) == 2 && isGetHead {
+					ctx.SetParams("group", strings.Trim(m[1], "/"))
+					rpm.GetRepositoryConfig(ctx)
+					return
+				}
+
+				m = repoFilePattern.FindStringSubmatch(path)
+				if len(m) == 3 && isGetHead {
+					ctx.SetParams("group", strings.Trim(m[1], "/"))
+					ctx.SetParams("filename", m[2])
+					if isHead {
+						rpm.CheckRepositoryFileExistence(ctx)
+					} else {
+						rpm.GetRepositoryFile(ctx)
+					}
+					return
+				}
+
+				m = uploadPattern.FindStringSubmatch(path)
+				if len(m) == 2 && isPut {
+					reqPackageAccess(perm.AccessModeWrite)(ctx)
+					if ctx.Written() {
+						return
+					}
+					ctx.SetParams("group", strings.Trim(m[1], "/"))
+					rpm.UploadPackageFile(ctx)
+					return
+				}
+
+				m = filePattern.FindStringSubmatch(path)
+				if len(m) == 6 && (isGetHead || isDelete) {
+					ctx.SetParams("group", strings.Trim(m[1], "/"))
+					ctx.SetParams("name", m[2])
+					ctx.SetParams("version", m[3])
+					ctx.SetParams("architecture", m[4])
+					if isGetHead {
+						rpm.DownloadPackageFile(ctx)
+					} else {
+						reqPackageAccess(perm.AccessModeWrite)(ctx)
+						if ctx.Written() {
+							return
+						}
+						rpm.DeletePackageFile(ctx)
+					}
+					return
+				}
+
+				ctx.Status(http.StatusNotFound)
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/rubygems", func() {

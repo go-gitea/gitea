@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	audit_model "code.gitea.io/gitea/models/audit"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -55,7 +56,9 @@ func ListCollaborators(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	count, err := repo_model.CountCollaborators(ctx, ctx.Repo.Repository.ID)
+	count, err := db.Count[repo_model.Collaboration](ctx, repo_model.FindCollaborationOptions{
+		RepoID: ctx.Repo.Repository.ID,
+	})
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

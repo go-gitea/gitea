@@ -16,6 +16,7 @@ import (
 	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/audit"
 	source_service "code.gitea.io/gitea/services/auth/source"
@@ -175,45 +176,24 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 				log.Trace("SyncExternalUsers[%s]: Updating user %s", source.authSource.Name, usr.Name)
 
-				usr.FullName = fullName
-				emailChanged := usr.Email != su.Mail
-				usr.Email = su.Mail
-				// Change existing admin flag only if AdminFilter option is set
-				isAdminChanged := false
-				if len(source.AdminFilter) > 0 {
-					isAdminChanged = usr.IsAdmin != su.IsAdmin
-					usr.IsAdmin = su.IsAdmin
+				opts := &user_service.UpdateOptions{
+					FullName: optional.Some(fullName),
+					IsActive: optional.Some(true),
+				}
+				if source.AdminFilter != "" {
+					opts.IsAdmin = optional.Some(su.IsAdmin)
 				}
 				// Change existing restricted flag only if RestrictedFilter option is set
-				isRestrictedChanged := false
-				if !usr.IsAdmin && len(source.RestrictedFilter) > 0 {
-					isRestrictedChanged = usr.IsRestricted != su.IsRestricted
-					usr.IsRestricted = su.IsRestricted
-				}
-				isActiveChanged := !usr.IsActive
-				usr.IsActive = true
-
-				emailAddress, err := user_model.UpdateOrSetPrimaryEmail(ctx, usr, emailChanged)
-				if err != nil {
-					log.Error("SyncExternalUsers[%s]: Error updating user primary email %s: %v", source.authSource.Name, usr.Name, err)
+				if !su.IsAdmin && source.RestrictedFilter != "" {
+					opts.IsRestricted = optional.Some(su.IsRestricted)
 				}
 
-				err = user_model.UpdateUser(ctx, usr, "full_name", "email", "is_admin", "is_restricted", "is_active")
-				if err != nil {
+				if err := user_service.UpdateUser(ctx, audit.NewAuthenticationSourceUser(), usr, opts); err != nil {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", source.authSource.Name, usr.Name, err)
 				}
 
-				if emailChanged {
-					audit.Record(ctx, audit_model.UserEmailPrimaryChange, audit.NewAuthenticationSourceUser(), usr, emailAddress, "Changed primary email of user %s to %s.", usr.Name, emailAddress.Email)
-				}
-				if isActiveChanged {
-					audit.Record(ctx, audit_model.UserActive, audit.NewAuthenticationSourceUser(), usr, usr, "Changed activation status of user %s to %s.", usr.Name, audit.UserActiveString(usr.IsActive))
-				}
-				if isAdminChanged {
-					audit.Record(ctx, audit_model.UserAdmin, audit.NewAuthenticationSourceUser(), usr, usr, "Changed admin status of user %s to %s.", usr.Name, audit.UserAdminString(usr.IsAdmin))
-				}
-				if isRestrictedChanged {
-					audit.Record(ctx, audit_model.UserRestricted, audit.NewAuthenticationSourceUser(), usr, usr, "Changed restricted status of user %s to %s.", usr.Name, audit.UserRestrictedString(usr.IsRestricted))
+				if err := user_service.ReplacePrimaryEmailAddress(ctx, audit.NewAuthenticationSourceUser(), usr, su.Mail); err != nil {
+					log.Error("SyncExternalUsers[%s]: Error updating user %s primary email %s: %v", source.authSource.Name, usr.Name, su.Mail, err)
 				}
 			}
 
@@ -255,12 +235,11 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 			log.Trace("SyncExternalUsers[%s]: Deactivating user %s", source.authSource.Name, usr.Name)
 
-			usr.IsActive = false
-
-			if err := user_model.UpdateUserCols(ctx, usr, "is_active"); err != nil {
+			opts := &user_service.UpdateOptions{
+				IsActive: optional.Some(false),
+			}
+			if err := user_service.UpdateUser(ctx, audit.NewAuthenticationSourceUser(), usr, opts); err != nil {
 				log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.authSource.Name, usr.Name, err)
-			} else {
-				audit.Record(ctx, audit_model.UserActive, audit.NewAuthenticationSourceUser(), usr, usr, "Changed activation status of user %s to %s.", usr.Name, audit.UserActiveString(usr.IsActive))
 			}
 		}
 	}

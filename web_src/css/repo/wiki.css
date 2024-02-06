@@ -13,7 +13,10 @@
 
 .repository.wiki .markup {
   overflow: visible;
-  min-height: 340px;
+}
+
+.repository.wiki .markup[data-tab-panel="markdown-previewer"] {
+  min-height: 340px; /* This height matches the markdown editor's height */
 }
 
 .repository.wiki .wiki-content-parts .markup {

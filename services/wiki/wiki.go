@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/sync"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/audit"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // TODO: use clustered lock (unique queue? or *abuse* cache)
@@ -192,7 +193,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	committer := doer.NewGitSig()
 
-	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo.WikiPath(), doer)
+	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo, doer)
 	if sign {
 		commitTreeOpts.KeyID = signingKey
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
@@ -315,7 +316,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	committer := doer.NewGitSig()
 
-	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo.WikiPath(), doer)
+	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo, doer)
 	if sign {
 		commitTreeOpts.KeyID = signingKey
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
@@ -352,7 +353,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 // DeleteWiki removes the actual and local copy of repository wiki.
 func DeleteWiki(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) error {
-	if err := repo_model.UpdateRepositoryUnits(ctx, repo, nil, []unit.Type{unit.TypeWiki}); err != nil {
+	if err := repo_service.UpdateRepositoryUnits(ctx, repo, nil, []unit.Type{unit.TypeWiki}); err != nil {
 		return err
 	}
 
