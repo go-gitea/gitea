@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -118,8 +117,7 @@ func RenameUser(ctx context.Context, doer, u *user_model.User, newUserName strin
 		return err
 	}
 
-	audit.Record(ctx, audit_model.UserName, doer, u, u, "Changed user name from %s to %s.", oldUserName, newUserName)
-	// audit.Record(ctx, audit_model.OrganizationName, doer, org, org, "Changed organization name from %s to %s.", oldName, org.Name)
+	audit.RecordUserName(ctx, doer, u)
 
 	return nil
 }
@@ -283,7 +281,7 @@ func DeleteUser(ctx context.Context, doer, u *user_model.User, purge bool) error
 		}
 	}
 
-	audit.Record(ctx, audit_model.UserDelete, doer, u, u, "Deleted user %s.", u.Name)
+	audit.RecordUserDelete(ctx, doer, u)
 
 	return nil
 }

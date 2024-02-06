@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"sort"
 
-	audit_model "code.gitea.io/gitea/models/audit"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
@@ -56,7 +55,7 @@ func DeleteAccountLink(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserExternalLoginRemove, ctx.Doer, ctx.Doer, ctx.Doer, "Removed external login %s for user %s.", user.ExternalID, ctx.Doer.Name)
+	audit.RecordUserExternalLoginRemove(ctx, ctx.Doer, ctx.Doer, user)
 
 	ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
 

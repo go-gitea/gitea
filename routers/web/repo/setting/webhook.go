@@ -289,7 +289,7 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 		return
 	}
 
-	audit.Record(ctx, orCtx.auditActionSwitch(audit_model.UserWebhookAdd, audit_model.OrganizationWebhookAdd, audit_model.RepositoryWebhookAdd, audit_model.SystemWebhookAdd), ctx.Doer, orCtx.auditScopeSwitch(), w, "Added webhook %s.", w.URL)
+	audit.RecordWebhookAdd(ctx, ctx.Doer, orCtx.Owner, orCtx.Repo, w)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
 	ctx.Redirect(orCtx.Link)
@@ -343,7 +343,7 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 		return
 	}
 
-	audit.Record(ctx, orCtx.auditActionSwitch(audit_model.UserWebhookUpdate, audit_model.OrganizationWebhookUpdate, audit_model.RepositoryWebhookUpdate, audit_model.SystemWebhookUpdate), ctx.Doer, orCtx.auditScopeSwitch(), w, "Updated webhook %s.", w.URL)
+	audit.RecordWebhookUpdate(ctx, ctx.Doer, orCtx.Owner, orCtx.Repo, w)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
@@ -779,7 +779,7 @@ func DeleteWebhook(ctx *context.Context) {
 	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteWebhookByRepoID: " + err.Error())
 	} else {
-		audit.Record(ctx, audit_model.RepositoryWebhookRemove, ctx.Doer, ctx.Repo.Repository, hook, "Removed webhook %s.", hook.URL)
+		audit.RecordWebhookRemove(ctx, ctx.Doer, nil, ctx.Repo.Repository, hook)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}

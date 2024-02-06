@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -78,7 +77,7 @@ func KeysPost(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(ctx, audit_model.UserKeyPrincipalAdd, ctx.Doer, ctx.Doer, key, "Added principal key %s.", key.Name)
+		audit.RecordUserKeyPrincipalAdd(ctx, ctx.Doer, ctx.Doer, key)
 
 		ctx.Flash.Success(ctx.Tr("settings.add_principal_success", form.Content))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
@@ -125,7 +124,7 @@ func KeysPost(ctx *context.Context) {
 		}
 
 		for _, key := range keys {
-			audit.Record(ctx, audit_model.UserKeyGPGAdd, ctx.Doer, ctx.Doer, key, "Added GPG key %s.", key.KeyID)
+			audit.RecordUserKeyGPGAdd(ctx, ctx.Doer, ctx.Doer, key)
 		}
 
 		keyIDs := ""
@@ -202,7 +201,7 @@ func KeysPost(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(ctx, audit_model.UserKeySSHAdd, ctx.Doer, ctx.Doer, key, "Added SSH key %s.", key.Fingerprint)
+		audit.RecordUserKeySSHAdd(ctx, ctx.Doer, ctx.Doer, key)
 
 		ctx.Flash.Success(ctx.Tr("settings.add_key_success", form.Title))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
@@ -250,7 +249,7 @@ func DeleteKey(ctx *context.Context) {
 				return
 			}
 
-			audit.Record(ctx, audit_model.UserKeyGPGRemove, ctx.Doer, ctx.Doer, key, "Removed GPG key %s.", key.KeyID)
+			audit.RecordUserKeyGPGRemove(ctx, ctx.Doer, ctx.Doer, key)
 
 			ctx.Flash.Success(ctx.Tr("settings.gpg_key_deletion_success"))
 		} else {

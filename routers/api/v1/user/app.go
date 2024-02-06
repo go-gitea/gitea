@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	audit_model "code.gitea.io/gitea/models/audit"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
@@ -128,7 +127,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserAccessTokenAdd, ctx.Doer, ctx.Doer, t, "Added access token %s for user %s with scope %s.", t.Name, ctx.Doer.Name, t.Scope)
+	audit.RecordUserAccessTokenAdd(ctx, ctx.Doer, ctx.Doer, t)
 
 	ctx.JSON(http.StatusCreated, &api.AccessToken{
 		Name:           t.Name,
@@ -212,7 +211,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserAccessTokenRemove, ctx.Doer, ctx.Doer, t, "Removed access token %s from user %s.", t.Name, ctx.Doer.Name)
+	audit.RecordUserAccessTokenRemove(ctx, ctx.Doer, ctx.Doer, t)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -255,7 +254,7 @@ func CreateOauth2Application(ctx *context.APIContext) {
 	}
 	app.ClientSecret = secret
 
-	audit.Record(ctx, audit_model.UserOAuth2ApplicationAdd, ctx.Doer, ctx.Doer, app, "Created OAuth2 application %s.", app.Name)
+	audit.RecordOAuth2ApplicationAdd(ctx, ctx.Doer, ctx.Doer, app)
 
 	ctx.JSON(http.StatusCreated, convert.ToOAuth2Application(app))
 }
@@ -338,7 +337,7 @@ func DeleteOauth2Application(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserOAuth2ApplicationRemove, ctx.Doer, ctx.Doer, app, "Removed OAuth2 application %s.", app.Name)
+	audit.RecordOAuth2ApplicationRemove(ctx, ctx.Doer, ctx.Doer, app)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -431,7 +430,7 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserOAuth2ApplicationUpdate, ctx.Doer, ctx.Doer, app, "Updated OAuth2 application %s.", app.Name)
+	audit.RecordOAuth2ApplicationUpdate(ctx, ctx.Doer, ctx.Doer, app)
 
 	ctx.JSON(http.StatusOK, convert.ToOAuth2Application(app))
 }

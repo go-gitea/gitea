@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
@@ -107,14 +106,14 @@ func syncGroupsToTeamsCached(ctx context.Context, user *user_model.User, orgTeam
 					return err
 				}
 
-				audit.Record(ctx, audit_model.OrganizationTeamMemberAdd, audit.NewAuthenticationSourceUser(), org, team, "Added user %s to team %s/%s.", user.Name, org.Name, team.Name)
+				audit.RecordOrganizationTeamMemberAdd(ctx, audit.NewAuthenticationSourceUser(), org, team, user)
 			} else if action == syncRemove && isMember {
 				if err := models.RemoveTeamMember(ctx, team, user.ID); err != nil {
 					log.Error("group sync: Could not remove user from team: %v", err)
 					return err
 				}
 
-				audit.Record(ctx, audit_model.OrganizationTeamMemberRemove, audit.NewAuthenticationSourceUser(), org, team, "Removed user %s from team %s/%s.", user.Name, org.Name, team.Name)
+				audit.RecordOrganizationTeamMemberRemove(ctx, audit.NewAuthenticationSourceUser(), org, team, user)
 			}
 		}
 	}

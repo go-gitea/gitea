@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
@@ -205,7 +204,7 @@ func NewUserPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserCreate, ctx.Doer, u, u, "Created user %s.", u.Name)
+	audit.RecordUserCreate(ctx, ctx.Doer, u)
 
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 

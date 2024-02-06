@@ -1,4 +1,4 @@
-// Copyright 2023 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package audit
@@ -41,19 +41,19 @@ func TestBuildEvent(t *testing.T) {
 
 	equal(
 		&Event{
-			Action:  audit_model.UserUpdate,
+			Action:  audit_model.UserCreate,
 			Actor:   TypeDescriptor{Type: "user", ID: 2, Object: doer},
 			Scope:   TypeDescriptor{Type: "user", ID: 1, Object: u},
 			Target:  TypeDescriptor{Type: "user", ID: 1, Object: u},
-			Message: "Updated settings of user TestUser.",
+			Message: "Created user TestUser.",
 		},
-		BuildEvent(
+		buildEvent(
 			ctx,
-			audit_model.UserUpdate,
+			audit_model.UserCreate,
 			doer,
 			u,
 			u,
-			"Updated settings of user %s.",
+			"Created user %s.",
 			u.Name,
 		),
 	)
@@ -65,7 +65,7 @@ func TestBuildEvent(t *testing.T) {
 			Target:  TypeDescriptor{Type: "push_mirror", ID: 4, Object: m},
 			Message: "Added push mirror for repository TestUser/TestRepo.",
 		},
-		BuildEvent(
+		buildEvent(
 			ctx,
 			audit_model.RepositoryMirrorPushAdd,
 			doer,
@@ -76,12 +76,12 @@ func TestBuildEvent(t *testing.T) {
 		),
 	)
 
-	e := BuildEvent(ctx, audit_model.UserUpdate, doer, u, u, "")
+	e := buildEvent(ctx, audit_model.UserCreate, doer, u, u, "")
 	assert.Empty(t, e.IPAddress)
 
 	ctx = middleware.WithContextRequest(ctx, &http.Request{RemoteAddr: "127.0.0.1:1234"})
 
-	e = BuildEvent(ctx, audit_model.UserUpdate, doer, u, u, "")
+	e = buildEvent(ctx, audit_model.UserCreate, doer, u, u, "")
 	assert.Equal(t, "127.0.0.1", e.IPAddress)
 }
 

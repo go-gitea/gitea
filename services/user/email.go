@@ -8,7 +8,6 @@ import (
 	"errors"
 	"strings"
 
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -70,7 +69,7 @@ func AddOrSetPrimaryEmailAddress(ctx context.Context, doer, u *user_model.User, 
 		return err
 	}
 
-	audit.Record(ctx, audit_model.UserEmailPrimaryChange, doer, u, email, "Changed primary email of user %s to %s.", u.Name, email.Email)
+	audit.RecordUserEmailPrimaryChange(ctx, doer, u, email)
 
 	return nil
 }
@@ -123,7 +122,7 @@ func ReplacePrimaryEmailAddress(ctx context.Context, doer, u *user_model.User, e
 			return err
 		}
 
-		audit.Record(ctx, audit_model.UserEmailPrimaryChange, doer, u, email, "Changed primary email of user %s to %s.", u.Name, email.Email)
+		audit.RecordUserEmailPrimaryChange(ctx, doer, u, email)
 	} else {
 		u.Email = emailStr
 
@@ -167,7 +166,7 @@ func AddEmailAddresses(ctx context.Context, doer, u *user_model.User, emailsToAd
 	}
 
 	for _, email := range emails {
-		audit.Record(ctx, audit_model.UserEmailAdd, doer, u, email, "Added email %s to user %s.", email.Email, u.Name)
+		audit.RecordUserEmailAdd(ctx, doer, u, email)
 	}
 
 	return nil
@@ -195,7 +194,7 @@ func DeleteEmailAddresses(ctx context.Context, doer, u *user_model.User, emailsT
 	}
 
 	for _, email := range emails {
-		audit.Record(ctx, audit_model.UserEmailRemove, doer, u, email, "Removed email %s from user %s.", email.Email, u.Name)
+		audit.RecordUserEmailRemove(ctx, doer, u, email)
 	}
 
 	return nil

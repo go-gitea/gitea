@@ -15,7 +15,6 @@ import (
 	"sort"
 	"strings"
 
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/auth"
 	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
@@ -567,7 +566,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserOAuth2ApplicationGrant, ctx.Doer, owner, app, "Granted OAuth2 access to application %s.", app.Name)
+	audit.RecordUserOAuth2ApplicationGrant(ctx, ctx.Doer, owner, app, grant)
 
 	if len(form.Nonce) > 0 {
 		err := grant.SetNonce(ctx, form.Nonce)

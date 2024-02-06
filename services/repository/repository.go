@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -50,7 +49,7 @@ func CreateRepository(ctx context.Context, doer, owner *user_model.User, opts Cr
 
 	notify_service.CreateRepository(ctx, doer, owner, repo)
 
-	audit.Record(ctx, audit_model.RepositoryCreate, doer, repo, repo, "Created repository %s.", repo.FullName())
+	audit.RecordRepositoryCreate(ctx, doer, repo)
 
 	return repo, nil
 }
@@ -74,7 +73,7 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 		return err
 	}
 
-	audit.Record(ctx, audit_model.RepositoryDelete, doer, repo, repo, "Deleted repository %s.", repo.FullName())
+	audit.RecordRepositoryDelete(ctx, doer, repo)
 
 	return nil
 }

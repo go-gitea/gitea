@@ -9,7 +9,6 @@ import (
 	"os"
 	"text/tabwriter"
 
-	audit_model "code.gitea.io/gitea/models/audit"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/services/audit"
@@ -97,7 +96,7 @@ func createSource(ctx context.Context, source *auth_model.Source) error {
 		return err
 	}
 
-	audit.Record(ctx, audit_model.SystemAuthenticationSourceAdd, audit.NewCLIUser(), nil, source, "Created authentication source %s [%s].", source.Name, source.Type.String())
+	audit.RecordSystemAuthenticationSourceAdd(ctx, audit.NewCLIUser(), source)
 
 	return nil
 }
@@ -107,7 +106,7 @@ func updateSource(ctx context.Context, source *auth_model.Source) error {
 		return err
 	}
 
-	audit.Record(ctx, audit_model.SystemAuthenticationSourceUpdate, audit.NewCLIUser(), nil, source, "Updated authentication source %s.", source.Name)
+	audit.RecordSystemAuthenticationSourceUpdate(ctx, audit.NewCLIUser(), source)
 
 	return nil
 }

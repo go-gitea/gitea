@@ -10,7 +10,6 @@ import (
 	"os"
 	"strings"
 
-	audit_model "code.gitea.io/gitea/models/audit"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
@@ -359,7 +358,7 @@ func DeleteWiki(ctx context.Context, doer *user_model.User, repo *repo_model.Rep
 
 	system_model.RemoveAllWithNotice(ctx, "Delete repository wiki", repo.WikiPath())
 
-	audit.Record(ctx, audit_model.RepositoryWikiDelete, doer, repo, repo, "Deleted wiki of repository %s.", repo.FullName())
+	audit.RecordRepositoryWikiDelete(ctx, doer, repo)
 
 	return nil
 }

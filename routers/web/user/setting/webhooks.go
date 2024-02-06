@@ -6,7 +6,6 @@ package setting
 import (
 	"net/http"
 
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
@@ -48,7 +47,7 @@ func DeleteWebhook(ctx *context.Context) {
 	if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Doer.ID, hook.ID); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
-		audit.Record(ctx, audit_model.UserWebhookRemove, ctx.Doer, ctx.Doer, hook, "Removed webhook %s.", hook.URL)
+		audit.RecordWebhookRemove(ctx, ctx.Doer, ctx.Doer, nil, hook)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}

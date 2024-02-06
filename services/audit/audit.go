@@ -1,4 +1,4 @@
-// Copyright 2023 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package audit
@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"time"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	audit_model "code.gitea.io/gitea/models/audit"
@@ -18,7 +17,6 @@ import (
 	secret_model "code.gitea.io/gitea/models/secret"
 	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 )
@@ -86,49 +84,12 @@ func (d TypeDescriptor) HTMLURL() string {
 	return ""
 }
 
-type Event struct {
-	Action    audit_model.Action `json:"action"`
-	Actor     TypeDescriptor     `json:"actor"`
-	Scope     TypeDescriptor     `json:"scope"`
-	Target    TypeDescriptor     `json:"target"`
-	Message   string             `json:"message"`
-	Time      time.Time          `json:"time"`
-	IPAddress string             `json:"ip_address"`
-}
-
 func Init() error {
 	if !setting.Audit.Enabled {
 		return nil
 	}
 
 	return initAuditFile()
-}
-
-func Record(ctx context.Context, action audit_model.Action, actor *user_model.User, scope, target any, message string, v ...any) {
-	if !setting.Audit.Enabled {
-		return
-	}
-
-	e := BuildEvent(ctx, action, actor, scope, target, message, v...)
-
-	if err := writeToFile(e); err != nil {
-		log.Error("Error writing audit event to file: %v", err)
-	}
-	if err := writeToDatabase(ctx, e); err != nil {
-		log.Error("Error writing audit event to database: %v", err)
-	}
-}
-
-func BuildEvent(ctx context.Context, action audit_model.Action, actor *user_model.User, scope, target any, message string, v ...any) *Event {
-	return &Event{
-		Action:    action,
-		Actor:     typeToDescription(actor),
-		Scope:     scopeToDescription(scope),
-		Target:    typeToDescription(target),
-		Message:   fmt.Sprintf(message, v...),
-		Time:      time.Now(),
-		IPAddress: tryGetIPAddress(ctx),
-	}
 }
 
 func scopeToDescription(scope any) TypeDescriptor {

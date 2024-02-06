@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
@@ -135,7 +134,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			if err != nil {
 				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.authSource.Name, su.Username, err)
 			} else {
-				audit.Record(ctx, audit_model.UserCreate, audit.NewAuthenticationSourceUser(), usr, usr, "Created user %s.", usr.Name)
+				audit.RecordUserCreate(ctx, audit.NewAuthenticationSourceUser(), usr)
 
 				if isAttributeSSHPublicKeySet {
 					log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", source.authSource.Name, usr.Name)
@@ -143,7 +142,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 						sshKeysNeedUpdate = true
 
 						for _, key := range addedKeys {
-							audit.Record(ctx, audit_model.UserKeySSHAdd, audit.NewAuthenticationSourceUser(), usr, usr, "Added SSH key %s.", key.Fingerprint)
+							audit.RecordUserKeySSHAdd(ctx, audit.NewAuthenticationSourceUser(), usr, key)
 						}
 					}
 				}
@@ -159,10 +158,10 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 					sshKeysNeedUpdate = true
 
 					for _, key := range addedKeys {
-						audit.Record(ctx, audit_model.UserKeySSHAdd, audit.NewAuthenticationSourceUser(), usr, usr, "Added SSH key %s.", key.Fingerprint)
+						audit.RecordUserKeySSHAdd(ctx, audit.NewAuthenticationSourceUser(), usr, key)
 					}
 					for _, key := range deletedKeys {
-						audit.Record(ctx, audit_model.UserKeySSHRemove, audit.NewAuthenticationSourceUser(), usr, usr, "Removed SSH key %s.", key.Fingerprint)
+						audit.RecordUserKeySSHRemove(ctx, audit.NewAuthenticationSourceUser(), usr, key)
 					}
 				}
 			}

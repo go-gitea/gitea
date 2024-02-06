@@ -1,4 +1,4 @@
-// Copyright 2023 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package audit
@@ -21,32 +21,4 @@ func NewAuthenticationSourceUser() *user_model.User {
 		Name:      "AuthenticationSource",
 		LowerName: "authenticationsource",
 	}
-}
-
-func UserActiveString(isActive bool) string {
-	if isActive {
-		return "active"
-	}
-	return "inactive"
-}
-
-func UserAdminString(isAdmin bool) string {
-	if isAdmin {
-		return "admin"
-	}
-	return "normal user"
-}
-
-func UserRestrictedString(isRestricted bool) string {
-	if isRestricted {
-		return "restricted"
-	}
-	return "unrestricted"
-}
-
-func PublicString(isPublic bool) string {
-	if isPublic {
-		return "public"
-	}
-	return "private"
 }

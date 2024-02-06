@@ -6,7 +6,6 @@ package secrets
 import (
 	"context"
 
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	secret_model "code.gitea.io/gitea/models/secret"
@@ -34,14 +33,7 @@ func CreateOrUpdateSecret(ctx context.Context, doer, owner *user_model.User, rep
 			return nil, false, err
 		}
 
-		audit.Record(ctx,
-			auditActionSwitch(owner, repo, audit_model.UserSecretAdd, audit_model.OrganizationSecretAdd, audit_model.RepositorySecretAdd),
-			doer,
-			auditScopeSwitch(owner, repo),
-			s,
-			"Added secret %s.",
-			s.Name,
-		)
+		audit.RecordSecretAdd(ctx, doer, owner, repo, s)
 
 		return s, true, nil
 	}
@@ -52,14 +44,7 @@ func CreateOrUpdateSecret(ctx context.Context, doer, owner *user_model.User, rep
 		return nil, false, err
 	}
 
-	audit.Record(ctx,
-		auditActionSwitch(owner, repo, audit_model.UserSecretUpdate, audit_model.OrganizationSecretUpdate, audit_model.RepositorySecretUpdate),
-		doer,
-		auditScopeSwitch(owner, repo),
-		s,
-		"Added secret %s.",
-		s.Name,
-	)
+	audit.RecordSecretUpdate(ctx, doer, owner, repo, s)
 
 	return s, false, nil
 }
@@ -105,14 +90,7 @@ func deleteSecret(ctx context.Context, doer, owner *user_model.User, repo *repo_
 		return err
 	}
 
-	audit.Record(ctx,
-		auditActionSwitch(owner, repo, audit_model.UserSecretRemove, audit_model.OrganizationSecretRemove, audit_model.RepositorySecretRemove),
-		doer,
-		auditScopeSwitch(owner, repo),
-		s,
-		"Removed secret %s.",
-		s.Name,
-	)
+	audit.RecordSecretRemove(ctx, doer, owner, repo, s)
 
 	return nil
 }
@@ -129,21 +107,4 @@ func tryGetRepositoryID(repo *repo_model.Repository) int64 {
 		return 0
 	}
 	return repo.ID
-}
-
-func auditActionSwitch(owner *user_model.User, repo *repo_model.Repository, userAction, orgAction, repoAction audit_model.Action) audit_model.Action {
-	if owner == nil {
-		return repoAction
-	}
-	if owner.IsOrganization() {
-		return orgAction
-	}
-	return userAction
-}
-
-func auditScopeSwitch(owner *user_model.User, repo *repo_model.Repository) any {
-	if owner != nil {
-		return owner
-	}
-	return repo
 }

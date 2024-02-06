@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
@@ -91,7 +90,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 
 	mailer.SendResetPasswordMail(u)
 
-	audit.Record(ctx, audit_model.UserPasswordReset, u, u, u, "Requested passwort reset for user %s.", u.Name)
+	audit.RecordUserPasswordReset(ctx, u)
 
 	if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
 		log.Error("Set cache(MailResendLimit) fail: %v", err)
@@ -190,7 +189,7 @@ func ResetPasswdPost(ctx *context.Context) {
 				return
 			}
 			if !ok || twofa.LastUsedPasscode == passcode {
-				audit.Record(ctx, audit_model.UserAuthenticationFailTwoFactor, u, u, u, "Failed two-factor authentication for user %s.", u.Name)
+				audit.RecordUserAuthenticationFailTwoFactor(ctx, u)
 
 				ctx.Data["IsResetForm"] = true
 				ctx.Data["Err_Passcode"] = true
@@ -229,9 +228,6 @@ func ResetPasswdPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserPassword, u, u, u, "Changed password of user %s.", u.Name)
-
-	log.Trace("User password reset: %s", u.Name)
 	ctx.Data["IsResetFailed"] = true
 	remember := len(ctx.FormString("remember")) != 0
 

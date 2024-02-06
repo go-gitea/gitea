@@ -1,4 +1,4 @@
-// Copyright 2023 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package audit
@@ -8,7 +8,6 @@ type Action string
 const (
 	UserImpersonation               Action = "user:impersonation"
 	UserCreate                      Action = "user:create"
-	UserUpdate                      Action = "user:update"
 	UserDelete                      Action = "user:delete"
 	UserAuthenticationFailTwoFactor Action = "user:authentication:fail:twofactor"
 	UserAuthenticationSource        Action = "user:authentication:source"
@@ -54,7 +53,6 @@ const (
 	UserWebhookRemove               Action = "user:webhook:remove"
 
 	OrganizationCreate                  Action = "organization:create"
-	OrganizationUpdate                  Action = "organization:update"
 	OrganizationDelete                  Action = "organization:delete"
 	OrganizationName                    Action = "organization:name"
 	OrganizationVisibility              Action = "organization:visibility"

@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -111,7 +110,7 @@ func CollaborationPost(ctx *context.Context) {
 		mailer.SendCollaboratorMail(u, ctx.Doer, ctx.Repo.Repository)
 	}
 
-	audit.Record(ctx, audit_model.RepositoryCollaboratorAdd, ctx.Doer, ctx.Repo.Repository, u, "Added user %s as collaborator for repository %s.", u.Name, ctx.Repo.Repository.FullName())
+	audit.RecordRepositoryCollaboratorAdd(ctx, ctx.Doer, ctx.Repo.Repository, u)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_collaborator_success"))
 	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
@@ -125,16 +124,18 @@ func ChangeCollaborationAccessMode(ctx *context.Context) {
 		return
 	}
 
+	accessMode := perm.AccessMode(ctx.FormInt("mode"))
+
 	if err := repo_model.ChangeCollaborationAccessMode(
 		ctx,
 		ctx.Repo.Repository,
 		u.ID,
-		perm.AccessMode(ctx.FormInt("mode"))); err != nil {
+		accessMode); err != nil {
 		log.Error("ChangeCollaborationAccessMode: %v", err)
 		return
 	}
 
-	audit.Record(ctx, audit_model.RepositoryCollaboratorAccess, ctx.Doer, ctx.Repo.Repository, u, "Changed access mode of collaborator %s to %s.", u.Name, perm.AccessMode(ctx.FormInt("mode")).String())
+	audit.RecordRepositoryCollaboratorAccess(ctx, ctx.Doer, ctx.Repo.Repository, u, accessMode)
 }
 
 // DeleteCollaboration delete a collaboration for a repository
@@ -148,7 +149,7 @@ func DeleteCollaboration(ctx *context.Context) {
 	if err := repo_service.DeleteCollaboration(ctx, ctx.Repo.Repository, u.ID); err != nil {
 		ctx.Flash.Error("DeleteCollaboration: " + err.Error())
 	} else {
-		audit.Record(ctx, audit_model.RepositoryCollaboratorRemove, ctx.Doer, ctx.Repo.Repository, u, "Removed user %s as collaborator.", u.Name)
+		audit.RecordRepositoryCollaboratorRemove(ctx, ctx.Doer, ctx.Repo.Repository, u)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.remove_collaborator_success"))
 	}
@@ -221,7 +222,7 @@ func DeleteTeam(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.RepositoryCollaboratorTeamRemove, ctx.Doer, ctx.Repo.Repository, team, "Removed team %s as collaborator from %s.", team.Name, ctx.Repo.Repository.FullName())
+	audit.RecordRepositoryCollaboratorTeamRemove(ctx, ctx.Doer, ctx.Repo.Repository, team)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.remove_team_success"))
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/collaboration")

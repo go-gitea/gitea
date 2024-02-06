@@ -6,7 +6,6 @@ package security
 import (
 	"net/http"
 
-	audit_model "code.gitea.io/gitea/models/audit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/context"
@@ -100,7 +99,7 @@ func settingsOpenIDVerify(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserOpenIDAdd, ctx.Doer, ctx.Doer, oid, "Associated OpenID %s to user %s.", oid.URI, ctx.Doer.Name)
+	audit.RecordUserOpenIDAdd(ctx, ctx.Doer, ctx.Doer, oid)
 
 	log.Trace("Associated OpenID %s to user %s", id, ctx.Doer.Name)
 	ctx.Flash.Success(ctx.Tr("settings.add_openid_success"))
@@ -121,7 +120,7 @@ func DeleteOpenID(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserOpenIDRemove, ctx.Doer, ctx.Doer, oid, "Removed OpenID %s from user %s.", oid.URI, ctx.Doer.Name)
+	audit.RecordUserOpenIDAdd(ctx, ctx.Doer, ctx.Doer, oid)
 
 	log.Trace("OpenID address deleted: %s", ctx.Doer.Name)
 

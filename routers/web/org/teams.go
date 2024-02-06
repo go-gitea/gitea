@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -81,7 +80,7 @@ func TeamsAction(ctx *context.Context) {
 		}
 		err = models.AddTeamMember(ctx, ctx.Org.Team, ctx.Doer.ID)
 		if err == nil {
-			audit.Record(ctx, audit_model.OrganizationTeamMemberAdd, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, "Added user %s to team %s/%s.", ctx.Doer.Name, ctx.Org.Organization.Name, ctx.Org.Team.Name)
+			audit.RecordOrganizationTeamMemberAdd(ctx, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, ctx.Doer)
 		}
 	case "leave":
 		err = models.RemoveTeamMember(ctx, ctx.Org.Team, ctx.Doer.ID)
@@ -97,7 +96,7 @@ func TeamsAction(ctx *context.Context) {
 				return
 			}
 		} else {
-			audit.Record(ctx, audit_model.OrganizationTeamMemberRemove, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, "Removed user %s from team %s/%s.", ctx.Doer.Name, ctx.Org.Organization.Name, ctx.Org.Team.Name)
+			audit.RecordOrganizationTeamMemberRemove(ctx, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, ctx.Doer)
 		}
 		checkIsOrgMemberAndRedirect(ctx, ctx.Org.OrgLink+"/teams/")
 		return
@@ -126,7 +125,7 @@ func TeamsAction(ctx *context.Context) {
 				return
 			}
 		} else {
-			audit.Record(ctx, audit_model.OrganizationTeamMemberRemove, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, "Removed user %s from team %s/%s.", u.Name, ctx.Org.Organization.Name, ctx.Org.Team.Name)
+			audit.RecordOrganizationTeamMemberRemove(ctx, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, u)
 		}
 		checkIsOrgMemberAndRedirect(ctx, ctx.Org.OrgLink+"/teams/"+url.PathEscape(ctx.Org.Team.LowerName))
 		return
@@ -172,7 +171,7 @@ func TeamsAction(ctx *context.Context) {
 		} else {
 			err = models.AddTeamMember(ctx, ctx.Org.Team, u.ID)
 			if err == nil {
-				audit.Record(ctx, audit_model.OrganizationTeamMemberAdd, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, "Added user %s to team %s/%s.", u.Name, ctx.Org.Organization.Name, ctx.Org.Team.Name)
+				audit.RecordOrganizationTeamMemberAdd(ctx, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, u)
 			}
 		}
 
@@ -277,7 +276,7 @@ func TeamsRepoAction(ctx *context.Context) {
 		}
 
 		for _, repo := range added {
-			audit.Record(ctx, audit_model.RepositoryCollaboratorTeamAdd, ctx.Doer, repo, ctx.Org.Team, "Added team %s as collaborator for %s.", ctx.Org.Team.Name, repo.FullName())
+			audit.RecordRepositoryCollaboratorTeamAdd(ctx, ctx.Doer, repo, ctx.Org.Team)
 		}
 	case "removeall":
 		if err := ctx.Org.Team.LoadRepositories(ctx); err != nil {
@@ -291,7 +290,7 @@ func TeamsRepoAction(ctx *context.Context) {
 		}
 
 		for _, repo := range ctx.Org.Team.Repos {
-			audit.Record(ctx, audit_model.RepositoryCollaboratorTeamRemove, ctx.Doer, repo, ctx.Org.Team, "Removed team %s as collaborator from %s.", ctx.Org.Team.Name, repo.FullName())
+			audit.RecordRepositoryCollaboratorTeamRemove(ctx, ctx.Doer, repo, ctx.Org.Team)
 		}
 	}
 
@@ -400,7 +399,7 @@ func NewTeamPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.OrganizationTeamAdd, ctx.Doer, ctx.Org.Organization, t, "Added team %s to organization %s.", t.Name, ctx.Org.Organization.Name)
+	audit.RecordOrganizationTeamAdd(ctx, ctx.Doer, ctx.Org.Organization, t)
 
 	log.Trace("Team created: %s/%s", ctx.Org.Organization.Name, t.Name)
 	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
@@ -532,7 +531,6 @@ func EditTeamPost(ctx *context.Context) {
 	ctx.Data["Team"] = t
 	ctx.Data["Units"] = unit_model.Units
 
-	oldAccessMode := t.AccessMode
 	if !t.IsOwnerTeam() {
 		t.Name = form.TeamName
 		if t.AccessMode != newAccessMode {
@@ -582,9 +580,9 @@ func EditTeamPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.OrganizationTeamUpdate, ctx.Doer, ctx.Org.Organization, t, "Updated settings of team %s/%s.", ctx.Org.Organization.Name, t.Name)
+	audit.RecordOrganizationTeamUpdate(ctx, ctx.Doer, ctx.Org.Organization, t)
 	if isAuthChanged {
-		audit.Record(ctx, audit_model.OrganizationTeamPermission, ctx.Doer, ctx.Org.Organization, t, "Changed permission of team %s/%s from %s to %s.", ctx.Org.Organization.Name, t.Name, oldAccessMode.String(), t.AccessMode.String())
+		audit.RecordOrganizationTeamPermission(ctx, ctx.Doer, ctx.Org.Organization, t)
 	}
 
 	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
@@ -595,7 +593,7 @@ func DeleteTeam(ctx *context.Context) {
 	if err := models.DeleteTeam(ctx, ctx.Org.Team); err != nil {
 		ctx.Flash.Error("DeleteTeam: " + err.Error())
 	} else {
-		audit.Record(ctx, audit_model.OrganizationTeamRemove, ctx.Doer, ctx.Org.Organization, ctx.Org.Team, "Removed team %s from organization %s.", ctx.Org.Team.Name, ctx.Org.Organization.Name)
+		audit.RecordOrganizationTeamRemove(ctx, ctx.Doer, ctx.Org.Organization, ctx.Org.Team)
 
 		ctx.Flash.Success(ctx.Tr("org.teams.delete_team_success"))
 	}
@@ -641,7 +639,7 @@ func TeamInvitePost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.OrganizationTeamMemberAdd, ctx.Doer, org, team, "Added user %s to team %s/%s.", ctx.Doer.Name, org.Name, team.Name)
+	audit.RecordOrganizationTeamMemberAdd(ctx, ctx.Doer, org, team, ctx.Doer)
 
 	if err := org_model.RemoveInviteByID(ctx, invite.ID, team.ID); err != nil {
 		log.Error("RemoveInviteByID: %v", err)

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -33,16 +32,6 @@ func (oa *OAuth2CommonHandlers) ownerID() int64 {
 		return oa.Owner.ID
 	}
 	return 0
-}
-
-func (oa *OAuth2CommonHandlers) auditActionSwitch(user, org, system audit_model.Action) audit_model.Action {
-	if oa.Owner == nil {
-		return system
-	}
-	if oa.Owner.IsOrganization() {
-		return org
-	}
-	return user
 }
 
 func (oa *OAuth2CommonHandlers) renderEditPage(ctx *context.Context) {
@@ -81,7 +70,7 @@ func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, oa.auditActionSwitch(audit_model.UserOAuth2ApplicationAdd, audit_model.OrganizationOAuth2ApplicationAdd, audit_model.SystemOAuth2ApplicationAdd), oa.Doer, oa.Owner, app, "Created OAuth2 application %s.", app.Name)
+	audit.RecordOAuth2ApplicationAdd(ctx, oa.Doer, oa.Owner, app)
 
 	// render the edit page with secret
 	ctx.Flash.Success(ctx.Tr("settings.create_oauth2_application_success"), true)
@@ -138,7 +127,7 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 
 	ctx.Data["App"] = app
 
-	audit.Record(ctx, oa.auditActionSwitch(audit_model.UserOAuth2ApplicationUpdate, audit_model.OrganizationOAuth2ApplicationUpdate, audit_model.SystemOAuth2ApplicationUpdate), oa.Doer, oa.Owner, app, "Updated OAuth2 application %s.", app.Name)
+	audit.RecordOAuth2ApplicationUpdate(ctx, oa.Doer, oa.Owner, app)
 
 	ctx.Flash.Success(ctx.Tr("settings.update_oauth2_application_success"))
 	ctx.Redirect(oa.BasePathList)
@@ -166,7 +155,7 @@ func (oa *OAuth2CommonHandlers) RegenerateSecret(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, oa.auditActionSwitch(audit_model.UserOAuth2ApplicationSecret, audit_model.OrganizationOAuth2ApplicationSecret, audit_model.SystemOAuth2ApplicationSecret), oa.Doer, oa.Owner, app, "Regenerated secret for OAuth2 application %s.", app.Name)
+	audit.RecordOAuth2ApplicationSecret(ctx, oa.Doer, oa.Owner, app)
 
 	ctx.Flash.Success(ctx.Tr("settings.update_oauth2_application_success"), true)
 	oa.renderEditPage(ctx)
@@ -189,7 +178,7 @@ func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, oa.auditActionSwitch(audit_model.UserOAuth2ApplicationRemove, audit_model.OrganizationOAuth2ApplicationRemove, audit_model.SystemOAuth2ApplicationRemove), oa.Doer, oa.Owner, app, "Removed OAuth2 application %s.", app.Name)
+	audit.RecordOAuth2ApplicationRemove(ctx, oa.Doer, oa.Owner, app)
 
 	ctx.Flash.Success(ctx.Tr("settings.remove_oauth2_application_success"))
 	ctx.JSONRedirect(oa.BasePathList)
@@ -222,7 +211,7 @@ func (oa *OAuth2CommonHandlers) RevokeGrant(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserOAuth2ApplicationRevoke, oa.Doer, oa.Owner, grant, "Revoked OAuth2 grant for application %s.", app.Name)
+	audit.RecordUserOAuth2ApplicationRevoke(ctx, oa.Doer, oa.Owner, app, grant)
 
 	ctx.Flash.Success(ctx.Tr("settings.revoke_oauth2_grant_success"))
 	ctx.JSONRedirect(oa.BasePathList)

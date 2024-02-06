@@ -8,7 +8,6 @@ import (
 	"errors"
 	"net/http"
 
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -188,7 +187,7 @@ func AddCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.RepositoryCollaboratorAdd, ctx.Doer, ctx.Repo.Repository, collaborator, "Added user %s as collaborator for repository %s.", collaborator.Name, ctx.Repo.Repository.FullName())
+	audit.RecordRepositoryCollaboratorAdd(ctx, ctx.Doer, ctx.Repo.Repository, collaborator)
 
 	if form.Permission != nil {
 		accessMode := perm.ParseAccessMode(*form.Permission)
@@ -197,7 +196,7 @@ func AddCollaborator(ctx *context.APIContext) {
 			return
 		}
 
-		audit.Record(ctx, audit_model.RepositoryCollaboratorAccess, ctx.Doer, ctx.Repo.Repository, collaborator, "Changed access mode of collaborator %s to %s.", collaborator.Name, accessMode.String())
+		audit.RecordRepositoryCollaboratorAccess(ctx, ctx.Doer, ctx.Repo.Repository, collaborator, accessMode)
 	}
 
 	ctx.Status(http.StatusNoContent)
@@ -249,7 +248,7 @@ func DeleteCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.RepositoryCollaboratorRemove, ctx.Doer, ctx.Repo.Repository, collaborator, "Removed collaborator %s.", collaborator.Name)
+	audit.RecordRepositoryCollaboratorRemove(ctx, ctx.Doer, ctx.Repo.Repository, collaborator)
 
 	ctx.Status(http.StatusNoContent)
 }

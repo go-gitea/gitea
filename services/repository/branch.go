@@ -11,7 +11,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	actions_model "code.gitea.io/gitea/models/actions"
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -508,7 +507,7 @@ func SetRepoDefaultBranch(ctx context.Context, doer *user_model.User, repo *repo
 		return err
 	}
 
-	audit.Record(ctx, audit_model.RepositoryBranchDefault, doer, repo, repo, "Changed default branch from %s to %s.", oldDefaultBranchName, newBranchName)
+	audit.RecordRepositoryBranchDefault(ctx, doer, repo)
 
 	notify_service.ChangeDefaultBranch(ctx, repo)
 

@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	audit_model "code.gitea.io/gitea/models/audit"
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	password_module "code.gitea.io/gitea/modules/auth/password"
@@ -176,17 +175,16 @@ func UpdateUser(ctx context.Context, doer, u *user_model.User, opts *UpdateOptio
 	}
 
 	if isActiveChanged {
-		audit.Record(ctx, audit_model.UserActive, doer, u, u, "Changed activation status of user %s to %s.", u.Name, audit.UserActiveString(u.IsActive))
+		audit.RecordUserActive(ctx, doer, u)
 	}
 	if isAdminChanged {
-		audit.Record(ctx, audit_model.UserAdmin, doer, u, u, "Changed admin status of user %s to %s.", u.Name, audit.UserAdminString(u.IsAdmin))
+		audit.RecordUserAdmin(ctx, doer, u)
 	}
 	if isRestrictedChanged {
-		audit.Record(ctx, audit_model.UserRestricted, doer, u, u, "Changed restricted status of user %s to %s.", u.Name, audit.UserRestrictedString(u.IsRestricted))
+		audit.RecordUserRestricted(ctx, doer, u)
 	}
 	if visibilityChanged {
-		audit.Record(ctx, audit_model.UserVisibility, doer, u, u, "Changed visibility of user %s to %s.", u.Name, u.Visibility.String())
-		// audit.Record(ctx, audit_model.OrganizationVisibility, ctx.Doer, org, org, "Changed visibility of organization %s from %s to %s.", org.Name, oldVisibility.String(), org.Visibility.String())
+		audit.RecordUserVisibility(ctx, doer, u)
 	}
 
 	return nil
@@ -254,10 +252,10 @@ func UpdateAuth(ctx context.Context, doer, u *user_model.User, opts *UpdateAuthO
 	}
 
 	if passwordChanged {
-		audit.Record(ctx, audit_model.UserPassword, doer, u, u, "Changed password of user %s.", u.Name)
+		audit.RecordUserPassword(ctx, doer, u)
 	}
 	if loginSourceChanged {
-		audit.Record(ctx, audit_model.UserAuthenticationSource, doer, u, u, "Changed authentication source of user %s.", u.Name)
+		audit.RecordUserAuthenticationSource(ctx, doer, u)
 	}
 
 	return nil

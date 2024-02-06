@@ -11,7 +11,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
@@ -154,7 +153,7 @@ func CreateUser(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserCreate, ctx.Doer, u, u, "Created user %s.", u.Name)
+	audit.RecordUserCreate(ctx, ctx.Doer, u)
 
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 

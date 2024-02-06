@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/organization"
@@ -399,7 +398,7 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 			return err
 		}
 
-		audit.Record(ctx, audit_model.RepositoryTransferReject, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Repository, "Rejected repository transfer.")
+		audit.RecordRepositoryTransferReject(ctx, ctx.Doer, ctx.Repo.Repository)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
 	}

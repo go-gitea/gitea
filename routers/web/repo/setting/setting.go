@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -182,9 +181,8 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(ctx, audit_model.RepositoryUpdate, ctx.Doer, repo, repo, "Changed settings of repository %s.", repo.FullName())
 		if visibilityChanged {
-			audit.Record(ctx, audit_model.RepositoryVisibility, ctx.Doer, repo, repo, "Changed visibility of repository %s to %s.", repo.FullName(), audit.PublicString(!repo.IsPrivate))
+			audit.RecordRepositoryVisibility(ctx, ctx.Doer, repo)
 		}
 
 		log.Trace("Repository basic settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -376,7 +374,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(ctx, audit_model.RepositoryMirrorPushRemove, ctx.Doer, repo, m, "Removed push mirror for repository %s.", repo.FullName())
+		audit.RecordRepositoryMirrorPushRemove(ctx, ctx.Doer, repo, m)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(repo.Link() + "/settings")
@@ -441,7 +439,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(ctx, audit_model.RepositoryMirrorPushAdd, ctx.Doer, repo, m, "Added push mirror for repository %s.", repo.FullName())
+		audit.RecordRepositoryMirrorPushAdd(ctx, ctx.Doer, repo, m)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(repo.Link() + "/settings")
@@ -617,8 +615,6 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 
-		audit.Record(ctx, audit_model.RepositoryUpdate, ctx.Doer, repo, repo, "Changed settings of repository %s.", repo.FullName())
-
 		log.Trace("Repository advanced settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
@@ -638,7 +634,7 @@ func SettingsPost(ctx *context.Context) {
 				return
 			}
 
-			audit.Record(ctx, audit_model.RepositorySigningVerification, ctx.Doer, repo, repo, "Changed signing verification of repository %s to %s.", repo.FullName(), repo.TrustModel.String())
+			audit.RecordRepositorySigningVerification(ctx, ctx.Doer, repo)
 		}
 		log.Trace("Repository signing settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
@@ -717,7 +713,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(ctx, audit_model.RepositoryConvertMirror, ctx.Doer, repo, repo, "Converted repository %s from mirror to regular repository.", repo.FullName())
+		audit.RecordRepositoryConvertMirror(ctx, ctx.Doer, repo)
 
 		log.Trace("Repository converted from mirror to regular: %s", repo.FullName())
 		ctx.Flash.Success(ctx.Tr("repo.settings.convert_succeed"))
@@ -838,7 +834,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(ctx, audit_model.RepositoryTransferReject, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Repository, "Rejected transfer of repository %s.", ctx.Repo.Repository.FullName())
+		audit.RecordRepositoryTransferReject(ctx, ctx.Doer, ctx.Repo.Repository)
 
 		log.Trace("Repository transfer process was cancelled: %s/%s ", ctx.Repo.Owner.Name, repo.Name)
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_abort_success", repoTransfer.Recipient.Name))
@@ -907,7 +903,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(ctx, audit_model.RepositoryArchive, ctx.Doer, repo, repo, "Archived repository %s.", repo.FullName())
+		audit.RecordRepositoryArchive(ctx, ctx.Doer, repo)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
 
@@ -927,7 +923,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(ctx, audit_model.RepositoryUnarchive, ctx.Doer, repo, repo, "Unarchived repository %s.", repo.FullName())
+		audit.RecordRepositoryUnarchive(ctx, ctx.Doer, repo)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
 

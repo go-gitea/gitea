@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	db_install "code.gitea.io/gitea/models/db/install"
 	"code.gitea.io/gitea/models/migrations"
@@ -551,7 +550,7 @@ func SubmitInstall(ctx *context.Context) {
 			u, _ = user_model.GetUserByName(ctx, u.Name)
 		}
 
-		audit.Record(ctx, audit_model.UserCreate, u, u, u, "Created user %s.", u.Name)
+		audit.RecordUserCreate(ctx, u, u)
 
 		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
 		if err != nil {

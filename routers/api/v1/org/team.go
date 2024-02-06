@@ -10,7 +10,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	activities_model "code.gitea.io/gitea/models/activities"
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -250,7 +249,7 @@ func CreateTeam(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.OrganizationTeamAdd, ctx.Doer, ctx.Org.Organization, team, "Added team %s to organization %s.", team.Name, ctx.Org.Organization.Name)
+	audit.RecordOrganizationTeamAdd(ctx, ctx.Doer, ctx.Org.Organization, team)
 
 	apiTeam, err := convert.ToTeam(ctx, team, true)
 	if err != nil {
@@ -312,7 +311,6 @@ func EditTeam(ctx *context.APIContext) {
 	}
 
 	isAuthChanged := false
-	oldAccessMode := team.AccessMode
 	isIncludeAllChanged := false
 	if !team.IsOwnerTeam() && len(form.Permission) != 0 {
 		// Validate permission level.
@@ -347,9 +345,9 @@ func EditTeam(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.OrganizationTeamUpdate, ctx.Doer, org, team, "Updated settings of team %s/%s.", org.Name, team.Name)
+	audit.RecordOrganizationTeamUpdate(ctx, ctx.Doer, org, team)
 	if isAuthChanged {
-		audit.Record(ctx, audit_model.OrganizationTeamPermission, ctx.Doer, org, team, "Changed permission of team %s/%s from %s to %s.", org.Name, team.Name, oldAccessMode.String(), team.AccessMode.String())
+		audit.RecordOrganizationTeamPermission(ctx, ctx.Doer, org, team)
 	}
 
 	apiTeam, err := convert.ToTeam(ctx, team)
@@ -389,7 +387,7 @@ func DeleteTeam(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.OrganizationTeamRemove, ctx.Doer, org, ctx.Org.Team, "Removed team %s from organization %s.", ctx.Org.Team.Name, org.Name)
+	audit.RecordOrganizationTeamRemove(ctx, ctx.Doer, org, ctx.Org.Team)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -530,7 +528,7 @@ func AddTeamMember(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.OrganizationTeamMemberAdd, ctx.Doer, org, ctx.Org.Team, "Added user %s to team %s/%s.", u.Name, org.Name, ctx.Org.Team.Name)
+	audit.RecordOrganizationTeamMemberAdd(ctx, ctx.Doer, org, ctx.Org.Team, u)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -576,7 +574,7 @@ func RemoveTeamMember(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.OrganizationTeamMemberRemove, ctx.Doer, org, ctx.Org.Team, "Removed user %s from team %s/%s.", u.Name, org.Name, ctx.Org.Team.Name)
+	audit.RecordOrganizationTeamMemberRemove(ctx, ctx.Doer, org, ctx.Org.Team, u)
 
 	ctx.Status(http.StatusNoContent)
 }

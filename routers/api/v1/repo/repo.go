@@ -12,7 +12,6 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -747,9 +746,8 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		return err
 	}
 
-	audit.Record(ctx, audit_model.RepositoryUpdate, ctx.Doer, repo, repo, "Changed settings of repository %s.", repo.FullName())
 	if visibilityChanged {
-		audit.Record(ctx, audit_model.RepositoryVisibility, ctx.Doer, repo, repo, "Changed visibility of repository %s to %s.", repo.FullName(), audit.PublicString(!repo.IsPrivate))
+		audit.RecordRepositoryVisibility(ctx, ctx.Doer, repo)
 	}
 
 	log.Trace("Repository basic settings updated: %s/%s", owner.Name, repo.Name)

@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -205,7 +204,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 	notify_service.ForkRepository(ctx, doer, opts.BaseRepo, repo)
 
-	audit.Record(ctx, audit_model.RepositoryCreateFork, doer, repo, repo, "Created fork %s of repository %s.", repo.FullName(), opts.BaseRepo.FullName())
+	audit.RecordRepositoryCreateFork(ctx, doer, repo, opts.BaseRepo)
 
 	return repo, nil
 }
@@ -241,7 +240,7 @@ func ConvertForkToNormalRepository(ctx context.Context, doer *user_model.User, r
 		return err
 	}
 
-	audit.Record(ctx, audit_model.RepositoryConvertFork, doer, repo, repo, "Converted repository %s from fork to regular repository.", repo.FullName())
+	audit.RecordRepositoryConvertFork(ctx, doer, repo)
 
 	return nil
 }

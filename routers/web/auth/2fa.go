@@ -7,7 +7,6 @@ import (
 	"errors"
 	"net/http"
 
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -95,7 +94,7 @@ func TwoFactorPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserAuthenticationFailTwoFactor, u, u, u, "Failed two-factor authentication for user %s.", u.Name)
+	audit.RecordUserAuthenticationFailTwoFactor(ctx, u)
 
 	ctx.RenderWithErr(ctx.Tr("auth.twofa_passcode_incorrect"), tplTwofa, forms.TwoFactorAuthForm{})
 }

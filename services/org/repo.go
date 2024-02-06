@@ -8,7 +8,6 @@ import (
 	"errors"
 
 	"code.gitea.io/gitea/models"
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -31,7 +30,7 @@ func TeamAddRepository(ctx context.Context, doer *user_model.User, t *organizati
 		return err
 	}
 
-	audit.Record(ctx, audit_model.RepositoryCollaboratorTeamAdd, doer, repo, t, "Added team %s as collaborator for %s.", t.Name, repo.FullName())
+	audit.RecordRepositoryCollaboratorTeamAdd(ctx, doer, repo, t)
 
 	return nil
 }

@@ -7,7 +7,6 @@ package admin
 import (
 	"net/http"
 
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
@@ -76,7 +75,7 @@ func CreateOrg(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.OrganizationCreate, ctx.Doer, org, org, "Created organization %s.", org.Name)
+	audit.RecordUserCreate(ctx, ctx.Doer, org.AsUser())
 
 	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, org))
 }

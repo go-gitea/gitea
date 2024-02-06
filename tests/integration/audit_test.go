@@ -1,4 +1,4 @@
-// Copyright 2023 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package integration
@@ -42,10 +42,7 @@ func TestAuditLogging(t *testing.T) {
 	MakeRequest(t, req, http.StatusCreated)
 
 	req = NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/user1_audit_org", &api.EditOrgOption{
-		Description: "A new description",
-		Website:     "https://try.gitea.io/new",
-		Location:    "Earth",
-		Visibility:  "private",
+		Visibility: "private",
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 
@@ -55,8 +52,7 @@ func TestAuditLogging(t *testing.T) {
 	MakeRequest(t, req, http.StatusCreated)
 
 	req = NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user1/audit_repo", &api.EditRepoOption{
-		Description: util.ToPointer("A new description"),
-		Private:     util.ToPointer(true),
+		Private: util.ToPointer(true),
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 
@@ -87,22 +83,12 @@ func TestAuditLogging(t *testing.T) {
 			Target: TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: setting.AppURL + "user1_audit_org"},
 		},
 		{
-			Action: audit_model.OrganizationUpdate,
-			Scope:  TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: setting.AppURL + "user1_audit_org"},
-			Target: TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: setting.AppURL + "user1_audit_org"},
-		},
-		{
 			Action: audit_model.OrganizationVisibility,
 			Scope:  TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: setting.AppURL + "user1_audit_org"},
 			Target: TestTypeDescriptor{Type: audit_model.TypeOrganization, DisplayName: "user1_audit_org", HTMLURL: setting.AppURL + "user1_audit_org"},
 		},
 		{
 			Action: audit_model.RepositoryCreate,
-			Scope:  TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: setting.AppURL + "user1/audit_repo"},
-			Target: TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: setting.AppURL + "user1/audit_repo"},
-		},
-		{
-			Action: audit_model.RepositoryUpdate,
 			Scope:  TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: setting.AppURL + "user1/audit_repo"},
 			Target: TestTypeDescriptor{Type: audit_model.TypeRepository, DisplayName: "user1/audit_repo", HTMLURL: setting.AppURL + "user1/audit_repo"},
 		},

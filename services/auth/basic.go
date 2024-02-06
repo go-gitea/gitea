@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
-	audit_model "code.gitea.io/gitea/models/audit"
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -157,7 +156,7 @@ func validateTOTP(req *http.Request, u *user_model.User) error {
 	if ok, err := twofa.ValidateTOTP(req.Header.Get("X-Gitea-OTP")); err != nil {
 		return err
 	} else if !ok {
-		audit.Record(req.Context(), audit_model.UserAuthenticationFailTwoFactor, u, u, u, "Failed two-factor authentication for user %s.", u.Name)
+		audit.RecordUserAuthenticationFailTwoFactor(req.Context(), u)
 
 		return util.NewInvalidArgumentErrorf("invalid provided OTP")
 	}

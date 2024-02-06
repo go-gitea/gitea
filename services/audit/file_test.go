@@ -1,4 +1,4 @@
-// Copyright 2023 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package audit
@@ -25,7 +25,7 @@ func TestWriteEventAsJSON(t *testing.T) {
 
 	ctx := middleware.WithContextRequest(context.Background(), &http.Request{RemoteAddr: "127.0.0.1:1234"})
 
-	e := BuildEvent(
+	e := buildEvent(
 		ctx,
 		audit_model.RepositoryMirrorPushAdd,
 		doer,

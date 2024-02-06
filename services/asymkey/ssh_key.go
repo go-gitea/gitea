@@ -7,7 +7,6 @@ import (
 	"context"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/services/audit"
@@ -50,12 +49,12 @@ func DeletePublicKey(ctx context.Context, doer *user_model.User, id int64) (err 
 	committer.Close()
 
 	if key.Type == asymkey_model.KeyTypePrincipal {
-		audit.Record(ctx, audit_model.UserKeyPrincipalRemove, doer, owner, key, "Removed principal key %s.", key.Name)
+		audit.RecordUserKeyPrincipalRemove(ctx, doer, owner, key)
 
 		return asymkey_model.RewriteAllPrincipalKeys(ctx)
 	}
 
-	audit.Record(ctx, audit_model.UserKeySSHRemove, doer, owner, key, "Removed SSH key %s.", key.Fingerprint)
+	audit.RecordUserKeySSHRemove(ctx, doer, owner, key)
 
 	return asymkey_model.RewriteAllPublicKeys(ctx)
 }

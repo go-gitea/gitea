@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -279,7 +278,7 @@ func Create(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.OrganizationCreate, ctx.Doer, org, org, "Created organization %s.", org.Name)
+	audit.RecordUserCreate(ctx, ctx.Doer, org.AsUser())
 
 	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, org))
 }

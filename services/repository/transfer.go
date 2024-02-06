@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
@@ -55,14 +54,14 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 		return err
 	}
 
-	audit.Record(ctx, audit_model.RepositoryTransferAccept, doer, newRepo, newRepo, "Accepted repository transfer from %s to %s.", oldOwner.Name, newRepo.OwnerName)
+	audit.RecordRepositoryTransferAccept(ctx, doer, newRepo, oldOwner)
 
 	for _, team := range teams {
 		if err := models.AddRepository(ctx, team, newRepo); err != nil {
 			return err
 		}
 
-		audit.Record(ctx, audit_model.RepositoryCollaboratorTeamAdd, doer, newRepo, team, "Added team %s as collaborator for %s.", team.Name, newRepo.FullName())
+		audit.RecordRepositoryCollaboratorTeamAdd(ctx, doer, newRepo, team)
 	}
 
 	notify_service.TransferRepository(ctx, doer, repo, oldOwner.Name)
@@ -361,7 +360,7 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 
 	repo.Name = newRepoName
 
-	audit.Record(ctx, audit_model.RepositoryName, doer, repo, repo, "Changed repository name from %s to %s.", oldRepoName, newRepoName)
+	audit.RecordRepositoryName(ctx, doer, repo)
 
 	notify_service.RenameRepository(ctx, doer, repo, oldRepoName)
 
@@ -411,7 +410,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		return err
 	}
 
-	audit.Record(ctx, audit_model.RepositoryTransferStart, doer, repo, repo, "Started repository transfer from %s to %s.", repo.OwnerName, newOwner.Name)
+	audit.RecordRepositoryTransferStart(ctx, doer, repo, newOwner)
 
 	// notify users who are able to accept / reject transfer
 	notify_service.RepoPendingTransfer(ctx, doer, newOwner, repo)

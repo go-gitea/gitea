@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/pam"
@@ -69,7 +68,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		return user, err
 	}
 
-	audit.Record(ctx, audit_model.UserCreate, audit.NewAuthenticationSourceUser(), user, user, "Created user %s.", user.Name)
+	audit.RecordUserCreate(ctx, audit.NewAuthenticationSourceUser(), user)
 
 	return user, nil
 }
