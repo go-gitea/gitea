@@ -179,13 +179,7 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 		reqs = append(reqs, b.addDelete(filename, repo))
 	}
 
-	queueSettings, err := setting.GetQueueSettings(setting.CfgProvider, "code_indexer")
-	if err != nil {
-		log.Error("Could not fetch queue code_indexer")
-		return err
-	}
-
-	// Helper function
+	// Helper function to support Go v1.2 and below
 	min := func(a, b int) int {
 		if a <= b {
 			return a
@@ -194,11 +188,12 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 	}
 
 	if len(reqs) > 0 {
+		esBatchSize := 12 // Hardcoded batch size for ElasticSearch index update
 		var batchHead int
-		maxPerBatchReqCount := len(reqs)/queueSettings.BatchLength + (len(reqs) % queueSettings.BatchLength)
 
-		for i := 0; i < queueSettings.BatchLength; i++ {
+		maxPerBatchReqCount := len(reqs)/esBatchSize + (len(reqs) % esBatchSize)
 
+		for i := 0; i < esBatchSize; i++ {
 			// Taking in another variable because (*elastic.BulkService).Do(ctx context.Context) clears out the requests slice upon successful batch
 			bulkReq := reqs[batchHead:min(batchHead+maxPerBatchReqCount, len(reqs))]
 
@@ -209,12 +204,12 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 
 				_, err := bulkService.Do(ctx)
 
-				batchHead += maxPerBatchReqCount
-
 				if err != nil {
 					return err
 				}
 			}
+
+			batchHead += maxPerBatchReqCount
 		}
 	}
 	return nil
