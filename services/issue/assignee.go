@@ -264,6 +264,11 @@ func CanDoerChangeReviewRequests(ctx context.Context, doer *user_model.User, rep
 		return true
 	}
 
+	// The owner of the repo can change the reviewers
+	if doer.ID == repo.OwnerID {
+		return true
+	}
+
 	// Collaborators of the repo can change the reviewers
 	isCollaborator, err := repo_model.IsCollaborator(ctx, repo.ID, doer.ID)
 	if err != nil {
