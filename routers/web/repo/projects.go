@@ -326,11 +326,10 @@ func ViewProject(ctx *context.Context) {
 
 	notesMap, err := project.LoadProjectBoardNotesFromBoardList(ctx, boards)
 	if err != nil {
-		ctx.ServerError("LoadNotesOfBoards", err)
+		ctx.ServerError("LoadProjectBoardNotesOfBoards", err)
 		return
 	}
 
-	// @TODO: maybe should be in BoardNote
 	for _, noteList := range notesMap {
 		for _, note := range noteList {
 			note.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
@@ -397,11 +396,10 @@ func ViewProject(ctx *context.Context) {
 
 	pinnedBoardNotes, err := project_model.GetPinnedProjectBoardNotes(ctx, project.ID)
 	if err != nil {
-		ctx.ServerError("GetPinnedBoardNotes", err)
+		ctx.ServerError("GetPinnedProjectBoardNotes", err)
 		return
 	}
 
-	// @TODO: maybe should be in BoardNote
 	for _, note := range pinnedBoardNotes {
 		note.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 			Links: markup.Links{

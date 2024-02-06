@@ -70,6 +70,10 @@ func GetProjectBoardNotesByIds(ctx context.Context, projectBoardNoteIDs []int64)
 		return nil, err
 	}
 
+	if err := projectBoardNoteList.LoadAttributes(ctx); err != nil {
+		return nil, err
+	}
+
 	return projectBoardNoteList, nil
 }
 
@@ -110,17 +114,8 @@ func ProjectBoardNotes(ctx context.Context, opts *ProjectBoardNotesOptions) (Pro
 		return nil, fmt.Errorf("unable to query project-board-notes: %w", err)
 	}
 
-	// @TODO: same code in `GetPinnedBoardNotes()` and should be used with `LoadAttributes()`
-	for _, note := range projectBoardNoteList {
-		creator := new(user_model.User)
-		has, err := db.GetEngine(ctx).ID(note.CreatorID).Get(creator)
-		if err != nil {
-			return nil, err
-		}
-		if !has {
-			return nil, user_model.ErrUserNotExist{UID: note.CreatorID}
-		}
-		note.Creator = creator
+	if err := projectBoardNoteList.LoadAttributes(ctx); err != nil {
+		return nil, err
 	}
 
 	return projectBoardNoteList, nil
@@ -132,11 +127,22 @@ func NewProjectBoardNote(ctx context.Context, projectBoardNote *ProjectBoardNote
 	return err
 }
 
-/* @TODO: make it work - markdown.RenderString should also be at this function
-// IsPinned returns if a BoardNote is pinned
-func (notes BoardNoteList) LoadAttributes() error {
+// LoadAttributes prerenders the markdown content and sets the creator
+func (projectBoardNoteList ProjectBoardNoteList) LoadAttributes(ctx context.Context) error {
+	for _, projectBoardNote := range projectBoardNoteList {
+		creator := new(user_model.User)
+		has, err := db.GetEngine(ctx).ID(projectBoardNote.CreatorID).Get(creator)
+		if err != nil {
+			return err
+		}
+		if !has {
+			return user_model.ErrUserNotExist{UID: projectBoardNote.CreatorID}
+		}
+		projectBoardNote.Creator = creator
+	}
+
 	return nil
-} */
+}
 
 var ErrBoardNoteMaxPinReached = util.NewInvalidArgumentErrorf("the max number of pinned project-board-notes has been readched")
 
@@ -273,32 +279,23 @@ func (projectBoardNote *ProjectBoardNote) MovePin(ctx context.Context, newPositi
 
 // GetPinnedProjectBoardNotes returns the pinned BaordNotes for the given Project
 func GetPinnedProjectBoardNotes(ctx context.Context, projectID int64) (ProjectBoardNoteList, error) {
-	notes := make(ProjectBoardNoteList, 0)
+	projectBoardNoteList := make(ProjectBoardNoteList, 0)
 
 	err := db.GetEngine(ctx).
 		Table("project_board_note").
 		Where("project_id = ?", projectID).
 		And("pin_order > 0").
 		OrderBy("pin_order").
-		Find(&notes)
+		Find(&projectBoardNoteList)
 	if err != nil {
 		return nil, err
 	}
 
-	// @TODO: same code in `BoardNotes()` and should be used with `LoadAttributes()`
-	for _, note := range notes {
-		creator := new(user_model.User)
-		has, err := db.GetEngine(ctx).ID(note.CreatorID).Get(creator)
-		if err != nil {
-			return nil, err
-		}
-		if !has {
-			return nil, user_model.ErrUserNotExist{UID: note.CreatorID}
-		}
-		note.Creator = creator
+	if err := projectBoardNoteList.LoadAttributes(ctx); err != nil {
+		return nil, err
 	}
 
-	return notes, nil
+	return projectBoardNoteList, nil
 }
 
 // GetLastEventTimestamp returns the last user visible event timestamp, either the creation or the update.
