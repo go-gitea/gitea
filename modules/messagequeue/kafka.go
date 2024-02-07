@@ -28,6 +28,7 @@ func retriveConfig(cfg setting.MQConfig) kfklib.Config {
 		Username:       cfg.Username,
 		Password:       cfg.Password,
 		MQCert:         cfg.Certificate,
+		Algorithm:      cfg.Algorithm,
 	}
 }
 
