@@ -2,7 +2,7 @@ import $ from 'jquery';
 import {useLightTextOnBackground} from '../utils/color.js';
 import tinycolor from 'tinycolor2';
 import {createSortable} from '../modules/sortable.js';
-import {initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
+import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 
 const {csrfToken} = window.config;
 
@@ -172,7 +172,7 @@ export function initRepoProject() {
     return;
   }
 
-  const modalButtons = mainContent.find('.project-column button[data-modal]');
+  const modalButtons = mainContent.find(':where(.project-column, #pinned-notes) button[data-modal]');
   modalButtons.each(function() {
     const modalButton = $(this);
     const modalId = modalButton.data('modal');
@@ -181,6 +181,8 @@ export function initRepoProject() {
     if (!markdownEditor.length) return;
 
     modalButton.one('click', () => {
+      const comboMarkdownEditor = getComboMarkdownEditor(markdownEditor);
+      if (comboMarkdownEditor) return; // only init once
       initComboMarkdownEditor(markdownEditor, {easyMDEOptions: {maxHeight: '50vh', minHeight: '50vh'}});
     });
   });
