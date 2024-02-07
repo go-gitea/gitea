@@ -177,6 +177,6 @@ func (r *Writer) WriteRegularLink(l org.RegularLink) {
 		if l.Description != nil {
 			description = r.WriteNodesAsString(l.Description...)
 		}
-		fmt.Fprintf(r, `<a href="%s" title="%s">%s</a>`, link, description, description)
+		fmt.Fprintf(r, `<a href="%s">%s</a>`, link, description)
 	}
 }

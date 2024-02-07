@@ -36,12 +36,12 @@ func TestRender_StandardLinks(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
-	googleRendered := "<p><a href=\"https://google.com/\" title=\"https://google.com/\">https://google.com/</a></p>"
+	googleRendered := "<p><a href=\"https://google.com/\">https://google.com/</a></p>"
 	test("[[https://google.com/]]", googleRendered)
 
 	lnk := util.URLJoin(AppSubURL, "WikiPage")
 	test("[[WikiPage][WikiPage]]",
-		"<p><a href=\""+lnk+"\" title=\"WikiPage\">WikiPage</a></p>")
+		"<p><a href=\""+lnk+"\">WikiPage</a></p>")
 }
 
 func TestRender_Media(t *testing.T) {
