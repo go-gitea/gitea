@@ -151,6 +151,11 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 
 	refName := git.RefName(ref)
 
+	giteaRuntimeToken, err := actions.CreateAuthorizationToken(t.ID, t.Job.RunID, t.JobID)
+	if err != nil {
+		log.Error("actions.CreateAuthorizationToken failed: %v", err)
+	}
+
 	taskContext, err := structpb.NewStruct(map[string]any{
 		// standard contexts, see https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
 		"action":            "",                                                   // string, The name of the action currently running, or the id of a step. GitHub removes special characters, and uses the name __run when the current step runs a script without an id. If you use the same action more than once in the same job, the name will include a suffix with the sequence number with underscore before it. For example, the first script you run will have the name __run, and the second script will be named __run_2. Similarly, the second invocation of actions/checkout will be actionscheckout2.
@@ -190,6 +195,7 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 
 		// additional contexts
 		"gitea_default_actions_url": setting.Actions.DefaultActionsURL.URL(),
+		"gitea_runtime_token":       giteaRuntimeToken,
 	})
 	if err != nil {
 		log.Error("structpb.NewStruct failed: %v", err)
