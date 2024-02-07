@@ -3,6 +3,14 @@
   overflow-y: auto;
 }
 
+.ui.modal .ui.selection {
+  flex-wrap: wrap;
+}
+
+.ui.modal .ui.selection > a > .desc {
+  display: none;
+}
+
 #pinned-notes {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

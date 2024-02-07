@@ -19,11 +19,11 @@
 					{{if $.CanWriteProjects}}
 						<button class="ui item show-modal button"
 							data-modal="#edit-project-column-note-modal-{{.ID}}"
-							data-modal-form.action="{{$.Link}}/{{.BoardID}}/note/{{.ID}}">
+							data-modal-form.action="{{$.root.Link}}/{{.BoardID}}/note/{{.ID}}">
 								{{svg "octicon-pencil"}}
 								{{ctx.Locale.Tr "repo.projects.note.edit"}}
 						</button>
-						<a class="ui item button create-project-issue-from-note" href="{{$.RepoLink}}/issues/new/choose?project={{$.ProjectID}}">
+						<a class="ui item button create-project-issue-from-note" href="{{$.root.RepoLink}}/issues/new/choose?project={{$.root.Project.ID}}">
 							{{svg "octicon-issue-opened"}}
 							{{ctx.Locale.Tr "repo.issues.new"}}
 						</a>
@@ -31,7 +31,7 @@
 						<button class="ui item button {{if $notPinnedAndNotAllowedToPin}}disabled{{end}} pin-project-column-note"
 							{{if $notPinnedAndNotAllowedToPin}}style="pointer-events: unset !important"{{end}}
 							data-method="{{if .IsPinned}}delete{{else}}post{{end}}"
-							data-url="{{$.Link}}/{{.BoardID}}/note/{{.ID}}/pin"
+							data-url="{{$.root.Link}}/{{.BoardID}}/note/{{.ID}}/pin"
 							{{if $notPinnedAndNotAllowedToPin}}data-tooltip-content="{{ctx.Locale.Tr "repo.projects.note.max_pinned"}}"{{end}}>
 								{{if .IsPinned}}
 									{{svg "octicon-pin-slash"}}
@@ -43,7 +43,7 @@
 						</button>
 						<button class="ui item show-modal button"
 							data-modal="#delete-project-column-note-modal-{{.ID}}"
-							data-modal-form.action="{{$.Link}}/{{.BoardID}}/note/{{.ID}}">
+							data-modal-form.action="{{$.root.Link}}/{{.BoardID}}/note/{{.ID}}">
 								{{svg "octicon-trash"}}
 								{{ctx.Locale.Tr "repo.projects.note.delete"}}
 						</button>
@@ -53,34 +53,68 @@
 						<div class="header">
 							{{ctx.Locale.Tr "repo.projects.note.view"}}
 						</div>
-						<div class="content">
-							{{Str2html .RenderedContent}}
+						<div class="content ui form">
+							<div class="field">
+								<label class="gt-font-16">{{ctx.Locale.Tr "repo.projects.note.title"}}</label>
+								{{.Title}}
+							</div>
+
+							<div class="field">
+								<label class="gt-font-16">{{ctx.Locale.Tr "repo.projects.note.labels"}}</label>
+								{{if .LabelIDs}}
+									{{RenderLabelsFromIDs ctx .LabelIDs $.root.Link}}
+								{{else}}
+									{{ctx.Locale.Tr "repo.projects.note.no_label"}}
+								{{end}}
+							</div>
+
+							<div class="field">
+								<label class="gt-font-16">{{ctx.Locale.Tr "repo.projects.note.description"}}</label>
+								{{Str2html .RenderedContent}}
+							</div>
 						</div>
 						<div class="actions">
 							<button class="ui cancel button">{{ctx.Locale.Tr "repo.projects.close"}}</button>
 						</div>
 					</div>
 
-					{{if $.CanWriteProjects}}
+					{{if and $.RenderModals $.CanWriteProjects}}
 						<div class="ui modal" id="edit-project-column-note-modal-{{.ID}}">
 							<div class="header">
 								{{ctx.Locale.Tr "repo.projects.note.edit"}}
 							</div>
 							<form class="ui form form-fetch-action" method="put">
 								<div class="content">
-									{{$.CsrfTokenHtml}}
+									{{$.root.CsrfTokenHtml}}
 									<div class="required field">
-										<label for="edit-project-column-note-title-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.edit_title"}}</label>
+										<label for="edit-project-column-note-title-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.title"}}</label>
 										<input id="edit-project-column-note-title-{{.ID}}" name="title" value="{{.Title}}" maxlength="255" autofocus required>
 									</div>
 
 									<div class="field">
+										<label for="edit-project-column-note-label-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.labels"}}</label>
+										<div class="ui fluid selection dropdown multiple clearable">
+											<input type="hidden" id="edit-project-column-note-label-{{.ID}}" name="labelIds" value="{{range $index, $val := .LabelIDs}}{{if ne $index 0}},{{end}}{{$val}}{{end}}">
+											{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+											<div class="default text"></div>
+											<div class="menu">
+												{{range $.root.Labels}}
+													<div class="item vertical gt-gap-y-2" data-value="{{.ID}}">
+														<small class="desc">{{.Description | RenderEmoji ctx}}</small>
+														<span>{{RenderLabel ctx .}}</span>
+													</div>
+												{{end}}
+											</div>
+										</div>
+									</div>
+
+									<div class="field">
 										{{template "shared/combomarkdowneditor" (dict
-											"MarkdownPreviewUrl" (print $.RepoLink "/markup")
-											"MarkdownPreviewContext" $.RepoLink
+											"MarkdownPreviewUrl" (print $.root.RepoLink "/markup")
+											"MarkdownPreviewContext" $.root.RepoLink
 											"TextareaName" "content"
 											"TextareaContent" .Content
-											"TextareaPlaceholder" (ctx.Locale.Tr "repo.projects.note.content")
+											"TextareaPlaceholder" (ctx.Locale.Tr "repo.projects.note.description")
 										)}}
 									</div>
 								</div>
@@ -94,10 +128,10 @@
 								{{ctx.Locale.Tr "repo.projects.note.delete"}}
 							</div>
 							<form class="ui form form-fetch-action" method="delete">
-								{{$.CsrfTokenHtml}}
+								{{$.root.CsrfTokenHtml}}
 								<div class="content">
 									<label>
-										{{ctx.Locale.Tr "repo.projects.note.deletion_desc"}}
+										{{ctx.Locale.Tr "repo.projects.note.deletion_description"}}
 									</label>
 								</div>
 								{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
@@ -123,6 +157,9 @@
 			{{svg "octicon-checklist" 16 "gt-mr-2 gt-vm"}}
 			<span class="gt-vm">{{.GetTasksDone}} / {{$tasks}}</span>
 		</div>
+	{{end}}
+	{{if .LabelIDs}}
+		{{RenderLabelsFromIDs ctx .LabelIDs $.root.Link}}
 	{{end}}
 </div>
 {{end}}

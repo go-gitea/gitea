@@ -224,3 +224,23 @@ func RenderLabels(ctx context.Context, labels []*issues_model.Label, repoLink st
 	htmlCode += "</span>"
 	return template.HTML(htmlCode)
 }
+
+func RenderLabelsFromIDs(ctx context.Context, labelIDs []int64, repoLink string) template.HTML {
+	labels, err := issues_model.GetLabelsByIDs(ctx, labelIDs)
+	if err != nil {
+		log.Error("GetLabelsByIDs", err)
+		return ""
+	}
+
+	htmlCode := `<span class="labels-list">`
+	for _, label := range labels {
+		// Protect against nil value in labels - shouldn't happen but would cause a panic if so
+		if label == nil {
+			continue
+		}
+		htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d'>%s</a> ",
+			repoLink, label.ID, RenderLabel(ctx, label))
+	}
+	htmlCode += "</span>"
+	return template.HTML(htmlCode)
+}

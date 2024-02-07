@@ -19,12 +19,13 @@ import (
 
 // ProjectBoardNote is used to represent a note on a boards
 type ProjectBoardNote struct {
-	ID              int64  `xorm:"pk autoincr"`
-	Title           string `xorm:"TEXT NOT NULL"`
-	Content         string `xorm:"LONGTEXT"`
-	RenderedContent string `xorm:"-"`
-	Sorting         int64  `xorm:"NOT NULL DEFAULT 0"`
-	PinOrder        int64  `xorm:"NOT NULL DEFAULT 0"`
+	ID              int64   `xorm:"pk autoincr"`
+	Title           string  `xorm:"TEXT NOT NULL"`
+	Content         string  `xorm:"LONGTEXT"`
+	RenderedContent string  `xorm:"-"`
+	Sorting         int64   `xorm:"NOT NULL DEFAULT 0"`
+	PinOrder        int64   `xorm:"NOT NULL DEFAULT 0"`
+	LabelIDs        []int64 `xorm:"-"` // can't be []*Label because of 'import cycle not allowed'
 
 	ProjectID int64            `xorm:"INDEX NOT NULL"`
 	BoardID   int64            `xorm:"INDEX NOT NULL"`
@@ -46,6 +47,7 @@ type ProjectBoardNotesOptions struct {
 
 func init() {
 	db.RegisterModel(new(ProjectBoardNote))
+	db.RegisterModel(new(ProjectBoardNoteLabel))
 }
 
 // GetProjectBoardNoteByID load notes assigned to the boards
@@ -56,7 +58,7 @@ func GetProjectBoardNoteByID(ctx context.Context, projectBoardNoteID int64) (*Pr
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrProjectBoardNoteNotExist{BoardNoteID: projectBoardNoteID}
+		return nil, ErrProjectBoardNoteNotExist{ProjectBoardNoteID: projectBoardNoteID}
 	}
 
 	return projectBoardNote, nil
@@ -139,6 +141,10 @@ func (projectBoardNoteList ProjectBoardNoteList) LoadAttributes(ctx context.Cont
 			return user_model.ErrUserNotExist{UID: projectBoardNote.CreatorID}
 		}
 		projectBoardNote.Creator = creator
+
+		if err := projectBoardNote.LoadLabelIDs(ctx); err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -6,11 +6,9 @@
 		<div class="note-card pinned-card {{if $canWriteProject}}gt-cursor-grab{{end}}" data-url="{{$.Link}}/{{.ID}}/note" data-note="{{.ID}}">
 			{{template "repo/note" (dict
 				"BoardNote" .
+				"root" $
 				"CanWriteProjects" $canWriteProject
-				"Link" $.Link
-				"RepoLink" $.RepoLink
-				"ProjectID" $.Project.ID
-				"CsrfTokenHtml" $.CsrfTokenHtml)
+				"RenderModals" false)
 			}}
 		</div>
 	{{end}}
@@ -143,7 +141,7 @@
 										<div class="content">
 											{{$.CsrfTokenHtml}}
 											<div class="required field">
-												<label for="new-project-column-note-title-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.new_title"}}</label>
+												<label for="new-project-column-note-title-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.title"}}</label>
 												<input id="new-project-column-note-title-{{.ID}}" name="title" maxlength="255" autofocus required>
 											</div>
 
@@ -152,7 +150,7 @@
 													"MarkdownPreviewUrl" (print $.RepoLink "/markup")
 													"MarkdownPreviewContext" $.RepoLink
 													"TextareaName" "content"
-													"TextareaPlaceholder" (ctx.Locale.Tr "repo.projects.note.content")
+													"TextareaPlaceholder" (ctx.Locale.Tr "repo.projects.note.description")
 												)}}
 											</div>
 										</div>
@@ -225,11 +223,9 @@
 								<div class="note-card" data-note="{{.ID}}">
 									{{template "repo/note" (dict
 										"BoardNote" .
+										"root" $
 										"CanWriteProjects" $canWriteProject
-										"Link" $.Link
-										"RepoLink" $.RepoLink
-										"ProjectID" $.Project.ID
-										"CsrfTokenHtml" $.CsrfTokenHtml)
+										"RenderModals" true)
 									}}
 								</div>
 							{{end}}

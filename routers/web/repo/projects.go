@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -415,6 +416,13 @@ func ViewProject(ctx *context.Context) {
 		}
 	}
 
+	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{})
+	if err != nil {
+		ctx.ServerError("GetLabelsByRepoID", err)
+		return
+	}
+
+	ctx.Data["Labels"] = labels
 	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["Project"] = project
@@ -821,6 +829,31 @@ func AddProjectBoardNoteToBoard(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
+func findNewAndRemovedIDs(original []int64, updated []int64) (newValues, removedValues []int64) {
+	if original == nil {
+		return updated, nil
+	}
+	if updated == nil {
+		return nil, nil
+	}
+
+	for _, v := range updated {
+		if !slices.Contains(original, v) {
+			// If the value is not in the original map, it's new
+			newValues = append(newValues, v)
+		}
+	}
+
+	for _, v := range original {
+		if !slices.Contains(updated, v) {
+			// If the value is not in the updated map, it's removed
+			removedValues = append(removedValues, v)
+		}
+	}
+
+	return newValues, removedValues
+}
+
 func EditProjectBoardNote(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.ProjectBoardNoteForm)
 	_, projectBoardNote := checkProjectBoardNoteChangePermissions(ctx)
@@ -831,9 +864,59 @@ func EditProjectBoardNote(ctx *context.Context) {
 	projectBoardNote.Title = form.Title
 	projectBoardNote.Content = form.Content
 
+	err := projectBoardNote.LoadLabelIDs(ctx)
+	if err != nil {
+		ctx.ServerError("LoadLabelIDs", err)
+	}
+
 	if err := project_model.UpdateProjectBoardNote(ctx, projectBoardNote); err != nil {
 		ctx.ServerError("UpdateProjectBoardNote", err)
 		return
+	}
+
+	// LabelIDs is send without parentheses - maybe because of multipart/form-data
+	labelIdsString := "[" + ctx.Req.FormValue("labelIds") + "]"
+	var labelIDs []int64
+	if err := json.Unmarshal([]byte(labelIdsString), &labelIDs); err != nil {
+		ctx.ServerError("Unmarshal", err)
+	}
+
+	newLabelIDs, removedLabelIDs := findNewAndRemovedIDs(projectBoardNote.LabelIDs, labelIDs)
+
+	for _, labelID := range newLabelIDs {
+		label, err := issues_model.GetLabelByID(ctx, labelID)
+		if err != nil {
+			if issues_model.IsErrLabelNotExist(err) {
+				ctx.Error(http.StatusNotFound, "GetLabelByID")
+			} else {
+				ctx.ServerError("GetLabelByID", err)
+			}
+			return
+		}
+
+		err = projectBoardNote.AddLabel(ctx, label.ID)
+		if err != nil {
+			ctx.ServerError("AddLabel", err)
+			return
+		}
+	}
+
+	for _, labelID := range removedLabelIDs {
+		label, err := issues_model.GetLabelByID(ctx, labelID)
+		if err != nil {
+			if issues_model.IsErrLabelNotExist(err) {
+				ctx.Error(http.StatusNotFound, "GetLabelByID")
+			} else {
+				ctx.ServerError("GetLabelByID", err)
+			}
+			return
+		}
+
+		err = projectBoardNote.RemoveLabelByID(ctx, label.ID)
+		if err != nil {
+			ctx.ServerError("RemoveLabelByID", err)
+			return
+		}
 	}
 
 	ctx.JSONOK()
