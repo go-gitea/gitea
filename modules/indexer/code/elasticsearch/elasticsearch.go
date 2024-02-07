@@ -179,37 +179,18 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 		reqs = append(reqs, b.addDelete(filename, repo))
 	}
 
-	// Helper function to support Go v1.2 and below
-	min := func(a, b int) int {
-		if a <= b {
-			return a
-		}
-		return b
-	}
-
 	if len(reqs) > 0 {
-		esBatchSize := 12 // Hardcoded batch size for ElasticSearch index update
-		var batchHead int
+		esBatchSize := 50
+		bulkService := b.inner.Client.Bulk().
+			Index(b.inner.VersionedIndexName())
 
-		maxPerBatchReqCount := len(reqs)/esBatchSize + (len(reqs) % esBatchSize)
-
-		for i := 0; i < esBatchSize; i++ {
-			// Taking in another variable because (*elastic.BulkService).Do(ctx context.Context) clears out the requests slice upon successful batch
-			bulkReq := reqs[batchHead:min(batchHead+maxPerBatchReqCount, len(reqs))]
-
-			if len(bulkReq) > 0 {
-				bulkService := b.inner.Client.Bulk().
-					Index(b.inner.VersionedIndexName()).
-					Add(bulkReq...)
-
-				_, err := bulkService.
-					Do(ctx)
-				if err != nil {
-					return err
-				}
+		for i := 0; i < len(reqs); i = i + esBatchSize {
+			_, err := bulkService.
+				Add(reqs[i:min(i+esBatchSize, len(reqs))]...).
+				Do(ctx)
+			if err != nil {
+				return err
 			}
-
-			batchHead += maxPerBatchReqCount
 		}
 	}
 	return nil
