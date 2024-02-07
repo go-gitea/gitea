@@ -134,17 +134,6 @@ func NewMainApp(version, versionExtra string) *cli.App {
 	app.Description = `By default, Gitea will start serving using the web-server with no argument, which can alternatively be run by running the subcommand "web".`
 	app.Version = version + versionExtra
 	app.EnableBashCompletion = true
-
-	// Remove config after reading.
-	defer func() {
-		if setting.RmCfg {
-			if err := os.Remove(setting.CustomConf); err != nil {
-				log.Info("* remove config err: %v", err)
-			} else {
-				log.Info("* remove config successfully.")
-			}
-		}
-	}()
 	// these sub-commands need to use config file
 	subCmdWithConfig := []*cli.Command{
 		CmdWeb,

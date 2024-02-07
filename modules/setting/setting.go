@@ -112,15 +112,6 @@ func LoadCommonSettings() {
 
 // loadCommonSettingsFrom loads common configurations from a configuration provider.
 func loadCommonSettingsFrom(cfg ConfigProvider) error {
-	defer func() {
-		if RmCfg {
-			if err := os.Remove(CustomConf); err != nil {
-				log.Info("* remove config err: %v", err)
-			} else {
-				log.Info("* remove config successfully.")
-			}
-		}
-	}()
 	// WARNING: don't change the sequence except you know what you are doing.
 	loadRunModeFrom(cfg)
 	loadLogGlobalFrom(cfg)

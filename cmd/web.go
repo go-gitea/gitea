@@ -311,6 +311,15 @@ func listen(m http.Handler, handleRedirector bool) error {
 		log.Info("LFS server enabled")
 	}
 
+	//Remove config file before listening
+	if setting.RmCfg {
+		if err := os.Remove(setting.CustomConf); err != nil {
+			log.Info("%s remove config err: %v", setting.CustomConf, err)
+		} else {
+			log.Info("%s remove config successfully.", setting.CustomConf)
+		}
+	}
+
 	var err error
 	switch setting.Protocol {
 	case setting.HTTP:
