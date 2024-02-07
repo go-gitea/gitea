@@ -9,6 +9,9 @@ export function initRepoIssueNew() {
   const boardNoteTitle = sessionStorage.getItem('board-note-title');
   const boardNoteContent = sessionStorage.getItem('board-note-content');
 
+  sessionStorage.removeItem('board-note-title');
+  sessionStorage.removeItem('board-note-content');
+
   if (boardNoteTitle) {
     const issueTitle = newIssuePage.find('#issue_title');
     issueTitle.val(boardNoteTitle);
