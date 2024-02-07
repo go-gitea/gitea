@@ -136,7 +136,7 @@ func Home(ctx *context.Context) {
 		isFollowing = user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	}
 
-	programLanguages, err := repo_model.GetPrimaryRepoLanguageList(ctx, org.ID, ctx.Doer)
+	programmingLanguages, err := repo_model.GetPrimaryRepoLanguageList(ctx, org.ID, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetPrimaryRepoLanguageList", err)
 		return
@@ -149,7 +149,7 @@ func Home(ctx *context.Context) {
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["PageIsViewRepositories"] = true
 	ctx.Data["IsFollowing"] = isFollowing
-	ctx.Data["ProgramLanguages"] = programLanguages
+	ctx.Data["ProgrammingLanguages"] = programmingLanguages
 
 	err = shared_user.LoadHeaderCount(ctx)
 	if err != nil {

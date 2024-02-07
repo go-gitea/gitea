@@ -11,10 +11,11 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-func SendPrimaryLanguageList(ctx *context.APIContext, ownerID int64) {
+func listPrimaryLanguageList(ctx *context.APIContext, ownerID int64) {
 	langs, err := repo_model.GetPrimaryRepoLanguageList(ctx, ownerID, ctx.Doer)
 	if err != nil {
 		ctx.InternalServerError(err)
+		return
 	}
 
 	list := []api.LanguageInfo{}
@@ -40,7 +41,7 @@ func ListPrimaryLanguages(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/PrimaryLanguageList"
 
-	SendPrimaryLanguageList(ctx, 0)
+	listPrimaryLanguageList(ctx, 0)
 }
 
 // List user primary languages
@@ -62,7 +63,7 @@ func GetUserPrimaryLanguageList(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/PrimaryLanguageList"
 
-	SendPrimaryLanguageList(ctx, ctx.ContextUser.ID)
+	listPrimaryLanguageList(ctx, ctx.ContextUser.ID)
 }
 
 // List org primary languages
@@ -84,5 +85,5 @@ func GetOrgPrimaryLanguageList(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/PrimaryLanguageList"
 
-	SendPrimaryLanguageList(ctx, ctx.Org.Organization.ID)
+	listPrimaryLanguageList(ctx, ctx.Org.Organization.ID)
 }

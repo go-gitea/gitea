@@ -747,9 +747,8 @@ func GetUserRepositories(ctx context.Context, opts *SearchRepoOptions) (Reposito
 }
 
 func GetPrimaryRepoLanguageList(ctx context.Context, ownerID int64, user *user_model.User) (LanguageStatList, error) {
-	languageList := make(LanguageStatList, 0)
 
-	q := db.GetEngine(ctx).
+	sess := db.GetEngine(ctx).
 		Table("language_stat").
 		Cols("language").
 		Where(builder.Eq{"is_primary": true})
@@ -760,10 +759,12 @@ func GetPrimaryRepoLanguageList(ctx context.Context, ownerID int64, user *user_m
 			return nil, err
 		}
 
-		q = q.In("repo_id", ownerIDs)
+		sess = sess.In("repo_id", ownerIDs)
 	}
 
-	err := q.Distinct("language").
+	languageList := make(LanguageStatList, 0)
+
+	err := sess.Distinct("language").
 		OrderBy("language").
 		Find(&languageList)
 	if err != nil {
