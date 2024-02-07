@@ -23,10 +23,12 @@ var (
 	AppWorkPath string
 	CustomPath  string // Custom directory path. Env: GITEA_CUSTOM
 	CustomConf  string
+	RmCfg       bool
 
 	appWorkPathBuiltin string
 	customPathBuiltin  string
 	customConfBuiltin  string
+	rmCfgBuiltin       bool
 
 	AppWorkPathMismatch bool
 )
@@ -69,12 +71,14 @@ func init() {
 	appWorkPathBuiltin = AppWorkPath
 	customPathBuiltin = CustomPath
 	customConfBuiltin = CustomConf
+	rmCfgBuiltin = RmCfg
 }
 
 type ArgWorkPathAndCustomConf struct {
 	WorkPath   string
 	CustomPath string
 	CustomConf string
+	RmCfg      bool
 }
 
 type stringWithDefault struct {
@@ -82,7 +86,17 @@ type stringWithDefault struct {
 	IsSet bool
 }
 
+type boolWithDefault struct {
+	Value bool
+	IsSet bool
+}
+
 func (s *stringWithDefault) Set(v string) {
+	s.Value = v
+	s.IsSet = true
+}
+
+func (s *boolWithDefault) Set(v bool) {
 	s.Value = v
 	s.IsSet = true
 }
@@ -119,6 +133,7 @@ func InitWorkPathAndCfgProvider(getEnvFn func(name string) string, args ArgWorkP
 	if tmpCustomConf.Value == "" {
 		tmpCustomConf.Value = "conf/app.ini"
 	}
+	tmpRmCfg := boolWithDefault{Value: rmCfgBuiltin}
 
 	readFromEnv := func() {
 		envWorkPath := getEnvFn("GITEA_WORK_DIR")
@@ -160,6 +175,9 @@ func InitWorkPathAndCfgProvider(getEnvFn func(name string) string, args ArgWorkP
 				}
 			}
 		}
+		if args.RmCfg != false {
+			tmpRmCfg.Set(args.RmCfg)
+		}
 	}
 
 	readFromEnv()
@@ -195,4 +213,5 @@ func InitWorkPathAndCfgProvider(getEnvFn func(name string) string, args ArgWorkP
 	AppWorkPath = tmpWorkPath.Value
 	CustomPath = tmpCustomPath.Value
 	CustomConf = tmpCustomConf.Value
+	RmCfg = tmpRmCfg.Value
 }

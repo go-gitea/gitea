@@ -72,6 +72,12 @@ func appGlobalFlags() []cli.Flag {
 			Value:   setting.CustomConf,
 			Usage:   "Set custom config file (defaults to '{WorkPath}/custom/conf/app.ini')",
 		},
+		&cli.BoolFlag{
+			Name:    "rm-cfg",
+			Aliases: []string{"r"},
+			Value:   setting.RmCfg,
+			Usage:   "Whether remove the cfg file after initialized.",
+		},
 		&cli.StringFlag{
 			Name:    "work-path",
 			Aliases: []string{"w"},
@@ -108,6 +114,9 @@ func prepareWorkPathAndCustomConf(action cli.ActionFunc) func(ctx *cli.Context) 
 			if curCtx.IsSet("config") && args.CustomConf == "" {
 				args.CustomConf = curCtx.String("config")
 			}
+			if curCtx.IsSet("rm-cfg") && args.RmCfg == false {
+				args.RmCfg = curCtx.Bool("rm-cfg")
+			}
 		}
 		setting.InitWorkPathAndCommonConfig(os.Getenv, args)
 		if ctx.Bool("help") || action == nil {
@@ -126,6 +135,16 @@ func NewMainApp(version, versionExtra string) *cli.App {
 	app.Version = version + versionExtra
 	app.EnableBashCompletion = true
 
+	// Remove config after reading.
+	defer func() {
+		if setting.RmCfg {
+			if err := os.Remove(setting.CustomConf); err != nil {
+				log.Info("* remove config err: %v", err)
+			} else {
+				log.Info("* remove config successfully.")
+			}
+		}
+	}()
 	// these sub-commands need to use config file
 	subCmdWithConfig := []*cli.Command{
 		CmdWeb,
