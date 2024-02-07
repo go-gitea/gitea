@@ -4,8 +4,9 @@
 package integration
 
 import (
-	"net/url"
 	"net/http"
+	"net/http"
+	"net/url"
 	"testing"
 
 	api "code.gitea.io/gitea/modules/structs"
@@ -29,16 +30,16 @@ func testLanguageList(t *testing.T, uri string, exp []map[string]string) {
 }
 
 func TestAPIListLanguages(t *testing.T) {
-	onGiteaRun(t, func (t *testing.T, u *url.URL) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		testLanguageList(t,
 			"/api/v1/repos/languages",
 			[]map[string]string{
-				map[string]string{
-					"name": "Markdown",
+				{
+					"name":  "Markdown",
 					"color": "#083fa1",
 				},
-				map[string]string{
-					"name": "Text",
+				{
+					"name":  "Text",
 					"color": "#cccccc",
 				},
 			},
@@ -47,12 +48,12 @@ func TestAPIListLanguages(t *testing.T) {
 }
 
 func TestAPIListUserLanguages(t *testing.T) {
-	onGiteaRun(t, func (t *testing.T, u *url.URL) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		testLanguageList(t,
 			"/api/v1/users/user2/languages",
 			[]map[string]string{
-				map[string]string{
-					"name": "Text",
+				{
+					"name":  "Text",
 					"color": "#cccccc",
 				},
 			},
@@ -61,7 +62,7 @@ func TestAPIListUserLanguages(t *testing.T) {
 }
 
 func TestAPIListOrgLanguages(t *testing.T) {
-	onGiteaRun(t, func (t *testing.T, u *url.URL) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		testLanguageList(t,
 			"/api/v1/orgs/user3/languages",
 			[]map[string]string{},

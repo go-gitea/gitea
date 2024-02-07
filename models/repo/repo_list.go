@@ -747,7 +747,6 @@ func GetUserRepositories(ctx context.Context, opts *SearchRepoOptions) (Reposito
 }
 
 func GetPrimaryRepoLanguageList(ctx context.Context, ownerID int64, user *user_model.User) (LanguageStatList, error) {
-
 	sess := db.GetEngine(ctx).
 		Table("language_stat").
 		Cols("language").
