@@ -138,7 +138,7 @@ func getTestCases() []struct {
 		{
 			name:  "AllPublic/PublicRepositoriesOfUserIncludingCollaborative",
 			opts:  &repo_model.SearchRepoOptions{ListOptions: db.ListOptions{Page: 1, PageSize: 10}, OwnerID: 15, AllPublic: true, Template: util.OptionalBoolFalse},
-			count: 31,
+			count: 32,
 		},
 		{
 			name:  "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborative",
