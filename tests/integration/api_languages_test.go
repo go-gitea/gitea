@@ -5,7 +5,6 @@ package integration
 
 import (
 	"net/http"
-	"net/http"
 	"net/url"
 	"testing"
 
