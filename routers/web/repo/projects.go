@@ -814,16 +814,48 @@ func AddProjectBoardNoteToBoard(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.NewProjectBoardNote(ctx, &project_model.ProjectBoardNote{
+	// LabelIDs is send without parentheses - maybe because of multipart/form-data
+	labelIdsString := "[" + ctx.Req.FormValue("labelIds") + "]"
+	var labelIDs []int64
+	if err := json.Unmarshal([]byte(labelIdsString), &labelIDs); err != nil {
+		ctx.ServerError("Unmarshal", err)
+	}
+
+	// check that all LabelsIDs are valid
+	for _, labelID := range labelIDs {
+		_, err := issues_model.GetLabelByID(ctx, labelID)
+		if err != nil {
+			if issues_model.IsErrLabelNotExist(err) {
+				ctx.Error(http.StatusNotFound, "GetLabelByID")
+			} else {
+				ctx.ServerError("GetLabelByID", err)
+			}
+			return
+		}
+	}
+
+	projectBoardNote := project_model.ProjectBoardNote{
 		Title:   form.Title,
 		Content: form.Content,
 
 		ProjectID: ctx.ParamsInt64(":id"),
 		BoardID:   ctx.ParamsInt64(":boardID"),
 		CreatorID: ctx.Doer.ID,
-	}); err != nil {
+	}
+	err := project_model.NewProjectBoardNote(ctx, &projectBoardNote)
+	if err != nil {
 		ctx.ServerError("NewProjectBoardNote", err)
 		return
+	}
+
+	if len(labelIDs) > 0 {
+		for _, labelID := range labelIDs {
+			err := projectBoardNote.AddLabel(ctx, labelID)
+			if err != nil {
+				ctx.ServerError("AddLabel", err)
+				return
+			}
+		}
 	}
 
 	ctx.JSONOK()

@@ -146,6 +146,23 @@
 											</div>
 
 											<div class="field">
+												<label for="new-project-column-note-label-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.labels"}}</label>
+												<div class="ui fluid selection dropdown multiple clearable">
+													<input type="hidden" id="new-project-column-note-label-{{.ID}}" name="labelIds">
+													{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+													<div class="default text"></div>
+													<div class="menu">
+														{{range $.Labels}}
+															<div class="item vertical gt-gap-y-2" data-value="{{.ID}}">
+																<small class="desc">{{.Description | RenderEmoji ctx}}</small>
+																<span>{{RenderLabel ctx .}}</span>
+															</div>
+														{{end}}
+													</div>
+												</div>
+											</div>
+
+											<div class="field">
 												{{template "shared/combomarkdowneditor" (dict
 													"MarkdownPreviewUrl" (print $.RepoLink "/markup")
 													"MarkdownPreviewContext" $.RepoLink
