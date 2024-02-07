@@ -13,8 +13,8 @@ import (
 // ProjectBoardNoteLabel represents an project-baord-note-label relation.
 type ProjectBoardNoteLabel struct {
 	ID                 int64 `xorm:"pk autoincr"`
-	ProjectBoardNoteID int64 `xorm:"INDEX NOT NULL"`
-	LabelID            int64 `xorm:"INDEX NOT NULL"`
+	ProjectBoardNoteID int64 `xorm:"UNIQUE(s) NOT NULL"`
+	LabelID            int64 `xorm:"UNIQUE(s) NOT NULL"`
 }
 
 // LoadLabels loads labels
