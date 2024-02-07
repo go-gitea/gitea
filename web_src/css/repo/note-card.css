@@ -21,6 +21,7 @@
 }
 
 .note-card-title {
+  word-break: break-word;
   flex: 1;
   font-size: 18px;
   margin-left: 4px;
