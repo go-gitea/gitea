@@ -3,8 +3,8 @@ export function toOriginUrl(urlStr) {
   try {
     // only process absolute HTTP/HTTPS URL or relative URLs ('/xxx' or '//host/xxx')
     if (urlStr.startsWith('http://') || urlStr.startsWith('https://') || urlStr.startsWith('/')) {
-      const url = new URL(urlStr, window.location.origin);
-      const {protocol, hostname, port} = window.location;
+      const {origin, protocol, hostname, port} = window.location;
+      const url = new URL(urlStr, origin);
       url.protocol = protocol;
       url.hostname = hostname;
       url.port = port || (protocol === 'https:' ? '443' : '80');
