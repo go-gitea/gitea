@@ -153,12 +153,19 @@ func UpdateResolveConversation(ctx *context.Context) {
 }
 
 func renderConversation(ctx *context.Context, comment *issues_model.Comment, origin string) {
+	ctx.Data["PageIsPullFiles"] = origin == "diff"
+
 	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, ctx.Data["ShowOutdatedComments"].(bool))
 	if err != nil {
 		ctx.ServerError("FetchCodeCommentsByLine", err)
 		return
 	}
-	ctx.Data["PageIsPullFiles"] = (origin == "diff")
+	if len(comments) == 0 {
+		// if the comments are empty (deleted, outdated, etc), it doesn't need to render anything, just return an empty body to replace "conversation-holder" on the page
+		ctx.Resp.WriteHeader(http.StatusOK)
+		return
+	}
+
 	ctx.Data["comments"] = comments
 	if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer); err != nil {
 		ctx.ServerError("CanMarkConversation", err)
@@ -179,6 +186,8 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		ctx.HTML(http.StatusOK, tplDiffConversation)
 	} else if origin == "timeline" {
 		ctx.HTML(http.StatusOK, tplTimelineConversation)
+	} else {
+		ctx.Error(http.StatusBadRequest, "Unknown origin: "+origin)
 	}
 }
 

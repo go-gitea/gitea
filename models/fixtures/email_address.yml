@@ -309,3 +309,11 @@
   lower_email: user39@example.com
   is_activated: true
   is_primary: true
+
+-
+  id: 40
+  uid: 40
+  email: user40@example.com
+  lower_email: user40@example.com
+  is_activated: true
+  is_primary: true

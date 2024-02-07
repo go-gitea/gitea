@@ -30,6 +30,9 @@ export default {
     icon() {
       if (this.issue.pull_request !== null) {
         if (this.issue.state === 'open') {
+          if (this.issue.pull_request.draft === true) {
+            return 'octicon-git-pull-request-draft'; // WIP PR
+          }
           return 'octicon-git-pull-request'; // Open PR
         } else if (this.issue.pull_request.merged === true) {
           return 'octicon-git-merge'; // Merged PR
@@ -42,12 +45,17 @@ export default {
     },
 
     color() {
-      if (this.issue.state === 'open') {
-        return 'green';
-      } else if (this.issue.pull_request !== null && this.issue.pull_request.merged === true) {
-        return 'purple';
+      if (this.issue.pull_request !== null) {
+        if (this.issue.pull_request.draft === true) {
+          return 'grey'; // WIP PR
+        } else if (this.issue.pull_request.merged === true) {
+          return 'purple'; // Merged PR
+        }
       }
-      return 'red';
+      if (this.issue.state === 'open') {
+        return 'green'; // Open Issue
+      }
+      return 'red'; // Closed Issue
     },
 
     labels() {

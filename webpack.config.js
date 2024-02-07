@@ -55,12 +55,6 @@ const filterCssImport = (url, ...args) => {
   return true;
 };
 
-// in case lightningcss fails to load, fall back to esbuild for css minify
-let LightningCssMinifyPlugin;
-try {
-  ({LightningCssMinifyPlugin} = await import('lightningcss-loader'));
-} catch {}
-
 /** @type {import("webpack").Configuration} */
 export default {
   mode: isProduction ? 'production' : 'development',
@@ -106,11 +100,8 @@ export default {
       new EsbuildPlugin({
         target: 'es2020',
         minify: true,
-        css: !LightningCssMinifyPlugin,
+        css: true,
         legalComments: 'none',
-      }),
-      LightningCssMinifyPlugin && new LightningCssMinifyPlugin({
-        sourceMap: sourceMaps === 'true',
       }),
     ],
     splitChunks: {
