@@ -173,11 +173,7 @@ func IsValidTeamReviewRequest(ctx context.Context, reviewer *organization.Team, 
 		}
 	}
 
-	permission, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
-	if err != nil {
-		log.Error("Unable to GetUserRepoPermission for %-v in %-v#%d", doer, issue.Repo, issue.Index)
-		return err
-	}
+	canDoerChangeReviewRequests := CanDoerChangeReviewRequests(ctx, doer, issue.Repo, issue)
 
 	if isAdd {
 		if issue.Repo.IsPrivate {
@@ -192,30 +188,26 @@ func IsValidTeamReviewRequest(ctx context.Context, reviewer *organization.Team, 
 			}
 		}
 
-		doerCanWrite := permission.CanAccessAny(perm.AccessModeWrite, unit.TypePullRequests)
-		if !doerCanWrite && doer.ID != issue.PosterID {
-			official, err := issues_model.IsOfficialReviewer(ctx, issue, doer)
-			if err != nil {
-				log.Error("Unable to Check if IsOfficialReviewer for %-v in %-v#%d", doer, issue.Repo, issue.Index)
-				return err
-			}
-			if !official {
-				return issues_model.ErrNotValidReviewRequest{
-					Reason: "Doer can't choose reviewer",
-					UserID: doer.ID,
-					RepoID: issue.Repo.ID,
-				}
-			}
+		if canDoerChangeReviewRequests {
+			return nil
 		}
-	} else if !permission.IsAdmin() {
+
 		return issues_model.ErrNotValidReviewRequest{
-			Reason: "Only admin users can remove team requests. Doer is not admin",
+			Reason: "Doer can't choose reviewer",
 			UserID: doer.ID,
 			RepoID: issue.Repo.ID,
 		}
 	}
 
-	return nil
+	if canDoerChangeReviewRequests {
+		return nil
+	}
+
+	return issues_model.ErrNotValidReviewRequest{
+		Reason: "Doer can't remove reviewer",
+		UserID: doer.ID,
+		RepoID: issue.Repo.ID,
+	}
 }
 
 // TeamReviewRequest add or remove a review request from a team for this PR, and make comment for it.
