@@ -135,3 +135,9 @@
   user_id: 31
   repo_id: 28
   mode: 4
+
+-
+  id: 24
+  user_id: 38
+  repo_id: 60
+  mode: 2
