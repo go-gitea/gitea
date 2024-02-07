@@ -62,7 +62,7 @@ git checkout v@version@  # or git checkout pr-xyz
 
 要从源代码进行构建，系统必须预先安装以下程序：
 
-- `go` @minGoVersion@ 或更高版本，请参阅 [这里](https://golang.org/dl/)
+- `go` @minGoVersion@ 或更高版本，请参阅 [这里](https://go.dev/dl/)
 - `node` @minNodeVersion@ 或更高版本，并且安装 `npm`, 请参阅 [这里](https://nodejs.org/zh-cn/download/)
 - `make`, 请参阅 [这里](development/hacking-on-gitea.md)
 
@@ -128,7 +128,7 @@ Gitea 将从`CustomPath`中查找许多信息。默认的，这会在运行 Gite
 
 ## 交叉编译
 
-`go`编译器工具链支持将代码交叉编译到不同的目标架构上。请参考[`GOOS`和`GOARCH`环境变量](https://golang.org/doc/install/source#environment) 以获取支持的目标列表。如果您想为性能较弱的系统（如树莓派）构建 Gitea，交叉编译非常有用。
+`go`编译器工具链支持将代码交叉编译到不同的目标架构上。请参考[`GOOS`和`GOARCH`环境变量](https://go.dev/doc/install/source#environment) 以获取支持的目标列表。如果您想为性能较弱的系统（如树莓派）构建 Gitea，交叉编译非常有用。
 
 要使用构建标签（`TAGS`）进行交叉编译Gitea，您还需要一个 C 交叉编译器，该编译器的目标架构与`GOOS`和`GOARCH`变量选择的架构相同。例如，要为 Linux ARM64（`GOOS=linux`和`GOARCH=arm64`）进行交叉编译，您需要`aarch64-unknown-linux-gnu-gcc`交叉编译器。这是因为 Gitea 构建标签使用了`cgo`的外部函数接口（FFI）。
 

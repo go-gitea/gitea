@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -30,6 +31,7 @@ import (
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
+	user_service "code.gitea.io/gitea/services/user"
 
 	"github.com/markbates/goth"
 )
@@ -104,9 +106,11 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 func resetLocale(ctx *context.Context, u *user_model.User) error {
 	// Language setting of the user overwrites the one previously set
 	// If the user does not have a locale set, we save the current one.
-	if len(u.Language) == 0 {
-		u.Language = ctx.Locale.Language()
-		if err := user_model.UpdateUserCols(ctx, u, "language"); err != nil {
+	if u.Language == "" {
+		opts := &user_service.UpdateOptions{
+			Language: optional.Some(ctx.Locale.Language()),
+		}
+		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
 			return err
 		}
 	}
@@ -330,10 +334,12 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 
 	// Language setting of the user overwrites the one previously set
 	// If the user does not have a locale set, we save the current one.
-	if len(u.Language) == 0 {
-		u.Language = ctx.Locale.Language()
-		if err := user_model.UpdateUserCols(ctx, u, "language"); err != nil {
-			ctx.ServerError("UpdateUserCols Language", fmt.Errorf("Error updating user language [user: %d, locale: %s]", u.ID, u.Language))
+	if u.Language == "" {
+		opts := &user_service.UpdateOptions{
+			Language: optional.Some(ctx.Locale.Language()),
+		}
+		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+			ctx.ServerError("UpdateUser Language", fmt.Errorf("Error updating user language [user: %d, locale: %s]", u.ID, ctx.Locale.Language()))
 			return setting.AppSubURL + "/"
 		}
 	}
@@ -348,9 +354,8 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 	ctx.Csrf.DeleteCookie(ctx)
 
 	// Register last login
-	u.SetLastLogin()
-	if err := user_model.UpdateUserCols(ctx, u, "last_login_unix"); err != nil {
-		ctx.ServerError("UpdateUserCols", err)
+	if err := user_service.UpdateUser(ctx, u, &user_service.UpdateOptions{SetLastLogin: true}); err != nil {
+		ctx.ServerError("UpdateUser", err)
 		return setting.AppSubURL + "/"
 	}
 
@@ -482,10 +487,9 @@ func SignUpPost(ctx *context.Context) {
 		ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplSignUp, &form)
 		return
 	}
-	pwned, err := password.IsPwned(ctx, form.Password)
-	if pwned {
+	if err := password.IsPwned(ctx, form.Password); err != nil {
 		errMsg := ctx.Tr("auth.password_pwned")
-		if err != nil {
+		if password.IsErrIsPwnedRequest(err) {
 			log.Error(err.Error())
 			errMsg = ctx.Tr("auth.password_pwned_err")
 		}
@@ -589,10 +593,12 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *us
 func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.User) (ok bool) {
 	// Auto-set admin for the only user.
 	if user_model.CountUsers(ctx, nil) == 1 {
-		u.IsAdmin = true
-		u.IsActive = true
-		u.SetLastLogin()
-		if err := user_model.UpdateUserCols(ctx, u, "is_admin", "is_active", "last_login_unix"); err != nil {
+		opts := &user_service.UpdateOptions{
+			IsActive:     optional.Some(true),
+			IsAdmin:      optional.Some(true),
+			SetLastLogin: true,
+		}
+		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return false
 		}
@@ -752,10 +758,8 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 		return
 	}
 
-	// Register last login
-	user.SetLastLogin()
-	if err := user_model.UpdateUserCols(ctx, user, "last_login_unix"); err != nil {
-		ctx.ServerError("UpdateUserCols", err)
+	if err := user_service.UpdateUser(ctx, user, &user_service.UpdateOptions{SetLastLogin: true}); err != nil {
+		ctx.ServerError("UpdateUser", err)
 		return
 	}
 

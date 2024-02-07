@@ -110,7 +110,7 @@ See the [development setup instructions](https://docs.gitea.com/development/hack
 
 ### Backend
 
-Go dependencies are managed using [Go Modules](https://golang.org/cmd/go/#hdr-Module_maintenance). \
+Go dependencies are managed using [Go Modules](https://go.dev/cmd/go/#hdr-Module_maintenance). \
 You can find more details in the [go mod documentation](https://go.dev/ref/mod) and the [Go Modules Wiki](https://github.com/golang/go/wiki/Modules).
 
 Pull requests should only modify `go.mod` and `go.sum` where it is related to your change, be it a bugfix or a new feature. \
@@ -167,7 +167,7 @@ Here's how to run the test suite:
 
 |  Command                               | Action                                           |              |
 | :------------------------------------- | :----------------------------------------------- | ------------ |
-|``make test[\#SpecificTestName]``       |  run unit test(s)  |
+|``make test[\#SpecificTestName]``       |  run unit test(s)  | |
 |``make test-sqlite[\#SpecificTestName]``|  run [integration](tests/integration) test(s) for SQLite |[More details](tests/integration/README.md)  |
 |``make test-e2e-sqlite[\#SpecificTestName]``|  run [end-to-end](tests/e2e) test(s) for SQLite |[More details](tests/e2e/README.md)  |
 

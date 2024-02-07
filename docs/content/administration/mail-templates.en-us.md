@@ -85,7 +85,7 @@ Text and macros for the mail body
 Specifying a _subject_ section is optional (and therefore also the dash line separator). When used, the separator between
 _subject_ and _mail body_ templates requires at least three dashes; no other characters are allowed in the separator line.
 
-_Subject_ and _mail body_ are parsed by [Golang's template engine](https://golang.org/pkg/text/template/) and
+_Subject_ and _mail body_ are parsed by [Golang's template engine](https://go.dev/pkg/text/template/) and
 are provided with a _metadata context_ assembled for each notification. The context contains the following elements:
 
 | Name               | Type             | Available     | Usage                                                                                                                                                                                                                                             |
@@ -110,7 +110,7 @@ All names are case sensitive.
 
 ### The _subject_ part of the template
 
-The template engine used for the mail _subject_ is golang's [`text/template`](https://golang.org/pkg/text/template/).
+The template engine used for the mail _subject_ is golang's [`text/template`](https://go.dev/pkg/text/template/).
 Please refer to the linked documentation for details about its syntax.
 
 The _subject_ is built using the following steps:
@@ -138,7 +138,7 @@ the two templates, even if a valid subject template is present.
 
 ### The _mail body_ part of the template
 
-The template engine used for the _mail body_ is golang's [`html/template`](https://golang.org/pkg/html/template/).
+The template engine used for the _mail body_ is golang's [`html/template`](https://go.dev/pkg/html/template/).
 Please refer to the linked documentation for details about its syntax.
 
 The _mail body_ is parsed after the mail subject, so there is an additional _metadata_ field which is
@@ -146,7 +146,7 @@ the actual rendered subject, after all considerations.
 
 The expected result is HTML (including structural elements like`<html>`, `<body>`, etc.). Styling
 through `<style>` blocks, `class` and `style` attributes is possible. However, `html/template`
-does some [automatic escaping](https://golang.org/pkg/html/template/#hdr-Contexts) that should be considered.
+does some [automatic escaping](https://go.dev/pkg/html/template/#hdr-Contexts) that should be considered.
 
 Attachments (such as images or external style sheets) are not supported. However, other templates can
 be referenced too, for example to provide the contents of a `<style>` element in a centralized fashion.

@@ -89,12 +89,9 @@ func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Du
 	log.Trace("Running git gc on %-v", repo)
 	command := git.NewCommand(ctx, "gc").AddArguments(args...).
 		SetDescription(fmt.Sprintf("Repository Garbage Collection: %s", repo.FullName()))
-	var stdout string
-	var err error
-	stdout, _, err = gitrepo.RunGitCmdStdString(repo, command, &gitrepo.RunOpts{
+	stdout, _, err := gitrepo.RunGitCmdStdString(repo, command, &gitrepo.RunOpts{
 		RunOpts: git.RunOpts{Timeout: timeout},
 	})
-
 	if err != nil {
 		log.Error("Repository garbage collection failed for %-v. Stdout: %s\nError: %v", repo, stdout, err)
 		desc := fmt.Sprintf("Repository garbage collection failed for %s. Stdout: %s\nError: %v", repo.RepoPath(), stdout, err)
