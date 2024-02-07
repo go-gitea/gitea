@@ -707,6 +707,7 @@ func MoveIssues(ctx *context.Context) {
 	form := &movedIssuesForm{}
 	if err = json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
 		ctx.ServerError("DecodeMovedIssuesForm", err)
+		return
 	}
 
 	issueIDs := make([]int64, 0, len(form.Issues))
@@ -792,6 +793,7 @@ func checkProjectBoardNoteChangePermissions(ctx *context.Context) (*project_mode
 		})
 		return nil, nil
 	}
+
 	return project, projectBoardNote
 }
 
@@ -910,6 +912,7 @@ func MoveProjectBoardNote(ctx *context.Context) {
 	form := &MovedProjectBoardNotesForm{}
 	if err = json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
 		ctx.ServerError("DecodeMovedProjectBoardNotesForm", err)
+		return
 	}
 
 	projectBoardNoteIDs := make([]int64, 0, len(form.ProjectBoardNotes))
@@ -960,13 +963,13 @@ func PinProjectBoardNote(ctx *context.Context) {
 
 // PinBoardNote unpins the BoardNote
 func UnPinProjectBoardNote(ctx *context.Context) {
-	note, err := project_model.GetProjectBoardNoteByID(ctx, ctx.ParamsInt64(":noteID"))
+	projectBoardNote, err := project_model.GetProjectBoardNoteByID(ctx, ctx.ParamsInt64(":noteID"))
 	if err != nil {
 		ctx.ServerError("GetBoardNoteByID", err)
 		return
 	}
 
-	err = note.Unpin(ctx)
+	err = projectBoardNote.Unpin(ctx)
 	if err != nil {
 		ctx.ServerError("UnpinProjectBoardNote", err)
 		return
@@ -992,13 +995,13 @@ func PinMoveProjectBoardNote(ctx *context.Context) {
 		return
 	}
 
-	note, err := project_model.GetProjectBoardNoteByID(ctx, ctx.ParamsInt64(":noteID"))
+	projectBoardNote, err := project_model.GetProjectBoardNoteByID(ctx, ctx.ParamsInt64(":noteID"))
 	if err != nil {
 		ctx.ServerError("GetProjectBoardNoteByID", err)
 		return
 	}
 
-	err = note.MovePin(ctx, form.Position)
+	err = projectBoardNote.MovePin(ctx, form.Position)
 	if err != nil {
 		ctx.ServerError("MovePinProjectBoardNote", err)
 		return

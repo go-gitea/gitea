@@ -59,8 +59,8 @@ function moveNote({item, from, to, oldIndex}) {
   updateIssueAndNoteCount(to);
 
   const columnSorting = {
-    boardNotes: Array.from(columnCards, (card, i) => ({
-      boardNoteID: parseInt($(card).data('note')),
+    projectBoardNotes: Array.from(columnCards, (card, i) => ({
+      projectBoardNoteID: parseInt($(card).data('note')),
       sorting: i,
     })),
   };
