@@ -305,6 +305,22 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	}).AddTokenAuth(user39Token)
 	MakeRequest(t, req, http.StatusNoContent)
 
+	// user with read permission on pull requests unit can add/remove a review request
+	pullIssue22 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 22})
+	assert.NoError(t, pullIssue22.LoadAttributes(db.DefaultContext))
+	pull22Repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue22.RepoID}) // repo61
+	t.Logf("[PULL] %#v", pullIssue22)
+	t.Logf("[REPO] %#v", pull22Repo)
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", pull22Repo.OwnerName, pull22Repo.Name, pullIssue22.Index), &api.PullReviewRequestOptions{
+		Reviewers: []string{"user38"},
+	}).AddTokenAuth(user39Token) // user39 is from a team with read permission on pull requests unit
+	MakeRequest(t, req, http.StatusCreated)
+
+	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", pull22Repo.OwnerName, pull22Repo.Name, pullIssue22.Index), &api.PullReviewRequestOptions{
+		Reviewers: []string{"user38"},
+	}).AddTokenAuth(user39Token) // user39 is from a team with read permission on pull requests unit
+	MakeRequest(t, req, http.StatusNoContent)
+
 	// Test team review request
 	pullIssue12 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12})
 	assert.NoError(t, pullIssue12.LoadAttributes(db.DefaultContext))
