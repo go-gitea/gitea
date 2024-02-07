@@ -15,6 +15,7 @@ import (
 	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/util"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	user_service "code.gitea.io/gitea/services/user"
@@ -158,22 +159,24 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 				log.Trace("SyncExternalUsers[%s]: Updating user %s", source.authSource.Name, usr.Name)
 
-				usr.FullName = fullName
-				emailChanged := usr.Email != su.Mail
-				usr.Email = su.Mail
-				// Change existing admin flag only if AdminFilter option is set
-				if len(source.AdminFilter) > 0 {
-					usr.IsAdmin = su.IsAdmin
+				opts := &user_service.UpdateOptions{
+					FullName: optional.Some(fullName),
+					IsActive: optional.Some(true),
+				}
+				if source.AdminFilter != "" {
+					opts.IsAdmin = optional.Some(su.IsAdmin)
 				}
 				// Change existing restricted flag only if RestrictedFilter option is set
-				if !usr.IsAdmin && len(source.RestrictedFilter) > 0 {
-					usr.IsRestricted = su.IsRestricted
+				if !su.IsAdmin && source.RestrictedFilter != "" {
+					opts.IsRestricted = optional.Some(su.IsRestricted)
 				}
-				usr.IsActive = true
 
-				err = user_model.UpdateUser(ctx, usr, emailChanged, "full_name", "email", "is_admin", "is_restricted", "is_active")
-				if err != nil {
+				if err := user_service.UpdateUser(ctx, usr, opts); err != nil {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", source.authSource.Name, usr.Name, err)
+				}
+
+				if err := user_service.ReplacePrimaryEmailAddress(ctx, usr, su.Mail); err != nil {
+					log.Error("SyncExternalUsers[%s]: Error updating user %s primary email %s: %v", source.authSource.Name, usr.Name, su.Mail, err)
 				}
 			}
 
@@ -215,9 +218,10 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 			log.Trace("SyncExternalUsers[%s]: Deactivating user %s", source.authSource.Name, usr.Name)
 
-			usr.IsActive = false
-			err = user_model.UpdateUserCols(ctx, usr, "is_active")
-			if err != nil {
+			opts := &user_service.UpdateOptions{
+				IsActive: optional.Some(false),
+			}
+			if err := user_service.UpdateUser(ctx, usr, opts); err != nil {
 				log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.authSource.Name, usr.Name, err)
 			}
 		}

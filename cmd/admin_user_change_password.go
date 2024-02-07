@@ -4,13 +4,14 @@
 package cmd
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
 	user_model "code.gitea.io/gitea/models/user"
-	pwd "code.gitea.io/gitea/modules/auth/password"
+	"code.gitea.io/gitea/modules/auth/password"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	user_service "code.gitea.io/gitea/services/user"
 
 	"github.com/urfave/cli/v2"
 )
@@ -50,35 +51,32 @@ func runChangePassword(c *cli.Context) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}
-	if len(c.String("password")) < setting.MinPasswordLength {
-		return fmt.Errorf("Password is not long enough. Needs to be at least %d", setting.MinPasswordLength)
-	}
 
-	if !pwd.IsComplexEnough(c.String("password")) {
-		return errors.New("Password does not meet complexity requirements")
-	}
-	pwned, err := pwd.IsPwned(context.Background(), c.String("password"))
+	user, err := user_model.GetUserByName(ctx, c.String("username"))
 	if err != nil {
 		return err
 	}
-	if pwned {
-		return errors.New("The password you chose is on a list of stolen passwords previously exposed in public data breaches. Please try again with a different password.\nFor more details, see https://haveibeenpwned.com/Passwords")
-	}
-	uname := c.String("username")
-	user, err := user_model.GetUserByName(ctx, uname)
-	if err != nil {
-		return err
-	}
-	if err = user.SetPassword(c.String("password")); err != nil {
-		return err
-	}
 
+	var mustChangePassword optional.Option[bool]
 	if c.IsSet("must-change-password") {
-		user.MustChangePassword = c.Bool("must-change-password")
+		mustChangePassword = optional.Some(c.Bool("must-change-password"))
 	}
 
-	if err = user_model.UpdateUserCols(ctx, user, "must_change_password", "passwd", "passwd_hash_algo", "salt"); err != nil {
-		return err
+	opts := &user_service.UpdateAuthOptions{
+		Password:           optional.Some(c.String("password")),
+		MustChangePassword: mustChangePassword,
+	}
+	if err := user_service.UpdateAuth(ctx, user, opts); err != nil {
+		switch {
+		case errors.Is(err, password.ErrMinLength):
+			return fmt.Errorf("Password is not long enough. Needs to be at least %d", setting.MinPasswordLength)
+		case errors.Is(err, password.ErrComplexity):
+			return errors.New("Password does not meet complexity requirements")
+		case errors.Is(err, password.ErrIsPwned):
+			return errors.New("The password you chose is on a list of stolen passwords previously exposed in public data breaches. Please try again with a different password.\nFor more details, see https://haveibeenpwned.com/Passwords")
+		default:
+			return err
+		}
 	}
 
 	fmt.Printf("%s's password has been successfully updated!\n", user.Name)
