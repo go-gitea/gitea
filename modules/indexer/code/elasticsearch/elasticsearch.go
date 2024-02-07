@@ -184,7 +184,7 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 		bulkService := b.inner.Client.Bulk().
 			Index(b.inner.VersionedIndexName())
 
-		for i := 0; i < len(reqs); i = i + esBatchSize {
+		for i := 0; i < len(reqs); i += esBatchSize {
 			_, err := bulkService.
 				Add(reqs[i:min(i+esBatchSize, len(reqs))]...).
 				Do(ctx)
