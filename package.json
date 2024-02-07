@@ -29,7 +29,6 @@
     "jquery": "3.7.1",
     "katex": "0.16.9",
     "license-checker-webpack-plugin": "0.2.1",
-    "lightningcss-loader": "2.1.0",
     "mermaid": "10.7.0",
     "mini-css-extract-plugin": "2.8.0",
     "minimatch": "9.0.3",
