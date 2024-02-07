@@ -277,32 +277,32 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// a collaborator can add/remove a review request
-	user5Session := loginUser(t, "user5")
-	user5Token := getTokenForLoggedInUser(t, user5Session, auth_model.AccessTokenScopeWriteRepository)
-	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
+	pullIssue21 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 21})
+	assert.NoError(t, pullIssue21.LoadAttributes(db.DefaultContext))
+	pull21Repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue21.RepoID}) // repo60
+	user38Session := loginUser(t, "user38")
+	user38Token := getTokenForLoggedInUser(t, user38Session, auth_model.AccessTokenScopeWriteRepository)
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", pull21Repo.OwnerName, pull21Repo.Name, pullIssue21.Index), &api.PullReviewRequestOptions{
 		Reviewers: []string{"user4@example.com"},
-	}).AddTokenAuth(user5Token)
+	}).AddTokenAuth(user38Token)
 	MakeRequest(t, req, http.StatusCreated)
 
-	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
+	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", pull21Repo.OwnerName, pull21Repo.Name, pullIssue21.Index), &api.PullReviewRequestOptions{
 		Reviewers: []string{"user4@example.com"},
-	}).AddTokenAuth(user5Token)
+	}).AddTokenAuth(user38Token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// the poster of the PR can add/remove a review request
-	user4Session := loginUser(t, "user4")
-	user4Token := getTokenForLoggedInUser(t, user4Session, auth_model.AccessTokenScopeWriteRepository)
-	pullIssue21 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 21})
-	assert.NoError(t, pullIssue21.LoadAttributes(db.DefaultContext))
-	pull21Repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue21.RepoID}) // repo1
+	user39Session := loginUser(t, "user39")
+	user39Token := getTokenForLoggedInUser(t, user39Session, auth_model.AccessTokenScopeWriteRepository)
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", pull21Repo.OwnerName, pull21Repo.Name, pullIssue21.Index), &api.PullReviewRequestOptions{
 		Reviewers: []string{"user8"},
-	}).AddTokenAuth(user4Token)
+	}).AddTokenAuth(user39Token)
 	MakeRequest(t, req, http.StatusCreated)
 
 	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", pull21Repo.OwnerName, pull21Repo.Name, pullIssue21.Index), &api.PullReviewRequestOptions{
 		Reviewers: []string{"user8"},
-	}).AddTokenAuth(user4Token)
+	}).AddTokenAuth(user39Token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Test team review request

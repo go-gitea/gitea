@@ -341,12 +341,12 @@
 
 -
   id: 21
-  repo_id: 1
-  index: 6
-  poster_id: 4
+  repo_id: 60
+  index: 1
+  poster_id: 39
   original_author_id: 0
-  name: pull6
-  content: content for the 6th issue
+  name: pull1
+  content: content for the 1st issue
   milestone_id: 0
   priority: 0
   is_closed: false
