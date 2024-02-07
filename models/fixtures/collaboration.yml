@@ -45,3 +45,9 @@
   repo_id: 22
   user_id: 18
   mode: 2 # write
+
+-
+  id: 9
+  repo_id: 1
+  user_id: 5
+  mode: 1 # read

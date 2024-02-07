@@ -98,3 +98,16 @@
   index: 1
   head_repo_id: 23
   base_repo_id: 23
+
+-
+  id: 9
+  type: 0 # gitea pull request
+  status: 2 # mergable
+  issue_id: 21
+  index: 6
+  head_repo_id: 1
+  base_repo_id: 1
+  head_branch: branch2
+  base_branch: master
+  merge_base: 4a357436d925b5c974181ff12a994538ddc5a269
+  has_merged: false
