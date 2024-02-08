@@ -66,6 +66,16 @@ func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 		return nil
 	}
 
+	if err := issue.LoadRepo(ctx); err != nil {
+		return err
+	}
+
+	if user_model.IsUserBlockedBy(ctx, doer, issue.PosterID, issue.Repo.OwnerID) {
+		if isAdmin, _ := access_model.IsUserRepoAdmin(ctx, issue.Repo, doer); !isAdmin {
+			return user_model.ErrBlockedUser
+		}
+	}
+
 	if err := issues_model.ChangeIssueTitle(ctx, issue, doer, oldTitle); err != nil {
 		return err
 	}

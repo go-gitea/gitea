@@ -47,7 +47,12 @@ func CheckUserBlock(ctx *context.APIContext, blocker *user_model.User) {
 	}
 
 	status := http.StatusNotFound
-	if user_model.IsUserBlockedBy(ctx, blockee, blocker.ID) {
+	blocking, err := user_model.GetBlocking(ctx, blocker.ID, blockee.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetBlocking", err)
+		return
+	}
+	if blocking != nil {
 		status = http.StatusNoContent
 	}
 
