@@ -133,18 +133,18 @@ type Writer struct {
 	Ctx *markup.RenderContext
 }
 
-const mailto = "mailto:"
-
-func (r *Writer) resolveLink(l org.RegularLink) string {
-	link := html.EscapeString(l.URL)
-	if l.Protocol == "file" {
-		link = link[len("file:"):]
-	}
-	if len(link) > 0 && !markup.IsLinkStr(link) &&
-		link[0] != '#' && !strings.HasPrefix(link, mailto) {
+func (r *Writer) resolveLink(kind, link string) string {
+	link = strings.TrimPrefix(link, "file:")
+	if !strings.HasPrefix(link, "#") && // not a URL fragment
+		!markup.IsLinkStr(link) && // not an absolute URL
+		!strings.HasPrefix(link, "mailto:") {
+		if kind == "regular" {
+			// orgmode reports the link kind as "regular" for "[[ImageLink.svg][The Image Desc]]"
+			// so we need to try to guess the link kind again here
+			kind = org.RegularLink{URL: link}.Kind()
+		}
 		base := r.Ctx.Links.Base
-		switch l.Kind() {
-		case "image", "video":
+		if kind == "image" || kind == "video" {
 			base = r.Ctx.Links.ResolveMediaLink(r.Ctx.IsWiki)
 		}
 		link = util.URLJoin(base, link)
@@ -154,29 +154,29 @@ func (r *Writer) resolveLink(l org.RegularLink) string {
 
 // WriteRegularLink renders images, links or videos
 func (r *Writer) WriteRegularLink(l org.RegularLink) {
-	link := r.resolveLink(l)
+	link := r.resolveLink(l.Kind(), l.URL)
 
 	// Inspired by https://github.com/niklasfasching/go-org/blob/6eb20dbda93cb88c3503f7508dc78cbbc639378f/org/html_writer.go#L406-L427
 	switch l.Kind() {
 	case "image":
 		if l.Description == nil {
-			fmt.Fprintf(r, `<img src="%s" alt="%s" />`, link, link)
+			_, _ = fmt.Fprintf(r, `<img src="%s" alt="%s" />`, link, link)
 		} else {
-			imageSrc := r.resolveLink(l.Description[0].(org.RegularLink))
-			fmt.Fprintf(r, `<a href="%s"><img src="%s" alt="%s" /></a>`, link, imageSrc, imageSrc)
+			imageSrc := r.resolveLink(l.Kind(), org.String(l.Description...))
+			_, _ = fmt.Fprintf(r, `<a href="%s"><img src="%s" alt="%s" /></a>`, link, imageSrc, imageSrc)
 		}
 	case "video":
 		if l.Description == nil {
-			fmt.Fprintf(r, `<video src="%s">%s</video>`, link, link)
+			_, _ = fmt.Fprintf(r, `<video src="%s">%s</video>`, link, link)
 		} else {
-			videoSrc := r.resolveLink(l.Description[0].(org.RegularLink))
-			fmt.Fprintf(r, `<a href="%s"><video src="%s">%s</video></a>`, link, videoSrc, videoSrc)
+			videoSrc := r.resolveLink(l.Kind(), org.String(l.Description...))
+			_, _ = fmt.Fprintf(r, `<a href="%s"><video src="%s">%s</video></a>`, link, videoSrc, videoSrc)
 		}
 	default:
 		description := link
 		if l.Description != nil {
 			description = r.WriteNodesAsString(l.Description...)
 		}
-		fmt.Fprintf(r, `<a href="%s">%s</a>`, link, description)
+		_, _ = fmt.Fprintf(r, `<a href="%s">%s</a>`, link, description)
 	}
 }

@@ -6,12 +6,10 @@ package repo
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -134,48 +132,6 @@ func CheckCreateRepository(ctx context.Context, doer, u *user_model.User, name s
 		return ErrRepoFilesAlreadyExist{u.Name, name}
 	}
 	return nil
-}
-
-// ChangeRepositoryName changes all corresponding setting from old repository name to new one.
-func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *Repository, newRepoName string) (err error) {
-	oldRepoName := repo.Name
-	newRepoName = strings.ToLower(newRepoName)
-	if err = IsUsableRepoName(newRepoName); err != nil {
-		return err
-	}
-
-	if err := repo.LoadOwner(ctx); err != nil {
-		return err
-	}
-
-	has, err := IsRepositoryModelOrDirExist(ctx, repo.Owner, newRepoName)
-	if err != nil {
-		return fmt.Errorf("IsRepositoryExist: %w", err)
-	} else if has {
-		return ErrRepoAlreadyExist{repo.Owner.Name, newRepoName}
-	}
-
-	if err := gitrepo.RenameRepository(ctx, repo, newRepoName); err != nil {
-		return err
-	}
-
-	if repo.HasWiki() {
-		if err = gitrepo.RenameWikiRepository(ctx, repo, newRepoName); err != nil {
-			return fmt.Errorf("rename repository wiki: %w", err)
-		}
-	}
-
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := NewRedirect(ctx, repo.Owner.ID, repo.ID, oldRepoName, newRepoName); err != nil {
-		return err
-	}
-
-	return committer.Commit()
 }
 
 // UpdateRepoSize updates the repository size, calculating it using getDirectorySize

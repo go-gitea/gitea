@@ -291,15 +291,13 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		}
 	}
 
-	if !isCreated {
-		notify_service.UpdateRelease(gitRepo.Ctx, doer, rel)
-		return nil
-	}
-
 	if !rel.IsDraft {
+		if !isCreated {
+			notify_service.UpdateRelease(gitRepo.Ctx, doer, rel)
+			return nil
+		}
 		notify_service.NewRelease(gitRepo.Ctx, rel)
 	}
-
 	return nil
 }
 
@@ -368,8 +366,9 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 		}
 	}
 
-	notify_service.DeleteRelease(ctx, doer, rel)
-
+	if !rel.IsDraft {
+		notify_service.DeleteRelease(ctx, doer, rel)
+	}
 	return nil
 }
 

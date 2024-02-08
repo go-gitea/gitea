@@ -1,4 +1,4 @@
-<div class="ui card">
+<div id="profile-avatar-card" class="ui card">
 	<div id="profile-avatar" class="content gt-df">
 	{{if eq .SignedUserID .ContextUser.ID}}
 		<a class="image" href="{{AppSubUrl}}/user/settings" data-tooltip-content="{{ctx.Locale.Tr "user.change_avatar"}}">
@@ -110,13 +110,13 @@
 			</li>
 			{{end}}
 			{{if and .IsSigned (ne .SignedUserID .ContextUser.ID)}}
-			<li class="follow">
+			<li class="follow" hx-target="#profile-avatar-card" hx-indicator="#profile-avatar-card" >
 				{{if $.IsFollowing}}
-					<button class="ui basic red button link-action" data-url="{{.ContextUser.HomeLink}}?action=unfollow">
+					<button hx-post="{{.ContextUser.HomeLink}}?action=unfollow" class="ui basic red button">
 						{{svg "octicon-person"}} {{ctx.Locale.Tr "user.unfollow"}}
 					</button>
 				{{else}}
-					<button class="ui basic primary button link-action" data-url="{{.ContextUser.HomeLink}}?action=follow">
+					<button hx-post="{{.ContextUser.HomeLink}}?action=follow" class="ui basic primary button">
 						{{svg "octicon-person"}} {{ctx.Locale.Tr "user.follow"}}
 					</button>
 				{{end}}
