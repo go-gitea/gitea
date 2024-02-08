@@ -235,7 +235,7 @@
   lower_name: team1
   name: Team1
   authorize: 1 # read
-  num_repos: 0
+  num_repos: 1
   num_members: 2
   includes_all_repositories: false
   can_create_org_repo: false

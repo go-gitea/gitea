@@ -309,16 +309,16 @@
   id: 52
   team_id: 22
   type: 1
-  access_mode: 2
+  access_mode: 1
 
 -
   id: 53
   team_id: 22
   type: 2
-  access_mode: 2
+  access_mode: 1
 
 -
   id: 54
   team_id: 22
   type: 3
-  access_mode: 2
+  access_mode: 1
