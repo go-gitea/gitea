@@ -71,6 +71,7 @@ pg_dump -U $USER $DATABASE > gitea-db.sql
 ```none
 docker exec -u <OS_USERNAME> -it -w <--tempdir> $(docker ps -qf 'name=^<NAME_OF_DOCKER_CONTAINER>$') bash -c '/usr/local/bin/gitea dump -c </path/to/app.ini>'
 ```
+
 \*注意：`--tempdir` 指的是 Gitea 使用的 Docker 环境的临时目录；如果您没有指定自定义的 `--tempdir`，那么 Gitea 将使用 `/tmp` 或 Docker 容器的 `TMPDIR` 环境变量。对于 `--tempdir`，请相应调整您的 `docker exec` 命令选项。
 
 结果应该是一个文件，存储在指定的 `--tempdir` 中，类似于：`gitea-dump-1482906742.zip`

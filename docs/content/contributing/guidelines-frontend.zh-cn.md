@@ -96,6 +96,7 @@ Gitea使用一些补丁使Fomantic UI更具可访问性（参见`aria.js`和`ari
 一些 lint 规则和 IDE 也会在未处理返回的 Promise 时发出警告。
 
 ### 获取数据
+
 要获取数据，请使用`modules/fetch.js`中的包装函数`GET`、`POST`等。他们
 接受内容的`data`选项，将自动设置 CSRF 令牌并返回
 [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response)。

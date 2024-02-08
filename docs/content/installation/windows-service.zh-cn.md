@@ -49,6 +49,7 @@ sc.exe create gitea start= auto binPath= "\"C:\gitea\gitea.exe\" web --config \"
 之后在控制面板打开 "Windows Services"，搜索 "gitea"，右键选择 "Run"。在浏览器打开 `http://localhost:3000` 就可以访问了。（如果你修改了端口，请访问对应的端口，3000是默认端口）。
 
 ### 服务启动类型
+
 据观察，在启动期间加载的系统上，Gitea 服务可能无法启动，并在 Windows 事件日志中记录超时。
 在这种情况下，将启动类型更改为`Automatic-Delayed`。这可以在服务创建期间完成，或者通过运行配置命令来完成。
 
