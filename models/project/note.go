@@ -26,6 +26,7 @@ type ProjectBoardNote struct {
 	Sorting         int64   `xorm:"NOT NULL DEFAULT 0"`
 	PinOrder        int64   `xorm:"NOT NULL DEFAULT 0"`
 	LabelIDs        []int64 `xorm:"-"` // can't be []*Label because of 'import cycle not allowed'
+	MilestoneID     int64   `xorm:"INDEX"`
 
 	ProjectID int64            `xorm:"INDEX NOT NULL"`
 	BoardID   int64            `xorm:"INDEX NOT NULL"`
@@ -333,6 +334,7 @@ func UpdateProjectBoardNote(ctx context.Context, projectBoardNote *ProjectBoardN
 
 	fieldToUpdate = append(fieldToUpdate, "title")
 	fieldToUpdate = append(fieldToUpdate, "content")
+	fieldToUpdate = append(fieldToUpdate, "milestone_id")
 
 	_, err := db.GetEngine(ctx).ID(projectBoardNote.ID).Cols(fieldToUpdate...).Update(projectBoardNote)
 	return err

@@ -163,6 +163,11 @@
 											</div>
 
 											<div class="field">
+												<label for="new-project-column-note-milestone-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.milestone"}}</label>
+												{{template "projects/milestone_selection" $}}
+											</div>
+
+											<div class="field">
 												{{template "shared/combomarkdowneditor" (dict
 													"MarkdownPreviewUrl" (print $.RepoLink "/markup")
 													"MarkdownPreviewContext" $.RepoLink

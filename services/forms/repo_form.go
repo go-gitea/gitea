@@ -535,8 +535,9 @@ type EditProjectBoardForm struct {
 
 // ProjectBoardNoteForm is a form for editing/creating a note to a board
 type ProjectBoardNoteForm struct {
-	Title   string `binding:"Required;MaxSize(255)"`
-	Content string
+	Title       string `binding:"Required;MaxSize(255)"`
+	Content     string
+	MilestoneID int64 `form:"milestoneId"`
 }
 
 //    _____  .__.__                   __

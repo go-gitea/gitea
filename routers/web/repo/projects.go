@@ -421,8 +421,27 @@ func ViewProject(ctx *context.Context) {
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return
 	}
-
 	ctx.Data["Labels"] = labels
+
+	milestones, err := db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
+		RepoID: ctx.Repo.Repository.ID,
+	})
+	if err != nil {
+		ctx.ServerError("GetAllRepoMilestones", err)
+		return
+	}
+
+	openMilestones, closedMilestones := issues_model.MilestoneList{}, issues_model.MilestoneList{}
+	for _, milestone := range milestones {
+		if milestone.IsClosed {
+			closedMilestones = append(closedMilestones, milestone)
+		} else {
+			openMilestones = append(openMilestones, milestone)
+		}
+	}
+	ctx.Data["OpenMilestones"] = openMilestones
+	ctx.Data["ClosedMilestones"] = closedMilestones
+
 	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["Project"] = project
@@ -835,8 +854,9 @@ func AddProjectBoardNoteToBoard(ctx *context.Context) {
 	}
 
 	projectBoardNote := project_model.ProjectBoardNote{
-		Title:   form.Title,
-		Content: form.Content,
+		Title:       form.Title,
+		Content:     form.Content,
+		MilestoneID: form.MilestoneID,
 
 		ProjectID: ctx.ParamsInt64(":id"),
 		BoardID:   ctx.ParamsInt64(":boardID"),
@@ -895,6 +915,7 @@ func EditProjectBoardNote(ctx *context.Context) {
 
 	projectBoardNote.Title = form.Title
 	projectBoardNote.Content = form.Content
+	projectBoardNote.MilestoneID = form.MilestoneID
 
 	err := projectBoardNote.LoadLabelIDs(ctx)
 	if err != nil {

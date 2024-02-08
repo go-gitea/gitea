@@ -1,0 +1,36 @@
+<div class="ui fluid selection dropdown clearable">
+	<input type="hidden" id="edit-project-column-note-milestone-{{.ID}}" name="milestoneId" {{if and .MilestoneID (gt .MilestoneID 0)}}value="{{.MilestoneID}}"{{end}}>
+	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+	{{svg "octicon-x" 14 "remove icon"}}
+	<div class="default text"></div>
+	<div class="menu">
+		{{if and (not .OpenMilestones) (not .ClosedMilestones)}}
+			<div class="disabled item">
+				{{ctx.Locale.Tr "repo.projects.note.no_items"}}
+			</div>
+		{{else}}
+			{{if .OpenMilestones}}
+				<div class="divider"></div>
+				<div class="header">
+					{{ctx.Locale.Tr "repo.projects.note.open_milestone"}}
+				</div>
+				{{range .OpenMilestones}}
+					<div class="item" data-value="{{.ID}}">
+						{{RenderMilestone ctx .ID $.Repository.ID}}
+					</div>
+				{{end}}
+			{{end}}
+			{{if .ClosedMilestones}}
+				{{if gt (len .OpenMilestones) 0}}<div class="divider"></div>{{end}}
+				<div class="header">
+					{{ctx.Locale.Tr "repo.projects.note.closed_milestone"}}
+				</div>
+				{{range .ClosedMilestones}}
+					<div class="item" data-value="{{.ID}}">
+						{{RenderMilestone ctx .ID $.Repository.ID}}
+					</div>
+				{{end}}
+			{{end}}
+		{{end}}
+	</div>
+</div>

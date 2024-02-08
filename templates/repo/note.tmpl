@@ -109,6 +109,11 @@
 									</div>
 
 									<div class="field">
+										<label for="edit-project-column-note-milestone-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.milestone"}}</label>
+										{{template "projects/milestone_selection" (dict "." $.root "MilestoneID" .MilestoneID)}}
+									</div>
+
+									<div class="field">
 										{{template "shared/combomarkdowneditor" (dict
 											"MarkdownPreviewUrl" (print $.root.RepoLink "/markup")
 											"MarkdownPreviewContext" $.root.RepoLink
@@ -151,6 +156,11 @@
 			{{ctx.Locale.Tr .GetLastEventLabel $timeStr (.Creator.HomeLink | Escape) (.Creator.GetDisplayName | Escape) | Safe}}
 		</span>
 	</div>
+	{{if .MilestoneID}}
+		<div class="meta gt-my-2">
+			{{RenderMilestone ctx .MilestoneID $.root.Repository.ID}}
+		</div>
+	{{end}}
 	{{$tasks := .GetTasks}}
 	{{if gt $tasks 0}}
 		<div class="meta">

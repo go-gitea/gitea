@@ -32,12 +32,9 @@
 			</span>
 		</div>
 		{{if .MilestoneID}}
-		<div class="meta gt-my-2">
-			<a class="milestone" href="{{.Repo.Link}}/milestone/{{.MilestoneID}}">
-				{{svg "octicon-milestone" 16 "gt-mr-2 gt-vm"}}
-				<span class="gt-vm">{{.Milestone.Name}}</span>
-			</a>
-		</div>
+			<div class="meta gt-my-2">
+				{{RenderMilestone ctx .MilestoneID .Repo.ID}}
+			</div>
 		{{end}}
 		{{if $.Page.LinkedPRs}}
 		{{range index $.Page.LinkedPRs .ID}}

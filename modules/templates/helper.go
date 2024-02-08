@@ -167,6 +167,8 @@ func NewFuncMap() template.FuncMap {
 		"RenderLabels":         RenderLabels,
 		"RenderLabelsFromIDs":  RenderLabelsFromIDs,
 
+		"RenderMilestone": RenderMilestone,
+
 		// -----------------------------------------------------------------
 		// misc
 		"ShortSha":                 base.ShortSha,
