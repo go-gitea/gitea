@@ -50,7 +50,9 @@ func saveUploadChunkBase(st storage.ObjectStorage, ctx *ArtifactContext,
 		chunkMd5String := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
 		log.Info("[artifact] check chunk md5, sum: %s, header: %s", chunkMd5String, reqMd5String)
 		// if md5 not match, delete the chunk
-		checkErr = fmt.Errorf("md5 not match")
+		if reqMd5String != chunkMd5String {
+			checkErr = fmt.Errorf("md5 not match")
+		}
 	}
 	if writtenSize != contentSize {
 		checkErr = errors.Join(checkErr, fmt.Errorf("contentSize not match body size"))
