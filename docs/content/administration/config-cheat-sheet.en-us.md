@@ -905,13 +905,12 @@ Default templates for project boards:
 ## Audit Log (`audit`)
 
 - `ENABLED`: **false**: Enable logging of audit events
-- `APPENDER`: **\<empty\>**: Comma-separated list of destinations to output to (possible values: `log` or `file`).
 
 ## File Audit Log (`audit.file`)
 
 - `FILENAME`: **\<empty\>**: Set the file name for the logger. If this is a relative path this will be relative to `log.ROOT_PATH`. Defaults to `log.ROOT_PATH/audit.log`.
 - `ROTATE`: **true**: This enables automated audit log rotate, default is true
-- `MAXIMUM_SIZE`: **false**: Maximum file size in bytes before rotating takes place (format `1000`, `1 MB`, `1 GiB`)
+- `MAXIMUM_SIZE`: **256 MB**: Maximum file size in bytes before rotating takes place (format `1000`, `1 MB`, `1 GiB`)
 - `ROTATE_DAILY`: **true**: Rotate audit log daily, default is true
 - `KEEP_DAYS`: **7**: Delete the audit log file after n days, default is 7
 - `COMPRESS`: **true**: Compress audit logs with gzip
