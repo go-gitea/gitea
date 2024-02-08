@@ -20,7 +20,7 @@
 						{{if eq $.root.Context.Doer.ID .CreatorID}}
 							<button class="ui item show-modal button"
 								data-modal="#edit-project-column-note-modal-{{.ID}}"
-								data-modal-form.action="{{$.root.Link}}/{{.BoardID}}/note/{{.ID}}">
+								data-modal-form.action="{{$.root.RepoLink}}/projects/{{.ProjectID}}/{{.BoardID}}/note/{{.ID}}">
 									{{svg "octicon-pencil"}}
 									{{ctx.Locale.Tr "repo.projects.note.edit"}}
 							</button>
@@ -33,7 +33,7 @@
 						<button class="ui item button {{if $notPinnedAndNotAllowedToPin}}disabled{{end}} pin-project-column-note"
 							{{if $notPinnedAndNotAllowedToPin}}style="pointer-events: unset !important"{{end}}
 							data-method="{{if .IsPinned}}delete{{else}}post{{end}}"
-							data-url="{{$.root.Link}}/{{.BoardID}}/note/{{.ID}}/pin"
+							data-url="{{$.root.RepoLink}}/projects/{{.ProjectID}}/{{.BoardID}}/note/{{.ID}}/pin"
 							{{if $notPinnedAndNotAllowedToPin}}data-tooltip-content="{{ctx.Locale.Tr "repo.projects.note.max_pinned"}}"{{end}}>
 								{{if .IsPinned}}
 									{{svg "octicon-pin-slash"}}
@@ -46,7 +46,7 @@
 						{{if eq $.root.Context.Doer.ID .CreatorID}}
 							<button class="ui item show-modal button"
 								data-modal="#delete-project-column-note-modal-{{.ID}}"
-								data-modal-form.action="{{$.root.Link}}/{{.BoardID}}/note/{{.ID}}">
+								data-modal-form.action="{{$.root.RepoLink}}/projects/{{.ProjectID}}/{{.BoardID}}/note/{{.ID}}">
 									{{svg "octicon-trash"}}
 									{{ctx.Locale.Tr "repo.projects.note.delete"}}
 							</button>
@@ -66,7 +66,7 @@
 							<div class="field">
 								<label class="gt-font-16">{{ctx.Locale.Tr "repo.projects.note.labels"}}</label>
 								{{if .LabelIDs}}
-									{{RenderLabelsFromIDs ctx .LabelIDs $.root.Link}}
+									{{RenderLabelsFromIDs ctx .LabelIDs $.root.RepoLink}}
 								{{else}}
 									{{ctx.Locale.Tr "repo.projects.note.no_label"}}
 								{{end}}
@@ -173,7 +173,7 @@
 		</div>
 	{{end}}
 	{{if .LabelIDs}}
-		{{RenderLabelsFromIDs ctx .LabelIDs $.root.Link}}
+		{{RenderLabelsFromIDs ctx .LabelIDs $.root.RepoLink}}
 	{{end}}
 </div>
 {{end}}

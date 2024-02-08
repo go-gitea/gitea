@@ -138,7 +138,8 @@ type Project struct {
 	CardType    CardType
 	Type        Type
 
-	RenderedContent string `xorm:"-"`
+	RenderedContent             string            `xorm:"-"`
+	FirstPinnedProjectBoardNote *ProjectBoardNote `xorm:"-"`
 
 	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`

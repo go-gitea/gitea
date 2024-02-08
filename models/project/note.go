@@ -41,9 +41,9 @@ type ProjectBoardNoteList []*ProjectBoardNote
 
 // ProjectBoardNotesOptions represents options of an note.
 type ProjectBoardNotesOptions struct {
-	db.Paginator
 	ProjectID int64
 	BoardID   int64
+	IsPinned  util.OptionalBool
 }
 
 func init() {
@@ -51,7 +51,7 @@ func init() {
 	db.RegisterModel(new(ProjectBoardNoteLabel))
 }
 
-// GetProjectBoardNoteByID load notes assigned to the boards
+// GetProjectBoardNoteByID load note by ID
 func GetProjectBoardNoteByID(ctx context.Context, projectBoardNoteID int64) (*ProjectBoardNote, error) {
 	projectBoardNote := new(ProjectBoardNote)
 
@@ -74,6 +74,20 @@ func GetProjectBoardNotesByIds(ctx context.Context, projectBoardNoteIDs []int64)
 	}
 
 	if err := projectBoardNoteList.LoadAttributes(ctx); err != nil {
+		return nil, err
+	}
+
+	return projectBoardNoteList, nil
+}
+
+// GetProjectBoardNotesByProjectID load pinned notes assigned to the project
+func GetProjectBoardNotesByProjectID(ctx context.Context, projectID int64, isPinned bool) (ProjectBoardNoteList, error) {
+	projectBoardNoteList, err := ProjectBoardNotes(ctx, &ProjectBoardNotesOptions{
+		ProjectID: projectID,
+		BoardID:   -1,
+		IsPinned:  util.OptionalBoolOf(isPinned),
+	})
+	if err != nil {
 		return nil, err
 	}
 
@@ -110,7 +124,19 @@ func LoadProjectBoardNotesFromBoard(ctx context.Context, board *Board) (ProjectB
 func ProjectBoardNotes(ctx context.Context, opts *ProjectBoardNotesOptions) (ProjectBoardNoteList, error) {
 	sess := db.GetEngine(ctx)
 
-	sess.Where(builder.Eq{"board_id": opts.BoardID}).And(builder.Eq{"project_id": opts.ProjectID})
+	if opts.BoardID >= 0 {
+		sess.Where(builder.Eq{"board_id": opts.BoardID})
+	}
+	if opts.ProjectID >= 0 {
+		sess.Where(builder.Eq{"project_id": opts.ProjectID})
+	}
+	if !opts.IsPinned.IsNone() {
+		if opts.IsPinned.IsTrue() {
+			sess.Where(builder.NotNull{"pin_order"}).And(builder.Gt{"pin_order": 0})
+		} else {
+			sess.Where(builder.IsNull{"pin_order"}).Or(builder.Eq{"pin_order": 0})
+		}
+	}
 
 	projectBoardNoteList := ProjectBoardNoteList{}
 	if err := sess.Asc("sorting").Desc("updated_unix").Desc("id").Find(&projectBoardNoteList); err != nil {

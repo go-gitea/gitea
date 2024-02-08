@@ -102,6 +102,29 @@ func Projects(ctx *context.Context) {
 			ctx.ServerError("RenderString", err)
 			return
 		}
+
+		pinnedProjectBoardNotes, err := project_model.GetProjectBoardNotesByProjectID(ctx, projects[i].ID, true)
+		if err != nil {
+			ctx.ServerError("GetProjectBoardNotesByProjectID", err)
+			return
+		}
+		if len(pinnedProjectBoardNotes) > 0 {
+			firstPinnedProjectBoardNote := pinnedProjectBoardNotes[0]
+
+			firstPinnedProjectBoardNote.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+				Links: markup.Links{
+					Base: ctx.Repo.RepoLink,
+				},
+				Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
+				GitRepo: ctx.Repo.GitRepo,
+				Ctx:     ctx,
+			}, firstPinnedProjectBoardNote.Content)
+			if err != nil {
+				ctx.ServerError("RenderString", err)
+				return
+			}
+			projects[i].FirstPinnedProjectBoardNote = firstPinnedProjectBoardNote
+		}
 	}
 
 	ctx.Data["Projects"] = projects

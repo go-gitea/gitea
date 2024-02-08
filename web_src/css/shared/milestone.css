@@ -2,10 +2,20 @@
   list-style: none;
 }
 
+.milestone-list .note-card {
+  height: fit-content;
+}
+
 .milestone-card {
   width: 100%;
   padding-top: 10px;
   padding-bottom: 10px;
+}
+
+.milestone-card.with-pinned-note {
+  gap: 1rem;
+  display: grid;
+  grid-template-columns: minmax(30%, min-content) 1fr;
 }
 
 .milestone-card + .milestone-card {
