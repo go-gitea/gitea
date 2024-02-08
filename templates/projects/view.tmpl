@@ -1,7 +1,7 @@
 {{$canWriteProject := and .CanWriteProjects (or (not .Repository) (not .Repository.IsArchived))}}
 
 {{if gt (len .PinnedProjectBoardNotes) 0}}
-<div id="pinned-notes">
+<div id="pinned-notes" {{if .CanWriteProjects}}class="sortable"{{end}}>
 	{{range .PinnedProjectBoardNotes}}
 		<div class="note-card pinned-card {{if $canWriteProject}}gt-cursor-grab{{end}}" data-url="{{$.Link}}/{{.ID}}/note" data-note="{{.ID}}">
 			{{template "repo/note" (dict

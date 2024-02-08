@@ -96,7 +96,7 @@ function movePinned({newIndex, item}) {
 }
 
 async function initRepoProjectSortable() {
-  const pinnedNotesCards = document.querySelector('#pinned-notes');
+  const pinnedNotesCards = document.querySelector('#pinned-notes.sortable');
   if (pinnedNotesCards) {
     createSortable(pinnedNotesCards, {
       group: 'pinned-shared',
