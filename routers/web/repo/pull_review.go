@@ -22,6 +22,7 @@ import (
 
 const (
 	tplDiffConversation     base.TplName = "repo/diff/conversation"
+	tplConversationOutdated base.TplName = "repo/diff/conversation_outdated"
 	tplTimelineConversation base.TplName = "repo/issue/view_content/conversation"
 	tplNewComment           base.TplName = "repo/diff/new_comment"
 )
@@ -161,8 +162,8 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		return
 	}
 	if len(comments) == 0 {
-		// if the comments are empty (deleted, outdated, etc), it doesn't need to render anything, just return an empty body to replace "conversation-holder" on the page
-		ctx.Resp.WriteHeader(http.StatusOK)
+		// if the comments are empty (deleted, outdated, etc), it's better to tell the users that it is outdated
+		ctx.HTML(http.StatusOK, tplConversationOutdated)
 		return
 	}
 
