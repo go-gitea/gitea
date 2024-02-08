@@ -121,7 +121,9 @@ func TestScopeToDescription(t *testing.T) {
 		},
 	}
 	for _, c := range cases {
-		c.Expected.Object = c.Scope
+		if c.Scope != &systemObject {
+			c.Expected.Object = c.Scope
+		}
 
 		if c.ShouldPanic {
 			assert.Panics(t, func() {
@@ -131,10 +133,6 @@ func TestScopeToDescription(t *testing.T) {
 			assert.Equal(t, c.Expected, scopeToDescription(c.Scope), "Unexpected descriptor for scope: %T", c.Scope)
 		}
 	}
-
-	systemScope := scopeToDescription(nil)
-	assert.Equal(t, "System", systemScope.DisplayName())
-	assert.Empty(t, systemScope.HTMLURL())
 }
 
 func TestTypeToDescription(t *testing.T) {
@@ -290,7 +288,9 @@ func TestTypeToDescription(t *testing.T) {
 		},
 	}
 	for _, c := range cases {
-		c.Expected.TypeDescriptor.Object = c.Type
+		if c.Type != &systemObject {
+			c.Expected.TypeDescriptor.Object = c.Type
+		}
 
 		if c.ShouldPanic {
 			assert.Panics(t, func() {

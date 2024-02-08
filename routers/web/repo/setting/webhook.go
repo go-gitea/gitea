@@ -12,7 +12,6 @@ import (
 	"path"
 	"strings"
 
-	audit_model "code.gitea.io/gitea/models/audit"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -68,29 +67,6 @@ type ownerRepoCtx struct {
 	Link            string
 	LinkNew         string
 	NewTemplate     base.TplName
-}
-
-func (ctx *ownerRepoCtx) auditActionSwitch(user, org, repo, system audit_model.Action) audit_model.Action {
-	if ctx.IsAdmin {
-		return system
-	}
-	if ctx.Repo != nil {
-		return repo
-	}
-	if ctx.Owner.IsOrganization() {
-		return org
-	}
-	return user
-}
-
-func (ctx *ownerRepoCtx) auditScopeSwitch() any {
-	if ctx.IsAdmin {
-		return nil
-	}
-	if ctx.Repo != nil {
-		return ctx.Repo
-	}
-	return ctx.Owner
 }
 
 // getOwnerRepoCtx determines whether this is a repo, owner, or admin (both default and system) context.

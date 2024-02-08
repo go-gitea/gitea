@@ -13,6 +13,11 @@
 		<a class="{{if .PageIsSettingsSecurity}}active {{end}}item" href="{{AppSubUrl}}/user/settings/security">
 			{{ctx.Locale.Tr "settings.security"}}
 		</a>
+		{{if .EnableAuditLogs}}
+			<a class="{{if .PageIsSettingsAudit}}active {{end}}item" href="{{AppSubUrl}}/user/settings/audit_logs">
+				{{ctx.Locale.Tr "admin.monitor.audit.title"}}
+			</a>
+		{{end}}
 		<a class="{{if .PageIsSettingsApplications}}active {{end}}item" href="{{AppSubUrl}}/user/settings/applications">
 			{{ctx.Locale.Tr "settings.applications"}}
 		</a>
