@@ -75,7 +75,6 @@ const (
 
 	RepositoryCreate                 Action = "repository:create"
 	RepositoryCreateFork             Action = "repository:create:fork"
-	RepositoryUpdate                 Action = "repository:update"
 	RepositoryArchive                Action = "repository:archive"
 	RepositoryUnarchive              Action = "repository:unarchive"
 	RepositoryDelete                 Action = "repository:delete"
@@ -111,6 +110,8 @@ const (
 	RepositorySecretUpdate           Action = "repository:secret:update"
 	RepositorySecretRemove           Action = "repository:secret:remove"
 
+	SystemStartup                    Action = "system:startup"
+	SystemShutdown                   Action = "system:shutdown"
 	SystemWebhookAdd                 Action = "system:webhook:add"
 	SystemWebhookUpdate              Action = "system:webhook:update"
 	SystemWebhookRemove              Action = "system:webhook:remove"

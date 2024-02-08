@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/audit"
 	user_service "code.gitea.io/gitea/services/user"
 
 	"github.com/urfave/cli/v2"
@@ -67,7 +66,7 @@ func runChangePassword(c *cli.Context) error {
 		Password:           optional.Some(c.String("password")),
 		MustChangePassword: mustChangePassword,
 	}
-	if err := user_service.UpdateAuth(ctx, audit.NewCLIUser(), user, opts); err != nil {
+	if err := user_service.UpdateAuth(ctx, user_model.NewCLIUser(), user, opts); err != nil {
 		switch {
 		case errors.Is(err, password.ErrMinLength):
 			return fmt.Errorf("Password is not long enough. Needs to be at least %d", setting.MinPasswordLength)

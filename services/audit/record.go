@@ -205,7 +205,7 @@ func RecordUserAccessTokenRemove(ctx context.Context, doer, user *user_model.Use
 
 func RecordOAuth2ApplicationAdd(ctx context.Context, doer, user *user_model.User, app *auth_model.OAuth2Application) {
 	if user == nil {
-		record(ctx, audit_model.SystemOAuth2ApplicationAdd, doer, nil, app, "Created instance-wide OAuth2 application %s", app.Name)
+		record(ctx, audit_model.SystemOAuth2ApplicationAdd, doer, &systemObject, app, "Created instance-wide OAuth2 application %s", app.Name)
 	} else if user.IsOrganization() {
 		record(ctx, audit_model.OrganizationOAuth2ApplicationAdd, doer, user, app, "Created OAuth2 application %s for organization %s", app.Name, user.Name)
 	} else {
@@ -215,7 +215,7 @@ func RecordOAuth2ApplicationAdd(ctx context.Context, doer, user *user_model.User
 
 func RecordOAuth2ApplicationUpdate(ctx context.Context, doer, user *user_model.User, app *auth_model.OAuth2Application) {
 	if user == nil {
-		record(ctx, audit_model.SystemOAuth2ApplicationUpdate, doer, nil, app, "Updated instance-wide OAuth2 application %s", app.Name)
+		record(ctx, audit_model.SystemOAuth2ApplicationUpdate, doer, &systemObject, app, "Updated instance-wide OAuth2 application %s", app.Name)
 	} else if user.IsOrganization() {
 		record(ctx, audit_model.OrganizationOAuth2ApplicationUpdate, doer, user, app, "Updated OAuth2 application %s of organization %s", app.Name, user.Name)
 	} else {
@@ -225,7 +225,7 @@ func RecordOAuth2ApplicationUpdate(ctx context.Context, doer, user *user_model.U
 
 func RecordOAuth2ApplicationSecret(ctx context.Context, doer, user *user_model.User, app *auth_model.OAuth2Application) {
 	if user == nil {
-		record(ctx, audit_model.SystemOAuth2ApplicationSecret, doer, nil, app, "Regenerated secret for instance-wide OAuth2 application %s", app.Name)
+		record(ctx, audit_model.SystemOAuth2ApplicationSecret, doer, &systemObject, app, "Regenerated secret for instance-wide OAuth2 application %s", app.Name)
 	} else if user.IsOrganization() {
 		record(ctx, audit_model.OrganizationOAuth2ApplicationSecret, doer, user, app, "Regenerated secret for OAuth2 application %s of organization %s", app.Name, user.Name)
 	} else {
@@ -243,7 +243,7 @@ func RecordUserOAuth2ApplicationRevoke(ctx context.Context, doer, owner *user_mo
 
 func RecordOAuth2ApplicationRemove(ctx context.Context, doer, user *user_model.User, app *auth_model.OAuth2Application) {
 	if user == nil {
-		record(ctx, audit_model.SystemOAuth2ApplicationRemove, doer, nil, app, "Removed instance-wide OAuth2 application %s", app.Name)
+		record(ctx, audit_model.SystemOAuth2ApplicationRemove, doer, &systemObject, app, "Removed instance-wide OAuth2 application %s", app.Name)
 	} else if user.IsOrganization() {
 		record(ctx, audit_model.OrganizationOAuth2ApplicationRemove, doer, user, app, "Removed OAuth2 application %s of organization %s", app.Name, user.Name)
 	} else {
@@ -307,7 +307,7 @@ func RecordSecretRemove(ctx context.Context, doer, owner *user_model.User, repo 
 
 func RecordWebhookAdd(ctx context.Context, doer, owner *user_model.User, repo *repository_model.Repository, hook *webhook_model.Webhook) {
 	if owner == nil && repo == nil {
-		record(ctx, audit_model.SystemWebhookAdd, doer, nil, hook, "Added instance-wide webhook %s.", hook.URL)
+		record(ctx, audit_model.SystemWebhookAdd, doer, &systemObject, hook, "Added instance-wide webhook %s.", hook.URL)
 	} else if repo != nil {
 		record(ctx, audit_model.RepositoryWebhookAdd, doer, repo, hook, "Added webhook %s for repository %s.", hook.URL, repo.Name)
 	} else if owner.IsOrganization() {
@@ -319,7 +319,7 @@ func RecordWebhookAdd(ctx context.Context, doer, owner *user_model.User, repo *r
 
 func RecordWebhookUpdate(ctx context.Context, doer, owner *user_model.User, repo *repository_model.Repository, hook *webhook_model.Webhook) {
 	if owner == nil && repo == nil {
-		record(ctx, audit_model.SystemWebhookUpdate, doer, nil, hook, "Updated instance-wide webhook %s.", hook.URL)
+		record(ctx, audit_model.SystemWebhookUpdate, doer, &systemObject, hook, "Updated instance-wide webhook %s.", hook.URL)
 	} else if repo != nil {
 		record(ctx, audit_model.RepositoryWebhookUpdate, doer, repo, hook, "Updated webhook %s of repository %s.", hook.URL, repo.Name)
 	} else if owner.IsOrganization() {
@@ -331,7 +331,7 @@ func RecordWebhookUpdate(ctx context.Context, doer, owner *user_model.User, repo
 
 func RecordWebhookRemove(ctx context.Context, doer, owner *user_model.User, repo *repository_model.Repository, hook *webhook_model.Webhook) {
 	if owner == nil && repo == nil {
-		record(ctx, audit_model.SystemWebhookRemove, doer, nil, hook, "Removed instance-wide webhook %s.", hook.URL)
+		record(ctx, audit_model.SystemWebhookRemove, doer, &systemObject, hook, "Removed instance-wide webhook %s.", hook.URL)
 	} else if repo != nil {
 		record(ctx, audit_model.RepositoryWebhookRemove, doer, repo, hook, "Removed webhook %s of repository %s.", hook.URL, repo.Name)
 	} else if owner.IsOrganization() {
@@ -490,14 +490,22 @@ func RecordRepositoryDeployKeyRemove(ctx context.Context, doer *user_model.User,
 	record(ctx, audit_model.RepositoryDeployKeyRemove, doer, repo, deployKey, "Removed deploy key %s from repository %s.", deployKey.Name, repo.FullName())
 }
 
+func RecordSystemStartup(ctx context.Context, doer *user_model.User, version string) {
+	record(ctx, audit_model.SystemStartup, doer, &systemObject, &systemObject, "System started [Gitea %s]", version)
+}
+
+func RecordSystemShutdown(ctx context.Context, doer *user_model.User) {
+	record(ctx, audit_model.SystemShutdown, doer, &systemObject, &systemObject, "System shutdown")
+}
+
 func RecordSystemAuthenticationSourceAdd(ctx context.Context, doer *user_model.User, authSource *auth_model.Source) {
-	record(ctx, audit_model.SystemAuthenticationSourceAdd, doer, nil, authSource, "Created authentication source %s of type %s.", authSource.Name, authSource.Type.String())
+	record(ctx, audit_model.SystemAuthenticationSourceAdd, doer, &systemObject, authSource, "Created authentication source %s of type %s.", authSource.Name, authSource.Type.String())
 }
 
 func RecordSystemAuthenticationSourceUpdate(ctx context.Context, doer *user_model.User, authSource *auth_model.Source) {
-	record(ctx, audit_model.SystemAuthenticationSourceUpdate, doer, nil, authSource, "Updated authentication source %s.", authSource.Name)
+	record(ctx, audit_model.SystemAuthenticationSourceUpdate, doer, &systemObject, authSource, "Updated authentication source %s.", authSource.Name)
 }
 
 func RecordSystemAuthenticationSourceRemove(ctx context.Context, doer *user_model.User, authSource *auth_model.Source) {
-	record(ctx, audit_model.SystemAuthenticationSourceRemove, doer, nil, authSource, "Removed authentication source %s.", authSource.Name)
+	record(ctx, audit_model.SystemAuthenticationSourceRemove, doer, &systemObject, authSource, "Removed authentication source %s.", authSource.Name)
 }

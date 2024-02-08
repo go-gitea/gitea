@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/auth"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/auth/source/ldap"
 
@@ -359,7 +360,7 @@ func (a *authService) addLdapSource(c *cli.Context, authType auth.Type, args ...
 		return err
 	}
 
-	audit.RecordSystemAuthenticationSourceAdd(ctx, audit.NewCLIUser(), authSource)
+	audit.RecordSystemAuthenticationSourceAdd(ctx, user_model.NewCLIUser(), authSource)
 
 	return nil
 }
@@ -389,7 +390,7 @@ func (a *authService) updateLdapSource(c *cli.Context, authType auth.Type) error
 		return err
 	}
 
-	audit.RecordSystemAuthenticationSourceUpdate(ctx, audit.NewCLIUser(), authSource)
+	audit.RecordSystemAuthenticationSourceUpdate(ctx, user_model.NewCLIUser(), authSource)
 
 	return nil
 }

@@ -585,7 +585,7 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *us
 		return false
 	}
 
-	audit.RecordUserCreate(ctx, audit.NewAuthenticationSourceUser(), u)
+	audit.RecordUserCreate(ctx, user_model.NewAuthenticationSourceUser(), u)
 
 	log.Trace("Account created: %s", u.Name)
 	return true

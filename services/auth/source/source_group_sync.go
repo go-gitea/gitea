@@ -106,14 +106,14 @@ func syncGroupsToTeamsCached(ctx context.Context, user *user_model.User, orgTeam
 					return err
 				}
 
-				audit.RecordOrganizationTeamMemberAdd(ctx, audit.NewAuthenticationSourceUser(), org, team, user)
+				audit.RecordOrganizationTeamMemberAdd(ctx, user_model.NewAuthenticationSourceUser(), org, team, user)
 			} else if action == syncRemove && isMember {
 				if err := models.RemoveTeamMember(ctx, team, user.ID); err != nil {
 					log.Error("group sync: Could not remove user from team: %v", err)
 					return err
 				}
 
-				audit.RecordOrganizationTeamMemberRemove(ctx, audit.NewAuthenticationSourceUser(), org, team, user)
+				audit.RecordOrganizationTeamMemberRemove(ctx, user_model.NewAuthenticationSourceUser(), org, team, user)
 			}
 		}
 	}

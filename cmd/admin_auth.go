@@ -11,6 +11,7 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/services/audit"
 	auth_service "code.gitea.io/gitea/services/auth"
 
@@ -96,7 +97,7 @@ func createSource(ctx context.Context, source *auth_model.Source) error {
 		return err
 	}
 
-	audit.RecordSystemAuthenticationSourceAdd(ctx, audit.NewCLIUser(), source)
+	audit.RecordSystemAuthenticationSourceAdd(ctx, user_model.NewCLIUser(), source)
 
 	return nil
 }
@@ -106,7 +107,7 @@ func updateSource(ctx context.Context, source *auth_model.Source) error {
 		return err
 	}
 
-	audit.RecordSystemAuthenticationSourceUpdate(ctx, audit.NewCLIUser(), source)
+	audit.RecordSystemAuthenticationSourceUpdate(ctx, user_model.NewCLIUser(), source)
 
 	return nil
 }
@@ -128,5 +129,5 @@ func runDeleteAuth(c *cli.Context) error {
 		return err
 	}
 
-	return auth_service.DeleteSource(ctx, audit.NewCLIUser(), source)
+	return auth_service.DeleteSource(ctx, user_model.NewCLIUser(), source)
 }

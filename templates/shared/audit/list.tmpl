@@ -15,7 +15,11 @@
 				<tr>
 					<td>
 						{{if .Actor.Object}}
-							<a href="{{.Actor.HTMLURL}}">{{.Actor.DisplayName}}</a>
+							{{if gt .Actor.ID 0}}
+								<a href="{{.Actor.HTMLURL}}">{{.Actor.DisplayName}}</a>
+							{{else}}
+								{{.Actor.DisplayName}}
+							{{end}}
 						{{else}}
 							<span class="text small">{{ctx.Locale.Tr "admin.monitor.audit.deleted.actor"}}</span>
 						{{end}}
@@ -34,7 +38,7 @@
 					</td>
 					<td>{{.Message}}</td>
 					<td>
-						{{if .Target.Object}}
+						{{if or .Target.Object (eq .Scope.Type "system")}}
 							{{$url := .Target.HTMLURL}}
 							{{if $url}}
 								<a href="{{$url}}">{{.Target.DisplayName}}</a>

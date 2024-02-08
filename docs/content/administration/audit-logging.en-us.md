@@ -40,7 +40,6 @@ Audit events are grouped by `user`, `organization`, `repository` and `system`.
 | - | - |
 | `user:impersonation` | Admin impersonating user |
 | `user:create` | Created user |
-| `user:update` | Updated settings of user |
 | `user:delete` | Deleted user |
 | `user:authentication:fail:twofactor` | Failed two-factor authentication for user |
 | `user:authentication:source` | Changed authentication source of user |
@@ -90,7 +89,6 @@ Audit events are grouped by `user`, `organization`, `repository` and `system`.
 | Event | Description |
 | - | - |
 | `organization:create` | Created organization |
-| `organization:update` | Updated settings of organization |
 | `organization:delete` | Deleted organization |
 | `organization:name` | Changed organization name |
 | `organization:visibility` | Changed visibility of organization |
@@ -117,7 +115,6 @@ Audit events are grouped by `user`, `organization`, `repository` and `system`.
 | - | - |
 | `repository:create` | Crated repository |
 | `repository:create:fork` | Created fork of repository |
-| `repository:update` | Updated settings of repository |
 | `repository:archive` | Archived repository |
 | `repository:unarchive` | Unarchived repository |
 | `repository:delete` | Deleted repository |
@@ -157,6 +154,8 @@ Audit events are grouped by `user`, `organization`, `repository` and `system`.
 
 | Event | Description |
 | - | - |
+| `system:startup` | System startup |
+| `system:shutdown` | System shutdown |
 | `system:webhook:add` | Added webhook |
 | `system:webhook:update` | Updated webhook |
 | `system:webhook:remove` | Removed webhook |

@@ -92,7 +92,11 @@ func TestScopeToDescription(t *testing.T) {
 		Expected    TypeDescriptor
 	}{
 		{
-			Scope:    nil,
+			Scope:       nil,
+			ShouldPanic: true,
+		},
+		{
+			Scope:    &systemObject,
 			Expected: TypeDescriptor{Type: audit_model.TypeSystem, ID: 0},
 		},
 		{
@@ -148,8 +152,15 @@ func TestTypeToDescription(t *testing.T) {
 		Expected    Expected
 	}{
 		{
-			ShouldPanic: true,
 			Type:        nil,
+			ShouldPanic: true,
+		},
+		{
+			Type: &systemObject,
+			Expected: Expected{
+				TypeDescriptor: TypeDescriptor{Type: audit_model.TypeSystem, ID: 0},
+				DisplayName:    "System",
+			},
 		},
 		{
 			Type: &user_model.User{ID: 1, Name: "TestUser"},

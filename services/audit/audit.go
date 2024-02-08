@@ -92,8 +92,10 @@ func Init() error {
 	return initAuditFile()
 }
 
+var systemObject struct{}
+
 func scopeToDescription(scope any) TypeDescriptor {
-	if scope == nil {
+	if scope == &systemObject {
 		return TypeDescriptor{audit_model.TypeSystem, 0, nil}
 	}
 
@@ -106,6 +108,10 @@ func scopeToDescription(scope any) TypeDescriptor {
 }
 
 func typeToDescription(val any) TypeDescriptor {
+	if val == &systemObject {
+		return TypeDescriptor{audit_model.TypeSystem, 0, nil}
+	}
+
 	switch t := val.(type) {
 	case *repository_model.Repository:
 		return TypeDescriptor{audit_model.TypeRepository, t.ID, val}

@@ -134,7 +134,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			if err != nil {
 				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.authSource.Name, su.Username, err)
 			} else {
-				audit.RecordUserCreate(ctx, audit.NewAuthenticationSourceUser(), usr)
+				audit.RecordUserCreate(ctx, user_model.NewAuthenticationSourceUser(), usr)
 
 				if isAttributeSSHPublicKeySet {
 					log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", source.authSource.Name, usr.Name)
@@ -142,7 +142,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 						sshKeysNeedUpdate = true
 
 						for _, key := range addedKeys {
-							audit.RecordUserKeySSHAdd(ctx, audit.NewAuthenticationSourceUser(), usr, key)
+							audit.RecordUserKeySSHAdd(ctx, user_model.NewAuthenticationSourceUser(), usr, key)
 						}
 					}
 				}
@@ -158,10 +158,10 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 					sshKeysNeedUpdate = true
 
 					for _, key := range addedKeys {
-						audit.RecordUserKeySSHAdd(ctx, audit.NewAuthenticationSourceUser(), usr, key)
+						audit.RecordUserKeySSHAdd(ctx, user_model.NewAuthenticationSourceUser(), usr, key)
 					}
 					for _, key := range deletedKeys {
-						audit.RecordUserKeySSHRemove(ctx, audit.NewAuthenticationSourceUser(), usr, key)
+						audit.RecordUserKeySSHRemove(ctx, user_model.NewAuthenticationSourceUser(), usr, key)
 					}
 				}
 			}
@@ -187,11 +187,11 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 					opts.IsRestricted = optional.Some(su.IsRestricted)
 				}
 
-				if err := user_service.UpdateUser(ctx, audit.NewAuthenticationSourceUser(), usr, opts); err != nil {
+				if err := user_service.UpdateUser(ctx, user_model.NewAuthenticationSourceUser(), usr, opts); err != nil {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", source.authSource.Name, usr.Name, err)
 				}
 
-				if err := user_service.ReplacePrimaryEmailAddress(ctx, audit.NewAuthenticationSourceUser(), usr, su.Mail); err != nil {
+				if err := user_service.ReplacePrimaryEmailAddress(ctx, user_model.NewAuthenticationSourceUser(), usr, su.Mail); err != nil {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s primary email %s: %v", source.authSource.Name, usr.Name, su.Mail, err)
 				}
 			}
@@ -237,7 +237,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			opts := &user_service.UpdateOptions{
 				IsActive: optional.Some(false),
 			}
-			if err := user_service.UpdateUser(ctx, audit.NewAuthenticationSourceUser(), usr, opts); err != nil {
+			if err := user_service.UpdateUser(ctx, user_model.NewAuthenticationSourceUser(), usr, opts); err != nil {
 				log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.authSource.Name, usr.Name, err)
 			}
 		}

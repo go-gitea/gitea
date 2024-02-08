@@ -87,7 +87,7 @@ func runGenerateAccessToken(c *cli.Context) error {
 		return err
 	}
 
-	audit.RecordUserAccessTokenAdd(ctx, audit.NewCLIUser(), user, t)
+	audit.RecordUserAccessTokenAdd(ctx, user_model.NewCLIUser(), user, t)
 
 	if c.Bool("raw") {
 		fmt.Printf("%s\n", t.Token)

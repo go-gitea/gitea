@@ -33,6 +33,17 @@ func FindEvents(ctx context.Context, opts *audit_model.EventSearchOptions) ([]*E
 func fromDatabaseEvents(ctx context.Context, evs []*audit_model.Event) []*Event {
 	c := cache{}
 
+	users := make(map[int64]TypeDescriptor)
+	for _, systemUser := range []*user_model.User{
+		user_model.NewGhostUser(),
+		user_model.NewActionsUser(),
+		user_model.NewCLIUser(),
+		user_model.NewAuthenticationSourceUser(),
+	} {
+		users[systemUser.ID] = typeToDescription(systemUser)
+	}
+	c[audit_model.TypeUser] = users
+
 	events := make([]*Event, 0, len(evs))
 	for _, e := range evs {
 		events = append(events, fromDatabaseEvent(ctx, e, c))
@@ -65,6 +76,8 @@ func resolveType(ctx context.Context, t audit_model.ObjectType, id int64, c cach
 	}
 
 	switch t {
+	case audit_model.TypeSystem:
+		td, has = typeToDescription(&systemObject), true
 	case audit_model.TypeRepository:
 		td, has = getTypeDescriptorByID[repository_model.Repository](ctx, id)
 	case audit_model.TypeUser:
