@@ -36,6 +36,10 @@ func (t *Tree) SubTree(rpath string) (*Tree, error) {
 			return nil, err
 		}
 
+		if !te.IsDir() {
+			return nil, ErrNotExist{ID: te.ID.String()}
+		}
+
 		g, err = t.repo.getTree(te.ID)
 		if err != nil {
 			return nil, err
