@@ -1,4 +1,5 @@
 import tippy, {followCursor} from 'tippy.js';
+import {isDocumentFragmentOrElementNode} from '../utils/dom.js';
 
 const visibleInstances = new Set();
 
@@ -136,8 +137,6 @@ function attachChildrenLazyTooltip(target) {
   }
 }
 
-const elementNodeTypes = new Set([Node.ELEMENT_NODE, Node.DOCUMENT_FRAGMENT_NODE]);
-
 export function initGlobalTooltips() {
   // use MutationObserver to detect new "data-tooltip-content" elements added to the DOM, or attributes changed
   const observerConnect = (observer) => observer.observe(document, {
@@ -152,11 +151,10 @@ export function initGlobalTooltips() {
       if (mutation.type === 'childList') {
         // mainly for Vue components and AJAX rendered elements
         for (const el of mutation.addedNodes) {
-          if (elementNodeTypes.has(el.nodeType)) {
-            attachChildrenLazyTooltip(el);
-            if (el.hasAttribute('data-tooltip-content')) {
-              attachLazyTooltip(el);
-            }
+          if (!isDocumentFragmentOrElementNode(el)) continue;
+          attachChildrenLazyTooltip(el);
+          if (el.hasAttribute('data-tooltip-content')) {
+            attachLazyTooltip(el);
           }
         }
       } else if (mutation.type === 'attributes') {
