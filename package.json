@@ -85,8 +85,6 @@
     "vitest": "1.2.2"
   },
   "browserslist": [
-    "defaults",
-    "not ie > 0",
-    "not ie_mob > 0"
+    "defaults"
   ]
 }
