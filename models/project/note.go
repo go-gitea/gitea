@@ -305,19 +305,6 @@ func GetPinnedProjectBoardNotes(ctx context.Context, projectID int64) (ProjectBo
 	return projectBoardNoteList, nil
 }
 
-// GetLastEventTimestamp returns the last user visible event timestamp, either the creation or the update.
-func (projectBoardNote *ProjectBoardNote) GetLastEventTimestamp() timeutil.TimeStamp {
-	return max(projectBoardNote.CreatedUnix, projectBoardNote.UpdatedUnix)
-}
-
-// GetLastEventLabel returns the localization label for the current note.
-func (projectBoardNote *ProjectBoardNote) GetLastEventLabel() string {
-	if projectBoardNote.UpdatedUnix > projectBoardNote.CreatedUnix {
-		return "repo.projects.note.updated_by"
-	}
-	return "repo.projects.note.created_by"
-}
-
 // GetTasks returns the amount of tasks in the project-board-notes content
 func (projectBoardNote *ProjectBoardNote) GetTasks() int {
 	return len(markdown.MarkdownTasksRegex.FindAllStringIndex(projectBoardNote.Content, -1))

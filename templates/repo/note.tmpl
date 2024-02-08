@@ -17,17 +17,19 @@
 							{{ctx.Locale.Tr "repo.projects.note.view"}}
 					</button>
 					{{if $.CanWriteProjects}}
-						<button class="ui item show-modal button"
-							data-modal="#edit-project-column-note-modal-{{.ID}}"
-							data-modal-form.action="{{$.root.Link}}/{{.BoardID}}/note/{{.ID}}">
-								{{svg "octicon-pencil"}}
-								{{ctx.Locale.Tr "repo.projects.note.edit"}}
-						</button>
+						{{if eq $.root.Context.Doer.ID .CreatorID}}
+							<button class="ui item show-modal button"
+								data-modal="#edit-project-column-note-modal-{{.ID}}"
+								data-modal-form.action="{{$.root.Link}}/{{.BoardID}}/note/{{.ID}}">
+									{{svg "octicon-pencil"}}
+									{{ctx.Locale.Tr "repo.projects.note.edit"}}
+							</button>
+						{{end}}
 						<a class="ui item button create-project-issue-from-note" href="{{$.root.RepoLink}}/issues/new/choose?project={{$.root.Project.ID}}">
 							{{svg "octicon-issue-opened"}}
 							{{ctx.Locale.Tr "repo.issues.new"}}
 						</a>
-						{{$notPinnedAndNotAllowedToPin := and (not .IsPinned) (not (.IsNewPinAllowed ctx))}}
+						{{$notPinnedAndNotAllowedToPin := and (not .IsPinned) (not (.IsNewPinAllowed ctx)) (or $.root.Context.Doer.IsAdmin (eq $.root.Context.Doer.ID .CreatorID))}}
 						<button class="ui item button {{if $notPinnedAndNotAllowedToPin}}disabled{{end}} pin-project-column-note"
 							{{if $notPinnedAndNotAllowedToPin}}style="pointer-events: unset !important"{{end}}
 							data-method="{{if .IsPinned}}delete{{else}}post{{end}}"
@@ -41,12 +43,14 @@
 									{{ctx.Locale.Tr "pin"}}
 								{{end}}
 						</button>
-						<button class="ui item show-modal button"
-							data-modal="#delete-project-column-note-modal-{{.ID}}"
-							data-modal-form.action="{{$.root.Link}}/{{.BoardID}}/note/{{.ID}}">
-								{{svg "octicon-trash"}}
-								{{ctx.Locale.Tr "repo.projects.note.delete"}}
-						</button>
+						{{if eq $.root.Context.Doer.ID .CreatorID}}
+							<button class="ui item show-modal button"
+								data-modal="#delete-project-column-note-modal-{{.ID}}"
+								data-modal-form.action="{{$.root.Link}}/{{.BoardID}}/note/{{.ID}}">
+									{{svg "octicon-trash"}}
+									{{ctx.Locale.Tr "repo.projects.note.delete"}}
+							</button>
+						{{end}}
 					{{end}}
 
 					<div class="ui modal" id="view-project-column-note-modal-{{.ID}}">
@@ -152,8 +156,8 @@
 	</div>
 	<div class="meta">
 		<span class="text light grey muted-links">
-			{{$timeStr := TimeSinceUnix .GetLastEventTimestamp ctx.Locale}}
-			{{ctx.Locale.Tr .GetLastEventLabel $timeStr (.Creator.HomeLink | Escape) (.Creator.GetDisplayName | Escape) | Safe}}
+			{{$timeStr := TimeSinceUnix .CreatedUnix ctx.Locale}}
+			{{ctx.Locale.Tr "repo.projects.note.created_by" $timeStr (.Creator.HomeLink | Escape) (.Creator.GetDisplayName | Escape) | Safe}}
 		</span>
 	</div>
 	{{if .MilestoneID}}

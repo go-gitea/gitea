@@ -807,6 +807,14 @@ func checkProjectBoardNoteChangePermissions(ctx *context.Context) (*project_mode
 		}
 		return nil, nil
 	}
+
+	if !ctx.Doer.IsAdmin && ctx.Doer.ID != projectBoardNote.CreatorID {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only the creator or an admin can perform this action.",
+		})
+		return nil, nil
+	}
+
 	if projectBoardNote.ProjectID != project.ID {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
 			"message": fmt.Sprintf("ProjectBoardNote[%d] is not in Project[%d] as expected", projectBoardNote.ID, project.ID),
