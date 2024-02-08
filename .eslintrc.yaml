@@ -811,7 +811,7 @@ rules:
   wc/no-constructor-params: [2]
   wc/no-constructor: [2]
   wc/no-customized-built-in-elements: [2]
-  wc/no-exports-with-element: [2]
+  wc/no-exports-with-element: [0]
   wc/no-invalid-element-name: [2]
   wc/no-invalid-extends: [2]
   wc/no-method-prefixed-with-on: [2]
