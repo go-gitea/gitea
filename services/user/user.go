@@ -19,6 +19,7 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/eventsource"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -100,7 +101,7 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string) err
 	}
 
 	// Do not fail if directory does not exist
-	if err = util.Rename(user_model.UserPath(oldUserName), user_model.UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
+	if err = gitrepo.RenameDir(ctx, oldUserName, newUserName); err != nil && !os.IsNotExist(err) {
 		u.Name = oldUserName
 		u.LowerName = strings.ToLower(oldUserName)
 		return fmt.Errorf("rename user directory: %w", err)
@@ -109,7 +110,7 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string) err
 	if err = committer.Commit(); err != nil {
 		u.Name = oldUserName
 		u.LowerName = strings.ToLower(oldUserName)
-		if err2 := util.Rename(user_model.UserPath(newUserName), user_model.UserPath(oldUserName)); err2 != nil && !os.IsNotExist(err2) {
+		if err2 := gitrepo.RenameDir(ctx, newUserName, oldUserName); err2 != nil && !os.IsNotExist(err2) {
 			log.Critical("Unable to rollback directory change during failed username change from: %s to: %s. DB Error: %v. Filesystem Error: %v", oldUserName, newUserName, err, err2)
 			return fmt.Errorf("failed to rollback directory change during failed username change from: %s to: %s. DB Error: %w. Filesystem Error: %v", oldUserName, newUserName, err, err2)
 		}

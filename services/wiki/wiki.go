@@ -40,7 +40,7 @@ func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 
 	if err := git.InitRepository(ctx, repo.WikiPath(), true, repo.ObjectFormatName); err != nil {
 		return fmt.Errorf("InitRepository: %w", err)
-	} else if err = repo_module.CreateDelegateHooks(repo.WikiPath()); err != nil {
+	} else if err = gitrepo.CreateDelegateHooks(ctx, repo, true); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
 	}
 	cmd := git.NewCommand(ctx, "symbolic-ref", "HEAD", git.BranchPrefix+DefaultBranch)
@@ -98,7 +98,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("InitWiki: %w", err)
 	}
 
-	hasMasterBranch := git.IsBranchExist(ctx, repo.WikiPath(), DefaultBranch)
+	hasMasterBranch := gitrepo.IsWikiBranchExist(ctx, repo, DefaultBranch)
 
 	basePath, err := repo_module.CreateTemporaryPath("update-wiki")
 	if err != nil {

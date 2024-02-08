@@ -10,7 +10,7 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
-	gitrepo "code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -95,7 +95,7 @@ func genesisChanges(ctx context.Context, repo *repo_model.Repository, revision s
 	}
 
 	var err error
-	objectFormat, err := git.GetObjectFormatOfRepo(ctx, repo.RepoPath())
+	objectFormat, err := gitrepo.GetObjectFormatOfRepo(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +177,7 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 		return nil, err
 	}
 
-	objectFormat, err := git.GetObjectFormatOfRepo(ctx, repo.RepoPath())
+	objectFormat, err := gitrepo.GetObjectFormatOfRepo(ctx, repo)
 	if err != nil {
 		return nil, err
 	}

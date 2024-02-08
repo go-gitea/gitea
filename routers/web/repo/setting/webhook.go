@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -655,7 +656,7 @@ func TestWebhook(ctx *context.Context) {
 	commit := ctx.Repo.Commit
 	if commit == nil {
 		ghost := user_model.NewGhostUser()
-		objectFormat, err := git.GetObjectFormatOfRepo(ctx, ctx.Repo.Repository.RepoPath())
+		objectFormat, err := gitrepo.GetObjectFormatOfRepo(ctx, ctx.Repo.Repository)
 		if err != nil {
 			ctx.Flash.Error("GetObjectFormatOfRepo: " + err.Error())
 			ctx.Status(http.StatusInternalServerError)

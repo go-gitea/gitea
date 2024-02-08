@@ -24,6 +24,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	actions_module "code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
@@ -286,12 +287,11 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	// we delete the file but the database rollback, the repository will be broken.
 
 	// Remove repository files.
-	repoPath := repo.RepoPath()
-	system_model.RemoveAllWithNotice(ctx, "Delete repository files", repoPath)
+	system_model.RemoveAllWithNotice(ctx, "Delete repository files", gitrepo.RepoGitURL(repo))
 
 	// Remove wiki files
 	if repo.HasWiki() {
-		system_model.RemoveAllWithNotice(ctx, "Delete repository wiki", repo.WikiPath())
+		system_model.RemoveAllWithNotice(ctx, "Delete repository wiki", gitrepo.WikiRepoGitURL(repo))
 	}
 
 	// Remove archives
