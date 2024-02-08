@@ -73,6 +73,15 @@
 							</div>
 
 							<div class="field">
+								<label class="gt-font-16">{{ctx.Locale.Tr "repo.projects.note.milestone"}}</label>
+								{{if .MilestoneID}}
+									{{RenderMilestone ctx .MilestoneID $.root.Repository.ID}}
+								{{else}}
+									{{ctx.Locale.Tr "repo.projects.note.no_milestone"}}
+								{{end}}
+							</div>
+
+							<div class="field">
 								<label class="gt-font-16">{{ctx.Locale.Tr "repo.projects.note.description"}}</label>
 								{{Str2html .RenderedContent}}
 							</div>
