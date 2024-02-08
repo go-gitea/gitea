@@ -188,6 +188,7 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 	if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
 		log.Error("Error UpdateArtifactByID: %v", err)
 		ctx.Error(http.StatusInternalServerError, "Error UpdateArtifactByID")
+		return
 	}
 
 	expires := time.Now().Add(60 * time.Minute).Format("2006-01-02 15:04:05.999999999 -0700 MST")
@@ -275,16 +276,18 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 		if err != nil {
 			log.Error("Error runner api getting task: task is not running")
 			ctx.Error(http.StatusInternalServerError, "Error runner api getting task: task is not running")
+			return
 		}
 		artifact.FileCompressedSize += ctx.Req.ContentLength
 		artifact.FileSize += ctx.Req.ContentLength
 		if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
 			log.Error("Error UpdateArtifactByID: %v", err)
 			ctx.Error(http.StatusInternalServerError, "Error UpdateArtifactByID")
+			return
 		}
-		ctx.JSON(201, "appended")
+		ctx.JSON(http.StatusCreated, "appended")
 	case "blocklist":
-		ctx.JSON(201, "created")
+		ctx.JSON(http.StatusCreated, "created")
 	}
 }
 
