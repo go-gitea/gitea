@@ -192,8 +192,11 @@ export function initRepoProject() {
   $('.create-project-issue-from-note').each(function () {
     const anchorLink = $(this);
     const wrapperCard = anchorLink.closest('.note-card');
-    const titleInput = wrapperCard.find('[name="title"]');
-    const contentTextarea = wrapperCard.find('.markdown-text-editor');
+    const showEditModalButton = wrapperCard.find('button[data-modal^="#edit-project-column-note-modal-"]');
+    const editModalId = showEditModalButton.data('modal');
+    const editModal = $(editModalId);
+    const titleInput = editModal.find('[name="title"]');
+    const contentTextarea = editModal.find('.markdown-text-editor');
 
     anchorLink.on('click', () => {
       sessionStorage.setItem('board-note-title', titleInput.val());
