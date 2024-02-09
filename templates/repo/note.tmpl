@@ -1,4 +1,4 @@
-{{with .BoardNote}}
+{{with .ColumnNote}}
 {{$backendURL := (print $.root.FeedURL "/projects/" .ProjectID "/" .BoardID "/note/")}}
 {{if not $.root.Repository}}
 	{{$backendURL = (print $.root.FeedURL "/-/projects/" .ProjectID "/" .BoardID "/note/")}}

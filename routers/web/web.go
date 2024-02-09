@@ -985,7 +985,7 @@ func registerRoutes(m *web.Route) {
 				m.Get("", org.Projects)
 				m.Get("/{id}", org.ViewProject)
 			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
-			m.Group("", func() {
+			m.Group("", func() { //nolint:dupl
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
 				m.Group("/{id}", func() {
@@ -1005,17 +1005,17 @@ func registerRoutes(m *web.Route) {
 						m.Post("/move", org.MoveIssues)
 
 						m.Group("/note", func() {
-							m.Post("", web.Bind(forms.ProjectBoardNoteForm{}), org.AddProjectBoardNoteToBoard)
-							m.Post("/move", org.MoveProjectBoardNote)
+							m.Post("", web.Bind(forms.BoardNoteForm{}), org.AddBoardNoteToBoard)
+							m.Post("/move", org.MoveBoardNote)
 
 							m.Group("/{noteID}", func() {
-								m.Put("", web.Bind(forms.ProjectBoardNoteForm{}), org.EditProjectBoardNote)
-								m.Delete("", org.DeleteProjectBoardNote)
+								m.Put("", web.Bind(forms.BoardNoteForm{}), org.EditBoardNote)
+								m.Delete("", org.DeleteBoardNote)
 
 								m.Group("/pin", func() {
-									m.Post("", web.Bind(forms.ProjectBoardNoteForm{}), org.PinProjectBoardNote)
-									m.Delete("", org.UnPinProjectBoardNote)
-									m.Post("/move", org.PinMoveProjectBoardNote)
+									m.Post("", web.Bind(forms.BoardNoteForm{}), org.PinBoardNote)
+									m.Delete("", org.UnPinBoardNote)
+									m.Post("/move", org.PinMoveBoardNote)
 								})
 							})
 						})
@@ -1339,7 +1339,7 @@ func registerRoutes(m *web.Route) {
 		m.Group("/projects", func() {
 			m.Get("", repo.Projects)
 			m.Get("/{id}", repo.ViewProject)
-			m.Group("", func() {
+			m.Group("", func() { //nolint:dupl
 				m.Get("/new", repo.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
 				m.Group("/{id}", func() {
@@ -1359,17 +1359,17 @@ func registerRoutes(m *web.Route) {
 						m.Post("/move", repo.MoveIssues)
 
 						m.Group("/note", func() {
-							m.Post("", web.Bind(forms.ProjectBoardNoteForm{}), repo.AddProjectBoardNoteToBoard)
-							m.Post("/move", repo.MoveProjectBoardNote)
+							m.Post("", web.Bind(forms.BoardNoteForm{}), repo.AddBoardNoteToBoard)
+							m.Post("/move", repo.MoveBoardNote)
 
 							m.Group("/{noteID}", func() {
-								m.Put("", web.Bind(forms.ProjectBoardNoteForm{}), repo.EditProjectBoardNote)
-								m.Delete("", repo.DeleteProjectBoardNote)
+								m.Put("", web.Bind(forms.BoardNoteForm{}), repo.EditBoardNote)
+								m.Delete("", repo.DeleteBoardNote)
 
 								m.Group("/pin", func() {
-									m.Post("", web.Bind(forms.ProjectBoardNoteForm{}), repo.PinProjectBoardNote)
-									m.Delete("", repo.UnPinProjectBoardNote)
-									m.Post("/move", repo.PinMoveProjectBoardNote)
+									m.Post("", web.Bind(forms.BoardNoteForm{}), repo.PinBoardNote)
+									m.Delete("", repo.UnPinBoardNote)
+									m.Post("/move", repo.PinMoveBoardNote)
 								})
 							})
 						})

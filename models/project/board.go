@@ -82,8 +82,8 @@ func (b *Board) NumIssues(ctx context.Context) int {
 	return int(c)
 }
 
-// NumProjectBoardNotes return counter of all notes assigned to the board
-func (b *Board) NumProjectBoardNotes(ctx context.Context) int {
+// NumBoardNotes return counter of all notes assigned to the board
+func (b *Board) NumBoardNotes(ctx context.Context) int {
 	c, err := db.GetEngine(ctx).Table("project_board_note").
 		Where("project_id=?", b.ProjectID).
 		And("board_id=?", b.ID).
@@ -96,11 +96,11 @@ func (b *Board) NumProjectBoardNotes(ctx context.Context) int {
 	return int(c)
 }
 
-// NumIssuesAndProjectBoardNotes return counter of all issues and notes assigned to the board
-func (b *Board) NumIssuesAndProjectBoardNotes(ctx context.Context) int {
+// NumIssuesAndNotes return counter of all issues and notes assigned to the board
+func (b *Board) NumIssuesAndNotes(ctx context.Context) int {
 	numIssues := b.NumIssues(ctx)
-	numProjectBoardNotes := b.NumProjectBoardNotes(ctx)
-	return numIssues + numProjectBoardNotes
+	numBoardNotes := b.NumBoardNotes(ctx)
+	return numIssues + numBoardNotes
 }
 
 func init() {
@@ -201,7 +201,7 @@ func deleteBoardByID(ctx context.Context, boardID int64) error {
 		return err
 	}
 
-	if err = board.removeProjectBoardNotes(ctx); err != nil {
+	if err = board.removeBoardNotes(ctx); err != nil {
 		return err
 	}
 

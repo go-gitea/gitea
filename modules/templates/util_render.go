@@ -247,7 +247,7 @@ func RenderLabelsFromIDs(ctx context.Context, labelIDs []int64, repoLink string)
 	return template.HTML(htmlCode)
 }
 
-func RenderMilestone(ctx context.Context, milestoneID int64, repoID int64, classes ...string) template.HTML {
+func RenderMilestone(ctx context.Context, milestoneID, repoID int64, classes ...string) template.HTML {
 	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if err != nil {
 		log.Error("GetRepositoryByID", err)

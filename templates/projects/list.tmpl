@@ -45,11 +45,11 @@
 
 <div class="milestone-list">
 	{{range .Projects}}
-		<li class="milestone-card {{if .FirstPinnedProjectBoardNote}}with-pinned-note{{end}}">
-			{{if .FirstPinnedProjectBoardNote}}
+		<li class="milestone-card {{if .FirstPinnedBoardNote}}with-pinned-note{{end}}">
+			{{if .FirstPinnedBoardNote}}
 				<div class="note-card" data-note="{{.ID}}">
 					{{template "repo/note" (dict
-						"BoardNote" .FirstPinnedProjectBoardNote
+						"ColumnNote" .FirstPinnedBoardNote
 						"root" $
 						"CanWriteProjects" false)
 					}}

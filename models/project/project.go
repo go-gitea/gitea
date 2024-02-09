@@ -85,41 +85,41 @@ func (err ErrProjectBoardNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// ErrProjectBoardNoteNotExist represents a "ProjectBoardNotExist" kind of error.
-type ErrProjectBoardNoteNotExist struct {
-	ProjectBoardNoteID int64
+// ErrBoardNoteNotExist represents a "ProjectBoardNotExist" kind of error.
+type ErrBoardNoteNotExist struct {
+	BoardNoteID int64
 }
 
-// IsErrProjectBoardNoteNotExist checks if an error is a ErrProjectBoardNoteNotExist
-func IsErrProjectBoardNoteNotExist(err error) bool {
-	_, ok := err.(ErrProjectBoardNoteNotExist)
+// IsErrBoardNoteNotExist checks if an error is a ErrBoardNoteNotExist
+func IsErrBoardNoteNotExist(err error) bool {
+	_, ok := err.(ErrBoardNoteNotExist)
 	return ok
 }
 
-func (err ErrProjectBoardNoteNotExist) Error() string {
-	return fmt.Sprintf("project-board-note does not exist [id: %d]", err.ProjectBoardNoteID)
+func (err ErrBoardNoteNotExist) Error() string {
+	return fmt.Sprintf("project-board-note does not exist [id: %d]", err.BoardNoteID)
 }
 
-func (err ErrProjectBoardNoteNotExist) Unwrap() error {
+func (err ErrBoardNoteNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// ErrProjectBoardNoteLabelNotExist represents a "ProjectBoardNotExist" kind of error.
-type ErrProjectBoardNoteLabelNotExist struct {
-	ProjectBoardNoteLabelID int64
+// ErrBoardNoteLabelNotExist represents a "ProjectBoardNotExist" kind of error.
+type ErrBoardNoteLabelNotExist struct {
+	BoardNoteLabelID int64
 }
 
-// IsErrProjectBoardNoteLabelNotExist checks if an error is a ErrProjectBoardNoteLabelNotExist
-func IsErrProjectBoardNoteLabelNotExist(err error) bool {
-	_, ok := err.(ErrProjectBoardNoteLabelNotExist)
+// IsErrBoardNoteLabelNotExist checks if an error is a ErrBoardNoteLabelNotExist
+func IsErrBoardNoteLabelNotExist(err error) bool {
+	_, ok := err.(ErrBoardNoteLabelNotExist)
 	return ok
 }
 
-func (err ErrProjectBoardNoteLabelNotExist) Error() string {
-	return fmt.Sprintf("project-board-note-label does not exist [id: %d]", err.ProjectBoardNoteLabelID)
+func (err ErrBoardNoteLabelNotExist) Error() string {
+	return fmt.Sprintf("project-board-note-label does not exist [id: %d]", err.BoardNoteLabelID)
 }
 
-func (err ErrProjectBoardNoteLabelNotExist) Unwrap() error {
+func (err ErrBoardNoteLabelNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
@@ -138,8 +138,8 @@ type Project struct {
 	CardType    CardType
 	Type        Type
 
-	RenderedContent             string            `xorm:"-"`
-	FirstPinnedProjectBoardNote *ProjectBoardNote `xorm:"-"`
+	RenderedContent      string     `xorm:"-"`
+	FirstPinnedBoardNote *BoardNote `xorm:"-"`
 
 	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -450,7 +450,7 @@ func DeleteProjectByID(ctx context.Context, id int64) error {
 			return err
 		}
 
-		if err := deleteProjectBoardNoteByProjectID(ctx, id); err != nil {
+		if err := deleteBoardNoteByProjectID(ctx, id); err != nil {
 			return err
 		}
 
