@@ -1268,18 +1268,52 @@ img.ui.avatar,
   border-radius: var(--border-radius);
 }
 
+.attention {
+  color: unset !important;
+}
+
 .attention-icon {
   vertical-align: text-top;
 }
 
-.attention-note {
-  font-weight: unset;
-  color: var(--color-info-text);
+blockquote.attention-note {
+  border-left-color: var(--color-blue-dark-2);
 }
 
-.attention-warning {
-  font-weight: unset;
+blockquote.attention-tip {
+  border-left-color: var(--color-success-border);
+}
+
+blockquote.attention-important {
+  border-left-color: var(--color-violet-dark-2);
+}
+
+blockquote.attention-warning {
+  border-left-color: var(--color-warning-text);
+}
+
+blockquote.attention-caution {
+  border-left-color: var(--color-red-dark-2);
+}
+
+strong.attention-note, .attention-icon.attention-note {
+  color: var(--color-blue-dark-2);
+}
+
+strong.attention-tip, .attention-icon.attention-tip {
+  color: var(--color-success-border);
+}
+
+strong.attention-important, .attention-icon.attention-important {
+  color: var(--color-violet-dark-2);
+}
+
+strong.attention-warning, .attention-icon.attention-warning {
   color: var(--color-warning-text);
+}
+
+strong.attention-caution, .attention-icon.attention-caution {
+  color: var(--color-red-dark-2);
 }
 
 .center:not(.popup) {
