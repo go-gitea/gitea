@@ -118,32 +118,14 @@
 							</span>
 						</span>
 					{{end}}
-					{{if and $.BlockingDependenciesMap (index $.BlockingDependenciesMap .ID)}}
-						<div class="flex-text-inline gt-gap-0">
-							<strong class="gt-mr-2">{{ctx.Locale.Tr "repo.issues.dependency.blocks_short"}}:</strong>
-							{{ $first := true }}
-							{{range (index $.BlockingDependenciesMap .ID)}}
-								{{if not $first}}<span class="gt-mr-2">, </span>{{end}}
-								{{ $first = false }}
-								<a href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
-									#{{.Issue.Index}}
-								</a>
-							{{end}}
-						</div>
-					{{end}}
-					{{if and $.BlockedByDependenciesMap (index $.BlockedByDependenciesMap .ID)}}
-						<div class="flex-text-inline gt-gap-0">
-							<strong class="gt-mr-2">{{ctx.Locale.Tr "repo.issues.dependency.blocked_by_short"}}:</strong>
-							{{ $first := true }}
-							{{range (index $.BlockedByDependenciesMap .ID)}}
-								{{if not $first}}<span class="gt-mr-2">, </span>{{end}}
-								{{ $first = false }}
-								<a href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
-									#{{.Issue.Index}}
-								</a>
-							{{end}}
-						</div>
-					{{end}}
+					{{template "shared/issue_dependency" (dict 
+						"ID" .ID
+						"DependenciesMap" $.BlockingDependenciesMap
+						"Title" (ctx.Locale.Tr "repo.issues.dependency.blocks_following"))}}
+					{{template "shared/issue_dependency" (dict 
+						"ID" .ID
+						"DependenciesMap" $.BlockedByDependenciesMap
+						"Title" (ctx.Locale.Tr "repo.issues.dependency.blocked_by_following"))}}
 					{{if .IsPull}}
 						{{$approveOfficial := call $approvalCounts .ID "approve"}}
 						{{$rejectOfficial := call $approvalCounts .ID "reject"}}
