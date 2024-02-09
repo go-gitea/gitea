@@ -1,13 +1,5 @@
-{{if and .DependenciesMap (index .DependenciesMap .ID)}}
-<div class="flex-text-inline gt-gap-0">
-	<strong class="gt-mr-2">{{.Title}}</strong>
-	{{$first := true}}
-	{{range (index .DependenciesMap .ID)}}
-		{{if not $first}}<span class="gt-mr-2">,</span>{{end}}
-		{{$first = false}}
-		<a href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
-			#{{.Issue.Index}}
-		</a>
-	{{end}}
-</div>
+{{if .Dependencies}}
+	<div class="flex-text-inline gt-gap-0">
+		{{(ctx.Locale.Tr .TitleKey (RenderDependencies ctx .Dependencies)) | Safe}}
+	</div>
 {{end}}
