@@ -432,7 +432,7 @@ func (u *User) GetCompleteName() string {
 	if len(trimmedFullName) > 0 {
 		return fmt.Sprintf("%s (%s)", trimmedFullName, u.Name)
 	}
-	return fmt.Sprintf("%s", u.Name)
+	return u.Name
 }
 
 func gitSafeName(name string) string {
