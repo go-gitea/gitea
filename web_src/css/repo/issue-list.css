@@ -83,7 +83,7 @@
 }
 
 #issue-list .flex-item-body > .flex-text-inline::before {
-  content: '|';
+  content: "|";
 }
 
 .archived-label-filter {
