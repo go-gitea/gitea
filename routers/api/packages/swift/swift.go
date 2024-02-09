@@ -157,7 +157,7 @@ func EnumeratePackageVersions(ctx *context.Context) {
 }
 
 type Resource struct {
-	Name     string `json:"id"`
+	Name     string `json:"name"`
 	Type     string `json:"type"`
 	Checksum string `json:"checksum"`
 }
@@ -329,6 +329,7 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	pv, _, err := packages_service.CreatePackageAndAddFile(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,

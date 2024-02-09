@@ -19,6 +19,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migration"
@@ -159,7 +160,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			// note: this will greatly improve release (tag) sync
 			// for pull-mirrors with many tags
 			repo.IsMirror = opts.Mirror
-			if err = SyncReleasesWithTags(repo, gitRepo); err != nil {
+			if err = SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
 				log.Error("Failed to synchronize tags to releases for repository: %v", err)
 			}
 		}
@@ -180,12 +181,17 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	defer committer.Close()
 
 	if opts.Mirror {
+		remoteAddress, err := util.SanitizeURL(opts.CloneAddr)
+		if err != nil {
+			return repo, err
+		}
 		mirrorModel := repo_model.Mirror{
 			RepoID:         repo.ID,
 			Interval:       setting.Mirror.DefaultInterval,
 			EnablePrune:    true,
 			NextUpdateUnix: timeutil.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
 			LFS:            opts.LFS,
+			RemoteAddress:  remoteAddress,
 		}
 		if opts.LFS {
 			mirrorModel.LFSEndpoint = opts.LFSEndpoint
@@ -256,11 +262,11 @@ func cleanUpMigrateGitConfig(ctx context.Context, repoPath string) error {
 // CleanUpMigrateInfo finishes migrating repository and/or wiki with things that don't need to be done for mirrors.
 func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo_model.Repository, error) {
 	repoPath := repo.RepoPath()
-	if err := createDelegateHooks(repoPath); err != nil {
+	if err := CreateDelegateHooks(repoPath); err != nil {
 		return repo, fmt.Errorf("createDelegateHooks: %w", err)
 	}
 	if repo.HasWiki() {
-		if err := createDelegateHooks(repo.WikiPath()); err != nil {
+		if err := CreateDelegateHooks(repo.WikiPath()); err != nil {
 			return repo, fmt.Errorf("createDelegateHooks.(wiki): %w", err)
 		}
 	}
@@ -279,14 +285,30 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 	return repo, UpdateRepository(ctx, repo, false)
 }
 
+// SyncRepoTags synchronizes releases table with repository tags
+func SyncRepoTags(ctx context.Context, repoID int64) error {
+	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+	if err != nil {
+		return err
+	}
+
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	if err != nil {
+		return err
+	}
+	defer gitRepo.Close()
+
+	return SyncReleasesWithTags(ctx, repo, gitRepo)
+}
+
 // SyncReleasesWithTags synchronizes release table with repository tags
-func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) error {
+func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
 	log.Debug("SyncReleasesWithTags: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
 
 	// optimized procedure for pull-mirrors which saves a lot of time (in
 	// particular for repos with many tags).
 	if repo.IsMirror {
-		return pullMirrorReleaseSync(repo, gitRepo)
+		return pullMirrorReleaseSync(ctx, repo, gitRepo)
 	}
 
 	existingRelTags := make(container.Set[string])
@@ -294,10 +316,11 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 		IncludeDrafts: true,
 		IncludeTags:   true,
 		ListOptions:   db.ListOptions{PageSize: 50},
+		RepoID:        repo.ID,
 	}
 	for page := 1; ; page++ {
 		opts.Page = page
-		rels, err := repo_model.GetReleasesByRepoID(gitRepo.Ctx, repo.ID, opts)
+		rels, err := db.Find[repo_model.Release](gitRepo.Ctx, opts)
 		if err != nil {
 			return fmt.Errorf("unable to GetReleasesByRepoID in Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 		}
@@ -313,7 +336,7 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 				return fmt.Errorf("unable to GetTagCommitID for %q in Repo[%d:%s/%s]: %w", rel.TagName, repo.ID, repo.OwnerName, repo.Name, err)
 			}
 			if git.IsErrNotExist(err) || commitID != rel.Sha1 {
-				if err := repo_model.PushUpdateDeleteTag(repo, rel.TagName); err != nil {
+				if err := repo_model.PushUpdateDeleteTag(ctx, repo, rel.TagName); err != nil {
 					return fmt.Errorf("unable to PushUpdateDeleteTag: %q in Repo[%d:%s/%s]: %w", rel.TagName, repo.ID, repo.OwnerName, repo.Name, err)
 				}
 			} else {
@@ -328,7 +351,7 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 			return nil
 		}
 
-		if err := PushUpdateAddTag(db.DefaultContext, repo, gitRepo, tagName, sha1, refname); err != nil {
+		if err := PushUpdateAddTag(ctx, repo, gitRepo, tagName, sha1, refname); err != nil {
 			return fmt.Errorf("unable to PushUpdateAddTag: %q to Repo[%d:%s/%s]: %w", tagName, repo.ID, repo.OwnerName, repo.Name, err)
 		}
 
@@ -385,7 +408,7 @@ func PushUpdateAddTag(ctx context.Context, repo *repo_model.Repository, gitRepo 
 		rel.PublisherID = author.ID
 	}
 
-	return repo_model.SaveOrUpdateTag(repo, &rel)
+	return repo_model.SaveOrUpdateTag(ctx, repo, &rel)
 }
 
 // StoreMissingLfsObjectsInRepository downloads missing LFS objects
@@ -404,7 +427,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 			defer content.Close()
 
-			_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: p, RepositoryID: repo.ID})
+			_, err := git_model.NewLFSMetaObject(ctx, repo.ID, p)
 			if err != nil {
 				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, p, err)
 				return err
@@ -451,7 +474,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 		if exist {
 			log.Trace("Repo[%-v]: LFS object %-v already present; creating meta object", repo, pointerBlob.Pointer)
-			_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: pointerBlob.Pointer, RepositoryID: repo.ID})
+			_, err := git_model.NewLFSMetaObject(ctx, repo.ID, pointerBlob.Pointer)
 			if err != nil {
 				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, pointerBlob.Pointer, err)
 				return err
@@ -486,29 +509,45 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 	return nil
 }
 
+// shortRelease to reduce load memory, this struct can replace repo_model.Release
+type shortRelease struct {
+	ID      int64
+	TagName string
+	Sha1    string
+	IsTag   bool
+}
+
+func (shortRelease) TableName() string {
+	return "release"
+}
+
 // pullMirrorReleaseSync is a pull-mirror specific tag<->release table
 // synchronization which overwrites all Releases from the repository tags. This
 // can be relied on since a pull-mirror is always identical to its
 // upstream. Hence, after each sync we want the pull-mirror release set to be
 // identical to the upstream tag set. This is much more efficient for
 // repositories like https://github.com/vim/vim (with over 13000 tags).
-func pullMirrorReleaseSync(repo *repo_model.Repository, gitRepo *git.Repository) error {
+func pullMirrorReleaseSync(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
 	log.Trace("pullMirrorReleaseSync: rebuilding releases for pull-mirror Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
 	tags, numTags, err := gitRepo.GetTagInfos(0, 0)
 	if err != nil {
 		return fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 	}
-	err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
-		//
-		// clear out existing releases
-		//
-		if _, err := db.DeleteByBean(ctx, &repo_model.Release{RepoID: repo.ID}); err != nil {
-			return fmt.Errorf("unable to clear releases for pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
+	err = db.WithTx(ctx, func(ctx context.Context) error {
+		dbReleases, err := db.Find[shortRelease](ctx, repo_model.FindReleasesOptions{
+			RepoID:        repo.ID,
+			IncludeDrafts: true,
+			IncludeTags:   true,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to FindReleases in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 		}
+
+		inserts, deletes, updates := calcSync(tags, dbReleases)
 		//
 		// make release set identical to upstream tags
 		//
-		for _, tag := range tags {
+		for _, tag := range inserts {
 			release := repo_model.Release{
 				RepoID:       repo.ID,
 				TagName:      tag.Name,
@@ -525,6 +564,25 @@ func pullMirrorReleaseSync(repo *repo_model.Repository, gitRepo *git.Repository)
 				return fmt.Errorf("unable insert tag %s for pull-mirror Repo[%d:%s/%s]: %w", tag.Name, repo.ID, repo.OwnerName, repo.Name, err)
 			}
 		}
+
+		// only delete tags releases
+		if len(deletes) > 0 {
+			if _, err := db.GetEngine(ctx).Where("repo_id=?", repo.ID).
+				In("id", deletes).
+				Delete(&repo_model.Release{}); err != nil {
+				return fmt.Errorf("unable to delete tags for pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
+			}
+		}
+
+		for _, tag := range updates {
+			if _, err := db.GetEngine(ctx).Where("repo_id = ? AND lower_tag_name = ?", repo.ID, strings.ToLower(tag.Name)).
+				Cols("sha1").
+				Update(&repo_model.Release{
+					Sha1: tag.Object.String(),
+				}); err != nil {
+				return fmt.Errorf("unable to update tag %s for pull-mirror Repo[%d:%s/%s]: %w", tag.Name, repo.ID, repo.OwnerName, repo.Name, err)
+			}
+		}
 		return nil
 	})
 	if err != nil {
@@ -533,4 +591,33 @@ func pullMirrorReleaseSync(repo *repo_model.Repository, gitRepo *git.Repository)
 
 	log.Trace("pullMirrorReleaseSync: done rebuilding %d releases", numTags)
 	return nil
+}
+
+func calcSync(destTags []*git.Tag, dbTags []*shortRelease) ([]*git.Tag, []int64, []*git.Tag) {
+	destTagMap := make(map[string]*git.Tag)
+	for _, tag := range destTags {
+		destTagMap[tag.Name] = tag
+	}
+	dbTagMap := make(map[string]*shortRelease)
+	for _, rel := range dbTags {
+		dbTagMap[rel.TagName] = rel
+	}
+
+	inserted := make([]*git.Tag, 0, 10)
+	updated := make([]*git.Tag, 0, 10)
+	for _, tag := range destTags {
+		rel := dbTagMap[tag.Name]
+		if rel == nil {
+			inserted = append(inserted, tag)
+		} else if rel.Sha1 != tag.Object.String() {
+			updated = append(updated, tag)
+		}
+	}
+	deleted := make([]int64, 0, 10)
+	for _, tag := range dbTags {
+		if destTagMap[tag.TagName] == nil && tag.IsTag {
+			deleted = append(deleted, tag.ID)
+		}
+	}
+	return inserted, deleted, updated
 }

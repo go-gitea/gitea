@@ -90,9 +90,9 @@ func PrepareAppDataPath() error {
 	return nil
 }
 
-func InitCfgProvider(file string, extraConfigs ...string) {
+func InitCfgProvider(file string) {
 	var err error
-	if CfgProvider, err = NewConfigProviderFromFile(file, extraConfigs...); err != nil {
+	if CfgProvider, err = NewConfigProviderFromFile(file); err != nil {
 		log.Fatal("Unable to init config provider from %q: %v", file, err)
 	}
 	CfgProvider.DisableSaving() // do not allow saving the CfgProvider into file, it will be polluted by the "MustXxx" calls

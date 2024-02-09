@@ -85,6 +85,7 @@ var (
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
 			TestConflictingPatchesWithGitApply       bool
+			RetargetChildrenOnMerge                  bool
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -184,7 +185,7 @@ var (
 			Enabled:      true,
 			TempPath:     "data/tmp/uploads",
 			AllowedTypes: "",
-			FileMaxSize:  3,
+			FileMaxSize:  50,
 			MaxFiles:     5,
 		},
 
@@ -209,6 +210,7 @@ var (
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
 			TestConflictingPatchesWithGitApply       bool
+			RetargetChildrenOnMerge                  bool
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
@@ -223,6 +225,7 @@ var (
 			DefaultMergeMessageOfficialApproversOnly: true,
 			PopulateSquashCommentWithCommitMessages:  false,
 			AddCoCommitterTrailers:                   true,
+			RetargetChildrenOnMerge:                  true,
 		},
 
 		// Issue settings

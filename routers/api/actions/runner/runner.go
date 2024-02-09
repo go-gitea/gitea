@@ -47,11 +47,11 @@ func (s *Service) Register(
 
 	runnerToken, err := actions_model.GetRunnerToken(ctx, req.Msg.Token)
 	if err != nil {
-		return nil, errors.New("runner token not found")
+		return nil, errors.New("runner registration token not found")
 	}
 
-	if runnerToken.IsActive {
-		return nil, errors.New("runner token has already been activated")
+	if !runnerToken.IsActive {
+		return nil, errors.New("runner registration token has been invalidated, please use the latest one")
 	}
 
 	labels := req.Msg.Labels
@@ -202,8 +202,14 @@ func (s *Service) UpdateTask(
 	if err := task.LoadJob(ctx); err != nil {
 		return nil, status.Errorf(codes.Internal, "load job: %v", err)
 	}
+	if err := task.Job.LoadRun(ctx); err != nil {
+		return nil, status.Errorf(codes.Internal, "load run: %v", err)
+	}
 
-	actions_service.CreateCommitStatus(ctx, task.Job)
+	// don't create commit status for cron job
+	if task.Job.Run.ScheduleID == 0 {
+		actions_service.CreateCommitStatus(ctx, task.Job)
+	}
 
 	if req.Msg.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 		if err := actions_service.EmitJobsIfReady(task.Job.RunID); err != nil {

@@ -33,6 +33,15 @@ func (su *StringUtils) Join(a []string, sep string) string {
 	return strings.Join(a, sep)
 }
 
+func (su *StringUtils) Cut(s, sep string) []any {
+	before, after, found := strings.Cut(s, sep)
+	return []any{before, after, found}
+}
+
 func (su *StringUtils) EllipsisString(s string, max int) string {
 	return base.EllipsisString(s, max)
+}
+
+func (su *StringUtils) ToUpper(s string) string {
+	return strings.ToUpper(s)
 }

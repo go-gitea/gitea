@@ -1,11 +1,14 @@
 import $ from 'jquery';
-import {hideElem} from '../utils/dom.js';
+import {GET} from '../modules/fetch.js';
+import {hideElem, loadElem} from '../utils/dom.js';
+import {parseDom} from '../utils.js';
 
-function getDefaultSvgBoundsIfUndefined(svgXml, src) {
+function getDefaultSvgBoundsIfUndefined(text, src) {
   const DefaultSize = 300;
   const MaxSize = 99999;
 
-  const svg = svgXml.documentElement;
+  const svgDoc = parseDom(text, 'image/svg+xml');
+  const svg = svgDoc.documentElement;
   const width = svg?.width?.baseVal;
   const height = svg?.height?.baseVal;
   if (width === undefined || height === undefined) {
@@ -65,74 +68,53 @@ export function initImageDiff() {
     };
   }
 
-  $('.image-diff:not([data-image-diff-loaded])').each(function() {
+  $('.image-diff:not([data-image-diff-loaded])').each(async function() {
     const $container = $(this);
     $container.attr('data-image-diff-loaded', 'true');
 
     // the container may be hidden by "viewed" checkbox, so use the parent's width for reference
     const diffContainerWidth = Math.max($container.closest('.diff-file-box').width() - 300, 100);
-    const pathAfter = $container.data('path-after');
-    const pathBefore = $container.data('path-before');
 
     const imageInfos = [{
-      loaded: false,
-      path: pathAfter,
-      $image: $container.find('img.image-after'),
+      path: this.getAttribute('data-path-after'),
+      mime: this.getAttribute('data-mime-after'),
+      $images: $container.find('img.image-after'), // matches 3 <img>
       $boundsInfo: $container.find('.bounds-info-after')
     }, {
-      loaded: false,
-      path: pathBefore,
-      $image: $container.find('img.image-before'),
+      path: this.getAttribute('data-path-before'),
+      mime: this.getAttribute('data-mime-before'),
+      $images: $container.find('img.image-before'), // matches 3 <img>
       $boundsInfo: $container.find('.bounds-info-before')
     }];
 
-    for (const info of imageInfos) {
-      if (info.$image.length > 0) {
-        $.ajax({
-          url: info.path,
-          success: (data, _, jqXHR) => {
-            info.$image.on('load', () => {
-              info.loaded = true;
-              setReadyIfLoaded();
-            }).on('error', () => {
-              info.loaded = true;
-              setReadyIfLoaded();
-              info.$boundsInfo.text('(image error)');
-            });
-            info.$image.attr('src', info.path);
-
-            if (jqXHR.getResponseHeader('Content-Type') === 'image/svg+xml') {
-              const bounds = getDefaultSvgBoundsIfUndefined(data, info.path);
-              if (bounds) {
-                info.$image.attr('width', bounds.width);
-                info.$image.attr('height', bounds.height);
-                hideElem(info.$boundsInfo);
-              }
-            }
-          }
-        });
-      } else {
-        info.loaded = true;
-        setReadyIfLoaded();
+    await Promise.all(imageInfos.map(async (info) => {
+      const [success] = await Promise.all(Array.from(info.$images, (img) => {
+        return loadElem(img, info.path);
+      }));
+      // only the first images is associated with $boundsInfo
+      if (!success) info.$boundsInfo.text('(image error)');
+      if (info.mime === 'image/svg+xml') {
+        const resp = await GET(info.path);
+        const text = await resp.text();
+        const bounds = getDefaultSvgBoundsIfUndefined(text, info.path);
+        if (bounds) {
+          info.$images.attr('width', bounds.width);
+          info.$images.attr('height', bounds.height);
+          hideElem(info.$boundsInfo);
+        }
       }
+    }));
+
+    const $imagesAfter = imageInfos[0].$images;
+    const $imagesBefore = imageInfos[1].$images;
+
+    initSideBySide(createContext($imagesAfter[0], $imagesBefore[0]));
+    if ($imagesAfter.length > 0 && $imagesBefore.length > 0) {
+      initSwipe(createContext($imagesAfter[1], $imagesBefore[1]));
+      initOverlay(createContext($imagesAfter[2], $imagesBefore[2]));
     }
 
-    function setReadyIfLoaded() {
-      if (imageInfos[0].loaded && imageInfos[1].loaded) {
-        initViews(imageInfos[0].$image, imageInfos[1].$image);
-      }
-    }
-
-    function initViews($imageAfter, $imageBefore) {
-      initSideBySide(createContext($imageAfter[0], $imageBefore[0]));
-      if ($imageAfter.length > 0 && $imageBefore.length > 0) {
-        initSwipe(createContext($imageAfter[1], $imageBefore[1]));
-        initOverlay(createContext($imageAfter[2], $imageBefore[2]));
-      }
-
-      $container.find('> .gt-hidden').removeClass('gt-hidden');
-      hideElem($container.find('.ui.loader'));
-    }
+    $container.find('> .image-diff-tabs').removeClass('is-loading');
 
     function initSideBySide(sizes) {
       let factor = 1;
@@ -205,7 +187,7 @@ export function initImageDiff() {
       });
       $container.find('.diff-swipe').css({
         width: sizes.max.width * factor + 2,
-        height: sizes.max.height * factor + 4
+        height: sizes.max.height * factor + 30 /* extra height for inner "position: absolute" elements */,
       });
       $container.find('.swipe-bar').on('mousedown', function(e) {
         e.preventDefault();
@@ -261,7 +243,7 @@ export function initImageDiff() {
       // the "css(width, height)" is somewhat hacky and not easy to understand, it could be improved in the future
       sizes.image2.parent().parent().css({
         width: sizes.max.width * factor + 2,
-        height: sizes.max.height * factor + 2 + 20 /* extra height for inner "position: absolute" elements */,
+        height: sizes.max.height * factor + 2,
       });
 
       const $range = $container.find("input[type='range']");

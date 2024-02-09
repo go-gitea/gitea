@@ -83,9 +83,10 @@ text-expander .suggestions {
   margin-top: 24px;
   list-style: none;
   background: var(--color-box-body);
-  border-radius: 5px;
+  border-radius: var(--border-radius);
   border: 1px solid var(--color-secondary);
   box-shadow: 0 .5rem 1rem var(--color-shadow);
+  z-index: 100; /* needs to be > 20 to be on top of dropzone's .dz-details */
 }
 
 text-expander .suggestions li {
@@ -101,15 +102,15 @@ text-expander .suggestions li + li {
 }
 
 text-expander .suggestions li:first-child {
-  border-radius: 4px 4px 0 0;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
 
 text-expander .suggestions li:last-child {
-  border-radius: 0 0 4px 4px;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 text-expander .suggestions li:only-child {
-  border-radius: 4px;
+  border-radius: var(--border-radius);
 }
 
 text-expander .suggestions li:hover {

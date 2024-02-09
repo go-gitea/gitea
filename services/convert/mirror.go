@@ -4,36 +4,23 @@
 package convert
 
 import (
+	"context"
+
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ToPushMirror convert from repo_model.PushMirror and remoteAddress to api.TopicResponse
-func ToPushMirror(pm *repo_model.PushMirror) (*api.PushMirror, error) {
-	repo := pm.GetRepository()
-	remoteAddress, err := getRemoteAddress(repo, pm.RemoteName)
-	if err != nil {
-		return nil, err
-	}
+func ToPushMirror(ctx context.Context, pm *repo_model.PushMirror) (*api.PushMirror, error) {
+	repo := pm.GetRepository(ctx)
 	return &api.PushMirror{
 		RepoName:       repo.Name,
 		RemoteName:     pm.RemoteName,
-		RemoteAddress:  remoteAddress,
-		CreatedUnix:    pm.CreatedUnix.FormatLong(),
-		LastUpdateUnix: pm.LastUpdateUnix.FormatLong(),
+		RemoteAddress:  pm.RemoteAddress,
+		CreatedUnix:    pm.CreatedUnix.AsTime(),
+		LastUpdateUnix: pm.LastUpdateUnix.AsTimePtr(),
 		LastError:      pm.LastError,
 		Interval:       pm.Interval.String(),
 		SyncOnCommit:   pm.SyncOnCommit,
 	}, nil
-}
-
-func getRemoteAddress(repo *repo_model.Repository, remoteName string) (string, error) {
-	url, err := git.GetRemoteURL(git.DefaultContext, repo.RepoPath(), remoteName)
-	if err != nil {
-		return "", err
-	}
-	// remove confidential information
-	url.User = nil
-	return url.String(), nil
 }

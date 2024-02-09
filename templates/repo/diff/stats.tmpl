@@ -1,5 +1,5 @@
 {{Eval .file.Addition "+" .file.Deletion}}
-<span class="diff-stats-bar gt-mx-3" data-tooltip-content="{{.root.locale.Tr "repo.diff.stats_desc_file" (Eval .file.Addition "+" .file.Deletion) .file.Addition .file.Deletion | Str2html}}">
+<span class="diff-stats-bar gt-mx-3" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.stats_desc_file" (Eval .file.Addition "+" .file.Deletion) .file.Addition .file.Deletion | Str2html}}">
 	{{/* if the denominator is zero, then the float result is "width: NaNpx", as before, it just works */}}
 	<div class="diff-stats-add-bar" style="width: {{Eval 100 "*" .file.Addition "/" "(" .file.Addition "+" .file.Deletion "+" 0.0 ")"}}%"></div>
 </span>

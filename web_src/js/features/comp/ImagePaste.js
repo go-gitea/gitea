@@ -1,16 +1,11 @@
 import $ from 'jquery';
-
-const {csrfToken} = window.config;
+import {POST} from '../../modules/fetch.js';
 
 async function uploadFile(file, uploadUrl) {
   const formData = new FormData();
   formData.append('file', file, file.name);
 
-  const res = await fetch(uploadUrl, {
-    method: 'POST',
-    headers: {'X-Csrf-Token': csrfToken},
-    body: formData,
-  });
+  const res = await POST(uploadUrl, {data: formData});
   return await res.json();
 }
 
@@ -94,7 +89,6 @@ class CodeMirrorEditor {
     triggerEditorContentChanged(editor.getTextArea());
   }
 }
-
 
 const uploadClipboardImage = async (editor, dropzone, e) => {
   const $dropzone = $(dropzone);

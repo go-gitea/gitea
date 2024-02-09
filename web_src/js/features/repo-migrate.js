@@ -1,7 +1,8 @@
 import $ from 'jquery';
 import {hideElem, showElem} from '../utils/dom.js';
+import {GET, POST} from '../modules/fetch.js';
 
-const {appSubUrl, csrfToken} = window.config;
+const {appSubUrl} = window.config;
 
 export function initRepoMigrationStatusChecker() {
   const $repoMigrating = $('#repo_migrating');
@@ -13,7 +14,7 @@ export function initRepoMigrationStatusChecker() {
 
   // returns true if the refresh still need to be called after a while
   const refresh = async () => {
-    const res = await fetch(`${appSubUrl}/user/task/${task}`);
+    const res = await GET(`${appSubUrl}/user/task/${task}`);
     if (res.status !== 200) return true; // continue to refresh if network error occurs
 
     const data = await res.json();
@@ -58,12 +59,6 @@ export function initRepoMigrationStatusChecker() {
 }
 
 async function doMigrationRetry(e) {
-  await fetch($(e.target).attr('data-migrating-task-retry-url'), {
-    method: 'post',
-    headers: {
-      'X-Csrf-Token': csrfToken,
-      'Content-Type': 'application/json',
-    },
-  });
+  await POST($(e.target).attr('data-migrating-task-retry-url'));
   window.location.reload();
 }

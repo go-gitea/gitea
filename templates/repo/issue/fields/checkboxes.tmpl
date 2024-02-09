@@ -1,12 +1,14 @@
 <div class="field">
 	{{template "repo/issue/fields/header" .}}
-	{{$field := .}}
 	{{range $i, $opt := .item.Attributes.options}}
-		<div class="field">
-			<div class="ui checkbox">
-				<input type="checkbox" name="form-field-{{$field.ID}}-{{$i}}" {{if $opt.required}}readonly checked{{end}}>
-				<label>{{$opt.label}}</label>
+		<div class="field inline">
+			<div class="ui checkbox gt-mr-0">
+				<input type="checkbox" name="form-field-{{$.item.ID}}-{{$i}}" {{if $opt.required}}required{{end}}>
+				<label>{{RenderMarkdownToHtml $.context $opt.label}}</label>
 			</div>
+			{{if $opt.required}}
+				<label class="required"></label>
+			{{end}}
 		</div>
 	{{end}}
 </div>

@@ -1,6 +1,6 @@
 import {htmlEscape} from 'escape-goat';
 import {svg} from '../svg.js';
-import Toastify from 'toastify-js';
+import Toastify from 'toastify-js'; // don't use "async import", because when network error occurs, the "async import" also fails and nothing is shown
 
 const levels = {
   info: {
@@ -21,9 +21,7 @@ const levels = {
 };
 
 // See https://github.com/apvarun/toastify-js#api for options
-async function showToast(message, level, {gravity, position, duration, ...other} = {}) {
-  if (!message) return;
-
+function showToast(message, level, {gravity, position, duration, ...other} = {}) {
   const {icon, background, duration: levelDuration} = levels[level ?? 'info'];
 
   const toast = Toastify({
@@ -41,20 +39,17 @@ async function showToast(message, level, {gravity, position, duration, ...other}
   });
 
   toast.showToast();
-
-  toast.toastElement.querySelector('.toast-close').addEventListener('click', () => {
-    toast.removeElement(toast.toastElement);
-  });
+  toast.toastElement.querySelector('.toast-close').addEventListener('click', () => toast.hideToast());
 }
 
-export async function showInfoToast(message, opts) {
-  return await showToast(message, 'info', opts);
+export function showInfoToast(message, opts) {
+  return showToast(message, 'info', opts);
 }
 
-export async function showWarningToast(message, opts) {
-  return await showToast(message, 'warning', opts);
+export function showWarningToast(message, opts) {
+  return showToast(message, 'warning', opts);
 }
 
-export async function showErrorToast(message, opts) {
-  return await showToast(message, 'error', opts);
+export function showErrorToast(message, opts) {
+  return showToast(message, 'error', opts);
 }

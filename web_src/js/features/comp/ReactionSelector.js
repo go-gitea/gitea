@@ -1,6 +1,5 @@
 import $ from 'jquery';
-
-const {csrfToken} = window.config;
+import {POST} from '../../modules/fetch.js';
 
 export function initCompReactionSelector($parent) {
   $parent.find(`.select-reaction .item.reaction, .comment-reaction-button`).on('click', async function (e) {
@@ -12,15 +11,8 @@ export function initCompReactionSelector($parent) {
     const reactionContent = $(this).attr('data-reaction-content');
     const hasReacted = $(this).closest('.ui.segment.reactions').find(`a[data-reaction-content="${reactionContent}"]`).attr('data-has-reacted') === 'true';
 
-    const res = await fetch(`${actionUrl}/${hasReacted ? 'unreact' : 'react'}`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        _csrf: csrfToken,
-        content: reactionContent,
-      }),
+    const res = await POST(`${actionUrl}/${hasReacted ? 'unreact' : 'react'}`, {
+      data: new URLSearchParams({content: reactionContent}),
     });
 
     const data = await res.json();

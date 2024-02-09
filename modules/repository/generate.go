@@ -19,6 +19,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
@@ -223,7 +224,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		}
 	}
 
-	if err := git.InitRepository(ctx, tmpDir, false); err != nil {
+	if err := git.InitRepository(ctx, tmpDir, false, templateRepo.ObjectFormatName); err != nil {
 		return err
 	}
 
@@ -241,7 +242,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		defaultBranch = templateRepo.DefaultBranch
 	}
 
-	return initRepoCommit(ctx, tmpDir, repo, repo.Owner, defaultBranch)
+	return InitRepoCommit(ctx, tmpDir, repo, repo.Owner, defaultBranch)
 }
 
 func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository) (err error) {
@@ -270,7 +271,7 @@ func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *r
 		repo.DefaultBranch = templateRepo.DefaultBranch
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		return fmt.Errorf("openRepository: %w", err)
 	}
@@ -325,18 +326,19 @@ func (gro GenerateRepoOptions) IsValid() bool {
 // GenerateRepository generates a repository from a template
 func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templateRepo *repo_model.Repository, opts GenerateRepoOptions) (_ *repo_model.Repository, err error) {
 	generateRepo := &repo_model.Repository{
-		OwnerID:       owner.ID,
-		Owner:         owner,
-		OwnerName:     owner.Name,
-		Name:          opts.Name,
-		LowerName:     strings.ToLower(opts.Name),
-		Description:   opts.Description,
-		DefaultBranch: opts.DefaultBranch,
-		IsPrivate:     opts.Private,
-		IsEmpty:       !opts.GitContent || templateRepo.IsEmpty,
-		IsFsckEnabled: templateRepo.IsFsckEnabled,
-		TemplateID:    templateRepo.ID,
-		TrustModel:    templateRepo.TrustModel,
+		OwnerID:          owner.ID,
+		Owner:            owner,
+		OwnerName:        owner.Name,
+		Name:             opts.Name,
+		LowerName:        strings.ToLower(opts.Name),
+		Description:      opts.Description,
+		DefaultBranch:    opts.DefaultBranch,
+		IsPrivate:        opts.Private,
+		IsEmpty:          !opts.GitContent || templateRepo.IsEmpty,
+		IsFsckEnabled:    templateRepo.IsFsckEnabled,
+		TemplateID:       templateRepo.ID,
+		TrustModel:       templateRepo.TrustModel,
+		ObjectFormatName: templateRepo.ObjectFormatName,
 	}
 
 	if err = CreateRepositoryByExample(ctx, doer, owner, generateRepo, false, false); err != nil {
@@ -356,7 +358,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		}
 	}
 
-	if err = checkInitRepository(ctx, owner.Name, generateRepo.Name); err != nil {
+	if err = CheckInitRepository(ctx, owner.Name, generateRepo.Name, generateRepo.ObjectFormatName); err != nil {
 		return generateRepo, err
 	}
 

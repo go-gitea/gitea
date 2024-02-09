@@ -58,13 +58,13 @@ func TestContentHistory(t *testing.T) {
 	hasHistory2, _ := issues_model.HasIssueContentHistory(dbCtx, 10, 1)
 	assert.False(t, hasHistory2)
 
-	h6, h6Prev, _ := issues_model.GetIssueContentHistoryAndPrev(dbCtx, 6)
+	h6, h6Prev, _ := issues_model.GetIssueContentHistoryAndPrev(dbCtx, 10, 6)
 	assert.EqualValues(t, 6, h6.ID)
 	assert.EqualValues(t, 5, h6Prev.ID)
 
 	// soft-delete
 	_ = issues_model.SoftDeleteIssueContentHistory(dbCtx, 5)
-	h6, h6Prev, _ = issues_model.GetIssueContentHistoryAndPrev(dbCtx, 6)
+	h6, h6Prev, _ = issues_model.GetIssueContentHistoryAndPrev(dbCtx, 10, 6)
 	assert.EqualValues(t, 6, h6.ID)
 	assert.EqualValues(t, 4, h6Prev.ID)
 

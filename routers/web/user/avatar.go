@@ -27,7 +27,7 @@ func AvatarByUserName(ctx *context.Context) {
 	size := int(ctx.ParamsInt64(":size"))
 
 	var user *user_model.User
-	if strings.ToLower(userName) != "ghost" {
+	if strings.ToLower(userName) != user_model.GhostUserLowerName {
 		var err error
 		if user, err = user_model.GetUserByName(ctx, userName); err != nil {
 			if user_model.IsErrUserNotExist(err) {
@@ -47,7 +47,7 @@ func AvatarByUserName(ctx *context.Context) {
 // AvatarByEmailHash redirects the browser to the email avatar link
 func AvatarByEmailHash(ctx *context.Context) {
 	hash := ctx.Params(":hash")
-	email, err := avatars.GetEmailForHash(hash)
+	email, err := avatars.GetEmailForHash(ctx, hash)
 	if err != nil {
 		ctx.ServerError("invalid avatar hash: "+hash, err)
 		return

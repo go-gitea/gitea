@@ -11,15 +11,15 @@
 					{{$n := len .TreeNames}}
 					{{$l := Eval $n "-" 1}}
 					{{range $i, $v := .TreeNames}}
-						<div class="divider"> / </div>
+						<div class="breadcrumb-divider">/</div>
 						{{if eq $i $l}}
-							<input type="text" id="file-name" value="{{$v}}" placeholder="{{$.locale.Tr "repo.editor.add_subdir"}}" autofocus>
-							<span data-tooltip-content="{{$.locale.Tr "repo.editor.filename_help"}}">{{svg "octicon-info"}}</span>
+							<input type="text" id="file-name" value="{{$v}}" placeholder="{{ctx.Locale.Tr "repo.editor.add_subdir"}}" autofocus>
+							<span data-tooltip-content="{{ctx.Locale.Tr "repo.editor.filename_help"}}">{{svg "octicon-info"}}</span>
 						{{else}}
 							<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
 						{{end}}
 					{{end}}
-					<span>{{.locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}{{if not .IsNewFile}}/{{.TreePath | PathEscapeSegments}}{{end}}">{{.locale.Tr "repo.editor.cancel_lower"}}</a></span>
+					<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}{{if not .IsNewFile}}/{{.TreePath | PathEscapeSegments}}{{end}}">{{ctx.Locale.Tr "repo.editor.cancel_lower"}}</a></span>
 					<input type="hidden" id="tree_path" name="tree_path" value="{{.TreePath}}" required>
 				</div>
 			</div>

@@ -1,9 +1,9 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.orgs.org_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
+			{{ctx.Locale.Tr "admin.orgs.org_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 			<div class="ui right">
-				<a class="ui primary tiny button" href="{{AppSubUrl}}/org/create">{{.locale.Tr "admin.orgs.new_orga"}}</a>
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/org/create">{{ctx.Locale.Tr "admin.orgs.new_orga"}}</a>
 			</div>
 		</h4>
 		<div class="ui attached segment">
@@ -15,17 +15,17 @@
 					<tr>
 						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" $.SortType false}}</th>
 						<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically" data-sortt-default="true">
-							{{.locale.Tr "admin.orgs.name"}}
+							{{ctx.Locale.Tr "admin.orgs.name"}}
 							{{SortArrow "alphabetically" "reversealphabetically" $.SortType true}}
 						</th>
-						<th>{{.locale.Tr "admin.orgs.teams"}}</th>
-						<th>{{.locale.Tr "admin.orgs.members"}}</th>
-						<th>{{.locale.Tr "admin.users.repos"}}</th>
+						<th>{{ctx.Locale.Tr "admin.orgs.teams"}}</th>
+						<th>{{ctx.Locale.Tr "admin.orgs.members"}}</th>
+						<th>{{ctx.Locale.Tr "admin.users.repos"}}</th>
 						<th data-sortt-asc="recentupdate" data-sortt-desc="leastupdate">
-							{{.locale.Tr "admin.users.created"}}
+							{{ctx.Locale.Tr "admin.users.created"}}
 							{{SortArrow "recentupdate" "leastupdate" $.SortType false}}
 						</th>
-						<th>{{.locale.Tr "admin.users.edit"}}</th>
+						<th></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -37,12 +37,15 @@
 								{{if .Visibility.IsPrivate}}
 									<span class="text gold">{{svg "octicon-lock"}}</span>
 								{{end}}
+								{{if eq .Type 3}}{{/* Reserved organization */}}
+									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.reserved"}}</span>
+								{{end}}
 							</td>
 							<td>{{.NumTeams}}</td>
 							<td>{{.NumMembers}}</td>
 							<td>{{.NumRepos}}</td>
 							<td>{{DateTime "short" .CreatedUnix}}</td>
-							<td><a href="{{.OrganisationLink}}/settings">{{svg "octicon-pencil"}}</a></td>
+							<td><a href="{{.OrganisationLink}}/settings" data-tooltip-content="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a></td>
 						</tr>
 					{{end}}
 				</tbody>

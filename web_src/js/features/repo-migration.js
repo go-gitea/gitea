@@ -15,9 +15,9 @@ export function initRepoMigration() {
   checkAuth();
   setLFSSettingsVisibility();
 
-  $user.on('keyup', () => {checkItems(false)});
-  $pass.on('keyup', () => {checkItems(false)});
-  $token.on('keyup', () => {checkItems(true)});
+  $user.on('input', () => {checkItems(false)});
+  $pass.on('input', () => {checkItems(false)});
+  $token.on('input', () => {checkItems(true)});
   $mirror.on('change', () => {checkItems(true)});
   $('#lfs_settings_show').on('click', () => { showElem($lfsEndpoint); return false });
   $lfs.on('change', setLFSSettingsVisibility);

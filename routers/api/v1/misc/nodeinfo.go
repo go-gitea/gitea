@@ -29,20 +29,19 @@ func NodeInfo(ctx *context.APIContext) {
 
 	nodeInfoUsage := structs.NodeInfoUsage{}
 	if setting.Federation.ShareUserStatistics {
-		cached := false
-		if setting.CacheService.Enabled {
-			nodeInfoUsage, cached = ctx.Cache.Get(cacheKeyNodeInfoUsage).(structs.NodeInfoUsage)
-		}
+		var cached bool
+		nodeInfoUsage, cached = ctx.Cache.Get(cacheKeyNodeInfoUsage).(structs.NodeInfoUsage)
+
 		if !cached {
-			usersTotal := int(user_model.CountUsers(nil))
+			usersTotal := int(user_model.CountUsers(ctx, nil))
 			now := time.Now()
 			timeOneMonthAgo := now.AddDate(0, -1, 0).Unix()
 			timeHaveYearAgo := now.AddDate(0, -6, 0).Unix()
-			usersActiveMonth := int(user_model.CountUsers(&user_model.CountUserFilter{LastLoginSince: &timeOneMonthAgo}))
-			usersActiveHalfyear := int(user_model.CountUsers(&user_model.CountUserFilter{LastLoginSince: &timeHaveYearAgo}))
+			usersActiveMonth := int(user_model.CountUsers(ctx, &user_model.CountUserFilter{LastLoginSince: &timeOneMonthAgo}))
+			usersActiveHalfyear := int(user_model.CountUsers(ctx, &user_model.CountUserFilter{LastLoginSince: &timeHaveYearAgo}))
 
 			allIssues, _ := issues_model.CountIssues(ctx, &issues_model.IssuesOptions{})
-			allComments, _ := issues_model.CountComments(&issues_model.FindCommentsOptions{})
+			allComments, _ := issues_model.CountComments(ctx, &issues_model.FindCommentsOptions{})
 
 			nodeInfoUsage = structs.NodeInfoUsage{
 				Users: structs.NodeInfoUsageUsers{
@@ -53,11 +52,10 @@ func NodeInfo(ctx *context.APIContext) {
 				LocalPosts:    int(allIssues),
 				LocalComments: int(allComments),
 			}
-			if setting.CacheService.Enabled {
-				if err := ctx.Cache.Put(cacheKeyNodeInfoUsage, nodeInfoUsage, 180); err != nil {
-					ctx.InternalServerError(err)
-					return
-				}
+
+			if err := ctx.Cache.Put(cacheKeyNodeInfoUsage, nodeInfoUsage, 180); err != nil {
+				ctx.InternalServerError(err)
+				return
 			}
 		}
 	}

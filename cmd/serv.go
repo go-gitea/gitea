@@ -42,7 +42,7 @@ const (
 // CmdServ represents the available serv sub-command.
 var CmdServ = &cli.Command{
 	Name:        "serv",
-	Usage:       "This command should only be called by SSH shell",
+	Usage:       "(internal) Should only be called by SSH shell",
 	Description: "Serv provides access auth for repositories",
 	Before:      PrepareConsoleLoggerLevel(log.FATAL),
 	Action:      runServ,
@@ -216,16 +216,18 @@ func runServ(c *cli.Context) error {
 		}
 	}
 
-	// LowerCase and trim the repoPath as that's how they are stored.
-	repoPath = strings.ToLower(strings.TrimSpace(repoPath))
-
 	rr := strings.SplitN(repoPath, "/", 2)
 	if len(rr) != 2 {
 		return fail(ctx, "Invalid repository path", "Invalid repository path: %v", repoPath)
 	}
 
-	username := strings.ToLower(rr[0])
-	reponame := strings.ToLower(strings.TrimSuffix(rr[1], ".git"))
+	username := rr[0]
+	reponame := strings.TrimSuffix(rr[1], ".git")
+
+	// LowerCase and trim the repoPath as that's how they are stored.
+	// This should be done after splitting the repoPath into username and reponame
+	// so that username and reponame are not affected.
+	repoPath = strings.ToLower(strings.TrimSpace(repoPath))
 
 	if alphaDashDotPattern.MatchString(reponame) {
 		return fail(ctx, "Invalid repo name", "Invalid repo name: %s", reponame)

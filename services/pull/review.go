@@ -16,10 +16,11 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 var notEnoughLines = regexp.MustCompile(`fatal: file .* has only \d+ lines?`)
@@ -49,16 +50,16 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 		return nil
 	}
 	issueIDs := prs.GetIssueIDs()
-	var codeComments []*issues_model.Comment
 
-	if err := db.Find(ctx, &issues_model.FindCommentsOptions{
+	codeComments, err := db.Find[issues_model.Comment](ctx, issues_model.FindCommentsOptions{
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},
 		Type:        issues_model.CommentTypeCode,
 		Invalidated: util.OptionalBoolFalse,
 		IssueIDs:    issueIDs,
-	}, &codeComments); err != nil {
+	})
+	if err != nil {
 		return fmt.Errorf("find code comments: %v", err)
 	}
 	for _, comment := range codeComments {
@@ -84,7 +85,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 	if !pendingReview && replyReviewID != 0 {
 		// It's not part of a review; maybe a reply to a review comment or a single comment.
 		// Check if there are reviews for that line already; if there are, this is a reply
-		if existsReview, err = issues_model.ReviewExists(issue, treePath, line); err != nil {
+		if existsReview, err = issues_model.ReviewExists(ctx, issue, treePath, line); err != nil {
 			return nil, err
 		}
 	}
@@ -113,7 +114,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 			return nil, err
 		}
 
-		notification.NotifyCreateIssueComment(ctx, doer, issue.Repo, issue, comment, mentions)
+		notify_service.CreateIssueComment(ctx, doer, issue.Repo, issue, comment, mentions)
 
 		return comment, nil
 	}
@@ -170,7 +171,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, fmt.Errorf("LoadBaseRepo: %w", err)
 	}
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		return nil, fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
 	}
@@ -264,7 +265,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
 func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, reviewType issues_model.ReviewType, content, commitID string, attachmentUUIDs []string) (*issues_model.Review, *issues_model.Comment, error) {
-	pr, err := issue.GetPullRequest()
+	pr, err := issue.GetPullRequest(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -288,7 +289,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 		}
 	}
 
-	review, comm, err := issues_model.SubmitReview(doer, issue, reviewType, content, commitID, stale, attachmentUUIDs)
+	review, comm, err := issues_model.SubmitReview(ctx, doer, issue, reviewType, content, commitID, stale, attachmentUUIDs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -298,7 +299,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 		return nil, nil, err
 	}
 
-	notification.NotifyPullRequestReview(ctx, pr, review, comm, mentions)
+	notify_service.PullRequestReview(ctx, pr, review, comm, mentions)
 
 	for _, lines := range review.CodeComments {
 		for _, comments := range lines {
@@ -307,7 +308,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 				if err != nil {
 					return nil, nil, err
 				}
-				notification.NotifyPullRequestCodeComment(ctx, pr, codeComment, mentions)
+				notify_service.PullRequestCodeComment(ctx, pr, codeComment, mentions)
 			}
 		}
 	}
@@ -333,9 +334,9 @@ func DismissApprovalReviews(ctx context.Context, doer *user_model.User, pull *is
 		return err
 	}
 
-	return db.WithTx(ctx, func(subCtx context.Context) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		for _, review := range reviews {
-			if err := issues_model.DismissReview(subCtx, review, true); err != nil {
+			if err := issues_model.DismissReview(ctx, review, true); err != nil {
 				return err
 			}
 
@@ -355,7 +356,7 @@ func DismissApprovalReviews(ctx context.Context, doer *user_model.User, pull *is
 			comment.Poster = doer
 			comment.Issue = review.Issue
 
-			notification.NotifyPullReviewDismiss(ctx, doer, review, comment)
+			notify_service.PullReviewDismiss(ctx, doer, review, comment)
 		}
 		return nil
 	})
@@ -426,7 +427,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 	comment.Poster = doer
 	comment.Issue = review.Issue
 
-	notification.NotifyPullReviewDismiss(ctx, doer, review, comment)
+	notify_service.PullReviewDismiss(ctx, doer, review, comment)
 
 	return comment, nil
 }

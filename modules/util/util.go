@@ -60,22 +60,6 @@ func OptionalBoolParse(s string) OptionalBool {
 	return OptionalBoolOf(b)
 }
 
-// Max max of two ints
-func Max(a, b int) int {
-	if a < b {
-		return b
-	}
-	return a
-}
-
-// Min min of two ints
-func Min(a, b int) int {
-	if a > b {
-		return b
-	}
-	return a
-}
-
 // IsEmptyString checks if the provided string is empty
 func IsEmptyString(s string) bool {
 	return len(strings.TrimSpace(s)) == 0

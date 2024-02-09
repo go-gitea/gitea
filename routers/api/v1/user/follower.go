@@ -80,6 +80,8 @@ func ListFollowers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listUserFollowers(ctx, ctx.ContextUser)
 }
@@ -142,12 +144,14 @@ func ListFollowing(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listUserFollowing(ctx, ctx.ContextUser)
 }
 
 func checkUserFollowing(ctx *context.APIContext, u *user_model.User, followID int64) {
-	if user_model.IsFollowing(u.ID, followID) {
+	if user_model.IsFollowing(ctx, u.ID, followID) {
 		ctx.Status(http.StatusNoContent)
 	} else {
 		ctx.NotFound()
@@ -217,8 +221,10 @@ func Follow(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	if err := user_model.FollowUser(ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
+	if err := user_model.FollowUser(ctx, ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "FollowUser", err)
 		return
 	}
@@ -239,8 +245,10 @@ func Unfollow(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	if err := user_model.UnfollowUser(ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
+	if err := user_model.UnfollowUser(ctx, ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UnfollowUser", err)
 		return
 	}

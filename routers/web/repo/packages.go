@@ -58,7 +58,6 @@ func Packages(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["IsPackagesPage"] = true
-	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType
 	ctx.Data["AvailableTypes"] = packages.TypeList

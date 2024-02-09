@@ -56,7 +56,21 @@ type SearchResult struct {
 	Hits  []Match
 }
 
-// SearchOptions represents search options
+// SearchOptions represents search options.
+//
+// It has a slightly different design from database query options.
+// In database query options, a field is never a pointer, so it could be confusing when it's zero value:
+// Do you want to find data with a field value of 0, or do you not specify the field in the options?
+// To avoid this confusion, db introduced db.NoConditionID(-1).
+// So zero value means the field is not specified in the search options, and db.NoConditionID means "== 0" or "id NOT IN (SELECT id FROM ...)"
+// It's still not ideal, it trapped developers many times.
+// And sometimes -1 could be a valid value, like issue ID, negative numbers indicate exclusion.
+// Since db.NoConditionID is for "db" (the package name is db), it makes sense not to use it in the indexer:
+// Why do bleve/elasticsearch/meilisearch indexers need to know about db.NoConditionID?
+// So in SearchOptions, we use pointer for fields which could be not specified,
+// and always use the value to filter if it's not nil, even if it's zero or negative.
+// It can handle almost all cases, if there is an exception, we can add a new field, like NoLabelOnly.
+// Unfortunately, we still use db for the indexer and have to convert between db.NoConditionID and nil for legacy reasons.
 type SearchOptions struct {
 	Keyword string // keyword to search
 
@@ -93,6 +107,19 @@ type SearchOptions struct {
 	db.Paginator
 
 	SortBy SortBy // sort by field
+}
+
+// Copy returns a copy of the options.
+// Be careful, it's not a deep copy, so `SearchOptions.RepoIDs = {...}` is OK while `SearchOptions.RepoIDs[0] = ...` is not.
+func (o *SearchOptions) Copy(edit ...func(options *SearchOptions)) *SearchOptions {
+	if o == nil {
+		return nil
+	}
+	v := *o
+	for _, e := range edit {
+		e(&v)
+	}
+	return &v
 }
 
 type SortBy string

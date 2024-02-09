@@ -5,6 +5,7 @@ package issues
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"runtime/pprof"
 	"sync/atomic"
@@ -202,11 +203,17 @@ func getIssueIndexerQueueHandler(ctx context.Context) func(items ...*IndexerMeta
 func populateIssueIndexer(ctx context.Context) {
 	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: PopulateIssueIndexer", process.SystemProcessType, true)
 	defer finished()
+	ctx = contextWithKeepRetry(ctx) // keep retrying since it's a background task
+	if err := PopulateIssueIndexer(ctx); err != nil {
+		log.Error("Issue indexer population failed: %v", err)
+	}
+}
+
+func PopulateIssueIndexer(ctx context.Context) error {
 	for page := 1; ; page++ {
 		select {
 		case <-ctx.Done():
-			log.Warn("Issue Indexer population shutdown before completion")
-			return
+			return fmt.Errorf("shutdown before completion: %w", ctx.Err())
 		default:
 		}
 		repos, _, err := repo_model.SearchRepositoryByName(ctx, &repo_model.SearchRepoOptions{
@@ -221,22 +228,12 @@ func populateIssueIndexer(ctx context.Context) {
 		}
 		if len(repos) == 0 {
 			log.Debug("Issue Indexer population complete")
-			return
+			return nil
 		}
 
 		for _, repo := range repos {
-			for {
-				select {
-				case <-ctx.Done():
-					log.Info("Issue Indexer population shutdown before completion")
-					return
-				default:
-				}
-				if err := updateRepoIndexer(ctx, repo.ID); err != nil {
-					log.Warn("Retry to populate issue indexer for repo %d: %v", repo.ID, err)
-					continue
-				}
-				break
+			if err := updateRepoIndexer(ctx, repo.ID); err != nil {
+				return fmt.Errorf("populate issue indexer for repo %d: %v", repo.ID, err)
 			}
 		}
 	}
@@ -250,8 +247,8 @@ func UpdateRepoIndexer(ctx context.Context, repoID int64) {
 }
 
 // UpdateIssueIndexer add/update an issue to the issue indexer
-func UpdateIssueIndexer(issueID int64) {
-	if err := updateIssueIndexer(issueID); err != nil {
+func UpdateIssueIndexer(ctx context.Context, issueID int64) {
+	if err := updateIssueIndexer(ctx, issueID); err != nil {
 		log.Error("Unable to push issue %d to issue indexer: %v", issueID, err)
 	}
 }
@@ -269,7 +266,7 @@ func IsAvailable(ctx context.Context) bool {
 }
 
 // SearchOptions indicates the options for searching issues
-type SearchOptions internal.SearchOptions
+type SearchOptions = internal.SearchOptions
 
 const (
 	SortByCreatedDesc  = internal.SortByCreatedDesc
@@ -283,7 +280,6 @@ const (
 )
 
 // SearchIssues search issues by options.
-// It returns issue ids and a bool value indicates if the result is imprecise.
 func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, error) {
 	indexer := *globalIndexer.Load()
 
@@ -297,7 +293,7 @@ func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, err
 		indexer = db.NewIndexer()
 	}
 
-	result, err := indexer.Search(ctx, (*internal.SearchOptions)(opts))
+	result, err := indexer.Search(ctx, opts)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -308,4 +304,12 @@ func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, err
 	}
 
 	return ret, result.Total, nil
+}
+
+// CountIssues counts issues by options. It is a shortcut of SearchIssues(ctx, opts) but only returns the total count.
+func CountIssues(ctx context.Context, opts *SearchOptions) (int64, error) {
+	opts = opts.Copy(func(options *SearchOptions) { opts.Paginator = &db_model.ListOptions{PageSize: 0} })
+
+	_, total, err := SearchIssues(ctx, opts)
+	return total, err
 }

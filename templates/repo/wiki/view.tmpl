@@ -5,10 +5,10 @@
 	<div class="ui container">
 		<div class="repo-button-row">
 			<div class="gt-df gt-ac">
-				<div class="ui floating filter dropdown" data-no-results="{{.locale.Tr "repo.pulls.no_results"}}">
+				<div class="ui floating filter dropdown" data-no-results="{{ctx.Locale.Tr "repo.pulls.no_results"}}">
 					<div class="ui basic small button">
 						<span class="text">
-							{{.locale.Tr "repo.wiki.page"}}:
+							{{ctx.Locale.Tr "repo.wiki.page"}}:
 							<strong>{{$title}}</strong>
 						</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -16,10 +16,10 @@
 					<div class="menu">
 						<div class="ui icon search input">
 							<i class="icon">{{svg "octicon-filter" 16}}</i>
-							<input name="search" placeholder="{{.locale.Tr "repo.wiki.filter_page"}}...">
+							<input name="search" placeholder="{{ctx.Locale.Tr "repo.wiki.filter_page"}}...">
 						</div>
 						<div class="scrolling menu">
-							<a class="item muted" href="{{.RepoLink}}/wiki/?action=_pages">{{.locale.Tr "repo.wiki.pages"}}</a>
+							<a class="item muted" href="{{.RepoLink}}/wiki/?action=_pages">{{ctx.Locale.Tr "repo.wiki.pages"}}</a>
 							<div class="divider"></div>
 							{{range .Pages}}
 								<a class="item {{if eq $.Title .Name}}selected{{end}}" href="{{$.RepoLink}}/wiki/{{.SubURL}}">{{.Name}}</a>
@@ -36,23 +36,23 @@
 		<div class="ui dividing header">
 			<div class="ui stackable grid">
 				<div class="eight wide column">
-					<a class="file-revisions-btn ui basic button" title="{{.locale.Tr "repo.wiki.file_revision"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_revision" ><span>{{.CommitCount}}</span> {{svg "octicon-history"}}</a>
+					<a class="file-revisions-btn ui basic button" title="{{ctx.Locale.Tr "repo.wiki.file_revision"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_revision" ><span>{{.CommitCount}}</span> {{svg "octicon-history"}}</a>
 					{{$title}}
 					<div class="ui sub header">
-						{{$timeSince := TimeSince .Author.When $.locale}}
-						{{.locale.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince | Safe}}
+						{{$timeSince := TimeSince .Author.When ctx.Locale}}
+						{{ctx.Locale.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince | Safe}}
 					</div>
 				</div>
 				<div class="eight wide right aligned column">
 					{{if .EscapeStatus.Escaped}}
-						<a class="ui small button unescape-button gt-hidden">{{.locale.Tr "repo.unescape_control_characters"}}</a>
-						<a class="ui small button escape-button">{{.locale.Tr "repo.escape_control_characters"}}</a>
+						<a class="ui small button unescape-button gt-hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</a>
+						<a class="ui small button escape-button">{{ctx.Locale.Tr "repo.escape_control_characters"}}</a>
 					{{end}}
 					{{if and .CanWriteWiki (not .Repository.IsMirror)}}
 						<div class="ui right">
-							<a class="ui small button" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_edit">{{.locale.Tr "repo.wiki.edit_page_button"}}</a>
-							<a class="ui green small button" href="{{.RepoLink}}/wiki?action=_new">{{.locale.Tr "repo.wiki.new_page_button"}}</a>
-							<a class="ui red small button delete-button" href="" data-url="{{.RepoLink}}/wiki/{{.PageURL}}?action=_delete" data-id="{{.PageURL}}">{{.locale.Tr "repo.wiki.delete_page_button"}}</a>
+							<a class="ui small button" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_edit">{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}</a>
+							<a class="ui small primary button" href="{{.RepoLink}}/wiki?action=_new">{{ctx.Locale.Tr "repo.wiki.new_page_button"}}</a>
+							<a class="ui small red button delete-button" href="" data-url="{{.RepoLink}}/wiki/{{.PageURL}}?action=_delete" data-id="{{.PageURL}}">{{ctx.Locale.Tr "repo.wiki.delete_page_button"}}</a>
 						</div>
 					{{end}}
 				</div>
@@ -79,7 +79,7 @@
 			{{if .sidebarPresent}}
 			<div class="markup wiki-content-sidebar">
 				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
-					<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Sidebar?action=_edit" aria-label="{{.locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
+					<a class="gt-float-right muted" href="{{.RepoLink}}/wiki/_Sidebar?action=_edit" aria-label="{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 				{{end}}
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .sidebarEscapeStatus "root" $}}
 				{{.sidebarContent | Safe}}
@@ -91,7 +91,7 @@
 			{{if .footerPresent}}
 			<div class="markup wiki-content-footer">
 				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
-					<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Footer?action=_edit" aria-label="{{.locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
+					<a class="gt-float-right muted" href="{{.RepoLink}}/wiki/_Footer?action=_edit" aria-label="{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 				{{end}}
 				{{template "repo/unicode_escape_prompt" dict "footerEscapeStatus" .sidebarEscapeStatus "root" $}}
 				{{.footerContent | Safe}}
@@ -104,10 +104,10 @@
 <div class="ui g-modal-confirm delete modal">
 	<div class="header">
 		{{svg "octicon-trash"}}
-		{{.locale.Tr "repo.wiki.delete_page_button"}}
+		{{ctx.Locale.Tr "repo.wiki.delete_page_button"}}
 	</div>
 	<div class="content">
-		<p>{{.locale.Tr "repo.wiki.delete_page_notice_1" ($title|Escape) | Safe}}</p>
+		<p>{{ctx.Locale.Tr "repo.wiki.delete_page_notice_1" ($title|Escape) | Safe}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

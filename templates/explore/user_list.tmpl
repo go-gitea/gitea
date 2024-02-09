@@ -1,0 +1,31 @@
+<div class="flex-list">
+	{{range .Users}}
+		<div class="flex-item gt-ac">
+			<div class="flex-item-leading">
+				{{ctx.AvatarUtils.Avatar . 48}}
+			</div>
+			<div class="flex-item-main">
+				<div class="flex-item-title">
+					{{template "shared/user/name" .}}
+					{{if .Visibility.IsPrivate}}
+						<span class="ui basic tiny label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
+					{{end}}
+				</div>
+				<div class="flex-item-body">
+					{{if .Location}}
+						<span class="flex-text-inline">{{svg "octicon-location"}}{{.Location}}</span>
+					{{end}}
+					{{if and .Email (or (and $.ShowUserEmail $.IsSigned (not .KeepEmailPrivate)) $.PageIsAdminUsers)}}
+						<span class="flex-text-inline">
+							{{svg "octicon-mail"}}
+							<a href="mailto:{{.Email}}">{{.Email}}</a>
+						</span>
+					{{end}}
+					<span class="flex-text-inline">{{svg "octicon-calendar"}}{{ctx.Locale.Tr "user.joined_on" (DateTime "short" .CreatedUnix) | Safe}}</span>
+				</div>
+			</div>
+		</div>
+	{{else}}
+		<div class="flex-item">{{ctx.Locale.Tr "explore.user_no_results"}}</div>
+	{{end}}
+</div>

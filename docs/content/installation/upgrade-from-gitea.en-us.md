@@ -65,7 +65,7 @@ If you are using cloud services or filesystems with snapshot feature,
 a snapshot for the Gitea data volume and related object storage is more convenient.
 
 After all of steps have been prepared, download the new version, stop the application, perform a backup and
-then start the new application. On each startup, Gitea verifies that the database is up to date and will automtically
+then start the new application. On each startup, Gitea verifies that the database is up to date and will automatically
 perform any necessary migrations. Depending on the size of the database, this can take some additional time on the
 first launch during which the application will be unavailable.
 

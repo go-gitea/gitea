@@ -4,10 +4,9 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no">
 </head>
-{{$invite_url := printf "%sorg/invite/%s" AppUrl (QueryEscape .Invite.Token)}}
 <body>
 	<p>{{.locale.Tr "mail.team_invite.text_1" (DotEscape .Inviter.DisplayName) (DotEscape .Team.Name) (DotEscape .Organization.DisplayName) | Str2html}}</p>
-	<p>{{.locale.Tr "mail.team_invite.text_2"}}</p><p><a href="{{$invite_url}}">{{$invite_url}}</a></p>
+	<p>{{.locale.Tr "mail.team_invite.text_2"}}</p><p><a href="{{.InviteURL}}">{{.InviteURL}}</a></p>
 	<p>{{.locale.Tr "mail.link_not_working_do_paste"}}</p>
 	<p>{{.locale.Tr "mail.team_invite.text_3" .Invite.Email}}</p>
 

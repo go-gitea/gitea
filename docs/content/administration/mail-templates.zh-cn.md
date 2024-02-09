@@ -17,7 +17,7 @@ menu:
 
 # 邮件模板
 
-为了定制特定操作的电子邮件主题和内容，可以使用模板来自定义 Gitea。这些功能的模板位于 [`custom` 目录](https://docs.gitea.io/en-us/customizing-gitea/) 下。
+为了定制特定操作的电子邮件主题和内容，可以使用模板来自定义 Gitea。这些功能的模板位于 [`custom` 目录](administration/customizing-gitea.md) 下。
 如果没有自定义的替代方案，Gitea 将使用内部模板作为默认模板。
 
 自定义模板在 Gitea 启动时加载。对它们的更改在 Gitea 重新启动之前不会被识别。
@@ -81,7 +81,7 @@ custom/templates/mail/pull/comment.tmpl
 
 指定 _主题_ 部分是可选的（因此也是虚线分隔符）。在使用时，_主题_ 和 _邮件正文_ 模板之间的分隔符需要至少三个虚线；分隔符行中不允许使用其他字符。
 
-_主题_ 和 _邮件正文_ 由 [Golang的模板引擎](https://golang.org/pkg/text/template/) 解析，并提供了为每个通知组装的 _元数据上下文_。上下文包含以下元素：
+_主题_ 和 _邮件正文_ 由 [Golang的模板引擎](https://go.dev/pkg/text/template/) 解析，并提供了为每个通知组装的 _元数据上下文_。上下文包含以下元素：
 
 | 名称                 | 类型               | 可用性            | 用途                                                                                                                                                                                                                                             |
 | -------------------- | ------------------ | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -105,7 +105,7 @@ _主题_ 和 _邮件正文_ 由 [Golang的模板引擎](https://golang.org/pkg/t
 
 ### 模板中的主题部分
 
-用于邮件主题的模板引擎是 Golang 的 [`text/template`](https://golang.org/pkg/text/template/)。
+用于邮件主题的模板引擎是 Golang 的 [`text/template`](https://go.dev/pkg/text/template/)。
 有关语法的详细信息，请参阅链接的文档。
 
 主题构建的步骤如下：
@@ -130,12 +130,12 @@ _主题_ 和 _邮件正文_ 由 [Golang的模板引擎](https://golang.org/pkg/t
 
 ### 模板中的邮件正文部分
 
-用于邮件正文的模板引擎是 Golang 的 [`html/template`](https://golang.org/pkg/html/template/)。
+用于邮件正文的模板引擎是 Golang 的 [`html/template`](https://go.dev/pkg/html/template/)。
 有关语法的详细信息，请参阅链接的文档。
 
 邮件正文在邮件主题之后进行解析，因此还有一个额外的 _元数据_ 字段，即在考虑所有情况之后实际呈现的主题。
 
-期望的结果是 HTML（包括结构元素，如`<html>`，`<body>`等）。可以通过 `<style>` 块、`class` 和 `style` 属性进行样式设置。但是，`html/template` 会进行一些 [自动转义](https://golang.org/pkg/html/template/#hdr-Contexts)，需要考虑这一点。
+期望的结果是 HTML（包括结构元素，如`<html>`，`<body>`等）。可以通过 `<style>` 块、`class` 和 `style` 属性进行样式设置。但是，`html/template` 会进行一些 [自动转义](https://go.dev/pkg/html/template/#hdr-Contexts)，需要考虑这一点。
 
 不支持附件（例如图像或外部样式表）。但是，也可以引用其他模板，例如以集中方式提供 `<style>` 元素的内容。外部模板必须放置在 `custom/mail` 下，并相对于该目录引用。例如，可以使用 `{{template styles/base}}` 包含 `custom/mail/styles/base.tmpl`。
 
@@ -148,7 +148,7 @@ _主题_ 和 _邮件正文_ 由 [Golang的模板引擎](https://golang.org/pkg/t
 如果模板无法呈现，则只有在发送邮件时才会注意到。
 如果主题模板失败，将使用默认主题，如果从 _邮件正文_ 中成功呈现了任何内容，则将使用该内容，忽略其他内容。
 
-如果遇到问题，请检查 [Gitea的日志](https://docs.gitea.io/en-us/logging-configuration/) 以获取错误消息。
+如果遇到问题，请检查 [Gitea的日志](administration/logging-config.md) 以获取错误消息。
 
 ## 示例
 

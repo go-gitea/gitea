@@ -14,8 +14,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/private"
+	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -36,9 +36,10 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 
 	topicBranch = opts.GitPushOptions["topic"]
 	_, forcePush = opts.GitPushOptions["force-push"]
+	objectFormat, _ := gitRepo.GetObjectFormat()
 
 	for i := range opts.OldCommitIDs {
-		if opts.NewCommitIDs[i] == git.EmptySHA {
+		if opts.NewCommitIDs[i] == objectFormat.EmptyObjectID().String() {
 			results = append(results, private.HookProcReceiveRefResult{
 				OriginalRef: opts.RefFullNames[i],
 				OldOID:      opts.OldCommitIDs[i],
@@ -148,10 +149,11 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 
 			log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
 
+			objectFormat, _ := gitRepo.GetObjectFormat()
 			results = append(results, private.HookProcReceiveRefResult{
 				Ref:         pr.GetGitRefName(),
 				OriginalRef: opts.RefFullNames[i],
-				OldOID:      git.EmptySHA,
+				OldOID:      objectFormat.EmptyObjectID().String(),
 				NewOID:      opts.NewCommitIDs[i],
 			})
 			continue
@@ -208,9 +210,9 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 		comment, err := pull_service.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
 		if err == nil && comment != nil {
-			notification.NotifyPullRequestPushCommits(ctx, pusher, pr, comment)
+			notify_service.PullRequestPushCommits(ctx, pusher, pr, comment)
 		}
-		notification.NotifyPullRequestSynchronized(ctx, pusher, pr)
+		notify_service.PullRequestSynchronized(ctx, pusher, pr)
 		isForcePush := comment != nil && comment.IsForcePush
 
 		results = append(results, private.HookProcReceiveRefResult{
@@ -237,7 +239,7 @@ func UserNameChanged(ctx context.Context, user *user_model.User, newName string)
 	for _, pull := range pulls {
 		pull.HeadBranch = strings.TrimPrefix(pull.HeadBranch, user.LowerName+"/")
 		pull.HeadBranch = newName + "/" + pull.HeadBranch
-		if err = pull.UpdateCols("head_branch"); err != nil {
+		if err = pull.UpdateCols(ctx, "head_branch"); err != nil {
 			return err
 		}
 	}

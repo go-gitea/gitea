@@ -123,7 +123,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	if !isNewFile {
 		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 		if err != nil {
-			ctx.NotFoundOrServerError("GetTreeEntryByPath", git.IsErrNotExist, err)
+			HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 			return
 		}
 
@@ -166,8 +166,8 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		}
 
 		buf = append(buf, d...)
-		if content, err := charset.ToUTF8WithErr(buf); err != nil {
-			log.Error("ToUTF8WithErr: %v", err)
+		if content, err := charset.ToUTF8(buf, charset.ConvertOpts{KeepBOM: true}); err != nil {
+			log.Error("ToUTF8: %v", err)
 			ctx.Data["FileContent"] = string(buf)
 		} else {
 			ctx.Data["FileContent"] = content
@@ -370,7 +370,9 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 	}
 
 	if ctx.Repo.Repository.IsEmpty {
-		_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
+		if isEmpty, err := ctx.Repo.GitRepo.IsEmpty(); err == nil && !isEmpty {
+			_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
+		}
 	}
 
 	redirectForCommitChoice(ctx, form.CommitChoice, branchName, form.TreePath)
@@ -763,7 +765,9 @@ func UploadFilePost(ctx *context.Context) {
 	}
 
 	if ctx.Repo.Repository.IsEmpty {
-		_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
+		if isEmpty, err := ctx.Repo.GitRepo.IsEmpty(); err == nil && !isEmpty {
+			_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
+		}
 	}
 
 	redirectForCommitChoice(ctx, form.CommitChoice, branchName, form.TreePath)
@@ -808,7 +812,7 @@ func UploadFileToServer(ctx *context.Context) {
 		return
 	}
 
-	upload, err := repo_model.NewUpload(name, buf, file)
+	upload, err := repo_model.NewUpload(ctx, name, buf, file)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("NewUpload: %v", err))
 		return
@@ -828,7 +832,7 @@ func RemoveUploadFileFromServer(ctx *context.Context) {
 		return
 	}
 
-	if err := repo_model.DeleteUploadByUUID(form.File); err != nil {
+	if err := repo_model.DeleteUploadByUUID(ctx, form.File); err != nil {
 		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("DeleteUploadByUUID: %v", err))
 		return
 	}

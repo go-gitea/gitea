@@ -66,7 +66,7 @@ func Person(ctx *context.APIContext) {
 	person.PublicKey.ID = ap.IRI(link + "#main-key")
 	person.PublicKey.Owner = ap.IRI(link)
 
-	publicKeyPem, err := activitypub.GetPublicKey(ctx.ContextUser)
+	publicKeyPem, err := activitypub.GetPublicKey(ctx, ctx.ContextUser)
 	if err != nil {
 		ctx.ServerError("GetPublicKey", err)
 		return

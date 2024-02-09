@@ -1,3 +1,15 @@
+{{if or .UsesIgnoreRevs .FaultyIgnoreRevsFile}}
+	{{$revsFileLink := URLJoin .RepoLink "src" .BranchNameSubURL "/.git-blame-ignore-revs"}}
+	{{if .UsesIgnoreRevs}}
+		<div class="ui info message">
+			<p>{{ctx.Locale.Tr "repo.blame.ignore_revs" $revsFileLink (print $revsFileLink "?bypass-blame-ignore=true") | Str2html}}</p>
+		</div>
+	{{else}}
+		<div class="ui error message">
+			<p>{{ctx.Locale.Tr "repo.blame.ignore_revs.failed" $revsFileLink | Str2html}}</p>
+		</div>
+	{{end}}
+{{end}}
 <div class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
 	<h4 class="file-header ui top attached header gt-df gt-ac gt-sb gt-fw">
 		<div class="file-header-left gt-df gt-ac gt-py-3 gt-pr-4">
@@ -5,14 +17,14 @@
 		</div>
 		<div class="file-header-right file-actions gt-df gt-ac gt-fw">
 			<div class="ui buttons">
-				<a class="ui tiny button" href="{{$.RawFileLink}}">{{.locale.Tr "repo.file_raw"}}</a>
+				<a class="ui tiny button" href="{{$.RawFileLink}}">{{ctx.Locale.Tr "repo.file_raw"}}</a>
 				{{if not .IsViewCommit}}
-					<a class="ui tiny button" href="{{.RepoLink}}/src/commit/{{.CommitID | PathEscape}}/{{.TreePath | PathEscapeSegments}}">{{.locale.Tr "repo.file_permalink"}}</a>
+					<a class="ui tiny button" href="{{.RepoLink}}/src/commit/{{.CommitID | PathEscape}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.file_permalink"}}</a>
 				{{end}}
-				<a class="ui tiny button" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{.locale.Tr "repo.normal_view"}}</a>
-				<a class="ui tiny button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{.locale.Tr "repo.file_history"}}</a>
-				<button class="ui tiny button unescape-button">{{.locale.Tr "repo.unescape_control_characters"}}</button>
-				<button class="ui tiny button escape-button gt-hidden">{{.locale.Tr "repo.escape_control_characters"}}</button>
+				<a class="ui tiny button" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.normal_view"}}</a>
+				<a class="ui tiny button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.file_history"}}</a>
+				<button class="ui tiny button unescape-button">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
+				<button class="ui tiny button escape-button gt-hidden">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 			</div>
 		</div>
 	</h4>
@@ -41,7 +53,7 @@
 							</td>
 							<td class="lines-blame-btn">
 								{{if $row.PreviousSha}}
-									<a href="{{$row.PreviousShaURL}}" data-tooltip-content='{{$.locale.Tr "repo.blame_prior"}}'>
+									<a href="{{$row.PreviousShaURL}}" data-tooltip-content='{{ctx.Locale.Tr "repo.blame_prior"}}'>
 										{{svg "octicon-versions"}}
 									</a>
 								{{end}}
@@ -52,7 +64,7 @@
 							{{if $.EscapeStatus.Escaped}}
 								<td class="lines-escape">
 									{{if $row.EscapeStatus.Escaped}}
-										<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $row "locale" $.locale}}"></button>
+										<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $row}}"></button>
 									{{end}}
 								</td>
 							{{end}}

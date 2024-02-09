@@ -1,5 +1,6 @@
 /* this contains override styles for buttons and related elements */
 
+/* these styles changed the Fomantic UI's rules, Fomantic UI expects only "basic" buttons have borders */
 .ui.button,
 .ui.button:focus {
   background: var(--color-button);
@@ -29,7 +30,7 @@
   color: var(--color-red);
 }
 
-/* btn is a plain button without any opinionated styling */
+/* btn is a plain button without any opinionated styling, it only uses flex for vertical alignment like ".ui.button" in base.css */
 
 .btn {
   background: transparent;
@@ -52,26 +53,36 @@ a.btn:hover {
   color: inherit;
 }
 
-/* other button styles */
+/* By default, Fomantic UI doesn't support "bordered" buttons group, but Gitea would like to use it.
+And the default buttons always have borders now (not the same as Fomantic UI's default buttons, see above).
+It needs some tricks to tweak the left/right borders with active state */
+
+.ui.buttons .button {
+  border-right: none;
+}
 
 .ui.buttons .button:first-child {
   border-left: 1px solid var(--color-light-border);
 }
 
-.ui.buttons .button:first-child:has(+ .button.active) {
-  border-right: none !important;
+.ui.buttons .button:last-child {
+  border-right: 1px solid var(--color-light-border);
 }
 
-.ui.buttons .button + .button:not(.active) {
+.ui.buttons .button.active {
+  border-left: 1px solid var(--color-light-border);
+  border-right: 1px solid var(--color-light-border);
+}
+
+.ui.buttons .button.active + .button {
   border-left: none;
 }
 
-.two-toggle-buttons .button:not(.active):first-of-type {
-  border-right: none;
-}
-
-.two-toggle-buttons .button.active:last-of-type {
-  border-left: 1px solid var(--color-light-border);
+.ui.basic.buttons .button,
+.ui.basic.button,
+.ui.basic.buttons .button:hover,
+.ui.basic.button:hover {
+  box-shadow: none;
 }
 
 .ui.labeled.button.disabled > .button,
@@ -117,11 +128,13 @@ a.btn:hover {
 .ui.primary.button:focus,
 .ui.primary.buttons .button:focus {
   background: var(--color-primary);
+  color: var(--color-primary-contrast);
 }
 
 .ui.primary.button:hover,
 .ui.primary.buttons .button:hover {
   background: var(--color-primary-hover);
+  color: var(--color-primary-contrast);
 }
 
 .ui.primary.button:active,

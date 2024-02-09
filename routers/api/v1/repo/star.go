@@ -42,8 +42,10 @@ func ListStargazers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	stargazers, err := repo_model.GetStargazers(ctx.Repo.Repository, utils.GetListOptions(ctx))
+	stargazers, err := repo_model.GetStargazers(ctx, ctx.Repo.Repository, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetStargazers", err)
 		return

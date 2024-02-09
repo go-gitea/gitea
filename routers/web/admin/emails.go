@@ -75,7 +75,7 @@ func Emails(ctx *context.Context) {
 	}
 
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
-		baseEmails, count, err = user_model.SearchEmails(opts)
+		baseEmails, count, err = user_model.SearchEmails(ctx, opts)
 		if err != nil {
 			ctx.ServerError("SearchEmails", err)
 			return
@@ -121,7 +121,7 @@ func ActivateEmail(ctx *context.Context) {
 
 	log.Info("Changing activation for User ID: %d, email: %s, primary: %v to %v", uid, email, primary, activate)
 
-	if err := user_model.ActivateUserEmail(uid, email, activate); err != nil {
+	if err := user_model.ActivateUserEmail(ctx, uid, email, activate); err != nil {
 		log.Error("ActivateUserEmail(%v,%v,%v): %v", uid, email, activate, err)
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.Flash.Error(ctx.Tr("admin.emails.duplicate_active"))

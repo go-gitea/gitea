@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -237,7 +238,7 @@ func newAccessTokenResponse(ctx go_context.Context, grant *auth.OAuth2Grant, ser
 			idToken.EmailVerified = user.IsActive
 		}
 		if grant.ScopeContains("groups") {
-			groups, err := getOAuthGroupsForUser(user)
+			groups, err := getOAuthGroupsForUser(ctx, user)
 			if err != nil {
 				log.Error("Error getting groups: %v", err)
 				return nil, &AccessTokenError{
@@ -291,7 +292,7 @@ func InfoOAuth(ctx *context.Context) {
 		Picture:  ctx.Doer.AvatarLink(ctx),
 	}
 
-	groups, err := getOAuthGroupsForUser(ctx.Doer)
+	groups, err := getOAuthGroupsForUser(ctx, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("Oauth groups for user", err)
 		return
@@ -303,8 +304,8 @@ func InfoOAuth(ctx *context.Context) {
 
 // returns a list of "org" and "org:team" strings,
 // that the given user is a part of.
-func getOAuthGroupsForUser(user *user_model.User) ([]string, error) {
-	orgs, err := org_model.GetUserOrgsList(user)
+func getOAuthGroupsForUser(ctx go_context.Context, user *user_model.User) ([]string, error) {
+	orgs, err := org_model.GetUserOrgsList(ctx, user)
 	if err != nil {
 		return nil, fmt.Errorf("GetUserOrgList: %w", err)
 	}
@@ -312,12 +313,12 @@ func getOAuthGroupsForUser(user *user_model.User) ([]string, error) {
 	var groups []string
 	for _, org := range orgs {
 		groups = append(groups, org.Name)
-		teams, err := org.LoadTeams()
+		teams, err := org.LoadTeams(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("LoadTeams: %w", err)
 		}
 		for _, team := range teams {
-			if team.IsMember(user.ID) {
+			if team.IsMember(ctx, user.ID) {
 				groups = append(groups, org.Name+":"+team.LowerName)
 			}
 		}
@@ -847,7 +848,7 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 func SignInOAuth(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 
-	authSource, err := auth.GetActiveOAuth2SourceByName(provider)
+	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, provider)
 	if err != nil {
 		ctx.ServerError("SignIn", err)
 		return
@@ -859,7 +860,7 @@ func SignInOAuth(ctx *context.Context) {
 	}
 
 	// try to do a direct callback flow, so we don't authenticate the user again but use the valid accesstoken to get the user
-	user, gothUser, err := oAuth2UserLoginCallback(authSource, ctx.Req, ctx.Resp)
+	user, gothUser, err := oAuth2UserLoginCallback(ctx, authSource, ctx.Req, ctx.Resp)
 	if err == nil && user != nil {
 		// we got the user without going through the whole OAuth2 authentication flow again
 		handleOAuth2SignIn(ctx, authSource, user, gothUser)
@@ -868,7 +869,7 @@ func SignInOAuth(ctx *context.Context) {
 
 	if err = authSource.Cfg.(*oauth2.Source).Callout(ctx.Req, ctx.Resp); err != nil {
 		if strings.Contains(err.Error(), "no provider for ") {
-			if err = oauth2.ResetOAuth2(); err != nil {
+			if err = oauth2.ResetOAuth2(ctx); err != nil {
 				ctx.ServerError("SignIn", err)
 				return
 			}
@@ -898,7 +899,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	// first look if the provider is still active
-	authSource, err := auth.GetActiveOAuth2SourceByName(provider)
+	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, provider)
 	if err != nil {
 		ctx.ServerError("SignIn", err)
 		return
@@ -909,7 +910,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 		return
 	}
 
-	u, gothUser, err := oAuth2UserLoginCallback(authSource, ctx.Req, ctx.Resp)
+	u, gothUser, err := oAuth2UserLoginCallback(ctx, authSource, ctx.Req, ctx.Resp)
 	if err != nil {
 		if user_model.IsErrUserProhibitLogin(err) {
 			uplerr := err.(user_model.ErrUserProhibitLogin)
@@ -941,7 +942,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	if u == nil {
 		if ctx.Doer != nil {
 			// attach user to already logged in user
-			err = externalaccount.LinkAccountToUser(ctx.Doer, gothUser)
+			err = externalaccount.LinkAccountToUser(ctx, ctx.Doer, gothUser)
 			if err != nil {
 				ctx.ServerError("UserLinkAccount", err)
 				return
@@ -970,8 +971,13 @@ func SignInOAuthCallback(ctx *context.Context) {
 				ctx.ServerError("CreateUser", err)
 				return
 			}
+			uname, err := getUserName(&gothUser)
+			if err != nil {
+				ctx.ServerError("UserSignIn", err)
+				return
+			}
 			u = &user_model.User{
-				Name:        getUserName(&gothUser),
+				Name:        uname,
 				FullName:    gothUser.Name,
 				Email:       gothUser.Email,
 				LoginType:   auth.OAuth2,
@@ -985,7 +991,9 @@ func SignInOAuthCallback(ctx *context.Context) {
 
 			source := authSource.Cfg.(*oauth2.Source)
 
-			setUserAdminAndRestrictedFromGroupClaims(source, u, &gothUser)
+			isAdmin, isRestricted := getUserAdminAndRestrictedFromGroupClaims(source, &gothUser)
+			u.IsAdmin = isAdmin.ValueOrDefault(false)
+			u.IsRestricted = isRestricted.ValueOrDefault(false)
 
 			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, overwriteDefault, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled) {
 				// error already handled
@@ -1049,19 +1057,17 @@ func getClaimedGroups(source *oauth2.Source, gothUser *goth.User) container.Set[
 	return claimValueToStringSet(groupClaims)
 }
 
-func setUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, u *user_model.User, gothUser *goth.User) bool {
+func getUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, gothUser *goth.User) (isAdmin, isRestricted optional.Option[bool]) {
 	groups := getClaimedGroups(source, gothUser)
 
-	wasAdmin, wasRestricted := u.IsAdmin, u.IsRestricted
-
 	if source.AdminGroup != "" {
-		u.IsAdmin = groups.Contains(source.AdminGroup)
+		isAdmin = optional.Some(groups.Contains(source.AdminGroup))
 	}
 	if source.RestrictedGroup != "" {
-		u.IsRestricted = groups.Contains(source.RestrictedGroup)
+		isRestricted = optional.Some(groups.Contains(source.RestrictedGroup))
 	}
 
-	return wasAdmin != u.IsAdmin || wasRestricted != u.IsRestricted
+	return isAdmin, isRestricted
 }
 
 func showLinkingLogin(ctx *context.Context, gothUser goth.User) {
@@ -1074,7 +1080,7 @@ func showLinkingLogin(ctx *context.Context, gothUser goth.User) {
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
 }
 
-func updateAvatarIfNeed(url string, u *user_model.User) {
+func updateAvatarIfNeed(ctx *context.Context, url string, u *user_model.User) {
 	if setting.OAuth2Client.UpdateAvatar && len(url) > 0 {
 		resp, err := http.Get(url)
 		if err == nil {
@@ -1086,18 +1092,18 @@ func updateAvatarIfNeed(url string, u *user_model.User) {
 		if err == nil && resp.StatusCode == http.StatusOK {
 			data, err := io.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize+1))
 			if err == nil && int64(len(data)) <= setting.Avatar.MaxFileSize {
-				_ = user_service.UploadAvatar(u, data)
+				_ = user_service.UploadAvatar(ctx, u, data)
 			}
 		}
 	}
 }
 
 func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model.User, gothUser goth.User) {
-	updateAvatarIfNeed(gothUser.AvatarURL, u)
+	updateAvatarIfNeed(ctx, gothUser.AvatarURL, u)
 
 	needs2FA := false
 	if !source.Cfg.(*oauth2.Source).SkipLocalTwoFA {
-		_, err := auth.GetTwoFactorByUID(u.ID)
+		_, err := auth.GetTwoFactorByUID(ctx, u.ID)
 		if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.ServerError("UserSignIn", err)
 			return
@@ -1128,18 +1134,12 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		// Clear whatever CSRF cookie has right now, force to generate a new one
 		ctx.Csrf.DeleteCookie(ctx)
 
-		// Register last login
-		u.SetLastLogin()
-
-		// Update GroupClaims
-		changed := setUserAdminAndRestrictedFromGroupClaims(oauth2Source, u, &gothUser)
-		cols := []string{"last_login_unix"}
-		if changed {
-			cols = append(cols, "is_admin", "is_restricted")
+		opts := &user_service.UpdateOptions{
+			SetLastLogin: true,
 		}
-
-		if err := user_model.UpdateUserCols(ctx, u, cols...); err != nil {
-			ctx.ServerError("UpdateUserCols", err)
+		opts.IsAdmin, opts.IsRestricted = getUserAdminAndRestrictedFromGroupClaims(oauth2Source, &gothUser)
+		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+			ctx.ServerError("UpdateUser", err)
 			return
 		}
 
@@ -1151,7 +1151,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		}
 
 		// update external user information
-		if err := externalaccount.UpdateExternalUser(u, gothUser); err != nil {
+		if err := externalaccount.UpdateExternalUser(ctx, u, gothUser); err != nil {
 			if !errors.Is(err, util.ErrNotExist) {
 				log.Error("UpdateExternalUser failed: %v", err)
 			}
@@ -1172,10 +1172,11 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		return
 	}
 
-	changed := setUserAdminAndRestrictedFromGroupClaims(oauth2Source, u, &gothUser)
-	if changed {
-		if err := user_model.UpdateUserCols(ctx, u, "is_admin", "is_restricted"); err != nil {
-			ctx.ServerError("UpdateUserCols", err)
+	opts := &user_service.UpdateOptions{}
+	opts.IsAdmin, opts.IsRestricted = getUserAdminAndRestrictedFromGroupClaims(oauth2Source, &gothUser)
+	if opts.IsAdmin.Has() || opts.IsRestricted.Has() {
+		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+			ctx.ServerError("UpdateUser", err)
 			return
 		}
 	}
@@ -1197,7 +1198,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 	}
 
 	// If WebAuthn is enrolled -> Redirect to WebAuthn instead
-	regs, err := auth.GetWebAuthnCredentialsByUID(u.ID)
+	regs, err := auth.GetWebAuthnCredentialsByUID(ctx, u.ID)
 	if err == nil && len(regs) > 0 {
 		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
 		return
@@ -1208,7 +1209,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 
 // OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful
 // login the user
-func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, response http.ResponseWriter) (*user_model.User, goth.User, error) {
+func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, request *http.Request, response http.ResponseWriter) (*user_model.User, goth.User, error) {
 	oauth2Source := authSource.Cfg.(*oauth2.Source)
 
 	// Make sure that the response is not an error response.
@@ -1260,7 +1261,7 @@ func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, res
 		LoginSource: authSource.ID,
 	}
 
-	hasUser, err := user_model.GetUser(user)
+	hasUser, err := user_model.GetUser(ctx, user)
 	if err != nil {
 		return nil, goth.User{}, err
 	}
@@ -1274,7 +1275,7 @@ func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, res
 		ExternalID:    gothUser.UserID,
 		LoginSourceID: authSource.ID,
 	}
-	hasUser, err = user_model.GetExternalLogin(externalLoginUser)
+	hasUser, err = user_model.GetExternalLogin(request.Context(), externalLoginUser)
 	if err != nil {
 		return nil, goth.User{}, err
 	}

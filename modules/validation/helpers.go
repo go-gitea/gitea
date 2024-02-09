@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/gobwas/glob"
 )
 
 var externalTrackerRegex = regexp.MustCompile(`({?)(?:user|repo|index)+?(}?)`)
@@ -45,6 +47,29 @@ func IsValidSiteURL(uri string) bool {
 			return true
 		}
 	}
+	return false
+}
+
+// IsEmailDomainListed checks whether the domain of an email address
+// matches a list of domains
+func IsEmailDomainListed(globs []glob.Glob, email string) bool {
+	if len(globs) == 0 {
+		return false
+	}
+
+	n := strings.LastIndex(email, "@")
+	if n <= 0 {
+		return false
+	}
+
+	domain := strings.ToLower(email[n+1:])
+
+	for _, g := range globs {
+		if g.Match(domain) {
+			return true
+		}
+	}
+
 	return false
 }
 

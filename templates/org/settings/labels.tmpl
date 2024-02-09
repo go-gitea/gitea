@@ -1,14 +1,10 @@
 {{template "org/settings/layout_head" (dict "ctxData" . "pageClass" "organization settings labels")}}
 				<div class="org-setting-content">
-					<div class="ui grid">
-						<div class="left floated twelve wide column">
-							{{$.locale.Tr "org.settings.labels_desc" | Str2html}}
+					<div class="gt-df gt-ac">
+						<div class="gt-f1">
+							{{ctx.Locale.Tr "org.settings.labels_desc" | Str2html}}
 						</div>
-						<div class="right floated three wide column">
-							<div class="ui right">
-								<button class="ui small green new-label button">{{.locale.Tr "repo.issues.new_label"}}</button>
-							</div>
-						</div>
+						<button class="ui small primary new-label button">{{ctx.Locale.Tr "repo.issues.new_label"}}</button>
 					</div>
 					<div class="divider"></div>
 					{{template "repo/issue/labels/label_new" .}}

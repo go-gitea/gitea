@@ -71,7 +71,6 @@ func TestRepository_GetTag(t *testing.T) {
 	if lTag == nil {
 		assert.NotNil(t, lTag)
 		assert.FailNow(t, "nil lTag: %s", lTagName)
-		return
 	}
 	assert.EqualValues(t, lTagName, lTag.Name)
 	assert.EqualValues(t, lTagCommitID, lTag.ID.String())
@@ -105,7 +104,6 @@ func TestRepository_GetTag(t *testing.T) {
 	if aTag == nil {
 		assert.NotNil(t, aTag)
 		assert.FailNow(t, "nil aTag: %s", aTagName)
-		return
 	}
 	assert.EqualValues(t, aTagName, aTag.Name)
 	assert.EqualValues(t, aTagID, aTag.ID.String())
@@ -196,6 +194,7 @@ func TestRepository_GetAnnotatedTag(t *testing.T) {
 }
 
 func TestRepository_parseTagRef(t *testing.T) {
+	sha1 := Sha1ObjectFormat
 	tests := []struct {
 		name string
 
@@ -209,8 +208,8 @@ func TestRepository_parseTagRef(t *testing.T) {
 			name: "lightweight tag",
 
 			givenRef: map[string]string{
-				"objecttype":    "commit",
-				"refname:short": "v1.9.1",
+				"objecttype":       "commit",
+				"refname:lstrip=2": "v1.9.1",
 				// object will be empty for lightweight tags
 				"object":     "",
 				"objectname": "ab23e4b7f4cd0caafe0174c0e7ef6d651ba72889",
@@ -228,7 +227,7 @@ func TestRepository_parseTagRef(t *testing.T) {
 				ID:        MustIDFromString("ab23e4b7f4cd0caafe0174c0e7ef6d651ba72889"),
 				Object:    MustIDFromString("ab23e4b7f4cd0caafe0174c0e7ef6d651ba72889"),
 				Type:      "commit",
-				Tagger:    parseAuthorLine(t, "Foo Bar <foo@bar.com> 1565789218 +0300"),
+				Tagger:    parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
 				Message:   "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md\n",
 				Signature: nil,
 			},
@@ -238,8 +237,8 @@ func TestRepository_parseTagRef(t *testing.T) {
 			name: "annotated tag",
 
 			givenRef: map[string]string{
-				"objecttype":    "tag",
-				"refname:short": "v0.0.1",
+				"objecttype":       "tag",
+				"refname:lstrip=2": "v0.0.1",
 				// object will refer to commit hash for annotated tag
 				"object":     "3325fd8a973321fd59455492976c042dde3fd1ca",
 				"objectname": "8c68a1f06fc59c655b7e3905b159d761e91c53c9",
@@ -257,7 +256,7 @@ func TestRepository_parseTagRef(t *testing.T) {
 				ID:        MustIDFromString("8c68a1f06fc59c655b7e3905b159d761e91c53c9"),
 				Object:    MustIDFromString("3325fd8a973321fd59455492976c042dde3fd1ca"),
 				Type:      "tag",
-				Tagger:    parseAuthorLine(t, "Foo Bar <foo@bar.com> 1565789218 +0300"),
+				Tagger:    parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
 				Message:   "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md\n",
 				Signature: nil,
 			},
@@ -267,11 +266,11 @@ func TestRepository_parseTagRef(t *testing.T) {
 			name: "annotated tag with signature",
 
 			givenRef: map[string]string{
-				"objecttype":    "tag",
-				"refname:short": "v0.0.1",
-				"object":        "3325fd8a973321fd59455492976c042dde3fd1ca",
-				"objectname":    "8c68a1f06fc59c655b7e3905b159d761e91c53c9",
-				"creator":       "Foo Bar <foo@bar.com> 1565789218 +0300",
+				"objecttype":       "tag",
+				"refname:lstrip=2": "v0.0.1",
+				"object":           "3325fd8a973321fd59455492976c042dde3fd1ca",
+				"objectname":       "8c68a1f06fc59c655b7e3905b159d761e91c53c9",
+				"creator":          "Foo Bar <foo@bar.com> 1565789218 +0300",
 				"contents": `Add changelog of v1.9.1 (#7859)
 
 * add changelog of v1.9.1
@@ -315,7 +314,7 @@ qbHDASXl
 				ID:      MustIDFromString("8c68a1f06fc59c655b7e3905b159d761e91c53c9"),
 				Object:  MustIDFromString("3325fd8a973321fd59455492976c042dde3fd1ca"),
 				Type:    "tag",
-				Tagger:  parseAuthorLine(t, "Foo Bar <foo@bar.com> 1565789218 +0300"),
+				Tagger:  parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
 				Message: "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md",
 				Signature: &CommitGPGSignature{
 					Signature: `-----BEGIN PGP SIGNATURE-----
@@ -352,7 +351,7 @@ Add changelog of v1.9.1 (#7859)
 	for _, test := range tests {
 		tc := test // don't close over loop variable
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := parseTagRef(tc.givenRef)
+			got, err := parseTagRef(sha1, tc.givenRef)
 
 			if tc.wantErr {
 				require.Error(t, err)
@@ -363,15 +362,4 @@ Add changelog of v1.9.1 (#7859)
 			}
 		})
 	}
-}
-
-func parseAuthorLine(t *testing.T, committer string) *Signature {
-	t.Helper()
-
-	sig, err := newSignatureFromCommitline([]byte(committer))
-	if err != nil {
-		t.Fatalf("parse author line '%s': %v", committer, err)
-	}
-
-	return sig
 }

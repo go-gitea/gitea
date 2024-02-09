@@ -1,7 +1,7 @@
 {{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings repos")}}
 	<div class="user-setting-content">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "settings.repos"}}
+			{{ctx.Locale.Tr "settings.repos"}}
 		</h4>
 		<div class="ui attached segment">
 			{{if or .allowAdopt .allowDelete}}
@@ -26,21 +26,21 @@
 										<a class="muted name" href="{{$repo.Link}}">{{$repo.OwnerName}}/{{$repo.Name}}</a>
 										<span class="text light-3" {{if not (eq $repo.Size 0)}} data-tooltip-content="{{$repo.SizeDetailsString}}"{{end}}>{{FileSize $repo.Size}}</span>
 										{{if $repo.IsFork}}
-											{{$.locale.Tr "repo.forked_from"}}
+											{{ctx.Locale.Tr "repo.forked_from"}}
 											<span><a href="{{$repo.BaseRepo.Link}}">{{$repo.BaseRepo.OwnerName}}/{{$repo.BaseRepo.Name}}</a></span>
 										{{end}}
 									{{else}}
 										<span class="icon gt-dib gt-pt-3">{{svg "octicon-file-directory-fill"}}</span>
 										<span class="name gt-dib gt-pt-3">{{$.ContextUser.Name}}/{{$dir}}</span>
-										<div class="ui right">
+										<div class="gt-float-right">
 											{{if $.allowAdopt}}
-												<button class="ui button green show-modal gt-p-3" data-modal="#adopt-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-plus"}}</span><span class="label">{{$.locale.Tr "repo.adopt_preexisting_label"}}</span></button>
+												<button class="ui button primary show-modal gt-p-3" data-modal="#adopt-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-plus"}}</span><span class="label">{{ctx.Locale.Tr "repo.adopt_preexisting_label"}}</span></button>
 												<div class="ui g-modal-confirm modal" id="adopt-unadopted-modal-{{$dirI}}">
 													<div class="header">
-														<span class="label">{{$.locale.Tr "repo.adopt_preexisting"}}</span>
+														<span class="label">{{ctx.Locale.Tr "repo.adopt_preexisting"}}</span>
 													</div>
 													<div class="content">
-														<p>{{$.locale.Tr "repo.adopt_preexisting_content" $dir}}</p>
+														<p>{{ctx.Locale.Tr "repo.adopt_preexisting_content" $dir}}</p>
 													</div>
 													<form class="ui form" method="post" action="{{AppSubUrl}}/user/settings/repos/unadopted">
 														{{$.CsrfTokenHtml}}
@@ -51,13 +51,13 @@
 												</div>
 											{{end}}
 											{{if $.allowDelete}}
-												<button class="ui button red show-modal gt-p-3" data-modal="#delete-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-x"}}</span><span class="label">{{$.locale.Tr "repo.delete_preexisting_label"}}</span></button>
+												<button class="ui button red show-modal gt-p-3" data-modal="#delete-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-x"}}</span><span class="label">{{ctx.Locale.Tr "repo.delete_preexisting_label"}}</span></button>
 												<div class="ui g-modal-confirm modal" id="delete-unadopted-modal-{{$dirI}}">
 													<div class="header">
-														<span class="label">{{$.locale.Tr "repo.delete_preexisting"}}</span>
+														<span class="label">{{ctx.Locale.Tr "repo.delete_preexisting"}}</span>
 													</div>
 													<div class="content">
-														<p>{{$.locale.Tr "repo.delete_preexisting_content" $dir}}</p>
+														<p>{{ctx.Locale.Tr "repo.delete_preexisting_content" $dir}}</p>
 													</div>
 													<form class="ui form" method="post" action="{{AppSubUrl}}/user/settings/repos/unadopted">
 														{{$.CsrfTokenHtml}}
@@ -76,7 +76,7 @@
 					{{template "base/paginate" .}}
 				{{else}}
 					<div class="item">
-						{{.locale.Tr "settings.repos_none"}}
+						{{ctx.Locale.Tr "settings.repos_none"}}
 					</div>
 				{{end}}
 			{{else}}
@@ -99,7 +99,7 @@
 									<a class="name" href="{{.Link}}">{{.OwnerName}}/{{.Name}}</a>
 									<span>{{FileSize .Size}}</span>
 									{{if .IsFork}}
-										{{$.locale.Tr "repo.forked_from"}}
+										{{ctx.Locale.Tr "repo.forked_from"}}
 										<span><a href="{{.BaseRepo.Link}}">{{.BaseRepo.OwnerName}}/{{.BaseRepo.Name}}</a></span>
 									{{end}}
 								</div>
@@ -109,7 +109,7 @@
 					{{template "base/paginate" .}}
 				{{else}}
 					<div class="item">
-						{{.locale.Tr "settings.repos_none"}}
+						{{ctx.Locale.Tr "settings.repos_none"}}
 					</div>
 				{{end}}
 			{{end}}
@@ -119,10 +119,10 @@
 <div class="ui g-modal-confirm delete modal">
 	<div class="header">
 		{{svg "octicon-trash"}}
-		{{.locale.Tr "settings.remove_account_link"}}
+		{{ctx.Locale.Tr "settings.remove_account_link"}}
 	</div>
 	<div class="content">
-		<p>{{.locale.Tr "settings.remove_account_link_desc"}}</p>
+		<p>{{ctx.Locale.Tr "settings.remove_account_link_desc"}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

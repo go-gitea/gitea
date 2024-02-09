@@ -126,16 +126,16 @@ func FindLatestReviews(ctx context.Context, opts FindReviewOptions) (ReviewList,
 }
 
 // CountReviews returns count of reviews passing FindReviewOptions
-func CountReviews(opts FindReviewOptions) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(opts.toCond()).Count(&Review{})
+func CountReviews(ctx context.Context, opts FindReviewOptions) (int64, error) {
+	return db.GetEngine(ctx).Where(opts.toCond()).Count(&Review{})
 }
 
 // GetReviewersFromOriginalAuthorsByIssueID gets the latest review of each original authors for a pull request
-func GetReviewersFromOriginalAuthorsByIssueID(issueID int64) (ReviewList, error) {
+func GetReviewersFromOriginalAuthorsByIssueID(ctx context.Context, issueID int64) (ReviewList, error) {
 	reviews := make([]*Review, 0, 10)
 
 	// Get latest review of each reviewer, sorted in order they were made
-	if err := db.GetEngine(db.DefaultContext).SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND original_author_id <> 0 GROUP BY issue_id, original_author_id) ORDER BY review.updated_unix ASC",
+	if err := db.GetEngine(ctx).SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND original_author_id <> 0 GROUP BY issue_id, original_author_id) ORDER BY review.updated_unix ASC",
 		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 		Find(&reviews); err != nil {
 		return nil, err
@@ -145,10 +145,10 @@ func GetReviewersFromOriginalAuthorsByIssueID(issueID int64) (ReviewList, error)
 }
 
 // GetReviewsByIssueID gets the latest review of each reviewer for a pull request
-func GetReviewsByIssueID(issueID int64) (ReviewList, error) {
+func GetReviewsByIssueID(ctx context.Context, issueID int64) (ReviewList, error) {
 	reviews := make([]*Review, 0, 10)
 
-	sess := db.GetEngine(db.DefaultContext)
+	sess := db.GetEngine(ctx)
 
 	// Get latest review of each reviewer, sorted in order they were made
 	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND dismissed = ? AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",

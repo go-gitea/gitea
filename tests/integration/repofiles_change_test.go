@@ -12,10 +12,11 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
@@ -245,12 +246,12 @@ func getExpectedFileResponseForRepofilesUpdate(commitID, filename, lastCommitSHA
 func TestChangeRepoFilesForCreate(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		ctx, _ := test.MockContext(t, "user2/repo1")
+		ctx, _ := contexttest.MockContext(t, "user2/repo1")
 		ctx.SetParams(":id", "1")
-		test.LoadRepo(t, ctx, 1)
-		test.LoadRepoCommit(t, ctx)
-		test.LoadUser(t, ctx, 2)
-		test.LoadGitRepo(t, ctx)
+		contexttest.LoadRepo(t, ctx, 1)
+		contexttest.LoadRepoCommit(t, ctx)
+		contexttest.LoadUser(t, ctx, 2)
+		contexttest.LoadGitRepo(t, ctx)
 		defer ctx.Repo.GitRepo.Close()
 
 		repo := ctx.Repo.Repository
@@ -262,7 +263,7 @@ func TestChangeRepoFilesForCreate(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
+		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
 		defer gitRepo.Close()
 
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
@@ -282,12 +283,12 @@ func TestChangeRepoFilesForCreate(t *testing.T) {
 func TestChangeRepoFilesForUpdate(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		ctx, _ := test.MockContext(t, "user2/repo1")
+		ctx, _ := contexttest.MockContext(t, "user2/repo1")
 		ctx.SetParams(":id", "1")
-		test.LoadRepo(t, ctx, 1)
-		test.LoadRepoCommit(t, ctx)
-		test.LoadUser(t, ctx, 2)
-		test.LoadGitRepo(t, ctx)
+		contexttest.LoadRepo(t, ctx, 1)
+		contexttest.LoadRepoCommit(t, ctx)
+		contexttest.LoadUser(t, ctx, 2)
+		contexttest.LoadGitRepo(t, ctx)
 		defer ctx.Repo.GitRepo.Close()
 
 		repo := ctx.Repo.Repository
@@ -299,7 +300,7 @@ func TestChangeRepoFilesForUpdate(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
+		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
@@ -316,12 +317,12 @@ func TestChangeRepoFilesForUpdate(t *testing.T) {
 func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		ctx, _ := test.MockContext(t, "user2/repo1")
+		ctx, _ := contexttest.MockContext(t, "user2/repo1")
 		ctx.SetParams(":id", "1")
-		test.LoadRepo(t, ctx, 1)
-		test.LoadRepoCommit(t, ctx)
-		test.LoadUser(t, ctx, 2)
-		test.LoadGitRepo(t, ctx)
+		contexttest.LoadRepo(t, ctx, 1)
+		contexttest.LoadRepoCommit(t, ctx)
+		contexttest.LoadUser(t, ctx, 2)
+		contexttest.LoadGitRepo(t, ctx)
 		defer ctx.Repo.GitRepo.Close()
 
 		repo := ctx.Repo.Repository
@@ -335,7 +336,7 @@ func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
+		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
@@ -367,12 +368,12 @@ func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 func TestChangeRepoFilesWithoutBranchNames(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		ctx, _ := test.MockContext(t, "user2/repo1")
+		ctx, _ := contexttest.MockContext(t, "user2/repo1")
 		ctx.SetParams(":id", "1")
-		test.LoadRepo(t, ctx, 1)
-		test.LoadRepoCommit(t, ctx)
-		test.LoadUser(t, ctx, 2)
-		test.LoadGitRepo(t, ctx)
+		contexttest.LoadRepo(t, ctx, 1)
+		contexttest.LoadRepoCommit(t, ctx)
+		contexttest.LoadUser(t, ctx, 2)
+		contexttest.LoadGitRepo(t, ctx)
 		defer ctx.Repo.GitRepo.Close()
 
 		repo := ctx.Repo.Repository
@@ -386,7 +387,7 @@ func TestChangeRepoFilesWithoutBranchNames(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
+		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(repo.DefaultBranch)
@@ -403,12 +404,12 @@ func TestChangeRepoFilesForDelete(t *testing.T) {
 func testDeleteRepoFiles(t *testing.T, u *url.URL) {
 	// setup
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "user2/repo1")
+	ctx, _ := contexttest.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
-	test.LoadRepo(t, ctx, 1)
-	test.LoadRepoCommit(t, ctx)
-	test.LoadUser(t, ctx, 2)
-	test.LoadGitRepo(t, ctx)
+	contexttest.LoadRepo(t, ctx, 1)
+	contexttest.LoadRepoCommit(t, ctx)
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadGitRepo(t, ctx)
 	defer ctx.Repo.GitRepo.Close()
 	repo := ctx.Repo.Repository
 	doer := ctx.Doer
@@ -442,12 +443,12 @@ func TestChangeRepoFilesForDeleteWithoutBranchNames(t *testing.T) {
 func testDeleteRepoFilesWithoutBranchNames(t *testing.T, u *url.URL) {
 	// setup
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "user2/repo1")
+	ctx, _ := contexttest.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
-	test.LoadRepo(t, ctx, 1)
-	test.LoadRepoCommit(t, ctx)
-	test.LoadUser(t, ctx, 2)
-	test.LoadGitRepo(t, ctx)
+	contexttest.LoadRepo(t, ctx, 1)
+	contexttest.LoadRepoCommit(t, ctx)
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadGitRepo(t, ctx)
 	defer ctx.Repo.GitRepo.Close()
 
 	repo := ctx.Repo.Repository
@@ -472,12 +473,12 @@ func testDeleteRepoFilesWithoutBranchNames(t *testing.T, u *url.URL) {
 func TestChangeRepoFilesErrors(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		ctx, _ := test.MockContext(t, "user2/repo1")
+		ctx, _ := contexttest.MockContext(t, "user2/repo1")
 		ctx.SetParams(":id", "1")
-		test.LoadRepo(t, ctx, 1)
-		test.LoadRepoCommit(t, ctx)
-		test.LoadUser(t, ctx, 2)
-		test.LoadGitRepo(t, ctx)
+		contexttest.LoadRepo(t, ctx, 1)
+		contexttest.LoadRepoCommit(t, ctx)
+		contexttest.LoadUser(t, ctx, 2)
+		contexttest.LoadGitRepo(t, ctx)
 		defer ctx.Repo.GitRepo.Close()
 
 		repo := ctx.Repo.Repository

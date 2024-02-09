@@ -28,11 +28,15 @@ for (const path of glob('web_src/css/themes/*.css')) {
 
 const isProduction = env.NODE_ENV !== 'development';
 
-let sourceMapEnabled;
+// ENABLE_SOURCEMAP accepts the following values:
+// true - all enabled, the default in development
+// reduced - minimal sourcemaps, the default in production
+// false - all disabled
+let sourceMaps;
 if ('ENABLE_SOURCEMAP' in env) {
-  sourceMapEnabled = env.ENABLE_SOURCEMAP === 'true';
+  sourceMaps = ['true', 'false'].includes(env.ENABLE_SOURCEMAP) ? env.ENABLE_SOURCEMAP : 'reduced';
 } else {
-  sourceMapEnabled = !isProduction;
+  sourceMaps = isProduction ? 'reduced' : 'true';
 }
 
 const filterCssImport = (url, ...args) => {
@@ -41,21 +45,15 @@ const filterCssImport = (url, ...args) => {
 
   if (cssFile.includes('fomantic')) {
     if (/brand-icons/.test(importedFile)) return false;
-    if (/(eot|ttf|otf|woff|svg)$/.test(importedFile)) return false;
+    if (/(eot|ttf|otf|woff|svg)$/i.test(importedFile)) return false;
   }
 
-  if (cssFile.includes('katex') && /(ttf|woff)$/.test(importedFile)) {
+  if (cssFile.includes('katex') && /(ttf|woff)$/i.test(importedFile)) {
     return false;
   }
 
   return true;
 };
-
-// in case lightningcss fails to load, fall back to esbuild for css minify
-let LightningCssMinifyPlugin;
-try {
-  ({LightningCssMinifyPlugin} = await import('lightningcss-loader'));
-} catch {}
 
 /** @type {import("webpack").Configuration} */
 export default {
@@ -100,12 +98,11 @@ export default {
     minimize: isProduction,
     minimizer: [
       new EsbuildPlugin({
-        target: 'es2015',
+        target: 'es2020',
         minify: true,
-        css: !LightningCssMinifyPlugin,
+        css: true,
         legalComments: 'none',
       }),
-      LightningCssMinifyPlugin && new LightningCssMinifyPlugin(),
     ],
     splitChunks: {
       chunks: 'async',
@@ -117,19 +114,19 @@ export default {
   module: {
     rules: [
       {
-        test: /\.vue$/,
+        test: /\.vue$/i,
         exclude: /node_modules/,
         loader: 'vue-loader',
       },
       {
-        test: /\.js$/,
+        test: /\.js$/i,
         exclude: /node_modules/,
         use: [
           {
             loader: 'esbuild-loader',
             options: {
               loader: 'js',
-              target: 'es2015',
+              target: 'es2020',
             },
           },
         ],
@@ -143,7 +140,7 @@ export default {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: sourceMapEnabled,
+              sourceMap: sourceMaps === 'true',
               url: {filter: filterCssImport},
               import: {filter: filterCssImport},
             },
@@ -151,12 +148,12 @@ export default {
         ],
       },
       {
-        test: /\.svg$/,
+        test: /\.svg$/i,
         include: fileURLToPath(new URL('public/assets/img/svg', import.meta.url)),
         type: 'asset/source',
       },
       {
-        test: /\.(ttf|woff2?)$/,
+        test: /\.(ttf|woff2?)$/i,
         type: 'asset/resource',
         generator: {
           filename: 'fonts/[name].[contenthash:8][ext]',
@@ -181,14 +178,15 @@ export default {
       filename: 'css/[name].css',
       chunkFilename: 'css/[name].[contenthash:8].css',
     }),
-    sourceMapEnabled && (new SourceMapDevToolPlugin({
+    sourceMaps !== 'false' && new SourceMapDevToolPlugin({
       filename: '[file].[contenthash:8].map',
-    })),
+      ...(sourceMaps === 'reduced' && {include: /^js\/index\.js$/}),
+    }),
     new MonacoWebpackPlugin({
       filename: 'js/monaco-[name].[contenthash:8].worker.js',
     }),
     isProduction ? new LicenseCheckerWebpackPlugin({
-      outputFilename: 'js/licenses.txt',
+      outputFilename: 'licenses.txt',
       outputWriter: ({dependencies}) => {
         const line = '-'.repeat(80);
         const goJson = readFileSync('assets/go-licenses.json', 'utf8');
@@ -206,12 +204,12 @@ export default {
         }).join('\n');
       },
       override: {
-        'jquery.are-you-sure@*': {licenseName: 'MIT'}, // https://github.com/codedance/jquery.AreYouSure/pull/147
         'khroma@*': {licenseName: 'MIT'}, // https://github.com/fabiospampinato/khroma/pull/33
+        'htmx.org@1.9.10': {licenseName: 'BSD-2-Clause'}, // "BSD 2-Clause" -> "BSD-2-Clause"
       },
       emitError: true,
       allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense OR EPL-1.0 OR EPL-2.0)',
-    }) : new AddAssetPlugin('js/licenses.txt', `Licenses are disabled during development`),
+    }) : new AddAssetPlugin('licenses.txt', `Licenses are disabled during development`),
   ],
   performance: {
     hints: false,
@@ -239,7 +237,7 @@ export default {
     entrypoints: false,
     excludeAssets: [
       /^js\/monaco-language-.+\.js$/,
-      !isProduction && /^js\/licenses.txt$/,
+      !isProduction && /^licenses.txt$/,
     ].filter(Boolean),
     groupAssetsByChunk: false,
     groupAssetsByEmitStatus: false,

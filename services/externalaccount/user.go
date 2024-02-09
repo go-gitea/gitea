@@ -4,18 +4,20 @@
 package externalaccount
 
 import (
+	"context"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
+	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/markbates/goth"
 )
 
-func toExternalLoginUser(user *user_model.User, gothUser goth.User) (*user_model.ExternalLoginUser, error) {
-	authSource, err := auth.GetActiveOAuth2SourceByName(gothUser.Provider)
+func toExternalLoginUser(ctx context.Context, user *user_model.User, gothUser goth.User) (*user_model.ExternalLoginUser, error) {
+	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, gothUser.Provider)
 	if err != nil {
 		return nil, err
 	}
@@ -41,13 +43,13 @@ func toExternalLoginUser(user *user_model.User, gothUser goth.User) (*user_model
 }
 
 // LinkAccountToUser link the gothUser to the user
-func LinkAccountToUser(user *user_model.User, gothUser goth.User) error {
-	externalLoginUser, err := toExternalLoginUser(user, gothUser)
+func LinkAccountToUser(ctx context.Context, user *user_model.User, gothUser goth.User) error {
+	externalLoginUser, err := toExternalLoginUser(ctx, user, gothUser)
 	if err != nil {
 		return err
 	}
 
-	if err := user_model.LinkExternalToUser(user, externalLoginUser); err != nil {
+	if err := user_model.LinkExternalToUser(ctx, user, externalLoginUser); err != nil {
 		return err
 	}
 
@@ -62,18 +64,38 @@ func LinkAccountToUser(user *user_model.User, gothUser goth.User) error {
 	}
 
 	if tp.Name() != "" {
-		return models.UpdateMigrationsByType(tp, externalID, user.ID)
+		return UpdateMigrationsByType(ctx, tp, externalID, user.ID)
 	}
 
 	return nil
 }
 
 // UpdateExternalUser updates external user's information
-func UpdateExternalUser(user *user_model.User, gothUser goth.User) error {
-	externalLoginUser, err := toExternalLoginUser(user, gothUser)
+func UpdateExternalUser(ctx context.Context, user *user_model.User, gothUser goth.User) error {
+	externalLoginUser, err := toExternalLoginUser(ctx, user, gothUser)
 	if err != nil {
 		return err
 	}
 
-	return user_model.UpdateExternalUserByExternalID(externalLoginUser)
+	return user_model.UpdateExternalUserByExternalID(ctx, externalLoginUser)
+}
+
+// UpdateMigrationsByType updates all migrated repositories' posterid from gitServiceType to replace originalAuthorID to posterID
+func UpdateMigrationsByType(ctx context.Context, tp structs.GitServiceType, externalUserID string, userID int64) error {
+	if err := issues_model.UpdateIssuesMigrationsByType(ctx, tp, externalUserID, userID); err != nil {
+		return err
+	}
+
+	if err := issues_model.UpdateCommentsMigrationsByType(ctx, tp, externalUserID, userID); err != nil {
+		return err
+	}
+
+	if err := repo_model.UpdateReleasesMigrationsByType(ctx, tp, externalUserID, userID); err != nil {
+		return err
+	}
+
+	if err := issues_model.UpdateReactionsMigrationsByType(ctx, tp, externalUserID, userID); err != nil {
+		return err
+	}
+	return issues_model.UpdateReviewsMigrationsByType(ctx, tp, externalUserID, userID)
 }

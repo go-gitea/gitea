@@ -1,6 +1,7 @@
 import {clippie} from 'clippie';
 import {showTemporaryTooltip} from '../modules/tippy.js';
 import {convertImage} from '../utils.js';
+import {GET} from '../modules/fetch.js';
 
 const {i18n} = window.config;
 
@@ -18,9 +19,9 @@ export function initCopyContent() {
     // the text to copy is not in the DOM or it is an image which should be
     // fetched to copy in full resolution
     if (link) {
-      btn.classList.add('is-loading');
+      btn.classList.add('is-loading', 'small-loading-icon');
       try {
-        const res = await fetch(link, {credentials: 'include', redirect: 'follow'});
+        const res = await GET(link, {credentials: 'include', redirect: 'follow'});
         const contentType = res.headers.get('content-type');
 
         if (contentType.startsWith('image/') && !contentType.startsWith('image/svg')) {
@@ -32,7 +33,7 @@ export function initCopyContent() {
       } catch {
         return showTemporaryTooltip(btn, i18n.copy_error);
       } finally {
-        btn.classList.remove('is-loading');
+        btn.classList.remove('is-loading', 'small-loading-icon');
       }
     } else { // text, read from DOM
       const lineEls = document.querySelectorAll('.file-view .lines-code');

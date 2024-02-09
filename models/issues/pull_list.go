@@ -27,8 +27,8 @@ type PullRequestsOptions struct {
 	MilestoneID int64
 }
 
-func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) (*xorm.Session, error) {
-	sess := db.GetEngine(db.DefaultContext).Where("pull_request.base_repo_id=?", baseRepoID)
+func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullRequestsOptions) (*xorm.Session, error) {
+	sess := db.GetEngine(ctx).Where("pull_request.base_repo_id=?", baseRepoID)
 
 	sess.Join("INNER", "issue", "pull_request.issue_id = issue.id")
 	switch opts.State {
@@ -115,21 +115,21 @@ func GetUnmergedPullRequestsByBaseInfo(ctx context.Context, repoID int64, branch
 }
 
 // GetPullRequestIDsByCheckStatus returns all pull requests according the special checking status.
-func GetPullRequestIDsByCheckStatus(status PullRequestStatus) ([]int64, error) {
+func GetPullRequestIDsByCheckStatus(ctx context.Context, status PullRequestStatus) ([]int64, error) {
 	prs := make([]int64, 0, 10)
-	return prs, db.GetEngine(db.DefaultContext).Table("pull_request").
+	return prs, db.GetEngine(ctx).Table("pull_request").
 		Where("status=?", status).
 		Cols("pull_request.id").
 		Find(&prs)
 }
 
 // PullRequests returns all pull requests for a base Repo by the given conditions
-func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, int64, error) {
+func PullRequests(ctx context.Context, baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, int64, error) {
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
 
-	countSession, err := listPullRequestStatement(baseRepoID, opts)
+	countSession, err := listPullRequestStatement(ctx, baseRepoID, opts)
 	if err != nil {
 		log.Error("listPullRequestStatement: %v", err)
 		return nil, 0, err
@@ -140,7 +140,7 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 		return nil, maxResults, err
 	}
 
-	findSession, err := listPullRequestStatement(baseRepoID, opts)
+	findSession, err := listPullRequestStatement(ctx, baseRepoID, opts)
 	applySorts(findSession, opts.SortType, 0)
 	if err != nil {
 		log.Error("listPullRequestStatement: %v", err)
@@ -198,4 +198,17 @@ func (prs PullRequestList) GetIssueIDs() []int64 {
 		issueIDs = append(issueIDs, prs[i].IssueID)
 	}
 	return issueIDs
+}
+
+// HasMergedPullRequestInRepo returns whether the user(poster) has merged pull-request in the repo
+func HasMergedPullRequestInRepo(ctx context.Context, repoID, posterID int64) (bool, error) {
+	return db.GetEngine(ctx).
+		Join("INNER", "pull_request", "pull_request.issue_id = issue.id").
+		Where("repo_id=?", repoID).
+		And("poster_id=?", posterID).
+		And("is_pull=?", true).
+		And("pull_request.has_merged=?", true).
+		Select("issue.id").
+		Limit(1).
+		Get(new(Issue))
 }

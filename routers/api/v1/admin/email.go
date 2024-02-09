@@ -37,7 +37,7 @@ func GetAllEmails(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	emails, maxResults, err := user_model.SearchEmails(&user_model.SearchEmailOptions{
+	emails, maxResults, err := user_model.SearchEmails(ctx, &user_model.SearchEmailOptions{
 		Keyword:     ctx.Params(":email"),
 		ListOptions: listOptions,
 	})

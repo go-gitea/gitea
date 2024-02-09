@@ -1,28 +1,3 @@
-<template>
-  <div ref="root">
-    <div v-if="loading" class="ui active centered inline loader"/>
-    <div v-if="!loading && issue !== null">
-      <p><small>{{ issue.repository.full_name }} on {{ createdAt }}</small></p>
-      <p><svg-icon :name="icon" :class="['text', color]"/> <strong>{{ issue.title }}</strong> #{{ issue.number }}</p>
-      <p>{{ body }}</p>
-      <div>
-        <div
-          v-for="label in labels"
-          :key="label.name"
-          class="ui label"
-          :style="{ color: label.textColor, backgroundColor: label.color }"
-        >
-          {{ label.name }}
-        </div>
-      </div>
-    </div>
-    <div v-if="!loading && issue === null">
-      <p><small>{{ i18nErrorOccurred }}</small></p>
-      <p>{{ i18nErrorMessage }}</p>
-    </div>
-  </div>
-</template>
-
 <script>
 import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
@@ -55,6 +30,9 @@ export default {
     icon() {
       if (this.issue.pull_request !== null) {
         if (this.issue.state === 'open') {
+          if (this.issue.pull_request.draft === true) {
+            return 'octicon-git-pull-request-draft'; // WIP PR
+          }
           return 'octicon-git-pull-request'; // Open PR
         } else if (this.issue.pull_request.merged === true) {
           return 'octicon-git-merge'; // Merged PR
@@ -67,12 +45,17 @@ export default {
     },
 
     color() {
-      if (this.issue.state === 'open') {
-        return 'green';
-      } else if (this.issue.pull_request !== null && this.issue.pull_request.merged === true) {
-        return 'purple';
+      if (this.issue.pull_request !== null) {
+        if (this.issue.pull_request.draft === true) {
+          return 'grey'; // WIP PR
+        } else if (this.issue.pull_request.merged === true) {
+          return 'purple'; // Merged PR
+        }
       }
-      return 'red';
+      if (this.issue.state === 'open') {
+        return 'green'; // Open Issue
+      }
+      return 'red'; // Closed Issue
     },
 
     labels() {
@@ -115,3 +98,27 @@ export default {
   }
 };
 </script>
+<template>
+  <div ref="root">
+    <div v-if="loading" class="ui active centered inline loader"/>
+    <div v-if="!loading && issue !== null">
+      <p><small>{{ issue.repository.full_name }} on {{ createdAt }}</small></p>
+      <p><svg-icon :name="icon" :class="['text', color]"/> <strong>{{ issue.title }}</strong> #{{ issue.number }}</p>
+      <p>{{ body }}</p>
+      <div>
+        <div
+          v-for="label in labels"
+          :key="label.name"
+          class="ui label"
+          :style="{ color: label.textColor, backgroundColor: label.color }"
+        >
+          {{ label.name }}
+        </div>
+      </div>
+    </div>
+    <div v-if="!loading && issue === null">
+      <p><small>{{ i18nErrorOccurred }}</small></p>
+      <p>{{ i18nErrorMessage }}</p>
+    </div>
+  </div>
+</template>

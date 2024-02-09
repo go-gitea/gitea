@@ -36,7 +36,7 @@ Application settings can be found in file `CustomConf` which is by default,
 Again `gitea help` will allow you review this variable and you can override it using the
 `--config` option on the `gitea` binary.
 
-- [Quick Cheat Sheet](https://docs.gitea.io/en-us/config-cheat-sheet/)
+- [Quick Cheat Sheet](administration/config-cheat-sheet.md)
 - [Complete List](https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini)
 
 If the `CustomPath` folder can't be found despite checking `gitea help`, check the `GITEA_CUSTOM`
@@ -44,7 +44,7 @@ environment variable; this can be used to override the default path to something
 `GITEA_CUSTOM` might, for example, be set by an init script. You can check whether the value
 is set under the "Configuration" tab on the site administration page.
 
-- [List of Environment Variables](https://docs.gitea.io/en-us/environment-variables/)
+- [List of Environment Variables](administration/environment-variables.md)
 
 **Note:** Gitea must perform a full restart to see configuration changes.
 
@@ -84,7 +84,7 @@ for C++ repositories, we want to replace `options/gitignore/C++`. To do this, a 
 must be placed in `$GITEA_CUSTOM/options/gitignore/C++` (see about the location of the `CustomPath`
 directory at the top of this document).
 
-Every single page of Gitea can be changed. Dynamic content is generated using [go templates](https://golang.org/pkg/html/template/),
+Every single page of Gitea can be changed. Dynamic content is generated using [go templates](https://pkg.go.dev/html/template),
 which can be modified by placing replacements below the `$GITEA_CUSTOM/templates` directory.
 
 To obtain any embedded file (including templates), the [`gitea embedded` tool](administration/cmd-embedded.md) can be used. Alternatively, they can be found in the [`templates`](https://github.com/go-gitea/gitea/tree/main/templates) directory of Gitea source (Note: the example link is from the `main` branch. Make sure to use templates compatible with the release you are using).
@@ -108,7 +108,7 @@ just place it under your "$GITEA_CUSTOM/public/assets/" directory (for instance 
 To match the current style, the link should have the class name "item", and you can use `{{AppSubUrl}}` to get the base URL:
 `<a class="item" href="{{AppSubUrl}}/assets/impressum.html">Impressum</a>`
 
-For more information, see [Adding Legal Pages](https://docs.gitea.io/en-us/adding-legal-pages).
+For more information, see [Adding Legal Pages](administration/adding-legal-pages.md).
 
 You can add new tabs in the same way, putting them in `extra_tabs.tmpl`.
 The exact HTML needed to match the style of other tabs is in the file
@@ -126,7 +126,17 @@ Apart from `extra_links.tmpl` and `extra_tabs.tmpl`, there are other useful temp
 - `body_outer_post.tmpl`, before the bottom `<footer>` element.
 - `footer.tmpl`, right before the end of the `<body>` tag, a good place for additional JavaScript.
 
-#### Example: PlantUML
+### Using Gitea variables
+
+It's possible to use various Gitea variables in your custom templates.
+
+First, _temporarily_ enable development mode: in your `app.ini` change from `RUN_MODE = prod` to `RUN_MODE = dev`. Then add `{{ $ | DumpVar }}` to any of your templates, restart Gitea and refresh that page; that will dump all available variables.
+
+Find the data that you need, and use the corresponding variable; for example, if you need the name of the repository then you'd use `{{.Repository.Name}}`.
+
+If you need to transform that data somehow, and aren't familiar with Go, an easy workaround is to add the data to the DOM and add a small JavaScript script block to manipulate the data.
+
+### Example: PlantUML
 
 You can add [PlantUML](https://plantuml.com/) support to Gitea's markdown by using a PlantUML server.
 The data is encoded and sent to the PlantUML server which generates the picture. There is an online
@@ -162,7 +172,7 @@ Alice <-- Bob: Another authentication Response
 
 The script will detect tags with `class="language-plantuml"`, but you can change this by providing a second argument to `parsePlantumlCodeBlocks`.
 
-#### Example: STL Preview
+### Example: STL Preview
 
 You can display STL file directly in Gitea by adding:
 
@@ -360,11 +370,12 @@ A full list of supported emoji's is at [emoji list](https://gitea.com/gitea/gite
 
 ## Customizing the look of Gitea
 
-The default built-in themes are `gitea` (light), `arc-green` (dark), and `auto` (chooses light or dark depending on operating system settings).
-The default theme can be changed via `DEFAULT_THEME` in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini`.
+The built-in themes are `gitea-light`, `gitea-dark`, and `gitea-auto` (which automatically adapts to OS settings).
+
+The default theme can be changed via `DEFAULT_THEME` in the [ui](administration/config-cheat-sheet.md#ui-ui) section of `app.ini`.
 
 Gitea also has support for user themes, which means every user can select which theme should be used.
-The list of themes a user can choose from can be configured with the `THEMES` value in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini`.
+The list of themes a user can choose from can be configured with the `THEMES` value in the [ui](administration/config-cheat-sheet.md#ui-ui) section of `app.ini`.
 
 To make a custom theme available to all users:
 
@@ -374,7 +385,7 @@ To make a custom theme available to all users:
 
 Community themes are listed in [gitea/awesome-gitea#themes](https://gitea.com/gitea/awesome-gitea#themes).
 
-The `arc-green` theme source can be found [here](https://github.com/go-gitea/gitea/blob/main/web_src/css/themes/theme-arc-green.css).
+The default theme sources can be found [here](https://github.com/go-gitea/gitea/blob/main/web_src/css/themes).
 
 If your custom theme is considered a dark theme, set the global css variable `--is-dark-theme` to `true`.
 This allows Gitea to adjust the Monaco code editor's theme accordingly.
