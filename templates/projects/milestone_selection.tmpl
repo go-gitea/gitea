@@ -6,13 +6,13 @@
 	<div class="menu">
 		{{if and (not .OpenMilestones) (not .ClosedMilestones)}}
 			<div class="disabled item">
-				{{ctx.Locale.Tr "repo.projects.note.no_items"}}
+				{{ctx.Locale.Tr "repo.projects.note.no_milestones"}}
 			</div>
 		{{else}}
 			{{if .OpenMilestones}}
 				<div class="divider"></div>
 				<div class="header">
-					{{ctx.Locale.Tr "repo.projects.note.open_milestone"}}
+					{{ctx.Locale.Tr "repo.projects.note.open_milestones"}}
 				</div>
 				{{range .OpenMilestones}}
 					<div class="item" data-value="{{.ID}}">
@@ -23,7 +23,7 @@
 			{{if .ClosedMilestones}}
 				{{if gt (len .OpenMilestones) 0}}<div class="divider"></div>{{end}}
 				<div class="header">
-					{{ctx.Locale.Tr "repo.projects.note.closed_milestone"}}
+					{{ctx.Locale.Tr "repo.projects.note.closed_milestones"}}
 				</div>
 				{{range .ClosedMilestones}}
 					<div class="item" data-value="{{.ID}}">
