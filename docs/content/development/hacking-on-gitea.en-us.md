@@ -243,10 +243,10 @@ documentation using:
 make generate-swagger
 ```
 
-You should validate your generated Swagger file and spell-check it with:
+You should validate your generated Swagger file:
 
 ```bash
-make swagger-validate misspell-check
+make swagger-validate
 ```
 
 You should commit the changed swagger JSON file. The continuous integration

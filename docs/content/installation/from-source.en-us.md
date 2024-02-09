@@ -27,13 +27,7 @@ Next, [install Node.js with npm](https://nodejs.org/en/download/) which is
 required to build the JavaScript and CSS files. The minimum supported Node.js
 version is @minNodeVersion@ and the latest LTS version is recommended.
 
-**Note**: When executing make tasks that require external tools, like
-`make misspell-check`, Gitea will automatically download and build these as
-necessary. To be able to use these, you must have the `"$GOPATH/bin"` directory
-on the executable path. If you don't add the go bin directory to the
-executable path, you will have to manage this yourself.
-
-**Note 2**: Go version @minGoVersion@ or higher is required. However, it is recommended to
+**Note**: Go version @minGoVersion@ or higher is required. However, it is recommended to
 obtain the same version as our continuous integration, see the advice given in
 [Hacking on Gitea](development/hacking-on-gitea.md)
 
