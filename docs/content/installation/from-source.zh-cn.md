@@ -21,7 +21,7 @@ menu:
 
 接下来，[安装 Node.js 和 npm](https://nodejs.org/zh-cn/download/)， 这是构建 JavaScript 和 CSS 文件所需的。最低支持的 Node.js 版本是 @minNodeVersion@，建议使用最新的 LTS 版本。
 
-**注意2**：需要 Go 版本 @minGoVersion@ 或更高版本。不过，建议获取与我们的持续集成（continuous integration, CI）相同的版本，请参阅在 [Hacking on Gitea](development/hacking-on-gitea.md) 中给出的建议。
+**注意**：需要 Go 版本 @minGoVersion@ 或更高版本。不过，建议获取与我们的持续集成（continuous integration, CI）相同的版本，请参阅在 [Hacking on Gitea](development/hacking-on-gitea.md) 中给出的建议。
 
 ## 下载
 
