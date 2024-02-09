@@ -1003,6 +1003,22 @@ func registerRoutes(m *web.Route) {
 						m.Post("/unsetdefault", org.UnsetDefaultProjectBoard)
 
 						m.Post("/move", org.MoveIssues)
+
+						m.Group("/note", func() {
+							m.Post("", web.Bind(forms.ProjectBoardNoteForm{}), org.AddProjectBoardNoteToBoard)
+							m.Post("/move", org.MoveProjectBoardNote)
+
+							m.Group("/{noteID}", func() {
+								m.Put("", web.Bind(forms.ProjectBoardNoteForm{}), org.EditProjectBoardNote)
+								m.Delete("", org.DeleteProjectBoardNote)
+
+								m.Group("/pin", func() {
+									m.Post("", web.Bind(forms.ProjectBoardNoteForm{}), org.PinProjectBoardNote)
+									m.Delete("", org.UnPinProjectBoardNote)
+									m.Post("/move", org.PinMoveProjectBoardNote)
+								})
+							})
+						})
 					})
 				})
 			}, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {

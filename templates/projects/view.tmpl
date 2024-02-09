@@ -145,27 +145,31 @@
 												<input id="new-project-column-note-title-{{.ID}}" name="title" maxlength="255" autofocus required>
 											</div>
 
-											<div class="field">
-												<label for="new-project-column-note-label-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.labels"}}</label>
-												<div class="ui fluid selection dropdown multiple clearable">
-													<input type="hidden" id="new-project-column-note-label-{{.ID}}" name="labelIds">
-													{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-													<div class="default text"></div>
-													<div class="menu">
-														{{range $.Labels}}
-															<div class="item vertical gt-gap-y-2" data-value="{{.ID}}">
-																<small class="desc">{{.Description | RenderEmoji ctx}}</small>
-																<span>{{RenderLabel ctx .}}</span>
-															</div>
-														{{end}}
+											{{if and $.Labels (gt (len $.Labels) 0)}}
+												<div class="field">
+													<label for="new-project-column-note-label-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.labels"}}</label>
+													<div class="ui fluid selection dropdown multiple clearable">
+														<input type="hidden" id="new-project-column-note-label-{{.ID}}" name="labelIds">
+														{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+														<div class="default text"></div>
+														<div class="menu">
+															{{range $.Labels}}
+																<div class="item vertical gt-gap-y-2" data-value="{{.ID}}">
+																	<small class="desc">{{.Description | RenderEmoji ctx}}</small>
+																	<span>{{RenderLabel ctx .}}</span>
+																</div>
+															{{end}}
+														</div>
 													</div>
 												</div>
-											</div>
+											{{end}}
 
-											<div class="field">
-												<label for="new-project-column-note-milestone-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.milestone"}}</label>
-												{{template "projects/milestone_selection" $}}
-											</div>
+											{{if or $.OpenMilestones $.ClosedMilestones}}
+												<div class="field">
+													<label for="new-project-column-note-milestone-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.milestone"}}</label>
+													{{template "projects/milestone_selection" $}}
+												</div>
+											{{end}}
 
 											<div class="field">
 												{{template "shared/combomarkdowneditor" (dict

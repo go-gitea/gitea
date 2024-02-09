@@ -1,11 +1,15 @@
 {{with .BoardNote}}
+{{$backendURL := (print $.root.FeedURL "/projects/" .ProjectID "/" .BoardID "/note/")}}
+{{if not $.root.Repository}}
+	{{$backendURL = (print $.root.FeedURL "/-/projects/" .ProjectID "/" .BoardID "/note/")}}
+{{end}}
 <div class="content gt-p-0 gt-w-full">
 	<div class="gt-df gt-items-start">
 		<div class="project-column-note-card-icon">
 			{{svg "octicon-note"}}
 		</div>
 		<span class="note-card-title muted project-column-note-title">{{.Title}}</span>
-		{{if or $.CanWriteProjects (gt (len .RenderedContent) 0)}}
+		{{if or $.CanWriteProjects (gt (len .Content) 0)}}
 			<div class="ui dropdown jump item">
 				<div class="gt-px-3">
 					{{svg "octicon-kebab-horizontal"}}
@@ -20,20 +24,22 @@
 						{{if eq $.root.Context.Doer.ID .CreatorID}}
 							<button class="ui item show-modal button"
 								data-modal="#edit-project-column-note-modal-{{.ID}}"
-								data-modal-form.action="{{$.root.RepoLink}}/projects/{{.ProjectID}}/{{.BoardID}}/note/{{.ID}}">
+								data-modal-form.action="{{$backendURL}}{{.ID}}">
 									{{svg "octicon-pencil"}}
 									{{ctx.Locale.Tr "repo.projects.note.edit"}}
 							</button>
 						{{end}}
-						<a class="ui item button create-project-issue-from-note" href="{{$.root.RepoLink}}/issues/new/choose?project={{$.root.Project.ID}}">
-							{{svg "octicon-issue-opened"}}
-							{{ctx.Locale.Tr "repo.issues.new"}}
-						</a>
+						{{if $.root.Repository}}
+							<a class="ui item button create-project-issue-from-note" href="{{$.root.FeedURL}}/issues/new/choose?project={{$.root.Project.ID}}">
+								{{svg "octicon-issue-opened"}}
+								{{ctx.Locale.Tr "repo.issues.new"}}
+							</a>
+						{{end}}
 						{{$notPinnedAndNotAllowedToPin := and (not .IsPinned) (not (.IsNewPinAllowed ctx)) (or $.root.Context.Doer.IsAdmin (eq $.root.Context.Doer.ID .CreatorID))}}
 						<button class="ui item button {{if $notPinnedAndNotAllowedToPin}}disabled{{end}} pin-project-column-note"
 							{{if $notPinnedAndNotAllowedToPin}}style="pointer-events: unset !important"{{end}}
 							data-method="{{if .IsPinned}}delete{{else}}post{{end}}"
-							data-url="{{$.root.RepoLink}}/projects/{{.ProjectID}}/{{.BoardID}}/note/{{.ID}}/pin"
+							data-url="{{$backendURL}}{{.ID}}/pin"
 							{{if $notPinnedAndNotAllowedToPin}}data-tooltip-content="{{ctx.Locale.Tr "repo.projects.note.max_pinned"}}"{{end}}>
 								{{if .IsPinned}}
 									{{svg "octicon-pin-slash"}}
@@ -46,7 +52,7 @@
 						{{if eq $.root.Context.Doer.ID .CreatorID}}
 							<button class="ui item show-modal button"
 								data-modal="#delete-project-column-note-modal-{{.ID}}"
-								data-modal-form.action="{{$.root.RepoLink}}/projects/{{.ProjectID}}/{{.BoardID}}/note/{{.ID}}">
+								data-modal-form.action="{{$backendURL}}{{.ID}}">
 									{{svg "octicon-trash"}}
 									{{ctx.Locale.Tr "repo.projects.note.delete"}}
 							</button>
@@ -63,27 +69,31 @@
 								{{.Title}}
 							</div>
 
-							<div class="field">
-								<label class="gt-font-16">{{ctx.Locale.Tr "repo.projects.note.labels"}}</label>
-								{{if .LabelIDs}}
-									{{RenderLabelsFromIDs ctx .LabelIDs $.root.RepoLink}}
-								{{else}}
-									{{ctx.Locale.Tr "repo.projects.note.no_label"}}
-								{{end}}
-							</div>
+							{{if and $.root.Labels (gt (len $.root.Labels) 0)}}
+								<div class="field">
+									<label class="gt-font-16">{{ctx.Locale.Tr "repo.projects.note.labels"}}</label>
+									{{if .LabelIDs}}
+										{{RenderLabelsFromIDs ctx .LabelIDs $.root.FeedURL}}
+									{{else}}
+										{{ctx.Locale.Tr "repo.projects.note.no_label"}}
+									{{end}}
+								</div>
+							{{end}}
 
-							<div class="field">
-								<label class="gt-font-16">{{ctx.Locale.Tr "repo.projects.note.milestone"}}</label>
-								{{if .MilestoneID}}
-									{{RenderMilestone ctx .MilestoneID $.root.Repository.ID}}
-								{{else}}
-									{{ctx.Locale.Tr "repo.projects.note.no_milestone"}}
-								{{end}}
-							</div>
+							{{if or $.root.OpenMilestones $.root.ClosedMilestones}}
+								<div class="field">
+									<label class="gt-font-16">{{ctx.Locale.Tr "repo.projects.note.milestone"}}</label>
+									{{if .MilestoneID}}
+										{{RenderMilestone ctx .MilestoneID $.root.Repository.ID}}
+									{{else}}
+										{{ctx.Locale.Tr "repo.projects.note.no_milestone"}}
+									{{end}}
+								</div>
+							{{end}}
 
 							<div class="field">
 								<label class="gt-font-16">{{ctx.Locale.Tr "repo.projects.note.description"}}</label>
-								{{Str2html .RenderedContent}}
+								{{RenderMarkdownToHtml ctx .Content}}
 							</div>
 						</div>
 						<div class="actions">
@@ -104,32 +114,36 @@
 										<input id="edit-project-column-note-title-{{.ID}}" name="title" value="{{.Title}}" maxlength="255" autofocus required>
 									</div>
 
-									<div class="field">
-										<label for="edit-project-column-note-label-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.labels"}}</label>
-										<div class="ui fluid selection dropdown multiple clearable">
-											<input type="hidden" id="edit-project-column-note-label-{{.ID}}" name="labelIds" value="{{range $index, $val := .LabelIDs}}{{if ne $index 0}},{{end}}{{$val}}{{end}}">
-											{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-											<div class="default text"></div>
-											<div class="menu">
-												{{range $.root.Labels}}
-													<div class="item vertical gt-gap-y-2" data-value="{{.ID}}">
-														<small class="desc">{{.Description | RenderEmoji ctx}}</small>
-														<span>{{RenderLabel ctx .}}</span>
-													</div>
-												{{end}}
+									{{if and $.root.Labels (gt (len $.root.Labels) 0)}}
+										<div class="field">
+											<label for="edit-project-column-note-label-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.labels"}}</label>
+											<div class="ui fluid selection dropdown multiple clearable">
+												<input type="hidden" id="edit-project-column-note-label-{{.ID}}" name="labelIds" value="{{range $index, $val := .LabelIDs}}{{if ne $index 0}},{{end}}{{$val}}{{end}}">
+												{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+												<div class="default text"></div>
+												<div class="menu">
+													{{range $.root.Labels}}
+														<div class="item vertical gt-gap-y-2" data-value="{{.ID}}">
+															<small class="desc">{{.Description | RenderEmoji ctx}}</small>
+															<span>{{RenderLabel ctx .}}</span>
+														</div>
+													{{end}}
+												</div>
 											</div>
 										</div>
-									</div>
+									{{end}}
 
-									<div class="field">
-										<label for="edit-project-column-note-milestone-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.milestone"}}</label>
-										{{template "projects/milestone_selection" (dict "." $.root "MilestoneID" .MilestoneID)}}
-									</div>
+									{{if or $.root.OpenMilestones $.root.ClosedMilestones}}
+										<div class="field">
+											<label for="edit-project-column-note-milestone-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.milestone"}}</label>
+											{{template "projects/milestone_selection" (dict "." $.root "MilestoneID" .MilestoneID)}}
+										</div>
+									{{end}}
 
 									<div class="field">
 										{{template "shared/combomarkdowneditor" (dict
-											"MarkdownPreviewUrl" (print $.root.RepoLink "/markup")
-											"MarkdownPreviewContext" $.root.RepoLink
+											"MarkdownPreviewUrl" (print $.root.FeedURL "/markup")
+											"MarkdownPreviewContext" $.root.FeedURL
 											"TextareaName" "content"
 											"TextareaContent" .Content
 											"TextareaPlaceholder" (ctx.Locale.Tr "repo.projects.note.description")
@@ -161,7 +175,7 @@
 		{{end}}
 	</div>
 	<div class="project-column-note-content">
-		{{Str2html .RenderedContent}}
+		{{RenderMarkdownToHtml ctx .Content}}
 	</div>
 	<div class="meta">
 		<span class="text light grey muted-links">
@@ -182,7 +196,7 @@
 		</div>
 	{{end}}
 	{{if .LabelIDs}}
-		{{RenderLabelsFromIDs ctx .LabelIDs $.root.RepoLink}}
+		{{RenderLabelsFromIDs ctx .LabelIDs $.root.FeedURL}}
 	{{end}}
 </div>
 {{end}}

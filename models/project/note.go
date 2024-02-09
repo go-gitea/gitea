@@ -19,14 +19,13 @@ import (
 
 // ProjectBoardNote is used to represent a note on a boards
 type ProjectBoardNote struct {
-	ID              int64   `xorm:"pk autoincr"`
-	Title           string  `xorm:"TEXT NOT NULL"`
-	Content         string  `xorm:"LONGTEXT"`
-	RenderedContent string  `xorm:"-"`
-	Sorting         int64   `xorm:"NOT NULL DEFAULT 0"`
-	PinOrder        int64   `xorm:"NOT NULL DEFAULT 0"`
-	LabelIDs        []int64 `xorm:"-"` // can't be []*Label because of 'import cycle not allowed'
-	MilestoneID     int64   `xorm:"INDEX"`
+	ID          int64   `xorm:"pk autoincr"`
+	Title       string  `xorm:"TEXT NOT NULL"`
+	Content     string  `xorm:"LONGTEXT"`
+	Sorting     int64   `xorm:"NOT NULL DEFAULT 0"`
+	PinOrder    int64   `xorm:"NOT NULL DEFAULT 0"`
+	LabelIDs    []int64 `xorm:"-"` // can't be []*Label because of 'import cycle not allowed'
+	MilestoneID int64   `xorm:"INDEX"`
 
 	ProjectID int64            `xorm:"INDEX NOT NULL"`
 	BoardID   int64            `xorm:"INDEX NOT NULL"`

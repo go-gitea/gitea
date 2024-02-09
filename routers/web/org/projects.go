@@ -105,6 +105,15 @@ func Projects(ctx *context.Context) {
 
 	for _, project := range projects {
 		project.RenderedContent = project.Description
+
+		pinnedProjectBoardNotes, err := project_model.GetProjectBoardNotesByProjectID(ctx, project.ID, true)
+		if err != nil {
+			ctx.ServerError("GetProjectBoardNotesByProjectID", err)
+			return
+		}
+		if len(pinnedProjectBoardNotes) > 0 {
+			project.FirstPinnedProjectBoardNote = pinnedProjectBoardNotes[0]
+		}
 	}
 
 	err = shared_user.LoadHeaderCount(ctx)
@@ -362,6 +371,12 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
+	notesMap, err := project.LoadProjectBoardNotesFromBoardList(ctx, boards)
+	if err != nil {
+		ctx.ServerError("LoadProjectBoardNotesOfBoards", err)
+		return
+	}
+
 	if project.CardType != project_model.CardTypeTextOnly {
 		issuesAttachmentMap := make(map[int64][]*attachment_model.Attachment)
 		for _, issuesList := range issuesMap {
@@ -395,6 +410,12 @@ func ViewProject(ctx *context.Context) {
 		}
 	}
 
+	pinnedBoardNotes, err := project_model.GetPinnedProjectBoardNotes(ctx, project.ID)
+	if err != nil {
+		ctx.ServerError("GetPinnedProjectBoardNotes", err)
+		return
+	}
+
 	project.RenderedContent = project.Description
 	ctx.Data["LinkedPRs"] = linkedPrsMap
 	ctx.Data["PageIsViewProjects"] = true
@@ -402,6 +423,8 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap
 	ctx.Data["Columns"] = boards // TODO: rename boards to columns in backend
+	ctx.Data["PinnedProjectBoardNotes"] = pinnedBoardNotes
+	ctx.Data["ProjectBoardNotesMap"] = notesMap
 	shared_user.RenderUserHeader(ctx)
 
 	err = shared_user.LoadHeaderCount(ctx)
@@ -744,6 +767,294 @@ func MoveIssues(ctx *context.Context) {
 
 	if err = project_model.MoveIssuesOnProjectBoard(ctx, board, sortedIssueIDs); err != nil {
 		ctx.ServerError("MoveIssuesOnProjectBoard", err)
+		return
+	}
+
+	ctx.JSONOK()
+}
+
+func checkProjectBoardNoteChangePermissions(ctx *context.Context) (*project_model.Project, *project_model.ProjectBoardNote) {
+	if ctx.Doer == nil {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only signed in users are allowed to perform this action.",
+		})
+		return nil, nil
+	}
+
+	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	if err != nil {
+		if project_model.IsErrProjectNotExist(err) {
+			ctx.NotFound("ProjectNotFound", err)
+		} else {
+			ctx.ServerError("GetProjectByID", err)
+		}
+		return nil, nil
+	}
+	if project.OwnerID != ctx.ContextUser.ID {
+		ctx.NotFound("InvalidRepoID", nil)
+		return nil, nil
+	}
+
+	projectBoardNote, err := project_model.GetProjectBoardNoteByID(ctx, ctx.ParamsInt64(":noteID"))
+	if err != nil {
+		if project_model.IsErrProjectBoardNoteNotExist(err) {
+			ctx.NotFound("ProjectBoardNoteNotFound", err)
+		} else {
+			ctx.ServerError("GetProjectBoardNoteById", err)
+		}
+		return nil, nil
+	}
+
+	if !ctx.Doer.IsAdmin && ctx.Doer.ID != projectBoardNote.CreatorID {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only the creator or an admin can perform this action.",
+		})
+		return nil, nil
+	}
+
+	if projectBoardNote.ProjectID != project.ID {
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
+			"message": fmt.Sprintf("ProjectBoardNote[%d] is not in Project[%d] as expected", projectBoardNote.ID, project.ID),
+		})
+		return nil, nil
+	}
+
+	return project, projectBoardNote
+}
+
+func AddProjectBoardNoteToBoard(ctx *context.Context) {
+	if ctx.Doer == nil {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only signed in users are allowed to perform this action.",
+		})
+		return
+	}
+
+	form := web.GetForm(ctx).(*forms.ProjectBoardNoteForm)
+
+	// LabelIDs is send without parentheses - maybe because of multipart/form-data
+	labelIdsString := "[" + ctx.Req.FormValue("labelIds") + "]"
+	var labelIDs []int64
+	if err := json.Unmarshal([]byte(labelIdsString), &labelIDs); err != nil {
+		ctx.ServerError("Unmarshal", err)
+	}
+
+	// check that all LabelsIDs are valid
+	for _, labelID := range labelIDs {
+		_, err := issues_model.GetLabelByID(ctx, labelID)
+		if err != nil {
+			if issues_model.IsErrLabelNotExist(err) {
+				ctx.Error(http.StatusNotFound, "GetLabelByID")
+			} else {
+				ctx.ServerError("GetLabelByID", err)
+			}
+			return
+		}
+	}
+
+	projectBoardNote := project_model.ProjectBoardNote{
+		Title:   form.Title,
+		Content: form.Content,
+
+		ProjectID: ctx.ParamsInt64(":id"),
+		BoardID:   ctx.ParamsInt64(":boardID"),
+		CreatorID: ctx.Doer.ID,
+	}
+	err := project_model.NewProjectBoardNote(ctx, &projectBoardNote)
+	if err != nil {
+		ctx.ServerError("NewProjectBoardNote", err)
+		return
+	}
+
+	if len(labelIDs) > 0 {
+		for _, labelID := range labelIDs {
+			err := projectBoardNote.AddLabel(ctx, labelID)
+			if err != nil {
+				ctx.ServerError("AddLabel", err)
+				return
+			}
+		}
+	}
+
+	ctx.JSONOK()
+}
+
+func EditProjectBoardNote(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.ProjectBoardNoteForm)
+	_, projectBoardNote := checkProjectBoardNoteChangePermissions(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	projectBoardNote.Title = form.Title
+	projectBoardNote.Content = form.Content
+
+	if err := project_model.UpdateProjectBoardNote(ctx, projectBoardNote); err != nil {
+		ctx.ServerError("UpdateProjectBoardNote", err)
+		return
+	}
+
+	ctx.JSONOK()
+}
+
+func DeleteProjectBoardNote(ctx *context.Context) {
+	_, projectBoardNote := checkProjectBoardNoteChangePermissions(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if err := project_model.DeleteProjectBoardNote(ctx, projectBoardNote); err != nil {
+		ctx.ServerError("DeleteProjectBoardNote", err)
+		return
+	}
+
+	ctx.JSONOK()
+}
+
+func MoveProjectBoardNote(ctx *context.Context) {
+	if ctx.Doer == nil {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only signed in users are allowed to perform this action.",
+		})
+		return
+	}
+
+	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	if err != nil {
+		if project_model.IsErrProjectNotExist(err) {
+			ctx.NotFound("ProjectNotFound", err)
+		} else {
+			ctx.ServerError("GetProjectByID", err)
+		}
+		return
+	}
+
+	var board *project_model.Board
+
+	if ctx.ParamsInt64(":boardID") == 0 {
+		board = &project_model.Board{
+			ID:        0,
+			ProjectID: project.ID,
+			Title:     ctx.Tr("repo.projects.type.uncategorized"),
+		}
+	} else {
+		board, err = project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
+		if err != nil {
+			if project_model.IsErrProjectBoardNotExist(err) {
+				ctx.NotFound("ProjectBoardNotExist", nil)
+			} else {
+				ctx.ServerError("GetProjectBoard", err)
+			}
+			return
+		}
+		if board.ProjectID != project.ID {
+			ctx.NotFound("BoardNotInProject", nil)
+			return
+		}
+	}
+
+	type MovedProjectBoardNotesForm struct {
+		ProjectBoardNotes []struct {
+			ProjectBoardNoteID int64 `json:"projectBoardNoteID"`
+			Sorting            int64 `json:"sorting"`
+		} `json:"projectBoardNotes"`
+	}
+
+	form := &MovedProjectBoardNotesForm{}
+	if err = json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
+		ctx.ServerError("DecodeMovedProjectBoardNotesForm", err)
+		return
+	}
+
+	projectBoardNoteIDs := make([]int64, 0, len(form.ProjectBoardNotes))
+	sortedProjectBoardNoteIDs := make(map[int64]int64)
+	for _, boardNote := range form.ProjectBoardNotes {
+		projectBoardNoteIDs = append(projectBoardNoteIDs, boardNote.ProjectBoardNoteID)
+		sortedProjectBoardNoteIDs[boardNote.Sorting] = boardNote.ProjectBoardNoteID
+	}
+	movedProjectBoardNotes, err := project_model.GetProjectBoardNotesByIds(ctx, projectBoardNoteIDs)
+	if err != nil {
+		if project_model.IsErrProjectBoardNoteNotExist(err) {
+			ctx.NotFound("ProjectBoardNoteNotExisting", nil)
+		} else {
+			ctx.ServerError("GetProjectBoardNoteByIds", err)
+		}
+		return
+	}
+
+	if len(movedProjectBoardNotes) != len(form.ProjectBoardNotes) {
+		ctx.ServerError("some project-board-notes do not exist", errors.New("some project-board-notes do not exist"))
+		return
+	}
+
+	if err = project_model.MoveProjectBoardNoteOnProjectBoard(ctx, board, sortedProjectBoardNoteIDs); err != nil {
+		ctx.ServerError("MoveProjectBoardNoteOnProjectBoard", err)
+		return
+	}
+
+	ctx.JSONOK()
+}
+
+// PinProjectBoardNote pins the BoardNote
+func PinProjectBoardNote(ctx *context.Context) {
+	projectBoardNote, err := project_model.GetProjectBoardNoteByID(ctx, ctx.ParamsInt64(":noteID"))
+	if err != nil {
+		ctx.ServerError("GetProjectBoardNoteByID", err)
+		return
+	}
+
+	err = projectBoardNote.Pin(ctx)
+	if err != nil {
+		ctx.ServerError("PinProjectBoardNote", err)
+		return
+	}
+
+	ctx.JSONOK()
+}
+
+// PinBoardNote unpins the BoardNote
+func UnPinProjectBoardNote(ctx *context.Context) {
+	projectBoardNote, err := project_model.GetProjectBoardNoteByID(ctx, ctx.ParamsInt64(":noteID"))
+	if err != nil {
+		ctx.ServerError("GetBoardNoteByID", err)
+		return
+	}
+
+	err = projectBoardNote.Unpin(ctx)
+	if err != nil {
+		ctx.ServerError("UnpinProjectBoardNote", err)
+		return
+	}
+
+	ctx.JSONOK()
+}
+
+// PinBoardNote moves a pined the BoardNote
+func PinMoveProjectBoardNote(ctx *context.Context) {
+	if ctx.Doer == nil {
+		ctx.JSON(http.StatusForbidden, "Only signed in users are allowed to perform this action.")
+		return
+	}
+
+	type MovePinProjectBoardNoteForm struct {
+		Position int64 `json:"position"`
+	}
+
+	form := &MovePinProjectBoardNoteForm{}
+	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
+		ctx.ServerError("Decode MovePinProjectBoardNoteForm", err)
+		return
+	}
+
+	projectBoardNote, err := project_model.GetProjectBoardNoteByID(ctx, ctx.ParamsInt64(":noteID"))
+	if err != nil {
+		ctx.ServerError("GetProjectBoardNoteByID", err)
+		return
+	}
+
+	err = projectBoardNote.MovePin(ctx, form.Position)
+	if err != nil {
+		ctx.ServerError("MovePinProjectBoardNote", err)
 		return
 	}
 

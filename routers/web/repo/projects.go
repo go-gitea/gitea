@@ -109,21 +109,7 @@ func Projects(ctx *context.Context) {
 			return
 		}
 		if len(pinnedProjectBoardNotes) > 0 {
-			firstPinnedProjectBoardNote := pinnedProjectBoardNotes[0]
-
-			firstPinnedProjectBoardNote.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-				Links: markup.Links{
-					Base: ctx.Repo.RepoLink,
-				},
-				Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-				GitRepo: ctx.Repo.GitRepo,
-				Ctx:     ctx,
-			}, firstPinnedProjectBoardNote.Content)
-			if err != nil {
-				ctx.ServerError("RenderString", err)
-				return
-			}
-			projects[i].FirstPinnedProjectBoardNote = firstPinnedProjectBoardNote
+			projects[i].FirstPinnedProjectBoardNote = pinnedProjectBoardNotes[0]
 		}
 	}
 
@@ -354,23 +340,6 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	for _, noteList := range notesMap {
-		for _, note := range noteList {
-			note.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-				Links: markup.Links{
-					Base: ctx.Repo.RepoLink,
-				},
-				Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-				GitRepo: ctx.Repo.GitRepo,
-				Ctx:     ctx,
-			}, note.Content)
-			if err != nil {
-				ctx.ServerError("RenderString", err)
-				return
-			}
-		}
-	}
-
 	if project.CardType != project_model.CardTypeTextOnly {
 		issuesAttachmentMap := make(map[int64][]*attachment_model.Attachment)
 		for _, issuesList := range issuesMap {
@@ -422,21 +391,6 @@ func ViewProject(ctx *context.Context) {
 	if err != nil {
 		ctx.ServerError("GetPinnedProjectBoardNotes", err)
 		return
-	}
-
-	for _, note := range pinnedBoardNotes {
-		note.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			Links: markup.Links{
-				Base: ctx.Repo.RepoLink,
-			},
-			Metas:   ctx.Repo.Repository.ComposeMetas(ctx),
-			GitRepo: ctx.Repo.GitRepo,
-			Ctx:     ctx,
-		}, note.Content)
-		if err != nil {
-			ctx.ServerError("RenderString", err)
-			return
-		}
 	}
 
 	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{})
