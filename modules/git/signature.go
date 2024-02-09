@@ -38,7 +38,7 @@ func parseSignatureFromCommitLine(line string) *Signature {
 		// the old gitea code tried to parse the date in a few different formats, but it's not clear why.
 		// according to public document, only the standard format "timestamp timezone" could be found, so drop other formats.
 		log.Error("suspicious commit line format: %q", line)
-		for _, fmt := range []string{ /*"Mon Jan _2 15:04:05 2006 -0700"*/ } {
+		for _, fmt := range []string{"Mon Jan _2 15:04:05 2006 -0700"} {
 			if t, err := time.Parse(fmt, s3); err == nil {
 				sig.When = t
 				break
