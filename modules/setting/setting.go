@@ -226,3 +226,12 @@ func LoadSettingsForInstall() {
 	loadServiceFrom(CfgProvider)
 	loadMailerFrom(CfgProvider)
 }
+
+var uniquePaths = make(map[string]string)
+
+func fatalDuplicatedPath(name, p string) {
+	if targetName, ok := uniquePaths[p]; ok && targetName != name {
+		log.Fatal("storage path %q is being used by %q and %q and all storage paths must be unique to prevent data loss.", p, targetName, name)
+	}
+	uniquePaths[p] = name
+}
