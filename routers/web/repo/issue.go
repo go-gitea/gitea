@@ -324,6 +324,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		return
 	}
 
+	blockingDependenciesMap := make(map[int64][]*issues_model.DependencyInfo, len(issues))
+	blockedByDependenciesMap := make(map[int64][]*issues_model.DependencyInfo, len(issues))
 	// Get posters.
 	for i := range issues {
 		// Check read status
@@ -333,7 +335,24 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 			ctx.ServerError("GetIsRead", err)
 			return
 		}
+		blockingDependencies, err := issues[i].BlockingDependencies(ctx)
+		if err != nil {
+			ctx.ServerError("BlockingDependencies", err)
+			return
+		}
+		slices.Reverse(blockingDependencies)
+		blockingDependenciesMap[issues[i].ID] = blockingDependencies
+
+		blockedByDependencies, err := issues[i].BlockedByDependencies(ctx, db.ListOptions{})
+		if err != nil {
+			ctx.ServerError("BlockedByDependencies", err)
+			return
+		}
+		slices.Reverse(blockedByDependencies)
+		blockedByDependenciesMap[issues[i].ID] = blockedByDependencies
 	}
+	ctx.Data["BlockingDependenciesMap"] = blockingDependenciesMap
+	ctx.Data["BlockedByDependenciesMap"] = blockedByDependenciesMap
 
 	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
 	if err != nil {
