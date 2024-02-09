@@ -82,6 +82,10 @@
   background-color: var(--color-secondary-dark-4);
 }
 
+#issue-list .flex-item-body > .flex-text-inline::before {
+  content: '|';
+}
+
 .archived-label-filter {
   margin-left: 10px;
   font-size: 12px;

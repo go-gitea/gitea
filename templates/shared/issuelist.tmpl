@@ -119,11 +119,11 @@
 						</span>
 					{{end}}
 					{{template "shared/issue_dependency" (dict
-						"Dependencies" (index $.BlockingDependenciesMap .ID)
-						"TitleKey" "repo.issues.dependency.blocks_following")}}
-					{{template "shared/issue_dependency" (dict
 						"Dependencies" (index $.BlockedByDependenciesMap .ID)
 						"TitleKey" "repo.issues.dependency.blocked_by_following")}}
+					{{template "shared/issue_dependency" (dict
+						"Dependencies" (index $.BlockingDependenciesMap .ID)
+						"TitleKey" "repo.issues.dependency.blocks_following")}}
 					{{if .IsPull}}
 						{{$approveOfficial := call $approvalCounts .ID "approve"}}
 						{{$rejectOfficial := call $approvalCounts .ID "reject"}}
