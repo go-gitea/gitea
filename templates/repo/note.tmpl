@@ -117,7 +117,7 @@
 									{{if and $.root.Labels (gt (len $.root.Labels) 0)}}
 										<div class="field">
 											<label for="edit-project-column-note-label-{{.ID}}">{{ctx.Locale.Tr "repo.projects.note.labels"}}</label>
-											<div class="ui fluid selection dropdown multiple clearable">
+											<div class="ui fluid selection search normal dropdown multiple clearable">
 												<input type="hidden" id="edit-project-column-note-label-{{.ID}}" name="labelIds" value="{{range $index, $val := .LabelIDs}}{{if ne $index 0}},{{end}}{{$val}}{{end}}">
 												{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 												<div class="default text"></div>
