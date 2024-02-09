@@ -357,7 +357,7 @@ checks-backend: tidy-check swagger-check fmt-check swagger-validate security-che
 lint: lint-frontend lint-backend lint-spell
 
 .PHONY: lint-fix
-lint-fix: lint-frontend-fix lint-backend-fix
+lint-fix: lint-frontend-fix lint-backend-fix lint-spell-fix
 
 .PHONY: lint-frontend
 lint-frontend: lint-js lint-css
