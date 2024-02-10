@@ -38,9 +38,9 @@ export async function pngInfo(blob) {
     const phys = chunks.find((chunk) => chunk.name === 'pHYs');
     if (phys?.data?.length) {
       const view = new DataView(phys.data.buffer, 0);
-      const dpi = Math.round(view.getUint32(0) / 39.3701);
       const unit = view.getUint8(8);
-      if (unit !== 1) return 1;
+      if (unit !== 1) return 1; // not meter`
+      const dpi = Math.round(view.getUint32(0) / 39.3701);
       dppx = dpi / 72;
     } else {
       dppx = 1;
