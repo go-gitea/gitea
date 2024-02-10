@@ -1,4 +1,21 @@
-import pngChunksExtract from 'png-chunks-extract';
+export function pngChunks(data) {
+  const view = new DataView(data.buffer, 0);
+  if (view.getBigUint64(0) !== 9894494448401390090n) throw new Error(`Invalid png header`);
+
+  const decoder = new TextDecoder();
+  const chunks = [];
+  let index = 8;
+  while (index < data.length) {
+    const len = view.getUint32(index);
+    chunks.push({
+      name: decoder.decode(data.slice(index + 4, index + 8)),
+      data: data.slice(index + 8, index + 8 + len),
+    });
+    index += len + 12;
+  }
+
+  return chunks;
+}
 
 export async function pngInfo(blob) {
   let width = 0;
@@ -8,14 +25,13 @@ export async function pngInfo(blob) {
   if (blob.type !== 'image/png') return {width, dppx};
 
   try {
-    const buffer = await blob.arrayBuffer();
-    const chunks = pngChunksExtract(new Uint8Array(buffer));
+    const chunks = pngChunks(new Uint8Array(await blob.arrayBuffer()));
 
     // extract width from mandatory IHDR chunk
     const ihdr = chunks.find((chunk) => chunk.name === 'IHDR');
     if (ihdr?.data?.length) {
-      const View = new DataView(ihdr.data.buffer, 0);
-      width = View.getUint32(0);
+      const view = new DataView(ihdr.data.buffer, 0);
+      width = view.getUint32(0);
     }
 
     // extract dppx from optional pHYs chunk, assuming pixels are square

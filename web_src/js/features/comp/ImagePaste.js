@@ -121,7 +121,6 @@ const uploadClipboardImage = async (editor, dropzone, e) => {
     } else {
       text = `![${name}](${url})`;
     }
-
     editor.replacePlaceholder(placeholder, text);
 
     const $input = $(`<input name="files" type="hidden">`).attr('id', uuid).val(uuid);
