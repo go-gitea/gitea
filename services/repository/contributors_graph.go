@@ -61,8 +61,8 @@ type ExtendedCommitStats struct {
 	Stats  *api.CommitStats `json:"stats"`
 }
 
-// CreateWeeks converts list of sundays to list of *api.WeekData
-func CreateWeeks(sundays []int64) []*WeekData {
+// createWeeks converts list of sundays to list of *api.WeekData
+func createWeeks(sundays []int64) []*WeekData {
 	var weeks []*WeekData
 	for _, week := range sundays {
 		weeks = append(weeks, &WeekData{
@@ -244,7 +244,7 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 	contributorsCommitStats["total"] = &ContributorData{
 		Name:       "Total",
 		AvatarLink: unknownUserAvatarLink,
-		Weeks:      CreateWeeks(sundays),
+		Weeks:      createWeeks(sundays),
 	}
 	total := contributorsCommitStats["total"]
 
@@ -268,7 +268,7 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 				contributorsCommitStats[userEmail] = &ContributorData{
 					Name:       v.Author.Name,
 					AvatarLink: avatarLink,
-					Weeks:      CreateWeeks(sundays),
+					Weeks:      createWeeks(sundays),
 				}
 			} else {
 				contributorsCommitStats[userEmail] = &ContributorData{
@@ -276,7 +276,7 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 					Login:      u.LowerName,
 					AvatarLink: u.AvatarLinkWithSize(ctx, 0),
 					HomeLink:   u.HomeLink(),
-					Weeks:      CreateWeeks(sundays),
+					Weeks:      createWeeks(sundays),
 				}
 			}
 		}
