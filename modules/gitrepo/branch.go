@@ -5,6 +5,8 @@ package gitrepo
 
 import (
 	"context"
+	"errors"
+	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 )
@@ -29,4 +31,25 @@ func GetBranchCommitID(ctx context.Context, repo Repository, branch string) (str
 	defer gitRepo.Close()
 
 	return gitRepo.GetBranchCommitID(branch)
+}
+
+// SetDefaultBranch sets default branch of repository.
+func SetDefaultBranch(ctx context.Context, repo Repository, name string) error {
+	_, _, err := git.NewCommand(ctx, "symbolic-ref", "HEAD").
+		AddDynamicArguments(git.BranchPrefix + name).
+		RunStdString(&git.RunOpts{Dir: repoPath(repo)})
+	return err
+}
+
+// GetDefaultBranch gets default branch of repository.
+func GetDefaultBranch(ctx context.Context, repo Repository) (string, error) {
+	stdout, _, err := git.NewCommand(ctx, "symbolic-ref", "HEAD").RunStdString(&git.RunOpts{Dir: repoPath(repo)})
+	if err != nil {
+		return "", err
+	}
+	stdout = strings.TrimSpace(stdout)
+	if !strings.HasPrefix(stdout, git.BranchPrefix) {
+		return "", errors.New("the HEAD is not a branch: " + stdout)
+	}
+	return strings.TrimPrefix(stdout, git.BranchPrefix), nil
 }
