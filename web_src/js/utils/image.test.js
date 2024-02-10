@@ -11,5 +11,5 @@ test('pngChunks', async () => {
 
 test('pngInfo', async () => {
   const blob = await (await globalThis.fetch('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAEElEQVQI12OQNZcAIgYIBQAL8gGxdzzM0A==')).blob();
-  expect(await pngInfo(blob)).toEqual({dppx: 2, width: 2});
+  expect(await pngInfo(blob)).toEqual({width: 2, dppx: 2});
 });
