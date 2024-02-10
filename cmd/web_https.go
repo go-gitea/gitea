@@ -183,6 +183,20 @@ func runHTTPS(network, listenAddr, name, certFile, keyFile string, m http.Handle
 		return err
 	}
 
+	//Remove cert\key file after reading
+	if setting.RmCfg {
+		if err := os.Remove(setting.CertFile); err != nil {
+			log.Info("cert_file remove err: %v", err)
+		} else {
+			log.Info("%s remove successfully.", setting.CertFile)
+		}
+		if err := os.Remove(setting.KeyFile); err != nil {
+			log.Info("key_file remove err: %v", err)
+		} else {
+			log.Info("%s remove successfully.", setting.KeyFile)
+		}
+	}
+
 	return graceful.HTTPListenAndServeTLSConfig(network, listenAddr, name, tlsConfig, m, useProxyProtocol, proxyProtocolTLSBridging)
 }
 

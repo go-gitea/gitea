@@ -90,6 +90,41 @@ func PrepareAppDataPath() error {
 	return nil
 }
 
+// blanking some keys
+func BlankCfg() {
+	rootCfg := CfgProvider
+	if rootCfg.Section("storage.minio").Key("MINIO_SECRET_ACCESS_KEY").String() != "" {
+		saveCfg, _ := rootCfg.PrepareSaving()
+		rootCfg.Section("storage.minio").Key("MINIO_SECRET_ACCESS_KEY").SetValue("")
+		saveCfg.Section("storage.minio").Key("MINIO_SECRET_ACCESS_KEY").SetValue("")
+		if err := saveCfg.Save(); err != nil {
+			log.Error("Unable to blanking MINIO_SECRET_ACCESS_KEY to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
+		} else {
+			log.Info("successfully blanking MINIO_SECRET_ACCESS_KEY to config")
+		}
+	}
+	if rootCfg.Section("database").Key("PASSWD").String() != "" {
+		saveCfg, _ := rootCfg.PrepareSaving()
+		rootCfg.Section("database").Key("PASSWD").SetValue("")
+		saveCfg.Section("database").Key("PASSWD").SetValue("")
+		if err := saveCfg.Save(); err != nil {
+			log.Error("Unable to blanking PASSWD to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
+		} else {
+			log.Info("successfully blanking PASSWD to config")
+		}
+	}
+	if rootCfg.Section("message").Key("PASSWORD").String() != "" {
+		saveCfg, _ := rootCfg.PrepareSaving()
+		rootCfg.Section("message").Key("PASSWORD").SetValue("")
+		saveCfg.Section("message").Key("PASSWORD").SetValue("")
+		if err := saveCfg.Save(); err != nil {
+			log.Error("Unable to blanking PASSWORD to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", CustomConf, err)
+		} else {
+			log.Info("successfully blanking PASSWORD to config")
+		}
+	}
+}
+
 func InitCfgProvider(file string, extraConfigs ...string) {
 	var err error
 	if CfgProvider, err = NewConfigProviderFromFile(file, extraConfigs...); err != nil {

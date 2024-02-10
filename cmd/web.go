@@ -163,20 +163,6 @@ func serveInstalled(ctx *cli.Context) error {
 			"remove the other outdated work paths from environment variables and command arguments", setting.CustomConf)
 	}
 
-	rootCfg := setting.CfgProvider
-	if rootCfg.Section("").Key("WORK_PATH").String() == "" {
-		saveCfg, err := rootCfg.PrepareSaving()
-		if err != nil {
-			log.Error("Unable to prepare saving WORK_PATH=%s to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", setting.AppWorkPath, setting.CustomConf, err)
-		} else {
-			rootCfg.Section("").Key("WORK_PATH").SetValue(setting.AppWorkPath)
-			saveCfg.Section("").Key("WORK_PATH").SetValue(setting.AppWorkPath)
-			if err = saveCfg.Save(); err != nil {
-				log.Error("Unable to update WORK_PATH=%s to config %q: %v\nYou should set it manually, otherwise there might be bugs when accessing the git repositories.", setting.AppWorkPath, setting.CustomConf, err)
-			}
-		}
-	}
-
 	// in old versions, user's custom web files are placed in "custom/public", and they were served as "http://domain.com/assets/xxx"
 	// now, Gitea only serves pre-defined files in the "custom/public" folder basing on the web root, the user should move their custom files to "custom/public/assets"
 	publicFiles, _ := public.AssetFS().ListFiles(".")
@@ -192,6 +178,7 @@ func serveInstalled(ctx *cli.Context) error {
 	}
 
 	routers.InitWebInstalled(graceful.GetManager().HammerContext())
+	setting.BlankCfg()
 
 	// We check that AppDataPath exists here (it should have been created during installation)
 	// We can't check it in `InitWebInstalled`, because some integration tests
@@ -309,15 +296,6 @@ func listen(m http.Handler, handleRedirector bool) error {
 
 	if setting.LFS.StartServer {
 		log.Info("LFS server enabled")
-	}
-
-	//Remove config file before listening
-	if setting.RmCfg {
-		if err := os.Remove(setting.CustomConf); err != nil {
-			log.Info("%s remove config err: %v", setting.CustomConf, err)
-		} else {
-			log.Info("%s remove config successfully.", setting.CustomConf)
-		}
 	}
 
 	var err error
