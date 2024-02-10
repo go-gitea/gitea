@@ -53,7 +53,7 @@ type Repository struct {
 	Owner        *user_model.User
 	Commit       *git.Commit
 	Tag          *git.Tag
-	GitRepo      *git.Repository
+	GitRepo      gitrepo.GitRepository
 	RefName      string
 	BranchName   string
 	TagName      string
@@ -183,7 +183,7 @@ func (r *Repository) GetCommitGraphsCount(ctx context.Context, hidePRRefs bool, 
 
 	return cache.GetInt64(cacheKey, func() (int64, error) {
 		if len(branches) == 0 {
-			return git.AllCommitsCount(ctx, r.Repository.RepoPath(), hidePRRefs, files...)
+			return gitrepo.AllCommitsCount(ctx, r.Repository, hidePRRefs, files...)
 		}
 		return git.CommitsCount(ctx,
 			git.CommitsCountOptions{
@@ -692,7 +692,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 
 	// If no branch is set in the request URL, try to guess a default one.
 	if len(ctx.Repo.BranchName) == 0 {
-		if len(ctx.Repo.Repository.DefaultBranch) > 0 && gitRepo.IsBranchExist(ctx.Repo.Repository.DefaultBranch) {
+		if len(ctx.Repo.Repository.DefaultBranch) > 0 && gitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch) {
 			ctx.Repo.BranchName = ctx.Repo.Repository.DefaultBranch
 		} else {
 			ctx.Repo.BranchName, _ = gitRepo.GetDefaultBranch()

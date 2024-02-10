@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -73,7 +73,7 @@ type RenderContext struct {
 	Links            Links
 	Metas            map[string]string
 	DefaultLink      string
-	GitRepo          *git.Repository
+	GitRepo          gitrepo.GitRepository
 	ShaExistCache    map[string]bool
 	cancelFn         func()
 	SidebarTocNode   ast.Node

@@ -108,15 +108,10 @@ done
 	return hookNames, hookTpls, giteaHookTpls
 }
 
-// CreateDelegateHooks creates all the hooks scripts for the repo
-func CreateDelegateHooks(ctx context.Context, repo Repository, iswiki bool) (err error) {
+// createDelegateHooks creates all the hooks scripts for the repo
+func createDelegateHooks(ctx context.Context, repoPath string) (err error) {
 	hookNames, hookTpls, giteaHookTpls := getHookTemplates()
-	var hookDir string
-	if iswiki {
-		hookDir = filepath.Join(wikiPath(repo), "hooks")
-	} else {
-		hookDir = filepath.Join(repoPath(repo), "hooks")
-	}
+	hookDir := filepath.Join(repoPath, "hooks")
 
 	for i, hookName := range hookNames {
 		oldHookPath := filepath.Join(hookDir, hookName)
@@ -177,16 +172,12 @@ func ensureExecutable(filename string) error {
 	return os.Chmod(filename, mode)
 }
 
-// CheckDelegateHooks checks the hooks scripts for the repo
-func CheckDelegateHooks(ctx context.Context, repo Repository, isWiki bool) ([]string, error) {
+// checkDelegateHooks checks the hooks scripts for the repo
+func checkDelegateHooks(ctx context.Context, repoPath string) ([]string, error) {
 	hookNames, hookTpls, giteaHookTpls := getHookTemplates()
 
-	var hookDir string
-	if isWiki {
-		hookDir = filepath.Join(wikiPath(repo), "hooks")
-	} else {
-		hookDir = filepath.Join(repoPath(repo), "hooks")
-	}
+	hookDir := filepath.Join(repoPath, "hooks")
+
 	results := make([]string, 0, 10)
 
 	for i, hookName := range hookNames {

@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const testInput = `  space @mention-user  
+const testInput = `  space @mention-user
 /just/a/path.bin
 https://example.com/file.bin
 [local link](file.bin)
@@ -36,14 +36,13 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 mail@domain.com
 @mention-user test
 #123
-  space  
+  space
 `
 
 var testMetas = map[string]string{
-	"user":     "user13",
-	"repo":     "repo11",
-	"repoPath": "../../tests/gitea-repositories-meta/user13/repo11.git/",
-	"mode":     "comment",
+	"user": "user13",
+	"repo": "repo11",
+	"mode": "comment",
 }
 
 func TestMain(m *testing.M) {
@@ -137,7 +136,7 @@ func TestRenderCommitMessageLinkSubject(t *testing.T) {
 }
 
 func TestRenderIssueTitle(t *testing.T) {
-	expected := `  space @mention-user  
+	expected := `  space @mention-user
 /just/a/path.bin
 https://example.com/file.bin
 [local link](file.bin)
@@ -156,7 +155,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 mail@domain.com
 @mention-user test
 <a href="http://localhost:3000/user13/repo11/issues/123" class="ref-issue">#123</a>
-  space  
+  space
 `
 	assert.EqualValues(t, expected, RenderIssueTitle(context.Background(), testInput, testMetas))
 }

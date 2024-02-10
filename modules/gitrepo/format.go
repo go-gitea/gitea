@@ -15,11 +15,13 @@ import (
 func GetObjectFormatOfRepo(ctx context.Context, repo Repository) (git.ObjectFormat, error) {
 	var stdout, stderr strings.Builder
 
-	err := git.NewCommand(ctx, "hash-object", "--stdin").Run(&git.RunOpts{
-		Dir:    repoPath(repo),
-		Stdout: &stdout,
-		Stderr: &stderr,
-		Stdin:  &strings.Reader{},
+	cmd := git.NewCommand(ctx, "hash-object", "--stdin")
+	err := RunGitCmd(repo, cmd, &RunOpts{
+		RunOpts: git.RunOpts{
+			Stdout: &stdout,
+			Stderr: &stderr,
+			Stdin:  &strings.Reader{},
+		},
 	})
 	if err != nil {
 		return nil, err

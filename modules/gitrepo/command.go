@@ -41,6 +41,7 @@ func RunGitCmdStdBytes(repo Repository, c *git.Command, opts *RunOpts) (stdout, 
 
 	// We must not change the provided options as it could break future calls - therefore make a copy.
 	newOpts := &RunOpts{
+		IsWiki: opts.IsWiki,
 		RunOpts: git.RunOpts{
 			Env:               opts.Env,
 			Timeout:           opts.Timeout,
@@ -51,7 +52,6 @@ func RunGitCmdStdBytes(repo Repository, c *git.Command, opts *RunOpts) (stdout, 
 			Stdin:             opts.Stdin,
 			PipelineFunc:      opts.PipelineFunc,
 		},
-		IsWiki: opts.IsWiki,
 	}
 
 	err := RunGitCmd(repo, c, newOpts)
@@ -65,5 +65,10 @@ func RunGitCmdStdBytes(repo Repository, c *git.Command, opts *RunOpts) (stdout, 
 
 // RunGitCmd runs the command with the RunOpts
 func RunGitCmd(repo Repository, c *git.Command, opts *RunOpts) error {
-	return curService.Run(repo, c, opts)
+	if opts.IsWiki {
+		opts.Dir = wikiRelativePath(repo)
+	} else {
+		opts.Dir = repoRelativePath(repo)
+	}
+	return curService.Run(c, &opts.RunOpts)
 }

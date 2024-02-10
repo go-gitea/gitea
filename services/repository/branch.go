@@ -158,7 +158,8 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 		pr.Issue.Repo = pr.BaseRepo
 
 		if pr.HasMerged {
-			baseGitRepo, ok := repoIDToGitRepo[pr.BaseRepoID]
+			gitRepo, ok := repoIDToGitRepo[pr.BaseRepoID]
+			var baseGitRepo gitrepo.GitRepository = gitRepo
 			if !ok {
 				baseGitRepo, err = gitrepo.OpenRepository(ctx, pr.BaseRepo)
 				if err != nil {

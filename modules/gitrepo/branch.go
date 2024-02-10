@@ -28,17 +28,19 @@ func GetBranchCommitID(ctx context.Context, repo Repository, branch string) (str
 	}
 	defer gitRepo.Close()
 
-	return gitRepo.GetBranchCommitID(branch)
+	return gitRepo.GetRefCommitID(git.BranchPrefix + branch)
 }
 
 // IsReferenceExist returns true if given reference exists in the repository.
 func IsReferenceExist(ctx context.Context, repo Repository, name string) bool {
-	_, _, err := git.NewCommand(ctx, "show-ref", "--verify").AddDashesAndList(name).RunStdString(&git.RunOpts{Dir: repoPath(repo)})
+	cmd := git.NewCommand(ctx, "show-ref", "--verify").AddDashesAndList(name)
+	_, _, err := RunGitCmdStdString(repo, cmd, &RunOpts{})
 	return err == nil
 }
 
 func IsWikiReferenceExist(ctx context.Context, repo Repository, name string) bool {
-	_, _, err := git.NewCommand(ctx, "show-ref", "--verify").AddDashesAndList(name).RunStdString(&git.RunOpts{Dir: wikiPath(repo)})
+	cmd := git.NewCommand(ctx, "show-ref", "--verify").AddDashesAndList(name)
+	_, _, err := RunGitCmdStdString(repo, cmd, &RunOpts{IsWiki: true})
 	return err == nil
 }
 

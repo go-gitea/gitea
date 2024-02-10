@@ -28,9 +28,8 @@ const (
 
 // these values should match the Repo const above
 var localMetas = map[string]string{
-	"user":     "gogits",
-	"repo":     "gogs",
-	"repoPath": "../../../tests/gitea-repositories-meta/user13/repo11.git/",
+	"user": "user13",
+	"repo": "repo11",
 }
 
 func TestMain(m *testing.M) {
@@ -572,7 +571,7 @@ foo: bar
 }
 
 func TestRenderLinks(t *testing.T) {
-	input := `  space @mention-user  
+	input := `  space @mention-user
 /just/a/path.bin
 https://example.com/file.bin
 [local link](file.bin)
@@ -593,7 +592,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 mail@domain.com
 @mention-user test
 #123
-  space  
+  space
 `
 	cases := []struct {
 		Links    markup.Links

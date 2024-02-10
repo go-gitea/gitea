@@ -4,11 +4,11 @@
 package gitrepo
 
 func RepoGitURL(repo Repository) string {
-	return repoPath(repo)
+	return curService.GitURL(repoRelativePath(repo))
 }
 
 func WikiRepoGitURL(repo Repository) string {
-	return wikiPath(repo)
+	return curService.GitURL(wikiRelativePath(repo))
 }
 
 func GetRepoOrWikiGitURL(repo Repository, isWiki bool) string {
