@@ -30,7 +30,7 @@ EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-che
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.6.0
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
-MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
+MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.4.1
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.5
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.6.0
@@ -146,6 +146,8 @@ TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMAN
 GO_DIRS := build cmd models modules routers services tests
 WEB_DIRS := web_src/js web_src/css
 
+SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) docs/content templates options/locale/locale_en-US.ini .github
+
 GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" ! -path modules/options/bindata.go ! -path modules/public/bindata.go ! -path modules/templates/bindata.go)
 GO_SOURCES += $(GENERATED_GO_DEST)
@@ -219,6 +221,8 @@ help:
 	@echo " - lint-swagger                     lint swagger files"
 	@echo " - lint-templates                   lint template files"
 	@echo " - lint-yaml                        lint yaml files"
+	@echo " - lint-spell                       lint spelling"
+	@echo " - lint-spell-fix                   lint spelling and fix issues"
 	@echo " - checks                           run various consistency checks"
 	@echo " - checks-frontend                  check frontend files"
 	@echo " - checks-backend                   check backend files"
@@ -308,10 +312,6 @@ fmt-check: fmt
 	  exit 1; \
 	fi
 
-.PHONY: misspell-check
-misspell-check:
-	go run $(MISSPELL_PACKAGE) -error $(GO_DIRS) $(WEB_DIRS)
-
 .PHONY: $(TAGS_EVIDENCE)
 $(TAGS_EVIDENCE):
 	@mkdir -p $(MAKE_EVIDENCE_DIR)
@@ -351,13 +351,13 @@ checks: checks-frontend checks-backend
 checks-frontend: lockfile-check svg-check
 
 .PHONY: checks-backend
-checks-backend: tidy-check swagger-check fmt-check misspell-check swagger-validate security-check
+checks-backend: tidy-check swagger-check fmt-check swagger-validate security-check
 
 .PHONY: lint
-lint: lint-frontend lint-backend
+lint: lint-frontend lint-backend lint-spell
 
 .PHONY: lint-fix
-lint-fix: lint-frontend-fix lint-backend-fix
+lint-fix: lint-frontend-fix lint-backend-fix lint-spell-fix
 
 .PHONY: lint-frontend
 lint-frontend: lint-js lint-css
@@ -394,6 +394,14 @@ lint-swagger: node_modules
 .PHONY: lint-md
 lint-md: node_modules
 	npx markdownlint docs *.md
+
+.PHONY: lint-spell
+lint-spell:
+	@go run $(MISSPELL_PACKAGE) -error $(SPELLCHECK_FILES)
+
+.PHONY: lint-spell-fix
+lint-spell-fix:
+	@go run $(MISSPELL_PACKAGE) -w $(SPELLCHECK_FILES)
 
 .PHONY: lint-go
 lint-go:
