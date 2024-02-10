@@ -1107,7 +1107,7 @@ This section only does "set" config, a removed config key from this section won'
 
 ## OAuth2 (`oauth2`)
 
-- `ENABLE`: **true**: Enables OAuth2 provider.
+- `ENABLED`: **true**: Enables OAuth2 provider.
 - `ACCESS_TOKEN_EXPIRATION_TIME`: **3600**: Lifetime of an OAuth2 access token in seconds
 - `REFRESH_TOKEN_EXPIRATION_TIME`: **730**: Lifetime of an OAuth2 refresh token in hours
 - `INVALIDATE_REFRESH_TOKENS`: **false**: Check if refresh token has already been used

@@ -7,7 +7,6 @@ package org
 import (
 	"net/http"
 	"net/url"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -17,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
@@ -71,53 +71,50 @@ func SettingsPost(ctx *context.Context) {
 	}
 
 	org := ctx.Org.Organization
-	nameChanged := org.Name != form.Name
 
-	// Check if organization name has been changed.
-	if nameChanged {
-		err := user_service.RenameUser(ctx, org.AsUser(), form.Name)
-		switch {
-		case user_model.IsErrUserAlreadyExist(err):
-			ctx.Data["OrgName"] = true
-			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSettingsOptions, &form)
-			return
-		case db.IsErrNameReserved(err):
-			ctx.Data["OrgName"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
-			return
-		case db.IsErrNamePatternNotAllowed(err):
-			ctx.Data["OrgName"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
-			return
-		case err != nil:
-			ctx.ServerError("org_service.RenameOrganization", err)
+	if org.Name != form.Name {
+		if err := user_service.RenameUser(ctx, org.AsUser(), form.Name); err != nil {
+			if user_model.IsErrUserAlreadyExist(err) {
+				ctx.Data["Err_Name"] = true
+				ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSettingsOptions, &form)
+			} else if db.IsErrNameReserved(err) {
+				ctx.Data["Err_Name"] = true
+				ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
+			} else if db.IsErrNamePatternNotAllowed(err) {
+				ctx.Data["Err_Name"] = true
+				ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
+			} else {
+				ctx.ServerError("RenameUser", err)
+			}
 			return
 		}
 
-		// reset ctx.org.OrgLink with new name
-		ctx.Org.OrgLink = setting.AppSubURL + "/org/" + url.PathEscape(form.Name)
-		log.Trace("Organization name changed: %s -> %s", org.Name, form.Name)
+		ctx.Org.OrgLink = setting.AppSubURL + "/org/" + url.PathEscape(org.Name)
 	}
 
-	// In case it's just a case change.
-	org.Name = form.Name
-	org.LowerName = strings.ToLower(form.Name)
+	if form.Email != "" {
+		if err := user_service.ReplacePrimaryEmailAddress(ctx, org.AsUser(), form.Email); err != nil {
+			ctx.Data["Err_Email"] = true
+			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplSettingsOptions, &form)
+			return
+		}
+	}
 
+	opts := &user_service.UpdateOptions{
+		FullName:                  optional.Some(form.FullName),
+		Description:               optional.Some(form.Description),
+		Website:                   optional.Some(form.Website),
+		Location:                  optional.Some(form.Location),
+		Visibility:                optional.Some(form.Visibility),
+		RepoAdminChangeTeamAccess: optional.Some(form.RepoAdminChangeTeamAccess),
+	}
 	if ctx.Doer.IsAdmin {
-		org.MaxRepoCreation = form.MaxRepoCreation
+		opts.MaxRepoCreation = optional.Some(form.MaxRepoCreation)
 	}
 
-	org.FullName = form.FullName
-	org.Email = form.Email
-	org.Description = form.Description
-	org.Website = form.Website
-	org.Location = form.Location
-	org.RepoAdminChangeTeamAccess = form.RepoAdminChangeTeamAccess
+	visibilityChanged := org.Visibility != form.Visibility
 
-	visibilityChanged := form.Visibility != org.Visibility
-	org.Visibility = form.Visibility
-
-	if err := user_model.UpdateUser(ctx, org.AsUser(), false); err != nil {
+	if err := user_service.UpdateUser(ctx, org.AsUser(), opts); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
