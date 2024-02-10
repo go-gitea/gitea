@@ -1272,10 +1272,6 @@ img.ui.avatar,
   color: unset !important;
 }
 
-.attention-icon {
-  vertical-align: text-top;
-}
-
 blockquote.attention-note {
   border-left-color: var(--color-blue-dark-2);
 }
