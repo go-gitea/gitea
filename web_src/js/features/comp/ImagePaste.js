@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {POST} from '../../modules/fetch.js';
-import {imageInfo} from '../../utils/image.js';
+import {pngInfo} from '../../utils/image.js';
 
 async function uploadFile(file, uploadUrl) {
   const formData = new FormData();
@@ -111,14 +111,12 @@ const uploadClipboardImage = async (editor, dropzone, e) => {
     const placeholder = `![${name}](uploading ...)`;
     editor.insertPlaceholder(placeholder);
 
-    const [data, {width, dppx}] = await Promise.all([
-      uploadFile(img, uploadUrl),
-      imageInfo(img),
-    ]);
+    const {uuid} = await uploadFile(img, uploadUrl);
+    const {width, dppx} = await pngInfo(img);
 
-    const url = `/attachments/${data.uuid}`;
+    const url = `/attachments/${uuid}`;
     let text;
-    if (width > 0 && dppx > 1) {
+    if (width > 0 && dppx > 1) { // Scale down images from HiDPI monitors
       text = `<img width="${Math.round(width / dppx)}" alt="image" src="${url}">`;
     } else {
       text = `![${name}](${url})`;
@@ -126,7 +124,7 @@ const uploadClipboardImage = async (editor, dropzone, e) => {
 
     editor.replacePlaceholder(placeholder, text);
 
-    const $input = $(`<input name="files" type="hidden">`).attr('id', data.uuid).val(data.uuid);
+    const $input = $(`<input name="files" type="hidden">`).attr('id', uuid).val(uuid);
     $files.append($input);
   }
 };
