@@ -226,7 +226,7 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 		return
 	}
 	if len(extendedCommitStats) == 0 {
-		err := fmt.Errorf("no commits found for revision '%s'", revision)
+		err := fmt.Errorf("no commit stats returned for revision '%s'", revision)
 		_ = cache.Put(cacheKey, err, contributorStatsCacheTimeout)
 		return
 	}
@@ -259,6 +259,7 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 			// that different mail addresses will linked to same account
 			userEmail = u.GetEmail()
 		}
+		// duplicated logic
 		if _, ok := contributorsCommitStats[userEmail]; !ok {
 			if u == nil {
 				avatarLink := avatars.GenerateEmailAvatarFastLink(ctx, userEmail, 0)
@@ -288,6 +289,8 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 		startingSundayParsed, _ := time.Parse(layout, startingSunday)
 		idx := int(val.Sub(startingSundayParsed).Hours()/24) / 7
 
+		// we really should not itterate over each (even empty) stats of any user to generate the summary
+		// THIS IS really INEFFICIENT
 		if idx >= 0 && idx < len(user.Weeks) {
 			user.Weeks[idx].Additions += v.Stats.Additions
 			user.Weeks[idx].Deletions += v.Stats.Deletions
@@ -306,5 +309,7 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 
 	_ = cache.Put(cacheKey, contributorsCommitStats, contributorStatsCacheTimeout)
 	generateLock.Delete(cacheKey)
-	genDone <- struct{}{}
+	if genDone != nil {
+		genDone <- struct{}{}
+	}
 }
