@@ -1281,7 +1281,7 @@ blockquote.attention-tip {
 }
 
 blockquote.attention-important {
-  border-left-color: var(--color-violet-dark-2);
+  border-left-color: var(--color-violet-dark-1);
 }
 
 blockquote.attention-warning {
