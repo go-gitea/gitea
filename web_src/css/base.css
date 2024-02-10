@@ -1302,7 +1302,7 @@ strong.attention-tip, span.attention-tip, .attention-tip svg path {
 }
 
 strong.attention-important, span.attention-important {
-  color: var(--color-violet-dark-2);
+  color: var(--color-violet-dark-1);
 }
 
 strong.attention-warning, span.attention-warning {
