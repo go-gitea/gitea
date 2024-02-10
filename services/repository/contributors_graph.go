@@ -113,8 +113,8 @@ func GetContributorStats(ctx context.Context, cache cache.Cache, repo *repo_mode
 	}
 }
 
-// GetExtendedCommitStats return the list of *ExtendedCommitStats for the given revision
-func GetExtendedCommitStats(repo *git.Repository, revision string /*, limit int */) ([]*ExtendedCommitStats, error) {
+// getExtendedCommitStats return the list of *ExtendedCommitStats for the given revision
+func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int */) ([]*ExtendedCommitStats, error) {
 	baseCommit, err := repo.GetCommit(revision)
 	if err != nil {
 		return nil, err
@@ -218,7 +218,7 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 	if len(revision) == 0 {
 		revision = repo.DefaultBranch
 	}
-	extendedCommitStats, err := GetExtendedCommitStats(gitRepo, revision)
+	extendedCommitStats, err := getExtendedCommitStats(gitRepo, revision)
 	if err != nil {
 		err := fmt.Errorf("ExtendedCommitStats: %w", err)
 		_ = cache.Put(cacheKey, err, contributorStatsCacheTimeout)
