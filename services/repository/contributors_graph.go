@@ -212,6 +212,7 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 	if err != nil {
 		err := fmt.Errorf("OpenRepository: %w", err)
 		_ = cache.Put(cacheKey, err, contributorStatsCacheTimeout)
+		return
 	}
 	defer closer.Close()
 
@@ -222,6 +223,12 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 	if err != nil {
 		err := fmt.Errorf("ExtendedCommitStats: %w", err)
 		_ = cache.Put(cacheKey, err, contributorStatsCacheTimeout)
+		return
+	}
+	if len(extendedCommitStats) == 0 {
+		err := fmt.Errorf("no commits found for revision '%s'", revision)
+		_ = cache.Put(cacheKey, err, contributorStatsCacheTimeout)
+		return
 	}
 
 	layout := time.DateOnly
