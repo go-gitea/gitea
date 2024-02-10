@@ -1,6 +1,6 @@
 export function pngChunks(data) {
   const view = new DataView(data.buffer, 0);
-  if (view.getBigUint64(0) !== 9894494448401390090n) throw new Error(`Invalid png header`);
+  if (view.getBigUint64(0) !== 9894494448401390090n) throw new Error('Invalid png header');
 
   const decoder = new TextDecoder();
   const chunks = [];
