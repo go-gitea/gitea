@@ -224,25 +224,3 @@ func RenderLabels(ctx context.Context, labels []*issues_model.Label, repoLink st
 	htmlCode += "</span>"
 	return template.HTML(htmlCode)
 }
-
-func RenderDependencies(ctx context.Context, dependencies []*issues_model.DependencyInfo) template.HTML {
-	if len(dependencies) == 0 {
-		return ""
-	}
-
-	htmlCode := "<span>"
-
-	for index, dependency := range dependencies {
-		if index != 0 {
-			htmlCode += `<span>,</span>`
-		}
-		anchorClasses := "gt-ml-2"
-		if dependency.Issue.IsClosed {
-			anchorClasses += " term-fg9"
-		}
-		htmlCode += fmt.Sprintf(`<a href="%s" data-tooltip-content="#%d %s" class="%s">#%d</a>`,
-			dependency.Issue.Link(), dependency.Issue.Index, RenderEmoji(ctx, dependency.Issue.Title), anchorClasses, dependency.Issue.Index)
-	}
-
-	return template.HTML(htmlCode + "</span>")
-}

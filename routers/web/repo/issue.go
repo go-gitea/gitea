@@ -141,6 +141,28 @@ func MustAllowPulls(ctx *context.Context) {
 	}
 }
 
+func dependenciesToHTML(ctx *context.Context, dependencies []*issues_model.DependencyInfo) template.HTML {
+	if len(dependencies) == 0 {
+		return ""
+	}
+
+	htmlCode := "<span>"
+
+	for index, dependency := range dependencies {
+		if index != 0 {
+			htmlCode += `<span>,</span>`
+		}
+		anchorClasses := "gt-ml-2"
+		if dependency.Issue.IsClosed {
+			anchorClasses += " gt-line-through"
+		}
+		htmlCode += fmt.Sprintf(`<a href="%s" data-tooltip-content="#%d %s" class="%s">#%d</a>`,
+			dependency.Issue.Link(), dependency.Issue.Index, templates.RenderEmoji(ctx, dependency.Issue.Title), anchorClasses, dependency.Issue.Index)
+	}
+
+	return template.HTML(htmlCode + "</span>")
+}
+
 func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption optional.Option[bool]) {
 	var err error
 	viewType := ctx.FormString("type")
@@ -324,8 +346,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		return
 	}
 
-	blockingDependenciesMap := make(map[int64][]*issues_model.DependencyInfo, len(issues))
-	blockedByDependenciesMap := make(map[int64][]*issues_model.DependencyInfo, len(issues))
+	blockingDependenciesMap := make(map[int64]template.HTML, len(issues))
+	blockedByDependenciesMap := make(map[int64]template.HTML, len(issues))
 	// Get posters.
 	for i := range issues {
 		// Check read status
@@ -341,7 +363,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 			return
 		}
 		slices.Reverse(blockingDependencies)
-		blockingDependenciesMap[issues[i].ID] = blockingDependencies
+		blockingDependenciesMap[issues[i].ID] = dependenciesToHTML(ctx, blockingDependencies)
 
 		blockedByDependencies, err := issues[i].BlockedByDependencies(ctx, db.ListOptions{})
 		if err != nil {
@@ -349,7 +371,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 			return
 		}
 		slices.Reverse(blockedByDependencies)
-		blockedByDependenciesMap[issues[i].ID] = blockedByDependencies
+		blockedByDependenciesMap[issues[i].ID] = dependenciesToHTML(ctx, blockedByDependencies)
 	}
 	ctx.Data["BlockingDependenciesMap"] = blockingDependenciesMap
 	ctx.Data["BlockedByDependenciesMap"] = blockedByDependenciesMap

@@ -165,7 +165,6 @@ func NewFuncMap() template.FuncMap {
 		"RenderMarkdownToHtml": RenderMarkdownToHtml,
 		"RenderLabel":          RenderLabel,
 		"RenderLabels":         RenderLabels,
-		"RenderDependencies":   RenderDependencies,
 
 		// -----------------------------------------------------------------
 		// misc

@@ -49,6 +49,7 @@ Gitea's private styles use `g-` prefix.
 /* below class names match Tailwind CSS */
 .gt-object-contain { object-fit: contain !important; }
 .gt-no-underline { text-decoration-line: none !important; }
+.gt-line-through { text-decoration-line: line-through !important; }
 .gt-normal-case { text-transform: none !important; }
 .gt-italic { font-style: italic !important; }
 
