@@ -1296,8 +1296,9 @@ strong.attention-note, span.attention-note {
   color: var(--color-blue-dark-2);
 }
 
-strong.attention-tip, span.attention-tip {
+strong.attention-tip, span.attention-tip, .attention-tip svg path {
   color: var(--color-success-border);
+  fill: var(--color-success-border);
 }
 
 strong.attention-important, span.attention-important {
