@@ -1269,7 +1269,7 @@ img.ui.avatar,
 }
 
 .attention {
-  color: unset !important;
+  color: var(--color-text) !important;
 }
 
 blockquote.attention-note {
