@@ -202,28 +202,21 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			// Text: "!TYPE"
 			// Text(SoftLineBreak): "]"
 
-			// grab these nodes
+			// grab these nodes and make sure we adhere to the attention blockquote structure
 			firstParagraph := v.FirstChild()
 			if firstParagraph.ChildCount() < 3 {
 				return ast.WalkContinue, nil
 			}
 			firstTextNode, ok := firstParagraph.FirstChild().(*ast.Text)
-			if !ok {
+			if !ok || string(firstTextNode.Segment.Value(reader.Source())) != "[" {
 				return ast.WalkContinue, nil
 			}
 			secondTextNode, ok := firstTextNode.NextSibling().(*ast.Text)
-			if !ok {
+			if !ok || !attentionTypeRE.MatchString(string(secondTextNode.Segment.Value(reader.Source()))) {
 				return ast.WalkContinue, nil
 			}
 			thirdTextNode, ok := secondTextNode.NextSibling().(*ast.Text)
-			if !ok {
-				return ast.WalkContinue, nil
-			}
-
-			// make sure we adhere to the attention blockquote structure
-			if string(firstTextNode.Segment.Value(reader.Source())) != "[" ||
-				!attentionTypeRE.MatchString(string(secondTextNode.Segment.Value(reader.Source()))) ||
-				string(thirdTextNode.Segment.Value(reader.Source())) != "]" {
+			if !ok || string(thirdTextNode.Segment.Value(reader.Source())) != "]" {
 				return ast.WalkContinue, nil
 			}
 
