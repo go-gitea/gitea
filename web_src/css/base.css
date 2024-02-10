@@ -1268,18 +1268,43 @@ img.ui.avatar,
   border-radius: var(--border-radius);
 }
 
-.attention-icon {
-  vertical-align: text-top;
+.attention {
+  color: var(--color-text) !important;
 }
 
-.attention-note {
-  font-weight: unset;
-  color: var(--color-info-text);
+blockquote.attention-note {
+  border-left-color: var(--color-blue-dark-1);
+}
+strong.attention-note, span.attention-note {
+  color: var(--color-blue-dark-1);
 }
 
-.attention-warning {
-  font-weight: unset;
+blockquote.attention-tip {
+  border-left-color: var(--color-success-text);
+}
+strong.attention-tip, span.attention-tip {
+  color: var(--color-success-text);
+}
+
+blockquote.attention-important {
+  border-left-color: var(--color-violet-dark-1);
+}
+strong.attention-important, span.attention-important {
+  color: var(--color-violet-dark-1);
+}
+
+blockquote.attention-warning {
+  border-left-color: var(--color-warning-text);
+}
+strong.attention-warning, span.attention-warning {
   color: var(--color-warning-text);
+}
+
+blockquote.attention-caution {
+  border-left-color: var(--color-red-dark-1);
+}
+strong.attention-caution, span.attention-caution {
+  color: var(--color-red-dark-1);
 }
 
 .center:not(.popup) {
