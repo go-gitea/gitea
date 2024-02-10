@@ -1277,7 +1277,7 @@ blockquote.attention-note {
 }
 
 blockquote.attention-tip {
-  border-left-color: var(--color-success-border);
+  border-left-color: var(--color-success-text);
 }
 
 blockquote.attention-important {
@@ -1297,8 +1297,8 @@ strong.attention-note, span.attention-note {
 }
 
 strong.attention-tip, span.attention-tip, .attention-tip svg path {
-  color: var(--color-success-border);
-  fill: var(--color-success-border);
+  color: var(--color-success-text);
+  fill: var(--color-success-text);
 }
 
 strong.attention-important, span.attention-important {
