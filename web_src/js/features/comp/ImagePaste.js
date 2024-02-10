@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {htmlEscape} from 'escape-goat';
 import {POST} from '../../modules/fetch.js';
 import {pngInfo} from '../../utils/image.js';
 
@@ -117,7 +118,7 @@ const uploadClipboardImage = async (editor, dropzone, e) => {
     const url = `/attachments/${uuid}`;
     let text;
     if (width > 0 && dppx > 1) { // Scale down images from HiDPI monitors
-      text = `<img width="${Math.round(width / dppx)}" alt="image" src="${url}">`;
+      text = `<img width="${Math.round(width / dppx)}" alt="${htmlEscape(name)}" src="${htmlEscape(url)}">`;
     } else {
       text = `![${name}](${url})`;
     }
