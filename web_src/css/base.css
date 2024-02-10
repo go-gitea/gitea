@@ -1273,7 +1273,7 @@ img.ui.avatar,
 }
 
 blockquote.attention-note {
-  border-left-color: var(--color-blue-dark-2);
+  border-left-color: var(--color-blue-dark-1);
 }
 
 blockquote.attention-tip {
@@ -1289,11 +1289,11 @@ blockquote.attention-warning {
 }
 
 blockquote.attention-caution {
-  border-left-color: var(--color-red-dark-2);
+  border-left-color: var(--color-red-dark-1);
 }
 
 strong.attention-note, span.attention-note {
-  color: var(--color-blue-dark-2);
+  color: var(--color-blue-dark-1);
 }
 
 strong.attention-tip, span.attention-tip, .attention-tip svg path {
@@ -1310,7 +1310,7 @@ strong.attention-warning, span.attention-warning {
 }
 
 strong.attention-caution, span.attention-caution {
-  color: var(--color-red-dark-2);
+  color: var(--color-red-dark-1);
 }
 
 .center:not(.popup) {
