@@ -1292,23 +1292,23 @@ blockquote.attention-caution {
   border-left-color: var(--color-red-dark-2);
 }
 
-strong.attention-note, .attention-icon.attention-note {
+strong.attention-note, span.attention-note {
   color: var(--color-blue-dark-2);
 }
 
-strong.attention-tip, .attention-icon.attention-tip {
+strong.attention-tip, span.attention-tip {
   color: var(--color-success-border);
 }
 
-strong.attention-important, .attention-icon.attention-important {
+strong.attention-important, span.attention-important {
   color: var(--color-violet-dark-2);
 }
 
-strong.attention-warning, .attention-icon.attention-warning {
+strong.attention-warning, span.attention-warning {
   color: var(--color-warning-text);
 }
 
-strong.attention-caution, .attention-icon.attention-caution {
+strong.attention-caution, span.attention-caution {
   color: var(--color-red-dark-2);
 }
 
