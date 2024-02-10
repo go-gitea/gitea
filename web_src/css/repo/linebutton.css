@@ -1,4 +1,5 @@
-.code-view .lines-num:hover {
+.code-view .lines-num:hover,
+.file-preview .lines-num:hover {
   color: var(--color-text-dark) !important;
 }
 

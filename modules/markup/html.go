@@ -10,10 +10,12 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -61,6 +63,9 @@ var (
 
 	// fullURLPattern matches full URL like "mailto:...", "https://..." and "ssh+git://..."
 	fullURLPattern = regexp.MustCompile(`^[a-z][-+\w]+:`)
+
+	// filePreviewPattern matches "http://domain/org/repo/src/commit/COMMIT/filepath#L1-L2"
+	filePreviewPattern = regexp.MustCompile(`https?://((?:\S+/){3})src/commit/([0-9a-f]{7,64})/(\S+)#(L\d+(?:-L\d+)?)`)
 
 	// emailRegex is definitely not perfect with edge cases,
 	// it is still accepted by the CommonMark specification, as well as the HTML5 spec:
@@ -171,6 +176,7 @@ type processor func(ctx *RenderContext, node *html.Node)
 var defaultProcessors = []processor{
 	fullIssuePatternProcessor,
 	comparePatternProcessor,
+	filePreviewPatternProcessor,
 	fullHashPatternProcessor,
 	shortLinkProcessor,
 	linkProcessor,
@@ -1051,6 +1057,266 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 		}
 		replaceContent(node, start, end, createCodeLink(urlFull, text, "compare"))
 		node = node.NextSibling.NextSibling
+	}
+}
+
+func filePreviewPatternProcessor(ctx *RenderContext, node *html.Node) {
+	if ctx.Metas == nil {
+		return
+	}
+	if DefaultProcessorHelper.GetRepoFileContent == nil || DefaultProcessorHelper.GetLocale == nil {
+		return
+	}
+
+	next := node.NextSibling
+	for node != nil && node != next {
+		m := filePreviewPattern.FindStringSubmatchIndex(node.Data)
+		if m == nil {
+			return
+		}
+
+		// Ensure that every group (m[0]...m[9]) has a match
+		for i := 0; i < 10; i++ {
+			if m[i] == -1 {
+				return
+			}
+		}
+
+		urlFull := node.Data[m[0]:m[1]]
+
+		// Ensure that we only use links to local repositories
+		if !strings.HasPrefix(urlFull, setting.AppURL+setting.AppSubURL) {
+			return
+		}
+
+		projPath := node.Data[m[2]:m[3]]
+		projPath = strings.TrimSuffix(projPath, "/")
+
+		commitSha := node.Data[m[4]:m[5]]
+		filePath := node.Data[m[6]:m[7]]
+		hash := node.Data[m[8]:m[9]]
+
+		start := m[0]
+		end := m[1]
+
+		// If url ends in '.', it's very likely that it is not part of the
+		// actual url but used to finish a sentence.
+		if strings.HasSuffix(urlFull, ".") {
+			end--
+			urlFull = urlFull[:len(urlFull)-1]
+			hash = hash[:len(hash)-1]
+		}
+
+		projPathSegments := strings.Split(projPath, "/")
+		fileContent, err := DefaultProcessorHelper.GetRepoFileContent(
+			ctx.Ctx,
+			projPathSegments[len(projPathSegments)-2],
+			projPathSegments[len(projPathSegments)-1],
+			commitSha, filePath,
+		)
+		if err != nil {
+			return
+		}
+
+		lineSpecs := strings.Split(hash, "-")
+		lineCount := len(fileContent)
+
+		var subTitle string
+		var lineOffset int
+
+		if len(lineSpecs) == 1 {
+			line, _ := strconv.Atoi(strings.TrimPrefix(lineSpecs[0], "L"))
+			if line < 1 || line > lineCount {
+				return
+			}
+
+			fileContent = fileContent[line-1 : line]
+			subTitle = "Line " + strconv.Itoa(line)
+
+			lineOffset = line - 1
+		} else {
+			startLine, _ := strconv.Atoi(strings.TrimPrefix(lineSpecs[0], "L"))
+			endLine, _ := strconv.Atoi(strings.TrimPrefix(lineSpecs[1], "L"))
+
+			if startLine < 1 || endLine < 1 || startLine > lineCount || endLine > lineCount || endLine < startLine {
+				return
+			}
+
+			fileContent = fileContent[startLine-1 : endLine]
+			subTitle = "Lines " + strconv.Itoa(startLine) + " to " + strconv.Itoa(endLine)
+
+			lineOffset = startLine - 1
+		}
+
+		table := &html.Node{
+			Type: html.ElementNode,
+			Data: atom.Table.String(),
+			Attr: []html.Attribute{{Key: "class", Val: "file-preview"}},
+		}
+		tbody := &html.Node{
+			Type: html.ElementNode,
+			Data: atom.Tbody.String(),
+		}
+
+		locale, err := DefaultProcessorHelper.GetLocale(ctx.Ctx)
+		if err != nil {
+			return
+		}
+
+		status := &charset.EscapeStatus{}
+		statuses := make([]*charset.EscapeStatus, len(fileContent))
+		for i, line := range fileContent {
+			statuses[i], fileContent[i] = charset.EscapeControlHTML(line, locale)
+			status = status.Or(statuses[i])
+		}
+
+		for idx, code := range fileContent {
+			tr := &html.Node{
+				Type: html.ElementNode,
+				Data: atom.Tr.String(),
+			}
+
+			lineNum := strconv.Itoa(lineOffset + idx + 1)
+
+			tdLinesnum := &html.Node{
+				Type: html.ElementNode,
+				Data: atom.Td.String(),
+				Attr: []html.Attribute{
+					{Key: "id", Val: "L" + lineNum},
+					{Key: "class", Val: "lines-num"},
+				},
+			}
+			spanLinesNum := &html.Node{
+				Type: html.ElementNode,
+				Data: atom.Span.String(),
+				Attr: []html.Attribute{
+					{Key: "id", Val: "L" + lineNum},
+					{Key: "data-line-number", Val: lineNum},
+				},
+			}
+			tdLinesnum.AppendChild(spanLinesNum)
+			tr.AppendChild(tdLinesnum)
+
+			if status.Escaped {
+				tdLinesEscape := &html.Node{
+					Type: html.ElementNode,
+					Data: atom.Td.String(),
+					Attr: []html.Attribute{
+						{Key: "class", Val: "lines-escape"},
+					},
+				}
+
+				if statuses[idx].Escaped {
+					btnTitle := ""
+					if statuses[idx].HasInvisible {
+						btnTitle += locale.Tr("repo.invisible_runes_line") + " "
+					}
+					if statuses[idx].HasAmbiguous {
+						btnTitle += locale.Tr("repo.ambiguous_runes_line")
+					}
+
+					escapeBtn := &html.Node{
+						Type: html.ElementNode,
+						Data: atom.A.String(),
+						Attr: []html.Attribute{
+							{Key: "class", Val: "toggle-escape-button btn interact-bg"},
+							{Key: "title", Val: btnTitle},
+							{Key: "href", Val: "javascript:void(0)"},
+						},
+					}
+					tdLinesEscape.AppendChild(escapeBtn)
+				}
+
+				tr.AppendChild(tdLinesEscape)
+			}
+
+			tdCode := &html.Node{
+				Type: html.ElementNode,
+				Data: atom.Td.String(),
+				Attr: []html.Attribute{
+					{Key: "rel", Val: "L" + lineNum},
+					{Key: "class", Val: "lines-code chroma"},
+				},
+			}
+			codeInner := &html.Node{
+				Type: html.ElementNode,
+				Data: atom.Code.String(),
+				Attr: []html.Attribute{{Key: "class", Val: "code-inner"}},
+			}
+			codeText := &html.Node{
+				Type: html.RawNode,
+				Data: string(code),
+			}
+			codeInner.AppendChild(codeText)
+			tdCode.AppendChild(codeInner)
+			tr.AppendChild(tdCode)
+
+			tbody.AppendChild(tr)
+		}
+
+		table.AppendChild(tbody)
+
+		twrapper := &html.Node{
+			Type: html.ElementNode,
+			Data: atom.Div.String(),
+			Attr: []html.Attribute{{Key: "class", Val: "ui table"}},
+		}
+		twrapper.AppendChild(table)
+
+		header := &html.Node{
+			Type: html.ElementNode,
+			Data: atom.Div.String(),
+			Attr: []html.Attribute{{Key: "class", Val: "header"}},
+		}
+		afilepath := &html.Node{
+			Type: html.ElementNode,
+			Data: atom.A.String(),
+			Attr: []html.Attribute{{Key: "href", Val: urlFull}},
+		}
+		afilepath.AppendChild(&html.Node{
+			Type: html.TextNode,
+			Data: filePath,
+		})
+		header.AppendChild(afilepath)
+
+		psubtitle := &html.Node{
+			Type: html.ElementNode,
+			Data: atom.Span.String(),
+			Attr: []html.Attribute{{Key: "class", Val: "text small grey"}},
+		}
+		psubtitle.AppendChild(&html.Node{
+			Type: html.TextNode,
+			Data: subTitle + " in ",
+		})
+		psubtitle.AppendChild(createLink(urlFull[m[0]:m[5]], commitSha[0:7], ""))
+		header.AppendChild(psubtitle)
+
+		preview := &html.Node{
+			Type: html.ElementNode,
+			Data: atom.Div.String(),
+			Attr: []html.Attribute{{Key: "class", Val: "file-preview-box"}},
+		}
+		preview.AppendChild(header)
+		preview.AppendChild(twrapper)
+
+		// Specialized version of replaceContent, so the parent paragraph element is not destroyed from our div
+		before := node.Data[:start]
+		after := node.Data[end:]
+		node.Data = before
+		nextSibling := node.NextSibling
+		node.Parent.InsertBefore(&html.Node{
+			Type: html.RawNode,
+			Data: "</p>",
+		}, nextSibling)
+		node.Parent.InsertBefore(preview, nextSibling)
+		if after != "" {
+			node.Parent.InsertBefore(&html.Node{
+				Type: html.RawNode,
+				Data: "<p>" + after,
+			}, nextSibling)
+		}
+
+		node = node.NextSibling
 	}
 }
 

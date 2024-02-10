@@ -7,8 +7,8 @@ export function initUnicodeEscapeButton() {
 
     e.preventDefault();
 
-    const fileContent = btn.closest('.file-content, .non-diff-file-content');
-    const fileView = fileContent?.querySelectorAll('.file-code, .file-view');
+    const fileContent = btn.closest('.file-content, .non-diff-file-content, .file-preview-box');
+    const fileView = fileContent?.querySelectorAll('.file-code, .file-view, .file-preview');
     if (btn.matches('.escape-button')) {
       for (const el of fileView) el.classList.add('unicode-escaped');
       hideElem(btn);

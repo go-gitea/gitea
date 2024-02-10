@@ -128,7 +128,7 @@
 .markup ul,
 .markup ol,
 .markup dl,
-.markup table,
+.markup table:not(.file-preview),
 .markup pre {
   margin-top: 0;
   margin-bottom: 16px;
@@ -281,7 +281,7 @@
   margin-bottom: 0;
 }
 
-.markup table {
+.markup table:not(.file-preview) {
   display: block;
   width: 100%;
   width: max-content;
@@ -289,21 +289,21 @@
   overflow: auto;
 }
 
-.markup table th {
+.markup table:not(.file-preview) th {
   font-weight: var(--font-weight-semibold);
 }
 
-.markup table th,
-.markup table td {
+.markup table:not(.file-preview) th,
+.markup table:not(.file-preview) td {
   padding: 6px 13px !important;
   border: 1px solid var(--color-secondary) !important;
 }
 
-.markup table tr {
+.markup table:not(.file-preview) tr {
   border-top: 1px solid var(--color-secondary);
 }
 
-.markup table tr:nth-child(2n) {
+.markup table:not(.file-preview) tr:nth-child(2n) {
   background-color: var(--color-markup-table-row);
 }
 
@@ -451,7 +451,8 @@
   text-decoration: inherit;
 }
 
-.markup pre > code {
+.markup pre > code,
+.markup .file-preview code {
   padding: 0;
   margin: 0;
   font-size: 100%;
@@ -584,4 +585,26 @@
 .file-view.markup.orgmode li.checked > p,
 .file-view.markup.orgmode li.indeterminate > p {
   display: inline-block;
+}
+
+.markup .file-preview-box {
+  margin-bottom: 16px;
+}
+
+.markup .file-preview-box div:nth-child(1) {
+  padding: .5rem;
+  padding-left: 1rem;
+  border: 1px solid var(--color-secondary);
+  border-bottom: none;
+  border-radius: 0.28571429rem 0.28571429rem 0 0;
+  background: var(--color-box-header);
+}
+
+.markup .file-preview-box div:nth-child(1) > a {
+  display: block;
+}
+
+.markup .file-preview-box .table {
+  margin-top: 0;
+  border-radius: 0 0 0.28571429rem 0.28571429rem;
 }
