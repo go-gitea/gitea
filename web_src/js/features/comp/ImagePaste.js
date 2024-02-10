@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {POST} from '../../modules/fetch.js';
+import {imageInfo} from '../../utils/image.js';
 
 async function uploadFile(file, uploadUrl) {
   const formData = new FormData();
@@ -109,8 +110,21 @@ const uploadClipboardImage = async (editor, dropzone, e) => {
 
     const placeholder = `![${name}](uploading ...)`;
     editor.insertPlaceholder(placeholder);
-    const data = await uploadFile(img, uploadUrl);
-    editor.replacePlaceholder(placeholder, `![${name}](/attachments/${data.uuid})`);
+
+    const [data, {width, dppx}] = await Promise.all([
+      uploadFile(img, uploadUrl),
+      imageInfo(img),
+    ]);
+
+    const url = `/attachments/${data.uuid}`;
+    let text;
+    if (width > 0 && dppx > 1) {
+      text = `<img width="${Math.round(width / dppx)}" alt="image" src="${url}">`;
+    } else {
+      text = `![${name}](${url})`;
+    }
+
+    editor.replacePlaceholder(placeholder, text);
 
     const $input = $(`<input name="files" type="hidden">`).attr('id', data.uuid).val(data.uuid);
     $files.append($input);
