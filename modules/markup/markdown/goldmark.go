@@ -228,7 +228,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 
 			// create an emphasis to make it bold
 			emphasis := ast.NewEmphasis(2)
-			emphasis.SetAttributeString("class", []byte("gt-font-bold attention-"+attentionType))
+			emphasis.SetAttributeString("class", []byte("attention-"+attentionType))
 			firstParagraph.InsertBefore(firstParagraph, firstTextNode, emphasis)
 
 			// capitalize first letter
@@ -375,7 +375,7 @@ func (r *HTMLRenderer) renderCodeSpan(w util.BufWriter, source []byte, n ast.Nod
 // renderAttention renders a quote marked with i.e. "> **Note**" or "> **Warning**" with a corresponding svg
 func (r *HTMLRenderer) renderAttention(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		_, _ = w.WriteString(`<span class="gt-vm attention-`)
+		_, _ = w.WriteString(`<span class="gt-mr-2 gt-vm attention-`)
 		n := node.(*Attention)
 		_, _ = w.WriteString(strings.ToLower(n.AttentionType))
 		_, _ = w.WriteString(`">`)
