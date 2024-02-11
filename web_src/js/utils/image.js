@@ -25,27 +25,18 @@ export async function pngInfo(blob) {
   if (blob.type !== 'image/png') return {width, dppx};
 
   try {
-    const chunks = await pngChunks(blob);
-
-    // extract width from mandatory IHDR chunk
-    const ihdr = chunks.find((chunk) => chunk.name === 'IHDR');
-    if (ihdr?.data?.length) {
-      const view = new DataView(ihdr.data.buffer, 0);
-      width = view.getUint32(0);
-    }
-
-    // extract dppx from optional pHYs chunk, assuming pixels are square
-    const phys = chunks.find((chunk) => chunk.name === 'pHYs');
-    if (phys?.data?.length) {
-      const view = new DataView(phys.data.buffer, 0);
-      const unit = view.getUint8(8);
-      if (unit !== 1) { // not meter
-        dppx = 1;
-      } else {
-        dppx = Math.round(view.getUint32(0) / 39.3701) / 72; // meter to inch to dppx
+    for (const {name, data} of await pngChunks(blob)) {
+      // extract width from mandatory IHDR chunk
+      if (name === 'IHDR' && data?.length) {
+        const view = new DataView(data.buffer, 0);
+        width = view.getUint32(0);
+      } else if (name === 'pHYs' && data?.length) {
+        const view = new DataView(data.buffer, 0);
+        const unit = view.getUint8(8);
+        if (unit === 1) {
+          dppx = Math.round(view.getUint32(0) / 39.3701) / 72; // meter to inch to dppx
+        }
       }
-    } else {
-      dppx = 1;
     }
   } catch {}
 
