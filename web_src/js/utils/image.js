@@ -26,13 +26,12 @@ export async function pngInfo(blob) {
 
   try {
     for (const {name, data} of await pngChunks(blob)) {
+      const view = new DataView(data.buffer, 0);
       if (name === 'IHDR' && data?.length) {
         // extract width from mandatory IHDR chunk
-        const view = new DataView(data.buffer, 0);
         width = view.getUint32(0);
       } else if (name === 'pHYs' && data?.length) {
         // extract dppx from optional pHYs chunk, assuming pixels are square
-        const view = new DataView(data.buffer, 0);
         const unit = view.getUint8(8);
         if (unit === 1) {
           dppx = Math.round(view.getUint32(0) / 39.3701) / 72; // meter to inch to dppx
