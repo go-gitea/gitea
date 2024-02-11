@@ -448,6 +448,17 @@ func registerRoutes(m *web.Route) {
 		})
 	}
 
+	// WIP RequireAction
+	addSettingsRequireActionsRoutes := func() {
+		m.Group("/require_actions", func() {
+			m.Get("", repo_setting.RequireActions)
+			m.Combo("/{require_action_id}").Get(repo_setting.RequireActionsUpdate).
+				Post(web.Bind(forms.EditRequireActionForm{}), repo_setting.RequireActionsUpdatePost)
+			m.Post("/require_action_id}/delete", repo_setting.RequireActionsDeletePost)
+
+		})
+	}
+
 	addSettingsRunnersRoutes := func() {
 		m.Group("/runners", func() {
 			m.Get("", repo_setting.Runners)
@@ -925,6 +936,7 @@ func registerRoutes(m *web.Route) {
 
 				m.Group("/actions", func() {
 					m.Get("", org_setting.RedirectToDefaultSetting)
+					addSettingsRequireActionsRoutes()
 					addSettingsRunnersRoutes()
 					addSettingsSecretsRoutes()
 					addSettingsVariablesRoutes()
@@ -1360,6 +1372,8 @@ func registerRoutes(m *web.Route) {
 			m.Get("", actions.List)
 			m.Post("/disable", reqRepoAdmin, actions.DisableWorkflowFile)
 			m.Post("/enable", reqRepoAdmin, actions.EnableWorkflowFile)
+			m.Post("/global_disable", reqRepoAdmin, actions.DisableGlobalWorkflowFile)
+			m.Post("/global_enable", reqRepoAdmin, actions.EnableGlobalWorkflowFile)
 
 			m.Group("/runs/{run}", func() {
 				m.Combo("").

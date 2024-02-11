@@ -167,7 +167,8 @@ func (cfg *PullRequestsConfig) GetDefaultMergeStyle() MergeStyle {
 }
 
 type ActionsConfig struct {
-	DisabledWorkflows []string
+	DisabledWorkflows      []string
+	EnabledGlobalWorkflows []string
 }
 
 func (cfg *ActionsConfig) EnableWorkflow(file string) {
@@ -190,6 +191,18 @@ func (cfg *ActionsConfig) DisableWorkflow(file string) {
 	}
 
 	cfg.DisabledWorkflows = append(cfg.DisabledWorkflows, file)
+}
+
+func (cfg *ActionsConfig) DisableGlobalWorkflow(file string) {
+	cfg.EnabledGlobalWorkflows = util.SliceRemoveAll(cfg.EnabledGlobalWorkflows, file)
+}
+
+func (cfg *ActionsConfig) IsGlobalWorkflowEnabled(file string) bool {
+	return slices.Contains(cfg.EnabledGlobalWorkflows, file)
+}
+
+func (cfg *ActionsConfig) EnableGlobalWorkflow(file string) {
+	cfg.EnabledGlobalWorkflows = append(cfg.EnabledGlobalWorkflows, file)
 }
 
 // FromDB fills up a ActionsConfig from serialized format.
