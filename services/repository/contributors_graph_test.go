@@ -7,13 +7,12 @@ import (
 	"slices"
 	"testing"
 
-	"code.gitea.io/gitea/modules/git"
-
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
-	"gitea.com/go-chi/cache"
+	"code.gitea.io/gitea/modules/git"
 
+	"gitea.com/go-chi/cache"
 	"github.com/stretchr/testify/assert"
 )
 
