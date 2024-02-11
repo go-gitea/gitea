@@ -2706,14 +2706,6 @@ tbody.commit-list {
   padding: 5px 8px !important;
 }
 
-.diff-file-box[data-folded="true"] .diff-file-body {
-  display: none;
-}
-
-.diff-file-box[data-folded="true"] .diff-file-header {
-  border-radius: var(--border-radius) !important;
-}
-
 .ui.attached.header.diff-file-header.sticky-2nd-row {
   position: sticky;
   top: 44px; /* match .repository .diff-detail-box */

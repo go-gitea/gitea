@@ -183,9 +183,6 @@ export function initRepoCodeView() {
       }
     }).trigger('hashchange');
   }
-  $(document).on('click', '.fold-file', ({currentTarget}) => {
-    invertFileFolding(currentTarget.closest('.file-content'), currentTarget);
-  });
   $(document).on('click', '.code-expander-button', async ({currentTarget}) => {
     const url = currentTarget.getAttribute('data-url');
     const query = currentTarget.getAttribute('data-query');

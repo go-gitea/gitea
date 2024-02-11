@@ -2055,3 +2055,11 @@ table th[data-sortt-desc] .svg {
   align-items: center;
   gap: .25rem;
 }
+
+.fold-container[data-folded="true"] .fold-body {
+  display: none;
+}
+
+.fold-container[data-folded="true"] .ui.header {
+  border-radius: var(--border-radius);
+}

@@ -13,6 +13,7 @@ import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
 import {request, POST} from '../modules/fetch.js';
 import '../htmx.js';
+import {invertFileFolding} from './file-fold.js';
 
 const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
 
@@ -442,4 +443,25 @@ export function checkAppUrl() {
   }
   showGlobalErrorMessage(`Your ROOT_URL in app.ini is "${appUrl}", it's unlikely matching the site you are visiting.
 Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`);
+}
+
+/**
+ * Allows to fold anywhere with the correct classes
+ *
+ * @example
+ * ```html
+ * <div class="fold-container">
+ *    <div class="header">
+ *      <button class="fold-button">Fold</button>
+ *    </div>
+ *    <div class="fold-body">
+ *      Show foldable content
+ *    </div>
+ * </div>
+ * ```
+ */
+export function initGlobalFolding() {
+  $(document).on('click', '.fold-container .fold-button', ({currentTarget}) => {
+    invertFileFolding(currentTarget.closest('.fold-container'), currentTarget);
+  });
 }

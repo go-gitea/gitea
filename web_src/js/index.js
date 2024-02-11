@@ -45,6 +45,7 @@ import {
   initGlobalCommon,
   initGlobalDropzone,
   initGlobalEnterQuickSubmit,
+  initGlobalFolding,
   initGlobalFormDirtyLeaveConfirm,
   initGlobalLinkActions,
   initHeadNavbarContentToggle,
@@ -101,6 +102,7 @@ onDomReady(() => {
   initGlobalEnterQuickSubmit();
   initGlobalFormDirtyLeaveConfirm();
   initGlobalLinkActions();
+  initGlobalFolding();
 
   initCommonOrganization();
   initCommonIssueListQuickGoto();
