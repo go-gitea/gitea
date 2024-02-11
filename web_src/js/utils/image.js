@@ -1,7 +1,7 @@
 export async function pngChunks(blob) {
   const uint8arr = new Uint8Array(await blob.arrayBuffer());
   const chunks = [];
-  if (uint8arr.length < 8) return chunks;
+  if (uint8arr.length < 12) return chunks;
   const view = new DataView(uint8arr.buffer);
   if (view.getBigUint64(0) !== 9894494448401390090n) return chunks;
 
