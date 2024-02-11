@@ -24,7 +24,7 @@
 				<div class="ui error message">
 					<p>{{ctx.Locale.Tr "repo.search.code_search_unavailable"}}</p>
 				</div>
-			{{else if .Keyword}}
+			{{else}}
 				{{template "repo/search_result" .}}
 			{{end}}
 		</div>
