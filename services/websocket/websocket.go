@@ -12,22 +12,26 @@ import (
 func HandleConnect(s *melody.Session) {
 	ctx := context.GetWebContext(s.Request)
 
-	if !ctx.IsSigned {
-		// Return unauthorized status event
-		return
+	data := &sessionData{}
+
+	if ctx.IsSigned {
+		data.isSigned = true
+		data.userID = ctx.Doer.ID
 	}
 
-	uid := ctx.Doer.ID
-	sessionData := &sessionData{
-		uid: uid,
-	}
-	s.Set("data", sessionData)
+	s.Set("data", data)
 
 	// TODO: handle logouts
 }
 
 func HandleMessage(s *melody.Session, msg []byte) {
-	// TODO: Handle incoming messages
+	data, err := getSessionData(s)
+	if err != nil {
+		return
+	}
+
+	// TODO: only handle specific url message
+	data.onURL = string(msg)
 }
 
 func HandleDisconnect(s *melody.Session) {
