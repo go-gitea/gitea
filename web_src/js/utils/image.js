@@ -1,15 +1,16 @@
-export function pngChunks(data) {
-  const view = new DataView(data.buffer, 0);
+export async function pngChunks(blob) {
+  const uint8arr = new Uint8Array(await blob.arrayBuffer());
+  const view = new DataView(uint8arr.buffer, 0);
   if (view.getBigUint64(0) !== 9894494448401390090n) throw new Error('Invalid png header');
 
   const decoder = new TextDecoder();
   const chunks = [];
   let index = 8;
-  while (index < data.length) {
+  while (index < uint8arr.length) {
     const len = view.getUint32(index);
     chunks.push({
-      name: decoder.decode(data.slice(index + 4, index + 8)),
-      data: data.slice(index + 8, index + 8 + len),
+      name: decoder.decode(uint8arr.slice(index + 4, index + 8)),
+      data: uint8arr.slice(index + 8, index + 8 + len),
     });
     index += len + 12;
   }
@@ -23,7 +24,7 @@ export async function pngInfo(blob) {
   if (blob.type !== 'image/png') return {width, dppx};
 
   try {
-    const chunks = pngChunks(new Uint8Array(await blob.arrayBuffer()));
+    const chunks = await pngChunks(blob);
 
     // extract width from mandatory IHDR chunk
     const ihdr = chunks.find((chunk) => chunk.name === 'IHDR');
