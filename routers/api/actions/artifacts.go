@@ -432,11 +432,12 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
 			u, err := ar.fs.URL(artifact.StoragePath, artifact.ArtifactName)
 			if err != nil && !errors.Is(err, storage.ErrURLNotSupported) {
 				log.Error("Error getting serve direct url: %v", err)
-				ctx.Error(http.StatusInternalServerError, err.Error())
-				return
 			}
-			downloadURL = u.String()
-		} else {
+			if u != nil {
+				downloadURL = u.String()
+			}
+		}
+		if downloadURL == "" {
 			downloadURL = ar.buildArtifactURL(runID, strconv.FormatInt(artifact.ID, 10), "download")
 		}
 		item := downloadArtifactResponseItem{
