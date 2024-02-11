@@ -41,7 +41,7 @@ export async function pngInfo(blob) {
       if (unit !== 1) { // not meter
         dppx = 1;
       } else {
-        dppx = Math.round(view.getUint32(0) / 39.3701) / 72; // meter to inch to pixels
+        dppx = Math.round(view.getUint32(0) / 39.3701) / 72; // meter to inch to dppx
       }
     } else {
       dppx = 1;
