@@ -558,7 +558,6 @@ rules:
   prefer-rest-params: [2]
   prefer-spread: [2]
   prefer-template: [2]
-  quotes: [2, single, {avoidEscape: true, allowTemplateLiterals: true}]
   radix: [2, as-needed]
   regexp/confusing-quantifier: [2]
   regexp/control-character-escape: [2]
