@@ -3,7 +3,7 @@
 	{{$size = .Size}}
 {{end}}
 {{if eq .HookType "gitea"}}
-	<img class="{{.Class}}" width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/gitea.svg">
+	{{svg "gitea-gitea" $size "img"}}
 {{else if eq .HookType "gogs"}}
 	<img class="{{.Class}}" width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/gogs.ico">
 {{else if eq .HookType "slack"}}
@@ -19,7 +19,7 @@
 {{else if eq .HookType "feishu"}}
 	<img class="{{.Class}}" width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/feishu.png">
 {{else if eq .HookType "matrix"}}
-	<img class="{{.Class}}" width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/svg/gitea-matrix.svg">
+	{{svg "gitea-matrix" $size "img"}}
 {{else if eq .HookType "wechatwork"}}
 	<img class="{{.Class}}" width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/wechatwork.png">
 {{else if eq .HookType "packagist"}}
