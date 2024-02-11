@@ -15,8 +15,8 @@ import (
 
 const (
 	// tplExploreCode explore code page template
-	tplExploreCode base.TplName = "explore/code"
-	tplSearchcombo base.TplName = "code/searchcombo"
+	tplExploreCode   base.TplName = "explore/code"
+	tplSearchresults base.TplName = "code/searchresults"
 )
 
 // Code render explore code page
@@ -47,7 +47,7 @@ func Code(ctx *context.Context) {
 
 	template := tplExploreCode
 	if isHtmxRequest {
-		template = tplSearchcombo
+		template = tplSearchresults
 	}
 
 	if keyword == "" {

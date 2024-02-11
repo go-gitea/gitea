@@ -1,3 +1,7 @@
+{{if .SearchResults}}
+<h3>
+	{{ctx.Locale.Tr "explore.code_search_results" (.Keyword|Escape) | Str2html}}
+</h3>
 <div class="flex-text-block gt-fw">
 	{{range $term := .SearchResultLanguages}}
 	<a class="ui {{if eq $.Language $term.Language}}primary{{end}} basic label gt-m-0" href="{{AppSubUrl}}{{if $.ContextUser}}/{{$.ContextUser.Name}}/-/code{{else}}/explore/code{{end}}?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}{{if ne $.queryType ""}}&t={{$.queryType}}{{end}}">
@@ -41,3 +45,6 @@
 		</div>
 	{{end}}
 </div>
+{{else if .Keyword}}
+<div>{{ctx.Locale.Tr "explore.code_no_results"}}</div>
+{{end}}

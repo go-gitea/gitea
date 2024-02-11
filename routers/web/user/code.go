@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	tplUserCode    base.TplName = "user/code"
-	tplSearchcombo base.TplName = "code/searchcombo"
+	tplUserCode      base.TplName = "user/code"
+	tplSearchresults base.TplName = "code/searchresults"
 )
 
 // CodeSearch render user/organization code search page
@@ -52,7 +52,7 @@ func CodeSearch(ctx *context.Context) {
 
 	template := tplUserCode
 	if isHtmxRequest {
-		template = tplSearchcombo
+		template = tplSearchresults
 	}
 
 	if keyword == "" {
