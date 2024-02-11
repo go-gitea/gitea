@@ -515,7 +515,7 @@ If an elected member that accepts the seat does not have 2FA configured yet, the
   - Company
     - [Jason Song](https://gitea.com/wolfogre) <i@wolfogre.com>
     - [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
-    - [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.io>
+    - [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.com>
   - Community
     - [6543](https://gitea.com/6543) <6543@obermui.de>
     - [delvh](https://gitea.com/delvh) <dev.lh@web.de>
