@@ -1,10 +1,11 @@
 export async function pngChunks(blob) {
   const uint8arr = new Uint8Array(await blob.arrayBuffer());
+  const chunks = [];
+  if (uint8arr.length < 8) return chunks;
   const view = new DataView(uint8arr.buffer, 0);
-  if (view.getBigUint64(0) !== 9894494448401390090n) throw new Error('Invalid png header');
+  if (view.getBigUint64(0) !== 9894494448401390090n) return chunks;
 
   const decoder = new TextDecoder();
-  const chunks = [];
   let index = 8;
   while (index < uint8arr.length) {
     const len = view.getUint32(index);

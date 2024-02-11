@@ -2,6 +2,7 @@ import {pngChunks, pngInfo} from './image.js';
 
 const pngNoPhys = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAADUlEQVQIHQECAP3/AAAAAgABzePRKwAAAABJRU5ErkJggg==';
 const pngPhys = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAEElEQVQI12OQNZcAIgYIBQAL8gGxdzzM0A==';
+const pngEmpty = 'data:image/png;base64,';
 
 async function dataUriToBlob(datauri) {
   return await (await globalThis.fetch(datauri)).blob();
@@ -18,9 +19,11 @@ test('pngChunks', async () => {
     {name: 'pHYs', data: new Uint8Array([0, 0, 22, 37, 0, 0, 22, 37, 1])},
     {name: 'IDAT', data: new Uint8Array([8, 215, 99, 144, 53, 151, 0, 34, 6, 8, 5, 0, 11, 242, 1, 177])},
   ]);
+  expect(await pngChunks(await dataUriToBlob(pngEmpty))).toEqual([]);
 });
 
 test('pngInfo', async () => {
   expect(await pngInfo(await dataUriToBlob(pngNoPhys))).toEqual({width: 1, dppx: 1});
   expect(await pngInfo(await dataUriToBlob(pngPhys))).toEqual({width: 2, dppx: 2});
+  expect(await pngInfo(await dataUriToBlob(pngEmpty))).toEqual({width: 0, dppx: 1});
 });
