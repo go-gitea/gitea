@@ -17,7 +17,8 @@ const (
 	tplSearchResult base.TplName = "repo/search_result"
 )
 
-func searchContent(ctx *context.Context, template base.TplName) {
+// Search render repository search page
+func Search(ctx *context.Context) {
 	if !setting.Indexer.RepoIndexerEnabled {
 		ctx.Redirect(ctx.Repo.RepoLink)
 		return
@@ -33,6 +34,13 @@ func searchContent(ctx *context.Context, template base.TplName) {
 	ctx.Data["Language"] = language
 	ctx.Data["queryType"] = queryType
 	ctx.Data["PageIsViewCode"] = true
+
+	isHtmxRequest := len(ctx.Req.Header.Values("HX-Request")) > 0
+
+	template := tplSearch
+	if isHtmxRequest {
+		template = tplSearchResult
+	}
 
 	if keyword == "" {
 		ctx.HTML(http.StatusOK, template)
@@ -66,14 +74,4 @@ func searchContent(ctx *context.Context, template base.TplName) {
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, template)
-}
-
-// Search render repository search page
-func Search(ctx *context.Context) {
-	searchContent(ctx, tplSearch)
-}
-
-// Search render repository search search result
-func SearchResult(ctx *context.Context) {
-	searchContent(ctx, tplSearchResult)
 }

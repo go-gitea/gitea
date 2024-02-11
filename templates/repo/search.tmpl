@@ -3,7 +3,7 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<div class="ui repo-search">
-			<form class="ui form ignore-dirty" hx-get="{{.FeedURL}}/search-result" hx-push-url="true" hx-target="#search-content" hx-swap="show:no-scroll">
+			<form class="ui form ignore-dirty" hx-get="{{.Link}}" hx-push-url="true" hx-target="#search-content" hx-swap="innerHTML">
 				<div class="ui fluid action input">
 					<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable}} disabled{{end}} placeholder="{{ctx.Locale.Tr "repo.search.search_repo"}}">
 					<div class="ui dropdown selection {{if .CodeIndexerUnavailable}} disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.search.type.tooltip"}}">
@@ -18,6 +18,7 @@
 				</div>
 			</form>
 		</div>
+		<div class="divider"></div>
 		<div id="search-content">
 			{{if .CodeIndexerUnavailable}}
 				<div class="ui error message">
