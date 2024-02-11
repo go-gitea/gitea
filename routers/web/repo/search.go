@@ -12,10 +12,12 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-const tplSearch base.TplName = "repo/search"
+const (
+	tplSearch       base.TplName = "repo/search"
+	tplSearchResult base.TplName = "repo/search_result"
+)
 
-// Search render repository search page
-func Search(ctx *context.Context) {
+func searchContent(ctx *context.Context, template base.TplName) {
 	if !setting.Indexer.RepoIndexerEnabled {
 		ctx.Redirect(ctx.Repo.RepoLink)
 		return
@@ -33,7 +35,7 @@ func Search(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
 	if keyword == "" {
-		ctx.HTML(http.StatusOK, tplSearch)
+		ctx.HTML(http.StatusOK, template)
 		return
 	}
 
@@ -63,5 +65,15 @@ func Search(ctx *context.Context) {
 	pager.AddParam(ctx, "l", "Language")
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(http.StatusOK, tplSearch)
+	ctx.HTML(http.StatusOK, template)
+}
+
+// Search render repository search page
+func Search(ctx *context.Context) {
+	searchContent(ctx, tplSearch)
+}
+
+// Search render repository search search result
+func SearchResult(ctx *context.Context) {
+	searchContent(ctx, tplSearchResult)
 }

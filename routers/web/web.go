@@ -1526,6 +1526,7 @@ func registerRoutes(m *web.Route) {
 		m.Get("/stars", repo.Stars)
 		m.Get("/watchers", repo.Watchers)
 		m.Get("/search", reqRepoCodeReader, repo.Search)
+		m.Get("/search-result", reqRepoCodeReader, repo.SearchResult)
 	}, ignSignIn, context.RepoAssignment, context.RepoRef(), context.UnitTypes())
 
 	m.Group("/{username}", func() {
