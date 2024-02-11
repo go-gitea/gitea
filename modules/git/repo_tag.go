@@ -183,11 +183,7 @@ func parseTagRef(objectFormat ObjectFormat, ref map[string]string) (tag *Tag, er
 		}
 	}
 
-	tag.Tagger, err = newSignatureFromCommitline([]byte(ref["creator"]))
-	if err != nil {
-		return nil, fmt.Errorf("parse tagger: %w", err)
-	}
-
+	tag.Tagger = parseSignatureFromCommitLine(ref["creator"])
 	tag.Message = ref["contents"]
 	// strip PGP signature if present in contents field
 	pgpStart := strings.Index(tag.Message, beginpgp)

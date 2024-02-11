@@ -367,7 +367,7 @@
 				<div class="timeline-item event">
 					{{if .OriginalAuthor}}
 					{{else}}
-					{{/* Some timeline avatars need a offset to correctly allign with their speech
+					{{/* Some timeline avatars need a offset to correctly align with their speech
 							bubble. The condition depends on review type and for positive reviews whether
 							there is a comment element or not */}}
 					<a class="timeline-avatar{{if or (and (eq .Review.Type 1) (or .Content .Attachments)) (and (eq .Review.Type 2) (or .Content .Attachments)) (eq .Review.Type 3)}} timeline-avatar-offset{{end}}"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
