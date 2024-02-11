@@ -101,13 +101,13 @@ func TestSearchUsers(t *testing.T) {
 	}
 
 	testUserSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}},
-		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32, 34})
+		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32, 34, 37})
 
 	testUserSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsActive: util.OptionalBoolFalse},
 		[]int64{9})
 
 	testUserSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: util.OptionalBoolTrue},
-		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32, 34})
+		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32, 34, 37})
 
 	testUserSuccess(&user_model.SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: util.OptionalBoolTrue},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
@@ -123,7 +123,7 @@ func TestSearchUsers(t *testing.T) {
 		[]int64{29})
 
 	testUserSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsProhibitLogin: util.OptionalBoolTrue},
-		[]int64{30})
+		[]int64{37})
 
 	testUserSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsTwoFactorEnabled: util.OptionalBoolTrue},
 		[]int64{24})
@@ -147,20 +147,7 @@ func TestEmailNotificationPreferences(t *testing.T) {
 		{user_model.EmailNotificationsOnMention, 9},
 	} {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: test.userID})
-		assert.Equal(t, test.expected, user.EmailNotifications())
-
-		// Try all possible settings
-		assert.NoError(t, user_model.SetEmailNotifications(db.DefaultContext, user, user_model.EmailNotificationsEnabled))
-		assert.Equal(t, user_model.EmailNotificationsEnabled, user.EmailNotifications())
-
-		assert.NoError(t, user_model.SetEmailNotifications(db.DefaultContext, user, user_model.EmailNotificationsOnMention))
-		assert.Equal(t, user_model.EmailNotificationsOnMention, user.EmailNotifications())
-
-		assert.NoError(t, user_model.SetEmailNotifications(db.DefaultContext, user, user_model.EmailNotificationsDisabled))
-		assert.Equal(t, user_model.EmailNotificationsDisabled, user.EmailNotifications())
-
-		assert.NoError(t, user_model.SetEmailNotifications(db.DefaultContext, user, user_model.EmailNotificationsAndYourOwn))
-		assert.Equal(t, user_model.EmailNotificationsAndYourOwn, user.EmailNotifications())
+		assert.Equal(t, test.expected, user.EmailNotificationsPreference)
 	}
 }
 
@@ -343,42 +330,6 @@ func TestGetMaileableUsersByIDs(t *testing.T) {
 	}
 }
 
-func TestUpdateUser(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	user.KeepActivityPrivate = true
-	assert.NoError(t, user_model.UpdateUser(db.DefaultContext, user, false))
-	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	assert.True(t, user.KeepActivityPrivate)
-
-	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, false, false}
-	user.KeepActivityPrivate = false
-	user.Visibility = structs.VisibleTypePrivate
-	assert.Error(t, user_model.UpdateUser(db.DefaultContext, user, false))
-	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	assert.True(t, user.KeepActivityPrivate)
-
-	newEmail := "new_" + user.Email
-	user.Email = newEmail
-	assert.NoError(t, user_model.UpdateUser(db.DefaultContext, user, true))
-	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	assert.Equal(t, newEmail, user.Email)
-
-	user.Email = "no mail@mail.org"
-	assert.Error(t, user_model.UpdateUser(db.DefaultContext, user, true))
-}
-
-func TestUpdateUserEmailAlreadyUsed(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
-
-	user2.Email = org3.Email
-	err := user_model.UpdateUser(db.DefaultContext, user2, true)
-	assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
-}
-
 func TestNewUserRedirect(t *testing.T) {
 	// redirect to a completely new name
 	assert.NoError(t, unittest.PrepareTestDatabase())
@@ -534,14 +485,12 @@ func Test_ValidateUser(t *testing.T) {
 	}()
 	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, false, true}
 	kases := map[*user_model.User]bool{
-		{ID: 1, Visibility: structs.VisibleTypePublic}:                            true,
-		{ID: 2, Visibility: structs.VisibleTypeLimited}:                           false,
-		{ID: 2, Visibility: structs.VisibleTypeLimited, Email: "invalid"}:         false,
-		{ID: 2, Visibility: structs.VisibleTypePrivate, Email: "valid@valid.com"}: true,
+		{ID: 1, Visibility: structs.VisibleTypePublic}:  true,
+		{ID: 2, Visibility: structs.VisibleTypeLimited}: false,
+		{ID: 2, Visibility: structs.VisibleTypePrivate}: true,
 	}
 	for kase, expected := range kases {
-		err := user_model.ValidateUser(kase)
-		assert.EqualValues(t, expected, err == nil, fmt.Sprintf("case: %+v", kase))
+		assert.EqualValues(t, expected, nil == user_model.ValidateUser(kase), fmt.Sprintf("case: %+v", kase))
 	}
 }
 

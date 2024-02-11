@@ -29,7 +29,7 @@ menu:
 [ini](https://github.com/go-ini/ini/#recursive-values) 这里的说明。
 标注了 :exclamation: 的配置项表明除非你真的理解这个配置项的意义，否则最好使用默认值。
 
-在下面的默认值中,`$XYZ`代表环境变量`XYZ`的值(详见:`enviroment-to-ini`)。 _`XxYyZz`_是指默认配置的一部分列出的值。这些在 app.ini 文件中不起作用，仅在此处列出作为文档说明。
+在下面的默认值中,`$XYZ`代表环境变量`XYZ`的值(详见:`environment-to-ini`)。 _`XxYyZz`_是指默认配置的一部分列出的值。这些在 app.ini 文件中不起作用，仅在此处列出作为文档说明。
 
 包含`#`或者`;`的变量必须使用引号(`` ` ``或者`""""`)包裹，否则会被解析为注释。
 

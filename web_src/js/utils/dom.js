@@ -59,6 +59,17 @@ export function onDomReady(cb) {
   }
 }
 
+// checks whether an element is owned by the current document, and whether it is a document fragment or element node
+// if it is, it means it is a "normal" element managed by us, which can be modified safely.
+export function isDocumentFragmentOrElementNode(el) {
+  try {
+    return el.ownerDocument === document && el.nodeType === Node.ELEMENT_NODE || el.nodeType === Node.DOCUMENT_FRAGMENT_NODE;
+  } catch {
+    // in case the el is not in the same origin, then the access to nodeType would fail
+    return false;
+  }
+}
+
 // autosize a textarea to fit content. Based on
 // https://github.com/github/textarea-autosize
 // ---------------------------------------------------------------------
