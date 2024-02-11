@@ -17,7 +17,9 @@ menu:
 
 # 数据库准备
 
-在使用 Gitea 前，您需要准备一个数据库。Gitea 支持 PostgreSQL（>= 12）、MySQL（>= 8.0）、SQLite 和 MSSQL（>= 2012 SP4）这几种数据库。本页将指导您准备数据库。由于 PostgreSQL 和 MySQL 在生产环境中被广泛使用，因此本文档将仅涵盖这两种数据库。如果您计划使用 SQLite，则可以忽略本章内容。
+在使用 Gitea 前，您需要准备一个数据库。Gitea 支持 PostgreSQL（>= 12）、MySQL（>= 8.0）、MariaDB（>= 10.4）、SQLite（内置） 和 MSSQL（>= 2012 SP4）这几种数据库。本页将指导您准备数据库。由于 PostgreSQL 和 MySQL 在生产环境中被广泛使用，因此本文档将仅涵盖这两种数据库。如果您计划使用 SQLite，则可以忽略本章内容。
+
+如果您使用不受支持的数据库版本，请通过 [联系我们](/help/support) 以获取有关我们的扩展支持的信息。我们可以为旧数据库提供测试和支持，并将这些修复集成到 Gitea 代码库中。
 
 数据库实例可以与 Gitea 实例在相同机器上（本地数据库），也可以与 Gitea 实例在不同机器上（远程数据库）。
 
@@ -61,7 +63,9 @@ menu:
 
 4. 使用 UTF-8 字符集和大小写敏感的排序规则创建数据库。
 
-    Gitea 启动后会尝试把数据库修改为更合适的字符集，如果你想指定自己的字符集规则，可以在 app.ini 中设置 `[database].CHARSET_COLLATION`。
+    `utf8mb4_bin` 是 MySQL/MariaDB 的通用排序规则。
+    Gitea 启动后会尝试把数据库修改为更合适的字符集 (`utf8mb4_0900_as_cs` 或者 `uca1400_as_cs`) 并在可能的情况下更改数据库。
+    如果你想指定自己的字符集规则，可以在 `app.ini` 中设置 `[database].CHARSET_COLLATION`。
 
     ```sql
     CREATE DATABASE giteadb CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_bin';
@@ -85,7 +89,7 @@ menu:
     FLUSH PRIVILEGES;
     ```
 
-6. 通过 exit 退出数据库控制台。
+6. 通过 `exit` 退出数据库控制台。
 
 7. 在您的 Gitea 服务器上，测试与数据库的连接：
 
@@ -93,13 +97,13 @@ menu:
     mysql -u gitea -h 203.0.113.3 -p giteadb
     ```
 
-    其中 `gitea` 是数据库用户名，`giteadb` 是数据库名称，`203.0.113.3` 是数据库实例的 IP 地址。对于本地数据库，省略 -h 选项。
+    其中 `gitea` 是数据库用户名，`giteadb` 是数据库名称，`203.0.113.3` 是数据库实例的 IP 地址。对于本地数据库，省略 `-h` 选项。
 
     到此您应该能够连接到数据库了。
 
 ## PostgreSQL
 
-1. 对于远程数据库设置，通过编辑数据库实例上的 postgresql.conf 文件中的 listen_addresses 将 PostgreSQL 配置为监听您的 IP 地址：
+1. 对于远程数据库设置，通过编辑数据库实例上的 postgresql.conf 文件中的 `listen_addresses` 将 `PostgreSQL` 配置为监听您的 IP 地址：
 
     ```ini
     listen_addresses = 'localhost, 203.0.113.3'

@@ -8,8 +8,8 @@
 			{{range $idx, $release := .Releases}}
 				<li class="ui grid">
 					<div class="ui four wide column meta">
-							<a class="muted" href="{{if not .Sha1}}#{{else}}{{$.RepoLink}}/src/tag/{{.TagName | PathEscapeSegments}}{{end}}" rel="nofollow">{{svg "octicon-tag" 16 "gt-mr-2"}}{{.TagName}}</a>
-							{{if .Sha1}}
+							<a class="muted" href="{{if not (and .Sha1 ($.Permission.CanRead $.UnitTypeCode))}}#{{else}}{{$.RepoLink}}/src/tag/{{.TagName | PathEscapeSegments}}{{end}}" rel="nofollow">{{svg "octicon-tag" 16 "gt-mr-2"}}{{.TagName}}</a>
+							{{if and .Sha1 ($.Permission.CanRead $.UnitTypeCode)}}
 								<a class="muted gt-mono" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "gt-mr-2"}}{{ShortSha .Sha1}}</a>
 								{{template "repo/branch_dropdown" dict "root" $ "release" .}}
 							{{end}}
@@ -22,36 +22,18 @@
 										<span class="ui yellow label">{{ctx.Locale.Tr "repo.release.draft"}}</span>
 									{{else if .IsPrerelease}}
 										<span class="ui orange label">{{ctx.Locale.Tr "repo.release.prerelease"}}</span>
-									{{else if not .IsTag}}
+									{{else}}
 										<span class="ui green label">{{ctx.Locale.Tr "repo.release.stable"}}</span>
 									{{end}}
 								</h4>
 								<div>
-									{{if and $.CanCreateRelease (not .IsTag)}}
+									{{if $.CanCreateRelease}}
 										<a class="muted" data-tooltip-content="{{ctx.Locale.Tr "repo.release.edit"}}" href="{{$.RepoLink}}/releases/edit/{{.TagName | PathEscapeSegments}}" rel="nofollow">
 											{{svg "octicon-pencil"}}
 										</a>
 									{{end}}
 								</div>
 							</div>
-						{{if .IsTag}}
-							<p class="text grey">
-								{{if gt .Publisher.ID 0}}
-								<span class="author">
-									{{ctx.AvatarUtils.Avatar .Publisher 20 "gt-mr-2"}}
-									<a href="{{.Publisher.HomeLink}}">{{.Publisher.Name}}</a>
-								</span>
-								<span class="released">
-									{{ctx.Locale.Tr "repo.tagged_this"}}
-								</span>
-								{{if .CreatedUnix}}
-									<span class="time">{{TimeSinceUnix .CreatedUnix ctx.Locale}}</span>
-								{{end}}
-								|
-								{{end}}
-								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}...{{.TargetBehind | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{ctx.Locale.Tr "repo.tag.ahead.target" .TargetBehind}}</span>
-							</p>
-						{{else}}
 							<p class="text grey">
 								<span class="author">
 								{{if .OriginalAuthor}}
@@ -69,11 +51,10 @@
 								{{if .CreatedUnix}}
 									<span class="time">{{TimeSinceUnix .CreatedUnix ctx.Locale}}</span>
 								{{end}}
-								{{if not .IsDraft}}
+								{{if and (not .IsDraft) ($.Permission.CanRead $.UnitTypeCode)}}
 									| <span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}...{{.TargetBehind | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{ctx.Locale.Tr "repo.release.ahead.target" .TargetBehind}}</span>
 								{{end}}
 							</p>
-						{{end}}
 							<div class="markup desc">
 								{{Str2html .Note}}
 							</div>
