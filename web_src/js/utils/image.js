@@ -38,8 +38,8 @@ export async function pngInfo(blob) {
     if (phys?.data?.length) {
       const view = new DataView(phys.data.buffer, 0);
       const unit = view.getUint8(8);
-      if (unit !== 1) {
-        dppx = 1; // not meter
+      if (unit !== 1) { // not meter
+        dppx = 1;
       } else {
         dppx = Math.round(view.getUint32(0) / 39.3701) / 72; // meter to inch to pixels
       }
