@@ -117,7 +117,9 @@ const uploadClipboardImage = async (editor, dropzone, e) => {
 
     const url = `/attachments/${uuid}`;
     let text;
-    if (width > 0 && dppx > 1) { // Scale down images from HiDPI monitors
+    if (width > 0 && dppx > 1) {
+      // Scale down images from HiDPI monitors. This uses the <img> tag because it's the only
+      // method to change image size in Markdown that is supported by all implementations.
       text = `<img width="${Math.round(width / dppx)}" alt="${htmlEscape(name)}" src="${htmlEscape(url)}">`;
     } else {
       text = `![${name}](${url})`;
