@@ -1,4 +1,4 @@
-<form class="ui form ignore-dirty">
+<form class="ui form ignore-dirty" hx-get="{{.Link}}" hx-push-url="true" hx-target="closest .search-combo" hx-swap="innerHTML">
 	<div class="ui fluid action input">
 		{{template "shared/searchinput" dict "Value" .Keyword "Disabled" .CodeIndexerUnavailable}}
 		<div class="ui dropdown selection {{if .CodeIndexerUnavailable}} disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "explore.search.type.tooltip"}}">

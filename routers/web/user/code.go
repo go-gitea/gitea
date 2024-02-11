@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	tplUserCode base.TplName = "user/code"
+	tplUserCode    base.TplName = "user/code"
+	tplSearchcombo base.TplName = "code/searchcombo"
 )
 
 // CodeSearch render user/organization code search page
@@ -47,8 +48,15 @@ func CodeSearch(ctx *context.Context) {
 	ctx.Data["queryType"] = queryType
 	ctx.Data["IsCodePage"] = true
 
+	isHtmxRequest := len(ctx.Req.Header.Values("HX-Request")) > 0
+
+	template := tplUserCode
+	if isHtmxRequest {
+		template = tplSearchcombo
+	}
+
 	if keyword == "" {
-		ctx.HTML(http.StatusOK, tplUserCode)
+		ctx.HTML(http.StatusOK, template)
 		return
 	}
 
@@ -116,5 +124,5 @@ func CodeSearch(ctx *context.Context) {
 	pager.AddParam(ctx, "l", "Language")
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(http.StatusOK, tplUserCode)
+	ctx.HTML(http.StatusOK, template)
 }
