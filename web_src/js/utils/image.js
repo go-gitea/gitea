@@ -2,7 +2,7 @@ export async function pngChunks(blob) {
   const uint8arr = new Uint8Array(await blob.arrayBuffer());
   const chunks = [];
   if (uint8arr.length < 8) return chunks;
-  const view = new DataView(uint8arr.buffer, 0);
+  const view = new DataView(uint8arr.buffer);
   if (view.getBigUint64(0) !== 9894494448401390090n) return chunks;
 
   const decoder = new TextDecoder();
@@ -26,7 +26,7 @@ export async function pngInfo(blob) {
 
   try {
     for (const {name, data} of await pngChunks(blob)) {
-      const view = new DataView(data.buffer, 0);
+      const view = new DataView(data.buffer);
       if (name === 'IHDR' && data?.length) {
         // extract width from mandatory IHDR chunk
         width = view.getUint32(0);
