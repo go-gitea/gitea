@@ -127,7 +127,7 @@ func ProcessorHelper() *markup.ProcessorHelper {
 				return giteaBaseCtx.Locale, nil
 			}
 
-			return nil, fmt.Errorf("could not retrive locale from context")
+			return nil, fmt.Errorf("could not retrieve locale from context")
 		},
 	}
 }
