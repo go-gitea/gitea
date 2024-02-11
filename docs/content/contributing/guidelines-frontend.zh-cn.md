@@ -48,6 +48,7 @@ HTML 页面由[Go HTML Template](https://pkg.go.dev/html/template)渲染。
 10. 避免在一个事件监听器中混合不同的事件，优先为每个事件使用独立的事件监听器。
 11. 推荐使用自定义事件名称前缀`ce-`。
 12. Gitea 的 tailwind-style CSS 类使用`gt-`前缀（`gt-relative`），而 Gitea 自身的私有框架级 CSS 类使用`g-`前缀（`g-modal-confirm`）。
+13. 尽量避免内联脚本和样式，建议将JS代码放入JS文件中并使用CSS类。如果内联脚本和样式不可避免，请解释无法避免的原因。
 
 ### 可访问性 / ARIA
 
@@ -64,18 +65,21 @@ Gitea使用一些补丁使Fomantic UI更具可访问性（参见`aria.js`和`ari
 
 * Vue + Vanilla JS
 * Fomantic-UI（jQuery）
+* htmx （部分页面重新加载其他静态组件）
 * Vanilla JS
 
 不推荐的实现方式：
 
 * Vue + Fomantic-UI（jQuery）
 * jQuery + Vanilla JS
+* htmx + 任何其他需要大量 JavaScript 代码或不必要的功能，如 htmx 脚本 (`hx-on`)
 
 为了保持界面一致，Vue 组件可以使用 Fomantic-UI 的 CSS 类。
 尽管不建议混合使用不同的框架，
+我们使用 htmx 进行简单的交互。您可以在此 [PR](https://github.com/go-gitea/gitea/pull/28908) 中查看一个简单交互的示例，其中应使用 htmx。如果您需要更高级的反应性，请不要使用 htmx，请使用其他框架（Vue/Vanilla JS）。
 但如果混合使用是必要的，并且代码设计良好且易于维护，也可以工作。
 
-### async 函数
+### `async` 函数
 
 只有当函数内部存在`await`调用或返回`Promise`时，才将函数标记为`async`。
 
@@ -90,6 +94,12 @@ Gitea使用一些补丁使Fomantic UI更具可访问性（参见`aria.js`和`ari
 建议使用`const _promise = asyncFoo()`来告诉读者
 这是有意为之的，我们想调用异步函数并忽略Promise。
 一些 lint 规则和 IDE 也会在未处理返回的 Promise 时发出警告。
+
+### 获取数据
+
+要获取数据，请使用`modules/fetch.js`中的包装函数`GET`、`POST`等。他们
+接受内容的`data`选项，将自动设置 CSRF 令牌并返回
+[Response](https://developer.mozilla.org/en-US/docs/Web/API/Response)。
 
 ### HTML 属性和 dataset
 
@@ -132,3 +142,7 @@ Gitea使用一些补丁使Fomantic UI更具可访问性（参见`aria.js`和`ari
 ### Vue3 和 JSX
 
 Gitea 现在正在使用 Vue3。我们决定不引入 JSX，以保持 HTML 代码和 JavaScript 代码分离。
+
+### UI示例
+
+Gitea 使用一些自制的 UI 元素并自定义其他元素，以将它们更好地集成到通用 UI 方法中。当在开发模式（`RUN_MODE=dev`）下运行 Gitea 时，在 `http(s)://your-gitea-url:port/devtest` 下会提供一个包含一些标准化 UI 示例的页面。
