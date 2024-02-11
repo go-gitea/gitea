@@ -303,7 +303,7 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 		return
 	}
 
-	rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
+	rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
 
 	if markupType := markup.Type(readmeFile.Name()); markupType != "" {
 		ctx.Data["IsMarkup"] = true
@@ -492,7 +492,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			break
 		}
 
-		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
+		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
 
 		shouldRenderSource := ctx.FormString("display") == "source"
 		readmeExist := util.IsReadmeFileName(blob.Name())
@@ -643,6 +643,21 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			if err != nil {
 				ctx.ServerError("Render", err)
 				return
+			}
+		}
+	}
+
+	if ctx.Repo.GitRepo != nil {
+		checker, deferable := ctx.Repo.GitRepo.CheckAttributeReader(ctx.Repo.CommitID)
+		if checker != nil {
+			defer deferable()
+			attrs, err := checker.CheckPath(ctx.Repo.TreePath)
+			if err == nil {
+				vendored, has := attrs["linguist-vendored"]
+				ctx.Data["IsVendored"] = has && (vendored == "set" || vendored == "true")
+
+				generated, has := attrs["linguist-generated"]
+				ctx.Data["IsGenerated"] = has && (generated == "set" || generated == "true")
 			}
 		}
 	}

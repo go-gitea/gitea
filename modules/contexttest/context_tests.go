@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -40,8 +40,19 @@ func mockRequest(t *testing.T, reqPath string) *http.Request {
 	return req
 }
 
+type MockContextOption struct {
+	Render context.Render
+}
+
 // MockContext mock context for unit tests
-func MockContext(t *testing.T, reqPath string) (*context.Context, *httptest.ResponseRecorder) {
+func MockContext(t *testing.T, reqPath string, opts ...MockContextOption) (*context.Context, *httptest.ResponseRecorder) {
+	var opt MockContextOption
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
+	if opt.Render == nil {
+		opt.Render = &MockRender{}
+	}
 	resp := httptest.NewRecorder()
 	req := mockRequest(t, reqPath)
 	base, baseCleanUp := context.NewBaseContext(resp, req)
@@ -49,7 +60,7 @@ func MockContext(t *testing.T, reqPath string) (*context.Context, *httptest.Resp
 	base.Data = middleware.GetContextData(req.Context())
 	base.Locale = &translation.MockLocale{}
 
-	ctx := context.NewWebContext(base, &MockRender{}, nil)
+	ctx := context.NewWebContext(base, opt.Render, nil)
 
 	chiCtx := chi.NewRouteContext()
 	ctx.Base.AppendContextValue(chi.RouteCtxKey, chiCtx)
@@ -107,7 +118,7 @@ func LoadRepoCommit(t *testing.T, ctx gocontext.Context) {
 		assert.FailNow(t, "context is not *context.Context or *context.APIContext")
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, repo.Repository.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo.Repository)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 	branch, err := gitRepo.GetHEADBranch()
@@ -137,7 +148,7 @@ func LoadUser(t *testing.T, ctx gocontext.Context, userID int64) {
 func LoadGitRepo(t *testing.T, ctx *context.Context) {
 	assert.NoError(t, ctx.Repo.Repository.LoadOwner(ctx))
 	var err error
-	ctx.Repo.GitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
+	ctx.Repo.GitRepo, err = gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
 	assert.NoError(t, err)
 }
 

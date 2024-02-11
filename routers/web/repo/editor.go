@@ -166,8 +166,8 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		}
 
 		buf = append(buf, d...)
-		if content, err := charset.ToUTF8WithErr(buf); err != nil {
-			log.Error("ToUTF8WithErr: %v", err)
+		if content, err := charset.ToUTF8(buf, charset.ConvertOpts{KeepBOM: true}); err != nil {
+			log.Error("ToUTF8: %v", err)
 			ctx.Data["FileContent"] = string(buf)
 		} else {
 			ctx.Data["FileContent"] = content
