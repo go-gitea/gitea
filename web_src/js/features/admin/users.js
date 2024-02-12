@@ -1,34 +1,40 @@
-import $ from 'jquery';
-
 export function initAdminUserListSearchForm() {
   const searchForm = window.config.pageData.adminUserListSearchForm;
   if (!searchForm) return;
 
-  const $form = $('#user-list-search-form');
-  if (!$form.length) return;
+  const form = document.querySelector('#user-list-search-form');
+  if (!form) return;
 
-  $form.find(`button[name=sort][value=${searchForm.SortType}]`).addClass('active');
+  for (const button of document.querySelectorAll(`button[name=sort][value="${searchForm.SortType}"]`)) {
+    button.classList.add('active');
+  }
 
   if (searchForm.StatusFilterMap) {
     for (const [k, v] of Object.entries(searchForm.StatusFilterMap)) {
       if (!v) continue;
-      $form.find(`input[name="status_filter[${k}]"][value=${v}]`).prop('checked', true);
+      for (const input of document.querySelectorAll(`input[name="status_filter[${k}]"][value="${v}"]`)) {
+        input.checked = true;
+      }
     }
   }
 
-  $form.find(`input[type=radio]`).on('click', () => {
-    $form.trigger('submit');
-    return false;
-  });
-
-  $form.find('.j-reset-status-filter').on('click', () => {
-    $form.find(`input[type=radio]`).each((_, e) => {
-      const $e = $(e);
-      if ($e.attr('name').startsWith('status_filter[')) {
-        $e.prop('checked', false);
-      }
+  for (const radio of form.querySelectorAll('input[type=radio]')) {
+    radio.addEventListener('click', () => {
+      form.submit();
+      return false;
     });
-    $form.trigger('submit');
-    return false;
-  });
+  }
+
+  const resetButtons = document.querySelectorAll('.j-reset-status-filter');
+  for (const button of resetButtons) {
+    button.addEventListener('click', () => {
+      for (const input of form.querySelectorAll('input[type=radio]')) {
+        if (input.name.startsWith('status_filter[')) {
+          input.checked = false;
+        }
+      }
+      form.submit();
+      return false;
+    });
+  }
 }
