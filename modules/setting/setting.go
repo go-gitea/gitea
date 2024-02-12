@@ -92,6 +92,9 @@ func PrepareAppDataPath() error {
 
 // blanking some keys
 func BlankCfg() {
+	if !rmCfgBuiltin {
+		return
+	}
 	rootCfg := CfgProvider
 	if rootCfg.Section("storage.minio").Key("MINIO_SECRET_ACCESS_KEY").String() != "" {
 		saveCfg, _ := rootCfg.PrepareSaving()
