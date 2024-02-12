@@ -700,6 +700,10 @@ func (c *Comment) loadReview(ctx context.Context) (err error) {
 	}
 	if c.Review == nil {
 		if c.Review, err = GetReviewByID(ctx, c.ReviewID); err != nil {
+			// review request which has been replaced by actual reviews doesn't exist in database anymore, so ignorem them.
+			if c.Type == CommentTypeReviewRequest {
+				return nil
+			}
 			return err
 		}
 	}
