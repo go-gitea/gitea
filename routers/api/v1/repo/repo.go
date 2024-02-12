@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -1161,12 +1162,11 @@ func GetIssueTemplates(ctx *context.APIContext) {
 	//     "$ref": "#/responses/IssueTemplates"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	ret, err := issue.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetTemplatesFromDefaultBranch", err)
-		return
+	ret := issue.ParseTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	if cnt := len(ret.TemplateErrors); cnt != 0 {
+		ctx.Resp.Header().Add("X-Gitea-Warning", "error occurs when parsing issue template: count="+strconv.Itoa(cnt))
 	}
-	ctx.JSON(http.StatusOK, ret)
+	ctx.JSON(http.StatusOK, ret.IssueTemplates)
 }
 
 // GetIssueConfig returns the issue config for a repo
