@@ -30,7 +30,7 @@ func TestAPIIssueTemplateList(t *testing.T) {
 		DecodeJSON(t, resp, &issueTemplates)
 		assert.Empty(t, issueTemplates)
 
-		// one correct issue template and one incorrect issue template
+		// one correct issue template and some incorrect issue templates
 		err := createOrReplaceFileInBranch(user, repo, ".gitea/ISSUE_TEMPLATE/tmpl-ok.md", repo.DefaultBranch, `----
 name: foo
 about: bar
