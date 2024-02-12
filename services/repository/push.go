@@ -16,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -86,17 +87,15 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		return fmt.Errorf("GetRepositoryByOwnerAndName failed: %w", err)
 	}
 
-	repoPath := repo.RepoPath()
-
-	gitRepo, err := git.OpenRepository(ctx, repoPath)
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
-		return fmt.Errorf("OpenRepository[%s]: %w", repoPath, err)
+		return fmt.Errorf("OpenRepository[%s]: %w", repo.FullName(), err)
 	}
 	defer gitRepo.Close()
 
 	objectFormat, err := gitRepo.GetObjectFormat()
 	if err != nil {
-		return fmt.Errorf("unknown repository ObjectFormat [%s]: %w", repoPath, err)
+		return fmt.Errorf("unknown repository ObjectFormat [%s]: %w", repo.FullName(), err)
 	}
 
 	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
