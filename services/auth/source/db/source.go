@@ -18,7 +18,7 @@ func (source *Source) FromDB(bs []byte) error {
 	return nil
 }
 
-// ToDB exports an SMTPConfig to a serialized format.
+// ToDB exports an DBConfig to a serialized format.
 func (source *Source) ToDB() ([]byte, error) {
 	return nil, nil
 }
