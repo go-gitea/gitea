@@ -580,6 +580,8 @@ https://example.com/file.bin
 [[local link|file.bin]]
 [[remote link|https://example.com]]
 ![local image](image.jpg)
+![local image](path/file)
+![local image](/path/file)
 ![remote image](https://example.com/image.jpg)
 [[local image|image.jpg]]
 [[remote link|https://example.com/image.jpg]]
@@ -609,6 +611,8 @@ mail@domain.com
 <a href="/src/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/image.jpg" target="_blank" rel="nofollow noopener"><img src="/image.jpg" alt="local image"/></a><br/>
+<a href="/path/file" target="_blank" rel="nofollow noopener"><img src="/path/file" alt="local image"/></a><br/>
+<a href="/path/file" target="_blank" rel="nofollow noopener"><img src="/path/file" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="/image.jpg" rel="nofollow"><img src="/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
@@ -634,6 +638,8 @@ space</p>
 <a href="/wiki/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/wiki/raw/image.jpg" target="_blank" rel="nofollow noopener"><img src="/wiki/raw/image.jpg" alt="local image"/></a><br/>
+<a href="/wiki/raw/path/file" target="_blank" rel="nofollow noopener"><img src="/wiki/raw/path/file" alt="local image"/></a><br/>
+<a href="/wiki/raw/path/file" target="_blank" rel="nofollow noopener"><img src="/wiki/raw/path/file" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="/wiki/raw/image.jpg" rel="nofollow"><img src="/wiki/raw/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
@@ -661,6 +667,8 @@ space</p>
 <a href="https://gitea.io/src/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="https://gitea.io/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://gitea.io/image.jpg" alt="local image"/></a><br/>
+<a href="https://gitea.io/path/file" target="_blank" rel="nofollow noopener"><img src="https://gitea.io/path/file" alt="local image"/></a><br/>
+<a href="https://gitea.io/path/file" target="_blank" rel="nofollow noopener"><img src="https://gitea.io/path/file" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="https://gitea.io/image.jpg" rel="nofollow"><img src="https://gitea.io/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
@@ -688,6 +696,8 @@ space</p>
 <a href="https://gitea.io/wiki/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="https://gitea.io/wiki/raw/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://gitea.io/wiki/raw/image.jpg" alt="local image"/></a><br/>
+<a href="https://gitea.io/wiki/raw/path/file" target="_blank" rel="nofollow noopener"><img src="https://gitea.io/wiki/raw/path/file" alt="local image"/></a><br/>
+<a href="https://gitea.io/wiki/raw/path/file" target="_blank" rel="nofollow noopener"><img src="https://gitea.io/wiki/raw/path/file" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="https://gitea.io/wiki/raw/image.jpg" rel="nofollow"><img src="https://gitea.io/wiki/raw/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
@@ -715,6 +725,8 @@ space</p>
 <a href="/relative/path/src/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/relative/path/image.jpg" target="_blank" rel="nofollow noopener"><img src="/relative/path/image.jpg" alt="local image"/></a><br/>
+<a href="/relative/path/path/file" target="_blank" rel="nofollow noopener"><img src="/relative/path/path/file" alt="local image"/></a><br/>
+<a href="/relative/path/path/file" target="_blank" rel="nofollow noopener"><img src="/relative/path/path/file" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="/relative/path/image.jpg" rel="nofollow"><img src="/relative/path/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
@@ -742,6 +754,8 @@ space</p>
 <a href="/relative/path/wiki/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/relative/path/wiki/raw/image.jpg" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/image.jpg" alt="local image"/></a><br/>
+<a href="/relative/path/wiki/raw/path/file" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/path/file" alt="local image"/></a><br/>
+<a href="/relative/path/wiki/raw/path/file" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/path/file" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="/relative/path/wiki/raw/image.jpg" rel="nofollow"><img src="/relative/path/wiki/raw/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
@@ -765,11 +779,13 @@ space</p>
 			Expected: `<p>space @mention-user<br/>
 /just/a/path.bin<br/>
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
-<a href="/user/repo/file.bin" rel="nofollow">local link</a><br/>
+<a href="/user/repo/src/branch/main/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/user/repo/src/branch/main/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/user/repo/media/branch/main/image.jpg" target="_blank" rel="nofollow noopener"><img src="/user/repo/media/branch/main/image.jpg" alt="local image"/></a><br/>
+<a href="/user/repo/media/branch/main/path/file" target="_blank" rel="nofollow noopener"><img src="/user/repo/media/branch/main/path/file" alt="local image"/></a><br/>
+<a href="/user/repo/media/branch/main/path/file" target="_blank" rel="nofollow noopener"><img src="/user/repo/media/branch/main/path/file" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="/user/repo/media/branch/main/image.jpg" rel="nofollow"><img src="/user/repo/media/branch/main/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
@@ -798,6 +814,8 @@ space</p>
 <a href="/relative/path/wiki/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/relative/path/wiki/raw/image.jpg" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/image.jpg" alt="local image"/></a><br/>
+<a href="/relative/path/wiki/raw/path/file" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/path/file" alt="local image"/></a><br/>
+<a href="/relative/path/wiki/raw/path/file" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/path/file" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="/relative/path/wiki/raw/image.jpg" rel="nofollow"><img src="/relative/path/wiki/raw/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
@@ -826,6 +844,8 @@ space</p>
 <a href="/user/repo/src/sub/folder/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/user/repo/image.jpg" target="_blank" rel="nofollow noopener"><img src="/user/repo/image.jpg" alt="local image"/></a><br/>
+<a href="/user/repo/path/file" target="_blank" rel="nofollow noopener"><img src="/user/repo/path/file" alt="local image"/></a><br/>
+<a href="/user/repo/path/file" target="_blank" rel="nofollow noopener"><img src="/user/repo/path/file" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="/user/repo/image.jpg" rel="nofollow"><img src="/user/repo/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
@@ -854,6 +874,8 @@ space</p>
 <a href="/relative/path/wiki/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/relative/path/wiki/raw/image.jpg" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/image.jpg" alt="local image"/></a><br/>
+<a href="/relative/path/wiki/raw/path/file" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/path/file" alt="local image"/></a><br/>
+<a href="/relative/path/wiki/raw/path/file" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/path/file" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="/relative/path/wiki/raw/image.jpg" rel="nofollow"><img src="/relative/path/wiki/raw/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
@@ -878,11 +900,13 @@ space</p>
 			Expected: `<p>space @mention-user<br/>
 /just/a/path.bin<br/>
 <a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a><br/>
-<a href="/user/repo/file.bin" rel="nofollow">local link</a><br/>
+<a href="/user/repo/src/branch/main/sub/folder/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/user/repo/src/branch/main/sub/folder/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/user/repo/media/branch/main/sub/folder/image.jpg" target="_blank" rel="nofollow noopener"><img src="/user/repo/media/branch/main/sub/folder/image.jpg" alt="local image"/></a><br/>
+<a href="/user/repo/media/branch/main/sub/folder/path/file" target="_blank" rel="nofollow noopener"><img src="/user/repo/media/branch/main/sub/folder/path/file" alt="local image"/></a><br/>
+<a href="/user/repo/media/branch/main/sub/folder/path/file" target="_blank" rel="nofollow noopener"><img src="/user/repo/media/branch/main/sub/folder/path/file" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="/user/repo/media/branch/main/sub/folder/image.jpg" rel="nofollow"><img src="/user/repo/media/branch/main/sub/folder/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
@@ -912,6 +936,8 @@ space</p>
 <a href="/relative/path/wiki/file.bin" rel="nofollow">local link</a><br/>
 <a href="https://example.com" rel="nofollow">remote link</a><br/>
 <a href="/relative/path/wiki/raw/image.jpg" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/image.jpg" alt="local image"/></a><br/>
+<a href="/relative/path/wiki/raw/path/file" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/path/file" alt="local image"/></a><br/>
+<a href="/relative/path/wiki/raw/path/file" target="_blank" rel="nofollow noopener"><img src="/relative/path/wiki/raw/path/file" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a><br/>
 <a href="/relative/path/wiki/raw/image.jpg" rel="nofollow"><img src="/relative/path/wiki/raw/image.jpg" title="local image" alt="local image"/></a><br/>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a><br/>
