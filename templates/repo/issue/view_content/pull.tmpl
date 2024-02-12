@@ -24,6 +24,7 @@
 		{{template "repo/pulls/status" (dict
 			"CommitStatus" .LatestCommitStatus
 			"CommitStatuses" .LatestCommitStatuses
+			"MissingRequiredChecks" .MissingRequiredChecks
 			"ShowHideChecks" true
 			"is_context_required" .is_context_required
 		)}}
