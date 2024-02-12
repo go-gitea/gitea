@@ -63,7 +63,6 @@ func VerifyGPGKey(ctx context.Context, ownerID int64, keyID, token, signature st
 	}
 	if signer == nil {
 		signer, err = hashAndVerifyWithSubKeys(sig, token+"\n", key)
-
 		if err != nil {
 			return "", ErrGPGInvalidTokenSignature{
 				ID:      key.KeyID,
