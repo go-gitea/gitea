@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -121,6 +122,15 @@ func Releases(ctx *context.Context) {
 	}
 	var ok bool
 
+	type ReleaseInfo struct {
+		Release        *repo_model.Release
+		CommitStatus   *git_model.CommitStatus
+		CommitStatuses []*git_model.CommitStatus
+	}
+
+	canReadActions := ctx.Repo.CanRead(unit.TypeActions)
+
+	releaseInfos := make([]*ReleaseInfo, 0, len(releases))
 	for _, r := range releases {
 		if r.Publisher, ok = cacheUsers[r.PublisherID]; !ok {
 			r.Publisher, err = user_model.GetUserByID(ctx, r.PublisherID)
@@ -148,6 +158,23 @@ func Releases(ctx *context.Context) {
 			return
 		}
 
+		info := &ReleaseInfo{
+			Release: r,
+		}
+
+		if canReadActions {
+			statuses, _, err := git_model.GetLatestCommitStatus(ctx, r.Repo.ID, r.Sha1, db.ListOptions{ListAll: true})
+			if err != nil {
+				ctx.ServerError("GetLatestCommitStatus", err)
+				return
+			}
+
+			info.CommitStatus = git_model.CalcCommitStatus(statuses)
+			info.CommitStatuses = statuses
+		}
+
+		releaseInfos = append(releaseInfos, info)
+
 		if r.IsDraft {
 			continue
 		}
@@ -158,7 +185,7 @@ func Releases(ctx *context.Context) {
 		}
 	}
 
-	ctx.Data["Releases"] = releases
+	ctx.Data["Releases"] = releaseInfos
 
 	numReleases := ctx.Data["NumReleases"].(int64)
 	pager := context.NewPagination(int(numReleases), opts.PageSize, opts.Page, 5)
