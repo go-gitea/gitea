@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"sort"
 	"strings"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -59,11 +61,7 @@ l:
 				// A commit can have one or more parents
 				tag.Type = string(line[spacepos+1:])
 			case "tagger":
-				sig, err := newSignatureFromCommitline(line[spacepos+1:])
-				if err != nil {
-					return nil, err
-				}
-				tag.Tagger = sig
+				tag.Tagger = parseSignatureFromCommitLine(util.UnsafeBytesToString(line[spacepos+1:]))
 			}
 			nextline += eol + 1
 		case eol == 0:

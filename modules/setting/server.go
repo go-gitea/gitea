@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"net"
 	"net/url"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -321,17 +320,19 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	}
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
-	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
+	AppDataPath = sec.Key("APP_DATA_PATH").MustString(filepath.Join(AppWorkPath, "data"))
 	if !filepath.IsAbs(AppDataPath) {
 		AppDataPath = filepath.ToSlash(filepath.Join(AppWorkPath, AppDataPath))
 	}
+	fatalDuplicatedPath("app_data_path", AppDataPath)
 
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
-	PprofDataPath = sec.Key("PPROF_DATA_PATH").MustString(path.Join(AppWorkPath, "data/tmp/pprof"))
+	PprofDataPath = sec.Key("PPROF_DATA_PATH").MustString(filepath.Join(AppWorkPath, "data/tmp/pprof"))
 	if !filepath.IsAbs(PprofDataPath) {
 		PprofDataPath = filepath.Join(AppWorkPath, PprofDataPath)
 	}
+	fatalDuplicatedPath("pprof_data_path", PprofDataPath)
 
 	landingPage := sec.Key("LANDING_PAGE").MustString("home")
 	switch landingPage {
