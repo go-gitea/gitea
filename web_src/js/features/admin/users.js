@@ -21,20 +21,19 @@ export function initAdminUserListSearchForm() {
   for (const radio of form.querySelectorAll('input[type=radio]')) {
     radio.addEventListener('click', () => {
       form.submit();
-      return false;
     });
   }
 
-  const resetButtons = document.querySelectorAll('.j-reset-status-filter');
+  const resetButtons = form.querySelectorAll('.j-reset-status-filter');
   for (const button of resetButtons) {
-    button.addEventListener('click', () => {
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
       for (const input of form.querySelectorAll('input[type=radio]')) {
         if (input.name.startsWith('status_filter[')) {
           input.checked = false;
         }
       }
       form.submit();
-      return false;
     });
   }
 }
