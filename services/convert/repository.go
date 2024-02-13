@@ -93,6 +93,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	allowRebase := false
 	allowRebaseMerge := false
 	allowSquash := false
+	allowFastForwardOnly := false
 	allowRebaseUpdate := false
 	defaultDeleteBranchAfterMerge := false
 	defaultMergeStyle := repo_model.MergeStyleMerge
@@ -105,6 +106,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		allowRebase = config.AllowRebase
 		allowRebaseMerge = config.AllowRebaseMerge
 		allowSquash = config.AllowSquash
+		allowFastForwardOnly = config.AllowFastForwardOnly
 		allowRebaseUpdate = config.AllowRebaseUpdate
 		defaultDeleteBranchAfterMerge = config.DefaultDeleteBranchAfterMerge
 		defaultMergeStyle = config.GetDefaultMergeStyle()
@@ -219,6 +221,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		AllowRebase:                   allowRebase,
 		AllowRebaseMerge:              allowRebaseMerge,
 		AllowSquash:                   allowSquash,
+		AllowFastForwardOnly:          allowFastForwardOnly,
 		AllowRebaseUpdate:             allowRebaseUpdate,
 		DefaultDeleteBranchAfterMerge: defaultDeleteBranchAfterMerge,
 		DefaultMergeStyle:             string(defaultMergeStyle),
