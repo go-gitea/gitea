@@ -597,6 +597,8 @@ func IsUserParticipantsOfIssue(ctx context.Context, user *user_model.User, issue
 type DependencyInfo struct {
 	Issue                 `xorm:"extends"`
 	repo_model.Repository `xorm:"extends"`
+	IssueID               int64 `xorm:"NOT NULL"`
+	DependencyID          int64 `xorm:"NOT NULL"`
 }
 
 // GetParticipantIDsByIssue returns all userIDs who are participated in comments of an issue and issue author

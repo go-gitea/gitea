@@ -6,6 +6,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
@@ -598,4 +599,60 @@ func (issues IssueList) GetApprovalCounts(ctx context.Context) (map[int64][]*Rev
 	}
 
 	return approvalCountMap, nil
+}
+
+func (issues IssueList) BlockingDependenciesMap(ctx context.Context) (issueDepsMap map[int64][]*DependencyInfo, err error) {
+	var issueDeps []*DependencyInfo
+
+	issueIDsString := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(issues.getIssueIDs())), ","), "[]")
+	repoIDsString := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(issues.getRepoIDs())), ","), "[]")
+
+	err = db.GetEngine(ctx).
+		Table("issue").
+		Join("INNER", "repository", "repository.id = issue.repo_id").
+		Join("INNER", "issue_dependency", "issue_dependency.issue_id = issue.id").
+		Where(fmt.Sprintf("dependency_id IN (%s)", issueIDsString)).
+		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
+		OrderBy(fmt.Sprintf("CASE WHEN issue.repo_id IN (%s) THEN 0 ELSE issue.repo_id END, issue.created_unix ASC", repoIDsString)).
+		Find(&issueDeps)
+	if err != nil {
+		return nil, err
+	}
+
+	issueDepsMap = make(map[int64][]*DependencyInfo, len(issues))
+	for _, depInfo := range issueDeps {
+		depInfo.Issue.Repo = &depInfo.Repository
+
+		issueDepsMap[depInfo.DependencyID] = append(issueDepsMap[depInfo.DependencyID], depInfo)
+	}
+
+	return issueDepsMap, nil
+}
+
+func (issues IssueList) BlockedByDependenciesMap(ctx context.Context) (issueDepsMap map[int64][]*DependencyInfo, err error) {
+	var issueDeps []*DependencyInfo
+
+	issueIDsString := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(issues.getIssueIDs())), ","), "[]")
+	repoIDsString := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(issues.getRepoIDs())), ","), "[]")
+
+	err = db.GetEngine(ctx).
+		Table("issue").
+		Join("INNER", "repository", "repository.id = issue.repo_id").
+		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
+		Where(fmt.Sprintf("issue_id IN (%s)", issueIDsString)).
+		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
+		OrderBy(fmt.Sprintf("CASE WHEN issue.repo_id IN (%s) THEN 0 ELSE issue.repo_id END, issue.created_unix ASC", repoIDsString)).
+		Find(&issueDeps)
+	if err != nil {
+		return nil, err
+	}
+
+	issueDepsMap = make(map[int64][]*DependencyInfo, len(issues))
+	for _, depInfo := range issueDeps {
+		depInfo.Issue.Repo = &depInfo.Repository
+
+		issueDepsMap[depInfo.IssueID] = append(issueDepsMap[depInfo.IssueID], depInfo)
+	}
+
+	return issueDepsMap, nil
 }

@@ -346,8 +346,27 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		return
 	}
 
-	blockingDependenciesMap := make(map[int64]template.HTML, len(issues))
-	blockedByDependenciesMap := make(map[int64]template.HTML, len(issues))
+	blockingDependenciesTemplates := make(map[int64]template.HTML, len(issues))
+	blockedByDependenciesTemplates := make(map[int64]template.HTML, len(issues))
+
+	blockingDependenciesMap, err := issues.BlockingDependenciesMap(ctx)
+	if err != nil {
+		ctx.ServerError("BlockingDependenciesMap", err)
+		return
+	}
+	for i, blockingDependencies := range blockingDependenciesMap {
+		blockingDependenciesTemplates[i] = dependenciesToHTML(ctx, blockingDependencies)
+	}
+
+	blockedByDependenciesMap, err := issues.BlockedByDependenciesMap(ctx)
+	if err != nil {
+		ctx.ServerError("BlockedByDependenciesMap", err)
+		return
+	}
+	for i, blockedByDependencies := range blockedByDependenciesMap {
+		blockedByDependenciesTemplates[i] = dependenciesToHTML(ctx, blockedByDependencies)
+	}
+
 	// Get posters.
 	for i := range issues {
 		// Check read status
@@ -357,24 +376,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 			ctx.ServerError("GetIsRead", err)
 			return
 		}
-		blockingDependencies, err := issues[i].BlockingDependencies(ctx)
-		if err != nil {
-			ctx.ServerError("BlockingDependencies", err)
-			return
-		}
-		slices.Reverse(blockingDependencies)
-		blockingDependenciesMap[issues[i].ID] = dependenciesToHTML(ctx, blockingDependencies)
-
-		blockedByDependencies, err := issues[i].BlockedByDependencies(ctx, db.ListOptions{})
-		if err != nil {
-			ctx.ServerError("BlockedByDependencies", err)
-			return
-		}
-		slices.Reverse(blockedByDependencies)
-		blockedByDependenciesMap[issues[i].ID] = dependenciesToHTML(ctx, blockedByDependencies)
 	}
-	ctx.Data["BlockingDependenciesMap"] = blockingDependenciesMap
-	ctx.Data["BlockedByDependenciesMap"] = blockedByDependenciesMap
+	ctx.Data["BlockingDependenciesTemplates"] = blockingDependenciesTemplates
+	ctx.Data["BlockedByDependenciesTemplates"] = blockedByDependenciesTemplates
 
 	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
 	if err != nil {
