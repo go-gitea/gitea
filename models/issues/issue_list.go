@@ -34,6 +34,11 @@ func (issues IssueList) getRepoIDs() []int64 {
 	return repoIDs.Values()
 }
 
+// get the repoIDs from getRepoIDs as a comma-separator string like "5,7,8"
+func (issues IssueList) getRepoIDsAsString() string {
+	return strings.Trim(strings.Join(strings.Fields(fmt.Sprint(issues.getRepoIDs())), ","), "[]")
+}
+
 // LoadRepositories loads issues' all repositories
 func (issues IssueList) LoadRepositories(ctx context.Context) (repo_model.RepositoryList, error) {
 	if len(issues) == 0 {
@@ -138,6 +143,10 @@ func (issues IssueList) getIssueIDs() []int64 {
 		ids = append(ids, issue.ID)
 	}
 	return ids
+}
+
+func (issues IssueList) getIssueIDsAsString() string {
+	return strings.Trim(strings.Join(strings.Fields(fmt.Sprint(issues.getIssueIDs())), ","), "[]")
 }
 
 func (issues IssueList) loadLabels(ctx context.Context) error {
@@ -604,16 +613,13 @@ func (issues IssueList) GetApprovalCounts(ctx context.Context) (map[int64][]*Rev
 func (issues IssueList) BlockingDependenciesMap(ctx context.Context) (issueDepsMap map[int64][]*DependencyInfo, err error) {
 	var issueDeps []*DependencyInfo
 
-	issueIDsString := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(issues.getIssueIDs())), ","), "[]")
-	repoIDsString := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(issues.getRepoIDs())), ","), "[]")
-
 	err = db.GetEngine(ctx).
 		Table("issue").
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.issue_id = issue.id").
-		Where(fmt.Sprintf("dependency_id IN (%s)", issueIDsString)).
+		Where(fmt.Sprintf("dependency_id IN (%s)", issues.getIssueIDsAsString())).
 		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
-		OrderBy(fmt.Sprintf("CASE WHEN issue.repo_id IN (%s) THEN 0 ELSE issue.repo_id END, issue.created_unix ASC", repoIDsString)).
+		OrderBy(fmt.Sprintf("CASE WHEN issue.repo_id IN (%s) THEN 0 ELSE issue.repo_id END, issue.created_unix ASC", issues.getRepoIDsAsString())).
 		Find(&issueDeps)
 	if err != nil {
 		return nil, err
@@ -632,16 +638,13 @@ func (issues IssueList) BlockingDependenciesMap(ctx context.Context) (issueDepsM
 func (issues IssueList) BlockedByDependenciesMap(ctx context.Context) (issueDepsMap map[int64][]*DependencyInfo, err error) {
 	var issueDeps []*DependencyInfo
 
-	issueIDsString := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(issues.getIssueIDs())), ","), "[]")
-	repoIDsString := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(issues.getRepoIDs())), ","), "[]")
-
 	err = db.GetEngine(ctx).
 		Table("issue").
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
-		Where(fmt.Sprintf("issue_id IN (%s)", issueIDsString)).
+		Where(fmt.Sprintf("issue_id IN (%s)", issues.getIssueIDsAsString())).
 		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
-		OrderBy(fmt.Sprintf("CASE WHEN issue.repo_id IN (%s) THEN 0 ELSE issue.repo_id END, issue.created_unix ASC", repoIDsString)).
+		OrderBy(fmt.Sprintf("CASE WHEN issue.repo_id IN (%s) THEN 0 ELSE issue.repo_id END, issue.created_unix ASC", issues.getRepoIDsAsString())).
 		Find(&issueDeps)
 	if err != nil {
 		return nil, err
