@@ -67,6 +67,31 @@ Chart.register(
   customEventListener
 );
 
+function listSundaysBetween(startDate, endDate) {
+
+  // Ensure the start date is a Sunday
+  while (startDate.getDay() !== 0) {
+    startDate.setDate(startDate.getDate() + 1);
+  }
+  const sundays = [];
+
+  for (let currentDate = new Date(startDate); currentDate < endDate; currentDate.setUTCMinutes(currentDate.getUTCMinutes() + 7 * 24 * 60)) {
+    sundays.push(Math.trunc(currentDate.getTime()));
+  }
+
+  return sundays;
+}
+
+function fillEmptySundaysWithZeroes(sundays, data) {
+  const result = {};
+
+  sundays.forEach((sunday) => {
+    result[sunday] = data[sunday] || {'week': sunday, 'additions': 0, 'deletions': 0, 'commits': 0 };
+  });
+
+  return Object.values(result)
+}
+
 export default {
   components: {ChartLine, SvgIcon},
   props: {
@@ -123,11 +148,21 @@ export default {
         if (response.ok) {
           const data = await response.json();
           const {total, ...rest} = data;
-          this.contributorsStats = rest;
-          this.xAxisStart = total.weeks[0].week;
-          this.xAxisEnd = total.weeks[total.weeks.length - 1].week;
+          // below line might be deleted if we are sure go produces map always sorted by keys
+          total.weeks = Object.fromEntries(Object.entries(total.weeks).sort())
+
+          const weekValues = Object.values(total.weeks);
+          this.xAxisStart = weekValues[0].week;
+          this.xAxisEnd = weekValues[weekValues.length - 1].week;
+          const sundays = listSundaysBetween(new Date(this.xAxisStart), new Date(this.xAxisEnd))
+          total.weeks = fillEmptySundaysWithZeroes(sundays, total.weeks)
           this.xAxisMin = this.xAxisStart;
           this.xAxisMax = this.xAxisEnd;
+          this.contributorsStats = {};
+          for (const [email, user] of Object.entries(rest)) {
+              user.weeks = fillEmptySundaysWithZeroes(sundays, user.weeks);
+              this.contributorsStats[email] = user;
+          }
           this.sortContributors();
           this.totalStats = total;
           this.errorText = '';

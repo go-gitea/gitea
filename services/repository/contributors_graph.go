@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
-	util "code.gitea.io/gitea/modules/util"
 
 	"gitea.com/go-chi/cache"
 )
@@ -47,12 +46,12 @@ type WeekData struct {
 
 // ContributorData represents statistical git commit count data
 type ContributorData struct {
-	Name         string      `json:"name"`  // Display name of the contributor
-	Login        string      `json:"login"` // Login name of the contributor in case it exists
-	AvatarLink   string      `json:"avatar_link"`
-	HomeLink     string      `json:"home_link"`
-	TotalCommits int64       `json:"total_commits"`
-	Weeks        []*WeekData `json:"weeks"`
+	Name         string              `json:"name"`  // Display name of the contributor
+	Login        string              `json:"login"` // Login name of the contributor in case it exists
+	AvatarLink   string              `json:"avatar_link"`
+	HomeLink     string              `json:"home_link"`
+	TotalCommits int64               `json:"total_commits"`
+	Weeks        map[int64]*WeekData `json:"weeks"`
 }
 
 // ExtendedCommitStats contains information for commit stats with author data
@@ -61,19 +60,23 @@ type ExtendedCommitStats struct {
 	Stats  *api.CommitStats `json:"stats"`
 }
 
-// createWeeks converts list of sundays to list of *api.WeekData
-func createWeeks(sundays []int64) []*WeekData {
-	var weeks []*WeekData
-	for _, week := range sundays {
-		weeks = append(weeks, &WeekData{
-			Week:      week,
-			Additions: 0,
-			Deletions: 0,
-			Commits:   0,
-		},
-		)
+
+const layout = time.DateOnly
+
+func findLastSundayBeforeDate(dateStr string) (string, error) {
+	date, err := time.Parse(layout, dateStr)
+	if err != nil {
+		return "", err
 	}
-	return weeks
+
+	weekday := date.Weekday()
+	daysToSubtract := int(weekday) - int(time.Sunday)
+	if daysToSubtract < 0 {
+		daysToSubtract += 7
+	}
+
+	lastSunday := date.AddDate(0, 0, -daysToSubtract)
+	return lastSunday.Format(layout), nil
 }
 
 // GetContributorStats returns contributors stats for git commits for given revision or default branch
@@ -232,19 +235,12 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 	}
 
 	layout := time.DateOnly
-	initialCommitDate := extendedCommitStats[0].Author.Date
-
-	startingSunday, _ := util.FindLastSundayBeforeDate(initialCommitDate)
-	endingSunday, _ := util.FindFirstSundayAfterDate(time.Now().Format(layout))
-
-	sundays, _ := util.ListSundaysBetween(startingSunday, endingSunday)
 
 	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLinkWithSize(ctx, 0)
 	contributorsCommitStats := make(map[string]*ContributorData)
 	contributorsCommitStats["total"] = &ContributorData{
 		Name:       "Total",
-		AvatarLink: unknownUserAvatarLink,
-		Weeks:      createWeeks(sundays),
+		Weeks:      make(map[int64]*WeekData),
 	}
 	total := contributorsCommitStats["total"]
 
@@ -269,7 +265,7 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 				contributorsCommitStats[userEmail] = &ContributorData{
 					Name:       v.Author.Name,
 					AvatarLink: avatarLink,
-					Weeks:      createWeeks(sundays),
+					Weeks:      make(map[int64]*WeekData),
 				}
 			} else {
 				contributorsCommitStats[userEmail] = &ContributorData{
@@ -277,34 +273,43 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 					Login:      u.LowerName,
 					AvatarLink: u.AvatarLinkWithSize(ctx, 0),
 					HomeLink:   u.HomeLink(),
-					Weeks:      createWeeks(sundays),
+					Weeks:      make(map[int64]*WeekData),
 				}
 			}
 		}
 		// Update user statistics
 		user := contributorsCommitStats[userEmail]
-		startingOfWeek, _ := util.FindLastSundayBeforeDate(v.Author.Date)
+		startingOfWeek, _ := findLastSundayBeforeDate(v.Author.Date)
 
 		val, _ := time.Parse(layout, startingOfWeek)
-		startingSundayParsed, _ := time.Parse(layout, startingSunday)
-		idx := int(val.Sub(startingSundayParsed).Hours()/24) / 7
+		var week = val.UnixMilli()
 
-		// we really should not itterate over each (even empty) stats of any user to generate the summary
-		// THIS IS really INEFFICIENT
-		if idx >= 0 && idx < len(user.Weeks) {
-			user.Weeks[idx].Additions += v.Stats.Additions
-			user.Weeks[idx].Deletions += v.Stats.Deletions
-			user.Weeks[idx].Commits++
-			user.TotalCommits++
-
-			// Update overall statistics
-			total.Weeks[idx].Additions += v.Stats.Additions
-			total.Weeks[idx].Deletions += v.Stats.Deletions
-			total.Weeks[idx].Commits++
-			total.TotalCommits++
-		} else {
-			log.Warn("date range of the commit is not between starting date and ending date, skipping...")
+		if user.Weeks[week] == nil {
+			user.Weeks[week] = &WeekData{
+				Additions: 0,
+				Deletions: 0,
+				Commits: 0,
+				Week: week,
+			}
 		}
+		if total.Weeks[week] == nil {
+			total.Weeks[week] = &WeekData{
+				Additions: 0,
+				Deletions: 0,
+				Commits: 0,
+				Week: week,
+			}
+		}
+		user.Weeks[week].Additions += v.Stats.Additions
+		user.Weeks[week].Deletions += v.Stats.Deletions
+		user.Weeks[week].Commits++
+		user.TotalCommits++
+
+		// Update overall statistics
+		total.Weeks[week].Additions += v.Stats.Additions
+		total.Weeks[week].Deletions += v.Stats.Deletions
+		total.Weeks[week].Commits++
+		total.TotalCommits++
 	}
 
 	_ = cache.Put(cacheKey, contributorsCommitStats, contributorStatsCacheTimeout)
