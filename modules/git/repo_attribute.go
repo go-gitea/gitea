@@ -11,6 +11,8 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/modules/log"
+
+	"github.com/hashicorp/go-version"
 )
 
 // CheckAttributeOpts represents the possible options to CheckAttribute
@@ -133,7 +135,14 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 		c.env = append(c.env, "GIT_WORK_TREE="+c.WorkTree)
 	}
 
-	c.env = append(c.env, "GIT_FLUSH=1")
+	if gitVersion.Equal(version.Must(version.NewVersion("2.43.1"))) {
+		// https://github.com/go-gitea/gitea/issues/29141  gitea hanging with git 2.43.1 #29141
+		// https://lore.kernel.org/git/CABn0oJvg3M_kBW-u=j3QhKnO=6QOzk-YFTgonYw_UvFS1NTX4g@mail.gmail.com/
+		// git 2.43.1 has a bug: the GIT_FLUSH polarity is flipped
+		c.env = append(c.env, "GIT_FLUSH=0")
+	} else {
+		c.env = append(c.env, "GIT_FLUSH=1")
+	}
 
 	c.cmd.AddDynamicArguments(c.Attributes...)
 
