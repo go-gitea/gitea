@@ -621,6 +621,9 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 		return nil, err
 	}
 
+	// func caller use the created comment to retrieve created review too.
+	comment.Review = review
+
 	return comment, committer.Commit()
 }
 
