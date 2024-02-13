@@ -52,7 +52,7 @@
 					</div>
 					{{end}}
 				</div>
-				<div class="flex-item-body">
+				<div class="flex-item-body separator-container">
 					<a class="index" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 						{{if eq $.listType "dashboard"}}
 							{{.Repo.FullName}}#{{.Index}}

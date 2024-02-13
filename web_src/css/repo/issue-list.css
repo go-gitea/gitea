@@ -82,7 +82,7 @@
   background-color: var(--color-secondary-dark-4);
 }
 
-#issue-list .flex-item-body > .flex-text-inline::before {
+#issue-list .separator-container > .flex-text-inline::before {
   content: "•";
 }
 
