@@ -43,7 +43,6 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -152,12 +151,11 @@ func dependenciesToHTML(ctx *context.Context, dependencies []*issues_model.Depen
 		if index != 0 {
 			htmlCode += `<span>,</span>`
 		}
-		anchorClasses := "gt-ml-2"
+		anchorClasses := "gt-ml-2 ref-issue"
 		if dependency.Issue.IsClosed {
 			anchorClasses += " gt-line-through"
 		}
-		htmlCode += fmt.Sprintf(`<a href="%s" data-tooltip-content="#%d %s" class="%s">#%d</a>`,
-			dependency.Issue.Link(), dependency.Issue.Index, templates.RenderEmoji(ctx, dependency.Issue.Title), anchorClasses, dependency.Issue.Index)
+		htmlCode += fmt.Sprintf(`<a href="%s" class="%s">#%d</a>`, dependency.Issue.Link(), anchorClasses, dependency.Issue.Index)
 	}
 
 	return template.HTML(htmlCode + "</span>")
