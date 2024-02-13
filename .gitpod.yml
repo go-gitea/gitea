@@ -10,7 +10,6 @@ tasks:
   - name: Run backend
     command: |
       gp sync-await setup
-      mkdir -p custom/conf/
 
       # Get the URL and extract the domain
       url=$(gp url 3000)
@@ -22,6 +21,7 @@ tasks:
         sed -i "s|^SSH_DOMAIN =.*|SSH_DOMAIN = ${domain}|" custom/conf/app.ini
         sed -i "s|^NO_REPLY_ADDRESS =.*|SSH_DOMAIN = noreply.${domain}|" custom/conf/app.ini
       else
+        mkdir -p custom/conf/
         echo -e "[server]\nROOT_URL = ${url}/" > custom/conf/app.ini
         echo -e "\n[database]\nDB_TYPE = sqlite3\nPATH = $GITPOD_REPO_ROOT/data/gitea.db" >> custom/conf/app.ini
       fi
