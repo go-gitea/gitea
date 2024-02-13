@@ -60,7 +60,6 @@ type ExtendedCommitStats struct {
 	Stats  *api.CommitStats `json:"stats"`
 }
 
-
 const layout = time.DateOnly
 
 func findLastSundayBeforeDate(dateStr string) (string, error) {
@@ -239,8 +238,8 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLinkWithSize(ctx, 0)
 	contributorsCommitStats := make(map[string]*ContributorData)
 	contributorsCommitStats["total"] = &ContributorData{
-		Name:       "Total",
-		Weeks:      make(map[int64]*WeekData),
+		Name:  "Total",
+		Weeks: make(map[int64]*WeekData),
 	}
 	total := contributorsCommitStats["total"]
 
@@ -282,22 +281,22 @@ func generateContributorStats(genDone chan struct{}, cache cache.Cache, cacheKey
 		startingOfWeek, _ := findLastSundayBeforeDate(v.Author.Date)
 
 		val, _ := time.Parse(layout, startingOfWeek)
-		var week = val.UnixMilli()
+		week := val.UnixMilli()
 
 		if user.Weeks[week] == nil {
 			user.Weeks[week] = &WeekData{
 				Additions: 0,
 				Deletions: 0,
-				Commits: 0,
-				Week: week,
+				Commits:   0,
+				Week:      week,
 			}
 		}
 		if total.Weeks[week] == nil {
 			total.Weeks[week] = &WeekData{
 				Additions: 0,
 				Deletions: 0,
-				Commits: 0,
-				Week: week,
+				Commits:   0,
+				Week:      week,
 			}
 		}
 		user.Weeks[week].Additions += v.Stats.Additions
