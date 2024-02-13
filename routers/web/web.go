@@ -1181,6 +1181,7 @@ func registerRoutes(m *web.Route) {
 			})
 
 			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
+			m.Post("/batch_labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabelBatched)
 			m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)
 			m.Post("/projects", reqRepoIssuesOrPullsWriter, reqRepoProjectsReader, repo.UpdateIssueProject)
 			m.Post("/assignee", reqRepoIssuesOrPullsWriter, repo.UpdateIssueAssignee)

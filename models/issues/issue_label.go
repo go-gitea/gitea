@@ -119,8 +119,8 @@ func NewIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_m
 	return committer.Commit()
 }
 
-// newIssueLabels add labels to an issue. It will check if the labels are valid for the issue
-func newIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *user_model.User) (err error) {
+// AddIssueLabels add labels to an issue. It will check if the labels are valid for the issue
+func AddIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *user_model.User) (err error) {
 	if err = issue.LoadRepo(ctx); err != nil {
 		return err
 	}
@@ -156,7 +156,7 @@ func NewIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *us
 	}
 	defer committer.Close()
 
-	if err = newIssueLabels(ctx, issue, labels, doer); err != nil {
+	if err = AddIssueLabels(ctx, issue, labels, doer); err != nil {
 		return err
 	}
 
@@ -481,7 +481,7 @@ func ReplaceIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer
 	toRemove = append(toRemove, issue.Labels[removeIndex:]...)
 
 	if len(toAdd) > 0 {
-		if err = newIssueLabels(ctx, issue, toAdd, doer); err != nil {
+		if err = AddIssueLabels(ctx, issue, toAdd, doer); err != nil {
 			return fmt.Errorf("addLabels: %w", err)
 		}
 	}

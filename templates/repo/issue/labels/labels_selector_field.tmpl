@@ -5,7 +5,7 @@
 			{{svg "octicon-gear" 16 "gt-ml-2"}}
 		{{end}}
 	</span>
-	<div class="filter menu" {{if .Issue}}data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels"{{else}}data-id="#label_ids"{{end}}>
+	<div class="filter menu" {{if .Issue}}data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/batch_labels"{{else}}data-id="#label_ids"{{end}}>
 		{{if or .Labels .OrgLabels}}
 			<div class="ui icon search input">
 				<i class="icon">{{svg "octicon-search" 16}}</i>

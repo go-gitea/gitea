@@ -341,6 +341,34 @@ export async function updateIssuesMeta(url, action, issueIds, elementId) {
   });
 }
 
+export async function updateIssuesLabelClear(url, issueId) {
+  return $.ajax({
+    type: 'POST',
+    url: `${url}?issueID=${issueId}`,
+    data: {
+      _csrf: csrfToken,
+      isClear: true
+    },
+  });
+}
+
+export async function updateIssuesLabelBatched(url, issueId, labelsInfo) {
+  if (!Array.isArray(labelsInfo)) return;
+  if (labelsInfo.length === 0) return;
+  if (!issueId || typeof issueId !== 'number') return;
+  if (!url || typeof url !== 'string') return;
+
+  return $.ajax({
+    type: 'POST',
+    url: `${url}?issueID=${issueId}`,
+    data: {
+      _csrf: csrfToken,
+      labelsInfo: JSON.stringify(labelsInfo),
+      isClear: false
+    },
+  });
+}
+
 export function initRepoIssueComments() {
   if ($('.repository.view.issue .timeline').length === 0) return;
 
