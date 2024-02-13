@@ -161,7 +161,7 @@ func TestPackagistJSONPayload(t *testing.T) {
 		HookID:         hook.ID,
 		EventType:      webhook_module.HookEventPush,
 		PayloadContent: string(data),
-		Version:        2,
+		PayloadVersion: 2,
 	}
 
 	req, reqBody, err := newPackagistRequest(context.Background(), hook, task)
@@ -196,7 +196,7 @@ func TestPackagistEmptyPayload(t *testing.T) {
 		HookID:         hook.ID,
 		EventType:      webhook_module.HookEventCreate,
 		PayloadContent: string(data),
-		Version:        2,
+		PayloadVersion: 2,
 	}
 
 	req, reqBody, err := newPackagistRequest(context.Background(), hook, task)

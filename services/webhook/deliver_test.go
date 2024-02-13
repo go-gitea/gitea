@@ -109,9 +109,9 @@ func TestWebhookDeliverAuthorizationHeader(t *testing.T) {
 	db.GetEngine(db.DefaultContext).NoAutoTime().DB().Logger.ShowSQL(true)
 
 	hookTask := &webhook_model.HookTask{
-		HookID:    hook.ID,
-		EventType: webhook_module.HookEventPush,
-		Version:   2,
+		HookID:         hook.ID,
+		EventType:      webhook_module.HookEventPush,
+		PayloadVersion: 2,
 	}
 
 	hookTask, err = webhook_model.CreateHookTask(db.DefaultContext, hookTask)
@@ -178,7 +178,7 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 			HookID:         hook.ID,
 			EventType:      webhook_module.HookEventPush,
 			PayloadContent: `{"data": 42}`,
-			Version:        1,
+			PayloadVersion: 1,
 		}
 
 		hookTask, err := webhook_model.CreateHookTask(db.DefaultContext, hookTask)
@@ -204,7 +204,7 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 			HookID:         hook.ID,
 			EventType:      webhook_module.HookEventPush,
 			PayloadContent: string(data),
-			Version:        2,
+			PayloadVersion: 2,
 		}
 
 		hookTask, err = webhook_model.CreateHookTask(db.DefaultContext, hookTask)
@@ -296,7 +296,7 @@ func TestWebhookDeliverSpecificTypes(t *testing.T) {
 				HookID:         hook.ID,
 				EventType:      webhook_module.HookEventPush,
 				PayloadContent: string(data),
-				Version:        2,
+				PayloadVersion: 2,
 			}
 
 			hookTask, err := webhook_model.CreateHookTask(db.DefaultContext, hookTask)

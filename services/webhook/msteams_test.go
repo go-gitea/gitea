@@ -436,7 +436,7 @@ func TestMSTeamsJSONPayload(t *testing.T) {
 		HookID:         hook.ID,
 		EventType:      webhook_module.HookEventPush,
 		PayloadContent: string(data),
-		Version:        2,
+		PayloadVersion: 2,
 	}
 
 	req, reqBody, err := newMSTeamsRequest(context.Background(), hook, task)

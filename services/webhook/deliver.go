@@ -148,7 +148,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	t.IsDelivered = true
 
 	newRequest := webhookRequesters[w.Type]
-	if t.Version == 1 || newRequest == nil {
+	if t.PayloadVersion == 1 || newRequest == nil {
 		newRequest = newDefaultRequest
 	}
 

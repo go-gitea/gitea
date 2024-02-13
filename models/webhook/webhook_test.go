@@ -212,8 +212,8 @@ func TestHookTasks(t *testing.T) {
 func TestCreateHookTask(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		HookID:  3,
-		Version: 2,
+		HookID:         3,
+		PayloadVersion: 2,
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)
@@ -235,10 +235,10 @@ func TestUpdateHookTask(t *testing.T) {
 func TestCleanupHookTaskTable_PerWebhook_DeletesDelivered(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		HookID:      3,
-		IsDelivered: true,
-		Delivered:   timeutil.TimeStampNanoNow(),
-		Version:     2,
+		HookID:         3,
+		IsDelivered:    true,
+		Delivered:      timeutil.TimeStampNanoNow(),
+		PayloadVersion: 2,
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)
@@ -252,9 +252,9 @@ func TestCleanupHookTaskTable_PerWebhook_DeletesDelivered(t *testing.T) {
 func TestCleanupHookTaskTable_PerWebhook_LeavesUndelivered(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		HookID:      4,
-		IsDelivered: false,
-		Version:     2,
+		HookID:         4,
+		IsDelivered:    false,
+		PayloadVersion: 2,
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)
@@ -268,10 +268,10 @@ func TestCleanupHookTaskTable_PerWebhook_LeavesUndelivered(t *testing.T) {
 func TestCleanupHookTaskTable_PerWebhook_LeavesMostRecentTask(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		HookID:      4,
-		IsDelivered: true,
-		Delivered:   timeutil.TimeStampNanoNow(),
-		Version:     2,
+		HookID:         4,
+		IsDelivered:    true,
+		Delivered:      timeutil.TimeStampNanoNow(),
+		PayloadVersion: 2,
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)
@@ -285,10 +285,10 @@ func TestCleanupHookTaskTable_PerWebhook_LeavesMostRecentTask(t *testing.T) {
 func TestCleanupHookTaskTable_OlderThan_DeletesDelivered(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		HookID:      3,
-		IsDelivered: true,
-		Delivered:   timeutil.TimeStampNano(time.Now().AddDate(0, 0, -8).UnixNano()),
-		Version:     2,
+		HookID:         3,
+		IsDelivered:    true,
+		Delivered:      timeutil.TimeStampNano(time.Now().AddDate(0, 0, -8).UnixNano()),
+		PayloadVersion: 2,
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)
@@ -302,9 +302,9 @@ func TestCleanupHookTaskTable_OlderThan_DeletesDelivered(t *testing.T) {
 func TestCleanupHookTaskTable_OlderThan_LeavesUndelivered(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		HookID:      4,
-		IsDelivered: false,
-		Version:     2,
+		HookID:         4,
+		IsDelivered:    false,
+		PayloadVersion: 2,
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)
@@ -318,10 +318,10 @@ func TestCleanupHookTaskTable_OlderThan_LeavesUndelivered(t *testing.T) {
 func TestCleanupHookTaskTable_OlderThan_LeavesTaskEarlierThanAgeToDelete(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		HookID:      4,
-		IsDelivered: true,
-		Delivered:   timeutil.TimeStampNano(time.Now().AddDate(0, 0, -6).UnixNano()),
-		Version:     2,
+		HookID:         4,
+		IsDelivered:    true,
+		Delivered:      timeutil.TimeStampNano(time.Now().AddDate(0, 0, -6).UnixNano()),
+		PayloadVersion: 2,
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)

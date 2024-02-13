@@ -47,9 +47,14 @@ type HookTask struct {
 	HookID         int64  `xorm:"index"`
 	UUID           string `xorm:"unique"`
 	PayloadContent string `xorm:"LONGTEXT"`
-	EventType      webhook_module.HookEventType
-	IsDelivered    bool
-	Delivered      timeutil.TimeStampNano
+	// PayloadVersion number to allow for smooth version upgrades:
+	//  - PayloadVersion 1: PayloadContent contains the JSON as send to the URL
+	//  - PayloadVersion 2: PayloadContent contains the original event
+	PayloadVersion int
+
+	EventType   webhook_module.HookEventType
+	IsDelivered bool
+	Delivered   timeutil.TimeStampNano
 
 	// History info.
 	IsSucceed       bool
@@ -57,11 +62,6 @@ type HookTask struct {
 	RequestInfo     *HookRequest  `xorm:"-"`
 	ResponseContent string        `xorm:"LONGTEXT"`
 	ResponseInfo    *HookResponse `xorm:"-"`
-
-	// Version number to allow for smooth version upgrades:
-	//  - Version 1: PayloadContent contains the JSON as send to the URL
-	//  - Version 2: PayloadContent contains the original event
-	Version int
 }
 
 func init() {
@@ -123,8 +123,8 @@ func CreateHookTask(ctx context.Context, t *HookTask) (*HookTask, error) {
 	if t.Delivered == 0 {
 		t.Delivered = timeutil.TimeStampNanoNow()
 	}
-	if t.Version == 0 {
-		return nil, errors.New("missing HookTask.Version")
+	if t.PayloadVersion == 0 {
+		return nil, errors.New("missing HookTask.PayloadVersion")
 	}
 	return t, db.Insert(ctx, t)
 }
@@ -166,7 +166,7 @@ func ReplayHookTask(ctx context.Context, hookID int64, uuid string) (*HookTask, 
 		HookID:         task.HookID,
 		PayloadContent: task.PayloadContent,
 		EventType:      task.EventType,
-		Version:        task.Version,
+		PayloadVersion: task.PayloadVersion,
 	})
 }
 

@@ -172,7 +172,7 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 		HookID:         w.ID,
 		PayloadContent: string(payload),
 		EventType:      event,
-		Version:        2,
+		PayloadVersion: 2,
 	})
 	if err != nil {
 		return fmt.Errorf("CreateHookTask for %s: %w", event, err)

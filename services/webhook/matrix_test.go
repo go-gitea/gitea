@@ -208,7 +208,7 @@ func TestMatrixJSONPayload(t *testing.T) {
 		HookID:         hook.ID,
 		EventType:      webhook_module.HookEventPush,
 		PayloadContent: string(data),
-		Version:        2,
+		PayloadVersion: 2,
 	}
 
 	req, reqBody, err := newMatrixRequest(context.Background(), hook, task)
