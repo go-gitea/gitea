@@ -129,20 +129,23 @@ func prepareDeprecatedWarningsAlert(ctx *context.Context) {
 
 // Dashboard show admin panel dashboard
 func Dashboard(ctx *context.Context) {
-	// FIXME: update periodically
-	updateSystemStatus()
-	ctx.Data["SysStatus"] = sysStatus
-	if ctx.Req.Header.Get("HX-Request") == "true" {
-		ctx.HTML(http.StatusOK, tplSystemStatus)
-		return
-	}
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdminDashboard"] = true
 	ctx.Data["NeedUpdate"] = updatechecker.GetNeedUpdate(ctx)
 	ctx.Data["RemoteVersion"] = updatechecker.GetRemoteVersion(ctx)
+	// FIXME: update periodically
+	updateSystemStatus()
+	ctx.Data["SysStatus"] = sysStatus
 	ctx.Data["SSH"] = setting.SSH
 	prepareDeprecatedWarningsAlert(ctx)
 	ctx.HTML(http.StatusOK, tplDashboard)
+}
+
+func SystemStatus(ctx *context.Context) {
+	// FIXME: update periodically
+	updateSystemStatus()
+	ctx.Data["SysStatus"] = sysStatus
+	ctx.HTML(http.StatusOK, tplSystemStatus)
 }
 
 // DashboardPost run an admin operation

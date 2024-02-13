@@ -75,7 +75,7 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.dashboard.system_status"}}
 		</h4>
-		<div hx-get="{{$.Link}}" hx-swap="innerHTML" hx-trigger="every 5s" hx-indicator=".divider" class="ui attached table segment">
+		<div hx-get="{{$.Link}}/system_status" hx-swap="innerHTML" hx-trigger="every 5s" hx-indicator=".divider" class="ui attached table segment">
 			{{template "admin/system_status" .}}
 		</div>
 	</div>
