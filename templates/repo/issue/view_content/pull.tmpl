@@ -197,7 +197,7 @@
 				{{if .AllowMerge}} {{/* user is allowed to merge */}}
 					{{$prUnit := .Repository.MustGetUnit $.Context $.UnitTypePullRequests}}
 					{{$approvers := (.Issue.PullRequest.GetApprovers ctx)}}
-					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash}}
+					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash $prUnit.PullRequestsConfig.AllowFastForwardOnly}}
 						{{$hasPendingPullRequestMergeTip := ""}}
 						{{if .HasPendingPullRequestMerge}}
 							{{$createdPRMergeStr := TimeSinceUnix .PendingPullRequestMerge.CreatedUnix ctx.Locale}}
@@ -266,6 +266,13 @@
 									'textDoMerge': {{ctx.Locale.Tr "repo.pulls.squash_merge_pull_request"}},
 									'mergeTitleFieldText': defaultSquashMergeTitle,
 									'mergeMessageFieldText': {{.GetCommitMessages}} + defaultSquashMergeMessage,
+									'hideAutoMerge': generalHideAutoMerge,
+								},
+								{
+									'name': 'fast-forward-only',
+									'allowed': {{and $prUnit.PullRequestsConfig.AllowFastForwardOnly (eq .Issue.PullRequest.CommitsBehind 0)}},
+									'textDoMerge': {{ctx.Locale.Tr "repo.pulls.fast_forward_only_merge_pull_request"}},
+									'hideMergeMessageTexts': true,
 									'hideAutoMerge': generalHideAutoMerge,
 								},
 								{
