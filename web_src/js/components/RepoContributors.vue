@@ -16,6 +16,7 @@ import {
 import {GET} from '../modules/fetch.js';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import {Line as ChartLine} from 'vue-chartjs';
+import dayjs from 'dayjs';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import $ from 'jquery';
 
@@ -72,14 +73,16 @@ function listSundaysBetween(startDate, endDate) {
   while (startDate.getDay() !== 0) {
     startDate.setDate(startDate.getDate() + 1);
   }
+
+  const start = dayjs(startDate);
+  const end = dayjs(endDate);
   const sundays = [];
 
-  /* eslint-disable no-unmodified-loop-condition */
-  // couldn't find a way to get rid of the error.
-  for (const currentDate = new Date(startDate); currentDate < endDate; currentDate.setUTCMinutes(currentDate.getUTCMinutes() + 7 * 24 * 60)) {
-    sundays.push(Math.trunc(currentDate.getTime()));
+  let current = start;
+  while (current.isBefore(end)) {
+    sundays.push(current.valueOf());
+    current = current.day(7);
   }
-  /* eslint-enable no-unmodified-loop-condition */
 
   return sundays;
 }
