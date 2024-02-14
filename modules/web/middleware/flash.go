@@ -5,6 +5,7 @@ package middleware
 
 import (
 	"fmt"
+	"html/template"
 	"net/url"
 )
 
@@ -29,30 +30,36 @@ func (f *Flash) set(name, msg string, current ...bool) {
 	}
 }
 
+func flashMsgStringOrHTML(msg any) string {
+	switch v := msg.(type) {
+	case string:
+		return v
+	case template.HTML:
+		return string(v)
+	}
+	panic(fmt.Sprintf("unknown type: %T", msg))
+}
+
 // Error sets error message
 func (f *Flash) Error(msg any, current ...bool) {
-	msgStr := fmt.Sprint(msg)
-	f.ErrorMsg = msgStr
-	f.set("error", msgStr, current...)
+	f.ErrorMsg = flashMsgStringOrHTML(msg)
+	f.set("error", f.ErrorMsg, current...)
 }
 
 // Warning sets warning message
 func (f *Flash) Warning(msg any, current ...bool) {
-	msgStr := fmt.Sprint(msg)
-	f.WarningMsg = msgStr
-	f.set("warning", msgStr, current...)
+	f.WarningMsg = flashMsgStringOrHTML(msg)
+	f.set("warning", f.WarningMsg, current...)
 }
 
 // Info sets info message
 func (f *Flash) Info(msg any, current ...bool) {
-	msgStr := fmt.Sprint(msg)
-	f.InfoMsg = msgStr
-	f.set("info", msgStr, current...)
+	f.InfoMsg = flashMsgStringOrHTML(msg)
+	f.set("info", f.InfoMsg, current...)
 }
 
 // Success sets success message
 func (f *Flash) Success(msg any, current ...bool) {
-	msgStr := fmt.Sprint(msg)
-	f.SuccessMsg = msgStr
-	f.set("success", msgStr, current...)
+	f.SuccessMsg = flashMsgStringOrHTML(msg)
+	f.set("success", f.SuccessMsg, current...)
 }

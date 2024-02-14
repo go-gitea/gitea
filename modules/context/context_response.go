@@ -102,8 +102,7 @@ func (ctx *Context) RenderWithErr(msg any, tpl base.TplName, form any) {
 	if form != nil {
 		middleware.AssignForm(form, ctx.Data)
 	}
-	ctx.Flash.ErrorMsg = fmt.Sprint(msg)
-	ctx.Data["Flash"] = ctx.Flash
+	ctx.Flash.Error(msg, true)
 	ctx.HTML(http.StatusOK, tpl)
 }
 
