@@ -270,7 +270,7 @@
   margin-left: 0;
   padding: 0 15px;
   color: var(--color-text-light-2);
-  border-left: 4px solid var(--color-secondary);
+  border-left: 0.25em solid var(--color-secondary);
 }
 
 .markup blockquote > :first-child {

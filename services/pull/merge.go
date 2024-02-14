@@ -267,6 +267,10 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		if err := doMergeStyleSquash(mergeCtx, message); err != nil {
 			return "", err
 		}
+	case repo_model.MergeStyleFastForwardOnly:
+		if err := doMergeStyleFastForwardOnly(mergeCtx); err != nil {
+			return "", err
+		}
 	default:
 		return "", models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
 	}
@@ -373,6 +377,13 @@ func runMergeCommand(ctx *mergeContext, mergeStyle repo_model.MergeStyle, cmd *g
 			log.Debug("MergeUnrelatedHistories %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 			return models.ErrMergeUnrelatedHistories{
 				Style:  mergeStyle,
+				StdOut: ctx.outbuf.String(),
+				StdErr: ctx.errbuf.String(),
+				Err:    err,
+			}
+		} else if mergeStyle == repo_model.MergeStyleFastForwardOnly && strings.Contains(ctx.errbuf.String(), "Not possible to fast-forward, aborting") {
+			log.Debug("MergeDivergingFastForwardOnly %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
+			return models.ErrMergeDivergingFastForwardOnly{
 				StdOut: ctx.outbuf.String(),
 				StdErr: ctx.errbuf.String(),
 				Err:    err,

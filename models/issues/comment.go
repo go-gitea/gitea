@@ -695,8 +695,15 @@ func (c *Comment) LoadReactions(ctx context.Context, repo *repo_model.Repository
 }
 
 func (c *Comment) loadReview(ctx context.Context) (err error) {
+	if c.ReviewID == 0 {
+		return nil
+	}
 	if c.Review == nil {
 		if c.Review, err = GetReviewByID(ctx, c.ReviewID); err != nil {
+			// review request which has been replaced by actual reviews doesn't exist in database anymore, so ignorem them.
+			if c.Type == CommentTypeReviewRequest {
+				return nil
+			}
 			return err
 		}
 	}
