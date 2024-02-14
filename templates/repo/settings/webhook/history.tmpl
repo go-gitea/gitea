@@ -20,7 +20,7 @@
 							{{if .IsSucceed}}
 								<span class="text green">{{svg "octicon-check"}}</span>
 							{{else if not .IsDelivered}}
-								<span class="text">{{svg "octicon-stopwatch"}}</span>
+								<span class="text orange">{{svg "octicon-stopwatch"}}</span>
 							{{else}}
 								<span class="text red">{{svg "octicon-alert"}}</span>
 							{{end}}
