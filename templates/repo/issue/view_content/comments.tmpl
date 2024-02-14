@@ -591,11 +591,11 @@
 						{{$newProjectDisplayHtml = printf `<span data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr $trKey | Escape) (.Project.Title | Escape)}}
 					{{end}}
 					{{if and (gt .OldProjectID 0) (gt .ProjectID 0)}}
-						{{ctx.Locale.Tr "repo.issues.change_project_at" $oldProjectDisplayHtml $newProjectDisplayHtml $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.change_project_at" ($oldProjectDisplayHtml|Safe) ($newProjectDisplayHtml|Safe) $createdStr}}
 					{{else if gt .OldProjectID 0}}
-						{{ctx.Locale.Tr "repo.issues.remove_project_at" $oldProjectDisplayHtml $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.remove_project_at" ($oldProjectDisplayHtml|Safe) $createdStr}}
 					{{else if gt .ProjectID 0}}
-						{{ctx.Locale.Tr "repo.issues.add_project_at" $newProjectDisplayHtml $createdStr | Safe}}
+						{{ctx.Locale.Tr "repo.issues.add_project_at" ($newProjectDisplayHtml|Safe) $createdStr}}
 					{{end}}
 				</span>
 			</div>
