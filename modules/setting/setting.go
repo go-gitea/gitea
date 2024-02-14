@@ -90,9 +90,9 @@ func PrepareAppDataPath() error {
 	return nil
 }
 
-func InitCfgProvider(file string, extraConfigs ...string) {
+func InitCfgProvider(file string) {
 	var err error
-	if CfgProvider, err = NewConfigProviderFromFile(file, extraConfigs...); err != nil {
+	if CfgProvider, err = NewConfigProviderFromFile(file); err != nil {
 		log.Fatal("Unable to init config provider from %q: %v", file, err)
 	}
 	CfgProvider.DisableSaving() // do not allow saving the CfgProvider into file, it will be polluted by the "MustXxx" calls
@@ -225,4 +225,13 @@ func LoadSettingsForInstall() {
 	loadDBSetting(CfgProvider)
 	loadServiceFrom(CfgProvider)
 	loadMailerFrom(CfgProvider)
+}
+
+var uniquePaths = make(map[string]string)
+
+func fatalDuplicatedPath(name, p string) {
+	if targetName, ok := uniquePaths[p]; ok && targetName != name {
+		log.Fatal("storage path %q is being used by %q and %q and all storage paths must be unique to prevent data loss.", p, targetName, name)
+	}
+	uniquePaths[p] = name
 }

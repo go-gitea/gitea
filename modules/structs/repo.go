@@ -98,6 +98,7 @@ type Repository struct {
 	AllowRebase                   bool             `json:"allow_rebase"`
 	AllowRebaseMerge              bool             `json:"allow_rebase_explicit"`
 	AllowSquash                   bool             `json:"allow_squash_merge"`
+	AllowFastForwardOnly          bool             `json:"allow_fast_forward_only_merge"`
 	AllowRebaseUpdate             bool             `json:"allow_rebase_update"`
 	DefaultDeleteBranchAfterMerge bool             `json:"default_delete_branch_after_merge"`
 	DefaultMergeStyle             string           `json:"default_merge_style"`
@@ -195,6 +196,8 @@ type EditRepoOption struct {
 	AllowRebaseMerge *bool `json:"allow_rebase_explicit,omitempty"`
 	// either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging.
 	AllowSquash *bool `json:"allow_squash_merge,omitempty"`
+	// either `true` to allow fast-forward-only merging pull requests, or `false` to prevent fast-forward-only merging.
+	AllowFastForwardOnly *bool `json:"allow_fast_forward_only_merge,omitempty"`
 	// either `true` to allow mark pr as merged manually, or `false` to prevent it.
 	AllowManualMerge *bool `json:"allow_manual_merge,omitempty"`
 	// either `true` to enable AutodetectManualMerge, or `false` to prevent it. Note: In some special cases, misjudgments can occur.
@@ -203,7 +206,7 @@ type EditRepoOption struct {
 	AllowRebaseUpdate *bool `json:"allow_rebase_update,omitempty"`
 	// set to `true` to delete pr branch after merge by default
 	DefaultDeleteBranchAfterMerge *bool `json:"default_delete_branch_after_merge,omitempty"`
-	// set to a merge style to be used by this repository: "merge", "rebase", "rebase-merge", or "squash".
+	// set to a merge style to be used by this repository: "merge", "rebase", "rebase-merge", "squash", or "fast-forward-only".
 	DefaultMergeStyle *string `json:"default_merge_style,omitempty"`
 	// set to `true` to allow edits from maintainers by default
 	DefaultAllowMaintainerEdit *bool `json:"default_allow_maintainer_edit,omitempty"`
