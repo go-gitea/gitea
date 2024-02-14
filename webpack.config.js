@@ -169,6 +169,9 @@ export default {
     ],
   },
   plugins: [
+    new webpack.ProvidePlugin({ // for htmx extensions
+      htmx: 'htmx.org',
+    }),
     new DefinePlugin({
       __VUE_OPTIONS_API__: true, // at the moment, many Vue components still use the Vue Options API
       __VUE_PROD_DEVTOOLS__: false, // do not enable devtools support in production
