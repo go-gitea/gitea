@@ -18,7 +18,7 @@ func listPrimaryLanguageList(ctx *context.APIContext, ownerID int64) {
 		return
 	}
 
-	list := []api.LanguageInfo{}
+	list := make([]api.LanguageInfo, 0, len(langs))
 
 	for _, i := range langs {
 		list = append(list, api.LanguageInfo{
