@@ -106,7 +106,7 @@ func SetExecutablePath(path string) error {
 	}
 
 	if err = checkGitVersionCompatibility(gitVersion); err != nil {
-		return fmt.Errorf("installed git version %s has a known compatibility issue with Gitea: %w, please downgrade (or upgrade) your git", gitVersion.String(), err)
+		return fmt.Errorf("installed git version %s has a known compatibility issue with Gitea: %w, please upgrade (or downgrade) git", gitVersion.String(), err)
 	}
 	return nil
 }
