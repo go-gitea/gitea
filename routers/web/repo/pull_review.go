@@ -219,9 +219,9 @@ func SubmitReview(ctx *context.Context) {
 		if issue.IsPoster(ctx.Doer.ID) {
 			var translated string
 			if reviewType == issues_model.ReviewTypeApprove {
-				translated = ctx.Tr("repo.issues.review.self.approval")
+				translated = ctx.Locale.TrString("repo.issues.review.self.approval")
 			} else {
-				translated = ctx.Tr("repo.issues.review.self.rejection")
+				translated = ctx.Locale.TrString("repo.issues.review.self.rejection")
 			}
 
 			ctx.Flash.Error(translated)

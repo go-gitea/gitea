@@ -56,12 +56,12 @@ func GetContentHistoryList(ctx *context.Context) {
 	for _, item := range items {
 		var actionText string
 		if item.IsDeleted {
-			actionTextDeleted := ctx.Locale.Tr("repo.issues.content_history.deleted")
+			actionTextDeleted := ctx.Locale.TrString("repo.issues.content_history.deleted")
 			actionText = "<i data-history-is-deleted='1'>" + actionTextDeleted + "</i>"
 		} else if item.IsFirstCreated {
-			actionText = ctx.Locale.Tr("repo.issues.content_history.created")
+			actionText = ctx.Locale.TrString("repo.issues.content_history.created")
 		} else {
-			actionText = ctx.Locale.Tr("repo.issues.content_history.edited")
+			actionText = ctx.Locale.TrString("repo.issues.content_history.edited")
 		}
 
 		username := item.UserName
