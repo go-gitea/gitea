@@ -576,6 +576,7 @@ func SettingsPost(ctx *context.Context) {
 					AllowRebase:                   form.PullsAllowRebase,
 					AllowRebaseMerge:              form.PullsAllowRebaseMerge,
 					AllowSquash:                   form.PullsAllowSquash,
+					AllowFastForwardOnly:          form.PullsAllowFastForwardOnly,
 					AllowManualMerge:              form.PullsAllowManualMerge,
 					AutodetectManualMerge:         form.EnableAutodetectManualMerge,
 					AllowRebaseUpdate:             form.PullsAllowRebaseUpdate,

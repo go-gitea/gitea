@@ -19195,6 +19195,11 @@
       "description": "EditRepoOption options when editing a repository's properties",
       "type": "object",
       "properties": {
+        "allow_fast_forward_only_merge": {
+          "description": "either `true` to allow fast-forward-only merging pull requests, or `false` to prevent fast-forward-only merging.",
+          "type": "boolean",
+          "x-go-name": "AllowFastForwardOnly"
+        },
         "allow_manual_merge": {
           "description": "either `true` to allow mark pr as merged manually, or `false` to prevent it.",
           "type": "boolean",
@@ -19251,7 +19256,7 @@
           "x-go-name": "DefaultDeleteBranchAfterMerge"
         },
         "default_merge_style": {
-          "description": "set to a merge style to be used by this repository: \"merge\", \"rebase\", \"rebase-merge\", or \"squash\".",
+          "description": "set to a merge style to be used by this repository: \"merge\", \"rebase\", \"rebase-merge\", \"squash\", or \"fast-forward-only\".",
           "type": "string",
           "x-go-name": "DefaultMergeStyle"
         },
@@ -20650,6 +20655,7 @@
             "rebase",
             "rebase-merge",
             "squash",
+            "fast-forward-only",
             "manually-merged"
           ]
         },
@@ -22036,6 +22042,10 @@
       "description": "Repository represents a repository",
       "type": "object",
       "properties": {
+        "allow_fast_forward_only_merge": {
+          "type": "boolean",
+          "x-go-name": "AllowFastForwardOnly"
+        },
         "allow_merge_commits": {
           "type": "boolean",
           "x-go-name": "AllowMerge"
