@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -884,6 +885,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					AllowRebase:                   true,
 					AllowRebaseMerge:              true,
 					AllowSquash:                   true,
+					AllowFastForwardOnly:          true,
 					AllowManualMerge:              true,
 					AutodetectManualMerge:         false,
 					AllowRebaseUpdate:             true,
@@ -909,6 +911,9 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			}
 			if opts.AllowSquash != nil {
 				config.AllowSquash = *opts.AllowSquash
+			}
+			if opts.AllowFastForwardOnly != nil {
+				config.AllowFastForwardOnly = *opts.AllowFastForwardOnly
 			}
 			if opts.AllowManualMerge != nil {
 				config.AllowManualMerge = *opts.AllowManualMerge
@@ -1161,12 +1166,11 @@ func GetIssueTemplates(ctx *context.APIContext) {
 	//     "$ref": "#/responses/IssueTemplates"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	ret, err := issue.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetTemplatesFromDefaultBranch", err)
-		return
+	ret := issue.ParseTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	if cnt := len(ret.TemplateErrors); cnt != 0 {
+		ctx.Resp.Header().Add("X-Gitea-Warning", "error occurs when parsing issue template: count="+strconv.Itoa(cnt))
 	}
-	ctx.JSON(http.StatusOK, ret)
+	ctx.JSON(http.StatusOK, ret.IssueTemplates)
 }
 
 // GetIssueConfig returns the issue config for a repo
