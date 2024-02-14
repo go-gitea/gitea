@@ -28,7 +28,7 @@ const colors = {
   commits: '--color-primary-alpha-60',
   additions: '--color-green',
   deletions: '--color-red',
-  title: '--color-secondary-dark-4'
+  title: '--color-secondary-dark-4',
 };
 
 const styles = window.getComputedStyle(document.documentElement);
@@ -65,10 +65,11 @@ Chart.register(
   LineElement,
   Filler,
   zoomPlugin,
-  customEventListener
+  customEventListener,
 );
 
-function listSundaysBetween(startDate, endDate) {
+// Returns an array of millisecond-timestamps of start-of-week days (Sundays)
+function startDaysBetween(startDate, endDate) {
   // Ensure the start date is a Sunday
   while (startDate.getDay() !== 0) {
     startDate.setDate(startDate.getDate() + 1);
@@ -76,22 +77,22 @@ function listSundaysBetween(startDate, endDate) {
 
   const start = dayjs(startDate);
   const end = dayjs(endDate);
-  const sundays = [];
+  const startDays = [];
 
   let current = start;
   while (current.isBefore(end)) {
-    sundays.push(current.valueOf());
+    startDays.push(current.valueOf());
     current = current.day(7);
   }
 
-  return sundays;
+  return startDays;
 }
 
-function fillEmptySundaysWithZeroes(sundays, data) {
+function fillEmptyStartDaysWithZeroes(startDays, data) {
   const result = {};
 
-  for (const sunday of sundays) {
-    result[sunday] = data[sunday] || {'week': sunday, 'additions': 0, 'deletions': 0, 'commits': 0};
+  for (const startDay of startDays) {
+    result[startDay] = data[startDay] || {'week': startDay, 'additions': 0, 'deletions': 0, 'commits': 0};
   }
 
   return Object.values(result);
@@ -102,7 +103,7 @@ export default {
   props: {
     locale: {
       type: Object,
-      required: true
+      required: true,
     },
   },
   data: () => ({
@@ -159,13 +160,13 @@ export default {
           const weekValues = Object.values(total.weeks);
           this.xAxisStart = weekValues[0].week;
           this.xAxisEnd = weekValues[weekValues.length - 1].week;
-          const sundays = listSundaysBetween(new Date(this.xAxisStart), new Date(this.xAxisEnd));
-          total.weeks = fillEmptySundaysWithZeroes(sundays, total.weeks);
+          const startDays = startDaysBetween(new Date(this.xAxisStart), new Date(this.xAxisEnd));
+          total.weeks = fillEmptyStartDaysWithZeroes(startDays, total.weeks);
           this.xAxisMin = this.xAxisStart;
           this.xAxisMax = this.xAxisEnd;
           this.contributorsStats = {};
           for (const [email, user] of Object.entries(rest)) {
-            user.weeks = fillEmptySundaysWithZeroes(sundays, user.weeks);
+            user.weeks = fillEmptyStartDaysWithZeroes(startDays, user.weeks);
             this.contributorsStats[email] = user;
           }
           this.sortContributors();
