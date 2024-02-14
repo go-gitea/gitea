@@ -249,6 +249,7 @@ func (ctx *Context) JSONError(msg any) {
 		ctx.JSON(http.StatusBadRequest, map[string]any{"errorMessage": v, "renderFormat": "text"})
 	case template.HTML:
 		ctx.JSON(http.StatusBadRequest, map[string]any{"errorMessage": v, "renderFormat": "html"})
+	default:
+		panic(fmt.Sprintf("unsupported type: %T", msg))
 	}
-	panic(fmt.Sprintf("unsupported type: %T", msg))
 }
