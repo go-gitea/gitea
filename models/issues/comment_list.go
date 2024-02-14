@@ -430,7 +430,8 @@ func (comments CommentList) loadReviews(ctx context.Context) error {
 	for _, comment := range comments {
 		comment.Review = reviews[comment.ReviewID]
 		if comment.Review == nil {
-			if comment.ReviewID > 0 {
+			// review request which has been replaced by actual reviews doesn't exist in database anymore, so don't log errors for them.
+			if comment.ReviewID > 0 && comment.Type != CommentTypeReviewRequest {
 				log.Error("comment with review id [%d] but has no review record", comment.ReviewID)
 			}
 			continue
