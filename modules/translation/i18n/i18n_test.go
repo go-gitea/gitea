@@ -75,8 +75,8 @@ c=22
 `)
 
 	ls := NewLocaleStore()
-	lang1, _ := ls.Locale("lang1")
 	assert.NoError(t, ls.AddLocaleByIni("lang1", "Lang1", testData1, testData2))
+	lang1, _ := ls.Locale("lang1")
 	assert.Equal(t, "11", lang1.TrString("a"))
 	assert.Equal(t, "21", lang1.TrString("b"))
 	assert.Equal(t, "22", lang1.TrString("c"))
