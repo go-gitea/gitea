@@ -186,18 +186,18 @@ export default {
       const data = this.contributorsStats;
       for (const key of Object.keys(data)) {
         const user = data[key];
-        user['total_commits'] = 0;
-        user['total_additions'] = 0;
-        user['total_deletions'] = 0;
-        user['max_contribution_type'] = 0;
+        user.total_commits = 0;
+        user.total_additions = 0;
+        user.total_deletions = 0;
+        user.max_contribution_type = 0;
         const filteredWeeks = user.weeks.filter((week) => {
           const oneWeek = 7 * 24 * 60 * 60 * 1000;
           if (week.week >= this.xAxisMin - oneWeek && week.week <= this.xAxisMax + oneWeek) {
-            user['total_commits'] += week.commits;
-            user['total_additions'] += week.additions;
-            user['total_deletions'] += week.deletions;
-            if (week[this.type] > user['max_contribution_type']) {
-              user['max_contribution_type'] = week[this.type];
+            user.total_commits += week.commits;
+            user.total_additions += week.additions;
+            user.total_deletions += week.deletions;
+            if (week[this.type] > user.max_contribution_type) {
+              user.max_contribution_type = week[this.type];
             }
             return true;
           }
@@ -205,7 +205,7 @@ export default {
         });
         // this line is required. See https://github.com/sahinakkaya/gitea/pull/3#discussion_r1396495722
         // for details.
-        user['max_contribution_type'] += 1;
+        user.max_contribution_type += 1;
 
         filteredData[key] = {...user, weeks: filteredWeeks};
       }
@@ -232,7 +232,7 @@ export default {
       // for contributors' graph. If I let chartjs do this for me, it will choose different
       // maxY value for each contributors' graph which again makes it harder to compare.
       const maxValue = Math.max(
-        ...this.sortedContributors.map((c) => c['max_contribution_type'])
+        ...this.sortedContributors.map((c) => c.max_contribution_type)
       );
       const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
       if (coefficient % 1 === 0) return maxValue;
@@ -465,5 +465,4 @@ export default {
 .contributor-name {
   margin-bottom: 0;
 }
-
 </style>
