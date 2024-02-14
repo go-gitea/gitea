@@ -159,6 +159,14 @@ func (r *Review) LoadReviewer(ctx context.Context) (err error) {
 		return err
 	}
 	r.Reviewer, err = user_model.GetPossibleUserByID(ctx, r.ReviewerID)
+	if err != nil {
+		if !user_model.IsErrUserNotExist(err) {
+			return fmt.Errorf("GetPossibleUserByID [%d]: %w", r.ReviewerID, err)
+		}
+		r.ReviewerID = user_model.GhostUserID
+		r.Reviewer = user_model.NewGhostUser()
+		return nil
+	}
 	return err
 }
 
