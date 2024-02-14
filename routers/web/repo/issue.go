@@ -63,6 +63,8 @@ const (
 	tplIssueChoose base.TplName = "repo/issue/choose"
 	tplIssueView   base.TplName = "repo/issue/view"
 
+	tplIssueViewContent base.TplName = "repo/issue/view_content"
+
 	tplReactions base.TplName = "repo/issue/view_content/reactions"
 
 	issueTemplateKey      = "IssueTemplate"
@@ -2041,7 +2043,12 @@ func ViewIssue(ctx *context.Context) {
 	}
 	ctx.Data["Tags"] = tags
 
-	ctx.HTML(http.StatusOK, tplIssueView)
+	isHtmxRequest := len(ctx.Req.Header.Values("HX-Request")) > 0
+	template := tplIssueView
+	if isHtmxRequest {
+		template = tplIssueViewContent
+	}
+	ctx.HTML(http.StatusOK, template)
 }
 
 // checkBlockedByIssues return canRead and notPermitted

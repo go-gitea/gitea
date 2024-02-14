@@ -8,7 +8,9 @@
 	<div class="ui container fluid padded">
 		{{template "repo/issue/view_title" .}}
 		{{template "repo/pulls/tab_menu" .}}
-		{{template "repo/diff/box" .}}
+		<div id="issue-content">
+			{{template "repo/diff/box" .}}
+		</div>
 	</div>
 </div>
 {{template "base/footer" .}}

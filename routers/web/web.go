@@ -1432,11 +1432,12 @@ func registerRoutes(m *web.Route) {
 
 		m.Get("/pulls/posters", repo.PullPosters)
 		m.Group("/pulls/{index}", func() {
-			m.Get("", repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewIssue)
+			m.Get("", repo.SetWhitespaceBehavior, repo.ViewIssue)
+			m.Get("/diff", repo.SetWhitespaceBehavior, repo.GetPullDiffStats)
 			m.Get(".diff", repo.DownloadPullDiff)
 			m.Get(".patch", repo.DownloadPullPatch)
 			m.Group("/commits", func() {
-				m.Get("", context.RepoRef(), repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewPullCommits)
+				m.Get("", context.RepoRef(), repo.SetWhitespaceBehavior, repo.ViewPullCommits)
 				m.Get("/list", context.RepoRef(), repo.GetPullCommits)
 				m.Get("/{sha:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForSingleCommit)
 			})

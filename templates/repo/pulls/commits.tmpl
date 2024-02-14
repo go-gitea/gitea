@@ -1,10 +1,16 @@
 {{template "base/head" .}}
+
+<input type="hidden" id="repolink" value="{{$.RepoRelPath}}">
+<input type="hidden" id="issueIndex" value="{{.Issue.Index}}">
+
 <div role="main" aria-label="{{.Title}}" class="page-content repository view issue pull commits">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "repo/issue/view_title" .}}
 		{{template "repo/pulls/tab_menu" .}}
-		{{template "repo/commits_table" .}}
+		<div id="issue-content">
+			{{template "repo/commits_table" .}}
+		</div>
 	</div>
 </div>
 {{template "base/footer" .}}

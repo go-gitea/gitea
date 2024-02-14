@@ -50,10 +50,15 @@ import (
 )
 
 const (
-	tplFork        base.TplName = "repo/pulls/fork"
-	tplCompareDiff base.TplName = "repo/diff/compare"
-	tplPullCommits base.TplName = "repo/pulls/commits"
-	tplPullFiles   base.TplName = "repo/pulls/files"
+	tplFork         base.TplName = "repo/pulls/fork"
+	tplCompareDiff  base.TplName = "repo/diff/compare"
+	tplPullCommits  base.TplName = "repo/pulls/commits"
+	tplCommitsTable base.TplName = "repo/commits_table"
+	tplPullFiles    base.TplName = "repo/pulls/files"
+
+	tplPullDiffBox base.TplName = "repo/diff/box"
+
+	tplDiffStats base.TplName = "repo/pulls/diff_stats"
 
 	pullRequestTemplateKey = "PullRequestTemplate"
 )
@@ -413,6 +418,8 @@ func GetPullDiffStats(ctx *context.Context) {
 	}
 
 	ctx.Data["Diff"] = diff
+
+	ctx.HTML(http.StatusOK, tplDiffStats)
 }
 
 func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) string {
@@ -796,7 +803,13 @@ func ViewPullCommits(ctx *context.Context) {
 		return
 	}
 	getBranchData(ctx, issue)
-	ctx.HTML(http.StatusOK, tplPullCommits)
+
+	isHtmxRequest := len(ctx.Req.Header.Values("HX-Request")) > 0
+	template := tplPullCommits
+	if isHtmxRequest {
+		template = tplCommitsTable
+	}
+	ctx.HTML(http.StatusOK, template)
 }
 
 // ViewPullFiles render pull request changed files list page
@@ -1020,7 +1033,12 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	}
 	upload.AddUploadContext(ctx, "comment")
 
-	ctx.HTML(http.StatusOK, tplPullFiles)
+	isHtmxRequest := len(ctx.Req.Header.Values("HX-Request")) > 0
+	template := tplPullFiles
+	if isHtmxRequest {
+		template = tplPullDiffBox
+	}
+	ctx.HTML(http.StatusOK, template)
 }
 
 func ViewPullFilesForSingleCommit(ctx *context.Context) {

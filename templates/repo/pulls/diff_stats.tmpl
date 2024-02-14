@@ -1,0 +1,7 @@
+<span id="diff-stats" class="item gt-ml-auto gt-pr-0 gt-font-bold gt-df gt-ac gt-gap-3{{if not .Diff}} is-loading{{end}}"
+	{{if not .Diff}}hx-get="{{.Issue.Link}}/diff" hx-push-url="false" hx-target="#diff-stats" hx-trigger="load" hx-swap="outerHTML"{{end}}>
+	<span><span class="text green">+{{if .Diff.TotalAddition}}{{.Diff.TotalAddition}}{{end}}</span> <span class="text red">-{{if .Diff.TotalDeletion}}{{.Diff.TotalDeletion}}{{end}}</span></span>
+	<span class="diff-stats-bar">
+		<div class="diff-stats-add-bar" style="width: {{if .Diff.TotalAddition}}{{Eval 100 "*" .Diff.TotalAddition "/" "(" .Diff.TotalAddition "+" .Diff.TotalDeletion "+" 0.0 ")"}}{{else}}50{{end}}%"></div>
+	</span>
+</span>
