@@ -82,7 +82,10 @@ function startDaysBetween(startDate, endDate) {
   let current = start;
   while (current.isBefore(end)) {
     startDays.push(current.valueOf());
-    current = current.day(7);
+    // do not change the following line unless you are sure what you are doing
+    // see https://github.com/go-gitea/gitea/pull/27882#issuecomment-1945594269
+    // for details
+    current = current.add(7 * 24, 'hour')
   }
 
   return startDays;
