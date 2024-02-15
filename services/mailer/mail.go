@@ -94,7 +94,7 @@ func SendActivateAccountMail(locale translation.Locale, u *user_model.User) {
 		// No mail service configured
 		return
 	}
-	sendUserMail(locale.Language(), u, mailAuthActivate, u.GenerateEmailActivateCode(u.Email), locale.Tr("mail.activate_account"), "activate account")
+	sendUserMail(locale.Language(), u, mailAuthActivate, u.GenerateEmailActivateCode(u.Email), locale.TrString("mail.activate_account"), "activate account")
 }
 
 // SendResetPasswordMail sends a password reset mail to the user
@@ -104,7 +104,7 @@ func SendResetPasswordMail(u *user_model.User) {
 		return
 	}
 	locale := translation.NewLocale(u.Language)
-	sendUserMail(u.Language, u, mailAuthResetPassword, u.GenerateEmailActivateCode(u.Email), locale.Tr("mail.reset_password"), "recover account")
+	sendUserMail(u.Language, u, mailAuthResetPassword, u.GenerateEmailActivateCode(u.Email), locale.TrString("mail.reset_password"), "recover account")
 }
 
 // SendActivateEmailMail sends confirmation email to confirm new email address
@@ -130,7 +130,7 @@ func SendActivateEmailMail(u *user_model.User, email string) {
 		return
 	}
 
-	msg := NewMessage(email, locale.Tr("mail.activate_email"), content.String())
+	msg := NewMessage(email, locale.TrString("mail.activate_email"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, activate email", u.ID)
 
 	SendAsync(msg)
@@ -158,7 +158,7 @@ func SendRegisterNotifyMail(u *user_model.User) {
 		return
 	}
 
-	msg := NewMessage(u.Email, locale.Tr("mail.register_notify"), content.String())
+	msg := NewMessage(u.Email, locale.TrString("mail.register_notify"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, registration notify", u.ID)
 
 	SendAsync(msg)
@@ -173,7 +173,7 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 	locale := translation.NewLocale(u.Language)
 	repoName := repo.FullName()
 
-	subject := locale.Tr("mail.repo.collaborator.added.subject", doer.DisplayName(), repoName)
+	subject := locale.TrString("mail.repo.collaborator.added.subject", doer.DisplayName(), repoName)
 	data := map[string]any{
 		"locale":   locale,
 		"Subject":  subject,

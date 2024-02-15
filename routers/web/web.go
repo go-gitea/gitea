@@ -155,7 +155,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 			if ctx.Doer.MustChangePassword {
 				if ctx.Req.URL.Path != "/user/settings/change_password" {
 					if strings.HasPrefix(ctx.Req.UserAgent(), "git") {
-						ctx.Error(http.StatusUnauthorized, ctx.Tr("auth.must_change_password"))
+						ctx.Error(http.StatusUnauthorized, ctx.Locale.TrString("auth.must_change_password"))
 						return
 					}
 					ctx.Data["Title"] = ctx.Tr("auth.must_change_password")

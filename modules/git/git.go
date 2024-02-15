@@ -39,36 +39,37 @@ var (
 	gitVersion *version.Version
 )
 
-// loadGitVersion returns current Git version from shell. Internal usage only.
-func loadGitVersion() (*version.Version, error) {
+// loadGitVersion tries to get the current git version and stores it into a global variable
+func loadGitVersion() error {
 	// doesn't need RWMutex because it's executed by Init()
 	if gitVersion != nil {
-		return gitVersion, nil
+		return nil
 	}
 
 	stdout, _, runErr := NewCommand(DefaultContext, "version").RunStdString(nil)
 	if runErr != nil {
-		return nil, runErr
+		return runErr
 	}
 
-	fields := strings.Fields(stdout)
+	ver, err := parseGitVersionLine(strings.TrimSpace(stdout))
+	if err == nil {
+		gitVersion = ver
+	}
+	return err
+}
+
+func parseGitVersionLine(s string) (*version.Version, error) {
+	fields := strings.Fields(s)
 	if len(fields) < 3 {
-		return nil, fmt.Errorf("invalid git version output: %s", stdout)
+		return nil, fmt.Errorf("invalid git version: %q", s)
 	}
 
-	var versionString string
-
-	// Handle special case on Windows.
-	i := strings.Index(fields[2], "windows")
-	if i >= 1 {
-		versionString = fields[2][:i-1]
-	} else {
-		versionString = fields[2]
+	// version string is like: "git version 2.29.3" or "git version 2.29.3.windows.1"
+	versionString := fields[2]
+	if pos := strings.Index(versionString, "windows"); pos >= 1 {
+		versionString = versionString[:pos-1]
 	}
-
-	var err error
-	gitVersion, err = version.NewVersion(versionString)
-	return gitVersion, err
+	return version.NewVersion(versionString)
 }
 
 // SetExecutablePath changes the path of git executable and checks the file permission and version.
@@ -83,8 +84,7 @@ func SetExecutablePath(path string) error {
 	}
 	GitExecutable = absPath
 
-	_, err = loadGitVersion()
-	if err != nil {
+	if err = loadGitVersion(); err != nil {
 		return fmt.Errorf("unable to load git version: %w", err)
 	}
 
@@ -105,6 +105,9 @@ func SetExecutablePath(path string) error {
 		return fmt.Errorf("installed git version %q is not supported, Gitea requires git version >= %q, %s", gitVersion.Original(), RequiredVersion, moreHint)
 	}
 
+	if err = checkGitVersionCompatibility(gitVersion); err != nil {
+		return fmt.Errorf("installed git version %s has a known compatibility issue with Gitea: %w, please upgrade (or downgrade) git", gitVersion.String(), err)
+	}
 	return nil
 }
 
@@ -262,19 +265,18 @@ func syncGitConfig() (err error) {
 		}
 	}
 
-	// Due to CVE-2022-24765, git now denies access to git directories which are not owned by current user
-	// however, some docker users and samba users find it difficult to configure their systems so that Gitea's git repositories are owned by the Gitea user. (Possibly Windows Service users - but ownership in this case should really be set correctly on the filesystem.)
-	// see issue: https://github.com/go-gitea/gitea/issues/19455
-	// Fundamentally the problem lies with the uid-gid-mapping mechanism for filesystems in docker on windows (and to a lesser extent samba).
-	// Docker's configuration mechanism for local filesystems provides no way of setting this mapping and although there is a mechanism for setting this uid through using cifs mounting it is complicated and essentially undocumented
-	// Thus the owner uid/gid for files on these filesystems will be marked as root.
+	// Due to CVE-2022-24765, git now denies access to git directories which are not owned by current user.
+	// However, some docker users and samba users find it difficult to configure their systems correctly,
+	// so that Gitea's git repositories are owned by the Gitea user.
+	// (Possibly Windows Service users - but ownership in this case should really be set correctly on the filesystem.)
+	// See issue: https://github.com/go-gitea/gitea/issues/19455
 	// As Gitea now always use its internal git config file, and access to the git repositories is managed through Gitea,
 	// it is now safe to set "safe.directory=*" for internal usage only.
-	// Please note: the wildcard "*" is only supported by Git 2.30.4/2.31.3/2.32.2/2.33.3/2.34.3/2.35.3/2.36 and later
-	// Although only supported by Git 2.30.4/2.31.3/2.32.2/2.33.3/2.34.3/2.35.3/2.36 and later - this setting is tolerated by earlier versions
+	// Although this setting is only supported by some new git versions, it is also tolerated by earlier versions
 	if err := configAddNonExist("safe.directory", "*"); err != nil {
 		return err
 	}
+
 	if runtime.GOOS == "windows" {
 		if err := configSet("core.longpaths", "true"); err != nil {
 			return err
@@ -307,8 +309,8 @@ func syncGitConfig() (err error) {
 
 // CheckGitVersionAtLeast check git version is at least the constraint version
 func CheckGitVersionAtLeast(atLeast string) error {
-	if _, err := loadGitVersion(); err != nil {
-		return err
+	if gitVersion == nil {
+		panic("git module is not initialized") // it shouldn't happen
 	}
 	atLeastVersion, err := version.NewVersion(atLeast)
 	if err != nil {
@@ -316,6 +318,21 @@ func CheckGitVersionAtLeast(atLeast string) error {
 	}
 	if gitVersion.Compare(atLeastVersion) < 0 {
 		return fmt.Errorf("installed git binary version %s is not at least %s", gitVersion.Original(), atLeast)
+	}
+	return nil
+}
+
+func checkGitVersionCompatibility(gitVer *version.Version) error {
+	badVersions := []struct {
+		Version *version.Version
+		Reason  string
+	}{
+		{version.Must(version.NewVersion("2.43.1")), "regression bug of GIT_FLUSH"},
+	}
+	for _, bad := range badVersions {
+		if gitVer.Equal(bad.Version) {
+			return errors.New(bad.Reason)
+		}
 	}
 	return nil
 }
