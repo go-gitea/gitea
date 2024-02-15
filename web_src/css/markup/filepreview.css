@@ -1,0 +1,35 @@
+.markup table.file-preview {
+  margin-bottom: 0px;
+}
+
+.markup table.file-preview td {
+  padding: 0 10px 0 10px !important;
+  border: none !important;
+}
+
+.markup table.file-preview tr {
+  border-top: none;
+  background-color: inherit !important;
+}
+
+.markup .file-preview-box {
+  margin-bottom: 16px;
+}
+
+.markup .file-preview-box .header {
+  padding: .5rem;
+  padding-left: 1rem;
+  border: 1px solid var(--color-secondary);
+  border-bottom: none;
+  border-radius: 0.28571429rem 0.28571429rem 0 0;
+  background: var(--color-box-header);
+}
+
+.markup .file-preview-box .header > a {
+  display: block;
+}
+
+.markup .file-preview-box .table {
+  margin-top: 0;
+  border-radius: 0 0 0.28571429rem 0.28571429rem;
+}
