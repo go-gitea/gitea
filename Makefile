@@ -988,3 +988,6 @@ docker:
 
 # This endif closes the if at the top of the file
 endif
+
+# Disable parallel execution because it would break many targets
+.NOTPARALLEL:
