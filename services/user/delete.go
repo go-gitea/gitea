@@ -187,6 +187,10 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 	}
 	// ***** END: ExternalLoginUser *****
 
+	if err := auth_model.DeleteAuthTokensByUserID(ctx, u.ID); err != nil {
+		return fmt.Errorf("DeleteAuthTokensByUserID: %w", err)
+	}
+
 	if _, err = db.DeleteByID[user_model.User](ctx, u.ID); err != nil {
 		return fmt.Errorf("delete: %w", err)
 	}

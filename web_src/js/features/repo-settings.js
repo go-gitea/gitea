@@ -52,9 +52,9 @@ export function initRepoSettingSearchTeamBox() {
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
-          const title = `${item.name} (${item.permission} access)`;
           items.push({
-            title,
+            title: item.name,
+            description: `${item.permission} access` // TODO: translate this string
           });
         });
 
