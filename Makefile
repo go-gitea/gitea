@@ -991,5 +991,5 @@ endif
 
 # Disable parallel execution because it would break some targets that don't
 # specify exact dependencies like 'backend' which does currently not depend
-# on 'frontend' which enables Node.js-less builds from source tarballs.
+# on 'frontend' to enable Node.js-less builds from source tarballs.
 .NOTPARALLEL:
