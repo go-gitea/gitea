@@ -1,7 +1,7 @@
 import {startDaysBetween} from './time.js';
 
 test('startDaysBetween', () => {
-  expect(startDaysBetween(new Date('2024-02-15'), new Date('2024-04-15'))).toEqual([
+  expect(startDaysBetween(new Date('2024-02-15'), new Date('2024-04-18'))).toEqual([
     1708214400000,
     1708819200000,
     1709424000000,
