@@ -59,7 +59,7 @@ export function initMarkupTasklist() {
           requestBody.append('ignore_attachments', 'true');
           requestBody.append('content', newContent);
           requestBody.append('context', context);
-          await POST(updateUrl, {data: requestBody});
+          await POST(updateUrl, {body: requestBody});
 
           rawContent.textContent = newContent;
         } catch (err) {
