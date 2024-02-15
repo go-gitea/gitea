@@ -31,7 +31,7 @@
 				{{if .TeamReviewers}}
 					{{if .Reviewers}}
 						<div class="divider"></div>
-					{{ end }}
+					{{end}}
 					{{range .TeamReviewers}}
 						{{if .Team}}
 							<a class="{{if not .CanChange}}ui{{end}} item {{if .Checked}}checked{{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}" {{if not .CanChange}} data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
