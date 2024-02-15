@@ -11,14 +11,15 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-type passkeyEndpoints struct {
+type passkeyEndpointsType struct {
 	Enroll string `json:"enroll"`
 	Manage string `json:"manage"`
 }
 
-func PasskeyEndpoints(ctx *context.Context) {
-	ctx.JSON(http.StatusOK, passkeyEndpoints{
-		Enroll: path.Join(setting.AppURL, setting.AppSubURL, "user/settings/security"),
-		Manage: path.Join(setting.AppURL, setting.AppSubURL, "user/settings/security"),
+func passkeyEndpoints(ctx *context.Context) {
+	url := path.Join(setting.AppURL, setting.AppSubURL, "user/settings/security")
+	ctx.JSON(http.StatusOK, passkeyEndpointsType{
+		Enroll: url,
+		Manage: url,
 	})
 }
