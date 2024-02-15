@@ -27,7 +27,7 @@ func UpdateAvatar(ctx *context.APIContext) {
 	//     "$ref": "#/definitions/UpdateUserAvatarOption"
 	// responses:
 	//   "201":
-	//     description: response when updating a avatar
+	//     "$ref": "#/responses/empty"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	form := web.GetForm(ctx).(*api.UpdateUserAvatarOption)
