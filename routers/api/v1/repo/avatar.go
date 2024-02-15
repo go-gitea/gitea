@@ -37,7 +37,7 @@ func UpdateAvatar(ctx *context.APIContext) {
 	//     "$ref": "#/definitions/UpdateRepoAvatarOption"
 	// responses:
 	//   "201":
-	//     description: response when updating a avatar
+	//     "$ref": "#/responses/empty"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
