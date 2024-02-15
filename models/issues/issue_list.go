@@ -6,7 +6,6 @@ package issues
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
@@ -32,11 +31,6 @@ func (issues IssueList) getRepoIDs() []int64 {
 		}
 	}
 	return repoIDs.Values()
-}
-
-// get the repoIDs from getRepoIDs as a comma-separator string like "5,7,8"
-func (issues IssueList) getRepoIDsAsString() string {
-	return strings.Trim(strings.Join(strings.Fields(fmt.Sprint(issues.getRepoIDs())), ","), "[]")
 }
 
 // LoadRepositories loads issues' all repositories
@@ -143,10 +137,6 @@ func (issues IssueList) getIssueIDs() []int64 {
 		ids = append(ids, issue.ID)
 	}
 	return ids
-}
-
-func (issues IssueList) getIssueIDsAsString() string {
-	return strings.Trim(strings.Join(strings.Fields(fmt.Sprint(issues.getIssueIDs())), ","), "[]")
 }
 
 func (issues IssueList) loadLabels(ctx context.Context) error {
@@ -617,9 +607,10 @@ func (issues IssueList) BlockingDependenciesMap(ctx context.Context) (issueDepsM
 		Table("issue").
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.issue_id = issue.id").
-		Where(fmt.Sprintf("dependency_id IN (%s)", issues.getIssueIDsAsString())).
-		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
-		OrderBy(fmt.Sprintf("CASE WHEN issue.repo_id IN (%s) THEN 0 ELSE issue.repo_id END, issue.created_unix ASC", issues.getRepoIDsAsString())).
+		Where(builder.In("dependency_id", issues.getIssueIDs())).
+		// sort by repo id then created date
+		Asc("issue.repo_id").
+		Asc("issue.created_unix").
 		Find(&issueDeps)
 	if err != nil {
 		return nil, err
@@ -642,9 +633,10 @@ func (issues IssueList) BlockedByDependenciesMap(ctx context.Context) (issueDeps
 		Table("issue").
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
-		Where(fmt.Sprintf("issue_id IN (%s)", issues.getIssueIDsAsString())).
-		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
-		OrderBy(fmt.Sprintf("CASE WHEN issue.repo_id IN (%s) THEN 0 ELSE issue.repo_id END, issue.created_unix ASC", issues.getRepoIDsAsString())).
+		Where(builder.In("issue_id", issues.getIssueIDs())).
+		// sort by repo id then created date
+		Asc("issue.repo_id").
+		Asc("issue.created_unix").
 		Find(&issueDeps)
 	if err != nil {
 		return nil, err
