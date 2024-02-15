@@ -6,6 +6,7 @@ package context
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html"
 	"net/http"
@@ -85,7 +86,7 @@ func (r *Repository) CanCreateBranch() bool {
 func RepoMustNotBeArchived() func(ctx *Context) {
 	return func(ctx *Context) {
 		if ctx.Repo.Repository.IsArchived {
-			ctx.NotFound("IsArchived", fmt.Errorf(ctx.Tr("repo.archive.title")))
+			ctx.NotFound("IsArchived", errors.New(ctx.Locale.TrString("repo.archive.title")))
 		}
 	}
 }

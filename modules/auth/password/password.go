@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"html/template"
 	"math/big"
 	"strings"
 	"sync"
@@ -121,15 +122,15 @@ func Generate(n int) (string, error) {
 }
 
 // BuildComplexityError builds the error message when password complexity checks fail
-func BuildComplexityError(locale translation.Locale) string {
+func BuildComplexityError(locale translation.Locale) template.HTML {
 	var buffer bytes.Buffer
-	buffer.WriteString(locale.Tr("form.password_complexity"))
+	buffer.WriteString(locale.TrString("form.password_complexity"))
 	buffer.WriteString("<ul>")
 	for _, c := range requiredList {
 		buffer.WriteString("<li>")
-		buffer.WriteString(locale.Tr(c.TrNameOne))
+		buffer.WriteString(locale.TrString(c.TrNameOne))
 		buffer.WriteString("</li>")
 	}
 	buffer.WriteString("</ul>")
-	return buffer.String()
+	return template.HTML(buffer.String())
 }
