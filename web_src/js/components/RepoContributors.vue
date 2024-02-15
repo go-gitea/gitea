@@ -91,6 +91,18 @@ function startDaysBetween(startDate, endDate) {
   return startDays;
 }
 
+
+function firstStartDateAfterDate(inputDate) {
+  if (!(inputDate instanceof Date) || isNaN(inputDate)) {
+    throw new Error('Invalid date');
+  }
+  let dayOfWeek = inputDate.getDay();
+  let daysUntilSunday = 7 - dayOfWeek;
+  let resultDate = new Date(inputDate.getTime()) ;
+  resultDate.setDate(resultDate.getDate() + daysUntilSunday);
+  return resultDate.valueOf();
+}
+
 function fillEmptyStartDaysWithZeroes(startDays, data) {
   const result = {};
 
@@ -162,7 +174,7 @@ export default {
 
           const weekValues = Object.values(total.weeks);
           this.xAxisStart = weekValues[0].week;
-          this.xAxisEnd = weekValues[weekValues.length - 1].week;
+          this.xAxisEnd = firstStartDateAfterDate(new Date())
           const startDays = startDaysBetween(new Date(this.xAxisStart), new Date(this.xAxisEnd));
           total.weeks = fillEmptyStartDaysWithZeroes(startDays, total.weeks);
           this.xAxisMin = this.xAxisStart;
