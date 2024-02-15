@@ -22,7 +22,7 @@ const glob = (pattern) => fastGlob.sync(pattern, {
 });
 
 const themes = {};
-for (const path of glob('web_src/css/themes/*.css')) {
+for (const path of glob('{web_src,custom/web_src}/css/themes/*.css')) {
   themes[parse(path).name] = [path];
 }
 
