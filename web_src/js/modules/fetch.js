@@ -8,7 +8,7 @@ const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
 // fetch wrapper, use below method name functions and the `data` option to pass in data
 // which will automatically set an appropriate headers. For json content, only object
 // and array types are currently supported.
-export function request(url, {method = 'GET', headers = {}, data, ...other} = {}) {
+export function request(url, {method = 'GET', data, headers = {}, ...other} = {}) {
   let body, contentType;
   if (data instanceof FormData || data instanceof URLSearchParams) {
     body = data;
