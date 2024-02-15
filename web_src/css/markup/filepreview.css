@@ -1,9 +1,9 @@
 .markup table.file-preview {
-  margin-bottom: 0px;
+  margin-bottom: 0;
 }
 
 .markup table.file-preview td {
-  padding: 0 10px 0 10px !important;
+  padding: 0 10px !important;
   border: none !important;
 }
 
