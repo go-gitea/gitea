@@ -53,7 +53,8 @@ func canGithubEventMatch(eventName string, triggedEvent webhook_module.HookEvent
 			webhook_module.HookEventPullRequestSync,
 			webhook_module.HookEventPullRequestAssign,
 			webhook_module.HookEventPullRequestLabel,
-			webhook_module.HookEventPullRequestReviewRequest:
+			webhook_module.HookEventPullRequestReviewRequest,
+			webhook_module.HookEventPullRequestMilestone:
 			return true
 
 		default:
