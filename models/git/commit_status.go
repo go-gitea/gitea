@@ -194,7 +194,7 @@ func (status *CommitStatus) APIURL(ctx context.Context) string {
 
 // LocaleString returns the locale string name of the Status
 func (status *CommitStatus) LocaleString(lang translation.Locale) string {
-	return lang.Tr("repo.commitstatus." + status.State.String())
+	return lang.TrString("repo.commitstatus." + status.State.String())
 }
 
 // CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc
