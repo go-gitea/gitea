@@ -245,7 +245,7 @@ func APIContexter() func(http.Handler) http.Handler {
 // NotFound handles 404s for APIContext
 // String will replace message, errors will be added to a slice
 func (ctx *APIContext) NotFound(objs ...any) {
-	message := ctx.Tr("error.not_found")
+	message := ctx.Locale.TrString("error.not_found")
 	var errors []string
 	for _, obj := range objs {
 		// Ignore nil
