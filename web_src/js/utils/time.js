@@ -14,9 +14,10 @@ export function startDaysBetween(startDate, endDate) {
   let current = start;
   while (current.isBefore(end)) {
     startDays.push(current.valueOf());
-    // do not change the following line unless you are sure what you are doing
-    // see https://github.com/go-gitea/gitea/pull/27882#issuecomment-1945594269
-    // for details
+    // we are adding 7 * 24 hours instead of 1 week because we don't want
+    // date library to use local time zone to calculate 1 week from now.
+    // local time zone is problematic because of daylight saving time (dst)
+    // used on some countries
     current = current.add(7 * 24, 'hour');
   }
 
