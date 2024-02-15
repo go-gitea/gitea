@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/translation"
 	gitea_context "code.gitea.io/gitea/services/context"
+	file_service "code.gitea.io/gitea/services/repository/files"
 )
 
 func ProcessorHelper() *markup.ProcessorHelper {
@@ -70,29 +71,9 @@ func ProcessorHelper() *markup.ProcessorHelper {
 				return nil, err
 			}
 
-			language := ""
-			indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(commitSha)
-			if err == nil {
-				defer deleteTemporaryFile()
-
-				filename2attribute2info, err := gitRepo.CheckAttribute(git.CheckAttributeOpts{
-					CachedOnly: true,
-					Attributes: []string{"linguist-language", "gitlab-language"},
-					Filenames:  []string{filePath},
-					IndexFile:  indexFilename,
-					WorkTree:   worktree,
-				})
-				if err != nil {
-					log.Error("Unable to load attributes for %-v:%s. Error: %v", repo, filePath, err)
-				}
-
-				language = filename2attribute2info[filePath]["linguist-language"]
-				if language == "" || language == "unspecified" {
-					language = filename2attribute2info[filePath]["gitlab-language"]
-				}
-				if language == "unspecified" {
-					language = ""
-				}
+			language, err := file_service.TryGetContentLanguage(gitRepo, commitSha, filePath)
+			if err != nil {
+				log.Error("Unable to get file language for %-v:%s. Error: %v", repo, filePath, err)
 			}
 
 			blob, err := commit.GetBlobByPath(filePath)
