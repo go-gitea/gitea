@@ -85,20 +85,19 @@ function startDaysBetween(startDate, endDate) {
     // do not change the following line unless you are sure what you are doing
     // see https://github.com/go-gitea/gitea/pull/27882#issuecomment-1945594269
     // for details
-    current = current.add(7 * 24, 'hour')
+    current = current.add(7 * 24, 'hour');
   }
 
   return startDays;
 }
 
-
 function firstStartDateAfterDate(inputDate) {
-  if (!(inputDate instanceof Date) || isNaN(inputDate)) {
+  if (!(inputDate instanceof Date)) {
     throw new Error('Invalid date');
   }
-  let dayOfWeek = inputDate.getDay();
-  let daysUntilSunday = 7 - dayOfWeek;
-  let resultDate = new Date(inputDate.getTime()) ;
+  const dayOfWeek = inputDate.getDay();
+  const daysUntilSunday = 7 - dayOfWeek;
+  const resultDate = new Date(inputDate.getTime());
   resultDate.setDate(resultDate.getDate() + daysUntilSunday);
   return resultDate.valueOf();
 }
@@ -174,7 +173,7 @@ export default {
 
           const weekValues = Object.values(total.weeks);
           this.xAxisStart = weekValues[0].week;
-          this.xAxisEnd = firstStartDateAfterDate(new Date())
+          this.xAxisEnd = firstStartDateAfterDate(new Date());
           const startDays = startDaysBetween(new Date(this.xAxisStart), new Date(this.xAxisEnd));
           total.weeks = fillEmptyStartDaysWithZeroes(startDays, total.weeks);
           this.xAxisMin = this.xAxisStart;
