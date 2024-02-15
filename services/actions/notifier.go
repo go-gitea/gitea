@@ -361,6 +361,39 @@ func (n *actionsNotifier) PullRequestReview(ctx context.Context, pr *issues_mode
 		}).Notify(ctx)
 }
 
+func (n *actionsNotifier) PullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
+	if !issue.IsPull {
+		log.Warn("PullRequestReviewRequest: issue is not a pull request: %v", issue.ID)
+		return
+	}
+
+	ctx = withMethod(ctx, "PullRequestReviewRequest")
+
+	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		log.Error("LoadPullRequest failed: %v", err)
+		return
+	}
+	var action api.HookIssueAction
+	if isRequest {
+		action = api.HookIssueReviewRequested
+	} else {
+		action = api.HookIssueReviewRequestRemoved
+	}
+	newNotifyInputFromIssue(issue, webhook_module.HookEventPullRequestReviewRequest).
+		WithDoer(doer).
+		WithPayload(&api.PullRequestPayload{
+			Action:            action,
+			Index:             issue.Index,
+			PullRequest:       convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
+			RequestedReviewer: convert.ToUser(ctx, reviewer, nil),
+			Repository:        convert.ToRepo(ctx, issue.Repo, permission),
+			Sender:            convert.ToUser(ctx, doer, nil),
+		}).
+		WithPullRequest(issue.PullRequest).
+		Notify(ctx)
+}
+
 func (*actionsNotifier) MergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
 	ctx = withMethod(ctx, "MergePullRequest")
 
