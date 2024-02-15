@@ -17,7 +17,7 @@ type passkeyEndpointsType struct {
 }
 
 func passkeyEndpoints(ctx *context.Context) {
-	url := path.Join(setting.AppURL, "user/settings/security")
+	url := setting.AppURL + "user/settings/security"
 	ctx.JSON(http.StatusOK, passkeyEndpointsType{
 		Enroll: url,
 		Manage: url,
