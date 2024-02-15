@@ -19,26 +19,29 @@ export async function pngChunks(blob) {
   return chunks;
 }
 
-export async function pngInfo(blob) {
-  let width = 0;
-  let dppx = 1;
-  if (blob.type !== 'image/png') return {width, dppx};
+// decode a image and try to obtain width and dppx. If will never throw but instead
+// return default values.
+export async function imageInfo(blob) {
+  let width = 0; // 0 means no width could be determined
+  let dppx = 1; // default to 1:1 pixel ratio
 
-  try {
-    for (const {name, data} of await pngChunks(blob)) {
-      const view = new DataView(data.buffer);
-      if (name === 'IHDR' && data?.length) {
-        // extract width from mandatory IHDR chunk
-        width = view.getUint32(0);
-      } else if (name === 'pHYs' && data?.length) {
-        // extract dppx from optional pHYs chunk, assuming pixels are square
-        const unit = view.getUint8(8);
-        if (unit === 1) {
-          dppx = Math.round(view.getUint32(0) / 39.3701) / 72; // meter to inch to dppx
+  if (blob.type === 'image/png') { // only png is supported currently
+    try {
+      for (const {name, data} of await pngChunks(blob)) {
+        const view = new DataView(data.buffer);
+        if (name === 'IHDR' && data?.length) {
+          // extract width from mandatory IHDR chunk
+          width = view.getUint32(0);
+        } else if (name === 'pHYs' && data?.length) {
+          // extract dppx from optional pHYs chunk, assuming pixels are square
+          const unit = view.getUint8(8);
+          if (unit === 1) {
+            dppx = Math.round(view.getUint32(0) / 39.3701) / 72; // meter to inch to dppx
+          }
         }
       }
-    }
-  } catch {}
+    } catch {}
+  }
 
   return {width, dppx};
 }

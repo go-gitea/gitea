@@ -1,4 +1,4 @@
-import {pngChunks, pngInfo} from './image.js';
+import {pngChunks, imageInfo} from './image.js';
 
 const pngNoPhys = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAADUlEQVQIHQECAP3/AAAAAgABzePRKwAAAABJRU5ErkJggg==';
 const pngPhys = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAEElEQVQI12OQNZcAIgYIBQAL8gGxdzzM0A==';
@@ -22,8 +22,8 @@ test('pngChunks', async () => {
   expect(await pngChunks(await dataUriToBlob(pngEmpty))).toEqual([]);
 });
 
-test('pngInfo', async () => {
-  expect(await pngInfo(await dataUriToBlob(pngNoPhys))).toEqual({width: 1, dppx: 1});
-  expect(await pngInfo(await dataUriToBlob(pngPhys))).toEqual({width: 2, dppx: 2});
-  expect(await pngInfo(await dataUriToBlob(pngEmpty))).toEqual({width: 0, dppx: 1});
+test('imageInfo', async () => {
+  expect(await imageInfo(await dataUriToBlob(pngNoPhys))).toEqual({width: 1, dppx: 1});
+  expect(await imageInfo(await dataUriToBlob(pngPhys))).toEqual({width: 2, dppx: 2});
+  expect(await imageInfo(await dataUriToBlob(pngEmpty))).toEqual({width: 0, dppx: 1});
 });

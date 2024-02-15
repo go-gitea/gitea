@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import {POST} from '../../modules/fetch.js';
-import {pngInfo} from '../../utils/image.js';
+import {imageInfo} from '../../utils/image.js';
 
 async function uploadFile(file, uploadUrl) {
   const formData = new FormData();
@@ -113,7 +113,7 @@ const uploadClipboardImage = async (editor, dropzone, e) => {
     editor.insertPlaceholder(placeholder);
 
     const {uuid} = await uploadFile(img, uploadUrl);
-    const {width, dppx} = await pngInfo(img);
+    const {width, dppx} = await imageInfo(img);
 
     const url = `/attachments/${uuid}`;
     let text;
