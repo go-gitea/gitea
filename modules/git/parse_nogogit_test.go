@@ -12,6 +12,8 @@ import (
 )
 
 func TestParseTreeEntriesLong(t *testing.T) {
+	objectFormat := Sha1ObjectFormat
+
 	testCases := []struct {
 		Input    string
 		Expected []*TreeEntry
@@ -54,7 +56,7 @@ func TestParseTreeEntriesLong(t *testing.T) {
 		},
 	}
 	for _, testCase := range testCases {
-		entries, err := ParseTreeEntries([]byte(testCase.Input))
+		entries, err := ParseTreeEntries(objectFormat, []byte(testCase.Input))
 		assert.NoError(t, err)
 		assert.Len(t, entries, len(testCase.Expected))
 		for i, entry := range entries {
@@ -64,6 +66,8 @@ func TestParseTreeEntriesLong(t *testing.T) {
 }
 
 func TestParseTreeEntriesShort(t *testing.T) {
+	objectFormat := Sha1ObjectFormat
+
 	testCases := []struct {
 		Input    string
 		Expected []*TreeEntry
@@ -87,7 +91,7 @@ func TestParseTreeEntriesShort(t *testing.T) {
 		},
 	}
 	for _, testCase := range testCases {
-		entries, err := ParseTreeEntries([]byte(testCase.Input))
+		entries, err := ParseTreeEntries(objectFormat, []byte(testCase.Input))
 		assert.NoError(t, err)
 		assert.Len(t, entries, len(testCase.Expected))
 		for i, entry := range entries {
@@ -98,7 +102,7 @@ func TestParseTreeEntriesShort(t *testing.T) {
 
 func TestParseTreeEntriesInvalid(t *testing.T) {
 	// there was a panic: "runtime error: slice bounds out of range" when the input was invalid: #20315
-	entries, err := ParseTreeEntries([]byte("100644 blob ea0d83c9081af9500ac9f804101b3fd0a5c293af"))
+	entries, err := ParseTreeEntries(Sha1ObjectFormat, []byte("100644 blob ea0d83c9081af9500ac9f804101b3fd0a5c293af"))
 	assert.Error(t, err)
 	assert.Len(t, entries, 0)
 }

@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -30,6 +31,7 @@ import (
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
+	user_service "code.gitea.io/gitea/services/user"
 
 	"github.com/markbates/goth"
 )
@@ -45,10 +47,6 @@ const (
 
 // autoSignIn reads cookie and try to auto-login.
 func autoSignIn(ctx *context.Context) (bool, error) {
-	if !db.HasEngine {
-		return false, nil
-	}
-
 	isSucceed := false
 	defer func() {
 		if !isSucceed {
@@ -108,9 +106,11 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 func resetLocale(ctx *context.Context, u *user_model.User) error {
 	// Language setting of the user overwrites the one previously set
 	// If the user does not have a locale set, we save the current one.
-	if len(u.Language) == 0 {
-		u.Language = ctx.Locale.Language()
-		if err := user_model.UpdateUserCols(ctx, u, "language"); err != nil {
+	if u.Language == "" {
+		opts := &user_service.UpdateOptions{
+			Language: optional.Some(ctx.Locale.Language()),
+		}
+		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
 			return err
 		}
 	}
@@ -145,7 +145,11 @@ func CheckAutoLogin(ctx *context.Context) bool {
 
 	if isSucceed {
 		middleware.DeleteRedirectToCookie(ctx.Resp)
-		ctx.RedirectToFirst(redirectTo, setting.AppSubURL+string(setting.LandingPageURL))
+		nextRedirectTo := setting.AppSubURL + string(setting.LandingPageURL)
+		if setting.LandingPageURL == setting.LandingPageLogin {
+			nextRedirectTo = setting.AppSubURL + "/" // do not cycle-redirect to the login page
+		}
+		ctx.RedirectToFirst(redirectTo, nextRedirectTo)
 		return true
 	}
 
@@ -330,10 +334,12 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 
 	// Language setting of the user overwrites the one previously set
 	// If the user does not have a locale set, we save the current one.
-	if len(u.Language) == 0 {
-		u.Language = ctx.Locale.Language()
-		if err := user_model.UpdateUserCols(ctx, u, "language"); err != nil {
-			ctx.ServerError("UpdateUserCols Language", fmt.Errorf("Error updating user language [user: %d, locale: %s]", u.ID, u.Language))
+	if u.Language == "" {
+		opts := &user_service.UpdateOptions{
+			Language: optional.Some(ctx.Locale.Language()),
+		}
+		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+			ctx.ServerError("UpdateUser Language", fmt.Errorf("Error updating user language [user: %d, locale: %s]", u.ID, ctx.Locale.Language()))
 			return setting.AppSubURL + "/"
 		}
 	}
@@ -348,9 +354,8 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 	ctx.Csrf.DeleteCookie(ctx)
 
 	// Register last login
-	u.SetLastLogin()
-	if err := user_model.UpdateUserCols(ctx, u, "last_login_unix"); err != nil {
-		ctx.ServerError("UpdateUserCols", err)
+	if err := user_service.UpdateUser(ctx, u, &user_service.UpdateOptions{SetLastLogin: true}); err != nil {
+		ctx.ServerError("UpdateUser", err)
 		return setting.AppSubURL + "/"
 	}
 
@@ -368,14 +373,14 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 	return setting.AppSubURL + "/"
 }
 
-func getUserName(gothUser *goth.User) string {
+func getUserName(gothUser *goth.User) (string, error) {
 	switch setting.OAuth2Client.Username {
 	case setting.OAuth2UsernameEmail:
-		return strings.Split(gothUser.Email, "@")[0]
+		return user_model.NormalizeUserName(strings.Split(gothUser.Email, "@")[0])
 	case setting.OAuth2UsernameNickname:
-		return gothUser.NickName
+		return user_model.NormalizeUserName(gothUser.NickName)
 	default: // OAuth2UsernameUserid
-		return gothUser.UserID
+		return gothUser.UserID, nil
 	}
 }
 
@@ -482,10 +487,9 @@ func SignUpPost(ctx *context.Context) {
 		ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplSignUp, &form)
 		return
 	}
-	pwned, err := password.IsPwned(ctx, form.Password)
-	if pwned {
+	if err := password.IsPwned(ctx, form.Password); err != nil {
 		errMsg := ctx.Tr("auth.password_pwned")
-		if err != nil {
+		if password.IsErrIsPwnedRequest(err) {
 			log.Error(err.Error())
 			errMsg = ctx.Tr("auth.password_pwned_err")
 		}
@@ -589,10 +593,12 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *us
 func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.User) (ok bool) {
 	// Auto-set admin for the only user.
 	if user_model.CountUsers(ctx, nil) == 1 {
-		u.IsAdmin = true
-		u.IsActive = true
-		u.SetLastLogin()
-		if err := user_model.UpdateUserCols(ctx, u, "is_admin", "is_active", "last_login_unix"); err != nil {
+		opts := &user_service.UpdateOptions{
+			IsActive:     optional.Some(true),
+			IsAdmin:      optional.Some(true),
+			SetLastLogin: true,
+		}
+		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return false
 		}
@@ -622,10 +628,8 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 		ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)
 		ctx.HTML(http.StatusOK, TplActivate)
 
-		if setting.CacheService.Enabled {
-			if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-				log.Error("Set cache(MailResendLimit) fail: %v", err)
-			}
+		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
+			log.Error("Set cache(MailResendLimit) fail: %v", err)
 		}
 		return false
 	}
@@ -645,16 +649,14 @@ func Activate(ctx *context.Context) {
 		}
 		// Resend confirmation email.
 		if setting.Service.RegisterEmailConfirm {
-			if setting.CacheService.Enabled && ctx.Cache.IsExist("MailResendLimit_"+ctx.Doer.LowerName) {
+			if ctx.Cache.IsExist("MailResendLimit_" + ctx.Doer.LowerName) {
 				ctx.Data["ResendLimited"] = true
 			} else {
 				ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)
 				mailer.SendActivateAccountMail(ctx.Locale, ctx.Doer)
 
-				if setting.CacheService.Enabled {
-					if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
-						log.Error("Set cache(MailResendLimit) fail: %v", err)
-					}
+				if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
+					log.Error("Set cache(MailResendLimit) fail: %v", err)
 				}
 			}
 		} else {
@@ -756,10 +758,8 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 		return
 	}
 
-	// Register last login
-	user.SetLastLogin()
-	if err := user_model.UpdateUserCols(ctx, user, "last_login_unix"); err != nil {
-		ctx.ServerError("UpdateUserCols", err)
+	if err := user_service.UpdateUser(ctx, user, &user_service.UpdateOptions{SetLastLogin: true}); err != nil {
+		ctx.ServerError("UpdateUser", err)
 		return
 	}
 
@@ -789,7 +789,7 @@ func ActivateEmail(ctx *context.Context) {
 
 		if u, err := user_model.GetUserByID(ctx, email.UID); err != nil {
 			log.Warn("GetUserByID: %d", email.UID)
-		} else if setting.CacheService.Enabled {
+		} else {
 			// Allow user to validate more emails
 			_ = ctx.Cache.Delete("MailResendLimit_" + u.LowerName)
 		}

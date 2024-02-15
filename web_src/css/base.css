@@ -196,10 +196,14 @@ a.label,
 .ui.search > .results {
   background: var(--color-body);
   border-color: var(--color-secondary);
+  overflow-wrap: anywhere; /* allow text to wrap as fomantic limits this to 18em width */
 }
 
 .ui.search > .results .result {
   background: var(--color-body);
+  border-color: var(--color-secondary);
+  display: flex;
+  align-items: center;
 }
 
 .ui.search > .results .result .title {
@@ -1264,18 +1268,43 @@ img.ui.avatar,
   border-radius: var(--border-radius);
 }
 
-.attention-icon {
-  vertical-align: text-top;
+.attention {
+  color: var(--color-text) !important;
 }
 
-.attention-note {
-  font-weight: unset;
-  color: var(--color-info-text);
+blockquote.attention-note {
+  border-left-color: var(--color-blue-dark-1);
+}
+strong.attention-note, span.attention-note {
+  color: var(--color-blue-dark-1);
 }
 
-.attention-warning {
-  font-weight: unset;
+blockquote.attention-tip {
+  border-left-color: var(--color-success-text);
+}
+strong.attention-tip, span.attention-tip {
+  color: var(--color-success-text);
+}
+
+blockquote.attention-important {
+  border-left-color: var(--color-violet-dark-1);
+}
+strong.attention-important, span.attention-important {
+  color: var(--color-violet-dark-1);
+}
+
+blockquote.attention-warning {
+  border-left-color: var(--color-warning-text);
+}
+strong.attention-warning, span.attention-warning {
   color: var(--color-warning-text);
+}
+
+blockquote.attention-caution {
+  border-left-color: var(--color-red-dark-1);
+}
+strong.attention-caution, span.attention-caution {
+  color: var(--color-red-dark-1);
 }
 
 .center:not(.popup) {
@@ -1356,23 +1385,6 @@ img.ui.avatar,
 .ui.secondary.pointing.menu.repos-filter .item {
   padding-left: 4.5px;
   padding-right: 4.5px;
-}
-
-.repo-title {
-  font-size: 1.5rem;
-  display: flex;
-  align-items: center;
-  flex: 1;
-  word-break: break-all;
-  color: var(--color-text-light);
-}
-
-.repo-title .labels {
-  margin-left: 0.5rem;
-}
-
-.repo-title .labels > * + * {
-  margin-left: 0.5rem;
 }
 
 .activity-bar-graph {
@@ -1781,11 +1793,12 @@ a.ui.basic.label:hover {
   bottom: 0;
   display: flex;
   align-items: center;
+  gap: 0.25em;
 }
 
-.ui.attached.header > .ui.right > .button,
-.ui.attached.header > .ui.right > .dropdown > .button {
-  padding: 8px 10px;
+/* the default ".ui.attached.header > .ui.right" is only able to contain "tiny" buttons, other buttons are too large */
+.ui.attached.header > .ui.right .ui.tiny.button {
+  padding: 6px 10px;
   font-weight: var(--font-weight-normal);
 }
 

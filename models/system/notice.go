@@ -102,12 +102,6 @@ func Notices(ctx context.Context, page, pageSize int) ([]*Notice, error) {
 		Find(&notices)
 }
 
-// DeleteNotice deletes a system notice by given ID.
-func DeleteNotice(ctx context.Context, id int64) error {
-	_, err := db.GetEngine(ctx).ID(id).Delete(new(Notice))
-	return err
-}
-
 // DeleteNotices deletes all notices with ID from start to end (inclusive).
 func DeleteNotices(ctx context.Context, start, end int64) error {
 	if start == 0 && end == 0 {
@@ -120,17 +114,6 @@ func DeleteNotices(ctx context.Context, start, end int64) error {
 		sess.And("id <= ?", end)
 	}
 	_, err := sess.Delete(new(Notice))
-	return err
-}
-
-// DeleteNoticesByIDs deletes notices by given IDs.
-func DeleteNoticesByIDs(ctx context.Context, ids []int64) error {
-	if len(ids) == 0 {
-		return nil
-	}
-	_, err := db.GetEngine(ctx).
-		In("id", ids).
-		Delete(new(Notice))
 	return err
 }
 

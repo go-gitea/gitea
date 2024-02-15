@@ -26,14 +26,14 @@ func TestAPIModifyLabels(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/labels?token=%s", owner.Name, repo.Name, token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/labels", owner.Name, repo.Name)
 
 	// CreateLabel
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateLabelOption{
 		Name:        "TestL 1",
 		Color:       "abcdef",
 		Description: "test label",
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	apiLabel := new(api.Label)
 	DecodeJSON(t, resp, &apiLabel)
@@ -45,24 +45,26 @@ func TestAPIModifyLabels(t *testing.T) {
 		Name:        "TestL 2",
 		Color:       "#123456",
 		Description: "jet another test label",
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 	req = NewRequestWithJSON(t, "POST", urlStr, &api.CreateLabelOption{
 		Name:  "WrongTestL",
 		Color: "#12345g",
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	// ListLabels
-	req = NewRequest(t, "GET", urlStr)
+	req = NewRequest(t, "GET", urlStr).
+		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	var apiLabels []*api.Label
 	DecodeJSON(t, resp, &apiLabels)
 	assert.Len(t, apiLabels, 2)
 
 	// GetLabel
-	singleURLStr := fmt.Sprintf("/api/v1/repos/%s/%s/labels/%d?token=%s", owner.Name, repo.Name, dbLabel.ID, token)
-	req = NewRequest(t, "GET", singleURLStr)
+	singleURLStr := fmt.Sprintf("/api/v1/repos/%s/%s/labels/%d", owner.Name, repo.Name, dbLabel.ID)
+	req = NewRequest(t, "GET", singleURLStr).
+		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiLabel)
 	assert.EqualValues(t, strings.TrimLeft(dbLabel.Color, "#"), apiLabel.Color)
@@ -74,17 +76,18 @@ func TestAPIModifyLabels(t *testing.T) {
 	req = NewRequestWithJSON(t, "PATCH", singleURLStr, &api.EditLabelOption{
 		Name:  &newName,
 		Color: &newColor,
-	})
+	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiLabel)
 	assert.EqualValues(t, newColor, apiLabel.Color)
 	req = NewRequestWithJSON(t, "PATCH", singleURLStr, &api.EditLabelOption{
 		Color: &newColorWrong,
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	// DeleteLabel
-	req = NewRequest(t, "DELETE", singleURLStr)
+	req = NewRequest(t, "DELETE", singleURLStr).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 }
 
@@ -98,11 +101,11 @@ func TestAPIAddIssueLabels(t *testing.T) {
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels?token=%s",
-		repo.OwnerName, repo.Name, issue.Index, token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels",
+		repo.OwnerName, repo.Name, issue.Index)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueLabelsOption{
 		Labels: []int64{1, 2},
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var apiLabels []*api.Label
 	DecodeJSON(t, resp, &apiLabels)
@@ -121,11 +124,11 @@ func TestAPIReplaceIssueLabels(t *testing.T) {
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels?token=%s",
-		owner.Name, repo.Name, issue.Index, token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels",
+		owner.Name, repo.Name, issue.Index)
 	req := NewRequestWithJSON(t, "PUT", urlStr, &api.IssueLabelsOption{
 		Labels: []int64{label.ID},
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var apiLabels []*api.Label
 	DecodeJSON(t, resp, &apiLabels)
@@ -145,14 +148,14 @@ func TestAPIModifyOrgLabels(t *testing.T) {
 	user := "user1"
 	session := loginUser(t, user)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
-	urlStr := fmt.Sprintf("/api/v1/orgs/%s/labels?token=%s", owner.Name, token)
+	urlStr := fmt.Sprintf("/api/v1/orgs/%s/labels", owner.Name)
 
 	// CreateLabel
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateLabelOption{
 		Name:        "TestL 1",
 		Color:       "abcdef",
 		Description: "test label",
-	})
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	apiLabel := new(api.Label)
 	DecodeJSON(t, resp, &apiLabel)
@@ -164,24 +167,26 @@ func TestAPIModifyOrgLabels(t *testing.T) {
 		Name:        "TestL 2",
 		Color:       "#123456",
 		Description: "jet another test label",
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 	req = NewRequestWithJSON(t, "POST", urlStr, &api.CreateLabelOption{
 		Name:  "WrongTestL",
 		Color: "#12345g",
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	// ListLabels
-	req = NewRequest(t, "GET", urlStr)
+	req = NewRequest(t, "GET", urlStr).
+		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	var apiLabels []*api.Label
 	DecodeJSON(t, resp, &apiLabels)
 	assert.Len(t, apiLabels, 4)
 
 	// GetLabel
-	singleURLStr := fmt.Sprintf("/api/v1/orgs/%s/labels/%d?token=%s", owner.Name, dbLabel.ID, token)
-	req = NewRequest(t, "GET", singleURLStr)
+	singleURLStr := fmt.Sprintf("/api/v1/orgs/%s/labels/%d", owner.Name, dbLabel.ID)
+	req = NewRequest(t, "GET", singleURLStr).
+		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiLabel)
 	assert.EqualValues(t, strings.TrimLeft(dbLabel.Color, "#"), apiLabel.Color)
@@ -193,16 +198,17 @@ func TestAPIModifyOrgLabels(t *testing.T) {
 	req = NewRequestWithJSON(t, "PATCH", singleURLStr, &api.EditLabelOption{
 		Name:  &newName,
 		Color: &newColor,
-	})
+	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiLabel)
 	assert.EqualValues(t, newColor, apiLabel.Color)
 	req = NewRequestWithJSON(t, "PATCH", singleURLStr, &api.EditLabelOption{
 		Color: &newColorWrong,
-	})
+	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	// DeleteLabel
-	req = NewRequest(t, "DELETE", singleURLStr)
+	req = NewRequest(t, "DELETE", singleURLStr).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 }

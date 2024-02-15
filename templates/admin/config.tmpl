@@ -151,8 +151,6 @@
 				<dd>{{if .Service.RequireSignInView}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.mail_notify"}}</dt>
 				<dd>{{if .Service.EnableNotifyMail}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.config.disable_key_size_check"}}</dt>
-				<dd>{{if .SSH.MinimumKeySizeCheck}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.enable_captcha"}}</dt>
 				<dd>{{if .Service.EnableCaptcha}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.default_keep_email_private"}}</dt>

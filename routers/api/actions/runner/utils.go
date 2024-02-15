@@ -94,6 +94,12 @@ func getSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) map[s
 func getVariablesOfTask(ctx context.Context, task *actions_model.ActionTask) map[string]string {
 	variables := map[string]string{}
 
+	// Global
+	globalVariables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{})
+	if err != nil {
+		log.Error("find global variables: %v", err)
+	}
+
 	// Org / User level
 	ownerVariables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{OwnerID: task.Job.Run.Repo.OwnerID})
 	if err != nil {
@@ -106,8 +112,8 @@ func getVariablesOfTask(ctx context.Context, task *actions_model.ActionTask) map
 		log.Error("find variables of repo: %d, error: %v", task.Job.Run.RepoID, err)
 	}
 
-	// Level precedence: Repo > Org / User
-	for _, v := range append(ownerVariables, repoVariables...) {
+	// Level precedence: Repo > Org / User > Global
+	for _, v := range append(globalVariables, append(ownerVariables, repoVariables...)...) {
 		variables[v.Name] = v.Data
 	}
 
@@ -144,6 +150,11 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 	}
 
 	refName := git.RefName(ref)
+
+	giteaRuntimeToken, err := actions.CreateAuthorizationToken(t.ID, t.Job.RunID, t.JobID)
+	if err != nil {
+		log.Error("actions.CreateAuthorizationToken failed: %v", err)
+	}
 
 	taskContext, err := structpb.NewStruct(map[string]any{
 		// standard contexts, see https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
@@ -184,6 +195,7 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 
 		// additional contexts
 		"gitea_default_actions_url": setting.Actions.DefaultActionsURL.URL(),
+		"gitea_runtime_token":       giteaRuntimeToken,
 	})
 	if err != nil {
 		log.Error("structpb.NewStruct failed: %v", err)

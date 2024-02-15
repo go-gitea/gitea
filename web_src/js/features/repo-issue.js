@@ -4,6 +4,7 @@ import {showTemporaryTooltip, createTippy} from '../modules/tippy.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {setFileFolding} from './file-fold.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
+import {toAbsoluteUrl} from '../utils.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -526,7 +527,7 @@ export function initRepoIssueReferenceIssue() {
     const $this = $(this);
     const content = $(`#${$this.data('target')}`).text();
     const poster = $this.data('poster-username');
-    const reference = $this.data('reference');
+    const reference = toAbsoluteUrl($this.data('reference'));
     const $modal = $($this.data('modal'));
     $modal.find('textarea[name="content"]').val(`${content}\n\n_Originally posted by @${poster} in ${reference}_`);
     $modal.modal('show');

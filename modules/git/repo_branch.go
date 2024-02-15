@@ -86,29 +86,6 @@ func (repo *Repository) GetBranch(branch string) (*Branch, error) {
 	}, nil
 }
 
-// GetBranchesByPath returns a branch by it's path
-// if limit = 0 it will not limit
-func GetBranchesByPath(ctx context.Context, path string, skip, limit int) ([]*Branch, int, error) {
-	gitRepo, err := OpenRepository(ctx, path)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer gitRepo.Close()
-
-	return gitRepo.GetBranches(skip, limit)
-}
-
-// GetBranchCommitID returns a branch commit ID by its name
-func GetBranchCommitID(ctx context.Context, path, branch string) (string, error) {
-	gitRepo, err := OpenRepository(ctx, path)
-	if err != nil {
-		return "", err
-	}
-	defer gitRepo.Close()
-
-	return gitRepo.GetBranchCommitID(branch)
-}
-
 // GetBranches returns a slice of *git.Branch
 func (repo *Repository) GetBranches(skip, limit int) ([]*Branch, int, error) {
 	brs, countAll, err := repo.GetBranchNames(skip, limit)

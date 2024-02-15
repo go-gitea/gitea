@@ -46,10 +46,13 @@ type ActionRun struct {
 	TriggerEvent      string                       // the trigger event defined in the `on` configuration of the triggered workflow
 	Status            Status                       `xorm:"index"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
-	Started           timeutil.TimeStamp
-	Stopped           timeutil.TimeStamp
-	Created           timeutil.TimeStamp `xorm:"created"`
-	Updated           timeutil.TimeStamp `xorm:"updated"`
+	// Started and Stopped is used for recording last run time, if rerun happened, they will be reset to 0
+	Started timeutil.TimeStamp
+	Stopped timeutil.TimeStamp
+	// PreviousDuration is used for recording previous duration
+	PreviousDuration time.Duration
+	Created          timeutil.TimeStamp `xorm:"created"`
+	Updated          timeutil.TimeStamp `xorm:"updated"`
 }
 
 func init() {
@@ -118,7 +121,7 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 }
 
 func (run *ActionRun) Duration() time.Duration {
-	return calculateDuration(run.Started, run.Stopped, run.Status)
+	return calculateDuration(run.Started, run.Stopped, run.Status) + run.PreviousDuration
 }
 
 func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
@@ -168,13 +171,14 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 }
 
 // CancelRunningJobs cancels all running and waiting jobs associated with a specific workflow.
-func CancelRunningJobs(ctx context.Context, repoID int64, ref, workflowID string) error {
+func CancelRunningJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) error {
 	// Find all runs in the specified repository, reference, and workflow with statuses 'Running' or 'Waiting'.
 	runs, total, err := db.FindAndCount[ActionRun](ctx, FindRunOptions{
-		RepoID:     repoID,
-		Ref:        ref,
-		WorkflowID: workflowID,
-		Status:     []Status{StatusRunning, StatusWaiting},
+		RepoID:       repoID,
+		Ref:          ref,
+		WorkflowID:   workflowID,
+		TriggerEvent: event,
+		Status:       []Status{StatusRunning, StatusWaiting},
 	})
 	if err != nil {
 		return err

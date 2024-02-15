@@ -59,6 +59,17 @@ export function onDomReady(cb) {
   }
 }
 
+// checks whether an element is owned by the current document, and whether it is a document fragment or element node
+// if it is, it means it is a "normal" element managed by us, which can be modified safely.
+export function isDocumentFragmentOrElementNode(el) {
+  try {
+    return el.ownerDocument === document && el.nodeType === Node.ELEMENT_NODE || el.nodeType === Node.DOCUMENT_FRAGMENT_NODE;
+  } catch {
+    // in case the el is not in the same origin, then the access to nodeType would fail
+    return false;
+  }
+}
+
 // autosize a textarea to fit content. Based on
 // https://github.com/github/textarea-autosize
 // ---------------------------------------------------------------------
@@ -193,4 +204,25 @@ export function loadElem(el, src) {
     el.addEventListener('error', () => resolve(false), {once: true});
     el.src = src;
   });
+}
+
+// some browsers like PaleMoon don't have "SubmitEvent" support, so polyfill it by a tricky method: use the last clicked button as submitter
+// it can't use other transparent polyfill patches because PaleMoon also doesn't support "addEventListener(capture)"
+const needSubmitEventPolyfill = typeof SubmitEvent === 'undefined';
+
+export function submitEventSubmitter(e) {
+  return needSubmitEventPolyfill ? (e.target._submitter || null) : e.submitter;
+}
+
+function submitEventPolyfillListener(e) {
+  const form = e.target.closest('form');
+  if (!form) return;
+  form._submitter = e.target.closest('button:not([type]), button[type="submit"], input[type="submit"]');
+}
+
+export function initSubmitEventPolyfill() {
+  if (!needSubmitEventPolyfill) return;
+  console.warn(`This browser doesn't have "SubmitEvent" support, use a tricky method to polyfill`);
+  document.body.addEventListener('click', submitEventPolyfillListener);
+  document.body.addEventListener('focus', submitEventPolyfillListener);
 }

@@ -53,7 +53,6 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 		}
 	}
 
-	attentionMarkedBlockquotes := make(container.Set[*ast.Blockquote])
 	_ = ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
@@ -85,20 +84,12 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			// 2. If they're not wrapped with a link they need a link wrapper
 
 			// Check if the destination is a real link
-			link := v.Destination
-			if len(link) > 0 && !markup.IsLink(link) {
-				prefix := pc.Get(urlPrefixKey).(string)
-				if pc.Get(isWikiKey).(bool) {
-					prefix = giteautil.URLJoin(prefix, "wiki", "raw")
-				}
-				prefix = strings.Replace(prefix, "/src/", "/media/", 1)
-
-				lnk := strings.TrimLeft(string(link), "/")
-
-				lnk = giteautil.URLJoin(prefix, lnk)
-				link = []byte(lnk)
+			if len(v.Destination) > 0 && !markup.IsLink(v.Destination) {
+				v.Destination = []byte(giteautil.URLJoin(
+					ctx.Links.ResolveMediaLink(ctx.IsWiki),
+					strings.TrimLeft(string(v.Destination), "/"),
+				))
 			}
-			v.Destination = link
 
 			parent := n.Parent()
 			// Create a link around image only if parent is not already a link
@@ -107,13 +98,13 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 
 				// Create a link wrapper
 				wrap := ast.NewLink()
-				wrap.Destination = link
+				wrap.Destination = v.Destination
 				wrap.Title = v.Title
 				wrap.SetAttributeString("target", []byte("_blank"))
 
 				// Duplicate the current image node
 				image := ast.NewImage(ast.NewLink())
-				image.Destination = link
+				image.Destination = v.Destination
 				image.Title = v.Title
 				for _, attr := range v.Attributes() {
 					image.SetAttribute(attr.Name, attr.Value)
@@ -143,11 +134,17 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 				link[0] != '#' && !bytes.HasPrefix(link, byteMailto) {
 				// special case: this is not a link, a hash link or a mailto:, so it's a
 				// relative URL
-				lnk := string(link)
-				if pc.Get(isWikiKey).(bool) {
-					lnk = giteautil.URLJoin("wiki", lnk)
+
+				var base string
+				if ctx.IsWiki {
+					base = ctx.Links.WikiLink()
+				} else if ctx.Links.HasBranchInfo() {
+					base = ctx.Links.SrcLink()
+				} else {
+					base = ctx.Links.Base
 				}
-				link = []byte(giteautil.URLJoin(pc.Get(urlPrefixKey).(string), lnk))
+
+				link = []byte(giteautil.URLJoin(base, string(link)))
 			}
 			if len(link) > 0 && link[0] == '#' {
 				link = []byte("#user-content-" + string(link)[1:])
@@ -188,9 +185,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			applyElementDir(v)
 		case *ast.Text:
 			if v.SoftLineBreak() && !v.HardLineBreak() {
-				renderMetas := pc.Get(renderMetasKey).(map[string]string)
-				mode := renderMetas["mode"]
-				if mode != "document" {
+				if ctx.Metas["mode"] != "document" {
 					v.SetHardLineBreak(setting.Markdown.EnableHardLineBreakInComments)
 				} else {
 					v.SetHardLineBreak(setting.Markdown.EnableHardLineBreakInDocuments)
@@ -201,18 +196,55 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			if css.ColorHandler(strings.ToLower(string(colorContent))) {
 				v.AppendChild(v, NewColorPreview(colorContent))
 			}
-		case *ast.Emphasis:
-			// check if inside blockquote for attention, expected hierarchy is
-			// Emphasis < Paragraph < Blockquote
-			blockquote, isInBlockquote := n.Parent().Parent().(*ast.Blockquote)
-			if isInBlockquote && !attentionMarkedBlockquotes.Contains(blockquote) {
-				fullText := string(n.Text(reader.Source()))
-				if fullText == AttentionNote || fullText == AttentionWarning {
-					v.SetAttributeString("class", []byte("attention-"+strings.ToLower(fullText)))
-					v.Parent().InsertBefore(v.Parent(), v, NewAttention(fullText))
-					attentionMarkedBlockquotes.Add(blockquote)
-				}
+		case *ast.Blockquote:
+			// We only want attention blockquotes when the AST looks like:
+			// Text: "["
+			// Text: "!TYPE"
+			// Text(SoftLineBreak): "]"
+
+			// grab these nodes and make sure we adhere to the attention blockquote structure
+			firstParagraph := v.FirstChild()
+			if firstParagraph.ChildCount() < 3 {
+				return ast.WalkContinue, nil
 			}
+			firstTextNode, ok := firstParagraph.FirstChild().(*ast.Text)
+			if !ok || string(firstTextNode.Segment.Value(reader.Source())) != "[" {
+				return ast.WalkContinue, nil
+			}
+			secondTextNode, ok := firstTextNode.NextSibling().(*ast.Text)
+			if !ok || !attentionTypeRE.MatchString(string(secondTextNode.Segment.Value(reader.Source()))) {
+				return ast.WalkContinue, nil
+			}
+			thirdTextNode, ok := secondTextNode.NextSibling().(*ast.Text)
+			if !ok || string(thirdTextNode.Segment.Value(reader.Source())) != "]" {
+				return ast.WalkContinue, nil
+			}
+
+			// grab attention type from markdown source
+			attentionType := strings.ToLower(strings.TrimPrefix(string(secondTextNode.Segment.Value(reader.Source())), "!"))
+
+			// color the blockquote
+			v.SetAttributeString("class", []byte("gt-py-3 attention attention-"+attentionType))
+
+			// create an emphasis to make it bold
+			emphasis := ast.NewEmphasis(2)
+			emphasis.SetAttributeString("class", []byte("attention-"+attentionType))
+			firstParagraph.InsertBefore(firstParagraph, firstTextNode, emphasis)
+
+			// capitalize first letter
+			attentionText := ast.NewString([]byte(strings.ToUpper(string(attentionType[0])) + attentionType[1:]))
+
+			// replace the ![TYPE] with icon+Type
+			emphasis.AppendChild(emphasis, attentionText)
+			for i := 0; i < 2; i++ {
+				lineBreak := ast.NewText()
+				lineBreak.SetSoftLineBreak(true)
+				firstParagraph.InsertAfter(firstParagraph, emphasis, lineBreak)
+			}
+			firstParagraph.InsertBefore(firstParagraph, emphasis, NewAttention(attentionType))
+			firstParagraph.RemoveChild(firstParagraph, firstTextNode)
+			firstParagraph.RemoveChild(firstParagraph, secondTextNode)
+			firstParagraph.RemoveChild(firstParagraph, thirdTextNode)
 		}
 		return ast.WalkContinue, nil
 	})
@@ -343,17 +375,23 @@ func (r *HTMLRenderer) renderCodeSpan(w util.BufWriter, source []byte, n ast.Nod
 // renderAttention renders a quote marked with i.e. "> **Note**" or "> **Warning**" with a corresponding svg
 func (r *HTMLRenderer) renderAttention(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		_, _ = w.WriteString(`<span class="attention-icon attention-`)
+		_, _ = w.WriteString(`<span class="gt-mr-2 gt-vm attention-`)
 		n := node.(*Attention)
 		_, _ = w.WriteString(strings.ToLower(n.AttentionType))
 		_, _ = w.WriteString(`">`)
 
 		var octiconType string
 		switch n.AttentionType {
-		case AttentionNote:
+		case "note":
 			octiconType = "info"
-		case AttentionWarning:
+		case "tip":
+			octiconType = "light-bulb"
+		case "important":
+			octiconType = "report"
+		case "warning":
 			octiconType = "alert"
+		case "caution":
+			octiconType = "stop"
 		}
 		_, _ = w.WriteString(string(svg.RenderHTML("octicon-" + octiconType)))
 	} else {
@@ -421,7 +459,10 @@ func (r *HTMLRenderer) renderSummary(w util.BufWriter, source []byte, node ast.N
 	return ast.WalkContinue, nil
 }
 
-var validNameRE = regexp.MustCompile("^[a-z ]+$")
+var (
+	validNameRE     = regexp.MustCompile("^[a-z ]+$")
+	attentionTypeRE = regexp.MustCompile("^!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)$")
+)
 
 func (r *HTMLRenderer) renderIcon(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if !entering {
@@ -444,7 +485,6 @@ func (r *HTMLRenderer) renderIcon(w util.BufWriter, source []byte, node ast.Node
 
 	var err error
 	_, err = w.WriteString(fmt.Sprintf(`<i class="icon %s"></i>`, name))
-
 	if err != nil {
 		return ast.WalkStop, err
 	}

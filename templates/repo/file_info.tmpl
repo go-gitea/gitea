@@ -30,6 +30,16 @@
 			{{ctx.Locale.Tr "repo.executable_file"}}
 		</div>
 	{{end}}
+	{{if .IsVendored}}
+		<div class="file-info-entry">
+			{{ctx.Locale.Tr "repo.vendored"}}
+		</div>
+	{{end}}
+	{{if .IsGenerated}}
+		<div class="file-info-entry">
+			{{ctx.Locale.Tr "repo.generated"}}
+		</div>
+	{{end}}
 	{{if .ImageSize}}
 		<div class="file-info-entry">
 			{{.ImageSize}}

@@ -11,11 +11,11 @@ import (
 	"net/url"
 	"strings"
 
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -224,7 +224,7 @@ func APIContexter() func(http.Handler) http.Handler {
 			defer baseCleanUp()
 
 			ctx.Base.AppendContextValue(apiContextKey, ctx)
-			ctx.Base.AppendContextValueFunc(git.RepositoryContextKey, func() any { return ctx.Repo.GitRepo })
+			ctx.Base.AppendContextValueFunc(gitrepo.RepositoryContextKey, func() any { return ctx.Repo.GitRepo })
 
 			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
 			if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
@@ -245,7 +245,7 @@ func APIContexter() func(http.Handler) http.Handler {
 // NotFound handles 404s for APIContext
 // String will replace message, errors will be added to a slice
 func (ctx *APIContext) NotFound(objs ...any) {
-	message := ctx.Tr("error.not_found")
+	message := ctx.Locale.TrString("error.not_found")
 	var errors []string
 	for _, obj := range objs {
 		// Ignore nil
@@ -278,10 +278,9 @@ func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) (cancel context
 
 		// For API calls.
 		if ctx.Repo.GitRepo == nil {
-			repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-			gitRepo, err := git.OpenRepository(ctx, repoPath)
+			gitRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "RepoRef Invalid repo "+repoPath, err)
+				ctx.Error(http.StatusInternalServerError, fmt.Sprintf("Open Repository %v failed", ctx.Repo.Repository.FullName()), err)
 				return cancel
 			}
 			ctx.Repo.GitRepo = gitRepo
@@ -308,6 +307,12 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 			return
 		}
 
+		objectFormat, err := ctx.Repo.GitRepo.GetObjectFormat()
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+			return
+		}
+
 		if ref := ctx.FormTrim("ref"); len(ref) > 0 {
 			commit, err := ctx.Repo.GitRepo.GetCommit(ref)
 			if err != nil {
@@ -325,7 +330,6 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 			return
 		}
 
-		var err error
 		refName := getRefName(ctx.Base, ctx.Repo, RepoRefAny)
 
 		if ctx.Repo.GitRepo.IsBranchExist(refName) {
@@ -342,7 +346,7 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 				return
 			}
 			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-		} else if len(refName) == git.SHAFullLength {
+		} else if len(refName) == objectFormat.FullLength() {
 			ctx.Repo.CommitID = refName
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
 			if err != nil {

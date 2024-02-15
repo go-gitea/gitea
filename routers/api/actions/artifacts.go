@@ -63,7 +63,6 @@ package actions
 
 import (
 	"crypto/md5"
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -79,6 +78,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	web_types "code.gitea.io/gitea/modules/web/types"
+	actions_service "code.gitea.io/gitea/services/actions"
 )
 
 const artifactRouteBase = "/_apis/pipelines/workflows/{run_id}/artifacts"
@@ -138,12 +138,33 @@ func ArtifactContexter() func(next http.Handler) http.Handler {
 				return
 			}
 
-			authToken := strings.TrimPrefix(authHeader, "Bearer ")
-			task, err := actions.GetRunningTaskByToken(req.Context(), authToken)
-			if err != nil {
-				log.Error("Error runner api getting task: %v", err)
-				ctx.Error(http.StatusInternalServerError, "Error runner api getting task")
-				return
+			// New act_runner uses jwt to authenticate
+			tID, err := actions_service.ParseAuthorizationToken(req)
+
+			var task *actions.ActionTask
+			if err == nil {
+
+				task, err = actions.GetTaskByID(req.Context(), tID)
+				if err != nil {
+					log.Error("Error runner api getting task by ID: %v", err)
+					ctx.Error(http.StatusInternalServerError, "Error runner api getting task by ID")
+					return
+				}
+				if task.Status != actions.StatusRunning {
+					log.Error("Error runner api getting task: task is not running")
+					ctx.Error(http.StatusInternalServerError, "Error runner api getting task: task is not running")
+					return
+				}
+			} else {
+				// Old act_runner uses GITEA_TOKEN to authenticate
+				authToken := strings.TrimPrefix(authHeader, "Bearer ")
+
+				task, err = actions.GetRunningTaskByToken(req.Context(), authToken)
+				if err != nil {
+					log.Error("Error runner api getting task: %v", err)
+					ctx.Error(http.StatusInternalServerError, "Error runner api getting task")
+					return
+				}
 			}
 
 			if err := task.LoadJob(req.Context()); err != nil {
@@ -258,8 +279,11 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	// update artifact size if zero
-	if artifact.FileSize == 0 || artifact.FileCompressedSize == 0 {
+	// update artifact size if zero or not match, over write artifact size
+	if artifact.FileSize == 0 ||
+		artifact.FileCompressedSize == 0 ||
+		artifact.FileSize != fileRealTotalSize ||
+		artifact.FileCompressedSize != chunksTotalSize {
 		artifact.FileSize = fileRealTotalSize
 		artifact.FileCompressedSize = chunksTotalSize
 		artifact.ContentEncoding = ctx.Req.Header.Get("Content-Encoding")
@@ -268,6 +292,8 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 			ctx.Error(http.StatusInternalServerError, "Error update artifact")
 			return
 		}
+		log.Debug("[artifact] update artifact size, artifact_id: %d, size: %d, compressed size: %d",
+			artifact.ID, artifact.FileSize, artifact.FileCompressedSize)
 	}
 
 	ctx.JSON(http.StatusOK, map[string]string{
@@ -423,14 +449,14 @@ func (ar artifactRoutes) downloadArtifact(ctx *ArtifactContext) {
 	}
 
 	artifactID := ctx.ParamsInt64("artifact_id")
-	artifact, err := actions.GetArtifactByID(ctx, artifactID)
-	if errors.Is(err, util.ErrNotExist) {
-		log.Error("Error getting artifact: %v", err)
-		ctx.Error(http.StatusNotFound, err.Error())
-		return
-	} else if err != nil {
+	artifact, exist, err := db.GetByID[actions.ActionArtifact](ctx, artifactID)
+	if err != nil {
 		log.Error("Error getting artifact: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	} else if !exist {
+		log.Error("artifact with ID %d does not exist", artifactID)
+		ctx.Error(http.StatusNotFound, fmt.Sprintf("artifact with ID %d does not exist", artifactID))
 		return
 	}
 	if artifact.RunID != runID {
