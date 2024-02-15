@@ -26,8 +26,10 @@ func UpdateAvatar(ctx *context.APIContext) {
 	//   schema:
 	//     "$ref": "#/definitions/UpdateUserAvatarOption"
 	// responses:
-	//   "204":
-	//     "$ref": "#/responses/empty"
+	//   "201":
+	//     description: response when updating a avatar
+	//   "400":
+	//     "$ref": "#/responses/error"
 	form := web.GetForm(ctx).(*api.UpdateUserAvatarOption)
 
 	content, err := base64.StdEncoding.DecodeString(form.Image)
@@ -42,7 +44,7 @@ func UpdateAvatar(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	ctx.Status(http.StatusCreated)
 }
 
 // DeleteAvatar deletes the Avatar of an User

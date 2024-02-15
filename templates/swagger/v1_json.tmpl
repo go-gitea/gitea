@@ -2682,9 +2682,12 @@
           }
         ],
         "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
+          "201": {
+            "description": "response when updating a avatar"
           },
+          "400": {
+            "$ref": "#/responses/error"
+          }
           "404": {
             "$ref": "#/responses/notFound"
           }
@@ -6348,9 +6351,12 @@
           }
         ],
         "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
+          "201": {
+            "description": "response when updating a avatar"
           },
+          "400": {
+            "$ref": "#/responses/error"
+          }
           "404": {
             "$ref": "#/responses/notFound"
           }
@@ -19066,8 +19072,11 @@
           }
         ],
         "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
+          "201": {
+            "description": "response when updating a avatar"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           }
         }
       },
