@@ -36,7 +36,7 @@ func NewFuncMap() template.FuncMap {
 		"dict":        dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
 		"Eval":        Eval,
 		"Safe":        Safe,
-		"Escape":      html.EscapeString,
+		"Escape":      Escape,
 		"QueryEscape": url.QueryEscape,
 		"JSEscape":    template.JSEscapeString,
 		"Str2html":    Str2html, // TODO: rename it to SanitizeHTML
@@ -159,7 +159,7 @@ func NewFuncMap() template.FuncMap {
 		"RenderCodeBlock":  RenderCodeBlock,
 		"RenderIssueTitle": RenderIssueTitle,
 		"RenderEmoji":      RenderEmoji,
-		"RenderEmojiPlain": emoji.ReplaceAliases,
+		"RenderEmojiPlain": RenderEmojiPlain,
 		"ReactionToEmoji":  ReactionToEmoji,
 
 		"RenderMarkdownToHtml": RenderMarkdownToHtml,
@@ -180,13 +180,45 @@ func NewFuncMap() template.FuncMap {
 }
 
 // Safe render raw as HTML
-func Safe(raw string) template.HTML {
-	return template.HTML(raw)
+func Safe(s any) template.HTML {
+	switch v := s.(type) {
+	case string:
+		return template.HTML(v)
+	case template.HTML:
+		return v
+	}
+	panic(fmt.Sprintf("unexpected type %T", s))
 }
 
-// Str2html render Markdown text to HTML
-func Str2html(raw string) template.HTML {
-	return template.HTML(markup.Sanitize(raw))
+// Str2html sanitizes the input by pre-defined markdown rules
+func Str2html(s any) template.HTML {
+	switch v := s.(type) {
+	case string:
+		return template.HTML(markup.Sanitize(v))
+	case template.HTML:
+		return template.HTML(markup.Sanitize(string(v)))
+	}
+	panic(fmt.Sprintf("unexpected type %T", s))
+}
+
+func Escape(s any) template.HTML {
+	switch v := s.(type) {
+	case string:
+		return template.HTML(html.EscapeString(v))
+	case template.HTML:
+		return v
+	}
+	panic(fmt.Sprintf("unexpected type %T", s))
+}
+
+func RenderEmojiPlain(s any) any {
+	switch v := s.(type) {
+	case string:
+		return emoji.ReplaceAliases(v)
+	case template.HTML:
+		return template.HTML(emoji.ReplaceAliases(string(v)))
+	}
+	panic(fmt.Sprintf("unexpected type %T", s))
 }
 
 // DotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent autolinkers from detecting these as urls

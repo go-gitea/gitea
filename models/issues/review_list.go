@@ -18,11 +18,11 @@ type ReviewList []*Review
 
 // LoadReviewers loads reviewers
 func (reviews ReviewList) LoadReviewers(ctx context.Context) error {
-	reviewerIds := make([]int64, len(reviews))
+	reviewerIDs := make([]int64, len(reviews))
 	for i := 0; i < len(reviews); i++ {
-		reviewerIds[i] = reviews[i].ReviewerID
+		reviewerIDs[i] = reviews[i].ReviewerID
 	}
-	reviewers, err := user_model.GetPossibleUserByIDs(ctx, reviewerIds)
+	reviewers, err := user_model.GetPossibleUserByIDs(ctx, reviewerIDs)
 	if err != nil {
 		return err
 	}
@@ -38,12 +38,12 @@ func (reviews ReviewList) LoadReviewers(ctx context.Context) error {
 }
 
 func (reviews ReviewList) LoadIssues(ctx context.Context) error {
-	issueIds := container.Set[int64]{}
+	issueIDs := container.Set[int64]{}
 	for i := 0; i < len(reviews); i++ {
-		issueIds.Add(reviews[i].IssueID)
+		issueIDs.Add(reviews[i].IssueID)
 	}
 
-	issues, err := GetIssuesByIDs(ctx, issueIds.Values())
+	issues, err := GetIssuesByIDs(ctx, issueIDs.Values())
 	if err != nil {
 		return err
 	}

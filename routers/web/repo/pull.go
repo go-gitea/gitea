@@ -723,7 +723,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 type pullCommitList struct {
 	Commits             []pull_service.CommitInfo `json:"commits"`
 	LastReviewCommitSha string                    `json:"last_review_commit_sha"`
-	Locale              map[string]string         `json:"locale"`
+	Locale              map[string]any            `json:"locale"`
 }
 
 // GetPullCommits get all commits for given pull request
@@ -741,7 +741,7 @@ func GetPullCommits(ctx *context.Context) {
 	}
 
 	// Get the needed locale
-	resp.Locale = map[string]string{
+	resp.Locale = map[string]any{
 		"lang":                                ctx.Locale.Language(),
 		"show_all_commits":                    ctx.Tr("repo.pulls.show_all_commits"),
 		"stats_num_commits":                   ctx.TrN(len(commits), "repo.activity.git_stats_commit_1", "repo.activity.git_stats_commit_n", len(commits)),
