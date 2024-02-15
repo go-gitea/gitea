@@ -1209,10 +1209,10 @@ func filePreviewPatternProcessor(ctx *RenderContext, node *html.Node) {
 				if statuses[idx].Escaped {
 					btnTitle := ""
 					if statuses[idx].HasInvisible {
-						btnTitle += locale.Tr("repo.invisible_runes_line") + " "
+						btnTitle += locale.TrString("repo.invisible_runes_line") + " "
 					}
 					if statuses[idx].HasAmbiguous {
-						btnTitle += locale.Tr("repo.ambiguous_runes_line")
+						btnTitle += locale.TrString("repo.ambiguous_runes_line")
 					}
 
 					escapeBtn := &html.Node{
