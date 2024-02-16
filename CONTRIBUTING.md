@@ -47,6 +47,7 @@
   - [Release Cycle](#release-cycle)
   - [Maintainers](#maintainers)
   - [Technical Oversight Committee (TOC)](#technical-oversight-committee-toc)
+    - [TOC election process](#toc-election-process)
     - [Current TOC members](#current-toc-members)
     - [Previous TOC/owners members](#previous-tocowners-members)
   - [Governance Compensation](#governance-compensation)
@@ -486,36 +487,53 @@ if possible provide GPG signed commits.
 https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
 https://help.github.com/articles/signing-commits-with-gpg/
 
+Furthermore, any account with write access (like bots and TOC members) **must** use 2FA.
+https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
+
 ## Technical Oversight Committee (TOC)
 
-At the start of 2023, the `Owners` team was dissolved. Instead, the governance charter proposed a technical oversight committee (TOC) which expands the ownership team of the Gitea project from three elected positions to six positions. Three positions would be elected as it has been over the past years, and the other three would consist of appointed members from the Gitea company.
+At the start of 2023, the `Owners` team was dissolved. Instead, the governance charter proposed a technical oversight committee (TOC) which expands the ownership team of the Gitea project from three elected positions to six positions. Three positions are elected as it has been over the past years, and the other three consist of appointed members from the Gitea company.
 https://blog.gitea.com/quarterly-23q1/
 
-When the new community members have been elected, the old members will give up ownership to the newly elected members. For security reasons, TOC members or any account with write access (like a bot) must use 2FA.
-https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
+### TOC election process
+
+Any maintainer is eligible to be part of the community TOC if they are not associated with the Gitea company.
+A maintainer can either nominate themselves, or can be nominated by other maintainers to be a candidate for the TOC election.
+If you are nominated by someone else, you must first accept your nomination before the vote starts to be a candidate.
+
+The TOC is elected for one year, the TOC election happens yearly.
+After the announcement of the results of the TOC election, elected members have two weeks time to confirm or refuse the seat.
+If an elected member does not answer within this timeframe, they are automatically assumed to refuse the seat.
+Refusals result in the person with the next highest vote getting the same choice.
+As long as seats are empty in the TOC, members of the previous TOC can fill them until an elected member accepts the seat.
+
+If an elected member that accepts the seat does not have 2FA configured yet, they will be temporarily counted as `answer pending` until they manage to configure 2FA, thus leaving their seat empty for this duration.
 
 ### Current TOC members
 
-- 2023-01-01 ~ 2023-12-31 - https://blog.gitea.com/quarterly-23q1/
+- 2024-01-01 ~ 2024-12-31
   - Company
     - [Jason Song](https://gitea.com/wolfogre) <i@wolfogre.com>
     - [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
-    - [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.io>
+    - [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.com>
   - Community
     - [6543](https://gitea.com/6543) <6543@obermui.de>
-    - [Andrew Thornton](https://gitea.com/zeripath) <art27@cantab.net>
+    - [delvh](https://gitea.com/delvh) <dev.lh@web.de>
     - [John Olheiser](https://gitea.com/jolheiser) <john.olheiser@gmail.com>
 
 ### Previous TOC/owners members
 
 Here's the history of the owners and the time they served:
 
-- [Lunny Xiao](https://gitea.com/lunny) - 2016, 2017, [2018](https://github.com/go-gitea/gitea/issues/3255), [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872)
+- [Lunny Xiao](https://gitea.com/lunny) - 2016, 2017, [2018](https://github.com/go-gitea/gitea/issues/3255), [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872), 2023
 - [Kim Carlbäcker](https://github.com/bkcsoft) - 2016, 2017
 - [Thomas Boerger](https://gitea.com/tboerger) - 2016, 2017
 - [Lauris Bukšis-Haberkorns](https://gitea.com/lafriks) - [2018](https://github.com/go-gitea/gitea/issues/3255), [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801)
-- [Matti Ranta](https://gitea.com/techknowlogick) - [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872)
-- [Andrew Thornton](https://gitea.com/zeripath) - [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872)
+- [Matti Ranta](https://gitea.com/techknowlogick) - [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872), 2023
+- [Andrew Thornton](https://gitea.com/zeripath) - [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872), 2023
+- [6543](https://gitea.com/6543) - 2023
+- [John Olheiser](https://gitea.com/jolheiser) - 2023
+- [Jason Song](https://gitea.com/wolfogre) - 2023
 
 ## Governance Compensation
 
