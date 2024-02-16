@@ -677,6 +677,7 @@ func registerRoutes(m *web.Route) {
 	// ***** START: Admin *****
 	m.Group("/admin", func() {
 		m.Get("", admin.Dashboard)
+		m.Get("/system_status", admin.SystemStatus)
 		m.Post("", web.Bind(forms.AdminDashboardForm{}), admin.DashboardPost)
 
 		m.Get("/self_check", admin.SelfCheck)
