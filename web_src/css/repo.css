@@ -2094,6 +2094,13 @@
   background: var(--color-secondary);
 }
 
+.contributors-stats {
+  display: flex;
+  flex-flow: row wrap;
+  padding: 10px;
+  gap: 5px;
+}
+
 .language-stats {
   display: flex;
   gap: 2px;

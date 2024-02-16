@@ -177,6 +177,27 @@
 					</div>
 					{{end}}
 
+					{{if .TopContributorStats}}
+					<div class="flex-item">
+						<div class="flex-item-main">
+							<div class="flex-item-title">
+								<a class="muted" href="{{.Link}}/activity/contributors">
+									{{ctx.Locale.Tr "contributors"}}
+								</a>
+								<span class="ui basic label">{{CountFmt .NumContributorsStats}}</span>
+							</div>
+
+							<div class="flex-item-body">
+								<div class="contributors-stats">
+									{{range .TopContributorStats}}
+										<a href="{{.HomeLink}}"><img class="ui avatar gt-vm" src="{{.AvatarLink}}" title="{{.Name}}" width="40" height="40"/></a>
+									{{end}}
+								</div>
+							</div>
+						</div>
+					</div>
+					{{end}}
+
 					{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) .LanguageStats}}
 					<div class="flex-item">
 						<div class="flex-item-main">

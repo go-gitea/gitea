@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"path"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 
@@ -49,6 +50,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
 	issue_service "code.gitea.io/gitea/services/issue"
+	contributors_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/nektos/act/pkg/model"
@@ -898,6 +900,29 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	return allEntries
 }
 
+func renderContributorStats(ctx *context.Context) {
+	contributorStats, err := contributors_service.GetContributorStats(ctx, ctx.Cache, ctx.Repo.Repository, ctx.Repo.CommitID)
+	// TODO use httpx?
+	if err != nil {
+		ctx.ServerError("contributors_service.GetContributorStats", err)
+		return
+	}
+
+	contributors := make([]*contributors_service.ContributorData, 0, len(contributorStats))
+	limit := 5
+	for key, data := range contributorStats {
+		if key != "total" && limit > 0 {
+			contributors = append(contributors, data)
+		}
+	}
+	sort.Slice(contributors, func(i, j int) bool { return contributors[i].TotalCommits < contributors[j].TotalCommits })
+	if len(contributors) < limit {
+		limit = len(contributors)
+	}
+	ctx.Data["TopContributorStats"] = contributors[:limit]
+	ctx.Data["NumContributorsStats"] = len(contributorStats) - 1
+}
+
 func renderLanguageStats(ctx *context.Context) {
 	langs, err := repo_model.GetTopLanguageStats(ctx, ctx.Repo.Repository, 5)
 	if err != nil {
@@ -985,6 +1010,11 @@ func renderCode(ctx *context.Context) {
 	}
 
 	checkCitationFile(ctx, entry)
+	if ctx.Written() {
+		return
+	}
+
+	renderContributorStats(ctx)
 	if ctx.Written() {
 		return
 	}
