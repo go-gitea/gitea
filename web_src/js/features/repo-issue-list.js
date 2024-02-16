@@ -69,16 +69,14 @@ function initRepoIssueListCheckboxes() {
       }
     }
 
-    updateIssuesMeta(
-      url,
-      action,
-      issueIDs,
-      elementId,
-    ).then(() => {
+    try {
+      await updateIssuesMeta(url, action, issueIDs, elementId);
       window.location.reload();
-    }).catch((reason) => {
-      showErrorToast(reason.responseJSON.error);
-    });
+    } catch (err) {
+      if (err?.responseJSON?.error) {
+        showErrorToast(err.responseJSON.error);
+      }
+    }
   });
 }
 
