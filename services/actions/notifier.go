@@ -105,62 +105,36 @@ func (n *actionsNotifier) IssueChangeStatus(ctx context.Context, doer *user_mode
 func (n *actionsNotifier) IssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
 	ctx = withMethod(ctx, "IssueChangeAssignee")
 
-	var err error
-	if err = issue.LoadRepo(ctx); err != nil {
-		log.Error("LoadRepo: %v", err)
-		return
-	}
-
-	if err = issue.LoadPoster(ctx); err != nil {
-		log.Error("LoadPoster: %v", err)
-		return
-	}
-
-	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
 	var action api.HookIssueAction
 	if removed {
 		action = api.HookIssueUnassigned
 	} else {
 		action = api.HookIssueAssigned
 	}
-	if issue.IsPull {
-		if err = issue.LoadPullRequest(ctx); err != nil {
-			log.Error("loadPullRequest: %v", err)
-			return
-		}
-		if err = issue.PullRequest.LoadIssue(ctx); err != nil {
-			log.Error("LoadIssue: %v", err)
-			return
-		}
-		newNotifyInputFromIssue(issue, webhook_module.HookEventPullRequestAssign).
-			WithDoer(doer).
-			WithPayload(&api.PullRequestPayload{
-				Action:      action,
-				Index:       issue.Index,
-				PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
-				Repository:  convert.ToRepo(ctx, issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
-				Sender:      convert.ToUser(ctx, doer, nil),
-			}).
-			WithPullRequest(issue.PullRequest).
-			Notify(ctx)
-		return
-	}
-	newNotifyInputFromIssue(issue, webhook_module.HookEventIssueAssign).
-		WithDoer(doer).
-		WithPayload(&api.IssuePayload{
-			Action:     action,
-			Index:      issue.Index,
-			Issue:      convert.ToAPIIssue(ctx, issue),
-			Repository: convert.ToRepo(ctx, issue.Repo, permission),
-			Sender:     convert.ToUser(ctx, doer, nil),
-		}).
-		Notify(ctx)
+	notifyIssueChange(ctx, doer, issue, webhook_module.HookEventPullRequestAssign, action)
 }
 
 // IssueChangeMilestone notifies assignee to notifiers
 func (n *actionsNotifier) IssueChangeMilestone(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64) {
 	ctx = withMethod(ctx, "IssueChangeMilestone")
 
+	var action api.HookIssueAction
+	if issue.MilestoneID > 0 {
+		action = api.HookIssueMilestoned
+	} else {
+		action = api.HookIssueDemilestoned
+	}
+	notifyIssueChange(ctx, doer, issue, webhook_module.HookEventPullRequestMilestone, action)
+}
+
+func (n *actionsNotifier) IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
+	_, _ []*issues_model.Label,
+) {
+	ctx = withMethod(ctx, "IssueChangeLabels")
+	notifyIssueChange(ctx, doer, issue, webhook_module.HookEventPullRequestLabel, api.HookIssueLabelUpdated)
+}
+
+func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, event webhook_module.HookEventType, action api.HookIssueAction) {
 	var err error
 	if err = issue.LoadRepo(ctx); err != nil {
 		log.Error("LoadRepo: %v", err)
@@ -172,23 +146,12 @@ func (n *actionsNotifier) IssueChangeMilestone(ctx context.Context, doer *user_m
 		return
 	}
 
-	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
-	var action api.HookIssueAction
-	if issue.MilestoneID > 0 {
-		action = api.HookIssueMilestoned
-	} else {
-		action = api.HookIssueDemilestoned
-	}
 	if issue.IsPull {
 		if err = issue.LoadPullRequest(ctx); err != nil {
 			log.Error("loadPullRequest: %v", err)
 			return
 		}
-		if err = issue.PullRequest.LoadIssue(ctx); err != nil {
-			log.Error("LoadIssue: %v", err)
-			return
-		}
-		newNotifyInputFromIssue(issue, webhook_module.HookEventPullRequestMilestone).
+		newNotifyInputFromIssue(issue, event).
 			WithDoer(doer).
 			WithPayload(&api.PullRequestPayload{
 				Action:      action,
@@ -201,61 +164,11 @@ func (n *actionsNotifier) IssueChangeMilestone(ctx context.Context, doer *user_m
 			Notify(ctx)
 		return
 	}
-	newNotifyInputFromIssue(issue, webhook_module.HookEventPullRequestMilestone).
+	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
+	newNotifyInputFromIssue(issue, event).
 		WithDoer(doer).
 		WithPayload(&api.IssuePayload{
 			Action:     action,
-			Index:      issue.Index,
-			Issue:      convert.ToAPIIssue(ctx, issue),
-			Repository: convert.ToRepo(ctx, issue.Repo, permission),
-			Sender:     convert.ToUser(ctx, doer, nil),
-		}).
-		Notify(ctx)
-}
-
-func (n *actionsNotifier) IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
-	_, _ []*issues_model.Label,
-) {
-	ctx = withMethod(ctx, "IssueChangeLabels")
-
-	var err error
-	if err = issue.LoadRepo(ctx); err != nil {
-		log.Error("LoadRepo: %v", err)
-		return
-	}
-
-	if err = issue.LoadPoster(ctx); err != nil {
-		log.Error("LoadPoster: %v", err)
-		return
-	}
-
-	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
-	if issue.IsPull {
-		if err = issue.LoadPullRequest(ctx); err != nil {
-			log.Error("loadPullRequest: %v", err)
-			return
-		}
-		if err = issue.PullRequest.LoadIssue(ctx); err != nil {
-			log.Error("LoadIssue: %v", err)
-			return
-		}
-		newNotifyInputFromIssue(issue, webhook_module.HookEventPullRequestLabel).
-			WithDoer(doer).
-			WithPayload(&api.PullRequestPayload{
-				Action:      api.HookIssueLabelUpdated,
-				Index:       issue.Index,
-				PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
-				Repository:  convert.ToRepo(ctx, issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
-				Sender:      convert.ToUser(ctx, doer, nil),
-			}).
-			WithPullRequest(issue.PullRequest).
-			Notify(ctx)
-		return
-	}
-	newNotifyInputFromIssue(issue, webhook_module.HookEventIssueLabel).
-		WithDoer(doer).
-		WithPayload(&api.IssuePayload{
-			Action:     api.HookIssueLabelUpdated,
 			Index:      issue.Index,
 			Issue:      convert.ToAPIIssue(ctx, issue),
 			Repository: convert.ToRepo(ctx, issue.Repo, permission),
