@@ -67,6 +67,7 @@
     "@vitejs/plugin-vue": "5.0.4",
     "eslint": "8.56.0",
     "eslint-plugin-array-func": "4.0.0",
+    "eslint-plugin-github": "4.10.1",
     "eslint-plugin-i": "2.29.1",
     "eslint-plugin-jquery": "1.5.1",
     "eslint-plugin-no-jquery": "2.7.0",
