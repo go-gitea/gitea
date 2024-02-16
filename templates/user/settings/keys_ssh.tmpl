@@ -11,11 +11,11 @@
 		<form class="ui form" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
-				<label for="title">{{ctx.Locale.Tr "settings.key_name"}}</label>
+				<label for="ssh-key-title">{{ctx.Locale.Tr "settings.key_name"}}</label>
 				<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required maxlength="50">
 			</div>
 			<div class="field {{if .Err_Content}}error{{end}}">
-				<label for="content">{{ctx.Locale.Tr "settings.key_content"}}</label>
+				<label for="ssh-key-content">{{ctx.Locale.Tr "settings.key_content"}}</label>
 				<textarea id="ssh-key-content" name="content" class="js-quick-submit" placeholder="{{ctx.Locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
 			</div>
 			<input name="type" type="hidden" value="ssh">
