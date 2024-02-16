@@ -2,6 +2,10 @@ import {initCompLabelEdit} from './comp/LabelEdit.js';
 import {toggleElem} from '../utils/dom.js';
 
 export function initCommonOrganization() {
+  if (document.querySelectorAll('.organization').length === 0) {
+    return;
+  }
+
   const orgNameInput = document.querySelector('.organization.settings.options #org_name');
   if (!orgNameInput) return;
   orgNameInput.addEventListener('input', function () {
