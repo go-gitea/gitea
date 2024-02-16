@@ -24,8 +24,8 @@ func (n *websocketNotifier) filterIssueSessions(ctx context.Context, repo *repo_
 			return false
 		}
 
-		// if the repo is private, the user will get notifications if they have access to the repo
-		hasAccess, err := access.HasAccessUnit(ctx, data.user, repo, unit.TypeIssues, perm.AccessModeNone)
+		// the user will get notifications if they have access to the repos issues
+		hasAccess, err := access.HasAccessUnit(ctx, data.user, repo, unit.TypeIssues, perm.AccessModeRead)
 		if err != nil {
 			log.Error("Failed to check access: %v", err)
 			return false
