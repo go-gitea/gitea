@@ -89,8 +89,6 @@ The `build` target is split into two sub-targets:
 
 Internet connectivity is required to download the go and npm modules. When building from the official source tarballs which include pre-built frontend files, the `frontend` target will not be triggered, making it possible to build without Node.js.
 
-Parallelism (`make -j <num>`) is not supported.
-
 More info: https://docs.gitea.com/installation/install-from-source
 
 ## Using
