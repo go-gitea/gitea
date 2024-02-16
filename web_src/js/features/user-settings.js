@@ -8,7 +8,7 @@ export function initUserSettings() {
   usernameInput.addEventListener('input', function () {
     const prompt = document.getElementById('name-change-prompt');
     const promptRedirect = document.getElementById('name-change-redirect-prompt');
-    if (this.value.toLowerCase() !== this.dataset.name.toLowerCase()) {
+    if (this.value.toLowerCase() !== this.getAttribute('data-name').toLowerCase()) {
       showElem(prompt);
       showElem(promptRedirect);
     } else {
