@@ -653,7 +653,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 
 	if pb != nil && pb.EnableStatusCheck {
 
-		missingRequiredChecks := make([]string, 0)
+		var missingRequiredChecks []string
 		for _, requiredContext := range pb.StatusCheckContexts {
 			contextFound := false
 			for _, presentStatus := range commitStatuses {
