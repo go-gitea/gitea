@@ -4,8 +4,7 @@
 package websocket
 
 import (
-	"fmt"
-
+	"github.com/mitchellh/mapstructure"
 	"github.com/olahol/melody"
 
 	"code.gitea.io/gitea/modules/context"
@@ -17,7 +16,7 @@ var m *melody.Melody
 
 type websocketMessage struct {
 	Action string `json:"action"`
-	Data   string `json:"data"`
+	Data   any    `json:"data"`
 }
 
 type subscribeMessageData struct {
@@ -68,9 +67,10 @@ func handleMessage(s *melody.Session, _msg []byte) {
 }
 
 func handleSubscribeMessage(data *sessionData, _data any) error {
-	msgData, ok := _data.(*subscribeMessageData)
-	if !ok {
-		return fmt.Errorf("invalid message data")
+	msgData := &subscribeMessageData{}
+	err := mapstructure.Decode(_data, &msgData)
+	if err != nil {
+		return err
 	}
 
 	data.onURL = msgData.URL

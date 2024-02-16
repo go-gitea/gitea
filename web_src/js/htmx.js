@@ -20,3 +20,8 @@ document.body.addEventListener('htmx:responseError', (event) => {
   // TODO: add translations
   showErrorToast(`Error ${event.detail.xhr.status} when calling ${event.detail.requestConfig.path}`);
 });
+
+document.body.addEventListener('htmx:wsOpen', (evt) => {
+  const socket = evt.detail.socketWrapper;
+  socket.send(JSON.stringify({action: 'subscribe', data: {url: window.location.href}}));
+});
