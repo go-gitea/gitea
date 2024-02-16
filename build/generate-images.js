@@ -80,8 +80,7 @@ async function main() {
 }
 
 try {
-  await main();
-  exit();
+  exit(await main());
 } catch (err) {
   exit(err);
 }
