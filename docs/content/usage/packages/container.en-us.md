@@ -39,12 +39,16 @@ Images must follow this naming convention:
 
 `{registry}/{owner}/{image}`
 
-Name your image according to the convetion with the following command:
+When building your docker image, using the naming convention above, this looks like:
 
 ```shell
-docker tag {image}:{tag} gitea.example.com/{owner}/{image}:{tag}
+# build an image with tag
+docker build -t {registry}/{owner}/{image}:{tag} .
+# name an existing image with tag
+docker tag {some-existing-image}:{tag} {registry}/{owner}/{image}:{tag}
 ```
 
+where your registry is the domain of your gitea instance (e.g. gitea.example.com)
 For example, these are all valid image names for the owner `testuser`:
 
 `gitea.example.com/testuser/myimage`
