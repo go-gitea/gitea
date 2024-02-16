@@ -21,14 +21,14 @@ import {
   firstStartDateAfterDate,
   fillEmptyStartDaysWithZeroes,
 } from '../utils/time.js';
-import { colors } from '../utils/color.js'
+import { chartJsColors } from '../utils/color.js'
 import { sleep } from '../utils.js'
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 
 const {pageData} = window.config;
 
-Chart.defaults.color = colors.text;
-Chart.defaults.borderColor = colors.border;
+Chart.defaults.color = chartJsColors.text;
+Chart.defaults.borderColor = chartJsColors.border;
 
 Chart.register(
   TimeScale,
@@ -99,7 +99,7 @@ export default {
             pointHitRadius: 0,
             fill: true,
             label: 'Additions',
-            backgroundColor: colors['additions'],
+            backgroundColor: chartJsColors['additions'],
             borderWidth: 0,
             tension: 0.3,
           },
@@ -109,7 +109,7 @@ export default {
             pointHitRadius: 0,
             fill: true,
             label: 'Deletions',
-            backgroundColor: colors['deletions'],
+            backgroundColor: chartJsColors['deletions'],
             borderWidth: 0,
             tension: 0.3,
           },

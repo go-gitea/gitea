@@ -21,7 +21,7 @@ import {
   firstStartDateAfterDate,
   fillEmptyStartDaysWithZeroes,
 } from '../utils/time.js';
-import { colors } from '../utils/color.js'
+import { chartJsColors } from '../utils/color.js'
 import { sleep } from '../utils.js'
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import $ from 'jquery';
@@ -40,8 +40,8 @@ const customEventListener = {
   }
 };
 
-Chart.defaults.color = colors.text;
-Chart.defaults.borderColor = colors.border;
+Chart.defaults.color = chartJsColors.text;
+Chart.defaults.borderColor = chartJsColors.border;
 
 Chart.register(
   TimeScale,
@@ -208,7 +208,7 @@ export default {
             pointRadius: 0,
             pointHitRadius: 0,
             fill: 'start',
-            backgroundColor: colors[this.type],
+            backgroundColor: chartJsColors[this.type],
             borderWidth: 0,
             tension: 0.3,
           },
@@ -240,7 +240,6 @@ export default {
           title: {
             display: type === 'main',
             text: 'drag: zoom, shift+drag: pan, double click: reset zoom',
-            color: colors.title,
             position: 'top',
             align: 'center',
           },
