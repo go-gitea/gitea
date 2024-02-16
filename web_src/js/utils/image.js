@@ -23,7 +23,7 @@ export async function pngChunks(blob) {
 // return default values.
 export async function imageInfo(blob) {
   let width = 0; // 0 means no width could be determined
-  let dppx = 1; // default to 1:1 pixel ratio
+  let dppx = 1; // 1 dot per pixel for non-HiDPI screens
 
   if (blob.type === 'image/png') { // only png is supported currently
     try {
