@@ -49,6 +49,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
 	issue_service "code.gitea.io/gitea/services/issue"
+	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/nektos/act/pkg/model"
 
@@ -553,31 +554,11 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry) {
 			}
 			ctx.Data["NumLinesSet"] = true
 
-			language := ""
-
-			indexFilename, worktree, deleteTemporaryFile, err := ctx.Repo.GitRepo.ReadTreeToTemporaryIndex(ctx.Repo.CommitID)
-			if err == nil {
-				defer deleteTemporaryFile()
-
-				filename2attribute2info, err := ctx.Repo.GitRepo.CheckAttribute(git.CheckAttributeOpts{
-					CachedOnly: true,
-					Attributes: []string{"linguist-language", "gitlab-language"},
-					Filenames:  []string{ctx.Repo.TreePath},
-					IndexFile:  indexFilename,
-					WorkTree:   worktree,
-				})
-				if err != nil {
-					log.Error("Unable to load attributes for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
-				}
-
-				language = filename2attribute2info[ctx.Repo.TreePath]["linguist-language"]
-				if language == "" || language == "unspecified" {
-					language = filename2attribute2info[ctx.Repo.TreePath]["gitlab-language"]
-				}
-				if language == "unspecified" {
-					language = ""
-				}
+			language, err := files_service.TryGetContentLanguage(ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
+			if err != nil {
+				log.Error("Unable to get file language for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
 			}
+
 			fileContent, lexerName, err := highlight.File(blob.Name(), language, buf)
 			ctx.Data["LexerName"] = lexerName
 			if err != nil {
@@ -758,7 +739,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 		}
 	}
 
-	ctx.NotFound("Home", fmt.Errorf(ctx.Tr("units.error.no_unit_allowed_repo")))
+	ctx.NotFound("Home", fmt.Errorf(ctx.Locale.TrString("units.error.no_unit_allowed_repo")))
 }
 
 func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {

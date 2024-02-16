@@ -151,6 +151,7 @@ func WebhooksNew(ctx *context.Context) {
 		}
 	}
 	ctx.Data["BaseLink"] = orCtx.LinkNew
+	ctx.Data["BaseLinkNew"] = orCtx.LinkNew
 
 	ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 }

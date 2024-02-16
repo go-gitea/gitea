@@ -94,7 +94,7 @@ type GiteaTemplate struct {
 }
 
 // Globs parses the .gitea/template globs or returns them if they were already parsed
-func (gt GiteaTemplate) Globs() []glob.Glob {
+func (gt *GiteaTemplate) Globs() []glob.Glob {
 	if gt.globs != nil {
 		return gt.globs
 	}

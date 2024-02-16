@@ -109,21 +109,23 @@ func IsTemplateConfig(path string) bool {
 	return false
 }
 
-// GetTemplatesFromDefaultBranch checks for issue templates in the repo's default branch,
-// returns valid templates and the errors of invalid template files.
-func GetTemplatesFromDefaultBranch(repo *repo.Repository, gitRepo *git.Repository) ([]*api.IssueTemplate, map[string]error) {
-	var issueTemplates []*api.IssueTemplate
-
+// ParseTemplatesFromDefaultBranch parses the issue templates in the repo's default branch,
+// returns valid templates and the errors of invalid template files (the errors map is guaranteed to be non-nil).
+func ParseTemplatesFromDefaultBranch(repo *repo.Repository, gitRepo *git.Repository) (ret struct {
+	IssueTemplates []*api.IssueTemplate
+	TemplateErrors map[string]error
+},
+) {
+	ret.TemplateErrors = map[string]error{}
 	if repo.IsEmpty {
-		return issueTemplates, nil
+		return ret
 	}
 
 	commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
 	if err != nil {
-		return issueTemplates, nil
+		return ret
 	}
 
-	invalidFiles := map[string]error{}
 	for _, dirName := range templateDirCandidates {
 		tree, err := commit.SubTree(dirName)
 		if err != nil {
@@ -133,7 +135,7 @@ func GetTemplatesFromDefaultBranch(repo *repo.Repository, gitRepo *git.Repositor
 		entries, err := tree.ListEntries()
 		if err != nil {
 			log.Debug("list entries in %s: %v", dirName, err)
-			return issueTemplates, nil
+			return ret
 		}
 		for _, entry := range entries {
 			if !template.CouldBe(entry.Name()) {
@@ -141,16 +143,16 @@ func GetTemplatesFromDefaultBranch(repo *repo.Repository, gitRepo *git.Repositor
 			}
 			fullName := path.Join(dirName, entry.Name())
 			if it, err := template.UnmarshalFromEntry(entry, dirName); err != nil {
-				invalidFiles[fullName] = err
+				ret.TemplateErrors[fullName] = err
 			} else {
 				if !strings.HasPrefix(it.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
 					it.Ref = git.BranchPrefix + it.Ref
 				}
-				issueTemplates = append(issueTemplates, it)
+				ret.IssueTemplates = append(ret.IssueTemplates, it)
 			}
 		}
 	}
-	return issueTemplates, invalidFiles
+	return ret
 }
 
 // GetTemplateConfigFromDefaultBranch returns the issue config for this repo.
@@ -179,8 +181,8 @@ func GetTemplateConfigFromDefaultBranch(repo *repo.Repository, gitRepo *git.Repo
 }
 
 func HasTemplatesOrContactLinks(repo *repo.Repository, gitRepo *git.Repository) bool {
-	ret, _ := GetTemplatesFromDefaultBranch(repo, gitRepo)
-	if len(ret) > 0 {
+	ret := ParseTemplatesFromDefaultBranch(repo, gitRepo)
+	if len(ret.IssueTemplates) > 0 {
 		return true
 	}
 

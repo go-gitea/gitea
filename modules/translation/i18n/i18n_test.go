@@ -17,7 +17,7 @@ fmt = %[1]s %[2]s
 
 [section]
 sub = Sub String
-mixed = test value; <span style="color: red\; background: none;">more text</span>
+mixed = test value; <span style="color: red\; background: none;">%s</span>
 `)
 
 	testData2 := []byte(`
@@ -32,29 +32,33 @@ sub = Changed Sub String
 	assert.NoError(t, ls.AddLocaleByIni("lang2", "Lang2", testData2, nil))
 	ls.SetDefaultLang("lang1")
 
-	result := ls.Tr("lang1", "fmt", "a", "b")
+	lang1, _ := ls.Locale("lang1")
+	lang2, _ := ls.Locale("lang2")
+
+	result := lang1.TrString("fmt", "a", "b")
 	assert.Equal(t, "a b", result)
 
-	result = ls.Tr("lang2", "fmt", "a", "b")
+	result = lang2.TrString("fmt", "a", "b")
 	assert.Equal(t, "b a", result)
 
-	result = ls.Tr("lang1", "section.sub")
+	result = lang1.TrString("section.sub")
 	assert.Equal(t, "Sub String", result)
 
-	result = ls.Tr("lang2", "section.sub")
+	result = lang2.TrString("section.sub")
 	assert.Equal(t, "Changed Sub String", result)
 
-	result = ls.Tr("", ".dot.name")
+	langNone, _ := ls.Locale("none")
+	result = langNone.TrString(".dot.name")
 	assert.Equal(t, "Dot Name", result)
 
-	result = ls.Tr("lang2", "section.mixed")
-	assert.Equal(t, `test value; <span style="color: red; background: none;">more text</span>`, result)
+	result2 := lang2.TrHTML("section.mixed", "a&b")
+	assert.EqualValues(t, `test value; <span style="color: red; background: none;">a&amp;b</span>`, result2)
 
 	langs, descs := ls.ListLangNameDesc()
 	assert.ElementsMatch(t, []string{"lang1", "lang2"}, langs)
 	assert.ElementsMatch(t, []string{"Lang1", "Lang2"}, descs)
 
-	found := ls.Has("lang1", "no-such")
+	found := lang1.HasKey("no-such")
 	assert.False(t, found)
 	assert.NoError(t, ls.Close())
 }
@@ -72,9 +76,10 @@ c=22
 
 	ls := NewLocaleStore()
 	assert.NoError(t, ls.AddLocaleByIni("lang1", "Lang1", testData1, testData2))
-	assert.Equal(t, "11", ls.Tr("lang1", "a"))
-	assert.Equal(t, "21", ls.Tr("lang1", "b"))
-	assert.Equal(t, "22", ls.Tr("lang1", "c"))
+	lang1, _ := ls.Locale("lang1")
+	assert.Equal(t, "11", lang1.TrString("a"))
+	assert.Equal(t, "21", lang1.TrString("b"))
+	assert.Equal(t, "22", lang1.TrString("c"))
 }
 
 func TestLocaleStoreQuirks(t *testing.T) {
@@ -110,8 +115,9 @@ func TestLocaleStoreQuirks(t *testing.T) {
 	for _, testData := range testDataList {
 		ls := NewLocaleStore()
 		err := ls.AddLocaleByIni("lang1", "Lang1", []byte("a="+testData.in), nil)
+		lang1, _ := ls.Locale("lang1")
 		assert.NoError(t, err, testData.hint)
-		assert.Equal(t, testData.out, ls.Tr("lang1", "a"), testData.hint)
+		assert.Equal(t, testData.out, lang1.TrString("a"), testData.hint)
 		assert.NoError(t, ls.Close())
 	}
 
