@@ -10,7 +10,7 @@
 			{{.CsrfTokenHtml}}
 			<input type="hidden" name="title" value="none">
 			<div class="field {{if .Err_Content}}error{{end}}">
-				<label for="content">{{ctx.Locale.Tr "settings.key_content"}}</label>
+				<label for="gpg-key-content">{{ctx.Locale.Tr "settings.key_content"}}</label>
 				<textarea id="gpg-key-content" name="content" placeholder="{{ctx.Locale.Tr "settings.key_content_gpg_placeholder"}}" required>{{.content}}</textarea>
 			</div>
 			{{if .Err_Signature}}
@@ -26,7 +26,7 @@
 					</div>
 				</div>
 				<div class="field">
-					<label for="signature">{{ctx.Locale.Tr "settings.gpg_token_signature"}}</label>
+					<label for="gpg-key-signature">{{ctx.Locale.Tr "settings.gpg_token_signature"}}</label>
 					<textarea id="gpg-key-signature" name="signature" placeholder="{{ctx.Locale.Tr "settings.key_signature_gpg_placeholder"}}" required>{{.signature}}</textarea>
 				</div>
 			{{end}}
