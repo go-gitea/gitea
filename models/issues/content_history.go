@@ -161,7 +161,11 @@ func FetchIssueContentHistoryList(dbCtx context.Context, issueID, commentID int6
 	}
 
 	for _, item := range res {
-		item.UserAvatarLink = avatars.GenerateUserAvatarFastLink(item.UserName, 0)
+		if item.UserID > 0 {
+			item.UserAvatarLink = avatars.GenerateUserAvatarFastLink(item.UserName, 0)
+		} else {
+			item.UserAvatarLink = avatars.DefaultAvatarLink()
+		}
 	}
 	return res, nil
 }
