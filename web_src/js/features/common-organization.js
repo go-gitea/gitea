@@ -2,7 +2,7 @@ import {initCompLabelEdit} from './comp/LabelEdit.js';
 import {toggleElem} from '../utils/dom.js';
 
 export function initCommonOrganization() {
-  if (!document.querySelectorAll('.organization')) {
+  if (document.querySelectorAll('.organization').length === 0) {
     return;
   }
 
