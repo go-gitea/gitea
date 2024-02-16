@@ -4,12 +4,12 @@
 package websocket
 
 import (
-	"github.com/mitchellh/mapstructure"
-	"github.com/olahol/melody"
-
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	notify_service "code.gitea.io/gitea/services/notify"
+
+	"github.com/mitchellh/mapstructure"
+	"github.com/olahol/melody"
 )
 
 var m *melody.Melody

@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/olahol/melody"
-
 	user_model "code.gitea.io/gitea/models/user"
+
+	"github.com/olahol/melody"
 )
 
 type sessionData struct {
