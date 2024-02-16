@@ -48,7 +48,7 @@ docker build -t {registry}/{owner}/{image}:{tag} .
 docker tag {some-existing-image}:{tag} {registry}/{owner}/{image}:{tag}
 ```
 
-where your registry is the domain of your gitea instance (e.g. gitea.example.com)
+where your registry is the domain of your gitea instance (e.g. gitea.example.com).
 For example, these are all valid image names for the owner `testuser`:
 
 `gitea.example.com/testuser/myimage`
