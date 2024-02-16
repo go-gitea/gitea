@@ -29,7 +29,7 @@ func Create(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_org")
 	ctx.Data["DefaultOrgVisibilityMode"] = setting.Service.DefaultOrgVisibilityMode
 	if !ctx.Doer.CanCreateOrganization() {
-		ctx.ServerError("Not allowed", errors.New(ctx.Tr("org.form.create_org_not_allowed")))
+		ctx.ServerError("Not allowed", errors.New(ctx.Locale.TrString("org.form.create_org_not_allowed")))
 		return
 	}
 	ctx.HTML(http.StatusOK, tplCreateOrg)
@@ -41,7 +41,7 @@ func CreatePost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_org")
 
 	if !ctx.Doer.CanCreateOrganization() {
-		ctx.ServerError("Not allowed", errors.New(ctx.Tr("org.form.create_org_not_allowed")))
+		ctx.ServerError("Not allowed", errors.New(ctx.Locale.TrString("org.form.create_org_not_allowed")))
 		return
 	}
 

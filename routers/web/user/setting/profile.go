@@ -126,7 +126,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 		defer fr.Close()
 
 		if form.Avatar.Size > setting.Avatar.MaxFileSize {
-			return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big", form.Avatar.Size/1024, setting.Avatar.MaxFileSize/1024))
+			return errors.New(ctx.Locale.TrString("settings.uploaded_avatar_is_too_big", form.Avatar.Size/1024, setting.Avatar.MaxFileSize/1024))
 		}
 
 		data, err := io.ReadAll(fr)
@@ -136,7 +136,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 
 		st := typesniffer.DetectContentType(data)
 		if !(st.IsImage() && !st.IsSvgImage()) {
-			return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
+			return errors.New(ctx.Locale.TrString("settings.uploaded_avatar_not_a_image"))
 		}
 		if err = user_service.UploadAvatar(ctx, ctxUser, data); err != nil {
 			return fmt.Errorf("UploadAvatar: %w", err)
@@ -389,7 +389,7 @@ func UpdateUserLang(ctx *context.Context) {
 	middleware.SetLocaleCookie(ctx.Resp, ctx.Doer.Language, 0)
 
 	log.Trace("User settings updated: %s", ctx.Doer.Name)
-	ctx.Flash.Success(translation.NewLocale(ctx.Doer.Language).Tr("settings.update_language_success"))
+	ctx.Flash.Success(translation.NewLocale(ctx.Doer.Language).TrString("settings.update_language_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 }
 

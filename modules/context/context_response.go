@@ -98,12 +98,11 @@ func (ctx *Context) RenderToString(name base.TplName, data map[string]any) (stri
 }
 
 // RenderWithErr used for page has form validation but need to prompt error to users.
-func (ctx *Context) RenderWithErr(msg string, tpl base.TplName, form any) {
+func (ctx *Context) RenderWithErr(msg any, tpl base.TplName, form any) {
 	if form != nil {
 		middleware.AssignForm(form, ctx.Data)
 	}
-	ctx.Flash.ErrorMsg = msg
-	ctx.Data["Flash"] = ctx.Flash
+	ctx.Flash.Error(msg, true)
 	ctx.HTML(http.StatusOK, tpl)
 }
 
