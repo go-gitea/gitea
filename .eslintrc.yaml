@@ -12,6 +12,7 @@ plugins:
   - "@eslint-community/eslint-plugin-eslint-comments"
   - "@stylistic/eslint-plugin-js"
   - eslint-plugin-array-func
+  - eslint-plugin-github
   - eslint-plugin-i
   - eslint-plugin-jquery
   - eslint-plugin-no-jquery
@@ -209,6 +210,29 @@ rules:
   func-names: [0]
   func-style: [0]
   getter-return: [2]
+  github/a11y-aria-label-is-well-formatted: [0]
+  github/a11y-no-title-attribute: [0]
+  github/a11y-no-visually-hidden-interactive-element: [0]
+  github/a11y-role-supports-aria-props: [0]
+  github/a11y-svg-has-accessible-name: [0]
+  github/array-foreach: [0]
+  github/async-currenttarget: [2]
+  github/async-preventdefault: [2]
+  github/authenticity-token: [0]
+  github/get-attribute: [0]
+  github/js-class-name: [0]
+  github/no-blur: [0]
+  github/no-d-none: [0]
+  github/no-dataset: [2]
+  github/no-dynamic-script-tag: [2]
+  github/no-implicit-buggy-globals: [2]
+  github/no-inner-html: [0]
+  github/no-innerText: [2]
+  github/no-then: [2]
+  github/no-useless-passive: [2]
+  github/prefer-observers: [2]
+  github/require-passive-events: [2]
+  github/unescaped-html-literal: [0]
   grouped-accessor-pairs: [2]
   guard-for-in: [0]
   id-blacklist: [0]
