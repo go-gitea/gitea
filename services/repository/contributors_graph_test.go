@@ -14,6 +14,7 @@ import (
 
 	"gitea.com/go-chi/cache"
 	"github.com/stretchr/testify/assert"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 func TestRepository_ContributorsGraph(t *testing.T) {
@@ -32,7 +33,7 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 	assert.ErrorAs(t, err, &git.ErrNotExist{})
 
 	generateContributorStats(nil, mockCache, "key2", repo, "master")
-	data, isData := mockCache.Get("key2").(map[string]*ContributorData)
+	data, isData := mockCache.Get("key2").(map[string]*api.ContributorData)
 	assert.True(t, isData)
 	var keys []string
 	for k := range data {
@@ -46,11 +47,11 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 		"total", // generated summary
 	}, keys)
 
-	assert.EqualValues(t, &ContributorData{
+	assert.EqualValues(t, &api.ContributorData{
 		Name:         "Ethan Koenig",
 		AvatarLink:   "https://secure.gravatar.com/avatar/b42fb195faa8c61b8d88abfefe30e9e3?d=identicon",
 		TotalCommits: 1,
-		Weeks: map[int64]*WeekData{
+		Weeks: map[int64]*api.WeekData{
 			1511654400000: {
 				Week:      1511654400000, // sunday 2017-11-26
 				Additions: 3,
@@ -59,11 +60,11 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 			},
 		},
 	}, data["ethantkoenig@gmail.com"])
-	assert.EqualValues(t, &ContributorData{
+	assert.EqualValues(t, &api.ContributorData{
 		Name:         "Total",
 		AvatarLink:   "",
 		TotalCommits: 3,
-		Weeks: map[int64]*WeekData{
+		Weeks: map[int64]*api.WeekData{
 			1511654400000: {
 				Week:      1511654400000, // sunday 2017-11-26 (2017-11-26 20:31:18 -0800)
 				Additions: 3,
