@@ -157,10 +157,11 @@ func notify(ctx context.Context, input *notifyInput) error {
 
 	var detectedWorkflows []*actions_module.DetectedWorkflow
 	actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
+	shouldDetectSchedules := input.Event == webhook_module.HookEventPush && git.RefName(input.Ref).BranchName() == input.Repo.DefaultBranch
 	workflows, schedules, err := actions_module.DetectWorkflows(gitRepo, commit,
 		input.Event,
 		input.Payload,
-		input.Event == webhook_module.HookEventPush && git.RefName(input.Ref).BranchName() == input.Repo.DefaultBranch,
+		shouldDetectSchedules,
 	)
 	if err != nil {
 		return fmt.Errorf("DetectWorkflows: %w", err)
@@ -207,8 +208,10 @@ func notify(ctx context.Context, input *notifyInput) error {
 		}
 	}
 
-	if err := handleSchedules(ctx, schedules, commit, input, ref); err != nil {
-		return err
+	if shouldDetectSchedules {
+		if err := handleSchedules(ctx, schedules, commit, input, ref); err != nil {
+			return err
+		}
 	}
 
 	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref)
