@@ -6,11 +6,14 @@ package websocket
 import (
 	"fmt"
 
+	"github.com/olahol/melody"
+
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
-
-	"github.com/olahol/melody"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
+
+var m *melody.Melody
 
 type websocketMessage struct {
 	Action string `json:"action"`
@@ -21,14 +24,21 @@ type subscribeMessageData struct {
 	URL string `json:"url"`
 }
 
-func HandleConnect(s *melody.Session) {
+func Init() *melody.Melody {
+	m = melody.New()
+	m.HandleConnect(handleConnect)
+	m.HandleMessage(handleMessage)
+	m.HandleDisconnect(handleDisconnect)
+	notify_service.RegisterNotifier(newNotifier(m))
+	return m
+}
+
+func handleConnect(s *melody.Session) {
 	ctx := context.GetWebContext(s.Request)
 
 	data := &sessionData{}
-
 	if ctx.IsSigned {
-		data.isSigned = true
-		data.userID = ctx.Doer.ID
+		data.user = ctx.Doer
 	}
 
 	s.Set("data", data)
@@ -36,7 +46,7 @@ func HandleConnect(s *melody.Session) {
 	// TODO: handle logouts
 }
 
-func HandleMessage(s *melody.Session, _msg []byte) {
+func handleMessage(s *melody.Session, _msg []byte) {
 	data, err := getSessionData(s)
 	if err != nil {
 		return
@@ -67,6 +77,5 @@ func handleSubscribeMessage(data *sessionData, _data any) error {
 	return nil
 }
 
-func HandleDisconnect(s *melody.Session) {
-	// TODO: Handle disconnect
+func handleDisconnect(s *melody.Session) {
 }

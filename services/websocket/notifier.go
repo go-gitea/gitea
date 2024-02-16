@@ -17,7 +17,7 @@ type websocketNotifier struct {
 }
 
 // NewNotifier create a new webhooksNotifier notifier
-func NewNotifier(m *melody.Melody) notify_service.Notifier {
+func newNotifier(m *melody.Melody) notify_service.Notifier {
 	return &websocketNotifier{
 		m:   m,
 		rnd: templates.HTMLRenderer(),

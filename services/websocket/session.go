@@ -8,12 +8,13 @@ import (
 	"net/url"
 
 	"github.com/olahol/melody"
+
+	user_model "code.gitea.io/gitea/models/user"
 )
 
 type sessionData struct {
-	userID   int64
-	isSigned bool
-	onURL    string
+	user  *user_model.User
+	onURL string
 }
 
 func (d *sessionData) isOnURL(_u1 string) bool {
