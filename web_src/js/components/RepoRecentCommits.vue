@@ -2,19 +2,12 @@
 import {SvgIcon} from '../svg.js';
 import {
   Chart,
-  Title,
   Tooltip,
-  Legend,
   BarElement,
-  CategoryScale,
   LinearScale,
   TimeScale,
-  PointElement,
-  LineElement,
-  Filler,
 } from 'chart.js';
 import {GET} from '../modules/fetch.js';
-import zoomPlugin from 'chartjs-plugin-zoom';
 import {Bar} from 'vue-chartjs';
 import {
   startDaysBetween,
@@ -45,16 +38,9 @@ Chart.defaults.borderColor = colors.border;
 
 Chart.register(
   TimeScale,
-  CategoryScale,
   LinearScale,
   BarElement,
-  Title,
   Tooltip,
-  Legend,
-  PointElement,
-  LineElement,
-  Filler,
-  zoomPlugin
 );
 
 export default {
@@ -121,11 +107,6 @@ export default {
         responsive: true,
         maintainAspectRatio: false,
         animation: true,
-        plugins: {
-          legend: {
-            display: false,
-          },
-        },
         scales: {
           x: {
             type: 'time',
