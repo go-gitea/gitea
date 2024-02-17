@@ -168,8 +168,8 @@ func ViewPost(ctx *context_module.Context) {
 		Link: run.RefLink(),
 	}
 	resp.State.Run.Commit = ViewCommit{
-		LocaleCommit:   ctx.Tr("actions.runs.commit"),
-		LocalePushedBy: ctx.Tr("actions.runs.pushed_by"),
+		LocaleCommit:   ctx.Locale.TrString("actions.runs.commit"),
+		LocalePushedBy: ctx.Locale.TrString("actions.runs.pushed_by"),
 		ShortSha:       base.ShortSha(run.CommitSHA),
 		Link:           fmt.Sprintf("%s/commit/%s", run.Repo.Link(), run.CommitSHA),
 		Pusher:         pusher,
@@ -194,7 +194,7 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.CurrentJob.Title = current.Name
 	resp.State.CurrentJob.Detail = current.Status.LocaleString(ctx.Locale)
 	if run.NeedApproval {
-		resp.State.CurrentJob.Detail = ctx.Locale.Tr("actions.need_approval_desc")
+		resp.State.CurrentJob.Detail = ctx.Locale.TrString("actions.need_approval_desc")
 	}
 	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead fo 'null' in json
 	resp.Logs.StepsLog = make([]*ViewStepLog, 0)          // marshal to '[]' instead fo 'null' in json

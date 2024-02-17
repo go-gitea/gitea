@@ -576,6 +576,7 @@ func SettingsPost(ctx *context.Context) {
 					AllowRebase:                   form.PullsAllowRebase,
 					AllowRebaseMerge:              form.PullsAllowRebaseMerge,
 					AllowSquash:                   form.PullsAllowSquash,
+					AllowFastForwardOnly:          form.PullsAllowFastForwardOnly,
 					AllowManualMerge:              form.PullsAllowManualMerge,
 					AutodetectManualMerge:         form.EnableAutodetectManualMerge,
 					AllowRebaseUpdate:             form.PullsAllowRebaseUpdate,
@@ -813,7 +814,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := models.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
+		if err := repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
 			ctx.ServerError("CancelRepositoryTransfer", err)
 			return
 		}

@@ -10,10 +10,19 @@ tasks:
   - name: Run backend
     command: |
       gp sync-await setup
-      if [ ! -f custom/conf/app.ini ]
-      then
+
+      # Get the URL and extract the domain
+      url=$(gp url 3000)
+      domain=$(echo $url | awk -F[/:] '{print $4}')
+
+      if [ -f custom/conf/app.ini ]; then
+        sed -i "s|^ROOT_URL =.*|ROOT_URL = ${url}/|" custom/conf/app.ini
+        sed -i "s|^DOMAIN =.*|DOMAIN = ${domain}|" custom/conf/app.ini
+        sed -i "s|^SSH_DOMAIN =.*|SSH_DOMAIN = ${domain}|" custom/conf/app.ini
+        sed -i "s|^NO_REPLY_ADDRESS =.*|SSH_DOMAIN = noreply.${domain}|" custom/conf/app.ini
+      else
         mkdir -p custom/conf/
-        echo -e "[server]\nROOT_URL=$(gp url 3000)/" > custom/conf/app.ini
+        echo -e "[server]\nROOT_URL = ${url}/" > custom/conf/app.ini
         echo -e "\n[database]\nDB_TYPE = sqlite3\nPATH = $GITPOD_REPO_ROOT/data/gitea.db" >> custom/conf/app.ini
       fi
       export TAGS="sqlite sqlite_unlock_notify"

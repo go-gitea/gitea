@@ -6,7 +6,7 @@ package context
 
 import (
 	"context"
-	"html"
+	"fmt"
 	"html/template"
 	"io"
 	"net/http"
@@ -69,16 +69,6 @@ func init() {
 	web.RegisterResponseStatusProvider[*Context](func(req *http.Request) web_types.ResponseStatusProvider {
 		return req.Context().Value(WebContextKey).(*Context)
 	})
-}
-
-// TrHTMLEscapeArgs runs ".Locale.Tr()" but pre-escapes all arguments with html.EscapeString.
-// This is useful if the locale message is intended to only produce HTML content.
-func (ctx *Context) TrHTMLEscapeArgs(msg string, args ...string) string {
-	trArgs := make([]any, len(args))
-	for i, arg := range args {
-		trArgs[i] = html.EscapeString(arg)
-	}
-	return ctx.Locale.Tr(msg, trArgs...)
 }
 
 type webContextKeyType struct{}
@@ -253,6 +243,13 @@ func (ctx *Context) JSONOK() {
 	ctx.JSON(http.StatusOK, map[string]any{"ok": true}) // this is only a dummy response, frontend seldom uses it
 }
 
-func (ctx *Context) JSONError(msg string) {
-	ctx.JSON(http.StatusBadRequest, map[string]any{"errorMessage": msg})
+func (ctx *Context) JSONError(msg any) {
+	switch v := msg.(type) {
+	case string:
+		ctx.JSON(http.StatusBadRequest, map[string]any{"errorMessage": v, "renderFormat": "text"})
+	case template.HTML:
+		ctx.JSON(http.StatusBadRequest, map[string]any{"errorMessage": v, "renderFormat": "html"})
+	default:
+		panic(fmt.Sprintf("unsupported type: %T", msg))
+	}
 }

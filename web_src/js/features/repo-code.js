@@ -194,7 +194,7 @@ export function initRepoCodeView() {
     const blob = await $.get(`${url}?${query}&anchor=${anchor}`);
     currentTarget.closest('tr').outerHTML = blob;
   });
-  $(document).on('click', '.copy-line-permalink', async (e) => {
-    await clippie(toAbsoluteUrl(e.currentTarget.getAttribute('data-url')));
+  $(document).on('click', '.copy-line-permalink', async ({currentTarget}) => {
+    await clippie(toAbsoluteUrl(currentTarget.getAttribute('data-url')));
   });
 }
