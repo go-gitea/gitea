@@ -36,7 +36,7 @@ func TestAPIUpdateOrgAvatar(t *testing.T) {
 
 	req := NewRequestWithJSON(t, "POST", "/api/v1/orgs/org3/avatar", &opts).
 		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
+	MakeRequest(t, req, http.StatusCreated)
 
 	// Test what happens if you don't have a valid Base64 string
 	opts = api.UpdateUserAvatarOption{

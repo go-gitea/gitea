@@ -37,7 +37,7 @@ func TestAPIUpdateUserAvatar(t *testing.T) {
 
 	req := NewRequestWithJSON(t, "POST", "/api/v1/user/avatar", &opts).
 		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
+	MakeRequest(t, req, http.StatusCreated)
 
 	opts = api.UpdateUserAvatarOption{
 		Image: "Invalid",
