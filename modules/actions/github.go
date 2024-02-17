@@ -73,6 +73,11 @@ func canGithubEventMatch(eventName string, triggedEvent webhook_module.HookEvent
 	case GithubEventSchedule:
 		return triggedEvent == webhook_module.HookEventSchedule
 
+	case GithubEventIssueComment:
+		// https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_comment-use-issue_comment
+		return triggedEvent == webhook_module.HookEventIssueComment ||
+			triggedEvent == webhook_module.HookEventPullRequestComment
+
 	default:
 		return eventName == string(triggedEvent)
 	}

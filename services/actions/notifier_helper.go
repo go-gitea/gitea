@@ -201,7 +201,8 @@ func notify(ctx context.Context, input *notifyInput) error {
 			log.Trace("repo %s with commit %s couldn't find pull_request_target workflows", input.Repo.RepoPath(), baseCommit.ID)
 		} else {
 			for _, wf := range baseWorkflows {
-				if wf.TriggerEvent.Name == actions_module.GithubEventPullRequestTarget {
+				if wf.TriggerEvent.Name == actions_module.GithubEventPullRequestTarget ||
+					wf.TriggerEvent.Name == actions_module.GithubEventIssueComment {
 					detectedWorkflows = append(detectedWorkflows, wf)
 				}
 			}
