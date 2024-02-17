@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import {checkAppUrl} from './common-global.js';
 
 export function initUserAuthOauth2() {
@@ -23,28 +22,29 @@ export function initUserAuthOauth2() {
 }
 
 export function initUserAuthLinkAccountView() {
-  const $lnkUserPage = $('.page-content.user.link-account');
-  if ($lnkUserPage.length === 0) {
+  const lnkUserPage = document.querySelector('.page-content.user.link-account');
+  if (!lnkUserPage) {
     return false;
   }
 
-  const $signinTab = $lnkUserPage.find('.item[data-tab="auth-link-signin-tab"]');
-  const $signUpTab = $lnkUserPage.find('.item[data-tab="auth-link-signup-tab"]');
-  const $signInView = $lnkUserPage.find('.tab[data-tab="auth-link-signin-tab"]');
-  const $signUpView = $lnkUserPage.find('.tab[data-tab="auth-link-signup-tab"]');
+  const signinTab = lnkUserPage.querySelector('.item[data-tab="auth-link-signin-tab"]');
+  const signUpTab = lnkUserPage.querySelector('.item[data-tab="auth-link-signup-tab"]');
+  const signInView = lnkUserPage.querySelector('.tab[data-tab="auth-link-signin-tab"]');
+  const signUpView = lnkUserPage.querySelector('.tab[data-tab="auth-link-signup-tab"]');
 
-  $signUpTab.on('click', () => {
-    $signinTab.removeClass('active');
-    $signInView.removeClass('active');
-    $signUpTab.addClass('active');
-    $signUpView.addClass('active');
-    return false;
+  signUpTab.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    signinTab.classList.remove('active');
+    signInView.classList.remove('active');
+    signUpTab.classList.add('active');
+    signUpView.classList.add('active');
   });
 
-  $signinTab.on('click', () => {
-    $signUpTab.removeClass('active');
-    $signUpView.removeClass('active');
-    $signinTab.addClass('active');
-    $signInView.addClass('active');
+  signinTab.addEventListener('click', () => {
+    signUpTab.classList.remove('active');
+    signUpView.classList.remove('active');
+    signinTab.classList.add('active');
+    signInView.classList.add('active');
   });
 }
