@@ -22,7 +22,6 @@ import {
   fillEmptyStartDaysWithZeroes,
 } from '../utils/time.js';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
-import $ from 'jquery';
 
 const {pageData} = window.config;
 
@@ -108,15 +107,14 @@ export default {
         datasets: [
           {
             data: data.map((i) => ({x: i.week, y: i.commits})),
-            label: "Commits",
-            backgroundColor: colors["commits"],
+            label: 'Commits',
+            backgroundColor: colors['commits'],
             borderWidth: 0,
             tension: 0.3,
           },
         ],
       };
     },
-
 
     getOptions() {
       return {
@@ -152,7 +150,7 @@ export default {
     },
   },
 };
-  </script>
+</script>
 <template>
   <div>
     <div class="ui header gt-df gt-ac gt-sb">
