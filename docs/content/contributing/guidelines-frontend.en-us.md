@@ -34,7 +34,7 @@ The source files can be found in the following directories:
 
 We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/htmlcssguide.html) and [Google JavaScript Style Guide](https://google.github.io/styleguide/jsguide.html)
 
-### Gitea specific guidelines:
+### Gitea specific guidelines
 
 1. Every feature (Fomantic-UI/jQuery module) should be put in separate files/directories.
 2. HTML ids and classes should use kebab-case, it's preferred to contain 2-3 feature related keywords.
