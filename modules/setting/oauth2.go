@@ -155,6 +155,8 @@ func loadOAuth2From(rootCfg ConfigProvider) {
 	}
 }
 
+// generalSigningSecret is used as container for a []byte value
+// instead of an additional mutex, we use CompareAndSwap func to change the value thread save
 var generalSigningSecret atomic.Pointer[[]byte]
 
 func GetGeneralTokenSigningSecret() []byte {
