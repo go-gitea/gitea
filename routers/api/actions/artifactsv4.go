@@ -136,6 +136,7 @@ func ArtifactsV4Routes(prefix string) *web.Route {
 		m.Post("FinalizeArtifact", r.finalizeArtifact)
 		m.Post("ListArtifacts", r.listArtifacts)
 		m.Post("GetSignedArtifactURL", r.getSignedArtifactURL)
+		m.Post("DeleteArtifact", r.deleteArtifact)
 	}, ArtifactContexter())
 	m.Group("", func() {
 		m.Put("UploadArtifact", r.uploadArtifact)
@@ -523,4 +524,58 @@ func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
 	file, _ := r.fs.Open(artifact.StoragePath)
 
 	_, _ = io.Copy(ctx.Resp, file)
+}
+
+func (r *artifactV4Routes) deleteArtifact(ctx *ArtifactContext) {
+	var req DeleteArtifactRequest
+
+	body, err := io.ReadAll(ctx.Req.Body)
+	if err != nil {
+		log.Error("Error decode request body: %v", err)
+		ctx.Error(http.StatusInternalServerError, "Error decode request body")
+		return
+	}
+	err = protojson.Unmarshal(body, &req)
+	if err != nil {
+		log.Error("Error decode request body: %v", err)
+		ctx.Error(http.StatusInternalServerError, "Error decode request body")
+		return
+	}
+	_, runID, ok := validateRunIDV4(ctx, req.WorkflowRunBackendId)
+	if !ok {
+		return
+	}
+
+	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{RunID: runID, ArtifactName: req.Name, ListOptions: db.ListOptions{PageSize: 1}})
+	if err != nil {
+		log.Error("Error getting artifacts: %v", err)
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	if len(artifacts) != 1 {
+		log.Debug("[artifact] handleListArtifacts, no artifacts")
+		ctx.Error(http.StatusNotFound)
+		return
+	}
+
+	_, err = db.DeleteByID[actions.ActionArtifact](ctx, artifacts[0].ID)
+	if err != nil {
+		log.Error("Error getting artifacts: %v", err)
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respData := DeleteArtifactResponse{
+		Ok:         true,
+		ArtifactId: artifacts[0].ID,
+	}
+	resp, err := protojson.Marshal(&respData)
+	if err != nil {
+		log.Error("Error encode response body: %v", err)
+		ctx.Error(http.StatusInternalServerError, "Error encode response body")
+		return
+	}
+	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
+	ctx.Resp.WriteHeader(http.StatusOK)
+	_, _ = ctx.Resp.Write(resp)
 }

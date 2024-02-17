@@ -160,3 +160,21 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 	body := strings.Repeat("A", 1024)
 	assert.Equal(t, resp.Body.String(), body)
 }
+
+func TestActionsArtifactV4Delete(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	token, err := actions_service.CreateAuthorizationToken(48, 792, 193)
+	assert.NoError(t, err)
+
+	// delete artifact by name
+	req := NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/DeleteArtifact", toProtoJSON(&actions.DeleteArtifactRequest{
+		Name:                    "artifact",
+		WorkflowRunBackendId:    "792",
+		WorkflowJobRunBackendId: "193",
+	})).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	var deleteResp actions.DeleteArtifactResponse
+	protojson.Unmarshal(resp.Body.Bytes(), &deleteResp)
+	assert.True(t, deleteResp.Ok)
+}

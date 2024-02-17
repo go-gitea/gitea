@@ -609,6 +609,124 @@ func (x *GetSignedArtifactURLResponse) GetSignedUrl() string {
 	return ""
 }
 
+type DeleteArtifactRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	WorkflowRunBackendId    string `protobuf:"bytes,1,opt,name=workflow_run_backend_id,json=workflowRunBackendId,proto3" json:"workflow_run_backend_id,omitempty"`
+	WorkflowJobRunBackendId string `protobuf:"bytes,2,opt,name=workflow_job_run_backend_id,json=workflowJobRunBackendId,proto3" json:"workflow_job_run_backend_id,omitempty"`
+	Name                    string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+}
+
+func (x *DeleteArtifactRequest) Reset() {
+	*x = DeleteArtifactRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_artifact_proto_msgTypes[9]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *DeleteArtifactRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteArtifactRequest) ProtoMessage() {}
+
+func (x *DeleteArtifactRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_artifact_proto_msgTypes[9]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteArtifactRequest.ProtoReflect.Descriptor instead.
+func (*DeleteArtifactRequest) Descriptor() ([]byte, []int) {
+	return file_artifact_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *DeleteArtifactRequest) GetWorkflowRunBackendId() string {
+	if x != nil {
+		return x.WorkflowRunBackendId
+	}
+	return ""
+}
+
+func (x *DeleteArtifactRequest) GetWorkflowJobRunBackendId() string {
+	if x != nil {
+		return x.WorkflowJobRunBackendId
+	}
+	return ""
+}
+
+func (x *DeleteArtifactRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type DeleteArtifactResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Ok         bool  `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
+	ArtifactId int64 `protobuf:"varint,2,opt,name=artifact_id,json=artifactId,proto3" json:"artifact_id,omitempty"`
+}
+
+func (x *DeleteArtifactResponse) Reset() {
+	*x = DeleteArtifactResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_artifact_proto_msgTypes[10]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *DeleteArtifactResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteArtifactResponse) ProtoMessage() {}
+
+func (x *DeleteArtifactResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_artifact_proto_msgTypes[10]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteArtifactResponse.ProtoReflect.Descriptor instead.
+func (*DeleteArtifactResponse) Descriptor() ([]byte, []int) {
+	return file_artifact_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *DeleteArtifactResponse) GetOk() bool {
+	if x != nil {
+		return x.Ok
+	}
+	return false
+}
+
+func (x *DeleteArtifactResponse) GetArtifactId() int64 {
+	if x != nil {
+		return x.ArtifactId
+	}
+	return 0
+}
+
 var File_artifact_proto protoreflect.FileDescriptor
 
 var file_artifact_proto_rawDesc = []byte{
@@ -716,7 +834,22 @@ var file_artifact_proto_rawDesc = []byte{
 	0x69, 0x67, 0x6e, 0x65, 0x64, 0x41, 0x72, 0x74, 0x69, 0x66, 0x61, 0x63, 0x74, 0x55, 0x52, 0x4c,
 	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x1d, 0x0a, 0x0a, 0x73, 0x69, 0x67, 0x6e,
 	0x65, 0x64, 0x5f, 0x75, 0x72, 0x6c, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x73, 0x69,
-	0x67, 0x6e, 0x65, 0x64, 0x55, 0x72, 0x6c, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x67, 0x6e, 0x65, 0x64, 0x55, 0x72, 0x6c, 0x22, 0xa0, 0x01, 0x0a, 0x15, 0x44, 0x65, 0x6c, 0x65,
+	0x74, 0x65, 0x41, 0x72, 0x74, 0x69, 0x66, 0x61, 0x63, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x12, 0x35, 0x0a, 0x17, 0x77, 0x6f, 0x72, 0x6b, 0x66, 0x6c, 0x6f, 0x77, 0x5f, 0x72, 0x75,
+	0x6e, 0x5f, 0x62, 0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x14, 0x77, 0x6f, 0x72, 0x6b, 0x66, 0x6c, 0x6f, 0x77, 0x52, 0x75, 0x6e, 0x42,
+	0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x49, 0x64, 0x12, 0x3c, 0x0a, 0x1b, 0x77, 0x6f, 0x72, 0x6b,
+	0x66, 0x6c, 0x6f, 0x77, 0x5f, 0x6a, 0x6f, 0x62, 0x5f, 0x72, 0x75, 0x6e, 0x5f, 0x62, 0x61, 0x63,
+	0x6b, 0x65, 0x6e, 0x64, 0x5f, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x17, 0x77,
+	0x6f, 0x72, 0x6b, 0x66, 0x6c, 0x6f, 0x77, 0x4a, 0x6f, 0x62, 0x52, 0x75, 0x6e, 0x42, 0x61, 0x63,
+	0x6b, 0x65, 0x6e, 0x64, 0x49, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x03,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x49, 0x0a, 0x16, 0x44, 0x65,
+	0x6c, 0x65, 0x74, 0x65, 0x41, 0x72, 0x74, 0x69, 0x66, 0x61, 0x63, 0x74, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x0e, 0x0a, 0x02, 0x6f, 0x6b, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08,
+	0x52, 0x02, 0x6f, 0x6b, 0x12, 0x1f, 0x0a, 0x0b, 0x61, 0x72, 0x74, 0x69, 0x66, 0x61, 0x63, 0x74,
+	0x5f, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52, 0x0a, 0x61, 0x72, 0x74, 0x69, 0x66,
+	0x61, 0x63, 0x74, 0x49, 0x64, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -732,7 +865,7 @@ func file_artifact_proto_rawDescGZIP() []byte {
 }
 
 var (
-	file_artifact_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+	file_artifact_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 	file_artifact_proto_goTypes  = []interface{}{
 		(*CreateArtifactRequest)(nil),                  // 0: github.actions.results.api.v1.CreateArtifactRequest
 		(*CreateArtifactResponse)(nil),                 // 1: github.actions.results.api.v1.CreateArtifactResponse
@@ -743,19 +876,20 @@ var (
 		(*ListArtifactsResponse_MonolithArtifact)(nil), // 6: github.actions.results.api.v1.ListArtifactsResponse_MonolithArtifact
 		(*GetSignedArtifactURLRequest)(nil),            // 7: github.actions.results.api.v1.GetSignedArtifactURLRequest
 		(*GetSignedArtifactURLResponse)(nil),           // 8: github.actions.results.api.v1.GetSignedArtifactURLResponse
-		(*timestamppb.Timestamp)(nil),                  // 9: google.protobuf.Timestamp
-		(*wrapperspb.StringValue)(nil),                 // 10: google.protobuf.StringValue
-		(*wrapperspb.Int64Value)(nil),                  // 11: google.protobuf.Int64Value
+		(*DeleteArtifactRequest)(nil),                  // 9: github.actions.results.api.v1.DeleteArtifactRequest
+		(*DeleteArtifactResponse)(nil),                 // 10: github.actions.results.api.v1.DeleteArtifactResponse
+		(*timestamppb.Timestamp)(nil),                  // 11: google.protobuf.Timestamp
+		(*wrapperspb.StringValue)(nil),                 // 12: google.protobuf.StringValue
+		(*wrapperspb.Int64Value)(nil),                  // 13: google.protobuf.Int64Value
 	}
 )
-
 var file_artifact_proto_depIdxs = []int32{
-	9,  // 0: github.actions.results.api.v1.CreateArtifactRequest.expires_at:type_name -> google.protobuf.Timestamp
-	10, // 1: github.actions.results.api.v1.FinalizeArtifactRequest.hash:type_name -> google.protobuf.StringValue
-	10, // 2: github.actions.results.api.v1.ListArtifactsRequest.name_filter:type_name -> google.protobuf.StringValue
-	11, // 3: github.actions.results.api.v1.ListArtifactsRequest.id_filter:type_name -> google.protobuf.Int64Value
+	11, // 0: github.actions.results.api.v1.CreateArtifactRequest.expires_at:type_name -> google.protobuf.Timestamp
+	12, // 1: github.actions.results.api.v1.FinalizeArtifactRequest.hash:type_name -> google.protobuf.StringValue
+	12, // 2: github.actions.results.api.v1.ListArtifactsRequest.name_filter:type_name -> google.protobuf.StringValue
+	13, // 3: github.actions.results.api.v1.ListArtifactsRequest.id_filter:type_name -> google.protobuf.Int64Value
 	6,  // 4: github.actions.results.api.v1.ListArtifactsResponse.artifacts:type_name -> github.actions.results.api.v1.ListArtifactsResponse_MonolithArtifact
-	9,  // 5: github.actions.results.api.v1.ListArtifactsResponse_MonolithArtifact.created_at:type_name -> google.protobuf.Timestamp
+	11, // 5: github.actions.results.api.v1.ListArtifactsResponse_MonolithArtifact.created_at:type_name -> google.protobuf.Timestamp
 	6,  // [6:6] is the sub-list for method output_type
 	6,  // [6:6] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
@@ -877,6 +1011,30 @@ func file_artifact_proto_init() {
 				return nil
 			}
 		}
+		file_artifact_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*DeleteArtifactRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_artifact_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*DeleteArtifactResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -884,7 +1042,7 @@ func file_artifact_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_artifact_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

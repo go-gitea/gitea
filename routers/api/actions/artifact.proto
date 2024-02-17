@@ -60,3 +60,14 @@ message GetSignedArtifactURLRequest {
 message GetSignedArtifactURLResponse {
     string signed_url = 1;
 }
+
+message DeleteArtifactRequest {
+    string workflow_run_backend_id = 1;
+    string workflow_job_run_backend_id = 2;
+    string name = 3;
+}
+
+message DeleteArtifactResponse {
+    bool ok = 1;
+    int64 artifact_id = 2;
+}
