@@ -6,7 +6,7 @@ export function initRepoRelease() {
     if (e.target.matches('.remove-rel-attach')) {
       const uuid = e.target.getAttribute('data-uuid');
       const id = e.target.getAttribute('data-id');
-      document.querySelector(`input[name='attachment-del-${uuid}']`).value = true;
+      document.querySelector(`input[name='attachment-del-${uuid}']`).value = 'true';
       hideElem(`#attachment-${id}`);
     }
   });
