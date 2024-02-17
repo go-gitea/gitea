@@ -670,7 +670,6 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 		}
 		ctx.Data["MissingRequiredChecks"] = missingRequiredChecks
 
-		ctx.Data["RequiredStatusChecks"] = pb.StatusCheckContexts
 		ctx.Data["is_context_required"] = func(context string) bool {
 			for _, c := range pb.StatusCheckContexts {
 				if c == context {
