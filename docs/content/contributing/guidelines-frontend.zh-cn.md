@@ -34,7 +34,7 @@ HTML 页面由[Go HTML Template](https://pkg.go.dev/html/template)渲染。
 
 我们推荐使用[Google HTML/CSS Style Guide](https://google.github.io/styleguide/htmlcssguide.html)和[Google JavaScript Style Guide](https://google.github.io/styleguide/jsguide.html)。
 
-## Gitea 特定准则：
+## Gitea 特定准则
 
 1. 每个功能（Fomantic-UI/jQuery 模块）应放在单独的文件/目录中。
 2. HTML 的 id 和 class 应使用 kebab-case，最好包含2-3个与功能相关的关键词。
